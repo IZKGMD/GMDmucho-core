@@ -4,9 +4,9 @@ set -Eeuo pipefail
 REPO_URL="${MUCHO_REPO_URL:-https://github.com/andrey888787/GMDmucho-core.git}"
 INSTALL_DIR="${MUCHO_INSTALL_DIR:-/opt/mucho-core}"
 DOMAIN="${MUCHO_DOMAIN:-}"
-ADMIN_USER="${MUCHO_ADMIN_USER:-admin}"
 DB_NAME="${MUCHO_DB_NAME:-muchocore}"
 DB_USER="${MUCHO_DB_USER:-muchocore_user}"
+ADMIN_USER="admin"
 
 log()  { printf '\033[1;32m[MuchoCore]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[warning]\033[0m %s\n' "$*" >&2; }
@@ -22,11 +22,28 @@ if [[ -z "$DOMAIN" ]]; then
 fi
 [[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || fail "Invalid domain: $DOMAIN"
 
-log "Installing system dependencies..."
+log "Installing required packages..."
 apt-get update -y
 apt-get install -y ca-certificates curl git openssl
 
 log "Checking Docker..."
+if ! command -v docker >/dev/null 2>&1; then
+  curl -fsSL https://get.docker.com | sh
+fi
+systemctl enable --now docker
+docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 was not found."
+
+log "Preparing MuchoCore..."
+if [[ -d "$INSTALL_DIR/.git" ]]; then
+  git -C "$INSTALL_DIR" fetch --depth=1 origin main
+  git -C "$INSTALL_DIR" reset --hard origin/main
+else
+  rm -rf "$INSTALL_DIR"
+  git clone --depth=1 "$REPO_URL" "$INSTALL_DIR"
+fi
+
+install -d -m 700 "$INSTALL_DIR/.secrets"
+
 if [[ -f "$INSTALL_DIR/.secrets/db_password" ]]; then
   MUCHO_DB_PASSWORD="$(cat "$INSTALL_DIR/.secrets/db_password")"
 else
@@ -45,44 +62,8 @@ else
   read -r -s -p "Admin panel password: " MUCHO_ADMIN_PASSWORD
   printf '\n'
 fi
-
-ADMIN_USER="admin"
-
-[[ -n "$MUCHO_DB_PASSWORD" ]] || fail "Database password is empty."
-[[ -n "$MUCHO_DB_ROOT_PASSWORD" ]] || fail "Failed to generate the database root password."
 [[ -n "$MUCHO_ADMIN_PASSWORD" ]] || fail "Admin password cannot be empty."
 
-log "Installing system dependencies..."
-apt-get update -y
-apt-get install -y ca-certificates curl git openssl
-
-log "Checking Docker..."
-if ! command -v docker >/dev/null 2>&1; then
-  curl -fsSL https://get.docker.com | sh
-fi
-systemctl enable --now docker
-docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 was not found (command: docker compose)."
-
-if ! command -v docker >/dev/null 2>&1; then
-  curl -fsSL https://get.docker.com | sh
-fi
-systemctl enable --now docker
-docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 was not found (command: docker compose)."
-
-log "Installing MuchoCore into $INSTALL_DIR..."
-if [[ -d "$INSTALL_DIR/.git" ]]; then
-  git -C "$INSTALL_DIR" fetch --depth=1 origin main
-  git -C "$INSTALL_DIR" reset --hard origin/main
-else
-  rm -rf "$INSTALL_DIR"
-  git clone --depth=1 "$REPO_URL" "$INSTALL_DIR"
-fi
-
-[[ -f "$INSTALL_DIR/docker-compose.yml" ]] || fail "Repository does not contain docker-compose.yml."
-[[ -f "$INSTALL_DIR/docker/Dockerfile" ]] || fail "Repository does not contain docker/Dockerfile."
-[[ -f "$INSTALL_DIR/docker/Caddyfile" ]] || fail "Repository does not contain docker/Caddyfile."
-
-install -d -m 700 "$INSTALL_DIR/.secrets"
 printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
 printf '%s' "$MUCHO_DB_ROOT_PASSWORD" > "$INSTALL_DIR/.secrets/db_root_password"
 printf '%s' "$MUCHO_ADMIN_PASSWORD" > "$INSTALL_DIR/.secrets/admin_password"
@@ -99,14 +80,18 @@ TZ=UTC
 EOFENV
 chmod 600 "$INSTALL_DIR/.env"
 
-log "Starting MariaDB + PHP-FPM + Caddy..."
+[[ -f "$INSTALL_DIR/docker-compose.yml" ]] || fail "Repository does not contain docker-compose.yml."
+[[ -f "$INSTALL_DIR/docker/Dockerfile" ]] || fail "Repository does not contain docker/Dockerfile."
+[[ -f "$INSTALL_DIR/docker/Caddyfile" ]] || fail "Repository does not contain docker/Caddyfile."
+
+log "Starting MuchoCore..."
 cd "$INSTALL_DIR"
 docker compose up -d --build --remove-orphans
 
-log "Checking health endpoint..."
+log "Checking health..."
 healthy=0
 for _ in {1..60}; do
-  if curl -ksSf --max-time 3 "https://$DOMAIN/health" 2>/dev/null | grep -qx '1'; then
+  if curl -ksSf --max-time 3 "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
     healthy=1
     break
   fi
@@ -114,13 +99,13 @@ for _ in {1..60}; do
 done
 
 if [[ "$healthy" -ne 1 ]]; then
-  warn "Services started, but https://$DOMAIN/health did not return 1 yet."
-  warn "Check the domain DNS record and make sure TCP ports 80/443 are reachable."
+  warn "The services started, but the health check is not ready yet."
+  warn "Make sure DNS points to this VPS and ports 80/443 are open."
 fi
 
 cat <<EOFOUT
 
-MuchoCore has been installed.
+MuchoCore is installed.
 
 GDPS:   https://$DOMAIN
 Admin:  https://$DOMAIN/admin/
@@ -133,5 +118,4 @@ Update:
 Logs:
   cd $INSTALL_DIR && sudo docker compose logs -f
 
-Important: do not remove the db_data volume and do not lose config/cloudsave.key.
 EOFOUT
