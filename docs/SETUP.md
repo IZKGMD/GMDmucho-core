@@ -41,6 +41,8 @@ The installer automatically:
 8. Creates the database tables.
 9. Creates the `admin` account.
 
+During installation, the installer tells you that the admin username is `admin` and asks you to create the password you will use to sign in.
+
 ## First login
 
 Open:
@@ -55,7 +57,9 @@ Username:
 admin
 ```
 
-Use the password you entered during installation.
+Password:
+
+Use the password you created during installation.
 
 ## Health check
 
