@@ -22,7 +22,11 @@ if [[ -z "$DOMAIN" ]]; then
 fi
 [[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || fail "Invalid domain: $DOMAIN"
 
-# Database credentials and the admin username are generated automatically.
+log "Installing system dependencies..."
+apt-get update -y
+apt-get install -y ca-certificates curl git openssl
+
+log "Checking Docker..."
 if [[ -f "$INSTALL_DIR/.secrets/db_password" ]]; then
   MUCHO_DB_PASSWORD="$(cat "$INSTALL_DIR/.secrets/db_password")"
 else
@@ -53,6 +57,12 @@ apt-get update -y
 apt-get install -y ca-certificates curl git openssl
 
 log "Checking Docker..."
+if ! command -v docker >/dev/null 2>&1; then
+  curl -fsSL https://get.docker.com | sh
+fi
+systemctl enable --now docker
+docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 was not found (command: docker compose)."
+
 if ! command -v docker >/dev/null 2>&1; then
   curl -fsSL https://get.docker.com | sh
 fi
