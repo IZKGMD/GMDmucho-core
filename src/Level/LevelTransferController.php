@@ -16,12 +16,7 @@ final readonly class LevelTransferController
 
     private function credential(Request $request): string
     {
-        /*
-         * Старые клиенты используют gjp,
-         * Geometry Dash 2.2 в ряде endpoint'ов использует gjp2.
-         */
-        return $request->postString('gjp')
-            ?: $request->postString('gjp2');
+        return $request->gdCredential();
     }
 
     public function upload(Request $request): Response
@@ -50,9 +45,7 @@ final readonly class LevelTransferController
 
             return Response::text((string)$levelId);
         } catch (Throwable $e) {
-            /*
-             * Не логируем credential и levelString.
-             */
+            /* Do not log credentials or level payloads. */
             error_log(sprintf(
                 '[MuchoCore] request_id=%s upload_level_failed account_id=%d exception=%s message=%s file=%s line=%d',
                 (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
@@ -70,7 +63,7 @@ final readonly class LevelTransferController
     public function download(Request $request): Response
     {
         $levelId = $request->postInt('levelID');
-        $gameVersion = $request->postInt('gameVersion', 22);
+        $gameVersion = $request->clientVersion()->gameVersion ?: 22;
         $extras = $request->postInt('extras', 0) === 1;
 
         if (
