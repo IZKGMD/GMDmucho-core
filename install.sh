@@ -11,18 +11,18 @@ DB_USER="${MUCHO_DB_USER:-muchocore_user}"
 log()  { printf '\033[1;32m[MuchoCore]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[warning]\033[0m %s\n' "$*" >&2; }
 fail() { printf '\033[1;31m[error]\033[0m %s\n' "$*" >&2; exit 1; }
-trap 'fail "Ошибка на строке $LINENO. Проверьте вывод выше."' ERR
+trap 'fail "Failure on line $LINENO. Check the output above."' ERR
 
 [[ $EUID -eq 0 ]] || fail "Run the installer as root: sudo bash install.sh"
 command -v apt-get >/dev/null 2>&1 || fail "Debian/Ubuntu-like systems are supported."
 command -v systemctl >/dev/null 2>&1 || fail "Linux with systemd is required."
 
 if [[ -z "$DOMAIN" ]]; then
-  read -r -p "Домен GDPS (например gdps.example.com): " DOMAIN
+  read -r -p "GDPS domain (for example gdps.example.com): " DOMAIN
 fi
 [[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || fail "Invalid domain: $DOMAIN"
 
-read -r -p "Логин администратора [admin]: " input_admin
+read -r -p "Admin username [admin]: " input_admin
 ADMIN_USER="${input_admin:-$ADMIN_USER}"
 
 if [[ -z "${MUCHO_DB_PASSWORD:-}" ]]; then
@@ -65,7 +65,7 @@ if ! command -v docker >/dev/null 2>&1; then
   curl -fsSL https://get.docker.com | sh
 fi
 systemctl enable --now docker
-docker compose version >/dev/null 2>&1 || fail "Не найден Docker Compose v2 (команда: docker compose)."
+docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 was not found (command: docker compose)."
 
 log "Installing MuchoCore into $INSTALL_DIR..."
 if [[ -d "$INSTALL_DIR/.git" ]]; then
@@ -112,8 +112,8 @@ for _ in {1..60}; do
 done
 
 if [[ "$healthy" -ne 1 ]]; then
-  warn "Сервисы запущены, но https://$DOMAIN/health ещё не ответил 1."
-  warn "Проверьте DNS домена и открытые TCP-порты 80/443."
+  warn "Services started, but https://$DOMAIN/health did not return 1 yet."
+  warn "Check the domain DNS record and make sure TCP ports 80/443 are reachable."
 fi
 
 cat <<'EOFOUT'
