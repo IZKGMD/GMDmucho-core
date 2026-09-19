@@ -85,53 +85,79 @@ final class Router
         $path = strtolower($path);
 
         static $compatAliases = [
-            'syncgjaccountnew.php' => '/syncGJAccount',
-            'syncgjaccountnew' => '/syncGJAccount',
-            'backupgjaccountnew.php' => '/backupGJAccount',
-            'backupgjaccountnew' => '/backupGJAccount',
-            // Cloud saves
-            '/backupgjaccountnew' => '/backupgjaccount',
-            '/backupgjaccount20'  => '/backupgjaccount',
-            '/syncgjaccountnew'   => '/syncgjaccount',
-            '/syncgjaccount20'    => '/syncgjaccount',
+            // Account endpoints used by different client generations.
+            '/loginGJAccount19' => '/loginGJAccount',
+            '/loginGJAccount20' => '/loginGJAccount',
+            '/loginGJAccount21' => '/loginGJAccount',
+            '/loginGJAccount22' => '/loginGJAccount',
+            '/registerGJAccount19' => '/registerGJAccount',
+            '/registerGJAccount20' => '/registerGJAccount',
+            '/registerGJAccount21' => '/registerGJAccount',
+            '/registerGJAccount22' => '/registerGJAccount',
 
-            // Levels listing
-            '/getgjlevels'   => '/getgjlevels21',
-            '/getgjlevels19' => '/getgjlevels21',
-            '/getgjlevels20' => '/getgjlevels21',
+            // Cloud saves.
+            '/backupGJAccountNew' => '/backupGJAccount',
+            '/backupGJAccount19' => '/backupGJAccount',
+            '/backupGJAccount20' => '/backupGJAccount',
+            '/syncGJAccountNew' => '/syncGJAccount',
+            '/syncGJAccount19' => '/syncGJAccount',
+            '/syncGJAccount20' => '/syncGJAccount',
 
-            // Level download
-            '/downloadgjlevel'   => '/downloadgjlevel21',
-            '/downloadgjlevel19' => '/downloadgjlevel21',
-            '/downloadgjlevel20' => '/downloadgjlevel21',
+            // Level discovery and transfer.
+            '/getGJLevels' => '/getGJLevels21',
+            '/getGJLevels19' => '/getGJLevels21',
+            '/getGJLevels20' => '/getGJLevels21',
+            '/getGJLevels22' => '/getGJLevels21',
+            '/downloadGJLevel' => '/downloadGJLevel21',
+            '/downloadGJLevel19' => '/downloadGJLevel21',
+            '/downloadGJLevel20' => '/downloadGJLevel21',
+            '/uploadGJLevel' => '/uploadGJLevel21',
+            '/uploadGJLevel19' => '/uploadGJLevel21',
+            '/uploadGJLevel20' => '/uploadGJLevel21',
 
-            // Comments
-            '/getgjcomments'   => '/getgjcomments21',
-            '/getgjcomments19' => '/getgjcomments21',
-            '/getgjcomments20' => '/getgjcomments21',
+            // Comments and likes.
+            '/getGJComments' => '/getGJComments21',
+            '/getGJComments19' => '/getGJComments21',
+            '/getGJComments20' => '/getGJComments21',
+            '/uploadGJComment' => '/uploadGJComment20',
+            '/uploadGJComment19' => '/uploadGJComment20',
+            '/uploadGJComment21' => '/uploadGJComment21',
+            '/likeGJItem' => '/likeGJItem21',
+            '/likeGJItem19' => '/likeGJItem21',
+            '/likeGJItem20' => '/likeGJItem21',
 
-            // Scores
-            '/getgjscores'   => '/getgjscores20',
-            '/getgjscores19' => '/getgjscores20',
+            // User and leaderboard endpoints.
+            '/getGJUserInfo' => '/getGJUserInfo20',
+            '/getGJUserInfo19' => '/getGJUserInfo20',
+            '/getGJUserInfo21' => '/getGJUserInfo20',
+            '/getGJUserInfo22' => '/getGJUserInfo20',
+            '/getGJUsers' => '/getGJUsers20',
+            '/getGJUsers19' => '/getGJUsers20',
+            '/getGJUsers21' => '/getGJUsers20',
+            '/getGJUsers22' => '/getGJUsers20',
+            '/getGJScores' => '/getGJScores20',
+            '/getGJScores19' => '/getGJScores20',
+            '/getGJScores21' => '/getGJScores20',
+            '/getGJScores22' => '/getGJScores20',
+            '/updateGJAccSettings19' => '/updateGJAccSettings20',
+            '/updateGJAccSettings21' => '/updateGJAccSettings20',
+            '/updateGJAccSettings22' => '/updateGJAccSettings20',
+            '/updateGJUserScore19' => '/updateGJUserScore',
+            '/updateGJUserScore20' => '/updateGJUserScore',
+            '/updateGJUserScore21' => '/updateGJUserScore',
+            '/updateGJUserScore22' => '/updateGJUserScore22',
 
-            // Likes
-            '/likegjitem'   => '/likegjitem21',
-            '/likegjitem19' => '/likegjitem21',
-            '/likegjitem20' => '/likegjitem21',
+            // Discovery.
+            '/getGJMapPacks19' => '/getGJMapPacks21',
+            '/getGJMapPacks20' => '/getGJMapPacks21',
+            '/getGJGauntlets19' => '/getGJGauntlets21',
+            '/getGJGauntlets20' => '/getGJGauntlets21',
 
-            // User score update
-            '/updategjuserscore19' => '/updategjuserscore',
-            '/updategjuserscore20' => '/updategjuserscore',
-            '/updategjuserscore21' => '/updategjuserscore',
-
-            // Level upload
-            '/uploadgjlevel'   => '/uploadgjlevel21',
-            '/uploadgjlevel19' => '/uploadgjlevel21',
-            '/uploadgjlevel20' => '/uploadgjlevel21',
-
-            // Comment upload
-            '/uploadgjcomment'   => '/uploadgjcomment20',
-            '/uploadgjcomment19' => '/uploadgjcomment20',
+            // Level scores.
+            '/getGJLevelScores19' => '/getGJLevelScores',
+            '/getGJLevelScores20' => '/getGJLevelScores',
+            '/getGJLevelScores21' => '/getGJLevelScores211',
+            '/getGJLevelScores22' => '/getGJLevelScores',
         ];
 
         return $compatAliases[$path] ?? $path;
