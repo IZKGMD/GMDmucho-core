@@ -1,0 +1,24 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  shell-and-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check shell scripts
+        run: |
+          bash -n install.sh
+          bash -n update.sh
+          bash -n uninstall.sh
+      - name: Check Python patcher
+        run: python3 -m py_compile tools/client-patch.py
+      - name: Check required files
+        run: |
+          test -f docker-compose.yml
+          test -f docker/Dockerfile
+          test -f docker/Caddyfile
+          test -f tools/client-patch.bat
