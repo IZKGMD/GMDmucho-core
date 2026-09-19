@@ -7,7 +7,7 @@ Do not follow the manual PHP/Nginx steps unless you know why you need them.
 Use:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/andrey888787/GMDmucho-core/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh -o install.sh
 sudo bash install.sh
 ```
 
