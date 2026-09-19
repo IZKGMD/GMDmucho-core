@@ -24,3 +24,4 @@
 /debug_*.php
 /public/__probe_*.txt
 /public/__schema_*.txt
+/storage/client-trace.ndjson
