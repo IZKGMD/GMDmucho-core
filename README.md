@@ -131,3 +131,9 @@ The cloud-save key is required to decrypt existing cloud-save data.
 ## License
 
 This repository is licensed under the MIT License. See [`LICENSE`](LICENSE).
+
+## Client compatibility status
+
+Server-side tests are automated. Real Geometry Dash client compatibility is **not claimed until a real client test is performed**.
+
+See [`docs/CLIENT_TESTING.md`](docs/CLIENT_TESTING.md) for the test and contract workflow.
