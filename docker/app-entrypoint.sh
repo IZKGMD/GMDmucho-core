@@ -18,20 +18,15 @@ MUCHO_CUSTOM_CONTENT_URL=${MUCHO_CUSTOM_CONTENT_URL:-https://geometrydashfiles.b
 EOFENV
 chmod 600 .env
 
-install -d -o www-data -g www-data config
+install -d -o www-data -g www-data config /var/lib/muchocore
 if [[ ! -s config/cloudsave.key ]]; then
   openssl rand -base64 32 > config/cloudsave.key
 fi
 chown www-data:www-data config/cloudsave.key
 chmod 600 config/cloudsave.key
 
-if [[ ! -f /var/lib/muchocore-admin.php ]]; then
-  mkdir -p /var/lib/muchocore
-fi
-
-if [[ ! -s /var/lib/muchocore/admin-password.hash ]]; then
-  php -r 'echo password_hash($argv[1], PASSWORD_DEFAULT);' "$ADMIN_PASS" > /var/lib/muchocore/admin-password.hash
-fi
+php -r 'echo password_hash($argv[1], PASSWORD_DEFAULT);' "$ADMIN_PASS" > /var/lib/muchocore/admin-password.hash
+chmod 600 /var/lib/muchocore/admin-password.hash
 
 cat > /etc/muchocore-admin.php <<EOFPHP
 <?php
