@@ -42,6 +42,18 @@ else
   git clone --depth=1 "$REPO_URL" "$INSTALL_DIR"
 fi
 
+# The deployment files are introduced on the feature branch before the PR is merged.
+# If main does not contain them yet, use that branch for the pre-merge VPS test.
+if [[ ! -f "$INSTALL_DIR/docker-compose.yml" ]]; then
+  if git -C "$INSTALL_DIR" ls-remote --exit-code origin refs/heads/feat/easy-deploy >/dev/null 2>&1; then
+    log "Main does not contain the deployment files yet; using feat/easy-deploy for this test."
+    git -C "$INSTALL_DIR" fetch --depth=1 origin feat/easy-deploy
+    git -C "$INSTALL_DIR" reset --hard origin/feat/easy-deploy
+  else
+    fail "Repository does not contain docker-compose.yml."
+  fi
+fi
+
 install -d -m 700 "$INSTALL_DIR/.secrets"
 
 if [[ -f "$INSTALL_DIR/.secrets/db_password" ]]; then
