@@ -17,8 +17,7 @@ final readonly class UserController
     public function requestAccess(Request $request): Response
     {
         $id=$request->postInt('accountID');
-        $gjp=$request->postString('gjp')
-            ?: $request->postString('gjp2');
+        $gjp=$request->gdCredential();
 
         if ($id<=0 || $gjp==='') {
             return Response::text('-1');
@@ -61,7 +60,7 @@ final readonly class UserController
     public function updateSettings(Request $request): Response
     {
         $accountId = $request->postInt("accountID", 0) ?: (int)($_POST["accountID"] ?? 0);
-        $gjp = (string)($request->postString("gjp") ?: $request->postString("gjp2") ?: ($_POST["gjp"] ?? $_POST["gjp2"] ?? ""));
+        $gjp = (string)($request->gdCredential() ?: ($_POST["gjp"] ?? $_POST["gjp2"] ?? ""));
         $mS = (int)($request->postInt("mS", 0) ?: ($_POST["mS"] ?? 0));
         $frS = (int)($request->postInt("frS", 0) ?: ($_POST["frS"] ?? 0));
         $cS = (int)($request->postInt("cS", 0) ?: ($_POST["cS"] ?? 0));
@@ -102,11 +101,7 @@ final readonly class UserController
     {
         $targetAccountId = $request->postInt('targetAccountID');
 
-        /*
-         * При первом открытии собственного профиля некоторые клиенты
-         * отправляют только accountID. После обновления они уже передают
-         * targetAccountID, из-за чего старый код работал лишь со второго раза.
-         */
+        /* Some clients use accountID for the first self-profile request. */
         if ($targetAccountId <= 0) {
             $targetAccountId = $request->postInt('accountID');
         }
