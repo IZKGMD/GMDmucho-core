@@ -3,7 +3,6 @@ set -Eeuo pipefail
 
 ROOT=/var/www/mucho-core
 cd "$ROOT"
-
 DB_PASS="$(cat /run/secrets/db_password)"
 ADMIN_PASS="$(cat /run/secrets/admin_password)"
 
@@ -42,5 +41,4 @@ if [[ ! -f vendor/autoload.php ]]; then
 fi
 
 php bin/migrate.php migrate
-
 exec "$@"
