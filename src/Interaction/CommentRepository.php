@@ -1,0 +1,213 @@
+<?php
+
+declare(strict_types=1);
+
+namespace MuchoCore\Interaction;
+
+use PDO;
+
+final class CommentRepository
+{
+    public function __construct(
+        private readonly PDO $db
+    ) {}
+
+    public function addLevelComment(int $levelId, int $accountId, string $content, int $percent): int
+    {
+        $stmt = $this->db->prepare(
+            "INSERT INTO comments (level_id, account_id, content, percent, created_at)
+             VALUES (:level_id, :account_id, :content, :percent, NOW())"
+        );
+
+        $stmt->execute([
+            ":level_id" => $levelId,
+            ":account_id" => $accountId,
+            ":content" => $content,
+            ":percent" => $percent
+        ]);
+
+        return (int)$this->db->lastInsertId();
+    }
+
+    public function getLevelComments(int $levelId, int $page = 0, int $limit = 100): array
+    {
+        $offset = $page * $limit;
+
+        $stmt = $this->db->prepare(
+            "SELECT c.*,
+                    a.username, a.role,
+                    p.cube, p.color1, p.color2, p.special
+             FROM comments c
+             JOIN accounts a ON c.account_id = a.account_id
+             LEFT JOIN profiles p ON a.account_id = p.account_id
+             WHERE c.level_id = :level_id
+             ORDER BY c.created_at DESC
+             LIMIT :limit OFFSET :offset"
+        );
+
+        $stmt->bindValue(":level_id", $levelId, PDO::PARAM_INT);
+        $stmt->bindValue(":limit", $limit, PDO::PARAM_INT);
+        $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function addAccountComment(int $accountId, string $content): int
+    {
+        $stmt = $this->db->prepare(
+            "INSERT INTO account_comments (account_id, content, created_at)
+             VALUES (:account_id, :content, NOW())"
+        );
+        $stmt->execute([
+            ":account_id" => $accountId,
+            ":content" => $content
+        ]);
+
+        return (int)$this->db->lastInsertId();
+    }
+
+    public function getAccountComments(int $accountId, int $page = 0, int $limit = 100): array
+    {
+        $offset = $page * $limit;
+
+        $stmt = $this->db->prepare(
+            "SELECT c.*, a.role
+             FROM account_comments c
+             JOIN accounts a ON c.account_id = a.account_id
+             WHERE c.account_id = :account_id
+             ORDER BY c.created_at DESC
+             LIMIT :limit OFFSET :offset"
+        );
+        $stmt->bindValue(":account_id", $accountId, PDO::PARAM_INT);
+        $stmt->bindValue(":limit", $limit, PDO::PARAM_INT);
+        $stmt->bindValue(":offset", $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+
+    public function deleteLevelComment(
+        int $commentId,
+        int $accountId
+    ): bool {
+        $this->db->beginTransaction();
+
+        try {
+            $q = $this->db->prepare(
+                'SELECT id
+                 FROM comments
+                 WHERE id=:id
+                   AND account_id=:aid
+                 FOR UPDATE'
+            );
+
+            $q->execute([
+                'id'=>$commentId,
+                'aid'=>$accountId
+            ]);
+
+            if (!$q->fetchColumn()) {
+                $this->db->rollBack();
+                return false;
+            }
+
+            $q = $this->db->prepare(
+                'DELETE FROM likes
+                 WHERE item_id=:id
+                   AND type=2'
+            );
+
+            $q->execute([
+                'id'=>$commentId
+            ]);
+
+            $q = $this->db->prepare(
+                'DELETE FROM comments
+                 WHERE id=:id
+                   AND account_id=:aid'
+            );
+
+            $q->execute([
+                'id'=>$commentId,
+                'aid'=>$accountId
+            ]);
+
+            $ok = $q->rowCount() === 1;
+
+            $this->db->commit();
+
+            return $ok;
+
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+
+            throw $e;
+        }
+    }
+
+
+    public function deleteAccountComment(
+        int $commentId,
+        int $accountId
+    ): bool {
+        $this->db->beginTransaction();
+
+        try {
+            $q = $this->db->prepare(
+                'SELECT id
+                 FROM account_comments
+                 WHERE id=:id
+                   AND account_id=:aid
+                 FOR UPDATE'
+            );
+
+            $q->execute([
+                'id'=>$commentId,
+                'aid'=>$accountId
+            ]);
+
+            if (!$q->fetchColumn()) {
+                $this->db->rollBack();
+                return false;
+            }
+
+            $q = $this->db->prepare(
+                'DELETE FROM likes
+                 WHERE item_id=:id
+                   AND type=3'
+            );
+
+            $q->execute([
+                'id'=>$commentId
+            ]);
+
+            $q = $this->db->prepare(
+                'DELETE FROM account_comments
+                 WHERE id=:id
+                   AND account_id=:aid'
+            );
+
+            $q->execute([
+                'id'=>$commentId,
+                'aid'=>$accountId
+            ]);
+
+            $ok = $q->rowCount() === 1;
+
+            $this->db->commit();
+
+            return $ok;
+
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+
+            throw $e;
+        }
+    }
+}

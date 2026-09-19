@@ -1,0 +1,26 @@
+# Local configuration / secrets
+.env
+.env.*
+!.env.example
+/config/cloudsave.key
+/config/*.key
+
+# Dependencies / runtime state
+/vendor/
+/storage/
+/var/log/*
+/var/cache/
+
+# Local backups / release artifacts
+/public/*.tar.gz
+/backups/
+/releases/**/*.apk
+
+# Temporary / debug files
+*.log
+*.tmp
+*.bak
+*.bak-*
+/debug_*.php
+/public/__probe_*.txt
+/public/__schema_*.txt

@@ -1,0 +1,163 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+$root = dirname(__DIR__);
+$envFile = $root . "/.env";
+$env = [];
+if (file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (str_starts_with(trim($line), "#") || !str_contains($line, "=")) continue;
+        [$k, $v] = explode("=", $line, 2);
+        $env[trim($k)] = trim($v);
+    }
+}
+
+$dbHost = $env["DB_HOST"] ?? getenv("DB_HOST") ?: "127.0.0.1";
+$dbPort = $env["DB_PORT"] ?? getenv("DB_PORT") ?: "3306";
+$dbName = $env["DB_NAME"] ?? getenv("DB_NAME") ?: "muchocore";
+$dbUser = $env["DB_USER"] ?? getenv("DB_USER") ?: "muchocore_user";
+$dbPass = $env["DB_PASS"] ?? getenv("DB_PASS");
+
+if ($dbPass === null || $dbPass === "") {
+    exit("DB_PASS is not configured. Set it in .env or the environment.\n");
+}
+
+try {
+    $pdo = new PDO(
+        "mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4",
+        $dbUser,
+        $dbPass,
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
+    );
+} catch (PDOException $e) {
+    exit("Ошибка подключения к БД: " . $e->getMessage() . "\n");
+}
+
+$action = $argv[1] ?? "";
+
+switch ($action) {
+case "set-password":
+        $username = $argv[2] ?? "";
+        $newPass = $argv[3] ?? "";
+        if ($username === "" || $newPass === "") {
+            exit("Использование: mucho-admin set-password <username> <new_password>
+");
+        }
+        $gjp = sha1($newPass);
+        $passHash = password_hash($newPass, PASSWORD_DEFAULT);
+        $gjp2Hash = password_hash(sha1($gjp . "mI29fmAnxgTs"), PASSWORD_DEFAULT);
+        $stmt = $pdo->prepare("UPDATE accounts SET password_hash = :p, gjp2_hash = :g WHERE username = :u");
+        $stmt->execute(["p" => $passHash, "g" => $gjp2Hash, "u" => $username]);
+        echo "Пароль для пользователя {$username} успешно изменен!
+";
+        break;
+
+    case "set-role":
+        $username = $argv[2] ?? "";
+        $role = $argv[3] ?? "admin";
+
+        if ($username === "") {
+            exit("Использование: mucho-admin set-role <username> <user|mod|elder|admin>\n");
+        }
+
+        $stmt = $pdo->prepare("UPDATE accounts SET role = :role WHERE username = :username");
+        $stmt->execute(["role" => $role, "username" => $username]);
+
+        if ($stmt->rowCount() > 0) {
+            echo "Пользователю {$username} успешно установлена роль: {$role}\n";
+        } else {
+            echo "Пользователь {$username} не найден или роль уже установлена.\n";
+        }
+        break;
+
+    case "rate-level":
+        $levelId  = (int)($argv[2] ?? 0);
+        $stars    = (int)($argv[3] ?? 0);
+        $featured = (int)($argv[4] ?? 0); // 0 = None, 1 = Featured
+        $epic     = (int)($argv[5] ?? 0); // 0 = None, 1 = Epic, 2 = Legendary, 3 = Mythic
+        $demon    = (int)($argv[6] ?? 0); // 0 = No, 1 = Easy, 2 = Medium, 3 = Hard, 4 = Insane, 5 = Extreme
+
+        if ($levelId <= 0 || $stars <= 0) {
+            exit("Использование: mucho-admin rate-level <level_id> <stars> [featured:0/1] [epic:0/1/2/3] [demon:0/1/2/3/4/5]\n");
+        }
+
+        $diff = match ($stars) {
+            1 => 10,
+            2 => 10,
+            3 => 20,
+            4, 5 => 30,
+            6, 7 => 40,
+            8, 9 => 50,
+            10 => 50,
+            default => 10
+        };
+
+        $isDemon = ($stars === 10 || $demon > 0) ? 1 : 0;
+        $demonDiff = $isDemon ? ($demon > 0 ? $demon : 1) : 0;
+        $autoLevel = ($stars === 1) ? 1 : 0;
+
+        $stmt = $pdo->prepare("
+            UPDATE levels 
+            SET stars = :stars, 
+                difficulty = :difficulty,
+                featured = :featured, 
+                epic = :epic,
+                demon = :demon, 
+                demon_difficulty = :demon_difficulty,
+                auto_level = :auto_level
+            WHERE level_id = :level_id
+        ");
+        $stmt->execute([
+            "stars"            => $stars,
+            "difficulty"       => $diff,
+            "featured"         => $featured,
+            "epic"             => $epic,
+            "demon"            => $isDemon,
+            "demon_difficulty" => $demonDiff,
+            "auto_level"       => $autoLevel,
+            "level_id"         => $levelId
+        ]);
+
+        if ($stmt->rowCount() > 0) {
+            echo "Уровень #{$levelId} оценен: {$stars}★ | Featured: {$featured} | Epic: {$epic} | Demon: {$demonDiff}\n";
+            
+            $cpBonus = 1 + ($featured ? 1 : 0) + $epic;
+            $stmtUser = $pdo->prepare("
+                UPDATE profiles 
+                SET creator_points = creator_points + :cp 
+                WHERE account_id = (SELECT account_id FROM levels WHERE level_id = :level_id)
+            ");
+            $stmtUser->execute(["cp" => $cpBonus, "level_id" => $levelId]);
+            echo "Автору уровня начислено +{$cpBonus} CP!\n";
+        } else {
+            echo "Уровень #{$levelId} не найден.\n";
+        }
+        break;
+
+    case "list-levels":
+        $stmt = $pdo->query("SELECT level_id, name, stars, featured, epic, demon FROM levels ORDER BY level_id DESC LIMIT 10");
+        $levels = $stmt->fetchAll();
+        echo "=== СПИСОК УРОВНЕЙ ===\n";
+        foreach ($levels as $l) {
+            $id = $l["level_id"];
+            $name = $l["name"];
+            $s = $l["stars"];
+            $f = $l["featured"];
+            $e = $l["epic"];
+            $d = $l["demon"];
+            echo "#{$id} | {$name} | Stars: {$s} | Featured: {$f} | Epic: {$e} | Demon: {$d}\n";
+        }
+        break;
+
+    default:
+        echo "=== MuchoCore Admin CLI ===\n";
+        echo "Команды:\n";
+        echo "  mucho-admin set-role <username> <user|mod|elder|admin>\n";
+        echo "  mucho-admin rate-level <level_id> <stars> [featured:0/1] [epic:0/1/2/3] [demon:0/1/2/3/4/5]\n";
+        echo "  mucho-admin set-password <username> <new_password>\n";
+        echo "  mucho-admin list-levels\n";
+        break;
+}

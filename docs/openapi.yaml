@@ -1,0 +1,90 @@
+openapi: 3.0.3
+
+info:
+  title: MuchoCore API v2
+  version: "2.2"
+  description: |
+    JSON API for MuchoCore.
+    Copyright (C) 2026 IZK.
+
+servers:
+  - url: https://muchogdps.space
+
+paths:
+
+  /api/v2/health:
+    get:
+      summary: MuchoCore health
+      responses:
+        "200":
+          description: Healthy
+
+  /api/v2/profile/{accountId}:
+    get:
+      summary: Public Mucho profile
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Profile
+        "404":
+          description: Profile not found
+
+  /api/v2/dashboard:
+    get:
+      summary: Public GDPS statistics
+      responses:
+        "200":
+          description: Dashboard data
+
+  /api/v2/music:
+    get:
+      summary: Music list
+      responses:
+        "200":
+          description: Songs
+
+  /api/v2/music-upload:
+    post:
+      summary: Upload MP3
+      responses:
+        "201":
+          description: Song created
+        "429":
+          description: Rate limited
+
+  /api/v2/heartbeat:
+    post:
+      summary: Client presence heartbeat
+      responses:
+        "200":
+          description: Presence updated
+        "401":
+          description: Invalid token
+        "429":
+          description: Rate limited
+
+  /api/v2/client-config:
+    get:
+      summary: Client versions and feature flags
+      parameters:
+        - name: platform
+          in: query
+          required: true
+          schema:
+            enum:
+              - android
+              - windows
+
+        - name: version
+          in: query
+          schema:
+            type: string
+
+      responses:
+        "200":
+          description: Client configuration

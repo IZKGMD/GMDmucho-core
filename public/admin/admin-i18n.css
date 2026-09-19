@@ -1,0 +1,47 @@
+.mucho-lang-switcher{
+    display:flex;
+    gap:7px;
+    margin:5px 8px 14px;
+    padding:7px;
+    background:#111722;
+    border:1px solid #252e3d;
+    border-radius:12px;
+}
+
+.mucho-lang-switcher button{
+    width:42px;
+    height:34px;
+    padding:0;
+    display:grid;
+    place-items:center;
+    font-size:20px;
+    line-height:1;
+    border-radius:8px;
+    background:#171e2b;
+    border:1px solid #2b3547;
+    cursor:pointer;
+    opacity:.55;
+    transition:.15s;
+}
+
+.mucho-lang-switcher button:hover{
+    opacity:1;
+}
+
+.mucho-lang-switcher button.active{
+    opacity:1;
+    background:#2b2550;
+    border-color:#7768c9;
+    box-shadow:0 0 0 2px rgba(119,104,201,.15);
+}
+
+@media(max-width:800px){
+    .mucho-lang-switcher{
+        margin:3px 4px 12px;
+    }
+
+    .mucho-lang-switcher button{
+        width:46px;
+        height:38px;
+    }
+}

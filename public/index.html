@@ -1,0 +1,1695 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090b10">
+
+<title>Mucho GDPS</title>
+<meta name="description" content="Mucho GDPS — custom Geometry Dash private server.">
+
+<style>
+:root{
+    --bg:#080a0f;
+    --sidebar:#0c1017;
+    --surface:#101620;
+    --surface2:#141b27;
+    --border:#222b3a;
+
+    --text:#f4f7ff;
+    --muted:#8793a8;
+
+    --accent:#7768ff;
+    --accent2:#43d7cf;
+    --green:#3ada98;
+    --red:#ff687c;
+
+    --radius:16px;
+}
+
+*{
+    box-sizing:border-box;
+}
+
+html{
+    scroll-behavior:smooth;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    background:
+        radial-gradient(circle at 82% 4%,rgba(67,215,207,.09),transparent 25%),
+        radial-gradient(circle at 55% -8%,rgba(119,104,255,.12),transparent 32%),
+        var(--bg);
+
+    color:var(--text);
+    font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+a{
+    color:inherit;
+    text-decoration:none;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+    position:fixed;
+    inset:0 auto 0 0;
+
+    width:245px;
+    padding:22px 14px;
+
+    background:rgba(11,15,22,.95);
+    border-right:1px solid var(--border);
+    backdrop-filter:blur(20px);
+
+    display:flex;
+    flex-direction:column;
+    z-index:50;
+}
+
+.brand{
+    padding:5px 10px 26px;
+    font-size:20px;
+    font-weight:900;
+    letter-spacing:-.6px;
+}
+
+.brand span{
+    color:var(--accent2);
+}
+
+.nav-title{
+    padding:15px 11px 7px;
+    color:#596579;
+    font-size:9px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+}
+
+.nav{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+}
+
+.nav a{
+    padding:11px 12px;
+    border:1px solid transparent;
+    border-radius:10px;
+
+    color:#96a2b6;
+    font-size:13px;
+    font-weight:650;
+
+    transition:.18s;
+}
+
+.nav a:hover,
+.nav a.active{
+    color:#fff;
+    background:rgba(119,104,255,.11);
+    border-color:rgba(119,104,255,.15);
+}
+
+.sidebar-bottom{
+    margin-top:auto;
+}
+
+.server-mini{
+    padding:13px;
+    border:1px solid var(--border);
+    background:#0f151e;
+    border-radius:12px;
+}
+
+.mini-label{
+    color:var(--muted);
+    font-size:10px;
+    margin-bottom:7px;
+}
+
+.mini-status{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size:12px;
+    font-weight:750;
+}
+
+.dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#64748b;
+}
+
+.dot.online{
+    background:var(--green);
+    box-shadow:0 0 10px rgba(58,218,152,.7);
+}
+
+.dot.offline{
+    background:var(--red);
+}
+
+/* MAIN */
+
+.main{
+    margin-left:245px;
+}
+
+.topbar{
+    min-height:72px;
+
+    padding:0 34px;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    border-bottom:1px solid rgba(34,43,58,.75);
+    background:rgba(8,10,15,.72);
+    backdrop-filter:blur(18px);
+
+    position:sticky;
+    top:0;
+    z-index:30;
+}
+
+.top-title{
+    font-size:13px;
+    font-weight:750;
+}
+
+.live-pill{
+    display:flex;
+    align-items:center;
+    gap:8px;
+
+    padding:7px 12px;
+
+    background:#101720;
+    border:1px solid var(--border);
+    border-radius:999px;
+
+    color:#aab5c6;
+    font-size:11px;
+    font-weight:700;
+}
+
+.content{
+    width:min(1200px,100%);
+    padding:42px 34px 70px;
+}
+
+/* HERO */
+
+.hero{
+    position:relative;
+    overflow:hidden;
+
+    min-height:390px;
+
+    padding:48px;
+
+    border:1px solid var(--border);
+    border-radius:22px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(119,104,255,.11),
+            rgba(67,215,207,.045) 58%,
+            rgba(255,255,255,.01)
+        ),
+        #101620;
+}
+
+.hero::before{
+    content:"";
+    position:absolute;
+
+    width:360px;
+    height:360px;
+
+    right:-90px;
+    top:-130px;
+
+    background:var(--accent2);
+    opacity:.09;
+    filter:blur(70px);
+    border-radius:50%;
+}
+
+.hero::after{
+    content:"M";
+    position:absolute;
+
+    right:55px;
+    bottom:-60px;
+
+    font-size:300px;
+    font-weight:950;
+    line-height:1;
+
+    color:rgba(255,255,255,.025);
+}
+
+.eyebrow{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+
+    color:#9f95ff;
+
+    font-size:11px;
+    font-weight:850;
+    text-transform:uppercase;
+    letter-spacing:.09em;
+}
+
+.hero h1{
+    position:relative;
+    z-index:2;
+
+    max-width:700px;
+
+    margin:18px 0 14px;
+
+    font-size:clamp(43px,7vw,78px);
+    line-height:.95;
+
+    letter-spacing:-4px;
+}
+
+.hero h1 span{
+    color:var(--accent2);
+}
+
+.hero p{
+    position:relative;
+    z-index:2;
+
+    max-width:610px;
+
+    margin:0;
+
+    color:#9ba8ba;
+
+    font-size:16px;
+    line-height:1.65;
+}
+
+.actions{
+    position:relative;
+    z-index:2;
+
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+
+    margin-top:30px;
+}
+
+.btn{
+    min-height:44px;
+
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+
+    padding:0 18px;
+
+    border-radius:10px;
+
+    background:var(--accent);
+
+    color:#fff;
+
+    font-size:12px;
+    font-weight:800;
+
+    transition:.18s;
+}
+
+.btn:hover{
+    transform:translateY(-2px);
+    filter:brightness(1.08);
+}
+
+.btn.secondary{
+    background:#171e2a;
+    border:1px solid #293548;
+    color:#d5dcea;
+}
+
+/* STATUS */
+
+.section-title{
+    margin:35px 0 14px;
+
+    color:#dfe5f0;
+
+    font-size:12px;
+    font-weight:850;
+    text-transform:uppercase;
+    letter-spacing:.07em;
+}
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+}
+
+.stat{
+    min-height:130px;
+
+    padding:20px;
+
+    background:linear-gradient(180deg,#121925,#0f151e);
+
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+}
+
+.stat small{
+    display:block;
+
+    margin-bottom:12px;
+
+    color:var(--muted);
+
+    font-size:10px;
+    font-weight:750;
+
+    text-transform:uppercase;
+    letter-spacing:.05em;
+}
+
+.stat strong{
+    display:block;
+
+    font-size:23px;
+    letter-spacing:-.6px;
+}
+
+.stat p{
+    margin:7px 0 0;
+
+    color:#6f7c90;
+
+    font-size:11px;
+}
+
+/* FEATURES */
+
+.features{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:12px;
+}
+
+.feature{
+    padding:23px;
+
+    background:#101620;
+
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+
+    transition:.18s;
+}
+
+.feature:hover{
+    background:#131b27;
+    border-color:#303c50;
+    transform:translateY(-2px);
+}
+
+.feature-icon{
+    width:38px;
+    height:38px;
+
+    display:grid;
+    place-items:center;
+
+    margin-bottom:18px;
+
+    background:rgba(119,104,255,.12);
+    border:1px solid rgba(119,104,255,.19);
+    border-radius:10px;
+
+    color:#a99fff;
+    font-size:17px;
+}
+
+.feature h3{
+    margin:0 0 7px;
+    font-size:14px;
+}
+
+.feature p{
+    margin:0;
+
+    color:var(--muted);
+
+    font-size:12px;
+    line-height:1.55;
+}
+
+/* LOWER GRID */
+
+.lower{
+    display:grid;
+    grid-template-columns:1.5fr 1fr;
+    gap:12px;
+}
+
+.panel{
+    padding:22px;
+
+    background:#101620;
+
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+}
+
+.panel-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    margin-bottom:17px;
+}
+
+.panel-head h3{
+    margin:0;
+    font-size:14px;
+}
+
+.api-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    padding:12px 0;
+
+    border-bottom:1px solid #1d2633;
+
+    font-size:12px;
+}
+
+.api-row:last-child{
+    border-bottom:0;
+}
+
+.api-row span{
+    color:var(--muted);
+}
+
+.good{
+    color:var(--green)!important;
+}
+
+.bad{
+    color:var(--red)!important;
+}
+
+.links{
+    display:grid;
+    gap:8px;
+}
+
+.link-card{
+    padding:13px 14px;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    background:#151c28;
+    border:1px solid #242f40;
+    border-radius:10px;
+
+    font-size:12px;
+    font-weight:700;
+
+    transition:.15s;
+}
+
+.link-card:hover{
+    background:#192231;
+}
+
+footer{
+    padding:28px 0 0;
+
+    color:#596579;
+
+    font-size:10px;
+}
+
+/* MOBILE */
+
+.mobile-menu{
+    display:none;
+}
+
+@media(max-width:900px){
+
+    .sidebar{
+        transform:translateX(-100%);
+        transition:.2s;
+    }
+
+    body.menu-open .sidebar{
+        transform:translateX(0);
+    }
+
+    .main{
+        margin-left:0;
+    }
+
+    .mobile-menu{
+        display:grid;
+        place-items:center;
+
+        width:38px;
+        height:38px;
+
+        border:1px solid var(--border);
+        border-radius:9px;
+
+        background:#111822;
+        color:white;
+
+        font-size:18px;
+    }
+
+    .topbar{
+        padding:0 16px;
+    }
+
+    .top-title{
+        margin-right:auto;
+        margin-left:12px;
+    }
+
+    .content{
+        padding:20px 16px 55px;
+    }
+
+    .hero{
+        min-height:auto;
+        padding:32px 24px;
+    }
+
+    .hero h1{
+        letter-spacing:-2.5px;
+    }
+
+    .stats{
+        grid-template-columns:1fr;
+    }
+
+    .features{
+        grid-template-columns:1fr;
+    }
+
+    .lower{
+        grid-template-columns:1fr;
+    }
+}
+
+@media(max-width:500px){
+
+    .hero h1{
+        font-size:46px;
+    }
+
+    .hero p{
+        font-size:14px;
+    }
+
+    .live-pill{
+        font-size:0;
+        padding:9px;
+    }
+
+}
+</style>
+
+<style id="mucho-public-live-v2">
+
+.live-stats{
+    grid-template-columns:repeat(4,1fr);
+}
+
+.latest-panel{
+    padding:0;
+    overflow:hidden;
+}
+
+.latest-panel .panel-head{
+    padding:20px 22px 14px;
+    margin:0;
+}
+
+.level-list{
+    display:grid;
+}
+
+.level-row{
+    min-height:68px;
+    display:grid;
+    grid-template-columns:56px minmax(0,1fr) auto;
+    gap:14px;
+    align-items:center;
+    padding:11px 22px;
+    border-top:1px solid #1d2633;
+    transition:.15s ease;
+}
+
+.level-row:hover{
+    background:#141c28;
+}
+
+.level-id{
+    width:42px;
+    height:42px;
+    display:grid;
+    place-items:center;
+    border-radius:10px;
+    background:rgba(119,104,255,.10);
+    border:1px solid rgba(119,104,255,.18);
+    color:#a99fff;
+    font-size:11px;
+    font-weight:800;
+}
+
+.level-name{
+    font-size:13px;
+    font-weight:800;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.level-creator{
+    margin-top:4px;
+    color:var(--muted);
+    font-size:11px;
+}
+
+.level-meta{
+    display:flex;
+    gap:13px;
+    color:#78869a;
+    font-size:10px;
+    white-space:nowrap;
+}
+
+.empty-levels{
+    padding:35px 22px;
+    color:var(--muted);
+    text-align:center;
+    font-size:12px;
+}
+
+@media(max-width:900px){
+    .live-stats{
+        grid-template-columns:1fr 1fr!important;
+    }
+}
+
+@media(max-width:520px){
+    .level-row{
+        grid-template-columns:46px minmax(0,1fr);
+        padding:11px 14px;
+    }
+
+    .level-meta{
+        grid-column:2;
+        margin-top:-6px;
+    }
+}
+
+</style>
+
+
+<style id="mucho-music-ui">
+
+.music-layout{
+    display:grid;
+    grid-template-columns:.85fr 1.15fr;
+    gap:12px;
+}
+
+.music-limit,
+#musicState{
+    color:var(--muted);
+    font-size:10px;
+}
+
+.music-form{
+    display:grid;
+    gap:13px;
+}
+
+.music-form label{
+    display:grid;
+    gap:6px;
+    color:var(--muted);
+    font-size:11px;
+    font-weight:700;
+}
+
+.music-form input{
+    width:100%;
+    min-height:42px;
+    padding:9px 11px;
+
+    background:#0b1119;
+    color:var(--text);
+
+    border:1px solid var(--border);
+    border-radius:9px;
+}
+
+.music-form input:focus{
+    outline:none;
+    border-color:var(--accent);
+}
+
+.music-form .btn{
+    border:0;
+    cursor:pointer;
+}
+
+.music-message{
+    min-height:18px;
+    color:var(--muted);
+    font-size:11px;
+}
+
+.music-message.success{
+    color:var(--green);
+}
+
+.music-message.error{
+    color:var(--red);
+}
+
+.music-list{
+    display:grid;
+}
+
+.music-row{
+    display:grid;
+    grid-template-columns:52px minmax(0,1fr) auto;
+    gap:12px;
+    align-items:center;
+
+    padding:12px 0;
+
+    border-bottom:1px solid #1d2633;
+}
+
+.music-row:last-child{
+    border-bottom:0;
+}
+
+.music-id{
+    width:42px;
+    height:42px;
+
+    display:grid;
+    place-items:center;
+
+    background:rgba(67,215,207,.08);
+    border:1px solid rgba(67,215,207,.17);
+    border-radius:10px;
+
+    color:var(--accent2);
+    font-size:10px;
+    font-weight:800;
+}
+
+.music-name{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+
+    font-size:12px;
+    font-weight:800;
+}
+
+.music-artist{
+    margin-top:3px;
+    color:var(--muted);
+    font-size:10px;
+}
+
+.music-download{
+    color:#a9b4c5;
+    font-size:11px;
+}
+
+@media(max-width:900px){
+    .music-layout{
+        grid-template-columns:1fr;
+    }
+}
+
+</style>
+
+</head>
+
+<body>
+
+<aside class="sidebar" id="sidebar">
+
+    <div class="brand">
+        Mucho<span>GDPS</span>
+    </div>
+
+    <div class="nav">
+
+        <div class="nav-title">Server</div>
+
+        <a href="/" class="active">
+            Dashboard
+        </a>
+
+        <a href="#features">
+            Features
+        </a>
+
+        <a href="#download">
+            Download
+        </a>
+
+        <a href="#music">
+            Music
+        </a>
+
+        <div class="nav-title">Tools</div>
+
+        <a href="/api/v2/health" target="_blank">
+            API Status
+        </a>
+
+        <a href="/admin/">
+            Admin Panel
+        </a>
+
+    </div>
+
+    <div class="sidebar-bottom">
+
+        <div class="server-mini">
+
+            <div class="mini-label">
+                MuchoCore
+            </div>
+
+            <div class="mini-status">
+
+                <span class="dot" id="miniDot"></span>
+
+                <span id="miniStatus">
+                    Checking…
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</aside>
+
+
+<main class="main">
+
+<header class="topbar">
+
+    <button
+        class="mobile-menu"
+        id="menuButton"
+        type="button"
+    >
+        ☰
+    </button>
+
+    <div class="top-title">
+        Mucho GDPS
+    </div>
+
+    <div class="live-pill">
+
+        <span class="dot" id="topDot"></span>
+
+        <span id="topStatus">
+            Connecting…
+        </span>
+
+    </div>
+
+</header>
+
+
+<div class="content">
+
+<section class="hero">
+
+    <div class="eyebrow">
+        Geometry Dash Private Server
+    </div>
+
+    <h1>
+        Welcome to<br>
+        <span>Mucho GDPS.</span>
+    </h1>
+
+    <p>
+        Custom Geometry Dash server powered by MuchoCore.
+        Extended profiles, custom server systems and our own
+        client infrastructure.
+    </p>
+
+    <div class="actions">
+
+        <a
+            class="btn"
+            href="#download"
+        >
+            Download Client
+        </a>
+
+        <a
+            class="btn secondary"
+            href="/admin/"
+        >
+            Admin Panel
+        </a>
+
+    </div>
+
+</section>
+
+
+<div class="section-title">
+    Server
+</div>
+
+<div class="stats live-stats">
+
+    <div class="stat">
+        <small>Players</small>
+        <strong id="playersCount">—</strong>
+        <p>Registered accounts</p>
+    </div>
+
+    <div class="stat">
+        <small>Levels</small>
+        <strong id="levelsCount">—</strong>
+        <p>Uploaded levels</p>
+    </div>
+
+    <div class="stat">
+        <small>Comments</small>
+        <strong id="commentsCount">—</strong>
+        <p>Server comments</p>
+    </div>
+
+    <div class="stat">
+        <small>Status</small>
+        <strong id="serverStatus">Checking…</strong>
+        <p id="coreVersion">MuchoCore</p>
+    </div>
+
+</div>
+
+
+<div
+    class="section-title"
+    id="features"
+>
+    Mucho Features
+</div>
+
+
+<div class="features">
+
+    <div class="feature">
+
+        <div class="feature-icon">✦</div>
+
+        <h3>Mucho Profiles</h3>
+
+        <p>
+            Custom titles, badges, status, biography,
+            themes, banners, pinned levels and profile
+            personalization.
+        </p>
+
+    </div>
+
+
+    <div class="feature">
+
+        <div class="feature-icon">◆</div>
+
+        <h3>Server Authority</h3>
+
+        <p>
+            OWNER, ADMIN and MOD authority is controlled
+            directly by MuchoCore instead of trusting
+            client-side profile data.
+        </p>
+
+    </div>
+
+
+    <div class="feature">
+
+        <div class="feature-icon">◉</div>
+
+        <h3>Live Presence</h3>
+
+        <p>
+            MuchoCore supports heartbeat-based online
+            presence and privacy-aware player visibility.
+        </p>
+
+    </div>
+
+
+    <div class="feature">
+
+        <div class="feature-icon">⚡</div>
+
+        <h3>Custom Infrastructure</h3>
+
+        <p>
+            Dedicated MuchoCore backend, custom APIs,
+            Cloudflare Tunnel and our own client-side
+            integrations.
+        </p>
+
+    </div>
+
+</div>
+
+
+
+<div class="section-title">
+    Latest Levels
+</div>
+
+<div class="panel latest-panel">
+
+    <div class="panel-head">
+        <h3>Recently uploaded</h3>
+        <span id="levelsLoadState" style="color:var(--muted);font-size:11px">
+            Loading…
+        </span>
+    </div>
+
+    <div id="latestLevels" class="level-list"></div>
+
+</div>
+
+
+<div class="section-title" id="music">
+    Music
+</div>
+
+<div class="music-layout">
+
+    <div class="panel">
+        <div class="panel-head">
+            <h3>Add Music</h3>
+            <span class="music-limit">
+                1 song / 3 min
+            </span>
+        </div>
+
+        <form id="musicUploadForm" class="music-form">
+
+            <label>
+                Song name
+                <input
+                    name="title"
+                    maxlength="128"
+                    placeholder="Song name"
+                    required
+                >
+            </label>
+
+            <label>
+                Artist
+                <input
+                    name="artist"
+                    maxlength="128"
+                    placeholder="Artist"
+                    required
+                >
+            </label>
+
+            <label class="music-file">
+                MP3 file
+                <input
+                    type="file"
+                    name="file"
+                    accept=".mp3,audio/mpeg"
+                    required
+                >
+            </label>
+
+            <button
+                type="submit"
+                class="btn"
+                id="musicSubmit"
+            >
+                Add Music
+            </button>
+
+            <div
+                class="music-message"
+                id="musicMessage"
+            ></div>
+
+        </form>
+    </div>
+
+    <div class="panel">
+
+        <div class="panel-head">
+            <h3>Latest Music</h3>
+            <span id="musicState">Loading…</span>
+        </div>
+
+        <div id="musicList" class="music-list"></div>
+
+    </div>
+
+</div>
+
+<div class="section-title">
+    System
+</div>
+
+
+<div class="lower">
+
+    <div class="panel">
+
+        <div class="panel-head">
+            <h3>MuchoCore status</h3>
+        </div>
+
+        <div class="api-row">
+            <span>API</span>
+            <b id="apiState">
+                Checking…
+            </b>
+        </div>
+
+        <div class="api-row">
+            <span>Database</span>
+            <b id="databaseState">
+                Checking…
+            </b>
+        </div>
+
+        <div class="api-row">
+            <span>Version</span>
+            <b id="apiVersion">
+                —
+            </b>
+        </div>
+
+        <div class="api-row">
+            <span>Endpoint</span>
+            <b>
+                /api/v2
+            </b>
+        </div>
+
+    </div>
+
+
+    <div
+        class="panel"
+        id="download"
+    >
+
+        <div class="panel-head">
+            <h3>Quick access</h3>
+        </div>
+
+        <div class="links">
+
+            <a
+                class="link-card"
+                href="/admin/"
+            >
+                <span>Admin Panel</span>
+                <span>→</span>
+            </a>
+
+            <a
+                class="link-card"
+                href="/api/v2/health"
+                target="_blank"
+            >
+                <span>API Health</span>
+                <span>→</span>
+            </a>
+
+            <div class="link-card">
+                <span>Mucho Client</span>
+                <span style="color:#8793a8">
+                    Soon
+                </span>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<footer>
+    Mucho GDPS · MuchoCore · Copyright © 2026 IZK
+</footer>
+
+</div>
+</main>
+
+
+<script>
+
+const $ = id => document.getElementById(id);
+
+async function updateHealth(){
+
+    const topDot = $('topDot');
+    const miniDot = $('miniDot');
+
+    try{
+
+        const response = await fetch(
+            '/api/v2/health',
+            {
+                cache:'no-store'
+            }
+        );
+
+        if(!response.ok){
+            throw new Error();
+        }
+
+        const data = await response.json();
+
+        if(!data.ok){
+            throw new Error();
+        }
+
+        topDot.className = 'dot online';
+        miniDot.className = 'dot online';
+
+        $('topStatus').textContent = 'Online';
+        $('miniStatus').textContent = 'Online';
+
+        $('serverStatus').textContent = 'Online';
+        $('serverStatus').className = 'good';
+
+        $('apiState').textContent = 'Online';
+        $('apiState').className = 'good';
+
+        $('databaseState').textContent =
+            data.database === 'connected'
+                ? 'Connected'
+                : 'Unknown';
+
+        $('databaseState').className =
+            data.database === 'connected'
+                ? 'good'
+                : '';
+
+        $('apiVersion').textContent =
+            data.version || '—';
+
+        $('coreVersion').textContent =
+            'v' + (data.version || '?');
+
+    }catch(e){
+
+        topDot.className = 'dot offline';
+        miniDot.className = 'dot offline';
+
+        $('topStatus').textContent = 'Offline';
+        $('miniStatus').textContent = 'Offline';
+
+        $('serverStatus').textContent = 'Offline';
+        $('serverStatus').className = 'bad';
+
+        $('apiState').textContent = 'Unavailable';
+        $('apiState').className = 'bad';
+
+        $('databaseState').textContent = 'Unknown';
+        $('databaseState').className = '';
+    }
+
+}
+
+updateHealth();
+
+setInterval(
+    updateHealth,
+    15000
+);
+
+
+$('menuButton').addEventListener(
+    'click',
+    () => {
+        document.body.classList.toggle('menu-open');
+    }
+);
+
+
+document.addEventListener(
+    'click',
+    event => {
+
+        if(
+            window.innerWidth <= 900 &&
+            document.body.classList.contains('menu-open') &&
+            !event.target.closest('#sidebar') &&
+            !event.target.closest('#menuButton')
+        ){
+            document.body.classList.remove('menu-open');
+        }
+
+    }
+);
+
+
+
+async function updateDashboard(){
+
+    try{
+
+        const response=await fetch(
+            '/api/v2/dashboard',
+            {cache:'no-store'}
+        );
+
+        if(!response.ok){
+            throw new Error('dashboard unavailable');
+        }
+
+        const data=await response.json();
+
+        if(!data.ok){
+            throw new Error('dashboard failed');
+        }
+
+        const stats=data.stats || {};
+
+        $('playersCount').textContent =
+            Number(stats.players || 0).toLocaleString();
+
+        $('levelsCount').textContent =
+            Number(stats.levels || 0).toLocaleString();
+
+        $('commentsCount').textContent =
+            Number(stats.comments || 0).toLocaleString();
+
+        const box=$('latestLevels');
+        const state=$('levelsLoadState');
+
+        box.textContent='';
+
+        const levels=Array.isArray(data.latest_levels)
+            ? data.latest_levels
+            : [];
+
+        if(levels.length===0){
+
+            const empty=document.createElement('div');
+            empty.className='empty-levels';
+            empty.textContent='No levels uploaded yet.';
+
+            box.appendChild(empty);
+            state.textContent='0 levels';
+
+            return;
+        }
+
+        levels.forEach(level=>{
+
+            const row=document.createElement('div');
+            row.className='level-row';
+
+            const id=document.createElement('div');
+            id.className='level-id';
+            id.textContent='#'+String(level.id || '—');
+
+            const info=document.createElement('div');
+
+            const name=document.createElement('div');
+            name.className='level-name';
+            name.textContent=level.name || 'Unnamed Level';
+
+            const creator=document.createElement('div');
+            creator.className='level-creator';
+            creator.textContent='by '+(level.creator || 'Unknown');
+
+            info.append(name,creator);
+
+            const meta=document.createElement('div');
+            meta.className='level-meta';
+
+            const downloads=document.createElement('span');
+            downloads.textContent='↓ '+Number(
+                level.downloads || 0
+            ).toLocaleString();
+
+            const likes=document.createElement('span');
+            likes.textContent='♥ '+Number(
+                level.likes || 0
+            ).toLocaleString();
+
+            const stars=document.createElement('span');
+            stars.textContent='★ '+Number(
+                level.stars || 0
+            ).toLocaleString();
+
+            meta.append(downloads,likes,stars);
+
+            row.append(id,info,meta);
+            box.appendChild(row);
+        });
+
+        state.textContent='Live';
+
+    }catch(e){
+
+        $('levelsLoadState').textContent='Unavailable';
+
+        if(!$('latestLevels').children.length){
+            const empty=document.createElement('div');
+            empty.className='empty-levels';
+            empty.textContent='Could not load server data.';
+            $('latestLevels').appendChild(empty);
+        }
+    }
+}
+
+updateDashboard();
+
+setInterval(
+    updateDashboard,
+    15000
+);
+
+
+
+async function loadMusic(){
+
+    try{
+
+        const r=await fetch(
+            '/api/v2/music',
+            {cache:'no-store'}
+        );
+
+        const data=await r.json();
+
+        if(!data.ok){
+            throw new Error();
+        }
+
+        const list=$('musicList');
+        list.textContent='';
+
+        const songs=Array.isArray(data.songs)
+            ? data.songs
+            : [];
+
+        $('musicState').textContent=
+            songs.length+' songs';
+
+        if(!songs.length){
+
+            const empty=document.createElement('div');
+            empty.className='empty-levels';
+            empty.textContent='No music yet.';
+            list.appendChild(empty);
+
+            return;
+        }
+
+        songs.forEach(song=>{
+
+            const row=document.createElement('div');
+            row.className='music-row';
+
+            const id=document.createElement('div');
+            id.className='music-id';
+            id.textContent='#'+song.id;
+
+            const info=document.createElement('div');
+
+            const name=document.createElement('div');
+            name.className='music-name';
+            name.textContent=song.name;
+
+            const artist=document.createElement('div');
+            artist.className='music-artist';
+            artist.textContent=
+                song.artist+' · '+
+                Number(song.size_mb).toFixed(2)+
+                ' MB';
+
+            info.append(name,artist);
+
+            const link=document.createElement('a');
+            link.className='music-download';
+            link.href=song.download_url;
+            link.target='_blank';
+            link.rel='noopener';
+            link.textContent='Download';
+
+            row.append(id,info,link);
+            list.appendChild(row);
+
+        });
+
+    }catch(e){
+        $('musicState').textContent='Unavailable';
+    }
+}
+
+
+$('musicUploadForm').addEventListener(
+    'submit',
+    async event=>{
+
+        event.preventDefault();
+
+        const form=event.currentTarget;
+        const button=$('musicSubmit');
+        const message=$('musicMessage');
+
+        message.className='music-message';
+        message.textContent='Uploading…';
+
+        button.disabled=true;
+
+        try{
+
+            const response=await fetch(
+                '/api/v2/music-upload',
+                {
+                    method:'POST',
+                    body:new FormData(form)
+                }
+            );
+
+            const data=await response.json();
+
+            if(!response.ok || !data.ok){
+
+                if(
+                    response.status===429 &&
+                    data.retry_after_seconds
+                ){
+                    throw new Error(
+                        'Try again in '+
+                        data.retry_after_seconds+
+                        ' seconds.'
+                    );
+                }
+
+                throw new Error(
+                    data.error || 'Upload failed.'
+                );
+            }
+
+            message.className=
+                'music-message success';
+
+            message.textContent=
+                'Added successfully. Song ID: '+
+                data.song.id;
+
+            form.reset();
+
+            await loadMusic();
+
+        }catch(error){
+
+            message.className=
+                'music-message error';
+
+            message.textContent=
+                error.message ||
+                'Upload failed.';
+
+        }finally{
+            button.disabled=false;
+        }
+
+    }
+);
+
+
+loadMusic();
+
+setInterval(
+    loadMusic,
+    30000
+);
+
+</script>
+
+</body>
+</html>
