@@ -13,49 +13,61 @@ warn() { printf '\033[1;33m[warning]\033[0m %s\n' "$*" >&2; }
 fail() { printf '\033[1;31m[error]\033[0m %s\n' "$*" >&2; exit 1; }
 trap 'fail "Ошибка на строке $LINENO. Проверьте вывод выше."' ERR
 
-[[ $EUID -eq 0 ]] || fail "Запустите installer от root: sudo bash install.sh"
-command -v apt-get >/dev/null 2>&1 || fail "Поддерживаются Debian/Ubuntu-подобные системы."
-command -v systemctl >/dev/null 2>&1 || fail "Нужен Linux с systemd."
+[[ $EUID -eq 0 ]] || fail "Run the installer as root: sudo bash install.sh"
+command -v apt-get >/dev/null 2>&1 || fail "Debian/Ubuntu-like systems are supported."
+command -v systemctl >/dev/null 2>&1 || fail "Linux with systemd is required."
 
 if [[ -z "$DOMAIN" ]]; then
   read -r -p "Домен GDPS (например gdps.example.com): " DOMAIN
 fi
-[[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || fail "Некорректный домен: $DOMAIN"
+[[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || fail "Invalid domain: $DOMAIN"
 
 read -r -p "Логин администратора [admin]: " input_admin
 ADMIN_USER="${input_admin:-$ADMIN_USER}"
 
 if [[ -z "${MUCHO_DB_PASSWORD:-}" ]]; then
-  read -r -s -p "Пароль БД (Enter = сгенерировать): " MUCHO_DB_PASSWORD
-  printf '\n'
-  MUCHO_DB_PASSWORD="${MUCHO_DB_PASSWORD:-$(openssl rand -hex 24)}"
+  if [[ -f "$INSTALL_DIR/.secrets/db_password" ]]; then
+    MUCHO_DB_PASSWORD="$(cat "$INSTALL_DIR/.secrets/db_password")"
+  else
+    read -r -s -p "Database password (Enter = generate): " MUCHO_DB_PASSWORD
+    printf '\n'
+    MUCHO_DB_PASSWORD="${MUCHO_DB_PASSWORD:-$(openssl rand -hex 24)}"
+  fi
 fi
 
 if [[ -z "${MUCHO_DB_ROOT_PASSWORD:-}" ]]; then
-  MUCHO_DB_ROOT_PASSWORD="$(openssl rand -hex 32)"
+  if [[ -f "$INSTALL_DIR/.secrets/db_root_password" ]]; then
+    MUCHO_DB_ROOT_PASSWORD="$(cat "$INSTALL_DIR/.secrets/db_root_password")"
+  else
+    MUCHO_DB_ROOT_PASSWORD="$(openssl rand -hex 32)"
+  fi
 fi
 
 if [[ -z "${MUCHO_ADMIN_PASSWORD:-}" ]]; then
-  read -r -s -p "Пароль админ-панели: " MUCHO_ADMIN_PASSWORD
-  printf '\n'
+  if [[ -f "$INSTALL_DIR/.secrets/admin_password" ]]; then
+    MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
+  else
+    read -r -s -p "Admin panel password: " MUCHO_ADMIN_PASSWORD
+    printf '\n'
+  fi
 fi
 
-[[ -n "$MUCHO_DB_PASSWORD" ]] || fail "Пароль БД не задан."
-[[ -n "$MUCHO_DB_ROOT_PASSWORD" ]] || fail "Не удалось создать root-пароль БД."
-[[ -n "$MUCHO_ADMIN_PASSWORD" ]] || fail "Пароль админ-панели не может быть пустым."
+[[ -n "$MUCHO_DB_PASSWORD" ]] || fail "Database password is empty."
+[[ -n "$MUCHO_DB_ROOT_PASSWORD" ]] || fail "Failed to generate the database root password."
+[[ -n "$MUCHO_ADMIN_PASSWORD" ]] || fail "Admin password cannot be empty."
 
-log "Устанавливаю системные зависимости..."
+log "Installing system dependencies..."
 apt-get update -y
 apt-get install -y ca-certificates curl git openssl
 
-log "Проверяю Docker..."
+log "Checking Docker..."
 if ! command -v docker >/dev/null 2>&1; then
   curl -fsSL https://get.docker.com | sh
 fi
 systemctl enable --now docker
 docker compose version >/dev/null 2>&1 || fail "Не найден Docker Compose v2 (команда: docker compose)."
 
-log "Устанавливаю MuchoCore в $INSTALL_DIR..."
+log "Installing MuchoCore into $INSTALL_DIR..."
 if [[ -d "$INSTALL_DIR/.git" ]]; then
   git -C "$INSTALL_DIR" fetch --depth=1 origin main
   git -C "$INSTALL_DIR" reset --hard origin/main
@@ -64,9 +76,9 @@ else
   git clone --depth=1 "$REPO_URL" "$INSTALL_DIR"
 fi
 
-[[ -f "$INSTALL_DIR/docker-compose.yml" ]] || fail "В репозитории нет docker-compose.yml."
-[[ -f "$INSTALL_DIR/docker/Dockerfile" ]] || fail "В репозитории нет docker/Dockerfile."
-[[ -f "$INSTALL_DIR/docker/Caddyfile" ]] || fail "В репозитории нет docker/Caddyfile."
+[[ -f "$INSTALL_DIR/docker-compose.yml" ]] || fail "Repository does not contain docker-compose.yml."
+[[ -f "$INSTALL_DIR/docker/Dockerfile" ]] || fail "Repository does not contain docker/Dockerfile."
+[[ -f "$INSTALL_DIR/docker/Caddyfile" ]] || fail "Repository does not contain docker/Caddyfile."
 
 install -d -m 700 "$INSTALL_DIR/.secrets"
 printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
@@ -85,11 +97,11 @@ TZ=UTC
 EOFENV
 chmod 600 "$INSTALL_DIR/.env"
 
-log "Запускаю MariaDB + PHP-FPM + Caddy..."
+log "Starting MariaDB + PHP-FPM + Caddy..."
 cd "$INSTALL_DIR"
 docker compose up -d --build --remove-orphans
 
-log "Проверяю health endpoint..."
+log "Checking health endpoint..."
 healthy=0
 for _ in {1..60}; do
   if curl -ksSf --max-time 3 "https://$DOMAIN/health" 2>/dev/null | grep -qx '1'; then
@@ -104,20 +116,20 @@ if [[ "$healthy" -ne 1 ]]; then
   warn "Проверьте DNS домена и открытые TCP-порты 80/443."
 fi
 
-cat <<EOFOUT
+cat <<'EOFOUT'
 
-MuchoCore установлен.
+MuchoCore has been installed.
 
 GDPS:   https://$DOMAIN
 Admin:  https://$DOMAIN/admin/
 Health: https://$DOMAIN/health
-Каталог: $INSTALL_DIR
+Path:   $INSTALL_DIR
 
-Обновление:
+Update:
   sudo $INSTALL_DIR/update.sh
 
-Логи:
+Logs:
   cd $INSTALL_DIR && sudo docker compose logs -f
 
-Важно: не удаляйте volume db_data и не теряйте config/cloudsave.key.
+Important: do not remove the db_data volume and do not lose config/cloudsave.key.
 EOFOUT
