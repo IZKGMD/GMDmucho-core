@@ -435,21 +435,33 @@ No open-source license is declared in this repository yet. Add a `LICENSE` file 
 MuchoCore targets the same broad problem space as established Geometry Dash private-server projects such as [Cvolton/GMDprivateServer](https://github.com/Cvolton/GMDprivateServer). Compatibility knowledge and community history in the GDPS ecosystem are valuable; this project focuses on a newer internal application structure and deployment workflow.
 
 
-## Быстрая установка
+## Quick deployment
 
-Для чистого Debian/Ubuntu VPS:
+For a clean Debian/Ubuntu VPS, run:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/andrey888787/GMDmucho-core/main/install.sh -o install.sh
 sudo bash install.sh
 ```
 
-Installer спросит домен и пароль администратора, установит Docker, поднимет MariaDB + PHP-FPM + Caddy, создаст `.env` и cloud-save key, установит Composer-зависимости и применит миграции.
+The installer asks for the domain and admin password, installs Docker, starts MariaDB + PHP-FPM + Caddy, creates the application environment and cloud-save key, installs Composer dependencies, and runs database migrations.
 
-После установки: `https://YOUR-DOMAIN/`, `/admin/` и `/health` (ожидается `1`).
+After installation:
 
-Обновление: `sudo /opt/mucho-core/update.sh`
+- `https://YOUR-DOMAIN/` — GDPS endpoint;
+- `https://YOUR-DOMAIN/admin/` — admin panel;
+- `https://YOUR-DOMAIN/health` — health check, expected response: `1`.
 
-Удаление вместе с данными БД: `sudo /opt/mucho-core/uninstall.sh`
+Update the installation with:
 
-Для автоматического HTTPS домен должен указывать на VPS, а TCP-порты 80/443 быть доступны.
+```bash
+sudo /opt/mucho-core/update.sh
+```
+
+Remove the installation and its database volume with:
+
+```bash
+sudo /opt/mucho-core/uninstall.sh
+```
+
+For automatic HTTPS, the domain must already point to the VPS and TCP ports 80 and 443 must be reachable from the Internet.
