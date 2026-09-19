@@ -116,7 +116,7 @@ if [[ "$healthy" -ne 1 ]]; then
   warn "Check the domain DNS record and make sure TCP ports 80/443 are reachable."
 fi
 
-cat <<'EOFOUT'
+cat <<EOFOUT
 
 MuchoCore has been installed.
 
