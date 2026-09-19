@@ -428,7 +428,7 @@ OpenAPI documentation is available at [`docs/openapi.yaml`](docs/openapi.yaml).
 
 ## License
 
-No open-source license is declared in this repository yet. Add a `LICENSE` file before publishing the project under a specific open-source license.
+This repository is licensed under the MIT License. See [`LICENSE`](LICENSE) for the full text.
 
 ## Credits / inspiration
 
