@@ -26,12 +26,17 @@ final class ClientTrace
             return;
         }
 
+        $version = self::$request->clientVersion();
+
         $entry = [
             'time' => gmdate('c'),
             'method' => self::$request->method,
             'path' => self::$request->path,
             'status' => $response->status,
             'content_type' => $response->contentType,
+            'client_family' => $version->family(),
+            'game_version' => $version->gameVersion,
+            'binary_version' => $version->binaryVersion,
             'query_keys' => array_values(array_map('strval', array_keys(self::$request->query))),
             'post_keys' => self::safeKeys(self::$request->post),
         ];
