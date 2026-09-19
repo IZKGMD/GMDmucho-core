@@ -15,7 +15,7 @@ You need only:
 Then run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/andrey888787/GMDmucho-core/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh -o install.sh
 sudo bash install.sh
 ```
 
