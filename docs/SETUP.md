@@ -1,175 +1,113 @@
-# MuchoCore deployment guide
+# MuchoCore Server Setup
 
-This document expands the installation section from the root README.
+## Easiest installation
 
-## Recommended deployment layout
+Do not follow the manual PHP/Nginx steps unless you know why you need them.
 
 Use:
 
+```bash
+curl -fsSL https://raw.githubusercontent.com/andrey888787/GMDmucho-core/main/install.sh -o install.sh
+sudo bash install.sh
+```
+
+You need:
+
+- a Linux VPS with root access;
+- a domain pointing to that VPS;
+- ports 80 and 443 open.
+
+## Domain setup
+
+At your DNS provider, create an A record:
+
 ```text
-/var/www/mucho-core
+gdps.example.com -> YOUR_VPS_IP
 ```
 
-The current codebase contains operational helpers that use this absolute path.
+Wait until the domain points to the VPS before running the installer.
 
-## Required services
+## What the installer does
 
-- Nginx
-- PHP-FPM 8.3+
-- PHP CLI 8.3+
-- MySQL or MariaDB
-- Composer 2+
+The installer automatically:
 
-## Environment
+1. Installs Docker.
+2. Downloads MuchoCore.
+3. Starts MariaDB.
+4. Starts PHP 8.3.
+5. Starts Caddy and automatic HTTPS.
+6. Generates database passwords.
+7. Generates the cloud-save key.
+8. Creates the database tables.
+9. Creates the `admin` account.
 
-Create `/var/www/mucho-core/.env` from `.env.example`:
+## First login
 
-```dotenv
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_NAME=muchocore
-DB_USER=muchocore_user
-DB_PASS=replace-me
+Open:
 
-MUCHO_ACCOUNT_URL=https://example.com
-MUCHO_CUSTOM_CONTENT_URL=https://example.com/content
+```text
+https://YOUR-DOMAIN/admin/
 ```
 
-Keep this file out of Git.
+Username:
 
-## Cloud-save key
-
-Generate the encryption key once per installation:
-
-```bash
-openssl rand -base64 32 > /var/www/mucho-core/config/cloudsave.key
-chmod 600 /var/www/mucho-core/config/cloudsave.key
-chown www-data:www-data /var/www/mucho-core/config/cloudsave.key
+```text
+admin
 ```
 
-Losing this key makes previously encrypted cloud-save data unrecoverable. Back it up securely outside Git.
+Use the password you entered during installation.
 
-## Database
+## Health check
 
-Create the database and a dedicated user:
+Open:
 
-```sql
-CREATE DATABASE muchocore CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'muchocore_user'@'127.0.0.1' IDENTIFIED BY 'replace-me';
-GRANT ALL PRIVILEGES ON muchocore.* TO 'muchocore_user'@'127.0.0.1';
-FLUSH PRIVILEGES;
+```text
+https://YOUR-DOMAIN/health
 ```
 
-Then:
-
-```bash
-composer install --no-dev --optimize-autoloader
-php bin/migrate.php status
-php bin/migrate.php migrate
-```
-
-## Admin bootstrap
-
-Create `/etc/muchocore-admin.php` with a password hash:
-
-```php
-<?php
-return [
-    'username' => 'admin',
-    'password_hash' => 'REPLACE_WITH_PASSWORD_HASH',
-];
-```
-
-Generate a hash using PHP:
-
-```bash
-php -r 'echo password_hash("YOUR_PASSWORD", PASSWORD_DEFAULT), PHP_EOL;'
-```
-
-The admin panel initializes its admin tables during the first request and imports the owner from this file.
-
-## Nginx
-
-Recommended virtual host:
-
-```nginx
-server {
-    listen 80;
-    server_name example.com;
-
-    root /var/www/mucho-core/public;
-    index index.php index.html;
-    client_max_body_size 25M;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location ~ \.php$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
-    }
-
-    location ~ /\. {
-        deny all;
-    }
-}
-```
-
-For production, put HTTPS in front of the site and keep the database bound to localhost/private networking.
-
-## Verification
-
-```bash
-curl -i https://example.com/health
-MUCHO_TEST_BASE_URL=https://example.com ./tests/smoke.sh
-MUCHO_TEST_BASE_URL=https://example.com ./tests/regression.sh
-```
-
-Expected compatibility health output:
+Expected response:
 
 ```text
 1
 ```
 
-## Client integration
+## Connect the client
 
-After the server is online, patch your own Geometry Dash client so its database server points to:
+Once the server works, patch your Geometry Dash client.
+
+Read [`CLIENT_SETUP.md`](CLIENT_SETUP.md).
+
+## Update
+
+```bash
+sudo /opt/mucho-core/update.sh
+```
+
+## Logs
+
+```bash
+cd /opt/mucho-core
+sudo docker compose logs -f
+```
+
+## Backup
+
+Before a major update, make a database backup:
+
+```bash
+sudo /opt/mucho-core/bin/mucho-db-backup.sh
+```
+
+Also keep a secure backup of:
 
 ```text
-https://YOUR-DOMAIN/database
+/opt/mucho-core/config/cloudsave.key
 ```
 
-Use the dedicated client guide:
+## Remove
 
-- [`docs/CLIENT_SETUP.md`](CLIENT_SETUP.md) — Windows, macOS, Android and iOS instructions.
-- [`tools/client-patch.py`](../tools/client-patch.py) — checks URL lengths and patches the known 2.2 endpoint strings.
-
-Do not skip the URL-length checks. Geometry Dash 2.2 clients contain fixed-size strings, so an incompatible replacement can corrupt the binary.
-
-## Maintenance
-
-Run migrations after updating source code:
+Warning: this removes the database volume.
 
 ```bash
-php bin/migrate.php migrate
-```
-
-Check health:
-
-```bash
-php bin/mucho-healthcheck.php
-```
-
-Run cleanup when scheduled:
-
-```bash
-php bin/mucho-monitor-cleanup.php
-```
-
-Run database backups after verifying the host has `mariadb-dump` or `mysqldump`:
-
-```bash
-bin/mucho-db-backup.sh
+sudo /opt/mucho-core/uninstall.sh
 ```
