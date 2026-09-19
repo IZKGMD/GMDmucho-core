@@ -49,6 +49,24 @@ final readonly class Request
         return $default;
     }
 
+    public function clientVersion(): \\MuchoCore\\Compatibility\\ClientVersion
+    {
+        return \\MuchoCore\\Compatibility\\ClientVersion::fromRequest($this);
+    }
+
+    public function gdCredential(): string
+    {
+        $version = $this->clientVersion();
+
+        if ($version->usesGjp2()) {
+            return $this->postString('gjp2')
+                ?: $this->postString('gjp');
+        }
+
+        return $this->postString('gjp')
+            ?: $this->postString('gjp2');
+    }
+
     public function clientIp(): string
     {
         $remote = (string)($this->server['REMOTE_ADDR'] ?? '');
