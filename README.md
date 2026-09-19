@@ -465,3 +465,14 @@ sudo /opt/mucho-core/uninstall.sh
 ```
 
 For automatic HTTPS, the domain must already point to the VPS and TCP ports 80 and 443 must be reachable from the Internet.
+
+
+## Client setup
+
+Server installation and client installation are separate steps. After the server is online, patch your own Geometry Dash client to use the MuchoCore database URL:
+
+```text
+https://YOUR-DOMAIN/database
+```
+
+Read [`docs/CLIENT_SETUP.md`](docs/CLIENT_SETUP.md) for the complete Windows, macOS, Android and iOS workflow. The repository also includes [`tools/client-patch.py`](tools/client-patch.py) to perform the known 2.2 binary URL replacements with length checks.
