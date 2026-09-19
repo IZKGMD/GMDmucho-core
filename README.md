@@ -433,3 +433,23 @@ No open-source license is declared in this repository yet. Add a `LICENSE` file 
 ## Credits / inspiration
 
 MuchoCore targets the same broad problem space as established Geometry Dash private-server projects such as [Cvolton/GMDprivateServer](https://github.com/Cvolton/GMDprivateServer). Compatibility knowledge and community history in the GDPS ecosystem are valuable; this project focuses on a newer internal application structure and deployment workflow.
+
+
+## Быстрая установка
+
+Для чистого Debian/Ubuntu VPS:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/andrey888787/GMDmucho-core/main/install.sh -o install.sh
+sudo bash install.sh
+```
+
+Installer спросит домен и пароль администратора, установит Docker, поднимет MariaDB + PHP-FPM + Caddy, создаст `.env` и cloud-save key, установит Composer-зависимости и применит миграции.
+
+После установки: `https://YOUR-DOMAIN/`, `/admin/` и `/health` (ожидается `1`).
+
+Обновление: `sudo /opt/mucho-core/update.sh`
+
+Удаление вместе с данными БД: `sudo /opt/mucho-core/uninstall.sh`
+
+Для автоматического HTTPS домен должен указывать на VPS, а TCP-порты 80/443 быть доступны.
