@@ -1,0 +1,10 @@
+{$DOMAIN} {
+    root * /var/www/mucho-core/public
+    encode gzip zstd
+
+    @hidden path /.env /.git/* /composer.json /composer.lock /config/* /src/* /database/* /tests/*
+    respond @hidden 404
+
+    php_fastcgi app:9000
+    file_server
+}
