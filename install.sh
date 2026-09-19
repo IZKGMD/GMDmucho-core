@@ -48,7 +48,7 @@ if [[ ! -f "$INSTALL_DIR/docker-compose.yml" ]]; then
   if git -C "$INSTALL_DIR" ls-remote --exit-code origin refs/heads/feat/easy-deploy >/dev/null 2>&1; then
     log "Main does not contain the deployment files yet; using feat/easy-deploy for this test."
     git -C "$INSTALL_DIR" fetch --depth=1 origin feat/easy-deploy
-    git -C "$INSTALL_DIR" reset --hard origin/feat/easy-deploy
+    git -C "$INSTALL_DIR" reset --hard FETCH_HEAD
   else
     fail "Repository does not contain docker-compose.yml."
   fi
