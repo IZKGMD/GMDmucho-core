@@ -22,35 +22,27 @@ if [[ -z "$DOMAIN" ]]; then
 fi
 [[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || fail "Invalid domain: $DOMAIN"
 
-read -r -p "Admin username [admin]: " input_admin
-ADMIN_USER="${input_admin:-$ADMIN_USER}"
-
-if [[ -z "${MUCHO_DB_PASSWORD:-}" ]]; then
-  if [[ -f "$INSTALL_DIR/.secrets/db_password" ]]; then
-    MUCHO_DB_PASSWORD="$(cat "$INSTALL_DIR/.secrets/db_password")"
-  else
-    read -r -s -p "Database password (Enter = generate): " MUCHO_DB_PASSWORD
-    printf '\n'
-    MUCHO_DB_PASSWORD="${MUCHO_DB_PASSWORD:-$(openssl rand -hex 24)}"
-  fi
+# Database credentials and the admin username are generated automatically.
+if [[ -f "$INSTALL_DIR/.secrets/db_password" ]]; then
+  MUCHO_DB_PASSWORD="$(cat "$INSTALL_DIR/.secrets/db_password")"
+else
+  MUCHO_DB_PASSWORD="$(openssl rand -hex 24)"
 fi
 
-if [[ -z "${MUCHO_DB_ROOT_PASSWORD:-}" ]]; then
-  if [[ -f "$INSTALL_DIR/.secrets/db_root_password" ]]; then
-    MUCHO_DB_ROOT_PASSWORD="$(cat "$INSTALL_DIR/.secrets/db_root_password")"
-  else
-    MUCHO_DB_ROOT_PASSWORD="$(openssl rand -hex 32)"
-  fi
+if [[ -f "$INSTALL_DIR/.secrets/db_root_password" ]]; then
+  MUCHO_DB_ROOT_PASSWORD="$(cat "$INSTALL_DIR/.secrets/db_root_password")"
+else
+  MUCHO_DB_ROOT_PASSWORD="$(openssl rand -hex 32)"
 fi
 
-if [[ -z "${MUCHO_ADMIN_PASSWORD:-}" ]]; then
-  if [[ -f "$INSTALL_DIR/.secrets/admin_password" ]]; then
-    MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
-  else
-    read -r -s -p "Admin panel password: " MUCHO_ADMIN_PASSWORD
-    printf '\n'
-  fi
+if [[ -f "$INSTALL_DIR/.secrets/admin_password" ]]; then
+  MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
+else
+  read -r -s -p "Admin panel password: " MUCHO_ADMIN_PASSWORD
+  printf '\n'
 fi
+
+ADMIN_USER="admin"
 
 [[ -n "$MUCHO_DB_PASSWORD" ]] || fail "Database password is empty."
 [[ -n "$MUCHO_DB_ROOT_PASSWORD" ]] || fail "Failed to generate the database root password."
