@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-REPO_URL="${MUCHO_REPO_URL:-https://github.com/andrey888787/GMDmucho-core.git}"
+REPO_URL="${MUCHO_REPO_URL:-https://github.com/IZKGMD/GMDmucho-core.git}"
 INSTALL_DIR="${MUCHO_INSTALL_DIR:-/opt/mucho-core}"
 DOMAIN="${MUCHO_DOMAIN:-}"
 DB_NAME="${MUCHO_DB_NAME:-muchocore}"
