@@ -71,7 +71,8 @@ fi
 if [[ -f "$INSTALL_DIR/.secrets/admin_password" ]]; then
   MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
 else
-  read -r -s -p "Admin panel password: " MUCHO_ADMIN_PASSWORD
+  log "The admin panel username is: admin"
+  read -r -s -p "Create a password for the admin panel (you will use it to log in): " MUCHO_ADMIN_PASSWORD
   printf '\n'
 fi
 [[ -n "$MUCHO_ADMIN_PASSWORD" ]] || fail "Admin password cannot be empty."
@@ -100,19 +101,28 @@ log "Starting MuchoCore..."
 cd "$INSTALL_DIR"
 docker compose up -d --build --remove-orphans
 
-log "Checking health..."
+log "Checking server health..."
 healthy=0
-for _ in {1..60}; do
-  if curl -ksSf --max-time 3 "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+for _ in {1..20}; do
+  if curl -4ksSf --connect-timeout 2 --max-time 3       --resolve "$DOMAIN:443:127.0.0.1"       "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
     healthy=1
     break
   fi
   sleep 2
 done
 
-if [[ "$healthy" -ne 1 ]]; then
-  warn "The services started, but the health check is not ready yet."
-  warn "Make sure DNS points to this VPS and ports 80/443 are open."
+if [[ "$healthy" -eq 1 ]]; then
+  log "Local health check passed."
+  if curl -4ksSf --connect-timeout 3 --max-time 5 "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+    log "Public health check passed."
+  else
+    warn "The server is running, but the domain is not reachable from this VPS yet."
+    warn "Check that DNS points to this VPS and that ports 80 and 443 are open."
+  fi
+else
+  warn "The services started, but the local health check did not pass in time."
+  warn "Run: cd $INSTALL_DIR && sudo docker compose ps"
+  warn "Run: cd $INSTALL_DIR && sudo docker compose logs --tail=100"
 fi
 
 cat <<EOFOUT
@@ -123,6 +133,8 @@ GDPS:   https://$DOMAIN
 Admin:  https://$DOMAIN/admin/
 Health: https://$DOMAIN/health
 Path:   $INSTALL_DIR
+
+Admin username: admin
 
 Update:
   sudo $INSTALL_DIR/update.sh
