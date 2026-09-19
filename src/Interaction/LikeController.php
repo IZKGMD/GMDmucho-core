@@ -13,7 +13,7 @@ final readonly class LikeController
 
     public function like(Request $r): Response
     {
-        $gjp = $r->postString('gjp') ?: $r->postString('gjp2');
+        $gjp = $r->gdCredential();
 
         if (
             $r->postInt('itemID') <= 0 ||
