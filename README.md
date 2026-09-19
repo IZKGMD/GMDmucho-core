@@ -19,7 +19,9 @@ curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.s
 sudo bash install.sh
 ```
 
-The installer asks only for your domain and your admin password. Database passwords, secrets and the cloud-save key are generated automatically.
+The installer asks for your domain and asks you to create a password for the admin panel. Database passwords, secrets and the cloud-save key are generated automatically.
+
+The admin panel username is always `admin`.
 
 ## After installation
 
@@ -33,6 +35,13 @@ Admin panel:
 
 ```text
 https://YOUR-DOMAIN/admin/
+```
+
+Sign in with:
+
+```text
+Username: admin
+Password: the admin password you created during installation
 ```
 
 Health check:
