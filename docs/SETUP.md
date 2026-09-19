@@ -133,11 +133,20 @@ Expected compatibility health output:
 1
 ```
 
-## Client URLs
+## Client integration
 
-Point the Geometry Dash client at the deployment domain. The compatibility entry points are in `public/database/` and the JSON API is in `public/api/v2/`.
+After the server is online, patch your own Geometry Dash client so its database server points to:
 
-Exact client patching steps vary by Geometry Dash version and by how your GDPS client is distributed.
+```text
+https://YOUR-DOMAIN/database
+```
+
+Use the dedicated client guide:
+
+- [`docs/CLIENT_SETUP.md`](CLIENT_SETUP.md) — Windows, macOS, Android and iOS instructions.
+- [`tools/client-patch.py`](../tools/client-patch.py) — checks URL lengths and patches the known 2.2 endpoint strings.
+
+Do not skip the URL-length checks. Geometry Dash 2.2 clients contain fixed-size strings, so an incompatible replacement can corrupt the binary.
 
 ## Maintenance
 
