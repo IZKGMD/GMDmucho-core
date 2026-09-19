@@ -49,9 +49,9 @@ final readonly class Request
         return $default;
     }
 
-    public function clientVersion(): \\MuchoCore\\Compatibility\\ClientVersion
+    public function clientVersion(): \MuchoCore\Compatibility\ClientVersion
     {
-        return \\MuchoCore\\Compatibility\\ClientVersion::fromRequest($this);
+        return \MuchoCore\Compatibility\ClientVersion::fromRequest($this);
     }
 
     public function gdCredential(): string
@@ -78,7 +78,7 @@ final readonly class Request
         );
 
         if ($trustedProxy) {
-            // Cloudflare Tunnel — приоритет реальному IP клиента.
+            // Cloudflare Tunnel: prefer the real client IP when the proxy is trusted.
             $cf = $this->server['HTTP_CF_CONNECTING_IP'] ?? '';
 
             if (
