@@ -31,6 +31,8 @@ services:
       ADMIN_USER: ${ADMIN_USER}
       MUCHO_ACCOUNT_URL: ${MUCHO_ACCOUNT_URL}
       MUCHO_CUSTOM_CONTENT_URL: ${MUCHO_CUSTOM_CONTENT_URL}
+      MUCHO_CLIENT_TRACE: ${MUCHO_CLIENT_TRACE:-0}
+      MUCHO_CLIENT_TRACE_FILE: ${MUCHO_CLIENT_TRACE_FILE:-/var/www/mucho-core/storage/client-trace.ndjson}
     secrets:
       - db_password
       - admin_password
