@@ -112,7 +112,7 @@ Patch the `GeometryDash` executable with:
 ```bash
 python3 tools/client-patch.py \
   --input "/path/to/GeometryDash" \
-  --output "/path/to/GeometryDash-MuchoCore"
+  --output "/path/to/GeometryDash-MuchoCore" \
   --server-url "https://YOUR-DOMAIN"
 ```
 
