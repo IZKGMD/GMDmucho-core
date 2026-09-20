@@ -1,20 +1,23 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-where py >nul 2>nul
+
+where powershell.exe >nul 2>nul
 if errorlevel 1 (
-  echo Python 3 was not found.
-  echo Install Python 3 from https://www.python.org/ and run this file again.
+  echo Windows PowerShell was not found.
+  echo This tool requires Windows PowerShell.
   pause
   exit /b 1
 )
-py "%~dp0client-patch.py"
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0client-patcher.ps1"
 if errorlevel 1 (
   echo.
   echo The patch was not completed.
   pause
   exit /b 1
 )
+
 echo.
 echo Done. Press any key to close.
 pause >nul
