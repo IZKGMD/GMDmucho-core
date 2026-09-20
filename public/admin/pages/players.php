@@ -18,12 +18,13 @@ echo '<button>Search</button></form>';
 
 $sql=
 'SELECT
- a.account_id,a.username,a.email,a.role,
+ a.account_id,a.username,a.email,r.code AS role,
  a.is_active,a.is_banned,a.created_at,
  p.stars,p.moons,p.diamonds,p.secret_coins,
  p.user_coins,p.demons,p.creator_points
  FROM accounts a
- LEFT JOIN profiles p ON p.account_id=a.account_id';
+ LEFT JOIN profiles p ON p.account_id=a.account_id
+ LEFT JOIN roles r ON r.id=a.role_id';
 
 $args=[];
 
@@ -68,7 +69,7 @@ foreach($rows as $r) {
 <input name="email" value="<?=h($r['email'])?>">
 
 <select name="role">
-<?php foreach(['user','helper','moderator','admin','owner'] as $x): ?>
+<?php foreach(['user','moderator','admin','owner'] as $x): ?>
 <option <?=$r['role']===$x?'selected':''?>><?=h($x)?></option>
 <?php endforeach ?>
 </select>
