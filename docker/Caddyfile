@@ -2,11 +2,21 @@
     root * /var/www/mucho-core/public
     encode gzip zstd
 
+    # Copyright (C) 2026 IZK
+
     # Keep private project files unreachable, but do not block /database/*:
     # Geometry Dash client endpoints live under /public/database.
     @hidden path /.env /.git/* /composer.json /composer.lock /config/* /src/* /tests/*
     respond @hidden 404
 
-    php_fastcgi app:9000
-    file_server
+    # The public landing page is static HTML and must win over the PHP front controller.
+    @site path / /index.html
+    handle @site {
+        file_server
+    }
+
+    handle {
+        php_fastcgi app:9000
+        file_server
+    }
 }
