@@ -5,6 +5,7 @@
     header {
         X-MuchoCore-Copyright "Copyright (C) 2026 IZK"
         X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
         Referrer-Policy "strict-origin-when-cross-origin"
         Permissions-Policy "camera=(), microphone=(), geolocation=()"
     }
