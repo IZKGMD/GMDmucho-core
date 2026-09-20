@@ -126,8 +126,11 @@ final class Router
             '/uploadgjcomment' => '/uploadGJComment20',
             '/uploadgjcomment19' => '/uploadGJComment20',
             '/uploadgjcomment21' => '/uploadgjcomment21',
+            '/uploadgjcomment22' => '/uploadGJComment21',
             '/likegjitem' => '/likeGJItem21',
             '/likegjitem19' => '/likeGJItem21',
+            '/likegjitem22' => '/likeGJItem21',
+            '/likegjlevel' => '/likeGJItem21',
             '/likegjitem20' => '/likeGJItem21',
 
             // User and leaderboard endpoints.
@@ -143,6 +146,7 @@ final class Router
             '/getgjscores19' => '/getGJScores20',
             '/getgjscores21' => '/getGJScores20',
             '/getgjscores22' => '/getGJScores20',
+            '/updategjdesc20' => '/updateGJLevelDesc20',
             '/updategjaccsettings19' => '/updateGJAccSettings20',
             '/updategjaccsettings21' => '/updateGJAccSettings20',
             '/updategjaccsettings22' => '/updateGJAccSettings20',
