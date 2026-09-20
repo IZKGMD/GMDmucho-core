@@ -38,7 +38,12 @@ def compatibility_url(server: str, desired_length: int, *, bare: bool = False) -
 
         while queue:
             parts = queue.popleft()
-            path = "" if not parts else "/" + "/".join(parts)
+
+            if bare:
+                prefix = "" if not parts else "/" + "/".join(parts)
+                path = prefix + "/database"
+            else:
+                path = "" if not parts else "/" + "/".join(parts)
 
             if bare:
                 candidate = f"{parsed.netloc}{path}"
@@ -52,6 +57,9 @@ def compatibility_url(server: str, desired_length: int, *, bare: bool = False) -
                 continue
 
             for segment in SEGMENTS:
+                if bare and segment == "database":
+                    continue
+
                 next_parts = parts + (segment,)
                 if next_parts not in seen:
                     seen.add(next_parts)
