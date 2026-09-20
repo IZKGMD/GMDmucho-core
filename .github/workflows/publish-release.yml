@@ -1,0 +1,36 @@
+name: Publish MuchoCore release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: ${{ github.repository == 'IZKGMD/GMDmucho-core' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish v1.0.1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+
+          if gh release view v1.0.1 >/dev/null 2>&1; then
+            echo "v1.0.1 already exists."
+            exit 0
+          fi
+
+          git archive --format=zip --output=mucho-core.zip HEAD
+
+          gh release create v1.0.1 mucho-core.zip \
+            --title "MuchoCore v1.0.1" \
+            --notes "Bugfix and packaging release.
+
+Includes the complete MuchoCore source tree, including the Windows client patcher tools."
