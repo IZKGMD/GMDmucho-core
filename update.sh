@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+
+# Copyright (C) 2026 IZK
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
