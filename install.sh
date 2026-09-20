@@ -333,8 +333,8 @@ log "Жду готовности сервера..."
 healthy=0
 
 for _ in {1..60}; do
-    if curl -4ksSf         --connect-timeout 2         --max-time 4         --resolve "$DOMAIN:443:127.0.0.1"         "https://$DOMAIN/health" 2>/dev/null |
-        grep -qx "1"; then
+    if curl -4ksSf         --connect-timeout 2         --max-time 5         --resolve "$DOMAIN:443:127.0.0.1"         "https://$DOMAIN/api/v2/health.php" 2>/dev/null |
+        grep -q '"ok"[[:space:]]*:[[:space:]]*true'; then
         healthy=1
         break
     fi
@@ -349,16 +349,16 @@ if [[ "$healthy" -ne 1 ]]; then
     echo "===== Последние логи ====="
     docker compose logs --tail=80 || true
 
-    fail "MuchoCore не прошёл локальную проверку /health."
+    fail "MuchoCore не прошёл локальную проверку API + базы данных."
 fi
 
-log "Локальная проверка /health прошла."
+log "Локальная проверка API + базы данных прошла."
 
 public_ok=0
 
 for _ in {1..10}; do
-    if curl -4ksSf         --connect-timeout 3         --max-time 5         "https://$DOMAIN/health" 2>/dev/null |
-        grep -qx "1"; then
+    if curl -4ksSf         --connect-timeout 3         --max-time 6         "https://$DOMAIN/api/v2/health.php" 2>/dev/null |
+        grep -q '"ok"[[:space:]]*:[[:space:]]*true'; then
         public_ok=1
         break
     fi
@@ -386,7 +386,7 @@ fi
 if [[ "$public_ok" -eq 1 ]]; then
     log "Публичная проверка /health прошла."
 else
-    warn "Сервер работает, но домен пока не доступен снаружи."
+    warn "Сервер запущен, но публичная проверка API пока не прошла."
     warn "Проверь DNS и порты 80/443."
 fi
 
