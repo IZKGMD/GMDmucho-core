@@ -6,7 +6,8 @@ declare(strict_types=1);
 
 use MuchoCore\Protocol\GdCommentEncoder;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+require dirname(__DIR__) . '/src/Protocol/ProtocolText.php';
+require dirname(__DIR__) . '/src/Protocol/GdCommentEncoder.php';
 
 $encoder = new GdCommentEncoder();
 
