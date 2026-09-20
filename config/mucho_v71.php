@@ -6,6 +6,8 @@ declare(strict_types=1);
  * Copyright (C) 2026 IZK
  */
 
+use MuchoCore\Core\Settings;
+
 $accountUrl = trim((string)getenv('MUCHO_ACCOUNT_URL'));
 
 if ($accountUrl === '') {
@@ -24,7 +26,9 @@ return [
     // that contacted this server, so every GDPS installation gets its own URL.
     'account_url' => $accountUrl,
 
-    // Keep official content CDN by default; override later for Mucho-hosted music/SFX.
-    'custom_content_url' => getenv('MUCHO_CUSTOM_CONTENT_URL')
-        ?: 'https://geometrydashfiles.b-cdn.net',
+    // The admin panel can override this safely without editing .env.
+    'custom_content_url' => Settings::string(
+        'MUCHO_CUSTOM_CONTENT_URL',
+        'https://geometrydashfiles.b-cdn.net'
+    ),
 ];
