@@ -30,4 +30,29 @@ if (Settings::int('MUCHO_TEST_MISSING', 10, 1, 100) !== 10) {
     exit(1);
 }
 
+$overrideDir = sys_get_temp_dir() . '/muchocore-settings-' . bin2hex(random_bytes(4));
+if (!mkdir($overrideDir, 0700, true) && !is_dir($overrideDir)) {
+    fwrite(STDERR, "override temp directory failed\n");
+    exit(1);
+}
+
+try {
+    $_ENV['MUCHO_CONTROL_DIR'] = $overrideDir;
+
+    file_put_contents(
+        $overrideDir . '/settings.json',
+        json_encode([
+            'MUCHO_TEST_OVERRIDE' => 'from-admin',
+        ], JSON_THROW_ON_ERROR)
+    );
+
+    if (Settings::string('MUCHO_TEST_OVERRIDE', 'default') !== 'from-admin') {
+        fwrite(STDERR, "override setting failed\n");
+        exit(1);
+    }
+} finally {
+    @unlink($overrideDir . '/settings.json');
+    @rmdir($overrideDir);
+}
+
 echo "SETTINGS_TEST_OK\n";
