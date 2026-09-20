@@ -90,7 +90,7 @@ if ($SelfTest) {
     foreach ($length in @(34, 33, 29, 28, 26)) {
         $value = Get-CompatibilityPath -Server $testServer -DesiredLength $length
         if ((Get-UrlBytesLength $value) -ne $length) {
-            throw "Self-test failed for length $length: $value"
+            throw "Self-test failed for length $($length): $value"
         }
         Write-Host "PASS URL length $length -> $value"
     }
