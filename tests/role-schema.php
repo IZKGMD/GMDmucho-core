@@ -63,8 +63,13 @@ foreach ($scanRoots as $scanRoot) {
             exit(1);
         }
 
+        $normalized = preg_replace('/\\s+/', ' ', $content) ?? $content;
+
         foreach ($patterns as $pattern) {
-            if (preg_match($pattern, $content) === 1) {
+            if (
+                preg_match($pattern, $content) === 1 ||
+                preg_match($pattern, $normalized) === 1
+            ) {
                 $violations[] = $path . ' matches ' . $pattern;
                 break;
             }
