@@ -222,17 +222,15 @@ try {
         }
 
         $difficulty = match (true) {
-            $demon === 1 => 50,
-            $demon === 2 => 50,
-            $demon === 3 => 50,
-            $demon === 4 => 50,
-            $demon === 5 => 50,
+            $demon > 0 => 50,
+            $stars === 0 => 0,
             $stars === 1 => 50,
             $stars === 2 => 10,
             $stars === 3 => 20,
             $stars <= 5 => 30,
-            $stars <= 9 => 50,
-            default => 50,
+            $stars <= 7 => 40,
+            $stars <= 10 => 50,
+            default => 0,
         };
 
         $demonDifficulty = match ($demon) {
