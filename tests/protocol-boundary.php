@@ -75,11 +75,13 @@ $message = (new GdMessageEncoder())->encodeMessage([
 ]);
 
 if (
-    str_contains($message, ':4:Hello:') ||
-    str_contains($message, ':5:Body:')
+    !str_contains($message, '4:Hello:6') ||
+    !str_contains($message, ':5:Body') ||
+    str_contains($message, 'Hello:|#') ||
+    str_contains($message, 'Body:|#')
 ) {
     throw new RuntimeException(
-        'Message protocol still contains unsafe delimiters.'
+        'Message protocol delimiter sanitization failed.'
     );
 }
 
@@ -98,8 +100,13 @@ $relationship = (new GdRelationshipEncoder())->requests([[
     'created_at' => date('Y-m-d H:i:s'),
 ]], 1, 0, false);
 
-if (str_contains($relationship, 'Hello:')) {
-    throw new RuntimeException('Friend request protocol still contains unsafe delimiters.');
+if (
+    str_contains($relationship, 'Hello:|#') ||
+    !str_contains($relationship, '35:Hello')
+) {
+    throw new RuntimeException(
+        'Friend request protocol delimiter sanitization failed.'
+    );
 }
 
 $song = (new GdSongEncoder())->encode([
@@ -114,8 +121,13 @@ $song = (new GdSongEncoder())->encode([
     'is_verified' => 1,
 ]);
 
-if (str_contains($song, 'Song~|~Name')) {
-    throw new RuntimeException('Song protocol still contains unsafe delimiters.');
+if (
+    str_contains($song, 'Song~|~Name') ||
+    !str_contains($song, '2:SongName')
+) {
+    throw new RuntimeException(
+        'Song protocol delimiter sanitization failed.'
+    );
 }
 
 echo "PROTOCOL_BOUNDARY_OK\n";
