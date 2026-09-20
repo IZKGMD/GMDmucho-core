@@ -13,8 +13,11 @@ PREVIOUS_SHA="$(git rev-parse HEAD 2>/dev/null || true)"
 ROLLED_BACK=0
 
 rollback_source() {
-    if [[ "$PREVIOUS_SHA" =~ ^[0-9a-f]{40}$ ]] && git cat-file -e "$PREVIOUS_SHA^{commit}" 2>/dev/null; then
+    if [[ "$PREVIOUS_SHA" =~ ^[0-9a-f]{40}$ ]] &&
+       git cat-file -e "$PREVIOUS_SHA^{commit}" 2>/dev/null
+    then
         echo '[MuchoCore] Update failed. Restoring previous source revision...'
+
         git reset --hard "$PREVIOUS_SHA" >/dev/null 2>&1 || true
 
         if docker compose config --quiet >/dev/null 2>&1; then
@@ -33,21 +36,26 @@ on_error() {
     fi
 
     echo "[MuchoCore] Update failed at line $line." >&2
-    echo "[MuchoCore] A pre-update database backup should be available in $ROOT/backups/pre-update." >&2
+    echo "[MuchoCore] Check the pre-update database backup in $ROOT/backups/pre-update." >&2
     exit 1
 }
 
 trap 'on_error $LINENO' ERR
 
 if ! grep -q '^DOMAIN=' "$ROOT/.env" 2>/dev/null; then
-    CADDY_ID="$(docker ps -a --filter 'label=com.docker.compose.service=caddy' --format '{{.ID}}' | head -n1 || true)"
+    CADDY_ID="$(
+        docker ps -a             --filter 'label=com.docker.compose.service=caddy'             --format '{{.ID}}' |
+        head -n1 ||
+        true
+    )"
 
     if [[ -n "$CADDY_ID" ]]; then
         SAVED_DOMAIN="$(
             docker inspect "$CADDY_ID"                 --format '{{range .Config.Env}}{{println .}}{{end}}'                 2>/dev/null |
             sed -n 's/^DOMAIN=//p' |
-            head -n1 || true
-        )
+            head -n1 ||
+            true
+        )"
 
         if [[ -n "$SAVED_DOMAIN" ]]; then
             printf '\nDOMAIN=%s\n' "$SAVED_DOMAIN" >> "$ROOT/.env"
@@ -68,7 +76,10 @@ grep -q '^ADMIN_USER=' "$ROOT/.env" 2>/dev/null ||
 grep -q '^TZ=' "$ROOT/.env" 2>/dev/null ||
     printf 'TZ=UTC\n' >> "$ROOT/.env"
 
-DB_NAME="$(sed -n 's/^DB_NAME=//p' "$ROOT/.env" | head -n1)"
+DB_NAME="$(
+    sed -n 's/^DB_NAME=//p' "$ROOT/.env" |
+    head -n1
+)"
 
 if [[ -z "$DB_NAME" || ! "$DB_NAME" =~ ^[A-Za-z0-9_.-]+$ ]]; then
     echo '[MuchoCore] ERROR: DB_NAME is missing or invalid.' >&2
@@ -87,7 +98,7 @@ BACKUP_FINAL="$ROOT/backups/pre-update/$BACKUP_BASE"
 
 echo "[MuchoCore] Creating pre-update database backup..."
 
-if ! docker compose exec -T db     sh -c 'mariadb-dump         --single-transaction         --quick         --triggers         --hex-blob         --default-character-set=utf8mb4         -u root         --password="$(cat /run/secrets/db_root_password)"         "$1"' sh "$DB_NAME" |
+if ! docker compose exec -T db     sh -c "mariadb-dump         --single-transaction         --quick         --triggers         --hex-blob         --default-character-set=utf8mb4         -u root         --password="\$(cat /run/secrets/db_root_password)"         "$DB_NAME"" |
     gzip -9 > "$BACKUP_TMP"
 then
     rm -f "$BACKUP_TMP"
@@ -105,6 +116,7 @@ fi
 
 mv "$BACKUP_TMP" "$BACKUP_FINAL"
 chmod 600 "$BACKUP_FINAL"
+
 sha256sum "$BACKUP_FINAL" > "$BACKUP_FINAL.sha256"
 chmod 600 "$BACKUP_FINAL.sha256"
 
@@ -115,25 +127,23 @@ git fetch --depth=1 origin main
 
 if git show origin/main:docker-compose.yml >/dev/null 2>&1; then
     git reset --hard origin/main
+elif git ls-remote --exit-code origin refs/heads/feat/easy-deploy >/dev/null 2>&1; then
+    echo '[MuchoCore] Main does not contain the deployment files yet; using feat/easy-deploy.'
+    git fetch --depth=1 origin feat/easy-deploy
+    git reset --hard FETCH_HEAD
 else
-    if git ls-remote --exit-code origin refs/heads/feat/easy-deploy >/dev/null 2>&1; then
-        echo '[MuchoCore] Main does not contain the deployment files yet; using feat/easy-deploy.'
-        git fetch --depth=1 origin feat/easy-deploy
-        git reset --hard FETCH_HEAD
-    else
-        echo '[MuchoCore] ERROR: the deployment files are not available on main or feat/easy-deploy.' >&2
-        exit 1
-    fi
+    echo '[MuchoCore] ERROR: the deployment files are not available on main or feat/easy-deploy.' >&2
+    exit 1
 fi
 
 echo '[MuchoCore] Rebuilding containers...'
 docker compose up -d --build --remove-orphans
 
 echo '[MuchoCore] Updating PHP dependencies...'
-docker compose exec -T app composer install --no-dev --optimize-autoloader --no-interaction
+docker compose exec -T app     composer install     --no-dev     --optimize-autoloader     --no-interaction
 
 echo '[MuchoCore] Applying database migrations...'
-docker compose exec -T app php bin/migrate.php migrate
+docker compose exec -T app     php bin/migrate.php migrate
 
 echo '[MuchoCore] Checking API + database health...'
 healthy=0
@@ -152,6 +162,7 @@ done
 if [[ "$healthy" -ne 1 ]]; then
     docker compose ps || true
     docker compose logs --tail=80 || true
+
     echo '[MuchoCore] ERROR: health check failed after update.' >&2
     exit 1
 fi
