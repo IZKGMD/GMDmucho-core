@@ -129,4 +129,43 @@ assertSameValue(
     'Version-inferred 2.2 request uses GJP2'
 );
 
+$score211Request = new Request(
+    'POST',
+    '/getGJLevelScores211.php',
+    [],
+    [
+        'gjp' => 'legacy-credential',
+        'gjp2' => 'new-credential',
+    ],
+    []
+);
+
+assertSameValue(
+    '2.1',
+    $score211Request->clientVersion()->family(),
+    '211 endpoint infers 2.1 family'
+);
+
+$platformerRequest = new Request(
+    'POST',
+    '/getGJLevelScoresPlat.php',
+    [],
+    [
+        'gjp2' => 'new-credential',
+    ],
+    []
+);
+
+assertSameValue(
+    '2.2',
+    $platformerRequest->clientVersion()->family(),
+    'Platformer endpoint infers 2.2 family'
+);
+
+assertSameValue(
+    'new-credential',
+    $platformerRequest->gdCredential(),
+    'Platformer request uses GJP2'
+);
+
 echo "MUCHOCORE_CLIENT_COMPATIBILITY_OK\n";
