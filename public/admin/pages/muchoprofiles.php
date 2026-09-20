@@ -80,7 +80,7 @@ if (true) {
             a.account_id,
             a.username,
             a.email,
-            a.role,
+            r.code AS role,
 
             m.display_name AS mp_display_name,
             m.status AS mp_status,
@@ -97,6 +97,9 @@ if (true) {
             m.updated_at AS mp_updated
 
         FROM accounts a
+
+        LEFT JOIN roles r
+            ON r.id=a.role_id
 
         LEFT JOIN mucho_profile_customization m
             ON m.account_id=a.account_id
