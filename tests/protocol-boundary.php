@@ -123,7 +123,8 @@ $song = (new GdSongEncoder())->encode([
 
 if (
     str_contains($song, 'Song~|~Name') ||
-    !str_contains($song, '2:SongName')
+    !str_contains($song, '2~|~SongName') ||
+    !str_contains($song, 'https://example.com/song.mp3')
 ) {
     throw new RuntimeException(
         'Song protocol delimiter sanitization failed.'
