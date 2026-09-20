@@ -29,7 +29,7 @@ final class GdMessageEncoder
             1, $message['id'],
             2, $isSender ? $message['to_account_id'] : $message['account_id'],
             3, $isSender ? $message['to_user_id'] : $message['user_id'],
-            4, $message['subject'],
+            4, ProtocolText::field($message['subject'] ?? '', 255),
             6, $username,
             7, $this->formatDate((string)$message['created_at']),
             8, $message['is_read'],
@@ -39,7 +39,7 @@ final class GdMessageEncoder
         // Если это чтение конкретного сообщения, добавляем тело
         if (isset($message['body'])) {
             $data[] = 5;
-            $data[] = $message['body'];
+            $data[] = ProtocolText::field($message['body'] ?? '', 65535);
         }
 
         return implode(':', $data);
