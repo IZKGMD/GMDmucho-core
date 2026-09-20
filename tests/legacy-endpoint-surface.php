@@ -24,7 +24,7 @@ if ($application === false || $router === false) {
 $routes = [];
 if (
     preg_match_all(
-        "/\\$route\\(\\s*'([^']+)'/",
+        '/\\$route\\(\\s*\'([^\']+)\'/',
         strtolower($application),
         $matches
     )
@@ -35,7 +35,7 @@ if (
 $aliases = [];
 if (
     preg_match_all(
-        "/'([^']+)'\\s*=>\\s*'([^']+)'/",
+        '/\'([^\']+)\'\\s*=>\\s*\'([^\']+)\'/',
         strtolower($router),
         $matches
     )
