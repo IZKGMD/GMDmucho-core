@@ -10,7 +10,7 @@ const MUCHO_RELEASE_TMP =
     '/var/www/mucho-core/storage/release-uploads';
 
 const MUCHO_ANDROID_RELEASES =
-    '/var/www/mucho-core/releases/android';
+    '/var/www/mucho-core/public/downloads/android';
 
 const MUCHO_RELEASE_MAX_SIZE =
     650 * 1024 * 1024;
