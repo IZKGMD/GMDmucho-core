@@ -15,7 +15,10 @@ final class GdCommentEncoder
         int $gameVersion = 22,
         int $binaryVersion = 0
     ): string {
-        $content = (string)($comment['content'] ?? '');
+        $content = ProtocolText::comment(
+            $comment['content'] ?? '',
+            2048
+        );
 
         if ($gameVersion < 20) {
             $content = base64_encode($content);
@@ -65,7 +68,7 @@ final class GdCommentEncoder
     public function encodeAccountComment(array $comment): string
     {
         return implode('~', [
-            '2', (string)$comment['content'],
+            '2', ProtocolText::comment($comment['content'] ?? '', 2048),
             '3', (string)$comment['account_id'],
             '4', (string)$comment['likes'],
             '5', '0',
