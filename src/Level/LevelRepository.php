@@ -19,7 +19,8 @@ final readonly class LevelRepository
         int $gameVersion,
         int $offset,
         int $limit,
-        int $demonFilter = 0
+        int $demonFilter = 0,
+        int $friendAccountId = 0
     ): array {
         $where = [
             "l.is_deleted = 0",
@@ -89,7 +90,9 @@ final readonly class LevelRepository
                 break;
 
             case 5:
-                if (ctype_digit($search)) {
+                if (!ctype_digit($search) || (int)$search <= 0) {
+                    $where[] = "1 = 0";
+                } else {
                     $where[] = "(p.user_id = :uid OR l.account_id = :aid)";
                     $params["uid"] = (int) $search;
                     $params["aid"] = (int) $search;
@@ -140,8 +143,7 @@ final readonly class LevelRepository
                 break;
 
             case 13:
-                $accountId = $this->integerString($search);
-                if ($accountId <= 0) {
+                if ($friendAccountId <= 0) {
                     $where[] = "1 = 0";
                 } else {
                     $where[] = "l.account_id IN (
@@ -149,7 +151,7 @@ final readonly class LevelRepository
                         FROM friends f
                         WHERE f.account_id = :friends_account
                     )";
-                    $params["friends_account"] = $accountId;
+                    $params["friends_account"] = $friendAccountId;
                     $order = "l.created_at DESC";
                 }
                 break;
