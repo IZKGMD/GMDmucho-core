@@ -24,7 +24,9 @@ jobs:
           php tests/router-compatibility.php
 
       - name: Check Python patcher
-        run: python3 -m py_compile tools/client-patch.py tools/client-trace-summary.py
+        run: |
+          python3 -m py_compile tools/client-patch.py tools/client-trace-summary.py
+          python3 tools/client-patch.py --self-test
 
       - name: Check Windows client patcher
         shell: pwsh
