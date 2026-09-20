@@ -58,6 +58,25 @@ For the VPS installer, the script asks for your domain and admin password and ge
 
 The admin panel username is always `admin`.
 
+## Easy settings — no coding required
+
+Most server settings can be changed in `.env`.
+
+Open the file and change only the value on the right:
+
+```text
+MUCHO_SERVER_NAME=MyGDPS
+MUCHO_SERVER_VERSION=1.0.2
+MUCHO_REGISTRATION_ENABLED=1
+MUCHO_LEVEL_UPLOAD_ENABLED=1
+MUCHO_CLOUD_SAVE_MAX_MB=32
+MUCHO_LEVEL_MAX_MB=32
+```
+
+`1` means enabled and `0` means disabled.
+
+Full beginner guide: [`config/SETTINGS.md`](config/SETTINGS.md).
+
 ## After installation
 
 Open:
