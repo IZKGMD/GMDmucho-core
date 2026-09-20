@@ -87,7 +87,7 @@ def replace_exact(
 
 
 def run_self_test() -> int:
-    server = "https://muchogdps.space"
+    server = "https://gdps.example.com"
 
     for length in (34, 33, 29, 28):
         value = compatibility_url(server, length)
