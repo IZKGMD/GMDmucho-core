@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+/* Copyright (C) 2026 IZK */
+
 use Dotenv\Dotenv;
 use MuchoCore\Core\Application;
 use MuchoCore\Http\Request;
