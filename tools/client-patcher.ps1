@@ -61,7 +61,7 @@ function Get-CompatibilityPath {
             if ($Bare) {
                 $candidate = "$hostPart$portPart$path"
             } else {
-                $candidate = "$scheme://$hostPart$portPart$path"
+                $candidate = "$($scheme)://$hostPart$portPart$path"
             }
 
             if ((Get-UrlBytesLength $candidate) -eq $DesiredLength) {
