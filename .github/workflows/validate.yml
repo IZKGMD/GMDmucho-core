@@ -56,7 +56,9 @@ jobs:
           test -f tools/client-patcher.ps1
 
       - name: Validate Composer
-        run: composer validate --strict
+        run: |
+          composer validate --strict
+          composer audit --locked --no-interaction
 
       - name: Validate Caddy
         run: |
