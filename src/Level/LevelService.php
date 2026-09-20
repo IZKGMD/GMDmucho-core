@@ -14,6 +14,7 @@ final readonly class LevelService
     public function __construct(
         private LevelRepository $levels,
         private GdLevelListEncoder $encoder,
+        private AccountAuthenticator $auth
     ) {
     }
 
