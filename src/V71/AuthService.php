@@ -24,12 +24,21 @@ final class AuthService
     public function authenticatedAccountId(): ?int
     {
         $accountId = Request::int('accountID');
+        $gameVersion = Request::int('gameVersion', 0);
 
-        // 2.2+ sends gjp2; older clients commonly send gjp.
-        $credential = Request::string('gjp2');
+        // 2.2+ prefers gjp2; older clients commonly use gjp.
+        if ($gameVersion >= 22) {
+            $credential = Request::string('gjp2');
 
-        if ($credential === '') {
+            if ($credential === '') {
+                $credential = Request::string('gjp');
+            }
+        } else {
             $credential = Request::string('gjp');
+
+            if ($credential === '') {
+                $credential = Request::string('gjp2');
+            }
         }
 
         if ($accountId <= 0 || $credential === '') {
