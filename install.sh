@@ -89,6 +89,9 @@ DB_USER=$DB_USER
 ADMIN_USER=$ADMIN_USER
 MUCHO_ACCOUNT_URL=https://$DOMAIN
 MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net
+MUCHO_ADMIN_BOOTSTRAP=/etc/muchocore-admin.php
+MUCHO_CONTROL_DIR=/var/lib/muchocore-control
+MUCHO_BACKUP_DIR=/var/lib/muchocore-backups
 TZ=UTC
 EOFENV
 chmod 600 "$INSTALL_DIR/.env"
