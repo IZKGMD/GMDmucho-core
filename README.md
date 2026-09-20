@@ -217,6 +217,13 @@ This repository is licensed under the MIT License. See [`LICENSE`](LICENSE).
 
 ## Client compatibility status
 
-Server-side tests are automated. Real Geometry Dash client compatibility is **not claimed until a real client test is performed**.
+The compatibility boundary now targets Geometry Dash 1.0–2.2, including versioned
+endpoint aliases, legacy credential selection, legacy level-upload parameter
+names, and version inference when old clients omit `gameVersion`.
 
-See [`docs/CLIENT_TESTING.md`](docs/CLIENT_TESTING.md) for the test and contract workflow.
+Server-side tests cover the compatibility layer. Real Geometry Dash client
+compatibility is **not claimed until a real client test is performed**.
+
+See [`docs/CLIENT_COMPATIBILITY.md`](docs/CLIENT_COMPATIBILITY.md) and
+[`docs/CLIENT_TESTING.md`](docs/CLIENT_TESTING.md) for the compatibility
+matrix and real-client test workflow.
