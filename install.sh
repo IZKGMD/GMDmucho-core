@@ -8,8 +8,6 @@ DOMAIN="${MUCHO_DOMAIN:-}"
 DB_NAME="${MUCHO_DB_NAME:-muchocore}"
 DB_USER="${MUCHO_DB_USER:-muchocore_user}"
 ADMIN_USER="admin"
-ADMIN_PASSWORD="${MUCHO_ADMIN_PASSWORD:-}"
-SHOW_PASSWORD="${MUCHO_SHOW_ADMIN_PASSWORD:-0}"
 
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
@@ -49,14 +47,11 @@ MuchoCore — установка на VPS
   --install-dir PATH
   --db-name NAME
   --db-user NAME
-  --admin-password PASSWORD
-
 Можно также использовать переменные:
   MUCHO_DOMAIN
   MUCHO_INSTALL_DIR
   MUCHO_DB_NAME
   MUCHO_DB_USER
-  MUCHO_ADMIN_PASSWORD
 
 EOF
 }
@@ -212,16 +207,31 @@ NEW_ADMIN_PASSWORD=0
 
 if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then
     ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
-elif [[ -n "$ADMIN_PASSWORD" ]]; then
-    [[ ${#ADMIN_PASSWORD} -ge 12 ]] ||         fail "Пароль администратора должен содержать минимум 12 символов."
-
-    printf '%s' "$ADMIN_PASSWORD" > "$INSTALL_DIR/.secrets/admin_password"
 else
-    ADMIN_PASSWORD="$(openssl rand -hex 18)"
-    printf '%s' "$ADMIN_PASSWORD" > "$INSTALL_DIR/.secrets/admin_password"
+    echo
+    echo "========================================"
+    echo " Пароль администратора"
+    echo "========================================"
+    echo "Придумай пароль для входа в /admin/."
+    echo "Минимум: 12 символов."
+    echo
+
+    read -r -s -p "Новый пароль: " ADMIN_PASSWORD
+    printf "\n"
+    read -r -s -p "Повтори пароль: " ADMIN_PASSWORD_CONFIRM
+    printf "\n"
+
+    [[ ${#ADMIN_PASSWORD} -ge 12 ]] ||
+        fail "Пароль администратора должен содержать минимум 12 символов."
+
+    [[ "$ADMIN_PASSWORD" == "$ADMIN_PASSWORD_CONFIRM" ]] ||
+        fail "Пароли не совпадают."
+
+    unset ADMIN_PASSWORD_CONFIRM
+
+    printf "%s" "$ADMIN_PASSWORD" > "$INSTALL_DIR/.secrets/admin_password"
     NEW_ADMIN_PASSWORD=1
 fi
-
 if [[ -s "$INSTALL_DIR/.secrets/db_password" ]]; then
     DB_PASSWORD="$(cat "$INSTALL_DIR/.secrets/db_password")"
 else
@@ -311,20 +321,10 @@ printf 'Админ:      %s\n' "$ADMIN_USER"
 
 if [[ "$NEW_ADMIN_PASSWORD" -eq 1 ]]; then
     echo
-    echo "========================================"
-    echo " Сохрани пароль администратора"
-    echo "========================================"
-    printf '%s\n' "$ADMIN_PASSWORD"
-    echo
+    echo "Пароль администратора сохранён."
 else
-    echo "Пароль:     уже сохранён в .secrets/admin_password"
-    if [[ "$SHOW_PASSWORD" == "1" ]]; then
-        echo
-        echo "Текущий пароль:"
-        printf '%s\n' "$ADMIN_PASSWORD"
-    fi
+    echo "Пароль администратора уже сохранён."
 fi
-
 if [[ "$public_ok" -eq 1 ]]; then
     log "Публичная проверка /health прошла."
 else
