@@ -2,6 +2,8 @@
     root * /var/www/mucho-core/public
     encode gzip zstd
 
+    header X-MuchoCore-Copyright "Copyright (C) 2026 IZK"
+
     # Copyright (C) 2026 IZK
 
     # Keep private project files unreachable, but do not block /database/*:
