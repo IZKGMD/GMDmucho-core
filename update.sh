@@ -7,7 +7,19 @@ cd "$ROOT"
 
 echo '[MuchoCore] Updating source code...'
 git fetch --depth=1 origin main
-git reset --hard origin/main
+
+if git show origin/main:docker-compose.yml >/dev/null 2>&1; then
+    git reset --hard origin/main
+else
+    if git ls-remote --exit-code origin refs/heads/feat/easy-deploy >/dev/null 2>&1; then
+        echo '[MuchoCore] Main does not contain the deployment files yet; using feat/easy-deploy.'
+        git fetch --depth=1 origin feat/easy-deploy
+        git reset --hard FETCH_HEAD
+    else
+        echo '[MuchoCore] ERROR: the deployment files are not available on main or feat/easy-deploy.' >&2
+        exit 1
+    fi
+fi
 
 echo '[MuchoCore] Rebuilding containers...'
 docker compose up -d --build --remove-orphans
