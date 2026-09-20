@@ -38,6 +38,7 @@ jobs:
           php tests/level-compatibility.php
           php tests/level-list-shape-compatibility.php
           php tests/comment-compatibility.php
+          php tests/protocol-boundary.php
           php tests/user-protocol-compatibility.php
 
       - name: Check client tools
