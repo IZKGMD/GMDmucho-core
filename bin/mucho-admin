@@ -3,161 +3,301 @@
 
 declare(strict_types=1);
 
-$root = dirname(__DIR__);
-$envFile = $root . "/.env";
-$env = [];
-if (file_exists($envFile)) {
-    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        if (str_starts_with(trim($line), "#") || !str_contains($line, "=")) continue;
-        [$k, $v] = explode("=", $line, 2);
-        $env[trim($k)] = trim($v);
-    }
+/*
+ * MuchoCore Administration CLI
+ * Copyright (C) 2026 IZK
+ */
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+use MuchoCore\Account\AccountService;
+use MuchoCore\Database\Database;
+use MuchoCore\Moderation\ModerationRepository;
+
+function usage(): never
+{
+    echo <<<TXT
+MuchoCore Admin CLI
+
+Commands:
+  mucho-admin set-role <ACCOUNT_ID|USERNAME> <user|moderator|admin|owner>
+  mucho-admin set-password <ACCOUNT_ID|USERNAME>
+  mucho-admin rate-level <LEVEL_ID> <STARS> [FEATURED 0/1] [EPIC 0-3] [DEMON 0-5]
+  mucho-admin list-levels
+
+Passwords are entered interactively and never passed in command arguments.
+
+TXT;
+    exit(1);
 }
 
-$dbHost = $env["DB_HOST"] ?? getenv("DB_HOST") ?: "127.0.0.1";
-$dbPort = $env["DB_PORT"] ?? getenv("DB_PORT") ?: "3306";
-$dbName = $env["DB_NAME"] ?? getenv("DB_NAME") ?: "muchocore";
-$dbUser = $env["DB_USER"] ?? getenv("DB_USER") ?: "muchocore_user";
-$dbPass = $env["DB_PASS"] ?? getenv("DB_PASS");
+function failCli(string $message): never
+{
+    fwrite(STDERR, "ERROR: {$message}\n");
+    exit(1);
+}
 
-if ($dbPass === null || $dbPass === "") {
-    exit("DB_PASS is not configured. Set it in .env or the environment.\n");
+function promptHidden(string $label): string
+{
+    fwrite(STDOUT, $label);
+
+    if (function_exists('stream_isatty') && stream_isatty(STDIN)) {
+        shell_exec('stty -echo');
+        try {
+            $value = rtrim((string)fgets(STDIN), "\r\n");
+        } finally {
+            shell_exec('stty echo');
+            fwrite(STDOUT, PHP_EOL);
+        }
+
+        return $value;
+    }
+
+    return rtrim((string)fgets(STDIN), "\r\n");
+}
+
+function promptHiddenTwice(): string
+{
+    $first = promptHidden("New password: ");
+    $second = promptHidden("Repeat password: ");
+
+    if ($first !== $second) {
+        failCli('Passwords do not match.');
+    }
+
+    if (strlen($first) < 12) {
+        failCli('Password must be at least 12 characters.');
+    }
+
+    if (strlen($first) > 512) {
+        failCli('Password is too long.');
+    }
+
+    return $first;
+}
+
+function findAccountId(PDO $db, string $target): int
+{
+    if (ctype_digit($target)) {
+        return (int)$target;
+    }
+
+    $q = $db->prepare(
+        'SELECT account_id
+         FROM accounts
+         WHERE username = :username
+         LIMIT 1'
+    );
+    $q->execute(['username' => $target]);
+
+    return (int)($q->fetchColumn() ?: 0);
+}
+
+function roleId(PDO $db, string $role): int
+{
+    $q = $db->prepare(
+        'SELECT id FROM roles WHERE code = :role LIMIT 1'
+    );
+    $q->execute(['role' => $role]);
+
+    return (int)($q->fetchColumn() ?: 0);
 }
 
 try {
-    $pdo = new PDO(
-        "mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4",
-        $dbUser,
-        $dbPass,
-        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
-    );
-} catch (PDOException $e) {
-    exit("Ошибка подключения к БД: " . $e->getMessage() . "\n");
-}
+    if (PHP_SAPI !== 'cli') {
+        failCli('CLI only.');
+    }
 
-$action = $argv[1] ?? "";
+    $db = (new Database())->connection();
+    $command = (string)($argv[1] ?? '');
 
-switch ($action) {
-case "set-password":
-        $username = $argv[2] ?? "";
-        $newPass = $argv[3] ?? "";
-        if ($username === "" || $newPass === "") {
-            exit("Использование: mucho-admin set-password <username> <new_password>
-");
-        }
-        $gjp = sha1($newPass);
-        $passHash = password_hash($newPass, PASSWORD_DEFAULT);
-        $gjp2Hash = password_hash(sha1($gjp . "mI29fmAnxgTs"), PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("UPDATE accounts SET password_hash = :p, gjp2_hash = :g WHERE username = :u");
-        $stmt->execute(["p" => $passHash, "g" => $gjp2Hash, "u" => $username]);
-        echo "Пароль для пользователя {$username} успешно изменен!
-";
-        break;
+    if ($command === 'set-role') {
+        $target = trim((string)($argv[2] ?? ''));
+        $role = strtolower(trim((string)($argv[3] ?? '')));
 
-    case "set-role":
-        $username = $argv[2] ?? "";
-        $role = $argv[3] ?? "admin";
+        $aliases = [
+            'mod' => 'moderator',
+            'helper' => 'moderator',
+            'elder' => 'moderator',
+        ];
+        $role = $aliases[$role] ?? $role;
 
-        if ($username === "") {
-            exit("Использование: mucho-admin set-role <username> <user|mod|elder|admin>\n");
+        if ($target === '' || !in_array($role, ['user', 'moderator', 'admin', 'owner'], true)) {
+            usage();
         }
 
-        $stmt = $pdo->prepare("UPDATE accounts SET role = :role WHERE username = :username");
-        $stmt->execute(["role" => $role, "username" => $username]);
-
-        if ($stmt->rowCount() > 0) {
-            echo "Пользователю {$username} успешно установлена роль: {$role}\n";
-        } else {
-            echo "Пользователь {$username} не найден или роль уже установлена.\n";
-        }
-        break;
-
-    case "rate-level":
-        $levelId  = (int)($argv[2] ?? 0);
-        $stars    = (int)($argv[3] ?? 0);
-        $featured = (int)($argv[4] ?? 0); // 0 = None, 1 = Featured
-        $epic     = (int)($argv[5] ?? 0); // 0 = None, 1 = Epic, 2 = Legendary, 3 = Mythic
-        $demon    = (int)($argv[6] ?? 0); // 0 = No, 1 = Easy, 2 = Medium, 3 = Hard, 4 = Insane, 5 = Extreme
-
-        if ($levelId <= 0 || $stars <= 0) {
-            exit("Использование: mucho-admin rate-level <level_id> <stars> [featured:0/1] [epic:0/1/2/3] [demon:0/1/2/3/4/5]\n");
+        $accountId = findAccountId($db, $target);
+        if ($accountId <= 0) {
+            failCli('Account not found.');
         }
 
-        $diff = match ($stars) {
-            1 => 10,
-            2 => 10,
-            3 => 20,
-            4, 5 => 30,
-            6, 7 => 40,
-            8, 9 => 50,
-            10 => 50,
-            default => 10
-        };
+        $roleId = roleId($db, $role);
+        if ($roleId <= 0) {
+            failCli('Role is not installed.');
+        }
 
-        $isDemon = ($stars === 10 || $demon > 0) ? 1 : 0;
-        $demonDiff = $isDemon ? ($demon > 0 ? $demon : 1) : 0;
-        $autoLevel = ($stars === 1) ? 1 : 0;
-
-        $stmt = $pdo->prepare("
-            UPDATE levels 
-            SET stars = :stars, 
-                difficulty = :difficulty,
-                featured = :featured, 
-                epic = :epic,
-                demon = :demon, 
-                demon_difficulty = :demon_difficulty,
-                auto_level = :auto_level
-            WHERE level_id = :level_id
-        ");
-        $stmt->execute([
-            "stars"            => $stars,
-            "difficulty"       => $diff,
-            "featured"         => $featured,
-            "epic"             => $epic,
-            "demon"            => $isDemon,
-            "demon_difficulty" => $demonDiff,
-            "auto_level"       => $autoLevel,
-            "level_id"         => $levelId
+        $q = $db->prepare(
+            'UPDATE accounts
+             SET role_id = :role_id
+             WHERE account_id = :account_id'
+        );
+        $q->execute([
+            'role_id' => $roleId,
+            'account_id' => $accountId,
         ]);
 
-        if ($stmt->rowCount() > 0) {
-            echo "Уровень #{$levelId} оценен: {$stars}★ | Featured: {$featured} | Epic: {$epic} | Demon: {$demonDiff}\n";
-            
-            $cpBonus = 1 + ($featured ? 1 : 0) + $epic;
-            $stmtUser = $pdo->prepare("
-                UPDATE profiles 
-                SET creator_points = creator_points + :cp 
-                WHERE account_id = (SELECT account_id FROM levels WHERE level_id = :level_id)
-            ");
-            $stmtUser->execute(["cp" => $cpBonus, "level_id" => $levelId]);
-            echo "Автору уровня начислено +{$cpBonus} CP!\n";
-        } else {
-            echo "Уровень #{$levelId} не найден.\n";
-        }
-        break;
+        echo "ROLE_SET_OK\n";
+        exit;
+    }
 
-    case "list-levels":
-        $stmt = $pdo->query("SELECT level_id, name, stars, featured, epic, demon FROM levels ORDER BY level_id DESC LIMIT 10");
-        $levels = $stmt->fetchAll();
-        echo "=== СПИСОК УРОВНЕЙ ===\n";
-        foreach ($levels as $l) {
-            $id = $l["level_id"];
-            $name = $l["name"];
-            $s = $l["stars"];
-            $f = $l["featured"];
-            $e = $l["epic"];
-            $d = $l["demon"];
-            echo "#{$id} | {$name} | Stars: {$s} | Featured: {$f} | Epic: {$e} | Demon: {$d}\n";
-        }
-        break;
+    if ($command === 'set-password') {
+        $target = trim((string)($argv[2] ?? ''));
 
-    default:
-        echo "=== MuchoCore Admin CLI ===\n";
-        echo "Команды:\n";
-        echo "  mucho-admin set-role <username> <user|mod|elder|admin>\n";
-        echo "  mucho-admin rate-level <level_id> <stars> [featured:0/1] [epic:0/1/2/3] [demon:0/1/2/3/4/5]\n";
-        echo "  mucho-admin set-password <username> <new_password>\n";
-        echo "  mucho-admin list-levels\n";
-        break;
+        if ($target === '') {
+            usage();
+        }
+
+        $accountId = findAccountId($db, $target);
+        if ($accountId <= 0) {
+            failCli('Account not found.');
+        }
+
+        $password = promptHiddenTwice();
+        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+        $gjp2 = sha1($password . AccountService::GJP2_SALT);
+        $gjp2Hash = password_hash($gjp2, PASSWORD_DEFAULT);
+
+        $q = $db->prepare(
+            'UPDATE accounts
+             SET password_hash = :password_hash,
+                 gjp2_hash = :gjp2_hash
+             WHERE account_id = :account_id'
+        );
+        $q->execute([
+            'password_hash' => $passwordHash,
+            'gjp2_hash' => $gjp2Hash,
+            'account_id' => $accountId,
+        ]);
+
+        echo "PASSWORD_SET_OK\n";
+        exit;
+    }
+
+    if ($command === 'rate-level') {
+        $levelId = (int)($argv[2] ?? 0);
+        $stars = (int)($argv[3] ?? 0);
+        $featured = (int)($argv[4] ?? 0);
+        $epic = (int)($argv[5] ?? 0);
+        $demon = (int)($argv[6] ?? 0);
+
+        if (
+            $levelId <= 0 ||
+            $stars < 0 || $stars > 10 ||
+            !in_array($featured, [0, 1], true) ||
+            $epic < 0 || $epic > 3 ||
+            $demon < 0 || $demon > 5
+        ) {
+            failCli('Invalid rating values.');
+        }
+
+        $q = $db->prepare(
+            'SELECT account_id
+             FROM levels
+             WHERE level_id = :level_id
+             LIMIT 1'
+        );
+        $q->execute(['level_id' => $levelId]);
+        $authorId = (int)($q->fetchColumn() ?: 0);
+
+        if ($authorId <= 0) {
+            failCli('Level not found.');
+        }
+
+        if ($epic > 0) {
+            $featured = 1;
+        }
+
+        if ($demon > 0) {
+            $stars = 10;
+        }
+
+        $difficulty = match (true) {
+            $demon === 1 => 50,
+            $demon === 2 => 50,
+            $demon === 3 => 50,
+            $demon === 4 => 50,
+            $demon === 5 => 50,
+            $stars === 1 => 50,
+            $stars === 2 => 10,
+            $stars === 3 => 20,
+            $stars <= 5 => 30,
+            $stars <= 9 => 50,
+            default => 50,
+        };
+
+        $demonDifficulty = match ($demon) {
+            1 => 3,
+            2 => 4,
+            3 => 0,
+            4 => 5,
+            5 => 6,
+            default => 0,
+        };
+
+        $auto = ($stars === 1 && $demon === 0) ? 1 : 0;
+        $isDemon = $demon > 0 || $stars === 10;
+
+        $q = $db->prepare(
+            'UPDATE levels
+             SET stars = :stars,
+                 difficulty = :difficulty,
+                 featured = :featured,
+                 epic = :epic,
+                 demon = :demon,
+                 demon_difficulty = :demon_difficulty,
+                 auto_level = :auto
+             WHERE level_id = :level_id'
+        );
+        $q->execute([
+            'stars' => $stars,
+            'difficulty' => $difficulty,
+            'featured' => $featured,
+            'epic' => $epic,
+            'demon' => $isDemon ? 1 : 0,
+            'demon_difficulty' => $demonDifficulty,
+            'auto' => $auto,
+            'level_id' => $levelId,
+        ]);
+
+        (new ModerationRepository($db))
+            ->recalculateCreatorPoints($authorId);
+
+        echo "RATE_LEVEL_OK\n";
+        exit;
+    }
+
+    if ($command === 'list-levels') {
+        $rows = $db->query(
+            'SELECT level_id, name, stars, featured, epic, demon
+             FROM levels
+             ORDER BY level_id DESC
+             LIMIT 10'
+        )->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($rows as $row) {
+            echo '#'.$row['level_id']
+                .' | '.$row['name']
+                .' | Stars: '.$row['stars']
+                .' | Featured: '.$row['featured']
+                .' | Epic: '.$row['epic']
+                .' | Demon: '.$row['demon']
+                .PHP_EOL;
+        }
+
+        exit(0);
+    }
+
+    usage();
+} catch (Throwable $e) {
+    failCli($e->getMessage());
 }
