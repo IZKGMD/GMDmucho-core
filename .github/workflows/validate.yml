@@ -27,6 +27,7 @@ jobs:
       - name: Check compatibility tests
         run: |
           php tests/client-compatibility.php
+          php tests/legacy-endpoint-compatibility.php
           php tests/router-compatibility.php
           php tests/settings.php
           php tests/role-schema.php
