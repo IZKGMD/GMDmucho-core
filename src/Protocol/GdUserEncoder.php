@@ -9,6 +9,7 @@ final class GdUserEncoder
     public function profile(array $u): string
     {
         $accId = (int)($u['account_id'] ?? 0);
+        $userId = (int)($u['user_id'] ?? $accId);
         $name = ProtocolText::username(
             $u['username'] ?? 'Player'
         );
@@ -22,11 +23,11 @@ final class GdUserEncoder
 
         $mapping = [
             1 => $name,
-            2 => $accId,
+            2 => $userId,
             3 => (int)($u['stars'] ?? 0),
             4 => (int)($u['demons'] ?? 0),
             6 => (int)($u['rank'] ?? 0),
-            7 => $accId,
+            7 => $userId,
             8 => (int)($u['creator_points'] ?? 0),
             9 => (int)($u['cube'] ?? 1),
             10 => (int)($u['color1'] ?? 0),
@@ -85,13 +86,14 @@ final class GdUserEncoder
         $entries = [];
         foreach ($users as $u) {
             $accId = (int)($u['account_id'] ?? 0);
+            $userId = (int)($u['user_id'] ?? $accId);
             $mapping = [
                 1 => ProtocolText::username($u['username'] ?? 'Player'),
-                2 => $accId,
+                2 => $userId,
                 3 => (int)($u['stars'] ?? 0),
                 4 => (int)($u['demons'] ?? 0),
                 6 => (int)($u['rank'] ?? 0),
-                7 => $accId,
+                7 => $userId,
                 8 => (int)($u['creator_points'] ?? 0),
                 9 => (int)($u['cube'] ?? 1),
                 10 => (int)($u['color1'] ?? 0),
