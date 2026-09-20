@@ -26,6 +26,8 @@ if($action==='v4-bulk-players'){
              WHERE a.account_id IN ($in)
                AND COALESCE(r.code,'user')='owner'"
         );
+        $q->execute();
+
         $ownerCount=(int)$q->fetchColumn();
 
         if ($ownerCount>0) {
