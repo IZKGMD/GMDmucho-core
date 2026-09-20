@@ -47,9 +47,15 @@ try {
     $db = muchoV2Db();
 
     $q = $db->prepare("
-        SELECT client_token_hash, last_seen
-        FROM mucho_profile_presence
-        WHERE account_id=?
+        SELECT
+            p.client_token_hash,
+            p.last_seen,
+            a.is_active,
+            a.is_banned
+        FROM mucho_profile_presence p
+        INNER JOIN accounts a
+            ON a.account_id=p.account_id
+        WHERE p.account_id=?
         LIMIT 1
     ");
 
@@ -59,6 +65,8 @@ try {
 
     if (
         !$presence ||
+        (int)($presence['is_active'] ?? 0) !== 1 ||
+        (int)($presence['is_banned'] ?? 0) === 1 ||
         !is_string($presence['client_token_hash']) ||
         $presence['client_token_hash'] === '' ||
         !hash_equals(
