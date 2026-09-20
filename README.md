@@ -24,8 +24,8 @@ It automatically:
 - creates the Cloud Save key;
 - starts MariaDB, PHP 8.3 and Caddy;
 - applies database migrations;
-- checks `/health`;
-- prints the GDPS address and admin password.
+- checks the API and database health endpoint;
+- prints the GDPS and admin addresses.
 
 The installer is safe to run again: existing secrets are preserved and a non-MuchoCore directory is never deleted.
 
@@ -54,15 +54,21 @@ Full beginner guide: [`docs/SHARED_HOSTING.md`](docs/SHARED_HOSTING.md).
 The shared-hosting mode requires PHP 8.3+ and MySQL/MariaDB. It does not use Docker.
 
 
-For the VPS installer, the script asks for your domain and admin password and generates the database secrets automatically. The shared-hosting browser installer asks for your hosting database details.
+For the VPS installer, the script asks for your domain and lets you create the admin password. Database secrets are generated automatically. The shared-hosting browser installer asks for your hosting database details.
 
 The admin panel username is always `admin`.
 
 ## Easy settings — no coding required
 
-Most server settings can be changed in `.env`.
+Most common server settings can be changed in `.env`.
 
-Open the file and change only the value on the right:
+On VPS, the same values can also be changed in:
+
+```text
+Admin → Settings
+```
+
+Open `.env` only when you need file-based configuration. Change only the value on the right:
 
 ```text
 MUCHO_SERVER_NAME=MyGDPS
