@@ -26,8 +26,19 @@ final readonly class ClientVersion
         if ($gameVersion <= 0) {
             $path = strtolower($request->path);
 
-            if (preg_match('/(?:19|20|21|22)(?:\.php)?(?:\/)?$/', $path, $m)) {
+            if (preg_match('/211(?:\.php)?(?:\/)?$/', $path) === 1) {
+                $gameVersion = 21;
+            } elseif (
+                preg_match(
+                    '/(?:19|20|21|22)(?:\.php)?(?:\/)?$/',
+                    $path,
+                    $m
+                ) === 1
+            ) {
                 $gameVersion = (int)$m[1];
+            } elseif (str_ends_with($path, 'getgjlevelscoresplat.php')) {
+                // Platformer score endpoint is a 2.2-era endpoint.
+                $gameVersion = 22;
             }
         }
 
