@@ -91,7 +91,10 @@ function renderMuchoSettingsPage(PDO $db): void
                         <input
                             type="checkbox"
                             name="registration_enabled"
-                            <?=$defaults['MUCHO_REGISTRATION_ENABLED'] ? 'checked' : ''?>
+                            <?=(
+                                $defaults['MUCHO_REGISTRATION_ENABLED'] &&
+                                !is_file(CONTROL_DIR.'/registrations-disabled.flag')
+                            ) ? 'checked' : ''?>
                         >
                         Разрешить регистрацию
                     </label>
