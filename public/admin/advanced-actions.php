@@ -18,6 +18,23 @@ if($action==='v4-bulk-players'){
     $operation=(string)($_POST['operation'] ?? '');
     $in=v4In($ids);
 
+    if (rank((string)(admin()['role'] ?? '')) < 40) {
+        $q=$db->prepare(
+            "SELECT COUNT(*)
+             FROM accounts a
+             LEFT JOIN roles r ON r.id=a.role_id
+             WHERE a.account_id IN ($in)
+               AND COALESCE(r.code,'user')='owner'"
+        );
+        $ownerCount=(int)$q->fetchColumn();
+
+        if ($ownerCount>0) {
+            throw new RuntimeException(
+                'Only an owner can modify owner accounts.'
+            );
+        }
+    }
+
     if($operation==='ban'){
         $db->exec(
             "UPDATE accounts
