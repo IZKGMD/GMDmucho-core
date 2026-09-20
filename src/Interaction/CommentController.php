@@ -65,6 +65,7 @@ final readonly class CommentController
                     $levelId,
                     $page,
                     $request->clientVersion()->gameVersion,
+                    $request->clientVersion()->binaryVersion,
                     $count
                 )
             );
