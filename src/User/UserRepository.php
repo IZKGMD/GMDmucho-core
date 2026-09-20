@@ -24,6 +24,7 @@ final readonly class UserRepository
                 COALESCE(p.user_coins, 0) AS user_coins,
                 COALESCE(p.creator_points, 0) AS creator_points,
                 COALESCE(p.cube, 1) AS cube,
+                COALESCE(p.icon_type, 0) AS icon_type,
                 COALESCE(p.ship, 1) AS ship,
                 COALESCE(p.ball, 1) AS ball,
                 COALESCE(p.ufo, 1) AS ufo,
@@ -32,6 +33,7 @@ final readonly class UserRepository
                 COALESCE(p.spider, 1) AS spider,
                 COALESCE(p.swing, 1) AS swing,
                 COALESCE(p.jetpack, 1) AS jetpack,
+                COALESCE(p.explosion, 1) AS explosion,
                 COALESCE(p.color1, 0) AS color1,
                 COALESCE(p.color2, 3) AS color2,
                 COALESCE(p.color3, 0) AS color3,
@@ -154,6 +156,9 @@ final readonly class UserRepository
                 COALESCE(p.color1, 0) AS color1,
                 COALESCE(p.color2, 3) AS color2,
                 COALESCE(p.color3, 0) AS color3,
+                COALESCE(p.glow, 0) AS glow,
+                COALESCE(p.icon_type, 0) AS icon_type,
+                COALESCE(p.explosion, 1) AS explosion,
                 COALESCE(p.special, 0) AS special,
                 COALESCE((SELECT COUNT(*) FROM levels WHERE account_id = a.account_id AND is_deleted = 0), 0) AS levels_count
             FROM accounts a
