@@ -118,9 +118,9 @@ $legacyRequest = new Request(
 );
 
 assertSameValue(
-    'unknown',
+    '1.x',
     $legacyRequest->clientVersion()->family(),
-    'Unversioned legacy request stays unknown without gameVersion'
+    'Unversioned legacy request infers 1.x family'
 );
 
 assertSameValue(
