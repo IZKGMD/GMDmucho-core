@@ -31,9 +31,14 @@ final class GdLevelListEncoder
             $username = ProtocolText::username(
                 $level['username'] ?? 'Player'
             );
+            /*
+             * The list hash uses the exact stored star value. Custom Mucho
+             * ratings may legitimately be above 10, and Cvolton-style
+             * GenerateHash::genMulti does not clamp this field.
+             */
             $protocolStars = max(
                 0,
-                min(10, (int) ($level["stars"] ?? 0))
+                (int) ($level["stars"] ?? 0)
             );
 
             $levelStrings[] = implode(":", [
