@@ -26,6 +26,10 @@ jobs:
       - name: Check Python patcher
         run: python3 -m py_compile tools/client-patch.py tools/client-trace-summary.py
 
+      - name: Check Windows client patcher
+        shell: pwsh
+        run: ./tools/client-patcher.ps1 -SelfTest
+
       - name: Check required files
         run: |
           test -f docker-compose.yml
