@@ -46,13 +46,9 @@ GeometryDash.exe
 
 ### 3. Check the server address
 
-The patcher is already configured for the official MuchoCore test server:
+The patcher does not contain a fixed server address.
 
-```text
-https://muchogdps.space
-```
-
-For another MuchoCore server, replace that address with the server root, for example:
+Enter the address of **your own GDPS**, for example:
 
 ```text
 https://gdps.example.com
@@ -90,7 +86,7 @@ https://www.boomlings.com/database
 The patcher keeps the same byte length, so it may generate a compatibility path such as:
 
 ```text
-https://muchogdps.space/a/database
+https://gdps.example.com/a/database
 ```
 
 MuchoCore removes the compatibility prefixes before routing the Geometry Dash endpoint. You do not need to understand or change this path manually.
