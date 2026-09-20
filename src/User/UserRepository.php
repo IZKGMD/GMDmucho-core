@@ -37,6 +37,7 @@ final readonly class UserRepository
                 COALESCE(p.color3, 0) AS color3,
                 COALESCE(p.special, 0) AS special,
                 a.account_id,
+                COALESCE(p.user_id, a.account_id) AS user_id,
                 a.username,
                 r.code AS role_code
             FROM accounts a
@@ -116,6 +117,7 @@ final readonly class UserRepository
         $sql = '
             SELECT
                 a.account_id,
+                COALESCE(p.user_id, a.account_id) AS user_id,
                 a.username,
                 r.code AS role_code,
                 COALESCE(a.messages_state, 0) AS message_state,
