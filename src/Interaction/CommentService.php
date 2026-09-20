@@ -58,7 +58,8 @@ final class CommentService
             return 0;
         }
 
-        // Проверяем, является ли комментарий модераторской командой
+        // Moderation commands are handled server-side and are not stored
+        // as ordinary public comments.
         if (str_starts_with($decodedContent, "!")) {
             $commandResult = $this->handleCommand(
                 $levelId,
@@ -67,7 +68,7 @@ final class CommentService
             );
 
             if ($commandResult !== null) {
-                $decodedContent = $commandResult;
+                return 0;
             }
         }
 
@@ -143,28 +144,51 @@ final class CommentService
                             epic = 0,
                             updated_at = NOW()
                         WHERE level_id = :id
+                          AND is_deleted = 0
                     ")->execute([
                         ":diff"  => $diff,
-                        ":demon" => $demon,
+                        ":demon"  => $demon,
                         ":demon_diff" => $demon_diff,
                         ":auto"  => $auto,
                         ":id"    => $levelId
                     ]);
 
-                    // Завершаем выполнение и возвращаем "1" (код успешной отправки коммента в GD).
-                    // Это предотвращает сохранение команды в базу данных и блокирует любые системные сообщения.
-                    exit("1");
+                    return "[Mod] Rate applied";
                 }
                 
-                return "[Mod] Rate error: invalid difficulty (use auto, easy, normal, hard, harder, insane, demon)";
+                return "[Mod] Rate error";
 
             case "!demon":
                 $demonDiff = isset($parts[1]) ? (int)$parts[1] : 3;
-                $pdo->prepare("UPDATE levels SET demon = 1, stars = 10, demon_difficulty = :d WHERE level_id = :id")
-                    ->execute([":d" => $demonDiff, ":id" => $levelId]);
 
-                $names = [1 => "Easy", 2 => "Medium", 3 => "Hard", 4 => "Insane", 5 => "Extreme"];
-                return sprintf("[Mod] Set Demon Difficulty: %s", $names[$demonDiff] ?? "Hard");
+                if ($demonDiff < 1 || $demonDiff > 5) {
+                    return "[Mod] Demon difficulty must be 1-5";
+                }
+
+                $pdo->prepare(
+                    "UPDATE levels
+                     SET demon = 1,
+                         stars = 10,
+                         demon_difficulty = :d
+                     WHERE level_id = :id
+                       AND is_deleted = 0"
+                )->execute([
+                    ":d" => $demonDiff,
+                    ":id" => $levelId
+                ]);
+
+                $names = [
+                    1 => "Easy",
+                    2 => "Medium",
+                    3 => "Hard",
+                    4 => "Insane",
+                    5 => "Extreme"
+                ];
+
+                return sprintf(
+                    "[Mod] Set Demon Difficulty: %s",
+                    $names[$demonDiff]
+                );
 
             case "!delete":
                 $pdo->prepare("UPDATE levels SET is_deleted = 1 WHERE level_id = :id")->execute([":id" => $levelId]);
@@ -172,15 +196,39 @@ final class CommentService
 
             case "!cp":
                 $amount = isset($parts[1]) ? (int)$parts[1] : 1;
-                $lvlStmt = $pdo->prepare("SELECT account_id FROM levels WHERE level_id = :id");
-                $lvlStmt->execute([":id" => $levelId]);
-                $authorId = (int)($lvlStmt->fetchColumn() ?: 0);
-                if ($authorId > 0) {
-                    $pdo->prepare("UPDATE profiles SET creator_points = creator_points + :cp WHERE account_id = :acc")
-                        ->execute([":cp" => $amount, ":acc" => $authorId]);
-                    return sprintf("[Mod] Awarded +%d CP to creator", $amount);
+
+                if ($amount < 1 || $amount > 100) {
+                    return "[Mod] CP amount must be 1-100";
                 }
-                return null;
+
+                $lvlStmt = $pdo->prepare(
+                    "SELECT account_id
+                     FROM levels
+                     WHERE level_id = :id
+                       AND is_deleted = 0
+                     LIMIT 1"
+                );
+                $lvlStmt->execute([":id" => $levelId]);
+
+                $authorId = (int)($lvlStmt->fetchColumn() ?: 0);
+
+                if ($authorId > 0) {
+                    $pdo->prepare(
+                        "UPDATE profiles
+                         SET creator_points = creator_points + :cp
+                         WHERE account_id = :acc"
+                    )->execute([
+                        ":cp" => $amount,
+                        ":acc" => $authorId
+                    ]);
+
+                    return sprintf(
+                        "[Mod] Awarded +%d CP to creator",
+                        $amount
+                    );
+                }
+
+                return "[Mod] Level not found";
         }
 
         return null;
