@@ -19,6 +19,7 @@ if ($migration === false) {
 }
 
 $tables = [
+    'mucho_level_lists',
     'friends',
     'blocks',
     'friend_requests',
