@@ -8,81 +8,92 @@ Your GDPS has two parts:
 Geometry Dash client
        |
        v
-https://YOUR-DOMAIN/database
+MuchoCore server
        |
        v
-MuchoCore server
+https://YOUR-DOMAIN/
 ```
 
 Installing MuchoCore does not automatically change the game client. The client must be patched to use your server.
 
-## Windows: easiest method
+## Windows: one-click method
 
-### 1. Install Python 3
+### 1. Get the patcher
 
-Install Python 3 from https://www.python.org/.
-
-On Windows, enable the option that adds Python to PATH.
-
-### 2. Get the patcher
-
-Download this repository. Open:
+Download this repository and open:
 
 ```text
 tools/client-patch.bat
 ```
 
-### 3. Back up the original game
+You do **not** need to install Python.
 
-Make a copy of your original Geometry Dash executable.
+### 2. Choose your game
 
-Never patch your only copy.
+The patcher opens a small window.
 
-### 4. Double-click the patcher
-
-Double-click:
+Click:
 
 ```text
-tools/client-patch.bat
+Browse...
 ```
 
-The program asks for the path to your Geometry Dash executable.
+and select your original:
 
-Then it asks for your MuchoCore server URL.
+```text
+GeometryDash.exe
+```
 
-Enter the server root only:
+### 3. Check the server address
+
+The patcher is already configured for the official MuchoCore test server:
+
+```text
+https://muchogdps.space
+```
+
+For another MuchoCore server, replace that address with the server root, for example:
 
 ```text
 https://gdps.example.com
 ```
 
-Do not add `/database`. The patcher adds it automatically.
+Do not add `/database`. The patcher builds the client-compatible path automatically.
 
-### 5. If the patcher says the URL is the wrong length
+### 4. Click Patch client
 
-Some 2.2 clients store the main server URL as a fixed-size string.
+The patcher:
 
-The standard client URL is:
+- checks the executable;
+- finds supported Geometry Dash server URLs;
+- handles the fixed-size URLs used by different client generations;
+- handles the Base64 form used by some older clients;
+- creates a new executable;
+- never overwrites the original file.
 
-```text
-https://www.boomlings.com/database
-```
-
-For this patch method, the final URL must also be 34 bytes long.
-
-The patcher checks this for you.
-
-If it says the length is wrong, nothing was changed. Use another domain or subdomain and run the patcher again.
-
-### 6. Start the patched client
-
-The patcher creates a new executable next to the original one:
+The output will look like:
 
 ```text
 GeometryDash-MuchoCore.exe
 ```
 
-Start that file.
+Start that new file.
+
+### Why the generated URL can look unusual
+
+Some Geometry Dash Windows builds store the server URL in a fixed-size field. The standard 2.2 database URL is:
+
+```text
+https://www.boomlings.com/database
+```
+
+The patcher keeps the same byte length, so it may generate a compatibility path such as:
+
+```text
+https://muchogdps.space/a/database
+```
+
+MuchoCore removes the compatibility prefixes before routing the Geometry Dash endpoint. You do not need to understand or change this path manually.
 
 ## Test the connection
 
@@ -96,11 +107,11 @@ Test in this order:
 6. Submit a test score.
 7. Test cloud save.
 
-Start with login. If login does not work, do not continue to the next test.
+Start with login. If login does not work, stop there and check the server trace/logs.
 
 ## If the client does not connect
 
-First check the server:
+First open:
 
 ```text
 https://YOUR-DOMAIN/health
@@ -116,75 +127,46 @@ Then check the server logs:
 
 ```bash
 cd /opt/mucho-core
-sudo docker compose logs -f
+sudo docker compose logs --tail=100
 ```
 
 Make sure you patched the correct Geometry Dash client version.
 
-## Android
+## Supported automatic Windows formats
 
-Android is an advanced step because the server URL is usually inside native game libraries.
+The one-click patcher currently knows these common server URL forms:
 
-For a 2.2 APK, the common libraries are:
+- HTTPS database URL used by GD 2.2;
+- legacy HTTP database URL;
+- common HTTPS/HTTP root URL variants;
+- Base64-encoded variants of those URLs;
+- the legacy bare `www.boomlings.com/database` form when a same-length replacement is possible.
+
+Real client compatibility is still verified by testing the actual client build. The patcher reporting `PATCH COMPLETE` only means that a known URL string was replaced safely.
+
+## Android, macOS and iOS
+
+These are advanced because the server URL is usually inside native binaries or packaged application files.
+
+The existing Python helper can still be used:
+
+```bash
+python3 tools/client-patch.py
+```
+
+For Android 2.2, common native libraries are:
 
 ```text
 arm64-v8a/libcocos2dcpp.so
 armeabi-v7a/libcocos2dcpp.so
 ```
 
-Patch each library with:
-
-```bash
-python3 tools/client-patch.py
-```
-
-Then rebuild and sign the APK.
-
-## macOS
-
-Patch the executable inside:
-
-```text
-Geometry Dash.app/Contents/MacOS/GeometryDash
-```
-
-Run:
-
-```bash
-python3 tools/client-patch.py
-```
-
-The helper will ask for the executable path and server URL.
-
-macOS may require re-signing the application.
-
-## iOS
-
-iOS requires repackaging and signing an IPA.
-
-The client still needs to use:
-
-```text
-https://YOUR-DOMAIN/database
-```
-
-The exact signing process depends on your build and distribution method.
-
-## Manual command
-
-If you do not want the interactive helper:
-
-```bash
-python3 tools/client-patch.py \
-  --input "/path/to/GeometryDash.exe" \
-  --output "/path/to/GeometryDash-MuchoCore.exe" \
-  --server-url "https://YOUR-DOMAIN"
-```
+You must rebuild/sign the application after patching.
 
 ## What the patcher changes
 
-The patcher changes only the known Geometry Dash server URL strings.
+The patcher changes only known Geometry Dash server URL strings.
 
-It does not change player data, levels, passwords or the database.
+It does not change player data, levels, passwords or the MuchoCore database.
 
 It always writes a new output file and leaves the original file untouched.
