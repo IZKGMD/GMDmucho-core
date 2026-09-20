@@ -107,6 +107,40 @@ assertSameValue(
     'Version-inferred 2.1 request uses GJP'
 );
 
+$legacyRequest = new Request(
+    'POST',
+    '/uploadGJLevel.php',
+    [],
+    [
+        'gjp' => 'legacy-credential',
+    ],
+    []
+);
+
+assertSameValue(
+    'unknown',
+    $legacyRequest->clientVersion()->family(),
+    'Unversioned legacy request stays unknown without gameVersion'
+);
+
+assertSameValue(
+    'legacy-credential',
+    $legacyRequest->gdCredential(),
+    'Unknown legacy request uses GJP fallback'
+);
+
+assertSameValue(
+    '1.x',
+    ClientVersion::fromValues(1, 0)->family(),
+    'GD 1.0 legacy family'
+);
+
+assertSameValue(
+    '1.x',
+    ClientVersion::fromValues(18, 0)->family(),
+    'GD 1.8 legacy family'
+);
+
 $unknownModernRequest = new Request(
     'POST',
     '/downloadGJLevel22.php',
