@@ -47,13 +47,13 @@ assertText(
     $router->dispatch(
         new Request(
             'POST',
-            '/database/getGJLevels20.php',
+            '/a/database/getGJLevels20.php',
             [],
             [],
             []
         )
     ),
-    'database prefix and legacy alias'
+    'generated /a/database compatibility prefix'
 );
 
 assertText(
