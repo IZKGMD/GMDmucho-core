@@ -128,8 +128,11 @@ if($q!==''){
 
     $accounts=v4Rows(
         $db,
-        'SELECT account_id,username,email,role,is_banned
-         FROM accounts
+        'SELECT a.account_id,a.username,a.email,
+                COALESCE(r.code,"user") AS role,
+                a.is_banned
+         FROM accounts a
+         LEFT JOIN roles r ON r.id=a.role_id
          WHERE username LIKE :q1
             OR email LIKE :q2
             OR account_id=:id
@@ -230,9 +233,11 @@ elseif($tab==='players'){
 $q=trim((string)($_GET['q'] ?? ''));
 
 $sql=
-'SELECT account_id,username,email,role,
-        is_active,is_banned
- FROM accounts';
+'SELECT a.account_id,a.username,a.email,
+        COALESCE(r.code,"user") AS role,
+        a.is_active,a.is_banned
+ FROM accounts a
+ LEFT JOIN roles r ON r.id=a.role_id';
 
 $args=[];
 
