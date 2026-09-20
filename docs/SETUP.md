@@ -48,8 +48,8 @@ One command performs the full setup:
 6. Starts MariaDB, PHP 8.3 and Caddy.
 7. Applies database migrations.
 8. Validates Docker Compose configuration.
-9. Checks the local `/health` endpoint.
-10. Checks the public `/health` endpoint.
+9. Checks the local API + database health endpoint.
+10. Checks the public API + database health endpoint.
 11. Prints the GDPS and admin URLs.
 
 ### Running the installer again
@@ -81,7 +81,7 @@ Use the password you created during installation.
 
 ## Health check
 
-Open:
+Basic compatibility check:
 
 ```text
 https://YOUR-DOMAIN/health
@@ -93,11 +93,29 @@ Expected response:
 1
 ```
 
+Full API + database health:
+
+```text
+https://YOUR-DOMAIN/api/v2/health.php
+```
+
+The installer uses the full API + database check.
+
 ## Connect the client
 
 Once the server works, patch your Geometry Dash client.
 
 Read [`CLIENT_SETUP.md`](CLIENT_SETUP.md).
+
+## Settings
+
+On VPS, common server values can be changed in:
+
+```text
+Admin → Settings
+```
+
+The page lets an owner change server name/version, registration, level uploads, Cloud Save/level limits and the custom content URL.
 
 ## Update
 
