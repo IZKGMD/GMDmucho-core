@@ -104,8 +104,12 @@ final class CommentService
 
         if (!$user) return null;
         $role = strtolower((string)($user["role"] ?? "user"));
-        if (!in_array($role, ["owner", "admin", "moderator", "mod", "elder", "developer"])) {
-            return null; // Не модератор — команда постится как обычный текст
+        if (!in_array(
+            $role,
+            ["owner", "admin", "moderator", "mod", "elder", "developer"],
+            true
+        )) {
+            return null; // Non-moderators cannot execute commands.
         }
 
         $parts = preg_split("/\s+/", trim($commandStr));
@@ -114,6 +118,19 @@ final class CommentService
         // 2. Обработка команд
         switch ($cmd) {
             case "!rate":
+                /*
+                 * Direct rating is an elevated moderation action. Keep it
+                 * aligned with ModerationService instead of letting every
+                 * moderator invoke it through comments.
+                 */
+                if (!in_array(
+                    $role,
+                    ["owner", "admin"],
+                    true
+                )) {
+                    return null;
+                }
+
                 $val = strtolower($parts[1] ?? "");
                 $diff = 0; $demon = 0; $demon_diff = 0; $auto = 0;
 
@@ -169,6 +186,8 @@ final class CommentService
                     "UPDATE levels
                      SET demon = 1,
                          stars = 10,
+                         difficulty = 50,
+                         auto_level = 0,
                          demon_difficulty = :d
                      WHERE level_id = :id
                        AND is_deleted = 0"
