@@ -26,7 +26,8 @@ function muchoV2Env(): array
     foreach ([
         MUCHO_V2_ROOT . '/.env',
         MUCHO_V2_ROOT . '/.env.local',
-        MUCHO_V2_ROOT . '/config/.env'
+        MUCHO_V2_ROOT . '/config/.env',
+        '/var/lib/muchocore/runtime.env'
     ] as $file) {
         if (!is_file($file)) {
             continue;
