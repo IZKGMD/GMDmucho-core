@@ -194,7 +194,7 @@ def main() -> int:
         if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
             raise ValueError(
                 "server URL must be the server root only, for example "
-                "https://muchogdps.space"
+                "https://gdps.example.com"
             )
 
         urls = {
