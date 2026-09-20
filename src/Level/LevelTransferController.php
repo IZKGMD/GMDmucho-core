@@ -63,7 +63,12 @@ final readonly class LevelTransferController
     public function download(Request $request): Response
     {
         $levelId = $request->postInt('levelID');
-        $gameVersion = $request->clientVersion()->gameVersion ?: 22;
+        /*
+         * Very old clients may omit gameVersion. Cvolton-style servers treat
+         * the unversioned download endpoint as the oldest protocol family.
+         * Versioned endpoints are inferred by ClientVersion.
+         */
+        $gameVersion = $request->clientVersion()->gameVersion ?: 1;
         $extras = $request->postInt('extras', 0) === 1;
 
         if (
