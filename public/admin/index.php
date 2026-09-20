@@ -148,7 +148,59 @@ function checkCsrf(): void
 
 function admin(): ?array
 {
-    return $_SESSION['admin'] ?? null;
+    static $cache = null;
+    static $checkedId = 0;
+
+    $session = $_SESSION['admin'] ?? null;
+
+    if (!is_array($session)) {
+        return null;
+    }
+
+    $id = (int)($session['id'] ?? 0);
+
+    if ($id <= 0) {
+        return null;
+    }
+
+    if ($cache !== null && $checkedId === $id) {
+        return $cache;
+    }
+
+    global $db;
+
+    if (!$db instanceof PDO) {
+        return null;
+    }
+
+    $q = $db->prepare(
+        'SELECT id, username, role, is_active
+         FROM admin_users
+         WHERE id = :id
+         LIMIT 1'
+    );
+    $q->execute(['id' => $id]);
+
+    $row = $q->fetch(PDO::FETCH_ASSOC);
+
+    if (
+        !$row ||
+        (int)$row['is_active'] !== 1 ||
+        rank((string)$row['role']) <= 0
+    ) {
+        $_SESSION = [];
+        return null;
+    }
+
+    $session['username'] = (string)$row['username'];
+    $session['role'] = (string)$row['role'];
+
+    $_SESSION['admin'] = $session;
+
+    $checkedId = $id;
+    $cache = $session;
+
+    return $cache;
 }
 
 function rank(string $role): int
