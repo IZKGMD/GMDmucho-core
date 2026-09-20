@@ -16,14 +16,13 @@ final readonly class CommentController
 
     private function getPostParam(Request $request, string $key): string
     {
-        // Пытаемся достать через объект Request, затем через глобальный $_POST
-        return (string)($request->postString($key) ?: ($_POST[$key] ?? ""));
+        return (string)($request->postString($key) ?: ($_POST[$key] ?? ''));
     }
 
     public function uploadLevelComment(Request $request): Response
     {
         $accountId = $request->postInt("accountID", 0) ?: (int)($_POST["accountID"] ?? 0);
-        $gjp = $this->getPostParam($request, "gjp") ?: $this->getPostParam($request, "gjp2");
+        $gjp = $request->gdCredential();
         $levelId = $request->postInt("levelID", 0) ?: (int)($_POST["levelID"] ?? 0);
         $content = $this->getPostParam($request, "comment");
         $percent = $request->postInt("percent", 0) ?: (int)($_POST["percent"] ?? 0);

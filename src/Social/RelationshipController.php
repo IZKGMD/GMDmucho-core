@@ -13,8 +13,7 @@ final readonly class RelationshipController
 
     private function gjp(Request $r): string
     {
-        return $r->postString('gjp')
-            ?: $r->postString('gjp2');
+        return $r->gdCredential();
     }
 
     public function send(Request $r): Response

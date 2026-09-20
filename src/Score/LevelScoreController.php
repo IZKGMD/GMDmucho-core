@@ -37,13 +37,7 @@ final readonly class LevelScoreController
         $accountId=
             (int)($data['accountID'] ?? 0);
 
-        $gjp=trim(
-            (string)(
-                $data['gjp']
-                ?? $data['gjp2']
-                ?? ''
-            )
-        );
+        $gjp = $request->gdCredential();
 
         $levelId=
             (int)($data['levelID'] ?? 0);

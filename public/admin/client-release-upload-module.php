@@ -742,8 +742,19 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
                 chmod($final,0644);
 
+                $baseUrl=rtrim(
+                    (string)(
+                        getenv('MUCHO_ACCOUNT_URL')
+                        ?: (
+                            'https://'.
+                            (string)($_SERVER['HTTP_HOST'] ?? 'localhost')
+                        )
+                    ),
+                    '/'
+                );
+
                 $url=
-                    'https://muchogdps.space'.
+                    $baseUrl.
                     '/downloads/android/'.
                     rawurlencode($fileName);
 

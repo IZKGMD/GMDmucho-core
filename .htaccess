@@ -1,0 +1,17 @@
+Options -Indexes
+DirectoryIndex public/index.php
+
+RewriteEngine On
+
+# Never expose project internals.
+RewriteRule ^(?:\.git|config|src|database|tests|tools|vendor|storage)(?:/|$) - [F,L,NC]
+RewriteRule ^\.env(?:\.|$) - [F,L,NC]
+RewriteRule ^composer\.(json|lock)$ - [F,L,NC]
+
+# The browser installer lives inside public/ so the same repository works
+# whether the hosting panel points the domain to the project root or public/.
+RewriteRule ^shared-install\.php$ public/shared-install.php [END]
+
+# Serve the public directory as the website root.
+RewriteCond %{REQUEST_URI} !^/public(?:/|$) [NC]
+RewriteRule ^(.*)$ public/$1 [END]

@@ -12,6 +12,7 @@ use MuchoCore\CloudSave\CloudSaveService;
 use MuchoCore\CloudSave\CloudSaveRepository;
 use MuchoCore\CloudSave\CloudSaveController;
 use MuchoCore\Database\Database;
+use MuchoCore\Diagnostics\ClientTrace;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
 use MuchoCore\Interaction\CommentController;
@@ -345,8 +346,12 @@ final readonly class Application
 
     public function handle(Request $request): Response
     {
+        ClientTrace::captureRequest($request);
+
         try {
-            return $this->router->dispatch($request);
+            $response = $this->router->dispatch($request);
+            ClientTrace::captureResponse($response);
+            return $response;
         } catch (Throwable $e) {
             error_log(sprintf(
                 '[MuchoCore] %s %s | %s: %s | %s:%d',
@@ -358,7 +363,9 @@ final readonly class Application
                 $e->getLine()
             ));
 
-            return Response::text('-1');
+            $response = Response::text('-1');
+            ClientTrace::captureResponse($response);
+            return $response;
         }
     }
 

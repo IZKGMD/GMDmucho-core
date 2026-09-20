@@ -31,11 +31,7 @@ final readonly class PlatformerScoreController
         $accountId=(int)($d['accountID'] ?? 0);
         $levelId=(int)($d['levelID'] ?? 0);
 
-        $gjp=trim((string)(
-            $d['gjp']
-            ?? $d['gjp2']
-            ?? ''
-        ));
+        $gjp = $request->gdCredential();
 
         $mode=(int)($d['mode'] ?? 0);
         $type=(int)($d['type'] ?? 0);
