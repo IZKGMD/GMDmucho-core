@@ -35,10 +35,11 @@ final class CommentRepository
 
         $stmt = $this->db->prepare(
             "SELECT c.*,
-                    a.username, a.role,
+                    a.username, r.code AS role,
                     p.cube, p.color1, p.color2, p.special
              FROM comments c
              JOIN accounts a ON c.account_id = a.account_id
+             LEFT JOIN roles r ON r.id = a.role_id
              LEFT JOIN profiles p ON a.account_id = p.account_id
              WHERE c.level_id = :level_id
              ORDER BY c.created_at DESC
@@ -72,9 +73,10 @@ final class CommentRepository
         $offset = $page * $limit;
 
         $stmt = $this->db->prepare(
-            "SELECT c.*, a.role
+            "SELECT c.*, r.code AS role
              FROM account_comments c
              JOIN accounts a ON c.account_id = a.account_id
+             LEFT JOIN roles r ON r.id = a.role_id
              WHERE c.account_id = :account_id
              ORDER BY c.created_at DESC
              LIMIT :limit OFFSET :offset"
