@@ -1732,6 +1732,35 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 throw new RuntimeException('Role not found.');
             }
 
+            $targetQuery=$db->prepare(
+                'SELECT COALESCE(r.code,"user")
+                 FROM accounts a
+                 LEFT JOIN roles r ON r.id=a.role_id
+                 WHERE a.account_id=:id
+                 LIMIT 1'
+            );
+            $targetQuery->execute(['id'=>$id]);
+            $targetRole=strtolower((string)($targetQuery->fetchColumn() ?: 'user'));
+
+            if (
+                rank((string)(admin()['role'] ?? '')) < 40 &&
+                ($targetRole==='owner' || $role==='owner')
+            ) {
+                throw new RuntimeException(
+                    'Only an owner can modify owner accounts or grant the owner role.'
+                );
+            }
+
+            $username=trim((string)$_POST['username']);
+            $email=trim((string)$_POST['email']);
+
+            if (
+                !preg_match('/^[A-Za-z0-9_-]{1,20}$/D',$username) ||
+                !filter_var($email,FILTER_VALIDATE_EMAIL)
+            ) {
+                throw new RuntimeException('Invalid account data.');
+            }
+
             $q=$db->prepare(
                 'UPDATE accounts SET
                     username=:username,
@@ -2134,9 +2163,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $id=(int)$_POST['id'];
             $password=(string)$_POST['new_password'];
 
-            if (strlen($password)<8) {
+            if (strlen($password)<12 || strlen($password)>512) {
                 throw new RuntimeException(
-                    'Password must be at least 8 characters.'
+                    'Password must be 12–512 characters.'
                 );
             }
 
@@ -2663,9 +2692,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 );
             }
 
-            if (strlen($password)<10) {
+            if (strlen($password)<12 || strlen($password)>512) {
                 throw new RuntimeException(
-                    'Password must be at least 10 characters.'
+                    'Password must be 12–512 characters.'
                 );
             }
 
