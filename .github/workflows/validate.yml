@@ -31,6 +31,7 @@ jobs:
           php tests/settings.php
           php tests/role-schema.php
           php tests/level-compatibility.php
+          php tests/comment-compatibility.php
 
       - name: Check client tools
         run: |
