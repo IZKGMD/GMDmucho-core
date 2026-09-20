@@ -78,11 +78,6 @@ while [[ $# -gt 0 ]]; do
             DB_USER="$2"
             shift 2
             ;;
-        --admin-password)
-            [[ $# -ge 2 ]] || fail "После --admin-password нужен пароль."
-            ADMIN_PASSWORD="$2"
-            shift 2
-            ;;
         --help|-h)
             usage
             exit 0
@@ -326,8 +321,6 @@ else
 
     chmod 600 "$ENV_FILE"
 fi
-chmod 600 "$INSTALL_DIR/.env.tmp"
-mv "$INSTALL_DIR/.env.tmp" "$INSTALL_DIR/.env"
 
 log "Проверяю Docker Compose..."
 cd "$INSTALL_DIR"
