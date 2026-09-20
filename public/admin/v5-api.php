@@ -51,11 +51,36 @@ function output(array $x): never {
 
 function localEndpoint(string $path): array
 {
+    $shared =
+        in_array(
+            strtolower((string)getenv('MUCHO_SHARED_HOSTING')),
+            ['1','true','yes','on'],
+            true
+        );
+
+    $baseUrl=$shared
+        ? rtrim(
+            (string)(
+                getenv('MUCHO_ACCOUNT_URL')
+                ?: (
+                    'https://'.
+                    (string)($_SERVER['HTTP_HOST'] ?? 'localhost')
+                )
+            ),
+            '/'
+        )
+        : 'http://caddy';
+
+    $host=parse_url(
+        $baseUrl,
+        PHP_URL_HOST
+    ) ?: 'localhost';
+
     $ctx=stream_context_create([
         'http'=>[
             'method'=>'POST',
             'header'=>
-                "Host: muchogdps.space\r\n".
+                "Host: ".$host."\r\n".
                 "Content-Type: application/x-www-form-urlencoded\r\n",
             'content'=>'',
             'timeout'=>4,
@@ -64,7 +89,7 @@ function localEndpoint(string $path): array
     ]);
 
     $body=@file_get_contents(
-        'http://127.0.0.1'.$path,
+        $baseUrl.$path,
         false,
         $ctx
     );
