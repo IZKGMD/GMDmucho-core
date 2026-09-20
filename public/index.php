@@ -4,9 +4,28 @@ declare(strict_types=1);
 
 ob_start();
 
+use Dotenv\\Dotenv;
+use MuchoCore\\Core\\Application;
+use MuchoCore\\Http\\Request;
+use MuchoCore\\Http\\Response;
+use MuchoCore\\Routing\\Router;
+use MuchoCore\\Security\\RateLimiter;
+
+$root = dirname(__DIR__);
+
+if (file_exists($root . '/.env')) {
+    Dotenv\\Dotenv::createImmutable($root)->safeLoad();
+}
+
 /* MUCHO CONTROL FLAGS */
-$__muchoControl = '/var/lib/muchocore-control';
+$__muchoControl = $_ENV['MUCHO_CONTROL_DIR']
+    ?? getenv('MUCHO_CONTROL_DIR')
+    ?: '/var/lib/muchocore-control';
 $__muchoUri = strtolower((string)($_SERVER['REQUEST_URI'] ?? ''));
+
+if (!is_dir($__muchoControl)) {
+    @mkdir($__muchoControl, 0770, true);
+}
 
 if (is_file($__muchoControl . '/maintenance.flag')) {
     while (ob_get_level() > 0) {
@@ -28,20 +47,7 @@ if (
 }
 /* END MUCHO CONTROL FLAGS */
 
-use Dotenv\Dotenv;
-use MuchoCore\Core\Application;
-use MuchoCore\Http\Request;
-use MuchoCore\Http\Response;
-use MuchoCore\Routing\Router;
-use MuchoCore\Security\RateLimiter;
-
 require_once dirname(__DIR__) . '/vendor/autoload.php';
-
-$root = dirname(__DIR__);
-
-if (file_exists($root . '/.env')) {
-    Dotenv::createImmutable($root)->safeLoad();
-}
 
 $requestId = bin2hex(random_bytes(8));
 $_SERVER['MUCHO_REQUEST_ID'] = $requestId;
