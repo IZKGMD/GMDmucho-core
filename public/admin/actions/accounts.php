@@ -148,6 +148,32 @@ try {
                 $password.'mI29fmAnxgTs'
             );
 
+            $targetQuery=$db->prepare(
+                'SELECT
+                    a.account_id,
+                    COALESCE(r.code, "user") AS role_code
+                 FROM accounts a
+                 LEFT JOIN roles r ON r.id=a.role_id
+                 WHERE a.account_id=:id
+                 LIMIT 1'
+            );
+
+            $targetQuery->execute(['id'=>$id]);
+            $target=$targetQuery->fetch(PDO::FETCH_ASSOC);
+
+            if (!$target) {
+                throw new RuntimeException('Account not found');
+            }
+
+            if (
+                rank((string)(admin()['role'] ?? '')) < 40 &&
+                strtolower((string)$target['role_code']) === 'owner'
+            ) {
+                throw new RuntimeException(
+                    'Only an owner can reset an owner password.'
+                );
+            }
+
             $q=$db->prepare(
                 'UPDATE accounts SET
                     password_hash=:p,
