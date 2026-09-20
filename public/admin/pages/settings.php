@@ -56,12 +56,16 @@ function renderMuchoSettingsPage(PDO $db): void
                 <input type="hidden" name="action" value="settings-save">
                 <input type="hidden" name="return" value="settings">
 
-                <input type="hidden" name="maintenance"
-                       value="<?=is_file(CONTROL_DIR.'/maintenance.flag') ? '1' : '0'?>">
-                <input type="hidden" name="registrations_disabled"
-                       value="<?=is_file(CONTROL_DIR.'/registrations-disabled.flag') ? '1' : '0'?>">
-
                 <div style="display:grid;gap:12px">
+
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="maintenance"
+                            <?=is_file(CONTROL_DIR.'/maintenance.flag') ? 'checked' : ''?>
+                        >
+                        Maintenance mode
+                    </label>
 
                     <label>
                         <small>Server name</small><br>
