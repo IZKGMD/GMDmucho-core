@@ -248,7 +248,10 @@ fi
 
 chmod 600 "$INSTALL_DIR/.secrets/"*
 
-cat > "$INSTALL_DIR/.env.tmp" <<EOFENV
+ENV_FILE="$INSTALL_DIR/.env"
+
+if [[ ! -f "$ENV_FILE" ]]; then
+    cat > "$ENV_FILE" <<EOFENV
 DOMAIN=$DOMAIN
 DB_NAME=$DB_NAME
 DB_USER=$DB_USER
@@ -269,7 +272,60 @@ MUCHO_CONTROL_DIR=/var/lib/muchocore-control
 MUCHO_BACKUP_DIR=/var/lib/muchocore-backups
 TZ=UTC
 EOFENV
+    chmod 600 "$ENV_FILE"
+else
+    log "Сохраняю существующие настройки .env."
 
+    grep -q '^DOMAIN=' "$ENV_FILE" ||
+        printf '\nDOMAIN=%s\n' "$DOMAIN" >> "$ENV_FILE"
+
+    grep -q '^DB_NAME=' "$ENV_FILE" ||
+        printf 'DB_NAME=%s\n' "$DB_NAME" >> "$ENV_FILE"
+
+    grep -q '^DB_USER=' "$ENV_FILE" ||
+        printf 'DB_USER=%s\n' "$DB_USER" >> "$ENV_FILE"
+
+    grep -q '^ADMIN_USER=' "$ENV_FILE" ||
+        printf 'ADMIN_USER=%s\n' "$ADMIN_USER" >> "$ENV_FILE"
+
+    grep -q '^MUCHO_SERVER_NAME=' "$ENV_FILE" ||
+        printf 'MUCHO_SERVER_NAME=MuchoGDPS\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_SERVER_VERSION=' "$ENV_FILE" ||
+        printf 'MUCHO_SERVER_VERSION=1.0.1\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_REGISTRATION_ENABLED=' "$ENV_FILE" ||
+        printf 'MUCHO_REGISTRATION_ENABLED=1\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_LEVEL_UPLOAD_ENABLED=' "$ENV_FILE" ||
+        printf 'MUCHO_LEVEL_UPLOAD_ENABLED=1\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_CLOUD_SAVE_MAX_MB=' "$ENV_FILE" ||
+        printf 'MUCHO_CLOUD_SAVE_MAX_MB=32\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_LEVEL_MAX_MB=' "$ENV_FILE" ||
+        printf 'MUCHO_LEVEL_MAX_MB=32\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_CUSTOM_CONTENT_URL=' "$ENV_FILE" ||
+        printf 'MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_ACCOUNT_URL=' "$ENV_FILE" ||
+        printf 'MUCHO_ACCOUNT_URL=https://%s\n' "$DOMAIN" >> "$ENV_FILE"
+
+    grep -q '^MUCHO_ADMIN_BOOTSTRAP=' "$ENV_FILE" ||
+        printf 'MUCHO_ADMIN_BOOTSTRAP=/etc/muchocore-admin.php\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_CONTROL_DIR=' "$ENV_FILE" ||
+        printf 'MUCHO_CONTROL_DIR=/var/lib/muchocore-control\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_BACKUP_DIR=' "$ENV_FILE" ||
+        printf 'MUCHO_BACKUP_DIR=/var/lib/muchocore-backups\n' >> "$ENV_FILE"
+
+    grep -q '^TZ=' "$ENV_FILE" ||
+        printf 'TZ=UTC\n' >> "$ENV_FILE"
+
+    chmod 600 "$ENV_FILE"
+fi
 chmod 600 "$INSTALL_DIR/.env.tmp"
 mv "$INSTALL_DIR/.env.tmp" "$INSTALL_DIR/.env"
 
