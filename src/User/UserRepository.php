@@ -35,6 +35,7 @@ final readonly class UserRepository
                 COALESCE(p.color1, 0) AS color1,
                 COALESCE(p.color2, 3) AS color2,
                 COALESCE(p.color3, 0) AS color3,
+                COALESCE(p.glow, 0) AS glow,
                 COALESCE(p.special, 0) AS special,
                 a.account_id,
                 COALESCE(p.user_id, a.account_id) AS user_id,
@@ -126,7 +127,14 @@ final readonly class UserRepository
                 COALESCE(a.youtube_url, "") AS youtube,
                 COALESCE(a.twitter, "") AS twitter,
                 COALESCE(a.twitch, "") AS twitch,
+                COALESCE(a.discord, "") AS discord,
+                COALESCE(a.instagram, "") AS instagram,
+                COALESCE(a.tiktok, "") AS tiktok,
+                COALESCE(a.custom_link, "") AS custom_link,
                 a.created_at AS registered_at,
+                COALESCE(p.demon_info, "") AS demon_info,
+                COALESCE(p.star_info, "") AS star_info,
+                COALESCE(p.platformer_info, "") AS platformer_info,
                 COALESCE(p.stars, 0) AS stars,
                 COALESCE(p.moons, 0) AS moons,
                 COALESCE(p.demons, 0) AS demons,
@@ -175,6 +183,7 @@ final readonly class UserRepository
             INNER JOIN roles r
                 ON r.id = a.role_id
             WHERE p.stars > 0
+              AND a.is_banned = 0
             ORDER BY `rank`
             LIMIT ' . (int)$limit;
 
@@ -195,6 +204,7 @@ final readonly class UserRepository
             INNER JOIN roles r
                 ON r.id = a.role_id
             WHERE p.creator_points > 0
+              AND a.is_banned = 0
             ORDER BY `rank`
             LIMIT ' . (int)$limit;
 
@@ -209,6 +219,7 @@ final readonly class UserRepository
             FROM profiles p
             INNER JOIN accounts a ON a.account_id = p.account_id
             INNER JOIN roles r ON r.id = a.role_id
+            WHERE a.is_banned = 0
         ),
         TargetRank AS (
             SELECT `rank` FROM RankedProfiles WHERE account_id = :account_id
