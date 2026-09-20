@@ -87,7 +87,16 @@ final class GdLevelListEncoder
         $pageInfo = $total . ":" . $offset . ":" . $limit;
         $hashPart = sha1($hashData . self::HASH_SALT);
 
-        // Строгий формат Geometry Dash: levels#users#songs#pageInfo#hash
-        return $levelsPart . "#" . $usersPart . "#" . $songsPart . "#" . $pageInfo . "#" . $hashPart;
+        /*
+         * GD 1.x does not have the songs section in this response.
+         * GD 1.9+ expects: levels#users#songs#pageInfo#hash.
+         */
+        if ($gameVersion > 18) {
+            return $levelsPart . "#" . $usersPart . "#" . $songsPart
+                . "#" . $pageInfo . "#" . $hashPart;
+        }
+
+        return $levelsPart . "#" . $usersPart
+            . "#" . $pageInfo . "#" . $hashPart;
     }
 }
