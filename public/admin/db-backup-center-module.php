@@ -125,7 +125,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                 $action==='dbbackup-download'
             ){
 
-                requireRank(30);
+                requireRank(40);
 
                 $name=basename(
                     (string)(
