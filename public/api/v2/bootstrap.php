@@ -6,6 +6,10 @@ declare(strict_types=1);
  * Copyright (C) 2026 IZK
  */
 
+require_once dirname(__DIR__, 3) . '/vendor/autoload.php';
+
+use MuchoCore\Security\ClientIp;
+
 const MUCHO_V2_ROOT = '/var/www/mucho-core';
 const MUCHO_V2_VERSION = '2.2';
 
@@ -63,6 +67,24 @@ function muchoV2Env(): array
                 $value = substr($value, 1, -1);
             }
 
+            $env[$key] = $value;
+        }
+    }
+
+    /*
+     * Docker secrets are exposed to the PHP process through environment
+     * variables/runtime.env. Process variables win over .env values.
+     */
+    foreach ($_ENV + $_SERVER as $key => $value) {
+        if (is_string($key) && is_scalar($value)) {
+            $env[$key] = (string)$value;
+        }
+    }
+
+    foreach (['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASS'] as $key) {
+        $value = getenv($key);
+
+        if ($value !== false) {
             $env[$key] = $value;
         }
     }
