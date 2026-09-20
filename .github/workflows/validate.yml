@@ -29,6 +29,7 @@ jobs:
           php tests/client-compatibility.php
           php tests/router-compatibility.php
           php tests/settings.php
+          php tests/role-schema.php
 
       - name: Check client tools
         run: |
