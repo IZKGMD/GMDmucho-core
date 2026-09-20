@@ -17,42 +17,78 @@ if ($username === '' || $email === '' || $password === false || $password === ''
 $pdo = (new Database())->connection();
 $hash = password_hash($password, PASSWORD_DEFAULT);
 
-$stmt = $pdo->prepare('SELECT account_id FROM accounts WHERE username = :username LIMIT 1');
+$roleQuery = $pdo->prepare(
+    'SELECT id
+     FROM roles
+     WHERE code = :role
+     LIMIT 1'
+);
+$roleQuery->execute(['role' => 'owner']);
+$ownerRoleId = (int)$roleQuery->fetchColumn();
+
+if ($ownerRoleId <= 0) {
+    throw new RuntimeException('Owner role is not installed.');
+}
+
+$stmt = $pdo->prepare(
+    'SELECT account_id
+     FROM accounts
+     WHERE username = :username
+     LIMIT 1'
+);
 $stmt->execute(['username' => $username]);
 $accountId = $stmt->fetchColumn();
 
 if ($accountId !== false) {
     $update = $pdo->prepare(
         'UPDATE accounts
-         SET role = :role, gjp2_hash = :gjp2, is_active = 1, email = :email
+         SET role_id = :role_id,
+             gjp2_hash = :gjp2,
+             is_active = 1,
+             is_banned = 0,
+             email = :email
          WHERE account_id = :account_id'
     );
     $update->execute([
-        'role' => 'owner',
+        'role_id' => $ownerRoleId,
         'gjp2' => $hash,
         'email' => $email,
         'account_id' => (int)$accountId,
     ]);
 } else {
     $insert = $pdo->prepare(
-        'INSERT INTO accounts (username, password_hash, gjp2_hash, email, role, is_active)
-         VALUES (:username, :password_hash, :gjp2_hash, :email, :role, 1)'
+        'INSERT INTO accounts (
+            username,
+            password_hash,
+            gjp2_hash,
+            email,
+            role_id,
+            is_active
+         )
+         VALUES (
+            :username,
+            :password_hash,
+            :gjp2_hash,
+            :email,
+            :role_id,
+            1
+         )'
     );
     $insert->execute([
         'username' => $username,
         'password_hash' => $hash,
         'gjp2_hash' => $hash,
         'email' => $email,
-        'role' => 'owner',
+        'role_id' => $ownerRoleId,
     ]);
     $accountId = (int)$pdo->lastInsertId();
 
     $profile = $pdo->prepare(
-        'INSERT INTO profiles (account_id, user_id) VALUES (:account_id, :user_id)'
+        'INSERT INTO profiles (account_id)
+         VALUES (:account_id)'
     );
     $profile->execute([
         'account_id' => $accountId,
-        'user_id' => $accountId,
     ]);
 }
 
