@@ -217,6 +217,8 @@ final readonly class Application
 
         $route('/updateGJLevelDesc20',
             [$transferController,'updateDescription']);
+        $route('/updateGJDesc20',
+            [$transferController,'updateDescription']);
 
         $route('/getGJSongInfo',
             [$songController,'info']);
