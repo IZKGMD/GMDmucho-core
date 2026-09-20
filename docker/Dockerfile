@@ -1,3 +1,4 @@
+# Copyright (C) 2026 IZK
 FROM php:8.3-fpm-bookworm
 
 RUN apt-get update \
