@@ -17,7 +17,8 @@ function Get-UrlBytesLength {
 function Get-CompatibilityPath {
     param(
         [string]$Server,
-        [int]$DesiredLength
+        [int]$DesiredLength,
+        [switch]$Bare
     )
 
     $uri = $null
@@ -57,7 +58,11 @@ function Get-CompatibilityPath {
 
         foreach ($scheme in $schemes) {
             $path = if ($current.Count -eq 0) { '' } else { '/' + ($current -join '/') }
-            $candidate = "$scheme://$hostPart$portPart$path"
+            if ($Bare) {
+                $candidate = "$hostPart$portPart$path"
+            } else {
+                $candidate = "$scheme://$hostPart$portPart$path"
+            }
 
             if ((Get-UrlBytesLength $candidate) -eq $DesiredLength) {
                 return $candidate
@@ -88,6 +93,11 @@ if ($SelfTest) {
             throw "Self-test failed for length $length: $value"
         }
         Write-Host "PASS URL length $length -> $value"
+    }
+
+    $expected26 = Get-CompatibilityPath -Server $testServer -DesiredLength 26 -Bare
+    if ($expected26 -ne 'muchogdps.space/a/database') {
+        throw "Self-test produced an unexpected bare URL: $expected26"
     }
 
     $expected34 = Get-CompatibilityPath -Server $testServer -DesiredLength 34
@@ -237,7 +247,12 @@ function Invoke-Patch {
             continue
         }
 
-        $replacement = $urls[$pattern.Length]
+        if ($pattern.Old -eq 'www.boomlings.com/database') {
+            $replacement = Get-CompatibilityPath -Server $Server -DesiredLength $pattern.Length -Bare
+        } else {
+            $replacement = $urls[$pattern.Length]
+        }
+
         $result = Replace-BinaryText -File $item -Data $bytes -OldText $pattern.Old -NewText $replacement -Label $pattern.Label
 
         $bytes = $result.Data
