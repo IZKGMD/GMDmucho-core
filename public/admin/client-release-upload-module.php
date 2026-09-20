@@ -514,6 +514,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
                 if($offset!==$actual){
 
+                    $db->rollBack();
+
                     releaseJson([
                         'ok'=>false,
                         'error'=>'offset_mismatch',
