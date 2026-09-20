@@ -174,6 +174,7 @@ final class CommentService
         int $levelId,
         int $page,
         int $gameVersion = 0,
+        int $binaryVersion = 0,
         int $limit = 10
     ): string {
         $limit = min(100, max(1, $limit));
@@ -211,7 +212,8 @@ final class CommentService
             $encodedComments[] = $this->encoder->encode(
                 $comment,
                 $profile,
-                $gameVersion
+                $gameVersion,
+                $binaryVersion
             );
         }
 
