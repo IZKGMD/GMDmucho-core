@@ -9,10 +9,23 @@ final class GdCommentEncoder
     /**
      * Формирует строку комментария к уровню (comment:user)
      */
-    public function encode(array $comment, array $profile): string
-    {
+    public function encode(
+        array $comment,
+        array $profile,
+        int $gameVersion = 22
+    ): string {
+        $content = (string)$comment['content'];
+
+        if ($gameVersion < 20) {
+            $content = str_replace(
+                ['+', '/'],
+                ['-', '_'],
+                base64_encode($content)
+            );
+        }
+
         $commentStr = implode('~', [
-            '2', base64_encode((string)$comment['content']),
+            '2', $content,
             '3', (string)$comment['account_id'],
             '4', (string)$comment['likes'],
             '5', '0',
@@ -46,7 +59,7 @@ final class GdCommentEncoder
     public function encodeAccountComment(array $comment): string
     {
         return implode('~', [
-            '2', base64_encode((string)$comment['content']),
+            '2', (string)$comment['content'],
             '3', (string)$comment['account_id'],
             '4', (string)$comment['likes'],
             '5', '0',
