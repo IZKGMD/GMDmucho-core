@@ -6,7 +6,10 @@
 <meta name="theme-color" content="#090b10">
 
 <title>Mucho GDPS</title>
-<meta name="description" content="Mucho GDPS — custom Geometry Dash private server.">
+<meta name="description" content="Mucho GDPS — custom Geometry Dash private server powered by MuchoCore.">
+<meta name="author" content="IZK">
+<meta name="copyright" content="Copyright © 2026 IZK">
+<meta name="generator" content="MuchoCore">
 
 <style>
 :root{
@@ -906,7 +909,7 @@ footer{
 
         <div class="nav-title">Tools</div>
 
-        <a href="/api/v2/health" target="_blank">
+        <a href="/api/v2/health.php" target="_blank">
             API Status
         </a>
 
@@ -1273,7 +1276,7 @@ footer{
 
             <a
                 class="link-card"
-                href="/api/v2/health"
+                href="/api/v2/health.php"
                 target="_blank"
             >
                 <span>API Health</span>
@@ -1295,7 +1298,7 @@ footer{
 
 
 <footer>
-    Mucho GDPS · MuchoCore · Copyright © 2026 IZK
+    Mucho GDPS · MuchoCore · Copyright © 2026 IZK · MIT License
 </footer>
 
 </div>
@@ -1314,7 +1317,7 @@ async function updateHealth(){
     try{
 
         const response = await fetch(
-            '/api/v2/health',
+            '/api/v2/health.php',
             {
                 cache:'no-store'
             }
@@ -1417,7 +1420,7 @@ async function updateDashboard(){
     try{
 
         const response=await fetch(
-            '/api/v2/dashboard',
+            '/api/v2/dashboard.php',
             {cache:'no-store'}
         );
 
@@ -1537,7 +1540,7 @@ async function loadMusic(){
     try{
 
         const r=await fetch(
-            '/api/v2/music',
+            '/api/v2/music.php',
             {cache:'no-store'}
         );
 
@@ -1627,7 +1630,7 @@ $('musicUploadForm').addEventListener(
         try{
 
             const response=await fetch(
-                '/api/v2/music-upload',
+                '/api/v2/music-upload.php',
                 {
                     method:'POST',
                     body:new FormData(form)
