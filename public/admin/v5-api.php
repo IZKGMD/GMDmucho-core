@@ -23,6 +23,21 @@ if(empty($_SESSION['admin'])){
     exit;
 }
 
+function legacyAdminRank(string $role): int
+{
+    return match (strtolower($role)) {
+        'owner' => 40,
+        'admin' => 30,
+        'moderator' => 20,
+        'viewer' => 10,
+        default => 0,
+    };
+}
+
+$currentAdminRank=legacyAdminRank(
+    (string)($_SESSION['admin']['role'] ?? '')
+);
+
 $db=(new Database())->connection();
 $db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
 
@@ -114,6 +129,11 @@ function localEndpoint(string $path): array
 $kind=(string)($_GET['kind'] ?? 'health');
 
 if($kind==='health'){
+    if ($currentAdminRank < 40) {
+        http_response_code(403);
+        echo json_encode(['error'=>'Forbidden']);
+        exit;
+    }
 
     $raw=(string)shell_exec(
         'sudo /usr/local/sbin/mucho-admin-ops status 2>&1'
@@ -164,6 +184,11 @@ if($kind==='health'){
 }
 
 if($kind==='logs'){
+    if ($currentAdminRank < 40) {
+        http_response_code(403);
+        echo json_encode(['error'=>'Forbidden']);
+        exit;
+    }
 
     $type=(string)($_GET['type'] ?? 'php');
 
