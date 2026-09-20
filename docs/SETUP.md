@@ -2,46 +2,64 @@
 
 ## Easiest installation
 
-Do not follow the manual PHP/Nginx steps unless you know why you need them.
-
-Use:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh -o install.sh
-sudo bash install.sh
-```
+**VPS is the recommended way to run MuchoCore.**
 
 You need:
 
 - a Linux VPS with root access;
-- a domain pointing to that VPS;
-- ports 80 and 443 open.
+- a domain;
+- ports 80 and 443 available.
 
-## Domain setup
+### One command
 
-At your DNS provider, create an A record:
+```bash
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh | sudo bash
+```
+
+The installer asks for the domain if you did not provide one.
+
+For a completely pre-filled install:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh | sudo bash -s -- --domain gdps.example.com
+```
+
+The admin password is generated automatically on a new installation and printed once at the end.
+
+### Domain setup
+
+Create an A record:
 
 ```text
 gdps.example.com -> YOUR_VPS_IP
 ```
 
-Wait until the domain points to the VPS before running the installer.
+The installer checks DNS and will warn you when the domain is not ready yet.
 
-## What the installer does
+### What the installer does
 
-The installer automatically:
+One command performs the full setup:
 
-1. Installs Docker.
-2. Downloads MuchoCore.
-3. Starts MariaDB.
-4. Starts PHP 8.3.
-5. Starts Caddy and automatic HTTPS.
-6. Generates database passwords.
-7. Generates the cloud-save key.
-8. Creates the database tables.
-9. Creates the `admin` account.
+1. Checks the VPS.
+2. Installs Docker and required tools.
+3. Downloads MuchoCore.
+4. Generates database secrets.
+5. Generates the Cloud Save key.
+6. Starts MariaDB, PHP 8.3 and Caddy.
+7. Applies database migrations.
+8. Validates Docker Compose configuration.
+9. Checks the local `/health` endpoint.
+10. Checks the public `/health` endpoint.
+11. Prints the GDPS and admin URLs.
 
-During installation, the installer tells you that the admin username is `admin` and asks you to create the password you will use to sign in.
+### Running the installer again
+
+The installer is designed to be safe to repeat.
+
+- Existing secrets are preserved.
+- Existing MuchoCore source is not wiped.
+- A random unrelated directory is never deleted.
+- Existing installations can be started again without re-creating credentials.
 
 ## First login
 
