@@ -79,4 +79,6 @@ jobs:
       - name: Upload v1.0.1 archive
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload v1.0.1 mucho-core.zip --clobber
+        run: |
+          gh release edit v1.0.1 --target "$GITHUB_SHA"
+          gh release upload v1.0.1 mucho-core.zip --clobber
