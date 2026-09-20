@@ -26,7 +26,8 @@ chown www-data:www-data config/cloudsave.key
 chmod 600 config/cloudsave.key
 
 php -r 'echo password_hash($argv[1], PASSWORD_DEFAULT);' "$ADMIN_PASS" > /var/lib/muchocore/admin-password.hash
-chmod 600 /var/lib/muchocore/admin-password.hash
+chown root:www-data /var/lib/muchocore/admin-password.hash
+chmod 640 /var/lib/muchocore/admin-password.hash
 
 cat > /etc/muchocore-admin.php <<EOFPHP
 <?php
@@ -35,7 +36,8 @@ return [
     'password_hash' => trim(file_get_contents('/var/lib/muchocore/admin-password.hash')),
 ];
 EOFPHP
-chmod 600 /etc/muchocore-admin.php
+chown root:www-data /etc/muchocore-admin.php
+chmod 640 /etc/muchocore-admin.php
 
 if [[ ! -f vendor/autoload.php ]]; then
   composer install --no-dev --optimize-autoloader --no-interaction
