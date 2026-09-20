@@ -7,6 +7,8 @@ DB_PASS="$(cat /run/secrets/db_password)"
 ADMIN_PASS="$(cat /run/secrets/admin_password)"
 
 install -d -m 700 -o www-data -g www-data config /var/lib/muchocore
+install -d -m 750 /var/lib/muchocore-control /var/lib/muchocore-backups
+chown www-data:www-data /var/lib/muchocore-control /var/lib/muchocore-backups
 
 # Keep Docker Compose's project .env untouched.
 # Runtime secrets live outside the bind-mounted project directory.
