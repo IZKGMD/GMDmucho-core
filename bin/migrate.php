@@ -1,5 +1,7 @@
 <?php
 
+/* Copyright (C) 2026 IZK */
+
 declare(strict_types=1);
 
 use MuchoCore\Database\Database;
