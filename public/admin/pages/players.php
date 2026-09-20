@@ -2,349 +2,152 @@
 declare(strict_types=1);
 
 /*
- * MuchoCore Admin — Mucho Profiles
+ * MuchoCore Admin — Players
  * Extracted verbatim from legacy admin.
  * Copyright (C) 2026 IZK
  */
 
 if (true) {
 
-    requireRank(30);
+$q=trim((string)($_GET['q'] ?? ''));
 
-    $db->exec("
-        CREATE TABLE IF NOT EXISTS mucho_profile_customization (
-            account_id BIGINT PRIMARY KEY,
-            display_name VARCHAR(32) NOT NULL DEFAULT '',
-            status VARCHAR(48) NOT NULL DEFAULT '',
-            bio VARCHAR(240) NOT NULL DEFAULT '',
-            theme_primary VARCHAR(7) NOT NULL DEFAULT '#42D9CF',
-            theme_secondary VARCHAR(7) NOT NULL DEFAULT '#806EFF',
-            banner VARCHAR(64) NOT NULL DEFAULT 'gradient_01',
-            title VARCHAR(48) NOT NULL DEFAULT '',
-            badges TEXT NOT NULL,
-            pinned_levels VARCHAR(96) NOT NULL DEFAULT '',
-            showcase VARCHAR(200) NOT NULL DEFAULT 'stars,demons,creator_points',
-            favorite_difficulty VARCHAR(32) NOT NULL DEFAULT '',
-            online_visible TINYINT NOT NULL DEFAULT 1,
-            edit_token_hash VARCHAR(64) NOT NULL DEFAULT '',
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-                ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    ");
+echo '<form class="search">';
+echo '<input type="hidden" name="page" value="players">';
+echo '<input name="q" value="'.h($q).'" placeholder="Username / email / Account ID">';
+echo '<button>Search</button></form>';
 
-    $issued=$_SESSION['muchoprofile_issued_token'] ?? null;
-    unset($_SESSION['muchoprofile_issued_token']);
+$sql=
+'SELECT
+ a.account_id,a.username,a.email,r.code AS role,
+ a.is_active,a.is_banned,a.created_at,
+ p.stars,p.moons,p.diamonds,p.secret_coins,
+ p.user_coins,p.demons,p.creator_points
+ FROM accounts a
+ LEFT JOIN profiles p ON p.account_id=a.account_id
+ LEFT JOIN roles r ON r.id=a.role_id';
 
-    if (is_array($issued)) {
-        ?>
-        <div class="card" style="border-color:#39d995;margin-bottom:16px">
-            <b>New edit token for Account #<?=h($issued['id'])?></b>
-            <p style="color:#8792a7">
-                Copy it now. Only its SHA-256 hash is stored on the server.
-            </p>
-            <input
-                style="width:100%"
-                readonly
-                value="<?=h($issued['token'])?>"
-                onclick="this.select()"
-            >
-        </div>
-        <?php
-    }
+$args=[];
 
-    $q=trim((string)($_GET['q'] ?? ''));
+if ($q!=='') {
+    $sql.=
+    ' WHERE a.username LIKE :q
+       OR a.email LIKE :q
+       OR a.account_id=:id';
 
-    ?>
-    <div class="card" style="margin-bottom:16px">
-        <h2 style="margin-top:0">Mucho Profiles</h2>
-        <p style="color:#8792a7">
-            Server-synced profile personalization.
-            Title and badges are administrator-controlled.
-        </p>
-
-        <form class="search">
-            <input type="hidden" name="page" value="muchoprofiles">
-            <input
-                name="q"
-                value="<?=h($q)?>"
-                placeholder="Username / Account ID"
-            >
-            <button>Search</button>
-        </form>
-    </div>
-    <?php
-
-    $sql="
-        SELECT
-            a.account_id,
-            a.username,
-            a.email,
-            r.code AS role,
-
-            m.display_name AS mp_display_name,
-            m.status AS mp_status,
-            m.bio AS mp_bio,
-            m.theme_primary AS mp_primary,
-            m.theme_secondary AS mp_secondary,
-            m.banner AS mp_banner,
-            m.title AS mp_title,
-            m.badges AS mp_badges,
-            m.pinned_levels AS mp_pinned,
-            m.showcase AS mp_showcase,
-            m.favorite_difficulty AS mp_favorite,
-            m.online_visible AS mp_online,
-            m.updated_at AS mp_updated
-
-        FROM accounts a
-
-        LEFT JOIN roles r
-            ON r.id=a.role_id
-
-        LEFT JOIN mucho_profile_customization m
-            ON m.account_id=a.account_id
-    ";
-
-    $args=[];
-
-    if ($q!=='') {
-        $sql.="
-            WHERE
-                a.username LIKE :q
-                OR a.account_id=:id
-        ";
-
-        $args=[
-            'q'=>'%'.$q.'%',
-            'id'=>ctype_digit($q) ? (int)$q : 0
-        ];
-    }
-
-    $sql.=" ORDER BY a.account_id DESC LIMIT 100";
-
-    $st=$db->prepare($sql);
-    $st->execute($args);
-
-    $rows=$st->fetchAll(PDO::FETCH_ASSOC);
-
-    foreach($rows as $r) {
-
-        $badgesRaw=(string)($r['mp_badges'] ?? '[]');
-        $badgesDecoded=json_decode($badgesRaw,true);
-
-        $badgesText=is_array($badgesDecoded)
-            ? implode(', ',$badgesDecoded)
-            : $badgesRaw;
-
-        $primary=(string)(
-            $r['mp_primary'] ?: '#42D9CF'
-        );
-
-        $secondary=(string)(
-            $r['mp_secondary'] ?: '#806EFF'
-        );
-
-        $online=$r['mp_online'];
-
-        if ($online===null) {
-            $online=1;
-        }
-
-        ?>
-        <div class="card" style="margin:14px 0">
-
-            <div class="row" style="justify-content:space-between">
-                <div>
-                    <b style="font-size:18px">
-                        #<?=h($r['account_id'])?>
-                        <?=h($r['username'])?>
-                    </b>
-
-                    <span class="badge">
-                        <?=h($r['role'])?>
-                    </span>
-                </div>
-
-                <?php if(!empty($r['mp_updated'])): ?>
-                    <small style="color:#8792a7">
-                        Updated <?=h($r['mp_updated'])?>
-                    </small>
-                <?php endif ?>
-            </div>
-
-            <form
-                method="post"
-                style="
-                    margin-top:16px;
-                    display:grid;
-                    gap:12px;
-                    grid-template-columns:
-                    repeat(auto-fit,minmax(220px,1fr))
-                "
-            >
-                <input type="hidden" name="csrf" value="<?=csrf()?>">
-                <input type="hidden" name="action" value="muchoprofile-save">
-                <input type="hidden" name="return" value="muchoprofiles">
-                <input type="hidden" name="id" value="<?=h($r['account_id'])?>">
-
-                <label>
-                    <small>Display name</small>
-                    <input
-                        style="width:100%"
-                        name="display_name"
-                        maxlength="32"
-                        value="<?=h($r['mp_display_name'] ?? '')?>"
-                    >
-                </label>
-
-                <label>
-                    <small>Status</small>
-                    <input
-                        style="width:100%"
-                        name="status"
-                        maxlength="48"
-                        value="<?=h($r['mp_status'] ?? '')?>"
-                    >
-                </label>
-
-                <label>
-                    <small>Title — server only</small>
-                    <input
-                        style="width:100%"
-                        name="title"
-                        maxlength="48"
-                        placeholder="OWNER"
-                        value="<?=h($r['mp_title'] ?? '')?>"
-                    >
-                </label>
-
-                <label>
-                    <small>Badges — server only</small>
-                    <input
-                        style="width:100%"
-                        name="badges"
-                        placeholder="OWNER, IZK"
-                        value="<?=h($badgesText)?>"
-                    >
-                </label>
-
-                <label>
-                    <small>Primary color</small>
-                    <input
-                        style="width:100%"
-                        name="theme_primary"
-                        value="<?=h($primary)?>"
-                        maxlength="7"
-                    >
-                </label>
-
-                <label>
-                    <small>Secondary color</small>
-                    <input
-                        style="width:100%"
-                        name="theme_secondary"
-                        value="<?=h($secondary)?>"
-                        maxlength="7"
-                    >
-                </label>
-
-                <label>
-                    <small>Banner preset</small>
-                    <input
-                        style="width:100%"
-                        name="banner"
-                        maxlength="64"
-                        value="<?=h($r['mp_banner'] ?: 'gradient_01')?>"
-                    >
-                </label>
-
-                <label>
-                    <small>Favorite difficulty</small>
-                    <input
-                        style="width:100%"
-                        name="favorite_difficulty"
-                        maxlength="32"
-                        value="<?=h($r['mp_favorite'] ?? '')?>"
-                    >
-                </label>
-
-                <label>
-                    <small>Pinned levels — max 3 IDs</small>
-                    <input
-                        style="width:100%"
-                        name="pinned_levels"
-                        placeholder="12, 45, 99"
-                        value="<?=h($r['mp_pinned'] ?? '')?>"
-                    >
-                </label>
-
-                <label>
-                    <small>Showcase</small>
-                    <input
-                        style="width:100%"
-                        name="showcase"
-                        maxlength="200"
-                        value="<?=h(
-                            $r['mp_showcase']
-                            ?: 'stars,demons,creator_points'
-                        )?>"
-                    >
-                </label>
-
-                <label style="grid-column:1/-1">
-                    <small>Bio</small>
-                    <textarea
-                        style="width:100%;min-height:90px"
-                        name="bio"
-                        maxlength="240"
-                    ><?=h($r['mp_bio'] ?? '')?></textarea>
-                </label>
-
-                <label
-                    style="
-                        display:flex;
-                        gap:8px;
-                        align-items:center
-                    "
-                >
-                    <input
-                        type="checkbox"
-                        name="online_visible"
-                        <?=$online ? 'checked' : ''?>
-                    >
-                    Online visibility
-                </label>
-
-                <div>
-                    <button type="submit">
-                        Save Mucho Profile
-                    </button>
-                </div>
-            </form>
-
-            <form
-                method="post"
-                style="margin-top:12px"
-                onsubmit="return confirm('Generate a new edit token? The old token will immediately stop working.')"
-            >
-                <input type="hidden" name="csrf" value="<?=csrf()?>">
-                <input type="hidden" name="action" value="muchoprofile-token">
-                <input type="hidden" name="return" value="muchoprofiles">
-                <input type="hidden" name="id" value="<?=h($r['account_id'])?>">
-
-                <button type="submit" class="btn">
-                    Regenerate edit token
-                </button>
-            </form>
-
-        </div>
-        <?php
-    }
+    $args=[
+        'q'=>'%'.$q.'%',
+        'id'=>ctype_digit($q)?(int)$q:0
+    ];
 }
 
-/* /MUCHO_PROFILE_ADMIN_V1 */
+$sql.=' ORDER BY a.account_id DESC LIMIT 100';
+
+$st=$db->prepare($sql);
+$st->execute($args);
+
+$rows=$st->fetchAll(PDO::FETCH_ASSOC);
+
+foreach($rows as $r) {
+?>
+<div class="card" style="margin:12px 0">
+
+<div class="row">
+<b>#<?=h($r['account_id'])?> <?=h($r['username'])?></b>
+<span class="badge"><?=h($r['role'])?></span>
+<?php if($r['is_banned']): ?>
+<span class="badge bad">BANNED</span>
+<?php endif ?>
+</div>
+
+<form method="post" class="row" style="margin-top:12px">
+<input type="hidden" name="csrf" value="<?=csrf()?>">
+<input type="hidden" name="action" value="account-save">
+<input type="hidden" name="return" value="players">
+<input type="hidden" name="id" value="<?=h($r['account_id'])?>">
+
+<input name="username" value="<?=h($r['username'])?>">
+<input name="email" value="<?=h($r['email'])?>">
+
+<select name="role">
+<?php foreach(['user','moderator','admin','owner'] as $x): ?>
+<option <?=$r['role']===$x?'selected':''?>><?=h($x)?></option>
+<?php endforeach ?>
+</select>
+
+<label>
+<input type="checkbox" name="active" <?=$r['is_active']?'checked':''?>>
+active
+</label>
+
+<label>
+<input type="checkbox" name="banned" <?=$r['is_banned']?'checked':''?>>
+ban
+</label>
+
+<button>Save</button>
+</form>
+
+<form method="post" class="row" style="margin-top:10px">
+<input type="hidden" name="csrf" value="<?=csrf()?>">
+<input type="hidden" name="action" value="profile-save">
+<input type="hidden" name="return" value="players">
+<input type="hidden" name="id" value="<?=h($r['account_id'])?>">
+
+<?php
+foreach([
+'stars','moons','diamonds','secret_coins',
+'user_coins','demons','creator_points'
+] as $f):
+?>
+<label>
+<small><?=h($f)?></small><br>
+<input
+ style="width:90px"
+ name="<?=h($f)?>"
+ value="<?=h($r[$f] ?? 0)?>"
+>
+</label>
+<?php endforeach ?>
+
+<button>Stats</button>
+</form>
+
+<form method="post" class="row" style="margin-top:10px">
+<input type="hidden" name="csrf" value="<?=csrf()?>">
+<input type="hidden" name="action" value="password-reset">
+<input type="hidden" name="return" value="players">
+<input type="hidden" name="id" value="<?=h($r['account_id'])?>">
+
+<input
+ type="password"
+ name="new_password"
+ placeholder="New password"
+>
+
+<button class="gray">Change password</button>
+</form>
+
+<?php if(rank(admin()['role'])>=40): ?>
+<form
+ method="post"
+ style="margin-top:10px"
+ onsubmit="return confirm('Permanently delete account <?=h($r['username'])?> and all related data?');"
+>
+<input type="hidden" name="csrf" value="<?=csrf()?>">
+<input type="hidden" name="action" value="account-delete">
+<input type="hidden" name="return" value="players">
+<input type="hidden" name="id" value="<?=h($r['account_id'])?>">
+
+<button class="red">Delete account permanently</button>
+</form>
+<?php endif ?>
+
+</div>
+<?php
+}
+}
 
 /* =========================================================
-   PLAYERS
+   LEVELS
 ========================================================= */
 
