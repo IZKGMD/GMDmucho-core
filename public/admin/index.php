@@ -241,20 +241,32 @@ function postLocal(string $path,array $data): string
         throw new RuntimeException('Invalid endpoint.');
     }
 
+    $accountUrl=(string)(
+        getenv('MUCHO_ACCOUNT_URL')
+        ?: 'https://localhost'
+    );
+
+    $publicHost=(string)(
+        parse_url($accountUrl,PHP_URL_HOST)
+        ?: 'localhost'
+    );
+
     $ctx=stream_context_create([
         'http'=>[
             'method'=>'POST',
             'header'=>
                 "Content-Type: application/x-www-form-urlencoded\r\n".
-                "Host: muchogdps.space\r\n",
+                "Host: ".$publicHost."\r\n",
             'content'=>http_build_query($data),
             'timeout'=>10,
             'ignore_errors'=>true
         ]
     ]);
 
+    // The app and Caddy run in separate Docker containers. Reach Caddy by
+    // service name instead of using the app container's 127.0.0.1.
     $r=@file_get_contents(
-        'http://127.0.0.1'.$path,
+        'http://caddy'.$path,
         false,
         $ctx
     );
@@ -3304,7 +3316,7 @@ Logout
 
 <div class="head-title">
 <h1><?=h($pages[$page])?></h1>
-<small>muchogdps.space</small>
+<small><?=h((string)(getenv('MUCHO_ACCOUNT_URL') ?: 'MuchoCore'))?></small>
 </div>
 
 <form class="global-search" method="get" id="globalSearch">
