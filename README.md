@@ -2,6 +2,19 @@
 
 MuchoCore is a Geometry Dash private server (GDPS) backend.
 
+## Recommended hosting
+
+**VPS is the recommended way to run MuchoCore.**
+
+Why:
+
+- full control over Docker, MariaDB and PHP;
+- easier updates and backups;
+- better fit for a real GDPS with many players;
+- fewer restrictions than normal shared hosting.
+
+Shared hosting is supported for easier testing and small installations, but for a real public GDPS use a VPS.
+
 ## Choose how you host MuchoCore
 
 There are two supported deployment styles.
