@@ -13,6 +13,32 @@ declare(strict_types=1);
 
 return [
     <<<'SQL'
+CREATE TABLE IF NOT EXISTS mucho_level_lists (
+    list_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    account_id BIGINT UNSIGNED NOT NULL,
+    list_name VARCHAR(64) NOT NULL DEFAULT 'Unnamed list',
+    list_desc VARCHAR(500) NOT NULL DEFAULT '',
+    list_version INT NOT NULL DEFAULT 1,
+    level_ids TEXT NOT NULL,
+    difficulty INT NOT NULL DEFAULT 0,
+    original_id BIGINT NOT NULL DEFAULT 0,
+    unlisted TINYINT(1) NOT NULL DEFAULT 0,
+    downloads BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    likes BIGINT NOT NULL DEFAULT 0,
+    featured INT NOT NULL DEFAULT 0,
+    stars INT NOT NULL DEFAULT 0,
+    count_for_reward INT NOT NULL DEFAULT 0,
+    created_at BIGINT NOT NULL,
+    updated_at BIGINT NOT NULL,
+    PRIMARY KEY (list_id),
+    KEY idx_mucho_lists_account (account_id),
+    KEY idx_mucho_lists_public_recent (unlisted, created_at),
+    KEY idx_mucho_lists_downloads (downloads),
+    KEY idx_mucho_lists_likes (likes)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+SQL,
+
+    <<<'SQL'
 CREATE TABLE IF NOT EXISTS friends (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     account_id BIGINT UNSIGNED NOT NULL,
