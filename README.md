@@ -42,7 +42,7 @@ Full beginner guide: [`docs/SHARED_HOSTING.md`](docs/SHARED_HOSTING.md).
 The shared-hosting mode requires PHP 8.3+ and MySQL/MariaDB. It does not use Docker.
 
 
-The installer asks for your domain and asks you to create a password for the admin panel. Database passwords, secrets and the cloud-save key are generated automatically.
+For the VPS installer, the script asks for your domain and admin password and generates the database secrets automatically. The shared-hosting browser installer asks for your hosting database details.
 
 The admin panel username is always `admin`.
 
@@ -140,15 +140,21 @@ More help:
 
 ## Important files
 
-Keep these safe:
+Keep these files safe:
+
+```text
+.env
+config/cloudsave.key
+storage/admin-bootstrap.php
+```
+
+On VPS installs, the generated secrets also live under:
 
 ```text
 /opt/mucho-core/.secrets/
-/opt/mucho-core/.env
-/opt/mucho-core/config/cloudsave.key
 ```
 
-The cloud-save key is required to decrypt existing cloud-save data.
+The cloud-save key must remain unchanged for existing cloud-save data.
 
 ## Included
 
@@ -159,7 +165,8 @@ The cloud-save key is required to decrypt existing cloud-save data.
 - Rate limiting and health checks.
 - Backup and maintenance helpers.
 - Smoke, regression and load tests.
-- Docker-based deployment.
+- Docker-based VPS deployment.
+- Apache/shared-hosting deployment for PHP 8.3+ hosts.
 
 ## License
 
