@@ -16,7 +16,10 @@ final readonly class LevelService
     ) {
     }
 
-    public function getLevels(array $input): string
+    public function getLevels(
+        array $input,
+        int $detectedGameVersion = 0
+    ): string
     {
         $type = $this->integer($input['type'] ?? 0);
         $page = min(
@@ -27,6 +30,10 @@ final readonly class LevelService
             0,
             $this->integer($input['gameVersion'] ?? 0)
         );
+
+        if ($gameVersion === 0 && $detectedGameVersion > 0) {
+            $gameVersion = $detectedGameVersion;
+        }
 
         $demonFilter = max(
             0,
