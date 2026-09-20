@@ -2,22 +2,45 @@
 
 MuchoCore is a Geometry Dash private server (GDPS) backend.
 
-## I just want to start the server
+## Choose how you host MuchoCore
 
-You do not need to manually install PHP, MariaDB, Composer or Nginx.
+There are two supported deployment styles.
 
-You need only:
+### I have a VPS
 
-1. A Linux VPS with root access.
-2. A domain name pointing to the VPS.
-3. Open ports 80 and 443.
-
-Then run:
+Use the one-command Docker installer:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh -o install.sh
 sudo bash install.sh
 ```
+
+This installs Docker, MariaDB, PHP 8.3, Caddy and MuchoCore automatically.
+
+### I have normal shared hosting
+
+Use the browser installer:
+
+1. Upload the complete repository to your hosting account.
+2. Install Composer dependencies:
+
+```bash
+composer install --no-dev --optimize-autoloader
+```
+
+3. Open:
+
+```text
+https://YOUR-DOMAIN/shared-install.php
+```
+
+4. Follow the green/red checks.
+5. Enter your database details and create the admin password.
+
+Full beginner guide: [`docs/SHARED_HOSTING.md`](docs/SHARED_HOSTING.md).
+
+The shared-hosting mode requires PHP 8.3+ and MySQL/MariaDB. It does not use Docker.
+
 
 The installer asks for your domain and asks you to create a password for the admin panel. Database passwords, secrets and the cloud-save key are generated automatically.
 
@@ -110,6 +133,7 @@ curl -i https://YOUR-DOMAIN/health
 
 More help:
 
+- [`docs/SHARED_HOSTING.md`](docs/SHARED_HOSTING.md) — shared hosting installation for beginners.
 - [`docs/CLIENT_SETUP.md`](docs/CLIENT_SETUP.md) — connect the game client.
 - [`docs/SETUP.md`](docs/SETUP.md) — server setup and troubleshooting.
 - [`docs/openapi.yaml`](docs/openapi.yaml) — JSON API.
