@@ -74,7 +74,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Create release
+      - name: Build release archive
+        run: git archive --format=zip --output=mucho-core.zip HEAD
+      - name: Upload v1.0.1 archive
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create v1.0.1 --title "MuchoCore v1.0.1" --target "$GITHUB_SHA" --notes "Includes the complete MuchoCore source tree, including the Windows client patcher tools."
+        run: gh release upload v1.0.1 mucho-core.zip --clobber
