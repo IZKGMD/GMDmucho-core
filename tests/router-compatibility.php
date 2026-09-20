@@ -6,9 +6,9 @@ require __DIR__ . '/../src/Http/Request.php';
 require __DIR__ . '/../src/Http/Response.php';
 require __DIR__ . '/../src/Routing/Router.php';
 
-use MuchoCoreHttpRequest;
-use MuchoCoreHttpResponse;
-use MuchoCoreRoutingRouter;
+use MuchoCore\Http\Request;
+use MuchoCore\Http\Response;
+use MuchoCore\Routing\Router;
 
 $router = new Router();
 
