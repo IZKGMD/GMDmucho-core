@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace MuchoCore\Interaction;
@@ -17,6 +18,10 @@ final readonly class LikeRepository
         int $accountId,
         bool $isLike
     ): bool {
+        if ($itemId <= 0 || $accountId <= 0) {
+            return false;
+        }
+
         [$table, $pk] = match ($type) {
             1 => ['levels', 'level_id'],
             2 => ['comments', 'id'],
@@ -27,36 +32,88 @@ final readonly class LikeRepository
         $this->db->beginTransaction();
 
         try {
-            $q = $this->db->prepare(
-                'INSERT IGNORE INTO likes
-                 (item_id,type,account_id,is_like)
-                 VALUES (:item,:type,:account,:like)'
+            $target = $this->db->prepare(
+                "SELECT likes
+                 FROM {$table}
+                 WHERE {$pk}=:id
+                 LIMIT 1
+                 FOR UPDATE"
             );
-            $q->execute([
-                'item' => $itemId,
-                'type' => $type,
-                'account' => $accountId,
-                'like' => $isLike ? 1 : 0,
-            ]);
+            $target->execute(['id' => $itemId]);
 
-            if ($q->rowCount() === 0) {
+            $currentLikes = $target->fetchColumn();
+
+            if ($currentLikes === false) {
                 $this->db->rollBack();
                 return false;
             }
 
-            $q = $this->db->prepare(
-                "UPDATE `$table`
-                 SET likes = likes + :amount
-                 WHERE `$pk` = :id"
+            $vote = $this->db->prepare(
+                'SELECT is_like
+                 FROM likes
+                 WHERE item_id=:item
+                   AND type=:type
+                   AND account_id=:account
+                 LIMIT 1
+                 FOR UPDATE'
             );
-            $q->execute([
-                'amount' => $isLike ? 1 : -1,
-                'id' => $itemId,
+            $vote->execute([
+                'item' => $itemId,
+                'type' => $type,
+                'account' => $accountId,
             ]);
 
-            if ($q->rowCount() !== 1) {
-                throw new RuntimeException('Like target not found');
+            $existing = $vote->fetchColumn();
+            $desired = $isLike ? 1 : 0;
+
+            if ($existing !== false) {
+                $existing = (int)$existing;
+
+                if ($existing === $desired) {
+                    $this->db->rollBack();
+                    return false;
+                }
+
+                $updateVote = $this->db->prepare(
+                    'UPDATE likes
+                     SET is_like=:is_like
+                     WHERE item_id=:item
+                       AND type=:type
+                       AND account_id=:account'
+                );
+                $updateVote->execute([
+                    'is_like' => $desired,
+                    'item' => $itemId,
+                    'type' => $type,
+                    'account' => $accountId,
+                ]);
+
+                $delta = $desired === 1 ? 1 : -1;
+            } else {
+                $insertVote = $this->db->prepare(
+                    'INSERT INTO likes
+                     (item_id,type,account_id,is_like)
+                     VALUES (:item,:type,:account,:is_like)'
+                );
+                $insertVote->execute([
+                    'item' => $itemId,
+                    'type' => $type,
+                    'account' => $accountId,
+                    'is_like' => $desired,
+                ]);
+
+                $delta = $desired === 1 ? 1 : 0;
             }
+
+            $updateTarget = $this->db->prepare(
+                "UPDATE {$table}
+                 SET likes=GREATEST(0,likes+:amount)
+                 WHERE {$pk}=:id"
+            );
+            $updateTarget->execute([
+                'amount' => $delta,
+                'id' => $itemId,
+            ]);
 
             $this->db->commit();
             return true;
