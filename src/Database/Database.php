@@ -13,7 +13,20 @@ final class Database
 
     public function __construct()
     {
-        Dotenv::createImmutable(dirname(__DIR__, 2))->safeLoad();
+        $projectRoot = dirname(__DIR__, 2);
+
+        // The project .env contains public deployment configuration.
+        Dotenv::createImmutable($projectRoot)->safeLoad();
+
+        // Production database credentials are generated at runtime and stored
+        // outside the bind-mounted project directory.
+        $runtimeEnv = '/var/lib/muchocore/runtime.env';
+        if (is_file($runtimeEnv)) {
+            Dotenv::createMutable(
+                dirname($runtimeEnv),
+                basename($runtimeEnv)
+            )->safeLoad();
+        }
 
         $host = $_ENV['DB_HOST'] ?? '127.0.0.1';
         $port = $_ENV['DB_PORT'] ?? '3306';
