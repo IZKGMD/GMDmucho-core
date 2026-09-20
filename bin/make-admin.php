@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+use MuchoCore\Account\AccountService;
 use MuchoCore\Database\Database;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
@@ -15,7 +16,9 @@ if ($username === '' || $email === '' || $password === false || $password === ''
 }
 
 $pdo = (new Database())->connection();
-$hash = password_hash($password, PASSWORD_DEFAULT);
+$passwordHash = password_hash($password, PASSWORD_DEFAULT);
+$gjp2 = sha1($password . AccountService::GJP2_SALT);
+$gjp2Hash = password_hash($gjp2, PASSWORD_DEFAULT);
 
 $roleQuery = $pdo->prepare(
     'SELECT id
@@ -43,6 +46,7 @@ if ($accountId !== false) {
     $update = $pdo->prepare(
         'UPDATE accounts
          SET role_id = :role_id,
+             password_hash = :password_hash,
              gjp2_hash = :gjp2,
              is_active = 1,
              is_banned = 0,
@@ -51,7 +55,8 @@ if ($accountId !== false) {
     );
     $update->execute([
         'role_id' => $ownerRoleId,
-        'gjp2' => $hash,
+        'password_hash' => $passwordHash,
+        'gjp2' => $gjp2Hash,
         'email' => $email,
         'account_id' => (int)$accountId,
     ]);
@@ -76,8 +81,8 @@ if ($accountId !== false) {
     );
     $insert->execute([
         'username' => $username,
-        'password_hash' => $hash,
-        'gjp2_hash' => $hash,
+        'password_hash' => $passwordHash,
+        'gjp2_hash' => $gjp2Hash,
         'email' => $email,
         'role_id' => $ownerRoleId,
     ]);
