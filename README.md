@@ -205,6 +205,10 @@ The cloud-save key must remain unchanged for existing cloud-save data.
 - Docker-based VPS deployment.
 - Apache/shared-hosting deployment for PHP 8.3+ hosts.
 
+## Copyright
+
+Copyright © 2026 IZK. Project attribution and redistribution notes: [`docs/COPYRIGHT.md`](docs/COPYRIGHT.md).
+
 ## License
 
 This repository is licensed under the MIT License. See [`LICENSE`](LICENSE).
