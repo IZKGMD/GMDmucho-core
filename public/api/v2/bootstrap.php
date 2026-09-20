@@ -6,9 +6,9 @@ declare(strict_types=1);
  * Copyright (C) 2026 IZK
  */
 
-require_once dirname(__DIR__, 3) . '/vendor/autoload.php';
-
 use MuchoCore\Security\ClientIp;
+
+require_once dirname(__DIR__, 3) . '/vendor/autoload.php';
 
 const MUCHO_V2_ROOT = '/var/www/mucho-core';
 const MUCHO_V2_VERSION = '2.2';
