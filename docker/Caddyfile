@@ -2,7 +2,12 @@
     root * /var/www/mucho-core/public
     encode gzip zstd
 
-    header X-MuchoCore-Copyright "Copyright (C) 2026 IZK"
+    header {
+        X-MuchoCore-Copyright "Copyright (C) 2026 IZK"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    }
 
     # Copyright (C) 2026 IZK
 
