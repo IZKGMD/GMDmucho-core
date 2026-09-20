@@ -30,15 +30,16 @@ def compatibility_url(server: str, desired_length: int, *, bare: bool = False) -
             "https://muchogdps.space"
         )
 
-    schemes = ("https", "http")
-    queue: deque[tuple[str, ...]] = deque([()])
-    seen: set[tuple[str, ...]] = {()}
+    schemes = (None,) if bare else ("https", "http")
 
-    while queue:
-        parts = queue.popleft()
-        path = "" if not parts else "/" + "/".join(parts)
+    for scheme in schemes:
+        queue: deque[tuple[str, ...]] = deque([()])
+        seen: set[tuple[str, ...]] = {()}
 
-        for scheme in schemes:
+        while queue:
+            parts = queue.popleft()
+            path = "" if not parts else "/" + "/".join(parts)
+
             if bare:
                 candidate = f"{parsed.netloc}{path}"
             else:
@@ -47,14 +48,14 @@ def compatibility_url(server: str, desired_length: int, *, bare: bool = False) -
             if byte_len(candidate) == desired_length:
                 return candidate
 
-        if len(parts) >= 6:
-            continue
+            if len(parts) >= 6:
+                continue
 
-        for segment in SEGMENTS:
-            next_parts = parts + (segment,)
-            if next_parts not in seen:
-                seen.add(next_parts)
-                queue.append(next_parts)
+            for segment in SEGMENTS:
+                next_parts = parts + (segment,)
+                if next_parts not in seen:
+                    seen.add(next_parts)
+                    queue.append(next_parts)
 
     raise ValueError(
         f"could not build a compatible {desired_length}-byte URL "
@@ -92,6 +93,8 @@ def run_self_test() -> int:
         value = compatibility_url(server, length)
         assert byte_len(value) == length, (length, value)
         print(f"PASS URL {length}: {value}")
+
+    assert compatibility_url(server, 33).startswith("https://"), compatibility_url(server, 33)
 
     bare = compatibility_url(server, 26, bare=True)
     assert byte_len(bare) == 26, bare
