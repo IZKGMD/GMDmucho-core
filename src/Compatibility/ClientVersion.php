@@ -39,6 +39,15 @@ final readonly class ClientVersion
             } elseif (str_ends_with($path, 'getgjlevelscoresplat.php')) {
                 // Platformer score endpoint is a 2.2-era endpoint.
                 $gameVersion = 22;
+            } elseif (
+                preg_match(
+                    '#/(?:getgjlevels|downloadgjlevel|uploadgjlevel|getgjcomments|uploadgjcomment|getgjscores|updategjuserscore|likegjitem)\\.php$#',
+                    $path
+                ) === 1
+            ) {
+                // The unversioned endpoints in the established 1.0-2.2
+                // GDPS layout are the legacy 1.0-1.8 family.
+                $gameVersion = 18;
             }
         }
 
