@@ -8,14 +8,26 @@ There are two supported deployment styles.
 
 ### I have a VPS
 
-Use the one-command Docker installer:
+Use the one-command installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh -o install.sh
-sudo bash install.sh
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh | sudo bash
 ```
 
-This installs Docker, MariaDB, PHP 8.3, Caddy and MuchoCore automatically.
+The installer asks only for the GDPS domain when needed and generates the admin password automatically on a fresh installation.
+
+It automatically:
+
+- installs Docker;
+- prepares MuchoCore;
+- generates database secrets;
+- creates the Cloud Save key;
+- starts MariaDB, PHP 8.3 and Caddy;
+- applies database migrations;
+- checks `/health`;
+- prints the GDPS address and admin password.
+
+The installer is safe to run again: existing secrets are preserved and a non-MuchoCore directory is never deleted.
 
 ### I have normal shared hosting
 
