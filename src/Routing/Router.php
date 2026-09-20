@@ -72,11 +72,15 @@ final class Router
             ) ?? $path;
         }
 
-        $path = preg_replace('#\.php$#i', '', $path) ?? $path;
-
         if ($path !== '/') {
             $path = rtrim($path, '/');
         }
+
+        if ($path === '') {
+            $path = '/';
+        }
+
+        $path = preg_replace('#\.php$#i', '', $path) ?? $path;
 
         if ($path === '') {
             $path = '/';
