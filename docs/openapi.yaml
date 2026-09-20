@@ -8,7 +8,7 @@ info:
     Copyright (C) 2026 IZK.
 
 servers:
-  - url: https://muchogdps.space
+  - url: https://gdps.example.com
 
 paths:
 
