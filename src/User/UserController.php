@@ -142,14 +142,26 @@ final readonly class UserController
 
     public function scores(Request $request): Response
     {
-        $type=$request->postString('type');
-        $accountId=$request->postInt('accountID');
+        $type = $request->postString('type');
+        $accountId = $request->postInt('accountID');
+        $gameVersion = $request->clientVersion()->gameVersion;
+        $credential = $request->gdCredential();
+
+        if (
+            in_array($type, ['friends', 'relative'], true) &&
+            ($accountId <= 0 || $credential === '')
+        ) {
+            return Response::text('-1');
+        }
 
         try {
             return Response::text(
                 $this->service->getLeaderboard(
                     $type,
-                    $accountId
+                    $accountId,
+                    100,
+                    $gameVersion,
+                    $credential
                 )
             );
         } catch (Throwable) {
