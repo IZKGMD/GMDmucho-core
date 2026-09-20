@@ -59,7 +59,7 @@ function checkRequirements(string $root, string $storage): array
         ? pass('PHP ' . PHP_VERSION . ' is supported.')
         : fail('PHP 8.3 or newer is required. Ask your hosting provider to switch this website to PHP 8.3+.');
 
-    foreach (['pdo', 'pdo_mysql', 'openssl', 'json', 'mbstring', 'session'] as $extension) {
+    foreach (['pdo', 'pdo_mysql', 'openssl', 'json', 'mbstring', 'session', 'fileinfo'] as $extension) {
         $checks[] = extension_loaded($extension)
             ? pass('PHP extension ' . $extension . ' is enabled.')
             : fail('PHP extension ' . $extension . ' is missing. Enable it in your hosting control panel.');
@@ -79,6 +79,35 @@ function checkRequirements(string $root, string $storage): array
     $checks[] = is_writable($root)
         ? pass('The MuchoCore directory is writable.')
         : fail('The MuchoCore directory is not writable. Give your hosting PHP user write access.');
+
+    $sizeInBytes = static function (string $value): int {
+        $value = trim($value);
+
+        if ($value === '') {
+            return 0;
+        }
+
+        $unit = strtolower(substr($value, -1));
+        $number = (float)$value;
+
+        return match ($unit) {
+            'g' => (int)($number * 1024 * 1024 * 1024),
+            'm' => (int)($number * 1024 * 1024),
+            'k' => (int)($number * 1024),
+            default => (int)$number,
+        };
+    };
+
+    $postMax = $sizeInBytes((string)ini_get('post_max_size'));
+    $uploadMax = $sizeInBytes((string)ini_get('upload_max_filesize'));
+
+    $checks[] = $postMax >= 32 * 1024 * 1024
+        ? pass('PHP post_max_size allows 32 MB GD payloads.')
+        : fail('PHP post_max_size must be at least 32 MB for level uploads and Cloud Save.');
+
+    $checks[] = $uploadMax >= 32 * 1024 * 1024
+        ? pass('PHP upload_max_filesize allows 32 MB uploads.')
+        : fail('PHP upload_max_filesize must be at least 32 MB.');
 
     if (!is_dir($storage)) {
         @mkdir($storage, 0750, true);
@@ -173,8 +202,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Server URL must look like https://gdps.example.com';
     }
 
-    if (strlen($adminPass) < 8) {
-        $errors[] = 'Admin password must contain at least 8 characters.';
+    if (strlen($adminPass) < 12) {
+        $errors[] = 'Admin password must contain at least 12 characters.';
     }
 
     if ($adminPass !== $adminPass2) {
@@ -420,13 +449,13 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
             <div class="grid">
                 <div>
                     <label for="admin_pass">Admin password</label>
-                    <input id="admin_pass" type="password" name="admin_pass" minlength="8" required>
-                    <small>At least 8 characters.</small>
+                    <input id="admin_pass" type="password" name="admin_pass" minlength="12" required>
+                    <small>At least 12 characters.</small>
                 </div>
 
                 <div>
                     <label for="admin_pass2">Repeat admin password</label>
-                    <input id="admin_pass2" type="password" name="admin_pass2" minlength="8" required>
+                    <input id="admin_pass2" type="password" name="admin_pass2" minlength="12" required>
                 </div>
             </div>
 
