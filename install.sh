@@ -332,6 +332,40 @@ else
     grep -q '^MUCHO_TRUST_PROXY_HEADERS=' "$ENV_FILE" ||
         printf 'MUCHO_TRUST_PROXY_HEADERS=1\n' >> "$ENV_FILE"
 
+    grep -q '^MUCHO_SITE_NAME=' "$ENV_FILE" ||
+        printf 'MUCHO_SITE_NAME=Mucho GDPS\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_SITE_TAGLINE=' "$ENV_FILE" ||
+        printf 'MUCHO_SITE_TAGLINE=Powered by MuchoCore\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_SITE_DESCRIPTION=' "$ENV_FILE" ||
+        printf 'MUCHO_SITE_DESCRIPTION=Custom Geometry Dash private server powered by MuchoCore.\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_SITE_LOGO=' "$ENV_FILE" ||
+        printf 'MUCHO_SITE_LOGO=MuchoGDPS\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_SITE_ACCENT=' "$ENV_FILE" ||
+        printf 'MUCHO_SITE_ACCENT=#7768ff\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_SITE_ACCENT2=' "$ENV_FILE" ||
+        printf 'MUCHO_SITE_ACCENT2=#43d7cf\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_SITE_GITHUB_URL=' "$ENV_FILE" ||
+        printf 'MUCHO_SITE_GITHUB_URL=\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_SITE_DISCORD_URL=' "$ENV_FILE" ||
+        printf 'MUCHO_SITE_DISCORD_URL=\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_SITE_TELEGRAM_URL=' "$ENV_FILE" ||
+        printf 'MUCHO_SITE_TELEGRAM_URL=\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_SITE_CLIENT_URL=' "$ENV_FILE" ||
+        printf 'MUCHO_SITE_CLIENT_URL=\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_SITE_COPYRIGHT=' "$ENV_FILE" ||
+        printf 'MUCHO_SITE_COPYRIGHT=Copyright © 2026 IZK\n' >> "$ENV_FILE"
+
+
     grep -q '^MUCHO_ACCOUNT_URL=' "$ENV_FILE" ||
         printf 'MUCHO_ACCOUNT_URL=https://%s\n' "$DOMAIN" >> "$ENV_FILE"
 
