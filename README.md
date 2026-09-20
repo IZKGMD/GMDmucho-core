@@ -14,7 +14,7 @@ Use the one-command installer:
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh | sudo bash
 ```
 
-The installer asks only for the GDPS domain when needed and generates the admin password automatically on a fresh installation.
+The installer asks for the GDPS domain and, on a new installation, asks you to create the admin password.
 
 It automatically:
 
