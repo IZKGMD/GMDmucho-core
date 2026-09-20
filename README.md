@@ -66,14 +66,14 @@ For the easiest Windows setup:
 
 1. Download your own Geometry Dash executable.
 2. Download this repository.
-3. Install Python 3.
-4. Open the `tools` folder.
-5. Double-click `client-patch.bat`.
-6. Enter the path to your Geometry Dash executable.
-7. Enter your MuchoCore server URL, for example `https://gdps.example.com`.
+3. Open the `tools` folder.
+4. Double-click `client-patch.bat`.
+5. Choose `GeometryDash.exe`.
+6. Check the MuchoCore server address.
+7. Click `Patch client`.
 8. Start the new `*-MuchoCore.exe` file created by the tool.
 
-The tool checks the required URL length before changing the file.
+You do not need Python for the Windows one-click patcher. The patcher handles the fixed-size server URL formats and never overwrites the original executable.
 
 Full client guide: [`docs/CLIENT_SETUP.md`](docs/CLIENT_SETUP.md).
 
