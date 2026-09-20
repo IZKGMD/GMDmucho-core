@@ -5,6 +5,29 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 [[ $EUID -eq 0 ]] || { echo 'Run: sudo ./update.sh' >&2; exit 1; }
 
+# Older MuchoCore versions accidentally overwrote the project .env from inside
+# the app container. Recover the domain from the existing Caddy container so
+# the first update can repair that installation automatically.
+if ! grep -q '^DOMAIN=' "$ROOT/.env" 2>/dev/null; then
+    CADDY_ID="$(docker ps -a --filter 'label=com.docker.compose.service=caddy' --format '{{.ID}}' | head -n1 || true)"
+    if [[ -n "$CADDY_ID" ]]; then
+        SAVED_DOMAIN="$(docker inspect "$CADDY_ID" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | sed -n 's/^DOMAIN=//p' | head -n1 || true)"
+        if [[ -n "$SAVED_DOMAIN" ]]; then
+            printf '\nDOMAIN=%s\n' "$SAVED_DOMAIN" >> "$ROOT/.env"
+            echo "[MuchoCore] Recovered DOMAIN=$SAVED_DOMAIN from the existing Caddy container."
+        fi
+    fi
+fi
+
+if ! grep -q '^DOMAIN=' "$ROOT/.env" 2>/dev/null; then
+    echo '[MuchoCore] ERROR: DOMAIN is missing from .env and could not be recovered.' >&2
+    echo '[MuchoCore] Add DOMAIN=your-domain.example and run update again.' >&2
+    exit 1
+fi
+
+grep -q '^ADMIN_USER=' "$ROOT/.env" 2>/dev/null || printf '\nADMIN_USER=admin\n' >> "$ROOT/.env"
+grep -q '^TZ=' "$ROOT/.env" 2>/dev/null || printf 'TZ=UTC\n' >> "$ROOT/.env"
+
 echo '[MuchoCore] Updating source code...'
 git fetch --depth=1 origin main
 
