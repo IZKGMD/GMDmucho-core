@@ -1,12 +1,10 @@
 param(
-    [string]$InputPath
+    [string]$InputPath,
+    [switch]$SelfTest
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
 
 $DefaultServer = 'https://muchogdps.space'
 $Latin1 = [System.Text.Encoding]::GetEncoding(28591)
@@ -81,6 +79,28 @@ function Get-CompatibilityPath {
 
     throw "I could not build a compatible client URL with exactly $DesiredLength bytes. Use a shorter domain."
 }
+
+if ($SelfTest) {
+    $testServer = 'https://muchogdps.space'
+    foreach ($length in @(34, 33, 29, 28, 26)) {
+        $value = Get-CompatibilityPath -Server $testServer -DesiredLength $length
+        if ((Get-UrlBytesLength $value) -ne $length) {
+            throw "Self-test failed for length $length: $value"
+        }
+        Write-Host "PASS URL length $length -> $value"
+    }
+
+    $expected34 = Get-CompatibilityPath -Server $testServer -DesiredLength 34
+    if ($expected34 -ne 'https://muchogdps.space/a/database') {
+        throw "Self-test produced an unexpected 34-byte URL: $expected34"
+    }
+
+    Write-Host 'MUCHOCORE_CLIENT_PATCHER_OK'
+    exit 0
+}
+
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
 
 function Get-Bytes {
     param([string]$Value)
