@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+use MuchoCore\Security\ClientIp;
+
 /*
  * MuchoCore Music Upload
  * Copyright (C) 2026 IZK
