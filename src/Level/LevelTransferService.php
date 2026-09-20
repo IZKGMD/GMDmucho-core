@@ -6,6 +6,7 @@ namespace MuchoCore\Level;
 
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Protocol\GdLevelDownloadEncoder;
+use MuchoCore\Core\Settings;
 use PDO;
 use RuntimeException;
 
@@ -74,7 +75,7 @@ final readonly class LevelTransferService
             $data,
             'levelString',
             '',
-            self::MAX_LEVEL_DATA
+            self::maxLevelDataBytes()
         );
 
         if ($levelString === '') {
@@ -700,6 +701,16 @@ final readonly class LevelTransferService
             $levelId,
             $accountId
         );
+    }
+
+    private static function maxLevelDataBytes(): int
+    {
+        return Settings::int(
+            'MUCHO_LEVEL_MAX_MB',
+            32,
+            1,
+            256
+        ) * 1024 * 1024;
     }
 
     private function stringField(
