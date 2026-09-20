@@ -262,6 +262,7 @@ MUCHO_LEVEL_UPLOAD_ENABLED=1
 MUCHO_CLOUD_SAVE_MAX_MB=32
 MUCHO_LEVEL_MAX_MB=32
 MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net
+MUCHO_TRUST_PROXY_HEADERS=1
 MUCHO_SITE_NAME=Mucho GDPS
 MUCHO_SITE_TAGLINE=Powered by MuchoCore
 MUCHO_SITE_DESCRIPTION=Custom Geometry Dash private server powered by MuchoCore.
@@ -316,6 +317,9 @@ else
 
     grep -q '^MUCHO_CUSTOM_CONTENT_URL=' "$ENV_FILE" ||
         printf 'MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net\n' >> "$ENV_FILE"
+
+    grep -q '^MUCHO_TRUST_PROXY_HEADERS=' "$ENV_FILE" ||
+        printf 'MUCHO_TRUST_PROXY_HEADERS=1\n' >> "$ENV_FILE"
 
     grep -q '^MUCHO_ACCOUNT_URL=' "$ENV_FILE" ||
         printf 'MUCHO_ACCOUNT_URL=https://%s\n' "$DOMAIN" >> "$ENV_FILE"
