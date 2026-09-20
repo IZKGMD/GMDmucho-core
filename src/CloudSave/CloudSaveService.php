@@ -15,8 +15,6 @@ use RuntimeException;
  */
 final readonly class CloudSaveService
 {
-    private const MAX_SAVE_BYTES = 32 * 1024 * 1024;
-
     public function __construct(
         private PDO $db,
         private AccountAuthenticator $auth,
