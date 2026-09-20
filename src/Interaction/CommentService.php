@@ -36,11 +36,27 @@ final class CommentService
     ): int {
         $this->auth->authenticate($accountId, $gjp);
 
+        if (strlen($content) > 8192) {
+            return 0;
+        }
+
         $decodedContent = $this->decodeLevelComment(
             $content,
             $gameVersion
         );
         $decodedContent = trim($decodedContent);
+
+        if ($decodedContent === '' || strlen($decodedContent) > 2048) {
+            return 0;
+        }
+
+        if (!$this->levelExists($levelId)) {
+            return 0;
+        }
+
+        if ($percent < 0 || $percent > 100) {
+            return 0;
+        }
 
         // Проверяем, является ли комментарий модераторской командой
         if (str_starts_with($decodedContent, "!")) {
@@ -257,6 +273,21 @@ final class CommentService
             $accountId,
             $content
         );
+    }
+
+    private function levelExists(int $levelId): bool
+    {
+        $q = $this->getPdo()->prepare(
+            'SELECT 1
+             FROM levels
+             WHERE level_id = :id
+               AND is_deleted = 0
+             LIMIT 1'
+        );
+
+        $q->execute(['id' => $levelId]);
+
+        return (bool)$q->fetchColumn();
     }
 
     private function decodeLevelComment(
