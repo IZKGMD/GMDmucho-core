@@ -43,20 +43,20 @@ function Get-CompatibilityPath {
         $portPart = ':' + $uri.Port
     }
 
-    $schemes = @('https', 'http')
+    $schemes = if ($Bare) { @('bare') } else { @('https', 'http') }
     $segments = @('a', 'api', 'database', 'accounts')
 
     # Router::normalizePath strips these compatibility prefixes.
-    # Search short combinations first so the generated client URL stays readable.
-    $queue = New-Object System.Collections.Generic.List[object]
-    $seen = New-Object System.Collections.Generic.HashSet[string]
-    $queue.Add(@())
+    # Search HTTPS combinations before falling back to HTTP.
+    foreach ($scheme in $schemes) {
+        $queue = New-Object System.Collections.Generic.List[object]
+        $seen = New-Object System.Collections.Generic.HashSet[string]
+        $queue.Add(@())
 
-    while ($queue.Count -gt 0) {
-        $current = $queue[0]
-        $queue.RemoveAt(0)
+        while ($queue.Count -gt 0) {
+            $current = $queue[0]
+            $queue.RemoveAt(0)
 
-        foreach ($scheme in $schemes) {
             $path = if ($current.Count -eq 0) { '' } else { '/' + ($current -join '/') }
             if ($Bare) {
                 $candidate = "$hostPart$portPart$path"
@@ -67,17 +67,17 @@ function Get-CompatibilityPath {
             if ((Get-UrlBytesLength $candidate) -eq $DesiredLength) {
                 return $candidate
             }
-        }
 
-        if ($current.Count -ge 6) {
-            continue
-        }
+            if ($current.Count -ge 6) {
+                continue
+            }
 
-        foreach ($segment in $segments) {
-            $next = @($current + $segment)
-            $key = $next -join '/'
-            if ($seen.Add($key)) {
-                $queue.Add($next)
+            foreach ($segment in $segments) {
+                $next = @($current + $segment)
+                $key = $next -join '/'
+                if ($seen.Add($key)) {
+                    $queue.Add($next)
+                }
             }
         }
     }
@@ -103,6 +103,11 @@ if ($SelfTest) {
     $expected34 = Get-CompatibilityPath -Server $testServer -DesiredLength 34
     if ($expected34 -ne 'https://muchogdps.space/a/database') {
         throw "Self-test produced an unexpected 34-byte URL: $expected34"
+    }
+
+    $expected33 = Get-CompatibilityPath -Server $testServer -DesiredLength 33
+    if (-not $expected33.StartsWith('https://')) {
+        throw "Self-test selected HTTP when HTTPS was available: $expected33"
     }
 
     Write-Host 'MUCHOCORE_CLIENT_PATCHER_OK'
