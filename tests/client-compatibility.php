@@ -96,9 +96,37 @@ $unknownRequest = new Request(
 );
 
 assertSameValue(
+    '2.1',
+    $unknownRequest->clientVersion()->family(),
+    'Versioned endpoint infers client family'
+);
+
+assertSameValue(
     'legacy-credential',
     $unknownRequest->gdCredential(),
-    'Unknown client falls back to GJP'
+    'Version-inferred 2.1 request uses GJP'
+);
+
+$unknownModernRequest = new Request(
+    'POST',
+    '/downloadGJLevel22.php',
+    [],
+    [
+        'gjp2' => 'new-credential',
+    ],
+    []
+);
+
+assertSameValue(
+    '2.2',
+    $unknownModernRequest->clientVersion()->family(),
+    '2.2 endpoint infers modern client family'
+);
+
+assertSameValue(
+    'new-credential',
+    $unknownModernRequest->gdCredential(),
+    'Version-inferred 2.2 request uses GJP2'
 );
 
 echo "MUCHOCORE_CLIENT_COMPATIBILITY_OK\n";
