@@ -52,11 +52,20 @@ final readonly class CommentController
         $page = $request->postInt("page", 0) ?: (int)($_POST["page"] ?? 0);
 
         try {
+            $count = max(
+                1,
+                min(
+                    100,
+                    $request->postInt("count", 10)
+                )
+            );
+
             return Response::text(
                 $this->service->getLevelComments(
                     $levelId,
                     $page,
-                    $request->clientVersion()->gameVersion
+                    $request->clientVersion()->gameVersion,
+                    $count
                 )
             );
         } catch (Throwable) {
