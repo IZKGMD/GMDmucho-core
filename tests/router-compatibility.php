@@ -61,7 +61,7 @@ assertText(
     $router->dispatch(
         new Request(
             'POST',
-            '/api/database/getGJLevels20.php/',
+            '/api/getGJLevels20.php/',
             [],
             [],
             []
