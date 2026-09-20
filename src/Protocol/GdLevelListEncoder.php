@@ -43,7 +43,7 @@ final class GdLevelListEncoder
 
             $levelStrings[] = implode(":", [
                 1, $levelId,
-                2, $level["name"],
+                2, ProtocolText::field($level["name"], 64),
                 5, $level["level_version"],
                 6, $userId,
                 8, 10,
@@ -59,7 +59,7 @@ final class GdLevelListEncoder
                 19, $level["featured"],
                 42, $level["epic"],
                 45, $level["object_count"],
-                3, $level["description"] ?? "",
+                3, ProtocolText::field($level["description"] ?? "", 8192),
                 15, $level["length"],
                 30, $level["original_level_id"],
                 31, $level["two_player"],
