@@ -164,10 +164,21 @@ port_in_use() {
 log "Проверяю порты 80/443..."
 
 EXISTING_CADDY="$(docker ps --filter 'label=com.docker.compose.service=caddy' -q | head -n1 || true)"
+SAME_MUCHO_CADDY=0
 
-if [[ -z "$EXISTING_CADDY" ]]; then
-    port_in_use 80 && fail "Порт 80 уже занят."
-    port_in_use 443 && fail "Порт 443 уже занят."
+if [[ -n "$EXISTING_CADDY" ]]; then
+    CADDY_WORKDIR="$(
+        docker inspect "$EXISTING_CADDY"             --format '{{index .Config.Labels "com.docker.compose.project.working_dir"}}'             2>/dev/null || true
+    )"
+
+    if [[ "$CADDY_WORKDIR" == "$INSTALL_DIR" ]]; then
+        SAME_MUCHO_CADDY=1
+    fi
+fi
+
+if [[ "$SAME_MUCHO_CADDY" -ne 1 ]]; then
+    port_in_use 80 && fail "Порт 80 уже занят другим сервисом."
+    port_in_use 443 && fail "Порт 443 уже занят другим сервисом."
 fi
 
 log "Проверяю DNS..."
