@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 use MuchoCore\Database\Migrator;
 
+$isHttps = !empty($_SERVER['HTTPS'])
+    && strtolower((string)$_SERVER['HTTPS']) !== 'off';
+
+session_set_cookie_params([
+    'secure' => $isHttps,
+    'httponly' => true,
+    'samesite' => 'Strict',
+]);
+
 session_start();
 
 if (empty($_SESSION['mucho_install_csrf'])) {
