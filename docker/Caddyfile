@@ -11,6 +11,9 @@
 
     # Copyright (C) 2026 IZK
 
+    @admin_hidden path /admin/actions/* /admin/core/* /admin/advanced-actions.php /admin/advanced-lib.php /admin/*-module.php /admin/icon-proxy.php
+    respond @admin_hidden 404
+
     # Keep private project files unreachable, but do not block /database/*:
     # Geometry Dash client endpoints live under /public/database.
     @hidden path /.env /.git/* /composer.json /composer.lock /config/* /src/* /tests/*
