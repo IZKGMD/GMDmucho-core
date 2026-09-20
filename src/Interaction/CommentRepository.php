@@ -54,6 +54,18 @@ final class CommentRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function countLevelComments(int $levelId): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*)
+             FROM comments
+             WHERE level_id = :level_id'
+        );
+        $stmt->execute(['level_id' => $levelId]);
+
+        return (int)$stmt->fetchColumn();
+    }
+
     public function addAccountComment(int $accountId, string $content): int
     {
         $stmt = $this->db->prepare(
@@ -66,6 +78,18 @@ final class CommentRepository
         ]);
 
         return (int)$this->db->lastInsertId();
+    }
+
+    public function countAccountComments(int $accountId): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*)
+             FROM account_comments
+             WHERE account_id = :account_id'
+        );
+        $stmt->execute(['account_id' => $accountId]);
+
+        return (int)$stmt->fetchColumn();
     }
 
     public function getAccountComments(int $accountId, int $page = 0, int $limit = 100): array
