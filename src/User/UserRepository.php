@@ -216,6 +216,48 @@ final readonly class UserRepository
         return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function leaderboardFriends(int $accountId, int $limit = 100): array
+    {
+        if ($accountId <= 0) {
+            return [];
+        }
+
+        $limit = max(1, min(1000, $limit));
+
+        $sql = '
+            SELECT
+                p.*,
+                a.username,
+                r.code AS role_code,
+                ROW_NUMBER() OVER (
+                    ORDER BY p.stars DESC, p.account_id ASC
+                ) AS rank
+            FROM profiles p
+            INNER JOIN accounts a
+                ON a.account_id = p.account_id
+            INNER JOIN roles r
+                ON r.id = a.role_id
+            WHERE a.is_banned = 0
+              AND a.is_active = 1
+              AND (
+                  p.account_id = :account_id
+                  OR p.account_id IN (
+                      SELECT f.friend_account_id
+                      FROM friends f
+                      WHERE f.account_id = :friends_account
+                  )
+              )
+            ORDER BY rank
+            LIMIT ' . $limit;
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            'account_id' => $accountId,
+            'friends_account' => $accountId,
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
     public function leaderboardRelative(int $accountId, int $limit = 50): array
     {
         $sql = "WITH RankedProfiles AS (
