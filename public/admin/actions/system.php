@@ -44,15 +44,32 @@ if ($action==='settings-save') {
                 );
             }
 
-            if (isset($_POST['registration_enabled'])) {
-                @unlink(
-                    CONTROL_DIR.'/registrations-disabled.flag'
-                );
-            } else {
-                file_put_contents(
-                    CONTROL_DIR.'/registrations-disabled.flag',
-                    '1'
-                );
+            if (
+                array_key_exists('registration_enabled', $_POST)
+            ) {
+                if (isset($_POST['registration_enabled'])) {
+                    @unlink(
+                        CONTROL_DIR.'/registrations-disabled.flag'
+                    );
+                } else {
+                    file_put_contents(
+                        CONTROL_DIR.'/registrations-disabled.flag',
+                        '1'
+                    );
+                }
+            } elseif (
+                array_key_exists('registrations_disabled', $_POST)
+            ) {
+                if (isset($_POST['registrations_disabled'])) {
+                    file_put_contents(
+                        CONTROL_DIR.'/registrations-disabled.flag',
+                        '1'
+                    );
+                } else {
+                    @unlink(
+                        CONTROL_DIR.'/registrations-disabled.flag'
+                    );
+                }
             }
 
             if (
