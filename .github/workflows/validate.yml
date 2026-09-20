@@ -5,26 +5,38 @@ on:
   pull_request:
 
 jobs:
-  shell-and-python:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Check shell scripts
         run: |
           bash -n install.sh
           bash -n update.sh
           bash -n uninstall.sh
+          for f in tests/*.sh; do bash -n "$f"; done
+
       - name: Check PHP sources
         run: |
-          php -l src/Compatibility/ClientVersion.php
-          php -l src/Http/Request.php
+          find src tests -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/client-compatibility.php
+          php tests/router-compatibility.php
 
       - name: Check Python patcher
-        run: python3 -m py_compile tools/client-patch.py
+        run: python3 -m py_compile tools/client-patch.py tools/client-trace-summary.py
+
       - name: Check required files
         run: |
           test -f docker-compose.yml
           test -f docker/Dockerfile
           test -f docker/Caddyfile
           test -f tools/client-patch.bat
+
+      - name: Check Caddy configuration
+        run: |
+          ! grep -Eq '/database/\*' docker/Caddyfile
+          docker run --rm             -e DOMAIN=gdps.example.com             -v "$PWD/docker/Caddyfile:/etc/caddy/Caddyfile:ro"             caddy:2.10-alpine             caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+      - name: Check client contract helper
+        run: bash tests/client-contract.sh
