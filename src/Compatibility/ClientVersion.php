@@ -41,7 +41,7 @@ final readonly class ClientVersion
                 $gameVersion = 22;
             } elseif (
                 preg_match(
-                    '#/(?:getgjlevels|downloadgjlevel|uploadgjlevel|getgjcomments|uploadgjcomment|getgjscores|updategjuserscore|likegjitem)\\.php$#',
+                    '#/(?:getgjlevels|downloadgjlevel|uploadgjlevel|getgjcomments|uploadgjcomment|getgjscores|updategjuserscore|likegjitem)\.php$#',
                     $path
                 ) === 1
             ) {
