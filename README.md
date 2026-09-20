@@ -46,6 +46,31 @@ For the VPS installer, the script asks for your domain and admin password and ge
 
 The admin panel username is always `admin`.
 
+## Project structure for beginners
+
+Не нужно разбираться во всём проекте сразу.
+
+- игроки, вход и регистрация → src/Account/
+- профиль и статистика → src/User/
+- уровни → src/Level/
+- рекорды → src/Score/
+- друзья и сообщения → src/Social/
+- комментарии и лайки → src/Interaction/
+- сохранения → src/CloudSave/
+- музыка → src/Music/
+- модерация → src/Moderation/
+- ответы в формате Geometry Dash → src/Protocol/
+- база данных → database/migrations/
+- админка → public/admin/
+- тесты → tests/
+- Docker → docker/
+
+Главная цепочка запроса:
+
+Geometry Dash → public/index.php → Controller → Service → Repository → Database
+
+Полная простая схема: docs/SIMPLE_STRUCTURE.md.
+
 ## After installation
 
 Open:
