@@ -19,7 +19,7 @@ jobs:
 
       - name: Check PHP sources
         run: |
-          find src tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/client-compatibility.php
           php tests/router-compatibility.php
 
@@ -46,6 +46,13 @@ jobs:
           ! grep -q 'cat > .env' docker/app-entrypoint.sh
           grep -q '/var/lib/muchocore/runtime.env' docker/app-entrypoint.sh
           grep -q 'createMutable' src/Database/Database.php
+          grep -q 'root:www-data' docker/app-entrypoint.sh
+
+      - name: Check admin container routing
+        run: |
+          grep -q "http://caddy" public/admin/index.php
+          ! grep -q "http://127.0.0.1" public/admin/index.php
+          ! grep -q "Host: muchogdps.space" public/admin/index.php
 
       - name: Check Caddy configuration
         run: |
