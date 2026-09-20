@@ -190,6 +190,15 @@ function v4HardDeleteAccount(PDO $db,int $id,string $by): void
         ['id'=>$id]
     );
 
+    /*
+     * Account deletion snapshots are for recovery/audit. Do not retain
+     * password or GJP2 credential hashes after the account is deleted.
+     */
+    unset(
+        $account['password_hash'],
+        $account['gjp2_hash']
+    );
+
     $snapshot=json_encode([
         'account'=>$account,
         'profile'=>$profile,
