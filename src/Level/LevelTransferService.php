@@ -87,11 +87,20 @@ final readonly class LevelTransferService
 
             'name' => $name,
 
-            'description' => $this->stringField(
-                $data,
-                'levelDesc',
-                '',
-                8192
+            'description' => $this->encodeLegacyDescription(
+                $this->stringField(
+                    $data,
+                    'levelDesc',
+                    '',
+                    8192
+                ),
+                $this->intField(
+                    $data,
+                    'gameVersion',
+                    1,
+                    1,
+                    1000
+                )
             ),
 
             'level_version' => $this->intField(
@@ -147,7 +156,13 @@ final readonly class LevelTransferService
             'copy_password' => $this->stringField(
                 $data,
                 'password',
-                '0',
+                $this->intField(
+                    $data,
+                    'gameVersion',
+                    1,
+                    1,
+                    1000
+                ) <= 17 ? '1' : '0',
                 64
             ),
 
@@ -190,7 +205,7 @@ final readonly class LevelTransferService
 
             'is_unlisted' => $this->firstBoolInt(
                 $data,
-                ['unlisted2', 'unlisted1', 'unlisted']
+                ['unlisted1', 'unlisted', 'unlisted2']
             ),
 
             'wt' => $this->intField(
@@ -212,7 +227,7 @@ final readonly class LevelTransferService
             'extra_string' => $this->stringField(
                 $data,
                 'extraString',
-                '',
+                '29_29_29_40_29_29_29_29_29_29_29_29_29_29_29_29',
                 65536
             ),
 
@@ -301,6 +316,21 @@ final readonly class LevelTransferService
         return $response;
     }
 
+
+    private function encodeLegacyDescription(
+        string $description,
+        int $gameVersion
+    ): string {
+        if ($description === '' || $gameVersion >= 20) {
+            return $description;
+        }
+
+        return str_replace(
+            ['+', '/'],
+            ['-', '_'],
+            base64_encode($description)
+        );
+    }
 
     private function firstBoolInt(
         array $data,
