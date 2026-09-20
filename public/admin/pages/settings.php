@@ -40,6 +40,26 @@ function renderMuchoSettingsPage(PDO $db): void
         'https://localhost'
     );
 
+    $site = [
+        'name' => Settings::string('MUCHO_SITE_NAME', 'Mucho GDPS'),
+        'tagline' => Settings::string('MUCHO_SITE_TAGLINE', 'Powered by MuchoCore'),
+        'description' => Settings::string(
+            'MUCHO_SITE_DESCRIPTION',
+            'Custom Geometry Dash private server powered by MuchoCore.'
+        ),
+        'logo' => Settings::string('MUCHO_SITE_LOGO', 'MuchoGDPS'),
+        'accent' => Settings::string('MUCHO_SITE_ACCENT', '#7768ff'),
+        'accent2' => Settings::string('MUCHO_SITE_ACCENT2', '#43d7cf'),
+        'github' => Settings::string('MUCHO_SITE_GITHUB_URL', ''),
+        'discord' => Settings::string('MUCHO_SITE_DISCORD_URL', ''),
+        'telegram' => Settings::string('MUCHO_SITE_TELEGRAM_URL', ''),
+        'client' => Settings::string('MUCHO_SITE_CLIENT_URL', ''),
+        'copyright' => Settings::string(
+            'MUCHO_SITE_COPYRIGHT',
+            'Copyright © 2026 IZK'
+        ),
+    ];
+
     ?>
     <div class="boxgrid">
 
@@ -161,6 +181,76 @@ function renderMuchoSettingsPage(PDO $db): void
 
                 </div>
             </form>
+        </div>
+
+        <div class="card">
+            <h2>Site Builder</h2>
+
+            <p class="muted">
+                Это готовый конструктор главной страницы.
+                HTML редактировать не нужно.
+            </p>
+
+            <div style="display:grid;gap:12px">
+
+                <label>
+                    <small>Site name</small><br>
+                    <input name="site_name" maxlength="64" value="<?=h($site['name'])?>" style="width:100%;margin-top:5px">
+                </label>
+
+                <label>
+                    <small>Tagline</small><br>
+                    <input name="site_tagline" maxlength="120" value="<?=h($site['tagline'])?>" style="width:100%;margin-top:5px">
+                </label>
+
+                <label>
+                    <small>Description</small><br>
+                    <textarea name="site_description" maxlength="240" style="width:100%;min-height:90px;margin-top:5px"><?=h($site['description'])?></textarea>
+                </label>
+
+                <label>
+                    <small>Logo text</small><br>
+                    <input name="site_logo" maxlength="32" value="<?=h($site['logo'])?>" style="width:100%;margin-top:5px">
+                </label>
+
+                <div class="row">
+                    <label>
+                        <small>Accent</small><br>
+                        <input type="text" name="site_accent" maxlength="7" value="<?=h($site['accent'])?>">
+                    </label>
+
+                    <label>
+                        <small>Accent 2</small><br>
+                        <input type="text" name="site_accent2" maxlength="7" value="<?=h($site['accent2'])?>">
+                    </label>
+                </div>
+
+                <label>
+                    <small>GitHub URL</small><br>
+                    <input type="url" name="site_github" maxlength="512" value="<?=h($site['github'])?>" placeholder="https://github.com/...">
+                </label>
+
+                <label>
+                    <small>Discord URL</small><br>
+                    <input type="url" name="site_discord" maxlength="512" value="<?=h($site['discord'])?>" placeholder="https://discord.gg/...">
+                </label>
+
+                <label>
+                    <small>Telegram URL</small><br>
+                    <input type="url" name="site_telegram" maxlength="512" value="<?=h($site['telegram'])?>" placeholder="https://t.me/...">
+                </label>
+
+                <label>
+                    <small>Client download URL</small><br>
+                    <input type="url" name="site_client" maxlength="512" value="<?=h($site['client'])?>" placeholder="https://...">
+                </label>
+
+                <label>
+                    <small>Project copyright</small><br>
+                    <input name="site_copyright" maxlength="120" value="<?=h($site['copyright'])?>" style="width:100%;margin-top:5px">
+                </label>
+
+            </div>
         </div>
 
         <div class="card">
