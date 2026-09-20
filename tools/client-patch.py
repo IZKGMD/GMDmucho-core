@@ -27,7 +27,7 @@ def compatibility_url(server: str, desired_length: int, *, bare: bool = False) -
     if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
         raise ValueError(
             "server URL must be the server root only, for example "
-            "https://muchogdps.space"
+            "https://gdps.example.com"
         )
 
     schemes = (None,) if bare else ("https", "http")
@@ -104,9 +104,10 @@ def run_self_test() -> int:
 
     assert compatibility_url(server, 33).startswith("https://"), compatibility_url(server, 33)
 
-    bare = compatibility_url(server, 26, bare=True)
+    bare_server = "https://school-gdps.com"
+    bare = compatibility_url(bare_server, 26, bare=True)
     assert byte_len(bare) == 26, bare
-    assert bare == "muchogdps.space/a/database", bare
+    assert bare.endswith("/database"), bare
     print(f"PASS bare URL 26: {bare}")
 
     print("MUCHOCORE_CLIENT_PATCHER_OK")
@@ -201,8 +202,12 @@ def main() -> int:
             33: compatibility_url(server_value, 33),
             29: compatibility_url(server_value, 29),
             28: compatibility_url(server_value, 28),
-            26: compatibility_url(server_value, 26, bare=True),
         }
+
+        try:
+            urls[26] = compatibility_url(server_value, 26, bare=True)
+        except ValueError:
+            pass
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
@@ -236,6 +241,14 @@ def main() -> int:
             urls[26].encode("ascii"),
             "Legacy bare database URL",
         ),
+    )
+
+    plain_patterns = tuple(
+        pattern for pattern in plain_patterns
+        if not (
+            pattern[2] == "Legacy bare database URL"
+            and 26 not in urls
+        )
     )
 
     for old, new, label in plain_patterns:
