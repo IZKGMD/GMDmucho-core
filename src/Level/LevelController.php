@@ -17,7 +17,10 @@ final readonly class LevelController
     public function list(Request $request): Response
     {
         return Response::text(
-            $this->service->getLevels($request->post)
+            $this->service->getLevels(
+                $request->post,
+                $request->clientVersion()->gameVersion
+            )
         );
     }
 }
