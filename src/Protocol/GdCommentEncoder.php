@@ -72,12 +72,12 @@ final class GdCommentEncoder
     private function formatTimeAgo(string $timestamp): string
     {
         $time = strtotime($timestamp);
-        $diff = max(1, time() - $time);
 
-        if ($diff < 3600) return max(1, (int)floor($diff / 60)) . ' minutes';
-        if ($diff < 86400) return (int)floor($diff / 3600) . ' hours';
-        if ($diff < 31536000) return (int)floor($diff / 86400) . ' days';
+        if ($time === false) {
+            $time = 0;
+        }
 
-        return (int)floor($diff / 31536000) . ' years';
+        // Geometry Dash expects the classic comment timestamp format.
+        return date('d/m/Y G.i', $time);
     }
 }
