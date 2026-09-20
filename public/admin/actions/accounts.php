@@ -72,6 +72,35 @@ try {
                 throw new RuntimeException('Role not found');
             }
 
+            $targetQuery=$db->prepare(
+                'SELECT
+                    a.account_id,
+                    COALESCE(r.code, "user") AS role_code
+                 FROM accounts a
+                 LEFT JOIN roles r ON r.id=a.role_id
+                 WHERE a.account_id=:id
+                 LIMIT 1'
+            );
+
+            $targetQuery->execute(['id'=>$id]);
+            $target=$targetQuery->fetch(PDO::FETCH_ASSOC);
+
+            if (!$target) {
+                throw new RuntimeException('Account not found');
+            }
+
+            $adminRank=rank((string)(admin()['role'] ?? ''));
+            $targetRole=strtolower((string)$target['role_code']);
+
+            if (
+                $adminRank < 40 &&
+                ($targetRole === 'owner' || $role === 'owner')
+            ) {
+                throw new RuntimeException(
+                    'Only an owner can modify owner accounts or grant the owner role.'
+                );
+            }
+
             $q=$db->prepare(
                 'UPDATE accounts SET
                     username=:username,
@@ -109,9 +138,9 @@ try {
             $id=(int)$_POST['id'];
             $password=(string)$_POST['new_password'];
 
-            if (strlen($password)<8) {
+            if (strlen($password)<12) {
                 throw new RuntimeException(
-                    'Password must be at least 8 characters.'
+                    'Password must be at least 12 characters.'
                 );
             }
 
