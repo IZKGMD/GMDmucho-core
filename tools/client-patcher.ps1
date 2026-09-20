@@ -57,10 +57,12 @@ function Get-CompatibilityPath {
             $current = $queue[0]
             $queue.RemoveAt(0)
 
-            $path = if ($current.Count -eq 0) { '' } else { '/' + ($current -join '/') }
             if ($Bare) {
+                $prefix = if ($current.Count -eq 0) { '' } else { '/' + ($current -join '/') }
+                $path = $prefix + '/database'
                 $candidate = "$hostPart$portPart$path"
             } else {
+                $path = if ($current.Count -eq 0) { '' } else { '/' + ($current -join '/') }
                 $candidate = "$($scheme)://$hostPart$portPart$path"
             }
 
@@ -73,6 +75,10 @@ function Get-CompatibilityPath {
             }
 
             foreach ($segment in $segments) {
+                if ($Bare -and $segment -eq 'database') {
+                    continue
+                }
+
                 $next = @($current + $segment)
                 $key = $next -join '/'
                 if ($seen.Add($key)) {
@@ -87,6 +93,7 @@ function Get-CompatibilityPath {
 
 if ($SelfTest) {
     $testServer = 'https://gdps.example.com'
+    $bareTestServer = 'https://school-gdps.com'
     foreach ($length in @(34, 33, 29, 28, 26)) {
         $value = Get-CompatibilityPath -Server $testServer -DesiredLength $length
         if ((Get-UrlBytesLength $value) -ne $length) {
@@ -95,8 +102,8 @@ if ($SelfTest) {
         Write-Host "PASS URL length $length -> $value"
     }
 
-    $expected26 = Get-CompatibilityPath -Server $testServer -DesiredLength 26 -Bare
-    if ($expected26 -notlike 'gdps.example.com/*') {
+    $expected26 = Get-CompatibilityPath -Server $bareTestServer -DesiredLength 26 -Bare
+    if (-not $expected26.EndsWith('/database')) {
         throw "Self-test produced an unexpected bare URL: $expected26"
     }
 
