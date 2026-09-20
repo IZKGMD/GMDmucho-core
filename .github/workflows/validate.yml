@@ -32,6 +32,10 @@ jobs:
         shell: pwsh
         run: ./tools/client-patcher.ps1 -SelfTest
 
+      - name: Check for fixed personal GDPS domain
+        run: |
+          ! grep -RniE 'https?://muchogdps\.space|muchogdps\.space'             tools config src public docs README.md
+
       - name: Check required files
         run: |
           test -f docker-compose.yml
