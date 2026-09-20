@@ -62,6 +62,7 @@ final readonly class LevelRepository
 
         switch ($type) {
             case 0:
+            case 15:
                 $order = "l.likes DESC, l.level_id DESC";
                 if ($search !== "") {
                     if (ctype_digit($search)) {
@@ -98,6 +99,124 @@ final readonly class LevelRepository
             case 6:
                 $where[] = "(l.featured = 1 OR l.epic > 0)";
                 $order = "l.updated_at DESC";
+                break;
+
+            case 7:
+                // Legacy "Magic" search: large object-count levels.
+                $where[] = "l.object_count > 9999";
+                break;
+
+            case 10:
+            case 19:
+                $ids = $this->idList($search, 1000);
+                if (!$ids) {
+                    $where[] = "1 = 0";
+                } else {
+                    $marks = [];
+                    foreach (array_values($ids) as $i => $id) {
+                        $key = "map_pack_" . $i;
+                        $marks[] = ":" . $key;
+                        $params[$key] = $id;
+                    }
+                    $where[] = "l.level_id IN (" . implode(",", $marks) . ")";
+                    $order = "l.level_id ASC";
+                }
+                break;
+
+            case 12:
+                $ids = $this->idList($search, 500);
+                if (!$ids) {
+                    $where[] = "1 = 0";
+                } else {
+                    $marks = [];
+                    foreach (array_values($ids) as $i => $id) {
+                        $key = "followed_" . $i;
+                        $marks[] = ":" . $key;
+                        $params[$key] = $id;
+                    }
+                    $where[] = "l.account_id IN (" . implode(",", $marks) . ")";
+                    $order = "l.created_at DESC";
+                }
+                break;
+
+            case 13:
+                $accountId = $this->integerString($search);
+                if ($accountId <= 0) {
+                    $where[] = "1 = 0";
+                } else {
+                    $where[] = "l.account_id IN (
+                        SELECT f.friend_account_id
+                        FROM friends f
+                        WHERE f.account_id = :friends_account
+                    )";
+                    $params["friends_account"] = $accountId;
+                    $order = "l.created_at DESC";
+                }
+                break;
+
+            case 16:
+                $where[] = "l.epic > 0";
+                $order = "l.updated_at DESC";
+                break;
+
+            case 17:
+                $where[] = $gameVersion > 21
+                    ? "(l.featured > 0 OR l.epic > 0)"
+                    : "l.featured > 0";
+                $order = "l.updated_at DESC";
+                break;
+
+            case 25:
+                $listId = $this->integerString($search);
+                if ($listId <= 0) {
+                    $where[] = "1 = 0";
+                    break;
+                }
+
+                try {
+                    $listStmt = $this->pdo->prepare(
+                        "SELECT level_ids
+                         FROM mucho_level_lists
+                         WHERE list_id = :list_id
+                         LIMIT 1"
+                    );
+                    $listStmt->execute(["list_id" => $listId]);
+                    $levelIds = $this->idList(
+                        (string)$listStmt->fetchColumn(),
+                        1000
+                    );
+                } catch (\Throwable) {
+                    $levelIds = [];
+                }
+
+                if (!$levelIds) {
+                    $where[] = "1 = 0";
+                } else {
+                    $marks = [];
+                    foreach (array_values($levelIds) as $i => $id) {
+                        $key = "list_level_" . $i;
+                        $marks[] = ":" . $key;
+                        $params[$key] = $id;
+                    }
+                    $where[] = "l.level_id IN (" . implode(",", $marks) . ")";
+                    $order = "l.level_id ASC";
+                }
+                break;
+
+            case 26:
+                $ids = $this->idList($search, 1000);
+                if (!$ids) {
+                    $where[] = "1 = 0";
+                } else {
+                    $marks = [];
+                    foreach (array_values($ids) as $i => $id) {
+                        $key = "local_list_" . $i;
+                        $marks[] = ":" . $key;
+                        $params[$key] = $id;
+                    }
+                    $where[] = "l.level_id IN (" . implode(",", $marks) . ")";
+                    $order = "l.level_id ASC";
+                }
                 break;
 
             case 21:
@@ -162,5 +281,43 @@ final readonly class LevelRepository
             "levels" => $stmt->fetchAll(PDO::FETCH_ASSOC),
             "total" => $total,
         ];
+    }
+
+    /** @return list<int> */
+    private function idList(string $value, int $maxItems): array
+    {
+        $ids = [];
+
+        foreach (explode(',', $value) as $item) {
+            $item = trim($item);
+            if ($item === '' || !ctype_digit($item)) {
+                continue;
+            }
+
+            $id = (int)$item;
+            if ($id <= 0 || in_array($id, $ids, true)) {
+                continue;
+            }
+
+            $ids[] = $id;
+            if (count($ids) >= $maxItems) {
+                break;
+            }
+        }
+
+        return $ids;
+    }
+
+    private function integerString(mixed $value): int
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && preg_match('/^-?\\d+$/', $value) === 1) {
+            return (int)$value;
+        }
+
+        return 0;
     }
 }
