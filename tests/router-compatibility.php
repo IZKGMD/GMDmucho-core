@@ -24,6 +24,18 @@ $router->add(
     static fn(Request $request): Response => Response::text('LOGIN_OK')
 );
 
+$router->add(
+    'POST',
+    '/likeGJItem21',
+    static fn(Request $request): Response => Response::text('LIKE_OK')
+);
+
+$router->add(
+    'POST',
+    '/updateGJLevelDesc20',
+    static fn(Request $request): Response => Response::text('DESC_OK')
+);
+
 function assertText(string $expected, Response $response, string $name): void
 {
     if ($response->body !== $expected) {
@@ -96,6 +108,48 @@ assertText(
         )
     ),
     'single-letter prefix and query stripping'
+);
+
+assertText(
+    'LIKE_OK',
+    $router->dispatch(
+        new Request(
+            'POST',
+            '/database/likeGJLevel.php',
+            [],
+            [],
+            []
+        )
+    ),
+    'legacy likeGJLevel endpoint'
+);
+
+assertText(
+    'DESC_OK',
+    $router->dispatch(
+        new Request(
+            'POST',
+            '/database/updateGJDesc20.php',
+            [],
+            [],
+            []
+        )
+    ),
+    'legacy updateGJDesc20 endpoint'
+);
+
+assertText(
+    'LIKE_OK',
+    $router->dispatch(
+        new Request(
+            'POST',
+            '/database/likeGJItem22.php',
+            [],
+            [],
+            []
+        )
+    ),
+    '2.2 like endpoint alias'
 );
 
 echo "MUCHOCORE_ROUTER_COMPATIBILITY_OK\n";
