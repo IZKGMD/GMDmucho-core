@@ -6,6 +6,7 @@ namespace MuchoCore\CloudSave;
 
 use MuchoCore\Account\AccountAuthenticator;
 use PDO;
+use MuchoCore\Core\Settings;
 use RuntimeException;
 
 /*
@@ -36,7 +37,14 @@ final readonly class CloudSaveService
         }
 
         $size = strlen($saveData);
-        if ($size <= 0 || $size > self::MAX_SAVE_BYTES) {
+        $maxBytes = Settings::int(
+            'MUCHO_CLOUD_SAVE_MAX_MB',
+            32,
+            1,
+            256
+        ) * 1024 * 1024;
+
+        if ($size <= 0 || $size > $maxBytes) {
             throw new RuntimeException('Cloud save exceeds size limit.');
         }
 
