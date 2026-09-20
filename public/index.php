@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-ob_start();
+use Dotenv\Dotenv;
+use MuchoCore\Core\Application;
+use MuchoCore\Http\Request;
+use MuchoCore\Http\Response;
+use MuchoCore\Routing\Router;
+use MuchoCore\Security\RateLimiter;
 
-use Dotenv\\Dotenv;
-use MuchoCore\\Core\\Application;
-use MuchoCore\\Http\\Request;
-use MuchoCore\\Http\\Response;
-use MuchoCore\\Routing\\Router;
-use MuchoCore\\Security\\RateLimiter;
+ob_start();
 
 $root = dirname(__DIR__);
 
 if (file_exists($root . '/.env')) {
-    Dotenv\\Dotenv::createImmutable($root)->safeLoad();
+    Dotenv::createImmutable($root)->safeLoad();
 }
 
 /* MUCHO CONTROL FLAGS */
