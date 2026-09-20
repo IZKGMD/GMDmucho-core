@@ -4,7 +4,7 @@ DirectoryIndex public/index.html
 RewriteEngine On
 
 # Never expose project internals.
-RewriteRule ^(?:\.git|config|src|database|tests|tools|vendor|storage)(?:/|$) - [F,L,NC]
+RewriteRule ^(?:\.git|\.secrets|config|src|database|tests|tools|vendor|storage|backups|releases)(?:/|$) - [F,L,NC]
 RewriteRule ^\.env(?:\.|$) - [F,L,NC]
 RewriteRule ^composer\.(json|lock)$ - [F,L,NC]
 
