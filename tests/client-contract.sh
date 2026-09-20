@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
-CONTRACT="\${MUCHO_CLIENT_CONTRACT:-$ROOT/tests/client-fixtures/endpoints.json}"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONTRACT="${MUCHO_CLIENT_CONTRACT:-$ROOT/tests/client-fixtures/endpoints.json}"
 
 if [[ ! -f "$CONTRACT" ]]; then
   echo "CLIENT_CONTRACT_SKIPPED: no real-client contract exists yet."
@@ -63,7 +63,7 @@ for endpoint in data.get("endpoints", []):
     if normalized in routes:
         continue
 
-    missing.append(f"\${method} \${path}")
+    missing.append(f"{method} {path}")
 
 if missing:
     print("Missing client endpoints:")
