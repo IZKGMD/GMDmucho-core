@@ -17,6 +17,15 @@ final readonly class HealthService
 
     public function check(): array
     {
+        $serverName = Settings::string(
+            'MUCHO_SERVER_NAME',
+            $this->system->setting('server.name', 'MuchoCore') ?? 'MuchoCore'
+        );
+
+        $serverVersion = Settings::string(
+            'MUCHO_SERVER_VERSION',
+            $this->system->setting('server.version', 'unknown') ?? 'unknown'
+        );
         $database = false;
 
         try {
@@ -33,13 +42,10 @@ final readonly class HealthService
                 ? 'ok'
                 : 'degraded',
 
-            'core' => 'MuchoCore',
+            'core' => $serverName,
 
             'version' =>
-                $this->system->setting(
-                    'server.version',
-                    'unknown'
-                ),
+                $serverVersion,
 
             'database' => $database
                 ? 'ok'
