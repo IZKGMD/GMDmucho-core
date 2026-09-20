@@ -193,31 +193,56 @@ final class CommentService
         }
 
         $encodedComments = [];
+        $users = [];
+        $seenUsers = [];
+
         foreach ($comments as $comment) {
             $role = strtolower((string)($comment["role"] ?? "user"));
             $badge = match ($role) {
                 "owner", "developer", "creator", "admin", "elder" => 2,
-                "mod", "moderator", "helper"                     => 1,
-                default                                          => 0
+                "mod", "moderator", "helper" => 1,
+                default => 0
             };
 
             $profile = [
+                "user_id" => (int)($comment["user_id"] ?? $comment["account_id"] ?? 0),
+                "ext_id" => (int)($comment["account_id"] ?? 0),
                 "username" => $comment["username"] ?? "Unknown",
-                "cube"     => $comment["cube"] ?? 1,
-                "color1"   => $comment["color1"] ?? 0,
-                "color2"   => $comment["color2"] ?? 3,
-                "special"  => $comment["special"] ?? 0,
-                "badge"    => $badge
+                "cube" => $comment["cube"] ?? 1,
+                "color1" => $comment["color1"] ?? 0,
+                "color2" => $comment["color2"] ?? 3,
+                "icon_type" => $comment["icon_type"] ?? 0,
+                "special" => $comment["special"] ?? 0,
+                "badge" => $badge
             ];
+
             $encodedComments[] = $this->encoder->encode(
                 $comment,
                 $profile,
                 $gameVersion,
                 $binaryVersion
             );
+
+            if ($binaryVersion <= 31) {
+                $uid = (int)$profile["user_id"];
+                if ($uid > 0 && !isset($seenUsers[$uid])) {
+                    $seenUsers[$uid] = true;
+                    $users[] = $uid . ':'
+                        . \MuchoCore\Protocol\ProtocolText::username(
+                            $profile["username"]
+                        )
+                        . ':' . (int)$profile["ext_id"];
+                }
+            }
         }
 
-        return implode("|", $encodedComments)
+        $response = implode("|", $encodedComments);
+
+        if ($binaryVersion <= 31) {
+            $response .= '#' . implode('|', $users);
+        }
+
+        return $response
             . '#' . $total . ':' . $offset . ':' . count($comments);
     }
 
