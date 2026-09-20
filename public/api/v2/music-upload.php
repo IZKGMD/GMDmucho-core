@@ -113,8 +113,20 @@ try {
 
     chmod($target,0640);
 
+    $baseUrl=rtrim(
+        (string)(
+            getenv('MUCHO_ACCOUNT_URL')
+            ?: (
+                'https://'.
+                (string)($_SERVER['HTTP_HOST'] ?? 'localhost')
+            )
+        ),
+        '/'
+    );
+
     $download=
-        'https://muchogdps.space/music/'.
+        $baseUrl.
+        '/music/'.
         rawurlencode($stored);
 
     try {
