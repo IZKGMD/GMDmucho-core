@@ -105,7 +105,7 @@ final readonly class LevelTransferService
             'game_version' => $this->intField(
                 $data,
                 'gameVersion',
-                22,
+                1,
                 1,
                 1000
             ),
