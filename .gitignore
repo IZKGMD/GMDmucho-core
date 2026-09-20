@@ -1,5 +1,6 @@
 # Local configuration / secrets
-.env
+/.secrets/
+/.env
 .env.*
 !.env.example
 /config/cloudsave.key
@@ -15,6 +16,8 @@
 /public/*.tar.gz
 /backups/
 /releases/**/*.apk
+/public/music/*.mp3
+/public/downloads/**/*.apk
 
 # Temporary / debug files
 *.log

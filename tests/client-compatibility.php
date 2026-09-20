@@ -96,9 +96,110 @@ $unknownRequest = new Request(
 );
 
 assertSameValue(
+    '2.1',
+    $unknownRequest->clientVersion()->family(),
+    'Versioned endpoint infers client family'
+);
+
+assertSameValue(
     'legacy-credential',
     $unknownRequest->gdCredential(),
-    'Unknown client falls back to GJP'
+    'Version-inferred 2.1 request uses GJP'
+);
+
+$legacyRequest = new Request(
+    'POST',
+    '/uploadGJLevel.php',
+    [],
+    [
+        'gjp' => 'legacy-credential',
+    ],
+    []
+);
+
+assertSameValue(
+    '1.x',
+    $legacyRequest->clientVersion()->family(),
+    'Unversioned legacy request infers 1.x family'
+);
+
+assertSameValue(
+    'legacy-credential',
+    $legacyRequest->gdCredential(),
+    'Unknown legacy request uses GJP fallback'
+);
+
+assertSameValue(
+    '1.x',
+    ClientVersion::fromValues(1, 0)->family(),
+    'GD 1.0 legacy family'
+);
+
+assertSameValue(
+    '1.x',
+    ClientVersion::fromValues(18, 0)->family(),
+    'GD 1.8 legacy family'
+);
+
+$unknownModernRequest = new Request(
+    'POST',
+    '/downloadGJLevel22.php',
+    [],
+    [
+        'gjp2' => 'new-credential',
+    ],
+    []
+);
+
+assertSameValue(
+    '2.2',
+    $unknownModernRequest->clientVersion()->family(),
+    '2.2 endpoint infers modern client family'
+);
+
+assertSameValue(
+    'new-credential',
+    $unknownModernRequest->gdCredential(),
+    'Version-inferred 2.2 request uses GJP2'
+);
+
+$score211Request = new Request(
+    'POST',
+    '/getGJLevelScores211.php',
+    [],
+    [
+        'gjp' => 'legacy-credential',
+        'gjp2' => 'new-credential',
+    ],
+    []
+);
+
+assertSameValue(
+    '2.1',
+    $score211Request->clientVersion()->family(),
+    '211 endpoint infers 2.1 family'
+);
+
+$platformerRequest = new Request(
+    'POST',
+    '/getGJLevelScoresPlat.php',
+    [],
+    [
+        'gjp2' => 'new-credential',
+    ],
+    []
+);
+
+assertSameValue(
+    '2.2',
+    $platformerRequest->clientVersion()->family(),
+    'Platformer endpoint infers 2.2 family'
+);
+
+assertSameValue(
+    'new-credential',
+    $platformerRequest->gdCredential(),
+    'Platformer request uses GJP2'
 );
 
 echo "MUCHOCORE_CLIENT_COMPATIBILITY_OK\n";

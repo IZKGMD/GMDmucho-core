@@ -31,14 +31,19 @@ final class GdLevelListEncoder
             $username = ProtocolText::username(
                 $level['username'] ?? 'Player'
             );
+            /*
+             * The list hash uses the exact stored star value. Custom Mucho
+             * ratings may legitimately be above 10, and Cvolton-style
+             * GenerateHash::genMulti does not clamp this field.
+             */
             $protocolStars = max(
                 0,
-                min(10, (int) ($level["stars"] ?? 0))
+                (int) ($level["stars"] ?? 0)
             );
 
             $levelStrings[] = implode(":", [
                 1, $levelId,
-                2, $level["name"],
+                2, ProtocolText::field($level["name"], 64),
                 5, $level["level_version"],
                 6, $userId,
                 8, 10,
@@ -54,7 +59,7 @@ final class GdLevelListEncoder
                 19, $level["featured"],
                 42, $level["epic"],
                 45, $level["object_count"],
-                3, $level["description"] ?? "",
+                3, ProtocolText::field($level["description"] ?? "", 8192),
                 15, $level["length"],
                 30, $level["original_level_id"],
                 31, $level["two_player"],
@@ -87,7 +92,16 @@ final class GdLevelListEncoder
         $pageInfo = $total . ":" . $offset . ":" . $limit;
         $hashPart = sha1($hashData . self::HASH_SALT);
 
-        // Строгий формат Geometry Dash: levels#users#songs#pageInfo#hash
-        return $levelsPart . "#" . $usersPart . "#" . $songsPart . "#" . $pageInfo . "#" . $hashPart;
+        /*
+         * GD 1.x does not have the songs section in this response.
+         * GD 1.9+ expects: levels#users#songs#pageInfo#hash.
+         */
+        if ($gameVersion > 18) {
+            return $levelsPart . "#" . $usersPart . "#" . $songsPart
+                . "#" . $pageInfo . "#" . $hashPart;
+        }
+
+        return $levelsPart . "#" . $usersPart
+            . "#" . $pageInfo . "#" . $hashPart;
     }
 }

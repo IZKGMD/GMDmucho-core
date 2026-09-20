@@ -8,6 +8,16 @@ use MuchoCore\Account\AccountController;
 use MuchoCore\Account\AccountRepository;
 use MuchoCore\Account\AccountService;
 use MuchoCore\Compatibility\DiscoveryController;
+use MuchoCore\Comment\CommentHistoryRepository;
+use MuchoCore\Comment\CommentHistoryService;
+use MuchoCore\Comment\CommentHistoryController;
+use MuchoCore\Artist\TopArtistRepository;
+use MuchoCore\Artist\TopArtistService;
+use MuchoCore\Artist\TopArtistController;
+use MuchoCore\LevelList\LevelListRepository;
+use MuchoCore\LevelList\LevelListService;
+use MuchoCore\LevelList\LevelListController;
+use MuchoCore\Url\UrlController;
 use MuchoCore\CloudSave\CloudSaveService;
 use MuchoCore\CloudSave\CloudSaveRepository;
 use MuchoCore\CloudSave\CloudSaveController;
@@ -82,7 +92,8 @@ final readonly class Application
         $levelRepo = new LevelRepository($this->pdo);
         $levelService = new LevelService(
             $levelRepo,
-            new GdLevelListEncoder()
+            new GdLevelListEncoder(),
+            $auth
         );
         $levelController = new LevelController($levelService);
 
@@ -166,6 +177,27 @@ final readonly class Application
 
         $discoveryController = new DiscoveryController($this->pdo);
 
+        $levelListController = new LevelListController(
+            new LevelListService(
+                new LevelListRepository($this->pdo),
+                new \MuchoCore\V71\AuthService($this->pdo)
+            )
+        );
+
+        $commentHistoryController = new CommentHistoryController(
+            new CommentHistoryService(
+                new CommentHistoryRepository($this->pdo)
+            )
+        );
+
+        $topArtistController = new TopArtistController(
+            new TopArtistService(
+                new TopArtistRepository($this->pdo)
+            )
+        );
+
+        $urlController = new UrlController();
+
         $levelScoreController = new LevelScoreController($this->pdo, $auth);
         $platformerScoreController = new PlatformerScoreController($this->pdo, $auth);
 
@@ -216,6 +248,8 @@ final readonly class Application
             [$transferController,'delete']);
 
         $route('/updateGJLevelDesc20',
+            [$transferController,'updateDescription']);
+        $route('/updateGJDesc20',
             [$transferController,'updateDescription']);
 
         $route('/getGJSongInfo',
@@ -323,6 +357,29 @@ final readonly class Application
             [$discoveryController,'mapPacks']);
         $route('/getGJMapPacks21',
             [$discoveryController,'mapPacks']);
+
+        // Legacy endpoints implemented as first-class core services.
+        $route('/getGJLevelLists',
+            static fn(Request $r): Response =>
+                Response::text($levelListController->get()));
+        $route('/uploadGJLevelList',
+            static fn(Request $r): Response =>
+                Response::text($levelListController->upload()));
+        $route('/deleteGJLevelList',
+            static fn(Request $r): Response =>
+                Response::text($levelListController->delete()));
+        $route('/getGJCommentHistory',
+            static fn(Request $r): Response =>
+                Response::text($commentHistoryController->get()));
+        $route('/getGJTopArtists',
+            static fn(Request $r): Response =>
+                Response::text($topArtistController->get()));
+        $route('/getAccountURL',
+            static fn(Request $r): Response =>
+                Response::text($urlController->accountUrl()));
+        $route('/getCustomContentURL',
+            static fn(Request $r): Response =>
+                Response::text($urlController->customContentUrl()));
 
         /*
          * MuchoCore Level Scores v6.1

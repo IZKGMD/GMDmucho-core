@@ -153,6 +153,21 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
 
     /*
+     * Simple Settings
+     */
+
+    $router->register(
+        'settings',
+        static function(PDO $db): void {
+            require __DIR__.
+                '/../pages/settings.php';
+
+            renderMuchoSettingsPage($db);
+        }
+    );
+
+
+    /*
      * Client & Features
      */
 

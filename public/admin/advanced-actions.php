@@ -18,6 +18,25 @@ if($action==='v4-bulk-players'){
     $operation=(string)($_POST['operation'] ?? '');
     $in=v4In($ids);
 
+    if (rank((string)(admin()['role'] ?? '')) < 40) {
+        $q=$db->prepare(
+            "SELECT COUNT(*)
+             FROM accounts a
+             LEFT JOIN roles r ON r.id=a.role_id
+             WHERE a.account_id IN ($in)
+               AND COALESCE(r.code,'user')='owner'"
+        );
+        $q->execute();
+
+        $ownerCount=(int)$q->fetchColumn();
+
+        if ($ownerCount>0) {
+            throw new RuntimeException(
+                'Only an owner can modify owner accounts.'
+            );
+        }
+    }
+
     if($operation==='ban'){
         $db->exec(
             "UPDATE accounts
@@ -47,10 +66,17 @@ if($action==='v4-bulk-players'){
         );
     }
     elseif($operation==='role'){
-        $role=(string)($_POST['role'] ?? 'user');
+        $legacyRoleAliases=[
+            'mod'=>'moderator',
+            'helper'=>'moderator',
+            'elder'=>'moderator'
+        ];
+
+        $role=strtolower(trim((string)($_POST['role'] ?? 'user')));
+        $role=$legacyRoleAliases[$role] ?? $role;
 
         $allowed=[
-            'user','helper','moderator','admin','owner'
+            'user','moderator','admin','owner'
         ];
 
         if(!in_array($role,$allowed,true)){
@@ -61,13 +87,30 @@ if($action==='v4-bulk-players'){
             requireRank(40);
         }
 
+        $roleQuery=$db->prepare(
+            'SELECT id
+             FROM roles
+             WHERE code=:role
+             LIMIT 1'
+        );
+
+        $roleQuery->execute([
+            'role'=>$role
+        ]);
+
+        $roleId=(int)$roleQuery->fetchColumn();
+
+        if($roleId<=0){
+            throw new RuntimeException('Role not found');
+        }
+
         $q=$db->prepare(
             "UPDATE accounts
-             SET role=:role
+             SET role_id=:role_id
              WHERE account_id IN ($in)"
         );
 
-        $q->execute(['role'=>$role]);
+        $q->execute(['role_id'=>$roleId]);
     }
     elseif($operation==='delete'){
         requireRank(40);

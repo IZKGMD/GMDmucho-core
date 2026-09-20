@@ -63,8 +63,8 @@ final class GdLevelDownloadEncoder
 
         $fields = [
             1, $level['level_id'],
-            2, $level['name'],
-            3, $description,
+            2, ProtocolText::field($level['name'], 64),
+            3, ProtocolText::field($description, 8192),
             4, $levelString,
             5, $level['level_version'],
             6, $level['user_id'],

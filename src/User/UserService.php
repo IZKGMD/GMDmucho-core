@@ -30,19 +30,19 @@ final readonly class UserService
          * when the current profiles table actually contains them.
          */
         $fields = [
-            'game_version' => $this->boundedInt($data, ['gameVersion'], 22, 0, 1000),
-            'binary_version' => $this->boundedInt($data, ['binaryVersion'], 0, 0, 10000),
-            'stars' => $this->boundedInt($data, ['stars'], 0, 0, 10_000_000),
-            'moons' => $this->boundedInt($data, ['moons'], 0, 0, 10_000_000),
-            'demons' => $this->boundedInt($data, ['demons'], 0, 0, 1_000_000),
-            'diamonds' => $this->boundedInt($data, ['diamonds'], 0, 0, 100_000_000),
-            'secret_coins' => $this->boundedInt($data, ['coins'], 0, 0, 1_000_000),
-            'user_coins' => $this->boundedInt($data, ['userCoins'], 0, 0, 1_000_000),
+            'game_version' => $this->boundedInt($data, ['gameVersion'], null, 0, 1000),
+            'binary_version' => $this->boundedInt($data, ['binaryVersion'], null, 0, 10000),
+            'stars' => $this->boundedInt($data, ['stars'], null, 0, 10_000_000),
+            'moons' => $this->boundedInt($data, ['moons'], null, 0, 10_000_000),
+            'demons' => $this->boundedInt($data, ['demons'], null, 0, 1_000_000),
+            'diamonds' => $this->boundedInt($data, ['diamonds'], null, 0, 100_000_000),
+            'secret_coins' => $this->boundedInt($data, ['coins'], null, 0, 1_000_000),
+            'user_coins' => $this->boundedInt($data, ['userCoins'], null, 0, 1_000_000),
 
             'icon_id' => $this->boundedInt(
                 $data,
                 ['icon', 'accIcon'],
-                1,
+                null,
                 0,
                 65535
             ),
@@ -50,37 +50,37 @@ final readonly class UserService
             'icon_type' => $this->boundedInt(
                 $data,
                 ['iconType'],
-                0,
+                null,
                 0,
                 32
             ),
 
-            'cube' => $this->boundedInt($data, ['accIcon'], 1, 0, 65535),
-            'ship' => $this->boundedInt($data, ['accShip'], 1, 0, 65535),
-            'ball' => $this->boundedInt($data, ['accBall'], 1, 0, 65535),
-            'ufo' => $this->boundedInt($data, ['accBird'], 1, 0, 65535),
-            'wave' => $this->boundedInt($data, ['accDart'], 1, 0, 65535),
-            'robot' => $this->boundedInt($data, ['accRobot'], 1, 0, 65535),
-            'spider' => $this->boundedInt($data, ['accSpider'], 1, 0, 65535),
-            'swing' => $this->boundedInt($data, ['accSwing'], 1, 0, 65535),
-            'jetpack' => $this->boundedInt($data, ['accJetpack'], 1, 0, 65535),
+            'cube' => $this->boundedInt($data, ['accIcon'], null, 0, 65535),
+            'ship' => $this->boundedInt($data, ['accShip'], null, 0, 65535),
+            'ball' => $this->boundedInt($data, ['accBall'], null, 0, 65535),
+            'ufo' => $this->boundedInt($data, ['accBird'], null, 0, 65535),
+            'wave' => $this->boundedInt($data, ['accDart'], null, 0, 65535),
+            'robot' => $this->boundedInt($data, ['accRobot'], null, 0, 65535),
+            'spider' => $this->boundedInt($data, ['accSpider'], null, 0, 65535),
+            'swing' => $this->boundedInt($data, ['accSwing'], null, 0, 65535),
+            'jetpack' => $this->boundedInt($data, ['accJetpack'], null, 0, 65535),
 
             'explosion' => $this->boundedInt(
                 $data,
                 ['accExplosion'],
-                1,
+                null,
                 0,
                 65535
             ),
 
-            'color1' => $this->boundedInt($data, ['color1'], 0, 0, 65535),
-            'color2' => $this->boundedInt($data, ['color2'], 3, 0, 65535),
-            'color3' => $this->boundedInt($data, ['color3'], 0, -1, 32767),
+            'color1' => $this->boundedInt($data, ['color1'], null, 0, 65535),
+            'color2' => $this->boundedInt($data, ['color2'], null, 0, 65535),
+            'color3' => $this->boundedInt($data, ['color3'], null, -1, 32767),
 
             'special' => $this->boundedInt(
                 $data,
                 ['accGlow', 'special', 'accSpecial'],
-                0,
+                null,
                 0,
                 1
             )
@@ -106,7 +106,7 @@ final readonly class UserService
         $fields = array_filter(
             $fields,
             static fn (mixed $value, string $column): bool =>
-                isset($available[$column]),
+                $value !== null && isset($available[$column]),
             ARRAY_FILTER_USE_BOTH
         );
 
@@ -195,7 +195,13 @@ final readonly class UserService
     {
         $this->auth->authenticate($accountId, $gjp);
 
-        $q = $this->pdo->prepare('SELECT role FROM accounts WHERE account_id = :id LIMIT 1');
+        $q = $this->pdo->prepare(
+            'SELECT r.code
+             FROM accounts a
+             LEFT JOIN roles r ON r.id = a.role_id
+             WHERE a.account_id = :id
+             LIMIT 1'
+        );
         $q->execute(['id' => $accountId]);
 
         return match(strtolower((string)$q->fetchColumn())) {
@@ -232,12 +238,29 @@ final readonly class UserService
         return $this->userEncoder->profile($profile);
     }
 
-    public function getLeaderboard(string $type, int $accountId = 0, int $limit = 100): string
-    {
+    public function getLeaderboard(
+        string $type,
+        int $accountId = 0,
+        int $limit = 100,
+        int $gameVersion = 0,
+        string $credential = ''
+    ): string {
+        if (
+            in_array($type, ['friends', 'relative'], true) &&
+            ($accountId <= 0 || $credential === '')
+        ) {
+            return '-1';
+        }
+
+        if (in_array($type, ['friends', 'relative'], true)) {
+            $this->auth->authenticate($accountId, $credential);
+        }
+
         $users = match ($type) {
             'creators' => $this->userRepository->leaderboardCreators($limit),
             'relative' => $this->userRepository->leaderboardRelative($accountId, 50),
-            default    => $this->userRepository->leaderboardTop($limit)
+            'friends' => $this->userRepository->leaderboardFriends($accountId, $limit),
+            default => $this->userRepository->leaderboardTop($limit)
         };
 
         return $this->userEncoder->leaderboard($users);
@@ -249,10 +272,10 @@ final readonly class UserService
     private function boundedInt(
         array $data,
         array $keys,
-        int $default,
+        ?int $default,
         int $minimum,
         int $maximum
-    ): int {
+    ): ?int {
         $value = null;
 
         foreach ($keys as $key) {

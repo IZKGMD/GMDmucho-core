@@ -708,6 +708,17 @@ if [ "$LEVEL_ID" -gt 0 ]; then
 
         expect_eq "Like level comment" "$LIKE" "1"
 
+        UNLIKE="$(
+            post likeGJItem211 \
+                -d "accountID=$AID2" \
+                -d "gjp2=$P2" \
+                -d "itemID=$CID" \
+                -d 'type=2' \
+                -d 'like=0'
+        )"
+
+        expect_eq "Unlike level comment" "$UNLIKE" "1"
+
         DELC="$(
             post deleteGJComment20 \
                 -d "accountID=$AID1" \

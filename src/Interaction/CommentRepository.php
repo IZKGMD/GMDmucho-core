@@ -35,10 +35,12 @@ final class CommentRepository
 
         $stmt = $this->db->prepare(
             "SELECT c.*,
-                    a.username, a.role,
-                    p.cube, p.color1, p.color2, p.special
+                    a.username, r.code AS role,
+                    p.user_id, p.cube, p.color1, p.color2,
+                    p.icon_type, p.special
              FROM comments c
              JOIN accounts a ON c.account_id = a.account_id
+             LEFT JOIN roles r ON r.id = a.role_id
              LEFT JOIN profiles p ON a.account_id = p.account_id
              WHERE c.level_id = :level_id
              ORDER BY c.created_at DESC
@@ -51,6 +53,18 @@ final class CommentRepository
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function countLevelComments(int $levelId): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*)
+             FROM comments
+             WHERE level_id = :level_id'
+        );
+        $stmt->execute(['level_id' => $levelId]);
+
+        return (int)$stmt->fetchColumn();
     }
 
     public function addAccountComment(int $accountId, string $content): int
@@ -67,14 +81,27 @@ final class CommentRepository
         return (int)$this->db->lastInsertId();
     }
 
+    public function countAccountComments(int $accountId): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*)
+             FROM account_comments
+             WHERE account_id = :account_id'
+        );
+        $stmt->execute(['account_id' => $accountId]);
+
+        return (int)$stmt->fetchColumn();
+    }
+
     public function getAccountComments(int $accountId, int $page = 0, int $limit = 100): array
     {
         $offset = $page * $limit;
 
         $stmt = $this->db->prepare(
-            "SELECT c.*, a.role
+            "SELECT c.*, r.code AS role
              FROM account_comments c
              JOIN accounts a ON c.account_id = a.account_id
+             LEFT JOIN roles r ON r.id = a.role_id
              WHERE c.account_id = :account_id
              ORDER BY c.created_at DESC
              LIMIT :limit OFFSET :offset"

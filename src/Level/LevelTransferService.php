@@ -6,6 +6,7 @@ namespace MuchoCore\Level;
 
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Protocol\GdLevelDownloadEncoder;
+use MuchoCore\Core\Settings;
 use PDO;
 use RuntimeException;
 
@@ -74,7 +75,7 @@ final readonly class LevelTransferService
             $data,
             'levelString',
             '',
-            self::MAX_LEVEL_DATA
+            self::maxLevelDataBytes()
         );
 
         if ($levelString === '') {
@@ -86,11 +87,20 @@ final readonly class LevelTransferService
 
             'name' => $name,
 
-            'description' => $this->stringField(
-                $data,
-                'levelDesc',
-                '',
-                8192
+            'description' => $this->encodeLegacyDescription(
+                $this->stringField(
+                    $data,
+                    'levelDesc',
+                    '',
+                    8192
+                ),
+                $this->intField(
+                    $data,
+                    'gameVersion',
+                    1,
+                    1,
+                    1000
+                )
             ),
 
             'level_version' => $this->intField(
@@ -104,7 +114,7 @@ final readonly class LevelTransferService
             'game_version' => $this->intField(
                 $data,
                 'gameVersion',
-                22,
+                1,
                 1,
                 1000
             ),
@@ -146,7 +156,13 @@ final readonly class LevelTransferService
             'copy_password' => $this->stringField(
                 $data,
                 'password',
-                '0',
+                $this->intField(
+                    $data,
+                    'gameVersion',
+                    1,
+                    1,
+                    1000
+                ) <= 17 ? '1' : '0',
                 64
             ),
 
@@ -187,9 +203,9 @@ final readonly class LevelTransferService
                 100
             ),
 
-            'is_unlisted' => $this->boolInt(
+            'is_unlisted' => $this->firstBoolInt(
                 $data,
-                'unlisted'
+                ['unlisted1', 'unlisted', 'unlisted2']
             ),
 
             'wt' => $this->intField(
@@ -211,7 +227,7 @@ final readonly class LevelTransferService
             'extra_string' => $this->stringField(
                 $data,
                 'extraString',
-                '',
+                '29_29_29_40_29_29_29_29_29_29_29_29_29_29_29_29',
                 65536
             ),
 
@@ -300,6 +316,34 @@ final readonly class LevelTransferService
         return $response;
     }
 
+
+    private function encodeLegacyDescription(
+        string $description,
+        int $gameVersion
+    ): string {
+        if ($description === '' || $gameVersion >= 20) {
+            return $description;
+        }
+
+        return str_replace(
+            ['+', '/'],
+            ['-', '_'],
+            base64_encode($description)
+        );
+    }
+
+    private function firstBoolInt(
+        array $data,
+        array $keys
+    ): int {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $data) && $data[$key] !== '') {
+                return $this->boolInt($data, $key);
+            }
+        }
+
+        return 0;
+    }
 
     private function resolveTimelyLevel(
         int $negativeId
@@ -700,6 +744,16 @@ final readonly class LevelTransferService
             $levelId,
             $accountId
         );
+    }
+
+    private static function maxLevelDataBytes(): int
+    {
+        return Settings::int(
+            'MUCHO_LEVEL_MAX_MB',
+            32,
+            1,
+            256
+        ) * 1024 * 1024;
     }
 
     private function stringField(

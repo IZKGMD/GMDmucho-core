@@ -8,14 +8,26 @@ There are two supported deployment styles.
 
 ### I have a VPS
 
-Use the one-command Docker installer:
+Use the one-command installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh -o install.sh
-sudo bash install.sh
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh | sudo bash
 ```
 
-This installs Docker, MariaDB, PHP 8.3, Caddy and MuchoCore automatically.
+The installer asks for the GDPS domain and, on a new installation, asks you to create the admin password.
+
+It automatically:
+
+- installs Docker;
+- prepares MuchoCore;
+- generates database secrets;
+- creates the Cloud Save key;
+- starts MariaDB, PHP 8.3 and Caddy;
+- applies database migrations;
+- checks the API and database health endpoint;
+- prints the GDPS and admin addresses.
+
+The installer is safe to run again: existing secrets are preserved and a non-MuchoCore directory is never deleted.
 
 ### I have normal shared hosting
 
@@ -42,9 +54,36 @@ Full beginner guide: [`docs/SHARED_HOSTING.md`](docs/SHARED_HOSTING.md).
 The shared-hosting mode requires PHP 8.3+ and MySQL/MariaDB. It does not use Docker.
 
 
-For the VPS installer, the script asks for your domain and admin password and generates the database secrets automatically. The shared-hosting browser installer asks for your hosting database details.
+For the VPS installer, the script asks for your domain and lets you create the admin password. Database secrets are generated automatically. The shared-hosting browser installer asks for your hosting database details.
 
 The admin panel username is always `admin`.
+
+## Easy settings — no coding required
+
+Most common server settings can be changed in `.env`.
+
+On VPS, the same values can also be changed in:
+
+```text
+Admin → Settings
+```
+
+Open `.env` only when you need file-based configuration. Change only the value on the right:
+
+```text
+MUCHO_SERVER_NAME=MyGDPS
+MUCHO_SERVER_VERSION=1.0.2
+MUCHO_REGISTRATION_ENABLED=1
+MUCHO_LEVEL_UPLOAD_ENABLED=1
+MUCHO_CLOUD_SAVE_MAX_MB=32
+MUCHO_LEVEL_MAX_MB=32
+```
+
+`1` means enabled and `0` means disabled.
+
+Full beginner guide: [`config/SETTINGS.md`](config/SETTINGS.md).
+
+Site Builder guide: [`docs/SITE_BUILDER.md`](docs/SITE_BUILDER.md).
 
 ## After installation
 
@@ -168,12 +207,23 @@ The cloud-save key must remain unchanged for existing cloud-save data.
 - Docker-based VPS deployment.
 - Apache/shared-hosting deployment for PHP 8.3+ hosts.
 
+## Copyright
+
+Copyright © 2026 IZK. Project attribution and redistribution notes: [`docs/COPYRIGHT.md`](docs/COPYRIGHT.md).
+
 ## License
 
 This repository is licensed under the MIT License. See [`LICENSE`](LICENSE).
 
 ## Client compatibility status
 
-Server-side tests are automated. Real Geometry Dash client compatibility is **not claimed until a real client test is performed**.
+The compatibility boundary now targets Geometry Dash 1.0–2.2, including versioned
+endpoint aliases, legacy credential selection, legacy level-upload parameter
+names, and version inference when old clients omit `gameVersion`.
 
-See [`docs/CLIENT_TESTING.md`](docs/CLIENT_TESTING.md) for the test and contract workflow.
+Server-side tests cover the compatibility layer. Real Geometry Dash client
+compatibility is **not claimed until a real client test is performed**.
+
+See [`docs/CLIENT_COMPATIBILITY.md`](docs/CLIENT_COMPATIBILITY.md) and
+[`docs/CLIENT_TESTING.md`](docs/CLIENT_TESTING.md) for the compatibility
+matrix and real-client test workflow.

@@ -2,11 +2,14 @@
 
 declare(strict_types=1);
 
+/* Copyright (C) 2026 IZK */
+
 use Dotenv\Dotenv;
 use MuchoCore\Core\Application;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
 use MuchoCore\Routing\Router;
+use MuchoCore\Core\Settings;
 use MuchoCore\Security\RateLimiter;
 
 ob_start();
@@ -58,6 +61,22 @@ try {
     $router = new Router();
     $path = strtolower($router->normalizePath($request->path));
 
+    if (
+        $request->method === 'POST' &&
+        str_contains($path, 'registergjaccount') &&
+        !Settings::bool('MUCHO_REGISTRATION_ENABLED', true)
+    ) {
+        Response::text('-1')->send();
+    }
+
+    if (
+        $request->method === 'POST' &&
+        str_contains($path, 'uploadgjlevel') &&
+        !Settings::bool('MUCHO_LEVEL_UPLOAD_ENABLED', true)
+    ) {
+        Response::text('-1')->send();
+    }
+
     $limits = [
         '/registergjaccount'    => [5, 60],
         '/logingjaccount'       => [30, 60],
@@ -88,8 +107,8 @@ try {
         '/reportgjlevel'        => [10, 60],
     ];
 
-    if ($request->method === 'POST' && isset($limits[$path])) {
-        [$limit, $window] = $limits[$path];
+    if ($request->method === 'POST') {
+        [$limit, $window] = $limits[$path] ?? [240, 60];
         $rateLimiter = new RateLimiter();
 
         $allowed = $rateLimiter->allow(

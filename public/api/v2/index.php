@@ -16,6 +16,7 @@ muchoV2Send([
     'version' => MUCHO_V2_VERSION,
     'endpoints' => [
         '/api/v2/health.php',
+        '/api/v2/site.php',
         '/api/v2/profile.php?account_id=19'
     ]
 ]);

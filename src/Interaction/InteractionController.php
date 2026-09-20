@@ -18,7 +18,7 @@ final class InteractionController
     {
         $levelId = $request->postInt("levelID");
         $accountId = $request->postInt("accountID");
-        $gjp = $request->postString("gjp") ?: $request->postString("gjp2");
+        $gjp = $request->gdCredential();
         $comment = $request->postString("comment");
         $percent = $request->postInt("percent", 0);
 
@@ -124,18 +124,22 @@ final class InteractionController
         return $this->deleteAccountComment($request);
     }
 
+    /*
+     * This legacy controller is not wired by Application; real endpoints use
+     * LikeController and ModerationController. Never report fake success.
+     */
     public function likeItem(Request $request): Response
     {
-        return Response::text("1");
+        return Response::text("-1");
     }
 
     public function rateStars(Request $request): Response
     {
-        return Response::text("1");
+        return Response::text("-1");
     }
 
     public function rateDemon(Request $request): Response
     {
-        return Response::text("1");
+        return Response::text("-1");
     }
 }

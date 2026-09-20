@@ -6,7 +6,10 @@
 <meta name="theme-color" content="#090b10">
 
 <title>Mucho GDPS</title>
-<meta name="description" content="Mucho GDPS — custom Geometry Dash private server.">
+<meta name="description" content="Mucho GDPS — custom Geometry Dash private server powered by MuchoCore.">
+<meta name="author" content="IZK">
+<meta name="copyright" content="Copyright © 2026 IZK">
+<meta name="generator" content="MuchoCore">
 
 <style>
 :root{
@@ -880,9 +883,7 @@ footer{
 
 <aside class="sidebar" id="sidebar">
 
-    <div class="brand">
-        Mucho<span>GDPS</span>
-    </div>
+    <div class="brand" id="siteLogo">Mucho<span>GDPS</span></div>
 
     <div class="nav">
 
@@ -906,7 +907,7 @@ footer{
 
         <div class="nav-title">Tools</div>
 
-        <a href="/api/v2/health" target="_blank">
+        <a href="/api/v2/health.php" target="_blank">
             API Status
         </a>
 
@@ -953,7 +954,7 @@ footer{
         ☰
     </button>
 
-    <div class="top-title">
+    <div class="top-title" id="topSiteName">
         Mucho GDPS
     </div>
 
@@ -974,16 +975,16 @@ footer{
 
 <section class="hero">
 
-    <div class="eyebrow">
+    <div class="eyebrow" id="siteTagline">
         Geometry Dash Private Server
     </div>
 
     <h1>
         Welcome to<br>
-        <span>Mucho GDPS.</span>
+        <span id="siteHeroName">Mucho GDPS.</span>
     </h1>
 
-    <p>
+    <p id="siteDescription">
         Custom Geometry Dash server powered by MuchoCore.
         Extended profiles, custom server systems and our own
         client infrastructure.
@@ -993,6 +994,7 @@ footer{
 
         <a
             class="btn"
+            id="siteClientButton"
             href="#download"
         >
             Download Client
@@ -1273,19 +1275,60 @@ footer{
 
             <a
                 class="link-card"
-                href="/api/v2/health"
+                href="/api/v2/health.php"
                 target="_blank"
             >
                 <span>API Health</span>
                 <span>→</span>
             </a>
 
-            <div class="link-card">
+            <a
+                class="link-card site-link"
+                id="siteGithub"
+                href="#"
+                target="_blank"
+                rel="noopener"
+                hidden
+            >
+                <span>GitHub</span>
+                <span>→</span>
+            </a>
+
+            <a
+                class="link-card site-link"
+                id="siteDiscord"
+                href="#"
+                target="_blank"
+                rel="noopener"
+                hidden
+            >
+                <span>Discord</span>
+                <span>→</span>
+            </a>
+
+            <a
+                class="link-card site-link"
+                id="siteTelegram"
+                href="#"
+                target="_blank"
+                rel="noopener"
+                hidden
+            >
+                <span>Telegram</span>
+                <span>→</span>
+            </a>
+
+            <a
+                class="link-card site-link"
+                id="siteClientLink"
+                href="#"
+                target="_blank"
+                rel="noopener"
+                hidden
+            >
                 <span>Mucho Client</span>
-                <span style="color:#8793a8">
-                    Soon
-                </span>
-            </div>
+                <span>→</span>
+            </a>
 
         </div>
 
@@ -1294,8 +1337,8 @@ footer{
 </div>
 
 
-<footer>
-    Mucho GDPS · MuchoCore · Copyright © 2026 IZK
+<footer id="siteFooter">
+    Mucho GDPS · MuchoCore · Copyright © 2026 IZK · MIT License
 </footer>
 
 </div>
@@ -1306,6 +1349,116 @@ footer{
 
 const $ = id => document.getElementById(id);
 
+async function loadSiteConfig(){
+
+    try{
+        const response = await fetch(
+            '/api/v2/site.php',
+            {cache:'no-store'}
+        );
+
+        if(!response.ok){
+            throw new Error('site config unavailable');
+        }
+
+        const data = await response.json();
+
+        if(!data.ok || !data.site){
+            throw new Error('invalid site config');
+        }
+
+        const site = data.site;
+        const core = data.core || {};
+
+        document.title = site.name || document.title;
+
+        const description =
+            document.querySelector('meta[name="description"]');
+
+        if(description && site.description){
+            description.setAttribute(
+                'content',
+                site.description
+            );
+        }
+
+        document.documentElement.style.setProperty(
+            '--accent',
+            site.accent || '#7768ff'
+        );
+
+        document.documentElement.style.setProperty(
+            '--accent2',
+            site.accent2 || '#43d7cf'
+        );
+
+        $('siteLogo').textContent = site.logo || site.name || 'MuchoGDPS';
+        $('topSiteName').textContent = site.name || 'Mucho GDPS';
+        $('siteTagline').textContent = site.tagline || 'Powered by MuchoCore';
+        $('siteHeroName').textContent = (site.name || 'Mucho GDPS') + '.';
+        $('siteDescription').textContent =
+            site.description ||
+            'Custom Geometry Dash private server powered by MuchoCore.';
+
+        const links = site.links || {};
+
+        const setLink = (id, url) => {
+            const element = $(id);
+
+            if(!element){
+                return;
+            }
+
+            if(url){
+                element.hidden = false;
+                element.href = url;
+            }else{
+                element.hidden = true;
+            }
+        };
+
+        setLink('siteGithub', links.github);
+        setLink('siteDiscord', links.discord);
+        setLink('siteTelegram', links.telegram);
+        setLink('siteClientLink', links.client);
+
+        const clientButton = $('siteClientButton');
+
+        if(clientButton){
+            if(links.client){
+                clientButton.href = links.client;
+                clientButton.target = '_blank';
+                clientButton.rel = 'noopener';
+            }else{
+                clientButton.href = '#download';
+                clientButton.removeAttribute('target');
+                clientButton.removeAttribute('rel');
+            }
+        }
+
+        const customCopyright = site.copyright || 'Copyright © 2026 IZK';
+
+        $('siteFooter').textContent =
+            (site.name || 'Mucho GDPS') +
+            ' · ' +
+            (core.name || 'MuchoCore') +
+            ' · ' +
+            customCopyright +
+            ' · Core copyright © 2026 IZK · MIT License';
+
+    }catch(error){
+
+        console.warn(
+            '[MuchoCore] Site Builder config unavailable:',
+            error
+        );
+    }
+}
+
+loadSiteConfig();
+
+
+
 async function updateHealth(){
 
     const topDot = $('topDot');
@@ -1314,7 +1467,7 @@ async function updateHealth(){
     try{
 
         const response = await fetch(
-            '/api/v2/health',
+            '/api/v2/health.php',
             {
                 cache:'no-store'
             }
@@ -1417,7 +1570,7 @@ async function updateDashboard(){
     try{
 
         const response=await fetch(
-            '/api/v2/dashboard',
+            '/api/v2/dashboard.php',
             {cache:'no-store'}
         );
 
@@ -1537,7 +1690,7 @@ async function loadMusic(){
     try{
 
         const r=await fetch(
-            '/api/v2/music',
+            '/api/v2/music.php',
             {cache:'no-store'}
         );
 
@@ -1627,7 +1780,7 @@ $('musicUploadForm').addEventListener(
         try{
 
             const response=await fetch(
-                '/api/v2/music-upload',
+                '/api/v2/music-upload.php',
                 {
                     method:'POST',
                     body:new FormData(form)

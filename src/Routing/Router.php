@@ -119,6 +119,15 @@ final class Router
             '/uploadgjlevel19' => '/uploadGJLevel21',
             '/uploadgjlevel20' => '/uploadGJLevel21',
 
+            // Extra legacy core endpoints.
+            '/getgjlevellists' => '/getGJLevelLists',
+            '/uploadgjlevellist' => '/uploadGJLevelList',
+            '/deletegjlevellist' => '/deleteGJLevelList',
+            '/getgjcommenthistory' => '/getGJCommentHistory',
+            '/getgjtopartists' => '/getGJTopArtists',
+            '/getaccounturl' => '/getAccountURL',
+            '/getcustomcontenturl' => '/getCustomContentURL',
+
             // Comments and likes.
             '/getgjcomments' => '/getGJComments21',
             '/getgjcomments19' => '/getGJComments21',
@@ -126,8 +135,11 @@ final class Router
             '/uploadgjcomment' => '/uploadGJComment20',
             '/uploadgjcomment19' => '/uploadGJComment20',
             '/uploadgjcomment21' => '/uploadgjcomment21',
+            '/uploadgjcomment22' => '/uploadGJComment21',
             '/likegjitem' => '/likeGJItem21',
             '/likegjitem19' => '/likeGJItem21',
+            '/likegjitem22' => '/likeGJItem21',
+            '/likegjlevel' => '/likeGJItem21',
             '/likegjitem20' => '/likeGJItem21',
 
             // User and leaderboard endpoints.
@@ -141,8 +153,10 @@ final class Router
             '/getgjusers22' => '/getGJUsers20',
             '/getgjscores' => '/getGJScores20',
             '/getgjscores19' => '/getGJScores20',
+            '/getgjscores20' => '/getGJScores20',
             '/getgjscores21' => '/getGJScores20',
             '/getgjscores22' => '/getGJScores20',
+            '/updategjdesc20' => '/updateGJLevelDesc20',
             '/updategjaccsettings19' => '/updateGJAccSettings20',
             '/updategjaccsettings21' => '/updateGJAccSettings20',
             '/updategjaccsettings22' => '/updateGJAccSettings20',

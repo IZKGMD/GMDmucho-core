@@ -1,30 +1,55 @@
 # Geometry Dash Client Compatibility
 
-MuchoCore follows the same version-awareness principle used by established GDPS server implementations: the client declares its `gameVersion` and `binaryVersion`, and the server keeps version differences at the compatibility boundary instead of duplicating the whole backend.
+MuchoCore keeps version differences at the compatibility boundary: the shared
+backend stays the same while request authentication, legacy parameter names,
+and protocol details are adapted for the client family.
 
-## Supported version families
+## Compatibility targets
 
-| Geometry Dash family | gameVersion | Example binaryVersion | Credential preference |
-| --- | ---: | ---: | --- |
-| 1.9 | 19 | 25 | `gjp` |
-| 2.0 | 20 | 29 | `gjp` |
-| 2.1 | 21 | 33-35 | `gjp` |
-| 2.2 | 22 | 37-42 | `gjp2` |
+| Geometry Dash family | gameVersion | Credential preference | Server-side status |
+| --- | ---: | --- | --- |
+| 1.0–1.8 | 1–18 | `gjp` | Compatibility target |
+| 1.9 | 19 | `gjp` | Compatibility target |
+| 2.0 | 20 | `gjp` | Compatibility target |
+| 2.1 | 21 | `gjp` | Compatibility target |
+| 2.2 | 22 | `gjp2` | Compatibility target |
 
-The exact binary version can vary between game updates. MuchoCore uses it for identification and tracing while routing the endpoint to the shared service implementation.
+The exact `binaryVersion` can vary between updates. MuchoCore uses it for
+identification/tracing and keeps the main feature implementation shared.
 
 ## Endpoint compatibility
 
-Versioned Geometry Dash endpoint names are normalized in the router. Older names such as `loginGJAccount20`, `getGJLevels20`, `downloadGJLevel20`, and `getGJLevelScores20` are mapped to the shared MuchoCore handlers.
+The router accepts both modern and legacy Geometry Dash endpoint names,
+including versioned paths such as:
 
-This lets multiple client generations use the same database and service layer.
+- `getGJLevels19/20/21`
+- `downloadGJLevel19/20/21/22`
+- `updateGJUserScore19/20/21/22`
+- `getGJComments19/20/21`
+- `likeGJItem19/20/21/211`
+- `likeGJLevel`
+- `updateGJDesc20`
+
+It also strips common `/database`, `/accounts`, `/api`, and legacy
+`/a` prefixes, so old GDPS URL layouts can point at the same core.
 
 ## Authentication compatibility
 
-Geometry Dash 2.1 and older requests prefer `gjp`. Geometry Dash 2.2 prefers `gjp2`. When both values are present, MuchoCore selects the credential according to the detected client family and keeps the other value as a fallback.
+Requests from 2.1 and older prefer `gjp`. Requests from 2.2 prefer
+`gjp2`. When a client omits `gameVersion`, MuchoCore can infer the family
+from a versioned endpoint name such as `getGJLevels21.php`,
+`downloadGJLevel22.php`, `getGJLevelScores211.php`, or the 2.2
+platformer-score endpoint.
 
-## What this does not claim
+Legacy level uploads also accept the older `unlisted`, `unlisted1`, and
+`unlisted2` parameter names.
 
-Server-side compatibility tests do not prove that every real Geometry Dash client works. Real clients must still be tested.
+## Current verification level
 
-Use `CLIENT_TESTING.md` to capture requests from real clients and generate a compatibility contract from actual traffic.
+The compatibility layer is covered by server-side unit/contract tests for
+routing, client-family detection, and authentication selection. The real
+Geometry Dash client itself has not yet been used as the final compatibility
+oracle.
+
+See `CLIENT_TESTING.md` to capture requests from real clients and build a
+compatibility contract from actual traffic.

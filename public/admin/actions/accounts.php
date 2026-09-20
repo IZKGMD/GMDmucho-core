@@ -35,25 +35,77 @@ try {
 
             $id=(int)$_POST['id'];
 
+            $legacyRoleAliases=[
+                'mod'=>'moderator',
+                'helper'=>'moderator',
+                'elder'=>'moderator'
+            ];
+
+            $role=strtolower(trim((string)$_POST['role']));
+            $role=$legacyRoleAliases[$role] ?? $role;
+
             $allowedRoles=[
                 'user',
-                'helper',
                 'moderator',
                 'admin',
                 'owner'
             ];
 
-            $role=(string)$_POST['role'];
-
             if (!in_array($role,$allowedRoles,true)) {
                 throw new RuntimeException('Bad role');
+            }
+
+            $roleQuery=$db->prepare(
+                'SELECT id
+                 FROM roles
+                 WHERE code=:role
+                 LIMIT 1'
+            );
+
+            $roleQuery->execute([
+                'role'=>$role
+            ]);
+
+            $roleId=(int)$roleQuery->fetchColumn();
+
+            if ($roleId<=0) {
+                throw new RuntimeException('Role not found');
+            }
+
+            $targetQuery=$db->prepare(
+                'SELECT
+                    a.account_id,
+                    COALESCE(r.code, "user") AS role_code
+                 FROM accounts a
+                 LEFT JOIN roles r ON r.id=a.role_id
+                 WHERE a.account_id=:id
+                 LIMIT 1'
+            );
+
+            $targetQuery->execute(['id'=>$id]);
+            $target=$targetQuery->fetch(PDO::FETCH_ASSOC);
+
+            if (!$target) {
+                throw new RuntimeException('Account not found');
+            }
+
+            $adminRank=rank((string)(admin()['role'] ?? ''));
+            $targetRole=strtolower((string)$target['role_code']);
+
+            if (
+                $adminRank < 40 &&
+                ($targetRole === 'owner' || $role === 'owner')
+            ) {
+                throw new RuntimeException(
+                    'Only an owner can modify owner accounts or grant the owner role.'
+                );
             }
 
             $q=$db->prepare(
                 'UPDATE accounts SET
                     username=:username,
                     email=:email,
-                    role=:role,
+                    role_id=:role_id,
                     is_active=:active,
                     is_banned=:banned
                  WHERE account_id=:id'
@@ -70,7 +122,7 @@ try {
                     0,
                     254
                 ),
-                'role'=>$role,
+                'role_id'=>$roleId,
                 'active'=>isset($_POST['active'])?1:0,
                 'banned'=>isset($_POST['banned'])?1:0,
                 'id'=>$id
@@ -86,15 +138,41 @@ try {
             $id=(int)$_POST['id'];
             $password=(string)$_POST['new_password'];
 
-            if (strlen($password)<8) {
+            if (strlen($password)<12) {
                 throw new RuntimeException(
-                    'Password must be at least 8 characters.'
+                    'Password must be at least 12 characters.'
                 );
             }
 
             $gjp2=sha1(
                 $password.'mI29fmAnxgTs'
             );
+
+            $targetQuery=$db->prepare(
+                'SELECT
+                    a.account_id,
+                    COALESCE(r.code, "user") AS role_code
+                 FROM accounts a
+                 LEFT JOIN roles r ON r.id=a.role_id
+                 WHERE a.account_id=:id
+                 LIMIT 1'
+            );
+
+            $targetQuery->execute(['id'=>$id]);
+            $target=$targetQuery->fetch(PDO::FETCH_ASSOC);
+
+            if (!$target) {
+                throw new RuntimeException('Account not found');
+            }
+
+            if (
+                rank((string)(admin()['role'] ?? '')) < 40 &&
+                strtolower((string)$target['role_code']) === 'owner'
+            ) {
+                throw new RuntimeException(
+                    'Only an owner can reset an owner password.'
+                );
+            }
 
             $q=$db->prepare(
                 'UPDATE accounts SET

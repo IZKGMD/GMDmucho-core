@@ -7,6 +7,9 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/bootstrap.php';
+require_once dirname(__DIR__, 3) . '/vendor/autoload.php';
+
+use MuchoCore\Core\Settings;
 
 muchoV2RequireMethod('GET');
 
@@ -16,8 +19,8 @@ try {
 
     muchoV2Send([
         'ok' => true,
-        'api' => 'MuchoCore',
-        'version' => MUCHO_V2_VERSION,
+        'api' => Settings::string('MUCHO_SERVER_NAME', 'MuchoCore'),
+        'version' => Settings::string('MUCHO_SERVER_VERSION', MUCHO_V2_VERSION),
         'service' => 'api',
         'database' => 'connected'
     ]);

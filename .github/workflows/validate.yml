@@ -1,8 +1,67 @@
-- name: Commit and Push changes
-  run: |
-    git config --local user.email "errorandrey70@gmail.com"
-    git config --local user.name "IZKGMD"
-    
-    git add .
-    git commit -m "chore: update release assets [skip ci]"
-    git push origin HEAD:${{ github.event.release.target_commitish }}
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check shell scripts
+        run: |
+          bash -n install.sh
+          bash -n update.sh
+          bash -n uninstall.sh
+          bash -n docker/app-entrypoint.sh
+          for f in tests/*.sh; do bash -n "$f"; done
+
+      - name: Check PHP syntax
+        run: |
+          find src public bin tests database -name '*.php' -print0 |
+            xargs -0 -n1 php -l
+
+      - name: Check compatibility tests
+        run: |
+          php tests/client-compatibility.php
+          php tests/legacy-endpoint-compatibility.php
+          php tests/legacy-endpoint-surface.php
+          php tests/schema-contract.php
+          php tests/security-compatibility.php
+          php tests/deployment-contract.php
+          php tests/router-compatibility.php
+          php tests/settings.php
+          php tests/role-schema.php
+          php tests/level-compatibility.php
+          php tests/level-list-shape-compatibility.php
+          php tests/comment-compatibility.php
+          php tests/protocol-boundary.php
+          php tests/user-protocol-compatibility.php
+
+      - name: Check client tools
+        run: |
+          python3 -m py_compile             tools/client-patch.py             tools/client-trace-summary.py
+          python3 tools/client-patch.py --self-test
+
+      - name: Check required files
+        run: |
+          test -f composer.json
+          test -f composer.lock
+          test -f docker-compose.yml
+          test -f docker/Dockerfile
+          test -f docker/Caddyfile
+          test -f docker/app-entrypoint.sh
+          test -f tools/client-patch.bat
+          test -f tools/client-patcher.ps1
+
+      - name: Validate Composer
+        run: |
+          composer validate --strict
+          composer audit --locked --no-interaction
+
+      - name: Validate Caddy
+        run: |
+          docker run --rm             -e DOMAIN=gdps.example.com             -v "$PWD/docker/Caddyfile:/etc/caddy/Caddyfile:ro"             caddy:2.10-alpine             caddy validate             --config /etc/caddy/Caddyfile             --adapter caddyfile

@@ -10,7 +10,7 @@ const MUCHO_RELEASE_TMP =
     '/var/www/mucho-core/storage/release-uploads';
 
 const MUCHO_ANDROID_RELEASES =
-    '/var/www/mucho-core/releases/android';
+    '/var/www/mucho-core/public/downloads/android';
 
 const MUCHO_RELEASE_MAX_SIZE =
     650 * 1024 * 1024;
@@ -38,6 +38,22 @@ function releaseColumnExists(
 
 function ensureReleaseManager(PDO $db): void
 {
+    if (
+        !is_dir(MUCHO_RELEASE_TMP) &&
+        !mkdir(MUCHO_RELEASE_TMP, 0750, true) &&
+        !is_dir(MUCHO_RELEASE_TMP)
+    ) {
+        throw new RuntimeException('Cannot create release upload directory.');
+    }
+
+    if (
+        !is_dir(MUCHO_ANDROID_RELEASES) &&
+        !mkdir(MUCHO_ANDROID_RELEASES, 0755, true) &&
+        !is_dir(MUCHO_ANDROID_RELEASES)
+    ) {
+        throw new RuntimeException('Cannot create public release directory.');
+    }
+
     $db->exec("
         CREATE TABLE IF NOT EXISTS mucho_client_release_uploads (
             upload_id VARCHAR(64) PRIMARY KEY,
@@ -459,12 +475,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     );
                 }
 
+                $db->beginTransaction();
+
                 $q=$db->prepare("
                     SELECT *
                     FROM mucho_client_release_uploads
                     WHERE upload_id=?
                       AND admin_user_id=?
                     LIMIT 1
+                    FOR UPDATE
                 ");
 
                 $q->execute([
@@ -494,6 +513,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     : 0;
 
                 if($offset!==$actual){
+
+                    $db->rollBack();
 
                     releaseJson([
                         'ok'=>false,
@@ -557,6 +578,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     $received,
                     $uploadId
                 ]);
+
+                $db->commit();
 
                 releaseJson([
                     'ok'=>true,
@@ -914,6 +937,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             }
 
         } catch(Throwable $e){
+
+            if (isset($db) && $db->inTransaction()) {
+                $db->rollBack();
+            }
 
             releaseJson([
                 'ok'=>false,

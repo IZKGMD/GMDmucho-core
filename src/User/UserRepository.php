@@ -24,6 +24,7 @@ final readonly class UserRepository
                 COALESCE(p.user_coins, 0) AS user_coins,
                 COALESCE(p.creator_points, 0) AS creator_points,
                 COALESCE(p.cube, 1) AS cube,
+                COALESCE(p.icon_type, 0) AS icon_type,
                 COALESCE(p.ship, 1) AS ship,
                 COALESCE(p.ball, 1) AS ball,
                 COALESCE(p.ufo, 1) AS ufo,
@@ -32,14 +33,19 @@ final readonly class UserRepository
                 COALESCE(p.spider, 1) AS spider,
                 COALESCE(p.swing, 1) AS swing,
                 COALESCE(p.jetpack, 1) AS jetpack,
+                COALESCE(p.explosion, 1) AS explosion,
                 COALESCE(p.color1, 0) AS color1,
                 COALESCE(p.color2, 3) AS color2,
                 COALESCE(p.color3, 0) AS color3,
+                COALESCE(p.glow, 0) AS glow,
                 COALESCE(p.special, 0) AS special,
                 a.account_id,
+                COALESCE(p.user_id, a.account_id) AS user_id,
                 a.username,
-                a.role AS role_code
+                r.code AS role_code
             FROM accounts a
+            LEFT JOIN roles r
+                ON r.id = a.role_id
             LEFT JOIN profiles p
                 ON p.account_id = a.account_id
             WHERE
@@ -114,15 +120,23 @@ final readonly class UserRepository
         $sql = '
             SELECT
                 a.account_id,
+                COALESCE(p.user_id, a.account_id) AS user_id,
                 a.username,
-                a.role AS role_code,
+                r.code AS role_code,
                 COALESCE(a.messages_state, 0) AS message_state,
                 COALESCE(a.friend_requests_state, 0) AS friend_request_state,
                 COALESCE(a.comments_state, 0) AS comment_history_state,
                 COALESCE(a.youtube_url, "") AS youtube,
                 COALESCE(a.twitter, "") AS twitter,
                 COALESCE(a.twitch, "") AS twitch,
+                COALESCE(a.discord, "") AS discord,
+                COALESCE(a.instagram, "") AS instagram,
+                COALESCE(a.tiktok, "") AS tiktok,
+                COALESCE(a.custom_link, "") AS custom_link,
                 a.created_at AS registered_at,
+                COALESCE(p.demon_info, "") AS demon_info,
+                COALESCE(p.star_info, "") AS star_info,
+                COALESCE(p.platformer_info, "") AS platformer_info,
                 COALESCE(p.stars, 0) AS stars,
                 COALESCE(p.moons, 0) AS moons,
                 COALESCE(p.demons, 0) AS demons,
@@ -142,6 +156,9 @@ final readonly class UserRepository
                 COALESCE(p.color1, 0) AS color1,
                 COALESCE(p.color2, 3) AS color2,
                 COALESCE(p.color3, 0) AS color3,
+                COALESCE(p.glow, 0) AS glow,
+                COALESCE(p.icon_type, 0) AS icon_type,
+                COALESCE(p.explosion, 1) AS explosion,
                 COALESCE(p.special, 0) AS special,
                 COALESCE((SELECT COUNT(*) FROM levels WHERE account_id = a.account_id AND is_deleted = 0), 0) AS levels_count
             FROM accounts a
@@ -163,12 +180,15 @@ final readonly class UserRepository
             SELECT
                 p.*,
                 a.username,
-                a.role AS role_code,
+                r.code AS role_code,
                 ROW_NUMBER() OVER (ORDER BY p.stars DESC, p.account_id ASC) AS `rank`
             FROM profiles p
             INNER JOIN accounts a
                 ON a.account_id = p.account_id
+            INNER JOIN roles r
+                ON r.id = a.role_id
             WHERE p.stars > 0
+              AND a.is_banned = 0
             ORDER BY `rank`
             LIMIT ' . (int)$limit;
 
@@ -181,25 +201,72 @@ final readonly class UserRepository
             SELECT
                 p.*,
                 a.username,
-                a.role AS role_code,
+                r.code AS role_code,
                 ROW_NUMBER() OVER (ORDER BY p.creator_points DESC, p.account_id ASC) AS `rank`
             FROM profiles p
             INNER JOIN accounts a
                 ON a.account_id = p.account_id
+            INNER JOIN roles r
+                ON r.id = a.role_id
             WHERE p.creator_points > 0
+              AND a.is_banned = 0
             ORDER BY `rank`
             LIMIT ' . (int)$limit;
 
         return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function leaderboardFriends(int $accountId, int $limit = 100): array
+    {
+        if ($accountId <= 0) {
+            return [];
+        }
+
+        $limit = max(1, min(1000, $limit));
+
+        $sql = '
+            SELECT
+                p.*,
+                a.username,
+                r.code AS role_code,
+                ROW_NUMBER() OVER (
+                    ORDER BY p.stars DESC, p.account_id ASC
+                ) AS rank
+            FROM profiles p
+            INNER JOIN accounts a
+                ON a.account_id = p.account_id
+            INNER JOIN roles r
+                ON r.id = a.role_id
+            WHERE a.is_banned = 0
+              AND a.is_active = 1
+              AND (
+                  p.account_id = :account_id
+                  OR p.account_id IN (
+                      SELECT f.friend_account_id
+                      FROM friends f
+                      WHERE f.account_id = :friends_account
+                  )
+              )
+            ORDER BY rank
+            LIMIT ' . $limit;
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([
+            'account_id' => $accountId,
+            'friends_account' => $accountId,
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
     public function leaderboardRelative(int $accountId, int $limit = 50): array
     {
         $sql = "WITH RankedProfiles AS (
-            SELECT p.*, a.username, a.role AS role_code,
+            SELECT p.*, a.username, r.code AS role_code,
                    ROW_NUMBER() OVER (ORDER BY p.stars DESC, p.account_id ASC) AS `rank`
             FROM profiles p
             INNER JOIN accounts a ON a.account_id = p.account_id
+            INNER JOIN roles r ON r.id = a.role_id
+            WHERE a.is_banned = 0
         ),
         TargetRank AS (
             SELECT `rank` FROM RankedProfiles WHERE account_id = :account_id

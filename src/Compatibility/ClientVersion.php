@@ -15,10 +15,43 @@ final readonly class ClientVersion
 
     public static function fromRequest(Request $request): self
     {
-        return self::fromValues(
-            $request->postInt('gameVersion', 0),
-            $request->postInt('binaryVersion', 0)
-        );
+        $gameVersion = $request->postInt('gameVersion', 0);
+        $binaryVersion = $request->postInt('binaryVersion', 0);
+
+        /*
+         * Old clients do not always send gameVersion/binaryVersion.
+         * Versioned endpoint names still give us a reliable compatibility
+         * hint, e.g. getGJLevels20.php or uploadGJLevel22.php.
+         */
+        if ($gameVersion <= 0) {
+            $path = strtolower($request->path);
+
+            if (preg_match('/211(?:\.php)?(?:\/)?$/', $path) === 1) {
+                $gameVersion = 21;
+            } elseif (
+                preg_match(
+                    '/(19|20|21|22)(?:\.php)?(?:\/)?$/',
+                    $path,
+                    $m
+                ) === 1
+            ) {
+                $gameVersion = (int)$m[1];
+            } elseif (str_ends_with($path, 'getgjlevelscoresplat.php')) {
+                // Platformer score endpoint is a 2.2-era endpoint.
+                $gameVersion = 22;
+            } elseif (
+                preg_match(
+                    '#/(?:getgjlevels|downloadgjlevel|uploadgjlevel|getgjcomments|uploadgjcomment|getgjscores|updategjuserscore|likegjitem)\.php$#',
+                    $path
+                ) === 1
+            ) {
+                // The unversioned endpoints in the established 1.0-2.2
+                // GDPS layout are the legacy 1.0-1.8 family.
+                $gameVersion = 18;
+            }
+        }
+
+        return self::fromValues($gameVersion, $binaryVersion);
     }
 
     public static function fromValues(

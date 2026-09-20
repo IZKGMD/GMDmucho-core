@@ -1,3 +1,4 @@
+/* Copyright (C) 2026 IZK */
 (() => {
 'use strict';
 

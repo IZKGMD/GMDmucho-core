@@ -356,7 +356,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 }
 
                 $filePath=
-                    '/var/www/mucho-core/releases/android/'.
+                    '/var/www/mucho-core/public/downloads/android/'.
                     basename(
                         (string)$release['file_name']
                     );

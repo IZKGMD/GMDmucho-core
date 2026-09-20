@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 use MuchoCore\Database\Database;
+use MuchoCore\Security\ClientIp;
 
 require dirname(__DIR__,2).'/vendor/autoload.php';
 
@@ -147,7 +148,59 @@ function checkCsrf(): void
 
 function admin(): ?array
 {
-    return $_SESSION['admin'] ?? null;
+    static $cache = null;
+    static $checkedId = 0;
+
+    $session = $_SESSION['admin'] ?? null;
+
+    if (!is_array($session)) {
+        return null;
+    }
+
+    $id = (int)($session['id'] ?? 0);
+
+    if ($id <= 0) {
+        return null;
+    }
+
+    if ($cache !== null && $checkedId === $id) {
+        return $cache;
+    }
+
+    global $db;
+
+    if (!$db instanceof PDO) {
+        return null;
+    }
+
+    $q = $db->prepare(
+        'SELECT id, username, role, is_active
+         FROM admin_users
+         WHERE id = :id
+         LIMIT 1'
+    );
+    $q->execute(['id' => $id]);
+
+    $row = $q->fetch(PDO::FETCH_ASSOC);
+
+    if (
+        !$row ||
+        (int)$row['is_active'] !== 1 ||
+        rank((string)$row['role']) <= 0
+    ) {
+        $_SESSION = [];
+        return null;
+    }
+
+    $session['username'] = (string)$row['username'];
+    $session['role'] = (string)$row['role'];
+
+    $_SESSION['admin'] = $session;
+
+    $checkedId = $id;
+    $cache = $session;
+
+    return $cache;
 }
 
 function rank(string $role): int
@@ -204,9 +257,7 @@ function audit(
                 JSON_UNESCAPED_UNICODE|
                 JSON_UNESCAPED_SLASHES
             ),
-        'ip'=>$_SERVER['HTTP_CF_CONNECTING_IP']
-            ?? $_SERVER['REMOTE_ADDR']
-            ?? ''
+        'ip'=>ClientIp::detect($_SERVER)
     ]);
 }
 
@@ -407,9 +458,7 @@ if (isset($_POST['login'])) {
     $password=(string)($_POST['password'] ?? '');
     $otp=trim((string)($_POST['otp'] ?? ''));
 
-    $ip=$_SERVER['HTTP_CF_CONNECTING_IP']
-        ?? $_SERVER['REMOTE_ADDR']
-        ?? 'unknown';
+    $ip=ClientIp::detect($_SERVER);
 
     $rate='/tmp/mucho-admin-'.hash('sha256',$ip);
 
@@ -524,6 +573,8 @@ if (admin() && isset($_GET['download'])) {
         http_response_code(404);
         exit('Not found');
     }
+
+    requireRank(40);
 
     audit($db,'backup.download',$name);
 
@@ -1708,7 +1759,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
             $allowedRoles=[
                 'user',
-                'helper',
                 'moderator',
                 'admin',
                 'owner'
@@ -1720,11 +1770,54 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 throw new RuntimeException('Bad role');
             }
 
+            $roleQuery=$db->prepare(
+                'SELECT id
+                 FROM roles
+                 WHERE code=:code
+                 LIMIT 1'
+            );
+            $roleQuery->execute(['code'=>$role]);
+
+            $roleId=(int)$roleQuery->fetchColumn();
+
+            if ($roleId<=0) {
+                throw new RuntimeException('Role not found.');
+            }
+
+            $targetQuery=$db->prepare(
+                'SELECT COALESCE(r.code,"user")
+                 FROM accounts a
+                 LEFT JOIN roles r ON r.id=a.role_id
+                 WHERE a.account_id=:id
+                 LIMIT 1'
+            );
+            $targetQuery->execute(['id'=>$id]);
+            $targetRole=strtolower((string)($targetQuery->fetchColumn() ?: 'user'));
+
+            if (
+                rank((string)(admin()['role'] ?? '')) < 40 &&
+                ($targetRole==='owner' || $role==='owner')
+            ) {
+                throw new RuntimeException(
+                    'Only an owner can modify owner accounts or grant the owner role.'
+                );
+            }
+
+            $username=trim((string)$_POST['username']);
+            $email=trim((string)$_POST['email']);
+
+            if (
+                !preg_match('/^[A-Za-z0-9_-]{1,20}$/D',$username) ||
+                !filter_var($email,FILTER_VALIDATE_EMAIL)
+            ) {
+                throw new RuntimeException('Invalid account data.');
+            }
+
             $q=$db->prepare(
                 'UPDATE accounts SET
                     username=:username,
                     email=:email,
-                    role=:role,
+                    role_id=:role_id,
                     is_active=:active,
                     is_banned=:banned
                  WHERE account_id=:id'
@@ -1741,7 +1834,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     0,
                     254
                 ),
-                'role'=>$role,
+                'role_id'=>$roleId,
                 'active'=>isset($_POST['active'])?1:0,
                 'banned'=>isset($_POST['banned'])?1:0,
                 'id'=>$id
@@ -2122,9 +2215,28 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $id=(int)$_POST['id'];
             $password=(string)$_POST['new_password'];
 
-            if (strlen($password)<8) {
+            $targetQuery=$db->prepare(
+                'SELECT COALESCE(r.code,"user")
+                 FROM accounts a
+                 LEFT JOIN roles r ON r.id=a.role_id
+                 WHERE a.account_id=:id
+                 LIMIT 1'
+            );
+            $targetQuery->execute(['id'=>$id]);
+            $targetRole=strtolower((string)($targetQuery->fetchColumn() ?: 'user'));
+
+            if (
+                rank((string)(admin()['role'] ?? '')) < 40 &&
+                $targetRole==='owner'
+            ) {
                 throw new RuntimeException(
-                    'Password must be at least 8 characters.'
+                    'Only an owner can reset an owner password.'
+                );
+            }
+
+            if (strlen($password)<12 || strlen($password)>512) {
+                throw new RuntimeException(
+                    'Password must be 12–512 characters.'
                 );
             }
 
@@ -2651,9 +2763,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 );
             }
 
-            if (strlen($password)<10) {
+            if (strlen($password)<12 || strlen($password)>512) {
                 throw new RuntimeException(
-                    'Password must be at least 10 characters.'
+                    'Password must be 12–512 characters.'
                 );
             }
 
@@ -4120,6 +4232,10 @@ echo '</table></div>';
 }
 
 ?>
+
+<div class="admin-copyright" style="padding:18px 0 8px;color:#596579;font-size:10px;text-align:center">
+    MuchoControl · MuchoCore · Copyright © 2026 IZK · MIT License
+</div>
 
 </main>
 </div>

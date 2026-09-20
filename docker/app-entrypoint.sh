@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+
+# Copyright (C) 2026 IZK
 set -Eeuo pipefail
 
 ROOT=/var/www/mucho-core
@@ -19,7 +21,8 @@ DB_NAME=${DB_NAME:-muchocore}
 DB_USER=${DB_USER:-muchocore_user}
 DB_PASS=$DB_PASS
 EOFENV
-chmod 600 /var/lib/muchocore/runtime.env
+chown root:www-data /var/lib/muchocore/runtime.env
+chmod 640 /var/lib/muchocore/runtime.env
 
 if [[ ! -s config/cloudsave.key ]]; then
   openssl rand -base64 32 > config/cloudsave.key

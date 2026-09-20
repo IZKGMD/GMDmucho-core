@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+use MuchoCore\Security\ClientIp;
+
 /*
  * MuchoCore Music Upload
  * Copyright (C) 2026 IZK
@@ -10,11 +12,15 @@ require_once __DIR__.'/bootstrap.php';
 
 muchoV2RequireMethod('POST');
 
-const MUSIC_DIR = '/var/www/mucho-core/storage/music-public';
+define('MUSIC_DIR', dirname(__DIR__, 2) . '/music');
 const MUSIC_MAX = 20 * 1024 * 1024;
 const MUSIC_COOLDOWN = 180;
 
 try {
+    if (!is_dir(MUSIC_DIR) && !mkdir(MUSIC_DIR, 0755, true) && !is_dir(MUSIC_DIR)) {
+        throw new RuntimeException('music_directory_unavailable');
+    }
+
     $db = muchoV2Db();
 
     $title = trim((string)($_POST['title'] ?? ''));
@@ -60,11 +66,7 @@ try {
         muchoV2Fail('mp3_only',415);
     }
 
-    $ip = (string)(
-        $_SERVER['HTTP_CF_CONNECTING_IP']
-        ?? $_SERVER['REMOTE_ADDR']
-        ?? ''
-    );
+    $ip = ClientIp::detect($_SERVER);
 
     $db->beginTransaction();
 
@@ -111,7 +113,7 @@ try {
         throw new RuntimeException('cannot_store_file');
     }
 
-    chmod($target,0640);
+    chmod($target,0644);
 
     $baseUrl=rtrim(
         (string)(

@@ -35,7 +35,7 @@ return [
     'clientfeatures'=>'Client & Features',
 
     'backups'=>'Backups',
-    'settings'=>'Settings',
+    'settings'=>'Site Builder',
     'system'=>'Server',
 
     'admins'=>'Administrators',

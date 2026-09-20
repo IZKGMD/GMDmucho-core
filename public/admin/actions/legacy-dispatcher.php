@@ -30,25 +30,53 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
             $id=(int)$_POST['id'];
 
-            $allowedRoles=[
-                'user',
-                'helper',
-                'moderator',
-                'admin',
-                'owner'
+            $aliases=[
+                'mod'=>'moderator',
+                'helper'=>'moderator',
+                'elder'=>'moderator'
             ];
 
-            $role=(string)$_POST['role'];
+            $role=strtolower(trim((string)$_POST['role']));
+            $role=$aliases[$role] ?? $role;
 
-            if (!in_array($role,$allowedRoles,true)) {
+            if (!in_array($role,['user','moderator','admin','owner'],true)) {
                 throw new RuntimeException('Bad role');
+            }
+
+            $target=$db->prepare(
+                'SELECT COALESCE(r.code,"user") AS role_code
+                 FROM accounts a
+                 LEFT JOIN roles r ON r.id=a.role_id
+                 WHERE a.account_id=:id
+                 LIMIT 1'
+            );
+            $target->execute(['id'=>$id]);
+            $targetRole=strtolower((string)($target->fetchColumn() ?: 'user'));
+
+            if (
+                rank((string)(admin()['role'] ?? '')) < 40 &&
+                ($targetRole==='owner' || $role==='owner')
+            ) {
+                throw new RuntimeException(
+                    'Only an owner can modify owner accounts.'
+                );
+            }
+
+            $roleQuery=$db->prepare(
+                'SELECT id FROM roles WHERE code=:role LIMIT 1'
+            );
+            $roleQuery->execute(['role'=>$role]);
+            $roleId=(int)$roleQuery->fetchColumn();
+
+            if ($roleId<=0) {
+                throw new RuntimeException('Role not found');
             }
 
             $q=$db->prepare(
                 'UPDATE accounts SET
                     username=:username,
                     email=:email,
-                    role=:role,
+                    role_id=:role_id,
                     is_active=:active,
                     is_banned=:banned
                  WHERE account_id=:id'
@@ -65,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     0,
                     254
                 ),
-                'role'=>$role,
+                'role_id'=>$roleId,
                 'active'=>isset($_POST['active'])?1:0,
                 'banned'=>isset($_POST['banned'])?1:0,
                 'id'=>$id

@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+use MuchoCore\Security\ClientIp;
+
 /*
  * MuchoCore API Security
  * Copyright (C) 2026 IZK
@@ -38,13 +40,7 @@ function muchoV2RequestId(): string
 
 function muchoV2ClientIp(): string
 {
-    $ip=(string)(
-        $_SERVER['HTTP_CF_CONNECTING_IP']
-        ?? $_SERVER['REMOTE_ADDR']
-        ?? ''
-    );
-
-    return substr($ip,0,45);
+    return ClientIp::detect($_SERVER);
 }
 
 

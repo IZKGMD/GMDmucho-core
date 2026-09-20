@@ -23,8 +23,60 @@ if(empty($_SESSION['admin'])){
     exit;
 }
 
+function legacyAdminRank(string $role): int
+{
+    return match (strtolower($role)) {
+        'owner' => 40,
+        'admin' => 30,
+        'moderator' => 20,
+        'viewer' => 10,
+        default => 0,
+    };
+}
+
 $db=(new Database())->connection();
 $db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+
+/*
+ * The monitoring API must not trust a stale session role. Refresh the
+ * account from the database so disabling/demoting an admin takes effect
+ * immediately in this endpoint too.
+ */
+$currentAdminId=(int)($_SESSION['admin']['id'] ?? 0);
+
+if($currentAdminId<=0){
+    http_response_code(403);
+    echo json_encode(['error'=>'Unauthorized']);
+    exit;
+}
+
+$adminQuery=$db->prepare(
+    'SELECT id,username,role,is_active
+     FROM admin_users
+     WHERE id=:id
+     LIMIT 1'
+);
+$adminQuery->execute(['id'=>$currentAdminId]);
+$currentAdmin=$adminQuery->fetch(PDO::FETCH_ASSOC);
+
+if(
+    !$currentAdmin ||
+    (int)$currentAdmin['is_active']!==1
+){
+    $_SESSION=[];
+    session_destroy();
+
+    http_response_code(403);
+    echo json_encode(['error'=>'Unauthorized']);
+    exit;
+}
+
+$_SESSION['admin']['username']=(string)$currentAdmin['username'];
+$_SESSION['admin']['role']=(string)$currentAdmin['role'];
+
+$currentAdminRank=legacyAdminRank(
+    (string)$currentAdmin['role']
+);
 
 $db->exec("
 CREATE TABLE IF NOT EXISTS admin_notifications (
@@ -114,6 +166,11 @@ function localEndpoint(string $path): array
 $kind=(string)($_GET['kind'] ?? 'health');
 
 if($kind==='health'){
+    if ($currentAdminRank < 40) {
+        http_response_code(403);
+        echo json_encode(['error'=>'Forbidden']);
+        exit;
+    }
 
     $raw=(string)shell_exec(
         'sudo /usr/local/sbin/mucho-admin-ops status 2>&1'
@@ -164,6 +221,11 @@ if($kind==='health'){
 }
 
 if($kind==='logs'){
+    if ($currentAdminRank < 40) {
+        http_response_code(403);
+        echo json_encode(['error'=>'Forbidden']);
+        exit;
+    }
 
     $type=(string)($_GET['type'] ?? 'php');
 

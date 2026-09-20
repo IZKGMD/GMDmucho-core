@@ -20,11 +20,12 @@ final readonly class ModerationRepository
     public function getAccountRole(int $accountId): string
     {
         $q=$this->pdo->prepare(
-            'SELECT role
-             FROM accounts
-             WHERE account_id=:id
-               AND is_active=1
-               AND is_banned=0
+            'SELECT r.code
+             FROM accounts a
+             LEFT JOIN roles r ON r.id = a.role_id
+             WHERE a.account_id=:id
+               AND a.is_active=1
+               AND a.is_banned=0
              LIMIT 1'
         );
 
