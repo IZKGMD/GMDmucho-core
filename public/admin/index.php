@@ -1708,7 +1708,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
             $allowedRoles=[
                 'user',
-                'helper',
                 'moderator',
                 'admin',
                 'owner'
@@ -1720,11 +1719,25 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 throw new RuntimeException('Bad role');
             }
 
+            $roleQuery=$db->prepare(
+                'SELECT id
+                 FROM roles
+                 WHERE code=:code
+                 LIMIT 1'
+            );
+            $roleQuery->execute(['code'=>$role]);
+
+            $roleId=(int)$roleQuery->fetchColumn();
+
+            if ($roleId<=0) {
+                throw new RuntimeException('Role not found.');
+            }
+
             $q=$db->prepare(
                 'UPDATE accounts SET
                     username=:username,
                     email=:email,
-                    role=:role,
+                    role_id=:role_id,
                     is_active=:active,
                     is_banned=:banned
                  WHERE account_id=:id'
@@ -1741,7 +1754,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     0,
                     254
                 ),
-                'role'=>$role,
+                'role_id'=>$roleId,
                 'active'=>isset($_POST['active'])?1:0,
                 'banned'=>isset($_POST['banned'])?1:0,
                 'id'=>$id
