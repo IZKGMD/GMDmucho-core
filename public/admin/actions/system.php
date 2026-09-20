@@ -80,7 +80,18 @@ if ($action==='settings-save') {
                 array_key_exists('server_version', $_POST) ||
                 array_key_exists('cloud_save_max_mb', $_POST) ||
                 array_key_exists('level_max_mb', $_POST) ||
-                array_key_exists('custom_content_url', $_POST)
+                array_key_exists('custom_content_url', $_POST) ||
+                array_key_exists('site_name', $_POST) ||
+                array_key_exists('site_tagline', $_POST) ||
+                array_key_exists('site_description', $_POST) ||
+                array_key_exists('site_logo', $_POST) ||
+                array_key_exists('site_accent', $_POST) ||
+                array_key_exists('site_accent2', $_POST) ||
+                array_key_exists('site_github', $_POST) ||
+                array_key_exists('site_discord', $_POST) ||
+                array_key_exists('site_telegram', $_POST) ||
+                array_key_exists('site_client', $_POST) ||
+                array_key_exists('site_copyright', $_POST)
             ) {
                 $file = CONTROL_DIR.'/settings.json';
 
@@ -139,6 +150,61 @@ if ($action==='settings-save') {
                         throw new RuntimeException('Custom content URL is invalid.');
                     }
 
+                    $siteName = trim((string)($_POST['site_name'] ?? ''));
+                    $siteTagline = trim((string)($_POST['site_tagline'] ?? ''));
+                    $siteDescription = trim((string)($_POST['site_description'] ?? ''));
+                    $siteLogo = trim((string)($_POST['site_logo'] ?? ''));
+                    $siteAccent = trim((string)($_POST['site_accent'] ?? ''));
+                    $siteAccent2 = trim((string)($_POST['site_accent2'] ?? ''));
+                    $siteGithub = trim((string)($_POST['site_github'] ?? ''));
+                    $siteDiscord = trim((string)($_POST['site_discord'] ?? ''));
+                    $siteTelegram = trim((string)($_POST['site_telegram'] ?? ''));
+                    $siteClient = trim((string)($_POST['site_client'] ?? ''));
+                    $siteCopyright = trim((string)($_POST['site_copyright'] ?? ''));
+
+                    foreach ([
+                        'site_name' => [$siteName, 64],
+                        'site_tagline' => [$siteTagline, 120],
+                        'site_description' => [$siteDescription, 240],
+                        'site_logo' => [$siteLogo, 32],
+                        'site_copyright' => [$siteCopyright, 120],
+                    ] as $field => [$value, $max]) {
+                        if (
+                            $value === '' ||
+                            strlen($value) > $max ||
+                            preg_match('/[\x00-\x1F\x7F]/', $value)
+                        ) {
+                            throw new RuntimeException('Invalid ' . $field . '.');
+                        }
+                    }
+
+                    foreach ([
+                        'site_accent' => $siteAccent,
+                        'site_accent2' => $siteAccent2,
+                    ] as $field => $color) {
+                        if (preg_match('/^#[0-9a-fA-F]{6}$/', $color) !== 1) {
+                            throw new RuntimeException('Invalid ' . $field . '. Use #RRGGBB.');
+                        }
+                    }
+
+                    foreach ([
+                        'site_github' => $siteGithub,
+                        'site_discord' => $siteDiscord,
+                        'site_telegram' => $siteTelegram,
+                        'site_client' => $siteClient,
+                    ] as $field => $url) {
+                        if (
+                            $url !== '' &&
+                            (
+                                filter_var($url, FILTER_VALIDATE_URL) === false ||
+                                !preg_match('~^https://~i', $url) ||
+                                strlen($url) > 512
+                            )
+                        ) {
+                            throw new RuntimeException('Invalid ' . $field . '.');
+                        }
+                    }
+
                     $settings = [
                         'MUCHO_SERVER_NAME' => $name,
                         'MUCHO_SERVER_VERSION' => $version,
@@ -147,6 +213,18 @@ if ($action==='settings-save') {
                         'MUCHO_CLOUD_SAVE_MAX_MB' => (string)$cloudMb,
                         'MUCHO_LEVEL_MAX_MB' => (string)$levelMb,
                         'MUCHO_CUSTOM_CONTENT_URL' => $customUrl,
+
+                        'MUCHO_SITE_NAME' => $siteName,
+                        'MUCHO_SITE_TAGLINE' => $siteTagline,
+                        'MUCHO_SITE_DESCRIPTION' => $siteDescription,
+                        'MUCHO_SITE_LOGO' => $siteLogo,
+                        'MUCHO_SITE_ACCENT' => $siteAccent,
+                        'MUCHO_SITE_ACCENT2' => $siteAccent2,
+                        'MUCHO_SITE_GITHUB_URL' => $siteGithub,
+                        'MUCHO_SITE_DISCORD_URL' => $siteDiscord,
+                        'MUCHO_SITE_TELEGRAM_URL' => $siteTelegram,
+                        'MUCHO_SITE_CLIENT_URL' => $siteClient,
+                        'MUCHO_SITE_COPYRIGHT' => $siteCopyright,
                     ];
 
                     $tmp = $file.'.tmp';
