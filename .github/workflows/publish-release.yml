@@ -5,13 +5,11 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-
 jobs:
   publish:
-    if: ${{ github.repository == 'IZKGMD/GMDmucho-core' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,6 +29,7 @@ jobs:
 
           gh release create v1.0.1 mucho-core.zip \
             --title "MuchoCore v1.0.1" \
+            --target "${GITHUB_SHA}" \
             --notes "Bugfix and packaging release.
 
 Includes the complete MuchoCore source tree, including the Windows client patcher tools."
