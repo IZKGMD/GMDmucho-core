@@ -10,7 +10,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0client-patcher.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File "%~dp0client-patcher.ps1"
 if errorlevel 1 (
   echo.
   echo The patch was not completed.
