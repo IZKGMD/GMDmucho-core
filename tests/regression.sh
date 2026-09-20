@@ -550,6 +550,58 @@ post loginGJAccount \
 expect_eq "Reject wrong password" "$BAD_LOGIN" "-1"
 
 echo
+echo "===== CLOUD SAVE AUTH ====="
+
+CB2="$(
+post backupGJAccount20 \
+    -d "accountID=$AID2" \
+    -d "gjp2=$P2" \
+    --data-urlencode 'saveData=MUCHO_V8_ACCOUNT_B'
+)"
+
+expect_eq "Legitimate cloud save backup" "$CB2" "1"
+
+BAD_ACCOUNT_CREDENTIAL="$(
+post backupGJAccount20 \
+    -d "accountID=$AID2" \
+    -d "gjp2=$P1" \
+    --data-urlencode 'saveData=MUCHO_V8_INVALID'
+)"
+
+expect_eq "Reject mismatched cloud save credential" "$BAD_ACCOUNT_CREDENTIAL" "-1"
+
+SAFE_SYNC="$(
+post syncGJAccount20 \
+    -d "accountID=$AID2" \
+    -d "gjp2=$P2"
+)"
+
+expect_contains "Cloud save remains unchanged" "$SAFE_SYNC" "MUCHO_V8_ACCOUNT_B"
+
+BAD_SYNC_CREDENTIAL="$(
+post syncGJAccount20 \
+    -d "accountID=$AID2" \
+    -d "gjp2=$P1"
+)"
+
+expect_eq "Reject mismatched cloud save sync credential" "$BAD_SYNC_CREDENTIAL" "-1"
+
+echo
+echo "===== ROLE SCHEMA STATIC CHECK ====="
+
+ROLE_ACCOUNT_ACTION="$(grep -c 'role_id=:role_id' public/admin/actions/accounts.php || true)"
+ROLE_ACCOUNT_OLD="$(grep -c 'role=:role' public/admin/actions/accounts.php || true)"
+ROLE_PLAYERS_JOIN="$(grep -c 'LEFT JOIN roles' public/admin/pages/players.php || true)"
+ROLE_PROFILE_JOIN="$(grep -c 'LEFT JOIN roles' public/admin/pages/muchoprofiles.php || true)"
+ROLE_REPO_OLD="$(grep -c 'a\.role AS role_code' src/User/UserRepository.php || true)"
+
+expect_eq "Admin account-save uses role_id" "$ROLE_ACCOUNT_ACTION" "1"
+expect_eq "Admin account-save has no legacy role update" "$ROLE_ACCOUNT_OLD" "0"
+expect_eq "Players page joins roles" "$ROLE_PLAYERS_JOIN" "1"
+expect_eq "Mucho Profiles page joins roles" "$ROLE_PROFILE_JOIN" "1"
+expect_eq "UserRepository has no legacy role column" "$ROLE_REPO_OLD" "0"
+
+echo
 echo "===== USER CORE ====="
 
 US="$(

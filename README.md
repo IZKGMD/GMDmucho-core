@@ -2,6 +2,19 @@
 
 MuchoCore is a Geometry Dash private server (GDPS) backend.
 
+## Recommended hosting
+
+**VPS is the recommended way to run MuchoCore.**
+
+Why:
+
+- full control over Docker, MariaDB and PHP;
+- easier updates and backups;
+- better fit for a real GDPS with many players;
+- fewer restrictions than normal shared hosting.
+
+Shared hosting is supported for easier testing and small installations, but for a real public GDPS use a VPS.
+
 ## Choose how you host MuchoCore
 
 There are two supported deployment styles.
@@ -45,6 +58,39 @@ The shared-hosting mode requires PHP 8.3+ and MySQL/MariaDB. It does not use Doc
 For the VPS installer, the script asks for your domain and admin password and generates the database secrets automatically. The shared-hosting browser installer asks for your hosting database details.
 
 The admin panel username is always `admin`.
+
+## Design principles
+
+Our main rule: **simplicity and reliability**. See `docs/DESIGN_PRINCIPLES.md`.
+
+## v1.0.1 maintenance notes
+
+Full maintainer notes for the current v1.0.1 maintenance work: `docs/releases/v1.0.1-maintenance.md`.
+
+## Project structure for beginners
+
+Не нужно разбираться во всём проекте сразу.
+
+- игроки, вход и регистрация → src/Account/
+- профиль и статистика → src/User/
+- уровни → src/Level/
+- рекорды → src/Score/
+- друзья и сообщения → src/Social/
+- комментарии и лайки → src/Interaction/
+- сохранения → src/CloudSave/
+- музыка → src/Music/
+- модерация → src/Moderation/
+- ответы в формате Geometry Dash → src/Protocol/
+- база данных → database/migrations/
+- админка → public/admin/
+- тесты → tests/
+- Docker → docker/
+
+Главная цепочка запроса:
+
+Geometry Dash → public/index.php → Controller → Service → Repository → Database
+
+Полная простая схема: docs/SIMPLE_STRUCTURE.md.
 
 ## After installation
 

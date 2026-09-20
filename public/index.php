@@ -109,6 +109,16 @@ try {
     while (ob_get_level() > 0) {
         ob_end_clean();
     }
+
+    error_log(sprintf(
+        '[MuchoCore] request_id=%s top_level_failure method=%s path=%s exception=%s message=%s',
+        (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
+        (string)($_SERVER['REQUEST_METHOD'] ?? '-'),
+        (string)($_SERVER['REQUEST_URI'] ?? '-'),
+        $e::class,
+        $e->getMessage()
+    ));
+
     http_response_code(200);
     header('Content-Type: text/plain; charset=utf-8');
     echo '-1';
