@@ -36,7 +36,7 @@ final class CommentRepository
         $stmt = $this->db->prepare(
             "SELECT c.*,
                     a.username, r.code AS role,
-                    p.cube, p.color1, p.color2, p.special
+                    p.user_id, p.cube, p.color1, p.color2, p.special
              FROM comments c
              JOIN accounts a ON c.account_id = a.account_id
              LEFT JOIN roles r ON r.id = a.role_id
