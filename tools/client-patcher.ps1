@@ -6,7 +6,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$DefaultServer = 'https://muchogdps.space'
+$DefaultServer = ''
 $Latin1 = [System.Text.Encoding]::GetEncoding(28591)
 
 function Get-UrlBytesLength {
@@ -33,7 +33,7 @@ function Get-CompatibilityPath {
     }
 
     if ($uri.PathAndQuery -ne '/' -and $uri.PathAndQuery -ne '') {
-        throw 'Enter only the server address, for example https://muchogdps.space'
+        throw 'Enter only the server address, for example https://gdps.example.com'
     }
 
     $hostPart = $uri.Host
@@ -86,7 +86,7 @@ function Get-CompatibilityPath {
 }
 
 if ($SelfTest) {
-    $testServer = 'https://muchogdps.space'
+    $testServer = 'https://gdps.example.com'
     foreach ($length in @(34, 33, 29, 28, 26)) {
         $value = Get-CompatibilityPath -Server $testServer -DesiredLength $length
         if ((Get-UrlBytesLength $value) -ne $length) {
@@ -96,12 +96,12 @@ if ($SelfTest) {
     }
 
     $expected26 = Get-CompatibilityPath -Server $testServer -DesiredLength 26 -Bare
-    if ($expected26 -ne 'muchogdps.space/a/database') {
+    if ($expected26 -notlike 'gdps.example.com/*') {
         throw "Self-test produced an unexpected bare URL: $expected26"
     }
 
     $expected34 = Get-CompatibilityPath -Server $testServer -DesiredLength 34
-    if ($expected34 -ne 'https://muchogdps.space/a/database') {
+    if ((Get-UrlBytesLength $expected34) -ne 34 -or -not $expected34.StartsWith('https://gdps.example.com/')) {
         throw "Self-test produced an unexpected 34-byte URL: $expected34"
     }
 
@@ -336,13 +336,13 @@ $title.Location = New-Object System.Drawing.Point(24, 20)
 $form.Controls.Add($title)
 
 $hint = New-Object System.Windows.Forms.Label
-$hint.Text = 'Choose your original GeometryDash.exe. The original file is never overwritten.'
+$hint.Text = 'Choose GeometryDash.exe and enter your GDPS server address. The original file is never overwritten.'
 $hint.AutoSize = $true
 $hint.Location = New-Object System.Drawing.Point(26, 58)
 $form.Controls.Add($hint)
 
 $serverLabel = New-Object System.Windows.Forms.Label
-$serverLabel.Text = 'MuchoCore server:'
+$serverLabel.Text = 'MuchoCore server (required):'
 $serverLabel.AutoSize = $true
 $serverLabel.Location = New-Object System.Drawing.Point(26, 95)
 $form.Controls.Add($serverLabel)
