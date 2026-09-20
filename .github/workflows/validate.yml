@@ -34,7 +34,7 @@ jobs:
 
       - name: Check for fixed personal GDPS domain
         run: |
-          ! grep -RniE 'https?://muchogdps\.space|muchogdps\.space'             tools config src public docs README.md
+          ! git grep -niE 'muchogdps[.]space' --             ':!.github/workflows/validate.yml'
 
       - name: Check required files
         run: |
