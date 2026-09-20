@@ -35,7 +35,15 @@ jobs:
           test -f docker-compose.yml
           test -f docker/Dockerfile
           test -f docker/Caddyfile
+          test -f docker/app-entrypoint.sh
           test -f tools/client-patch.bat
+          test -f tools/client-patcher.ps1
+
+      - name: Check runtime environment handling
+        run: |
+          ! grep -q 'cat > .env' docker/app-entrypoint.sh
+          grep -q '/var/lib/muchocore/runtime.env' docker/app-entrypoint.sh
+          grep -q 'createMutable' src/Database/Database.php
 
       - name: Check Caddy configuration
         run: |
