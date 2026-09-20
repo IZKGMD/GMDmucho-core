@@ -23,10 +23,7 @@ final readonly class CloudSaveService
 
     public function backup(array $data): string
     {
-        $accountId = (int)($data['accountID'] ?? 0);
-        if ($accountId <= 0) {
-            $accountId = $this->authenticate($data);
-        }
+        $accountId = $this->authenticateAccount($data);
 
         $saveData = $data['saveData'] ?? null;
 
@@ -35,6 +32,7 @@ final readonly class CloudSaveService
         }
 
         $size = strlen($saveData);
+
         $maxBytes = Settings::int(
             'MUCHO_CLOUD_SAVE_MAX_MB',
             32,
@@ -53,21 +51,7 @@ final readonly class CloudSaveService
 
     public function sync(array $data): string
     {
-        $accountId = (int)($data['accountID'] ?? 0);
-
-        if ($accountId <= 0) {
-            $username = trim((string)($data['userName'] ?? $data['username'] ?? ''));
-            if ($username !== '') {
-                $q = $this->db->prepare("SELECT account_id FROM accounts WHERE username = :username LIMIT 1");
-                $q->execute(['username' => $username]);
-                $accountId = (int)$q->fetchColumn();
-            }
-        }
-
-        if ($accountId <= 0) {
-            return '-1';
-        }
-
+        $accountId = $this->authenticateAccount($data);
         $saveData = $this->repository->load($accountId);
 
         if ($saveData === null || $saveData === '') {
@@ -76,7 +60,7 @@ final readonly class CloudSaveService
 
         $saveData = trim($saveData);
 
-        // GD протокол требует суффикс ;21;30;a;a для корректного разбора сейва клиентом
+        // GD protocol expects the save-version suffix.
         if (!str_contains($saveData, ';21;30;a;a')) {
             $saveData .= ';21;30;a;a';
         }
@@ -84,26 +68,41 @@ final readonly class CloudSaveService
         return $saveData;
     }
 
-    private function authenticate(array $data): int
+    private function authenticateAccount(array $data): int
     {
         $accountId = (int)($data['accountID'] ?? 0);
-        $username = trim((string)($data['userName'] ?? $data['username'] ?? ''));
+        $username = trim(
+            (string)($data['userName'] ?? $data['username'] ?? '')
+        );
 
         if ($accountId <= 0 && $username !== '') {
-            $q = $this->db->prepare("
-                SELECT account_id
-                FROM accounts
-                WHERE username = :username
-                LIMIT 1
-            ");
-            $q->execute(['username' => $username]);
+            $q = $this->db->prepare(
+                'SELECT account_id
+                 FROM accounts
+                 WHERE username = :username
+                 LIMIT 1'
+            );
+
+            $q->execute([
+                'username' => $username
+            ]);
+
             $accountId = (int)$q->fetchColumn();
         }
 
-        if ($accountId <= 0) {
-            throw new RuntimeException('Unknown cloud save account.');
+        $credential = trim(
+            (string)($data['gjp2'] ?? $data['gjp'] ?? '')
+        );
+
+        if ($accountId <= 0 || $credential === '') {
+            throw new RuntimeException('Unauthorized.');
         }
 
-        return $accountId;
+        $account = $this->auth->authenticate(
+            $accountId,
+            $credential
+        );
+
+        return (int)$account['account_id'];
     }
 }
