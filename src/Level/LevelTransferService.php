@@ -188,9 +188,9 @@ final readonly class LevelTransferService
                 100
             ),
 
-            'is_unlisted' => $this->boolInt(
+            'is_unlisted' => $this->firstBoolInt(
                 $data,
-                'unlisted'
+                ['unlisted2', 'unlisted1', 'unlisted']
             ),
 
             'wt' => $this->intField(
@@ -301,6 +301,19 @@ final readonly class LevelTransferService
         return $response;
     }
 
+
+    private function firstBoolInt(
+        array $data,
+        array $keys
+    ): int {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $data) && $data[$key] !== '') {
+                return $this->boolInt($data, $key);
+            }
+        }
+
+        return 0;
+    }
 
     private function resolveTimelyLevel(
         int $negativeId
