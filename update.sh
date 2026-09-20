@@ -98,7 +98,16 @@ BACKUP_FINAL="$ROOT/backups/pre-update/$BACKUP_BASE"
 
 echo "[MuchoCore] Creating pre-update database backup..."
 
-if ! docker compose exec -T db     sh -c "mariadb-dump         --single-transaction         --quick         --triggers         --hex-blob         --default-character-set=utf8mb4         -u root         --password="\$(cat /run/secrets/db_root_password)"         "$DB_NAME"" |
+if ! docker compose exec -T db \
+    sh -c 'mariadb-dump \
+        --single-transaction \
+        --quick \
+        --triggers \
+        --hex-blob \
+        --default-character-set=utf8mb4 \
+        -u root \
+        --password="$(cat /run/secrets/db_root_password)" \
+        "$1"' sh "$DB_NAME" |\
     gzip -9 > "$BACKUP_TMP"
 then
     rm -f "$BACKUP_TMP"
