@@ -30,6 +30,7 @@ jobs:
           php tests/legacy-endpoint-compatibility.php
           php tests/legacy-endpoint-surface.php
           php tests/schema-contract.php
+          php tests/security-compatibility.php
           php tests/router-compatibility.php
           php tests/settings.php
           php tests/role-schema.php
