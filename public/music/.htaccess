@@ -1,0 +1,6 @@
+# Copyright (C) 2026 IZK
+Options -Indexes
+AddType audio/mpeg .mp3
+<FilesMatch "\.(php|phtml|phar|cgi|pl|py|sh)$">
+    Require all denied
+</FilesMatch>
