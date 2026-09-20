@@ -173,17 +173,22 @@ final class CommentService
     public function getLevelComments(
         int $levelId,
         int $page,
-        int $gameVersion = 0
+        int $gameVersion = 0,
+        int $limit = 10
     ): string {
-        $limit = 100;
+        $limit = min(100, max(1, $limit));
+
         $comments = $this->repository->getLevelComments(
             $levelId,
             $page,
             $limit
         );
 
+        $total = $this->repository->countLevelComments($levelId);
+        $offset = max(0, $page) * $limit;
+
         if (empty($comments)) {
-            return "#0:0:10";
+            return '#' . $total . ':' . $offset . ':0';
         }
 
         $encodedComments = [];
@@ -210,7 +215,8 @@ final class CommentService
             );
         }
 
-        return implode("|", $encodedComments) . "#999:" . ($page * $limit) . ":" . $limit;
+        return implode("|", $encodedComments)
+            . '#' . $total . ':' . $offset . ':' . count($comments);
     }
 
     public function uploadAccountComment(int $accountId, string $gjp, string $content): int
@@ -249,11 +255,18 @@ final class CommentService
 
     public function getAccountComments(int $accountId, int $page): string
     {
-        $limit = 100;
-        $comments = $this->repository->getAccountComments($accountId, $page, $limit);
+        $limit = 10;
+        $comments = $this->repository->getAccountComments(
+            $accountId,
+            $page,
+            $limit
+        );
+
+        $total = $this->repository->countAccountComments($accountId);
+        $offset = max(0, $page) * $limit;
 
         if (empty($comments)) {
-            return "#0:0:10";
+            return '#' . $total . ':' . $offset . ':0';
         }
 
         $encoded = [];
@@ -261,7 +274,8 @@ final class CommentService
             $encoded[] = $this->encoder->encodeAccountComment($comment);
         }
 
-        return implode("|", $encoded) . "#999:" . ($page * $limit) . ":" . $limit;
+        return implode("|", $encoded)
+            . '#' . $total . ':' . $offset . ':' . count($comments);
     }
 
     public function deleteComment(int $commentId, int $accountId, string $gjp): bool
