@@ -30,7 +30,7 @@ final readonly class ClientVersion
                 $gameVersion = 21;
             } elseif (
                 preg_match(
-                    '/(?:19|20|21|22)(?:\.php)?(?:\/)?$/',
+                    '/(19|20|21|22)(?:\.php)?(?:\/)?$/',
                     $path,
                     $m
                 ) === 1
