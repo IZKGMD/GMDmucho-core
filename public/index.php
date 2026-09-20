@@ -107,8 +107,8 @@ try {
         '/reportgjlevel'        => [10, 60],
     ];
 
-    if ($request->method === 'POST' && isset($limits[$path])) {
-        [$limit, $window] = $limits[$path];
+    if ($request->method === 'POST') {
+        [$limit, $window] = $limits[$path] ?? [240, 60];
         $rateLimiter = new RateLimiter();
 
         $allowed = $rateLimiter->allow(
