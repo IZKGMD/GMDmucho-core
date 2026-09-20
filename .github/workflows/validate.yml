@@ -67,7 +67,6 @@ jobs:
         run: bash tests/client-contract.sh
 
   publish-release:
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: validate
     runs-on: ubuntu-latest
     permissions:
@@ -80,6 +79,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
+
+          if [ "$GITHUB_EVENT_NAME" != "push" ] || [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Release publishing is only enabled for pushes to main."
+            exit 0
+          fi
 
           if gh release view v1.0.1 >/dev/null 2>&1; then
             echo "v1.0.1 already exists."
