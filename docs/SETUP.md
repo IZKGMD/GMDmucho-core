@@ -24,7 +24,7 @@ For a completely pre-filled install:
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh | sudo bash -s -- --domain gdps.example.com
 ```
 
-The admin password is generated automatically on a new installation and printed once at the end.
+On a new installation, the user creates the admin password. The installer asks for it twice and checks that both entries match.
 
 ### Domain setup
 
