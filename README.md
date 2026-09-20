@@ -59,6 +59,10 @@ For the VPS installer, the script asks for your domain and admin password and ge
 
 The admin panel username is always `admin`.
 
+## v1.0.1 maintenance notes
+
+Full maintainer notes for the current v1.0.1 maintenance work: `docs/releases/v1.0.1-maintenance.md`.
+
 ## Project structure for beginners
 
 Не нужно разбираться во всём проекте сразу.
