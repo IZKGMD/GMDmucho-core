@@ -83,6 +83,8 @@ MUCHO_LEVEL_MAX_MB=32
 
 Full beginner guide: [`config/SETTINGS.md`](config/SETTINGS.md).
 
+Site Builder guide: [`docs/SITE_BUILDER.md`](docs/SITE_BUILDER.md).
+
 ## After installation
 
 Open:
