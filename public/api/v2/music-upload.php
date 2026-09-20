@@ -15,6 +15,10 @@ const MUSIC_MAX = 20 * 1024 * 1024;
 const MUSIC_COOLDOWN = 180;
 
 try {
+    if (!is_dir(MUSIC_DIR) && !mkdir(MUSIC_DIR, 0750, true) && !is_dir(MUSIC_DIR)) {
+        throw new RuntimeException('music_directory_unavailable');
+    }
+
     $db = muchoV2Db();
 
     $title = trim((string)($_POST['title'] ?? ''));
@@ -60,11 +64,7 @@ try {
         muchoV2Fail('mp3_only',415);
     }
 
-    $ip = (string)(
-        $_SERVER['HTTP_CF_CONNECTING_IP']
-        ?? $_SERVER['REMOTE_ADDR']
-        ?? ''
-    );
+    $ip = ClientIp::detect($_SERVER);
 
     $db->beginTransaction();
 
