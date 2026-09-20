@@ -107,6 +107,17 @@ final class Router
             '/syncgjaccount19' => '/syncGJAccount',
             '/syncgjaccount20' => '/syncGJAccount',
 
+            // Unversioned/legacy level endpoints.
+            '/getgjlevels' => '/getGJLevels21',
+            '/getgjlevels19' => '/getGJLevels21',
+            '/getgjlevels20' => '/getGJLevels21',
+            '/downloadgjlevel' => '/downloadGJLevel21',
+            '/downloadgjlevel19' => '/downloadGJLevel21',
+            '/downloadgjlevel20' => '/downloadGJLevel21',
+            '/uploadgjlevel' => '/uploadGJLevel21',
+            '/uploadgjlevel19' => '/uploadGJLevel21',
+            '/uploadgjlevel20' => '/uploadGJLevel21',
+
             // Level discovery and transfer.
             '/getgjlevels' => '/getGJLevels21',
             '/getgjlevels19' => '/getGJLevels21',
@@ -118,6 +129,15 @@ final class Router
             '/uploadgjlevel' => '/uploadGJLevel21',
             '/uploadgjlevel19' => '/uploadGJLevel21',
             '/uploadgjlevel20' => '/uploadGJLevel21',
+
+            // Extra legacy core endpoints.
+            '/getgjlevellists' => '/getGJLevelLists',
+            '/uploadgjlevellist' => '/uploadGJLevelList',
+            '/deletegjlevellist' => '/deleteGJLevelList',
+            '/getgjcommenthistory' => '/getGJCommentHistory',
+            '/getgjtopartists' => '/getGJTopArtists',
+            '/getaccounturl' => '/getAccountURL',
+            '/getcustomcontenturl' => '/getCustomContentURL',
 
             // Comments and likes.
             '/getgjcomments' => '/getGJComments21',
@@ -144,13 +164,17 @@ final class Router
             '/getgjusers22' => '/getGJUsers20',
             '/getgjscores' => '/getGJScores20',
             '/getgjscores19' => '/getGJScores20',
+            '/getgjscores20' => '/getGJScores20',
             '/getgjscores21' => '/getGJScores20',
+            '/getgjscores22' => '/getGJScores20',
             '/getgjscores22' => '/getGJScores20',
             '/updategjdesc20' => '/updateGJLevelDesc20',
             '/updategjaccsettings19' => '/updateGJAccSettings20',
             '/updategjaccsettings21' => '/updateGJAccSettings20',
             '/updategjaccsettings22' => '/updateGJAccSettings20',
             '/updategjuserscore19' => '/updateGJUserScore',
+            '/updategjuserscore20' => '/updateGJUserScore',
+            '/updategjuserscore21' => '/updateGJUserScore',
             '/updategjuserscore20' => '/updateGJUserScore',
             '/updategjuserscore21' => '/updateGJUserScore',
             '/updategjuserscore22' => '/updategjuserscore22',
