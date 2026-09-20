@@ -15,8 +15,8 @@ chown www-data:www-data /var/lib/muchocore-control /var/lib/muchocore-backups
 cat > /var/lib/muchocore/runtime.env <<EOFENV
 DB_HOST=db
 DB_PORT=3306
-DB_NAME=\${DB_NAME:-muchocore}
-DB_USER=\${DB_USER:-muchocore_user}
+DB_NAME=${DB_NAME:-muchocore}
+DB_USER=${DB_USER:-muchocore_user}
 DB_PASS=$DB_PASS
 EOFENV
 chmod 600 /var/lib/muchocore/runtime.env
