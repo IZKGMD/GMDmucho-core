@@ -228,7 +228,7 @@ function Invoke-Patch {
     }
 
     if ($serverUri.PathAndQuery -ne '/' -and $serverUri.PathAndQuery -ne '') {
-        throw 'Enter only the server address, for example https://muchogdps.space'
+        throw 'Enter only the server address, for example https://gdps.example.com'
     }
 
     if ($serverUri.Scheme -notin @('http', 'https')) {
