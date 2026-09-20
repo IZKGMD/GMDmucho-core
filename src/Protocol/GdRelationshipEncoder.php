@@ -32,7 +32,7 @@ final class GdRelationshipEncoder
                 15, $r['special'] ?? 0,
                 16, $peer,
                 32, $r['id'],
-                35, $r['comment'] ?? '',
+                35, ProtocolText::field($r['comment'] ?? '', 140),
                 41, ((int)$r['is_read'] === 0 ? 1 : 0),
                 37, $this->date((string)$r['created_at']),
             ]);
