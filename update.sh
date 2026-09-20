@@ -81,8 +81,9 @@ mkdir -p "$ROOT/backups/pre-update"
 chmod 700 "$ROOT/backups" "$ROOT/backups/pre-update"
 
 STAMP="$(date -u +%Y%m%d_%H%M%S)"
-BACKUP_TMP="$ROOT/backups/pre-update/$DB_NAME_$STAMP.sql.gz.tmp"
-BACKUP_FINAL="$ROOT/backups/pre-update/$DB_NAME_$STAMP.sql.gz"
+BACKUP_BASE="$(printf '%s_%s.sql.gz' "$DB_NAME" "$STAMP")"
+BACKUP_TMP="$ROOT/backups/pre-update/$BACKUP_BASE.tmp"
+BACKUP_FINAL="$ROOT/backups/pre-update/$BACKUP_BASE"
 
 echo "[MuchoCore] Creating pre-update database backup..."
 
