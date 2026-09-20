@@ -68,7 +68,7 @@ final readonly class LevelTransferController
          * the unversioned download endpoint as the oldest protocol family.
          * Versioned endpoints are inferred by ClientVersion.
          */
-        $gameVersion = $request->clientVersion()->gameVersion ?: 1;
+        $gameVersion = $request->clientVersion()->gameVersion ?: 18;
         $extras = $request->postInt('extras', 0) === 1;
 
         if (
