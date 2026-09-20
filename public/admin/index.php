@@ -4134,6 +4134,10 @@ echo '</table></div>';
 
 ?>
 
+<div class="admin-copyright" style="padding:18px 0 8px;color:#596579;font-size:10px;text-align:center">
+    MuchoControl · MuchoCore · Copyright © 2026 IZK · MIT License
+</div>
+
 </main>
 </div>
 
