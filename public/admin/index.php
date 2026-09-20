@@ -2163,6 +2163,25 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $id=(int)$_POST['id'];
             $password=(string)$_POST['new_password'];
 
+            $targetQuery=$db->prepare(
+                'SELECT COALESCE(r.code,"user")
+                 FROM accounts a
+                 LEFT JOIN roles r ON r.id=a.role_id
+                 WHERE a.account_id=:id
+                 LIMIT 1'
+            );
+            $targetQuery->execute(['id'=>$id]);
+            $targetRole=strtolower((string)($targetQuery->fetchColumn() ?: 'user'));
+
+            if (
+                rank((string)(admin()['role'] ?? '')) < 40 &&
+                $targetRole==='owner'
+            ) {
+                throw new RuntimeException(
+                    'Only an owner can reset an owner password.'
+                );
+            }
+
             if (strlen($password)<12 || strlen($password)>512) {
                 throw new RuntimeException(
                     'Password must be 12–512 characters.'
