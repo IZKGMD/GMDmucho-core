@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 use MuchoCore\Level\LevelTransferService;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+require dirname(__DIR__) . '/src/Level/LevelTransferService.php';
 
 $ref = new ReflectionClass(LevelTransferService::class);
 $service = $ref->newInstanceWithoutConstructor();
