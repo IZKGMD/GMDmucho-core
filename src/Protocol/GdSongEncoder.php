@@ -10,12 +10,12 @@ final class GdSongEncoder
     {
         $data = [
             1, $song['id'],
-            2, ProtocolText::field($song['name'] ?? '', 128),
+            2, ProtocolText::song($song['name'] ?? '', 128),
             3, $song['author_id'],
-            4, ProtocolText::field($song['author_name'] ?? '', 128),
+            4, ProtocolText::song($song['author_name'] ?? '', 128),
             5, round((float)$song['size'], 2),
             6, $song['youtube_video_id'] ?? '',
-            10, ProtocolText::field($song['download_url'] ?? '', 512),
+            10, ProtocolText::song($song['download_url'] ?? '', 512),
             7, $song['youtube_channel_id'] ?? '',
             8, (int)($song['is_verified'] ?? 0)
         ];
