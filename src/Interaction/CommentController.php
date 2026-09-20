@@ -77,7 +77,7 @@ final readonly class CommentController
     public function uploadAccountComment(Request $request): Response
     {
         $accountId = $request->postInt("accountID", 0) ?: (int)($_POST["accountID"] ?? 0);
-        $gjp = $this->getPostParam($request, "gjp") ?: $this->getPostParam($request, "gjp2");
+        $gjp = $request->gdCredential();
         $content = $this->getPostParam($request, "comment");
 
         if ($accountId <= 0 || $content === "") {
@@ -108,7 +108,7 @@ final readonly class CommentController
     {
         $commentId = $request->postInt("commentID", 0) ?: (int)($_POST["commentID"] ?? 0);
         $accountId = $request->postInt("accountID", 0) ?: (int)($_POST["accountID"] ?? 0);
-        $gjp = $this->getPostParam($request, "gjp") ?: $this->getPostParam($request, "gjp2");
+        $gjp = $request->gdCredential();
 
         try {
             return Response::text($this->service->deleteComment($commentId, $accountId, $gjp) ? "1" : "-1");
@@ -121,7 +121,7 @@ final readonly class CommentController
     {
         $commentId = $request->postInt("commentID", 0) ?: (int)($_POST["commentID"] ?? 0);
         $accountId = $request->postInt("accountID", 0) ?: (int)($_POST["accountID"] ?? 0);
-        $gjp = $this->getPostParam($request, "gjp") ?: $this->getPostParam($request, "gjp2");
+        $gjp = $request->gdCredential();
 
         try {
             return Response::text($this->service->deleteAccountComment($commentId, $accountId, $gjp) ? "1" : "-1");
