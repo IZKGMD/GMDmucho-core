@@ -5,9 +5,39 @@ use MuchoCore\Database\Database;
 
 require dirname(__DIR__,2).'/vendor/autoload.php';
 
-const ROOT_DIR='/var/www/mucho-core';
-const CONTROL_DIR='/var/lib/muchocore-control';
-const BACKUP_DIR='/var/www/mucho-core/backups/admin-v2';
+$db=(new Database())->connection();
+$db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+
+$rootDir=dirname(__DIR__,2);
+
+if (!defined('ROOT_DIR')) {
+    define('ROOT_DIR',$rootDir);
+}
+
+if (!defined('CONTROL_DIR')) {
+    define(
+        'CONTROL_DIR',
+        (string)(
+            $_ENV['MUCHO_CONTROL_DIR']
+            ?? getenv('MUCHO_CONTROL_DIR')
+            ?: $rootDir.'/storage/control'
+        )
+    );
+}
+
+if (!defined('BACKUP_DIR')) {
+    define(
+        'BACKUP_DIR',
+        (string)(
+            $_ENV['MUCHO_BACKUP_DIR']
+            ?? getenv('MUCHO_BACKUP_DIR')
+            ?: $rootDir.'/storage/backups/admin-v2'
+        )
+    );
+}
+
+@mkdir(CONTROL_DIR,0770,true);
+@mkdir(BACKUP_DIR,0770,true);
 
 ini_set('session.use_strict_mode','1');
 ini_set('session.cookie_httponly','1');
@@ -16,9 +46,6 @@ ini_set('session.cookie_samesite','Strict');
 
 session_name('MUCHO_ADMIN');
 session_start();
-
-$db=(new Database())->connection();
-$db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
 
 /* =========================================================
    ADMIN TABLES
@@ -59,7 +86,19 @@ $count=(int)$db->query(
 )->fetchColumn();
 
 if ($count===0) {
-    $cfg=require '/etc/muchocore-admin.php';
+    $bootstrapPath=(string)(
+        $_ENV['MUCHO_ADMIN_BOOTSTRAP']
+        ?? getenv('MUCHO_ADMIN_BOOTSTRAP')
+        ?: $rootDir.'/storage/admin-bootstrap.php'
+    );
+
+    if (!is_file($bootstrapPath)) {
+        throw new RuntimeException(
+            'Admin bootstrap file is missing: '.$bootstrapPath
+        );
+    }
+
+    $cfg=require $bootstrapPath;
 
     $q=$db->prepare(
         'INSERT INTO admin_users
@@ -193,8 +232,14 @@ function rootOp(string $op): string
         throw new RuntimeException('Operation denied.');
     }
 
+    $ops='/usr/local/sbin/mucho-admin-ops';
+
+    if (!is_executable($ops)) {
+        return 'This system operation is available on VPS installs only.';
+    }
+
     return (string)shell_exec(
-        'sudo /usr/local/sbin/mucho-admin-ops '.
+        'sudo '.$ops.' '.
         escapeshellarg($op).
         ' 2>&1'
     );
