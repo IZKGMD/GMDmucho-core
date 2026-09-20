@@ -90,9 +90,17 @@ final readonly class CloudSaveService
             $accountId = (int)$q->fetchColumn();
         }
 
-        $credential = trim(
-            (string)($data['gjp2'] ?? $data['gjp'] ?? '')
-        );
+        $gameVersion = (int)($data['gameVersion'] ?? 0);
+
+        if ($gameVersion >= 22) {
+            $credential = trim(
+                (string)($data['gjp2'] ?? $data['gjp'] ?? '')
+            );
+        } else {
+            $credential = trim(
+                (string)($data['gjp'] ?? $data['gjp2'] ?? '')
+            );
+        }
 
         if ($accountId <= 0 || $credential === '') {
             throw new RuntimeException('Unauthorized.');
