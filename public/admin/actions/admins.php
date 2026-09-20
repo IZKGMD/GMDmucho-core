@@ -55,9 +55,9 @@ if ($action==='admin-create') {
                 );
             }
 
-            if (strlen($password)<10) {
+            if (strlen($password)<12) {
                 throw new RuntimeException(
-                    'Password must be at least 10 characters.'
+                    'Password must be at least 12 characters.'
                 );
             }
 
