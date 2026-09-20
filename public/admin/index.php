@@ -525,6 +525,8 @@ if (admin() && isset($_GET['download'])) {
         exit('Not found');
     }
 
+    requireRank(40);
+
     audit($db,'backup.download',$name);
 
     header('Content-Type: application/octet-stream');
