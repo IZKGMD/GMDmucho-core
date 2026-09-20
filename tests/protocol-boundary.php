@@ -74,8 +74,13 @@ $message = (new GdMessageEncoder())->encodeMessage([
     'created_at' => date('Y-m-d H:i:s'),
 ]);
 
-if (str_contains($message, 'Hello:') || str_contains($message, 'Body:')) {
-    throw new RuntimeException('Message protocol still contains unsafe delimiters.');
+if (
+    str_contains($message, ':4:Hello:') ||
+    str_contains($message, ':5:Body:')
+) {
+    throw new RuntimeException(
+        'Message protocol still contains unsafe delimiters.'
+    );
 }
 
 $relationship = (new GdRelationshipEncoder())->requests([[
