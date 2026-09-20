@@ -6,6 +6,10 @@ use MuchoCore\Database\Migrator;
 
 session_start();
 
+if (empty($_SESSION['mucho_install_csrf'])) {
+    $_SESSION['mucho_install_csrf'] = bin2hex(random_bytes(32));
+}
+
 $root = dirname(__DIR__);
 $storage = $root . '/storage';
 $lock = $storage . '/shared-install.lock';
@@ -125,6 +129,17 @@ $errors = [];
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postedCsrf = (string)($_POST['csrf'] ?? '');
+
+    if (
+        !hash_equals(
+            (string)$_SESSION['mucho_install_csrf'],
+            $postedCsrf
+        )
+    ) {
+        $errors[] = 'This installation form expired. Refresh the page and try again.';
+    }
+
     if (!$canInstall) {
         $errors[] = 'Fix the red checks above before installing.';
     }
@@ -365,6 +380,7 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
         <p>Use the database information from your hosting control panel.</p>
 
         <form method="post">
+            <input type="hidden" name="csrf" value="<?= e((string)$_SESSION['mucho_install_csrf']) ?>">
             <div class="grid">
                 <div>
                     <label for="db_host">Database host</label>
