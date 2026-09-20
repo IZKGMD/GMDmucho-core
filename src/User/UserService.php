@@ -195,7 +195,13 @@ final readonly class UserService
     {
         $this->auth->authenticate($accountId, $gjp);
 
-        $q = $this->pdo->prepare('SELECT role FROM accounts WHERE account_id = :id LIMIT 1');
+        $q = $this->pdo->prepare(
+            'SELECT r.code
+             FROM accounts a
+             LEFT JOIN roles r ON r.id = a.role_id
+             WHERE a.account_id = :id
+             LIMIT 1'
+        );
         $q->execute(['id' => $accountId]);
 
         return match(strtolower((string)$q->fetchColumn())) {
