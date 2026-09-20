@@ -12,45 +12,51 @@ final class GdCommentEncoder
     public function encode(
         array $comment,
         array $profile,
-        int $gameVersion = 22
+        int $gameVersion = 22,
+        int $binaryVersion = 0
     ): string {
-        $content = (string)$comment['content'];
+        $content = (string)($comment['content'] ?? '');
 
         if ($gameVersion < 20) {
-            $content = str_replace(
-                ['+', '/'],
-                ['-', '_'],
-                base64_encode($content)
-            );
+            $content = base64_encode($content);
         }
+
+        $userId = (int)($profile['user_id'] ?? $comment['account_id'] ?? 0);
+        $extId = (int)($profile['ext_id'] ?? $comment['account_id'] ?? 0);
 
         $commentStr = implode('~', [
             '2', $content,
-            '3', (string)$comment['account_id'],
-            '4', (string)$comment['likes'],
+            '3', (string)$userId,
+            '4', (string)($comment['likes'] ?? 0),
             '5', '0',
-            '7', (string)$comment['is_spam'],
-            '9', $this->formatTimeAgo((string)$comment['created_at']),
-            '10', (string)$comment['percent'],
-            '11', (string)($profile['badge'] ?? 0),
-            '12', '255,255,255',
-            '6', (string)$comment['id']
+            '7', (string)($comment['is_spam'] ?? 0),
+            '9', $this->formatTimeAgo(
+                (string)($comment['created_at'] ?? '')
+            ),
+            '10', (string)($comment['percent'] ?? 0),
         ]);
 
-        $userStr = implode('~', [
-            '1', ProtocolText::username($profile['username'] ?? 'Player'),
-            '2', (string)($profile['cube'] ?? 1),
-            '7', (string)($profile['color1'] ?? 0),
-            '8', (string)($profile['color2'] ?? 3),
-            '9', '0',
-            '10', (string)($profile['special'] ?? 0),
-            '11', (string)$comment['account_id'],
-            '14', '0',
-            '15', (string)($profile['badge'] ?? 0),
-            '16', (string)$comment['account_id']
-        ]);
+        /*
+         * Binary versions <= 31 use the separate #user list.
+         * Newer clients receive the extended user block after the comment.
+         */
+        if ($binaryVersion > 31) {
+            $badge = (int)($profile['badge'] ?? 0);
 
-        return $commentStr . ':' . $userStr;
+            $commentStr .= '~11~' . $badge
+                . ':1~' . ProtocolText::username(
+                    $profile['username'] ?? 'Player'
+                )
+                . '~7~1'
+                . '~9~' . (int)($profile['cube'] ?? 1)
+                . '~10~' . (int)($profile['color1'] ?? 0)
+                . '~11~' . (int)($profile['color2'] ?? 3)
+                . '~14~' . (int)($profile['icon_type'] ?? 0)
+                . '~15~' . (int)($profile['special'] ?? 0)
+                . '~16~' . $extId;
+        }
+
+        return $commentStr;
     }
 
     /**
