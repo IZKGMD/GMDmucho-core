@@ -26,21 +26,48 @@ final class CommentService
         return $db->connection();
     }
 
-    public function uploadLevelComment(int $levelId, int $accountId, string $gjp, string $content, int $percent): int
-    {
+    public function uploadLevelComment(
+        int $levelId,
+        int $accountId,
+        string $gjp,
+        string $content,
+        int $percent,
+        int $gameVersion = 0
+    ): int {
         $this->auth->authenticate($accountId, $gjp);
-        $decodedContent = base64_decode(strtr($content, "-_", "+/")) ?: $content;
+
+        $decodedContent = $this->decodeLevelComment(
+            $content,
+            $gameVersion
+        );
         $decodedContent = trim($decodedContent);
 
         // Проверяем, является ли комментарий модераторской командой
         if (str_starts_with($decodedContent, "!")) {
-            $commandResult = $this->handleCommand($levelId, $accountId, $decodedContent);
+            $commandResult = $this->handleCommand(
+                $levelId,
+                $accountId,
+                $decodedContent
+            );
+
             if ($commandResult !== null) {
                 $decodedContent = $commandResult;
             }
         }
 
-        return $this->repository->addLevelComment($levelId, $accountId, $decodedContent, $percent);
+        /*
+         * Сохраняем протокольное значение:
+         * GD < 2.0 присылает Base64, GD 2.0+ — обычный текст.
+         * Для неизвестной версии выбираем legacy-поведение.
+         */
+        $storedContent = $content;
+
+        return $this->repository->addLevelComment(
+            $levelId,
+            $accountId,
+            $storedContent,
+            $percent
+        );
     }
 
     private function handleCommand(int $levelId, int $accountId, string $commandStr): ?string
@@ -48,7 +75,13 @@ final class CommentService
         $pdo = $this->getPdo();
 
         // 1. Проверяем права пользователя (owner, admin, mod, elder)
-        $stmt = $pdo->prepare("SELECT role, username FROM accounts WHERE account_id = :id");
+        $stmt = $pdo->prepare(
+            "SELECT r.code AS role, a.username
+             FROM accounts a
+             LEFT JOIN roles r ON r.id = a.role_id
+             WHERE a.account_id = :id
+             LIMIT 1"
+        );
         $stmt->execute([":id" => $accountId]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -137,10 +170,17 @@ final class CommentService
         return null;
     }
 
-    public function getLevelComments(int $levelId, int $page): string
-    {
+    public function getLevelComments(
+        int $levelId,
+        int $page,
+        int $gameVersion = 0
+    ): string {
         $limit = 100;
-        $comments = $this->repository->getLevelComments($levelId, $page, $limit);
+        $comments = $this->repository->getLevelComments(
+            $levelId,
+            $page,
+            $limit
+        );
 
         if (empty($comments)) {
             return "#0:0:10";
@@ -163,7 +203,11 @@ final class CommentService
                 "special"  => $comment["special"] ?? 0,
                 "badge"    => $badge
             ];
-            $encodedComments[] = $this->encoder->encode($comment, $profile);
+            $encodedComments[] = $this->encoder->encode(
+                $comment,
+                $profile,
+                $gameVersion
+            );
         }
 
         return implode("|", $encodedComments) . "#999:" . ($page * $limit) . ":" . $limit;
@@ -172,9 +216,35 @@ final class CommentService
     public function uploadAccountComment(int $accountId, string $gjp, string $content): int
     {
         $this->auth->authenticate($accountId, $gjp);
-        $decodedContent = base64_decode(strtr($content, "-_", "+/")) ?: $content;
 
-        return $this->repository->addAccountComment($accountId, $decodedContent);
+        /*
+         * Account-wall comments are stored/emitted as the raw protocol text.
+         */
+        return $this->repository->addAccountComment(
+            $accountId,
+            $content
+        );
+    }
+
+    private function decodeLevelComment(
+        string $content,
+        int $gameVersion
+    ): string {
+        // Unknown version follows Cvolton's legacy default (gameVersion=0).
+        if ($gameVersion >= 20) {
+            return $content;
+        }
+
+        $normalized = strtr($content, '-_', '+/');
+        $padding = strlen($normalized) % 4;
+
+        if ($padding !== 0) {
+            $normalized .= str_repeat('=', 4 - $padding);
+        }
+
+        $decoded = base64_decode($normalized, true);
+
+        return $decoded === false ? $content : $decoded;
     }
 
     public function getAccountComments(int $accountId, int $page): string
