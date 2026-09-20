@@ -314,7 +314,7 @@ final readonly class LevelRepository
             return $value;
         }
 
-        if (is_string($value) && preg_match('/^-?\\d+$/', $value) === 1) {
+        if (is_string($value) && preg_match('/^-?[0-9]+$/', $value) === 1) {
             return (int)$value;
         }
 
