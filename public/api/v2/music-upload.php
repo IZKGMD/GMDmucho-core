@@ -17,7 +17,7 @@ const MUSIC_MAX = 20 * 1024 * 1024;
 const MUSIC_COOLDOWN = 180;
 
 try {
-    if (!is_dir(MUSIC_DIR) && !mkdir(MUSIC_DIR, 0750, true) && !is_dir(MUSIC_DIR)) {
+    if (!is_dir(MUSIC_DIR) && !mkdir(MUSIC_DIR, 0755, true) && !is_dir(MUSIC_DIR)) {
         throw new RuntimeException('music_directory_unavailable');
     }
 
@@ -113,7 +113,7 @@ try {
         throw new RuntimeException('cannot_store_file');
     }
 
-    chmod($target,0640);
+    chmod($target,0644);
 
     $baseUrl=rtrim(
         (string)(
