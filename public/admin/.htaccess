@@ -1,0 +1,8 @@
+# Copyright (C) 2026 IZK
+Options -Indexes
+
+# These files are internal modules included by /admin/index.php.
+# They must not be executable as standalone web endpoints.
+RewriteEngine On
+RewriteRule ^(?:actions|core)(?:/|$) - [F,L,NC]
+RewriteRule ^(?:advanced-actions|advanced-lib|.*-module|icon-proxy)\.php$ - [F,L,NC]
