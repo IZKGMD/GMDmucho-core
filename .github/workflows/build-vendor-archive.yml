@@ -1,0 +1,35 @@
+name: Build Composer vendor archive
+
+on:
+  push:
+    paths:
+      - ".github/workflows/build-vendor-archive.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_mysql
+          tools: composer
+
+      - name: Install production dependencies
+        run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
+      - name: Create vendor archive
+        run: zip -r vendor-muchocore-php83.zip vendor
+
+      - name: Upload vendor archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: muchocore-vendor-php83
+          path: vendor-muchocore-php83.zip
+          if-no-files-found: error
