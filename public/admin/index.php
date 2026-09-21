@@ -39,9 +39,13 @@ if (!defined('BACKUP_DIR')) {
 @mkdir(CONTROL_DIR,0770,true);
 @mkdir(BACKUP_DIR,0770,true);
 
+$__muchoIsHttps =
+    (($_SERVER['HTTPS'] ?? '') === 'on') ||
+    (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+
 ini_set('session.use_strict_mode','1');
 ini_set('session.cookie_httponly','1');
-ini_set('session.cookie_secure','1');
+ini_set('session.cookie_secure', $__muchoIsHttps ? '1' : '0');
 ini_set('session.cookie_samesite','Strict');
 
 session_name('MUCHO_ADMIN');

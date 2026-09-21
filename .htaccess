@@ -13,5 +13,7 @@ RewriteRule ^composer\.(json|lock)$ - [F,L,NC]
 RewriteRule ^shared-install\.php$ public/shared-install.php [END]
 
 # Serve the public directory as the website root.
+# NOTE: uses [L] (not [END]) so mod_rewrite restarts matching against
+# public/.htaccess, which routes everything through public/index.php.
 RewriteCond %{REQUEST_URI} !^/public(?:/|$) [NC]
-RewriteRule ^(.*)$ public/$1 [END]
+RewriteRule ^(.*)$ public/$1 [L]

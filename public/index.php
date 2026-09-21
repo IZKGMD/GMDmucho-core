@@ -13,6 +13,8 @@ ob_start();
 
 $root = dirname(__DIR__);
 
+require_once $root . '/vendor/autoload.php';
+
 if (file_exists($root . '/.env')) {
     Dotenv::createImmutable($root)->safeLoad();
 }
@@ -46,8 +48,6 @@ if (
     exit;
 }
 /* END MUCHO CONTROL FLAGS */
-
-require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 $requestId = bin2hex(random_bytes(8));
 $_SERVER['MUCHO_REQUEST_ID'] = $requestId;
