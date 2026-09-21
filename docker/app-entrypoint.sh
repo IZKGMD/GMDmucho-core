@@ -34,7 +34,7 @@ chmod 640 /var/lib/muchocore/admin-password.hash
 cat > /etc/muchocore-admin.php <<EOFPHP
 <?php
 return [
-    'username' => '\${ADMIN_USER:-admin}',
+    'username' => '${ADMIN_USER:-admin}',
     'password_hash' => trim(file_get_contents('/var/lib/muchocore/admin-password.hash')),
 ];
 EOFPHP
