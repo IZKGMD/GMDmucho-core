@@ -6,6 +6,8 @@ MuchoCore is a Geometry Dash private server (GDPS) backend.
 
 There are two supported deployment styles.
 
+**Recommended deployment:** VPS is the recommended way to run MuchoCore for a full GDPS deployment. Shared hosting is supported as a simpler, more limited option for testing and smaller deployments.
+
 ### I have a VPS
 
 Use the one-command Docker installer:
