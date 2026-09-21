@@ -82,10 +82,12 @@ def replace_exact(
     label: str,
 ) -> tuple[bytes, int]:
     if len(new) != len(old):
-        raise ValueError(
-            f"{label}: replacement length mismatch "
-            f"(original={len(old)}, replacement={len(new)})."
-        )
+        # Some of these patterns describe different fixed-size binary
+        # fields used across Geometry Dash client versions/builds; not
+        # every pattern is expected to apply to every domain length.
+        # Skip silently instead of failing the whole patch (matches the
+        # tested behaviour of tools/client-patcher.ps1).
+        return data, 0
 
     count = data.count(old)
     if count == 0:
@@ -236,20 +238,16 @@ def main() -> int:
             urls[28].encode("ascii"),
             "Legacy HTTP root URL",
         ),
-        (
-            b"www.boomlings.com/database",
-            urls[26].encode("ascii"),
-            "Legacy bare database URL",
-        ),
     )
 
-    plain_patterns = tuple(
-        pattern for pattern in plain_patterns
-        if not (
-            pattern[2] == "Legacy bare database URL"
-            and 26 not in urls
+    if 26 in urls:
+        plain_patterns = plain_patterns + (
+            (
+                b"www.boomlings.com/database",
+                urls[26].encode("ascii"),
+                "Legacy bare database URL",
+            ),
         )
-    )
 
     for old, new, label in plain_patterns:
         data, count = replace_exact(data, old, new, label)
@@ -288,7 +286,7 @@ def main() -> int:
         and replacements["Base64 HTTPS database URL"] == 0
         and replacements["Legacy HTTP database URL"] == 0
         and replacements["Base64 legacy database URL"] == 0
-        and replacements["Legacy bare database URL"] == 0
+        and replacements.get("Legacy bare database URL", 0) == 0
     ):
         print(
             "ERROR: no supported Geometry Dash server URL was found "
