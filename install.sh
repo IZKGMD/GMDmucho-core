@@ -7,6 +7,14 @@ DOMAIN="${MUCHO_DOMAIN:-}"
 DB_NAME="${MUCHO_DB_NAME:-muchocore}"
 DB_USER="${MUCHO_DB_USER:-muchocore_user}"
 ADMIN_USER="admin"
+# Optional: set MUCHO_TUNNEL_TOKEN to deploy via Cloudflare Tunnel instead of
+# binding 80/443 directly. Use this on NAT/CGNAT VPS plans that have no
+# dedicated public IPv4 (inbound ports other than SSH are not reachable).
+# Create the tunnel token in the Cloudflare Zero Trust dashboard:
+# https://one.dash.cloudflare.com/ -> Networks -> Tunnels -> Create a tunnel
+# (choose "Cloudflared"), then add a Public Hostname pointing to
+# "http://caddy:80" and copy the token shown in the install command.
+TUNNEL_TOKEN="${MUCHO_TUNNEL_TOKEN:-}"
 
 log()  { printf '\033[1;32m[MuchoCore]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[warning]\033[0m %s\n' "$*" >&2; }
@@ -84,6 +92,7 @@ chmod 600 "$INSTALL_DIR/.secrets/"*
 
 cat > "$INSTALL_DIR/.env" <<EOFENV
 DOMAIN=$DOMAIN
+CADDY_ADDRESS=$([[ -n "$TUNNEL_TOKEN" ]] && echo ":80" || echo "$DOMAIN")
 DB_NAME=$DB_NAME
 DB_USER=$DB_USER
 ADMIN_USER=$ADMIN_USER
@@ -94,6 +103,9 @@ MUCHO_CONTROL_DIR=/var/lib/muchocore-control
 MUCHO_BACKUP_DIR=/var/lib/muchocore-backups
 TZ=UTC
 EOFENV
+if [[ -n "$TUNNEL_TOKEN" ]]; then
+  printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
+fi
 chmod 600 "$INSTALL_DIR/.env"
 
 [[ -f "$INSTALL_DIR/docker-compose.yml" ]] || fail "Repository does not contain docker-compose.yml."
@@ -102,12 +114,22 @@ chmod 600 "$INSTALL_DIR/.env"
 
 log "Starting MuchoCore..."
 cd "$INSTALL_DIR"
-docker compose up -d --build --remove-orphans
+if [[ -n "$TUNNEL_TOKEN" ]]; then
+  log "Tunnel mode: no inbound ports will be opened; Cloudflare Tunnel provides ingress."
+  docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d --build --remove-orphans
+else
+  docker compose up -d --build --remove-orphans
+fi
 
 log "Checking server health..."
 healthy=0
 for _ in {1..20}; do
-  if curl -4ksSf --connect-timeout 2 --max-time 3       --resolve "$DOMAIN:443:127.0.0.1"       "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+  if [[ -n "$TUNNEL_TOKEN" ]]; then
+    check_url="http://127.0.0.1/health"
+  else
+    check_url="https://$DOMAIN/health"
+  fi
+  if curl -4ksSf --connect-timeout 2 --max-time 3 $([[ -z "$TUNNEL_TOKEN" ]] && echo "--resolve $DOMAIN:443:127.0.0.1") "$check_url" 2>/dev/null | grep -qx "1"; then
     healthy=1
     break
   fi
@@ -119,8 +141,14 @@ if [[ "$healthy" -eq 1 ]]; then
   if curl -4ksSf --connect-timeout 3 --max-time 5 "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
     log "Public health check passed."
   else
-    warn "The server is running, but the domain is not reachable from this VPS yet."
-    warn "Check that DNS points to this VPS and that ports 80 and 443 are open."
+    if [[ -n "$TUNNEL_TOKEN" ]]; then
+      warn "The server is running locally, but the domain is not reachable through Cloudflare Tunnel yet."
+      warn "Check the tunnel status: cd $INSTALL_DIR && sudo docker compose logs cloudflared --tail=50"
+      warn "And confirm the Public Hostname in the Zero Trust dashboard points to http://caddy:80."
+    else
+      warn "The server is running, but the domain is not reachable from this VPS yet."
+      warn "Check that DNS points to this VPS and that ports 80 and 443 are open."
+    fi
   fi
 else
   warn "The services started, but the local health check did not pass in time."

@@ -19,6 +19,29 @@ sudo bash install.sh
 
 This installs Docker, MariaDB, PHP 8.3, Caddy and MuchoCore automatically.
 
+#### No dedicated public IPv4 (NAT/CGNAT VPS)
+
+Some budget VPS plans only forward SSH and do not allow inbound traffic on
+port 80/443 (common on "NAT VPS" plans). If ports 80 and 443 are not
+reachable from the internet, Let's Encrypt cannot issue a certificate and
+the normal installer will fail its health check.
+
+Use Cloudflare Tunnel instead — it requires no inbound ports at all:
+
+1. Add your domain to Cloudflare (free plan works) and point it at Cloudflare's nameservers.
+2. Go to [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) → **Networks → Tunnels → Create a tunnel** (type: Cloudflared).
+3. Add a **Public Hostname**: your domain → Service `HTTP` → URL `caddy:80`.
+4. Copy the tunnel token shown in the install command (`cloudflared service install <TOKEN>` — you only need the token itself).
+5. Run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh -o install.sh
+sudo MUCHO_DOMAIN=your-domain.com MUCHO_TUNNEL_TOKEN=your-tunnel-token bash install.sh
+```
+
+No inbound firewall rules are needed on the VPS side — the server connects
+out to Cloudflare, which then proxies HTTPS traffic in.
+
 ### I have normal shared hosting
 
 Use the browser installer:

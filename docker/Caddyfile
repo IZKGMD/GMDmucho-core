@@ -1,4 +1,4 @@
-{$DOMAIN} {
+{$CADDY_ADDRESS} {
     root * /var/www/mucho-core/public
     encode gzip zstd
 

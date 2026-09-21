@@ -1,0 +1,22 @@
+# Override for NAT VPS deployments without a dedicated public IPv4.
+# Used together with the base file:
+#   docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d --build
+#
+# In this mode Cloudflare Tunnel opens an outbound connection from this
+# server to Cloudflare's edge, so no inbound port forwarding (80/443) is
+# required at all — this works behind any NAT/CGNAT VPS.
+# Cloudflare terminates TLS; Caddy only needs to serve plain HTTP internally.
+services:
+  caddy:
+    ports: !override
+      # Only exposed on localhost, used for local health checks.
+      # Not reachable from the internet — Cloudflare Tunnel is the only
+      # ingress path in this mode.
+      - "127.0.0.1:80:80"
+
+  cloudflared:
+    image: cloudflare/cloudflared:2025.8.0
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${MUCHO_TUNNEL_TOKEN}
+    depends_on:
+      - caddy

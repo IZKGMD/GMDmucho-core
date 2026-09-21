@@ -50,6 +50,11 @@ services:
     restart: unless-stopped
     environment:
       DOMAIN: ${DOMAIN}
+      # CADDY_ADDRESS controls the Caddyfile site address.
+      # Normal mode (public IP): set to the domain, Caddy gets automatic HTTPS.
+      # Tunnel mode (NAT VPS, no public IP): set to ":80", Cloudflare Tunnel
+      # terminates TLS at the edge and forwards plain HTTP to Caddy.
+      CADDY_ADDRESS: ${CADDY_ADDRESS}
     ports:
       - "80:80"
       - "443:443"
