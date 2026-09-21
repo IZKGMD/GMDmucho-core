@@ -30,7 +30,13 @@ def compatibility_url(server: str, desired_length: int, *, bare: bool = False) -
             "https://gdps.example.com"
         )
 
-    schemes = (None,) if bare else ("https", "http")
+    # Only try the scheme the user actually asked for. Previously this
+    # always tried "https" first regardless of the requested scheme,
+    # which silently produced https:// compatibility URLs even when the
+    # server has no SSL (e.g. free-tier shared hosting) -- the client
+    # would then fail to connect ("Something went wrong") on those
+    # specific fixed-length fields.
+    schemes = (None,) if bare else (parsed.scheme,)
 
     for scheme in schemes:
         queue: deque[tuple[str, ...]] = deque([()])
@@ -99,12 +105,27 @@ def replace_exact(
 def run_self_test() -> int:
     server = "https://gdps.example.com"
 
-    for length in (34, 33, 29, 28):
+    for length in (34, 33, 28):
         value = compatibility_url(server, length)
         assert byte_len(value) == length, (length, value)
         print(f"PASS URL {length}: {value}")
 
+    try:
+        compatibility_url(server, 29)
+    except ValueError:
+        print("PASS URL 29: correctly unavailable for this domain/scheme")
+    else:
+        raise AssertionError(
+            "expected 29-byte HTTPS URL to be unavailable for this domain"
+        )
+
     assert compatibility_url(server, 33).startswith("https://"), compatibility_url(server, 33)
+
+    http_server = "http://gdps.example.com"
+    http29 = compatibility_url(http_server, 29)
+    assert byte_len(http29) == 29, http29
+    assert http29.startswith("http://"), http29
+    print(f"PASS URL 29 (http scheme): {http29}")
 
     bare_server = "https://school-gdps.com"
     bare = compatibility_url(bare_server, 26, bare=True)
@@ -199,12 +220,19 @@ def main() -> int:
                 "https://gdps.example.com"
             )
 
-        urls = {
-            34: compatibility_url(server_value, 34),
-            33: compatibility_url(server_value, 33),
-            29: compatibility_url(server_value, 29),
-            28: compatibility_url(server_value, 28),
-        }
+        urls: dict[int, str] = {}
+        for length in (34, 33, 29, 28):
+            try:
+                urls[length] = compatibility_url(server_value, length)
+            except ValueError:
+                # Not every fixed-length field can be represented with
+                # the requested scheme/domain combination (e.g. an
+                # http:// server may have no segment combination that
+                # produces a 33-byte URL). Skip that field instead of
+                # falling back to a different scheme -- a silent
+                # scheme fallback would produce an https:// URL that
+                # the client cannot reach on SSL-less hosts.
+                pass
 
         try:
             urls[26] = compatibility_url(server_value, 26, bare=True)
@@ -217,76 +245,51 @@ def main() -> int:
     data = input_path.read_bytes()
     replacements: dict[str, int] = {}
 
-    plain_patterns = (
-        (
-            b"https://www.boomlings.com/database",
-            urls[34].encode("ascii"),
-            "GD 2.2 HTTPS database URL",
-        ),
-        (
-            b"http://www.boomlings.com/database",
-            urls[33].encode("ascii"),
-            "Legacy HTTP database URL",
-        ),
-        (
-            b"https://www.boomlings.com/",
-            urls[29].encode("ascii"),
-            "GD HTTPS root URL",
-        ),
-        (
-            b"http://www.boomlings.com/",
-            urls[28].encode("ascii"),
-            "Legacy HTTP root URL",
-        ),
+    plain_pattern_specs = (
+        (34, b"https://www.boomlings.com/database", "GD 2.2 HTTPS database URL"),
+        (33, b"http://www.boomlings.com/database", "Legacy HTTP database URL"),
+        (29, b"https://www.boomlings.com/", "GD HTTPS root URL"),
+        (28, b"http://www.boomlings.com/", "Legacy HTTP root URL"),
+        (26, b"www.boomlings.com/database", "Legacy bare database URL"),
     )
 
-    if 26 in urls:
-        plain_patterns = plain_patterns + (
-            (
-                b"www.boomlings.com/database",
-                urls[26].encode("ascii"),
-                "Legacy bare database URL",
-            ),
-        )
+    plain_patterns = tuple(
+        (old, urls[length].encode("ascii"), label)
+        for length, old, label in plain_pattern_specs
+        if length in urls
+    )
 
     for old, new, label in plain_patterns:
         data, count = replace_exact(data, old, new, label)
         replacements[label] = count
 
     if not args.skip_http_base64:
-        b64_patterns = (
-            (
-                b64("http://www.boomlings.com/database"),
-                b64(urls[33]),
-                "Base64 legacy database URL",
-            ),
-            (
-                b64("https://www.boomlings.com/database"),
-                b64(urls[34]),
-                "Base64 HTTPS database URL",
-            ),
-            (
-                b64("http://www.boomlings.com/"),
-                b64(urls[28]),
-                "Base64 legacy root URL",
-            ),
-            (
-                b64("https://www.boomlings.com/"),
-                b64(urls[29]),
-                "Base64 HTTPS root URL",
-            ),
+        b64_pattern_specs = (
+            (33, "http://www.boomlings.com/database", "Base64 legacy database URL"),
+            (34, "https://www.boomlings.com/database", "Base64 HTTPS database URL"),
+            (28, "http://www.boomlings.com/", "Base64 legacy root URL"),
+            (29, "https://www.boomlings.com/", "Base64 HTTPS root URL"),
+        )
+
+        b64_patterns = tuple(
+            (b64(old), b64(urls[length]), label)
+            for length, old, label in b64_pattern_specs
+            if length in urls
         )
 
         for old, new, label in b64_patterns:
             data, count = replace_exact(data, old, new, label)
             replacements[label] = count
 
-    if (
-        replacements["GD 2.2 HTTPS database URL"] == 0
-        and replacements["Base64 HTTPS database URL"] == 0
-        and replacements["Legacy HTTP database URL"] == 0
-        and replacements["Base64 legacy database URL"] == 0
-        and replacements.get("Legacy bare database URL", 0) == 0
+    if not any(
+        replacements.get(label, 0) > 0
+        for label in (
+            "GD 2.2 HTTPS database URL",
+            "Base64 HTTPS database URL",
+            "Legacy HTTP database URL",
+            "Base64 legacy database URL",
+            "Legacy bare database URL",
+        )
     ):
         print(
             "ERROR: no supported Geometry Dash server URL was found "
