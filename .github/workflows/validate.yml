@@ -25,12 +25,9 @@ jobs:
 
       - name: Check Python patcher
         run: |
-          python3 -m py_compile tools/client-patch.py tools/client-trace-summary.py
+          python3 -m py_compile tools/client-patch.py tools/client-trace-summary.py tests/client-patcher-fixture.py
           python3 tools/client-patch.py --self-test
-
-      - name: Check Windows client patcher
-        shell: pwsh
-        run: ./tools/client-patcher.ps1 -SelfTest
+          python3 tests/client-patcher-fixture.py
 
       - name: Check for fixed personal GDPS domain
         run: |
@@ -65,3 +62,12 @@ jobs:
 
       - name: Check client contract helper
         run: bash tests/client-contract.sh
+
+  windows-patcher:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Windows PowerShell patcher self-test
+        shell: powershell
+        run: |
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/client-patcher.ps1 -SelfTest
