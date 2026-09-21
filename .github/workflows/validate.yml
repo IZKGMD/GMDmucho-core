@@ -1,8 +1,72 @@
-- name: Commit and Push changes
-  run: |
-    git config --local user.email "errorandrey70@gmail.com"
-    git config --local user.name "IZKGMD"
-    
-    git add .
-    git commit -m "chore: update release assets [skip ci]"
-    git push origin HEAD:${{ github.event.release.target_commitish }}
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check shell scripts
+        run: |
+          bash -n install.sh
+          bash -n update.sh
+          bash -n uninstall.sh
+          for f in tests/*.sh; do bash -n "$f"; done
+
+      - name: Check PHP sources
+        run: |
+          find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          php tests/client-compatibility.php
+          php tests/router-compatibility.php
+
+      - name: Check Python patcher
+        run: |
+          python3 -m py_compile tools/client-patch.py tools/client-trace-summary.py tests/client-patcher-fixture.py
+          python3 tools/client-patch.py --self-test
+          python3 tests/client-patcher-fixture.py
+
+      - name: Check required files
+        run: |
+          test -f docker-compose.yml
+          test -f docker/Dockerfile
+          test -f docker/Caddyfile
+          test -f docker/app-entrypoint.sh
+          test -f tools/client-patch.bat
+          test -f tools/client-patcher.ps1
+
+      - name: Check runtime environment handling
+        run: |
+          ! grep -q 'cat > .env' docker/app-entrypoint.sh
+          grep -q '/var/lib/muchocore/runtime.env' docker/app-entrypoint.sh
+          grep -q 'createMutable' src/Database/Database.php
+          grep -q 'root:www-data' docker/app-entrypoint.sh
+
+      - name: Check admin container routing
+        run: |
+          grep -q "http://caddy" public/admin/index.php
+          ! grep -q "http://127.0.0.1" public/admin/index.php
+
+      - name: Check Caddy configuration
+        run: |
+          ! grep -Eq '/database/\*' docker/Caddyfile
+          docker run --rm \
+            -e DOMAIN=gdps.example.com \
+            -v "$PWD/docker/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2.10-alpine \
+            caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+      - name: Check client contract helper
+        run: bash tests/client-contract.sh
+
+  windows-patcher:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Windows PowerShell patcher self-test
+        shell: powershell
+        run: |
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/client-patcher.ps1 -SelfTest
