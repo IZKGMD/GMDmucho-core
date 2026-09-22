@@ -87,7 +87,11 @@ final readonly class LevelService
             filters: $filters,
         );
 
-        if (empty($result['levels'])) { return '-2'; } return $this->encoder->encode(
+        if (empty($result['levels'])) {
+            return '-2';
+        }
+
+        return $this->encoder->encode(
             levels: $result['levels'],
             total: $result['total'],
             offset: $offset,
