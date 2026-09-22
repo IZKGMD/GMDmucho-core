@@ -15,18 +15,29 @@ final readonly class LikeController
     {
         $gjp = $r->gdCredential();
 
+        $itemId = $r->postInt('itemID');
+        $levelId = $r->postInt('levelID');
+
+        if ($levelId > 0) {
+            $itemId = $levelId;
+        }
+
         if (
-            $r->postInt('itemID') <= 0 ||
+            $itemId <= 0 ||
             $r->postInt('accountID') <= 0 ||
             $gjp === ''
         ) {
             return Response::text('-1');
         }
 
+        $type = $levelId > 0
+            ? 1
+            : $r->postInt('type');
+
         try {
             $this->service->likeItem(
-                $r->postInt('itemID'),
-                $r->postInt('type'),
+                $itemId,
+                $type,
                 $r->postInt('accountID'),
                 $gjp,
                 $r->postInt('like', 1) === 1
