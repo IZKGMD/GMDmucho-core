@@ -2,7 +2,7 @@
 
 MuchoCore — backend для GDPS на Geometry Dash.
 
-**Текущий релиз: v1.0.1**
+**Готовящаяся версия: v1.0.1**
 
 > **Новичок? Начни с [START_HERE.md](START_HERE.md).**
 >
