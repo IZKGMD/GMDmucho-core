@@ -16,8 +16,6 @@ SERVER = "https://abc.com"
 patterns = [
     b"https://www.boomlings.com/database",
     b"http://www.boomlings.com/database",
-    b"https://www.boomlings.com/",
-    b"http://www.boomlings.com/",
     b"www.boomlings.com/database",
 ]
 
