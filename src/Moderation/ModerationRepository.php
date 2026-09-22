@@ -20,7 +20,7 @@ final readonly class ModerationRepository
     public function getAccountRole(int $accountId): string
     {
         $q=$this->pdo->prepare(
-            'SELECT COALESCE(r.code, 'user') AS role
+            'SELECT COALESCE(r.code, \'user\') AS role
              FROM accounts a
              LEFT JOIN roles r
                ON r.id=a.role_id
