@@ -355,7 +355,7 @@ try {
         $like = '%'.$search.'%';
         $exactId = ctype_digit($search) ? (int)$search : -1;
         $query = $db->prepare(
-            'SELECT a.account_id, a.username, COALESCE(r.code, 'user') AS role, a.is_active, a.is_banned,
+            'SELECT a.account_id, a.username, COALESCE(r.code, \'user\') AS role, a.is_active, a.is_banned,
                     p.stars, p.moons, p.diamonds, p.secret_coins, p.user_coins,
                     p.demons, p.creator_points, p.bio, p.last_played_at
              FROM accounts a
@@ -391,7 +391,7 @@ try {
         requireAdmin($db, 40);
         $accountId = intInput($input, 'account_id', 1, PHP_INT_MAX);
         $query = $db->prepare(
-            'SELECT a.account_id, a.username, COALESCE(r.code, 'user') AS role, a.is_active, a.is_banned,
+            'SELECT a.account_id, a.username, COALESCE(r.code, \'user\') AS role, a.is_active, a.is_banned,
                     p.stars, p.moons, p.diamonds, p.secret_coins, p.user_coins,
                     p.demons, p.creator_points, p.bio, p.last_played_at
              FROM accounts a
@@ -427,7 +427,7 @@ try {
         $accountId = intInput($input, 'account_id', 1, PHP_INT_MAX);
         $banned = boolInput($input, 'banned');
 
-        $query = $db->prepare('SELECT a.account_id, a.username, COALESCE(r.code, 'user') AS role, a.is_banned
+        $query = $db->prepare('SELECT a.account_id, a.username, COALESCE(r.code, \'user\') AS role, a.is_banned
              FROM accounts a
              LEFT JOIN roles r ON r.id = a.role_id
              WHERE a.account_id = :id LIMIT 1');
@@ -460,7 +460,7 @@ try {
         if (!in_array($role, ['user', 'moderator', 'admin', 'owner'], true)) {
             fail('invalid_request', 'Invalid account role.', 422);
         }
-        $query = $db->prepare('SELECT a.username, COALESCE(r.code, 'user') AS role
+        $query = $db->prepare('SELECT a.username, COALESCE(r.code, \'user\') AS role
              FROM accounts a
              LEFT JOIN roles r ON r.id = a.role_id
              WHERE a.account_id = :id LIMIT 1');
