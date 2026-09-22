@@ -720,6 +720,11 @@ final readonly class LevelTransferService
             );
         }
 
+        $description = $this->normalizeDescription(
+            $description,
+            20
+        );
+
         $existing = $this->repository->findLevel(
             $levelId
         );
