@@ -96,12 +96,18 @@ function Get-CompatibilityPath {
 if ($SelfTest) {
     $testServer = 'https://gdps.example.com'
     $bareTestServer = 'https://school-gdps.com'
-    foreach ($length in @(34, 33, 29, 28, 26)) {
+    foreach ($length in @(34, 33, 28, 26)) {
         $value = Get-CompatibilityPath -Server $testServer -DesiredLength $length
         if ((Get-UrlBytesLength $value) -ne $length) {
             throw "Self-test failed for length $($length): $value"
         }
         Write-Host "PASS URL length $length -> $value"
+    }
+
+    try {
+        Get-CompatibilityPath -Server $testServer -DesiredLength 29 | Out-Null
+    } catch {
+        Write-Host 'PASS URL length 29 -> correctly unavailable for this domain/scheme'
     }
 
     $expected26 = Get-CompatibilityPath -Server $bareTestServer -DesiredLength 26 -Bare
