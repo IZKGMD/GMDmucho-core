@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PATCHER = ROOT / "tools" / "client-patch.py"
-SERVER = "https://gdps.example.com"
+SERVER = "https://abc.com"
 
 patterns = [
     b"https://www.boomlings.com/database",
