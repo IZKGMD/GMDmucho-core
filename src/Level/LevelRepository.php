@@ -86,6 +86,41 @@ final readonly class LevelRepository
             }
         }
 
+        $gauntlet = trim((string)($filters['gauntlet'] ?? ''));
+        if ($gauntlet !== '' && ctype_digit($gauntlet)) {
+            $gq = $this->pdo->prepare(
+                'SELECT level1, level2, level3, level4, level5
+                 FROM mucho_gauntlets
+                 WHERE id=:id
+                   AND enabled=1
+                 LIMIT 1'
+            );
+            $gq->execute(['id'=>(int)$gauntlet]);
+            $g = $gq->fetch(PDO::FETCH_ASSOC);
+
+            if (!$g) {
+                $where[] = '1 = 0';
+            } else {
+                $ids = array_values(array_filter(
+                    array_map(
+                        'intval',
+                        [
+                            $g['level1'] ?? 0,
+                            $g['level2'] ?? 0,
+                            $g['level3'] ?? 0,
+                            $g['level4'] ?? 0,
+                            $g['level5'] ?? 0,
+                        ]
+                    ),
+                    static fn(int $id): bool => $id > 0
+                ));
+
+                $where[] = $ids === []
+                    ? '1 = 0'
+                    : 'l.level_id IN (' . implode(',', array_unique($ids)) . ')';
+            }
+        }
+
         $difficulty = $this->numberList(
             (string)($filters['diff'] ?? '')
         );
