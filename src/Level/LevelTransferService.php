@@ -18,6 +18,7 @@ final readonly class LevelTransferService
         private PDO $pdo,
         private AccountAuthenticator $auth,
         private LevelTransferRepository $repository,
+        private LevelDownloadTracker $downloadTracker,
         private GdLevelDownloadEncoder $downloadEncoder
     ) {}
 
@@ -81,16 +82,16 @@ final readonly class LevelTransferService
             throw new RuntimeException('Empty level data.');
         }
 
+        $gameVersion = (int)$levelData['game_version'];
+
         $levelData = [
             'account_id' => $accountId,
 
             'name' => $name,
 
-            'description' => $this->stringField(
-                $data,
-                'levelDesc',
-                '',
-                8192
+            'description' => $this->normalizeDescription(
+                $data['levelDesc'] ?? '',
+                $gameVersion
             ),
 
             'level_version' => $this->intField(
@@ -101,13 +102,7 @@ final readonly class LevelTransferService
                 1000000
             ),
 
-            'game_version' => $this->intField(
-                $data,
-                'gameVersion',
-                22,
-                1,
-                1000
-            ),
+            'game_version' => $gameVersion,
 
             'binary_version' => $this->intField(
                 $data,
@@ -146,7 +141,7 @@ final readonly class LevelTransferService
             'copy_password' => $this->stringField(
                 $data,
                 'password',
-                '0',
+                $gameVersion > 17 ? '0' : '1',
                 64
             ),
 
@@ -187,10 +182,7 @@ final readonly class LevelTransferService
                 100
             ),
 
-            'is_unlisted' => $this->boolInt(
-                $data,
-                'unlisted'
-            ),
+            'is_unlisted' => $this->unlistedLevelState($data),
 
             'wt' => $this->intField(
                 $data,
@@ -211,7 +203,7 @@ final readonly class LevelTransferService
             'extra_string' => $this->stringField(
                 $data,
                 'extraString',
-                '',
+                '29_29_29_40_29_29_29_29_29_29_29_29_29_29_29_29',
                 65536
             ),
 
@@ -225,6 +217,23 @@ final readonly class LevelTransferService
             ),
 
             'ldm' => $this->boolInt($data, 'ldm'),
+
+            'settings_string' => $this->stringField(
+                $data,
+                'settingsString',
+                '',
+                65536
+            ),
+
+            'song_ids' => $this->numberListField(
+                $data,
+                'songIDs'
+            ),
+
+            'sfx_ids' => $this->numberListField(
+                $data,
+                'sfxIDs'
+            ),
 
             'ts' => $this->intField(
                 $data,
@@ -245,7 +254,11 @@ final readonly class LevelTransferService
     public function download(
         int $levelId,
         int $gameVersion,
-        bool $extras
+        bool $extras,
+        bool $incrementDownloads = false,
+        int $accountId = 0,
+        string $credential = '',
+        string $clientIp = ''
     ): string {
         $timelyId=0;
 
@@ -275,9 +288,39 @@ final readonly class LevelTransferService
             return '-1';
         }
 
-        $this->repository->incrementDownloads(
-            $levelId
-        );
+        if ((int)($level['is_unlisted'] ?? 0) === 2) {
+            if ($accountId <= 0 || $credential === '') {
+                return '-1';
+            }
+
+            try {
+                $this->auth->authenticate(
+                    $accountId,
+                    $credential
+                );
+            } catch (\Throwable) {
+                return '-1';
+            }
+
+            $ownerId = (int)($level['account_id'] ?? 0);
+
+            if (
+                $ownerId !== $accountId &&
+                !$this->isFriend(
+                    $accountId,
+                    $ownerId
+                )
+            ) {
+                return '-1';
+            }
+        }
+
+        if ($incrementDownloads) {
+            $this->downloadTracker->record(
+                $levelId,
+                $clientIp
+            );
+        }
 
         $response=$this->downloadEncoder->encode(
             $level,
@@ -638,6 +681,30 @@ final readonly class LevelTransferService
     }
 
 
+    private function isFriend(
+        int $accountId,
+        int $targetAccountId
+    ): bool {
+        if ($accountId <= 0 || $targetAccountId <= 0) {
+            return false;
+        }
+
+        $q = $this->pdo->prepare(
+            'SELECT 1
+             FROM friends
+             WHERE account_id=:a
+               AND friend_account_id=:b
+             LIMIT 1'
+        );
+
+        $q->execute([
+            'a' => $accountId,
+            'b' => $targetAccountId,
+        ]);
+
+        return (bool)$q->fetchColumn();
+    }
+
     public function updateDescription(
         int $levelId,
         int $accountId,
@@ -760,6 +827,109 @@ final readonly class LevelTransferService
         }
 
         return $number;
+    }
+
+    private function unlistedLevelState(
+        array $data
+    ): int {
+        $value = $data['unlisted2']
+            ?? $data['unlisted1']
+            ?? $data['unlisted']
+            ?? 0;
+
+        if (
+            is_string($value) &&
+            preg_match('/^-?\d+$/', $value) === 1
+        ) {
+            $value = (int)$value;
+        }
+
+        if (!is_int($value)) {
+            throw new RuntimeException(
+                'Invalid unlisted state.'
+            );
+        }
+
+        return max(0, min(2, $value));
+    }
+
+    private function numberListField(
+        array $data,
+        string $key
+    ): string {
+        if (!array_key_exists($key, $data)) {
+            return '';
+        }
+
+        $value = $data[$key];
+
+        if (!is_scalar($value)) {
+            throw new RuntimeException(
+                'Invalid list field: ' . $key
+            );
+        }
+
+        $value = trim((string)$value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        if (preg_match('/^\d+(?:,\d+)*$/', $value) !== 1) {
+            throw new RuntimeException(
+                'Invalid numeric list: ' . $key
+            );
+        }
+
+        return $value;
+    }
+
+    private function normalizeDescription(
+        mixed $value,
+        int $gameVersion
+    ): string {
+        if (!is_scalar($value)) {
+            throw new RuntimeException(
+                'Invalid level description.'
+            );
+        }
+
+        $input = (string)$value;
+
+        if (strlen($input) > 8192) {
+            throw new RuntimeException(
+                'Level description too large.'
+            );
+        }
+
+        $raw = $input;
+
+        if ($gameVersion >= 20) {
+            $decoded = base64_decode(
+                strtr($input, '-_', '+/'),
+                true
+            );
+
+            if ($decoded !== false) {
+                $raw = $decoded;
+            }
+        }
+
+        $opening = substr_count($raw, '<c');
+        $closing = substr_count($raw, '</c>');
+
+        if ($opening > $closing) {
+            $raw .= str_repeat(
+                '</c>',
+                $opening - $closing
+            );
+        }
+
+        return strtr(
+            base64_encode($raw),
+            '+/',
+            '-_'
+        );
     }
 
     private function boolInt(
