@@ -30,7 +30,8 @@ function envMP(): array {
     foreach ([
         rootMP() . '/.env',
         rootMP() . '/.env.local',
-        rootMP() . '/config/.env'
+        rootMP() . '/config/.env',
+        '/var/lib/muchocore/runtime.env'
     ] as $file) {
         if (!is_file($file)) continue;
 
