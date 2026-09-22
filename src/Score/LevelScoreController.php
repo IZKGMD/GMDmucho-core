@@ -70,36 +70,41 @@ final readonly class LevelScoreController
             }
 
 
-            $attempts=
+            $attempts=min(
+                10_000_000,
                 $this->decodedNumber(
                     $data,
                     's1',
                     8354
-                );
+                )
+            );
 
-            $clicks=
+            $clicks=min(
+                50_000_000,
                 $this->decodedNumber(
                     $data,
                     's2',
                     3991
-                );
+                )
+            );
 
-            $playTime=
+            $playTime=min(
+                86_400,
                 $this->decodedNumber(
                     $data,
                     's3',
                     4085
-                );
+                )
+            );
 
-            $coins=
-                min(
-                    3,
-                    $this->decodedNumber(
-                        $data,
-                        's9',
-                        5819
-                    )
-                );
+            $coins=min(
+                3,
+                $this->decodedNumber(
+                    $data,
+                    's9',
+                    5819
+                )
+            );
 
             $dailyId=max(
                 0,
@@ -730,10 +735,13 @@ final readonly class LevelScoreController
             return 0;
         }
 
-        return max(
-            0,
-            (int)$data[$key]-$offset
-        );
+        $value=(int)$data[$key]-$offset;
+
+        if($value<0){
+            return 0;
+        }
+
+        return $value;
     }
 
 

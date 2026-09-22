@@ -83,11 +83,47 @@ final class GdLevelListEncoder
 
         $levelsPart = implode("|", $levelStrings);
         $usersPart = implode("|", $userStrings);
-        $songsPart = "";
+        $songs = [];
+
+        foreach ($levels as $level) {
+            $songId = (int)($level['song_row_id'] ?? 0);
+
+            if (
+                $songId <= 0 ||
+                isset($songs[$songId]) ||
+                (int)($level['song_is_verified'] ?? 1) < 0
+            ) {
+                continue;
+            }
+
+            $download = (string)($level['song_download_url'] ?? '');
+
+            if (str_contains($download, ':')) {
+                $download = urlencode($download);
+            }
+
+            $songs[$songId] = implode('~|~', [
+                1, $songId,
+                2, str_replace('#', '', (string)($level['song_name'] ?? '')),
+                3, (int)($level['song_author_id'] ?? 0),
+                4, (string)($level['song_author_name'] ?? ''),
+                5, round((float)($level['song_size'] ?? 0), 2),
+                6, '',
+                10, $download,
+                7, '',
+                8, (int)($level['song_is_verified'] ?? 1),
+            ]);
+        }
+
+        $songsPart = implode('~:~', array_values($songs));
         $pageInfo = $total . ":" . $offset . ":" . $limit;
         $hashPart = sha1($hashData . self::HASH_SALT);
 
         // Строгий формат Geometry Dash: levels#users#songs#pageInfo#hash
+        if ($gameVersion <= 18) {
+            return $levelsPart . "#" . $usersPart . "#" . $pageInfo . "#" . $hashPart;
+        }
+
         return $levelsPart . "#" . $usersPart . "#" . $songsPart . "#" . $pageInfo . "#" . $hashPart;
     }
 }

@@ -45,6 +45,36 @@ final readonly class LevelService
             return '-1';
         }
 
+        $filters = [
+            'diff' => is_scalar($input['diff'] ?? '')
+                ? (string)$input['diff']
+                : '',
+            'original' => (int)($input['original'] ?? 0) === 1,
+            'coins' => (int)($input['coins'] ?? 0) === 1,
+            'uncompleted' => (int)($input['uncompleted'] ?? 0) === 1,
+            'onlyCompleted' => (int)($input['onlyCompleted'] ?? 0) === 1,
+            'completedLevels' => is_scalar($input['completedLevels'] ?? '')
+                ? (string)$input['completedLevels']
+                : '',
+            'song' => is_scalar($input['song'] ?? '')
+                ? (string)$input['song']
+                : '',
+            'customSong' => (int)($input['customSong'] ?? 0) === 1,
+            'twoPlayer' => (int)($input['twoPlayer'] ?? 0) === 1,
+            'star' => (int)($input['star'] ?? 0) === 1,
+            'noStar' => (int)($input['noStar'] ?? 0) === 1,
+            'featured' => (int)($input['featured'] ?? 0) === 1,
+            'epic' => (int)($input['epic'] ?? 0) === 1,
+            'mythic' => (int)($input['mythic'] ?? 0) === 1,
+            'legendary' => (int)($input['legendary'] ?? 0) === 1,
+            'len' => is_scalar($input['len'] ?? '')
+                ? (string)$input['len']
+                : '',
+            'gauntlet' => is_scalar($input['gauntlet'] ?? '')
+                ? (string)$input['gauntlet']
+                : '',
+        ];
+
         $offset = $page * self::PAGE_SIZE;
 
         $result = $this->levels->search(
@@ -54,9 +84,14 @@ final readonly class LevelService
             offset: $offset,
             limit: self::PAGE_SIZE,
             demonFilter: $demonFilter,
+            filters: $filters,
         );
 
-        if (empty($result['levels'])) { return '-2'; } return $this->encoder->encode(
+        if (empty($result['levels'])) {
+            return '-2';
+        }
+
+        return $this->encoder->encode(
             levels: $result['levels'],
             total: $result['total'],
             offset: $offset,
