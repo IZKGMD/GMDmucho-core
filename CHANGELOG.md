@@ -1,8 +1,8 @@
 # Changelog
 
-## v1.0.1 — 2026-09-22
+## v1.0.1 — подготовка
 
-This release packages the current MuchoCore server, deployment helpers, client patching tools and compatibility tests into a release-ready tree.
+This candidate packages the current MuchoCore server, deployment helpers, client patching tools and compatibility tests into a release-ready tree.
 
 ### Included
 
