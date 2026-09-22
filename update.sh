@@ -28,6 +28,13 @@ fi
 grep -q '^ADMIN_USER=' "$ROOT/.env" 2>/dev/null || printf '\nADMIN_USER=admin\n' >> "$ROOT/.env"
 grep -q '^TZ=' "$ROOT/.env" 2>/dev/null || printf 'TZ=UTC\n' >> "$ROOT/.env"
 
+if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo '[MuchoCore] ERROR: this installation has local changes in tracked files.' >&2
+    echo '[MuchoCore] I stopped before reset so your work is not lost.' >&2
+    echo '[MuchoCore] Commit or back up your changes, then run update again.' >&2
+    exit 1
+fi
+
 echo '[MuchoCore] Updating source code...'
 git fetch --depth=1 origin main
 
