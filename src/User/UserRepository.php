@@ -208,6 +208,7 @@ final readonly class UserRepository
                    ROW_NUMBER() OVER (ORDER BY p.stars DESC, p.account_id ASC) AS `rank`
             FROM profiles p
             INNER JOIN accounts a ON a.account_id = p.account_id
+            LEFT JOIN roles ar ON ar.id = a.role_id
         ),
         TargetRank AS (
             SELECT `rank` FROM RankedProfiles WHERE account_id = :account_id
