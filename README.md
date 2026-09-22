@@ -2,6 +2,8 @@
 
 MuchoCore — backend для GDPS на Geometry Dash.
 
+**Текущий релиз: v1.0.1**
+
 > **Новичок? Начни с [START_HERE.md](START_HERE.md).**
 >
 > Не нужно читать весь репозиторий, чтобы запустить сервер.
@@ -101,6 +103,7 @@ tests/
 .env
 config/cloudsave.key
 storage/
+.secrets/
 ~~~
 
 Перед удалением установки прочитай предупреждение uninstall.sh: он удаляет контейнеры и базу.
@@ -115,6 +118,8 @@ php tests/router-compatibility.php
 python3 tools/client-patch.py --self-test
 bash tests/client-contract.sh
 ~~~
+
+CI дополнительно проверяет shell/PHP/Python-код, Docker/Caddy-конфигурацию, shared-hosting routing и Windows PowerShell patcher.
 
 Реальный Geometry Dash клиент всё равно нужно тестировать отдельно.
 
