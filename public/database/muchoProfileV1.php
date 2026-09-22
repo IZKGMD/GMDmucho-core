@@ -21,7 +21,7 @@ function failMP(string $error, int $code = 400): never {
 }
 
 function rootMP(): string {
-    return '/var/www/mucho-core';
+    return dirname(__DIR__, 2);
 }
 
 function envMP(): array {
