@@ -491,18 +491,6 @@ final readonly class LevelTransferService
             $gameVersion
         );
 
-        $passwordInt=
-            preg_match('/^-?\d+$/',$password)
-                ? (int)$password
-                : 0;
-
-        if(
-            $passwordInt>1 &&
-            $passwordInt<1000000
-        ){
-            $passwordInt+=1000000;
-        }
-
         $hashInput=
             $userId.
             $stars.
@@ -510,7 +498,7 @@ final readonly class LevelTransferService
             $levelId.
             $verifiedCoins.
             $featured.
-            $passwordInt.
+            $password.
             $timelyId;
 
         $parts[2]=sha1(
