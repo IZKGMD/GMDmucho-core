@@ -55,6 +55,7 @@ jobs:
           ! grep -Eq '/database/\*' docker/Caddyfile
           docker run --rm \
             -e DOMAIN=gdps.example.com \
+            -e CADDY_ADDRESS=gdps.example.com \
             -v "$PWD/docker/Caddyfile:/etc/caddy/Caddyfile:ro" \
             caddy:2.10-alpine \
             caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
