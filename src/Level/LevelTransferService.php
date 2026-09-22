@@ -82,7 +82,13 @@ final readonly class LevelTransferService
             throw new RuntimeException('Empty level data.');
         }
 
-        $gameVersion = (int)$levelData['game_version'];
+        $gameVersion = $this->intField(
+            $data,
+            'gameVersion',
+            22,
+            1,
+            1000
+        );
 
         $levelData = [
             'account_id' => $accountId,
