@@ -24,10 +24,7 @@ final readonly class CloudSaveService
 
     public function backup(array $data): string
     {
-        $accountId = (int)($data['accountID'] ?? 0);
-        if ($accountId <= 0) {
-            $accountId = $this->authenticate($data);
-        }
+        $accountId = $this->authenticate($data);
 
         $saveData = $data['saveData'] ?? null;
 
@@ -47,20 +44,7 @@ final readonly class CloudSaveService
 
     public function sync(array $data): string
     {
-        $accountId = (int)($data['accountID'] ?? 0);
-
-        if ($accountId <= 0) {
-            $username = trim((string)($data['userName'] ?? $data['username'] ?? ''));
-            if ($username !== '') {
-                $q = $this->db->prepare("SELECT account_id FROM accounts WHERE username = :username LIMIT 1");
-                $q->execute(['username' => $username]);
-                $accountId = (int)$q->fetchColumn();
-            }
-        }
-
-        if ($accountId <= 0) {
-            return '-1';
-        }
+        $accountId = $this->authenticate($data);
 
         $saveData = $this->repository->load($accountId);
 
