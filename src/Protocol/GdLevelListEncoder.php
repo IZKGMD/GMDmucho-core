@@ -120,6 +120,10 @@ final class GdLevelListEncoder
         $hashPart = sha1($hashData . self::HASH_SALT);
 
         // Строгий формат Geometry Dash: levels#users#songs#pageInfo#hash
+        if ($gameVersion <= 18) {
+            return $levelsPart . "#" . $usersPart . "#" . $pageInfo;
+        }
+
         return $levelsPart . "#" . $usersPart . "#" . $songsPart . "#" . $pageInfo . "#" . $hashPart;
     }
 }
