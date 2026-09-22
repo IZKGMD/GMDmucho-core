@@ -76,12 +76,14 @@ final readonly class LevelRepository
         if ($song !== '' && ctype_digit($song)) {
             if (($filters['customSong'] ?? false)) {
                 $where[] = 'l.song_id = :song_id';
+                $params['song_id'] = (int)$song;
             } else {
                 $where[] = 'l.audio_track = :audio_track';
-                $song = (string)max(0, ((int)$song) - 1);
+                $params['audio_track'] = max(
+                    0,
+                    ((int)$song) - 1
+                );
             }
-            $params['song_id'] = (int)$song;
-            $params['audio_track'] = (int)$song;
         }
 
         $difficulty = $this->numberList(
