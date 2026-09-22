@@ -2,9 +2,16 @@
     root * /var/www/mucho-core/public
     encode gzip zstd
 
+    # Custom uploaded music lives outside public/ and is exposed only through
+    # this explicit, read-only /music/ path.
+    handle_path /music/* {
+        root * /var/www/mucho-core/storage/music-public
+        file_server
+    }
+
     # Keep private project files unreachable, but do not block /database/*:
     # Geometry Dash client endpoints live under /public/database.
-    @hidden path /.env /.git/* /composer.json /composer.lock /config/* /src/* /tests/*
+    @hidden path /.env /.git/* /composer.json /composer.lock /config/* /src/* /tests/* /storage/*
     respond @hidden 404
 
     php_fastcgi app:9000
