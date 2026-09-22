@@ -9,6 +9,11 @@ declare(strict_types=1);
 define('MUCHO_V2_ROOT', dirname(__DIR__, 3));
 const MUCHO_V2_VERSION = '2.2';
 
+$muchoV2Autoload = MUCHO_V2_ROOT . '/vendor/autoload.php';
+if (is_file($muchoV2Autoload)) {
+    require_once $muchoV2Autoload;
+}
+
 function muchoV2Env(): array
 {
     static $cache = null;
