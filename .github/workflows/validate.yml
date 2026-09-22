@@ -50,6 +50,9 @@ jobs:
           grep -q "http://caddy" public/admin/index.php
           ! grep -q "http://127.0.0.1" public/admin/index.php
 
+      - name: Check Apache shared-hosting routing
+        run: bash tests/apache-routing.sh
+
       - name: Check Caddy configuration
         run: |
           ! grep -Eq '/database/\*' docker/Caddyfile
