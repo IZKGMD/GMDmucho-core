@@ -6,7 +6,37 @@
 
 Если VPS не принимает входящие подключения на 80 и 443, обычная HTTPS-схема не заработает напрямую.
 
-Один из вариантов — внешний туннель. Он нужен только в таком случае. Для обычного VPS с публичным IPv4 сначала используй обычную установку из SETUP.md.
+Один из вариантов — Cloudflare Tunnel. Он создаёт исходящее соединение с сервера к Cloudflare, поэтому отдельный входящий проброс 80/443 на сам VPS не требуется.
+
+### Вариант для установщика MuchoCore
+
+1. В Cloudflare Dashboard открой **Networking → Tunnels**.
+2. Создай или выбери Tunnel типа cloudflared.
+3. Создай Published application для своего домена.
+4. Для origin укажи:
+
+~~~text
+http://caddy:80
+~~~
+
+5. Скопируй connector token.
+6. На VPS передай его установщику через переменную MUCHO_TUNNEL_TOKEN:
+
+~~~bash
+export MUCHO_TUNNEL_TOKEN='YOUR_TUNNEL_TOKEN'
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh -o install.sh
+sudo -E bash install.sh
+~~~
+
+В tunnel-режиме MuchoCore переводит Caddy на обычный HTTP внутри Docker и поднимает cloudflared отдельным контейнером. TLS завершается на стороне Cloudflare.
+
+**Не публикуй connector token.** Это секрет подключения Tunnel.
+
+### Что делать, если Tunnel уже создан
+
+В существующем Tunnel открой его страницу и используй раздел подключения connector-а. В зависимости от версии Dashboard Cloudflare может показывать установку для Linux вместо старой кнопки Add a replica.
+
+Для обычного публичного VPS Tunnel не нужен — используй docs/SETUP.md.
 
 ## Shared hosting без Docker
 
@@ -43,7 +73,7 @@ public/     HTTP-входы
 database/   миграции
 tests/      автоматические проверки
 tools/      инструменты
- docker/    контейнеры и Caddy
+docker/     контейнеры и Caddy
 ~~~
 
 Новичку не нужно редактировать исходники для обычной установки.
