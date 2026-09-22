@@ -32,6 +32,9 @@ final readonly class LevelTransferRepository
         'level_data',
         'level_info',
         'ldm',
+        'settings_string',
+        'song_ids',
+        'sfx_ids',
         'ts',
     ];
 
