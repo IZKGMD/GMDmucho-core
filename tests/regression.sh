@@ -1120,6 +1120,10 @@ grep -q 'storage/music-public' "$ROOT/docker/app-entrypoint.sh"
 grep -q 'handle_path /music/\*' "$ROOT/docker/Caddyfile"
 grep -q "/var/lib/muchocore/runtime.env" "$ROOT/public/api/v2/bootstrap.php"
 grep -q "/var/lib/muchocore/runtime.env" "$ROOT/public/database/muchoProfileV1.php"
+grep -q "require __DIR__ . '/../index.php';" "$ROOT/public/database/uploadGJComment20.php"
+grep -q "require __DIR__ . '/../index.php';" "$ROOT/public/database/uploadGJComment21.php"
+! grep -q "role_id.*>= 1" "$ROOT/public/database/uploadGJComment20.php"
+! grep -q "role_id.*>= 1" "$ROOT/public/database/uploadGJComment21.php"
 echo "Critical path guards: PASS"
 
 if [ "$FAIL" -eq 0 ]; then
