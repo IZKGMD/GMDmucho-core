@@ -19,7 +19,8 @@ final readonly class LevelRepository
         int $gameVersion,
         int $offset,
         int $limit,
-        int $demonFilter = 0
+        int $demonFilter = 0,
+        array $filters = []
     ): array {
         $where = [
             "l.is_deleted = 0",
@@ -28,6 +29,71 @@ final readonly class LevelRepository
 
         $params = [];
         $historyJoin = '';
+
+        $completedLevels = $this->numberList(
+            $filters['completedLevels'] ?? ''
+        );
+
+        if (($filters['uncompleted'] ?? false) && $completedLevels !== []) {
+            $where[] = 'l.level_id NOT IN (' .
+                implode(',', $completedLevels) . ')';
+        }
+
+        if (($filters['onlyCompleted'] ?? false) && $completedLevels !== []) {
+            $where[] = 'l.level_id IN (' .
+                implode(',', $completedLevels) . ')';
+        }
+
+        if (($filters['coins'] ?? false)) {
+            $where[] = 'l.coins_verified = 1 AND l.coins > 0';
+        }
+
+        if (($filters['twoPlayer'] ?? false)) {
+            $where[] = 'l.two_player = 1';
+        }
+
+        if (($filters['star'] ?? false)) {
+            $where[] = 'l.stars > 0';
+        }
+
+        if (($filters['noStar'] ?? false)) {
+            $where[] = 'l.stars = 0';
+        }
+
+        if (($filters['original'] ?? false)) {
+            $where[] = 'l.original_level_id = 0';
+        }
+
+        $lengths = $this->numberList(
+            $filters['len'] ?? ''
+        );
+
+        if ($lengths !== []) {
+            $where[] = 'l.length IN (' . implode(',', $lengths) . ')';
+        }
+
+        $song = trim((string)($filters['song'] ?? ''));
+        if ($song !== '' && ctype_digit($song)) {
+            if (($filters['customSong'] ?? false)) {
+                $where[] = 'l.song_id = :song_id';
+            } else {
+                $where[] = 'l.audio_track = :audio_track';
+                $song = (string)max(0, ((int)$song) - 1);
+            }
+            $params['song_id'] = (int)$song;
+            $params['audio_track'] = (int)$song;
+        }
+
+        $difficulty = $this->numberList(
+            (string)($filters['diff'] ?? '')
+        );
+
+        if ($difficulty !== []) {
+            $where[] =
+                'l.difficulty IN (' .
+                implode(',', $difficulty) .
+                ') AND l.auto_level=0 AND l.demon=0';
+        }
 
         /* Mucho Demon Filter v7: 5 vanilla + Insaned + Brutal + Nightmare.
          * Standalone plain Demon was removed. Legacy filter id 11 falls back to Hard Demon. */
@@ -62,6 +128,7 @@ final readonly class LevelRepository
 
         switch ($type) {
             case 0:
+            case 15:
                 $order = "l.likes DESC, l.level_id DESC";
                 if ($search !== "") {
                     if (ctype_digit($search)) {
@@ -96,8 +163,30 @@ final readonly class LevelRepository
                 break;
 
             case 6:
+            case 17:
                 $where[] = "(l.featured = 1 OR l.epic > 0)";
                 $order = "l.updated_at DESC";
+                break;
+
+            case 16:
+                $where[] = "l.epic > 0";
+                $order = "l.updated_at DESC";
+                break;
+
+            case 7:
+                $where[] = "l.object_count > 9999";
+                break;
+
+            case 10:
+            case 19:
+            case 25:
+            case 26:
+                $ids = $this->numberList($search);
+                if ($ids === []) {
+                    $where[] = "1 = 0";
+                } else {
+                    $where[] = "l.level_id IN (" . implode(',', $ids) . ")";
+                }
                 break;
 
             case 21:
@@ -140,6 +229,7 @@ final readonly class LevelRepository
             {$historyJoin}
             LEFT JOIN accounts a ON a.account_id = l.account_id
             LEFT JOIN profiles p ON p.account_id = l.account_id
+            LEFT JOIN songs s ON s.id = l.song_id
         ";
 
         $count = $this->pdo->prepare(
@@ -152,7 +242,14 @@ final readonly class LevelRepository
             SELECT
                 l.*,
                 COALESCE(a.username, 'Player') as username,
-                COALESCE(p.user_id, l.account_id) as user_id
+                COALESCE(p.user_id, l.account_id) as user_id,
+                s.id as song_row_id,
+                s.name as song_name,
+                s.author_id as song_author_id,
+                s.author_name as song_author_name,
+                s.size as song_size,
+                s.download_url as song_download_url,
+                s.is_verified as song_is_verified
             " . $from . " WHERE " . $whereSql . " ORDER BY " . $order . " LIMIT " . $limit . " OFFSET " . $offset;
 
         $stmt = $this->pdo->prepare($sql);
@@ -162,5 +259,23 @@ final readonly class LevelRepository
             "levels" => $stmt->fetchAll(PDO::FETCH_ASSOC),
             "total" => $total,
         ];
+    }
+
+    private function numberList(
+        mixed $value
+    ): array {
+        if (!is_string($value) || trim($value) === '') {
+            return [];
+        }
+
+        if (preg_match('/^\d+(?:,\d+)*$/', trim($value)) !== 1) {
+            return [];
+        }
+
+        return array_values(
+            array_unique(
+                array_map('intval', explode(',', trim($value)))
+            )
+        );
     }
 }
