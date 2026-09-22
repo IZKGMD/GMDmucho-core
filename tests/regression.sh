@@ -1112,6 +1112,14 @@ echo " PASS=$PASS"
 echo " FAIL=$FAIL"
 echo "========================================"
 
+echo
+echo "===== CRITICAL PATH GUARDS ====="
+grep -q "this->auth->authenticate(\$accountId, \$credential)" "$ROOT/src/CloudSave/CloudSaveService.php"
+grep -q "authenticate(\$accountId, \$credential)" "$ROOT/public/api/v2/music-upload.php"
+grep -q 'storage/music-public' "$ROOT/docker/app-entrypoint.sh"
+grep -q 'handle_path /music/\*' "$ROOT/docker/Caddyfile"
+echo "Critical path guards: PASS"
+
 if [ "$FAIL" -eq 0 ]; then
     echo "MUCHOCORE_REGRESSION_OK"
     exit 0
