@@ -98,4 +98,46 @@ assertText(
     'single-letter prefix and query stripping'
 );
 
+
+$legacyAliases = [
+    '/getGJLevels.php' => 'LEVELS_OK',
+    '/getGJLevels20.php' => 'LEVELS_OK',
+    '/uploadGJLevel20.php' => 'LEVELS_OK',
+    '/downloadGJLevel20.php' => 'LEVELS_OK',
+    '/getGJComments20.php' => 'LEVELS_OK',
+    '/getGJMessages.php' => 'MSG_OK',
+    '/getGJUsers.php' => 'USER_OK',
+    '/getGJUserInfo.php' => 'USER_OK',
+    '/getGJScores.php' => 'USER_OK',
+    '/getGJFriendRequests.php' => 'SOCIAL_OK',
+    '/acceptGJFriendRequest.php' => 'SOCIAL_OK',
+    '/deleteGJFriendRequests.php' => 'SOCIAL_OK',
+    '/blockGJUser.php' => 'SOCIAL_OK',
+    '/unblockGJUser.php' => 'SOCIAL_OK',
+    '/removeGJFriend.php' => 'SOCIAL_OK',
+    '/likeGJLevel.php' => 'LIKE_OK',
+    '/suggestGJStars.php' => 'MOD_OK',
+    '/rateGJStars.php' => 'MOD_OK',
+    '/rateGJDemon.php' => 'MOD_OK',
+    '/updateGJDesc20.php' => 'LEVELS_OK',
+    '/deleteGJLevelUser.php' => 'LEVELS_OK',
+];
+
+$aliasRouter = new Router();
+foreach ($legacyAliases as $legacyPath => $expected) {
+    $normalized = $aliasRouter->normalizePath($legacyPath);
+    $aliasRouter->add(
+        'ANY',
+        $normalized,
+        static fn(Request $request): Response => Response::text($expected)
+    );
+    assertText(
+        $expected,
+        $aliasRouter->dispatch(
+            new Request('POST', $legacyPath, [], [], [])
+        ),
+        'legacy alias '.$legacyPath
+    );
+}
+
 echo "MUCHOCORE_ROUTER_COMPATIBILITY_OK\n";
