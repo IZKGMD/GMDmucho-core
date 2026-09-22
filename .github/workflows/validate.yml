@@ -31,12 +31,40 @@ jobs:
 
       - name: Check required files
         run: |
+          test -f VERSION
+          test "$(tr -d '[:space:]' < VERSION)" = "1.0.1"
+          test -f CHANGELOG.md
           test -f docker-compose.yml
+          test -f docker-compose.tunnel.yml
           test -f docker/Dockerfile
           test -f docker/Caddyfile
           test -f docker/app-entrypoint.sh
           test -f tools/client-patch.bat
           test -f tools/client-patcher.ps1
+
+      - name: Check Docker Compose configuration
+        run: |
+          trap 'rm -rf .secrets .ci.env' EXIT
+          mkdir -p .secrets
+          printf 'ci-db-password' > .secrets/db_password
+          printf 'ci-db-root-password' > .secrets/db_root_password
+          printf 'ci-admin-password' > .secrets/admin_password
+          cat > .ci.env <<'EOF'
+          DOMAIN=gdps.example.com
+          CADDY_ADDRESS=gdps.example.com
+          DB_NAME=muchocore
+          DB_USER=muchocore_user
+          ADMIN_USER=admin
+          MUCHO_ACCOUNT_URL=https://gdps.example.com
+          MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net
+          MUCHO_ADMIN_BOOTSTRAP=/etc/muchocore-admin.php
+          MUCHO_CONTROL_DIR=/var/lib/muchocore-control
+          MUCHO_BACKUP_DIR=/var/lib/muchocore-backups
+          TZ=UTC
+          MUCHO_TUNNEL_TOKEN=dummy-token
+          EOF
+          docker compose --env-file .ci.env config -q
+          docker compose --env-file .ci.env -f docker-compose.yml -f docker-compose.tunnel.yml config -q
 
       - name: Check runtime environment handling
         run: |
