@@ -89,6 +89,14 @@ final readonly class LevelRepository
         );
 
         if ($difficulty !== []) {
+            $difficulty = array_map(
+                static fn(int $value): int =>
+                    $value > 0 && $value < 10
+                        ? $value * 10
+                        : $value,
+                $difficulty
+            );
+
             $where[] =
                 'l.difficulty IN (' .
                 implode(',', $difficulty) .
