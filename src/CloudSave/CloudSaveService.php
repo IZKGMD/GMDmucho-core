@@ -78,9 +78,13 @@ final readonly class CloudSaveService
             $accountId = (int)$q->fetchColumn();
         }
 
-        if ($accountId <= 0) {
-            throw new RuntimeException('Unknown cloud save account.');
+        $credential = trim((string)($data['gjp2'] ?? $data['gjp'] ?? ''));
+
+        if ($accountId <= 0 || $credential === '') {
+            throw new RuntimeException('Unauthorized cloud save account.');
         }
+
+        $this->auth->authenticate($accountId, $credential);
 
         return $accountId;
     }
