@@ -13,7 +13,7 @@ if (empty($_SESSION['mucho_install_csrf'])) {
 $root = dirname(__DIR__);
 $storage = $root . '/storage';
 $lock = $storage . '/shared-install.lock';
-$bootstrap = $storage . '/admin-bootstrap.php';
+$bootstrapPath = $storage . '/admin-bootstrap.php';
 $envFile = $root . '/.env';
 
 function e(string $value): string
