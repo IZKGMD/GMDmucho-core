@@ -355,11 +355,12 @@ try {
         $like = '%'.$search.'%';
         $exactId = ctype_digit($search) ? (int)$search : -1;
         $query = $db->prepare(
-            'SELECT a.account_id, a.username, a.role, a.is_active, a.is_banned,
+            'SELECT a.account_id, a.username, COALESCE(r.code, 'user') AS role, a.is_active, a.is_banned,
                     p.stars, p.moons, p.diamonds, p.secret_coins, p.user_coins,
                     p.demons, p.creator_points, p.bio, p.last_played_at
              FROM accounts a
              LEFT JOIN profiles p ON p.account_id = a.account_id
+             LEFT JOIN roles r ON r.id = a.role_id
              WHERE (:empty = 1 OR a.username LIKE :like_search OR a.account_id = :exact_id)
              ORDER BY a.account_id DESC LIMIT 50'
         );
@@ -390,11 +391,12 @@ try {
         requireAdmin($db, 40);
         $accountId = intInput($input, 'account_id', 1, PHP_INT_MAX);
         $query = $db->prepare(
-            'SELECT a.account_id, a.username, a.role, a.is_active, a.is_banned,
+            'SELECT a.account_id, a.username, COALESCE(r.code, 'user') AS role, a.is_active, a.is_banned,
                     p.stars, p.moons, p.diamonds, p.secret_coins, p.user_coins,
                     p.demons, p.creator_points, p.bio, p.last_played_at
              FROM accounts a
              LEFT JOIN profiles p ON p.account_id = a.account_id
+             LEFT JOIN roles r ON r.id = a.role_id
              WHERE a.account_id = :id LIMIT 1'
         );
         $query->execute(['id' => $accountId]);
@@ -425,7 +427,10 @@ try {
         $accountId = intInput($input, 'account_id', 1, PHP_INT_MAX);
         $banned = boolInput($input, 'banned');
 
-        $query = $db->prepare('SELECT account_id, username, role, is_banned FROM accounts WHERE account_id = :id LIMIT 1');
+        $query = $db->prepare('SELECT a.account_id, a.username, COALESCE(r.code, 'user') AS role, a.is_banned
+             FROM accounts a
+             LEFT JOIN roles r ON r.id = a.role_id
+             WHERE a.account_id = :id LIMIT 1');
         $query->execute(['id' => $accountId]);
         $target = $query->fetch();
         if (!$target) {
@@ -449,17 +454,27 @@ try {
         $admin = requireAdmin($db, 40);
         $accountId = intInput($input, 'account_id', 1, PHP_INT_MAX);
         $role = strtolower((string)($input['role'] ?? ''));
-        if (!in_array($role, ['user', 'helper', 'moderator', 'admin', 'owner'], true)) {
+        if ($role === 'helper') {
+            $role = 'moderator';
+        }
+        if (!in_array($role, ['user', 'moderator', 'admin', 'owner'], true)) {
             fail('invalid_request', 'Invalid account role.', 422);
         }
-        $query = $db->prepare('SELECT username, role FROM accounts WHERE account_id = :id LIMIT 1');
+        $query = $db->prepare('SELECT a.username, COALESCE(r.code, 'user') AS role
+             FROM accounts a
+             LEFT JOIN roles r ON r.id = a.role_id
+             WHERE a.account_id = :id LIMIT 1');
         $query->execute(['id' => $accountId]);
         $target = $query->fetch();
         if (!$target) {
             fail('not_found', 'Player not found.', 404);
         }
-        $db->prepare('UPDATE accounts SET role = :role WHERE account_id = :id')
-            ->execute(['role' => $role, 'id' => $accountId]);
+        $db->prepare(
+            'UPDATE accounts a
+             JOIN roles r ON r.code = :role
+             SET a.role_id = r.id
+             WHERE a.account_id = :id'
+        )->execute(['role' => $role, 'id' => $accountId]);
         auditClient($db, $admin, 'player.role', 'account', (string)$accountId, [
             'username' => (string)$target['username'],
             'previous' => (string)$target['role'],
