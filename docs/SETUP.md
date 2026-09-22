@@ -1,117 +1,129 @@
-# MuchoCore Server Setup
+# VPS: простой запуск
 
-## Easiest installation
+Эта инструкция рассчитана на новичка с Linux VPS и root-доступом.
 
-Do not follow the manual PHP/Nginx steps unless you know why you need them.
+## Что нужно
 
-Use:
+- Linux VPS;
+- root-доступ или возможность использовать sudo;
+- домен, который указывает на VPS;
+- открытые порты 80 и 443.
 
-```bash
+Не нужно вручную устанавливать PHP, MariaDB или Caddy.
+
+## 1. Настрой домен
+
+Создай DNS-запись:
+
+~~~text
+gdps.example.com → IP-АДРЕС-ТВОЕГО-VPS
+~~~
+
+Подставь вместо gdps.example.com свой домен.
+
+## 2. Запусти установщик
+
+На VPS выполни:
+
+~~~bash
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh -o install.sh
 sudo bash install.sh
-```
+~~~
 
-You need:
+Установщик задаст понятные вопросы и сам подготовит MuchoCore.
 
-- a Linux VPS with root access;
-- a domain pointing to that VPS;
-- ports 80 and 443 open.
+Он создаёт:
 
-## Domain setup
+- MariaDB;
+- PHP 8.3;
+- Caddy;
+- базу данных;
+- ключ cloud save;
+- администратора.
 
-At your DNS provider, create an A record:
+## 3. Проверь сервер
 
-```text
-gdps.example.com -> YOUR_VPS_IP
-```
+После установки открой:
 
-Wait until the domain points to the VPS before running the installer.
-
-## What the installer does
-
-The installer automatically:
-
-1. Installs Docker.
-2. Downloads MuchoCore.
-3. Starts MariaDB.
-4. Starts PHP 8.3.
-5. Starts Caddy and automatic HTTPS.
-6. Generates database passwords.
-7. Generates the cloud-save key.
-8. Creates the database tables.
-9. Creates the `admin` account.
-
-During installation, the installer tells you that the admin username is `admin` and asks you to create the password you will use to sign in.
-
-## First login
-
-Open:
-
-```text
-https://YOUR-DOMAIN/admin/
-```
-
-Username:
-
-```text
-admin
-```
-
-Password:
-
-Use the password you created during installation.
-
-## Health check
-
-Open:
-
-```text
+~~~text
 https://YOUR-DOMAIN/health
-```
+~~~
 
-Expected response:
+Должно появиться:
 
-```text
+~~~text
 1
-```
+~~~
 
-## Connect the client
+Потом открой:
 
-Once the server works, patch your Geometry Dash client.
+~~~text
+https://YOUR-DOMAIN/admin/
+~~~
 
-Read [`CLIENT_SETUP.md`](CLIENT_SETUP.md).
+Логин:
 
-## Update
+~~~text
+admin
+~~~
 
-```bash
+Пароль — тот, который ты задал установщику.
+
+## 4. Подключи игру
+
+Когда /health работает, переходи в:
+
+CLIENT_SETUP.md
+
+## Обновление
+
+Обычно достаточно:
+
+~~~bash
 sudo /opt/mucho-core/update.sh
-```
+~~~
 
-## Logs
+## Логи
 
-```bash
+Когда что-то не работает:
+
+~~~bash
 cd /opt/mucho-core
-sudo docker compose logs -f
-```
+sudo docker compose logs --tail=100
+~~~
 
-## Backup
+Сначала посмотри последние строки. Не меняй сразу много файлов.
 
-Before a major update, make a database backup:
+## Резервная копия
 
-```bash
+Перед большим изменением сделай backup:
+
+~~~bash
 sudo /opt/mucho-core/bin/mucho-db-backup.sh
-```
+~~~
 
-Also keep a secure backup of:
+И обязательно сохрани:
 
-```text
+~~~text
 /opt/mucho-core/config/cloudsave.key
-```
+~~~
 
-## Remove
+Этот ключ нужен для существующих cloud save.
 
-Warning: this removes the database volume.
+## Удаление
 
-```bash
-sudo /opt/mucho-core/uninstall.sh
-```
+uninstall.sh удаляет установку и Docker volume с базой.
+
+Перед запуском он просит ввести:
+
+~~~text
+DELETE
+~~~
+
+Не выполняй эту команду, если хочешь сохранить сервер.
+
+## Если VPS необычный
+
+NAT/CGNAT VPS, Cloudflare Tunnel и ручная настройка рассматриваются отдельно:
+
+ADVANCED.md
