@@ -10,10 +10,10 @@ ADMIN_USER="admin"
 # Optional: set MUCHO_TUNNEL_TOKEN to deploy via Cloudflare Tunnel instead of
 # binding 80/443 directly. Use this on NAT/CGNAT VPS plans that have no
 # dedicated public IPv4 (inbound ports other than SSH are not reachable).
-# Create the tunnel token in the Cloudflare Zero Trust dashboard:
-# https://one.dash.cloudflare.com/ -> Networks -> Tunnels -> Create a tunnel
-# (choose "Cloudflared"), then add a Public Hostname pointing to
-# "http://caddy:80" and copy the token shown in the install command.
+# In the current Cloudflare Dashboard, create/select a tunnel under:
+# Dashboard -> Networking -> Tunnels. Add the published applications you need,
+# then use the connector token shown for the tunnel. The MuchoCore tunnel
+# compose override sends traffic to the internal Caddy service at http://caddy:80.
 TUNNEL_TOKEN="${MUCHO_TUNNEL_TOKEN:-}"
 
 log()  { printf '\033[1;32m[MuchoCore]\033[0m %s\n' "$*"; }
@@ -50,8 +50,6 @@ else
   git clone --depth=1 "$REPO_URL" "$INSTALL_DIR"
 fi
 
-# The deployment files are introduced on the feature branch before the PR is merged.
-# If main does not contain them yet, use that branch for the pre-merge VPS test.
 if [[ ! -f "$INSTALL_DIR/docker-compose.yml" ]]; then
   if git -C "$INSTALL_DIR" ls-remote --exit-code origin refs/heads/feat/easy-deploy >/dev/null 2>&1; then
     log "Main does not contain the deployment files yet; using feat/easy-deploy for this test."
@@ -144,7 +142,7 @@ if [[ "$healthy" -eq 1 ]]; then
     if [[ -n "$TUNNEL_TOKEN" ]]; then
       warn "The server is running locally, but the domain is not reachable through Cloudflare Tunnel yet."
       warn "Check the tunnel status: cd $INSTALL_DIR && sudo docker compose logs cloudflared --tail=50"
-      warn "And confirm the Public Hostname in the Zero Trust dashboard points to http://caddy:80."
+      warn "Confirm that the tunnel's published application sends traffic to http://caddy:80."
     else
       warn "The server is running, but the domain is not reachable from this VPS yet."
       warn "Check that DNS points to this VPS and that ports 80 and 443 are open."
