@@ -121,7 +121,7 @@ final class GdLevelListEncoder
 
         // Строгий формат Geometry Dash: levels#users#songs#pageInfo#hash
         if ($gameVersion <= 18) {
-            return $levelsPart . "#" . $usersPart . "#" . $pageInfo;
+            return $levelsPart . "#" . $usersPart . "#" . $pageInfo . "#" . $hashPart;
         }
 
         return $levelsPart . "#" . $usersPart . "#" . $songsPart . "#" . $pageInfo . "#" . $hashPart;
