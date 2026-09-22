@@ -735,10 +735,13 @@ final readonly class LevelScoreController
             return 0;
         }
 
-        return max(
-            0,
-            (int)$data[$key]-$offset
-        );
+        $value=(int)$data[$key]-$offset;
+
+        if($value<0){
+            return 0;
+        }
+
+        return $value;
     }
 
 
