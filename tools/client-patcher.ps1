@@ -43,11 +43,13 @@ function Get-CompatibilityPath {
         $portPart = ':' + $uri.Port
     }
 
-    $schemes = if ($Bare) { @('bare') } else { @('https', 'http') }
+    # Use only the scheme the user entered. Falling back to HTTPS for an
+    # HTTP-only server creates a patched client that cannot connect.
+    $schemes = if ($Bare) { @('bare') } else { @($uri.Scheme) }
     $segments = @('a', 'api', 'database', 'accounts')
 
     # Router::normalizePath strips these compatibility prefixes.
-    # Search HTTPS combinations before falling back to HTTP.
+    # Search only the requested scheme.
     foreach ($scheme in $schemes) {
         $queue = New-Object System.Collections.Generic.List[object]
         $seen = New-Object System.Collections.Generic.HashSet[string]
@@ -114,7 +116,18 @@ if ($SelfTest) {
 
     $expected33 = Get-CompatibilityPath -Server $testServer -DesiredLength 33
     if (-not $expected33.StartsWith('https://')) {
-        throw "Self-test selected HTTP when HTTPS was available: $expected33"
+        throw "Self-test selected a non-HTTPS scheme unexpectedly: $expected33"
+    }
+
+    $httpTestServer = 'http://gdps.example.com'
+    $http29 = Get-CompatibilityPath -Server $httpTestServer -DesiredLength 29
+    if (-not $http29.StartsWith('http://')) {
+        throw "Self-test ignored the requested HTTP scheme: $http29"
+    }
+
+    $http25 = Get-CompatibilityPath -Server $httpTestServer -DesiredLength 25
+    if (-not $http25.StartsWith('http://')) {
+        throw "Self-test ignored the requested HTTP scheme: $http25"
     }
 
     Write-Host 'MUCHOCORE_CLIENT_PATCHER_OK'
@@ -249,8 +262,8 @@ function Invoke-Patch {
     $patterns = @(
         @{ Old = 'https://www.boomlings.com/database'; Length = 34; Label = 'GD 2.2 HTTPS database URL' },
         @{ Old = 'http://www.boomlings.com/database';  Length = 33; Label = 'Legacy HTTP database URL' },
-        @{ Old = 'https://www.boomlings.com/';         Length = 29; Label = 'GD HTTPS root URL' },
-        @{ Old = 'http://www.boomlings.com/';          Length = 28; Label = 'Legacy HTTP root URL' },
+        @{ Old = 'https://www.boomlings.com/';         Length = 26; Label = 'GD HTTPS root URL' },
+        @{ Old = 'http://www.boomlings.com/';          Length = 25; Label = 'Legacy HTTP root URL' },
         @{ Old = 'www.boomlings.com/database';         Length = 26; Label = 'Legacy bare database URL' }
     )
 
@@ -280,8 +293,8 @@ function Invoke-Patch {
     $b64Patterns = @(
         @{ Old = 'http://www.boomlings.com/database'; Length = 33; Label = 'Base64 legacy database URL' },
         @{ Old = 'https://www.boomlings.com/database'; Length = 34; Label = 'Base64 HTTPS database URL' },
-        @{ Old = 'http://www.boomlings.com/'; Length = 28; Label = 'Base64 legacy root URL' },
-        @{ Old = 'https://www.boomlings.com/'; Length = 29; Label = 'Base64 HTTPS root URL' }
+        @{ Old = 'http://www.boomlings.com/'; Length = 25; Label = 'Base64 legacy root URL' },
+        @{ Old = 'https://www.boomlings.com/'; Length = 26; Label = 'Base64 HTTPS root URL' }
     )
 
     foreach ($pattern in $b64Patterns) {
