@@ -64,6 +64,17 @@ final class DatabaseBridge
             }
         }
 
+        // Prefer the canonical MuchoCore connection so Docker runtime credentials
+        // from /var/lib/muchocore/runtime.env are loaded consistently.
+        if (class_exists('MuchoCore\\Database\\Database')) {
+            try {
+                $canonical = new \MuchoCore\Database\Database();
+                return self::$pdo = self::normalize($canonical->connection());
+            } catch (Throwable) {
+                // Fall through to legacy adapters.
+            }
+        }
+
         // Try already-loaded database classes without coupling v7.1 to a concrete implementation.
         foreach ([
             'Mucho\\Core\\Database',
@@ -102,6 +113,13 @@ final class DatabaseBridge
         }
 
         $env = self::loadEnv($root . '/.env');
+        foreach ([
+            $root . '/.env.local',
+            $root . '/config/.env',
+            '/var/lib/muchocore/runtime.env'
+        ] as $extraEnv) {
+            $env = array_merge($env, self::loadEnv($extraEnv));
+        }
 
         $dsn = self::pick($env, ['DB_DSN']);
         $user = self::pick($env, ['DB_USERNAME', 'DB_USER', 'MYSQL_USER']) ?? '';
