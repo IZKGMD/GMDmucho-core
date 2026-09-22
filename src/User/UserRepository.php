@@ -38,7 +38,7 @@ final readonly class UserRepository
                 COALESCE(p.special, 0) AS special,
                 a.account_id,
                 a.username,
-                COALESCE(ar.code, 'user') AS role_code
+                COALESCE(ar.code, \'user\') AS role_code
             FROM accounts a
             LEFT JOIN profiles p
                 ON p.account_id = a.account_id
@@ -117,7 +117,7 @@ final readonly class UserRepository
             SELECT
                 a.account_id,
                 a.username,
-                COALESCE(ar.code, 'user') AS role_code,
+                COALESCE(ar.code, \'user\') AS role_code,
                 COALESCE(a.messages_state, 0) AS message_state,
                 COALESCE(a.friend_requests_state, 0) AS friend_request_state,
                 COALESCE(a.comments_state, 0) AS comment_history_state,
@@ -167,7 +167,7 @@ final readonly class UserRepository
             SELECT
                 p.*,
                 a.username,
-                COALESCE(ar.code, 'user') AS role_code,
+                COALESCE(ar.code, \'user\') AS role_code,
                 ROW_NUMBER() OVER (ORDER BY p.stars DESC, p.account_id ASC) AS `rank`
             FROM profiles p
             INNER JOIN accounts a
@@ -187,7 +187,7 @@ final readonly class UserRepository
             SELECT
                 p.*,
                 a.username,
-                COALESCE(ar.code, 'user') AS role_code,
+                COALESCE(ar.code, \'user\') AS role_code,
                 ROW_NUMBER() OVER (ORDER BY p.creator_points DESC, p.account_id ASC) AS `rank`
             FROM profiles p
             INNER JOIN accounts a
@@ -204,7 +204,7 @@ final readonly class UserRepository
     public function leaderboardRelative(int $accountId, int $limit = 50): array
     {
         $sql = "WITH RankedProfiles AS (
-            SELECT p.*, a.username, COALESCE(ar.code, 'user') AS role_code,
+            SELECT p.*, a.username, COALESCE(ar.code, \'user\') AS role_code,
                    ROW_NUMBER() OVER (ORDER BY p.stars DESC, p.account_id ASC) AS `rank`
             FROM profiles p
             INNER JOIN accounts a ON a.account_id = p.account_id
