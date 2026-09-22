@@ -1118,6 +1118,8 @@ grep -q "this->auth->authenticate(\$accountId, \$credential)" "$ROOT/src/CloudSa
 grep -q "authenticate(\$accountId, \$credential)" "$ROOT/public/api/v2/music-upload.php"
 grep -q 'storage/music-public' "$ROOT/docker/app-entrypoint.sh"
 grep -q 'handle_path /music/\*' "$ROOT/docker/Caddyfile"
+grep -q "/var/lib/muchocore/runtime.env" "$ROOT/public/api/v2/bootstrap.php"
+grep -q "/var/lib/muchocore/runtime.env" "$ROOT/public/database/muchoProfileV1.php"
 echo "Critical path guards: PASS"
 
 if [ "$FAIL" -eq 0 ]; then
@@ -1127,11 +1129,3 @@ fi
 
 echo "MUCHOCORE_REGRESSION_FAILED"
 exit 1
-
-
-echo '[MuchoCore] Critical path checks'
-grep -q "this->auth->authenticate(\$accountId, \$credential)" "$ROOT/src/CloudSave/CloudSaveService.php"
-grep -q "authenticate(\$accountId, \$credential)" "$ROOT/public/api/v2/music-upload.php"
-grep -q 'storage/music-public' "$ROOT/docker/app-entrypoint.sh"
-grep -q 'handle_path /music/\*' "$ROOT/docker/Caddyfile"
-echo 'PASS critical auth/storage checks'
