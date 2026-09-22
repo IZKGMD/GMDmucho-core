@@ -126,6 +126,24 @@ final readonly class LevelRepository
 
         $order = "l.created_at DESC";
 
+        if (($filters['featured'] ?? false)) {
+            $where[] = 'l.featured = 1';
+        }
+
+        $epicFlags = [];
+        if (($filters['epic'] ?? false)) {
+            $epicFlags[] = 1;
+        }
+        if (($filters['mythic'] ?? false)) {
+            $epicFlags[] = 3;
+        }
+        if (($filters['legendary'] ?? false)) {
+            $epicFlags[] = 2;
+        }
+        if ($epicFlags !== []) {
+            $where[] = 'l.epic IN (' . implode(',', $epicFlags) . ')';
+        }
+
         switch ($type) {
             case 0:
             case 15:
