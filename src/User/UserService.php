@@ -195,7 +195,7 @@ final readonly class UserService
     {
         $this->auth->authenticate($accountId, $gjp);
 
-        $q = $this->pdo->prepare('SELECT COALESCE(r.code, 'user') AS role
+        $q = $this->pdo->prepare('SELECT COALESCE(r.code, \'user\') AS role
              FROM accounts a
              LEFT JOIN roles r ON r.id = a.role_id
              WHERE a.account_id = :id
