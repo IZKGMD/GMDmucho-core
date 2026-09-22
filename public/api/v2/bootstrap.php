@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Copyright (C) 2026 IZK
  */
 
-const MUCHO_V2_ROOT = '/var/www/mucho-core';
+define('MUCHO_V2_ROOT', dirname(__DIR__, 3));
 const MUCHO_V2_VERSION = '2.2';
 
 function muchoV2Env(): array
