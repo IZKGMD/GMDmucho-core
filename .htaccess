@@ -4,7 +4,12 @@ DirectoryIndex public/index.php
 RewriteEngine On
 
 # Never expose project internals.
-RewriteRule ^(?:\.git|config|src|database|tests|tools|vendor|storage)(?:/|$) - [F,L,NC]
+RewriteRule ^(?:\.git|config|src|tests|tools|vendor|storage)(?:/|$) - [F,L,NC]
+
+# IMPORTANT: /database is intentionally NOT blocked here.
+# When the domain points to the project root, it is rewritten to
+# public/database so Geometry Dash legacy endpoints remain reachable.
+
 RewriteRule ^\.env(?:\.|$) - [F,L,NC]
 RewriteRule ^composer\.(json|lock)$ - [F,L,NC]
 
