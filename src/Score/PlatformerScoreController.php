@@ -53,18 +53,21 @@ final readonly class PlatformerScoreController
                 return Response::text('-1');
             }
 
-            $time=max(
-                0,
-                (int)($d['time'] ?? 0)
+            $time=min(
+                86_400_000,
+                max(0,(int)($d['time'] ?? 0))
             );
 
-            $points=(int)($d['points'] ?? 0);
+            $points=min(
+                10_000_000,
+                max(0,(int)($d['points'] ?? 0))
+            );
 
             /*
-             * Только time > 0 означает реальный
-             * platformer result.
+             * Preserve Cvolton's time/points contract, but do not
+             * silently discard a valid points-mode result.
              */
-            if($time>0){
+            if($time>0 || ($mode===1 && $points>0)){
                 $this->save(
                     $accountId,
                     $levelId,
@@ -324,8 +327,9 @@ final readonly class PlatformerScoreController
                 ':16:'.(int)$row['account_id'].
                 ':3:'.$score.
                 ':6:'.$rank.
-                ':42:'.$this->age(
-                    time()-(int)$row['updated_at']
+                ':42:'.gmdate(
+                    'd/m/Y G.i',
+                    (int)$row['updated_at']
                 );
         }
 
@@ -403,26 +407,4 @@ final readonly class PlatformerScoreController
     }
 
 
-    private function age(int $seconds): string
-    {
-        $seconds=max(0,$seconds);
-
-        if($seconds<60){
-            return max(1,$seconds).' seconds';
-        }
-
-        if($seconds<3600){
-            return intdiv($seconds,60).' minutes';
-        }
-
-        if($seconds<86400){
-            return intdiv($seconds,3600).' hours';
-        }
-
-        if($seconds<604800){
-            return intdiv($seconds,86400).' days';
-        }
-
-        return intdiv($seconds,604800).' weeks';
-    }
 }
