@@ -16,6 +16,8 @@ SERVER = "https://abc.com"
 patterns = [
     b"https://www.boomlings.com/database",
     b"http://www.boomlings.com/database",
+    b"https://www.boomlings.com/",
+    b"http://www.boomlings.com/",
     b"www.boomlings.com/database",
 ]
 
@@ -23,7 +25,7 @@ binary = bytearray(b"MAGIC\x00HEADER\x00")
 for value in patterns:
     binary.extend(value)
     binary.extend(b"\x00\x01RANDOMDATA\x00")
-for value in patterns[:2]:
+for value in patterns:
     binary.extend(base64.b64encode(value))
     binary.extend(b"\x00")
 
