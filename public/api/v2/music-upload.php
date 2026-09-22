@@ -17,6 +17,18 @@ const MUSIC_COOLDOWN = 180;
 try {
     $db = muchoV2Db();
 
+    $accountId = (int)($_POST['account_id'] ?? $_POST['accountID'] ?? 0);
+    $credential = trim((string)($_POST['gjp2'] ?? $_POST['gjp'] ?? ''));
+
+    if ($accountId <= 0 || $credential === '') {
+        muchoV2Fail('unauthorized',401);
+    }
+
+    require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
+
+    $auth = new \MuchoCore\Account\AccountAuthenticator($db);
+    $auth->authenticate($accountId, $credential);
+
     $title = trim((string)($_POST['title'] ?? ''));
     $artist = trim((string)($_POST['artist'] ?? ''));
 
@@ -143,16 +155,17 @@ try {
             VALUES
             (
                 :name,
-                0,
+                :author_id,
                 :author,
                 :size,
                 :url,
-                1
+                0
             )
         ");
 
         $q->execute([
             'name'=>$title,
+            'author_id'=>$accountId,
             'author'=>$artist,
             'size'=>round($size/1024/1024,2),
             'url'=>$download
