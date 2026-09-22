@@ -1,251 +1,166 @@
-# Shared Hosting Setup
+# PHP-хостинг: простой запуск
 
-This guide is for a normal PHP hosting account.
+Эта инструкция для обычного PHP-хостинга без Docker.
 
-You do **not** need Docker for this mode.
+## Что нужно
 
-## What you need
+- PHP 8.3 или новее;
+- MySQL или MariaDB;
+- PDO MySQL;
+- возможность загружать файлы;
+- домен или поддомен.
 
-Before starting, make sure your hosting account provides:
+## 1. Создай базу
 
-- PHP 8.3 or newer.
-- MySQL or MariaDB.
-- PDO MySQL.
-- Composer access, or a way to run Composer in the hosting account.
-- A domain or subdomain pointing to the site.
+В панели хостинга найди раздел MySQL / MariaDB / Базы данных.
 
-If your host only provides an older PHP version, stop here. The current MuchoCore release requires PHP 8.3+.
+Тебе понадобятся:
 
-## Step 1 — Create the database
+~~~text
+host
+port
+имя базы
+пользователь
+пароль
+~~~
 
-Open your hosting control panel and find:
+Не публикуй пароль базы данных.
 
-```text
-MySQL / MariaDB / Databases
-```
+## 2. Загрузи проект
 
-Create a database and a database user.
+Загружай репозиторий целиком. Сохраняй папки как есть:
 
-Write down these values:
-
-```text
-Database host
-Database port
-Database name
-Database username
-Database password
-```
-
-Do not put the database password into GitHub.
-
-## Step 2 — Upload MuchoCore
-
-Download the repository and upload the complete project to your hosting account.
-
-A simple layout is:
-
-```text
-your-site/
+~~~text
+mucho-core/
 ├── public/
 ├── src/
 ├── database/
-├── vendor/
+├── tests/
+├── tools/
 ├── composer.json
 └── ...
-```
+~~~
 
-You can use the hosting file manager or SFTP.
+**Не переноси содержимое public/ вручную в корень проекта.** Это часто ломает пути.
 
-### Document root
+### Вариант A — лучший
 
-There are two supported layouts.
+Если хостинг позволяет выбрать document root, укажи:
 
-### Option A — document root points to `public/`
-
-This is the cleanest setup.
-
-Set your domain document root to:
-
-```text
+~~~text
 .../mucho-core/public
-```
+~~~
 
-### Option B — document root points to the project folder
+### Вариант B — когда document root менять нельзя
 
-The repository includes a root `.htaccess` that internally uses `public/` as the website root.
+Можно оставить document root на корне проекта. Корневой .htaccess сам направит сайт в public/.
 
-This is useful when your hosting panel does not let you change the document root.
+В этом варианте путь:
 
-## Step 3 — Install Composer dependencies
+~~~text
+/database/...
+~~~
 
-The repository does not store the `vendor/` directory in Git.
+тоже должен работать — это часть совместимости Geometry Dash.
 
-From the hosting terminal, run:
+## 3. Установи Composer
 
-```bash
+Если на хостинге есть Terminal:
+
+~~~bash
 cd /path/to/mucho-core
 composer install --no-dev --optimize-autoloader
-```
+~~~
 
-You should now have:
+После этого должен существовать:
 
-```text
+~~~text
 vendor/autoload.php
-```
+~~~
 
-If your hosting panel has a Composer button or Composer manager, that is also fine.
+## 4. Запусти установщик
 
-## Step 4 — Open the installer
+Открой:
 
-Open:
-
-```text
+~~~text
 https://YOUR-DOMAIN/shared-install.php
-```
+~~~
 
-The installer checks PHP and the required extensions first.
+Сначала исправь все красные проверки.
 
-Do not continue while a red check is visible.
+Затем укажи данные базы и придумай пароль администратора.
 
-Then enter:
+Логин администратора:
 
-- your database host;
-- database port;
-- database name;
-- database username;
-- database password;
-- your GDPS address;
-- a password for the admin panel.
-
-The admin username is always:
-
-```text
+~~~text
 admin
-```
+~~~
 
-The installer creates the database tables and the admin account automatically.
+Установщик сам создаёт таблицы и администратора.
 
-## Step 5 — Check the server
+## 5. Проверь сервер
 
-Open:
+Открой:
 
-```text
+~~~text
 https://YOUR-DOMAIN/health
-```
+~~~
 
-Expected result:
+Ожидается:
 
-```text
+~~~text
 1
-```
+~~~
 
-Then open:
+Затем:
 
-```text
+~~~text
 https://YOUR-DOMAIN/admin/
-```
+~~~
 
-Login:
+## 6. Подключи игру
 
-```text
-Username: admin
-Password: the password you created during installation
-```
+Когда /health работает, переходи в:
 
-## Delete the installer
+CLIENT_SETUP.md
 
-The installer locks itself after a successful installation and tries to delete itself.
+## После успешной установки
 
-For safety, also check your hosting file manager and delete:
+Удали:
 
-```text
+~~~text
 public/shared-install.php
-```
+~~~
 
-Do **not** delete:
+Если файл не удалился автоматически, удали его через файловый менеджер.
 
-```text
+Не удаляй:
+
+~~~text
 .env
 storage/admin-bootstrap.php
 config/cloudsave.key
-```
+~~~
 
-## If the installer shows a red PHP check
+## Обновление
 
-The message tells you what is missing.
+Сделай резервную копию базы, замени исходники приложения, сохрани .env и cloudsave.key, затем установи зависимости:
 
-Typical examples:
-
-### PHP version
-
-Ask the hosting control panel to switch the site to PHP 8.3 or newer.
-
-### PDO MySQL
-
-Enable the MySQL database extension for PHP.
-
-### Composer dependencies
-
-Run:
-
-```bash
+~~~bash
 composer install --no-dev --optimize-autoloader
-```
-
-### Not writable
-
-The PHP process must be able to write to the MuchoCore project directory and `storage/`.
-
-## Updating a shared-hosting installation
-
-Shared hosting does not use the Docker `update.sh` command.
-
-Use this safe workflow:
-
-1. Back up the database.
-2. Download the new MuchoCore release.
-3. Replace the application source files.
-4. Keep your `.env`.
-5. Keep `storage/admin-bootstrap.php`.
-6. Keep `config/cloudsave.key`.
-7. Run:
-
-```bash
-composer install --no-dev --optimize-autoloader
-```
-
-8. Run the database migrations:
-
-```bash
 php bin/migrate.php migrate
-```
+~~~
 
-If your hosting account does not allow terminal access, use the hosting provider's PHP/Composer manager or ask the provider how to run a PHP CLI command.
+## Если что-то не работает
 
-## Shared hosting limitations
+Проверяй в таком порядке:
 
-The Shared Hosting mode intentionally does not depend on:
+1. /health
+2. журнал ошибок хостинга
+3. правильность DB_HOST, DB_NAME, DB_USER и DB_PASS
+4. существует ли vendor/autoload.php
+5. выбран ли PHP 8.3+
 
-- Docker;
-- Caddy;
-- systemd;
-- sudo;
-- VPS-only maintenance commands.
+Не меняй одновременно несколько частей конфигурации.
 
-Some admin maintenance actions shown in the panel are therefore available only on VPS deployments.
-
-The Geometry Dash API, accounts, levels, social features, comments, scores and cloud-save endpoints use the same MuchoCore application code.
-
-## Client setup
-
-After the server works, patch the Geometry Dash client with:
-
-```text
-tools/client-patch.bat
-```
-
-The Windows patcher asks for **your** GDPS address.
-
-It does not contain a fixed MuchoCore domain.
-
-See [`CLIENT_SETUP.md`](CLIENT_SETUP.md).
+Продвинутые варианты не нужны для обычной установки.
