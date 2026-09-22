@@ -266,6 +266,34 @@ PHP;
             );
             $migrator->migrate();
 
+            /*
+             * The installer claims that the admin account is created.
+             * Make that true immediately instead of waiting for the
+             * first /admin/ page visit.
+             */
+            $adminStmt = $pdo->prepare(
+                'SELECT 1 FROM admin_users WHERE username = :username LIMIT 1'
+            );
+            $adminStmt->execute(['username' => 'admin']);
+
+            if ($adminStmt->fetchColumn() === false) {
+                $createAdmin = $pdo->prepare(
+                    'INSERT INTO admin_users
+                        (username, password_hash, role)
+                     VALUES
+                        (:username, :password_hash, :role)'
+                );
+
+                $createAdmin->execute([
+                    'username' => 'admin',
+                    'password_hash' => password_hash(
+                        $adminPass,
+                        PASSWORD_DEFAULT
+                    ),
+                    'role' => 'owner',
+                ]);
+            }
+
             if (@file_put_contents(
                 $lock,
                 "Installed: " . gmdate('c') . PHP_EOL,
