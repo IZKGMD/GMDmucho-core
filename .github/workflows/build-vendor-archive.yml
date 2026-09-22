@@ -29,13 +29,13 @@ jobs:
 
       - name: Create full release archive
         run: |
-          zip -r mucho-core-v1.0.0.zip .             -x '.git/*'             -x 'mucho-core-v1.0.0.zip'             -x 'vendor-muchocore-php83.zip'
+          zip -r mucho-core-v1.0.1.zip .             -x '.git/*'             -x 'mucho-core-v1.0.1.zip'             -x 'vendor-muchocore-php83.zip'
 
       - name: Upload release archive
         uses: actions/upload-artifact@v4
         with:
-          name: mucho-core-v1.0.0
-          path: mucho-core-v1.0.0.zip
+          name: mucho-core-v1.0.1
+          path: mucho-core-v1.0.1.zip
           if-no-files-found: error
 
       - name: Upload vendor archive
