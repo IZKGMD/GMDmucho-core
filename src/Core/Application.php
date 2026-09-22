@@ -91,6 +91,9 @@ final readonly class Application
             $this->pdo,
             $auth,
             $transferRepo,
+            new \MuchoCore\Level\LevelDownloadTracker(
+                $this->pdo
+            ),
             new GdLevelDownloadEncoder()
         );
         $transferController =
