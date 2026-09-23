@@ -264,7 +264,7 @@ final readonly class RewardsRepository
             $this->pdo->commit();
 
             return $reward;
-        } catch (\\Throwable $e) {
+        } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
