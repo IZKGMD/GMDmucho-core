@@ -35,17 +35,22 @@ try {
 
             $id=(int)$_POST['id'];
 
-            $allowedRoles=[
-                'user',
-                'helper',
-                'moderator',
-                'admin',
-                'owner'
-            ];
+            $role=trim((string)$_POST['role']);
 
-            $role=(string)$_POST['role'];
+            $roleQuery=$db->prepare(
+                'SELECT id
+                 FROM roles
+                 WHERE code=:role
+                 LIMIT 1'
+            );
 
-            if (!in_array($role,$allowedRoles,true)) {
+            $roleQuery->execute([
+                'role'=>$role
+            ]);
+
+            $roleId=$roleQuery->fetchColumn();
+
+            if($roleId===false) {
                 throw new RuntimeException('Bad role');
             }
 
@@ -53,7 +58,7 @@ try {
                 'UPDATE accounts SET
                     username=:username,
                     email=:email,
-                    role=:role,
+                    role_id=:role_id,
                     is_active=:active,
                     is_banned=:banned
                  WHERE account_id=:id'
@@ -70,7 +75,7 @@ try {
                     0,
                     254
                 ),
-                'role'=>$role,
+                'role_id'=>(int)$roleId,
                 'active'=>isset($_POST['active'])?1:0,
                 'banned'=>isset($_POST['banned'])?1:0,
                 'id'=>$id
