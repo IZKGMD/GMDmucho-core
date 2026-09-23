@@ -33,6 +33,7 @@ jobs:
           php tests/client-compatibility.php
           php tests/router-compatibility.php
           php tests/cvolton-compatibility.php
+          php tests/security-regression.php
           php tests/cvolton-compatibility.php
 
       - name: Check Python patcher
@@ -44,7 +45,7 @@ jobs:
       - name: Check required files
         run: |
           test -f VERSION
-          test "$(tr -d '[:space:]' < VERSION)" = "1.0.1"
+          test "$(tr -d '[:space:]' < VERSION)" = "1.1.0"
           test -f CHANGELOG.md
           test -f docker-compose.yml
           test -f docker-compose.tunnel.yml
