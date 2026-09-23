@@ -1,0 +1,91 @@
+name: Build MuchoCore Geometry Dash client
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'GeometryDash-MuchoCore (1).exe'
+      - '.github/workflows/build-client.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  patch-client:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Patch client URLs
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib
+          import re
+
+          src = Path("GeometryDash-MuchoCore (1).exe")
+          out = Path("GeometryDash-MuchoCore.exe")
+          data = bytearray(src.read_bytes())
+
+          targets = [
+              b"c92935bj.beget.tech",
+              b"www.boomlings.com",
+              b"boomlings.com",
+              b"www.geometrydash.com",
+              b"geometrydash.com",
+              b"www.gdserver.net",
+              b"gdserver.net",
+          ]
+          replacement = b"muchogdps.space"
+
+          replacements = {}
+          for old in targets:
+              count = data.count(old)
+              if count:
+                  if len(replacement) > len(old):
+                      raise SystemExit(f"Replacement is longer than {old!r}")
+                  padded = replacement + b"\x00" * (len(old) - len(replacement))
+                  data[:] = data.replace(old, padded)
+                  replacements[old.decode("ascii")] = count
+
+              old16 = old.decode("ascii").encode("utf-16le")
+              new16 = replacement.decode("ascii").encode("utf-16le")
+              count16 = data.count(old16)
+              if count16:
+                  if len(new16) > len(old16):
+                      raise SystemExit(f"UTF-16 replacement is longer than {old!r}")
+                  padded16 = new16 + b"\x00" * (len(old16) - len(new16))
+                  data[:] = data.replace(old16, padded16)
+                  replacements[old.decode("ascii") + " [utf16]"] = count16
+
+          out.write_bytes(data)
+
+          url_re = re.compile(rb"https?://[^\\x00\\r\\n\\t ]{3,120}")
+          urls = sorted(set(m.group(0).decode("ascii", "ignore") for m in url_re.finditer(data)))
+          Path("client-url-report.txt").write_text(
+              "MuchoCore client patch report\\n"
+              "================================\\n"
+              + "\\n".join(f"REPLACED {k}: {v}" for k, v in replacements.items())
+              + "\\n\\nDetected URLs:\\n"
+              + "\\n".join(urls)
+              + "\\n\\nSHA256: "
+              + hashlib.sha256(data).hexdigest()
+              + "\\n",
+              encoding="utf-8",
+          )
+
+          if b"muchogdps.space" not in data and "muchogdps.space [utf16]" not in replacements:
+              raise SystemExit("MuchoCore hostname was not found in the final executable")
+
+          print(Path("client-url-report.txt").read_text(encoding="utf-8"))
+
+      - name: Upload patched client
+        uses: actions/upload-artifact@v4
+        with:
+          name: GeometryDash-MuchoCore
+          path: |
+            GeometryDash-MuchoCore.exe
+            client-url-report.txt
+          if-no-files-found: error
