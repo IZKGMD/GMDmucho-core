@@ -560,8 +560,8 @@ if (!admin()):
 <!doctype html>
 <html lang="ru">
 <head>
-<link rel="icon" href="/assets/muchocore-icon.png" type="image/png">
-<link rel="apple-touch-icon" href="/assets/muchocore-icon.png">
+<link rel="icon" href="/Gemini_Generated_Image_af007baf007baf00.jpg" type="image/jpeg">
+<link rel="apple-touch-icon" href="/Gemini_Generated_Image_af007baf007baf00.jpg">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?=h($branding['server_name'])?> Control</title>
@@ -1552,7 +1552,7 @@ max-width:100%
 </head>
 <body class="admin-login" data-page="">
 <form method="post" class="box">
-<div class="logo"><img class="mucho-brand-logo" src="/assets/muchocore-logo.webp" alt="MuchoCore" width="42" height="42" decoding="async"><span class="mucho-brand-name"><?=h($branding['server_name'])?></span><span>Control</span></div>
+<div class="logo"><img class="mucho-brand-logo" src="/Gemini_Generated_Image_af007baf007baf00.jpg" alt="MuchoCore" width="42" height="42" decoding="async"><span class="mucho-brand-name"><?=h($branding['server_name'])?></span><span>Control</span></div>
 <div class="sub">GDPS Administration</div>
 
 <?php if (!empty($loginError)): ?>
@@ -3550,7 +3550,7 @@ table{
 <!-- /MUCHO_LANG_FLAGS -->
 
 <div class="brandrow">
-<div class="logo"><img class="mucho-brand-logo" src="/assets/muchocore-logo.webp" alt="MuchoCore" width="42" height="42" decoding="async"><span class="mucho-brand-name"><?=h($branding['server_name'])?></span><b>Control</b></div>
+<div class="logo"><img class="mucho-brand-logo" src="/Gemini_Generated_Image_af007baf007baf00.jpg" alt="MuchoCore" width="42" height="42" decoding="async"><span class="mucho-brand-name"><?=h($branding['server_name'])?></span><b>Control</b></div>
 <button
  type="button"
  class="sidebar-toggle"
