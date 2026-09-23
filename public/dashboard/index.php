@@ -865,8 +865,8 @@ input[type=text],input[type=password],input[type=file]{
 <?php if (Turnstile::enabled()): ?>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <?php endif; ?>
-<link rel="stylesheet" href="/muchocore-theme.css?v=1">
-<script src="/muchocore-theme.js?v=1" defer></script>
+<link rel="stylesheet" href="/muchocore-theme.css?v=3">
+<script src="/muchocore-theme.js?v=3" defer></script>
 </head>
 <body>
 <div class="shell">
