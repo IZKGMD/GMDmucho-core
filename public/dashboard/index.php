@@ -655,6 +655,8 @@ $uploadTurnstile = ($account && Turnstile::enabled());
 <link rel="apple-touch-icon" href="/assets/muchocore-icon.png">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090b10">
+<link rel="preconnect" href="https://gdicon.oat.zone" crossorigin>
 <meta name="description" content="<?=pdH($serverName)?> player dashboard, music uploads and player profiles">
 <title><?=pdH($serverName)?> · Player Dashboard</title>
 <style>
@@ -1113,6 +1115,7 @@ button,input{font:inherit}
     font-weight:900;
 }
 .music-text{min-width:0}
+.portal-panel form .btn{width:100%}
 .hero-title{
     margin:8px 0 12px;
     max-width:760px;
@@ -1428,6 +1431,7 @@ body.dashboard-page .topbar{
     .dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
     .upload-summary{grid-template-columns:1fr}
     .hero-actions .btn{flex:1 1 150px}
+    .portal-panel form .btn{width:100%}
     .profile-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
     .section-head{align-items:flex-start;flex-direction:column;gap:6px}
     .list-item{align-items:flex-start}
