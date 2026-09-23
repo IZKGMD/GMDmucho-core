@@ -63,8 +63,11 @@ final readonly class LevelTransferController
     public function download(Request $request): Response
     {
         $levelId = $request->postInt('levelID');
-        $gameVersion = $request->clientVersion()->gameVersion ?: 22;
+        $version = $request->clientVersion();
+        $gameVersion = $version->gameVersion ?: 22;
+        $binaryVersion = $version->binaryVersion;
         $extras = $request->postInt('extras', 0) === 1;
+        $incrementDownloads = $request->postInt('inc', 0) === 1;
 
         if (
             $levelId === 0 ||
@@ -77,7 +80,9 @@ final readonly class LevelTransferController
             $result = $this->service->download(
                 $levelId,
                 $gameVersion,
-                $extras
+                $binaryVersion,
+                $extras,
+                $incrementDownloads
             );
 
             return Response::text($result);
