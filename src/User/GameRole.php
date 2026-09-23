@@ -41,7 +41,7 @@ final class GameRole
             self::OWNER, self::ELDER_MODERATOR => '2',
             self::MODERATOR => '1',
             self::USER, 'player' => '-1',
-            default => throw new \\InvalidArgumentException('Unknown game role.'),
+            default => throw new \InvalidArgumentException('Unknown game role.'),
         };
     }
 
@@ -51,7 +51,7 @@ final class GameRole
             self::OWNER, self::ELDER_MODERATOR => 2,
             self::MODERATOR => 1,
             self::USER, 'player' => 0,
-            default => throw new \\InvalidArgumentException('Unknown game role.'),
+            default => throw new \InvalidArgumentException('Unknown game role.'),
         };
     }
 
