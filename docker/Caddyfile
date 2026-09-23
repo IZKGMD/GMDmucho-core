@@ -2,6 +2,12 @@
     root * /var/www/mucho-core/public
     encode gzip zstd
 
+    handle /assets/muchocore-dashboard-logo.jpg {
+        root * /var/www/mucho-core
+        rewrite * /Gemini_Generated_Image_vemzsvemzsvemzsv.jpg
+        file_server
+    }
+
     handle /assets/muchocore-source.jpg {
         root * /var/www/mucho-core
         rewrite * /Gemini_Generated_Image_af007baf007baf00.jpg
