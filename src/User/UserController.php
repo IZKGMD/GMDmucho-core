@@ -35,8 +35,7 @@ final readonly class UserController
     public function updateScore(Request $request): Response
     {
         $id=$request->postInt('accountID');
-        $gjp=$request->postString('gjp')
-            ?: $request->postString('gjp2');
+        $gjp=$request->gdCredential();
 
         if ($id<=0 || $gjp==='') {
             return Response::text('-1');
