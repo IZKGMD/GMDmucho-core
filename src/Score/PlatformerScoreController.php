@@ -139,19 +139,19 @@ final readonly class PlatformerScoreController
             )
             ON DUPLICATE KEY UPDATE
                 time_ms=IF(
-                    :mode_time=1 AND (time_ms<=0 OR VALUES(time_ms)<time_ms),
+                    :mode_time_a=1 AND (time_ms<=0 OR VALUES(time_ms)<time_ms),
                     VALUES(time_ms),
                     time_ms
                 ),
                 points=IF(
-                    :mode_points=1 AND VALUES(points)>points,
+                    :mode_points_a=1 AND VALUES(points)>points,
                     VALUES(points),
                     points
                 ),
                 updated_at=IF(
-                    (:mode_time=1 AND (time_ms<=0 OR VALUES(time_ms)<time_ms))
+                    (:mode_time_b=1 AND (time_ms<=0 OR VALUES(time_ms)<time_ms))
                     OR
-                    (:mode_points=1 AND VALUES(points)>points),
+                    (:mode_points_b=1 AND VALUES(points)>points),
                     VALUES(updated_at),
                     updated_at
                 )
@@ -164,8 +164,10 @@ final readonly class PlatformerScoreController
             'points'=>$points,
             'created'=>$now,
             'updated'=>$now,
-            'mode_time'=>$mode===0 ? 1 : 0,
-            'mode_points'=>$mode===1 ? 1 : 0,
+            'mode_time_a'=>$mode===0 ? 1 : 0,
+            'mode_time_b'=>$mode===0 ? 1 : 0,
+            'mode_points_a'=>$mode===1 ? 1 : 0,
+            'mode_points_b'=>$mode===1 ? 1 : 0,
         ]);
     }
 
