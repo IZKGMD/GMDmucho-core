@@ -7,6 +7,8 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 use MuchoCore\Security\ClientIp;
 use MuchoCore\Security\RateLimiter;
 
+$root = dirname(__DIR__);
+
 function check(bool $condition, string $message): void
 {
     if (!$condition) {
@@ -71,7 +73,7 @@ $v2 = file_get_contents($root . '/public/api/v2/security.php');
 check(is_string($v2), 'API v2 security module is readable');
 check(
     str_contains($v2, 'ClientIp::resolve') &&
-    !str_contains($v2, "$_SERVER['HTTP_CF_CONNECTING_IP']"),
+    !str_contains($v2, 'HTTP_CF_CONNECTING_IP'),
     'API v2 does not trust spoofable Cloudflare headers directly'
 );
 
