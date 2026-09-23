@@ -265,6 +265,7 @@ function pdRecentSongs(PDO $db, int $limit = 10): array
                 s.is_verified,
                 s.created_at
              FROM songs s
+             WHERE s.is_verified = 1
              ORDER BY s.id DESC
              LIMIT ' . (int)$limit
         );
@@ -289,6 +290,7 @@ function pdPlayerLevels(PDO $db, int $accountId, int $limit = 8): array
              FROM levels
              WHERE account_id = :account_id
                AND is_deleted = 0
+               AND is_unlisted = 0
              ORDER BY level_id DESC
              LIMIT ' . (int)$limit
         );
@@ -880,17 +882,17 @@ input[type=text],input[type=password],input[type=file]{
             <?php if ($profileLevels): ?>
                 <div class="list">
                     <?php foreach ($profileLevels as $level): ?>
-                        <a class="list-item" href="/admin/?page=levels&search=<?=rawurlencode((string)$level['level_id'])?>">
+                        <div class="list-item">
                             <span>
                                 <b><?=pdH($level['name'])?></b>
                                 <small>#<?=pdH($level['level_id'])?> · <?=pdFormatNumber($level['downloads'])?> downloads · <?=pdFormatNumber($level['likes'])?> likes</small>
                             </span>
                             <span class="badge"><?=pdFormatNumber($level['stars'])?> ★</span>
-                        </a>
+                        </div>
                     <?php endforeach; ?>
                 </div>
             <?php else: ?>
-                <div class="empty">No uploaded levels yet.</div>
+                <div class="empty">No published levels yet.</div>
             <?php endif; ?>
 
             <div class="section-head" style="margin-top:18px">
