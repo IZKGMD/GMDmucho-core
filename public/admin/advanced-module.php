@@ -319,11 +319,10 @@ $rows=v4Rows($db,$sql,$args);
 </select>
 
 <select name="role">
-<option>user</option>
-<option>helper</option>
-<option>moderator</option>
-<option>admin</option>
-<option>owner</option>
+<option value="user">User</option>
+<option value="moderator">Moderator</option>
+<option value="elder_moderator">Elder Moderator</option>
+<option value="owner">Owner</option>
 </select>
 
 <button>Apply to selected</button>
