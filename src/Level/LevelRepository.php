@@ -439,6 +439,9 @@ final readonly class LevelRepository
             {$historyJoin}
             LEFT JOIN accounts a ON a.account_id = l.account_id
             LEFT JOIN profiles p ON p.account_id = l.account_id
+            LEFT JOIN songs s
+              ON s.id = l.song_id
+             AND s.is_verified = 1
         ";
 
         $count = $this->pdo->prepare(
@@ -461,7 +464,15 @@ final readonly class LevelRepository
             SELECT
                 l.*,
                 COALESCE(a.username, "Player") AS username,
-                COALESCE(p.user_id, l.account_id) AS user_id
+                COALESCE(p.user_id, l.account_id) AS user_id,
+                s.id AS song_protocol_id,
+                s.name AS song_name,
+                s.author_id AS song_author_id,
+                s.author_name AS song_author_name,
+                s.size AS song_size,
+                s.download_url AS song_download_url,
+                s.youtube_video_id AS song_youtube_video_id,
+                s.youtube_channel_id AS song_youtube_channel_id
             ' . $from . '
             WHERE ' . $whereSql . '
             ORDER BY ' . $orderSql . '
