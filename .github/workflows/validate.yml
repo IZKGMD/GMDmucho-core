@@ -23,6 +23,7 @@ jobs:
           php tests/client-compatibility.php
           php tests/client-ip.php
           php tests/protocol-matrix.php
+          php tests/legacy-text.php
           php tests/router-compatibility.php
           php tests/game-roles.php
           php tests/music-upload-contract.php
