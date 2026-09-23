@@ -199,117 +199,54 @@ final readonly class LevelScoreController
         int $dailyId,
         int $isDaily
     ): void {
-
         $now=time();
 
-
         $q=$this->db->prepare("
-            SELECT
-                score_id,
-                percent
-
-            FROM mucho_level_scores
-
-            WHERE account_id=:account
-              AND level_id=:level
-              AND is_daily=:daily
-
-            LIMIT 1
+            INSERT INTO mucho_level_scores
+            (
+                account_id,
+                level_id,
+                is_daily,
+                daily_id,
+                percent,
+                coins,
+                attempts,
+                clicks,
+                play_time,
+                progresses,
+                created_at,
+                updated_at
+            )
+            VALUES
+            (
+                :account,
+                :level,
+                :is_daily,
+                :daily_id,
+                :percent,
+                :coins,
+                :attempts,
+                :clicks,
+                :play_time,
+                :progresses,
+                :created_at,
+                :updated_at
+            )
+            ON DUPLICATE KEY UPDATE
+                daily_id=IF(VALUES(percent)>=percent,VALUES(daily_id),daily_id),
+                percent=GREATEST(percent,VALUES(percent)),
+                coins=IF(VALUES(percent)>=percent,VALUES(coins),coins),
+                attempts=IF(VALUES(percent)>=percent,VALUES(attempts),attempts),
+                clicks=IF(VALUES(percent)>=percent,VALUES(clicks),clicks),
+                play_time=IF(VALUES(percent)>=percent,VALUES(play_time),play_time),
+                progresses=IF(VALUES(percent)>=percent,VALUES(progresses),progresses),
+                updated_at=IF(VALUES(percent)>=percent,VALUES(updated_at),updated_at)
         ");
 
         $q->execute([
             'account'=>$accountId,
             'level'=>$levelId,
-            'daily'=>$isDaily,
-        ]);
-
-        $old=$q->fetch(PDO::FETCH_ASSOC);
-
-
-        if(!$old){
-
-            $insert=$this->db->prepare("
-                INSERT INTO mucho_level_scores
-                (
-                    account_id,
-                    level_id,
-                    is_daily,
-                    daily_id,
-                    percent,
-                    coins,
-                    attempts,
-                    clicks,
-                    play_time,
-                    progresses,
-                    created_at,
-                    updated_at
-                )
-
-                VALUES
-                (
-                    :account,
-                    :level,
-                    :is_daily,
-                    :daily_id,
-                    :percent,
-                    :coins,
-                    :attempts,
-                    :clicks,
-                    :play_time,
-                    :progresses,
-                    :created_at,
-                    :updated_at
-                )
-            ");
-
-            $insert->execute([
-                'account'=>$accountId,
-                'level'=>$levelId,
-                'is_daily'=>$isDaily,
-                'daily_id'=>$dailyId,
-                'percent'=>$percent,
-                'coins'=>$coins,
-                'attempts'=>$attempts,
-                'clicks'=>$clicks,
-                'play_time'=>$playTime,
-                'progresses'=>$progresses,
-                'created_at'=>$now,
-                'updated_at'=>$now,
-            ]);
-
-            return;
-        }
-
-
-        /*
-         * Никогда не затираем лучший %
-         * более слабой попыткой.
-         */
-        if(
-            $percent <
-            (int)$old['percent']
-        ){
-            return;
-        }
-
-
-        $update=$this->db->prepare("
-            UPDATE mucho_level_scores
-
-            SET
-                daily_id=:daily_id,
-                percent=:percent,
-                coins=:coins,
-                attempts=:attempts,
-                clicks=:clicks,
-                play_time=:play_time,
-                progresses=:progresses,
-                updated_at=:updated_at
-
-            WHERE score_id=:score
-        ");
-
-        $update->execute([
+            'is_daily'=>$isDaily,
             'daily_id'=>$dailyId,
             'percent'=>$percent,
             'coins'=>$coins,
@@ -317,11 +254,10 @@ final readonly class LevelScoreController
             'clicks'=>$clicks,
             'play_time'=>$playTime,
             'progresses'=>$progresses,
+            'created_at'=>$now,
             'updated_at'=>$now,
-            'score'=>(int)$old['score_id'],
         ]);
     }
-
 
     private function leaderboard(
         int $accountId,
