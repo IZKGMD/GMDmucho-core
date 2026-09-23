@@ -22,26 +22,27 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y imagemagick
 
-      - name: Create inspect SVG
+      - name: Create inspect images
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p tools/.tmp
-          convert Gemini_Generated_Image_af007baf007baf00.jpg             -auto-orient             -resize '1400x1400>'             -strip             tools/.tmp/brand-inspect.jpg
+          convert Gemini_Generated_Image_af007baf007baf00.jpg \
+            -auto-orient \
+            -resize '1800x1800>' \
+            -strip \
+            tools/.tmp/brand-inspect.jpg
 
-          B64="$(base64 -w0 tools/.tmp/brand-inspect.jpg)"
-          W="$(identify -format '%w' tools/.tmp/brand-inspect.jpg)"
-          H="$(identify -format '%h' tools/.tmp/brand-inspect.jpg)"
+          convert tools/.tmp/brand-inspect.jpg \
+            -resize 1600x1600 \
+            tools/.tmp/brand-inspect-preview.png
 
-          cat > tools/.tmp/brand-inspect.svg <<EOF
-          <svg xmlns="http://www.w3.org/2000/svg" width="$W" height="$H" viewBox="0 0 $W $H">
-            <image width="$W" height="$H" href="data:image/jpeg;base64,$B64"/>
-          </svg>
-          EOF
-
-          rm -f tools/.tmp/brand-inspect.jpg
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f tools/.tmp/brand-inspect.svg
-          git commit -m "chore: add temporary sprite inspection"
-          git push
+      - name: Upload sprite inspection artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: muchocore-sprite-inspection
+          path: |
+            tools/.tmp/brand-inspect.jpg
+            tools/.tmp/brand-inspect-preview.png
+          if-no-files-found: error
+          retention-days: 1
