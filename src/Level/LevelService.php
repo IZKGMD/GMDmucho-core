@@ -73,6 +73,9 @@ final readonly class LevelService
             'gauntlet' => is_scalar($input['gauntlet'] ?? '')
                 ? (string)$input['gauntlet']
                 : '',
+            'followed' => is_scalar($input['followed'] ?? '')
+                ? (string)$input['followed']
+                : '',
         ];
 
         $offset = $page * self::PAGE_SIZE;
