@@ -9,20 +9,42 @@ use MuchoCore\Database\Database;
 $target = $argv[1] ?? null;
 $role = strtolower($argv[2] ?? '');
 
-$allowedRoles = ['user', 'moderator', 'elder', 'admin', 'owner'];
+$pdo = (new Database())->connection();
 
-if (!$target || !in_array($role, $allowedRoles, true)) {
+if (!$target || $role === '') {
     echo "Использование: php bin/set-user-role.php <ACCOUNT_ID | USERNAME> <ROLE>\n";
-    echo "Доступные роли: " . implode(', ', $allowedRoles) . "\n";
+    echo "Роль должна существовать в таблице roles.\n";
     exit(1);
 }
 
-$pdo = (new Database())->connection();
+$roleStmt = $pdo->prepare(
+    'SELECT id
+     FROM roles
+     WHERE code=:role
+     LIMIT 1'
+);
+
+$roleStmt->execute([
+    ':role' => $role
+]);
+
+$roleId = $roleStmt->fetchColumn();
+
+if ($roleId === false) {
+    echo " Неизвестная роль '{$role}'.\n";
+    exit(1);
+}
 
 $field = is_numeric($target) ? 'account_id' : 'username';
-$stmt = $pdo->prepare("UPDATE accounts SET role = :role WHERE {$field} = :target");
+
+$stmt = $pdo->prepare(
+    "UPDATE accounts
+     SET role_id=:role_id
+     WHERE {$field}=:target"
+);
+
 $stmt->execute([
-    ':role' => $role,
+    ':role_id' => (int)$roleId,
     ':target' => is_numeric($target) ? (int)$target : $target
 ]);
 
