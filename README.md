@@ -26,7 +26,7 @@ MuchoCore is a modern backend core for Geometry Dash Private Servers (GDPS).
 | You have | Open |
 | --- | --- |
 | A Linux VPS with root access | [docs/SETUP.md](docs/SETUP.md) |
-| Regular PHP hosting | [docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md) |
+| Regular PHP hosting / Beget | [docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md) |
 | A running server and need to connect a client | [docs/CLIENT_SETUP.md](docs/CLIENT_SETUP.md) |
 | Something is broken and you do not know what | `bash bin/mucho doctor` |
 | You want deeper technical details | [docs/ADVANCED.md](docs/ADVANCED.md) |
@@ -68,6 +68,8 @@ admin
 ~~~
 
 The administrator password is chosen during installation.
+
+For Beget/shared hosting, use the ready-made FTP PHP 8.3 package. It already contains `vendor/`, so Composer is not required on the hosting account.
 
 ## Connecting Geometry Dash
 
