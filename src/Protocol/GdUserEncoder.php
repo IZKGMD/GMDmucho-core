@@ -15,8 +15,8 @@ final class GdUserEncoder
 
         $role = strtolower((string)($u['role_code'] ?? $u['role'] ?? 'user'));
         $modBadge = match($role) {
-            'owner', 'admin', 'developer', 'elder' => 2,
-            'moderator', 'mod', 'helper' => 1,
+            'owner', 'elder_moderator' => 2,
+            'moderator' => 1,
             default => 0
         };
 
