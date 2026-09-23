@@ -141,8 +141,13 @@ final readonly class UserController
                 return Response::text('-1');
             }
 
+            $viewerAccountId = $request->postInt('accountID', 0);
+
             return Response::text(
-                $this->service->getProfile($targetAccountId)
+                $this->service->getProfile(
+                    $targetAccountId,
+                    $viewerAccountId
+                )
             );
         } catch (Throwable $e) {
             error_log(sprintf(
