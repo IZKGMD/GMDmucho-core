@@ -3759,44 +3759,6 @@ if (rank(admin()['role'])>=30) {
 /* =========================================================
    ANALYTICS
 ========================================================= */
-        'SELECT * FROM songs ORDER BY 1 DESC LIMIT 150'
-    )->fetchAll(PDO::FETCH_ASSOC);
-
-    echo '<div class="table"><table>';
-
-    if($rows) {
-        echo '<tr>';
-
-        foreach(array_keys($rows[0]) as $k) {
-            echo '<th>'.h($k).'</th>';
-        }
-
-        echo '</tr>';
-
-        foreach($rows as $r) {
-            echo '<tr>';
-
-            foreach($r as $v) {
-                $v=(string)$v;
-
-                if(strlen($v)>100) {
-                    $v=substr($v,0,100).'…';
-                }
-
-                echo '<td>'.h($v).'</td>';
-            }
-
-            echo '</tr>';
-        }
-    }
-
-    echo '</table></div>';
-}
-}
-
-/* =========================================================
-   ANALYTICS
-========================================================= */
 
 elseif($page==='analytics') {
 
