@@ -69,42 +69,6 @@ final readonly class Request
 
     public function clientIp(): string
     {
-        $remote = (string)($this->server['REMOTE_ADDR'] ?? '');
-
-        $trustedProxy = in_array(
-            $remote,
-            ['127.0.0.1', '::1'],
-            true
-        );
-
-        if ($trustedProxy) {
-            // Cloudflare Tunnel: prefer the real client IP when the proxy is trusted.
-            $cf = $this->server['HTTP_CF_CONNECTING_IP'] ?? '';
-
-            if (
-                is_string($cf) &&
-                filter_var($cf, FILTER_VALIDATE_IP) !== false
-            ) {
-                return $cf;
-            }
-
-            $forwarded = $this->server['HTTP_X_FORWARDED_FOR'] ?? '';
-
-            if (is_string($forwarded) && $forwarded !== '') {
-                foreach (explode(',', $forwarded) as $candidate) {
-                    $candidate = trim($candidate);
-
-                    if (
-                        filter_var($candidate, FILTER_VALIDATE_IP) !== false
-                    ) {
-                        return $candidate;
-                    }
-                }
-            }
-        }
-
-        return filter_var($remote, FILTER_VALIDATE_IP) !== false
-            ? $remote
-            : '0.0.0.0';
+        return ClientIp::resolve($this->server);
     }
 }
