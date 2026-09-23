@@ -191,12 +191,6 @@ final readonly class ModerationController
     private function credential(
         Request $request
     ): string {
-        $gjp=$request->postString('gjp');
-
-        if ($gjp !== '') {
-            return $gjp;
-        }
-
-        return $request->postString('gjp2');
+        return $request->gdCredential();
     }
 }
