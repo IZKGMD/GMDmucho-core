@@ -144,17 +144,6 @@ return static function (PDO $db): void {
     ");
 
     $db->exec("
-        CREATE TABLE IF NOT EXISTS mucho_account_roles (
-            account_id BIGINT UNSIGNED PRIMARY KEY,
-            role VARCHAR(16) NOT NULL DEFAULT 'PLAYER',
-            verified TINYINT NOT NULL DEFAULT 0,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-                ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    ");
-
-    $db->exec("
         CREATE TABLE IF NOT EXISTS mucho_music_rate_limits (
             ip VARCHAR(45) PRIMARY KEY,
             last_upload_at DATETIME NULL DEFAULT NULL
