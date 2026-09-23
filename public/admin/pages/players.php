@@ -79,7 +79,9 @@ foreach($rows as $r) {
 
 <select name="role">
 <?php foreach($roleOptions as $x): ?>
-<option <?=$r['role']===$x?'selected':''?>><?=h($x)?></option>
+<option value="<?=h($x)?>" <?=$r['role']===$x?'selected':''?>>
+<?=h($x === 'elder_moderator' ? 'Elder Moderator' : ucfirst($x))?>
+</option>
 <?php endforeach ?>
 </select>
 
