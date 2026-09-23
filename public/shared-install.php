@@ -209,6 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'DB_PASS=' . $dbPass,
                 'MUCHO_ACCOUNT_URL=' . $accountUrl,
                 'MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net',
+                'MUCHO_DOWNLOAD_DEDUP_SECONDS=300',
                 'MUCHO_ADMIN_BOOTSTRAP=' . $normalizedRoot . '/storage/admin-bootstrap.php',
                 'MUCHO_CONTROL_DIR=' . $controlDir,
                 'MUCHO_BACKUP_DIR=' . $backupDir,
