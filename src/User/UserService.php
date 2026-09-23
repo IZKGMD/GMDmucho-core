@@ -7,7 +7,6 @@ namespace MuchoCore\User;
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Account\AccountRepository;
 use MuchoCore\Protocol\GdUserEncoder;
-use MuchoCore\User\GameRole;
 use PDO;
 use RuntimeException;
 
@@ -205,7 +204,7 @@ final readonly class UserService
 
         try {
             return GameRole::accessLevel((string)$q->fetchColumn());
-        } catch (\\InvalidArgumentException) {
+        } catch (\InvalidArgumentException) {
             return '-1';
         }
     }
