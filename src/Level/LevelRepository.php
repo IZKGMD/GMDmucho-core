@@ -20,7 +20,8 @@ final readonly class LevelRepository
         int $offset,
         int $limit,
         int $demonFilter = 0,
-        array $filters = []
+        array $filters = [],
+        int $viewerAccountId = 0
     ): array {
         $where = [
             "l.is_deleted = 0",
@@ -290,13 +291,28 @@ final readonly class LevelRepository
                 break;
 
             case 12:
-                $followed = $this->numberList($filters['followed'] ?? '');
+                $followedRaw = str_replace(
+                    ':',
+                    ',',
+                    (string)($filters['followed'] ?? '')
+                );
+                $followed = $this->numberList($followedRaw);
                 if ($followed === []) {
                     $where[] = "1 = 0";
                 } else {
                     $where[] = "l.account_id IN (" . implode(',', $followed) . ")";
                 }
                 $order = "l.updated_at DESC";
+                break;
+
+            case 13:
+                $friends = $this->friendAccountIds($viewerAccountId);
+                if ($friends === []) {
+                    $where[] = "1 = 0";
+                } else {
+                    $where[] = "l.account_id IN (" . implode(',', $friends) . ")";
+                }
+                $order = "l.created_at DESC";
                 break;
 
             case 27:
@@ -345,6 +361,41 @@ final readonly class LevelRepository
             "levels" => $stmt->fetchAll(PDO::FETCH_ASSOC),
             "total" => $total,
         ];
+    }
+
+    private function friendAccountIds(int $accountId): array
+    {
+        if ($accountId <= 0) {
+            return [];
+        }
+
+        $q = $this->pdo->prepare(
+            'SELECT account_id, friend_account_id
+             FROM friends
+             WHERE account_id=:id
+                OR friend_account_id=:id
+             LIMIT 501'
+        );
+        $q->execute(['id' => $accountId]);
+
+        $ids = [];
+        foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $a = (int)$row['account_id'];
+            $b = (int)$row['friend_account_id'];
+
+            if ($a === $accountId && $b > 0) {
+                $ids[$b] = $b;
+            }
+            if ($b === $accountId && $a > 0) {
+                $ids[$a] = $a;
+            }
+
+            if (count($ids) >= 500) {
+                break;
+            }
+        }
+
+        return array_values($ids);
     }
 
     private function numberList(
