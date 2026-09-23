@@ -16,10 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install ImageMagick
+      - name: Check ImageMagick
         run: |
-          sudo apt-get update
-          sudo apt-get install -y imagemagick
+          command -v convert
+          command -v identify
 
       - name: Create inspect SVG
         shell: bash
