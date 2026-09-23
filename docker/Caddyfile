@@ -2,6 +2,14 @@
     root * /var/www/mucho-core/public
     encode gzip zstd
 
+    # MuchoCore brand fallback: serve the uploaded source logo until the
+    # optimized public/assets variant has been generated.
+    handle /assets/muchocore-logo.jpg {
+        root * /var/www/mucho-core
+        try_files /public/assets/muchocore-logo.jpg /Gemini_Generated_Image_af007baf007baf00.jpg
+        file_server
+    }
+
     # Custom uploaded music lives outside public/ and is exposed only through
     # this explicit, read-only /music/ path.
     handle_path /music/* {
