@@ -1,10 +1,8 @@
-# Testing Real Geometry Dash Client Compatibility
+# Geometry Dash 2.2 Client Verification
 
-The server has automated tests, but a real Geometry Dash client must still be tested once.
+MuchoCore's final 2.2 release gate is based on a real Geometry Dash 2.2 client trace.
 
-The project does not claim full client compatibility until that test has been performed.
-
-## Step 1: turn on client tracing
+## Step 1: enable tracing
 
 On the VPS:
 
@@ -13,7 +11,7 @@ cd /opt/mucho-core
 sudo nano .env
 ```
 
-Add:
+Set:
 
 ```dotenv
 MUCHO_CLIENT_TRACE=1
@@ -26,119 +24,44 @@ Restart the application:
 sudo docker compose up -d
 ```
 
-The trace records:
+The trace records request method, endpoint path, response status, query keys, POST keys, client family, game version and binary version. It does not record request values or passwords.
 
-- request method;
-- endpoint path;
-- response status;
-- query parameter names;
-- POST parameter names.
+## Step 2: run a real Geometry Dash 2.2 client
 
-It does **not** record request parameter values or passwords.
+Use the patched Geometry Dash 2.2 client and exercise the normal account, profile, level browser, level download/upload, comments, ratings, leaderboards, level lists, friends, messages, daily/gauntlets/map packs, rewards, Secret Room/Wraith, custom songs and cloud-save flows.
 
-## Step 2: run the real client
+Use a dedicated test account.
 
-Use your real Geometry Dash client and perform normal actions:
+## Step 3: disable tracing
 
-1. Open the client.
-2. Log in or create a test account.
-3. Open the level browser.
-4. Download a level.
-5. Upload a test level.
-6. Open and post a comment.
-7. Submit a score.
-8. Open the social/friends area.
-9. Send a message if your test account supports it.
-10. Test cloud save.
-
-Do not use a real personal account for testing. Use a dedicated test account.
-
-## Step 3: turn tracing off
-
-On the VPS:
-
-```bash
-sudo nano /opt/mucho-core/.env
-```
-
-Change:
-
-```dotenv
-MUCHO_CLIENT_TRACE=0
-```
-
-Restart:
+Set `MUCHO_CLIENT_TRACE=0` in `/opt/mucho-core/.env` and restart:
 
 ```bash
 cd /opt/mucho-core
 sudo docker compose up -d
 ```
 
-## Step 4: generate the client contract
-
-From the MuchoCore repository:
+## Step 4: generate the 2.2 fixture
 
 ```bash
+cd /opt/mucho-core
 python3 tools/client-trace-summary.py \
+  --expected-family 2.2 \
   --input storage/client-trace.ndjson \
-  --output tests/client-fixtures/endpoints.json
+  --output tests/client-fixtures/2.2/endpoints.json
 ```
 
-This creates a small JSON file containing every unique endpoint the real client used during the test.
-
-## Step 5: verify the contract
-
-Run:
+## Step 5: run the release gate
 
 ```bash
+bash tests/release-2.2-gate.sh
 bash tests/client-contract.sh
 ```
 
-Expected result:
+The fixture must be generated from a real 2.2 trace. Do not hand-author it from documentation or router aliases.
 
-```text
-Client contract OK: N endpoint(s)
-```
+## Release rule
 
-The test checks that every endpoint seen by the real client still exists in MuchoCore.
+Automated protocol tests plus a green CI run are not enough for the final 2.2 claim. `tests/client-fixtures/2.2/endpoints.json` must exist and contain only `2.2` trace entries.
 
-Commit the generated contract file:
-
-```text
-tests/client-fixtures/endpoints.json
-```
-
-From that point onward, GitHub Actions will automatically check that future changes do not remove an endpoint that the real client actually used.
-
-## What this proves
-
-The client contract proves that the real tested client reached these endpoints and that MuchoCore still exposes them.
-
-It does **not** prove every possible client feature works.
-
-That is why the project keeps two separate layers:
-
-```text
-Automated regression tests
-        +
-Real client endpoint contract
-        +
-Manual real-client test
-```
-
-## When to repeat the real client test
-
-Repeat it when:
-
-- Geometry Dash changes its protocol;
-- MuchoCore changes account or level routing;
-- cloud-save behavior changes;
-- a new client version is supported.
-
-Do not claim support for a new client version until it has been tested.
-
-## Current status
-
-Until a real client trace is committed, the repository should be described as:
-
-**Server compatibility tested; real client compatibility not yet verified.**
+Until that fixture is committed and the release gate passes, the project should be described as server-side 2.2 compatibility verified, with real-client compatibility still pending.
