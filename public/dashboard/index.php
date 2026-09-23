@@ -6,6 +6,7 @@ use MuchoCore\Branding\BrandingService;
 use MuchoCore\Database\Database;
 use MuchoCore\Security\RateLimiter;
 use MuchoCore\Security\SoftAntiBot;
+use MuchoCore\Security\Turnstile;
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
@@ -96,8 +97,27 @@ function pdRedirect(string $url = '/dashboard'): never
     exit;
 }
 
-function pdSoftAntiBotOrReject(string $scope): void
+function pdAntiBotOrReject(string $scope): void
 {
+    if (Turnstile::enabled()) {
+        $token = (string)($_POST['cf-turnstile-response'] ?? '');
+        $expectedHostname = parse_url(
+            (string)(getenv('MUCHO_ACCOUNT_URL') ?: ''),
+            PHP_URL_HOST
+        );
+
+        if (!Turnstile::verify(
+            $token,
+            $scope,
+            is_string($expectedHostname) ? $expectedHostname : null
+        )) {
+            pdFlash('Security check failed. Please try again.', 'error');
+            pdRedirect();
+        }
+
+        return;
+    }
+
     $token = (string)($_POST['antibot_token'] ?? '');
     $honeypot = (string)($_POST['website'] ?? '');
 
@@ -340,7 +360,7 @@ $action = (string)($_POST['action'] ?? '');
 
 if ($action === 'login') {
     pdRequireCsrf();
-    pdSoftAntiBotOrReject('login');
+    pdAntiBotOrReject('login');
 
     $username = trim((string)($_POST['username'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
@@ -408,7 +428,7 @@ if ($action === 'logout') {
 
 if ($action === 'upload') {
     pdRequireCsrf();
-    pdSoftAntiBotOrReject('upload');
+    pdAntiBotOrReject('upload');
 
     $account = pdAccountFromSession();
 
@@ -601,9 +621,12 @@ $loginAntiBot = (!$account && !$profile)
     ? SoftAntiBot::issue('login')
     : null;
 
-$uploadAntiBot = $account
+$uploadAntiBot = ($account && !Turnstile::enabled())
     ? SoftAntiBot::issue('upload')
     : null;
+
+$loginTurnstile = (!$account && !$profile && Turnstile::enabled());
+$uploadTurnstile = ($account && Turnstile::enabled());
 ?>
 <!doctype html>
 <html lang="en">
@@ -813,6 +836,7 @@ input[type=text],input[type=password],input[type=file]{
     border:1px solid #28364a;background:#080e16;color:#fff;border-radius:10px;padding:10px 11px;outline:none;
 }
 .file{padding:10px}
+.turnstile-box{margin:10px 0 12px;min-height:66px;display:flex;align-items:center;justify-content:flex-start}
 .cooldown{
     padding:11px 12px;border-radius:11px;background:#0b1320;border:1px dashed #34455f;color:#9fb0c7;font-size:11px;
 }
@@ -836,6 +860,9 @@ input[type=text],input[type=password],input[type=file]{
     *{scroll-behavior:auto!important;transition:none!important}
 }
 </style>
+<?php if (Turnstile::enabled()): ?>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<?php endif; ?>
 </head>
 <body>
 <div class="shell">
@@ -982,10 +1009,16 @@ input[type=text],input[type=password],input[type=file]{
             <form method="post" autocomplete="off">
                 <input type="hidden" name="csrf" value="<?=pdH(pdCsrf())?>">
                 <input type="hidden" name="action" value="login">
-                <input type="hidden" name="antibot_token" value="<?=pdH($loginAntiBot['token'] ?? '')?>">
-                <label class="antibot-field" aria-hidden="true">Website
-                    <input type="text" name="website" tabindex="-1" autocomplete="off">
-                </label>
+                <?php if ($loginTurnstile): ?>
+                    <div class="turnstile-box">
+                        <div class="cf-turnstile" data-sitekey="<?=pdH(Turnstile::siteKey())?>" data-theme="dark" data-action="login"></div>
+                    </div>
+                <?php else: ?>
+                    <input type="hidden" name="antibot_token" value="<?=pdH($loginAntiBot['token'] ?? '')?>">
+                    <label class="antibot-field" aria-hidden="true">Website
+                        <input type="text" name="website" tabindex="-1" autocomplete="off">
+                    </label>
+                <?php endif; ?>
 
                 <div class="field">
                     <label>Username</label>
@@ -1009,10 +1042,16 @@ input[type=text],input[type=password],input[type=file]{
             <form method="post" enctype="multipart/form-data">
                 <input type="hidden" name="csrf" value="<?=pdH(pdCsrf())?>">
                 <input type="hidden" name="action" value="upload">
-                <input type="hidden" name="antibot_token" value="<?=pdH($uploadAntiBot['token'] ?? '')?>">
-                <label class="antibot-field" aria-hidden="true">Website
-                    <input type="text" name="website" tabindex="-1" autocomplete="off">
-                </label>
+                <?php if ($uploadTurnstile): ?>
+                    <div class="turnstile-box">
+                        <div class="cf-turnstile" data-sitekey="<?=pdH(Turnstile::siteKey())?>" data-theme="dark" data-action="upload"></div>
+                    </div>
+                <?php else: ?>
+                    <input type="hidden" name="antibot_token" value="<?=pdH($uploadAntiBot['token'] ?? '')?>">
+                    <label class="antibot-field" aria-hidden="true">Website
+                        <input type="text" name="website" tabindex="-1" autocomplete="off">
+                    </label>
+                <?php endif; ?>
 
                 <div class="upload">
                     <div>
