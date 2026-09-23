@@ -1,1 +1,1 @@
-inspect sprite v2
+inspect sprite v3
