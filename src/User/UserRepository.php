@@ -113,8 +113,8 @@ final readonly class UserRepository
         }
 
         /*
-         * updateGJUserScore и getGJUserInfo20 могут прийти одновременно.
-         * Создаём профиль атомарно, чтобы первый запрос не получил -1.
+         * updateGJUserScore and getGJUserInfo20 may arrive concurrently.
+         * Create the profile atomically so the first request does not fail.
          */
         $stmt = $this->pdo->prepare(
             'INSERT IGNORE INTO profiles (account_id)
