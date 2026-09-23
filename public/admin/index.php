@@ -1545,6 +1545,8 @@ max-width:100%
 }
 
 </style>
+<link rel="stylesheet" href="/muchocore-theme.css?v=1">
+<script src="/muchocore-theme.js?v=1" defer></script>
 </head>
 <body data-page="<?=h($page)?>">
 <form method="post" class="box">
