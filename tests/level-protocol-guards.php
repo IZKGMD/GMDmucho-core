@@ -28,6 +28,11 @@ $checks = [
         'GdLegacyText::encodeDescriptionForStorage',
         'legacy description storage',
     ],
+    [
+        __DIR__ . '/../src/Level/LevelRepository.php',
+        "case 27:",
+        'suggested level discovery type 27',
+    ],
 ];
 
 foreach ($checks as [$file, $needle, $name]) {
