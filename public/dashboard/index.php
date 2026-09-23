@@ -863,6 +863,8 @@ input[type=text],input[type=password],input[type=file]{
 <?php if (Turnstile::enabled()): ?>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <?php endif; ?>
+<link rel="stylesheet" href="/muchocore-theme.css?v=1">
+<script src="/muchocore-theme.js?v=1" defer></script>
 </head>
 <body>
 <div class="shell">
@@ -1021,7 +1023,7 @@ input[type=text],input[type=password],input[type=file]{
 
                 <?php if ($loginTurnstile): ?>
                     <div class="turnstile-box">
-                        <div class="cf-turnstile" data-sitekey="<?=pdH(Turnstile::siteKey())?>" data-theme="dark" data-action="login"></div>
+                        <div class="cf-turnstile" data-sitekey="<?=pdH(Turnstile::siteKey())?>" data-theme="auto" data-action="login"></div>
                     </div>
                 <?php else: ?>
                     <input type="hidden" name="antibot_token" value="<?=pdH($loginAntiBot['token'] ?? '')?>">
@@ -1044,7 +1046,7 @@ input[type=text],input[type=password],input[type=file]{
                 <input type="hidden" name="action" value="upload">
                 <?php if ($uploadTurnstile): ?>
                     <div class="turnstile-box">
-                        <div class="cf-turnstile" data-sitekey="<?=pdH(Turnstile::siteKey())?>" data-theme="dark" data-action="upload"></div>
+                        <div class="cf-turnstile" data-sitekey="<?=pdH(Turnstile::siteKey())?>" data-theme="auto" data-action="upload"></div>
                     </div>
                 <?php else: ?>
                     <input type="hidden" name="antibot_token" value="<?=pdH($uploadAntiBot['token'] ?? '')?>">
