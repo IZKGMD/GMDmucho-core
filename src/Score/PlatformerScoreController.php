@@ -64,10 +64,10 @@ final readonly class PlatformerScoreController
             );
 
             /*
-             * Preserve Cvolton's time/points contract, but do not
-             * silently discard a valid points-mode result.
+             * Cvolton only stores platformer results with a valid time.
+             * Points-mode still works because the same row carries points.
              */
-            if($time>0 || ($mode===1 && $points>0)){
+            if($time>0){
                 $this->save(
                     $accountId,
                     $levelId,
