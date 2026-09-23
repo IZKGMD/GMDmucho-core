@@ -36,7 +36,7 @@ final class CommentService
         );
         $decodedContent = trim($decodedContent);
 
-        // Проверяем, является ли комментарий модераторской командой
+        // Check whether the comment is a moderation command.
         if (str_starts_with($decodedContent, "!")) {
             $handled = $this->handleCommand(
                 $levelId,
@@ -49,7 +49,7 @@ final class CommentService
             }
 
             if ($handled === null) {
-                // Unknown/invalid command is treated as normal comment text.
+                // Unknown or invalid commands are treated as normal comment text.
             }
         }
 
@@ -67,7 +67,7 @@ final class CommentService
     {
         $pdo = $this->getPdo();
 
-        // 1. Проверяем права пользователя (owner, admin, mod, elder)
+        // 1. Check the user's moderation role.
         $stmt = $pdo->prepare(
             "SELECT a.username, COALESCE(r.code, 'user') AS role
              FROM accounts a
@@ -86,7 +86,7 @@ final class CommentService
         $parts = preg_split("/\s+/", trim($commandStr));
         $cmd = strtolower($parts[0] ?? "");
 
-        // 2. Обработка команд
+        // 2. Process the command.
         switch ($cmd) {
             case "!rate":
                 $val = strtolower($parts[1] ?? "");
@@ -127,8 +127,8 @@ final class CommentService
                         ":id"    => $levelId
                     ]);
 
-                    // Завершаем выполнение и возвращаем "1" (код успешной отправки коммента в GD).
-                    // Это предотвращает сохранение команды в базу данных и блокирует любые системные сообщения.
+                    // Finish successfully; GD expects "1" for a handled comment command.
+                    // Do not persist the command as a normal comment.
                     return true;
                 }
                 
