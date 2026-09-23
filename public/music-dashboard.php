@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+use MuchoCore\Branding\BrandingService;
 use MuchoCore\Database\Database;
 use MuchoCore\Security\RateLimiter;
 
@@ -8,6 +9,8 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 $db = (new Database())->connection();
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+$serverName = (new BrandingService($db))->serverName();
 
 $rootDir = dirname(__DIR__);
 $musicDir = $rootDir . '/storage/music-public';
@@ -357,8 +360,8 @@ if ($isLoggedIn) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Mucho Music Dashboard">
-<title>Mucho Music</title>
+<meta name="description" content="<?=mdH($serverName)?> Music Dashboard">
+<title><?=mdH($serverName)?> Music</title>
 <style>
 :root{
     --bg:#070910;
@@ -507,7 +510,7 @@ th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04
 
 <div class="center">
 <div class="card login">
-    <div class="brand">Mucho<b>Core</b></div>
+    <div class="brand"><?=mdH($serverName)?><b>Core</b></div>
     <p class="muted">Player Music Dashboard</p>
 
     <?php if ($flash): ?>
@@ -550,7 +553,7 @@ th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04
 
 <div class="top">
     <div>
-        <div class="brand">Mucho<b>Music</b></div>
+        <div class="brand"><?=mdH($serverName)?><b>Music</b></div>
         <div class="muted">Upload and manage your custom songs.</div>
     </div>
 
@@ -673,7 +676,7 @@ th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04
 </div>
 
 <div class="footer">
-    MuchoCore Music Dashboard · <a href="/">Back to GDPS</a>
+    <?=mdH($serverName)?> Music Dashboard · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK · <a href="/">Back to GDPS</a>
 </div>
 
 <?php endif; ?>
