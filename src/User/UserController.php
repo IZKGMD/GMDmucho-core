@@ -67,13 +67,30 @@ final readonly class UserController
         $yt = (string)($request->postString("yt") ?: ($_POST["yt"] ?? ""));
         $twitter = (string)($request->postString("twitter") ?: ($_POST["twitter"] ?? ""));
         $twitch = (string)($request->postString("twitch") ?: ($_POST["twitch"] ?? ""));
+        $instagram = (string)($request->postString("instagram") ?: ($_POST["instagram"] ?? ""));
+        $discord = (string)($request->postString("discord") ?: ($_POST["discord"] ?? ""));
+        $tiktok = (string)($request->postString("tiktok") ?: ($_POST["tiktok"] ?? ""));
+        $custom = (string)($request->postString("custom") ?: ($_POST["custom"] ?? ""));
 
         if ($accountId <= 0 || $gjp === "") {
             return Response::text("-1");
         }
 
         try {
-            $success = $this->service->updateSettings($accountId, $gjp, $mS, $frS, $cS, $yt, $twitter, $twitch);
+            $success = $this->service->updateSettings(
+                $accountId,
+                $gjp,
+                $mS,
+                $frS,
+                $cS,
+                $yt,
+                $twitter,
+                $twitch,
+                $instagram,
+                $discord,
+                $tiktok,
+                $custom
+            );
             return Response::text($success ? "1" : "-1");
         } catch (Throwable) {
             return Response::text("-1");
