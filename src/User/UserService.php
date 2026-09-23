@@ -203,8 +203,8 @@ final readonly class UserService
         $q->execute(['id' => $accountId]);
 
         return match(strtolower((string)$q->fetchColumn())) {
-            'owner','admin','developer','elder' => '2',
-            'moderator','mod','helper' => '1',
+            'owner', 'elder_moderator' => '2',
+            'moderator' => '1',
             default => '-1',
         };
     }
