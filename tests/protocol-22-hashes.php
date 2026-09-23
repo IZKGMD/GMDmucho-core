@@ -56,6 +56,13 @@ assertSameValue(
     '2.2 metadata hash'
 );
 
+$rewardPayload = 'MuchoSecretRewardPayload';
+assertSameValue(
+    sha1($rewardPayload . 'pC26fpYaQCtg'),
+    GdHash::rewards($rewardPayload),
+    '2.2 rewards hash'
+);
+
 $song = (new GdSongEncoder())->encode([
     'id' => 123,
     'name' => 'Test Song',
