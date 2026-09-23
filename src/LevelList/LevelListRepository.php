@@ -153,7 +153,7 @@ final class LevelListRepository
                 FROM mucho_level_lists l
                 {$userJoin}
                 {$suggestedJoin}
-                {$whereSql}"
+                {$whereSql}
                 ORDER BY {$orderSql}
                 LIMIT :limit OFFSET :offset";
 
