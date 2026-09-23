@@ -211,7 +211,7 @@ final readonly class LevelTransferService
             'extra_string' => $this->stringField(
                 $data,
                 'extraString',
-                '',
+                '29_29_29_40_29_29_29_29_29_29_29_29_29_29_29_29',
                 65536
             ),
 
@@ -222,6 +222,27 @@ final readonly class LevelTransferService
                 'levelInfo',
                 '',
                 self::MAX_LEVEL_INFO
+            ),
+
+            'settings_string' => $this->stringField(
+                $data,
+                'settingsString',
+                '',
+                self::MAX_LEVEL_INFO
+            ),
+
+            'song_ids' => $this->stringField(
+                $data,
+                'songIDs',
+                '',
+                65536
+            ),
+
+            'sfx_ids' => $this->stringField(
+                $data,
+                'sfxIDs',
+                '',
+                65536
             ),
 
             'ldm' => $this->boolInt($data, 'ldm'),
