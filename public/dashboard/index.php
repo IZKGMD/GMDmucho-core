@@ -705,22 +705,25 @@ button,input{font:inherit}
     min-width:0;
     display:flex;
     align-items:center;
-    gap:0;
+    gap:10px;
     flex:0 1 auto;
     font-size:18px;
     font-weight:900;
     letter-spacing:-.55px;
 }
-.brand > span{color:var(--accent-2)}
+.brand > span:last-child{color:var(--accent-2)}
 .mucho-brand-logo{
-    width:154px!important;
-    height:auto!important;
-    max-height:42px!important;
+    display:block;
+    width:170px;
+    height:auto;
+    max-height:54px;
     flex:0 0 auto;
     object-fit:contain;
-    border-radius:8px;
-    filter:drop-shadow(0 7px 16px rgba(0,0,0,.24));
+    object-position:center;
+    border-radius:10px;
+    filter:drop-shadow(0 8px 20px rgba(0,0,0,.24));
 }
+.mucho-brand-name{min-width:0;}
 .brand-copy{
     display:grid;
     gap:2px;
@@ -1122,7 +1125,7 @@ body.dashboard-page .topbar{
     .list-item{align-items:flex-start}
     .list-item .badge{margin-top:1px}
     .panel{padding:17px}
-    .mucho-brand-logo{width:138px!important;max-height:38px!important}
+    .mucho-brand-logo{width:145px;max-height:46px}
 }
 @media(prefers-reduced-motion:reduce){
     *{scroll-behavior:auto!important;transition:none!important}
@@ -1138,7 +1141,7 @@ body.dashboard-page .topbar{
 <div class="shell">
 
 <header class="topbar">
-    <a class="brand" href="/dashboard"><?=pdH($serverName)?> <span>Portal</span></a>
+    <a class="brand" href="/dashboard"><img class="mucho-brand-logo" src="/assets/muchocore-logo.jpg" alt="MuchoCore" width="42" height="42" decoding="async"><span class="mucho-brand-name"><?=pdH($serverName)?></span> <span>Portal</span></a>
     <nav class="nav">
         <a href="/dashboard">Discover</a>
         <a href="#players">Players</a>
