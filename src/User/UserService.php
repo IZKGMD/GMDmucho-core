@@ -165,7 +165,11 @@ final readonly class UserService
         int $cS,
         string $yt,
         string $twitter,
-        string $twitch
+        string $twitch,
+        string $instagram = '',
+        string $discord = '',
+        string $tiktok = '',
+        string $custom = ''
     ): bool {
         $this->auth->authenticate($accountId, $gjp);
 
@@ -176,7 +180,11 @@ final readonly class UserService
                 comments_state=:cs,
                 youtube_url=:yt,
                 twitter=:tw,
-                twitch=:tt
+                twitch=:tt,
+                instagram=:ig,
+                discord=:dc,
+                tiktok=:tk,
+                custom_link=:custom
              WHERE account_id=:id'
         );
 
@@ -187,6 +195,10 @@ final readonly class UserService
             'yt' => substr(trim($yt), 0, 255),
             'tw' => substr(trim($twitter), 0, 64),
             'tt' => substr(trim($twitch), 0, 64),
+            'ig' => substr(trim($instagram), 0, 64),
+            'dc' => substr(trim($discord), 0, 64),
+            'tk' => substr(trim($tiktok), 0, 64),
+            'custom' => substr(trim($custom), 0, 255),
             'id' => $accountId,
         ]);
     }
