@@ -1,0 +1,46 @@
+name: Inspect MuchoCore sprite
+
+on:
+  push:
+    paths:
+      - Gemini_Generated_Image_af007baf007baf00.jpg
+      - .github/workflows/inspect-brand.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ImageMagick
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+
+      - name: Create inspect SVG
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p tools/.tmp
+          convert Gemini_Generated_Image_af007baf007baf00.jpg             -auto-orient             -resize '1400x1400>'             -strip             tools/.tmp/brand-inspect.jpg
+
+          B64="$(base64 -w0 tools/.tmp/brand-inspect.jpg)"
+          W="$(identify -format '%w' tools/.tmp/brand-inspect.jpg)"
+          H="$(identify -format '%h' tools/.tmp/brand-inspect.jpg)"
+
+          cat > tools/.tmp/brand-inspect.svg <<EOF
+          <svg xmlns="http://www.w3.org/2000/svg" width="$W" height="$H" viewBox="0 0 $W $H">
+            <image width="$W" height="$H" href="data:image/jpeg;base64,$B64"/>
+          </svg>
+          EOF
+
+          rm -f tools/.tmp/brand-inspect.jpg
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/.tmp/brand-inspect.svg
+          git commit -m "chore: add temporary sprite inspection"
+          git push
