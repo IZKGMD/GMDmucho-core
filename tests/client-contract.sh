@@ -14,19 +14,14 @@ else
     while IFS= read -r file; do
         CONTRACTS+=("$file")
     done < <(
-        find "$ROOT/tests/client-fixtures" \
-            -mindepth 2 \
-            -maxdepth 2 \
-            -type f \
-            -name endpoints.json \
-            -print | sort
+        find "$ROOT/tests/client-fixtures"             -mindepth 2             -maxdepth 2             -type f             -name endpoints.json             -print | sort
     )
 fi
 
 if [[ -z "$(printf '%s\n' "${CONTRACTS[@]}")" ]]; then
     echo "CLIENT_CONTRACT_SKIPPED: no real-client contracts exist yet."
-    echo "Generate one after a real client test with:"
-    echo "python3 tools/client-trace-summary.py --input storage/client-trace.ndjson --output tests/client-fixtures/2.1/endpoints.json"
+    echo "Generate the 2.2 contract after a real client test with:"
+    echo "python3 tools/client-trace-summary.py --expected-family 2.2 --input storage/client-trace.ndjson --output tests/client-fixtures/2.2/endpoints.json"
     exit 0
 fi
 
@@ -69,6 +64,15 @@ for contract in contracts:
 
     data = json.loads(contract.read_text(encoding="utf-8"))
     version = contract.parent.name
+
+    if version == "2.2":
+        families = set(data.get("trace_client_families", []))
+        if families != {"2.2"}:
+            failures.append(
+                f"2.2: contract must be generated from a real 2.2 trace; "
+                f"families={sorted(families)}"
+            )
+
     missing = []
 
     for endpoint in data.get("endpoints", []):
