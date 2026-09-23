@@ -363,7 +363,7 @@ foreach ($requirements as $check) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MuchoCore Shared Hosting Installer</title>
 <style>
-body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f3f5f7;margin:0;color:#20242a}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f3f5f7;margin:0;color:#20242a;min-height:100vh;display:flex;flex-direction:column}
 .wrap{max-width:900px;margin:0 auto;padding:28px 16px 60px}
 .card{background:#fff;border-radius:16px;padding:24px;margin:18px 0;box-shadow:0 6px 24px rgba(0,0,0,.07)}
 h1{margin:0 0 8px;font-size:32px}h2{margin-top:0}p{line-height:1.55}
@@ -475,8 +475,9 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
         <p>You normally need four things: host, database name, username and password. The installer does not create the database for you because every hosting provider handles database creation differently.</p>
     </div>
 </div>
-<div style="max-width:920px;margin:24px auto 0;padding:16px 0 4px;border-top:1px solid #d9dee5;text-align:center;color:#7a838f;font-size:12px">
-    Powered by MuchoCore · Copyright © <?= date('Y') ?> IZK
+<div style="max-width:920px;width:calc(100% - 32px);margin:auto auto 0;padding:16px 0 12px;border-top:1px solid #d9dee5;text-align:center;color:#7a838f;font-size:11px;line-height:1.7">
+    Powered by MuchoCore · Copyright © <?= date('Y') ?> IZK ·
+    <a href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer" style="color:#687587;text-decoration:none">GitHub</a>
 </div>
 </body>
 </html>
