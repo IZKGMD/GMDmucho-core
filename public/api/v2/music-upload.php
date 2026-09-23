@@ -78,6 +78,14 @@ try {
 
     $ip = muchoV2ClientIp();
 
+    if (
+        !is_dir(MUSIC_DIR) &&
+        !mkdir(MUSIC_DIR,0770,true) &&
+        !is_dir(MUSIC_DIR)
+    ) {
+        throw new RuntimeException('cannot_create_music_dir');
+    }
+
     $db->beginTransaction();
 
     $q=$db->prepare("
