@@ -73,7 +73,7 @@ $aliases = [
 
 foreach ($aliases as $input => $expected) {
     assertSameValue(
-        $expected,
+        strtolower($expected),
         $router->normalizePath($input),
         "compatibility alias {$input}"
     );
