@@ -426,7 +426,7 @@ def validate_result(original: bytes, patched: bytes, server: str, stats: list[Pa
     if not any(s.count > 0 for s in stats):
         raise ValueError("no supported Geometry Dash server URL was found")
 
-    parsed = validate_server(server)
+    parsed = urlsplit(validate_server(server))
     if parsed.netloc.encode("ascii") not in raw:
         # Compatibility paths still contain the hostname, so this is a strong sanity check.
         raise ValueError("target hostname is not present in the patched executable")
