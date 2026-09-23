@@ -6,6 +6,9 @@ cd "$ROOT"
 DB_PASS="$(cat /run/secrets/db_password)"
 ADMIN_PASS="$(cat /run/secrets/admin_password)"
 
+install -d -m 700 -o www-data -g www-data config /var/lib/muchocore
+install -d -m 750 /var/lib/muchocore-control /var/lib/muchocore-backups
+
 if [[ -f /var/lib/muchocore/download-hmac.key ]]; then
   DOWNLOAD_HMAC_KEY="$(cat /var/lib/muchocore/download-hmac.key)"
 else
@@ -13,9 +16,6 @@ else
   printf '%s' "$DOWNLOAD_HMAC_KEY" > /var/lib/muchocore/download-hmac.key
   chmod 600 /var/lib/muchocore/download-hmac.key
 fi
-
-install -d -m 700 -o www-data -g www-data config /var/lib/muchocore
-install -d -m 750 /var/lib/muchocore-control /var/lib/muchocore-backups
 install -d -m 750 /var/www/mucho-core/storage/music-public
 chown www-data:www-data /var/lib/muchocore-control /var/lib/muchocore-backups
 chown www-data:www-data /var/www/mucho-core/storage /var/www/mucho-core/storage/music-public
