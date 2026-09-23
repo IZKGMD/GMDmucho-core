@@ -23,7 +23,15 @@ final readonly class LevelDownloadTracker
 
         $hashKey = $_ENV['MUCHO_DOWNLOAD_HMAC_KEY']
             ?? getenv('MUCHO_DOWNLOAD_HMAC_KEY')
-            ?: 'muchocore-level-download-v1';
+            ?: '';
+
+        if (!is_string($hashKey) || trim($hashKey) === '') {
+            // Manual/shared installs can omit the setting. Keep the service
+            // usable while avoiding a predictable global hashing secret.
+            static $fallbackKey = null;
+            $fallbackKey ??= bin2hex(random_bytes(32));
+            $hashKey = $fallbackKey;
+        }
 
         $clientHash = hash_hmac(
             'sha256',
