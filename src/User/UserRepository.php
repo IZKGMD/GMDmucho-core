@@ -40,10 +40,6 @@ final readonly class UserRepository
                 COALESCE(p.color2, 3) AS color2,
                 COALESCE(p.color3, 0) AS color3,
                 COALESCE(p.special, 0) AS special,
-                COALESCE(p.icon_id, 1) AS icon_id,
-                COALESCE(p.icon_type, 0) AS icon_type,
-                COALESCE(p.glow, 0) AS glow,
-                COALESCE(p.explosion, 1) AS explosion,
                 p.user_id,
                 a.account_id,
                 a.username,
@@ -124,6 +120,7 @@ final readonly class UserRepository
 
         $sql = '
             SELECT
+                p.user_id,
                 a.account_id,
                 a.username,
                 COALESCE(ar.code, \'user\') AS role_code,
@@ -145,6 +142,10 @@ final readonly class UserRepository
                 COALESCE(p.secret_coins, 0) AS secret_coins,
                 COALESCE(p.user_coins, 0) AS user_coins,
                 COALESCE(p.creator_points, 0) AS creator_points,
+                COALESCE(p.icon_id, 1) AS icon_id,
+                COALESCE(p.icon_type, 0) AS icon_type,
+                COALESCE(p.glow, 0) AS glow,
+                COALESCE(p.explosion, 1) AS explosion,
                 COALESCE(p.cube, 1) AS cube,
                 COALESCE(p.ship, 1) AS ship,
                 COALESCE(p.ball, 1) AS ball,
