@@ -35,7 +35,6 @@ jobs:
           php tests/cvolton-compatibility.php
           php tests/security-regression.php
           php tests/architecture-regression.php
-          php tests/cvolton-compatibility.php
 
       - name: Check Python patcher
         run: |
