@@ -565,7 +565,13 @@ post updateGJUserScore22 \
     -d 'icon=1' \
     -d 'color1=2' \
     -d 'color2=3' \
-    -d 'iconType=0'
+    -d 'color3=4' \
+    -d 'iconType=0' \
+    -d 'special=1' \
+    -d 'accGlow=7' \
+    -d 'dinfo=1,2,3,4,5' \
+    -d 'sinfo=6,7,8,9,10,11' \
+    -d 'pinfo=12,13,14,15'
 )"
 
 expect_not "Update user score" "$US" "-1"
@@ -585,6 +591,51 @@ post getGJUsers20 \
 )"
 
 expect_contains "Search user" "$SEARCH_USER" "$U1"
+expect_contains "2.2 user info demon state" "$UI" ':55:1,2,3,4,5'
+expect_contains "2.2 user info star state" "$UI" ':56:6,7,8,9,10,11'
+expect_contains "2.2 user info platformer state" "$UI" ':57:12,13,14,15'
+expect_contains "2.2 user info color3" "$UI" ':51:4'
+expect_contains "2.2 user info special" "$UI" ':15:1'
+
+echo
+echo "===== 2.2 PLATFORMER SCORES ====="
+
+PLATFORMER_LEVEL="$(
+    post uploadGJLevel22 \
+        -d "accountID=$AID1" \
+        -d "gjp2=$P1" \
+        -d 'levelName=Mucho 2.2 Platformer Regression' \
+        --data-urlencode "levelDesc=$DESC1" \
+        -d 'levelString=MUCHO_22_PLATFORMER_LEVEL' \
+        -d 'levelVersion=1' \
+        -d 'gameVersion=22' \
+        -d 'binaryVersion=45' \
+        -d 'levelLength=5' \
+        -d 'objects=2200'
+)"
+
+if [[ "$PLATFORMER_LEVEL" =~ ^[0-9]+$ ]] && [ "$PLATFORMER_LEVEL" -gt 0 ]; then
+    pass "Upload 2.2 platformer level"
+else
+    fail "Upload 2.2 platformer level :: got=[$PLATFORMER_LEVEL]"
+    PLATFORMER_LEVEL=0
+fi
+
+if [ "$PLATFORMER_LEVEL" -gt 0 ]; then
+    PS="$(
+        post getGJLevelScoresPlat \
+            -d "accountID=$AID1" \
+            -d "gjp2=$P1" \
+            -d "levelID=$PLATFORMER_LEVEL" \
+            -d 'time=12345' \
+            -d 'points=987' \
+            -d 'mode=0' \
+            -d 'type=1'
+    )"
+
+    expect_contains "2.2 platformer leaderboard username" "$PS" "$U1"
+    expect_contains "2.2 platformer leaderboard color3" "$PS" ':15:4'
+fi
 
 echo
 echo "===== LEVEL CORE ====="
