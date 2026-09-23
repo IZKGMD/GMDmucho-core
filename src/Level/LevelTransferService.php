@@ -686,14 +686,16 @@ final readonly class LevelTransferService
         $q = $this->pdo->prepare(
             'SELECT 1
              FROM friends
-             WHERE account_id=:a
-               AND friend_account_id=:b
+             WHERE (account_id=:a1 AND friend_account_id=:b1)
+                OR (account_id=:b2 AND friend_account_id=:a2)
              LIMIT 1'
         );
 
         $q->execute([
-            'a' => $accountId,
-            'b' => $targetAccountId,
+            'a1' => $accountId,
+            'b1' => $targetAccountId,
+            'b2' => $targetAccountId,
+            'a2' => $accountId,
         ]);
 
         return (bool)$q->fetchColumn();
