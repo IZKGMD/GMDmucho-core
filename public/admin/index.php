@@ -3703,7 +3703,62 @@ elseif($page==='songs') {
 if (!tableExists($db,'songs')) {
     echo '<div class="card">Songs table does not exist.</div>';
 } else {
+
+if (rank(admin()['role'])>=30) {
+    echo '<div class="card" style="margin-bottom:14px">';
+    echo '<h2>Upload Music</h2>';
+    echo '<p class="muted">MP3 only, maximum 20 MB.</p>';
+    echo '<form method="post" enctype="multipart/form-data" class="row">';
+    echo '<input type="hidden" name="csrf" value="'.csrf().'">';
+    echo '<input type="hidden" name="action" value="music-upload">';
+    echo '<input type="hidden" name="return" value="songs">';
+    echo '<input name="title" maxlength="128" placeholder="Song title" required>';
+    echo '<input name="artist" maxlength="128" placeholder="Artist" required>';
+    echo '<input type="file" name="music_file" accept=".mp3,audio/mpeg" required>';
+    echo '<button>Upload MP3</button>';
+    echo '</form>';
+    echo '</div>';
+}
+
     $rows=$db->query(
+        'SELECT * FROM songs ORDER BY 1 DESC LIMIT 150'
+    )->fetchAll(PDO::FETCH_ASSOC);
+
+    echo '<div class="table"><table>';
+
+    if($rows) {
+        echo '<tr>';
+
+        foreach(array_keys($rows[0]) as $k) {
+            echo '<th>'.h($k).'</th>';
+        }
+
+        echo '</tr>';
+
+        foreach($rows as $r) {
+            echo '<tr>';
+
+            foreach($r as $v) {
+                $v=(string)$v;
+
+                if(strlen($v)>100) {
+                    $v=substr($v,0,100).'…';
+                }
+
+                echo '<td>'.h($v).'</td>';
+            }
+
+            echo '</tr>';
+        }
+    }
+
+    echo '</table></div>';
+}
+}
+
+/* =========================================================
+   ANALYTICS
+========================================================= */
         'SELECT * FROM songs ORDER BY 1 DESC LIMIT 150'
     )->fetchAll(PDO::FETCH_ASSOC);
 
