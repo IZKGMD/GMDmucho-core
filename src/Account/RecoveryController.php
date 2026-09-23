@@ -128,6 +128,17 @@ final class RecoveryController
     private function renderRequest(
         string $error = ''
     ): void {
+        $turnstile = '';
+
+        if (Turnstile::enabled()) {
+            $turnstile =
+                '<div class="turnstile-box" style="margin:12px 0;min-height:66px">' .
+                '<div class="cf-turnstile" data-sitekey="' .
+                $this->e(Turnstile::siteKey()) .
+                '" data-theme="dark" data-action="recovery"></div>' .
+                '</div>';
+        }
+
         $content = '
             <div class="eyebrow">ACCOUNT RECOVERY</div>
             <h1>Восстановление аккаунта</h1>
@@ -150,11 +161,7 @@ final class RecoveryController
                     required
                 >
 
-                <?php if (Turnstile::enabled()): ?>
-                    <div class="turnstile-box" style="margin:12px 0;min-height:66px">
-                        <div class="cf-turnstile" data-sitekey="' . $this->e(Turnstile::siteKey()) . '" data-theme="dark" data-action="recovery"></div>
-                    </div>
-                <?php endif; ?>
+                ' . $turnstile . '
 
                 <button type="submit">Отправить ссылку</button>
             </form>
@@ -261,9 +268,9 @@ final class RecoveryController
 <meta name="robots" content="noindex,nofollow">
 <title>MuchoCore — восстановление аккаунта</title>
 <link rel="stylesheet" href="/recovery/recovery.css">
-<?php if (Turnstile::enabled()): ?>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-<?php endif; ?>
+' . (Turnstile::enabled()
+    ? '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>'
+    : '') . '
 </head>
 <body>
 <div class="aurora aurora-a"></div>
@@ -410,6 +417,9 @@ final class RecoveryController
             'Content-Security-Policy: '
             . "default-src 'self'; "
             . "style-src 'self'; "
+            . "script-src 'self' https://challenges.cloudflare.com; "
+            . "frame-src https://challenges.cloudflare.com; "
+            . "connect-src 'self' https://challenges.cloudflare.com; "
             . "base-uri 'none'; "
             . "form-action 'self'; "
             . "frame-ancestors 'none'"
