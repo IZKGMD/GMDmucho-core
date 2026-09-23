@@ -21,7 +21,7 @@ patterns = [
     b"www.boomlings.com/database",
 ]
 
-binary = bytearray(b"MAGIC\x00HEADER\x00")
+binary = bytearray(b"MZ" + b"\x00" * 0x3A + (0x80).to_bytes(4, "little") + b"\x00" * (0x80 - 0x40) + b"PE\x00\x00")
 for value in patterns:
     binary.extend(value)
     binary.extend(b"\x00\x01RANDOMDATA\x00")
