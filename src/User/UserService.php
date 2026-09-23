@@ -203,7 +203,11 @@ final readonly class UserService
              LIMIT 1');
         $q->execute(['id' => $accountId]);
 
-        return GameRole::accessLevel((string)$q->fetchColumn());
+        try {
+            return GameRole::accessLevel((string)$q->fetchColumn());
+        } catch (\\InvalidArgumentException) {
+            return '-1';
+        }
     }
 
     public function search(string $query, int $page = 0): string
