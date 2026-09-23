@@ -42,7 +42,14 @@ final class CommentService
             }
         }
 
-        return $this->repository->addLevelComment($levelId, $accountId, $decodedContent, $percent);
+        $this->repository->addLevelComment(
+            $levelId,
+            $accountId,
+            $decodedContent,
+            max(0, min(100, $percent))
+        );
+
+        return 1;
     }
 
     private function handleCommand(int $levelId, int $accountId, string $commandStr): ?string
@@ -50,7 +57,12 @@ final class CommentService
         $pdo = $this->getPdo();
 
         // 1. Проверяем права пользователя (owner, admin, mod, elder)
-        $stmt = $pdo->prepare("SELECT role, username FROM accounts WHERE account_id = :id");
+        $stmt = $pdo->prepare(
+            "SELECT a.username, COALESCE(r.code, 'user') AS role
+             FROM accounts a
+             LEFT JOIN roles r ON r.id = a.role_id
+             WHERE a.account_id = :id"
+        );
         $stmt->execute([":id" => $accountId]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -178,7 +190,33 @@ final class CommentService
             );
         }
 
-        return implode("|", $encodedComments) . "#" . $total . ":" . $offset . ":" . count($comments);
+        $body = implode("|", $encodedComments);
+
+        if ($binaryVersion < 32) {
+            $users = [];
+            $seen = [];
+
+            foreach ($comments as $comment) {
+                $uid = (int)($comment['user_id'] ?? $comment['account_id'] ?? 0);
+                $account = (int)($comment['account_id'] ?? 0);
+                $key = $uid . ':' . $account;
+
+                if (isset($seen[$key])) {
+                    continue;
+                }
+
+                $seen[$key] = true;
+                $users[] = $uid . ':' .
+                    \MuchoCore\Protocol\ProtocolText::username(
+                        $comment['username'] ?? 'Player'
+                    ) . ':' . $account;
+            }
+
+            $body .= '#' . implode('|', $users);
+        }
+
+        return $body
+            . '#' . $total . ':' . $offset . ':' . count($comments);
     }
 
     public function uploadAccountComment(int $accountId, string $gjp, string $content, int $gameVersion = 22): int
@@ -188,7 +226,12 @@ final class CommentService
             ? (base64_decode(strtr($content, "-_", "+/")) ?: $content)
             : $content;
 
-        return $this->repository->addAccountComment($accountId, $decodedContent);
+        $this->repository->addAccountComment(
+            $accountId,
+            $decodedContent
+        );
+
+        return 1;
     }
 
     public function getAccountComments(int $accountId, int $page, int $gameVersion = 22): string
