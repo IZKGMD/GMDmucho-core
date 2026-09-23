@@ -96,9 +96,7 @@ final readonly class RecoveryService
     {
         $token = trim($token);
 
-        if (
-            !preg_match('/^[a-f0-9]{64}$/i', $token)
-        ) {
+        if (!preg_match('/^[a-f0-9]{64}$/i', $token)) {
             return false;
         }
 
@@ -132,14 +130,6 @@ final readonly class RecoveryService
             return false;
         }
 
-        $accountId = $this->repository->consumeToken(
-            hash('sha256', strtolower($token))
-        );
-
-        if ($accountId === null) {
-            return false;
-        }
-
         $passwordHash = password_hash(
             $password,
             PASSWORD_DEFAULT
@@ -154,11 +144,15 @@ final readonly class RecoveryService
             PASSWORD_DEFAULT
         );
 
-        $this->repository->updatePassword(
-            $accountId,
+        $accountId = $this->repository->resetPassword(
+            hash('sha256', strtolower($token)),
             $passwordHash,
             $gjp2Hash
         );
+
+        if ($accountId === null) {
+            return false;
+        }
 
         $this->repository->audit(
             $accountId,
@@ -189,7 +183,9 @@ final readonly class RecoveryService
             )
         );
 
-        if ($from === '') {
+        if (
+            filter_var($from, FILTER_VALIDATE_EMAIL) === false
+        ) {
             $host = trim(
                 (string)(
                     $_SERVER['HTTP_HOST'] ?? 'localhost'
@@ -268,8 +264,7 @@ final readonly class RecoveryService
 
         if (!$ok) {
             error_log(
-                '[MuchoCore Recovery] mail() failed for '
-                . $email
+                '[MuchoCore Recovery] mail() failed.'
             );
         }
     }
