@@ -64,7 +64,7 @@ final readonly class LevelTransferController
     {
         $levelId = $request->postInt('levelID');
         $version = $request->clientVersion();
-        $gameVersion = $version->gameVersion ?: 22;
+        $gameVersion = $version->effectiveGameVersion() ?: 22;
         $binaryVersion = $version->binaryVersion;
         $extras = $request->postInt('extras', 0) === 1;
         $incrementDownloads = $request->postInt('inc', 0) === 1;
