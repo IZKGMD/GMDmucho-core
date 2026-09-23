@@ -562,7 +562,7 @@ if (!admin()):
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mucho Control</title>
+<title><?=h($branding['server_name'])?> Control</title>
 <style>
 :root{
 --bg:#070910;
@@ -1547,7 +1547,6 @@ max-width:100%
 <form method="post" class="box">
 <div class="logo"><?=h($branding['server_name'])?><span>Control</span></div>
 <div class="sub">GDPS Administration</div>
-<div style="margin-top:16px;color:#7f8aa0;font-size:12px;text-align:center">Powered by MuchoCore · Copyright © <?=date('Y')?> IZK</div>
 
 <?php if (!empty($loginError)): ?>
 <div class="err"><?=h($loginError)?></div>
@@ -1574,6 +1573,7 @@ max-width:100%
 >
 
 <button name="login" value="1">Sign in</button>
+<div style="margin-top:16px;color:#7f8aa0;font-size:12px;text-align:center"><?=h($branding['server_name'])?> · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK</div>
 </form>
 
 <script>
@@ -2954,7 +2954,7 @@ unset($_SESSION['flash']);
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mucho Control</title>
+<title><?=h($branding['server_name'])?> Control</title>
 
 <style>
 :root{
