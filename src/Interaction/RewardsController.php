@@ -47,6 +47,24 @@ final readonly class RewardsController
         }
     }
 
+    public function getSecretReward(
+        Request $request
+    ): Response {
+        try {
+            return Response::text(
+                $this->service->secretReward(
+                    $request->postInt('accountID'),
+                    $request->postString('udid'),
+                    $request->postString('chk'),
+                    $this->credential($request),
+                    $request->postString('rewardKey')
+                )
+            );
+        } catch (Throwable) {
+            return Response::text('-1');
+        }
+    }
+
     public function getChallenges(
         Request $request
     ): Response {
