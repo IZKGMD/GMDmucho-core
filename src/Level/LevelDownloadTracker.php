@@ -31,9 +31,22 @@ final readonly class LevelDownloadTracker
             $hashKey
         );
 
+        $window = (int)(
+            getenv('MUCHO_DOWNLOAD_DEDUP_SECONDS')
+            ?: ($_ENV['MUCHO_DOWNLOAD_DEDUP_SECONDS'] ?? 300)
+        );
+        $window = max(30, min(604800, $window));
+
         $this->pdo->beginTransaction();
 
         try {
+            // Reuse deduplication slots after a bounded quiet period.
+            $this->pdo->exec(
+                'DELETE FROM mucho_level_downloads
+                 WHERE level_id='.(int)$levelId.'
+                   AND created_at < (CURRENT_TIMESTAMP - INTERVAL '.$window.' SECOND)'
+            );
+
             $slots = $this->pdo->prepare(
                 'SELECT slot
                  FROM mucho_level_downloads
