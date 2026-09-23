@@ -724,6 +724,9 @@ font-size:19px
 main{
 margin-left:var(--sidebar-width);
 width:calc(100% - var(--sidebar-width));
+min-height:100vh;
+display:flex;
+flex-direction:column;
 padding:24px 28px 60px;
 transition:.22s ease;
 min-width:0
@@ -1573,7 +1576,7 @@ max-width:100%
 >
 
 <button name="login" value="1">Sign in</button>
-<div style="margin-top:16px;color:#7f8aa0;font-size:12px;text-align:center"><?=h($branding['server_name'])?> · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK</div>
+<div style="margin-top:16px;color:#7f8aa0;font-size:12px;text-align:center"><?=h($branding['server_name'])?> · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK · <a href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer" style="color:#7d8ba3;text-decoration:none">GitHub</a></div>
 </form>
 
 <script>
