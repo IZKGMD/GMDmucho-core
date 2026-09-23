@@ -135,6 +135,15 @@ final readonly class LevelScoreController
             }
 
 
+            $type=
+                isset($data['type'])
+                    ? (int)$data['type']
+                    : 1;
+
+            if(!in_array($type,[0,1,2],true)){
+                return Response::text('-1');
+            }
+
             $this->saveScore(
                 accountId:$accountId,
                 levelId:$levelId,
@@ -147,17 +156,6 @@ final readonly class LevelScoreController
                 dailyId:$dailyId,
                 isDaily:$isDaily
             );
-
-
-            $type=
-                isset($data['type'])
-                    ? (int)$data['type']
-                    : 1;
-
-
-            if(!in_array($type,[0,1,2],true)){
-                return Response::text('-1');
-            }
 
 
             return Response::text(
