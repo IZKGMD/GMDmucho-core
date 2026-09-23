@@ -49,7 +49,7 @@ $st->execute($args);
 $rows=$st->fetchAll(PDO::FETCH_ASSOC);
 
 $roleOptions=$db->query(
-    'SELECT code FROM roles ORDER BY priority DESC, id ASC'
+    'SELECT code FROM roles WHERE code IN (\'user\',\'moderator\',\'elder_moderator\',\'owner\') ORDER BY priority DESC, id ASC'
 )->fetchAll(PDO::FETCH_COLUMN);
 
 if(!$roleOptions){
