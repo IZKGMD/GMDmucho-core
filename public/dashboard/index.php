@@ -1009,6 +1009,16 @@ input[type=text],input[type=password],input[type=file]{
             <form method="post" autocomplete="off">
                 <input type="hidden" name="csrf" value="<?=pdH(pdCsrf())?>">
                 <input type="hidden" name="action" value="login">
+                <div class="field">
+                    <label>Username</label>
+                    <input type="text" name="username" maxlength="20" autocomplete="username" required>
+                </div>
+
+                <div class="field">
+                    <label>Password</label>
+                    <input type="password" name="password" maxlength="256" autocomplete="current-password" required>
+                </div>
+
                 <?php if ($loginTurnstile): ?>
                     <div class="turnstile-box">
                         <div class="cf-turnstile" data-sitekey="<?=pdH(Turnstile::siteKey())?>" data-theme="dark" data-action="login"></div>
@@ -1019,16 +1029,6 @@ input[type=text],input[type=password],input[type=file]{
                         <input type="text" name="website" tabindex="-1" autocomplete="off">
                     </label>
                 <?php endif; ?>
-
-                <div class="field">
-                    <label>Username</label>
-                    <input type="text" name="username" maxlength="20" autocomplete="username" required>
-                </div>
-
-                <div class="field">
-                    <label>Password</label>
-                    <input type="password" name="password" maxlength="256" autocomplete="current-password" required>
-                </div>
 
                 <button class="btn" type="submit">Sign in to upload</button>
             </form>
