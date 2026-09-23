@@ -227,8 +227,9 @@ final readonly class UserService
         $limit = 10;
         $offset = $page * $limit;
         $users = $this->userRepository->search($query, $offset, $limit);
+        $total = $this->userRepository->searchCount($query);
 
-        return $this->userEncoder->search($users, count($users), $offset, $limit);
+        return $this->userEncoder->search($users, $total, $offset, $limit);
     }
 
     public function resolveAccountIdByUserId(int $userId): int
