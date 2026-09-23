@@ -86,6 +86,39 @@ $credentials = [
     [22, true],
 ];
 
+foreach ([37, 40, 41, 42] as $binaryVersion) {
+    $request = new Request(
+        'POST',
+        '/loginGJAccount22.php',
+        [],
+        [
+            'gameVersion' => '22',
+            'binaryVersion' => (string)$binaryVersion,
+            'gjp' => 'legacy',
+            'gjp2' => 'modern',
+        ],
+        []
+    );
+
+    assertSameValue(
+        '2.2',
+        $request->clientVersion()->family(),
+        "2.2 family binary {$binaryVersion}"
+    );
+
+    assertSameValue(
+        'modern',
+        $request->gdCredential(),
+        "2.2 GJP2 binary {$binaryVersion}"
+    );
+}
+
+$legacyBoundary = new ClientVersion(20, 27);
+assertSameValue('2.0', $legacyBoundary->family(), '2.0 binary 27 boundary');
+
+$modernBoundary = new ClientVersion(20, 28);
+assertSameValue('2.1', $modernBoundary->family(), '2.1 effective binary 28 boundary');
+
 foreach ($credentials as [$gameVersion, $usesGjp2]) {
     $request = new Request(
         'POST',
