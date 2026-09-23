@@ -18,7 +18,7 @@ final class LikeService
         // Проверяем токен (gjp), чтобы нельзя было накручивать лайки от чужого имени
         $this->auth->authenticate($accountId, $gjp);
         
-        if (!in_array($type, [1, 2, 3], true)) {
+        if (!in_array($type, [1, 2, 3, 4], true)) {
             throw new \RuntimeException('Invalid like type');
         }
 
