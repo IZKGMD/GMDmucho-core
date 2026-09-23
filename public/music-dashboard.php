@@ -2,7 +2,6 @@
 declare(strict_types=1);
 
 use MuchoCore\Account\AccountAuthenticator;
-use MuchoCore\Account\AccountRepository;
 use MuchoCore\Branding\BrandingService;
 use MuchoCore\Database\Database;
 use MuchoCore\Security\RateLimiter;
