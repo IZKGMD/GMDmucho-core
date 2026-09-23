@@ -1,4 +1,4 @@
-name: Build Composer vendor archive
+name: Build release archives
 
 on:
   push:
@@ -63,13 +63,17 @@ jobs:
           unzip -l mucho-core-ftp-php83-v1.1.0.zip | grep -q 'ftp-package/public/shared-install.php'
           unzip -l mucho-core-ftp-php83-v1.1.0.zip | grep -q 'ftp-package/database/migrations/'
           unzip -l mucho-core-ftp-php83-v1.1.0.zip | grep -q 'ftp-package/config/mucho_v71.php'
-          ! unzip -l mucho-core-ftp-php83-v1.1.0.zip | grep -qE '(^|/)\\.env
+          ! unzip -l mucho-core-ftp-php83-v1.1.0.zip | grep -qE '(^|/)\.env$'
+          ! unzip -l mucho-core-ftp-php83-v1.1.0.zip | grep -qE 'cloudsave\.key$'
+          ! unzip -l mucho-core-ftp-php83-v1.1.0.zip | grep -qE 'storage/admin-bootstrap\.php$'
+
       - name: Create full release archive
         run: |
           zip -r mucho-core-v1.1.0.zip . \
             -x '.git/*' \
             -x 'mucho-core-v1.1.0.zip' \
-            -x 'vendor-muchocore-php83.zip'
+            -x 'vendor-muchocore-php83.zip' \
+            -x 'mucho-core-ftp-php83-v1.1.0.zip'
 
       - name: Validate release archive
         run: |
@@ -101,103 +105,4 @@ jobs:
         with:
           name: muchocore-ftp-php83-v1.1.0
           path: mucho-core-ftp-php83-v1.1.0.zip
-          if-no-files-found: error
-
-          ! unzip -l mucho-core-ftp-php83-v1.1.0.zip | grep -qE 'cloudsave\\.key
-      - name: Create full release archive
-        run: |
-          zip -r mucho-core-v1.1.0.zip . \
-            -x '.git/*' \
-            -x 'mucho-core-v1.1.0.zip' \
-            -x 'vendor-muchocore-php83.zip'
-
-      - name: Validate release archive
-        run: |
-          unzip -t mucho-core-v1.1.0.zip
-          unzip -l mucho-core-v1.1.0.zip | grep -q 'tools/client-patch.bat'
-          unzip -l mucho-core-v1.1.0.zip | grep -q 'tools/client-patch.py'
-          unzip -l mucho-core-v1.1.0.zip | grep -q 'docker-compose.yml'
-          unzip -l mucho-core-v1.1.0.zip | grep -q 'VERSION'
-          ! unzip -l mucho-core-v1.1.0.zip | grep -qE '(^|/)\.env$'
-          ! unzip -l mucho-core-v1.1.0.zip | grep -qE '(^|/)config/cloudsave\.key$'
-          ! unzip -l mucho-core-v1.1.0.zip | grep -qE '(^|/)storage/'
-
-      - name: Upload release archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: mucho-core-v1.1.0
-          path: mucho-core-v1.1.0.zip
-          if-no-files-found: error
-
-      - name: Upload vendor archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: muchocore-vendor-php83
-          path: vendor-muchocore-php83.zip
-          if-no-files-found: error
-
-          ! unzip -l mucho-core-ftp-php83-v1.1.0.zip | grep -qE 'storage/admin-bootstrap\\.php
-      - name: Create full release archive
-        run: |
-          zip -r mucho-core-v1.1.0.zip . \
-            -x '.git/*' \
-            -x 'mucho-core-v1.1.0.zip' \
-            -x 'vendor-muchocore-php83.zip'
-
-      - name: Validate release archive
-        run: |
-          unzip -t mucho-core-v1.1.0.zip
-          unzip -l mucho-core-v1.1.0.zip | grep -q 'tools/client-patch.bat'
-          unzip -l mucho-core-v1.1.0.zip | grep -q 'tools/client-patch.py'
-          unzip -l mucho-core-v1.1.0.zip | grep -q 'docker-compose.yml'
-          unzip -l mucho-core-v1.1.0.zip | grep -q 'VERSION'
-          ! unzip -l mucho-core-v1.1.0.zip | grep -qE '(^|/)\.env$'
-          ! unzip -l mucho-core-v1.1.0.zip | grep -qE '(^|/)config/cloudsave\.key$'
-          ! unzip -l mucho-core-v1.1.0.zip | grep -qE '(^|/)storage/'
-
-      - name: Upload release archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: mucho-core-v1.1.0
-          path: mucho-core-v1.1.0.zip
-          if-no-files-found: error
-
-      - name: Upload vendor archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: muchocore-vendor-php83
-          path: vendor-muchocore-php83.zip
-          if-no-files-found: error
-
-
-      - name: Create full release archive
-        run: |
-          zip -r mucho-core-v1.1.0.zip . \
-            -x '.git/*' \
-            -x 'mucho-core-v1.1.0.zip' \
-            -x 'vendor-muchocore-php83.zip'
-
-      - name: Validate release archive
-        run: |
-          unzip -t mucho-core-v1.1.0.zip
-          unzip -l mucho-core-v1.1.0.zip | grep -q 'tools/client-patch.bat'
-          unzip -l mucho-core-v1.1.0.zip | grep -q 'tools/client-patch.py'
-          unzip -l mucho-core-v1.1.0.zip | grep -q 'docker-compose.yml'
-          unzip -l mucho-core-v1.1.0.zip | grep -q 'VERSION'
-          ! unzip -l mucho-core-v1.1.0.zip | grep -qE '(^|/)\.env$'
-          ! unzip -l mucho-core-v1.1.0.zip | grep -qE '(^|/)config/cloudsave\.key$'
-          ! unzip -l mucho-core-v1.1.0.zip | grep -qE '(^|/)storage/'
-
-      - name: Upload release archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: mucho-core-v1.1.0
-          path: mucho-core-v1.1.0.zip
-          if-no-files-found: error
-
-      - name: Upload vendor archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: muchocore-vendor-php83
-          path: vendor-muchocore-php83.zip
           if-no-files-found: error
