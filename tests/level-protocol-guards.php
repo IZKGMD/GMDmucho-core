@@ -15,7 +15,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../src/Level/LevelTransferService.php',
-        "if ((int)($level['unlisted2'] ?? 0) !== 0)",
+        'if ((int)($level[\'unlisted2\'] ?? 0) !== 0)',
         'restricted download guard',
     ],
     [
@@ -95,7 +95,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../src/LevelList/LevelListService.php',
-        "$filters['difficulties']",
+        '$filters[\'difficulties\']',
         '2.2 level list multi-difficulty filters',
     ],
 ];
