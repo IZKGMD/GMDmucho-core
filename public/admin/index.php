@@ -4446,11 +4446,11 @@ echo '</table></div>';
 
 ?>
 
-</main>
-
-<div class="mucho-page-footer" style="margin:22px 0 4px;padding:16px 6px 0;border-top:1px solid rgba(36,45,60,.75);color:#69758a;font-size:12px;text-align:center">
- <?=h($branding['server_name'])?> · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK
+<div class="mucho-page-footer" style="margin-top:auto;padding:16px 6px 0;border-top:1px solid rgba(36,45,60,.75);color:#69758a;font-size:12px;text-align:center">
+ <?=h($branding['server_name'])?> · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK · <a href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer" style="color:#7d8ba3;text-decoration:none">GitHub</a>
 </div>
+
+</main>
 </div>
 
 <script id="mucho-mobile-v5-js">
