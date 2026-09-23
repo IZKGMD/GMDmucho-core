@@ -582,3 +582,59 @@ aside .brandrow .logo .mucho-brand-logo{
     aside .brandrow .logo .mucho-brand-logo{width:130px;max-height:44px}
     .shell .card .brand .mucho-brand-logo{width:170px;max-height:58px}
 }
+
+/* Dashboard polish */
+html[data-theme="light"] body.dashboard-page .hero-kicker{
+    background:rgba(119,104,255,.07);
+    border-color:rgba(119,104,255,.15);
+    color:#6f60d9;
+}
+html[data-theme="light"] body.dashboard-page .hero-copy{color:#68758a}
+html[data-theme="light"] body.dashboard-page .hero-note span{
+    background:#f5f7fb;
+    border-color:#dfe5ed;
+    color:#6c788c;
+}
+html[data-theme="light"] body.dashboard-page .portal-mark{
+    background:linear-gradient(145deg,rgba(119,104,255,.10),rgba(119,104,255,.04));
+    border-color:#ddd7ff;
+    color:#6658d7;
+}
+html[data-theme="light"] body.dashboard-page .portal-eyebrow{color:#6f60d9}
+html[data-theme="light"] body.dashboard-page .form-divider{
+    background:linear-gradient(90deg,transparent,#dfe4ec,transparent);
+}
+html[data-theme="light"] body.dashboard-page .upload-summary span{
+    background:#f6f8fb;
+    border-color:#dfe5ed;
+    color:#738096;
+}
+html[data-theme="light"] body.dashboard-page .upload-summary b{color:#424b5b}
+html[data-theme="light"] body.dashboard-page .dashboard-stat{
+    background:linear-gradient(145deg,#fff,#f7f9fc);
+    border-color:#dce3eb;
+    box-shadow:0 12px 30px rgba(35,46,67,.07);
+}
+html[data-theme="light"] body.dashboard-page .dashboard-stat-icon{
+    background:rgba(119,104,255,.07);
+    border-color:#ddd7ff;
+    color:#6b5ddc;
+}
+html[data-theme="light"] body.dashboard-page .dashboard-stat-label{color:#727e91}
+html[data-theme="light"] body.dashboard-page .dashboard-stat-value{color:#202532}
+html[data-theme="light"] body.dashboard-page .dashboard-stat-detail{color:#7a8698}
+html[data-theme="light"] body.dashboard-page .section-divider{color:#7a8495}
+html[data-theme="light"] body.dashboard-page .featured-card,
+html[data-theme="light"] body.dashboard-page .link-panel{
+    background:linear-gradient(145deg,#fff,#f7f9fc);
+    border-color:#dce3eb;
+}
+html[data-theme="light"] body.dashboard-page .featured-label{color:#798498}
+html[data-theme="light"] body.dashboard-page .featured-name{color:#202532}
+html[data-theme="light"] body.dashboard-page .featured-sub,
+html[data-theme="light"] body.dashboard-page .link-panel p{color:#778398}
+html[data-theme="light"] body.dashboard-page .music-disc{
+    background:linear-gradient(145deg,#f4f6fb,#eaf0f7);
+    border-color:#d9e0e9;
+    color:#6b5ddc;
+}
