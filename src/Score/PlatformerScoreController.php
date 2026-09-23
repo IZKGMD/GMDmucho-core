@@ -318,9 +318,8 @@ final readonly class PlatformerScoreController
                 ':9:'.(int)$row['cube'].
                 ':10:'.(int)$row['color1'].
                 ':11:'.(int)$row['color2'].
-                ':51:'.(int)$row['color3'].
                 ':14:0'.
-                ':15:'.(int)$row['special'].
+                ':15:'.(int)$row['color3'].
                 ':16:'.(int)$row['account_id'].
                 ':3:'.$score.
                 ':6:'.$rank.
