@@ -3733,6 +3733,14 @@ foreach(
 
 elseif($page==='messages') {
 
+if (!tableExists($db,'messages')) {
+    echo '<div class="card">';
+    echo '<h2 style="margin-top:0">Messages</h2>';
+    echo '<p class="muted">The messages feature is not enabled in the current database schema.</p>';
+    echo '<p class="muted small">No <code>messages</code> table exists, so the admin panel will not crash here anymore.</p>';
+    echo '</div>';
+} else {
+
 $rows=$db->query(
     'SELECT
         m.*,
@@ -3753,9 +3761,9 @@ foreach($rows as $r):
 <td><?=h($r['id'])?></td>
 <td><?=h($r['sender'] ?? $r['account_id'])?></td>
 <td><?=h($r['receiver'] ?? $r['to_account_id'])?></td>
-<td><?=h($r['subject'])?></td>
-<td><?=h($r['body'])?></td>
-<td><?=h($r['is_read'])?></td>
+<td><?=h($r['subject'] ?? '')?></td>
+<td><?=h($r['body'] ?? '')?></td>
+<td><?=h($r['is_read'] ?? 0)?></td>
 <td>
 <form method="post">
 <input type="hidden" name="csrf" value="<?=csrf()?>">
@@ -3770,6 +3778,7 @@ foreach($rows as $r):
 
 </table></div>
 <?php
+}
 }
 
 /* =========================================================
