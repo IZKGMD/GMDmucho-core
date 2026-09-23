@@ -14,8 +14,8 @@ if (PHP_SAPI !== 'cli') {
 
 const ROLES = [
     'PLAYER',
-    'MOD',
-    'ADMIN',
+    'MODERATOR',
+    'ELDER_MODERATOR',
     'OWNER'
 ];
 
@@ -98,7 +98,7 @@ try {
 
         if ($id <= 0 || !in_array($role, ROLES, true)) {
             throw new RuntimeException(
-                'usage: --set ACCOUNT_ID PLAYER|MOD|ADMIN|OWNER'
+                'usage: --set ACCOUNT_ID PLAYER|MODERATOR|ELDER_MODERATOR|OWNER'
             );
         }
 
