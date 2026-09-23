@@ -350,6 +350,15 @@ final readonly class LevelRepository
                 }
                 break;
 
+            case 27:
+                $where[] = 'EXISTS (
+                    SELECT 1
+                    FROM moderation_suggestions ms
+                    WHERE ms.level_id = l.level_id
+                )';
+                $order = 'l.updated_at DESC, l.level_id DESC';
+                break;
+
             default:
                 break;
         }
