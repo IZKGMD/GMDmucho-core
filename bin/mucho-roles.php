@@ -2,93 +2,144 @@
 declare(strict_types=1);
 
 /*
- * MuchoCore Roles CLI v2.2
+ * MuchoCore Roles CLI
+ * Canonical source: accounts.role_id -> roles.code.
  * Copyright (C) 2026 IZK
  */
 
-require_once '/var/www/mucho-core/public/api/v2/bootstrap.php';
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+use MuchoCore\Database\Database;
+use MuchoCore\User\GameRole;
 
 if (PHP_SAPI !== 'cli') {
     exit(1);
 }
 
-const ROLES = [
-    'PLAYER',
-    'MODERATOR',
-    'ELDER_MODERATOR',
-    'OWNER'
+const ROLE_ALIASES = [
+    'PLAYER' => GameRole::USER,
+    'USER' => GameRole::USER,
+    'MODERATOR' => GameRole::MODERATOR,
+    'ELDER_MODERATOR' => GameRole::ELDER_MODERATOR,
+    'OWNER' => GameRole::OWNER,
 ];
 
-function installRoles(PDO $db): void
+function ensureAccount(PDO $db, int $id): void
 {
-    if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') {
-        $db->exec("
-            CREATE TABLE IF NOT EXISTS mucho_account_roles (
-                account_id BIGINT PRIMARY KEY,
-                role VARCHAR(16) NOT NULL DEFAULT 'PLAYER',
-                verified SMALLINT NOT NULL DEFAULT 0,
-                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )
-        ");
-    } else {
-        $db->exec("
-            CREATE TABLE IF NOT EXISTS mucho_account_roles (
-                account_id BIGINT PRIMARY KEY,
-                role VARCHAR(16) NOT NULL DEFAULT 'PLAYER',
-                verified TINYINT NOT NULL DEFAULT 0,
-                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-                    ON UPDATE CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        ");
-    }
-}
+    $q = $db->prepare(
+        'SELECT account_id
+         FROM accounts
+         WHERE account_id=:id
+         LIMIT 1'
+    );
 
-function requireAccount(PDO $db, int $id): void
-{
-    $q = $db->prepare("
-        SELECT account_id
-        FROM mucho_profile_customization
-        WHERE account_id=?
-        LIMIT 1
-    ");
-
-    $q->execute([$id]);
+    $q->execute(['id' => $id]);
 
     if ($q->fetchColumn() === false) {
-        throw new RuntimeException('profile_not_found');
+        throw new RuntimeException('account_not_found');
     }
 }
 
-function ensureRole(PDO $db, int $id): void
+function setRole(PDO $db, int $id, string $role): void
 {
-    requireAccount($db, $id);
+    ensureAccount($db, $id);
 
-    if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') {
-        $q = $db->prepare("
-            INSERT INTO mucho_account_roles(account_id)
-            VALUES(?)
-            ON CONFLICT (account_id) DO NOTHING
-        ");
-    } else {
-        $q = $db->prepare("
-            INSERT IGNORE INTO mucho_account_roles(account_id)
-            VALUES(?)
-        ");
+    $canonical = ROLE_ALIASES[$role] ?? null;
+
+    if ($canonical === null) {
+        throw new RuntimeException(
+            'usage: --set ACCOUNT_ID PLAYER|MODERATOR|ELDER_MODERATOR|OWNER'
+        );
     }
 
-    $q->execute([$id]);
+    $q = $db->prepare(
+        'SELECT id
+         FROM roles
+         WHERE code=:role
+         LIMIT 1'
+    );
+    $q->execute(['role' => $canonical]);
+
+    $roleId = $q->fetchColumn();
+
+    if ($roleId === false) {
+        throw new RuntimeException('role_not_found');
+    }
+
+    $q = $db->prepare(
+        'UPDATE accounts
+         SET role_id=:role_id
+         WHERE account_id=:id'
+    );
+    $q->execute([
+        'role_id' => (int)$roleId,
+        'id' => $id,
+    ]);
+
+    echo "ROLE_SET_OK
+";
+}
+
+function showRole(PDO $db, int $id): void
+{
+    ensureAccount($db, $id);
+
+    $q = $db->prepare(
+        'SELECT
+            a.account_id,
+            a.username,
+            COALESCE(r.code, :fallback) AS role_code,
+            COALESCE(r.name, :fallback_name) AS role_name,
+            COALESCE(r.priority, 0) AS priority
+         FROM accounts a
+         LEFT JOIN roles r ON r.id=a.role_id
+         WHERE a.account_id=:id
+         LIMIT 1'
+    );
+
+    $q->execute([
+        'id' => $id,
+        'fallback' => GameRole::USER,
+        'fallback_name' => GameRole::displayName(GameRole::USER),
+    ]);
+
+    $row = $q->fetch(PDO::FETCH_ASSOC);
+
+    if (!$row) {
+        throw new RuntimeException('account_not_found');
+    }
+
+    echo json_encode(
+        $row,
+        JSON_PRETTY_PRINT |
+        JSON_UNESCAPED_SLASHES |
+        JSON_UNESCAPED_UNICODE
+    ) . PHP_EOL;
 }
 
 try {
-    $db = muchoV2Db();
-    installRoles($db);
+    $db = (new Database())->connection();
 
     $cmd = $argv[1] ?? '';
 
     if ($cmd === '--install') {
-        echo "ROLES_INSTALL_OK\n";
+        $count = (int)$db->query(
+            'SELECT COUNT(*)
+             FROM roles
+             WHERE code IN (
+                "user",
+                "moderator",
+                "elder_moderator",
+                "owner"
+             )'
+        )->fetchColumn();
+
+        if ($count !== 4) {
+            throw new RuntimeException('canonical_roles_missing');
+        }
+
+        echo "ROLES_INSTALL_OK
+";
         exit;
     }
 
@@ -96,47 +147,13 @@ try {
         $id = (int)($argv[2] ?? 0);
         $role = strtoupper(trim((string)($argv[3] ?? '')));
 
-        if ($id <= 0 || !in_array($role, ROLES, true)) {
+        if ($id <= 0) {
             throw new RuntimeException(
                 'usage: --set ACCOUNT_ID PLAYER|MODERATOR|ELDER_MODERATOR|OWNER'
             );
         }
 
-        ensureRole($db, $id);
-
-        $q = $db->prepare("
-            UPDATE mucho_account_roles
-            SET role=?
-            WHERE account_id=?
-        ");
-
-        $q->execute([$role, $id]);
-
-        echo "ROLE_SET_OK\n";
-        exit;
-    }
-
-    if ($cmd === '--verify') {
-        $id = (int)($argv[2] ?? 0);
-        $verified = (int)($argv[3] ?? -1);
-
-        if ($id <= 0 || !in_array($verified, [0,1], true)) {
-            throw new RuntimeException(
-                'usage: --verify ACCOUNT_ID 0|1'
-            );
-        }
-
-        ensureRole($db, $id);
-
-        $q = $db->prepare("
-            UPDATE mucho_account_roles
-            SET verified=?
-            WHERE account_id=?
-        ");
-
-        $q->execute([$verified, $id]);
-
-        echo "VERIFIED_SET_OK\n";
+        setRole($db, $id, $role);
         exit;
     }
 
@@ -149,34 +166,13 @@ try {
             );
         }
 
-        ensureRole($db, $id);
-
-        $q = $db->prepare("
-            SELECT
-                account_id,
-                role,
-                verified,
-                created_at,
-                updated_at
-            FROM mucho_account_roles
-            WHERE account_id=?
-        ");
-
-        $q->execute([$id]);
-
-        echo json_encode(
-            $q->fetch(),
-            JSON_PRETTY_PRINT |
-            JSON_UNESCAPED_SLASHES
-        ) . PHP_EOL;
-
+        showRole($db, $id);
         exit;
     }
 
     throw new RuntimeException(
-        'commands: --install | --set | --verify | --show'
+        'commands: --install | --set | --show'
     );
-
 } catch (Throwable $e) {
     fwrite(STDERR, 'ERROR: '.$e->getMessage().PHP_EOL);
     exit(1);
