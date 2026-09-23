@@ -158,4 +158,120 @@ final readonly class RewardsRepository
              ORDER BY challenge_id'
         )->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function secretReward(string $rewardKey): ?array
+    {
+        $q = $this->pdo->prepare(
+            'SELECT
+                reward_id,
+                reward_key,
+                chest_type,
+                rewards,
+                uses,
+                expires_at
+             FROM mucho_secret_rewards
+             WHERE reward_key=:reward_key
+               AND active=1
+             LIMIT 1'
+        );
+
+        $q->execute(['reward_key' => $rewardKey]);
+
+        $row = $q->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            return null;
+        }
+
+        $expiresAt = (int)$row['expires_at'];
+
+        if ($expiresAt > 0 && $expiresAt <= time()) {
+            return null;
+        }
+
+        if ((int)$row['uses'] <= 0) {
+            return null;
+        }
+
+        return $row;
+    }
+
+    public function claimSecretReward(
+        int $rewardId,
+        string $claimKey
+    ): ?array {
+        $this->pdo->beginTransaction();
+
+        try {
+            $q = $this->pdo->prepare(
+                'SELECT
+                    reward_id,
+                    reward_key,
+                    chest_type,
+                    rewards,
+                    uses,
+                    expires_at,
+                    active
+                 FROM mucho_secret_rewards
+                 WHERE reward_id=:reward_id
+                 FOR UPDATE'
+            );
+            $q->execute(['reward_id' => $rewardId]);
+
+            $reward = $q->fetch(PDO::FETCH_ASSOC);
+
+            if (
+                !$reward ||
+                (int)$reward['active'] !== 1 ||
+                (int)$reward['uses'] <= 0 ||
+                (
+                    (int)$reward['expires_at'] > 0 &&
+                    (int)$reward['expires_at'] <= time()
+                )
+            ) {
+                $this->pdo->rollBack();
+                return null;
+            }
+
+            $claim = $this->pdo->prepare(
+                'INSERT IGNORE INTO mucho_secret_reward_claims
+                    (reward_id, claim_key)
+                 VALUES (:reward_id, :claim_key)'
+            );
+            $claim->execute([
+                'reward_id' => $rewardId,
+                'claim_key' => $claimKey,
+            ]);
+
+            if ($claim->rowCount() !== 1) {
+                $this->pdo->rollBack();
+                return null;
+            }
+
+            $update = $this->pdo->prepare(
+                'UPDATE mucho_secret_rewards
+                 SET uses=uses-1
+                 WHERE reward_id=:reward_id
+                   AND uses>0'
+            );
+            $update->execute(['reward_id' => $rewardId]);
+
+            if ($update->rowCount() !== 1) {
+                $this->pdo->rollBack();
+                return null;
+            }
+
+            $this->pdo->commit();
+
+            return $reward;
+        } catch (\\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
+            throw $e;
+        }
+    }
 }
+
+
