@@ -61,11 +61,11 @@ Use this path when you have a normal Beget PHP hosting account.
 2. Download the **MuchoCore FTP PHP 8.3 package** from the latest project build.
 3. Upload the contents of the ZIP into your site's `public_html/` folder using FTP.
 4. Make sure the site uses **PHP 8.3 or newer**.
-5. Open `https://YOUR-DOMAIN/shared-install.php`.
+5. Open `http://YOUR-DOMAIN/shared-install.php`.
 6. Enter the MySQL host, database name, username, and password shown by Beget.
 7. Choose the admin password and press **Install MuchoCore**.
-8. Open `https://YOUR-DOMAIN/health`. A working installation returns `1`.
-9. Open `https://YOUR-DOMAIN/admin/` and log in as `admin`.
+8. Open `http://YOUR-DOMAIN/health`. A working installation returns `1`.
+9. Open `http://YOUR-DOMAIN/admin/` and log in as `admin`.
 
 You do **not** need SSH, Docker, or Composer for this FTP package because `vendor/` is already included.
 
@@ -98,7 +98,7 @@ bash bin/mucho health
 Check:
 
 ```text
-https://YOUR-DOMAIN/health
+http://YOUR-DOMAIN/health
 ```
 
 A healthy server should return:
@@ -110,7 +110,7 @@ A healthy server should return:
 Then open:
 
 ```text
-https://YOUR-DOMAIN/admin/
+http://YOUR-DOMAIN/admin/
 ```
 
 Default administrator username:
