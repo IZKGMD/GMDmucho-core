@@ -31,14 +31,29 @@ final readonly class ClientVersion
         );
     }
 
+    /**
+     * Geometry Dash 2.0 binaries above 27 use the 2.1 protocol generation.
+     * This matches the historical server/client compatibility boundary.
+     */
+    public function effectiveGameVersion(): int
+    {
+        if ($this->gameVersion === 20 && $this->binaryVersion > 27) {
+            return 21;
+        }
+
+        return $this->gameVersion;
+    }
+
     public function family(): string
     {
+        $version = $this->effectiveGameVersion();
+
         return match (true) {
-            $this->gameVersion >= 22 => '2.2',
-            $this->gameVersion === 21 => '2.1',
-            $this->gameVersion === 20 => '2.0',
-            $this->gameVersion >= 19 => '1.9',
-            $this->gameVersion > 0 => '1.x',
+            $version >= 22 => '2.2',
+            $version === 21 => '2.1',
+            $version === 20 => '2.0',
+            $version >= 19 => '1.9',
+            $version > 0 => '1.x',
             default => 'unknown',
         };
     }
@@ -63,16 +78,17 @@ final readonly class ClientVersion
 
     public function is2_2OrNewer(): bool
     {
-        return $this->gameVersion >= 22;
+        return $this->effectiveGameVersion() >= 22;
     }
 
     public function is2_1OrOlder(): bool
     {
-        return $this->gameVersion > 0 && $this->gameVersion <= 21;
+        $version = $this->effectiveGameVersion();
+        return $version > 0 && $version <= 21;
     }
 
     public function usesGjp2(): bool
     {
-        return $this->is2_2OrNewer();
+        return $this->effectiveGameVersion() >= 22;
     }
 }
