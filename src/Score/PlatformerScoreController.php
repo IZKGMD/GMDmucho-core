@@ -61,8 +61,7 @@ final readonly class PlatformerScoreController
             $points=(int)($d['points'] ?? 0);
 
             /*
-             * Только time > 0 означает реальный
-             * platformer result.
+             * Only time > 0 represents a real platformer result.
              */
             if($time>0){
                 $this->save(
