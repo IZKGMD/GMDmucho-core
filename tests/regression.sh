@@ -689,7 +689,18 @@ PY
     )"
 
     LEGACY_LEVEL_ID="$(
-        post uploadGJLevel19             -d "accountID=$AID1"             -d "gjp=$GJP19"             -d "userName=$U1"             -d 'levelName=Mucho Legacy 19'             --data-urlencode "levelDesc=$LEGACY_DESC"             -d 'levelString=MUCHO_LEGACY_19_LEVEL'             -d 'levelVersion=1'             -d 'gameVersion=19'             -d 'binaryVersion=25'             -d 'levelLength=2'             -d 'objects=1900'
+        post uploadGJLevel19 \
+            -d "accountID=$AID1" \
+            -d "gjp=$GJP19" \
+            -d "userName=$U1" \
+            -d 'levelName=Mucho Legacy 19' \
+            --data-urlencode "levelDesc=$LEGACY_DESC" \
+            -d 'levelString=MUCHO_LEGACY_19_LEVEL' \
+            -d 'levelVersion=1' \
+            -d 'gameVersion=19' \
+            -d 'binaryVersion=25' \
+            -d 'levelLength=2' \
+            -d 'objects=1900'
     )"
 
     if [[ "$LEGACY_LEVEL_ID" =~ ^[0-9]+$ ]] && [ "$LEGACY_LEVEL_ID" -gt 0 ]; then
@@ -701,19 +712,44 @@ PY
 
     if [ "$LEGACY_LEVEL_ID" -gt 0 ]; then
         LEGACY_LIST="$(
-            post getGJLevels19                 -d 'type=0'                 -d "str=$LEGACY_LEVEL_ID"                 -d 'page=0'                 -d 'gameVersion=19'                 -d 'binaryVersion=25'
+            post getGJLevels19 \
+                -d 'type=0' \
+                -d "str=$LEGACY_LEVEL_ID" \
+                -d 'page=0' \
+                -d 'gameVersion=19' \
+                -d 'binaryVersion=25'
         )"
 
-        expect_contains             "GD 1.9 list keeps legacy description encoding"             "$LEGACY_LIST"             "3:$LEGACY_DESC_B64:"
+        expect_contains \
+            "GD 1.9 list keeps legacy description encoding" \
+            "$LEGACY_LIST" \
+            "3:$LEGACY_DESC_B64:"
 
         LEGACY_DOWNLOAD="$(
-            post downloadGJLevel19                 -d "levelID=$LEGACY_LEVEL_ID"                 -d 'gameVersion=19'                 -d 'binaryVersion=25'
+            post downloadGJLevel19 \
+                -d "levelID=$LEGACY_LEVEL_ID" \
+                -d 'gameVersion=19' \
+                -d 'binaryVersion=25'
         )"
 
-        expect_contains             "GD 1.9 download decodes description"             "$LEGACY_DOWNLOAD"             "3:$LEGACY_DESC:"
+        expect_contains \
+            "GD 1.9 download decodes description" \
+            "$LEGACY_DOWNLOAD" \
+            "3:$LEGACY_DESC:"
 
         RESTRICTED_LEVEL_ID="$(
-            post uploadGJLevel19                 -d "accountID=$AID1"                 -d "gjp=$GJP19"                 -d "userName=$U1"                 -d 'levelName=Mucho Legacy Restricted 19'                 --data-urlencode "levelDesc=$LEGACY_DESC"                 -d 'levelString=MUCHO_LEGACY_19_RESTRICTED'                 -d 'levelVersion=1'                 -d 'gameVersion=19'                 -d 'binaryVersion=25'                 -d 'unlisted1=1'                 -d 'unlisted2=1'
+            post uploadGJLevel19 \
+                -d "accountID=$AID1" \
+                -d "gjp=$GJP19" \
+                -d "userName=$U1" \
+                -d 'levelName=Mucho Legacy Restricted 19' \
+                --data-urlencode "levelDesc=$LEGACY_DESC" \
+                -d 'levelString=MUCHO_LEGACY_19_RESTRICTED' \
+                -d 'levelVersion=1' \
+                -d 'gameVersion=19' \
+                -d 'binaryVersion=25' \
+                -d 'unlisted1=1' \
+                -d 'unlisted2=1'
         )"
 
         if [[ "$RESTRICTED_LEVEL_ID" =~ ^[0-9]+$ ]] && [ "$RESTRICTED_LEVEL_ID" -gt 0 ]; then
@@ -725,19 +761,32 @@ PY
 
         if [ "$RESTRICTED_LEVEL_ID" -gt 0 ]; then
             RESTRICTED_PUBLIC="$(
-                post downloadGJLevel19                     -d "levelID=$RESTRICTED_LEVEL_ID"                     -d 'gameVersion=19'                     -d 'binaryVersion=25'
+                post downloadGJLevel19 \
+                    -d "levelID=$RESTRICTED_LEVEL_ID" \
+                    -d 'gameVersion=19' \
+                    -d 'binaryVersion=25'
             )"
 
-            expect_eq                 "GD 1.9 rejects restricted download without auth"                 "$RESTRICTED_PUBLIC"                 "-1"
+            expect_eq \
+                "GD 1.9 rejects restricted download without auth" \
+                "$RESTRICTED_PUBLIC" \
+                "-1"
 
             RESTRICTED_OWNER="$(
-                post downloadGJLevel19                     -d "levelID=$RESTRICTED_LEVEL_ID"                     -d 'gameVersion=19'                     -d 'binaryVersion=25'                     -d "accountID=$AID1"                     -d "gjp=$GJP19"
+                post downloadGJLevel19 \
+                    -d "levelID=$RESTRICTED_LEVEL_ID" \
+                    -d 'gameVersion=19' \
+                    -d 'binaryVersion=25' \
+                    -d "accountID=$AID1" \
+                    -d "gjp=$GJP19"
             )"
 
-            expect_contains                 "GD 1.9 allows restricted owner download"                 "$RESTRICTED_OWNER"                 "MUCHO_LEGACY_19_RESTRICTED"
+            expect_contains \
+                "GD 1.9 allows restricted owner download" \
+                "$RESTRICTED_OWNER" \
+                "MUCHO_LEGACY_19_RESTRICTED"
         fi
     fi
-
     echo
     echo "===== COMMENTS / LIKES ====="
 
