@@ -37,7 +37,7 @@ final readonly class RateLimiter
 
         try {
             if (!flock($fp, LOCK_EX)) {
-                return true;
+                return $this->failOpen;
             }
 
             rewind($fp);
