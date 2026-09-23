@@ -881,7 +881,7 @@ footer{
 <aside class="sidebar" id="sidebar">
 
     <div class="brand">
-        Mucho<span>GDPS</span>
+        <span data-server-name>Mucho GDPS</span>
     </div>
 
     <div class="nav">
@@ -980,7 +980,7 @@ footer{
 
     <h1>
         Welcome to<br>
-        <span>Mucho GDPS.</span>
+        <span id="heroBrand">Mucho GDPS.</span>
     </h1>
 
     <p>
@@ -1295,7 +1295,7 @@ footer{
 
 
 <footer>
-    Mucho GDPS · MuchoCore · Copyright © 2026 IZK
+    <span data-server-name>Mucho GDPS</span> · Powered by MuchoCore · Copyright © 2026 IZK
 </footer>
 
 </div>
@@ -1305,6 +1305,59 @@ footer{
 <script>
 
 const $ = id => document.getElementById(id);
+
+async function loadBranding(){
+
+    try{
+        const response = await fetch(
+            '/api/v2/branding.php',
+            {cache:'no-store'}
+        );
+
+        if(!response.ok){
+            throw new Error('branding unavailable');
+        }
+
+        const data = await response.json();
+        const serverName = String(
+            data.server_name || 'Mucho GDPS'
+        ).trim();
+
+        if(!serverName){
+            return;
+        }
+
+        document
+            .querySelectorAll('[data-server-name]')
+            .forEach(element => {
+                element.textContent = serverName;
+            });
+
+        const hero = $('heroBrand');
+
+        if(hero){
+            hero.textContent = serverName + '.';
+        }
+
+        document.title =
+            serverName +
+            ' — Geometry Dash Private Server';
+
+        const description =
+            document.querySelector(
+                'meta[name="description"]'
+            );
+
+        if(description){
+            description.content =
+                serverName +
+                ' — custom Geometry Dash private server powered by MuchoCore.';
+        }
+
+    }catch(e){
+        // The built-in Mucho GDPS branding remains visible on failure.
+    }
+}
 
 async function updateHealth(){
 
@@ -1378,6 +1431,7 @@ async function updateHealth(){
 
 }
 
+loadBranding();
 updateHealth();
 
 setInterval(
