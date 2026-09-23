@@ -41,9 +41,9 @@ sudo bash install.sh
 
 The installer sets up the containers, database, HTTPS, and administrator account.
 
-### 2. Regular PHP hosting
+### 2. Regular PHP hosting / Beget
 
-This is useful for a simple or test server.
+This is useful for a simple or test server and can be installed without SSH.
 
 Start with:
 
@@ -51,7 +51,7 @@ Start with:
 docs/SHARED_HOSTING.md
 ```
 
-You need PHP 8.3+, MySQL/MariaDB, and access to your website files.
+Use the ready-made FTP PHP 8.3 package. Upload it by FTP, create an empty MySQL/MariaDB database, then open `/shared-install.php` in your browser.
 
 ## When something does not work
 
