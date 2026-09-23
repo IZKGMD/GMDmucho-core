@@ -46,7 +46,7 @@ The doctor checks Docker, configuration, secrets, containers, and `/health`, the
 Check:
 
 ~~~text
-https://YOUR-DOMAIN/health
+http://YOUR-DOMAIN/health
 ~~~
 
 Expected response:
@@ -58,7 +58,7 @@ Expected response:
 Admin panel:
 
 ~~~text
-https://YOUR-DOMAIN/admin/
+http://YOUR-DOMAIN/admin/
 ~~~
 
 Default administrator username:
