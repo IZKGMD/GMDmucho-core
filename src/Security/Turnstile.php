@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MuchoCore\Security;
 
+use MuchoCore\Http\ClientIp;
+
 final class Turnstile
 {
     private const VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
@@ -35,15 +37,9 @@ final class Turnstile
             'response' => $token,
         ];
 
-        $remoteIp = trim(
-            (string)(
-                $_SERVER['HTTP_CF_CONNECTING_IP']
-                ?? $_SERVER['REMOTE_ADDR']
-                ?? ''
-            )
-        );
+        $remoteIp = ClientIp::resolve($_SERVER);
 
-        if ($remoteIp !== '') {
+        if ($remoteIp !== '0.0.0.0') {
             $payload['remoteip'] = $remoteIp;
         }
 
