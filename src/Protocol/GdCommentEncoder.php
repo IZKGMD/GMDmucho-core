@@ -6,65 +6,95 @@ namespace MuchoCore\Protocol;
 
 final class GdCommentEncoder
 {
-    /**
-     * Формирует строку комментария к уровню (comment:user)
-     */
-    public function encode(array $comment, array $profile): string
-    {
-        $commentStr = implode('~', [
-            '2', base64_encode((string)$comment['content']),
+    public function encode(
+        array $comment,
+        array $profile,
+        int $gameVersion = 22,
+        int $binaryVersion = 0
+    ): string {
+        $content = (string)($comment['content'] ?? '');
+
+        if ($gameVersion < 20) {
+            $content = strtr(
+                base64_encode($content),
+                '+/',
+                '-_'
+            );
+        }
+
+        $badge = (int)($profile['badge'] ?? 0);
+
+        $commentParts = [
+            '2', $content,
             '3', (string)$comment['account_id'],
-            '4', (string)$comment['likes'],
+            '4', (string)($comment['likes'] ?? 0),
             '5', '0',
-            '7', (string)$comment['is_spam'],
-            '9', $this->formatTimeAgo((string)$comment['created_at']),
-            '10', (string)$comment['percent'],
-            '11', (string)($profile['badge'] ?? 0),
-            '12', '255,255,255',
-            '6', (string)$comment['id']
-        ]);
+            '7', (string)($comment['is_spam'] ?? 0),
+            '9', $this->date((string)($comment['created_at'] ?? '')),
+            '6', (string)$comment['id'],
+            '10', (string)($comment['percent'] ?? 0),
+        ];
 
-        $userStr = implode('~', [
-            '1', ProtocolText::username($profile['username'] ?? 'Player'),
-            '2', (string)($profile['cube'] ?? 1),
-            '7', (string)($profile['color1'] ?? 0),
-            '8', (string)($profile['color2'] ?? 3),
-            '9', '0',
-            '10', (string)($profile['special'] ?? 0),
-            '11', (string)$comment['account_id'],
-            '14', '0',
-            '15', (string)($profile['badge'] ?? 0),
-            '16', (string)$comment['account_id']
-        ]);
+        if ($binaryVersion > 31 || $gameVersion >= 22) {
+            $commentParts[] = '11';
+            $commentParts[] = (string)$badge;
+            $commentParts[] = '12';
+            $commentParts[] = '255,255,255';
 
-        return $commentStr . ':' . $userStr;
+            $userParts = [
+                '1', ProtocolText::username($profile['username'] ?? 'Player'),
+                '7', '1',
+                '9', (string)($profile['cube'] ?? 1),
+                '10', (string)($profile['color1'] ?? 0),
+                '11', (string)($profile['color2'] ?? 3),
+                '14', (string)($profile['icon_type'] ?? 0),
+                '15', (string)($profile['special'] ?? 0),
+                '16', (string)(
+                    $profile['account_id']
+                    ?? $comment['account_id']
+                    ?? 0
+                ),
+            ];
+
+            return implode('~', $commentParts)
+                . ':'
+                . implode('~', $userParts);
+        }
+
+        return implode('~', $commentParts);
     }
 
-    /**
-     * Формирует строку комментария со стены профиля
-     */
-    public function encodeAccountComment(array $comment): string
-    {
+    public function encodeAccountComment(
+        array $comment,
+        int $gameVersion = 22
+    ): string {
+        $content = (string)($comment['content'] ?? '');
+
+        if ($gameVersion < 20) {
+            $content = strtr(
+                base64_encode($content),
+                '+/',
+                '-_'
+            );
+        }
+
         return implode('~', [
-            '2', base64_encode((string)$comment['content']),
+            '2', $content,
             '3', (string)$comment['account_id'],
-            '4', (string)$comment['likes'],
+            '4', (string)($comment['likes'] ?? 0),
             '5', '0',
-            '7', (string)$comment['is_spam'],
-            '9', $this->formatTimeAgo((string)$comment['created_at']),
-            '6', (string)$comment['id']
+            '7', (string)($comment['is_spam'] ?? 0),
+            '9', $this->date((string)($comment['created_at'] ?? '')),
+            '6', (string)$comment['id'],
         ]);
     }
 
-    private function formatTimeAgo(string $timestamp): string
+    private function date(string $value): string
     {
-        $time = strtotime($timestamp);
-        $diff = max(1, time() - $time);
+        $time = strtotime($value);
 
-        if ($diff < 3600) return max(1, (int)floor($diff / 60)) . ' minutes';
-        if ($diff < 86400) return (int)floor($diff / 3600) . ' hours';
-        if ($diff < 31536000) return (int)floor($diff / 86400) . ' days';
-
-        return (int)floor($diff / 31536000) . ' years';
+        return $time === false
+            ? ''
+            : date('d/m/Y G.i', $time);
     }
 }
