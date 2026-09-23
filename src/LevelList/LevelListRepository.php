@@ -15,11 +15,50 @@ final class LevelListRepository
         $this->schema = new SchemaInspector($db);
     }
 
+    public function friendAccountIds(int $accountId): array
+    {
+        if ($accountId <= 0) {
+            return [];
+        }
+
+        try {
+            $rows = $this->db->prepare(
+                'SELECT friend_account_id
+                 FROM friends
+                 WHERE account_id=:account_id
+                 UNION
+                 SELECT account_id
+                 FROM friends
+                 WHERE friend_account_id=:account_id'
+            );
+            $rows->execute(['account_id' => $accountId]);
+
+            $ids = array_map(
+                'intval',
+                $rows->fetchAll(PDO::FETCH_COLUMN)
+            );
+
+            $ids[] = $accountId;
+
+            return array_values(
+                array_unique(
+                    array_filter(
+                        $ids,
+                        static fn(int $id): bool => $id > 0
+                    )
+                )
+            );
+        } catch (\Throwable) {
+            return [$accountId];
+        }
+    }
+
     /** @return array{rows:list<array<string,mixed>>,total:int} */
     public function search(array $filters, int $offset, int $limit, string $order): array
     {
         $where = ['l.unlisted = 0'];
         $params = [];
+        $suggestedJoin = '';
 
         if (isset($filters['id'])) {
             $where = ['l.list_id = :list_id'];
@@ -54,6 +93,17 @@ final class LevelListRepository
             if (!empty($filters['featured'])) {
                 $where[] = 'l.featured > 0';
             }
+            if (!empty($filters['suggested'])) {
+                $suggestedJoin = "
+                    LEFT JOIN (
+                        SELECT list_id, MAX(created_at) AS suggested_at
+                        FROM mucho_level_list_suggestions
+                        GROUP BY list_id
+                    ) ls
+                      ON ls.list_id = l.list_id
+                ";
+                $where[] = 'ls.list_id IS NOT NULL';
+            }
             if (isset($filters['difficulty'])) {
                 $where[] = 'l.difficulty = :difficulty';
                 $params[':difficulty'] = (int)$filters['difficulty'];
@@ -65,6 +115,7 @@ final class LevelListRepository
             'likes' => 'l.likes DESC, l.list_id DESC',
             'created' => 'l.created_at DESC, l.list_id DESC',
             'updated' => 'l.updated_at DESC, l.list_id DESC',
+            'suggested' => 'ls.suggested_at DESC, l.list_id DESC',
         ];
         $orderSql = $allowedOrder[$order] ?? $allowedOrder['likes'];
 
@@ -87,7 +138,7 @@ final class LevelListRepository
         $whereSql = ' WHERE ' . implode(' AND ', $where);
 
         $count = $this->db->prepare(
-            'SELECT COUNT(*) FROM mucho_level_lists l ' . $whereSql
+            'SELECT COUNT(*) FROM mucho_level_lists l ' . $suggestedJoin . $whereSql
         );
         foreach ($params as $key => $value) {
             $count->bindValue($key, $value, PDO::PARAM_INT);
@@ -101,7 +152,8 @@ final class LevelListRepository
         $sql = "SELECT l.*, {$userSelect}
                 FROM mucho_level_lists l
                 {$userJoin}
-                {$whereSql}
+                {$suggestedJoin}
+                {$whereSql}"
                 ORDER BY {$orderSql}
                 LIMIT :limit OFFSET :offset";
 
