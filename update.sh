@@ -60,5 +60,8 @@ docker compose exec -T app composer install --no-dev --optimize-autoloader --no-
 echo '[MuchoCore] Applying database migrations...'
 docker compose exec -T app php bin/migrate.php migrate
 
+echo '[MuchoCore] Synchronizing admin credentials...'
+docker compose exec -T app php bin/mucho-sync-admin.php
+
 echo '[MuchoCore] Checking service status...'
 docker compose ps
