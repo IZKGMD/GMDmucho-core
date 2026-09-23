@@ -32,7 +32,14 @@ final readonly class CommentController
         }
 
         try {
-            $id = $this->service->uploadLevelComment($levelId, $accountId, $gjp, $content, $percent);
+            $id = $this->service->uploadLevelComment(
+                $levelId,
+                $accountId,
+                $gjp,
+                $content,
+                $percent,
+                $request->clientVersion()->gameVersion ?: 22
+            );
             return Response::text($id > 0 ? (string)$id : "1");
         } catch (Throwable $e) {
             return Response::text("-1");
@@ -45,7 +52,14 @@ final readonly class CommentController
         $page = $request->postInt("page", 0) ?: (int)($_POST["page"] ?? 0);
 
         try {
-            return Response::text($this->service->getLevelComments($levelId, $page));
+            return Response::text(
+                $this->service->getLevelComments(
+                    $levelId,
+                    $page,
+                    $request->clientVersion()->gameVersion ?: 22,
+                    $request->clientVersion()->binaryVersion
+                )
+            );
         } catch (Throwable) {
             return Response::text("#0:0:10");
         }
@@ -62,7 +76,12 @@ final readonly class CommentController
         }
 
         try {
-            $id = $this->service->uploadAccountComment($accountId, $gjp, $content);
+            $id = $this->service->uploadAccountComment(
+                $accountId,
+                $gjp,
+                $content,
+                $request->clientVersion()->gameVersion ?: 22
+            );
             return Response::text($id > 0 ? (string)$id : "1");
         } catch (Throwable $e) {
             return Response::text("-1");
@@ -75,7 +94,13 @@ final readonly class CommentController
         $page = $request->postInt("page", 0) ?: (int)($_POST["page"] ?? 0);
 
         try {
-            return Response::text($this->service->getAccountComments($accountId, $page));
+            return Response::text(
+                $this->service->getAccountComments(
+                    $accountId,
+                    $page,
+                    $request->clientVersion()->gameVersion ?: 22
+                )
+            );
         } catch (Throwable) {
             return Response::text("#0:0:10");
         }
