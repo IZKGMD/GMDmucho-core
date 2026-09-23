@@ -61,13 +61,29 @@ if($action==='v4-bulk-players'){
             requireRank(40);
         }
 
+        $roleQuery=$db->prepare(
+            'SELECT id FROM roles
+             WHERE code=:role
+             LIMIT 1'
+        );
+        $roleQuery->execute(['role'=>$role]);
+        $roleId=$roleQuery->fetchColumn();
+
+        if ($roleId===false) {
+            throw new RuntimeException('Role is not configured');
+        }
+
         $q=$db->prepare(
             "UPDATE accounts
-             SET role=:role
+             SET role_id=:role_id,
+                 role=:role
              WHERE account_id IN ($in)"
         );
 
-        $q->execute(['role'=>$role]);
+        $q->execute([
+            'role_id'=>(int)$roleId,
+            'role'=>$role
+        ]);
     }
     elseif($operation==='delete'){
         requireRank(40);
