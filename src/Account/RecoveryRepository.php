@@ -23,13 +23,14 @@ final readonly class RecoveryRepository
                 is_active,
                 is_banned
              FROM accounts
-             WHERE username = :identity
-                OR email = :identity
+             WHERE username = :username_identity
+                OR email = :email_identity
              LIMIT 1'
         );
 
         $stmt->execute([
-            'identity' => $identity,
+            'username_identity' => $identity,
+            'email_identity' => $identity,
         ]);
 
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
