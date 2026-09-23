@@ -82,7 +82,8 @@ final readonly class Application
         $levelRepo = new LevelRepository($this->pdo);
         $levelService = new LevelService(
             $levelRepo,
-            new GdLevelListEncoder()
+            new GdLevelListEncoder(),
+            $auth
         );
         $levelController = new LevelController($levelService);
 
