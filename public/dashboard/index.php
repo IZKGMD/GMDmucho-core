@@ -705,9 +705,13 @@ button,input{font:inherit}
     min-width:0;
     display:flex;
     align-items:center;
-    gap:11px;
+    gap:0;
     flex:0 1 auto;
+    font-size:18px;
+    font-weight:900;
+    letter-spacing:-.55px;
 }
+.brand > span{color:var(--accent-2)}
 .mucho-brand-logo{
     width:154px!important;
     height:auto!important;
@@ -1134,7 +1138,7 @@ body.dashboard-page .topbar{
 <div class="shell">
 
 <header class="topbar">
-    <a class="brand" href="/dashboard"><img class="mucho-brand-logo" src="/assets/muchocore-logo.jpg" alt="MuchoCore" decoding="async"><span class="brand-copy"><b><?=pdH($serverName)?></b><small>PLAYER PORTAL</small></span></a>
+    <a class="brand" href="/dashboard"><?=pdH($serverName)?> <span>Portal</span></a>
     <nav class="nav">
         <a href="/dashboard">Discover</a>
         <a href="#players">Players</a>
