@@ -38,7 +38,7 @@ final class GdMessageEncoder
     public function encodeList(array $messages, int $total, int $offset, int $limit, bool $isSender = false): string
     {
         if ($messages === []) {
-            return '-2'; // Протокол GD для пустых списков сообщений
+            return '-2'; // GD protocol response for an empty message list
         }
 
         $encoded = array_map(
