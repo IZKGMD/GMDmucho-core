@@ -77,20 +77,19 @@ final class Turnstile
         }
 
         $returnedAction = trim((string)($result['action'] ?? ''));
-        if ($returnedAction !== '' && $returnedAction !== $action) {
+        if ($action !== '' && $returnedAction !== $action) {
             return false;
         }
 
-        if (
-            $expectedHostname !== null &&
-            $expectedHostname !== '' &&
-            isset($result['hostname']) &&
-            strcasecmp(
-                trim((string)$result['hostname']),
-                trim($expectedHostname)
-            ) !== 0
-        ) {
-            return false;
+        if ($expectedHostname !== null && $expectedHostname !== '') {
+            $returnedHostname = trim((string)($result['hostname'] ?? ''));
+
+            if (
+                $returnedHostname === '' ||
+                strcasecmp($returnedHostname, trim($expectedHostname)) !== 0
+            ) {
+                return false;
+            }
         }
 
         return true;
