@@ -7,6 +7,7 @@ namespace MuchoCore\User;
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Account\AccountRepository;
 use MuchoCore\Protocol\GdUserEncoder;
+use MuchoCore\User\GameRole;
 use PDO;
 use RuntimeException;
 
@@ -202,11 +203,7 @@ final readonly class UserService
              LIMIT 1');
         $q->execute(['id' => $accountId]);
 
-        return match(strtolower((string)$q->fetchColumn())) {
-            'owner', 'elder_moderator' => '2',
-            'moderator' => '1',
-            default => '-1',
-        };
+        return GameRole::accessLevel((string)$q->fetchColumn());
     }
 
     public function search(string $query, int $page = 0): string
