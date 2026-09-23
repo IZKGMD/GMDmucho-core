@@ -239,9 +239,15 @@ final readonly class UserService
         );
     }
 
-    public function getProfile(int $targetAccountId): string
+    public function getProfile(
+        int $targetAccountId,
+        int $viewerAccountId = 0
+    ): string
     {
-        $profile = $this->userRepository->getProfileByTarget($targetAccountId);
+        $profile = $this->userRepository->getProfileByTarget(
+            $targetAccountId,
+            $viewerAccountId
+        );
         if (!$profile) {
             return '-1';
         }
