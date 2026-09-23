@@ -6,6 +6,21 @@ namespace MuchoCore\Protocol;
 
 final class ProtocolText
 {
+    public static function field(mixed $value): string
+    {
+        if (!is_scalar($value)) {
+            return '';
+        }
+
+        $value = (string)$value;
+
+        return str_replace(
+            [':', '|', '#', '~'],
+            '',
+            $value
+        );
+    }
+
     public static function username(mixed $value): string
     {
         if (!is_scalar($value)) {
