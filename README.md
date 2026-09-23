@@ -1,103 +1,103 @@
 # MuchoCore
 
-MuchoCore — backend для GDPS на Geometry Dash.
+MuchoCore is a modern backend core for Geometry Dash Private Servers (GDPS).
 
-**Версия разработки: v1.1.0**
+**Development version: v1.1.0**
 
-> **Новичок? Начни с [START_HERE.md](START_HERE.md).**
+> **New here? Start with [START_HERE.md](START_HERE.md).**
 >
 > <img src="public/assets/muchocore-mark.svg" alt="MuchoCore" width="72">
 >
-> Не нужно читать весь репозиторий, чтобы запустить сервер.
+> You do not need to read the whole repository to get a server running.
 
-## Что внутри
+## What is included
 
-- аккаунты и профили;
-- уровни и списки уровней;
-- оценки, комментарии и социальные функции;
-- cloud save;
-- админ-панель;
-- совместимость с несколькими поколениями клиента;
+- accounts and player profiles;
+- levels and level lists;
+- ratings, comments, and social features;
+- Cloud Save;
+- an admin panel;
+- compatibility with multiple Geometry Dash client generations;
 - JSON API v2;
-- автоматические тесты.
+- automated regression and security tests.
 
-## Быстрый выбор
+## Quick start
 
-| У тебя есть | Открывай |
+| You have | Open |
 | --- | --- |
-| Linux VPS с root-доступом | [docs/SETUP.md](docs/SETUP.md) |
-| Обычный PHP-хостинг | [docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md) |
-| Уже запустился сервер, нужен клиент | [docs/CLIENT_SETUP.md](docs/CLIENT_SETUP.md) |
-| Что сломалось и что проверять | `bash bin/mucho doctor` |
-| Нужно разобраться глубже | [docs/ADVANCED.md](docs/ADVANCED.md) |
+| A Linux VPS with root access | [docs/SETUP.md](docs/SETUP.md) |
+| Regular PHP hosting | [docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md) |
+| A running server and need to connect a client | [docs/CLIENT_SETUP.md](docs/CLIENT_SETUP.md) |
+| Something is broken and you do not know what | `bash bin/mucho doctor` |
+| You want deeper technical details | [docs/ADVANCED.md](docs/ADVANCED.md) |
 
-## Одна команда для диагностики
+### One command to diagnose a problem
 
-Если не знаешь, что именно сломалось, выполни:
+When you do not know what is broken, run:
 
 ~~~bash
 bash bin/mucho doctor
 ~~~
 
-Команда проверяет Docker, конфигурацию, секреты, контейнеры и `/health`, а затем подсказывает следующий шаг.
+The doctor checks Docker, configuration, secrets, containers, and `/health`, then tells you what to check next.
 
-## После установки
+## After installation
 
-Проверь:
+Check:
 
 ~~~text
 https://YOUR-DOMAIN/health
 ~~~
 
-Ожидаемый ответ:
+Expected response:
 
 ~~~text
 1
 ~~~
 
-Админ-панель:
+Admin panel:
 
 ~~~text
 https://YOUR-DOMAIN/admin/
 ~~~
 
-Пользователь сервера по умолчанию:
+Default administrator username:
 
 ~~~text
 admin
 ~~~
 
-Пароль задаётся во время установки.
+The administrator password is chosen during installation.
 
-## Подключение Geometry Dash
+## Connecting Geometry Dash
 
-Для Windows есть:
+For Windows, MuchoCore includes:
 
 ~~~text
 tools/client-patch.bat
 ~~~
 
-Патчер создаёт отдельный файл клиента и не заменяет исходный EXE.
+The patcher creates a separate client file and does not overwrite the original EXE.
 
-Важно: успешный запуск патчера означает только успешную замену известных URL-строк. Полная совместимость с конкретной сборкой Geometry Dash подтверждается только реальным тестом клиента.
+Important: a successful patcher run only means that known URL strings were replaced successfully. Full compatibility with a specific Geometry Dash build must still be confirmed by testing that client against the server.
 
-## Структура
+## Repository structure
 
 ~~~text
-START_HERE.md      ← сюда новичку
-README.md          ← краткая карта проекта
-src/               ← логика сервера
-public/            ← HTTP-входы и GD endpoint'ы
-database/          ← миграции
-tests/             ← проверки
-tools/             ← инструменты
-docs/              ← подробные инструкции
-docker/            ← Docker/Caddy
+START_HERE.md      ← start here if you are new
+README.md          ← short project map
+src/               ← server logic
+public/            ← HTTP entry points and GD endpoints
+database/          ← database migrations
+tests/             ← automated checks
+tools/             ← utilities and patchers
+docs/              ← detailed documentation
+docker/            ← Docker/Caddy deployment
 ~~~
 
-### Что обычно не нужно трогать
+### What you usually do not need to touch
 
-Новичку обычно не нужны:
+As a beginner, you normally do not need to edit:
 
 ~~~text
 src/
@@ -106,11 +106,11 @@ docker/
 tests/
 ~~~
 
-Сначала настрой сервер через инструкцию, затем проверяй /health.
+Follow the setup guide first, then check `/health`.
 
-## Безопасность
+## Security
 
-Никогда не публикуй:
+Never publish:
 
 ~~~text
 .env
@@ -119,23 +119,26 @@ storage/
 .secrets/
 ~~~
 
-Перед удалением установки прочитай предупреждение uninstall.sh: он удаляет контейнеры и базу.
+Before removing an installation, read the warning in `uninstall.sh`: it removes containers and the database.
 
-## Проверки разработчика
+## Developer checks
 
-Основные автоматические проверки:
+The main local checks are:
 
 ~~~bash
 php tests/client-compatibility.php
 php tests/router-compatibility.php
+php tests/cvolton-compatibility.php
+php tests/security-regression.php
+php tests/architecture-regression.php
 python3 tools/client-patch.py --self-test
 bash tests/client-contract.sh
 ~~~
 
-CI дополнительно проверяет shell/PHP/Python-код, Docker/Caddy-конфигурацию, shared-hosting routing и Windows PowerShell patcher.
+CI additionally checks shell/PHP/Python code, Docker/Caddy configuration, shared-hosting routing, and the Windows PowerShell patcher.
 
-Реальный Geometry Dash клиент всё равно нужно тестировать отдельно.
+A real Geometry Dash client still needs to be tested separately before claiming compatibility with a specific build.
 
-## Лицензия
+## License
 
-MIT. См. [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
