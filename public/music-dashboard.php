@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+use MuchoCore\Account\AccountAuthenticator;
+use MuchoCore\Account\AccountRepository;
 use MuchoCore\Branding\BrandingService;
 use MuchoCore\Database\Database;
 use MuchoCore\Security\RateLimiter;
@@ -159,17 +161,22 @@ if ($action === 'login') {
 
     $account = $q->fetch(PDO::FETCH_ASSOC);
 
-    $valid =
-        is_array($account) &&
-        (int)$account['is_active'] === 1 &&
-        (int)$account['is_banned'] === 0 &&
-        password_verify(
-            $password,
-            (string)$account['password_hash']
-        );
+    $valid = false;
+
+    if (is_array($account)) {
+        try {
+            (new AccountAuthenticator($db))->authenticate(
+                (int)$account['account_id'],
+                $password
+            );
+            $valid = true;
+        } catch (Throwable) {
+            $valid = false;
+        }
+    }
 
     if (!$valid) {
-        mdFlash('Invalid username or password.', 'error');
+        mdFlash('Invalid Geometry Dash username or password.', 'error');
         mdRedirect();
     }
 
