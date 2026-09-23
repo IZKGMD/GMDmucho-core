@@ -21,6 +21,7 @@ final readonly class LikeRepository
             1 => ['levels', 'level_id'],
             2 => ['comments', 'id'],
             3 => ['account_comments', 'id'],
+            4 => ['mucho_level_lists', 'list_id'],
             default => throw new RuntimeException('Invalid like type'),
         };
 
