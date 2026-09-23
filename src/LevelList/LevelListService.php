@@ -81,6 +81,26 @@ final class LevelListService
                 $order = 'created';
                 break;
 
+            case 13:
+                $accountId = $this->auth->authenticatedAccountId();
+                if ($accountId === null) {
+                    return '-1';
+                }
+
+                $filters['account_ids'] = $this->repo->friendAccountIds($accountId);
+                if (!$filters['account_ids']) {
+                    return '-1';
+                }
+
+                $order = 'created';
+                break;
+
+            case 7:
+            case 27:
+                $filters['suggested'] = true;
+                $order = 'suggested';
+                break;
+
             default:
                 $order = 'created';
                 break;
