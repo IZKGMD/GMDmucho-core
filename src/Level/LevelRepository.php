@@ -172,7 +172,12 @@ final readonly class LevelRepository
         $order = "l.created_at DESC";
 
         if (($filters['featured'] ?? false)) {
-            $where[] = 'l.featured = 1';
+            // GD 2.2 can request featured/epic in the same discovery family.
+            if ($gameVersion >= 22) {
+                $where[] = '(l.featured = 1 OR l.epic > 0)';
+            } else {
+                $where[] = 'l.featured = 1';
+            }
         }
 
         $epicFlags = [];
@@ -282,6 +287,24 @@ final readonly class LevelRepository
             case 11:
                 $where[] = "l.stars > 0";
                 $order = "l.updated_at DESC";
+                break;
+
+            case 12:
+                $followed = $this->numberList($filters['followed'] ?? '');
+                if ($followed === []) {
+                    $where[] = "1 = 0";
+                } else {
+                    $where[] = "l.account_id IN (" . implode(',', $followed) . ")";
+                }
+                $order = "l.updated_at DESC";
+                break;
+
+            case 27:
+                $historyJoin = "
+                    INNER JOIN moderation_suggestions ms
+                      ON ms.level_id = l.level_id
+                ";
+                $order = "ms.created_at DESC, l.level_id DESC";
                 break;
         }
 
