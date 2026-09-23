@@ -1,83 +1,79 @@
-# Продвинутые сценарии
+# Advanced Scenarios
 
-Эта страница не нужна для обычной установки.
+This page is not required for a normal installation.
 
 ## NAT / CGNAT VPS
 
-Если VPS не принимает входящие подключения на 80 и 443, обычная HTTPS-схема не заработает напрямую.
+If the VPS does not accept inbound connections on ports 80 and 443, the normal HTTPS setup cannot work directly.
 
-Один из вариантов — Cloudflare Tunnel. Он создаёт исходящее соединение с сервера к Cloudflare, поэтому отдельный входящий проброс 80/443 на сам VPS не требуется.
+One option is Cloudflare Tunnel. It creates an outbound connection from the server to Cloudflare, so no inbound port forwarding to the VPS is required.
 
-### Вариант для установщика MuchoCore
+### MuchoCore installer flow
 
-1. В Cloudflare Dashboard открой **Networking → Tunnels**.
-2. Создай или выбери Tunnel типа cloudflared.
-3. Создай Published application для своего домена.
-4. Для origin укажи:
+1. Open **Networking → Tunnels** in the Cloudflare Dashboard.
+2. Create or select a cloudflared Tunnel.
+3. Create a Published Application for your domain.
+4. Set the origin to:
 
-~~~text
+```text
 http://caddy:80
-~~~
+```
 
-5. Скопируй connector token.
-6. На VPS передай его установщику через переменную MUCHO_TUNNEL_TOKEN:
+5. Copy the connector token.
+6. Pass it to the installer:
 
-~~~bash
+```bash
 export MUCHO_TUNNEL_TOKEN='YOUR_TUNNEL_TOKEN'
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh -o install.sh
 sudo -E bash install.sh
-~~~
+```
 
-В tunnel-режиме MuchoCore переводит Caddy на обычный HTTP внутри Docker и поднимает cloudflared отдельным контейнером. TLS завершается на стороне Cloudflare.
+In tunnel mode MuchoCore switches Caddy to plain HTTP inside Docker and runs cloudflared as a separate container. TLS terminates at Cloudflare.
 
-**Не публикуй connector token.** Это секрет подключения Tunnel.
+**Never publish the connector token.** It is a Tunnel credential.
 
-### Что делать, если Tunnel уже создан
+## Existing Tunnel
 
-В существующем Tunnel открой его страницу и используй раздел подключения connector-а. В зависимости от версии Dashboard Cloudflare может показывать установку для Linux вместо старой кнопки Add a replica.
+For an existing Tunnel, use its connector setup page. Cloudflare may show a Linux installation flow instead of the older "Add a replica" UI.
 
-Для обычного публичного VPS Tunnel не нужен — используй docs/SETUP.md.
+For a normal public VPS, a Tunnel is not required. Use `docs/SETUP.md`.
 
-## Shared hosting без Docker
+## Shared hosting without Docker
 
-Shared hosting — отдельный режим. Он использует PHP 8.3+, MySQL/MariaDB и Apache или аналогичный веб-сервер.
+Shared hosting is a separate deployment mode. It uses PHP 8.3+, MySQL/MariaDB and Apache or a compatible web server.
 
-Основная инструкция:
-
-SHARED_HOSTING.md
+See `docs/SHARED_HOSTING.md`.
 
 ## API v2
 
-JSON API v2 предназначен для программ, админских инструментов и интеграций. Для обычного запуска GDPS его изучать не требуется.
+JSON API v2 is intended for programs, admin tools and integrations. Normal GDPS operation does not require it.
 
-Спецификация:
+Specification:
 
-openapi.yaml
+`openapi.yaml`
 
-## Реальная совместимость клиента
+## Real client compatibility
 
-Автотесты проверяют серверный код и известные маршруты. Они не заменяют запуск настоящей версии Geometry Dash.
+Automated tests validate the server code and known routes. They do not replace testing a real Geometry Dash client.
 
-Для проверки новой версии клиента используй:
+For a new client version, use `CLIENT_TESTING.md`.
 
-CLIENT_TESTING.md
+## Developer structure
 
-## Структура для разработчиков
-
-~~~text
-src/        основная логика
-public/     HTTP-входы
-            database/ — legacy GD endpoint'ы
+```text
+src/        core logic
+public/     HTTP entry points
+            database/ — legacy GD endpoints
             api/v2/   — JSON API
-            admin/    — web-admin
-database/   миграции
-tests/      автоматические проверки
-tools/      инструменты
-docker/     контейнеры и Caddy
-~~~
+            admin/    — web admin
+database/   migrations
+tests/      automated checks
+tools/      developer tools
+docker/     containers and Caddy
+```
 
-Новичку не нужно редактировать исходники для обычной установки.
+New users normally do not need to edit source code.
 
-## Главное правило
+## Core rule
 
-Сначала повторяй простую инструкцию из START_HERE.md. Продвинутые настройки меняй только тогда, когда понимаешь, какую проблему они решают.
+Start with the simple instructions in `START_HERE.md`. Change advanced settings only when you understand the problem they solve.
