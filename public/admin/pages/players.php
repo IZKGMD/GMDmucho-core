@@ -48,6 +48,14 @@ $st->execute($args);
 
 $rows=$st->fetchAll(PDO::FETCH_ASSOC);
 
+$roleOptions=$db->query(
+    'SELECT code FROM roles ORDER BY priority DESC, id ASC'
+)->fetchAll(PDO::FETCH_COLUMN);
+
+if(!$roleOptions){
+    $roleOptions=['user'];
+}
+
 foreach($rows as $r) {
 ?>
 <div class="card" style="margin:12px 0">
@@ -70,17 +78,7 @@ foreach($rows as $r) {
 <input name="email" value="<?=h($r['email'])?>">
 
 <select name="role">
-<?php
-$roleOptions=$db->query(
-    'SELECT code FROM roles ORDER BY priority DESC, id ASC'
-)->fetchAll(PDO::FETCH_COLUMN);
-
-if(!$roleOptions){
-    $roleOptions=['user'];
-}
-
-foreach($roleOptions as $x):
-?>
+<?php foreach($roleOptions as $x): ?>
 <option <?=$r['role']===$x?'selected':''?>><?=h($x)?></option>
 <?php endforeach ?>
 </select>
