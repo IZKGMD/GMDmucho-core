@@ -31,7 +31,7 @@ assertSameValue('1.9', $v19->family(), 'GD 1.9 family');
 assertSameValue('1.9/25', $v19->label(), 'GD 1.9 binary label');
 assertSameValue(false, $v19->usesGjp2(), 'GD 1.9 uses legacy credential');
 
-$v20 = ClientVersion::fromValues(20, 29);
+$v20 = ClientVersion::fromValues(20, 27);
 assertSameValue('2.0', $v20->family(), 'GD 2.0 family');
 
 $v20World = ClientVersion::fromValues(20, 28);
