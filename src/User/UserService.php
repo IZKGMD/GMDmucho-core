@@ -259,6 +259,7 @@ final readonly class UserService
     {
         $users = match ($type) {
             'creators' => $this->userRepository->leaderboardCreators($limit),
+            'friends'  => $this->userRepository->leaderboardFriends($accountId, $limit),
             'relative' => $this->userRepository->leaderboardRelative($accountId, 50),
             default    => $this->userRepository->leaderboardTop($limit)
         };
