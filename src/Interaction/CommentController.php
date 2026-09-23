@@ -80,7 +80,7 @@ final readonly class CommentController
                 $accountId,
                 $gjp,
                 $content,
-                $request->clientVersion()->gameVersion ?: 22
+                $request->clientVersion()->effectiveGameVersion() ?: 22
             );
             return Response::text($id > 0 ? (string)$id : "1");
         } catch (Throwable $e) {
