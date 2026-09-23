@@ -6,6 +6,7 @@ namespace MuchoCore\Interaction;
 
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Protocol\GdCommentEncoder;
+use MuchoCore\Protocol\GdLegacyText;
 use PDO;
 
 final class CommentService
@@ -29,9 +30,10 @@ final class CommentService
     public function uploadLevelComment(int $levelId, int $accountId, string $gjp, string $content, int $percent, int $gameVersion = 22): int
     {
         $this->auth->authenticate($accountId, $gjp);
-        $decodedContent = $gameVersion < 20
-            ? (base64_decode(strtr($content, "-_", "+/")) ?: $content)
-            : $content;
+        $decodedContent = GdLegacyText::decodeComment(
+            $content,
+            $gameVersion
+        );
         $decodedContent = trim($decodedContent);
 
         // Проверяем, является ли комментарий модераторской командой
@@ -231,9 +233,10 @@ final class CommentService
     public function uploadAccountComment(int $accountId, string $gjp, string $content, int $gameVersion = 22): int
     {
         $this->auth->authenticate($accountId, $gjp);
-        $decodedContent = $gameVersion < 20
-            ? (base64_decode(strtr($content, "-_", "+/")) ?: $content)
-            : $content;
+        $decodedContent = GdLegacyText::decodeComment(
+            $content,
+            $gameVersion
+        );
 
         $this->repository->addAccountComment(
             $accountId,
