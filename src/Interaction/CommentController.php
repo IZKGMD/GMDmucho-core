@@ -38,7 +38,7 @@ final readonly class CommentController
                 $gjp,
                 $content,
                 $percent,
-                $request->clientVersion()->gameVersion ?: 22
+                $request->clientVersion()->effectiveGameVersion() ?: 22
             );
             return Response::text($id > 0 ? (string)$id : "1");
         } catch (Throwable $e) {
@@ -56,7 +56,7 @@ final readonly class CommentController
                 $this->service->getLevelComments(
                     $levelId,
                     $page,
-                    $request->clientVersion()->gameVersion ?: 22,
+                    $request->clientVersion()->effectiveGameVersion() ?: 22,
                     $request->clientVersion()->binaryVersion
                 )
             );
