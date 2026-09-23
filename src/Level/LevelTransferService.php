@@ -266,7 +266,9 @@ final readonly class LevelTransferService
     public function download(
         int $levelId,
         int $gameVersion,
-        bool $extras
+        int $binaryVersion,
+        bool $extras,
+        bool $incrementDownloads
     ): string {
         $timelyId=0;
 
@@ -296,9 +298,9 @@ final readonly class LevelTransferService
             return '-1';
         }
 
-        $this->repository->incrementDownloads(
-            $levelId
-        );
+        if ($incrementDownloads) {
+            $this->repository->incrementDownloads($levelId);
+        }
 
         $response=$this->downloadEncoder->encode(
             $level,
