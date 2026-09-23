@@ -53,6 +53,26 @@ docs/SHARED_HOSTING.md
 
 Use the ready-made FTP PHP 8.3 package. Upload it by FTP, create an empty MySQL/MariaDB database, then open `/shared-install.php` in your browser.
 
+## Beget / FTP — easiest setup
+
+Use this path when you have a normal Beget PHP hosting account.
+
+1. Create an empty MySQL database in the Beget control panel.
+2. Download the **MuchoCore FTP PHP 8.3 package** from the latest project build.
+3. Upload the contents of the ZIP into your site's `public_html/` folder using FTP.
+4. Make sure the site uses **PHP 8.3 or newer**.
+5. Open `https://YOUR-DOMAIN/shared-install.php`.
+6. Enter the MySQL host, database name, username, and password shown by Beget.
+7. Choose the admin password and press **Install MuchoCore**.
+8. Open `https://YOUR-DOMAIN/health`. A working installation returns `1`.
+9. Open `https://YOUR-DOMAIN/admin/` and log in as `admin`.
+
+You do **not** need SSH, Docker, or Composer for this FTP package because `vendor/` is already included.
+
+**Important:** do not use the normal GitHub **Code → Download ZIP** archive for this path. That archive is the source tree and is not the ready-to-upload FTP package.
+
+After installation, delete `public/shared-install.php` if it was not removed automatically.
+
 ## When something does not work
 
 Do not search through the whole repository.
