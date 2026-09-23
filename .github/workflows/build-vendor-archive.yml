@@ -25,7 +25,7 @@ jobs:
       - name: Check release tree
         run: |
           test -f VERSION
-          grep -qx '1.0.1' VERSION
+          grep -qx '1.1.0' VERSION
           test -f README.md
           test -f CHANGELOG.md
           test -f START_HERE.md
@@ -48,27 +48,27 @@ jobs:
 
       - name: Create full release archive
         run: |
-          zip -r mucho-core-v1.0.1.zip . \
+          zip -r mucho-core-v1.1.0.zip . \
             -x '.git/*' \
-            -x 'mucho-core-v1.0.1.zip' \
+            -x 'mucho-core-v1.1.0.zip' \
             -x 'vendor-muchocore-php83.zip'
 
       - name: Validate release archive
         run: |
-          unzip -t mucho-core-v1.0.1.zip
-          unzip -l mucho-core-v1.0.1.zip | grep -q 'tools/client-patch.bat'
-          unzip -l mucho-core-v1.0.1.zip | grep -q 'tools/client-patch.py'
-          unzip -l mucho-core-v1.0.1.zip | grep -q 'docker-compose.yml'
-          unzip -l mucho-core-v1.0.1.zip | grep -q 'VERSION'
-          ! unzip -l mucho-core-v1.0.1.zip | grep -qE '(^|/)\.env$'
-          ! unzip -l mucho-core-v1.0.1.zip | grep -qE '(^|/)config/cloudsave\.key$'
-          ! unzip -l mucho-core-v1.0.1.zip | grep -qE '(^|/)storage/'
+          unzip -t mucho-core-v1.1.0.zip
+          unzip -l mucho-core-v1.1.0.zip | grep -q 'tools/client-patch.bat'
+          unzip -l mucho-core-v1.1.0.zip | grep -q 'tools/client-patch.py'
+          unzip -l mucho-core-v1.1.0.zip | grep -q 'docker-compose.yml'
+          unzip -l mucho-core-v1.1.0.zip | grep -q 'VERSION'
+          ! unzip -l mucho-core-v1.1.0.zip | grep -qE '(^|/)\.env$'
+          ! unzip -l mucho-core-v1.1.0.zip | grep -qE '(^|/)config/cloudsave\.key$'
+          ! unzip -l mucho-core-v1.1.0.zip | grep -qE '(^|/)storage/'
 
       - name: Upload release archive
         uses: actions/upload-artifact@v4
         with:
-          name: mucho-core-v1.0.1
-          path: mucho-core-v1.0.1.zip
+          name: mucho-core-v1.1.0
+          path: mucho-core-v1.1.0.zip
           if-no-files-found: error
 
       - name: Upload vendor archive
