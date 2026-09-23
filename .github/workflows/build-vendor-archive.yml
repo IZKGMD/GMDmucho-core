@@ -53,8 +53,7 @@ jobs:
           cp -a .htaccess composer.json composer.lock VERSION ftp-package/
           cp -a public src database config vendor ftp-package/
           rm -rf ftp-package/storage ftp-package/.secrets
-          find ftp-package/config -maxdepth 1 -type f \
-            ! -name '*.example' -delete
+          rm -f ftp-package/config/cloudsave.key
           zip -r mucho-core-ftp-php83-v1.1.0.zip ftp-package
 
       - name: Validate FTP package
@@ -63,6 +62,7 @@ jobs:
           unzip -l mucho-core-ftp-php83-v1.1.0.zip | grep -q 'ftp-package/vendor/autoload.php'
           unzip -l mucho-core-ftp-php83-v1.1.0.zip | grep -q 'ftp-package/public/shared-install.php'
           unzip -l mucho-core-ftp-php83-v1.1.0.zip | grep -q 'ftp-package/database/migrations/'
+          unzip -l mucho-core-ftp-php83-v1.1.0.zip | grep -q 'ftp-package/config/mucho_v71.php'
           ! unzip -l mucho-core-ftp-php83-v1.1.0.zip | grep -qE '(^|/)\\.env
       - name: Create full release archive
         run: |
