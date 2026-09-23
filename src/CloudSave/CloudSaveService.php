@@ -8,10 +8,6 @@ use MuchoCore\Account\AccountAuthenticator;
 use PDO;
 use RuntimeException;
 
-/*
- * MuchoCore Secure Cloud Save Service
- * Copyright (C) 2026 IZK
- */
 final readonly class CloudSaveService
 {
     private const MAX_SAVE_BYTES = 32 * 1024 * 1024;
@@ -54,7 +50,7 @@ final readonly class CloudSaveService
 
         $saveData = trim($saveData);
 
-        // GD протокол требует суффикс ;21;30;a;a для корректного разбора сейва клиентом
+        // GD protocol expects the cloud-save response suffix.
         if (!str_contains($saveData, ';21;30;a;a')) {
             $saveData .= ';21;30;a;a';
         }
@@ -78,7 +74,14 @@ final readonly class CloudSaveService
             $accountId = (int)$q->fetchColumn();
         }
 
-        $credential = trim((string)($data['gjp2'] ?? $data['gjp'] ?? ''));
+        // Match both the classic Cvolton contract and MuchoCore's GJP2 flow.
+        // AccountAuthenticator accepts the plain password as well as GJP/GJP2.
+        $credential = trim((string)(
+            $data['password']
+            ?? $data['gjp2']
+            ?? $data['gjp']
+            ?? ''
+        ));
 
         if ($accountId <= 0 || $credential === '') {
             throw new RuntimeException('Unauthorized cloud save account.');
