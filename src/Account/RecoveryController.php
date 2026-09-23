@@ -269,7 +269,7 @@ final class RecoveryController
 <link rel="icon" href="/assets/muchocore-icon.png" type="image/jpeg">
 <title>MuchoCore — восстановление аккаунта</title>
 <link rel="stylesheet" href="/recovery/recovery.css">
-<link rel="stylesheet" href="/muchocore-theme.css?v=1">
+<link rel="stylesheet" href="/muchocore-theme.css?v=3">
 ' . (Turnstile::enabled()
     ? '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>'
     : '') . '
