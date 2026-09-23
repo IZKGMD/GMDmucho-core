@@ -79,7 +79,7 @@ final readonly class LevelRepository
                 $where[] = 'l.song_id = :song_id';
                 $params['song_id'] = (int)$song;
             } else {
-                $where[] = 'l.audio_track = :audio_track';
+                $where[] = 'l.audio_track = :audio_track AND l.song_id = 0';
                 $params['audio_track'] = max(
                     0,
                     ((int)$song) - 1
@@ -186,10 +186,10 @@ final readonly class LevelRepository
             $epicFlags[] = 1;
         }
         if (($filters['mythic'] ?? false)) {
-            $epicFlags[] = 3;
+            $epicFlags[] = 2;
         }
         if (($filters['legendary'] ?? false)) {
-            $epicFlags[] = 2;
+            $epicFlags[] = 3;
         }
         if ($epicFlags !== []) {
             $where[] = 'l.epic IN (' . implode(',', $epicFlags) . ')';
@@ -233,7 +233,11 @@ final readonly class LevelRepository
 
             case 6:
             case 17:
-                $where[] = "(l.featured = 1 OR l.epic > 0)";
+                if ($gameVersion > 21) {
+                    $where[] = "(l.featured = 1 OR l.epic > 0)";
+                } else {
+                    $where[] = "l.featured = 1";
+                }
                 $order = "l.updated_at DESC";
                 break;
 
