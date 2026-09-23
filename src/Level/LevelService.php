@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Level;
 
+use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Protocol\GdLevelListEncoder;
 
 final readonly class LevelService
@@ -13,6 +14,7 @@ final readonly class LevelService
     public function __construct(
         private LevelRepository $levels,
         private GdLevelListEncoder $encoder,
+        private ?AccountAuthenticator $auth = null,
     ) {
     }
 
@@ -40,6 +42,14 @@ final readonly class LevelService
         }
 
         $search = trim($search);
+
+        $viewerAccountId = 0;
+        if ($type === 13) {
+            $viewerAccountId = $this->authenticatedViewer($input);
+            if ($viewerAccountId <= 0) {
+                return '-1';
+            }
+        }
 
         if (strlen($search) > 100) {
             return '-1';
@@ -88,6 +98,7 @@ final readonly class LevelService
             limit: self::PAGE_SIZE,
             demonFilter: $demonFilter,
             filters: $filters,
+            viewerAccountId: $viewerAccountId,
         );
 
         if (empty($result['levels'])) {
@@ -101,6 +112,34 @@ final readonly class LevelService
             limit: self::PAGE_SIZE,
             gameVersion: $gameVersion,
         );
+    }
+
+    private function authenticatedViewer(array $input): int
+    {
+        if ($this->auth === null) {
+            return 0;
+        }
+
+        $accountId = $this->integer($input['accountID'] ?? 0);
+        if ($accountId <= 0) {
+            return 0;
+        }
+
+        $gameVersion = $this->integer($input['gameVersion'] ?? 0);
+        $credential = $gameVersion >= 22
+            ? (string)($input['gjp2'] ?? $input['gjp'] ?? '')
+            : (string)($input['gjp'] ?? $input['gjp2'] ?? '');
+
+        if ($credential === '') {
+            return 0;
+        }
+
+        try {
+            $this->auth->authenticate($accountId, $credential);
+            return $accountId;
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 
     private function integer(mixed $value): int
