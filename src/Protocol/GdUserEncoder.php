@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MuchoCore\Protocol;
 
+use MuchoCore\User\GameRole;
+
 final class GdUserEncoder
 {
     public function profile(array $u): string
@@ -13,12 +15,8 @@ final class GdUserEncoder
             $u['username'] ?? 'Player'
         );
 
-        $role = strtolower((string)($u['role_code'] ?? $u['role'] ?? 'user'));
-        $modBadge = match($role) {
-            'owner', 'elder_moderator' => 2,
-            'moderator' => 1,
-            default => 0
-        };
+        $role = (string)($u['role_code'] ?? $u['role'] ?? 'user');
+        $modBadge = GameRole::badgeLevel($role);
 
         $mapping = [
             1 => $name,
