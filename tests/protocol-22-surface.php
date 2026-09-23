@@ -64,6 +64,7 @@ $required = [
     '/getGJLevelScores211.php',
     '/getGJLevelScoresPlat.php',
     '/getGJRewards.php',
+    '/getGJSecretReward.php',
     '/getGJChallenges.php',
     '/getGJLevelLists.php',
     '/uploadGJLevelList.php',
