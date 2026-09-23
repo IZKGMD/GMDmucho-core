@@ -81,6 +81,17 @@ final class LevelListService
                 $order = 'created';
                 break;
 
+            case 13:
+                if ($this->auth->authenticatedAccountId() === null) {
+                    return '-1';
+                }
+                $friends = Request::idList(Request::string('followed'), 500);
+                if ($friends) {
+                    $filters['account_ids'] = $friends;
+                }
+                $order = 'created';
+                break;
+
             default:
                 $order = 'created';
                 break;
