@@ -117,10 +117,22 @@ final readonly class LevelScoreController
                     : 0;
 
 
+            $rawProgresses = (string)($data['s6'] ?? '');
+
+            // Progress data is diagnostic state, not arbitrary storage.
+            // Bound it before decoding to keep malicious requests cheap.
+            if (strlen($rawProgresses) > 4096) {
+                return Response::text('-1');
+            }
+
             $progresses=
                 $this->decodeProgresses(
-                    (string)($data['s6'] ?? '')
+                    $rawProgresses
                 );
+
+            if (strlen($progresses) > 4096) {
+                return Response::text('-1');
+            }
 
 
             $this->saveScore(
