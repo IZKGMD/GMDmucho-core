@@ -21,44 +21,25 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
+          magick -version
 
       - name: Build brand assets
         shell: bash
         run: |
           set -euo pipefail
+          test -s Gemini_Generated_Image_af007baf007baf00.jpg
           mkdir -p public/assets
 
           SRC="Gemini_Generated_Image_af007baf007baf00.jpg"
 
-          magick "$SRC" \
-            -auto-orient \
-            -strip \
-            -fuzz 6% -trim +repage \
-            -resize "1600x1600>" \
-            -quality 94 \
-            public/assets/muchocore-logo.jpg
+          magick "$SRC"             -auto-orient             -strip             -fuzz 8%             -trim +repage             -resize "1600x1600>"             -quality 94             "public/assets/muchocore-logo.jpg"
 
-          magick "$SRC" \
-            -auto-orient \
-            -strip \
-            -fuzz 6% -trim +repage \
-            -resize "1600x1600>" \
-            -quality 92 \
-            public/assets/muchocore-logo.webp
+          magick "public/assets/muchocore-logo.jpg"             -resize "900x900^"             -gravity center             -extent 900x900             -strip             "public/assets/muchocore-icon.png"
 
-          magick "$SRC" \
-            -auto-orient \
-            -strip \
-            -fuzz 6% -trim +repage \
-            -resize "900x900>" \
-            -gravity center \
-            -background "#090b10" \
-            -extent 900x900 \
-            -quality 94 \
-            public/assets/muchocore-icon.png
-
+          test -s public/assets/muchocore-logo.jpg
+          test -s public/assets/muchocore-icon.png
+          file public/assets/muchocore-logo.jpg public/assets/muchocore-icon.png
           magick identify public/assets/muchocore-logo.jpg
-          magick identify public/assets/muchocore-logo.webp
           magick identify public/assets/muchocore-icon.png
 
       - name: Commit generated assets
