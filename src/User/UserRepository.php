@@ -128,7 +128,10 @@ final readonly class UserRepository
         ]);
     }
 
-    public function getProfileByTarget(int $targetAccountId): ?array
+    public function getProfileByTarget(
+        int $targetAccountId,
+        int $viewerAccountId = 0
+    ): ?array
     {
         $this->ensureProfileForAccount($targetAccountId);
 
@@ -186,7 +189,116 @@ final readonly class UserRepository
         $stmt->execute(['account_id' => $targetAccountId]);
 
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
+
+        if (!$row) {
+            return null;
+        }
+
+        $row['friend_state'] = 0;
+        $row['request_id'] = 0;
+        $row['request_comment'] = '';
+        $row['request_date'] = '';
+
+        if ($viewerAccountId > 0) {
+            try {
+                if ($viewerAccountId === $targetAccountId) {
+                    $row['messages_count'] = (int)$this->scalar(
+                        'SELECT COUNT(*) FROM messages
+                         WHERE to_account_id=:id
+                           AND is_read=0
+                           AND is_receiver_deleted=0',
+                        ['id'=>$viewerAccountId]
+                    );
+                    $row['friend_requests_count'] = (int)$this->scalar(
+                        'SELECT COUNT(*) FROM friend_requests
+                         WHERE to_account_id=:id',
+                        ['id'=>$viewerAccountId]
+                    );
+                    $row['friends_count'] = (int)$this->scalar(
+                        'SELECT COUNT(*) FROM friends
+                         WHERE account_id=:id
+                           AND is_new=1',
+                        ['id'=>$viewerAccountId]
+                    );
+                } else {
+                    $blocked = (int)$this->scalar(
+                        'SELECT COUNT(*) FROM blocks
+                         WHERE (account_id=:viewer AND blocked_account_id=:target)
+                            OR (account_id=:target AND blocked_account_id=:viewer)',
+                        [
+                            'viewer'=>$viewerAccountId,
+                            'target'=>$targetAccountId
+                        ]
+                    );
+
+                    if ($blocked > 0) {
+                        return null;
+                    }
+
+                    $friend = (int)$this->scalar(
+                        'SELECT COUNT(*) FROM friends
+                         WHERE account_id=:viewer
+                           AND friend_account_id=:target',
+                        [
+                            'viewer'=>$viewerAccountId,
+                            'target'=>$targetAccountId
+                        ]
+                    );
+
+                    if ($friend > 0) {
+                        $row['friend_state'] = 1;
+                    } else {
+                        $incoming = $this->pdo->prepare(
+                            'SELECT id,comment,created_at
+                             FROM friend_requests
+                             WHERE account_id=:target
+                               AND to_account_id=:viewer
+                             LIMIT 1'
+                        );
+                        $incoming->execute([
+                            'target'=>$targetAccountId,
+                            'viewer'=>$viewerAccountId
+                        ]);
+                        $request = $incoming->fetch(PDO::FETCH_ASSOC);
+
+                        if ($request) {
+                            $row['friend_state'] = 3;
+                            $row['request_id'] = (int)$request['id'];
+                            $row['request_comment'] = (string)$request['comment'];
+                            $row['request_date'] = date(
+                                'd/m/Y G.i',
+                                strtotime((string)$request['created_at'])
+                            );
+                        } else {
+                            $outgoing = (int)$this->scalar(
+                                'SELECT COUNT(*) FROM friend_requests
+                                 WHERE account_id=:viewer
+                                   AND to_account_id=:target',
+                                [
+                                    'viewer'=>$viewerAccountId,
+                                    'target'=>$targetAccountId
+                                ]
+                            );
+
+                            if ($outgoing > 0) {
+                                $row['friend_state'] = 4;
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable) {
+                // Optional social metadata must never break profile loading.
+            }
+        }
+
+        return $row;
+    }
+
+    private function scalar(string $sql, array $params): mixed
+    {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchColumn();
     }
 
     public function leaderboardTop(int $limit = 1000): array
