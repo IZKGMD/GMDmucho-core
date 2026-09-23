@@ -113,7 +113,27 @@ final class LevelListRepository
         $total = (int)$count->fetchColumn();
 
         $sql = "SELECT l.*, {$userSelect}
-                  /** @return list<int> */
+                FROM mucho_level_lists l
+                {$userJoin}
+                {$whereSql}
+                ORDER BY {$orderSql}
+                LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->db->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, $key === ':name' ? PDO::PARAM_STR : PDO::PARAM_INT);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'rows' => $stmt->fetchAll() ?: [],
+            'total' => $total,
+        ];
+    }
+
+    /** @return list<int> */
     private function friendAccountIds(int $accountId): array
     {
         if ($accountId <= 0) {
@@ -132,11 +152,13 @@ final class LevelListRepository
         foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $a = (int)$row['account_id'];
             $b = (int)$row['friend_account_id'];
+
             if ($a === $accountId && $b > 0) {
                 $ids[$b] = $b;
             } elseif ($b === $accountId && $a > 0) {
                 $ids[$a] = $a;
             }
+
             if (count($ids) >= 500) {
                 break;
             }
