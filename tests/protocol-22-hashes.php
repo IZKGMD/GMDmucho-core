@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../src/Protocol/GdHash.php';
+require __DIR__ . '/../src/Protocol/ProtocolText.php';
 require __DIR__ . '/../src/Protocol/GdSongEncoder.php';
 
 use MuchoCore\Protocol\GdHash;
