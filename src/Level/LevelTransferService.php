@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace MuchoCore\Level;
 
 use MuchoCore\Account\AccountAuthenticator;
+use MuchoCore\Compatibility\ClientVersion;
+use MuchoCore\Protocol\GdLegacyText;
 use MuchoCore\Protocol\GdLevelDownloadEncoder;
 use PDO;
 use RuntimeException;
@@ -81,16 +83,24 @@ final readonly class LevelTransferService
             throw new RuntimeException('Empty level data.');
         }
 
+        $version = ClientVersion::fromValues(
+            $this->intField($data, 'gameVersion', 22, 1, 1000),
+            $this->intField($data, 'binaryVersion', 0, 0, 1000000)
+        );
+
         $levelData = [
             'account_id' => $accountId,
 
             'name' => $name,
 
-            'description' => $this->stringField(
-                $data,
-                'levelDesc',
-                '',
-                8192
+            'description' => GdLegacyText::encodeDescriptionForStorage(
+                $this->stringField(
+                    $data,
+                    'levelDesc',
+                    '',
+                    8192
+                ),
+                $version->effectiveGameVersion()
             ),
 
             'level_version' => $this->intField(
