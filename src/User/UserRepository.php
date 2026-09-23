@@ -335,7 +335,7 @@ final readonly class UserRepository
         return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function leaderboardCreators(int $limit = 1000): array
+    public function leaderboardCreators(int $limit = 1000, int $gameVersion = 0): array
     {
         $sql = '
             SELECT
@@ -352,10 +352,18 @@ final readonly class UserRepository
             ORDER BY `rank`
             LIMIT ' . (int)$limit;
 
+        if ($gameVersion >= 20) {
+            $sql = str_replace(
+                'WHERE p.creator_points > 0',
+                'WHERE p.creator_points > 0 AND COALESCE(p.game_version, 0) >= 20',
+                $sql
+            );
+        }
+
         return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function leaderboardFriends(int $accountId, int $limit = 100): array
+    public function leaderboardFriends(int $accountId, int $limit = 100, int $gameVersion = 0): array
     {
         if ($accountId <= 0) {
             return [];
@@ -390,6 +398,7 @@ final readonly class UserRepository
                     ON ar.id = a.role_id
                 WHERE a.is_active=1
                   AND a.is_banned=0
+                  AND (:game_version = 0 OR COALESCE(p.game_version, 0) >= 20)
             )
             SELECT *
             FROM RankedFriends
@@ -401,6 +410,7 @@ final readonly class UserRepository
             'account_a' => $accountId,
             'account_b' => $accountId,
             'self_id' => $accountId,
+            'game_version' => $gameVersion,
         ]);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
