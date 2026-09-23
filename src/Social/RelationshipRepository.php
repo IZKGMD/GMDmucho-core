@@ -29,10 +29,14 @@ final readonly class RelationshipRepository
     {
         $q = $this->pdo->prepare(
             'SELECT 1 FROM friends
-             WHERE account_id=:a AND friend_account_id=:b
+             WHERE (account_id=:a1 AND friend_account_id=:b1)
+                OR (account_id=:b2 AND friend_account_id=:a2)
              LIMIT 1'
         );
-        $q->execute(['a'=>$a,'b'=>$b]);
+        $q->execute([
+            'a1'=>$a,'b1'=>$b,
+            'b2'=>$b,'a2'=>$a,
+        ]);
         return (bool)$q->fetchColumn();
     }
 
