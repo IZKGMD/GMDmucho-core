@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ok=0
+warn=0
+bad=0
+
+pass() { printf '[  OK  ] %s\n' "$*"; ((ok+=1)); }
+notice() { printf '[ WARN  ] %s\n' "$*"; ((warn+=1)); }
+fail() { printf '[ FAIL  ] %s\n' "$*"; ((bad+=1)); }
+
+printf '\n=== MuchoCore Doctor ===\n'
+printf 'Project: %s\n\n' "$ROOT"
+
+if command -v docker >/dev/null 2>&1; then
+  pass "Docker is installed."
+else
+  fail "Docker is missing. On Ubuntu/Debian VPS run the MuchoCore installer again."
+fi
+
+if docker compose version >/dev/null 2>&1; then
+  pass "Docker Compose v2 is available."
+else
+  fail "Docker Compose v2 is missing. Install/update Docker before starting MuchoCore."
+fi
+
+if [[ -f "$ROOT/.env" ]]; then
+  pass ".env exists."
+else
+  fail ".env is missing. Run install.sh first; do not create database passwords manually."
+fi
+
+if [[ -f "$ROOT/.secrets/db_password" ]]; then
+  pass "Database secret exists."
+else
+  notice ".secrets/db_password is missing. This is expected on shared hosting, but not on Docker VPS installs."
+fi
+
+if [[ -f "$ROOT/.secrets/admin_password" ]]; then
+  pass "Admin secret exists."
+else
+  notice ".secrets/admin_password is missing. The shared-hosting installer stores the admin bootstrap differently."
+fi
+
+if [[ -f "$ROOT/config/cloudsave.key" ]]; then
+  pass "Cloud Save key exists."
+else
+  fail "config/cloudsave.key is missing. Restore the key before using existing Cloud Saves."
+fi
+
+if [[ -f "$ROOT/docker-compose.yml" ]]; then
+  pass "Docker Compose configuration exists."
+else
+  fail "docker-compose.yml is missing."
+fi
+
+if command -v php >/dev/null 2>&1; then
+  pass "PHP is installed locally (optional for Docker, useful for diagnostics)."
+fi
+
+if command -v curl >/dev/null 2>&1; then
+  pass "curl is available."
+else
+  notice "curl is missing, so the doctor cannot test the HTTP endpoint."
+fi
+
+if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+  cd "$ROOT"
+  if docker compose ps >/tmp/muchocore-doctor-ps.$$ 2>&1; then
+    pass "Docker Compose can read the project."
+    if grep -q 'Up\|running' /tmp/muchocore-doctor-ps.$$; then
+      pass "At least one MuchoCore container is running."
+    else
+      notice "No running container was detected. Start with: sudo docker compose up -d"
+    fi
+  else
+    fail "Docker Compose could not read the project. Run: sudo docker compose config"
+  fi
+  rm -f /tmp/muchocore-doctor-ps.$$
+fi
+
+if [[ -f "$ROOT/.env" ]] && command -v curl >/dev/null 2>&1; then
+  domain="$(sed -n 's/^DOMAIN=//p' "$ROOT/.env" | head -n1)"
+  address="$(sed -n 's/^CADDY_ADDRESS=//p' "$ROOT/.env" | head -n1)"
+
+  if [[ -n "$domain" ]]; then
+    if [[ "$address" == ":80" ]]; then
+      if curl -fsS --max-time 5 "http://127.0.0.1/health" | grep -qx '1'; then
+        pass "Local health check passed (tunnel mode)."
+      else
+        notice "Local tunnel health check failed. Check: sudo docker compose logs --tail=100"
+      fi
+    elif curl -kfsS --max-time 8 "https://$domain/health" | grep -qx '1'; then
+      pass "HTTPS health check passed."
+    else
+      notice "HTTPS health check failed. Check DNS, ports 80/443 and Caddy logs."
+    fi
+  fi
+fi
+
+printf '\nSummary: %s OK, %s warnings, %s failures.\n' "$ok" "$warn" "$bad"
+
+if ((bad>0)); then
+  printf 'Fix the FAIL items first. Then run: bash bin/mucho doctor\n'
+  exit 1
+fi
+
+printf 'MuchoCore doctor finished successfully.\n'
