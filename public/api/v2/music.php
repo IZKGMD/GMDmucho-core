@@ -22,6 +22,7 @@ try {
             download_url,
             created_at
         FROM songs
+        WHERE is_verified=1
         ORDER BY id DESC
         LIMIT 20
     ")->fetchAll();
