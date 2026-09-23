@@ -307,7 +307,7 @@ final readonly class UserRepository
         return $stmt->fetchColumn();
     }
 
-    public function leaderboardTop(int $limit = 1000): array
+    public function leaderboardTop(int $limit = 1000, int $gameVersion = 0): array
     {
         $sql = '
             SELECT
@@ -323,6 +323,14 @@ final readonly class UserRepository
             WHERE p.stars > 0
             ORDER BY `rank`
             LIMIT ' . (int)$limit;
+
+        if ($gameVersion >= 20) {
+            $sql = str_replace(
+                'WHERE p.stars > 0',
+                'WHERE p.stars > 0 AND COALESCE(p.game_version, 0) >= 20',
+                $sql
+            );
+        }
 
         return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -397,14 +405,19 @@ final readonly class UserRepository
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-    public function leaderboardRelative(int $accountId, int $limit = 50): array
+    public function leaderboardRelative(int $accountId, int $limit = 50, int $gameVersion = 0): array
     {
+        $versionFilter = $gameVersion >= 20
+            ? 'WHERE COALESCE(p.game_version, 0) >= 20'
+            : '';
+
         $sql = "WITH RankedProfiles AS (
             SELECT p.*, a.username, COALESCE(ar.code, \'user\') AS role_code,
                    ROW_NUMBER() OVER (ORDER BY p.stars DESC, p.account_id ASC) AS `rank`
             FROM profiles p
             INNER JOIN accounts a ON a.account_id = p.account_id
             LEFT JOIN roles ar ON ar.id = a.role_id
+            {$versionFilter}
         ),
         TargetRank AS (
             SELECT `rank` FROM RankedProfiles WHERE account_id = :account_id
