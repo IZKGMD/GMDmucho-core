@@ -82,13 +82,11 @@ final class LevelListService
                 break;
 
             case 13:
-                if ($this->auth->authenticatedAccountId() === null) {
+                $viewer = $this->auth->authenticatedAccountId();
+                if ($viewer === null) {
                     return '-1';
                 }
-                $friends = Request::idList(Request::string('followed'), 500);
-                if ($friends) {
-                    $filters['account_ids'] = $friends;
-                }
+                $filters['friends_of'] = $viewer;
                 $order = 'created';
                 break;
 
