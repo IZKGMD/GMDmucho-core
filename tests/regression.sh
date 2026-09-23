@@ -596,6 +596,7 @@ expect_contains "2.2 user info star state" "$UI" ':56:6,7,8,9,10,11'
 expect_contains "2.2 user info platformer state" "$UI" ':57:12,13,14,15'
 expect_contains "2.2 user info color3" "$UI" ':51:4'
 expect_contains "2.2 user info special" "$UI" ':15:1'
+expect_contains "2.2 user info glow" "$UI" ':28:7'
 
 echo
 echo "===== 2.2 PLATFORMER SCORES ====="
@@ -605,7 +606,7 @@ PLATFORMER_LEVEL="$(
         -d "accountID=$AID1" \
         -d "gjp2=$P1" \
         -d 'levelName=Mucho 2.2 Platformer Regression' \
-        --data-urlencode "levelDesc=$DESC1" \
+        --data-urlencode "levelDesc=Mucho 2.2 platformer description" \
         -d 'levelString=MUCHO_22_PLATFORMER_LEVEL' \
         -d 'levelVersion=1' \
         -d 'gameVersion=22' \
