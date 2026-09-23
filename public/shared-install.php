@@ -170,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($accountUrl === '' || !preg_match('#^https?://[^/\s]+$#i', $accountUrl)) {
-        $errors[] = 'Server URL must look like https://gdps.example.com';
+        $errors[] = 'Server URL must look like http://gdps.example.com';
     }
 
     if (strlen($adminPass) < 8) {
@@ -449,7 +449,7 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
             <div>
                 <label for="account_url">Your GDPS address</label>
                 <input id="account_url" name="account_url" value="<?= e((string)($_POST['account_url'] ?? $defaultUrl)) ?>" required>
-                <small>Example: <code>https://gdps.example.com</code>. Do not add <code>/database</code>.</small>
+                <small>Example: <code>http://gdps.example.com</code>. Do not add <code>/database</code>.</small>
             </div>
 
             <div class="grid">
