@@ -170,7 +170,8 @@ final readonly class UserController
             return Response::text(
                 $this->service->getLeaderboard(
                     $type,
-                    $accountId
+                    $accountId,
+                    $request->clientVersion()->effectiveGameVersion()
                 )
             );
         } catch (Throwable) {
