@@ -409,9 +409,14 @@ final readonly class LevelRepository
             return [];
         }
 
+        $items = explode(',', trim($value));
+        if (count($items) > 1000) {
+            $items = array_slice($items, 0, 1000);
+        }
+
         return array_values(
             array_unique(
-                array_map('intval', explode(',', trim($value)))
+                array_map('intval', $items)
             )
         );
     }
