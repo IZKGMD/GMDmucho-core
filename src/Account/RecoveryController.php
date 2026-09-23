@@ -135,7 +135,7 @@ final class RecoveryController
                 '<div class="turnstile-box" style="margin:12px 0;min-height:66px">' .
                 '<div class="cf-turnstile" data-sitekey="' .
                 $this->e(Turnstile::siteKey()) .
-                '" data-theme="dark" data-action="recovery"></div>' .
+                '" data-theme="auto" data-action="recovery"></div>' .
                 '</div>';
         }
 
@@ -268,6 +268,7 @@ final class RecoveryController
 <meta name="robots" content="noindex,nofollow">
 <title>MuchoCore — восстановление аккаунта</title>
 <link rel="stylesheet" href="/recovery/recovery.css">
+<link rel="stylesheet" href="/muchocore-theme.css?v=1">
 ' . (Turnstile::enabled()
     ? '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>'
     : '') . '
