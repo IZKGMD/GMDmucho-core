@@ -1760,6 +1760,110 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             flash('Account saved.');
         }
 
+        elseif ($action==='music-upload') {
+            requireRank(30);
+
+            $title=trim((string)($_POST['title'] ?? ''));
+            $artist=trim((string)($_POST['artist'] ?? ''));
+
+            if ($title==='' || mb_strlen($title,'UTF-8')>128) {
+                throw new RuntimeException('Invalid song title.');
+            }
+
+            if ($artist==='' || mb_strlen($artist,'UTF-8')>128) {
+                throw new RuntimeException('Invalid artist.');
+            }
+
+            if (
+                !isset($_FILES['music_file']) ||
+                ($_FILES['music_file']['error'] ?? -1)!==UPLOAD_ERR_OK
+            ) {
+                throw new RuntimeException('MP3 upload failed.');
+            }
+
+            $file=$_FILES['music_file'];
+            $size=(int)($file['size'] ?? 0);
+
+            if ($size<=0 || $size>(20*1024*1024)) {
+                throw new RuntimeException('MP3 must be between 1 byte and 20 MB.');
+            }
+
+            $tmp=(string)($file['tmp_name'] ?? '');
+
+            if (!is_uploaded_file($tmp)) {
+                throw new RuntimeException('Invalid upload.');
+            }
+
+            $mime=(new finfo(FILEINFO_MIME_TYPE))->file($tmp);
+
+            if (!in_array($mime,['audio/mpeg','audio/mp3','audio/x-mpeg'],true)) {
+                throw new RuntimeException('Only MP3 files are allowed.');
+            }
+
+            $musicDir=$rootDir.'/storage/music-public';
+
+            if (
+                !is_dir($musicDir) &&
+                !mkdir($musicDir,0770,true) &&
+                !is_dir($musicDir)
+            ) {
+                throw new RuntimeException('Cannot create music directory.');
+            }
+
+            $stored=bin2hex(random_bytes(20)).'.mp3';
+            $target=$musicDir.'/'.$stored;
+
+            if (!move_uploaded_file($tmp,$target)) {
+                throw new RuntimeException('Cannot store MP3.');
+            }
+
+            @chmod($target,0640);
+
+            $baseUrl=rtrim(
+                (string)(
+                    getenv('MUCHO_ACCOUNT_URL')
+                    ?: (
+                        'https://'.
+                        (string)($_SERVER['HTTP_HOST'] ?? 'localhost')
+                    )
+                ),
+                '/'
+            );
+
+            $download=$baseUrl.'/music/'.rawurlencode($stored);
+
+            try {
+                $q=$db->prepare(
+                    'INSERT INTO songs
+                     (name,author_id,author_name,size,download_url,is_verified)
+                     VALUES (:name,0,:author,:size,:url,1)'
+                );
+
+                $q->execute([
+                    'name'=>$title,
+                    'author'=>substr((string)admin()['username'],0,128),
+                    'size'=>round($size/1024/1024,2),
+                    'url'=>$download
+                ]);
+            } catch(Throwable $e) {
+                @unlink($target);
+                throw $e;
+            }
+
+            audit(
+                $db,
+                'music.upload',
+                (string)$db->lastInsertId(),
+                [
+                    'title'=>$title,
+                    'artist'=>$artist,
+                    'size'=>$size
+                ]
+            );
+
+            flash('Music uploaded successfully.');
+        }
+
         elseif ($action==='profile-save') {
             requireRank(30);
 
