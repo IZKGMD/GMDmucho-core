@@ -87,7 +87,7 @@ This also preserves the legacy `/database/...` paths used by Geometry Dash clien
 Open:
 
 ```text
-https://YOUR-DOMAIN/shared-install.php
+http://YOUR-DOMAIN/shared-install.php
 ```
 
 The installer checks:
@@ -120,7 +120,7 @@ The installer then:
 Open:
 
 ```text
-https://YOUR-DOMAIN/health
+http://YOUR-DOMAIN/health
 ```
 
 Expected response:
@@ -132,7 +132,7 @@ Expected response:
 Then open:
 
 ```text
-https://YOUR-DOMAIN/admin/
+http://YOUR-DOMAIN/admin/
 ```
 
 ## 5. Connect Geometry Dash
