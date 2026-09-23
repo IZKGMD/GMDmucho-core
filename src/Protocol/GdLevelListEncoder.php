@@ -6,7 +6,7 @@ namespace MuchoCore\Protocol;
 
 final class GdLevelListEncoder
 {
-    private const HASH_SALT = "xI25fpAapCQg";
+    private const HASH_SALT = 'xI25fpAapCQg';
 
     public function encode(
         array $levels,
@@ -16,78 +16,113 @@ final class GdLevelListEncoder
         int $gameVersion = 22
     ): string {
         if (empty($levels) || $total === 0) {
-            return "-2";
+            return '-2';
         }
 
         $levelStrings = [];
         $userStrings = [];
+        $songStrings = [];
         $uniqueUsers = [];
-        $hashData = "";
+        $uniqueSongs = [];
+        $hashData = '';
 
         foreach ($levels as $level) {
-            $levelId = (string) $level["level_id"];
-            $userId = (string) ($level["user_id"] ?? $level["account_id"] ?? 1);
-            $accountId = (string) ($level["account_id"] ?? 1);
+            $levelId = (string)$level['level_id'];
+            $userId = (string)($level['user_id'] ?? $level['account_id'] ?? 1);
+            $accountId = (string)($level['account_id'] ?? 1);
             $username = ProtocolText::username(
                 $level['username'] ?? 'Player'
             );
             $protocolStars = max(
                 0,
-                min(10, (int) ($level["stars"] ?? 0))
+                min(10, (int)($level['stars'] ?? 0))
             );
 
-            $levelStrings[] = implode(":", [
+            $levelStrings[] = implode(':', [
                 1, $levelId,
-                2, $level["name"],
-                5, $level["level_version"],
+                2, ProtocolText::field((string)$level['name']),
+                5, (int)$level['level_version'],
                 6, $userId,
                 8, 10,
-                9, $level["difficulty"],
-                10, $level["downloads"],
-                12, $level["audio_track"],
-                13, $level["game_version"],
-                14, $level["likes"],
-                17, $level["demon"],
-                43, $level["demon_difficulty"],
-                25, $level["auto_level"],
-                18, $level["stars"],
-                19, $level["featured"],
-                42, $level["epic"],
-                45, $level["object_count"],
-                3, $level["description"] ?? "",
-                15, $level["length"],
-                30, $level["original_level_id"],
-                31, $level["two_player"],
-                37, $level["coins"],
-                38, $level["coins_verified"],
-                39, $level["requested_stars"],
+                9, (int)$level['difficulty'],
+                10, (int)$level['downloads'],
+                12, (int)$level['audio_track'],
+                13, (int)$level['game_version'],
+                14, (int)$level['likes'],
+                17, (int)$level['demon'],
+                43, (int)$level['demon_difficulty'],
+                25, (int)$level['auto_level'],
+                18, (int)$level['stars'],
+                19, (int)$level['featured'],
+                42, (int)$level['epic'],
+                45, (int)$level['object_count'],
+                3, ProtocolText::field((string)($level['description'] ?? '')),
+                15, (int)$level['length'],
+                30, (int)$level['original_level_id'],
+                31, (int)$level['two_player'],
+                37, (int)$level['coins'],
+                38, (int)$level['coins_verified'],
+                39, (int)$level['requested_stars'],
                 46, 1,
                 47, 2,
-                40, $level["ldm"],
-                35, $level["song_id"]
+                40, (int)$level['ldm'],
+                35, (int)$level['song_id'],
             ]);
 
             if (!isset($uniqueUsers[$userId])) {
                 $uniqueUsers[$userId] = true;
-                $userStrings[] = implode(":", [
+                $userStrings[] = implode(':', [
                     $userId,
                     $username,
                     $accountId,
                 ]);
             }
 
+            $songId = (int)($level['song_protocol_id'] ?? 0);
+
+            if (
+                $gameVersion > 18 &&
+                $songId > 0 &&
+                !isset($uniqueSongs[$songId])
+            ) {
+                $uniqueSongs[$songId] = true;
+
+                $songStrings[] = implode('~|~', [
+                    1, $songId,
+                    2, ProtocolText::field((string)($level['song_name'] ?? '')),
+                    3, (int)($level['song_author_id'] ?? 0),
+                    4, ProtocolText::field((string)($level['song_author_name'] ?? '')),
+                    5, round((float)($level['song_size'] ?? 0), 2),
+                    6, (string)($level['song_youtube_video_id'] ?? ''),
+                    10, (string)($level['song_download_url'] ?? ''),
+                    7, (string)($level['song_youtube_channel_id'] ?? ''),
+                    8, 0,
+                ]);
+            }
+
             $firstChar = $levelId[0];
             $lastChar = $levelId[strlen($levelId) - 1];
-            $hashData .= $firstChar . $lastChar . $protocolStars . $level["coins_verified"];
+            $hashData .=
+                $firstChar .
+                $lastChar .
+                $protocolStars .
+                (int)$level['coins_verified'];
         }
 
-        $levelsPart = implode("|", $levelStrings);
-        $usersPart = implode("|", $userStrings);
-        $songsPart = "";
-        $pageInfo = $total . ":" . $offset . ":" . $limit;
+        $levelsPart = implode('|', $levelStrings);
+        $usersPart = implode('|', $userStrings);
+        $songsPart = implode('~:~', $songStrings);
+        $pageInfo = $total . ':' . $offset . ':' . $limit;
         $hashPart = sha1($hashData . self::HASH_SALT);
 
-        // Строгий формат Geometry Dash: levels#users#songs#pageInfo#hash
-        return $levelsPart . "#" . $usersPart . "#" . $songsPart . "#" . $pageInfo . "#" . $hashPart;
+        return $levelsPart
+            . '#'
+            . $usersPart
+            . '#'
+            . $songsPart
+            . '#'
+            . $pageInfo
+            . '#'
+            . $hashPart;
     }
 }
