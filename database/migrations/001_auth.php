@@ -20,7 +20,7 @@ SQL,
 INSERT INTO roles (code, name, priority) VALUES
 ('user', 'User', 0),
 ('moderator', 'Moderator', 50),
-('admin', 'Administrator', 90),
+('elder_moderator', 'Elder Moderator', 75),
 ('owner', 'Owner', 100)
 SQL,
 
