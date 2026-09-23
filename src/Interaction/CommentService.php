@@ -26,10 +26,12 @@ final class CommentService
         return $db->connection();
     }
 
-    public function uploadLevelComment(int $levelId, int $accountId, string $gjp, string $content, int $percent): int
+    public function uploadLevelComment(int $levelId, int $accountId, string $gjp, string $content, int $percent, int $gameVersion = 22): int
     {
         $this->auth->authenticate($accountId, $gjp);
-        $decodedContent = base64_decode(strtr($content, "-_", "+/")) ?: $content;
+        $decodedContent = $gameVersion < 20
+            ? (base64_decode(strtr($content, "-_", "+/")) ?: $content)
+            : $content;
         $decodedContent = trim($decodedContent);
 
         // Проверяем, является ли комментарий модераторской командой
@@ -104,7 +106,7 @@ final class CommentService
 
                     // Завершаем выполнение и возвращаем "1" (код успешной отправки коммента в GD).
                     // Это предотвращает сохранение команды в базу данных и блокирует любые системные сообщения.
-                    exit("1");
+                    return 0;
                 }
                 
                 return "[Mod] Rate error: invalid difficulty (use auto, easy, normal, hard, harder, insane, demon)";
@@ -137,61 +139,78 @@ final class CommentService
         return null;
     }
 
-    public function getLevelComments(int $levelId, int $page): string
+    public function getLevelComments(int $levelId, int $page, int $gameVersion = 22, int $binaryVersion = 0): string
     {
-        $limit = 100;
+        $limit = 10;
+        $offset = max(0, $page) * $limit;
         $comments = $this->repository->getLevelComments($levelId, $page, $limit);
+        $total = $this->repository->countLevelComments($levelId);
 
-        if (empty($comments)) {
-            return "#0:0:10";
+        if ($total === 0 || empty($comments)) {
+            return "-2";
         }
 
         $encodedComments = [];
         foreach ($comments as $comment) {
             $role = strtolower((string)($comment["role"] ?? "user"));
             $badge = match ($role) {
-                "owner", "developer", "creator", "admin", "elder" => 2,
-                "mod", "moderator", "helper"                     => 1,
-                default                                          => 0
+                "owner", "admin" => 2,
+                "elder_moderator" => 2,
+                "moderator" => 1,
+                default => 0
             };
 
             $profile = [
                 "username" => $comment["username"] ?? "Unknown",
+                "user_id"  => $comment["user_id"] ?? $comment["account_id"] ?? 0,
                 "cube"     => $comment["cube"] ?? 1,
                 "color1"   => $comment["color1"] ?? 0,
                 "color2"   => $comment["color2"] ?? 3,
                 "special"  => $comment["special"] ?? 0,
+                "icon_type"=> $comment["icon_type"] ?? 0,
                 "badge"    => $badge
             ];
-            $encodedComments[] = $this->encoder->encode($comment, $profile);
+            $encodedComments[] = $this->encoder->encode(
+                $comment,
+                $profile,
+                $gameVersion,
+                $binaryVersion
+            );
         }
 
-        return implode("|", $encodedComments) . "#999:" . ($page * $limit) . ":" . $limit;
+        return implode("|", $encodedComments) . "#" . $total . ":" . $offset . ":" . count($comments);
     }
 
-    public function uploadAccountComment(int $accountId, string $gjp, string $content): int
+    public function uploadAccountComment(int $accountId, string $gjp, string $content, int $gameVersion = 22): int
     {
         $this->auth->authenticate($accountId, $gjp);
-        $decodedContent = base64_decode(strtr($content, "-_", "+/")) ?: $content;
+        $decodedContent = $gameVersion < 20
+            ? (base64_decode(strtr($content, "-_", "+/")) ?: $content)
+            : $content;
 
         return $this->repository->addAccountComment($accountId, $decodedContent);
     }
 
-    public function getAccountComments(int $accountId, int $page): string
+    public function getAccountComments(int $accountId, int $page, int $gameVersion = 22): string
     {
-        $limit = 100;
+        $limit = 10;
+        $offset = max(0, $page) * $limit;
         $comments = $this->repository->getAccountComments($accountId, $page, $limit);
+        $total = $this->repository->countAccountComments($accountId);
 
-        if (empty($comments)) {
-            return "#0:0:10";
+        if ($total === 0 || empty($comments)) {
+            return "-2";
         }
 
         $encoded = [];
         foreach ($comments as $comment) {
-            $encoded[] = $this->encoder->encodeAccountComment($comment);
+            $encoded[] = $this->encoder->encodeAccountComment(
+                $comment,
+                $gameVersion
+            );
         }
 
-        return implode("|", $encoded) . "#999:" . ($page * $limit) . ":" . $limit;
+        return implode("|", $encoded) . "#" . $total . ":" . $offset . ":" . count($comments);
     }
 
     public function deleteComment(int $commentId, int $accountId, string $gjp): bool
