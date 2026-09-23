@@ -78,6 +78,26 @@ $checks = [
         "':15:'.(int)$row['color3'].",
         '2.2 platformer color3 field',
     ],
+    [
+        __DIR__ . '/../src/Score/PlatformerScoreController.php',
+        "':42:'.date(",
+        '2.2 platformer timestamp field',
+    ],
+    [
+        __DIR__ . '/../src/LevelList/LevelListRepository.php',
+        'COALESCE(p.user_id, l.account_id) AS user_id',
+        '2.2 level list canonical user id',
+    ],
+    [
+        __DIR__ . '/../src/LevelList/LevelListService.php',
+        "array_diff(",
+        '2.2 friend list excludes self',
+    ],
+    [
+        __DIR__ . '/../src/LevelList/LevelListService.php',
+        "$filters['difficulties']",
+        '2.2 level list multi-difficulty filters',
+    ],
 ];
 
 foreach ($checks as [$file, $needle, $name]) {
