@@ -36,9 +36,18 @@ final class CommentService
 
         // Проверяем, является ли комментарий модераторской командой
         if (str_starts_with($decodedContent, "!")) {
-            $commandResult = $this->handleCommand($levelId, $accountId, $decodedContent);
-            if ($commandResult !== null) {
-                $decodedContent = $commandResult;
+            $handled = $this->handleCommand(
+                $levelId,
+                $accountId,
+                $decodedContent
+            );
+
+            if ($handled === true) {
+                return 1;
+            }
+
+            if ($handled === null) {
+                // Unknown/invalid command is treated as normal comment text.
             }
         }
 
@@ -52,7 +61,7 @@ final class CommentService
         return 1;
     }
 
-    private function handleCommand(int $levelId, int $accountId, string $commandStr): ?string
+    private function handleCommand(int $levelId, int $accountId, string $commandStr): ?bool
     {
         $pdo = $this->getPdo();
 
@@ -118,7 +127,7 @@ final class CommentService
 
                     // Завершаем выполнение и возвращаем "1" (код успешной отправки коммента в GD).
                     // Это предотвращает сохранение команды в базу данных и блокирует любые системные сообщения.
-                    return 0;
+                    return true;
                 }
                 
                 return "[Mod] Rate error: invalid difficulty (use auto, easy, normal, hard, harder, insane, demon)";
@@ -129,11 +138,11 @@ final class CommentService
                     ->execute([":d" => $demonDiff, ":id" => $levelId]);
 
                 $names = [1 => "Easy", 2 => "Medium", 3 => "Hard", 4 => "Insane", 5 => "Extreme"];
-                return sprintf("[Mod] Set Demon Difficulty: %s", $names[$demonDiff] ?? "Hard");
+                return true;
 
             case "!delete":
                 $pdo->prepare("UPDATE levels SET is_deleted = 1 WHERE level_id = :id")->execute([":id" => $levelId]);
-                return "[Mod] Level has been deleted";
+                return true;
 
             case "!cp":
                 $amount = isset($parts[1]) ? (int)$parts[1] : 1;
@@ -143,7 +152,7 @@ final class CommentService
                 if ($authorId > 0) {
                     $pdo->prepare("UPDATE profiles SET creator_points = creator_points + :cp WHERE account_id = :acc")
                         ->execute([":cp" => $amount, ":acc" => $authorId]);
-                    return sprintf("[Mod] Awarded +%d CP to creator", $amount);
+                    return true;
                 }
                 return null;
         }
