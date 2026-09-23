@@ -19,7 +19,7 @@ echo '<button>Search</button></form>';
 $sql=
 'SELECT
  a.account_id,a.username,a.email,
- COALESCE(r.code,'user') AS role,
+ COALESCE(r.code,\'user\') AS role,
  a.is_active,a.is_banned,a.created_at,
  p.stars,p.moons,p.diamonds,p.secret_coins,
  p.user_coins,p.demons,p.creator_points
