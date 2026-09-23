@@ -1,12 +1,21 @@
 <?php
 declare(strict_types=1);
 
+use MuchoCore\Branding\BrandingService;
 use MuchoCore\Database\Database;
 
 require dirname(__DIR__,2).'/vendor/autoload.php';
 
 $db=(new Database())->connection();
 $db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+
+$brandingService=new BrandingService($db);
+$branding=$brandingService->get();
+$brandInitial=mb_substr($branding['server_name'],0,1,'UTF-8');
+if ($brandInitial==='' || !preg_match('/^[\pL\pN]$/u',$brandInitial)) {
+    $brandInitial='S';
+}
+$brandInitial=mb_strtoupper($brandInitial,'UTF-8');
 
 $rootDir=dirname(__DIR__,2);
 
@@ -689,8 +698,8 @@ body.sidebar-collapsed .logo{
 font-size:0
 }
 
-body.sidebar-collapsed .logo:after{
-content:"M";
+body.sidebar-collapsed  .logo:after{
+content:var(--brand-initial,"M");
 font-size:22px;
 font-weight:900;
 color:var(--accent2)
@@ -1536,8 +1545,9 @@ max-width:100%
 </head>
 <body data-page="<?=h($page)?>">
 <form method="post" class="box">
-<div class="logo">Mucho<span>Control</span></div>
+<div class="logo"><?=h($branding['server_name'])?><span>Control</span></div>
 <div class="sub">GDPS Administration</div>
+<div style="margin-top:16px;color:#7f8aa0;font-size:12px;text-align:center">Powered by MuchoCore · Copyright © <?=date('Y')?> IZK</div>
 
 <?php if (!empty($loginError)): ?>
 <div class="err"><?=h($loginError)?></div>
@@ -2685,6 +2695,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 );
             }
 
+            if (isset($_POST['server_name'])) {
+                $branding['server_name']=$brandingService->saveServerName(
+                    (string)$_POST['server_name']
+                );
+            }
+
             if (isset($_POST['registrations_disabled'])) {
                 file_put_contents(
                     CONTROL_DIR.'/registrations-disabled.flag',
@@ -3392,7 +3408,7 @@ table{
 <link rel="stylesheet" href="/admin/admin-i18n.css?v=2">
 <link rel="stylesheet" href="/admin/admin-ui-v2.css?v=1">
 </head>
-<body>
+<body style='--brand-initial:"<?=h($brandInitial)?>";'>
 
 <div class="mobile-overlay" id="mobileOverlay"></div>
 
@@ -3407,7 +3423,7 @@ table{
 <!-- /MUCHO_LANG_FLAGS -->
 
 <div class="brandrow">
-<div class="logo">Mucho<b>Control</b></div>
+<div class="logo"><?=h($branding['server_name'])?><b>Control</b></div>
 <button
  type="button"
  class="sidebar-toggle"
@@ -3474,7 +3490,7 @@ Logout
 
 <div class="head-title">
 <h1><?=h($pages[$page])?></h1>
-<small><?=h((string)(getenv('MUCHO_ACCOUNT_URL') ?: 'MuchoCore'))?></small>
+<small><?=h((string)(getenv('MUCHO_ACCOUNT_URL') ?: $branding['server_name']))?></small>
 </div>
 
 <form class="global-search" method="get" id="globalSearch">
@@ -3998,6 +4014,32 @@ $regDisabled=is_file(
 <div class="card">
 <form method="post">
 
+<p>
+<strong>Server branding</strong>
+</p>
+
+<p class="muted">
+This name replaces the visible server logo on the public pages and player music dashboard. MuchoCore attribution stays in the footer.
+</p>
+
+<label style="display:block;margin-bottom:7px">Server name</label>
+<input
+ type="text"
+ name="server_name"
+ maxlength="64"
+ value="<?=h($branding['server_name'])?>"
+ placeholder="My GDPS"
+ style="width:min(520px,100%)"
+>
+
+<div style="margin:12px 0 18px;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:linear-gradient(135deg,#111724,#0d1119)">
+ <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em">Preview</div>
+ <div style="margin-top:6px;font-size:24px;font-weight:900;letter-spacing:-.8px">
+  <span style="background:linear-gradient(90deg,#fff,#9687ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent"><?=h($branding['server_name'])?></span>
+  <span style="color:#9687ff"> Control</span>
+ </div>
+</div>
+
 <input type="hidden" name="csrf" value="<?=csrf()?>">
 <input type="hidden" name="action" value="settings-save">
 <input type="hidden" name="return" value="settings">
@@ -4252,8 +4294,11 @@ echo '</table></div>';
 ?>
 
 </main>
-</div>
 
+<div class="mucho-page-footer" style="margin:22px 0 4px;padding:16px 6px 0;border-top:1px solid rgba(36,45,60,.75);color:#69758a;font-size:12px;text-align:center">
+ <?=h($branding['server_name'])?> · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK
+</div>
+</div>
 
 <script id="mucho-mobile-v5-js">
 (() => {
