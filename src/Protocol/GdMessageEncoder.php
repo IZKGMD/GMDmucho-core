@@ -8,17 +8,6 @@ final class GdMessageEncoder
 {
     public function encodeMessage(array $message, bool $isSender = false): string
     {
-        // Ключи GD для сообщений:
-        // 1: ID сообщения
-        // 2: ID аккаунта (отправителя/получателя в зависимости от контекста)
-        // 3: ID пользователя (отправителя/получателя)
-        // 4: Тема сообщения
-        // 5: Текст сообщения (только при чтении полного сообщения)
-        // 6: Имя пользователя (отправителя/получателя)
-        // 7: Возраст сообщения (строка, напр. "2 days")
-        // 8: Прочитано ли (0/1)
-        // 9: Является ли отправителем (0/1)
-
         $username = ProtocolText::username(
             $isSender
                 ? ($message['to_username'] ?? 'Player')
@@ -26,21 +15,22 @@ final class GdMessageEncoder
         );
 
         $data = [
-            1, $message['id'],
-            2, $isSender ? $message['to_account_id'] : $message['account_id'],
-            3, $isSender ? $message['to_user_id'] : $message['user_id'],
-            4, $message['subject'],
             6, $username,
-            7, $this->formatDate((string)$message['created_at']),
+            3, $isSender ? $message['to_user_id'] : $message['user_id'],
+            2, $isSender ? $message['to_account_id'] : $message['account_id'],
+            1, $message['id'],
+            4, $message['subject'],
             8, $message['is_read'],
-            9, $isSender ? 1 : 0
+            9, $isSender ? 1 : 0,
         ];
 
-        // Если это чтение конкретного сообщения, добавляем тело
         if (isset($message['body'])) {
             $data[] = 5;
             $data[] = $message['body'];
         }
+
+        $data[] = 7;
+        $data[] = $this->formatDate((string)$message['created_at']);
 
         return implode(':', $data);
     }
