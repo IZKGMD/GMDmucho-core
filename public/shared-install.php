@@ -420,7 +420,7 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
                 <div>
                     <label for="db_host">Database host</label>
                     <input id="db_host" name="db_host" value="<?= e((string)($_POST['db_host'] ?? 'localhost')) ?>" required>
-                    <small>Often <code>localhost</code>, but use the value your host gives you.</small>
+                    <small>For Beget, this is usually <code>localhost</code>.</small>
                 </div>
 
                 <div>
@@ -436,6 +436,7 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
                 <div>
                     <label for="db_user">Database username</label>
                     <input id="db_user" name="db_user" value="<?= e((string)($_POST['db_user'] ?? '')) ?>" required>
+                    <small>On Beget, the MySQL username is usually the <strong>full database name</strong>, including your hosting login prefix. Example: <code>c92935bj_gdps</code>.</small>
                 </div>
             </div>
 
