@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MuchoCore\Interaction;
 
 use MuchoCore\Account\AccountAuthenticator;
+use MuchoCore\Protocol\GdHash;
 
 final readonly class RewardsService
 {
@@ -150,6 +151,72 @@ final readonly class RewardsService
             '59182',
             'pC26fpYaQCtg'
         );
+    }
+
+    public function secretReward(
+        int $accountId,
+        string $udid,
+        string $chk,
+        string $credential,
+        string $rewardKey
+    ): string {
+        $rewardKey = trim($rewardKey);
+
+        if ($rewardKey === '' || strlen($rewardKey) > 128) {
+            return '-1';
+        }
+
+        if ($accountId > 0) {
+            $this->auth->authenticate($accountId, $credential);
+
+            if (!$this->repository->account($accountId)) {
+                return '-1';
+            }
+        }
+
+        $decodedChk = $this->decodeChk($chk, '59182');
+
+        if ($decodedChk === '') {
+            return '-1';
+        }
+
+        $reward = $this->repository->secretReward($rewardKey);
+
+        if (!$reward) {
+            return '-1';
+        }
+
+        $claimKey = $accountId > 0
+            ? 'a:' . $accountId
+            : 'u:' . hash('sha256', $udid);
+
+        $claimed = $this->repository->claimSecretReward(
+            (int)$reward['reward_id'],
+            $claimKey
+        );
+
+        if (!$claimed) {
+            return '-1';
+        }
+
+        $plain =
+            'Mucho:' .
+            $decodedChk . ':' .
+            (int)$claimed['reward_id'] . ':' .
+            (int)$claimed['chest_type'] . ':' .
+            (string)$claimed['rewards'];
+
+        $encoded = base64_encode(
+            $this->xorCipher($plain, '59182')
+        );
+
+        $encoded = strtr($encoded, '/+', '_-');
+
+        return
+            'Mucho' .
+            $encoded .
+            '|' .
+            GdHash::rewards($encoded);
     }
 
     public function challenges(
