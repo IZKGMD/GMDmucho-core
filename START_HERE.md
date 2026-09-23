@@ -1,5 +1,7 @@
 # MuchoCore — начать здесь
 
+<img src="public/assets/muchocore-mark.svg" alt="MuchoCore" width="84">
+
 Добро пожаловать! MuchoCore можно запускать даже без глубоких знаний PHP или Docker.
 
 ## Что это
@@ -50,6 +52,24 @@ docs/SHARED_HOSTING.md
 ```
 
 Нужны PHP 8.3+, MySQL/MariaDB и доступ к файлам сайта.
+
+## Когда что-то не работает
+
+Не ищи ошибку по всему проекту. Выполни:
+
+```bash
+bash bin/mucho doctor
+```
+
+После этого смотри только на строки `FAIL` и `WARN`.
+
+Полезные команды:
+
+```bash
+bash bin/mucho status
+bash bin/mucho logs
+bash bin/mucho health
+```
 
 ## После установки
 
