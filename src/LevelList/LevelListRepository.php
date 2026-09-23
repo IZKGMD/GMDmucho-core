@@ -104,9 +104,18 @@ final class LevelListRepository
                 ";
                 $where[] = 'ls.list_id IS NOT NULL';
             }
-            if (isset($filters['difficulty'])) {
-                $where[] = 'l.difficulty = :difficulty';
-                $params[':difficulty'] = (int)$filters['difficulty'];
+            if (!empty($filters['difficulties']) && is_array($filters['difficulties'])) {
+                $marks = [];
+
+                foreach (array_values($filters['difficulties']) as $i => $difficulty) {
+                    $key = ':difficulty_' . $i;
+                    $marks[] = $key;
+                    $params[$key] = (int)$difficulty;
+                }
+
+                if ($marks) {
+                    $where[] = 'l.difficulty IN (' . implode(',', $marks) . ')';
+                }
             }
         }
 
