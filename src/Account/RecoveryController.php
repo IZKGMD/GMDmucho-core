@@ -258,7 +258,7 @@ final class RecoveryController
 
     private function page(string $content): void
     {
-        $brand = 'Mucho<span>Core</span>';
+        $brand = '<img class="mucho-brand-logo" src="/assets/muchocore-logo.jpg" alt="MuchoCore" width="955" height="370" decoding="async">';
 
         echo '<!doctype html>
 <html lang="ru">
