@@ -121,7 +121,7 @@ final class LevelListRepository
 
         $userJoin = '';
         $userSelect = "'Unknown' AS user_name,
-                       l.account_id AS user_id,
+                       COALESCE(p.user_id, l.account_id) AS user_id,
                        l.account_id AS ext_id";
 
         if (
@@ -131,7 +131,7 @@ final class LevelListRepository
         ) {
             $userJoin = ' LEFT JOIN accounts a ON a.account_id = l.account_id ';
             $userSelect = "COALESCE(a.username, 'Unknown') AS user_name,
-                           l.account_id AS user_id,
+                           COALESCE(p.user_id, l.account_id) AS user_id,
                            l.account_id AS ext_id";
         }
 
@@ -151,6 +151,7 @@ final class LevelListRepository
 
         $sql = "SELECT l.*, {$userSelect}
                 FROM mucho_level_lists l
+                LEFT JOIN profiles p ON p.account_id = l.account_id
                 {$userJoin}
                 {$suggestedJoin}
                 {$whereSql}
