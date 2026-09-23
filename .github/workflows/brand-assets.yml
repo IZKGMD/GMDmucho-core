@@ -1,0 +1,76 @@
+name: Prepare MuchoCore brand assets
+
+on:
+  push:
+    paths:
+      - Gemini_Generated_Image_af007baf007baf00.jpg
+      - .github/workflows/brand-assets.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  brand:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ImageMagick
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+
+      - name: Build brand assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p public/assets
+
+          SRC="Gemini_Generated_Image_af007baf007baf00.jpg"
+
+          magick "$SRC" \
+            -auto-orient \
+            -strip \
+            -fuzz 6% -trim +repage \
+            -resize "1600x1600>" \
+            -quality 94 \
+            public/assets/muchocore-logo.jpg
+
+          magick "$SRC" \
+            -auto-orient \
+            -strip \
+            -fuzz 6% -trim +repage \
+            -resize "1600x1600>" \
+            -quality 92 \
+            public/assets/muchocore-logo.webp
+
+          magick "$SRC" \
+            -auto-orient \
+            -strip \
+            -fuzz 6% -trim +repage \
+            -resize "900x900>" \
+            -gravity center \
+            -background "#090b10" \
+            -extent 900x900 \
+            -quality 94 \
+            public/assets/muchocore-icon.png
+
+          magick identify public/assets/muchocore-logo.jpg
+          magick identify public/assets/muchocore-logo.webp
+          magick identify public/assets/muchocore-icon.png
+
+      - name: Commit generated assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/assets/
+          if git diff --cached --quiet; then
+            echo "Brand assets are already current."
+            exit 0
+          fi
+          git commit -m "chore: generate MuchoCore brand assets"
+          git push
