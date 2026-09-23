@@ -17,10 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check ImageMagick
+      - name: Check image tooling
         run: |
-          command -v convert
-          command -v identify
+          command -v ffmpeg
+          command -v ffprobe
 
       - name: Create inspect SVG
         shell: bash
