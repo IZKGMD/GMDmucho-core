@@ -16,7 +16,11 @@ final class GdUserEncoder
         );
 
         $role = (string)($u['role_code'] ?? $u['role'] ?? 'user');
-        $modBadge = GameRole::badgeLevel($role);
+        try {
+            $modBadge = GameRole::badgeLevel($role);
+        } catch (\\InvalidArgumentException) {
+            $modBadge = 0;
+        }
 
         $mapping = [
             1 => $name,
