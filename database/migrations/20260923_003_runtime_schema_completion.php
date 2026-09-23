@@ -63,11 +63,13 @@ SQL);
 
     $pdo->exec(<<<'SQL'
 CREATE TABLE IF NOT EXISTS friends (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     account_id BIGINT UNSIGNED NOT NULL,
     friend_account_id BIGINT UNSIGNED NOT NULL,
     is_new TINYINT(1) UNSIGNED NOT NULL DEFAULT 1,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (account_id, friend_account_id),
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_friends_pair (account_id, friend_account_id),
     KEY idx_friends_reverse (friend_account_id, account_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL);
@@ -88,10 +90,12 @@ SQL);
 
     $pdo->exec(<<<'SQL'
 CREATE TABLE IF NOT EXISTS blocks (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     account_id BIGINT UNSIGNED NOT NULL,
     blocked_account_id BIGINT UNSIGNED NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (account_id, blocked_account_id),
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_blocks_pair (account_id, blocked_account_id),
     KEY idx_blocks_reverse (blocked_account_id, account_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL);
@@ -132,6 +136,11 @@ CREATE TABLE IF NOT EXISTS mucho_level_reports (
     UNIQUE KEY uq_mucho_level_report (level_id, reporter_hash),
     KEY idx_mucho_level_reports_level (level_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+SQL);
+
+    $pdo->exec(<<<'SQL'
+INSERT IGNORE INTO roles (code, name, priority)
+VALUES ('helper', 'Helper', 10)
 SQL);
 
     $pdo->exec(<<<'SQL'
