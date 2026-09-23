@@ -1,90 +1,90 @@
 # MuchoCore
 
-MuchoCore — backend для GDPS на Geometry Dash.
+MuchoCore — a backend for Geometry Dash Private Servers (GDPS).
 
-**Готовящаяся версия: v1.0.1**
+**Upcoming version: v1.0.1**
 
-> **Новичок? Начни с [START_HERE.md](START_HERE.md).**
+> **New here? Start with [START_HERE.md](START_HERE.md).**
 >
-> Не нужно читать весь репозиторий, чтобы запустить сервер.
+> You do not need to read the entire repository to get the server running.
 
-## Что внутри
+## What's included
 
-- аккаунты и профили;
-- уровни и списки уровней;
-- оценки, комментарии и социальные функции;
+- accounts and profiles;
+- levels and level lists;
+- ratings, comments, and social features;
 - cloud save;
-- админ-панель;
-- совместимость с несколькими поколениями клиента;
+- admin panel;
+- compatibility with multiple client generations;
 - JSON API v2;
-- автоматические тесты.
+- automated tests.
 
-## Быстрый выбор
+## Quick guide
 
-| У тебя есть | Открывай |
+| What you have | Open |
 | --- | --- |
-| Linux VPS с root-доступом | [docs/SETUP.md](docs/SETUP.md) |
-| Обычный PHP-хостинг | [docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md) |
-| Уже запустился сервер, нужен клиент | [docs/CLIENT_SETUP.md](docs/CLIENT_SETUP.md) |
-| Нужно разобраться глубже | [docs/ADVANCED.md](docs/ADVANCED.md) |
+| Linux VPS with root access | [docs/SETUP.md](docs/SETUP.md) |
+| Standard PHP hosting | [docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md) |
+| Server is already running, need the client | [docs/CLIENT_SETUP.md](docs/CLIENT_SETUP.md) |
+| Need a deeper technical guide | [docs/ADVANCED.md](docs/ADVANCED.md) |
 
-## После установки
+## After installation
 
-Проверь:
+Check:
 
 ~~~text
 https://YOUR-DOMAIN/health
 ~~~
 
-Ожидаемый ответ:
+Expected response:
 
 ~~~text
 1
 ~~~
 
-Админ-панель:
+Admin panel:
 
 ~~~text
 https://YOUR-DOMAIN/admin/
 ~~~
 
-Пользователь сервера по умолчанию:
+Default server user:
 
 ~~~text
 admin
 ~~~
 
-Пароль задаётся во время установки.
+The password is set during installation.
 
-## Подключение Geometry Dash
+## Connecting Geometry Dash
 
-Для Windows есть:
+For Windows, use:
 
 ~~~text
 tools/client-patch.bat
 ~~~
 
-Патчер создаёт отдельный файл клиента и не заменяет исходный EXE.
+The patcher creates a separate client file and does not replace the original EXE.
 
-Важно: успешный запуск патчера означает только успешную замену известных URL-строк. Полная совместимость с конкретной сборкой Geometry Dash подтверждается только реальным тестом клиента.
+Important: a successful patcher run only confirms that the known URL strings were replaced successfully. Full compatibility with a specific Geometry Dash build can only be confirmed through a real client test.
 
-## Структура
+## Project structure
 
 ~~~text
-START_HERE.md      ← сюда новичку
-README.md          ← краткая карта проекта
-src/               ← логика сервера
-public/            ← HTTP-входы и GD endpoint'ы
-database/          ← миграции
-tests/             ← проверки
-tools/             ← инструменты
-docs/              ← подробные инструкции
+START_HERE.md      ← start here if you are new
+README.md          ← project overview
+src/               ← server logic
+public/            ← HTTP entry points and GD endpoints
+database/          ← migrations
+tests/             ← tests
+tools/             ← tools
+docs/              ← detailed documentation
 docker/            ← Docker/Caddy
 ~~~
 
-### Что обычно не нужно трогать
+### What you usually do not need to touch
 
-Новичку обычно не нужны:
+New users usually do not need to modify:
 
 ~~~text
 src/
@@ -93,11 +93,11 @@ docker/
 tests/
 ~~~
 
-Сначала настрой сервер через инструкцию, затем проверяй /health.
+First configure the server using the setup guide, then check /health.
 
-## Безопасность
+## Security
 
-Никогда не публикуй:
+Never publish:
 
 ~~~text
 .env
@@ -106,11 +106,11 @@ storage/
 .secrets/
 ~~~
 
-Перед удалением установки прочитай предупреждение uninstall.sh: он удаляет контейнеры и базу.
+Before removing an installation, read the warning in uninstall.sh: it removes the containers and database.
 
-## Проверки разработчика
+## Developer checks
 
-Основные автоматические проверки:
+The main automated checks are:
 
 ~~~bash
 php tests/client-compatibility.php
@@ -119,10 +119,10 @@ python3 tools/client-patch.py --self-test
 bash tests/client-contract.sh
 ~~~
 
-CI дополнительно проверяет shell/PHP/Python-код, Docker/Caddy-конфигурацию, shared-hosting routing и Windows PowerShell patcher.
+CI also checks shell/PHP/Python code, Docker/Caddy configuration, shared-hosting routing, and the Windows PowerShell patcher.
 
-Реальный Geometry Dash клиент всё равно нужно тестировать отдельно.
+The real Geometry Dash client still needs to be tested separately.
 
-## Лицензия
+## License
 
-MIT. См. [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
