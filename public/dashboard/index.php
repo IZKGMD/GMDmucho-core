@@ -631,6 +631,8 @@ $uploadTurnstile = ($account && Turnstile::enabled());
 <!doctype html>
 <html lang="en">
 <head>
+<link rel="icon" href="/assets/muchocore-icon.png" type="image/png">
+<link rel="apple-touch-icon" href="/assets/muchocore-icon.png">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="<?=pdH($serverName)?> player dashboard, music uploads and player profiles">
@@ -870,7 +872,7 @@ input[type=text],input[type=password],input[type=file]{
 <div class="shell">
 
 <header class="topbar">
-    <a class="brand" href="/dashboard"><?=pdH($serverName)?> <span>Portal</span></a>
+    <a class="brand" href="/dashboard"><img class="mucho-brand-logo" src="/assets/muchocore-logo.webp" alt="MuchoCore" width="42" height="42" decoding="async"><span class="mucho-brand-name"><?=pdH($serverName)?></span> <span>Portal</span></a>
     <nav class="nav">
         <a href="/dashboard">Discover</a>
         <a href="#players">Players</a>
