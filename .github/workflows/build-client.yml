@@ -18,12 +18,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Patch client URLs
+      - name: Patch client URLs safely
         shell: python
         run: |
           from pathlib import Path
           import hashlib
-          import re
 
           src = Path("GeometryDash-MuchoCore (1).exe")
           out = Path("GeometryDash-MuchoCore.exe")
@@ -39,46 +38,100 @@ jobs:
               b"gdserver.net",
           ]
           replacement = b"muchogdps.space"
-
           replacements = {}
-          for old in targets:
-              count = data.count(old)
-              if count:
-                  if len(replacement) > len(old):
-                      raise SystemExit(f"Replacement is longer than {old!r}")
-                  padded = replacement + b"\x00" * (len(old) - len(replacement))
-                  data[:] = data.replace(old, padded)
-                  replacements[old.decode("ascii")] = count
 
+          def patch_ascii(data, old, new):
+              pos = 0
+              count = 0
+              while True:
+                  i = data.find(old, pos)
+                  if i < 0:
+                      break
+
+                  start = data.rfind(b"\x00", max(0, i - 256), i) + 1
+                  end = data.find(b"\x00", i)
+                  if end < 0:
+                      end = i + len(old)
+
+                  prefix = bytes(data[start:i])
+                  if prefix.endswith((b"http://", b"https://")):
+                      url = bytes(data[start:end])
+                      patched = url.replace(old, new, 1)
+                      if len(patched) > len(url):
+                          raise SystemExit(f"Replacement grew URL {url!r}")
+                      data[start:end] = patched + b"\x00" * (len(url) - len(patched))
+                      replacements[old.decode("ascii")] = replacements.get(old.decode("ascii"), 0) + 1
+                      count += 1
+                      pos = end
+                  else:
+                      pos = i + len(old)
+              return count
+
+          def patch_utf16(data, old, new):
               old16 = old.decode("ascii").encode("utf-16le")
-              new16 = replacement.decode("ascii").encode("utf-16le")
-              count16 = data.count(old16)
-              if count16:
-                  if len(new16) > len(old16):
-                      raise SystemExit(f"UTF-16 replacement is longer than {old!r}")
-                  padded16 = new16 + b"\x00" * (len(old16) - len(new16))
-                  data[:] = data.replace(old16, padded16)
-                  replacements[old.decode("ascii") + " [utf16]"] = count16
+              new16 = new.decode("ascii").encode("utf-16le")
+              zero16 = b"\x00\x00"
+              count = 0
+              pos = 0
+              while True:
+                  i = data.find(old16, pos)
+                  if i < 0:
+                      break
+                  start = data.rfind(zero16, max(0, i - 512), i) + 2
+                  end = data.find(zero16, i)
+                  if end < 0:
+                      end = i + len(old16)
+                  prefix = bytes(data[start:i])
+                  http = "http://".encode("utf-16le")
+                  https = "https://".encode("utf-16le")
+                  if prefix.endswith((http, https)):
+                      url = bytes(data[start:end])
+                      patched = url.replace(old16, new16, 1)
+                      if len(patched) > len(url):
+                          raise SystemExit(f"Replacement grew UTF-16 URL for {old!r}")
+                      data[start:end] = patched + zero16 * ((len(url) - len(patched)) // 2)
+                      replacements[old.decode("ascii") + " [utf16]"] = replacements.get(old.decode("ascii") + " [utf16]", 0) + 1
+                      count += 1
+                      pos = end
+                  else:
+                      pos = i + len(old16)
+              return count
+
+          for old in targets:
+              patch_ascii(data, old, replacement)
+              patch_utf16(data, old, replacement)
 
           out.write_bytes(data)
 
-          url_re = re.compile(rb"https?://[^\\x00\\r\\n\\t ]{3,120}")
-          urls = sorted(set(m.group(0).decode("ascii", "ignore") for m in url_re.finditer(data)))
-          Path("client-url-report.txt").write_text(
-              "MuchoCore client patch report\\n"
-              "================================\\n"
-              + "\\n".join(f"REPLACED {k}: {v}" for k, v in replacements.items())
-              + "\\n\\nDetected URLs:\\n"
-              + "\\n".join(urls)
-              + "\\n\\nSHA256: "
-              + hashlib.sha256(data).hexdigest()
-              + "\\n",
-              encoding="utf-8",
-          )
+          # Validate that no targeted hostname remains inside an HTTP/HTTPS URL.
+          for old in targets:
+              if old in data:
+                  raw = bytes(data)
+                  i = 0
+                  while True:
+                      i = raw.find(old, i)
+                      if i < 0:
+                          break
+                      start = raw.rfind(b"\x00", max(0, i - 256), i) + 1
+                      prefix = raw[start:i]
+                      if prefix.endswith((b"http://", b"https://")):
+                          raise SystemExit(f"Unpatched hostname remains in URL: {old!r}")
+                      i += len(old)
 
-          if b"muchogdps.space" not in data and "muchogdps.space [utf16]" not in replacements:
-              raise SystemExit("MuchoCore hostname was not found in the final executable")
+          if replacement not in data:
+              raise SystemExit("muchogdps.space was not embedded into the final executable")
 
+          sha = hashlib.sha256(data).hexdigest()
+          lines = [
+              "MuchoCore client patch report",
+              "==============================",
+              *[f"REPLACED {k}: {v}" for k, v in sorted(replacements.items())],
+              "",
+              f"Input SHA256: {hashlib.sha256(src.read_bytes()).hexdigest()}",
+              f"Output SHA256: {sha}",
+              f"Size: {len(data)} bytes",
+          ]
+          Path("client-url-report.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
           print(Path("client-url-report.txt").read_text(encoding="utf-8"))
 
       - name: Upload patched client
