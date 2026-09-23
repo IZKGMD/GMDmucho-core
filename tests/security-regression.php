@@ -67,6 +67,14 @@ check(
     'rate limiter blocks requests above the limit'
 );
 
+$v2 = file_get_contents($root . '/public/api/v2/security.php');
+check(is_string($v2), 'API v2 security module is readable');
+check(
+    str_contains($v2, 'ClientIp::resolve') &&
+    !str_contains($v2, "$_SERVER['HTTP_CF_CONNECTING_IP']"),
+    'API v2 does not trust spoofable Cloudflare headers directly'
+);
+
 $failClosed = new RateLimiter('/proc/muchocore-unwritable-' . bin2hex(random_bytes(4)), false);
 check(
     $failClosed->allow('demo', 1, 60) === false,
