@@ -86,7 +86,7 @@ $credentials = [
     [22, true],
 ];
 
-foreach ([37, 40, 41, 42] as $binaryVersion) {
+foreach ([37, 40, 41, 42, 47, 48] as $binaryVersion) {
     $request = new Request(
         'POST',
         '/loginGJAccount22.php',
