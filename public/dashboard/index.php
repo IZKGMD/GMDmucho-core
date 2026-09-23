@@ -651,8 +651,8 @@ $uploadTurnstile = ($account && Turnstile::enabled());
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="/assets/muchocore-icon.png" type="image/png">
-<link rel="apple-touch-icon" href="/assets/muchocore-icon.png">
+<link rel="icon" href="/assets/muchocore-dashboard-logo.jpg?v=1" type="image/jpeg">
+<link rel="apple-touch-icon" href="/assets/muchocore-dashboard-logo.jpg?v=1">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#090b10">
@@ -724,28 +724,32 @@ button,input{font:inherit}
     box-shadow:0 14px 44px rgba(0,0,0,.24);
 }
 .brand{
-    min-width:0;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    flex:0 1 auto;
-    font-size:18px;
-    font-weight:900;
-    letter-spacing:-.55px;
+    width:48px;
+    height:48px;
+    min-width:48px;
+    display:grid;
+    place-items:center;
+    flex:0 0 auto;
+    border-radius:13px;
+    line-height:0;
 }
-.brand > span:last-child{color:var(--accent-2)}
 .mucho-brand-logo{
     display:block;
-    width:170px;
-    height:auto;
-    max-height:54px;
-    flex:0 0 auto;
+    width:48px;
+    height:48px;
+    max-width:48px;
+    max-height:48px;
+    flex:0 0 48px;
     object-fit:contain;
     object-position:center;
-    border-radius:10px;
+    border-radius:12px;
     filter:drop-shadow(0 8px 20px rgba(0,0,0,.24));
+    transition:transform .16s ease,filter .16s ease;
 }
-.mucho-brand-name{min-width:0;}
+.brand:hover .mucho-brand-logo{
+    transform:translateY(-1px) scale(1.025);
+    filter:drop-shadow(0 10px 24px rgba(0,0,0,.30));
+}
 .brand-copy{
     display:grid;
     gap:2px;
@@ -1437,7 +1441,8 @@ body.dashboard-page .topbar{
     .list-item{align-items:flex-start}
     .list-item .badge{margin-top:1px}
     .panel{padding:17px}
-    .mucho-brand-logo{width:145px;max-height:46px}
+    .brand{width:44px;height:44px;min-width:44px}
+    .mucho-brand-logo{width:44px;height:44px;max-width:44px;max-height:44px;flex-basis:44px}
 }
 @media(prefers-reduced-motion:reduce){
     *{scroll-behavior:auto!important;transition:none!important}
@@ -1453,7 +1458,7 @@ body.dashboard-page .topbar{
 <div class="shell">
 
 <header class="topbar">
-    <a class="brand" href="/dashboard"><img class="mucho-brand-logo" src="/assets/muchocore-logo.jpg" alt="MuchoCore" width="42" height="42" decoding="async"><span class="mucho-brand-name"><?=pdH($serverName)?></span> <span>Portal</span></a>
+    <a class="brand" href="/dashboard" aria-label="<?=pdH($serverName)?>"><img class="mucho-brand-logo" src="/assets/muchocore-dashboard-logo.jpg?v=1" alt="<?=pdH($serverName)?>" width="48" height="48" decoding="async"></a>
     <nav class="nav">
         <a href="/dashboard">Discover</a>
         <a href="#players">Players</a>
