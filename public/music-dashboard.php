@@ -666,12 +666,16 @@ th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04
             </td>
             <td><?=mdH($song['created_at'])?></td>
             <td>
-                <a
-                    class="btn secondary small"
-                    href="<?=mdH($song['download_url'])?>"
-                    target="_blank"
-                    rel="noopener"
-                >Open</a>
+                <?php if ((int)$song['is_verified'] === 1): ?>
+                    <a
+                        class="btn secondary small"
+                        href="<?=mdH($song['download_url'])?>"
+                        target="_blank"
+                        rel="noopener"
+                    >Open</a>
+                <?php else: ?>
+                    <span class="status">Awaiting moderation</span>
+                <?php endif; ?>
             </td>
         </tr>
         <?php endforeach; ?>
