@@ -199,7 +199,14 @@ final readonly class LevelTransferService
 
             'is_unlisted' => $this->boolInt(
                 $data,
-                'unlisted'
+                isset($data['unlisted1']) ? 'unlisted1' : 'unlisted'
+            ),
+
+            'unlisted2' => $this->boolInt(
+                $data,
+                isset($data['unlisted2'])
+                    ? 'unlisted2'
+                    : (isset($data['unlisted1']) ? 'unlisted1' : 'unlisted')
             ),
 
             'wt' => $this->intField(
@@ -278,7 +285,9 @@ final readonly class LevelTransferService
         int $gameVersion,
         int $binaryVersion,
         bool $extras,
-        bool $incrementDownloads
+        bool $incrementDownloads,
+        int $viewerAccountId = 0,
+        string $viewerCredential = ''
     ): string {
         $timelyId=0;
 
