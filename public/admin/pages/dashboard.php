@@ -8,376 +8,215 @@ declare(strict_types=1);
 
 function renderAdminDashboard(PDO $db): void
 {
+    $count = static function (PDO $db, string $table): int {
+        try {
+            return countTable($db, $table);
+        } catch (Throwable) {
+            return 0;
+        }
+    };
+
+    $accounts = $count($db, 'accounts');
+    $levels = $count($db, 'levels');
+    $songs = $count($db, 'songs');
+    $verifiedSongs = 0;
+    $pendingSongs = 0;
+
+    try {
+        $q = $db->query(
+            'SELECT
+                COALESCE(SUM(CASE WHEN is_verified=1 THEN 1 ELSE 0 END),0) AS verified,
+                COALESCE(SUM(CASE WHEN is_verified=0 THEN 1 ELSE 0 END),0) AS pending
+             FROM songs'
+        );
+        $songStats = $q->fetch(PDO::FETCH_ASSOC) ?: [];
+        $verifiedSongs = (int)($songStats['verified'] ?? 0);
+        $pendingSongs = (int)($songStats['pending'] ?? 0);
+    } catch (Throwable) {
+    }
+
+    $todayAccounts = 0;
+    $todaySongs = 0;
+    try {
+        $q = $db->query(
+            'SELECT COUNT(*) FROM accounts
+             WHERE created_at >= CURRENT_DATE'
+        );
+        $todayAccounts = (int)$q->fetchColumn();
+    } catch (Throwable) {
+    }
+
+    try {
+        $q = $db->query(
+            'SELECT COUNT(*) FROM songs
+             WHERE created_at >= CURRENT_DATE'
+        );
+        $todaySongs = (int)$q->fetchColumn();
+    } catch (Throwable) {
+    }
+
+    $recentPlayers = [];
+    try {
+        $recentPlayers = $db->query(
+            'SELECT
+                a.account_id,
+                a.username,
+                a.created_at,
+                COALESCE(r.code, "user") AS role_code,
+                COALESCE(p.stars,0) AS stars,
+                COALESCE(p.moons,0) AS moons
+             FROM accounts a
+             LEFT JOIN roles r ON r.id = a.role_id
+             LEFT JOIN profiles p ON p.account_id = a.account_id
+             ORDER BY a.account_id DESC
+             LIMIT 8'
+        )->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable) {
+    }
+
+    $recentSongs = [];
+    try {
+        $recentSongs = $db->query(
+            'SELECT
+                s.id,
+                s.name,
+                s.author_name,
+                s.size,
+                s.is_verified,
+                s.created_at
+             FROM songs s
+             ORDER BY s.id DESC
+             LIMIT 8'
+        )->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable) {
+    }
+
     echo '
-    <div class="quick-grid">
-
-        <a class="quick-link" href="/admin/?page=players">
-            <b>Players</b><br>
-            <small>Accounts, bans and statistics</small>
-        </a>
-
-        <a class="quick-link" href="/admin/?page=muchoprofiles">
-            <b>Mucho Profiles</b><br>
-            <small>Titles, badges and personalization</small>
-        </a>
-
-        <a class="quick-link" href="/admin/?page=moderation">
-            <b>Moderation</b><br>
-            <small>Level rating and review</small>
-        </a>
-
-        <a class="quick-link" href="/admin/?page=endpoints">
-            <b>API Tester</b><br>
-            <small>Test GD endpoints</small>
-        </a>
-
-        <a class="quick-link" href="/admin/?page=dbbackups">
-            <b>DB Backups</b><br>
-            <small>Database recovery center</small>
-        </a>
-
-        <a class="quick-link" href="/admin/?page=securitycenter">
-            <b>Security</b><br>
-            <small>Monitoring, alerts and API metrics</small>
-        </a>
-
-    </div>
+    <section class="admin-hero">
+        <div>
+            <span class="hero-eyebrow">MUCHOCORE CONTROL CENTER</span>
+            <h2>Everything important, one screen.</h2>
+            <p>Monitor the server, moderate community content and jump straight into the player portal.</p>
+            <div class="hero-actions">
+                <a class="btn" href="/dashboard" target="_blank" rel="noopener">Open Player Portal ↗</a>
+                <a class="btn gray" href="/admin/?page=songs">Moderate Music</a>
+                <a class="btn gray" href="/admin/?page=players">Manage Players</a>
+            </div>
+        </div>
+        <div class="hero-orb">
+            <div class="hero-orb-core">M</div>
+        </div>
+    </section>
     ';
 
+    echo '<div class="admin-kpi-grid">';
 
-    $stats=[
-        'Accounts'=>'accounts',
-        'Levels'=>'levels',
-        'Comments'=>'comments',
-        'Messages'=>'messages',
-        'Friends'=>'friends',
-        'Blocks'=>'blocks',
-        'Likes'=>'likes',
-        'Songs'=>'songs'
+    $kpis = [
+        ['Players', $accounts, 'Today +' . $todayAccounts, 'violet'],
+        ['Levels', $levels, 'Published content', 'blue'],
+        ['Music', $songs, $verifiedSongs . ' verified', 'green'],
+        ['Pending Music', $pendingSongs, $todaySongs . ' uploaded today', $pendingSongs > 0 ? 'amber' : 'green'],
     ];
 
-
-    echo '<div class="grid">';
-
-    foreach($stats as $name=>$table){
-
-        try{
-            $n=countTable(
-                $db,
-                $table
-            );
-        }catch(Throwable){
-            $n=0;
-        }
-
-        echo '<div class="card">';
-        echo '<small>'.h($name).'</small>';
-
-        echo '<div class="value">'.
-             number_format($n).
-             '</div>';
-
+    foreach ($kpis as [$label, $value, $meta, $tone]) {
+        echo '<div class="admin-kpi ' . h((string)$tone) . '">';
+        echo '<div class="admin-kpi-label">' . h((string)$label) . '</div>';
+        echo '<div class="admin-kpi-value">' . number_format((int)$value) . '</div>';
+        echo '<div class="admin-kpi-meta">' . h((string)$meta) . '</div>';
         echo '</div>';
     }
 
     echo '</div>';
 
-
-    echo '<h2>Server</h2>';
-
-    try{
-        $status=rootOp('status');
-    }catch(Throwable $e){
-        $status=
-            'Failed to get status: '.
-            $e->getMessage();
-    }
-
-    echo '<div class="card"><pre>'.
-         h($status).
-         '</pre></div>';
-
-
-    echo '<h2>Latest registrations</h2>';
-
-    try{
-
-        $recent=$db->query(
-            'SELECT
-                a.account_id,
-                a.username,
-                a.created_at,
-                p.icon_type,
-                p.cube,
-                p.ship,
-                p.ball,
-                p.ufo,
-                p.wave,
-                p.robot,
-                p.spider,
-                p.swing,
-                p.jetpack,
-                p.color1,
-                p.color2,
-                p.color3,
-                p.glow
-             FROM accounts a
-             LEFT JOIN profiles p
-                ON p.account_id = a.account_id
-             ORDER BY a.account_id DESC
-             LIMIT 10'
-        )->fetchAll(
-            PDO::FETCH_ASSOC
-        );
-
-    }catch(Throwable){
-        $recent=[];
-    }
-
-    echo '<div class="table"><table>';
-
     echo '
-        <tr>
-            <th>ID</th>
-            <th>Username</th>
-            <th>Date</th>
-        </tr>
+    <div class="quick-grid admin-quick-grid">
+        <a class="quick-link" href="/admin/?page=players">
+            <b>Players</b><small>Accounts, bans, roles and statistics</small>
+        </a>
+        <a class="quick-link" href="/admin/?page=songs">
+            <b>Music Queue</b><small>Review pending uploads and verified tracks</small>
+        </a>
+        <a class="quick-link" href="/admin/?page=moderation">
+            <b>Moderation</b><small>Levels, ratings and community review</small>
+        </a>
+        <a class="quick-link" href="/admin/?page=endpoints">
+            <b>API Tester</b><small>Probe Geometry Dash-compatible endpoints</small>
+        </a>
+        <a class="quick-link" href="/admin/?page=dbbackups">
+            <b>DB Backup Center</b><small>Snapshots and recovery workflow</small>
+        </a>
+        <a class="quick-link" href="/admin/?page=securitycenter">
+            <b>Security Center</b><small>Requests, alerts and operational health</small>
+        </a>
+    </div>
     ';
 
-    foreach($recent as $r){
+    echo '<div class="admin-dashboard-columns">';
 
-        echo '<tr>';
+    echo '<section class="card admin-feed-card">';
+    echo '<div class="section-heading"><div><h2>Latest players</h2><small>Newest account registrations</small></div><a href="/admin/?page=players">View all →</a></div>';
 
-        echo '<td>'.
-            h($r['account_id'] ?? '').
-            '</td>';
+    if ($recentPlayers) {
+        echo '<div class="admin-player-feed">';
 
-        /* MUCHO_DASHBOARD_ICON_KIT_V2 */
-        $iconTypes=[
-            0=>['cube','cube'],
-            1=>['ship','ship'],
-            2=>['ball','ball'],
-            3=>['ufo','ufo'],
-            4=>['wave','wave'],
-            5=>['robot','robot'],
-            6=>['spider','spider'],
-            7=>['swing','swing'],
-            8=>['jetpack','jetpack'],
-        ];
-
-        $selectedType=(int)($r['icon_type'] ?? 0);
-
-        if(!isset($iconTypes[$selectedType])){
-            $selectedType=0;
-        }
-
-        [$selectedName,$selectedColumn]=$iconTypes[$selectedType];
-
-        $color1=max(0,min(106,(int)($r['color1'] ?? 0)));
-        $color2=max(0,min(106,(int)($r['color2'] ?? 3)));
-
-        $mainIconId=max(1,(int)($r[$selectedColumn] ?? 1));
-
-        $mainIconUrl=
-            'https://gdicon.oat.zone/icon.png?'.
-            http_build_query([
-                'type'=>$selectedName,
-                'value'=>$mainIconId,
-                'color1'=>$color1,
-                'color2'=>$color2,
-            ]);
-
-        $glow=(int)($r['glow'] ?? 0)===1;
-
-        $mainFilter=
-            $glow
-            ? 'drop-shadow(0 0 5px rgba(255,255,255,.92)) drop-shadow(0 5px 7px rgba(0,0,0,.38))'
-            : 'drop-shadow(0 5px 7px rgba(0,0,0,.38))';
-
-        echo '<td>';
-
-        echo '<details style="min-width:185px">';
-
-        echo '<summary style="'.
-             'display:flex;'.
-             'align-items:center;'.
-             'gap:11px;'.
-             'cursor:pointer;'.
-             'list-style:none;'.
-             'user-select:none'.
-             '">';
-
-        echo '<img '.
-             'src="'.h($mainIconUrl).'" '.
-             'alt="" '.
-             'loading="lazy" '.
-             'referrerpolicy="no-referrer" '.
-             'width="56" '.
-             'height="56" '.
-             'style="'.
-             'width:56px;'.
-             'height:56px;'.
-             'object-fit:contain;'.
-             'flex:0 0 56px;'.
-             'filter:'.$mainFilter.
-             '">';
-
-        echo '<div>';
-
-        echo '<b>'.h($r['username'] ?? '').'</b>';
-
-        echo '<div style="'.
-             'font-size:11px;'.
-             'opacity:.58;'.
-             'margin-top:3px'.
-             '">';
-
-        echo '#'.h($r['account_id'] ?? '').
-             ' · '.h(ucfirst($selectedName)).
-             ' #'.h($mainIconId);
-
-        if($glow){
-            echo ' · Glow';
+        foreach ($recentPlayers as $player) {
+            $role = str_replace('_', ' ', (string)($player['role_code'] ?? 'user'));
+            echo '<a class="admin-player-row" href="/admin/?page=players&search=' . rawurlencode((string)$player['username']) . '">';
+            echo '<div class="admin-player-avatar">' . h(mb_strtoupper(mb_substr((string)($player['username'] ?? '?'), 0, 1, 'UTF-8'), 'UTF-8')) . '</div>';
+            echo '<div class="admin-player-main">';
+            echo '<b>' . h($player['username'] ?? '') . '</b>';
+            echo '<small>#' . h($player['account_id'] ?? '') . ' · ' . h(ucfirst($role)) . '</small>';
+            echo '</div>';
+            echo '<div class="admin-player-stats">';
+            echo '<span>' . number_format((int)($player['stars'] ?? 0)) . ' ★</span>';
+            echo '<span>' . number_format((int)($player['moons'] ?? 0)) . ' ◇</span>';
+            echo '</div>';
+            echo '</a>';
         }
 
         echo '</div>';
-        echo '</div>';
-        echo '</summary>';
+    } else {
+        echo '<div class="empty-state">No player data available.</div>';
+    }
 
-        echo '<div style="'.
-             'display:flex;'.
-             'flex-wrap:wrap;'.
-             'gap:9px;'.
-             'margin-top:10px;'.
-             'padding:10px;'.
-             'border-radius:12px;'.
-             'background:rgba(255,255,255,.04)'.
-             '">';
+    echo '</section>';
 
-        foreach($iconTypes as [$kitType,$kitColumn]){
+    echo '<section class="card admin-feed-card">';
+    echo '<div class="section-heading"><div><h2>Music activity</h2><small>Latest uploads from players</small></div><a href="/admin/?page=songs">Open queue →</a></div>';
 
-            $kitId=max(1,(int)($r[$kitColumn] ?? 1));
+    if ($recentSongs) {
+        echo '<div class="admin-song-feed">';
 
-            $kitUrl=
-                'https://gdicon.oat.zone/icon.png?'.
-                http_build_query([
-                    'type'=>$kitType,
-                    'value'=>$kitId,
-                    'color1'=>$color1,
-                    'color2'=>$color2,
-                ]);
-
-            echo '<div style="width:58px;text-align:center">';
-
-            echo '<img '.
-                 'src="'.h($kitUrl).'" '.
-                 'alt="" '.
-                 'loading="lazy" '.
-                 'referrerpolicy="no-referrer" '.
-                 'width="46" '.
-                 'height="46" '.
-                 'style="'.
-                 'width:46px;'.
-                 'height:46px;'.
-                 'object-fit:contain;'.
-                 'filter:'.$mainFilter.
-                 '">';
-
-            echo '<div style="'.
-                 'font-size:9px;'.
-                 'opacity:.62;'.
-                 'margin-top:2px'.
-                 '">'.
-                 h(ucfirst($kitType)).
-                 '<br>#'.
-                 h($kitId).
-                 '</div>';
-
+        foreach ($recentSongs as $song) {
+            $verified = (int)($song['is_verified'] ?? 0) === 1;
+            echo '<div class="admin-song-row">';
+            echo '<div class="song-wave"><span></span><span></span><span></span><span></span></div>';
+            echo '<div class="admin-song-main">';
+            echo '<b>' . h($song['name'] ?? '') . '</b>';
+            echo '<small>' . h($song['author_name'] ?? '') . ' · #' . h($song['id'] ?? '') . ' · ' . h($song['size'] ?? '0') . ' MB</small>';
+            echo '</div>';
+            echo '<span class="badge ' . ($verified ? 'green' : '') . '">' . ($verified ? 'Verified' : 'Pending') . '</span>';
             echo '</div>';
         }
 
         echo '</div>';
-        echo '</details>';
-        echo '</td>';
-
-        echo '<td>'.
-            h($r['created_at'] ?? '').
-            '</td>';
-
-        echo '</tr>';
+    } else {
+        echo '<div class="empty-state">No songs uploaded yet.</div>';
     }
 
-    echo '</table></div>';
+    echo '</section>';
 
+    echo '</div>';
 
-    echo '<h2>Latest levels</h2>';
+    echo '<section class="card admin-server-card">';
+    echo '<div class="section-heading"><div><h2>Server status</h2><small>Quick operational snapshot</small></div><a href="/admin/?page=monitoring">Monitoring →</a></div>';
 
-    try{
-
-        $levels=$db->query(
-            'SELECT
-                level_id,
-                name,
-                account_id,
-                stars,
-                downloads,
-                likes
-             FROM levels
-             ORDER BY level_id DESC
-             LIMIT 10'
-        )->fetchAll(
-            PDO::FETCH_ASSOC
-        );
-
-    }catch(Throwable){
-        $levels=[];
+    try {
+        $status = rootOp('status');
+    } catch (Throwable $e) {
+        $status = 'Failed to get status: ' . $e->getMessage();
     }
 
-
-    echo '<div class="table"><table>';
-
-    echo '
-        <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Account</th>
-            <th>Stars</th>
-            <th>Downloads</th>
-            <th>Likes</th>
-        </tr>
-    ';
-
-
-    foreach($levels as $level){
-
-        echo '<tr>';
-
-        echo '<td>'.
-            h($level['level_id'] ?? '').
-            '</td>';
-
-        echo '<td>'.
-            h($level['name'] ?? '').
-            '</td>';
-
-        echo '<td>'.
-            h($level['account_id'] ?? '').
-            '</td>';
-
-        echo '<td>'.
-            h($level['stars'] ?? '').
-            '</td>';
-
-        echo '<td>'.
-            h($level['downloads'] ?? '').
-            '</td>';
-
-        echo '<td>'.
-            h($level['likes'] ?? '').
-            '</td>';
-
-        echo '</tr>';
-    }
-
-    echo '</table></div>';
+    echo '<pre class="admin-status-pre">' . h($status) . '</pre>';
+    echo '</section>';
 }
