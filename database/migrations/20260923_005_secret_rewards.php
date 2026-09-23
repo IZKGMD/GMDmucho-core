@@ -6,7 +6,7 @@ return [
     <<<'SQL'
 CREATE TABLE IF NOT EXISTS mucho_secret_rewards (
     reward_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    reward_key VARCHAR(128) NOT NULL,
+    reward_key VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
     chest_type TINYINT UNSIGNED NOT NULL DEFAULT 1,
     rewards VARCHAR(512) NOT NULL,
     uses INT UNSIGNED NOT NULL DEFAULT 1,
