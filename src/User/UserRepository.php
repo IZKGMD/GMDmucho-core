@@ -398,7 +398,7 @@ final readonly class UserRepository
                     ON ar.id = a.role_id
                 WHERE a.is_active=1
                   AND a.is_banned=0
-                  AND (:game_version = 0 OR COALESCE(p.game_version, 0) >= 20)
+                  AND (:game_version < 20 OR COALESCE(p.game_version, 0) >= 20)
             )
             SELECT *
             FROM RankedFriends
