@@ -87,7 +87,12 @@ final class LevelListService
                     return '-1';
                 }
 
-                $filters['account_ids'] = $this->repo->friendAccountIds($accountId);
+                $filters['account_ids'] = array_values(
+                    array_diff(
+                        $this->repo->friendAccountIds($accountId),
+                        [$accountId]
+                    )
+                );
                 if (!$filters['account_ids']) {
                     return '-1';
                 }
@@ -107,8 +112,12 @@ final class LevelListService
         }
 
         $diff = Request::string('diff', '-');
-        if ($diff !== '-' && preg_match('/^-?\d+$/', $diff)) {
-            $filters['difficulty'] = (int)$diff;
+        if ($diff !== '-') {
+            $diffIds = Request::idList($diff, 20);
+
+            if ($diffIds) {
+                $filters['difficulties'] = $diffIds;
+            }
         }
         if (Request::boolInt('star') === 1) {
             $filters['rated'] = true;
