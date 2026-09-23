@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 use MuchoCore\Database\Database;
+use MuchoCore\Security\ClientIp;
 
 require dirname(__DIR__,2).'/vendor/autoload.php';
 
@@ -39,9 +40,7 @@ if (!defined('BACKUP_DIR')) {
 @mkdir(CONTROL_DIR,0770,true);
 @mkdir(BACKUP_DIR,0770,true);
 
-$__muchoIsHttps =
-    (($_SERVER['HTTPS'] ?? '') === 'on') ||
-    (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+$__muchoIsHttps = ClientIp::isHttps($_SERVER);
 
 ini_set('session.use_strict_mode','1');
 ini_set('session.cookie_httponly','1');
@@ -208,9 +207,7 @@ function audit(
                 JSON_UNESCAPED_UNICODE|
                 JSON_UNESCAPED_SLASHES
             ),
-        'ip'=>$_SERVER['HTTP_CF_CONNECTING_IP']
-            ?? $_SERVER['REMOTE_ADDR']
-            ?? ''
+        'ip'=>ClientIp::resolve($_SERVER)
     ]);
 }
 
@@ -411,9 +408,7 @@ if (isset($_POST['login'])) {
     $password=(string)($_POST['password'] ?? '');
     $otp=trim((string)($_POST['otp'] ?? ''));
 
-    $ip=$_SERVER['HTTP_CF_CONNECTING_IP']
-        ?? $_SERVER['REMOTE_ADDR']
-        ?? 'unknown';
+    $ip=ClientIp::resolve($_SERVER);
 
     $rate='/tmp/mucho-admin-'.hash('sha256',$ip);
 
@@ -616,6 +611,8 @@ justify-content:space-between;
 gap:8px;
 padding:5px 7px 17px
 }
+
+.brand-mark{width:34px;height:34px;display:block;filter:drop-shadow(0 6px 14px rgba(120,102,255,.25))}
 
 .logo{
 font-size:21px;

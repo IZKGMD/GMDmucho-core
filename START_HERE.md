@@ -1,14 +1,16 @@
-# MuchoCore — начать здесь
+# MuchoCore — Start Here
 
-Добро пожаловать! MuchoCore можно запускать даже без глубоких знаний PHP или Docker.
+<img src="public/assets/muchocore-mark.svg" alt="MuchoCore" width="84">
 
-## Что это
+Welcome! MuchoCore can be deployed without deep PHP or Docker knowledge.
 
-MuchoCore — серверная часть GDPS для Geometry Dash.
+## What is MuchoCore?
 
-Проще всего представить так:
+MuchoCore is the server-side core for a Geometry Dash Private Server (GDPS).
 
-```
+Think of it like this:
+
+```text
 Geometry Dash
      ↓
 MuchoCore
@@ -16,119 +18,172 @@ MuchoCore
 MySQL / MariaDB
 ```
 
-## Я новичок
+## I am a beginner
 
-Открой только один из двух путей:
+Choose one of these two paths:
 
 ### 1. VPS
 
-Это основной вариант для полноценного сервера.
+This is the recommended setup for a full GDPS.
 
-Начни с:
+Start with:
 
-```
+```text
 docs/SETUP.md
 ```
 
-Самый простой запуск:
+The simplest installation is:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh -o install.sh
 sudo bash install.sh
 ```
 
-Установщик сам создаёт контейнеры, базу, HTTPS и администратора.
+The installer sets up the containers, database, HTTPS, and administrator account.
 
-### 2. Обычный PHP-хостинг
+### 2. Regular PHP hosting / Beget
 
-Подходит для простого или тестового сервера.
+This is useful for a simple or test server and can be installed without SSH.
 
-Начни с:
+Start with:
 
-```
+```text
 docs/SHARED_HOSTING.md
 ```
 
-Нужны PHP 8.3+, MySQL/MariaDB и доступ к файлам сайта.
+Use the ready-made FTP PHP 8.3 package. Upload it by FTP, create an empty MySQL/MariaDB database, then open `/shared-install.php` in your browser.
 
-## После установки
+## Beget / FTP — easiest setup
 
-Проверь:
+Use this path when you have a normal Beget PHP hosting account.
 
+1. Create an empty MySQL database in the Beget control panel.
+2. Download the **MuchoCore FTP PHP 8.3 package** from the latest project build.
+3. Upload the contents of the ZIP into your site's `public_html/` folder using FTP.
+4. Make sure the site uses **PHP 8.3 or newer**.
+5. Open `http://YOUR-DOMAIN/shared-install.php`.
+6. Enter the MySQL host, database name, username, and password shown by Beget.
+7. Choose the admin password and press **Install MuchoCore**.
+8. Open `http://YOUR-DOMAIN/health`. A working installation returns `1`.
+9. Open `http://YOUR-DOMAIN/admin/` and log in as `admin`.
+
+You do **not** need SSH, Docker, or Composer for this FTP package because `vendor/` is already included.
+
+**Important:** do not use the normal GitHub **Code → Download ZIP** archive for this path. That archive is the source tree and is not the ready-to-upload FTP package.
+
+After installation, delete `public/shared-install.php` if it was not removed automatically.
+
+## When something does not work
+
+Do not search through the whole repository.
+
+Run:
+
+```bash
+bash bin/mucho doctor
 ```
-https://YOUR-DOMAIN/health
+
+Then look at the lines marked `FAIL` and `WARN`.
+
+Useful commands:
+
+```bash
+bash bin/mucho status
+bash bin/mucho logs
+bash bin/mucho health
 ```
 
-Нормальный ответ:
+## After installation
 
+Check:
+
+```text
+http://YOUR-DOMAIN/health
 ```
+
+A healthy server should return:
+
+```text
 1
 ```
 
-Потом открой:
+Then open:
 
-```
-https://YOUR-DOMAIN/admin/
+```text
+http://YOUR-DOMAIN/admin/
 ```
 
-Логин администратора:
+Default administrator username:
 
-```
+```text
 admin
 ```
 
-Пароль — тот, который ты задал при установке.
+Use the administrator password you created during installation.
 
-## Подключить игру
+## Connect Geometry Dash
 
-После того как сервер отвечает на `/health`, переходи в:
+After the server responds to `/health`, continue with:
 
-```
+```text
 docs/CLIENT_SETUP.md
 ```
 
-Для Windows есть простой патчер:
+For Windows, MuchoCore includes:
 
-```
+```text
 tools/client-patch.bat
 ```
 
-Он создаёт отдельный EXE и не изменяет оригинальный файл.
+The patcher creates a separate client file and does not replace the original EXE.
 
-## Что означают папки
+## Repository structure
 
+```text
+src/               ← server logic
+public/            ← HTTP entry points and GD endpoints
+database/          ← database migrations
+config/             ← local configuration and keys
+storage/            ← runtime data and service files
+tests/              ← automated checks
+tools/              ← utilities and patchers
+docs/               ← detailed documentation
+docker/             ← Docker/Caddy deployment
 ```
-src/       — основная логика сервера
-public/    — HTTP-точки входа и совместимые GD endpoint'ы
-database/  — миграции базы данных
-config/    — локальная конфигурация и ключи
-storage/   — данные работы сервера и служебные файлы
-tests/     — автоматические проверки
-tools/     — полезные инструменты
-docs/      — инструкции
-docker/    — файлы Docker-развёртывания
-```
 
-Не нужно разбираться во всех папках сразу.
+You do not need to understand every directory.
 
-## Важно
+## Important files
 
-Не публикуй:
+Do not publish or share:
 
-```
+```text
 .env
 config/cloudsave.key
 storage/
+.secrets/
 ```
 
-И не запускай `uninstall.sh`, пока не понимаешь, что он удаляет базу и установку.
+Do not run `uninstall.sh` unless you understand that it removes the installation and database.
 
-## Нужна помощь?
+## Simple troubleshooting
 
-Сначала проверь:
+Check these in order:
 
-1. `/health`
-2. последнюю строку ошибки в журнале
-3. соответствующую инструкцию в `docs/`
+1. Open `/health`.
+2. Run `bash bin/mucho doctor`.
+3. Read the latest server error from `bash bin/mucho logs`.
+4. Check the matching guide in `docs/`.
 
-Для новичка лучше менять одну вещь за раз и после каждого изменения снова проверять `/health`.
+Change one thing at a time and check `/health` again after each change.
+
+## Developer workflow
+
+For code changes, run:
+
+```bash
+composer install
+composer compat
+```
+
+Then run the full project test suite before opening a pull request.

@@ -144,7 +144,22 @@ final readonly class AccountAuthenticator
                 ':aid' => $accountId
             ]);
 
-            $account['user_id'] = $accountId;
+            // Re-read the actual profile ID. INSERT IGNORE may lose a race
+            // with another request that creates the profile first.
+            $profile = $this->pdo->prepare(
+                'SELECT user_id
+                 FROM profiles
+                 WHERE account_id=:aid
+                 LIMIT 1'
+            );
+            $profile->execute([':aid' => $accountId]);
+
+            $profileId = $profile->fetchColumn();
+            if ($profileId === false) {
+                throw new RuntimeException('Profile creation failed.');
+            }
+
+            $account['user_id'] = (int)$profileId;
         }
 
         return $account;

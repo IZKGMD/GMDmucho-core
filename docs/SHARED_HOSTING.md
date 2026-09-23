@@ -1,166 +1,206 @@
-# PHP-хостинг: простой запуск
+# PHP Shared Hosting / Beget
 
-Эта инструкция для обычного PHP-хостинга без Docker.
+This guide is for regular PHP hosting without Docker.
 
-## Что нужно
+## What you need
 
-- PHP 8.3 или новее;
-- MySQL или MariaDB;
+- PHP 8.3 or newer;
+- MySQL or MariaDB;
 - PDO MySQL;
-- возможность загружать файлы;
-- домен или поддомен.
+- FTP access or a hosting file manager;
+- a domain or subdomain.
 
-## 1. Создай базу
+## Recommended method: FTP package
 
-В панели хостинга найди раздел MySQL / MariaDB / Базы данных.
+MuchoCore provides a ready-to-upload package with Composer dependencies already installed.
 
-Тебе понадобятся:
+You do **not** need SSH or Composer on the hosting server when using this package.
 
-~~~text
-host
-port
-имя базы
-пользователь
-пароль
-~~~
+The package is built automatically by GitHub Actions as:
 
-Не публикуй пароль базы данных.
+```text
+mucho-core-ftp-php83-v1.1.0.zip
+```
 
-## 2. Загрузи проект
+It contains the production PHP code, migrations, public files, and `vendor/`.
 
-Загружай репозиторий целиком. Сохраняй папки как есть:
+## 1. Create the database
 
-~~~text
-mucho-core/
-├── public/
-├── src/
-├── database/
-├── tests/
-├── tools/
-├── composer.json
-└── ...
-~~~
+In the Beget control panel, open the MySQL / MariaDB / Databases section.
 
-**Не переноси содержимое public/ вручную в корень проекта.** Это часто ломает пути.
+Create an empty database.
 
-### Вариант A — лучший
+You will need:
 
-Если хостинг позволяет выбрать document root, укажи:
+```text
+database host
+database port
+database name
+database username
+database password
+```
 
-~~~text
+Do not publish the database password.
+
+The web installer creates the MuchoCore tables automatically. It does not create the hosting provider's database itself.
+
+## 2. Upload MuchoCore by FTP
+
+Download the **FTP PHP 8.3 package** and extract it on your computer.
+
+Upload the contents of the `ftp-package/` directory to your hosting account.
+
+Keep the folder structure intact:
+
+```text
+.htaccess
+composer.json
+composer.lock
+VERSION
+public/
+src/
+database/
+config/
+vendor/
+```
+
+**Do not copy only the contents of `public/` into the project root.**
+
+### Best setup
+
+When your hosting panel lets you choose the domain document root, point it to:
+
+```text
 .../mucho-core/public
-~~~
+```
 
-### Вариант B — когда document root менять нельзя
+### When document root cannot be changed
 
-Можно оставить document root на корне проекта. Корневой .htaccess сам направит сайт в public/.
+You can leave the domain pointing to the project root.
 
-В этом варианте путь:
+The root `.htaccess` redirects requests into `public/`.
 
-~~~text
-/database/...
-~~~
+This also preserves the legacy `/database/...` paths used by Geometry Dash clients.
 
-тоже должен работать — это часть совместимости Geometry Dash.
+## 3. Open the installer
 
-## 3. Установи Composer
+Open:
 
-Если на хостинге есть Terminal:
+```text
+http://YOUR-DOMAIN/shared-install.php
+```
 
-~~~bash
-cd /path/to/mucho-core
-composer install --no-dev --optimize-autoloader
-~~~
+The installer checks:
 
-После этого должен существовать:
+- PHP version;
+- required PHP extensions;
+- MuchoCore files;
+- Composer dependencies;
+- writable directories.
 
-~~~text
-vendor/autoload.php
-~~~
+When every check is green, enter your database details and choose the admin password.
 
-## 4. Запусти установщик
+The default admin username is:
 
-Открой:
-
-~~~text
-https://YOUR-DOMAIN/shared-install.php
-~~~
-
-Сначала исправь все красные проверки.
-
-Затем укажи данные базы и придумай пароль администратора.
-
-Логин администратора:
-
-~~~text
+```text
 admin
-~~~
+```
 
-Установщик сам создаёт таблицы и администратора.
+The installer then:
 
-## 5. Проверь сервер
+1. writes `.env`;
+2. generates the Cloud Save key when needed;
+3. generates the download HMAC key;
+4. runs every database migration;
+5. creates the `admin` account;
+6. locks the installer.
 
-Открой:
+## 4. Check the server
 
-~~~text
-https://YOUR-DOMAIN/health
-~~~
+Open:
 
-Ожидается:
+```text
+http://YOUR-DOMAIN/health
+```
 
-~~~text
+Expected response:
+
+```text
 1
-~~~
+```
 
-Затем:
+Then open:
 
-~~~text
-https://YOUR-DOMAIN/admin/
-~~~
+```text
+http://YOUR-DOMAIN/admin/
+```
 
-## 6. Подключи игру
+## 5. Connect Geometry Dash
 
-Когда /health работает, переходи в:
+After `/health` works, continue with:
 
-CLIENT_SETUP.md
+```text
+docs/CLIENT_SETUP.md
+```
 
-## После успешной установки
+For Windows, use:
 
-Удали:
+```text
+tools/client-patch.bat
+```
 
-~~~text
+## After installation
+
+The installer attempts to remove:
+
+```text
 public/shared-install.php
-~~~
+```
 
-Если файл не удалился автоматически, удали его через файловый менеджер.
+If it is still present, delete it through FTP or the hosting file manager.
 
-Не удаляй:
+Do **not** delete:
 
-~~~text
+```text
 .env
 storage/admin-bootstrap.php
 config/cloudsave.key
-~~~
+```
 
-## Обновление
+Do not publish those files.
 
-Сделай резервную копию базы, замени исходники приложения, сохрани .env и cloudsave.key, затем установи зависимости:
+## Updating
 
-~~~bash
+Back up the database first.
+
+Then replace the application files while keeping the existing:
+
+```text
+.env
+config/cloudsave.key
+storage/
+```
+
+With the FTP package, `vendor/` is already included, so Composer is not required.
+
+## If something does not work
+
+Check in this order:
+
+1. `/health`
+2. the hosting PHP error log;
+3. the database values in `.env`;
+4. PHP 8.3+ and PDO MySQL;
+5. that `vendor/autoload.php` exists.
+
+For a normal Beget installation, you should not need Docker, root access, or SSH.
+
+## Advanced option: Composer
+
+When your hosting provides a terminal and Composer, you can install dependencies yourself:
+
+```bash
 composer install --no-dev --optimize-autoloader
-php bin/migrate.php migrate
-~~~
+```
 
-## Если что-то не работает
-
-Проверяй в таком порядке:
-
-1. /health
-2. журнал ошибок хостинга
-3. правильность DB_HOST, DB_NAME, DB_USER и DB_PASS
-4. существует ли vendor/autoload.php
-5. выбран ли PHP 8.3+
-
-Не меняй одновременно несколько частей конфигурации.
-
-Продвинутые варианты не нужны для обычной установки.
+Then open `/shared-install.php` as usual.

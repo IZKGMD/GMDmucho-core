@@ -34,6 +34,9 @@ services:
       MUCHO_ADMIN_BOOTSTRAP: ${MUCHO_ADMIN_BOOTSTRAP:-/etc/muchocore-admin.php}
       MUCHO_CONTROL_DIR: ${MUCHO_CONTROL_DIR:-/var/lib/muchocore-control}
       MUCHO_BACKUP_DIR: ${MUCHO_BACKUP_DIR:-/var/lib/muchocore-backups}
+      MUCHO_DOWNLOAD_HMAC_KEY: ${MUCHO_DOWNLOAD_HMAC_KEY:-}
+      MUCHO_DOWNLOAD_DEDUP_SECONDS: ${MUCHO_DOWNLOAD_DEDUP_SECONDS:-300}
+      MUCHO_TRUSTED_PROXIES: ${MUCHO_TRUSTED_PROXIES:-}
       MUCHO_CLIENT_TRACE: ${MUCHO_CLIENT_TRACE:-0}
       MUCHO_CLIENT_TRACE_FILE: ${MUCHO_CLIENT_TRACE_FILE:-/var/www/mucho-core/storage/client-trace.ndjson}
     secrets:
@@ -41,6 +44,7 @@ services:
       - admin_password
     volumes:
       - ./:/var/www/mucho-core
+      - mucho_runtime:/var/lib/muchocore
     depends_on:
       db:
         condition: service_healthy
@@ -78,3 +82,4 @@ volumes:
   db_data:
   caddy_data:
   caddy_config:
+  mucho_runtime:

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="MuchoCore">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8a6cff"/>
+      <stop offset="1" stop-color="#3fe0cf"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#0b0f18"/>
+  <path d="M23 91V37l18 19 23-25 23 25 18-19v54H88V60L64 86 40 60v31H23Z" fill="url(#g)"/>
+  <path d="M23 96h82" stroke="#ffffff" stroke-opacity=".12" stroke-width="4" stroke-linecap="round"/>
+</svg>

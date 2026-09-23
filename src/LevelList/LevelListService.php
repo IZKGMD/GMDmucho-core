@@ -81,6 +81,15 @@ final class LevelListService
                 $order = 'created';
                 break;
 
+            case 13:
+                $viewer = $this->auth->authenticatedAccountId();
+                if ($viewer === null) {
+                    return '-1';
+                }
+                $filters['friends_of'] = $viewer;
+                $order = 'created';
+                break;
+
             default:
                 $order = 'created';
                 break;

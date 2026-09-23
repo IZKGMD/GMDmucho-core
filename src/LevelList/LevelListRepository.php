@@ -33,6 +33,20 @@ final class LevelListRepository
                 $where[] = 'l.account_id = :account_id';
                 $params[':account_id'] = (int)$filters['account_id'];
             }
+            if (isset($filters['friends_of'])) {
+                $friendIds = $this->friendAccountIds((int)$filters['friends_of']);
+                if (!$friendIds) {
+                    $where[] = '1 = 0';
+                } else {
+                    $marks = [];
+                    foreach (array_values($friendIds) as $i => $accountId) {
+                        $key = ':friend_' . $i;
+                        $marks[] = $key;
+                        $params[$key] = (int)$accountId;
+                    }
+                    $where[] = 'l.account_id IN (' . implode(',', $marks) . ')';
+                }
+            }
             if (!empty($filters['account_ids']) && is_array($filters['account_ids'])) {
                 $marks = [];
                 foreach (array_values($filters['account_ids']) as $i => $accountId) {
@@ -117,6 +131,40 @@ final class LevelListRepository
             'rows' => $stmt->fetchAll() ?: [],
             'total' => $total,
         ];
+    }
+
+    /** @return list<int> */
+    private function friendAccountIds(int $accountId): array
+    {
+        if ($accountId <= 0) {
+            return [];
+        }
+
+        $q = $this->db->prepare(
+            'SELECT account_id, friend_account_id
+             FROM friends
+             WHERE account_id=:id OR friend_account_id=:id
+             LIMIT 501'
+        );
+        $q->execute(['id' => $accountId]);
+
+        $ids = [];
+        foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $a = (int)$row['account_id'];
+            $b = (int)$row['friend_account_id'];
+
+            if ($a === $accountId && $b > 0) {
+                $ids[$b] = $b;
+            } elseif ($b === $accountId && $a > 0) {
+                $ids[$a] = $a;
+            }
+
+            if (count($ids) >= 500) {
+                break;
+            }
+        }
+
+        return array_values($ids);
     }
 
     /** @param list<int> $levelIds */

@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+logo() {
+  printf '\n'
+  printf '  ███╗   ███╗██╗   ██╗ ██████╗██╗  ██╗ ██████╗ ██████╗ ██████╗ ███████╗\n'
+  printf '  ████╗ ████║██║   ██║██╔════╝██║  ██║██╔═══██╗██╔══██╗██╔══██╗██╔════╝\n'
+  printf '  ██╔████╔██║██║   ██║██║     ███████║██║   ██║██████╔╝██████╔╝█████╗  \n'
+  printf '  ██║╚██╔╝██║██║   ██║██║     ██╔══██║██║   ██║██╔══██╗██╔══██╗██╔══╝  \n'
+  printf '  ██║ ╚═╝ ██║╚██████╔╝╚██████╗██║  ██║╚██████╔╝██║  ██║██████╔╝███████╗\n'
+  printf '  ╚═╝     ╚═╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚══════╝\n'
+  printf '                         MuchoCore\n\n'
+}
+
+usage() {
+  cat <<EOF
+MuchoCore helper
+
+Usage:
+  bash bin/mucho doctor     Check the installation and explain problems
+  bash bin/mucho health     Check the public health endpoint
+  bash bin/mucho status     Show Docker service status
+  bash bin/mucho logs       Follow recent server logs
+  bash bin/mucho backup     Create a database backup
+  bash bin/mucho update     Update MuchoCore safely
+  bash bin/mucho restart    Restart the server
+  bash bin/mucho stop       Stop the server
+EOF
+}
+
+cmd="${1:-doctor}"
+
+case "$cmd" in
+  doctor)
+    exec bash "$ROOT/bin/mucho-doctor"
+    ;;
+  health)
+    if [[ ! -f "$ROOT/.env" ]]; then
+      echo "[MuchoCore] .env is missing. Install the server first." >&2
+      exit 1
+    fi
+    domain="$(sed -n 's/^DOMAIN=//p' "$ROOT/.env" | head -n1)"
+    if [[ -z "$domain" ]]; then
+      echo "[MuchoCore] DOMAIN is missing from .env." >&2
+      exit 1
+    fi
+    curl -kfsS --max-time 8 "https://$domain/health"
+    printf '\n'
+    ;;
+  status)
+    cd "$ROOT"
+    exec docker compose ps
+    ;;
+  logs)
+    cd "$ROOT"
+    exec docker compose logs -f --tail=100
+    ;;
+  backup)
+    exec sudo "$ROOT/bin/mucho-db-backup.sh"
+    ;;
+  update)
+    exec sudo "$ROOT/update.sh"
+    ;;
+  restart)
+    cd "$ROOT"
+    exec docker compose restart
+    ;;
+  stop)
+    cd "$ROOT"
+    exec docker compose stop
+    ;;
+  help|-h|--help)
+    logo
+    usage
+    ;;
+  *)
+    echo "[MuchoCore] Unknown command: $cmd" >&2
+    usage >&2
+    exit 2
+    ;;
+esac

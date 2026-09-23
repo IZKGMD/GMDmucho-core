@@ -49,10 +49,23 @@ try {
                 throw new RuntimeException('Bad role');
             }
 
+            $roleQuery=$db->prepare(
+                'SELECT id FROM roles
+                 WHERE code=:role
+                 LIMIT 1'
+            );
+            $roleQuery->execute(['role'=>$role]);
+            $roleId=$roleQuery->fetchColumn();
+
+            if ($roleId===false) {
+                throw new RuntimeException('Role is not configured.');
+            }
+
             $q=$db->prepare(
                 'UPDATE accounts SET
                     username=:username,
                     email=:email,
+                    role_id=:role_id,
                     role=:role,
                     is_active=:active,
                     is_banned=:banned
@@ -60,16 +73,9 @@ try {
             );
 
             $q->execute([
-                'username'=>substr(
-                    trim((string)$_POST['username']),
-                    0,
-                    20
-                ),
-                'email'=>substr(
-                    trim((string)$_POST['email']),
-                    0,
-                    254
-                ),
+                'username'=>substr(trim((string)$_POST['username']),0,20),
+                'email'=>substr(trim((string)$_POST['email']),0,254),
+                'role_id'=>(int)$roleId,
                 'role'=>$role,
                 'active'=>isset($_POST['active'])?1:0,
                 'banned'=>isset($_POST['banned'])?1:0,

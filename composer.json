@@ -15,6 +15,7 @@
         "smoke": "bash tests/smoke.sh",
         "test": "bash tests/regression.sh",
         "regression": "bash tests/regression.sh",
-        "load": "bash tests/load.sh"
+        "load": "bash tests/load.sh",
+        "compat": "php tests/cvolton-compatibility.php && php tests/security-regression.php && php tests/architecture-regression.php"
     }
 }

@@ -53,16 +53,19 @@ final readonly class PlatformerScoreController
                 return Response::text('-1');
             }
 
-            $time=max(
-                0,
-                (int)($d['time'] ?? 0)
+            $time=min(
+                86_400_000,
+                max(0,(int)($d['time'] ?? 0))
             );
 
-            $points=(int)($d['points'] ?? 0);
+            $points=min(
+                10_000_000,
+                max(0,(int)($d['points'] ?? 0))
+            );
 
             /*
-             * Только time > 0 означает реальный
-             * platformer result.
+             * Cvolton only stores platformer results with a valid time.
+             * Points-mode still works because the same row carries points.
              */
             if($time>0){
                 $this->save(
@@ -113,95 +116,60 @@ final readonly class PlatformerScoreController
         int $points,
         int $mode
     ): void {
+        $now=time();
 
         $q=$this->db->prepare("
-            SELECT
-                score_id,
+            INSERT INTO mucho_platformer_scores
+            (
+                account_id,
+                level_id,
                 time_ms,
-                points
-
-            FROM mucho_platformer_scores
-
-            WHERE account_id=:account
-              AND level_id=:level
-
-            LIMIT 1
+                points,
+                created_at,
+                updated_at
+            )
+            VALUES
+            (
+                :account,
+                :level,
+                :time,
+                :points,
+                :created,
+                :updated
+            )
+            ON DUPLICATE KEY UPDATE
+                time_ms=IF(
+                    :mode_time_a=1 AND (time_ms<=0 OR VALUES(time_ms)<time_ms),
+                    VALUES(time_ms),
+                    time_ms
+                ),
+                points=IF(
+                    :mode_points_a=1 AND VALUES(points)>points,
+                    VALUES(points),
+                    points
+                ),
+                updated_at=IF(
+                    (:mode_time_b=1 AND (time_ms<=0 OR VALUES(time_ms)<time_ms))
+                    OR
+                    (:mode_points_b=1 AND VALUES(points)>points),
+                    VALUES(updated_at),
+                    updated_at
+                )
         ");
 
         $q->execute([
             'account'=>$accountId,
             'level'=>$levelId,
-        ]);
-
-        $old=$q->fetch(PDO::FETCH_ASSOC);
-        $now=time();
-
-        if(!$old){
-
-            $q=$this->db->prepare("
-                INSERT INTO mucho_platformer_scores
-                (
-                    account_id,
-                    level_id,
-                    time_ms,
-                    points,
-                    created_at,
-                    updated_at
-                )
-                VALUES
-                (
-                    :account,
-                    :level,
-                    :time,
-                    :points,
-                    :created,
-                    :updated
-                )
-            ");
-
-            $q->execute([
-                'account'=>$accountId,
-                'level'=>$levelId,
-                'time'=>$time,
-                'points'=>$points,
-                'created'=>$now,
-                'updated'=>$now,
-            ]);
-
-            return;
-        }
-
-        $oldTime=(int)$old['time_ms'];
-        $oldPoints=(int)$old['points'];
-
-        $better=
-            $mode===0
-                ? ($oldTime<=0 || $time<$oldTime)
-                : ($points>$oldPoints);
-
-        if(!$better){
-            return;
-        }
-
-        $q=$this->db->prepare("
-            UPDATE mucho_platformer_scores
-
-            SET
-                time_ms=:time,
-                points=:points,
-                updated_at=:updated
-
-            WHERE score_id=:score
-        ");
-
-        $q->execute([
             'time'=>$time,
             'points'=>$points,
+            'created'=>$now,
             'updated'=>$now,
-            'score'=>(int)$old['score_id'],
+            'mode_time_a'=>$mode===0 ? 1 : 0,
+            'mode_time_b'=>$mode===0 ? 1 : 0,
+            'mode_points_a'=>$mode===1 ? 1 : 0,
+            'mode_points_b'=>$mode===1 ? 1 : 0,
         ]);
     }
-
 
     private function leaderboard(
         int $accountId,
@@ -324,8 +292,9 @@ final readonly class PlatformerScoreController
                 ':16:'.(int)$row['account_id'].
                 ':3:'.$score.
                 ':6:'.$rank.
-                ':42:'.$this->age(
-                    time()-(int)$row['updated_at']
+                ':42:'.gmdate(
+                    'd/m/Y G.i',
+                    (int)$row['updated_at']
                 );
         }
 
@@ -403,26 +372,4 @@ final readonly class PlatformerScoreController
     }
 
 
-    private function age(int $seconds): string
-    {
-        $seconds=max(0,$seconds);
-
-        if($seconds<60){
-            return max(1,$seconds).' seconds';
-        }
-
-        if($seconds<3600){
-            return intdiv($seconds,60).' minutes';
-        }
-
-        if($seconds<86400){
-            return intdiv($seconds,3600).' hours';
-        }
-
-        if($seconds<604800){
-            return intdiv($seconds,86400).' days';
-        }
-
-        return intdiv($seconds,604800).' weeks';
-    }
 }

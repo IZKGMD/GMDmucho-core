@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Level;
 
+use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Protocol\GdLevelListEncoder;
 
 final readonly class LevelService
@@ -13,6 +14,7 @@ final readonly class LevelService
     public function __construct(
         private LevelRepository $levels,
         private GdLevelListEncoder $encoder,
+        private ?AccountAuthenticator $auth = null,
     ) {
     }
 
@@ -41,9 +43,50 @@ final readonly class LevelService
 
         $search = trim($search);
 
+        $viewerAccountId = 0;
+        if ($type === 13) {
+            $viewerAccountId = $this->authenticatedViewer($input);
+            if ($viewerAccountId <= 0) {
+                return '-1';
+            }
+        }
+
         if (strlen($search) > 100) {
             return '-1';
         }
+
+        $filters = [
+            'diff' => is_scalar($input['diff'] ?? '')
+                ? (string)$input['diff']
+                : '',
+            'original' => (int)($input['original'] ?? 0) === 1,
+            'coins' => (int)($input['coins'] ?? 0) === 1,
+            'uncompleted' => (int)($input['uncompleted'] ?? 0) === 1,
+            'onlyCompleted' => (int)($input['onlyCompleted'] ?? 0) === 1,
+            'completedLevels' => is_scalar($input['completedLevels'] ?? '')
+                ? (string)$input['completedLevels']
+                : '',
+            'song' => is_scalar($input['song'] ?? '')
+                ? (string)$input['song']
+                : '',
+            'customSong' => (int)($input['customSong'] ?? 0) === 1,
+            'twoPlayer' => (int)($input['twoPlayer'] ?? 0) === 1,
+            'star' => (int)($input['star'] ?? 0) === 1,
+            'noStar' => (int)($input['noStar'] ?? 0) === 1,
+            'featured' => (int)($input['featured'] ?? 0) === 1,
+            'epic' => (int)($input['epic'] ?? 0) === 1,
+            'mythic' => (int)($input['mythic'] ?? 0) === 1,
+            'legendary' => (int)($input['legendary'] ?? 0) === 1,
+            'len' => is_scalar($input['len'] ?? '')
+                ? (string)$input['len']
+                : '',
+            'gauntlet' => is_scalar($input['gauntlet'] ?? '')
+                ? (string)$input['gauntlet']
+                : '',
+            'followed' => is_scalar($input['followed'] ?? '')
+                ? (string)$input['followed']
+                : '',
+        ];
 
         $offset = $page * self::PAGE_SIZE;
 
@@ -54,15 +97,55 @@ final readonly class LevelService
             offset: $offset,
             limit: self::PAGE_SIZE,
             demonFilter: $demonFilter,
+            filters: $filters,
+            viewerAccountId: $viewerAccountId,
         );
 
-        if (empty($result['levels'])) { return '-2'; } return $this->encoder->encode(
+        if (empty($result['levels'])) {
+            return '-2';
+        }
+
+        return $this->encoder->encode(
             levels: $result['levels'],
             total: $result['total'],
             offset: $offset,
             limit: self::PAGE_SIZE,
             gameVersion: $gameVersion,
         );
+    }
+
+    private function authenticatedViewer(array $input): int
+    {
+        if ($this->auth === null) {
+            return 0;
+        }
+
+        $accountId = $this->integer($input['accountID'] ?? 0);
+        if ($accountId <= 0) {
+            return 0;
+        }
+
+        $gameVersion = $this->integer($input['gameVersion'] ?? 0);
+        $credentialValue = $gameVersion >= 22
+            ? ($input['gjp2'] ?? $input['gjp'] ?? '')
+            : ($input['gjp'] ?? $input['gjp2'] ?? '');
+
+        if (!is_scalar($credentialValue)) {
+            return 0;
+        }
+
+        $credential = trim((string)$credentialValue);
+
+        if ($credential === '') {
+            return 0;
+        }
+
+        try {
+            $this->auth->authenticate($accountId, $credential);
+            return $accountId;
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 
     private function integer(mixed $value): int

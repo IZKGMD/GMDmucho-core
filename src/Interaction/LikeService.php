@@ -18,8 +18,15 @@ final class LikeService
         // Проверяем токен (gjp), чтобы нельзя было накручивать лайки от чужого имени
         $this->auth->authenticate($accountId, $gjp);
         
-        // Пытаемся добавить лайк. Если уже голосовал, репозиторий вернет false, 
-        // но мы не будем выдавать ошибку клиенту, игра просто проигнорирует действие.
-        $this->repository->addLike($itemId, $type, $accountId, $isLike);
+        if (!in_array($type, [1, 2, 3, 4], true)) {
+            throw new \RuntimeException('Invalid like type');
+        }
+
+        $this->repository->addLike(
+            $itemId,
+            $type,
+            $accountId,
+            $isLike
+        );
     }
 }

@@ -25,22 +25,28 @@ final class GdMessageEncoder
                 : ($message['username'] ?? 'Player')
         );
 
+        /*
+         * Keep the legacy Geometry Dash field ordering used by the
+         * Cvolton reference endpoint while retaining Mucho's
+         * stronger authorization and storage model.
+         */
         $data = [
-            1, $message['id'],
-            2, $isSender ? $message['to_account_id'] : $message['account_id'],
-            3, $isSender ? $message['to_user_id'] : $message['user_id'],
-            4, $message['subject'],
             6, $username,
-            7, $this->formatDate((string)$message['created_at']),
+            3, $isSender ? $message['to_user_id'] : $message['user_id'],
+            2, $isSender ? $message['to_account_id'] : $message['account_id'],
+            1, $message['id'],
+            4, ProtocolText::message($message['subject'] ?? ''),
             8, $message['is_read'],
-            9, $isSender ? 1 : 0
+            9, $isSender ? 1 : 0,
         ];
 
-        // Если это чтение конкретного сообщения, добавляем тело
         if (isset($message['body'])) {
             $data[] = 5;
-            $data[] = $message['body'];
+            $data[] = ProtocolText::message($message['body']);
         }
+
+        $data[] = 7;
+        $data[] = $this->formatDate((string)$message['created_at']);
 
         return implode(':', $data);
     }

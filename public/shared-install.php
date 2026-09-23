@@ -170,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($accountUrl === '' || !preg_match('#^https?://[^/\s]+$#i', $accountUrl)) {
-        $errors[] = 'Server URL must look like https://gdps.example.com';
+        $errors[] = 'Server URL must look like http://gdps.example.com';
     }
 
     if (strlen($adminPass) < 8) {
@@ -201,6 +201,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             @mkdir($controlDir, 0750, true);
             @mkdir($backupDir, 0750, true);
 
+            $downloadKey = trim((string)($_ENV['MUCHO_DOWNLOAD_HMAC_KEY'] ?? getenv('MUCHO_DOWNLOAD_HMAC_KEY') ?: ''));
+            if ($downloadKey === '') {
+                $downloadKey = bin2hex(random_bytes(32));
+            }
+
             $env = implode(PHP_EOL, [
                 'DB_HOST=' . $dbHost,
                 'DB_PORT=' . $dbPort,
@@ -209,6 +214,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'DB_PASS=' . $dbPass,
                 'MUCHO_ACCOUNT_URL=' . $accountUrl,
                 'MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net',
+                'MUCHO_DOWNLOAD_DEDUP_SECONDS=300',
+                'MUCHO_DOWNLOAD_HMAC_KEY=' . $downloadKey,
                 'MUCHO_ADMIN_BOOTSTRAP=' . $normalizedRoot . '/storage/admin-bootstrap.php',
                 'MUCHO_CONTROL_DIR=' . $controlDir,
                 'MUCHO_BACKUP_DIR=' . $backupDir,
@@ -413,7 +420,7 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
                 <div>
                     <label for="db_host">Database host</label>
                     <input id="db_host" name="db_host" value="<?= e((string)($_POST['db_host'] ?? 'localhost')) ?>" required>
-                    <small>Often <code>localhost</code>, but use the value your host gives you.</small>
+                    <small>For Beget, this is usually <code>localhost</code>.</small>
                 </div>
 
                 <div>
@@ -429,6 +436,7 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
                 <div>
                     <label for="db_user">Database username</label>
                     <input id="db_user" name="db_user" value="<?= e((string)($_POST['db_user'] ?? '')) ?>" required>
+                    <small>On Beget, the MySQL username is usually the <strong>full database name</strong>, including your hosting login prefix. Example: <code>c92935bj_gdps</code>.</small>
                 </div>
             </div>
 
@@ -442,7 +450,7 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
             <div>
                 <label for="account_url">Your GDPS address</label>
                 <input id="account_url" name="account_url" value="<?= e((string)($_POST['account_url'] ?? $defaultUrl)) ?>" required>
-                <small>Example: <code>https://gdps.example.com</code>. Do not add <code>/database</code>.</small>
+                <small>Example: <code>http://gdps.example.com</code>. Do not add <code>/database</code>.</small>
             </div>
 
             <div class="grid">

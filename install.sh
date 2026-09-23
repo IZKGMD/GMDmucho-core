@@ -96,6 +96,8 @@ DB_USER=$DB_USER
 ADMIN_USER=$ADMIN_USER
 MUCHO_ACCOUNT_URL=https://$DOMAIN
 MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net
+MUCHO_DOWNLOAD_DEDUP_SECONDS=300
+MUCHO_TRUSTED_PROXIES=172.16.0.0/12,10.0.0.0/8,192.168.0.0/16,127.0.0.1,::1
 MUCHO_ADMIN_BOOTSTRAP=/etc/muchocore-admin.php
 MUCHO_CONTROL_DIR=/var/lib/muchocore-control
 MUCHO_BACKUP_DIR=/var/lib/muchocore-backups
@@ -162,6 +164,9 @@ GDPS:   https://$DOMAIN
 Admin:  https://$DOMAIN/admin/
 Health: https://$DOMAIN/health
 Path:   $INSTALL_DIR
+
+Doctor:
+  sudo $INSTALL_DIR/bin/mucho doctor
 
 Admin username: admin
 

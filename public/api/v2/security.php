@@ -38,13 +38,9 @@ function muchoV2RequestId(): string
 
 function muchoV2ClientIp(): string
 {
-    $ip=(string)(
-        $_SERVER['HTTP_CF_CONNECTING_IP']
-        ?? $_SERVER['REMOTE_ADDR']
-        ?? ''
+    return \MuchoCore\Security\ClientIp::resolve(
+        $_SERVER
     );
-
-    return substr($ip,0,45);
 }
 
 

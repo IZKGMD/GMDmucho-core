@@ -19,7 +19,9 @@ final readonly class LevelRepository
         int $gameVersion,
         int $offset,
         int $limit,
-        int $demonFilter = 0
+        int $demonFilter = 0,
+        array $filters = [],
+        int $viewerAccountId = 0
     ): array {
         $where = [
             "l.is_deleted = 0",
@@ -28,6 +30,116 @@ final readonly class LevelRepository
 
         $params = [];
         $historyJoin = '';
+
+        $completedLevels = $this->numberList(
+            $filters['completedLevels'] ?? ''
+        );
+
+        if (($filters['uncompleted'] ?? false) && $completedLevels !== []) {
+            $where[] = 'l.level_id NOT IN (' .
+                implode(',', $completedLevels) . ')';
+        }
+
+        if (($filters['onlyCompleted'] ?? false) && $completedLevels !== []) {
+            $where[] = 'l.level_id IN (' .
+                implode(',', $completedLevels) . ')';
+        }
+
+        if (($filters['coins'] ?? false)) {
+            $where[] = 'l.coins_verified = 1 AND l.coins > 0';
+        }
+
+        if (($filters['twoPlayer'] ?? false)) {
+            $where[] = 'l.two_player = 1';
+        }
+
+        if (($filters['star'] ?? false)) {
+            $where[] = 'l.stars > 0';
+        }
+
+        if (($filters['noStar'] ?? false)) {
+            $where[] = 'l.stars = 0';
+        }
+
+        if (($filters['original'] ?? false)) {
+            $where[] = 'l.original_level_id = 0';
+        }
+
+        $lengths = $this->numberList(
+            $filters['len'] ?? ''
+        );
+
+        if ($lengths !== []) {
+            $where[] = 'l.length IN (' . implode(',', $lengths) . ')';
+        }
+
+        $song = trim((string)($filters['song'] ?? ''));
+        if ($song !== '' && ctype_digit($song)) {
+            if (($filters['customSong'] ?? false)) {
+                $where[] = 'l.song_id = :song_id';
+                $params['song_id'] = (int)$song;
+            } else {
+                $where[] = 'l.audio_track = :audio_track AND l.song_id = 0';
+                $params['audio_track'] = max(
+                    0,
+                    ((int)$song) - 1
+                );
+            }
+        }
+
+        $gauntlet = trim((string)($filters['gauntlet'] ?? ''));
+        if ($gauntlet !== '' && ctype_digit($gauntlet)) {
+            $gq = $this->pdo->prepare(
+                'SELECT level1, level2, level3, level4, level5
+                 FROM mucho_gauntlets
+                 WHERE id=:id
+                   AND enabled=1
+                 LIMIT 1'
+            );
+            $gq->execute(['id'=>(int)$gauntlet]);
+            $g = $gq->fetch(PDO::FETCH_ASSOC);
+
+            if (!$g) {
+                $where[] = '1 = 0';
+            } else {
+                $ids = array_values(array_filter(
+                    array_map(
+                        'intval',
+                        [
+                            $g['level1'] ?? 0,
+                            $g['level2'] ?? 0,
+                            $g['level3'] ?? 0,
+                            $g['level4'] ?? 0,
+                            $g['level5'] ?? 0,
+                        ]
+                    ),
+                    static fn(int $id): bool => $id > 0
+                ));
+
+                $where[] = $ids === []
+                    ? '1 = 0'
+                    : 'l.level_id IN (' . implode(',', array_unique($ids)) . ')';
+            }
+        }
+
+        $difficulty = $this->numberList(
+            (string)($filters['diff'] ?? '')
+        );
+
+        if ($difficulty !== []) {
+            $difficulty = array_map(
+                static fn(int $value): int =>
+                    $value > 0 && $value < 10
+                        ? $value * 10
+                        : $value,
+                $difficulty
+            );
+
+            $where[] =
+                'l.difficulty IN (' .
+                implode(',', $difficulty) .
+                ') AND l.auto_level=0 AND l.demon=0';
+        }
 
         /* Mucho Demon Filter v7: 5 vanilla + Insaned + Brutal + Nightmare.
          * Standalone plain Demon was removed. Legacy filter id 11 falls back to Hard Demon. */
@@ -60,8 +172,32 @@ final readonly class LevelRepository
 
         $order = "l.created_at DESC";
 
+        if (($filters['featured'] ?? false)) {
+            // GD 2.2 can request featured/epic in the same discovery family.
+            if ($gameVersion >= 22) {
+                $where[] = '(l.featured = 1 OR l.epic > 0)';
+            } else {
+                $where[] = 'l.featured = 1';
+            }
+        }
+
+        $epicFlags = [];
+        if (($filters['epic'] ?? false)) {
+            $epicFlags[] = 1;
+        }
+        if (($filters['mythic'] ?? false)) {
+            $epicFlags[] = 2;
+        }
+        if (($filters['legendary'] ?? false)) {
+            $epicFlags[] = 3;
+        }
+        if ($epicFlags !== []) {
+            $where[] = 'l.epic IN (' . implode(',', $epicFlags) . ')';
+        }
+
         switch ($type) {
             case 0:
+            case 15:
                 $order = "l.likes DESC, l.level_id DESC";
                 if ($search !== "") {
                     if (ctype_digit($search)) {
@@ -96,8 +232,34 @@ final readonly class LevelRepository
                 break;
 
             case 6:
-                $where[] = "(l.featured = 1 OR l.epic > 0)";
+            case 17:
+                if ($gameVersion > 21) {
+                    $where[] = "(l.featured = 1 OR l.epic > 0)";
+                } else {
+                    $where[] = "l.featured = 1";
+                }
                 $order = "l.updated_at DESC";
+                break;
+
+            case 16:
+                $where[] = "l.epic > 0";
+                $order = "l.updated_at DESC";
+                break;
+
+            case 7:
+                $where[] = "l.object_count > 9999";
+                break;
+
+            case 10:
+            case 19:
+            case 25:
+            case 26:
+                $ids = $this->numberList($search);
+                if ($ids === []) {
+                    $where[] = "1 = 0";
+                } else {
+                    $where[] = "l.level_id IN (" . implode(',', $ids) . ")";
+                }
                 break;
 
             case 21:
@@ -131,6 +293,39 @@ final readonly class LevelRepository
                 $where[] = "l.stars > 0";
                 $order = "l.updated_at DESC";
                 break;
+
+            case 12:
+                $followedRaw = str_replace(
+                    ':',
+                    ',',
+                    (string)($filters['followed'] ?? '')
+                );
+                $followed = $this->numberList($followedRaw);
+                if ($followed === []) {
+                    $where[] = "1 = 0";
+                } else {
+                    $where[] = "l.account_id IN (" . implode(',', $followed) . ")";
+                }
+                $order = "l.updated_at DESC";
+                break;
+
+            case 13:
+                $friends = $this->friendAccountIds($viewerAccountId);
+                if ($friends === []) {
+                    $where[] = "1 = 0";
+                } else {
+                    $where[] = "l.account_id IN (" . implode(',', $friends) . ")";
+                }
+                $order = "l.created_at DESC";
+                break;
+
+            case 27:
+                $historyJoin = "
+                    INNER JOIN moderation_suggestions ms
+                      ON ms.level_id = l.level_id
+                ";
+                $order = "ms.created_at DESC, l.level_id DESC";
+                break;
         }
 
         $whereSql = implode(" AND ", $where);
@@ -140,6 +335,7 @@ final readonly class LevelRepository
             {$historyJoin}
             LEFT JOIN accounts a ON a.account_id = l.account_id
             LEFT JOIN profiles p ON p.account_id = l.account_id
+            LEFT JOIN songs s ON s.id = l.song_id
         ";
 
         $count = $this->pdo->prepare(
@@ -152,7 +348,14 @@ final readonly class LevelRepository
             SELECT
                 l.*,
                 COALESCE(a.username, 'Player') as username,
-                COALESCE(p.user_id, l.account_id) as user_id
+                COALESCE(p.user_id, l.account_id) as user_id,
+                s.id as song_row_id,
+                s.name as song_name,
+                s.author_id as song_author_id,
+                s.author_name as song_author_name,
+                s.size as song_size,
+                s.download_url as song_download_url,
+                s.is_verified as song_is_verified
             " . $from . " WHERE " . $whereSql . " ORDER BY " . $order . " LIMIT " . $limit . " OFFSET " . $offset;
 
         $stmt = $this->pdo->prepare($sql);
@@ -162,5 +365,63 @@ final readonly class LevelRepository
             "levels" => $stmt->fetchAll(PDO::FETCH_ASSOC),
             "total" => $total,
         ];
+    }
+
+    private function friendAccountIds(int $accountId): array
+    {
+        if ($accountId <= 0) {
+            return [];
+        }
+
+        $q = $this->pdo->prepare(
+            'SELECT account_id, friend_account_id
+             FROM friends
+             WHERE account_id=:id
+                OR friend_account_id=:id
+             LIMIT 501'
+        );
+        $q->execute(['id' => $accountId]);
+
+        $ids = [];
+        foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $a = (int)$row['account_id'];
+            $b = (int)$row['friend_account_id'];
+
+            if ($a === $accountId && $b > 0) {
+                $ids[$b] = $b;
+            }
+            if ($b === $accountId && $a > 0) {
+                $ids[$a] = $a;
+            }
+
+            if (count($ids) >= 500) {
+                break;
+            }
+        }
+
+        return array_values($ids);
+    }
+
+    private function numberList(
+        mixed $value
+    ): array {
+        if (!is_string($value) || trim($value) === '') {
+            return [];
+        }
+
+        if (preg_match('/^\d+(?:,\d+)*$/', trim($value)) !== 1) {
+            return [];
+        }
+
+        $items = explode(',', trim($value));
+        if (count($items) > 1000) {
+            $items = array_slice($items, 0, 1000);
+        }
+
+        return array_values(
+            array_unique(
+                array_map('intval', $items)
+            )
+        );
     }
 }

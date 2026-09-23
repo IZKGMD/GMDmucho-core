@@ -8,6 +8,14 @@ ADMIN_PASS="$(cat /run/secrets/admin_password)"
 
 install -d -m 700 -o www-data -g www-data config /var/lib/muchocore
 install -d -m 750 /var/lib/muchocore-control /var/lib/muchocore-backups
+
+if [[ -f /var/lib/muchocore/download-hmac.key ]]; then
+  DOWNLOAD_HMAC_KEY="$(cat /var/lib/muchocore/download-hmac.key)"
+else
+  DOWNLOAD_HMAC_KEY="$(openssl rand -hex 32)"
+  printf '%s' "$DOWNLOAD_HMAC_KEY" > /var/lib/muchocore/download-hmac.key
+  chmod 600 /var/lib/muchocore/download-hmac.key
+fi
 install -d -m 750 /var/www/mucho-core/storage/music-public
 chown www-data:www-data /var/lib/muchocore-control /var/lib/muchocore-backups
 chown www-data:www-data /var/www/mucho-core/storage /var/www/mucho-core/storage/music-public
@@ -20,6 +28,8 @@ DB_PORT=3306
 DB_NAME=${DB_NAME:-muchocore}
 DB_USER=${DB_USER:-muchocore_user}
 DB_PASS=$DB_PASS
+MUCHO_DOWNLOAD_HMAC_KEY=$DOWNLOAD_HMAC_KEY
+MUCHO_DOWNLOAD_DEDUP_SECONDS=${MUCHO_DOWNLOAD_DEDUP_SECONDS:-300}
 EOFENV
 chmod 600 /var/lib/muchocore/runtime.env
 
