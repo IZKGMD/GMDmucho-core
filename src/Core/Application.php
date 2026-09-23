@@ -393,6 +393,8 @@ final readonly class Application
 
         $route('/getGJRewards',
             [$rewardsController,'getRewards']);
+        $route('/getGJSecretReward',
+            [$rewardsController,'getSecretReward']);
         $route('/getGJChallenges',
             [$rewardsController,'getChallenges']);
     }
