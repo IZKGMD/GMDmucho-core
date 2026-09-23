@@ -38,10 +38,7 @@ final readonly class LevelTransferService
             PHP_INT_MAX
         );
 
-        /*
-         * Критично: нельзя обновлять чужой уровень просто передав
-         * его levelID.
-         */
+        /* Never allow a client to update another user's level by ID alone. */
         if ($levelId > 0) {
             $existing = $this->repository->findLevel($levelId);
 
