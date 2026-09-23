@@ -1874,6 +1874,124 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             flash('Music uploaded successfully.');
         }
 
+
+        elseif ($action==='music-verify') {
+            requireRank(30);
+
+            $id=(int)($_POST['id'] ?? 0);
+
+            if ($id<=0) {
+                throw new RuntimeException('Invalid song ID.');
+            }
+
+            $q=$db->prepare(
+                'UPDATE songs
+                 SET is_verified=1
+                 WHERE id=:id'
+            );
+
+            $q->execute([
+                'id'=>$id
+            ]);
+
+            audit(
+                $db,
+                'music.verify',
+                (string)$id
+            );
+
+            flash('Song verified.');
+        }
+
+        elseif ($action==='music-unverify') {
+            requireRank(30);
+
+            $id=(int)($_POST['id'] ?? 0);
+
+            if ($id<=0) {
+                throw new RuntimeException('Invalid song ID.');
+            }
+
+            $q=$db->prepare(
+                'UPDATE songs
+                 SET is_verified=0
+                 WHERE id=:id'
+            );
+
+            $q->execute([
+                'id'=>$id
+            ]);
+
+            audit(
+                $db,
+                'music.unverify',
+                (string)$id
+            );
+
+            flash('Song hidden from public music.');
+        }
+
+        elseif ($action==='music-delete') {
+            requireRank(30);
+
+            $id=(int)($_POST['id'] ?? 0);
+
+            if ($id<=0) {
+                throw new RuntimeException('Invalid song ID.');
+            }
+
+            $q=$db->prepare(
+                'SELECT download_url
+                 FROM songs
+                 WHERE id=:id
+                 LIMIT 1'
+            );
+
+            $q->execute([
+                'id'=>$id
+            ]);
+
+            $song=$q->fetch(PDO::FETCH_ASSOC);
+
+            if (!$song) {
+                throw new RuntimeException('Song not found.');
+            }
+
+            $pathPart=(string)(
+                parse_url(
+                    (string)$song['download_url'],
+                    PHP_URL_PATH
+                ) ?? ''
+            );
+
+            $file=basename($pathPart);
+
+            if (preg_match('/^[a-f0-9]{40}\\.mp3$/i',$file)===1) {
+                $local=$rootDir.'/storage/music-public/'.$file;
+
+                if (is_file($local)) {
+                    @unlink($local);
+                }
+            }
+
+            $q=$db->prepare(
+                'DELETE FROM songs
+                 WHERE id=:id'
+            );
+
+            $q->execute([
+                'id'=>$id
+            ]);
+
+            audit(
+                $db,
+                'music.delete',
+                (string)$id
+            );
+
+            flash('Song deleted.');
+        }
+
         elseif ($action==='profile-save') {
             requireRank(30);
 
@@ -3749,6 +3867,7 @@ if (rank(admin()['role'])>=30) {
             echo '<th>'.h($k).'</th>';
         }
 
+        echo '<th>actions</th>';
         echo '</tr>';
 
         foreach($rows as $r) {
@@ -3764,6 +3883,37 @@ if (rank(admin()['role'])>=30) {
                 echo '<td>'.h($v).'</td>';
             }
 
+            echo '<td>';
+            echo '<div class="row" style="gap:5px">';
+
+            if((int)$r['is_verified']===1) {
+                echo '<form method="post">
+                    <input type="hidden" name="csrf" value="'.csrf().'">
+                    <input type="hidden" name="action" value="music-unverify">
+                    <input type="hidden" name="return" value="songs">
+                    <input type="hidden" name="id" value="'.h($r['id']).'">
+                    <button class="gray">Hide</button>
+                </form>';
+            } else {
+                echo '<form method="post">
+                    <input type="hidden" name="csrf" value="'.csrf().'">
+                    <input type="hidden" name="action" value="music-verify">
+                    <input type="hidden" name="return" value="songs">
+                    <input type="hidden" name="id" value="'.h($r['id']).'">
+                    <button class="green">Verify</button>
+                </form>';
+            }
+
+            echo '<form method="post" onsubmit="return confirm(\'Delete this song?\')">
+                <input type="hidden" name="csrf" value="'.csrf().'">
+                <input type="hidden" name="action" value="music-delete">
+                <input type="hidden" name="return" value="songs">
+                <input type="hidden" name="id" value="'.h($r['id']).'">
+                <button class="red">Delete</button>
+            </form>';
+
+            echo '</div>';
+            echo '</td>';
             echo '</tr>';
         }
     }
