@@ -430,6 +430,8 @@ final readonly class UserRepository
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['account_id' => $accountId]);
         $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        return empty($res) ? $this->leaderboardTop($limit) : $res;
+        return empty($res)
+            ? $this->leaderboardTop($limit, $gameVersion)
+            : $res;
     }
 }
