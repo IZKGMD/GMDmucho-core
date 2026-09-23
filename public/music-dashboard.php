@@ -525,6 +525,10 @@ th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04
         </div>
     <?php endif; ?>
 
+    <div class="footer">
+        <?=mdH($serverName)?> · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK
+    </div>
+
     <form method="post" autocomplete="off">
         <input type="hidden" name="csrf" value="<?=mdH(mdCsrf())?>">
         <input type="hidden" name="action" value="login">
