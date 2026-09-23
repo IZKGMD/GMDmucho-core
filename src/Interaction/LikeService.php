@@ -13,13 +13,34 @@ final class LikeService
         private readonly AccountAuthenticator $auth
     ) {}
 
-    public function likeItem(int $itemId, int $type, int $accountId, string $gjp, bool $isLike): void
-    {
-        // Проверяем токен (gjp), чтобы нельзя было накручивать лайки от чужого имени
+    public function likeItem(
+        int $itemId,
+        int $type,
+        int $accountId,
+        string $gjp,
+        bool $isLike
+    ): void {
         $this->auth->authenticate($accountId, $gjp);
-        
-        // Пытаемся добавить лайк. Если уже голосовал, репозиторий вернет false, 
-        // но мы не будем выдавать ошибку клиенту, игра просто проигнорирует действие.
-        $this->repository->addLike($itemId, $type, $accountId, $isLike);
+        $this->repository->addLike(
+            $itemId,
+            $type,
+            $accountId,
+            $isLike,
+            ''
+        );
+    }
+
+    public function likeAnonymous(
+        int $itemId,
+        int $type,
+        string $ip
+    ): void {
+        $this->repository->addLike(
+            $itemId,
+            $type,
+            0,
+            true,
+            $ip
+        );
     }
 }
