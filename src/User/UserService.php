@@ -284,13 +284,17 @@ final readonly class UserService
         return $this->userEncoder->profile($profile);
     }
 
-    public function getLeaderboard(string $type, int $accountId = 0, int $limit = 100): string
-    {
+    public function getLeaderboard(
+        string $type,
+        int $accountId = 0,
+        int $gameVersion = 0,
+        int $limit = 100
+    ): string {
         $users = match ($type) {
-            'creators' => $this->userRepository->leaderboardCreators($limit),
-            'friends'  => $this->userRepository->leaderboardFriends($accountId, $limit),
-            'relative' => $this->userRepository->leaderboardRelative($accountId, 50),
-            default    => $this->userRepository->leaderboardTop($limit)
+            'creators' => $this->userRepository->leaderboardCreators($limit, $gameVersion),
+            'friends'  => $this->userRepository->leaderboardFriends($accountId, $limit, $gameVersion),
+            'relative' => $this->userRepository->leaderboardRelative($accountId, 50, $gameVersion),
+            default    => $this->userRepository->leaderboardTop($limit, $gameVersion)
         };
 
         return $this->userEncoder->leaderboard($users);
