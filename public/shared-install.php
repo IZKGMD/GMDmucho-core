@@ -201,6 +201,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             @mkdir($controlDir, 0750, true);
             @mkdir($backupDir, 0750, true);
 
+            $downloadKey = trim((string)($_ENV['MUCHO_DOWNLOAD_HMAC_KEY'] ?? getenv('MUCHO_DOWNLOAD_HMAC_KEY') ?: ''));
+            if ($downloadKey === '') {
+                $downloadKey = bin2hex(random_bytes(32));
+            }
+
             $env = implode(PHP_EOL, [
                 'DB_HOST=' . $dbHost,
                 'DB_PORT=' . $dbPort,
@@ -210,6 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'MUCHO_ACCOUNT_URL=' . $accountUrl,
                 'MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net',
                 'MUCHO_DOWNLOAD_DEDUP_SECONDS=300',
+                'MUCHO_DOWNLOAD_HMAC_KEY=' . $downloadKey,
                 'MUCHO_ADMIN_BOOTSTRAP=' . $normalizedRoot . '/storage/admin-bootstrap.php',
                 'MUCHO_CONTROL_DIR=' . $controlDir,
                 'MUCHO_BACKUP_DIR=' . $backupDir,
