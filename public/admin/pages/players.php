@@ -62,7 +62,7 @@ foreach($rows as $r) {
 
 <div class="row">
 <b>#<?=h($r['account_id'])?> <?=h($r['username'])?></b>
-<span class="badge"><?=h($r['role'])?></span>
+<span class="badge"><?=h($r['role'] === 'elder_moderator' ? 'Elder Moderator' : ucfirst((string)$r['role']))?></span>
 <?php if($r['is_banned']): ?>
 <span class="badge bad">BANNED</span>
 <?php endif ?>
