@@ -6,6 +6,7 @@ namespace MuchoCore\Account;
 
 use MuchoCore\Database\Database;
 use MuchoCore\Security\RateLimiter;
+use MuchoCore\Security\Turnstile;
 
 final class RecoveryController
 {
@@ -60,6 +61,23 @@ final class RecoveryController
         $action = (string)($_POST['action'] ?? '');
 
         if ($action === 'request') {
+            if (Turnstile::enabled()) {
+                $token = (string)($_POST['cf-turnstile-response'] ?? '');
+                $expectedHostname = parse_url(
+                    (string)(getenv('MUCHO_ACCOUNT_URL') ?: ''),
+                    PHP_URL_HOST
+                );
+
+                if (!Turnstile::verify(
+                    $token,
+                    'recovery',
+                    is_string($expectedHostname) ? $expectedHostname : null
+                )) {
+                    $this->renderRequest('Пройдите проверку безопасности и попробуйте снова.');
+                    return;
+                }
+            }
+
             $identity = (string)($_POST['identity'] ?? '');
 
             $this->service->requestReset(
@@ -131,6 +149,12 @@ final class RecoveryController
                     autocomplete="username"
                     required
                 >
+
+                <?php if (Turnstile::enabled()): ?>
+                    <div class="turnstile-box" style="margin:12px 0;min-height:66px">
+                        <div class="cf-turnstile" data-sitekey="' . $this->e(Turnstile::siteKey()) . '" data-theme="dark" data-action="recovery"></div>
+                    </div>
+                <?php endif; ?>
 
                 <button type="submit">Отправить ссылку</button>
             </form>
@@ -237,6 +261,9 @@ final class RecoveryController
 <meta name="robots" content="noindex,nofollow">
 <title>MuchoCore — восстановление аккаунта</title>
 <link rel="stylesheet" href="/recovery/recovery.css">
+<?php if (Turnstile::enabled()): ?>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<?php endif; ?>
 </head>
 <body>
 <div class="aurora aurora-a"></div>
