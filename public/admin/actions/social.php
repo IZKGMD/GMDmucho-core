@@ -61,7 +61,17 @@ if ($action==='comment-delete') {
         elseif ($action==='message-delete') {
             requireRank(30);
 
-            $id=(int)$_POST['id'];
+            if (!tableExists($db,'messages')) {
+                throw new RuntimeException(
+                    'Messages table does not exist.'
+                );
+            }
+
+            $id=(int)($_POST['id'] ?? 0);
+
+            if ($id<=0) {
+                throw new RuntimeException('Invalid message ID.');
+            }
 
             $q=$db->prepare(
                 'DELETE FROM messages WHERE id=:id'
