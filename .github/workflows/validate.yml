@@ -17,11 +17,22 @@ jobs:
           bash -n uninstall.sh
           for f in tests/*.sh; do bash -n "$f"; done
 
+      - name: Install PHP dependencies
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_mysql
+          tools: composer
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
       - name: Check PHP sources
         run: |
           find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/client-compatibility.php
           php tests/router-compatibility.php
+          php tests/cvolton-compatibility.php
           php tests/cvolton-compatibility.php
 
       - name: Check Python patcher
