@@ -521,13 +521,6 @@ final readonly class LevelTransferService
                 ? (int)$password
                 : 0;
 
-        if(
-            $passwordInt>1 &&
-            $passwordInt<1000000
-        ){
-            $passwordInt+=1000000;
-        }
-
         $hashInput=
             $userId.
             $stars.
