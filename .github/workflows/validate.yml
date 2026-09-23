@@ -24,6 +24,7 @@ jobs:
           php tests/router-compatibility.php
           php tests/game-roles.php
           php tests/music-upload-contract.php
+          php tests/turnstile.php
 
       - name: Check Python patcher
         run: |
