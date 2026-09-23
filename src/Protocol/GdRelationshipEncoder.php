@@ -24,22 +24,22 @@ final class GdRelationshipEncoder
 
             $out[] = implode(':', [
                 1, ProtocolText::username($r['username'] ?? 'Player'),
-                2, $r['user_id'],
-                9, $r['cube'] ?? 1,
-                10, $r['color1'] ?? 0,
-                11, $r['color2'] ?? 3,
-                14, 0,
-                15, $r['special'] ?? 0,
+                2, (int)($r['user_id'] ?? $peer),
+                9, (int)($r['icon_id'] ?? $r['cube'] ?? 1),
+                10, (int)($r['color1'] ?? 0),
+                11, (int)($r['color2'] ?? 3),
+                14, (int)($r['icon_type'] ?? 0),
+                15, (int)($r['special'] ?? 0),
                 16, $peer,
-                32, $r['id'],
-                35, $r['comment'] ?? '',
-                41, ((int)$r['is_read'] === 0 ? 1 : 0),
-                37, $this->date((string)$r['created_at']),
+                32, (int)$r['id'],
+                35, (string)($r['comment'] ?? ''),
+                41, ((int)($r['is_read'] ?? 0) === 0 ? 1 : 0),
+                37, $this->date((string)($r['created_at'] ?? '')),
             ]);
         }
 
         return implode('|', $out)
-            .'#'.$total.':'.$offset.':10';
+            . '#' . $total . ':' . $offset . ':10';
     }
 
     public function users(array $rows): string
@@ -51,17 +51,19 @@ final class GdRelationshipEncoder
         $out = [];
 
         foreach ($rows as $r) {
+            $accountId = (int)($r['account_id'] ?? 0);
+
             $out[] = implode(':', [
                 1, ProtocolText::username($r['username'] ?? 'Player'),
-                2, $r['user_id'],
-                9, $r['cube'] ?? 1,
-                10, $r['color1'] ?? 0,
-                11, $r['color2'] ?? 3,
-                14, 0,
-                15, $r['special'] ?? 0,
-                16, $r['account_id'],
+                2, (int)($r['user_id'] ?? $accountId),
+                9, (int)($r['icon_id'] ?? $r['cube'] ?? 1),
+                10, (int)($r['color1'] ?? 0),
+                11, (int)($r['color2'] ?? 3),
+                14, (int)($r['icon_type'] ?? 0),
+                15, (int)($r['special'] ?? 0),
+                16, $accountId,
                 18, 0,
-                41, $r['is_new'] ?? 0,
+                41, (int)($r['is_new'] ?? 0),
             ]);
         }
 
