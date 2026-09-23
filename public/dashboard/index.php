@@ -5,6 +5,7 @@ use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Branding\BrandingService;
 use MuchoCore\Database\Database;
 use MuchoCore\Security\RateLimiter;
+use MuchoCore\Security\SoftAntiBot;
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
@@ -93,6 +94,17 @@ function pdRedirect(string $url = '/dashboard'): never
 {
     header('Location: ' . $url);
     exit;
+}
+
+function pdSoftAntiBotOrReject(string $scope): void
+{
+    $token = (string)($_POST['antibot_token'] ?? '');
+    $honeypot = (string)($_POST['website'] ?? '');
+
+    if (!SoftAntiBot::verify($scope, $token, $honeypot)) {
+        pdFlash('Please try again.', 'error');
+        pdRedirect();
+    }
 }
 
 function pdAccountFromSession(): ?array
@@ -328,6 +340,7 @@ $action = (string)($_POST['action'] ?? '');
 
 if ($action === 'login') {
     pdRequireCsrf();
+    pdSoftAntiBotOrReject('login');
 
     $username = trim((string)($_POST['username'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
@@ -395,6 +408,7 @@ if ($action === 'logout') {
 
 if ($action === 'upload') {
     pdRequireCsrf();
+    pdSoftAntiBotOrReject('upload');
 
     $account = pdAccountFromSession();
 
@@ -582,6 +596,14 @@ if ($search !== '') {
 $topPlayers = pdTopPlayers($db);
 $recentSongs = pdRecentSongs($db, 12);
 $mySongs = $account ? pdPlayerSongs($db, (int)$account['id'], 20) : [];
+
+$loginAntiBot = (!$account && !$profile)
+    ? SoftAntiBot::issue('login')
+    : null;
+
+$uploadAntiBot = $account
+    ? SoftAntiBot::issue('upload')
+    : null;
 ?>
 <!doctype html>
 <html lang="en">
@@ -786,6 +808,7 @@ a{color:inherit;text-decoration:none}
 }
 .field{display:grid;gap:7px;margin-bottom:10px}
 label{font-size:11px;color:#9cabc0;font-weight:800}
+.antibot-field{position:absolute!important;left:-10000px!important;top:auto!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important}
 input[type=text],input[type=password],input[type=file]{
     border:1px solid #28364a;background:#080e16;color:#fff;border-radius:10px;padding:10px 11px;outline:none;
 }
@@ -959,6 +982,10 @@ input[type=text],input[type=password],input[type=file]{
             <form method="post" autocomplete="off">
                 <input type="hidden" name="csrf" value="<?=pdH(pdCsrf())?>">
                 <input type="hidden" name="action" value="login">
+                <input type="hidden" name="antibot_token" value="<?=pdH($loginAntiBot['token'] ?? '')?>">
+                <label class="antibot-field" aria-hidden="true">Website
+                    <input type="text" name="website" tabindex="-1" autocomplete="off">
+                </label>
 
                 <div class="field">
                     <label>Username</label>
@@ -982,6 +1009,10 @@ input[type=text],input[type=password],input[type=file]{
             <form method="post" enctype="multipart/form-data">
                 <input type="hidden" name="csrf" value="<?=pdH(pdCsrf())?>">
                 <input type="hidden" name="action" value="upload">
+                <input type="hidden" name="antibot_token" value="<?=pdH($uploadAntiBot['token'] ?? '')?>">
+                <label class="antibot-field" aria-hidden="true">Website
+                    <input type="text" name="website" tabindex="-1" autocomplete="off">
+                </label>
 
                 <div class="upload">
                     <div>
