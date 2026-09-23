@@ -528,41 +528,36 @@ html[data-theme="light"] body.admin-login form.box .err{
     color:#a43b4b;
 }
 
-/* MuchoCore brand asset */
+/* MuchoCore brand assets */
 .mucho-brand-logo{
     display:block;
-    width:42px;
-    height:42px;
-    flex:0 0 42px;
+    width:180px;
+    height:auto;
+    max-height:58px;
+    flex:0 0 auto;
     object-fit:contain;
     object-position:center;
-    border-radius:11px;
-    filter:drop-shadow(0 7px 18px rgba(0,0,0,.18));
+    border-radius:10px;
+    filter:drop-shadow(0 8px 20px rgba(0,0,0,.24));
 }
-.mucho-brand-name{
-    min-width:0;
-}
+.mucho-brand-name{min-width:0}
 .brand:has(.mucho-brand-logo){
     display:flex;
     align-items:center;
     gap:10px;
 }
 .brand:has(.mucho-brand-logo) .mucho-brand-logo{
-    width:40px;
-    height:40px;
-    flex-basis:40px;
-    border-radius:10px;
+    width:170px;
+    max-height:54px;
 }
 body.admin-login .logo:has(.mucho-brand-logo){
     display:flex;
     align-items:center;
-    gap:10px;
+    gap:11px;
 }
 body.admin-login .logo .mucho-brand-logo{
-    width:48px;
-    height:48px;
-    flex-basis:48px;
-    border-radius:13px;
+    width:190px;
+    max-height:64px;
 }
 aside .brandrow .logo:has(.mucho-brand-logo){
     display:flex;
@@ -570,12 +565,20 @@ aside .brandrow .logo:has(.mucho-brand-logo){
     gap:10px;
 }
 aside .brandrow .logo .mucho-brand-logo{
-    width:38px;
-    height:38px;
-    flex-basis:38px;
-    border-radius:10px;
+    width:155px;
+    max-height:50px;
+}
+.shell .card .brand:has(.mucho-brand-logo){
+    margin-bottom:28px;
+}
+.shell .card .brand .mucho-brand-logo{
+    width:195px;
+    max-height:68px;
 }
 @media(max-width:650px){
-    .mucho-brand-logo{width:36px;height:36px;flex-basis:36px}
-    .brand:has(.mucho-brand-logo) .mucho-brand-logo{width:34px;height:34px;flex-basis:34px}
+    .mucho-brand-logo{width:150px;max-height:50px}
+    .brand:has(.mucho-brand-logo) .mucho-brand-logo{width:145px;max-height:46px}
+    body.admin-login .logo .mucho-brand-logo{width:165px;max-height:56px}
+    aside .brandrow .logo .mucho-brand-logo{width:130px;max-height:44px}
+    .shell .card .brand .mucho-brand-logo{width:170px;max-height:58px}
 }
