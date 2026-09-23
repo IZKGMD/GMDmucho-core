@@ -37,19 +37,21 @@ final class GameRole
 
     public static function accessLevel(string $role): string
     {
-        return match (self::normalize($role)) {
+        return match (strtolower(trim($role))) {
             self::OWNER, self::ELDER_MODERATOR => '2',
             self::MODERATOR => '1',
-            default => '-1',
+            self::USER, 'player' => '-1',
+            default => throw new \\InvalidArgumentException('Unknown game role.'),
         };
     }
 
     public static function badgeLevel(string $role): int
     {
-        return match (self::normalize($role)) {
+        return match (strtolower(trim($role))) {
             self::OWNER, self::ELDER_MODERATOR => 2,
             self::MODERATOR => 1,
-            default => 0,
+            self::USER, 'player' => 0,
+            default => throw new \\InvalidArgumentException('Unknown game role.'),
         };
     }
 
