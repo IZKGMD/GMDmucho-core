@@ -60,6 +60,20 @@ final readonly class UserRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function searchCount(string $query): int
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*)
+             FROM accounts
+             WHERE username LIKE :query'
+        );
+        $stmt->execute([
+            'query' => '%' . $query . '%'
+        ]);
+
+        return (int)$stmt->fetchColumn();
+    }
+
     public function findAccountIdByUserId(int $userId): int
     {
         if ($userId <= 0) {
