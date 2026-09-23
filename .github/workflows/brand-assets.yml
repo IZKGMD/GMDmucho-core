@@ -21,24 +21,25 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
-          (magick -version 2>/dev/null || convert -version)
+          convert -version
 
-      - name: Build brand assets
+      - name: Build logo assets from the source sprite sheet
         shell: bash
         run: |
           set -euo pipefail
-          test -s Gemini_Generated_Image_af007baf007baf00.jpg
-          mkdir -p public/assets
 
           SRC="Gemini_Generated_Image_af007baf007baf00.jpg"
+          mkdir -p public/assets
 
-          convert "$SRC"             -auto-orient             -strip             -fuzz 8%             -trim +repage             -resize "1600x1600>"             -quality 94             "public/assets/muchocore-logo.jpg"
+          # Main horizontal MuchoCore mark from the dark presentation panel.
+          convert "$SRC"             -crop 1000x405+115+675             -resize "1400x>"             -strip             -quality 92             -interlace Plane             public/assets/muchocore-logo.jpg
 
-          convert "public/assets/muchocore-logo.jpg"             -resize "900x900^"             -gravity center             -extent 900x900             -strip             "public/assets/muchocore-icon.png"
+          # Compact MC cube mark from the dedicated icon panel.
+          convert "$SRC"             -crop 455x440+1310+85             -resize "512x512>"             -strip             public/assets/muchocore-icon.png
 
           test -s public/assets/muchocore-logo.jpg
           test -s public/assets/muchocore-icon.png
-          file public/assets/muchocore-logo.jpg public/assets/muchocore-icon.png
+
           identify public/assets/muchocore-logo.jpg
           identify public/assets/muchocore-icon.png
 
@@ -48,10 +49,13 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/assets/
+
+          git add public/assets/muchocore-logo.jpg public/assets/muchocore-icon.png
+
           if git diff --cached --quiet; then
             echo "Brand assets are already current."
             exit 0
           fi
-          git commit -m "chore: generate MuchoCore brand assets"
+
+          git commit -m "chore: add cropped MuchoCore brand assets"
           git push
