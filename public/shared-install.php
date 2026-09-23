@@ -475,5 +475,8 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
         <p>You normally need four things: host, database name, username and password. The installer does not create the database for you because every hosting provider handles database creation differently.</p>
     </div>
 </div>
+<div style="max-width:920px;margin:24px auto 0;padding:16px 0 4px;border-top:1px solid #d9dee5;text-align:center;color:#7a838f;font-size:12px">
+    Powered by MuchoCore · Copyright © <?= date('Y') ?> IZK
+</div>
 </body>
 </html>
