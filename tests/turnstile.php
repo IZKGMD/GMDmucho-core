@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use MuchoCore\Security\Turnstile;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+require dirname(__DIR__) . '/src/Security/Turnstile.php';
 
 $previousSite = getenv('TURNSTILE_SITEKEY');
 $previousSecret = getenv('TURNSTILE_SECRET');
