@@ -1841,7 +1841,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
                 $q->execute([
                     'name'=>$title,
-                    'author'=>substr((string)admin()['username'],0,128),
+                    'author'=>$artist,
                     'size'=>round($size/1024/1024,2),
                     'url'=>$download
                 ]);
