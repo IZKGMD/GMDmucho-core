@@ -617,6 +617,26 @@ $topPlayers = pdTopPlayers($db);
 $recentSongs = pdRecentSongs($db, 12);
 $mySongs = $account ? pdPlayerSongs($db, (int)$account['id'], 20) : [];
 
+$dashboardStats = [
+    'players' => 0,
+    'levels' => 0,
+    'songs' => 0,
+];
+
+try {
+    $statsStmt = $db->query(
+        'SELECT
+            (SELECT COUNT(*) FROM accounts WHERE is_active = 1 AND is_banned = 0) AS players,
+            (SELECT COUNT(*) FROM levels WHERE is_deleted = 0 AND is_unlisted = 0) AS levels,
+            (SELECT COUNT(*) FROM songs WHERE is_verified = 1) AS songs'
+    );
+    $stats = $statsStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    $dashboardStats['players'] = (int)($stats['players'] ?? 0);
+    $dashboardStats['levels'] = (int)($stats['levels'] ?? 0);
+    $dashboardStats['songs'] = (int)($stats['songs'] ?? 0);
+} catch (Throwable) {
+}
+
 $loginAntiBot = (!$account && !$profile)
     ? SoftAntiBot::issue('login')
     : null;
@@ -810,6 +830,289 @@ button,input{font:inherit}
     align-items:stretch;
 }
 .hero > .panel{min-height:100%}
+.hero-main{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    min-height:330px;
+}
+.hero-main .hero-title{max-width:700px}
+.hero-kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    width:max-content;
+    max-width:100%;
+    padding:5px 9px;
+    border:1px solid rgba(121,104,255,.24);
+    border-radius:999px;
+    background:rgba(121,104,255,.08);
+    color:#bfb7ff;
+    font-size:9px;
+    font-weight:850;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+}
+.hero-kicker::before{
+    content:"";
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:#42df9e;
+    box-shadow:0 0 0 4px rgba(66,223,158,.08),0 0 14px rgba(66,223,158,.45);
+}
+.hero-copy{
+    max-width:680px;
+    font-size:14px;
+    line-height:1.65;
+}
+.hero-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:18px;
+}
+.hero-note{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:15px;
+}
+.hero-note span{
+    padding:6px 8px;
+    border:1px solid var(--line-soft);
+    border-radius:8px;
+    background:rgba(255,255,255,.02);
+    color:#7f8da3;
+    font-size:9px;
+    font-weight:800;
+}
+.portal-panel{
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+}
+.portal-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:14px;
+}
+.portal-head-copy{min-width:0}
+.portal-eyebrow{
+    color:#a89dff;
+    font-size:9px;
+    font-weight:850;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+}
+.portal-title{
+    margin:5px 0 0;
+    font-size:22px;
+    line-height:1.05;
+    letter-spacing:-.7px;
+}
+.portal-description{
+    margin:7px 0 0;
+    color:var(--muted);
+    font-size:11px;
+    line-height:1.55;
+}
+.portal-mark{
+    width:38px;
+    height:38px;
+    display:grid;
+    place-items:center;
+    flex:0 0 auto;
+    border-radius:11px;
+    border:1px solid rgba(121,104,255,.22);
+    background:linear-gradient(145deg,rgba(121,104,255,.16),rgba(121,104,255,.05));
+    color:#b7afff;
+    font-size:15px;
+    font-weight:900;
+    box-shadow:inset 0 1px rgba(255,255,255,.04);
+}
+.form-divider{
+    height:1px;
+    margin:15px 0 14px;
+    background:linear-gradient(90deg,transparent,var(--line),transparent);
+}
+.upload-summary{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:7px;
+    margin:0 0 13px;
+}
+.upload-summary span{
+    padding:8px 9px;
+    border-radius:9px;
+    background:#0b1320;
+    border:1px solid #1f2b3e;
+    color:#8493a9;
+    font-size:9px;
+    line-height:1.35;
+}
+.upload-summary b{
+    display:block;
+    color:#dfe5f2;
+    font-size:11px;
+    margin-bottom:2px;
+}
+.dashboard-stats{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:10px;
+    margin-top:14px;
+}
+.dashboard-stat{
+    position:relative;
+    min-width:0;
+    padding:15px;
+    overflow:hidden;
+    border:1px solid var(--line);
+    border-radius:15px;
+    background:linear-gradient(145deg,rgba(17,24,36,.96),rgba(12,18,28,.96));
+    box-shadow:0 12px 32px rgba(0,0,0,.16);
+}
+.dashboard-stat::after{
+    content:"";
+    position:absolute;
+    width:90px;
+    height:90px;
+    right:-42px;
+    bottom:-54px;
+    border-radius:50%;
+    background:rgba(121,104,255,.10);
+    filter:blur(20px);
+}
+.dashboard-stat-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+}
+.dashboard-stat-icon{
+    width:28px;
+    height:28px;
+    display:grid;
+    place-items:center;
+    border-radius:8px;
+    border:1px solid rgba(121,104,255,.20);
+    background:rgba(121,104,255,.08);
+    color:#aaa1ff;
+    font-size:12px;
+    font-weight:900;
+}
+.dashboard-stat-label{
+    color:#75849a;
+    font-size:9px;
+    font-weight:850;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+}
+.dashboard-stat-value{
+    margin-top:12px;
+    font-size:22px;
+    font-weight:900;
+    letter-spacing:-.7px;
+}
+.dashboard-stat-detail{
+    margin-top:3px;
+    color:#64738a;
+    font-size:9px;
+}
+.section-divider{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:24px 0 11px;
+    color:#6f7e95;
+    font-size:9px;
+    font-weight:850;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+}
+.section-divider::before,.section-divider::after{
+    content:"";
+    height:1px;
+    flex:1;
+    background:linear-gradient(90deg,transparent,var(--line),transparent);
+}
+.featured-row{
+    display:grid;
+    grid-template-columns:1.08fr .92fr;
+    gap:12px;
+}
+.featured-card{
+    min-width:0;
+    display:flex;
+    align-items:center;
+    gap:15px;
+    padding:16px;
+    border:1px solid var(--line);
+    border-radius:15px;
+    background:linear-gradient(145deg,#111a27,#0d141f);
+}
+.featured-card img{
+    width:74px;
+    height:74px;
+    flex:0 0 auto;
+}
+.featured-meta{min-width:0}
+.featured-label{
+    color:#7f8ea4;
+    font-size:9px;
+    font-weight:850;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+}
+.featured-name{
+    margin-top:4px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:18px;
+    font-weight:900;
+    letter-spacing:-.4px;
+}
+.featured-sub{
+    margin-top:4px;
+    color:#76869d;
+    font-size:10px;
+}
+.link-panel{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:8px;
+    padding:16px;
+    border:1px solid var(--line);
+    border-radius:15px;
+    background:linear-gradient(145deg,#0f1825,#0b131f);
+}
+.link-panel b{font-size:13px}
+.link-panel p{margin:0;color:#77879e;font-size:10px;line-height:1.55}
+.link-panel .btn{width:max-content}
+.music-meta{
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+.music-disc{
+    width:30px;
+    height:30px;
+    display:grid;
+    place-items:center;
+    flex:0 0 auto;
+    border-radius:9px;
+    border:1px solid #29364c;
+    background:linear-gradient(145deg,#172235,#0f1825);
+    color:#a69dff;
+    font-size:11px;
+    font-weight:900;
+}
+.music-text{min-width:0}
 .hero-title{
     margin:8px 0 12px;
     max-width:760px;
@@ -1095,6 +1398,8 @@ body.dashboard-page .topbar{
     .hero{grid-template-columns:1fr}
     .profile{grid-template-columns:1fr}
     .upload{grid-template-columns:1fr}
+    .dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .featured-row{grid-template-columns:1fr}
     .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:720px){
@@ -1120,6 +1425,9 @@ body.dashboard-page .topbar{
     .search{grid-template-columns:1fr}
     .grid{grid-template-columns:1fr}
     .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .upload-summary{grid-template-columns:1fr}
+    .hero-actions .btn{flex:1 1 150px}
     .profile-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
     .section-head{align-items:flex-start;flex-direction:column;gap:6px}
     .list-item{align-items:flex-start}
@@ -1249,13 +1557,24 @@ body.dashboard-page .topbar{
 <?php else: ?>
 
 <section class="hero">
-    <div class="panel">
-        <div class="muted small">PLAYER PORTAL · DISCOVER + MUSIC</div>
+    <div class="panel hero-main">
+        <div class="hero-kicker">Player portal · Geometry Dash 2.2</div>
         <h1 class="hero-title">Meet the <span><?=pdH($serverName)?></span> community.</h1>
-        <p class="muted">
-            Search players, inspect their Geometry Dash stats, browse creator activity,
-            and upload your own MP3s when you are signed in.
+        <p class="muted hero-copy">
+            Search players, explore creator activity, browse community music,
+            and manage your own uploads from one clean dashboard.
         </p>
+
+        <div class="hero-actions">
+            <a class="btn" href="#players">Explore players</a>
+            <a class="btn alt" href="#music">Browse music</a>
+        </div>
+
+        <div class="hero-note">
+            <span>Fast player search</span>
+            <span>Public profiles</span>
+            <span>1 upload / 3 min</span>
+        </div>
 
         <form class="search" method="get" action="/dashboard">
             <input
@@ -1270,14 +1589,25 @@ body.dashboard-page .topbar{
         </form>
     </div>
 
-    <div class="panel" id="upload">
+    <div class="panel portal-panel" id="upload">
+        <div>
+            <div class="portal-head">
+                <div class="portal-head-copy">
+                    <div class="portal-eyebrow"><?= $account ? 'Music upload' : 'Account access' ?></div>
+                    <h2 class="portal-title"><?= $account ? 'Upload a new track' : 'Sign in to upload' ?></h2>
+                    <p class="portal-description">
+                        <?= $account
+                            ? 'Share an MP3 with the community. New tracks enter moderation before becoming public.'
+                            : 'Use your Geometry Dash account so ownership stays tied to the real player.'
+                        ?>
+                    </p>
+                </div>
+                <div class="portal-mark">♪</div>
+            </div>
+            <div class="form-divider"></div>
+        </div>
+
         <?php if (!$account): ?>
-            <div class="muted small">MUSIC UPLOAD</div>
-            <h2 style="margin:6px 0 8px">Sign in with your GD account</h2>
-            <p class="muted small">
-                Your Geometry Dash account controls ownership. Only the account owner can upload,
-                and the only player cooldown is one track every 3 minutes.
-            </p>
 
             <form method="post" autocomplete="off">
                 <input type="hidden" name="csrf" value="<?=pdH(pdCsrf())?>">
@@ -1309,7 +1639,12 @@ body.dashboard-page .topbar{
             <div class="muted small">MUSIC UPLOAD · SIGNED IN</div>
             <h2 style="margin:6px 0 8px">Upload a new track</h2>
             <div class="cooldown" style="margin-bottom:11px">
-                Signed in as <b><?=pdH($account['username'])?></b> · 1 song / 3 minutes
+                Signed in as <b><?=pdH($account['username'])?></b> · one track every 3 minutes
+            </div>
+            <div class="upload-summary">
+                <span><b>Ownership</b>GD account</span>
+                <span><b>Format</b>MP3 audio</span>
+                <span><b>Moderation</b>Required</span>
             </div>
 
             <form method="post" enctype="multipart/form-data">
@@ -1349,6 +1684,70 @@ body.dashboard-page .topbar{
                 </div>
             </form>
         <?php endif; ?>
+    </div>
+</section>
+
+<section class="dashboard-stats" aria-label="Community statistics">
+    <div class="dashboard-stat">
+        <div class="dashboard-stat-top">
+            <span class="dashboard-stat-label">Players</span>
+            <span class="dashboard-stat-icon">◈</span>
+        </div>
+        <div class="dashboard-stat-value"><?=pdFormatNumber($dashboardStats['players'])?></div>
+        <div class="dashboard-stat-detail">Active community accounts</div>
+    </div>
+    <div class="dashboard-stat">
+        <div class="dashboard-stat-top">
+            <span class="dashboard-stat-label">Levels</span>
+            <span class="dashboard-stat-icon">◆</span>
+        </div>
+        <div class="dashboard-stat-value"><?=pdFormatNumber($dashboardStats['levels'])?></div>
+        <div class="dashboard-stat-detail">Published levels available</div>
+    </div>
+    <div class="dashboard-stat">
+        <div class="dashboard-stat-top">
+            <span class="dashboard-stat-label">Music</span>
+            <span class="dashboard-stat-icon">♫</span>
+        </div>
+        <div class="dashboard-stat-value"><?=pdFormatNumber($dashboardStats['songs'])?></div>
+        <div class="dashboard-stat-detail">Verified community tracks</div>
+    </div>
+    <div class="dashboard-stat">
+        <div class="dashboard-stat-top">
+            <span class="dashboard-stat-label">Upload rate</span>
+            <span class="dashboard-stat-icon">3m</span>
+        </div>
+        <div class="dashboard-stat-value">1 / 3m</div>
+        <div class="dashboard-stat-detail">Per signed-in player</div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="section-divider">Community snapshot</div>
+    <div class="featured-row">
+        <?php if (!empty($topPlayers[0])): ?>
+            <a class="featured-card" href="/dashboard?u=<?=rawurlencode((string)$topPlayers[0]['username'])?>">
+                <img src="<?=pdH(pdIconUrl($topPlayers[0], 90))?>" alt="" loading="lazy" referrerpolicy="no-referrer">
+                <div class="featured-meta">
+                    <div class="featured-label">Current top player</div>
+                    <div class="featured-name"><?=pdH($topPlayers[0]['username'])?></div>
+                    <div class="featured-sub"><?=pdFormatNumber($topPlayers[0]['stars'])?> Stars · <?=pdFormatNumber($topPlayers[0]['demons'])?> Demons · <?=pdFormatNumber($topPlayers[0]['creator_points'])?> Creator</div>
+                </div>
+            </a>
+        <?php else: ?>
+            <div class="featured-card">
+                <div class="featured-meta">
+                    <div class="featured-label">Community</div>
+                    <div class="featured-name">No player data yet</div>
+                    <div class="featured-sub">Create a GD account to appear here.</div>
+                </div>
+            </div>
+        <?php endif; ?>
+        <div class="link-panel">
+            <b>Build your profile</b>
+            <p>Open any player card to inspect stats, creator activity, published levels and music history.</p>
+            <a class="btn alt" href="#players">View leaderboard</a>
+        </div>
     </div>
 </section>
 
@@ -1433,12 +1832,15 @@ body.dashboard-page .topbar{
         <div class="list">
             <?php foreach ($recentSongs as $song): ?>
                 <div class="list-item">
-                    <span>
-                        <b><?=pdH($song['name'])?></b>
-                        <small>
+                    <span class="music-meta">
+                        <span class="music-disc">♫</span>
+                        <span class="music-text">
+                            <b><?=pdH($song['name'])?></b>
+                            <small>
                             <?=pdH($song['author_name'])?> · #<?=pdH($song['id'])?>
                             · <?=pdH($song['size'])?> MB
-                        </small>
+                            </small>
+                        </span>
                     </span>
                     <?php if ((int)$song['is_verified'] === 1): ?>
                         <span class="badge ok">Verified</span>
