@@ -75,7 +75,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../src/Score/PlatformerScoreController.php',
-        "':15:'.(int)$row['color3'].",
+        "':15:'.(int)\$row['color3'].",
         '2.2 platformer color3 field',
     ],
     [
