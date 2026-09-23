@@ -79,10 +79,39 @@ final readonly class UserService
 
             'special' => $this->boundedInt(
                 $data,
-                ['accGlow', 'special', 'accSpecial'],
+                ['special', 'accSpecial'],
                 0,
                 0,
                 1
+            ),
+
+            'glow' => $this->boundedInt(
+                $data,
+                ['accGlow', 'glow'],
+                0,
+                0,
+                65535
+            ),
+
+            'demon_info' => $this->boundedText(
+                $data,
+                ['dinfo'],
+                '',
+                65535
+            ),
+
+            'star_info' => $this->boundedText(
+                $data,
+                ['sinfo'],
+                '',
+                65535
+            ),
+
+            'platformer_info' => $this->boundedText(
+                $data,
+                ['pinfo'],
+                '',
+                65535
             )
         ];
 
@@ -270,6 +299,39 @@ final readonly class UserService
     /**
      * @param list<string> $keys
      */
+    private function boundedText(
+        array $data,
+        array $keys,
+        string $default,
+        int $maximum
+    ): string {
+        foreach ($keys as $key) {
+            if (!array_key_exists($key, $data)) {
+                continue;
+            }
+
+            $value = $data[$key];
+
+            if (!is_scalar($value)) {
+                throw new RuntimeException(
+                    'Invalid profile text value.'
+                );
+            }
+
+            $value = (string)$value;
+
+            if (strlen($value) > $maximum) {
+                throw new RuntimeException(
+                    'Profile text value is too large.'
+                );
+            }
+
+            return $value;
+        }
+
+        return $default;
+    }
+
     private function boundedInt(
         array $data,
         array $keys,
