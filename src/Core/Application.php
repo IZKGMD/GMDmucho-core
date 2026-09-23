@@ -212,25 +212,25 @@ final readonly class Application
 
         // Legacy/compatibility endpoints implemented by dedicated services.
         $route('/getAccountURL',
-            static fn(Request $r): Response =>
+            fn(Request $r): Response =>
                 Response::text($urlController->accountUrl()));
         $route('/getCustomContentURL',
-            static fn(Request $r): Response =>
+            fn(Request $r): Response =>
                 Response::text($urlController->customContentUrl()));
         $route('/getGJCommentHistory',
-            static fn(Request $r): Response =>
+            fn(Request $r): Response =>
                 Response::text($commentHistoryController->get()));
         $route('/getGJLevelLists',
-            static fn(Request $r): Response =>
+            fn(Request $r): Response =>
                 Response::text($levelListController->get()));
         $route('/uploadGJLevelList',
-            static fn(Request $r): Response =>
+            fn(Request $r): Response =>
                 Response::text($levelListController->upload()));
         $route('/deleteGJLevelList',
-            static fn(Request $r): Response =>
+            fn(Request $r): Response =>
                 Response::text($levelListController->delete()));
         $route('/getGJTopArtists',
-            static fn(Request $r): Response =>
+            fn(Request $r): Response =>
                 Response::text($topArtistController->get()));
 
         $route('/loginGJAccount',
