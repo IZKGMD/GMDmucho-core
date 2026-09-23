@@ -650,3 +650,492 @@ body.sidebar-collapsed .brandrow{
         grid-template-columns:1fr 1fr!important;
     }
 }
+
+
+/* ===== PREMIUM MOTION LAYER ===== */
+
+:root{
+    --ui-accent-2:#9d91ff;
+    --ui-glow:rgba(119,104,255,.28);
+    --ui-glow-soft:rgba(119,104,255,.12);
+    --ui-glass:rgba(17,23,34,.72);
+    --ui-speed:.22s;
+    --ui-ease:cubic-bezier(.22,.8,.24,1);
+}
+
+html{
+    scroll-behavior:smooth;
+}
+
+body{
+    position:relative;
+    overflow-x:hidden;
+    background:
+        radial-gradient(circle at 8% 8%,rgba(119,104,255,.11),transparent 26%),
+        radial-gradient(circle at 92% 28%,rgba(75,119,255,.07),transparent 23%),
+        radial-gradient(circle at 52% 110%,rgba(126,84,255,.06),transparent 30%),
+        var(--ui-bg);
+}
+
+/* Subtle moving ambient light behind the interface. */
+body::before,
+body::after{
+    content:"";
+    position:fixed;
+    width:420px;
+    height:420px;
+    border-radius:50%;
+    pointer-events:none;
+    z-index:-1;
+    filter:blur(70px);
+    opacity:.16;
+    will-change:transform;
+}
+
+body::before{
+    top:-180px;
+    right:-120px;
+    background:rgba(119,104,255,.22);
+    animation:muchoAmbientA 18s ease-in-out infinite alternate;
+}
+
+body::after{
+    bottom:-220px;
+    left:15%;
+    background:rgba(57,216,155,.10);
+    animation:muchoAmbientB 22s ease-in-out infinite alternate;
+}
+
+@keyframes muchoAmbientA{
+    from{transform:translate3d(0,0,0) scale(1)}
+    to{transform:translate3d(-55px,70px,0) scale(1.12)}
+}
+
+@keyframes muchoAmbientB{
+    from{transform:translate3d(0,0,0) scale(1)}
+    to{transform:translate3d(80px,-45px,0) scale(1.08)}
+}
+
+/* Sidebar gets a glass edge and a gentle entrance. */
+aside{
+    box-shadow:
+        18px 0 60px rgba(0,0,0,.16),
+        inset -1px 0 rgba(255,255,255,.018);
+}
+
+.brandrow .logo{
+    transition:
+        transform var(--ui-speed) var(--ui-ease),
+        color var(--ui-speed) ease,
+        text-shadow var(--ui-speed) ease;
+}
+
+.brandrow .logo:hover{
+    transform:translateX(2px);
+    text-shadow:0 0 26px rgba(141,127,255,.24);
+}
+
+.brandrow .logo b{
+    background:linear-gradient(90deg,#8a7cff,#b1a8ff);
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+
+nav a{
+    position:relative;
+    overflow:hidden;
+    transition:
+        transform var(--ui-speed) var(--ui-ease),
+        background var(--ui-speed) ease,
+        border-color var(--ui-speed) ease,
+        color var(--ui-speed) ease,
+        box-shadow var(--ui-speed) ease;
+}
+
+nav a::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(
+        110deg,
+        transparent 18%,
+        rgba(255,255,255,.045) 48%,
+        transparent 76%
+    );
+    transform:translateX(-125%);
+    transition:transform .65s var(--ui-ease);
+    pointer-events:none;
+}
+
+nav a:hover{
+    transform:translateX(3px);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.018);
+}
+
+nav a:hover::after{
+    transform:translateX(125%);
+}
+
+nav a.on{
+    box-shadow:
+        inset 0 0 0 1px rgba(137,123,255,.18),
+        0 8px 24px rgba(77,65,181,.10);
+}
+
+nav a.on::before{
+    transform:scale(1.08);
+    text-shadow:0 0 13px rgba(154,143,255,.42);
+}
+
+nav a::before{
+    transition:
+        transform var(--ui-speed) var(--ui-ease),
+        color var(--ui-speed) ease,
+        text-shadow var(--ui-speed) ease;
+}
+
+/* Header becomes a floating glass surface. */
+.head{
+    box-shadow:
+        0 12px 38px rgba(0,0,0,.12),
+        inset 0 -1px rgba(255,255,255,.015);
+}
+
+.global-search{
+    transition:
+        border-color var(--ui-speed) ease,
+        box-shadow var(--ui-speed) ease,
+        transform var(--ui-speed) var(--ui-ease);
+}
+
+.global-search:focus-within{
+    border-color:rgba(119,104,255,.55);
+    box-shadow:
+        0 0 0 3px rgba(119,104,255,.10),
+        0 10px 30px rgba(38,31,103,.14);
+    transform:translateY(-1px);
+}
+
+.user-pill{
+    transition:
+        transform var(--ui-speed) var(--ui-ease),
+        border-color var(--ui-speed) ease,
+        box-shadow var(--ui-speed) ease;
+}
+
+.user-pill:hover{
+    transform:translateY(-1px);
+    border-color:#36425a;
+    box-shadow:0 8px 24px rgba(0,0,0,.18);
+}
+
+.avatar{
+    box-shadow:
+        0 0 0 1px rgba(255,255,255,.08),
+        0 7px 18px rgba(80,67,196,.22);
+    transition:transform var(--ui-speed) var(--ui-ease);
+}
+
+.user-pill:hover .avatar{
+    transform:scale(1.04) rotate(-2deg);
+}
+
+/* Cards lift gently instead of jumping. */
+.card,
+.quick-link,
+.table{
+    will-change:transform;
+    transition:
+        transform var(--ui-speed) var(--ui-ease),
+        border-color var(--ui-speed) ease,
+        background var(--ui-speed) ease,
+        box-shadow var(--ui-speed) ease;
+}
+
+.card:hover,
+.quick-link:hover{
+    transform:translateY(-3px);
+    box-shadow:
+        0 16px 40px rgba(0,0,0,.15),
+        0 0 0 1px rgba(119,104,255,.045);
+}
+
+.table:hover{
+    border-color:#2b3749;
+    box-shadow:
+        0 14px 36px rgba(0,0,0,.13),
+        0 0 0 1px rgba(119,104,255,.03);
+}
+
+.grid > .card,
+.boxgrid > .card,
+.quick-grid > .quick-link{
+    animation:muchoReveal .48s var(--ui-ease) both;
+}
+
+.grid > :nth-child(2),
+.boxgrid > :nth-child(2),
+.quick-grid > :nth-child(2){animation-delay:.035s}
+
+.grid > :nth-child(3),
+.boxgrid > :nth-child(3),
+.quick-grid > :nth-child(3){animation-delay:.07s}
+
+.grid > :nth-child(4),
+.boxgrid > :nth-child(4),
+.quick-grid > :nth-child(4){animation-delay:.105s}
+
+.grid > :nth-child(5),
+.boxgrid > :nth-child(5),
+.quick-grid > :nth-child(5){animation-delay:.14s}
+
+@keyframes muchoReveal{
+    from{
+        opacity:0;
+        transform:translateY(10px) scale(.985);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0) scale(1);
+    }
+}
+
+/* Cards that contain stat values get a subtle number glow. */
+.value{
+    text-shadow:0 0 24px rgba(119,104,255,.09);
+    transition:
+        color var(--ui-speed) ease,
+        text-shadow var(--ui-speed) ease,
+        transform var(--ui-speed) var(--ui-ease);
+}
+
+.card:hover .value{
+    color:#fff;
+    text-shadow:0 0 26px rgba(138,124,255,.18);
+    transform:translateY(-1px);
+}
+
+/* Premium buttons with a moving highlight. */
+button,
+.btn{
+    position:relative;
+    overflow:hidden;
+    isolation:isolate;
+    transition:
+        transform var(--ui-speed) var(--ui-ease),
+        filter var(--ui-speed) ease,
+        box-shadow var(--ui-speed) ease,
+        background var(--ui-speed) ease;
+}
+
+button::before,
+.btn::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(
+        105deg,
+        transparent 18%,
+        rgba(255,255,255,.10) 48%,
+        transparent 78%
+    );
+    transform:translateX(-125%);
+    transition:transform .55s var(--ui-ease);
+    pointer-events:none;
+    z-index:-1;
+}
+
+button:hover,
+.btn:hover{
+    transform:translateY(-2px);
+    filter:brightness(1.05);
+    box-shadow:
+        0 9px 24px rgba(63,52,175,.22),
+        0 0 0 1px rgba(255,255,255,.03);
+}
+
+button:hover::before,
+.btn:hover::before{
+    transform:translateX(125%);
+}
+
+button:focus-visible,
+.btn:focus-visible{
+    outline:none;
+    box-shadow:
+        0 0 0 3px rgba(119,104,255,.18),
+        0 9px 24px rgba(63,52,175,.18);
+}
+
+.gray:hover{
+    box-shadow:0 8px 20px rgba(0,0,0,.18)!important;
+}
+
+.green:hover{
+    box-shadow:0 8px 20px rgba(30,142,99,.18)!important;
+}
+
+.red:hover{
+    box-shadow:0 8px 20px rgba(143,45,61,.18)!important;
+}
+
+/* Inputs feel tactile but stay calm. */
+input,
+select,
+textarea{
+    transition:
+        border-color var(--ui-speed) ease,
+        background var(--ui-speed) ease,
+        box-shadow var(--ui-speed) ease,
+        transform var(--ui-speed) var(--ui-ease);
+}
+
+input:hover,
+select:hover,
+textarea:hover{
+    background:#0b121b;
+}
+
+input:focus,
+select:focus,
+textarea:focus{
+    transform:translateY(-1px);
+    border-color:rgba(119,104,255,.72);
+    background:#0b1119;
+    box-shadow:
+        0 0 0 3px rgba(119,104,255,.10),
+        0 8px 24px rgba(0,0,0,.12);
+}
+
+/* Better tables: readable, alive, but not distracting. */
+table tbody tr{
+    transition:
+        background var(--ui-speed) ease,
+        transform var(--ui-speed) var(--ui-ease);
+}
+
+table tbody tr:hover{
+    background:
+        linear-gradient(
+            90deg,
+            rgba(119,104,255,.055),
+            rgba(119,104,255,.015)
+        );
+}
+
+table tbody td{
+    transition:
+        color var(--ui-speed) ease,
+        border-color var(--ui-speed) ease;
+}
+
+table tbody tr:hover td{
+    color:#f7f9ff;
+    border-color:#2a3342;
+}
+
+th{
+    backdrop-filter:blur(10px);
+    box-shadow:inset 0 -1px rgba(255,255,255,.02);
+}
+
+.badge{
+    transition:
+        transform var(--ui-speed) var(--ui-ease),
+        border-color var(--ui-speed) ease,
+        background var(--ui-speed) ease;
+}
+
+.badge:hover{
+    transform:translateY(-1px);
+    border-color:#3b4860;
+    background:#253044;
+}
+
+/* Flash messages enter smoothly. */
+.flash{
+    animation:muchoFlashIn .42s var(--ui-ease) both;
+}
+
+@keyframes muchoFlashIn{
+    from{
+        opacity:0;
+        transform:translateY(-7px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+/* API / log panels feel like real terminals. */
+pre{
+    box-shadow:
+        inset 0 1px rgba(255,255,255,.015),
+        0 10px 30px rgba(0,0,0,.12);
+}
+
+/* Scrollbars are integrated into the palette. */
+*{
+    scrollbar-color:#353f53 transparent;
+}
+
+::-webkit-scrollbar-thumb{
+    background:linear-gradient(180deg,#3b4660,#2b3446);
+    border:2px solid transparent;
+    background-clip:padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover{
+    background:linear-gradient(180deg,#515d7a,#3a455c);
+    background-clip:padding-box;
+}
+
+/* The footer remains understated but polished. */
+.mucho-page-footer{
+    transition:
+        color var(--ui-speed) ease,
+        border-color var(--ui-speed) ease;
+}
+
+.github-footer-link{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    color:#7d8ba3;
+    transition:
+        color var(--ui-speed) ease,
+        transform var(--ui-speed) var(--ui-ease),
+        filter var(--ui-speed) ease;
+}
+
+.github-footer-logo{
+    transition:transform .28s var(--ui-ease);
+}
+
+.github-footer-link:hover{
+    color:#d7dded;
+    transform:translateY(-1px);
+    filter:drop-shadow(0 0 8px rgba(255,255,255,.08));
+}
+
+.github-footer-link:hover .github-footer-logo{
+    transform:rotate(-6deg) scale(1.08);
+}
+
+/* Respect accessibility preferences. */
+@media (prefers-reduced-motion:reduce){
+    *,
+    *::before,
+    *::after{
+        animation-duration:.01ms!important;
+        animation-iteration-count:1!important;
+        transition-duration:.01ms!important;
+        scroll-behavior:auto!important;
+    }
+    body::before,
+    body::after{
+        animation:none!important;
+    }
+}
