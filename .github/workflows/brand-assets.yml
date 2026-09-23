@@ -21,7 +21,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
-          magick -version
+          (magick -version 2>/dev/null || convert -version)
 
       - name: Build brand assets
         shell: bash
@@ -32,15 +32,15 @@ jobs:
 
           SRC="Gemini_Generated_Image_af007baf007baf00.jpg"
 
-          magick "$SRC"             -auto-orient             -strip             -fuzz 8%             -trim +repage             -resize "1600x1600>"             -quality 94             "public/assets/muchocore-logo.jpg"
+          convert "$SRC"             -auto-orient             -strip             -fuzz 8%             -trim +repage             -resize "1600x1600>"             -quality 94             "public/assets/muchocore-logo.jpg"
 
-          magick "public/assets/muchocore-logo.jpg"             -resize "900x900^"             -gravity center             -extent 900x900             -strip             "public/assets/muchocore-icon.png"
+          convert "public/assets/muchocore-logo.jpg"             -resize "900x900^"             -gravity center             -extent 900x900             -strip             "public/assets/muchocore-icon.png"
 
           test -s public/assets/muchocore-logo.jpg
           test -s public/assets/muchocore-icon.png
           file public/assets/muchocore-logo.jpg public/assets/muchocore-icon.png
-          magick identify public/assets/muchocore-logo.jpg
-          magick identify public/assets/muchocore-icon.png
+          identify public/assets/muchocore-logo.jpg
+          identify public/assets/muchocore-icon.png
 
       - name: Commit generated assets
         shell: bash
