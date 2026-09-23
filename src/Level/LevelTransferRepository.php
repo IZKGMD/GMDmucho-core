@@ -26,6 +26,7 @@ final readonly class LevelTransferRepository
         'coins',
         'requested_stars',
         'is_unlisted',
+        'unlisted2',
         'wt',
         'wt2',
         'extra_string',
