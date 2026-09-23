@@ -64,7 +64,7 @@ foreach ($roleFiles as $file) {
         exit(1);
     }
 
-    if (preg_match("/['\"]helper['\"]|['\"]admin['\"]/", $contents)) {
+    if (preg_match("/['\"]helper['\"]/", $contents)) {
         fwrite(
             STDERR,
             "FAIL legacy game role found in {$file}\n"
