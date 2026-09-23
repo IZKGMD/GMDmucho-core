@@ -9,6 +9,8 @@ use MuchoCore\Protocol\GdHash;
 
 final readonly class RewardsService
 {
+    private const SECRET_REWARD_SECRET = 'Wmfd2893gb7';
+
     private const SMALL_WAIT = 3600;
     private const BIG_WAIT = 14400;
 
@@ -158,8 +160,13 @@ final readonly class RewardsService
         string $udid,
         string $chk,
         string $credential,
-        string $rewardKey
+        string $rewardKey,
+        string $secret
     ): string {
+        if ($secret !== self::SECRET_REWARD_SECRET) {
+            return '-1';
+        }
+
         $rewardKey = trim($rewardKey);
 
         if ($rewardKey === '' || strlen($rewardKey) > 128) {
