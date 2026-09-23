@@ -525,9 +525,13 @@ final readonly class LevelRepository
 
         try {
             $q = $this->pdo->prepare(
-                'SELECT account_id FROM friends WHERE account_id=:id
+                'SELECT friend_account_id
+                 FROM friends
+                 WHERE account_id=:id
                  UNION
-                 SELECT friend_account_id FROM friends WHERE account_id=:id'
+                 SELECT account_id
+                 FROM friends
+                 WHERE friend_account_id=:id'
             );
             $q->execute(['id'=>$accountId]);
             $ids = array_map('intval', $q->fetchAll(PDO::FETCH_COLUMN));
