@@ -3527,7 +3527,7 @@ table{
 }
 </style>
 <link rel="stylesheet" href="/admin/admin-i18n.css?v=2">
-<link rel="stylesheet" href="/admin/admin-ui-v2.css?v=1">
+<link rel="stylesheet" href="/admin/admin-ui-v2.css?v=2">
 </head>
 <body style='--brand-initial:"<?=h($brandInitial)?>";'>
 
