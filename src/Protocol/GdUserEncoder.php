@@ -10,12 +10,14 @@ final class GdUserEncoder
 {
     public function profile(array $u): string
     {
-        $accId = (int)($u['account_id'] ?? 0);
+        $accountId = (int)($u['account_id'] ?? 0);
+        $userId = (int)($u['user_id'] ?? $accountId);
         $name = ProtocolText::username(
             $u['username'] ?? 'Player'
         );
 
-        $role = (string)($u['role_code'] ?? $u['role'] ?? 'user');
+        $role = (string)($u['role_code'] ?? 'user');
+
         try {
             $modBadge = GameRole::badgeLevel($role);
         } catch (\InvalidArgumentException) {
@@ -23,51 +25,55 @@ final class GdUserEncoder
         }
 
         $mapping = [
-            1 => $name,
-            2 => $accId,
-            3 => (int)($u['stars'] ?? 0),
-            4 => (int)($u['demons'] ?? 0),
-            6 => (int)($u['rank'] ?? 0),
-            7 => $accId,
-            8 => (int)($u['creator_points'] ?? 0),
-            9 => (int)($u['cube'] ?? 1),
-            10 => (int)($u['color1'] ?? 0),
-            11 => (int)($u['color2'] ?? 3),
+            1  => $name,
+            2  => $userId,
             13 => (int)($u['secret_coins'] ?? 0),
-            14 => 0,
-            15 => (int)($u['special'] ?? 0),
-            16 => $accId,
             17 => (int)($u['user_coins'] ?? 0),
-            18 => (int)($u['message_state'] ?? $u['messages_state'] ?? 0),
-            19 => (int)($u['friend_request_state'] ?? $u['friend_requests_state'] ?? 0),
-            20 => (string)($u['youtube'] ?? $u['youtube_url'] ?? ''),
-            21 => (int)($u['cube'] ?? 1),
+            18 => (int)($u['message_state'] ?? 0),
+            19 => (int)($u['friend_request_state'] ?? 0),
+            20 => (string)($u['youtube'] ?? ''),
+            21 => (int)($u['icon_id'] ?? $u['cube'] ?? 1),
             22 => (int)($u['ship'] ?? 1),
             23 => (int)($u['ball'] ?? 1),
             24 => (int)($u['ufo'] ?? 1),
             25 => (int)($u['wave'] ?? 1),
             26 => (int)($u['robot'] ?? 1),
-            27 => 0,
-            28 => 0,
+            28 => (int)($u['glow'] ?? 0),
             29 => 1,
             30 => (int)($u['rank'] ?? 0),
-            31 => 0,
-            38 => 0,
-            39 => 0,
-            40 => 0,
-            41 => 0,
-            42 => 0,
+            31 => (int)($u['friend_state'] ?? 0),
+            38 => (int)($u['messages_count'] ?? 0),
+            39 => (int)($u['friend_requests_count'] ?? 0),
+            40 => (int)($u['friends_count'] ?? 0),
             43 => (int)($u['spider'] ?? 1),
             44 => (string)($u['twitter'] ?? ''),
             45 => (string)($u['twitch'] ?? ''),
             46 => (int)($u['diamonds'] ?? 0),
-            48 => 1,
+            48 => (int)($u['explosion'] ?? 1),
             49 => $modBadge,
-            50 => (int)($u['comment_history_state'] ?? $u['comments_state'] ?? 0),
+            50 => (int)($u['comment_history_state'] ?? 0),
             51 => (int)($u['color3'] ?? 0),
             52 => (int)($u['moons'] ?? 0),
             53 => (int)($u['swing'] ?? 1),
-            54 => (int)($u['jetpack'] ?? 1)
+            54 => (int)($u['jetpack'] ?? 1),
+            55 => (string)($u['demon_info'] ?? ''),
+            56 => (string)($u['star_info'] ?? ''),
+            57 => (string)($u['platformer_info'] ?? ''),
+            58 => (string)($u['discord'] ?? ''),
+            59 => (string)($u['instagram'] ?? ''),
+            60 => (string)($u['tiktok'] ?? ''),
+            61 => (string)($u['custom_link'] ?? ''),
+            3  => (int)($u['stars'] ?? 0),
+            4  => (int)($u['demons'] ?? 0),
+            6  => (int)($u['rank'] ?? 0),
+            7  => $accountId,
+            8  => (int)($u['creator_points'] ?? 0),
+            9  => (int)($u['icon_id'] ?? $u['cube'] ?? 1),
+            10 => (int)($u['color1'] ?? 0),
+            11 => (int)($u['color2'] ?? 3),
+            14 => (int)($u['icon_type'] ?? 0),
+            15 => (int)($u['special'] ?? 0),
+            16 => $accountId,
         ];
 
         $pairs = [];
@@ -86,22 +92,24 @@ final class GdUserEncoder
 
         $entries = [];
         foreach ($users as $u) {
-            $accId = (int)($u['account_id'] ?? 0);
+            $accountId = (int)($u['account_id'] ?? 0);
+            $userId = (int)($u['user_id'] ?? $accountId);
+
             $mapping = [
                 1 => ProtocolText::username($u['username'] ?? 'Player'),
-                2 => $accId,
+                2 => $userId,
                 3 => (int)($u['stars'] ?? 0),
                 4 => (int)($u['demons'] ?? 0),
                 6 => (int)($u['rank'] ?? 0),
-                7 => $accId,
+                7 => $accountId,
                 8 => (int)($u['creator_points'] ?? 0),
-                9 => (int)($u['cube'] ?? 1),
+                9 => (int)($u['icon_id'] ?? 1),
                 10 => (int)($u['color1'] ?? 0),
                 11 => (int)($u['color2'] ?? 3),
                 13 => (int)($u['secret_coins'] ?? 0),
-                14 => 0,
+                14 => (int)($u['icon_type'] ?? 0),
                 15 => (int)($u['special'] ?? 0),
-                16 => $accId,
+                16 => $accountId,
                 17 => (int)($u['user_coins'] ?? 0),
                 46 => (int)($u['diamonds'] ?? 0),
                 52 => (int)($u['moons'] ?? 0)
@@ -120,28 +128,29 @@ final class GdUserEncoder
     public function leaderboard(array $users): string
     {
         if (empty($users)) {
-            return '';
+            return '-1';
         }
 
         $entries = [];
         foreach ($users as $u) {
-            $accId = (int)($u['account_id'] ?? 0);
+            $accountId = (int)($u['account_id'] ?? 0);
+            $userId = (int)($u['user_id'] ?? $accountId);
             $mapping = [
                 1 => ProtocolText::username($u['username'] ?? 'Player'),
-                2 => $accId,
-                3 => (int)($u['stars'] ?? 0),
-                4 => (int)($u['demons'] ?? 0),
+                2 => $userId,
+                13 => (int)($u['secret_coins'] ?? 0),
+                17 => (int)($u['user_coins'] ?? 0),
                 6 => (int)($u['rank'] ?? 0),
-                7 => $accId,
-                8 => (int)($u['creator_points'] ?? 0),
-                9 => (int)($u['cube'] ?? 1),
+                7 => $accountId,
+                9 => (int)($u['icon_id'] ?? 1),
                 10 => (int)($u['color1'] ?? 0),
                 11 => (int)($u['color2'] ?? 3),
-                13 => (int)($u['secret_coins'] ?? 0),
-                14 => 0,
+                14 => (int)($u['icon_type'] ?? 0),
                 15 => (int)($u['special'] ?? 0),
-                16 => $accId,
-                17 => (int)($u['user_coins'] ?? 0),
+                16 => $accountId,
+                3 => (int)($u['stars'] ?? 0),
+                4 => (int)($u['demons'] ?? 0),
+                8 => (int)($u['creator_points'] ?? 0),
                 46 => (int)($u['diamonds'] ?? 0),
                 52 => (int)($u['moons'] ?? 0)
             ];
