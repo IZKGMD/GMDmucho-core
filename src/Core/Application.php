@@ -7,6 +7,16 @@ use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Account\AccountController;
 use MuchoCore\Account\AccountRepository;
 use MuchoCore\Account\AccountService;
+use MuchoCore\Artist\TopArtistController;
+use MuchoCore\Artist\TopArtistRepository;
+use MuchoCore\Artist\TopArtistService;
+use MuchoCore\Comment\CommentHistoryController;
+use MuchoCore\Comment\CommentHistoryRepository;
+use MuchoCore\Comment\CommentHistoryService;
+use MuchoCore\LevelList\LevelListController;
+use MuchoCore\LevelList\LevelListRepository;
+use MuchoCore\LevelList\LevelListService;
+use MuchoCore\Url\UrlController;
 use MuchoCore\Compatibility\DiscoveryController;
 use MuchoCore\CloudSave\CloudSaveService;
 use MuchoCore\CloudSave\CloudSaveRepository;
@@ -53,6 +63,7 @@ use MuchoCore\Social\RelationshipService;
 use MuchoCore\User\UserController;
 use MuchoCore\User\UserRepository;
 use MuchoCore\User\UserService;
+use MuchoCore\V71\AuthService;
 use PDO;
 use Throwable;
 
@@ -70,6 +81,25 @@ final readonly class Application
         $accountService = new AccountService($this->pdo, $accountRepo);
         $accountController = new AccountController($accountService);
         $auth = new AccountAuthenticator($this->pdo);
+
+        $v71Auth = new AuthService($this->pdo);
+        $topArtistController = new TopArtistController(
+            new TopArtistService(
+                new TopArtistRepository($this->pdo)
+            )
+        );
+        $levelListController = new LevelListController(
+            new LevelListService(
+                new LevelListRepository($this->pdo),
+                $v71Auth
+            )
+        );
+        $commentHistoryController = new CommentHistoryController(
+            new CommentHistoryService(
+                new CommentHistoryRepository($this->pdo)
+            )
+        );
+        $urlController = new UrlController();
 
         $cloudSaveController = new CloudSaveController(
             new CloudSaveService(
@@ -179,6 +209,29 @@ final readonly class Application
         $route('/health',
             static fn(Request $r): Response =>
                 Response::text('1'));
+
+        // Legacy/compatibility endpoints implemented by dedicated services.
+        $route('/getAccountURL',
+            static fn(Request $r): Response =>
+                Response::text($urlController->accountUrl()));
+        $route('/getCustomContentURL',
+            static fn(Request $r): Response =>
+                Response::text($urlController->customContentUrl()));
+        $route('/getGJCommentHistory',
+            static fn(Request $r): Response =>
+                Response::text($commentHistoryController->get()));
+        $route('/getGJLevelLists',
+            static fn(Request $r): Response =>
+                Response::text($levelListController->get()));
+        $route('/uploadGJLevelList',
+            static fn(Request $r): Response =>
+                Response::text($levelListController->upload()));
+        $route('/deleteGJLevelList',
+            static fn(Request $r): Response =>
+                Response::text($levelListController->delete()));
+        $route('/getGJTopArtists',
+            static fn(Request $r): Response =>
+                Response::text($topArtistController->get()));
 
         $route('/loginGJAccount',
             [$accountController,'login']);
