@@ -82,7 +82,9 @@ final readonly class LevelTransferController
                 $gameVersion,
                 $binaryVersion,
                 $extras,
-                $incrementDownloads
+                $incrementDownloads,
+                $request->postInt('accountID'),
+                $request->gdCredential()
             );
 
             return Response::text($result);
