@@ -2,9 +2,11 @@
 
 MuchoCore — backend для GDPS на Geometry Dash.
 
-**Готовящаяся версия: v1.0.1**
+**Версия разработки: v1.1.0**
 
 > **Новичок? Начни с [START_HERE.md](START_HERE.md).**
+>
+> <img src="public/assets/muchocore-mark.svg" alt="MuchoCore" width="72">
 >
 > Не нужно читать весь репозиторий, чтобы запустить сервер.
 
@@ -26,7 +28,18 @@ MuchoCore — backend для GDPS на Geometry Dash.
 | Linux VPS с root-доступом | [docs/SETUP.md](docs/SETUP.md) |
 | Обычный PHP-хостинг | [docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md) |
 | Уже запустился сервер, нужен клиент | [docs/CLIENT_SETUP.md](docs/CLIENT_SETUP.md) |
+| Что сломалось и что проверять | `bash bin/mucho doctor` |
 | Нужно разобраться глубже | [docs/ADVANCED.md](docs/ADVANCED.md) |
+
+## Одна команда для диагностики
+
+Если не знаешь, что именно сломалось, выполни:
+
+~~~bash
+bash bin/mucho doctor
+~~~
+
+Команда проверяет Docker, конфигурацию, секреты, контейнеры и `/health`, а затем подсказывает следующий шаг.
 
 ## После установки
 
