@@ -6,6 +6,8 @@ namespace MuchoCore\Protocol;
 
 use DateTimeImmutable;
 
+use MuchoCore\Protocol\GdLegacyText;
+
 final class GdLevelDownloadEncoder
 {
     public function encode(
@@ -36,16 +38,10 @@ final class GdLevelDownloadEncoder
 
         $description = (string) $level['description'];
 
-        if ($gameVersion <= 19 && $description !== '') {
-            $decoded = base64_decode(
-                strtr($description, '-_', '+/'),
-                true
-            );
-
-            if ($decoded !== false) {
-                $description = $decoded;
-            }
-        }
+        $description = GdLegacyText::decodeDescriptionForResponse(
+            $description,
+            $gameVersion
+        );
 
         $password = (string) $level['copy_password'];
 
