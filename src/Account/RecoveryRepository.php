@@ -69,60 +69,6 @@ final readonly class RecoveryRepository
         ]);
     }
 
-    public function consumeToken(string $tokenHash): ?int
-    {
-        $this->pdo->beginTransaction();
-
-        try {
-            $stmt = $this->pdo->prepare(
-                'SELECT account_id
-                 FROM account_recovery_tokens
-                 WHERE token_hash = :token_hash
-                   AND used_at IS NULL
-                   AND expires_at > NOW()
-                 LIMIT 1
-                 FOR UPDATE'
-            );
-
-            $stmt->execute([
-                'token_hash' => $tokenHash,
-            ]);
-
-            $accountId = $stmt->fetchColumn();
-
-            if ($accountId === false) {
-                $this->pdo->rollBack();
-                return null;
-            }
-
-            $update = $this->pdo->prepare(
-                'UPDATE account_recovery_tokens
-                 SET used_at = NOW()
-                 WHERE token_hash = :token_hash
-                   AND used_at IS NULL'
-            );
-
-            $update->execute([
-                'token_hash' => $tokenHash,
-            ]);
-
-            if ($update->rowCount() !== 1) {
-                $this->pdo->rollBack();
-                return null;
-            }
-
-            $this->pdo->commit();
-
-            return (int)$accountId;
-        } catch (\Throwable $e) {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
-            }
-
-            throw $e;
-        }
-    }
-
     public function tokenIsValid(string $tokenHash): bool
     {
         $stmt = $this->pdo->prepare(
@@ -141,27 +87,87 @@ final readonly class RecoveryRepository
         return $stmt->fetchColumn() !== false;
     }
 
-    public function updatePassword(
-        int $accountId,
+    public function resetPassword(
+        string $tokenHash,
         string $passwordHash,
         string $gjp2Hash
-    ): void {
-        $stmt = $this->pdo->prepare(
-            'UPDATE accounts SET
-                password_hash = :password_hash,
-                gjp2_hash = :gjp2_hash
-             WHERE account_id = :account_id
-             LIMIT 1'
-        );
+    ): ?int {
+        $this->pdo->beginTransaction();
 
-        $stmt->execute([
-            'account_id' => $accountId,
-            'password_hash' => $passwordHash,
-            'gjp2_hash' => $gjp2Hash,
-        ]);
+        try {
+            $stmt = $this->pdo->prepare(
+                'SELECT
+                    art.account_id
+                 FROM account_recovery_tokens art
+                 INNER JOIN accounts a
+                    ON a.account_id = art.account_id
+                 WHERE art.token_hash = :token_hash
+                   AND art.used_at IS NULL
+                   AND art.expires_at > NOW()
+                   AND a.is_active = 1
+                   AND a.is_banned = 0
+                 LIMIT 1
+                 FOR UPDATE'
+            );
 
-        if ($stmt->rowCount() !== 1) {
-            throw new \RuntimeException('Unable to update password.');
+            $stmt->execute([
+                'token_hash' => $tokenHash,
+            ]);
+
+            $accountId = $stmt->fetchColumn();
+
+            if ($accountId === false) {
+                $this->pdo->rollBack();
+                return null;
+            }
+
+            $updateAccount = $this->pdo->prepare(
+                'UPDATE accounts SET
+                    password_hash = :password_hash,
+                    gjp2_hash = :gjp2_hash
+                 WHERE account_id = :account_id
+                 LIMIT 1'
+            );
+
+            $updateAccount->execute([
+                'account_id' => (int)$accountId,
+                'password_hash' => $passwordHash,
+                'gjp2_hash' => $gjp2Hash,
+            ]);
+
+            if ($updateAccount->rowCount() !== 1) {
+                throw new \RuntimeException(
+                    'Unable to update password.'
+                );
+            }
+
+            $markUsed = $this->pdo->prepare(
+                'UPDATE account_recovery_tokens
+                 SET used_at = NOW()
+                 WHERE token_hash = :token_hash
+                   AND used_at IS NULL
+                   AND expires_at > NOW()'
+            );
+
+            $markUsed->execute([
+                'token_hash' => $tokenHash,
+            ]);
+
+            if ($markUsed->rowCount() !== 1) {
+                throw new \RuntimeException(
+                    'Unable to consume recovery token.'
+                );
+            }
+
+            $this->pdo->commit();
+
+            return (int)$accountId;
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
+            throw $e;
         }
     }
 
