@@ -394,7 +394,7 @@ body{
     font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
 a{color:inherit}
-.shell{max-width:1100px;margin:0 auto;padding:28px 18px 60px}
+.shell{max-width:1100px;min-height:100vh;margin:0 auto;padding:28px 18px 60px;display:flex;flex-direction:column}
 .top{
     display:flex;
     justify-content:space-between;
@@ -502,10 +502,22 @@ th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04
 }
 .login{width:min(440px,100%)}
 .footer{
-    margin-top:30px;
+    margin-top:auto;
+    padding-top:18px;
     color:var(--muted);
-    font-size:12px;
+    font-size:11px;
+    line-height:1.7;
     text-align:center;
+}
+
+.footer a{
+    color:#7d8ba3;
+    text-decoration:none;
+}
+
+.footer a:hover{
+    color:#a9b5c8;
+    text-decoration:underline;
 }
 </style>
 </head>
@@ -524,10 +536,6 @@ th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04
             <?=mdH($flash['message'])?>
         </div>
     <?php endif; ?>
-
-    <div class="footer">
-        <?=mdH($serverName)?> · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK
-    </div>
 
     <form method="post" autocomplete="off">
         <input type="hidden" name="csrf" value="<?=mdH(mdCsrf())?>">
@@ -690,7 +698,9 @@ th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04
 </div>
 
 <div class="footer">
-    <?=mdH($serverName)?> Music Dashboard · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK · <a href="/">Back to GDPS</a>
+    <?=mdH($serverName)?> Music Dashboard · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK ·
+    <a href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer">GitHub</a> ·
+    <a href="/">Back to GDPS</a>
 </div>
 
 <?php endif; ?>
