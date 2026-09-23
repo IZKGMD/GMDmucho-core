@@ -266,7 +266,7 @@ final class RecoveryController
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<link rel="icon" href="/Gemini_Generated_Image_af007baf007baf00.jpg" type="image/jpeg">
+<link rel="icon" href="/assets/muchocore-icon.png" type="image/jpeg">
 <title>MuchoCore — восстановление аккаунта</title>
 <link rel="stylesheet" href="/recovery/recovery.css">
 <link rel="stylesheet" href="/muchocore-theme.css?v=1">
@@ -280,7 +280,7 @@ final class RecoveryController
 
 <main class="shell">
     <section class="card">
-        <div class="brand"><img class="mucho-brand-logo" src="/Gemini_Generated_Image_af007baf007baf00.jpg" alt="MuchoCore" width="44" height="44" decoding="async">' . $brand . '</div>
+        <div class="brand"><img class="mucho-brand-logo" src="/assets/muchocore-logo.jpg" alt="MuchoCore" width="44" height="44" decoding="async">' . $brand . '</div>
         ' . $content . '
     </section>
 
