@@ -34,6 +34,10 @@ assertSameValue(false, $v19->usesGjp2(), 'GD 1.9 uses legacy credential');
 $v20 = ClientVersion::fromValues(20, 29);
 assertSameValue('2.0', $v20->family(), 'GD 2.0 family');
 
+$v20World = ClientVersion::fromValues(20, 28);
+assertSameValue('2.1', $v20World->family(), 'GD 2.0 binary >27 uses 2.1 protocol');
+assertSameValue(21, $v20World->effectiveGameVersion(), 'GD 2.0 binary >27 effective version');
+
 $v21 = ClientVersion::fromValues(21, 35);
 assertSameValue('2.1', $v21->family(), 'GD 2.1 family');
 assertSameValue(false, $v21->usesGjp2(), 'GD 2.1 uses legacy credential');
