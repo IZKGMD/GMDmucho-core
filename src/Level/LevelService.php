@@ -126,9 +126,15 @@ final readonly class LevelService
         }
 
         $gameVersion = $this->integer($input['gameVersion'] ?? 0);
-        $credential = $gameVersion >= 22
-            ? (string)($input['gjp2'] ?? $input['gjp'] ?? '')
-            : (string)($input['gjp'] ?? $input['gjp2'] ?? '');
+        $credentialValue = $gameVersion >= 22
+            ? ($input['gjp2'] ?? $input['gjp'] ?? '')
+            : ($input['gjp'] ?? $input['gjp2'] ?? '');
+
+        if (!is_scalar($credentialValue)) {
+            return 0;
+        }
+
+        $credential = trim((string)$credentialValue);
 
         if ($credential === '') {
             return 0;
