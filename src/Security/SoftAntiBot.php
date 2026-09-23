@@ -21,10 +21,14 @@ final class SoftAntiBot
 
         $token = bin2hex(random_bytes(16));
 
-        $_SESSION['mucho_antibot'][$scope] = [
+        $_SESSION['mucho_antibot'][$scope][] = [
             'token' => $token,
             'started_at' => microtime(true),
         ];
+
+        if (count($_SESSION['mucho_antibot'][$scope]) > 4) {
+            array_shift($_SESSION['mucho_antibot'][$scope]);
+        }
 
         return ['token' => $token];
     }
@@ -38,26 +42,31 @@ final class SoftAntiBot
             return false;
         }
 
-        $state = $_SESSION['mucho_antibot'][$scope] ?? null;
-        unset($_SESSION['mucho_antibot'][$scope]);
-
-        if (!is_array($state)) {
+        $states = $_SESSION['mucho_antibot'][$scope] ?? [];
+        if (!is_array($states) || $token === '') {
             return false;
         }
 
-        $expected = (string)($state['token'] ?? '');
-        $startedAt = (float)($state['started_at'] ?? 0);
+        $now = microtime(true);
 
-        if (
-            $expected === '' ||
-            $token === '' ||
-            !hash_equals($expected, $token)
-        ) {
-            return false;
+        foreach ($states as $index => $state) {
+            if (!is_array($state)) {
+                continue;
+            }
+
+            $expected = (string)($state['token'] ?? '');
+            $startedAt = (float)($state['started_at'] ?? 0);
+
+            if ($expected === '' || !hash_equals($expected, $token)) {
+                continue;
+            }
+
+            unset($_SESSION['mucho_antibot'][$scope][$index]);
+
+            $age = $now - $startedAt;
+            return $age >= self::MIN_FORM_AGE && $age <= self::MAX_FORM_AGE;
         }
 
-        $age = microtime(true) - $startedAt;
-
-        return $age >= self::MIN_FORM_AGE && $age <= self::MAX_FORM_AGE;
+        return false;
     }
 }
