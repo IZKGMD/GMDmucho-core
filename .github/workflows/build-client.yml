@@ -22,11 +22,14 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
+          import base64
           import hashlib
+          import re
 
           src = Path("GeometryDash-MuchoCore (1).exe")
           out = Path("GeometryDash-MuchoCore.exe")
-          data = bytearray(src.read_bytes())
+          original = src.read_bytes()
+          data = bytearray(original)
 
           targets = [
               b"c92935bj.beget.tech",
@@ -39,6 +42,9 @@ jobs:
           ]
           replacement = b"muchogdps.space"
           replacements = {}
+
+          def bump(key):
+              replacements[key] = replacements.get(key, 0) + 1
 
           def patch_ascii(data, old, new):
               pos = 0
@@ -60,7 +66,7 @@ jobs:
                       if len(patched) > len(url):
                           raise SystemExit(f"Replacement grew URL {url!r}")
                       data[start:end] = patched + b"\x00" * (len(url) - len(patched))
-                      replacements[old.decode("ascii")] = replacements.get(old.decode("ascii"), 0) + 1
+                      bump(old.decode("ascii"))
                       count += 1
                       pos = end
                   else:
@@ -73,6 +79,8 @@ jobs:
               zero16 = b"\x00\x00"
               count = 0
               pos = 0
+              http = "http://".encode("utf-16le")
+              https = "https://".encode("utf-16le")
               while True:
                   i = data.find(old16, pos)
                   if i < 0:
@@ -82,53 +90,85 @@ jobs:
                   if end < 0:
                       end = i + len(old16)
                   prefix = bytes(data[start:i])
-                  http = "http://".encode("utf-16le")
-                  https = "https://".encode("utf-16le")
                   if prefix.endswith((http, https)):
                       url = bytes(data[start:end])
                       patched = url.replace(old16, new16, 1)
                       if len(patched) > len(url):
                           raise SystemExit(f"Replacement grew UTF-16 URL for {old!r}")
                       data[start:end] = patched + zero16 * ((len(url) - len(patched)) // 2)
-                      replacements[old.decode("ascii") + " [utf16]"] = replacements.get(old.decode("ascii") + " [utf16]", 0) + 1
+                      bump(old.decode("ascii") + " [utf16]")
                       count += 1
                       pos = end
                   else:
                       pos = i + len(old16)
               return count
 
+          def patch_base64_urls(data, old, new):
+              changed = 0
+              # Base64-encoded ASCII strings are null-terminated in the client.
+              for m in list(re.finditer(rb"[A-Za-z0-9+/]{24,}={0,2}", data)):
+                  raw = m.group(0)
+                  try:
+                      decoded = base64.b64decode(raw, validate=True)
+                  except Exception:
+                      continue
+                  if not decoded.startswith((b"http://", b"https://")) or old not in decoded:
+                      continue
+                  patched_decoded = decoded.replace(old, new, 1)
+                  encoded = base64.b64encode(patched_decoded)
+                  if len(encoded) > len(raw):
+                      raise SystemExit("Base64 replacement grew the embedded string")
+                  start, end = m.span()
+                  data[start:end] = encoded + b"\x00" * (len(raw) - len(encoded))
+                  bump(old.decode("ascii") + " [base64]")
+                  changed += 1
+              return changed
+
           for old in targets:
               patch_ascii(data, old, replacement)
               patch_utf16(data, old, replacement)
+              patch_base64_urls(data, old, replacement)
 
           out.write_bytes(data)
 
-          # Validate that no targeted hostname remains inside an HTTP/HTTPS URL.
+          # Validate direct URL strings.
           for old in targets:
-              if old in data:
-                  raw = bytes(data)
-                  i = 0
-                  while True:
-                      i = raw.find(old, i)
-                      if i < 0:
-                          break
-                      start = raw.rfind(b"\x00", max(0, i - 256), i) + 1
-                      prefix = raw[start:i]
-                      if prefix.endswith((b"http://", b"https://")):
-                          raise SystemExit(f"Unpatched hostname remains in URL: {old!r}")
-                      i += len(old)
+              raw = bytes(data)
+              i = 0
+              while True:
+                  i = raw.find(old, i)
+                  if i < 0:
+                      break
+                  start = raw.rfind(b"\x00", max(0, i - 256), i) + 1
+                  prefix = raw[start:i]
+                  if prefix.endswith((b"http://", b"https://")):
+                      raise SystemExit(f"Unpatched hostname remains in URL: {old!r}")
+                  i += len(old)
+
+          # Validate embedded Base64 URL strings.
+          for m in re.finditer(rb"[A-Za-z0-9+/]{24,}={0,2}", bytes(data)):
+              raw = m.group(0)
+              try:
+                  decoded = base64.b64decode(raw, validate=True)
+              except Exception:
+                  continue
+              if decoded.startswith((b"http://", b"https://")):
+                  for old in targets:
+                      if old in decoded:
+                          raise SystemExit(f"Unpatched Base64 URL remains: {decoded!r}")
 
           if replacement not in data:
               raise SystemExit("muchogdps.space was not embedded into the final executable")
 
-          sha = hashlib.sha256(data).hexdigest()
+          output_sha = hashlib.sha256(data).hexdigest()
+          input_sha = hashlib.sha256(original).hexdigest()
           lines = [
               "MuchoCore client patch report",
               "==============================",
               *[f"REPLACED {k}: {v}" for k, v in sorted(replacements.items())],
               "",
-              f"Input SHA256: {hashlib.sha256(src.read_bytes()).hexdigest()}",
-              f"Output SHA256: {sha}",
+              f"Input SHA256: {input_sha}",
+              f"Output SHA256: {output_sha}",
               f"Size: {len(data)} bytes",
           ]
           Path("client-url-report.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
