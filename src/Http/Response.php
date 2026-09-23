@@ -35,7 +35,7 @@ final readonly class Response
 
     public function send(): never
     {
-        // Сбрасываем любые буферы вывода, BOM и случайные пробелы
+        // Clear output buffers, BOMs and accidental whitespace.
         while (ob_get_level() > 0) {
             ob_end_clean();
         }
