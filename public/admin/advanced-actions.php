@@ -49,25 +49,36 @@ if($action==='v4-bulk-players'){
     elseif($operation==='role'){
         $role=(string)($_POST['role'] ?? 'user');
 
-        $allowed=[
-            'user','helper','moderator','admin','owner'
-        ];
-
-        if(!in_array($role,$allowed,true)){
+        try {
+            $role=\MuchoCore\User\GameRole::normalize($role);
+        } catch (\InvalidArgumentException) {
             throw new RuntimeException('Invalid role');
         }
 
-        if($role==='owner'){
+        if($role===\MuchoCore\User\GameRole::OWNER){
             requireRank(40);
+        }
+
+        $roleQuery=$db->prepare(
+            'SELECT id
+             FROM roles
+             WHERE code=:role
+             LIMIT 1'
+        );
+        $roleQuery->execute(['role'=>$role]);
+        $roleId=$roleQuery->fetchColumn();
+
+        if($roleId===false){
+            throw new RuntimeException('Role not found.');
         }
 
         $q=$db->prepare(
             "UPDATE accounts
-             SET role=:role
+             SET role_id=:role_id
              WHERE account_id IN ($in)"
         );
 
-        $q->execute(['role'=>$role]);
+        $q->execute(['role_id'=>(int)$roleId]);
     }
     elseif($operation==='delete'){
         requireRank(40);
