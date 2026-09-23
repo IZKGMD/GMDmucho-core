@@ -28,6 +28,16 @@ final readonly class LevelService
             $this->integer($input['gameVersion'] ?? 0)
         );
 
+        $binaryVersion = max(
+            0,
+            $this->integer($input['binaryVersion'] ?? 0)
+        );
+
+        // Cvolton-compatible 2.0/2.1 boundary used by GD World clients.
+        if ($gameVersion === 20 && $binaryVersion > 27) {
+            $gameVersion = 21;
+        }
+
         $demonFilter = max(
             0,
             $this->integer($input['demonFilter'] ?? 0)
