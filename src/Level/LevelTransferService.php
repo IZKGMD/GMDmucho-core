@@ -317,6 +317,41 @@ final readonly class LevelTransferService
             return '-1';
         }
 
+        if ((int)($level['unlisted2'] ?? 0) !== 0) {
+            if ($viewerAccountId <= 0 || trim($viewerCredential) === '') {
+                return '-1';
+            }
+
+            try {
+                $this->auth->authenticate(
+                    $viewerAccountId,
+                    $viewerCredential
+                );
+            } catch (\Throwable) {
+                return '-1';
+            }
+
+            $ownerAccountId = (int)($level['account_id'] ?? 0);
+
+            if ($viewerAccountId !== $ownerAccountId) {
+                $friend = $this->pdo->prepare(
+                    'SELECT 1
+                     FROM friends
+                     WHERE (account_id=:viewer AND friend_account_id=:owner)
+                        OR (account_id=:owner AND friend_account_id=:viewer)
+                     LIMIT 1'
+                );
+                $friend->execute([
+                    'viewer' => $viewerAccountId,
+                    'owner' => $ownerAccountId,
+                ]);
+
+                if ($friend->fetchColumn() === false) {
+                    return '-1';
+                }
+            }
+        }
+
         if ($incrementDownloads) {
             $this->repository->incrementDownloads($levelId);
         }
@@ -684,7 +719,8 @@ final readonly class LevelTransferService
         int $levelId,
         int $accountId,
         string $gjp,
-        string $description
+        string $description,
+        int $gameVersion = 22
     ): bool {
         $this->auth->authenticate(
             $accountId,
@@ -715,7 +751,10 @@ final readonly class LevelTransferService
         return $this->repository->updateDescription(
             $levelId,
             $accountId,
-            $description
+            GdLegacyText::encodeDescriptionForStorage(
+                $description,
+                $gameVersion
+            )
         );
     }
 
