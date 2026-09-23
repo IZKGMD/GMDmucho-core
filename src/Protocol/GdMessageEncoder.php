@@ -62,15 +62,9 @@ final class GdMessageEncoder
     private function formatDate(string $date): string
     {
         $timestamp = strtotime($date);
-        if ($timestamp === false) return 'Unknown';
-        
-        $diff = time() - $timestamp;
-        
-        if ($diff < 60) return 'Just now';
-        if ($diff < 3600) return floor($diff / 60) . ' mins';
-        if ($diff < 86400) return floor($diff / 3600) . ' hours';
-        if ($diff < 2592000) return floor($diff / 86400) . ' days';
-        if ($diff < 31536000) return floor($diff / 2592000) . ' months';
-        return floor($diff / 31536000) . ' years';
+
+        return $timestamp === false
+            ? ''
+            : date('d/m/Y G.i', $timestamp);
     }
 }
