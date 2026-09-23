@@ -107,6 +107,7 @@ final readonly class LevelTransferController
         $levelId = $request->postInt('levelID');
         $accountId = $request->postInt('accountID');
         $credential = $this->credential($request);
+        $version = $request->clientVersion();
         $description = $request->postString('levelDesc');
 
         if (
@@ -122,7 +123,8 @@ final readonly class LevelTransferController
                 $levelId,
                 $accountId,
                 $credential,
-                $description
+                $description,
+                $version->effectiveGameVersion() ?: 22
             );
 
             return Response::text(
