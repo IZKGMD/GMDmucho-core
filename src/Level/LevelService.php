@@ -54,6 +54,7 @@ final readonly class LevelService
             offset: $offset,
             limit: self::PAGE_SIZE,
             demonFilter: $demonFilter,
+            input: $input,
         );
 
         if (empty($result['levels'])) { return '-2'; } return $this->encoder->encode(
