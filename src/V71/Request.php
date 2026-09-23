@@ -14,9 +14,20 @@ final class Request
     public static function int(string $key, int $default = 0): int
     {
         $value = $_POST[$key] ?? null;
-        if ($value === null || $value === '' || !is_numeric($value)) {
+        if ($value === null || $value === '') {
             return $default;
         }
+
+        if (
+            !is_int($value) &&
+            (
+                !is_string($value) ||
+                preg_match('/^-?\\d{1,10}$/D', $value) !== 1
+            )
+        ) {
+            return $default;
+        }
+
         return (int)$value;
     }
 
