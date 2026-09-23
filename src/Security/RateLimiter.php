@@ -7,7 +7,8 @@ namespace MuchoCore\Security;
 final readonly class RateLimiter
 {
     public function __construct(
-        private string $directory = '/tmp/muchocore-rate-limit'
+        private string $directory = '/tmp/muchocore-rate-limit',
+        private bool $failOpen = false
     ) {}
 
     public function allow(
@@ -24,14 +25,14 @@ final readonly class RateLimiter
             !@mkdir($this->directory, 0700, true) &&
             !is_dir($this->directory)
         ) {
-            return true; // fail-open: не ломаем GD
+            return $this->failOpen;
         }
 
         $file = $this->directory . '/' . hash('sha256', $key) . '.json';
         $fp = @fopen($file, 'c+');
 
         if ($fp === false) {
-            return true;
+            return $this->failOpen;
         }
 
         try {
