@@ -85,7 +85,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Protocol/GdLegacyText.php',
-        'GD 2.0+ expects level/account comments as plain text.',
+        'Level and account comments are plain text on the Geometry Dash wire.',
         'GD 2.0+ comments stay plain text',
     ],
     [
