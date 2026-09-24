@@ -34,8 +34,8 @@ $unread = $messageEncoder->encodeMessage([
 
 assertSameValue(
     true,
-    str_contains($unread, ':8:1:'),
-    'unread message maps to isNew=1'
+    str_contains($unread, ':8:0:'),
+    'unread message maps to legacy isNew=0'
 );
 
 $read = $messageEncoder->encodeMessage([
@@ -50,7 +50,7 @@ $read = $messageEncoder->encodeMessage([
 
 assertSameValue(
     true,
-    str_contains($read, ':8:0:'),
+    str_contains($read, ':8:1:'),
     'read message maps to isNew=0'
 );
 
