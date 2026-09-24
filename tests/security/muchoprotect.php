@@ -270,6 +270,22 @@ if ($differentCredential['decision'] !== 'allow') {
     exit(1);
 }
 
+$strictFailurePath = $dir . '-strict-failure';
+if (file_put_contents($strictFailurePath, 'x') === false) {
+    fwrite(STDERR, "Unable to create strict limiter fixture\n");
+    exit(1);
+}
+$strictLimiter = new RateLimiter($strictFailurePath);
+if ($strictLimiter->allowStrict('strict-test', 1, 60) !== false) {
+    fwrite(STDERR, "RateLimiter allowStrict did not fail closed\n");
+    exit(1);
+}
+if ($strictLimiter->allow('strict-test', 1, 60) !== true) {
+    fwrite(STDERR, "RateLimiter legacy fail-open contract changed unexpectedly\n");
+    exit(1);
+}
+@unlink($strictFailurePath);
+
 $penaltyStatusDir = $dir . '-status-only';
 $statusProbe = new \MuchoCore\Security\AbusePenaltyStore($penaltyStatusDir);
 $status = $statusProbe->status('never-penalized');
