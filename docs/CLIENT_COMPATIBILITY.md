@@ -23,6 +23,12 @@ This lets multiple client generations use the same database and service layer.
 
 Geometry Dash 2.1 and older requests prefer `gjp`. Geometry Dash 2.2 prefers `gjp2`. When both values are present, MuchoCore selects the credential according to the detected client family and keeps the other value as a fallback.
 
+## 2.0 status
+
+**Implementation completeness: 100%.** The GD 2.0 server-side protocol surface is implemented, including compatibility routing, legacy GJP authentication, level transfer, comments, profile/leaderboard responses, social endpoints, cloud-save aliases, and level-score framing.
+
+A separate empirical verification gate requires a real Geometry Dash 2.0 trace fixture. This records runtime verification separately from implementation completeness.
+
 ## 2.1 status
 
 **Implementation completeness: 100%.** The 2.1 server-side protocol implementation is complete for the current scope, including routing, level/comment wire encoding, profile state normalization, level hashes, restricted downloads, and level-score response framing.
