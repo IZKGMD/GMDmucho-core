@@ -117,7 +117,7 @@ final readonly class Application
             $levelRepo,
             new GdLevelListEncoder()
         );
-        $levelController = new LevelController($levelService);
+        $levelController = new LevelController($levelService, $auth);
 
         $transferRepo = new LevelTransferRepository($this->pdo);
         $transferService = new LevelTransferService(
