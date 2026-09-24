@@ -53,10 +53,23 @@ final readonly class LevelTransferController
         }
 
         try {
+            $data = $request->post;
+
+            /*
+             * Genuine GD 1.9 update/upload requests can omit version fields.
+             * Preserve the controller-level version inference for the service.
+             */
+            if (
+                $version->effectiveGameVersion() === 19 &&
+                $request->postInt('gameVersion', 0) === 0
+            ) {
+                $data['gameVersion'] = 19;
+            }
+
             $levelId = $this->service->upload(
                 $accountId,
                 $credential,
-                $request->post,
+                $data,
                 $udid,
                 $request->clientIp()
             );
