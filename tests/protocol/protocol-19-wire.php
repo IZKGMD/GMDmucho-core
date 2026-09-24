@@ -14,6 +14,7 @@ require __DIR__ . '/../../src/Protocol/ProtocolText.php';
 use MuchoCore\Compatibility\ClientVersion;
 use MuchoCore\Protocol\GdCommentEncoder;
 use MuchoCore\Protocol\GdHash;
+use MuchoCore\Protocol\GdXor;
 use MuchoCore\Protocol\GdLevelDownloadEncoder;
 use MuchoCore\Protocol\GdLevelListEncoder;
 
