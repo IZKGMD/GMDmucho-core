@@ -80,7 +80,9 @@ final readonly class CommentController
                     $levelId,
                     $page,
                     $version->effectiveGameVersion() ?: 22,
-                    $version->binaryVersion
+                    $version->binaryVersion,
+                    $count,
+                    $mode
                 )
             );
         } catch (Throwable) {
