@@ -274,7 +274,7 @@ function profileMP(PDO $db, int $id): array {
     $role = match ($rawRole) {
         'owner' => 'OWNER',
         'admin', 'administrator', 'developer' => 'ADMIN',
-        'elder', 'elder_mod', 'elder-moderator' => 'ELDER_MOD',
+        'elder', 'elder_mod', 'elder-moderator', 'elder_moderator' => 'ELDER_MOD',
         'moderator', 'mod', 'helper' => 'MOD',
         default => 'PLAYER'
     };
