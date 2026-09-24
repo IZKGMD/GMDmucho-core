@@ -31,6 +31,7 @@ jobs:
           php tests/client/client-ip.php
           php tests/protocol/protocol-matrix.php
           php tests/protocol/compatibility-profile.php
+          php tests/protocol/v71-request.php
           php tests/protocol/legacy-text.php
           php tests/protocol/protocol-19-surface.php
           php tests/protocol/protocol-19-wire.php
