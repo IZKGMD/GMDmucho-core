@@ -220,17 +220,17 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Interaction/CommentService.php',
-        '"!r"',
+        "'!r' => '!rate'",
         'GD 1.9 legacy rate alias',
     ],
     [
         __DIR__ . '/../../src/Interaction/CommentService.php',
-        '"easy" => [10, 0, 0]',
+        "'easy' => [10, 0, 0]",
         'GD 1.9 easy difficulty state',
     ],
     [
         __DIR__ . '/../../src/Interaction/CommentService.php',
-        '"demon" => [50, 0, 1]',
+        "'demon' => [50, 0, 1]",
         'GD 1.9 demon difficulty state',
     ],
     [
@@ -255,7 +255,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Interaction/CommentService.php',
-        'MuchoCore Commands',
+        'MuchoCore commands:',
         'comment command help content',
     ],
     [
