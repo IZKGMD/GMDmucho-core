@@ -1707,6 +1707,7 @@ endif;
 
 
 require_once __DIR__.'/client-features-module.php';
+require_once __DIR__.'/client-patcher-module.php';
 require_once __DIR__.'/client-release-upload-module.php';
 
 require_once __DIR__.'/security-monitoring-module.php';
@@ -1718,6 +1719,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     checkCsrf();
 
     $action=(string)($_POST['action'] ?? '');
+
+    if (str_starts_with($action,'client-patcher-')) {
+        handleClientPatcherAction($db,$rootDir,$action);
+    }
 
     if (str_starts_with($action,'v4-')) {
         require __DIR__.'/advanced-actions.php';
@@ -3586,7 +3591,7 @@ table{
 <?php endforeach ?>
 
 <div class="nav-title">Tools</div>
-<?php foreach(['database','endpoints','clientfeatures','securitycenter','dbbackups','backups','settings','system'] as $key): ?>
+<?php foreach(['database','endpoints','clientfeatures','clientpatcher','securitycenter','dbbackups','backups','settings','system'] as $key): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
  title="<?=h($pages[$key])?>"
