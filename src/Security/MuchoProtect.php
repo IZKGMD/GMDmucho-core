@@ -8,11 +8,6 @@ use MuchoCore\Http\Request;
 
 final readonly class MuchoProtect
 {
-    private const DEFAULT_LIMIT = 180;
-    private const DEFAULT_WINDOW = 60;
-    private const DEFAULT_BURST_LIMIT = 40;
-    private const DEFAULT_BURST_WINDOW = 10;
-
     /** @var array<string, array{limit:int, window:int, burst:int, burstWindow:int}> */
     private const POLICIES = [
         '/logingjaccount' => ['limit' => 12, 'window' => 60, 'burst' => 5, 'burstWindow' => 10],
@@ -68,12 +63,14 @@ final readonly class MuchoProtect
         }
 
         $endpoint = $this->normalizeEndpoint($endpoint);
-        $policy = self::POLICIES[$endpoint] ?? [
-            'limit' => self::DEFAULT_LIMIT,
-            'window' => self::DEFAULT_WINDOW,
-            'burst' => self::DEFAULT_BURST_LIMIT,
-            'burstWindow' => self::DEFAULT_BURST_WINDOW,
-        ];
+        $policy = self::POLICIES[$endpoint] ?? null;
+
+        // Do not throttle unknown/read-only endpoints by default. This keeps
+        // compatibility risk low while every sensitive endpoint gets an
+        // explicit policy above.
+        if ($policy === null) {
+            return ['decision' => 'allow', 'reason' => 'no_policy'];
+        }
 
         $ip = $request->clientIp();
         $baseKey = 'ip:' . $ip . ':endpoint:' . $endpoint;
