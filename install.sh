@@ -31,10 +31,41 @@ warn() { printf "\n${YELLOW}[warning]${RESET} %s\n" "$*" >&2; }
 fail() { printf "\n${RED}[error]${RESET} %s\n" "$*" >&2; exit 1; }
 
 print_banner() {
-  printf "\n${CYAN}╔══════════════════════════════════════════════════════════════╗${RESET}\n"
-  printf "${CYAN}║${RESET}  ${BOLD}MuchoCore Installer${RESET}  ${CYAN}•${RESET} ${BOLD}v1.0.0${RESET}                     ${CYAN}║${RESET}\n"
-  printf "${CYAN}║${RESET}  Geometry Dash Private Server deployment wizard       ${CYAN}║${RESET}\n"
-  printf "${CYAN}╚══════════════════════════════════════════════════════════════╝${RESET}\n\n"
+  printf "\n"
+  printf "${CYAN}╔══════════════════════════════════════════════════════════════════════╗${RESET}\n"
+  printf "${CYAN}║${RESET}                                                                      ${CYAN}║${RESET}\n"
+  printf "${CYAN}║${RESET}   ${BOLD}███╗   ███╗██╗   ██╗ ██████╗██╗  ██╗ ██████╗${RESET}               ${CYAN}║${RESET}\n"
+  printf "${CYAN}║${RESET}   ${BOLD}████╗ ████║██║   ██║██╔════╝██║  ██║██╔═══██╗${RESET}               ${CYAN}║${RESET}\n"
+  printf "${CYAN}║${RESET}   ${BOLD}██╔████╔██║██║   ██║██║     ███████║██║   ██║${RESET}               ${CYAN}║${RESET}\n"
+  printf "${CYAN}║${RESET}   ${BOLD}██║╚██╔╝██║██║   ██║██║     ██╔══██║██║   ██║${RESET}               ${CYAN}║${RESET}\n"
+  printf "${CYAN}║${RESET}   ${BOLD}██║ ╚═╝ ██║╚██████╔╝╚██████╗██║  ██║╚██████╔╝${RESET}               ${CYAN}║${RESET}\n"
+  printf "${CYAN}║${RESET}   ${BOLD}╚═╝     ╚═╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝ ╚═════╝${RESET}               ${CYAN}║${RESET}\n"
+  printf "${CYAN}║${RESET}                                                                      ${CYAN}║${RESET}\n"
+  printf "${CYAN}║${RESET}                 ${BOLD}MUCHOCORE • v1.0.0 INSTALLER${RESET}                  ${CYAN}║${RESET}\n"
+  printf "${CYAN}║${RESET}            Geometry Dash Private Server deployment                ${CYAN}║${RESET}\n"
+  printf "${CYAN}║${RESET}                                                                      ${CYAN}║${RESET}\n"
+  printf "${CYAN}╚══════════════════════════════════════════════════════════════════════╝${RESET}\n"
+}
+profile_label() {
+  case "$1" in
+    all) printf "GD 1.9 → 2.2" ;;
+    19) printf "GD 1.9" ;;
+    20) printf "GD 2.0" ;;
+    21) printf "GD 2.1" ;;
+    22) printf "GD 2.2" ;;
+    *) printf "%s" "$1" | sed "s/19/1.9/g; s/20/2.0/g; s/21/2.1/g; s/22/2.2/g; s/,/, /g" ;;
+  esac
+}
+
+profile_choice() {
+  case "$1" in
+    all) printf "1" ;;
+    19) printf "2" ;;
+    20) printf "3" ;;
+    21) printf "4" ;;
+    22) printf "5" ;;
+    *) printf "6" ;;
+  esac
 }
 
 valid_versions() {
@@ -46,26 +77,46 @@ valid_versions() {
 }
 
 select_compatibility_profile() {
-  if [[ -n "$GD_VERSIONS" ]]; then
-    [[ "${GD_VERSIONS,,}" == "all" ]] && GD_VERSIONS="all"
-    valid_versions "$GD_VERSIONS" ||
-      fail "Invalid MUCHO_GD_VERSIONS='$GD_VERSIONS'. Use all or a comma-separated set of 19,20,21,22."
-    info "Compatibility profile: GD $(printf '%s' "$GD_VERSIONS" | sed 's/19/1.9/g; s/20/2.0/g; s/21/2.1/g; s/22/2.2/g; s/,/, /g')"
+  if [[ -z "$GD_VERSIONS" ]]; then
+    GD_VERSIONS="all"
+  fi
+  [[ "$GD_VERSIONS" == "ALL" || "$GD_VERSIONS" == "All" ]] && GD_VERSIONS="all"
+  valid_versions "$GD_VERSIONS" ||
+    fail "Invalid MUCHO_GD_VERSIONS='$GD_VERSIONS'. Use all or a comma-separated set of 19,20,21,22."
+
+  if [[ ! -t 0 && ! -t 1 ]]; then
+    info "Compatibility profile: $(profile_label "$GD_VERSIONS")"
     return
   fi
 
   print_banner
-  printf "${BOLD}Choose Geometry Dash compatibility profile:${RESET}\n\n"
-  printf "  ${CYAN}1${RESET}) All supported versions ${YELLOW}(recommended)${RESET} — GD 1.9 → 2.2\n"
-  printf "  ${CYAN}2${RESET}) GD 1.9 only ${YELLOW}(legacy)${RESET}\n"
-  printf "  ${CYAN}3${RESET}) GD 2.0 only\n"
-  printf "  ${CYAN}4${RESET}) GD 2.1 only\n"
-  printf "  ${CYAN}5${RESET}) GD 2.2 only\n"
-  printf "  ${CYAN}6${RESET}) Custom profile — e.g. 19,22\n\n"
+  printf "${BOLD}  Choose your Geometry Dash compatibility profile${RESET}\n"
+  printf "  ${CYAN}The selected profile is saved and shown as the default next time.${RESET}\n\n"
 
-  local choice
-  read -r -p "  Select [1]: " choice < /dev/tty || choice=1
-  choice="${choice:-1}"
+  local current_choice choice
+  current_choice="$(profile_choice "$GD_VERSIONS")"
+
+  printf "  ${CYAN}1${RESET}) ${BOLD}All supported versions${RESET}   GD 1.9 → 2.2"
+  [[ "$current_choice" == "1" ]] && printf "  ${GREEN}← current${RESET}"
+  printf "\n"
+  printf "  ${CYAN}2${RESET}) GD 1.9 only              Legacy"
+  [[ "$current_choice" == "2" ]] && printf "  ${GREEN}← current${RESET}"
+  printf "\n"
+  printf "  ${CYAN}3${RESET}) GD 2.0 only"
+  [[ "$current_choice" == "3" ]] && printf "  ${GREEN}← current${RESET}"
+  printf "\n"
+  printf "  ${CYAN}4${RESET}) GD 2.1 only"
+  [[ "$current_choice" == "4" ]] && printf "  ${GREEN}← current${RESET}"
+  printf "\n"
+  printf "  ${CYAN}5${RESET}) GD 2.2 only"
+  [[ "$current_choice" == "5" ]] && printf "  ${GREEN}← current${RESET}"
+  printf "\n"
+  printf "  ${CYAN}6${RESET}) Custom profile            e.g. 19,22"
+  [[ "$current_choice" == "6" ]] && printf "  ${GREEN}← current${RESET}"
+  printf "\n\n"
+
+  read -r -p "  Select [$current_choice]: " choice < /dev/tty || choice="$current_choice"
+  if [[ -z "$choice" ]]; then choice="$current_choice"; fi
 
   case "$choice" in
     1) GD_VERSIONS="all" ;;
@@ -75,20 +126,20 @@ select_compatibility_profile() {
     5) GD_VERSIONS="22" ;;
     6)
       read -r -p "  Versions [19,20,21,22]: " GD_VERSIONS < /dev/tty
-      valid_versions "$GD_VERSIONS" ||
-        fail "Invalid version profile."
+      valid_versions "$GD_VERSIONS" || fail "Invalid version profile."
       ;;
     *) fail "Invalid selection." ;;
   esac
 
-  info "Selected: GD $(printf '%s' "$GD_VERSIONS" | sed 's/19/1.9/g; s/20/2.0/g; s/21/2.1/g; s/22/2.2/g; s/,/, /g')"
+  printf "\n"
+  info "Selected: $(profile_label "$GD_VERSIONS")"
 }
 
 preflight() {
   log "Running preflight checks..."
 
   local free_kib
-  free_kib="$(df -Pk "$INSTALL_DIR" 2>/dev/null | awk 'NR==2 {print $4}')"
+  free_kib="$(df -Pk "$(dirname "$INSTALL_DIR")" 2>/dev/null | awk 'NR==2 {print $4}')"
   [[ -n "$free_kib" && "$free_kib" -ge 1048576 ]] ||
     fail "At least 1 GiB of free disk space is required."
 
