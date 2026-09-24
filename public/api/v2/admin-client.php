@@ -40,14 +40,7 @@ function fail(string $code, string $message, int $status): never
 
 function clientIp(): string
 {
-    $remote = (string)($_SERVER['REMOTE_ADDR'] ?? '');
-    $cf = (string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? '');
-
-    if (($remote === '127.0.0.1' || $remote === '::1') && filter_var($cf, FILTER_VALIDATE_IP)) {
-        return $cf;
-    }
-
-    return filter_var($remote, FILTER_VALIDATE_IP) ? $remote : 'unknown';
+    return \MuchoCore\Http\ClientIp::resolve($_SERVER);
 }
 
 function ipHash(): string
