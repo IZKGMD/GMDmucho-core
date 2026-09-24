@@ -50,7 +50,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Level/LevelTransferService.php',
-        'stars\'] ?? 0) > 0',
+        "stars'] ?? 0) > 0",
         'rated level deletion guard',
     ],
     [
