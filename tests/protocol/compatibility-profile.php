@@ -8,7 +8,7 @@ require __DIR__ . '/../../src/Compatibility/CompatibilityProfile.php';
 use MuchoCore\Compatibility\ClientVersion;
 use MuchoCore\Compatibility\CompatibilityProfile;
 
-function assertProfile(bool $expected, bool $actual, string $name): void
+function assertProfile(mixed $expected, mixed $actual, string $name): void
 {
     if ($expected !== $actual) {
         fwrite(
