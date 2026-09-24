@@ -15,6 +15,7 @@ jobs:
           bash -n install.sh
           bash -n install
           bash -n update.sh
+          ! grep -nE '\\\$[0-9]+' install.sh
           bash -n uninstall.sh
           find tests -name '*.sh' -print0 | xargs -0 -n1 bash -n
 
