@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 $files = [
-    __DIR__ . '/../public/admin/index.php',
-    __DIR__ . '/../public/api/v2/music-upload.php',
-    __DIR__ . '/../docker/Dockerfile',
+    __DIR__ . '/../../public/admin/index.php',
+    __DIR__ . '/../../public/api/v2/music-upload.php',
+    __DIR__ . '/../../docker/Dockerfile',
 ];
 
 foreach ($files as $file) {
