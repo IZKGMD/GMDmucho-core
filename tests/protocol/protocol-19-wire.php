@@ -230,7 +230,7 @@ assertTrue(
     str_contains($list, '#42:MuchoPlayer:9001#1~|~12345'),
     '1.9 level list contains user and song sections'
 );
-$expectedMultiHash = sha1('12371' . 'xI25fpAapCQg');
+$expectedMultiHash = sha1('1371' . 'xI25fpAapCQg');
 $actualMultiHash = substr($list, -40);
 
 assertTrue(
