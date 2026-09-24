@@ -11,7 +11,7 @@
   </a>
   <img src="https://img.shields.io/badge/release-v1.0.0%20RC-8A2BE2" alt="Release candidate">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
-  <img src="https://img.shields.io/badge/Geometry%20Dash-2.2%20focused-orange" alt="Geometry Dash 2.2">
+  <img src="https://img.shields.io/badge/Geometry%20Dash-2.2%20verified-orange" alt="Geometry Dash 2.2">
 </p>
 
 > ⚡ **Release candidate: v1.0.0**
@@ -78,7 +78,7 @@ MuchoCore has completed its **Geometry Dash 2.2 real-client compatibility gate**
 | Protocol regression tests | ✅ Passing |
 | Real 2.2 client trace fixture | ✅ Captured from GD 2.2.13 |
 
-> **Compatibility note:** automated coverage is extensive, but a final 100% compatibility claim still requires a real Geometry Dash 2.2 client trace to be captured and committed as a regression fixture.
+> **Compatibility note:** the 2.2 release gate is backed by real Geometry Dash 2.2.13 traffic. Older protocol families are now being expanded with dedicated regression coverage.
 
 ## 🧪 Validation & tests
 
@@ -103,11 +103,15 @@ MuchoCore is continuously checked through GitHub Actions and local test scripts.
 
 ~~~bash
 php tests/client/client-compatibility.php
+php tests/protocol/protocol-matrix.php
+php tests/protocol/protocol-21-surface.php
+php tests/protocol/protocol-22-surface.php
 php tests/protocol/router-compatibility.php
 php tests/client/client-trace.php
 php tests/security/muchoprotect.php
 python3 tools/client/client-patch.py --self-test
 bash tests/client/client-contract.sh
+bash tests/release/release-2.2-gate.sh
 ~~~
 
 ## 🚀 Getting started
@@ -162,15 +166,24 @@ The patcher creates a **separate client file** and does not replace the original
 ## 🏗️ Project structure
 
 ~~~text
-START_HERE.md      ← start here if you are new
-README.md          ← project overview
-src/               ← server logic
-public/            ← HTTP entry points and GD endpoints
-database/          ← migrations
-tests/             ← organized automated test suites
-tools/             ← development / client tools
-docs/              ← detailed documentation
-docker/            ← Docker / Caddy configuration
+START_HERE.md
+README.md
+src/                       ← server logic
+public/                    ← HTTP entry points and GD endpoints
+database/                  ← migrations
+tests/
+├── client/                ← tracing, contracts and client checks
+├── client-fixtures/       ← real-client contracts by version
+├── protocol/              ← protocol and wire-format checks
+├── security/              ← MuchoProtect and security checks
+├── application/           ← application/domain contracts
+├── integration/           ← smoke, load, regression and hosting
+└── release/               ← release gates
+tools/
+└── client/                ← client patchers and trace tooling
+docs/                      ← documentation
+assets/brand/              ← brand source artwork
+docker/                    ← Docker / Caddy configuration
 ~~~
 
 ## 🔐 Security basics
