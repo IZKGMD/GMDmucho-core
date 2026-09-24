@@ -115,7 +115,7 @@ final class GdLevelListEncoder
                 $firstChar .
                 $lastChar .
                 $protocolStars .
-                (int)$level['coins_verified'];
+                (int)$level['coins'];
         }
 
         $levelsPart = implode('|', $levelStrings);
