@@ -49,6 +49,11 @@
         file_server
     }
 
+    # The shared-hosting installer is only for non-Docker deployments.
+    # Never expose it from the Docker/VPS public site.
+    @shared_installer path /shared-install.php
+    respond @shared_installer 404
+
     # Keep private project files unreachable, but do not block /database/*:
     # Geometry Dash client endpoints live under /public/database.
     @hidden path /.env /.git/* /composer.json /composer.lock /config/* /src/* /tests/* /storage/*
