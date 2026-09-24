@@ -62,6 +62,22 @@ if ($isolated['decision'] !== 'allow') {
     exit(1);
 }
 
+$unlisted = $protect->inspect(
+    new Request(
+        'GET',
+        '/getGJUserInfo20.php',
+        [],
+        [],
+        ['REMOTE_ADDR' => '127.0.0.79']
+    ),
+    '/getGJUserInfo20.php'
+);
+
+if ($unlisted['decision'] !== 'allow' || $unlisted['reason'] !== 'no_policy') {
+    fwrite(STDERR, "MuchoProtect default read-path policy failed\n");
+    exit(1);
+}
+
 foreach (glob($dir . '/*') ?: [] as $file) {
     @unlink($file);
 }
