@@ -171,7 +171,9 @@ final readonly class UserController
                 $this->service->getLeaderboard(
                     $type,
                     $accountId,
-                    $request->clientVersion()->effectiveGameVersion()
+                    $request->clientVersion()->effectiveGameVersion(),
+                    100,
+                    $request->gdCredential()
                 )
             );
         } catch (Throwable) {
