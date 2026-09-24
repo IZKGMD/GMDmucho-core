@@ -4,6 +4,26 @@ declare(strict_types=1);
 
 $checks = [
     [
+        __DIR__ . '/../../src/Level/LevelRepository.php',
+        "case 6:\n            case 17:",
+        '2.1 featured level type coverage',
+    ],
+    [
+        __DIR__ . '/../../src/Level/LevelRepository.php',
+        "$gameVersion > 21",
+        '2.1 featured excludes Epic until 2.2',
+    ],
+    [
+        __DIR__ . '/../../src/Protocol/GdLevelListEncoder.php',
+        'Preserve custom star values',
+        '2.1 list hash preserves custom stars',
+    ],
+    [
+        __DIR__ . '/../../src/Protocol/GdCommentEncoder.php',
+        "if ($badge > 0)",
+        '2.1 comment badge color is conditional',
+    ],
+    [
         __DIR__ . '/../../src/Level/LevelController.php',
         'if ($type === 13)',
         '2.1 friends level authentication gate',
