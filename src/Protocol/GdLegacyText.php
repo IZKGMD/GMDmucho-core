@@ -16,6 +16,14 @@ final class GdLegacyText
         string $description,
         int $gameVersion
     ): string {
+        /*
+         * GD 1.9 sends level descriptions as plain text.
+         * GD 2.0+ sends URL-safe Base64 on upload.
+         */
+        if ($gameVersion < 20) {
+            return $description;
+        }
+
         return self::decodeWireText($description);
     }
 
