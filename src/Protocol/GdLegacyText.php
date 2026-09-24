@@ -49,6 +49,14 @@ final class GdLegacyText
         string $comment,
         int $gameVersion
     ): string {
+        /*
+         * GD 2.0+ sends level comments as plain protocol text.
+         * Only the pre-2.0 client family uses Base64 for comments.
+         */
+        if ($gameVersion >= 20) {
+            return $comment;
+        }
+
         return self::decodeWireText($comment);
     }
 
@@ -59,6 +67,14 @@ final class GdLegacyText
         string $comment,
         int $gameVersion
     ): string {
+        /*
+         * GD 2.0+ expects level/account comments as plain text.
+         * GD 1.9 keeps the legacy Base64 representation.
+         */
+        if ($gameVersion >= 20) {
+            return $comment;
+        }
+
         return self::encodeWireText($comment);
     }
 
