@@ -44,16 +44,20 @@ try {
 
             pr.last_seen,
 
-            COALESCE(r.role, 'PLAYER') AS server_role,
-            COALESCE(r.verified, 0) AS server_verified
+            COALESCE(r.code, 'user') AS server_role
 
         FROM mucho_profile_customization p
 
         LEFT JOIN mucho_profile_presence pr
             ON pr.account_id=p.account_id
 
-        LEFT JOIN mucho_account_roles r
-            ON r.account_id=p.account_id
+        LEFT JOIN roles r
+            ON r.id = (
+                SELECT a.role_id
+                FROM accounts a
+                WHERE a.account_id = p.account_id
+                LIMIT 1
+            )
 
         WHERE p.account_id=?
         LIMIT 1
@@ -104,7 +108,7 @@ try {
             'authority' => [
                 'role' => $role,
                 'rank' => $roleRanks[$role] ?? 0,
-                'verified' => (bool)$row['server_verified']
+                'verified' => false
             ],
 
             'title' => (string)$row['title'],
