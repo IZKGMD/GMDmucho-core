@@ -6,8 +6,17 @@ use MuchoCore\Database\Database;
 
 require dirname(__DIR__,2).'/vendor/autoload.php';
 
-$db=(new Database())->connection();
-$db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+try {
+    $db=(new Database())->connection();
+    $db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+} catch (Throwable $e) {
+    error_log('[MuchoCore Admin] database unavailable: '.$e->getMessage());
+
+    http_response_code(503);
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MuchoCore Admin</title><style>body{font-family:system-ui,sans-serif;background:#07090f;color:#f4f7ff;display:grid;place-items:center;min-height:100vh;margin:0}.box{max-width:520px;padding:32px;border:1px solid #263246;border-radius:16px;background:#0f1520;text-align:center}p{color:#8e9bb0;line-height:1.6}</style></head><body><main class="box"><h1>MuchoCore Admin</h1><p>The database is temporarily unavailable. Please try again shortly.</p></main></body></html>';
+    exit;
+}
 
 $brandingService=new BrandingService($db);
 $branding=$brandingService->get();
