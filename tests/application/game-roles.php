@@ -6,6 +6,8 @@ require __DIR__ . '/../../src/User/GameRole.php';
 
 use MuchoCore\User\GameRole;
 
+// Application test paths are rooted from the organized tests/application directory.
+
 function assertRole(mixed $expected, mixed $actual, string $name): void
 {
     if ($expected !== $actual) {
