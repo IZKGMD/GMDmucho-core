@@ -110,8 +110,8 @@ Reference:
 
 ## Next milestone
 
-The next milestone is **2.2 real-client parity**.
+The next milestone is **2.1 real-client parity**.
 
-Do not move to GD 2.1, 2.0, or 1.9 until 2.2 reaches a verified release gate.
+The 2.2 release gate is complete. Keep it regression-locked while validating GD 2.1, then continue to 2.0 and 1.9.
 
 Do not mark an endpoint "verified" because its alias exists. Mark it verified only when the real client contract passes.
