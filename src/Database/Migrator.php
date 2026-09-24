@@ -28,29 +28,70 @@ final class Migrator
 
     public function migrate(): void
     {
-        foreach ($this->migrationFiles() as $file) {
-            $version = basename($file, '.php');
+        /*
+         * The app entrypoint runs migrations automatically. Administrators may
+         * also invoke bin/mucho-migrate.php manually during deployment, so two
+         * processes can legitimately reach this method at the same time.
+         *
+         * MySQL advisory locking serializes migration execution across all
+         * MuchoCore processes that share the same database.
+         */
+        $lock = 'muchocore:schema-migrations';
 
-            if ($this->isApplied($version)) {
-                echo "[SKIP] {$version}\n";
-                continue;
-            }
+        $lockStmt = $this->pdo->query(
+            "SELECT GET_LOCK(" .
+            $this->pdo->quote($lock) .
+            ", 30)"
+        );
 
-            echo "[RUN ] {$version}\n";
-
-            $migration = require $file;
-            $this->applyMigration($migration, $version);
-
-            $stmt = $this->pdo->prepare(
-                'INSERT INTO schema_migrations (version)
-                 VALUES (:version)'
+        if ((int)$lockStmt->fetchColumn() !== 1) {
+            throw new RuntimeException(
+                'Unable to acquire the MuchoCore migration lock within 30 seconds.'
             );
+        }
 
-            $stmt->execute([
-                'version' => $version,
-            ]);
+        try {
+            foreach ($this->migrationFiles() as $file) {
+                $version = basename($file, '.php');
 
-            echo "[ OK ] {$version}\n";
+                if ($this->isApplied($version)) {
+                    echo "[SKIP] {$version}\n";
+                    continue;
+                }
+
+                echo "[RUN ] {$version}\n";
+
+                $migration = require $file;
+                $this->applyMigration($migration, $version);
+
+                $stmt = $this->pdo->prepare(
+                    'INSERT INTO schema_migrations (version)
+                     VALUES (:version)'
+                );
+
+                /*
+                 * Keep the second check immediately before the insert. The
+                 * advisory lock should make it unnecessary under normal use,
+                 * but this also keeps the state correct if the lock is removed
+                 * by an external database operation.
+                 */
+                if ($this->isApplied($version)) {
+                    echo "[SKIP] {$version} (already recorded)\n";
+                    continue;
+                }
+
+                $stmt->execute([
+                    'version' => $version,
+                ]);
+
+                echo "[ OK ] {$version}\n";
+            }
+        } finally {
+            $this->pdo->query(
+                "SELECT RELEASE_LOCK(" .
+                $this->pdo->quote($lock) .
+                ")"
+            );
         }
     }
 
