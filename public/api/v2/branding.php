@@ -14,6 +14,8 @@ try {
     muchoV2Send([
         'ok' => true,
         'server_name' => $branding['server_name'],
+        'server_by_name' => $branding['server_by_name'],
+        'social_url' => $branding['social_url'],
     ]);
 } catch (Throwable $e) {
     error_log('[MuchoCore Branding] ' . $e->getMessage());
