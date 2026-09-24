@@ -15,6 +15,8 @@ MuchoCore keeps automated checks grouped by purpose so protocol work can grow wi
 Run focused checks directly from the repository root, for example:
 
 ```bash
+php tests/protocol/protocol-20-surface.php
+php tests/protocol/protocol-20-wire.php
 php tests/protocol/protocol-21-surface.php
 php tests/security/muchoprotect.php
 bash tests/client/client-contract.sh
