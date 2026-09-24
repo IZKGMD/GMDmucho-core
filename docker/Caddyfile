@@ -15,23 +15,11 @@
         Permissions-Policy "camera=(), microphone=(), geolocation=()"
     }
 
+    # Legacy dashboard favicon path; keep the URL stable while using the
+    # canonical generated MuchoCore logo asset.
     handle /assets/muchocore-dashboard-logo.jpg {
-        root * /var/www/mucho-core
-        rewrite * /Gemini_Generated_Image_vemzsvemzsvemzsv.jpg
-        file_server
-    }
-
-    handle /assets/muchocore-source.jpg {
-        root * /var/www/mucho-core
-        rewrite * /Gemini_Generated_Image_af007baf007baf00.jpg
-        file_server
-    }
-
-    # MuchoCore brand fallback: serve the uploaded source logo until the
-    # optimized public/assets variant has been generated.
-    handle /assets/muchocore-logo.jpg {
-        root * /var/www/mucho-core
-        try_files /public/assets/muchocore-logo.jpg /Gemini_Generated_Image_af007baf007baf00.jpg
+        root * /var/www/mucho-core/public
+        rewrite * /assets/muchocore-logo.jpg
         file_server
     }
 
