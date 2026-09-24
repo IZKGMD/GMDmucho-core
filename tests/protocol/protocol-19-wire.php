@@ -67,8 +67,8 @@ assertTrue(
     MuchoCore\Protocol\GdLegacyText::encodeCommentForResponse(
         'Hello 1.9',
         19
-    ) === 'SGVsbG8gMS45',
-    '1.9 comment response uses Base64'
+    ) === 'Hello 1.9',
+    '1.9 comment response stays plain text'
 );
 
 $comments = new GdCommentEncoder();
