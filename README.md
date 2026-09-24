@@ -12,6 +12,7 @@
   <img src="https://img.shields.io/badge/release-v1.0.0%20RC-8A2BE2" alt="Release candidate">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/Geometry%20Dash-2.2%20verified-orange" alt="Geometry Dash 2.2">
+  <img src="https://img.shields.io/badge/GD%202.0-100%25%20implemented-success" alt="Geometry Dash 2.0 implementation">
   <img src="https://img.shields.io/badge/GD%202.1-100%25%20implemented-success" alt="Geometry Dash 2.1 implementation">
 </p>
 
@@ -67,7 +68,7 @@ MuchoProtect is **enabled by default** and can be configured with environment va
 
 ## 🎯 Geometry Dash compatibility
 
-MuchoCore has completed its **Geometry Dash 2.2 real-client compatibility gate** and is now expanding backward compatibility.
+MuchoCore has completed its **Geometry Dash 2.2 real-client compatibility gate** and is now covering the backward-compatible 2.0/2.1 protocol generations.
 
 | Component | Status |
 | --- | --- |
@@ -78,9 +79,10 @@ MuchoCore has completed its **Geometry Dash 2.2 real-client compatibility gate**
 | Version-aware endpoint behavior | ✅ Implemented |
 | Protocol regression tests | ✅ Passing |
 | Real 2.2 client trace fixture | ✅ Captured from GD 2.2.13 |
+| GD 2.0 server-side protocol implementation | ✅ **100% complete**; real-client verification pending |
 | GD 2.1 server-side protocol implementation | ✅ **100% complete**; real-client verification pending |
 
-> **Compatibility note:** GD 2.1 server-side implementation is **100% complete** for the current protocol scope. The remaining gate is empirical verification with a real GD 2.1 client; this is deliberately tracked separately from implementation completeness.
+> **Compatibility note:** GD 2.0 and GD 2.1 server-side implementations are **100% complete** for the current protocol scopes. Their remaining gates are empirical verification with real clients; this is deliberately tracked separately from implementation completeness.
 
 ## 🧪 Validation & tests
 
@@ -107,6 +109,8 @@ MuchoCore is continuously checked through GitHub Actions and local test scripts.
 ~~~bash
 php tests/client/client-compatibility.php
 php tests/protocol/protocol-matrix.php
+php tests/protocol/protocol-20-surface.php
+php tests/protocol/protocol-20-wire.php
 php tests/protocol/protocol-21-surface.php
 php tests/protocol/protocol-22-surface.php
 php tests/protocol/router-compatibility.php
@@ -115,6 +119,8 @@ php tests/security/muchoprotect.php
 python3 tools/client/client-patch.py --self-test
 bash tests/client/client-contract.sh
 bash tests/release/release-2.2-gate.sh
+# Release-only: run after capturing a real GD 2.0 client fixture.
+bash tests/release/release-2.0-gate.sh
 # Release-only: run after capturing a real GD 2.1 client fixture.
 bash tests/release/release-2.1-gate.sh
 ~~~
