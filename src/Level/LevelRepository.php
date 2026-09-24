@@ -139,6 +139,71 @@ final readonly class LevelRepository
             $where[] = 'l.two_player = 1';
         }
 
+        /*
+         * GD 1.9 supports filtering against the caller's completed level
+         * list. The client sends a comma-separated numeric level ID list.
+         */
+        $completedLevels = $this->idList(
+            (string)($input['completedLevels'] ?? ''),
+            5000
+        );
+
+        if ((string)($input['uncompleted'] ?? '0') === '1') {
+            if ($completedLevels) {
+                $marks = [];
+
+                foreach ($completedLevels as $i => $id) {
+                    $key = 'uncompleted_' . $i;
+                    $marks[] = ':' . $key;
+                    $params[$key] = $id;
+                }
+
+                $where[] = 'l.level_id NOT IN (' . implode(',', $marks) . ')';
+            }
+        }
+
+        if ((string)($input['onlyCompleted'] ?? '0') === '1') {
+            if (!$completedLevels) {
+                return ['levels' => [], 'total' => 0];
+            }
+
+            $marks = [];
+
+            foreach ($completedLevels as $i => $id) {
+                $key = 'completed_' . $i;
+                $marks[] = ':' . $key;
+                $params[$key] = $id;
+            }
+
+            $where[] = 'l.level_id IN (' . implode(',', $marks) . ')';
+        }
+
+        /*
+         * Legacy song filtering:
+         * built-in songs use audioTrack (1-based client value, stored 0-based),
+         * custom songs use songID directly.
+         */
+        $song = (string)($input['song'] ?? '');
+
+        if ($song !== '' && $song !== '0') {
+            if ((string)($input['customSong'] ?? '') === '') {
+                $songId = $this->idList($song, 1);
+
+                if ($songId) {
+                    $where[] = 'l.audio_track = :audio_song';
+                    $where[] = 'l.song_id = 0';
+                    $params['audio_song'] = $songId[0] - 1;
+                }
+            } else {
+                $songId = $this->idList($song, 1);
+
+                if ($songId) {
+                    $where[] = 'l.song_id = :custom_song';
+                    $params['custom_song'] = $songId[0];
+                }
+            }
+        }
+
         if ((string)($input['star'] ?? '0') === '1') {
             $where[] = 'l.stars > 0';
         }
