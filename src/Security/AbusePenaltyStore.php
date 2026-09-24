@@ -88,15 +88,25 @@ final readonly class AbusePenaltyStore
             return null;
         }
 
-        $file = $this->directory . '/' . hash('sha256', $key) . '.json';
+        $file = $this->filePath($key);
         $fp = @fopen($file, 'c+');
         return $fp === false ? null : $fp;
     }
 
+    private function filePath(string $key): string
+    {
+        return $this->directory . '/' . hash('sha256', $key) . '.json';
+    }
+
     private function readState(string $key): ?array
     {
-        $fp = $this->open($key);
-        if ($fp === null) {
+        $file = $this->filePath($key);
+        if (!is_file($file)) {
+            return null;
+        }
+
+        $fp = @fopen($file, 'r');
+        if ($fp === false) {
             return null;
         }
 
