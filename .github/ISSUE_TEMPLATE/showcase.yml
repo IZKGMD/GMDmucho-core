@@ -1,8 +1,6 @@
 name: MuchoCore Showcase
 description: Add a GDPS or project powered by MuchoCore to the community showcase.
 title: "[Showcase] "
-labels:
-  - showcase
 body:
   - type: input
     id: name
