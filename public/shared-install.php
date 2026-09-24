@@ -113,6 +113,9 @@ if (is_file($lock)) {
             For security, delete <code>public/shared-install.php</code> from your hosting account.
         </div>
         <p>Then open <code>/health</code> and <code>/admin/</code> to test the server.</p>
+        <p style="margin-top:24px;padding-top:14px;border-top:1px solid #d9dee5;text-align:center;color:#7a838f;font-size:12px">
+            Powered by MuchoCore 🛡️ · <a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </p>
     </div>
     </body>
     </html>
@@ -342,6 +345,9 @@ if ($success) {
         <h2>Important</h2>
         <p>Delete <code>public/shared-install.php</code> from your hosting account if the file still exists.</p>
         <p>Do not delete <code>.env</code>, <code>storage/admin-bootstrap.php</code> or <code>config/cloudsave.key</code>.</p>
+        <p style="margin-top:24px;padding-top:14px;border-top:1px solid #d9dee5;text-align:center;color:#7a838f;font-size:12px">
+            Powered by MuchoCore 🛡️ · <a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </p>
     </div>
     </body>
     </html>
