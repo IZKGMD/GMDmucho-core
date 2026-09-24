@@ -128,7 +128,6 @@ final class GdLegacyText
         return self::base64UrlEncode($comment);
     }
 
-    private static function base64UrlEncode(string $value): string
     private static function normalizeBase64Url(string $value): string
     {
         if ($value === '') {
@@ -148,6 +147,7 @@ final class GdLegacyText
         return strtr(rtrim($value, '='), '+/', '-_');
     }
 
+    private static function base64UrlEncode(string $value): string
     {
         if ($value === '') {
             return '';
