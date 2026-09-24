@@ -131,7 +131,7 @@ MuchoProtect is enabled by default and can be configured through environment var
 
 MuchoCore uses **one server core** across supported client generations instead of maintaining separate server copies.
 
-The current development focus is **GD 2.2 compatibility**, with version-aware protocol behavior at the server boundary.
+The current release target is **GD 2.2 compatibility**, with version-aware protocol behavior at the server boundary and a real-client contract captured from Geometry Dash 2.2.13.
 
 | Capability | Status |
 | --- | :---: |
@@ -141,9 +141,9 @@ The current development focus is **GD 2.2 compatibility**, with version-aware pr
 | Version-aware level / leaderboard handling | ✅ |
 | Legacy protocol compatibility layers | ✅ |
 | Protocol regression coverage | ✅ |
-| Real-client verification | 🔬 Actively tracked |
+| Real-client verification | ✅ Verified with GD 2.2.13 contract fixture |
 
-> **Important:** automated tests prove server-side contracts and protocol surfaces; real-client testing is kept as a separate verification layer.
+> **2.2 verification:** the release gate is backed by a real Geometry Dash 2.2.13 client contract fixture. Automated CI checks provenance, client family, version metadata, and endpoint coverage on every push.
 
 See **[Version Profiles](docs/VERSIONS.md)** for the supported runtime profiles.
 
