@@ -23,7 +23,11 @@ final class GdCommentEncoder
 
         $commentParts = [
             '2', $content,
-            '3', (string)$comment['account_id'],
+            '3', (string)(
+                $profile['user_id']
+                ?? $comment['user_id']
+                ?? $comment['account_id']
+            ),
             '4', (string)($comment['likes'] ?? 0),
             '5', '0',
             '7', (string)($comment['is_spam'] ?? 0),
@@ -77,7 +81,10 @@ final class GdCommentEncoder
 
         return implode('~', [
             '2', $content,
-            '3', (string)$comment['account_id'],
+            '3', (string)(
+                $comment['user_id']
+                ?? $comment['account_id']
+            ),
             '4', (string)($comment['likes'] ?? 0),
             '5', '0',
             '7', (string)($comment['is_spam'] ?? 0),
