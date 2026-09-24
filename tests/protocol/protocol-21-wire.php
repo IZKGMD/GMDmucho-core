@@ -9,6 +9,7 @@ require __DIR__ . '/../../src/Protocol/GdLevelDownloadEncoder.php';
 require __DIR__ . '/../../src/Protocol/GdLevelListEncoder.php';
 require __DIR__ . '/../../src/Protocol/GdUserEncoder.php';
 require __DIR__ . '/../../src/Protocol/GdXor.php';
+require __DIR__ . '/../../src/Protocol/ProtocolText.php';
 
 use MuchoCore\Compatibility\ClientVersion;
 use MuchoCore\Protocol\GdCommentEncoder;
