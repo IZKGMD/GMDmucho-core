@@ -9,6 +9,12 @@ use MuchoCore\Http\Request;
 final readonly class MuchoProtect
 {
     /** @var array<string, array{limit:int, window:int, burst:int, burstWindow:int}> */
+    private const GLOBAL_LIMIT = 900;
+    private const GLOBAL_WINDOW = 60;
+    private const GLOBAL_BURST = 180;
+    private const GLOBAL_BURST_WINDOW = 10;
+
+    /** @var array<string, array{limit:int, window:int, burst:int, burstWindow:int}> */
     private const POLICIES = [
         '/logingjaccount' => ['limit' => 12, 'window' => 60, 'burst' => 5, 'burstWindow' => 10],
         '/registergjaccount' => ['limit' => 6, 'window' => 300, 'burst' => 2, 'burstWindow' => 30],
@@ -56,7 +62,8 @@ final readonly class MuchoProtect
     ];
 
     public function __construct(
-        private RateLimiter $limiter = new RateLimiter()
+        private RateLimiter $limiter = new RateLimiter(),
+        private AbusePenaltyStore $penalties = new AbusePenaltyStore()
     ) {
     }
 
@@ -86,24 +93,15 @@ final readonly class MuchoProtect
         }
 
         if (!$this->limiter->allow($baseKey . ':burst', $policy['burst'], $policy['burstWindow'])) {
-            $this->audit($request, $endpoint, 'burst_limit');
+            $penalty = $this->penalties->penalize($baseKey);
+            $this->audit($request, $endpoint, 'burst_limit', $penalty['seconds'], $penalty['strikes']);
             return ['decision' => 'block', 'reason' => 'burst_limit'];
         }
 
-        $accountId = $this->accountId($request);
-        $credential = $request->gdCredential();
-
-        if ($accountId !== null && $credential !== '') {
-            $identity = hash(
-                'sha256',
-                $accountId . ':' . $credential
-            );
-            $accountKey = 'identity:' . $identity . ':endpoint:' . $endpoint;
-
-            if (!$this->limiter->allow($accountKey, $policy['limit'], $policy['window'])) {
-                $this->audit($request, $endpoint, 'account_rate_limit');
-                return ['decision' => 'block', 'reason' => 'account_rate_limit'];
-            }
+        if ($identityKey !== null && !$this->limiter->allow($identityKey, $policy['limit'], $policy['window'])) {
+            $penalty = $this->penalties->penalize($identityKey);
+            $this->audit($request, $endpoint, 'account_rate_limit', $penalty['seconds'], $penalty['strikes']);
+            return ['decision' => 'block', 'reason' => 'account_rate_limit'];
         }
 
         return ['decision' => 'allow', 'reason' => 'ok'];
@@ -145,6 +143,18 @@ final readonly class MuchoProtect
         return strtolower($endpoint === '' ? '/' : $endpoint);
     }
 
+    private function identityFingerprint(Request $request): ?string
+    {
+        $accountId = $this->accountId($request);
+        $credential = $request->gdCredential();
+
+        if ($accountId === null || $credential === '') {
+            return null;
+        }
+
+        return hash('sha256', $accountId . ':' . $credential);
+    }
+
     private function accountId(Request $request): ?int
     {
         foreach (['accountID', 'accountId'] as $key) {
@@ -176,8 +186,14 @@ final readonly class MuchoProtect
             'reason' => $reason,
             'ip_hash' => hash('sha256', $request->clientIp()),
             'method' => $request->method,
+            'penalty_seconds' => $penaltySeconds,
+            'strikes' => $strikes,
         ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL;
 
-        @file_put_contents($directory . '/events.ndjson', $entry, FILE_APPEND | LOCK_EX);
+        try {
+            @file_put_contents($directory . '/events.ndjson', $entry, FILE_APPEND | LOCK_EX);
+        } catch (\Throwable) {
+            // Security telemetry must never break the game protocol.
+        }
     }
 }
