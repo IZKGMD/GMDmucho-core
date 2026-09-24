@@ -24,7 +24,7 @@ final readonly class RateLimiter
             !@mkdir($this->directory, 0700, true) &&
             !is_dir($this->directory)
         ) {
-            return true; // fail-open: не ломаем GD
+            return true; // Keep the game protocol available if storage is unavailable.
         }
 
         $file = $this->directory . '/' . hash('sha256', $key) . '.json';
