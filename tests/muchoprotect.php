@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/src/Http/ClientIp.php';
+require_once dirname(__DIR__) . '/src/Compatibility/ClientVersion.php';
 require_once dirname(__DIR__) . '/src/Http/Request.php';
 require_once dirname(__DIR__) . '/src/Security/RateLimiter.php';
 require_once dirname(__DIR__) . '/src/Security/MuchoProtect.php';
