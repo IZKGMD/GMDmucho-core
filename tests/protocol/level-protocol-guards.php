@@ -40,7 +40,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Protocol/GdLevelListEncoder.php',
-        'int)$level['coins']',
+        "int)$level['coins']",
         'multi-level hash uses star coins',
     ],
     [
