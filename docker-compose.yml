@@ -26,8 +26,8 @@ services:
       dockerfile: docker/Dockerfile
     restart: unless-stopped
     environment:
-      DB_HOST: ${DB_HOST:-db}
-      DB_PORT: ${DB_PORT:-3306}
+      DB_HOST: db
+      DB_PORT: 3306
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       ADMIN_USER: ${ADMIN_USER}
