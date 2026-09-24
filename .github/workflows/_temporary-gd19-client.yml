@@ -27,13 +27,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t exes < <(find gd19-source -type f -iname '*.exe' -print)
-          if [ "${#exes[@]}" -ne 1 ]; then
-            printf 'Expected exactly one EXE, found %s\n' "${#exes[@]}" >&2
-            printf '%s\n' "${exes[@]}" >&2
-            exit 1
-          fi
-          exe="${exes[0]}"
+          exe="gd19-source/DontRenameMeThxDash.exe"
+          test -f "$exe" || { echo "Main 1.9 client executable not found: $exe" >&2; find gd19-source -maxdepth 2 -type f -iname '*.exe' -print >&2; exit 1; }
           patched="${exe%.exe}-MuchoCore.exe"
           python3 tools/client/client-patch.py \
             --input "$exe" \
