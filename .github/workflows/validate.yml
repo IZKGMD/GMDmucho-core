@@ -13,6 +13,7 @@ jobs:
       - name: Check shell scripts
         run: |
           bash -n install.sh
+          bash -n install
           bash -n update.sh
           bash -n uninstall.sh
           find tests -name '*.sh' -print0 | xargs -0 -n1 bash -n
@@ -23,6 +24,7 @@ jobs:
           php tests/client/client-compatibility.php
           php tests/client/client-ip.php
           php tests/protocol/protocol-matrix.php
+          php tests/protocol/compatibility-profile.php
           php tests/protocol/legacy-text.php
           php tests/protocol/protocol-19-surface.php
           php tests/protocol/protocol-19-wire.php
@@ -54,6 +56,7 @@ jobs:
           test -f CHANGELOG.md
           test -f docker-compose.yml
           test -f docker-compose.tunnel.yml
+          test -f install
           test -f docker/Dockerfile
           test -f docker/Caddyfile
           test -f docker/app-entrypoint.sh
