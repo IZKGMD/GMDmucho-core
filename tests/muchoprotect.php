@@ -5,10 +5,12 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/src/Http/ClientIp.php';
 require_once dirname(__DIR__) . '/src/Compatibility/ClientVersion.php';
 require_once dirname(__DIR__) . '/src/Http/Request.php';
+require_once dirname(__DIR__) . '/src/Routing/Router.php';
 require_once dirname(__DIR__) . '/src/Security/RateLimiter.php';
 require_once dirname(__DIR__) . '/src/Security/MuchoProtect.php';
 
 use MuchoCore\Http\Request;
+use MuchoCore\Routing\Router;
 use MuchoCore\Security\MuchoProtect;
 use MuchoCore\Security\RateLimiter;
 
@@ -86,6 +88,7 @@ if ($unlisted['decision'] !== 'allow' || $unlisted['reason'] !== 'no_policy') {
 $accountProtect = new MuchoProtect(
     new RateLimiter($dir . '-account')
 );
+$loginEndpoint = (new Router())->normalizePath('/loginGJAccount22.php');
 
 for ($i = 0; $i < 12; $i++) {
     $ip = '10.20.0.' . (intdiv($i, 3) + 1);
