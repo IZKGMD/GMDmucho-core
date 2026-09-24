@@ -37,6 +37,8 @@ final class GdLevelListEncoder
              * Preserve custom star values (15/30/50, etc.) in the multi-level
              * hash. Cvolton's genMulti hashes the stored star value verbatim.
              */
+            $wireDifficulty = $this->wireDifficulty((int)($level['difficulty'] ?? 0));
+
             $protocolStars = max(
                 0,
                 (int)($level['stars'] ?? 0)
@@ -48,7 +50,7 @@ final class GdLevelListEncoder
                 5, (int)$level['level_version'],
                 6, $userId,
                 8, 10,
-                9, (int)$level['difficulty'],
+                9, $wireDifficulty,
                 10, (int)$level['downloads'],
                 12, (int)$level['audio_track'],
                 13, (int)$level['game_version'],
@@ -133,5 +135,17 @@ final class GdLevelListEncoder
             . $pageInfo
             . '#'
             . $hashPart;
+    }    
+    private function wireDifficulty(int $difficulty): int
+    {
+        /*
+         * MuchoCore stores standard difficulties internally as 1..6,
+         * while Geometry Dash expects 10..60 on the wire. Accept both
+         * representations so legacy data remains compatible.
+         */
+        return ($difficulty >= 1 && $difficulty <= 6)
+            ? $difficulty * 10
+            : max(0, $difficulty);
     }
+
 }
