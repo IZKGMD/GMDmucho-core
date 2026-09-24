@@ -202,8 +202,8 @@ final class WindowsClientPatcher
                 );
                 self::addReplacement(
                     $map,
-                    mb_convert_encoding($old, 'UTF-16LE', 'UTF-8'),
-                    mb_convert_encoding($new, 'UTF-16LE', 'UTF-8')
+                    self::asciiToUtf16Le($old),
+                    self::asciiToUtf16Le($new)
                 );
             }
         }
@@ -223,6 +223,17 @@ final class WindowsClientPatcher
         }
 
         return $map;
+    }
+
+    private static function asciiToUtf16Le(string $value): string
+    {
+        $result = '';
+
+        for ($i = 0, $length = strlen($value); $i < $length; $i++) {
+            $result .= $value[$i] . "\\x00";
+        }
+
+        return $result;
     }
 
     private static function addReplacement(
