@@ -17,6 +17,30 @@ if($action==='v4-bulk-players'){
     $ids=v4Ids((string)($_POST['ids'] ?? ''));
     $operation=(string)($_POST['operation'] ?? '');
     $in=v4In($ids);
+    $actorRank=rank((string)(admin()['role'] ?? ''));
+
+    if(in_array($operation,['ban','unban','activate','deactivate','role'],true)){
+        $q=$db->prepare(
+            "SELECT a.account_id, COALESCE(r.code,'user') AS role
+             FROM accounts a
+             LEFT JOIN roles r ON r.id=a.role_id
+             WHERE a.account_id IN ($in)"
+        );
+        $q->execute();
+        foreach($q->fetchAll(PDO::FETCH_ASSOC) as $target){
+            $targetRank=match (strtolower((string)$target['role'])) {
+                'owner' => 40,
+                'elder_moderator' => 30,
+                'moderator' => 20,
+                default => 0,
+            };
+
+            if($targetRank > 0 && $targetRank >= $actorRank){
+                requireRank(40);
+                break;
+            }
+        }
+    }
 
     if($operation==='ban'){
         $db->exec(
@@ -55,10 +79,6 @@ if($action==='v4-bulk-players'){
             throw new RuntimeException('Invalid role');
         }
 
-        if($role===\MuchoCore\User\GameRole::OWNER){
-            requireRank(40);
-        }
-
         $roleQuery=$db->prepare(
             'SELECT id
              FROM roles
@@ -66,11 +86,24 @@ if($action==='v4-bulk-players'){
              LIMIT 1'
         );
         $roleQuery->execute(['role'=>$role]);
-        $roleId=$roleQuery->fetchColumn();
+        $roleRow=$roleQuery->fetch(PDO::FETCH_ASSOC);
 
-        if($roleId===false){
+        if(!$roleRow){
             throw new RuntimeException('Role not found.');
         }
+
+        $requestedRoleRank=match ($role) {
+            \MuchoCore\User\GameRole::OWNER => 40,
+            \MuchoCore\User\GameRole::ELDER_MODERATOR => 30,
+            \MuchoCore\User\GameRole::MODERATOR => 20,
+            default => 0,
+        };
+
+        if($requestedRoleRank >= $actorRank && $requestedRoleRank > 0){
+            requireRank(40);
+        }
+
+        $roleId=(int)$roleRow['id'];
 
         $q=$db->prepare(
             "UPDATE accounts
