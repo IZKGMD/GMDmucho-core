@@ -29,6 +29,7 @@ grep -q '^ADMIN_USER=' "$ROOT/.env" 2>/dev/null || printf '\nADMIN_USER=admin\n'
 grep -q '^TZ=' "$ROOT/.env" 2>/dev/null || printf 'TZ=UTC\n' >> "$ROOT/.env"
 grep -q '^TURNSTILE_SITEKEY=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SITEKEY=\n' >> "$ROOT/.env"
 grep -q '^TURNSTILE_SECRET=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SECRET=\n' >> "$ROOT/.env"
+grep -q '^MUCHO_GD_VERSIONS=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_GD_VERSIONS=all\n' >> "$ROOT/.env"
 
 if ! git diff --quiet || ! git diff --cached --quiet; then
     echo '[MuchoCore] ERROR: this installation has local changes in tracked files.' >&2
@@ -67,3 +68,7 @@ docker compose exec -T app php bin/mucho-sync-admin.php
 
 echo '[MuchoCore] Checking service status...'
 docker compose ps
+
+echo
+echo '[MuchoCore] Compatibility profile:'
+sed -n 's/^MUCHO_GD_VERSIONS=/  GD versions: /p' "$ROOT/.env" | sed 's/,/, /g'
