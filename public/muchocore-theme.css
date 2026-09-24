@@ -638,3 +638,39 @@ html[data-theme="light"] body.dashboard-page .music-disc{
     border-color:#d9e0e9;
     color:#6b5ddc;
 }
+
+
+/* Dashboard single-logo hard override.
+ * Keep the dedicated square icon independent from legacy wordmark sizing.
+ */
+body.dashboard-page .brand:has(.mucho-brand-logo){
+    display:grid;
+    place-items:center;
+    gap:0;
+    width:48px;
+    height:48px;
+    min-width:48px;
+}
+body.dashboard-page .brand:has(.mucho-brand-logo) .mucho-brand-logo{
+    display:block;
+    width:48px !important;
+    height:48px !important;
+    max-width:48px !important;
+    max-height:48px !important;
+    flex:0 0 48px;
+    border-radius:12px;
+}
+@media(max-width:650px){
+    body.dashboard-page .brand:has(.mucho-brand-logo){
+        width:44px;
+        height:44px;
+        min-width:44px;
+    }
+    body.dashboard-page .brand:has(.mucho-brand-logo) .mucho-brand-logo{
+        width:44px !important;
+        height:44px !important;
+        max-width:44px !important;
+        max-height:44px !important;
+        flex-basis:44px;
+    }
+}
