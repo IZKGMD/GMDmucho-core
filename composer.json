@@ -16,5 +16,6 @@
         "test": "bash tests/regression.sh",
         "regression": "bash tests/regression.sh",
         "load": "bash tests/load.sh"
-    }
+    },
+    "license": "MIT"
 }
