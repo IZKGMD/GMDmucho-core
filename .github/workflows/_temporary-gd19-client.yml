@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - tmp/gd19-client-patch
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build-client:
