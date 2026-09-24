@@ -38,6 +38,14 @@ jobs:
           sha256sum "$exe"
           test "$(python3 -c "import pathlib; print(pathlib.Path('$exe').read_bytes()[:2].hex())")" = "4d5a"
 
+      - name: Verify MuchoCore compatibility path
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl -ksS --max-time 15 'https://muchogdps.space/a/api/api/checkifserveronline')"
+          printf 'checkifserveronline response: %s\n' "$response"
+          test "$response" = "1"
+
       - name: Package
         shell: bash
         run: |
