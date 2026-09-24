@@ -53,6 +53,22 @@ return static function(PDO $db): void {
         $db->exec('ALTER TABLE likes DROP INDEX uq_like_item_user');
     }
 
+    /*
+     * Older installations can contain duplicate anonymous/authenticated
+     * rows from before the actor key was enforced. Keep the newest row for
+     * each logical actor before adding the unique constraint.
+     */
+    $db->exec(<<<'SQL'
+DELETE old_like
+FROM likes old_like
+INNER JOIN likes keep_like
+    ON keep_like.item_id = old_like.item_id
+   AND keep_like.type = old_like.type
+   AND keep_like.account_id = old_like.account_id
+   AND keep_like.ip = old_like.ip
+   AND keep_like.id > old_like.id
+SQL);
+
     $db->exec(
         'ALTER TABLE likes
          ADD UNIQUE KEY uq_like_item_actor
