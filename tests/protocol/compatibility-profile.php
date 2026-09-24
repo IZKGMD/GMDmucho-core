@@ -63,4 +63,21 @@ assertProfile(
     'custom profile env serialization'
 );
 
+$_ENV['MUCHO_GD_VERSIONS'] = 'gd2.2';
+$prefixed = CompatibilityProfile::fromEnvironment();
+assertProfile(
+    true,
+    $prefixed->allows(ClientVersion::fromValues(22, 0)),
+    'GD-prefixed profile alias'
+);
+
+$invalidRejected = false;
+$_ENV['MUCHO_GD_VERSIONS'] = 'garbage';
+try {
+    CompatibilityProfile::fromEnvironment();
+} catch (InvalidArgumentException) {
+    $invalidRejected = true;
+}
+assertProfile(true, $invalidRejected, 'invalid environment profile is rejected');
+
 echo "MUCHOCORE_COMPATIBILITY_PROFILE_OK\n";
