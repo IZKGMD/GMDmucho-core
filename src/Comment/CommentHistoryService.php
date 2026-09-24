@@ -49,14 +49,11 @@ final class CommentHistoryService
             $timestamp = is_numeric((string)$row['timestamp']) ? (int)$row['timestamp'] : 0;
             $uploadDate = $timestamp > 0 ? date('d/m/Y G.i', $timestamp) : '01/01/1970 0.00';
 
-            $comment = (string)$row['comment'];
-            if ($gameVersion < 20) {
-                $decoded = base64_decode($comment, true);
-                if ($decoded !== false) {
-                    $comment = $decoded;
-                }
-            }
-            $comment = str_replace(['~', '#', '|'], ['', '', ''], $comment);
+            $comment = str_replace(
+                ['~', '#', '|', ':'],
+                ['', '', '', ''],
+                (string)$row['comment']
+            );
 
             $base = '1~' . (int)$row['levelID']
                 . '~2~' . $comment
