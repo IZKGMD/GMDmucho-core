@@ -1,0 +1,60 @@
+name: MuchoCore Showcase
+description: Add a GDPS or project powered by MuchoCore to the community showcase.
+title: "[Showcase] "
+labels:
+  - showcase
+body:
+  - type: input
+    id: name
+    attributes:
+      label: GDPS / Project name
+      description: The public name of your project.
+      placeholder: ExampleGDPS
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Geometry Dash versions
+      description: List the versions your project supports.
+      placeholder: GD 2.2
+    validations:
+      required: true
+
+  - type: input
+    id: website
+    attributes:
+      label: Website / invite link
+      description: Optional public link.
+      placeholder: https://example.com
+
+  - type: input
+    id: repository
+    attributes:
+      label: Project repository
+      description: Optional GitHub or public project repository.
+      placeholder: https://github.com/example/example-gdps
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Project description
+      description: Briefly describe what you built with MuchoCore.
+      placeholder: A community GDPS with custom levels, events and a themed website.
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot / logo
+      description: Optional. Drag an image into this field or paste a public image URL.
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety
+      options:
+        - label: I have not included passwords, tokens, private keys, database dumps, or server IP addresses.
+          required: true
