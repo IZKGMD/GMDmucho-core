@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/release-v1.0.0%20RC-8A2BE2" alt="Release candidate">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/Geometry%20Dash-2.2%20verified-orange" alt="Geometry Dash 2.2">
-  <img src="https://img.shields.io/badge/GD%201.9-core%20implemented-blue" alt="Geometry Dash 1.9 implementation">\n  <img src="https://img.shields.io/badge/GD%202.0-100%25%20implemented-success" alt="Geometry Dash 2.0 implementation">
+  <img src="https://img.shields.io/badge/GD%201.9-100%25%20implemented-success" alt="Geometry Dash 1.9 implementation">\n  <img src="https://img.shields.io/badge/GD%202.0-100%25%20implemented-success" alt="Geometry Dash 2.0 implementation">
   <img src="https://img.shields.io/badge/GD%202.1-100%25%20implemented-success" alt="Geometry Dash 2.1 implementation">
 </p>
 
@@ -68,7 +68,7 @@ MuchoProtect is **enabled by default** and can be configured with environment va
 
 ## 🎯 Geometry Dash compatibility
 
-MuchoCore has completed its **Geometry Dash 2.2 real-client compatibility gate** and is now covering the backward-compatible 2.0/2.1 protocol generations.
+MuchoCore has completed its server-side compatibility pass for **GD 1.9, 2.0, 2.1 and 2.2**. The GD 2.2 real-client gate is verified; older-generation runtime evidence remains tracked separately.
 
 | Component | Status |
 | --- | --- |
@@ -79,7 +79,7 @@ MuchoCore has completed its **Geometry Dash 2.2 real-client compatibility gate**
 | Version-aware endpoint behavior | ✅ Implemented |
 | Protocol regression tests | ✅ Passing |
 | Real 2.2 client trace fixture | ✅ Captured from GD 2.2.13 |
-| GD 1.9 server-side protocol compatibility pass | ✅ **Core implemented**; real-client verification pending |\n| GD 2.0 server-side protocol implementation | ✅ **100% complete**; real-client verification pending |
+| GD 1.9 server-side protocol compatibility pass | ✅ **100% complete**; real-client verification pending |\n| GD 2.0 server-side protocol implementation | ✅ **100% complete**; real-client verification pending |
 | GD 2.1 server-side protocol implementation | ✅ **100% complete**; real-client verification pending |
 
 > **Compatibility note:** GD 2.0 and GD 2.1 server-side implementations are **100% complete** for the current protocol scopes. Their remaining gates are empirical verification with real clients; this is deliberately tracked separately from implementation completeness.
@@ -96,6 +96,10 @@ MuchoCore is continuously checked through GitHub Actions and local test scripts.
 | Protocol matrix / 2.2 guards | ✅ |
 | Protocol hash checks | ✅ |
 | Client trace tooling | ✅ |
+| GD 1.9 protocol surface / wire suite | ✅ |
+| GD 2.0 protocol surface / wire suite | ✅ |
+| GD 2.1 protocol surface / wire suite | ✅ |
+| Social message / relationship wire suite | ✅ |
 | GD 2.1 wire contract | ✅ |
 | Client contract checks | ✅ |
 | MuchoProtect security tests | ✅ |
