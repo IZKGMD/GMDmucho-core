@@ -741,8 +741,9 @@ final readonly class LevelTransferService
         return $this->repository->updateDescription(
             $levelId,
             $accountId,
-            GdLegacyText::decodeDescriptionForStorage(
-                $description
+            GdLegacyText::encodeDescriptionUpdateForStorage(
+                $description,
+                $gameVersion
             )
         );
     }
