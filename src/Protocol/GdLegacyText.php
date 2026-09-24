@@ -57,6 +57,10 @@ final class GdLegacyText
         string $description,
         int $gameVersion
     ): string {
+        if ($gameVersion < 20) {
+            return self::decodeWireText($description);
+        }
+
         return self::encodeDescriptionForResponse(
             $description,
             $gameVersion
