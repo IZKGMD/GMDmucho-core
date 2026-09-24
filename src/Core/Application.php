@@ -54,6 +54,7 @@ use MuchoCore\Protocol\GdUserEncoder;
 use MuchoCore\Routing\Router;
 use MuchoCore\Score\LevelScoreController;
 use MuchoCore\Score\PlatformerScoreController;
+use MuchoCore\Security\MuchoProtect;
 use MuchoCore\Social\MessageController;
 use MuchoCore\Social\MessageRepository;
 use MuchoCore\Social\MessageService;
@@ -71,11 +72,13 @@ final readonly class Application
 {
     private Router $router;
     private PDO $pdo;
+    private MuchoProtect $protect;
 
     public function __construct()
     {
         $this->pdo = (new Database())->connection();
         $this->router = new Router();
+        $this->protect = new MuchoProtect();
 
         $accountRepo = new AccountRepository($this->pdo);
         $accountService = new AccountService($this->pdo, $accountRepo);
@@ -402,6 +405,17 @@ final readonly class Application
     public function handle(Request $request): Response
     {
         ClientTrace::captureRequest($request);
+
+        $protection = $this->protect->inspect(
+            $request,
+            $this->router->normalizePath($request->path)
+        );
+
+        if ($protection['decision'] === 'block') {
+            $response = Response::text('-1', 429);
+            ClientTrace::captureResponse($response);
+            return $response;
+        }
 
         try {
             $response = $this->router->dispatch($request);
