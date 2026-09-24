@@ -16,7 +16,11 @@ use MuchoCore\Security\MuchoProtect;
 use MuchoCore\Security\RateLimiter;
 
 $dir = sys_get_temp_dir() . '/muchocore-protect-test-' . bin2hex(random_bytes(6));
-$protect = new MuchoProtect(new RateLimiter($dir));
+$mainPenaltyDir = $dir . '-main-penalty';
+$protect = new MuchoProtect(
+    new RateLimiter($dir),
+    new \MuchoCore\Security\AbusePenaltyStore($mainPenaltyDir)
+);
 putenv('MUCHO_PROTECT=1');
 
 $request = new Request(
@@ -140,8 +144,10 @@ if ($unlisted['decision'] !== 'allow' || $unlisted['reason'] !== 'no_policy') {
  * Verify 2.2 credentials are recognized through gjp2 and account
  * protection remains bound to account + credential, not accountID alone.
  */
+$accountDir = $dir . '-account';
 $accountProtect = new MuchoProtect(
-    new RateLimiter($dir . '-account')
+    new RateLimiter($accountDir),
+    new \MuchoCore\Security\AbusePenaltyStore($accountDir . '-penalty')
 );
 $loginEndpoint = (new Router())->normalizePath('/loginGJAccount22.php');
 
@@ -217,7 +223,37 @@ if ($differentCredential['decision'] !== 'allow') {
     exit(1);
 }
 
-foreach ([$dir, $dir . '-account', $dir . '-penalty', $dir . '-global'] as $cleanupDir) {
+$penaltyStatusDir = $dir . '-status-only';
+$statusProbe = new \MuchoCore\Security\AbusePenaltyStore($penaltyStatusDir);
+$status = $statusProbe->status('never-penalized');
+if ($status['active'] || is_dir($penaltyStatusDir)) {
+    fwrite(STDERR, "MuchoProtect penalty status created unnecessary storage\n");
+    exit(1);
+}
+
+$directPenaltyDir = $dir . '-backoff';
+$directPenalties = new \MuchoCore\Security\AbusePenaltyStore($directPenaltyDir);
+$first = $directPenalties->penalize('same-abuser');
+$second = $directPenalties->penalize('same-abuser');
+if (
+    $first['seconds'] !== 15 ||
+    $first['strikes'] !== 1 ||
+    $second['seconds'] !== 30 ||
+    $second['strikes'] !== 2
+) {
+    fwrite(STDERR, "MuchoProtect exponential penalty backoff failed\n");
+    exit(1);
+}
+
+foreach ([
+    $dir,
+    $mainPenaltyDir,
+    $accountDir,
+    $accountDir . '-penalty',
+    $dir . '-penalty',
+    $dir . '-global',
+    $directPenaltyDir,
+] as $cleanupDir) {
     foreach (glob($cleanupDir . '/*') ?: [] as $file) {
         @unlink($file);
     }
