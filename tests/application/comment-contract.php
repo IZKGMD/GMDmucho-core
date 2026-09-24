@@ -138,7 +138,7 @@ assertCommentContract(
 );
 
 assertCommentContract(
-    str_contains($service, "if ($cmd !== '!cp')"),
+    str_contains($service, "if (\$cmd !== '!cp')"),
     'manual creator points are not overwritten by automatic recalc'
 );
 
