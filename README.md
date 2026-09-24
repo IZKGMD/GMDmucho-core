@@ -12,13 +12,14 @@
   <img src="https://img.shields.io/badge/release-v1.0.0%20RC-8A2BE2" alt="Release candidate">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/Geometry%20Dash-2.2%20verified-orange" alt="Geometry Dash 2.2">
-  <img src="https://img.shields.io/badge/GD%201.9-100%25%20implemented-success" alt="Geometry Dash 1.9 implementation">\n  <img src="https://img.shields.io/badge/GD%202.0-100%25%20implemented-success" alt="Geometry Dash 2.0 implementation">
+  <img src="https://img.shields.io/badge/GD%201.9-100%25%20implemented-success" alt="Geometry Dash 1.9 implementation">
+  <img src="https://img.shields.io/badge/GD%202.0-100%25%20implemented-success" alt="Geometry Dash 2.0 implementation">
   <img src="https://img.shields.io/badge/GD%202.1-100%25%20implemented-success" alt="Geometry Dash 2.1 implementation">
 </p>
 
 > ⚡ **Release candidate: v1.0.0**
 >
-> MuchoCore focuses on a clean server architecture, Geometry Dash protocol compatibility, and built-in protection against abusive traffic.
+> MuchoCore focuses on a clean server architecture, complete GD 1.9–2.2 server-side protocol compatibility, and built-in protection against abusive traffic.
 
 ---
 
@@ -222,7 +223,7 @@ Before removing an installation, read the warning in `uninstall.sh`: it removes 
 
 MuchoCore **v1.0.0** is being prepared around one main goal:
 
-> **Make the Geometry Dash 2.2 protocol surface reliable enough for a real release, then expand compatibility further without sacrificing maintainability or security.**
+> **Ship a release-ready Geometry Dash backend with complete 1.9–2.2 server-side compatibility, verified regression coverage, and strong maintainability/security.**
 
 The 2.2 gate is based on **real Geometry Dash 2.2.13 client traffic**, not a synthetic fixture.
 
