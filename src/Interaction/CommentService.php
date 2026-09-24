@@ -178,84 +178,116 @@ final class CommentService
         $parts = preg_split("/\\s+/", trim($commandStr)) ?: [];
         $cmd = strtolower($parts[0] ?? "");
 
+        if ($cmd === "!r") {
+            $cmd = "!rate";
+        }
+
         switch ($cmd) {
             case "!rate":
-                $value = strtolower($parts[1] ?? "");
-
                 /*
-                 * Keep comment moderation ratings identical to the canonical
-                 * moderation API. Geometry Dash stores standard difficulties
-                 * as 10, 20, 30, 40 and 50 on the protocol/database surface.
+                 * Legacy Cvolton/GD 1.9 syntax:
+                 *   !rate <difficulty> <stars> [coins] [featured]
+                 *
+                 * Examples:
+                 *   !rate easy 2
+                 *   !rate hard 5 1
+                 *   !rate demon 10
                  */
-                $ratingMap = [
-                    "auto" => [1, 1, 0, 0],
-                    "easy" => [2, 10, 0, 0],
-                    "normal" => [3, 20, 0, 0],
-                    "hard" => [5, 30, 0, 0],
-                    "harder" => [7, 40, 0, 0],
-                    "insane" => [9, 50, 0, 0],
-                    "demon" => [10, 50, 1, 3],
-                    "easydemon" => [10, 50, 1, 1],
-                    "mediumdemon" => [10, 50, 1, 2],
-                    "harddemon" => [10, 50, 1, 3],
-                    "insanedemon" => [10, 50, 1, 4],
-                    "extremedemon" => [10, 50, 1, 5],
-                ];
+                $difficultyName = strtolower($parts[1] ?? "");
+                $stars = isset($parts[2]) ? (int)$parts[2] : 0;
+                $coins = isset($parts[3]) ? (int)$parts[3] : null;
+                $featured = isset($parts[4]) ? (int)$parts[4] : null;
 
-                if (ctype_digit($value)) {
-                    $requestedStars = (int)$value;
-
-                    if ($requestedStars < 1 || $requestedStars > 10) {
-                        return null;
-                    }
-
-                    [$stars, $difficulty, $demon] = match (true) {
-                        $requestedStars === 1 => [1, 50, 0],
-                        $requestedStars === 2 => [2, 10, 0],
-                        $requestedStars === 3 => [3, 20, 0],
-                        $requestedStars <= 5 => [5, 30, 0],
-                        $requestedStars <= 7 => [7, 40, 0],
-                        $requestedStars <= 9 => [9, 50, 0],
-                        default => [10, 50, 1],
-                    };
-
-                    $demonDifficulty = $demon ? 3 : 0;
-                    $auto = $requestedStars === 1 ? 1 : 0;
-                } elseif (isset($ratingMap[$value])) {
-                    [
-                        $stars,
-                        $difficulty,
-                        $demon,
-                        $demonDifficulty
-                    ] = $ratingMap[$value];
-
-                    $auto = $value === "auto" ? 1 : 0;
-                } else {
+                if ($stars < 0 || $stars > 10) {
                     return null;
                 }
 
-                $update = $pdo->prepare(
-                    "UPDATE levels
-                     SET stars = :stars,
-                         difficulty = :difficulty,
-                         demon = :demon,
-                         demon_difficulty = :demon_difficulty,
-                         auto_level = :auto,
-                         updated_at = NOW()
-                     WHERE level_id = :id
-                       AND is_deleted = 0"
-                );
-                $update->execute([
+                $difficultyMap = [
+                    "na" => [0, 0, 0],
+                    "none" => [0, 0, 0],
+                    "auto" => [50, 1, 0],
+                    "easy" => [10, 0, 0],
+                    "normal" => [20, 0, 0],
+                    "hard" => [30, 0, 0],
+                    "harder" => [40, 0, 0],
+                    "insane" => [50, 0, 0],
+                    "demon" => [50, 0, 1],
+                ];
+
+                if (!isset($difficultyMap[$difficultyName])) {
+                    return null;
+                }
+
+                [
+                    $difficulty,
+                    $auto,
+                    $demon
+                ] = $difficultyMap[$difficultyName];
+
+                if ($difficultyName === "demon" && $stars === 0) {
+                    $stars = 10;
+                }
+
+                if ($difficultyName === "auto" && $stars === 0) {
+                    $stars = 1;
+                }
+
+                if ($coins !== null && ($coins < 0 || $coins > 3)) {
+                    return null;
+                }
+
+                if ($featured !== null && ($featured < 0 || $featured > 4)) {
+                    return null;
+                }
+
+                $updateSql = "
+                    UPDATE levels
+                    SET stars = :stars,
+                        difficulty = :difficulty,
+                        demon = :demon,
+                        demon_difficulty = CASE
+                            WHEN :demon = 1 AND demon_difficulty BETWEEN 1 AND 5
+                            THEN demon_difficulty
+                            ELSE 0
+                        END,
+                        auto_level = :auto,
+                        updated_at = NOW()";
+
+                $params = [
                     ":stars" => $stars,
                     ":difficulty" => $difficulty,
                     ":demon" => $demon,
-                    ":demon_difficulty" => $demonDifficulty,
                     ":auto" => $auto,
                     ":id" => $levelId,
-                ]);
+                ];
+
+                if ($coins !== null) {
+                    $updateSql .= ", coins_verified = :coins_verified";
+                    $params[":coins_verified"] = $coins > 0 ? 1 : 0;
+                }
+
+                if ($featured !== null) {
+                    $updateSql .= ",
+                        featured = CASE WHEN :featured > 0 THEN 1 ELSE 0 END,
+                        epic = CASE
+                            WHEN :featured = 2 THEN 1
+                            WHEN :featured = 3 THEN 2
+                            WHEN :featured = 4 THEN 3
+                            ELSE 0
+                        END";
+                    $params[":featured"] = $featured;
+                }
+
+                $updateSql .= "
+                    WHERE level_id = :id
+                      AND is_deleted = 0";
+
+                $update = $pdo->prepare($updateSql);
+                $update->execute($params);
 
                 $check = $pdo->prepare(
-                    "SELECT stars, difficulty, demon, demon_difficulty, auto_level
+                    "SELECT stars, difficulty, demon, auto_level,
+                            coins_verified, featured, epic
                      FROM levels
                      WHERE level_id = :id
                        AND is_deleted = 0
@@ -272,8 +304,21 @@ final class CommentService
                     (int)$state["stars"] !== $stars ||
                     (int)$state["difficulty"] !== $difficulty ||
                     (int)$state["demon"] !== $demon ||
-                    (int)$state["demon_difficulty"] !== $demonDifficulty ||
                     (int)$state["auto_level"] !== $auto
+                ) {
+                    return null;
+                }
+
+                if (
+                    $coins !== null &&
+                    (int)$state["coins_verified"] !== ($coins > 0 ? 1 : 0)
+                ) {
+                    return null;
+                }
+
+                if (
+                    $featured !== null &&
+                    (int)$state["featured"] !== ($featured > 0 ? 1 : 0)
                 ) {
                     return null;
                 }
