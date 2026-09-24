@@ -123,7 +123,11 @@ final class V71Application
             }
         } catch (Throwable $e) {
             error_log('[MuchoCore v7.1] ' . $endpoint . ': ' . $e->getMessage());
-            http_response_code(500);
+            /*
+             * Legacy Geometry Dash transports expect a successful HTTP
+             * response carrying -1 for application-level failure.
+             */
+            http_response_code(200);
             echo '-1';
         }
     }
