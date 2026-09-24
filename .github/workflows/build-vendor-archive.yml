@@ -22,10 +22,23 @@ jobs:
       - name: Install production dependencies
         run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
+      - name: Read release version
+        id: version
+        shell: bash
+        run: |
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid VERSION: $VERSION" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Check release tree
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           test -f VERSION
-          grep -qx '1.0.1' VERSION
+          grep -qx "$VERSION" VERSION
           test -f README.md
           test -f CHANGELOG.md
           test -f START_HERE.md
@@ -47,22 +60,56 @@ jobs:
         run: zip -r vendor-muchocore-php83.zip vendor
 
       - name: Create full release archive
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          zip -r mucho-core-v1.0.1.zip . \
+          zip -r "mucho-core-v${VERSION}.zip" . \
             -x '.git/*' \
-            -x 'mucho-core-v1.0.1.zip' \
+            -x "mucho-core-v${VERSION}.zip" \
             -x 'vendor-muchocore-php83.zip'
 
       - name: Validate release archive
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          unzip -t mucho-core-v1.0.1.zip
-          unzip -l mucho-core-v1.0.1.zip | grep -q 'tools/client-patch.bat'
-          unzip -l mucho-core-v1.0.1.zip | grep -q 'tools/client-patch.py'
-          unzip -l mucho-core-v1.0.1.zip | grep -q 'docker-compose.yml'
-          unzip -l mucho-core-v1.0.1.zip | grep -q 'VERSION'
-          ! unzip -l mucho-core-v1.0.1.zip | grep -qE '(^|/)\.env$'
-          ! unzip -l mucho-core-v1.0.1.zip | grep -qE '(^|/)config/cloudsave\.key$'
-          ! unzip -l mucho-core-v1.0.1.zip | grep -qE '(^|/)storage/'
+          unzip -t "mucho-core-v${VERSION}.zip"
+          unzip -l "mucho-core-v${VERSION}.zip" | grep -q 'tools/client-patch.bat'
+          unzip -l "mucho-core-v${VERSION}.zip" | grep -q 'tools/client-patch.py'
+          unzip -l "mucho-core-v${VERSION}.zip" | grep -q 'docker-compose.yml'
+          unzip -l "mucho-core-v${VERSION}.zip" | grep -q 'VERSION'
+          ! unzip -l "mucho-core-v${VERSION}.zip" | grep -qE '(^|/)\.env
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: mucho-core-v${{ steps.version.outputs.version }}
+          path: mucho-core-v${{ steps.version.outputs.version }}.zip
+          if-no-files-found: error
+
+      - name: Upload vendor archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: muchocore-vendor-php83
+          path: vendor-muchocore-php83.zip
+          if-no-files-found: error
+
+          ! unzip -l "mucho-core-v${VERSION}.zip" | grep -qE '(^|/)config/cloudsave\.key
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: mucho-core-v1.0.1
+          path: mucho-core-v1.0.1.zip
+          if-no-files-found: error
+
+      - name: Upload vendor archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: muchocore-vendor-php83
+          path: vendor-muchocore-php83.zip
+          if-no-files-found: error
+
+          ! unzip -l "mucho-core-v${VERSION}.zip" | grep -qE '(^|/)storage/'
 
       - name: Upload release archive
         uses: actions/upload-artifact@v4
