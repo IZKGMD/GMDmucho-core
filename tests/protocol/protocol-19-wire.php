@@ -84,6 +84,7 @@ $comment = $comments->encode(
     ],
     [
         'account_id' => 9001,
+        'user_id' => 42,
         'username' => 'MuchoPlayer',
         'cube' => 6,
         'color1' => 3,
