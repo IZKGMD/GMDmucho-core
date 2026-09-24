@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+require_once dirname(__DIR__) . '/src/Http/ClientIp.php';
+require_once dirname(__DIR__) . '/src/Http/Request.php';
+require_once dirname(__DIR__) . '/src/Security/RateLimiter.php';
+require_once dirname(__DIR__) . '/src/Security/MuchoProtect.php';
 
 use MuchoCore\Http\Request;
 use MuchoCore\Security\MuchoProtect;
