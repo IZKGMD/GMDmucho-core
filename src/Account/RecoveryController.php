@@ -285,8 +285,8 @@ final class RecoveryController
     </section>
 
     <footer>
-        <span>MuchoCore</span>
-        <span>Account Recovery</span>
+        <span>Account Recovery · Powered by MuchoCore 🛡️</span>
+        <a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">GitHub</a>
     </footer>
 </main>
 </body>
