@@ -20,7 +20,7 @@ final class GdMessageEncoder
             2, $isSender ? $message['to_account_id'] : $message['account_id'],
             1, $message['id'],
             4, $message['subject'],
-            8, 1 - (int)($message['is_read'] ?? 0),
+            8, (int)($message['is_read'] ?? 0),
             9, $isSender ? 1 : 0,
         ];
 
