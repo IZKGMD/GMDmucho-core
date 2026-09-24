@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Account;
 
+use MuchoCore\Branding\BrandingService;
 use MuchoCore\Database\Database;
 use MuchoCore\Security\RateLimiter;
 use MuchoCore\Security\Turnstile;
@@ -11,10 +12,13 @@ use MuchoCore\Security\Turnstile;
 final class RecoveryController
 {
     private RecoveryService $service;
+    private array $branding;
 
     public function __construct()
     {
         $db = (new Database())->connection();
+
+        $this->branding = (new BrandingService($db))->get();
 
         $this->service = new RecoveryService(
             new RecoveryRepository($db),
@@ -285,7 +289,15 @@ final class RecoveryController
     </section>
 
     <footer>
-        <span>Account Recovery · Powered by MuchoCore 🛡️</span>
+        <span>Account Recovery
+            <?php if (!empty($this->branding['server_by_name']) && !empty($this->branding['social_url'])): ?>
+             · Server by
+             <a href="<?= $this->e((string)$this->branding['social_url']) ?>" target="_blank" rel="noopener noreferrer">
+                <?= $this->e((string)$this->branding['server_by_name']) ?>
+             </a>
+            <?php endif; ?>
+             · Powered by MuchoCore 🛡️
+        </span>
         <a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">GitHub</a>
     </footer>
 </main>
