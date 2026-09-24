@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
 declare -a CONTRACTS=()
 MUCHO_CLIENT_CONTRACT_VALUE="$(printenv MUCHO_CLIENT_CONTRACT 2>/dev/null || true)"
