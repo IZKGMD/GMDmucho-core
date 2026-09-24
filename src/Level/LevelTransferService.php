@@ -26,9 +26,29 @@ final readonly class LevelTransferService
     public function upload(
         int $accountId,
         string $gjp,
-        array $data
+        array $data,
+        string $udid = '',
+        string $ip = ''
     ): int {
-        $this->auth->authenticate($accountId, $gjp);
+        $version = ClientVersion::fromValues(
+            $this->intField($data, 'gameVersion', 22, 1, 1000),
+            $this->intField($data, 'binaryVersion', 0, 0, 1000000)
+        );
+
+        if ($gjp !== '') {
+            $this->auth->authenticate($accountId, $gjp);
+        } elseif (
+            $version->effectiveGameVersion() === 19 &&
+            trim($udid) !== ''
+        ) {
+            $this->auth->authenticateLegacy19Upload(
+                $accountId,
+                $udid,
+                $ip
+            );
+        } else {
+            throw new RuntimeException('Unauthorized.');
+        }
 
         $levelId = $this->intField(
             $data,
@@ -79,11 +99,6 @@ final readonly class LevelTransferService
         if ($levelString === '') {
             throw new RuntimeException('Empty level data.');
         }
-
-        $version = ClientVersion::fromValues(
-            $this->intField($data, 'gameVersion', 22, 1, 1000),
-            $this->intField($data, 'binaryVersion', 0, 0, 1000000)
-        );
 
         $levelData = [
             'account_id' => $accountId,
