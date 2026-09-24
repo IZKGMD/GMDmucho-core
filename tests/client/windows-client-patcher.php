@@ -48,7 +48,7 @@ try {
     }
 
     $patched = file_get_contents($output);
-    $target = 'https://gdps.example.com/a/database';
+    $target = 'https://gdps.example.com/a/a/a/a/a';
 
     if (!is_string($patched) || !str_contains($patched, $target)) {
         throw new RuntimeException('Target server URL not found after patch.');
