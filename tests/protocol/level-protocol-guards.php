@@ -19,6 +19,26 @@ $checks = [
         '2.1 list hash preserves custom stars',
     ],
     [
+        __DIR__ . '/../../src/Protocol/GdLegacyText.php',
+        'if ($gameVersion < 20)',
+        'GD 1.9 description storage branch',
+    ],
+    [
+        __DIR__ . '/../../src/Protocol/GdLegacyText.php',
+        'decodeDescriptionForStorage',
+        'GD 1.9 description update decoder',
+    ],
+    [
+        __DIR__ . '/../../src/Protocol/GdLevelDownloadEncoder.php',
+        'if ($gameVersion < 20)',
+        'GD 1.9 download description branch',
+    ],
+    [
+        __DIR__ . '/../../src/Level/LevelRepository.php',
+        "Legacy GD 1.9",
+        'GD 1.9 special difficulty filters',
+    ],
+    [
         __DIR__ . '/../../src/Protocol/GdCommentEncoder.php',
         'if ($badge > 0)',
         '2.1 comment badge color is conditional',
