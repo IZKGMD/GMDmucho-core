@@ -23,7 +23,7 @@ final class GdLegacyText
          * keeps the decoded text.
          */
         if ($gameVersion < 20) {
-            return base64_encode($description);
+            return self::base64UrlEncode($description);
         }
 
         return self::decodeWireText($description);
@@ -36,7 +36,16 @@ final class GdLegacyText
         string $description,
         int $gameVersion
     ): string {
-        return self::encodeWireText($description);
+        /*
+         * 1.9 persists the already encoded representation, while the
+         * shared 2.x storage keeps decoded/plain text. Do not guess from
+         * the string contents: ordinary text may itself look like Base64.
+         */
+        if ($gameVersion < 20) {
+            return strtr($description, '+/', '-_');
+        }
+
+        return base64UrlEncode($description);
     }
 
     /**
@@ -101,6 +110,22 @@ final class GdLegacyText
         }
 
         return self::encodeWireText($comment);
+    }
+
+    private static function base64UrlEncode(string $value): string
+    {
+        if ($value === '') {
+            return '';
+        }
+
+        return rtrim(
+            strtr(
+                base64_encode($value),
+                '+/',
+                '-_'
+            ),
+            '='
+        );
     }
 
     private static function encodeWireText(
