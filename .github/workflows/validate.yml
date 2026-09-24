@@ -117,4 +117,4 @@ jobs:
       - name: Run Windows PowerShell patcher self-test
         shell: powershell
         run: |
-          powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/client-patcher.ps1 -SelfTest
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/client/client-patcher.ps1 -SelfTest
