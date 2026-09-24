@@ -44,20 +44,19 @@ try {
 
             pr.last_seen,
 
-            COALESCE(r.code, 'user') AS server_role
+            COALESCE(r.code, 'user') AS server_role,
+            COALESCE(r.priority, 0) AS server_rank
 
         FROM mucho_profile_customization p
 
         LEFT JOIN mucho_profile_presence pr
             ON pr.account_id=p.account_id
 
+        LEFT JOIN accounts a
+            ON a.account_id = p.account_id
+
         LEFT JOIN roles r
-            ON r.id = (
-                SELECT a.role_id
-                FROM accounts a
-                WHERE a.account_id = p.account_id
-                LIMIT 1
-            )
+            ON r.id = a.role_id
 
         WHERE p.account_id=?
         LIMIT 1
@@ -89,13 +88,6 @@ try {
 
     $role = strtoupper((string)$row['server_role']);
 
-    $roleRanks = [
-        'PLAYER' => 0,
-        'MOD' => 20,
-        'ADMIN' => 30,
-        'OWNER' => 100
-    ];
-
     muchoV2Send([
         'ok' => true,
         'api' => 'MuchoCore',
@@ -107,7 +99,7 @@ try {
 
             'authority' => [
                 'role' => $role,
-                'rank' => $roleRanks[$role] ?? 0,
+                'rank' => (int)($row['server_rank'] ?? 0),
                 'verified' => false
             ],
 
