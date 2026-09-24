@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../src/Compatibility/ClientVersion.php';
-require __DIR__ . '/../src/Http/Request.php';
-require __DIR__ . '/../src/Http/Response.php';
-require __DIR__ . '/../src/Diagnostics/ClientTrace.php';
+require __DIR__ . '/../../src/Compatibility/ClientVersion.php';
+require __DIR__ . '/../../src/Http/Request.php';
+require __DIR__ . '/../../src/Http/Response.php';
+require __DIR__ . '/../../src/Diagnostics/ClientTrace.php';
 
 use MuchoCore\Diagnostics\ClientTrace;
 use MuchoCore\Http\Request;
