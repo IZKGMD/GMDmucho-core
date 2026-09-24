@@ -602,7 +602,7 @@ final class CommentService
             if ($cmd !== '!cp') {
                 $this->recalculateCreatorPoints(
                     $pdo,
-                    $authorAccountId
+                    $levelId
                 );
             }
 
