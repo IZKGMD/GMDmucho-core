@@ -7,7 +7,7 @@ use MuchoCore\Core\Application;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
 use MuchoCore\Routing\Router;
-use MuchoCore\Security\RateLimiter;
+use MuchoCore\Security\MuchoProtect;
 
 ob_start();
 
@@ -71,50 +71,19 @@ try {
     $router = new Router();
     $path = strtolower($router->normalizePath($request->path));
 
-    $limits = [
-        '/registergjaccount'    => [5, 60],
-        '/logingjaccount'       => [30, 60],
-        '/backupgjaccount'      => [6, 60],
-        '/backupgjaccount20'    => [6, 60],
-        '/syncgjaccount'        => [12, 60],
-        '/syncgjaccount20'      => [12, 60],
-        '/uploadgjlevel21'      => [10, 60],
-        '/uploadgjlevel22'      => [10, 60],
-        '/updategjleveldesc20'  => [20, 60],
-        '/deletegjleveluser20'  => [10, 60],
-        '/getgjlevelscores'     => [120, 60],
-        '/getgjlevelscores211'  => [120, 60],
-        '/getgjlevelscoresplat' => [120, 60],
-        '/uploadgjcomment20'    => [30, 60],
-        '/uploadgjcomment21'    => [30, 60],
-        '/uploadgjacccomment20' => [20, 60],
-        '/deletegjcomment20'    => [30, 60],
-        '/deletegjacccomment20' => [30, 60],
-        '/updategjuserscore'    => [30, 60],
-        '/updategjuserscore22'  => [30, 60],
-        '/getgjrewards'         => [60, 60],
-        '/getgjchallenges'      => [60, 60],
-        '/suggestgjstars20'     => [20, 60],
-        '/rategjstars20'        => [20, 60],
-        '/rategjstars211'       => [20, 60],
-        '/rategjdemon21'        => [20, 60],
-        '/reportgjlevel'        => [10, 60],
-    ];
+    // Apply the unified protection layer before constructing Application/DB state.
+    $protection = (new MuchoProtect())->inspect(
+        $request,
+        $path
+    );
 
-    if ($request->method === 'POST' && isset($limits[$path])) {
-        [$limit, $window] = $limits[$path];
-        $rateLimiter = new RateLimiter();
-
-        $allowed = $rateLimiter->allow(
-            $request->clientIp() . '|' . $path,
-            $limit,
-            $window
-        );
-
-        if (!$allowed) {
-            Response::text('-1')->send();
-        }
+    if ($protection['decision'] === 'block') {
+        $_SERVER['MUCHO_PROTECT_PRECHECKED'] = '1';
+        Response::text('-1')->send();
+        exit;
     }
+
+    $_SERVER['MUCHO_PROTECT_PRECHECKED'] = '1';
 
     (new Application())->run();
 
