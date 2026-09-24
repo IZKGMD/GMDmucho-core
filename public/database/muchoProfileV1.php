@@ -219,10 +219,10 @@ function profileMP(PDO $db, int $id): array {
         SELECT
             a.account_id,
             a.username,
-            a.role AS account_role,
+            COALESCE(r.code, 'user') AS account_role,
 
-            mr.role AS mucho_role,
-            COALESCE(mr.verified, 0) AS role_verified,
+            r.code AS mucho_role,
+            0 AS role_verified,
 
             p.account_id AS customization_id,
             p.display_name,
@@ -242,8 +242,8 @@ function profileMP(PDO $db, int $id): array {
 
         FROM accounts a
 
-        LEFT JOIN mucho_account_roles mr
-            ON mr.account_id=a.account_id
+        LEFT JOIN roles r
+            ON r.id=a.role_id
 
         LEFT JOIN mucho_profile_customization p
             ON p.account_id=a.account_id
