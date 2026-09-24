@@ -33,6 +33,7 @@ return [
     'endpoints'=>'API Tester',
 
     'clientfeatures'=>'Client & Features',
+    'clientpatcher'=>'Web Client Patcher',
 
     'backups'=>'Backups',
     'settings'=>'Settings',
