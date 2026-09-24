@@ -3,26 +3,47 @@
 
 declare(strict_types=1);
 
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+use MuchoCore\Account\AccountService;
+use PDO;
+
 $root = dirname(__DIR__);
-$envFile = $root . "/.env";
 $env = [];
-if (file_exists($envFile)) {
-    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        if (str_starts_with(trim($line), "#") || !str_contains($line, "=")) continue;
-        [$k, $v] = explode("=", $line, 2);
-        $env[trim($k)] = trim($v);
+
+foreach ([
+    $root . '/.env',
+    $root . '/.env.local',
+    '/var/lib/muchocore/runtime.env',
+] as $envFile) {
+    if (!is_file($envFile)) {
+        continue;
+    }
+
+    foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
+            continue;
+        }
+
+        [$key, $value] = explode('=', $line, 2);
+        $env[trim($key)] = trim($value, " \t\r\n\"'");
     }
 }
 
-$dbHost = $env["DB_HOST"] ?? getenv("DB_HOST") ?: "127.0.0.1";
-$dbPort = $env["DB_PORT"] ?? getenv("DB_PORT") ?: "3306";
-$dbName = $env["DB_NAME"] ?? getenv("DB_NAME") ?: "muchocore";
-$dbUser = $env["DB_USER"] ?? getenv("DB_USER") ?: "muchocore_user";
-$dbPass = $env["DB_PASS"] ?? getenv("DB_PASS");
+$dbHost = $env['DB_HOST'] ?? getenv('DB_HOST') ?: '127.0.0.1';
+$dbPort = $env['DB_PORT'] ?? getenv('DB_PORT') ?: '3306';
+$dbName = $env['DB_NAME'] ?? getenv('DB_NAME') ?: 'muchocore';
+$dbUser = $env['DB_USER'] ?? getenv('DB_USER') ?: 'muchocore_user';
+$dbPass = $env['DB_PASS'] ?? getenv('DB_PASS') ?: '';
 
-if ($dbPass === null || $dbPass === "") {
-    exit("DB_PASS is not configured. Set it in .env or the environment.\n");
+if ($dbPass === '' && is_file('/run/secrets/db_password')) {
+    $dbPass = trim((string)file_get_contents('/run/secrets/db_password'));
+}
+
+if ($dbPass === '') {
+    fwrite(STDERR, "DB credentials are not configured.\n");
+    exit(1);
 }
 
 try {
@@ -30,134 +51,271 @@ try {
         "mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4",
         $dbUser,
         $dbPass,
-        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ]
     );
 } catch (PDOException $e) {
-    exit("Ошибка подключения к БД: " . $e->getMessage() . "\n");
+    fwrite(STDERR, "Database connection failed.\n");
+    exit(1);
 }
 
-$action = $argv[1] ?? "";
+function roleCode(string $role): string
+{
+    return match (strtolower(trim($role))) {
+        'player', 'user' => 'user',
+        'mod', 'moderator' => 'moderator',
+        'elder', 'elder_moderator' => 'elder_moderator',
+        'owner' => 'owner',
+        default => throw new InvalidArgumentException('Unknown role.'),
+    };
+}
 
-switch ($action) {
-case "set-password":
-        $username = $argv[2] ?? "";
-        $newPass = $argv[3] ?? "";
-        if ($username === "" || $newPass === "") {
-            exit("Использование: mucho-admin set-password <username> <new_password>
-");
+function setRole(PDO $pdo, string $username, string $role): void
+{
+    if ($username === '') {
+        throw new InvalidArgumentException('Username is required.');
+    }
+
+    $role = roleCode($role);
+
+    $roleQuery = $pdo->prepare(
+        'SELECT id FROM roles WHERE code=:role LIMIT 1'
+    );
+    $roleQuery->execute(['role' => $role]);
+    $roleId = $roleQuery->fetchColumn();
+
+    if ($roleId === false) {
+        throw new RuntimeException('Canonical role not found: ' . $role);
+    }
+
+    $update = $pdo->prepare(
+        'UPDATE accounts
+         SET role_id=:role_id
+         WHERE username=:username'
+    );
+    $update->execute([
+        'role_id' => (int)$roleId,
+        'username' => $username,
+    ]);
+
+    if ($update->rowCount() === 0) {
+        $exists = $pdo->prepare(
+            'SELECT 1 FROM accounts WHERE username=:username LIMIT 1'
+        );
+        $exists->execute(['username' => $username]);
+
+        if ($exists->fetchColumn() === false) {
+            throw new RuntimeException('Account not found.');
         }
-        $gjp = sha1($newPass);
-        $passHash = password_hash($newPass, PASSWORD_DEFAULT);
-        $gjp2Hash = password_hash(sha1($gjp . "mI29fmAnxgTs"), PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("UPDATE accounts SET password_hash = :p, gjp2_hash = :g WHERE username = :u");
-        $stmt->execute(["p" => $passHash, "g" => $gjp2Hash, "u" => $username]);
-        echo "Пароль для пользователя {$username} успешно изменен!
-";
-        break;
+    }
 
-    case "set-role":
-        $username = $argv[2] ?? "";
-        $role = $argv[3] ?? "admin";
+    echo "Role updated for {$username}: {$role}\n";
+}
 
-        if ($username === "") {
-            exit("Использование: mucho-admin set-role <username> <user|mod|elder|admin>\n");
+function resetPassword(PDO $pdo, string $username, string $password): void
+{
+    if ($username === '' || strlen($password) < 8 || strlen($password) > 256) {
+        throw new InvalidArgumentException(
+            'Password must be 8-256 bytes and username is required.'
+        );
+    }
+
+    $passHash = password_hash($password, PASSWORD_DEFAULT);
+    $gjp2 = sha1($password . AccountService::GJP2_SALT);
+    $gjp2Hash = password_hash($gjp2, PASSWORD_DEFAULT);
+
+    $update = $pdo->prepare(
+        'UPDATE accounts
+         SET password_hash=:password_hash,
+             gjp2_hash=:gjp2_hash
+         WHERE username=:username'
+    );
+    $update->execute([
+        'password_hash' => $passHash,
+        'gjp2_hash' => $gjp2Hash,
+        'username' => $username,
+    ]);
+
+    if ($update->rowCount() === 0) {
+        $exists = $pdo->prepare(
+            'SELECT 1 FROM accounts WHERE username=:username LIMIT 1'
+        );
+        $exists->execute(['username' => $username]);
+
+        if ($exists->fetchColumn() === false) {
+            throw new RuntimeException('Account not found.');
         }
+    }
 
-        $stmt = $pdo->prepare("UPDATE accounts SET role = :role WHERE username = :username");
-        $stmt->execute(["role" => $role, "username" => $username]);
+    echo "Password updated for {$username}.\n";
+}
 
-        if ($stmt->rowCount() > 0) {
-            echo "Пользователю {$username} успешно установлена роль: {$role}\n";
-        } else {
-            echo "Пользователь {$username} не найден или роль уже установлена.\n";
+function rateLevel(PDO $pdo, int $levelId, int $stars, int $featured, int $epic, int $demon): void
+{
+    if ($levelId <= 0 || $stars < 1 || $stars > 10) {
+        throw new InvalidArgumentException('Level ID must be positive and stars must be 1-10.');
+    }
+
+    $featured = $featured > 0 ? 1 : 0;
+    $epic = max(0, min(3, $epic));
+    $demon = max(0, min(6, $demon));
+
+    $difficulty = match ($stars) {
+        1, 2 => 10,
+        3 => 20,
+        4, 5 => 30,
+        6, 7 => 40,
+        8, 9, 10 => 50,
+    };
+
+    $isDemon = $demon > 0 ? 1 : 0;
+    $demonDifficulty = $isDemon ? $demon : 0;
+    $autoLevel = $stars === 1 ? 1 : 0;
+
+    $stmt = $pdo->prepare(
+        'UPDATE levels
+         SET stars=:stars,
+             difficulty=:difficulty,
+             featured=:featured,
+             epic=:epic,
+             demon=:demon,
+             demon_difficulty=:demon_difficulty,
+             auto_level=:auto_level
+         WHERE level_id=:level_id'
+    );
+    $stmt->execute([
+        'stars' => $stars,
+        'difficulty' => $difficulty,
+        'featured' => $featured,
+        'epic' => $epic,
+        'demon' => $isDemon,
+        'demon_difficulty' => $demonDifficulty,
+        'auto_level' => $autoLevel,
+        'level_id' => $levelId,
+    ]);
+
+    if ($stmt->rowCount() === 0) {
+        $exists = $pdo->prepare(
+            'SELECT 1 FROM levels WHERE level_id=:level_id LIMIT 1'
+        );
+        $exists->execute(['level_id' => $levelId]);
+
+        if ($exists->fetchColumn() === false) {
+            throw new RuntimeException('Level not found.');
         }
-        break;
+    }
 
-    case "rate-level":
-        $levelId  = (int)($argv[2] ?? 0);
-        $stars    = (int)($argv[3] ?? 0);
-        $featured = (int)($argv[4] ?? 0); // 0 = None, 1 = Featured
-        $epic     = (int)($argv[5] ?? 0); // 0 = None, 1 = Epic, 2 = Legendary, 3 = Mythic
-        $demon    = (int)($argv[6] ?? 0); // 0 = No, 1 = Easy, 2 = Medium, 3 = Hard, 4 = Insane, 5 = Extreme
+    /*
+     * Recalculate CP from current level state instead of incrementing it on
+     * every manual re-rate, which could otherwise inflate creator points.
+     */
+    $author = $pdo->prepare(
+        'SELECT account_id FROM levels WHERE level_id=:level_id LIMIT 1'
+    );
+    $author->execute(['level_id' => $levelId]);
+    $accountId = (int)($author->fetchColumn() ?: 0);
 
-        if ($levelId <= 0 || $stars <= 0) {
-            exit("Использование: mucho-admin rate-level <level_id> <stars> [featured:0/1] [epic:0/1/2/3] [demon:0/1/2/3/4/5]\n");
-        }
+    if ($accountId > 0) {
+        $cp = $pdo->prepare(
+            'SELECT COALESCE(
+                SUM(
+                    CASE WHEN stars > 0 THEN 1 ELSE 0 END
+                    + CASE WHEN featured > 0 THEN 1 ELSE 0 END
+                    + epic
+                ),
+                0
+             )
+             FROM levels
+             WHERE account_id=:account_id
+               AND is_deleted=0'
+        );
+        $cp->execute(['account_id' => $accountId]);
 
-        $diff = match ($stars) {
-            1 => 10,
-            2 => 10,
-            3 => 20,
-            4, 5 => 30,
-            6, 7 => 40,
-            8, 9 => 50,
-            10 => 50,
-            default => 10
-        };
-
-        $isDemon = ($stars === 10 || $demon > 0) ? 1 : 0;
-        $demonDiff = $isDemon ? ($demon > 0 ? $demon : 1) : 0;
-        $autoLevel = ($stars === 1) ? 1 : 0;
-
-        $stmt = $pdo->prepare("
-            UPDATE levels 
-            SET stars = :stars, 
-                difficulty = :difficulty,
-                featured = :featured, 
-                epic = :epic,
-                demon = :demon, 
-                demon_difficulty = :demon_difficulty,
-                auto_level = :auto_level
-            WHERE level_id = :level_id
-        ");
-        $stmt->execute([
-            "stars"            => $stars,
-            "difficulty"       => $diff,
-            "featured"         => $featured,
-            "epic"             => $epic,
-            "demon"            => $isDemon,
-            "demon_difficulty" => $demonDiff,
-            "auto_level"       => $autoLevel,
-            "level_id"         => $levelId
+        $sync = $pdo->prepare(
+            'UPDATE profiles
+             SET creator_points=:creator_points
+             WHERE account_id=:account_id'
+        );
+        $sync->execute([
+            'creator_points' => (int)$cp->fetchColumn(),
+            'account_id' => $accountId,
         ]);
+    }
 
-        if ($stmt->rowCount() > 0) {
-            echo "Уровень #{$levelId} оценен: {$stars}★ | Featured: {$featured} | Epic: {$epic} | Demon: {$demonDiff}\n";
-            
-            $cpBonus = 1 + ($featured ? 1 : 0) + $epic;
-            $stmtUser = $pdo->prepare("
-                UPDATE profiles 
-                SET creator_points = creator_points + :cp 
-                WHERE account_id = (SELECT account_id FROM levels WHERE level_id = :level_id)
-            ");
-            $stmtUser->execute(["cp" => $cpBonus, "level_id" => $levelId]);
-            echo "Автору уровня начислено +{$cpBonus} CP!\n";
-        } else {
-            echo "Уровень #{$levelId} не найден.\n";
-        }
-        break;
+    echo "Level #{$levelId} rated: {$stars} stars.\n";
+}
 
-    case "list-levels":
-        $stmt = $pdo->query("SELECT level_id, name, stars, featured, epic, demon FROM levels ORDER BY level_id DESC LIMIT 10");
-        $levels = $stmt->fetchAll();
-        echo "=== СПИСОК УРОВНЕЙ ===\n";
-        foreach ($levels as $l) {
-            $id = $l["level_id"];
-            $name = $l["name"];
-            $s = $l["stars"];
-            $f = $l["featured"];
-            $e = $l["epic"];
-            $d = $l["demon"];
-            echo "#{$id} | {$name} | Stars: {$s} | Featured: {$f} | Epic: {$e} | Demon: {$d}\n";
-        }
-        break;
+function listLevels(PDO $pdo): void
+{
+    $rows = $pdo->query(
+        'SELECT level_id, name, stars, featured, epic, demon
+         FROM levels
+         ORDER BY level_id DESC
+         LIMIT 10'
+    )->fetchAll();
 
-    default:
-        echo "=== MuchoCore Admin CLI ===\n";
-        echo "Команды:\n";
-        echo "  mucho-admin set-role <username> <user|mod|elder|admin>\n";
-        echo "  mucho-admin rate-level <level_id> <stars> [featured:0/1] [epic:0/1/2/3] [demon:0/1/2/3/4/5]\n";
-        echo "  mucho-admin set-password <username> <new_password>\n";
-        echo "  mucho-admin list-levels\n";
-        break;
+    echo "=== Latest levels ===\n";
+    foreach ($rows as $row) {
+        echo sprintf(
+            "#%d | %s | Stars: %d | Featured: %d | Epic: %d | Demon: %d\n",
+            (int)$row['level_id'],
+            (string)$row['name'],
+            (int)$row['stars'],
+            (int)$row['featured'],
+            (int)$row['epic'],
+            (int)$row['demon']
+        );
+    }
+}
+
+$action = $argv[1] ?? '';
+
+try {
+    switch ($action) {
+        case 'set-password':
+            resetPassword(
+                $pdo,
+                (string)($argv[2] ?? ''),
+                (string)($argv[3] ?? '')
+            );
+            break;
+
+        case 'set-role':
+            setRole(
+                $pdo,
+                (string)($argv[2] ?? ''),
+                (string)($argv[3] ?? 'user')
+            );
+            break;
+
+        case 'rate-level':
+            rateLevel(
+                $pdo,
+                (int)($argv[2] ?? 0),
+                (int)($argv[3] ?? 0),
+                (int)($argv[4] ?? 0),
+                (int)($argv[5] ?? 0),
+                (int)($argv[6] ?? 0)
+            );
+            break;
+
+        case 'list-levels':
+            listLevels($pdo);
+            break;
+
+        default:
+            echo "=== MuchoCore Admin CLI ===\n";
+            echo "Commands:\n";
+            echo "  mucho-admin set-role <username> <user|moderator|elder_moderator|owner>\n";
+            echo "  mucho-admin set-password <username> <new_password>\n";
+            echo "  mucho-admin rate-level <level_id> <stars> [featured:0/1] [epic:0-3] [demon:1-6]\n";
+            echo "  mucho-admin list-levels\n";
+            exit(1);
+    }
+} catch (Throwable $e) {
+    fwrite(STDERR, "ERROR: " . $e->getMessage() . PHP_EOL);
+    exit(1);
 }
