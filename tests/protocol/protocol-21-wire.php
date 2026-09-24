@@ -38,6 +38,27 @@ assertTrue(
     ClientVersion::fromValues(20, 28)->family() === '2.1',
     'GD 2.0 binary 28 maps to 2.1'
 );
+assertTrue(
+    \MuchoCore\Protocol\GdLegacyText::decodeComment(
+        'SGVsbG8gMi4x',
+        21
+    ) === 'Hello 2.1',
+    '2.1 URL-safe comment input decodes'
+);
+assertTrue(
+    \MuchoCore\Protocol\GdLegacyText::encodeDescriptionForResponse(
+        'Hello 2.1',
+        21
+    ) === 'SGVsbG8gMi4x',
+    '2.1 description response uses Base64'
+);
+assertTrue(
+    \MuchoCore\Protocol\GdLegacyText::encodeDescriptionForStorage(
+        'SGVsbG8gMi4x',
+        21
+    ) === 'Hello 2.1',
+    '2.1 uploaded description decodes from Base64'
+);
 
 $userEncoder = new GdUserEncoder();
 $profile = $userEncoder->profile([
