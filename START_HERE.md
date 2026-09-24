@@ -1,134 +1,102 @@
-# MuchoCore — начать здесь
+# MuchoCore — Start Here
 
-Добро пожаловать! MuchoCore можно запускать даже без глубоких знаний PHP или Docker.
+MuchoCore can be deployed without deep PHP or Docker knowledge.
 
-## Что это
+## What it is
 
-MuchoCore — серверная часть GDPS для Geometry Dash.
+MuchoCore is a backend for Geometry Dash Private Servers.
 
-Проще всего представить так:
-
-```
+~~~text
 Geometry Dash
      ↓
 MuchoCore
      ↓
-MySQL / MariaDB
-```
+MariaDB
+~~~
 
-## Я новичок
+## New to MuchoCore?
 
-Открой только один из двух путей:
+For a normal VPS deployment, start with:
 
-### 1. VPS
+~~~bash
+sudo ./install
+~~~
 
-Это основной вариант для полноценного сервера.
+The installer guides you through the domain, administrator password and Geometry Dash compatibility profile.
 
-Начни с:
+Supported profiles:
 
-```
-docs/SETUP.md
-```
+~~~text
+GD 1.9
+GD 2.0
+GD 2.1
+GD 2.2
+Any supported combination
+~~~
 
-Самый простой запуск:
+See `docs/VERSIONS.md` for how the version profiles work.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh -o install.sh
-sudo bash install.sh
-```
+## After installation
 
-Установщик сам создаёт контейнеры, базу, HTTPS и администратора.
+Check:
 
-### 2. Обычный PHP-хостинг
-
-Подходит для простого или тестового сервера.
-
-Начни с:
-
-```
-docs/SHARED_HOSTING.md
-```
-
-Нужны PHP 8.3+, MySQL/MariaDB и доступ к файлам сайта.
-
-## После установки
-
-Проверь:
-
-```
+~~~text
 https://YOUR-DOMAIN/health
-```
+~~~
 
-Нормальный ответ:
+Expected response:
 
-```
+~~~text
 1
-```
+~~~
 
-Потом открой:
+Then open:
 
-```
+~~~text
 https://YOUR-DOMAIN/admin/
-```
+~~~
 
-Логин администратора:
+Administrator username:
 
-```
+~~~text
 admin
-```
+~~~
 
-Пароль — тот, который ты задал при установке.
+The password is the one created during installation.
 
-## Подключить игру
+## Connect a client
 
-После того как сервер отвечает на `/health`, переходи в:
+After the server is healthy, use:
 
-```
+~~~text
 docs/CLIENT_SETUP.md
-```
+~~~
 
-Для Windows есть простой патчер:
+For Windows clients, the repository includes a client patcher under `tools/client/`.
 
-```
-tools/client-patch.bat
-```
+## Main directories
 
-Он создаёт отдельный EXE и не изменяет оригинальный файл.
+~~~text
+src/       — server logic
+public/    — HTTP entry points and GD endpoints
+database/  — database migrations
+config/    — local configuration and keys
+storage/   — runtime data and service files
+tests/     — automated tests
+tools/     — client and development tools
+docs/      — documentation
+docker/    — Docker and Caddy files
+~~~
 
-## Что означают папки
+## Security
 
-```
-src/       — основная логика сервера
-public/    — HTTP-точки входа и совместимые GD endpoint'ы
-database/  — миграции базы данных
-config/    — локальная конфигурация и ключи
-storage/   — данные работы сервера и служебные файлы
-tests/     — автоматические проверки
-tools/     — полезные инструменты
-docs/      — инструкции
-docker/    — файлы Docker-развёртывания
-```
+Do not publish or commit:
 
-Не нужно разбираться во всех папках сразу.
-
-## Важно
-
-Не публикуй:
-
-```
+~~~text
 .env
 config/cloudsave.key
 storage/
-```
+.secrets/
+~~~
 
-И не запускай `uninstall.sh`, пока не понимаешь, что он удаляет базу и установку.
-
-## Нужна помощь?
-
-Сначала проверь:
-
-1. `/health`
-2. последнюю строку ошибки в журнале
-3. соответствующую инструкцию в `docs/`
-
-Для новичка лучше менять одну вещь за раз и после каждого изменения снова проверять `/health`.
+Do not run `uninstall.sh` unless you understand that the database volume will be removed.
