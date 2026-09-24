@@ -53,14 +53,87 @@ final class CommentService
             }
         }
 
+        $percent = max(0, min(100, $percent));
+
         $this->repository->addLevelComment(
             $levelId,
             $accountId,
             $decodedContent,
-            max(0, min(100, $percent))
+            $percent
         );
 
+        /*
+         * Legacy GD also records the progress attached to a comment as a
+         * level score when percent is non-zero.
+         */
+        if ($percent > 0 && $this->pdo !== null) {
+            $this->recordCommentProgress(
+                $accountId,
+                $levelId,
+                $percent
+            );
+        }
+
         return 1;
+    }
+
+    private function recordCommentProgress(
+        int $accountId,
+        int $levelId,
+        int $percent
+    ): void {
+        $q = $this->pdo->prepare(
+            'SELECT score_id, percent
+             FROM mucho_level_scores
+             WHERE account_id = :account_id
+               AND level_id = :level_id
+               AND is_daily = 0
+             LIMIT 1'
+        );
+        $q->execute([
+            'account_id' => $accountId,
+            'level_id' => $levelId,
+        ]);
+
+        $existing = $q->fetch(PDO::FETCH_ASSOC);
+
+        if (!$existing) {
+            $insert = $this->pdo->prepare(
+                'INSERT INTO mucho_level_scores
+                 (account_id, level_id, is_daily, daily_id, percent,
+                  coins, attempts, clicks, play_time, progresses,
+                  created_at, updated_at)
+                 VALUES
+                 (:account_id, :level_id, 0, 0, :percent,
+                  0, 0, 0, 0, \'\',
+                  :created_at, :updated_at)'
+            );
+            $now = time();
+            $insert->execute([
+                'account_id' => $accountId,
+                'level_id' => $levelId,
+                'percent' => $percent,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            return;
+        }
+
+        if ($percent <= (int)$existing['percent']) {
+            return;
+        }
+
+        $update = $this->pdo->prepare(
+            'UPDATE mucho_level_scores
+             SET percent = :percent,
+                 updated_at = :updated_at
+             WHERE score_id = :score_id'
+        );
+        $update->execute([
+            'percent' => $percent,
+            'updated_at' => time(),
+            'score_id' => (int)$existing['score_id'],
+        ]);
     }
 
     private function handleCommand(int $levelId, int $accountId, string $commandStr): ?bool
