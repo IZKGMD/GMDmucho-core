@@ -85,6 +85,7 @@ $legacyComment = $comments->encode(
     31
 );
 assertTrue(!str_contains($legacyComment, '~11~'), '2.1 binary 31 uses legacy comment layout');
+assertTrue(!str_contains($legacyComment, '~12~'), '2.1 normal comment omits badge color');
 
 $modernComment = $comments->encode(
     [
@@ -186,7 +187,7 @@ $list = $listEncoder->encode(
         'demon' => 0,
         'demon_difficulty' => 0,
         'auto_level' => 0,
-        'stars' => 7,
+        'stars' => 15,
         'featured' => 0,
         'epic' => 0,
         'object_count' => 100,
@@ -207,7 +208,7 @@ $list = $listEncoder->encode(
 );
 assertTrue(str_starts_with($list, '1:123:2:Mucho 2.1'), '2.1 level list wire fields');
 assertTrue(str_contains($list, '#42:MuchoPlayer:9001'), '2.1 level list user section');
-assertTrue(str_ends_with($list, '#'.sha1('1373' . 'xI25fpAapCQg')), '2.1 level list hash');
+assertTrue(str_ends_with($list, '#'.sha1('13153' . 'xI25fpAapCQg')), '2.1 level list preserves custom-star hash input');
 assertTrue(substr_count($list, '|') === 0, 'single level list entry has no trailing pipe');
 
 echo "MUCHOCORE_PROTOCOL_21_WIRE_OK\n";
