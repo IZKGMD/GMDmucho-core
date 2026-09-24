@@ -45,7 +45,7 @@ final class GdLegacyText
             return strtr($description, '+/', '-_');
         }
 
-        return base64UrlEncode($description);
+        return self::base64UrlEncode($description);
     }
 
     /**
@@ -109,7 +109,7 @@ final class GdLegacyText
             return $comment;
         }
 
-        return self::encodeWireText($comment);
+        return self::base64UrlEncode($comment);
     }
 
     private static function base64UrlEncode(string $value): string
