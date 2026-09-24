@@ -98,7 +98,18 @@ First configure the server using the setup guide, then check /health.
 
 ## Security
 
-MuchoCore includes **MuchoProtect**, a centralized request protection layer for GD traffic. It applies conservative per-IP and per-account limits, burst detection, and privacy-preserving security audit events while keeping the Geometry Dash response body compatible.
+MuchoCore includes **MuchoProtect**, a centralized security and anti-abuse layer for Geometry Dash traffic.
+
+It provides:
+
+- conservative per-endpoint rate limits;
+- separate per-IP and per-account protections;
+- burst detection for spam-like request patterns;
+- endpoint-aware protection that avoids throttling unknown/read-only routes;
+- privacy-preserving security audit events with hashed IP data;
+- Geometry Dash-compatible failure responses so protection does not unnecessarily break legacy client transport.
+
+MuchoProtect is enabled by default and can be configured through environment variables. It is designed to add protection without changing the expected Geometry Dash protocol behavior.
 
 Never publish:
 
