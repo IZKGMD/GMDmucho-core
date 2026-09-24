@@ -12,6 +12,7 @@
   <img src="https://img.shields.io/badge/release-v1.0.0%20RC-8A2BE2" alt="Release candidate">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/Geometry%20Dash-2.2%20verified-orange" alt="Geometry Dash 2.2">
+  <img src="https://img.shields.io/badge/GD%202.1-100%25%20implemented-success" alt="Geometry Dash 2.1 implementation">
 </p>
 
 > ⚡ **Release candidate: v1.0.0**
@@ -77,9 +78,9 @@ MuchoCore has completed its **Geometry Dash 2.2 real-client compatibility gate**
 | Version-aware endpoint behavior | ✅ Implemented |
 | Protocol regression tests | ✅ Passing |
 | Real 2.2 client trace fixture | ✅ Captured from GD 2.2.13 |
-| GD 2.1 server-side protocol implementation | ✅ Complete; real-client gate pending |
+| GD 2.1 server-side protocol implementation | ✅ **100% complete**; real-client verification pending |
 
-> **Compatibility note:** the GD 2.2 release gate is backed by real Geometry Dash 2.2.13 traffic. The GD 2.1 server-side wire contract is complete and its release gate now requires a real 2.1 client fixture before the compatibility claim can be marked verified.
+> **Compatibility note:** GD 2.1 server-side implementation is **100% complete** for the current protocol scope. The remaining gate is empirical verification with a real GD 2.1 client; this is deliberately tracked separately from implementation completeness.
 
 ## 🧪 Validation & tests
 
