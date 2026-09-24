@@ -170,7 +170,6 @@ jobs:
         run: bash tests/release/release-1.9-gate.sh
 
       - name: Check 2.2 release gate
-        if: startsWith(github.ref, 'refs/tags/v1.0.0')
         run: bash tests/release/release-2.2-gate.sh
 
       - name: Check 2.0 release gate
