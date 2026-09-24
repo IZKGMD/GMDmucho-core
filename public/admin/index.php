@@ -420,10 +420,7 @@ if (isset($_POST['login'])) {
     $password=(string)($_POST['password'] ?? '');
     $otp=trim((string)($_POST['otp'] ?? ''));
 
-    $ip=$_SERVER['HTTP_CF_CONNECTING_IP']
-        ?? $_SERVER['REMOTE_ADDR']
-        ?? 'unknown';
-
+    $ip=\MuchoCore\Http\ClientIp::resolve($_SERVER);
     $rate='/tmp/mucho-admin-'.hash('sha256',$ip);
 
     $state=[
