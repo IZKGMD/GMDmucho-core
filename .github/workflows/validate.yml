@@ -117,7 +117,7 @@ jobs:
           grep -q 'CompatibilityProfile' src/V71/V71Application.php
           grep -q 'FOR UPDATE' public/admin/client-release-upload-module.php
           test -f database/migrations/20260924_002_integrity_hardening.php
-          grep -q 'preg_match('''/^-?\\d+$/D' src/V71/Request.php
+          grep -q "preg_match('/^-?\\d+$/D'" src/V71/Request.php
 
       - name: Check Caddy configuration
         run: |
