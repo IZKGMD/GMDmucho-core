@@ -36,7 +36,7 @@ final class CommentService
         int $gameVersion = 22,
         string $udid = '',
         string $ip = ''
-    ): int
+    ): string
     {
         $this->authenticateCommenter(
             $accountId,
@@ -51,21 +51,33 @@ final class CommentService
         );
         $decodedContent = trim($decodedContent);
 
-        // Check whether the comment is a moderation command.
+        /*
+         * Any text beginning with "!" is a command attempt.
+         * Commands are never persisted as ordinary comments.
+         */
         if (str_starts_with($decodedContent, "!")) {
+            $commandName = strtolower(
+                (string)(preg_split("/\\s+/", $decodedContent)[0] ?? "")
+            );
+
+            if ($commandName === "!help") {
+                return $this->commandResponse(
+                    $gameVersion,
+                    true,
+                    $this->commandHelp()
+                );
+            }
+
             $handled = $this->handleCommand(
                 $levelId,
                 $accountId,
                 $decodedContent
             );
 
-            if ($handled === true) {
-                return 1;
-            }
-
-            if ($handled === null) {
-                // Unknown or invalid commands are treated as normal comment text.
-            }
+            return $this->commandResponse(
+                $gameVersion,
+                $handled === true
+            );
         }
 
         $percent = max(0, min(100, $percent));
@@ -151,6 +163,43 @@ final class CommentService
         ]);
     }
 
+    private function commandResponse(
+        int $gameVersion,
+        bool $success,
+        string $message = ""
+    ): string {
+        /*
+         * Geometry Dash 2.1+ understands temporary server messages
+         * in the "temp_<seconds>_<message>" response form.
+         *
+         * GD 1.9/2.0 use strict numeric comment-upload responses, so
+         * preserve their wire compatibility: 1 = accepted, -1 = failed.
+         */
+        if ($gameVersion >= 21) {
+            if ($message === "") {
+                $message = $success
+                    ? "Command executed successfully!"
+                    : "Command failed!";
+            }
+
+            return "temp_0_" . $message;
+        }
+
+        return $success ? "1" : "-1";
+    }
+
+    private function commandHelp(): string {
+        return implode("\\n", [
+            "MuchoCore Commands",
+            "!help",
+            "!rate <difficulty> <stars> [coins] [featured]",
+            "!r <difficulty> <stars> [coins] [featured]",
+            "!demon <1-5>",
+            "!delete",
+            "!cp <amount>",
+        ]);
+    }
+
     private function handleCommand(int $levelId, int $accountId, string $commandStr): ?bool
     {
         $pdo = $this->getPdo();
@@ -167,6 +216,10 @@ final class CommentService
         $stmt->execute([":id" => $accountId]);
         $role = strtolower((string)($stmt->fetchColumn() ?: "user"));
 
+        /*
+         * !help is intentionally handled before this permission gate so
+         * every registered player can request command documentation.
+         */
         if (!in_array(
             $role,
             ["owner", "admin", "moderator", "mod", "elder", "developer"],
