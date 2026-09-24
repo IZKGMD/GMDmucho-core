@@ -53,12 +53,18 @@ final readonly class UserRepository
             LEFT JOIN roles ar
                 ON ar.id = a.role_id
             WHERE
-                a.username LIKE :query
+                (a.username LIKE :query
+                 OR (:numeric_query = 1 AND COALESCE(p.user_id, 0) = :user_id))
             ORDER BY COALESCE(p.stars, 0) DESC
             LIMIT ' . (int)$limit . ' OFFSET ' . (int)$offset;
 
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute(['query' => '%' . $query . '%']);
+        $isNumeric = ctype_digit($query) && $query !== '';
+        $stmt->execute([
+            'query' => '%' . $query . '%',
+            'numeric_query' => $isNumeric ? 1 : 0,
+            'user_id' => $isNumeric ? (int)$query : 0,
+        ]);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -330,6 +336,12 @@ final readonly class UserRepository
                 'WHERE p.stars > 0 AND COALESCE(p.game_version, 0) >= 20',
                 $sql
             );
+        } elseif ($gameVersion > 0) {
+            $sql = str_replace(
+                'WHERE p.stars > 0',
+                'WHERE p.stars > 0 AND COALESCE(p.game_version, 0) > 0 AND COALESCE(p.game_version, 0) < 20',
+                $sql
+            );
         }
 
         return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
@@ -419,7 +431,9 @@ final readonly class UserRepository
     {
         $versionFilter = $gameVersion >= 20
             ? 'WHERE COALESCE(p.game_version, 0) >= 20'
-            : '';
+            : ($gameVersion > 0
+                ? 'WHERE COALESCE(p.game_version, 0) > 0 AND COALESCE(p.game_version, 0) < 20'
+                : '');
 
         $sql = "WITH RankedProfiles AS (
             SELECT p.*, a.username, COALESCE(ar.code, \'user\') AS role_code,
