@@ -1,129 +1,141 @@
-# VPS: простой запуск
+# MuchoCore VPS Setup
 
-Эта инструкция рассчитана на новичка с Linux VPS и root-доступом.
+This guide is for a Linux VPS with root access or sudo.
 
-## Что нужно
+## Requirements
 
 - Linux VPS;
-- root-доступ или возможность использовать sudo;
-- домен, который указывает на VPS;
-- открытые порты 80 и 443.
+- root or sudo access;
+- a domain pointing to the VPS;
+- inbound ports 80 and 443 for normal HTTPS mode.
 
-Не нужно вручную устанавливать PHP, MariaDB или Caddy.
+You do not need to install PHP, MariaDB or Caddy manually.
 
-## 1. Настрой домен
+## 1. Point your domain to the VPS
 
-Создай DNS-запись:
+Create a DNS record:
 
 ~~~text
-gdps.example.com → IP-АДРЕС-ТВОЕГО-VPS
+gdps.example.com → YOUR-VPS-IP
 ~~~
 
-Подставь вместо gdps.example.com свой домен.
+Replace the example domain with your own.
 
-## 2. Запусти установщик
+## 2. Run the installer
 
-На VPS выполни:
+From the repository root:
 
 ~~~bash
-curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh -o install.sh
-sudo bash install.sh
+sudo ./install
 ~~~
 
-Установщик задаст понятные вопросы и сам подготовит MuchoCore.
+The installer opens a version-selection menu:
 
-Он создаёт:
+~~~text
+1) All supported versions (GD 1.9 - 2.2)
+2) GD 1.9 only
+3) GD 2.0 only
+4) GD 2.1 only
+5) GD 2.2 only
+6) Custom profile
+~~~
+
+The selected compatibility profile is stored in `.env` and enforced by the runtime without duplicating the server core.
+
+For unattended deployment, set `MUCHO_GD_VERSIONS` first:
+
+~~~bash
+export MUCHO_GD_VERSIONS=19,22
+sudo -E bash install.sh
+~~~
+
+The installer prepares:
 
 - MariaDB;
 - PHP 8.3;
 - Caddy;
-- базу данных;
-- ключ cloud save;
-- администратора.
+- the MuchoCore database;
+- cloud save keys;
+- the administrator account;
+- the selected Geometry Dash compatibility profile.
 
-## 3. Проверь сервер
+## 3. Verify the server
 
-После установки открой:
+Open:
 
 ~~~text
 https://YOUR-DOMAIN/health
 ~~~
 
-Должно появиться:
+Expected response:
 
 ~~~text
 1
 ~~~
 
-Потом открой:
+Then open:
 
 ~~~text
 https://YOUR-DOMAIN/admin/
 ~~~
 
-Логин:
+The default administrator username is:
 
 ~~~text
 admin
 ~~~
 
-Пароль — тот, который ты задал установщику.
+The password is created during installation.
 
-## 4. Подключи игру
+## 4. Connect Geometry Dash
 
-Когда /health работает, переходи в:
+After `/health` works, follow `CLIENT_SETUP.md` for the client patching/connection flow.
 
-CLIENT_SETUP.md
+## Updating
 
-## Обновление
-
-Обычно достаточно:
+Use:
 
 ~~~bash
 sudo /opt/mucho-core/update.sh
 ~~~
 
-## Логи
+Updates preserve the selected compatibility profile and Cloudflare Tunnel deployment mode when those are configured.
 
-Когда что-то не работает:
+## Logs
 
 ~~~bash
 cd /opt/mucho-core
 sudo docker compose logs --tail=100
 ~~~
 
-Сначала посмотри последние строки. Не меняй сразу много файлов.
+For live logs:
 
-## Резервная копия
+~~~bash
+sudo docker compose logs -f
+~~~
 
-Перед большим изменением сделай backup:
+## Backups
+
+Before major changes, create a database backup:
 
 ~~~bash
 sudo /opt/mucho-core/bin/mucho-db-backup.sh
 ~~~
 
-И обязательно сохрани:
+Keep this key safe:
 
 ~~~text
 /opt/mucho-core/config/cloudsave.key
 ~~~
 
-Этот ключ нужен для существующих cloud save.
+It is required to preserve existing cloud save data.
 
-## Удаление
+## Removal
 
-uninstall.sh удаляет установку и Docker volume с базой.
+`uninstall.sh` removes the installation and its Docker database volume.
 
-Перед запуском он просит ввести:
+It requires an explicit `DELETE` confirmation.
 
-~~~text
-DELETE
-~~~
+## Advanced VPS setups
 
-Не выполняй эту команду, если хочешь сохранить сервер.
-
-## Если VPS необычный
-
-NAT/CGNAT VPS, Cloudflare Tunnel и ручная настройка рассматриваются отдельно:
-
-ADVANCED.md
+NAT/CGNAT VPS deployments and Cloudflare Tunnel are documented in `ADVANCED.md`.
