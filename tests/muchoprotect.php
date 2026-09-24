@@ -118,7 +118,7 @@ for ($i = 0; $i < 12; $i++) {
 $accountBlocked = $accountProtect->inspect(
     new Request(
         'POST',
-        '/loginGJAccount22.php',
+        $loginEndpoint,
         [],
         [
             'accountID' => '456',
@@ -128,7 +128,7 @@ $accountBlocked = $accountProtect->inspect(
         ],
         ['REMOTE_ADDR' => '10.20.1.50']
     ),
-    '/loginGJAccount22.php'
+    $loginEndpoint
 );
 
 if ($accountBlocked['decision'] !== 'block' || $accountBlocked['reason'] !== 'account_rate_limit') {
@@ -144,7 +144,7 @@ if ($accountBlocked['decision'] !== 'block' || $accountBlocked['reason'] !== 'ac
 $differentCredential = $accountProtect->inspect(
     new Request(
         'POST',
-        '/loginGJAccount22.php',
+        $loginEndpoint,
         [],
         [
             'accountID' => '456',
@@ -154,7 +154,7 @@ $differentCredential = $accountProtect->inspect(
         ],
         ['REMOTE_ADDR' => '10.20.1.51']
     ),
-    '/loginGJAccount22.php'
+    $loginEndpoint
 );
 
 if ($differentCredential['decision'] !== 'allow') {
