@@ -85,7 +85,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Protocol/GdLegacyText.php',
-        'GD 2.0+ expects level comments as plain protocol text',
+        'GD 2.0+ expects level/account comments as plain text.',
         'GD 2.0+ comments stay plain text',
     ],
     [
