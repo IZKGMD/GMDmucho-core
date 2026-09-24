@@ -79,7 +79,7 @@ assertTrue(str_contains($profile, '1:MuchoPlayer'), '2.0 profile username');
 assertTrue(str_contains($profile, '2:42'), '2.0 profile user id');
 assertTrue(str_contains($profile, '3:100'), '2.0 profile stars');
 assertTrue(str_contains($profile, '4:5'), '2.0 profile demons');
-assertTrue(str_contains($profile, '7:9001'), '2.0 profile account id');
+assertTrue(!str_contains($profile, '7:9001'), '2.0 profile omits leaderboard-only account field');
 assertTrue(str_contains($profile, '51:5'), '2.0 profile color3');
 
 $comments = new GdCommentEncoder();
