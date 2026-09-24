@@ -12,8 +12,8 @@ $role = strtolower($argv[2] ?? '');
 $pdo = (new Database())->connection();
 
 if (!$target || $role === '') {
-    echo "Использование: php bin/set-user-role.php <ACCOUNT_ID | USERNAME> <ROLE>\n";
-    echo "Роль должна существовать в таблице roles.\n";
+    echo "Usage: php bin/set-user-role.php <ACCOUNT_ID | USERNAME> <ROLE>\n";
+    echo "The role must exist in the roles table.\n";
     exit(1);
 }
 
@@ -31,7 +31,7 @@ $roleStmt->execute([
 $roleId = $roleStmt->fetchColumn();
 
 if ($roleId === false) {
-    echo " Неизвестная роль '{$role}'.\n";
+    echo " Unknown role '{$role}'.\n";
     exit(1);
 }
 
@@ -49,8 +49,8 @@ $stmt->execute([
 ]);
 
 if ($stmt->rowCount() === 0) {
-    echo " Аккаунт '{$target}' не найден или роль уже установлена.\n";
+    echo " Account '{$target}' was not found or the role is already assigned.\n";
     exit(0);
 }
 
-echo " Аккаунту '{$target}' успешно присвоена роль: '{$role}'\n";
+echo " Role '{$role}' was assigned to account '{$target}'.\n";
