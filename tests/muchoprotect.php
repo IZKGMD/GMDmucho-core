@@ -96,7 +96,7 @@ for ($i = 0; $i < 12; $i++) {
     $result = $accountProtect->inspect(
         new Request(
             'POST',
-            '/loginGJAccount22.php',
+            $loginEndpoint,
             [],
             [
                 'accountID' => '456',
@@ -106,7 +106,7 @@ for ($i = 0; $i < 12; $i++) {
             ],
             ['REMOTE_ADDR' => $ip]
         ),
-        '/loginGJAccount22.php'
+        $loginEndpoint
     );
 
     if ($result['decision'] !== 'allow') {
