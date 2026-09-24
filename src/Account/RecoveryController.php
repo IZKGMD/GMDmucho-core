@@ -358,28 +358,7 @@ final class RecoveryController
 
     private function clientIp(): string
     {
-        $remote = (string)($_SERVER['REMOTE_ADDR'] ?? '');
-
-        if (
-            in_array($remote, ['127.0.0.1', '::1'], true)
-        ) {
-            $candidate =
-                (string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? '');
-
-            if (
-                filter_var(
-                    $candidate,
-                    FILTER_VALIDATE_IP
-                ) !== false
-            ) {
-                return $candidate;
-            }
-        }
-
-        return filter_var(
-            $remote,
-            FILTER_VALIDATE_IP
-        ) !== false ? $remote : '0.0.0.0';
+        return \MuchoCore\Http\ClientIp::resolve($_SERVER);
     }
 
     private function baseUrl(): string
