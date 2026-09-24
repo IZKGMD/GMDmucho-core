@@ -766,6 +766,11 @@ final readonly class LevelTransferService
             return false;
         }
 
+        // GD legacy clients cannot delete rated/starred levels.
+        if ((int)($existing['stars'] ?? 0) > 0) {
+            return false;
+        }
+
         return $this->repository->deleteLevel(
             $levelId,
             $accountId
