@@ -1,0 +1,59 @@
+name: Temporary GD 1.9 MuchoCore client build
+
+on:
+  push:
+    branches:
+      - tmp/gd19-client-patch
+
+jobs:
+  build-client:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download 1.9 GDPS client
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 -o gd19-source.zip 'https://static.xyze.dev/gdps/251008-gdps.zip'
+          unzip -q gd19-source.zip -d gd19-source
+          rm gd19-source.zip
+
+      - name: Patch Windows client
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t exes < <(find gd19-source -type f -iname '*.exe' -print)
+          if [ "${#exes[@]}" -ne 1 ]; then
+            printf 'Expected exactly one EXE, found %s\n' "${#exes[@]}" >&2
+            printf '%s\n' "${exes[@]}" >&2
+            exit 1
+          fi
+          exe="${exes[0]}"
+          patched="${exe%.exe}-MuchoCore.exe"
+          python3 tools/client/client-patch.py \
+            --input "$exe" \
+            --output "$patched" \
+            --server-url 'https://muchogdps.space'
+          mv "$patched" "$exe"
+          sha256sum "$exe"
+          test "$(python3 -c "import pathlib; print(pathlib.Path('$exe').read_bytes()[:2].hex())")" = "4d5a"
+
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          find gd19-source -maxdepth 2 -type f -print
+          (cd gd19-source && zip -qr ../MuchoCore-GD19.zip .)
+          unzip -t MuchoCore-GD19.zip
+
+      - name: Upload client
+        uses: actions/upload-artifact@v4
+        with:
+          name: MuchoCore-GD19
+          path: |
+            MuchoCore-GD19.zip
+            gd19-source/**/*.patch-report.txt
+          if-no-files-found: error
+          retention-days: 3
