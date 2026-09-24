@@ -18,7 +18,7 @@ final class GdLevelDownloadEncoder
         $levelString = (string) $level['level_data'];
         $protocolStars = max(
             0,
-            min(10, (int) ($level['stars'] ?? 0))
+            (int)($level['stars'] ?? 0)
         );
 
         if (
@@ -126,7 +126,7 @@ final class GdLevelDownloadEncoder
             . ','
             . $level['level_id']
             . ','
-            . $level['coins_verified']
+            . $level['coins']
             . ','
             . $level['featured']
             . ','
