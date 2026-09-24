@@ -149,6 +149,16 @@ $checks = [
         '2.2 version-aware score credentials',
     ],
     [
+        __DIR__ . '/../../src/User/UserController.php',
+        '$request->clientVersion()->effectiveGameVersion(),',
+        'leaderboard uses client protocol version',
+    ],
+    [
+        __DIR__ . '/../../src/User/UserService.php',
+        '$this->auth->authenticate($accountId, $credential);',
+        'leaderboard authenticates supplied account context',
+    ],
+    [
         __DIR__ . '/../../src/Moderation/ModerationController.php',
         'return $request->gdCredential();',
         '2.2 version-aware moderation credentials',
