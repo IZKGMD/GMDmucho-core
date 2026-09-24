@@ -98,6 +98,29 @@ assertSameValue(
     '1.9 request family'
 );
 
+foreach ([
+    '/getGJComments19.php',
+    '/uploadGJComment19.php',
+    '/deleteGJComment19.php',
+] as $commentPath) {
+    $commentRequest = new Request(
+        'POST',
+        $commentPath,
+        [],
+        [
+            'accountID' => '123',
+            'udid' => 'legacy-device',
+        ],
+        []
+    );
+
+    assertSameValue(
+        '1.9',
+        $commentRequest->clientVersion()->family(),
+        "1.9 comment endpoint infers legacy family {$commentPath}"
+    );
+}
+
 assertSameValue(
     '/getgjcreators19',
     $router->normalizePath('/getGJCreators19.php'),
