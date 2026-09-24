@@ -77,9 +77,9 @@ MuchoCore has completed its **Geometry Dash 2.2 real-client compatibility gate**
 | Version-aware endpoint behavior | ✅ Implemented |
 | Protocol regression tests | ✅ Passing |
 | Real 2.2 client trace fixture | ✅ Captured from GD 2.2.13 |
-| GD 2.1 server-side conformance | ✅ ~90%; real-client fixture pending |
+| GD 2.1 server-side protocol implementation | ✅ Complete; real-client gate pending |
 
-> **Compatibility note:** the 2.2 release gate is backed by real Geometry Dash 2.2.13 traffic. Older protocol families are now being expanded with dedicated regression coverage.
+> **Compatibility note:** the GD 2.2 release gate is backed by real Geometry Dash 2.2.13 traffic. The GD 2.1 server-side wire contract is complete and its release gate now requires a real 2.1 client fixture before the compatibility claim can be marked verified.
 
 ## 🧪 Validation & tests
 
@@ -114,6 +114,8 @@ php tests/security/muchoprotect.php
 python3 tools/client/client-patch.py --self-test
 bash tests/client/client-contract.sh
 bash tests/release/release-2.2-gate.sh
+# Release-only: run after capturing a real GD 2.1 client fixture.
+bash tests/release/release-2.1-gate.sh
 ~~~
 
 ## 🚀 Getting started
