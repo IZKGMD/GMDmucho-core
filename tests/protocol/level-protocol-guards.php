@@ -39,6 +39,16 @@ $checks = [
         'GD 1.9 special difficulty filters',
     ],
     [
+        __DIR__ . '/../../src/Level/LevelRepository.php',
+        "completedLevels",
+        'GD 1.9 completion-level filters',
+    ],
+    [
+        __DIR__ . '/../../src/Level/LevelRepository.php',
+        "customSong",
+        'GD 1.9 song filters',
+    ],
+    [
         __DIR__ . '/../../src/Protocol/GdCommentEncoder.php',
         'if ($badge > 0)',
         '2.1 comment badge color is conditional',
