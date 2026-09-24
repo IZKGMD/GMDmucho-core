@@ -157,23 +157,4 @@ WHERE old_role.code IN (
 )
 SQL);
 
-    /*
-     * Obsolete duplicate role rows are no longer used. Delete only rows with
-     * no remaining account references.
-     */
-    $db->exec(<<<'SQL'
-DELETE obsolete
-FROM roles obsolete
-LEFT JOIN accounts a
-    ON a.role_id = obsolete.id
-WHERE obsolete.code IN (
-    'admin',
-    'helper',
-    'mod',
-    'elder',
-    'developer',
-    'player'
-)
-AND a.account_id IS NULL
-SQL);
 };
