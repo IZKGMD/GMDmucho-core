@@ -215,6 +215,26 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Interaction/CommentService.php',
+        'Legacy Cvolton/GD 1.9 syntax',
+        'GD 1.9 legacy moderation rate syntax',
+    ],
+    [
+        __DIR__ . '/../../src/Interaction/CommentService.php',
+        '"!r"',
+        'GD 1.9 legacy rate alias',
+    ],
+    [
+        __DIR__ . '/../../src/Interaction/CommentService.php',
+        '"easy" => [10, 0, 0]',
+        'GD 1.9 easy difficulty state',
+    ],
+    [
+        __DIR__ . '/../../src/Interaction/CommentService.php',
+        '"demon" => [50, 0, 1]',
+        'GD 1.9 demon difficulty state',
+    ],
+    [
+        __DIR__ . '/../../src/Interaction/CommentService.php',
         'public function getUserComments(',
         'legacy user comment history surface',
     ],
