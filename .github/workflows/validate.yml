@@ -27,6 +27,7 @@ jobs:
           php tests/level-protocol-guards.php
           php tests/protocol-22-hashes.php
           php tests/protocol-22-surface.php
+          php tests/protocol-21-surface.php
           php tests/router-compatibility.php
           php tests/game-roles.php
           php tests/music-upload-contract.php
