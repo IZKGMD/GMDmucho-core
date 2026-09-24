@@ -1907,7 +1907,7 @@ body.dashboard-page .topbar{
     · Server by <a href="<?=pdH($socialUrl)?>" target="_blank" rel="noopener noreferrer"><?=pdH($serverByName)?></a>
     <?php endif; ?>
     · Powered by MuchoCore ·
-    <a href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer">GitHub</a> ·
+    <a href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer">GitHub</a>
 </footer>
 
 </div>
