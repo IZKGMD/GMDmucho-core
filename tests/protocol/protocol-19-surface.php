@@ -40,6 +40,7 @@ $aliases = [
     '/registerGJAccount19.php' => '/registerGJAccount',
     '/getGJLevels.php' => '/getGJLevels21',
     '/getGJLevels19.php' => '/getGJLevels21',
+    '/getGJCreators19.php' => '/getGJCreators19',
     '/uploadGJLevel19.php' => '/uploadGJLevel21',
     '/downloadGJLevel19.php' => '/downloadGJLevel21',
     '/getGJComments19.php' => '/getGJComments21',
@@ -95,6 +96,12 @@ assertSameValue(
     '1.9',
     $request->clientVersion()->family(),
     '1.9 request family'
+);
+
+assertSameValue(
+    '/getgjcreators19',
+    $router->normalizePath('/getGJCreators19.php'),
+    '1.9 creator discovery route'
 );
 
 echo "MUCHOCORE_PROTOCOL_19_SURFACE_OK\n";
