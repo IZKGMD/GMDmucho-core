@@ -66,17 +66,24 @@ final class GdUserEncoder
             59 => (string)($u['instagram'] ?? ''),
             60 => (string)($u['tiktok'] ?? ''),
             61 => (string)($u['custom_link'] ?? ''),
-            32 => (int)($u['request_id'] ?? 0),
-            35 => (string)($u['request_comment'] ?? ''),
-            37 => (string)($u['request_date'] ?? ''),
-            38 => (int)($u['messages_count'] ?? 0),
-            39 => (int)($u['friend_requests_count'] ?? 0),
-            40 => (int)($u['friends_count'] ?? 0),
             9  => (int)($u['icon_id'] ?? $u['cube'] ?? 1),
             14 => (int)($u['icon_type'] ?? 0),
             15 => (int)($u['special'] ?? 0),
-            29 => 1,
         ];
+
+        if ((int)($u['request_id'] ?? 0) > 0) {
+            $mapping[32] = (int)$u['request_id'];
+            $mapping[35] = (string)($u['request_comment'] ?? '');
+            $mapping[37] = (string)($u['request_date'] ?? '');
+        }
+
+        if (array_key_exists('messages_count', $u)) {
+            $mapping[38] = (int)($u['messages_count'] ?? 0);
+            $mapping[39] = (int)($u['friend_requests_count'] ?? 0);
+            $mapping[40] = (int)($u['friends_count'] ?? 0);
+        }
+
+        $mapping[29] = 1;
 
         $pairs = [];
         foreach ($mapping as $key => $value) {
