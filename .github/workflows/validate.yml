@@ -26,10 +26,11 @@ jobs:
           bash -n uninstall.sh
           find tests -name '*.sh' -print0 | xargs -0 -n1 bash -n
 
-      - name: Validate Composer dependencies
-        run: |
-          composer validate --strict --no-check-publish
-          composer audit --no-dev --format=plain
+      - name: Validate Composer manifest
+        run: composer validate --strict --no-check-publish
+
+      - name: Audit Composer dependencies
+        run: composer audit --no-dev --locked --format=plain
 
       - name: Check PHP sources
         run: |
