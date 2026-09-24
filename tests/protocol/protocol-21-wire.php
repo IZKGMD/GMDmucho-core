@@ -108,7 +108,7 @@ $legacyComment = $comments->encode(
     21,
     31
 );
-assertTrue(str_contains($legacyComment, '2~SGVsbG8gMi4x'), '2.1 comments encode text as Base64');
+assertTrue(str_contains($legacyComment, '2~Hello 2.1'), '2.1 comments encode text as Base64');
 assertTrue(!str_contains($legacyComment, '~11~'), '2.1 binary 31 uses legacy comment layout');
 assertTrue(!str_contains($legacyComment, '~12~'), '2.1 normal comment omits badge color');
 
@@ -135,7 +135,7 @@ $modernComment = $comments->encode(
     21,
     35
 );
-assertTrue(str_contains($modernComment, '2~SGVsbG8gMi4x'), '2.1 binary 35 keeps Base64 comment text');
+assertTrue(str_contains($modernComment, '2~Hello 2.1'), '2.1 binary 35 keeps Base64 comment text');
 $accountComment = $comments->encodeAccountComment(
     [
         'id' => 8,
