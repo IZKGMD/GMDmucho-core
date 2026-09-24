@@ -11,9 +11,9 @@ $diffCode = $argv[2] ?? null;
 $ratingCode = $argv[3] ?? null;
 
 if ($levelId <= 0 || !$diffCode) {
-    echo "Использование: php bin/set-level-difficulty.php <LEVEL_ID> <DIFFICULTY_CODE> [RATING_CODE]\n";
-    echo "Сложности: nightmare, impossible, unhuman, none\n";
-    echo "Рейтинги: celestial, divine, none\n";
+    echo "Usage: php bin/set-level-difficulty.php <LEVEL_ID> <DIFFICULTY_CODE> [RATING_CODE]\n";
+    echo "Difficulties: nightmare, impossible, unhuman, none\n";
+    echo "Ratings: celestial, divine, none\n";
     exit(1);
 }
 
@@ -36,7 +36,7 @@ $diffId = $diffMap[strtolower($diffCode)] ?? null;
 $ratingId = $ratingCode ? ($ratingMap[strtolower($ratingCode)] ?? 0) : 0;
 
 if ($diffId === null) {
-    echo "Неизвестная сложность: {$diffCode}\n";
+    echo "Unknown difficulty: {$diffCode}\n";
     exit(1);
 }
 
@@ -48,8 +48,8 @@ $stmt->execute([
 ]);
 
 if ($stmt->rowCount() === 0) {
-    echo " Уровень #{$levelId} не найден или параметры не изменились.\n";
+    echo " Level #{$levelId} was not found or the parameters did not change.\n";
     exit(0);
 }
 
-echo " Уровень #{$levelId} обновлен: сложность {$diffCode} ({$diffId}), рейтинг " . ($ratingCode ?? 'none') . " ({$ratingId})\n";
+echo " Level #{$levelId} updated: difficulty {$diffCode} ({$diffId}), rating " . ($ratingCode ?? 'none') . " ({$ratingId})\n";
