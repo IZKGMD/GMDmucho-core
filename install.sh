@@ -4,9 +4,12 @@ set -Eeuo pipefail
 REPO_URL="${MUCHO_REPO_URL:-https://github.com/IZKGMD/GMDmucho-core.git}"
 INSTALL_DIR="${MUCHO_INSTALL_DIR:-/opt/mucho-core}"
 DOMAIN="${MUCHO_DOMAIN:-}"
-DB_NAME="${MUCHO_DB_NAME:-muchocore}"
-DB_USER="${MUCHO_DB_USER:-muchocore_user}"
-ADMIN_USER="admin"
+DB_NAME="${MUCHO_DB_NAME:-}"
+DB_USER="${MUCHO_DB_USER:-}"
+ADMIN_USER="${MUCHO_ADMIN_USER:-}"
+CUSTOM_CONTENT_URL="${MUCHO_CUSTOM_CONTENT_URL:-}"
+TURNSTILE_SITEKEY="${MUCHO_TURNSTILE_SITEKEY:-}"
+TURNSTILE_SECRET="${MUCHO_TURNSTILE_SECRET:-}"
 MUCHO_ADMIN_PASSWORD="${MUCHO_ADMIN_PASSWORD:-}"
 # Optional: set MUCHO_TUNNEL_TOKEN to deploy via Cloudflare Tunnel instead of
 # binding 80/443 directly. Use this on NAT/CGNAT VPS plans that have no
@@ -166,7 +169,30 @@ if [[ -f "$INSTALL_DIR/.env" ]]; then
   if [[ -z "$DOMAIN" ]]; then
     DOMAIN="$(sed -n 's/^DOMAIN=//p' "$INSTALL_DIR/.env" | head -n1)"
   fi
+  if [[ -z "$DB_NAME" ]]; then
+    DB_NAME="$(sed -n 's/^DB_NAME=//p' "$INSTALL_DIR/.env" | head -n1)"
+  fi
+  if [[ -z "$DB_USER" ]]; then
+    DB_USER="$(sed -n 's/^DB_USER=//p' "$INSTALL_DIR/.env" | head -n1)"
+  fi
+  if [[ -z "$ADMIN_USER" ]]; then
+    ADMIN_USER="$(sed -n 's/^ADMIN_USER=//p' "$INSTALL_DIR/.env" | head -n1)"
+  fi
+  if [[ -z "$CUSTOM_CONTENT_URL" ]]; then
+    CUSTOM_CONTENT_URL="$(sed -n 's/^MUCHO_CUSTOM_CONTENT_URL=//p' "$INSTALL_DIR/.env" | head -n1)"
+  fi
+  if [[ -z "$TURNSTILE_SITEKEY" ]]; then
+    TURNSTILE_SITEKEY="$(sed -n 's/^TURNSTILE_SITEKEY=//p' "$INSTALL_DIR/.env" | head -n1)"
+  fi
+  if [[ -z "$TURNSTILE_SECRET" ]]; then
+    TURNSTILE_SECRET="$(sed -n 's/^TURNSTILE_SECRET=//p' "$INSTALL_DIR/.env" | head -n1)"
+  fi
 fi
+
+DB_NAME="${DB_NAME:-muchocore}"
+DB_USER="${DB_USER:-muchocore_user}"
+ADMIN_USER="${ADMIN_USER:-admin}"
+CUSTOM_CONTENT_URL="${CUSTOM_CONTENT_URL:-https://geometrydashfiles.b-cdn.net}"
 
 select_compatibility_profile
 
@@ -249,9 +275,9 @@ DB_NAME=$DB_NAME
 DB_USER=$DB_USER
 ADMIN_USER=$ADMIN_USER
 MUCHO_ACCOUNT_URL=https://$DOMAIN
-MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net
-TURNSTILE_SITEKEY=${MUCHO_TURNSTILE_SITEKEY:-}
-TURNSTILE_SECRET=${MUCHO_TURNSTILE_SECRET:-}
+MUCHO_CUSTOM_CONTENT_URL=$CUSTOM_CONTENT_URL
+TURNSTILE_SITEKEY=$TURNSTILE_SITEKEY
+TURNSTILE_SECRET=$TURNSTILE_SECRET
 MUCHO_ADMIN_BOOTSTRAP=/etc/muchocore-admin.php
 MUCHO_CONTROL_DIR=/var/lib/muchocore-control
 MUCHO_BACKUP_DIR=/var/lib/muchocore-backups
