@@ -33,6 +33,7 @@ final readonly class AccountController
             password: $request->postString('password'),
             gjp2: $request->postString('gjp2'),
             ip: $request->clientIp(),
+            udid: $request->postString('udid'),
         );
 
         return Response::text($result);
