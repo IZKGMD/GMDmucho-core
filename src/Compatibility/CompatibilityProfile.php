@@ -29,8 +29,10 @@ final readonly class CompatibilityProfile
             }
         }
 
-        $this->versions = array_keys($normalized);
-        sort($this->versions, SORT_NUMERIC);
+        $versions = array_keys($normalized);
+        sort($versions, SORT_NUMERIC);
+
+        $this->versions = $versions;
     }
 
     public static function fromEnvironment(): self
