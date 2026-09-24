@@ -92,7 +92,8 @@ final readonly class AccountService
         string $username,
         string $password,
         string $gjp2,
-        string $ip
+        string $ip,
+        string $udid = ''
     ): string {
         $username = trim($username);
 
@@ -171,6 +172,59 @@ final readonly class AccountService
         $this->accounts->markLogin($accountId);
         $this->accounts->audit($accountId, 'account.login', $ip);
 
+        /*
+         * A small number of legacy 1.9 clients authenticate successfully but
+         * omit GJP from the later upload request. Bind a short-lived upload
+         * session to the same account, device UDID and source IP.
+         */
+        $udid = trim($udid);
+
+        if ($udid !== '' && strlen($udid) <= 255) {
+            $this->rememberLegacy19UploadSession(
+                $accountId,
+                $udid,
+                $ip
+            );
+        }
+
         return $accountId . ',' . $userId;
+    }
+
+    private function rememberLegacy19UploadSession(
+        int $accountId,
+        string $udid,
+        string $ip
+    ): void {
+        if ($accountId <= 0 || $udid === '' || $ip === '') {
+            return;
+        }
+
+        $cleanup = $this->pdo->prepare(
+            'DELETE FROM mucho_legacy_19_sessions
+             WHERE expires_at <= UTC_TIMESTAMP()
+                OR (
+                    account_id = :account_id
+                    AND ip_address = :ip_address
+                )'
+        );
+
+        $cleanup->execute([
+            'account_id' => $accountId,
+            'ip_address' => $ip,
+        ]);
+
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO mucho_legacy_19_sessions
+                (account_id, udid_hash, ip_address, expires_at)
+             VALUES
+                (:account_id, :udid_hash, :ip_address,
+                 DATE_ADD(UTC_TIMESTAMP(), INTERVAL 1 HOUR))'
+        );
+
+        $stmt->execute([
+            'account_id' => $accountId,
+            'udid_hash' => password_hash($udid, PASSWORD_DEFAULT),
+            'ip_address' => $ip,
+        ]);
     }
 }
