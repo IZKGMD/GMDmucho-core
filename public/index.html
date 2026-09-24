@@ -1312,7 +1312,9 @@ footer a:hover{
 
 
 <footer>
-    <span data-server-name>Mucho GDPS</span> · Powered by MuchoCore · Copyright © 2026 IZK ·
+    <span data-server-name>Mucho GDPS</span>
+    <span data-server-credit hidden> · Server by <a data-server-credit-link target="_blank" rel="noopener noreferrer"><span data-server-credit-name></span></a></span>
+    · Powered by MuchoCore · Copyright © 2026 IZK ·
     <a href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer">GitHub</a>
 </footer>
 
@@ -1340,6 +1342,29 @@ async function loadBranding(){
         const serverName = String(
             data.server_name || 'Mucho GDPS'
         ).trim();
+
+        const creditName = String(
+            data.server_by_name || ''
+        ).trim();
+
+        const socialUrl = String(
+            data.social_url || ''
+        ).trim();
+
+        document
+            .querySelectorAll('[data-server-credit]')
+            .forEach(element => {
+                const name = element.querySelector('[data-server-credit-name]');
+                const link = element.querySelector('[data-server-credit-link]');
+
+                if (name && link && creditName && /^https?:\/\/[^\s]+$/i.test(socialUrl)) {
+                    name.textContent = creditName;
+                    link.href = socialUrl;
+                    element.hidden = false;
+                } else {
+                    element.hidden = true;
+                }
+            });
 
         if(!serverName){
             return;
