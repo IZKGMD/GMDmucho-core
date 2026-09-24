@@ -35,22 +35,22 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Level/LevelRepository.php',
-        "Legacy GD 1.9",
+        'Legacy GD 1.9',
         'GD 1.9 special difficulty filters',
     ],
     [
         __DIR__ . '/../../src/Protocol/GdLevelListEncoder.php',
-        "int)$level['coins']",
+        'int)$level['coins']',
         'multi-level hash uses star coins',
     ],
     [
         __DIR__ . '/../../src/Protocol/GdLevelDownloadEncoder.php',
-        "min(10",
+        'protocolStars = max',
         'download preserves custom star values',
     ],
     [
         __DIR__ . '/../../src/Level/LevelTransferService.php',
-        "stars'] ?? 0) > 0",
+        'stars\'] ?? 0) > 0',
         'rated level deletion guard',
     ],
     [
@@ -203,6 +203,22 @@ $checks = [
         '$this->auth->authenticate($accountId, $credential);',
         'leaderboard authenticates supplied account context',
     ],
+    [
+        __DIR__ . '/../../src/User/UserRepository.php',
+        "COALESCE(p.game_version, 0) > 0 AND COALESCE(p.game_version, 0) < 20",
+        '1.9 leaderboard keeps legacy-generation users',
+    ],
+    [
+        __DIR__ . '/../../src/Interaction/CommentService.php',
+        'public function getUserComments(',
+        'legacy user comment history surface',
+    ],
+    [
+        __DIR__ . '/../../src/Protocol/GdMessageEncoder.php',
+        '1 - (int)($message['is_read'] ?? 0)',
+        'message isNew inversion',
+    ],
+
     [
         __DIR__ . '/../../src/Moderation/ModerationController.php',
         'return $request->gdCredential();',
