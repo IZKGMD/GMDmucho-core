@@ -301,6 +301,10 @@ final readonly class UserService
         $users = $this->userRepository->search($query, $offset, $limit);
         $total = $this->userRepository->searchCount($query);
 
+        if ($users === []) {
+            return '-1';
+        }
+
         return $this->userEncoder->search($users, $total, $offset, $limit);
     }
 
