@@ -57,10 +57,10 @@ assertTrue(
 
 assertTrue(
     MuchoCore\Protocol\GdLegacyText::decodeComment(
-        'SGVsbG8gMS45',
+        'Hello 1.9',
         19
     ) === 'Hello 1.9',
-    '1.9 incoming comment decodes Base64'
+    '1.9 incoming comment stays plain text'
 );
 
 assertTrue(
