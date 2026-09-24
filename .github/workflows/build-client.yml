@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'GeometryDash-MuchoCore (1).exe'
-      - 'tools/client-patch.py'
+      - 'tools/client/client-patch.py'
       - '.github/workflows/build-client.yml'
   workflow_dispatch:
 
@@ -20,11 +20,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run patcher self-test
-        run: python3 tools/client-patch.py --self-test
+        run: python3 tools/client/client-patch.py --self-test
 
       - name: Patch client with repository tool
         run: |
-          python3 tools/client-patch.py             --input "GeometryDash-MuchoCore (1).exe"             --output "GeometryDash-MuchoCore.exe"             --server-url "https://muchogdps.space"             --report "client-url-report.txt"
+          python3 tools/client/client-patch.py             --input "GeometryDash-MuchoCore (1).exe"             --output "GeometryDash-MuchoCore.exe"             --server-url "https://muchogdps.space"             --report "client-url-report.txt"
 
       - name: Upload patched client
         uses: actions/upload-artifact@v4
