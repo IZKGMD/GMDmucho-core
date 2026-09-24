@@ -51,9 +51,9 @@ assertRole(2, GameRole::badgeLevel('elder_moderator'), 'elder moderator badge');
 assertRole(2, GameRole::badgeLevel('owner'), 'owner badge');
 
 $roleFiles = [
-    __DIR__ . '/../bin/mucho-roles.php',
-    __DIR__ . '/../public/admin/pages/players.php',
-    __DIR__ . '/../public/admin/actions/legacy-dispatcher.php',
+    __DIR__ . '/../../bin/mucho-roles.php',
+    __DIR__ . '/../../public/admin/pages/players.php',
+    __DIR__ . '/../../public/admin/actions/legacy-dispatcher.php',
 ];
 
 foreach ($roleFiles as $file) {
