@@ -108,6 +108,18 @@ trap 'fail "Failure on line $LINENO. Check the output above."' ERR
 
 [[ $EUID -eq 0 ]] || fail "Run the installer as root: sudo bash install.sh"
 
+if [[ -f "$INSTALL_DIR/.env" ]]; then
+  if [[ -z "$GD_VERSIONS" ]]; then
+    GD_VERSIONS="$(sed -n 's/^MUCHO_GD_VERSIONS=//p' "$INSTALL_DIR/.env" | head -n1)"
+  fi
+  if [[ -z "$TUNNEL_TOKEN" ]]; then
+    TUNNEL_TOKEN="$(sed -n 's/^MUCHO_TUNNEL_TOKEN=//p' "$INSTALL_DIR/.env" | head -n1)"
+  fi
+  if [[ -z "$DOMAIN" ]]; then
+    DOMAIN="$(sed -n 's/^DOMAIN=//p' "$INSTALL_DIR/.env" | head -n1)"
+  fi
+fi
+
 select_compatibility_profile
 
 if [[ -z "$DOMAIN" ]]; then
