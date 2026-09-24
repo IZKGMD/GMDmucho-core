@@ -38,6 +38,21 @@ function releaseColumnExists(
 
 function ensureReleaseManager(PDO $db): void
 {
+    foreach ([
+        MUCHO_RELEASE_TMP,
+        MUCHO_ANDROID_RELEASES,
+    ] as $directory) {
+        if (
+            !is_dir($directory) &&
+            !@mkdir($directory, 0750, true) &&
+            !is_dir($directory)
+        ) {
+            throw new RuntimeException(
+                'Cannot create release storage directory.'
+            );
+        }
+    }
+
     $db->exec("
         CREATE TABLE IF NOT EXISTS mucho_client_release_uploads (
             upload_id VARCHAR(64) PRIMARY KEY,
