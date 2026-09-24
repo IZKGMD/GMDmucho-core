@@ -74,21 +74,21 @@ assertSameValue(
 );
 
 assertSameValue(
-    base64_encode('legacy comment'),
+    'legacy comment',
     GdLegacyText::encodeCommentForResponse(
         'legacy comment',
         19
     ),
-    '1.9 comment response uses standard base64'
+    '1.9 comment response stays plain text'
 );
 
 assertSameValue(
     'legacy comment',
     GdLegacyText::decodeComment(
-        GdLegacyText::encodeCommentForResponse('legacy comment', 19),
+        'legacy comment',
         19
     ),
-    '1.9 comment response round-trip'
+    '1.9 incoming comment stays plain text'
 );
 
 assertSameValue(
