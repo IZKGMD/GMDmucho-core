@@ -140,6 +140,32 @@ The one-click patcher currently knows these common server URL forms:
 
 Real client compatibility is still verified by testing the actual client build. The patcher reporting `PATCH COMPLETE` only means that a known URL string was replaced safely.
 
+## Web patcher in the admin panel
+
+GDPS owners can also patch a Windows client directly from the MuchoCore admin panel.
+
+Open:
+
+~~~text
+/admin/?page=clientpatcher
+~~~
+
+Then:
+
+1. Enter the public GDPS server root, for example `https://gdps.example.com`.
+2. Upload the original `GeometryDash.exe`.
+3. Click **Upload & Patch Client**.
+4. Wait for the upload and patch to finish.
+5. Download `GeometryDash-MuchoCore.exe`.
+
+The web patcher uploads the executable in small chunks and performs a streaming PHP patch. It does not require Python, Docker, SSH, `exec()`, or a server-side native patching binary, which makes it suitable for many shared-hosting environments.
+
+The web patcher accepts the server root only. Do not append `/database`; the patcher generates the client-compatible URL layout automatically.
+
+The hosting account needs enough free disk space for the temporary upload and patched output. Temporary patch files expire automatically.
+
+> ⚠️ Modifying an executable invalidates its original code-signing state. Keep the original client untouched and use the generated file as a separate copy.
+
 ## Android, macOS and iOS
 
 These are advanced because the server URL is usually inside native binaries or packaged application files.
