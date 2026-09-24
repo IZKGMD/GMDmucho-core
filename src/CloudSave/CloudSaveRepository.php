@@ -15,7 +15,7 @@ use Throwable;
 final readonly class CloudSaveRepository
 {
     private const KEY_FILE =
-        '/var/www/mucho-core/config/cloudsave.key';
+        '/var/lib/muchocore/cloudsave.key';
 
     private const HISTORY_LIMIT = 5;
 
