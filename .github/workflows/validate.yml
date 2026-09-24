@@ -32,6 +32,7 @@ jobs:
           php tests/music-upload-contract.php
           php tests/turnstile.php
           php tests/client-trace.php
+          php tests/muchoprotect.php
 
       - name: Check Python patcher
         run: |
