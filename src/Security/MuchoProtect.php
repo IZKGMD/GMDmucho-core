@@ -60,10 +60,25 @@ final readonly class MuchoProtect
         '/likegjitem211' => ['limit' => 60, 'window' => 60, 'burst' => 15, 'burstWindow' => 10],
     ];
 
+    private RateLimiter $limiter;
+    private AbusePenaltyStore $penalties;
+
     public function __construct(
-        private RateLimiter $limiter = new RateLimiter(),
-        private AbusePenaltyStore $penalties = new AbusePenaltyStore()
+        ?RateLimiter $limiter = null,
+        ?AbusePenaltyStore $penalties = null
     ) {
+        $this->limiter = $limiter ?? new RateLimiter();
+
+        if ($penalties !== null) {
+            $this->penalties = $penalties;
+        } else {
+            $directory = $_ENV['MUCHO_PROTECT_PENALTY_DIR']
+                ?? $_SERVER['MUCHO_PROTECT_PENALTY_DIR']
+                ?? getenv('MUCHO_PROTECT_PENALTY_DIR')
+                ?: '/tmp/muchocore-protect-penalties';
+
+            $this->penalties = new AbusePenaltyStore($directory);
+        }
     }
 
     /** @return array{decision:'allow'|'block', reason:string} */
