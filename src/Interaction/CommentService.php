@@ -182,11 +182,25 @@ final class CommentService
             case "!rate":
                 $value = strtolower($parts[1] ?? "");
 
-                $stars = 0;
-                $difficulty = 0;
-                $demon = 0;
-                $demonDifficulty = 0;
-                $auto = 0;
+                /*
+                 * Keep comment moderation ratings identical to the canonical
+                 * moderation API. Geometry Dash stores standard difficulties
+                 * as 10, 20, 30, 40 and 50 on the protocol/database surface.
+                 */
+                $ratingMap = [
+                    "auto" => [1, 1, 0, 0],
+                    "easy" => [2, 10, 0, 0],
+                    "normal" => [3, 20, 0, 0],
+                    "hard" => [5, 30, 0, 0],
+                    "harder" => [7, 40, 0, 0],
+                    "insane" => [9, 50, 0, 0],
+                    "demon" => [10, 50, 1, 3],
+                    "easydemon" => [10, 50, 1, 1],
+                    "mediumdemon" => [10, 50, 1, 2],
+                    "harddemon" => [10, 50, 1, 3],
+                    "insanedemon" => [10, 50, 1, 4],
+                    "extremedemon" => [10, 50, 1, 5],
+                ];
 
                 if (ctype_digit($value)) {
                     $requestedStars = (int)$value;
@@ -195,38 +209,19 @@ final class CommentService
                         return null;
                     }
 
-                    $stars = $requestedStars;
-                    [$difficulty, $auto, $demon] = match (true) {
-                        $stars === 1 => [1, 1, 0],
-                        $stars === 2 => [2, 0, 0],
-                        $stars === 3 => [3, 0, 0],
-                        $stars <= 5 => [4, 0, 0],
-                        $stars <= 7 => [5, 0, 0],
-                        $stars <= 9 => [6, 0, 0],
-                        default => [6, 0, 1],
+                    [$stars, $difficulty, $demon] = match (true) {
+                        $requestedStars === 1 => [1, 50, 0],
+                        $requestedStars === 2 => [2, 10, 0],
+                        $requestedStars === 3 => [3, 20, 0],
+                        $requestedStars <= 5 => [5, 30, 0],
+                        $requestedStars <= 7 => [7, 40, 0],
+                        $requestedStars <= 9 => [9, 50, 0],
+                        default => [10, 50, 1],
                     };
 
                     $demonDifficulty = $demon ? 3 : 0;
-                } else {
-                    $ratingMap = [
-                        "auto" => [1, 1, 0, 0],
-                        "easy" => [2, 2, 0, 0],
-                        "normal" => [3, 3, 0, 0],
-                        "hard" => [4, 4, 0, 0],
-                        "harder" => [6, 5, 0, 0],
-                        "insane" => [8, 6, 0, 0],
-                        "demon" => [10, 6, 1, 3],
-                        "easydemon" => [10, 6, 1, 1],
-                        "mediumdemon" => [10, 6, 1, 2],
-                        "harddemon" => [10, 6, 1, 3],
-                        "insanedemon" => [10, 6, 1, 4],
-                        "extremedemon" => [10, 6, 1, 5],
-                    ];
-
-                    if (!isset($ratingMap[$value])) {
-                        return null;
-                    }
-
+                    $auto = $requestedStars === 1 ? 1 : 0;
+                } elseif (isset($ratingMap[$value])) {
                     [
                         $stars,
                         $difficulty,
@@ -235,6 +230,8 @@ final class CommentService
                     ] = $ratingMap[$value];
 
                     $auto = $value === "auto" ? 1 : 0;
+                } else {
+                    return null;
                 }
 
                 $update = $pdo->prepare(
@@ -257,19 +254,28 @@ final class CommentService
                     ":id" => $levelId,
                 ]);
 
-                if ($update->rowCount() === 0) {
-                    $check = $pdo->prepare(
-                        "SELECT 1
-                         FROM levels
-                         WHERE level_id = :id
-                           AND is_deleted = 0
-                         LIMIT 1"
-                    );
-                    $check->execute([":id" => $levelId]);
+                $check = $pdo->prepare(
+                    "SELECT stars, difficulty, demon, demon_difficulty, auto_level
+                     FROM levels
+                     WHERE level_id = :id
+                       AND is_deleted = 0
+                     LIMIT 1"
+                );
+                $check->execute([":id" => $levelId]);
+                $state = $check->fetch(PDO::FETCH_ASSOC);
 
-                    if ($check->fetchColumn() === false) {
-                        return null;
-                    }
+                if (!$state) {
+                    return null;
+                }
+
+                if (
+                    (int)$state["stars"] !== $stars ||
+                    (int)$state["difficulty"] !== $difficulty ||
+                    (int)$state["demon"] !== $demon ||
+                    (int)$state["demon_difficulty"] !== $demonDifficulty ||
+                    (int)$state["auto_level"] !== $auto
+                ) {
+                    return null;
                 }
 
                 $this->recalculateCreatorPoints($pdo, $levelId);
