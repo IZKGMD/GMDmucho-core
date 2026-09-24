@@ -14,7 +14,7 @@ try {
 
     http_response_code(503);
     header('Content-Type: text/html; charset=utf-8');
-    echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MuchoCore Admin</title><style>body{font-family:system-ui,sans-serif;background:#07090f;color:#f4f7ff;display:grid;place-items:center;min-height:100vh;margin:0}.box{max-width:520px;padding:32px;border:1px solid #263246;border-radius:16px;background:#0f1520;text-align:center}p{color:#8e9bb0;line-height:1.6}</style></head><body><main class="box"><h1>MuchoCore Admin</h1><p>The database is temporarily unavailable. Please try again shortly.</p></main></body></html>';
+    echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MuchoCore Admin</title><style>body{font-family:system-ui,sans-serif;background:#07090f;color:#f4f7ff;display:grid;place-items:center;min-height:100vh;margin:0}.box{max-width:520px;padding:32px;border:1px solid #263246;border-radius:16px;background:#0f1520;text-align:center}p{color:#8e9bb0;line-height:1.6}</style></head><body><main class="box"><h1>MuchoCore Admin</h1><p>The database is temporarily unavailable. Please try again shortly.</p><p style="margin:24px 0 0;padding-top:14px;border-top:1px solid #263246;color:#69758a;font-size:12px">Powered by <a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer" style="color:#8f9cff;text-decoration:none">MuchoCore 🛡️</a></p></main></body></html>';
     exit;
 }
 
