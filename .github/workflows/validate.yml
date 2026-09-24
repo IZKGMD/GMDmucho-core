@@ -19,6 +19,11 @@ jobs:
           bash -n uninstall.sh
           find tests -name '*.sh' -print0 | xargs -0 -n1 bash -n
 
+      - name: Validate Composer dependencies
+        run: |
+          composer validate --strict --no-check-publish
+          composer audit --no-dev --format=plain
+
       - name: Check PHP sources
         run: |
           find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
@@ -104,9 +109,19 @@ jobs:
       - name: Check Apache shared-hosting routing
         run: bash tests/integration/apache-routing.sh
 
+      - name: Check hardened audit surfaces
+        run: |
+          grep -q '/downloads/android/\\*' docker/Caddyfile
+          grep -q 'docker-php-ext-install pdo_mysql opcache zip' docker/Dockerfile
+          grep -q 'MuchoProtect' src/V71/V71Application.php
+          grep -q 'CompatibilityProfile' src/V71/V71Application.php
+          grep -q 'FOR UPDATE' public/admin/client-release-upload-module.php
+          test -f database/migrations/20260924_002_integrity_hardening.php
+          grep -q 'preg_match('''/^-?\\d+$/D' src/V71/Request.php
+
       - name: Check Caddy configuration
         run: |
-          ! grep -Eq '/database/\*' docker/Caddyfile
+          ! grep -Eq '/database/\\*' docker/Caddyfile
           docker run --rm \
             -e DOMAIN=gdps.example.com \
             -e CADDY_ADDRESS=gdps.example.com \
