@@ -9,8 +9,10 @@ ADMIN_PASS="$(cat /run/secrets/admin_password)"
 install -d -m 700 -o www-data -g www-data config /var/lib/muchocore
 install -d -m 750 /var/lib/muchocore-control /var/lib/muchocore-backups
 install -d -m 750 /var/www/mucho-core/storage/music-public
+install -d -m 750 /var/www/mucho-core/storage/release-uploads
+install -d -m 750 /var/www/mucho-core/releases/android
 chown www-data:www-data /var/lib/muchocore-control /var/lib/muchocore-backups
-chown www-data:www-data /var/www/mucho-core/storage /var/www/mucho-core/storage/music-public
+chown www-data:www-data /var/www/mucho-core/storage /var/www/mucho-core/storage/music-public /var/www/mucho-core/storage/release-uploads /var/www/mucho-core/releases /var/www/mucho-core/releases/android
 
 # Keep Docker Compose's project .env untouched.
 # Runtime secrets live outside the bind-mounted project directory.
