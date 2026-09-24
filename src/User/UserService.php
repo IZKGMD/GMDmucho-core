@@ -6,6 +6,7 @@ namespace MuchoCore\User;
 
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Account\AccountRepository;
+use MuchoCore\Compatibility\ClientVersion;
 use MuchoCore\Protocol\GdUserEncoder;
 use PDO;
 use RuntimeException;
@@ -29,6 +30,11 @@ final readonly class UserService
          * validation rules from fix-2356. Optional fields are written only
          * when the current profiles table actually contains them.
          */
+        $protocolVersion = ClientVersion::fromValues(
+            $this->boundedInt($data, ['gameVersion'], 22, 0, 1000),
+            $this->boundedInt($data, ['binaryVersion'], 0, 0, 10000)
+        );
+
         $fields = [
             'game_version' => $this->boundedInt($data, ['gameVersion'], 22, 0, 1000),
             'binary_version' => $this->boundedInt($data, ['binaryVersion'], 0, 0, 10000),
@@ -131,6 +137,21 @@ final readonly class UserService
             array_map('strval', $profileColumns),
             true
         );
+
+        if ($protocolVersion->effectiveGameVersion() === 21) {
+            $fields['demon_info'] = $this->normalizeDemonInfo(
+                $data,
+                (int)$fields['demons'],
+                (string)$fields['demon_info']
+            );
+
+            [$fields['star_info'], $fields['platformer_info']] =
+                $this->normalizeStarInfo(
+                    $data,
+                    (string)$fields['star_info'],
+                    (string)$fields['platformer_info']
+                );
+        }
 
         $fields = array_filter(
             $fields,
@@ -303,6 +324,140 @@ final readonly class UserService
     /**
      * @param list<string> $keys
      */
+
+    private function normalizeDemonInfo(
+        array $data,
+        int $demons,
+        string $fallback
+    ): string {
+        $raw = $data['dinfo'] ?? '';
+
+        if (!is_scalar($raw) || trim((string)$raw) === '') {
+            return $fallback;
+        }
+
+        $ids = $this->numericIdList((string)$raw, 1000);
+
+        if ($ids === []) {
+            return $fallback;
+        }
+
+        $placeholders = [];
+        $params = [];
+
+        foreach ($ids as $index => $id) {
+            $key = 'demon_level_' . $index;
+            $placeholders[] = ':' . $key;
+            $params[$key] = $id;
+        }
+
+        $sql = 'SELECT
+                COALESCE(SUM(CASE WHEN demon=1 AND length<>5 AND demon_difficulty=3 THEN 1 ELSE 0 END),0) easy_normal,
+                COALESCE(SUM(CASE WHEN demon=1 AND length<>5 AND demon_difficulty=4 THEN 1 ELSE 0 END),0) medium_normal,
+                COALESCE(SUM(CASE WHEN demon=1 AND length<>5 AND COALESCE(demon_difficulty,0)=0 THEN 1 ELSE 0 END),0) hard_normal,
+                COALESCE(SUM(CASE WHEN demon=1 AND length<>5 AND demon_difficulty=5 THEN 1 ELSE 0 END),0) insane_normal,
+                COALESCE(SUM(CASE WHEN demon=1 AND length<>5 AND demon_difficulty=6 THEN 1 ELSE 0 END),0) extreme_normal,
+                COALESCE(SUM(CASE WHEN demon=1 AND length=5 AND demon_difficulty=3 THEN 1 ELSE 0 END),0) easy_platformer,
+                COALESCE(SUM(CASE WHEN demon=1 AND length=5 AND demon_difficulty=4 THEN 1 ELSE 0 END),0) medium_platformer,
+                COALESCE(SUM(CASE WHEN demon=1 AND length=5 AND COALESCE(demon_difficulty,0)=0 THEN 1 ELSE 0 END),0) hard_platformer,
+                COALESCE(SUM(CASE WHEN demon=1 AND length=5 AND demon_difficulty=5 THEN 1 ELSE 0 END),0) insane_platformer,
+                COALESCE(SUM(CASE WHEN demon=1 AND length=5 AND demon_difficulty=6 THEN 1 ELSE 0 END),0) extreme_platformer
+             FROM levels
+             WHERE level_id IN (' . implode(',', $placeholders) . ')';
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        $counts = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $values = [
+            (int)($counts['easy_normal'] ?? 0),
+            (int)($counts['medium_normal'] ?? 0),
+            (int)($counts['hard_normal'] ?? 0),
+            (int)($counts['insane_normal'] ?? 0),
+            (int)($counts['extreme_normal'] ?? 0),
+            (int)($counts['easy_platformer'] ?? 0),
+            (int)($counts['medium_platformer'] ?? 0),
+            (int)($counts['hard_platformer'] ?? 0),
+            (int)($counts['insane_platformer'] ?? 0),
+            (int)($counts['extreme_platformer'] ?? 0),
+            $this->boundedInt($data, ['dinfow'], 0, 0, 1000000),
+            $this->boundedInt($data, ['dinfog'], 0, 0, 1000000),
+        ];
+
+        $missing = max(0, min($demons - array_sum($values), 3));
+        $values[0] += $missing;
+
+        return implode(',', $values);
+    }
+
+    /** @return array{0:string,1:string} */
+    private function normalizeStarInfo(
+        array $data,
+        string $fallbackStars,
+        string $fallbackPlatformer
+    ): array {
+        $raw = $data['sinfo'] ?? '';
+
+        if (!is_scalar($raw) || trim((string)$raw) === '') {
+            return [$fallbackStars, $fallbackPlatformer];
+        }
+
+        $parts = preg_split('/\s*,\s*/', trim((string)$raw)) ?: [];
+
+        if (count($parts) < 12) {
+            return [$fallbackStars, $fallbackPlatformer];
+        }
+
+        $values = [];
+
+        foreach (array_slice($parts, 0, 12) as $part) {
+            if (preg_match('/^\d{1,10}$/D', $part) !== 1) {
+                return [$fallbackStars, $fallbackPlatformer];
+            }
+
+            $values[] = (int)$part;
+        }
+
+        $starValues = array_merge(
+            array_slice($values, 0, 6),
+            [
+                $this->boundedInt($data, ['sinfod'], 0, 0, 1000000),
+                $this->boundedInt($data, ['sinfog'], 0, 0, 1000000),
+            ]
+        );
+
+        $platformerValues = array_merge(array_slice($values, 6, 6), [0]);
+
+        return [
+            implode(',', $starValues),
+            implode(',', $platformerValues),
+        ];
+    }
+
+    /** @return list<int> */
+    private function numericIdList(
+        string $value,
+        int $maximum
+    ): array {
+        $ids = [];
+
+        foreach (preg_split('/[,\s]+/', trim($value)) ?: [] as $part) {
+            if (ctype_digit($part)) {
+                $id = (int)$part;
+
+                if ($id > 0 && !in_array($id, $ids, true)) {
+                    $ids[] = $id;
+                }
+            }
+
+            if (count($ids) >= $maximum) {
+                break;
+            }
+        }
+
+        return $ids;
+    }
+
     private function boundedText(
         array $data,
         array $keys,
