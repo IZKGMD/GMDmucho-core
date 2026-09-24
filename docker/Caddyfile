@@ -42,6 +42,13 @@
         file_server
     }
 
+    # Android client releases are stored outside public/ and exposed only
+    # through this explicit, read-only download path.
+    handle_path /downloads/android/* {
+        root * /var/www/mucho-core/releases/android
+        file_server
+    }
+
     # Keep private project files unreachable, but do not block /database/*:
     # Geometry Dash client endpoints live under /public/database.
     @hidden path /.env /.git/* /composer.json /composer.lock /config/* /src/* /tests/* /storage/*
