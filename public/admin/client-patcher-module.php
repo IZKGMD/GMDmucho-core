@@ -495,7 +495,7 @@ function renderClientPatcherPage(PDO $db): void
                     <div>
                         <h3>Patch the client</h3>
                         <div class="muted small">
-                            The server uploads the file in <b>2 MB chunks</b> and patches
+                            The server uploads the file in <b>512 KB chunks</b> and patches
                             known Geometry Dash server URL layouts without loading the
                             entire executable into PHP memory.
                         </div>
