@@ -22,6 +22,7 @@ final readonly class MuchoProtect
         '/deletegjleveluser20' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
         '/updategjleveldesc20' => ['limit' => 30, 'window' => 60, 'burst' => 8, 'burstWindow' => 10],
         '/uploadgjlevellist' => ['limit' => 5, 'window' => 60, 'burst' => 2, 'burstWindow' => 15],
+        '/deletegjlevellist' => ['limit' => 10, 'window' => 60, 'burst' => 3, 'burstWindow' => 15],
 
         '/uploadgjcomment20' => ['limit' => 30, 'window' => 60, 'burst' => 8, 'burstWindow' => 10],
         '/uploadgjcomment21' => ['limit' => 30, 'window' => 60, 'burst' => 8, 'burstWindow' => 10],
@@ -37,9 +38,13 @@ final readonly class MuchoProtect
         '/blockgjuser20' => ['limit' => 30, 'window' => 60, 'burst' => 10, 'burstWindow' => 10],
         '/unblockgjuser20' => ['limit' => 30, 'window' => 60, 'burst' => 10, 'burstWindow' => 10],
         '/removegjfriend20' => ['limit' => 30, 'window' => 60, 'burst' => 10, 'burstWindow' => 10],
+        '/deletegjfriendrequests20' => ['limit' => 30, 'window' => 60, 'burst' => 10, 'burstWindow' => 10],
+        '/readgjfriendrequest20' => ['limit' => 60, 'window' => 60, 'burst' => 15, 'burstWindow' => 10],
 
         '/updategjuserscore' => ['limit' => 60, 'window' => 60, 'burst' => 15, 'burstWindow' => 10],
         '/updategjuserscore22' => ['limit' => 60, 'window' => 60, 'burst' => 15, 'burstWindow' => 10],
+        '/updategjaccsettings20' => ['limit' => 10, 'window' => 60, 'burst' => 3, 'burstWindow' => 15],
+        '/requestuseraccess' => ['limit' => 6, 'window' => 300, 'burst' => 2, 'burstWindow' => 30],
         '/rategjstars20' => ['limit' => 40, 'window' => 60, 'burst' => 12, 'burstWindow' => 10],
         '/rategjstars211' => ['limit' => 40, 'window' => 60, 'burst' => 12, 'burstWindow' => 10],
         '/rategjdemon21' => ['limit' => 40, 'window' => 60, 'burst' => 12, 'burstWindow' => 10],
