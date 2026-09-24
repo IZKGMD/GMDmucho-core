@@ -7,6 +7,7 @@ DOMAIN="${MUCHO_DOMAIN:-}"
 DB_NAME="${MUCHO_DB_NAME:-muchocore}"
 DB_USER="${MUCHO_DB_USER:-muchocore_user}"
 ADMIN_USER="admin"
+MUCHO_ADMIN_PASSWORD="${MUCHO_ADMIN_PASSWORD:-}"
 # Optional: set MUCHO_TUNNEL_TOKEN to deploy via Cloudflare Tunnel instead of
 # binding 80/443 directly. Use this on NAT/CGNAT VPS plans that have no
 # dedicated public IPv4 (inbound ports other than SSH are not reachable).
@@ -162,9 +163,9 @@ fi
 
 if [[ -f "$INSTALL_DIR/.secrets/admin_password" ]]; then
   MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
-else
+elif [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
   log "The admin panel username is: admin"
-  read -r -s -p "Create a password for the admin panel (you will use it to log in): " MUCHO_ADMIN_PASSWORD
+  read -r -s -p "Create a password for the admin panel (you will use it to log in): " MUCHO_ADMIN_PASSWORD < /dev/tty
   printf '\n'
 fi
 [[ -n "$MUCHO_ADMIN_PASSWORD" ]] || fail "Admin password cannot be empty."
@@ -173,6 +174,13 @@ printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
 printf '%s' "$MUCHO_DB_ROOT_PASSWORD" > "$INSTALL_DIR/.secrets/db_root_password"
 printf '%s' "$MUCHO_ADMIN_PASSWORD" > "$INSTALL_DIR/.secrets/admin_password"
 chmod 600 "$INSTALL_DIR/.secrets/"*
+
+if [[ -f "$INSTALL_DIR/.env" ]]; then
+  backup_file="$INSTALL_DIR/.env.backup.$(date +%Y%m%d-%H%M%S)"
+  cp "$INSTALL_DIR/.env" "$backup_file"
+  chmod 600 "$backup_file"
+  info "Backed up existing .env to $(basename "$backup_file")"
+fi
 
 cat > "$INSTALL_DIR/.env" <<EOFENV
 DOMAIN=$DOMAIN
@@ -255,6 +263,9 @@ else
   warn "Run: cd $INSTALL_DIR && sudo docker compose ps"
   warn "Run: cd $INSTALL_DIR && sudo docker compose logs --tail=100"
 fi
+
+log "Running database migrations..."
+docker compose exec -T app php bin/migrate.php migrate
 
 cat <<EOFOUT
 
