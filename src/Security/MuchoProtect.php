@@ -206,9 +206,9 @@ final readonly class MuchoProtect
 
     private function enabled(): bool
     {
-        $value = getenv('MUCHO_PROTECT');
+        $value = $this->env('MUCHO_PROTECT');
 
-        if ($value === false || $value === '') {
+        if ($value === null) {
             return true;
         }
 
@@ -283,6 +283,17 @@ final readonly class MuchoProtect
         return null;
     }
 
+    private function env(string $key): ?string
+    {
+        $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+
+        if (!is_string($value) || $value === '') {
+            return null;
+        }
+
+        return $value;
+    }
+
     private function audit(
         Request $request,
         string $endpoint,
@@ -290,7 +301,7 @@ final readonly class MuchoProtect
         int $penaltySeconds = 0,
         int $strikes = 0
     ): void {
-        $directory = getenv('MUCHO_PROTECT_AUDIT_DIR')
+        $directory = $this->env('MUCHO_PROTECT_AUDIT_DIR')
             ?: '/tmp/muchocore-protect';
 
         if (
