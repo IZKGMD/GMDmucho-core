@@ -48,9 +48,8 @@ final readonly class CloudSaveService
             return '-1';
         }
 
-        $saveData = trim($saveData);
-
-        // GD protocol expects the cloud-save response suffix.
+        // Preserve the stored save payload byte-for-byte. Trimming can
+        // corrupt a legitimate legacy payload before it is sent back.
         if (!str_contains($saveData, ';21;30;a;a')) {
             $saveData .= ';21;30;a;a';
         }
