@@ -129,7 +129,12 @@ $accountBlocked = $accountProtect->inspect(
 );
 
 if ($accountBlocked['decision'] !== 'block' || $accountBlocked['reason'] !== 'account_rate_limit') {
-    fwrite(STDERR, "MuchoProtect account fingerprint / GJP2 test failed\n");
+    fwrite(
+        STDERR,
+        "MuchoProtect account fingerprint / GJP2 test failed: "
+        . json_encode($accountBlocked, JSON_UNESCAPED_SLASHES)
+        . "\n"
+    );
     exit(1);
 }
 
