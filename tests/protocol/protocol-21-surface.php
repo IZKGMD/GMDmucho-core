@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../src/Compatibility/ClientVersion.php';
-require __DIR__ . '/../src/Http/Request.php';
-require __DIR__ . '/../src/Routing/Router.php';
+require __DIR__ . '/../../src/Compatibility/ClientVersion.php';
+require __DIR__ . '/../../src/Http/Request.php';
+require __DIR__ . '/../../src/Routing/Router.php';
 
 use MuchoCore\Compatibility\ClientVersion;
 use MuchoCore\Http\Request;
