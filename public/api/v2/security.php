@@ -303,13 +303,20 @@ if(
         muchoV2ApplyRateLimit();
     } catch (Throwable $e) {
         error_log(
-            '[MuchoCore Security] Rate limiter bypass: ' .
+            '[MuchoCore Security] Rate limiter unavailable: ' .
             $e->getMessage()
         );
 
-        if (!headers_sent()) {
-            header('X-Mucho-RateLimit: bypass');
-        }
+        /*
+         * The v2 API is not a legacy game transport. Do not silently turn
+         * off abuse protection when its backing store is unavailable.
+         */
+        muchoV2Send([
+            'ok' => false,
+            'api' => 'MuchoCore',
+            'version' => MUCHO_V2_VERSION,
+            'error' => 'security_unavailable'
+        ], 503);
     }
 
     register_shutdown_function(
