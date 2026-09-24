@@ -455,13 +455,15 @@ try {
     if ($action === 'players.set_role') {
         $admin = requireAdmin($db, 40);
         $accountId = intInput($input, 'account_id', 1, PHP_INT_MAX);
-        $role = strtolower((string)($input['role'] ?? ''));
-        if ($role === 'helper') {
-            $role = 'moderator';
-        }
-        if (!in_array($role, ['user', 'moderator', 'admin', 'owner'], true)) {
-            fail('invalid_request', 'Invalid account role.', 422);
-        }
+        $role = strtolower(trim((string)($input['role'] ?? '')));
+        $role = match ($role) {
+            'player', 'user' => 'user',
+            'mod', 'moderator', 'helper' => 'moderator',
+            'admin', 'administrator', 'elder', 'elder_mod', 'elder-moderator' => 'elder_moderator',
+            'elder_moderator' => 'elder_moderator',
+            'owner' => 'owner',
+            default => throw new InvalidArgumentException('Invalid account role.'),
+        };
         $query = $db->prepare('SELECT a.username, COALESCE(r.code, \'user\') AS role
              FROM accounts a
              LEFT JOIN roles r ON r.id = a.role_id
