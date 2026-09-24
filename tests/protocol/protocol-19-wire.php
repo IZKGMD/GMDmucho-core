@@ -98,8 +98,8 @@ $comment = $comments->encode(
 );
 
 assertTrue(
-    str_contains($comment, '2~SGVsbG8gMS45'),
-    '1.9 comment wire payload is Base64'
+    str_contains($comment, '2~Hello 1.9'),
+    '1.9 comment wire payload stays plain text'
 );
 
 assertTrue(
@@ -117,7 +117,7 @@ assertTrue(
 
 assertTrue(
     $comment ===
-        '2~SGVsbG8gMS45~3~42~4~1~5~0~7~0~9~01/01/2026 12.00~6~7~10~55',
+        '2~Hello 1.9~3~42~4~1~5~0~7~0~9~01/01/2026 12.00~6~7~10~55',
     '1.9 comment wire format matches legacy field order'
 );
 
