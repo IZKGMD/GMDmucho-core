@@ -1,6 +1,6 @@
-# Geometry Dash 2.2 Client Verification
+# Geometry Dash Client Verification
 
-MuchoCore's final 2.2 release gate is based on a real Geometry Dash 2.2 client trace.
+MuchoCore keeps separate real-client gates for each compatibility generation. GD 2.0 and 2.1 are currently implemented server-side; real-client traces are used to verify runtime behavior.
 
 ## Step 1: enable tracing
 
@@ -26,9 +26,11 @@ sudo docker compose up -d
 
 The trace records request method, endpoint path, response status, query keys, POST keys, client family, game version and binary version. It does not record request values or passwords.
 
-## Step 2: run a real Geometry Dash 2.2 client
+## Step 2: run a real Geometry Dash client
 
-Use the patched Geometry Dash 2.2 client and exercise the normal account, profile, level browser, level download/upload, comments, ratings, leaderboards, level lists, friends, messages, daily/gauntlets/map packs, rewards, Secret Room/Wraith, custom songs and cloud-save flows.
+Use the client generation being verified. For GD 2.0, use a 2.0 client with `gameVersion=20` and the normal 2.0 binary. For GD 2.1, use a 2.1 client. For GD 2.2, use the established 2.2 client fixture.
+
+Exercise the normal flows supported by that generation: account, profile, level browser, level download/upload, comments, ratings, leaderboards, friends/messages where present, and cloud-save. Use a dedicated test account.
 
 Use a dedicated test account.
 
@@ -41,27 +43,27 @@ cd /opt/mucho-core
 sudo docker compose up -d
 ```
 
-## Step 4: generate the 2.2 fixture
+## Step 4: generate the fixture
 
 ```bash
 cd /opt/mucho-core
 python3 tools/client/client-trace-summary.py \
-  --expected-family 2.2 \
+  --expected-family 2.0 \
   --input storage/client-trace.ndjson \
-  --output tests/client-fixtures/2.2/endpoints.json
+  --output tests/client-fixtures/2.0/endpoints.json
 ```
 
 ## Step 5: run the release gate
 
 ```bash
-bash tests/release/release-2.2-gate.sh
+bash tests/release/release-2.0-gate.sh
 bash tests/client/client-contract.sh
 ```
 
-The fixture must be generated from a real 2.2 trace. Do not hand-author it from documentation or router aliases.
+The fixture must be generated from a real client trace. Do not hand-author it from documentation or router aliases.
 
 ## Release rule
 
-Automated protocol tests plus a green CI run are not enough for the final 2.2 claim. `tests/client-fixtures/2.2/endpoints.json` must exist and contain only `2.2` trace entries.
+Automated protocol tests plus a green CI run are not enough for a final real-client claim. The corresponding fixture must exist and contain only the expected family. For GD 2.0 that is `tests/client-fixtures/2.0/endpoints.json` with only `2.0` trace entries.
 
-Until that fixture is committed and the release gate passes, the project should be described as server-side 2.2 compatibility verified, with real-client compatibility still pending.
+The same rule applies to the 2.1 and 2.2 fixtures.
