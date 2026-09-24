@@ -88,12 +88,12 @@ preflight() {
   log "Running preflight checks..."
 
   local free_kib
-  free_kib="$(df -Pk "$INSTALL_DIR" 2>/dev/null | awk 'NR==2 {print \$4}')"
+  free_kib="$(df -Pk "$INSTALL_DIR" 2>/dev/null | awk 'NR==2 {print $4}')"
   [[ -n "$free_kib" && "$free_kib" -ge 1048576 ]] ||
     fail "At least 1 GiB of free disk space is required."
 
   local mem_kib
-  mem_kib="$(awk '/MemAvailable:/ {print \$2}' /proc/meminfo 2>/dev/null || echo 0)"
+  mem_kib="$(awk '/MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)"
   if [[ "$mem_kib" -lt 524288 ]]; then
     warn "Less than 512 MiB of available RAM detected. Docker builds may fail."
   fi
@@ -101,10 +101,7 @@ preflight() {
   info "Disk and memory checks passed."
 }
 
-log()  { printf '\033[1;32m[MuchoCore]\033[0m %s\n' "$*"; }
-warn() { printf '\033[1;33m[warning]\033[0m %s\n' "$*" >&2; }
-fail() { printf '\033[1;31m[error]\033[0m %s\n' "$*" >&2; exit 1; }
-trap 'fail "Failure on line $LINENO. Check the output above."' ERR
+trap 'fail "Failure on line $LINENO. Check the output above."'
 
 [[ $EUID -eq 0 ]] || fail "Run the installer as root: sudo bash install.sh"
 
