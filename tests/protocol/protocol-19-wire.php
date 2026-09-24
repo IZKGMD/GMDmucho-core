@@ -152,8 +152,12 @@ $download = $downloadEncoder->encode(
 );
 
 assertTrue(
-    str_contains($download, ':3:' . base64_encode('Hello 1.9')),
-    '1.9 downloaded level description is Base64'
+    str_contains($download, ':3:Hello 1.9'),
+    '1.9 downloaded level description is decoded text'
+);
+assertTrue(
+    !str_contains($download, ':3:' . base64_encode('Hello 1.9')),
+    '1.9 level download does not double-encode description'
 );
 assertTrue(
     str_contains($download, ':27:123'),
