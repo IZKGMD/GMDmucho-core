@@ -412,7 +412,9 @@ final readonly class Application
         );
 
         if ($protection['decision'] === 'block') {
-            $response = Response::text('-1', 429);
+            // Keep a successful HTTP transport response for Geometry Dash
+            // clients; the legacy protocol uses "-1" as its failure signal.
+            $response = Response::text('-1');
             ClientTrace::captureResponse($response);
             return $response;
         }
