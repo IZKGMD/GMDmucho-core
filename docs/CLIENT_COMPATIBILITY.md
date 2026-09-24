@@ -25,7 +25,9 @@ Geometry Dash 2.1 and older requests prefer `gjp`. Geometry Dash 2.2 prefers `gj
 
 ## 2.1 status
 
-The 2.1 server-side protocol implementation is complete, including routing, level/comment wire encoding, profile state normalization, level hashes, restricted downloads, and level-score response framing. Final compatibility verification still requires a real Geometry Dash 2.1 trace fixture.
+**Implementation completeness: 100%.** The 2.1 server-side protocol implementation is complete for the current scope, including routing, level/comment wire encoding, profile state normalization, level hashes, restricted downloads, and level-score response framing.
+
+A separate empirical verification gate still requires a real Geometry Dash 2.1 trace fixture. This does not reduce the implementation completeness figure; it records runtime verification status separately.
 
 ## What this does not claim
 
