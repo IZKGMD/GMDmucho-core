@@ -176,7 +176,8 @@ final readonly class AccountAuthenticator
                 a.is_active,
                 a.is_banned,
                 p.user_id,
-                s.id AS session_id
+                s.id AS session_id,
+                s.udid_hash
              FROM accounts a
              LEFT JOIN profiles p
                ON p.account_id = a.account_id
@@ -194,38 +195,8 @@ final readonly class AccountAuthenticator
             'ip_address' => $ip,
         ]);
 
-        $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        if ($sessions === []) {
-            throw new RuntimeException('Unauthorized.');
-        }
-
-        foreach ($sessions as $session) {
-            if (!password_verify($udid, (string)$session['session_id'] === '' ? '' : (string)$session['session_id'])) {
-                // session_id is only an internal identifier; never use it as a
-                // credential. This branch is intentionally replaced below.
-            }
-        }
-
-        $check = $this->pdo->prepare(
-            'SELECT
-                s.id,
-                s.udid_hash
-             FROM mucho_legacy_19_sessions s
-             WHERE s.account_id = :account_id
-               AND s.ip_address = :ip_address
-               AND s.expires_at > UTC_TIMESTAMP()
-             ORDER BY s.created_at DESC
-             LIMIT 16'
-        );
-
-        $check->execute([
-            'account_id' => $accountId,
-            'ip_address' => $ip,
-        ]);
-
-        foreach ($check->fetchAll(PDO::FETCH_ASSOC) as $session) {
-            if (!password_verify($udid, (string)$session['udid_hash'])) {
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            if (!password_verify($udid, (string)$row['udid_hash'])) {
                 continue;
             }
 
@@ -236,33 +207,12 @@ final readonly class AccountAuthenticator
             );
 
             $touch->execute([
-                'id' => (int)$session['id'],
+                'id' => (int)$row['session_id'],
             ]);
 
-            $account = $this->pdo->prepare(
-                'SELECT
-                    a.account_id,
-                    a.username,
-                    a.password_hash,
-                    a.gjp2_hash,
-                    a.is_active,
-                    a.is_banned,
-                    p.user_id
-                 FROM accounts a
-                 LEFT JOIN profiles p
-                   ON p.account_id = a.account_id
-                 WHERE a.account_id = :account_id
-                 LIMIT 1'
-            );
-
-            $account->execute([
-                'account_id' => $accountId,
-            ]);
-
-            $row = $account->fetch(PDO::FETCH_ASSOC);
+            unset($row['session_id'], $row['udid_hash']);
 
             if (
-                !$row ||
                 (int)$row['is_banned'] === 1 ||
                 (int)$row['is_active'] !== 1
             ) {
