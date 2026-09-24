@@ -163,10 +163,14 @@ final class CommentRepository
 
     public function getAccountComments(int $accountId, int $page = 0, int $limit = 100): array
     {
+        $limit = min(100, max(1, $limit));
+        $page = min(1000, max(0, $page));
         $offset = $page * $limit;
 
         $stmt = $this->db->prepare(
-            "SELECT c.*, a.role, p.user_id
+            "SELECT c.*,
+                    a.role,
+                    COALESCE(p.user_id, a.account_id) AS user_id
              FROM account_comments c
              JOIN accounts a ON c.account_id = a.account_id
              LEFT JOIN profiles p ON p.account_id = a.account_id
