@@ -40,10 +40,10 @@ assertTrue(
 );
 assertTrue(
     \MuchoCore\Protocol\GdLegacyText::decodeComment(
-        'SGVsbG8gMi4x',
+        'Hello 2.1',
         21
     ) === 'Hello 2.1',
-    '2.1 URL-safe comment input decodes'
+    '2.1 comment input stays plain text'
 );
 assertTrue(
     \MuchoCore\Protocol\GdLegacyText::encodeDescriptionForResponse(
