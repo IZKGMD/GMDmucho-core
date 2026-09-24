@@ -135,6 +135,7 @@ final class Router
             '/getgjcomments20' => '/getgjcomments21',
             '/uploadgjcomment' => '/uploadgjcomment20',
             '/uploadgjcomment19' => '/uploadgjcomment20',
+            '/deletegjcomment19' => '/deletegjcomment20',
             '/deletegjcomment' => '/deletegjcomment20',
             '/getgjaccountcomments' => '/getgjaccountcomments20',
             '/uploadgjacccomment' => '/uploadgjacccomment20',
