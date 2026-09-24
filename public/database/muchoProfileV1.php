@@ -435,6 +435,31 @@ function verifyTokenMP(PDO $db, int $id, string $token): bool {
 }
 
 
+if (PHP_SAPI !== 'cli') {
+    require_once rootMP() . '/vendor/autoload.php';
+
+    $request = \MuchoCore\Http\Request::fromGlobals();
+    $router = new \MuchoCore\Routing\Router();
+    $endpoint = $router->normalizePath($request->path);
+
+    $protection = (new \MuchoCore\Security\MuchoProtect())->inspect(
+        $request,
+        $endpoint
+    );
+
+    if ($protection['decision'] === 'block') {
+        http_response_code(200);
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode([
+            'ok' => false,
+            'error' => 'rate_limited'
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    header('Cache-Control: no-store, max-age=0');
+}
+
 $db = dbMP();
 installMP($db);
 
