@@ -47,9 +47,9 @@ jobs:
           test -f docker-compose.yml
           test -f docker/Dockerfile
           test -f docker/Caddyfile
-          test -f tools/client-patch.bat
-          test -f tools/client-patch.py
-          test -f tools/client-patcher.ps1
+          test -f tools/client/client-patch.bat
+          test -f tools/client/client-patch.py
+          test -f tools/client/client-patcher.ps1
           test -d vendor
           test ! -e .env
           test ! -e config/cloudsave.key
@@ -73,8 +73,8 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           unzip -t "mucho-core-v${VERSION}.zip"
-          unzip -l "mucho-core-v${VERSION}.zip" | grep -q 'tools/client-patch.bat'
-          unzip -l "mucho-core-v${VERSION}.zip" | grep -q 'tools/client-patch.py'
+          unzip -l "mucho-core-v${VERSION}.zip" | grep -q 'tools/client/client-patch.bat'
+          unzip -l "mucho-core-v${VERSION}.zip" | grep -q 'tools/client/client-patch.py'
           unzip -l "mucho-core-v${VERSION}.zip" | grep -q 'docker-compose.yml'
           unzip -l "mucho-core-v${VERSION}.zip" | grep -q 'VERSION'
           ! unzip -l "mucho-core-v${VERSION}.zip" | grep -qE '(^|/)\.env$'
