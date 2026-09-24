@@ -32,7 +32,7 @@ final readonly class CommentController
         }
 
         try {
-            $id = $this->service->uploadLevelComment(
+            $this->service->uploadLevelComment(
                 $levelId,
                 $accountId,
                 $gjp,
@@ -40,7 +40,8 @@ final readonly class CommentController
                 $percent,
                 $request->clientVersion()->effectiveGameVersion() ?: 22
             );
-            return Response::text($id > 0 ? (string)$id : "1");
+
+            return Response::text("1");
         } catch (Throwable $e) {
             return Response::text("-1");
         }
@@ -93,13 +94,14 @@ final readonly class CommentController
         }
 
         try {
-            $id = $this->service->uploadAccountComment(
+            $this->service->uploadAccountComment(
                 $accountId,
                 $gjp,
                 $content,
                 $request->clientVersion()->effectiveGameVersion() ?: 22
             );
-            return Response::text($id > 0 ? (string)$id : "1");
+
+            return Response::text("1");
         } catch (Throwable $e) {
             return Response::text("-1");
         }
