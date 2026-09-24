@@ -264,6 +264,19 @@ final class RecoveryController
     {
         $brand = '<img class="mucho-brand-logo" src="/assets/muchocore-logo.jpg" alt="MuchoCore" width="955" height="370" decoding="async">';
 
+        $serverCredit = '';
+        if (
+            !empty($this->branding['server_by_name']) &&
+            !empty($this->branding['social_url'])
+        ) {
+            $serverCredit =
+                ' · Server by <a href="' .
+                $this->e((string)$this->branding['social_url']) .
+                '" target="_blank" rel="noopener noreferrer">' .
+                $this->e((string)$this->branding['server_by_name']) .
+                '</a>';
+        }
+
         echo '<!doctype html>
 <html lang="ru">
 <head>
@@ -289,15 +302,9 @@ final class RecoveryController
     </section>
 
     <footer>
-        <span>Account Recovery
-            <?php if (!empty($this->branding['server_by_name']) && !empty($this->branding['social_url'])): ?>
-             · Server by
-             <a href="<?= $this->e((string)$this->branding['social_url']) ?>" target="_blank" rel="noopener noreferrer">
-                <?= $this->e((string)$this->branding['server_by_name']) ?>
-             </a>
-            <?php endif; ?>
-             · Powered by MuchoCore 🛡️
-        </span>
+        <span>Account Recovery' .
+            $serverCredit .
+            ' · Powered by MuchoCore 🛡️</span>
         <a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">GitHub</a>
     </footer>
 </main>
