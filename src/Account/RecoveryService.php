@@ -27,7 +27,7 @@ final readonly class RecoveryService
             return;
         }
 
-        if (!$this->rateLimiter->allow(
+        if (!$this->rateLimiter->allowStrict(
             'recovery-ip|' . $ip,
             5,
             900
@@ -37,7 +37,7 @@ final readonly class RecoveryService
 
         $normalized = strtolower($identity);
 
-        if (!$this->rateLimiter->allow(
+        if (!$this->rateLimiter->allowStrict(
             'recovery-identity|' . hash('sha256', $normalized),
             3,
             900
@@ -122,7 +122,7 @@ final readonly class RecoveryService
             return false;
         }
 
-        if (!$this->rateLimiter->allow(
+        if (!$this->rateLimiter->allowStrict(
             'recovery-reset-ip|' . $ip,
             10,
             900
