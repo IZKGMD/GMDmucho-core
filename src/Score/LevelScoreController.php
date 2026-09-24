@@ -586,7 +586,7 @@ final readonly class LevelScoreController
         }
 
 
-        return $out;
+        return rtrim($out, '|');
     }
 
 
