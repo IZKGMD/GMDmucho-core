@@ -17,7 +17,8 @@ MuchoCore — a backend for Geometry Dash Private Servers (GDPS).
 - admin panel;
 - compatibility with multiple client generations;
 - JSON API v2;
-- automated tests.
+- automated tests;
+- MuchoProtect request security and anti-abuse controls.
 
 ## Quick guide
 
@@ -96,6 +97,8 @@ tests/
 First configure the server using the setup guide, then check /health.
 
 ## Security
+
+MuchoCore includes **MuchoProtect**, a centralized request protection layer for GD traffic. It applies conservative per-IP and per-account limits, burst detection, and privacy-preserving security audit events while keeping the Geometry Dash response body compatible.
 
 Never publish:
 
