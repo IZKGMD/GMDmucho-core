@@ -14,7 +14,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          extensions: mbstring, pdo_mysql
+          extensions: mbstring, pdo_mysql, zip
           tools: composer
 
       - name: Check shell scripts
@@ -60,6 +60,7 @@ jobs:
           php tests/client/client-trace.php
           php tests/security/muchoprotect.php
           php tests/client/windows-client-patcher.php
+          php tests/client/android-client-patcher.php
 
       - name: Check Python patcher
         run: |
