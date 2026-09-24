@@ -15,9 +15,27 @@ final readonly class ClientVersion
 
     public static function fromRequest(Request $request): self
     {
+        $gameVersion = $request->postInt('gameVersion', 0);
+        $binaryVersion = $request->postInt('binaryVersion', 0);
+
+        /*
+         * Some genuine GD 1.9 endpoints do not include gameVersion or
+         * binaryVersion in their POST body. The endpoint suffix itself is
+         * authoritative for these versioned legacy routes.
+         */
+        if (
+            $gameVersion === 0 &&
+            preg_match(
+                '#/(?:get|upload|delete)gjcomment19(?:\\.php)?$#i',
+                (string)$request->path
+            ) === 1
+        ) {
+            $gameVersion = 19;
+        }
+
         return self::fromValues(
-            $request->postInt('gameVersion', 0),
-            $request->postInt('binaryVersion', 0)
+            $gameVersion,
+            $binaryVersion
         );
     }
 
