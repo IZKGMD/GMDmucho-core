@@ -59,6 +59,7 @@ jobs:
           php tests/security/turnstile.php
           php tests/client/client-trace.php
           php tests/security/muchoprotect.php
+          php tests/client/windows-client-patcher.php
 
       - name: Check Python patcher
         run: |
