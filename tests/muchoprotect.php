@@ -22,6 +22,7 @@ $protect = new MuchoProtect(
     new \MuchoCore\Security\AbusePenaltyStore($mainPenaltyDir)
 );
 putenv('MUCHO_PROTECT=1');
+$_ENV['MUCHO_PROTECT'] = '1';
 
 $request = new Request(
     method: 'POST',
