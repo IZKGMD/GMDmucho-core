@@ -68,7 +68,6 @@ $aliases21 = [
     '/downloadGJLevel21.php' => '/downloadGJLevel21',
     '/getGJComments20.php' => '/getGJComments21',
     '/getGJComments21.php' => '/getGJComments21',
-    '/getGJLevelsScores21.php' => '/getGJLevelsScores21',
     '/getGJMapPacks20.php' => '/getGJMapPacks21',
     '/getGJGauntlets20.php' => '/getGJGauntlets21',
     '/likeGJItem20.php' => '/likeGJItem21',
