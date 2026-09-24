@@ -10,7 +10,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Level/LevelRepository.php',
-        "$gameVersion > 21",
+        '$gameVersion > 21',
         '2.1 featured excludes Epic until 2.2',
     ],
     [
@@ -20,7 +20,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Protocol/GdCommentEncoder.php',
-        "if ($badge > 0)",
+        'if ($badge > 0)',
         '2.1 comment badge color is conditional',
     ],
     [
