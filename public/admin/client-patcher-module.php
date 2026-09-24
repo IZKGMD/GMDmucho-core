@@ -798,5 +798,8 @@ function renderClientPatcherPage(PDO $db): void
     });
 })();
 </script>
+<?php
+    renderAndroidPatcherSection($db);
+?>
     <?php
 }
