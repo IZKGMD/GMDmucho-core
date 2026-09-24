@@ -56,6 +56,8 @@ $roleFiles = [
     __DIR__ . '/../../bin/mucho-roles.php',
     __DIR__ . '/../../public/admin/pages/players.php',
     __DIR__ . '/../../public/admin/actions/legacy-dispatcher.php',
+    __DIR__ . '/../../src/Moderation/ModerationService.php',
+    __DIR__ . '/../../src/Interaction/CommentService.php',
 ];
 
 foreach ($roleFiles as $file) {
@@ -81,6 +83,21 @@ foreach ($roleFiles as $file) {
         );
         exit(1);
     }
+}
+
+if (str_contains((string)file_get_contents(__DIR__ . '/../../src/Moderation/ModerationService.php'), "'elder',")) {
+    fwrite(STDERR, "FAIL stale moderation role alias found\n");
+    exit(1);
+}
+
+if (!str_contains((string)file_get_contents(__DIR__ . '/../../src/Moderation/ModerationService.php'), "'elder_moderator'")) {
+    fwrite(STDERR, "FAIL canonical moderation role missing\n");
+    exit(1);
+}
+
+if (!str_contains((string)file_get_contents(__DIR__ . '/../../src/Interaction/CommentService.php'), '"elder_moderator"')) {
+    fwrite(STDERR, "FAIL canonical comment-command role missing\n");
+    exit(1);
 }
 
 echo "PASS canonical game role sources\n";
