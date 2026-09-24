@@ -114,7 +114,7 @@ $download = $downloadEncoder->encode(
     [
         'level_id' => 123,
         'name' => 'Mucho 1.9',
-        'description' => 'Hello 1.9',
+        'description' => 'SGVsbG8gMS45',
         'level_data' => '1:2:3',
         'level_version' => 1,
         'user_id' => 42,
@@ -223,7 +223,7 @@ $list = $listEncoder->encode(
 );
 
 assertTrue(
-    str_contains($list, ':3:' . base64_encode('Hello 1.9') . ':15:'),
+    str_contains($list, ':3:SGVsbG8gMS45:15:'),
     '1.9 level list description is Base64'
 );
 assertTrue(
