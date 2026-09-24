@@ -16,14 +16,12 @@ final readonly class ModerationService
 {
     private const MODERATOR_ROLES=[
         'moderator',
-        'elder',
-        'admin',
+        'elder_moderator',
         'owner'
     ];
 
     private const DIRECT_RATE_ROLES=[
-        'elder',
-        'admin',
+        'elder_moderator',
         'owner'
     ];
 
