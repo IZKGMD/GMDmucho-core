@@ -8,7 +8,7 @@ if [[ ! -f "$CONTRACT" ]]; then
     echo "2.2 RELEASE GATE: FAIL"
     echo "Missing real-client fixture: tests/client-fixtures/2.2/endpoints.json"
     echo "Generate it only from a real Geometry Dash 2.2 trace:"
-    echo "python3 tools/client-trace-summary.py --expected-family 2.2 --input storage/client-trace.ndjson --output tests/client-fixtures/2.2/endpoints.json"
+    echo "python3 tools/client/client-trace-summary.py --expected-family 2.2 --input storage/client-trace.ndjson --output tests/client-fixtures/2.2/endpoints.json"
     exit 1
 fi
 
