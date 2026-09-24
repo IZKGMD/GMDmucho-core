@@ -46,8 +46,12 @@ final class CommentRepository
         $stmt = $this->db->prepare(
             "SELECT c.*,
                     a.username, a.role,
-                    p.user_id,
-                    p.cube, p.color1, p.color2, p.special, p.icon_type
+                    COALESCE(p.user_id, a.account_id) AS user_id,
+                    COALESCE(p.cube, 1) AS cube,
+                    COALESCE(p.color1, 0) AS color1,
+                    COALESCE(p.color2, 3) AS color2,
+                    COALESCE(p.special, 0) AS special,
+                    COALESCE(p.icon_type, 0) AS icon_type
              FROM comments c
              JOIN accounts a ON c.account_id = a.account_id
              LEFT JOIN profiles p ON a.account_id = p.account_id
