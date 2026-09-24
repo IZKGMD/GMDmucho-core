@@ -1,8 +1,8 @@
 # 🎮 MuchoCore
 
 <p align="center">
-  <strong>A modern backend for Geometry Dash Private Servers (GDPS)</strong><br>
-  Built for protocol compatibility, maintainability, and real-world server protection.
+  <strong>Build your own Geometry Dash Private Server.</strong><br>
+  Modern infrastructure • 2.2-focused compatibility • built-in protection • easy deployment
 </p>
 
 <p align="center">
@@ -11,36 +11,94 @@
   </a>
   <img src="https://img.shields.io/badge/release-v1.0.0%20RC-8A2BE2" alt="Release candidate">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
-  <img src="https://img.shields.io/badge/Geometry%20Dash-2.2%20verified-orange" alt="Geometry Dash 2.2">
-  <img src="https://img.shields.io/badge/GD%201.9-100%25%20implemented-success" alt="Geometry Dash 1.9 implementation">
-  <img src="https://img.shields.io/badge/GD%202.0-100%25%20implemented-success" alt="Geometry Dash 2.0 implementation">
-  <img src="https://img.shields.io/badge/GD%202.1-100%25%20implemented-success" alt="Geometry Dash 2.1 implementation">
+  <img src="https://img.shields.io/badge/Geometry%20Dash-2.2--focused-orange" alt="Geometry Dash 2.2">
+  <img src="https://img.shields.io/badge/MuchoProtect-enabled-success" alt="MuchoProtect">
+  <img src="https://img.shields.io/badge/Docker-ready-2496ED" alt="Docker">
 </p>
 
-> ⚡ **Release candidate: v1.0.0**
->
-> MuchoCore focuses on a clean server architecture, complete GD 1.9–2.2 server-side protocol compatibility, and built-in protection against abusive traffic.
+<p align="center">
+  <a href="docs/SETUP.md">🚀 Setup</a> ·
+  <a href="docs/CLIENT_SETUP.md">🎮 Client Setup</a> ·
+  <a href="docs/VERSIONS.md">📚 Version Profiles</a> ·
+  <a href="docs/SHOWCASE.md">🌍 Showcase</a>
+</p>
+
+> ⚡ **MuchoCore is a modern Geometry Dash Private Server backend built to make GDPS deployment easier, safer, and easier to maintain.**
 
 ---
 
 ## ✨ Why MuchoCore?
 
+MuchoCore is designed around one simple idea:
+
+**you should spend your time building your GDPS — not fighting the backend.**
+
 | Area | What you get |
 | --- | --- |
-| 🎮 **Gameplay backend** | Accounts, profiles, levels, ratings, comments, social features, and cloud save |
-| 🛡️ **MuchoProtect** | Centralized rate limiting, burst detection, account/IP isolation, and security auditing |
-| 🔌 **Protocol focused** | Version-aware handling for modern Geometry Dash clients |
-| 🧪 **Tested** | Automated protocol, routing, client-contract, security, Docker, and patcher checks |
-| 🖥️ **Admin tools** | Web admin panel for managing the server and players |
-| 🎵 **Music infrastructure** | Built-in public music storage and player uploads |
-| 🚀 **Deployment ready** | Docker + Caddy setup with installation and update tooling |
-| 🧩 **Extensible** | Organized PHP services, repositories, controllers, migrations, and API layers |
+| 🎮 **Geometry Dash backend** | Accounts, profiles, levels, ratings, comments, social features, scores, and cloud saves |
+| 🛡️ **MuchoProtect** | Centralized request protection with per-endpoint limits, burst detection, account/IP isolation, and audit events |
+| 🔌 **Version-aware protocol** | Shared server logic with client-generation-specific protocol handling |
+| 🧪 **Automated validation** | Protocol, routing, client-contract, security, Docker, and patcher checks |
+| 🖥️ **Admin panel** | Web tools for managing players and server data |
+| 🎵 **Music infrastructure** | Built-in public music storage and upload flow |
+| 🐳 **Docker + Caddy** | Repeatable deployment without manually assembling the stack |
+| 🧩 **Maintainable architecture** | PHP services, repositories, controllers, migrations, and compatibility layers |
+
+---
+
+## 🚀 Get a GDPS running in minutes
+
+You do not need to manually install PHP, MariaDB, or Caddy.
+
+```bash
+git clone https://github.com/IZKGMD/GMDmucho-core.git
+cd GMDmucho-core
+sudo ./install
+```
+
+Point your domain to the VPS, complete the installer, then verify:
+
+```text
+https://YOUR-DOMAIN/health
+```
+
+Expected:
+
+```text
+1
+```
+
+Then open:
+
+```text
+https://YOUR-DOMAIN/admin/
+```
+
+For the full walkthrough, see **[VPS Setup](docs/SETUP.md)**.
+
+### The flow
+
+```text
+VPS
+ ↓
+./install
+ ↓
+MuchoCore + MariaDB + Caddy
+ ↓
+/health → 1
+ ↓
+Patch your client
+ ↓
+🎮 Your GDPS is online
+```
+
+---
 
 ## 🛡️ MuchoProtect
 
-Security is a first-class part of MuchoCore.
+**Security is part of the core, not an afterthought.**
 
-**MuchoProtect** sits in front of the router and evaluates protected requests before they reach the endpoint:
+MuchoProtect sits in front of the request router and evaluates protected actions before they reach the endpoint.
 
 ```text
 Request
@@ -51,195 +109,172 @@ Identity + IP + Endpoint
    ↓
 Rate / Burst Analysis
    ↓
-ALLOW or BLOCK
+ALLOW / BLOCK
    ↓
 Legacy-compatible response
 ```
 
-| Protection | Purpose |
+| Protection | What it does |
 | --- | --- |
-| 🚦 **Per-endpoint limits** | Different limits for login, uploads, comments, scores, ratings, messages, and other sensitive actions |
-| 🌐 **IP protection** | Limits abusive request bursts without exposing raw IP addresses in audit logs |
-| 👤 **Account protection** | Uses a credential-bound identity fingerprint instead of trusting a public account ID alone |
-| 💥 **Burst detection** | Catches short high-frequency request spikes typical of spam/abuse |
-| 📋 **Audit events** | Records blocked security events with privacy-preserving hashed IP data |
-| 🔒 **Protocol-safe blocking** | Uses the expected Geometry Dash failure body while preserving successful HTTP transport |
+| 🚦 **Per-endpoint limits** | Applies different limits to authentication, uploads, comments, messages, scores, ratings, and other sensitive actions |
+| 🌐 **IP controls** | Helps contain request flooding while keeping raw IP addresses out of audit events |
+| 👤 **Account isolation** | Uses a credential-bound identity fingerprint instead of trusting a public account ID by itself |
+| 💥 **Burst protection** | Detects short high-frequency request spikes |
+| 📋 **Security audit** | Stores blocked-event metadata using privacy-preserving IP hashes |
+| 🎮 **Protocol-safe blocking** | Keeps Geometry Dash failure semantics while preserving normal HTTP transport |
 
-MuchoProtect is **enabled by default** and can be configured with environment variables.
+MuchoProtect is enabled by default and can be configured through environment variables.
+
+---
 
 ## 🎯 Geometry Dash compatibility
 
-MuchoCore has completed its server-side compatibility pass for **GD 1.9, 2.0, 2.1 and 2.2**. The GD 2.2 real-client gate is verified; older-generation runtime evidence remains tracked separately.
+MuchoCore uses **one server core** across supported client generations instead of maintaining separate server copies.
 
-| Component | Status |
-| --- | --- |
-| Client version detection | ✅ Implemented |
-| 2.2 authentication / GJP2 handling | ✅ Implemented |
-| 2.2 profile state fields | ✅ Implemented |
-| 2.2 level / leaderboard protocol work | ✅ Implemented |
-| Version-aware endpoint behavior | ✅ Implemented |
-| Protocol regression tests | ✅ Passing |
-| Real 2.2 client trace fixture | ✅ Captured from GD 2.2.13 |
-| GD 1.9 server-side protocol compatibility pass | ✅ **100% complete**; real-client verification pending |\n| GD 2.0 server-side protocol implementation | ✅ **100% complete**; real-client verification pending |
-| GD 2.1 server-side protocol implementation | ✅ **100% complete**; real-client verification pending |
+The current development focus is **GD 2.2 compatibility**, with version-aware protocol behavior at the server boundary.
 
-> **Compatibility note:** GD 2.0 and GD 2.1 server-side implementations are **100% complete** for the current protocol scopes. Their remaining gates are empirical verification with real clients; this is deliberately tracked separately from implementation completeness.
-
-## 🧪 Validation & tests
-
-MuchoCore is continuously checked through GitHub Actions and local test scripts.
-
-| Check | Result |
+| Capability | Status |
 | --- | :---: |
-| PHP syntax / source validation | ✅ |
-| Router compatibility | ✅ |
-| Client compatibility checks | ✅ |
-| Protocol matrix / 2.2 guards | ✅ |
-| Protocol hash checks | ✅ |
+| Client version detection | ✅ |
+| GJP2-aware authentication path | ✅ |
+| Modern profile state fields | ✅ |
+| Version-aware level / leaderboard handling | ✅ |
+| Legacy protocol compatibility layers | ✅ |
+| Protocol regression coverage | ✅ |
+| Real-client verification | 🔬 Actively tracked |
+
+> **Important:** automated tests prove server-side contracts and protocol surfaces; real-client testing is kept as a separate verification layer.
+
+See **[Version Profiles](docs/VERSIONS.md)** for the supported runtime profiles.
+
+---
+
+## 🧪 Proof, not promises
+
+MuchoCore is continuously validated through GitHub Actions and local test suites.
+
+| Test area | Status |
+| --- | :---: |
+| PHP source validation | ✅ |
+| Router / endpoint compatibility | ✅ |
+| Protocol matrix checks | ✅ |
+| 2.2 protocol guards | ✅ |
+| Protocol hash / wire checks | ✅ |
 | Client trace tooling | ✅ |
-| GD 1.9 protocol surface / wire suite | ✅ |
-| GD 2.0 protocol surface / wire suite | ✅ |
-| GD 2.1 protocol surface / wire suite | ✅ |
-| Social message / relationship wire suite | ✅ |
-| GD 2.1 wire contract | ✅ |
 | Client contract checks | ✅ |
 | MuchoProtect security tests | ✅ |
-| Python client patcher self-test | ✅ |
-| Windows patcher validation | ✅ |
+| Windows client patcher checks | ✅ |
+| Python patcher self-test | ✅ |
 | Docker / Compose validation | ✅ |
 | Caddy / routing validation | ✅ |
 
-### Local checks
+The goal is simple: **every release should be backed by reproducible checks, not just a README claim.**
 
-~~~bash
-php tests/client/client-compatibility.php
-php tests/protocol/protocol-matrix.php
-php tests/protocol/protocol-19-surface.php
-php tests/protocol/protocol-19-wire.php
-php tests/protocol/protocol-20-surface.php
-php tests/protocol/protocol-20-wire.php
-php tests/protocol/protocol-21-surface.php
-php tests/protocol/protocol-22-surface.php
-php tests/protocol/router-compatibility.php
-php tests/client/client-trace.php
-php tests/security/muchoprotect.php
-python3 tools/client/client-patch.py --self-test
-bash tests/client/client-contract.sh
-bash tests/release/release-2.2-gate.sh
-# Release-only: run after capturing a real GD 1.9 client fixture.
-bash tests/release/release-1.9-gate.sh
-# Release-only: run after capturing a real GD 2.0 client fixture.
-bash tests/release/release-2.0-gate.sh
-# Release-only: run after capturing a real GD 2.1 client fixture.
-bash tests/release/release-2.1-gate.sh
-~~~
+---
 
-## 🚀 Getting started
+## 🎮 Connect a Geometry Dash client
 
-### 1. Choose your setup
+For Windows clients, use the included patcher:
 
-| Environment | Guide |
-| --- | --- |
-| 🐧 Linux VPS + root access | [docs/SETUP.md](docs/SETUP.md) |
-| 🌐 Standard PHP hosting | [docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md) |
-| 🎮 Client already patched / server running | [docs/CLIENT_SETUP.md](docs/CLIENT_SETUP.md) |
-| 🧠 Advanced deployment / internals | [docs/ADVANCED.md](docs/ADVANCED.md) |
+```text
+tools/client/
+```
 
-### 2. Choose the compatibility profile
+The patcher creates a separate client file and leaves the original untouched.
 
-The root installer opens a version menu and lets you deploy GD 1.9, 2.0, 2.1, 2.2, or any supported combination.
+For Android 2.2, native libraries commonly contain the server URL inside:
 
-The full release target uses all supported versions:
+```text
+arm64-v8a/libcocos2dcpp.so
+armeabi-v7a/libcocos2dcpp.so
+```
 
-~~~bash
-sudo ./install
-~~~
+After modifying an Android package, it must be correctly rebuilt and signed.
 
-Version profiles are runtime-enforced without duplicating the server core.
+Read **[Client Setup](docs/CLIENT_SETUP.md)** for the supported workflows.
 
-See [docs/VERSIONS.md](docs/VERSIONS.md) for the profile matrix and manual configuration.
+> ℹ️ A successful patch operation only proves that known server URL patterns were replaced. Full compatibility still requires testing the actual client build against the server.
 
-### 3. Verify the server
+---
 
-~~~text
-https://YOUR-DOMAIN/health
-~~~
+## 🌍 Built something with MuchoCore?
 
-Expected response:
+**Show it off.**
 
-~~~text
-1
-~~~
+Public and private GDPS projects are welcome in the **[MuchoCore Showcase](docs/SHOWCASE.md)**.
 
-### 4. Open the admin panel
+You can also use:
 
-~~~text
-https://YOUR-DOMAIN/admin/
-~~~
+> Powered by [MuchoCore](https://github.com/IZKGMD/GMDmucho-core) 🛡️
 
-The default administrator username is:
+in your website, credits, README, or admin panel.
 
-~~~text
-admin
-~~~
+The goal is to make MuchoCore more than a repository:
 
-The password is set during installation.
+```text
+One engine
+   ↓
+Many GDPS projects
+   ↓
+More contributors
+   ↓
+More compatibility testing
+   ↓
+A stronger GDPS ecosystem
+```
 
-## 🎮 Connecting Geometry Dash
-
-For Windows clients, use:
-
-~~~text
-tools/client/client-patch.bat
-~~~
-
-The patcher creates a **separate client file** and does not replace the original EXE.
-
-> ℹ️ A successful patcher run confirms that the known URL strings were replaced successfully. It does **not** by itself prove full compatibility with a specific Geometry Dash build.
+---
 
 ## 🏗️ Project structure
 
-~~~text
-START_HERE.md
-README.md
+```text
 src/                       ← server logic
 public/                    ← HTTP entry points and GD endpoints
-database/                  ← migrations
-tests/
-├── client/                ← tracing, contracts and client checks
-├── client-fixtures/       ← real-client contracts by version
-├── protocol/              ← protocol and wire-format checks
-├── security/              ← MuchoProtect and security checks
-├── application/           ← application/domain contracts
-├── integration/           ← smoke, load, regression and hosting
-└── release/               ← release gates
-tools/
-└── client/                ← client patchers and trace tooling
+database/                  ← database migrations
+tests/                     ← automated validation
+tools/                     ← client and development tools
 docs/                      ← documentation
-assets/brand/              ← brand source artwork
+assets/                    ← project branding
 docker/                    ← Docker / Caddy configuration
-~~~
+```
 
-## 🔐 Security basics
+---
+
+## 🔐 Production security basics
 
 Never publish or commit:
 
-~~~text
+```text
 .env
 config/cloudsave.key
 storage/
 .secrets/
-~~~
+```
 
-Before removing an installation, read the warning in `uninstall.sh`: it removes the containers and database.
+Before making major changes, create a database backup and keep your Cloud Save key safe.
+
+For deployment details, see **[VPS Setup](docs/SETUP.md)** and **[Advanced Deployment](docs/ADVANCED.md)**.
+
+---
 
 ## 📦 Release candidate
 
-MuchoCore **v1.0.0** is being prepared around one main goal:
+**v1.0.0** is being prepared around four goals:
 
-> **Ship a release-ready Geometry Dash backend with complete 1.9–2.2 server-side compatibility, verified regression coverage, and strong maintainability/security.**
+1. 🎮 Strong Geometry Dash protocol compatibility
+2. 🛡️ Built-in request protection
+3. 🧪 Reproducible automated validation
+4. 🚀 Simple, repeatable GDPS deployment
 
-The 2.2 gate is based on **real Geometry Dash 2.2.13 client traffic**, not a synthetic fixture.
+MuchoCore is intended to be useful to both first-time GDPS owners and developers who want a maintainable server foundation.
+
+---
+
+## 🤝 Contributing
+
+Bug reports, compatibility fixes, tests, security hardening, documentation improvements, and deployment improvements are welcome.
+
+For security-sensitive reports, avoid posting private exploit details publicly.
 
 ---
 
