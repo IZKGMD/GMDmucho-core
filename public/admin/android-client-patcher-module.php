@@ -44,9 +44,7 @@ function handleAndroidPatcherAction(
         }
 
         try {
-            $server = AndroidClientPatcher::patchFile
-                ? WindowsClientPatcher::validateServerUrl($serverUrl)
-                : '';
+            $server = \MuchoCore\Client\WindowsClientPatcher::validateServerUrl($serverUrl);
         } catch (Throwable $e) {
             clientPatcherJson(
                 ['ok' => false, 'error' => $e->getMessage()],
