@@ -76,7 +76,7 @@ $stmt = $pdo->prepare("
 
 $stmt->execute([
     ":stars" => $stars, ":difficulty" => $difficulty, ":demon" => $isDemon,
-:demon_diff" => $demonDiff, ":auto_level" => $isAuto,
+":demon_diff" => $demonDiff, ":auto_level" => $isAuto,
     ":featured" => ($featureType > 0 ? 1 : 0), ":epic" => $epic,
     ":id" => $levelId
 ]);
