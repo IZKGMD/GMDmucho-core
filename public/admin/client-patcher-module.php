@@ -119,7 +119,7 @@ function handleClientPatcherAction(
             );
         }
 
-        if ($totalSize < 1024 || $totalSize > 512 * 1024 * 1024) {
+        if ($totalSize < 1024 || $totalSize > 51512 * 1024) {
             clientPatcherJson(
                 [
                     'ok' => false,
@@ -162,7 +162,7 @@ function handleClientPatcherAction(
             'ok' => true,
             'upload_id' => $id,
             'next_offset' => 0,
-            'chunk_size' => 2 * 1024 * 1024,
+            'chunk_size' => 512 * 1024,
         ]);
     }
 
@@ -222,7 +222,7 @@ function handleClientPatcherAction(
         if (
             !is_uploaded_file($tmp) ||
             $chunkSize <= 0 ||
-            $chunkSize > 2 * 1024 * 1024 ||
+            $chunkSize > 512 * 1024 ||
             $offset + $chunkSize > $totalSize
         ) {
             clientPatcherJson(
@@ -595,7 +595,7 @@ function renderClientPatcherPage(PDO $db): void
     const result = document.getElementById('mcPatcherResult');
     const button = document.getElementById('mcPatcherButton');
     const csrf = <?=json_encode(csrf(), JSON_UNESCAPED_SLASHES)?>;
-    const CHUNK_SIZE = 2 * 1024 * 1024;
+    const CHUNK_SIZE = 512 * 1024;
 
     let selected = null;
 
@@ -711,7 +711,7 @@ function renderClientPatcherPage(PDO $db): void
             return;
         }
 
-        if (selected.size > 512 * 1024 * 1024) {
+        if (selected.size > 51512 * 1024) {
             setStatus('Maximum supported executable size is 512 MB.');
             return;
         }
@@ -745,14 +745,35 @@ function renderClientPatcherPage(PDO $db): void
                     ' MB…'
                 );
 
-                const data = await api(
-                    'client-patcher-chunk',
-                    {
-                        upload_id: uploadId,
-                        offset
-                    },
-                    chunk
-                );
+                let data = null;
+                let lastError = null;
+
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                    try {
+                        data = await api(
+                            'client-patcher-chunk',
+                            {
+                                upload_id: uploadId,
+                                offset
+                            },
+                            chunk
+                        );
+                        lastError = null;
+                        break;
+                    } catch (error) {
+                        lastError = error;
+                        if (attempt < 3) {
+                            setStatus(
+                                'Upload retry ' + attempt + '/2…'
+                            );
+                            await new Promise(resolve => setTimeout(resolve, 700 * attempt));
+                        }
+                    }
+                }
+
+                if (!data) {
+                    throw lastError || new Error('Upload chunk failed.');
+                }
 
                 offset = Number(data.next_offset || end);
                 setProgress((offset / selected.size) * 90);
