@@ -26,17 +26,23 @@ final readonly class LikeRepository
             default => throw new RuntimeException('Invalid like type'),
         };
 
+        if ($itemId <= 0) {
+            return false;
+        }
+
         $this->db->beginTransaction();
 
         try {
             if ($accountId > 0) {
+                // Authenticated votes are keyed by account, not source IP.
                 $q = $this->db->prepare(
-                    'SELECT 1
+                    'SELECT id, is_like
                      FROM likes
                      WHERE item_id=:item
                        AND type=:type
                        AND account_id=:account
-                     LIMIT 1'
+                     LIMIT 1
+                     FOR UPDATE'
                 );
                 $q->execute([
                     'item' => $itemId,
@@ -44,14 +50,21 @@ final readonly class LikeRepository
                     'account' => $accountId,
                 ]);
             } else {
+                $ip = trim($ip);
+                if ($ip === '' || filter_var($ip, FILTER_VALIDATE_IP) === false) {
+                    $this->db->rollBack();
+                    return false;
+                }
+
                 $q = $this->db->prepare(
-                    'SELECT 1
+                    'SELECT id, is_like
                      FROM likes
                      WHERE item_id=:item
                        AND type=:type
                        AND account_id=0
                        AND ip=:ip
-                     LIMIT 1'
+                     LIMIT 1
+                     FOR UPDATE'
                 );
                 $q->execute([
                     'item' => $itemId,
@@ -60,31 +73,46 @@ final readonly class LikeRepository
                 ]);
             }
 
-            if ($q->fetchColumn() !== false) {
-                $this->db->rollBack();
-                return false;
+            $existing = $q->fetch(PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                $oldLike = (int)$existing['is_like'] === 1;
+                if ($oldLike === $isLike) {
+                    $this->db->rollBack();
+                    return false;
+                }
+
+                $q = $this->db->prepare(
+                    'UPDATE likes SET is_like=:is_like WHERE id=:id'
+                );
+                $q->execute([
+                    'is_like' => $isLike ? 1 : 0,
+                    'id' => (int)$existing['id'],
+                ]);
+                $delta = $isLike ? 1 : -1;
+            } else {
+                $q = $this->db->prepare(
+                    'INSERT INTO likes
+                     (item_id,type,account_id,ip,is_like)
+                     VALUES (:item,:type,:account,:ip,:like)'
+                );
+                $q->execute([
+                    'item' => $itemId,
+                    'type' => $type,
+                    'account' => $accountId,
+                    'ip' => $accountId > 0 ? '' : $ip,
+                    'like' => $isLike ? 1 : 0,
+                ]);
+                $delta = $isLike ? 1 : 0;
             }
 
             $q = $this->db->prepare(
-                'INSERT INTO likes
-                 (item_id,type,account_id,ip,is_like)
-                 VALUES (:item,:type,:account,:ip,:like)'
-            );
-            $q->execute([
-                'item' => $itemId,
-                'type' => $type,
-                'account' => $accountId,
-                'ip' => $ip,
-                'like' => $isLike ? 1 : 0,
-            ]);
-
-            $q = $this->db->prepare(
-                "UPDATE `$table`
+                'UPDATE `'.$table.'`
                  SET likes = GREATEST(0, likes + :amount)
-                 WHERE `$pk` = :id"
+                 WHERE `'.$pk.'` = :id'
             );
             $q->execute([
-                'amount' => $isLike ? 1 : -1,
+                'amount' => $delta,
                 'id' => $itemId,
             ]);
 
