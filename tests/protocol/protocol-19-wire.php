@@ -100,6 +100,11 @@ assertTrue(
     str_contains($comment, '2~SGVsbG8gMS45'),
     '1.9 comment wire payload is Base64'
 );
+
+assertTrue(
+    str_contains($comment, '~3~9001~'),
+    '1.9 comment wire uses user ID/account identity field'
+);
 assertTrue(
     !str_contains($comment, '~11~'),
     '1.9 comment uses legacy layout'
