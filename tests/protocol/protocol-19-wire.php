@@ -102,8 +102,8 @@ assertTrue(
 );
 
 assertTrue(
-    str_contains($comment, '~3~9001~'),
-    '1.9 comment wire uses user ID/account identity field'
+    str_contains($comment, '~3~42~'),
+    '1.9 comment wire uses the profile user ID'
 );
 assertTrue(
     !str_contains($comment, '~11~'),
