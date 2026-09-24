@@ -406,17 +406,19 @@ final readonly class Application
     {
         ClientTrace::captureRequest($request);
 
-        $protection = $this->protect->inspect(
-            $request,
-            $this->router->normalizePath($request->path)
-        );
+        if (($_SERVER['MUCHO_PROTECT_PRECHECKED'] ?? '') !== '1') {
+            $protection = $this->protect->inspect(
+                $request,
+                $this->router->normalizePath($request->path)
+            );
 
-        if ($protection['decision'] === 'block') {
-            // Keep a successful HTTP transport response for Geometry Dash
-            // clients; the legacy protocol uses "-1" as its failure signal.
-            $response = Response::text('-1');
-            ClientTrace::captureResponse($response);
-            return $response;
+            if ($protection['decision'] === 'block') {
+                // Keep a successful HTTP transport response for Geometry Dash
+                // clients; the legacy protocol uses "-1" as its failure signal.
+                $response = Response::text('-1');
+                ClientTrace::captureResponse($response);
+                return $response;
+            }
         }
 
         try {
