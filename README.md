@@ -11,7 +11,7 @@
   </a>
   <img src="https://img.shields.io/badge/release-v1.0.0%20RC-8A2BE2" alt="Release candidate">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
-  <img src="https://img.shields.io/badge/Geometry%20Dash-2.2--focused-orange" alt="Geometry Dash 2.2">
+  <img src="https://img.shields.io/badge/Geometry%20Dash-2.2%20verified-success" alt="Geometry Dash 2.2">
   <img src="https://img.shields.io/badge/MuchoProtect-enabled-success" alt="MuchoProtect">
   <img src="https://img.shields.io/badge/Docker-ready-2496ED" alt="Docker">
 </p>
