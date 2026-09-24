@@ -108,6 +108,9 @@ foreach ([
     '/uploadGJComment19.php',
     '/deleteGJComment19.php',
     '/updateGJLevel19.php',
+    '/getGJComments.php',
+    '/uploadGJComment.php',
+    '/deleteGJComment.php',
 ] as $commentPath) {
     $commentRequest = new Request(
         'POST',
