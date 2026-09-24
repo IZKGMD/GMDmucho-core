@@ -235,6 +235,31 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Interaction/CommentService.php',
+        'private function commandResponse(',
+        'command response handler',
+    ],
+    [
+        __DIR__ . '/../../src/Interaction/CommentService.php',
+        '"temp_0_" . $message',
+        'GD 2.1+ command success/failure message transport',
+    ],
+    [
+        __DIR__ . '/../../src/Interaction/CommentService.php',
+        'Any text beginning with "!" is a command attempt.',
+        'all comment commands are consumed instead of persisted',
+    ],
+    [
+        __DIR__ . '/../../src/Interaction/CommentService.php',
+        'if ($commandName === "!help")',
+        'cross-version comment help command',
+    ],
+    [
+        __DIR__ . '/../../src/Interaction/CommentService.php',
+        'MuchoCore Commands',
+        'comment command help content',
+    ],
+    [
+        __DIR__ . '/../../src/Interaction/CommentService.php',
         'public function getUserComments(',
         'legacy user comment history surface',
     ],
