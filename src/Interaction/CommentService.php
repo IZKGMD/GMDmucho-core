@@ -90,26 +90,49 @@ final class CommentService
 
         $percent = max(0, min(100, $percent));
 
-        $this->repository->addLevelComment(
-            $levelId,
-            $accountId,
-            $decodedContent,
-            $percent
-        );
-
-        /*
-         * Legacy GD also records the progress attached to a comment as a
-         * level score when percent is non-zero.
-         */
-        if ($percent > 0 && $this->pdo !== null) {
-            $this->recordCommentProgress(
-                $accountId,
+        if ($this->pdo === null) {
+            $this->repository->addLevelComment(
                 $levelId,
+                $accountId,
+                $decodedContent,
                 $percent
             );
+
+            return 1;
         }
 
-        return 1;
+        $this->pdo->beginTransaction();
+
+        try {
+            $this->repository->addLevelComment(
+                $levelId,
+                $accountId,
+                $decodedContent,
+                $percent
+            );
+
+            /*
+             * Legacy GD also records the progress attached to a comment as a
+             * level score when percent is non-zero.
+             */
+            if ($percent > 0) {
+                $this->recordCommentProgress(
+                    $accountId,
+                    $levelId,
+                    $percent
+                );
+            }
+
+            $this->pdo->commit();
+
+            return 1;
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
+            throw $e;
+        }
     }
 
     private function recordCommentProgress(
