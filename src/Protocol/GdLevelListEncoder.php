@@ -33,9 +33,13 @@ final class GdLevelListEncoder
             $username = ProtocolText::username(
                 $level['username'] ?? 'Player'
             );
+            /*
+             * Preserve custom star values (15/30/50, etc.) in the multi-level
+             * hash. Cvolton's genMulti hashes the stored star value verbatim.
+             */
             $protocolStars = max(
                 0,
-                min(10, (int)($level['stars'] ?? 0))
+                (int)($level['stars'] ?? 0)
             );
 
             $levelStrings[] = implode(':', [
