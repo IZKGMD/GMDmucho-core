@@ -67,10 +67,10 @@ assertSameValue(
 assertSameValue(
     'legacy comment',
     GdLegacyText::decodeComment(
-        strtr(base64_encode('legacy comment'), '+/', '-_'),
+        'legacy comment',
         19
     ),
-    '1.9 comment decoding'
+    '1.9 incoming comment stays plain text'
 );
 
 assertSameValue(
