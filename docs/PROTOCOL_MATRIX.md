@@ -66,7 +66,7 @@ Priority:
 
 ### 2.0
 
-After 1.9 request/response parity is stable, verify the 2.0-specific fields and endpoint aliases rather than duplicating the domain implementation.
+The GD 2.0 server-side protocol implementation is **100% complete for the current scope**. The compatibility layer covers the versioned endpoint aliases, legacy GJP authentication, level discovery/transfer, comments, profiles, leaderboards, social endpoints, cloud-save aliases, and level scores. A real-client fixture is still required for empirical verification.
 
 ### 2.1
 
@@ -107,6 +107,12 @@ Reference:
 
 - https://github.com/Cvolton/GMDprivateServer
 - https://github.com/Cvolton/GMDprivateServer/wiki/Deliberate-differences-from-real-GD
+
+## GD 2.0 implementation status
+
+**100% complete for the current server-side protocol scope.** The implementation covers the 2.0 endpoint surface, legacy credential handling, level/comment wire behavior, profile and leaderboard fields, social routes, cloud-save compatibility aliases, level downloads and level scores.
+
+The remaining operational milestone is empirical verification: capture a real Geometry Dash 2.0 trace and pass `tests/release/release-2.0-gate.sh`.
 
 ## GD 2.1 implementation status
 
