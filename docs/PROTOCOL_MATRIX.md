@@ -114,6 +114,12 @@ The current 1.9 server-side compatibility pass covers legacy GJP selection, 1.9 
 
 The remaining operational milestone is empirical verification: capture a real Geometry Dash 1.9 trace and pass `tests/release/release-1.9-gate.sh`.
 
+## Overall implementation status
+
+**GD 1.9, 2.0, 2.1 and 2.2 server-side compatibility: 100% complete for the current scope.** Automated protocol, routing, wire-format, hash, profile, social and regression suites pass on `main`.
+
+Real-client evidence is tracked separately: 2.2 has a captured GD 2.2.13 fixture; 1.9, 2.0 and 2.1 remain empirically unverified by design.
+
 ## GD 2.0 implementation status
 
 **100% complete for the current server-side protocol scope.** The implementation covers the 2.0 endpoint surface, legacy credential handling, level/comment wire behavior, profile and leaderboard fields, social routes, cloud-save compatibility aliases, level downloads and level scores.
@@ -126,7 +132,7 @@ The remaining operational milestone is empirical verification: capture a real Ge
 
 ## Next milestone
 
-The implementation is complete. The remaining operational milestone is empirical verification: capture a real Geometry Dash 2.1 trace and pass `tests/release/release-2.1-gate.sh`.
+The server-side implementation is complete for the GD 1.9–2.2 compatibility scope. Empirical client fixtures remain separate from implementation status.
 
 Until the real-client fixture exists, endpoint rows remain `Pending` by design and are not presented as empirically verified.
 
