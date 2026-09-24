@@ -35,15 +35,20 @@ final readonly class LevelScoreController
 
 
         $accountId=
-            (int)($data['accountID'] ?? 0);
+            $this->strictInt($data['accountID'] ?? null);
 
         $gjp = $request->gdCredential();
 
         $levelId=
-            (int)($data['levelID'] ?? 0);
+            $this->strictInt($data['levelID'] ?? null);
 
         $percent=
-            (int)($data['percent'] ?? 0);
+            $this->strictInt($data['percent'] ?? null);
+
+        $type=
+            array_key_exists('type',$data)
+                ? $this->strictInt($data['type'])
+                : 1;
 
 
         if(
@@ -51,7 +56,8 @@ final readonly class LevelScoreController
             $levelId<=0 ||
             $gjp==='' ||
             $percent<0 ||
-            $percent>100
+            $percent>100 ||
+            !in_array($type,[0,1,2],true)
         ){
             return Response::text('-1');
         }
@@ -74,37 +80,45 @@ final readonly class LevelScoreController
                 $this->decodedNumber(
                     $data,
                     's1',
-                    8354
+                    8354,
+                    0,
+                    1000000
                 );
 
             $clicks=
                 $this->decodedNumber(
                     $data,
                     's2',
-                    3991
+                    3991,
+                    0,
+                    10000000
                 );
 
             $playTime=
                 $this->decodedNumber(
                     $data,
                     's3',
-                    4085
+                    4085,
+                    0,
+                    86400
                 );
 
             $coins=
-                min(
-                    3,
-                    $this->decodedNumber(
-                        $data,
-                        's9',
-                        5819
-                    )
+                $this->decodedNumber(
+                    $data,
+                    's9',
+                    5819,
+                    0,
+                    3
                 );
 
-            $dailyId=max(
-                0,
-                (int)($data['s10'] ?? 0)
+            $dailyId=$this->strictInt(
+                $data['s10'] ?? 0
             );
+
+            if($dailyId<0){
+                return Response::text('-1');
+            }
 
             $isDaily=
                 $dailyId>0
@@ -114,8 +128,12 @@ final readonly class LevelScoreController
 
             $progresses=
                 $this->decodeProgresses(
-                    (string)($data['s6'] ?? '')
+                    $data['s6'] ?? ''
                 );
+
+            if(strlen($progresses)>100000){
+                return Response::text('-1');
+            }
 
 
             $this->saveScore(
@@ -130,17 +148,6 @@ final readonly class LevelScoreController
                 dailyId:$dailyId,
                 isDaily:$isDaily
             );
-
-
-            $type=
-                isset($data['type'])
-                    ? (int)$data['type']
-                    : 1;
-
-
-            if(!in_array($type,[0,1,2],true)){
-                return Response::text('-1');
-            }
 
 
             return Response::text(
@@ -720,28 +727,47 @@ final readonly class LevelScoreController
     private function decodedNumber(
         array $data,
         string $key,
-        int $offset
+        int $offset,
+        int $min,
+        int $max
     ): int {
+        if(!array_key_exists($key,$data) || $data[$key]===''){
+            return 0;
+        }
+
+        $raw=$data[$key];
 
         if(
-            !isset($data[$key]) ||
-            $data[$key]===''
+            !(is_int($raw) || is_string($raw)) ||
+            preg_match('/^-?\\d+$/D',(string)$raw)!==1
         ){
             return 0;
         }
 
-        return max(
-            0,
-            (int)$data[$key]-$offset
-        );
+        $value=(int)$raw-$offset;
+
+        return max($min,min($max,$value));
+    }
+
+    private function strictInt(mixed $value): int
+    {
+        if(is_int($value)){
+            return $value;
+        }
+
+        if(is_string($value) && preg_match('/^-?\\d+$/D',$value)===1){
+            return (int)$value;
+        }
+
+        return 0;
     }
 
 
     private function decodeProgresses(
-        string $value
+        mixed $value
     ): string {
 
-        if($value===''){
+        if(!is_string($value) || $value===''){
             return '';
         }
 
