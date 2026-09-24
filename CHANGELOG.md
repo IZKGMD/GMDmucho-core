@@ -1,20 +1,30 @@
 # Changelog
 
-## v1.0.1 — Preparation
+## v1.0.0 — Release Candidate
 
-This candidate packages the current MuchoCore server, deployment helpers, client patching tools and compatibility tests into a release-ready tree.
+MuchoCore v1.0.0 packages the current server core, deployment tooling, client patching tools and compatibility checks into a single release candidate.
 
 ### Included
 
-- beginner-first VPS and shared-hosting documentation;
-- one-command Docker deployment with generated secrets;
-- Windows client patchers for supported Geometry Dash URL formats;
-- legacy Geometry Dash routing compatibility;
-- shared-hosting Apache routing regression tests;
-- Cloudflare Tunnel deployment mode for NAT/CGNAT VPS environments;
-- production Composer dependencies in the generated release archive;
-- CI validation for shell, PHP, Python, Caddy, routing and Windows PowerShell tooling.
+- Geometry Dash account, profile, level, social and moderation endpoints;
+- version-aware Geometry Dash protocol handling with explicit 2.2 logic;
+- GJP2-aware authentication for modern clients;
+- cloud save;
+- Secret Room / Wraith reward handling;
+- player dashboard and administration panel;
+- music upload infrastructure;
+- Docker Compose deployment with MariaDB and Caddy;
+- automated database migrations;
+- automated PHP, shell, Python, Docker and Caddy validation;
+- Windows client patching tools;
+- built-in client tracing and version-aware contract generation.
 
-### Compatibility note
+### Compatibility gate
 
-Automated checks validate the server-side contract and patcher behavior. A real Geometry Dash client build must still be tested separately before claiming compatibility with that exact client version.
+The final 2.2 compatibility claim is intentionally blocked until a real Geometry Dash 2.2 client trace has been captured and committed as:
+
+~~~text
+tests/client-fixtures/2.2/endpoints.json
+~~~
+
+A synthetic or hand-written fixture does not satisfy the release gate.
