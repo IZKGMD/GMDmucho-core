@@ -23,6 +23,9 @@ final readonly class CommentController
     {
         $accountId = $request->postInt("accountID", 0) ?: (int)($_POST["accountID"] ?? 0);
         $gjp = $request->gdCredential();
+        $version = $request->clientVersion();
+        $udid = $request->postString("udid");
+        $ip = $request->clientIp();
         $levelId = $request->postInt("levelID", 0) ?: (int)($_POST["levelID"] ?? 0);
         $content = $this->getPostParam($request, "comment");
         $percent = $request->postInt("percent", 0) ?: (int)($_POST["percent"] ?? 0);
@@ -38,7 +41,9 @@ final readonly class CommentController
                 $gjp,
                 $content,
                 $percent,
-                $request->clientVersion()->effectiveGameVersion() ?: 22
+                $version->effectiveGameVersion() ?: 22,
+                $udid,
+                $ip
             );
 
             return Response::text("1");
@@ -86,7 +91,10 @@ final readonly class CommentController
     public function uploadAccountComment(Request $request): Response
     {
         $accountId = $request->postInt("accountID", 0) ?: (int)($_POST["accountID"] ?? 0);
-        $gjp = $this->getPostParam($request, "gjp") ?: $this->getPostParam($request, "gjp2");
+        $gjp = $request->gdCredential();
+        $version = $request->clientVersion();
+        $udid = $request->postString("udid");
+        $ip = $request->clientIp();
         $content = $this->getPostParam($request, "comment");
 
         if ($accountId <= 0 || $content === "") {
@@ -98,7 +106,9 @@ final readonly class CommentController
                 $accountId,
                 $gjp,
                 $content,
-                $request->clientVersion()->effectiveGameVersion() ?: 22
+                $version->effectiveGameVersion() ?: 22,
+                $udid,
+                $ip
             );
 
             return Response::text("1");
@@ -129,10 +139,22 @@ final readonly class CommentController
     {
         $commentId = $request->postInt("commentID", 0) ?: (int)($_POST["commentID"] ?? 0);
         $accountId = $request->postInt("accountID", 0) ?: (int)($_POST["accountID"] ?? 0);
-        $gjp = $this->getPostParam($request, "gjp") ?: $this->getPostParam($request, "gjp2");
+        $gjp = $request->gdCredential();
+        $version = $request->clientVersion();
+        $udid = $request->postString("udid");
+        $ip = $request->clientIp();
 
         try {
-            return Response::text($this->service->deleteComment($commentId, $accountId, $gjp) ? "1" : "-1");
+            return Response::text(
+                $this->service->deleteComment(
+                    $commentId,
+                    $accountId,
+                    $gjp,
+                    $version->effectiveGameVersion() ?: 22,
+                    $udid,
+                    $ip
+                ) ? "1" : "-1"
+            );
         } catch (Throwable) {
             return Response::text("-1");
         }
@@ -142,10 +164,22 @@ final readonly class CommentController
     {
         $commentId = $request->postInt("commentID", 0) ?: (int)($_POST["commentID"] ?? 0);
         $accountId = $request->postInt("accountID", 0) ?: (int)($_POST["accountID"] ?? 0);
-        $gjp = $this->getPostParam($request, "gjp") ?: $this->getPostParam($request, "gjp2");
+        $gjp = $request->gdCredential();
+        $version = $request->clientVersion();
+        $udid = $request->postString("udid");
+        $ip = $request->clientIp();
 
         try {
-            return Response::text($this->service->deleteAccountComment($commentId, $accountId, $gjp) ? "1" : "-1");
+            return Response::text(
+                $this->service->deleteAccountComment(
+                    $commentId,
+                    $accountId,
+                    $gjp,
+                    $version->effectiveGameVersion() ?: 22,
+                    $udid,
+                    $ip
+                ) ? "1" : "-1"
+            );
         } catch (Throwable) {
             return Response::text("-1");
         }
