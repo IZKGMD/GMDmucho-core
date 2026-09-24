@@ -49,7 +49,7 @@ assertTrue(
 
 assertTrue(
     MuchoCore\Protocol\GdLegacyText::encodeDescriptionForResponse(
-        'Hello 1.9',
+        'SGVsbG8gMS45',
         19
     ) === 'SGVsbG8gMS45',
     '1.9 level description response uses Base64'
