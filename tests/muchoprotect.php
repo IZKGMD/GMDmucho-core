@@ -88,6 +88,8 @@ $accountProtect = new MuchoProtect(
 );
 
 for ($i = 0; $i < 12; $i++) {
+    $ip = '10.20.0.' . (intdiv($i, 3) + 1);
+
     $result = $accountProtect->inspect(
         new Request(
             'POST',
@@ -99,7 +101,7 @@ for ($i = 0; $i < 12; $i++) {
                 'binaryVersion' => '42',
                 'gjp2' => 'credential-A',
             ],
-            ['REMOTE_ADDR' => '10.20.0.' . ($i + 1)]
+            ['REMOTE_ADDR' => $ip]
         ),
         '/loginGJAccount22.php'
     );
