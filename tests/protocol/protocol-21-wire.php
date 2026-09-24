@@ -9,6 +9,7 @@ require __DIR__ . '/../../src/Protocol/GdLevelDownloadEncoder.php';
 require __DIR__ . '/../../src/Protocol/GdLevelListEncoder.php';
 require __DIR__ . '/../../src/Protocol/GdUserEncoder.php';
 require __DIR__ . '/../../src/Protocol/GdXor.php';
+require __DIR__ . '/../../src/Protocol/GdLegacyText.php';
 require __DIR__ . '/../../src/Protocol/ProtocolText.php';
 require __DIR__ . '/../../src/User/GameRole.php';
 
