@@ -39,6 +39,10 @@ $required21 = [
     '/getGJComments21.php',
     '/uploadGJComment21.php',
     '/getGJLevelScores211.php',
+    '/updateGJUserScore21.php',
+    '/getGJUsers21.php',
+    '/getGJScores21.php',
+    '/getGJUserInfo21.php',
     '/getGJGauntlets21.php',
     '/getGJMapPacks21.php',
     '/likeGJItem21.php',
@@ -71,6 +75,10 @@ $aliases21 = [
     '/getGJMapPacks20.php' => '/getGJMapPacks21',
     '/getGJGauntlets20.php' => '/getGJGauntlets21',
     '/likeGJItem20.php' => '/likeGJItem21',
+    '/updateGJUserScore21.php' => '/updateGJUserScore',
+    '/getGJUsers21.php' => '/getGJUsers20',
+    '/getGJScores21.php' => '/getGJScores20',
+    '/getGJUserInfo21.php' => '/getGJUserInfo20',
 ];
 
 foreach ($aliases21 as $input => $expected) {
