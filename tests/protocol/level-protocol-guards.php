@@ -39,6 +39,21 @@ $checks = [
         'GD 1.9 special difficulty filters',
     ],
     [
+        __DIR__ . '/../../src/Protocol/GdLevelListEncoder.php',
+        "int)$level['coins']",
+        'multi-level hash uses star coins',
+    ],
+    [
+        __DIR__ . '/../../src/Protocol/GdLevelDownloadEncoder.php',
+        "min(10",
+        'download preserves custom star values',
+    ],
+    [
+        __DIR__ . '/../../src/Level/LevelTransferService.php',
+        "stars'] ?? 0) > 0",
+        'rated level deletion guard',
+    ],
+    [
         __DIR__ . '/../../src/Level/LevelRepository.php',
         "completedLevels",
         'GD 1.9 completion-level filters',
