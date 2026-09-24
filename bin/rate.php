@@ -9,7 +9,7 @@ $db = new \MuchoCore\Database\Database();
 $pdo = $db->connection();
 
 if ($argc < 3) {
-    echo "Использование: php rate.php <LEVEL_ID> <STARS> [FEATURE: 0=None, 1=Featured, 2=Epic, 3=Legendary, 4=Mythic] [DEMON_DIFF: 1=Easy, 2=Medium, 3=Hard, 4=Insane, 5=Extreme] [MANUAL_DIFF: 10=Auto, 20=Easy, 30=Normal, 40=Hard, 50=Harder, 60=Insane, 70=Demon]\n";
+    echo "Usage: php rate.php <LEVEL_ID> <STARS> [FEATURE: 0=None, 1=Featured, 2=Epic, 3=Legendary, 4=Mythic] [DEMON_DIFF: 1=Easy, 2=Medium, 3=Hard, 4=Insane, 5=Extreme] [MANUAL_DIFF: 10=Auto, 20=Easy, 30=Normal, 40=Hard, 50=Harder, 60=Insane, 70=Demon]\n";
     exit(1);
 }
 
@@ -62,7 +62,7 @@ $stmt->execute([":id" => $levelId]);
 $level = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$level) {
-    echo "Ошибка: Уровень с ID {$levelId} не найден!\n";
+    echo "Error: level {$levelId} was not found.\n";
     exit(1);
 }
 
