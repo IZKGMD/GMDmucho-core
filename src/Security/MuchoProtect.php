@@ -89,8 +89,14 @@ final readonly class MuchoProtect
         }
 
         $accountId = $this->accountId($request);
-        if ($accountId !== null) {
-            $accountKey = 'account:' . $accountId . ':endpoint:' . $endpoint;
+        $credential = $request->gdCredential();
+
+        if ($accountId !== null && $credential !== '') {
+            $identity = hash(
+                'sha256',
+                $accountId . ':' . $credential
+            );
+            $accountKey = 'identity:' . $identity . ':endpoint:' . $endpoint;
 
             if (!$this->limiter->allow($accountKey, $policy['limit'], $policy['window'])) {
                 $this->audit($request, $endpoint, 'account_rate_limit');
