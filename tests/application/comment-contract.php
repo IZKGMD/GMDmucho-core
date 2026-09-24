@@ -95,7 +95,7 @@ assertCommentContract(
 
 assertCommentContract(
     str_contains($service, '$mode !== 0') &&
-    str_contains($service, '$count = 10'),
+    str_contains($service, 'int $count = 10'),
     'comment service honors pagination and sort mode'
 );
 
@@ -144,7 +144,7 @@ assertCommentContract(
 
 assertCommentContract(
     str_contains($service, '"~", "|"') ||
-    str_contains($service, "'~', '|', '#', ':'"),
+    str_contains($service, '"\\0", "~", "|", "#", ":"'),
     'comment protocol delimiters are sanitized'
 );
 
