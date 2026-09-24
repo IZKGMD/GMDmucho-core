@@ -19,12 +19,14 @@ MuchoCore v1.0.0 packages the current server core, deployment tooling, client pa
 - Windows client patching tools;
 - built-in client tracing and version-aware contract generation.
 
-### Compatibility gate
+### Compatibility verification
 
-The final 2.2 compatibility claim is intentionally blocked until a real Geometry Dash 2.2 client trace has been captured and committed as:
+GD 2.2 verification is backed by a real Geometry Dash 2.2 client contract fixture captured from a live client trace and committed as:
 
 ~~~text
 tests/client-fixtures/2.2/endpoints.json
 ~~~
+
+The fixture records Geometry Dash client family `2.2`, game version `22`, binary version `47`, and the observed endpoint contract. The 2.2 release gate validates its provenance and metadata on every CI run.
 
 A synthetic or hand-written fixture does not satisfy the release gate.
