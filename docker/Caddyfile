@@ -2,6 +2,19 @@
     root * /var/www/mucho-core/public
     encode gzip zstd
 
+    # Reject oversized HTTP bodies before PHP is invoked. PHP itself remains
+    # capped at 70M post_max_size / 64M upload_max_filesize.
+    request_body {
+        max_size 75MB
+    }
+
+    header {
+        -Server
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    }
+
     handle /assets/muchocore-dashboard-logo.jpg {
         root * /var/www/mucho-core
         rewrite * /Gemini_Generated_Image_vemzsvemzsvemzsv.jpg
