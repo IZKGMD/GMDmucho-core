@@ -38,8 +38,11 @@ final class GdCommentEncoder
         if ($binaryVersion > 31 || $gameVersion >= 22) {
             $commentParts[] = '11';
             $commentParts[] = (string)$badge;
-            $commentParts[] = '12';
-            $commentParts[] = '255,255,255';
+
+            if ($badge > 0) {
+                $commentParts[] = '12';
+                $commentParts[] = (string)($profile['comment_color'] ?? '255,255,255');
+            }
 
             $userParts = [
                 '1', ProtocolText::username($profile['username'] ?? 'Player'),
