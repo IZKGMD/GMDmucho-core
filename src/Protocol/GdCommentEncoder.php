@@ -14,13 +14,10 @@ final class GdCommentEncoder
     ): string {
         $content = (string)($comment['content'] ?? '');
 
-        if ($gameVersion < 20) {
-            $content = strtr(
-                base64_encode($content),
-                '+/',
-                '-_'
-            );
-        }
+        $content = GdLegacyText::encodeCommentForResponse(
+            $content,
+            $gameVersion
+        );
 
         $badge = (int)($profile['badge'] ?? 0);
 
@@ -73,13 +70,10 @@ final class GdCommentEncoder
     ): string {
         $content = (string)($comment['content'] ?? '');
 
-        if ($gameVersion < 20) {
-            $content = strtr(
-                base64_encode($content),
-                '+/',
-                '-_'
-            );
-        }
+        $content = GdLegacyText::encodeCommentForResponse(
+            $content,
+            $gameVersion
+        );
 
         return implode('~', [
             '2', $content,
