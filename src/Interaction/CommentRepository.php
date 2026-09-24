@@ -63,6 +63,69 @@ final class CommentRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function countUserComments(int $userId): int
+    {
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*)
+             FROM comments c
+             INNER JOIN profiles p
+                 ON p.account_id = c.account_id
+             INNER JOIN levels l
+                 ON l.level_id = c.level_id
+             WHERE p.user_id = :user_id
+               AND l.is_unlisted = 0
+               AND l.is_deleted = 0"
+        );
+        $stmt->execute(['user_id' => $userId]);
+
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function getUserComments(
+        int $userId,
+        int $page = 0,
+        int $limit = 10,
+        bool $orderByLikes = false
+    ): array {
+        $offset = max(0, $page) * $limit;
+        $order = $orderByLikes
+            ? 'c.likes DESC, c.id DESC'
+            : 'c.id DESC';
+
+        $stmt = $this->db->prepare(
+            "SELECT
+                    c.*,
+                    l.level_id AS commented_level_id,
+                    a.username,
+                    a.role,
+                    p.user_id,
+                    p.cube,
+                    p.color1,
+                    p.color2,
+                    p.special,
+                    p.icon_type
+             FROM comments c
+             INNER JOIN profiles p
+                 ON p.account_id = c.account_id
+             INNER JOIN accounts a
+                 ON a.account_id = c.account_id
+             INNER JOIN levels l
+                 ON l.level_id = c.level_id
+             WHERE p.user_id = :user_id
+               AND l.is_unlisted = 0
+               AND l.is_deleted = 0
+             ORDER BY {$order}
+             LIMIT :limit OFFSET :offset"
+        );
+
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function addAccountComment(int $accountId, string $content): int
     {
         $stmt = $this->db->prepare(
