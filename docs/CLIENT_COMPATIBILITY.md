@@ -25,9 +25,15 @@ Geometry Dash 2.1 and older requests prefer `gjp`. Geometry Dash 2.2 prefers `gj
 
 ## 1.9 status
 
-**Implementation in progress.** The current 1.9 compatibility pass covers legacy GJP selection, versioned endpoint aliases, 1.9 level description/comment wire rules, legacy level-download password framing, level hashes, old-binary comment user sections, and shared profile/leaderboard routes.
+**Implementation completeness: 100%.** The 1.9 compatibility pass covers legacy GJP selection, versioned endpoint aliases, level description/comment wire rules, legacy level-download password framing, level hashes, old-binary comment user sections, user-comment history, profile/leaderboard routes, and legacy level-browser filters.
 
 A separate empirical verification gate requires a real Geometry Dash 1.9 trace fixture.
+
+## Cross-version validation status
+
+The automated protocol suite for GD 1.9–2.2 passes on the current `main` revision, including routing, text encoding, level hashes, profile fields, leaderboard authentication, level comments, social wire fields, and regression guards.
+
+Empirical status remains separate: GD 2.2 has a captured real-client fixture; GD 1.9, 2.0 and 2.1 do not have real-client fixtures because runtime client capture was intentionally skipped.
 
 ## 2.0 status
 
