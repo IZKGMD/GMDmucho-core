@@ -215,7 +215,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Interaction/CommentService.php',
-        'Legacy Cvolton/GD 1.9 syntax',
+        '!rate <difficulty> <stars> [coins] [featured]',
         'GD 1.9 legacy moderation rate syntax',
     ],
     [
