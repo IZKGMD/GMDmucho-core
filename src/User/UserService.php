@@ -138,7 +138,9 @@ final readonly class UserService
             true
         );
 
-        if ($protocolVersion->effectiveGameVersion() === 21) {
+        $effectiveGameVersion = $protocolVersion->effectiveGameVersion();
+
+        if ($effectiveGameVersion >= 20 && $effectiveGameVersion <= 21) {
             $fields['demon_info'] = $this->normalizeDemonInfo(
                 $data,
                 (int)$fields['demons'],
