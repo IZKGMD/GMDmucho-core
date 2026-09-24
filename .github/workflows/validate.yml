@@ -27,6 +27,8 @@ jobs:
           php tests/protocol/level-protocol-guards.php
           php tests/protocol/protocol-22-hashes.php
           php tests/protocol/protocol-22-surface.php
+          php tests/protocol/protocol-20-surface.php
+          php tests/protocol/protocol-20-wire.php
           php tests/protocol/protocol-21-surface.php
           php tests/protocol/protocol-21-wire.php
           php tests/protocol/router-compatibility.php
@@ -111,6 +113,10 @@ jobs:
       - name: Check 2.2 release gate
         if: startsWith(github.ref, 'refs/tags/v1.0.0')
         run: bash tests/release/release-2.2-gate.sh
+
+      - name: Check 2.0 release gate
+        if: startsWith(github.ref, 'refs/tags/v1.0.0')
+        run: bash tests/release/release-2.0-gate.sh
 
       - name: Check 2.1 release gate
         if: startsWith(github.ref, 'refs/tags/v1.0.0')
