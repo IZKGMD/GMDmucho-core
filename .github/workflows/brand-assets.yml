@@ -3,7 +3,7 @@ name: Prepare MuchoCore brand assets
 on:
   push:
     paths:
-      - Gemini_Generated_Image_af007baf007baf00.jpg
+      - assets/brand/sources/Gemini_Generated_Image_af007baf007baf00.jpg
       - .github/workflows/brand-assets.yml
   workflow_dispatch:
 
@@ -28,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          SRC="Gemini_Generated_Image_af007baf007baf00.jpg"
+          SRC="assets/brand/sources/Gemini_Generated_Image_af007baf007baf00.jpg"
           mkdir -p public/assets
 
           # Main horizontal MuchoCore mark from the dark presentation panel.
