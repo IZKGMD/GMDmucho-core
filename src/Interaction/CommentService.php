@@ -49,7 +49,15 @@ final class CommentService
             $content,
             $gameVersion
         );
-        $decodedContent = trim($decodedContent);
+        $decodedContent = $this->normalizeCommentText($decodedContent);
+
+        if ($decodedContent === '') {
+            throw new \RuntimeException('Comment cannot be empty.');
+        }
+
+        if (!$this->levelExists($levelId)) {
+            throw new \RuntimeException('Level not found.');
+        }
 
         /*
          * Any text beginning with "!" is a command attempt.
@@ -109,57 +117,36 @@ final class CommentService
         int $levelId,
         int $percent
     ): void {
+        if ($this->pdo === null) {
+            return;
+        }
+
+        $now = time();
+
         $q = $this->pdo->prepare(
-            'SELECT score_id, percent
-             FROM mucho_level_scores
-             WHERE account_id = :account_id
-               AND level_id = :level_id
-               AND is_daily = 0
-             LIMIT 1'
+            'INSERT INTO mucho_level_scores
+             (account_id, level_id, is_daily, daily_id, percent,
+              coins, attempts, clicks, play_time, progresses,
+              created_at, updated_at)
+             VALUES
+             (:account_id, :level_id, 0, 0, :percent,
+              0, 0, 0, 0, \'\',
+              :created_at, :updated_at)
+             ON DUPLICATE KEY UPDATE
+                percent = GREATEST(percent, VALUES(percent)),
+                updated_at = CASE
+                    WHEN VALUES(percent) > percent
+                    THEN VALUES(updated_at)
+                    ELSE updated_at
+                END'
         );
+
         $q->execute([
             'account_id' => $accountId,
             'level_id' => $levelId,
-        ]);
-
-        $existing = $q->fetch(PDO::FETCH_ASSOC);
-
-        if (!$existing) {
-            $insert = $this->pdo->prepare(
-                'INSERT INTO mucho_level_scores
-                 (account_id, level_id, is_daily, daily_id, percent,
-                  coins, attempts, clicks, play_time, progresses,
-                  created_at, updated_at)
-                 VALUES
-                 (:account_id, :level_id, 0, 0, :percent,
-                  0, 0, 0, 0, \'\',
-                  :created_at, :updated_at)'
-            );
-            $now = time();
-            $insert->execute([
-                'account_id' => $accountId,
-                'level_id' => $levelId,
-                'percent' => $percent,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-            return;
-        }
-
-        if ($percent <= (int)$existing['percent']) {
-            return;
-        }
-
-        $update = $this->pdo->prepare(
-            'UPDATE mucho_level_scores
-             SET percent = :percent,
-                 updated_at = :updated_at
-             WHERE score_id = :score_id'
-        );
-        $update->execute([
             'percent' => $percent,
-            'updated_at' => time(),
-            'score_id' => (int)$existing['score_id'],
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
     }
 
@@ -188,16 +175,11 @@ final class CommentService
         return $success ? "1" : "-1";
     }
 
-    private function commandHelp(): string {
-        return implode(" | ", [
-            "MuchoCore Commands",
-            "!help",
-            "!rate <difficulty> <stars> [coins] [featured]",
-            "!r <difficulty> <stars> [coins] [featured]",
-            "!demon <1-5>",
-            "!delete",
-            "!cp <amount>",
-        ]);
+    private function commandHelp(): string
+    {
+        return 'MuchoCore commands: !help / !rate <difficulty> <stars> [coins] [featured] / ' .
+            '!r <difficulty> <stars> [coins] [featured] / !demon <1-5> / ' .
+            '!feature / !epic / !unepic / !verifycoins / !delete / !cp <amount>';
     }
 
     private function handleCommand(int $levelId, int $accountId, string $commandStr): ?bool
@@ -687,6 +669,11 @@ final class CommentService
             $content,
             $gameVersion
         );
+        $decodedContent = $this->normalizeCommentText($decodedContent);
+
+        if ($decodedContent === '') {
+            throw new \RuntimeException('Comment cannot be empty.');
+        }
 
         $this->repository->addAccountComment(
             $accountId,
@@ -760,6 +747,51 @@ final class CommentService
             $commentId,
             $accountId
         );
+    }
+
+    private function normalizeCommentText(string $content): string
+    {
+        $content = str_replace(
+            ["\\0", "~", "|", "#", ":"],
+            "",
+            $content
+        );
+
+        $content = preg_replace(
+            '/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/',
+            '',
+            $content
+        ) ?? '';
+
+        $content = trim($content);
+
+        if (
+            $content !== '' &&
+            mb_strlen($content, 'UTF-8') > 4096
+        ) {
+            throw new \RuntimeException(
+                'Comment is too long.'
+            );
+        }
+
+        return $content;
+    }
+
+    private function levelExists(int $levelId): bool
+    {
+        $q = $this->getPdo()->prepare(
+            'SELECT 1
+             FROM levels
+             WHERE level_id = :id
+               AND is_deleted = 0
+             LIMIT 1'
+        );
+
+        $q->execute([
+            'id' => $levelId
+        ]);
+
+        return $q->fetchColumn() !== false;
     }
 
     private function authenticateCommenter(
