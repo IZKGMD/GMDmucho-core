@@ -72,7 +72,6 @@ final class GdUserEncoder
             38 => (int)($u['messages_count'] ?? 0),
             39 => (int)($u['friend_requests_count'] ?? 0),
             40 => (int)($u['friends_count'] ?? 0),
-            7  => $accountId,
             9  => (int)($u['icon_id'] ?? $u['cube'] ?? 1),
             14 => (int)($u['icon_type'] ?? 0),
             15 => (int)($u['special'] ?? 0),
