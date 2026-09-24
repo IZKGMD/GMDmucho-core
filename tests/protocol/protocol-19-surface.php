@@ -42,10 +42,14 @@ $aliases = [
     '/getGJLevels19.php' => '/getGJLevels21',
     '/getGJCreators19.php' => '/getGJCreators19',
     '/uploadGJLevel19.php' => '/uploadGJLevel21',
+    '/updateGJLevel.php' => '/uploadGJLevel21',
+    '/updateGJLevel19.php' => '/uploadGJLevel21',
+    '/updateGJLevel20.php' => '/uploadGJLevel21',
     '/downloadGJLevel19.php' => '/downloadGJLevel21',
     '/getGJComments19.php' => '/getGJComments21',
     '/uploadGJComment19.php' => '/uploadGJComment20',
     '/deleteGJComment19.php' => '/deleteGJComment20',
+    '/deleteGJLevelUser19.php' => '/deleteGJLevelUser20',
     '/getGJUserInfo19.php' => '/getGJUserInfo20',
     '/getGJUsers19.php' => '/getGJUsers20',
     '/getGJScores19.php' => '/getGJScores20',
@@ -103,6 +107,7 @@ foreach ([
     '/getGJComments19.php',
     '/uploadGJComment19.php',
     '/deleteGJComment19.php',
+    '/updateGJLevel19.php',
 ] as $commentPath) {
     $commentRequest = new Request(
         'POST',
@@ -118,7 +123,7 @@ foreach ([
     assertSameValue(
         '1.9',
         $commentRequest->clientVersion()->family(),
-        "1.9 comment endpoint infers legacy family {$commentPath}"
+        "1.9 legacy endpoint infers legacy family {$commentPath}"
     );
 }
 
