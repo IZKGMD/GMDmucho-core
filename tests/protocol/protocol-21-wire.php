@@ -87,6 +87,7 @@ $legacyComment = $comments->encode(
     21,
     31
 );
+assertTrue(str_contains($legacyComment, '2~SGVsbG8gMi4x'), '2.1 comments encode text as Base64');
 assertTrue(!str_contains($legacyComment, '~11~'), '2.1 binary 31 uses legacy comment layout');
 assertTrue(!str_contains($legacyComment, '~12~'), '2.1 normal comment omits badge color');
 
@@ -113,6 +114,7 @@ $modernComment = $comments->encode(
     21,
     35
 );
+assertTrue(str_contains($modernComment, '2~SGVsbG8gMi4x'), '2.1 binary 35 keeps Base64 comment text');
 assertTrue(str_contains($modernComment, '~11~0'), '2.1 binary 35 embeds mod badge');
 assertTrue(str_contains($modernComment, ':1~MuchoPlayer'), '2.1 binary 35 embeds user payload');
 
@@ -160,6 +162,10 @@ $download = $levelEncoder->encode([
 assertTrue(
     str_contains($download, ':27:' . GdXor::copyPassword('123')),
     '2.1 copy password uses XOR/base64'
+);
+assertTrue(
+    str_contains($download, ':3:' . base64_encode('encoded-description')),
+    '2.1 level download encodes description'
 );
 assertTrue(
     str_contains($download, ':28:01-01-2026 12-00:29:02-01-2026 12-00'),
@@ -210,6 +216,7 @@ $list = $listEncoder->encode(
     21
 );
 assertTrue(str_starts_with($list, '1:123:2:Mucho 2.1'), '2.1 level list wire fields');
+assertTrue(str_contains($list, ':3:' . base64_encode('encoded-description') . ':15:'), '2.1 level list encodes description');
 assertTrue(str_contains($list, '#42:MuchoPlayer:9001'), '2.1 level list user section');
 assertTrue(str_ends_with($list, '#'.sha1('13153' . 'xI25fpAapCQg')), '2.1 level list preserves custom-star hash input');
 assertTrue(substr_count($list, '|') === 0, 'single level list entry has no trailing pipe');
