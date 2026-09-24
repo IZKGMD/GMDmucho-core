@@ -110,8 +110,8 @@ Reference:
 
 ## Next milestone
 
-The next milestone is **2.1 real-client parity**.
+GD 2.1 server-side protocol implementation is **complete**. The implementation now covers the 2.1 wire-level text encoding rules, level hashes, profile-state normalization, compatibility routing, authenticated friends-level access, and the 2.1 level-score response contract.
 
-The 2.2 release gate is complete. Keep it regression-locked while validating GD 2.1, then continue to 2.0 and 1.9.
+The remaining release criterion is **real-client verification**: capture a real Geometry Dash 2.1 trace and pass `tests/release/release-2.1-gate.sh`. Until that fixture exists, endpoint rows remain `Pending` by design and are not presented as empirically verified.
 
-Do not mark an endpoint "verified" because its alias exists. Mark it verified only when the real client contract passes.
+The 2.2 release gate remains regression-locked. Do not mark an endpoint `Verified` because its alias exists; mark it verified only when the real client contract passes.
