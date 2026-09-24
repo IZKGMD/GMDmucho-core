@@ -25,11 +25,9 @@ if [[ -z "$(printf '%s\n' "${CONTRACTS[@]}")" ]]; then
     exit 0
 fi
 
-export ROOT
-export CONTRACTS="$(printf '%s\n' "${CONTRACTS[@]}")"
+CONTRACT_LIST="$(printf '%s\n' "${CONTRACTS[@]}")"
 
-python3 <<'PY'
-import json
+ROOT="$ROOT" CONTRACTS="$CONTRACT_LIST" python3 <<'PY'mport json
 import os
 import re
 from pathlib import Path
