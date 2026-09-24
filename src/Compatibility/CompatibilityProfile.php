@@ -116,18 +116,28 @@ final readonly class CompatibilityProfile
     private static function parseVersion(string $value): int
     {
         $value = strtolower(trim($value));
-        $value = ltrim($value, 'gd');
 
-        if (str_contains($value, '.')) {
-            [$major, $minor] = array_pad(
-                explode('.', $value, 3),
-                2,
-                '0'
+        $aliases = [
+            '19' => 19,
+            '20' => 20,
+            '21' => 21,
+            '22' => 22,
+            '1.9' => 19,
+            '2.0' => 20,
+            '2.1' => 21,
+            '2.2' => 22,
+            'gd1.9' => 19,
+            'gd2.0' => 20,
+            'gd2.1' => 21,
+            'gd2.2' => 22,
+        ];
+
+        if (!isset($aliases[$value])) {
+            throw new \InvalidArgumentException(
+                'Unsupported MUCHO_GD_VERSIONS value: ' . $value
             );
-
-            return ((int)$major * 10) + (int)$minor;
         }
 
-        return (int)$value;
+        return $aliases[$value];
     }
 }
