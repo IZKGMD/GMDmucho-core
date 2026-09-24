@@ -152,6 +152,7 @@ final class GdUserEncoder
                 9 => (int)($u['icon_id'] ?? 1),
                 10 => (int)($u['color1'] ?? 0),
                 11 => (int)($u['color2'] ?? 3),
+                51 => (int)($u['color3'] ?? 0),
                 14 => (int)($u['icon_type'] ?? 0),
                 15 => (int)($u['special'] ?? 0),
                 16 => $accountId,
