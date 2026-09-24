@@ -220,7 +220,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Protocol/GdMessageEncoder.php',
-        '1 - (int)($message['is_read'] ?? 0)',
+        "1 - (int)(\$message['is_read'] ?? 0)",
         'message isNew inversion',
     ],
 
