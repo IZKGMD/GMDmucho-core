@@ -25,6 +25,7 @@ def main() -> int:
         raise SystemExit(f"Input trace does not exist: {source}")
 
     endpoints = {}
+    endpoint_families = {}
     counts = Counter()
     families = Counter()
     game_versions = Counter()
@@ -40,10 +41,12 @@ def main() -> int:
         path = str(entry.get("path", "/"))
         key = (method, path)
         counts[key] += 1
+        endpoint_families.setdefault(key, set())
 
         family = str(entry.get("client_family", "")).strip()
         if family:
             families[family] += 1
+            endpoint_families[key].add(family)
 
         game_version = entry.get("game_version")
         if game_version is not None:
@@ -75,14 +78,35 @@ def main() -> int:
             current["client_families"].add(family)
 
     if args.expected_family:
-        mismatched = sorted(
-            family for family in families if family != args.expected_family
-        )
         if not families:
             raise SystemExit(
                 "Trace contains no client_family metadata; "
                 "capture it with MuchoCore ClientTrace."
             )
+
+        allowed_transport_paths = {
+            "/checkifserveronline",
+            "/health",
+        }
+        mismatched = []
+
+        for family in sorted(families):
+            if family == args.expected_family:
+                continue
+
+            if family == "unknown":
+                unknown_keys = [
+                    key for key, values in endpoint_families.items()
+                    if "unknown" in values
+                ]
+                if unknown_keys and all(
+                    path.lower().rstrip("/") in allowed_transport_paths
+                    for _, path in unknown_keys
+                ):
+                    continue
+
+            mismatched.append(family)
+
         if mismatched:
             raise SystemExit(
                 f"Unexpected client families: {mismatched}; "
