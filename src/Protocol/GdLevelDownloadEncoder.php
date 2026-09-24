@@ -38,7 +38,7 @@ final class GdLevelDownloadEncoder
 
         $description = (string) $level['description'];
 
-        $description = GdLegacyText::decodeDescriptionForResponse(
+        $description = GdLegacyText::encodeDescriptionForResponse(
             $description,
             $gameVersion
         );
