@@ -4,6 +4,16 @@ declare(strict_types=1);
 
 $checks = [
     [
+        __DIR__ . '/../../src/Level/LevelController.php',
+        "if ($type === 13)",
+        '2.1 friends level authentication gate',
+    ],
+    [
+        __DIR__ . '/../../src/Level/LevelController.php',
+        '$this->auth->authenticate($accountId, $credential)',
+        '2.1 friends level GJP verification',
+    ],
+    [
         __DIR__ . '/../../database/migrations/017_level_unlisted2.php',
         'ADD COLUMN IF NOT EXISTS unlisted2',
         'unlisted2 migration',
