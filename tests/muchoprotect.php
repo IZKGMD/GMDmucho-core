@@ -7,6 +7,7 @@ require_once dirname(__DIR__) . '/src/Compatibility/ClientVersion.php';
 require_once dirname(__DIR__) . '/src/Http/Request.php';
 require_once dirname(__DIR__) . '/src/Routing/Router.php';
 require_once dirname(__DIR__) . '/src/Security/RateLimiter.php';
+require_once dirname(__DIR__) . '/src/Security/AbusePenaltyStore.php';
 require_once dirname(__DIR__) . '/src/Security/MuchoProtect.php';
 
 use MuchoCore\Http\Request;
@@ -46,6 +47,60 @@ $exempt = $protect->inspect(
 
 if ($exempt['decision'] !== 'allow') {
     fwrite(STDERR, "MuchoProtect health exemption failed\n");
+    exit(1);
+}
+
+$penaltyDir = $dir . '-penalty';
+$penaltyProtect = new MuchoProtect(
+    new RateLimiter($penaltyDir),
+    new \MuchoCore\Security\AbusePenaltyStore($penaltyDir)
+);
+$penaltyRequest = new Request(
+    'POST',
+    '/uploadGJComment21.php',
+    [],
+    ['accountID' => '123'],
+    ['REMOTE_ADDR' => '127.0.0.90']
+);
+for ($i = 0; $i < 8; $i++) {
+    $penaltyProtect->inspect($penaltyRequest, '/uploadGJComment21.php');
+}
+$firstPenalty = $penaltyProtect->inspect($penaltyRequest, '/uploadGJComment21.php');
+if ($firstPenalty['decision'] !== 'block') {
+    fwrite(STDERR, "MuchoProtect penalty activation failed\n");
+    exit(1);
+}
+$secondPenalty = $penaltyProtect->inspect($penaltyRequest, '/uploadGJComment21.php');
+if ($secondPenalty['decision'] !== 'block' || $secondPenalty['reason'] !== 'temporary_penalty') {
+    fwrite(STDERR, "MuchoProtect temporary penalty enforcement failed\n");
+    exit(1);
+}
+
+$globalDir = $dir . '-global';
+$globalProtect = new MuchoProtect(
+    new RateLimiter($globalDir),
+    new \MuchoCore\Security\AbusePenaltyStore($globalDir)
+);
+$globalRequest = new Request(
+    'GET',
+    '/getGJUserInfo20.php',
+    [],
+    [],
+    ['REMOTE_ADDR' => '127.0.0.91']
+);
+for ($i = 0; $i < 180; $i++) {
+    $globalProtect->inspect($globalRequest, '/getGJUserInfo20.php');
+}
+$globalBlocked = false;
+for ($i = 0; $i < 2; $i++) {
+    $result = $globalProtect->inspect($globalRequest, '/getGJUserInfo20.php');
+    if ($result['decision'] === 'block') {
+        $globalBlocked = true;
+        break;
+    }
+}
+if (!$globalBlocked) {
+    fwrite(STDERR, "MuchoProtect global burst guard failed\n");
     exit(1);
 }
 
@@ -162,7 +217,7 @@ if ($differentCredential['decision'] !== 'allow') {
     exit(1);
 }
 
-foreach ([$dir, $dir . '-account'] as $cleanupDir) {
+foreach ([$dir, $dir . '-account', $dir . '-penalty', $dir . '-global'] as $cleanupDir) {
     foreach (glob($cleanupDir . '/*') ?: [] as $file) {
         @unlink($file);
     }
