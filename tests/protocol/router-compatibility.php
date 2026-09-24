@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../src/Http/Request.php';
-require __DIR__ . '/../src/Http/Response.php';
-require __DIR__ . '/../src/Routing/Router.php';
+require __DIR__ . '/../../src/Http/Request.php';
+require __DIR__ . '/../../src/Http/Response.php';
+require __DIR__ . '/../../src/Routing/Router.php';
 
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
