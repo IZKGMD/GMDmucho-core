@@ -14,7 +14,10 @@ $db = (new Database())->connection();
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 $branding = new BrandingService($db);
-$serverName = $branding->serverName();
+$brandingData = $branding->get();
+$serverName = $brandingData['server_name'];
+$serverByName = $brandingData['server_by_name'];
+$socialUrl = $brandingData['social_url'];
 
 $rootDir = dirname(__DIR__, 2);
 $musicDir = $rootDir . '/storage/music-public';
@@ -1899,9 +1902,12 @@ body.dashboard-page .topbar{
 <?php endif; ?>
 
 <footer class="footer">
-    <?=pdH($serverName)?> Player Dashboard · Powered by MuchoCore ·
+    <?=pdH($serverName)?> Player Dashboard
+    <?php if ($serverByName !== '' && $socialUrl !== ''): ?>
+    · Server by <a href="<?=pdH($socialUrl)?>" target="_blank" rel="noopener noreferrer"><?=pdH($serverByName)?></a>
+    <?php endif; ?>
+    · Powered by MuchoCore ·
     <a href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer">GitHub</a> ·
-    <a href="/">Back to GDPS</a> · <a href="/admin/">Admin</a>
 </footer>
 
 </div>
