@@ -51,7 +51,7 @@ The target is not a collection of version-specific PHP entrypoints. MuchoCore ke
 
 ### 1.9
 
-The first legacy target.
+The first legacy target. The current server-side pass covers the core legacy wire behavior and compatibility aliases, with real-client verification tracked separately.
 
 Priority:
 
@@ -107,6 +107,12 @@ Reference:
 
 - https://github.com/Cvolton/GMDprivateServer
 - https://github.com/Cvolton/GMDprivateServer/wiki/Deliberate-differences-from-real-GD
+
+## GD 1.9 implementation status
+
+The current 1.9 server-side compatibility pass covers legacy GJP selection, 1.9 endpoint aliases, level description upload semantics, Base64 comment semantics, old-binary comment user sections, level download password framing, legacy hashes, and shared account/profile/leaderboard surfaces.
+
+The remaining operational milestone is empirical verification: capture a real Geometry Dash 1.9 trace and pass `tests/release/release-1.9-gate.sh`.
 
 ## GD 2.0 implementation status
 
