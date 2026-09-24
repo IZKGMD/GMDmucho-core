@@ -45,6 +45,7 @@ $aliases = [
     '/downloadGJLevel19.php' => '/downloadGJLevel21',
     '/getGJComments19.php' => '/getGJComments21',
     '/uploadGJComment19.php' => '/uploadGJComment20',
+    '/deleteGJComment19.php' => '/deleteGJComment20',
     '/getGJUserInfo19.php' => '/getGJUserInfo20',
     '/getGJUsers19.php' => '/getGJUsers20',
     '/getGJScores19.php' => '/getGJScores20',
