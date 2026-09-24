@@ -2,7 +2,7 @@
 
 MuchoCore — a backend for Geometry Dash Private Servers (GDPS).
 
-**Upcoming version: v1.0.1**
+**Release candidate: v1.0.0**
 
 > **New here? Start with [START_HERE.md](START_HERE.md).**
 >
@@ -115,13 +115,14 @@ The main automated checks are:
 ~~~bash
 php tests/client-compatibility.php
 php tests/router-compatibility.php
+php tests/client-trace.php
 python3 tools/client-patch.py --self-test
 bash tests/client-contract.sh
 ~~~
 
-CI also checks shell/PHP/Python code, Docker/Caddy configuration, shared-hosting routing, and the Windows PowerShell patcher.
+CI also checks shell/PHP/Python code, Docker/Caddy configuration, shared-hosting routing, client tracing and the Windows PowerShell patcher.
 
-The real Geometry Dash client still needs to be tested separately.
+The real Geometry Dash client still needs to be tested separately before making a final client-compatibility claim.
 
 ## License
 
