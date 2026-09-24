@@ -24,6 +24,26 @@ $checks = [
         '2.1 comment badge color is conditional',
     ],
     [
+        __DIR__ . '/../../src/Protocol/GdLegacyText.php',
+        'encodeDescriptionForResponse',
+        '2.1 level description Base64 response encoding',
+    ],
+    [
+        __DIR__ . '/../../src/Protocol/GdLegacyText.php',
+        'decodeWireText',
+        '2.1 incoming text Base64 decoding',
+    ],
+    [
+        __DIR__ . '/../../src/Protocol/GdCommentEncoder.php',
+        'GdLegacyText::encodeCommentForResponse',
+        '2.1 comment Base64 response encoding',
+    ],
+    [
+        __DIR__ . '/../../src/Protocol/GdLevelListEncoder.php',
+        'GdLegacyText::encodeDescriptionForResponse',
+        '2.1 list description Base64 response encoding',
+    ],
+    [
         __DIR__ . '/../../src/User/UserService.php',
         'ClientVersion::fromValues',
         '2.1 profile update uses protocol family detection',
