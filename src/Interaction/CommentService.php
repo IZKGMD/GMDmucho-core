@@ -230,6 +230,97 @@ final class CommentService
             . '#' . $total . ':' . $offset . ':' . count($comments);
     }
 
+    public function getUserComments(
+        int $userId,
+        int $page,
+        int $count,
+        int $mode,
+        int $gameVersion,
+        int $binaryVersion
+    ): string {
+        if ($userId <= 0) {
+            return '-1';
+        }
+
+        $limit = min(100, max(1, $count));
+        $page = min(1000, max(0, $page));
+        $offset = $page * $limit;
+        $orderByLikes = $mode !== 0;
+
+        $comments = $this->repository->getUserComments(
+            $userId,
+            $page,
+            $limit,
+            $orderByLikes
+        );
+        $total = $this->repository->countUserComments($userId);
+
+        if ($total === 0 || $comments === []) {
+            return '-2';
+        }
+
+        $encoded = [];
+        $users = [];
+        $seenUsers = [];
+
+        foreach ($comments as $comment) {
+            $role = strtolower((string)($comment['role'] ?? 'user'));
+            $badge = match ($role) {
+                'owner', 'admin', 'elder_moderator' => 2,
+                'moderator' => 1,
+                default => 0,
+            };
+
+            $profile = [
+                'username' => $comment['username'] ?? 'Player',
+                'user_id' => $comment['user_id'] ?? 0,
+                'cube' => $comment['cube'] ?? 1,
+                'color1' => $comment['color1'] ?? 0,
+                'color2' => $comment['color2'] ?? 3,
+                'special' => $comment['special'] ?? 0,
+                'icon_type' => $comment['icon_type'] ?? 0,
+                'badge' => $badge,
+                'account_id' => $comment['account_id'] ?? 0,
+            ];
+
+            $encodedComment = $this->encoder->encode(
+                $comment,
+                $profile,
+                $gameVersion,
+                $binaryVersion
+            );
+
+            $encoded[] =
+                '1~' . (int)$comment['commented_level_id'] .
+                '~' . $encodedComment;
+
+            if ($binaryVersion < 32) {
+                $uid = (int)($comment['user_id'] ?? 0);
+                $accountId = (int)($comment['account_id'] ?? 0);
+                $key = $uid . ':' . $accountId;
+
+                if ($uid > 0 && !isset($seenUsers[$key])) {
+                    $seenUsers[$key] = true;
+                    $users[] =
+                        $uid . ':' .
+                        \MuchoCore\Protocol\ProtocolText::username(
+                            $comment['username'] ?? 'Player'
+                        ) .
+                        ':' . $accountId;
+                }
+            }
+        }
+
+        $body = implode('|', $encoded);
+
+        if ($binaryVersion < 32) {
+            $body .= '#' . implode('|', $users);
+        }
+
+        return $body .
+            '#' . $total . ':' . $offset . ':' . count($comments);
+    }
+
     public function uploadAccountComment(int $accountId, string $gjp, string $content, int $gameVersion = 22): int
     {
         $this->auth->authenticate($accountId, $gjp);
