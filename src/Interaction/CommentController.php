@@ -35,18 +35,18 @@ final readonly class CommentController
         }
 
         try {
-            $this->service->uploadLevelComment(
-                $levelId,
-                $accountId,
-                $gjp,
-                $content,
-                $percent,
-                $version->effectiveGameVersion() ?: 22,
-                $udid,
-                $ip
+            return Response::text(
+                $this->service->uploadLevelComment(
+                    $levelId,
+                    $accountId,
+                    $gjp,
+                    $content,
+                    $percent,
+                    $version->effectiveGameVersion() ?: 22,
+                    $udid,
+                    $ip
+                )
             );
-
-            return Response::text("1");
         } catch (Throwable $e) {
             return Response::text("-1");
         }
