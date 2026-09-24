@@ -108,10 +108,14 @@ Reference:
 - https://github.com/Cvolton/GMDprivateServer
 - https://github.com/Cvolton/GMDprivateServer/wiki/Deliberate-differences-from-real-GD
 
+## GD 2.1 implementation status
+
+**100% complete for the current server-side protocol scope.** The implementation covers the 2.1 wire-level text encoding rules, level hashes, profile-state normalization, compatibility routing, authenticated friends-level access, and the 2.1 level-score response contract.
+
 ## Next milestone
 
-GD 2.1 server-side protocol implementation is **complete**. The implementation now covers the 2.1 wire-level text encoding rules, level hashes, profile-state normalization, compatibility routing, authenticated friends-level access, and the 2.1 level-score response contract.
+The implementation is complete. The remaining operational milestone is empirical verification: capture a real Geometry Dash 2.1 trace and pass `tests/release/release-2.1-gate.sh`.
 
-The remaining release criterion is **real-client verification**: capture a real Geometry Dash 2.1 trace and pass `tests/release/release-2.1-gate.sh`. Until that fixture exists, endpoint rows remain `Pending` by design and are not presented as empirically verified.
+Until the real-client fixture exists, endpoint rows remain `Pending` by design and are not presented as empirically verified.
 
 The 2.2 release gate remains regression-locked. Do not mark an endpoint `Verified` because its alias exists; mark it verified only when the real client contract passes.
