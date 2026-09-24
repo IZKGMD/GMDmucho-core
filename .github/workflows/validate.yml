@@ -132,6 +132,21 @@ jobs:
           grep -Fq 'mucho_level_lists' database/migrations/20260924_003_v71_runtime_schema.php
           grep -Fq "preg_match('/^-?\d+$/D'" src/V71/Request.php
 
+      - name: Check public liveness routing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path("public/index.php").read_text(encoding="utf-8")
+          liveness = source.index("if (")
+          application = source.index("(new Application())->run();")
+          assert "__muchoLivenessPath" in source
+          assert "/health" in source
+          assert "/checkifserveronline" in source
+          assert liveness < application
+          PY
+          ! grep -q 'Gemini_Generated_Image_vemzsvemzsvemzsv.jpg' docker/Caddyfile
+          test -s public/assets/muchocore-logo.jpg
+
       - name: Check Caddy configuration
         run: |
           ! grep -Eq '/database/\\*' docker/Caddyfile
