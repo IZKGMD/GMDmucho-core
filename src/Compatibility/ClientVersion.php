@@ -26,7 +26,7 @@ final readonly class ClientVersion
         if (
             $gameVersion === 0 &&
             preg_match(
-                '#/(?:getgjcomments19|uploadgjcomment19|deletegjcomment19|updategjlevel19)(?:\\.php)?$#i',
+                '#/(?:getgjcomments(?:19)?|uploadgjcomment(?:19)?|deletegjcomment(?:19)?|updategjlevel19)(?:\\.php)?$#i',
                 (string)$request->path
             ) === 1
         ) {
