@@ -189,7 +189,7 @@ final class CommentService
     }
 
     private function commandHelp(): string {
-        return implode("\\n", [
+        return implode(" | ", [
             "MuchoCore Commands",
             "!help",
             "!rate <difficulty> <stars> [coins] [featured]",
