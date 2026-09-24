@@ -24,6 +24,31 @@ $checks = [
         '2.1 comment badge color is conditional',
     ],
     [
+        __DIR__ . '/../../src/User/UserService.php',
+        'ClientVersion::fromValues',
+        '2.1 profile update uses protocol family detection',
+    ],
+    [
+        __DIR__ . '/../../src/User/UserService.php',
+        'if ($protocolVersion->effectiveGameVersion() === 21)',
+        '2.1 profile state normalization gate',
+    ],
+    [
+        __DIR__ . '/../../src/User/UserService.php',
+        'normalizeDemonInfo',
+        '2.1 demon progress normalization',
+    ],
+    [
+        __DIR__ . '/../../src/User/UserService.php',
+        'normalizeStarInfo',
+        '2.1 star/platformer progress normalization',
+    ],
+    [
+        __DIR__ . '/../../src/User/UserService.php',
+        'numericIdList((string)$raw, 1000)',
+        '2.1 demon info level id bound',
+    ],
+    [
         __DIR__ . '/../../src/Level/LevelController.php',
         'if ($type === 13)',
         '2.1 friends level authentication gate',
