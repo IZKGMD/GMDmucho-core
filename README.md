@@ -236,6 +236,21 @@ It uploads the APK in small chunks, patches supported Geometry Dash server URL l
 
 > ⚠️ Android signing is not included in the shared-hosting PHP patch step. The generated APK is **unsigned** and must be signed with your own Android signing key before installation or distribution.
 
+### 👤 Optional server credit
+
+In **Admin Panel → Settings**, you can configure:
+
+- **Server by** — your nickname, team, or project name.
+- **Social/profile URL** — Discord, Telegram, website, or another public profile.
+
+When both are set, public/admin footers show:
+
+```text
+Server by YourName
+```
+
+with the configured link.
+
 ---
 
 ## 🌍 Built something with MuchoCore?
