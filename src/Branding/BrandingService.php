@@ -110,6 +110,15 @@ final class BrandingService
             $socialUrl = '';
         }
 
+        /*
+         * Keep older installations functional until the optional branding
+         * columns have been migrated. Server name itself must never depend on
+         * the social-credit schema being present.
+         */
+        if (!$this->brandingCreditColumnsExist()) {
+            return $this->get();
+        }
+
         $q = $this->db->prepare(
             'INSERT INTO mucho_branding
                 (id,server_name,server_by_name,social_url)
@@ -128,6 +137,23 @@ final class BrandingService
         ]);
 
         return $this->get();
+    }
+
+    private function brandingCreditColumnsExist(): bool
+    {
+        try {
+            $stmt = $this->db->query(
+                "SELECT COUNT(*)
+                 FROM information_schema.columns
+                 WHERE table_schema = DATABASE()
+                   AND table_name = 'mucho_branding'
+                   AND column_name IN ('server_by_name','social_url')"
+            );
+
+            return (int)$stmt->fetchColumn() === 2;
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     public static function sanitize(string $name): string
