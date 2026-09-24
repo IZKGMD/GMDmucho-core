@@ -66,7 +66,7 @@ MuchoProtect is **enabled by default** and can be configured with environment va
 
 ## 🎯 Geometry Dash compatibility
 
-MuchoCore is currently focused on **Geometry Dash 2.2 compatibility** while keeping the protocol layer version-aware.
+MuchoCore has completed its **Geometry Dash 2.2 real-client compatibility gate** and is now expanding backward compatibility.
 
 | Component | Status |
 | --- | --- |
@@ -76,7 +76,7 @@ MuchoCore is currently focused on **Geometry Dash 2.2 compatibility** while keep
 | 2.2 level / leaderboard protocol work | ✅ Implemented |
 | Version-aware endpoint behavior | ✅ Implemented |
 | Protocol regression tests | ✅ Passing |
-| Real 2.2 client trace fixture | 🔬 Final validation step |
+| Real 2.2 client trace fixture | ✅ Captured from GD 2.2.13 |
 
 > **Compatibility note:** automated coverage is extensive, but a final 100% compatibility claim still requires a real Geometry Dash 2.2 client trace to be captured and committed as a regression fixture.
 
@@ -102,12 +102,12 @@ MuchoCore is continuously checked through GitHub Actions and local test scripts.
 ### Local checks
 
 ~~~bash
-php tests/client-compatibility.php
-php tests/router-compatibility.php
-php tests/client-trace.php
-php tests/muchoprotect.php
-python3 tools/client-patch.py --self-test
-bash tests/client-contract.sh
+php tests/client/client-compatibility.php
+php tests/protocol/router-compatibility.php
+php tests/client/client-trace.php
+php tests/security/muchoprotect.php
+python3 tools/client/client-patch.py --self-test
+bash tests/client/client-contract.sh
 ~~~
 
 ## 🚀 Getting started
@@ -152,7 +152,7 @@ The password is set during installation.
 For Windows clients, use:
 
 ~~~text
-tools/client-patch.bat
+tools/client/client-patch.bat
 ~~~
 
 The patcher creates a **separate client file** and does not replace the original EXE.
@@ -167,7 +167,7 @@ README.md          ← project overview
 src/               ← server logic
 public/            ← HTTP entry points and GD endpoints
 database/          ← migrations
-tests/             ← automated tests
+tests/             ← organized automated test suites
 tools/             ← development / client tools
 docs/              ← detailed documentation
 docker/            ← Docker / Caddy configuration
@@ -192,7 +192,7 @@ MuchoCore **v1.0.0** is being prepared around one main goal:
 
 > **Make the Geometry Dash 2.2 protocol surface reliable enough for a real release, then expand compatibility further without sacrificing maintainability or security.**
 
-The remaining 2.2 gate is based on **real client traffic**, not a synthetic fixture.
+The 2.2 gate is based on **real Geometry Dash 2.2.13 client traffic**, not a synthetic fixture.
 
 ---
 
