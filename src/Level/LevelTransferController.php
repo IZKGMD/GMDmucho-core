@@ -23,14 +23,30 @@ final readonly class LevelTransferController
     {
         $accountId = $request->postInt('accountID');
         $credential = $this->credential($request);
+        $version = $request->clientVersion();
+        $udid = $request->postString('udid');
 
-        if ($accountId <= 0 || $credential === '') {
+        if ($accountId <= 0) {
             error_log(sprintf(
-                '[MuchoCore] request_id=%s upload_level_rejected account_id=%d reason=missing_credentials has_gjp=%d has_gjp2=%d',
+                '[MuchoCore] request_id=%s upload_level_rejected account_id=%d reason=missing_account_id',
+                (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
+                $accountId
+            ));
+
+            return Response::text('-1');
+        }
+
+        if (
+            $credential === '' &&
+            $version->effectiveGameVersion() !== 19
+        ) {
+            error_log(sprintf(
+                '[MuchoCore] request_id=%s upload_level_rejected account_id=%d reason=missing_credentials has_gjp=%d has_gjp2=%d family=%s',
                 (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
                 $accountId,
                 $request->postString('gjp') !== '' ? 1 : 0,
-                $request->postString('gjp2') !== '' ? 1 : 0
+                $request->postString('gjp2') !== '' ? 1 : 0,
+                $version->family()
             ));
 
             return Response::text('-1');
@@ -40,7 +56,9 @@ final readonly class LevelTransferController
             $levelId = $this->service->upload(
                 $accountId,
                 $credential,
-                $request->post
+                $request->post,
+                $udid,
+                $request->clientIp()
             );
 
             return Response::text((string)$levelId);
