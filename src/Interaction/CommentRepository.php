@@ -39,9 +39,14 @@ final class CommentRepository
         return (int)$stmt->fetchColumn();
     }
 
-    public function getLevelComments(int $levelId, int $page = 0, int $limit = 100): array
+    public function getLevelComments(int $levelId, int $page = 0, int $limit = 100, bool $orderByLikes = false): array
     {
+        $limit = min(100, max(1, $limit));
+        $page = min(1000, max(0, $page));
         $offset = $page * $limit;
+        $order = $orderByLikes
+            ? 'c.likes DESC, c.id DESC'
+            : 'c.id DESC';
 
         $stmt = $this->db->prepare(
             "SELECT c.*,
@@ -56,7 +61,7 @@ final class CommentRepository
              JOIN accounts a ON c.account_id = a.account_id
              LEFT JOIN profiles p ON a.account_id = p.account_id
              WHERE c.level_id = :level_id
-             ORDER BY c.created_at DESC
+             ORDER BY {$order}
              LIMIT :limit OFFSET :offset"
         );
 
@@ -73,11 +78,13 @@ final class CommentRepository
         $stmt = $this->db->prepare(
             "SELECT COUNT(*)
              FROM comments c
-             INNER JOIN profiles p
+             INNER JOIN accounts a
+                 ON a.account_id = c.account_id
+             LEFT JOIN profiles p
                  ON p.account_id = c.account_id
              INNER JOIN levels l
                  ON l.level_id = c.level_id
-             WHERE p.user_id = :user_id
+             WHERE COALESCE(p.user_id, a.account_id) = :user_id
                AND l.is_unlisted = 0
                AND l.is_deleted = 0"
         );
@@ -110,13 +117,13 @@ final class CommentRepository
                     p.special,
                     p.icon_type
              FROM comments c
-             INNER JOIN profiles p
-                 ON p.account_id = c.account_id
              INNER JOIN accounts a
                  ON a.account_id = c.account_id
+             LEFT JOIN profiles p
+                 ON p.account_id = c.account_id
              INNER JOIN levels l
                  ON l.level_id = c.level_id
-             WHERE p.user_id = :user_id
+             WHERE COALESCE(p.user_id, a.account_id) = :user_id
                AND l.is_unlisted = 0
                AND l.is_deleted = 0
              ORDER BY {$order}
