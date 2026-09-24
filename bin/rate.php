@@ -32,10 +32,30 @@ if ($manualDiff > 0) {
     };
 }
 
-$cpToAdd = 0;
-if ($stars > 0) $cpToAdd += 1;
-if ($featureType >= 1) $cpToAdd += 1;
-if ($featureType >= 2) $cpToAdd += 1;
+if ($levelId <= 0 || $stars < 0 || $stars > 10) {
+    echo "Invalid level ID or stars value.
+";
+    exit(1);
+}
+
+if ($featureType < 0 || $featureType > 4) {
+    echo "Invalid feature tier. Use 0-4.
+";
+    exit(1);
+}
+
+if ($demonDiff < 0 || $demonDiff > 8) {
+    echo "Invalid demon difficulty. Use 0-8.
+";
+    exit(1);
+}
+
+$epic = match ($featureType) {
+    2 => 1,
+    3 => 2,
+    4 => 3,
+    default => 0,
+};
 
 $stmt = $pdo->prepare("SELECT account_id, name FROM levels WHERE level_id = :id");
 $stmt->execute([":id" => $levelId]);
@@ -56,15 +76,36 @@ $stmt = $pdo->prepare("
 
 $stmt->execute([
     ":stars" => $stars, ":difficulty" => $difficulty, ":demon" => $isDemon,
-    ":demon_diff" => $demonDiff, ":auto_level" => $isAuto,
-    ":featured" => ($featureType > 0 ? 1 : 0), ":epic" => $featureType,
+:demon_diff" => $demonDiff, ":auto_level" => $isAuto,
+    ":featured" => ($featureType > 0 ? 1 : 0), ":epic" => $epic,
     ":id" => $levelId
 ]);
 
-if ($cpToAdd > 0) {
-    $pdo->prepare("UPDATE profiles SET creator_points = creator_points + :cp WHERE account_id = :acc_id")
-        ->execute([":cp" => $cpToAdd, ":acc_id" => (int)$level["account_id"]]);
-}
+$cp = $pdo->prepare(
+    "SELECT COALESCE(
+        SUM(
+            CASE WHEN stars > 0 THEN 1 ELSE 0 END
+            + CASE WHEN featured > 0 THEN 1 ELSE 0 END
+            + epic
+        ),
+        0
+     )
+     FROM levels
+     WHERE account_id = :acc_id
+       AND is_deleted = 0"
+);
+$cp->execute([":acc_id" => (int)$level["account_id"]]);
+$creatorPoints = (int)$cp->fetchColumn();
 
-echo "Уровень \"{$level["name"]}\" (ID: {$levelId}) успешно оценен!\n";
-echo "Звезды: {$stars} | Сложность: {$difficulty} | Спец-статус: {$featureType} | Начислено CP: {$cpToAdd}\n";
+$sync = $pdo->prepare(
+    "UPDATE profiles
+     SET creator_points = :cp
+     WHERE account_id = :acc_id"
+);
+$sync->execute([
+    ":cp" => $creatorPoints,
+    ":acc_id" => (int)$level["account_id"],
+]);
+
+echo "Level \"{$level["name"]}\" (ID: {$levelId}) rated successfully.\n";
+echo "Stars: {$stars} | Difficulty: {$difficulty} | Feature tier: {$featureType} | Creator CP: {$creatorPoints}\n";
