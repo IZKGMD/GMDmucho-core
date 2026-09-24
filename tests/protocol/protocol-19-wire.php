@@ -36,8 +36,14 @@ assertTrue(
     MuchoCore\Protocol\GdLegacyText::encodeDescriptionForStorage(
         'Hello 1.9',
         19
+    ) === 'SGVsbG8gMS45',
+    '1.9 uploaded level description is stored as Base64'
+);
+assertTrue(
+    MuchoCore\Protocol\GdLegacyText::decodeDescriptionForStorage(
+        'SGVsbG8gMS45'
     ) === 'Hello 1.9',
-    '1.9 uploaded level description stays plain'
+    '1.9 level description update decodes Base64'
 );
 
 assertTrue(
