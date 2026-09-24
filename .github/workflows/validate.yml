@@ -126,6 +126,10 @@ jobs:
           grep -q 'CompatibilityProfile' src/V71/V71Application.php
           grep -q 'FOR UPDATE' public/admin/client-release-upload-module.php
           test -f database/migrations/20260924_002_integrity_hardening.php
+          test -f database/migrations/20260924_003_v71_runtime_schema.php
+          grep -Fq 'mucho_level_scores' database/migrations/20260924_003_v71_runtime_schema.php
+          grep -Fq 'mucho_platformer_scores' database/migrations/20260924_003_v71_runtime_schema.php
+          grep -Fq 'mucho_level_lists' database/migrations/20260924_003_v71_runtime_schema.php
           grep -Fq "preg_match('/^-?\d+$/D'" src/V71/Request.php
 
       - name: Check Caddy configuration
