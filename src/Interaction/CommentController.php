@@ -49,15 +49,32 @@ final readonly class CommentController
     public function getLevelComments(Request $request): Response
     {
         $levelId = $request->postInt("levelID", 0) ?: (int)($_POST["levelID"] ?? 0);
+        $userId = $request->postInt("userID", 0) ?: (int)($_POST["userID"] ?? 0);
         $page = $request->postInt("page", 0) ?: (int)($_POST["page"] ?? 0);
+        $count = $request->postInt("count", 10) ?: (int)($_POST["count"] ?? 10);
+        $mode = $request->postInt("mode", 0) ?: (int)($_POST["mode"] ?? 0);
+        $version = $request->clientVersion();
 
         try {
+            if ($levelId <= 0 && $userId > 0) {
+                return Response::text(
+                    $this->service->getUserComments(
+                        $userId,
+                        $page,
+                        $count,
+                        $mode,
+                        $version->effectiveGameVersion() ?: 22,
+                        $version->binaryVersion
+                    )
+                );
+            }
+
             return Response::text(
                 $this->service->getLevelComments(
                     $levelId,
                     $page,
-                    $request->clientVersion()->effectiveGameVersion() ?: 22,
-                    $request->clientVersion()->binaryVersion
+                    $version->effectiveGameVersion() ?: 22,
+                    $version->binaryVersion
                 )
             );
         } catch (Throwable) {
