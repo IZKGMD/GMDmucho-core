@@ -32,7 +32,7 @@ Use a real client for the target generation:
 
 | Target | Expected family | Fixture | Gate |
 | --- | --- | --- | --- |
-| GD 2.0 | `2.0` | `tests/client-fixtures/2.0/endpoints.json` | `tests/release/release-2.0-gate.sh` |
+| GD 1.9 | `1.9` | `tests/client-fixtures/1.9/endpoints.json` | `tests/release/release-1.9-gate.sh` |\n| GD 2.0 | `2.0` | `tests/client-fixtures/2.0/endpoints.json` | `tests/release/release-2.0-gate.sh` |
 | GD 2.1 | `2.1` | `tests/client-fixtures/2.1/endpoints.json` | `tests/release/release-2.1-gate.sh` |
 | GD 2.2 | `2.2` | `tests/client-fixtures/2.2/endpoints.json` | `tests/release/release-2.2-gate.sh` |
 
@@ -52,6 +52,15 @@ Keep the trace file until the fixture has been generated and validated.
 
 ## Step 4: generate the matching fixture
 
+For GD 1.9:
+
+```bash
+python3 tools/client/client-trace-summary.py \\
+  --expected-family 1.9 \\
+  --input storage/client-trace.ndjson \\
+  --output tests/client-fixtures/1.9/endpoints.json
+```
+
 For GD 2.0:
 
 ```bash
@@ -66,6 +75,13 @@ For GD 2.1, replace `2.0` with `2.1` in both family and fixture path. For GD 2.2
 Never combine traces from different Geometry Dash generations.
 
 ## Step 5: run the matching release gate
+
+GD 1.9:
+
+```bash
+bash tests/release/release-1.9-gate.sh
+bash tests/client/client-contract.sh
+```
 
 GD 2.0:
 
