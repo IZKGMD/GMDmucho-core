@@ -9,8 +9,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-PATCHER = ROOT / "tools" / "client-patch.py"
+ROOT = Path(__file__).resolve().parents[2]
+PATCHER = ROOT / "tools" / "client" / "client-patch.py"
 SERVER = "https://abc.com"
 
 patterns = [
