@@ -180,6 +180,24 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
 
     /*
+     * Web Client Patcher
+     */
+
+    $router->register(
+        'clientpatcher',
+        static function(PDO $db): void {
+            if (!function_exists('renderClientPatcherPage')) {
+                throw new RuntimeException(
+                    'Web Client Patcher module is unavailable.'
+                );
+            }
+
+            renderClientPatcherPage($db);
+        }
+    );
+
+
+    /*
      * DB Backup Center
      */
 
