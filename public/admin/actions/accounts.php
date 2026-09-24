@@ -33,25 +33,59 @@ try {
         if ($action==='account-save') {
             requireRank(30);
 
-            $id=(int)$_POST['id'];
+            $id=(int)($_POST['id'] ?? 0);
+            if ($id<=0) {
+                throw new RuntimeException('Invalid account.');
+            }
 
-            $role=trim((string)$_POST['role']);
+            $role=trim((string)($_POST['role'] ?? ''));
+
+            $targetQuery=$db->prepare(
+                'SELECT a.account_id, COALESCE(r.code,\'user\') AS role
+                 FROM accounts a
+                 LEFT JOIN roles r ON r.id=a.role_id
+                 WHERE a.account_id=:id
+                 LIMIT 1'
+            );
+            $targetQuery->execute(['id'=>$id]);
+            $target=$targetQuery->fetch(PDO::FETCH_ASSOC);
+
+            if (!$target) {
+                throw new RuntimeException('Account not found.');
+            }
 
             $roleQuery=$db->prepare(
-                'SELECT id
+                'SELECT id, COALESCE(priority,0) AS priority
                  FROM roles
                  WHERE code=:role
                  LIMIT 1'
             );
+            $roleQuery->execute(['role'=>$role]);
+            $roleRow=$roleQuery->fetch(PDO::FETCH_ASSOC);
 
-            $roleQuery->execute([
-                'role'=>$role
-            ]);
-
-            $roleId=$roleQuery->fetchColumn();
-
-            if($roleId===false) {
+            if(!$roleRow) {
                 throw new RuntimeException('Bad role');
+            }
+
+            $actorRank=rank((string)(admin()['role'] ?? ''));
+            $targetRank=(int)$roleRow['priority'];
+            $currentRank=match (strtolower((string)$target['role'])) {
+                'owner' => 40,
+                'elder_moderator' => 30,
+                'moderator' => 20,
+                default => 0,
+            };
+
+            /*
+             * Accounts with an equal or higher game role are owner-managed.
+             * This prevents an admin-panel admin from taking over a privileged
+             * GD account by changing its role, credentials, ban state, or profile.
+             */
+            if (
+                ($currentRank > 0 && $currentRank >= $actorRank) ||
+                ($targetRank > 0 && $targetRank >= $actorRank)
+            ) {
+                requireRank(40);
             }
 
             $q=$db->prepare(
@@ -88,10 +122,40 @@ try {
         elseif ($action==='password-reset') {
             requireRank(30);
 
-            $id=(int)$_POST['id'];
-            $password=(string)$_POST['new_password'];
+            $id=(int)($_POST['id'] ?? 0);
+            $password=(string)($_POST['new_password'] ?? '');
 
-            if (strlen($password)<8) {
+            if ($id<=0) {
+                throw new RuntimeException('Invalid account.');
+            }
+
+            $targetQuery=$db->prepare(
+                'SELECT COALESCE(r.code,\'user\') AS role
+                 FROM accounts a
+                 LEFT JOIN roles r ON r.id=a.role_id
+                 WHERE a.account_id=:id
+                 LIMIT 1'
+            );
+            $targetQuery->execute(['id'=>$id]);
+            $targetRole=(string)($targetQuery->fetchColumn() ?: '');
+
+            if ($targetRole==='') {
+                throw new RuntimeException('Account not found.');
+            }
+
+            $actorRank=rank((string)(admin()['role'] ?? ''));
+            $targetRank=match (strtolower($targetRole)) {
+                'owner' => 40,
+                'elder_moderator' => 30,
+                'moderator' => 20,
+                default => 0,
+            };
+
+            if ($targetRank >= $actorRank && $targetRank > 0) {
+                requireRank(40);
+            }
+
+            if (strlen($password)<8 || strlen($password)>256) {
                 throw new RuntimeException(
                     'Password must be at least 8 characters.'
                 );
