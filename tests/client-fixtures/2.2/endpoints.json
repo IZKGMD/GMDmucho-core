@@ -1,0 +1,73 @@
+{
+  "generated_by": "tools/client-trace-summary.py",
+  "trace_client_families": [
+    "2.2"
+  ],
+  "trace_game_versions": [
+    "22"
+  ],
+  "trace_binary_versions": [
+    "47"
+  ],
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/database/getGJLevels21.php",
+      "request_count": 1,
+      "statuses_seen": [
+        200
+      ],
+      "query_keys": [],
+      "post_keys": [
+        "gameVersion",
+        "binaryVersion",
+        "udid",
+        "uuid",
+        "dvs",
+        "accountID",
+        "gjp2",
+        "type",
+        "str",
+        "diff",
+        "len",
+        "page",
+        "total",
+        "uncompleted",
+        "onlyCompleted",
+        "featured",
+        "original",
+        "twoPlayer",
+        "coins",
+        "secret"
+      ],
+      "client_families": [
+        "2.2"
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/database/getGJScores20.php",
+      "request_count": 2,
+      "statuses_seen": [
+        200
+      ],
+      "query_keys": [],
+      "post_keys": [
+        "gameVersion",
+        "binaryVersion",
+        "udid",
+        "uuid",
+        "dvs",
+        "accountID",
+        "gjp2",
+        "type",
+        "count",
+        "stat",
+        "secret"
+      ],
+      "client_families": [
+        "2.2"
+      ]
+    }
+  ]
+}
