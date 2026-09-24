@@ -109,6 +109,8 @@ jobs:
           grep -q '/var/lib/muchocore/runtime.env' docker/app-entrypoint.sh
           grep -q 'createMutable' src/Database/Database.php
           grep -q 'root:www-data' docker/app-entrypoint.sh
+          grep -q 'install -d -m 750 -o root -g www-data /var/lib/muchocore' docker/app-entrypoint.sh
+          grep -q 'chown root:www-data /var/lib/muchocore/runtime.env' docker/app-entrypoint.sh
 
       - name: Check admin container routing
         run: |
