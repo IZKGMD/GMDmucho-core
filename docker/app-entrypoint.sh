@@ -6,7 +6,7 @@ cd "$ROOT"
 DB_PASS="$(cat /run/secrets/db_password)"
 ADMIN_PASS="$(cat /run/secrets/admin_password)"
 
-install -d -m 750 /var/lib/muchocore
+install -d -m 750 -o root -g www-data /var/lib/muchocore
 install -d -m 750 /var/lib/muchocore-control /var/lib/muchocore-backups
 install -d -m 750 /var/www/mucho-core/storage/music-public
 install -d -m 750 /var/www/mucho-core/storage/release-uploads
@@ -39,7 +39,7 @@ DB_NAME=${DB_NAME:-muchocore}
 DB_USER=${DB_USER:-muchocore_user}
 DB_PASS=$DB_PASS
 EOFENV
-chown www-data:www-data /var/lib/muchocore/runtime.env
+chown root:www-data /var/lib/muchocore/runtime.env
 chmod 640 /var/lib/muchocore/runtime.env
 
 php -r 'echo password_hash($argv[1], PASSWORD_DEFAULT);' "$ADMIN_PASS" > /var/lib/muchocore/admin-password.hash
