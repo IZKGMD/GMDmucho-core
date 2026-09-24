@@ -77,6 +77,7 @@ MuchoCore has completed its **Geometry Dash 2.2 real-client compatibility gate**
 | Version-aware endpoint behavior | ✅ Implemented |
 | Protocol regression tests | ✅ Passing |
 | Real 2.2 client trace fixture | ✅ Captured from GD 2.2.13 |
+| GD 2.1 server-side conformance | ✅ ~90%; real-client fixture pending |
 
 > **Compatibility note:** the 2.2 release gate is backed by real Geometry Dash 2.2.13 traffic. Older protocol families are now being expanded with dedicated regression coverage.
 
@@ -92,6 +93,7 @@ MuchoCore is continuously checked through GitHub Actions and local test scripts.
 | Protocol matrix / 2.2 guards | ✅ |
 | Protocol hash checks | ✅ |
 | Client trace tooling | ✅ |
+| GD 2.1 wire contract | ✅ |
 | Client contract checks | ✅ |
 | MuchoProtect security tests | ✅ |
 | Python client patcher self-test | ✅ |
