@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+require __DIR__ . '/../../src/Protocol/ProtocolText.php';
 require __DIR__ . '/../../src/Protocol/GdMessageEncoder.php';
 require __DIR__ . '/../../src/Protocol/GdRelationshipEncoder.php';
 
