@@ -418,7 +418,7 @@ final class CommentService
         $total = $this->repository->countAccountComments($accountId);
 
         if ($total === 0 || empty($comments)) {
-            return "-2";
+            return '#0:0:0';
         }
 
         $encoded = [];
