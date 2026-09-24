@@ -38,6 +38,7 @@ services:
       MUCHO_BACKUP_DIR: ${MUCHO_BACKUP_DIR:-/var/lib/muchocore-backups}
       MUCHO_CLIENT_TRACE: ${MUCHO_CLIENT_TRACE:-0}
       MUCHO_CLIENT_TRACE_FILE: ${MUCHO_CLIENT_TRACE_FILE:-/var/www/mucho-core/storage/client-trace.ndjson}
+      MUCHO_GD_VERSIONS: ${MUCHO_GD_VERSIONS:-all}
     secrets:
       - db_password
       - admin_password
