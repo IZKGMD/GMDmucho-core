@@ -79,9 +79,84 @@ if ($unlisted['decision'] !== 'allow' || $unlisted['reason'] !== 'no_policy') {
     exit(1);
 }
 
-foreach (glob($dir . '/*') ?: [] as $file) {
-    @unlink($file);
+/*
+ * Verify 2.2 credentials are recognized through gjp2 and account
+ * protection remains bound to account + credential, not accountID alone.
+ */
+$accountProtect = new MuchoProtect(
+    new RateLimiter($dir . '-account')
+);
+
+for ($i = 0; $i < 12; $i++) {
+    $result = $accountProtect->inspect(
+        new Request(
+            'POST',
+            '/loginGJAccount22.php',
+            [],
+            [
+                'accountID' => '456',
+                'gameVersion' => '22',
+                'binaryVersion' => '42',
+                'gjp2' => 'credential-A',
+            ],
+            ['REMOTE_ADDR' => '10.20.0.' . ($i + 1)]
+        ),
+        '/loginGJAccount22.php'
+    );
+
+    if ($result['decision'] !== 'allow') {
+        fwrite(STDERR, "MuchoProtect 2.2 account setup failed at request {$i}\n");
+        exit(1);
+    }
 }
-@rmdir($dir);
+
+$accountBlocked = $accountProtect->inspect(
+    new Request(
+        'POST',
+        '/loginGJAccount22.php',
+        [],
+        [
+            'accountID' => '456',
+            'gameVersion' => '22',
+            'binaryVersion' => '42',
+            'gjp2' => 'credential-A',
+        ],
+        ['REMOTE_ADDR' => '10.20.1.50']
+    ),
+    '/loginGJAccount22.php'
+);
+
+if ($accountBlocked['decision'] !== 'block' || $accountBlocked['reason'] !== 'account_rate_limit') {
+    fwrite(STDERR, "MuchoProtect account fingerprint / GJP2 test failed\n");
+    exit(1);
+}
+
+$differentCredential = $accountProtect->inspect(
+    new Request(
+        'POST',
+        '/loginGJAccount22.php',
+        [],
+        [
+            'accountID' => '456',
+            'gameVersion' => '22',
+            'binaryVersion' => '42',
+            'gjp2' => 'credential-B',
+        ],
+        ['REMOTE_ADDR' => '10.20.1.51']
+    ),
+    '/loginGJAccount22.php'
+);
+
+if ($differentCredential['decision'] !== 'allow') {
+    fwrite(STDERR, "MuchoProtect credential isolation test failed\n");
+    exit(1);
+}
+
+foreach ([$dir, $dir . '-account'] as $cleanupDir) {
+    foreach (glob($cleanupDir . '/*') ?: [] as $file) {
+        @unlink($file);
+    }
+    @rmdir($cleanupDir);
+}
 
 echo "MuchoProtect tests passed\n";
