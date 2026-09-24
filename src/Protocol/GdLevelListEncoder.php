@@ -60,7 +60,12 @@ final class GdLevelListEncoder
                 19, (int)$level['featured'],
                 42, (int)$level['epic'],
                 45, (int)$level['object_count'],
-                3, ProtocolText::field((string)($level['description'] ?? '')),
+                3, ProtocolText::field(
+                    GdLegacyText::encodeDescriptionForResponse(
+                        (string)($level['description'] ?? ''),
+                        $gameVersion
+                    )
+                ),
                 15, (int)$level['length'],
                 30, (int)$level['original_level_id'],
                 31, (int)$level['two_player'],
