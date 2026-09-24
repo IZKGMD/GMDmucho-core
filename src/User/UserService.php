@@ -206,7 +206,27 @@ final readonly class UserService
             throw new RuntimeException('Unable to update profile.');
         }
 
-        return (string)$accountId;
+        $userStmt = $this->pdo->prepare(
+            'SELECT user_id
+             FROM profiles
+             WHERE account_id = :account_id
+             LIMIT 1'
+        );
+
+        $userStmt->execute([
+            'account_id' => $accountId,
+        ]);
+
+        $userId = (int)$userStmt->fetchColumn();
+
+        if ($userId <= 0) {
+            throw new RuntimeException('Unable to resolve profile user ID.');
+        }
+
+        /*
+         * updateGJUserScore returns the legacy userID, not accountID.
+         */
+        return (string)$userId;
     }
 
     public function updateSettings(
