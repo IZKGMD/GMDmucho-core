@@ -100,14 +100,14 @@ final class GdLegacyText
         int $gameVersion
     ): string {
         /*
-         * GD 2.0+ sends level comments as plain protocol text.
-         * Only the pre-2.0 client family uses Base64 for comments.
+         * Geometry Dash 1.9 sends comments as plain protocol text.
+         * Cvolton only Base64-encodes level comments when persisting them
+         * to the database, then decodes them again for the response.
+         *
+         * MuchoCore stores comments as plain UTF-8 text, so the wire value
+         * is already ready for persistence for every supported client family.
          */
-        if ($gameVersion >= 20) {
-            return $comment;
-        }
-
-        return self::decodeWireText($comment);
+        return $comment;
     }
 
     /**
@@ -118,19 +118,11 @@ final class GdLegacyText
         int $gameVersion
     ): string {
         /*
-         * GD 2.0+ expects level/account comments as plain text.
-         * GD 1.9 keeps the legacy Base64 representation.
+         * Level and account comments are plain text on the Geometry Dash
+         * wire for all supported client families. The legacy 1.9 server
+         * Base64-encodes only the stored database value.
          */
-        if ($gameVersion >= 20) {
-            return $comment;
-        }
-
-        /*
-         * GD 1.9 comment responses use standard Base64, exactly like the
-         * legacy Cvolton endpoint: padding is preserved and the alphabet is
-         * not URL-safe. Level descriptions use a different legacy encoding.
-         */
-        return base64_encode($comment);
+        return $comment;
     }
 
     private static function normalizeBase64Url(string $value): string
