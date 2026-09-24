@@ -80,7 +80,10 @@ $handlerRoutes = [
 ];
 
 foreach ($handlerRoutes as $route) {
-    if (!str_contains($applicationSource, "->add('ANY', '{$route}'")) {
+    if (
+        !str_contains($applicationSource, "$route('{$route}',") &&
+        !str_contains($applicationSource, "$route(\n            '{$route}',")
+    ) {
         fwrite(
             STDERR,
             "FAIL missing application route {$route}\n"
