@@ -125,7 +125,12 @@ final class GdLegacyText
             return $comment;
         }
 
-        return self::base64UrlEncode($comment);
+        /*
+         * GD 1.9 comment responses use standard Base64, exactly like the
+         * legacy Cvolton endpoint: padding is preserved and the alphabet is
+         * not URL-safe. Level descriptions use a different legacy encoding.
+         */
+        return base64_encode($comment);
     }
 
     private static function normalizeBase64Url(string $value): string
