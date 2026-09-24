@@ -21,6 +21,33 @@ return static function(PDO $db): void {
 
     $db->exec("
         UPDATE accounts a
+        LEFT JOIN roles current_role
+            ON current_role.id = a.role_id
+        INNER JOIN roles canonical_role
+            ON canonical_role.code = CASE
+                WHEN LOWER(TRIM(COALESCE(a.role, ''))) IN
+                    ('admin', 'elder', 'developer')
+                    THEN 'elder_moderator'
+                WHEN LOWER(TRIM(COALESCE(a.role, ''))) IN
+                    ('helper', 'mod')
+                    THEN 'moderator'
+                WHEN LOWER(TRIM(COALESCE(a.role, ''))) = 'player'
+                    THEN 'user'
+                WHEN LOWER(TRIM(COALESCE(a.role, ''))) = 'user'
+                    THEN 'user'
+                ELSE current_role.code
+            END
+        SET a.role_id = canonical_role.id
+        WHERE a.role IS NOT NULL
+          AND (
+              current_role.id IS NULL
+              OR current_role.code IS NULL
+              OR current_role.code = 'user'
+          )
+    ");
+
+    $db->exec("
+        UPDATE accounts a
         INNER JOIN roles old_role
             ON old_role.id = a.role_id
         INNER JOIN roles new_role
