@@ -67,6 +67,7 @@ final readonly class MuchoProtect
         '/uploadgjacccomment20' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
         '/deletegjcomment20' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
         '/deletegjaccountcomment20' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
+        '/deletegjacccomment20' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
 
         '/uploadgjmessage20' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
         '/deletegjmessages20' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
