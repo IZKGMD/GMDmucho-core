@@ -222,7 +222,7 @@ final class CommentService
          */
         if (!in_array(
             $role,
-            ["owner", "admin", "moderator", "mod", "elder", "developer"],
+            ["owner", "elder_moderator", "moderator"],
             true
         )) {
             return null;
