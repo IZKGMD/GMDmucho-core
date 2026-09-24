@@ -14,8 +14,8 @@ ADMIN_USER="admin"
 # Dashboard -> Networking -> Tunnels. Add the published applications you need,
 # then use the connector token shown for the tunnel. The MuchoCore tunnel
 # compose override sends traffic to the internal Caddy service at http://caddy:80.
-TUNNEL_TOKEN="\${MUCHO_TUNNEL_TOKEN:-}"
-GD_VERSIONS="\${MUCHO_GD_VERSIONS:-}"
+TUNNEL_TOKEN="${MUCHO_TUNNEL_TOKEN:-}"
+GD_VERSIONS="${MUCHO_GD_VERSIONS:-}"
 
 BOLD='\033[1m'
 CYAN='\033[1;36m'
@@ -24,16 +24,16 @@ YELLOW='\033[1;33m'
 RED='\033[1;31m'
 RESET='\033[0m'
 
-log()  { printf "\${GREEN}[MuchoCore]\${RESET} %s\n" "$*"; }
-info() { printf "  \${CYAN}→\${RESET} %s\n" "$*"; }
-warn() { printf "\n\${YELLOW}[warning]\${RESET} %s\n" "$*" >&2; }
-fail() { printf "\n\${RED}[error]\${RESET} %s\n" "$*" >&2; exit 1; }
+log()  { printf "${GREEN}[MuchoCore]${RESET} %s\n" "$*"; }
+info() { printf "  ${CYAN}→${RESET} %s\n" "$*"; }
+warn() { printf "\n${YELLOW}[warning]${RESET} %s\n" "$*" >&2; }
+fail() { printf "\n${RED}[error]${RESET} %s\n" "$*" >&2; exit 1; }
 
 print_banner() {
-  printf "\n\${CYAN}╔══════════════════════════════════════════════════════════════╗\${RESET}\n"
-  printf "\${CYAN}║\${RESET}  \${BOLD}MuchoCore Installer\${RESET}  \${CYAN}•\${RESET} \${BOLD}v1.0.0\${RESET}                     \${CYAN}║\${RESET}\n"
-  printf "\${CYAN}║\${RESET}  Geometry Dash Private Server deployment wizard       \${CYAN}║\${RESET}\n"
-  printf "\${CYAN}╚══════════════════════════════════════════════════════════════╝\${RESET}\n\n"
+  printf "\n${CYAN}╔══════════════════════════════════════════════════════════════╗${RESET}\n"
+  printf "${CYAN}║${RESET}  ${BOLD}MuchoCore Installer${RESET}  ${CYAN}•${RESET} ${BOLD}v1.0.0${RESET}                     ${CYAN}║${RESET}\n"
+  printf "${CYAN}║${RESET}  Geometry Dash Private Server deployment wizard       ${CYAN}║${RESET}\n"
+  printf "${CYAN}╚══════════════════════════════════════════════════════════════╝${RESET}\n\n"
 }
 
 valid_versions() {
@@ -46,25 +46,25 @@ valid_versions() {
 
 select_compatibility_profile() {
   if [[ -n "$GD_VERSIONS" ]]; then
-    [[ "\${GD_VERSIONS,,}" == "all" ]] && GD_VERSIONS="all"
+    [[ "${GD_VERSIONS,,}" == "all" ]] && GD_VERSIONS="all"
     valid_versions "$GD_VERSIONS" ||
       fail "Invalid MUCHO_GD_VERSIONS='$GD_VERSIONS'. Use all or a comma-separated set of 19,20,21,22."
-    info "Compatibility profile: GD \$(printf '%s' "$GD_VERSIONS" | sed 's/19/1.9/g; s/20/2.0/g; s/21/2.1/g; s/22/2.2/g; s/,/, /g')"
+    info "Compatibility profile: GD $(printf '%s' "$GD_VERSIONS" | sed 's/19/1.9/g; s/20/2.0/g; s/21/2.1/g; s/22/2.2/g; s/,/, /g')"
     return
   fi
 
   print_banner
-  printf "\${BOLD}Choose Geometry Dash compatibility profile:\${RESET}\n\n"
-  printf "  \${CYAN}1\${RESET}) All supported versions \${YELLOW}(recommended)\${RESET} — GD 1.9 → 2.2\n"
-  printf "  \${CYAN}2\${RESET}) GD 1.9 only \${YELLOW}(legacy)\${RESET}\n"
-  printf "  \${CYAN}3\${RESET}) GD 2.0 only\n"
-  printf "  \${CYAN}4\${RESET}) GD 2.1 only\n"
-  printf "  \${CYAN}5\${RESET}) GD 2.2 only\n"
-  printf "  \${CYAN}6\${RESET}) Custom profile — e.g. 19,22\n\n"
+  printf "${BOLD}Choose Geometry Dash compatibility profile:${RESET}\n\n"
+  printf "  ${CYAN}1${RESET}) All supported versions ${YELLOW}(recommended)${RESET} — GD 1.9 → 2.2\n"
+  printf "  ${CYAN}2${RESET}) GD 1.9 only ${YELLOW}(legacy)${RESET}\n"
+  printf "  ${CYAN}3${RESET}) GD 2.0 only\n"
+  printf "  ${CYAN}4${RESET}) GD 2.1 only\n"
+  printf "  ${CYAN}5${RESET}) GD 2.2 only\n"
+  printf "  ${CYAN}6${RESET}) Custom profile — e.g. 19,22\n\n"
 
   local choice
   read -r -p "  Select [1]: " choice < /dev/tty || choice=1
-  choice="\${choice:-1}"
+  choice="${choice:-1}"
 
   case "$choice" in
     1) GD_VERSIONS="all" ;;
@@ -80,19 +80,19 @@ select_compatibility_profile() {
     *) fail "Invalid selection." ;;
   esac
 
-  info "Selected: GD \$(printf '%s' "$GD_VERSIONS" | sed 's/19/1.9/g; s/20/2.0/g; s/21/2.1/g; s/22/2.2/g; s/,/, /g')"
+  info "Selected: GD $(printf '%s' "$GD_VERSIONS" | sed 's/19/1.9/g; s/20/2.0/g; s/21/2.1/g; s/22/2.2/g; s/,/, /g')"
 }
 
 preflight() {
   log "Running preflight checks..."
 
   local free_kib
-  free_kib="\$(df -Pk "$INSTALL_DIR" 2>/dev/null | awk 'NR==2 {print \$4}')"
+  free_kib="$(df -Pk "$INSTALL_DIR" 2>/dev/null | awk 'NR==2 {print \$4}')"
   [[ -n "$free_kib" && "$free_kib" -ge 1048576 ]] ||
     fail "At least 1 GiB of free disk space is required."
 
   local mem_kib
-  mem_kib="\$(awk '/MemAvailable:/ {print \$2}' /proc/meminfo 2>/dev/null || echo 0)"
+  mem_kib="$(awk '/MemAvailable:/ {print \$2}' /proc/meminfo 2>/dev/null || echo 0)"
   if [[ "$mem_kib" -lt 524288 ]]; then
     warn "Less than 512 MiB of available RAM detected. Docker builds may fail."
   fi
