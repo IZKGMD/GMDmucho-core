@@ -105,7 +105,7 @@ final class GdLevelListEncoder
                     6, (string)($level['song_youtube_video_id'] ?? ''),
                     10, (string)($level['song_download_url'] ?? ''),
                     7, (string)($level['song_youtube_channel_id'] ?? ''),
-                    8, 0,
+                    8, 1,
                 ]);
             }
 
