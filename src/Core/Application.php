@@ -19,6 +19,7 @@ use MuchoCore\LevelList\LevelListService;
 use MuchoCore\Url\UrlController;
 use MuchoCore\Compatibility\DiscoveryController;
 use MuchoCore\CloudSave\CloudSaveService;
+use MuchoCore\Compatibility\CompatibilityProfile;
 use MuchoCore\CloudSave\CloudSaveRepository;
 use MuchoCore\CloudSave\CloudSaveController;
 use MuchoCore\Database\Database;
@@ -422,6 +423,14 @@ final readonly class Application
         }
 
         try {
+            $compatibilityProfile = CompatibilityProfile::fromEnvironment();
+
+            if (!$compatibilityProfile->allows($request->clientVersion())) {
+                $response = Response::text('-1');
+                ClientTrace::captureResponse($response);
+                return $response;
+            }
+
             $response = $this->router->dispatch($request);
             ClientTrace::captureResponse($response);
             return $response;
