@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-require_once dirname(__DIR__) . '/src/Http/ClientIp.php';
-require_once dirname(__DIR__) . '/src/Compatibility/ClientVersion.php';
-require_once dirname(__DIR__) . '/src/Http/Request.php';
-require_once dirname(__DIR__) . '/src/Routing/Router.php';
-require_once dirname(__DIR__) . '/src/Security/RateLimiter.php';
-require_once dirname(__DIR__) . '/src/Security/AbusePenaltyStore.php';
-require_once dirname(__DIR__) . '/src/Security/MuchoProtect.php';
+require_once dirname(__DIR__, 2) . '/src/Http/ClientIp.php';
+require_once dirname(__DIR__, 2) . '/src/Compatibility/ClientVersion.php';
+require_once dirname(__DIR__, 2) . '/src/Http/Request.php';
+require_once dirname(__DIR__, 2) . '/src/Routing/Router.php';
+require_once dirname(__DIR__, 2) . '/src/Security/RateLimiter.php';
+require_once dirname(__DIR__, 2) . '/src/Security/AbusePenaltyStore.php';
+require_once dirname(__DIR__, 2) . '/src/Security/MuchoProtect.php';
 
 use MuchoCore\Http\Request;
 use MuchoCore\Routing\Router;
