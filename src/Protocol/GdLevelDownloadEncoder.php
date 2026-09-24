@@ -38,10 +38,20 @@ final class GdLevelDownloadEncoder
 
         $description = (string) $level['description'];
 
-        $description = GdLegacyText::encodeDescriptionForResponse(
-            $description,
-            $gameVersion
-        );
+        if ($gameVersion < 20) {
+            /*
+             * GD 1.9 stores the description encoded, but the legacy
+             * download response sends the decoded text.
+             */
+            $description = GdLegacyText::decodeDescriptionForStorage(
+                $description
+            );
+        } else {
+            $description = GdLegacyText::encodeDescriptionForResponse(
+                $description,
+                $gameVersion
+            );
+        }
 
         $password = (string) $level['copy_password'];
 
