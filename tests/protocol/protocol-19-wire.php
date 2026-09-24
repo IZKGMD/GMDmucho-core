@@ -172,7 +172,7 @@ assertTrue(
     str_contains(
         $download,
         '#' . GdHash::level('1:2:3') . '#' .
-        GdHash::metadata('42,7,0,123,1,0,123,0')
+        GdHash::metadata('42,7,0,123,3,0,123,0')
     ),
     '1.9 level hashes use legacy salt and metadata'
 );
