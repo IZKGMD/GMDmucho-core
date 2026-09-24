@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-require dirname(__DIR__, 2) . '/vendor/autoload.php';
+require dirname(__DIR__, 2) . '/src/Client/WindowsClientPatcher.php';
+require dirname(__DIR__, 2) . '/src/Client/AndroidClientPatcher.php';
 
 use MuchoCore\Client\AndroidClientPatcher;
-use ZipArchive;
 
 $dir = sys_get_temp_dir() . '/muchocore-android-patcher-' . bin2hex(random_bytes(6));
 if (!mkdir($dir, 0700, true) && !is_dir($dir)) {
