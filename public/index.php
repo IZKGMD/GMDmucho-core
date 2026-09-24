@@ -11,6 +11,33 @@ use MuchoCore\Security\MuchoProtect;
 
 ob_start();
 
+//
+// Keep the legacy liveness endpoints independent from the database/application
+// bootstrap. Installers, load balancers, and Geometry Dash clients use these
+// endpoints to determine whether the HTTP service itself is alive.
+//
+$__muchoLivenessPath = parse_url(
+    (string)($_SERVER['REQUEST_URI'] ?? '/'),
+    PHP_URL_PATH
+);
+$__muchoLivenessPath = is_string($__muchoLivenessPath)
+    ? strtolower(rtrim($__muchoLivenessPath, '/'))
+    : '/';
+
+if (
+    $__muchoLivenessPath === '/health' ||
+    $__muchoLivenessPath === '/checkifserveronline'
+) {
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    http_response_code(200);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo '1';
+    exit;
+}
+
 $root = dirname(__DIR__);
 
 try {
