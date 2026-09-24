@@ -5,7 +5,7 @@ declare(strict_types=1);
 $checks = [
     [
         __DIR__ . '/../../src/Level/LevelController.php',
-        "if ($type === 13)",
+        'if ($type === 13)',
         '2.1 friends level authentication gate',
     ],
     [
