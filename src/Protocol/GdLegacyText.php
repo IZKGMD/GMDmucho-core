@@ -17,11 +17,13 @@ final class GdLegacyText
         int $gameVersion
     ): string {
         /*
-         * GD 1.9 sends level descriptions as plain text.
-         * GD 2.0+ sends URL-safe Base64 on upload.
+         * GD 1.9 uploads the raw level description and the legacy
+         * implementation persists it as Base64.
+         * GD 2.0+ uploads URL-safe Base64 and the shared storage layer
+         * keeps the decoded text.
          */
         if ($gameVersion < 20) {
-            return $description;
+            return base64_encode($description);
         }
 
         return self::decodeWireText($description);
@@ -35,6 +37,17 @@ final class GdLegacyText
         int $gameVersion
     ): string {
         return self::encodeWireText($description);
+    }
+
+    /**
+     * Decode a client-supplied level description from protocol wire format.
+     * Used by updateGJDesc-style requests where the client already sends
+     * the encoded representation.
+     */
+    public static function decodeDescriptionForStorage(
+        string $description
+    ): string {
+        return self::decodeWireText($description);
     }
 
     /**
