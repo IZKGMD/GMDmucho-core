@@ -45,7 +45,7 @@ sudo docker compose up -d
 
 ```bash
 cd /opt/mucho-core
-python3 tools/client-trace-summary.py \
+python3 tools/client/client-trace-summary.py \
   --expected-family 2.2 \
   --input storage/client-trace.ndjson \
   --output tests/client-fixtures/2.2/endpoints.json
@@ -54,8 +54,8 @@ python3 tools/client-trace-summary.py \
 ## Step 5: run the release gate
 
 ```bash
-bash tests/release-2.2-gate.sh
-bash tests/client-contract.sh
+bash tests/release/release-2.2-gate.sh
+bash tests/client/client-contract.sh
 ```
 
 The fixture must be generated from a real 2.2 trace. Do not hand-author it from documentation or router aliases.
