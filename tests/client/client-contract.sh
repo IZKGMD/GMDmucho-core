@@ -21,7 +21,7 @@ fi
 if [[ -z "$(printf '%s\n' "${CONTRACTS[@]}")" ]]; then
     echo "CLIENT_CONTRACT_SKIPPED: no real-client contracts exist yet."
     echo "Generate the 2.2 contract after a real client test with:"
-    echo "python3 tools/client-trace-summary.py --expected-family 2.2 --input storage/client-trace.ndjson --output tests/client-fixtures/2.2/endpoints.json"
+    echo "python3 tools/client/client-trace-summary.py --expected-family 2.2 --input storage/client-trace.ndjson --output tests/client-fixtures/2.2/endpoints.json"
     exit 0
 fi
 
