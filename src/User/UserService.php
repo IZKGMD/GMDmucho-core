@@ -291,6 +291,13 @@ final readonly class UserService
         );
     }
 
+    public function authenticate(
+        int $accountId,
+        string $credential
+    ): void {
+        $this->auth->authenticate($accountId, $credential);
+    }
+
     public function getProfile(
         int $targetAccountId,
         int $viewerAccountId = 0
