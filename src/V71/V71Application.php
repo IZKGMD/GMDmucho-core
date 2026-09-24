@@ -30,6 +30,34 @@ final class V71Application
         header('X-MuchoCore: v7.1');
 
         try {
+            /*
+             * Standalone v7.1 entrypoints do not pass through public/index.php.
+             * Apply the same protection and compatibility gates here so these
+             * legacy endpoints cannot become an unthrottled alternate path.
+             */
+            $request = \MuchoCore\Http\Request::fromGlobals();
+            $router = new \MuchoCore\Routing\Router();
+            $path = $router->normalizePath($request->path);
+
+            $protection = (new \MuchoCore\Security\MuchoProtect())->inspect(
+                $request,
+                $path
+            );
+
+            if ($protection['decision'] === 'block') {
+                http_response_code(200);
+                echo '-1';
+                return;
+            }
+
+            $profile = \MuchoCore\Compatibility\CompatibilityProfile::fromEnvironment();
+
+            if (!$profile->allows($request->clientVersion())) {
+                http_response_code(200);
+                echo '-1';
+                return;
+            }
+
             if ($endpoint === 'account-url' || $endpoint === 'custom-content-url') {
                 $controller = new UrlController();
                 echo $endpoint === 'account-url'
