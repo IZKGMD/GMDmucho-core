@@ -28,11 +28,13 @@ final class Database
             )->safeLoad();
         }
 
-        $host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-        $port = $_ENV['DB_PORT'] ?? '3306';
-        $name = $_ENV['DB_NAME'] ?? '';
-        $user = $_ENV['DB_USER'] ?? '';
-        $pass = $_ENV['DB_PASS'] ?? '';
+        // Prefer process environment values so Docker service configuration
+        // cannot be shadowed by stale project .env entries.
+        $host = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? '127.0.0.1');
+        $port = getenv('DB_PORT') ?: ($_ENV['DB_PORT'] ?? '3306');
+        $name = getenv('DB_NAME') ?: ($_ENV['DB_NAME'] ?? '');
+        $user = getenv('DB_USER') ?: ($_ENV['DB_USER'] ?? '');
+        $pass = $_ENV['DB_PASS'] ?? getenv('DB_PASS') ?: '';
 
         $dsn = "mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4";
 
