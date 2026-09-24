@@ -115,6 +115,21 @@ $modernComment = $comments->encode(
     35
 );
 assertTrue(str_contains($modernComment, '2~SGVsbG8gMi4x'), '2.1 binary 35 keeps Base64 comment text');
+$accountComment = $comments->encodeAccountComment(
+    [
+        'id' => 8,
+        'account_id' => 9001,
+        'content' => 'Profile hello',
+        'likes' => 2,
+        'is_spam' => 0,
+        'created_at' => '2026-01-01 12:00:00',
+    ],
+    21
+);
+assertTrue(
+    str_contains($accountComment, '2~UHJvZmlsZSBoZWxsbw=='),
+    '2.1 account comments encode text as Base64'
+);
 assertTrue(str_contains($modernComment, '~11~0'), '2.1 binary 35 embeds mod badge');
 assertTrue(str_contains($modernComment, ':1~MuchoPlayer'), '2.1 binary 35 embeds user payload');
 
