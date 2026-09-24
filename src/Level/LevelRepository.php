@@ -93,6 +93,13 @@ final readonly class LevelRepository
                     $demonFilterValue
                 );
             }
+        } elseif ($diff === '-1') {
+            // Legacy GD 1.9 "unrated" difficulty filter.
+            $where[] = 'l.difficulty = 0';
+            $where[] = 'l.demon = 0';
+        } elseif ($diff === '-3') {
+            // Legacy GD 1.9 "Auto" difficulty filter.
+            $where[] = 'l.auto_level = 1';
         } elseif ($diff !== '-' && $diff !== '-2') {
             $difficultyIds = $this->idList($diff, 20);
 
