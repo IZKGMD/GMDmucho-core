@@ -209,6 +209,11 @@ $checks = [
         '1.9 leaderboard keeps legacy-generation users',
     ],
     [
+        __DIR__ . '/../../src/User/UserService.php',
+        'updateGJUserScore returns the legacy userID',
+        'score update returns user ID',
+    ],
+    [
         __DIR__ . '/../../src/Interaction/CommentService.php',
         'public function getUserComments(',
         'legacy user comment history surface',
