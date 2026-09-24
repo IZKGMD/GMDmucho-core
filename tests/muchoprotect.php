@@ -136,9 +136,55 @@ $unlisted = $protect->inspect(
     '/getGJUserInfo20.php'
 );
 
-if ($unlisted['decision'] !== 'allow' || $unlisted['reason'] !== 'no_policy') {
-    fwrite(STDERR, "MuchoProtect default read-path policy failed\n");
+if ($unlisted['decision'] !== 'allow' || $unlisted['reason'] !== 'ok') {
+    fwrite(STDERR, "MuchoProtect read-path policy failed\n");
     exit(1);
+}
+
+$coveredReads = [
+    '/getGJCommentHistory.php',
+    '/getGJLevelLists.php',
+    '/getGJTopArtists.php',
+    '/getGJLevels21.php',
+    '/downloadGJLevel21.php',
+    '/downloadGJLevel22.php',
+    '/getGJSongInfo.php',
+    '/getGJUserInfo20.php',
+    '/getGJUsers20.php',
+    '/getGJScores20.php',
+    '/getGJComments21.php',
+    '/getGJAccountComments20.php',
+    '/getGJMessages20.php',
+    '/downloadGJMessage20.php',
+    '/getGJFriendRequests20.php',
+    '/getGJUserList20.php',
+    '/getGJCreators.php',
+    '/getGJDailyLevel.php',
+    '/getGJGauntlets21.php',
+    '/getGJMapPacks21.php',
+    '/getGJLevelScores211.php',
+    '/getGJLevelScoresPlat.php',
+    '/getGJRewards.php',
+    '/getGJSecretReward.php',
+    '/getGJChallenges.php',
+];
+
+foreach ($coveredReads as $index => $path) {
+    $result = $protect->inspect(
+        new Request(
+            'GET',
+            $path,
+            [],
+            [],
+            ['REMOTE_ADDR' => '192.0.2.' . ($index + 1)]
+        ),
+        (new Router())->normalizePath($path)
+    );
+
+    if ($result['decision'] !== 'allow' || $result['reason'] !== 'ok') {
+        fwrite(STDERR, "MuchoProtect read coverage failed for {$path}\n");
+        exit(1);
+    }
 }
 
 /*
