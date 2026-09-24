@@ -27,9 +27,24 @@ final class CommentService
         return $db->connection();
     }
 
-    public function uploadLevelComment(int $levelId, int $accountId, string $gjp, string $content, int $percent, int $gameVersion = 22): int
+    public function uploadLevelComment(
+        int $levelId,
+        int $accountId,
+        string $gjp,
+        string $content,
+        int $percent,
+        int $gameVersion = 22,
+        string $udid = '',
+        string $ip = ''
+    ): int
     {
-        $this->auth->authenticate($accountId, $gjp);
+        $this->authenticateCommenter(
+            $accountId,
+            $gjp,
+            $gameVersion,
+            $udid,
+            $ip
+        );
         $decodedContent = GdLegacyText::decodeComment(
             $content,
             $gameVersion
@@ -394,9 +409,22 @@ final class CommentService
             '#' . $total . ':' . $offset . ':' . count($comments);
     }
 
-    public function uploadAccountComment(int $accountId, string $gjp, string $content, int $gameVersion = 22): int
+    public function uploadAccountComment(
+        int $accountId,
+        string $gjp,
+        string $content,
+        int $gameVersion = 22,
+        string $udid = '',
+        string $ip = ''
+    ): int
     {
-        $this->auth->authenticate($accountId, $gjp);
+        $this->authenticateCommenter(
+            $accountId,
+            $gjp,
+            $gameVersion,
+            $udid,
+            $ip
+        );
         $decodedContent = GdLegacyText::decodeComment(
             $content,
             $gameVersion
@@ -432,15 +460,75 @@ final class CommentService
         return implode("|", $encoded) . "#" . $total . ":" . $offset . ":" . count($comments);
     }
 
-    public function deleteComment(int $commentId, int $accountId, string $gjp): bool
-    {
-        $this->auth->authenticate($accountId, $gjp);
-        return $this->repository->deleteLevelComment($commentId, $accountId);
+    public function deleteComment(
+        int $commentId,
+        int $accountId,
+        string $gjp,
+        int $gameVersion = 22,
+        string $udid = '',
+        string $ip = ''
+    ): bool {
+        $this->authenticateCommenter(
+            $accountId,
+            $gjp,
+            $gameVersion,
+            $udid,
+            $ip
+        );
+
+        return $this->repository->deleteLevelComment(
+            $commentId,
+            $accountId
+        );
     }
 
-    public function deleteAccountComment(int $commentId, int $accountId, string $gjp): bool
-    {
-        $this->auth->authenticate($accountId, $gjp);
-        return $this->repository->deleteAccountComment($commentId, $accountId);
+    public function deleteAccountComment(
+        int $commentId,
+        int $accountId,
+        string $gjp,
+        int $gameVersion = 22,
+        string $udid = '',
+        string $ip = ''
+    ): bool {
+        $this->authenticateCommenter(
+            $accountId,
+            $gjp,
+            $gameVersion,
+            $udid,
+            $ip
+        );
+
+        return $this->repository->deleteAccountComment(
+            $commentId,
+            $accountId
+        );
+    }
+
+    private function authenticateCommenter(
+        int $accountId,
+        string $gjp,
+        int $gameVersion,
+        string $udid,
+        string $ip
+    ): void {
+        if ($gjp !== '') {
+            $this->auth->authenticate($accountId, $gjp);
+            return;
+        }
+
+        if (
+            $gameVersion === 19 &&
+            trim($udid) !== '' &&
+            trim($ip) !== ''
+        ) {
+            $this->auth->authenticateLegacy19Upload(
+                $accountId,
+                $udid,
+                $ip
+            );
+            return;
+        }
+
+        throw new RuntimeException('Unauthorized.');
     }
 }
