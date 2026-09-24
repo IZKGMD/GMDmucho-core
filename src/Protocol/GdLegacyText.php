@@ -144,7 +144,7 @@ final class GdLegacyText
             return self::base64UrlEncode($decoded);
         }
 
-        return strtr(rtrim($value, '='), '+/', '-_');
+        return strtr($value, '+/', '-_');
     }
 
     private static function base64UrlEncode(string $value): string
@@ -153,13 +153,10 @@ final class GdLegacyText
             return '';
         }
 
-        return rtrim(
-            strtr(
-                base64_encode($value),
-                '+/',
-                '-_'
-            ),
-            '='
+        return strtr(
+            base64_encode($value),
+            '+/',
+            '-_'
         );
     }
 
