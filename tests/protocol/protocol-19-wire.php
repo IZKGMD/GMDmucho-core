@@ -230,9 +230,13 @@ assertTrue(
     str_contains($list, '#42:MuchoPlayer:9001#1~|~12345'),
     '1.9 level list contains user and song sections'
 );
+$expectedMultiHash = sha1('12371' . 'xI25fpAapCQg');
+$actualMultiHash = substr($list, -40);
+
 assertTrue(
-    str_ends_with($list, '#' . sha1('12371' . 'xI25fpAapCQg')),
-    '1.9 level list multi-level hash'
+    $actualMultiHash === $expectedMultiHash,
+    '1.9 level list multi-level hash: expected ' .
+    $expectedMultiHash . ', got ' . $actualMultiHash
 );
 
 echo "MUCHOCORE_PROTOCOL_19_WIRE_OK\n";
