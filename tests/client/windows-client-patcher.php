@@ -48,19 +48,37 @@ try {
     }
 
     $patched = file_get_contents($output);
-    $target = 'https://gdps.example.com/a/a/a/a/a';
+    $targets = array_keys(
+        array_filter(
+            $report['replacements'],
+            static fn (int $count): bool => $count > 0
+        )
+    );
 
-    if (!is_string($patched) || !str_contains($patched, $target)) {
-        throw new RuntimeException('Target server URL not found after patch.');
+    $directTargets = array_values(array_filter(
+        $targets,
+        static fn (string $value): bool => str_starts_with(
+            $value,
+            'https://gdps.example.com/'
+        )
+    ));
+
+    if (!is_string($patched) || $directTargets === []) {
+        throw new RuntimeException('No generated target server URL was reported.');
+    }
+
+    $target = $directTargets[0];
+
+    if (!str_contains($patched, $target)) {
+        throw new RuntimeException('Generated target server URL not found after patch.');
     }
 
     if (str_contains($patched, 'https://www.boomlings.com/database')) {
         throw new RuntimeException('Old server URL still present after patch.');
     }
 
-    $b64 = base64_encode($target);
-    if (!str_contains($patched, $b64)) {
-        throw new RuntimeException('Target Base64 server URL not found after patch.');
+    if (!str_contains($patched, base64_encode($target))) {
+        throw new RuntimeException('Generated Base64 server URL not found after patch.');
     }
 
     try {
