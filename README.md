@@ -228,6 +228,14 @@ Enter the **server root only**. Do not append `/database`; MuchoCore generates t
 
 > ⚠️ The original executable is never overwritten by the web patcher. Keep your original client as a backup.
 
+### 🤖 Android APK patcher
+
+The same **Admin Panel → Tools → Web Client Patcher** page also includes an **Android APK Patcher**.
+
+It uploads the APK in small chunks, patches supported Geometry Dash server URL layouts inside native libraries and common client files, removes invalid old `META-INF` signature files, and rebuilds a new APK archive.
+
+> ⚠️ Android signing is not included in the shared-hosting PHP patch step. The generated APK is **unsigned** and must be signed with your own Android signing key before installation or distribution.
+
 ---
 
 ## 🌍 Built something with MuchoCore?
