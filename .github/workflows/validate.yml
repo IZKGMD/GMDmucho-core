@@ -122,6 +122,7 @@ jobs:
         run: |
           grep -Fq 'handle_path /downloads/android/*' docker/Caddyfile
           grep -q 'docker-php-ext-install pdo_mysql opcache zip' docker/Dockerfile
+          grep -q "clear_env = no" docker/Dockerfile
           grep -q 'MuchoProtect' src/V71/V71Application.php
           grep -q 'CompatibilityProfile' src/V71/V71Application.php
           grep -q 'FOR UPDATE' public/admin/client-release-upload-module.php
