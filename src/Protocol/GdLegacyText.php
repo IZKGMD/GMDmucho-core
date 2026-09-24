@@ -59,6 +59,22 @@ final class GdLegacyText
         return self::decodeWireText($description);
     }
 
+    public static function encodeDescriptionUpdateForStorage(
+        string $description,
+        int $gameVersion
+    ): string {
+        /*
+         * updateGJDesc receives the already encoded wire representation.
+         * 1.9 keeps that encoded value in storage; 2.0+ normalizes it to
+         * the shared plain-text storage format.
+         */
+        if ($gameVersion < 20) {
+            return self::normalizeBase64Url($description);
+        }
+
+        return self::decodeWireText($description);
+    }
+
     /**
      * Backward-compatible method name retained for existing callers.
      */
@@ -113,6 +129,25 @@ final class GdLegacyText
     }
 
     private static function base64UrlEncode(string $value): string
+    private static function normalizeBase64Url(string $value): string
+    {
+        if ($value === '') {
+            return '';
+        }
+
+        $decoded = self::decodeWireText($value);
+
+        /*
+         * If it was valid wire text, re-encode canonically. Otherwise leave
+         * the input untouched so malformed legacy payloads are not rewritten.
+         */
+        if ($decoded !== $value) {
+            return self::base64UrlEncode($decoded);
+        }
+
+        return strtr(rtrim($value, '='), '+/', '-_');
+    }
+
     {
         if ($value === '') {
             return '';
