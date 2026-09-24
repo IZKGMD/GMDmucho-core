@@ -27,7 +27,8 @@ fi
 
 CONTRACT_LIST="$(printf '%s\n' "${CONTRACTS[@]}")"
 
-ROOT="$ROOT" CONTRACTS="$CONTRACT_LIST" python3 <<'PY'mport json
+ROOT="$ROOT" CONTRACTS="$CONTRACT_LIST" python3 <<'PY'
+import json
 import os
 import re
 from pathlib import Path
