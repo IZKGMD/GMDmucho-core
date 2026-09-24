@@ -8,7 +8,6 @@ use MuchoCore\Http\Request;
 
 final readonly class MuchoProtect
 {
-    /** @var array<string, array{limit:int, window:int, burst:int, burstWindow:int}> */
     private const GLOBAL_LIMIT = 900;
     private const GLOBAL_WINDOW = 60;
     private const GLOBAL_BURST = 180;
@@ -70,37 +69,135 @@ final readonly class MuchoProtect
     /** @return array{decision:'allow'|'block', reason:string} */
     public function inspect(Request $request, string $endpoint): array
     {
+        $endpoint = $this->normalizeEndpoint($endpoint);
+
         if (!$this->enabled() || $this->isExempt($endpoint)) {
             return ['decision' => 'allow', 'reason' => 'disabled_or_exempt'];
         }
 
-        $endpoint = $this->normalizeEndpoint($endpoint);
+        $ip = $request->clientIp();
+        $identity = $this->identityFingerprint($request);
+        $identityKey = $identity !== null
+            ? 'identity:' . $identity . ':endpoint:' . $endpoint
+            : null;
+
+        $ipPenaltyKey = 'ip:' . $ip . ':endpoint:' . $endpoint;
+        $ipPenalty = $this->penalties->status($ipPenaltyKey);
+
+        if ($ipPenalty['active']) {
+            $this->audit(
+                $request,
+                $endpoint,
+                'temporary_penalty',
+                $ipPenalty['remaining'],
+                $ipPenalty['strikes']
+            );
+            return ['decision' => 'block', 'reason' => 'temporary_penalty'];
+        }
+
+        if ($identityKey !== null) {
+            $identityPenalty = $this->penalties->status($identityKey);
+
+            if ($identityPenalty['active']) {
+                $this->audit(
+                    $request,
+                    $endpoint,
+                    'account_penalty',
+                    $identityPenalty['remaining'],
+                    $identityPenalty['strikes']
+                );
+                return ['decision' => 'block', 'reason' => 'account_penalty'];
+            }
+        }
+
+        $globalKey = 'ip:' . $ip . ':global';
+
+        if (!$this->limiter->allow(
+            $globalKey,
+            self::GLOBAL_LIMIT,
+            self::GLOBAL_WINDOW
+        )) {
+            $penalty = $this->penalties->penalize($globalKey);
+            $this->audit(
+                $request,
+                $endpoint,
+                'global_rate_limit',
+                $penalty['seconds'],
+                $penalty['strikes']
+            );
+            return ['decision' => 'block', 'reason' => 'global_rate_limit'];
+        }
+
+        if (!$this->limiter->allow(
+            $globalKey . ':burst',
+            self::GLOBAL_BURST,
+            self::GLOBAL_BURST_WINDOW
+        )) {
+            $penalty = $this->penalties->penalize($globalKey);
+            $this->audit(
+                $request,
+                $endpoint,
+                'global_burst_limit',
+                $penalty['seconds'],
+                $penalty['strikes']
+            );
+            return ['decision' => 'block', 'reason' => 'global_burst_limit'];
+        }
+
         $policy = self::POLICIES[$endpoint] ?? null;
 
-        // Do not throttle unknown/read-only endpoints by default. This keeps
-        // compatibility risk low while every sensitive endpoint gets an
-        // explicit policy above.
         if ($policy === null) {
             return ['decision' => 'allow', 'reason' => 'no_policy'];
         }
 
-        $ip = $request->clientIp();
-        $baseKey = 'ip:' . $ip . ':endpoint:' . $endpoint;
-
-        if (!$this->limiter->allow($baseKey, $policy['limit'], $policy['window'])) {
-            $this->audit($request, $endpoint, 'ip_rate_limit');
+        if (!$this->limiter->allow(
+            $ipPenaltyKey,
+            $policy['limit'],
+            $policy['window']
+        )) {
+            $penalty = $this->penalties->penalize($ipPenaltyKey);
+            $this->audit(
+                $request,
+                $endpoint,
+                'ip_rate_limit',
+                $penalty['seconds'],
+                $penalty['strikes']
+            );
             return ['decision' => 'block', 'reason' => 'ip_rate_limit'];
         }
 
-        if (!$this->limiter->allow($baseKey . ':burst', $policy['burst'], $policy['burstWindow'])) {
-            $penalty = $this->penalties->penalize($baseKey);
-            $this->audit($request, $endpoint, 'burst_limit', $penalty['seconds'], $penalty['strikes']);
+        if (!$this->limiter->allow(
+            $ipPenaltyKey . ':burst',
+            $policy['burst'],
+            $policy['burstWindow']
+        )) {
+            $penalty = $this->penalties->penalize($ipPenaltyKey);
+            $this->audit(
+                $request,
+                $endpoint,
+                'burst_limit',
+                $penalty['seconds'],
+                $penalty['strikes']
+            );
             return ['decision' => 'block', 'reason' => 'burst_limit'];
         }
 
-        if ($identityKey !== null && !$this->limiter->allow($identityKey, $policy['limit'], $policy['window'])) {
+        if (
+            $identityKey !== null &&
+            !$this->limiter->allow(
+                $identityKey,
+                $policy['limit'],
+                $policy['window']
+            )
+        ) {
             $penalty = $this->penalties->penalize($identityKey);
-            $this->audit($request, $endpoint, 'account_rate_limit', $penalty['seconds'], $penalty['strikes']);
+            $this->audit(
+                $request,
+                $endpoint,
+                'account_rate_limit',
+                $penalty['seconds'],
+                $penalty['strikes']
+            );
             return ['decision' => 'block', 'reason' => 'account_rate_limit'];
         }
 
@@ -115,12 +212,16 @@ final readonly class MuchoProtect
             return true;
         }
 
-        return !in_array(strtolower($value), ['0', 'false', 'off', 'no'], true);
+        return !in_array(
+            strtolower($value),
+            ['0', 'false', 'off', 'no'],
+            true
+        );
     }
 
     private function isExempt(string $endpoint): bool
     {
-        return in_array($this->normalizeEndpoint($endpoint), [
+        return in_array($endpoint, [
             '/health',
             '/checkifserveronline',
             '/getaccounturl',
@@ -133,14 +234,20 @@ final readonly class MuchoProtect
         $path = parse_url($endpoint, PHP_URL_PATH);
         $endpoint = is_string($path) ? $path : '/';
         $endpoint = preg_replace('#/+#', '/', $endpoint) ?? '/';
-        $endpoint = preg_replace('#^/(?:database|accounts|api|a)(?:/|$)#i', '/', $endpoint) ?? $endpoint;
+        $endpoint = preg_replace(
+            '#^/(?:database|accounts|api|a)(?:/|$)#i',
+            '/',
+            $endpoint
+        ) ?? $endpoint;
         $endpoint = preg_replace('#\.php$#i', '', $endpoint) ?? $endpoint;
 
         if ($endpoint !== '/') {
             $endpoint = rtrim($endpoint, '/');
         }
 
-        return strtolower($endpoint === '' ? '/' : $endpoint);
+        $endpoint = strtolower($endpoint === '' ? '/' : $endpoint);
+
+        return substr($endpoint, 0, 256);
     }
 
     private function identityFingerprint(Request $request): ?string
@@ -164,7 +271,11 @@ final readonly class MuchoProtect
                 return $value;
             }
 
-            if (is_string($value) && preg_match('/^\d+$/', $value) === 1 && (int)$value > 0) {
+            if (
+                is_string($value) &&
+                preg_match('/^\d+$/', $value) === 1 &&
+                (int)$value > 0
+            ) {
                 return (int)$value;
             }
         }
@@ -172,26 +283,40 @@ final readonly class MuchoProtect
         return null;
     }
 
-    private function audit(Request $request, string $endpoint, string $reason): void
-    {
-        $directory = getenv('MUCHO_PROTECT_AUDIT_DIR') ?: '/tmp/muchocore-protect';
+    private function audit(
+        Request $request,
+        string $endpoint,
+        string $reason,
+        int $penaltySeconds = 0,
+        int $strikes = 0
+    ): void {
+        $directory = getenv('MUCHO_PROTECT_AUDIT_DIR')
+            ?: '/tmp/muchocore-protect';
 
-        if (!is_dir($directory) && !@mkdir($directory, 0700, true) && !is_dir($directory)) {
+        if (
+            !is_dir($directory) &&
+            !@mkdir($directory, 0700, true) &&
+            !is_dir($directory)
+        ) {
             return;
         }
 
-        $entry = json_encode([
-            'time' => gmdate('c'),
-            'endpoint' => $endpoint,
-            'reason' => $reason,
-            'ip_hash' => hash('sha256', $request->clientIp()),
-            'method' => $request->method,
-            'penalty_seconds' => $penaltySeconds,
-            'strikes' => $strikes,
-        ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL;
-
         try {
-            @file_put_contents($directory . '/events.ndjson', $entry, FILE_APPEND | LOCK_EX);
+            $entry = json_encode([
+                'time' => gmdate('c'),
+                'endpoint' => $endpoint,
+                'reason' => $reason,
+                'ip_hash' => hash('sha256', $request->clientIp()),
+                'method' => $request->method,
+                'penalty_seconds' => $penaltySeconds,
+                'strikes' => $strikes,
+            ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL;
+
+            @file_put_contents(
+                $directory . '/events.ndjson',
+                $entry,
+                FILE_APPEND | LOCK_EX
+            );
         } catch (\Throwable) {
             // Security telemetry must never break the game protocol.
         }
