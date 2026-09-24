@@ -30,6 +30,67 @@ function assertSameValue(mixed $expected, mixed $actual, string $name): void
 
 $router = new Router();
 
+$applicationSource = file_get_contents(
+    __DIR__ . '/../../src/Core/Application.php'
+);
+
+if ($applicationSource === false) {
+    fwrite(STDERR, "FAIL Application source can not be read\n");
+    exit(1);
+}
+
+$handlerRoutes = [
+    '/loginGJAccount',
+    '/registerGJAccount',
+    '/backupGJAccount20',
+    '/syncGJAccount20',
+    '/getGJLevels21',
+    '/uploadGJLevel21',
+    '/downloadGJLevel21',
+    '/deleteGJLevelUser20',
+    '/updateGJLevelDesc20',
+    '/suggestGJStars20',
+    '/rateGJStars20',
+    '/getGJUserInfo20',
+    '/getGJUsers20',
+    '/getGJScores20',
+    '/updateGJAccSettings20',
+    '/updateGJUserScore',
+    '/getGJComments21',
+    '/uploadGJComment20',
+    '/deleteGJComment20',
+    '/getGJAccountComments20',
+    '/uploadGJAccComment20',
+    '/deleteGJAccComment20',
+    '/likeGJItem21',
+    '/getGJMessages20',
+    '/downloadGJMessage20',
+    '/uploadGJMessage20',
+    '/deleteGJMessages20',
+    '/uploadFriendRequest20',
+    '/getGJFriendRequests20',
+    '/readGJFriendRequest20',
+    '/acceptGJFriendRequest20',
+    '/deleteGJFriendRequests20',
+    '/removeGJFriend20',
+    '/blockGJUser20',
+    '/unblockGJUser20',
+    '/getGJUserList20',
+    '/getGJLevelScores',
+];
+
+foreach ($handlerRoutes as $route) {
+    if (!str_contains($applicationSource, "->add('ANY', '{$route}'")) {
+        fwrite(
+            STDERR,
+            "FAIL missing application route {$route}\n"
+        );
+        exit(1);
+    }
+}
+
+echo "PASS 2.0 application handler route registration\n";
+
 $aliases = [
     '/acceptGJFriendRequest20.php' => '/acceptGJFriendRequest20',
     '/accounts/syncGJAccount20.php' => '/syncGJAccount',
