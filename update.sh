@@ -31,6 +31,11 @@ grep -q '^TURNSTILE_SITEKEY=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SITE
 grep -q '^TURNSTILE_SECRET=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SECRET=\n' >> "$ROOT/.env"
 grep -q '^MUCHO_GD_VERSIONS=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_GD_VERSIONS=all\n' >> "$ROOT/.env"
 
+COMPOSE_ARGS=()
+if grep -q '^MUCHO_TUNNEL_TOKEN=' "$ROOT/.env" 2>/dev/null; then
+    COMPOSE_ARGS=(-f docker-compose.yml -f docker-compose.tunnel.yml)
+fi
+
 if ! git diff --quiet || ! git diff --cached --quiet; then
     echo '[MuchoCore] ERROR: this installation has local changes in tracked files.' >&2
     echo '[MuchoCore] I stopped before reset so your work is not lost.' >&2
@@ -55,7 +60,7 @@ else
 fi
 
 echo '[MuchoCore] Rebuilding containers...'
-docker compose up -d --build --remove-orphans
+docker compose "${COMPOSE_ARGS[@]}" up -d --build --remove-orphans
 
 echo '[MuchoCore] Updating PHP dependencies...'
 docker compose exec -T app composer install --no-dev --optimize-autoloader --no-interaction
