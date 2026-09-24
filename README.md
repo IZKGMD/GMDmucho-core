@@ -145,7 +145,21 @@ bash tests/release/release-2.1-gate.sh
 | 🎮 Client already patched / server running | [docs/CLIENT_SETUP.md](docs/CLIENT_SETUP.md) |
 | 🧠 Advanced deployment / internals | [docs/ADVANCED.md](docs/ADVANCED.md) |
 
-### 2. Verify the server
+### 2. Choose the compatibility profile
+
+The root installer opens a version menu and lets you deploy GD 1.9, 2.0, 2.1, 2.2, or any supported combination.
+
+The full release target uses all supported versions:
+
+~~~bash
+sudo ./install
+~~~
+
+Version profiles are runtime-enforced without duplicating the server core.
+
+See [docs/VERSIONS.md](docs/VERSIONS.md) for the profile matrix and manual configuration.
+
+### 3. Verify the server
 
 ~~~text
 https://YOUR-DOMAIN/health
@@ -157,7 +171,7 @@ Expected response:
 1
 ~~~
 
-### 3. Open the admin panel
+### 4. Open the admin panel
 
 ~~~text
 https://YOUR-DOMAIN/admin/
