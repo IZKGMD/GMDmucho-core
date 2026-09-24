@@ -199,6 +199,7 @@ final class CommentService
             '!ue' => '!unepic',
             '!vc' => '!verifycoins',
             '!d' => '!delete',
+            '!delet' => '!delete',
         ];
         $cmd = $aliases[$cmd] ?? $cmd;
 
@@ -598,10 +599,12 @@ final class CommentService
                 return null;
             }
 
-            $this->recalculateCreatorPoints(
-                $pdo,
-                $authorAccountId
-            );
+            if ($cmd !== '!cp') {
+                $this->recalculateCreatorPoints(
+                    $pdo,
+                    $authorAccountId
+                );
+            }
 
             $details['moderator_account_id'] = $accountId;
 
@@ -683,11 +686,28 @@ final class CommentService
         ]);
     }
 
-    public function getLevelComments(int $levelId, int $page, int $gameVersion = 22, int $binaryVersion = 0): string
+    public function getLevelComments(
+        int $levelId,
+        int $page,
+        int $gameVersion = 22,
+        int $binaryVersion = 0,
+        int $count = 10,
+        int $mode = 0
+    ): string
     {
-        $limit = 10;
-        $offset = max(0, $page) * $limit;
-        $comments = $this->repository->getLevelComments($levelId, $page, $limit);
+        if (!$this->levelExists($levelId)) {
+            return '-2';
+        }
+
+        $limit = min(100, max(1, $count));
+        $page = min(1000, max(0, $page));
+        $offset = $page * $limit;
+        $comments = $this->repository->getLevelComments(
+            $levelId,
+            $page,
+            $limit,
+            $mode !== 0
+        );
         $total = $this->repository->countLevelComments($levelId);
 
         if ($total === 0 || empty($comments)) {
