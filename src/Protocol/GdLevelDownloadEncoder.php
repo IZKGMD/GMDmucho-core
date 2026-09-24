@@ -53,6 +53,8 @@ final class GdLevelDownloadEncoder
             );
         }
 
+        $wireDifficulty = $this->wireDifficulty((int)($level['difficulty'] ?? 0));
+
         $password = (string) $level['copy_password'];
 
         $encodedPassword = $gameVersion > 19
@@ -75,7 +77,7 @@ final class GdLevelDownloadEncoder
             5, $level['level_version'],
             6, $level['user_id'],
             8, 10,
-            9, $level['difficulty'],
+            9, $wireDifficulty,
             10, $level['downloads'],
             11, 1,
             12, $level['audio_track'],
@@ -138,5 +140,17 @@ final class GdLevelDownloadEncoder
             . $firstHash
             . '#'
             . GdHash::metadata($metadata);
+    }    
+    private function wireDifficulty(int $difficulty): int
+    {
+        /*
+         * MuchoCore stores standard difficulties internally as 1..6,
+         * while Geometry Dash expects 10..60 on the wire. Accept both
+         * representations so legacy data remains compatible.
+         */
+        return ($difficulty >= 1 && $difficulty <= 6)
+            ? $difficulty * 10
+            : max(0, $difficulty);
     }
+
 }
