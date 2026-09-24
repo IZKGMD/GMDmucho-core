@@ -101,7 +101,7 @@ preflight() {
   info "Disk and memory checks passed."
 }
 
-trap 'fail "Failure on line $LINENO. Check the output above."'
+trap 'fail "Failure on line $LINENO. Check the output above."' ERR
 
 [[ $EUID -eq 0 ]] || fail "Run the installer as root: sudo bash install.sh"
 
