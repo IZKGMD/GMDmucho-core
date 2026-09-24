@@ -212,7 +212,10 @@ final readonly class LevelRepository
 
             case 6:
             case 17:
-                $where[] = '(l.featured > 0 OR l.epic > 0)';
+                /* GD 2.1 only exposes featured levels; Epic is a later protocol surface. */
+                $where[] = $gameVersion > 21
+                    ? '(l.featured > 0 OR l.epic > 0)'
+                    : 'l.featured > 0';
                 $order = 'l.updated_at DESC, l.level_id DESC';
                 break;
 
