@@ -142,6 +142,24 @@ final readonly class UserController
 
             $viewerAccountId = $request->postInt('accountID', 0);
 
+            /*
+             * Legacy GD clients authenticate profile requests when they
+             * include accountID. Keep public profile lookup available when
+             * no viewer account context is supplied.
+             */
+            if ($viewerAccountId > 0) {
+                $credential = $request->gdCredential();
+
+                if ($credential === '') {
+                    return Response::text('-1');
+                }
+
+                $this->service->authenticate(
+                    $viewerAccountId,
+                    $credential
+                );
+            }
+
             return Response::text(
                 $this->service->getProfile(
                     $targetAccountId,
