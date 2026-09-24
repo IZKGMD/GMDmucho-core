@@ -274,10 +274,19 @@ try {
 
         $totpSecret = trim((string)($row['totp_secret'] ?? ''));
         if ($totpSecret !== '' && $totp === '') {
+            $attempt->execute([
+                'username' => $username,
+                'ip_hash' => ipHash(),
+                'success' => 0,
+            ]);
             fail('totp_required', 'Two-factor authentication code required.', 401);
         }
         if ($totpSecret !== '' && !verifyTotp($totpSecret, $totp)) {
-            $attempt->execute(['username' => $username, 'ip_hash' => ipHash(), 'success' => 0]);
+            $attempt->execute([
+                'username' => $username,
+                'ip_hash' => ipHash(),
+                'success' => 0,
+            ]);
             fail('invalid_totp', 'Invalid two-factor authentication code.', 401);
         }
 
