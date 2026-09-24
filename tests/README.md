@@ -19,6 +19,7 @@ php tests/protocol/protocol-19-surface.php
 php tests/protocol/protocol-19-wire.php
 php tests/protocol/protocol-20-surface.php
 php tests/protocol/protocol-20-wire.php
+php tests/protocol/social-wire.php
 php tests/protocol/protocol-21-surface.php
 php tests/security/muchoprotect.php
 bash tests/client/client-contract.sh
