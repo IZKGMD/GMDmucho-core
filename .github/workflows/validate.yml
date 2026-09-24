@@ -101,7 +101,9 @@ jobs:
           MUCHO_TUNNEL_TOKEN=dummy-token
           EOF
           docker compose --env-file .ci.env config -q
-          docker compose --env-file .ci.env config | grep -q '^    DB_HOST: db
+          grep -q 'DB_HOST:' docker-compose.yml
+          grep -q 'DB_PORT:' docker-compose.yml
+          docker compose --env-file .ci.env -f docker-compose.yml -f docker-compose.tunnel.yml config -q
       - name: Check runtime environment handling
         run: |
           ! grep -q 'cat > .env' docker/app-entrypoint.sh
