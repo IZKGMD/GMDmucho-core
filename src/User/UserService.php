@@ -311,8 +311,24 @@ final readonly class UserService
         string $type,
         int $accountId = 0,
         int $gameVersion = 0,
-        int $limit = 100
+        int $limit = 100,
+        string $credential = ''
     ): string {
+        /*
+         * Legacy getGJScores authenticates whenever accountID is supplied.
+         * Top/creator lists can still be requested without an account context,
+         * while friends/relative leaderboards require one.
+         */
+        if ($accountId > 0) {
+            if ($credential === '') {
+                return '-1';
+            }
+
+            $this->auth->authenticate($accountId, $credential);
+        } elseif (in_array($type, ['friends', 'relative'], true)) {
+            return '-1';
+        }
+
         $users = match ($type) {
             'creators' => $this->userRepository->leaderboardCreators($limit, $gameVersion),
             'friends'  => $this->userRepository->leaderboardFriends($accountId, $limit, $gameVersion),
