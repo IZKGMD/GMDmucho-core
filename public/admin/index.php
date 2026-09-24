@@ -534,6 +534,10 @@ if (admin() && isset($_GET['client_download'])) {
     handleClientPatcherDownload($rootDir);
 }
 
+if (admin() && isset($_GET['android_download'])) {
+    handleAndroidPatcherDownload($rootDir);
+}
+
 /* =========================================================
    BACKUP DOWNLOAD
 ========================================================= */
@@ -1594,7 +1598,7 @@ max-width:100%
 >
 
 <button name="login" value="1">Sign in</button>
-<div style="margin-top:16px;color:#7f8aa0;font-size:12px;text-align:center"><?=h($branding['server_name'])?> · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK · <a href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;color:#7d8ba3;text-decoration:none;vertical-align:middle"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.24c-3.34.73-4.04-1.61-4.04-1.61-.55-1.4-1.34-1.77-1.34-1.77-1.09-.75.08-.74.08-.74 1.2.08 1.83 1.23 1.83 1.23 1.07 1.83 2.8 1.3 3.48.99.11-.77.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.94 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.63-5.48 5.93.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.57A12 12 0 0 0 12 .5"/></svg><span>GitHub</span></a></div>
+<div style="margin-top:16px;color:#7f8aa0;font-size:12px;text-align:center"><?=h($branding['server_name'])?><?php if (!empty($branding['server_by_name']) && !empty($branding['social_url'])): ?> · Server by <a href="<?=h($branding['social_url'])?>" target="_blank" rel="noopener noreferrer"><?=h($branding['server_by_name'])?></a><?php endif; ?> · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK · <a href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;color:#7d8ba3;text-decoration:none;vertical-align:middle"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.24c-3.34.73-4.04-1.61-4.04-1.61-.55-1.4-1.34-1.77-1.34-1.77-1.09-.75.08-.74.08-.74 1.2.08 1.83 1.23 1.83 1.23 1.07 1.83 2.8 1.3 3.48.99.11-.77.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.94 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.63-5.48 5.93.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.57A12 12 0 0 0 12 .5"/></svg><span>GitHub</span></a></div>
 </form>
 
 <script>
@@ -1716,6 +1720,7 @@ endif;
 
 require_once __DIR__.'/client-features-module.php';
 require_once __DIR__.'/client-patcher-module.php';
+require_once __DIR__.'/android-client-patcher-module.php';
 require_once __DIR__.'/client-release-upload-module.php';
 
 require_once __DIR__.'/security-monitoring-module.php';
@@ -1730,6 +1735,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
     if (str_starts_with($action,'client-patcher-')) {
         handleClientPatcherAction($db,$rootDir,$action);
+    }
+
+    if (str_starts_with($action,'android-patcher-')) {
+        handleAndroidPatcherAction($db,$rootDir,$action);
     }
 
     if (str_starts_with($action,'v4-')) {
@@ -2844,6 +2853,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     (string)$_POST['server_name']
                 );
             }
+
+            $branding=$brandingService->saveServerCredit(
+                (string)($_POST['server_by_name'] ?? ''),
+                (string)($_POST['social_url'] ?? '')
+            );
 
             if (isset($_POST['registrations_disabled'])) {
                 file_put_contents(
@@ -4219,6 +4233,35 @@ This name replaces the visible server logo on the public pages and player music 
  style="width:min(520px,100%)"
 >
 
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0 18px">
+ <div>
+  <label style="display:block;margin-bottom:7px">Server by</label>
+  <input
+   type="text"
+   name="server_by_name"
+   maxlength="64"
+   value="<?=h($branding['server_by_name'] ?? '')?>"
+   placeholder="Your nickname"
+   style="width:100%"
+  >
+ </div>
+ <div>
+  <label style="display:block;margin-bottom:7px">Social/profile URL</label>
+  <input
+   type="url"
+   name="social_url"
+   maxlength="512"
+   value="<?=h($branding['social_url'] ?? '')?>"
+   placeholder="https://discord.gg/..."
+   style="width:100%"
+  >
+ </div>
+</div>
+
+<div class="muted small" style="margin:-6px 0 18px">
+Shown in the public footer as <b>Server by</b>. Leave both fields empty to hide the credit.
+</div>
+
 <div style="margin:12px 0 18px;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:linear-gradient(135deg,#111724,#0d1119)">
  <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em">Preview</div>
  <div style="margin-top:6px;font-size:24px;font-weight:900;letter-spacing:-.8px">
@@ -4481,7 +4524,11 @@ echo '</table></div>';
 ?>
 
 <div class="mucho-page-footer" style="margin-top:auto;padding:16px 6px 0;border-top:1px solid rgba(36,45,60,.75);color:#69758a;font-size:12px;text-align:center">
- <?=h($branding['server_name'])?> · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK · <a class="github-footer-link" href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer" aria-label="GitHub IZKGMD">
+ <?=h($branding['server_name'])?>
+ <?php if (!empty($branding['server_by_name']) && !empty($branding['social_url'])): ?>
+ · Server by <a href="<?=h($branding['social_url'])?>" target="_blank" rel="noopener noreferrer"><?=h($branding['server_by_name'])?></a>
+ <?php endif; ?>
+ · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK · <a class="github-footer-link" href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer" aria-label="GitHub IZKGMD">
 <svg class="github-footer-logo" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.24c-3.34.73-4.04-1.61-4.04-1.61-.55-1.4-1.34-1.77-1.34-1.77-1.09-.75.08-.74.08-.74 1.2.08 1.83 1.23 1.83 1.23 1.07 1.83 2.8 1.3 3.48.99.11-.77.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.94 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.63-5.48 5.93.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.57A12 12 0 0 0 12 .5"/></svg><span>GitHub</span></a>
 </div>
 
