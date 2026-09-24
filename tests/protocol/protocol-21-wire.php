@@ -207,7 +207,7 @@ $list = $listEncoder->encode(
 );
 assertTrue(str_starts_with($list, '1:123:2:Mucho 2.1'), '2.1 level list wire fields');
 assertTrue(str_contains($list, '#42:MuchoPlayer:9001'), '2.1 level list user section');
-assertTrue(str_ends_with($list, '#'.sha1('1337' . 'xI25fpAapCQg')), '2.1 level list hash');
+assertTrue(str_ends_with($list, '#'.sha1('1373' . 'xI25fpAapCQg')), '2.1 level list hash');
 assertTrue(substr_count($list, '|') === 0, 'single level list entry has no trailing pipe');
 
 echo "MUCHOCORE_PROTOCOL_21_WIRE_OK\n";
