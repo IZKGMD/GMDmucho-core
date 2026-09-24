@@ -155,99 +155,253 @@ final class CommentService
     {
         $pdo = $this->getPdo();
 
-        // 1. Check the user's moderation role.
         $stmt = $pdo->prepare(
-            "SELECT a.username, COALESCE(r.code, 'user') AS role
+            "SELECT COALESCE(r.code, 'user') AS role
              FROM accounts a
              LEFT JOIN roles r ON r.id = a.role_id
-             WHERE a.account_id = :id"
+             WHERE a.account_id = :id
+               AND a.is_active = 1
+               AND a.is_banned = 0
+             LIMIT 1"
         );
         $stmt->execute([":id" => $accountId]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $role = strtolower((string)($stmt->fetchColumn() ?: "user"));
 
-        if (!$user) return null;
-        $role = strtolower((string)($user["role"] ?? "user"));
-        if (!in_array($role, ["owner", "admin", "moderator", "mod", "elder", "developer"])) {
-            return null; // Не модератор — команда постится как обычный текст
+        if (!in_array(
+            $role,
+            ["owner", "admin", "moderator", "mod", "elder", "developer"],
+            true
+        )) {
+            return null;
         }
 
-        $parts = preg_split("/\s+/", trim($commandStr));
+        $parts = preg_split("/\\s+/", trim($commandStr)) ?: [];
         $cmd = strtolower($parts[0] ?? "");
 
-        // 2. Process the command.
         switch ($cmd) {
             case "!rate":
-                $val = strtolower($parts[1] ?? "");
-                $diff = 0; $demon = 0; $demon_diff = 0; $auto = 0;
+                $value = strtolower($parts[1] ?? "");
 
-                switch($val) {
-                    case 'auto': $diff = 1; $auto = 1; break;
-                    case 'easy': $diff = 2; break;
-                    case 'normal': $diff = 3; break;
-                    case 'hard': $diff = 4; break;
-                    case 'harder': $diff = 5; break;
-                    case 'insane': $diff = 6; break;
-                    case 'demon': $diff = 6; $demon = 1; $demon_diff = 3; break;
-                    case 'easydemon': $diff = 6; $demon = 1; $demon_diff = 1; break;
-                    case 'mediumdemon': $diff = 6; $demon = 1; $demon_diff = 2; break;
-                    case 'harddemon': $diff = 6; $demon = 1; $demon_diff = 3; break;
-                    case 'insanedemon': $diff = 6; $demon = 1; $demon_diff = 4; break;
-                    case 'extremedemon': $diff = 6; $demon = 1; $demon_diff = 5; break;
+                $stars = 0;
+                $difficulty = 0;
+                $demon = 0;
+                $demonDifficulty = 0;
+                $auto = 0;
+
+                if (ctype_digit($value)) {
+                    $requestedStars = (int)$value;
+
+                    if ($requestedStars < 1 || $requestedStars > 10) {
+                        return null;
+                    }
+
+                    $stars = $requestedStars;
+                    [$difficulty, $auto, $demon] = match (true) {
+                        $stars === 1 => [1, 1, 0],
+                        $stars === 2 => [2, 0, 0],
+                        $stars === 3 => [3, 0, 0],
+                        $stars <= 5 => [4, 0, 0],
+                        $stars <= 7 => [5, 0, 0],
+                        $stars <= 9 => [6, 0, 0],
+                        default => [6, 0, 1],
+                    };
+
+                    $demonDifficulty = $demon ? 3 : 0;
+                } else {
+                    $ratingMap = [
+                        "auto" => [1, 1, 0, 0],
+                        "easy" => [2, 2, 0, 0],
+                        "normal" => [3, 3, 0, 0],
+                        "hard" => [4, 4, 0, 0],
+                        "harder" => [6, 5, 0, 0],
+                        "insane" => [8, 6, 0, 0],
+                        "demon" => [10, 6, 1, 3],
+                        "easydemon" => [10, 6, 1, 1],
+                        "mediumdemon" => [10, 6, 1, 2],
+                        "harddemon" => [10, 6, 1, 3],
+                        "insanedemon" => [10, 6, 1, 4],
+                        "extremedemon" => [10, 6, 1, 5],
+                    ];
+
+                    if (!isset($ratingMap[$value])) {
+                        return null;
+                    }
+
+                    [
+                        $stars,
+                        $difficulty,
+                        $demon,
+                        $demonDifficulty
+                    ] = $ratingMap[$value];
+
+                    $auto = $value === "auto" ? 1 : 0;
                 }
 
-                if ($diff > 0) {
-                    $pdo->prepare("
-                        UPDATE levels SET
-                            stars = 0,
-                            difficulty = :diff,
-                            demon = :demon,
-                            demon_difficulty = :demon_diff,
-                            auto_level = :auto,
-                            featured = 0,
-                            epic = 0,
-                            updated_at = NOW()
-                        WHERE level_id = :id
-                    ")->execute([
-                        ":diff"  => $diff,
-                        ":demon" => $demon,
-                        ":demon_diff" => $demon_diff,
-                        ":auto"  => $auto,
-                        ":id"    => $levelId
-                    ]);
+                $update = $pdo->prepare(
+                    "UPDATE levels
+                     SET stars = :stars,
+                         difficulty = :difficulty,
+                         demon = :demon,
+                         demon_difficulty = :demon_difficulty,
+                         auto_level = :auto,
+                         updated_at = NOW()
+                     WHERE level_id = :id
+                       AND is_deleted = 0"
+                );
+                $update->execute([
+                    ":stars" => $stars,
+                    ":difficulty" => $difficulty,
+                    ":demon" => $demon,
+                    ":demon_difficulty" => $demonDifficulty,
+                    ":auto" => $auto,
+                    ":id" => $levelId,
+                ]);
 
-                    // Finish successfully; GD expects "1" for a handled comment command.
-                    // Do not persist the command as a normal comment.
-                    return true;
+                if ($update->rowCount() === 0) {
+                    $check = $pdo->prepare(
+                        "SELECT 1
+                         FROM levels
+                         WHERE level_id = :id
+                           AND is_deleted = 0
+                         LIMIT 1"
+                    );
+                    $check->execute([":id" => $levelId]);
+
+                    if ($check->fetchColumn() === false) {
+                        return null;
+                    }
                 }
-                
-                return "[Mod] Rate error: invalid difficulty (use auto, easy, normal, hard, harder, insane, demon)";
+
+                $this->recalculateCreatorPoints($pdo, $levelId);
+
+                return true;
 
             case "!demon":
-                $demonDiff = isset($parts[1]) ? (int)$parts[1] : 3;
-                $pdo->prepare("UPDATE levels SET demon = 1, stars = 10, demon_difficulty = :d WHERE level_id = :id")
-                    ->execute([":d" => $demonDiff, ":id" => $levelId]);
+                $demonDifficulty = isset($parts[1])
+                    ? (int)$parts[1]
+                    : 3;
 
-                $names = [1 => "Easy", 2 => "Medium", 3 => "Hard", 4 => "Insane", 5 => "Extreme"];
+                if ($demonDifficulty < 1 || $demonDifficulty > 5) {
+                    return null;
+                }
+
+                $update = $pdo->prepare(
+                    "UPDATE levels
+                     SET stars = 10,
+                         difficulty = 6,
+                         demon = 1,
+                         demon_difficulty = :demon_difficulty,
+                         auto_level = 0,
+                         updated_at = NOW()
+                     WHERE level_id = :id
+                       AND is_deleted = 0"
+                );
+                $update->execute([
+                    ":demon_difficulty" => $demonDifficulty,
+                    ":id" => $levelId,
+                ]);
+
+                if ($update->rowCount() === 0) {
+                    return null;
+                }
+
+                $this->recalculateCreatorPoints($pdo, $levelId);
+
                 return true;
 
             case "!delete":
-                $pdo->prepare("UPDATE levels SET is_deleted = 1 WHERE level_id = :id")->execute([":id" => $levelId]);
-                return true;
+                $update = $pdo->prepare(
+                    "UPDATE levels
+                     SET is_deleted = 1,
+                         updated_at = NOW()
+                     WHERE level_id = :id
+                       AND is_deleted = 0"
+                );
+                $update->execute([":id" => $levelId]);
+
+                return $update->rowCount() === 1;
 
             case "!cp":
-                $amount = isset($parts[1]) ? (int)$parts[1] : 1;
-                $lvlStmt = $pdo->prepare("SELECT account_id FROM levels WHERE level_id = :id");
-                $lvlStmt->execute([":id" => $levelId]);
-                $authorId = (int)($lvlStmt->fetchColumn() ?: 0);
-                if ($authorId > 0) {
-                    $pdo->prepare("UPDATE profiles SET creator_points = creator_points + :cp WHERE account_id = :acc")
-                        ->execute([":cp" => $amount, ":acc" => $authorId]);
-                    return true;
+                $amount = isset($parts[1])
+                    ? (int)$parts[1]
+                    : 1;
+
+                if ($amount < 1 || $amount > 100) {
+                    return null;
                 }
-                return null;
+
+                $lvlStmt = $pdo->prepare(
+                    "SELECT account_id
+                     FROM levels
+                     WHERE level_id = :id
+                       AND is_deleted = 0
+                     LIMIT 1"
+                );
+                $lvlStmt->execute([":id" => $levelId]);
+
+                $authorId = (int)($lvlStmt->fetchColumn() ?: 0);
+
+                if ($authorId <= 0) {
+                    return null;
+                }
+
+                $pdo->prepare(
+                    "UPDATE profiles
+                     SET creator_points = creator_points + :cp
+                     WHERE account_id = :acc"
+                )->execute([
+                    ":cp" => $amount,
+                    ":acc" => $authorId,
+                ]);
+
+                return true;
         }
 
         return null;
+    }
+
+    private function recalculateCreatorPoints(
+        PDO $pdo,
+        int $levelId
+    ): void {
+        $author = $pdo->prepare(
+            "SELECT account_id
+             FROM levels
+             WHERE level_id = :id
+             LIMIT 1"
+        );
+        $author->execute([":id" => $levelId]);
+
+        $accountId = (int)($author->fetchColumn() ?: 0);
+
+        if ($accountId <= 0) {
+            return;
+        }
+
+        $cp = $pdo->prepare(
+            "SELECT COALESCE(
+                SUM(
+                    CASE WHEN stars > 0 THEN 1 ELSE 0 END
+                    + CASE WHEN featured > 0 THEN 1 ELSE 0 END
+                    + epic
+                ),
+                0
+             )
+             FROM levels
+             WHERE account_id = :account
+               AND is_deleted = 0"
+        );
+        $cp->execute([":account" => $accountId]);
+
+        $update = $pdo->prepare(
+            "UPDATE profiles
+             SET creator_points = :cp
+             WHERE account_id = :account"
+        );
+        $update->execute([
+            ":cp" => (int)$cp->fetchColumn(),
+            ":account" => $accountId,
+        ]);
     }
 
     public function getLevelComments(int $levelId, int $page, int $gameVersion = 22, int $binaryVersion = 0): string
