@@ -36,7 +36,12 @@ $checks = [
     [
         __DIR__ . '/../../src/Protocol/GdCommentEncoder.php',
         'GdLegacyText::encodeCommentForResponse',
-        '2.1 comment Base64 response encoding',
+        'legacy comment response encoding guard',
+    ],
+    [
+        __DIR__ . '/../../src/Protocol/GdLegacyText.php',
+        'GD 2.0+ expects level comments as plain protocol text',
+        'GD 2.0+ comments stay plain text',
     ],
     [
         __DIR__ . '/../../src/Protocol/GdLevelListEncoder.php',
@@ -50,8 +55,8 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/User/UserService.php',
-        'if ($protocolVersion->effectiveGameVersion() === 21)',
-        '2.1 profile state normalization gate',
+        '$effectiveGameVersion >= 20 && $effectiveGameVersion <= 21',
+        'GD 2.0/2.1 profile state normalization gate',
     ],
     [
         __DIR__ . '/../../src/User/UserService.php',
