@@ -107,7 +107,6 @@ final class GdUserEncoder
                 2 => $userId,
                 3 => (int)($u['stars'] ?? 0),
                 4 => (int)($u['demons'] ?? 0),
-                6 => (int)($u['rank'] ?? 0),
                 7 => $accountId,
                 8 => (int)($u['creator_points'] ?? 0),
                 9 => (int)($u['icon_id'] ?? 1),
