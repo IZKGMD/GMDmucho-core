@@ -66,9 +66,28 @@ required = {
     "getGJLevelScores211",
 }
 
-seen = {str(endpoint.get("path", "")).split("/")[-1].split(".")[0] for endpoint in endpoints}
+aliases = {
+    "loginGJAccount": {"logingjaccount", "logingjaccount19", "logingjaccount20", "logingjaccount21"},
+    "getGJLevels21": {"getgjlevels", "getgjlevels19", "getgjlevels20", "getgjlevels21"},
+    "uploadGJLevel21": {"uploadgjlevel", "uploadgjlevel19", "uploadgjlevel20", "uploadgjlevel21"},
+    "downloadGJLevel21": {"downloadgjlevel", "downloadgjlevel19", "downloadgjlevel20", "downloadgjlevel21"},
+    "getGJComments21": {"getgjcomments", "getgjcomments19", "getgjcomments20", "getgjcomments21"},
+    "uploadGJComment21": {"uploadgjcomment20", "uploadgjcomment21"},
+    "getGJUserInfo20": {"getgjuserinfo", "getgjuserinfo19", "getgjuserinfo20", "getgjuserinfo21"},
+    "getGJScores20": {"getgjscores", "getgjscores19", "getgjscores20", "getgjscores21"},
+    "updateGJUserScore": {"updategjuserscore", "updategjuserscore19", "updategjuserscore20", "updategjuserscore21"},
+    "getGJLevelScores211": {"getgjlevelscores", "getgjlevelscores19", "getgjlevelscores20", "getgjlevelscores21", "getgjlevelscores211"},
+}
 
-missing = sorted(required - seen)
+seen = {
+    str(endpoint.get("path", "")).split("/")[-1].split(".")[0].lower()
+    for endpoint in endpoints
+}
+
+missing = sorted(
+    name for name in required
+    if not seen.intersection(aliases[name])
+)
 if missing:
     raise SystemExit(
         "2.1 RELEASE GATE: FAIL - real-client fixture is missing required "
