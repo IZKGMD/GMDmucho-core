@@ -44,6 +44,21 @@ assertSameValue(
 );
 
 assertSameValue(
+    $encoded,
+    GdLegacyText::encodeDescriptionUpdateForStorage($encoded, 19),
+    '1.9 description update preserves encoded storage'
+);
+
+assertSameValue(
+    $description,
+    GdLegacyText::encodeDescriptionUpdateForStorage(
+        $encoded,
+        20
+    ),
+    '2.0 description update normalizes to plain storage'
+);
+
+assertSameValue(
     'Modern description',
     GdLegacyText::encodeDescriptionForStorage('Modern description', 20),
     '2.0 description remains protocol-native'
