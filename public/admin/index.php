@@ -131,6 +131,43 @@ ini_set('session.cookie_samesite','Strict');
 session_name('MUCHO_ADMIN');
 session_start();
 
+const MUCHO_ADMIN_IDLE_TIMEOUT = 1800;
+const MUCHO_ADMIN_MAX_SESSION = 86400;
+
+if (isset($_SESSION['admin']) && is_array($_SESSION['admin'])) {
+    $now = time();
+    $loginAt = (int)($_SESSION['admin_login_at'] ?? 0);
+    $lastActivity = (int)($_SESSION['admin_last_activity'] ?? 0);
+
+    if (
+        $loginAt <= 0 ||
+        $lastActivity <= 0 ||
+        ($now - $loginAt) > MUCHO_ADMIN_MAX_SESSION ||
+        ($now - $lastActivity) > MUCHO_ADMIN_IDLE_TIMEOUT
+    ) {
+        $_SESSION = [];
+
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                (string)($params['path'] ?? '/'),
+                (string)($params['domain'] ?? ''),
+                (bool)($params['secure'] ?? false),
+                (bool)($params['httponly'] ?? true)
+            );
+        }
+
+        session_destroy();
+        header('Location:/admin/');
+        exit;
+    }
+
+    $_SESSION['admin_last_activity'] = $now;
+}
+
 /* =========================================================
    ADMIN TABLES
 ========================================================= */
@@ -551,6 +588,9 @@ if (isset($_POST['login'])) {
                 'username'=>$row['username'],
                 'role'=>$row['role']
             ];
+
+            $_SESSION['admin_login_at']=time();
+            $_SESSION['admin_last_activity']=time();
 
             $_SESSION['csrf']=bin2hex(random_bytes(32));
 
