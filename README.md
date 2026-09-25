@@ -9,7 +9,7 @@
   <a href="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml">
     <img src="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml/badge.svg" alt="CI">
   </a>
-  <img src="https://img.shields.io/badge/release-v1.0.0%20RC-8A2BE2" alt="Release candidate">
+  <img src="https://img.shields.io/badge/release-v1.0.0-8A2BE2" alt="Stable release">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2%20verified-success" alt="Geometry Dash 1.0 through 2.2">
   <img src="https://img.shields.io/badge/MuchoProtect-enabled-success" alt="MuchoProtect">
@@ -314,9 +314,9 @@ For deployment details, see **[VPS Setup](docs/SETUP.md)** and **[Advanced Deplo
 
 ---
 
-## 📦 Release candidate
+## 📦 v1.0.0
 
-**v1.0.0** is being prepared around four goals:
+**v1.0.0** is the stable MuchoCore release built around four goals:
 
 1. 🎮 Strong Geometry Dash protocol compatibility
 2. 🛡️ Built-in request protection
