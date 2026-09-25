@@ -110,6 +110,19 @@ elseif ($action==='admin-toggle') {
                  WHERE id=:id'
             )->execute(['id'=>$id]);
 
+            /*
+             * Changing an administrator's active state invalidates all
+             * long-lived API bearer tokens for that administrator.
+             */
+            if (tableExists($db, 'mucho_admin_client_tokens')) {
+                $db->prepare(
+                    'UPDATE mucho_admin_client_tokens
+                     SET revoked_at=NOW()
+                     WHERE admin_user_id=:id
+                       AND revoked_at IS NULL'
+                )->execute(['id'=>$id]);
+            }
+
             audit(
                 $db,
                 'admin.toggle',
@@ -158,6 +171,19 @@ elseif ($action==='2fa-enable') {
                 'id'=>admin()['id']
             ]);
 
+            /*
+             * Force re-authentication with MFA after enabling 2FA so an older
+             * bearer token cannot bypass the newly enabled factor.
+             */
+            if (tableExists($db, 'mucho_admin_client_tokens')) {
+                $db->prepare(
+                    'UPDATE mucho_admin_client_tokens
+                     SET revoked_at=NOW()
+                     WHERE admin_user_id=:id
+                       AND revoked_at IS NULL'
+                )->execute(['id'=>admin()['id']]);
+            }
+
             unset($_SESSION['pending_totp']);
 
             audit($db,'2fa.enable');
@@ -172,6 +198,19 @@ elseif ($action==='2fa-disable') {
                  SET totp_secret=NULL
                  WHERE id=:id'
             );
+
+            /*
+             * Any bearer token issued before an MFA policy change must not
+             * survive the transition to a weaker authentication state.
+             */
+            if (tableExists($db, 'mucho_admin_client_tokens')) {
+                $db->prepare(
+                    'UPDATE mucho_admin_client_tokens
+                     SET revoked_at=NOW()
+                     WHERE admin_user_id=:id
+                       AND revoked_at IS NULL'
+                )->execute(['id'=>admin()['id']]);
+            }
 
             $q->execute([
                 'id'=>admin()['id']
