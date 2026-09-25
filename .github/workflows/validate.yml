@@ -54,6 +54,7 @@ jobs:
           php tests/protocol/router-compatibility.php
           php tests/application/game-roles.php
           php tests/application/comment-contract.php
+          php tests/application/legacy-19-session.php
           php tests/database/migrator-concurrency.php
           php tests/application/music-upload-contract.php
           php tests/security/turnstile.php
