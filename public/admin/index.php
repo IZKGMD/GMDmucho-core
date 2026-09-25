@@ -1126,6 +1126,7 @@ button{width:100%;margin-top:15px;padding:12px;border:0;border-radius:10px;backg
 <?php elseif($row): ?>
 <form method="post">
 <input type="hidden" name="csrf" value="<?=csrf()?>">
+<input type="hidden" name="setup" value="<?=h($token)?>">
 <label for="password">New password</label>
 <input id="password" type="password" name="password" autocomplete="new-password" minlength="10" required>
 <label for="password_confirm">Confirm password</label>
