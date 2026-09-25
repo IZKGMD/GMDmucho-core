@@ -1,5 +1,33 @@
 # Changelog
 
+## v1.0.1 — Admin Security & Operations Update
+
+This release updates the Admin Panel authentication and administrator management flow.
+
+### Included
+
+- native WebAuthn/FIDO2 passkey sign-in and per-administrator passkey management;
+- removal of the legacy Access Key authentication mode;
+- separate administrator accounts with owner-controlled built-in roles;
+- one-time administrator password setup links so invited admins create their own passwords;
+- password setup links expire after 24 hours and are single-use;
+- MFA recovery codes for TOTP-enabled administrators;
+- live audit feed and hardened administrator security flows;
+- updated deployment migrations and CI contracts.
+
+### Compatibility verification
+
+GD 2.2 verification remains backed by the committed real-client contract fixture:
+
+~~~text
+tests/client-fixtures/2.2/endpoints.json
+~~~
+
+Legacy 1.0, 1.9, 2.0 and 2.1 protocol behavior remains covered by the repository's compatibility and wire regression tests.
+
+---
+# Changelog
+
 ## v1.0.0 — Stable Release
 
 MuchoCore v1.0.0 packages the current server core, deployment tooling, client patching tools and compatibility checks into a single stable release.
