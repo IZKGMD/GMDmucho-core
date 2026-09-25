@@ -63,7 +63,8 @@ if grep -q '^MUCHO_TUNNEL_TOKEN=' "$ROOT/.env" 2>/dev/null; then
 else
     TUNNEL_TOKEN=""
 fi
-CADDY_ADDRESS="$(normalize_caddy_address)"
+CADDY_ADDRESS_VALUE="$(normalize_caddy_address)"
+CADDY_ADDRESS="\"$CADDY_ADDRESS_VALUE\""
 sed -i '/^CADDY_ADDRESS=/d' "$ROOT/.env"
 printf 'CADDY_ADDRESS=%s\n' "$CADDY_ADDRESS" >> "$ROOT/.env"
 
