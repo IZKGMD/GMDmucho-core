@@ -29,6 +29,8 @@ function assertSameValue(mixed $expected, mixed $actual, string $name): void
 }
 
 $versions = [
+    [1, '1.0'],
+    [11, '1.1'],
     [19, '1.9'],
     [20, '2.0'],
     [21, '2.1'],
@@ -80,6 +82,8 @@ foreach ($aliases as $input => $expected) {
 }
 
 $credentials = [
+    [1, false],
+    [11, false],
     [19, false],
     [20, false],
     [21, false],
@@ -138,5 +142,9 @@ foreach ($credentials as [$gameVersion, $usesGjp2]) {
         "credential selection {$gameVersion}"
     );
 }
+
+$gd11 = new ClientVersion(11, 0);
+assertSameValue('1.1', $gd11->family(), 'GD 1.1 explicit gameVersion');
+assertSameValue(false, $gd11->usesGjp2(), 'GD 1.1 does not use GJP2');
 
 echo "MUCHOCORE_PROTOCOL_MATRIX_OK\n";
