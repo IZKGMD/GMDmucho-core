@@ -23,29 +23,35 @@ jobs:
       - name: Check release marker
         id: marker
         run: |
-          if [[ ! -f .release/v1.0.0.ready ]]; then
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          TAG="v${VERSION}"
+          if [[ ! -f ".release/${TAG}.ready" ]]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          test "$(tr -d '[:space:]' < VERSION)" = "1.0.0"
+          test "$VERSION" = "1.0.1"
           echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Publish v1.0.0
+      - name: Publish validated release
         if: steps.marker.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+          VERSION: ${{ steps.marker.outputs.version }}
+          TAG: ${{ steps.marker.outputs.tag }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -f v1.0.0 "$RELEASE_SHA"
-          git push origin +refs/tags/v1.0.0
+          git tag -f "$TAG" "$RELEASE_SHA"
+          git push origin +refs/tags/"$TAG"
 
-          if gh release view v1.0.0 >/dev/null 2>&1; then
-            echo "v1.0.0 release already exists."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "$TAG release already exists."
           else
-            gh release create v1.0.0 \
-              --title "MuchoCore v1.0.0" \
+            gh release create "$TAG" \
+              --title "MuchoCore $TAG" \
               --notes-file CHANGELOG.md \
               --latest
           fi
@@ -54,14 +60,15 @@ jobs:
         if: steps.marker.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.marker.outputs.tag }}
         run: |
           git fetch origin main
           git switch -C main origin/main
-          rm -f .release/v1.0.0.ready
-          if git diff --quiet -- .release/v1.0.0.ready; then
+          rm -f ".release/${TAG}.ready"
+          if git diff --quiet -- ".release/${TAG}.ready"; then
             echo "Release marker already absent."
             exit 0
           fi
-          git add -A .release/v1.0.0.ready
-          git commit -m "chore: finalize v1.0.0 release marker"
+          git add -A ".release/${TAG}.ready"
+          git commit -m "chore: finalize ${TAG} release marker"
           git push origin main
