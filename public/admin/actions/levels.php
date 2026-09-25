@@ -79,8 +79,16 @@ if ($action==='level-save') {
 
 } catch(Throwable $e) {
 
+    error_log(sprintf(
+        '[MuchoCore Admin] level-save %s: %s | %s:%d',
+        $e::class,
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine()
+    ));
+
     flash(
-        'Error: '.$e->getMessage(),
+        'The operation could not be completed. Please try again.',
         'error'
     );
 }
