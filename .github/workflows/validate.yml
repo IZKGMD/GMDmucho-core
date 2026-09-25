@@ -93,7 +93,7 @@ jobs:
           printf 'ci-admin-password' > .secrets/admin_password
           cat > .ci.env <<'EOF'
           DOMAIN=gdps.example.com
-          CADDY_ADDRESS=http://gdps.example.com http://www.gdps.example.com https://gdps.example.com https://www.gdps.example.com
+          CADDY_ADDRESS="http://gdps.example.com http://www.gdps.example.com https://gdps.example.com https://www.gdps.example.com"
           DB_NAME=muchocore
           DB_USER=muchocore_user
           ADMIN_USER=admin
