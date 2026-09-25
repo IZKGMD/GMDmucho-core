@@ -284,6 +284,23 @@ final class CommentService
             return null;
         }
 
+        // Keep direct rating consistent with ModerationService:
+        // regular moderators may suggest ratings, but only elder moderators
+        // and owners may apply a direct !rate mutation.
+        if (
+            $cmd === '!rate' &&
+            !in_array(
+                $role,
+                [
+                    GameRole::OWNER,
+                    GameRole::ELDER_MODERATOR,
+                ],
+                true
+            )
+        ) {
+            return null;
+        }
+
         if ($levelId <= 0 || !$this->levelExists($levelId)) {
             return null;
         }
