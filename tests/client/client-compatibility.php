@@ -26,10 +26,20 @@ function assertSameValue(mixed $expected, mixed $actual, string $name): void
     echo "PASS {$name}\n";
 }
 
+$v10 = ClientVersion::fromValues(1, 0);
+assertSameValue('1.0', $v10->family(), 'GD 1.0 family');
+assertSameValue('1.0', $v10->label(), 'GD 1.0 label');
+
+$v11 = ClientVersion::fromValues(11, 0);
+assertSameValue('1.1', $v11->family(), 'GD 1.1 family');
+assertSameValue('1.1', $v11->label(), 'GD 1.1 label');
+assertSameValue(false, $v11->usesGjp2(), 'GD 1.1 uses legacy credential');
+
 $v19 = ClientVersion::fromValues(19, 25);
 assertSameValue('1.9', $v19->family(), 'GD 1.9 family');
 assertSameValue('1.9/25', $v19->label(), 'GD 1.9 binary label');
 assertSameValue(false, $v19->usesGjp2(), 'GD 1.9 uses legacy credential');
+
 $v10Request = new Request(
     'POST',
     '/database/getGJLevels.php',
