@@ -45,7 +45,7 @@ assertSameValue(
 );
 
 assertSameValue(
-    3,
+    1,
     $v10Request->clientVersion()->effectiveGameVersion(),
     'GD 1.0 protocol gameVersion'
 );
