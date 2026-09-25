@@ -71,7 +71,7 @@ try {
     }
 
     $accountLimiter = new \MuchoCore\Security\RateLimiter();
-    if (!$accountLimiter->allow('music-account:' . $accountId, 5, 900)) {
+    if (!$accountLimiter->allowStrict('music-account:' . $accountId, 5, 900)) {
         header('Retry-After: 900');
         muchoV2Fail('music_account_rate_limited', 429);
     }
@@ -133,16 +133,29 @@ try {
 
     chmod($target,0640);
 
-    $baseUrl=rtrim(
+    $baseUrl=trim(
         (string)(
-            getenv('MUCHO_ACCOUNT_URL')
-            ?: (
-                'https://'.
-                (string)($_SERVER['HTTP_HOST'] ?? 'localhost')
-            )
-        ),
-        '/'
+            getenv('MUCHO_PUBLIC_URL')
+            ?: getenv('MUCHO_ACCOUNT_URL')
+            ?: ''
+        )
     );
+
+    if (
+        $baseUrl === '' ||
+        preg_match(
+            '~^https://[A-Za-z0-9.-]+(?::\\d+)?$~',
+            $baseUrl
+        ) !== 1
+    ) {
+        @unlink($target);
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        throw new RuntimeException('trusted_public_url_required');
+    }
+
+    $baseUrl=rtrim($baseUrl,'/');
 
     $download=
         $baseUrl.
