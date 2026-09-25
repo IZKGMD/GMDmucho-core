@@ -58,7 +58,7 @@ else
 fi
 CADDY_ADDRESS="$(normalize_caddy_address)"
 sed -i '/^CADDY_ADDRESS=/d' "$ROOT/.env"
-printf 'CADDY_ADDRESS=%s\n' "$CADDY_ADDRESS"
+printf 'CADDY_ADDRESS=%s\n' "$CADDY_ADDRESS" >> "$ROOT/.env"
 
 COMPOSE_ARGS=()
 if grep -q '^MUCHO_TUNNEL_TOKEN=' "$ROOT/.env" 2>/dev/null; then
