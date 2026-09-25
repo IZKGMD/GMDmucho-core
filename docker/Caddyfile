@@ -68,6 +68,13 @@
     @hidden path /.env* /.git/* /composer.json /composer.lock /config/* /src/* /tests/* /storage/*
     respond @hidden 404
 
+    @testgdps host testgdps.muchogdps.space
+
+    handle @testgdps {
+        php_fastcgi testgdps-app:9000
+        file_server
+    }
+
     php_fastcgi app:9000
     file_server
 }
