@@ -5,6 +5,13 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 [[ $EUID -eq 0 ]] || { echo 'Run: sudo ./update.sh' >&2; exit 1; }
 
+# Prevent overlapping manual and automatic updates.
+exec 9>/run/muchocore-update.lock
+if ! flock -n 9; then
+    echo '[MuchoCore] Another update is already running; skipping this update.'
+    exit 0
+fi
+
 # Older MuchoCore versions accidentally overwrote the project .env from inside
 # the app container. Recover the domain from the existing Caddy container so
 # the first update can repair that installation automatically.
@@ -75,6 +82,8 @@ grep -q '^TURNSTILE_SITEKEY=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SITE
 grep -q '^TURNSTILE_SECRET=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SECRET=\n' >> "$ROOT/.env"
 grep -q '^MUCHO_GD_VERSIONS=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_GD_VERSIONS=all\n' >> "$ROOT/.env"
 grep -q '^CADDY_EXTRA_HOSTS=' "$ROOT/.env" 2>/dev/null || printf 'CADDY_EXTRA_HOSTS=testgdps.muchogdps.space\n' >> "$ROOT/.env"
+grep -q '^MUCHO_AUTO_UPDATE=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_AUTO_UPDATE=1\n' >> "$ROOT/.env"
+grep -q '^MUCHO_AUTO_UPDATE_INTERVAL=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_AUTO_UPDATE_INTERVAL=15min\n' >> "$ROOT/.env"
 
 normalize_caddy_address() {
   if [[ -n "$TUNNEL_TOKEN" ]]; then
@@ -136,6 +145,11 @@ else
         echo '[MuchoCore] ERROR: the deployment files are not available on main or feat/easy-deploy.' >&2
         exit 1
     fi
+fi
+
+if [[ -x "$ROOT/bin/mucho-install-auto-update.sh" ]]; then
+    echo '[MuchoCore] Synchronizing automatic update timer...'
+    "$ROOT/bin/mucho-install-auto-update.sh"
 fi
 
 echo '[MuchoCore] Rebuilding containers...'
