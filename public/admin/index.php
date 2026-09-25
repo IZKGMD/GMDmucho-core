@@ -1355,7 +1355,7 @@ if (admin() && isset($_GET['android_download'])) {
 ========================================================= */
 
 if (admin() && isset($_GET['download'])) {
-    requireRank(40);
+    requirePermission('backups.download');
 
     $name=basename((string)$_GET['download']);
 
@@ -1388,7 +1388,7 @@ if (admin() && isset($_GET['download'])) {
 ========================================================= */
 
 if (admin() && isset($_GET['audit_feed'])) {
-    requireRank(10);
+    requirePermission('audit.view');
 
     $rows=$db->query(
         'SELECT
