@@ -65,7 +65,7 @@
 
     # Keep private project files unreachable, but do not block /database/*:
     # Geometry Dash client endpoints live under /public/database.
-    @hidden path /.env /.git/* /composer.json /composer.lock /config/* /src/* /tests/* /storage/*
+    @hidden path /.env* /.git/* /composer.json /composer.lock /config/* /src/* /tests/* /storage/*
     respond @hidden 404
 
     php_fastcgi app:9000
