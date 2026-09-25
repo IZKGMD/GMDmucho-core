@@ -11,7 +11,7 @@ $checks=[
         && str_contains($migration,'password_setup_expires_at'),
     'generated setup token' =>
         str_contains($index,'random_bytes(48)')
-        && str_contains($index,"hash('sha256',$setupToken)"),
+        && str_contains($index,"hash('sha256',\$setupToken)"),
     'no password field on admin creation' =>
         !str_contains($index,'name="password" placeholder="Password"')
         && str_contains($index,'The administrator will create their own password'),
