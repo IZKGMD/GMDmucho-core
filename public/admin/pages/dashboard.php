@@ -208,6 +208,78 @@ function renderAdminDashboard(PDO $db): void
 
     echo '</div>';
 
+    echo '
+    <section class="card admin-live-audit-card">
+        <div class="section-heading">
+            <div>
+                <h2>Live audit feed</h2>
+                <small>Latest administrator events · refreshes every 5 seconds</small>
+            </div>
+            <span class="badge green" id="auditLiveState">LIVE</span>
+        </div>
+        <div id="muchoLiveAudit" class="admin-live-audit-list">
+            <div class="empty-state">Loading audit events…</div>
+        </div>
+    </section>
+    <style>
+        .admin-live-audit-list{display:grid;gap:8px}
+        .admin-live-audit-row{display:grid;grid-template-columns:150px 110px 1fr auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #202a39;background:#0b1018;border-radius:9px}
+        .admin-live-audit-row b{font-size:12px}
+        .admin-live-audit-row small{font-size:10px;color:#7f8ca0}
+        .admin-live-audit-action{font:700 11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#b9c4d6}
+        .admin-live-audit-target{font-size:11px;color:#dbe2ef;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        @media(max-width:760px){
+            .admin-live-audit-row{grid-template-columns:1fr auto}
+            .admin-live-audit-action,.admin-live-audit-target{grid-column:1 / -1}
+        }
+    </style>
+    <script>
+    (() => {
+        const root=document.getElementById('muchoLiveAudit');
+        const state=document.getElementById('auditLiveState');
+        if(!root) return;
+
+        const esc=(value) => String(value ?? '').replace(/[&<>"]/g, c => ({
+            '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'
+        }[c]));
+
+        async function refreshAudit(){
+            try{
+                const response=await fetch('/admin/?audit_feed=1&t='+Date.now(),{
+                    credentials:'same-origin',
+                    cache:'no-store',
+                    headers:{'Accept':'application/json'}
+                });
+
+                if(!response.ok) throw new Error('feed');
+                const data=await response.json();
+                const events=Array.isArray(data.events) ? data.events : [];
+
+                state.textContent='LIVE';
+                state.classList.add('green');
+
+                root.innerHTML=events.length
+                    ? events.map(item => `
+                        <div class="admin-live-audit-row">
+                            <small>${esc(item.created_at)}</small>
+                            <b>${esc(item.username)}</b>
+                            <span class="admin-live-audit-action">${esc(item.action)}</span>
+                            <span class="admin-live-audit-target">${esc(item.target || '—')}</span>
+                        </div>
+                    `).join('')
+                    : '<div class="empty-state">No administrator events yet.</div>';
+            }catch{
+                state.textContent='OFFLINE';
+                state.classList.remove('green');
+            }
+        }
+
+        refreshAudit();
+        setInterval(refreshAudit,5000);
+    })();
+    </script>
+    ';
+
     echo '<section class="card admin-server-card">';
     echo '<div class="section-heading"><div><h2>Server status</h2><small>Quick operational snapshot</small></div><a href="/admin/?page=monitoring">Monitoring →</a></div>';
 
