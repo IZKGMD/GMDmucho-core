@@ -22,6 +22,8 @@ jobs:
           bash -n install.sh
           bash -n install
           bash -n update.sh
+          bash -n auto-update.sh
+          bash -n bin/mucho-install-auto-update.sh
           bash -n docker/app-entrypoint.sh
           ! grep -nE '\\\$[0-9]+' install.sh
           bash -n uninstall.sh
@@ -98,6 +100,9 @@ jobs:
           test -f tools/client/client-patch.bat
           test -f tools/client/client-patch.py
           test -f tools/client/client-patcher.ps1
+          test -f auto-update.sh
+          test -f bin/mucho-install-auto-update.sh
+          test -f docs/AUTO_UPDATE.md
 
       - name: Check Docker Compose configuration
         run: |
@@ -126,6 +131,15 @@ jobs:
           EOF
           docker compose --env-file .ci.env config -q
           docker compose --env-file .ci.env -f docker-compose.yml -f docker-compose.tunnel.yml config -q
+
+      - name: Check automatic update wiring
+        run: |
+          grep -Fq 'MUCHO_AUTO_UPDATE=1' install.sh
+          grep -Fq 'MUCHO_AUTO_UPDATE_INTERVAL=15min' install.sh
+          grep -Fq 'muchocore-auto-update.timer' bin/mucho-install-auto-update.sh
+          grep -Fq 'exec 9>/run/muchocore-auto-update.lock' auto-update.sh
+          grep -Fq '"$ROOT/update.sh"' auto-update.sh
+          grep -Fq 'bash "$ROOT/bin/mucho-install-auto-update.sh"' update.sh
 
       - name: Check runtime environment handling
         run: |
