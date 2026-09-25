@@ -66,7 +66,7 @@ try {
     $report = AndroidClientPatcher::patchFile(
         $input,
         $output,
-        'https://gdps.example.com'
+        'https://gdps-example.com'
     );
 
     if (($report['replacement_count'] ?? 0) < 4) {
@@ -81,8 +81,8 @@ try {
     $native = $check->getFromName('lib/arm64-v8a/libcocos2dcpp.so');
     if (
         !is_string($native) ||
-        !str_contains($native, 'http://gdps.example.com/a/database') ||
-        !str_contains($native, 'https://gdps.example.com/a/database')
+        !str_contains($native, 'http://gdps-example.com/a/database') ||
+        !str_contains($native, 'https://gdps-example.com/a/database')
     ) {
         throw new RuntimeException('Patched server URL not found.');
     }
