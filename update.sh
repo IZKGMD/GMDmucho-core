@@ -25,6 +25,13 @@ if ! grep -q '^DOMAIN=' "$ROOT/.env" 2>/dev/null; then
     exit 1
 fi
 
+# Load DOMAIN from the installation config before strict-mode functions use it.
+DOMAIN="$(sed -n 's/^DOMAIN=//p' "$ROOT/.env" | head -n1 || true)"
+[[ -n "$DOMAIN" ]] || {
+    echo '[MuchoCore] ERROR: DOMAIN is empty in .env.' >&2
+    exit 1
+}
+
 grep -q '^ADMIN_USER=' "$ROOT/.env" 2>/dev/null || printf '\nADMIN_USER=admin\n' >> "$ROOT/.env"
 grep -q '^TZ=' "$ROOT/.env" 2>/dev/null || printf 'TZ=UTC\n' >> "$ROOT/.env"
 grep -q '^TURNSTILE_SITEKEY=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SITEKEY=\n' >> "$ROOT/.env"
