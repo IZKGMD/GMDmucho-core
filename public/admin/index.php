@@ -4264,17 +4264,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 );
             }
 
-            if (!in_array(
-                $role,
-                [
-                    'owner',
-                    'admin',
-                    'moderator',
-                    'viewer'
-                ],
-                true
-            )) {
+            if (!AdminRbac::roleExists($db,$role)) {
                 throw new RuntimeException('Bad role');
+            }
+
+            if (!AdminRbac::canAssignRole($db,admin(),$role)) {
+                throw new RuntimeException('You cannot assign this role.');
             }
 
             $setupToken=rtrim(
@@ -4337,6 +4332,62 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             );
 
             flash('Status changed.');
+        }
+
+        elseif ($action==='role-create') {
+            requirePermission('roles.manage');
+
+            $code=strtolower(trim((string)($_POST['code'] ?? '')));
+            $name=trim((string)($_POST['name'] ?? ''));
+            $permissions=is_array($_POST['permissions'] ?? null)
+                ? $_POST['permissions']
+                : [];
+
+            if (!AdminRbac::canManagePermissionSet($db,admin(),$permissions)) {
+                throw new RuntimeException('A role cannot grant permissions you do not have.');
+            }
+
+            AdminRbac::createRole($db,$code,$name,$permissions);
+
+            audit($db,'role.create',$code,['permissions'=>AdminRbac::normalizePermissionList($permissions)]);
+            flash('Custom role created.');
+        }
+
+        elseif ($action==='role-update') {
+            requirePermission('roles.manage');
+
+            $id=(int)($_POST['id'] ?? 0);
+            $name=trim((string)($_POST['name'] ?? ''));
+            $permissions=is_array($_POST['permissions'] ?? null)
+                ? $_POST['permissions']
+                : [];
+
+            if (!AdminRbac::canManagePermissionSet($db,admin(),$permissions)) {
+                throw new RuntimeException('A role cannot grant permissions you do not have.');
+            }
+
+            AdminRbac::updateRole($db,$id,$name,$permissions);
+
+            audit($db,'role.update',(string)$id,['permissions'=>AdminRbac::normalizePermissionList($permissions)]);
+            flash('Custom role updated.');
+        }
+
+        elseif ($action==='role-delete') {
+            requirePermission('roles.manage');
+
+            $id=(int)($_POST['id'] ?? 0);
+            $stmt=$db->prepare('SELECT code FROM admin_roles WHERE id=:id LIMIT 1');
+            $stmt->execute(['id'=>$id]);
+            $code=(string)($stmt->fetchColumn() ?: '');
+
+            if ($code==='') {
+                throw new RuntimeException('Role not found.');
+            }
+
+            AdminRbac::deleteRole($db,$id);
+
+            audit($db,'role.delete',$code);
+            flash('Custom role deleted.');
         }
 
         elseif ($action==='2fa-generate') {
@@ -6275,10 +6326,9 @@ unset($_SESSION['admin_setup_invite']);
 <p style="font-size:11px;color:#7f8ba0;line-height:1.5">The administrator will create their own password using a one-time setup link after you create the account.</p>
 
 <select name="role">
-<option>viewer</option>
-<option>moderator</option>
-<option>admin</option>
-<option>owner</option>
+<?php foreach(AdminRbac::roles($db) as $roleCode=>$roleName): ?>
+<option value="<?=h($roleCode)?>"><?=h($roleName)?></option>
+<?php endforeach; ?>
 </select>
 
 <button>Create</button>
