@@ -98,6 +98,64 @@ assertSecurityRegression(
     'admin level action masks internal exceptions'
 );
 
+$adminActions = (string)file_get_contents(
+    __DIR__ . '/../../public/admin/actions/admins.php'
+);
+$heartbeat = (string)file_get_contents(
+    __DIR__ . '/../../public/api/v2/heartbeat.php'
+);
+$rewards = (string)file_get_contents(
+    __DIR__ . '/../../src/Interaction/RewardsService.php'
+);
+$rewardsController = (string)file_get_contents(
+    __DIR__ . '/../../src/Interaction/RewardsController.php'
+);
+$musicUpload = (string)file_get_contents(
+    __DIR__ . '/../../public/api/v2/music-upload.php'
+);
+$iconProxy = (string)file_get_contents(
+    __DIR__ . '/../../public/admin/icon-proxy.php'
+);
+
+assertSecurityRegression(
+    str_contains($adminActions, 'mucho_admin_client_tokens') &&
+    str_contains($adminActions, 'SET revoked_at=NOW()'),
+    'admin security-state changes revoke API bearer tokens'
+);
+
+assertSecurityRegression(
+    str_contains($heartbeat, 'a.is_active') &&
+    str_contains($heartbeat, 'a.is_banned') &&
+    str_contains($heartbeat, 'is_banned') &&
+    str_contains($heartbeat, 'hash_equals'),
+    'presence heartbeat rejects inactive or banned accounts'
+);
+
+assertSecurityRegression(
+    str_contains($rewards, "hash('sha256', $ip . '|' . $udid)") &&
+    str_contains($rewards, 'filter_var($ip, FILTER_VALIDATE_IP)'),
+    'anonymous secret rewards bind claims to IP and UDID'
+);
+
+assertSecurityRegression(
+    str_contains($rewardsController, '$request->clientIp()'),
+    'secret reward controller passes the resolved client IP'
+);
+
+assertSecurityRegression(
+    str_contains($musicUpload, 'allowStrict') &&
+    str_contains($musicUpload, 'MUCHO_PUBLIC_URL') &&
+    !str_contains($musicUpload, 'HTTP_HOST'),
+    'music upload uses fail-closed limiting and trusted public origin'
+);
+
+assertSecurityRegression(
+    str_contains($iconProxy, 'allowStrict') &&
+    str_contains($iconProxy, '512000') &&
+    str_contains($iconProxy, 'gdicon.oat.zone'),
+    'public icon proxy is rate limited and response-size bounded'
+);
+
 $frontController = (string)file_get_contents(
     __DIR__ . '/../../public/index.php'
 );
