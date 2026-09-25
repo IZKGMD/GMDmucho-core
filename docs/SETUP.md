@@ -122,13 +122,14 @@ Before major changes, create a database backup:
 sudo /opt/mucho-core/bin/mucho-db-backup.sh
 ~~~
 
-Keep this key safe:
+Keep the Cloud Save secret safe:
 
 ~~~text
-/opt/mucho-core/config/cloudsave.key
+/opt/mucho-core/.secrets/cloudsave_key
 ~~~
 
-It is required to preserve existing cloud save data.
+It is mounted into the app as a Docker secret and is required to preserve
+existing cloud save data across container rebuilds and updates.
 
 ## Removal
 
