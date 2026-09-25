@@ -44,7 +44,7 @@
 | 🔐 **Admin security** | Separate administrator accounts, password login, native WebAuthn/FIDO2 passkeys, Google Authenticator TOTP, one-time recovery codes, self-service password setup for invited admins, customizable RBAC permissions, rate limiting and audit logging |
 | 🔄 **Cvolton migration** | Read-only source DB preflight, account/profile/level/score migration, persistent ID mapping and transactional apply |
 | 🧰 **Client patchers** | Windows desktop patcher, browser-based Windows patcher and Android APK patcher |
-| 🐳 **Deployment** | Docker Compose, MariaDB, PHP 8.3, Caddy, automatic migrations, one-command updates and automatic VPS updates |
+| 🐳 **Deployment** | Docker Compose, MariaDB, PHP 8.3, Caddy, automatic migrations, one-command manual updates and release detection |
 | 🧪 **Validation** | PHP, shell, protocol, wire-format, security, patcher, Docker and Caddy checks in GitHub Actions |
 
 ---
