@@ -15,6 +15,7 @@ return [
 
     'levels'=>'Levels',
     'moderation'=>'Moderation',
+    'rating'=>'Rating Studio',
 
     'comments'=>'Comments',
     'messages'=>'Messages',
