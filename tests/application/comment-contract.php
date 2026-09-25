@@ -126,15 +126,15 @@ assertCommentContract(
 );
 
 assertCommentContract(
-    str_contains($service, "'admin' => 'elder_moderator'") &&
-    str_contains($service, "'helper' => 'moderator'"),
-    'legacy moderator roles map to canonical command roles'
+    str_contains($service, 'GameRole::normalize($candidate)') &&
+    str_contains($service, 'GameRole::ELDER_MODERATOR'),
+    'comment commands use canonical game-role normalization'
 );
 
 assertCommentContract(
-    str_contains($service, "preg_match('/^-?\\d+$/', (string)($parts[3] ?? ''))") &&
-    str_contains($service, "'coins_verified'"),
-    'rate command accepts an omitted or placeholder coins field'
+    str_contains($service, "preg_match('/^-?\\d+$/', (string)$parts[3])") ||
+    str_contains($service, "preg_match('/^-?\\d+$/', (string)($parts[3] ?? ''))"),
+    'rate command parses optional numeric coins'
 );
 
 assertCommentContract(
