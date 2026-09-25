@@ -26,7 +26,7 @@ $caddy = (string)file_get_contents(
 );
 
 assertSecurityRegression(
-    str_contains($comment, "if (\n            $cmd === '!rate'") &&
+    str_contains($comment, 'if (\n            $cmd === \'!rate\'') &&
     str_contains($comment, 'GameRole::OWNER') &&
     str_contains($comment, 'GameRole::ELDER_MODERATOR'),
     'direct !rate command has an elder-moderator/owner authorization gate'
