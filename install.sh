@@ -335,9 +335,9 @@ if [[ -n "$TUNNEL_TOKEN" ]]; then
 fi
 chmod 600 "$INSTALL_DIR/.env"
 
-if [[ -x "$INSTALL_DIR/bin/mucho-install-auto-update.sh" ]]; then
+if [[ -f "$INSTALL_DIR/bin/mucho-install-auto-update.sh" ]]; then
   log "Enabling automatic updates..."
-  "$INSTALL_DIR/bin/mucho-install-auto-update.sh"
+  bash "$INSTALL_DIR/bin/mucho-install-auto-update.sh"
 fi
 
 install -d -m 700 "$INSTALL_DIR/.muchocore"
