@@ -106,6 +106,9 @@ jobs:
           printf 'ci-db-password' > .secrets/db_password
           printf 'ci-db-root-password' > .secrets/db_root_password
           printf 'ci-admin-password' > .secrets/admin_password
+          printf 'ci-testgdps-db-password' > .secrets/testgdps_db_password
+          printf 'ci-testgdps-db-root-password' > .secrets/testgdps_db_root_password
+          printf 'ci-testgdps-admin-password' > .secrets/testgdps_admin_password
           cat > .ci.env <<'EOF'
           DOMAIN=gdps.example.com
           CADDY_ADDRESS="http://gdps.example.com http://www.gdps.example.com https://gdps.example.com https://www.gdps.example.com"
@@ -119,6 +122,7 @@ jobs:
           MUCHO_BACKUP_DIR=/var/lib/muchocore-backups
           TZ=UTC
           MUCHO_TUNNEL_TOKEN=dummy-token
+          CADDY_EXTRA_HOSTS=testgdps.muchogdps.space
           EOF
           docker compose --env-file .ci.env config -q
           docker compose --env-file .ci.env -f docker-compose.yml -f docker-compose.tunnel.yml config -q
@@ -172,6 +176,10 @@ jobs:
           grep -Fq 'rewrite * /api/api/accounts/lostusername.php' docker/Caddyfile
           grep -Fq 'path /.env* /.git/* /composer.json /composer.lock /config/* /src/* /tests/* /storage/*' docker/Caddyfile
           grep -Fq 'auto_https disable_redirects' docker/Caddyfile
+          grep -Fq 'testgdps.muchogdps.space' docker/Caddyfile
+          grep -Fq 'testgdps-app:9000' docker/Caddyfile
+          grep -Fq 'testgdps-db' docker-compose.yml
+          grep -Fq 'testgdps-app' docker-compose.yml
           grep -Fq 'path /admin /admin/*' docker/Caddyfile
           grep -Fq 'redir @admin_http https://{host}{uri} 308' docker/Caddyfile
           test -s public/assets/muchocore-logo.jpg
