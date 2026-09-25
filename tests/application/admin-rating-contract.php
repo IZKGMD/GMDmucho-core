@@ -29,11 +29,24 @@ $assert(str_contains($index,"requested_stars=0"),'rating clears pending request'
 $assert(str_contains($index,"auto_level=:auto_level"),'rating persists auto level');
 $assert(str_contains($index,"UPDATE profiles"),'rating syncs profile statistics');
 $assert(str_contains($index,"level.rate"),'rating audit event');
-$assert(str_contains($rating,'data-preset="demon"'),'demon quick preset');
+$assert(str_contains($index,"difficulty_profile"),'server accepts canonical difficulty profile');
+$assert(str_contains($rating,'data-preset="easy-demon"'),'easy demon preset');
+$assert(str_contains($rating,'data-preset="medium-demon"'),'medium demon preset');
+$assert(str_contains($rating,'data-preset="hard-demon"'),'hard demon preset');
+$assert(str_contains($rating,'data-preset="insane-demon"'),'insane demon preset');
+$assert(str_contains($rating,'data-preset="extreme-demon"'),'extreme demon preset');
 $assert(str_contains($rating,"2 => ['Epic', 'Epic']"),'epic feature tier');
 $assert(str_contains($rating,"3 => ['Legendary', 'Legendary']"),'legendary feature tier');
 $assert(str_contains($rating,"4 => ['Mythic', 'Mythic']"),'mythic feature tier');
-$assert(str_contains($rating,'Demon difficulty'),'demon difficulty control');
+$assert(str_contains($rating,'name="difficulty_profile"'),'unified difficulty selector');
+$assert(str_contains($rating,'Easy Demon'),'easy demon difficulty');
+$assert(str_contains($rating,'Medium Demon'),'medium demon difficulty');
+$assert(str_contains($rating,'Hard Demon'),'hard demon difficulty');
+$assert(str_contains($rating,'Insane Demon'),'insane demon difficulty');
+$assert(str_contains($rating,'Extreme Demon'),'extreme demon difficulty');
+$assert(str_contains($rating,'Special:Redirect/file'),'GD difficulty face image source');
+$assert(!str_contains($rating,'name="demon" id="demon"'),'legacy demon checkbox removed');
+$assert(!str_contains($rating,'name="demon_difficulty" id="demonDifficulty"'),'legacy demon difficulty field removed');
 $assert(str_contains($rating,'Publish rating'),'publish control');
 
 echo "MUCHOCORE_ADMIN_RATING_OK\n";
