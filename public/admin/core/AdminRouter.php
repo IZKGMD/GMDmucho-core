@@ -93,6 +93,32 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
 
     /*
+     * Core Updates
+     */
+
+    $router->register(
+        'updates',
+        static function(PDO $db): void {
+            if (!function_exists('renderReleaseUpdatePage')) {
+                throw new RuntimeException(
+                    'Release update module is unavailable.'
+                );
+            }
+
+            $rootDir = defined('ROOT_DIR')
+                ? ROOT_DIR
+                : dirname(__DIR__, 3);
+
+            $controlDir = defined('CONTROL_DIR')
+                ? CONTROL_DIR
+                : $rootDir . '/storage/control';
+
+            renderReleaseUpdatePage($rootDir, $controlDir);
+        }
+    );
+
+
+    /*
      * Levels
      */
 
