@@ -1,0 +1,7 @@
+{
+  "name": "example-observer",
+  "version": "1.0.0",
+  "api": "1",
+  "enabled": false,
+  "permissions": ["events"]
+}
