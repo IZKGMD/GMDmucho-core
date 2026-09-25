@@ -9,6 +9,19 @@ cd "$ROOT"
 # the app container. Recover the domain from the existing Caddy container so
 # the first update can repair that installation automatically.
 install -d -m 700 "$ROOT/.secrets"
+
+# Hosted test tenant secrets are generated once and preserved across updates.
+if [[ ! -s "$ROOT/.secrets/testgdps_db_password" ]]; then
+    openssl rand -hex 24 > "$ROOT/.secrets/testgdps_db_password"
+fi
+if [[ ! -s "$ROOT/.secrets/testgdps_db_root_password" ]]; then
+    openssl rand -hex 32 > "$ROOT/.secrets/testgdps_db_root_password"
+fi
+if [[ ! -s "$ROOT/.secrets/testgdps_admin_password" ]]; then
+    openssl rand -base64 24 > "$ROOT/.secrets/testgdps_admin_password"
+fi
+chmod 600 "$ROOT/.secrets/testgdps_"*
+
 if [[ ! -s "$ROOT/.secrets/cloudsave_key" && ! -s "$ROOT/config/cloudsave.key" ]]; then
     if docker compose ps app >/dev/null 2>&1; then
         docker compose exec -T app cat /var/lib/muchocore/cloudsave.key             > "$ROOT/.secrets/cloudsave_key.tmp" 2>/dev/null || true
