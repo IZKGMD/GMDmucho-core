@@ -25,7 +25,7 @@ if [[ ! -s "$SIGNER_KEY" || ! -s "$SIGNER_CERT" ]]; then
     -out "$SIGNER_CERT" \
     -days 10000 \
     -subj "/CN=MuchoCore Android/O=MuchoCore/C=US"
-elif grep -q '-----BEGIN RSA PRIVATE KEY-----' "$SIGNER_KEY"; then
+elif grep -q -- '-----BEGIN RSA PRIVATE KEY-----' "$SIGNER_KEY"; then
   openssl pkcs8 -topk8 -nocrypt \
     -in "$SIGNER_KEY" \
     -out "$SIGNER_KEY.pkcs8"
