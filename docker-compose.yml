@@ -44,6 +44,7 @@ services:
     secrets:
       - db_password
       - admin_password
+      - cloudsave_key
     volumes:
       - ./:/var/www/mucho-core
     depends_on:
@@ -78,6 +79,8 @@ secrets:
     file: ./.secrets/db_root_password
   admin_password:
     file: ./.secrets/admin_password
+  cloudsave_key:
+    file: ./.secrets/cloudsave_key
 
 volumes:
   db_data:
