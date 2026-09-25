@@ -7,6 +7,11 @@ use MuchoCore\Database\Database;
 
 require dirname(__DIR__,2).'/vendor/autoload.php';
 
+// Load patcher modules before download/action routing so their handlers
+// are available when a direct download request arrives.
+require_once __DIR__.'/client-patcher-module.php';
+require_once __DIR__.'/android-client-patcher-module.php';
+
 $__muchoAdminRequestId = bin2hex(random_bytes(8));
 
 /**
@@ -2695,8 +2700,6 @@ endif;
 
 
 require_once __DIR__.'/client-features-module.php';
-require_once __DIR__.'/client-patcher-module.php';
-require_once __DIR__.'/android-client-patcher-module.php';
 require_once __DIR__.'/client-release-upload-module.php';
 
 require_once __DIR__.'/security-monitoring-module.php';
