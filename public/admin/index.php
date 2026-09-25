@@ -5767,49 +5767,6 @@ The previous authenticator setup expired. Generate a new QR code to continue.
 
 </div>
 
-</div>
-
-<?php if(rank(admin()['role'])>=40): ?>
-
-<div class="card">
-<h2>Add administrator</h2>
-
-<form method="post">
-
-<input type="hidden" name="csrf" value="<?=csrf()?>">
-<input type="hidden" name="action" value="admin-create">
-<input type="hidden" name="return" value="admins">
-
-<p><input name="username" placeholder="Username"></p>
-<p><input type="password" name="password" placeholder="Password"></p>
-
-<select name="role">
-<option>viewer</option>
-<option>moderator</option>
-<option>admin</option>
-<option>owner</option>
-</select>
-
-<button>Create</button>
-</form>
-</div>
-
-<?php endif ?>
-
-</div>
-<?php
-$newRecoveryCodes=$_SESSION['new_recovery_codes'] ?? [];
-unset($_SESSION['new_recovery_codes']);
-
-$recoveryCodes=is_array($newRecoveryCodes)
-    ? array_values(array_filter($newRecoveryCodes,'is_string'))
-    : [];
-
-$unusedRecoveryCodes=countUnusedAdminRecoveryCodes(
-    $db,
-    (int)admin()['id']
-);
-?>
 <?php
 $passkeyRows=tableExists($db,'admin_passkeys')
     ? muchAdminPasskeyService($db)->listForAdmin((int)admin()['id'])
@@ -5842,16 +5799,16 @@ $passkeyRows=tableExists($db,'admin_passkeys')
     <?php endif; ?>
 </div>
 
-<div style="margin-top:12px">
-    <input id="newPasskeyLabel" maxlength="120" placeholder="Passkey name (for example, Windows PC)" autocomplete="off">
-    <button type="button" id="registerPasskey" style="margin-top:8px">Register a passkey</button>
-    <div id="passkeyRegistrationStatus" style="margin-top:8px;color:#7f8ba0;font-size:11px;min-height:16px"></div>
+<div style="display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap">
+    <input id="newPasskeyLabel" maxlength="120" placeholder="Passkey name" autocomplete="off" style="flex:1;min-width:170px">
+    <button type="button" id="registerPasskey">Register a passkey</button>
 </div>
+<div id="passkeyRegistrationStatus" style="margin-top:8px;color:#7f8ba0;font-size:11px;min-height:16px"></div>
 
 <?php if(!$passkeyRows): ?>
 <div class="passkey-empty">
-    <b>Nothing registered yet.</b>
-    <small style="display:block;margin-top:4px">Register one and the Admin login page can open the native passkey/account picker.</small>
+    <b>No passkeys registered.</b>
+    <small style="display:block;margin-top:4px">Register a device credential to enable passwordless Admin sign-in.</small>
 </div>
 <?php else: ?>
 <div class="passkey-list">
@@ -6046,6 +6003,49 @@ document.getElementById('copyRecoveryCodes')?.addEventListener('click',async()=>
 <div class="recovery-note">Each code can be used once. Store them offline or in a password manager; never commit them to the repository.</div>
 </div>
 
+</div>
+
+<?php if(rank(admin()['role'])>=40): ?>
+
+<div class="card">
+<h2>Add administrator</h2>
+
+<form method="post">
+
+<input type="hidden" name="csrf" value="<?=csrf()?>">
+<input type="hidden" name="action" value="admin-create">
+<input type="hidden" name="return" value="admins">
+
+<p><input name="username" placeholder="Username"></p>
+<p><input type="password" name="password" placeholder="Password"></p>
+
+<select name="role">
+<option>viewer</option>
+<option>moderator</option>
+<option>admin</option>
+<option>owner</option>
+</select>
+
+<button>Create</button>
+</form>
+</div>
+
+<?php endif ?>
+
+</div>
+<?php
+$newRecoveryCodes=$_SESSION['new_recovery_codes'] ?? [];
+unset($_SESSION['new_recovery_codes']);
+
+$recoveryCodes=is_array($newRecoveryCodes)
+    ? array_values(array_filter($newRecoveryCodes,'is_string'))
+    : [];
+
+$unusedRecoveryCodes=countUnusedAdminRecoveryCodes(
+    $db,
+    (int)admin()['id']
+);
+?>
 <?php
 
 $admins=$db->query(
