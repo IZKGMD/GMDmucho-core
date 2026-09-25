@@ -61,7 +61,7 @@ print_banner() {
   printf "${CYAN}║${RESET}   ${BOLD}██║ ╚═╝ ██║╚██████╔╝╚██████╗██║  ██║╚██████╔╝${RESET}               ${CYAN}║${RESET}\n"
   printf "${CYAN}║${RESET}   ${BOLD}╚═╝     ╚═╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝ ╚═════╝${RESET}               ${CYAN}║${RESET}\n"
   printf "${CYAN}║${RESET}                                                                      ${CYAN}║${RESET}\n"
-  printf "${CYAN}║${RESET}                 ${BOLD}MUCHOCORE • v1.0.0 INSTALLER${RESET}                  ${CYAN}║${RESET}\n"
+  printf "${CYAN}║${RESET}                 ${BOLD}MUCHOCORE • STABLE RELEASE INSTALLER${RESET}          ${CYAN}║${RESET}\n"
   printf "${CYAN}║${RESET}            Geometry Dash Private Server deployment                ${CYAN}║${RESET}\n"
   printf "${CYAN}║${RESET}                                                                      ${CYAN}║${RESET}\n"
   printf "${CYAN}╚══════════════════════════════════════════════════════════════════════╝${RESET}\n"
