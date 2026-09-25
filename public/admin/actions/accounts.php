@@ -109,7 +109,7 @@ try {
                     0,
                     254
                 ),
-                'role_id'=>(int)$roleId,
+                'role_id'=>(int)$roleRow['id'],
                 'active'=>isset($_POST['active'])?1:0,
                 'banned'=>isset($_POST['banned'])?1:0,
                 'id'=>$id
@@ -183,6 +183,13 @@ try {
                 ),
                 'id'=>$id
             ]);
+
+            // Revoke old legacy 1.9 upload sessions when an administrator
+            // changes the account password.
+            $db->prepare(
+                'DELETE FROM mucho_legacy_19_sessions
+                 WHERE account_id=:id'
+            )->execute(['id'=>$id]);
 
             audit($db,'account.password.reset',(string)$id);
             flash('Password changed.');
