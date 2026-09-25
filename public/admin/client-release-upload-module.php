@@ -723,16 +723,32 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
                 chmod($final,0644);
 
-                $baseUrl=rtrim(
+                /*
+                 * Public release URLs must never be derived from HTTP_HOST.
+                 * The Host header is client-controlled and could poison the
+                 * stored download URL shown to other users.
+                 */
+                $baseUrl=trim(
                     (string)(
-                        getenv('MUCHO_ACCOUNT_URL')
-                        ?: (
-                            'https://'.
-                            (string)($_SERVER['HTTP_HOST'] ?? 'localhost')
-                        )
-                    ),
-                    '/'
+                        getenv('MUCHO_PUBLIC_URL')
+                        ?: getenv('MUCHO_ACCOUNT_URL')
+                        ?: ''
+                    )
                 );
+
+                if (
+                    $baseUrl === '' ||
+                    preg_match(
+                        '~^https://[A-Za-z0-9.-]+(?::\\d+)?$~',
+                        $baseUrl
+                    ) !== 1
+                ) {
+                    throw new RuntimeException(
+                        'A trusted public HTTPS URL is required.'
+                    );
+                }
+
+                $baseUrl=rtrim($baseUrl,'/');
 
                 $url=
                     $baseUrl.
