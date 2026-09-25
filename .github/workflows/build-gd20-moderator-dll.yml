@@ -1,0 +1,43 @@
+name: Build GD 2.0 Moderator DLL
+
+on:
+  push:
+    branches:
+      - research/gd20-moderator-dll
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S tools/gd20-moderator-dll -B build-gd20 -A x64
+
+      - name: Build
+        run: cmake --build build-gd20 --config Release
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item build-gd20/Release/MuchoModerator.dll out/MuchoModerator.dll
+          Set-Content out/README.txt @"
+Mucho Moderator GD 2.0
+Hotkey: Ctrl+Shift+R
+
+This first build uses the MuchoCore moderation API directly.
+The server validates account role and permissions.
+
+Endpoints:
+- /suggestGJStars20.php
+- /rateGJStars20.php
+- /rateGJDemon21.php
+"@
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MuchoModerator-GD20
+          path: out/
