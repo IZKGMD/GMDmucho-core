@@ -47,7 +47,13 @@ try {
         Dotenv::createImmutable($root)->safeLoad();
     }
 } catch (\Throwable $e) {
-    error_log('[MuchoCore Config] ' . $e->getMessage());
+    error_log(sprintf(
+        '[MuchoCore Config] %s: %s | %s:%d',
+        $e::class,
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine()
+    ));
 
     while (ob_get_level() > 0) {
         ob_end_clean();
@@ -55,6 +61,7 @@ try {
 
     http_response_code(200);
     header('Content-Type: text/plain; charset=utf-8');
+    header('Cache-Control: no-store');
     echo '-1';
     exit;
 }
@@ -115,10 +122,21 @@ try {
     (new Application())->run();
 
 } catch (\Throwable $e) {
+    error_log(sprintf(
+        '[MuchoCore FrontController] %s %s | %s: %s | %s:%d',
+        (string)($_SERVER['REQUEST_METHOD'] ?? '?'),
+        (string)($_SERVER['REQUEST_URI'] ?? '?'),
+        $e::class,
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine()
+    ));
+
     while (ob_get_level() > 0) {
         ob_end_clean();
     }
     http_response_code(200);
     header('Content-Type: text/plain; charset=utf-8');
+    header('Cache-Control: no-store');
     echo '-1';
 }
