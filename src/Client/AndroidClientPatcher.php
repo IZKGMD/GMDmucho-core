@@ -233,7 +233,27 @@ final class AndroidClientPatcher
 
         foreach ($forms as $old => $fixedLength) {
             $length = $fixedLength ?? strlen($old);
-            $new = self::compatibleUrl($base, $length, false);
+
+            /*
+             * Preserve the scheme used by the original client string.
+             * GD 1.0 is hard-coded to HTTP and the legacy GDPS transport
+             * intentionally remains available over plain HTTP.
+             */
+            $oldParsed = parse_url($old);
+            $targetBase = $base;
+
+            if (
+                is_array($oldParsed) &&
+                isset($oldParsed['scheme'])
+            ) {
+                $targetBase =
+                    strtolower((string)$oldParsed['scheme']) .
+                    '://' .
+                    (string)$parsed['host'] .
+                    (isset($parsed['port']) ? ':' . (int)$parsed['port'] : '');
+            }
+
+            $new = self::compatibleUrl($targetBase, $length, false);
 
             if ($new === null || strlen($old) !== strlen($new)) {
                 continue;

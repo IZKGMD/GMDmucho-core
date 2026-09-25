@@ -6,6 +6,9 @@
 /config/cloudsave.key
 /config/*.key
 
+# Local profile / machine state
+/.muchocore/
+
 # Dependencies / runtime state
 /vendor/
 /storage/

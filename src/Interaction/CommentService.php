@@ -92,20 +92,22 @@ final class CommentService
         $percent = max(0, min(100, $percent));
 
         if ($this->pdo === null) {
-            $this->repository->addLevelComment(
+            $commentId = $this->repository->addLevelComment(
                 $levelId,
                 $accountId,
                 $decodedContent,
                 $percent
             );
 
-            return 1;
+            return $gameVersion >= 21
+                ? (string)$commentId
+                : "1";
         }
 
         $this->pdo->beginTransaction();
 
         try {
-            $this->repository->addLevelComment(
+            $commentId = $this->repository->addLevelComment(
                 $levelId,
                 $accountId,
                 $decodedContent,
@@ -126,7 +128,9 @@ final class CommentService
 
             $this->pdo->commit();
 
-            return 1;
+            return $gameVersion >= 21
+                ? (string)$commentId
+                : "1";
         } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();

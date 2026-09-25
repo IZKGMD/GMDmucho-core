@@ -11,7 +11,7 @@
   </a>
   <img src="https://img.shields.io/badge/release-v1.0.0%20RC-8A2BE2" alt="Release candidate">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
-  <img src="https://img.shields.io/badge/Geometry%20Dash-2.2%20verified-success" alt="Geometry Dash 2.2">
+  <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2%20verified-success" alt="Geometry Dash 1.0 through 2.2">
   <img src="https://img.shields.io/badge/MuchoProtect-enabled-success" alt="MuchoProtect">
   <img src="https://img.shields.io/badge/Docker-ready-2496ED" alt="Docker">
 </p>
@@ -131,11 +131,12 @@ MuchoProtect is enabled by default and can be configured through environment var
 
 MuchoCore uses **one server core** across supported client generations instead of maintaining separate server copies.
 
-The current release target is **GD 2.2 compatibility**, with version-aware protocol behavior at the server boundary and a real-client contract captured from Geometry Dash 2.2.13.
+The current release target covers **GD 1.0 through GD 2.2**, with version-aware protocol behavior at the server boundary. GD 1.0 has been verified end-to-end with a real client, and GD 2.2 retains the existing real-client contract coverage.
 
 | Capability | Status |
 | --- | :---: |
 | Client version detection | ✅ |
+| GD 1.0 legacy UDID identity | ✅ Verified with real client |
 | GJP2-aware authentication path | ✅ |
 | Modern profile state fields | ✅ |
 | Version-aware level / leaderboard handling | ✅ |
@@ -143,7 +144,7 @@ The current release target is **GD 2.2 compatibility**, with version-aware proto
 | Protocol regression coverage | ✅ |
 | Real-client verification | ✅ Verified with GD 2.2.13 contract fixture |
 
-> **2.2 verification:** the release gate is backed by a real Geometry Dash 2.2.13 client contract fixture. Automated CI checks provenance, client family, version metadata, and endpoint coverage on every push.
+> **Compatibility verification:** the release gate includes regression coverage for the supported client families. GD 1.0 has additionally been verified end-to-end with a real client, including level transfer. Automated CI checks provenance, client family, version metadata, and endpoint coverage on every push.
 
 See **[Version Profiles](docs/VERSIONS.md)** for the supported runtime profiles.
 

@@ -125,6 +125,19 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
 
     /*
+     * Rating Studio
+     */
+
+    $router->register(
+        'rating',
+        static function(PDO $db): void {
+            require __DIR__.
+                '/../pages/rating.php';
+        }
+    );
+
+
+    /*
      * Players
      */
 

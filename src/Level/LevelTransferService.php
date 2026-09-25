@@ -6,6 +6,7 @@ namespace MuchoCore\Level;
 
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Compatibility\ClientVersion;
+use MuchoCore\Compatibility\Legacy10IdentityService;
 use MuchoCore\Protocol\GdLegacyText;
 use MuchoCore\Protocol\GdLevelDownloadEncoder;
 use PDO;
@@ -19,6 +20,7 @@ final readonly class LevelTransferService
     public function __construct(
         private PDO $pdo,
         private AccountAuthenticator $auth,
+        private Legacy10IdentityService $legacy10,
         private LevelTransferRepository $repository,
         private GdLevelDownloadEncoder $downloadEncoder
     ) {}
@@ -31,19 +33,30 @@ final readonly class LevelTransferService
         string $ip = ''
     ): int {
         $version = ClientVersion::fromValues(
-            $this->intField($data, 'gameVersion', 22, 1, 1000),
+            $this->intField($data, 'gameVersion', 1, 1, 1000),
             $this->intField($data, 'binaryVersion', 0, 0, 1000000)
         );
 
         if ($gjp !== '') {
+            if ($accountId <= 0) {
+                throw new RuntimeException('Unauthorized.');
+            }
+
             $this->auth->authenticate($accountId, $gjp);
         } elseif (
-            $version->effectiveGameVersion() === 19 &&
+            $version->effectiveGameVersion() > 0 &&
+            $version->effectiveGameVersion() < 19 &&
             trim($udid) !== ''
         ) {
-            $this->auth->authenticateLegacy19Upload(
-                $accountId,
+            /*
+             * Cvolton-compatible legacy clients before 1.9 may upload
+             * without an account credential. Map each UDID to an internal,
+             * non-privileged account identity so existing level ownership,
+             * moderation and protocol encoders remain intact.
+             */
+            $accountId = $this->legacy10->resolveAccount(
                 $udid,
+                $this->stringField($data, 'userName', '', 20),
                 $ip
             );
         } else {

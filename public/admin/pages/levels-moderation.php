@@ -9,6 +9,11 @@ declare(strict_types=1);
 
 if (true) {
 
+echo '<div class="section-actions" style="margin-bottom:12px">';
+echo '<a class="btn" href="/admin/?page=rating'.(!empty($_GET['q']) ? '&q='.rawurlencode((string)$_GET['q']) : '').'">Open Rating Studio →</a>';
+echo '<span class="muted" style="align-self:center">Use Rating Studio for publishing stars, difficulty, feature tiers and Creator Points.</span>';
+echo '</div>';
+
 $q=trim((string)($_GET['q'] ?? ''));
 
 $sql=

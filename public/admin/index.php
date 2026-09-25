@@ -2838,10 +2838,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 'demon'=>isset($_POST['demon'])?1:0,
                 'dd'=>max(
                     0,
-                    (int)($_POST['demon_difficulty'] ?? 0)
+                    min(8,(int)($_POST['demon_difficulty'] ?? 0))
                 ),
                 'featured'=>isset($_POST['featured'])?1:0,
-                'epic'=>max(0,(int)$_POST['epic']),
+                'epic'=>max(0,min(3,(int)$_POST['epic'])),
                 'requested'=>max(
                     0,
                     min(10,(int)$_POST['requested_stars'])
@@ -2850,13 +2850,214 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     0,
                     (int)$_POST['downloads']
                 ),
-                'likes'=>(int)$_POST['likes'],
+                'likes'=>max(0,(int)$_POST['likes']),
                 'deleted'=>isset($_POST['deleted'])?1:0,
                 'id'=>$id
             ]);
 
-            audit($db,'level.save',(string)$id);
-            flash('Level saved.');
+            $creatorQuery=$db->prepare(
+                'SELECT account_id FROM levels
+                 WHERE level_id=:id
+                 LIMIT 1'
+            );
+            $creatorQuery->execute(['id'=>$id]);
+            $creatorId=(int)$creatorQuery->fetchColumn();
+
+            if ($creatorId>0) {
+                $cpQuery=$db->prepare(
+                    'SELECT COALESCE(
+                        SUM(
+                            CASE WHEN stars>0 THEN 1 ELSE 0 END
+                            + CASE WHEN featured>0 THEN 1 ELSE 0 END
+                            + epic
+                        ),
+                        0
+                    )
+                    FROM levels
+                    WHERE account_id=:account_id
+                      AND is_deleted=0'
+                );
+                $cpQuery->execute(['account_id'=>$creatorId]);
+                $creatorPoints=(int)$cpQuery->fetchColumn();
+
+                $db->prepare(
+                    'UPDATE profiles
+                     SET creator_points=:cp
+                     WHERE account_id=:account_id'
+                )->execute([
+                    'cp'=>$creatorPoints,
+                    'account_id'=>$creatorId
+                ]);
+            }
+
+            audit(
+                $db,
+                'level.save',
+                (string)$id,
+                [
+                    'creator_account_id'=>$creatorId,
+                    'creator_points'=>$creatorPoints ?? null
+                ]
+            );
+            flash('Level saved and creator statistics synchronized.');
+        }
+
+        elseif ($action==='level-rate-save') {
+            requireRank(20);
+
+            $id=(int)($_POST['id'] ?? 0);
+            if ($id<=0) {
+                throw new RuntimeException('Invalid level ID.');
+            }
+
+            $stars=max(0,min(10,(int)($_POST['stars'] ?? 0)));
+            $difficulty=max(0,min(6,(int)($_POST['difficulty'] ?? 0)));
+            $feature=max(0,min(4,(int)($_POST['feature'] ?? 0)));
+            $demon=isset($_POST['demon']) ? 1 : 0;
+            $autoLevel=isset($_POST['auto_level']) ? 1 : 0;
+            $demonDifficulty=max(0,min(8,(int)($_POST['demon_difficulty'] ?? 0)));
+
+            if ($demon && $autoLevel) {
+                throw new RuntimeException('A level cannot be Auto and Demon at the same time.');
+            }
+
+            if ($autoLevel) {
+                $difficulty=1;
+                $demon=0;
+                $demonDifficulty=0;
+            } elseif ($demon) {
+                $difficulty=6;
+                if ($demonDifficulty<1) {
+                    throw new RuntimeException('Select a demon difficulty.');
+                }
+            } else {
+                $demonDifficulty=0;
+            }
+
+            $featured=$feature>0 ? 1 : 0;
+            $epic=match($feature) {
+                2=>1,
+                3=>2,
+                4=>3,
+                default=>0
+            };
+
+            $beforeQuery=$db->prepare(
+                'SELECT level_id,account_id,name,stars,difficulty,demon,
+                        demon_difficulty,auto_level,featured,epic,
+                        requested_stars,is_deleted
+                 FROM levels
+                 WHERE level_id=:id
+                 LIMIT 1'
+            );
+            $beforeQuery->execute(['id'=>$id]);
+            $before=$beforeQuery->fetch(PDO::FETCH_ASSOC);
+
+            if (!$before) {
+                throw new RuntimeException('Level not found.');
+            }
+
+            $db->beginTransaction();
+
+            try {
+                $q=$db->prepare(
+                    'UPDATE levels SET
+                        stars=:stars,
+                        difficulty=:difficulty,
+                        demon=:demon,
+                        demon_difficulty=:demon_difficulty,
+                        auto_level=:auto_level,
+                        featured=:featured,
+                        epic=:epic,
+                        requested_stars=0,
+                        updated_at=NOW()
+                     WHERE level_id=:id'
+                );
+
+                $q->execute([
+                    'stars'=>$stars,
+                    'difficulty'=>$difficulty,
+                    'demon'=>$demon,
+                    'demon_difficulty'=>$demonDifficulty,
+                    'auto_level'=>$autoLevel,
+                    'featured'=>$featured,
+                    'epic'=>$epic,
+                    'id'=>$id
+                ]);
+
+                $creatorId=(int)$before['account_id'];
+
+                $cpQuery=$db->prepare(
+                    'SELECT COALESCE(
+                        SUM(
+                            CASE WHEN stars>0 THEN 1 ELSE 0 END
+                            + CASE WHEN featured>0 THEN 1 ELSE 0 END
+                            + epic
+                        ),
+                        0
+                    )
+                    FROM levels
+                    WHERE account_id=:account_id
+                      AND is_deleted=0'
+                );
+                $cpQuery->execute(['account_id'=>$creatorId]);
+                $creatorPoints=(int)$cpQuery->fetchColumn();
+
+                $sync=$db->prepare(
+                    'UPDATE profiles
+                     SET creator_points=:cp
+                     WHERE account_id=:account_id'
+                );
+                $sync->execute([
+                    'cp'=>$creatorPoints,
+                    'account_id'=>$creatorId
+                ]);
+
+                $db->commit();
+
+                $featureBefore=match(true) {
+                    (int)$before['epic']>=3 => 4,
+                    (int)$before['epic']===2 => 3,
+                    (int)$before['epic']===1 => 2,
+                    (int)$before['featured']>0 => 1,
+                    default => 0
+                };
+
+                audit(
+                    $db,
+                    'level.rate',
+                    (string)$id,
+                    [
+                        'name'=>$before['name'],
+                        'stars_before'=>(int)$before['stars'],
+                        'difficulty_before'=>(int)$before['difficulty'],
+                        'demon_before'=>(int)$before['demon'],
+                        'demon_difficulty_before'=>(int)$before['demon_difficulty'],
+                        'feature_before'=>$featureBefore,
+                        'stars'=>$stars,
+                        'difficulty'=>$difficulty,
+                        'demon'=>$demon,
+                        'demon_difficulty'=>$demonDifficulty,
+                        'auto_level'=>$autoLevel,
+                        'feature'=>$feature,
+                        'featured'=>$featured,
+                        'epic'=>$epic,
+                        'creator_account_id'=>$creatorId,
+                        'creator_points'=>$creatorPoints,
+                        'request_cleared'=>(int)$before['requested_stars']>0
+                    ]
+                );
+
+                flash(
+                    'Rating published for #'.$id.'. Creator Points recalculated: '.
+                    number_format($creatorPoints).'.'
+                );
+            } catch (Throwable $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+                throw $e;
+            }
         }
 
         elseif ($action==='comment-delete') {
@@ -3183,6 +3384,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             'The operation could not be completed. Please try again.',
             'error'
         );
+    }
+
+    if ($action==='level-rate-save') {
+        $id=(int)($_POST['id'] ?? 0);
+        $q=(string)($_POST['return_q'] ?? '');
+        header(
+            'Location:/admin/?page=rating&id='.
+            rawurlencode((string)$id).
+            '&q='.
+            rawurlencode($q)
+        );
+        exit;
     }
 
     $return=(string)(
@@ -3718,7 +3931,7 @@ table{
 <?php endforeach ?>
 
 <div class="nav-title">Content</div>
-<?php foreach(['players','muchoprofiles','levels','moderation','comments','messages','social','songs'] as $key): ?>
+<?php foreach(['players','muchoprofiles','levels','moderation','rating','comments','messages','social','songs'] as $key): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
  title="<?=h($pages[$key])?>"

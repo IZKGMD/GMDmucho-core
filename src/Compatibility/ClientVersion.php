@@ -33,6 +33,22 @@ final readonly class ClientVersion
             $gameVersion = 19;
         }
 
+        /*
+         * Genuine GD 1.0 clients use the unsuffixed legacy database
+         * endpoints and do not send a version field on these requests.
+         * Cvolton-compatible servers treat this legacy generation as
+         * protocol gameVersion 1 (1.0).
+         */
+        if (
+            $gameVersion === 0 &&
+            preg_match(
+                '#/(?:getgjlevels|uploadgjlevel|updategjlevel|downloadgjlevel|likegjlevel|rategjlevel|updategjusername)(?:\\.php)?$#i',
+                (string)$request->path
+            ) === 1
+        ) {
+            $gameVersion = 1;
+        }
+
         return self::fromValues(
             $gameVersion,
             $binaryVersion
@@ -69,6 +85,7 @@ final readonly class ClientVersion
         return match (true) {
             $version >= 22 => '2.2',
             $version === 21 => '2.1',
+            $version === 1 => '1.0',
             $version === 20 => '2.0',
             $version >= 19 => '1.9',
             $version > 0 => '1.x',

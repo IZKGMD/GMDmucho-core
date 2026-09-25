@@ -8,6 +8,7 @@ final readonly class CompatibilityProfile
 {
     /** @var array<int, string> */
     private const SUPPORTED = [
+        1 => 'GD 1.0',
         19 => 'GD 1.9',
         20 => 'GD 2.0',
         21 => 'GD 2.1',
@@ -94,7 +95,7 @@ final readonly class CompatibilityProfile
     public function label(): string
     {
         if ($this->isAll()) {
-            return 'GD 1.9 - GD 2.2 (all supported versions)';
+            return 'GD 1.0 - GD 2.2 (all supported versions)';
         }
 
         return implode(
@@ -122,6 +123,8 @@ final readonly class CompatibilityProfile
             '20' => 20,
             '21' => 21,
             '22' => 22,
+            '1.0' => 1,
+            'gd1.0' => 1,
             '1.9' => 19,
             '2.0' => 20,
             '2.1' => 21,

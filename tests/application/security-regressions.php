@@ -117,6 +117,17 @@ $rewardsController = (string)file_get_contents(
 $musicUpload = (string)file_get_contents(
     __DIR__ . '/../../public/api/v2/music-upload.php'
 );
+$legacyLevelTransfer = (string)file_get_contents(
+    __DIR__ . '/../../src/Level/LevelTransferController.php'
+);
+
+assertSecurityRegression(
+    str_contains($legacyLevelTransfer, 'in_array(') &&
+    str_contains($legacyLevelTransfer, '[1, 19]') &&
+    str_contains($legacyLevelTransfer, 'credential === \'\''),
+    'GD 1.0 legacy UDID uploads are allowed without GJP credentials'
+);
+
 $iconProxy = (string)file_get_contents(
     __DIR__ . '/../../public/admin/icon-proxy.php'
 );
