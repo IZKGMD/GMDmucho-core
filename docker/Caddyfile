@@ -37,6 +37,12 @@
         file_server
     }
 
+    # Geometry Dash 1.9 opens this legacy account-recovery URL.
+    # Keep the original path and serve the unified MuchoCore recovery flow.
+    handle /GD/accountHelp /GD/accountHelp.php {
+        rewrite * /api/api/accounts/lostusername.php
+    }
+
     # The shared-hosting installer is only for non-Docker deployments.
     # Never expose it from the Docker/VPS public site.
     @shared_installer path /shared-install.php
