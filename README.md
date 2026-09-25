@@ -81,7 +81,7 @@ https://YOUR-DOMAIN/admin/
 
 For the full VPS workflow, see **[docs/SETUP.md](docs/SETUP.md)**.
 
-Automatic VPS updates are enabled by default. See **[docs/AUTO_UPDATE.md](docs/AUTO_UPDATE.md)**.
+Core updates are always manual. The Admin Panel detects newer stable GitHub Releases and shows the release notes plus the standard SSH update command for review.
 
 ### Deployment flow
 
