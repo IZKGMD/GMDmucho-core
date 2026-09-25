@@ -28,8 +28,9 @@ final class GameRole
 
         return match ($role) {
             'player', self::USER => self::USER,
-            self::MODERATOR => self::MODERATOR,
-            self::ELDER_MODERATOR => self::ELDER_MODERATOR,
+            self::MODERATOR, 'mod', 'helper' => self::MODERATOR,
+            self::ELDER_MODERATOR, 'admin', 'elder', 'developer' =>
+                self::ELDER_MODERATOR,
             self::OWNER => self::OWNER,
             default => throw new \InvalidArgumentException('Unknown game role.'),
         };
