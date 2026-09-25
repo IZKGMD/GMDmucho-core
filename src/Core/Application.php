@@ -18,6 +18,8 @@ use MuchoCore\LevelList\LevelListRepository;
 use MuchoCore\LevelList\LevelListService;
 use MuchoCore\Url\UrlController;
 use MuchoCore\Compatibility\DiscoveryController;
+use MuchoCore\Compatibility\Legacy10IdentityController;
+use MuchoCore\Compatibility\Legacy10IdentityService;
 use MuchoCore\CloudSave\CloudSaveService;
 use MuchoCore\Compatibility\CompatibilityProfile;
 use MuchoCore\CloudSave\CloudSaveRepository;
@@ -113,6 +115,8 @@ final readonly class Application
             )
         );
 
+        $legacy10Identity = new Legacy10IdentityService($this->pdo);
+
         $levelRepo = new LevelRepository($this->pdo);
         $levelService = new LevelService(
             $levelRepo,
@@ -124,11 +128,15 @@ final readonly class Application
         $transferService = new LevelTransferService(
             $this->pdo,
             $auth,
+            $legacy10Identity,
             $transferRepo,
             new GdLevelDownloadEncoder()
         );
         $transferController =
             new LevelTransferController($transferService);
+
+        $legacy10IdentityController =
+            new Legacy10IdentityController($legacy10Identity);
 
         $songRepo = new SongRepository($this->pdo);
         $songController = new SongController(
@@ -215,6 +223,9 @@ final readonly class Application
                 Response::text('1'));
 
         // Legacy/compatibility endpoints implemented by dedicated services.
+        $route('/updateGJUserName',
+            [$legacy10IdentityController, 'updateUsername']);
+
         $route('/getAccountURL',
             fn(Request $r): Response =>
                 Response::text($urlController->accountUrl()));
