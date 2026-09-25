@@ -126,6 +126,18 @@ assertCommentContract(
 );
 
 assertCommentContract(
+    str_contains($service, "'admin' => 'elder_moderator'") &&
+    str_contains($service, "'helper' => 'moderator'"),
+    'legacy moderator roles map to canonical command roles'
+);
+
+assertCommentContract(
+    str_contains($service, "preg_match('/^-?\\d+$/', (string)($parts[3] ?? ''))") &&
+    str_contains($service, "'coins_verified'"),
+    'rate command accepts an omitted or placeholder coins field'
+);
+
+assertCommentContract(
     str_contains($service, 'ON DUPLICATE KEY UPDATE') &&
     str_contains($service, 'GREATEST(percent, VALUES(percent))'),
     'comment progress writes are atomic'
