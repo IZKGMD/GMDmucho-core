@@ -36,9 +36,12 @@
 | 🎮 **Geometry Dash backend** | Accounts, profiles, levels, comments, social features, scores, ratings, rewards, cloud save, music and legacy-compatible endpoints |
 | 🧩 **One version-aware core** | Shared application logic with client-generation-specific compatibility handling |
 | 🛡️ **MuchoProtect** | Endpoint rate limits, burst protection, account/IP isolation and privacy-aware security audit events |
+| 🧠 **Score Integrity** | Defensive score heuristics, risk events and optional leaderboard quarantine without automatic bans |
+| 🔌 **Plugin SDK** | Permissioned PHP plugins with lifecycle events, custom routes and optional database access |
 | 🖥️ **Admin Control** | Dashboard, players, levels, moderation, analytics, monitoring, backups, API tools and server settings |
 | ⭐ **Rating Studio** | Search levels by ID/name/creator, review pending requests, publish 0–10 star ratings, choose difficulty faces, feature tiers and audit the change |
-| 🔐 **Admin security** | Password login, Google Authenticator TOTP, one-time setup flow, access keys, rate limiting and audit logging |
+| 🔐 **Admin security** | Password login, Google Authenticator TOTP, one-time setup flow, one-time recovery codes, access keys, rate limiting and audit logging |
+| 🔄 **Cvolton migration** | Read-only source DB preflight, account/profile/level/score migration, persistent ID mapping and transactional apply |
 | 🧰 **Client patchers** | Windows desktop patcher, browser-based Windows patcher and Android APK patcher |
 | 🐳 **Deployment** | Docker Compose, MariaDB, PHP 8.3, Caddy, automatic migrations and update tooling |
 | 🧪 **Validation** | PHP, shell, protocol, wire-format, security, patcher, Docker and Caddy checks in GitHub Actions |
