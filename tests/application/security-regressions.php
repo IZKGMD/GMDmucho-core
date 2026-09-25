@@ -180,21 +180,21 @@ assertSecurityRegression(
     'front controller logs failures without exposing exception details'
 );
 
-$backupGuardPattern = <<<'REGEX'
-~if \\(admin\\(\\) && isset\\(\\$_GET\\['download'\\]\\)\\).*?requireRank\\(40\\);~s
-REGEX;
+$backupDownloadGuard =
+    str_contains($adminIndex, "if (admin() && isset(\$_GET['download']))") &&
+    str_contains($adminIndex, 'requireRank(40);');
 
-$databaseGuardPattern = <<<'REGEX'
-~elseif\\(\\$page==='database'\\).*?requireRank\\(40\\);~s
-REGEX;
+$databaseGuard =
+    str_contains($adminIndex, "elseif(\$page==='database')") &&
+    str_contains($adminIndex, 'requireRank(40);');
 
 assertSecurityRegression(
-    preg_match($backupGuardPattern, $adminIndex) === 1,
+    $backupDownloadGuard,
     'backup downloads require owner-level admin access'
 );
 
 assertSecurityRegression(
-    preg_match($databaseGuardPattern, $adminIndex) === 1,
+    $databaseGuard,
     'database browser requires owner-level admin access'
 );
 
