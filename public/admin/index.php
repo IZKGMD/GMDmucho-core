@@ -543,6 +543,8 @@ if (admin() && isset($_GET['android_download'])) {
 ========================================================= */
 
 if (admin() && isset($_GET['download'])) {
+    requireRank(40);
+
     $name=basename((string)$_GET['download']);
 
     if (!preg_match('/^[A-Za-z0-9._-]+$/',$name)) {
@@ -4042,6 +4044,8 @@ elseif($page==='monitoring') {
 ========================================================= */
 
 elseif($page==='database') {
+
+requireRank(40);
 
 $tables=$db->query('SHOW TABLES')
     ->fetchAll(PDO::FETCH_COLUMN);
