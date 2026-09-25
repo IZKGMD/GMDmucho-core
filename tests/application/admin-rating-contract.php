@@ -48,5 +48,9 @@ $assert(str_contains($rating,'Special:Redirect/file'),'GD difficulty face image 
 $assert(!str_contains($rating,'name="demon" id="demon"'),'legacy demon checkbox removed');
 $assert(!str_contains($rating,'name="demon_difficulty" id="demonDifficulty"'),'legacy demon difficulty field removed');
 $assert(str_contains($rating,'Publish rating'),'publish control');
+$assert(str_contains($rating,'$profile = $difficultyProfileForRow($row);'),'row difficulty profile initialized before use');
+$assert(str_contains($rating,'$selectedName = trim((string)($selected[\'name\'] ?? \'\')) ?: \'Unnamed level\';'),'selected level name initialized before use');
+$assert(!str_contains($rating,'Current rating'),'stale duplicated preview block removed');
+$assert(!str_contains($rating,"requested '.(int)\$row['requested_stars'].'★"),'stale duplicated request block removed');
 
 echo "MUCHOCORE_ADMIN_RATING_OK\n";
