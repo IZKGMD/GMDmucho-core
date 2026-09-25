@@ -118,6 +118,43 @@ try {
 
     $check->close();
 
+    $legacyKey = $signerKey . '.legacy';
+    $legacyOutput = [];
+    $legacyCode = 0;
+    exec(
+        'openssl rsa -traditional -in ' . escapeshellarg($signerKey) .
+        ' -out ' . escapeshellarg($legacyKey) . ' 2>&1',
+        $legacyOutput,
+        $legacyCode
+    );
+    if ($legacyCode !== 0 || !is_file($legacyKey)) {
+        throw new RuntimeException(
+            'Could not create a legacy PKCS#1 signer fixture: ' .
+            implode("\n", $legacyOutput)
+        );
+    }
+    if (!rename($legacyKey, $signerKey)) {
+        throw new RuntimeException('Could not install legacy PKCS#1 signer fixture.');
+    }
+
+    $reportLegacy = AndroidClientPatcher::patchFile(
+        $input,
+        $output,
+        'https://gdps-example.com'
+    );
+    if (($reportLegacy['signed'] ?? false) !== true) {
+        throw new RuntimeException('Legacy PKCS#1 signer migration did not produce a signed APK.');
+    }
+
+    $normalizedKeyContents = file_get_contents($signerKey);
+    if (
+        !is_string($normalizedKeyContents) ||
+        !str_contains($normalizedKeyContents, '-----BEGIN PRIVATE KEY-----') ||
+        str_contains($normalizedKeyContents, '-----BEGIN RSA PRIVATE KEY-----')
+    ) {
+        throw new RuntimeException('Legacy PKCS#1 signer was not normalized back to PKCS#8.');
+    }
+
     $verifyOutput = [];
     $verifyCode = 0;
     exec(
