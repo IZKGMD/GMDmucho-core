@@ -57,4 +57,18 @@ assertSecurityRegression(
     'admin panel redirects HTTP to HTTPS while game HTTP remains available'
 );
 
+$adminIndex = (string)file_get_contents(
+    __DIR__ . '/../../public/admin/index.php'
+);
+
+assertSecurityRegression(
+    str_contains($adminIndex, "if (admin() && isset($_GET['download'])) {\n    requireRank(40);"),
+    'backup downloads require owner-level admin access'
+);
+
+assertSecurityRegression(
+    str_contains($adminIndex, "elseif(\$page==='database') {\n\nrequireRank(40);"),
+    'database browser requires owner-level admin access'
+);
+
 echo "MUCHOCORE_SECURITY_REGRESSIONS_OK\n";
