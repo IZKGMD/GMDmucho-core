@@ -101,6 +101,7 @@ final class AndroidClientPatcher
             $original = $data;
 
             if (self::shouldPatchEntry($name)) {
+                $count = 0;
                 $data = self::replaceBuffer($data, $replacements, $count);
                 if ($count > 0) {
                     $replacementCount += $count;
