@@ -175,11 +175,6 @@ else
     fi
 fi
 
-if [[ -f "$ROOT/bin/mucho-install-auto-update.sh" ]]; then
-    echo '[MuchoCore] Synchronizing automatic update timer...'
-    bash "$ROOT/bin/mucho-install-auto-update.sh"
-fi
-
 echo '[MuchoCore] Rebuilding containers...'
 docker compose "${COMPOSE_ARGS[@]}" up -d --build --remove-orphans
 
