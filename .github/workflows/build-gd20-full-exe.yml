@@ -1,0 +1,120 @@
+name: Build GD 2.0 Full Patched EXE
+
+on:
+  push:
+    branches:
+      - build/gd20-full-exe
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Verify original GD 2.0 executable
+        shell: pwsh
+        run: |
+          if (-not (Test-Path GeometryDash2.0.exe)) {
+            throw "GeometryDash2.0.exe is missing from the repository checkout."
+          }
+          $size = (Get-Item GeometryDash2.0.exe).Length
+          Write-Host "GeometryDash2.0.exe size: $size bytes"
+          if ($size -lt 1000000) {
+            throw "GeometryDash2.0.exe looks too small; expected the real PE, not a Git LFS pointer."
+          }
+
+      - name: Configure DLL
+        run: cmake -S tools/gd20-moderator-dll -B build-gd20 -A Win32
+
+      - name: Build moderator DLL
+        run: cmake --build build-gd20 --config Release
+
+      - name: Install LIEF
+        shell: pwsh
+        run: python -m pip install --upgrade pip lief
+
+      - name: Patch server URL and import moderator DLL
+        shell: pwsh
+        run: |
+          $env:PYTHONUTF8 = "1"
+          @'
+          from pathlib import Path
+          import hashlib
+          import importlib.util
+          import lief
+
+          root = Path.cwd()
+          src = root / "GeometryDash2.0.exe"
+          dll = root / "build-gd20" / "Release" / "MuchoModerator.dll"
+          stage = root / "GeometryDash2.0-MuchoCore-stage.exe"
+          outdir = root / "out"
+          outdir.mkdir(exist_ok=True)
+          out = outdir / "GeometryDash-2.0-MuchoCore.exe"
+
+          patcher_path = root / "tools" / "client" / "client-patch.py"
+          spec = importlib.util.spec_from_file_location("mucho_patcher", patcher_path)
+          patcher = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(patcher)
+
+          original = src.read_bytes()
+          if not patcher.is_pe_file(original):
+              raise SystemExit("GeometryDash2.0.exe is not a valid PE")
+          patched, stats = patcher.patch_client(original, "https://muchogdps.space")
+          patcher.validate_result(original, patched, "https://muchogdps.space", stats)
+          stage.write_bytes(patched)
+
+          pe = lief.PE.parse(str(stage))
+          if pe is None:
+              raise SystemExit("LIEF could not parse the patched GeometryDash2.0.exe")
+
+          existing = {imp.name.lower() for imp in pe.imports}
+          if "muchomoderator.dll" not in existing:
+              imp = pe.add_import("MuchoModerator.dll")
+              imp.add_entry("MuchoModeratorBuild")
+
+          config = lief.PE.Builder.config_t()
+          config.imports = True
+          pe.write(str(out), config)
+
+          data = out.read_bytes()
+          if not patcher.is_pe_file(data):
+              raise SystemExit("Output is not a valid PE")
+          final = lief.PE.parse(str(out))
+          imported = {imp.name.lower(): imp for imp in final.imports}
+          if "muchomoderator.dll" not in imported:
+              raise SystemExit("MuchoModerator.dll import was not installed")
+          entries = {e.name for imp in final.imports if imp.name.lower() == "muchomoderator.dll" for e in imp.entries}
+          if "MuchoModeratorBuild" not in entries:
+              raise SystemExit("MuchoModeratorBuild import was not installed")
+
+          (outdir / "SHA256.txt").write_text(
+              "GeometryDash-2.0-MuchoCore.exe  " + hashlib.sha256(data).hexdigest() + "\n"
+              "MuchoModerator.dll             " + hashlib.sha256(dll.read_bytes()).hexdigest() + "\n",
+              encoding="utf-8",
+          )
+
+          (outdir / "PATCH-INFO.txt").write_text(
+              "Geometry Dash 2.0 direct PE patch\n"
+              "Server: https://muchogdps.space\n"
+              "Embedded import: MuchoModerator.dll\n"
+              "Imported entry: MuchoModeratorBuild\n"
+              + "\n".join(f"{x.label}: {x.count} -> {x.replacement}" for x in stats)
+              + "\n",
+              encoding="utf-8",
+          )
+          '@ | Set-Content -Encoding UTF8 patch-gd20-full.py
+          python patch-gd20-full.py
+          Copy-Item build-gd20/Release/MuchoModerator.dll out/MuchoModerator.dll
+
+      - name: Upload full patched GD 2.0 package
+        uses: actions/upload-artifact@v4
+        with:
+          name: GeometryDash-2.0-MuchoCore-Full
+          path: out/
+          if-no-files-found: error
