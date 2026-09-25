@@ -81,7 +81,7 @@ https://YOUR-DOMAIN/admin/
 
 For the full VPS workflow, see **[docs/SETUP.md](docs/SETUP.md)**.
 
-Core updates are always manual. The Admin Panel detects newer stable GitHub Releases and shows the release notes plus the standard SSH update command for review.
+Core updates are automatic **only after a published stable GitHub Release** exists. The Admin Panel detects the release, while the VPS updater deploys the exact release tag. `update.sh` remains available as the manual update/test path.
 
 ### Deployment flow
 
