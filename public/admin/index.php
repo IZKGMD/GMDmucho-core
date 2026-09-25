@@ -2838,10 +2838,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 'demon'=>isset($_POST['demon'])?1:0,
                 'dd'=>max(
                     0,
-                    (int)($_POST['demon_difficulty'] ?? 0)
+                    min(8,(int)($_POST['demon_difficulty'] ?? 0))
                 ),
                 'featured'=>isset($_POST['featured'])?1:0,
-                'epic'=>max(0,(int)$_POST['epic']),
+                'epic'=>max(0,min(3,(int)$_POST['epic'])),
                 'requested'=>max(
                     0,
                     min(10,(int)$_POST['requested_stars'])
@@ -2850,13 +2850,56 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     0,
                     (int)$_POST['downloads']
                 ),
-                'likes'=>(int)$_POST['likes'],
+                'likes'=>max(0,(int)$_POST['likes']),
                 'deleted'=>isset($_POST['deleted'])?1:0,
                 'id'=>$id
             ]);
 
-            audit($db,'level.save',(string)$id);
-            flash('Level saved.');
+            $creatorQuery=$db->prepare(
+                'SELECT account_id FROM levels
+                 WHERE level_id=:id
+                 LIMIT 1'
+            );
+            $creatorQuery->execute(['id'=>$id]);
+            $creatorId=(int)$creatorQuery->fetchColumn();
+
+            if ($creatorId>0) {
+                $cpQuery=$db->prepare(
+                    'SELECT COALESCE(
+                        SUM(
+                            CASE WHEN stars>0 THEN 1 ELSE 0 END
+                            + CASE WHEN featured>0 THEN 1 ELSE 0 END
+                            + epic
+                        ),
+                        0
+                    )
+                    FROM levels
+                    WHERE account_id=:account_id
+                      AND is_deleted=0'
+                );
+                $cpQuery->execute(['account_id'=>$creatorId]);
+                $creatorPoints=(int)$cpQuery->fetchColumn();
+
+                $db->prepare(
+                    'UPDATE profiles
+                     SET creator_points=:cp
+                     WHERE account_id=:account_id'
+                )->execute([
+                    'cp'=>$creatorPoints,
+                    'account_id'=>$creatorId
+                ]);
+            }
+
+            audit(
+                $db,
+                'level.save',
+                (string)$id,
+                [
+                    'creator_account_id'=>$creatorId,
+                    'creator_points'=>$creatorPoints ?? null
+                ]
+            );
+            flash('Level saved and creator statistics synchronized.');
         }
 
         elseif ($action==='level-rate-save') {
