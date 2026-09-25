@@ -70,7 +70,7 @@ try {
     );
 
     if (($report['replacement_count'] ?? 0) < 4) {
-        throw new RuntimeException('Expected multiple APK replacements.');
+        throw new RuntimeException('Expected four fixed-length URL replacements.');
     }
 
     $check = new ZipArchive();
@@ -79,10 +79,14 @@ try {
     }
 
     $native = $check->getFromName('lib/arm64-v8a/libcocos2dcpp.so');
+
+    $expectedHttp = 'http://gdps-example.com/a/api/api';
+    $expectedHttps = 'https://gdps-example.com/a/api/api';
+
     if (
         !is_string($native) ||
-        !str_contains($native, 'http://gdps-example.com/a/database') ||
-        !str_contains($native, 'https://gdps-example.com/a/database')
+        !str_contains($native, $expectedHttp) ||
+        !str_contains($native, $expectedHttps)
     ) {
         throw new RuntimeException('Patched server URL not found.');
     }
