@@ -6,6 +6,8 @@ This release updates the Admin Panel authentication and administrator management
 
 ### Included
 
+- automatic VPS update checks via systemd timer;
+- configurable automatic update interval with a safe disable switch;
 - native WebAuthn/FIDO2 passkey sign-in and per-administrator passkey management;
 - removal of the legacy Access Key authentication mode;
 - separate administrator accounts with owner-controlled built-in roles;
