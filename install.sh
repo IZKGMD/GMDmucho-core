@@ -327,11 +327,18 @@ MUCHO_BACKUP_DIR=/var/lib/muchocore-backups
 TZ=UTC
 MUCHO_GD_VERSIONS=$GD_VERSIONS
 CADDY_EXTRA_HOSTS=testgdps.muchogdps.space
+MUCHO_AUTO_UPDATE=${MUCHO_AUTO_UPDATE:-1}
+MUCHO_AUTO_UPDATE_INTERVAL=${MUCHO_AUTO_UPDATE_INTERVAL:-15min}
 EOFENV
 if [[ -n "$TUNNEL_TOKEN" ]]; then
   printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
 fi
 chmod 600 "$INSTALL_DIR/.env"
+
+if [[ -x "$INSTALL_DIR/bin/mucho-install-auto-update.sh" ]]; then
+  log "Enabling automatic updates..."
+  "$INSTALL_DIR/bin/mucho-install-auto-update.sh"
+fi
 
 install -d -m 700 "$INSTALL_DIR/.muchocore"
 cat > "$INSTALL_DIR/.muchocore/profile.env" <<EOFPROFILE
