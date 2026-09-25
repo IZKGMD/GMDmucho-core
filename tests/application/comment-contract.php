@@ -132,9 +132,10 @@ assertCommentContract(
 );
 
 assertCommentContract(
-    str_contains($service, "preg_match('/^-?\\d+$/', (string)$parts[3])") ||
-    str_contains($service, "preg_match('/^-?\\d+$/', (string)($parts[3] ?? ''))"),
-    'rate command parses optional numeric coins'
+    str_contains($service, '$coins = isset($parts[3])') &&
+    str_contains($service, '$featured = isset($parts[4])') &&
+    str_contains($service, "'coins_verified'"),
+    'rate command parses optional coins and featured fields'
 );
 
 assertCommentContract(
