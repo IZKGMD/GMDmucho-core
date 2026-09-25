@@ -5337,7 +5337,7 @@ if (!tableExists($db,'songs')) {
     echo '<div class="card">Songs table does not exist.</div>';
 } else {
 
-if (rank(admin()['role'])>=30) {
+if (canPermission('music.manage')) {
     echo '<div class="card" style="margin-bottom:14px">';
     echo '<h2>Upload Music</h2>';
     echo '<p class="muted">MP3 only, maximum 20 MB.</p>';
@@ -6418,7 +6418,7 @@ unset($_SESSION['admin_setup_invite']);
 </div>
 <?php endif; ?>
 
-<?php if(rank(admin()['role'])>=40): ?>
+<?php if(canPermission('admins.manage')): ?>
 
 <div class="card">
 <h2>Add administrator</h2>
@@ -6474,14 +6474,14 @@ foreach($admins as $a) {
     echo '<tr>';
     echo '<td>'.h($a['id']).'</td>';
     echo '<td>'.h($a['username']).'</td>';
-    echo '<td>'.h($a['role']).'</td>';
+    echo '<td>'.h(AdminRbac::roleName($db,(string)$a['role'])).' <code style="font-size:10px;color:#6f7c91">'.h($a['role']).'</code></td>';
     echo '<td>'.(!empty($a['totp_secret'])?'YES':'NO').'</td>';
     echo '<td>'.h($a['is_active']).'</td>';
 
     echo '<td>';
 
     if(
-        rank(admin()['role'])>=40 &&
+        canPermission('admins.manage') &&
         (int)$a['id']!==(int)admin()['id']
     ) {
         echo '<form method="post">
