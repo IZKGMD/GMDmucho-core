@@ -63,10 +63,17 @@ final class AndroidClientPatcher
         $replacementCount = 0;
         $patchedEntries = [];
 
+        $rebuiltPath = $outputPath . '.rebuilt';
+        $alignedPath = $outputPath . '.aligned';
+
+        @unlink($rebuiltPath);
+        @unlink($alignedPath);
+        @unlink($outputPath);
+
         $out = new ZipArchive();
-        if ($out->open($outputPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+        if ($out->open($rebuiltPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             $source->close();
-            throw new RuntimeException('Cannot create the patched APK output file.');
+            throw new RuntimeException('Cannot create the rebuilt APK output file.');
         }
 
         for ($index = 0; $index < $source->numFiles; $index++) {
@@ -94,11 +101,9 @@ final class AndroidClientPatcher
             if ($data === false) {
                 $out->close();
                 $source->close();
-                @unlink($outputPath);
+                @unlink($rebuiltPath);
                 throw new RuntimeException('Failed to read APK entry: ' . $name);
             }
-
-            $original = $data;
 
             if (self::shouldPatchEntry($name)) {
                 $count = 0;
@@ -115,7 +120,7 @@ final class AndroidClientPatcher
             if ($out->addFromString($name, $data) === false) {
                 $out->close();
                 $source->close();
-                @unlink($outputPath);
+                @unlink($rebuiltPath);
                 throw new RuntimeException('Failed to write APK entry: ' . $name);
             }
 
@@ -124,43 +129,218 @@ final class AndroidClientPatcher
                 $out->setCompressionName($name, $method);
             }
 
-            unset($original, $data);
+            unset($data);
         }
 
         $source->close();
 
         if (!$hasManifest) {
             $out->close();
-            @unlink($outputPath);
+            @unlink($rebuiltPath);
             throw new RuntimeException('The uploaded archive does not contain AndroidManifest.xml.');
         }
 
         if ($replacementCount <= 0) {
             $out->close();
-            @unlink($outputPath);
+            @unlink($rebuiltPath);
             throw new RuntimeException(
                 'No supported Geometry Dash server URL was found in the APK.'
             );
         }
 
         if (!$out->close()) {
-            @unlink($outputPath);
-            throw new RuntimeException('Failed to finalize the patched APK.');
+            @unlink($rebuiltPath);
+            throw new RuntimeException('Failed to finalize the rebuilt APK.');
         }
+
+        self::runTool(
+            ['zipalign', '-P', '16', '-f', '4', $rebuiltPath, $alignedPath],
+            'zipalign'
+        );
+
+        self::signApk($alignedPath, $outputPath);
+
+        @unlink($rebuiltPath);
+        @unlink($alignedPath);
 
         $outputSize = filesize($outputPath);
         if ($outputSize === false || $outputSize < 1024) {
             @unlink($outputPath);
-            throw new RuntimeException('Patched APK output is invalid.');
+            throw new RuntimeException('Signed APK output is invalid.');
         }
 
+        self::verifyApk($outputPath);
+
+        return [
+            'server_url' => $server,
+            'input_size' => $size,
+            'output_size' => $outputSize,
+            'replacement_count' => $replacementCount,
+            'patched_entries' => $patchedEntries,
+            'input_sha256' => hash_file('sha256', $inputPath) ?: '',
+            'output_sha256' => hash_file('sha256', $outputPath) ?: '',
+            'signed' => true,
+        ];
+    }
+
+    private static function runTool(array $arguments, string $label): void
+    {
+        $binary = (string)array_shift($arguments);
+
+        $command = $binary;
+        foreach ($arguments as $argument) {
+            $command .= ' ' . escapeshellarg((string)$argument);
+        }
+        $command .= ' 2>&1';
+
+        $output = [];
+        $code = 0;
+        exec($command, $output, $code);
+
+        if ($code !== 0) {
+            throw new RuntimeException(
+                $label . ' failed: ' . trim(implode("\n", $output))
+            );
+        }
+    }
+
+    private static function signerDirectory(): string
+    {
+        $configured = trim(
+            (string)(
+                getenv('MUCHO_ANDROID_SIGNER_DIR')
+                ?: '/var/lib/muchocore/android-signer'
+            )
+        );
+
+        if ($configured === '') {
+            throw new RuntimeException('Android signer directory is not configured.');
+        }
+
+        if (
+            (!is_dir($configured) && !@mkdir($configured, 0700, true)) ||
+            !is_dir($configured)
+        ) {
+            throw new RuntimeException('Cannot create Android signer directory.');
+        }
+
+        @chmod($configured, 0700);
+
+        return $configured;
+    }
+
+    private static function ensureSigner(): array
+    {
+        $dir = self::signerDirectory();
+        $key = $dir . '/muchocore-android.key.pem';
+        $cert = $dir . '/muchocore-android.cert.pem';
+
+        if (!is_file($key) || !is_file($cert)) {
+            @unlink($key);
+            @unlink($cert);
+
+            self::runTool(
+                [
+                    'openssl',
+                    'genrsa',
+                    '-out',
+                    $key,
+                    '2048',
+                ],
+                'Android signer key generation'
+            );
+
+            self::runTool(
+                [
+                    'openssl',
+                    'req',
+                    '-new',
+                    '-x509',
+                    '-sha256',
+                    '-key',
+                    $key,
+                    '-out',
+                    $cert,
+                    '-days',
+                    '10000',
+                    '-subj',
+                    '/CN=MuchoCore Android/O=MuchoCore/C=US',
+                ],
+                'Android signer certificate generation'
+            );
+
+            @chmod($key, 0600);
+            @chmod($cert, 0644);
+        }
+
+        if (!is_readable($key) || !is_readable($cert)) {
+            throw new RuntimeException('Android signing credentials are not readable.');
+        }
+
+        return [
+            'key' => $key,
+            'cert' => $cert,
+        ];
+    }
+
+    private static function signApk(string $inputPath, string $outputPath): void
+    {
+        $signer = self::ensureSigner();
+
+        self::runTool(
+            [
+                'apksigner',
+                'sign',
+                '--min-sdk-version',
+                '7',
+                '--v1-signing-enabled',
+                'true',
+                '--v2-signing-enabled',
+                'true',
+                '--v3-signing-enabled',
+                'true',
+                '--v4-signing-enabled',
+                'false',
+                '--key',
+                $signer['key'],
+                '--cert',
+                $signer['cert'],
+                '--out',
+                $outputPath,
+                $inputPath,
+            ],
+            'APK signing'
+        );
+    }
+
+    private static function verifyApk(string $path): void
+    {
+        self::runTool(
+            [
+                'apksigner',
+                'verify',
+                '--verbose',
+                $path,
+            ],
+            'APK signature verification'
+        );
+
         $verify = new ZipArchive();
-        if ($verify->open($outputPath) !== true) {
-            @unlink($outputPath);
-            throw new RuntimeException('Patched APK could not be reopened after creation.');
+        if ($verify->open($path) !== true) {
+            throw new RuntimeException(
+                'Signed APK could not be reopened after signing.'
+            );
+        }
+
+        if ($verify->locateName('AndroidManifest.xml') === false) {
+            $verify->close();
+            throw new RuntimeException(
+                'Signed APK is missing AndroidManifest.xml.'
+            );
         }
 
         $verify->close();
+    }
 
         return [
             'server_url' => $server,
