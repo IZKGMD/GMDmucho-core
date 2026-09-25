@@ -45,6 +45,17 @@ DOMAIN="$(sed -n 's/^DOMAIN=//p' "$ROOT/.env" | head -n1 || true)"
     exit 1
 }
 
+# Optional additional hostnames (for example hosted tenant subdomains).
+CADDY_EXTRA_HOSTS="$(sed -n 's/^CADDY_EXTRA_HOSTS=//p' "$ROOT/.env" | head -n1 || true)"
+if [[ -n "$CADDY_EXTRA_HOSTS" ]]; then
+    for host in $CADDY_EXTRA_HOSTS; do
+        [[ "$host" =~ ^[A-Za-z0-9.-]+$ ]] || {
+            echo "[MuchoCore] ERROR: invalid CADDY_EXTRA_HOSTS entry: $host" >&2
+            exit 1
+        }
+    done
+fi
+
 grep -q '^ADMIN_USER=' "$ROOT/.env" 2>/dev/null || printf '\nADMIN_USER=admin\n' >> "$ROOT/.env"
 grep -q '^TZ=' "$ROOT/.env" 2>/dev/null || printf 'TZ=UTC\n' >> "$ROOT/.env"
 grep -q '^TURNSTILE_SITEKEY=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SITEKEY=\n' >> "$ROOT/.env"
@@ -68,6 +79,10 @@ normalize_caddy_address() {
   fi
 
   printf 'http://%s http://www.%s https://%s https://www.%s' "$root" "$root" "$root" "$root"
+  local extra="${CADDY_EXTRA_HOSTS:-}"
+  if [[ -n "$extra" ]]; then
+    printf ' %s' "$extra"
+  fi
 }
 # Serve both the canonical host and the legacy www host used by older GD 1.9 clients.
 # Preserve :80 for Cloudflare Tunnel mode; otherwise explicitly serve HTTP + HTTPS.
