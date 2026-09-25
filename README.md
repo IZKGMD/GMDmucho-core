@@ -9,7 +9,7 @@
   <a href="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml">
     <img src="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml/badge.svg" alt="CI">
   </a>
-  <img src="https://img.shields.io/badge/release-v1.0.0-8A2BE2" alt="Stable release">
+  <img src="https://img.shields.io/badge/release-v1.0.1-8A2BE2" alt="Stable release">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/PHP-8.3-777BB4" alt="PHP 8.3">
   <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2-success" alt="Geometry Dash 1.0 through 2.2">
@@ -499,9 +499,9 @@ Before large changes, back up the database and verify that your Cloud Save secre
 
 ---
 
-## 📦 MuchoCore v1.0.0
+## 📦 MuchoCore v1.0.1
 
-**v1.0.0** is the stable release line for the current MuchoCore architecture.
+**v1.0.1** is the current stable release line for the MuchoCore architecture.
 
 It brings together:
 
@@ -517,7 +517,7 @@ It brings together:
 - reproducible CI validation;
 - client trace and contract tooling.
 
-See **[CHANGELOG.md](CHANGELOG.md)** and the **[v1.0.0 release](https://github.com/IZKGMD/GMDmucho-core/releases/tag/v1.0.0)** for release-specific verification details.
+See **[CHANGELOG.md](CHANGELOG.md)** and the **[v1.0.1 release](https://github.com/IZKGMD/GMDmucho-core/releases/tag/v1.0.1)** for release-specific verification details.
 
 ---
 
