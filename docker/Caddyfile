@@ -1,3 +1,9 @@
+{
+    # Keep legacy Geometry Dash 1.9 HTTP clients on plain HTTP.
+    # HTTPS remains enabled explicitly below; HTTP is never redirected to HTTPS.
+    auto_https disable_redirects
+}
+
 {$CADDY_ADDRESS} {
     root * /var/www/mucho-core/public
     encode gzip zstd
