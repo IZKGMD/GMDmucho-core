@@ -19,24 +19,19 @@ $featureOptions = [
     3 => ['Legendary', 'Legendary'],
     4 => ['Mythic', 'Mythic'],
 ];
-$difficultyOptions = [
-    0 => 'Unrated',
-    1 => 'Auto',
-    2 => 'Easy',
-    3 => 'Normal',
-    4 => 'Hard',
-    5 => 'Harder',
-    6 => 'Insane',
-];
-$demonOptions = [
-    1 => 'Easy',
-    2 => 'Medium',
-    3 => 'Hard',
-    4 => 'Insane',
-    5 => 'Extreme',
-    6 => 'Insane+',
-    7 => 'Extreme+',
-    8 => 'Legacy',
+$difficultyProfiles = [
+    'unrated'=>['label'=>'Unrated','difficulty'=>0,'demon'=>0,'demon_difficulty'=>0,'auto_level'=>0,'icon'=>'Unrated.png'],
+    'auto'=>['label'=>'Auto','difficulty'=>1,'demon'=>0,'demon_difficulty'=>0,'auto_level'=>1,'icon'=>'Auto.png'],
+    'easy'=>['label'=>'Easy','difficulty'=>2,'demon'=>0,'demon_difficulty'=>0,'auto_level'=>0,'icon'=>'Easy.png'],
+    'normal'=>['label'=>'Normal','difficulty'=>3,'demon'=>0,'demon_difficulty'=>0,'auto_level'=>0,'icon'=>'Normal.png'],
+    'hard'=>['label'=>'Hard','difficulty'=>4,'demon'=>0,'demon_difficulty'=>0,'auto_level'=>0,'icon'=>'Hard.png'],
+    'harder'=>['label'=>'Harder','difficulty'=>5,'demon'=>0,'demon_difficulty'=>0,'auto_level'=>0,'icon'=>'Harder.png'],
+    'insane'=>['label'=>'Insane','difficulty'=>6,'demon'=>0,'demon_difficulty'=>0,'auto_level'=>0,'icon'=>'Insane.png'],
+    'easy-demon'=>['label'=>'Easy Demon','difficulty'=>6,'demon'=>1,'demon_difficulty'=>1,'auto_level'=>0,'icon'=>'EasyDemon.png'],
+    'medium-demon'=>['label'=>'Medium Demon','difficulty'=>6,'demon'=>1,'demon_difficulty'=>2,'auto_level'=>0,'icon'=>'MediumDemon.png'],
+    'hard-demon'=>['label'=>'Hard Demon','difficulty'=>6,'demon'=>1,'demon_difficulty'=>3,'auto_level'=>0,'icon'=>'Demon.png'],
+    'insane-demon'=>['label'=>'Insane Demon','difficulty'=>6,'demon'=>1,'demon_difficulty'=>4,'auto_level'=>0,'icon'=>'InsaneDemon.png'],
+    'extreme-demon'=>['label'=>'Extreme Demon','difficulty'=>6,'demon'=>1,'demon_difficulty'=>5,'auto_level'=>0,'icon'=>'ExtremeDemon.png'],
 ];
 
 $selected = null;
@@ -138,29 +133,23 @@ $featureForRow = static function (array $row): int {
     };
 };
 
-$difficultyLabel = static function (int $difficulty, bool $demon, bool $auto): string {
-    if ($demon) {
-        return 'Demon';
+$difficultyProfileForRow = static function (array $row) use ($difficultyProfiles): string {
+    if ((int)($row['auto_level'] ?? 0) === 1) return 'auto';
+    if ((int)($row['demon'] ?? 0) === 1) {
+        return match ((int)($row['demon_difficulty'] ?? 0)) {
+            1=>'easy-demon', 2=>'medium-demon', 3=>'hard-demon',
+            4=>'insane-demon', 5=>'extreme-demon', default=>'hard-demon',
+        };
     }
-    if ($auto) {
-        return 'Auto';
-    }
-    return match ($difficulty) {
-        1 => 'Auto',
-        2 => 'Easy',
-        3 => 'Normal',
-        4 => 'Hard',
-        5 => 'Harder',
-        6 => 'Insane',
-        default => 'Unrated',
+    return match ((int)($row['difficulty'] ?? 0)) {
+        1=>'auto', 2=>'easy', 3=>'normal', 4=>'hard', 5=>'harder', 6=>'insane',
+        default=>'unrated',
     };
 };
 
-$starsDisplay = static function (int $stars): string {
-    if ($stars <= 0) {
-        return 'Unrated';
-    }
-    return str_repeat('★', min(10, $stars));
+$difficultyIconUrl = static function (string $profile) use ($difficultyProfiles): string {
+    $file=$difficultyProfiles[$profile]['icon'] ?? $difficultyProfiles['unrated']['icon'];
+    return 'https://geometrydash.wiki.gg/wiki/Special:Redirect/file/'.rawurlencode($file);
 };
 
 $pendingCount = 0;
@@ -218,9 +207,14 @@ linear-gradient(135deg,#151826,#10151f)}
 .rating-row-name b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rating-row-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;color:#778398;font-size:11px}
 .rating-row-right{text-align:right}
-.rating-stars{font-size:12px;white-space:nowrap;color:#ffd56b;letter-spacing:1px}
-.rating-stars.empty{color:#566176;letter-spacing:0}
-.rating-request{margin-top:4px;font-size:10px;color:#9f91ff}
+.rating-row-rating{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:76px;gap:3px}
+.rating-face{display:block;object-fit:contain;filter:drop-shadow(0 4px 7px rgba(0,0,0,.22))}
+.rating-face-sm{width:50px;height:50px}
+.rating-face-lg{width:76px;height:76px}
+.rating-face-label{font-size:10px;font-weight:800;color:#c4cada;line-height:1.15;text-align:center;white-space:nowrap}
+.rating-stars-count{font-size:11px;color:#ffd56b;font-weight:850;white-space:nowrap}
+.rating-stars-count.empty{color:#68758a}
+.rating-request{margin-top:3px;font-size:10px;color:#9f91ff;text-align:center}
 .rating-editor-card{padding:18px}
 .rating-editor-head{display:flex;justify-content:space-between;gap:12px;align-items:start;margin-bottom:16px}
 .rating-editor-title h2{margin:0;font-size:21px;letter-spacing:-.45px}
@@ -255,12 +249,13 @@ linear-gradient(135deg,#151826,#10151f)}
 .rating-mini-badge{display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;background:#191f2b;border:1px solid #2a3445;color:#8d99ad;font-size:10px}
 .rating-mini-badge.pending{color:#c2b7ff;border-color:#473e75;background:#211d36}
 .rating-mini-badge.deleted{color:#ff9eaa;border-color:#572933;background:#26171c}
-.rating-preview{display:grid;grid-template-columns:48px 1fr auto;gap:11px;align-items:center;padding:11px 0 14px;border-bottom:1px solid #232c3b;margin-bottom:13px}
-.rating-preview-icon{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,#272142,#161c2a);font-weight:900;color:#b9b0ff;font-size:18px}
+.rating-preview{display:grid;grid-template-columns:86px 1fr auto;gap:13px;align-items:center;padding:11px 0 14px;border-bottom:1px solid #232c3b;margin-bottom:13px}
+.rating-preview-difficulty{display:flex;flex-direction:column;align-items:center;gap:3px}
 .rating-preview-main b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rating-preview-main small{display:block;margin-top:3px}
 .rating-preview-right{text-align:right}
 .rating-preview-right strong{display:block;font-size:18px;color:#ffd56c}
+.rating-preview-right small{display:block;color:#7d899d}
 .rating-help{padding:11px 12px;border-radius:10px;background:#111823;border:1px dashed #29364b;color:#7d899d;font-size:11px;line-height:1.5}
 .rating-help b{color:#bec7d8}
 @media(max-width:1050px){.rating-hero,.rating-layout{grid-template-columns:1fr}.rating-stats{grid-template-columns:repeat(3,1fr)}}
@@ -327,9 +322,11 @@ if (!$searchRows) {
         if ($feature > 0) echo '<span>'.h($featureOptions[$feature][0]).'</span>';
         echo '</div>';
         echo '</div>';
-        echo '<div class="rating-row-right">';
-        echo '<div class="rating-stars '.((int)$row['stars'] > 0 ? '' : 'empty').'">';
-        echo ((int)$row['stars'] > 0 ? h($starsDisplay((int)$row['stars'])) : 'Not rated');
+        echo '<div class="rating-row-right rating-row-rating">';
+        echo '<img class="rating-face rating-face-sm" src="'.h($difficultyIconUrl($profile)).'" alt="'.h($difficultyProfiles[$profile]['label']).'" title="'.h($difficultyProfiles[$profile]['label']).'">';
+        echo '<div class="rating-face-label">'.h($difficultyProfiles[$profile]['label']).'</div>';
+        echo '<div class="rating-stars-count '.((int)$row['stars'] > 0 ? '' : 'empty').'">'.((int)$row['stars'] > 0 ? (int)$row['stars'].' stars' : 'No stars').'</div>';
+        if ($pending) echo '<div class="rating-request">requested '.(int)$row['requested_stars'].' stars</div>';
         echo '</div>';
         if ($pending) echo '<div class="rating-request">requested '.(int)$row['requested_stars'].'★</div>';
         echo '</div>';
@@ -352,11 +349,7 @@ if (!$selected) {
 } else {
     $selectedStars = max(0, min(10, (int)($selected['stars'] ?? 0)));
     $selectedFeature = $featureForRow($selected);
-    $selectedDemon = (int)($selected['demon'] ?? 0) === 1;
-    $selectedAuto = (int)($selected['auto_level'] ?? 0) === 1;
-    $selectedDifficulty = max(0, min(6, (int)($selected['difficulty'] ?? 0)));
-    $selectedDemonDifficulty = max(0, min(8, (int)($selected['demon_difficulty'] ?? 0)));
-    $selectedName = trim((string)($selected['name'] ?? '')) ?: 'Unnamed level';
+    $selectedProfile = $difficultyProfileForRow($selected);
 
     echo '<div class="card rating-editor-card">';
     echo '<div class="rating-editor-head">';
@@ -365,10 +358,16 @@ if (!$selected) {
     echo '</div>';
 
     echo '<div class="rating-preview">';
-    echo '<div class="rating-preview-icon">'.h(strtoupper(mb_substr($selectedName, 0, 1, 'UTF-8'))).'</div>';
+    echo '<div class="rating-preview-difficulty">';
+    echo '<img class="rating-face rating-face-lg" id="difficultyFacePreview" src="'.h($difficultyIconUrl($selectedProfile)).'" alt="'.h($difficultyProfiles[$selectedProfile]['label']).'">';
+    echo '<div class="rating-face-label" id="difficultyFaceLabel">'.h($difficultyProfiles[$selectedProfile]['label']).'</div>';
+    echo '<div class="rating-stars-count '.($selectedStars > 0 ? '' : 'empty').'" id="starsPreview">'.($selectedStars > 0 ? $selectedStars.' stars' : 'No stars').'</div>';
+    echo '</div>';
     echo '<div class="rating-preview-main">';
     echo '<b>'.h($selectedName).'</b>';
     echo '<small>'.number_format((int)($selected['downloads'] ?? 0)).' downloads · '.number_format((int)($selected['likes'] ?? 0)).' likes · Creator CP '.number_format((int)($selected['creator_points'] ?? 0)).'</small>';
+    echo '</div>';
+    echo '<div class="rating-preview-right"><strong id="difficultyFaceRight">'.h($difficultyProfiles[$selectedProfile]['label']).'</strong><small>Current difficulty</small></div>';
     echo '</div>';
     echo '<div class="rating-preview-right"><strong>'.($selectedStars > 0 ? $selectedStars.'★' : '—').'</strong><small>'.($selectedStars > 0 ? 'Current rating' : 'Unrated').'</small></div>';
     echo '</div>';
@@ -396,10 +395,11 @@ if (!$selected) {
     echo '<div class="rating-grid">';
 
     echo '<div class="rating-field">';
-    echo '<label for="difficulty">Difficulty</label>';
-    echo '<select name="difficulty" id="difficulty">';
-    foreach ($difficultyOptions as $value => $label) {
-        echo '<option value="'.$value.'"'.($selectedDifficulty === $value ? ' selected' : '').'>'.h($label).'</option>';
+    echo '<div class="rating-field">';
+    echo '<label for="difficultyProfile">Difficulty</label>';
+    echo '<select name="difficulty_profile" id="difficultyProfile">';
+    foreach ($difficultyProfiles as $value => $profile) {
+        echo '<option value="'.h($value).'"'.($selectedProfile === $value ? ' selected' : '').' data-face-url="'.h($difficultyIconUrl($value)).'">'.h($profile['label']).'</option>';
     }
     echo '</select>';
     echo '</div>';
@@ -429,26 +429,6 @@ if (!$selected) {
     echo '</div>';
     echo '</div>';
 
-    echo '<div class="rating-section">';
-    echo '<div class="rating-section-title"><b>Special classification</b><span>Optional</span></div>';
-    echo '<div class="rating-switches">';
-    echo '<label class="rating-switch"><input type="checkbox" name="auto_level" id="autoLevel" '.($selectedAuto ? 'checked' : '').'><span><b>Auto level</b><small>Marks the level as Auto</small></span></label>';
-    echo '<label class="rating-switch"><input type="checkbox" name="demon" id="demon" '.($selectedDemon ? 'checked' : '').'><span><b>Demon</b><small>Enables demon difficulty</small></span></label>';
-    echo '</div>';
-
-    echo '<div class="rating-grid" style="margin-top:10px">';
-    echo '<div class="rating-field full" id="demonDifficultyWrap" style="'.($selectedDemon ? '' : 'display:none').'">';
-    echo '<label for="demonDifficulty">Demon difficulty</label>';
-    echo '<select name="demon_difficulty" id="demonDifficulty">';
-    echo '<option value="0">Not set</option>';
-    foreach ($demonOptions as $value => $label) {
-        echo '<option value="'.$value.'"'.($selectedDemonDifficulty === $value ? ' selected' : '').'>'.h($value.' — '.$label).'</option>';
-    }
-    echo '</select>';
-    echo '</div>';
-    echo '</div>';
-    echo '</div>';
-
     echo '<div class="rating-help"><b>Publishing a rating</b> saves the level classification, clears the pending star request, recalculates the creator’s Creator Points, and writes an admin audit event.</div>';
 
     echo '<div class="rating-savebar">';
@@ -467,80 +447,70 @@ echo '<script>
 (() => {
     const starsValue = document.getElementById("starsValue");
     const picker = document.getElementById("starsPicker");
-    const difficulty = document.getElementById("difficulty");
-    const demon = document.getElementById("demon");
-    const demonWrap = document.getElementById("demonDifficultyWrap");
+    const profile = document.getElementById("difficultyProfile");
+    const face = document.getElementById("difficultyFacePreview");
+    const faceLabel = document.getElementById("difficultyFaceLabel");
+    const faceRight = document.getElementById("difficultyFaceRight");
+    const starsPreview = document.getElementById("starsPreview");
     const feature = document.getElementById("feature");
-    const autoLevel = document.getElementById("autoLevel");
 
     const setStars = value => {
         if (!starsValue || !picker) return;
-        starsValue.value = String(value);
+        const numeric = Number(value) || 0;
+        starsValue.value = String(numeric);
         picker.querySelectorAll("[data-stars]").forEach(btn => {
-            btn.classList.toggle("on", Number(btn.dataset.stars) === Number(value));
+            btn.classList.toggle("on", Number(btn.dataset.stars) === numeric);
         });
+        if (starsPreview) {
+            starsPreview.textContent = numeric > 0 ? numeric + " stars" : "No stars";
+            starsPreview.classList.toggle("empty", numeric === 0);
+        }
+    };
+
+    const syncDifficultyFace = () => {
+        const option = profile?.selectedOptions?.[0];
+        if (!option) return;
+        const label = option.textContent.trim();
+        const url = option.dataset.faceUrl || "";
+        if (face && url) {
+            face.src = url;
+            face.alt = label;
+        }
+        if (faceLabel) faceLabel.textContent = label;
+        if (faceRight) faceRight.textContent = label;
     };
 
     picker?.querySelectorAll("[data-stars]").forEach(btn => {
         btn.addEventListener("click", () => setStars(btn.dataset.stars));
     });
 
-    const syncDemon = () => {
-        if (!demon || !demonWrap || !difficulty) return;
-        demonWrap.style.display = demon.checked ? "" : "none";
-        if (demon.checked) {
-            difficulty.value = "6";
-            if (autoLevel) autoLevel.checked = false;
-        }
-    };
-
-    demon?.addEventListener("change", syncDemon);
-    autoLevel?.addEventListener("change", () => {
-        if (autoLevel.checked && demon) {
-            demon.checked = false;
-            syncDemon();
-            difficulty.value = "1";
-            setStars(1);
-        }
-    });
+    profile?.addEventListener("change", syncDifficultyFace);
 
     document.querySelectorAll("[data-preset]").forEach(btn => {
         btn.addEventListener("click", () => {
             const preset = btn.dataset.preset;
+            if (!profile || !feature) return;
+
             if (preset === "unrated") {
                 setStars(0);
-                difficulty.value = "0";
+                profile.value = "unrated";
                 feature.value = "0";
-                if (demon) demon.checked = false;
-                if (autoLevel) autoLevel.checked = false;
-                if (demonWrap) demonWrap.style.display = "none";
-            } else if (preset === "easy") {
-                setStars(2); difficulty.value = "2"; feature.value = "0";
-            } else if (preset === "normal") {
-                setStars(3); difficulty.value = "3"; feature.value = "0";
-            } else if (preset === "hard") {
-                setStars(5); difficulty.value = "4"; feature.value = "0";
-            } else if (preset === "harder") {
-                setStars(7); difficulty.value = "5"; feature.value = "0";
-            } else if (preset === "insane") {
-                setStars(9); difficulty.value = "6"; feature.value = "0";
-            } else if (preset === "demon") {
-                setStars(10); difficulty.value = "6"; feature.value = "0";
-                if (demon) demon.checked = true;
-                if (autoLevel) autoLevel.checked = false;
-                if (demonWrap) demonWrap.style.display = "";
+            } else {
+                profile.value = preset;
+                feature.value = "0";
+                const defaultStars =
+                    preset === "easy" ? 2 :
+                    preset === "normal" ? 3 :
+                    preset === "hard" ? 5 :
+                    preset === "harder" ? 7 :
+                    preset === "insane" ? 9 :
+                    preset.endsWith("-demon") ? 10 : 0;
+                setStars(defaultStars);
             }
+            syncDifficultyFace();
         });
     });
 
-    document.getElementById("ratingForm")?.addEventListener("submit", event => {
-        const current = Number(starsValue?.value || 0);
-        const isDemon = !!demon?.checked;
-        if (isDemon && current < 10) {
-            if (!confirm("Demon is selected with fewer than 10 stars. Publish anyway?")) {
-                event.preventDefault();
-            }
-        }
-    });
+    syncDifficultyFace();
 })();
 </script>';
