@@ -104,6 +104,7 @@ jobs:
           test -f auto-update.sh
           test -f bin/mucho-install-auto-update.sh
           test -f docs/AUTO_UPDATE.md
+          test -f docs/ADMIN_RBAC.md
 
       - name: Check Docker Compose configuration
         run: |
