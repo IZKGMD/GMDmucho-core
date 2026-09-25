@@ -268,8 +268,6 @@ if [[ -f "$INSTALL_DIR/.env" ]]; then
   info "Backed up existing .env to $(basename "$backup_file")"
 fi
 
-cat > "$INSTALL_DIR/.env" <<EOFENV
-DOMAIN=$DOMAIN
 normalize_caddy_address() {
   if [[ -n "$TUNNEL_TOKEN" ]]; then
     printf ':80'
@@ -288,6 +286,9 @@ normalize_caddy_address() {
 
   printf 'http://%s http://www.%s https://%s https://www.%s' "$root" "$root" "$root" "$root"
 }
+
+cat > "$INSTALL_DIR/.env" <<EOFENV
+DOMAIN=$DOMAIN
 CADDY_ADDRESS_VALUE="$(normalize_caddy_address)"
 CADDY_ADDRESS="\"$CADDY_ADDRESS_VALUE\""
 DB_NAME=$DB_NAME
