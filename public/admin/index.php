@@ -288,9 +288,7 @@ function audit(
                 JSON_UNESCAPED_UNICODE|
                 JSON_UNESCAPED_SLASHES
             ),
-        'ip'=>$_SERVER['HTTP_CF_CONNECTING_IP']
-            ?? $_SERVER['REMOTE_ADDR']
-            ?? ''
+        'ip'=>\MuchoCore\Http\ClientIp::resolve($_SERVER)
     ]);
 }
 
