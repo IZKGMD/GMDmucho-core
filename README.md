@@ -40,7 +40,7 @@
 | 🔌 **Plugin SDK** | Permissioned PHP plugins with lifecycle events, custom routes and optional database access |
 | 🖥️ **Admin Control** | Dashboard, players, levels, moderation, analytics, monitoring, backups, API tools and server settings |
 | ⭐ **Rating Studio** | Search levels by ID/name/creator, review pending requests, publish 0–10 star ratings, choose difficulty faces, feature tiers and audit the change |
-| 🔐 **Admin security** | Password login, native WebAuthn/FIDO2 passkeys, Google Authenticator TOTP, one-time recovery codes, access keys, rate limiting and audit logging |
+| 🔐 **Admin security** | Password login, native WebAuthn/FIDO2 passkeys, Google Authenticator TOTP, one-time recovery codes, rate limiting and audit logging |
 | 🔄 **Cvolton migration** | Read-only source DB preflight, account/profile/level/score migration, persistent ID mapping and transactional apply |
 | 🧰 **Client patchers** | Windows desktop patcher, browser-based Windows patcher and Android APK patcher |
 | 🐳 **Deployment** | Docker Compose, MariaDB, PHP 8.3, Caddy, automatic migrations and update tooling |
@@ -221,19 +221,6 @@ The browser/OS handles the credential picker and user verification (for example 
 
 The registration flow requires a resident/discoverable credential and user verification. Challenges are short-lived and single-use, credentials are bound to the configured relying-party domain, and the authenticator signature counter is tracked. When TOTP is enabled on the administrator account, the passkey completes the primary credential step and the existing TOTP/recovery-code second factor remains required.
 
-### Access Key
-
-Administrators can generate a dedicated access key for fast sign-in.
-
-Important properties:
-
-- the raw key is shown only when generated;
-- only a one-way password hash is stored;
-- the key can be used without entering the username;
-- the key can be revoked;
-- access-key generation, login and revocation are audited;
-- **Access Key does not bypass 2FA** — when TOTP is enabled, the second factor is still required.
-
 ### MuchoProtect
 
 MuchoProtect sits before the request router:
@@ -398,7 +385,7 @@ Current validation includes:
 | --- | --- |
 | PHP | Syntax, application contracts and source checks |
 | Protocol | Version matrix, legacy wire behavior and modern protocol guards |
-| Security | MuchoProtect, authentication, TOTP, access-key and passkey contracts |
+| Security | MuchoProtect, authentication, TOTP and passkey contracts |
 | Client tools | Windows patcher, Android patcher and Python self-tests |
 | Routing | Caddy, Apache/shared-hosting compatibility and liveness routes |
 | Docker | Compose validation and deployment configuration checks |
@@ -487,7 +474,7 @@ It brings together:
 - MuchoProtect request protection;
 - the Admin Control Panel;
 - Rating Studio moderation tools;
-- Google Authenticator 2FA, native WebAuthn/FIDO2 passkeys and Access Keys;
+- Google Authenticator 2FA and native WebAuthn/FIDO2 passkeys;
 - Cloud Save;
 - Windows and Android client patchers;
 - Docker + Caddy deployment;
