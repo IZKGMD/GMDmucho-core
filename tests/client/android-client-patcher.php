@@ -30,11 +30,14 @@ try {
         '<manifest package="test.geometrydash"/>'
     );
 
-    $oldUrl = 'https://www.boomlings.com/database';
+    $oldUrl = 'http://www.boomlings.com/database';
+    $oldHttpsUrl = 'https://www.boomlings.com/database';
     $zip->addFromString(
         'lib/arm64-v8a/libcocos2dcpp.so',
         "prefix\0" . $oldUrl . "\0" .
-        base64_encode($oldUrl) . "\0suffix"
+        base64_encode($oldUrl) . "\0" .
+        $oldHttpsUrl . "\0" .
+        base64_encode($oldHttpsUrl) . "\0suffix"
     );
 
     // Keep the synthetic APK above the production minimum-size guard.
@@ -66,7 +69,7 @@ try {
         'https://gdps.example.com'
     );
 
-    if (($report['replacement_count'] ?? 0) < 2) {
+    if (($report['replacement_count'] ?? 0) < 4) {
         throw new RuntimeException('Expected multiple APK replacements.');
     }
 
@@ -76,12 +79,17 @@ try {
     }
 
     $native = $check->getFromName('lib/arm64-v8a/libcocos2dcpp.so');
-    if (!is_string($native) || !str_contains($native, 'https://gdps.example.com')) {
+    if (
+        !is_string($native) ||
+        !str_contains($native, 'http://gdps.example.com/a/database') ||
+        !str_contains($native, 'https://gdps.example.com/a/database')
+    ) {
         throw new RuntimeException('Patched server URL not found.');
     }
 
     if (
         str_contains($native, $oldUrl) ||
+        str_contains($native, $oldHttpsUrl) ||
         $check->locateName('META-INF/MANIFEST.MF') !== false ||
         $check->locateName('META-INF/TEST.SF') !== false ||
         $check->locateName('META-INF/TEST.RSA') !== false
