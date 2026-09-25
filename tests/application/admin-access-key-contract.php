@@ -27,9 +27,15 @@ $assert(str_contains($index,'access_key_created_at TIMESTAMP NULL'),'inline acce
 $assert(str_contains($index,"action==='access-key-generate'"),'access key generation action');
 $assert(str_contains($index,"action==='access-key-revoke'"),'access key revocation action');
 $assert(str_contains($index,'password_hash($accessKey,PASSWORD_DEFAULT)'),'only access key hash is persisted');
-$assert(str_contains($index,'password_verify(
-                $accessKey,
-                $row['access_key_hash']'),'access key authentication');
+$assert(
+    str_contains(
+        $index,
+        "password_verify(
+                \$accessKey,
+                \$row['access_key_hash']"
+    ),
+    'access key authentication'
+);
 $assert(str_contains($index,"'login.access_key'"),'access key login audit event');
 $assert(str_contains($index,'name="access_key"'),'access key login field');
 $assert(str_contains($index,'Access Key replaces the password, not the second factor.'),'2FA remains required with access key');
