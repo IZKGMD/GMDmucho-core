@@ -33,6 +33,9 @@ jobs:
       - name: Audit Composer dependencies
         run: composer audit --no-dev --locked --format=plain
 
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
       - name: Install Android APK tooling
         run: |
           sudo apt-get update
