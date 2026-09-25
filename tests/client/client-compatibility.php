@@ -30,6 +30,26 @@ $v19 = ClientVersion::fromValues(19, 25);
 assertSameValue('1.9', $v19->family(), 'GD 1.9 family');
 assertSameValue('1.9/25', $v19->label(), 'GD 1.9 binary label');
 assertSameValue(false, $v19->usesGjp2(), 'GD 1.9 uses legacy credential');
+$v10Request = new Request(
+    'POST',
+    '/database/getGJLevels.php',
+    [],
+    [],
+    []
+);
+
+assertSameValue(
+    '1.0',
+    $v10Request->clientVersion()->family(),
+    'GD 1.0 legacy route inference'
+);
+
+assertSameValue(
+    3,
+    $v10Request->clientVersion()->effectiveGameVersion(),
+    'GD 1.0 protocol gameVersion'
+);
+
 
 $v20 = ClientVersion::fromValues(20, 27);
 assertSameValue('2.0', $v20->family(), 'GD 2.0 family');
