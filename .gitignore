@@ -16,6 +16,8 @@
 /public/*.tar.gz
 /backups/
 /releases/**/*.apk
+/patched/apk/*.apk
+/patched/exe/*.exe
 
 # Temporary / debug files
 *.log
