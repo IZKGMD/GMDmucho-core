@@ -227,11 +227,8 @@ final class CommentService
         $cmd = $aliases[$cmd] ?? $cmd;
 
         $roleStmt = $pdo->prepare(
-            "SELECT COALESCE(
-                    NULLIF(r.code, ''),
-                    NULLIF(a.role, ''),
-                    'user'
-                ) AS role
+            "SELECT NULLIF(r.code, '') AS role_code,
+                    NULLIF(a.role, '') AS legacy_role
              FROM accounts a
              LEFT JOIN roles r ON r.id = a.role_id
              WHERE a.account_id = :id
@@ -241,9 +238,42 @@ final class CommentService
         );
         $roleStmt->execute([':id' => $accountId]);
 
-        $role = strtolower(
-            (string)($roleStmt->fetchColumn() ?: 'user')
-        );
+        $roleRow = $roleStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        $roleAliases = [
+            'admin' => 'elder_moderator',
+            'elder' => 'elder_moderator',
+            'developer' => 'elder_moderator',
+            'helper' => 'moderator',
+            'mod' => 'moderator',
+            'moderator' => 'moderator',
+            'elder_moderator' => 'elder_moderator',
+            'owner' => 'owner',
+            'user' => 'user',
+            'player' => 'user',
+        ];
+
+        $role = 'user';
+        foreach ([
+            $roleRow['role_code'] ?? '',
+            $roleRow['legacy_role'] ?? '',
+        ] as $rawRole) {
+            $candidate = strtolower(trim((string)$rawRole));
+
+            if ($candidate === '') {
+                continue;
+            }
+
+            $candidate = $roleAliases[$candidate] ?? $candidate;
+
+            if (in_array(
+                $candidate,
+                ['owner', 'elder_moderator', 'moderator'],
+                true
+            )) {
+                $role = $candidate;
+                break;
+            }
+        }
 
         if (!in_array(
             $role,
