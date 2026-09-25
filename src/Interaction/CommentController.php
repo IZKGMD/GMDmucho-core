@@ -48,6 +48,22 @@ final readonly class CommentController
                 )
             );
         } catch (Throwable $e) {
+            if (str_starts_with(trim($content), '!')) {
+                $command = strtolower(
+                    (string)(preg_split("/\\s+/", trim($content))[0] ?? '')
+                );
+
+                error_log(sprintf(
+                    '[MuchoCore CommentCommand] command=%s account=%d level=%d version=%d exception=%s message=%s',
+                    $command,
+                    $accountId,
+                    $levelId,
+                    $version->effectiveGameVersion() ?: 22,
+                    $e::class,
+                    $e->getMessage()
+                ));
+            }
+
             return Response::text("-1");
         }
     }
