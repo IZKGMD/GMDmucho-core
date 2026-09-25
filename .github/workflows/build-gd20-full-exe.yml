@@ -47,6 +47,7 @@ jobs:
           from pathlib import Path
           import hashlib
           import importlib.util
+          import sys
           import lief
 
           root = Path.cwd()
@@ -60,6 +61,7 @@ jobs:
           patcher_path = root / "tools" / "client" / "client-patch.py"
           spec = importlib.util.spec_from_file_location("mucho_patcher", patcher_path)
           patcher = importlib.util.module_from_spec(spec)
+          sys.modules["mucho_patcher"] = patcher
           spec.loader.exec_module(patcher)
 
           original = src.read_bytes()
