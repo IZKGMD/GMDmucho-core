@@ -161,7 +161,7 @@ final readonly class MuchoProtect
 
         $globalKey = 'ip:' . $ip . ':global';
 
-        if (!$this->limiter->allow(
+        if (!$this->allow(
             $globalKey,
             self::GLOBAL_LIMIT,
             self::GLOBAL_WINDOW
@@ -177,7 +177,7 @@ final readonly class MuchoProtect
             return ['decision' => 'block', 'reason' => 'global_rate_limit'];
         }
 
-        if (!$this->limiter->allow(
+        if (!$this->allow(
             $globalKey . ':burst',
             self::GLOBAL_BURST,
             self::GLOBAL_BURST_WINDOW
@@ -199,7 +199,7 @@ final readonly class MuchoProtect
             return ['decision' => 'allow', 'reason' => 'no_policy'];
         }
 
-        if (!$this->limiter->allow(
+        if (!$this->allow(
             $ipPenaltyKey,
             $policy['limit'],
             $policy['window']
@@ -215,7 +215,7 @@ final readonly class MuchoProtect
             return ['decision' => 'block', 'reason' => 'ip_rate_limit'];
         }
 
-        if (!$this->limiter->allow(
+        if (!$this->allow(
             $ipPenaltyKey . ':burst',
             $policy['burst'],
             $policy['burstWindow']
@@ -233,7 +233,7 @@ final readonly class MuchoProtect
 
         if (
             $identityKey !== null &&
-            !$this->limiter->allow(
+            !$this->allow(
                 $identityKey,
                 $policy['limit'],
                 $policy['window']
@@ -251,6 +251,38 @@ final readonly class MuchoProtect
         }
 
         return ['decision' => 'allow', 'reason' => 'ok'];
+    }
+
+    private function allow(
+        string $key,
+        int $limit,
+        int $windowSeconds
+    ): bool {
+        if ($this->failOpen()) {
+            return $this->limiter->allow(
+                $key,
+                $limit,
+                $windowSeconds
+            );
+        }
+
+        return $this->limiter->allowStrict(
+            $key,
+            $limit,
+            $windowSeconds
+        );
+    }
+
+    private function failOpen(): bool
+    {
+        $value = $this->env('MUCHO_PROTECT_FAIL_OPEN');
+
+        return $value !== null &&
+            in_array(
+                strtolower($value),
+                ['1', 'true', 'on', 'yes'],
+                true
+            );
     }
 
     private function enabled(): bool
