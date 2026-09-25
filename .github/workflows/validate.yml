@@ -55,6 +55,7 @@ jobs:
           php tests/application/game-roles.php
           php tests/application/comment-contract.php
           php tests/application/legacy-19-session.php
+          php tests/application/security-regressions.php
           php tests/database/migrator-concurrency.php
           php tests/application/music-upload-contract.php
           php tests/security/turnstile.php
@@ -156,6 +157,8 @@ jobs:
           grep -Fq '@legacy_recovery path /GD/accountHelp /GD/accountHelp.php' docker/Caddyfile
           grep -Fq 'rewrite * /api/api/accounts/lostusername.php' docker/Caddyfile
           grep -Fq 'auto_https disable_redirects' docker/Caddyfile
+          grep -Fq 'path /admin /admin/*' docker/Caddyfile
+          grep -Fq 'redir @admin_http https://{host}{uri} 308' docker/Caddyfile
           test -s public/assets/muchocore-logo.jpg
 
       - name: Check Caddy configuration
