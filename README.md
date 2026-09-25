@@ -22,7 +22,8 @@
   <a href="docs/CLIENT_SETUP.md">🎮 Client Setup</a> ·
   <a href="docs/VERSIONS.md">📚 Version Profiles</a> ·
   <a href="docs/CLIENT_COMPATIBILITY.md">🧩 Compatibility</a> ·
-  <a href="docs/SHOWCASE.md">🌍 Showcase</a>
+  <a href="docs/SHOWCASE.md">🌍 Showcase</a> ·
+  <a href="docs/ADMIN_RBAC.md">🔐 Admin RBAC</a>
 </p>
 
 > ⚡ **MuchoCore is a maintainable Geometry Dash Private Server foundation for owners who want one server core, version-aware compatibility, an integrated admin panel, client patching tools, and a security layer that can be validated in CI.**
