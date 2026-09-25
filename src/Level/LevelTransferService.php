@@ -33,7 +33,7 @@ final readonly class LevelTransferService
         string $ip = ''
     ): int {
         $version = ClientVersion::fromValues(
-            $this->intField($data, 'gameVersion', 3, 1, 1000),
+            $this->intField($data, 'gameVersion', 1, 1, 1000),
             $this->intField($data, 'binaryVersion', 0, 0, 1000000)
         );
 
