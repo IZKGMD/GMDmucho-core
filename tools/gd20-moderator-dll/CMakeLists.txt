@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 project(MuchoModerator LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-add_library(MuchoModerator SHARED MuchoModerator.cpp)
+add_library(MuchoModerator SHARED MuchoModerator.cpp MuchoModerator.def)
 target_link_libraries(MuchoModerator PRIVATE winhttp crypt32 user32)
 
 set_property(TARGET MuchoModerator PROPERTY LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/MuchoModerator.def")
