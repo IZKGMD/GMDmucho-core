@@ -136,7 +136,7 @@ assertSecurityRegression(
 );
 
 assertSecurityRegression(
-    str_contains($rewards, "hash('sha256', $ip . '|' . $udid)") &&
+    str_contains($rewards, "hash('sha256', " . '$ip' . " . '|' . " . '$udid' . ")") &&
     str_contains($rewards, 'filter_var($ip, FILTER_VALIDATE_IP)'),
     'anonymous secret rewards bind claims to IP and UDID'
 );
