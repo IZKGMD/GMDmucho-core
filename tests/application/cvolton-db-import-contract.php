@@ -31,7 +31,7 @@ if($source===false){
     throw new RuntimeException('Unable to read Cvolton importer.');
 }
 
-if(strpos($source,"passwordHash")!==false){
+if(preg_match('/(?:\$source|\$sql)[^\n]{0,80}SELECT[^\n]*passwordHash|passwordHash\s+AS\s+password/i',$source)){
     throw new RuntimeException(
         'Cvolton importer must not reference a generic plaintext password field.'
     );
