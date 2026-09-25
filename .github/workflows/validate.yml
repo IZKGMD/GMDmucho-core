@@ -56,6 +56,7 @@ jobs:
           php tests/application/game-roles.php
           php tests/application/admin-rating-contract.php
           php tests/application/admin-2fa-contract.php
+          php tests/application/admin-access-key-contract.php
           php tests/application/comment-contract.php
           php tests/application/legacy-19-session.php
           php tests/application/security-regressions.php

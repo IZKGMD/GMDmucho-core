@@ -179,6 +179,8 @@ CREATE TABLE IF NOT EXISTS admin_users (
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(32) NOT NULL DEFAULT 'admin',
     totp_secret VARCHAR(64) NULL,
+    access_key_hash VARCHAR(255) NULL,
+    access_key_created_at TIMESTAMP NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -517,6 +519,11 @@ function newTotpSecret(): string
     return $out;
 }
 
+function newAccessKey(): string
+{
+    return 'MUCHO-'.strtoupper(bin2hex(random_bytes(24)));
+}
+
 function totpProvisioningUri(
     string $secret,
     string $account,
@@ -531,7 +538,7 @@ function totpProvisioningUri(
         : 'admin';
 
     return 'otpauth://totp/'.
-        rawurlencode($issuer.':'.$account).
+        rawurlencode($issuer).':'.rawurlencode($account).
         '?secret='.rawurlencode($secret).
         '&issuer='.rawurlencode($issuer).
         '&algorithm=SHA1'.
@@ -546,6 +553,7 @@ function totpProvisioningUri(
 if (isset($_POST['login'])) {
     $user=trim((string)($_POST['username'] ?? ''));
     $password=(string)($_POST['password'] ?? '');
+    $accessKey=trim((string)($_POST['access_key'] ?? ''));
     $otp=trim((string)($_POST['otp'] ?? ''));
 
     $ip=\MuchoCore\Http\ClientIp::resolve($_SERVER);
@@ -575,22 +583,53 @@ if (isset($_POST['login'])) {
     if ((int)$state['tries']>=8) {
         $loginError='Too many attempts.';
     } else {
-        $q=$db->prepare(
-            'SELECT *
-             FROM admin_users
-             WHERE username=:u
-               AND is_active=1
-             LIMIT 1'
-        );
+        $row=null;
+        $accessKeyOk=false;
 
-        $q->execute(['u'=>$user]);
-        $row=$q->fetch(PDO::FETCH_ASSOC);
+        if ($accessKey!=='' && $user==='') {
+            $candidates=$db->query(
+                'SELECT *
+                 FROM admin_users
+                 WHERE is_active=1
+                   AND access_key_hash IS NOT NULL'
+            )->fetchAll(PDO::FETCH_ASSOC);
 
-        $ok=$row
+            foreach ($candidates as $candidate) {
+                if (password_verify($accessKey,(string)$candidate['access_key_hash'])) {
+                    $row=$candidate;
+                    $accessKeyOk=true;
+                    break;
+                }
+            }
+        } else {
+            $q=$db->prepare(
+                'SELECT *
+                 FROM admin_users
+                 WHERE username=:u
+                   AND is_active=1
+                 LIMIT 1'
+            );
+
+            $q->execute(['u'=>$user]);
+            $row=$q->fetch(PDO::FETCH_ASSOC) ?: null;
+
+            $accessKeyOk=$row
+                && $accessKey!==''
+                && !empty($row['access_key_hash'])
+                && password_verify(
+                    $accessKey,
+                    $row['access_key_hash']
+                );
+        }
+
+        $passwordOk=$row
+            && $password!==''
             && password_verify(
                 $password,
                 $row['password_hash']
             );
+
+        $ok=$passwordOk || $accessKeyOk;
 
         if (
             $ok &&
@@ -618,7 +657,7 @@ if (isset($_POST['login'])) {
 
             @unlink($rate);
 
-            audit($db,'login');
+            audit($db,$accessKeyOk && !$passwordOk ? 'login.access_key' : 'login');
 
             header('Location:/admin/');
             exit;
@@ -1692,7 +1731,7 @@ max-width:100%
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
 <script src="/muchocore-theme.js?v=3" defer></script>
 <?php if ($page==='admins'): ?>
-<script src="/admin/assets/qrcode.min.js"></script>
+<script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>
 </head>
 <body class="admin-login" data-page="">
@@ -1715,6 +1754,13 @@ max-width:100%
  name="password"
  autocomplete="current-password"
  placeholder="Password"
+>
+
+<input
+ name="access_key"
+ autocomplete="off"
+ spellcheck="false"
+ placeholder="Access Key (optional — username not required)"
 >
 
 <input
@@ -3425,6 +3471,47 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             flash('Status changed.');
         }
 
+        elseif ($action==='access-key-generate') {
+            requireRank(10);
+
+            $accessKey=newAccessKey();
+
+            $db->prepare(
+                'UPDATE admin_users
+                 SET access_key_hash=:hash,
+                     access_key_created_at=NOW()
+                 WHERE id=:id'
+            )->execute([
+                'hash'=>password_hash($accessKey,PASSWORD_DEFAULT),
+                'id'=>admin()['id']
+            ]);
+
+            $_SESSION['new_access_key']=$accessKey;
+
+            audit($db,'access_key.generate');
+            flash(
+                'A new access key was generated. Copy it now; it is not stored in plaintext.'
+            );
+        }
+
+        elseif ($action==='access-key-revoke') {
+            requireRank(10);
+
+            $db->prepare(
+                'UPDATE admin_users
+                 SET access_key_hash=NULL,
+                     access_key_created_at=NULL
+                 WHERE id=:id'
+            )->execute([
+                'id'=>admin()['id']
+            ]);
+
+            unset($_SESSION['new_access_key']);
+
+            audit($db,'access_key.revoke');
+            flash('Administrator access key revoked.');
+        }
+
         elseif ($action==='2fa-generate') {
             requireRank(10);
 
@@ -4926,6 +5013,7 @@ Keep access to your authenticator device. Disabling 2FA removes the extra sign-i
 <div class="setup-grid">
     <div class="qr-box">
         <div id="totpQr" aria-label="Authenticator QR code"></div>
+        <div id="totpQrStatus" class="qr-placeholder" style="display:none">QR renderer is loading…</div>
     </div>
 
     <div>
@@ -4985,16 +5073,42 @@ This setup key is the recovery credential for your TOTP factor. Store it private
 (() => {
     const uri = <?=json_encode($totpUri, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)?>;
     const qr = document.getElementById('totpQr');
-    if (qr && typeof QRCode !== 'undefined' && uri) {
+    const status = document.getElementById('totpQrStatus');
+
+    const renderQr = () => {
+        if (!qr || !uri) return;
+        if (typeof QRCode === 'undefined') {
+            if (status) {
+                status.style.display = 'grid';
+                status.textContent = 'Loading QR renderer…';
+            }
+            const script=document.createElement('script');
+            script.src='/admin/assets/qrcode.min.js?v=20260925';
+            script.onload=renderQr;
+            script.onerror=() => {
+                if (status) {
+                    status.style.display='grid';
+                    status.textContent='QR renderer failed to load. Use the manual setup key below.';
+                }
+            };
+            document.head.appendChild(script);
+            return;
+        }
+
+        qr.textContent='';
         new QRCode(qr, {
             text: uri,
-            width: 220,
-            height: 220,
+            width: 240,
+            height: 240,
             colorDark: '#111827',
             colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.M
+            correctLevel: QRCode.CorrectLevel.L
         });
-    }
+
+        if (status) status.style.display='none';
+    };
+
+    renderQr();
 
     document.getElementById('copyTotpSecret')?.addEventListener('click', async () => {
         const secret = document.getElementById('totpSecret')?.textContent?.trim() || '';
@@ -5082,6 +5196,102 @@ The previous authenticator setup expired. Generate a new QR code to continue.
 <?php endif ?>
 
 </div>
+<?php
+$newAccessKey=(string)($_SESSION['new_access_key'] ?? '');
+unset($_SESSION['new_access_key']);
+$hasAccessKey=!empty($me['access_key_hash']);
+?>
+<div class="card admin-access-key-card" style="margin-top:13px">
+<style>
+.admin-access-key-card{position:relative;overflow:hidden;background:linear-gradient(145deg,#121827,#0e131c)}
+.admin-access-key-card .key-badge{display:inline-flex;align-items:center;padding:6px 9px;border-radius:999px;background:#282147;border:1px solid #473b7e;color:#c5baff;font-size:11px;font-weight:800}
+.admin-access-key-card .key-panel{margin-top:14px;padding:13px;border:1px solid #29354a;border-radius:12px;background:#0b1018}
+.admin-access-key-card .key-value{font:750 13px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.035em;word-break:break-all;color:#eef2ff;margin-top:5px}
+.admin-access-key-card .key-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+.admin-access-key-card .key-note{margin-top:10px;color:#7f8ba0;font-size:10px;line-height:1.5}
+</style>
+<div class="row" style="justify-content:space-between;align-items:center">
+    <div>
+        <h2 style="margin:0">Admin Access Key</h2>
+        <small>Fast sign-in credential for this administrator</small>
+    </div>
+    <?php if($hasAccessKey): ?>
+        <span class="key-badge">Active</span>
+    <?php else: ?>
+        <span class="badge">Not set</span>
+    <?php endif; ?>
+</div>
+
+<?php if($newAccessKey!==''): ?>
+<div class="key-panel">
+    <small>New access key — copy it now</small>
+    <div class="key-value" id="newAccessKey"><?=h($newAccessKey)?></div>
+    <div class="key-actions">
+        <button type="button" class="copy-btn" id="copyAccessKey">Copy key</button>
+    </div>
+</div>
+<div class="warning">Shown once. Only a hash is stored in the database.</div>
+<?php elseif($hasAccessKey): ?>
+<div class="disabled-state">
+    <b>Fast sign-in is enabled.</b>
+    <small>Use the access key alone, or enter it with your username. If 2FA is enabled, the authenticator code is still required.</small>
+</div>
+<div class="key-actions">
+<form method="post">
+<input type="hidden" name="csrf" value="<?=csrf()?>">
+<input type="hidden" name="action" value="access-key-generate">
+<input type="hidden" name="return" value="admins">
+<button>Generate new key</button>
+</form>
+<form method="post">
+<input type="hidden" name="csrf" value="<?=csrf()?>">
+<input type="hidden" name="action" value="access-key-revoke">
+<input type="hidden" name="return" value="admins">
+<button class="red">Revoke key</button>
+</form>
+</div>
+<?php else: ?>
+<div class="disabled-state">
+    <b>Skip the password for faster sign-in.</b>
+    <small>The access key replaces the password and is stored as a one-way hash.</small>
+</div>
+<div class="key-actions">
+<form method="post">
+<input type="hidden" name="csrf" value="<?=csrf()?>">
+<input type="hidden" name="action" value="access-key-generate">
+<input type="hidden" name="return" value="admins">
+<button>Generate access key</button>
+</form>
+</div>
+<?php endif; ?>
+
+<div class="key-note">Access Key replaces the password, not the second factor.</div>
+</div>
+
+<script>
+document.getElementById('copyAccessKey')?.addEventListener('click', async () => {
+    const value=document.getElementById('newAccessKey')?.textContent?.trim() || '';
+    try {
+        await navigator.clipboard.writeText(value);
+    } catch {
+        const ta=document.createElement('textarea');
+        ta.value=value;
+        ta.style.position='fixed';
+        ta.style.opacity='0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+    }
+    const button=document.getElementById('copyAccessKey');
+    if(button){
+        const original=button.textContent;
+        button.textContent='Copied';
+        setTimeout(() => { button.textContent=original; },1200);
+    }
+});
+</script>
+
 <?php
 
 $admins=$db->query(
