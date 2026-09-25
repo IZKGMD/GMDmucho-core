@@ -232,23 +232,19 @@ systemctl enable --now docker
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 was not found."
 
 log "Preparing MuchoCore..."
+LATEST_RELEASE_TAG="$(get_latest_stable_release_tag)" ||
+  fail "Unable to resolve a published stable MuchoCore Release from GitHub."
+
 if [[ -d "$INSTALL_DIR/.git" ]]; then
-  git -C "$INSTALL_DIR" fetch --depth=1 origin main
-  git -C "$INSTALL_DIR" reset --hard origin/main
+  git -C "$INSTALL_DIR" fetch --depth=1 origin "refs/tags/$LATEST_RELEASE_TAG:refs/tags/$LATEST_RELEASE_TAG"
+  git -C "$INSTALL_DIR" reset --hard "$LATEST_RELEASE_TAG"
 else
   rm -rf "$INSTALL_DIR"
-  git clone --depth=1 "$REPO_URL" "$INSTALL_DIR"
+  git clone --depth=1 --branch "$LATEST_RELEASE_TAG" "$REPO_URL" "$INSTALL_DIR"
 fi
 
-if [[ ! -f "$INSTALL_DIR/docker-compose.yml" ]]; then
-  if git -C "$INSTALL_DIR" ls-remote --exit-code origin refs/heads/feat/easy-deploy >/dev/null 2>&1; then
-    log "Main does not contain the deployment files yet; using feat/easy-deploy for this test."
-    git -C "$INSTALL_DIR" fetch --depth=1 origin feat/easy-deploy
-    git -C "$INSTALL_DIR" reset --hard FETCH_HEAD
-  else
-    fail "Repository does not contain docker-compose.yml."
-  fi
-fi
+[[ -f "$INSTALL_DIR/docker-compose.yml" ]] ||
+  fail "The selected stable release does not contain docker-compose.yml."
 
 install -d -m 700 "$INSTALL_DIR/.secrets"
 
