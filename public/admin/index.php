@@ -727,6 +727,7 @@ if (isset($_POST['login'])) {
             );
 
         $ok=$passwordOk || $accessKeyOk;
+        $usedRecovery=false;
 
         if (
             $ok &&
@@ -736,6 +737,15 @@ if (isset($_POST['login'])) {
                 $row['totp_secret'],
                 $otp
             );
+
+            if (!$ok) {
+                $usedRecovery=verifyAdminRecoveryCode(
+                    $db,
+                    (int)$row['id'],
+                    $otp
+                );
+                $ok=$usedRecovery;
+            }
         }
 
         if ($ok) {
@@ -754,7 +764,12 @@ if (isset($_POST['login'])) {
 
             @unlink($rate);
 
-            audit($db,$accessKeyOk && !$passwordOk ? 'login.access_key' : 'login');
+            audit(
+                $db,
+                $usedRecovery
+                    ? 'login.recovery_code'
+                    : ($accessKeyOk && !$passwordOk ? 'login.access_key' : 'login')
+            );
 
             header('Location:/admin/');
             exit;
