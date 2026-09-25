@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Configure
-        run: cmake -S tools/gd20-moderator-dll -B build-gd20 -A x64
+        run: cmake -S tools/gd20-moderator-dll -B build-gd20 -A Win32
 
       - name: Build
         run: cmake --build build-gd20 --config Release
