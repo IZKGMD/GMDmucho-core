@@ -49,8 +49,8 @@ $checks=[
     'conditional passkey autocomplete'=>str_contains($i,'username webauthn'),
     'passkey audit event'=>str_contains($i,'login.passkey'),
     'csrf for registration'=>substr_count($i,'checkPasskeyCsrf()')>=2 &&
-        str_contains($i,"$passkeyAction==='register-options'") &&
-        str_contains($i,"$passkeyAction==='register-verify'"),
+        str_contains($i,"\$passkeyAction==='register-options'") &&
+        str_contains($i,"\$passkeyAction==='register-verify'"),
     'rp id configuration'=>str_contains($s,'MUCHO_ADMIN_PASSKEY_RP_ID'),
 ];
 
