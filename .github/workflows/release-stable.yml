@@ -29,7 +29,6 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          test "$VERSION" = "1.0.1"
           echo "ready=true" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
@@ -47,9 +46,9 @@ jobs:
           git tag -f "$TAG" "$RELEASE_SHA"
           git push origin +refs/tags/"$TAG"
 
-          awk '
-            /^## v1\\.0\\.1/{printing=1}
-            /^## v1\\.0\\.0/{exit}
+          awk -v tag="$TAG" '
+            $0 ~ "^## " tag "$" {printing=1; print; next}
+            printing && $0 ~ "^## " {exit}
             printing {print}
           ' CHANGELOG.md > RELEASE_NOTES.md
 
