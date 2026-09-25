@@ -33,6 +33,11 @@ jobs:
       - name: Audit Composer dependencies
         run: composer audit --no-dev --locked --format=plain
 
+      - name: Install Android APK tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends android-sdk-build-tools
+
       - name: Check PHP sources
         run: |
           find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
