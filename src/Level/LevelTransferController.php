@@ -29,7 +29,7 @@ final readonly class LevelTransferController
         if (
             $accountId <= 0 &&
             !(
-                $version->effectiveGameVersion() === 3 &&
+                $version->effectiveGameVersion() === 1 &&
                 trim($udid) !== ''
             )
         ) {
