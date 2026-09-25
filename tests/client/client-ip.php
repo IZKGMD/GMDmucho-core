@@ -34,12 +34,12 @@ assertSameValue(
 );
 
 assertSameValue(
-    '1.2.3.4',
+    '172.20.0.2',
     ClientIp::resolve([
         'REMOTE_ADDR' => '172.20.0.2',
         'HTTP_CF_CONNECTING_IP' => '1.2.3.4',
     ]),
-    'private proxy trusts Cloudflare client IP'
+    'private proxy ignores spoofable Cloudflare client IP headers'
 );
 
 assertSameValue(
