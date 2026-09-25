@@ -391,10 +391,9 @@ if (!$selected) {
     echo '</div>';
 
     echo '<div class="rating-section">';
-    echo '<div class="rating-section-title"><b>Classification</b><span>Difficulty & feature</span></div>';
+    echo '<div class="rating-section-title"><b>Classification</b><span>Difficulty face & feature</span></div>';
     echo '<div class="rating-grid">';
 
-    echo '<div class="rating-field">';
     echo '<div class="rating-field">';
     echo '<label for="difficultyProfile">Difficulty</label>';
     echo '<select name="difficulty_profile" id="difficultyProfile">';
@@ -417,12 +416,16 @@ if (!$selected) {
     echo '<label>Quick presets</label>';
     echo '<div class="rating-presets">';
     echo '<button type="button" class="rating-preset" data-preset="unrated">Clear rating</button>';
-    echo '<button type="button" class="rating-preset" data-preset="easy">Easy 2★</button>';
-    echo '<button type="button" class="rating-preset" data-preset="normal">Normal 3★</button>';
-    echo '<button type="button" class="rating-preset" data-preset="hard">Hard 5★</button>';
-    echo '<button type="button" class="rating-preset" data-preset="harder">Harder 7★</button>';
-    echo '<button type="button" class="rating-preset" data-preset="insane">Insane 9★</button>';
-    echo '<button type="button" class="rating-preset" data-preset="demon">Demon 10★</button>';
+    echo '<button type="button" class="rating-preset" data-preset="easy">Easy · 2 stars</button>';
+    echo '<button type="button" class="rating-preset" data-preset="normal">Normal · 3 stars</button>';
+    echo '<button type="button" class="rating-preset" data-preset="hard">Hard · 5 stars</button>';
+    echo '<button type="button" class="rating-preset" data-preset="harder">Harder · 7 stars</button>';
+    echo '<button type="button" class="rating-preset" data-preset="insane">Insane · 9 stars</button>';
+    echo '<button type="button" class="rating-preset" data-preset="easy-demon">Easy Demon · 10 stars</button>';
+    echo '<button type="button" class="rating-preset" data-preset="medium-demon">Medium Demon · 10 stars</button>';
+    echo '<button type="button" class="rating-preset" data-preset="hard-demon">Hard Demon · 10 stars</button>';
+    echo '<button type="button" class="rating-preset" data-preset="insane-demon">Insane Demon · 10 stars</button>';
+    echo '<button type="button" class="rating-preset" data-preset="extreme-demon">Extreme Demon · 10 stars</button>';
     echo '</div>';
     echo '</div>';
 
