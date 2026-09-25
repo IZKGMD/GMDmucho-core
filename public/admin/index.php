@@ -880,7 +880,7 @@ if($passkeyAction!==''){
                 $result=muchAdminPasskeyService($db)->verifyLogin(
                     muchPasskeyBody()
                 );
-            }catch(\\Throwable $e){
+            }catch(\Throwable $e){
                 muchPasskeyRateFailure($rate,$state);
                 muchPasskeyJson(['ok'=>false,'error'=>'Passkey authentication failed.'],401);
             }
@@ -997,7 +997,7 @@ if($passkeyAction!==''){
         }
 
         muchPasskeyJson(['ok'=>false,'error'=>'Unknown passkey action.'],404);
-    }catch(\\Throwable){
+    }catch(\Throwable){
         muchPasskeyJson(['ok'=>false,'error'=>'Passkey operation failed.'],500);
     }
 }
