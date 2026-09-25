@@ -8,6 +8,16 @@ ADMIN_PASS="$(cat /run/secrets/admin_password)"
 
 install -d -m 750 -o root -g www-data /var/lib/muchocore
 install -d -m 750 -o root -g www-data /var/lib/muchocore/android-signer
+ANDROID_SIGNER_DIR=/var/lib/muchocore/android-signer
+if [[ ! -s "$ANDROID_SIGNER_DIR/muchocore-android.key.pem" || ! -s "$ANDROID_SIGNER_DIR/muchocore-android.cert.pem" ]]; then
+  rm -f "$ANDROID_SIGNER_DIR/muchocore-android.key.pem" "$ANDROID_SIGNER_DIR/muchocore-android.cert.pem"
+  openssl genrsa -out "$ANDROID_SIGNER_DIR/muchocore-android.key.pem" 2048
+  openssl req -new -x509 -sha256     -key "$ANDROID_SIGNER_DIR/muchocore-android.key.pem"     -out "$ANDROID_SIGNER_DIR/muchocore-android.cert.pem"     -days 10000     -subj "/CN=MuchoCore Android/O=MuchoCore/C=US"
+  chown root:www-data "$ANDROID_SIGNER_DIR/muchocore-android.key.pem" "$ANDROID_SIGNER_DIR/muchocore-android.cert.pem"
+  chmod 640 "$ANDROID_SIGNER_DIR/muchocore-android.key.pem"
+  chmod 644 "$ANDROID_SIGNER_DIR/muchocore-android.cert.pem"
+fi
+
 install -d -m 750 /var/lib/muchocore-control /var/lib/muchocore-backups
 install -d -m 750 /var/www/mucho-core/storage/music-public
 install -d -m 750 /var/www/mucho-core/storage/release-uploads
