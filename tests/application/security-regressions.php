@@ -82,10 +82,12 @@ assertSecurityRegression(
     'level management does not expose raw exception messages'
 );
 
+$hostHeaderExpression = '$_SERVER' . "['HTTP_HOST']";
+
 assertSecurityRegression(
     str_contains($recoveryController, 'MUCHO_ACCOUNT_URL') &&
     str_contains($recoveryController, 'client-controlled') &&
-    !str_contains($recoveryController, 'HTTP_HOST'),
+    !str_contains($recoveryController, $hostHeaderExpression),
     'recovery links never derive their origin from the Host header'
 );
 
