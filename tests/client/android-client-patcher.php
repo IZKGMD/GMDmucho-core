@@ -141,12 +141,27 @@ try {
 
     if (
         str_contains($native, $oldUrl) ||
-        str_contains($native, $oldHttpsUrl) ||
-        $check->locateName('META-INF/MANIFEST.MF') !== false ||
-        $check->locateName('META-INF/TEST.SF') !== false ||
-        $check->locateName('META-INF/TEST.RSA') !== false
+        str_contains($native, $oldHttpsUrl)
     ) {
-        throw new RuntimeException('Old URL or signature files remained.');
+        throw new RuntimeException('Old server URL remained in the patched native library.');
+    }
+
+    $signatureManifest = $check->getFromName('META-INF/MANIFEST.MF');
+    $signatureFiles = [
+        'META-INF/MANIFEST.MF',
+        'META-INF/TEST.SF',
+        'META-INF/TEST.RSA',
+    ];
+
+    if (!is_string($signatureManifest) || $signatureManifest === 'old signature manifest') {
+        throw new RuntimeException('APK signing did not create a fresh signature manifest.');
+    }
+
+    foreach ($signatureFiles as $signatureFile) {
+        $contents = $check->getFromName($signatureFile);
+        if ($contents === 'old signature' || $contents === 'old certificate' || $contents === 'old signature manifest') {
+            throw new RuntimeException('Stale signature content remained in ' . $signatureFile . '.');
+        }
     }
 
     $check->close();
