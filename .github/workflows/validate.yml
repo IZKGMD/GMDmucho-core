@@ -206,3 +206,35 @@ jobs:
         shell: powershell
         run: |
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/client/client-patcher.ps1 -SelfTest
+
+
+  gd20-moderator-dll:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure GD 2.0 moderator DLL
+        run: cmake -S tools/gd20-moderator-dll -B build-gd20 -A Win32
+
+      - name: Build GD 2.0 moderator DLL
+        run: cmake --build build-gd20 --config Release
+
+      - name: Package GD 2.0 moderator DLL
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item build-gd20/Release/MuchoModerator.dll out/MuchoModerator.dll
+          Set-Content out/README.txt @"
+          Mucho Moderator GD 2.0
+          Hotkey: Ctrl+Shift+R
+
+          Requires a 32-bit Geometry Dash 2.0 Windows process.
+          The DLL talks directly to the MuchoCore moderation API.
+          "@
+
+      - name: Upload GD 2.0 moderator DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: MuchoModerator-GD20
+          path: out/
+          if-no-files-found: error
