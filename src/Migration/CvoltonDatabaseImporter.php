@@ -28,8 +28,12 @@ final class CvoltonDatabaseImporter
             'accounts' => $this->count($source, 'accounts'),
             'users' => $this->count($source, 'users'),
             'levels' => $this->count($source, 'levels'),
-            'levelscores' => $this->count($source, 'levelscores'),
-            'platscores' => $this->count($source, 'platscores'),
+            'levelscores' => $this->sourceTableExists($source, 'levelscores')
+                ? $this->count($source, 'levelscores')
+                : 0,
+            'platscores' => $this->sourceTableExists($source, 'platscores')
+                ? $this->count($source, 'platscores')
+                : 0,
         ];
     }
 
