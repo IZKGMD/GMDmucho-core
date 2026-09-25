@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 use MuchoCore\Admin\AdminPasskeyService;
+use MuchoCore\Admin\AdminRbac;
 use MuchoCore\Branding\BrandingService;
 use MuchoCore\Database\Database;
 
@@ -288,13 +289,64 @@ function rank(string $role): int
     };
 }
 
+function canPermission(string $permission): bool
+{
+    global $db;
+    return AdminRbac::can($db, admin(), $permission);
+}
+
+function requirePermission(string $permission): void
+{
+    global $db;
+    AdminRbac::require($db, admin(), $permission);
+}
+
 function requireRank(int $rank): void
 {
+    global $db;
+
     $a=admin();
 
-    if (!$a || rank($a['role'])<$rank) {
+    if (!$a) {
+        throw new RuntimeException('Authentication required.');
+    }
+
+    $role=(string)($a['role'] ?? '');
+
+    // Preserve the historical built-in role behavior exactly.
+    if (AdminRbac::isBuiltInRole($role)) {
+        if (rank($role)<$rank) {
+            throw new RuntimeException('Insufficient permissions.');
+        }
+        return;
+    }
+
+    $permission=AdminRbac::permissionForContext(
+        isset($_POST['action']) ? (string)$_POST['action'] : null,
+        isset($_GET['page']) ? (string)$_GET['page'] : null,
+        $rank
+    );
+
+    if ($permission === null || !AdminRbac::can($db,$a,$permission)) {
         throw new RuntimeException('Insufficient permissions.');
     }
+}
+
+function canAdminPage(string $pageKey): bool
+{
+    global $db;
+
+    $a=admin();
+    if (!$a) {
+        return false;
+    }
+
+    if (AdminRbac::isBuiltInRole((string)($a['role'] ?? ''))) {
+        return true;
+    }
+
+    $permission=AdminRbac::permissionForContext(null,$pageKey,0);
+    return $permission !== null && AdminRbac::can($db,$a,$permission);
 }
 
 function flash(string $text,string $type='ok'): void
@@ -4435,6 +4487,11 @@ if (!isset($pages[$page])) {
     $page='dashboard';
 }
 
+if (admin() && !canAdminPage($page)) {
+    flash('You do not have permission to access this section.','err');
+    $page='dashboard';
+}
+
 $flash=$_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
 
@@ -4928,41 +4985,49 @@ table{
 
 <div class="nav-title">Main</div>
 <?php foreach(['dashboard','analytics','advanced','monitoring'] as $key): ?>
+<?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
  title="<?=h($pages[$key])?>"
  class="<?=$page===$key?'on':''?>"
 ><?=h($pages[$key])?></a>
+<?php endif; ?>
 <?php endforeach ?>
 
 <div class="nav-title">Content</div>
 <?php foreach(['players','muchoprofiles','levels','moderation','rating','comments','messages','social','songs'] as $key): ?>
+<?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
  title="<?=h($pages[$key])?>"
  class="<?=$page===$key?'on':''?>"
 ><?=h($pages[$key])?></a>
+<?php endif; ?>
 <?php endforeach ?>
 
 <div class="nav-title">Tools</div>
 <?php foreach(['database','endpoints','clientfeatures','clientpatcher','securitycenter','dbbackups','backups','settings','system'] as $key): ?>
+<?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
  title="<?=h($pages[$key])?>"
  class="<?=$page===$key?'on':''?>"
 ><?=h($pages[$key])?></a>
+<?php endif; ?>
 <?php endforeach ?>
 
 <div class="nav-title">Access</div>
-<?php foreach(['admins','audit'] as $key): ?>
+<?php foreach(['admins','roles','audit'] as $key): ?>
+<?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
  title="<?=h($pages[$key])?>"
  class="<?=$page===$key?'on':''?>"
 ><?=h($pages[$key])?></a>
+<?php endif; ?>
 <?php endforeach ?>
 
-<a class="logout" href="/admin/?logout=1">
+<a class="logout href="/admin/?logout=1">
 Logout
 </a>
 
