@@ -63,6 +63,8 @@ try {
         throw new RuntimeException('Cannot finalize fixture APK.');
     }
 
+    putenv('MUCHO_ANDROID_SIGNER_DIR=' . $dir . '/android-signer');
+
     $report = AndroidClientPatcher::patchFile(
         $input,
         $output,
