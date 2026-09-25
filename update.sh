@@ -31,6 +31,28 @@ grep -q '^TURNSTILE_SITEKEY=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SITE
 grep -q '^TURNSTILE_SECRET=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SECRET=\n' >> "$ROOT/.env"
 grep -q '^MUCHO_GD_VERSIONS=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_GD_VERSIONS=all\n' >> "$ROOT/.env"
 
+# Serve both the canonical host and the legacy www host used by older GD 1.9 clients.
+# Preserve :80 for Cloudflare Tunnel mode; otherwise normalize CADDY_ADDRESS from DOMAIN.
+if ! grep -q '^CADDY_ADDRESS=' "$ROOT/.env" 2>/dev/null; then
+    if [[ "$DOMAIN" == www.* ]]; then
+        printf 'CADDY_ADDRESS=%s\n' "$DOMAIN" >> "$ROOT/.env"
+    else
+        printf 'CADDY_ADDRESS=%s www.%s\n' "$DOMAIN" "$DOMAIN" >> "$ROOT/.env"
+    fi
+elif ! grep -q '^MUCHO_TUNNEL_TOKEN=' "$ROOT/.env" 2>/dev/null; then
+    CURRENT_CADDY_ADDRESS="$(sed -n 's/^CADDY_ADDRESS=//p' "$ROOT/.env" | head -n1 || true)"
+    if [[ "$CURRENT_CADDY_ADDRESS" == "$DOMAIN" ]]; then
+        if [[ "$DOMAIN" == www.* ]]; then
+            printf 'CADDY_ADDRESS=%s\n' "$DOMAIN" > "$ROOT/.caddy-address.tmp"
+        else
+            printf 'CADDY_ADDRESS=%s www.%s\n' "$DOMAIN" "$DOMAIN" > "$ROOT/.caddy-address.tmp"
+        fi
+        sed -i '/^CADDY_ADDRESS=/d' "$ROOT/.env"
+        cat "$ROOT/.caddy-address.tmp" >> "$ROOT/.env"
+        rm -f "$ROOT/.caddy-address.tmp"
+    fi
+fi
+
 COMPOSE_ARGS=()
 if grep -q '^MUCHO_TUNNEL_TOKEN=' "$ROOT/.env" 2>/dev/null; then
     COMPOSE_ARGS=(-f docker-compose.yml -f docker-compose.tunnel.yml)
