@@ -2758,6 +2758,7 @@ require_once __DIR__.'/security-monitoring-module.php';
 require_once __DIR__.'/db-backup-center-module.php';
 require_once __DIR__.'/core/AdminRouter.php';
 require_once __DIR__.'/pages/dashboard.php';
+require_once __DIR__.'/pages/release.php';
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     checkCsrf();
