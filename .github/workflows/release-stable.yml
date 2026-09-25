@@ -25,13 +25,35 @@ jobs:
         run: |
           VERSION="$(tr -d '[:space:]' < VERSION)"
           TAG="v${VERSION}"
+          if [[ -f ".release/${TAG}-notes.ready" ]]; then
+            echo "notes_only=true" >> "$GITHUB_OUTPUT"
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [[ ! -f ".release/${TAG}.ready" ]]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "notes_only=false" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Sync existing release notes
+        if: steps.marker.outputs.notes_only == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.marker.outputs.tag }}
+        run: |
+          awk -v tag="$TAG" '
+            $0 ~ "^## " tag " —" {printing=1; next}
+            printing && $0 ~ "^## " {exit}
+            printing {print}
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          test -s RELEASE_NOTES.md
+          gh release edit "$TAG" --repo "${GITHUB_REPOSITORY}" --notes-file RELEASE_NOTES.md
+          rm -f RELEASE_NOTES.md
 
       - name: Publish validated release
         if: steps.marker.outputs.ready == 'true'
@@ -64,10 +86,7 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "$TAG release already exists."
           else
-            gh release create "$TAG" \
-              --title "MuchoCore $TAG" \
-              --notes-file RELEASE_NOTES.md \
-              --latest
+            gh release create "$TAG"               --title "MuchoCore $TAG"               --notes-file RELEASE_NOTES.md               --latest
           fi
 
           rm -f RELEASE_NOTES.md
@@ -87,4 +106,20 @@ jobs:
           fi
           git add -A ".release/${TAG}.ready"
           git commit -m "chore: finalize ${TAG} release marker"
+          git push origin main
+
+      - name: Remove one-time release notes marker
+        if: steps.marker.outputs.notes_only == 'true'
+        env:
+          TAG: ${{ steps.marker.outputs.tag }}
+        run: |
+          git fetch origin main
+          git switch -C main origin/main
+          rm -f ".release/${TAG}-notes.ready"
+          if git diff --quiet -- ".release/${TAG}-notes.ready"; then
+            echo "Release notes marker already absent."
+            exit 0
+          fi
+          git add -A ".release/${TAG}-notes.ready"
+          git commit -m "chore: finalize ${TAG} release notes sync"
           git push origin main
