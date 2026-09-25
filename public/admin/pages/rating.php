@@ -384,7 +384,7 @@ if (!$selected) {
     echo '<div class="rating-stars-pick" id="starsPicker">';
     foreach ($starsOptions as $star) {
         $active = $selectedStars === $star ? ' on' : '';
-        echo '<button type="button" class="'.$active.'" data-stars="'.$star.'">'.($star === 0 ? '0' : $star.'★').'</button>';
+        echo '<button type="button" class="'.$active.'" data-stars="'.$star.'" title="'.$star.' stars">'.$star.'</button>';
     }
     echo '</div>';
     echo '<input type="hidden" name="stars" id="starsValue" value="'.$selectedStars.'">';
