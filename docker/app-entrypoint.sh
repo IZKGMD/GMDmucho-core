@@ -7,6 +7,7 @@ DB_PASS="$(cat /run/secrets/db_password)"
 ADMIN_PASS="$(cat /run/secrets/admin_password)"
 
 install -d -m 750 -o root -g www-data /var/lib/muchocore
+install -d -m 750 -o root -g www-data /var/lib/muchocore/android-signer
 install -d -m 750 /var/lib/muchocore-control /var/lib/muchocore-backups
 install -d -m 750 /var/www/mucho-core/storage/music-public
 install -d -m 750 /var/www/mucho-core/storage/release-uploads
