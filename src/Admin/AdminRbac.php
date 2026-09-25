@@ -119,6 +119,68 @@ final class AdminRbac
         return $stmt->fetchColumn() !== false;
     }
 
+    public static function isBuiltInRole(string $code): bool
+    {
+        return in_array(
+            strtolower(trim($code)),
+            ['owner', 'admin', 'moderator', 'viewer'],
+            true
+        );
+    }
+
+    public static function canManagePermissionSet(
+        PDO $db,
+        ?array $admin,
+        array $permissions
+    ): bool {
+        if (!$admin) {
+            return false;
+        }
+
+        if ((string)($admin['role'] ?? '') === 'owner') {
+            return true;
+        }
+
+        $own = self::rolePermissions($db, (string)($admin['role'] ?? ''));
+        foreach (self::normalizePermissionList($permissions) as $permission) {
+            if (!in_array($permission, $own, true)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static function canAssignRole(
+        PDO $db,
+        ?array $admin,
+        string $targetRole
+    ): bool {
+        if (!$admin) {
+            return false;
+        }
+
+        $targetRole = strtolower(trim($targetRole));
+        if (!self::roleExists($db, $targetRole)) {
+            return false;
+        }
+
+        if ((string)($admin['role'] ?? '') === 'owner') {
+            return true;
+        }
+
+        if (self::isBuiltInRole($targetRole)) {
+            return self::can($db, $admin, self::normalizePermission('self.security'))
+                && $targetRole === 'viewer';
+        }
+
+        return self::canManagePermissionSet(
+            $db,
+            $admin,
+            self::rolePermissions($db, $targetRole)
+        );
+    }
+
     public static function roleName(PDO $db, string $code): string
     {
         $code = strtolower(trim($code));
