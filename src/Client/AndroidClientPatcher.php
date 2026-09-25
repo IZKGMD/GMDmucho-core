@@ -242,12 +242,15 @@ final class AndroidClientPatcher
             self::runTool(
                 [
                     'openssl',
-                    'genrsa',
+                    'genpkey',
+                    '-algorithm',
+                    'RSA',
+                    '-pkeyopt',
+                    'rsa_keygen_bits:2048',
                     '-out',
                     $key,
-                    '2048',
                 ],
-                'Android signer key generation'
+                'Android signer PKCS#8 key generation'
             );
 
             self::runTool(
@@ -271,6 +274,37 @@ final class AndroidClientPatcher
 
             @chmod($key, 0600);
             @chmod($cert, 0644);
+        }
+
+        if (is_file($key) && is_readable($key)) {
+            $normalizedKey = $key . '.pkcs8';
+            @unlink($normalizedKey);
+
+            self::runTool(
+                [
+                    'openssl',
+                    'pkcs8',
+                    '-topk8',
+                    '-nocrypt',
+                    '-in',
+                    $key,
+                    '-out',
+                    $normalizedKey,
+                ],
+                'Android signer PKCS#8 normalization'
+            );
+
+            if (!is_file($normalizedKey) || filesize($normalizedKey) === false || filesize($normalizedKey) < 512) {
+                @unlink($normalizedKey);
+                throw new RuntimeException('Android signer PKCS#8 normalization produced an invalid key.');
+            }
+
+            @chmod($normalizedKey, 0600);
+            if (!@rename($normalizedKey, $key)) {
+                @unlink($normalizedKey);
+                throw new RuntimeException('Cannot replace Android signer key with normalized PKCS#8 key.');
+            }
+            @chmod($key, 0600);
         }
 
         if (!is_readable($key) || !is_readable($cert)) {
