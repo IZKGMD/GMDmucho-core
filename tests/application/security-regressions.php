@@ -61,6 +61,38 @@ $adminIndex = (string)file_get_contents(
     __DIR__ . '/../../public/admin/index.php'
 );
 
+$adminLevels = (string)file_get_contents(
+    __DIR__ . '/../../public/admin/actions/levels.php'
+);
+$recoveryController = (string)file_get_contents(
+    __DIR__ . '/../../src/Account/RecoveryController.php'
+);
+
+assertSecurityRegression(
+    str_contains($adminIndex, "set_exception_handler('muchoAdminHandleException');") &&
+    str_contains($adminIndex, 'The operation could not be completed. Please try again.'),
+    'admin frontend masks unexpected exception details'
+);
+
+assertSecurityRegression(
+    !str_contains($adminIndex, "flash(
+            'Error: '.$e->getMessage()"),
+    'admin frontend does not expose raw exception messages'
+);
+
+assertSecurityRegression(
+    !str_contains($adminLevels, "'Error: '.$e->getMessage()") &&
+    str_contains($adminLevels, 'The operation could not be completed. Please try again.'),
+    'level management does not expose raw exception messages'
+);
+
+assertSecurityRegression(
+    str_contains($recoveryController, 'MUCHO_ACCOUNT_URL') &&
+    str_contains($recoveryController, 'client-controlled') &&
+    !str_contains($recoveryController, "$_SERVER['HTTP_HOST']"),
+    'recovery links never derive their origin from the Host header'
+);
+
 assertSecurityRegression(
     str_contains($adminIndex, "if (admin() && isset($_GET['download'])) {\n    requireRank(40);"),
     'backup downloads require owner-level admin access'
