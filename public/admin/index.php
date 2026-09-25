@@ -6,6 +6,68 @@ use MuchoCore\Database\Database;
 
 require dirname(__DIR__,2).'/vendor/autoload.php';
 
+$__muchoAdminRequestId = bin2hex(random_bytes(8));
+
+/**
+ * Never expose internal exception details through the administrator UI.
+ * Keep the full diagnostic server-side and return a stable generic response.
+ */
+function muchoAdminHandleException(Throwable $e): void
+{
+    global $__muchoAdminRequestId;
+
+    error_log(sprintf(
+        '[MuchoCore Admin] request=%s %s: %s | %s:%d',
+        $__muchoAdminRequestId,
+        $e::class,
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine()
+    ));
+
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: text/html; charset=utf-8');
+        header('Cache-Control: no-store');
+        header('X-Request-ID: ' . $__muchoAdminRequestId);
+    }
+
+    echo '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        . '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        . '<title>MuchoCore Admin</title>'
+        . '<style>body{font-family:system-ui,sans-serif;background:#07090f;color:#f4f7ff;display:grid;place-items:center;min-height:100vh;margin:0}.box{max-width:560px;padding:32px;border:1px solid #263246;border-radius:16px;background:#0f1520;text-align:center}p{color:#8e9bb0;line-height:1.6}.id{font:12px ui-monospace,monospace;color:#69758a;word-break:break-all}</style>'
+        . '</head><body><main class="box"><h1>Something went wrong</h1>'
+        . '<p>The administrator operation could not be completed. Try again later.</p>'
+        . '<p class="id">Request ID: ' . htmlspecialchars(
+            $__muchoAdminRequestId,
+            ENT_QUOTES | ENT_SUBSTITUTE,
+            'UTF-8'
+        ) . '</p></main></body></html>';
+    exit;
+}
+
+set_exception_handler('muchoAdminHandleException');
+register_shutdown_function(static function (): void {
+    $error = error_get_last();
+
+    if ($error === null) {
+        return;
+    }
+
+    $fatalTypes = [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_PARSE];
+
+    if (!in_array($error['type'], $fatalTypes, true)) {
+        return;
+    }
+
+    $exception = new Error($error['message']);
+    muchoAdminHandleException($exception);
+});
+
 try {
     $db=(new Database())->connection();
     $db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
@@ -3067,8 +3129,20 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         }
 
     } catch(Throwable $e) {
+        global $__muchoAdminRequestId;
+
+        error_log(sprintf(
+            '[MuchoCore Admin] request=%s action=%s %s: %s | %s:%d',
+            $__muchoAdminRequestId,
+            $action,
+            $e::class,
+            $e->getMessage(),
+            $e->getFile(),
+            $e->getLine()
+        ));
+
         flash(
-            'Error: '.$e->getMessage(),
+            'The operation could not be completed. Please try again.',
             'error'
         );
     }
