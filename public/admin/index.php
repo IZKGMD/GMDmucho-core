@@ -1711,7 +1711,7 @@ max-width:100%
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
 <script src="/muchocore-theme.js?v=3" defer></script>
 <?php if ($page==='admins'): ?>
-<script src="/admin/assets/qrcode.min.js"></script>
+<script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>
 </head>
 <body class="admin-login" data-page="">
@@ -1738,7 +1738,8 @@ max-width:100%
 
 <input
  name="access_key"
- autocomplete="one-time-code"
+ autocomplete="off"
+ spellcheck="false"
  placeholder="Access Key (optional)"
 >
 
