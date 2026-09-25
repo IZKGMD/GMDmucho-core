@@ -99,7 +99,7 @@ final class CommentService
                 $percent
             );
 
-            return 1;
+            return "1";
         }
 
         $this->pdo->beginTransaction();
@@ -126,7 +126,7 @@ final class CommentService
 
             $this->pdo->commit();
 
-            return 1;
+            return "1";
         } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
