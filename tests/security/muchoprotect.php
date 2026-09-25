@@ -286,6 +286,31 @@ if ($strictLimiter->allow('strict-test', 1, 60) !== true) {
 }
 @unlink($strictFailurePath);
 
+$strictProtectDir = $dir . '-protect-strict';
+if (file_put_contents($strictProtectDir, 'x') === false) {
+    fwrite(STDERR, "Unable to create strict protection fixture\n");
+    exit(1);
+}
+$strictProtect = new MuchoProtect(
+    new RateLimiter($strictProtectDir),
+    new \MuchoCore\Security\AbusePenaltyStore($dir . '-strict-protect-penalty')
+);
+$strictResult = $strictProtect->inspect(
+    new Request(
+        'GET',
+        '/getGJUserInfo20.php',
+        [],
+        [],
+        ['REMOTE_ADDR' => '127.0.0.95']
+    ),
+    '/getGJUserInfo20.php'
+);
+if ($strictResult['decision'] !== 'block') {
+    fwrite(STDERR, "MuchoProtect did not fail closed when limiter storage was unavailable\n");
+    exit(1);
+}
+@unlink($strictProtectDir);
+
 $penaltyStatusDir = $dir . '-status-only';
 $statusProbe = new \MuchoCore\Security\AbusePenaltyStore($penaltyStatusDir);
 $status = $statusProbe->status('never-penalized');
