@@ -20,6 +20,23 @@ MUCHO_ADMIN_PASSWORD="${MUCHO_ADMIN_PASSWORD:-}"
 # compose override sends traffic to the internal Caddy service at http://caddy:80.
 TUNNEL_TOKEN="${MUCHO_TUNNEL_TOKEN:-}"
 GD_VERSIONS="${MUCHO_GD_VERSIONS:-}"
+RELEASE_API="${MUCHO_RELEASE_API:-https://api.github.com/repos/IZKGMD/GMDmucho-core/releases/latest}"
+
+get_latest_stable_release_tag() {
+  local response tag
+  response="$(curl -4fsS --connect-timeout 5 --max-time 10 \
+    -H 'Accept: application/vnd.github+json' \
+    -H 'User-Agent: MuchoCore-Installer/1.0' \
+    -H 'X-GitHub-Api-Version: 2022-11-28' \
+    "$RELEASE_API")" || return 1
+
+  tag="$(printf '%s' "$response" |
+    sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' |
+    head -n1)"
+
+  [[ "$tag" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
+  printf '%s' "$tag"
+}
 
 BOLD='\033[1m'
 CYAN='\033[1;36m'
