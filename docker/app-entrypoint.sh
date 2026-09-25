@@ -18,10 +18,10 @@ chown www-data:www-data /var/www/mucho-core/storage /var/www/mucho-core/storage/
 # Migrate an older project-local key exactly once without changing it, then
 # remove the source-tree copy so PHP workers cannot replace the key in config/.
 CLOUDSAVE_KEY=/var/lib/muchocore/cloudsave.key
-if [[ -s /run/secrets/cloudsave_key ]]; then
-  install -m 640 -o root -g www-data /run/secrets/cloudsave_key "$CLOUDSAVE_KEY"
-elif [[ ! -s "$CLOUDSAVE_KEY" && -s config/cloudsave.key ]]; then
+if [[ -s config/cloudsave.key ]]; then
   install -m 640 -o root -g www-data config/cloudsave.key "$CLOUDSAVE_KEY"
+elif [[ -s /run/secrets/cloudsave_key ]]; then
+  install -m 640 -o root -g www-data /run/secrets/cloudsave_key "$CLOUDSAVE_KEY"
 fi
 if [[ ! -s "$CLOUDSAVE_KEY" ]]; then
   openssl rand -base64 32 > "$CLOUDSAVE_KEY"
