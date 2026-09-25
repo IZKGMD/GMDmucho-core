@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+use MuchoCore\Admin\AdminPasskeyService;
 use MuchoCore\Branding\BrandingService;
 use MuchoCore\Database\Database;
 
@@ -641,6 +642,364 @@ function totpProvisioningUri(
         '&algorithm=SHA1'.
         '&digits=6'.
         '&period=30';
+}
+
+
+function muchAdminPasskeyService(PDO $db): AdminPasskeyService
+{
+    global $branding;
+
+    $name=trim((string)($branding['server_name'] ?? 'MuchoCore'));
+    if($name===''){
+        $name='MuchoCore';
+    }
+
+    return new AdminPasskeyService(
+        $db,
+        mb_substr($name,0,64,'UTF-8').' Admin'
+    );
+}
+
+function muchPasskeyJson(mixed $payload,int $status=200): never
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    echo json_encode(
+        $payload,
+        JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES
+    );
+    exit;
+}
+
+function muchPasskeyBody(): array
+{
+    $raw=(string)file_get_contents('php://input');
+    $data=json_decode($raw,true);
+
+    if(!is_array($data)){
+        muchPasskeyJson(['ok'=>false,'error'=>'Invalid request body.'],400);
+    }
+
+    return $data;
+}
+
+function checkPasskeyCsrf(): void
+{
+    $token=(string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+
+    if($token==='' || !hash_equals(csrf(),$token)){
+        muchPasskeyJson(['ok'=>false,'error'=>'CSRF rejected.'],403);
+    }
+}
+
+function muchPasskeyRateFile(): string
+{
+    $ip=\\MuchoCore\\Http\\ClientIp::resolve($_SERVER);
+    return '/tmp/mucho-admin-passkey-'.hash('sha256',$ip);
+}
+
+function muchPasskeyRateState(string $rate): array
+{
+    $state=['start'=>time(),'tries'=>0];
+
+    if(is_file($rate)){
+        $candidate=json_decode((string)file_get_contents($rate),true);
+        if(is_array($candidate)){
+            $state=array_merge($state,$candidate);
+        }
+    }
+
+    if(time()-(int)$state['start']>900){
+        $state=['start'=>time(),'tries'=>0];
+    }
+
+    return $state;
+}
+
+function muchPasskeyRateFailure(string $rate,array $state): void
+{
+    $state['tries']=(int)$state['tries']+1;
+    file_put_contents(
+        $rate,
+        json_encode($state),
+        LOCK_EX
+    );
+}
+
+function establishAdminSession(array $row): void
+{
+    session_regenerate_id(true);
+
+    $_SESSION['admin']=[
+        'id'=>(int)$row['id'],
+        'username'=>(string)$row['username'],
+        'role'=>(string)$row['role']
+    ];
+
+    $_SESSION['admin_login_at']=time();
+    $_SESSION['admin_last_activity']=time();
+    $_SESSION['csrf']=bin2hex(random_bytes(32));
+}
+
+
+/* =========================================================
+   PASSKEY / WEBAUTHN
+========================================================= */
+
+$passkeyAction=(string)($_GET['passkey'] ?? '');
+
+if($passkeyAction!==''){
+    try{
+        if($_SERVER['REQUEST_METHOD']!=='POST'){
+            muchPasskeyJson(['ok'=>false,'error'=>'POST required.'],405);
+        }
+
+        if($passkeyAction==='register-options'){
+            if(!admin()){
+                muchPasskeyJson(['ok'=>false,'error'=>'Authentication required.'],401);
+            }
+
+            checkPasskeyCsrf();
+
+            if(!tableExists($db,'admin_passkeys')){
+                muchPasskeyJson(['ok'=>false,'error'=>'Passkey storage is unavailable. Run migrations first.'],503);
+            }
+
+            $me=(int)admin()['id'];
+            $q=$db->prepare(
+                'SELECT username
+                 FROM admin_users
+                 WHERE id=:id AND is_active=1
+                 LIMIT 1'
+            );
+            $q->execute(['id'=>$me]);
+            $username=(string)($q->fetchColumn() ?: '');
+
+            if($username===''){
+                muchPasskeyJson(['ok'=>false,'error'=>'Administrator account is unavailable.'],409);
+            }
+
+            $args=muchAdminPasskeyService($db)->registrationOptions(
+                $me,
+                $username
+            );
+
+            muchPasskeyJson($args);
+        }
+
+        if($passkeyAction==='register-verify'){
+            if(!admin()){
+                muchPasskeyJson(['ok'=>false,'error'=>'Authentication required.'],401);
+            }
+
+            checkPasskeyCsrf();
+
+            if(!tableExists($db,'admin_passkeys')){
+                muchPasskeyJson(['ok'=>false,'error'=>'Passkey storage is unavailable. Run migrations first.'],503);
+            }
+
+            $payload=muchPasskeyBody();
+            $label=trim((string)($payload['label'] ?? ''));
+            $payload['label']=mb_substr($label,0,120,'UTF-8');
+
+            $record=muchAdminPasskeyService($db)->verifyRegistration(
+                (int)admin()['id'],
+                $payload
+            );
+
+            audit(
+                $db,
+                'passkey.register',
+                'admin:'.(int)admin()['id'],
+                ['passkey_id'=>(int)$record['id']]
+            );
+
+            muchPasskeyJson([
+                'ok'=>true,
+                'passkey'=>$record
+            ]);
+        }
+
+        if($passkeyAction==='revoke'){
+            if(!admin()){
+                muchPasskeyJson(['ok'=>false,'error'=>'Authentication required.'],401);
+            }
+
+            checkPasskeyCsrf();
+
+            if(!tableExists($db,'admin_passkeys')){
+                muchPasskeyJson(['ok'=>false,'error'=>'Passkey storage is unavailable. Run migrations first.'],503);
+            }
+
+            $payload=muchPasskeyBody();
+            $id=(int)($payload['passkey_id'] ?? 0);
+
+            if($id<=0){
+                muchPasskeyJson(['ok'=>false,'error'=>'Invalid passkey.'],400);
+            }
+
+            $deleted=muchAdminPasskeyService($db)->deleteForAdmin(
+                (int)admin()['id'],
+                $id
+            );
+
+            if(!$deleted){
+                muchPasskeyJson(['ok'=>false,'error'=>'Passkey not found.'],404);
+            }
+
+            audit(
+                $db,
+                'passkey.revoke',
+                'admin:'.(int)admin()['id'],
+                ['passkey_id'=>$id]
+            );
+
+            muchPasskeyJson(['ok'=>true]);
+        }
+
+        if($passkeyAction==='login-options'){
+            $service=muchAdminPasskeyService($db);
+            $args=$service->loginOptions();
+            muchPasskeyJson($args);
+        }
+
+        if($passkeyAction==='login-verify'){
+            $rate= muchPasskeyRateFile();
+            $state=muchPasskeyRateState($rate);
+
+            if((int)$state['tries']>=8){
+                muchPasskeyJson(['ok'=>false,'error'=>'Too many attempts.'],429);
+            }
+
+            if(!tableExists($db,'admin_passkeys')){
+                muchPasskeyJson(['ok'=>false,'error'=>'Passkey storage is unavailable. Run migrations first.'],503);
+            }
+
+            try{
+                $result=muchAdminPasskeyService($db)->verifyLogin(
+                    muchPasskeyBody()
+                );
+            }catch(\\Throwable $e){
+                muchPasskeyRateFailure($rate,$state);
+                muchPasskeyJson(['ok'=>false,'error'=>'Passkey authentication failed.'],401);
+            }
+
+            @unlink($rate);
+
+            $adminRow=[
+                'id'=>(int)$result['admin']['id'],
+                'username'=>(string)$result['admin']['username'],
+                'role'=>(string)$result['admin']['role']
+            ];
+
+            if(!empty($result['requires_totp'])){
+                $_SESSION['pending_passkey_admin']=[
+                    'id'=>$adminRow['id'],
+                    'created_at'=>time()
+                ];
+
+                audit(
+                    $db,
+                    'login.passkey.pending_totp',
+                    (string)$adminRow['username']
+                );
+
+                muchPasskeyJson([
+                    'ok'=>true,
+                    'requires_totp'=>true
+                ]);
+            }
+
+            establishAdminSession($adminRow);
+            audit(
+                $db,
+                'login.passkey',
+                (string)$adminRow['username']
+            );
+
+            muchPasskeyJson([
+                'ok'=>true,
+                'redirect'=>'/admin/'
+            ]);
+        }
+
+        if($passkeyAction==='login-totp'){
+            $pending=$_SESSION['pending_passkey_admin'] ?? null;
+
+            if(!is_array($pending)){
+                muchPasskeyJson(['ok'=>false,'error'=>'Passkey verification expired. Start again.'],401);
+            }
+
+            if(time()-(int)($pending['created_at'] ?? 0)>300){
+                unset($_SESSION['pending_passkey_admin']);
+                muchPasskeyJson(['ok'=>false,'error'=>'Passkey verification expired. Start again.'],401);
+            }
+
+            $payload=muchPasskeyBody();
+            $otp=trim((string)($payload['otp'] ?? ''));
+            $id=(int)($pending['id'] ?? 0);
+
+            if($id<=0){
+                unset($_SESSION['pending_passkey_admin']);
+                muchPasskeyJson(['ok'=>false,'error'=>'Passkey verification expired. Start again.'],401);
+            }
+
+            $q=$db->prepare(
+                'SELECT id,username,role,totp_secret,is_active
+                 FROM admin_users
+                 WHERE id=:id
+                 LIMIT 1'
+            );
+            $q->execute(['id'=>$id]);
+            $row=$q->fetch(PDO::FETCH_ASSOC) ?: null;
+
+            if(
+                $row===null ||
+                empty($row['is_active']) ||
+                empty($row['totp_secret'])
+            ){
+                unset($_SESSION['pending_passkey_admin']);
+                muchPasskeyJson(['ok'=>false,'error'=>'Second-factor verification failed.'],401);
+            }
+
+            $ok=verifyTotp((string)$row['totp_secret'],$otp);
+            $usedRecovery=false;
+
+            if(!$ok){
+                $usedRecovery=verifyAdminRecoveryCode(
+                    $db,
+                    (int)$row['id'],
+                    $otp
+                );
+                $ok=$usedRecovery;
+            }
+
+            if(!$ok){
+                muchPasskeyJson(['ok'=>false,'error'=>'Invalid second factor.'],401);
+            }
+
+            unset($_SESSION['pending_passkey_admin']);
+            establishAdminSession($row);
+
+            audit(
+                $db,
+                $usedRecovery
+                    ? 'login.passkey.recovery_code'
+                    : 'login.passkey',
+                (string)$row['username']
+            );
+
+            muchPasskeyJson([
+                'ok'=>true,
+                'redirect'=>'/admin/'
+            ]);
+        }
+
+        muchPasskeyJson(['ok'=>false,'error'=>'Unknown passkey action.'],404);
+    }catch(\\Throwable){
+        muchPasskeyJson(['ok'=>false,'error'=>'Passkey operation failed.'],500);
+    }
 }
 
 /* =========================================================
@@ -1888,15 +2247,16 @@ max-width:100%
 <div class="err"><?=h($loginError)?></div>
 <?php endif ?>
 
-<div class="admin-login-methods" style="display:flex;gap:8px;margin-bottom:10px">
+<div class="admin-login-methods" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
 <button type="button" class="gray" id="passwordMode">Password login</button>
 <button type="button" class="gray" id="accessKeyMode">Access Key login</button>
+<button type="button" class="gray" id="passkeyMode">Passkey login</button>
 </div>
 
 <div id="passwordLoginFields">
 <input
  name="username"
- autocomplete="username"
+ autocomplete="username webauthn"
  placeholder="Username"
 >
 
@@ -1917,44 +2277,197 @@ max-width:100%
 >
 </div>
 
+<div id="passkeyLoginFields" hidden>
+<div style="padding:11px 12px;margin-bottom:10px;border:1px solid #2d3a50;border-radius:12px;background:#0c121c;color:#9aa7bb;font-size:12px;line-height:1.5">
+Use a saved passkey. Your browser will open the native passkey picker so you can choose the account or device credential.
+</div>
+<button type="button" id="passkeyLoginButton">Continue with passkey</button>
+<div id="passkeyStatus" style="margin-top:8px;color:#7f8ba0;font-size:11px;min-height:16px"></div>
+</div>
+
+<div id="otpLoginField">
 <input
  name="otp"
  inputmode="numeric"
  autocomplete="one-time-code"
  placeholder="2FA code, if enabled"
 >
+</div>
 
-<button name="login" value="1">Sign in</button>
+<div id="passkeyTotpField" hidden style="margin-top:10px">
+<input
+ id="passkeyTotp"
+ inputmode="numeric"
+ autocomplete="one-time-code"
+ placeholder="2FA code or recovery code"
+>
+<button type="button" id="passkeyTotpButton" style="margin-top:8px">Complete passkey sign-in</button>
+</div>
+
+<button id="normalSignInButton" name="login" value="1">Sign in</button>
 <script>
 (() => {
     const passwordMode=document.getElementById('passwordMode');
     const accessKeyMode=document.getElementById('accessKeyMode');
+    const passkeyMode=document.getElementById('passkeyMode');
     const passwordFields=document.getElementById('passwordLoginFields');
     const accessKeyFields=document.getElementById('accessKeyLoginFields');
+    const passkeyFields=document.getElementById('passkeyLoginFields');
+    const otpField=document.getElementById('otpLoginField');
+    const passkeyTotpField=document.getElementById('passkeyTotpField');
+    const normalSignIn=document.getElementById('normalSignInButton');
     const username=document.querySelector('input[name="username"]');
     const password=document.querySelector('input[name="password"]');
     const accessKey=document.querySelector('input[name="access_key"]');
+    const otp=document.querySelector('input[name="otp"]');
+    const passkeyTotp=document.getElementById('passkeyTotp');
+    const status=document.getElementById('passkeyStatus');
 
     function setMode(mode){
         const key=mode==='key';
-        passwordFields.hidden=key;
-        accessKeyFields.hidden=!key;
-        username.disabled=key;
-        password.disabled=key;
-        accessKey.disabled=!key;
+        const passkey=mode==='passkey';
 
-        passwordMode.classList.toggle('green',!key);
+        passwordFields.hidden=key||passkey;
+        accessKeyFields.hidden=!key;
+        passkeyFields.hidden=!passkey;
+        otpField.hidden=passkey;
+        passkeyTotpField.hidden=true;
+        normalSignIn.hidden=passkey;
+
+        username.disabled=key||passkey;
+        password.disabled=key||passkey;
+        accessKey.disabled=!key;
+        otp.disabled=passkey;
+
+        passwordMode.classList.toggle('green',mode==='password');
         accessKeyMode.classList.toggle('green',key);
+        passkeyMode.classList.toggle('green',passkey);
+
+        if(status) status.textContent='';
 
         if(key){
             accessKey.focus();
-        }else{
+        }else if(!passkey){
             username.focus();
         }
     }
 
+    const b64uToBuffer=(value)=>{
+        const padded=value.replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((value.length+3)%4);
+        const raw=atob(padded);
+        const bytes=new Uint8Array(raw.length);
+        for(let i=0;i<raw.length;i++) bytes[i]=raw.charCodeAt(i);
+        return bytes.buffer;
+    };
+
+    const bufferToB64u=(buffer)=>{
+        const bytes=new Uint8Array(buffer);
+        let raw='';
+        for(const byte of bytes) raw+=String.fromCharCode(byte);
+        return btoa(raw).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    };
+
+    const normalizeCreateOptions=(args)=>{
+        if(args?.publicKey?.challenge) args.publicKey.challenge=b64uToBuffer(args.publicKey.challenge);
+        if(args?.publicKey?.user?.id) args.publicKey.user.id=b64uToBuffer(args.publicKey.user.id);
+        for(const item of (args?.publicKey?.excludeCredentials||[])){
+            if(item?.id) item.id=b64uToBuffer(item.id);
+        }
+        return args;
+    };
+
+    const normalizeGetOptions=(args)=>{
+        if(args?.publicKey?.challenge) args.publicKey.challenge=b64uToBuffer(args.publicKey.challenge);
+        for(const item of (args?.publicKey?.allowCredentials||[])){
+            if(item?.id) item.id=b64uToBuffer(item.id);
+        }
+        return args;
+    };
+
+    const passkeyFetch=async(action,body={})=>{
+        const response=await fetch('/admin/?passkey='+encodeURIComponent(action),{
+            method:'POST',
+            credentials:'same-origin',
+            cache:'no-store',
+            headers:{
+                'Content-Type':'application/json'
+            },
+            body:JSON.stringify(body)
+        });
+        const data=await response.json().catch(()=>({ok:false,error:'Invalid server response.'}));
+        if(!response.ok || data.ok===false){
+            throw new Error(data.error||'Passkey request failed.');
+        }
+        return data;
+    };
+
+    const startPasskeyLogin=async()=>{
+        if(!window.PublicKeyCredential || !navigator.credentials?.get){
+            throw new Error('This browser does not support passkeys.');
+        }
+
+        if(status) status.textContent='Opening the native passkey picker…';
+        const options=await passkeyFetch('login-options');
+        const credential=await navigator.credentials.get({
+            publicKey:normalizeGetOptions(options)
+        });
+
+        if(!credential){
+            throw new Error('No passkey was selected.');
+        }
+
+        const response=await passkeyFetch('login-verify',{
+            id:credential.id||null,
+            rawId:credential.rawId ? bufferToB64u(credential.rawId) : null,
+            type:credential.type||'public-key',
+            clientDataJSON:credential.response?.clientDataJSON
+                ? bufferToB64u(credential.response.clientDataJSON)
+                : null,
+            authenticatorData:credential.response?.authenticatorData
+                ? bufferToB64u(credential.response.authenticatorData)
+                : null,
+            signature:credential.response?.signature
+                ? bufferToB64u(credential.response.signature)
+                : null,
+            userHandle:credential.response?.userHandle
+                ? bufferToB64u(credential.response.userHandle)
+                : null
+        });
+
+        if(response.requires_totp){
+            passkeyTotpField.hidden=false;
+            otpField.hidden=true;
+            normalSignIn.hidden=true;
+            if(status) status.textContent='Passkey verified. Complete the second factor.';
+            passkeyTotp.focus();
+            return;
+        }
+
+        window.location.href=response.redirect||'/admin/';
+    };
+
+    document.getElementById('passkeyLoginButton')?.addEventListener('click',async()=>{
+        try{
+            await startPasskeyLogin();
+        }catch(error){
+            if(status) status.textContent=error?.message||'Passkey sign-in failed.';
+        }
+    });
+
+    document.getElementById('passkeyTotpButton')?.addEventListener('click',async()=>{
+        try{
+            const response=await passkeyFetch('login-totp',{
+                otp:passkeyTotp?.value?.trim()||''
+            });
+            window.location.href=response.redirect||'/admin/';
+        }catch(error){
+            if(status) status.textContent=error?.message||'Second-factor verification failed.';
+        }
+    });
+
     passwordMode?.addEventListener('click',() => setMode('password'));
     accessKeyMode?.addEventListener('click',() => setMode('key'));
+    passkeyMode?.addEventListener('click',() => setMode('passkey'));
     setMode('password');
 })();
 </script>
@@ -5396,6 +5909,177 @@ $unusedRecoveryCodes=countUnusedAdminRecoveryCodes(
     (int)admin()['id']
 );
 ?>
+<?php
+$passkeyRows=tableExists($db,'admin_passkeys')
+    ? muchAdminPasskeyService($db)->listForAdmin((int)admin()['id'])
+    : [];
+?>
+<div class="card admin-passkey-card" style="margin-top:13px">
+<style>
+.admin-passkey-card{position:relative;overflow:hidden;background:linear-gradient(145deg,#111926,#0d131d)}
+.admin-passkey-card .passkey-badge{display:inline-flex;align-items:center;padding:6px 9px;border-radius:999px;background:#133528;border:1px solid #285c45;color:#8df0ba;font-size:11px;font-weight:800}
+.admin-passkey-card .passkey-empty{margin-top:12px;padding:13px;border-radius:12px;background:#101720;border:1px solid #283346}
+.admin-passkey-card .passkey-list{display:grid;gap:8px;margin-top:12px}
+.admin-passkey-card .passkey-item{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:11px 12px;border:1px solid #273448;border-radius:11px;background:#0b1018}
+.admin-passkey-card .passkey-meta{min-width:0}
+.admin-passkey-card .passkey-name{font-weight:800;color:#e8edf7}
+.admin-passkey-card .passkey-id{margin-top:3px;font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#6f7d93;overflow:hidden;text-overflow:ellipsis}
+.admin-passkey-card .passkey-time{margin-top:4px;font-size:10px;color:#79869a}
+.admin-passkey-card .passkey-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+@media(max-width:640px){.admin-passkey-card .passkey-item{align-items:flex-start;flex-direction:column}.admin-passkey-card .passkey-actions{width:100%}}
+</style>
+
+<div class="row" style="justify-content:space-between;align-items:center">
+    <div>
+        <h2 style="margin:0">Passkeys / WebAuthn</h2>
+        <small>Passwordless sign-in with a native browser or device credential</small>
+    </div>
+    <?php if(count($passkeyRows)>0): ?>
+        <span class="passkey-badge"><?=h((string)count($passkeyRows))?> active</span>
+    <?php else: ?>
+        <span class="badge">Not set</span>
+    <?php endif; ?>
+</div>
+
+<div style="margin-top:12px">
+    <input id="newPasskeyLabel" maxlength="120" placeholder="Passkey name (for example, Windows PC)" autocomplete="off">
+    <button type="button" id="registerPasskey" style="margin-top:8px">Register a passkey</button>
+    <div id="passkeyRegistrationStatus" style="margin-top:8px;color:#7f8ba0;font-size:11px;min-height:16px"></div>
+</div>
+
+<?php if(!$passkeyRows): ?>
+<div class="passkey-empty">
+    <b>Nothing registered yet.</b>
+    <small style="display:block;margin-top:4px">Register one and the Admin login page can open the native passkey/account picker.</small>
+</div>
+<?php else: ?>
+<div class="passkey-list">
+<?php foreach($passkeyRows as $passkey): ?>
+    <div class="passkey-item">
+        <div class="passkey-meta">
+            <div class="passkey-name"><?=h($passkey['label'])?></div>
+            <div class="passkey-id"><?=h($passkey['credential_id'])?></div>
+            <div class="passkey-time">
+                Created <?=h($passkey['created_at'])?>
+                · Last used <?=h($passkey['last_used_at'] ?? 'Never')?>
+            </div>
+        </div>
+        <div class="passkey-actions">
+            <button
+                type="button"
+                class="gray revoke-passkey"
+                data-passkey-id="<?=h((string)$passkey['id'])?>"
+            >Revoke</button>
+        </div>
+    </div>
+<?php endforeach; ?>
+</div>
+<?php endif; ?>
+
+<div style="margin-top:11px;color:#7f8ba0;font-size:10px;line-height:1.5">
+The private key stays on the authenticator. MuchoCore stores only the public credential and verification metadata. Passkey sign-in still requires TOTP or a recovery code when that second factor is enabled for this administrator.
+</div>
+</div>
+
+<script>
+(() => {
+    const csrf=<?=json_encode(csrf(),JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)?>;
+    const status=document.getElementById('passkeyRegistrationStatus');
+    const label=document.getElementById('newPasskeyLabel');
+
+    const b64uToBuffer=(value)=>{
+        const padded=value.replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((value.length+3)%4);
+        const raw=atob(padded);
+        const bytes=new Uint8Array(raw.length);
+        for(let i=0;i<raw.length;i++) bytes[i]=raw.charCodeAt(i);
+        return bytes.buffer;
+    };
+
+    const bufferToB64u=(buffer)=>{
+        const bytes=new Uint8Array(buffer);
+        let raw='';
+        for(const byte of bytes) raw+=String.fromCharCode(byte);
+        return btoa(raw).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    };
+
+    const normalizeCreateOptions=(args)=>{
+        if(args?.publicKey?.challenge) args.publicKey.challenge=b64uToBuffer(args.publicKey.challenge);
+        if(args?.publicKey?.user?.id) args.publicKey.user.id=b64uToBuffer(args.publicKey.user.id);
+        for(const item of (args?.publicKey?.excludeCredentials||[])){
+            if(item?.id) item.id=b64uToBuffer(item.id);
+        }
+        return args;
+    };
+
+    const request=async(action,body={})=>{
+        const response=await fetch('/admin/?passkey='+encodeURIComponent(action),{
+            method:'POST',
+            credentials:'same-origin',
+            cache:'no-store',
+            headers:{
+                'Content-Type':'application/json',
+                'X-CSRF-Token':csrf
+            },
+            body:JSON.stringify(body)
+        });
+        const data=await response.json().catch(()=>({ok:false,error:'Invalid server response.'}));
+        if(!response.ok || data.ok===false){
+            throw new Error(data.error||'Passkey request failed.');
+        }
+        return data;
+    };
+
+    document.getElementById('registerPasskey')?.addEventListener('click',async()=>{
+        try{
+            if(!window.PublicKeyCredential || !navigator.credentials?.create){
+                throw new Error('This browser does not support passkeys.');
+            }
+
+            if(status) status.textContent='Opening the native passkey picker…';
+            const options=await request('register-options');
+            const credential=await navigator.credentials.create({
+                publicKey:normalizeCreateOptions(options)
+            });
+
+            if(!credential){
+                throw new Error('Passkey registration was cancelled.');
+            }
+
+            await request('register-verify',{
+                label:label?.value?.trim()||'Admin Passkey',
+                id:credential.id||null,
+                rawId:credential.rawId ? bufferToB64u(credential.rawId) : null,
+                type:credential.type||'public-key',
+                clientDataJSON:credential.response?.clientDataJSON
+                    ? bufferToB64u(credential.response.clientDataJSON)
+                    : null,
+                attestationObject:credential.response?.attestationObject
+                    ? bufferToB64u(credential.response.attestationObject)
+                    : null
+            });
+
+            window.location.reload();
+        }catch(error){
+            if(status) status.textContent=error?.message||'Passkey registration failed.';
+        }
+    });
+
+    document.querySelectorAll('.revoke-passkey').forEach(button=>{
+        button.addEventListener('click',async()=>{
+            const id=Number(button.dataset.passkeyId||0);
+            if(!id || !confirm('Revoke this passkey?')) return;
+
+            try{
+                await request('revoke',{passkey_id:id});
+                window.location.reload();
+            }catch(error){
+                if(status) status.textContent=error?.message||'Passkey revoke failed.';
+            }
+        });
+    });
+})();
+</script>
+
 <div class="card admin-recovery-card" style="margin-top:13px">
 <style>
 .admin-recovery-card{position:relative;overflow:hidden}
