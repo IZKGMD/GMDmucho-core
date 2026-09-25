@@ -3025,11 +3025,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                         'difficulty_before'=>(int)$before['difficulty'],
                         'demon_before'=>(int)$before['demon'],
                         'demon_difficulty_before'=>(int)$before['demon_difficulty'],
-                        'feature_before'=>$featureForAdminAudit = (
+                        'feature_before'=>(
                             (int)$before['epic']>=3 ? 4 :
                             ((int)$before['epic']===2 ? 3 :
                             ((int)$before['epic']===1 ? 2 :
-                            ((int)$before['featured']>0 ? 1 : 0)))
+                            ((int)$before['featured']>0 ? 1 : 0))
                         ),
                         'stars'=>$stars,
                         'difficulty'=>$difficulty,
