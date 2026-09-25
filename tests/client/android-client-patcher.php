@@ -78,6 +78,16 @@ try {
         throw new RuntimeException('Expected four fixed-length URL replacements.');
     }
 
+    $signerKey = $dir . '/android-signer/muchocore-android.key.pem';
+    $keyContents = is_file($signerKey) ? file_get_contents($signerKey) : false;
+    if (
+        !is_string($keyContents) ||
+        !str_contains($keyContents, '-----BEGIN PRIVATE KEY-----') ||
+        str_contains($keyContents, '-----BEGIN RSA PRIVATE KEY-----')
+    ) {
+        throw new RuntimeException('Android signer key is not PKCS#8.');
+    }
+
     $check = new ZipArchive();
     if ($check->open($output) !== true) {
         throw new RuntimeException('Patched APK is not a valid ZIP archive.');
