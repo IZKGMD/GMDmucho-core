@@ -83,7 +83,7 @@ assertSecurityRegression(
 assertSecurityRegression(
     str_contains($recoveryController, 'MUCHO_ACCOUNT_URL') &&
     str_contains($recoveryController, 'client-controlled') &&
-    !str_contains($recoveryController, '$_SERVER[\'HTTP_HOST\']'),
+    !str_contains($recoveryController, 'HTTP_HOST'),
     'recovery links never derive their origin from the Host header'
 );
 
