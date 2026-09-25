@@ -37,6 +37,12 @@ try {
         base64_encode($oldUrl) . "\0suffix"
     );
 
+    // Keep the synthetic APK above the production minimum-size guard.
+    $zip->addFromString(
+        'assets/test-padding.bin',
+        str_repeat('M', 4096)
+    );
+
     $zip->addFromString(
         'META-INF/MANIFEST.MF',
         'old signature manifest'
