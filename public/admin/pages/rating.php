@@ -153,11 +153,28 @@ $difficultyIconUrl = static function (string $profile) use ($difficultyProfiles)
     }
 
     /*
-     * Keep difficulty faces local to the admin app. This avoids hotlinking the
-     * Geometry Dash Wiki and guarantees the Rating Studio still renders when
-     * the external site is unavailable.
+     * Use the original Geometry Dash Wiki difficulty artwork.
+     * Fandom provides SVG originals for the base difficulties and PNG originals
+     * for the demon tiers; do not replace these with reconstructed artwork.
      */
-    return '/admin/assets/difficulty/'.rawurlencode($profile).'.svg';
+    $fandomFiles = [
+        'unrated' => 'Unrated.svg',
+        'auto' => 'Auto.svg',
+        'easy' => 'Easy.svg',
+        'normal' => 'Normal.svg',
+        'hard' => 'Hard.svg',
+        'harder' => 'Harder.svg',
+        'insane' => 'Insane.svg',
+        'easy-demon' => 'EasyDemon.png',
+        'medium-demon' => 'MediumDemon.png',
+        'hard-demon' => 'Demon.png',
+        'insane-demon' => 'InsaneDemon.png',
+        'extreme-demon' => 'ExtremeDemon.png',
+    ];
+
+    $file = $fandomFiles[$profile] ?? $fandomFiles['unrated'];
+
+    return 'https://geometry-dash.fandom.com/wiki/Special:Redirect/file/'.rawurlencode($file);
 };
 
 $pendingCount = 0;
