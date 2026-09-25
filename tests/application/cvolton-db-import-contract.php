@@ -43,5 +43,14 @@ if(strpos($source,"password_hash(")===false){
     );
 }
 
+if(
+    strpos($source,"FROM platscores")===false ||
+    strpos($source,"WHERE ID > :last")===false
+){
+    throw new RuntimeException(
+        'Cvolton platformer score import must follow platscores.ID.'
+    );
+}
+
 echo "cvolton-db-import-contract: OK
 ";
