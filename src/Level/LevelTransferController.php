@@ -26,7 +26,13 @@ final readonly class LevelTransferController
         $version = $request->clientVersion();
         $udid = $request->postString('udid');
 
-        if ($accountId <= 0) {
+        if (
+            $accountId <= 0 &&
+            !(
+                $version->effectiveGameVersion() === 3 &&
+                trim($udid) !== ''
+            )
+        ) {
             error_log(sprintf(
                 '[MuchoCore] request_id=%s upload_level_rejected account_id=%d reason=missing_account_id',
                 (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
@@ -60,10 +66,10 @@ final readonly class LevelTransferController
              * Preserve the controller-level version inference for the service.
              */
             if (
-                $version->effectiveGameVersion() === 19 &&
-                $request->postInt('gameVersion', 0) === 0
+                $request->postInt('gameVersion', 0) === 0 &&
+                $version->effectiveGameVersion() > 0
             ) {
-                $data['gameVersion'] = 19;
+                $data['gameVersion'] = $version->effectiveGameVersion();
             }
 
             $levelId = $this->service->upload(
