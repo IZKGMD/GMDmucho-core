@@ -294,8 +294,8 @@ final class CvoltonDatabaseImporter
         $q = $source->prepare(
             'SELECT *
              FROM platscores
-             WHERE scoreID > :last
-             ORDER BY scoreID ASC
+             WHERE ID > :last
+             ORDER BY ID ASC
              LIMIT 250'
         );
 
@@ -341,7 +341,7 @@ final class CvoltonDatabaseImporter
                     $stats['platformer_scores_upserted']++;
                 }
 
-                $last = (int)($row['scoreID'] ?? $last);
+                $last = (int)($row['ID'] ?? $last);
             }
         }
     }
