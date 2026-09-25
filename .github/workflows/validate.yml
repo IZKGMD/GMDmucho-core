@@ -93,7 +93,7 @@ jobs:
           printf 'ci-admin-password' > .secrets/admin_password
           cat > .ci.env <<'EOF'
           DOMAIN=gdps.example.com
-          CADDY_ADDRESS=gdps.example.com
+          CADDY_ADDRESS=http://gdps.example.com http://www.gdps.example.com https://gdps.example.com https://www.gdps.example.com
           DB_NAME=muchocore
           DB_USER=muchocore_user
           ADMIN_USER=admin
@@ -166,6 +166,13 @@ jobs:
             -v "$PWD/docker/Caddyfile:/etc/caddy/Caddyfile:ro" \
             caddy:2.10-alpine \
             caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          docker run --rm \
+            -e DOMAIN=gdps.example.com \
+            -e CADDY_ADDRESS='http://gdps.example.com http://www.gdps.example.com https://gdps.example.com https://www.gdps.example.com' \
+            -v "$PWD/docker/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2.10-alpine \
+            caddy adapt --config /etc/caddy/Caddyfile --adapter caddyfile \
+            | python3 -c 'import json,sys; d=json.load(sys.stdin); ls={p for s in d["apps"]["http"]["servers"].values() for p in s["listen"]}; assert ":80" in ls and ":443" in ls, ls'
 
       - name: Check client contract helper
         run: bash tests/client/client-contract.sh
