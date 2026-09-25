@@ -9,6 +9,11 @@ use RuntimeException;
 
 final class AdminRbac
 {
+    private static ?bool $tablesReady = null;
+
+    /** @var array<string,list<string>> */
+    private static array $permissionCache = [];
+
     /** @var array<string,string> */
     public const PERMISSIONS = [
         'dashboard.view' => 'View dashboard',
@@ -87,6 +92,10 @@ final class AdminRbac
 
     public static function tablesReady(PDO $db): bool
     {
+        if (self::$tablesReady !== null) {
+            return self::$tablesReady;
+        }
+
         try {
             $stmt = $db->query(
                 "SELECT COUNT(*)
@@ -94,9 +103,9 @@ final class AdminRbac
                  WHERE table_schema=DATABASE()
                    AND table_name IN ('admin_roles','admin_role_permissions')"
             );
-            return (int)$stmt->fetchColumn() === 2;
+            return self::$tablesReady = ((int)$stmt->fetchColumn() === 2);
         } catch (\Throwable) {
-            return false;
+            return self::$tablesReady = false;
         }
     }
 
@@ -208,8 +217,14 @@ final class AdminRbac
     /** @return list<string> */
     public static function rolePermissions(PDO $db, string $code): array
     {
+        $code = strtolower(trim($code));
+
+        if (isset(self::$permissionCache[$code])) {
+            return self::$permissionCache[$code];
+        }
+
         if (!self::tablesReady($db)) {
-            return [];
+            return self::$permissionCache[$code] = [];
         }
 
         $stmt = $db->prepare(
@@ -221,7 +236,7 @@ final class AdminRbac
         );
         $stmt->execute(['code' => strtolower(trim($code))]);
 
-        return array_values(
+        $permissions = array_values(
             array_filter(
                 array_map(
                     static fn($value): string => self::normalizePermission((string)$value),
@@ -230,6 +245,8 @@ final class AdminRbac
                 static fn(string $value): bool => isset(self::PERMISSIONS[$value])
             )
         );
+
+        return self::$permissionCache[$code] = $permissions;
     }
 
     public static function can(PDO $db, ?array $admin, string $permission): bool
