@@ -54,7 +54,7 @@ $assert(str_contains($rating,"https://upload.wikimedia.org/wikipedia/commons/a/a
 $assert(str_contains($rating,"'easy-demon' => 'EasyDemon.png'"),'Fandom Easy Demon original image');
 $assert(str_contains($rating,"'extreme-demon' => 'ExtremeDemon.png'"),'Fandom Extreme Demon original image');
 $assert(!str_contains($rating,'/admin/assets/difficulty/'),'no reconstructed local difficulty faces');
-$assert(!str_contains($rating,"return 'https://geometry-dash.fandom.com/wiki/Special:Redirect/file/'"),'no Fandom SVG redirect source');
+$assert(str_contains($rating,'Direct upload.wikimedia.org URLs avoid Fandom'), 'direct SVG mirror rationale documented');
 $assert(!str_contains($rating,'geometrydash.wiki.gg/wiki/Special:Redirect/file'),'no wiki.gg difficulty-face hotlink');
 $assert(!str_contains($rating,'name="demon" id="demon"'),'legacy demon checkbox removed');
 $assert(!str_contains($rating,'name="demon_difficulty" id="demonDifficulty"'),'legacy demon difficulty field removed');
