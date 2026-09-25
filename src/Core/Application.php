@@ -54,6 +54,7 @@ use MuchoCore\Protocol\GdMessageEncoder;
 use MuchoCore\Protocol\GdRelationshipEncoder;
 use MuchoCore\Protocol\GdSongEncoder;
 use MuchoCore\Protocol\GdUserEncoder;
+use MuchoCore\Plugin\PluginManager;
 use MuchoCore\Routing\Router;
 use MuchoCore\Score\LevelScoreController;
 use MuchoCore\Score\PlatformerScoreController;
@@ -76,12 +77,19 @@ final readonly class Application
     private Router $router;
     private PDO $pdo;
     private MuchoProtect $protect;
+    private PluginManager $plugins;
 
     public function __construct()
     {
         $this->pdo = (new Database())->connection();
         $this->router = new Router();
         $this->protect = new MuchoProtect();
+        $this->plugins = PluginManager::fromEnvironment(
+            $this->pdo,
+            $this->router,
+            dirname(__DIR__, 2)
+        );
+        $this->plugins->load();
 
         $accountRepo = new AccountRepository($this->pdo);
         $accountService = new AccountService($this->pdo, $accountRepo);
@@ -412,11 +420,16 @@ final readonly class Application
             [$rewardsController,'getSecretReward']);
         $route('/getGJChallenges',
             [$rewardsController,'getChallenges']);
+
+        $this->plugins->boot();
     }
 
     public function handle(Request $request): Response
     {
         ClientTrace::captureRequest($request);
+        $this->plugins->emit('request.received', [
+            'request' => $request,
+        ]);
 
         if (($_SERVER['MUCHO_PROTECT_PRECHECKED'] ?? '') !== '1') {
             $protection = $this->protect->inspect(
@@ -428,6 +441,11 @@ final readonly class Application
                 // Keep a successful HTTP transport response for Geometry Dash
                 // clients; the legacy protocol uses "-1" as its failure signal.
                 $response = Response::text('-1');
+                $this->plugins->emit('request.completed', [
+                    'request' => $request,
+                    'response' => $response,
+                    'blocked' => true,
+                ]);
                 ClientTrace::captureResponse($response);
                 return $response;
             }
@@ -438,11 +456,21 @@ final readonly class Application
 
             if (!$compatibilityProfile->allows($request->clientVersion())) {
                 $response = Response::text('-1');
+                $this->plugins->emit('request.completed', [
+                    'request' => $request,
+                    'response' => $response,
+                    'compatible' => false,
+                ]);
                 ClientTrace::captureResponse($response);
                 return $response;
             }
 
             $response = $this->router->dispatch($request);
+            $this->plugins->emit('request.completed', [
+                'request' => $request,
+                'response' => $response,
+                'compatible' => true,
+            ]);
             ClientTrace::captureResponse($response);
             return $response;
         } catch (Throwable $e) {
@@ -457,6 +485,11 @@ final readonly class Application
             ));
 
             $response = Response::text('-1');
+            $this->plugins->emit('request.failed', [
+                'request' => $request,
+                'error' => $e,
+                'response' => $response,
+            ]);
             ClientTrace::captureResponse($response);
             return $response;
         }
