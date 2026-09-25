@@ -25,13 +25,19 @@ jobs:
         run: |
           VERSION="$(tr -d '[:space:]' < VERSION)"
           TAG="v${VERSION}"
-          if [[ -f ".release/${TAG}-archive.ready" ]]; then
+
+          ARCHIVE_MARKER="$(find .release -maxdepth 1 -type f -name 'archive-v*.ready' -print -quit 2>/dev/null || true)"
+          if [[ -n "$ARCHIVE_MARKER" ]]; then
+            TAG="$(basename "$ARCHIVE_MARKER")"
+            TAG="${TAG#archive-}"
+            TAG="${TAG%.ready}"
             echo "archive_only=true" >> "$GITHUB_OUTPUT"
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
             echo "tag=$TAG" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
           if [[ ! -f ".release/${TAG}.ready" ]]; then
             echo "archive_only=false" >> "$GITHUB_OUTPUT"
             echo "ready=false" >> "$GITHUB_OUTPUT"
@@ -121,11 +127,11 @@ jobs:
         run: |
           git fetch origin main
           git switch -C main origin/main
-          rm -f ".release/${TAG}-archive.ready"
-          if git diff --quiet -- ".release/${TAG}-archive.ready"; then
+          rm -f ".release/archive-${TAG}.ready"
+          if git diff --quiet -- ".release/archive-${TAG}.ready"; then
             echo "Archive marker already absent."
             exit 0
           fi
-          git add -A ".release/${TAG}-archive.ready"
+          git add -A ".release/archive-${TAG}.ready"
           git commit -m "chore: finalize ${TAG} source archive"
           git push origin main
