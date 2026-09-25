@@ -10,6 +10,17 @@ declare(strict_types=1);
  * generated. TOTP, when enabled, is still required.
  */
 return static function(PDO $db): void {
+    $exists=(int)$db->query(
+        "SELECT COUNT(*)
+         FROM information_schema.tables
+         WHERE table_schema=DATABASE()
+           AND table_name='admin_users'"
+    )->fetchColumn();
+
+    if ($exists===0) {
+        return;
+    }
+
     $columns = $db->query('SHOW COLUMNS FROM admin_users')->fetchAll(PDO::FETCH_ASSOC);
     $hasHash = false;
     $hasCreated = false;
