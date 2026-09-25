@@ -136,7 +136,7 @@ final readonly class LevelScoreController
             }
 
 
-            $this->saveScore(
+            $scoreId=$this->saveScore(
                 accountId:$accountId,
                 levelId:$levelId,
                 percent:$percent,
@@ -148,6 +148,23 @@ final readonly class LevelScoreController
                 dailyId:$dailyId,
                 isDaily:$isDaily
             );
+
+            if($scoreId!==null){
+                ScoreIntegrity::record(
+                    $this->db,
+                    $isDaily ? 'regular_daily' : 'regular',
+                    $scoreId,
+                    $accountId,
+                    $levelId,
+                    ScoreIntegrity::evaluateRegular(
+                        $percent,
+                        $attempts,
+                        $clicks,
+                        $playTime,
+                        $progresses
+                    )
+                );
+            }
 
 
             return Response::text(
@@ -200,7 +217,7 @@ final readonly class LevelScoreController
         string $progresses,
         int $dailyId,
         int $isDaily
-    ): void {
+    ): ?int {
 
         $now=time();
 
@@ -279,7 +296,7 @@ final readonly class LevelScoreController
                 'updated_at'=>$now,
             ]);
 
-            return;
+            return (int)$this->db->lastInsertId();
         }
 
 
@@ -291,7 +308,7 @@ final readonly class LevelScoreController
             $percent <
             (int)$old['percent']
         ){
-            return;
+            return null;
         }
 
 
@@ -322,6 +339,8 @@ final readonly class LevelScoreController
             'updated_at'=>$now,
             'score'=>(int)$old['score_id'],
         ]);
+
+        return (int)$old['score_id'];
     }
 
 
@@ -342,6 +361,21 @@ final readonly class LevelScoreController
             level_id=:level
             AND is_daily=:daily
         ";
+
+        if (ScoreIntegrity::quarantineEnabled()) {
+            $where .= "
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM mucho_score_integrity_events si
+                    WHERE si.score_type=:integrity_type
+                      AND si.score_id=mucho_level_scores.score_id
+                      AND si.status='suspicious'
+                      AND si.risk_score>=70
+                )
+            ";
+            $params['integrity_type']=
+                $isDaily ? 'regular_daily' : 'regular';
+        }
 
 
         /*
