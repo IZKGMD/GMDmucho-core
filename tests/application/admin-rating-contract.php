@@ -30,9 +30,9 @@ $assert(str_contains($index,"auto_level=:auto_level"),'rating persists auto leve
 $assert(str_contains($index,"UPDATE profiles"),'rating syncs profile statistics');
 $assert(str_contains($index,"level.rate"),'rating audit event');
 $assert(str_contains($rating,'data-preset="demon"'),'demon quick preset');
-$assert(str_contains($rating,'value="4">Epic'),'epic feature tier');
-$assert(str_contains($rating,'value="3">Legendary'),'legendary feature tier');
-$assert(str_contains($rating,'value="4">Mythic'),'mythic feature tier');
+$assert(str_contains($rating,"2 => ['Epic', 'Epic']"),'epic feature tier');
+$assert(str_contains($rating,"3 => ['Legendary', 'Legendary']"),'legendary feature tier');
+$assert(str_contains($rating,"4 => ['Mythic', 'Mythic']"),'mythic feature tier');
 $assert(str_contains($rating,'Demon difficulty'),'demon difficulty control');
 $assert(str_contains($rating,'Publish rating'),'publish control');
 
