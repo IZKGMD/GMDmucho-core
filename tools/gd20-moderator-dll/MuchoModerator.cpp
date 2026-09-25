@@ -35,8 +35,10 @@ std::wstring trim(std::wstring s) {
 
 std::wstring getText(HWND h) {
     int n = GetWindowTextLengthW(h);
-    std::wstring s(static_cast<size_t>(n), L'\0');
-    if (n > 0) GetWindowTextW(h, s.data(), n + 1);
+    if (n <= 0) return L"";
+    std::wstring s(static_cast<size_t>(n) + 1, L'\0');
+    GetWindowTextW(h, s.data(), n + 1);
+    s.resize(static_cast<size_t>(n));
     return s;
 }
 
