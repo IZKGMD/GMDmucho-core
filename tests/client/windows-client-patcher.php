@@ -19,6 +19,14 @@ try {
     $source .= 'https://www.boomlings.com/database';
     $source .= str_repeat("B", 123);
     $source .= base64_encode('https://www.boomlings.com/database');
+    $source .= str_repeat("E", 191);
+    $source .= 'http://www.boomlings.com/database';
+    $source .= str_repeat("F", 113);
+    $source .= base64_encode('http://www.boomlings.com/database');
+    $source .= str_repeat("E", 191);
+    $source .= 'http://www.boomlings.com/database';
+    $source .= str_repeat("F", 113);
+    $source .= base64_encode('http://www.boomlings.com/database');
     $source .= str_repeat("C", 257);
 
     $source = "MZ" . str_repeat("\0", 58)
@@ -39,8 +47,8 @@ try {
         $server
     );
 
-    if (($report['replacement_count'] ?? 0) < 2) {
-        throw new RuntimeException('Expected direct and Base64 replacements.');
+    if (($report['replacement_count'] ?? 0) < 4) {
+        throw new RuntimeException('Expected HTTPS and HTTP direct/Base64 replacements.');
     }
 
     if (filesize($input) !== filesize($output)) {
@@ -69,6 +77,18 @@ try {
 
     $target = $directTargets[0];
 
+    $httpTargets = array_values(array_filter(
+        $targets,
+        static fn (string $value): bool => str_starts_with(
+            $value,
+            'http://gdps.example.com/'
+        )
+    ));
+
+    if ($httpTargets === []) {
+        throw new RuntimeException('HTTP source URL did not produce an HTTP target URL.');
+    }
+
     if (!str_contains($patched, $target)) {
         throw new RuntimeException('Generated target server URL not found after patch.');
     }
@@ -78,7 +98,15 @@ try {
     }
 
     if (!str_contains($patched, base64_encode($target))) {
-        throw new RuntimeException('Generated Base64 server URL not found after patch.');
+        throw new RuntimeException('Generated HTTPS Base64 server URL not found after patch.');
+    }
+
+    if (!str_contains($patched, $httpTargets[0])) {
+        throw new RuntimeException('Generated HTTP server URL not found after patch.');
+    }
+
+    if (!str_contains($patched, base64_encode($httpTargets[0]))) {
+        throw new RuntimeException('Generated HTTP Base64 server URL not found after patch.');
     }
 
     try {
