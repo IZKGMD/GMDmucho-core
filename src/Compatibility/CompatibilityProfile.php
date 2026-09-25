@@ -9,6 +9,7 @@ final readonly class CompatibilityProfile
     /** @var array<int, string> */
     private const SUPPORTED = [
         1 => 'GD 1.0',
+        11 => 'GD 1.1',
         19 => 'GD 1.9',
         20 => 'GD 2.0',
         21 => 'GD 2.1',
@@ -50,7 +51,7 @@ final readonly class CompatibilityProfile
             return new self(array_keys(self::SUPPORTED));
         }
 
-        $parts = preg_split('/[\\s,;]+/', $raw) ?: [];
+        $parts = preg_split('/[\s,;]+/', $raw) ?: [];
         return new self(
             array_map(
                 static fn(string $value): int => self::parseVersion($value),
@@ -119,12 +120,16 @@ final readonly class CompatibilityProfile
         $value = strtolower(trim($value));
 
         $aliases = [
+            '1' => 1,
+            '11' => 11,
             '19' => 19,
             '20' => 20,
             '21' => 21,
             '22' => 22,
             '1.0' => 1,
             'gd1.0' => 1,
+            '1.1' => 11,
+            'gd1.1' => 11,
             '1.9' => 19,
             '2.0' => 20,
             '2.1' => 21,
