@@ -159,21 +159,44 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
     exit 1
 fi
 
-echo '[MuchoCore] Updating source code...'
-git fetch --depth=1 origin main
+get_latest_stable_release_tag() {
+    local response
+    local tag
 
-if git show origin/main:docker-compose.yml >/dev/null 2>&1; then
-    git reset --hard origin/main
-else
-    if git ls-remote --exit-code origin refs/heads/feat/easy-deploy >/dev/null 2>&1; then
-        echo '[MuchoCore] Main does not contain the deployment files yet; using feat/easy-deploy.'
-        git fetch --depth=1 origin feat/easy-deploy
-        git reset --hard FETCH_HEAD
-    else
-        echo '[MuchoCore] ERROR: the deployment files are not available on main or feat/easy-deploy.' >&2
-        exit 1
-    fi
+    response="$(curl -4fsS --connect-timeout 5 --max-time 10         -H 'Accept: application/vnd.github+json'         -H 'User-Agent: MuchoCore-Updater/1.0'         -H 'X-GitHub-Api-Version: 2022-11-28'         'https://api.github.com/repos/IZKGMD/GMDmucho-core/releases/latest')" || return 1
+
+    tag="$(printf '%s' "$response" |
+        sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' |
+        head -n1)"
+
+    [[ "$tag" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
+    printf '%s' "$tag"
+}
+
+CURRENT_VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION" 2>/dev/null || true)"
+LATEST_TAG="$(get_latest_stable_release_tag)" || {
+    echo '[MuchoCore] ERROR: unable to resolve a published stable GitHub Release.' >&2
+    exit 1
+}
+
+CURRENT_SEMVER="$(printf '%s' "$CURRENT_VERSION" | sed 's/^v//')"
+LATEST_SEMVER="$(printf '%s' "$LATEST_TAG" | sed 's/^v//')"
+
+if [[ "$CURRENT_SEMVER" == "$LATEST_SEMVER" ]]; then
+    echo "[MuchoCore] Already on the latest stable release: v$CURRENT_SEMVER."
+    exit 0
 fi
+
+if [[ "$(printf '%s\n%s\n' "$CURRENT_SEMVER" "$LATEST_SEMVER" | sort -V | tail -n1)" != "$LATEST_SEMVER" ]]; then
+    echo "[MuchoCore] Installed release v$CURRENT_SEMVER is newer than GitHub's latest stable release v$LATEST_SEMVER; refusing to downgrade."
+    exit 0
+fi
+
+echo "[MuchoCore] Updating core: v$CURRENT_SEMVER -> v$LATEST_SEMVER"
+
+git fetch --depth=1 origin "refs/tags/$LATEST_TAG:refs/tags/$LATEST_TAG"
+git reset --hard "$LATEST_TAG"
+
 
 echo '[MuchoCore] Rebuilding containers...'
 docker compose "${COMPOSE_ARGS[@]}" up -d --build --remove-orphans
