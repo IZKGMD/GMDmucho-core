@@ -80,6 +80,8 @@ https://YOUR-DOMAIN/admin/
 
 For the full VPS workflow, see **[docs/SETUP.md](docs/SETUP.md)**.
 
+Automatic VPS updates are enabled by default. See **[docs/AUTO_UPDATE.md](docs/AUTO_UPDATE.md)**.
+
 ### Deployment flow
 
 ```text
