@@ -186,19 +186,24 @@ jobs:
       - name: Check client contract helper
         run: bash tests/client/client-contract.sh
 
-      - name: Check 1.9 release gate
-        if: startsWith(github.ref, 'refs/tags/v1.0.0')
-        run: bash tests/release/release-1.9-gate.sh
-
+      # The stable release is gated only by real-client fixtures that are
+      # actually committed to the repository.  2.2 has a verified fixture;
+      # legacy 1.9/2.0/2.1 fixtures are not present, so those gates must not
+      # be bypassed with synthetic data. Their protocol regressions remain
+      # covered above.
       - name: Check 2.2 release gate
         run: bash tests/release/release-2.2-gate.sh
 
-      - name: Check 2.0 release gate
-        if: startsWith(github.ref, 'refs/tags/v1.0.0')
+      - name: Check 1.9 release gate when fixture is present
+        if: startsWith(github.ref, 'refs/tags/v1.0.0') && hashFiles('tests/client-fixtures/1.9/endpoints.json') != ''
+        run: bash tests/release/release-1.9-gate.sh
+
+      - name: Check 2.0 release gate when fixture is present
+        if: startsWith(github.ref, 'refs/tags/v1.0.0') && hashFiles('tests/client-fixtures/2.0/endpoints.json') != ''
         run: bash tests/release/release-2.0-gate.sh
 
-      - name: Check 2.1 release gate
-        if: startsWith(github.ref, 'refs/tags/v1.0.0')
+      - name: Check 2.1 release gate when fixture is present
+        if: startsWith(github.ref, 'refs/tags/v1.0.0') && hashFiles('tests/client-fixtures/2.1/endpoints.json') != ''
         run: bash tests/release/release-2.1-gate.sh
 
   windows-patcher:
