@@ -22,8 +22,6 @@ jobs:
           bash -n install.sh
           bash -n install
           bash -n update.sh
-          bash -n auto-update.sh
-          bash -n bin/mucho-install-auto-update.sh
           bash -n docker/app-entrypoint.sh
           ! grep -nE '\\\$[0-9]+' install.sh
           bash -n uninstall.sh
@@ -73,6 +71,7 @@ jobs:
           php tests/application/comment-contract.php
           php tests/application/legacy-19-session.php
           php tests/application/security-regressions.php
+          bash tests/release/release-update-detection.sh
           php tests/database/migrator-concurrency.php
           php tests/application/music-upload-contract.php
           php tests/security/turnstile.php
@@ -134,14 +133,16 @@ jobs:
           docker compose --env-file .ci.env config -q
           docker compose --env-file .ci.env -f docker-compose.yml -f docker-compose.tunnel.yml config -q
 
-      - name: Check automatic update wiring
+      - name: Check manual release update wiring
         run: |
-          grep -Fq 'MUCHO_AUTO_UPDATE=1' install.sh
-          grep -Fq 'MUCHO_AUTO_UPDATE_INTERVAL=15min' install.sh
-          grep -Fq 'muchocore-auto-update.timer' bin/mucho-install-auto-update.sh
-          grep -Fq 'exec 9>/run/muchocore-auto-update.lock' auto-update.sh
-          grep -Fq '"$ROOT/update.sh"' auto-update.sh
-          grep -Fq 'bash "$ROOT/bin/mucho-install-auto-update.sh"' update.sh
+          test ! -e auto-update.sh
+          test ! -e bin/mucho-install-auto-update.sh
+          test ! -e docs/AUTO_UPDATE.md
+          ! grep -Fq 'MUCHO_AUTO_UPDATE=' install.sh
+          ! grep -Fq 'mucho-install-auto-update.sh' install.sh
+          grep -Fq 'ReleaseService::check' public/admin/pages/dashboard.php
+          grep -Fq "'updates' => 'system.manage'" src/Admin/AdminRbac.php
+          grep -Fq "'updates'=>'Core Updates'" public/admin/config/pages.php
 
       - name: Check runtime environment handling
         run: |
