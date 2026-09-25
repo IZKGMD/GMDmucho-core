@@ -23,7 +23,7 @@ $assert=static function(bool $ok,string $message): void {
 $assert(str_contains($pages,"'rating'=>'Rating Studio'"),'rating page registry');
 $assert(str_contains($router,"'rating'"),'rating admin route');
 $assert(str_contains($router,"../pages/rating.php"),'rating page renderer');
-$assert(str_contains($index,"elseif ($action==='level-rate-save')"),'level rating action');
+$assert(str_contains($index,'elseif ($action===\'level-rate-save\')'),'level rating action');
 $assert(str_contains($index,"requireRank(20);"),'moderator rank gate');
 $assert(str_contains($index,"requested_stars=0"),'rating clears pending request');
 $assert(str_contains($index,"auto_level=:auto_level"),'rating persists auto level');
