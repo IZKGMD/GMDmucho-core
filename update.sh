@@ -17,17 +17,39 @@ fi
 # the first update can repair that installation automatically.
 install -d -m 700 "$ROOT/.secrets"
 
-# Hosted test tenant secrets are generated once and preserved across updates.
-if [[ ! -s "$ROOT/.secrets/testgdps_db_password" ]]; then
-    openssl rand -hex 24 > "$ROOT/.secrets/testgdps_db_password"
-fi
-if [[ ! -s "$ROOT/.secrets/testgdps_db_root_password" ]]; then
-    openssl rand -hex 32 > "$ROOT/.secrets/testgdps_db_root_password"
-fi
-if [[ ! -s "$ROOT/.secrets/testgdps_admin_password" ]]; then
-    openssl rand -base64 24 > "$ROOT/.secrets/testgdps_admin_password"
-fi
-chmod 600 "$ROOT/.secrets/testgdps_"*
+ensure_hosted_test_secrets() {
+    # Docker Compose reads secret files while parsing/creating services, so
+    # these files must exist before any compose command touches testgdps.
+    install -d -m 700 "$ROOT/.secrets"
+
+    if [[ ! -s "$ROOT/.secrets/testgdps_db_password" ]]; then
+        openssl rand -hex 24 > "$ROOT/.secrets/testgdps_db_password"
+    fi
+    if [[ ! -s "$ROOT/.secrets/testgdps_db_root_password" ]]; then
+        openssl rand -hex 32 > "$ROOT/.secrets/testgdps_db_root_password"
+    fi
+    if [[ ! -s "$ROOT/.secrets/testgdps_admin_password" ]]; then
+        openssl rand -base64 24 > "$ROOT/.secrets/testgdps_admin_password"
+    fi
+
+    chmod 600         "$ROOT/.secrets/testgdps_db_password"         "$ROOT/.secrets/testgdps_db_root_password"         "$ROOT/.secrets/testgdps_admin_password"
+
+    [[ -s "$ROOT/.secrets/testgdps_db_password" ]] || {
+        echo '[MuchoCore] ERROR: testgdps_db_password was not created.' >&2
+        exit 1
+    }
+    [[ -s "$ROOT/.secrets/testgdps_db_root_password" ]] || {
+        echo '[MuchoCore] ERROR: testgdps_db_root_password was not created.' >&2
+        exit 1
+    }
+    [[ -s "$ROOT/.secrets/testgdps_admin_password" ]] || {
+        echo '[MuchoCore] ERROR: testgdps_admin_password was not created.' >&2
+        exit 1
+    }
+}
+
+# Hosted test tenant secrets must exist before Docker Compose is invoked.
+ensure_hosted_test_secrets()
 
 if [[ ! -s "$ROOT/.secrets/cloudsave_key" && ! -s "$ROOT/config/cloudsave.key" ]]; then
     if docker compose ps app >/dev/null 2>&1; then
