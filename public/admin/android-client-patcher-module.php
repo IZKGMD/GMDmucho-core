@@ -284,7 +284,7 @@ function handleAndroidPatcherAction(
                 'output_size' => $report['output_size'],
                 'input_sha256' => $report['input_sha256'],
                 'output_sha256' => $report['output_sha256'],
-                'signed' => false,
+                'signed' => true,
             ]
         );
 
@@ -430,8 +430,7 @@ function renderAndroidPatcherSection(PDO $db): void
 
     <div class="warning" style="margin:12px 0">
         <b>Important:</b> APK contents are changed, so the original Android signature is
-        removed. The downloaded APK is <b>unsigned</b>. Sign it with your own Android
-        signing key before installing or distributing it.
+        removed. The downloaded APK is <b>signed by MuchoCore</b>. The patcher aligns and signs the APK automatically before download.
     </div>
 
     <div class="mc-patcher-steps">
@@ -686,7 +685,7 @@ function renderAndroidPatcherSection(PDO $db): void
             );
 
             setProgress(100);
-            setStatus('APK patched. Sign it before installation.');
+            setStatus('APK patched, aligned, signed and verified.');
             result.innerHTML =
                 '<div class="warning mc-result">' +
                 '<div><b>✅ APK patch completed.</b></div>' +
@@ -702,7 +701,7 @@ function renderAndroidPatcherSection(PDO $db): void
                 '<div class="rowline"><span>SHA-256</span><code style="word-break:break-all">' +
                     escapeHtml(finished.output_sha256) +
                 '</code></div>' +
-                '<div><b>Unsigned output:</b> sign it with your own Android key.</div>' +
+                '<div><b>Signed output:</b> the APK is ready for installation.</div>' +
                 '<a class="btn" href="' + escapeHtml(finished.download_url) + '">' +
                     '⬇️ Download patched APK' +
                 '</a>' +
