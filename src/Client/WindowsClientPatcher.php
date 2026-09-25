@@ -191,7 +191,27 @@ final class WindowsClientPatcher
                 $length = strlen($old);
             }
 
-            $new = self::compatibleUrl($base, $length, false);
+            /*
+             * Preserve the scheme used by the original client URL.
+             * Older Geometry Dash binaries commonly use plain HTTP; forcing
+             * those fixed-length fields to HTTPS can introduce TLS failures
+             * unrelated to MuchoCore protocol compatibility.
+             */
+            $oldParsed = parse_url($old);
+            $targetBase = $base;
+
+            if (
+                is_array($oldParsed) &&
+                isset($oldParsed['scheme'])
+            ) {
+                $targetBase =
+                    strtolower((string)$oldParsed['scheme']) .
+                    '://' .
+                    (string)$parsed['host'] .
+                    (isset($parsed['port']) ? ':' . (int)$parsed['port'] : '');
+            }
+
+            $new = self::compatibleUrl($targetBase, $length, false);
 
             if ($new !== null) {
                 self::addReplacement($map, $old, $new);
