@@ -20,15 +20,37 @@ try {
         throw new RuntimeException('ZipArchive extension is required.');
     }
 
-    $zip = new ZipArchive();
-    if ($zip->open($input, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-        throw new RuntimeException('Cannot create fixture APK.');
+    $manifestXml = $dir . '/AndroidManifest.xml';
+    if (
+        file_put_contents(
+            $manifestXml,
+            '<?xml version="1.0" encoding="utf-8"?>' .
+            '<manifest xmlns:android="http://schemas.android.com/apk/res/android" ' .
+            'package="test.geometrydash"/>'
+        ) === false
+    ) {
+        throw new RuntimeException('Cannot create manifest fixture.');
     }
 
-    $zip->addFromString(
-        'AndroidManifest.xml',
-        '<manifest package="test.geometrydash"/>'
+    $aaptOutput = [];
+    $aaptCode = 0;
+    exec(
+        'aapt package -f -M ' . escapeshellarg($manifestXml) .
+        ' -F ' . escapeshellarg($input) . ' 2>&1',
+        $aaptOutput,
+        $aaptCode
     );
+    if ($aaptCode !== 0 || !is_file($input)) {
+        throw new RuntimeException(
+            'Cannot build binary AndroidManifest.xml fixture: ' .
+            implode("\n", $aaptOutput)
+        );
+    }
+
+    $zip = new ZipArchive();
+    if ($zip->open($input) !== true) {
+        throw new RuntimeException('Cannot reopen fixture APK after aapt packaging.');
+    }
 
     $oldUrl = 'http://www.boomlings.com/database';
     $oldHttpsUrl = 'https://www.boomlings.com/database';
@@ -62,6 +84,8 @@ try {
     if (!$zip->close()) {
         throw new RuntimeException('Cannot finalize fixture APK.');
     }
+
+    @unlink($manifestXml);
 
     putenv('MUCHO_ANDROID_SIGNER_DIR=' . $dir . '/android-signer');
 
