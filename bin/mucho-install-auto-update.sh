@@ -25,8 +25,8 @@ Wants=docker.service network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=/opt/mucho-core
-ExecStart=/usr/bin/bash /opt/mucho-core/auto-update.sh
+WorkingDirectory=${ROOT}
+ExecStart=/usr/bin/bash ${ROOT}/auto-update.sh
 EOF_SERVICE
 
 cat > /etc/systemd/system/muchocore-auto-update.timer <<EOF_TIMER
