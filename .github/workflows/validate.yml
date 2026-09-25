@@ -153,7 +153,7 @@ jobs:
           assert liveness < application
           PY
           ! grep -q 'Gemini_Generated_Image_vemzsvemzsvemzsv.jpg' docker/Caddyfile
-          grep -Fq 'handle /GD/accountHelp /GD/accountHelp.php' docker/Caddyfile
+          grep -Fq '@legacy_recovery path /GD/accountHelp /GD/accountHelp.php' docker/Caddyfile
           grep -Fq 'rewrite * /api/api/accounts/lostusername.php' docker/Caddyfile
           grep -Fq 'auto_https disable_redirects' docker/Caddyfile
           test -s public/assets/muchocore-logo.jpg
