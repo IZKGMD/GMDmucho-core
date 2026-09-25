@@ -32,6 +32,11 @@ $cases = [
     [GameRole::ELDER_MODERATOR, 'elder_moderator'],
     [GameRole::OWNER, 'owner'],
     [GameRole::USER, 'PLAYER'],
+    [GameRole::MODERATOR, 'HELPER'],
+    [GameRole::MODERATOR, 'MOD'],
+    [GameRole::ELDER_MODERATOR, 'ADMIN'],
+    [GameRole::ELDER_MODERATOR, 'ELDER'],
+    [GameRole::ELDER_MODERATOR, 'DEVELOPER'],
 ];
 
 foreach ($cases as [$expected, $input]) {
