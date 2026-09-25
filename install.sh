@@ -333,11 +333,6 @@ if [[ -n "$TUNNEL_TOKEN" ]]; then
 fi
 chmod 600 "$INSTALL_DIR/.env"
 
-if [[ -f "$INSTALL_DIR/bin/mucho-install-auto-update.sh" ]]; then
-  log "Enabling automatic updates..."
-  bash "$INSTALL_DIR/bin/mucho-install-auto-update.sh"
-fi
-
 install -d -m 700 "$INSTALL_DIR/.muchocore"
 cat > "$INSTALL_DIR/.muchocore/profile.env" <<EOFPROFILE
 MUCHO_GD_VERSIONS=$GD_VERSIONS
