@@ -235,6 +235,18 @@ fi
 
 install -d -m 700 "$INSTALL_DIR/.secrets"
 
+# Generate isolated credentials for the first hosted test tenant.
+if [[ ! -s "$INSTALL_DIR/.secrets/testgdps_db_password" ]]; then
+  openssl rand -hex 24 > "$INSTALL_DIR/.secrets/testgdps_db_password"
+fi
+if [[ ! -s "$INSTALL_DIR/.secrets/testgdps_db_root_password" ]]; then
+  openssl rand -hex 32 > "$INSTALL_DIR/.secrets/testgdps_db_root_password"
+fi
+if [[ ! -s "$INSTALL_DIR/.secrets/testgdps_admin_password" ]]; then
+  openssl rand -base64 24 > "$INSTALL_DIR/.secrets/testgdps_admin_password"
+fi
+chmod 600 "$INSTALL_DIR/.secrets/testgdps_"*
+
 if [[ -f "$INSTALL_DIR/.secrets/db_password" ]]; then
   MUCHO_DB_PASSWORD="$(cat "$INSTALL_DIR/.secrets/db_password")"
 else
