@@ -58,6 +58,7 @@ jobs:
           php tests/application/admin-2fa-contract.php
           php tests/application/admin-access-key-contract.php
           php tests/application/admin-passkey-contract.php
+          php tests/application/admin-password-setup-contract.php
           php tests/application/plugin-sdk-contract.php
           php tests/application/score-integrity-contract.php
           php tests/application/cvolton-db-import-contract.php
