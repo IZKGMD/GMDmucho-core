@@ -296,7 +296,7 @@ function handleAndroidPatcherAction(
             'input_size' => $report['input_size'],
             'output_size' => $report['output_size'],
             'output_sha256' => $report['output_sha256'],
-            'signed' => false,
+            'signed' => true,
             'download_url' =>
                 '/admin/?android_download=' .
                 rawurlencode(basename($output, '.apk')),
