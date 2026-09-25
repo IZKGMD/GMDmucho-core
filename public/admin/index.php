@@ -995,6 +995,166 @@ if($passkeyAction!==''){
     }
 }
 
+
+function muchAdminSetupBaseUrl(): string
+{
+    $configured=(string)(
+        getenv('MUCHO_PUBLIC_URL')
+        ?: getenv('MUCHO_ACCOUNT_URL')
+        ?: ''
+    );
+
+    if ($configured!=='') {
+        $base=rtrim($configured,'/');
+    } else {
+        $https=(($_SERVER['HTTPS'] ?? '')==='on')
+            || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')==='https');
+        $scheme=$https ? 'https' : 'http';
+        $host=(string)($_SERVER['HTTP_HOST'] ?? 'localhost');
+        $base=$scheme.'://'.$host;
+    }
+
+    return $base.'/admin/';
+}
+
+function muchAdminRenderPasswordSetup(PDO $db,string $token): never
+{
+    $token=trim($token);
+
+    if (
+        $token==='' ||
+        strlen($token)!==64 ||
+        !preg_match('/^[A-Za-z0-9_-]+$/D',$token)
+    ) {
+        http_response_code(400);
+        exit('Invalid password setup link.');
+    }
+
+    $tokenHash=hash('sha256',$token);
+    $q=$db->prepare(
+        'SELECT id,username
+         FROM admin_users
+         WHERE password_must_set=1
+           AND password_setup_token_hash=:token
+           AND password_setup_expires_at>UTC_TIMESTAMP()
+           AND is_active=1
+         LIMIT 1'
+    );
+    $q->execute(['token'=>$tokenHash]);
+    $row=$q->fetch(PDO::FETCH_ASSOC) ?: null;
+
+    $error='';
+    $success=false;
+
+    if ($_SERVER['REQUEST_METHOD']==='POST') {
+        if (
+            empty($_POST['csrf']) ||
+            !hash_equals(csrf(),(string)$_POST['csrf'])
+        ) {
+            http_response_code(403);
+            exit('CSRF rejected');
+        }
+
+        $password=(string)($_POST['password'] ?? '');
+        $confirm=(string)($_POST['password_confirm'] ?? '');
+
+        if (!$row) {
+            $error='This password setup link is invalid or expired.';
+        } elseif (strlen($password)<10) {
+            $error='Password must be at least 10 characters.';
+        } elseif ($password!==$confirm) {
+            $error='Passwords do not match.';
+        } else {
+            $update=$db->prepare(
+                'UPDATE admin_users
+                 SET password_hash=:hash,
+                     password_must_set=0,
+                     password_setup_token_hash=NULL,
+                     password_setup_expires_at=NULL
+                 WHERE id=:id
+                   AND password_must_set=1
+                   AND password_setup_token_hash=:token
+                   AND password_setup_expires_at>UTC_TIMESTAMP()'
+            );
+            $update->execute([
+                'hash'=>password_hash($password,PASSWORD_DEFAULT),
+                'id'=>(int)$row['id'],
+                'token'=>$tokenHash
+            ]);
+
+            if ($update->rowCount()!==1) {
+                $error='This password setup link is invalid or expired.';
+            } else {
+                $success=true;
+            }
+        }
+    }
+
+    ?>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Set administrator password</title>
+<style>
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#07090f;color:#f4f7ff;font-family:system-ui,sans-serif}
+.card{width:min(460px,calc(100% - 32px));padding:28px;border:1px solid #263246;border-radius:18px;background:#0f1520;box-sizing:border-box}
+h1{margin:0 0 7px;font-size:24px}p{color:#8996aa;line-height:1.55}
+label{display:block;margin:14px 0 7px;color:#bfc9d9;font-size:12px;font-weight:700}
+input{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #2a374b;background:#090d14;color:#fff;font-size:14px}
+button{width:100%;margin-top:15px;padding:12px;border:0;border-radius:10px;background:#6f63ff;color:#fff;font-weight:800;cursor:pointer}
+.err{margin:12px 0;padding:10px;border-radius:10px;background:#32171b;border:1px solid #653038;color:#ffb7bd}
+.ok{margin:12px 0;padding:11px;border-radius:10px;background:#123226;border:1px solid #23583f;color:#8ce7b4}
+.small{font-size:11px;color:#69778d}
+</style>
+</head>
+<body>
+<main class="card">
+<h1>Set your administrator password</h1>
+<?php if($row): ?>
+<p>Welcome, <b><?=h((string)$row['username'])?></b>. Create your own password before signing in to MuchoCore.</p>
+<?php endif; ?>
+
+<?php if($error!==''): ?>
+<div class="err"><?=h($error)?></div>
+<?php endif; ?>
+
+<?php if($success): ?>
+<div class="ok">Password created successfully.</div>
+<p><a href="/admin/" style="color:#a69fff">Continue to administrator login</a></p>
+<?php elseif($row): ?>
+<form method="post">
+<input type="hidden" name="csrf" value="<?=csrf()?>">
+<label for="password">New password</label>
+<input id="password" type="password" name="password" autocomplete="new-password" minlength="10" required>
+<label for="password_confirm">Confirm password</label>
+<input id="password_confirm" type="password" name="password_confirm" autocomplete="new-password" minlength="10" required>
+<button>Create password</button>
+</form>
+<p class="small">This one-time setup link expires in 24 hours.</p>
+<?php else: ?>
+<p>This password setup link is invalid or expired. Ask the server owner to create a new administrator invitation.</p>
+<?php endif; ?>
+</main>
+</body>
+</html>
+<?php
+    exit;
+}
+
+$setupToken=(string)($_GET['setup'] ?? '');
+if (
+    $setupToken!=='' ||
+    (string)($_POST['action'] ?? '')==='admin-password-setup'
+) {
+    if ($setupToken==='') {
+        $setupToken=trim((string)($_POST['setup'] ?? ''));
+    }
+
+    muchAdminRenderPasswordSetup($db,$setupToken);
+}
+
 /* =========================================================
    LOGIN
 ========================================================= */
@@ -4035,7 +4195,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 (string)$_POST['username']
             );
 
-            $password=(string)$_POST['password'];
             $role=(string)$_POST['role'];
 
             if (
@@ -4046,12 +4205,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             ) {
                 throw new RuntimeException(
                     'Invalid username.'
-                );
-            }
-
-            if (strlen($password)<10) {
-                throw new RuntimeException(
-                    'Password must be at least 10 characters.'
                 );
             }
 
@@ -4068,23 +4221,40 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 throw new RuntimeException('Bad role');
             }
 
+            $setupToken=rtrim(
+                strtr(
+                    base64_encode(random_bytes(48)),
+                    '+/',
+                    '-_'
+                ),
+                '='
+            );
+
             $q=$db->prepare(
                 'INSERT INTO admin_users
-                 (username,password_hash,role)
-                 VALUES (:u,:p,:r)'
+                 (username,password_hash,role,password_must_set,
+                  password_setup_token_hash,password_setup_expires_at)
+                 VALUES (:u,:p,:r,1,:token_hash,:expires)'
             );
 
             $q->execute([
                 'u'=>$username,
                 'p'=>password_hash(
-                    $password,
+                    bin2hex(random_bytes(32)),
                     PASSWORD_DEFAULT
                 ),
-                'r'=>$role
+                'r'=>$role,
+                'token_hash'=>hash('sha256',$setupToken),
+                'expires'=>gmdate('Y-m-d H:i:s',time()+86400)
             ]);
 
-            audit($db,'admin.create',$username);
-            flash('Administrator created.');
+            $_SESSION['admin_setup_invite']=[
+                'username'=>$username,
+                'url'=>muchAdminSetupBaseUrl().'?setup='.rawurlencode($setupToken)
+            ];
+
+            audit($db,'admin.create',$username,['role'=>$role]);
+            flash('Administrator created. Give them the one-time password setup link shown below.');
         }
 
         elseif ($action==='admin-toggle') {
@@ -6005,6 +6175,22 @@ document.getElementById('copyRecoveryCodes')?.addEventListener('click',async()=>
 
 </div>
 
+<?php
+$adminSetupInvite=$_SESSION['admin_setup_invite'] ?? null;
+unset($_SESSION['admin_setup_invite']);
+?>
+
+<?php if(is_array($adminSetupInvite) && !empty($adminSetupInvite['url'])): ?>
+<div class="card" style="margin-bottom:13px">
+<h2>Administrator invitation</h2>
+<p style="color:#9aa6b9;line-height:1.5">Give this one-time link to <b><?=h((string)($adminSetupInvite['username'] ?? 'administrator'))?></b>. They will create their own password. The link expires in 24 hours and is shown only once.</p>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+<input readonly value="<?=h((string)$adminSetupInvite['url'])?>" style="flex:1;min-width:220px">
+<button type="button" onclick="navigator.clipboard?.writeText(this.previousElementSibling.value);this.textContent='Copied';setTimeout(()=>this.textContent='Copy link',1200)">Copy link</button>
+</div>
+</div>
+<?php endif; ?>
+
 <?php if(rank(admin()['role'])>=40): ?>
 
 <div class="card">
@@ -6016,8 +6202,8 @@ document.getElementById('copyRecoveryCodes')?.addEventListener('click',async()=>
 <input type="hidden" name="action" value="admin-create">
 <input type="hidden" name="return" value="admins">
 
-<p><input name="username" placeholder="Username"></p>
-<p><input type="password" name="password" placeholder="Password"></p>
+<p><input name="username" placeholder="Username" autocomplete="off" required></p>
+<p style="font-size:11px;color:#7f8ba0;line-height:1.5">The administrator will create their own password using a one-time setup link after you create the account.</p>
 
 <select name="role">
 <option>viewer</option>
