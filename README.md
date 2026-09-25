@@ -39,7 +39,7 @@ MuchoCore is designed around one simple idea:
 | 🛡️ **MuchoProtect** | Centralized request protection with per-endpoint limits, burst detection, account/IP isolation, and audit events |
 | 🔌 **Version-aware protocol** | Shared server logic with client-generation-specific protocol handling |
 | 🧪 **Automated validation** | Protocol, routing, client-contract, security, Docker, and patcher checks |
-| 🖥️ **Admin panel** | Web tools for managing players and server data |
+| 🖥️ **Admin panel** | Web tools for managing players, levels, moderation and server data |
 | 🎵 **Music infrastructure** | Built-in public music storage and upload flow |
 | 🐳 **Docker + Caddy** | Repeatable deployment without manually assembling the stack |
 | 🧩 **Maintainable architecture** | PHP services, repositories, controllers, migrations, and compatibility layers |
