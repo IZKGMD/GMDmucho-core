@@ -40,7 +40,7 @@
 | 🔌 **Plugin SDK** | Permissioned PHP plugins with lifecycle events, custom routes and optional database access |
 | 🖥️ **Admin Control** | Dashboard, players, levels, moderation, analytics, monitoring, backups, API tools and server settings |
 | ⭐ **Rating Studio** | Search levels by ID/name/creator, review pending requests, publish 0–10 star ratings, choose difficulty faces, feature tiers and audit the change |
-| 🔐 **Admin security** | Password login, native WebAuthn/FIDO2 passkeys, Google Authenticator TOTP, one-time recovery codes, rate limiting and audit logging |
+| 🔐 **Admin security** | Separate administrator accounts, password login, native WebAuthn/FIDO2 passkeys, Google Authenticator TOTP, one-time recovery codes, self-service password setup for invited admins, rate limiting and audit logging |
 | 🔄 **Cvolton migration** | Read-only source DB preflight, account/profile/level/score migration, persistent ID mapping and transactional apply |
 | 🧰 **Client patchers** | Windows desktop patcher, browser-based Windows patcher and Android APK patcher |
 | 🐳 **Deployment** | Docker Compose, MariaDB, PHP 8.3, Caddy, automatic migrations and update tooling |
@@ -212,6 +212,41 @@ The setup flow includes:
 - enable/disable audit events.
 
 The QR renderer is bundled with the project, so the secret is not sent to an external QR generation service.
+
+### Administrator accounts
+
+Each administrator uses a separate account. The first administrator created during installation is the `owner` account.
+
+When the owner creates another administrator, they do not set the new administrator's password. MuchoCore creates a one-time password setup link instead:
+
+    Owner
+      ↓
+    Administrators → Add administrator
+      ↓
+    Username + Role
+      ↓
+    One-time setup link
+      ↓
+    New administrator creates their own password
+      ↓
+    Normal Admin Panel sign-in
+
+The setup link:
+
+- is generated from a cryptographically random token;
+- is stored only as a SHA-256 hash;
+- expires after 24 hours;
+- becomes unusable immediately after the password is created;
+- is shown to the owner once so it can be delivered to the new administrator.
+
+The initial built-in administrator roles are:
+
+    owner
+    admin
+    moderator
+    viewer
+
+The `owner` account is the bootstrap-level administrator and has access to administrator management.
 
 ### Passkeys / WebAuthn
 
