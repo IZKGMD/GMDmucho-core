@@ -28,10 +28,10 @@ jobs:
         run: |
           set -euo pipefail
           input='Geometry Dash 1.0.apk'
-          output='Geometry Dash 1.0 - MuchoCore.apk'
+          output='patched/apk/Geometry Dash 1.0 - MuchoCore.apk'
           work="$RUNNER_TEMP/gd10"
           rm -rf "$work"
-          mkdir -p "$work"
+          mkdir -p "$work" patched/apk
 
           cat > "$work/patch.php" <<'PHP'
           <?php
@@ -88,7 +88,7 @@ jobs:
         with:
           name: muchocore-gd10-apk
           path: |
-            Geometry Dash 1.0 - MuchoCore.apk
+            patched/apk/Geometry Dash 1.0 - MuchoCore.apk
             GD10-PATCH-REPORT.json
           if-no-files-found: error
           retention-days: 30
