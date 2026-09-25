@@ -69,7 +69,10 @@ try {
         'https://gdps-example.com'
     );
 
-    if (($report['replacement_count'] ?? 0) < 4) {
+    if (
+        ($report['replacement_count'] ?? 0) < 4 ||
+        ($report['signed'] ?? false) !== true
+    ) {
         throw new RuntimeException('Expected four fixed-length URL replacements.');
     }
 
@@ -103,9 +106,31 @@ try {
 
     $check->close();
 
+    $verifyOutput = [];
+    $verifyCode = 0;
+    exec(
+        'apksigner verify --verbose ' . escapeshellarg($output) . ' 2>&1',
+        $verifyOutput,
+        $verifyCode
+    );
+    if ($verifyCode !== 0) {
+        throw new RuntimeException(
+            'apksigner verification failed: ' . implode("\n", $verifyOutput)
+        );
+    }
+
+    putenv('MUCHO_ANDROID_SIGNER_DIR');
     echo "Android client patcher test passed\n";
 } finally {
+    putenv('MUCHO_ANDROID_SIGNER_DIR');
     foreach (glob($dir . '/*') ?: [] as $file) {
+        if (is_dir($file)) {
+            foreach (glob($file . '/*') ?: [] as $nested) {
+                @unlink($nested);
+            }
+            @rmdir($file);
+            continue;
+        }
         @unlink($file);
     }
     @rmdir($dir);
