@@ -99,7 +99,7 @@ Use:
 sudo /opt/mucho-core/update.sh
 ~~~
 
-Updates preserve the selected compatibility profile, Cloudflare Tunnel deployment mode and automatic-update settings when those are configured.
+Updates preserve the selected compatibility profile and Cloudflare Tunnel deployment mode.
 
 ### Release-based updates
 
