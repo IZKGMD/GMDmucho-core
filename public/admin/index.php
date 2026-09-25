@@ -4993,6 +4993,7 @@ Keep access to your authenticator device. Disabling 2FA removes the extra sign-i
 <div class="setup-grid">
     <div class="qr-box">
         <div id="totpQr" aria-label="Authenticator QR code"></div>
+        <div id="totpQrStatus" class="qr-placeholder" style="display:none">QR renderer is loading…</div>
     </div>
 
     <div>
@@ -5052,16 +5053,42 @@ This setup key is the recovery credential for your TOTP factor. Store it private
 (() => {
     const uri = <?=json_encode($totpUri, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)?>;
     const qr = document.getElementById('totpQr');
-    if (qr && typeof QRCode !== 'undefined' && uri) {
+    const status = document.getElementById('totpQrStatus');
+
+    const renderQr = () => {
+        if (!qr || !uri) return;
+        if (typeof QRCode === 'undefined') {
+            if (status) {
+                status.style.display = 'grid';
+                status.textContent = 'Loading QR renderer…';
+            }
+            const script=document.createElement('script');
+            script.src='/admin/assets/qrcode.min.js?v=20260925';
+            script.onload=renderQr;
+            script.onerror=() => {
+                if (status) {
+                    status.style.display='grid';
+                    status.textContent='QR renderer failed to load. Use the manual setup key below.';
+                }
+            };
+            document.head.appendChild(script);
+            return;
+        }
+
+        qr.textContent='';
         new QRCode(qr, {
             text: uri,
-            width: 220,
-            height: 220,
+            width: 240,
+            height: 240,
             colorDark: '#111827',
             colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.M
+            correctLevel: QRCode.CorrectLevel.L
         });
-    }
+
+        if (status) status.style.display='none';
+    };
+
+    renderQr();
 
     document.getElementById('copyTotpSecret')?.addEventListener('click', async () => {
         const secret = document.getElementById('totpSecret')?.textContent?.trim() || '';
