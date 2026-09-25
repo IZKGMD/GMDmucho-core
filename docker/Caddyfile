@@ -43,9 +43,10 @@
         file_server
     }
 
-    # Geometry Dash 1.9 opens this legacy account-recovery URL.
-    # Keep the original path and serve the unified MuchoCore recovery flow.
-    handle /GD/accountHelp /GD/accountHelp.php {
+    # Geometry Dash 1.9 opens these legacy account-recovery URLs.
+    # Keep the original paths and serve the unified MuchoCore recovery flow.
+    @legacy_recovery path /GD/accountHelp /GD/accountHelp.php
+    handle @legacy_recovery {
         rewrite * /api/api/accounts/lostusername.php
     }
 
