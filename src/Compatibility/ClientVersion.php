@@ -26,7 +26,7 @@ final readonly class ClientVersion
         if (
             $gameVersion === 0 &&
             preg_match(
-                '#/(?:getgjcomments(?:19)?|uploadgjcomment(?:19)?|deletegjcomment(?:19)?|updategjlevel19)(?:\\.php)?$#i',
+                '#/(?:getgjcomments(?:19)?|uploadgjcomment(?:19)?|deletegjcomment(?:19)?|updategjlevel19)(?:\.php)?$#i',
                 (string)$request->path
             ) === 1
         ) {
@@ -42,7 +42,7 @@ final readonly class ClientVersion
         if (
             $gameVersion === 0 &&
             preg_match(
-                '#/(?:getgjlevels|uploadgjlevel|updategjlevel|downloadgjlevel|likegjlevel|rategjlevel|updategjusername)(?:\\.php)?$#i',
+                '#/(?:getgjlevels|uploadgjlevel|updategjlevel|downloadgjlevel|likegjlevel|rategjlevel|updategjusername)(?:\.php)?$#i',
                 (string)$request->path
             ) === 1
         ) {
@@ -85,8 +85,9 @@ final readonly class ClientVersion
         return match (true) {
             $version >= 22 => '2.2',
             $version === 21 => '2.1',
-            $version === 1 => '1.0',
             $version === 20 => '2.0',
+            $version === 11 => '1.1',
+            $version === 1 => '1.0',
             $version >= 19 => '1.9',
             $version > 0 => '1.x',
             default => 'unknown',
