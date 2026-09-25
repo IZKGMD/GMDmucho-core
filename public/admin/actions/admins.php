@@ -22,7 +22,8 @@ if(
             'admin-toggle',
             '2fa-generate',
             '2fa-enable',
-            '2fa-disable'
+            '2fa-disable',
+            'recovery-generate'
         ],
         true
     )
@@ -186,8 +187,42 @@ elseif ($action==='2fa-enable') {
 
             unset($_SESSION['pending_totp']);
 
+            $_SESSION['new_recovery_codes']=
+                generateAdminRecoveryCodes(
+                    $db,
+                    (int)admin()['id']
+                );
+
             audit($db,'2fa.enable');
-            flash('2FA enabled.');
+            flash('2FA enabled. Save the new recovery codes shown below.');
+        }
+
+elseif ($action==='recovery-generate') {
+            requireRank(10);
+
+            $me=$db->prepare(
+                'SELECT totp_secret
+                 FROM admin_users
+                 WHERE id=:id
+                 LIMIT 1'
+            );
+            $me->execute(['id'=>admin()['id']]);
+            $totpSecret=(string)($me->fetchColumn() ?: '');
+
+            if ($totpSecret==='') {
+                throw new RuntimeException(
+                    'Enable 2FA before generating recovery codes.'
+                );
+            }
+
+            $_SESSION['new_recovery_codes']=
+                generateAdminRecoveryCodes(
+                    $db,
+                    (int)admin()['id']
+                );
+
+            audit($db,'2fa.recovery_codes.regenerate');
+            flash('New recovery codes generated. Previous unused codes were revoked.');
         }
 
 elseif ($action==='2fa-disable') {
@@ -198,6 +233,13 @@ elseif ($action==='2fa-disable') {
                  SET totp_secret=NULL
                  WHERE id=:id'
             );
+
+            if (tableExists($db,'admin_recovery_codes')) {
+                $db->prepare(
+                    'DELETE FROM admin_recovery_codes
+                     WHERE admin_user_id=:id'
+                )->execute(['id'=>admin()['id']]);
+            }
 
             /*
              * Any bearer token issued before an MFA policy change must not
