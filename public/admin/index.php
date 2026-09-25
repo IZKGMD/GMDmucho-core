@@ -3015,6 +3015,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
                 $db->commit();
 
+                $featureBefore=match(true) {
+                    (int)$before['epic']>=3 => 4,
+                    (int)$before['epic']===2 => 3,
+                    (int)$before['epic']===1 => 2,
+                    (int)$before['featured']>0 => 1,
+                    default => 0
+                };
+
                 audit(
                     $db,
                     'level.rate',
@@ -3025,12 +3033,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                         'difficulty_before'=>(int)$before['difficulty'],
                         'demon_before'=>(int)$before['demon'],
                         'demon_difficulty_before'=>(int)$before['demon_difficulty'],
-                        'feature_before'=>(
-                            (int)$before['epic']>=3 ? 4 :
-                            ((int)$before['epic']===2 ? 3 :
-                            ((int)$before['epic']===1 ? 2 :
-                            ((int)$before['featured']>0 ? 1 : 0))
-                        ),
+                        'feature_before'=>$featureBefore,
                         'stars'=>$stars,
                         'difficulty'=>$difficulty,
                         'demon'=>$demon,
