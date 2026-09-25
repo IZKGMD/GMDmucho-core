@@ -48,8 +48,9 @@ $checks=[
     'native credential api'=>str_contains($i,'navigator.credentials.get'),
     'conditional passkey autocomplete'=>str_contains($i,'username webauthn'),
     'passkey audit event'=>str_contains($i,'login.passkey'),
-    'csrf for registration'=>str_contains($i,'checkCsrf()') &&
-        str_contains($i,'passkey_register'),
+    'csrf for registration'=>substr_count($i,'checkPasskeyCsrf()')>=2 &&
+        str_contains($i,"$passkeyAction==='register-options'") &&
+        str_contains($i,"$passkeyAction==='register-verify'"),
     'rp id configuration'=>str_contains($s,'MUCHO_ADMIN_PASSKEY_RP_ID'),
 ];
 
