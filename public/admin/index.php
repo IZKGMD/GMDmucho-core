@@ -1888,10 +1888,16 @@ max-width:100%
 <div class="err"><?=h($loginError)?></div>
 <?php endif ?>
 
+<div class="admin-login-methods" style="display:flex;gap:8px;margin-bottom:10px">
+<button type="button" class="gray" id="passwordMode">Password login</button>
+<button type="button" class="gray" id="accessKeyMode">Access Key login</button>
+</div>
+
+<div id="passwordLoginFields">
 <input
  name="username"
  autocomplete="username"
- placeholder="Logs"
+ placeholder="Username"
 >
 
 <input
@@ -1900,13 +1906,16 @@ max-width:100%
  autocomplete="current-password"
  placeholder="Password"
 >
+</div>
 
+<div id="accessKeyLoginFields" hidden>
 <input
  name="access_key"
  autocomplete="off"
  spellcheck="false"
- placeholder="Access Key (optional — username not required)"
+ placeholder="MUCHO-Access-Key"
 >
+</div>
 
 <input
  name="otp"
@@ -1916,6 +1925,39 @@ max-width:100%
 >
 
 <button name="login" value="1">Sign in</button>
+<script>
+(() => {
+    const passwordMode=document.getElementById('passwordMode');
+    const accessKeyMode=document.getElementById('accessKeyMode');
+    const passwordFields=document.getElementById('passwordLoginFields');
+    const accessKeyFields=document.getElementById('accessKeyLoginFields');
+    const username=document.querySelector('input[name="username"]');
+    const password=document.querySelector('input[name="password"]');
+    const accessKey=document.querySelector('input[name="access_key"]');
+
+    function setMode(mode){
+        const key=mode==='key';
+        passwordFields.hidden=key;
+        accessKeyFields.hidden=!key;
+        username.disabled=key;
+        password.disabled=key;
+        accessKey.disabled=!key;
+
+        passwordMode.classList.toggle('green',!key);
+        accessKeyMode.classList.toggle('green',key);
+
+        if(key){
+            accessKey.focus();
+        }else{
+            username.focus();
+        }
+    }
+
+    passwordMode?.addEventListener('click',() => setMode('password'));
+    accessKeyMode?.addEventListener('click',() => setMode('key'));
+    setMode('password');
+})();
+</script>
 <div style="margin-top:16px;color:#7f8aa0;font-size:12px;text-align:center"><?=h($branding['server_name'])?><?php if (!empty($branding['server_by_name']) && !empty($branding['social_url'])): ?> · Server by <a href="<?=h($branding['social_url'])?>" target="_blank" rel="noopener noreferrer"><?=h($branding['server_by_name'])?></a><?php endif; ?> · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK · <a href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;color:#7d8ba3;text-decoration:none;vertical-align:middle"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.24c-3.34.73-4.04-1.61-4.04-1.61-.55-1.4-1.34-1.77-1.34-1.77-1.09-.75.08-.74.08-.74 1.2.08 1.83 1.23 1.83 1.23 1.07 1.83 2.8 1.3 3.48.99.11-.77.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.94 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.63-5.48 5.93.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.57A12 12 0 0 0 12 .5"/></svg><span>GitHub</span></a></div>
 </form>
 
