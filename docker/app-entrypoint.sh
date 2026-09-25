@@ -3,8 +3,10 @@ set -Eeuo pipefail
 
 ROOT=/var/www/mucho-core
 cd "$ROOT"
-DB_PASS="$(cat /run/secrets/db_password)"
-ADMIN_PASS="$(cat /run/secrets/admin_password)"
+DB_PASSWORD_FILE="${MUCHO_DB_PASSWORD_FILE:-/run/secrets/db_password}"
+ADMIN_PASSWORD_FILE="${MUCHO_ADMIN_PASSWORD_FILE:-/run/secrets/admin_password}"
+DB_PASS="$(cat "$DB_PASSWORD_FILE")"
+ADMIN_PASS="$(cat "$ADMIN_PASSWORD_FILE")"
 
 install -d -m 750 -o root -g www-data /var/lib/muchocore
 install -d -m 750 -o root -g www-data /var/lib/muchocore/android-signer
