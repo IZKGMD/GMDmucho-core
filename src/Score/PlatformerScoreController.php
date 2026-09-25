@@ -64,13 +64,27 @@ final readonly class PlatformerScoreController
              * Only time > 0 represents a real platformer result.
              */
             if($time>0){
-                $this->save(
+                $scoreId=$this->save(
                     $accountId,
                     $levelId,
                     $time,
                     $points,
                     $mode
                 );
+
+                if($scoreId!==null){
+                    ScoreIntegrity::record(
+                        $this->db,
+                        'platformer',
+                        $scoreId,
+                        $accountId,
+                        $levelId,
+                        ScoreIntegrity::evaluatePlatformer(
+                            $time,
+                            $points
+                        )
+                    );
+                }
             }
 
             return Response::text(
@@ -111,7 +125,7 @@ final readonly class PlatformerScoreController
         int $time,
         int $points,
         int $mode
-    ): void {
+    ): ?int {
 
         $q=$this->db->prepare("
             SELECT
@@ -167,7 +181,7 @@ final readonly class PlatformerScoreController
                 'updated'=>$now,
             ]);
 
-            return;
+            return (int)$this->db->lastInsertId();
         }
 
         $oldTime=(int)$old['time_ms'];
@@ -179,7 +193,7 @@ final readonly class PlatformerScoreController
                 : ($points>$oldPoints);
 
         if(!$better){
-            return;
+            return null;
         }
 
         $q=$this->db->prepare("
@@ -199,6 +213,8 @@ final readonly class PlatformerScoreController
             'updated'=>$now,
             'score'=>(int)$old['score_id'],
         ]);
+
+        return (int)$old['score_id'];
     }
 
 
@@ -218,6 +234,19 @@ final readonly class PlatformerScoreController
             's.time_ms>0',
             'a.is_banned=0',
         ];
+
+        if (ScoreIntegrity::quarantineEnabled()) {
+            $where[] = "
+                NOT EXISTS (
+                    SELECT 1
+                    FROM mucho_score_integrity_events si
+                    WHERE si.score_type='platformer'
+                      AND si.score_id=s.score_id
+                      AND si.status='suspicious'
+                      AND si.risk_score>=70
+                )
+            ";
+        }
 
         if($type===0){
 
