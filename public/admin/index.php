@@ -179,6 +179,8 @@ CREATE TABLE IF NOT EXISTS admin_users (
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(32) NOT NULL DEFAULT 'admin',
     totp_secret VARCHAR(64) NULL,
+    access_key_hash VARCHAR(255) NULL,
+    access_key_created_at TIMESTAMP NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -517,6 +519,11 @@ function newTotpSecret(): string
     return $out;
 }
 
+function newAccessKey(): string
+{
+    return 'MUCHO-'.strtoupper(bin2hex(random_bytes(24)));
+}
+
 function totpProvisioningUri(
     string $secret,
     string $account,
@@ -531,7 +538,7 @@ function totpProvisioningUri(
         : 'admin';
 
     return 'otpauth://totp/'.
-        rawurlencode($issuer.':'.$account).
+        rawurlencode($issuer).':'.rawurlencode($account).
         '?secret='.rawurlencode($secret).
         '&issuer='.rawurlencode($issuer).
         '&algorithm=SHA1'.
@@ -546,6 +553,7 @@ function totpProvisioningUri(
 if (isset($_POST['login'])) {
     $user=trim((string)($_POST['username'] ?? ''));
     $password=(string)($_POST['password'] ?? '');
+    $accessKey=trim((string)($_POST['access_key'] ?? ''));
     $otp=trim((string)($_POST['otp'] ?? ''));
 
     $ip=\MuchoCore\Http\ClientIp::resolve($_SERVER);
@@ -586,11 +594,22 @@ if (isset($_POST['login'])) {
         $q->execute(['u'=>$user]);
         $row=$q->fetch(PDO::FETCH_ASSOC);
 
-        $ok=$row
+        $passwordOk=$row
+            && $password!==''
             && password_verify(
                 $password,
                 $row['password_hash']
             );
+
+        $accessKeyOk=$row
+            && $accessKey!==''
+            && !empty($row['access_key_hash'])
+            && password_verify(
+                $accessKey,
+                $row['access_key_hash']
+            );
+
+        $ok=$passwordOk || $accessKeyOk;
 
         if (
             $ok &&
@@ -618,7 +637,7 @@ if (isset($_POST['login'])) {
 
             @unlink($rate);
 
-            audit($db,'login');
+            audit($db,$accessKeyOk && !$passwordOk ? 'login.access_key' : 'login');
 
             header('Location:/admin/');
             exit;
@@ -1715,6 +1734,12 @@ max-width:100%
  name="password"
  autocomplete="current-password"
  placeholder="Password"
+>
+
+<input
+ name="access_key"
+ autocomplete="one-time-code"
+ placeholder="Access Key (optional)"
 >
 
 <input
