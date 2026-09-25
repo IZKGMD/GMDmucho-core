@@ -161,13 +161,15 @@ final readonly class RewardsService
         string $chk,
         string $credential,
         string $rewardKey,
-        string $secret
+        string $secret,
+        string $ip = ''
     ): string {
         if ($secret !== self::SECRET_REWARD_SECRET) {
             return '-1';
         }
 
         $rewardKey = trim($rewardKey);
+        $ip = trim($ip);
 
         if ($rewardKey === '' || strlen($rewardKey) > 128) {
             return '-1';
@@ -193,9 +195,19 @@ final readonly class RewardsService
             return '-1';
         }
 
+        if (
+            $accountId <= 0 &&
+            (
+                $udid === '' ||
+                filter_var($ip, FILTER_VALIDATE_IP) === false
+            )
+        ) {
+            return '-1';
+        }
+
         $claimKey = $accountId > 0
             ? 'a:' . $accountId
-            : 'u:' . hash('sha256', $udid);
+            : 'u:' . hash('sha256', $ip . '|' . $udid);
 
         $claimed = $this->repository->claimSecretReward(
             (int)$reward['reward_id'],
