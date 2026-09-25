@@ -202,7 +202,11 @@ final readonly class AccountAuthenticator
 
             $touch = $this->pdo->prepare(
                 'UPDATE mucho_legacy_19_sessions
-                 SET last_used_at = UTC_TIMESTAMP()
+                 SET last_used_at = UTC_TIMESTAMP(),
+                     expires_at = DATE_ADD(
+                         UTC_TIMESTAMP(),
+                         INTERVAL 1 HOUR
+                     )
                  WHERE id = :id'
             );
 
