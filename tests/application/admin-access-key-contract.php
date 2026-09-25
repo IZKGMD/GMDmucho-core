@@ -33,7 +33,10 @@ $assert(str_contains($index,'password_verify(
 $assert(str_contains($index,"'login.access_key'"),'access key login audit event');
 $assert(str_contains($index,'name="access_key"'),'access key login field');
 $assert(str_contains($index,'Access Key replaces the password, not the second factor.'),'2FA remains required with access key');
-$assert(str_contains($index,"$accessKey!=='' && $user===''" ),'key-only login path');
+$assert(
+    str_contains($index,"$accessKey!=='' && $user===''" ),
+    'key-only login path'
+);
 $assert(str_contains($index,'/admin/assets/qrcode.min.js?v=20260925'),'cache-busted local QR renderer');
 $assert(str_contains($index,'script.onerror=() =>'),'QR loader fallback');
 $assert(str_contains($index,'correctLevel: QRCode.CorrectLevel.L'),'low error correction for compact TOTP QR');
