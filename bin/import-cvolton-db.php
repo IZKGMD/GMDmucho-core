@@ -51,6 +51,17 @@ $host = (string)$options['source-host'];
 $port = (string)($options['source-port'] ?? '3306');
 $dbName = (string)$options['source-db'];
 $user = (string)$options['source-user'];
+
+if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $dbName)) {
+    fwrite(STDERR, "ERROR: invalid source database name. Use letters, numbers, _ or - only.\n");
+    exit(2);
+}
+
+if ($user === '' || strlen($user) > 128) {
+    fwrite(STDERR, "ERROR: invalid source database user.\n");
+    exit(2);
+}
+
 $pass = array_key_exists('source-pass', $options)
     ? (string)$options['source-pass']
     : (string)(getenv('CVOLTON_SOURCE_PASS') ?: '');
