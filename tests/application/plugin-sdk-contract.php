@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use MuchoCore\Plugin\PluginEventBus;
 
-require dirname(__DIR__, 2) . '/vendor/autoload.php';
+require dirname(__DIR__, 2) . '/src/Plugin/PluginEventBus.php';
 
 $bus = new PluginEventBus();
 $seen = 0;
