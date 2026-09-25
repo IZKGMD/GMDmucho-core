@@ -43,8 +43,17 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -f "$TAG" "$RELEASE_SHA"
-          git push origin +refs/tags/"$TAG"
+          if git ls-remote --exit-code --refs origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
+            EXISTING_SHA="$(git rev-parse "$TAG^{commit}")"
+            if [[ "$EXISTING_SHA" != "$RELEASE_SHA" ]]; then
+              echo "ERROR: $TAG already points to $EXISTING_SHA, refusing to move a stable release tag." >&2
+              exit 1
+            fi
+          else
+            git tag "$TAG" "$RELEASE_SHA"
+            git push origin "refs/tags/$TAG:refs/tags/$TAG"
+          fi
 
           awk -v tag="$TAG" '
             $0 ~ "^## " tag "$" {printing=1; print; next}
