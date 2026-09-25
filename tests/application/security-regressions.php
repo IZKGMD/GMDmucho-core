@@ -121,6 +121,10 @@ $iconProxy = (string)file_get_contents(
     __DIR__ . '/../../public/admin/icon-proxy.php'
 );
 
+$likeMigration = (string)file_get_contents(
+    __DIR__ . '/../../database/migrations/20260925_003_like_identity_integrity.php'
+);
+
 assertSecurityRegression(
     str_contains($adminActions, 'mucho_admin_client_tokens') &&
     str_contains($adminActions, 'SET revoked_at=NOW()'),
@@ -158,6 +162,12 @@ assertSecurityRegression(
     str_contains($iconProxy, '512000') &&
     str_contains($iconProxy, 'gdicon.oat.zone'),
     'public icon proxy is rate limited and response-size bounded'
+);
+
+assertSecurityRegression(
+    str_contains($likeMigration, 'uq_like_item_user_ip') &&
+    str_contains($likeMigration, '(item_id, type, account_id, ip)'),
+    'anonymous like identity is keyed by IP without weakening authenticated uniqueness'
 );
 
 $frontController = (string)file_get_contents(
