@@ -3450,6 +3450,47 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             flash('Status changed.');
         }
 
+        elseif ($action==='access-key-generate') {
+            requireRank(10);
+
+            $accessKey=newAccessKey();
+
+            $db->prepare(
+                'UPDATE admin_users
+                 SET access_key_hash=:hash,
+                     access_key_created_at=NOW()
+                 WHERE id=:id'
+            )->execute([
+                'hash'=>password_hash($accessKey,PASSWORD_DEFAULT),
+                'id'=>admin()['id']
+            ]);
+
+            $_SESSION['new_access_key']=$accessKey;
+
+            audit($db,'access_key.generate');
+            flash(
+                'A new access key was generated. Copy it now; it is not stored in plaintext.'
+            );
+        }
+
+        elseif ($action==='access-key-revoke') {
+            requireRank(10);
+
+            $db->prepare(
+                'UPDATE admin_users
+                 SET access_key_hash=NULL,
+                     access_key_created_at=NULL
+                 WHERE id=:id'
+            )->execute([
+                'id'=>admin()['id']
+            ]);
+
+            unset($_SESSION['new_access_key']);
+
+            audit($db,'access_key.revoke');
+            flash('Administrator access key revoked.');
+        }
+
         elseif ($action==='2fa-generate') {
             requireRank(10);
 
