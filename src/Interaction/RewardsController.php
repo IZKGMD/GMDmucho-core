@@ -58,7 +58,8 @@ final readonly class RewardsController
                     $request->postString('chk'),
                     $this->credential($request),
                     $request->postString('rewardKey'),
-                    $request->postString('secret')
+                    $request->postString('secret'),
+                    $request->clientIp()
                 )
             );
         } catch (Throwable) {
