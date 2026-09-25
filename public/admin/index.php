@@ -2936,27 +2936,122 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             }
 
             $stars=max(0,min(10,(int)($_POST['stars'] ?? 0)));
-            $difficulty=max(0,min(6,(int)($_POST['difficulty'] ?? 0)));
             $feature=max(0,min(4,(int)($_POST['feature'] ?? 0)));
-            $demon=isset($_POST['demon']) ? 1 : 0;
-            $autoLevel=isset($_POST['auto_level']) ? 1 : 0;
-            $demonDifficulty=max(0,min(8,(int)($_POST['demon_difficulty'] ?? 0)));
 
-            if ($demon && $autoLevel) {
-                throw new RuntimeException('A level cannot be Auto and Demon at the same time.');
-            }
+            /*
+             * One canonical difficulty selector for the admin UI.
+             * Keep the old hidden-field fallback for compatibility with older
+             * clients or bookmarks, but prefer the canonical profile value.
+             */
+            $difficultyProfiles=[
+                'unrated'=>[
+                    'difficulty'=>0,
+                    'demon'=>0,
+                    'demon_difficulty'=>0,
+                    'auto_level'=>0,
+                ],
+                'auto'=>[
+                    'difficulty'=>1,
+                    'demon'=>0,
+                    'demon_difficulty'=>0,
+                    'auto_level'=>1,
+                ],
+                'easy'=>[
+                    'difficulty'=>2,
+                    'demon'=>0,
+                    'demon_difficulty'=>0,
+                    'auto_level'=>0,
+                ],
+                'normal'=>[
+                    'difficulty'=>3,
+                    'demon'=>0,
+                    'demon_difficulty'=>0,
+                    'auto_level'=>0,
+                ],
+                'hard'=>[
+                    'difficulty'=>4,
+                    'demon'=>0,
+                    'demon_difficulty'=>0,
+                    'auto_level'=>0,
+                ],
+                'harder'=>[
+                    'difficulty'=>5,
+                    'demon'=>0,
+                    'demon_difficulty'=>0,
+                    'auto_level'=>0,
+                ],
+                'insane'=>[
+                    'difficulty'=>6,
+                    'demon'=>0,
+                    'demon_difficulty'=>0,
+                    'auto_level'=>0,
+                ],
+                'easy-demon'=>[
+                    'difficulty'=>6,
+                    'demon'=>1,
+                    'demon_difficulty'=>1,
+                    'auto_level'=>0,
+                ],
+                'medium-demon'=>[
+                    'difficulty'=>6,
+                    'demon'=>1,
+                    'demon_difficulty'=>2,
+                    'auto_level'=>0,
+                ],
+                'hard-demon'=>[
+                    'difficulty'=>6,
+                    'demon'=>1,
+                    'demon_difficulty'=>3,
+                    'auto_level'=>0,
+                ],
+                'insane-demon'=>[
+                    'difficulty'=>6,
+                    'demon'=>1,
+                    'demon_difficulty'=>4,
+                    'auto_level'=>0,
+                ],
+                'extreme-demon'=>[
+                    'difficulty'=>6,
+                    'demon'=>1,
+                    'demon_difficulty'=>5,
+                    'auto_level'=>0,
+                ],
+            ];
 
-            if ($autoLevel) {
-                $difficulty=1;
-                $demon=0;
-                $demonDifficulty=0;
-            } elseif ($demon) {
-                $difficulty=6;
-                if ($demonDifficulty<1) {
-                    throw new RuntimeException('Select a demon difficulty.');
+            $difficultyProfile=trim((string)($_POST['difficulty_profile'] ?? ''));
+
+            if ($difficultyProfile!=='') {
+                if (!isset($difficultyProfiles[$difficultyProfile])) {
+                    throw new RuntimeException('Invalid difficulty profile.');
                 }
+
+                $difficulty=(int)$difficultyProfiles[$difficultyProfile]['difficulty'];
+                $demon=(int)$difficultyProfiles[$difficultyProfile]['demon'];
+                $demonDifficulty=(int)$difficultyProfiles[$difficultyProfile]['demon_difficulty'];
+                $autoLevel=(int)$difficultyProfiles[$difficultyProfile]['auto_level'];
             } else {
-                $demonDifficulty=0;
+                /* Backward-compatible fallback for older admin forms. */
+                $difficulty=max(0,min(6,(int)($_POST['difficulty'] ?? 0)));
+                $demon=isset($_POST['demon']) ? 1 : 0;
+                $autoLevel=isset($_POST['auto_level']) ? 1 : 0;
+                $demonDifficulty=max(0,min(8,(int)($_POST['demon_difficulty'] ?? 0)));
+
+                if ($demon && $autoLevel) {
+                    throw new RuntimeException('A level cannot be Auto and Demon at the same time.');
+                }
+
+                if ($autoLevel) {
+                    $difficulty=1;
+                    $demon=0;
+                    $demonDifficulty=0;
+                } elseif ($demon) {
+                    $difficulty=6;
+                    if ($demonDifficulty<1) {
+                        throw new RuntimeException('Select a demon difficulty.');
+                    }
+                } else {
+                    $demonDifficulty=0;
+                }
             }
 
             $featured=$feature>0 ? 1 : 0;
