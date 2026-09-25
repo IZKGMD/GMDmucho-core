@@ -26,7 +26,7 @@ function assertProfile(mixed $expected, mixed $actual, string $name): void
     echo "PASS {$name}\n";
 }
 
-$all = new CompatibilityProfile([19, 20, 21, 22]);
+$all = new CompatibilityProfile([1, 19, 20, 21, 22]);
 assertProfile(true, $all->isAll(), 'all profile detected');
 
 foreach ([19, 20, 21, 22] as $version) {
