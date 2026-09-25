@@ -24,7 +24,7 @@ $assert(str_contains($index,"otpauth://totp/"),'otpauth TOTP scheme');
 $assert(str_contains($index,"algorithm=SHA1"),'SHA1 TOTP provisioning');
 $assert(str_contains($index,"digits=6"),'six digit provisioning');
 $assert(str_contains($index,"period=30"),'30 second provisioning');
-$assert(str_contains($index,"$_SESSION['pending_totp']=[") ,'pending TOTP setup state');
+$assert(str_contains($index,'$_SESSION[\'pending_totp\']=['),'pending TOTP setup state');
 $assert(str_contains($index,"'created_at'=>time()"),'setup creation timestamp');
 $assert(str_contains($index,'(time()-$createdAt)>600'),'10 minute setup expiry');
 $assert(str_contains($index,'verifyTotp($secret,$code)'),'server-side TOTP confirmation');
