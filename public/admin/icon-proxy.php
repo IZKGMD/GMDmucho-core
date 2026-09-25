@@ -1,6 +1,20 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
+
+$clientIp = \MuchoCore\Http\ClientIp::resolve($_SERVER);
+$limiter = new \MuchoCore\Security\RateLimiter(
+    sys_get_temp_dir() . '/muchocore-icon-rate'
+);
+
+if (!$limiter->allowStrict('icon-proxy|' . $clientIp, 60, 60)) {
+    http_response_code(429);
+    header('Cache-Control: no-store');
+    header('Retry-After: 60');
+    exit;
+}
+
 $allowed = ['cube','ship','ball','ufo','wave','robot','spider','swing','jetpack'];
 $type = strtolower((string)($_GET['type'] ?? 'cube'));
 if (!in_array($type, $allowed, true)) {
@@ -67,7 +81,7 @@ if (
     $status === 200 &&
     is_string($data) &&
     strlen($data) >= 32 &&
-    strlen($data) <= 2000000 &&
+    strlen($data) <= 512000 &&
     str_starts_with($data, "\x89PNG\r\n\x1a\n")
 ) {
     @file_put_contents($cache, $data, LOCK_EX);
