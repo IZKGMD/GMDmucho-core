@@ -176,7 +176,7 @@ void submitSuggest() {
     std::wstring stars = std::to_wstring(comboIndex(gStars) + 1);
     std::wstring feature = std::to_wstring(comboIndex(gFeature));
     std::wstring demon = std::to_wstring(comboIndex(gDemon));
-    int coins = (Button_GetCheck(gCoins) == BST_CHECKED) ? 1 : 0;
+    int coins = (SendMessageW(gCoins, BM_GETCHECK, 0, 0) == BST_CHECKED) ? 1 : 0;
 
     std::wstring body =
         L"accountID=" + formEncode(account) +
