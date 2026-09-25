@@ -11,14 +11,30 @@ ADMIN_PASS="$(cat "$ADMIN_PASSWORD_FILE")"
 install -d -m 750 -o root -g www-data /var/lib/muchocore
 install -d -m 750 -o root -g www-data /var/lib/muchocore/android-signer
 ANDROID_SIGNER_DIR=/var/lib/muchocore/android-signer
-if [[ ! -s "$ANDROID_SIGNER_DIR/muchocore-android.key.pem" || ! -s "$ANDROID_SIGNER_DIR/muchocore-android.cert.pem" ]]; then
-  rm -f "$ANDROID_SIGNER_DIR/muchocore-android.key.pem" "$ANDROID_SIGNER_DIR/muchocore-android.cert.pem"
-  openssl genrsa -out "$ANDROID_SIGNER_DIR/muchocore-android.key.pem" 2048
-  openssl req -new -x509 -sha256     -key "$ANDROID_SIGNER_DIR/muchocore-android.key.pem"     -out "$ANDROID_SIGNER_DIR/muchocore-android.cert.pem"     -days 10000     -subj "/CN=MuchoCore Android/O=MuchoCore/C=US"
-  chown root:www-data "$ANDROID_SIGNER_DIR/muchocore-android.key.pem" "$ANDROID_SIGNER_DIR/muchocore-android.cert.pem"
-  chmod 640 "$ANDROID_SIGNER_DIR/muchocore-android.key.pem"
-  chmod 644 "$ANDROID_SIGNER_DIR/muchocore-android.cert.pem"
+SIGNER_KEY="$ANDROID_SIGNER_DIR/muchocore-android.key.pem"
+SIGNER_CERT="$ANDROID_SIGNER_DIR/muchocore-android.cert.pem"
+
+if [[ ! -s "$SIGNER_KEY" || ! -s "$SIGNER_CERT" ]]; then
+  rm -f "$SIGNER_KEY" "$SIGNER_CERT"
+  openssl genpkey \
+    -algorithm RSA \
+    -pkeyopt rsa_keygen_bits:2048 \
+    -out "$SIGNER_KEY"
+  openssl req -new -x509 -sha256 \
+    -key "$SIGNER_KEY" \
+    -out "$SIGNER_CERT" \
+    -days 10000 \
+    -subj "/CN=MuchoCore Android/O=MuchoCore/C=US"
+elif grep -q '-----BEGIN RSA PRIVATE KEY-----' "$SIGNER_KEY"; then
+  openssl pkcs8 -topk8 -nocrypt \
+    -in "$SIGNER_KEY" \
+    -out "$SIGNER_KEY.pkcs8"
+  mv "$SIGNER_KEY.pkcs8" "$SIGNER_KEY"
 fi
+
+chown root:www-data "$SIGNER_KEY" "$SIGNER_CERT"
+chmod 640 "$SIGNER_KEY"
+chmod 644 "$SIGNER_CERT"
 
 install -d -m 750 /var/lib/muchocore-control /var/lib/muchocore-backups
 install -d -m 750 /var/www/mucho-core/storage/music-public
