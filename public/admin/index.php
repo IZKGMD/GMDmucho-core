@@ -695,7 +695,7 @@ function checkPasskeyCsrf(): void
 
 function muchPasskeyRateFile(): string
 {
-    $ip=\\MuchoCore\\Http\\ClientIp::resolve($_SERVER);
+    $ip=\MuchoCore\Http\ClientIp::resolve($_SERVER);
     return '/tmp/mucho-admin-passkey-'.hash('sha256',$ip);
 }
 
@@ -2408,9 +2408,9 @@ Use a saved passkey. Your browser will open the native passkey picker so you can
 
         if(status) status.textContent='Opening the native passkey picker…';
         const options=await passkeyFetch('login-options');
-        const credential=await navigator.credentials.get({
-            publicKey:normalizeGetOptions(options)
-        });
+        const credential=await navigator.credentials.get(
+            normalizeGetOptions(options)
+        );
 
         if(!credential){
             throw new Error('No passkey was selected.');
@@ -6037,9 +6037,9 @@ The private key stays on the authenticator. MuchoCore stores only the public cre
 
             if(status) status.textContent='Opening the native passkey picker…';
             const options=await request('register-options');
-            const credential=await navigator.credentials.create({
-                publicKey:normalizeCreateOptions(options)
-            });
+            const credential=await navigator.credentials.create(
+                normalizeCreateOptions(options)
+            );
 
             if(!credential){
                 throw new Error('Passkey registration was cancelled.');
