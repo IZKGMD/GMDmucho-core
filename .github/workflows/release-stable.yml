@@ -1,0 +1,67 @@
+name: Release stable
+
+on:
+  workflow_run:
+    workflows: ["Validate"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Check release marker
+        id: marker
+        run: |
+          if [[ ! -f .release/v1.0.0.ready ]]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          test "$(tr -d '[:space:]' < VERSION)" = "1.0.0"
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Publish v1.0.0
+        if: steps.marker.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f v1.0.0 "$RELEASE_SHA"
+          git push origin +refs/tags/v1.0.0
+
+          if gh release view v1.0.0 >/dev/null 2>&1; then
+            echo "v1.0.0 release already exists."
+          else
+            gh release create v1.0.0 \
+              --title "MuchoCore v1.0.0" \
+              --notes-file CHANGELOG.md \
+              --latest
+          fi
+
+      - name: Remove one-time release marker
+        if: steps.marker.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch origin main
+          git switch -C main origin/main
+          rm -f .release/v1.0.0.ready
+          if git diff --quiet -- .release/v1.0.0.ready; then
+            echo "Release marker already absent."
+            exit 0
+          fi
+          git add -A .release/v1.0.0.ready
+          git commit -m "chore: finalize v1.0.0 release marker"
+          git push origin main
