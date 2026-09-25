@@ -44,6 +44,8 @@ The current `research/gd10-compat` implementation has been verified end-to-end w
 
 The legacy profile covers the protocol behavior required by the 1.9 generation, including legacy text handling, old comment/account surfaces, legacy level transfer behavior and version-specific response encoding.
 
+The GD 1.9 client has also been verified end-to-end against MuchoCore.
+
 ### GD 2.0
 
 GD 2.0 uses the 2.x protocol family while retaining compatibility behavior distinct from GD 2.1.
