@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - research/gd20-moderator-dll
+  pull_request:
+    branches:
+      - research/gd10-compat
   workflow_dispatch:
 
 jobs:
@@ -41,3 +44,4 @@ Endpoints:
         with:
           name: MuchoModerator-GD20
           path: out/
+          if-no-files-found: error
