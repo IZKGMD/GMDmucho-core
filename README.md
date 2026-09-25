@@ -398,7 +398,7 @@ Current validation includes:
 | --- | --- |
 | PHP | Syntax, application contracts and source checks |
 | Protocol | Version matrix, legacy wire behavior and modern protocol guards |
-| Security | MuchoProtect, authentication, TOTP and access-key contracts |
+| Security | MuchoProtect, authentication, TOTP, access-key and passkey contracts |
 | Client tools | Windows patcher, Android patcher and Python self-tests |
 | Routing | Caddy, Apache/shared-hosting compatibility and liveness routes |
 | Docker | Compose validation and deployment configuration checks |
