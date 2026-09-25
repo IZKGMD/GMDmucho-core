@@ -60,8 +60,8 @@ function renderReleaseUpdatePage(string $rootDir, string $controlDir): void
         echo '</div>';
 
         echo '<div class="card" style="margin-top:14px;background:#0b1018">';
-        echo '<h3 style="margin-top:0">Manual update</h3>';
-        echo '<p class="muted" style="line-height:1.55">The panel never updates the server automatically. Review the release first, then run the update yourself from SSH.</p>';
+        echo '<h3 style="margin-top:0">Automatic update</h3>';
+        echo '<p class="muted" style="line-height:1.55">This release is the stable deployment target. The VPS release updater applies it automatically. The same SSH command remains available as a manual fallback.</p>';
         echo '<pre style="margin:12px 0 0;padding:13px;border:1px solid #273448;border-radius:10px;background:#070b11;overflow:auto">sudo /opt/mucho-core/update.sh</pre>';
         echo '</div>';
 
