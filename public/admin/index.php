@@ -5223,6 +5223,32 @@ $hasAccessKey=!empty($me['access_key_hash']);
 
 <?php
 
+<script>
+document.getElementById('copyAccessKey')?.addEventListener('click', async () => {
+    const value=document.getElementById('newAccessKey')?.textContent?.trim() || '';
+    try {
+        await navigator.clipboard.writeText(value);
+    } catch {
+        const ta=document.createElement('textarea');
+        ta.value=value;
+        ta.style.position='fixed';
+        ta.style.opacity='0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+    }
+    const button=document.getElementById('copyAccessKey');
+    if(button){
+        const original=button.textContent;
+        button.textContent='Copied';
+        setTimeout(() => { button.textContent=original; },1200);
+    }
+});
+</script>
+
+<?php
+
 $admins=$db->query(
     'SELECT id,username,role,is_active,
             totp_secret,created_at
