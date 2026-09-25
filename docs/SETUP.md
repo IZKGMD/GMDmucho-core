@@ -101,36 +101,15 @@ sudo /opt/mucho-core/update.sh
 
 Updates preserve the selected compatibility profile, Cloudflare Tunnel deployment mode and automatic-update settings when those are configured.
 
-### Automatic updates
+### Release-based updates
 
-MuchoCore checks for new commits automatically on the VPS. The default interval is 15 minutes.
+MuchoCore never updates the VPS automatically. The Admin Panel checks the stable GitHub Releases feed and, when a newer release exists than the installed `VERSION`, shows an update notification with release notes and the standard SSH command.
 
-Inspect the timer:
-
-~~~bash
-systemctl status muchocore-auto-update.timer
-systemctl list-timers muchocore-auto-update.timer
-~~~
-
-Read the updater log:
+Review the release first, then run:
 
 ~~~bash
-sudo tail -n 100 /var/log/muchocore/auto-update.log
+sudo /opt/mucho-core/update.sh
 ~~~
-
-Disable it in the .env file with:
-
-~~~text
-MUCHO_AUTO_UPDATE=0
-~~~
-
-Then synchronize the systemd unit:
-
-~~~bash
-sudo /opt/mucho-core/bin/mucho-install-auto-update.sh
-~~~
-
-See AUTO_UPDATE.md for the complete configuration.
 
 ## Logs
 
