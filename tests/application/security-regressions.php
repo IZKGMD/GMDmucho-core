@@ -94,6 +94,27 @@ assertSecurityRegression(
 );
 
 assertSecurityRegression(
+    str_contains($adminIndex, "set_exception_handler('muchoAdminHandleException');") &&
+    str_contains($adminIndex, 'The administrator operation could not be completed. Try again later.'),
+    'admin uncaught exceptions use a generic error page'
+);
+
+assertSecurityRegression(
+    str_contains($adminLevels, 'The operation could not be completed. Please try again.'),
+    'admin level action masks internal exceptions'
+);
+
+$frontController = (string)file_get_contents(
+    __DIR__ . '/../../public/index.php'
+);
+
+assertSecurityRegression(
+    str_contains($frontController, '[MuchoCore FrontController]') &&
+    str_contains($frontController, "header('Cache-Control', 'no-store');"),
+    'front controller logs failures without exposing exception details'
+);
+
+assertSecurityRegression(
     str_contains($adminIndex, "if (admin() && isset($_GET['download'])) {\n    requireRank(40);"),
     'backup downloads require owner-level admin access'
 );
