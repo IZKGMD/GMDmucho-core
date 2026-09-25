@@ -15,29 +15,28 @@ $output = $dir . '/GeometryDash-MuchoCore.exe';
 try {
     $server = 'https://gdps.example.com';
 
-    $source = str_repeat("A", 4 * 1024 * 1024 - 8);
-    $source .= 'https://www.boomlings.com/database';
-    $source .= str_repeat("B", 123);
-    $source .= base64_encode('https://www.boomlings.com/database');
-    $source .= str_repeat("E", 191);
-    $source .= 'http://www.boomlings.com/database';
-    $source .= str_repeat("F", 113);
-    $source .= base64_encode('http://www.boomlings.com/database');
-    $source .= str_repeat("E", 191);
-    $source .= 'http://www.boomlings.com/database';
-    $source .= str_repeat("F", 113);
-    $source .= base64_encode('http://www.boomlings.com/database');
-    $source .= str_repeat("C", 257);
-
+    /*
+     * Build a synthetic PE containing both HTTPS and HTTP legacy URL forms
+     * plus their Base64 variants. Keep the exact source data inside the final
+     * PE payload so the test exercises the bytes actually passed to the patcher.
+     */
     $source = "MZ" . str_repeat("\0", 58)
         . pack('V', 0x80)
         . str_repeat("\0", 0x80 - 64);
+
     $source .= "PE\0\0";
-    $source .= str_repeat("D", 4 * 1024 * 1024 - strlen($source) - 8);
-    $source .= 'https://www.boomlings.com/database';
-    $source .= str_repeat("B", 123);
-    $source .= base64_encode('https://www.boomlings.com/database');
-    $source .= str_repeat("C", 257);
+
+    $payload = str_repeat("D", 4 * 1024 * 1024 - strlen($source) - 8);
+    $payload .= 'https://www.boomlings.com/database';
+    $payload .= str_repeat("B", 123);
+    $payload .= base64_encode('https://www.boomlings.com/database');
+    $payload .= str_repeat("E", 191);
+    $payload .= 'http://www.boomlings.com/database';
+    $payload .= str_repeat("F", 113);
+    $payload .= base64_encode('http://www.boomlings.com/database');
+    $payload .= str_repeat("C", 257);
+
+    $source .= $payload;
 
     file_put_contents($input, $source);
 
@@ -56,6 +55,7 @@ try {
     }
 
     $patched = file_get_contents($output);
+
     $targets = array_keys(
         array_filter(
             $report['replacements'],
@@ -63,19 +63,13 @@ try {
         )
     );
 
-    $directTargets = array_values(array_filter(
+    $httpsTargets = array_values(array_filter(
         $targets,
         static fn (string $value): bool => str_starts_with(
             $value,
             'https://gdps.example.com/'
         )
     ));
-
-    if (!is_string($patched) || $directTargets === []) {
-        throw new RuntimeException('No generated target server URL was reported.');
-    }
-
-    $target = $directTargets[0];
 
     $httpTargets = array_values(array_filter(
         $targets,
@@ -85,27 +79,34 @@ try {
         )
     ));
 
-    if ($httpTargets === []) {
-        throw new RuntimeException('HTTP source URL did not produce an HTTP target URL.');
+    if (!is_string($patched) || $httpsTargets === [] || $httpTargets === []) {
+        throw new RuntimeException('Expected generated HTTPS and HTTP target URLs.');
     }
 
-    if (!str_contains($patched, $target)) {
-        throw new RuntimeException('Generated target server URL not found after patch.');
+    $httpsTarget = $httpsTargets[0];
+    $httpTarget = $httpTargets[0];
+
+    if (!str_contains($patched, $httpsTarget)) {
+        throw new RuntimeException('Generated HTTPS target URL not found after patch.');
+    }
+
+    if (!str_contains($patched, $httpTarget)) {
+        throw new RuntimeException('Generated HTTP target URL not found after patch.');
     }
 
     if (str_contains($patched, 'https://www.boomlings.com/database')) {
-        throw new RuntimeException('Old server URL still present after patch.');
+        throw new RuntimeException('Old HTTPS server URL still present after patch.');
     }
 
-    if (!str_contains($patched, base64_encode($target))) {
+    if (str_contains($patched, 'http://www.boomlings.com/database')) {
+        throw new RuntimeException('Old HTTP server URL still present after patch.');
+    }
+
+    if (!str_contains($patched, base64_encode($httpsTarget))) {
         throw new RuntimeException('Generated HTTPS Base64 server URL not found after patch.');
     }
 
-    if (!str_contains($patched, $httpTargets[0])) {
-        throw new RuntimeException('Generated HTTP server URL not found after patch.');
-    }
-
-    if (!str_contains($patched, base64_encode($httpTargets[0]))) {
+    if (!str_contains($patched, base64_encode($httpTarget))) {
         throw new RuntimeException('Generated HTTP Base64 server URL not found after patch.');
     }
 
