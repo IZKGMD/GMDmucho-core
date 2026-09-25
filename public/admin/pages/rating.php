@@ -148,8 +148,16 @@ $difficultyProfileForRow = static function (array $row) use ($difficultyProfiles
 };
 
 $difficultyIconUrl = static function (string $profile) use ($difficultyProfiles): string {
-    $file=$difficultyProfiles[$profile]['icon'] ?? $difficultyProfiles['unrated']['icon'];
-    return 'https://geometrydash.wiki.gg/wiki/Special:Redirect/file/'.rawurlencode($file);
+    if (!isset($difficultyProfiles[$profile])) {
+        $profile='unrated';
+    }
+
+    /*
+     * Keep difficulty faces local to the admin app. This avoids hotlinking the
+     * Geometry Dash Wiki and guarantees the Rating Studio still renders when
+     * the external site is unavailable.
+     */
+    return '/admin/assets/difficulty/'.rawurlencode($profile).'.svg';
 };
 
 $pendingCount = 0;
@@ -208,7 +216,8 @@ linear-gradient(135deg,#151826,#10151f)}
 .rating-row-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;color:#778398;font-size:11px}
 .rating-row-right{text-align:right}
 .rating-row-rating{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:76px;gap:3px}
-.rating-face{display:block;object-fit:contain;filter:drop-shadow(0 4px 7px rgba(0,0,0,.22))}
+.rating-face{display:block;object-fit:contain;filter:drop-shadow(0 4px 7px rgba(0,0,0,.22));background:transparent}
+.rating-face[src$=".svg"]{image-rendering:auto}
 .rating-face-sm{width:50px;height:50px}
 .rating-face-lg{width:76px;height:76px}
 .rating-face-label{font-size:10px;font-weight:800;color:#c4cada;line-height:1.15;text-align:center;white-space:nowrap}
