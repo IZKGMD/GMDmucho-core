@@ -40,7 +40,11 @@ final readonly class Legacy10IdentityService
             return $accountId;
         }
 
-        $displayName = $this->normalizeUsername($username, $hash);
+        $displayName = $this->uniqueUsername(
+            $this->normalizeUsername($username, $hash),
+            null,
+            $hash
+        );
         $email = 'legacy-' . $hash . '@legacy.invalid';
         $passwordHash = password_hash(
             bin2hex(random_bytes(24)),
@@ -124,8 +128,10 @@ final readonly class Legacy10IdentityService
             return $accountId > 0;
         }
 
-        $name = $this->normalizeUsername(
-            $username,
+        $accountIdInt = (int)$accountId;
+        $name = $this->uniqueUsername(
+            $this->normalizeUsername($username, $hash),
+            $accountIdInt,
             $hash
         );
 
@@ -194,6 +200,38 @@ final readonly class Legacy10IdentityService
         }
 
         return substr($username, 0, 20) ?: 'Legacy' . substr($hash, 0, 14);
+    }
+
+    private function uniqueUsername(
+        string $candidate,
+        ?int $currentAccountId,
+        string $hash
+    ): string {
+        $candidate = substr($candidate, 0, 20);
+        if ($candidate === '') {
+            $candidate = 'Legacy' . substr($hash, 0, 14);
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT account_id
+             FROM accounts
+             WHERE username=:username
+             LIMIT 1'
+        );
+        $stmt->execute(['username' => $candidate]);
+        $owner = $stmt->fetchColumn();
+
+        if (
+            $owner === false ||
+            ($currentAccountId !== null && (int)$owner === $currentAccountId)
+        ) {
+            return $candidate;
+        }
+
+        $suffix = '~' . substr($hash, 0, 5);
+        $prefix = substr($candidate, 0, max(1, 20 - strlen($suffix)));
+
+        return $prefix . $suffix;
     }
 
     private function packIp(
