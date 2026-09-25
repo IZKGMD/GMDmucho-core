@@ -524,6 +524,103 @@ function newAccessKey(): string
     return 'MUCHO-'.strtoupper(bin2hex(random_bytes(24)));
 }
 
+function generateAdminRecoveryCodes(PDO $db,int $adminId,int $count=10): array
+{
+    if ($adminId<=0 || $count<1 || $count>20) {
+        throw new RuntimeException('Invalid recovery code request.');
+    }
+
+    if (!tableExists($db,'admin_recovery_codes')) {
+        throw new RuntimeException('Recovery-code storage is unavailable. Run database migrations first.');
+    }
+
+    $db->prepare(
+        'DELETE FROM admin_recovery_codes WHERE admin_user_id=:id AND used_at IS NULL'
+    )->execute(['id'=>$adminId]);
+
+    $codes=[];
+
+    for ($i=0;$i<$count;$i++) {
+        $raw=strtoupper(bin2hex(random_bytes(6)));
+        $display=substr($raw,0,4).'-'.substr($raw,4,4).'-'.substr($raw,8,4);
+
+        $q=$db->prepare(
+            'INSERT INTO admin_recovery_codes
+             (admin_user_id,code_hash)
+             VALUES (:admin,:hash)'
+        );
+
+        $q->execute([
+            'admin'=>$adminId,
+            'hash'=>password_hash($display,PASSWORD_DEFAULT)
+        ]);
+
+        $codes[]=$display;
+    }
+
+    return $codes;
+}
+
+function verifyAdminRecoveryCode(PDO $db,int $adminId,string $input): bool
+{
+    $normalized=strtoupper(trim($input));
+    $normalized=preg_replace('/[^A-Z0-9]/','',$normalized) ?? '';
+
+    if ($adminId<=0 || strlen($normalized)!==12 || !tableExists($db,'admin_recovery_codes')) {
+        return false;
+    }
+
+    $rows=$db->prepare(
+        'SELECT id,code_hash
+         FROM admin_recovery_codes
+         WHERE admin_user_id=:admin
+           AND used_at IS NULL
+         ORDER BY id
+         LIMIT 20'
+    );
+
+    $rows->execute(['admin'=>$adminId]);
+
+    foreach ($rows->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $candidate=(string)$row['code_hash'];
+        $probe=substr($normalized,0,4).'-'.substr($normalized,4,4).'-'.substr($normalized,8,4);
+
+        if (!password_verify($probe,$candidate)) {
+            continue;
+        }
+
+        $used=$db->prepare(
+            'UPDATE admin_recovery_codes
+             SET used_at=UTC_TIMESTAMP()
+             WHERE id=:id
+               AND used_at IS NULL'
+        );
+        $used->execute(['id'=>(int)$row['id']]);
+
+        return $used->rowCount()===1;
+    }
+
+    return false;
+}
+
+function countUnusedAdminRecoveryCodes(PDO $db,int $adminId): int
+{
+    if ($adminId<=0 || !tableExists($db,'admin_recovery_codes')) {
+        return 0;
+    }
+
+    $q=$db->prepare(
+        'SELECT COUNT(*)
+         FROM admin_recovery_codes
+         WHERE admin_user_id=:id
+           AND used_at IS NULL'
+    );
+    $q->execute(['id'=>$adminId]);
+
+    return (int)$q->fetchColumn();
+}
+
+
 function totpProvisioningUri(
     string $secret,
     string $account,
