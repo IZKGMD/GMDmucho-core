@@ -270,7 +270,25 @@ fi
 
 cat > "$INSTALL_DIR/.env" <<EOFENV
 DOMAIN=$DOMAIN
-CADDY_ADDRESS=$([[ -n "$TUNNEL_TOKEN" ]] && echo ":80" || { if [[ "$DOMAIN" == www.* ]]; then printf "%s" "$DOMAIN"; else printf "%s www.%s" "$DOMAIN" "$DOMAIN"; fi; })
+normalize_caddy_address() {
+  if [[ -n "$TUNNEL_TOKEN" ]]; then
+    printf ':80'
+    return
+  fi
+
+  local host="$DOMAIN"
+  host="${host#http://}"
+  host="${host#https://}"
+  host="${host%%/*}"
+
+  local root="$host"
+  if [[ "$host" == www.* ]]; then
+    root="${host#www.}"
+  fi
+
+  printf 'http://%s http://www.%s https://%s https://www.%s' "$root" "$root" "$root" "$root"
+}
+CADDY_ADDRESS="$(normalize_caddy_address)"
 DB_NAME=$DB_NAME
 DB_USER=$DB_USER
 ADMIN_USER=$ADMIN_USER
