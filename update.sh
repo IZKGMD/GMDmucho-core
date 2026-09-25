@@ -105,14 +105,6 @@ grep -q '^TURNSTILE_SECRET=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SECRE
 grep -q '^MUCHO_GD_VERSIONS=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_GD_VERSIONS=all\n' >> "$ROOT/.env"
 grep -q '^CADDY_EXTRA_HOSTS=' "$ROOT/.env" 2>/dev/null || printf 'CADDY_EXTRA_HOSTS=testgdps.muchogdps.space\n' >> "$ROOT/.env"
 
-# Core updates are intentionally manual. Disable and remove any legacy
-# automatic-update timer left by older installations before continuing.
-if command -v systemctl >/dev/null 2>&1; then
-    systemctl disable --now muchocore-auto-update.timer >/dev/null 2>&1 || true
-    rm -f /etc/systemd/system/muchocore-auto-update.timer /etc/systemd/system/muchocore-auto-update.service
-    systemctl daemon-reload >/dev/null 2>&1 || true
-fi
-
 normalize_caddy_address() {
   if [[ -n "$TUNNEL_TOKEN" ]]; then
     printf ':80'
