@@ -2,29 +2,61 @@
 
 ## v1.0.2 — Release-Based Updates & Admin RBAC
 
-This release moves production updates to published stable GitHub Releases and adds custom administrator roles and permissions.
+MuchoCore v1.0.2 introduces a release-driven production update pipeline, customizable administrator roles and permissions, and hardened Android client patching.
 
-### Included
+### Release-Based Updates
 
-- release-only VPS updates: production never deploys ordinary `main` commits;
-- `update.sh` remains available for manual deployment and testing;
-- systemd-based automatic update checks every 15 minutes by default;
-- Admin Panel release detection and stable release update status;
-- custom administrator roles with granular permission management;
-- role-aware Admin Panel navigation and access control;
-- administrator RBAC migration and contract coverage;
-- hardened Android client patching and compatibility handling;
-- updated deployment and CI checks for release-based update flow.
+- production auto-updates now follow published stable GitHub Releases instead of the `main` branch;
+- draft releases, prereleases and ordinary `main` commits are ignored by the production updater;
+- `update.sh` remains the manual deployment engine and single source of update logic;
+- added `auto-update.sh` as the systemd-compatible automatic update wrapper;
+- added a systemd timer with a 15-minute default update interval;
+- updates are fetched from the exact immutable release tag;
+- added protection against unintended version downgrades;
+- added protection against deploying over tracked local Git changes;
+- `install.sh` now installs the latest published stable release;
+- automatic update installation is configurable through `MUCHO_AUTO_UPDATE` and `MUCHO_AUTO_UPDATE_INTERVAL`.
 
-### Compatibility verification
+### Admin Panel
 
-GD 2.2 verification remains backed by the committed real-client contract fixture:
+- added the **Core Updates** page for release status and update information;
+- added stable-release detection to the Admin Panel dashboard;
+- added role-aware navigation and access checks for administration features;
+- improved visibility of the currently installed and available core versions.
 
-~~~text
-tests/client-fixtures/2.2/endpoints.json
-~~~
+### Admin RBAC
 
-Legacy 1.0, 1.9, 2.0 and 2.1 protocol behavior remains covered by the repository's compatibility and wire regression tests.
+- added customizable administrator roles;
+- administrators with the required permission can create, edit and delete custom roles;
+- added granular permission assignment for custom roles;
+- added role-based access control for system and update management;
+- preserved built-in administrator roles and their existing permission model;
+- added RBAC database migration and regression coverage.
+
+### Android Client Patching
+
+- hardened APK patching and signing workflows;
+- fixed APK alignment handling;
+- switched generated Android signing keys to DER-encoded PKCS#8 format for reliable `apksigner` compatibility;
+- added migration support for legacy signing key formats;
+- added validation for generated signing keys;
+- improved APK signature replacement and verification;
+- added regression coverage for fresh signing and legacy signer migration;
+- improved Android test fixtures to use a valid binary Android manifest.
+
+### Deployment & CI
+
+- improved Docker Android build-tool support;
+- hardened production Android signer initialization and permissions;
+- improved portability of the systemd auto-update installer by using the configured MuchoCore root;
+- expanded CI coverage for release-based updates, Admin RBAC and Android client patching.
+
+### Compatibility
+
+- existing manual `update.sh` deployments remain supported;
+- existing installations can migrate to the release-based automatic update flow;
+- legacy Android signing keys are migrated automatically when they match a supported legacy format;
+- Geometry Dash compatibility and protocol regression coverage remains active through the repository test suite.
 
 ## v1.0.1 — Admin Security & Operations Update
 
