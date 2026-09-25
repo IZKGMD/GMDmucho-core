@@ -229,28 +229,131 @@ final class AndroidClientPatcher
         return $configured;
     }
 
+    /**
+     * apksigner expects --key to be an unencrypted PKCS#8 key.
+     * Android's own documentation uses a DER-encoded key.pk8 for this input.
+     */
     private static function ensureSigner(): array
     {
         $dir = self::signerDirectory();
-        $key = $dir . '/muchocore-android.key.pem';
+        $key = $dir . '/muchocore-android.key.pk8';
+        $legacyKey = $dir . '/muchocore-android.key.pem';
         $cert = $dir . '/muchocore-android.cert.pem';
 
-        if (!is_file($key) || !is_file($cert)) {
-            @unlink($key);
-            @unlink($cert);
+        if (!is_file($key)) {
+            if (is_file($legacyKey)) {
+                if (!is_file($cert)) {
+                    self::runTool(
+                        [
+                            'openssl',
+                            'req',
+                            '-new',
+                            '-x509',
+                            '-sha256',
+                            '-key',
+                            $legacyKey,
+                            '-out',
+                            $cert,
+                            '-days',
+                            '10000',
+                            '-subj',
+                            '/CN=MuchoCore Android/O=MuchoCore/C=US',
+                        ],
+                        'Android signer certificate generation'
+                    );
+                }
+
+                self::runTool(
+                    [
+                        'openssl',
+                        'pkcs8',
+                        '-topk8',
+                        '-nocrypt',
+                        '-inform',
+                        'PEM',
+                        '-outform',
+                        'DER',
+                        '-in',
+                        $legacyKey,
+                        '-out',
+                        $key,
+                    ],
+                    'Android signer PKCS#8 migration'
+                );
+
+                @unlink($legacyKey);
+            } else {
+                $pemKey = $key . '.pem';
+
+                self::runTool(
+                    [
+                        'openssl',
+                        'genpkey',
+                        '-algorithm',
+                        'RSA',
+                        '-pkeyopt',
+                        'rsa_keygen_bits:2048',
+                        '-out',
+                        $pemKey,
+                    ],
+                    'Android signer key generation'
+                );
+
+                self::runTool(
+                    [
+                        'openssl',
+                        'req',
+                        '-new',
+                        '-x509',
+                        '-sha256',
+                        '-key',
+                        $pemKey,
+                        '-out',
+                        $cert,
+                        '-days',
+                        '10000',
+                        '-subj',
+                        '/CN=MuchoCore Android/O=MuchoCore/C=US',
+                    ],
+                    'Android signer certificate generation'
+                );
+
+                self::runTool(
+                    [
+                        'openssl',
+                        'pkcs8',
+                        '-topk8',
+                        '-nocrypt',
+                        '-inform',
+                        'PEM',
+                        '-outform',
+                        'DER',
+                        '-in',
+                        $pemKey,
+                        '-out',
+                        $key,
+                    ],
+                    'Android signer PKCS#8 key generation'
+                );
+
+                @unlink($pemKey);
+            }
+        } elseif (!is_file($cert)) {
+            $pemKey = $key . '.pem';
 
             self::runTool(
                 [
                     'openssl',
-                    'genpkey',
-                    '-algorithm',
-                    'RSA',
-                    '-pkeyopt',
-                    'rsa_keygen_bits:2048',
-                    '-out',
+                    'pkcs8',
+                    '-inform',
+                    'DER',
+                    '-nocrypt',
+                    '-in',
                     $key,
+                    '-out',
+                    $pemKey,
                 ],
-                'Android signer PKCS#8 key generation'
+                'Android signer PEM conversion'
             );
 
             self::runTool(
@@ -261,7 +364,7 @@ final class AndroidClientPatcher
                     '-x509',
                     '-sha256',
                     '-key',
-                    $key,
+                    $pemKey,
                     '-out',
                     $cert,
                     '-days',
@@ -272,44 +375,23 @@ final class AndroidClientPatcher
                 'Android signer certificate generation'
             );
 
-            @chmod($key, 0600);
-            @chmod($cert, 0644);
+            @unlink($pemKey);
         }
 
-        $keyContents = is_file($key) ? @file_get_contents($key) : false;
-        $needsKeyNormalization = is_string($keyContents)
-            && str_contains($keyContents, '-----BEGIN RSA PRIVATE KEY-----');
-
-        if ($needsKeyNormalization) {
-            $normalizedKey = $key . '.pkcs8';
-            @unlink($normalizedKey);
-
-            self::runTool(
-                [
-                    'openssl',
-                    'pkcs8',
-                    '-topk8',
-                    '-nocrypt',
-                    '-in',
-                    $key,
-                    '-out',
-                    $normalizedKey,
-                ],
-                'Android signer PKCS#8 normalization'
-            );
-
-            if (!is_file($normalizedKey) || filesize($normalizedKey) === false || filesize($normalizedKey) < 512) {
-                @unlink($normalizedKey);
-                throw new RuntimeException('Android signer PKCS#8 normalization produced an invalid key.');
-            }
-
-            @chmod($normalizedKey, 0600);
-            if (!@rename($normalizedKey, $key)) {
-                @unlink($normalizedKey);
-                throw new RuntimeException('Cannot replace Android signer key with normalized PKCS#8 key.');
-            }
-            @chmod($key, 0600);
-        }
+        self::runTool(
+            [
+                'openssl',
+                'pkcs8',
+                '-inform',
+                'DER',
+                '-nocrypt',
+                '-in',
+                $key,
+                '-out',
+                '/dev/null',
+            ],
+            'Android signer PKCS#8 validation'
+        );
 
         if (!is_readable($key) || !is_readable($cert)) {
             throw new RuntimeException('Android signing credentials are not readable.');
