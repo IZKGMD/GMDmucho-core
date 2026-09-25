@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use MuchoCore\Score\ScoreIntegrity;
 
-require dirname(__DIR__, 2) . '/vendor/autoload.php';
+require dirname(__DIR__, 2) . '/src/Score/ScoreIntegrity.php';
 
 $trusted = ScoreIntegrity::evaluateRegular(
     42, 100, 50, 120, 'progress'
