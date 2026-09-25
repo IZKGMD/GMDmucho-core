@@ -91,6 +91,30 @@ function renderAdminDashboard(PDO $db): void
     } catch (Throwable) {
     }
 
+    if (canPermission('system.manage')) {
+        try {
+            $releaseStatus = \MuchoCore\Release\ReleaseService::check(
+                defined('ROOT_DIR') ? ROOT_DIR : dirname(__DIR__, 3),
+                defined('CONTROL_DIR') ? CONTROL_DIR : dirname(__DIR__, 3) . '/storage/control'
+            );
+
+            if (!empty($releaseStatus['update_available'])) {
+                $latest = h((string)($releaseStatus['latest_version'] ?? ''));
+                $current = h((string)($releaseStatus['current_version'] ?? ''));
+                echo '<section class="card" style="margin-bottom:13px;border-color:#5e4fd8;background:linear-gradient(135deg,#121529,#10141f)">';
+                echo '<div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">';
+                echo '<div><span style="font-size:11px;font-weight:800;letter-spacing:.08em;color:#9a8eff">MUCHOCORE UPDATE</span>';
+                echo '<h2 style="margin:6px 0 4px">New core release available</h2>';
+                echo '<p class="muted" style="margin:0">Installed v'.$current.' · New stable release <b style="color:#eef2ff">v'.$latest.'</b></p></div>';
+                echo '<a class="btn" href="/admin/?page=updates">Review update →</a>';
+                echo '</div>';
+                echo '</section>';
+            }
+        } catch (Throwable) {
+            // Release detection is advisory and must never break the dashboard.
+        }
+    }
+
     echo '
     <section class="admin-hero">
         <div>
