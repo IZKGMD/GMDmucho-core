@@ -288,7 +288,8 @@ normalize_caddy_address() {
 
   printf 'http://%s http://www.%s https://%s https://www.%s' "$root" "$root" "$root" "$root"
 }
-CADDY_ADDRESS="$(normalize_caddy_address)"
+CADDY_ADDRESS_VALUE="$(normalize_caddy_address)"
+CADDY_ADDRESS="\"$CADDY_ADDRESS_VALUE\""
 DB_NAME=$DB_NAME
 DB_USER=$DB_USER
 ADMIN_USER=$ADMIN_USER
