@@ -8,6 +8,19 @@ cd "$ROOT"
 # Older MuchoCore versions accidentally overwrote the project .env from inside
 # the app container. Recover the domain from the existing Caddy container so
 # the first update can repair that installation automatically.
+install -d -m 700 "$ROOT/.secrets"
+if [[ ! -s "$ROOT/.secrets/cloudsave_key" && ! -s "$ROOT/config/cloudsave.key" ]]; then
+    if docker compose ps app >/dev/null 2>&1; then
+        docker compose exec -T app cat /var/lib/muchocore/cloudsave.key             > "$ROOT/.secrets/cloudsave_key.tmp" 2>/dev/null || true
+        if [[ -s "$ROOT/.secrets/cloudsave_key.tmp" ]]; then
+            chmod 600 "$ROOT/.secrets/cloudsave_key.tmp"
+            mv "$ROOT/.secrets/cloudsave_key.tmp" "$ROOT/.secrets/cloudsave_key"
+        else
+            rm -f "$ROOT/.secrets/cloudsave_key.tmp"
+        fi
+    fi
+fi
+
 if ! grep -q '^DOMAIN=' "$ROOT/.env" 2>/dev/null; then
     CADDY_ID="$(docker ps -a --filter 'label=com.docker.compose.service=caddy' --format '{{.ID}}' | head -n1 || true)"
     if [[ -n "$CADDY_ID" ]]; then
