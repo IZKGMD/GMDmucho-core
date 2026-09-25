@@ -1,0 +1,94 @@
+name: Build patched GD 1.0 APK
+
+on:
+  push:
+    branches:
+      - research/gd10-compat
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare PHP ZipArchive
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -m | grep -qi '^zip$' || {
+            sudo apt-get update
+            sudo apt-get install -y php8.3-zip
+          }
+          php -m | grep -qi '^zip$'
+
+      - name: Patch and sign GD 1.0 APK
+        shell: bash
+        env:
+          SERVER_URL: https://muchogdps.space
+        run: |
+          set -euo pipefail
+          input='Geometry Dash 1.0.apk'
+          output='Geometry Dash 1.0 - MuchoCore.apk'
+          work="$RUNNER_TEMP/gd10"
+          rm -rf "$work"
+          mkdir -p "$work"
+
+          cat > "$work/patch.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          require getcwd() . '/src/Client/WindowsClientPatcher.php';
+          require getcwd() . '/src/Client/AndroidClientPatcher.php';
+
+          use MuchoCore\Client\AndroidClientPatcher;
+
+          $report = AndroidClientPatcher::patchFile(
+              $argv[1],
+              $argv[2],
+              $argv[3]
+          );
+
+          file_put_contents(
+              $argv[4],
+              json_encode($report, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR) . PHP_EOL
+          );
+          PHP
+
+          php "$work/patch.php" "$input" "$work/patched-unsigned.apk" "$SERVER_URL" "$work/patch-report.json"
+
+          if unzip -p "$work/patched-unsigned.apk" lib/armeabi/libgame.so | grep -aFq 'http://www.boomlings.com/database'; then
+            echo "ERROR: old GD 1.0 server URL remains"
+            exit 1
+          fi
+
+          if ! unzip -p "$work/patched-unsigned.apk" lib/armeabi/libgame.so | grep -aFq 'http://muchogdps.space/a/database'; then
+            echo "ERROR: expected fixed-length MuchoCore GD 1.0 URL not found"
+            exit 1
+          fi
+
+          zipalign_bin="$(find "$ANDROID_HOME/build-tools" -type f -name zipalign | sort -V | tail -n1)"
+          apksigner_bin="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n1)"
+          test -x "$zipalign_bin"
+          test -x "$apksigner_bin"
+
+          "$zipalign_bin" -f -p 4 "$work/patched-unsigned.apk" "$work/aligned.apk"
+
+          keytool -genkeypair -v             -keystore "$work/mucho-core-gd10.keystore"             -storepass changeit             -keypass changeit             -alias mucho-core-gd10             -keyalg RSA             -keysize 2048             -validity 10000             -dname 'CN=MuchoCore GD 1.0, OU=MuchoCore, O=IZK, C=US'             -noprompt
+
+          "$apksigner_bin" sign             --ks "$work/mucho-core-gd10.keystore"             --ks-key-alias mucho-core-gd10             --ks-pass pass:changeit             --key-pass pass:changeit             --v1-signing-enabled true             --v2-signing-enabled true             --v3-signing-enabled true             --out "$output"             "$work/aligned.apk"
+
+          "$apksigner_bin" verify --verbose "$output"
+
+          unzip -t "$output" >/dev/null
+          stat -c '%n %s bytes' "$input" "$output"
+
+          cp "$work/patch-report.json" 'GD10-PATCH-REPORT.json'
+
+      - name: Upload patched APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: muchocore-gd10-apk
+          path: |
+            Geometry Dash 1.0 - MuchoCore.apk
+            GD10-PATCH-REPORT.json
+          if-no-files-found: error
+          retention-days: 30
