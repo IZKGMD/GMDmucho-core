@@ -78,14 +78,23 @@ try {
         throw new RuntimeException('Expected four fixed-length URL replacements.');
     }
 
-    $signerKey = $dir . '/android-signer/muchocore-android.key.pem';
-    $keyContents = is_file($signerKey) ? file_get_contents($signerKey) : false;
-    if (
-        !is_string($keyContents) ||
-        !str_contains($keyContents, '-----BEGIN PRIVATE KEY-----') ||
-        str_contains($keyContents, '-----BEGIN RSA PRIVATE KEY-----')
-    ) {
-        throw new RuntimeException('Android signer key is not PKCS#8.');
+    $signerKey = $dir . '/android-signer/muchocore-android.key.pk8';
+    if (!is_file($signerKey)) {
+        throw new RuntimeException('Android signer PKCS#8 key was not created.');
+    }
+
+    $pkcs8Output = [];
+    $pkcs8Code = 0;
+    exec(
+        'openssl pkcs8 -inform DER -nocrypt -in ' . escapeshellarg($signerKey) .
+        ' -out /dev/null 2>&1',
+        $pkcs8Output,
+        $pkcs8Code
+    );
+    if ($pkcs8Code !== 0) {
+        throw new RuntimeException(
+            'Android signer key is not valid DER PKCS#8: ' . implode("\n", $pkcs8Output)
+        );
     }
 
     $check = new ZipArchive();
@@ -118,22 +127,37 @@ try {
 
     $check->close();
 
-    $legacyKey = $signerKey . '.legacy';
+    $legacyKey = $dir . '/android-signer/muchocore-android.key.pem';
     $legacyOutput = [];
     $legacyCode = 0;
     exec(
-        'openssl rsa -traditional -in ' . escapeshellarg($signerKey) .
+        'openssl pkcs8 -inform DER -nocrypt -in ' . escapeshellarg($signerKey) .
         ' -out ' . escapeshellarg($legacyKey) . ' 2>&1',
         $legacyOutput,
         $legacyCode
     );
     if ($legacyCode !== 0 || !is_file($legacyKey)) {
         throw new RuntimeException(
+            'Could not create a legacy signer fixture: ' . implode("\n", $legacyOutput)
+        );
+    }
+
+    $legacyOutput = [];
+    $legacyCode = 0;
+    exec(
+        'openssl rsa -traditional -in ' . escapeshellarg($legacyKey) .
+        ' -out ' . escapeshellarg($legacyKey . '.pkcs1') . ' 2>&1',
+        $legacyOutput,
+        $legacyCode
+    );
+    if ($legacyCode !== 0 || !is_file($legacyKey . '.pkcs1')) {
+        throw new RuntimeException(
             'Could not create a legacy PKCS#1 signer fixture: ' .
             implode("\n", $legacyOutput)
         );
     }
-    if (!rename($legacyKey, $signerKey)) {
+    @unlink($legacyKey);
+    if (!rename($legacyKey . '.pkcs1', $legacyKey)) {
         throw new RuntimeException('Could not install legacy PKCS#1 signer fixture.');
     }
 
@@ -146,13 +170,22 @@ try {
         throw new RuntimeException('Legacy PKCS#1 signer migration did not produce a signed APK.');
     }
 
-    $normalizedKeyContents = file_get_contents($signerKey);
-    if (
-        !is_string($normalizedKeyContents) ||
-        !str_contains($normalizedKeyContents, '-----BEGIN PRIVATE KEY-----') ||
-        str_contains($normalizedKeyContents, '-----BEGIN RSA PRIVATE KEY-----')
-    ) {
-        throw new RuntimeException('Legacy PKCS#1 signer was not normalized back to PKCS#8.');
+    if (!is_file($signerKey)) {
+        throw new RuntimeException('Legacy signer migration did not recreate the PKCS#8 key.');
+    }
+    $normalizedCheck = [];
+    $normalizedCode = 0;
+    exec(
+        'openssl pkcs8 -inform DER -nocrypt -in ' . escapeshellarg($signerKey) .
+        ' -out /dev/null 2>&1',
+        $normalizedCheck,
+        $normalizedCode
+    );
+    if ($normalizedCode !== 0) {
+        throw new RuntimeException(
+            'Legacy PKCS#1 signer was not normalized back to DER PKCS#8: ' .
+            implode("\n", $normalizedCheck)
+        );
     }
 
     $verifyOutput = [];
