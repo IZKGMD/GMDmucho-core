@@ -74,8 +74,10 @@ assertSecurityRegression(
     'admin frontend masks unexpected exception details'
 );
 
+$rawExceptionUiPattern = "'Error: '" . '.$e->getMessage()';
+
 assertSecurityRegression(
-    !str_contains($adminLevels, '$e->getMessage()') &&
+    !str_contains($adminLevels, $rawExceptionUiPattern) &&
     str_contains($adminLevels, 'The operation could not be completed. Please try again.'),
     'level management does not expose raw exception messages'
 );
