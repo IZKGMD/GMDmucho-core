@@ -390,7 +390,8 @@ sudo /opt/mucho-core/update.sh
 The updater:
 
 - protects local tracked changes instead of silently overwriting them;
-- fetches the current `main` source;
+- resolves the latest published stable GitHub Release;
+- fetches the exact release tag and never deploys directly from `main`;
 - rebuilds Docker services;
 - installs production PHP dependencies;
 - runs database migrations;
