@@ -40,7 +40,7 @@
 | 🔌 **Plugin SDK** | Permissioned PHP plugins with lifecycle events, custom routes and optional database access |
 | 🖥️ **Admin Control** | Dashboard, players, levels, moderation, analytics, monitoring, backups, API tools and server settings |
 | ⭐ **Rating Studio** | Search levels by ID/name/creator, review pending requests, publish 0–10 star ratings, choose difficulty faces, feature tiers and audit the change |
-| 🔐 **Admin security** | Password login, Google Authenticator TOTP, one-time setup flow, one-time recovery codes, access keys, rate limiting and audit logging |
+| 🔐 **Admin security** | Password login, native WebAuthn/FIDO2 passkeys, Google Authenticator TOTP, one-time recovery codes, access keys, rate limiting and audit logging |
 | 🔄 **Cvolton migration** | Read-only source DB preflight, account/profile/level/score migration, persistent ID mapping and transactional apply |
 | 🧰 **Client patchers** | Windows desktop patcher, browser-based Windows patcher and Android APK patcher |
 | 🐳 **Deployment** | Docker Compose, MariaDB, PHP 8.3, Caddy, automatic migrations and update tooling |
@@ -212,6 +212,14 @@ The setup flow includes:
 - enable/disable audit events.
 
 The QR renderer is bundled with the project, so the secret is not sent to an external QR generation service.
+
+### Passkeys / WebAuthn
+
+Administrators can register a native passkey for passwordless Admin Panel sign-in.
+
+The browser/OS handles the credential picker and user verification (for example a device PIN, Windows Hello, Touch ID or Face ID). MuchoCore never receives or stores the private key. Login uses a discoverable credential flow, so the administrator does not need to type a username before the passkey is selected.
+
+The registration flow requires a resident/discoverable credential and user verification. Challenges are short-lived and single-use, credentials are bound to the configured relying-party domain, and the authenticator signature counter is tracked. When TOTP is enabled on the administrator account, the passkey completes the primary credential step and the existing TOTP/recovery-code second factor remains required.
 
 ### Access Key
 
@@ -479,7 +487,7 @@ It brings together:
 - MuchoProtect request protection;
 - the Admin Control Panel;
 - Rating Studio moderation tools;
-- Google Authenticator 2FA and Access Keys;
+- Google Authenticator 2FA, native WebAuthn/FIDO2 passkeys and Access Keys;
 - Cloud Save;
 - Windows and Android client patchers;
 - Docker + Caddy deployment;
