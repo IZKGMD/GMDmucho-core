@@ -34,7 +34,7 @@ $assert(str_contains($index,"'login.access_key'"),'access key login audit event'
 $assert(str_contains($index,'name="access_key"'),'access key login field');
 $assert(str_contains($index,'Access Key replaces the password, not the second factor.'),'2FA remains required with access key');
 $assert(
-    str_contains($index,"$accessKey!=='' && $user===''" ),
+    str_contains($index,'$accessKey!==\'\' && $user===\'\''),
     'key-only login path'
 );
 $assert(str_contains($index,'/admin/assets/qrcode.min.js?v=20260925'),'cache-busted local QR renderer');
