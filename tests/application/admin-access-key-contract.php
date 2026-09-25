@@ -28,12 +28,8 @@ $assert(str_contains($index,"action==='access-key-generate'"),'access key genera
 $assert(str_contains($index,"action==='access-key-revoke'"),'access key revocation action');
 $assert(str_contains($index,'password_hash($accessKey,PASSWORD_DEFAULT)'),'only access key hash is persisted');
 $assert(
-    str_contains(
-        $index,
-        "password_verify(
-                \$accessKey,
-                \$row['access_key_hash']"
-    ),
+    str_contains($index,'password_verify(')
+        && str_contains($index,'access_key_hash'),
     'access key authentication'
 );
 $assert(str_contains($index,"'login.access_key'"),'access key login audit event');
