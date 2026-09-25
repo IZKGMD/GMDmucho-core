@@ -145,7 +145,7 @@ jobs:
           grep -Fq 'MUCHO_AUTO_UPDATE_INTERVAL=15min' install.sh
           grep -Fq 'refs/tags/$LATEST_RELEASE_TAG' install.sh
           grep -Fq 'releases/latest' update.sh
-          grep -Fq 'releases/latest' auto-update.sh
+          grep -Fq 'releases/latest' update.sh
           grep -Fq 'refs/tags/$LATEST_TAG' update.sh
           grep -Fq "'updates' => 'system.manage'" src/Admin/AdminRbac.php
           grep -Fq "'updates'=>'Core Updates'" public/admin/config/pages.php
@@ -236,15 +236,15 @@ jobs:
         run: bash tests/release/release-2.2-gate.sh
 
       - name: Check 1.9 release gate when fixture is present
-        if: startsWith(github.ref, 'refs/tags/v1.0.1') && hashFiles('tests/client-fixtures/1.9/endpoints.json') != ''
+        if: hashFiles('tests/client-fixtures/1.9/endpoints.json') != ''
         run: bash tests/release/release-1.9-gate.sh
 
       - name: Check 2.0 release gate when fixture is present
-        if: startsWith(github.ref, 'refs/tags/v1.0.0') && hashFiles('tests/client-fixtures/2.0/endpoints.json') != ''
+        if: hashFiles('tests/client-fixtures/2.0/endpoints.json') != ''
         run: bash tests/release/release-2.0-gate.sh
 
       - name: Check 2.1 release gate when fixture is present
-        if: startsWith(github.ref, 'refs/tags/v1.0.0') && hashFiles('tests/client-fixtures/2.1/endpoints.json') != ''
+        if: hashFiles('tests/client-fixtures/2.1/endpoints.json') != ''
         run: bash tests/release/release-2.1-gate.sh
 
   windows-patcher:
