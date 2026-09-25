@@ -270,7 +270,7 @@ fi
 
 cat > "$INSTALL_DIR/.env" <<EOFENV
 DOMAIN=$DOMAIN
-CADDY_ADDRESS=$([[ -n "$TUNNEL_TOKEN" ]] && echo ":80" || echo "$DOMAIN")
+CADDY_ADDRESS=$([[ -n "$TUNNEL_TOKEN" ]] && echo ":80" || { if [[ "$DOMAIN" == www.* ]]; then printf "%s" "$DOMAIN"; else printf "%s www.%s" "$DOMAIN" "$DOMAIN"; fi; })
 DB_NAME=$DB_NAME
 DB_USER=$DB_USER
 ADMIN_USER=$ADMIN_USER
