@@ -31,26 +31,6 @@ function fail(string $message): array
     return ['ok' => false, 'message' => $message];
 }
 
-function currentHost(): string
-{
-    $host = trim((string)($_SERVER['HTTP_HOST'] ?? ''));
-
-    return preg_match('/^[A-Za-z0-9.-]+(?::[0-9]+)?$/', $host) === 1
-        ? $host
-        : '';
-}
-
-function currentUrl(): string
-{
-    $https = !empty($_SERVER['HTTPS'])
-        && strtolower((string)$_SERVER['HTTPS']) !== 'off';
-
-    $scheme = $https ? 'https' : 'http';
-    $host = currentHost();
-
-    return $host !== '' ? $scheme . '://' . $host : '';
-}
-
 function checkRequirements(string $root, string $storage): array
 {
     $checks = [];
@@ -126,8 +106,7 @@ if (is_file($lock)) {
 $requirements = checkRequirements($root, $storage);
 $canInstall = !in_array(false, array_column($requirements, 'ok'), true);
 
-$defaultUrl = currentUrl();
-$defaultHost = currentHost();
+$defaultUrl = '';
 $errors = [];
 $success = false;
 
