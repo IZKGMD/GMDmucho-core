@@ -11,30 +11,59 @@ ADMIN_PASS="$(cat "$ADMIN_PASSWORD_FILE")"
 install -d -m 750 -o root -g www-data /var/lib/muchocore
 install -d -m 750 -o root -g www-data /var/lib/muchocore/android-signer
 ANDROID_SIGNER_DIR=/var/lib/muchocore/android-signer
-SIGNER_KEY="$ANDROID_SIGNER_DIR/muchocore-android.key.pem"
+SIGNER_KEY="$ANDROID_SIGNER_DIR/muchocore-android.key.pk8"
+LEGACY_SIGNER_KEY="$ANDROID_SIGNER_DIR/muchocore-android.key.pem"
 SIGNER_CERT="$ANDROID_SIGNER_DIR/muchocore-android.cert.pem"
 
-if [[ ! -s "$SIGNER_KEY" || ! -s "$SIGNER_CERT" ]]; then
-  rm -f "$SIGNER_KEY" "$SIGNER_CERT"
-  openssl genpkey \
-    -algorithm RSA \
-    -pkeyopt rsa_keygen_bits:2048 \
-    -out "$SIGNER_KEY"
+if [[ ! -s "$SIGNER_KEY" ]]; then
+  if [[ -s "$LEGACY_SIGNER_KEY" ]]; then
+    if [[ ! -s "$SIGNER_CERT" ]]; then
+      openssl req -new -x509 -sha256 \
+        -key "$LEGACY_SIGNER_KEY" \
+        -out "$SIGNER_CERT" \
+        -days 10000 \
+        -subj "/CN=MuchoCore Android/O=MuchoCore/C=US"
+    fi
+    openssl pkcs8 -topk8 -nocrypt \
+      -inform PEM -outform DER \
+      -in "$LEGACY_SIGNER_KEY" \
+      -out "$SIGNER_KEY"
+    rm -f "$LEGACY_SIGNER_KEY"
+  else
+    PEM_KEY="$SIGNER_KEY.pem"
+    openssl genpkey \
+      -algorithm RSA \
+      -pkeyopt rsa_keygen_bits:2048 \
+      -out "$PEM_KEY"
+    openssl req -new -x509 -sha256 \
+      -key "$PEM_KEY" \
+      -out "$SIGNER_CERT" \
+      -days 10000 \
+      -subj "/CN=MuchoCore Android/O=MuchoCore/C=US"
+    openssl pkcs8 -topk8 -nocrypt \
+      -inform PEM -outform DER \
+      -in "$PEM_KEY" \
+      -out "$SIGNER_KEY"
+    rm -f "$PEM_KEY"
+  fi
+elif [[ ! -s "$SIGNER_CERT" ]]; then
+  PEM_KEY="$SIGNER_KEY.pem"
+  openssl pkcs8 -inform DER -nocrypt \
+    -in "$SIGNER_KEY" \
+    -out "$PEM_KEY"
   openssl req -new -x509 -sha256 \
-    -key "$SIGNER_KEY" \
+    -key "$PEM_KEY" \
     -out "$SIGNER_CERT" \
     -days 10000 \
     -subj "/CN=MuchoCore Android/O=MuchoCore/C=US"
-elif grep -q -- '-----BEGIN RSA PRIVATE KEY-----' "$SIGNER_KEY"; then
-  openssl pkcs8 -topk8 -nocrypt \
-    -in "$SIGNER_KEY" \
-    -out "$SIGNER_KEY.pkcs8"
-  mv "$SIGNER_KEY.pkcs8" "$SIGNER_KEY"
+  rm -f "$PEM_KEY"
 fi
 
 chown root:www-data "$SIGNER_KEY" "$SIGNER_CERT"
 chmod 640 "$SIGNER_KEY"
 chmod 644 "$SIGNER_CERT"
+
+openssl pkcs8 -inform DER -nocrypt -in "$SIGNER_KEY" -out /dev/null
 
 install -d -m 750 /var/lib/muchocore-control /var/lib/muchocore-backups
 install -d -m 750 /var/www/mucho-core/storage/music-public
