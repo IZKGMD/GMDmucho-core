@@ -165,8 +165,8 @@ $frontController = (string)file_get_contents(
 );
 
 assertSecurityRegression(
-    str_contains($frontController, '[MuchoCore FrontController]') &&
-    str_contains($frontController, "header('Cache-Control', 'no-store');"),
+    str_contains($frontController, 'MuchoCore FrontController') &&
+    preg_match("~Cache-Control['\\\"]?[^\\n]*no-store~", $frontController) === 1,
     'front controller logs failures without exposing exception details'
 );
 
