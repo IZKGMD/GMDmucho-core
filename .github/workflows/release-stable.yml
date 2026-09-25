@@ -47,14 +47,22 @@ jobs:
           git tag -f "$TAG" "$RELEASE_SHA"
           git push origin +refs/tags/"$TAG"
 
+          awk '
+            /^## v1\\.0\\.1/{printing=1}
+            /^## v1\\.0\\.0/{exit}
+            printing {print}
+          ' CHANGELOG.md > RELEASE_NOTES.md
+
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "$TAG release already exists."
           else
             gh release create "$TAG" \
               --title "MuchoCore $TAG" \
-              --notes-file CHANGELOG.md \
+              --notes-file RELEASE_NOTES.md \
               --latest
           fi
+
+          rm -f RELEASE_NOTES.md
 
       - name: Remove one-time release marker
         if: steps.marker.outputs.ready == 'true'
