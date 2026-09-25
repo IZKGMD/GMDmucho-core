@@ -180,8 +180,6 @@ CREATE TABLE IF NOT EXISTS admin_users (
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(32) NOT NULL DEFAULT 'admin',
     totp_secret VARCHAR(64) NULL,
-    access_key_hash VARCHAR(255) NULL,
-    access_key_created_at TIMESTAMP NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -518,11 +516,6 @@ function newTotpSecret(): string
     }
 
     return $out;
-}
-
-function newAccessKey(): string
-{
-    return 'MUCHO-'.strtoupper(bin2hex(random_bytes(24)));
 }
 
 function generateAdminRecoveryCodes(PDO $db,int $adminId,int $count=10): array
@@ -1009,7 +1002,6 @@ if($passkeyAction!==''){
 if (isset($_POST['login'])) {
     $user=trim((string)($_POST['username'] ?? ''));
     $password=(string)($_POST['password'] ?? '');
-    $accessKey=trim((string)($_POST['access_key'] ?? ''));
     $otp=trim((string)($_POST['otp'] ?? ''));
 
     $ip=\MuchoCore\Http\ClientIp::resolve($_SERVER);
@@ -1039,44 +1031,16 @@ if (isset($_POST['login'])) {
     if ((int)$state['tries']>=8) {
         $loginError='Too many attempts.';
     } else {
-        $row=null;
-        $accessKeyOk=false;
+        $q=$db->prepare(
+            'SELECT *
+             FROM admin_users
+             WHERE username=:u
+               AND is_active=1
+             LIMIT 1'
+        );
 
-        if ($accessKey!=='' && $user==='') {
-            $candidates=$db->query(
-                'SELECT *
-                 FROM admin_users
-                 WHERE is_active=1
-                   AND access_key_hash IS NOT NULL'
-            )->fetchAll(PDO::FETCH_ASSOC);
-
-            foreach ($candidates as $candidate) {
-                if (password_verify($accessKey,(string)$candidate['access_key_hash'])) {
-                    $row=$candidate;
-                    $accessKeyOk=true;
-                    break;
-                }
-            }
-        } else {
-            $q=$db->prepare(
-                'SELECT *
-                 FROM admin_users
-                 WHERE username=:u
-                   AND is_active=1
-                 LIMIT 1'
-            );
-
-            $q->execute(['u'=>$user]);
-            $row=$q->fetch(PDO::FETCH_ASSOC) ?: null;
-
-            $accessKeyOk=$row
-                && $accessKey!==''
-                && !empty($row['access_key_hash'])
-                && password_verify(
-                    $accessKey,
-                    $row['access_key_hash']
-                );
-        }
+        $q->execute(['u'=>$user]);
+        $row=$q->fetch(PDO::FETCH_ASSOC) ?: null;
 
         $passwordOk=$row
             && $password!==''
@@ -1085,7 +1049,7 @@ if (isset($_POST['login'])) {
                 $row['password_hash']
             );
 
-        $ok=$passwordOk || $accessKeyOk;
+        $ok=$passwordOk;
         $usedRecovery=false;
 
         if (
@@ -1125,9 +1089,7 @@ if (isset($_POST['login'])) {
 
             audit(
                 $db,
-                $usedRecovery
-                    ? 'login.recovery_code'
-                    : ($accessKeyOk && !$passwordOk ? 'login.access_key' : 'login')
+                $usedRecovery ? 'login.recovery_code' : 'login'
             );
 
             header('Location:/admin/');
@@ -2249,7 +2211,6 @@ max-width:100%
 
 <div class="admin-login-methods" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
 <button type="button" class="gray" id="passwordMode">Password login</button>
-<button type="button" class="gray" id="accessKeyMode">Access Key login</button>
 <button type="button" class="gray" id="passkeyMode">Passkey login</button>
 </div>
 
@@ -2265,15 +2226,6 @@ max-width:100%
  name="password"
  autocomplete="current-password"
  placeholder="Password"
->
-</div>
-
-<div id="accessKeyLoginFields" hidden>
-<input
- name="access_key"
- autocomplete="off"
- spellcheck="false"
- placeholder="MUCHO-Access-Key"
 >
 </div>
 
@@ -2308,46 +2260,37 @@ Use a saved passkey. Your browser will open the native passkey picker so you can
 <script>
 (() => {
     const passwordMode=document.getElementById('passwordMode');
-    const accessKeyMode=document.getElementById('accessKeyMode');
     const passkeyMode=document.getElementById('passkeyMode');
     const passwordFields=document.getElementById('passwordLoginFields');
-    const accessKeyFields=document.getElementById('accessKeyLoginFields');
     const passkeyFields=document.getElementById('passkeyLoginFields');
     const otpField=document.getElementById('otpLoginField');
     const passkeyTotpField=document.getElementById('passkeyTotpField');
     const normalSignIn=document.getElementById('normalSignInButton');
     const username=document.querySelector('input[name="username"]');
     const password=document.querySelector('input[name="password"]');
-    const accessKey=document.querySelector('input[name="access_key"]');
     const otp=document.querySelector('input[name="otp"]');
     const passkeyTotp=document.getElementById('passkeyTotp');
     const status=document.getElementById('passkeyStatus');
 
     function setMode(mode){
-        const key=mode==='key';
         const passkey=mode==='passkey';
 
-        passwordFields.hidden=key||passkey;
-        accessKeyFields.hidden=!key;
+        passwordFields.hidden=passkey;
         passkeyFields.hidden=!passkey;
         otpField.hidden=passkey;
         passkeyTotpField.hidden=true;
         normalSignIn.hidden=passkey;
 
-        username.disabled=key||passkey;
-        password.disabled=key||passkey;
-        accessKey.disabled=!key;
+        username.disabled=passkey;
+        password.disabled=passkey;
         otp.disabled=passkey;
 
         passwordMode.classList.toggle('green',mode==='password');
-        accessKeyMode.classList.toggle('green',key);
         passkeyMode.classList.toggle('green',passkey);
 
         if(status) status.textContent='';
 
-        if(key){
-            accessKey.focus();
-        }else if(!passkey){
+        if(!passkey){
             username.focus();
         }
     }
@@ -2466,7 +2409,6 @@ Use a saved passkey. Your browser will open the native passkey picker so you can
     });
 
     passwordMode?.addEventListener('click',() => setMode('password'));
-    accessKeyMode?.addEventListener('click',() => setMode('key'));
     passkeyMode?.addEventListener('click',() => setMode('passkey'));
     setMode('password');
 })();
@@ -4169,47 +4111,6 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             );
 
             flash('Status changed.');
-        }
-
-        elseif ($action==='access-key-generate') {
-            requireRank(10);
-
-            $accessKey=newAccessKey();
-
-            $db->prepare(
-                'UPDATE admin_users
-                 SET access_key_hash=:hash,
-                     access_key_created_at=NOW()
-                 WHERE id=:id'
-            )->execute([
-                'hash'=>password_hash($accessKey,PASSWORD_DEFAULT),
-                'id'=>admin()['id']
-            ]);
-
-            $_SESSION['new_access_key']=$accessKey;
-
-            audit($db,'access_key.generate');
-            flash(
-                'A new access key was generated. Copy it now; it is not stored in plaintext.'
-            );
-        }
-
-        elseif ($action==='access-key-revoke') {
-            requireRank(10);
-
-            $db->prepare(
-                'UPDATE admin_users
-                 SET access_key_hash=NULL,
-                     access_key_created_at=NULL
-                 WHERE id=:id'
-            )->execute([
-                'id'=>admin()['id']
-            ]);
-
-            unset($_SESSION['new_access_key']);
-
-            audit($db,'access_key.revoke');
-            flash('Administrator access key revoked.');
         }
 
         elseif ($action==='2fa-generate') {
@@ -6144,102 +6045,6 @@ document.getElementById('copyRecoveryCodes')?.addEventListener('click',async()=>
 <?php endif; ?>
 <div class="recovery-note">Each code can be used once. Store them offline or in a password manager; never commit them to the repository.</div>
 </div>
-
-<?php
-$newAccessKey=(string)($_SESSION['new_access_key'] ?? '');
-unset($_SESSION['new_access_key']);
-$hasAccessKey=!empty($me['access_key_hash']);
-?>
-<div class="card admin-access-key-card" style="margin-top:13px">
-<style>
-.admin-access-key-card{position:relative;overflow:hidden;background:linear-gradient(145deg,#121827,#0e131c)}
-.admin-access-key-card .key-badge{display:inline-flex;align-items:center;padding:6px 9px;border-radius:999px;background:#282147;border:1px solid #473b7e;color:#c5baff;font-size:11px;font-weight:800}
-.admin-access-key-card .key-panel{margin-top:14px;padding:13px;border:1px solid #29354a;border-radius:12px;background:#0b1018}
-.admin-access-key-card .key-value{font:750 13px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.035em;word-break:break-all;color:#eef2ff;margin-top:5px}
-.admin-access-key-card .key-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
-.admin-access-key-card .key-note{margin-top:10px;color:#7f8ba0;font-size:10px;line-height:1.5}
-</style>
-<div class="row" style="justify-content:space-between;align-items:center">
-    <div>
-        <h2 style="margin:0">Admin Access Key</h2>
-        <small>Fast sign-in credential for this administrator</small>
-    </div>
-    <?php if($hasAccessKey): ?>
-        <span class="key-badge">Active</span>
-    <?php else: ?>
-        <span class="badge">Not set</span>
-    <?php endif; ?>
-</div>
-
-<?php if($newAccessKey!==''): ?>
-<div class="key-panel">
-    <small>New access key — copy it now</small>
-    <div class="key-value" id="newAccessKey"><?=h($newAccessKey)?></div>
-    <div class="key-actions">
-        <button type="button" class="copy-btn" id="copyAccessKey">Copy key</button>
-    </div>
-</div>
-<div class="warning">Shown once. Only a hash is stored in the database.</div>
-<?php elseif($hasAccessKey): ?>
-<div class="disabled-state">
-    <b>Fast sign-in is enabled.</b>
-    <small>Use the access key alone, or enter it with your username. If 2FA is enabled, the authenticator code is still required.</small>
-</div>
-<div class="key-actions">
-<form method="post">
-<input type="hidden" name="csrf" value="<?=csrf()?>">
-<input type="hidden" name="action" value="access-key-generate">
-<input type="hidden" name="return" value="admins">
-<button>Generate new key</button>
-</form>
-<form method="post">
-<input type="hidden" name="csrf" value="<?=csrf()?>">
-<input type="hidden" name="action" value="access-key-revoke">
-<input type="hidden" name="return" value="admins">
-<button class="red">Revoke key</button>
-</form>
-</div>
-<?php else: ?>
-<div class="disabled-state">
-    <b>Skip the password for faster sign-in.</b>
-    <small>The access key replaces the password and is stored as a one-way hash.</small>
-</div>
-<div class="key-actions">
-<form method="post">
-<input type="hidden" name="csrf" value="<?=csrf()?>">
-<input type="hidden" name="action" value="access-key-generate">
-<input type="hidden" name="return" value="admins">
-<button>Generate access key</button>
-</form>
-</div>
-<?php endif; ?>
-
-<div class="key-note">Access Key replaces the password, not the second factor.</div>
-</div>
-
-<script>
-document.getElementById('copyAccessKey')?.addEventListener('click', async () => {
-    const value=document.getElementById('newAccessKey')?.textContent?.trim() || '';
-    try {
-        await navigator.clipboard.writeText(value);
-    } catch {
-        const ta=document.createElement('textarea');
-        ta.value=value;
-        ta.style.position='fixed';
-        ta.style.opacity='0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        ta.remove();
-    }
-    const button=document.getElementById('copyAccessKey');
-    if(button){
-        const original=button.textContent;
-        button.textContent='Copied';
-        setTimeout(() => { button.textContent=original; },1200);
-    }
-});
-</script>
 
 <?php
 
