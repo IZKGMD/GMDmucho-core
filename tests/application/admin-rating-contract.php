@@ -5,7 +5,7 @@ declare(strict_types=1);
  * MuchoCore Admin Rating Studio contract test.
  */
 
-$root=dirname(__DIR__);
+$root=dirname(__DIR__,2);
 
 $index=file_get_contents($root.'/public/admin/index.php');
 $router=file_get_contents($root.'/public/admin/core/AdminRouter.php');
