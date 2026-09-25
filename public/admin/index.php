@@ -845,10 +845,43 @@ if (admin() && isset($_GET['download'])) {
 }
 
 /* =========================================================
+   LIVE AUDIT FEED
+========================================================= */
+
+if (admin() && isset($_GET['audit_feed'])) {
+    requireRank(10);
+
+    $rows=$db->query(
+        'SELECT
+            id,
+            username,
+            action,
+            target,
+            created_at
+         FROM admin_audit_logs
+         ORDER BY id DESC
+         LIMIT 20'
+    )->fetchAll(PDO::FETCH_ASSOC);
+
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+
+    echo json_encode(
+        [
+            'ok'=>true,
+            'server_time'=>gmdate('c'),
+            'events'=>$rows
+        ],
+        JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES
+    );
+    exit;
+}
+
+/* =========================================================
    LOGIN PAGE
 ========================================================= */
 
-if (!admin()):
+if (! admin()):
 ?>
 <!doctype html>
 <html lang="ru">
