@@ -101,11 +101,13 @@ sudo /opt/mucho-core/update.sh
 
 Updates preserve the selected compatibility profile and Cloudflare Tunnel deployment mode.
 
-### Release-based updates
+### Release-based automatic updates
 
-MuchoCore never updates the VPS automatically. The Admin Panel checks the stable GitHub Releases feed and, when a newer release exists than the installed `VERSION`, shows an update notification with release notes and the standard SSH command.
+MuchoCore checks GitHub Releases on the VPS. A new **published stable release** triggers the automatic updater. Ordinary commits on `main`, drafts and prereleases are ignored.
 
-Review the release first, then run:
+The updater then runs the normal `update.sh` deployment path, which fetches the exact release tag and never deploys directly from `main`.
+
+For manual deployment/testing, the same path remains available:
 
 ~~~bash
 sudo /opt/mucho-core/update.sh
