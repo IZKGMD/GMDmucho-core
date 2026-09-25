@@ -259,6 +259,12 @@ fi
 printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
 printf '%s' "$MUCHO_DB_ROOT_PASSWORD" > "$INSTALL_DIR/.secrets/db_root_password"
 printf '%s' "$MUCHO_ADMIN_PASSWORD" > "$INSTALL_DIR/.secrets/admin_password"
+if [[ -f "$INSTALL_DIR/.secrets/cloudsave_key" ]]; then
+  MUCHO_CLOUDSAVE_KEY="$(cat "$INSTALL_DIR/.secrets/cloudsave_key")"
+else
+  MUCHO_CLOUDSAVE_KEY="$(openssl rand -base64 32)"
+fi
+printf '%s\n' "$MUCHO_CLOUDSAVE_KEY" > "$INSTALL_DIR/.secrets/cloudsave_key"
 chmod 600 "$INSTALL_DIR/.secrets/"*
 
 if [[ -f "$INSTALL_DIR/.env" ]]; then
