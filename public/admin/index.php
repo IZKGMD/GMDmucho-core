@@ -5234,7 +5234,7 @@ $hasAccessKey=!empty($me['access_key_hash']);
 <?php elseif($hasAccessKey): ?>
 <div class="disabled-state">
     <b>Fast sign-in is enabled.</b>
-    <small>Use your username and access key on the login page. If 2FA is enabled, the authenticator code is still required.</small>
+    <small>Use the access key alone, or enter it with your username. If 2FA is enabled, the authenticator code is still required.</small>
 </div>
 <div class="key-actions">
 <form method="post">
@@ -5267,8 +5267,6 @@ $hasAccessKey=!empty($me['access_key_hash']);
 
 <div class="key-note">Access Key replaces the password, not the second factor.</div>
 </div>
-
-<?php
 
 <script>
 document.getElementById('copyAccessKey')?.addEventListener('click', async () => {
