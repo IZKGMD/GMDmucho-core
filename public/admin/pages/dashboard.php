@@ -104,9 +104,9 @@ function renderAdminDashboard(PDO $db): void
                 echo '<section class="card" style="margin-bottom:13px;border-color:#5e4fd8;background:linear-gradient(135deg,#121529,#10141f)">';
                 echo '<div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap">';
                 echo '<div><span style="font-size:11px;font-weight:800;letter-spacing:.08em;color:#9a8eff">MUCHOCORE UPDATE</span>';
-                echo '<h2 style="margin:6px 0 4px">New core release available</h2>';
-                echo '<p class="muted" style="margin:0">Installed v'.$current.' · New stable release <b style="color:#eef2ff">v'.$latest.'</b></p></div>';
-                echo '<a class="btn" href="/admin/?page=updates">Review update →</a>';
+                echo '<h2 style="margin:6px 0 4px">New stable core release detected</h2>';
+                echo '<p class="muted" style="margin:0">Installed v'.$current.' · Stable release <b style="color:#eef2ff">v'.$latest.'</b> will be applied automatically.</p></div>';
+                echo '<a class="btn" href="/admin/?page=updates">View release →</a>';
                 echo '</div>';
                 echo '</section>';
             }
