@@ -90,6 +90,7 @@ try {
             'id' => ctype_digit($q) ? $q : '',
             'creator' => '%'.$q.'%',
         ]);
+        $searchRows = $st->fetchAll(PDO::FETCH_ASSOC);
     } else {
         $searchRows = $db->query(
             'SELECT
