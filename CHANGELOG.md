@@ -1,5 +1,31 @@
 # Changelog
 
+## v1.0.2 — Release-Based Updates & Admin RBAC
+
+This release moves production updates to published stable GitHub Releases and adds custom administrator roles and permissions.
+
+### Included
+
+- release-only VPS updates: production never deploys ordinary `main` commits;
+- `update.sh` remains available for manual deployment and testing;
+- systemd-based automatic update checks every 15 minutes by default;
+- Admin Panel release detection and stable release update status;
+- custom administrator roles with granular permission management;
+- role-aware Admin Panel navigation and access control;
+- administrator RBAC migration and contract coverage;
+- hardened Android client patching and compatibility handling;
+- updated deployment and CI checks for release-based update flow.
+
+### Compatibility verification
+
+GD 2.2 verification remains backed by the committed real-client contract fixture:
+
+~~~text
+tests/client-fixtures/2.2/endpoints.json
+~~~
+
+Legacy 1.0, 1.9, 2.0 and 2.1 protocol behavior remains covered by the repository's compatibility and wire regression tests.
+
 ## v1.0.1 — Admin Security & Operations Update
 
 This release updates the Admin Panel authentication and administrator management flow.
