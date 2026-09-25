@@ -40,7 +40,7 @@ try {
     // Keep the synthetic APK above the production minimum-size guard.
     $zip->addFromString(
         'assets/test-padding.bin',
-        str_repeat('M', 4096)
+        random_bytes(4096)
     );
 
     $zip->addFromString(
