@@ -30,7 +30,7 @@ $assert(str_contains($index,'(time()-$createdAt)>600'),'10 minute setup expiry')
 $assert(str_contains($index,'verifyTotp($secret,$code)'),'server-side TOTP confirmation');
 $assert(str_contains($index,'/admin/assets/qrcode.min.js'),'local QR renderer');
 $assert(str_contains($index,'new QRCode(qr'),'QR generated in browser');
-$assert(str_contains($index,'The secret is not sent to a QR-code service'),'no external QR service');
+$assert(str_contains($index,'the secret is not sent to a QR-code service') || str_contains($index,'The setup is local; the secret is not sent to a QR-code service.'),'no external QR service');
 $assert(str_contains($index,'Google Authenticator'),'Google Authenticator UI');
 $assert(str_contains($index,'2fa-cancel'),'cancel setup flow');
 $assert(str_contains($index,'2fa.disable'),'2FA disable audit');
