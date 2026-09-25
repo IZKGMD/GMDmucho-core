@@ -5309,6 +5309,84 @@ The previous authenticator setup expired. Generate a new QR code to continue.
 
 </div>
 <?php
+$newRecoveryCodes=$_SESSION['new_recovery_codes'] ?? [];
+unset($_SESSION['new_recovery_codes']);
+
+$recoveryCodes=is_array($newRecoveryCodes)
+    ? array_values(array_filter($newRecoveryCodes,'is_string'))
+    : [];
+
+$unusedRecoveryCodes=countUnusedAdminRecoveryCodes(
+    $db,
+    (int)admin()['id']
+);
+?>
+<div class="card admin-recovery-card" style="margin-top:13px">
+<style>
+.admin-recovery-card{position:relative;overflow:hidden}
+.admin-recovery-card .recovery-badge{display:inline-flex;align-items:center;padding:6px 9px;border-radius:999px;background:#183046;border:1px solid #285579;color:#9fd5ff;font-size:11px;font-weight:800}
+.admin-recovery-card .recovery-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.admin-recovery-card .recovery-code{padding:10px 11px;border:1px solid #2a374b;border-radius:9px;background:#0b1018;color:#eef2ff;font:750 12px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;text-align:center}
+.admin-recovery-card .recovery-note{margin-top:11px;color:#7f8ba0;font-size:10px;line-height:1.5}
+@media(max-width:640px){.admin-recovery-card .recovery-grid{grid-template-columns:1fr}}
+</style>
+<div class="row" style="justify-content:space-between;align-items:center">
+    <div>
+        <h2 style="margin:0">MFA Recovery Codes</h2>
+        <small>One-time fallback codes for the authenticator factor</small>
+    </div>
+    <?php if(!empty($me['totp_secret'])): ?>
+        <span class="recovery-badge"><?=h((string)$unusedRecoveryCodes)?> left</span>
+    <?php else: ?>
+        <span class="badge">Requires 2FA</span>
+    <?php endif; ?>
+</div>
+
+<?php if(!empty($recoveryCodes)): ?>
+<div class="warning" style="margin-top:13px">
+    Save these codes now. They are shown once and are stored only as password hashes.
+</div>
+<div class="recovery-grid">
+<?php foreach($recoveryCodes as $code): ?>
+    <div class="recovery-code"><?=h($code)?></div>
+<?php endforeach; ?>
+</div>
+<div class="key-actions" style="margin-top:11px">
+    <button type="button" class="copy-btn" id="copyRecoveryCodes">Copy all codes</button>
+</div>
+<script>
+document.getElementById('copyRecoveryCodes')?.addEventListener('click',async()=>{
+    const values=[...document.querySelectorAll('.recovery-code')].map(x=>x.textContent.trim()).join('\n');
+    try{await navigator.clipboard.writeText(values)}catch{
+        const ta=document.createElement('textarea');
+        ta.value=values; ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    }
+    const b=document.getElementById('copyRecoveryCodes');
+    if(b){const old=b.textContent;b.textContent='Copied';setTimeout(()=>b.textContent=old,1200)}
+});
+</script>
+<?php elseif(!empty($me['totp_secret'])): ?>
+<div class="disabled-state" style="margin-top:12px">
+    <b><?=h((string)$unusedRecoveryCodes)?> unused recovery codes remain.</b>
+    <small>Regenerating codes immediately revokes the previous unused set.</small>
+</div>
+<form method="post" style="margin-top:10px">
+    <input type="hidden" name="csrf" value="<?=csrf()?>">
+    <input type="hidden" name="action" value="recovery-generate">
+    <input type="hidden" name="return" value="admins">
+    <button>Generate new recovery codes</button>
+</form>
+<?php else: ?>
+<div class="disabled-state" style="margin-top:12px">
+    <b>Recovery codes become available with 2FA.</b>
+    <small>When Google Authenticator is enabled, MuchoCore generates a fresh one-time recovery set.</small>
+</div>
+<?php endif; ?>
+<div class="recovery-note">Each code can be used once. Store them offline or in a password manager; never commit them to the repository.</div>
+</div>
+
+<?php
 $newAccessKey=(string)($_SESSION['new_access_key'] ?? '');
 unset($_SESSION['new_access_key']);
 $hasAccessKey=!empty($me['access_key_hash']);
