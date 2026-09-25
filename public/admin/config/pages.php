@@ -41,5 +41,6 @@ return [
     'system'=>'Server',
 
     'admins'=>'Administrators',
+    'roles'=>'Roles & Permissions',
     'audit'=>'Audit Log'
 ];
