@@ -153,6 +153,8 @@ jobs:
           assert liveness < application
           PY
           ! grep -q 'Gemini_Generated_Image_vemzsvemzsvemzsv.jpg' docker/Caddyfile
+          grep -Fq 'handle /GD/accountHelp /GD/accountHelp.php' docker/Caddyfile
+          grep -Fq 'rewrite * /api/api/accounts/lostusername.php' docker/Caddyfile
           test -s public/assets/muchocore-logo.jpg
 
       - name: Check Caddy configuration
