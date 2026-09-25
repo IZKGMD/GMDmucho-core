@@ -142,6 +142,16 @@ final readonly class RecoveryRepository
                 );
             }
 
+            // Password recovery revokes legacy 1.9 upload sessions so an
+            // old authenticated device cannot keep using the previous session.
+            $revokeSessions = $this->pdo->prepare(
+                'DELETE FROM mucho_legacy_19_sessions
+                 WHERE account_id = :account_id'
+            );
+            $revokeSessions->execute([
+                'account_id' => (int)$accountId,
+            ]);
+
             $markUsed = $this->pdo->prepare(
                 'UPDATE account_recovery_tokens
                  SET used_at = NOW()
