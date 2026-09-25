@@ -342,18 +342,6 @@ final class AndroidClientPatcher
         $verify->close();
     }
 
-        return [
-            'server_url' => $server,
-            'input_size' => $size,
-            'output_size' => $outputSize,
-            'replacement_count' => $replacementCount,
-            'patched_entries' => $patchedEntries,
-            'input_sha256' => hash_file('sha256', $inputPath) ?: '',
-            'output_sha256' => hash_file('sha256', $outputPath) ?: '',
-            'signed' => false,
-        ];
-    }
-
     private static function shouldPatchEntry(string $name): bool
     {
         $lower = strtolower($name);
