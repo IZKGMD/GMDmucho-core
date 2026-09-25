@@ -8,6 +8,7 @@ use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Protocol\GdCommentEncoder;
 use MuchoCore\Protocol\GdLegacyText;
 use PDO;
+use MuchoCore\User\GameRole;
 
 final class CommentService
 {
@@ -239,35 +240,31 @@ final class CommentService
         $roleStmt->execute([':id' => $accountId]);
 
         $roleRow = $roleStmt->fetch(PDO::FETCH_ASSOC) ?: [];
-        $roleAliases = [
-            'admin' => 'elder_moderator',
-            'elder' => 'elder_moderator',
-            'developer' => 'elder_moderator',
-            'helper' => 'moderator',
-            'mod' => 'moderator',
-            'moderator' => 'moderator',
-            'elder_moderator' => 'elder_moderator',
-            'owner' => 'owner',
-            'user' => 'user',
-            'player' => 'user',
-        ];
-
         $role = 'user';
+
         foreach ([
             $roleRow['role_code'] ?? '',
             $roleRow['legacy_role'] ?? '',
         ] as $rawRole) {
-            $candidate = strtolower(trim((string)$rawRole));
+            $candidate = trim((string)$rawRole);
 
             if ($candidate === '') {
                 continue;
             }
 
-            $candidate = $roleAliases[$candidate] ?? $candidate;
+            try {
+                $candidate = GameRole::normalize($candidate);
+            } catch (\InvalidArgumentException) {
+                continue;
+            }
 
             if (in_array(
                 $candidate,
-                ['owner', 'elder_moderator', 'moderator'],
+                [
+                    GameRole::OWNER,
+                    GameRole::ELDER_MODERATOR,
+                    GameRole::MODERATOR,
+                ],
                 true
             )) {
                 $role = $candidate;
@@ -277,7 +274,11 @@ final class CommentService
 
         if (!in_array(
             $role,
-            ['owner', 'elder_moderator', 'moderator'],
+            [
+                GameRole::OWNER,
+                GameRole::ELDER_MODERATOR,
+                GameRole::MODERATOR,
+            ],
             true
         )) {
             return null;
