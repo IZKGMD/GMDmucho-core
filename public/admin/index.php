@@ -5150,6 +5150,78 @@ The previous authenticator setup expired. Generate a new QR code to continue.
 
 </div>
 <?php
+$newAccessKey=(string)($_SESSION['new_access_key'] ?? '');
+unset($_SESSION['new_access_key']);
+$hasAccessKey=!empty($me['access_key_hash']);
+?>
+<div class="card admin-access-key-card" style="margin-top:13px">
+<style>
+.admin-access-key-card{position:relative;overflow:hidden;background:linear-gradient(145deg,#121827,#0e131c)}
+.admin-access-key-card .key-badge{display:inline-flex;align-items:center;padding:6px 9px;border-radius:999px;background:#282147;border:1px solid #473b7e;color:#c5baff;font-size:11px;font-weight:800}
+.admin-access-key-card .key-panel{margin-top:14px;padding:13px;border:1px solid #29354a;border-radius:12px;background:#0b1018}
+.admin-access-key-card .key-value{font:750 13px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.035em;word-break:break-all;color:#eef2ff;margin-top:5px}
+.admin-access-key-card .key-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+.admin-access-key-card .key-note{margin-top:10px;color:#7f8ba0;font-size:10px;line-height:1.5}
+</style>
+<div class="row" style="justify-content:space-between;align-items:center">
+    <div>
+        <h2 style="margin:0">Admin Access Key</h2>
+        <small>Fast sign-in credential for this administrator</small>
+    </div>
+    <?php if($hasAccessKey): ?>
+        <span class="key-badge">Active</span>
+    <?php else: ?>
+        <span class="badge">Not set</span>
+    <?php endif; ?>
+</div>
+
+<?php if($newAccessKey!==''): ?>
+<div class="key-panel">
+    <small>New access key — copy it now</small>
+    <div class="key-value" id="newAccessKey"><?=h($newAccessKey)?></div>
+    <div class="key-actions">
+        <button type="button" class="copy-btn" id="copyAccessKey">Copy key</button>
+    </div>
+</div>
+<div class="warning">Shown once. Only a hash is stored in the database.</div>
+<?php elseif($hasAccessKey): ?>
+<div class="disabled-state">
+    <b>Fast sign-in is enabled.</b>
+    <small>Use your username and access key on the login page. If 2FA is enabled, the authenticator code is still required.</small>
+</div>
+<div class="key-actions">
+<form method="post">
+<input type="hidden" name="csrf" value="<?=csrf()?>">
+<input type="hidden" name="action" value="access-key-generate">
+<input type="hidden" name="return" value="admins">
+<button>Generate new key</button>
+</form>
+<form method="post">
+<input type="hidden" name="csrf" value="<?=csrf()?>">
+<input type="hidden" name="action" value="access-key-revoke">
+<input type="hidden" name="return" value="admins">
+<button class="red">Revoke key</button>
+</form>
+</div>
+<?php else: ?>
+<div class="disabled-state">
+    <b>Skip the password for faster sign-in.</b>
+    <small>The access key replaces the password and is stored as a one-way hash.</small>
+</div>
+<div class="key-actions">
+<form method="post">
+<input type="hidden" name="csrf" value="<?=csrf()?>">
+<input type="hidden" name="action" value="access-key-generate">
+<input type="hidden" name="return" value="admins">
+<button>Generate access key</button>
+</form>
+</div>
+<?php endif; ?>
+
+<div class="key-note">Access Key replaces the password, not the second factor.</div>
+</div>
+
+<?php
 
 $admins=$db->query(
     'SELECT id,username,role,is_active,
