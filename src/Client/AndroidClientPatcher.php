@@ -276,7 +276,11 @@ final class AndroidClientPatcher
             @chmod($cert, 0644);
         }
 
-        if (is_file($key) && is_readable($key)) {
+        $keyContents = is_file($key) ? @file_get_contents($key) : false;
+        $needsKeyNormalization = is_string($keyContents)
+            && str_contains($keyContents, '-----BEGIN RSA PRIVATE KEY-----');
+
+        if ($needsKeyNormalization) {
             $normalizedKey = $key . '.pkcs8';
             @unlink($normalizedKey);
 
