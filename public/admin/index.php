@@ -583,30 +583,50 @@ if (isset($_POST['login'])) {
     if ((int)$state['tries']>=8) {
         $loginError='Too many attempts.';
     } else {
-        $q=$db->prepare(
-            'SELECT *
-             FROM admin_users
-             WHERE username=:u
-               AND is_active=1
-             LIMIT 1'
-        );
+        $row=null;
+        $accessKeyOk=false;
 
-        $q->execute(['u'=>$user]);
-        $row=$q->fetch(PDO::FETCH_ASSOC);
+        if ($accessKey!=='' && $user==='') {
+            $candidates=$db->query(
+                'SELECT *
+                 FROM admin_users
+                 WHERE is_active=1
+                   AND access_key_hash IS NOT NULL'
+            )->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($candidates as $candidate) {
+                if (password_verify($accessKey,(string)$candidate['access_key_hash'])) {
+                    $row=$candidate;
+                    $accessKeyOk=true;
+                    break;
+                }
+            }
+        } else {
+            $q=$db->prepare(
+                'SELECT *
+                 FROM admin_users
+                 WHERE username=:u
+                   AND is_active=1
+                 LIMIT 1'
+            );
+
+            $q->execute(['u'=>$user]);
+            $row=$q->fetch(PDO::FETCH_ASSOC) ?: null;
+
+            $accessKeyOk=$row
+                && $accessKey!==''
+                && !empty($row['access_key_hash'])
+                && password_verify(
+                    $accessKey,
+                    $row['access_key_hash']
+                );
+        }
 
         $passwordOk=$row
             && $password!==''
             && password_verify(
                 $password,
                 $row['password_hash']
-            );
-
-        $accessKeyOk=$row
-            && $accessKey!==''
-            && !empty($row['access_key_hash'])
-            && password_verify(
-                $accessKey,
-                $row['access_key_hash']
             );
 
         $ok=$passwordOk || $accessKeyOk;
@@ -1740,7 +1760,7 @@ max-width:100%
  name="access_key"
  autocomplete="off"
  spellcheck="false"
- placeholder="Access Key (optional)"
+ placeholder="Access Key (optional — username not required)"
 >
 
 <input
