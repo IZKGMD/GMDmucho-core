@@ -30,20 +30,16 @@ final class ClientIp
             return $remote;
         }
 
-        foreach ([
-            'HTTP_CF_CONNECTING_IP',
-            'HTTP_TRUE_CLIENT_IP',
-        ] as $header) {
-            $candidate = trim((string)($server[$header] ?? ''));
-
-            if (
-                $candidate !== '' &&
-                filter_var($candidate, FILTER_VALIDATE_IP) !== false
-            ) {
-                return $candidate;
-            }
-        }
-
+        /*
+         * Do not trust CDN-specific client-IP headers here. When the app sits
+         * behind Caddy, an attacker can otherwise inject CF-Connecting-IP or
+         * similar headers and evade IP-based rate limits. Caddy controls and
+         * sanitizes X-Forwarded-For before proxying to PHP.
+         *
+         * If a CDN is placed in front of Caddy, configure that proxy as a
+         * trusted proxy at the Caddy layer instead of trusting its headers in
+         * application code.
+         */
         $forwarded = trim((string)($server['HTTP_X_FORWARDED_FOR'] ?? ''));
 
         if ($forwarded !== '') {
