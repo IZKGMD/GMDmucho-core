@@ -154,7 +154,7 @@ final class AndroidClientPatcher
         }
 
         self::runTool(
-            ['zipalign', '-p', '16', '-f', '4', $rebuiltPath, $alignedPath],
+            ['zipalign', '-p', '-f', '4', $rebuiltPath, $alignedPath],
             'zipalign'
         );
 
