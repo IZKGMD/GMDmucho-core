@@ -238,3 +238,41 @@ jobs:
           name: MuchoModerator-GD20
           path: out/
           if-no-files-found: error
+
+
+  gd20-moderator-launcher:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure GD 2.0 moderator launcher
+        run: cmake -S tools/gd20-moderator-launcher -B build-gd20-launcher -A Win32
+
+      - name: Build GD 2.0 moderator launcher
+        run: cmake --build build-gd20-launcher --config Release
+
+      - name: Package GD 2.0 moderator launcher
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item build-gd20-launcher/Release/MuchoModeratorLauncher.exe out/GeometryDash-2.0-MuchoCore.exe
+          Copy-Item out/GeometryDash-2.0-MuchoCore.exe out/MuchoModeratorLauncher.exe
+          Set-Content out/README.txt @"
+          Mucho Moderator GD 2.0 launcher
+          Put these three files in one folder:
+          - GeometryDash.exe (your original GD 2.0 executable)
+          - MuchoModerator.dll
+          - GeometryDash-2.0-MuchoCore.exe
+
+          Run GeometryDash-2.0-MuchoCore.exe.
+          It starts GeometryDash.exe suspended, loads MuchoModerator.dll,
+          then resumes the game.
+          Hotkey inside the mod: Ctrl+Shift+R
+          "@
+
+      - name: Upload GD 2.0 moderator launcher
+        uses: actions/upload-artifact@v4
+        with:
+          name: MuchoModerator-GD20-Launcher
+          path: out/
+          if-no-files-found: error
