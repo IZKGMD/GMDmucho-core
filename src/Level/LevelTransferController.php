@@ -44,7 +44,11 @@ final readonly class LevelTransferController
 
         if (
             $credential === '' &&
-            $version->effectiveGameVersion() !== 19
+            !in_array(
+                $version->effectiveGameVersion(),
+                [1, 19],
+                true
+            )
         ) {
             error_log(sprintf(
                 '[MuchoCore] request_id=%s upload_level_rejected account_id=%d reason=missing_credentials has_gjp=%d has_gjp2=%d family=%s',
