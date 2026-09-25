@@ -72,10 +72,26 @@ jobs:
 
           rm -f RELEASE_NOTES.md
 
-      - name: Remove one-time release marker
+      - name: Build source archive
+        if: steps.marker.outputs.ready == 'true'
+        env:
+          TAG: ${{ steps.marker.outputs.tag }}
+        run: |
+          git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
+          git archive --format=zip --prefix="MuchoCore-${TAG}/" "$TAG" -o "MuchoCore-${TAG}.zip"
+          test -s "MuchoCore-${TAG}.zip"
+
+      - name: Upload source archive
         if: steps.marker.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.marker.outputs.tag }}
+        run: |
+          gh release upload "$TAG" "MuchoCore-${TAG}.zip" --clobber
+
+      - name: Remove one-time release marker
+        if: steps.marker.outputs.ready == 'true'
+        env:
           TAG: ${{ steps.marker.outputs.tag }}
         run: |
           git fetch origin main
