@@ -50,6 +50,14 @@
         rewrite * /api/api/accounts/lostusername.php
     }
 
+    # The game API remains available over HTTP for legacy clients,
+    # but the administrator session must always use HTTPS.
+    @admin_http {
+        protocol http
+        path /admin /admin/*
+    }
+    redir @admin_http https://{host}{uri} 308
+
     # The shared-hosting installer is only for non-Docker deployments.
     # Never expose it from the Docker/VPS public site.
     @shared_installer path /shared-install.php
