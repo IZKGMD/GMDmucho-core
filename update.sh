@@ -147,9 +147,9 @@ else
     fi
 fi
 
-if [[ -x "$ROOT/bin/mucho-install-auto-update.sh" ]]; then
+if [[ -f "$ROOT/bin/mucho-install-auto-update.sh" ]]; then
     echo '[MuchoCore] Synchronizing automatic update timer...'
-    "$ROOT/bin/mucho-install-auto-update.sh"
+    bash "$ROOT/bin/mucho-install-auto-update.sh"
 fi
 
 echo '[MuchoCore] Rebuilding containers...'
