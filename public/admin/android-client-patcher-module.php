@@ -313,56 +313,109 @@ function handleAndroidPatcherDownload(string $rootDir): never
 {
     requireRank(30);
 
-    $id = (string)($_GET['android_download'] ?? '');
+    $id = strtolower(trim((string)($_GET['android_download'] ?? '')));
+
     if (!preg_match('/^[a-f0-9]{32}$/', $id)) {
         http_response_code(400);
         exit('Invalid download.');
     }
 
     $result = $_SESSION['android_patcher_result'] ?? null;
+
+    if (!is_array($result)) {
+        http_response_code(404);
+        exit('Download not found.');
+    }
+
+    $storedId = strtolower((string)($result['id'] ?? ''));
+
     if (
-        !is_array($result) ||
-        !hash_equals((string)($result['id'] ?? ''), $id)
+        $storedId === '' ||
+        !hash_equals($storedId, $id)
     ) {
         http_response_code(404);
         exit('Download not found.');
     }
 
     if ((int)($result['expires'] ?? 0) <= time()) {
-        @unlink((string)($result['output'] ?? ''));
+        $expired = (string)($result['output'] ?? '');
+        if ($expired !== '' && is_file($expired)) {
+            @unlink($expired);
+        }
+
         unset($_SESSION['android_patcher_result']);
         http_response_code(410);
         exit('Download expired.');
     }
 
     $file = (string)($result['output'] ?? '');
+    $storage = clientPatcherStorage($rootDir);
+
+    if ($file === '' || !is_file($file)) {
+        unset($_SESSION['android_patcher_result']);
+        http_response_code(404);
+        exit('Patched APK no longer exists.');
+    }
+
+    $realFile = realpath($file);
+    $realStorage = realpath($storage);
+
     if (
-        $file === '' ||
-        !is_file($file) ||
-        dirname($file) !== clientPatcherStorage($rootDir)
+        $realFile === false ||
+        $realStorage === false ||
+        !str_starts_with(
+            $realFile,
+            rtrim($realStorage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
+        )
+    ) {
+        unset($_SESSION['android_patcher_result']);
+        http_response_code(404);
+        exit('Download path is invalid.');
+    }
+
+    $size = filesize($realFile);
+
+    if ($size === false || $size < 1024) {
+        @unlink($realFile);
+        unset($_SESSION['android_patcher_result']);
+        http_response_code(410);
+        exit('Patched APK is unavailable.');
+    }
+
+    if (
+        !is_readable($realFile) ||
+        !is_file($realFile)
     ) {
         http_response_code(404);
-        exit('Download not found.');
+        exit('Patched APK is not readable.');
     }
 
     audit(
         $GLOBALS['db'],
         'android-client-patcher.download',
-        basename($file)
+        basename($realFile)
     );
 
     header('Content-Type: application/vnd.android.package-archive');
     header(
         'Content-Disposition: attachment; filename="GeometryDash-MuchoCore.apk"'
     );
-    header('Content-Length: ' . filesize($file));
+    header('Content-Length: ' . (string)$size);
     header('Cache-Control: no-store, private');
+    header('X-Content-Type-Options: nosniff');
 
-    readfile($file);
-    @unlink($file);
+    $sent = readfile($realFile);
+
+    if ($sent === false) {
+        http_response_code(500);
+        exit('Unable to read patched APK.');
+    }
+
+    @unlink($realFile);
     unset($_SESSION['android_patcher_result']);
     exit;
 }
+
 
 function renderAndroidPatcherSection(PDO $db): void
 {
