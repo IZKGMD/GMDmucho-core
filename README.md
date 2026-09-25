@@ -1,8 +1,8 @@
 # 🎮 MuchoCore
 
 <p align="center">
-  <strong>Build your own Geometry Dash Private Server.</strong><br>
-  Modern infrastructure • 2.2-focused compatibility • built-in protection • easy deployment
+  <strong>A modern Geometry Dash Private Server core.</strong><br>
+  One backend • version-aware protocol compatibility • built-in protection • practical deployment tools
 </p>
 
 <p align="center">
@@ -11,7 +11,8 @@
   </a>
   <img src="https://img.shields.io/badge/release-v1.0.0-8A2BE2" alt="Stable release">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
-  <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2%20verified-success" alt="Geometry Dash 1.0 through 2.2">
+  <img src="https://img.shields.io/badge/PHP-8.3-777BB4" alt="PHP 8.3">
+  <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2-success" alt="Geometry Dash 1.0 through 2.2">
   <img src="https://img.shields.io/badge/MuchoProtect-enabled-success" alt="MuchoProtect">
   <img src="https://img.shields.io/badge/Docker-ready-2496ED" alt="Docker">
 </p>
@@ -20,35 +21,33 @@
   <a href="docs/SETUP.md">🚀 Setup</a> ·
   <a href="docs/CLIENT_SETUP.md">🎮 Client Setup</a> ·
   <a href="docs/VERSIONS.md">📚 Version Profiles</a> ·
+  <a href="docs/CLIENT_COMPATIBILITY.md">🧩 Compatibility</a> ·
   <a href="docs/SHOWCASE.md">🌍 Showcase</a>
 </p>
 
-> ⚡ **MuchoCore is a modern Geometry Dash Private Server backend built to make GDPS deployment easier, safer, and easier to maintain.**
+> ⚡ **MuchoCore is a maintainable Geometry Dash Private Server foundation for owners who want one server core, version-aware compatibility, an integrated admin panel, client patching tools, and a security layer that can be validated in CI.**
 
 ---
 
-## ✨ Why MuchoCore?
+## ✨ What you get
 
-MuchoCore is designed around one simple idea:
-
-**you should spend your time building your GDPS — not fighting the backend.**
-
-| Area | What you get |
+| Area | Included |
 | --- | --- |
-| 🎮 **Geometry Dash backend** | Accounts, profiles, levels, ratings, comments, social features, scores, and cloud saves |
-| 🛡️ **MuchoProtect** | Centralized request protection with per-endpoint limits, burst detection, account/IP isolation, and audit events |
-| 🔌 **Version-aware protocol** | Shared server logic with client-generation-specific protocol handling |
-| 🧪 **Automated validation** | Protocol, routing, client-contract, security, Docker, and patcher checks |
-| 🖥️ **Admin panel** | Web tools for managing players, levels, moderation and server data |
-| 🎵 **Music infrastructure** | Built-in public music storage and upload flow |
-| 🐳 **Docker + Caddy** | Repeatable deployment without manually assembling the stack |
-| 🧩 **Maintainable architecture** | PHP services, repositories, controllers, migrations, and compatibility layers |
+| 🎮 **Geometry Dash backend** | Accounts, profiles, levels, comments, social features, scores, ratings, rewards, cloud save, music and legacy-compatible endpoints |
+| 🧩 **One version-aware core** | Shared application logic with client-generation-specific compatibility handling |
+| 🛡️ **MuchoProtect** | Endpoint rate limits, burst protection, account/IP isolation and privacy-aware security audit events |
+| 🖥️ **Admin Control** | Dashboard, players, levels, moderation, analytics, monitoring, backups, API tools and server settings |
+| ⭐ **Rating Studio** | Search levels by ID/name/creator, review pending requests, publish 0–10 star ratings, choose difficulty faces, feature tiers and audit the change |
+| 🔐 **Admin security** | Password login, Google Authenticator TOTP, one-time setup flow, access keys, rate limiting and audit logging |
+| 🧰 **Client patchers** | Windows desktop patcher, browser-based Windows patcher and Android APK patcher |
+| 🐳 **Deployment** | Docker Compose, MariaDB, PHP 8.3, Caddy, automatic migrations and update tooling |
+| 🧪 **Validation** | PHP, shell, protocol, wire-format, security, patcher, Docker and Caddy checks in GitHub Actions |
 
 ---
 
-## 🚀 Get a GDPS running in minutes
+## 🚀 Quick start
 
-You do not need to manually install PHP, MariaDB, or Caddy.
+MuchoCore is designed so you do not have to assemble PHP, MariaDB and Caddy manually.
 
 ```bash
 git clone https://github.com/IZKGMD/GMDmucho-core.git
@@ -56,7 +55,9 @@ cd GMDmucho-core
 sudo ./install
 ```
 
-Point your domain to the VPS, complete the installer, then verify:
+The installer configures the database, PHP runtime, Caddy, Cloud Save secret, administrator account and the selected Geometry Dash compatibility profile.
+
+After installation, verify:
 
 ```text
 https://YOUR-DOMAIN/health
@@ -74,210 +75,335 @@ Then open:
 https://YOUR-DOMAIN/admin/
 ```
 
-For the full walkthrough, see **[VPS Setup](docs/SETUP.md)**.
+For the full VPS workflow, see **[docs/SETUP.md](docs/SETUP.md)**.
 
-### The flow
+### Deployment flow
 
 ```text
 VPS
- ↓
-./install
- ↓
+  ↓
+sudo ./install
+  ↓
 MuchoCore + MariaDB + Caddy
- ↓
+  ↓
 /health → 1
- ↓
-Patch your client
- ↓
-🎮 Your GDPS is online
+  ↓
+Patch the client
+  ↓
+🎮 GDPS online
 ```
-
----
-
-## 🛡️ MuchoProtect
-
-**Security is part of the core, not an afterthought.**
-
-MuchoProtect sits in front of the request router and evaluates protected actions before they reach the endpoint.
-
-```text
-Request
-   ↓
-MuchoProtect
-   ↓
-Identity + IP + Endpoint
-   ↓
-Rate / Burst Analysis
-   ↓
-ALLOW / BLOCK
-   ↓
-Legacy-compatible response
-```
-
-| Protection | What it does |
-| --- | --- |
-| 🚦 **Per-endpoint limits** | Applies different limits to authentication, uploads, comments, messages, scores, ratings, and other sensitive actions |
-| 🌐 **IP controls** | Helps contain request flooding while keeping raw IP addresses out of audit events |
-| 👤 **Account isolation** | Uses a credential-bound identity fingerprint instead of trusting a public account ID by itself |
-| 💥 **Burst protection** | Detects short high-frequency request spikes |
-| 📋 **Security audit** | Stores blocked-event metadata using privacy-preserving IP hashes |
-| 🎮 **Protocol-safe blocking** | Keeps Geometry Dash failure semantics while preserving normal HTTP transport |
-
-MuchoProtect is enabled by default and can be configured through environment variables.
 
 ---
 
 ## 🎯 Geometry Dash compatibility
 
-MuchoCore uses **one server core** across supported client generations instead of maintaining separate server copies.
+MuchoCore keeps **one server core** and selects version-specific behavior at the protocol boundary.
 
-The current release target covers **GD 1.0 through GD 2.2**, with version-aware protocol behavior at the server boundary. GD 1.0 has been verified end-to-end with a real client, and GD 2.2 retains the existing real-client contract coverage.
+Supported runtime generations:
 
-| Capability | Status |
-| --- | :---: |
-| Client version detection | ✅ |
-| GD 1.0 legacy UDID identity | ✅ Verified with real client |
-| GJP2-aware authentication path | ✅ |
-| Modern profile state fields | ✅ |
-| Version-aware level / leaderboard handling | ✅ |
-| Legacy protocol compatibility layers | ✅ |
-| Protocol regression coverage | ✅ |
-| Real-client verification | ✅ Verified with GD 2.2.13 contract fixture |
+| Generation | Runtime profile | Notes |
+| --- | --- | --- |
+| **GD 1.0** | `10` | Dedicated legacy identity compatibility layer |
+| **GD 1.9** | `19` | Legacy protocol and response handling |
+| **GD 2.0** | `20` | 2.x protocol compatibility |
+| **GD 2.1** | `21` | Version-aware modern protocol handling |
+| **GD 2.2** | `22` | Modern protocol path with GJP2-aware authentication |
+| **Custom** | e.g. `10,19,22` | Accept any selected combination |
+| **All supported** | `all` | All supported generations |
 
-> **Compatibility verification:** the release gate includes regression coverage for the supported client families. GD 1.0 has additionally been verified end-to-end with a real client, including level transfer. Automated CI checks provenance, client family, version metadata, and endpoint coverage on every push.
+The installer currently presents the standard 1.9–2.2 deployment profiles, while the core also contains the GD 1.0 compatibility layer. See **[docs/VERSIONS.md](docs/VERSIONS.md)** for the exact profile behavior.
 
-See **[Version Profiles](docs/VERSIONS.md)** for the supported runtime profiles.
+### Verification scope
 
----
+The release validation is deliberately conservative:
 
-## 🧪 Proof, not promises
+- **GD 2.2** has a committed real-client contract fixture used by the release gate.
+- **GD 1.0, 1.9, 2.0 and 2.1** have dedicated protocol/regression coverage in the repository.
+- Additional real-client release gates activate automatically when matching real-client fixtures are committed.
 
-MuchoCore is continuously validated through GitHub Actions and local test suites.
+This means the README does not treat a synthetic contract as equivalent to a captured real-client trace.
 
-| Test area | Status |
-| --- | :---: |
-| PHP source validation | ✅ |
-| Router / endpoint compatibility | ✅ |
-| Protocol matrix checks | ✅ |
-| 2.2 protocol guards | ✅ |
-| Protocol hash / wire checks | ✅ |
-| Client trace tooling | ✅ |
-| Client contract checks | ✅ |
-| MuchoProtect security tests | ✅ |
-| Windows client patcher checks | ✅ |
-| Python patcher self-test | ✅ |
-| Docker / Compose validation | ✅ |
-| Caddy / routing validation | ✅ |
-
-The goal is simple: **every release should be backed by reproducible checks, not just a README claim.**
+See **[docs/CLIENT_COMPATIBILITY.md](docs/CLIENT_COMPATIBILITY.md)** and **[docs/PROTOCOL_MATRIX.md](docs/PROTOCOL_MATRIX.md)** for more detail.
 
 ---
 
-## 🎮 Connect a Geometry Dash client
+## ⭐ Admin Rating Studio
 
-For Windows clients, use the included patcher:
-
-```text
-tools/client/
-```
-
-The patcher creates a separate client file and leaves the original untouched.
-
-For Android 2.2, native libraries commonly contain the server URL inside:
+MuchoCore includes a dedicated **Rating Studio** in the Admin Panel:
 
 ```text
-arm64-v8a/libcocos2dcpp.so
-armeabi-v7a/libcocos2dcpp.so
+/admin/?page=rating
 ```
 
-After modifying an Android package, it must be correctly rebuilt and signed.
+It is designed for moderator/admin workflows instead of command-line rating.
 
-Read **[Client Setup](docs/CLIENT_SETUP.md)** for the supported workflows.
+### Rating workflow
 
-> ℹ️ A successful patch operation only proves that known server URL patterns were replaced. Full compatibility still requires testing the actual client build against the server.
+```text
+Find level
+   ↓
+Review pending request / current state
+   ↓
+Choose stars
+   ↓
+Choose one difficulty profile
+   ↓
+Choose feature tier
+   ↓
+Publish
+   ↓
+Creator Points + audit log updated
+```
 
-### 🌐 Optional: Web Client Patcher
+Available star values:
 
-MuchoCore also includes an **optional browser-based Windows client patcher inside the Admin Panel**.
+```text
+0 → 10 stars
+```
 
-Open:
+Available difficulty profiles:
+
+```text
+Unrated
+Auto
+Easy
+Normal
+Hard
+Harder
+Insane
+Easy Demon
+Medium Demon
+Hard Demon
+Insane Demon
+Extreme Demon
+```
+
+Available feature tiers:
+
+```text
+None
+Featured
+Epic
+Legendary
+Mythic
+```
+
+The save operation canonicalizes the selected difficulty profile into the legacy Geometry Dash fields, clears the pending star request and recalculates creator points inside a transaction.
+
+---
+
+## 🔐 Admin authentication and security
+
+The Admin Panel includes multiple security layers.
+
+### Google Authenticator / TOTP
+
+Administrators can enable Google Authenticator from the administrator settings.
+
+The setup flow includes:
+
+- a locally rendered QR code;
+- manual setup secret fallback;
+- server-side TOTP verification;
+- a 10-minute pending setup expiry;
+- enable/disable audit events.
+
+The QR renderer is bundled with the project, so the secret is not sent to an external QR generation service.
+
+### Access Key
+
+Administrators can generate a dedicated access key for fast sign-in.
+
+Important properties:
+
+- the raw key is shown only when generated;
+- only a one-way password hash is stored;
+- the key can be used without entering the username;
+- the key can be revoked;
+- access-key generation, login and revocation are audited;
+- **Access Key does not bypass 2FA** — when TOTP is enabled, the second factor is still required.
+
+### MuchoProtect
+
+MuchoProtect sits before the request router:
+
+```text
+Request
+  ↓
+MuchoProtect
+  ↓
+Identity + IP + Endpoint
+  ↓
+Rate / Burst Analysis
+  ↓
+ALLOW / BLOCK
+  ↓
+Geometry Dash-compatible response
+```
+
+Protection includes:
+
+| Protection | Purpose |
+| --- | --- |
+| 🚦 Endpoint limits | Different limits for authentication, uploads, comments, messages, scores, ratings and other sensitive actions |
+| 💥 Burst protection | Detects short high-frequency request spikes |
+| 👤 Account isolation | Avoids treating a public account ID as a sufficient identity signal |
+| 🌐 IP controls | Contains request floods while using privacy-aware audit metadata |
+| 📋 Security audit | Records blocked-event metadata without exposing raw IPs in audit events |
+| 🎮 Protocol-safe blocking | Uses Geometry Dash failure semantics such as `-1` instead of requiring HTTP errors |
+
+---
+
+## 🧰 Client patching
+
+MuchoCore includes both local and web-based client patching workflows.
+
+### Windows desktop patcher
+
+Use:
+
+```text
+tools/client/client-patch.bat
+```
+
+The patcher:
+
+1. checks the executable;
+2. detects known Geometry Dash server URL formats;
+3. performs compatible replacement;
+4. writes a separate output executable;
+5. never overwrites the original client.
+
+Typical output:
+
+```text
+GeometryDash-MuchoCore.exe
+```
+
+Python is not required for the one-click batch workflow.
+
+### Web Client Patcher
+
+The Admin Panel includes:
 
 ```text
 /admin/?page=clientpatcher
 ```
 
-Then:
+The web patcher supports Windows EXE uploads and performs the patch in a streaming/chunked PHP workflow.
 
-| Step | What to do |
-| --- | --- |
-| 1️⃣ | Enter your **public GDPS server URL**, for example `https://gdps.example.com` |
-| 2️⃣ | Upload the original `GeometryDash.exe` |
-| 3️⃣ | Click **Upload & Patch Client** |
-| 4️⃣ | Wait for the upload and patch process to finish |
-| 5️⃣ | Download `GeometryDash-MuchoCore.exe` |
+It is designed for environments where you do not have shell access to a native patching binary.
 
-The web patcher is designed with **shared hosting compatibility** in mind:
+### Android APK Patcher
 
-- 📦 uploads are split into small chunks;
-- 🔄 temporary network failures are retried automatically;
-- 🧠 patching is performed as a streaming PHP operation;
-- 🐍 no Python is required;
-- 🐳 no Docker is required;
-- ⚙️ no `exec()`, `shell_exec()`, or external patching binary is required.
+The same Admin Panel tooling includes an Android APK patcher.
 
-Enter the **server root only**. Do not append `/database`; MuchoCore generates the client-compatible URL layout automatically.
+It can:
 
-> ⚠️ The original executable is never overwritten by the web patcher. Keep your original client as a backup.
+- upload the APK in small chunks;
+- patch supported server URL layouts;
+- process common native Geometry Dash libraries;
+- remove invalid old signature metadata before rebuilding;
+- produce a new APK archive.
 
-### 🤖 Android APK patcher
+The generated APK is **unsigned**. Sign it with your own Android signing key before installation or distribution.
 
-The same **Admin Panel → Tools → Web Client Patcher** page also includes an **Android APK Patcher**.
+### Client paths
 
-It uploads the APK in small chunks, patches supported Geometry Dash server URL layouts inside native libraries and common client files, removes invalid old `META-INF` signature files, and rebuilds a new APK archive.
-
-> ⚠️ Android signing is not included in the shared-hosting PHP patch step. The generated APK is **unsigned** and must be signed with your own Android signing key before installation or distribution.
-
-### 👤 Optional server credit
-
-In **Admin Panel → Settings**, you can configure:
-
-- **Server by** — your nickname, team, or project name.
-- **Social/profile URL** — Discord, Telegram, website, or another public profile.
-
-When both are set, public/admin footers show:
+Patched distributable builds can be kept under:
 
 ```text
-Server by YourName
+patched/apk/
+patched/exe/
 ```
 
-with the configured link.
+Do not place signing keys, credentials or temporary files there.
+
+See **[docs/CLIENT_SETUP.md](docs/CLIENT_SETUP.md)** for the complete client workflow.
 
 ---
 
-## 🌍 Built something with MuchoCore?
+## ☁️ Cloud save
 
-**Show it off.**
+MuchoCore includes Cloud Save support with protected server-side key handling.
 
-Public and private GDPS projects are welcome in the **[MuchoCore Showcase](docs/SHOWCASE.md)**.
-
-You can also use:
-
-> Powered by [MuchoCore](https://github.com/IZKGMD/GMDmucho-core) 🛡️
-
-in your website, credits, README, or admin panel.
-
-The goal is to make MuchoCore more than a repository:
+Keep your Cloud Save secret outside the repository:
 
 ```text
-One engine
-   ↓
-Many GDPS projects
-   ↓
-More contributors
-   ↓
-More compatibility testing
-   ↓
-A stronger GDPS ecosystem
+.secrets/cloudsave_key
+```
+
+The deployment tooling preserves the configured secret across updates and container rebuilds.
+
+Before major maintenance, create a database backup:
+
+```bash
+sudo /opt/mucho-core/bin/mucho-db-backup.sh
+```
+
+---
+
+## 🔄 Updating an existing installation
+
+For an installed server:
+
+```bash
+sudo /opt/mucho-core/update.sh
+```
+
+The updater:
+
+- protects local tracked changes instead of silently overwriting them;
+- fetches the current `main` source;
+- rebuilds Docker services;
+- installs production PHP dependencies;
+- runs database migrations;
+- synchronizes administrator credentials;
+- preserves the selected Geometry Dash compatibility profile;
+- preserves Cloudflare Tunnel mode when configured.
+
+After the update, verify:
+
+```text
+https://YOUR-DOMAIN/health
+```
+
+and:
+
+```bash
+cd /opt/mucho-core
+sudo docker compose ps
+```
+
+---
+
+## 🧪 Validation
+
+Every push and pull request runs GitHub Actions validation.
+
+Current validation includes:
+
+| Area | Coverage |
+| --- | --- |
+| PHP | Syntax, application contracts and source checks |
+| Protocol | Version matrix, legacy wire behavior and modern protocol guards |
+| Security | MuchoProtect, authentication, TOTP and access-key contracts |
+| Client tools | Windows patcher, Android patcher and Python self-tests |
+| Routing | Caddy, Apache/shared-hosting compatibility and liveness routes |
+| Docker | Compose validation and deployment configuration checks |
+| Release | Version gate plus real-client 2.2 contract verification |
+
+Run the main local test suite with:
+
+```bash
+composer test
+```
+
+Or the smoke/regression helpers:
+
+```bash
+composer smoke
+composer regression
 ```
 
 ---
@@ -285,53 +411,100 @@ A stronger GDPS ecosystem
 ## 🏗️ Project structure
 
 ```text
-src/                       ← server logic
-public/                    ← HTTP entry points and GD endpoints
-database/                  ← database migrations
-tests/                     ← automated validation
-tools/                     ← client and development tools
-docs/                      ← documentation
-assets/                    ← project branding
-docker/                    ← Docker / Caddy configuration
+src/                       server logic
+public/                    HTTP entry points, GD endpoints and Admin Panel
+database/                  database migrations
+tests/                     automated validation and compatibility fixtures
+tools/                     client patchers and development utilities
+docs/                      setup, compatibility and deployment documentation
+docker/                    Dockerfile and Caddy configuration
+patched/apk/               patched Android builds
+patched/exe/               patched Windows builds
+assets/                    project branding
 ```
 
 ---
 
-## 🔐 Production security basics
+## 🔒 Production security basics
 
-Never publish or commit:
+Never commit or publish:
 
 ```text
 .env
-config/cloudsave.key
-storage/
 .secrets/
+storage/
+config/cloudsave.key
 ```
 
-Before making major changes, create a database backup and keep your Cloud Save key safe.
+Keep these outside version control:
 
-For deployment details, see **[VPS Setup](docs/SETUP.md)** and **[Advanced Deployment](docs/ADVANCED.md)**.
+- database passwords;
+- Cloud Save secrets;
+- administrator bootstrap credentials;
+- Android signing keys;
+- temporary client uploads;
+- patched binaries containing private test data.
+
+Before large changes, back up the database and verify that your Cloud Save secret is preserved.
 
 ---
 
-## 📦 v1.0.0
+## 📚 Documentation
 
-**v1.0.0** is the stable MuchoCore release built around four goals:
+| Document | Purpose |
+| --- | --- |
+| [Setup](docs/SETUP.md) | VPS installation, updates and backups |
+| [Client Setup](docs/CLIENT_SETUP.md) | Windows, Android and client patching |
+| [Version Profiles](docs/VERSIONS.md) | Geometry Dash generation handling |
+| [Client Compatibility](docs/CLIENT_COMPATIBILITY.md) | Client contract and compatibility details |
+| [Protocol Matrix](docs/PROTOCOL_MATRIX.md) | Protocol and wire-level coverage |
+| [Client Testing](docs/CLIENT_TESTING.md) | Real-client testing workflow |
+| [Advanced Deployment](docs/ADVANCED.md) | Tunnel, NAT/CGNAT and advanced deployment |
+| [Shared Hosting](docs/SHARED_HOSTING.md) | Shared-hosting deployment constraints |
+| [Account Recovery](docs/ACCOUNT_RECOVERY.md) | Account recovery behavior |
+| [Showcase](docs/SHOWCASE.md) | Community GDPS projects |
 
-1. 🎮 Strong Geometry Dash protocol compatibility
-2. 🛡️ Built-in request protection
-3. 🧪 Reproducible automated validation
-4. 🚀 Simple, repeatable GDPS deployment
+---
 
-MuchoCore is intended to be useful to both first-time GDPS owners and developers who want a maintainable server foundation.
+## 📦 MuchoCore v1.0.0
+
+**v1.0.0** is the stable release line for the current MuchoCore architecture.
+
+It brings together:
+
+- one version-aware GDPS backend;
+- MuchoProtect request protection;
+- the Admin Control Panel;
+- Rating Studio moderation tools;
+- Google Authenticator 2FA and Access Keys;
+- Cloud Save;
+- Windows and Android client patchers;
+- Docker + Caddy deployment;
+- automatic migrations;
+- reproducible CI validation;
+- client trace and contract tooling.
+
+See **[CHANGELOG.md](CHANGELOG.md)** and the **[v1.0.0 release](https://github.com/IZKGMD/GMDmucho-core/releases/tag/v1.0.0)** for release-specific verification details.
 
 ---
 
 ## 🤝 Contributing
 
-Bug reports, compatibility fixes, tests, security hardening, documentation improvements, and deployment improvements are welcome.
+Bug reports, compatibility fixes, protocol tests, security hardening, documentation updates and deployment improvements are welcome.
 
-For security-sensitive reports, avoid posting private exploit details publicly.
+For security-sensitive issues, avoid posting private exploit details publicly.
+
+---
+
+## 🌍 Built something with MuchoCore?
+
+Public and private GDPS projects are welcome in the **[MuchoCore Showcase](docs/SHOWCASE.md)**.
+
+You can use:
+
+> Powered by [MuchoCore](https://github.com/IZKGMD/GMDmucho-core) 🛡️
+
+in your website, credits or project documentation.
 
 ---
 
