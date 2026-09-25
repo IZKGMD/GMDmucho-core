@@ -299,11 +299,8 @@ if (!$searchRows) {
         $id = (int)$row['level_id'];
         $active = $selected && $id === (int)$selected['level_id'];
         $feature = $featureForRow($row);
-        $difficulty = $difficultyLabel(
-            (int)($row['difficulty'] ?? 0),
-            (bool)$row['demon'],
-            false
-        );
+        $profile = $difficultyProfileForRow($row);
+        $difficulty = $difficultyProfiles[$profile]['label'];
         $pending = (int)($row['requested_stars'] ?? 0) > 0;
         $deleted = (int)($row['is_deleted'] ?? 0) === 1;
         $label = trim((string)($row['name'] ?? '')) ?: 'Unnamed level';
@@ -328,8 +325,6 @@ if (!$searchRows) {
         echo '<div class="rating-stars-count '.((int)$row['stars'] > 0 ? '' : 'empty').'">'.((int)$row['stars'] > 0 ? (int)$row['stars'].' stars' : 'No stars').'</div>';
         if ($pending) echo '<div class="rating-request">requested '.(int)$row['requested_stars'].' stars</div>';
         echo '</div>';
-        if ($pending) echo '<div class="rating-request">requested '.(int)$row['requested_stars'].'★</div>';
-        echo '</div>';
         echo '</a>';
     }
 }
@@ -350,6 +345,7 @@ if (!$selected) {
     $selectedStars = max(0, min(10, (int)($selected['stars'] ?? 0)));
     $selectedFeature = $featureForRow($selected);
     $selectedProfile = $difficultyProfileForRow($selected);
+    $selectedName = trim((string)($selected['name'] ?? '')) ?: 'Unnamed level';
 
     echo '<div class="card rating-editor-card">';
     echo '<div class="rating-editor-head">';
@@ -368,8 +364,6 @@ if (!$selected) {
     echo '<small>'.number_format((int)($selected['downloads'] ?? 0)).' downloads · '.number_format((int)($selected['likes'] ?? 0)).' likes · Creator CP '.number_format((int)($selected['creator_points'] ?? 0)).'</small>';
     echo '</div>';
     echo '<div class="rating-preview-right"><strong id="difficultyFaceRight">'.h($difficultyProfiles[$selectedProfile]['label']).'</strong><small>Current difficulty</small></div>';
-    echo '</div>';
-    echo '<div class="rating-preview-right"><strong>'.($selectedStars > 0 ? $selectedStars.'★' : '—').'</strong><small>'.($selectedStars > 0 ? 'Current rating' : 'Unrated').'</small></div>';
     echo '</div>';
 
     echo '<form method="post" class="rating-form" id="ratingForm">';
