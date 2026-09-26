@@ -53,7 +53,7 @@ final readonly class ClientVersion
         if (
             $gameVersion === 0 &&
             preg_match(
-                '#/(?:getgjlevels|uploadgjlevel|updategjlevel|downloadgjlevel|likegjlevel|rategjlevel|updategjusername)(?:\.php)?$#i',
+                '#/(?:getgjlevels|uploadgjlevel|updategjlevel|downloadgjlevel|likegjlevel|rategjlevel|updategjusername|updategjuserscore)(?:\.php)?$#i',
                 (string)$request->path
             ) === 1
         ) {
