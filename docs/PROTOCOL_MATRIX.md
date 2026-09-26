@@ -125,6 +125,12 @@ GD 1.0 uses the dedicated legacy identity compatibility boundary while sharing t
 
 These clients use the shared early legacy 1.x compatibility path rather than separate version-specific backends.
 
+## GD 1.8 verification status
+
+✅ GD 1.8 build 20 — real-client smoke verification passed.
+
+GD 1.8 uses the shared early legacy 1.x compatibility path rather than a separate version-specific backend.
+
 ## GD 1.6 implementation status
 
 **Real-client smoke verification: passed for GD 1.6 build 16.** The patched client completed the supported server flows end-to-end on the shared legacy 1.x compatibility path.
