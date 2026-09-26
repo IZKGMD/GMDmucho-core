@@ -149,6 +149,9 @@ jobs:
           grep -Fq 'releases/latest' update.sh
           grep -Fq 'releases/latest' update.sh
           grep -Fq 'refs/tags/$LATEST_TAG' update.sh
+          grep -Fq 'ORIGINAL_HEAD="$(git rev-parse HEAD)"' update.sh
+          grep -Fq 'rollback_source_tree' update.sh
+          grep -Fq 'trap handle_update_interrupt INT TERM' update.sh
           grep -Fq "'updates' => 'system.manage'" src/Admin/AdminRbac.php
           grep -Fq "'updates'=>'Core Updates'" public/admin/config/pages.php
           grep -Fq "custom/plugins" src/Plugin/PluginManager.php
@@ -177,7 +180,8 @@ jobs:
       - name: Check hardened audit surfaces
         run: |
           grep -Fq 'handle_path /downloads/android/*' docker/Caddyfile
-          grep -q 'docker-php-ext-install pdo_mysql opcache zip' docker/Dockerfile
+          grep -q 'docker-php-ext-install pdo_mysql zip' docker/Dockerfile
+          grep -q 'docker-php-ext-enable opcache' docker/Dockerfile
           grep -q "clear_env = no" docker/Dockerfile
           grep -q 'MuchoProtect' src/V71/V71Application.php
           grep -q 'CompatibilityProfile' src/V71/V71Application.php
