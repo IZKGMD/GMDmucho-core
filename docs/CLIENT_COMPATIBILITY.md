@@ -46,9 +46,11 @@ A separate empirical verification gate requires a real Geometry Dash 1.9 trace f
 
 ## 1.5 status
 
-**Implementation completeness: compatibility layer complete.** GD 1.5 is admitted as `gameVersion=15`, uses legacy GJP authentication, and its comment endpoints are normalized to the shared comment handlers.
+**Implementation completeness: compatibility layer complete.** GD 1.5 is admitted as `gameVersion=15`, uses legacy GJP authentication, and its legacy endpoint surface is normalized to the shared MuchoCore services.
 
-A separate empirical verification gate requires the real GD 1.5 client test described in `CLIENT_TESTING.md`.
+**Real-client smoke verification: passed for GD 1.5 build 13.** The verified flow includes level search, level upload, level update handling, comment submission, and the legacy UDID-based `updateGJUserScore` path.
+
+The 1.5 regression boundary is covered by automated compatibility and application contract tests.
 
 ## 1.1 status
 
@@ -60,7 +62,7 @@ A separate empirical verification gate still requires a real Geometry Dash 1.1 t
 
 The automated protocol suite for GD 1.0, 1.1, 1.5 and 1.9–2.2 covers version identification, routing, credential selection, text encoding, level hashes, profile fields, leaderboard authentication, level comments, social wire fields, and regression guards.
 
-Empirical status remains separate: GD 2.2 has a captured real-client fixture; GD 1.0, 1.1, 1.9, 2.0 and 2.1 do not have dedicated real-client fixtures in the repository.
+Empirical status remains separate: GD 1.5 has a documented real-client smoke verification; GD 2.2 has a captured real-client fixture; GD 1.0, 1.1, 1.9, 2.0 and 2.1 do not have dedicated real-client fixtures in the repository.
 
 ## 2.0 status
 
