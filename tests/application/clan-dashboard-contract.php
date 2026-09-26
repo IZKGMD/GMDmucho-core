@@ -131,4 +131,33 @@ assertClanDashboardContract(
     'clan identity migration expands database columns'
 );
 
+assertClanDashboardContract(
+    str_contains($dashboard, 'Clan rankings') &&
+    str_contains($dashboard, 'Top Stars') &&
+    str_contains($dashboard, 'Top Demons') &&
+    str_contains($dashboard, 'Top Creators') &&
+    str_contains($dashboard, 'Largest Clans'),
+    'dashboard exposes clan rankings'
+);
+
+assertClanDashboardContract(
+    str_contains($dashboard, 'total_stars') &&
+    str_contains($dashboard, 'total_demons') &&
+    str_contains($dashboard, 'total_creator_points') &&
+    str_contains($dashboard, 'total_levels'),
+    'dashboard exposes aggregated clan statistics'
+);
+
+assertClanDashboardContract(
+    str_contains($dashboard, 'Delete clan permanently') &&
+    str_contains($dashboard, 'All memberships, invites, applications and bans will be deleted'),
+    'dashboard exposes destructive clan deletion'
+);
+
+assertClanDashboardContract(
+    str_contains($dashboard, "myClan['permissions']") &&
+    str_contains($dashboard, 'str_replace('_', ' ', $permission)'),
+    'dashboard exposes explicit clan permissions'
+);
+
 echo "MUCHOCORE_CLAN_DASHBOARD_CONTRACT_OK\n";
