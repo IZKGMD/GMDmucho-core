@@ -162,6 +162,9 @@ jobs:
           test -f custom/plugins/README.md
           test -f docs/CUSTOM_PLUGINS.md
           grep -Fq 'MUCHO_PLUGINS_ENABLED=1' .env.example
+          grep -Fq '3) GD 1.1 only' install.sh
+          grep -Fq 'GD_VERSIONS="11"' install.sh
+          grep -Fq "'11' => 11" src/Compatibility/CompatibilityProfile.php
 
       - name: Check runtime environment handling
         run: |
