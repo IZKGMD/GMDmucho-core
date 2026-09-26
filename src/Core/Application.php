@@ -21,6 +21,9 @@ use MuchoCore\Compatibility\DiscoveryController;
 use MuchoCore\Compatibility\Legacy10IdentityController;
 use MuchoCore\Compatibility\Legacy10IdentityService;
 use MuchoCore\CloudSave\CloudSaveService;
+use MuchoCore\Clan\ClanController;
+use MuchoCore\Clan\ClanRepository;
+use MuchoCore\Clan\ClanService;
 use MuchoCore\Compatibility\CompatibilityProfile;
 use MuchoCore\CloudSave\CloudSaveRepository;
 use MuchoCore\CloudSave\CloudSaveController;
@@ -216,6 +219,14 @@ final readonly class Application
                 )
             );
 
+        $clanController = new ClanController(
+            new ClanService(
+                $this->pdo,
+                $auth,
+                new ClanRepository($this->pdo)
+            )
+        );
+
         $discoveryController = new DiscoveryController($this->pdo);
 
         $levelScoreController = new LevelScoreController($this->pdo, $auth);
@@ -383,6 +394,36 @@ final readonly class Application
          * MuchoCore Compatibility v6
          * Copyright (C) 2026 IZK
          */
+
+        /*
+         * MuchoCore Clans
+         * Custom JSON API for clan management. Clan membership is also
+         * reflected in standard Geometry Dash user-name response fields.
+         */
+        $route('/api/clans/create',
+            [$clanController,'create']);
+        $route('/api/clans/my',
+            [$clanController,'myClan']);
+        $route('/api/clans/get',
+            [$clanController,'get']);
+        $route('/api/clans/search',
+            [$clanController,'search']);
+        $route('/api/clans/join',
+            [$clanController,'join']);
+        $route('/api/clans/leave',
+            [$clanController,'leave']);
+        $route('/api/clans/invite',
+            [$clanController,'invite']);
+        $route('/api/clans/invite/accept',
+            [$clanController,'acceptInvite']);
+        $route('/api/clans/invite/decline',
+            [$clanController,'declineInvite']);
+        $route('/api/clans/kick',
+            [$clanController,'kick']);
+        $route('/api/clans/role',
+            [$clanController,'setRole']);
+        $route('/api/clans/invites',
+            [$clanController,'invites']);
 
         $route('/getGJCreators',
             [$discoveryController,'creators']);
