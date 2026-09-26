@@ -38,6 +38,10 @@ Geometry Dash 2.1 and older requests prefer `gjp`. Geometry Dash 2.2 prefers `gj
 
 GD 1.1 therefore uses the legacy credential path and does not require GJP2.
 
+## GD 1.0 status
+
+**Real-client smoke verification: passed.** GD 1.0 has been verified against the shared early legacy 1.x compatibility path, including the dedicated legacy identity boundary.
+
 ## GD 1.2–1.4 status
 
 **Real-client verification: passed.** GD 1.2, GD 1.3, and GD 1.4 are verified on the shared early legacy 1.x compatibility path. No separate backend implementation is required for these client families.
@@ -70,7 +74,7 @@ The 1.5 regression boundary is covered by automated compatibility and applicatio
 
 The automated protocol suite for GD 1.0, 1.1, 1.5 and 1.9–2.2 covers version identification, routing, credential selection, text encoding, level hashes, profile fields, leaderboard authentication, level comments, social wire fields, and regression guards.
 
-Empirical status remains separate: GD 1.1, 1.2, 1.3, 1.4, 1.5, 1.6 and 1.7 have documented real-client verification; GD 2.2 has a captured real-client fixture; other generations use the repository's server-side compatibility and regression coverage.
+Empirical status remains separate: GD 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6 and 1.7 have documented real-client verification; GD 2.2 has a captured real-client fixture; other generations use the repository's server-side compatibility and regression coverage.
 
 ## 2.0 status
 
