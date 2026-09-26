@@ -150,12 +150,14 @@ Real-client verification status:
 | GD 1.6 build 16 | ✅ Verified |
 | GD 1.7 build 17 | ✅ Verified |
 | GD 1.8 build 20 | ✅ Verified |
+| GD 1.9 | ✅ Verified |
 
 The release validation is deliberately conservative:
 
 - **GD 1.5 build 13** has passed a real-client smoke test covering level search, level upload, level update handling, comments, and the legacy UDID-based `updateGJUserScore` path.
 - **GD 1.6 build 16** has passed a real-client end-to-end smoke test with the patched MuchoCore client.
 - **GD 1.8 build 20** has passed a real-client smoke test on the shared early legacy 1.x compatibility path.
+- **GD 1.9** has passed real-client verification.
 - **GD 2.2** has a committed real-client contract fixture used by the release gate.
 - **GD 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.9, 2.0 and 2.1** have dedicated protocol/regression coverage in the repository.
 - Additional real-client release gates activate automatically when matching real-client fixtures are committed.
