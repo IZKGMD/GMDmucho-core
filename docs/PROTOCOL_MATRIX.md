@@ -109,6 +109,12 @@ Reference:
 - https://github.com/Cvolton/GMDprivateServer
 - https://github.com/Cvolton/GMDprivateServer/wiki/Deliberate-differences-from-real-GD
 
+## GD 1.0 verification status
+
+✅ GD 1.0 — real-client smoke verification passed.
+
+GD 1.0 uses the dedicated legacy identity compatibility boundary while sharing the early endpoint family with the other legacy 1.x clients.
+
 ## GD 1.2–1.4 verification status
 
 ✅ GD 1.2 — real-client smoke verification passed.
