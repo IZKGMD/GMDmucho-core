@@ -18,7 +18,7 @@ final readonly class ClanRepository
     ) {
         $this->statsRepository = $statsRepository
             ?? new ClanStatsRepository($pdo);
-    }}
+    }
 
     public function create(
         int $ownerAccountId,
