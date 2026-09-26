@@ -71,10 +71,10 @@ assertCommentContract(
 
 assertCommentContract(
     MuchoCore\Protocol\GdLegacyText::encodeCommentForResponse(
-        'plain legacy comment',
-        19
-    ) === 'plain legacy comment',
-    '1.9 comment response stays plain text'
+        base64_encode('legacy comment'),
+        15
+    ) === 'legacy comment',
+    'legacy Base64 comment response is decoded'
 );
 
 $serviceFile = __DIR__ . '/../../src/Interaction/CommentService.php';
