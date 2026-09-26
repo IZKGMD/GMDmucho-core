@@ -69,6 +69,13 @@ assertCoreRefactor(
     'CommentService delegates moderator commands to CommentCommandService'
 );
 
+assertCoreRefactor(
+    !str_contains($commentCommands,'$this->getPdo()') &&
+    str_contains($commentCommands,'$this->pdo'),
+    'CommentCommandService uses its injected PDO directly'
+);
+
+
 $clanRepository=(string)file_get_contents(__DIR__.'/../../src/Clan/ClanRepository.php');
 $clanStatsRepository=(string)file_get_contents(__DIR__.'/../../src/Clan/ClanStatsRepository.php');
 assertCoreRefactor(
