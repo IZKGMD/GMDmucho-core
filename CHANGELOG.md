@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### GD 1.6 Compatibility
+
+- verified a real Geometry Dash 1.6 build 16 against MuchoCore;
+- verified the patched client can complete the supported server flows end-to-end;
+- kept GD 1.6 on the shared early 1.x compatibility path rather than introducing a separate backend.
+
 ### GD 1.5 Compatibility
 
 - added GD 1.5 (`gameVersion=15`) as a first-class compatibility profile;
