@@ -1,8 +1,16 @@
 FROM php:8.3-fpm-bookworm
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git unzip openssl libzip-dev android-sdk-build-tools ffmpeg yt-dlp curl ca-certificates \
-    && curl -L --fail --silent --show-error https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip -o /tmp/deno.zip \
+    && apt-get install -y --no-install-recommends git unzip openssl libzip-dev android-sdk-build-tools ffmpeg python3 curl ca-certificates \
+    && curl -L --fail --silent --show-error https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
+    && chmod 0755 /usr/local/bin/yt-dlp \
+    && ARCH="$(dpkg --print-architecture)" \
+    && case "$ARCH" in \
+         amd64) DENO_ASSET="deno-x86_64-unknown-linux-gnu.zip" ;; \
+         arm64) DENO_ASSET="deno-aarch64-unknown-linux-gnu.zip" ;; \
+         *) echo "Unsupported architecture for Deno: $ARCH" >&2; exit 1 ;; \
+       esac \
+    && curl -L --fail --silent --show-error "https://github.com/denoland/deno/releases/latest/download/$DENO_ASSET" -o /tmp/deno.zip \
     && unzip -q /tmp/deno.zip -d /usr/local/bin \
     && chmod 0755 /usr/local/bin/deno \
     && rm -f /tmp/deno.zip \
