@@ -19,9 +19,14 @@ final readonly class ClientVersion
         $binaryVersion = $request->postInt('binaryVersion', 0);
 
         /*
-         * Some genuine GD 1.9 endpoints do not include gameVersion or
-         * binaryVersion in their POST body. The endpoint suffix itself is
-         * authoritative for these versioned legacy routes.
+         * Unsuffixed comment endpoints are also used by genuinely old
+         * clients (including early 1.x builds) without gameVersion in the
+         * request body. Treat a versionless comment request as the legacy
+         * floor instead of guessing GD 1.9 from the endpoint name.
+         *
+         * Versioned *19 routes remain explicitly identifiable below via
+         * their suffix, while unversioned requests can still use the legacy
+         * UDID identity path in the comment service.
          */
         if (
             $gameVersion === 0 &&
@@ -30,7 +35,13 @@ final readonly class ClientVersion
                 (string)$request->path
             ) === 1
         ) {
-            $gameVersion = 19;
+            $gameVersion =
+                preg_match(
+                    '#/(?:getgjcomments19|uploadgjcomment19|deletegjcomment19|updategjlevel19)(?:\.php)?$#i',
+                    (string)$request->path
+                ) === 1
+                    ? 19
+                    : 1;
         }
 
         /*
