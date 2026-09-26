@@ -122,7 +122,8 @@ Supported runtime generations:
 
 | Generation | Runtime profile | Notes |
 | --- | --- | --- |
-| **GD 1.0** | `10` | Dedicated legacy identity compatibility layer |
+| **GD 1.0** | `1` | Dedicated legacy identity compatibility layer |
+| **GD 1.1** | `11` | Legacy endpoint-family compatibility |
 | **GD 1.9** | `19` | Legacy protocol and response handling |
 | **GD 2.0** | `20` | 2.x protocol compatibility |
 | **GD 2.1** | `21` | Version-aware modern protocol handling |
@@ -130,14 +131,14 @@ Supported runtime generations:
 | **Custom** | e.g. `10,19,22` | Accept any selected combination |
 | **All supported** | `all` | All supported generations |
 
-The installer currently presents the standard 1.9–2.2 deployment profiles, while the core also contains the GD 1.0 compatibility layer. See **[docs/VERSIONS.md](docs/VERSIONS.md)** for the exact profile behavior.
+The installer presents the supported 1.0, 1.1, 1.9, 2.0, 2.1 and 2.2 deployment profiles. The same server core handles all generations through the compatibility boundary. See **[docs/VERSIONS.md](docs/VERSIONS.md)** for the exact profile behavior.
 
 ### Verification scope
 
 The release validation is deliberately conservative:
 
 - **GD 2.2** has a committed real-client contract fixture used by the release gate.
-- **GD 1.0, 1.9, 2.0 and 2.1** have dedicated protocol/regression coverage in the repository.
+- **GD 1.0, 1.1, 1.9, 2.0 and 2.1** have dedicated protocol/regression coverage in the repository.
 - Additional real-client release gates activate automatically when matching real-client fixtures are committed.
 
 This means the README does not treat a synthetic contract as equivalent to a captured real-client trace.
@@ -523,7 +524,7 @@ Before large changes, back up the database and verify that your Cloud Save secre
 
 It brings together:
 
-- one version-aware GDPS backend;
+- one version-aware GDPS backend supporting GD 1.0, 1.1, 1.9, 2.0, 2.1 and 2.2;
 - MuchoProtect request protection;
 - the Admin Control Panel;
 - Rating Studio moderation tools;
