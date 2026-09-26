@@ -186,12 +186,46 @@ fi
 
 echo "[MuchoCore] Updating core: v$CURRENT_SEMVER -> v$LATEST_SEMVER"
 
+# Preserve the previous source tree until the new containers build successfully.
+ORIGINAL_HEAD="$(git rev-parse HEAD)"
+UPDATE_SOURCE_SWITCHED=0
+
+rollback_source_tree() {
+    if [[ "$UPDATE_SOURCE_SWITCHED" != "1" ]]; then
+        return 0
+    fi
+
+    echo '[MuchoCore] New release build did not complete; restoring the previous source tree...'
+    if git reset --hard "$ORIGINAL_HEAD"; then
+        UPDATE_SOURCE_SWITCHED=0
+        echo '[MuchoCore] Previous source tree restored.'
+    else
+        echo '[MuchoCore] ERROR: failed to restore the previous source tree.' >&2
+        return 1
+    fi
+}
+
+handle_update_interrupt() {
+    rollback_source_tree || true
+    exit 130
+}
+
+trap handle_update_interrupt INT TERM
+
 git fetch --depth=1 origin "refs/tags/$LATEST_TAG:refs/tags/$LATEST_TAG"
 git reset --hard "$LATEST_TAG"
-
+UPDATE_SOURCE_SWITCHED=1
 
 echo '[MuchoCore] Rebuilding containers...'
-docker compose "${COMPOSE_ARGS[@]}" up -d --build --remove-orphans
+if ! docker compose "\${COMPOSE_ARGS[@]}" up -d --build --remove-orphans; then
+    rollback_source_tree
+    exit 1
+fi
+
+# The new containers built successfully; keep the new source tree for the
+# remaining dependency, migration and admin synchronization steps.
+UPDATE_SOURCE_SWITCHED=0
+trap - INT TERM
 
 echo '[MuchoCore] Updating PHP dependencies...'
 docker compose exec -T app composer install --no-dev --optimize-autoloader --no-interaction
