@@ -42,22 +42,48 @@ final readonly class CommentController
             $levelId <= 0 ||
             $content === ""
         ) {
+            $reason = $content === ''
+                ? 'empty_comment'
+                : ($levelId <= 0
+                    ? 'invalid_level_id'
+                    : 'missing_legacy_identity');
+
+            error_log(sprintf(
+                '[MuchoCore] request_id=%s upload_comment_rejected account_id=%d level_id=%d version=%d family=%s has_udid=%d has_gjp=%d reason=%s',
+                (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
+                $accountId,
+                $levelId,
+                $version->effectiveGameVersion(),
+                $version->family(),
+                trim($udid) !== '' ? 1 : 0,
+                $gjp !== '' ? 1 : 0,
+                $reason
+            ));
+
             return Response::text("-1");
         }
 
         try {
-            return Response::text(
-                $this->service->uploadLevelComment(
-                    $levelId,
-                    $accountId,
-                    $gjp,
-                    $content,
-                    $percent,
-                    $version->effectiveGameVersion(),
-                    $udid,
-                    $ip
-                )
+            $result = $this->service->uploadLevelComment(
+                $levelId,
+                $accountId,
+                $gjp,
+                $content,
+                $percent,
+                $version->effectiveGameVersion(),
+                $udid,
+                $ip
             );
+
+            error_log(sprintf(
+                '[MuchoCore] request_id=%s upload_comment_accepted level_id=%d version=%d result=%s',
+                (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
+                $levelId,
+                $version->effectiveGameVersion(),
+                $result
+            ));
+
+            return Response::text($result);
         } catch (Throwable $e) {
             $command = '';
 
