@@ -50,6 +50,12 @@ The runtime recognizes GD 1.1 as family `1.1`, does not enable GJP2, and keeps t
 
 Real-client verification for GD 1.1 is not yet claimed; automated compatibility coverage is used until a captured 1.1 client contract fixture is added.
 
+### GD 1.6
+
+GD 1.6 uses the shared early legacy 1.x protocol path. MuchoCore keeps the client on the same compatibility boundary used by the other pre-1.9 clients.
+
+A real Geometry Dash 1.6 build 16 has been patched and verified end-to-end against MuchoCore.
+
 ### GD 1.5
 
 GD 1.5 uses the early legacy Geometry Dash endpoint family and legacy GJP authentication. MuchoCore identifies it as family `1.5` (`gameVersion=15`) while preserving compatibility with requests that use older protocol version values.
