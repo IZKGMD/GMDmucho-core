@@ -7,6 +7,7 @@ namespace MuchoCore\Clan;
 final class ClanPermissions
 {
     public const VIEW = 'view';
+    public const VIEW_STATS = 'view_stats';
     public const LEAVE = 'leave';
     public const INVITE = 'invite';
     public const MANAGE_INVITES = 'manage_invites';
@@ -23,7 +24,7 @@ final class ClanPermissions
         return match ($role) {
             'owner' => [
                 self::VIEW,
-                self::LEAVE,
+                self::VIEW_STATS,
                 self::INVITE,
                 self::MANAGE_INVITES,
                 self::MANAGE_APPLICATIONS,
@@ -36,6 +37,7 @@ final class ClanPermissions
             ],
             'officer' => [
                 self::VIEW,
+                self::VIEW_STATS,
                 self::LEAVE,
                 self::INVITE,
                 self::MANAGE_INVITES,
@@ -45,6 +47,7 @@ final class ClanPermissions
             ],
             default => [
                 self::VIEW,
+                self::VIEW_STATS,
                 self::LEAVE,
             ],
         };
