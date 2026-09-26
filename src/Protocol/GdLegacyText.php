@@ -118,10 +118,19 @@ final class GdLegacyText
         int $gameVersion
     ): string {
         /*
-         * Level and account comments are plain text on the Geometry Dash
-         * wire for all supported client families. The legacy 1.9 server
-         * Base64-encodes only the stored database value.
+         * MuchoCore normally stores comments as plain UTF-8 text. Older
+         * migrated databases may still contain the historical Base64
+         * representation used by Cvolton for pre-2.0 comments. Decode that
+         * representation on the way out when it is unambiguously valid.
          */
+        if ($gameVersion < 20) {
+            $decoded = self::decodeWireText($comment);
+
+            if ($decoded !== $comment) {
+                return $decoded;
+            }
+        }
+
         return $comment;
     }
 
