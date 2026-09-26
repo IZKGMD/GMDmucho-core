@@ -584,10 +584,10 @@ final readonly class ClanService
     }
 
     private function normalizeName(string $name): string {
-        $name=trim(preg_replace('/\s+/',' ',$name) ?? '');
+        $name=trim($name);
 
-        return strlen($name)<=24 &&
-            preg_match('/^[A-Za-z0-9][A-Za-z0-9 _.-]{1,23}$/D',$name)===1
+        return strlen($name)<=32 &&
+            preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{1,31}$/D',$name)===1
             ? $name
             : '';
     }
@@ -595,8 +595,8 @@ final readonly class ClanService
     private function normalizeTag(string $tag): string {
         $tag=strtoupper(trim($tag));
 
-        return strlen($tag)<=6 &&
-            preg_match('/^[A-Z0-9]{2,6}$/D',$tag)===1
+        return strlen($tag)<=8 &&
+            preg_match('/^[A-Z0-9]{2,8}$/D',$tag)===1
             ? $tag
             : '';
     }
