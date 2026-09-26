@@ -83,6 +83,7 @@ Fixtures live under:
 
 ```text
 tests/client-fixtures/
+├── 1.1/
 ├── 1.9/
 ├── 2.0/
 ├── 2.1/
@@ -115,7 +116,7 @@ The remaining operational milestone is empirical verification: capture a real Ge
 
 ## Overall implementation status
 
-**GD 1.9, 2.0, 2.1 and 2.2 server-side compatibility: 100% complete for the current scope.** Automated protocol, routing, wire-format, hash, profile, social and regression suites pass on `main`.
+**GD 1.0, 1.1, 1.9, 2.0, 2.1 and 2.2 server-side compatibility: implemented for the current scope.** Automated protocol, routing, wire-format, hash, profile, social and regression suites pass on `main`.
 
 Real-client evidence is tracked separately: 2.2 has a captured GD 2.2.13 fixture; 1.9, 2.0 and 2.1 remain empirically unverified by design.
 
@@ -129,9 +130,15 @@ The remaining operational milestone is empirical verification: capture a real Ge
 
 **100% complete for the current server-side protocol scope.** The implementation covers the 2.1 wire-level text encoding rules, level hashes, profile-state normalization, compatibility routing, authenticated friends-level access, and the 2.1 level-score response contract.
 
+## GD 1.1 implementation status
+
+**Implementation completeness: compatibility layer complete.** GD 1.1 uses the early unsuffixed endpoint family, is identified as `gameVersion=11`, follows the legacy GJP credential path, and is covered by the version/profile regression suite.
+
+The remaining verification milestone is empirical: capture a real Geometry Dash 1.1 trace and add `tests/client-fixtures/1.1/endpoints.json`.
+
 ## Next milestone
 
-The server-side implementation is complete for the GD 1.9–2.2 compatibility scope. Empirical client fixtures remain separate from implementation status.
+The server-side implementation is complete for the current 1.0/1.1 and 1.9–2.2 compatibility scope. Empirical client fixtures remain separate from implementation status.
 
 Until the real-client fixture exists, endpoint rows remain `Pending` by design and are not presented as empirically verified.
 
