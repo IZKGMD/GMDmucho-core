@@ -320,8 +320,9 @@ final readonly class RelationshipRepository
     {
         if ($type === 0) {
             $q = $this->pdo->prepare(
-                'SELECT a.username,p.user_id,p.cube,p.color1,
+                "SELECT a.username,p.user_id,p.cube,p.color1,
                         p.color2,p.special,
+                        COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,
                         f.friend_account_id AS account_id,
                         f.is_new
                  FROM friends f
@@ -330,11 +331,11 @@ final readonly class RelationshipRepository
                  JOIN profiles p
                    ON p.account_id=f.friend_account_id
                  WHERE f.account_id=:id
-                 ORDER BY a.username ASC'
+                 ORDER BY a.username ASC"
             );
         } elseif ($type === 1) {
             $q = $this->pdo->prepare(
-                'SELECT a.username,p.user_id,p.cube,p.color1,
+                "SELECT a.username,p.user_id,p.cube,p.color1,
                         p.color2,p.special,
                         COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,
                         b.blocked_account_id AS account_id,
@@ -345,7 +346,7 @@ final readonly class RelationshipRepository
                  JOIN profiles p
                    ON p.account_id=b.blocked_account_id
                  WHERE b.account_id=:id
-                 ORDER BY a.username ASC'
+                 ORDER BY a.username ASC"
             );
         } else {
             return [];
