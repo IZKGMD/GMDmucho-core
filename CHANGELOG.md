@@ -30,6 +30,9 @@ MuchoCore v1.0.3 expands the custom extension layer and improves the operator ex
 - fixed test tenant database runtime configuration so `testgdps-app` connects to `testgdps-db` instead of the primary `db` service;
 - added same-version release tag SHA verification so republished stable releases are detected and can be installed safely;
 - fixed stable release changelog extraction so published release descriptions include the correct version section.
+- fixed updater Compose argument expansion for normal and Cloudflare Tunnel deployments;
+- fixed fresh installations so configured Caddy extra hostnames are included in the generated Caddy address;
+- fixed the automatic updater systemd unit to write the real installation path instead of a literal shell variable.
 
 ### Validation & Reliability
 
