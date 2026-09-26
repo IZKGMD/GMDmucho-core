@@ -43,6 +43,7 @@ final class AdminRbac
         'roles.manage' => 'Manage custom roles',
         'audit.view' => 'View audit log',
         'self.security' => 'Manage own authentication security',
+        'plugins.view' => 'View custom plugin diagnostics',
     ];
 
     /** @var array<string,string> */
@@ -350,6 +351,7 @@ final class AdminRbac
             'clientfeatures' => 'client.manage',
             'clientpatcher' => 'client.manage',
             'updates' => 'system.manage',
+            'plugins' => 'plugins.view',
             'dbbackups' => 'backups.view',
             'backups' => 'backups.view',
             'settings' => 'settings.manage',
