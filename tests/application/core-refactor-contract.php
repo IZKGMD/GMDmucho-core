@@ -54,6 +54,22 @@ assertCoreRefactor(
 );
 
 assertCoreRefactor(
+    str_contains($services,'CommentCommandService') &&
+    str_contains($services,'new CommentCommandService($pdo)'),
+    'Comment moderation commands are wired as a dedicated service'
+);
+
+$commentService=(string)file_get_contents(__DIR__.'/../../src/Interaction/CommentService.php');
+$commentCommands=(string)file_get_contents(__DIR__.'/../../src/Interaction/CommentCommandService.php');
+assertCoreRefactor(
+    !str_contains($commentService,'function handleCommand(') &&
+    str_contains($commentService,'$commands->handle(') &&
+    str_contains($commentCommands,'function handle(') &&
+    str_contains($commentCommands,'function recalculateCreatorPoints('),
+    'CommentService delegates moderator commands to CommentCommandService'
+);
+
+assertCoreRefactor(
     str_contains($routes,'/api/clans/rankings') &&
     str_contains($routes,'/getGJLevelScores'),
     'AppRoutes owns API route registration'
