@@ -13,7 +13,7 @@ function assertSecurityRegression(bool $condition, string $name): void
 }
 
 $comment = (string)file_get_contents(
-    __DIR__ . '/../../src/Interaction/CommentService.php'
+    __DIR__ . '/../../src/Interaction/CommentCommandService.php'
 );
 $recovery = (string)file_get_contents(
     __DIR__ . '/../../src/Account/RecoveryRepository.php'
