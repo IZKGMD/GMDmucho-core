@@ -413,6 +413,13 @@ final readonly class Application
         $route('/api/clans/leave',
             [$clanController,'leave']);
 
+        $route('/api/clans/stats',
+            [$clanController,'stats']);
+        $route('/api/clans/rankings',
+            [$clanController,'rankings']);
+        $route('/api/clans/permissions',
+            [$clanController,'permissions']);
+
         $route('/api/clans/apply',
             [$clanController,'apply']);
         $route('/api/clans/applications',
@@ -444,6 +451,8 @@ final readonly class Application
             [$clanController,'transferOwnership']);
         $route('/api/clans/disband',
             [$clanController,'disband']);
+        $route('/api/clans/delete',
+            [$clanController,'delete']);
         $route('/api/clans/invite/revoke',
             [$clanController,'revokeInvite']);
         $route('/api/clans/ban',
