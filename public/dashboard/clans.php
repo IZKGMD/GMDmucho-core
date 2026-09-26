@@ -673,7 +673,7 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
         <div class="actions">
             <a class="btn" href="#directory">Browse clans</a>
             <?php if ($account && $myClan): ?>
-            <a class="btn alt" href="#my-clan">My clan</a>
+            <a class="btn alt" href="#my-clan-overview">My clan</a>
             <?php else: ?>
             <a class="btn alt" href="#create">Create clan</a>
             <?php endif; ?>
@@ -702,7 +702,7 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
                 <form method="post" style="margin:0">
                     <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
                     <input type="hidden" name="action" value="leave">
-                    <button class="btn alt" type="submit">Leave clan</button>
+                    <button class="btn alt" type="submit" onclick="return confirm('Leave this clan?');">Leave clan</button>
                 </form>
                 <?php endif; ?>
             </div>
@@ -865,7 +865,7 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
         ?>
         <div class="member">
             <span>
-                <b><?=pcH($member['username'])?></b>
+                <b><a href="/dashboard?u=<?=rawurlencode((string)$member['username'])?>" style="color:inherit;text-decoration:none"><?=pcH($member['username'])?></a></b>
                 <small>Account #<?=pcH($member['account_id'])?> · <span class="role-<?=pcH((string)$member['role'])?>"><?=pcH($member['role'])?></span></small>
             </span>
             <?php if ($canKick || $canChangeRole): ?>
