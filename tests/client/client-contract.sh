@@ -36,20 +36,17 @@ from pathlib import Path
 root = Path(os.environ["ROOT"])
 contracts = [Path(item) for item in os.environ["CONTRACTS"].splitlines() if item]
 
-application = (root / "src/Core/Application.php").read_text(encoding="utf-8")
+routes_source = (root / "src/Core/AppRoutes.php").read_text(encoding="utf-8")
 routes = {
     x.lower()
-    for x in re.findall(
-        r"\$route\(\s*'([^']+)'",
-        application,
-    )
+    for x in re.findall(r"['\"](/[^'\"]+)['\"]", routes_source)
 }
 
-router = (root / "src/Routing/Router.php").read_text(encoding="utf-8")
+aliases_source = (root / "src/Routing/CompatibilityAliases.php").read_text(encoding="utf-8")
 aliases = {}
 for match in re.finditer(
     r"'([^']+)'\s*=>\s*'([^']+)'",
-    router,
+    aliases_source,
 ):
     aliases[match.group(1).lower()] = match.group(2).lower()
 
