@@ -6,8 +6,9 @@ The installer lets you choose which known client generations the installation sh
 
 | Profile | Runtime setting | Purpose |
 | --- | --- | --- |
-| All supported | `all` | GD 1.0, 1.9, 2.0, 2.1 and 2.2 |
-| GD 1.0 only | `10` | Legacy 1.0-only server |
+| All supported | `all` | GD 1.0, 1.1, 1.9, 2.0, 2.1 and 2.2 |
+| GD 1.0 only | `1` | Legacy 1.0-only server |
+| GD 1.1 only | `11` | Legacy 1.1-only server |
 | GD 1.9 only | `19` | Legacy 1.9-only server |
 | GD 2.0 only | `20` | 2.0-only server |
 | GD 2.1 only | `21` | 2.1-only server |
@@ -29,9 +30,9 @@ Instead, MuchoCore keeps shared domain logic and selects version-specific protoc
                              │
           ┌──────────────────┼──────────────────┐
           │                  │                  │
-        GD 1.0            GD 1.9           GD 2.0–2.2
-        legacy             legacy             modern
-        identity           wire/protocol      wire/protocol
+        GD 1.0        GD 1.1        GD 1.9        GD 2.0–2.2
+        legacy        legacy        legacy          modern
+        identity      endpoints     endpoints      wire/protocol
 ~~~
 
 ### GD 1.0
@@ -39,6 +40,14 @@ Instead, MuchoCore keeps shared domain logic and selects version-specific protoc
 GD 1.0 uses a dedicated legacy identity compatibility layer. Legacy clients can establish their server-side identity from the device UDID without a modern account credential, while level ownership and moderation continue to use the internal account model.
 
 The current `research/gd10-compat` implementation has been verified end-to-end with a real GD 1.0 client, including the level-transfer flow.
+
+### GD 1.1
+
+GD 1.1 uses the legacy Geometry Dash endpoint family shared by early 1.x clients. MuchoCore exposes the unsuffixed level, comment, social and score routes through the existing compatibility router while enforcing the client generation when `gameVersion=11` is present.
+
+The runtime recognizes GD 1.1 as family `1.1`, does not enable GJP2, and keeps the same shared server core as the other supported generations.
+
+Real-client verification for GD 1.1 is not yet claimed; automated compatibility coverage is used until a captured 1.1 client contract fixture is added.
 
 ### GD 1.9
 
@@ -71,7 +80,7 @@ The installer presents a version menu.
 For automated deployment, set the environment variable before running the installer:
 
 ~~~bash
-export MUCHO_GD_VERSIONS=10,19,22
+export MUCHO_GD_VERSIONS=1,11,19,22
 sudo -E bash install.sh
 ~~~
 
@@ -79,12 +88,13 @@ Use:
 
 ~~~text
 MUCHO_GD_VERSIONS=all
-MUCHO_GD_VERSIONS=10
+MUCHO_GD_VERSIONS=1
+MUCHO_GD_VERSIONS=11
 MUCHO_GD_VERSIONS=19
 MUCHO_GD_VERSIONS=20
 MUCHO_GD_VERSIONS=21
 MUCHO_GD_VERSIONS=22
-MUCHO_GD_VERSIONS=10,19,22
+MUCHO_GD_VERSIONS=1,11,19,22
 ~~~
 
 The selected value is stored in:
