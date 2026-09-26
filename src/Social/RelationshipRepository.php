@@ -103,6 +103,8 @@ final readonly class RelationshipRepository
                 'SELECT fr.id,fr.account_id,fr.to_account_id,
                         fr.comment,fr.is_read,fr.created_at,
                         a.username,p.user_id,p.cube,p.color1,
+                        COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,
+                        COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,
                         p.color2,p.special
                  FROM friend_requests fr
                  JOIN accounts a
@@ -334,6 +336,7 @@ final readonly class RelationshipRepository
             $q = $this->pdo->prepare(
                 'SELECT a.username,p.user_id,p.cube,p.color1,
                         p.color2,p.special,
+                        COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,
                         b.blocked_account_id AS account_id,
                         0 AS is_new
                  FROM blocks b
