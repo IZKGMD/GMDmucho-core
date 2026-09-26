@@ -42,8 +42,8 @@ foreach ($legacyPaths as $path) {
     );
 
     assertCommentContract(
-        $request->clientVersion()->family() === '1.9',
-        "versionless 1.9 inference {$path}"
+        $request->clientVersion()->family() === '1.0',
+        "versionless 1.0 inference {$path}"
     );
 }
 
@@ -91,6 +91,12 @@ assertCommentContract(
     str_contains($controller, '$count,') &&
     str_contains($controller, '$mode'),
     'comment controller forwards count and mode'
+);
+
+assertCommentContract(
+    str_contains($controller, '$legacyUdidUpload') &&
+    str_contains($controller, '$version->effectiveGameVersion() < 19'),
+    'legacy UDID comments may omit accountID'
 );
 
 assertCommentContract(
