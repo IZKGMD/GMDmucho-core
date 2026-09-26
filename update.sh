@@ -174,9 +174,16 @@ LATEST_TAG="$(get_latest_stable_release_tag)" || {
 CURRENT_SEMVER="$(printf '%s' "$CURRENT_VERSION" | sed 's/^v//')"
 LATEST_SEMVER="$(printf '%s' "$LATEST_TAG" | sed 's/^v//')"
 
+REMOTE_TAG_SHA="$(git ls-remote origin "refs/tags/$LATEST_TAG" | awk 'NR == 1 {print $1}')"
+CURRENT_HEAD="$(git rev-parse HEAD)"
+
 if [[ "$CURRENT_SEMVER" == "$LATEST_SEMVER" ]]; then
-    echo "[MuchoCore] Already on the latest stable release: v$CURRENT_SEMVER."
-    exit 0
+    if [[ -n "$REMOTE_TAG_SHA" && "$CURRENT_HEAD" == "$REMOTE_TAG_SHA" ]]; then
+        echo "[MuchoCore] Already on the latest stable release: v$CURRENT_SEMVER."
+        exit 0
+    fi
+
+    echo "[MuchoCore] Reinstalling the published v$LATEST_SEMVER release because its tag points to a newer build."
 fi
 
 if [[ "$(printf '%s\n%s\n' "$CURRENT_SEMVER" "$LATEST_SEMVER" | sort -V | tail -n1)" != "$LATEST_SEMVER" ]]; then
