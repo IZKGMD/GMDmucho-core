@@ -194,7 +194,17 @@ function pdProfile(PDO $db, string $username): ?array
             COALESCE(p.icon_type, 0) AS icon_type,
             COALESCE(p.color1, 0) AS color1,
             COALESCE(p.color2, 3) AS color2,
-            COALESCE(p.glow, 0) AS glow
+            COALESCE(p.glow, 0) AS glow,
+            COALESCE((SELECT c.clan_id
+                      FROM mucho_clan_members cm
+                      INNER JOIN mucho_clans c ON c.clan_id = cm.clan_id
+                      WHERE cm.account_id = a.account_id
+                      LIMIT 1), 0) AS clan_id,
+            COALESCE((SELECT c.tag
+                      FROM mucho_clan_members cm
+                      INNER JOIN mucho_clans c ON c.clan_id = cm.clan_id
+                      WHERE cm.account_id = a.account_id
+                      LIMIT 1), "") AS clan_tag
          FROM accounts a
          LEFT JOIN roles r ON r.id = a.role_id
          LEFT JOIN profiles p ON p.account_id = a.account_id
@@ -271,7 +281,12 @@ function pdTopPlayers(PDO $db, int $limit = 12): array
                 COALESCE(p.icon_type, 0) AS icon_type,
                 COALESCE(p.color1, 0) AS color1,
                 COALESCE(p.color2, 3) AS color2,
-                COALESCE(p.glow, 0) AS glow
+                COALESCE(p.glow, 0) AS glow,
+                COALESCE((SELECT c.tag
+                          FROM mucho_clan_members cm
+                          INNER JOIN mucho_clans c ON c.clan_id = cm.clan_id
+                          WHERE cm.account_id = a.account_id
+                          LIMIT 1), "") AS clan_tag
              FROM accounts a
              LEFT JOIN roles r ON r.id = a.role_id
              LEFT JOIN profiles p ON p.account_id = a.account_id
@@ -1502,6 +1517,13 @@ body.dashboard-page .topbar{
                 referrerpolicy="no-referrer"
             >
             <h1 class="profile-title"><?=pdH($profile['username'])?></h1>
+            <?php if ((int)($profile['clan_id'] ?? 0) > 0): ?>
+            <div style="margin-top:6px">
+                <a class="badge" href="/dashboard/clans.php?clan=<?=((int)$profile['clan_id'])?>">
+                    [<?=pdH($profile['clan_tag'])?>] Clan
+                </a>
+            </div>
+            <?php endif; ?>
             <div class="profile-id">
                 Account #<?=pdH($profile['account_id'])?>
                 · User #<?=pdH($profile['user_id'])?>
@@ -1788,6 +1810,12 @@ body.dashboard-page .topbar{
                             <b><?=pdH($player['username'])?></b>
                             <div class="rank">Account #<?=pdH($player['account_id'])?></div>
                             <span class="role"><?=pdH(str_replace('_', ' ', (string)$player['role_code']))?></span>
+                        <?php if ((string)($player['clan_tag'] ?? '') !== ''): ?>
+                        <span class="role">[<?=pdH($player['clan_tag'])?>]</span>
+                        <?php endif; ?>
+                            <?php if ((string)($player['clan_tag'] ?? '') !== ''): ?>
+                            <span class="role">[<?=pdH($player['clan_tag'])?>]</span>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="chips">
