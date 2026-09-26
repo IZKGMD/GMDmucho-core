@@ -27,7 +27,7 @@ jobs:
           php -r '
             require "src/Client/WindowsClientPatcher.php";
             require "src/Client/AndroidClientPatcher.php";
-            $result = MuchoCore\\Client\\AndroidClientPatcher::patchFile(
+            $result = MuchoCore\Client\AndroidClientPatcher::patchFile(
                 "Geometry.Dash.ver.1.1.build.5 (1).apk",
                 "build/Geometry.Dash.ver.1.1.build.5-MuchoCore.apk",
                 "https://muchogdps.space"
