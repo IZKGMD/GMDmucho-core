@@ -56,7 +56,8 @@ final class CommentRepository
                     COALESCE(p.color1, 0) AS color1,
                     COALESCE(p.color2, 3) AS color2,
                     COALESCE(p.special, 0) AS special,
-                    COALESCE(p.icon_type, 0) AS icon_type
+                    COALESCE(p.icon_type, 0) AS icon_type,
+                    COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag
              FROM comments c
              JOIN accounts a ON c.account_id = a.account_id
              LEFT JOIN profiles p ON a.account_id = p.account_id
