@@ -69,7 +69,7 @@ final class GdRelationshipEncoder
             $accountId = (int)($r['account_id'] ?? 0);
 
             $out[] = implode(':', [
-                1, ProtocolText::username($r['username'] ?? 'Player'),
+                1, $this->displayUsername($r),
                 2, (int)($r['user_id'] ?? $accountId),
                 9, (int)($r['icon_id'] ?? $r['cube'] ?? 1),
                 10, (int)($r['color1'] ?? 0),
