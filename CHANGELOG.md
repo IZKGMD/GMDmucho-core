@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### GD 1.1 Compatibility
+
+- added GD 1.1 (`gameVersion=11`) as a first-class compatibility profile;
+- added an interactive installer option and environment support for `MUCHO_GD_VERSIONS=11`;
+- documented the legacy 1.x endpoint-family compatibility path used by GD 1.1;
+- expanded compatibility regression coverage for GD 1.1 family detection, labels and GJP2 behavior;
+- preserved the single version-aware MuchoCore backend instead of introducing a separate 1.1 server implementation.
+
 ## v1.0.3 — Persistent Plugins & Operations
 
 MuchoCore v1.0.3 expands the custom extension layer and improves the operator experience around long-lived GDPS installations.
