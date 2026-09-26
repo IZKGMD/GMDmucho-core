@@ -608,29 +608,55 @@ final readonly class ClanRepository
         try {
             $clan=$this->lockedClan($clanId);
             $actor=$this->member($clanId,$actorAccountId);
-            $target=$this->member($clanId,$targetAccountId);
 
             if (!$clan || !$actor || !in_array((string)$actor['role'],['owner','officer'],true)) {
                 throw new RuntimeException('Clan officer permission required.');
             }
 
-            if (!$target || (int)$target['account_id'] === $actorAccountId) {
-                throw new RuntimeException('Target is not eligible for a clan ban.');
+            if ($targetAccountId<=0 || $targetAccountId===$actorAccountId) {
+                throw new RuntimeException('Invalid clan ban target.');
             }
 
-            if ((string)$target['role']==='owner') {
-                throw new RuntimeException('The clan owner cannot be banned.');
+            $account=$this->pdo->prepare(
+                'SELECT 1 FROM accounts
+                 WHERE account_id=:account_id
+                 LIMIT 1'
+            );
+            $account->execute(['account_id'=>$targetAccountId]);
+
+            if ($account->fetchColumn() === false) {
+                throw new RuntimeException('Target account not found.');
             }
 
-            if ((string)$actor['role']==='officer' && (string)$target['role']!=='member') {
-                throw new RuntimeException('Officers cannot ban other officers.');
+            $target=$this->member($clanId,$targetAccountId);
+
+            if ($target) {
+                if ((string)$target['role']==='owner') {
+                    throw new RuntimeException('The clan owner cannot be banned.');
+                }
+
+                if (
+                    (string)$actor['role']==='officer' &&
+                    (string)$target['role']!=='member'
+                ) {
+                    throw new RuntimeException('Officers cannot ban other officers.');
+                }
+
+                $delete=$this->pdo->prepare(
+                    'DELETE FROM mucho_clan_members
+                     WHERE clan_id=:clan_id AND account_id=:account_id'
+                );
+                $delete->execute([
+                    'clan_id'=>$clanId,
+                    'account_id'=>$targetAccountId,
+                ]);
             }
 
-            $delete=$this->pdo->prepare(
-                'DELETE FROM mucho_clan_members
+            $invite=$this->pdo->prepare(
+                'DELETE FROM mucho_clan_invites
                  WHERE clan_id=:clan_id AND account_id=:account_id'
             );
-            $delete->execute([
+            $invite->execute([
                 'clan_id'=>$clanId,
                 'account_id'=>$targetAccountId,
             ]);
@@ -666,23 +692,34 @@ final readonly class ClanRepository
 
     public function unban(int $clanId, int $actorAccountId, int $targetAccountId): bool
     {
-        $clan=$this->lockedClan($clanId);
-        $actor=$this->member($clanId,$actorAccountId);
+        $this->pdo->beginTransaction();
 
-        if (!$clan || !$actor || !in_array((string)$actor['role'],['owner','officer'],true)) {
-            throw new RuntimeException('Clan officer permission required.');
+        try {
+            $clan=$this->lockedClan($clanId);
+            $actor=$this->member($clanId,$actorAccountId);
+
+            if (!$clan || !$actor || !in_array((string)$actor['role'],['owner','officer'],true)) {
+                throw new RuntimeException('Clan officer permission required.');
+            }
+
+            $stmt=$this->pdo->prepare(
+                'DELETE FROM mucho_clan_bans
+                 WHERE clan_id=:clan_id AND account_id=:account_id'
+            );
+            $stmt->execute([
+                'clan_id'=>$clanId,
+                'account_id'=>$targetAccountId,
+            ]);
+
+            $this->pdo->commit();
+            return $stmt->rowCount() > 0;
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
+            throw $e;
         }
-
-        $stmt=$this->pdo->prepare(
-            'DELETE FROM mucho_clan_bans
-             WHERE clan_id=:clan_id AND account_id=:account_id'
-        );
-        $stmt->execute([
-            'clan_id'=>$clanId,
-            'account_id'=>$targetAccountId,
-        ]);
-
-        return $stmt->rowCount() > 0;
     }
 
     public function bans(int $clanId): array
@@ -757,6 +794,10 @@ final readonly class ClanRepository
 
     public function invite(int $clanId, int $accountId, int $invitedBy): bool
     {
+        if ($this->isBanned($clanId,$accountId)) {
+            throw new RuntimeException('Target account is banned from this clan.');
+        }
+
         $stmt=$this->pdo->prepare(
             "INSERT INTO mucho_clan_invites
                 (clan_id, account_id, invited_by_account_id, expires_at)
