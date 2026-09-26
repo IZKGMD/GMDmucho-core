@@ -41,7 +41,7 @@ final class CommentService
         string $ip = ''
     ): string
     {
-        $this->authenticateCommenter(
+        $accountId = $this->authenticateCommenter(
             $accountId,
             $gjp,
             $gameVersion,
@@ -948,7 +948,7 @@ final class CommentService
         string $ip = ''
     ): int
     {
-        $this->authenticateCommenter(
+        $accountId = $this->authenticateCommenter(
             $accountId,
             $gjp,
             $gameVersion,
@@ -1003,7 +1003,7 @@ final class CommentService
         string $udid = '',
         string $ip = ''
     ): bool {
-        $this->authenticateCommenter(
+        $accountId = $this->authenticateCommenter(
             $accountId,
             $gjp,
             $gameVersion,
@@ -1025,7 +1025,7 @@ final class CommentService
         string $udid = '',
         string $ip = ''
     ): bool {
-        $this->authenticateCommenter(
+        $accountId = $this->authenticateCommenter(
             $accountId,
             $gjp,
             $gameVersion,
@@ -1090,10 +1090,10 @@ final class CommentService
         int $gameVersion,
         string $udid,
         string $ip
-    ): void {
+    ): int {
         if ($gjp !== '') {
-            $this->auth->authenticate($accountId, $gjp);
-            return;
+            $account = $this->auth->authenticate($accountId, $gjp);
+            return (int)$account['account_id'];
         }
 
         if (
@@ -1114,7 +1114,7 @@ final class CommentService
             );
 
             if ($resolvedAccountId > 0) {
-                return;
+                return $resolvedAccountId;
             }
         }
 
@@ -1124,12 +1124,12 @@ final class CommentService
             trim($udid) !== '' &&
             trim($ip) !== ''
         ) {
-            $this->auth->authenticateLegacy19Upload(
+            $account = $this->auth->authenticateLegacy19Upload(
                 $accountId,
                 $udid,
                 $ip
             );
-            return;
+            return (int)$account['account_id'];
         }
 
         throw new RuntimeException('Unauthorized.');
