@@ -9,7 +9,7 @@
   <a href="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml">
     <img src="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml/badge.svg" alt="CI">
   </a>
-  <img src="https://img.shields.io/badge/release-v1.0.1-8A2BE2" alt="Stable release">
+  <img src="https://img.shields.io/badge/release-v1.0.2-8A2BE2" alt="Stable release">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/PHP-8.3-777BB4" alt="PHP 8.3">
   <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2-success" alt="Geometry Dash 1.0 through 2.2">
@@ -23,7 +23,8 @@
   <a href="docs/VERSIONS.md">📚 Version Profiles</a> ·
   <a href="docs/CLIENT_COMPATIBILITY.md">🧩 Compatibility</a> ·
   <a href="docs/SHOWCASE.md">🌍 Showcase</a> ·
-  <a href="docs/ADMIN_RBAC.md">🔐 Admin RBAC</a>
+  <a href="docs/ADMIN_RBAC.md">🔐 Admin RBAC</a> ·
+  <a href="docs/CUSTOM_PLUGINS.md">🧩 Custom Plugins</a>
 </p>
 
 > ⚡ **MuchoCore is a maintainable Geometry Dash Private Server foundation for owners who want one server core, version-aware compatibility, an integrated admin panel, client patching tools, and a security layer that can be validated in CI.**
@@ -38,7 +39,7 @@
 | 🧩 **One version-aware core** | Shared application logic with client-generation-specific compatibility handling |
 | 🛡️ **MuchoProtect** | Endpoint rate limits, burst protection, account/IP isolation and privacy-aware security audit events |
 | 🧠 **Score Integrity** | Defensive score heuristics, risk events and optional leaderboard quarantine without automatic bans |
-| 🔌 **Plugin SDK** | Permissioned PHP plugins with lifecycle events, custom routes and optional database access |
+| 🔌 **Plugin SDK** | Persistent custom PHP plugins with lifecycle events, custom routes and optional database access |
 | 🖥️ **Admin Control** | Dashboard, players, levels, moderation, analytics, monitoring, backups, API tools and server settings |
 | ⭐ **Rating Studio** | Search levels by ID/name/creator, review pending requests, publish 0–10 star ratings, choose difficulty faces, feature tiers and audit the change |
 | 🔐 **Admin security** | Separate administrator accounts, password login, native WebAuthn/FIDO2 passkeys, Google Authenticator TOTP, one-time recovery codes, self-service password setup for invited admins, customizable RBAC permissions, rate limiting and audit logging |
@@ -80,6 +81,18 @@ https://YOUR-DOMAIN/admin/
 ```
 
 For the full VPS workflow, see **[docs/SETUP.md](docs/SETUP.md)**.
+
+### Custom plugins
+
+MuchoCore supports a persistent custom plugin layer under:
+
+~~~text
+custom/plugins/
+~~~
+
+Plugins can add server-specific routes, lifecycle listeners and optional database-backed functionality without modifying the MuchoCore core source. The updater leaves this directory untouched, so customizations survive stable core updates.
+
+See **[docs/CUSTOM_PLUGINS.md](docs/CUSTOM_PLUGINS.md)** for the plugin format, permissions and examples.
 
 Core updates are automatic **only after a published stable GitHub Release** exists. The Admin Panel detects the release, while the VPS updater deploys the exact release tag. `update.sh` remains available as the manual update/test path.
 
@@ -458,6 +471,7 @@ docker/                    Dockerfile and Caddy configuration
 patched/apk/               patched Android builds
 patched/exe/               patched Windows builds
 assets/                    project branding
+custom/plugins/              persistent GDPS-specific plugins
 ```
 
 ---
@@ -503,9 +517,9 @@ Before large changes, back up the database and verify that your Cloud Save secre
 
 ---
 
-## 📦 MuchoCore v1.0.1
+## 📦 MuchoCore v1.0.2
 
-**v1.0.1** is the current stable release line for the MuchoCore architecture.
+**v1.0.2** is the current stable release line for the MuchoCore architecture.
 
 It brings together:
 
@@ -521,7 +535,7 @@ It brings together:
 - reproducible CI validation;
 - client trace and contract tooling.
 
-See **[CHANGELOG.md](CHANGELOG.md)** and the **[v1.0.1 release](https://github.com/IZKGMD/GMDmucho-core/releases/tag/v1.0.1)** for release-specific verification details.
+See **[CHANGELOG.md](CHANGELOG.md)** and the **[v1.0.2 release](https://github.com/IZKGMD/GMDmucho-core/releases/tag/v1.0.2)** for release-specific verification details.
 
 ---
 
