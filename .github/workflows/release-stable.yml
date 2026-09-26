@@ -119,6 +119,7 @@ jobs:
       - name: Remove one-time release marker
         if: steps.marker.outputs.ready == 'true'
         env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           TAG: ${{ steps.marker.outputs.tag }}
         run: |
           git fetch origin main
