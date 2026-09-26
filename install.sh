@@ -7,6 +7,7 @@ DOMAIN="${MUCHO_DOMAIN:-}"
 DB_NAME="${MUCHO_DB_NAME:-}"
 DB_USER="${MUCHO_DB_USER:-}"
 ADMIN_USER="${MUCHO_ADMIN_USER:-}"
+CADDY_EXTRA_HOSTS="${MUCHO_CADDY_EXTRA_HOSTS:-testgdps.muchogdps.space}"
 CUSTOM_CONTENT_URL="${MUCHO_CUSTOM_CONTENT_URL:-}"
 TURNSTILE_SITEKEY="${MUCHO_TURNSTILE_SITEKEY:-}"
 TURNSTILE_SECRET="${MUCHO_TURNSTILE_SECRET:-}"
@@ -218,6 +219,12 @@ if [[ -z "$DOMAIN" ]]; then
 fi
 [[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || fail "Invalid domain: $DOMAIN"
 
+if [[ -n "$CADDY_EXTRA_HOSTS" ]]; then
+  for host in $CADDY_EXTRA_HOSTS; do
+    [[ "$host" =~ ^[A-Za-z0-9.-]+$ ]] || fail "Invalid CADDY_EXTRA_HOSTS entry: $host"
+  done
+fi
+
 preflight
 
 log "Installing required packages..."
@@ -321,6 +328,9 @@ normalize_caddy_address() {
   fi
 
   printf 'http://%s http://www.%s https://%s https://www.%s' "$root" "$root" "$root" "$root"
+  if [[ -n "${CADDY_EXTRA_HOSTS:-}" ]]; then
+    printf ' %s' "$CADDY_EXTRA_HOSTS"
+  fi
 }
 
 cat > "$INSTALL_DIR/.env" <<EOFENV
@@ -339,7 +349,7 @@ MUCHO_CONTROL_DIR=/var/lib/muchocore-control
 MUCHO_BACKUP_DIR=/var/lib/muchocore-backups
 TZ=UTC
 MUCHO_GD_VERSIONS=$GD_VERSIONS
-CADDY_EXTRA_HOSTS=testgdps.muchogdps.space
+CADDY_EXTRA_HOSTS=$CADDY_EXTRA_HOSTS
 MUCHO_AUTO_UPDATE=1
 MUCHO_AUTO_UPDATE_INTERVAL=15min
 EOFENV
