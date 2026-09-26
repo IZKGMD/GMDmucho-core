@@ -664,7 +664,7 @@ if ($action === 'upload_youtube') {
 
     @exec(
         $yt .
-        ' --no-playlist --dump-single-json --skip-download --no-warnings --socket-timeout 15 --retries 2 ' .
+        ' --no-playlist --dump-single-json --skip-download --no-warnings --remote-components ejs:github --socket-timeout 15 --retries 2 ' .
         $urlArg .
         ' 2>&1',
         $metaOutput,
@@ -739,7 +739,7 @@ if ($action === 'upload_youtube') {
 
     $downloadCommand =
         $yt .
-        ' --no-playlist --no-warnings --socket-timeout 15 --retries 2' .
+        ' --no-playlist --no-warnings --remote-components ejs:github --socket-timeout 15 --retries 2' .
         ' --max-filesize 64M -x --audio-format mp3 --audio-quality 5' .
         ' -o ' . escapeshellarg($downloadTemplate) .
         ' ' . $urlArg .
