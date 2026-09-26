@@ -59,21 +59,28 @@ final readonly class CommentController
                 )
             );
         } catch (Throwable $e) {
+            $command = '';
+
             if (str_starts_with(trim($content), '!')) {
                 $command = strtolower(
                     (string)(preg_split("/\\s+/", trim($content))[0] ?? '')
                 );
-
-                error_log(sprintf(
-                    '[MuchoCore CommentCommand] command=%s account=%d level=%d version=%d exception=%s message=%s',
-                    $command,
-                    $accountId,
-                    $levelId,
-                    $version->effectiveGameVersion(),
-                    $e::class,
-                    $e->getMessage()
-                ));
             }
+
+            error_log(sprintf(
+                '[MuchoCore] request_id=%s upload_comment_failed account_id=%d level_id=%d version=%d family=%s has_udid=%d has_gjp=%d percent=%d command=%s exception=%s message=%s',
+                (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
+                $accountId,
+                $levelId,
+                $version->effectiveGameVersion(),
+                $version->family(),
+                trim($udid) !== '' ? 1 : 0,
+                $gjp !== '' ? 1 : 0,
+                $percent,
+                $command,
+                $e::class,
+                $e->getMessage()
+            ));
 
             return Response::text("-1");
         }
