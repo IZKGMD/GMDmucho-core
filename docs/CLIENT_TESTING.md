@@ -32,6 +32,9 @@ Use a real client for the target generation:
 
 | Target | Expected family | Fixture | Gate |
 | --- | --- | --- | --- |
+| GD 1.2 | legacy 1.x | manual smoke verification | ✅ passed |
+| GD 1.3 | legacy 1.x | manual smoke verification | ✅ passed |
+| GD 1.4 | legacy 1.x | manual smoke verification | ✅ passed |
 | GD 1.5 | `1.5` | manual smoke verification | server compatibility + protocol contracts |
 | GD 1.6 | legacy 1.x | manual smoke verification | server compatibility + protocol contracts |
 | GD 1.9 | `1.9` | `tests/client-fixtures/1.9/endpoints.json` | `tests/release/release-1.9-gate.sh` |
@@ -108,6 +111,10 @@ GD 2.2:
 bash tests/release/release-2.2-gate.sh
 bash tests/client/client-contract.sh
 ```
+
+## Current 1.2–1.4 verification status
+
+Real Geometry Dash 1.2, 1.3, and 1.4 clients have been verified against the shared MuchoCore legacy 1.x compatibility path. Marked ✅ as completed manual smoke verification.
 
 ## Current 1.6 verification status
 
