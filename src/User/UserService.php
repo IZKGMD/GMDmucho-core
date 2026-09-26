@@ -7,6 +7,7 @@ namespace MuchoCore\User;
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Account\AccountRepository;
 use MuchoCore\Compatibility\ClientVersion;
+use MuchoCore\Compatibility\Legacy10IdentityService;
 use MuchoCore\Protocol\GdUserEncoder;
 use PDO;
 use RuntimeException;
@@ -18,12 +19,38 @@ final readonly class UserService
         private AccountAuthenticator $auth,
         private AccountRepository $accountRepository,
         private UserRepository $userRepository,
-        private GdUserEncoder $userEncoder
+        private GdUserEncoder $userEncoder,
+        private ?Legacy10IdentityService $legacy10 = null
     ) {}
 
-    public function updateScore(int $accountId, string $gjp, array $data): string
+    public function updateScore(
+        int $accountId,
+        string $gjp,
+        array $data,
+        string $udid = '',
+        string $username = '',
+        string $ip = ''
+    ): string
     {
-        $this->auth->authenticate($accountId, $gjp);
+        $gameVersion = (int)($data['gameVersion'] ?? 1);
+
+        if ($gjp !== '') {
+            $this->auth->authenticate($accountId, $gjp);
+        } elseif (
+            $accountId <= 0 &&
+            $gameVersion > 0 &&
+            $gameVersion < 19 &&
+            trim($udid) !== '' &&
+            $this->legacy10 !== null
+        ) {
+            $accountId = $this->legacy10->resolveAccount(
+                $udid,
+                $username,
+                $ip
+            );
+        } else {
+            throw new RuntimeException('Unauthorized.');
+        }
 
         /*
          * Keep the modern Mucho schema compatible while applying the
