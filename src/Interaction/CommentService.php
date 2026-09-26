@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MuchoCore\Interaction;
 
 use MuchoCore\Account\AccountAuthenticator;
+use MuchoCore\Compatibility\Legacy10IdentityService;
 use MuchoCore\Protocol\GdCommentEncoder;
 use MuchoCore\Protocol\GdLegacyText;
 use PDO;
@@ -16,7 +17,8 @@ final class CommentService
         private readonly CommentRepository $repository,
         private readonly AccountAuthenticator $auth,
         private readonly GdCommentEncoder $encoder,
-        private readonly ?PDO $pdo = null
+        private readonly ?PDO $pdo = null,
+        private readonly ?Legacy10IdentityService $legacy10 = null
     ) {}
 
     private function getPdo(): PDO
@@ -1095,7 +1097,30 @@ final class CommentService
         }
 
         if (
+            $gameVersion > 0 &&
+            $gameVersion < 19 &&
+            trim($udid) !== '' &&
+            $this->legacy10 !== null
+        ) {
+            /*
+             * Cvolton-compatible early clients can submit comments without
+             * accountID/gjp and identify themselves by device UDID.
+             * Resolve that UDID to MuchoCore's non-privileged legacy identity.
+             */
+            $resolvedAccountId = $this->legacy10->resolveAccount(
+                $udid,
+                '',
+                $ip
+            );
+
+            if ($resolvedAccountId > 0) {
+                return;
+            }
+        }
+
+        if (
             $gameVersion === 19 &&
+            $accountId > 0 &&
             trim($udid) !== '' &&
             trim($ip) !== ''
         ) {
