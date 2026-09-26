@@ -425,6 +425,21 @@ final readonly class Application
         $route('/api/clans/invites',
             [$clanController,'invites']);
 
+        $route('/api/clans/settings',
+            [$clanController,'updateSettings']);
+        $route('/api/clans/transfer',
+            [$clanController,'transferOwnership']);
+        $route('/api/clans/disband',
+            [$clanController,'disband']);
+        $route('/api/clans/invite/revoke',
+            [$clanController,'revokeInvite']);
+        $route('/api/clans/ban',
+            [$clanController,'ban']);
+        $route('/api/clans/unban',
+            [$clanController,'unban']);
+        $route('/api/clans/bans',
+            [$clanController,'bans']);
+
         $route('/getGJCreators',
             [$discoveryController,'creators']);
         $route('/getGJCreators19',

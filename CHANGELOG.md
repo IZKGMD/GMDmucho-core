@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Clan System v2
+
+- expanded the existing clan system with owner-only settings, ownership transfer and disbanding;
+- added invitation revocation and persistent clan bans;
+- made clan bans remove memberships and pending invitations atomically;
+- hardened open-clan joins and invitation acceptance with transactional row locking and server-side capacity checks;
+- added clan management audit events;
+- added contract coverage for the expanded clan API and database migration.
+
 ### GD 1.6 Compatibility
 
 - verified a real Geometry Dash 1.6 build 16 against MuchoCore;

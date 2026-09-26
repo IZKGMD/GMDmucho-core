@@ -152,6 +152,99 @@ final readonly class ClanController
         });
     }
 
+    public function updateSettings(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return $this->service->updateSettings(
+                $request->postInt('accountID'),
+                $request->gdCredential(),
+                $request->postInt('clanID'),
+                $request->postString('clanName'),
+                $request->postString('clanTag'),
+                $request->postString('clanDescription'),
+                $request->postInt('clanOpen',1)===1,
+                $request->postInt('clanMaxMembers',50)
+            );
+        });
+    }
+
+    public function transferOwnership(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return [
+                'transferred'=>$this->service->transferOwnership(
+                    $request->postInt('accountID'),
+                    $request->gdCredential(),
+                    $request->postInt('targetAccountID')
+                ),
+            ];
+        });
+    }
+
+    public function disband(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return [
+                'disbanded'=>$this->service->disband(
+                    $request->postInt('accountID'),
+                    $request->gdCredential()
+                ),
+            ];
+        });
+    }
+
+    public function revokeInvite(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return [
+                'revoked'=>$this->service->revokeInvite(
+                    $request->postInt('accountID'),
+                    $request->gdCredential(),
+                    $request->postInt('inviteID')
+                ),
+            ];
+        });
+    }
+
+    public function ban(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return [
+                'banned'=>$this->service->ban(
+                    $request->postInt('accountID'),
+                    $request->gdCredential(),
+                    $request->postInt('targetAccountID'),
+                    $request->postString('reason')
+                ),
+            ];
+        });
+    }
+
+    public function unban(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return [
+                'unbanned'=>$this->service->unban(
+                    $request->postInt('accountID'),
+                    $request->gdCredential(),
+                    $request->postInt('targetAccountID')
+                ),
+            ];
+        });
+    }
+
+    public function bans(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return [
+                'bans'=>$this->service->bans(
+                    $request->postInt('accountID'),
+                    $request->gdCredential()
+                ),
+            ];
+        });
+    }
+
     public function invites(Request $request): Response
     {
         return $this->run(function() use ($request): array {

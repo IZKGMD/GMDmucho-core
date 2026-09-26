@@ -153,51 +153,13 @@ final readonly class ClanService
 
     public function acceptInvite(int $accountId,string $credential,int $inviteId): bool {
         $this->auth->authenticate($accountId,$credential);
+        $accepted=$this->repository->acceptInvite($inviteId,$accountId);
 
-        if ($this->repository->getForAccount($accountId)!==null) {
-            throw new RuntimeException('Account is already in a clan.');
+        if ($accepted) {
+            $this->audit($accountId,'clan.invite.accepted','clan_invite',$inviteId);
         }
 
-        $invite=$this->repository->getInvite($inviteId,$accountId);
-        if ($invite===null) {
-            throw new RuntimeException('Clan invitation not found or expired.');
-        }
-
-        $clan=$this->repository->getById((int)$invite['clan_id']);
-        if ($clan===null || (int)$clan['member_count'] >= (int)$clan['max_members']) {
-            throw new RuntimeException('Clan is full or unavailable.');
-        }
-
-        $this->pdo->beginTransaction();
-
-        try {
-            $insert=$this->pdo->prepare(
-                "INSERT INTO mucho_clan_members (clan_id, account_id, role)
-                 VALUES (:clan_id, :account_id, 'member')"
-            );
-            $insert->execute([
-                'clan_id'=>(int)$invite['clan_id'],
-                'account_id'=>$accountId,
-            ]);
-
-            $delete=$this->pdo->prepare(
-                'DELETE FROM mucho_clan_invites
-                 WHERE invite_id=:invite_id AND account_id=:account_id'
-            );
-            $delete->execute([
-                'invite_id'=>$inviteId,
-                'account_id'=>$accountId,
-            ]);
-
-            $this->pdo->commit();
-            return true;
-        } catch (\Throwable $e) {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
-            }
-
-            throw $e;
-        }
+        return $accepted;
     }
 
     public function declineInvite(int $accountId,string $credential,int $inviteId): bool {
@@ -215,51 +177,283 @@ final readonly class ClanService
             throw new RuntimeException('Target is not in your clan.');
         }
 
-        if (!in_array((string)$clan['role'],['owner','officer'],true)) {
-            throw new RuntimeException('Clan officer permission required.');
+        $kicked=$this->repository->kick(
+            (int)$clan['clan_id'],
+            $accountId,
+            $targetAccountId
+        );
+
+        if ($kicked) {
+            $this->audit(
+                $accountId,
+                'clan.member.kicked',
+                'account',
+                $targetAccountId,
+                ['clan_id'=>(int)$clan['clan_id']]
+            );
         }
 
-        if ((string)$target['role']==='owner') {
-            throw new RuntimeException('The clan owner cannot be kicked.');
-        }
-
-        if ((string)$clan['role']==='officer' && (string)$target['role']!=='member') {
-            throw new RuntimeException('Officers cannot remove other officers.');
-        }
-
-        return $this->repository->removeMember((int)$clan['clan_id'],$targetAccountId);
+        return $kicked;
     }
 
     public function setRole(int $accountId,string $credential,int $targetAccountId,string $role): bool {
         $this->auth->authenticate($accountId,$credential);
 
-        if (!in_array($role,['officer','member'],true)) {
-            throw new RuntimeException('Invalid clan role.');
-        }
-
         $clan=$this->repository->getForAccount($accountId);
-        $target=$this->repository->getForAccount($targetAccountId);
-
-        if (
-            $clan===null ||
-            $target===null ||
-            (int)$clan['clan_id']!==(int)$target['clan_id'] ||
-            (string)$clan['role']!=='owner' ||
-            (string)$target['role']==='owner'
-        ) {
-            throw new RuntimeException('Clan owner permission required.');
+        if ($clan===null) {
+            throw new RuntimeException('You are not in a clan.');
         }
 
-        return $this->repository->setRole(
+        $updated=$this->repository->setRole(
             (int)$clan['clan_id'],
+            $accountId,
             $targetAccountId,
             $role
         );
+
+        if ($updated) {
+            $this->audit(
+                $accountId,
+                'clan.member.role_changed',
+                'account',
+                $targetAccountId,
+                [
+                    'clan_id'=>(int)$clan['clan_id'],
+                    'role'=>$role,
+                ]
+            );
+        }
+
+        return $updated;
+    }
+
+    public function updateSettings(
+        int $accountId,
+        string $credential,
+        int $clanId,
+        string $name,
+        string $tag,
+        string $description='',
+        bool $isOpen=true,
+        int $maxMembers=50
+    ): array {
+        $this->auth->authenticate($accountId,$credential);
+
+        $name=$this->normalizeName($name);
+        $tag=$this->normalizeTag($tag);
+        $description=$this->normalizeDescription($description);
+        $maxMembers=max(2,min(500,$maxMembers));
+
+        if ($name==='' || $tag==='') {
+            throw new RuntimeException('Invalid clan name or tag.');
+        }
+
+        $result=$this->repository->updateSettings(
+            $clanId,
+            $accountId,
+            $name,
+            $tag,
+            $description,
+            $isOpen,
+            $maxMembers
+        );
+
+        $this->audit(
+            $accountId,
+            'clan.settings.updated',
+            'clan',
+            $clanId,
+            ['is_open'=>$isOpen,'max_members'=>$maxMembers]
+        );
+
+        return $result;
+    }
+
+    public function transferOwnership(
+        int $accountId,
+        string $credential,
+        int $targetAccountId
+    ): bool {
+        $this->auth->authenticate($accountId,$credential);
+        $clan=$this->repository->getForAccount($accountId);
+
+        if ($clan===null) {
+            throw new RuntimeException('You are not in a clan.');
+        }
+
+        $transferred=$this->repository->transferOwnership(
+            (int)$clan['clan_id'],
+            $accountId,
+            $targetAccountId
+        );
+
+        if ($transferred) {
+            $this->audit(
+                $accountId,
+                'clan.ownership.transferred',
+                'clan',
+                (int)$clan['clan_id'],
+                ['new_owner_account_id'=>$targetAccountId]
+            );
+        }
+
+        return $transferred;
+    }
+
+    public function disband(
+        int $accountId,
+        string $credential
+    ): bool {
+        $this->auth->authenticate($accountId,$credential);
+        $clan=$this->repository->getForAccount($accountId);
+
+        if ($clan===null) {
+            throw new RuntimeException('You are not in a clan.');
+        }
+
+        $clanId=(int)$clan['clan_id'];
+        $disbanded=$this->repository->disband($clanId,$accountId);
+
+        if ($disbanded) {
+            $this->audit($accountId,'clan.disbanded','clan',$clanId);
+        }
+
+        return $disbanded;
+    }
+
+    public function revokeInvite(
+        int $accountId,
+        string $credential,
+        int $inviteId
+    ): bool {
+        $this->auth->authenticate($accountId,$credential);
+
+        $revoked=$this->repository->revokeInvite($inviteId,$accountId);
+
+        if ($revoked) {
+            $this->audit(
+                $accountId,
+                'clan.invite.revoked',
+                'clan_invite',
+                $inviteId
+            );
+        }
+
+        return $revoked;
+    }
+
+    public function ban(
+        int $accountId,
+        string $credential,
+        int $targetAccountId,
+        string $reason=''
+    ): bool {
+        $this->auth->authenticate($accountId,$credential);
+
+        if ($targetAccountId<=0 || $targetAccountId===$accountId) {
+            throw new RuntimeException('Invalid ban target.');
+        }
+
+        $clan=$this->repository->getForAccount($accountId);
+        if ($clan===null) {
+            throw new RuntimeException('You are not in a clan.');
+        }
+
+        $reason=$this->normalizeDescription($reason);
+        $banned=$this->repository->ban(
+            (int)$clan['clan_id'],
+            $accountId,
+            $targetAccountId,
+            $reason
+        );
+
+        if ($banned) {
+            $this->audit(
+                $accountId,
+                'clan.member.banned',
+                'account',
+                $targetAccountId,
+                ['clan_id'=>(int)$clan['clan_id']]
+            );
+        }
+
+        return $banned;
+    }
+
+    public function unban(
+        int $accountId,
+        string $credential,
+        int $targetAccountId
+    ): bool {
+        $this->auth->authenticate($accountId,$credential);
+
+        $clan=$this->repository->getForAccount($accountId);
+        if ($clan===null) {
+            throw new RuntimeException('You are not in a clan.');
+        }
+
+        $unbanned=$this->repository->unban(
+            (int)$clan['clan_id'],
+            $accountId,
+            $targetAccountId
+        );
+
+        if ($unbanned) {
+            $this->audit(
+                $accountId,
+                'clan.member.unbanned',
+                'account',
+                $targetAccountId,
+                ['clan_id'=>(int)$clan['clan_id']]
+            );
+        }
+
+        return $unbanned;
+    }
+
+    public function bans(int $accountId,string $credential): array {
+        $this->auth->authenticate($accountId,$credential);
+
+        $clan=$this->repository->getForAccount($accountId);
+        if ($clan===null) {
+            throw new RuntimeException('You are not in a clan.');
+        }
+
+        return $this->repository->bans((int)$clan['clan_id']);
     }
 
     public function invites(int $accountId,string $credential): array {
         $this->auth->authenticate($accountId,$credential);
         return $this->repository->invitations($accountId);
+    }
+
+    private function audit(
+        int $accountId,
+        string $action,
+        ?string $targetType=null,
+        ?int $targetId=null,
+        array $metadata=[]
+    ): void {
+        try {
+            $stmt=$this->pdo->prepare(
+                'INSERT INTO audit_logs
+                    (account_id, action, target_type, target_id, metadata)
+                 VALUES
+                    (:account_id, :action, :target_type, :target_id, :metadata)'
+            );
+            $stmt->execute([
+                'account_id'=>$accountId,
+                'action'=>$action,
+                'target_type'=>$targetType,
+                'target_id'=>$targetId,
+                'metadata'=>json_encode(
+                    $metadata,
+                    JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE
+                ),
+            ]);
+        } catch (Throwable) {
+            // Auditing must never make a valid clan operation fail.
+        }
     }
 
     private function normalizeName(string $name): string {
