@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Custom Plugins
+
+- added a persistent `custom/plugins/` extension layer for GDPS-specific functionality;
+- custom plugins are kept outside the tracked core source tree and are ignored by Git;
+- core updates preserve installed custom plugins instead of treating them as core changes;
+- documented plugin manifests, permissions, lifecycle events and installation workflow;
+- added regression coverage for loading a custom plugin from the persistent plugin directory.
+
 ## v1.0.2 — Release-Based Updates & Admin RBAC
 
 MuchoCore v1.0.2 introduces a release-driven production update pipeline, customizable administrator roles and permissions, and hardened Android client patching.
