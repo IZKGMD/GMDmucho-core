@@ -125,6 +125,10 @@ GD 1.0 uses the dedicated legacy identity compatibility boundary while sharing t
 
 These clients use the shared early legacy 1.x compatibility path rather than separate version-specific backends.
 
+## GD 1.9 real-client verification status
+
+✅ GD 1.9 — real-client smoke verification passed.
+
 ## GD 1.8 verification status
 
 ✅ GD 1.8 build 20 — real-client smoke verification passed.
@@ -145,13 +149,13 @@ GD 1.8 uses the shared early legacy 1.x compatibility path rather than a separat
 
 The current 1.9 server-side compatibility pass covers legacy GJP selection, 1.9 endpoint aliases, level description upload semantics, Base64 comment semantics, old-binary comment user sections, level download password framing, legacy hashes, and shared account/profile/leaderboard surfaces.
 
-The remaining operational milestone is empirical verification: capture a real Geometry Dash 1.9 trace and pass `tests/release/release-1.9-gate.sh`.
+The real-client verification milestone for GD 1.9 is complete.
 
 ## Overall implementation status
 
 **GD 1.0, 1.1, 1.5, 1.9, 2.0, 2.1 and 2.2 server-side compatibility: implemented for the current scope.** Automated protocol, routing, wire-format, hash, profile, social and regression suites pass on `main`.
 
-Real-client evidence is tracked separately: 2.2 has a captured GD 2.2.13 fixture; 1.9, 2.0 and 2.1 remain empirically unverified by design.
+Real-client evidence is tracked separately: GD 1.9 has passed manual smoke verification; 2.2 has a captured GD 2.2.13 fixture; 2.0 and 2.1 remain empirically unverified by design.
 
 ## GD 2.0 implementation status
 
