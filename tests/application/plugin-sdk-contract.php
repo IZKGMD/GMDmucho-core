@@ -93,8 +93,9 @@ PLUGIN
 
     putenv('MUCHO_PLUGINS_ENABLED=1');
     $_ENV['MUCHO_PLUGINS_ENABLED'] = '1';
-    putenv('MUCHO_PLUGIN_DIR=' . $pluginDir);
-    $_ENV['MUCHO_PLUGIN_DIR'] = $pluginDir;
+    $configuredPluginRoot = $root . '/custom/plugins';
+    putenv('MUCHO_PLUGIN_DIR=' . $configuredPluginRoot);
+    $_ENV['MUCHO_PLUGIN_DIR'] = $configuredPluginRoot;
 
     $pdo = new class extends PDO {
         public function __construct() {}
@@ -106,7 +107,7 @@ PLUGIN
         $root
     );
 
-    if ($manager->rootDirectory() !== $pluginDir) {
+    if ($manager->rootDirectory() !== $configuredPluginRoot) {
         throw new RuntimeException('custom plugin environment directory contract failed');
     }
 
