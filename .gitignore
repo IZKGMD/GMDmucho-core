@@ -13,7 +13,11 @@
 /vendor/
 /storage/
 /var/log/*
-/var/cache/
+/var/cache/*
+
+# Custom extensions - preserved across MuchoCore updates
+/custom/plugins/*
+!/custom/plugins/README.md
 
 # Local backups / release artifacts
 /public/*.tar.gz
