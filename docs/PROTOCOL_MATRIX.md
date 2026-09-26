@@ -44,8 +44,8 @@ The target is not a collection of version-specific PHP entrypoints. MuchoCore ke
 | Platformer scores | Pending | Pending | Pending | Pending | Pending | Shared | Pending |
 | Rewards | Shared | Shared | Shared | Shared | Shared | Shared | Pending |
 | Challenges | Shared | Shared | Shared | Shared | Shared | Shared | Pending |
-| Level lists | Shared | Shared | Shared | Shared | Shared | Shared | Shared | Pending |
-| Custom content/account URLs | Shared | Shared | Shared | Shared | Shared | Shared | Shared | Pending |
+| Level lists | Shared | Shared | Shared | Shared | Shared | Shared | Pending |
+| Custom content/account URLs | Shared | Shared | Shared | Shared | Shared | Shared | Pending |
 ## Version policy
 
 ### 1.9
@@ -109,6 +109,16 @@ Reference:
 - https://github.com/Cvolton/GMDprivateServer
 - https://github.com/Cvolton/GMDprivateServer/wiki/Deliberate-differences-from-real-GD
 
+## GD 1.2–1.4 verification status
+
+✅ GD 1.2 — real-client smoke verification passed.
+
+✅ GD 1.3 — real-client smoke verification passed.
+
+✅ GD 1.4 — real-client smoke verification passed.
+
+These clients use the shared early legacy 1.x compatibility path rather than separate version-specific backends.
+
 ## GD 1.6 implementation status
 
 **Real-client smoke verification: passed for GD 1.6 build 16.** The patched client completed the supported server flows end-to-end on the shared legacy 1.x compatibility path.
@@ -153,4 +163,4 @@ The server-side implementation is complete for the current 1.0/1.1 and 1.9–2.2
 
 Until the real-client fixture exists, endpoint rows remain `Pending` by design and are not presented as empirically verified.
 
-The 2.2 release gate remains regression-locked. Do not mark an endpoint `Verified` because its alias exists; mark it verified only when the real client contract passes.
+The 2.2 release gate remains regression-locked. Endpoint rows still describe protocol-area coverage separately from the manual real-client verification snapshot above.
