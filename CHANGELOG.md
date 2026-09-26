@@ -35,6 +35,9 @@ MuchoCore v1.0.4 focuses on simplifying the core runtime while expanding the bui
 - added first-class GD 1.1, 1.5 and 1.6 compatibility profiles and regression coverage;
 - extended session lifetime handling for player and administrator dashboards;
 - made the dashboard the default landing page at the site root for all MuchoCore installations.
+- fixed moderator `!delete` command handling after the core command-service extraction;
+- added explicit level deletion controls to Rating Studio and the moderation level table;
+- kept level deletion as a soft delete and synchronized creator statistics after deletion.
 
 ### Validation
 
