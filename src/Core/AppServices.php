@@ -100,8 +100,6 @@ final class AppServices
                 new AccountService($pdo, $accountRepository)
             ),
 
-            'auth' => $auth,
-
             'artists' => new TopArtistController(
                 new TopArtistService(
                     new TopArtistRepository($pdo)
