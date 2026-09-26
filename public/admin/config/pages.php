@@ -36,6 +36,7 @@ return [
     'clientfeatures'=>'Client & Features',
     'clientpatcher'=>'Web Client Patcher',
     'updates'=>'Core Updates',
+    'plugins'=>'Custom Plugins',
 
     'backups'=>'Backups',
     'settings'=>'Settings',
