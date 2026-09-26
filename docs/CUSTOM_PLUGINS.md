@@ -147,3 +147,36 @@ A plugin should remain compatible with the MuchoCore SDK API it targets. Keep pl
 ## Security
 
 Plugins execute as part of the PHP application. SDK permissions are an API-level restriction, not a process sandbox. Treat third-party plugins like any other executable server-side code and review their source before installation.
+## Compatibility
+
+Plugins support explicit compatibility guards so a custom extension can survive core updates without being loaded against an unsupported API or core version.
+
+Example:
+
+```json
+{
+  "id": "my-plugin",
+  "name": "My Plugin",
+  "version": "1.4.0",
+  "api": 1,
+  "min_core_version": "1.0.3",
+  "max_core_version": "1.9.0",
+  "enabled": true,
+  "permissions": ["events", "routes"]
+}
+```
+
+- `api` is the MuchoCore Plugin SDK API generation. Current supported value: `1`.
+- `min_core_version` prevents loading on older cores.
+- `max_core_version` prevents loading after a declared upper compatibility boundary.
+- All version guards use `MAJOR.MINOR.PATCH`.
+- Older manifests without these optional fields remain compatible with Plugin SDK API 1.
+
+An incompatible plugin is skipped instead of being executed. This is especially useful when a GDPS keeps custom plugins in `custom/plugins/` while MuchoCore itself is updated from a stable release.
+
+## Diagnostics
+
+The core can inspect plugin manifests without executing plugin code. The Admin Panel uses this information to show compatibility and configuration problems such as disabled plugins, missing entrypoints and unsupported core/API versions.
+
+This diagnostic path is read-only and does not modify plugin files.
+
