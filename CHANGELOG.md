@@ -1,20 +1,17 @@
 # Changelog
 
 ## Unreleased
+## v1.0.3 — Persistent Plugins & Operations
 
+MuchoCore v1.0.3 expands the custom extension layer and improves the operator experience around long-lived GDPS installations.
 
+### Custom Plugins
 
 - added a persistent `custom/plugins/` extension layer for GDPS-specific functionality;
 - custom plugins are kept outside the tracked core source tree and are ignored by Git;
 - core updates preserve installed custom plugins instead of treating them as core changes;
 - documented plugin manifests, permissions, lifecycle events and installation workflow;
 - added regression coverage for loading a custom plugin from the persistent plugin directory.
-
-## v1.0.3 — Persistent Plugins & Operations
-
-MuchoCore v1.0.3 expands the custom extension layer and improves the operator experience around long-lived GDPS installations.
-
-### Custom Plugins
 
 - added Plugin SDK API compatibility metadata;
 - added optional minimum and maximum MuchoCore version guards for custom plugins;
