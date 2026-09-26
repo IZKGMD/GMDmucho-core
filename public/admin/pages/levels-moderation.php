@@ -79,7 +79,10 @@ foreach($st as $r):
 <td><input name="downloads" value="<?=h($r['downloads'])?>" style="width:75px"></td>
 <td><input name="likes" value="<?=h($r['likes'])?>" style="width:60px"></td>
 <td><input type="checkbox" name="deleted" <?=$r['is_deleted']?'checked':''?>></td>
-<td><button>Save</button></td>
+<td>
+<button type="submit" name="action" value="level-save">Save</button>
+<button type="submit" name="action" value="level-delete" class="red" onclick="return confirm('Delete this level?')">Delete</button>
+</td>
 </form>
 </tr>
 <?php endforeach ?>
