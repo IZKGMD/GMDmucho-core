@@ -30,6 +30,11 @@ $musicDir = $rootDir . '/storage/music-public';
  * - no account-count/rate quota beyond the 180-second cooldown
  */
 $musicMaxBytes = 64 * 1024 * 1024;
+$youtubeImportEnabled = filter_var(
+    getenv('MUCHO_ENABLE_YOUTUBE_IMPORT') ?: '1',
+    FILTER_VALIDATE_BOOL
+);
+$youtubeDownloader = (string)(getenv('MUCHO_YTDLP_BIN') ?: 'yt-dlp');
 
 $secure = (
     ($_SERVER['HTTPS'] ?? '') === 'on' ||
@@ -573,6 +578,267 @@ if ($action === 'upload') {
         @unlink($target);
         error_log('[Mucho Dashboard] ' . $e->getMessage());
         pdFlash('Upload failed. Please try again.', 'error');
+    }
+
+    pdRedirect();
+}
+
+if ($action === 'upload_youtube') {
+    pdRequireCsrf();
+    pdAntiBotOrReject('upload-youtube');
+
+    $account = pdAccountFromSession();
+
+    if (!$account) {
+        pdFlash('Sign in to import music.', 'error');
+        pdRedirect();
+    }
+
+    if (!$youtubeImportEnabled) {
+        pdFlash('YouTube import is disabled on this server.', 'error');
+        pdRedirect();
+    }
+
+    $accountId = (int)$account['id'];
+    $username = (string)$account['username'];
+    $youtubeUrl = trim((string)($_POST['youtube_url'] ?? ''));
+    $titleOverride = trim((string)($_POST['youtube_title'] ?? ''));
+    $artistOverride = trim((string)($_POST['youtube_artist'] ?? ''));
+
+    if ($youtubeUrl === '' || mb_strlen($youtubeUrl, 'UTF-8') > 512) {
+        pdFlash('Enter a valid YouTube URL.', 'error');
+        pdRedirect();
+    }
+
+    $parts = parse_url($youtubeUrl);
+    $host = strtolower((string)($parts['host'] ?? ''));
+    $allowedHosts = [
+        'youtube.com',
+        'www.youtube.com',
+        'm.youtube.com',
+        'music.youtube.com',
+        'youtu.be',
+    ];
+
+    if (
+        !isset($parts['scheme']) ||
+        !in_array(strtolower((string)$parts['scheme']), ['http', 'https'], true) ||
+        !in_array($host, $allowedHosts, true)
+    ) {
+        pdFlash('Only YouTube URLs are supported.', 'error');
+        pdRedirect();
+    }
+
+    $limiter = new RateLimiter();
+
+    if (!$limiter->allow('dashboard-youtube:' . $accountId, 1, 180)) {
+        pdFlash(
+            'You can import one song every 3 minutes. Please try again when the cooldown ends.',
+            'error'
+        );
+        pdRedirect();
+    }
+
+    $yt = escapeshellarg($youtubeDownloader);
+    $urlArg = escapeshellarg($youtubeUrl);
+
+    $versionOutput = [];
+    $versionCode = 1;
+    @exec($yt . ' --version 2>&1', $versionOutput, $versionCode);
+
+    if ($versionCode !== 0) {
+        pdFlash(
+            'YouTube import is unavailable: yt-dlp is not installed or is not executable.',
+            'error'
+        );
+        pdRedirect();
+    }
+
+    $metaOutput = [];
+    $metaCode = 1;
+
+    @exec(
+        $yt .
+        ' --no-playlist --dump-single-json --skip-download --no-warnings --socket-timeout 15 --retries 2 ' .
+        $urlArg .
+        ' 2>&1',
+        $metaOutput,
+        $metaCode
+    );
+
+    $metadata = null;
+
+    if ($metaCode === 0) {
+        foreach (array_reverse($metaOutput) as $line) {
+            $candidate = json_decode((string)$line, true);
+
+            if (is_array($candidate)) {
+                $metadata = $candidate;
+                break;
+            }
+        }
+    }
+
+    if (!is_array($metadata)) {
+        pdFlash('Could not read metadata from that YouTube video.', 'error');
+        pdRedirect();
+    }
+
+    $title = $titleOverride !== ''
+        ? $titleOverride
+        : trim((string)($metadata['title'] ?? ''));
+
+    $artist = $artistOverride !== ''
+        ? $artistOverride
+        : trim((string)($metadata['uploader'] ?? $metadata['channel'] ?? $username));
+
+    if ($title === '' || mb_strlen($title, 'UTF-8') > 128) {
+        pdFlash('The detected song title is invalid or too long.', 'error');
+        pdRedirect();
+    }
+
+    if ($artist === '' || mb_strlen($artist, 'UTF-8') > 128) {
+        pdFlash('The detected artist name is invalid or too long.', 'error');
+        pdRedirect();
+    }
+
+    $tmpRoot = $rootDir . '/storage/tmp';
+
+    if (!is_dir($tmpRoot) && !mkdir($tmpRoot, 0770, true) && !is_dir($tmpRoot)) {
+        pdFlash('Temporary music storage is unavailable.', 'error');
+        pdRedirect();
+    }
+
+    $jobDir = $tmpRoot . '/youtube-' . bin2hex(random_bytes(12));
+
+    if (!mkdir($jobDir, 0770, true) && !is_dir($jobDir)) {
+        pdFlash('Temporary music storage is unavailable.', 'error');
+        pdRedirect();
+    }
+
+    $cleanup = static function(string $dir): void {
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        foreach (glob($dir . '/*') ?: [] as $item) {
+            if (is_file($item) || is_link($item)) {
+                @unlink($item);
+            }
+        }
+
+        @rmdir($dir);
+    };
+
+    $downloadTemplate = $jobDir . '/%(id)s.%(ext)s';
+
+    $downloadCommand =
+        $yt .
+        ' --no-playlist --no-warnings --socket-timeout 15 --retries 2' .
+        ' --max-filesize 64M -x --audio-format mp3 --audio-quality 5' .
+        ' -o ' . escapeshellarg($downloadTemplate) .
+        ' ' . $urlArg .
+        ' 2>&1';
+
+    $downloadOutput = [];
+    $downloadCode = 1;
+
+    @exec($downloadCommand, $downloadOutput, $downloadCode);
+
+    if ($downloadCode !== 0) {
+        $cleanup($jobDir);
+        pdFlash(
+            'YouTube audio import failed. Check that yt-dlp and FFmpeg are installed and the video is accessible.',
+            'error'
+        );
+        pdRedirect();
+    }
+
+    $files = glob($jobDir . '/*.mp3') ?: [];
+
+    if (count($files) !== 1 || !is_file($files[0])) {
+        $cleanup($jobDir);
+        pdFlash('YouTube audio import did not produce a valid MP3 file.', 'error');
+        pdRedirect();
+    }
+
+    $source = $files[0];
+    $sizeBytes = (int)filesize($source);
+
+    if ($sizeBytes <= 0 || $sizeBytes > $musicMaxBytes) {
+        $cleanup($jobDir);
+        pdFlash('The imported MP3 is larger than the 64 MB server limit.', 'error');
+        pdRedirect();
+    }
+
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($source);
+
+    if (!in_array($mime, ['audio/mpeg', 'audio/mp3', 'audio/x-mpeg'], true)) {
+        $cleanup($jobDir);
+        pdFlash('The imported file is not a valid MP3.', 'error');
+        pdRedirect();
+    }
+
+    if (!is_dir($musicDir) && !mkdir($musicDir, 0770, true) && !is_dir($musicDir)) {
+        $cleanup($jobDir);
+        pdFlash('Music storage is unavailable.', 'error');
+        pdRedirect();
+    }
+
+    $stored = bin2hex(random_bytes(20)) . '.mp3';
+    $target = $musicDir . '/' . $stored;
+
+    if (!rename($source, $target)) {
+        $cleanup($jobDir);
+        pdFlash('Cannot store the imported MP3.', 'error');
+        pdRedirect();
+    }
+
+    @chmod($target, 0640);
+    $cleanup($jobDir);
+
+    $baseUrl = rtrim(
+        (string)(
+            getenv('MUCHO_ACCOUNT_URL')
+            ?: ('https://' . (string)($_SERVER['HTTP_HOST'] ?? 'localhost'))
+        ),
+        '/'
+    );
+
+    $downloadUrl = $baseUrl . '/music/' . rawurlencode($stored);
+
+    try {
+        $db->beginTransaction();
+
+        $stmt = $db->prepare(
+            'INSERT INTO songs
+                (name, author_id, author_name, size, download_url, is_verified)
+             VALUES
+                (:name, :author_id, :author_name, :size, :download_url, 0)'
+        );
+
+        $stmt->execute([
+            'name' => $title,
+            'author_id' => $accountId,
+            'author_name' => $artist,
+            'size' => round($sizeBytes / 1024 / 1024, 2),
+            'download_url' => $downloadUrl,
+        ]);
+
+        $songId = (int)$db->lastInsertId();
+        $db->commit();
+
+        pdFlash(
+            'YouTube track #' . $songId . ' imported. It is now waiting for moderation.'
+        );
+    } catch (Throwable $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+
+        @unlink($target);
+        error_log('[Mucho Dashboard] YouTube import: ' . $e->getMessage());
+        pdFlash('Import failed. Please try again.', 'error');
     }
 
     pdRedirect();
@@ -1679,16 +1945,23 @@ body.dashboard-page .topbar{
             </form>
         <?php else: ?>
             <div class="muted small">MUSIC UPLOAD · SIGNED IN</div>
-            <h2 style="margin:6px 0 8px">Upload a new track</h2>
+            <h2 style="margin:6px 0 8px">Add a new track</h2>
             <div class="cooldown" style="margin-bottom:11px">
                 Signed in as <b><?=pdH($account['username'])?></b> · one track every 3 minutes
             </div>
-            <div class="upload-summary">
-                <span><b>Ownership</b>GD account</span>
-                <span><b>Format</b>MP3 audio</span>
-                <span><b>Moderation</b>Required</span>
+
+            <div class="music-tabs" role="tablist" aria-label="Music upload method" style="display:flex;gap:8px;margin:0 0 14px">
+                <button class="btn music-tab is-active" type="button" role="tab" aria-selected="true" data-music-tab="file">Upload MP3</button>
+                <button class="btn alt music-tab" type="button" role="tab" aria-selected="false" data-music-tab="youtube">YouTube URL</button>
             </div>
 
+            <div class="upload-summary">
+                <span><b>Ownership</b>GD account</span>
+                <span><b>Moderation</b>Required</span>
+                <span><b>Limit</b>64 MB</span>
+            </div>
+
+            <div data-music-panel="file">
             <form method="post" enctype="multipart/form-data">
                 <input type="hidden" name="csrf" value="<?=pdH(pdCsrf())?>">
                 <input type="hidden" name="action" value="upload">
@@ -1725,6 +1998,49 @@ body.dashboard-page .topbar{
                     </div>
                 </div>
             </form>
+            </div>
+
+            <div data-music-panel="youtube" hidden>
+                <form method="post" autocomplete="off">
+                    <input type="hidden" name="csrf" value="<?=pdH(pdCsrf())?>">
+                    <input type="hidden" name="action" value="upload_youtube">
+                    <?php if ($uploadTurnstile): ?>
+                        <div class="turnstile-box">
+                            <div class="cf-turnstile" data-sitekey="<?=pdH(Turnstile::siteKey())?>" data-theme="auto" data-action="upload-youtube"></div>
+                        </div>
+                    <?php else: ?>
+                        <input type="hidden" name="antibot_token" value="<?=pdH($uploadAntiBot['token'] ?? '')?>">
+                        <label class="antibot-field" aria-hidden="true">Website
+                            <input type="text" name="website" tabindex="-1" autocomplete="off">
+                        </label>
+                    <?php endif; ?>
+
+                    <div class="field">
+                        <label>YouTube URL</label>
+                        <input type="url" name="youtube_url" maxlength="512" placeholder="https://www.youtube.com/watch?v=..." required>
+                    </div>
+
+                    <div class="upload">
+                        <div>
+                            <div class="field">
+                                <label>Song title <span class="muted small">(optional)</span></label>
+                                <input type="text" name="youtube_title" maxlength="128" placeholder="Detected from YouTube">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="field">
+                                <label>Artist <span class="muted small">(optional)</span></label>
+                                <input type="text" name="youtube_artist" maxlength="128" placeholder="Detected from YouTube">
+                            </div>
+                            <button class="btn" type="submit">Import from YouTube</button>
+                        </div>
+                    </div>
+
+                    <p class="muted small" style="margin-top:10px">
+                        Only import audio you have permission to use. YouTube import requires <code>yt-dlp</code> and FFmpeg on the server.
+                    </p>
+                </form>
+            </div>
         <?php endif; ?>
     </div>
 </section>
@@ -1947,5 +2263,31 @@ body.dashboard-page .topbar{
 </footer>
 
 </div>
+<script>
+(() => {
+    const root = document.querySelector('.music-tabs');
+    if (!root) return;
+
+    const tabs = [...document.querySelectorAll('[data-music-tab]')];
+    const panels = [...document.querySelectorAll('[data-music-panel]')];
+
+    function selectMusicTab(name) {
+        tabs.forEach((tab) => {
+            const active = tab.dataset.musicTab === name;
+            tab.classList.toggle('is-active', active);
+            tab.classList.toggle('alt', !active);
+            tab.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        panels.forEach((panel) => {
+            panel.hidden = panel.dataset.musicPanel !== name;
+        });
+    }
+
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => selectMusicTab(tab.dataset.musicTab));
+    });
+})();
+</script>
+
 </body>
 </html>
