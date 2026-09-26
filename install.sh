@@ -69,32 +69,62 @@ print_banner() {
 }
 profile_label() {
   case "$1" in
-    all) printf "GD 1.9 → 2.2" ;;
+    all) printf "GD 1.0 → 2.2" ;;
+    1|10) printf "GD 1.0" ;;
+    11) printf "GD 1.1" ;;
     19) printf "GD 1.9" ;;
     20) printf "GD 2.0" ;;
     21) printf "GD 2.1" ;;
     22) printf "GD 2.2" ;;
-    *) printf "%s" "$1" | sed "s/19/1.9/g; s/20/2.0/g; s/21/2.1/g; s/22/2.2/g; s/,/, /g" ;;
+    *)
+      local value
+      local -a values labels
+      IFS="," read -r -a values <<< "$1"
+      labels=()
+      for value in "${values[@]}"; do
+        case "$value" in
+          1|10) labels+=("GD 1.0") ;;
+          11) labels+=("GD 1.1") ;;
+          19) labels+=("GD 1.9") ;;
+          20) labels+=("GD 2.0") ;;
+          21) labels+=("GD 2.1") ;;
+          22) labels+=("GD 2.2") ;;
+          *) labels+=("$value") ;;
+        esac
+      done
+      local IFS=", "
+      printf "%s" "${labels[*]}"
+      ;;
   esac
 }
 
 profile_choice() {
   case "$1" in
     all) printf "1" ;;
-    19) printf "2" ;;
-    20) printf "3" ;;
-    21) printf "4" ;;
-    22) printf "5" ;;
-    *) printf "6" ;;
+    1|10) printf "2" ;;
+    11) printf "3" ;;
+    19) printf "4" ;;
+    20) printf "5" ;;
+    21) printf "6" ;;
+    22) printf "7" ;;
+    *) printf "8" ;;
   esac
 }
 
 valid_versions() {
-  case "$1" in
-    all|19|20|21|22|19,20|19,21|19,22|20,21|20,22|21,22|19,20,21|19,20,22|19,21,22|20,21,22|19,20,21,22)
-      return 0 ;;
-    *) return 1 ;;
-  esac
+  [[ "$1" == "all" ]] && return 0
+  local value
+  local -a values
+  IFS="," read -r -a values <<< "$1"
+  ((${#values[@]} > 0)) || return 1
+  for value in "${values[@]}"; do
+    value="${value//[[:space:]]/}"
+    case "$value" in
+      1|10|11|19|20|21|22) ;;
+      *) return 1 ;;
+    esac
+  done
+  return 0
 }
 
 select_compatibility_profile() {
@@ -103,7 +133,7 @@ select_compatibility_profile() {
   fi
   [[ "$GD_VERSIONS" == "ALL" || "$GD_VERSIONS" == "All" ]] && GD_VERSIONS="all"
   valid_versions "$GD_VERSIONS" ||
-    fail "Invalid MUCHO_GD_VERSIONS='$GD_VERSIONS'. Use all or a comma-separated set of 19,20,21,22."
+    fail "Invalid MUCHO_GD_VERSIONS='$GD_VERSIONS'. Use all or a comma-separated set of 1,11,19,20,21,22."
 
   if [[ ! -t 0 && ! -t 1 ]]; then
     info "Compatibility profile: $(profile_label "$GD_VERSIONS")"
@@ -117,23 +147,29 @@ select_compatibility_profile() {
   local current_choice choice
   current_choice="$(profile_choice "$GD_VERSIONS")"
 
-  printf "  ${CYAN}1${RESET}) ${BOLD}All supported versions${RESET}   GD 1.9 → 2.2"
+  printf "  ${CYAN}1${RESET}) ${BOLD}All supported versions${RESET}   GD 1.0 → 2.2"
   [[ "$current_choice" == "1" ]] && printf "  ${GREEN}← current${RESET}"
   printf "\n"
-  printf "  ${CYAN}2${RESET}) GD 1.9 only              Legacy"
+  printf "  ${CYAN}2${RESET}) GD 1.0 only"
   [[ "$current_choice" == "2" ]] && printf "  ${GREEN}← current${RESET}"
   printf "\n"
-  printf "  ${CYAN}3${RESET}) GD 2.0 only"
+  printf "  ${CYAN}3${RESET}) GD 1.1 only"
   [[ "$current_choice" == "3" ]] && printf "  ${GREEN}← current${RESET}"
   printf "\n"
-  printf "  ${CYAN}4${RESET}) GD 2.1 only"
+  printf "  ${CYAN}4${RESET}) GD 1.9 only"
   [[ "$current_choice" == "4" ]] && printf "  ${GREEN}← current${RESET}"
   printf "\n"
-  printf "  ${CYAN}5${RESET}) GD 2.2 only"
+  printf "  ${CYAN}5${RESET}) GD 2.0 only"
   [[ "$current_choice" == "5" ]] && printf "  ${GREEN}← current${RESET}"
   printf "\n"
-  printf "  ${CYAN}6${RESET}) Custom profile            e.g. 19,22"
+  printf "  ${CYAN}6${RESET}) GD 2.1 only"
   [[ "$current_choice" == "6" ]] && printf "  ${GREEN}← current${RESET}"
+  printf "\n"
+  printf "  ${CYAN}7${RESET}) GD 2.2 only"
+  [[ "$current_choice" == "7" ]] && printf "  ${GREEN}← current${RESET}"
+  printf "\n"
+  printf "  ${CYAN}8${RESET}) Custom profile            e.g. 11,19,22"
+  [[ "$current_choice" == "8" ]] && printf "  ${GREEN}← current${RESET}"
   printf "\n\n"
 
   read -r -p "  Select [$current_choice]: " choice < /dev/tty || choice="$current_choice"
@@ -141,12 +177,14 @@ select_compatibility_profile() {
 
   case "$choice" in
     1) GD_VERSIONS="all" ;;
-    2) GD_VERSIONS="19" ;;
-    3) GD_VERSIONS="20" ;;
-    4) GD_VERSIONS="21" ;;
-    5) GD_VERSIONS="22" ;;
-    6)
-      read -r -p "  Versions [19,20,21,22]: " GD_VERSIONS < /dev/tty
+    2) GD_VERSIONS="1" ;;
+    3) GD_VERSIONS="11" ;;
+    4) GD_VERSIONS="19" ;;
+    5) GD_VERSIONS="20" ;;
+    6) GD_VERSIONS="21" ;;
+    7) GD_VERSIONS="22" ;;
+    8)
+      read -r -p "  Versions [1,11,19,20,21,22]: " GD_VERSIONS < /dev/tty
       valid_versions "$GD_VERSIONS" || fail "Invalid version profile."
       ;;
     *) fail "Invalid selection." ;;
