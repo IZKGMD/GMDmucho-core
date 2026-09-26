@@ -281,6 +281,8 @@ final readonly class Application
 
         $route('/getGJLevels21',
             [$levelController,'list']);
+        $route('/updateGJLevel',
+            [$transferController,'checkUpdate']);
         $route('/uploadGJLevel21',
             [$transferController,'upload']);
         $route('/uploadGJLevel22',
