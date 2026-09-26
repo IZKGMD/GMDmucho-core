@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: release-stable-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
 jobs:
   release:
     if: github.event.workflow_run.conclusion == 'success'
