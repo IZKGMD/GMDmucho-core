@@ -45,7 +45,7 @@
 | ⭐ **Rating Studio** | Search levels by ID/name/creator, review pending requests, publish 0–10 star ratings, choose difficulty faces, feature tiers and audit the change |
 | 🔐 **Admin security** | Separate administrator accounts, password login, native WebAuthn/FIDO2 passkeys, Google Authenticator TOTP, one-time recovery codes, self-service password setup for invited admins, customizable RBAC permissions, rate limiting and audit logging |
 | 🔄 **Cvolton migration** | Read-only source DB preflight, account/profile/level/score migration, persistent ID mapping and transactional apply |
-| 🏰 **Clans** | Clan names/tags, owner/officer/member roles, membership, invitations and in-game clan-tag display |
+| 🏰 **Clans** | Player-dashboard clan directory, clan names/tags, owner/officer/member roles, membership, invitations and server-side in-game clan-tag display |
 | 🧰 **Client patchers** | Windows desktop patcher, browser-based Windows patcher and Android APK patcher |
 | 🐳 **Deployment** | Docker Compose, MariaDB, PHP 8.3, Caddy, automatic migrations, one-command manual updates and release detection |
 | 🧪 **Validation** | PHP, shell, protocol, wire-format, security, patcher, Docker and Caddy checks in GitHub Actions |
