@@ -234,12 +234,12 @@ $checks = [
         'GD 1.9 demon difficulty state',
     ],
     [
-        __DIR__ . '/../../src/Interaction/CommentService.php',
-        'private function commandResponse(',
+        __DIR__ . '/../../src/Interaction/CommentCommandService.php',
+        'public function response(',
         'command response handler',
     ],
     [
-        __DIR__ . '/../../src/Interaction/CommentService.php',
+        __DIR__ . '/../../src/Interaction/CommentCommandService.php',
         '"temp_0_" . $message',
         'GD 2.1+ command success/failure message transport',
     ],
