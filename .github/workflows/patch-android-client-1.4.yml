@@ -1,0 +1,59 @@
+name: One-shot GD 1.4 Android patch
+
+on:
+  push:
+    paths:
+      - "Geometry.Dash.ver.1.40.build.11.apk"
+      - ".github/workflows/patch-android-client-1.4.yml"
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_mysql, zip
+          tools: composer
+
+      - name: Install Android APK tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends android-sdk-build-tools
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Patch GD 1.4 build 11
+        env:
+          MUCHO_ANDROID_SIGNER_DIR: \${{ github.workspace }}/.android-signer
+        run: |
+          mkdir -p out
+          php <<'PHP'
+          <?php
+          require "vendor/autoload.php";
+          $report = \MuchoCore\Client\AndroidClientPatcher::patchFile(
+              "Geometry.Dash.ver.1.40.build.11.apk",
+              "out/Geometry.Dash.ver.1.40.build.11-MuchoCore.apk",
+              "https://muchogdps.space"
+          );
+          file_put_contents(
+              "out/Geometry.Dash.ver.1.40.build.11-MuchoCore-patch-report.json",
+              json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL
+          );
+          echo "Replacement count: " . ($report["replacement_count"] ?? 0) . PHP_EOL;
+          echo "Output SHA256: " . ($report["output_sha256"] ?? "") . PHP_EOL;
+          PHP
+          apksigner verify --verbose out/Geometry.Dash.ver.1.40.build.11-MuchoCore.apk
+
+      - name: Upload patched APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: gd14-muchocore-patched
+          path: |
+            out/Geometry.Dash.ver.1.40.build.11-MuchoCore.apk
+            out/Geometry.Dash.ver.1.40.build.11-MuchoCore-patch-report.json
+          retention-days: 3
