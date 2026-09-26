@@ -118,7 +118,7 @@ final class GdUserEncoder
             $userId = (int)($u['user_id'] ?? $accountId);
 
             $mapping = [
-                1  => ProtocolText::username($u['username'] ?? 'Player'),
+                1  => $this->displayUsername($u),
                 2  => $userId,
                 13 => (int)($u['secret_coins'] ?? 0),
                 17 => (int)($u['user_coins'] ?? 0),
@@ -162,7 +162,7 @@ final class GdUserEncoder
             $userId = (int)($u['user_id'] ?? $accountId);
 
             $mapping = [
-                1  => ProtocolText::username($u['username'] ?? 'Player'),
+                1  => $this->displayUsername($u),
                 2  => $userId,
                 13 => (int)($u['secret_coins'] ?? 0),
                 17 => (int)($u['user_coins'] ?? 0),
