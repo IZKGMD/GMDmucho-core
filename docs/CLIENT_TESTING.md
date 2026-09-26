@@ -39,7 +39,7 @@ Use a real client for the target generation:
 | GD 1.4 | legacy 1.x | manual smoke verification | ✅ passed |
 | GD 1.5 | `1.5` | manual smoke verification | server compatibility + protocol contracts |
 | GD 1.6 | legacy 1.x | manual smoke verification | server compatibility + protocol contracts |
-| GD 1.9 | `1.9` | `tests/client-fixtures/1.9/endpoints.json` | `tests/release/release-1.9-gate.sh` |
+| GD 1.9 | `1.9` | manual smoke verification | ✅ passed |
 | GD 2.0 | `2.0` | `tests/client-fixtures/2.0/endpoints.json` | `tests/release/release-2.0-gate.sh` |
 | GD 2.1 | `2.1` | `tests/client-fixtures/2.1/endpoints.json` | `tests/release/release-2.1-gate.sh` |
 | GD 2.2 | `2.2` | `tests/client-fixtures/2.2/endpoints.json` | `tests/release/release-2.2-gate.sh` |
@@ -125,6 +125,10 @@ A real Geometry Dash 1.1 client has been verified against MuchoCore on the share
 ## Current 1.2–1.4 verification status
 
 Real Geometry Dash 1.2, 1.3, and 1.4 clients have been verified against the shared MuchoCore legacy 1.x compatibility path. Marked ✅ as completed manual smoke verification.
+
+## Current 1.9 verification status
+
+A real Geometry Dash 1.9 client has been verified against MuchoCore. The client completed the tested legacy server flows successfully.
 
 ## Current 1.8 verification status
 
