@@ -6,9 +6,10 @@ The installer lets you choose which known client generations the installation sh
 
 | Profile | Runtime setting | Purpose |
 | --- | --- | --- |
-| All supported | `all` | GD 1.0, 1.1, 1.9, 2.0, 2.1 and 2.2 |
+| All supported | `all` | GD 1.0, 1.1, 1.5, 1.9, 2.0, 2.1 and 2.2 |
 | GD 1.0 only | `1` | Legacy 1.0-only server |
 | GD 1.1 only | `11` | Legacy 1.1-only server |
+| GD 1.5 only | `15` | Legacy 1.5-only server |
 | GD 1.9 only | `19` | Legacy 1.9-only server |
 | GD 2.0 only | `20` | 2.0-only server |
 | GD 2.1 only | `21` | 2.1-only server |
@@ -30,7 +31,7 @@ Instead, MuchoCore keeps shared domain logic and selects version-specific protoc
                              │
           ┌──────────────────┼──────────────────┐
           │                  │                  │
-        GD 1.0        GD 1.1        GD 1.9        GD 2.0–2.2
+        GD 1.0        GD 1.1        GD 1.5        GD 1.9        GD 2.0–2.2
         legacy        legacy        legacy          modern
         identity      endpoints     endpoints      wire/protocol
 ~~~
@@ -48,6 +49,12 @@ GD 1.1 uses the legacy Geometry Dash endpoint family shared by early 1.x clients
 The runtime recognizes GD 1.1 as family `1.1`, does not enable GJP2, and keeps the same shared server core as the other supported generations.
 
 Real-client verification for GD 1.1 is not yet claimed; automated compatibility coverage is used until a captured 1.1 client contract fixture is added.
+
+### GD 1.5
+
+GD 1.5 uses the early legacy Geometry Dash endpoint family and legacy GJP authentication. MuchoCore identifies it as family `1.5` (`gameVersion=15`) while preserving compatibility with requests that use older protocol version values.
+
+A real Geometry Dash 1.5 build 13 has been smoke-tested against MuchoCore. Verified flows include level search, level upload, level update handling, comment submission and the legacy UDID-based `updateGJUserScore` path.
 
 ### GD 1.9
 
@@ -80,7 +87,7 @@ The installer presents a version menu.
 For automated deployment, set the environment variable before running the installer:
 
 ~~~bash
-export MUCHO_GD_VERSIONS=1,11,19,22
+export MUCHO_GD_VERSIONS=1,11,15,19,22
 sudo -E bash install.sh
 ~~~
 
@@ -90,6 +97,7 @@ Use:
 MUCHO_GD_VERSIONS=all
 MUCHO_GD_VERSIONS=1
 MUCHO_GD_VERSIONS=11
+MUCHO_GD_VERSIONS=15
 MUCHO_GD_VERSIONS=19
 MUCHO_GD_VERSIONS=20
 MUCHO_GD_VERSIONS=21
