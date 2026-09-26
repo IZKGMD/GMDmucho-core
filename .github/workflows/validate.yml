@@ -92,7 +92,7 @@ jobs:
       - name: Check required files
         run: |
           test -f VERSION
-          test "$(tr -d '[:space:]' < VERSION)" = "1.0.2"
+          test "$(tr -d '[:space:]' < VERSION)" = "1.0.3"
           test -f CHANGELOG.md
           test -f docker-compose.yml
           test -f docker-compose.tunnel.yml
@@ -107,6 +107,8 @@ jobs:
           test -f bin/mucho-install-auto-update.sh
           test -f docs/AUTO_UPDATE.md
           test -f docs/ADMIN_RBAC.md
+          test -f database/migrations/20260926_001_plugin_admin.php
+          test -f public/admin/pages/plugins.php
 
       - name: Check Docker Compose configuration
         run: |
