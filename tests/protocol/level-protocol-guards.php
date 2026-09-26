@@ -85,7 +85,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Protocol/GdLegacyText.php',
-        'wire for all supported client families.',
+        'return $comment;',
         'GD 2.0+ comments stay plain text',
     ],
     [
