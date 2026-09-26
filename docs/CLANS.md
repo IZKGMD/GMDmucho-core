@@ -122,4 +122,6 @@ Clans do not replace or modify existing Geometry Dash account identifiers. Older
 
 The in-game tag display is implemented by decorating the name returned by existing user/profile/comment encoders. No dedicated clan protocol is required for clients that already display the standard user-name field.
 
-The player dashboard provides clan discovery, creation, open-clan joining and membership status. The existing authenticated JSON API remains the canonical management contract for officer/owner operations and future richer UIs.
+The player dashboard provides clan discovery, creation, open-clan joining and membership status.
+
+The dashboard is intentionally GDPS-local: each installation reads its own clan database, so clan names and tags are scoped to that server. The existing authenticated JSON API remains the canonical management contract for officer/owner operations and future richer UIs.
