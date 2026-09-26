@@ -25,7 +25,11 @@ $assert(str_contains($pages,"'rating'=>'Rating Studio'"),'rating page registry')
 $assert(str_contains($router,"'rating'"),'rating admin route');
 $assert(str_contains($router,"../pages/rating.php"),'rating page renderer');
 $assert(str_contains($index,'elseif ($action===\'level-rate-save\')'),'level rating action');
-$assert(str_contains($index,"elseif ($action==='level-delete')"),'level deletion action');
+$assert(
+    str_contains($index,"level-delete") &&
+    str_contains($index,"SET is_deleted=1"),
+    'level deletion action'
+);
 $assert(str_contains($rating,'value="level-delete"'),'rating studio delete form');
 $assert(str_contains($index,"requireRank(20);"),'moderator rank gate');
 $assert(str_contains($index,"requested_stars=0"),'rating clears pending request');
