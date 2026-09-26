@@ -11,6 +11,7 @@ $index=file_get_contents($root.'/public/admin/index.php');
 $router=file_get_contents($root.'/public/admin/core/AdminRouter.php');
 $pages=file_get_contents($root.'/public/admin/config/pages.php');
 $rating=file_get_contents($root.'/public/admin/pages/rating.php');
+$moderationPage=file_get_contents($root.'/public/admin/pages/levels-moderation.php');
 
 $assert=static function(bool $ok,string $message): void {
     if (!$ok) {
@@ -61,6 +62,8 @@ $assert(!str_contains($rating,'geometrydash.wiki.gg/wiki/Special:Redirect/file')
 $assert(!str_contains($rating,'name="demon" id="demon"'),'legacy demon checkbox removed');
 $assert(!str_contains($rating,'name="demon_difficulty" id="demonDifficulty"'),'legacy demon difficulty field removed');
 $assert(str_contains($rating,'Publish rating'),'publish control');
+$assert(str_contains($rating,'value="level-delete"'),'rating studio level delete control');
+$assert(str_contains($moderationPage,'value="level-delete"'),'moderation page level delete control');
 $assert(str_contains($rating,'$profile = $difficultyProfileForRow($row);'),'row difficulty profile initialized before use');
 $assert(str_contains($rating,'$selectedName = trim((string)($selected[\'name\'] ?? \'\')) ?: \'Unnamed level\';'),'selected level name initialized before use');
 $assert(!str_contains($rating,'Current rating'),'stale duplicated preview block removed');
