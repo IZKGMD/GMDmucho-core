@@ -134,4 +134,10 @@ assertClanContract(
     'clan application flow is rate-limited'
 );
 
+assertClanContract(
+    str_contains($repository, 'DELETE FROM mucho_clan_applications') &&
+    str_contains($repository, 'DELETE FROM mucho_clan_invites'),
+    'clan joins, invites and applications clean up competing pending state'
+);
+
 echo "MUCHOCORE_CLAN_CONTRACT_OK\n";
