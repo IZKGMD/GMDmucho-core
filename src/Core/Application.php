@@ -163,7 +163,8 @@ final readonly class Application
                 $auth,
                 $accountRepo,
                 $userRepo,
-                new GdUserEncoder()
+                new GdUserEncoder(),
+                $legacy10Identity
             )
         );
 
