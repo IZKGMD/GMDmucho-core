@@ -122,9 +122,22 @@ $legacyLevelTransfer = (string)file_get_contents(
 );
 
 assertSecurityRegression(
-    str_contains($legacyLevelTransfer, 'in_array(') &&
-    str_contains($legacyLevelTransfer, '[1, 19]') &&
-    str_contains($legacyLevelTransfer, 'credential === \'\''),
+    str_contains(
+        $legacyLevelTransfer,
+        "effectiveGameVersion() > 0"
+    ) &&
+    str_contains(
+        $legacyLevelTransfer,
+        "effectiveGameVersion() < 19"
+    ) &&
+    str_contains(
+        $legacyLevelTransfer,
+        "trim($udid) !== ''"
+    ) &&
+    str_contains(
+        $legacyLevelTransfer,
+        "credential === ''"
+    ),
     'GD 1.0 legacy UDID uploads are allowed without GJP credentials'
 );
 
