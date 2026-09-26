@@ -5,6 +5,7 @@ use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Branding\BrandingService;
 use MuchoCore\Clan\ClanRepository;
 use MuchoCore\Database\Database;
+use MuchoCore\Security\RateLimiter;
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
@@ -144,6 +145,10 @@ if ($action !== '') {
         $myClan = $repo->getForAccount($accountId);
 
         if ($action === 'create') {
+            if (!(new RateLimiter())->allow('clan-create:' . $accountId, 3, 3600)) {
+                throw new RuntimeException('Clan creation limit reached. Try again later.');
+            }
+
             if ($myClan !== null) {
                 throw new RuntimeException('You are already in a clan.');
             }
@@ -188,6 +193,10 @@ if ($action !== '') {
                 throw new RuntimeException('You are already in a clan.');
             }
 
+            if (!(new RateLimiter())->allow('clan-join:' . $accountId, 10, 600)) {
+                throw new RuntimeException('Too many join attempts. Try again later.');
+            }
+
             $clan = $repo->getById($clanId);
 
             if ($clan === null || (int)$clan['is_open'] !== 1) {
@@ -214,6 +223,181 @@ if ($action !== '') {
 
             $repo->removeMember((int)$myClan['clan_id'], $accountId);
             pcFlash('You left ' . $myClan['name'] . '.');
+            pcRedirect();
+        }
+
+        if ($action === 'invite') {
+            if (
+                $myClan === null ||
+                !in_array((string)$myClan['role'], ['owner', 'officer'], true)
+            ) {
+                throw new RuntimeException('Officer permission required.');
+            }
+
+            $targetUsername = trim((string)($_POST['targetUsername'] ?? ''));
+
+            if ($targetUsername === '' || strlen($targetUsername) > 20) {
+                throw new RuntimeException('Enter a valid Geometry Dash username.');
+            }
+
+            $q = $db->prepare(
+                'SELECT account_id, is_active, is_banned
+                 FROM accounts
+                 WHERE username = :username
+                 LIMIT 1'
+            );
+            $q->execute(['username' => $targetUsername]);
+            $target = $q->fetch(PDO::FETCH_ASSOC);
+
+            if (
+                !is_array($target) ||
+                (int)$target['is_active'] !== 1 ||
+                (int)$target['is_banned'] !== 0
+            ) {
+                throw new RuntimeException('Player not found.');
+            }
+
+            $targetId = (int)$target['account_id'];
+
+            if ($targetId === $accountId) {
+                throw new RuntimeException('You cannot invite yourself.');
+            }
+
+            if ($repo->getForAccount($targetId) !== null) {
+                throw new RuntimeException('That player is already in a clan.');
+            }
+
+            if ((int)$myClan['member_count'] >= (int)$myClan['max_members']) {
+                throw new RuntimeException('Your clan is full.');
+            }
+
+            $repo->invite(
+                (int)$myClan['clan_id'],
+                $targetId,
+                $accountId
+            );
+
+            pcFlash('Invitation sent to ' . $targetUsername . '.');
+            pcRedirect();
+        }
+
+        if ($action === 'accept') {
+            $inviteId = (int)($_POST['inviteID'] ?? 0);
+
+            if ($myClan !== null) {
+                throw new RuntimeException('You are already in a clan.');
+            }
+
+            $invite = $repo->getInvite($inviteId, $accountId);
+
+            if ($invite === null) {
+                throw new RuntimeException('Invitation not found or expired.');
+            }
+
+            $clan = $repo->getById((int)$invite['clan_id']);
+
+            if (
+                $clan === null ||
+                (int)$clan['member_count'] >= (int)$clan['max_members']
+            ) {
+                throw new RuntimeException('The clan is full or unavailable.');
+            }
+
+            $db->beginTransaction();
+
+            try {
+                $insert = $db->prepare(
+                    "INSERT INTO mucho_clan_members (clan_id, account_id, role)
+                     VALUES (:clan_id, :account_id, 'member')"
+                );
+                $insert->execute([
+                    'clan_id' => (int)$invite['clan_id'],
+                    'account_id' => $accountId,
+                ]);
+
+                $delete = $db->prepare(
+                    'DELETE FROM mucho_clan_invites
+                     WHERE invite_id = :invite_id
+                       AND account_id = :account_id'
+                );
+                $delete->execute([
+                    'invite_id' => $inviteId,
+                    'account_id' => $accountId,
+                ]);
+
+                $db->commit();
+            } catch (Throwable $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+                throw $e;
+            }
+
+            pcFlash('Joined ' . $invite['name'] . '.');
+            pcRedirect();
+        }
+
+        if ($action === 'decline') {
+            $inviteId = (int)($_POST['inviteID'] ?? 0);
+            $repo->deleteInvite($inviteId, $accountId);
+            pcFlash('Invitation declined.');
+            pcRedirect();
+        }
+
+        if ($action === 'kick') {
+            if (
+                $myClan === null ||
+                !in_array((string)$myClan['role'], ['owner', 'officer'], true)
+            ) {
+                throw new RuntimeException('Officer permission required.');
+            }
+
+            $targetId = (int)($_POST['targetAccountID'] ?? 0);
+            $target = $repo->getForAccount($targetId);
+
+            if (
+                $target === null ||
+                (int)$target['clan_id'] !== (int)$myClan['clan_id']
+            ) {
+                throw new RuntimeException('Target is not in your clan.');
+            }
+
+            if ((string)$target['role'] === 'owner') {
+                throw new RuntimeException('The clan owner cannot be kicked.');
+            }
+
+            if (
+                (string)$myClan['role'] === 'officer' &&
+                (string)$target['role'] !== 'member'
+            ) {
+                throw new RuntimeException('Officers cannot remove other officers.');
+            }
+
+            $repo->removeMember((int)$myClan['clan_id'], $targetId);
+            pcFlash('Member removed.');
+            pcRedirect();
+        }
+
+        if ($action === 'role') {
+            if ($myClan === null || (string)$myClan['role'] !== 'owner') {
+                throw new RuntimeException('Owner permission required.');
+            }
+
+            $targetId = (int)($_POST['targetAccountID'] ?? 0);
+            $role = (string)($_POST['role'] ?? '');
+            $target = $repo->getForAccount($targetId);
+
+            if (
+                !in_array($role, ['officer', 'member'], true) ||
+                $target === null ||
+                (int)$target['clan_id'] !== (int)$myClan['clan_id'] ||
+                (string)$target['role'] === 'owner'
+            ) {
+                throw new RuntimeException('Invalid role change.');
+            }
+
+            $repo->setRole((int)$myClan['clan_id'], $targetId, $role);
+            pcFlash('Member role updated.');
             pcRedirect();
         }
 
@@ -446,12 +630,65 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
             <h2>Members</h2>
             <span class="muted"><?=count($selected['members'])?> members</span>
         </div>
+        <?php
+        $selectedViewerRole = null;
+
+        if (
+            $account &&
+            $myClan &&
+            (int)$myClan['clan_id'] === (int)$selected['clan_id']
+        ) {
+            $selectedViewerRole = (string)$myClan['role'];
+        }
+        ?>
+
         <?php foreach ($selected['members'] as $member): ?>
+        <?php
+        $canKick =
+            in_array($selectedViewerRole, ['owner', 'officer'], true) &&
+            (string)$member['role'] !== 'owner' &&
+            !(
+                $selectedViewerRole === 'officer' &&
+                (string)$member['role'] !== 'member'
+            );
+
+        $canChangeRole =
+            $selectedViewerRole === 'owner' &&
+            (string)$member['role'] !== 'owner';
+
+        $nextRole = (string)$member['role'] === 'officer'
+            ? 'member'
+            : 'officer';
+        ?>
         <div class="member">
             <span>
                 <b><?=pcH($member['username'])?></b>
                 <small>Account #<?=pcH($member['account_id'])?> · <?=pcH($member['role'])?></small>
             </span>
+            <?php if ($canKick || $canChangeRole): ?>
+            <span>
+                <?php if ($canKick): ?>
+                <form method="post" style="display:inline">
+                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                    <input type="hidden" name="action" value="kick">
+                    <input type="hidden" name="targetAccountID" value="<?=((int)$member['account_id'])?>">
+                    <button class="btn alt" type="submit">Kick</button>
+                </form>
+                <?php endif; ?>
+
+                <?php if ($canChangeRole): ?>
+                <form method="post" style="display:inline">
+                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                    <input type="hidden" name="action" value="role">
+                    <input type="hidden" name="targetAccountID" value="<?=((int)$member['account_id'])?>">
+                    <input type="hidden" name="role" value="<?=pcH($nextRole)?>">
+                    <button class="btn alt" type="submit">
+                        <?=($nextRole === 'officer') ? 'Promote' : 'Demote'?>
+                    </button>
+                </form>
+                <?php endif; ?>
+            </span>
+            <?php endif; ?>
         </div>
         <?php endforeach; ?>
     </div>
@@ -476,6 +713,60 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
         </div>
     </div>
 </section>
+
+<?php if ($account && $myClan && in_array((string)$myClan['role'], ['owner', 'officer'], true)): ?>
+<section class="section">
+    <div class="panel">
+        <div class="section-head">
+            <h2>Invite a player</h2>
+            <span class="muted">Use the player's Geometry Dash username</span>
+        </div>
+        <form class="search" method="post">
+            <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+            <input type="hidden" name="action" value="invite">
+            <input type="text" name="targetUsername" maxlength="20" placeholder="Player username" required>
+            <button class="btn" type="submit">Send invite</button>
+        </form>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php if ($account): ?>
+<?php $pendingInvites = $repo->invitations((int)$account['id']); ?>
+<?php if ($pendingInvites): ?>
+<section class="section">
+    <div class="panel">
+        <div class="section-head">
+            <h2>Pending invitations</h2>
+            <span class="muted"><?=count($pendingInvites)?> waiting</span>
+        </div>
+        <?php foreach ($pendingInvites as $invite): ?>
+        <div class="member">
+            <span>
+                <b>[<?=pcH($invite['tag'])?>] <?=pcH($invite['name'])?></b>
+                <small>Invited by <?=pcH($invite['invited_by_username'])?> · expires <?=pcH($invite['expires_at'])?></small>
+            </span>
+            <span>
+                <form method="post" style="display:inline">
+                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                    <input type="hidden" name="action" value="accept">
+                    <input type="hidden" name="inviteID" value="<?=((int)$invite['invite_id'])?>">
+                    <button class="btn" type="submit">Accept</button>
+                </form>
+                <form method="post" style="display:inline">
+                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                    <input type="hidden" name="action" value="decline">
+                    <input type="hidden" name="inviteID" value="<?=((int)$invite['invite_id'])?>">
+                    <button class="btn alt" type="submit">Decline</button>
+                </form>
+            </span>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</section>
+<?php endif; ?>
+<?php endif; ?>
+
 <?php endif; ?>
 
 <footer class="footer">
