@@ -14,6 +14,7 @@ function assertClanContract(bool $condition, string $name): void
 
 $service = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanService.php');
 $repository = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanRepository.php');
+$statsRepository = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanStatsRepository.php');
 $controller = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanController.php');
 $application = (string)file_get_contents(__DIR__ . '/../../src/Core/AppRoutes.php');
 $migration = (string)file_get_contents(__DIR__ . '/../../database/migrations/20260926_002_clans_v2.php');
@@ -153,11 +154,13 @@ assertClanContract(
 );
 
 assertClanContract(
-    str_contains($repository, 'function stats(') &&
-    str_contains($repository, 'function topClans(') &&
-    str_contains($repository, 'total_stars') &&
-    str_contains($repository, 'total_demons') &&
-    str_contains($repository, 'total_creator_points'),
+    str_contains($repository, 'return $this->statsRepository->stats($clanId);') &&
+    str_contains($repository, 'return $this->statsRepository->topClans($metric,$limit);') &&
+    str_contains($statsRepository, 'function stats(') &&
+    str_contains($statsRepository, 'function topClans(') &&
+    str_contains($statsRepository, 'total_stars') &&
+    str_contains($statsRepository, 'total_demons') &&
+    str_contains($statsRepository, 'total_creator_points'),
     'repository aggregates live clan statistics and rankings'
 );
 
