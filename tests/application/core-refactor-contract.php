@@ -69,6 +69,18 @@ assertCoreRefactor(
     'CommentService delegates moderator commands to CommentCommandService'
 );
 
+$clanRepository=(string)file_get_contents(__DIR__.'/../../src/Clan/ClanRepository.php');
+$clanStatsRepository=(string)file_get_contents(__DIR__.'/../../src/Clan/ClanStatsRepository.php');
+assertCoreRefactor(
+    str_contains($clanRepository,'ClanStatsRepository $statsRepository') &&
+    str_contains($clanRepository,'return $this->statsRepository->stats($clanId);') &&
+    str_contains($clanRepository,'return $this->statsRepository->topClans($metric,$limit);') &&
+    str_contains($clanStatsRepository,'function stats(') &&
+    str_contains($clanStatsRepository,'function topClans('),
+    'ClanRepository delegates statistics queries to ClanStatsRepository'
+);
+
+
 assertCoreRefactor(
     str_contains($routes,'/api/clans/rankings') &&
     str_contains($routes,'/getGJLevelScores'),
