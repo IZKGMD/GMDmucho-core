@@ -31,8 +31,8 @@ foreach ([
     "action === 'unban'",
     'Clan settings',
     'Ownership',
-    'Invitations & bans',
-    'my-clan-overview',
+    'Clan stats',
+    'Invite players',
 ] as $needle) {
     assertClanDashboardContract(
         str_contains($dashboard, $needle),
@@ -47,7 +47,8 @@ assertClanDashboardContract(
 );
 
 assertClanDashboardContract(
-    str_contains($dashboard, 'class="btn alt danger"'),
+    str_contains($dashboard, 'class="btn danger"') &&
+    str_contains($dashboard, 'Delete clan'),
     'dashboard marks destructive clan actions'
 );
 
