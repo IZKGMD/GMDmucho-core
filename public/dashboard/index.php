@@ -35,6 +35,7 @@ $youtubeImportEnabled = filter_var(
     FILTER_VALIDATE_BOOL
 );
 $youtubeDownloader = (string)(getenv('MUCHO_YTDLP_BIN') ?: 'yt-dlp');
+$musicModerationRequired = pdMusicModerationRequired();
 
 $secure = (
     ($_SERVER['HTTPS'] ?? '') === 'on' ||
@@ -86,6 +87,11 @@ function pdFlash(?string $message = null, string $type = 'ok'): ?array
     unset($_SESSION['flash']);
 
     return is_array($flash) ? $flash : null;
+}
+
+function pdMusicModerationRequired(): bool
+{
+    return is_file(dirname(__DIR__, 2) . '/storage/control/music-moderation-required.flag');
 }
 
 function pdIp(): string
@@ -562,6 +568,7 @@ if ($action === 'upload') {
             'author_name' => $artist,
             'size' => round($size / 1024 / 1024, 2),
             'download_url' => $downloadUrl,
+            'is_verified' => $musicModerationRequired ? 0 : 1,
         ]);
 
         $songId = (int)$db->lastInsertId();
@@ -824,7 +831,7 @@ if ($action === 'upload_youtube') {
             'INSERT INTO songs
                 (name, author_id, author_name, size, download_url, is_verified)
              VALUES
-                (:name, :author_id, :author_name, :size, :download_url, 0)'
+                (:name, :author_id, :author_name, :size, :download_url, :is_verified)'
         );
 
         $stmt->execute([
@@ -833,6 +840,7 @@ if ($action === 'upload_youtube') {
             'author_name' => $artist,
             'size' => round($sizeBytes / 1024 / 1024, 2),
             'download_url' => $downloadUrl,
+            'is_verified' => $musicModerationRequired ? 0 : 1,
         ]);
 
         $songId = (int)$db->lastInsertId();
