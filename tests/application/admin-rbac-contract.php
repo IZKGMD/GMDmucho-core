@@ -36,6 +36,7 @@ assertValue(
 $permissions=AdminRbac::permissions();
 assertValue(true, isset($permissions['roles.manage']), 'roles.manage exists');
 assertValue(true, isset($permissions['self.security']), 'self.security exists');
+assertValue(true, isset($permissions['plugins.view']), 'plugins.view exists');
 
 assertValue(
     'levels.rate',
@@ -59,6 +60,12 @@ assertValue(
     'comments.manage',
     AdminRbac::permissionForContext(null,'comments',0),
     'comments page permission'
+);
+
+assertValue(
+    'plugins.view',
+    AdminRbac::permissionForContext(null,'plugins',0),
+    'plugins page permission'
 );
 
 assertValue(
