@@ -5,6 +5,21 @@ namespace MuchoCore\Protocol;
 
 final class GdRelationshipEncoder
 {
+    private function displayUsername(array $user): string
+    {
+        $username=(string)($user['username'] ?? 'Player');
+        $tag=strtoupper(trim((string)($user['clan_tag'] ?? '')));
+
+        if ($tag === '') {
+            return ProtocolText::username($username);
+        }
+
+        $prefix='['.$tag.']';
+        return ProtocolText::username(
+            $prefix.substr($username,0,max(1,20-strlen($prefix)))
+        );
+    }
+
     public function requests(
         array $rows,
         int $total,
@@ -23,7 +38,7 @@ final class GdRelationshipEncoder
                 : (int)$r['account_id'];
 
             $out[] = implode(':', [
-                1, ProtocolText::username($r['username'] ?? 'Player'),
+                1, $this->displayUsername($r),
                 2, (int)($r['user_id'] ?? $peer),
                 9, (int)($r['icon_id'] ?? $r['cube'] ?? 1),
                 10, (int)($r['color1'] ?? 0),
