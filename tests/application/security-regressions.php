@@ -132,7 +132,7 @@ assertSecurityRegression(
     ) &&
     str_contains(
         $legacyLevelTransfer,
-        "trim($udid) !== ''"
+        'trim($udid) !== \'\''
     ) &&
     str_contains(
         $legacyLevelTransfer,
