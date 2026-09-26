@@ -36,7 +36,7 @@ assertMusicModerationContract(
 );
 
 assertMusicModerationContract(
-    str_contains($admin, "isset($_POST['music_moderation_required'])") &&
+    str_contains($admin, 'isset($_POST[\'music_moderation_required\'])') &&
     str_contains($admin, "CONTROL_DIR.'/music-moderation-required.flag'"),
     'admin settings persist music moderation flag'
 );
