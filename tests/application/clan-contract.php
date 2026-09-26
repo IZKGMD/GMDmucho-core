@@ -22,6 +22,7 @@ foreach ([
     'updateSettings' => $service,
     'transferOwnership' => $service,
     'disband' => $service,
+    'delete' => $service,
     'revokeInvite' => $service,
     'ban' => $service,
     'unban' => $service,
