@@ -18,66 +18,34 @@ final readonly class CloudSaveController
         private CloudSaveService $service
     ) {}
 
-
-    public function backup(
-        Request $request
-    ): Response {
-
-        $data=!empty($request->post)
-            ? $request->post
-            : $_POST;
-
-
-        try {
-
-            return Response::text(
-                $this->service->backup(
-                    $data
-                )
-            );
-
-        } catch(Throwable $e) {
-
-            error_log(sprintf(
-                '[MuchoCore] request_id=%s cloud_backup_failed account_id=%d exception=%s',
-                (string)(
-                    $_SERVER['MUCHO_REQUEST_ID']
-                    ?? '-'
-                ),
-                (int)($data['accountID'] ?? 0),
-                $e::class
-            ));
-
-            return Response::text('-1');
-        }
+    public function backup(Request $request): Response
+    {
+        return $this->run('cloud_backup_failed', $request, fn(array $data): string =>
+            $this->service->backup($data)
+        );
     }
 
+    public function sync(Request $request): Response
+    {
+        return $this->run('cloud_sync_failed', $request, fn(array $data): string =>
+            $this->service->sync($data)
+        );
+    }
 
-    public function sync(
-        Request $request
+    private function run(
+        string $event,
+        Request $request,
+        callable $action
     ): Response {
-
-        $data=!empty($request->post)
-            ? $request->post
-            : $_POST;
-
+        $data=$request->post;
 
         try {
-
-            return Response::text(
-                $this->service->sync(
-                    $data
-                )
-            );
-
-        } catch(Throwable $e) {
-
+            return Response::text($action($data));
+        } catch (Throwable $e) {
             error_log(sprintf(
-                '[MuchoCore] request_id=%s cloud_sync_failed account_id=%d exception=%s',
-                (string)(
-                    $_SERVER['MUCHO_REQUEST_ID']
-                    ?? '-'
-                ),
+                '[MuchoCore] request_id=%s %s account_id=%d exception=%s',
+                (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
+                $event,
                 (int)($data['accountID'] ?? 0),
                 $e::class
             ));
