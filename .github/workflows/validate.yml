@@ -149,6 +149,11 @@ jobs:
           grep -Fq 'refs/tags/$LATEST_TAG' update.sh
           grep -Fq "'updates' => 'system.manage'" src/Admin/AdminRbac.php
           grep -Fq "'updates'=>'Core Updates'" public/admin/config/pages.php
+          grep -Fq "custom/plugins" src/Plugin/PluginManager.php
+          grep -Fq "custom/plugins" .gitignore
+          test -f custom/plugins/README.md
+          test -f docs/CUSTOM_PLUGINS.md
+          grep -Fq 'MUCHO_PLUGINS_ENABLED=1' .env.example
 
       - name: Check runtime environment handling
         run: |
