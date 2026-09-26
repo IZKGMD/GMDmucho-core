@@ -215,6 +215,15 @@ final readonly class ClanRepository
                 'account_id'=>$accountId,
             ]);
 
+            $application=$this->pdo->prepare(
+                'DELETE FROM mucho_clan_applications
+                 WHERE clan_id=:clan_id AND account_id=:account_id'
+            );
+            $application->execute([
+                'clan_id'=>$clanId,
+                'account_id'=>$accountId,
+            ]);
+
             $this->pdo->commit();
             return true;
         } catch (Throwable $e) {
@@ -325,6 +334,15 @@ final readonly class ClanRepository
             );
             $delete->execute([
                 'invite_id'=>$inviteId,
+                'account_id'=>$accountId,
+            ]);
+
+            $applicationDelete=$this->pdo->prepare(
+                'DELETE FROM mucho_clan_applications
+                 WHERE clan_id=:clan_id AND account_id=:account_id'
+            );
+            $applicationDelete->execute([
+                'clan_id'=>$clanId,
                 'account_id'=>$accountId,
             ]);
 
@@ -1127,6 +1145,15 @@ final readonly class ClanRepository
                  WHERE application_id=:application_id'
             );
             $delete->execute(['application_id'=>$applicationId]);
+
+            $inviteDelete=$this->pdo->prepare(
+                'DELETE FROM mucho_clan_invites
+                 WHERE clan_id=:clan_id AND account_id=:account_id'
+            );
+            $inviteDelete->execute([
+                'clan_id'=>$clanId,
+                'account_id'=>(int)$application['account_id'],
+            ]);
 
             $this->pdo->commit();
             return true;
