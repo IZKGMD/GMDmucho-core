@@ -8,6 +8,22 @@ use MuchoCore\User\GameRole;
 
 final class GdUserEncoder
 {
+    private function displayUsername(array $user): string
+    {
+        $username=(string)($user['username'] ?? 'Player');
+        $tag=strtoupper(trim((string)($user['clan_tag'] ?? '')));
+
+        if ($tag === '') {
+            return ProtocolText::username($username);
+        }
+
+        $prefix='['.$tag.']';
+        $remaining=max(1,20-strlen($prefix));
+        $name=substr($username,0,$remaining);
+
+        return ProtocolText::username($prefix.$name);
+    }
+
     public function profile(array $u): string
     {
         $accountId = (int)($u['account_id'] ?? 0);
@@ -26,7 +42,7 @@ final class GdUserEncoder
          * sections are emitted only when their context exists.
          */
         $pairs = [
-            '1:' . ProtocolText::username($u['username'] ?? 'Player'),
+            '1:' . $this->displayUsername($u),
             '2:' . $userId,
             '13:' . (int)($u['secret_coins'] ?? 0),
             '17:' . (int)($u['user_coins'] ?? 0),
