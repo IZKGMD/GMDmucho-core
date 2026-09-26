@@ -255,7 +255,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Interaction/CommentCommandService.php',
-        'MuchoCore commands:',
+        'public function help(',
         'comment command help content',
     ],
     [
