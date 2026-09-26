@@ -15,6 +15,8 @@ function assertClanDashboardContract(bool $condition, string $name): void
 $dashboard = (string)file_get_contents(__DIR__ . '/../../public/dashboard/clans.php');
 $repository = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanRepository.php');
 $service = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanService.php');
+$migration = (string)file_get_contents(__DIR__ . '/../../database/migrations/021_clan_applications.php');
+$service = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanService.php');
 
 foreach ([
     "session.cookie_lifetime",
@@ -76,6 +78,36 @@ assertClanDashboardContract(
     str_contains($service, '30') &&
     str_contains($service, '3600'),
     'service rate-limits clan invitations'
+);
+
+
+assertClanDashboardContract(
+    str_contains($dashboard, "action' value=\"apply\"") &&
+    str_contains($dashboard, 'Apply to join') &&
+    str_contains($dashboard, 'Join requests'),
+    'dashboard supports closed-clan applications'
+);
+
+assertClanDashboardContract(
+    str_contains($repository, 'function apply(') &&
+    str_contains($repository, 'function acceptApplication(') &&
+    str_contains($repository, 'function declineApplication(') &&
+    str_contains($repository, 'function cancelApplication('),
+    'repository exposes clan application lifecycle'
+);
+
+assertClanDashboardContract(
+    str_contains($service, 'function apply(') &&
+    str_contains($service, 'function acceptApplication(') &&
+    str_contains($service, 'function declineApplication(') &&
+    str_contains($service, 'function cancelApplication('),
+    'service exposes clan application lifecycle'
+);
+
+assertClanDashboardContract(
+    str_contains($migration, 'mucho_clan_applications') &&
+    str_contains($migration, 'uq_mucho_clan_application'),
+    'clan application migration exists'
 );
 
 echo "MUCHOCORE_CLAN_DASHBOARD_CONTRACT_OK\n";
