@@ -6,6 +6,23 @@ namespace MuchoCore\Protocol;
 
 final class GdCommentEncoder
 {
+    private function displayUsername(array $profile): string
+    {
+        $username=(string)($profile['username'] ?? 'Player');
+        $tag=strtoupper(trim((string)($profile['clan_tag'] ?? '')));
+
+        if ($tag === '') {
+            return ProtocolText::username($username);
+        }
+
+        $prefix='['.$tag.']';
+        $remaining=max(1,20-strlen($prefix));
+
+        return ProtocolText::username(
+            $prefix.substr($username,0,$remaining)
+        );
+    }
+
     public function encode(
         array $comment,
         array $profile,
@@ -46,7 +63,7 @@ final class GdCommentEncoder
             }
 
             $userParts = [
-                '1', ProtocolText::username($profile['username'] ?? 'Player'),
+                '1', $this->displayUsername($profile),
                 '7', '1',
                 '9', (string)($profile['cube'] ?? 1),
                 '10', (string)($profile['color1'] ?? 0),
