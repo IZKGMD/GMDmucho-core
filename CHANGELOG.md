@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+
 ## v1.0.3 — Persistent Plugins & Operations
 
 MuchoCore v1.0.3 expands the custom extension layer and improves the operator experience around long-lived GDPS installations.
