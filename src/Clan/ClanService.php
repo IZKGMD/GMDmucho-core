@@ -114,6 +114,124 @@ final readonly class ClanService
         }
     }
 
+    public function apply(
+        int $accountId,
+        string $credential,
+        int $clanId,
+        string $message=''
+    ): bool {
+        $this->auth->authenticate($accountId,$credential);
+
+        $message=$this->normalizeDescription($message);
+
+        if (!(new RateLimiter())->allowStrict(
+            'clan-application:' . $accountId,
+            10,
+            3600
+        )) {
+            throw new RuntimeException('Application rate limit reached. Try again later.');
+        }
+
+        $applied=$this->repository->apply($clanId,$accountId,$message);
+
+        if ($applied) {
+            $this->audit(
+                $accountId,
+                'clan.application.created',
+                'clan',
+                $clanId
+            );
+        }
+
+        return $applied;
+    }
+
+    public function applications(
+        int $accountId,
+        string $credential
+    ): array {
+        $this->auth->authenticate($accountId,$credential);
+        return $this->repository->applications($accountId);
+    }
+
+    public function clanApplications(
+        int $accountId,
+        string $credential
+    ): array {
+        $this->auth->authenticate($accountId,$credential);
+
+        $clan=$this->repository->getForAccount($accountId);
+
+        if (
+            $clan===null ||
+            !in_array((string)$clan['role'],['owner','officer'],true)
+        ) {
+            throw new RuntimeException('Clan officer permission required.');
+        }
+
+        return $this->repository->clanApplications((int)$clan['clan_id']);
+    }
+
+    public function acceptApplication(
+        int $accountId,
+        string $credential,
+        int $applicationId
+    ): bool {
+        $this->auth->authenticate($accountId,$credential);
+
+        $accepted=$this->repository->acceptApplication(
+            $applicationId,
+            $accountId
+        );
+
+        if ($accepted) {
+            $this->audit(
+                $accountId,
+                'clan.application.accepted',
+                'clan_application',
+                $applicationId
+            );
+        }
+
+        return $accepted;
+    }
+
+    public function declineApplication(
+        int $accountId,
+        string $credential,
+        int $applicationId
+    ): bool {
+        $this->auth->authenticate($accountId,$credential);
+
+        $declined=$this->repository->declineApplication(
+            $applicationId,
+            $accountId
+        );
+
+        if ($declined) {
+            $this->audit(
+                $accountId,
+                'clan.application.declined',
+                'clan_application',
+                $applicationId
+            );
+        }
+
+        return $declined;
+    }
+
+    public function cancelApplication(
+        int $accountId,
+        string $credential,
+        int $applicationId
+    ): bool {
+        $this->auth->authenticate($accountId,$credential);
+        return $this->repository->cancelApplication(
+            $applicationId,
+            $accountId
+        );
+    }
+
     public function leave(int $accountId,string $credential): bool {
         $this->auth->authenticate($accountId,$credential);
         $clan=$this->repository->getForAccount($accountId);
