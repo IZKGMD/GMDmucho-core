@@ -10,10 +10,15 @@ use Throwable;
 
 final readonly class ClanRepository
 {
+    private readonly ClanStatsRepository $statsRepository;
+
     public function __construct(
         private PDO $pdo,
-        private ClanStatsRepository $statsRepository
-    ) {}
+        ?ClanStatsRepository $statsRepository = null
+    ) {
+        $this->statsRepository = $statsRepository
+            ?? new ClanStatsRepository($pdo);
+    }}
 
     public function create(
         int $ownerAccountId,
