@@ -879,6 +879,22 @@ final readonly class ClanRepository
         return $stmt->rowCount()>0;
     }
 
+    public function clanInvitations(int $clanId): array
+    {
+        $stmt=$this->pdo->prepare(
+            'SELECT i.invite_id, i.account_id, i.created_at, i.expires_at,
+                    a.username
+             FROM mucho_clan_invites i
+             INNER JOIN accounts a ON a.account_id=i.account_id
+             WHERE i.clan_id=:clan_id
+               AND i.expires_at>UTC_TIMESTAMP()
+             ORDER BY i.created_at DESC'
+        );
+        $stmt->execute(['clan_id'=>$clanId]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function invitations(int $accountId): array
     {
         $stmt=$this->pdo->prepare(
