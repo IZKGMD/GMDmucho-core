@@ -100,10 +100,9 @@ final readonly class RelationshipRepository
 
         if ($sent) {
             $sql =
-                'SELECT fr.id,fr.account_id,fr.to_account_id,
+                "SELECT fr.id,fr.account_id,fr.to_account_id,
                         fr.comment,fr.is_read,fr.created_at,
                         a.username,p.user_id,p.cube,p.color1,
-                        COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,
                         COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,
                         p.color2,p.special
                  FROM friend_requests fr
@@ -113,12 +112,13 @@ final readonly class RelationshipRepository
                    ON p.account_id=fr.to_account_id
                  WHERE fr.account_id=:id
                  ORDER BY fr.id DESC
-                 LIMIT 10 OFFSET '.$offset;
+                 LIMIT 10 OFFSET {$offset}";
         } else {
             $sql =
-                'SELECT fr.id,fr.account_id,fr.to_account_id,
+                "SELECT fr.id,fr.account_id,fr.to_account_id,
                         fr.comment,fr.is_read,fr.created_at,
                         a.username,p.user_id,p.cube,p.color1,
+                        COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,
                         p.color2,p.special
                  FROM friend_requests fr
                  JOIN accounts a
@@ -127,7 +127,7 @@ final readonly class RelationshipRepository
                    ON p.account_id=fr.account_id
                  WHERE fr.to_account_id=:id
                  ORDER BY fr.id DESC
-                 LIMIT 10 OFFSET '.$offset;
+                 LIMIT 10 OFFSET {$offset}";
         }
 
         $q = $this->pdo->prepare($sql);
