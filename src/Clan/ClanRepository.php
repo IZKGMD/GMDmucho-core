@@ -911,4 +911,280 @@ final readonly class ClanRepository
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function apply(
+        int $clanId,
+        int $accountId,
+        string $message = ''
+    ): bool {
+        $this->pdo->beginTransaction();
+
+        try {
+            $clan=$this->lockedClan($clanId);
+
+            if (!$clan) {
+                throw new RuntimeException('Clan not found.');
+            }
+
+            if ((int)$clan['is_open'] === 1) {
+                throw new RuntimeException('This clan is open for direct joining.');
+            }
+
+            if ($this->isBanned($clanId,$accountId)) {
+                throw new RuntimeException('You are banned from this clan.');
+            }
+
+            if ((int)$clan['member_count'] >= (int)$clan['max_members']) {
+                throw new RuntimeException('Clan is full.');
+            }
+
+            $membership=$this->pdo->prepare(
+                'SELECT 1
+                 FROM mucho_clan_members
+                 WHERE account_id=:account_id
+                 LIMIT 1'
+            );
+            $membership->execute(['account_id'=>$accountId]);
+
+            if ($membership->fetchColumn() !== false) {
+                throw new RuntimeException('Account is already in a clan.');
+            }
+
+            $stmt=$this->pdo->prepare(
+                'INSERT INTO mucho_clan_applications
+                    (clan_id, account_id, message, expires_at)
+                 VALUES
+                    (:clan_id, :account_id, :message,
+                     DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 DAY))
+                 ON DUPLICATE KEY UPDATE
+                    message=VALUES(message),
+                    created_at=CURRENT_TIMESTAMP,
+                    expires_at=DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 DAY)'
+            );
+            $stmt->execute([
+                'clan_id'=>$clanId,
+                'account_id'=>$accountId,
+                'message'=>substr($message,0,160),
+            ]);
+
+            $this->pdo->commit();
+            return true;
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
+            throw $e;
+        }
+    }
+
+    public function applicationForAccount(
+        int $clanId,
+        int $accountId
+    ): ?array {
+        $stmt=$this->pdo->prepare(
+            'SELECT application_id, clan_id, account_id, message,
+                    created_at, expires_at
+             FROM mucho_clan_applications
+             WHERE clan_id=:clan_id
+               AND account_id=:account_id
+               AND expires_at>UTC_TIMESTAMP()
+             LIMIT 1'
+        );
+        $stmt->execute([
+            'clan_id'=>$clanId,
+            'account_id'=>$accountId,
+        ]);
+        $row=$stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    public function clanApplications(int $clanId): array {
+        $stmt=$this->pdo->prepare(
+            'SELECT ap.application_id, ap.account_id, ap.message,
+                    ap.created_at, ap.expires_at, a.username
+             FROM mucho_clan_applications ap
+             INNER JOIN accounts a ON a.account_id=ap.account_id
+             WHERE ap.clan_id=:clan_id
+               AND ap.expires_at>UTC_TIMESTAMP()
+             ORDER BY ap.created_at ASC, ap.application_id ASC'
+        );
+        $stmt->execute(['clan_id'=>$clanId]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function applications(int $accountId): array {
+        $stmt=$this->pdo->prepare(
+            'SELECT ap.application_id, ap.clan_id, ap.message,
+                    ap.created_at, ap.expires_at,
+                    c.name, c.tag
+             FROM mucho_clan_applications ap
+             INNER JOIN mucho_clans c ON c.clan_id=ap.clan_id
+             WHERE ap.account_id=:account_id
+               AND ap.expires_at>UTC_TIMESTAMP()
+             ORDER BY ap.created_at DESC'
+        );
+        $stmt->execute(['account_id'=>$accountId]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function acceptApplication(
+        int $applicationId,
+        int $actorAccountId
+    ): bool {
+        $this->pdo->beginTransaction();
+
+        try {
+            $lookup=$this->pdo->prepare(
+                'SELECT clan_id
+                 FROM mucho_clan_applications
+                 WHERE application_id=:application_id
+                   AND expires_at>UTC_TIMESTAMP()
+                 LIMIT 1'
+            );
+            $lookup->execute(['application_id'=>$applicationId]);
+            $clanId=(int)($lookup->fetchColumn() ?: 0);
+
+            if ($clanId<=0) {
+                throw new RuntimeException('Clan application not found or expired.');
+            }
+
+            $clan=$this->lockedClan($clanId);
+            $actor=$this->member($clanId,$actorAccountId);
+
+            if (
+                !$clan ||
+                !$actor ||
+                !in_array((string)$actor['role'],['owner','officer'],true)
+            ) {
+                throw new RuntimeException('Clan officer permission required.');
+            }
+
+            if ((int)$clan['member_count'] >= (int)$clan['max_members']) {
+                throw new RuntimeException('Clan is full.');
+            }
+
+            $applicationStmt=$this->pdo->prepare(
+                'SELECT application_id, account_id, clan_id, message
+                 FROM mucho_clan_applications
+                 WHERE application_id=:application_id
+                   AND clan_id=:clan_id
+                   AND expires_at>UTC_TIMESTAMP()
+                 LIMIT 1
+                 FOR UPDATE'
+            );
+            $applicationStmt->execute([
+                'application_id'=>$applicationId,
+                'clan_id'=>$clanId,
+            ]);
+            $application=$applicationStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$application) {
+                throw new RuntimeException('Clan application not found or expired.');
+            }
+
+            if ($this->isBanned($clanId,(int)$application['account_id'])) {
+                throw new RuntimeException('Applicant is banned from this clan.');
+            }
+
+            $membership=$this->pdo->prepare(
+                'SELECT 1
+                 FROM mucho_clan_members
+                 WHERE account_id=:account_id
+                 LIMIT 1'
+            );
+            $membership->execute([
+                'account_id'=>(int)$application['account_id'],
+            ]);
+
+            if ($membership->fetchColumn() !== false) {
+                throw new RuntimeException('Applicant is already in a clan.');
+            }
+
+            $insert=$this->pdo->prepare(
+                "INSERT INTO mucho_clan_members (clan_id, account_id, role)
+                 VALUES (:clan_id, :account_id, 'member')"
+            );
+            $insert->execute([
+                'clan_id'=>$clanId,
+                'account_id'=>(int)$application['account_id'],
+            ]);
+
+            $delete=$this->pdo->prepare(
+                'DELETE FROM mucho_clan_applications
+                 WHERE application_id=:application_id'
+            );
+            $delete->execute(['application_id'=>$applicationId]);
+
+            $this->pdo->commit();
+            return true;
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
+            throw $e;
+        }
+    }
+
+    public function declineApplication(
+        int $applicationId,
+        int $actorAccountId
+    ): bool {
+        $lookup=$this->pdo->prepare(
+            'SELECT clan_id
+             FROM mucho_clan_applications
+             WHERE application_id=:application_id
+               AND expires_at>UTC_TIMESTAMP()
+             LIMIT 1'
+        );
+        $lookup->execute(['application_id'=>$applicationId]);
+        $clanId=(int)($lookup->fetchColumn() ?: 0);
+
+        if ($clanId<=0) {
+            return false;
+        }
+
+        $actor=$this->member($clanId,$actorAccountId);
+
+        if (
+            !$actor ||
+            !in_array((string)$actor['role'],['owner','officer'],true)
+        ) {
+            throw new RuntimeException('Clan officer permission required.');
+        }
+
+        $stmt=$this->pdo->prepare(
+            'DELETE FROM mucho_clan_applications
+             WHERE application_id=:application_id
+               AND clan_id=:clan_id'
+        );
+        $stmt->execute([
+            'application_id'=>$applicationId,
+            'clan_id'=>$clanId,
+        ]);
+
+        return $stmt->rowCount()>0;
+    }
+
+    public function cancelApplication(
+        int $applicationId,
+        int $accountId
+    ): bool {
+        $stmt=$this->pdo->prepare(
+            'DELETE FROM mucho_clan_applications
+             WHERE application_id=:application_id
+               AND account_id=:account_id'
+        );
+        $stmt->execute([
+            'application_id'=>$applicationId,
+            'account_id'=>$accountId,
+        ]);
+
+        return $stmt->rowCount()>0;
+    }
+
 }
