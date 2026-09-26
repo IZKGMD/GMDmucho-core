@@ -92,7 +92,7 @@ custom/plugins/
 
 Plugins can add server-specific routes, lifecycle listeners and optional database-backed functionality without modifying the MuchoCore core source. The updater leaves this directory untouched, so customizations survive stable core updates.
 
-See **[docs/CUSTOM_PLUGINS.md](docs/CUSTOM_PLUGINS.md)** for the plugin format, permissions and examples.
+See **[docs/CUSTOM_PLUGINS.md](docs/CUSTOM_PLUGINS.md)** for the plugin format, permissions and examples. The Admin Panel also includes **Custom Plugins** for read-only diagnostics and compatibility status.
 
 Core updates are automatic **only after a published stable GitHub Release** exists. The Admin Panel detects the release, while the VPS updater deploys the exact release tag. `update.sh` remains available as the manual update/test path.
 
