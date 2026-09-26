@@ -712,53 +712,46 @@ $selectedApplication = (
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#090b10">
+<meta name="theme-color" content="#080b12">
 <title><?=pcH($serverName)?> · Clans</title>
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
 <script src="/muchocore-theme.js?v=3" defer></script>
 <style>
-body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,system-ui,sans-serif}
-.shell{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:18px 0 44px}
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid #263246;border-radius:18px;background:rgba(8,12,19,.86);backdrop-filter:blur(20px)}
-.brand{display:flex;align-items:center;gap:10px}.logo{width:46px;height:46px;object-fit:contain;border-radius:12px}.brand b{display:block;font-size:13px}.brand small{display:block;color:#708098;font-size:9px;font-weight:800;letter-spacing:.12em}
-.nav{display:flex;gap:7px;flex-wrap:wrap}.nav a,.nav button{border:1px solid #263246;background:#101724;color:#cbd3e2;padding:9px 11px;border-radius:10px;font-size:11px;font-weight:800;text-decoration:none}
-.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:12px;margin-top:14px}.panel{padding:20px;border:1px solid #263246;border-radius:18px;background:linear-gradient(160deg,#111824,#0b1019);box-shadow:0 18px 55px rgba(0,0,0,.28)}
-.eyebrow{color:#a89dff;font-size:9px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}.hero h1{margin:6px 0 10px;font-size:clamp(34px,5vw,50px);line-height:.98;letter-spacing:-1.8px}.hero h1 span{color:#a89dff}.copy{color:#8e9bb0;font-size:12px;line-height:1.65}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:9px 13px;border-radius:10px;border:1px solid transparent;background:#7968ff;color:#fff;font-size:11px;font-weight:850;text-decoration:none;cursor:pointer}.btn.alt{background:#111a27;border-color:#263246;color:#d8deea}
-.search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:14px 0}.search input,.form input,.form textarea,.form select{width:100%;border:1px solid #28364a;background:#080e16;color:#fff;border-radius:10px;padding:10px 11px;box-sizing:border-box}.form textarea{min-height:78px;resize:vertical}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.card{padding:15px;border:1px solid #263246;border-radius:14px;background:#0e1622;text-decoration:none}.card:hover{border-color:#43516d}.tag{color:#d9d4ff;font-size:12px;font-weight:950;letter-spacing:.08em}.name{margin-top:5px;color:#fff;font-size:16px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sub{margin-top:4px;color:#77879e;font-size:10px;line-height:1.5}.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.chip{padding:4px 7px;border:1px solid #26364d;border-radius:999px;background:#121e2d;color:#b8c5d8;font-size:9px;font-weight:800}
-.notice{margin-top:14px;padding:12px 14px;border:1px solid #26354b;border-radius:12px;background:#101a28;font-size:12px}.notice.error{border-color:rgba(255,111,131,.32)}
-.section{margin-top:18px}.section-head{display:flex;justify-content:space-between;gap:10px;align-items:end;margin-bottom:10px}.section-head h2{margin:0;font-size:18px}.muted{color:#8e9bb0;font-size:10px}
-.member{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 11px;border:1px solid #243146;border-radius:11px;background:#0e1622}.member+.member{margin-top:7px}.member b{display:block;font-size:12px}.member small{display:block;color:#7788a0;margin-top:2px;font-size:9px}
-.form{display:grid;gap:9px}.field{display:grid;gap:5px}.field label{color:#9cabc0;font-size:10px;font-weight:800}
-.empty{padding:22px;text-align:center;border:1px dashed #2e3c51;border-radius:13px;color:#72829a}
-.kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:12px}
-.kpi{padding:13px 14px;border:1px solid #263246;border-radius:13px;background:#0e1622}
-.kpi b{display:block;font-size:20px;line-height:1}
-.kpi small{display:block;color:#718199;font-size:9px;text-transform:uppercase;letter-spacing:.08em;margin-top:6px;font-weight:800}
-.toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.role-owner{color:#ffe5a8}.role-officer{color:#d8d0ff}.role-member{color:#9eb1c7}
-.danger{border-color:rgba(255,111,131,.35)!important;background:#1b1116!important;color:#ffb6c0!important}
-.helper{font-size:9px;color:#718199;line-height:1.5}
-.footer{margin-top:28px;text-align:center;color:#6f7f97;font-size:11px}
-@media(max-width:850px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:620px){.shell{width:min(100% - 18px,1180px)}.topbar{align-items:stretch;flex-direction:column}.nav{overflow-x:auto;flex-wrap:nowrap}.grid{grid-template-columns:1fr}.search{grid-template-columns:1fr}.panel{padding:17px}}
+:root{--bg:#080b12;--panel:#101722;--panel2:#0c121c;--line:#263246;--muted:#8290a5;--text:#f3f6fb;--accent:#8e7dff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+.shell{width:min(980px,calc(100% - 24px));margin:auto;padding:18px 0 42px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:#0b1018}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}.logo{width:40px;height:40px;border-radius:10px;object-fit:cover}.brand b{display:block;font-size:12px}.brand small{display:block;color:#6f7d92;font-size:8px;letter-spacing:.12em;font-weight:800;margin-top:2px}
+.nav{display:flex;gap:6px;flex-wrap:wrap}.nav a,.nav button{border:1px solid var(--line);background:#111927;color:#cdd6e3;padding:8px 10px;border-radius:9px;font-size:10px;font-weight:800;text-decoration:none;cursor:pointer}
+.notice{margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;background:#111925;color:#cbd5e2;font-size:11px}.notice.error{border-color:#5c3440;color:#ffc2cb}
+.hero{margin-top:12px;padding:18px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,#111924,#0c121b)}
+.back{color:#8e9ab0;text-decoration:none;font-size:10px;font-weight:800}.clan-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-top:9px}.tag{color:#b8aeff;font-size:11px;font-weight:900;letter-spacing:.08em}.title{margin:3px 0 0;font-size:30px;line-height:1.05;letter-spacing:-1px}.desc{margin:8px 0 0;color:var(--muted);font-size:11px;line-height:1.55;max-width:680px}.meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.chip{padding:5px 8px;border:1px solid var(--line);border-radius:999px;background:#111b28;color:#b8c4d6;font-size:9px;font-weight:800}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:8px 12px;border-radius:9px;border:1px solid transparent;background:var(--accent);color:white;font-size:10px;font-weight:900;text-decoration:none;cursor:pointer}.btn.alt{background:#111927;border-color:var(--line);color:#d7dfeb}.btn.danger{background:#1a1116;border-color:#5a2e39;color:#ffb9c3}
+.section{margin-top:12px}.section-title{display:flex;align-items:end;justify-content:space-between;gap:8px;margin:0 0 8px}.section-title h2{margin:0;font-size:16px}.section-title span{color:#738197;font-size:9px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.stat{padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}.stat b{display:block;font-size:18px}.stat span{display:block;margin-top:4px;color:#75839a;font-size:8px;text-transform:uppercase;letter-spacing:.08em;font-weight:800}
+.list{display:grid;gap:7px}.member{display:flex;justify-content:space-between;align-items:center;gap:9px;padding:10px 11px;border:1px solid var(--line);border-radius:11px;background:var(--panel2)}.member-main{min-width:0}.member b{display:block;font-size:11px}.member small{display:block;color:#75839a;margin-top:2px;font-size:8px}.member-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.role-owner{color:#ffe5aa}.role-officer{color:#cfc4ff}.role-member{color:#a7b6ca}
+.card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.card{display:block;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:inherit;text-decoration:none}.card:hover{border-color:#3d4c63}.card .big{font-size:14px;font-weight:900}.card small{display:block;color:#76849a;margin-top:4px;font-size:8px}
+.details{border:1px solid var(--line);border-radius:12px;background:var(--panel2);overflow:hidden}.details+.details{margin-top:7px}.details summary{padding:12px;cursor:pointer;font-size:11px;font-weight:900;list-style:none}.details summary::-webkit-details-marker{display:none}.details summary:after{content:'+';float:right;color:#748198}.details[open] summary:after{content:'−'}.details-body{padding:0 12px 12px}
+.form{display:grid;gap:8px}.field{display:grid;gap:4px}.field label{color:#8e9bb0;font-size:8px;font-weight:800}.form input,.form textarea,.form select{width:100%;border:1px solid #2a374b;background:#080e16;color:#fff;border-radius:9px;padding:9px 10px;font-size:10px}.form textarea{min-height:68px;resize:vertical}.two{display:grid;grid-template-columns:1fr 1fr;gap:7px}.helper{margin-top:6px;color:#707e93;font-size:8px;line-height:1.5}.empty{padding:16px;text-align:center;border:1px dashed #2d3a4e;border-radius:11px;color:#6f7d92;font-size:10px}
+.small-links{display:flex;gap:6px;flex-wrap:wrap}.small-links a{color:#9eaac0;font-size:9px;text-decoration:none}
+.footer{margin-top:18px;text-align:center;color:#66748a;font-size:9px}
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.clan-head{flex-direction:column}.card-grid{grid-template-columns:1fr}}
+@media(max-width:520px){.shell{width:min(100% - 14px,980px)}.topbar{align-items:stretch;flex-direction:column}.nav{overflow:auto;flex-wrap:nowrap}.two{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="shell">
 <header class="topbar">
     <a class="brand" href="/dashboard">
-        <img class="logo" src="/assets/muchocore-dashboard-logo.jpg?v=1" alt="" width="46" height="46">
-        <span>
-            <b><?=pcH($serverName)?></b>
-            <small>MUCHOCORE PLAYER DASHBOARD</small>
-        </span>
+        <img class="logo" src="/assets/muchocore-dashboard-logo.jpg?v=1" alt="" width="40" height="40">
+        <span><b><?=pcH($serverName)?></b><small>MUCHOCORE CLANS</small></span>
     </a>
     <nav class="nav">
-        <a href="/dashboard">Dashboard</a>
-        <a href="/dashboard/clans.php">Clans</a>
-        <a href="/dashboard#players">Players</a>
+        <a href="/dashboard/clans.php">All clans</a>
+        <a href="/dashboard/clans.php#clan-rankings">Rankings</a>
+        <?php if ($account): ?><a href="/dashboard">Dashboard</a><?php endif; ?>
         <?php if ($account): ?>
         <form method="post" style="margin:0">
             <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
@@ -773,562 +766,368 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
 <div class="notice <?=pcH($flash['type'])?>"><?=pcH($flash['message'])?></div>
 <?php endif; ?>
 
-<section class="hero" id="clans">
-    <div class="panel">
-        <div class="eyebrow">Community · Clans</div>
-        <h1>Build your <span>clan</span>.</h1>
-        <p class="copy">
-            Every MuchoCore GDPS gets its own clan directory. Players can browse clans,
-            open a clan profile, join open clans, and see the clan tag used by the game.
-        </p>
+<?php if ($selected): ?>
+<section class="hero">
+    <a class="back" href="/dashboard/clans.php">← All clans</a>
+    <div class="clan-head">
+        <div>
+            <div class="tag">[<?=pcH($selected['tag'])?>]</div>
+            <h1 class="title"><?=pcH($selected['name'])?></h1>
+            <p class="desc"><?=pcH($selected['description'] ?: 'No description yet.')?></p>
+            <div class="meta">
+                <span class="chip"><?=pcNum($selected['member_count'])?> / <?=pcNum($selected['max_members'])?> members</span>
+                <span class="chip"><?=((int)$selected['is_open']===1)?'Open':'Invite only'?></span>
+                <span class="chip">Owner: <?=pcH($selected['owner_username'])?></span>
+            </div>
+        </div>
         <div class="actions">
-            <a class="btn" href="#directory">Browse clans</a>
-            <?php if ($account && $myClan): ?>
-            <a class="btn alt" href="#my-clan-overview">My clan</a>
-            <?php else: ?>
-            <a class="btn alt" href="#create">Create clan</a>
+            <?php if ($account && !$myClan && (int)$selected['is_open']===1): ?>
+            <form method="post" style="margin:0"><input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>"><input type="hidden" name="action" value="join"><input type="hidden" name="clanID" value="<?=((int)$selected['clan_id'])?>"><button class="btn" type="submit">Join clan</button></form>
+            <?php elseif ($account && !$myClan): ?>
+                <?php if ($selectedApplication): ?>
+                    <span class="chip">Application pending</span>
+                <?php else: ?>
+                <a class="btn" href="#apply">Apply to join</a>
+                <?php endif; ?>
+            <?php elseif (!$account): ?>
+                <a class="btn" href="/dashboard">Sign in to join</a>
             <?php endif; ?>
         </div>
-    </div>
-
-    <div class="panel" id="create">
-        <?php if (!$account): ?>
-            <div class="eyebrow">Account access</div>
-            <h2>Sign in from the dashboard</h2>
-            <p class="copy">Use the normal Geometry Dash account session. Your password is never stored by the clan page.</p>
-            <a class="btn" href="/dashboard#upload">Sign in</a>
-        <?php elseif ($myClan): ?>
-            <div class="eyebrow">Your clan</div>
-            <h2 style="margin:6px 0"><?=pcH($myClan['name'])?></h2>
-            <div class="tag">[<?=pcH($myClan['tag'])?>]</div>
-            <p class="copy"><?=pcH($myClan['description'] ?? '')?></p>
-            <div class="chips">
-                <span class="chip"><?=pcH($myClan['member_count'])?> / <?=pcH($myClan['max_members'])?> members</span>
-                <span class="chip"><?=((int)$myClan['is_open'] === 1) ? 'Open' : 'Invite only'?></span>
-                <span class="chip"><?=pcH($myClan['role'])?></span>
-            </div>
-            <div class="actions">
-                <a class="btn" href="/dashboard/clans.php?clan=<?=((int)$myClan['clan_id'])?>">Open clan</a>
-                <?php if ((string)$myClan['role'] !== 'owner'): ?>
-                <form method="post" style="margin:0">
-                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-                    <input type="hidden" name="action" value="leave">
-                    <button class="btn alt" type="submit" onclick="return confirm('Leave this clan?');">Leave clan</button>
-                </form>
-                <?php endif; ?>
-            </div>
-        <?php else: ?>
-            <div class="eyebrow">Create a clan</div>
-            <h2 style="margin:6px 0">Start your community</h2>
-            <p class="copy">The account username stays unchanged. The tag is only a protocol display prefix.</p>
-            <form class="form" method="post">
-                <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-                <input type="hidden" name="action" value="create">
-                <div class="field">
-                    <label>Clan name</label>
-                    <input type="text" name="clanName" maxlength="32" required>
-                </div>
-                <div class="field">
-                    <label>Tag</label>
-                    <input type="text" name="clanTag" maxlength="8" placeholder="MUCHO" required>
-                </div>
-                <div class="field">
-                    <label>Description</label>
-                    <textarea name="clanDescription" maxlength="160"></textarea>
-                </div>
-                <div class="field">
-                    <label>Access</label>
-                    <select name="clanOpen">
-                        <option value="1">Open — anyone can join</option>
-                        <option value="0">Invite only</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label>Member limit</label>
-                    <input type="number" name="clanMaxMembers" min="2" max="500" value="50">
-                </div>
-                <button class="btn" type="submit">Create clan</button>
-            </form>
-        <?php endif; ?>
     </div>
 </section>
 
-<?php if ($account && $myClan): ?>
-<section class="section" id="my-clan-overview">
-    <div class="panel">
-        <div class="toolbar">
-            <div>
-                <div class="eyebrow">Your clan</div>
-                <h2 style="margin:5px 0 0">[<?=pcH($myClan['tag'])?>] <?=pcH($myClan['name'])?></h2>
-            </div>
-            <span class="chip"><?=pcH(ucfirst((string)$myClan['role']))?></span>
-        </div>
-        <div class="kpi-grid">
-            <div class="kpi"><b><?=pcNum($myClanStats['total_stars'] ?? 0)?></b><small>Total stars</small></div>
-            <div class="kpi"><b><?=pcNum($myClanStats['total_demons'] ?? 0)?></b><small>Total demons</small></div>
-            <div class="kpi"><b><?=pcNum($myClanStats['total_creator_points'] ?? 0)?></b><small>Creator points</small></div>
-            <div class="kpi"><b><?=pcNum($myClanStats['total_levels'] ?? 0)?></b><small>Published levels</small></div>
-        </div>
-        <div class="chips">
-            <?php foreach (($myClan['permissions'] ?? []) as $permission): ?>
-                <span class="chip"><?=pcH(str_replace('_', ' ', $permission))?></span>
-            <?php endforeach; ?>
-        </div>
-        <div class="actions">
-            <a class="btn" href="/dashboard/clans.php?clan=<?=((int)$myClan['clan_id'])?>">Open my clan</a>
-            <?php if ((string)$myClan['role'] !== 'owner'): ?>
-            <form method="post" style="margin:0">
-                <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-                <input type="hidden" name="action" value="leave">
-                <button class="btn alt" type="submit" onclick="return confirm('Leave this clan?');">Leave clan</button>
-            </form>
-            <?php endif; ?>
-        </div>
+<section class="section">
+    <div class="section-title"><h2>Clan stats</h2><span>Live from current members</span></div>
+    <?php $selectedStats=$repo->stats((int)$selected['clan_id']); ?>
+    <div class="stats">
+        <div class="stat"><b><?=pcNum($selectedStats['total_stars']??0)?></b><span>Stars</span></div>
+        <div class="stat"><b><?=pcNum($selectedStats['total_demons']??0)?></b><span>Demons</span></div>
+        <div class="stat"><b><?=pcNum($selectedStats['total_creator_points']??0)?></b><span>Creator points</span></div>
+        <div class="stat"><b><?=pcNum($selectedStats['total_levels']??0)?></b><span>Published levels</span></div>
     </div>
+</section>
+
+<?php if ($account && !$myClan && $selectedApplication): ?>
+<section class="section">
+    <details class="details" open>
+        <summary>My application</summary>
+        <div class="details-body">
+            <div class="notice">Your application is waiting for an owner/officer. Expires <?=pcH($selectedApplication['expires_at'])?>.</div>
+            <form method="post" class="actions">
+                <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                <input type="hidden" name="action" value="cancel_application">
+                <input type="hidden" name="applicationID" value="<?=((int)$selectedApplication['application_id'])?>">
+                <button class="btn alt" type="submit">Cancel application</button>
+            </form>
+        </div>
+    </details>
+</section>
+<?php elseif ($account && !$myClan && (int)$selected['is_open']!==1): ?>
+<section class="section" id="apply">
+    <details class="details" open>
+        <summary>Apply to join</summary>
+        <div class="details-body">
+            <form method="post" class="form">
+                <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                <input type="hidden" name="action" value="apply">
+                <input type="hidden" name="clanID" value="<?=((int)$selected['clan_id'])?>">
+                <div class="field"><label>Message</label><textarea name="message" maxlength="160" placeholder="Tell the clan why you'd like to join"></textarea></div>
+                <button class="btn" type="submit">Send application</button>
+            </form>
+        </div>
+    </details>
 </section>
 <?php endif; ?>
 
-<section class="section" id="clan-rankings">
-    <div class="section-head">
-        <h2>Clan rankings</h2>
-        <span class="muted">Live totals from current members</span>
+<section class="section">
+    <div class="section-title"><h2>Members</h2><span><?=pcNum(count($selected['members']))?> people</span></div>
+    <div class="list">
+    <?php foreach ($selected['members'] as $member): ?>
+        <?php
+        $selectedViewerRole=(
+            $account &&
+            $myClan &&
+            (int)$myClan['clan_id']===(int)$selected['clan_id']
+        ) ? (string)$myClan['role'] : null;
+        $canKick=in_array($selectedViewerRole,['owner','officer'],true)
+            && (string)$member['role']!=='owner'
+            && !($selectedViewerRole==='officer' && (string)$member['role']!=='member');
+        $canChangeRole=$selectedViewerRole==='owner' && (string)$member['role']!=='owner';
+        $nextRole=(string)$member['role']==='officer'?'member':'officer';
+        ?>
+        <div class="member">
+            <div class="member-main">
+                <b><a href="/dashboard?u=<?=rawurlencode((string)$member['username'])?>" style="color:inherit;text-decoration:none"><?=pcH($member['username'])?></a></b>
+                <small>Account #<?=pcH($member['account_id'])?> · <span class="role-<?=pcH((string)$member['role'])?>"><?=pcH(ucfirst((string)$member['role']))?></span></small>
+            </div>
+            <?php if ($canKick || $canChangeRole): ?>
+            <div class="member-actions">
+                <?php if ($canKick): ?>
+                <form method="post" style="margin:0"><input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>"><input type="hidden" name="action" value="kick"><input type="hidden" name="targetAccountID" value="<?=((int)$member['account_id'])?>"><button class="btn alt" type="submit" onclick="return confirm('Remove this member from the clan?');">Remove</button></form>
+                <form method="post" style="margin:0"><input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>"><input type="hidden" name="action" value="ban"><input type="hidden" name="targetAccountID" value="<?=((int)$member['account_id'])?>"><button class="btn danger" type="submit" onclick="return confirm('Ban this player from the clan?');">Ban</button></form>
+                <?php endif; ?>
+                <?php if ($canChangeRole): ?>
+                <form method="post" style="margin:0"><input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>"><input type="hidden" name="action" value="role"><input type="hidden" name="targetAccountID" value="<?=((int)$member['account_id'])?>"><input type="hidden" name="role" value="<?=pcH($nextRole)?>"><button class="btn alt" type="submit"><?=($nextRole==='officer')?'Promote':'Demote'?></button></form>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+    <?php endforeach; ?>
     </div>
-    <div class="grid">
+</section>
+
+<?php if ($account && $myClan && (int)$myClan['clan_id']===(int)$selected['clan_id']): ?>
+<section class="section">
+    <div class="section-title"><h2>My clan</h2><span><?=pcH(ucfirst((string)$myClan['role']))?></span></div>
+
+    <?php if (in_array((string)$myClan['role'],['owner','officer'],true)): ?>
+    <details class="details" open>
+        <summary>Invite players</summary>
+        <div class="details-body">
+            <form method="post" class="form">
+                <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                <input type="hidden" name="action" value="invite">
+                <div class="field"><label>Geometry Dash username</label><input type="text" name="targetUsername" maxlength="20" placeholder="Player username" required></div>
+                <button class="btn" type="submit">Send invite</button>
+            </form>
+        </div>
+    </details>
+    <?php endif; ?>
+
+    <?php if ((string)$myClan['role']==='owner'): ?>
+    <details class="details">
+        <summary>Manage clan</summary>
+        <div class="details-body">
+            <form method="post" class="form">
+                <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                <input type="hidden" name="action" value="settings">
+                <div class="two">
+                    <div class="field"><label>Clan name</label><input type="text" name="clanName" maxlength="32" value="<?=pcH($myClan['name'])?>" required></div>
+                    <div class="field"><label>Tag</label><input type="text" name="clanTag" maxlength="8" value="<?=pcH($myClan['tag'])?>" required></div>
+                </div>
+                <div class="field"><label>Description</label><textarea name="clanDescription" maxlength="160"><?=pcH($myClan['description']??'')?></textarea></div>
+                <div class="two">
+                    <div class="field"><label>Access</label><select name="clanOpen"><option value="1" <?=((int)$myClan['is_open']===1)?'selected':''?>>Open</option><option value="0" <?=((int)$myClan['is_open']!==1)?'selected':''?>>Invite only</option></select></div>
+                    <div class="field"><label>Member limit</label><input type="number" name="clanMaxMembers" min="2" max="500" value="<?=pcH($myClan['max_members'])?>"></div>
+                </div>
+                <button class="btn" type="submit">Save changes</button>
+            </form>
+
+            <div class="section">
+                <div class="section-title"><h2>Transfer ownership</h2><span>Owner only</span></div>
+                <form method="post" class="form">
+                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                    <input type="hidden" name="action" value="transfer">
+                    <div class="two">
+                        <select name="targetAccountID" required>
+                            <option value="">Choose member...</option>
+                            <?php foreach ($myClanMembers as $member): ?>
+                                <?php if ((string)$member['role']!=='owner'): ?><option value="<?=((int)$member['account_id'])?>"><?=pcH($member['username'])?></option><?php endif; ?>
+                            <?php endforeach; ?>
+                        </select>
+                        <button class="btn alt" type="submit" onclick="return confirm('Transfer ownership?');">Transfer</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="section">
+                <form method="post">
+                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                    <input type="hidden" name="action" value="disband">
+                    <button class="btn danger" type="submit" onclick="return confirm('Delete this clan permanently?');">Delete clan</button>
+                </form>
+            </div>
+        </div>
+    </details>
+    <?php endif; ?>
+
+    <?php if (in_array((string)$myClan['role'],['owner','officer'],true)): ?>
+    <details class="details">
+        <summary>Join requests · <?=pcNum(count($myClanApplications))?></summary>
+        <div class="details-body">
+            <?php if ($myClanApplications): ?>
+                <div class="list">
+                <?php foreach ($myClanApplications as $application): ?>
+                    <div class="member">
+                        <div class="member-main"><b><?=pcH($application['username'])?></b><small><?=pcH($application['message']?:'No message')?> · expires <?=pcH($application['expires_at'])?></small></div>
+                        <div class="member-actions">
+                            <form method="post"><input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>"><input type="hidden" name="action" value="accept_application"><input type="hidden" name="applicationID" value="<?=((int)$application['application_id'])?>"><button class="btn" type="submit">Accept</button></form>
+                            <form method="post"><input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>"><input type="hidden" name="action" value="decline_application"><input type="hidden" name="applicationID" value="<?=((int)$application['application_id'])?>"><button class="btn alt" type="submit">Decline</button></form>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+                </div>
+            <?php else: ?><div class="empty">No pending requests.</div><?php endif; ?>
+        </div>
+    </details>
+
+    <details class="details">
+        <summary>Invitations · <?=pcNum(count($myClanInvites))?></summary>
+        <div class="details-body">
+            <?php if ($myClanInvites): ?>
+                <div class="list">
+                <?php foreach ($myClanInvites as $invite): ?>
+                    <div class="member"><div class="member-main"><b><?=pcH($invite['username'])?></b><small>expires <?=pcH($invite['expires_at'])?></small></div><form method="post"><input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>"><input type="hidden" name="action" value="revoke_invite"><input type="hidden" name="inviteID" value="<?=((int)$invite['invite_id'])?>"><button class="btn alt" type="submit">Revoke</button></form></div>
+                <?php endforeach; ?>
+                </div>
+            <?php else: ?><div class="empty">No outgoing invitations.</div><?php endif; ?>
+        </div>
+    </details>
+
+    <details class="details">
+        <summary>Bans · <?=pcNum(count($myClanBans))?></summary>
+        <div class="details-body">
+            <?php if ($myClanBans): ?>
+                <div class="list">
+                <?php foreach ($myClanBans as $ban): ?>
+                    <div class="member"><div class="member-main"><b><?=pcH($ban['username'])?></b><small><?=pcH($ban['reason']?:'No reason')?></small></div><form method="post"><input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>"><input type="hidden" name="action" value="unban"><input type="hidden" name="targetAccountID" value="<?=((int)$ban['account_id'])?>"><button class="btn alt" type="submit">Unban</button></form></div>
+                <?php endforeach; ?>
+                </div>
+            <?php else: ?><div class="empty">No active bans.</div><?php endif; ?>
+
+            <form method="post" class="form" style="margin-top:9px">
+                <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                <input type="hidden" name="action" value="ban">
+                <div class="two">
+                    <input type="text" name="targetUsername" maxlength="20" placeholder="Username">
+                    <input type="text" name="targetAccountID" inputmode="numeric" pattern="\d*" placeholder="or Account ID">
+                </div>
+                <input type="text" name="reason" maxlength="160" placeholder="Reason (optional)">
+                <button class="btn danger" type="submit">Ban player</button>
+            </form>
+        </div>
+    </details>
+    <?php endif; ?>
+</section>
+
+<section class="section">
+    <details class="details">
+        <summary>Clan permissions</summary>
+        <div class="details-body">
+            <div class="small-links">
+                <?php foreach (($myClan['permissions']??$repo->permissionMap((string)$myClan['role'])) as $permission): ?>
+                    <span class="chip"><?=pcH(str_replace('_',' ',$permission))?></span>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </details>
+</section>
+<?php endif; ?>
+
+<?php else: ?>
+<section class="hero">
+    <div class="tag">MUCHOCORE · CLANS</div>
+    <h1 class="title" style="margin-top:7px">Find your clan.</h1>
+    <p class="desc">Search clans, open a profile, join open clans, or apply to private ones. Nothing else is hidden behind this page.</p>
+    <form class="actions" method="get">
+        <input type="text" name="q" maxlength="32" value="<?=pcH($search)?>" placeholder="Search clan name or tag" style="flex:1;min-width:220px;border:1px solid #2a374b;background:#080e16;color:#fff;border-radius:9px;padding:9px 10px">
+        <button class="btn" type="submit">Search</button>
+    </form>
+</section>
+
+<section class="section">
+    <div class="section-title"><h2>Clans</h2><span><?=pcNum(count($clans))?> shown</span></div>
+    <?php if (!$clans): ?><div class="empty">No clans found.</div>
+    <?php else: ?><div class="card-grid">
+        <?php foreach ($clans as $clan): ?>
+        <a class="card" href="/dashboard/clans.php?clan=<?=((int)$clan['clan_id'])?>">
+            <div class="tag">[<?=pcH($clan['tag'])?>]</div>
+            <div class="big"><?=pcH($clan['name'])?></div>
+            <small><?=pcNum($clan['member_count'])?> / <?=pcNum($clan['max_members'])?> · <?=((int)$clan['is_open']===1)?'Open':'Invite only'?> · Owner <?=pcH($clan['owner_username'])?></small>
+        </a>
+        <?php endforeach; ?>
+    </div><?php endif; ?>
+</section>
+
+<section class="section" id="clan-rankings">
+    <div class="section-title"><h2>Rankings</h2><span>Top 10</span></div>
+    <div class="card-grid">
         <?php foreach ([
             ['title'=>'Top Stars','rows'=>$topClansStars,'value'=>'total_stars','label'=>'stars'],
             ['title'=>'Top Demons','rows'=>$topClansDemons,'value'=>'total_demons','label'=>'demons'],
             ['title'=>'Top Creators','rows'=>$topClansCreators,'value'=>'total_creator_points','label'=>'creator points'],
             ['title'=>'Largest Clans','rows'=>$topClansMembers,'value'=>'member_count','label'=>'members'],
         ] as $ranking): ?>
-        <div class="panel">
-            <div class="section-head">
-                <h2><?=pcH($ranking['title'])?></h2>
-                <span class="muted">Top 10</span>
+        <div class="card">
+            <div class="big"><?=pcH($ranking['title'])?></div>
+            <?php foreach ($ranking['rows'] as $rank=>$clan): ?>
+            <div class="member" style="margin-top:6px">
+                <div class="member-main"><b>#<?=pcNum($rank+1)?> [<?=pcH($clan['tag'])?>] <?=pcH($clan['name'])?></b><small><?=pcNum($clan[$ranking['value']])?> <?=pcH($ranking['label'])?></small></div>
             </div>
-            <?php foreach ($ranking['rows'] as $rank => $clan): ?>
-            <a class="member" href="/dashboard/clans.php?clan=<?=((int)$clan['clan_id'])?>" style="text-decoration:none;color:inherit">
-                <span>
-                    <b>#<?=pcH($rank + 1)?> [<?=pcH($clan['tag'])?>] <?=pcH($clan['name'])?></b>
-                    <small><?=pcNum($clan[$ranking['value']])?> <?=pcH($ranking['label'])?> · <?=pcNum($clan['member_count'])?> members</small>
-                </span>
-            </a>
             <?php endforeach; ?>
-            <?php if (!$ranking['rows']): ?><div class="empty">No clan data yet.</div><?php endif; ?>
         </div>
         <?php endforeach; ?>
     </div>
 </section>
 
-<section class="section" id="directory">
-    <div class="section-head">
-        <h2>Clan directory</h2>
-        <span class="muted"><?=count($clans)?> shown</span>
-    </div>
-    <form class="search" method="get">
-        <input type="text" name="q" maxlength="32" value="<?=pcH($search)?>" placeholder="Search by clan name or tag..." autocomplete="off">
-        <button class="btn" type="submit">Search</button>
-    </form>
-
-    <?php if (!$clans): ?>
-        <div class="empty">No clans found yet.</div>
-    <?php else: ?>
-        <div class="grid">
-        <?php foreach ($clans as $clan): ?>
-            <a class="card" href="/dashboard/clans.php?clan=<?=((int)$clan['clan_id'])?>">
-                <div class="tag">[<?=pcH($clan['tag'])?>]</div>
-                <div class="name"><?=pcH($clan['name'])?></div>
-                <div class="sub">Owner: <?=pcH($clan['owner_username'])?></div>
-                <div class="chips">
-                    <span class="chip"><?=pcH($clan['member_count'])?> / <?=pcH($clan['max_members'])?></span>
-                    <span class="chip"><?=((int)$clan['is_open'] === 1) ? 'Open' : 'Invite only'?></span>
-                </div>
-            </a>
-        <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
-</section>
-
-<?php if ($selected): ?>
+<?php if ($account && !$myClan): ?>
 <section class="section">
-    <div class="section-head">
-        <h2>[<?=pcH($selected['tag'])?>] <?=pcH($selected['name'])?></h2>
-        <a class="btn alt" href="/dashboard/clans.php">All clans</a>
-    </div>
-    <div class="panel">
-        <div class="eyebrow">Clan #<?=pcH($selected['clan_id'])?></div>
-        <p class="copy"><?=pcH($selected['description'] ?? '')?></p>
-        <div class="chips">
-            <span class="chip"><?=pcH($selected['member_count'])?> / <?=pcH($selected['max_members'])?> members</span>
-            <span class="chip">Owner: <?=pcH($selected['owner_username'])?></span>
-            <span class="chip"><?=((int)$selected['is_open'] === 1) ? 'Open' : 'Invite only'?></span>
-        </div>
-        <?php $selectedStats = $repo->stats((int)$selected['clan_id']); ?>
-        <div class="kpi-grid">
-            <div class="kpi"><b><?=pcNum($selectedStats['total_stars'] ?? 0)?></b><small>Total stars</small></div>
-            <div class="kpi"><b><?=pcNum($selectedStats['total_demons'] ?? 0)?></b><small>Total demons</small></div>
-            <div class="kpi"><b><?=pcNum($selectedStats['total_creator_points'] ?? 0)?></b><small>Creator points</small></div>
-            <div class="kpi"><b><?=pcNum($selectedStats['total_levels'] ?? 0)?></b><small>Published levels</small></div>
-        </div>
-
-        <?php if ($account && !$myClan && (int)$selected['is_open'] === 1): ?>
-        <form method="post" class="actions">
-            <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-            <input type="hidden" name="action" value="join">
-            <input type="hidden" name="clanID" value="<?=((int)$selected['clan_id'])?>">
-            <button class="btn" type="submit">Join clan</button>
-        </form>
-        <?php elseif ($account && !$myClan): ?>
-            <?php if ($selectedApplication): ?>
-            <div class="notice">
-                Application pending until <?=pcH($selectedApplication['expires_at'])?>.
-                <form method="post" style="margin-top:8px">
-                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-                    <input type="hidden" name="action" value="cancel_application">
-                    <input type="hidden" name="applicationID" value="<?=((int)$selectedApplication['application_id'])?>">
-                    <button class="btn alt" type="submit">Cancel application</button>
-                </form>
-            </div>
-            <?php else: ?>
-            <form method="post" class="form" style="margin-top:12px">
+    <details class="details" open>
+        <summary>Create a clan</summary>
+        <div class="details-body">
+            <form class="form" method="post">
                 <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-                <input type="hidden" name="action" value="apply">
-                <input type="hidden" name="clanID" value="<?=((int)$selected['clan_id'])?>">
-                <div class="field">
-                    <label>Application message</label>
-                    <textarea name="message" maxlength="160" placeholder="Tell the clan why you want to join..."></textarea>
+                <input type="hidden" name="action" value="create">
+                <div class="two">
+                    <div class="field"><label>Clan name</label><input type="text" name="clanName" maxlength="32" required></div>
+                    <div class="field"><label>Tag</label><input type="text" name="clanTag" maxlength="8" placeholder="MUCHO" required></div>
                 </div>
-                <button class="btn" type="submit">Apply to join</button>
+                <div class="field"><label>Description</label><textarea name="clanDescription" maxlength="160"></textarea></div>
+                <div class="two">
+                    <div class="field"><label>Access</label><select name="clanOpen"><option value="1">Open</option><option value="0">Invite only</option></select></div>
+                    <div class="field"><label>Member limit</label><input type="number" name="clanMaxMembers" min="2" max="500" value="50"></div>
+                </div>
+                <button class="btn" type="submit">Create clan</button>
             </form>
-            <?php endif; ?>
-        <?php endif; ?>
-    </div>
-
-    <div class="panel" style="margin-top:10px">
-        <div class="section-head">
-            <h2>Members</h2>
-            <span class="muted"><?=count($selected['members'])?> members</span>
         </div>
-        <?php
-        $selectedViewerRole = null;
-
-        if (
-            $account &&
-            $myClan &&
-            (int)$myClan['clan_id'] === (int)$selected['clan_id']
-        ) {
-            $selectedViewerRole = (string)$myClan['role'];
-        }
-        ?>
-
-        <?php foreach ($selected['members'] as $member): ?>
-        <?php
-        $canKick =
-            in_array($selectedViewerRole, ['owner', 'officer'], true) &&
-            (string)$member['role'] !== 'owner' &&
-            !(
-                $selectedViewerRole === 'officer' &&
-                (string)$member['role'] !== 'member'
-            );
-
-        $canChangeRole =
-            $selectedViewerRole === 'owner' &&
-            (string)$member['role'] !== 'owner';
-
-        $nextRole = (string)$member['role'] === 'officer'
-            ? 'member'
-            : 'officer';
-        ?>
-        <div class="member">
-            <span>
-                <b><a href="/dashboard?u=<?=rawurlencode((string)$member['username'])?>" style="color:inherit;text-decoration:none"><?=pcH($member['username'])?></a></b>
-                <small>Account #<?=pcH($member['account_id'])?> · <span class="role-<?=pcH((string)$member['role'])?>"><?=pcH($member['role'])?></span></small>
-            </span>
-            <?php if ($canKick || $canChangeRole): ?>
-            <span>
-                <?php if ($canKick): ?>
-                <form method="post" style="display:inline">
-                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-                    <input type="hidden" name="action" value="kick">
-                    <input type="hidden" name="targetAccountID" value="<?=((int)$member['account_id'])?>">
-                    <button class="btn alt" type="submit">Kick</button>
-                </form>
-                <form method="post" style="display:inline">
-                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-                    <input type="hidden" name="action" value="ban">
-                    <input type="hidden" name="targetAccountID" value="<?=((int)$member['account_id'])?>">
-                    <button class="btn alt danger" type="submit" onclick="return confirm('Ban this player from the clan?');">Ban</button>
-                </form>
-                <?php endif; ?>
-
-                <?php if ($canChangeRole): ?>
-                <form method="post" style="display:inline">
-                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-                    <input type="hidden" name="action" value="role">
-                    <input type="hidden" name="targetAccountID" value="<?=((int)$member['account_id'])?>">
-                    <input type="hidden" name="role" value="<?=pcH($nextRole)?>">
-                    <button class="btn alt" type="submit">
-                        <?=($nextRole === 'officer') ? 'Promote' : 'Demote'?>
-                    </button>
-                </form>
-                <?php endif; ?>
-            </span>
-            <?php endif; ?>
-        </div>
-        <?php endforeach; ?>
-    </div>
+    </details>
+</section>
+<?php elseif ($account && $myClan): ?>
+<section class="section">
+    <div class="section-title"><h2>My clan</h2><span><?=pcH(ucfirst((string)$myClan['role']))?></span></div>
+    <a class="card" href="/dashboard/clans.php?clan=<?=((int)$myClan['clan_id'])?>">
+        <div class="tag">[<?=pcH($myClan['tag'])?>]</div>
+        <div class="big"><?=pcH($myClan['name'])?></div>
+        <small><?=pcNum($myClan['member_count'])?> / <?=pcNum($myClan['max_members'])?> members</small>
+    </a>
 </section>
 <?php endif; ?>
-
-<?php if ($account && $myClan): ?>
-<?php if ((string)$myClan['role'] === 'owner'): ?>
-<section class="section">
-    <div class="panel">
-        <div class="section-head">
-            <h2>Clan settings</h2>
-            <span class="muted">Owner only</span>
-        </div>
-        <form class="form" method="post">
-            <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-            <input type="hidden" name="action" value="settings">
-            <div class="field"><label>Clan name</label><input type="text" name="clanName" maxlength="32" value="<?=pcH($myClan['name'])?>" required></div>
-            <div class="field"><label>Tag</label><input type="text" name="clanTag" maxlength="8" value="<?=pcH($myClan['tag'])?>" required></div>
-            <div class="field"><label>Description</label><textarea name="clanDescription" maxlength="160"><?=pcH($myClan['description'] ?? '')?></textarea></div>
-            <div class="field"><label>Access</label>
-                <select name="clanOpen">
-                    <option value="1" <?=((int)$myClan['is_open'] === 1) ? 'selected' : ''?>>Open — anyone can join</option>
-                    <option value="0" <?=((int)$myClan['is_open'] !== 1) ? 'selected' : ''?>>Invite only</option>
-                </select>
-            </div>
-            <div class="field"><label>Member limit</label><input type="number" name="clanMaxMembers" min="2" max="500" value="<?=pcH($myClan['max_members'])?>"></div>
-            <button class="btn" type="submit">Save settings</button>
-        </form>
-    </div>
-</section>
-
-<section class="section">
-    <div class="panel">
-        <div class="section-head"><h2>Ownership</h2><span class="muted">Transfer or disband</span></div>
-        <form class="search" method="post">
-            <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-            <input type="hidden" name="action" value="transfer">
-            <select name="targetAccountID" required>
-                <option value="">Transfer ownership to...</option>
-                <?php foreach ($myClanMembers as $member): ?>
-                    <?php if ((string)$member['role'] !== 'owner'): ?>
-                    <option value="<?=((int)$member['account_id'])?>"><?=pcH($member['username'])?> · <?=pcH($member['role'])?></option>
-                    <?php endif; ?>
-                <?php endforeach; ?>
-            </select>
-            <button class="btn" type="submit" onclick="return confirm('Transfer clan ownership?');">Transfer</button>
-        </form>
-        <form method="post" style="margin-top:9px">
-            <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-            <input type="hidden" name="action" value="disband">
-            <button class="btn alt danger" type="submit" onclick="return confirm('Delete this clan permanently? All memberships, invites, applications and bans will be deleted.');">Delete clan permanently</button>
-        </form>
-    </div>
-</section>
-<?php endif; ?>
-
-<?php if ($account && $myClan): ?>
-<section class="section" id="my-clan">
-    <div class="panel">
-        <div class="section-head">
-            <h2>Clan tag in Geometry Dash</h2>
-            <span class="tag">[<?=pcH($myClan['tag'])?>]</span>
-        </div>
-        <p class="copy">
-            Members keep their real usernames. MuchoCore decorates the standard GD username
-            returned by profile, search, leaderboard and social endpoints, so a member can
-            appear as <b>[<?=pcH($myClan['tag'])?>]PlayerName</b> in an unmodified compatible client.
-        </p>
-        <div class="notice">
-            No GD mod is required for the tag itself. The old client is simply receiving a
-            normal username string from the server.
-        </div>
-    </div>
-</section>
-
-<?php if ($account && $myClan && in_array((string)$myClan['role'], ['owner', 'officer'], true)): ?>
-<section class="section">
-    <div class="panel">
-        <div class="section-head">
-            <h2>Invite a player</h2>
-            <span class="muted">Use the player's Geometry Dash username · 30 invites/hour</span>
-        </div>
-        <form class="search" method="post">
-            <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-            <input type="hidden" name="action" value="invite">
-            <input type="text" name="targetUsername" maxlength="20" placeholder="Player username" required>
-            <button class="btn" type="submit">Send invite</button>
-        </form>
-    </div>
-</section>
-<?php endif; ?>
-
-<?php if ($account && $myClan && in_array((string)$myClan['role'], ['owner', 'officer'], true)): ?>
-<section class="section">
-    <div class="panel">
-        <div class="section-head">
-            <h2>Join requests</h2>
-            <span class="muted"><?=count($myClanApplications)?> waiting</span>
-        </div>
-        <?php if ($myClanApplications): ?>
-            <?php foreach ($myClanApplications as $application): ?>
-            <div class="member">
-                <span>
-                    <b><a href="/dashboard?u=<?=rawurlencode((string)$application['username'])?>" style="color:inherit;text-decoration:none"><?=pcH($application['username'])?></a></b>
-                    <small>
-                        <?=pcH($application['message'] ?: 'No message')?>
-                        · expires <?=pcH($application['expires_at'])?>
-                    </small>
-                </span>
-                <span>
-                    <form method="post" style="display:inline">
-                        <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-                        <input type="hidden" name="action" value="accept_application">
-                        <input type="hidden" name="applicationID" value="<?=((int)$application['application_id'])?>">
-                        <button class="btn" type="submit">Accept</button>
-                    </form>
-                    <form method="post" style="display:inline">
-                        <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-                        <input type="hidden" name="action" value="decline_application">
-                        <input type="hidden" name="applicationID" value="<?=((int)$application['application_id'])?>">
-                        <button class="btn alt" type="submit">Decline</button>
-                    </form>
-                </span>
-            </div>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <div class="empty">No pending join requests.</div>
-        <?php endif; ?>
-    </div>
-</section>
-<?php endif; ?>
-
-<?php if ($account && $myClan && in_array((string)$myClan['role'], ['owner', 'officer'], true)): ?>
-<section class="section">
-    <div class="panel">
-        <div class="section-head"><h2>Invitations & bans</h2><span class="muted">Officer tools</span></div>
-
-        <?php if ($myClanInvites): ?>
-            <?php foreach ($myClanInvites as $invite): ?>
-            <div class="member">
-                <span><b><?=pcH($invite['username'])?></b><small>expires <?=pcH($invite['expires_at'])?></small></span>
-                <form method="post">
-                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-                    <input type="hidden" name="action" value="revoke_invite">
-                    <input type="hidden" name="inviteID" value="<?=((int)$invite['invite_id'])?>">
-                    <button class="btn alt" type="submit">Revoke</button>
-                </form>
-            </div>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <div class="empty">No outgoing invitations.</div>
-        <?php endif; ?>
-
-        <div class="form" style="margin-top:12px">
-            <?php if ($myClanBans): ?>
-                <?php foreach ($myClanBans as $ban): ?>
-                <div class="member">
-                    <span><b><?=pcH($ban['username'])?></b><small><?=pcH($ban['reason'] ?: 'No reason')?></small></span>
-                    <form method="post">
-                        <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-                        <input type="hidden" name="action" value="unban">
-                        <input type="hidden" name="targetAccountID" value="<?=((int)$ban['account_id'])?>">
-                        <button class="btn alt" type="submit">Unban</button>
-                    </form>
-                </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div class="empty">No active clan bans.</div>
-            <?php endif; ?>
-        </div>
-
-        <form class="search" method="post" style="margin-top:12px">
-            <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-            <input type="hidden" name="action" value="ban">
-            <input type="text" name="targetUsername" maxlength="20" placeholder="Player username">
-            <input type="text" name="targetAccountID" inputmode="numeric" pattern="\\d*" placeholder="or Account ID">
-            <input type="text" name="reason" maxlength="160" placeholder="Reason (optional)">
-            <button class="btn alt danger" type="submit">Ban player</button>
-        </form>
-        <div class="helper" style="margin-top:7px">Ban blocks future joins and invitations. The target does not have to be a current member.</div>
-    </div>
-</section>
 <?php endif; ?>
 
 <?php if ($account && !$myClan && $myApplications): ?>
 <section class="section">
-    <div class="panel">
-        <div class="section-head">
-            <h2>My applications</h2>
-            <span class="muted"><?=count($myApplications)?> pending</span>
+    <details class="details">
+        <summary>My applications · <?=pcNum(count($myApplications))?></summary>
+        <div class="details-body">
+            <div class="list">
+            <?php foreach ($myApplications as $application): ?>
+                <div class="member"><div class="member-main"><b>[<?=pcH($application['tag'])?>] <?=pcH($application['name'])?></b><small>expires <?=pcH($application['expires_at'])?></small></div><form method="post"><input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>"><input type="hidden" name="action" value="cancel_application"><input type="hidden" name="applicationID" value="<?=((int)$application['application_id'])?>"><button class="btn alt" type="submit">Cancel</button></form></div>
+            <?php endforeach; ?>
+            </div>
         </div>
-        <?php foreach ($myApplications as $application): ?>
-        <div class="member">
-            <span>
-                <b>[<?=pcH($application['tag'])?>] <?=pcH($application['name'])?></b>
-                <small>expires <?=pcH($application['expires_at'])?></small>
-            </span>
-            <form method="post">
-                <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-                <input type="hidden" name="action" value="cancel_application">
-                <input type="hidden" name="applicationID" value="<?=((int)$application['application_id'])?>">
-                <button class="btn alt" type="submit">Cancel</button>
-            </form>
-        </div>
-        <?php endforeach; ?>
-    </div>
+    </details>
 </section>
 <?php endif; ?>
 
 <?php if ($account): ?>
-<?php $pendingInvites = $repo->invitations((int)$account['id']); ?>
+<?php $pendingInvites=$repo->invitations((int)$account['id']); ?>
 <?php if ($pendingInvites): ?>
 <section class="section">
-    <div class="panel">
-        <div class="section-head">
-            <h2>Pending invitations</h2>
-            <span class="muted"><?=count($pendingInvites)?> waiting</span>
+    <details class="details" open>
+        <summary>Pending invitations · <?=pcNum(count($pendingInvites))?></summary>
+        <div class="details-body">
+            <div class="list">
+            <?php foreach ($pendingInvites as $invite): ?>
+                <div class="member"><div class="member-main"><b>[<?=pcH($invite['tag'])?>] <?=pcH($invite['name'])?></b><small>Invited by <?=pcH($invite['invited_by_username'])?> · expires <?=pcH($invite['expires_at'])?></small></div><div class="member-actions"><form method="post"><input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>"><input type="hidden" name="action" value="accept"><input type="hidden" name="inviteID" value="<?=((int)$invite['invite_id'])?>"><button class="btn" type="submit">Accept</button></form><form method="post"><input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>"><input type="hidden" name="action" value="decline"><input type="hidden" name="inviteID" value="<?=((int)$invite['invite_id'])?>"><button class="btn alt" type="submit">Decline</button></form></div></div>
+            <?php endforeach; ?>
+            </div>
         </div>
-        <?php foreach ($pendingInvites as $invite): ?>
-        <div class="member">
-            <span>
-                <b>[<?=pcH($invite['tag'])?>] <?=pcH($invite['name'])?></b>
-                <small>Invited by <?=pcH($invite['invited_by_username'])?> · expires <?=pcH($invite['expires_at'])?></small>
-            </span>
-            <span>
-                <form method="post" style="display:inline">
-                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-                    <input type="hidden" name="action" value="accept">
-                    <input type="hidden" name="inviteID" value="<?=((int)$invite['invite_id'])?>">
-                    <button class="btn" type="submit">Accept</button>
-                </form>
-                <form method="post" style="display:inline">
-                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
-                    <input type="hidden" name="action" value="decline">
-                    <input type="hidden" name="inviteID" value="<?=((int)$invite['invite_id'])?>">
-                    <button class="btn alt" type="submit">Decline</button>
-                </form>
-            </span>
-        </div>
-        <?php endforeach; ?>
-    </div>
+    </details>
 </section>
 <?php endif; ?>
 <?php endif; ?>
 
-<?php endif; ?>
-
-<?php endif; ?>
-
-<footer class="footer">
-    <?=pcH($serverName)?> Player Dashboard · Powered by MuchoCore
-    <?php if ($serverByName !== '' && $socialUrl !== ''): ?>
-    · Server by <a href="<?=pcH($socialUrl)?>" target="_blank" rel="noopener noreferrer"><?=pcH($serverByName)?></a>
-    <?php endif; ?>
-</footer>
+<footer class="footer"><?=pcH($serverName)?> · Powered by MuchoCore<?php if ($serverByName!=='' && $socialUrl!==''): ?> · Server by <a href="<?=pcH($socialUrl)?>" target="_blank" rel="noopener noreferrer"><?=pcH($serverByName)?></a><?php endif; ?></footer>
 </div>
 </body>
 </html>
