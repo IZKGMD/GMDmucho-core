@@ -126,6 +126,10 @@ A real Geometry Dash 1.1 client has been verified against MuchoCore on the share
 
 Real Geometry Dash 1.2, 1.3, and 1.4 clients have been verified against the shared MuchoCore legacy 1.x compatibility path. Marked ✅ as completed manual smoke verification.
 
+## Current 1.8 verification status
+
+A real Geometry Dash 1.8 build 20 client has been patched and smoke-tested against MuchoCore. The client completed the supported server flows end-to-end on the shared early legacy 1.x compatibility path.
+
 ## Current 1.6 verification status
 
 A real Geometry Dash 1.6 build 16 client has been patched and smoke-tested against MuchoCore. The patched client completed the supported server flows end-to-end.
