@@ -121,6 +121,7 @@ final readonly class CompatibilityProfile
 
         $aliases = [
             '1' => 1,
+            '10' => 1,
             '11' => 11,
             '19' => 19,
             '20' => 20,
@@ -128,6 +129,7 @@ final readonly class CompatibilityProfile
             '22' => 22,
             '1.0' => 1,
             'gd1.0' => 1,
+            'gd10' => 1,
             '1.1' => 11,
             'gd1.1' => 11,
             '1.9' => 19,
