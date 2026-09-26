@@ -46,7 +46,6 @@ final readonly class UserRepository
                 p.user_id,
                 a.account_id,
                 a.username,
-                COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=p.account_id LIMIT 1), \'\') AS clan_tag,
                 COALESCE(ar.code, \'user\') AS role_code,
                 COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), \'\') AS clan_tag
             FROM accounts a
@@ -152,6 +151,7 @@ final readonly class UserRepository
                 a.account_id,
                 a.username,
                 COALESCE(ar.code, \'user\') AS role_code,
+                COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), \'\') AS clan_tag,
                 COALESCE(a.messages_state, 0) AS message_state,
                 COALESCE(a.friend_requests_state, 0) AS friend_request_state,
                 COALESCE(a.comments_state, 0) AS comment_history_state,
@@ -321,6 +321,7 @@ final readonly class UserRepository
             SELECT
                 p.*,
                 a.username,
+                COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=p.account_id LIMIT 1), \'\') AS clan_tag,
                 COALESCE(ar.code, \'user\') AS role_code,
                 ROW_NUMBER() OVER (ORDER BY p.stars DESC, p.account_id ASC) AS `rank`
             FROM profiles p
@@ -355,6 +356,7 @@ final readonly class UserRepository
             SELECT
                 p.*,
                 a.username,
+                COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=p.account_id LIMIT 1), \'\') AS clan_tag,
                 COALESCE(ar.code, \'user\') AS role_code,
                 ROW_NUMBER() OVER (ORDER BY p.creator_points DESC, p.account_id ASC) AS `rank`
             FROM profiles p
