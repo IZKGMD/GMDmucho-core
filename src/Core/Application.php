@@ -173,7 +173,8 @@ final readonly class Application
                 $commentRepo,
                 $auth,
                 new GdCommentEncoder(),
-                $this->pdo
+                $this->pdo,
+                $legacy10Identity
             )
         );
 
