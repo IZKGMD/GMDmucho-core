@@ -614,7 +614,12 @@ if ($search !== '') {
                 COALESCE(p.icon_type, 0) AS icon_type,
                 COALESCE(p.color1, 0) AS color1,
                 COALESCE(p.color2, 3) AS color2,
-                COALESCE(p.glow, 0) AS glow
+                COALESCE(p.glow, 0) AS glow,
+                COALESCE((SELECT c.tag
+                          FROM mucho_clan_members cm
+                          INNER JOIN mucho_clans c ON c.clan_id = cm.clan_id
+                          WHERE cm.account_id = a.account_id
+                          LIMIT 1), "") AS clan_tag
              FROM accounts a
              LEFT JOIN roles r ON r.id = a.role_id
              LEFT JOIN profiles p ON p.account_id = a.account_id
@@ -1813,9 +1818,6 @@ body.dashboard-page .topbar{
                         <?php if ((string)($player['clan_tag'] ?? '') !== ''): ?>
                         <span class="role">[<?=pdH($player['clan_tag'])?>]</span>
                         <?php endif; ?>
-                            <?php if ((string)($player['clan_tag'] ?? '') !== ''): ?>
-                            <span class="role">[<?=pdH($player['clan_tag'])?>]</span>
-                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="chips">
@@ -1853,6 +1855,9 @@ body.dashboard-page .topbar{
                         <b><?=pdH($player['username'])?></b>
                         <div class="rank">#<?=($index + 1)?> · Account #<?=pdH($player['account_id'])?></div>
                         <span class="role"><?=pdH(str_replace('_', ' ', (string)$player['role_code']))?></span>
+                        <?php if ((string)($player['clan_tag'] ?? '') !== ''): ?>
+                        <span class="role">[<?=pdH($player['clan_tag'])?>]</span>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <div class="chips">
