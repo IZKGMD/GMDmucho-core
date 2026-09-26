@@ -558,6 +558,74 @@ if ($action !== '') {
             pcRedirect();
         }
 
+
+        if ($action === 'apply') {
+            $clanId = (int)($_POST['clanID'] ?? 0);
+
+            if ($myClan !== null) {
+                throw new RuntimeException('You are already in a clan.');
+            }
+
+            if (!(new RateLimiter())->allowStrict(
+                'clan-application-dashboard:' . $accountId,
+                10,
+                3600
+            )) {
+                throw new RuntimeException('Application rate limit reached. Try again later.');
+            }
+
+            $message = substr(
+                trim(preg_replace('/\\s+/', ' ', (string)($_POST['message'] ?? '')) ?? ''),
+                0,
+                160
+            );
+
+            $repo->apply($clanId, $accountId, $message);
+            pcFlash('Clan application sent.');
+            pcRedirect();
+        }
+
+        if ($action === 'cancel_application') {
+            $applicationId = (int)($_POST['applicationID'] ?? 0);
+            $repo->cancelApplication($applicationId, $accountId);
+            pcFlash('Clan application cancelled.');
+            pcRedirect();
+        }
+
+        if ($action === 'accept_application') {
+            if (
+                $myClan === null ||
+                !in_array((string)$myClan['role'], ['owner', 'officer'], true)
+            ) {
+                throw new RuntimeException('Officer permission required.');
+            }
+
+            $applicationId = (int)($_POST['applicationID'] ?? 0);
+            $repo->acceptApplication($applicationId, $accountId);
+            pcFlash('Clan application accepted.');
+            pcAudit($db, $accountId, 'clan.application.accepted', (int)$myClan['clan_id'], [
+                'application_id' => $applicationId,
+            ]);
+            pcRedirect();
+        }
+
+        if ($action === 'decline_application') {
+            if (
+                $myClan === null ||
+                !in_array((string)$myClan['role'], ['owner', 'officer'], true)
+            ) {
+                throw new RuntimeException('Officer permission required.');
+            }
+
+            $applicationId = (int)($_POST['applicationID'] ?? 0);
+            $repo->declineApplication($applicationId, $accountId);
+            pcFlash('Clan application declined.');
+            pcAudit($db, $accountId, 'clan.application.declined', (int)$myClan['clan_id'], [
+                'application_id' => $applicationId,
+            ]);
+            pcRedirect();
+        }
+
         throw new RuntimeException('Unknown clan action.');
     } catch (PDOException $e) {
         if ($db->inTransaction()) {
@@ -603,6 +671,25 @@ $myClanInvites = (
 )
     ? $repo->clanInvitations((int)$myClan['clan_id'])
     : [];
+$myClanApplications = (
+    $myClan !== null &&
+    in_array((string)$myClan['role'], ['owner', 'officer'], true)
+)
+    ? $repo->clanApplications((int)$myClan['clan_id'])
+    : [];
+$myApplications = $account
+    ? $repo->applications((int)$account['id'])
+    : [];
+$selectedApplication = (
+    $account &&
+    !$myClan &&
+    $selected !== null
+)
+    ? $repo->applicationForAccount(
+        (int)$selected['clan_id'],
+        (int)$account['id']
+    )
+    : null;
 ?>
 <!doctype html>
 <html lang="en">
@@ -832,7 +919,28 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
             <button class="btn" type="submit">Join clan</button>
         </form>
         <?php elseif ($account && !$myClan): ?>
-        <div class="notice">This clan is invite only.</div>
+            <?php if ($selectedApplication): ?>
+            <div class="notice">
+                Application pending until <?=pcH($selectedApplication['expires_at'])?>.
+                <form method="post" style="margin-top:8px">
+                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                    <input type="hidden" name="action" value="cancel_application">
+                    <input type="hidden" name="applicationID" value="<?=((int)$selectedApplication['application_id'])?>">
+                    <button class="btn alt" type="submit">Cancel application</button>
+                </form>
+            </div>
+            <?php else: ?>
+            <form method="post" class="form" style="margin-top:12px">
+                <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                <input type="hidden" name="action" value="apply">
+                <input type="hidden" name="clanID" value="<?=((int)$selected['clan_id'])?>">
+                <div class="field">
+                    <label>Application message</label>
+                    <textarea name="message" maxlength="160" placeholder="Tell the clan why you want to join..."></textarea>
+                </div>
+                <button class="btn" type="submit">Apply to join</button>
+            </form>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 
@@ -1002,6 +1110,46 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
 <?php if ($account && $myClan && in_array((string)$myClan['role'], ['owner', 'officer'], true)): ?>
 <section class="section">
     <div class="panel">
+        <div class="section-head">
+            <h2>Join requests</h2>
+            <span class="muted"><?=count($myClanApplications)?> waiting</span>
+        </div>
+        <?php if ($myClanApplications): ?>
+            <?php foreach ($myClanApplications as $application): ?>
+            <div class="member">
+                <span>
+                    <b><a href="/dashboard?u=<?=rawurlencode((string)$application['username'])?>" style="color:inherit;text-decoration:none"><?=pcH($application['username'])?></a></b>
+                    <small>
+                        <?=pcH($application['message'] ?: 'No message')?>
+                        · expires <?=pcH($application['expires_at'])?>
+                    </small>
+                </span>
+                <span>
+                    <form method="post" style="display:inline">
+                        <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                        <input type="hidden" name="action" value="accept_application">
+                        <input type="hidden" name="applicationID" value="<?=((int)$application['application_id'])?>">
+                        <button class="btn" type="submit">Accept</button>
+                    </form>
+                    <form method="post" style="display:inline">
+                        <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                        <input type="hidden" name="action" value="decline_application">
+                        <input type="hidden" name="applicationID" value="<?=((int)$application['application_id'])?>">
+                        <button class="btn alt" type="submit">Decline</button>
+                    </form>
+                </span>
+            </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="empty">No pending join requests.</div>
+        <?php endif; ?>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php if ($account && $myClan && in_array((string)$myClan['role'], ['owner', 'officer'], true)): ?>
+<section class="section">
+    <div class="panel">
         <div class="section-head"><h2>Invitations & bans</h2><span class="muted">Officer tools</span></div>
 
         <?php if ($myClanInvites): ?>
@@ -1047,6 +1195,31 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
             <button class="btn alt danger" type="submit">Ban player</button>
         </form>
         <div class="helper" style="margin-top:7px">Ban blocks future joins and invitations. The target does not have to be a current member.</div>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php if ($account && !$myClan && $myApplications): ?>
+<section class="section">
+    <div class="panel">
+        <div class="section-head">
+            <h2>My applications</h2>
+            <span class="muted"><?=count($myApplications)?> pending</span>
+        </div>
+        <?php foreach ($myApplications as $application): ?>
+        <div class="member">
+            <span>
+                <b>[<?=pcH($application['tag'])?>] <?=pcH($application['name'])?></b>
+                <small>expires <?=pcH($application['expires_at'])?></small>
+            </span>
+            <form method="post">
+                <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                <input type="hidden" name="action" value="cancel_application">
+                <input type="hidden" name="applicationID" value="<?=((int)$application['application_id'])?>">
+                <button class="btn alt" type="submit">Cancel</button>
+            </form>
+        </div>
+        <?php endforeach; ?>
     </div>
 </section>
 <?php endif; ?>
