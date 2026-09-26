@@ -231,22 +231,25 @@ final readonly class ClanRepository
         $this->pdo->beginTransaction();
 
         try {
-            $inviteStmt=$this->pdo->prepare(
-                'SELECT i.invite_id, i.clan_id, i.account_id
-                 FROM mucho_clan_invites i
-                 WHERE i.invite_id=:invite_id
-                   AND i.account_id=:account_id
-                   AND i.expires_at>UTC_TIMESTAMP()
-                 LIMIT 1
-                 FOR UPDATE'
+            /*
+             * Lock order is clan -> invitation. This matches clan-wide
+             * management writes and avoids the invite -> clan inversion.
+             */
+            $lookup=$this->pdo->prepare(
+                'SELECT clan_id
+                 FROM mucho_clan_invites
+                 WHERE invite_id=:invite_id
+                   AND account_id=:account_id
+                   AND expires_at>UTC_TIMESTAMP()
+                 LIMIT 1'
             );
-            $inviteStmt->execute([
+            $lookup->execute([
                 'invite_id'=>$inviteId,
                 'account_id'=>$accountId,
             ]);
-            $invite=$inviteStmt->fetch(PDO::FETCH_ASSOC);
+            $clanId=(int)($lookup->fetchColumn() ?: 0);
 
-            if (!$invite) {
+            if ($clanId<=0) {
                 throw new RuntimeException(
                     'Clan invitation not found or expired.'
                 );
@@ -262,14 +265,37 @@ final readonly class ClanRepository
                  LIMIT 1
                  FOR UPDATE'
             );
-            $clanStmt->execute(['clan_id'=>(int)$invite['clan_id']]);
+            $clanStmt->execute(['clan_id'=>$clanId]);
             $clan=$clanStmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$clan || (int)$clan['member_count'] >= (int)$clan['max_members']) {
                 throw new RuntimeException('Clan is full or unavailable.');
             }
 
-            if ($this->isBanned((int)$invite['clan_id'],$accountId)) {
+            $inviteStmt=$this->pdo->prepare(
+                'SELECT i.invite_id, i.clan_id, i.account_id
+                 FROM mucho_clan_invites i
+                 WHERE i.invite_id=:invite_id
+                   AND i.account_id=:account_id
+                   AND i.clan_id=:clan_id
+                   AND i.expires_at>UTC_TIMESTAMP()
+                 LIMIT 1
+                 FOR UPDATE'
+            );
+            $inviteStmt->execute([
+                'invite_id'=>$inviteId,
+                'account_id'=>$accountId,
+                'clan_id'=>$clanId,
+            ]);
+            $invite=$inviteStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$invite) {
+                throw new RuntimeException(
+                    'Clan invitation not found or expired.'
+                );
+            }
+
+            if ($this->isBanned($clanId,$accountId)) {
                 throw new RuntimeException('You are banned from this clan.');
             }
 
@@ -289,7 +315,7 @@ final readonly class ClanRepository
                  VALUES (:clan_id, :account_id, 'member')"
             );
             $insert->execute([
-                'clan_id'=>(int)$invite['clan_id'],
+                'clan_id'=>$clanId,
                 'account_id'=>$accountId,
             ]);
 
@@ -467,27 +493,26 @@ final readonly class ClanRepository
         $this->pdo->beginTransaction();
 
         try {
-            $stmt=$this->pdo->prepare(
-                'SELECT i.clan_id
-                 FROM mucho_clan_invites i
-                 WHERE i.invite_id=:invite_id
-                 LIMIT 1
-                 FOR UPDATE'
+            $lookup=$this->pdo->prepare(
+                'SELECT clan_id
+                 FROM mucho_clan_invites
+                 WHERE invite_id=:invite_id
+                 LIMIT 1'
             );
-            $stmt->execute(['invite_id'=>$inviteId]);
-            $invite=$stmt->fetch(PDO::FETCH_ASSOC);
+            $lookup->execute(['invite_id'=>$inviteId]);
+            $clanId=(int)($lookup->fetchColumn() ?: 0);
 
-            if (!$invite) {
+            if ($clanId<=0) {
                 throw new RuntimeException('Clan invitation not found.');
             }
 
-            $clan=$this->lockedClan((int)$invite['clan_id']);
+            $clan=$this->lockedClan($clanId);
 
             if (!$clan) {
                 throw new RuntimeException('Clan not found.');
             }
 
-            $actor=$this->member((int)$invite['clan_id'],$actorAccountId);
+            $actor=$this->member($clanId,$actorAccountId);
 
             if (!$actor || !in_array((string)$actor['role'],['owner','officer'],true)) {
                 throw new RuntimeException('Clan officer permission required.');
@@ -495,9 +520,12 @@ final readonly class ClanRepository
 
             $delete=$this->pdo->prepare(
                 'DELETE FROM mucho_clan_invites
-                 WHERE invite_id=:invite_id'
+                 WHERE invite_id=:invite_id AND clan_id=:clan_id'
             );
-            $delete->execute(['invite_id'=>$inviteId]);
+            $delete->execute([
+                'invite_id'=>$inviteId,
+                'clan_id'=>$clanId,
+            ]);
 
             $this->pdo->commit();
             return $delete->rowCount() > 0;
