@@ -2,13 +2,33 @@
 
 ## Unreleased
 
-### Custom Plugins
+
 
 - added a persistent `custom/plugins/` extension layer for GDPS-specific functionality;
 - custom plugins are kept outside the tracked core source tree and are ignored by Git;
 - core updates preserve installed custom plugins instead of treating them as core changes;
 - documented plugin manifests, permissions, lifecycle events and installation workflow;
 - added regression coverage for loading a custom plugin from the persistent plugin directory.
+
+## v1.0.3 — Persistent Plugins & Operations
+
+MuchoCore v1.0.3 expands the custom extension layer and improves the operator experience around long-lived GDPS installations.
+
+### Custom Plugins
+
+- added Plugin SDK API compatibility metadata;
+- added optional minimum and maximum MuchoCore version guards for custom plugins;
+- incompatible or disabled plugins are skipped instead of being executed;
+- added read-only plugin diagnostics without executing `plugin.php`;
+- added an Admin Panel **Custom Plugins** page with plugin status, versions, permissions and compatibility details;
+- added the `plugins.view` RBAC permission;
+- preserved compatibility with existing manifests that omit the new optional fields.
+
+### Validation & Reliability
+
+- expanded plugin regression coverage for compatible and incompatible manifests;
+- added release CI gates for the new plugin diagnostics module and migration;
+- kept custom plugin files outside the tracked core source so stable core updates continue to preserve GDPS-specific extensions.
 
 ## v1.0.2 — Release-Based Updates & Admin RBAC
 
