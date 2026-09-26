@@ -93,8 +93,8 @@ fi
 # Keep Docker Compose's project .env untouched.
 # Runtime secrets live outside the bind-mounted project directory.
 cat > /var/lib/muchocore/runtime.env <<EOFENV
-DB_HOST=db
-DB_PORT=3306
+DB_HOST=${DB_HOST:-db}
+DB_PORT=${DB_PORT:-3306}
 DB_NAME=${DB_NAME:-muchocore}
 DB_USER=${DB_USER:-muchocore_user}
 DB_PASS=$DB_PASS
