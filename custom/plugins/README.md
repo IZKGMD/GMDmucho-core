@@ -24,6 +24,9 @@ custom/
   "id": "my-plugin",
   "name": "My Plugin",
   "version": "1.0.0",
+  "api": 1,
+  "min_core_version": "1.0.3",
+  "max_core_version": "1.9.0",
   "author": "Your Name",
   "description": "Example MuchoCore plugin",
   "enabled": true,
@@ -33,6 +36,18 @@ custom/
   ]
 }
 ~~~
+
+## Compatibility fields
+
+~~~text
+api                Plugin SDK API generation (currently 1)
+min_core_version   Optional minimum MuchoCore version
+max_core_version   Optional maximum MuchoCore version
+~~~
+
+Use `MAJOR.MINOR.PATCH` for core version limits. Older manifests may omit these optional fields.
+
+Plugins that do not satisfy their declared compatibility range are skipped instead of executed. You can review compatibility status from **Admin → Custom Plugins**.
 
 ## Plugin entry point
 
