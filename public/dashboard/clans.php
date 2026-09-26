@@ -1081,6 +1081,8 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
 
 <?php endif; ?>
 
+<?php endif; ?>
+
 <footer class="footer">
     <?=pcH($serverName)?> Player Dashboard · Powered by MuchoCore
     <?php if ($serverByName !== '' && $socialUrl !== ''): ?>
