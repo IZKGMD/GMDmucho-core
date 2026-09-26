@@ -58,7 +58,7 @@ A separate empirical verification gate still requires a real Geometry Dash 1.1 t
 
 ## Cross-version validation status
 
-The automated protocol suite for GD 1.0, 1.1 and 1.9–2.2 covers version identification, routing, credential selection, text encoding, level hashes, profile fields, leaderboard authentication, level comments, social wire fields, and regression guards.
+The automated protocol suite for GD 1.0, 1.1, 1.5 and 1.9–2.2 covers version identification, routing, credential selection, text encoding, level hashes, profile fields, leaderboard authentication, level comments, social wire fields, and regression guards.
 
 Empirical status remains separate: GD 2.2 has a captured real-client fixture; GD 1.0, 1.1, 1.9, 2.0 and 2.1 do not have dedicated real-client fixtures in the repository.
 
