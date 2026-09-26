@@ -24,6 +24,8 @@ foreach ([
     'value="upload_youtube"',
     "MUCHO_YTDLP_BIN",
     "MUCHO_ENABLE_YOUTUBE_IMPORT",
+    "--remote-components ejs:github",
+    "denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip",
 ] as $needle) {
     assertYouTubeContract(
         str_contains($dashboard, $needle),
