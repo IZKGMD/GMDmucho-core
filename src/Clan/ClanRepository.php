@@ -863,8 +863,7 @@ final readonly class ClanRepository
         $orderAlias=$allowed[$metric] ?? $allowed['stars'];
         $limit=max(1,min(100,$limit));
 
-        $stmt=$this->pdo->query(
-            'SELECT
+        $sql='SELECT
                 c.clan_id,
                 c.name,
                 c.tag,
@@ -889,11 +888,10 @@ final readonly class ClanRepository
              LEFT JOIN profiles p
                 ON p.account_id=m.account_id
              GROUP BY c.clan_id, c.name, c.tag, c.is_open
-             ORDER BY ' + $orderAlias + ' DESC, c.clan_id ASC
-             LIMIT ' + $limit
-        );
+             ORDER BY '.$orderAlias.' DESC, c.clan_id ASC
+             LIMIT '.$limit;
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function permissionMap(string $role): array
