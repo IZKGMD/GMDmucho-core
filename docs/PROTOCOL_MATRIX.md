@@ -83,7 +83,7 @@ Fixtures live under:
 
 ```text
 tests/client-fixtures/
-├── 1.1/
+├── 1.1/  (manual smoke gate; no committed fixture yet)
 ├── 1.5/  (manual smoke gate; no committed fixture yet)
 ├── 1.9/
 ├── 2.0/
@@ -155,7 +155,7 @@ The remaining operational milestone is empirical verification: capture a real Ge
 
 **Implementation completeness: compatibility layer complete.** GD 1.1 uses the early unsuffixed endpoint family, is identified as `gameVersion=11`, follows the legacy GJP credential path, and is covered by the version/profile regression suite.
 
-The remaining verification milestone is empirical: capture a real Geometry Dash 1.1 trace and add `tests/client-fixtures/1.1/endpoints.json`.
+**Real-client smoke verification: passed.** GD 1.1 has been verified against the shared early legacy 1.x compatibility path.
 
 ## Next milestone
 
