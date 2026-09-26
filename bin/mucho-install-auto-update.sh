@@ -17,7 +17,7 @@ if ! command -v systemctl >/dev/null 2>&1; then
     exit 0
 fi
 
-cat > /etc/systemd/system/muchocore-auto-update.service <<'EOF_SERVICE'
+cat > /etc/systemd/system/muchocore-auto-update.service <<EOF_SERVICE
 [Unit]
 Description=MuchoCore published-release automatic updater
 After=docker.service network-online.target
@@ -25,8 +25,8 @@ Wants=docker.service network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=${ROOT}
-ExecStart=/usr/bin/bash ${ROOT}/auto-update.sh
+WorkingDirectory=$ROOT
+ExecStart=/usr/bin/bash $ROOT/auto-update.sh
 EOF_SERVICE
 
 cat > /etc/systemd/system/muchocore-auto-update.timer <<EOF_TIMER
