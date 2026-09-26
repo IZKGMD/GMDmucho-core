@@ -214,22 +214,22 @@ $checks = [
         'score update returns user ID',
     ],
     [
-        __DIR__ . '/../../src/Interaction/CommentService.php',
+        __DIR__ . '/../../src/Interaction/CommentCommandService.php',
         '!rate <difficulty> <stars> [coins] [featured]',
         'GD 1.9 legacy moderation rate syntax',
     ],
     [
-        __DIR__ . '/../../src/Interaction/CommentService.php',
+        __DIR__ . '/../../src/Interaction/CommentCommandService.php',
         "'!r' => '!rate'",
         'GD 1.9 legacy rate alias',
     ],
     [
-        __DIR__ . '/../../src/Interaction/CommentService.php',
+        __DIR__ . '/../../src/Interaction/CommentCommandService.php',
         "'easy' => [10, 0, 0]",
         'GD 1.9 easy difficulty state',
     ],
     [
-        __DIR__ . '/../../src/Interaction/CommentService.php',
+        __DIR__ . '/../../src/Interaction/CommentCommandService.php',
         "'demon' => [50, 0, 1]",
         'GD 1.9 demon difficulty state',
     ],
