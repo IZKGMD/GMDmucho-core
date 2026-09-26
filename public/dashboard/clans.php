@@ -307,7 +307,7 @@ if ($action !== '') {
             $targetId = (int)$target['account_id'];
 
             if (!(new RateLimiter())->allowStrict(
-                'clan-invite-dashboard:' . $accountId,
+                'clan-invite:' . $accountId,
                 30,
                 3600
             )) {
@@ -567,7 +567,7 @@ if ($action !== '') {
             }
 
             if (!(new RateLimiter())->allowStrict(
-                'clan-application-dashboard:' . $accountId,
+                'clan-application:' . $accountId,
                 10,
                 3600
             )) {
