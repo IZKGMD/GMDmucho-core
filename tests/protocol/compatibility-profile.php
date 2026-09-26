@@ -36,6 +36,11 @@ foreach ([1, 11, 15, 19, 20, 21, 22] as $version) {
         "all profile allows GD {$version}"
     );
 }
+assertProfile(
+    true,
+    $all->allows(ClientVersion::fromValues(6, 0)),
+    'all profile allows legacy protocol gameVersion 6'
+);
 
 $legacy = new CompatibilityProfile([11]);
 assertProfile('1.5', ClientVersion::fromValues(15, 0)->family(), 'GD 1.5 family detected');
