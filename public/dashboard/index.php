@@ -553,7 +553,7 @@ if ($action === 'upload') {
             'INSERT INTO songs
                 (name, author_id, author_name, size, download_url, is_verified)
              VALUES
-                (:name, :author_id, :author_name, :size, :download_url, 0)'
+                (:name, :author_id, :author_name, :size, :download_url, 1)'
         );
 
         $stmt->execute([
@@ -568,7 +568,7 @@ if ($action === 'upload') {
         $db->commit();
 
         pdFlash(
-            'Track #' . $songId . ' uploaded. It is now waiting for moderation.'
+            'Track #' . $songId . ' uploaded and published.'
         );
     } catch (Throwable $e) {
         if ($db->inTransaction()) {
@@ -839,7 +839,7 @@ if ($action === 'upload_youtube') {
         $db->commit();
 
         pdFlash(
-            'YouTube track #' . $songId . ' imported. It is now waiting for moderation.'
+            'YouTube track #' . $songId . ' imported and published.'
         );
     } catch (Throwable $e) {
         if ($db->inTransaction()) {
@@ -1861,7 +1861,7 @@ body.dashboard-page .topbar{
                             <?php if ((int)$song['is_verified'] === 1): ?>
                                 <span class="badge ok">Verified</span>
                             <?php else: ?>
-                                <span class="badge">Pending</span>
+                                <span class="badge ok">Published</span>
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
@@ -1918,7 +1918,7 @@ body.dashboard-page .topbar{
                     <h2 class="portal-title"><?= $account ? 'Upload a new track' : 'Sign in to upload' ?></h2>
                     <p class="portal-description">
                         <?= $account
-                            ? 'Share an MP3 with the community. New tracks enter moderation before becoming public.'
+                            ? 'Share an MP3 with the community. New tracks are published immediately.'
                             : 'Use your Geometry Dash account so ownership stays tied to the real player.'
                         ?>
                     </p>
@@ -1970,7 +1970,7 @@ body.dashboard-page .topbar{
 
             <div class="upload-summary">
                 <span><b>Ownership</b>GD account</span>
-                <span><b>Moderation</b>Required</span>
+                <span><b>Publishing</b>Immediate</span>
                 <span><b>Limit</b>64 MB</span>
             </div>
 
@@ -2254,7 +2254,7 @@ body.dashboard-page .topbar{
                         <?php if ((int)$song['is_verified'] === 1): ?>
                             <span class="badge ok">Verified</span>
                         <?php else: ?>
-                            <span class="badge">Pending moderation</span>
+                            <span class="badge ok">Published</span>
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
