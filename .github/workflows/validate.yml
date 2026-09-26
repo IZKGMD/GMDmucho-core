@@ -149,6 +149,8 @@ jobs:
           grep -Fq 'releases/latest' update.sh
           grep -Fq 'releases/latest' update.sh
           grep -Fq 'refs/tags/$LATEST_TAG' update.sh
+          grep -Fq 'REMOTE_TAG_SHA' update.sh
+          grep -Fq 'CURRENT_HEAD' update.sh
           grep -Fq 'ORIGINAL_HEAD="$(git rev-parse HEAD)"' update.sh
           grep -Fq 'rollback_source_tree' update.sh
           grep -Fq 'trap handle_update_interrupt INT TERM' update.sh
