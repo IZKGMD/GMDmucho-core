@@ -156,7 +156,7 @@ assertClanDashboardContract(
 
 assertClanDashboardContract(
     str_contains($dashboard, "myClan['permissions']") &&
-    str_contains($dashboard, 'str_replace('_', ' ', $permission)'),
+    str_contains($dashboard, "str_replace('_', ' ', $permission)"),
     'dashboard exposes explicit clan permissions'
 );
 
