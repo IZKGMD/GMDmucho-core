@@ -35,7 +35,7 @@ assertUserScoreContract(
 );
 
 assertUserScoreContract(
-    str_contains($controller, "'gameVersion'] = $version->effectiveGameVersion() ?: 1"),
+    str_contains($controller, "'gameVersion'] = \$version->effectiveGameVersion() ?: 1"),
     'versionless legacy score requests receive an inferred gameVersion'
 );
 
@@ -47,9 +47,9 @@ assertUserScoreContract(
 );
 
 assertUserScoreContract(
-    str_contains($service, "string $udid = ''") &&
-    str_contains($service, "string $username = ''") &&
-    str_contains($service, "string $ip = ''"),
+    str_contains($service, "string \$udid = ''") &&
+    str_contains($service, "string \$username = ''") &&
+    str_contains($service, "string \$ip = ''"),
     'user score service accepts legacy identity context'
 );
 
