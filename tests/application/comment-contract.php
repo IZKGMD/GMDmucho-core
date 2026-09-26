@@ -79,11 +79,13 @@ assertCommentContract(
 );
 
 $serviceFile = __DIR__ . '/../../src/Interaction/CommentService.php';
+$commandFile = __DIR__ . '/../../src/Interaction/CommentCommandService.php';
 $controllerFile = __DIR__ . '/../../src/Interaction/CommentController.php';
 $repositoryFile = __DIR__ . '/../../src/Interaction/CommentRepository.php';
 $historyFile = __DIR__ . '/../../src/Comment/CommentHistoryService.php';
 
 $service = (string)file_get_contents($serviceFile);
+$commands = (string)file_get_contents($commandFile);
 $controller = (string)file_get_contents($controllerFile);
 $repository = (string)file_get_contents($repositoryFile);
 $history = (string)file_get_contents($historyFile);
@@ -121,27 +123,34 @@ foreach ([
     "'!delet' => '!delete'",
 ] as $needle) {
     assertCommentContract(
-        str_contains($service, $needle),
+        str_contains($commands, $needle),
         "command alias {$needle}"
     );
 }
 
 assertCommentContract(
-    str_contains($service, '$pdo->beginTransaction();') &&
-    str_contains($service, '$pdo->commit();'),
+    str_contains($commands, "case '!delete':") &&
+    str_contains($commands, 'SET is_deleted = 1') &&
+    str_contains($commands, "WHERE level_id = :id"),
+    'delete command soft-deletes the target level'
+);
+
+assertCommentContract(
+    str_contains($commands, '$pdo->beginTransaction();') &&
+    str_contains($commands, '$pdo->commit();'),
     'comment commands are transactional'
 );
 
 assertCommentContract(
-    str_contains($service, 'GameRole::normalize($candidate)') &&
-    str_contains($service, 'GameRole::ELDER_MODERATOR'),
+    str_contains($commands, 'GameRole::normalize($candidate)') &&
+    str_contains($commands, 'GameRole::ELDER_MODERATOR'),
     'comment commands use canonical game-role normalization'
 );
 
 assertCommentContract(
-    str_contains($service, '$coins = isset($parts[3])') &&
-    str_contains($service, '$featured = isset($parts[4])') &&
-    str_contains($service, "'coins_verified'"),
+    str_contains($commands, '$coins = isset($parts[3])') &&
+    str_contains($commands, '$featured = isset($parts[4])') &&
+    str_contains($commands, "'coins_verified'"),
     'rate command parses optional coins and featured fields'
 );
 
@@ -152,13 +161,13 @@ assertCommentContract(
 );
 
 assertCommentContract(
-    str_contains($service, 'difficulty = 50') &&
-    str_contains($service, 'demon = 1'),
+    str_contains($commands, 'difficulty = 50') &&
+    str_contains($commands, 'demon = 1'),
     'demon command writes canonical demon state'
 );
 
 assertCommentContract(
-    str_contains($service, "if (\$cmd !== '!cp')"),
+    str_contains($commands, "if (\$cmd !== '!cp')"),
     'manual creator points are not overwritten by automatic recalc'
 );
 
