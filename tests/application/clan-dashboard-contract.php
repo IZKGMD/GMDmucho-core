@@ -151,8 +151,8 @@ assertClanDashboardContract(
 );
 
 assertClanDashboardContract(
-    str_contains($dashboard, 'Delete clan permanently') &&
-    str_contains($dashboard, 'All memberships, invites, applications and bans will be deleted'),
+    str_contains($dashboard, 'value="disband"') &&
+    str_contains($dashboard, 'Delete clan'),
     'dashboard exposes destructive clan deletion'
 );
 
