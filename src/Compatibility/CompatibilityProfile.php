@@ -124,6 +124,7 @@ final readonly class CompatibilityProfile
             '1' => 1,
             '10' => 1,
             '11' => 11,
+            '15' => 15,
             '19' => 19,
             '20' => 20,
             '21' => 21,
