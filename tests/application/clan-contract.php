@@ -74,7 +74,7 @@ foreach ([
     '/api/clans/bans',
 ] as $route) {
     assertClanContract(
-        str_contains($application, "\$route"),
+        str_contains($application, "'" . $route . "'"),
         'Application registers ' . $route
     );
 }
