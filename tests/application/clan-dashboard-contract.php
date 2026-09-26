@@ -134,7 +134,7 @@ assertClanDashboardContract(
 );
 
 assertClanDashboardContract(
-    str_contains($dashboard, 'Clan rankings') &&
+    str_contains($dashboard, 'id="clan-rankings"') &&
     str_contains($dashboard, 'Top Stars') &&
     str_contains($dashboard, 'Top Demons') &&
     str_contains($dashboard, 'Top Creators') &&
