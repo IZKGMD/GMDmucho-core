@@ -8,6 +8,10 @@
     root * /var/www/mucho-core/public
     encode gzip zstd
 
+    # Make the web dashboard the default landing page for every MuchoCore
+    # installation without affecting Geometry Dash API endpoints.
+    redir / /dashboard/ 308
+
     # Reject oversized HTTP bodies before PHP is invoked. PHP itself remains
     # capped at 70M post_max_size / 64M upload_max_filesize.
     request_body {
