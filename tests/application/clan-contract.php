@@ -164,10 +164,15 @@ assertClanContract(
     'repository aggregates live clan statistics and rankings'
 );
 
+$permissions = (string)file_get_contents(
+    __DIR__ . '/../../src/Clan/ClanPermissions.php'
+);
+
 assertClanContract(
-    str_contains($service, 'ClanPermissions') &&
+    str_contains($service, 'permissions') &&
     str_contains($service, 'permissionMap') &&
-    str_contains($service, "'permissions'"),
+    str_contains($repository, 'ClanPermissions::forRole') &&
+    str_contains($permissions, 'function forRole('),
     'clan services expose explicit role permissions'
 );
 
