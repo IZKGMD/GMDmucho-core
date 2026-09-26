@@ -39,6 +39,14 @@ assertCoreRefactor(
 );
 
 assertCoreRefactor(
+    str_contains($services,'use MuchoCore\\Interaction\\CommentController;') &&
+    str_contains($services,'use MuchoCore\\Interaction\\CommentRepository;') &&
+    str_contains($services,'use MuchoCore\\Interaction\\CommentService;') &&
+    str_contains($services,'use MuchoCore\\Comment\\CommentHistoryController;'),
+    'AppServices keeps comment namespaces aligned with the source tree'
+);
+
+assertCoreRefactor(
     str_contains($routes,'/api/clans/rankings') &&
     str_contains($routes,'/getGJLevelScores'),
     'AppRoutes owns API route registration'
