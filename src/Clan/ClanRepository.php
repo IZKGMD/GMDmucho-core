@@ -6,6 +6,7 @@ namespace MuchoCore\Clan;
 
 use PDO;
 use RuntimeException;
+use Throwable;
 
 final readonly class ClanRepository
 {
