@@ -10,6 +10,7 @@ final readonly class CompatibilityProfile
     private const SUPPORTED = [
         1 => 'GD 1.0',
         11 => 'GD 1.1',
+        15 => 'GD 1.5',
         19 => 'GD 1.9',
         20 => 'GD 2.0',
         21 => 'GD 2.1',
@@ -131,7 +132,9 @@ final readonly class CompatibilityProfile
             'gd1.0' => 1,
             'gd10' => 1,
             '1.1' => 11,
+            '1.5' => 15,
             'gd1.1' => 11,
+            'gd1.5' => 15,
             '1.9' => 19,
             '2.0' => 20,
             '2.1' => 21,
