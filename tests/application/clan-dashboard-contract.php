@@ -14,6 +14,7 @@ function assertClanDashboardContract(bool $condition, string $name): void
 
 $dashboard = (string)file_get_contents(__DIR__ . '/../../public/dashboard/clans.php');
 $repository = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanRepository.php');
+$service = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanService.php');
 
 foreach ([
     "session.cookie_lifetime",
@@ -60,6 +61,21 @@ assertClanDashboardContract(
 assertClanDashboardContract(
     str_contains($repository, 'function clanInvitations('),
     'repository exposes outgoing clan invitations'
+);
+
+
+assertClanDashboardContract(
+    str_contains($dashboard, 'clan-invite-dashboard:') &&
+    str_contains($dashboard, '30 invites/hour'),
+    'dashboard rate-limits clan invitations'
+);
+
+assertClanDashboardContract(
+    str_contains($service, 'clan-invite:') &&
+    str_contains($service, 'allowStrict') &&
+    str_contains($service, '30') &&
+    str_contains($service, '3600'),
+    'service rate-limits clan invitations'
 );
 
 echo "MUCHOCORE_CLAN_DASHBOARD_CONTRACT_OK\n";
