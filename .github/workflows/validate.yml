@@ -216,6 +216,8 @@ jobs:
           grep -Fq 'testgdps-app:9000' docker/Caddyfile
           grep -Fq 'testgdps-db' docker-compose.yml
           grep -Fq 'testgdps-app' docker-compose.yml
+          grep -Fq 'DB_HOST=${DB_HOST:-db}' docker/app-entrypoint.sh
+          grep -Fq 'DB_PORT=${DB_PORT:-3306}' docker/app-entrypoint.sh
           grep -Fq 'path /admin /admin/*' docker/Caddyfile
           grep -Fq 'redir @admin_http https://{host}{uri} 308' docker/Caddyfile
           test -s public/assets/muchocore-logo.jpg
