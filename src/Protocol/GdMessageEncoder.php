@@ -6,12 +6,34 @@ namespace MuchoCore\Protocol;
 
 final class GdMessageEncoder
 {
+    private function displayUsername(
+        string $username,
+        string $tag
+    ): string {
+        $tag=strtoupper(trim($tag));
+
+        if ($tag==='') {
+            return ProtocolText::username($username);
+        }
+
+        $prefix='['.$tag.']';
+        return ProtocolText::username(
+            $prefix.substr($username,0,max(1,20-strlen($prefix)))
+        );
+    }
+
     public function encodeMessage(array $message, bool $isSender = false): string
     {
         $username = ProtocolText::username(
             $isSender
-                ? ($message['to_username'] ?? 'Player')
-                : ($message['username'] ?? 'Player')
+                ? $this->displayUsername(
+                    (string)($message['to_username'] ?? 'Player'),
+                    (string)($message['to_clan_tag'] ?? '')
+                )
+                : $this->displayUsername(
+                    (string)($message['username'] ?? 'Player'),
+                    (string)($message['clan_tag'] ?? '')
+                )
         );
 
         $data = [
