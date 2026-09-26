@@ -84,6 +84,7 @@ Fixtures live under:
 ```text
 tests/client-fixtures/
 ├── 1.1/
+├── 1.5/  (manual smoke gate; no committed fixture yet)
 ├── 1.9/
 ├── 2.0/
 ├── 2.1/
@@ -108,6 +109,12 @@ Reference:
 - https://github.com/Cvolton/GMDprivateServer
 - https://github.com/Cvolton/GMDprivateServer/wiki/Deliberate-differences-from-real-GD
 
+## GD 1.5 implementation status
+
+**Implementation completeness: compatibility layer complete.** GD 1.5 is admitted as `gameVersion=15`, uses legacy GJP authentication, supports the early endpoint family through the shared compatibility layer, and has regression coverage for its legacy score and comment boundaries.
+
+**Real-client smoke verification: passed for GD 1.5 build 13.** The verified flow includes level search, level upload, level update handling, comment submission and the legacy UDID-based `updateGJUserScore` path.
+
 ## GD 1.9 implementation status
 
 The current 1.9 server-side compatibility pass covers legacy GJP selection, 1.9 endpoint aliases, level description upload semantics, Base64 comment semantics, old-binary comment user sections, level download password framing, legacy hashes, and shared account/profile/leaderboard surfaces.
@@ -116,7 +123,7 @@ The remaining operational milestone is empirical verification: capture a real Ge
 
 ## Overall implementation status
 
-**GD 1.0, 1.1, 1.9, 2.0, 2.1 and 2.2 server-side compatibility: implemented for the current scope.** Automated protocol, routing, wire-format, hash, profile, social and regression suites pass on `main`.
+**GD 1.0, 1.1, 1.5, 1.9, 2.0, 2.1 and 2.2 server-side compatibility: implemented for the current scope.** Automated protocol, routing, wire-format, hash, profile, social and regression suites pass on `main`.
 
 Real-client evidence is tracked separately: 2.2 has a captured GD 2.2.13 fixture; 1.9, 2.0 and 2.1 remain empirically unverified by design.
 
