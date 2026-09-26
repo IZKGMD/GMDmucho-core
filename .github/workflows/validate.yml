@@ -96,7 +96,7 @@ jobs:
       - name: Check required files
         run: |
           test -f VERSION
-          test "$(tr -d '[:space:]' < VERSION)" = "1.0.3"
+          test "$(tr -d '[:space:]' < VERSION)" = "1.0.4"
           test -f CHANGELOG.md
           test -f docker-compose.yml
           test -f docker-compose.tunnel.yml
