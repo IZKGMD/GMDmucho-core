@@ -58,7 +58,7 @@ final readonly class CommentController
                     $command,
                     $accountId,
                     $levelId,
-                    $version->effectiveGameVersion() ?: 22,
+                    $version->effectiveGameVersion(),
                     $e::class,
                     $e->getMessage()
                 ));
@@ -85,7 +85,7 @@ final readonly class CommentController
                         $page,
                         $count,
                         $mode,
-                        $version->effectiveGameVersion() ?: 22,
+                        $version->effectiveGameVersion(),
                         $version->binaryVersion
                     )
                 );
@@ -95,7 +95,7 @@ final readonly class CommentController
                 $this->service->getLevelComments(
                     $levelId,
                     $page,
-                    $version->effectiveGameVersion() ?: 22,
+                    $version->effectiveGameVersion(),
                     $version->binaryVersion,
                     $count,
                     $mode
@@ -124,7 +124,7 @@ final readonly class CommentController
                 $accountId,
                 $gjp,
                 $content,
-                $version->effectiveGameVersion() ?: 22,
+                $version->effectiveGameVersion(),
                 $udid,
                 $ip
             );
@@ -145,7 +145,7 @@ final readonly class CommentController
                 $this->service->getAccountComments(
                     $accountId,
                     $page,
-                    $request->clientVersion()->effectiveGameVersion() ?: 22
+                    $request->clientVersion()->effectiveGameVersion()
                 )
             );
         } catch (Throwable) {
@@ -168,7 +168,7 @@ final readonly class CommentController
                     $commentId,
                     $accountId,
                     $gjp,
-                    $version->effectiveGameVersion() ?: 22,
+                    $version->effectiveGameVersion(),
                     $udid,
                     $ip
                 ) ? "1" : "-1"
@@ -193,7 +193,7 @@ final readonly class CommentController
                     $commentId,
                     $accountId,
                     $gjp,
-                    $version->effectiveGameVersion() ?: 22,
+                    $version->effectiveGameVersion(),
                     $udid,
                     $ip
                 ) ? "1" : "-1"
