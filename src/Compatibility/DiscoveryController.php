@@ -66,17 +66,9 @@ final readonly class DiscoveryController
         Request $request
     ): Response {
 
-        if(isset($_POST['type'])){
-
-            $type=(int)$_POST['type'];
-
-        }else{
-
-            $type=
-                (int)($_POST['weekly'] ?? 0)===1
-                    ? 1
-                    : 0;
-        }
+        $type=array_key_exists('type',$request->post)
+            ? $request->postInt('type')
+            : ($request->postInt('weekly')===1 ? 1 : 0);
 
 
         if(!in_array($type,[0,1,2],true)){
@@ -255,10 +247,7 @@ final readonly class DiscoveryController
 
         $page=min(
             1000,
-            max(
-                0,
-                (int)($_POST['page'] ?? 0)
-            )
+            max(0,$request->postInt('page'))
         );
 
         $limit=10;

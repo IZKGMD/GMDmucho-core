@@ -79,6 +79,8 @@ jobs:
           php tests/database/migrator-concurrency.php
           php tests/application/music-upload-contract.php
           php tests/application/clan-contract.php
+          php tests/application/clan-dashboard-contract.php
+          php tests/application/core-refactor-contract.php
           php tests/security/turnstile.php
           php tests/client/client-trace.php
           php tests/security/muchoprotect.php
@@ -94,7 +96,7 @@ jobs:
       - name: Check required files
         run: |
           test -f VERSION
-          test "$(tr -d '[:space:]' < VERSION)" = "1.0.3"
+          test "$(tr -d '[:space:]' < VERSION)" = "1.0.4"
           test -f CHANGELOG.md
           test -f docker-compose.yml
           test -f docker-compose.tunnel.yml
@@ -112,6 +114,14 @@ jobs:
           test -f database/migrations/20260926_001_plugin_admin.php
           test -f public/admin/pages/plugins.php
           test -f database/migrations/20260926_002_clans_v2.php
+          test -f database/migrations/022_expand_clan_identity.php
+          test -f database/migrations/021_clan_applications.php
+          test -f docs/ARCHITECTURE.md
+          test -f src/Core/AppServices.php
+          test -f src/Core/AppRoutes.php
+          test -f src/Core/RequestPipeline.php
+          test -f src/Routing/CompatibilityAliases.php
+          test -f src/Http/LegacyEndpoint.php
 
       - name: Check Docker Compose configuration
         run: |

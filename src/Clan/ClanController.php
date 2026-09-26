@@ -74,6 +74,116 @@ final readonly class ClanController
         });
     }
 
+    public function apply(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return [
+                'applied'=>$this->service->apply(
+                    $request->postInt('accountID'),
+                    $request->gdCredential(),
+                    $request->postInt('clanID'),
+                    $request->postString('message')
+                ),
+            ];
+        });
+    }
+
+    public function applications(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return [
+                'applications'=>$this->service->applications(
+                    $request->postInt('accountID'),
+                    $request->gdCredential()
+                ),
+            ];
+        });
+    }
+
+    public function clanApplications(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return [
+                'applications'=>$this->service->clanApplications(
+                    $request->postInt('accountID'),
+                    $request->gdCredential()
+                ),
+            ];
+        });
+    }
+
+    public function acceptApplication(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return [
+                'accepted'=>$this->service->acceptApplication(
+                    $request->postInt('accountID'),
+                    $request->gdCredential(),
+                    $request->postInt('applicationID')
+                ),
+            ];
+        });
+    }
+
+    public function declineApplication(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return [
+                'declined'=>$this->service->declineApplication(
+                    $request->postInt('accountID'),
+                    $request->gdCredential(),
+                    $request->postInt('applicationID')
+                ),
+            ];
+        });
+    }
+
+    public function cancelApplication(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return [
+                'cancelled'=>$this->service->cancelApplication(
+                    $request->postInt('accountID'),
+                    $request->gdCredential(),
+                    $request->postInt('applicationID')
+                ),
+            ];
+        });
+    }
+
+    public function stats(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return $this->service->stats(
+                $request->postInt('accountID'),
+                $request->gdCredential(),
+                $request->postInt('clanID')
+            );
+        });
+    }
+
+    public function rankings(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return $this->service->rankings(
+                $request->postInt('accountID'),
+                $request->gdCredential(),
+                $request->postString('metric','stars'),
+                $request->postInt('limit',25)
+            );
+        });
+    }
+
+    public function permissions(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return $this->service->permissions(
+                $request->postInt('accountID'),
+                $request->gdCredential()
+            );
+        });
+    }
+
     public function leave(Request $request): Response
     {
         return $this->run(function() use ($request): array {
@@ -186,6 +296,18 @@ final readonly class ClanController
         return $this->run(function() use ($request): array {
             return [
                 'disbanded'=>$this->service->disband(
+                    $request->postInt('accountID'),
+                    $request->gdCredential()
+                ),
+            ];
+        });
+    }
+
+    public function delete(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return [
+                'deleted'=>$this->service->delete(
                     $request->postInt('accountID'),
                     $request->gdCredential()
                 ),

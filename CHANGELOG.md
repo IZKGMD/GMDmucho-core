@@ -1,5 +1,46 @@
 # Changelog
 
+## v1.0.4 — Core Simplification & Clans
+
+MuchoCore v1.0.4 focuses on simplifying the core runtime while expanding the built-in clan system and player-facing web experience.
+
+### Core
+
+- simplified application bootstrap into dedicated service wiring, route registration and request pipeline modules;
+- centralized legacy compatibility aliases and common legacy endpoint error handling;
+- simplified several controllers while preserving Geometry Dash protocol compatibility;
+- isolated comment moderation commands into a dedicated service;
+- isolated clan statistics and rankings queries into a dedicated repository;
+- added architecture documentation and regression contracts for the refactored core;
+- fixed service wiring namespace mismatches that could prevent the API from booting;
+- fixed the game-role migration SQL alias for MariaDB compatibility.
+
+### Clans
+
+- expanded clan management with invitations, applications, bans, role management and ownership transfer;
+- added live clan statistics for stars, moons, demons, diamonds, coins, creator points and published levels;
+- added clan rankings and permission introspection;
+- added simplified clan dashboard views and management controls;
+- expanded clan identity limits while disallowing spaces in clan names;
+- added persistent clan applications with expiration and moderation;
+- added explicit clan deletion/disbanding support.
+
+### Music
+
+- added optional music moderation;
+- added YouTube URL music importing with yt-dlp and FFmpeg support.
+
+### Compatibility & Operations
+
+- added first-class GD 1.1, 1.5 and 1.6 compatibility profiles and regression coverage;
+- extended session lifetime handling for player and administrator dashboards;
+- made the dashboard the default landing page at the site root for all MuchoCore installations.
+
+### Validation
+
+- expanded CI contracts for the core refactor, clan dashboard, clan system and release configuration;
+- retained existing protocol, client patcher and release verification gates.
+
 ## Unreleased
 
 ### Clan System v2

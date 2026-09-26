@@ -29,9 +29,7 @@ final readonly class LevelScoreController
         Request $request
     ): Response {
 
-        $data=!empty($request->post)
-            ? $request->post
-            : $_POST;
+        $data=$request->post;
 
 
         $accountId=

@@ -22,10 +22,20 @@ foreach ([
     'updateSettings' => $service,
     'transferOwnership' => $service,
     'disband' => $service,
+    'delete' => $service,
     'revokeInvite' => $service,
     'ban' => $service,
     'unban' => $service,
     'bans' => $service,
+    'apply' => $service,
+    'applications' => $service,
+    'clanApplications' => $service,
+    'acceptApplication' => $service,
+    'declineApplication' => $service,
+    'cancelApplication' => $service,
+    'stats' => $service,
+    'rankings' => $service,
+    'permissions' => $service,
 ] as $method => $source) {
     assertClanContract(
         str_contains($source, 'function ' . $method . '('),
@@ -42,6 +52,13 @@ foreach ([
     'unban' => $repository,
     'bans' => $repository,
     'acceptInvite' => $repository,
+    'apply' => $repository,
+    'applicationForAccount' => $repository,
+    'clanApplications' => $repository,
+    'applications' => $repository,
+    'acceptApplication' => $repository,
+    'declineApplication' => $repository,
+    'cancelApplication' => $repository,
 ] as $method => $source) {
     assertClanContract(
         str_contains($source, 'function ' . $method . '('),
@@ -57,6 +74,16 @@ foreach ([
     'ban' => $controller,
     'unban' => $controller,
     'bans' => $controller,
+    'apply' => $controller,
+    'applications' => $controller,
+    'clanApplications' => $controller,
+    'acceptApplication' => $controller,
+    'declineApplication' => $controller,
+    'cancelApplication' => $controller,
+    'stats' => $controller,
+    'rankings' => $controller,
+    'permissions' => $controller,
+    'delete' => $controller,
 ] as $method => $source) {
     assertClanContract(
         str_contains($source, 'function ' . $method . '('),
@@ -72,6 +99,16 @@ foreach ([
     '/api/clans/ban',
     '/api/clans/unban',
     '/api/clans/bans',
+    '/api/clans/apply',
+    '/api/clans/applications',
+    '/api/clans/applications/incoming',
+    '/api/clans/application/accept',
+    '/api/clans/application/decline',
+    '/api/clans/application/cancel',
+    '/api/clans/stats',
+    '/api/clans/rankings',
+    '/api/clans/permissions',
+    '/api/clans/delete',
 ] as $route) {
     assertClanContract(
         str_contains($application, "'" . $route . "'"),
@@ -89,6 +126,52 @@ assertClanContract(
     str_contains($migration, 'mucho_clan_bans') &&
     str_contains($migration, 'uq_mucho_clan_ban'),
     'clan ban migration defines persistent clan bans'
+);
+
+$applicationsMigration = (string)file_get_contents(
+    __DIR__ . '/../../database/migrations/021_clan_applications.php'
+);
+
+assertClanContract(
+    str_contains($applicationsMigration, 'mucho_clan_applications') &&
+    str_contains($applicationsMigration, 'uq_mucho_clan_application'),
+    'clan application migration defines unique pending applications'
+);
+
+assertClanContract(
+    str_contains($service, 'clan-application:') &&
+    str_contains($service, 'allowStrict') &&
+    str_contains($service, '10') &&
+    str_contains($service, '3600'),
+    'clan application flow is rate-limited'
+);
+
+assertClanContract(
+    str_contains($repository, 'DELETE FROM mucho_clan_applications') &&
+    str_contains($repository, 'DELETE FROM mucho_clan_invites'),
+    'clan joins, invites and applications clean up competing pending state'
+);
+
+assertClanContract(
+    str_contains($repository, 'function stats(') &&
+    str_contains($repository, 'function topClans(') &&
+    str_contains($repository, 'total_stars') &&
+    str_contains($repository, 'total_demons') &&
+    str_contains($repository, 'total_creator_points'),
+    'repository aggregates live clan statistics and rankings'
+);
+
+assertClanContract(
+    str_contains($service, 'ClanPermissions') &&
+    str_contains($service, 'permissionMap') &&
+    str_contains($service, "'permissions'"),
+    'clan services expose explicit role permissions'
+);
+
+assertClanContract(
+    str_contains($migration, 'mucho_clan_bans') ||
+    str_contains($applicationsMigration, 'mucho_clan_applications'),
+    'clan persistent state is backed by migrations'
 );
 
 echo "MUCHOCORE_CLAN_CONTRACT_OK\n";

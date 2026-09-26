@@ -21,8 +21,8 @@ return static function(PDO $db): void {
 
     $db->exec("
         UPDATE accounts a
-        LEFT JOIN roles current_role
-            ON current_role.id = a.role_id
+        LEFT JOIN roles legacy_role
+            ON legacy_role.id = a.role_id
         INNER JOIN roles canonical_role
             ON canonical_role.code = CASE
                 WHEN LOWER(TRIM(COALESCE(a.role, ''))) IN
@@ -35,14 +35,14 @@ return static function(PDO $db): void {
                     THEN 'user'
                 WHEN LOWER(TRIM(COALESCE(a.role, ''))) = 'user'
                     THEN 'user'
-                ELSE current_role.code
+                ELSE legacy_role.code
             END
         SET a.role_id = canonical_role.id
         WHERE a.role IS NOT NULL
           AND (
-              current_role.id IS NULL
-              OR current_role.code IS NULL
-              OR current_role.code = 'user'
+              legacy_role.id IS NULL
+              OR legacy_role.code IS NULL
+              OR legacy_role.code = 'user'
           )
     ");
 

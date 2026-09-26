@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MuchoCore\Clan;
 
 use MuchoCore\Account\AccountAuthenticator;
+use MuchoCore\Security\RateLimiter;
 use PDO;
 use RuntimeException;
 
@@ -67,7 +68,50 @@ final readonly class ClanService
         }
 
         $clan['members']=$this->repository->members($clanId);
+        $clan['stats']=$this->repository->stats($clanId);
         return $clan;
+    }
+
+    public function stats(int $accountId,string $credential,int $clanId): array {
+        $this->auth->authenticate($accountId,$credential);
+        $clan=$this->repository->getById($clanId);
+
+        if ($clan===null) {
+            throw new RuntimeException('Clan not found.');
+        }
+
+        return $this->repository->stats($clanId);
+    }
+
+    public function rankings(
+        int $accountId,
+        string $credential,
+        string $metric='stars',
+        int $limit=25
+    ): array {
+        $this->auth->authenticate($accountId,$credential);
+
+        return [
+            'metric'=>$metric,
+            'clans'=>$this->repository->topClans($metric,$limit),
+        ];
+    }
+
+    public function permissions(int $accountId,string $credential): array {
+        $this->auth->authenticate($accountId,$credential);
+        $clan=$this->repository->getForAccount($accountId);
+
+        if ($clan===null) {
+            return [
+                'role'=>null,
+                'permissions'=>[],
+            ];
+        }
+
+        return [
+            'role'=>(string)$clan['role'],
+            'permissions'=>$this->repository->permissionMap((string)$clan['role']),
+        ];
     }
 
     public function myClan(int $accountId,string $credential): ?array {
@@ -76,6 +120,8 @@ final readonly class ClanService
 
         if ($clan!==null) {
             $clan['members']=$this->repository->members((int)$clan['clan_id']);
+            $clan['permissions']=$this->repository->permissionMap((string)$clan['role']);
+            $clan['stats']=$this->repository->stats((int)$clan['clan_id']);
         }
 
         return $clan;
@@ -113,6 +159,124 @@ final readonly class ClanService
         }
     }
 
+    public function apply(
+        int $accountId,
+        string $credential,
+        int $clanId,
+        string $message=''
+    ): bool {
+        $this->auth->authenticate($accountId,$credential);
+
+        $message=$this->normalizeDescription($message);
+
+        if (!(new RateLimiter())->allowStrict(
+            'clan-application:' . $accountId,
+            10,
+            3600
+        )) {
+            throw new RuntimeException('Application rate limit reached. Try again later.');
+        }
+
+        $applied=$this->repository->apply($clanId,$accountId,$message);
+
+        if ($applied) {
+            $this->audit(
+                $accountId,
+                'clan.application.created',
+                'clan',
+                $clanId
+            );
+        }
+
+        return $applied;
+    }
+
+    public function applications(
+        int $accountId,
+        string $credential
+    ): array {
+        $this->auth->authenticate($accountId,$credential);
+        return $this->repository->applications($accountId);
+    }
+
+    public function clanApplications(
+        int $accountId,
+        string $credential
+    ): array {
+        $this->auth->authenticate($accountId,$credential);
+
+        $clan=$this->repository->getForAccount($accountId);
+
+        if (
+            $clan===null ||
+            !in_array((string)$clan['role'],['owner','officer'],true)
+        ) {
+            throw new RuntimeException('Clan officer permission required.');
+        }
+
+        return $this->repository->clanApplications((int)$clan['clan_id']);
+    }
+
+    public function acceptApplication(
+        int $accountId,
+        string $credential,
+        int $applicationId
+    ): bool {
+        $this->auth->authenticate($accountId,$credential);
+
+        $accepted=$this->repository->acceptApplication(
+            $applicationId,
+            $accountId
+        );
+
+        if ($accepted) {
+            $this->audit(
+                $accountId,
+                'clan.application.accepted',
+                'clan_application',
+                $applicationId
+            );
+        }
+
+        return $accepted;
+    }
+
+    public function declineApplication(
+        int $accountId,
+        string $credential,
+        int $applicationId
+    ): bool {
+        $this->auth->authenticate($accountId,$credential);
+
+        $declined=$this->repository->declineApplication(
+            $applicationId,
+            $accountId
+        );
+
+        if ($declined) {
+            $this->audit(
+                $accountId,
+                'clan.application.declined',
+                'clan_application',
+                $applicationId
+            );
+        }
+
+        return $declined;
+    }
+
+    public function cancelApplication(
+        int $accountId,
+        string $credential,
+        int $applicationId
+    ): bool {
+        $this->auth->authenticate($accountId,$credential);
+        return $this->repository->cancelApplication(
+            $applicationId,
+            $accountId
+        );
+    }
+
     public function leave(int $accountId,string $credential): bool {
         $this->auth->authenticate($accountId,$credential);
         $clan=$this->repository->getForAccount($accountId);
@@ -130,6 +294,14 @@ final readonly class ClanService
 
     public function invite(int $accountId,string $credential,int $targetAccountId): bool {
         $this->auth->authenticate($accountId,$credential);
+
+        if (!(new RateLimiter())->allowStrict(
+            'clan-invite:' . $accountId,
+            30,
+            3600
+        )) {
+            throw new RuntimeException('Invitation rate limit reached. Try again later.');
+        }
 
         $clan=$this->repository->getForAccount($accountId);
         if ($clan===null || !in_array((string)$clan['role'],['owner','officer'],true)) {
@@ -300,6 +472,13 @@ final readonly class ClanService
         return $transferred;
     }
 
+    public function delete(
+        int $accountId,
+        string $credential
+    ): bool {
+        return $this->disband($accountId,$credential);
+    }
+
     public function disband(
         int $accountId,
         string $credential
@@ -457,10 +636,10 @@ final readonly class ClanService
     }
 
     private function normalizeName(string $name): string {
-        $name=trim(preg_replace('/\s+/',' ',$name) ?? '');
+        $name=trim($name);
 
-        return strlen($name)<=24 &&
-            preg_match('/^[A-Za-z0-9][A-Za-z0-9 _.-]{1,23}$/D',$name)===1
+        return strlen($name)<=32 &&
+            preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{1,31}$/D',$name)===1
             ? $name
             : '';
     }
@@ -468,8 +647,8 @@ final readonly class ClanService
     private function normalizeTag(string $tag): string {
         $tag=strtoupper(trim($tag));
 
-        return strlen($tag)<=6 &&
-            preg_match('/^[A-Z0-9]{2,6}$/D',$tag)===1
+        return strlen($tag)<=8 &&
+            preg_match('/^[A-Z0-9]{2,8}$/D',$tag)===1
             ? $tag
             : '';
     }
