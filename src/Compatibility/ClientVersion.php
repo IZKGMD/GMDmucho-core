@@ -87,6 +87,7 @@ final readonly class ClientVersion
             $version === 21 => '2.1',
             $version === 20 => '2.0',
             $version === 11 => '1.1',
+            $version === 15 => '1.5',
             $version === 1 => '1.0',
             $version >= 19 => '1.9',
             $version > 0 => '1.x',
