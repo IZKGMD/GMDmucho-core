@@ -135,11 +135,14 @@ final class Router
 
             // Comments.
             '/getgjcomments' => '/getgjcomments21',
+            '/getgjcomments15' => '/getgjcomments21',
             '/getgjcomments19' => '/getgjcomments21',
             '/getgjcomments20' => '/getgjcomments21',
             '/uploadgjcomment' => '/uploadgjcomment20',
+            '/uploadgjcomment15' => '/uploadgjcomment20',
             '/uploadgjcomment19' => '/uploadgjcomment20',
             '/deletegjcomment19' => '/deletegjcomment20',
+            '/deletegjcomment15' => '/deletegjcomment20',
             '/deletegjcomment' => '/deletegjcomment20',
             '/getgjaccountcomments' => '/getgjaccountcomments20',
             '/uploadgjacccomment' => '/uploadgjacccomment20',
