@@ -809,7 +809,8 @@ final class CommentService
                 "color2"   => $comment["color2"] ?? 3,
                 "special"  => $comment["special"] ?? 0,
                 "icon_type"=> $comment["icon_type"] ?? 0,
-                "badge"    => $badge
+                "badge"    => $badge,
+                "clan_tag" => $comment["clan_tag"] ?? ''
             ];
             $encodedComments[] = $this->encoder->encode(
                 $comment,
@@ -835,10 +836,22 @@ final class CommentService
                 }
 
                 $seen[$key] = true;
+
+                $tag = strtoupper(trim((string)($comment['clan_tag'] ?? '')));
+                $username = (string)($comment['username'] ?? 'Player');
+
+                if ($tag !== '') {
+                    $prefix = '[' . $tag . ']';
+                    $username = $prefix . substr(
+                        $username,
+                        0,
+                        max(1, 20 - strlen($prefix))
+                    );
+                }
+
                 $users[] = $uid . ':' .
-                    \MuchoCore\Protocol\ProtocolText::username(
-                        $comment['username'] ?? 'Player'
-                    ) . ':' . $account;
+                    \MuchoCore\Protocol\ProtocolText::username($username)
+                    . ':' . $account;
             }
 
             $body .= '#' . implode('|', $users);
