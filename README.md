@@ -141,6 +141,7 @@ Real-client verification status:
 
 | Client | Status |
 | --- | --- |
+| GD 1.0 | ✅ Verified |
 | GD 1.1 | ✅ Verified |
 | GD 1.2 | ✅ Verified |
 | GD 1.3 | ✅ Verified |
