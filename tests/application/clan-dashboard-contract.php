@@ -16,6 +16,7 @@ $dashboard = (string)file_get_contents(__DIR__ . '/../../public/dashboard/clans.
 $repository = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanRepository.php');
 $service = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanService.php');
 $migration = (string)file_get_contents(__DIR__ . '/../../database/migrations/021_clan_applications.php');
+$identityMigration = (string)file_get_contents(__DIR__ . '/../../database/migrations/022_expand_clan_identity.php');
 $service = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanService.php');
 
 foreach ([
@@ -108,6 +109,26 @@ assertClanDashboardContract(
     str_contains($migration, 'mucho_clan_applications') &&
     str_contains($migration, 'uq_mucho_clan_application'),
     'clan application migration exists'
+);
+
+assertClanDashboardContract(
+    str_contains($dashboard, "maxlength=\"32\"") &&
+    str_contains($dashboard, "maxlength=\"8\"") &&
+    str_contains($dashboard, "A-Za-z0-9._-"),
+    'dashboard uses expanded no-space clan identity limits'
+);
+
+assertClanDashboardContract(
+    str_contains($service, "strlen($name)<=32") &&
+    str_contains($service, "strlen($tag)<=8") &&
+    str_contains($service, "A-Za-z0-9._-"),
+    'service enforces expanded no-space clan identity limits'
+);
+
+assertClanDashboardContract(
+    str_contains($identityMigration, 'VARCHAR(32)') &&
+    str_contains($identityMigration, 'VARCHAR(8)'),
+    'clan identity migration expands database columns'
 );
 
 echo "MUCHOCORE_CLAN_DASHBOARD_CONTRACT_OK\n";
