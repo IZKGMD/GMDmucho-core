@@ -471,6 +471,15 @@ if (!$selected) {
     echo '</div>';
 
     echo '</form>';
+
+    echo '<form method="post" onsubmit="return confirm(\'Delete this level? This hides it from the game while preserving the record.\')">';
+    echo '<input type="hidden" name="csrf" value="'.csrf().'">';
+    echo '<input type="hidden" name="action" value="level-delete">';
+    echo '<input type="hidden" name="return" value="rating">';
+    echo '<input type="hidden" name="return_q" value="'.h($q).'">';
+    echo '<input type="hidden" name="id" value="'.(int)$selected['level_id'].'">';
+    echo '<div style="margin-top:10px;text-align:right"><button type="submit" class="red">Delete level</button></div>';
+    echo '</form>';
     echo '</div>';
 }
 
