@@ -306,6 +306,14 @@ if ($action !== '') {
 
             $targetId = (int)$target['account_id'];
 
+            if (!(new RateLimiter())->allowStrict(
+                'clan-invite-dashboard:' . $accountId,
+                30,
+                3600
+            )) {
+                throw new RuntimeException('Invitation rate limit reached. Try again later.');
+            }
+
             if ($targetId === $accountId) {
                 throw new RuntimeException('You cannot invite yourself.');
             }
@@ -979,7 +987,7 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
     <div class="panel">
         <div class="section-head">
             <h2>Invite a player</h2>
-            <span class="muted">Use the player's Geometry Dash username</span>
+            <span class="muted">Use the player's Geometry Dash username · 30 invites/hour</span>
         </div>
         <form class="search" method="post">
             <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
