@@ -8,6 +8,7 @@ MuchoCore follows the same version-awareness principle used by established GDPS 
 | --- | ---: | ---: | --- |
 | 1.0 | 1 | legacy / versionless | legacy GJP |
 | 1.1 | 11 | legacy / versionless | legacy GJP |
+| 1.5 | 15 | legacy / versioned aliases | legacy GJP |
 | 1.9 | 19 | 25 | `gjp` |
 | 2.0 | 20 | 27-29 | `gjp` |
 | 2.1 | 21 | 33-35 | `gjp` with `gjp2` fallback |
@@ -42,6 +43,12 @@ GD 1.1 therefore uses the legacy credential path and does not require GJP2.
 **Implementation completeness: 100%.** The 1.9 compatibility pass covers legacy GJP selection, versioned endpoint aliases, level description/comment wire rules, legacy level-download password framing, level hashes, old-binary comment user sections, user-comment history, profile/leaderboard routes, and legacy level-browser filters.
 
 A separate empirical verification gate requires a real Geometry Dash 1.9 trace fixture.
+
+## 1.5 status
+
+**Implementation completeness: compatibility layer complete.** GD 1.5 is admitted as `gameVersion=15`, uses legacy GJP authentication, and its comment endpoints are normalized to the shared comment handlers.
+
+A separate empirical verification gate requires the real GD 1.5 client test described in `CLIENT_TESTING.md`.
 
 ## 1.1 status
 
