@@ -120,12 +120,12 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Level/LevelController.php',
-        'if ($type === 13)',
+        'if ($type===13)',
         '2.1 friends level authentication gate',
     ],
     [
         __DIR__ . '/../../src/Level/LevelController.php',
-        '$this->auth->authenticate($accountId, $credential)',
+        '$this->auth->authenticate($accountId,$credential)',
         '2.1 friends level GJP verification',
     ],
     [
