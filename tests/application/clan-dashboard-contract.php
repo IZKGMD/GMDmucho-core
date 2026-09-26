@@ -16,8 +16,8 @@ $dashboard = (string)file_get_contents(__DIR__ . '/../../public/dashboard/clans.
 $repository = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanRepository.php');
 
 foreach ([
-    "session.cookie_lifetime',
-    '604800",
+    "session.cookie_lifetime",
+    "604800",
     "session.gc_maxlifetime",
     "action === 'settings'",
     "action === 'transfer'",
@@ -41,7 +41,7 @@ assertClanDashboardContract(
 );
 
 assertClanDashboardContract(
-    str_contains($dashboard, '$repo->clanInvitations((int)$myClan['clan_id'])'),
+    str_contains($dashboard, '$repo->clanInvitations((int)$myClan[\'clan_id\'])'),
     'dashboard loads outgoing clan invitations'
 );
 
