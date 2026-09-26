@@ -47,6 +47,13 @@ assertCoreRefactor(
 );
 
 assertCoreRefactor(
+    str_contains($services,'use MuchoCore\\LevelList\\LevelListController;') &&
+    str_contains($services,'use MuchoCore\\LevelList\\LevelListRepository;') &&
+    str_contains($services,'use MuchoCore\\LevelList\\LevelListService;'),
+    'AppServices keeps level-list namespaces aligned with the source tree'
+);
+
+assertCoreRefactor(
     str_contains($routes,'/api/clans/rankings') &&
     str_contains($routes,'/getGJLevelScores'),
     'AppRoutes owns API route registration'
