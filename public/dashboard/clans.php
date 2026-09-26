@@ -26,6 +26,8 @@ $secure = (
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_secure', $secure ? '1' : '0');
 ini_set('session.cookie_samesite', 'Lax');
+ini_set('session.cookie_lifetime', '604800');
+ini_set('session.gc_maxlifetime', '604800');
 session_name('MUCHO_PLAYER');
 session_start();
 
@@ -82,6 +84,30 @@ function pcAccount(): ?array
     return is_array($account) && (int)($account['id'] ?? 0) > 0
         ? $account
         : null;
+}
+
+function pcAudit(PDO $db, int $accountId, string $action, ?int $targetId = null, array $metadata = []): void
+{
+    try {
+        $stmt = $db->prepare(
+            'INSERT INTO audit_logs
+                (account_id, action, target_type, target_id, metadata)
+             VALUES
+                (:account_id, :action, :target_type, :target_id, :metadata)'
+        );
+        $stmt->execute([
+            'account_id' => $accountId,
+            'action' => $action,
+            'target_type' => 'clan',
+            'target_id' => $targetId,
+            'metadata' => json_encode(
+                $metadata,
+                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            ),
+        ]);
+    } catch (Throwable) {
+        // Audit failures must not break clan operations.
+    }
 }
 
 function pcUsableAccount(PDO $db, int $accountId): bool
@@ -288,52 +314,12 @@ if ($action !== '') {
                 throw new RuntimeException('You are already in a clan.');
             }
 
-            $invite = $repo->getInvite($inviteId, $accountId);
-
-            if ($invite === null) {
+            if (!$repo->acceptInvite($inviteId, $accountId)) {
                 throw new RuntimeException('Invitation not found or expired.');
             }
 
-            $clan = $repo->getById((int)$invite['clan_id']);
-
-            if (
-                $clan === null ||
-                (int)$clan['member_count'] >= (int)$clan['max_members']
-            ) {
-                throw new RuntimeException('The clan is full or unavailable.');
-            }
-
-            $db->beginTransaction();
-
-            try {
-                $insert = $db->prepare(
-                    "INSERT INTO mucho_clan_members (clan_id, account_id, role)
-                     VALUES (:clan_id, :account_id, 'member')"
-                );
-                $insert->execute([
-                    'clan_id' => (int)$invite['clan_id'],
-                    'account_id' => $accountId,
-                ]);
-
-                $delete = $db->prepare(
-                    'DELETE FROM mucho_clan_invites
-                     WHERE invite_id = :invite_id
-                       AND account_id = :account_id'
-                );
-                $delete->execute([
-                    'invite_id' => $inviteId,
-                    'account_id' => $accountId,
-                ]);
-
-                $db->commit();
-            } catch (Throwable $e) {
-                if ($db->inTransaction()) {
-                    $db->rollBack();
-                }
-                throw $e;
-            }
-
-            pcFlash('Joined ' . $invite['name'] . '.');
+            pcFlash('Invitation accepted.');
+            pcAudit($db, $accountId, 'clan.invite.accepted', $inviteId);
             pcRedirect();
         }
 
@@ -401,6 +387,138 @@ if ($action !== '') {
             pcRedirect();
         }
 
+        if ($action === 'settings') {
+            if ($myClan === null || (string)$myClan['role'] !== 'owner') {
+                throw new RuntimeException('Owner permission required.');
+            }
+
+            $clanId = (int)$myClan['clan_id'];
+            $name = trim(preg_replace('/\s+/', ' ', (string)($_POST['clanName'] ?? '')) ?? '');
+            $tag = strtoupper(trim((string)($_POST['clanTag'] ?? '')));
+            $description = substr(
+                trim(preg_replace('/\s+/', ' ', (string)($_POST['clanDescription'] ?? '')) ?? ''),
+                0,
+                160
+            );
+            $open = ((int)($_POST['clanOpen'] ?? 1)) === 1;
+            $maxMembers = max(2, min(500, (int)($_POST['clanMaxMembers'] ?? 50)));
+
+            if (
+                strlen($name) > 24 ||
+                preg_match('/^[A-Za-z0-9][A-Za-z0-9 _.-]{1,23}$/D', $name) !== 1 ||
+                preg_match('/^[A-Z0-9]{2,6}$/D', $tag) !== 1
+            ) {
+                throw new RuntimeException('Use a valid clan name and a 2–6 character tag.');
+            }
+
+            $repo->updateSettings(
+                $clanId,
+                $accountId,
+                $name,
+                $tag,
+                $description,
+                $open,
+                $maxMembers
+            );
+            pcFlash('Clan settings updated.');
+            pcAudit($db, $accountId, 'clan.settings.updated', $clanId, [
+                'is_open' => $open,
+                'max_members' => $maxMembers,
+            ]);
+            pcRedirect();
+        }
+
+        if ($action === 'transfer') {
+            if ($myClan === null || (string)$myClan['role'] !== 'owner') {
+                throw new RuntimeException('Owner permission required.');
+            }
+
+            $targetId = (int)($_POST['targetAccountID'] ?? 0);
+            $repo->transferOwnership(
+                (int)$myClan['clan_id'],
+                $accountId,
+                $targetId
+            );
+            pcFlash('Clan ownership transferred.');
+            pcAudit($db, $accountId, 'clan.ownership.transferred', (int)$myClan['clan_id'], [
+                'new_owner_account_id' => $targetId,
+            ]);
+            pcRedirect();
+        }
+
+        if ($action === 'disband') {
+            if ($myClan === null || (string)$myClan['role'] !== 'owner') {
+                throw new RuntimeException('Owner permission required.');
+            }
+
+            $clanId = (int)$myClan['clan_id'];
+            $repo->disband($clanId, $accountId);
+            pcFlash('Clan disbanded.');
+            pcAudit($db, $accountId, 'clan.disbanded', $clanId);
+            pcRedirect();
+        }
+
+        if ($action === 'revoke_invite') {
+            if (
+                $myClan === null ||
+                !in_array((string)$myClan['role'], ['owner', 'officer'], true)
+            ) {
+                throw new RuntimeException('Officer permission required.');
+            }
+
+            $inviteId = (int)($_POST['inviteID'] ?? 0);
+            $repo->revokeInvite($inviteId, $accountId);
+            pcFlash('Invitation revoked.');
+            pcAudit($db, $accountId, 'clan.invite.revoked', (int)$myClan['clan_id'], [
+                'invite_id' => $inviteId,
+            ]);
+            pcRedirect();
+        }
+
+        if ($action === 'ban') {
+            if (
+                $myClan === null ||
+                !in_array((string)$myClan['role'], ['owner', 'officer'], true)
+            ) {
+                throw new RuntimeException('Officer permission required.');
+            }
+
+            $targetId = (int)($_POST['targetAccountID'] ?? 0);
+            $reason = trim((string)($_POST['reason'] ?? ''));
+            $repo->ban(
+                (int)$myClan['clan_id'],
+                $accountId,
+                $targetId,
+                substr($reason, 0, 160)
+            );
+            pcFlash('Player banned from the clan.');
+            pcAudit($db, $accountId, 'clan.member.banned', (int)$myClan['clan_id'], [
+                'target_account_id' => $targetId,
+            ]);
+            pcRedirect();
+        }
+
+        if ($action === 'unban') {
+            if (
+                $myClan === null ||
+                !in_array((string)$myClan['role'], ['owner', 'officer'], true)
+            ) {
+                throw new RuntimeException('Officer permission required.');
+            }
+
+            $targetId = (int)($_POST['targetAccountID'] ?? 0);
+            $repo->unban(
+                (int)$myClan['clan_id'],
+                $accountId,
+                $targetId
+            );
+            pcFlash('Clan ban removed.');
+            pcAudit($db, $accountId, 'clan.member.unbanned', (int)$myClan['clan_id'], [
+                'target_account_id' => $targetId,
+            ]);
+            pcRedirect();
+        }
+
         throw new RuntimeException('Unknown clan action.');
     } catch (PDOException $e) {
         if ($db->inTransaction()) {
@@ -431,6 +549,21 @@ $selectedId = (int)($_GET['clan'] ?? 0);
 $selected = $selectedId > 0 ? pcClan($db, $selectedId) : null;
 $clans = $repo->search($search, 0, 60);
 $myClan = $account ? $repo->getForAccount((int)$account['id']) : null;
+$myClanMembers = ($myClan !== null)
+    ? $repo->members((int)$myClan['clan_id'])
+    : [];
+$myClanBans = (
+    $myClan !== null &&
+    in_array((string)$myClan['role'], ['owner', 'officer'], true)
+)
+    ? $repo->bans((int)$myClan['clan_id'])
+    : [];
+$myClanInvites = (
+    $myClan !== null &&
+    in_array((string)$myClan['role'], ['owner', 'officer'], true)
+)
+    ? $repo->clanInvitations((int)$myClan['clan_id'])
+    : [];
 ?>
 <!doctype html>
 <html lang="en">
@@ -696,6 +829,57 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
 <?php endif; ?>
 
 <?php if ($account && $myClan): ?>
+<?php if ((string)$myClan['role'] === 'owner'): ?>
+<section class="section">
+    <div class="panel">
+        <div class="section-head">
+            <h2>Clan settings</h2>
+            <span class="muted">Owner only</span>
+        </div>
+        <form class="form" method="post">
+            <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+            <input type="hidden" name="action" value="settings">
+            <div class="field"><label>Clan name</label><input type="text" name="clanName" maxlength="24" value="<?=pcH($myClan['name'])?>" required></div>
+            <div class="field"><label>Tag</label><input type="text" name="clanTag" maxlength="6" value="<?=pcH($myClan['tag'])?>" required></div>
+            <div class="field"><label>Description</label><textarea name="clanDescription" maxlength="160"><?=pcH($myClan['description'] ?? '')?></textarea></div>
+            <div class="field"><label>Access</label>
+                <select name="clanOpen">
+                    <option value="1" <?=((int)$myClan['is_open'] === 1) ? 'selected' : ''?>>Open — anyone can join</option>
+                    <option value="0" <?=((int)$myClan['is_open'] !== 1) ? 'selected' : ''?>>Invite only</option>
+                </select>
+            </div>
+            <div class="field"><label>Member limit</label><input type="number" name="clanMaxMembers" min="2" max="500" value="<?=pcH($myClan['max_members'])?>"></div>
+            <button class="btn" type="submit">Save settings</button>
+        </form>
+    </div>
+</section>
+
+<section class="section">
+    <div class="panel">
+        <div class="section-head"><h2>Ownership</h2><span class="muted">Transfer or disband</span></div>
+        <form class="search" method="post">
+            <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+            <input type="hidden" name="action" value="transfer">
+            <select name="targetAccountID" required>
+                <option value="">Transfer ownership to...</option>
+                <?php foreach ($myClanMembers as $member): ?>
+                    <?php if ((string)$member['role'] !== 'owner'): ?>
+                    <option value="<?=((int)$member['account_id'])?>"><?=pcH($member['username'])?> · <?=pcH($member['role'])?></option>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </select>
+            <button class="btn" type="submit" onclick="return confirm('Transfer clan ownership?');">Transfer</button>
+        </form>
+        <form method="post" style="margin-top:9px">
+            <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+            <input type="hidden" name="action" value="disband">
+            <button class="btn alt" type="submit" onclick="return confirm('Disband this clan permanently?');">Disband clan</button>
+        </form>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php if ($account && $myClan): ?>
 <section class="section" id="my-clan">
     <div class="panel">
         <div class="section-head">
@@ -726,6 +910,56 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
             <input type="hidden" name="action" value="invite">
             <input type="text" name="targetUsername" maxlength="20" placeholder="Player username" required>
             <button class="btn" type="submit">Send invite</button>
+        </form>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php if ($account && $myClan && in_array((string)$myClan['role'], ['owner', 'officer'], true)): ?>
+<section class="section">
+    <div class="panel">
+        <div class="section-head"><h2>Invitations & bans</h2><span class="muted">Officer tools</span></div>
+
+        <?php if ($myClanInvites): ?>
+            <?php foreach ($myClanInvites as $invite): ?>
+            <div class="member">
+                <span><b><?=pcH($invite['username'])?></b><small>expires <?=pcH($invite['expires_at'])?></small></span>
+                <form method="post">
+                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                    <input type="hidden" name="action" value="revoke_invite">
+                    <input type="hidden" name="inviteID" value="<?=((int)$invite['invite_id'])?>">
+                    <button class="btn alt" type="submit">Revoke</button>
+                </form>
+            </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="empty">No outgoing invitations.</div>
+        <?php endif; ?>
+
+        <div class="form" style="margin-top:12px">
+            <?php if ($myClanBans): ?>
+                <?php foreach ($myClanBans as $ban): ?>
+                <div class="member">
+                    <span><b><?=pcH($ban['username'])?></b><small><?=pcH($ban['reason'] ?: 'No reason')?></small></span>
+                    <form method="post">
+                        <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                        <input type="hidden" name="action" value="unban">
+                        <input type="hidden" name="targetAccountID" value="<?=((int)$ban['account_id'])?>">
+                        <button class="btn alt" type="submit">Unban</button>
+                    </form>
+                </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="empty">No active clan bans.</div>
+            <?php endif; ?>
+        </div>
+
+        <form class="search" method="post" style="margin-top:12px">
+            <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+            <input type="hidden" name="action" value="ban">
+            <input type="number" name="targetAccountID" min="1" placeholder="Account ID" required>
+            <input type="text" name="reason" maxlength="160" placeholder="Reason (optional)">
+            <button class="btn alt" type="submit">Ban account</button>
         </form>
     </div>
 </section>
