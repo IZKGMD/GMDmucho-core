@@ -656,6 +656,9 @@ $selectedId = (int)($_GET['clan'] ?? 0);
 $selected = $selectedId > 0 ? pcClan($db, $selectedId) : null;
 $clans = $repo->search($search, 0, 60);
 $myClan = $account ? $repo->getForAccount((int)$account['id']) : null;
+if ($myClan !== null) {
+    $myClan['permissions'] = $repo->permissionMap((string)$myClan['role']);
+}
 $myClanMembers = ($myClan !== null)
     ? $repo->members((int)$myClan['clan_id'])
     : [];
