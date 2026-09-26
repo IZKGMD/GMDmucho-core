@@ -307,7 +307,7 @@ final readonly class ClanController
     {
         return $this->run(function() use ($request): array {
             return [
-                'deleted'=>$this->service->disband(
+                'deleted'=>$this->service->delete(
                     $request->postInt('accountID'),
                     $request->gdCredential()
                 ),
