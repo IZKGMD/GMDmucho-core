@@ -72,11 +72,23 @@ final readonly class CompatibilityProfile
             return true;
         }
 
-        return in_array(
-            $client->effectiveGameVersion(),
-            $this->versions,
-            true
-        );
+        $version = $client->effectiveGameVersion();
+
+        if (in_array($version, $this->versions, true)) {
+            return true;
+        }
+
+        /*
+         * Early Geometry Dash 1.x clients may report a legacy protocol
+         * gameVersion that is not one of MuchoCore's canonical profile IDs
+         * (for example gameVersion=6). When the profile is configured as
+         * "all", the entire pre-1.9 legacy generation must remain reachable.
+         */
+        if ($this->isAll() && $version > 0 && $version < 19) {
+            return true;
+        }
+
+        return false;
     }
 
     public function isAll(): bool
