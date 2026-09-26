@@ -15,7 +15,7 @@ function assertClanContract(bool $condition, string $name): void
 $service = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanService.php');
 $repository = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanRepository.php');
 $controller = (string)file_get_contents(__DIR__ . '/../../src/Clan/ClanController.php');
-$application = (string)file_get_contents(__DIR__ . '/../../src/Core/Application.php');
+$application = (string)file_get_contents(__DIR__ . '/../../src/Core/AppRoutes.php');
 $migration = (string)file_get_contents(__DIR__ . '/../../database/migrations/20260926_002_clans_v2.php');
 
 foreach ([
@@ -112,7 +112,7 @@ foreach ([
 ] as $route) {
     assertClanContract(
         str_contains($application, "'" . $route . "'"),
-        'Application registers ' . $route
+        'AppRoutes registers ' . $route
     );
 }
 
