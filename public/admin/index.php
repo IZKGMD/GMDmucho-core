@@ -3833,6 +3833,87 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             flash('Level saved and creator statistics synchronized.');
         }
 
+        elseif ($action==='level-delete') {
+            requireRank(20);
+
+            $id=(int)($_POST['id'] ?? 0);
+
+            if ($id<=0) {
+                throw new RuntimeException('Invalid level ID.');
+            }
+
+            $creatorQuery=$db->prepare(
+                'SELECT account_id
+                 FROM levels
+                 WHERE level_id=:id
+                 LIMIT 1'
+            );
+            $creatorQuery->execute(['id'=>$id]);
+            $creatorId=(int)$creatorQuery->fetchColumn();
+
+            if ($creatorId<=0) {
+                throw new RuntimeException('Level not found.');
+            }
+
+            $db->beginTransaction();
+
+            try {
+                $q=$db->prepare(
+                    'UPDATE levels
+                     SET is_deleted=1,
+                         requested_stars=0,
+                         updated_at=NOW()
+                     WHERE level_id=:id
+                       AND is_deleted=0'
+                );
+                $q->execute(['id'=>$id]);
+
+                if ($q->rowCount()!==1) {
+                    throw new RuntimeException('Level is already deleted or does not exist.');
+                }
+
+                $cpQuery=$db->prepare(
+                    'SELECT COALESCE(
+                        SUM(
+                            CASE WHEN stars>0 THEN 1 ELSE 0 END
+                            + CASE WHEN featured>0 THEN 1 ELSE 0 END
+                            + epic
+                        ),
+                        0
+                    )
+                    FROM levels
+                    WHERE account_id=:account_id
+                      AND is_deleted=0'
+                );
+                $cpQuery->execute(['account_id'=>$creatorId]);
+
+                $db->prepare(
+                    'UPDATE profiles
+                     SET creator_points=:cp
+                     WHERE account_id=:account_id'
+                )->execute([
+                    'cp'=>(int)$cpQuery->fetchColumn(),
+                    'account_id'=>$creatorId
+                ]);
+
+                audit(
+                    $db,
+                    'level.delete',
+                    (string)$id,
+                    ['creator_account_id'=>$creatorId]
+                );
+
+                $db->commit();
+                flash('Level deleted.');
+            } catch (Throwable $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+
+                throw $e;
+            }
+        }
+
         elseif ($action==='level-rate-save') {
             requireRank(20);
 
