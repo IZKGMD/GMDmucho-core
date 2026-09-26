@@ -22,7 +22,7 @@ final class Router
             );
         }
 
-        $key = $this->routeKey($method, $path);
+        $key = strtoupper($method) . ' ' . $this->normalizePath($path);
         $this->routes[$key] = Closure::fromCallable($handler);
     }
 
@@ -36,8 +36,8 @@ final class Router
         }
 
         foreach ([
-            $this->routeKey($method, $path),
-            $this->routeKey('ANY', $path),
+            $method . ' ' . $path,
+            'ANY ' . $path,
         ] as $key) {
             if (isset($this->routes[$key])) {
                 return ($this->routes[$key])($request);
@@ -91,8 +91,4 @@ final class Router
         return CompatibilityAliases::all()[$path] ?? $path;
     }
 
-    private function routeKey(string $method, string $path): string
-    {
-        return strtoupper($method) . ' ' . $this->normalizePath($path);
-    }
 }
