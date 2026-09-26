@@ -639,6 +639,11 @@ if ($action === 'upload_youtube') {
         pdRedirect();
     }
 
+    if (!function_exists('exec')) {
+        pdFlash('YouTube import is unavailable because PHP exec() is disabled.', 'error');
+        pdRedirect();
+    }
+
     $yt = escapeshellarg($youtubeDownloader);
     $urlArg = escapeshellarg($youtubeUrl);
 
