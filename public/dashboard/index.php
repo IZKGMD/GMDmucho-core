@@ -685,6 +685,11 @@ if ($action === 'upload_youtube') {
     }
 
     if (!is_array($metadata)) {
+        error_log(
+            '[Mucho Dashboard] YouTube metadata failed (exit ' .
+            $metaCode . '): ' .
+            implode(' | ', array_slice($metaOutput, -8))
+        );
         pdFlash('Could not read metadata from that YouTube video.', 'error');
         pdRedirect();
     }
