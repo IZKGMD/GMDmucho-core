@@ -30,7 +30,18 @@ final readonly class CommentController
         $content = $this->getPostParam($request, "comment");
         $percent = $request->postInt("percent", 0) ?: (int)($_POST["percent"] ?? 0);
 
-        if ($accountId <= 0 || $levelId <= 0 || $content === "") {
+        $legacyUdidUpload =
+            $accountId <= 0 &&
+            $gjp === '' &&
+            $version->effectiveGameVersion() > 0 &&
+            $version->effectiveGameVersion() < 19 &&
+            trim($udid) !== '';
+
+        if (
+            ($accountId <= 0 && !$legacyUdidUpload) ||
+            $levelId <= 0 ||
+            $content === ""
+        ) {
             return Response::text("-1");
         }
 
