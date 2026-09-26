@@ -11,6 +11,8 @@ MuchoCore provides a GDPS-local clan system as a first-class server feature.
 - Configurable member limit.
 - Seven-day invitations.
 - Join, leave, invite, accept, decline and revoke invitation operations.
+- Join applications for invite-only clans, with a seven-day expiry.
+- Owner/officer review of pending join applications.
 - Owner-only settings changes, ownership transfer and clan disbanding.
 - Officer/member kick rules with owner protection.
 - Clan bans that remove members and invalidate pending invitations.
@@ -26,6 +28,7 @@ The base migration `020_clans.php` creates:
 mucho_clans
 mucho_clan_members
 mucho_clan_invites
+mucho_clan_applications
 ```
 
 The follow-up migration `20260926_002_clans_v2.php` adds:
@@ -84,6 +87,12 @@ POST /api/clans/search
 POST /api/clans/join
 POST /api/clans/leave
 POST /api/clans/invite
+POST /api/clans/apply
+POST /api/clans/applications
+POST /api/clans/applications/incoming
+POST /api/clans/application/accept
+POST /api/clans/application/decline
+POST /api/clans/application/cancel
 POST /api/clans/invite/accept
 POST /api/clans/invite/decline
 POST /api/clans/kick
@@ -149,6 +158,6 @@ Clans do not replace or modify existing Geometry Dash account identifiers. Older
 
 The in-game tag display is implemented by decorating the name returned by existing user/profile/comment encoders. No dedicated clan protocol is required for clients that already display the standard user-name field.
 
-The player dashboard provides clan discovery, creation, open-clan joining and membership status.
+The player dashboard provides clan discovery, creation, open-clan joining, private-clan applications and membership status. Applications expire after seven days and are reviewed by the clan owner or officers.
 
 The dashboard is intentionally GDPS-local: each installation reads its own clan database, so clan names and tags are scoped to that server. The existing authenticated JSON API remains the canonical management contract for officer/owner operations and future richer UIs.
