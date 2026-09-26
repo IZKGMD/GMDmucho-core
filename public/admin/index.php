@@ -4199,6 +4199,17 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 );
             }
 
+            if (isset($_POST['music_moderation_required'])) {
+                file_put_contents(
+                    CONTROL_DIR.'/music-moderation-required.flag',
+                    '1'
+                );
+            } else {
+                @unlink(
+                    CONTROL_DIR.'/music-moderation-required.flag'
+                );
+            }
+
             audit($db,'settings.save');
             flash('Settings applied.');
         }
@@ -5663,6 +5674,10 @@ $regDisabled=is_file(
     CONTROL_DIR.'/registrations-disabled.flag'
 );
 
+$musicModerationRequired=is_file(
+    CONTROL_DIR.'/music-moderation-required.flag'
+);
+
 ?>
 <div class="card">
 <form method="post">
@@ -5747,6 +5762,21 @@ Maintenance mode
 Disable new registrations
 </label>
 </p>
+
+<p>
+<label>
+<input
+ type="checkbox"
+ name="music_moderation_required"
+ <?=$musicModerationRequired?'checked':''?>
+>
+Require music moderation
+</label>
+</p>
+
+<div class="muted small" style="margin:7px 0 18px">
+When disabled, new MP3 and YouTube imports are published immediately. Existing pending tracks are not changed.
+</div>
 
 <button>Apply</button>
 </form>
