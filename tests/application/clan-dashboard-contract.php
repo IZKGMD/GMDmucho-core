@@ -121,9 +121,9 @@ assertClanDashboardContract(
 );
 
 assertClanDashboardContract(
-    str_contains($service, "strlen($name)<=32") &&
-    str_contains($service, "strlen($tag)<=8") &&
-    str_contains($service, "A-Za-z0-9._-"),
+    str_contains($service, 'strlen($name)<=32') &&
+    str_contains($service, 'strlen($tag)<=8') &&
+    str_contains($service, 'A-Za-z0-9._-'),
     'service enforces expanded no-space clan identity limits'
 );
 
