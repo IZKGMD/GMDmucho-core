@@ -20,6 +20,7 @@ use MuchoCore\Clan\ClanService;
 use MuchoCore\Comment\CommentHistoryController;
 use MuchoCore\Comment\CommentHistoryRepository;
 use MuchoCore\Comment\CommentHistoryService;
+use MuchoCore\Interaction\CommentCommandService;
 use MuchoCore\Interaction\CommentController;
 use MuchoCore\Interaction\CommentRepository;
 use MuchoCore\Interaction\CommentService;
@@ -180,7 +181,8 @@ final class AppServices
                     $auth,
                     new GdCommentEncoder(),
                     $pdo,
-                    $legacy10
+                    $legacy10,
+                    new CommentCommandService($pdo)
                 )
             ),
 
