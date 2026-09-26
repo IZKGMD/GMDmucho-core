@@ -42,7 +42,7 @@ final readonly class CommentController
                     $gjp,
                     $content,
                     $percent,
-                    $version->effectiveGameVersion() ?: 22,
+                    $version->effectiveGameVersion(),
                     $udid,
                     $ip
                 )
