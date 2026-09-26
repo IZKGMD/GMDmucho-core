@@ -21,7 +21,8 @@ return [
     ],
 
     'levels'=>[
-        'level-save'
+        'level-save',
+        'level-delete'
     ],
 
     'social'=>[
