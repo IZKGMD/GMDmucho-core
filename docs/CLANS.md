@@ -1,6 +1,6 @@
 # MuchoCore Clans
 
-MuchoCore includes a lightweight clan system that sits beside the existing account and social services.
+MuchoCore provides a GDPS-local clan system as a first-class server feature.
 
 ## Features
 
@@ -10,13 +10,17 @@ MuchoCore includes a lightweight clan system that sits beside the existing accou
 - Open or invite-only clans.
 - Configurable member limit.
 - Seven-day invitations.
-- Join, leave, invite, accept, decline, kick and role-management operations.
+- Join, leave, invite, accept, decline and revoke invitation operations.
+- Owner-only settings changes, ownership transfer and clan disbanding.
+- Officer/member kick rules with owner protection.
+- Clan bans that remove members and invalidate pending invitations.
+- Clan management audit events in the existing `audit_logs` table.
 - A player-facing clan directory at `/dashboard/clans.php` on every MuchoCore GDPS.
 - Clan tags are rendered in standard Geometry Dash user-name response fields without changing the real account username.
 
 ## Data model
 
-The migration `020_clans.php` creates:
+The base migration `020_clans.php` creates:
 
 ```text
 mucho_clans
@@ -24,7 +28,23 @@ mucho_clan_members
 mucho_clan_invites
 ```
 
+The follow-up migration `20260926_002_clans_v2.php` adds:
+
+```text
+mucho_clan_bans
+```
+
 The account's real `accounts.username` is never rewritten when a clan tag is used.
+
+## Clan lifecycle
+
+A clan can be created, populated through open joins or invitations, managed by owner/officer roles, transferred to a new owner, and finally disbanded by the owner. Ownership transfer makes the selected member the new owner and the previous owner an officer. The owner cannot leave or be kicked/banned. Officers cannot remove or ban other officers.
+
+## Concurrency and integrity
+
+Membership writes lock the clan row and re-check the member limit inside the transaction. Invitation acceptance performs its membership and capacity checks again immediately before insertion. The unique account membership key remains the final integrity guard.
+
+Clan bans are checked for both open joins and direct invitations. Applying a ban removes the member and pending invitations in the same transaction.
 
 ## In-game display
 
@@ -69,6 +89,13 @@ POST /api/clans/invite/decline
 POST /api/clans/kick
 POST /api/clans/role
 POST /api/clans/invites
+POST /api/clans/invite/revoke
+POST /api/clans/settings
+POST /api/clans/transfer
+POST /api/clans/disband
+POST /api/clans/ban
+POST /api/clans/unban
+POST /api/clans/bans
 ```
 
 Common fields:
