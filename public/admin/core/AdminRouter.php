@@ -93,6 +93,24 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
 
     /*
+     * Custom Plugins
+     */
+
+    $router->register(
+        'plugins',
+        static function(PDO $db): void {
+            if (!function_exists('renderCustomPluginsPage')) {
+                throw new RuntimeException(
+                    'Custom Plugins module is unavailable.'
+                );
+            }
+
+            renderCustomPluginsPage($db);
+        }
+    );
+
+
+    /*
      * Core Updates
      */
 
