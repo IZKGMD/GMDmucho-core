@@ -1465,6 +1465,7 @@ body.dashboard-page .topbar{
     <nav class="nav">
         <a href="/dashboard">Discover</a>
         <a href="#players">Players</a>
+        <a href="/dashboard/clans.php">Clans</a>
         <a href="#music">Music</a>
         <?php if ($account): ?>
             <a href="#upload">Upload</a>
@@ -1579,12 +1580,14 @@ body.dashboard-page .topbar{
 
         <div class="hero-actions">
             <a class="btn" href="#players">Explore players</a>
+            <a class="btn alt" href="/dashboard/clans.php">Explore clans</a>
             <a class="btn alt" href="#music">Browse music</a>
         </div>
 
         <div class="hero-note">
             <span>Fast player search</span>
             <span>Public profiles</span>
+            <span>Clan tags</span>
             <span>1 upload / 3 min</span>
         </div>
 
