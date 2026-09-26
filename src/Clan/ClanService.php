@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MuchoCore\Clan;
 
 use MuchoCore\Account\AccountAuthenticator;
+use MuchoCore\Security\RateLimiter;
 use PDO;
 use RuntimeException;
 
@@ -130,6 +131,14 @@ final readonly class ClanService
 
     public function invite(int $accountId,string $credential,int $targetAccountId): bool {
         $this->auth->authenticate($accountId,$credential);
+
+        if (!(new RateLimiter())->allowStrict(
+            'clan-invite:' . $accountId,
+            30,
+            3600
+        )) {
+            throw new RuntimeException('Invitation rate limit reached. Try again later.');
+        }
 
         $clan=$this->repository->getForAccount($accountId);
         if ($clan===null || !in_array((string)$clan['role'],['owner','officer'],true)) {
