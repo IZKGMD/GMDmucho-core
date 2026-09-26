@@ -61,8 +61,9 @@ final class AppRoutes
             $add($path, [$s['cloudSave'], 'sync']);
         }
 
+        $add('/getGJLevels21', [$s['levels'], 'list']);
+
         foreach ([
-            '/getGJLevels21' => 'list',
             '/updateGJLevel' => 'checkUpdate',
             '/uploadGJLevel21' => 'upload',
             '/uploadGJLevel22' => 'upload',
@@ -71,12 +72,8 @@ final class AppRoutes
             '/deleteGJLevelUser20' => 'delete',
             '/updateGJLevelDesc20' => 'updateDescription',
         ] as $path => $method) {
-            $add($path, [$s['levelTransfer'] ?? $s['levels'], $method]);
+            $add($path, [$s['levelTransfer'], $method]);
         }
-
-        // The first level route is served by LevelController; keep transfer
-        // operations isolated from it.
-        $router->add('ANY', '/getGJLevels21', [$s['levels'], 'list']);
 
         $add('/getGJSongInfo', [$s['songs'], 'info']);
 
