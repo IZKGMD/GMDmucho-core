@@ -65,7 +65,7 @@ final class CommentCommandService
         int $accountId,
         string $commandStr
     ): ?bool {
-        $pdo = $this->getPdo();
+        $pdo = $this->pdo;
 
         $parts = preg_split('/\\s+/', trim($commandStr)) ?: [];
         $cmd = strtolower((string)($parts[0] ?? ''));
