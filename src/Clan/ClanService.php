@@ -472,6 +472,13 @@ final readonly class ClanService
         return $transferred;
     }
 
+    public function delete(
+        int $accountId,
+        string $credential
+    ): bool {
+        return $this->disband($accountId,$credential);
+    }
+
     public function disband(
         int $accountId,
         string $credential
