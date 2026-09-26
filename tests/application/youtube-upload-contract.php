@@ -15,9 +15,9 @@ function assertYouTubeContract(bool $condition, string $name): void
 $dashboard = (string)file_get_contents(__DIR__ . '/../../public/dashboard/index.php');
 
 foreach ([
-    "data-music-tab="file"",
-    "data-music-tab="youtube"",
-    "data-music-panel="youtube"",
+    'data-music-tab="file"',
+    'data-music-tab="youtube"',
+    'data-music-panel="youtube"',
     'name="youtube_url"',
     'name="youtube_title"',
     'name="youtube_artist"',
