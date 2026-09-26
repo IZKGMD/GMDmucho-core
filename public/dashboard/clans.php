@@ -680,6 +680,19 @@ $myClanApplications = (
 $myApplications = $account
     ? $repo->applications((int)$account['id'])
     : [];
+$myClanStats = $myClan !== null
+    ? $repo->stats((int)$myClan['clan_id'])
+    : [];
+$topClansStars = $repo->topClans('stars', 10);
+$topClansDemons = $repo->topClans('demons', 10);
+$topClansCreators = $repo->topClans('creator_points', 10);
+$topClansMembers = $repo->topClans('members', 10);
+
+function pcNum(mixed $value): string
+{
+    return number_format((int)$value, 0, '.', ',');
+}
+
 $selectedApplication = (
     $account &&
     !$myClan &&
@@ -848,10 +861,15 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
             <span class="chip"><?=pcH(ucfirst((string)$myClan['role']))?></span>
         </div>
         <div class="kpi-grid">
-            <div class="kpi"><b><?=pcH($myClan['member_count'])?></b><small>Members</small></div>
-            <div class="kpi"><b><?=pcH($myClan['max_members'])?></b><small>Member limit</small></div>
-            <div class="kpi"><b><?=((int)$myClan['is_open'] === 1) ? 'Open' : 'Private'?></b><small>Access</small></div>
-            <div class="kpi"><b><?=pcH(count($myClanBans))?></b><small>Active bans</small></div>
+            <div class="kpi"><b><?=pcNum($myClanStats['total_stars'] ?? 0)?></b><small>Total stars</small></div>
+            <div class="kpi"><b><?=pcNum($myClanStats['total_demons'] ?? 0)?></b><small>Total demons</small></div>
+            <div class="kpi"><b><?=pcNum($myClanStats['total_creator_points'] ?? 0)?></b><small>Creator points</small></div>
+            <div class="kpi"><b><?=pcNum($myClanStats['total_levels'] ?? 0)?></b><small>Published levels</small></div>
+        </div>
+        <div class="chips">
+            <?php foreach (($myClan['permissions'] ?? []) as $permission): ?>
+                <span class="chip"><?=pcH(str_replace('_', ' ', $permission))?></span>
+            <?php endforeach; ?>
         </div>
         <div class="actions">
             <a class="btn" href="/dashboard/clans.php?clan=<?=((int)$myClan['clan_id'])?>">Open my clan</a>
@@ -866,6 +884,37 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
     </div>
 </section>
 <?php endif; ?>
+
+<section class="section" id="clan-rankings">
+    <div class="section-head">
+        <h2>Clan rankings</h2>
+        <span class="muted">Live totals from current members</span>
+    </div>
+    <div class="grid">
+        <?php foreach ([
+            ['title'=>'Top Stars','rows'=>$topClansStars,'value'=>'total_stars','label'=>'stars'],
+            ['title'=>'Top Demons','rows'=>$topClansDemons,'value'=>'total_demons','label'=>'demons'],
+            ['title'=>'Top Creators','rows'=>$topClansCreators,'value'=>'total_creator_points','label'=>'creator points'],
+            ['title'=>'Largest Clans','rows'=>$topClansMembers,'value'=>'member_count','label'=>'members'],
+        ] as $ranking): ?>
+        <div class="panel">
+            <div class="section-head">
+                <h2><?=pcH($ranking['title'])?></h2>
+                <span class="muted">Top 10</span>
+            </div>
+            <?php foreach ($ranking['rows'] as $rank => $clan): ?>
+            <a class="member" href="/dashboard/clans.php?clan=<?=((int)$clan['clan_id'])?>" style="text-decoration:none;color:inherit">
+                <span>
+                    <b>#<?=pcH($rank + 1)?> [<?=pcH($clan['tag'])?>] <?=pcH($clan['name'])?></b>
+                    <small><?=pcNum($clan[$ranking['value']])?> <?=pcH($ranking['label'])?> · <?=pcNum($clan['member_count'])?> members</small>
+                </span>
+            </a>
+            <?php endforeach; ?>
+            <?php if (!$ranking['rows']): ?><div class="empty">No clan data yet.</div><?php endif; ?>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</section>
 
 <section class="section" id="directory">
     <div class="section-head">
@@ -909,6 +958,13 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
             <span class="chip"><?=pcH($selected['member_count'])?> / <?=pcH($selected['max_members'])?> members</span>
             <span class="chip">Owner: <?=pcH($selected['owner_username'])?></span>
             <span class="chip"><?=((int)$selected['is_open'] === 1) ? 'Open' : 'Invite only'?></span>
+        </div>
+        <?php $selectedStats = $repo->stats((int)$selected['clan_id']); ?>
+        <div class="kpi-grid">
+            <div class="kpi"><b><?=pcNum($selectedStats['total_stars'] ?? 0)?></b><small>Total stars</small></div>
+            <div class="kpi"><b><?=pcNum($selectedStats['total_demons'] ?? 0)?></b><small>Total demons</small></div>
+            <div class="kpi"><b><?=pcNum($selectedStats['total_creator_points'] ?? 0)?></b><small>Creator points</small></div>
+            <div class="kpi"><b><?=pcNum($selectedStats['total_levels'] ?? 0)?></b><small>Published levels</small></div>
         </div>
 
         <?php if ($account && !$myClan && (int)$selected['is_open'] === 1): ?>
@@ -1065,7 +1121,7 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
         <form method="post" style="margin-top:9px">
             <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
             <input type="hidden" name="action" value="disband">
-            <button class="btn alt" type="submit" onclick="return confirm('Disband this clan permanently?');">Disband clan</button>
+            <button class="btn alt danger" type="submit" onclick="return confirm('Delete this clan permanently? All memberships, invites, applications and bans will be deleted.');">Delete clan permanently</button>
         </form>
     </div>
 </section>
