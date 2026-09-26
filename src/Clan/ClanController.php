@@ -151,6 +151,39 @@ final readonly class ClanController
         });
     }
 
+    public function stats(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return $this->service->stats(
+                $request->postInt('accountID'),
+                $request->gdCredential(),
+                $request->postInt('clanID')
+            );
+        });
+    }
+
+    public function rankings(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return $this->service->rankings(
+                $request->postInt('accountID'),
+                $request->gdCredential(),
+                $request->postString('metric','stars'),
+                $request->postInt('limit',25)
+            );
+        });
+    }
+
+    public function permissions(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return $this->service->permissions(
+                $request->postInt('accountID'),
+                $request->gdCredential()
+            );
+        });
+    }
+
     public function leave(Request $request): Response
     {
         return $this->run(function() use ($request): array {
@@ -263,6 +296,18 @@ final readonly class ClanController
         return $this->run(function() use ($request): array {
             return [
                 'disbanded'=>$this->service->disband(
+                    $request->postInt('accountID'),
+                    $request->gdCredential()
+                ),
+            ];
+        });
+    }
+
+    public function delete(Request $request): Response
+    {
+        return $this->run(function() use ($request): array {
+            return [
+                'deleted'=>$this->service->disband(
                     $request->postInt('accountID'),
                     $request->gdCredential()
                 ),
