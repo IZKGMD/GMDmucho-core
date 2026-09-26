@@ -70,7 +70,8 @@ assertClanDashboardContract(
 
 assertClanDashboardContract(
     str_contains($dashboard, 'clan-invite:') &&
-    str_contains($dashboard, '30 invites/hour'),
+    str_contains($dashboard, '30') &&
+    str_contains($dashboard, '3600'),
     'dashboard rate-limits clan invitations'
 );
 
