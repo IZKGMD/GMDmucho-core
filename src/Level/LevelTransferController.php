@@ -101,6 +101,35 @@ final readonly class LevelTransferController
         }
     }
 
+    public function checkUpdate(Request $request): Response
+    {
+        $levelId = $request->postInt('levelID');
+        $clientLevelVersion = $request->postInt('levelVersion', 1);
+
+        if ($levelId <= 0 || $clientLevelVersion <= 0) {
+            return Response::text('-1');
+        }
+
+        try {
+            return Response::text(
+                $this->service->checkUpdate(
+                    $levelId,
+                    $clientLevelVersion
+                )
+            );
+        } catch (Throwable $e) {
+            error_log(sprintf(
+                '[MuchoCore] request_id=%s check_level_update_failed level_id=%d exception=%s message=%s',
+                (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
+                $levelId,
+                $e::class,
+                $e->getMessage()
+            ));
+
+            return Response::text('-1');
+        }
+    }
+
     public function download(Request $request): Response
     {
         $levelId = $request->postInt('levelID');
