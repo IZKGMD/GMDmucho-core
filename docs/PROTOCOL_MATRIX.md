@@ -17,7 +17,7 @@ The target is not a collection of version-specific PHP entrypoints. MuchoCore ke
 | Protocol area | GD 1.1 | GD 1.5 | GD 1.9 | GD 2.0 | GD 2.1 | GD 2.2 | Current MuchoCore state |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Account registration | Alias | Alias | Alias | Alias | Alias | Alias | Pending |
-| Account login | Alias | Alias | Alias | Alias | Alias | Alias | Alias | Pending |
+| Account login | Alias | Alias | Alias | Alias | Alias | Alias | Pending |
 | Cloud save backup | Alias | Alias | Alias | Alias | Alias | Alias | Pending |
 | Cloud save sync | Alias | Alias | Alias | Alias | Alias | Alias | Pending |
 | Level search/list | Alias | Alias | Alias | Alias | Shared | Alias | Pending |
@@ -108,6 +108,10 @@ Reference:
 
 - https://github.com/Cvolton/GMDprivateServer
 - https://github.com/Cvolton/GMDprivateServer/wiki/Deliberate-differences-from-real-GD
+
+## GD 1.6 implementation status
+
+**Real-client smoke verification: passed for GD 1.6 build 16.** The patched client completed the supported server flows end-to-end on the shared legacy 1.x compatibility path.
 
 ## GD 1.5 implementation status
 
