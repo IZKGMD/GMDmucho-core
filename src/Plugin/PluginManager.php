@@ -26,11 +26,10 @@ final class PluginManager
         Router $router,
         string $projectRoot
     ): self {
-        $root = (string)(
-            $_ENV['MUCHO_PLUGIN_DIR']
-            ?? getenv('MUCHO_PLUGIN_DIR')
-            ?: $projectRoot . '/custom/plugins'
-        );
+        $configuredRoot = $_ENV['MUCHO_PLUGIN_DIR'] ?? getenv('MUCHO_PLUGIN_DIR');
+        $root = is_string($configuredRoot) && trim($configuredRoot) !== ''
+            ? trim($configuredRoot)
+            : $projectRoot . '/custom/plugins';
 
         return new self($db, $router, $root);
     }
@@ -173,9 +172,7 @@ final class PluginManager
 
     private function enabled(): bool
     {
-        $raw = $_ENV['MUCHO_PLUGINS_ENABLED']
-            ?? getenv('MUCHO_PLUGINS_ENABLED')
-            ?? '1';
+        $raw = $_ENV['MUCHO_PLUGINS_ENABLED'] ?? getenv('MUCHO_PLUGINS_ENABLED') ?? '1';
 
         return in_array(
             strtolower(trim((string)$raw)),
