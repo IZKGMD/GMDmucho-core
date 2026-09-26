@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use MuchoCore\Plugin\PluginInterface;
 use MuchoCore\Plugin\PluginManager;
 use MuchoCore\Routing\Router;
 
@@ -10,6 +9,7 @@ require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 $root = sys_get_temp_dir() . '/muchocore-plugin-test-' . bin2hex(random_bytes(5));
 $pluginDir = $root . '/custom/plugins/demo-plugin';
+$configuredPluginRoot = $root . '/custom/plugins';
 $oldPluginDir = getenv('MUCHO_PLUGIN_DIR');
 $oldPluginsEnabled = getenv('MUCHO_PLUGINS_ENABLED');
 
@@ -64,36 +64,32 @@ try {
         ], JSON_THROW_ON_ERROR)
     );
 
-    file_put_contents(
-        $pluginDir . '/plugin.php',
-        <<<'PLUGIN'
-<?php
+    $pluginSource = implode(PHP_EOL, [
+        '<?php',
+        '',
+        'declare(strict_types=1);',
+        '',
+        'return new class implements \MuchoCore\Plugin\PluginInterface',
+        '{',
+        '    public function register(\MuchoCore\Plugin\PluginContext $context): void',
+        '    {',
+        '        $context->on(' . "'demo.event'" . ', static function (array $payload): void {',
+        '            file_put_contents(',
+        '                $payload[' . "'marker'" . '],',
+        '                (string)($payload[' . "'value'" . '] ?? ' . "''" . ')',
+        '            );',
+        '        });',
+        '    }',
+        '};',
+        '',
+    ]);
 
-declare(strict_types=1);
-
-use MuchoCorePluginPluginContext;
-use MuchoCorePluginPluginInterface;
-
-return new class implements PluginInterface
-{
-    public function register(PluginContext $context): void
-    {
-        $context->on('demo.event', static function (array $payload): void {
-            file_put_contents(
-                $payload['marker'],
-                (string)($payload['value'] ?? '')
-            );
-        });
-    }
-};
-PLUGIN
-    );
+    file_put_contents($pluginDir . '/plugin.php', $pluginSource);
 
     $marker = $root . '/event.marker';
 
     putenv('MUCHO_PLUGINS_ENABLED=1');
     $_ENV['MUCHO_PLUGINS_ENABLED'] = '1';
-    $configuredPluginRoot = $root . '/custom/plugins';
     putenv('MUCHO_PLUGIN_DIR=' . $configuredPluginRoot);
     $_ENV['MUCHO_PLUGIN_DIR'] = $configuredPluginRoot;
 
