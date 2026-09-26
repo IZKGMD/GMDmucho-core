@@ -31,11 +31,11 @@ function assertSameValue(mixed $expected, mixed $actual, string $name): void
 $router = new Router();
 
 $applicationSource = file_get_contents(
-    __DIR__ . '/../../src/Core/Application.php'
+    __DIR__ . '/../../src/Core/AppRoutes.php'
 );
 
 if ($applicationSource === false) {
-    fwrite(STDERR, "FAIL Application source can not be read\n");
+    fwrite(STDERR, "FAIL AppRoutes source can not be read\n");
     exit(1);
 }
 
@@ -93,7 +93,7 @@ foreach ($handlerRoutes as $route) {
     }
 }
 
-echo "PASS 2.0 application handler route registration\n";
+echo "PASS 2.0 application route registration\n";
 
 $aliases = [
     '/acceptGJFriendRequest20.php' => '/acceptGJFriendRequest20',
