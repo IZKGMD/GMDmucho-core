@@ -17,6 +17,8 @@ fi
 grep -Fq 'docker compose "${COMPOSE_ARGS[@]}"' update.sh
 grep -Fq 'CADDY_EXTRA_HOSTS="${MUCHO_CADDY_EXTRA_HOSTS:-testgdps.muchogdps.space}"' install.sh
 grep -Fq 'CADDY_EXTRA_HOSTS=$CADDY_EXTRA_HOSTS' install.sh
+grep -Fq '3) GD 1.1 only' install.sh
+grep -Fq 'GD_VERSIONS="11"' install.sh
 grep -Fq 'CADDY_EXTRA_HOSTS="$(sed -n' update.sh
 grep -Fq 'DB_HOST=${DB_HOST:-db}' docker/app-entrypoint.sh
 grep -Fq 'WorkingDirectory=$ROOT' bin/mucho-install-auto-update.sh
