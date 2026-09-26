@@ -690,6 +690,15 @@ final readonly class ClanRepository
                 'account_id'=>$targetAccountId,
             ]);
 
+            $application=$this->pdo->prepare(
+                'DELETE FROM mucho_clan_applications
+                 WHERE clan_id=:clan_id AND account_id=:account_id'
+            );
+            $application->execute([
+                'clan_id'=>$clanId,
+                'account_id'=>$targetAccountId,
+            ]);
+
             $ban=$this->pdo->prepare(
                 "INSERT INTO mucho_clan_bans
                     (clan_id, account_id, banned_by_account_id, reason)
