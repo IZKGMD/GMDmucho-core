@@ -36,22 +36,53 @@ final readonly class UserController
     {
         $id=$request->postInt('accountID');
         $gjp=$request->gdCredential();
+        $version=$request->clientVersion();
+        $udid=$request->postString('udid');
+        $username=$request->postString('userName');
 
-        if ($id<=0 || $gjp==='') {
+        $legacyUdidUpdate =
+            $id <= 0 &&
+            $gjp === '' &&
+            $version->effectiveGameVersion() > 0 &&
+            $version->effectiveGameVersion() < 19 &&
+            trim($udid) !== '';
+
+        if (($id <= 0 || $gjp === '') && !$legacyUdidUpdate) {
             return Response::text('-1');
         }
 
         try {
+            $data = !empty($request->post)
+                ? $request->post
+                : $_POST;
+
+            if ($request->postInt('gameVersion', 0) === 0) {
+                $data['gameVersion'] = $version->effectiveGameVersion() ?: 1;
+            }
+
             return Response::text(
                 $this->service->updateScore(
                     $id,
                     $gjp,
-                    !empty($request->post)
-                        ? $request->post
-                        : $_POST
+                    $data,
+                    $udid,
+                    $username,
+                    $request->clientIp()
                 )
             );
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            error_log(sprintf(
+                '[MuchoCore] request_id=%s update_user_score_failed account_id=%d version=%d family=%s has_udid=%d has_gjp=%d exception=%s message=%s',
+                (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
+                $id,
+                $version->effectiveGameVersion(),
+                $version->family(),
+                trim($udid) !== '' ? 1 : 0,
+                $gjp !== '' ? 1 : 0,
+                $e::class,
+                $e->getMessage()
+            ));
+
             return Response::text('-1');
         }
     }
