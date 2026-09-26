@@ -433,9 +433,11 @@ if ($action !== '') {
             $maxMembers = max(2, min(500, (int)($_POST['clanMaxMembers'] ?? 50)));
 
             if (
-                strlen($name) > 24 ||
-                preg_match('/^[A-Za-z0-9][A-Za-z0-9 _.-]{1,23}$/D', $name) !== 1 ||
-                preg_match('/^[A-Z0-9]{2,6}$/D', $tag) !== 1
+                strlen($name) > 32 ||
+                preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{1,31}$/D', $name) !== 1 ||
+                strlen($tag) < 2 ||
+                strlen($tag) > 8 ||
+                preg_match('/^[A-Z0-9]{2,8}$/D', $tag) !== 1
             ) {
                 throw new RuntimeException('Use a valid clan name and a 2–8 character tag. Clan names cannot contain spaces.');
             }
