@@ -222,13 +222,25 @@ if ! docker compose "\${COMPOSE_ARGS[@]}" up -d --build --remove-orphans; then
     exit 1
 fi
 
-# The new containers built successfully; keep the new source tree for the
-# remaining dependency, migration and admin synchronization steps.
-UPDATE_SOURCE_SWITCHED=0
-trap - INT TERM
+echo '[MuchoCore] Verifying the new application containers...'
+if ! docker compose "\${COMPOSE_ARGS[@]}" exec -T app php --version >/dev/null 2>&1; then
+    rollback_source_tree
+    exit 1
+fi
+if ! docker compose "\${COMPOSE_ARGS[@]}" exec -T testgdps-app php --version >/dev/null 2>&1; then
+    rollback_source_tree
+    exit 1
+fi
 
 echo '[MuchoCore] Updating PHP dependencies...'
-docker compose exec -T app composer install --no-dev --optimize-autoloader --no-interaction
+if ! docker compose "\${COMPOSE_ARGS[@]}" exec -T app composer install --no-dev --optimize-autoloader --no-interaction; then
+    rollback_source_tree
+    exit 1
+fi
+
+# The new source tree and application images passed the pre-migration checks.
+UPDATE_SOURCE_SWITCHED=0
+trap - INT TERM
 
 echo '[MuchoCore] Applying database migrations...'
 docker compose exec -T app php bin/migrate.php migrate
