@@ -254,7 +254,7 @@ $checks = [
         'cross-version comment help command',
     ],
     [
-        __DIR__ . '/../../src/Interaction/CommentService.php',
+        __DIR__ . '/../../src/Interaction/CommentCommandService.php',
         'MuchoCore commands:',
         'comment command help content',
     ],
