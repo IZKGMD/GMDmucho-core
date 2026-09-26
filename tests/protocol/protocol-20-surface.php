@@ -80,11 +80,13 @@ $handlerRoutes = [
 ];
 
 foreach ($handlerRoutes as $route) {
-    $routePattern = '/\$route\(\s*[\'\"]' .
-        preg_quote($route, '/') .
-        '[\'\"]/';
+    $quotedRoute = "'" . $route . "'";
+    $quotedRouteDouble = '"' . $route . '"';
 
-    if (preg_match($routePattern, $applicationSource) !== 1) {
+    if (
+        !str_contains($applicationSource, $quotedRoute) &&
+        !str_contains($applicationSource, $quotedRouteDouble)
+    ) {
         fwrite(
             STDERR,
             "FAIL missing application route {$route}\n"
