@@ -11,6 +11,7 @@ MuchoCore includes a lightweight clan system that sits beside the existing accou
 - Configurable member limit.
 - Seven-day invitations.
 - Join, leave, invite, accept, decline, kick and role-management operations.
+- A player-facing clan directory at `/dashboard/clans.php` on every MuchoCore GDPS.
 - Clan tags are rendered in standard Geometry Dash user-name response fields without changing the real account username.
 
 ## Data model
@@ -26,6 +27,8 @@ mucho_clan_invites
 The account's real `accounts.username` is never rewritten when a clan tag is used.
 
 ## In-game display
+
+MuchoCore uses the existing Geometry Dash username fields rather than adding a client-side clan protocol. A compatible unmodified client can therefore show the clan prefix as part of the normal player name.
 
 A member of a clan named:
 
@@ -47,7 +50,7 @@ may be rendered by the normal GD profile/social responses as:
 
 The display value is capped to the normal Geometry Dash username field length. The underlying username, account ID and authentication credentials remain unchanged.
 
-The tag is included in player profile, player search, leaderboard and comment user data where MuchoCore already returns a player name.
+The tag is included in player profiles, player search, leaderboards, friend/block lists, friend requests, messages and comment user data where MuchoCore already returns a player name.
 
 ## API
 
@@ -119,4 +122,4 @@ Clans do not replace or modify existing Geometry Dash account identifiers. Older
 
 The in-game tag display is implemented by decorating the name returned by existing user/profile/comment encoders. No dedicated clan protocol is required for clients that already display the standard user-name field.
 
-Management uses the MuchoCore JSON API so a future custom GD client, web panel or external community UI can expose full clan controls.
+The player dashboard provides clan discovery, creation, open-clan joining and membership status. The existing authenticated JSON API remains the canonical management contract for officer/owner operations and future richer UIs.
