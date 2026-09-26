@@ -412,6 +412,19 @@ final readonly class Application
             [$clanController,'join']);
         $route('/api/clans/leave',
             [$clanController,'leave']);
+
+        $route('/api/clans/apply',
+            [$clanController,'apply']);
+        $route('/api/clans/applications',
+            [$clanController,'applications']);
+        $route('/api/clans/applications/incoming',
+            [$clanController,'clanApplications']);
+        $route('/api/clans/application/accept',
+            [$clanController,'acceptApplication']);
+        $route('/api/clans/application/decline',
+            [$clanController,'declineApplication']);
+        $route('/api/clans/application/cancel',
+            [$clanController,'cancelApplication']);
         $route('/api/clans/invite',
             [$clanController,'invite']);
         $route('/api/clans/invite/accept',
