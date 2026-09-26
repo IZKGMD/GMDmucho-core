@@ -110,6 +110,27 @@ function pcAudit(PDO $db, int $accountId, string $action, ?int $targetId = null,
     }
 }
 
+function pcResolveAccountId(PDO $db, string $username): int
+{
+    $username = trim($username);
+
+    if ($username === '' || strlen($username) > 20) {
+        return 0;
+    }
+
+    $stmt = $db->prepare(
+        'SELECT account_id
+         FROM accounts
+         WHERE username=:username
+           AND is_active=1
+           AND is_banned=0
+         LIMIT 1'
+    );
+    $stmt->execute(['username' => $username]);
+
+    return (int)($stmt->fetchColumn() ?: 0);
+}
+
 function pcUsableAccount(PDO $db, int $accountId): bool
 {
     $q = $db->prepare(
@@ -484,6 +505,16 @@ if ($action !== '') {
             }
 
             $targetId = (int)($_POST['targetAccountID'] ?? 0);
+            $targetUsername = trim((string)($_POST['targetUsername'] ?? ''));
+
+            if ($targetId <= 0 && $targetUsername !== '') {
+                $targetId = pcResolveAccountId($db, $targetUsername);
+            }
+
+            if ($targetId <= 0) {
+                throw new RuntimeException('Enter a valid player username or account ID.');
+            }
+
             $reason = trim((string)($_POST['reason'] ?? ''));
             $repo->ban(
                 (int)$myClan['clan_id'],
@@ -589,8 +620,17 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
 .section{margin-top:18px}.section-head{display:flex;justify-content:space-between;gap:10px;align-items:end;margin-bottom:10px}.section-head h2{margin:0;font-size:18px}.muted{color:#8e9bb0;font-size:10px}
 .member{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 11px;border:1px solid #243146;border-radius:11px;background:#0e1622}.member+.member{margin-top:7px}.member b{display:block;font-size:12px}.member small{display:block;color:#7788a0;margin-top:2px;font-size:9px}
 .form{display:grid;gap:9px}.field{display:grid;gap:5px}.field label{color:#9cabc0;font-size:10px;font-weight:800}
-.empty{padding:22px;text-align:center;border:1px dashed #2e3c51;border-radius:13px;color:#72829a}.footer{margin-top:28px;text-align:center;color:#6f7f97;font-size:11px}
-@media(max-width:850px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.empty{padding:22px;text-align:center;border:1px dashed #2e3c51;border-radius:13px;color:#72829a}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:12px}
+.kpi{padding:13px 14px;border:1px solid #263246;border-radius:13px;background:#0e1622}
+.kpi b{display:block;font-size:20px;line-height:1}
+.kpi small{display:block;color:#718199;font-size:9px;text-transform:uppercase;letter-spacing:.08em;margin-top:6px;font-weight:800}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.role-owner{color:#ffe5a8}.role-officer{color:#d8d0ff}.role-member{color:#9eb1c7}
+.danger{border-color:rgba(255,111,131,.35)!important;background:#1b1116!important;color:#ffb6c0!important}
+.helper{font-size:9px;color:#718199;line-height:1.5}
+.footer{margin-top:28px;text-align:center;color:#6f7f97;font-size:11px}
+@media(max-width:850px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.shell{width:min(100% - 18px,1180px)}.topbar{align-items:stretch;flex-direction:column}.nav{overflow-x:auto;flex-wrap:nowrap}.grid{grid-template-columns:1fr}.search{grid-template-columns:1fr}.panel{padding:17px}}
 </style>
 </head>
@@ -702,6 +742,36 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
     </div>
 </section>
 
+<?php if ($account && $myClan): ?>
+<section class="section" id="my-clan-overview">
+    <div class="panel">
+        <div class="toolbar">
+            <div>
+                <div class="eyebrow">Your clan</div>
+                <h2 style="margin:5px 0 0">[<?=pcH($myClan['tag'])?>] <?=pcH($myClan['name'])?></h2>
+            </div>
+            <span class="chip"><?=pcH(ucfirst((string)$myClan['role']))?></span>
+        </div>
+        <div class="kpi-grid">
+            <div class="kpi"><b><?=pcH($myClan['member_count'])?></b><small>Members</small></div>
+            <div class="kpi"><b><?=pcH($myClan['max_members'])?></b><small>Member limit</small></div>
+            <div class="kpi"><b><?=((int)$myClan['is_open'] === 1) ? 'Open' : 'Private'?></b><small>Access</small></div>
+            <div class="kpi"><b><?=pcH(count($myClanBans))?></b><small>Active bans</small></div>
+        </div>
+        <div class="actions">
+            <a class="btn" href="/dashboard/clans.php?clan=<?=((int)$myClan['clan_id'])?>">Open my clan</a>
+            <?php if ((string)$myClan['role'] !== 'owner'): ?>
+            <form method="post" style="margin:0">
+                <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                <input type="hidden" name="action" value="leave">
+                <button class="btn alt" type="submit" onclick="return confirm('Leave this clan?');">Leave clan</button>
+            </form>
+            <?php endif; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
 <section class="section" id="directory">
     <div class="section-head">
         <h2>Clan directory</h2>
@@ -796,7 +866,7 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
         <div class="member">
             <span>
                 <b><?=pcH($member['username'])?></b>
-                <small>Account #<?=pcH($member['account_id'])?> · <?=pcH($member['role'])?></small>
+                <small>Account #<?=pcH($member['account_id'])?> · <span class="role-<?=pcH((string)$member['role'])?>"><?=pcH($member['role'])?></span></small>
             </span>
             <?php if ($canKick || $canChangeRole): ?>
             <span>
@@ -806,6 +876,12 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
                     <input type="hidden" name="action" value="kick">
                     <input type="hidden" name="targetAccountID" value="<?=((int)$member['account_id'])?>">
                     <button class="btn alt" type="submit">Kick</button>
+                </form>
+                <form method="post" style="display:inline">
+                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                    <input type="hidden" name="action" value="ban">
+                    <input type="hidden" name="targetAccountID" value="<?=((int)$member['account_id'])?>">
+                    <button class="btn alt danger" type="submit" onclick="return confirm('Ban this player from the clan?');">Ban</button>
                 </form>
                 <?php endif; ?>
 
@@ -957,10 +1033,12 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
         <form class="search" method="post" style="margin-top:12px">
             <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
             <input type="hidden" name="action" value="ban">
-            <input type="number" name="targetAccountID" min="1" placeholder="Account ID" required>
+            <input type="text" name="targetUsername" maxlength="20" placeholder="Player username">
+            <input type="text" name="targetAccountID" inputmode="numeric" pattern="\\d*" placeholder="or Account ID">
             <input type="text" name="reason" maxlength="160" placeholder="Reason (optional)">
-            <button class="btn alt" type="submit">Ban account</button>
+            <button class="btn alt danger" type="submit">Ban player</button>
         </form>
+        <div class="helper" style="margin-top:7px">Ban blocks future joins and invitations. The target does not have to be a current member.</div>
     </div>
 </section>
 <?php endif; ?>
