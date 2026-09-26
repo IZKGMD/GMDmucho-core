@@ -20,6 +20,7 @@ jobs:
       - name: Check shell scripts
         run: |
           bash -n install.sh
+          bash tests/release/release-deployment-tools.sh
           bash -n install
           bash -n update.sh
           bash -n docker/app-entrypoint.sh
