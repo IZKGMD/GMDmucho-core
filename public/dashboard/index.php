@@ -938,6 +938,9 @@ $loginAntiBot = (!$account && !$profile)
 $uploadAntiBot = ($account && !Turnstile::enabled())
     ? SoftAntiBot::issue('upload')
     : null;
+$youtubeAntiBot = ($account && !Turnstile::enabled())
+    ? SoftAntiBot::issue('upload-youtube')
+    : null;
 
 $loginTurnstile = (!$account && !$profile && Turnstile::enabled());
 $uploadTurnstile = ($account && Turnstile::enabled());
@@ -1975,7 +1978,7 @@ body.dashboard-page .topbar{
                         <div class="cf-turnstile" data-sitekey="<?=pdH(Turnstile::siteKey())?>" data-theme="auto" data-action="upload"></div>
                     </div>
                 <?php else: ?>
-                    <input type="hidden" name="antibot_token" value="<?=pdH($uploadAntiBot['token'] ?? '')?>">
+                    <input type="hidden" name="antibot_token" value="<?=pdH($uploadAntiBot['token'] ?? ''?>">
                     <label class="antibot-field" aria-hidden="true">Website
                         <input type="text" name="website" tabindex="-1" autocomplete="off">
                     </label>
@@ -2014,7 +2017,7 @@ body.dashboard-page .topbar{
                             <div class="cf-turnstile" data-sitekey="<?=pdH(Turnstile::siteKey())?>" data-theme="auto" data-action="upload-youtube"></div>
                         </div>
                     <?php else: ?>
-                        <input type="hidden" name="antibot_token" value="<?=pdH($uploadAntiBot['token'] ?? '')?>">
+                        <input type="hidden" nname="antibot_token" value="<?=pdH($youtubeAntiBot['token'] ?? ''?>">
                         <label class="antibot-field" aria-hidden="true">Website
                             <input type="text" name="website" tabindex="-1" autocomplete="off">
                         </label>
