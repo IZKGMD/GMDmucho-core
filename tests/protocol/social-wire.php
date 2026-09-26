@@ -74,4 +74,23 @@ assertSameValue(
     'friend user payload exposes is_new state'
 );
 
+$clanUsers = $relationship->users([[
+    'account_id' => 31,
+    'user_id' => 21,
+    'username' => 'LongPlayerName',
+    'clan_tag' => 'MUCH',
+    'cube' => 3,
+    'color1' => 2,
+    'color2' => 4,
+    'special' => 0,
+    'icon_type' => 0,
+    'is_new' => 0,
+]]);
+
+assertSameValue(
+    true,
+    str_contains($clanUsers, '1:[MUCH]LongPlayerNa'),
+    'friend user payload includes clan prefix'
+);
+
 echo "MUCHOCORE_SOCIAL_WIRE_OK\n";
