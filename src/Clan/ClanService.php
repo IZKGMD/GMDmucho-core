@@ -68,7 +68,50 @@ final readonly class ClanService
         }
 
         $clan['members']=$this->repository->members($clanId);
+        $clan['stats']=$this->repository->stats($clanId);
         return $clan;
+    }
+
+    public function stats(int $accountId,string $credential,int $clanId): array {
+        $this->auth->authenticate($accountId,$credential);
+        $clan=$this->repository->getById($clanId);
+
+        if ($clan===null) {
+            throw new RuntimeException('Clan not found.');
+        }
+
+        return $this->repository->stats($clanId);
+    }
+
+    public function rankings(
+        int $accountId,
+        string $credential,
+        string $metric='stars',
+        int $limit=25
+    ): array {
+        $this->auth->authenticate($accountId,$credential);
+
+        return [
+            'metric'=>$metric,
+            'clans'=>$this->repository->topClans($metric,$limit),
+        ];
+    }
+
+    public function permissions(int $accountId,string $credential): array {
+        $this->auth->authenticate($accountId,$credential);
+        $clan=$this->repository->getForAccount($accountId);
+
+        if ($clan===null) {
+            return [
+                'role'=>null,
+                'permissions'=>[],
+            ];
+        }
+
+        return [
+            'role'=>(string)$clan['role'],
+            'permissions'=>$this->repository->permissionMap((string)$clan['role']),
+        ];
     }
 
     public function myClan(int $accountId,string $credential): ?array {
@@ -77,6 +120,8 @@ final readonly class ClanService
 
         if ($clan!==null) {
             $clan['members']=$this->repository->members((int)$clan['clan_id']);
+            $clan['permissions']=$this->repository->permissionMap((string)$clan['role']);
+            $clan['stats']=$this->repository->stats((int)$clan['clan_id']);
         }
 
         return $clan;
