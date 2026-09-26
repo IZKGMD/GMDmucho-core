@@ -305,6 +305,31 @@ final readonly class LevelTransferService
         return $this->repository->saveLevel($levelData);
     }
 
+    public function checkUpdate(
+        int $levelId,
+        int $clientLevelVersion
+    ): string {
+        if ($levelId <= 0 || $clientLevelVersion <= 0) {
+            return '-1';
+        }
+
+        $level = $this->repository->findLevel($levelId);
+
+        if ($level === null) {
+            return '-1';
+        }
+
+        $serverLevelVersion = max(
+            1,
+            (int)($level['level_version'] ?? 1)
+        );
+
+        return $clientLevelVersion >= $serverLevelVersion
+            ? '1'
+            : '2';
+    }
+
+
     public function download(
         int $levelId,
         int $gameVersion,
