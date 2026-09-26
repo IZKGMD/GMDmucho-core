@@ -22,6 +22,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends android-sdk-build-tools
 
       - name: Patch GD 1.1 APK
+        env:
+          MUCHO_ANDROID_SIGNER_DIR: ${{ runner.temp }}/muchocore-android-signer
         run: |
           mkdir -p build
           php -r '
