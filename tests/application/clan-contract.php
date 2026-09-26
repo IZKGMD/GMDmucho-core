@@ -32,6 +32,9 @@ foreach ([
     'acceptApplication' => $service,
     'declineApplication' => $service,
     'cancelApplication' => $service,
+    'stats' => $service,
+    'rankings' => $service,
+    'permissions' => $service,
 ] as $method => $source) {
     assertClanContract(
         str_contains($source, 'function ' . $method . '('),
@@ -76,6 +79,10 @@ foreach ([
     'acceptApplication' => $controller,
     'declineApplication' => $controller,
     'cancelApplication' => $controller,
+    'stats' => $controller,
+    'rankings' => $controller,
+    'permissions' => $controller,
+    'delete' => $controller,
 ] as $method => $source) {
     assertClanContract(
         str_contains($source, 'function ' . $method . '('),
@@ -97,6 +104,10 @@ foreach ([
     '/api/clans/application/accept',
     '/api/clans/application/decline',
     '/api/clans/application/cancel',
+    '/api/clans/stats',
+    '/api/clans/rankings',
+    '/api/clans/permissions',
+    '/api/clans/delete',
 ] as $route) {
     assertClanContract(
         str_contains($application, "'" . $route . "'"),
@@ -138,6 +149,28 @@ assertClanContract(
     str_contains($repository, 'DELETE FROM mucho_clan_applications') &&
     str_contains($repository, 'DELETE FROM mucho_clan_invites'),
     'clan joins, invites and applications clean up competing pending state'
+);
+
+assertClanContract(
+    str_contains($repository, 'function stats(') &&
+    str_contains($repository, 'function topClans(') &&
+    str_contains($repository, 'total_stars') &&
+    str_contains($repository, 'total_demons') &&
+    str_contains($repository, 'total_creator_points'),
+    'repository aggregates live clan statistics and rankings'
+);
+
+assertClanContract(
+    str_contains($service, 'ClanPermissions') &&
+    str_contains($service, 'permissionMap') &&
+    str_contains($service, "'permissions'"),
+    'clan services expose explicit role permissions'
+);
+
+assertClanContract(
+    str_contains($migration, 'mucho_clan_bans') ||
+    str_contains($applicationsMigration, 'mucho_clan_applications'),
+    'clan persistent state is backed by migrations'
 );
 
 echo "MUCHOCORE_CLAN_CONTRACT_OK\n";
