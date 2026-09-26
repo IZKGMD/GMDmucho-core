@@ -104,6 +104,7 @@ grep -q '^TURNSTILE_SITEKEY=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SITE
 grep -q '^TURNSTILE_SECRET=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SECRET=\n' >> "$ROOT/.env"
 grep -q '^MUCHO_GD_VERSIONS=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_GD_VERSIONS=all\n' >> "$ROOT/.env"
 grep -q '^CADDY_EXTRA_HOSTS=' "$ROOT/.env" 2>/dev/null || printf 'CADDY_EXTRA_HOSTS=testgdps.muchogdps.space\n' >> "$ROOT/.env"
+CADDY_EXTRA_HOSTS="$(sed -n 's/^CADDY_EXTRA_HOSTS=//p' "$ROOT/.env" | head -n1 || true)"
 
 normalize_caddy_address() {
   if [[ -n "$TUNNEL_TOKEN" ]]; then
