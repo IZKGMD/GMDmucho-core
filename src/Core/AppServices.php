@@ -16,6 +16,7 @@ use MuchoCore\CloudSave\CloudSaveRepository;
 use MuchoCore\CloudSave\CloudSaveService;
 use MuchoCore\Clan\ClanController;
 use MuchoCore\Clan\ClanRepository;
+use MuchoCore\Clan\ClanStatsRepository;
 use MuchoCore\Clan\ClanService;
 use MuchoCore\Comment\CommentHistoryController;
 use MuchoCore\Comment\CommentHistoryRepository;
@@ -221,7 +222,10 @@ final class AppServices
                 new ClanService(
                     $pdo,
                     $auth,
-                    new ClanRepository($pdo)
+                    new ClanRepository(
+                        $pdo,
+                        new ClanStatsRepository($pdo)
+                    )
                 )
             ),
 
