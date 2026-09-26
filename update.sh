@@ -224,23 +224,23 @@ git reset --hard "$LATEST_TAG"
 UPDATE_SOURCE_SWITCHED=1
 
 echo '[MuchoCore] Rebuilding containers...'
-if ! docker compose "\${COMPOSE_ARGS[@]}" up -d --build --remove-orphans; then
+if ! docker compose "${COMPOSE_ARGS[@]}" up -d --build --remove-orphans; then
     rollback_source_tree
     exit 1
 fi
 
 echo '[MuchoCore] Verifying the new application containers...'
-if ! docker compose "\${COMPOSE_ARGS[@]}" exec -T app php --version >/dev/null 2>&1; then
+if ! docker compose "${COMPOSE_ARGS[@]}" exec -T app php --version >/dev/null 2>&1; then
     rollback_source_tree
     exit 1
 fi
-if ! docker compose "\${COMPOSE_ARGS[@]}" exec -T testgdps-app php --version >/dev/null 2>&1; then
+if ! docker compose "${COMPOSE_ARGS[@]}" exec -T testgdps-app php --version >/dev/null 2>&1; then
     rollback_source_tree
     exit 1
 fi
 
 echo '[MuchoCore] Updating PHP dependencies...'
-if ! docker compose "\${COMPOSE_ARGS[@]}" exec -T app composer install --no-dev --optimize-autoloader --no-interaction; then
+if ! docker compose "${COMPOSE_ARGS[@]}" exec -T app composer install --no-dev --optimize-autoloader --no-interaction; then
     rollback_source_tree
     exit 1
 fi
