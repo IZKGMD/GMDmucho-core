@@ -45,10 +45,9 @@ final readonly class LevelTransferController
 
         if (
             $credential === '' &&
-            !in_array(
-                $version->effectiveGameVersion(),
-                [1, 19],
-                true
+            !(
+                $version->effectiveGameVersion() > 0 &&
+                $version->effectiveGameVersion() < 20
             )
         ) {
             error_log(sprintf(
