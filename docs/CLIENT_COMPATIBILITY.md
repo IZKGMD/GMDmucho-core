@@ -64,13 +64,13 @@ The 1.5 regression boundary is covered by automated compatibility and applicatio
 
 **Implementation completeness: compatibility layer complete.** GD 1.1 identification, profile admission, legacy credential selection, and regression coverage are implemented. The shared early-client endpoint surface is reused rather than duplicated.
 
-A separate empirical verification gate still requires a real Geometry Dash 1.1 trace fixture from the target client build. This records runtime verification separately from server-side implementation coverage.
+**Real-client smoke verification: passed.** GD 1.1 has been verified against the shared early legacy 1.x compatibility path.
 
 ## Cross-version validation status
 
 The automated protocol suite for GD 1.0, 1.1, 1.5 and 1.9–2.2 covers version identification, routing, credential selection, text encoding, level hashes, profile fields, leaderboard authentication, level comments, social wire fields, and regression guards.
 
-Empirical status remains separate: GD 1.2, 1.3, 1.4, 1.5, 1.6 and 1.7 have documented real-client verification; GD 2.2 has a captured real-client fixture; other generations use the repository's server-side compatibility and regression coverage.
+Empirical status remains separate: GD 1.1, 1.2, 1.3, 1.4, 1.5, 1.6 and 1.7 have documented real-client verification; GD 2.2 has a captured real-client fixture; other generations use the repository's server-side compatibility and regression coverage.
 
 ## 2.0 status
 
