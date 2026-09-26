@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MuchoCore\Routing;
 
+require_once __DIR__ . '/CompatibilityAliases.php';
+
 use Closure;
 use InvalidArgumentException;
 use MuchoCore\Http\Request;
