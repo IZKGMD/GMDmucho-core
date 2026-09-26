@@ -200,7 +200,7 @@ if ($action !== '') {
                 throw new RuntimeException('You are already in a clan.');
             }
 
-            $name = trim(preg_replace('/\s+/', ' ', (string)($_POST['clanName'] ?? '')) ?? '');
+            $name = trim((string)($_POST['clanName'] ?? ''));
             $tag = strtoupper(trim((string)($_POST['clanTag'] ?? '')));
             $description = substr(
                 trim(preg_replace('/\s+/', ' ', (string)($_POST['clanDescription'] ?? '')) ?? ''),
@@ -211,13 +211,13 @@ if ($action !== '') {
             $maxMembers = max(2, min(500, (int)($_POST['clanMaxMembers'] ?? 50)));
 
             if (
-                strlen($name) > 24 ||
-                preg_match('/^[A-Za-z0-9][A-Za-z0-9 _.-]{1,23}$/D', $name) !== 1 ||
+                strlen($name) > 32 ||
+                preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{1,31}$/D', $name) !== 1 ||
                 strlen($tag) < 2 ||
-                strlen($tag) > 6 ||
-                preg_match('/^[A-Z0-9]{2,6}$/D', $tag) !== 1
+                strlen($tag) > 8 ||
+                preg_match('/^[A-Z0-9]{2,8}$/D', $tag) !== 1
             ) {
-                throw new RuntimeException('Use a valid clan name and a 2–6 character tag.');
+                throw new RuntimeException('Use a valid clan name and a 2–8 character tag. Clan names cannot contain spaces.');
             }
 
             $created = $repo->create(
@@ -422,7 +422,7 @@ if ($action !== '') {
             }
 
             $clanId = (int)$myClan['clan_id'];
-            $name = trim(preg_replace('/\s+/', ' ', (string)($_POST['clanName'] ?? '')) ?? '');
+            $name = trim((string)($_POST['clanName'] ?? ''));
             $tag = strtoupper(trim((string)($_POST['clanTag'] ?? '')));
             $description = substr(
                 trim(preg_replace('/\s+/', ' ', (string)($_POST['clanDescription'] ?? '')) ?? ''),
@@ -437,7 +437,7 @@ if ($action !== '') {
                 preg_match('/^[A-Za-z0-9][A-Za-z0-9 _.-]{1,23}$/D', $name) !== 1 ||
                 preg_match('/^[A-Z0-9]{2,6}$/D', $tag) !== 1
             ) {
-                throw new RuntimeException('Use a valid clan name and a 2–6 character tag.');
+                throw new RuntimeException('Use a valid clan name and a 2–8 character tag. Clan names cannot contain spaces.');
             }
 
             $repo->updateSettings(
@@ -810,11 +810,11 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
                 <input type="hidden" name="action" value="create">
                 <div class="field">
                     <label>Clan name</label>
-                    <input type="text" name="clanName" maxlength="24" required>
+                    <input type="text" name="clanName" maxlength="32" required>
                 </div>
                 <div class="field">
                     <label>Tag</label>
-                    <input type="text" name="clanTag" maxlength="6" placeholder="MUCHO" required>
+                    <input type="text" name="clanTag" maxlength="8" placeholder="MUCHO" required>
                 </div>
                 <div class="field">
                     <label>Description</label>
@@ -1031,8 +1031,8 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
         <form class="form" method="post">
             <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
             <input type="hidden" name="action" value="settings">
-            <div class="field"><label>Clan name</label><input type="text" name="clanName" maxlength="24" value="<?=pcH($myClan['name'])?>" required></div>
-            <div class="field"><label>Tag</label><input type="text" name="clanTag" maxlength="6" value="<?=pcH($myClan['tag'])?>" required></div>
+            <div class="field"><label>Clan name</label><input type="text" name="clanName" maxlength="32" value="<?=pcH($myClan['name'])?>" required></div>
+            <div class="field"><label>Tag</label><input type="text" name="clanTag" maxlength="8" value="<?=pcH($myClan['tag'])?>" required></div>
             <div class="field"><label>Description</label><textarea name="clanDescription" maxlength="160"><?=pcH($myClan['description'] ?? '')?></textarea></div>
             <div class="field"><label>Access</label>
                 <select name="clanOpen">
