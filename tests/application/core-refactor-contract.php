@@ -18,6 +18,7 @@ $routes=(string)file_get_contents(__DIR__.'/../../src/Core/AppRoutes.php');
 $router=(string)file_get_contents(__DIR__.'/../../src/Routing/Router.php');
 $aliases=(string)file_get_contents(__DIR__.'/../../src/Routing/CompatibilityAliases.php');
 $endpoint=(string)file_get_contents(__DIR__.'/../../src/Http/LegacyEndpoint.php');
+$pipeline=(string)file_get_contents(__DIR__.'/../../src/Core/RequestPipeline.php');
 
 assertCoreRefactor(
     str_contains($application,'AppServices::build') &&
@@ -58,6 +59,17 @@ assertCoreRefactor(
 assertCoreRefactor(
     str_contains($endpoint,'function text(callable $action): Response'),
     'Legacy endpoint error handling is centralized'
+);
+
+assertCoreRefactor(
+    str_contains($pipeline,'function handle(Request $request): Response') &&
+    str_contains($pipeline,'CompatibilityProfile::fromEnvironment'),
+    'Request processing is isolated in one pipeline'
+);
+
+assertCoreRefactor(
+    str_contains($aliases,'function all(): array'),
+    'Compatibility aliases are isolated from routing logic'
 );
 
 echo "MUCHOCORE_CORE_REFACTOR_CONTRACT_OK\n";
