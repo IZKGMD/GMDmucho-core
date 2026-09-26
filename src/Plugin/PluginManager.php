@@ -29,7 +29,7 @@ final class PluginManager
         $root = (string)(
             $_ENV['MUCHO_PLUGIN_DIR']
             ?? getenv('MUCHO_PLUGIN_DIR')
-            ?: $projectRoot . '/plugins'
+            ?: $projectRoot . '/custom/plugins'
         );
 
         return new self($db, $router, $root);
@@ -82,6 +82,11 @@ final class PluginManager
         return $this->events->listenerCounts();
     }
 
+    public function rootDirectory(): string
+    {
+        return $this->rootDirectory;
+    }
+
     private function loadOne(string $directory): void
     {
         $manifestPath = $directory . '/manifest.json';
@@ -103,17 +108,27 @@ final class PluginManager
                 throw new \RuntimeException('Plugin manifest must be an object.');
             }
 
-            $name = trim((string)($manifest['name'] ?? basename($directory)));
+            $id = trim((string)($manifest['id'] ?? basename($directory)));
+            $name = trim((string)($manifest['name'] ?? $id));
             $version = trim((string)($manifest['version'] ?? '0.0.0'));
             $enabled = (bool)($manifest['enabled'] ?? true);
-            $permissions = array_values(array_filter(
+            $permissions = array_values(array_unique(array_filter(
                 (array)($manifest['permissions'] ?? ['events']),
                 static fn(mixed $value): bool =>
-                    is_string($value) && $value !== ''
-            ));
+                    is_string($value) &&
+                    in_array($value, ['events', 'routes', 'database'], true)
+            )));
+
+            if ($id === '' || !preg_match('/^[A-Za-z0-9._-]+$/', $id)) {
+                throw new \RuntimeException('Plugin id contains unsupported characters.');
+            }
 
             if ($name === '' || !$enabled) {
                 return;
+            }
+
+            if (isset($this->loaded[$id])) {
+                throw new \RuntimeException('Duplicate plugin id: ' . $id);
             }
 
             $plugin = require $pluginPath;
@@ -134,7 +149,8 @@ final class PluginManager
 
             $plugin->register($context);
 
-            $this->loaded[$name] = [
+            $this->loaded[$id] = [
+                'id' => $id,
                 'name' => $name,
                 'version' => $version,
                 'directory' => $directory,
@@ -142,6 +158,7 @@ final class PluginManager
             ];
 
             $this->events->emit('plugin.loaded', [
+                'id' => $id,
                 'name' => $name,
                 'version' => $version,
             ]);
