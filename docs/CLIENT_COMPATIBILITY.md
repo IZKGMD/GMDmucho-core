@@ -46,6 +46,10 @@ GD 1.1 therefore uses the legacy credential path and does not require GJP2.
 
 **Real-client verification: passed.** GD 1.2, GD 1.3, and GD 1.4 are verified on the shared early legacy 1.x compatibility path. No separate backend implementation is required for these client families.
 
+## GD 1.8 status
+
+**Real-client smoke verification: passed for GD 1.8 build 20.** The patched client completed the supported MuchoCore server flows on the shared early legacy 1.x compatibility path.
+
 ## 1.9 status
 
 **Implementation completeness: 100%.** The 1.9 compatibility pass covers legacy GJP selection, versioned endpoint aliases, level description/comment wire rules, legacy level-download password framing, level hashes, old-binary comment user sections, user-comment history, profile/leaderboard routes, and legacy level-browser filters.
@@ -74,7 +78,7 @@ The 1.5 regression boundary is covered by automated compatibility and applicatio
 
 The automated protocol suite for GD 1.0, 1.1, 1.5 and 1.9–2.2 covers version identification, routing, credential selection, text encoding, level hashes, profile fields, leaderboard authentication, level comments, social wire fields, and regression guards.
 
-Empirical status remains separate: GD 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6 and 1.7 have documented real-client verification; GD 2.2 has a captured real-client fixture; other generations use the repository's server-side compatibility and regression coverage.
+Empirical status remains separate: GD 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7 and 1.8 have documented real-client verification; GD 2.2 has a captured real-client fixture; other generations use the repository's server-side compatibility and regression coverage.
 
 ## 2.0 status
 
