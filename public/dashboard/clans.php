@@ -1,0 +1,489 @@
+<?php
+declare(strict_types=1);
+
+use MuchoCore\Account\AccountAuthenticator;
+use MuchoCore\Branding\BrandingService;
+use MuchoCore\Clan\ClanRepository;
+use MuchoCore\Database\Database;
+
+require dirname(__DIR__, 2) . '/vendor/autoload.php';
+
+$db = (new Database())->connection();
+$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+$branding = new BrandingService($db);
+$brandingData = $branding->get();
+$serverName = $brandingData['server_name'];
+$serverByName = $brandingData['server_by_name'];
+$socialUrl = $brandingData['social_url'];
+
+ini_set('session.use_strict_mode', '1');
+$secure = (
+    ($_SERVER['HTTPS'] ?? '') === 'on' ||
+    ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'
+);
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_secure', $secure ? '1' : '0');
+ini_set('session.cookie_samesite', 'Lax');
+session_name('MUCHO_PLAYER');
+session_start();
+
+function pcH(mixed $value): string
+{
+    return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function pcCsrf(): string
+{
+    if (empty($_SESSION['csrf'])) {
+        $_SESSION['csrf'] = bin2hex(random_bytes(32));
+    }
+
+    return (string)$_SESSION['csrf'];
+}
+
+function pcRequireCsrf(): void
+{
+    $token = (string)($_POST['csrf'] ?? '');
+
+    if ($token === '' || !hash_equals(pcCsrf(), $token)) {
+        http_response_code(403);
+        exit('CSRF rejected');
+    }
+}
+
+function pcFlash(?string $message = null, string $type = 'ok'): ?array
+{
+    if ($message !== null) {
+        $_SESSION['clan_flash'] = [
+            'message' => $message,
+            'type' => $type,
+        ];
+        return null;
+    }
+
+    $flash = $_SESSION['clan_flash'] ?? null;
+    unset($_SESSION['clan_flash']);
+
+    return is_array($flash) ? $flash : null;
+}
+
+function pcRedirect(): never
+{
+    header('Location: /dashboard/clans.php');
+    exit;
+}
+
+function pcAccount(): ?array
+{
+    $account = $_SESSION['account'] ?? null;
+
+    return is_array($account) && (int)($account['id'] ?? 0) > 0
+        ? $account
+        : null;
+}
+
+function pcUsableAccount(PDO $db, int $accountId): bool
+{
+    $q = $db->prepare(
+        'SELECT is_active, is_banned
+         FROM accounts
+         WHERE account_id = :id
+         LIMIT 1'
+    );
+    $q->execute(['id' => $accountId]);
+    $row = $q->fetch(PDO::FETCH_ASSOC);
+
+    return is_array($row)
+        && (int)$row['is_active'] === 1
+        && (int)$row['is_banned'] === 0;
+}
+
+function pcClan(PDO $db, int $clanId): ?array
+{
+    $repo = new ClanRepository($db);
+    $clan = $repo->getById($clanId);
+
+    if ($clan === null) {
+        return null;
+    }
+
+    $clan['members'] = $repo->members($clanId);
+
+    return $clan;
+}
+
+$account = pcAccount();
+
+if ($account && !pcUsableAccount($db, (int)$account['id'])) {
+    $_SESSION = [];
+    session_destroy();
+    $account = null;
+}
+
+$repo = new ClanRepository($db);
+$flash = null;
+$action = (string)($_POST['action'] ?? '');
+
+if ($action !== '') {
+    pcRequireCsrf();
+
+    if (!$account) {
+        pcFlash('Sign in through the player dashboard to manage clans.', 'error');
+        pcRedirect();
+    }
+
+    $accountId = (int)$account['id'];
+
+    if (!pcUsableAccount($db, $accountId)) {
+        pcFlash('This account cannot manage clans.', 'error');
+        pcRedirect();
+    }
+
+    try {
+        $myClan = $repo->getForAccount($accountId);
+
+        if ($action === 'create') {
+            if ($myClan !== null) {
+                throw new RuntimeException('You are already in a clan.');
+            }
+
+            $name = trim(preg_replace('/\s+/', ' ', (string)($_POST['clanName'] ?? '')) ?? '');
+            $tag = strtoupper(trim((string)($_POST['clanTag'] ?? '')));
+            $description = substr(
+                trim(preg_replace('/\s+/', ' ', (string)($_POST['clanDescription'] ?? '')) ?? ''),
+                0,
+                160
+            );
+            $open = ((int)($_POST['clanOpen'] ?? 1)) === 1;
+            $maxMembers = max(2, min(500, (int)($_POST['clanMaxMembers'] ?? 50)));
+
+            if (
+                strlen($name) > 24 ||
+                preg_match('/^[A-Za-z0-9][A-Za-z0-9 _.-]{1,23}$/D', $name) !== 1 ||
+                strlen($tag) < 2 ||
+                strlen($tag) > 6 ||
+                preg_match('/^[A-Z0-9]{2,6}$/D', $tag) !== 1
+            ) {
+                throw new RuntimeException('Use a valid clan name and a 2–6 character tag.');
+            }
+
+            $created = $repo->create(
+                $accountId,
+                $name,
+                $tag,
+                $description,
+                $open,
+                $maxMembers
+            );
+
+            pcFlash('Clan "' . $created['name'] . '" created.');
+            pcRedirect();
+        }
+
+        if ($action === 'join') {
+            $clanId = (int)($_POST['clanID'] ?? 0);
+
+            if ($myClan !== null) {
+                throw new RuntimeException('You are already in a clan.');
+            }
+
+            $clan = $repo->getById($clanId);
+
+            if ($clan === null || (int)$clan['is_open'] !== 1) {
+                throw new RuntimeException('This clan is not open for direct joining.');
+            }
+
+            if ((int)$clan['member_count'] >= (int)$clan['max_members']) {
+                throw new RuntimeException('This clan is full.');
+            }
+
+            $repo->join($clanId, $accountId);
+            pcFlash('Joined ' . $clan['name'] . '.');
+            pcRedirect();
+        }
+
+        if ($action === 'leave') {
+            if ($myClan === null) {
+                throw new RuntimeException('You are not in a clan.');
+            }
+
+            if ((string)$myClan['role'] === 'owner') {
+                throw new RuntimeException('The owner must transfer ownership before leaving.');
+            }
+
+            $repo->removeMember((int)$myClan['clan_id'], $accountId);
+            pcFlash('You left ' . $myClan['name'] . '.');
+            pcRedirect();
+        }
+
+        throw new RuntimeException('Unknown clan action.');
+    } catch (PDOException $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+
+        if ((int)($e->errorInfo[1] ?? 0) === 1062) {
+            pcFlash('That clan name, tag or membership already exists.', 'error');
+        } else {
+            error_log('[MuchoCore][Dashboard][Clans] ' . $e->getMessage());
+            pcFlash('The clan operation failed.', 'error');
+        }
+
+        pcRedirect();
+    } catch (Throwable $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+
+        pcFlash($e->getMessage(), 'error');
+        pcRedirect();
+    }
+}
+
+$flash = pcFlash();
+$search = trim((string)($_GET['q'] ?? ''));
+$selectedId = (int)($_GET['clan'] ?? 0);
+$selected = $selectedId > 0 ? pcClan($db, $selectedId) : null;
+$clans = $repo->search($search, 0, 60);
+$myClan = $account ? $repo->getForAccount((int)$account['id']) : null;
+?>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090b10">
+<title><?=pcH($serverName)?> · Clans</title>
+<link rel="stylesheet" href="/muchocore-theme.css?v=3">
+<script src="/muchocore-theme.js?v=3" defer></script>
+<style>
+body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+.shell{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:18px 0 44px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid #263246;border-radius:18px;background:rgba(8,12,19,.86);backdrop-filter:blur(20px)}
+.brand{display:flex;align-items:center;gap:10px}.logo{width:46px;height:46px;object-fit:contain;border-radius:12px}.brand b{display:block;font-size:13px}.brand small{display:block;color:#708098;font-size:9px;font-weight:800;letter-spacing:.12em}
+.nav{display:flex;gap:7px;flex-wrap:wrap}.nav a,.nav button{border:1px solid #263246;background:#101724;color:#cbd3e2;padding:9px 11px;border-radius:10px;font-size:11px;font-weight:800;text-decoration:none}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:12px;margin-top:14px}.panel{padding:20px;border:1px solid #263246;border-radius:18px;background:linear-gradient(160deg,#111824,#0b1019);box-shadow:0 18px 55px rgba(0,0,0,.28)}
+.eyebrow{color:#a89dff;font-size:9px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}.hero h1{margin:6px 0 10px;font-size:clamp(34px,5vw,50px);line-height:.98;letter-spacing:-1.8px}.hero h1 span{color:#a89dff}.copy{color:#8e9bb0;font-size:12px;line-height:1.65}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:9px 13px;border-radius:10px;border:1px solid transparent;background:#7968ff;color:#fff;font-size:11px;font-weight:850;text-decoration:none;cursor:pointer}.btn.alt{background:#111a27;border-color:#263246;color:#d8deea}
+.search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:14px 0}.search input,.form input,.form textarea,.form select{width:100%;border:1px solid #28364a;background:#080e16;color:#fff;border-radius:10px;padding:10px 11px;box-sizing:border-box}.form textarea{min-height:78px;resize:vertical}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.card{padding:15px;border:1px solid #263246;border-radius:14px;background:#0e1622;text-decoration:none}.card:hover{border-color:#43516d}.tag{color:#d9d4ff;font-size:12px;font-weight:950;letter-spacing:.08em}.name{margin-top:5px;color:#fff;font-size:16px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sub{margin-top:4px;color:#77879e;font-size:10px;line-height:1.5}.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.chip{padding:4px 7px;border:1px solid #26364d;border-radius:999px;background:#121e2d;color:#b8c5d8;font-size:9px;font-weight:800}
+.notice{margin-top:14px;padding:12px 14px;border:1px solid #26354b;border-radius:12px;background:#101a28;font-size:12px}.notice.error{border-color:rgba(255,111,131,.32)}
+.section{margin-top:18px}.section-head{display:flex;justify-content:space-between;gap:10px;align-items:end;margin-bottom:10px}.section-head h2{margin:0;font-size:18px}.muted{color:#8e9bb0;font-size:10px}
+.member{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 11px;border:1px solid #243146;border-radius:11px;background:#0e1622}.member+.member{margin-top:7px}.member b{display:block;font-size:12px}.member small{display:block;color:#7788a0;margin-top:2px;font-size:9px}
+.form{display:grid;gap:9px}.field{display:grid;gap:5px}.field label{color:#9cabc0;font-size:10px;font-weight:800}
+.empty{padding:22px;text-align:center;border:1px dashed #2e3c51;border-radius:13px;color:#72829a}.footer{margin-top:28px;text-align:center;color:#6f7f97;font-size:11px}
+@media(max-width:850px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.shell{width:min(100% - 18px,1180px)}.topbar{align-items:stretch;flex-direction:column}.nav{overflow-x:auto;flex-wrap:nowrap}.grid{grid-template-columns:1fr}.search{grid-template-columns:1fr}.panel{padding:17px}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="topbar">
+    <a class="brand" href="/dashboard">
+        <img class="logo" src="/assets/muchocore-dashboard-logo.jpg?v=1" alt="" width="46" height="46">
+        <span>
+            <b><?=pcH($serverName)?></b>
+            <small>MUCHOCORE PLAYER DASHBOARD</small>
+        </span>
+    </a>
+    <nav class="nav">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/dashboard/clans.php">Clans</a>
+        <a href="/dashboard#players">Players</a>
+        <?php if ($account): ?>
+        <form method="post" style="margin:0">
+            <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+            <input type="hidden" name="action" value="logout">
+            <button type="submit">Log out</button>
+        </form>
+        <?php endif; ?>
+    </nav>
+</header>
+
+<?php if ($flash): ?>
+<div class="notice <?=pcH($flash['type'])?>"><?=pcH($flash['message'])?></div>
+<?php endif; ?>
+
+<section class="hero" id="clans">
+    <div class="panel">
+        <div class="eyebrow">Community · Clans</div>
+        <h1>Build your <span>clan</span>.</h1>
+        <p class="copy">
+            Every MuchoCore GDPS gets its own clan directory. Players can browse clans,
+            open a clan profile, join open clans, and see the clan tag used by the game.
+        </p>
+        <div class="actions">
+            <a class="btn" href="#directory">Browse clans</a>
+            <?php if ($account && $myClan): ?>
+            <a class="btn alt" href="#my-clan">My clan</a>
+            <?php else: ?>
+            <a class="btn alt" href="#create">Create clan</a>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="panel" id="create">
+        <?php if (!$account): ?>
+            <div class="eyebrow">Account access</div>
+            <h2>Sign in from the dashboard</h2>
+            <p class="copy">Use the normal Geometry Dash account session. Your password is never stored by the clan page.</p>
+            <a class="btn" href="/dashboard#upload">Sign in</a>
+        <?php elseif ($myClan): ?>
+            <div class="eyebrow">Your clan</div>
+            <h2 style="margin:6px 0"><?=pcH($myClan['name'])?></h2>
+            <div class="tag">[<?=pcH($myClan['tag'])?>]</div>
+            <p class="copy"><?=pcH($myClan['description'] ?? '')?></p>
+            <div class="chips">
+                <span class="chip"><?=pcH($myClan['member_count'])?> / <?=pcH($myClan['max_members'])?> members</span>
+                <span class="chip"><?=((int)$myClan['is_open'] === 1) ? 'Open' : 'Invite only'?></span>
+                <span class="chip"><?=pcH($myClan['role'])?></span>
+            </div>
+            <div class="actions">
+                <a class="btn" href="/dashboard/clans.php?clan=<?=((int)$myClan['clan_id'])?>">Open clan</a>
+                <?php if ((string)$myClan['role'] !== 'owner'): ?>
+                <form method="post" style="margin:0">
+                    <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                    <input type="hidden" name="action" value="leave">
+                    <button class="btn alt" type="submit">Leave clan</button>
+                </form>
+                <?php endif; ?>
+            </div>
+        <?php else: ?>
+            <div class="eyebrow">Create a clan</div>
+            <h2 style="margin:6px 0">Start your community</h2>
+            <p class="copy">The account username stays unchanged. The tag is only a protocol display prefix.</p>
+            <form class="form" method="post">
+                <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+                <input type="hidden" name="action" value="create">
+                <div class="field">
+                    <label>Clan name</label>
+                    <input type="text" name="clanName" maxlength="24" required>
+                </div>
+                <div class="field">
+                    <label>Tag</label>
+                    <input type="text" name="clanTag" maxlength="6" placeholder="MUCHO" required>
+                </div>
+                <div class="field">
+                    <label>Description</label>
+                    <textarea name="clanDescription" maxlength="160"></textarea>
+                </div>
+                <div class="field">
+                    <label>Access</label>
+                    <select name="clanOpen">
+                        <option value="1">Open — anyone can join</option>
+                        <option value="0">Invite only</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Member limit</label>
+                    <input type="number" name="clanMaxMembers" min="2" max="500" value="50">
+                </div>
+                <button class="btn" type="submit">Create clan</button>
+            </form>
+        <?php endif; ?>
+    </div>
+</section>
+
+<section class="section" id="directory">
+    <div class="section-head">
+        <h2>Clan directory</h2>
+        <span class="muted"><?=count($clans)?> shown</span>
+    </div>
+    <form class="search" method="get">
+        <input type="text" name="q" maxlength="32" value="<?=pcH($search)?>" placeholder="Search by clan name or tag..." autocomplete="off">
+        <button class="btn" type="submit">Search</button>
+    </form>
+
+    <?php if (!$clans): ?>
+        <div class="empty">No clans found yet.</div>
+    <?php else: ?>
+        <div class="grid">
+        <?php foreach ($clans as $clan): ?>
+            <a class="card" href="/dashboard/clans.php?clan=<?=((int)$clan['clan_id'])?>">
+                <div class="tag">[<?=pcH($clan['tag'])?>]</div>
+                <div class="name"><?=pcH($clan['name'])?></div>
+                <div class="sub">Owner: <?=pcH($clan['owner_username'])?></div>
+                <div class="chips">
+                    <span class="chip"><?=pcH($clan['member_count'])?> / <?=pcH($clan['max_members'])?></span>
+                    <span class="chip"><?=((int)$clan['is_open'] === 1) ? 'Open' : 'Invite only'?></span>
+                </div>
+            </a>
+        <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+</section>
+
+<?php if ($selected): ?>
+<section class="section">
+    <div class="section-head">
+        <h2>[<?=pcH($selected['tag'])?>] <?=pcH($selected['name'])?></h2>
+        <a class="btn alt" href="/dashboard/clans.php">All clans</a>
+    </div>
+    <div class="panel">
+        <div class="eyebrow">Clan #<?=pcH($selected['clan_id'])?></div>
+        <p class="copy"><?=pcH($selected['description'] ?? '')?></p>
+        <div class="chips">
+            <span class="chip"><?=pcH($selected['member_count'])?> / <?=pcH($selected['max_members'])?> members</span>
+            <span class="chip">Owner: <?=pcH($selected['owner_username'])?></span>
+            <span class="chip"><?=((int)$selected['is_open'] === 1) ? 'Open' : 'Invite only'?></span>
+        </div>
+
+        <?php if ($account && !$myClan && (int)$selected['is_open'] === 1): ?>
+        <form method="post" class="actions">
+            <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">
+            <input type="hidden" name="action" value="join">
+            <input type="hidden" name="clanID" value="<?=((int)$selected['clan_id'])?>">
+            <button class="btn" type="submit">Join clan</button>
+        </form>
+        <?php elseif ($account && !$myClan): ?>
+        <div class="notice">This clan is invite only.</div>
+        <?php endif; ?>
+    </div>
+
+    <div class="panel" style="margin-top:10px">
+        <div class="section-head">
+            <h2>Members</h2>
+            <span class="muted"><?=count($selected['members'])?> members</span>
+        </div>
+        <?php foreach ($selected['members'] as $member): ?>
+        <div class="member">
+            <span>
+                <b><?=pcH($member['username'])?></b>
+                <small>Account #<?=pcH($member['account_id'])?> · <?=pcH($member['role'])?></small>
+            </span>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</section>
+<?php endif; ?>
+
+<?php if ($account && $myClan): ?>
+<section class="section" id="my-clan">
+    <div class="panel">
+        <div class="section-head">
+            <h2>Clan tag in Geometry Dash</h2>
+            <span class="tag">[<?=pcH($myClan['tag'])?>]</span>
+        </div>
+        <p class="copy">
+            Members keep their real usernames. MuchoCore decorates the standard GD username
+            returned by profile, search, leaderboard and social endpoints, so a member can
+            appear as <b>[<?=pcH($myClan['tag'])?>]PlayerName</b> in an unmodified compatible client.
+        </p>
+        <div class="notice">
+            No GD mod is required for the tag itself. The old client is simply receiving a
+            normal username string from the server.
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
+<footer class="footer">
+    <?=pcH($serverName)?> Player Dashboard · Powered by MuchoCore
+    <?php if ($serverByName !== '' && $socialUrl !== ''): ?>
+    · Server by <a href="<?=pcH($socialUrl)?>" target="_blank" rel="noopener noreferrer"><?=pcH($serverByName)?></a>
+    <?php endif; ?>
+</footer>
+</div>
+</body>
+</html>
