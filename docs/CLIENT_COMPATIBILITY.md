@@ -54,7 +54,7 @@ GD 1.1 therefore uses the legacy credential path and does not require GJP2.
 
 **Implementation completeness: 100%.** The 1.9 compatibility pass covers legacy GJP selection, versioned endpoint aliases, level description/comment wire rules, legacy level-download password framing, level hashes, old-binary comment user sections, user-comment history, profile/leaderboard routes, and legacy level-browser filters.
 
-A separate empirical verification gate requires a real Geometry Dash 1.9 trace fixture.
+**Real-client smoke verification: passed.** GD 1.9 has been verified against MuchoCore.
 
 ## 1.6 status
 
@@ -78,7 +78,7 @@ The 1.5 regression boundary is covered by automated compatibility and applicatio
 
 The automated protocol suite for GD 1.0, 1.1, 1.5 and 1.9–2.2 covers version identification, routing, credential selection, text encoding, level hashes, profile fields, leaderboard authentication, level comments, social wire fields, and regression guards.
 
-Empirical status remains separate: GD 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7 and 1.8 have documented real-client verification; GD 2.2 has a captured real-client fixture; other generations use the repository's server-side compatibility and regression coverage.
+Empirical status remains separate: GD 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8 and 1.9 have documented real-client verification; GD 2.2 has a captured real-client fixture; other generations use the repository's server-side compatibility and regression coverage.
 
 ## 2.0 status
 
