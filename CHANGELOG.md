@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### GD 1.5 Compatibility
+
+- added GD 1.5 (`gameVersion=15`) as a first-class compatibility profile;
+- verified a real Geometry Dash 1.5 build 13 against MuchoCore;
+- verified level search, level upload, level update handling and comment submission;
+- fixed legacy UDID-based `updateGJUserScore` compatibility used by early clients without `accountID`/GJP;
+- added regression coverage for versionless legacy score requests and the legacy user-score identity path;
+- documented GD 1.5 as a passed real-client smoke gate.
+
 ### GD 1.1 Compatibility
 
 - added GD 1.1 (`gameVersion=11`) as a first-class compatibility profile;
