@@ -27,6 +27,7 @@ $legacyPaths = [
     '/getGJComments.php',
     '/uploadGJComment.php',
     '/deleteGJComment.php',
+    '/updateGJLevel.php',
 ];
 
 foreach ($legacyPaths as $path) {
