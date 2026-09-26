@@ -10,7 +10,7 @@ declare(strict_types=1);
  * Copyright (C) 2026 IZK
  */
 
-if($action!=='level-save'){
+if(!in_array($action,['level-save','level-delete'],true)){
     throw new RuntimeException(
         'Invalid Levels action.'
     );
@@ -18,7 +18,33 @@ if($action!=='level-save'){
 
 try {
 
-if ($action==='level-save') {
+if ($action==='level-delete') {
+            requireRank(20);
+
+            $id=(int)($_POST['id'] ?? 0);
+
+            if ($id<=0) {
+                throw new RuntimeException('Invalid level ID.');
+            }
+
+            $q=$db->prepare(
+                'UPDATE levels
+                 SET is_deleted=1,
+                     requested_stars=0,
+                     updated_at=NOW()
+                 WHERE level_id=:id
+                   AND is_deleted=0'
+            );
+            $q->execute(['id'=>$id]);
+
+            if ($q->rowCount()!==1) {
+                throw new RuntimeException('Level is already deleted or does not exist.');
+            }
+
+            audit($db,'level.delete',(string)$id);
+            flash('Level deleted.');
+        }
+        elseif ($action==='level-save') {
             requireRank(20);
 
             $id=(int)$_POST['id'];
