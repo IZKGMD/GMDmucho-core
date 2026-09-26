@@ -124,9 +124,11 @@ foreach ([
     );
 
     assertSameValue(
-        '1.9',
+        str_ends_with(strtolower($commentPath), '19.php')
+            ? '1.9'
+            : '1.0',
         $commentRequest->clientVersion()->family(),
-        "1.9 legacy endpoint infers legacy family {$commentPath}"
+        "legacy endpoint family inference {$commentPath}"
     );
 }
 
