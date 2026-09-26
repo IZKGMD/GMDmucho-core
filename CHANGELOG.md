@@ -22,6 +22,15 @@ MuchoCore v1.0.3 expands the custom extension layer and improves the operator ex
 - added the `plugins.view` RBAC permission;
 - preserved compatibility with existing manifests that omit the new optional fields.
 
+### Deployment & Reliability
+
+- improved Docker PHP runtime setup so OPcache uses the packaged extension instead of recompiling it during every image build;
+- fixed production update rollback handling so failed container builds and interrupted deployments do not leave the source tree on the new release;
+- added runtime verification for both the primary application and the test GDPS tenant before an update is finalized;
+- fixed test tenant database runtime configuration so `testgdps-app` connects to `testgdps-db` instead of the primary `db` service;
+- added same-version release tag SHA verification so republished stable releases are detected and can be installed safely;
+- fixed stable release changelog extraction so published release descriptions include the correct version section.
+
 ### Validation & Reliability
 
 - expanded plugin regression coverage for compatible and incompatible manifests;
