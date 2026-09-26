@@ -26,6 +26,12 @@ foreach ([
     'ban' => $service,
     'unban' => $service,
     'bans' => $service,
+    'apply' => $service,
+    'applications' => $service,
+    'clanApplications' => $service,
+    'acceptApplication' => $service,
+    'declineApplication' => $service,
+    'cancelApplication' => $service,
 ] as $method => $source) {
     assertClanContract(
         str_contains($source, 'function ' . $method . '('),
@@ -42,6 +48,13 @@ foreach ([
     'unban' => $repository,
     'bans' => $repository,
     'acceptInvite' => $repository,
+    'apply' => $repository,
+    'applicationForAccount' => $repository,
+    'clanApplications' => $repository,
+    'applications' => $repository,
+    'acceptApplication' => $repository,
+    'declineApplication' => $repository,
+    'cancelApplication' => $repository,
 ] as $method => $source) {
     assertClanContract(
         str_contains($source, 'function ' . $method . '('),
@@ -57,6 +70,12 @@ foreach ([
     'ban' => $controller,
     'unban' => $controller,
     'bans' => $controller,
+    'apply' => $controller,
+    'applications' => $controller,
+    'clanApplications' => $controller,
+    'acceptApplication' => $controller,
+    'declineApplication' => $controller,
+    'cancelApplication' => $controller,
 ] as $method => $source) {
     assertClanContract(
         str_contains($source, 'function ' . $method . '('),
@@ -72,6 +91,12 @@ foreach ([
     '/api/clans/ban',
     '/api/clans/unban',
     '/api/clans/bans',
+    '/api/clans/apply',
+    '/api/clans/applications',
+    '/api/clans/applications/incoming',
+    '/api/clans/application/accept',
+    '/api/clans/application/decline',
+    '/api/clans/application/cancel',
 ] as $route) {
     assertClanContract(
         str_contains($application, "'" . $route . "'"),
@@ -89,6 +114,24 @@ assertClanContract(
     str_contains($migration, 'mucho_clan_bans') &&
     str_contains($migration, 'uq_mucho_clan_ban'),
     'clan ban migration defines persistent clan bans'
+);
+
+$applicationsMigration = (string)file_get_contents(
+    __DIR__ . '/../../database/migrations/021_clan_applications.php'
+);
+
+assertClanContract(
+    str_contains($applicationsMigration, 'mucho_clan_applications') &&
+    str_contains($applicationsMigration, 'uq_mucho_clan_application'),
+    'clan application migration defines unique pending applications'
+);
+
+assertClanContract(
+    str_contains($service, 'clan-application:') &&
+    str_contains($service, 'allowStrict') &&
+    str_contains($service, '10') &&
+    str_contains($service, '3600'),
+    'clan application flow is rate-limited'
 );
 
 echo "MUCHOCORE_CLAN_CONTRACT_OK\n";
