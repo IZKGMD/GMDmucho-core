@@ -44,6 +44,10 @@ GD 1.1 therefore uses the legacy credential path and does not require GJP2.
 
 A separate empirical verification gate requires a real Geometry Dash 1.9 trace fixture.
 
+## 1.6 status
+
+**Real-client smoke verification: passed for GD 1.6 build 16.** The patched build completed the supported MuchoCore server flows end-to-end. GD 1.6 remains on the shared legacy 1.x compatibility path.
+
 ## 1.5 status
 
 **Implementation completeness: compatibility layer complete.** GD 1.5 is admitted as `gameVersion=15`, uses legacy GJP authentication, and its legacy endpoint surface is normalized to the shared MuchoCore services.
