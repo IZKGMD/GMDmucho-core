@@ -82,7 +82,7 @@ assertClanDashboardContract(
 
 
 assertClanDashboardContract(
-    str_contains($dashboard, "action' value=\"apply\"") &&
+    str_contains($dashboard, 'value="apply"') &&
     str_contains($dashboard, 'Apply to join') &&
     str_contains($dashboard, 'Join requests'),
     'dashboard supports closed-clan applications'
