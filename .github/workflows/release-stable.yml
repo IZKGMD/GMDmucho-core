@@ -19,7 +19,8 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
-          token: ${{ secrets.RELEASE_TOKEN }}
+          token: ${{ github.token }}
+          persist-credentials: false
 
       - name: Verify release token
         env:
@@ -68,6 +69,7 @@ jobs:
         run: |
           git config user.name "IZK"
           git config user.email "112145870+IZKGMD@users.noreply.github.com"
+          gh auth setup-git
           if git ls-remote --exit-code --refs origin "refs/tags/$TAG" >/dev/null 2>&1; then
             git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
             EXISTING_SHA="$(git rev-parse "$TAG^{commit}")"
@@ -121,6 +123,7 @@ jobs:
         run: |
           git fetch origin main
           git switch -C main origin/main
+          gh auth setup-git
           rm -f ".release/${TAG}.ready"
           if git diff --quiet -- ".release/${TAG}.ready"; then
             echo "Release marker already absent."
