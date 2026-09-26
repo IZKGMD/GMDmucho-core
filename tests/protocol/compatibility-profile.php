@@ -38,6 +38,9 @@ foreach ([1, 11, 19, 20, 21, 22] as $version) {
 }
 
 $legacy = new CompatibilityProfile([11]);
+assertProfile('1.1', ClientVersion::fromValues(11, 0)->family(), 'GD 1.1 family detected');
+assertProfile('1.1', ClientVersion::fromValues(11, 0)->label(), 'GD 1.1 label detected');
+assertProfile(false, ClientVersion::fromValues(11, 0)->usesGjp2(), 'GD 1.1 does not use GJP2');
 assertProfile(false, $legacy->isAll(), '1.1 profile is not all');
 assertProfile(true, $legacy->allows(ClientVersion::fromValues(11, 0)), '1.1 profile allows GD 1.1');
 assertProfile(false, $legacy->allows(ClientVersion::fromValues(1, 0)), '1.1 profile blocks GD 1.0');
@@ -61,6 +64,10 @@ assertProfile(
     $custom->envValue(),
     'custom profile env serialization'
 );
+
+$_ENV['MUCHO_GD_VERSIONS'] = '10';
+$gd10Alias = CompatibilityProfile::fromEnvironment();
+assertProfile(true, $gd10Alias->allows(ClientVersion::fromValues(1, 0)), 'legacy GD 1.0 10 alias');
 
 $_ENV['MUCHO_GD_VERSIONS'] = 'gd1.1';
 $prefixed = CompatibilityProfile::fromEnvironment();
