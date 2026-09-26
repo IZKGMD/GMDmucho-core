@@ -14,39 +14,38 @@ The target is not a collection of version-specific PHP entrypoints. MuchoCore ke
 
 ## Current matrix
 
-| Protocol area | GD 1.9 | GD 2.0 | GD 2.1 | GD 2.2 | Current MuchoCore state |
-| --- | --- | --- | --- | --- | --- |
-| Account registration | Alias | Alias | Alias | Alias | Pending |
-| Account login | Alias | Alias | Alias | Alias | Pending |
-| Cloud save backup | Alias | Alias | Alias | Alias | Pending |
-| Cloud save sync | Alias | Alias | Alias | Alias | Pending |
-| Level search/list | Alias | Alias | Shared | Alias | Pending |
-| Level upload | Alias | Alias | Shared | Shared | Pending |
-| Level download | Alias | Alias | Shared | Shared | Pending |
-| Level delete | Alias | Shared | Shared | Shared | Pending |
-| Level description update | Alias | Shared | Shared | Shared | Pending |
-| User profile | Alias | Shared | Alias | Alias | Pending |
-| User search | Alias | Shared | Alias | Alias | Pending |
-| User scores | Alias | Shared | Alias | Alias | Pending |
-| User settings | Alias | Shared | Alias | Alias | Pending |
-| User score update | Alias | Shared | Alias | Shared | Pending |
-| Level comments | Alias | Shared | Shared | Alias | Pending |
-| Account comments | Alias | Shared | Alias | Alias | Pending |
-| Likes | Alias | Alias | Shared | Shared | Pending |
-| Messages | Alias | Shared | Alias | Alias | Pending |
-| Friend requests / friends | Alias | Shared | Alias | Alias | Pending |
-| Blocking | Alias | Shared | Alias | Alias | Pending |
-| Creator discovery | Shared | Shared | Shared | Shared | Pending |
-| Daily level | Shared | Shared | Shared | Shared | Pending |
-| Gauntlets | Alias | Alias | Shared | Shared | Pending |
-| Map packs | Alias | Alias | Shared | Shared | Pending |
-| Level scores | Alias | Alias | Shared | Shared | Pending |
-| Platformer scores | Pending | Pending | Pending | Shared | Pending |
-| Rewards | Shared | Shared | Shared | Shared | Pending |
-| Challenges | Shared | Shared | Shared | Shared | Pending |
-| Level lists | Shared | Shared | Shared | Shared | Pending |
-| Custom content/account URLs | Shared | Shared | Shared | Shared | Pending |
-
+| Protocol area | GD 1.1 | GD 1.9 | GD 2.0 | GD 2.1 | GD 2.2 | Current MuchoCore state |
+| --- | --- | --- | --- | --- | --- | --- |
+| Account registration | Alias | Alias | Alias | Alias | Alias | Pending |
+| Account login | Alias | Alias | Alias | Alias | Alias | Pending |
+| Cloud save backup | Alias | Alias | Alias | Alias | Alias | Pending |
+| Cloud save sync | Alias | Alias | Alias | Alias | Alias | Pending |
+| Level search/list | Alias | Alias | Alias | Shared | Alias | Pending |
+| Level upload | Alias | Alias | Shared | Shared | Shared | Pending |
+| Level download | Alias | Alias | Shared | Shared | Shared | Pending |
+| Level delete | Alias | Alias | Shared | Shared | Shared | Pending |
+| Level description update | Alias | Alias | Shared | Shared | Shared | Pending |
+| User profile | Alias | Alias | Shared | Alias | Alias | Pending |
+| User search | Alias | Alias | Shared | Alias | Alias | Pending |
+| User scores | Alias | Alias | Shared | Alias | Alias | Pending |
+| User settings | Alias | Alias | Shared | Alias | Alias | Pending |
+| User score update | Alias | Alias | Shared | Alias | Shared | Pending |
+| Level comments | Alias | Alias | Shared | Shared | Alias | Pending |
+| Account comments | Alias | Alias | Shared | Alias | Alias | Pending |
+| Likes | Alias | Alias | Alias | Shared | Shared | Pending |
+| Messages | Alias | Alias | Shared | Alias | Alias | Pending |
+| Friend requests / friends | Alias | Alias | Shared | Alias | Alias | Pending |
+| Blocking | Alias | Alias | Shared | Alias | Alias | Pending |
+| Creator discovery | Shared | Shared | Shared | Shared | Shared | Pending |
+| Daily level | Shared | Shared | Shared | Shared | Shared | Pending |
+| Gauntlets | Alias | Alias | Alias | Shared | Shared | Pending |
+| Map packs | Alias | Alias | Alias | Shared | Shared | Pending |
+| Level scores | Alias | Alias | Alias | Shared | Shared | Pending |
+| Platformer scores | Pending | Pending | Pending | Pending | Shared | Pending |
+| Rewards | Shared | Shared | Shared | Shared | Shared | Pending |
+| Challenges | Shared | Shared | Shared | Shared | Shared | Pending |
+| Level lists | Shared | Shared | Shared | Shared | Shared | Pending |
+| Custom content/account URLs | Shared | Shared | Shared | Shared | Shared | Pending |
 ## Version policy
 
 ### 1.9
