@@ -30,7 +30,7 @@ assertUserScoreContract(
 assertUserScoreContract(
     str_contains($controller, '$legacyUdidUpdate') &&
     str_contains($controller, '$version->effectiveGameVersion() < 19') &&
-    str_contains($controller, "trim($udid) !== ''"),
+    str_contains($controller, "trim(\\$udid) !== ''"),
     'legacy updateGJUserScore accepts UDID without accountID/GJP'
 );
 
