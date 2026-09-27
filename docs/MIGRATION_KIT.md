@@ -2,6 +2,8 @@
 
 The Migration Kit is the operator-friendly entry point for moving a Cvolton/GMDprivateServer-style GDPS database into MuchoCore.
 
+For hosted FHGDPS installations, the public GDPS/web hostname is not automatically the database hostname. Provide the actual MariaDB/MySQL host, database name and database credentials supplied by the source installation. The kit never assumes that a public web URL is a database endpoint.
+
 It wraps the existing destination-side importer so the normal migration flow is:
 
 \`\`\`text
@@ -64,7 +66,9 @@ sudo ./tools/migration/mucho-migrate.sh \\
   --apply --confirm=COVOLTON
 \`\`\`
 
-The kit first creates a verified destination database backup using the existing MuchoCore backup tooling.
+The kit first creates a verified destination database backup using the existing MuchoCore backup tooling. The backup must produce a valid dump, pass gzip integrity verification and have a checksum before the importer is allowed to write anything.
+
+The low-level importer enforces the same backup requirement, so bypassing the wrapper cannot silently skip the safety checkpoint.
 
 The source database is opened read-only by the importer. The destination import executes inside a transaction and rolls back on failure.
 
