@@ -76,6 +76,34 @@ final readonly class LevelSearchIndexer
         }
     }
 
+    public function rebuildAccount(int $accountId): int
+    {
+        if ($accountId <= 0) {
+            return 0;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare(
+                'SELECT level_id
+                 FROM levels
+                 WHERE account_id=:account_id
+                 ORDER BY level_id ASC'
+            );
+            $stmt->execute(['account_id' => $accountId]);
+
+            $count = 0;
+            foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $levelId) {
+                if ($this->upsert((int)$levelId)) {
+                    $count++;
+                }
+            }
+
+            return $count;
+        } catch (Throwable) {
+            return 0;
+        }
+    }
+
     public function delete(int $levelId): void
     {
         if ($levelId <= 0) {
