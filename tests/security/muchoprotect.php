@@ -400,7 +400,7 @@ if (
 $v2Dir = $dir . '-v2';
 $v2Protect = new MuchoProtect(
     new RateLimiter($v2Dir),
-    new \\MuchoCore\\Security\\AbusePenaltyStore($v2Dir . '-penalty')
+    new \MuchoCore\\Security\\AbusePenaltyStore($v2Dir . '-penalty')
 );
 
 for ($i = 0; $i < 5; $i++) {
