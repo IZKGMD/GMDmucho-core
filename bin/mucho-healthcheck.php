@@ -8,48 +8,11 @@ declare(strict_types=1);
 
 require_once '/var/www/mucho-core/public/api/v2/bootstrap.php';
 
-function alertOnce(
-    PDO $db,
-    string $severity,
-    string $source,
-    string $message
-): void {
-
-    $q=$db->prepare("
-        SELECT id
-        FROM mucho_system_alerts
-        WHERE resolved=0
-          AND source=?
-          AND message=?
-        LIMIT 1
-    ");
-
-    $q->execute([
-        $source,
-        $message
-    ]);
-
-    if($q->fetchColumn()!==false){
-        return;
-    }
-
-    $q=$db->prepare("
-        INSERT INTO mucho_system_alerts
-        (severity,source,message)
-        VALUES (?,?,?)
-    ");
-
-    $q->execute([
-        $severity,
-        $source,
-        $message
-    ]);
-}
-
-
 try {
 
     $db=muchoV2Db();
+    $alerts=new AlertService($db,new JobQueue($db));
+    $alerts->ensureStorage();
 
     $db->query('SELECT 1')->fetchColumn();
 
@@ -70,8 +33,7 @@ try {
         $q->execute([$table]);
 
         if(!(int)$q->fetchColumn()){
-            alertOnce(
-                $db,
+            $alerts->raise(
                 'critical',
                 'database',
                 "Missing table: $table"
@@ -86,8 +48,8 @@ try {
 
     try {
         if(isset($db)){
-            alertOnce(
-                $db,
+            $alerts=new AlertService($db,new JobQueue($db));
+            $alerts->raise(
                 'critical',
                 'healthcheck',
                 $e->getMessage()
