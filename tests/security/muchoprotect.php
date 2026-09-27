@@ -660,7 +660,7 @@ file_put_contents($freshPenaltyFile, '{"expires":1,"last":1,"strikes":1}');
 touch($stalePenaltyFile, time() - 7200);
 touch($freshPenaltyFile, time());
 
-$penaltyCleanup = new MuchoCoreSecurityAbusePenaltyStore($penaltyCleanupDir);
+$penaltyCleanup = new \\MuchoCore\\Security\\AbusePenaltyStore($penaltyCleanupDir);
 if ($penaltyCleanup->cleanup(3600, 1) !== 1 || is_file($stalePenaltyFile) || !is_file($freshPenaltyFile)) {
     fwrite(STDERR, "AbusePenaltyStore stale cleanup contract failed\n");
     exit(1);
