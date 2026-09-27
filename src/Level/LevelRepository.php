@@ -511,6 +511,29 @@ final readonly class LevelRepository
         ];
     }
 
+    private function searchIndexAvailable(): bool
+    {
+        static $available = null;
+
+        if ($available !== null) {
+            return $available;
+        }
+
+        try {
+            $stmt = $this->pdo->query(
+                "SELECT COUNT(*)
+                 FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                   AND table_name = 'mucho_level_search_index'"
+            );
+            $available = (int)$stmt->fetchColumn() === 1;
+        } catch (Throwable) {
+            $available = false;
+        }
+
+        return $available;
+    }
+
     private function applyDemonFilter(
         array &$where,
         int $demonFilter
