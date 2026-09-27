@@ -347,8 +347,8 @@ Protection includes:
 | 💥 Burst protection | Detects short high-frequency request spikes |
 | 👤 Account isolation | Avoids treating a public account ID as a sufficient identity signal |
 | 🌐 IP controls | Contains request floods while using privacy-aware audit metadata |
-| 📋 Security audit | Records blocked-event metadata without exposing raw IPs in audit events |
-| 🎮 Protocol-safe blocking | Uses Geometry Dash failure semantics such as `-1` instead of requiring HTTP errors |
+| 📋 Security audit | Records blocked-event metadata without exposing raw IPs in audit events; v2 keeps DB-backed telemetry |
+| 🎮 Protocol-safe blocking | Legacy endpoints use `-1`; API v2 keeps JSON `429` responses and Retry-After headers |
 
 ---
 
