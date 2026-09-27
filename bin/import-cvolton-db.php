@@ -7,6 +7,64 @@ use MuchoCore\Migration\CvoltonDatabaseImporter;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+function createVerifiedTargetBackup(): string
+{
+    $script = dirname(__DIR__) . '/bin/mucho-db-backup.sh';
+
+    if (!is_file($script) || !is_executable($script)) {
+        throw new RuntimeException(
+            'Verified target backup is unavailable; migration was not started.'
+        );
+    }
+
+    $output = [];
+    $exitCode = 0;
+
+    exec(
+        '/usr/bin/env bash ' . escapeshellarg($script) . ' 2>&1',
+        $output,
+        $exitCode
+    );
+
+    if ($exitCode !== 0) {
+        throw new RuntimeException(
+            "Target database backup failed; migration was not started.\n" .
+            implode("\n", $output)
+        );
+    }
+
+    $backup = null;
+
+    foreach ($output as $line) {
+        if (str_starts_with($line, 'FILE=')) {
+            $backup = trim(substr($line, 5));
+        }
+    }
+
+    if ($backup === null || $backup === '' || !is_file($backup)) {
+        throw new RuntimeException(
+            'Target database backup did not produce a verifiable backup file; migration was not started.'
+        );
+    }
+
+    $size = filesize($backup);
+    if ($size === false || $size < 100) {
+        throw new RuntimeException(
+            'Target database backup is unexpectedly small; migration was not started.'
+        );
+    }
+
+    $hashFile = $backup . '.sha256';
+
+    if (!is_file($hashFile) || trim((string)file_get_contents($hashFile)) === '') {
+        throw new RuntimeException(
+            'Target database backup checksum is missing; migration was not started.'
+        );
+    }
+
+    return $backup;
+}
+
 $options = getopt('', [
     'source-host:',
     'source-port::',
@@ -132,6 +190,18 @@ DRY-RUN complete. No destination data was modified.
         );
         exit(4);
     }
+
+    echo isset($options['json'])
+        ? ''
+        : "
+Creating verified target database backup before apply...
+";
+
+    $targetBackup = createVerifiedTargetBackup();
+
+    echo isset($options['json'])
+        ? ''
+        : "TARGET_BACKUP=" . $targetBackup . "\n";
 
     $target->beginTransaction();
 
