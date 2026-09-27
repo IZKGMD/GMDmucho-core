@@ -13,6 +13,14 @@ final readonly class MuchoProtect
     private const GLOBAL_BURST = 180;
     private const GLOBAL_BURST_WINDOW = 10;
 
+    /*
+     * A network budget is deliberately wider than the per-IP budget. It is
+     * a second line of defense against attackers rotating source addresses
+     * inside one IPv4 /24 or IPv6 /64. The factor is intentionally generous
+     * so normal shared-NAT traffic is not treated like a single client.
+     */
+    private const NETWORK_FACTOR = 3;
+
     /** @var array<string, array{limit:int, window:int, burst:int, burstWindow:int}> */
     private const POLICIES = [
         '/logingjaccount' => ['limit' => 12, 'window' => 60, 'burst' => 5, 'burstWindow' => 10],
@@ -163,6 +171,26 @@ final readonly class MuchoProtect
             return ['decision' => 'block', 'reason' => 'temporary_penalty'];
         }
 
+        $network = $this->networkKey($ip);
+        $networkPenaltyKey = $network === null
+            ? null
+            : 'network:' . $network . ':endpoint:' . $endpoint;
+
+        if ($networkPenaltyKey !== null) {
+            $networkPenalty = $this->penalties->status($networkPenaltyKey);
+
+            if ($networkPenalty['active']) {
+                $this->audit(
+                    $request,
+                    $endpoint,
+                    'network_penalty',
+                    $networkPenalty['remaining'],
+                    $networkPenalty['strikes']
+                );
+                return ['decision' => 'block', 'reason' => 'network_penalty'];
+            }
+        }
+
         foreach ($identityKeys as $kind => $identityKey) {
             $penaltyKey = $kind . ':' . $identityKey . ':endpoint:' . $endpoint;
             $identityPenalty = $this->penalties->status($penaltyKey);
@@ -217,6 +245,43 @@ final readonly class MuchoProtect
 
         if ($policy === null) {
             return ['decision' => 'allow', 'reason' => 'no_policy'];
+        }
+
+        if ($networkPenaltyKey !== null) {
+            $networkLimit = $this->scaledLimit($policy['limit']);
+            $networkBurst = $this->scaledLimit($policy['burst']);
+
+            if (!$this->allow(
+                $networkPenaltyKey,
+                $networkLimit,
+                $policy['window']
+            )) {
+                $penalty = $this->penalties->penalize($networkPenaltyKey);
+                $this->audit(
+                    $request,
+                    $endpoint,
+                    'network_rate_limit',
+                    $penalty['seconds'],
+                    $penalty['strikes']
+                );
+                return ['decision' => 'block', 'reason' => 'network_rate_limit'];
+            }
+
+            if (!$this->allow(
+                $networkPenaltyKey . ':burst',
+                $networkBurst,
+                $policy['burstWindow']
+            )) {
+                $penalty = $this->penalties->penalize($networkPenaltyKey);
+                $this->audit(
+                    $request,
+                    $endpoint,
+                    'network_burst_limit',
+                    $penalty['seconds'],
+                    $penalty['strikes']
+                );
+                return ['decision' => 'block', 'reason' => 'network_burst_limit'];
+            }
         }
 
         if (!$this->allow(
@@ -275,6 +340,36 @@ final readonly class MuchoProtect
         }
 
         return ['decision' => 'allow', 'reason' => 'ok'];
+    }
+
+    private function scaledLimit(int $limit): int
+    {
+        return max($limit + 1, $limit * self::NETWORK_FACTOR);
+    }
+
+    private function networkKey(string $ip): ?string
+    {
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
+            $octets = explode('.', $ip);
+
+            if (count($octets) === 4) {
+                return $octets[0] . '.' . $octets[1] . '.' . $octets[2] . '.0/24';
+            }
+
+            return null;
+        }
+
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false) {
+            $packed = inet_pton($ip);
+
+            if ($packed === false) {
+                return null;
+            }
+
+            return bin2hex(substr($packed, 0, 8)) . '/64';
+        }
+
+        return null;
     }
 
     private function allow(
