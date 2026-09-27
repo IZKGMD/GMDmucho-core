@@ -95,8 +95,8 @@ assertV106(
 assertV106(
     str_contains($application, '$request->forPluginEvent()') &&
     substr_count($application, 'response->forPluginEvent()') >= 4 &&
-    !str_contains($application, "'request' => $request,") &&
-    !str_contains($application, "'error' => $e,"),
+    !str_contains($application, "'request' => \$request,") &&
+    !str_contains($application, "'error' => \$e,"),
     'plugin lifecycle events use sanitized request/response snapshots'
 );
 
@@ -115,9 +115,9 @@ assertV106(
 );
 
 assertV106(
-    str_contains($readme, '## 📦 MuchoCore v1.0.6') &&
-    !str_contains($readme, '**v1.0.5** is the current stable release'),
-    'README release state matches v1.0.6'
+    str_contains($readme, '## 📦 MuchoCore v1.0.7') &&
+    !str_contains($readme, '**v1.0.6** is the current stable release'),
+    'README release state matches v1.0.7'
 );
 
 echo "MUCHOCORE_V106_HARDENING_OK\n";
