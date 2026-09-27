@@ -99,6 +99,7 @@ jobs:
 
       - name: Check required files
         run: |
+          set -euxo pipefail
           test -f VERSION
           grep -Eq "^[0-9]+\\.[0-9]+\\.[0-9]+$" VERSION
           test -f CHANGELOG.md
