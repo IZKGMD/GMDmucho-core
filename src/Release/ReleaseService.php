@@ -6,7 +6,7 @@ namespace MuchoCore\Release;
 final class ReleaseService
 {
     private const REPOSITORY = 'IZKGMD/GMDmucho-core';
-    private const RELEASE_API = 'https://api.github.com/repos/IZKGMD/GMDmucho-core/releases?per_page=20';
+    private const RELEASE_API = 'https://api.github.com/repos/IZKGMD/GMDmucho-core/releases/latest';
     private const CACHE_TTL = 300;
     private const STALE_CACHE_TTL = 86400;
     private const MAX_RESPONSE_BYTES = 1048576;
@@ -121,75 +121,32 @@ final class ReleaseService
      */
     private static function fetchLatestRelease(): array
     {
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'GET',
-                'timeout' => 4,
-                'ignore_errors' => true,
-                'header' =>
-                    "Accept: application/vnd.github+json\r\n" .
-                    "User-Agent: MuchoCore-ReleaseChecker/1.0\r\n" .
-                    "X-GitHub-Api-Version: 2022-11-28\r\n",
-            ],
-        ]);
-
+        $context = stream_context_create(['http' => [
+            'method' => 'GET',
+            'timeout' => 4,
+            'ignore_errors' => true,
+            'header' => "Accept: application/vnd.github+json\r\n" .
+                "User-Agent: MuchoCore-ReleaseChecker/1.0\r\n" .
+                "X-GitHub-Api-Version: 2022-11-28\r\n",
+        ]]);
         $handle = @fopen(self::RELEASE_API, 'rb', false, $context);
-        if ($handle === false) {
-            throw new \RuntimeException('Unable to reach GitHub.');
-        }
-
+        if ($handle === false) throw new \\RuntimeException('Unable to reach GitHub.');
         $body = stream_get_contents($handle, self::MAX_RESPONSE_BYTES + 1);
         fclose($handle);
-
-        if ($body === false || strlen($body) > self::MAX_RESPONSE_BYTES) {
-            throw new \RuntimeException('GitHub response is too large.');
-        }
-
+        if ($body === false || strlen($body) > self::MAX_RESPONSE_BYTES) throw new \\RuntimeException('GitHub response is too large.');
         $statusLine = (string)($http_response_header[0] ?? '');
-        if (!preg_match('/\s(2\d\d)\s/', $statusLine)) {
-            throw new \RuntimeException('GitHub release request failed.');
-        }
-
-        $releases = json_decode($body, true);
-        if (!is_array($releases)) {
-            throw new \RuntimeException('Invalid GitHub release response.');
-        }
-
-        $best = null;
-
-        foreach ($releases as $release) {
-            if (
-                !is_array($release) ||
-                !empty($release['draft']) ||
-                !empty($release['prerelease'])
-            ) {
-                continue;
-            }
-
-            $tag = trim((string)($release['tag_name'] ?? ''));
-            if (self::parseVersion($tag) === null) {
-                continue;
-            }
-
-            if (
-                $best === null ||
-                self::compareVersions($tag, (string)$best['tag_name']) > 0
-            ) {
-                $best = [
-                    'tag_name' => ltrim($tag, 'vV'),
-                    'name' => trim((string)($release['name'] ?? '')),
-                    'html_url' => trim((string)($release['html_url'] ?? '')),
-                    'body' => trim((string)($release['body'] ?? '')),
-                    'published_at' => trim((string)($release['published_at'] ?? '')),
-                ];
-            }
-        }
-
-        if ($best === null) {
-            throw new \RuntimeException('No stable semantic release was found.');
-        }
-
-        return $best;
+        if (!preg_match('/\\s(2\\d\\d)\\s/', $statusLine)) throw new \\RuntimeException('GitHub release request failed.');
+        $release = json_decode($body, true);
+        if (!is_array($release) || !empty($release['draft']) || !empty($release['prerelease'])) throw new \\RuntimeException('No stable semantic release was found.');
+        $tag = trim((string)($release['tag_name'] ?? ''));
+        if (self::parseVersion($tag) === null) throw new \\RuntimeException('The latest stable release has an invalid version.');
+        return [
+            'tag_name' => ltrim($tag, 'vV'),
+            'name' => trim((string)($release['name'] ?? '')),
+            'html_url' => trim((string)($release['html_url'] ?? '')),
+            'body' => trim((string)($release['body'] ?? '')),
+            'published_at' => trim((string)($release['published_at'] ?? '')),
+        ];
     }
 
     /**
@@ -278,7 +235,7 @@ final class ReleaseService
             'latest_version' => $latestVersion !== '' ? $latestVersion : null,
             'update_available' =>
                 $latestVersion !== '' &&
-                self::compareVersions($latestVersion, $current) > 0,
+                $latestVersion !== $current,
             'release_url' => ($latest['html_url'] ?? '') !== ''
                 ? (string)$latest['html_url']
                 : null,
