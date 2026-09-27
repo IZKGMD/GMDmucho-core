@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.0.41 — Migration Safety & Backup Hardening
+
+### Migration Safety
+
+- made a verified MuchoCore target database backup mandatory before migration apply;
+- verify the backup file, gzip integrity and SHA-256 checksum before destination writes begin;
+- block migration completely when the target backup fails or cannot be verified;
+- keep source database access read-only during import;
+- harden source-schema preflight so incompatible required columns fail before destination changes;
+- refuse implicit account merges when a source account conflicts with an existing target username/email;
+- keep destination changes inside a transaction so failed imports roll back cleanly;
+- preserve idempotent re-runs through persistent source-to-target ID mapping;
+- added an end-to-end MariaDB migration test covering successful import, backup failure, idempotent re-run, account conflicts, rollback and incompatible source schema handling;
+
+### Backup & Operator Reliability
+
+- fixed backup credential loading for installations that store DB credentials in MuchoCore runtime environment files;
+- made the backup lock path runtime-configurable and safe for non-root integration environments;
+- kept backup options compatible with the normal application database privileges;
+- clarified that a public GDPS hostname such as `ps.fhgdps.com` is not automatically a database endpoint; operators must provide the actual source MariaDB/MySQL connection details;
+
+---
 ## v1.0.4 — MuchoCore Discovery & Tenant Isolation
 
 ### Product Page
