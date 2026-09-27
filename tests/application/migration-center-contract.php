@@ -45,6 +45,9 @@ foreach ([
     'WHAT TO ENTER',
     'WHAT IS WHERE',
     'The destination will not be changed during this scan.',
+    'createVerifiedTargetBackup()',
+    'sha256sum -c',
+    'TARGET_BACKUP=',
     'Preparing MuchoCore schema...',
 ] as $needle) {
     if (strpos($wizard, $needle) === false) {
@@ -53,6 +56,12 @@ foreach ([
 }
 
 $prepareAt = strpos($wizard, 'Preparing MuchoCore schema...');
+$backupAt = strpos($wizard, 'Creating verified target database backup...');
+if ($backupAt === false || $prepareAt === false || $backupAt > $prepareAt) {
+    throw new RuntimeException(
+        'Target backup must be created and verified before schema preparation.'
+    );
+}
 $dryRunExitAt = strpos($wizard, 'if (!$requestedApply)');
 
 if ($prepareAt === false || $dryRunExitAt === false || $prepareAt < $dryRunExitAt) {

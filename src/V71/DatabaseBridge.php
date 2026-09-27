@@ -28,6 +28,19 @@ final class DatabaseBridge
             require_once $vendor;
         }
 
+        // Prefer the canonical MuchoCore connection so Docker runtime credentials
+        // from /var/lib/muchocore/runtime.env are loaded consistently.
+        if (class_exists('MuchoCore\\Database\\Database')) {
+            try {
+                $canonical = new \MuchoCore\Database\Database();
+                return self::$pdo = self::normalize($canonical->connection());
+            } catch (Throwable) {
+                // Fall through to legacy adapters.
+            }
+        }
+
+        // Fall back to legacy/project connection adapters only when the
+        // canonical MuchoCore connection is unavailable.
         // Prefer the existing project/Cvolton connection so v7.1 does not invent a second DB config.
         $candidates = [
             $root . '/config/connection.php',
@@ -61,17 +74,6 @@ final class DatabaseBridge
                 }
             } catch (Throwable) {
                 // Try the next adapter.
-            }
-        }
-
-        // Prefer the canonical MuchoCore connection so Docker runtime credentials
-        // from /var/lib/muchocore/runtime.env are loaded consistently.
-        if (class_exists('MuchoCore\\Database\\Database')) {
-            try {
-                $canonical = new \MuchoCore\Database\Database();
-                return self::$pdo = self::normalize($canonical->connection());
-            } catch (Throwable) {
-                // Fall through to legacy adapters.
             }
         }
 

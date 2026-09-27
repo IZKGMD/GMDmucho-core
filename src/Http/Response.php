@@ -33,6 +33,21 @@ final readonly class Response
         );
     }
 
+    /**
+     * Return a payload-safe Response snapshot for plugin lifecycle events.
+     *
+     * Response bodies may contain account, message or protocol data, so only
+     * transport metadata is exposed through the plugin event contract.
+     */
+    public function forPluginEvent(): self
+    {
+        return new self(
+            '',
+            $this->status,
+            $this->contentType,
+        );
+    }
+
     public function send(): never
     {
         // Clear output buffers, BOMs and accidental whitespace.

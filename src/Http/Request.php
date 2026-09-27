@@ -49,6 +49,65 @@ final readonly class Request
         return $default;
     }
 
+    /**
+     * Return a protocol-safe Request snapshot for plugin lifecycle events.
+     *
+     * Only a small whitelist of non-secret protocol fields is exposed.
+     * Cookies, forwarded headers, credentials and arbitrary request data
+     * never enter the plugin event payload.
+     */
+    public function forPluginEvent(): self
+    {
+        $allowed = [
+            'accountID',
+            'accountId',
+            'userName',
+            'username',
+            'gameVersion',
+            'binaryVersion',
+            'levelID',
+            'levelId',
+            'dailyID',
+            'songID',
+            'itemID',
+            'friendID',
+            'toAccountID',
+            'levelListID',
+            'listID',
+            'type',
+        ];
+
+        $filter = static function (array $source) use ($allowed): array {
+            $result = [];
+
+            foreach ($allowed as $key) {
+                $value = $source[$key] ?? null;
+
+                if (!is_scalar($value)) {
+                    continue;
+                }
+
+                $value = trim((string)$value);
+
+                if ($value === '' || strlen($value) > 256) {
+                    continue;
+                }
+
+                $result[$key] = $value;
+            }
+
+            return $result;
+        };
+
+        return new self(
+            $this->method,
+            $this->path,
+            $filter($this->query),
+            $filter($this->post),
+            [],
+        );
+    }
+
     public function clientVersion(): \MuchoCore\Compatibility\ClientVersion
     {
         return \MuchoCore\Compatibility\ClientVersion::fromRequest($this);

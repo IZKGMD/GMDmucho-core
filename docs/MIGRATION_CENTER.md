@@ -105,10 +105,12 @@ The safe operating sequence is:
 3. Read the WHAT IS WHERE section.
 4. Check the account/level/score counts.
 5. Make a MuchoCore database backup.
-6. Run the wizard with --apply.
+6. Run the wizard with --apply. The wizard creates and verifies a target database backup before it prepares the schema or writes imported data.
 7. Confirm by typing MIGRATE.
 8. Verify the new instance with Mucho Doctor and /health.
 ~~~
+
+Both the interactive Migration Center and the low-level importer require a verified target database backup before destination writes. The backup must be a valid dump, pass integrity checks, and have a SHA-256 checksum that passes verification.
 
 The source database connection is opened with:
 

@@ -22,6 +22,20 @@ $platformer = (string)file_get_contents(
     __DIR__ . '/../../src/Score/PlatformerScoreController.php'
 );
 
+$application = (string)file_get_contents(
+    __DIR__ . '/../../src/Core/Application.php'
+);
+$v71Bridge = (string)file_get_contents(
+    __DIR__ . '/../../src/V71/DatabaseBridge.php'
+);
+$v2Bootstrap = (string)file_get_contents(
+    __DIR__ . '/../../public/api/v2/bootstrap.php'
+);
+$readme = (string)file_get_contents(
+    __DIR__ . '/../../README.md'
+);
+
+
 assertV106(
     str_contains($userRepository, '(:numeric_query = 1 AND COALESCE(p.user_id, 0) = :user_id)'),
     'numeric player searches are counted by user_id'
@@ -75,6 +89,35 @@ assertV106(
     str_contains($platformer, "'a.is_active=1'") &&
     str_contains($platformer, "'a.is_banned=0'"),
     'platformer score leaderboard excludes inactive and banned accounts'
+);
+
+
+assertV106(
+    str_contains($application, '$request->forPluginEvent()') &&
+    substr_count($application, 'response->forPluginEvent()') >= 4 &&
+    !str_contains($application, "'request' => $request,") &&
+    !str_contains($application, "'error' => $e,"),
+    'plugin lifecycle events use sanitized request/response snapshots'
+);
+
+assertV106(
+    str_contains($v71Bridge, "new \\MuchoCore\\Database\\Database()") &&
+    strpos($v71Bridge, "new \\MuchoCore\\Database\\Database()") <
+    strpos($v71Bridge, '$candidates = ['),
+    'v7.1 prefers the canonical MuchoCore database connection'
+);
+
+assertV106(
+    str_contains($v2Bootstrap, "new \\MuchoCore\\Database\\Database()") &&
+    strpos($v2Bootstrap, "new \\MuchoCore\\Database\\Database()") <
+    strpos($v2Bootstrap, "if (!empty(\$e['DATABASE_URL']))"),
+    'API v2 prefers the canonical MuchoCore database connection'
+);
+
+assertV106(
+    str_contains($readme, '## 📦 MuchoCore v1.0.6') &&
+    !str_contains($readme, '**v1.0.5** is the current stable release'),
+    'README release state matches v1.0.6'
 );
 
 echo "MUCHOCORE_V106_HARDENING_OK\n";

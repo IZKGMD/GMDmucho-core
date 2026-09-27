@@ -85,6 +85,20 @@ function muchoV2Db(): PDO
         return $db;
     }
 
+    /*
+     * Prefer the canonical MuchoCore database connection so API v2 uses the
+     * same runtime.env/.env credentials and PDO defaults as the legacy core.
+     * Keep the existing DATABASE_URL/env fallback for advanced deployments.
+     */
+    if (class_exists('MuchoCore\\Database\\Database')) {
+        try {
+            $canonical = new \MuchoCore\Database\Database();
+            return $db = $canonical->connection();
+        } catch (Throwable) {
+            // Fall back to the v2-specific connection resolver below.
+        }
+    }
+
     $e = muchoV2Env();
 
     if (!empty($e['DATABASE_URL'])) {
