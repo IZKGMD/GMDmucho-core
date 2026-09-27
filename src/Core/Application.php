@@ -487,8 +487,10 @@ final readonly class Application
     public function handle(Request $request): Response
     {
         ClientTrace::captureRequest($request);
+        $pluginRequest = $request->forPluginEvent();
+
         $this->plugins->emit('request.received', [
-            'request' => $request,
+            'request' => $pluginRequest,
         ]);
 
         if (($_SERVER['MUCHO_PROTECT_PRECHECKED'] ?? '') !== '1') {
@@ -502,8 +504,8 @@ final readonly class Application
                 // clients; the legacy protocol uses "-1" as its failure signal.
                 $response = Response::text('-1');
                 $this->plugins->emit('request.completed', [
-                    'request' => $request,
-                    'response' => $response,
+                    'request' => $pluginRequest,
+                    'response' => $response->forPluginEvent(),
                     'blocked' => true,
                 ]);
                 ClientTrace::captureResponse($response);
@@ -517,8 +519,8 @@ final readonly class Application
             if (!$compatibilityProfile->allows($request->clientVersion())) {
                 $response = Response::text('-1');
                 $this->plugins->emit('request.completed', [
-                    'request' => $request,
-                    'response' => $response,
+                    'request' => $pluginRequest,
+                    'response' => $response->forPluginEvent(),
                     'compatible' => false,
                 ]);
                 ClientTrace::captureResponse($response);
@@ -527,8 +529,8 @@ final readonly class Application
 
             $response = $this->router->dispatch($request);
             $this->plugins->emit('request.completed', [
-                'request' => $request,
-                'response' => $response,
+                'request' => $pluginRequest,
+                'response' => $response->forPluginEvent(),
                 'compatible' => true,
             ]);
             ClientTrace::captureResponse($response);
@@ -546,9 +548,9 @@ final readonly class Application
 
             $response = Response::text('-1');
             $this->plugins->emit('request.failed', [
-                'request' => $request,
-                'error' => $e,
-                'response' => $response,
+                'request' => $pluginRequest,
+                'error' => $e::class,
+                'response' => $response->forPluginEvent(),
             ]);
             ClientTrace::captureResponse($response);
             return $response;
