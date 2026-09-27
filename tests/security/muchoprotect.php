@@ -6,6 +6,8 @@ require_once dirname(__DIR__, 2) . '/src/Http/ClientIp.php';
 require_once dirname(__DIR__, 2) . '/src/Compatibility/ClientVersion.php';
 require_once dirname(__DIR__, 2) . '/src/Http/Request.php';
 require_once dirname(__DIR__, 2) . '/src/Routing/Router.php';
+require_once dirname(__DIR__, 2) . '/src/Security/RateLimitBackend.php';
+require_once dirname(__DIR__, 2) . '/src/Security/PenaltyStoreBackend.php';
 require_once dirname(__DIR__, 2) . '/src/Security/RateLimiter.php';
 require_once dirname(__DIR__, 2) . '/src/Security/AbusePenaltyStore.php';
 require_once dirname(__DIR__, 2) . '/src/Security/MuchoProtect.php';

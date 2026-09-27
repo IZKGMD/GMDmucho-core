@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+use MuchoCore\Admin\AdminRbac;
 use MuchoCore\Database\Database;
 
 require dirname(__DIR__, 3).'/vendor/autoload.php';
@@ -15,7 +16,7 @@ header('Referrer-Policy: no-referrer');
 $requestId = bin2hex(random_bytes(12));
 header('X-Request-Id: '.$requestId);
 
-const MUCHO_ADMIN_CLIENT_VERSION = '1.0.0';
+const MUCHO_ADMIN_CLIENT_VERSION = '1.0.1';
 const MUCHO_ADMIN_TOKEN_TTL = 28800;
 const MUCHO_ADMIN_MAX_BODY = 65536;
 
@@ -172,8 +173,10 @@ function requireAdmin(PDO $db, int $minimumRank = 10): array
     }
 
     $rank = roleRank((string)$admin['role']);
-    if ($rank < $minimumRank) {
-        fail('forbidden', 'Insufficient administrator rank.', 403);
+    $action = strtolower(trim((string)($GLOBALS['mucho_admin_action'] ?? '')));
+    $permission = AdminRbac::permissionForContext($action, null, $minimumRank);
+    if ($permission === null || !AdminRbac::can($db, $admin, $permission)) {
+        fail('forbidden', 'Insufficient administrator permissions.', 403);
     }
 
     $db->prepare('UPDATE mucho_admin_client_tokens SET last_used_at = NOW() WHERE id = :id')
@@ -218,6 +221,7 @@ $action = (string)($input['action'] ?? '');
 if ($action === '' || strlen($action) > 64) {
     fail('invalid_request', 'Action is required.', 422);
 }
+$GLOBALS['mucho_admin_action'] = $action;
 
 try {
     $db = (new Database())->connection();
@@ -260,9 +264,19 @@ try {
              VALUES (:username, :ip_hash, :success)'
         );
 
-        if (!$passwordOk || !$active || roleRank((string)($row['role'] ?? '')) < 10) {
+        if (!$passwordOk || !$active) {
             $attempt->execute(['username' => $username, 'ip_hash' => ipHash(), 'success' => 0]);
             fail('invalid_credentials', 'Invalid username or password.', 401);
+        }
+
+        $loginAdmin = [
+            'id' => (int)$row['id'],
+            'username' => (string)$row['username'],
+            'role' => (string)$row['role'],
+        ];
+        if (!AdminRbac::can($db, $loginAdmin, 'dashboard.view')) {
+            $attempt->execute(['username' => $username, 'ip_hash' => ipHash(), 'success' => 0]);
+            fail('invalid_credentials', 'Invalid administrator account.', 401);
         }
 
         $totpSecret = trim((string)($row['totp_secret'] ?? ''));
@@ -345,7 +359,7 @@ try {
             'version' => MUCHO_ADMIN_CLIENT_VERSION,
             'database' => 'connected',
             'time' => gmdate('c'),
-            // Пасхалка №1: кубик не спит, он просто ждёт следующий запрос.
+            // Easter egg: the cube is watching the backups.
             'motto' => 'The cube is watching the backups.',
             'admin' => (string)$admin['username'],
         ]);
@@ -438,7 +452,10 @@ try {
         if (!$target) {
             fail('not_found', 'Player not found.', 404);
         }
-        if (strtolower((string)$target['role']) === 'owner' && (int)$admin['rank'] < 40) {
+        if (
+            strtolower((string)$target['role']) === 'owner' &&
+            !AdminRbac::can($db, $admin, 'settings.manage')
+        ) {
             fail('forbidden', 'Only an owner can moderate an owner account.', 403);
         }
 
@@ -464,6 +481,9 @@ try {
             'owner' => 'owner',
             default => throw new InvalidArgumentException('Invalid account role.'),
         };
+        if ($role === 'owner' && !AdminRbac::can($db, $admin, 'settings.manage')) {
+            fail('forbidden', 'Only an owner can assign the owner game role.', 403);
+        }
         $query = $db->prepare('SELECT a.username, COALESCE(r.code, \'user\') AS role
              FROM accounts a
              LEFT JOIN roles r ON r.id = a.role_id

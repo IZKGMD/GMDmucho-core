@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Security;
 
-final readonly class AbusePenaltyStore
+final readonly class AbusePenaltyStore implements PenaltyStoreBackend
 {
     private const AUTO_CLEANUP_INTERVAL = 128;
     private const DEFAULT_STALE_AFTER = 3600;

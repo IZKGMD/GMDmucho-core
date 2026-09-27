@@ -242,7 +242,7 @@ final readonly class PlatformerScoreController
                     FROM mucho_score_integrity_events si
                     WHERE si.score_type='platformer'
                       AND si.score_id=s.score_id
-                      AND si.status='suspicious'
+                      AND si.status IN ('suspicious','quarantined')
                       AND si.risk_score>=70
                 )
             ";

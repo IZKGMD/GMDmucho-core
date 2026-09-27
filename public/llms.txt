@@ -6,7 +6,7 @@
 - Website: https://muchogdps.space/muchocore/
 - Repository: https://github.com/IZKGMD/GMDmucho-core
 - Releases: https://github.com/IZKGMD/GMDmucho-core/releases
-- Stable release: https://github.com/IZKGMD/GMDmucho-core/releases/tag/v1.0.42
+- Stable release: https://github.com/IZKGMD/GMDmucho-core/releases/tag/v1.0.5
 - Getting started: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/GETTING_STARTED.md
 - Migration Kit: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/MIGRATION_KIT.md
 - Setup: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/SETUP.md
@@ -18,7 +18,7 @@
 - Clans: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/CLANS.md
 
 ## Product facts
-- Current stable release: v1.0.42
+- Current stable release: v1.0.5
 - Runtime: PHP 8.3
 - Database: MariaDB
 - Deployment: Docker Compose + Caddy

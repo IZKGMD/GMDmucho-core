@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Security;
 
+use MuchoCore\Database\Database;
 use MuchoCore\Http\Request;
 
 final readonly class MuchoProtect
@@ -140,25 +141,43 @@ final readonly class MuchoProtect
         '/likegjitem211' => ['limit' => 60, 'window' => 60, 'burst' => 15, 'burstWindow' => 10],
     ];
 
-    private RateLimiter $limiter;
-    private AbusePenaltyStore $penalties;
+    private RateLimitBackend $limiter;
+    private PenaltyStoreBackend $penalties;
 
     public function __construct(
-        ?RateLimiter $limiter = null,
-        ?AbusePenaltyStore $penalties = null
+        ?RateLimitBackend $limiter = null,
+        ?PenaltyStoreBackend $penalties = null
     ) {
-        $this->limiter = $limiter ?? new RateLimiter();
+        $db = null;
+        if (($limiter === null || $penalties === null) && $this->storageMode() === 'db') {
+            $db = (new Database())->connection();
+        }
+
+        $this->limiter = $limiter
+            ?? ($db !== null ? new DatabaseRateLimiter($db) : new RateLimiter());
 
         if ($penalties !== null) {
             $this->penalties = $penalties;
+        } elseif ($db !== null) {
+            $this->penalties = new DatabasePenaltyStore($db);
         } else {
             $directory = $_ENV['MUCHO_PROTECT_PENALTY_DIR']
                 ?? $_SERVER['MUCHO_PROTECT_PENALTY_DIR']
                 ?? getenv('MUCHO_PROTECT_PENALTY_DIR')
                 ?: '/tmp/muchocore-protect-penalties';
-
             $this->penalties = new AbusePenaltyStore($directory);
         }
+    }
+
+    public function storageMode(): string
+    {
+        $value = strtolower(trim((string)(
+            $_ENV['MUCHO_PROTECT_STORAGE']
+            ?? $_SERVER['MUCHO_PROTECT_STORAGE']
+            ?? getenv('MUCHO_PROTECT_STORAGE')
+            ?? 'file'
+        )));
+        return in_array($value, ['db','database','mysql','mariadb'], true) ? 'db' : 'file';
     }
 
     /** @return array{decision:'allow'|'block', reason:string} */

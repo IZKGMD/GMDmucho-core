@@ -326,6 +326,19 @@ final class AdminRbac
             '2fa-disable' => 'self.security',
             'passkey-register' => 'self.security',
             'passkey-revoke' => 'self.security',
+            'auth.login' => 'dashboard.view',
+            'auth.logout' => 'self.security',
+            'auth.me' => 'self.security',
+            'server.health' => 'settings.manage',
+            'players.search' => 'players.view',
+            'players.get' => 'players.view',
+            'players.set_ban' => 'players.manage',
+            'players.set_role' => 'players.manage',
+            'players.update_profile' => 'players.manage',
+            'levels.search' => 'levels.view',
+            'levels.update' => 'levels.manage',
+            'audit.list' => 'audit.view',
+            'mucho.konami' => 'settings.manage',
         ];
 
         if (isset($actions[$action])) {
