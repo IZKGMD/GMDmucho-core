@@ -62,6 +62,22 @@ function createVerifiedTargetBackup(): string
         );
     }
 
+    $hashOutput = [];
+    $hashExitCode = 0;
+
+    exec(
+        '/usr/bin/env sha256sum -c ' . escapeshellarg($hashFile) . ' 2>&1',
+        $hashOutput,
+        $hashExitCode
+    );
+
+    if ($hashExitCode !== 0) {
+        throw new RuntimeException(
+            "Target database backup checksum verification failed; migration was not started.\n" .
+            implode("\n", $hashOutput)
+        );
+    }
+
     return $backup;
 }
 
