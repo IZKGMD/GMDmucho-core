@@ -11,6 +11,7 @@ final class ScoreIntegrity
 {
     public const STATUS_TRUSTED = 'trusted';
     public const STATUS_SUSPICIOUS = 'suspicious';
+    public const STATUS_QUARANTINED = 'quarantined';
 
     public static function evaluateRegular(
         int $percent,
@@ -144,7 +145,7 @@ final class ScoreIntegrity
                 'account' => $accountId,
                 'level' => $levelId,
                 'risk' => (int)($result['risk_score'] ?? 0),
-                'status' => (string)($result['status'] ?? self::STATUS_TRUSTED),
+                'status' => self::effectiveStatus($result),
                 'reasons' => json_encode(
                     $result['reasons'] ?? [],
                     JSON_UNESCAPED_SLASHES
@@ -157,6 +158,19 @@ final class ScoreIntegrity
         } catch (Throwable) {
             // Integrity telemetry must never break the GD score protocol.
         }
+    }
+
+    public static function effectiveStatus(array $result): string
+    {
+        $status = (string)($result['status'] ?? self::STATUS_TRUSTED);
+        if ($status === self::STATUS_SUSPICIOUS && self::quarantineEnabled()) {
+            return self::STATUS_QUARANTINED;
+        }
+        return in_array(
+            $status,
+            [self::STATUS_TRUSTED, self::STATUS_SUSPICIOUS, self::STATUS_QUARANTINED],
+            true
+        ) ? $status : self::STATUS_TRUSTED;
     }
 
     public static function quarantineEnabled(): bool
