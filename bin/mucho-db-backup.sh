@@ -53,7 +53,8 @@ DB_NAME="$(
 php /dev/stdin "$TMP_CNF" <<'PHP'
 <?php
 
-$root = '/var/www/mucho-core';
+$root = getenv('MUCHO_CORE_ROOT') ?: '/var/www/mucho-core';
+$runtimeEnvFile = getenv('MUCHO_RUNTIME_ENV_FILE') ?: '/var/lib/muchocore/runtime.env';
 $cnf  = $argv[1];
 
 $env = [];
