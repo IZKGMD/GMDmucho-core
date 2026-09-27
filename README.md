@@ -14,7 +14,7 @@
   <a href="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml">
     <img src="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml/badge.svg" alt="CI">
   </a>
-  <img src="https://img.shields.io/badge/release-v1.0.5-8A2BE2" alt="Stable release">
+  <img src="https://img.shields.io/badge/release-v1.0.6-8A2BE2" alt="Stable release">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/PHP-8.3-777BB4" alt="PHP 8.3">
   <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2-success" alt="Geometry Dash 1.0 through 2.2">
