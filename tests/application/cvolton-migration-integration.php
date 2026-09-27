@@ -3,9 +3,6 @@
 declare(strict_types=1);
 
 use MuchoCore\Migration\CvoltonDatabaseImporter;
-use PDO;
-use RuntimeException;
-
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 $root = dirname(__DIR__, 2);
