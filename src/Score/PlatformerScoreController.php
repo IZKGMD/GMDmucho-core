@@ -8,6 +8,7 @@ use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
 use PDO;
+use RuntimeException;
 use Throwable;
 
 /*
