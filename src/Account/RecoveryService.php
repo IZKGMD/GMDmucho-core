@@ -201,7 +201,7 @@ final readonly class RecoveryService
             $from = 'no-reply@' . $host;
         }
 
-        $subject = 'MuchoCore — восстановление аккаунта';
+        $subject = 'MuchoCore — Account recovery';
 
         $safeUsername = htmlspecialchars(
             $username,
@@ -219,19 +219,19 @@ final readonly class RecoveryService
 
         $boundary = '=_MuchoCore_' . bin2hex(random_bytes(8));
 
-        $text = "Здравствуйте, {$username}!\n\n"
-            . "Для восстановления аккаунта MuchoCore откройте ссылку:\n"
+        $text = "Hello, {$username}!\n\n"
+            . "To recover your MuchoCore account, open this link:\n"
             . $link . "\n\n"
-            . "Ссылка действует 30 минут и одноразова.\n"
-            . "Если вы не запрашивали восстановление, просто проигнорируйте это письмо.\n";
+            . "This link is valid for 30 minutes and can only be used once.\n"
+            . "If you did not request this recovery email, you can safely ignore it.\n";
 
-        $html = '<!doctype html><html lang="ru"><body>'
-            . '<h2>Восстановление аккаунта MuchoCore</h2>'
-            . '<p>Здравствуйте, ' . $safeUsername . '.</p>'
-            . '<p>Для восстановления аккаунта нажмите кнопку:</p>'
-            . '<p><a href="' . $safeLink . '">Восстановить аккаунт</a></p>'
-            . '<p>Ссылка действует 30 минут и может быть использована только один раз.</p>'
-            . '<p>Если вы не запрашивали восстановление, проигнорируйте это письмо.</p>'
+        $html = '<!doctype html><html lang="en"><body>'
+            . '<h2>MuchoCore Account Recovery</h2>'
+            . '<p>Hello, ' . $safeUsername . '.</p>'
+            . '<p>To recover your account, use the button below:</p>'
+            . '<p><a href="' . $safeLink . '">Recover account</a></p>'
+            . '<p>This link is valid for 30 minutes and can only be used once.</p>'
+            . '<p>If you did not request this recovery email, you can safely ignore it.</p>'
             . '</body></html>';
 
         $headers = [

@@ -320,7 +320,7 @@ fi
 if [[ -f "$INSTALL_DIR/.secrets/admin_password" ]]; then
   MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
 elif [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
-  log "The admin panel username is: admin"
+  log "The admin panel username is: $ADMIN_USER"
   read -r -s -p "Create a password for the admin panel (you will use it to log in): " MUCHO_ADMIN_PASSWORD < /dev/tty
   printf '\n'
 fi
@@ -478,7 +478,7 @@ Admin:  https://$DOMAIN/admin/
 Health: https://$DOMAIN/health
 Path:   $INSTALL_DIR
 
-Admin username: admin
+Admin username: $ADMIN_USER
 
 Update:
   sudo $INSTALL_DIR/update.sh

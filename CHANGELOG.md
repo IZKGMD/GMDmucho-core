@@ -53,37 +53,40 @@
 
 ## Unreleased
 
-### Clan System v2
+No pending release notes.
 
-- expanded the existing clan system with owner-only settings, ownership transfer and disbanding;
-- added invitation revocation and persistent clan bans;
-- made clan bans remove memberships and pending invitations atomically;
-- hardened open-clan joins and invitation acceptance with transactional row locking and server-side capacity checks;
-- added clan management audit events;
-- added contract coverage for the expanded clan API and database migration.
+## v1.0.42 — MuchoProtect Hardening & Compatibility Reliability
 
-### GD 1.6 Compatibility
+### MuchoProtect
 
-- verified a real Geometry Dash 1.6 build 16 against MuchoCore;
-- verified the patched client can complete the supported server flows end-to-end;
-- kept GD 1.6 on the shared early 1.x compatibility path rather than introducing a separate backend.
+- added pre-auth identity protection for usernames and email addresses so login and registration abuse cannot be bypassed by simple IP rotation;
+- added stable device/UDID identity throttling for legacy client flows;
+- added explicit rate and burst policies for the complete Clan API surface;
+- added secondary IPv4 /24 and IPv6 /64 endpoint budgets to contain distributed IP rotation without treating a shared network like one client;
+- reused exponential temporary penalties for repeated network-level violations;
+- unified API v2 request throttling with the central MuchoProtect engine;
+- preserved the API v2 JSON 429 contract and the existing music-upload 5-per-15-minute account limit;
+- added bounded stale-state cleanup for rate-limit and penalty storage, with lightweight automatic cleanup and explicit maintenance support.
 
-### GD 1.5 Compatibility
+### Clans & Compatibility
 
-- added GD 1.5 (`gameVersion=15`) as a first-class compatibility profile;
-- verified a real Geometry Dash 1.5 build 13 against MuchoCore;
-- verified level search, level upload, level update handling and comment submission;
-- fixed legacy UDID-based `updateGJUserScore` compatibility used by early clients without `accountID`/GJP;
-- added regression coverage for versionless legacy score requests and the legacy user-score identity path;
-- documented GD 1.5 as a passed real-client smoke gate.
+- expanded Clan System v2 with owner-only settings, ownership transfer and disbanding;
+- added invitation revocation and persistent clan bans with transactional membership cleanup;
+- hardened open-clan joins and invitation acceptance with row locking and server-side capacity checks;
+- added clan management audit events and contract coverage;
+- added first-class GD 1.1 compatibility profile and installer support;
+- added first-class GD 1.5 compatibility profile with real build 13 verification;
+- verified GD 1.6 build 16 on the shared early 1.x compatibility path;
+- preserved legacy UDID-based score compatibility for early clients.
 
-### GD 1.1 Compatibility
+### Operator & Quality Fixes
 
-- added GD 1.1 (`gameVersion=11`) as a first-class compatibility profile;
-- added an interactive installer option and environment support for `MUCHO_GD_VERSIONS=11`;
-- documented the legacy 1.x endpoint-family compatibility path used by GD 1.1;
-- expanded compatibility regression coverage for GD 1.1 family detection, labels and GJP2 behavior;
-- preserved the single version-aware MuchoCore backend instead of introducing a separate 1.1 server implementation.
+- removed the obsolete v1.0.2 release marker from the tracked tree;
+- fixed the installer summary and password prompt to display the configured administrator username instead of a hard-coded admin;
+- updated account-recovery email copy to the project's English-language standard;
+- refreshed release documentation and security regression coverage for the new protection layers.
+
+---
 
 ## v1.0.3 — Persistent Plugins & Operations
 
