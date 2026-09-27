@@ -235,6 +235,7 @@ doctor() {
     fi
 
     compose exec -T app php bin/migrate.php status >/tmp/muchocore-migrations.txt 2>&1         && echo "✓ migrations"         || { echo "✗ migrations"; ok=1; }
+    compose exec -T app php bin/mucho-e2e.php >/tmp/muchocore-e2e.txt 2>&1         && echo "✓ intelligence E2E"         || { echo "✗ intelligence E2E"; ok=1; }
     echo
     if [[ "$ok" == 0 ]]; then
         echo "No problems found."
@@ -333,6 +334,48 @@ configuration_menu() {
         read -r -p "Press Enter..." _
     done
 }
+
+if [[ "${1:-}" == "doctor" ]]; then
+    require_root
+    doctor
+    exit $?
+fi
+
+if [[ "${1:-}" == "test" ]]; then
+    require_root
+    compose exec -T app php bin/mucho-e2e.php
+    exit $?
+fi
+
+if [[ "${1:-}" == "search" ]]; then
+    require_root
+    compose exec -T app php bin/mucho-search.php "${@:2}"
+    exit $?
+fi
+
+if [[ "${1:-}" == "level" ]]; then
+    require_root
+    compose exec -T app php bin/mucho-level.php "${@:2}"
+    exit $?
+fi
+
+if [[ "${1:-}" == "worker" ]]; then
+    require_root
+    compose exec -T app php bin/mucho-worker.php "${@:2}"
+    exit $?
+fi
+
+if [[ "${1:-}" == "trace" ]]; then
+    require_root
+    compose exec -T app php bin/mucho-trace.php "${@:2}"
+    exit $?
+fi
+
+if [[ "${1:-}" == "backup-verify" ]]; then
+    require_root
+    compose exec -T app php bin/mucho-backup-verify.php "${@:2}"
+    exit $?
+fi
 
 require_root
 main_menu
