@@ -102,9 +102,9 @@ function muchoV2SecurityEvent(
 
 function muchoV2ApplyRateLimit(): void
 {
-    $request = \\MuchoCore\\Http\\Request::fromGlobals();
+    $request = \MuchoCore\\Http\\Request::fromGlobals();
     $endpoint = $request->path;
-    $protection = (new \\MuchoCore\\Security\\MuchoProtect())->inspect(
+    $protection = (new \MuchoCore\\Security\\MuchoProtect())->inspect(
         $request,
         $endpoint
     );
