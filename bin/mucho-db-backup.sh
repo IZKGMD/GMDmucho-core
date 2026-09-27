@@ -179,6 +179,14 @@ if ($user === '' || $db === '') {
     exit(1);
 }
 
+if ($pass === '') {
+    fwrite(
+        STDERR,
+        "ERROR: Database password unavailable in runtime.env/.env\n"
+    );
+    exit(1);
+}
+
 
 function cnfQuote(string $value): string
 {
@@ -222,11 +230,6 @@ PHP
 
 if [ -z "$DB_NAME" ]; then
     echo "[$(date -Is)] ERROR: Empty DB name" >> "$LOG"
-    exit 1
-fi
-
-if [ -z "$pass" ]; then
-    echo "[$(date -Is)] ERROR: Database password is unavailable in runtime.env/.env" >> "$LOG"
     exit 1
 fi
 
