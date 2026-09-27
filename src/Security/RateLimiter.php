@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Security;
 
-final readonly class RateLimiter
+final readonly class RateLimiter implements RateLimitBackend
 {
     private const AUTO_CLEANUP_INTERVAL = 128;
     private const DEFAULT_STALE_AFTER = 3600;
