@@ -591,13 +591,13 @@ SQL);
         'Failed migration must roll back destination changes.'
     );
 
-    $source->exec('ALTER TABLE levels DROP COLUMN starEpic');
+    $source->exec('ALTER TABLE levels DROP COLUMN levelString');
     $schemaFailed = false;
 
     try {
         (new CvoltonDatabaseImporter($target))->preflight($source);
     } catch (Throwable $e) {
-        $schemaFailed = str_contains($e->getMessage(), 'starEpic');
+        $schemaFailed = str_contains($e->getMessage(), 'levelString');
     }
 
     must($schemaFailed, 'Preflight must reject an incompatible source schema before apply.');
