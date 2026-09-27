@@ -387,6 +387,12 @@ final readonly class UserRepository
                 'WHERE p.creator_points > 0 AND COALESCE(p.game_version, 0) >= 20',
                 $sql
             );
+        } elseif ($gameVersion > 0) {
+            $sql = str_replace(
+                'WHERE p.creator_points > 0',
+                'WHERE p.creator_points > 0 AND COALESCE(p.game_version, 0) > 0 AND COALESCE(p.game_version, 0) < 20',
+                $sql
+            );
         }
 
         return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
