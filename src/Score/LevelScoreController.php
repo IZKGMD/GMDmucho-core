@@ -369,7 +369,7 @@ final readonly class LevelScoreController
                     FROM mucho_score_integrity_events si
                     WHERE si.score_type=:integrity_type
                       AND si.score_id=mucho_level_scores.score_id
-                      AND si.status='suspicious'
+                      AND si.status IN ('suspicious','quarantined')
                       AND si.risk_score>=70
                 )
             ";
