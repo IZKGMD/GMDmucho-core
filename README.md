@@ -40,6 +40,7 @@
 
 ---
 
+
 ## ✨ What you get
 
 | Area | Included |
