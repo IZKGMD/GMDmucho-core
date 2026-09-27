@@ -6,7 +6,7 @@ RUNTIME_ENV_FILE="${MUCHO_RUNTIME_ENV_FILE:-/var/lib/muchocore/runtime.env}"
 BACKUP_DIR="$ROOT/backups/database"
 LOG_DIR="$ROOT/logs"
 LOG="$LOG_DIR/db-backup.log"
-LOCK="/run/mucho-db-backup.lock"
+LOCK="${MUCHO_BACKUP_LOCK:-$ROOT/.muchocore-db-backup.lock}"
 
 RETENTION_MINUTES=20160   # 14 days
 
