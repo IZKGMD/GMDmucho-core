@@ -301,3 +301,53 @@ jobs:
         run: |
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/client/client-patcher.ps1 -SelfTest
 
+  migration-integration:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: ci-migration-root
+          MARIADB_DATABASE: mysql
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h 127.0.0.1 -u root -pci-migration-root --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+          --health-start-period=20s
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_mysql, zip
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Install MariaDB client tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends mariadb-client
+
+      - name: Wait for MariaDB
+        run: |
+          for _ in {1..30}; do
+            if mariadb-admin ping -h 127.0.0.1 -u root -pci-migration-root --silent; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Run end-to-end Cvolton migration test
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/cvolton-migration-integration.php
