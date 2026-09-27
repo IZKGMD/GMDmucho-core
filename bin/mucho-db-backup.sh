@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-ROOT="/var/www/mucho-core"
+ROOT="${MUCHO_CORE_ROOT:-/var/www/mucho-core}"
+RUNTIME_ENV_FILE="${MUCHO_RUNTIME_ENV_FILE:-/var/lib/muchocore/runtime.env}"
 BACKUP_DIR="$ROOT/backups/database"
 LOG_DIR="$ROOT/logs"
 LOG="$LOG_DIR/db-backup.log"
@@ -55,56 +56,57 @@ php /dev/stdin "$TMP_CNF" <<'PHP'
 $root = '/var/www/mucho-core';
 $cnf  = $argv[1];
 
-$envFile = $root . '/.env';
-
-if (!is_file($envFile)) {
-    fwrite(STDERR, "ERROR: .env not found\n");
-    exit(1);
-}
-
-$lines = file(
-    $envFile,
-    FILE_IGNORE_NEW_LINES |
-    FILE_SKIP_EMPTY_LINES
-);
-
 $env = [];
 
-foreach ($lines as $line) {
-
-    $line = trim($line);
-
-    if (
-        $line === '' ||
-        str_starts_with($line, '#')
-    ) {
+foreach ([
+    $root . '/.env',
+    $runtimeEnvFile,
+] as $envFile) {
+    if (!is_file($envFile)) {
         continue;
     }
 
-    if (str_starts_with($line, 'export ')) {
-        $line = substr($line, 7);
-    }
-
-    $pos = strpos($line, '=');
-
-    if ($pos === false) {
-        continue;
-    }
-
-    $key = trim(substr($line, 0, $pos));
-    $value = trim(substr($line, $pos + 1));
-
-    if (
-        strlen($value) >= 2 &&
-        (
-            ($value[0] === '"' && $value[-1] === '"') ||
-            ($value[0] === "'" && $value[-1] === "'")
-        )
+    foreach (
+        file(
+            $envFile,
+            FILE_IGNORE_NEW_LINES |
+            FILE_SKIP_EMPTY_LINES
+        ) ?: [] as $line
     ) {
-        $value = substr($value, 1, -1);
-    }
+        $line = trim($line);
 
-    $env[$key] = $value;
+        if (
+            $line === '' ||
+            str_starts_with($line, '#')
+        ) {
+            continue;
+        }
+
+        if (str_starts_with($line, 'export ')) {
+            $line = substr($line, 7);
+        }
+
+        $pos = strpos($line, '=');
+
+        if ($pos === false) {
+            continue;
+        }
+
+        $key = trim(substr($line, 0, $pos));
+        $value = trim(substr($line, $pos + 1));
+
+        if (
+            strlen($value) >= 2 &&
+            (
+                ($value[0] === '"' && $value[-1] === '"') ||
+                ($value[0] === "'" && $value[-1] === "'")
+            )
+        ) {
+            $value = substr($value, 1, -1);
+        }
+
+        $env[$key] = $value;
+    }
 }
 
 
@@ -220,6 +222,11 @@ PHP
 
 if [ -z "$DB_NAME" ]; then
     echo "[$(date -Is)] ERROR: Empty DB name" >> "$LOG"
+    exit 1
+fi
+
+if [ -z "$pass" ]; then
+    echo "[$(date -Is)] ERROR: Database password is unavailable in runtime.env/.env" >> "$LOG"
     exit 1
 fi
 
