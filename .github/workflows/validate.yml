@@ -78,6 +78,7 @@ jobs:
           php tests/application/cvolton-db-import-contract.php
           php tests/application/comment-contract.php
           php tests/application/social-crud-contract.php
+          php tests/application/v106-hardening-contract.php
           php tests/application/legacy-19-session.php
           php tests/application/security-regressions.php
           bash tests/release/release-update-detection.sh
