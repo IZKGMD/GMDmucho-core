@@ -315,14 +315,18 @@ fi
 
 mv "$TMP" "$FINAL"
 
-chown root:www-data "$FINAL"
+if [ "$(id -u)" -eq 0 ] && getent group www-data >/dev/null 2>&1; then
+    chown root:www-data "$FINAL"
+fi
 chmod 640 "$FINAL"
 
 
 # SHA-256
 sha256sum "$FINAL" > "$FINAL.sha256"
 
-chown root:www-data "$FINAL.sha256"
+if [ "$(id -u)" -eq 0 ] && getent group www-data >/dev/null 2>&1; then
+    chown root:www-data "$FINAL.sha256"
+fi
 chmod 640 "$FINAL.sha256"
 
 
