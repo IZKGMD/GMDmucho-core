@@ -73,8 +73,6 @@ final readonly class MuchoProtect
             'burstWindow' => 10,
             'identityLimit' => 5,
             'identityWindow' => 900,
-            'identityBurst' => 2,
-            'identityBurstWindow' => 60,
         ],
 
         // Read-heavy endpoints: high enough for normal gameplay, low enough
