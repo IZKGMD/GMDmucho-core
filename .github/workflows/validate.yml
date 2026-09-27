@@ -27,6 +27,7 @@ jobs:
           ! grep -nE '\\\$[0-9]+' install.sh
           bash -n uninstall.sh
           bash -n tools/migration/mucho-migrate.sh
+          bash -n bin/mucho
           find tests -name '*.sh' -print0 | xargs -0 -n1 bash -n
           bash tests/release/migration-kit.sh
 
@@ -79,6 +80,7 @@ jobs:
           php tests/application/comment-contract.php
           php tests/application/social-crud-contract.php
           php tests/application/v106-hardening-contract.php
+          php tests/application/v108-intelligence-contract.php
           php tests/application/legacy-19-session.php
           php tests/application/security-regressions.php
           bash tests/release/release-update-detection.sh
@@ -132,6 +134,19 @@ jobs:
           test -f src/Security/DatabaseRateLimiter.php
           test -f src/Security/DatabasePenaltyStore.php
           test -f database/migrations/20260927_001_security_storage.php
+          test -f database/migrations/20260928_001_intelligence_scale.php
+          test -f src/Cache/CacheInterface.php
+          test -f src/Search/LevelSearchIndexer.php
+          test -f src/Level/LevelValidator.php
+          test -f src/Level/LevelRevisionService.php
+          test -f src/Job/JobQueue.php
+          test -f src/Integration/WebhookDispatcher.php
+          test -f bin/mucho-e2e.php
+          test -f bin/mucho-search.php
+          test -f bin/mucho-level.php
+          test -f bin/mucho-worker.php
+          test -f bin/mucho-trace.php
+          test -f bin/mucho-backup-verify.php
           grep -q 'MUCHO_PROTECT_STORAGE' .env.example
           grep -q 'MUCHO_TRUSTED_PROXY_CIDRS' .env.example
           test -f tools/migration/mucho-migrate.sh
