@@ -394,6 +394,87 @@ if (
 }
 
 /*
+ * Network rotation guard: multiple IPs inside one IPv4 /24 share a wider
+ * endpoint budget. Once the shared burst is exceeded, the penalty follows
+ * the network prefix and blocks the next rotated IP too.
+ */
+$networkDir = $dir . '-network';
+$networkProtect = new MuchoProtect(
+    new RateLimiter($networkDir),
+    new \\MuchoCore\\Security\\AbusePenaltyStore($networkDir . '-penalty')
+);
+
+$networkPath = '/uploadGJLevel21';
+
+foreach (range(1, 9) as $index) {
+    $octet = (($index - 1) % 3) + 1;
+
+    $result = $networkProtect->inspect(
+        new Request(
+            'POST',
+            '/uploadGJLevel21.php',
+            [],
+            [],
+            ['REMOTE_ADDR' => '198.18.44.' . $octet]
+        ),
+        $networkPath
+    );
+
+    if ($result['decision'] !== 'allow') {
+        fwrite(STDERR, "MuchoProtect network rotation setup failed at request {$index}\\n");
+        exit(1);
+    }
+}
+
+$networkBlocked = $networkProtect->inspect(
+    new Request(
+        'POST',
+        '/uploadGJLevel21.php',
+        [],
+        [],
+        ['REMOTE_ADDR' => '198.18.44.50']
+    ),
+    $networkPath
+);
+
+if (
+    $networkBlocked['decision'] !== 'block' ||
+    $networkBlocked['reason'] !== 'network_burst_limit'
+) {
+    fwrite(
+        STDERR,
+        "MuchoProtect network rotation guard failed: "
+        . json_encode($networkBlocked, JSON_UNESCAPED_SLASHES)
+        . "\\n"
+    );
+    exit(1);
+}
+
+$networkPenalty = $networkProtect->inspect(
+    new Request(
+        'POST',
+        '/uploadGJLevel21.php',
+        [],
+        [],
+        ['REMOTE_ADDR' => '198.18.44.51']
+    ),
+    $networkPath
+);
+
+if (
+    $networkPenalty['decision'] !== 'block' ||
+    $networkPenalty['reason'] !== 'network_penalty'
+) {
+    fwrite(
+        STDERR,
+        "MuchoProtect network penalty escalation failed: "
+        . json_encode($networkPenalty, JSON_UNESCAPED_SLASHES)
+        . "\\n"
+    );
+    exit(1);
+}
+
+/*
  * Clan routes now have explicit limits instead of falling back to global
  * protection only.
  */
@@ -507,6 +588,8 @@ foreach ([
     $preAuthDir . '-penalty',
     $dir . '-clan',
     $dir . '-clan-penalty',
+    $networkDir,
+    $networkDir . '-penalty',
     $dir . '-global',
     $directPenaltyDir,
 ] as $cleanupDir) {
