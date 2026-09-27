@@ -14,6 +14,7 @@ use MuchoCore\Search\LevelSearchIndexer;
 use MuchoCore\Protocol\GdLevelDownloadEncoder;
 use PDO;
 use RuntimeException;
+use Throwable;
 
 final readonly class LevelTransferService
 {
