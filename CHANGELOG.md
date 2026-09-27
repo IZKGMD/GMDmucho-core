@@ -1,3 +1,32 @@
+## v1.0.7 — Post-v1.0.6 Audit Hardening
+
+### Migration Safety
+
+- made the interactive Migration Center require a verified target database backup before schema preparation or imported-data writes;
+- validate backup existence, minimum size and SHA-256 checksum before the migration can proceed;
+- added regression coverage that enforces the backup-before-schema ordering.
+
+### Plugin SDK Privacy
+
+- lifecycle events now receive sanitized request snapshots with a strict non-secret protocol field allow-list;
+- plugin lifecycle responses expose transport metadata only, not response bodies;
+- plugin failure events expose the exception class name instead of the original exception object or message;
+- documented the lifecycle event privacy contract and added regression coverage.
+
+### Runtime Consistency
+
+- v7.1 now prefers the canonical MuchoCore database connection before legacy adapter fallbacks;
+- API v2 now uses the same canonical database runtime first, while retaining its existing advanced fallback path;
+- removed a duplicate v7.1 canonical connection block introduced during hardening.
+
+### Documentation & Release
+
+- synchronized README and plugin/migration documentation with the actual v1.0.7 behavior;
+- retained the v1.0.6 integrity and compatibility hardening underneath these fixes;
+- validated the release changes with the full Validate, Windows patcher and MariaDB migration integration jobs.
+
+---
+
 ## v1.0.6 — Deep Integrity & Compatibility Hardening
 
 ### Score Integrity & Concurrency
