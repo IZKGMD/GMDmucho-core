@@ -127,94 +127,117 @@ final readonly class PlatformerScoreController
         int $mode
     ): ?int {
 
-        $q=$this->db->prepare("
-            SELECT
-                score_id,
-                time_ms,
-                points
+        $this->db->beginTransaction();
 
-            FROM mucho_platformer_scores
-
-            WHERE account_id=:account
-              AND level_id=:level
-
-            LIMIT 1
-        ");
-
-        $q->execute([
-            'account'=>$accountId,
-            'level'=>$levelId,
-        ]);
-
-        $old=$q->fetch(PDO::FETCH_ASSOC);
-        $now=time();
-
-        if(!$old){
-
+        try {
             $q=$this->db->prepare("
-                INSERT INTO mucho_platformer_scores
-                (
-                    account_id,
-                    level_id,
+                SELECT
+                    score_id,
                     time_ms,
-                    points,
-                    created_at,
-                    updated_at
-                )
-                VALUES
-                (
-                    :account,
-                    :level,
-                    :time,
-                    :points,
-                    :created,
-                    :updated
-                )
+                    points
+
+                FROM mucho_platformer_scores
+
+                WHERE account_id=:account
+                  AND level_id=:level
+
+                LIMIT 1
+                FOR UPDATE
             ");
 
             $q->execute([
                 'account'=>$accountId,
                 'level'=>$levelId,
-                'time'=>$time,
-                'points'=>$points,
-                'created'=>$now,
-                'updated'=>$now,
             ]);
 
-            return (int)$this->db->lastInsertId();
+            $old=$q->fetch(PDO::FETCH_ASSOC);
+            $now=time();
+
+            if(!$old){
+                $q=$this->db->prepare("
+                    INSERT INTO mucho_platformer_scores
+                    (
+                        account_id,
+                        level_id,
+                        time_ms,
+                        points,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES
+                    (
+                        :account,
+                        :level,
+                        :time,
+                        :points,
+                        :created,
+                        :updated
+                    )
+                ");
+
+                $q->execute([
+                    'account'=>$accountId,
+                    'level'=>$levelId,
+                    'time'=>$time,
+                    'points'=>$points,
+                    'created'=>$now,
+                    'updated'=>$now,
+                ]);
+
+                $scoreId=(int)$this->db->lastInsertId();
+                if($scoreId<=0){
+                    throw new RuntimeException('Platformer score insert failed.');
+                }
+
+                $this->db->commit();
+                return $scoreId;
+            }
+
+            $oldTime=(int)$old['time_ms'];
+            $oldPoints=(int)$old['points'];
+
+            $better=
+                $mode===0
+                    ? ($oldTime<=0 || $time<$oldTime)
+                    : ($points>$oldPoints);
+
+            if(!$better){
+                $this->db->rollBack();
+                return null;
+            }
+
+            $q=$this->db->prepare("
+                UPDATE mucho_platformer_scores
+
+                SET
+                    time_ms=:time,
+                    points=:points,
+                    updated_at=:updated
+
+                WHERE score_id=:score
+            ");
+
+            $q->execute([
+                'time'=>$time,
+                'points'=>$points,
+                'updated'=>$now,
+                'score'=>(int)$old['score_id'],
+            ]);
+
+            if($q->rowCount() > 1){
+                throw new RuntimeException('Unexpected platformer score update cardinality.');
+            }
+
+            $scoreId=(int)$old['score_id'];
+            $this->db->commit();
+            return $scoreId;
+        } catch (Throwable $e) {
+            if($this->db->inTransaction()){
+                $this->db->rollBack();
+            }
+
+            throw $e;
         }
-
-        $oldTime=(int)$old['time_ms'];
-        $oldPoints=(int)$old['points'];
-
-        $better=
-            $mode===0
-                ? ($oldTime<=0 || $time<$oldTime)
-                : ($points>$oldPoints);
-
-        if(!$better){
-            return null;
-        }
-
-        $q=$this->db->prepare("
-            UPDATE mucho_platformer_scores
-
-            SET
-                time_ms=:time,
-                points=:points,
-                updated_at=:updated
-
-            WHERE score_id=:score
-        ");
-
-        $q->execute([
-            'time'=>$time,
-            'points'=>$points,
-            'updated'=>$now,
-            'score'=>(int)$old['score_id'],
-        ]);
-
-        return (int)$old['score_id'];
     }
 
 
