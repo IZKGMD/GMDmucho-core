@@ -71,6 +71,8 @@ jobs:
           php tests/application/admin-passkey-contract.php
           php tests/application/admin-password-setup-contract.php
           php tests/application/admin-rbac-contract.php
+          php tests/application/admin-client-rbac-contract.php
+          php tests/application/migration-center-contract.php
           php tests/application/plugin-sdk-contract.php
           php tests/application/score-integrity-contract.php
           php tests/application/cvolton-db-import-contract.php
@@ -82,6 +84,8 @@ jobs:
           php tests/application/music-upload-contract.php
           php tests/application/clan-contract.php
           php tests/security/turnstile.php
+          php tests/security/client-ip-trusted-proxy.php
+          php tests/security/security-storage-contract.php
           php tests/client/client-trace.php
           php tests/security/muchoprotect.php
           php tests/client/windows-client-patcher.php
@@ -113,6 +117,20 @@ jobs:
           test -f docs/ADMIN_RBAC.md
           test -f docs/GETTING_STARTED.md
           test -f docs/MIGRATION_KIT.md
+          test -f docs/MIGRATION_CENTER.md
+          test -f bin/mucho
+          test -x bin/mucho
+          test -f bin/mucho-migrate.php
+          test -f bin/muchodb-password
+          test -x bin/muchodb-password
+          test -f src/Migration/SourceDetector.php
+          test -f src/Security/RateLimitBackend.php
+          test -f src/Security/PenaltyStoreBackend.php
+          test -f src/Security/DatabaseRateLimiter.php
+          test -f src/Security/DatabasePenaltyStore.php
+          test -f database/migrations/20260927_001_security_storage.php
+          grep -q 'MUCHO_PROTECT_STORAGE' .env.example
+          grep -q 'MUCHO_TRUSTED_PROXY_CIDRS' .env.example
           test -f tools/migration/mucho-migrate.sh
           test -x tools/migration/mucho-migrate.sh
           test -f tests/release/migration-kit.sh
