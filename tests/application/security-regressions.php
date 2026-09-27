@@ -120,6 +120,26 @@ $musicUpload = (string)file_get_contents(
 $legacyLevelTransfer = (string)file_get_contents(
     __DIR__ . '/../../src/Level/LevelTransferController.php'
 );
+$v2Security = (string)file_get_contents(
+    __DIR__ . '/../../public/api/v2/security.php'
+);
+$v2MusicUpload = (string)file_get_contents(
+    __DIR__ . '/../../public/api/v2/music-upload.php'
+);
+
+assertSecurityRegression(
+    str_contains($v2Security, '\\MuchoCore\\Security\\MuchoProtect') &&
+    str_contains($v2Security, 'MuchoCore\\Http\\Request::fromGlobals') &&
+    !str_contains($v2Security, 'mucho_api_rate_limits'),
+    'API v2 rate limiting is routed through the central MuchoProtect engine'
+);
+
+assertSecurityRegression(
+    !str_contains($v2MusicUpload, 'new \\MuchoCore\\Security\\RateLimiter') &&
+    str_contains($v2Security, "'account_rate_limit' => 900"),
+    'music upload uses the central account identity window without a second limiter'
+);
+
 
 assertSecurityRegression(
     str_contains(
