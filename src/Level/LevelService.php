@@ -81,7 +81,7 @@ final readonly class LevelService
                     'game_version' => $gameVersion,
                     'demon_filter' => $demonFilter,
                     'input' => $cacheInput,
-                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE)
             );
             $cached = $this->cache->get($cacheKey);
             if ($cached !== null) {
