@@ -1,3 +1,28 @@
+## v1.0.6 — Deep Integrity & Compatibility Hardening
+
+### Score Integrity & Concurrency
+
+- serialized regular and Platformer score writes with database transactions and row locks;
+- eliminated the select-then-insert race that could occur when the same player submitted concurrent results;
+- kept the existing best-score semantics while making failed score writes roll back cleanly;
+- regular score leaderboards now exclude inactive and banned accounts at the database query layer;
+- Platformer score leaderboards now exclude inactive and banned accounts consistently.
+
+### Social & Account Data Correctness
+
+- corrected friend-request deletion, friend removal and unblock operations to report whether a real mutation occurred;
+- kept friend-request read operations idempotent while still rejecting missing requests;
+- fixed numeric player search counts so user-ID searches paginate against the correct total;
+- kept creator leaderboards version-aware for both modern 2.x and legacy 1.x clients;
+- top and creator leaderboards no longer publish inactive or banned accounts.
+
+### Regression Coverage
+
+- added dedicated v1.0.6 hardening contracts for score concurrency structure, leaderboard filtering, search counting and compatibility behavior;
+- retained full validation, migration integration and Windows patcher gates for the release.
+
+---
+
 ## v1.0.5 — Platform Hardening & Operator Center
 
 ### Security & Authorization
