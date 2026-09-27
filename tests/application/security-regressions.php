@@ -226,6 +226,26 @@ assertSecurityRegression(
     'anonymous like identity is keyed by IP without weakening authenticated uniqueness'
 );
 
+$installer = (string)file_get_contents(
+    __DIR__ . '/../../install.sh'
+);
+$recoveryService = (string)file_get_contents(
+    __DIR__ . '/../../src/Account/RecoveryService.php'
+);
+
+assertSecurityRegression(
+    str_contains($installer, 'Admin username: $ADMIN_USER') &&
+    str_contains($installer, 'The admin panel username is: $ADMIN_USER'),
+    'installer reports the configured administrator username'
+);
+
+assertSecurityRegression(
+    str_contains($recoveryService, 'MuchoCore — Account recovery') &&
+    str_contains($recoveryService, '<html lang="en">') &&
+    str_contains($recoveryService, 'Hello, {$username}!'),
+    'account recovery email copy uses the English project language'
+);
+
 $frontController = (string)file_get_contents(
     __DIR__ . '/../../public/index.php'
 );
