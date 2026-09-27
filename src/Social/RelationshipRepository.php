@@ -150,12 +150,28 @@ final readonly class RelationshipRepository
 
     public function readRequest(int $accountId, int $requestId): bool
     {
+        $exists = $this->pdo->prepare(
+            'SELECT 1
+             FROM friend_requests
+             WHERE id=:rid AND to_account_id=:aid
+             LIMIT 1'
+        );
+        $exists->execute([
+            'rid'=>$requestId,
+            'aid'=>$accountId,
+        ]);
+
+        if ($exists->fetchColumn() === false) {
+            return false;
+        }
+
         $q = $this->pdo->prepare(
             'UPDATE friend_requests
              SET is_read=1
              WHERE id=:rid AND to_account_id=:aid'
         );
         $q->execute(['rid'=>$requestId,'aid'=>$accountId]);
+
         return true;
     }
 
@@ -232,7 +248,7 @@ final readonly class RelationshipRepository
 
         $q = $this->pdo->prepare($sql);
         $q->execute(['me'=>$accountId,'target'=>$target]);
-        return true;
+        return $q->rowCount() > 0;
     }
 
     public function removeFriend(int $a, int $b): bool
@@ -252,7 +268,7 @@ final readonly class RelationshipRepository
             'a2'=>$a,
         ]);
 
-        return true;
+        return $q->rowCount() > 0;
     }
 
     public function block(int $a, int $b): bool
@@ -313,7 +329,7 @@ final readonly class RelationshipRepository
                AND blocked_account_id=:b'
         );
         $q->execute(['a'=>$a,'b'=>$b]);
-        return true;
+        return $q->rowCount() > 0;
     }
 
     public function userList(int $accountId, int $type): array
