@@ -14,7 +14,7 @@
   <a href="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml">
     <img src="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml/badge.svg" alt="CI">
   </a>
-  <img src="https://img.shields.io/badge/release-v1.0.7-8A2BE2" alt="Stable release">
+  <img src="https://img.shields.io/badge/release-v1.0.8-8A2BE2" alt="Stable release">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/PHP-8.3-777BB4" alt="PHP 8.3">
   <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2-success" alt="Geometry Dash 1.0 through 2.2">
@@ -32,7 +32,8 @@
   <a href="docs/CLIENT_COMPATIBILITY.md">🧩 Compatibility</a> ·
   <a href="docs/SHOWCASE.md">🌍 Showcase</a> ·
   <a href="docs/ADMIN_RBAC.md">🔐 Admin RBAC</a> ·
-  <a href="docs/CUSTOM_PLUGINS.md">🧩 Custom Plugins</a>
+  <a href="docs/CUSTOM_PLUGINS.md">🧩 Custom Plugins</a> ·
+  <a href="docs/V108_INTELLIGENCE.md">⚡ Intelligence & Scale</a>
 </p>
 
 > ⚡ **MuchoCore is a maintainable Geometry Dash Private Server foundation for owners who want one server core, version-aware compatibility, an integrated admin panel, client patching tools, and a security layer that can be validated in CI.**
@@ -56,6 +57,7 @@
 | 🧰 **Client patchers** | Windows desktop patcher, browser-based Windows patcher and Android APK patcher |
 | 🐳 **Deployment** | Docker Compose, MariaDB, PHP 8.3, Caddy, automatic migrations, one-command manual updates and release detection |
 | 🔄 **Operator onboarding** | Getting Started guide plus a Migration Kit with read-only preflight, verified target backup, transactional import, healthcheck and migration reports |
+| ⚡ **Intelligence & Scale** | Level validation, indexed search, short response cache, level revisions, background jobs, signed webhooks, trace analysis and backup verification |
 | 🧪 **Validation** | PHP, shell, protocol, wire-format, security, patcher, Docker, Caddy and migration-tool checks in GitHub Actions |
 
 ---
@@ -569,27 +571,28 @@ Before large changes, back up the database and verify that your Cloud Save secre
 
 ---
 
-## 📦 MuchoCore v1.0.7
+## 📦 MuchoCore v1.0.8
 
-**v1.0.7** is the current stable release of MuchoCore.
+**v1.0.8** is the current stable release of MuchoCore.
 
-This release hardens the post-v1.0.6 runtime without changing the core Geometry Dash protocol model.
+This is a major **Intelligence & Scale** release built on the v1.0.6/v1.0.7 integrity, compatibility and operational foundation.
 
 ### Included
 
-- verified target database backup before the interactive Migration Center prepares or writes the destination;
-- SHA-256 verification of migration backups before import starts;
-- sanitized Plugin SDK request lifecycle events so credentials, cookies, arbitrary parameters and response bodies are not exposed to plugins;
-- sanitized plugin failure events to expose the exception class instead of the original exception object;
-- canonical MuchoCore database configuration is preferred by both v7.1 and API v2 runtimes, with legacy fallbacks preserved;
-- updated migration and plugin documentation to match the actual runtime behavior;
-- expanded regression contracts for migration safety, plugin event privacy, runtime database consistency and release metadata.
+- Level Integrity & Validation Engine with structural limits, UTF-8 checks, payload fingerprints and non-fatal diagnostics;
+- derived MuchoSearch indexing for normalized level and creator search, with legacy SQL fallback when the index is unavailable;
+- short-lived public level response caching with database default, optional Redis and explicit disable mode;
+- level revision history with compressed payload snapshots, SHA-256 fingerprints and transactional restore;
+- database-backed background jobs with safe claiming, retry handling, stale-job recovery and a dedicated Docker worker;
+- signed operator webhooks for account and level lifecycle events plus system alerts;
+- enriched safe client traces with request IDs, response fingerprints, response size and latency, plus trace inspection/diff tooling;
+- read-only operator E2E smoke testing and local backup integrity verification with verification history;
+- new Admin **Intelligence & Scale** dashboard showing index coverage, revisions, jobs, cache records and backup verification state;
+- interactive sudo mucho commands for search rebuilds, level diagnostics, workers, traces, backup verification, cache configuration and operator webhooks.
 
-The v1.0.6 score, leaderboard, search and social hardening remains included; v1.0.7 builds on that work with the audit fixes above.
+The existing MuchoProtect security layer, Admin RBAC, passkeys/TOTP, Cvolton migration safety, Cloud Save, Clans, client patchers and multi-generation protocol compatibility remain part of the release.
 
-See **[CHANGELOG.md](CHANGELOG.md)** for the complete v1.0.7 change list.
-
----
+See **[v1.0.8 Intelligence & Scale](docs/V108_INTELLIGENCE.md)** and **[CHANGELOG.md](CHANGELOG.md)** for the complete release details.
 
 ## 🤝 Contributing
 
