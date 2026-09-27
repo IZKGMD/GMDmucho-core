@@ -55,14 +55,13 @@ foreach ([
     }
 }
 
+$prepareAt = strpos($wizard, 'Preparing MuchoCore schema...');
 $backupAt = strpos($wizard, 'Creating verified target database backup...');
-if ($backupAt === false || $backupAt > $prepareAt) {
+if ($backupAt === false || $prepareAt === false || $backupAt > $prepareAt) {
     throw new RuntimeException(
         'Target backup must be created and verified before schema preparation.'
     );
 }
-
-$prepareAt = strpos($wizard, 'Preparing MuchoCore schema...');
 $dryRunExitAt = strpos($wizard, 'if (!$requestedApply)');
 
 if ($prepareAt === false || $dryRunExitAt === false || $prepareAt < $dryRunExitAt) {
