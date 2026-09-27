@@ -15,6 +15,9 @@ foreach([
     "--confirm=COVOLTON",
     "CVOLTON_SOURCE_PASS",
     "invalid source database name",
+    "createVerifiedTargetBackup",
+    "mucho-db-backup.sh",
+    "TARGET_BACKUP=",
 ] as $needle){
     if(strpos($cli,$needle)===false){
         throw new RuntimeException(
@@ -49,6 +52,27 @@ if(
 ){
     throw new RuntimeException(
         'Cvolton platformer score import must follow platscores.ID.'
+    );
+}
+
+$kit=file_get_contents(
+    dirname(__DIR__,2).'/tools/migration/mucho-migrate.sh'
+);
+
+if($kit===false){
+    throw new RuntimeException('Unable to read Migration Kit.');
+}
+
+if(strpos($kit,'--apply')===false || strpos($kit,'--confirm=COVOLTON')===false){
+    throw new RuntimeException('Migration Kit apply contract is missing.');
+}
+
+if(
+    strpos($kit,'TARGET_BACKUP=')===false ||
+    strpos($kit,'mucho-db-backup.sh')===false
+){
+    throw new RuntimeException(
+        'Migration Kit must require a verified target backup before apply.'
     );
 }
 
