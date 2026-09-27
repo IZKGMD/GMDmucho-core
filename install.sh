@@ -291,6 +291,9 @@ fi
 [[ -f "$INSTALL_DIR/docker-compose.yml" ]] ||
   fail "The selected stable release does not contain docker-compose.yml."
 
+if [[ -x "$INSTALL_DIR/bin/mucho" ]]; then ln -sfn "$INSTALL_DIR/bin/mucho" /usr/local/bin/mucho; fi
+if [[ -x "$INSTALL_DIR/bin/muchodb-password" ]]; then ln -sfn "$INSTALL_DIR/bin/muchodb-password" /usr/local/bin/muchodb-password; fi
+
 install -d -m 700 "$INSTALL_DIR/.secrets"
 
 # Generate isolated credentials for the local integration-test tenant.
@@ -389,6 +392,8 @@ TZ=UTC
 MUCHO_GD_VERSIONS=$GD_VERSIONS
 CADDY_EXTRA_HOSTS=$CADDY_EXTRA_HOSTS
 MUCHOCORE_SITE_HOST=disabled.invalid
+MUCHO_PROTECT_STORAGE=file
+MUCHO_TRUSTED_PROXY_CIDRS=
 MUCHO_AUTO_UPDATE=1
 MUCHO_AUTO_UPDATE_INTERVAL=15min
 EOFENV
