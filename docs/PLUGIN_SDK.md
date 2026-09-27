@@ -4,16 +4,16 @@ MuchoCore includes a lightweight PHP Plugin SDK for extending the server without
 
 ## Plugin layout
 
-Create a directory under plugins:
+Create a directory under `custom/plugins`:
 
-    plugins/
+    custom/plugins/
       my-plugin/
         manifest.json
         plugin.php
 
 manifest.json defines the plugin name, version, enabled state and permissions.
 
-plugin.php must return an object implementing MuchoCorePluginPluginInterface.
+plugin.php must return an object implementing `MuchoCore\Plugin\PluginInterface`.
 
 ## Permissions
 
@@ -60,3 +60,8 @@ Move the plugin root with:
     MUCHO_PLUGIN_DIR=/opt/mucho-plugins
 
 The SDK permission manifest is an API contract, not a process sandbox. Plugins execute as application PHP and should therefore only come from trusted sources.
+
+
+### Request event privacy
+
+`request.received`, `request.completed` and `request.failed` expose a sanitized `MuchoCore\Http\Request` snapshot. Only a small whitelist of non-secret protocol fields is included; credentials, cookies, forwarded headers and arbitrary request parameters are omitted. `request.completed` exposes a sanitized `MuchoCore\Http\Response` with status and content type only; the response body is omitted. `request.failed` exposes the exception class name instead of the original exception object or message.
