@@ -26,7 +26,12 @@ final class ClientIp
             FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
         ) === false;
 
-        if (!$isPrivateProxy) {
+        $trustedProxyCidrs = self::trustedProxyCidrs();
+        if ($trustedProxyCidrs !== []) {
+            if (!self::ipInAnyCidr($remote, $trustedProxyCidrs)) {
+                return $remote;
+            }
+        } elseif (!$isPrivateProxy) {
             return $remote;
         }
 
@@ -56,5 +61,50 @@ final class ClientIp
         }
 
         return $remote;
+    }
+
+    /** @return list<string> */
+    private static function trustedProxyCidrs(): array
+    {
+        $raw = $_ENV['MUCHO_TRUSTED_PROXY_CIDRS']
+            ?? $_SERVER['MUCHO_TRUSTED_PROXY_CIDRS']
+            ?? getenv('MUCHO_TRUSTED_PROXY_CIDRS')
+            ?? '';
+        $tokens = preg_split('/[\\s,]+/', trim((string)$raw)) ?: [];
+        $result = [];
+        foreach ($tokens as $token) {
+            $token = trim($token);
+            if ($token === '') continue;
+            if (!str_contains($token, '/')) {
+                $token .= (filter_var($token, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false) ? '/128' : '/32';
+            }
+            [$network, $prefix] = array_pad(explode('/', $token, 2), 2, '');
+            if (filter_var($network, FILTER_VALIDATE_IP) === false || !ctype_digit($prefix)) continue;
+            $max = filter_var($network, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false ? 128 : 32;
+            $prefixInt = (int)$prefix;
+            if ($prefixInt < 0 || $prefixInt > $max) continue;
+            $result[] = $network . '/' . $prefixInt;
+        }
+        return array_values(array_unique($result));
+    }
+
+    /** @param list<string> $cidrs */
+    private static function ipInAnyCidr(string $ip, array $cidrs): bool
+    {
+        $packedIp = inet_pton($ip);
+        if ($packedIp === false) return false;
+        foreach ($cidrs as $cidr) {
+            [$network, $prefix] = explode('/', $cidr, 2);
+            $packedNetwork = inet_pton($network);
+            if ($packedNetwork === false || strlen($packedNetwork) !== strlen($packedIp)) continue;
+            $prefixInt = (int)$prefix;
+            $fullBytes = intdiv($prefixInt, 8);
+            $remainingBits = $prefixInt % 8;
+            if ($fullBytes > 0 && substr($packedIp, 0, $fullBytes) !== substr($packedNetwork, 0, $fullBytes)) continue;
+            if ($remainingBits === 0) return true;
+            $mask = (0xFF << (8 - $remainingBits)) & 0xFF;
+            if ((ord($packedIp[$fullBytes]) & $mask) === (ord($packedNetwork[$fullBytes]) & $mask)) return true;
+        }
+        return false;
     }
 }
