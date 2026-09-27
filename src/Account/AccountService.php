@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Account;
 
+use MuchoCore\Job\JobQueue;
 use PDO;
 use Throwable;
 
@@ -15,6 +16,7 @@ final readonly class AccountService
     public function __construct(
         private PDO $pdo,
         private AccountRepository $accounts,
+        private JobQueue $jobs,
     ) {}
 
     public function register(
@@ -77,6 +79,21 @@ final readonly class AccountService
             $this->accounts->audit($accountId, 'account.register', $ip);
 
             $this->pdo->commit();
+
+            try {
+                $this->jobs->enqueue(
+                    'webhook.dispatch',
+                    [
+                        'event' => 'account.registered',
+                        'request_id' => (string)($_SERVER['MUCHO_REQUEST_ID'] ?? ''),
+                        'data' => [
+                            'account_id' => $accountId,
+                            'username' => $username,
+                        ],
+                    ]
+                );
+            } catch (Throwable) {
+            }
 
             return '1';
         } catch (Throwable $e) {

@@ -2760,6 +2760,7 @@ require_once __DIR__.'/core/AdminRouter.php';
 require_once __DIR__.'/pages/dashboard.php';
 require_once __DIR__.'/pages/release.php';
 require_once __DIR__.'/pages/plugins.php';
+require_once __DIR__.'/pages/intelligence.php';
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     checkCsrf();
@@ -2787,6 +2788,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             requireRank(30);
 
             $id=(int)$_POST['id'];
+
+            $oldAccount=$db->prepare(
+                'SELECT username FROM accounts WHERE account_id=:id LIMIT 1'
+            );
+            $oldAccount->execute(['id'=>$id]);
+            $oldUsername=(string)($oldAccount->fetchColumn() ?: '');
 
             $role=trim((string)$_POST['role']);
 
@@ -2817,12 +2824,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                  WHERE account_id=:id'
             );
 
+            $newUsername=substr(
+                trim((string)$_POST['username']),
+                0,
+                20
+            );
+
             $q->execute([
-                'username'=>substr(
-                    trim((string)$_POST['username']),
-                    0,
-                    20
-                ),
+                'username'=>$newUsername,
                 'email'=>substr(
                     trim((string)$_POST['email']),
                     0,
@@ -2833,6 +2842,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 'banned'=>isset($_POST['banned'])?1:0,
                 'id'=>$id
             ]);
+
+            if ($oldUsername !== $newUsername) {
+                (new \MuchoCore\Search\LevelSearchIndexer($db))
+                    ->rebuildAccount($id);
+            }
 
             audit($db,'account.save',(string)$id);
             flash('Account saved.');
@@ -5037,7 +5051,7 @@ table{
 <nav>
 
 <div class="nav-title">Main</div>
-<?php foreach(['dashboard','analytics','advanced','monitoring'] as $key): ?>
+<?php foreach(['dashboard','analytics','advanced','monitoring','intelligence'] as $key): ?>
 <?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
@@ -5485,6 +5499,10 @@ elseif($page==='advanced') {
 
 elseif($page==='monitoring') {
     require __DIR__.'/monitoring-module.php';
+}
+
+elseif($page==='intelligence') {
+    renderIntelligenceScalePage($db);
 }
 
 /* =========================================================

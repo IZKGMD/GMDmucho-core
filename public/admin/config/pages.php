@@ -24,6 +24,7 @@ return [
 
     'analytics'=>'Analytics',
     'monitoring'=>'Monitoring',
+    'intelligence'=>'Intelligence & Scale',
 
     'securitycenter'=>'Security & Monitoring',
     'dbbackups'=>'DB Backup Center',

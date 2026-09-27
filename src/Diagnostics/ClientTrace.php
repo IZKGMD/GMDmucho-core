@@ -10,6 +10,7 @@ use MuchoCore\Http\Response;
 final class ClientTrace
 {
     private static ?Request $request = null;
+    private static float $startedAt = 0.0;
 
     public static function captureRequest(Request $request): void
     {
@@ -18,6 +19,7 @@ final class ClientTrace
         }
 
         self::$request = $request;
+        self::$startedAt = microtime(true);
     }
 
     public static function captureResponse(Response $response): void
@@ -30,15 +32,21 @@ final class ClientTrace
 
         $entry = [
             'time' => gmdate('c'),
+            'request_id' => (string)($_SERVER['MUCHO_REQUEST_ID'] ?? ''),
             'method' => self::$request->method,
             'path' => self::$request->path,
             'status' => $response->status,
             'content_type' => $response->contentType,
+            'response_length' => strlen($response->body),
+            'response_sha256' => hash('sha256', $response->body),
             'client_family' => $version->family(),
             'game_version' => $version->gameVersion,
             'binary_version' => $version->binaryVersion,
             'query_keys' => array_values(array_map('strval', array_keys(self::$request->query))),
             'post_keys' => self::safeKeys(self::$request->post),
+            'duration_ms' => self::$startedAt > 0
+                ? round((microtime(true) - self::$startedAt) * 1000, 3)
+                : null,
         ];
 
         $path = getenv('MUCHO_CLIENT_TRACE_FILE')

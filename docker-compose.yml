@@ -43,6 +43,15 @@ services:
       MUCHO_CLIENT_TRACE: ${MUCHO_CLIENT_TRACE:-0}
       MUCHO_CLIENT_TRACE_FILE: ${MUCHO_CLIENT_TRACE_FILE:-/var/www/mucho-core/storage/client-trace.ndjson}
       MUCHO_GD_VERSIONS: ${MUCHO_GD_VERSIONS:-all}
+      MUCHO_CACHE_DRIVER: ${MUCHO_CACHE_DRIVER:-database}
+      MUCHO_LEVEL_CACHE_TTL: ${MUCHO_LEVEL_CACHE_TTL:-15}
+      MUCHO_REDIS_HOST: ${MUCHO_REDIS_HOST:-127.0.0.1}
+      MUCHO_REDIS_PORT: ${MUCHO_REDIS_PORT:-6379}
+      MUCHO_REDIS_PASSWORD: ${MUCHO_REDIS_PASSWORD:-}
+      MUCHO_REDIS_DATABASE: ${MUCHO_REDIS_DATABASE:-0}
+      MUCHO_WEBHOOK_URL: ${MUCHO_WEBHOOK_URL:-}
+      MUCHO_WEBHOOK_SECRET: ${MUCHO_WEBHOOK_SECRET:-}
+      MUCHO_WEBHOOK_EVENTS: ${MUCHO_WEBHOOK_EVENTS:-*}
     secrets:
       - db_password
       - admin_password
@@ -107,6 +116,36 @@ services:
       - muchocore_testgdps_runtime:/var/lib/muchocore
     depends_on:
       testgdps-db:
+        condition: service_healthy
+
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    command: ["php", "/var/www/mucho-core/bin/mucho-worker.php", "--loop", "--sleep=2"]
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      MUCHO_DB_PASSWORD_FILE: /run/secrets/db_password
+      MUCHO_CACHE_DRIVER: ${MUCHO_CACHE_DRIVER:-database}
+      MUCHO_REDIS_HOST: ${MUCHO_REDIS_HOST:-127.0.0.1}
+      MUCHO_REDIS_PORT: ${MUCHO_REDIS_PORT:-6379}
+      MUCHO_REDIS_PASSWORD: ${MUCHO_REDIS_PASSWORD:-}
+      MUCHO_REDIS_DATABASE: ${MUCHO_REDIS_DATABASE:-0}
+      MUCHO_WEBHOOK_URL: ${MUCHO_WEBHOOK_URL:-}
+      MUCHO_WEBHOOK_SECRET: ${MUCHO_WEBHOOK_SECRET:-}
+      MUCHO_WEBHOOK_EVENTS: ${MUCHO_WEBHOOK_EVENTS:-*}
+    secrets:
+      - db_password
+    volumes:
+      - ./:/var/www/mucho-core
+      - muchocore_runtime:/var/lib/muchocore
+    depends_on:
+      db:
         condition: service_healthy
 
   caddy:

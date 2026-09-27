@@ -193,6 +193,64 @@ set_admin_password() {
     echo "Admin password updated."
 }
 
+set_cache_driver() {
+    local value ttl
+    echo
+    echo "1) Database (default, no extra service)"
+    echo "2) Redis (optional)"
+    echo "3) Disabled"
+    read -r -p "Select: " value
+    case "$value" in
+        1) value="database" ;;
+        2) value="redis" ;;
+        3) value="none" ;;
+        *) echo "Invalid selection."; return 1 ;;
+    esac
+
+    env_set MUCHO_CACHE_DRIVER "$value"
+
+    read -r -p "Level cache TTL in seconds [15]: " ttl
+    ttl="\${ttl:-15}"
+
+    [[ "$ttl" =~ ^[0-9]+$ ]] || {
+        echo "Invalid TTL."
+        return 1
+    }
+
+    ttl=$((ttl < 1 ? 1 : ttl))
+    ttl=$((ttl > 300 ? 300 : ttl))
+    env_set MUCHO_LEVEL_CACHE_TTL "$ttl"
+
+    restart_services
+    echo "Cache driver: $value (TTL \${ttl}s)"
+}
+
+set_webhook() {
+    local url secret events
+    echo
+    echo "Optional operator webhook"
+    read -r -p "Webhook URL (empty disables): " url
+
+    if [[ -n "$url" ]]; then
+        [[ "$url" =~ ^https?://[^[:space:]]+$ ]] || {
+            echo "Invalid webhook URL."
+            return 1
+        }
+    fi
+
+    read -r -s -p "Webhook secret (empty = unsigned): " secret
+    printf '\n'
+    read -r -p "Events CSV [*]: " events
+    events="\${events:-*}"
+
+    env_set MUCHO_WEBHOOK_URL "$url"
+    env_set MUCHO_WEBHOOK_SECRET "$secret"
+    env_set MUCHO_WEBHOOK_EVENTS "$events"
+
+    restart_services
+    echo "Webhook configuration saved."
+}
+
 set_auto_update() {
     local value
     echo
@@ -315,6 +373,8 @@ configuration_menu() {
         echo "5) Toggle YouTube import"
         echo "6) Toggle music moderation"
         echo "7) Automatic updates"
+        echo "8) Cache"
+        echo "9) Operator webhook"
         echo "0) Back"
         echo
         local choice
@@ -327,12 +387,56 @@ configuration_menu() {
             5) toggle_env MUCHO_ENABLE_YOUTUBE_IMPORT "YouTube import" ;;
             6) toggle_music_moderation ;;
             7) set_auto_update ;;
+            8) set_cache_driver ;;
+            9) set_webhook ;;
             0) return ;;
             *) echo "Invalid selection." ;;
         esac
         read -r -p "Press Enter..." _
     done
 }
+
+if [[ "${1:-}" == "doctor" ]]; then
+    require_root
+    doctor
+    exit $?
+fi
+
+if [[ "${1:-}" == "test" ]]; then
+    require_root
+    compose exec -T app php bin/mucho-e2e.php
+    exit $?
+fi
+
+if [[ "${1:-}" == "search" ]]; then
+    require_root
+    compose exec -T app php bin/mucho-search.php "${@:2}"
+    exit $?
+fi
+
+if [[ "${1:-}" == "level" ]]; then
+    require_root
+    compose exec -T app php bin/mucho-level.php "${@:2}"
+    exit $?
+fi
+
+if [[ "${1:-}" == "worker" ]]; then
+    require_root
+    compose exec -T app php bin/mucho-worker.php "${@:2}"
+    exit $?
+fi
+
+if [[ "${1:-}" == "trace" ]]; then
+    require_root
+    compose exec -T app php bin/mucho-trace.php "${@:2}"
+    exit $?
+fi
+
+if [[ "${1:-}" == "backup-verify" ]]; then
+    require_root
+    compose exec -T app php bin/mucho-backup-verify.php "${@:2}"
+    exit $?
+fi
 
 require_root
 main_menu

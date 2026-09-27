@@ -1,3 +1,46 @@
+## v1.0.8 — Intelligence & Scale
+
+### Level Intelligence
+
+- added MuchoCore LevelValidator with structural, size, UTF-8 and payload integrity checks;
+- added SHA-256 level payload fingerprints and non-fatal validation warnings;
+- integrated validation into the level upload/update lifecycle without changing legacy protocol response encoding;
+- added compressed level revision history with transactional restore support.
+
+### Search & Performance
+
+- added the derived mucho_level_search_index with normalized creator/name fields and MariaDB full-text support;
+- kept the canonical level repository as the source of truth and retained the legacy SQL search fallback;
+- added short-lived level response caching with database, optional Redis and disabled modes;
+- invalidated level search caches after writes and removals;
+- refreshed creator search index entries after administrator username changes.
+
+### Background Operations
+
+- added the MariaDB-backed mucho_jobs queue with transactional reservation, retries and stale-job recovery;
+- added a dedicated Docker worker for level indexing, webhook delivery and maintenance cleanup;
+- made background failures non-fatal to successful Geometry Dash protocol responses.
+
+### Observability & Operations
+
+- added signed operator webhooks with event filtering and HMAC-SHA256 signatures;
+- unified healthcheck alert creation through AlertService;
+- enriched safe client traces with request IDs, response length, response SHA-256 and latency;
+- added mucho trace inspect and mucho trace diff;
+- added mucho test for database/schema and optional read-only HTTP smoke checks;
+- added mucho backup-verify with gzip, SQL-sample and SHA-256 checks plus verification history;
+- added the Admin Intelligence & Scale dashboard;
+- added interactive cache and webhook settings to sudo mucho.
+
+### Deployment & Documentation
+
+- added the v1.0.8 intelligence/scale migration;
+- added Docker worker configuration and documented all new environment settings;
+- expanded CI with v1.0.8 contracts and required-file checks;
+- preserved the v1.0.7 audit hardening and v1.0.6 integrity/compatibility work underneath the new subsystems.
+
+---
+
 ## v1.0.7 — Post-v1.0.6 Audit Hardening
 
 ### Migration Safety

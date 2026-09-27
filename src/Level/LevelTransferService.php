@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace MuchoCore\Level;
 
 use MuchoCore\Account\AccountAuthenticator;
+use MuchoCore\Cache\CacheInterface;
+use MuchoCore\Job\JobQueue;
 use MuchoCore\Compatibility\ClientVersion;
 use MuchoCore\Compatibility\Legacy10IdentityService;
 use MuchoCore\Protocol\GdLegacyText;
+use MuchoCore\Search\LevelSearchIndexer;
 use MuchoCore\Protocol\GdLevelDownloadEncoder;
 use PDO;
 use RuntimeException;
+use Throwable;
 
 final readonly class LevelTransferService
 {
@@ -22,7 +26,12 @@ final readonly class LevelTransferService
         private AccountAuthenticator $auth,
         private Legacy10IdentityService $legacy10,
         private LevelTransferRepository $repository,
-        private GdLevelDownloadEncoder $downloadEncoder
+        private GdLevelDownloadEncoder $downloadEncoder,
+        private LevelValidator $validator,
+        private LevelRevisionService $revisions,
+        private LevelSearchIndexer $searchIndexer,
+        private CacheInterface $cache,
+        private JobQueue $jobs
     ) {}
 
     public function upload(
@@ -72,6 +81,8 @@ final readonly class LevelTransferService
         );
 
         /* Never allow a client to update another user's level by ID alone. */
+        $existing = null;
+
         if ($levelId > 0) {
             $existing = $this->repository->findLevel($levelId);
 
@@ -302,7 +313,49 @@ final readonly class LevelTransferService
             $levelData['level_id'] = $levelId;
         }
 
-        return $this->repository->saveLevel($levelData);
+        $validation = $this->validator::validate($levelData);
+        if (!$validation['ok']) {
+            throw new RuntimeException(
+                'LEVEL_INVALID:' . implode(',', $validation['errors'])
+            );
+        }
+
+        $savedId = $this->repository->saveLevel($levelData);
+        $saved = $this->repository->findLevel($savedId);
+
+        if ($saved !== null) {
+            $this->revisions->record(
+                $saved,
+                $accountId,
+                $existing === null ? 'upload' : 'update'
+            );
+            $this->searchIndexer->upsert($savedId);
+            $this->cache->deletePrefix('mucho:levels:');
+
+            try {
+                $this->jobs->enqueue(
+                    'level.index',
+                    ['level_id' => $savedId]
+                );
+                $this->jobs->enqueue(
+                    'webhook.dispatch',
+                    [
+                        'event' => $existing === null ? 'level.uploaded' : 'level.updated',
+                        'request_id' => (string)($_SERVER['MUCHO_REQUEST_ID'] ?? ''),
+                        'data' => [
+                            'level_id' => $savedId,
+                            'account_id' => $accountId,
+                            'name' => (string)($saved['name'] ?? ''),
+                            'game_version' => (int)($saved['game_version'] ?? 0),
+                        ],
+                    ]
+                );
+            } catch (Throwable) {
+                // Background work is best-effort and must not break GD traffic.
+            }
+        }
+
+        return $savedId;
     }
 
     public function checkUpdate(
@@ -791,7 +844,7 @@ final readonly class LevelTransferService
             return false;
         }
 
-        return $this->repository->updateDescription(
+        $updated = $this->repository->updateDescription(
             $levelId,
             $accountId,
             GdLegacyText::encodeDescriptionUpdateForStorage(
@@ -799,6 +852,13 @@ final readonly class LevelTransferService
                 $gameVersion
             )
         );
+
+        if ($updated) {
+            $this->searchIndexer->upsert($levelId);
+            $this->cache->deletePrefix('mucho:levels:');
+        }
+
+        return $updated;
     }
 
     public function delete(
@@ -825,10 +885,31 @@ final readonly class LevelTransferService
             return false;
         }
 
-        return $this->repository->deleteLevel(
+        $deleted = $this->repository->deleteLevel(
             $levelId,
             $accountId
         );
+
+        if ($deleted) {
+            $this->searchIndexer->delete($levelId);
+            $this->cache->deletePrefix('mucho:levels:');
+            try {
+                $this->jobs->enqueue(
+                    'webhook.dispatch',
+                    [
+                        'event' => 'level.deleted',
+                        'request_id' => (string)($_SERVER['MUCHO_REQUEST_ID'] ?? ''),
+                        'data' => [
+                            'level_id' => $levelId,
+                            'account_id' => $accountId,
+                        ],
+                    ]
+                );
+            } catch (Throwable) {
+            }
+        }
+
+        return $deleted;
     }
 
     private function stringField(
