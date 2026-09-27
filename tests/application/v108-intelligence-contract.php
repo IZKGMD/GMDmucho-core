@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 require dirname(__DIR__, 2) . '/src/Level/LevelValidator.php';
 require dirname(__DIR__, 2) . '/src/Search/LevelSearchIndexer.php';
+$config = require dirname(__DIR__, 2) . '/public/admin/config/pages.php';
+require dirname(__DIR__, 2) . '/src/Admin/AdminRbac.php';
 
 use MuchoCore\Level\LevelValidator;
 use MuchoCore\Search\LevelSearchIndexer;
+use MuchoCore\Admin\AdminRbac;
 
 $valid = LevelValidator::validate([
     'account_id' => 123,
@@ -47,6 +50,18 @@ foreach ([
 
 if (LevelSearchIndexer::normalize("  My   LEVEL  ") !== 'my level') {
     throw new RuntimeException('search normalization contract failed');
+}
+
+if (($config['intelligence'] ?? null) !== 'Intelligence & Scale') {
+    throw new RuntimeException('intelligence admin page registry contract failed');
+}
+
+$ref = new ReflectionClass(AdminRbac::class);
+$source = file_get_contents(
+    dirname(__DIR__, 2) . '/src/Admin/AdminRbac.php'
+);
+if (!is_string($source) || !str_contains($source, "'intelligence' => 'monitoring.view'")) {
+    throw new RuntimeException('intelligence RBAC mapping contract failed');
 }
 
 echo "MUCHOCORE_V108_INTELLIGENCE_OK\n";
