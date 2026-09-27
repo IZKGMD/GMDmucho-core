@@ -102,106 +102,48 @@ function muchoV2SecurityEvent(
 
 function muchoV2ApplyRateLimit(): void
 {
-    $route=muchoV2Route();
-
-    /*
-     * Defaults are intentionally generous.
-     * Endpoint-specific limits stay stricter.
-     */
-    $limit=240;
-    $window=60;
-
-    if(str_contains($route,'heartbeat')){
-        $limit=120;
-    }
-
-    elseif(str_contains($route,'music-upload')){
-        $limit=20;
-    }
-
-    elseif(str_contains($route,'profile')){
-        $limit=180;
-    }
-
-    elseif(str_contains($route,'client-config')){
-        $limit=180;
-    }
-
-    $ip=muchoV2ClientIp();
-    $now=time();
-    $windowStart=
-        intdiv($now,$window)*$window;
-
-    $key=hash(
-        'sha256',
-        $ip.'|'.$route
+    $request = \\MuchoCore\\Http\\Request::fromGlobals();
+    $endpoint = $request->path;
+    $protection = (new \\MuchoCore\\Security\\MuchoProtect())->inspect(
+        $request,
+        $endpoint
     );
 
-    $db=muchoV2Db();
-
-    $q=$db->prepare("
-        INSERT INTO mucho_api_rate_limits
-        (
-            bucket_key,
-            window_start,
-            hits
-        )
-        VALUES (?, ?, 1)
-
-        ON DUPLICATE KEY UPDATE
-
-            hits=
-                IF(
-                    window_start < VALUES(window_start),
-                    1,
-                    hits+1
-                ),
-
-            window_start=
-                IF(
-                    window_start < VALUES(window_start),
-                    VALUES(window_start),
-                    window_start
-                )
-    ");
-
-    $q->execute([
-        $key,
-        $windowStart
-    ]);
-
-    $q=$db->prepare("
-        SELECT hits
-        FROM mucho_api_rate_limits
-        WHERE bucket_key=?
-    ");
-
-    $q->execute([$key]);
-
-    $hits=(int)$q->fetchColumn();
-
-    if($hits>$limit){
-
-        muchoV2SecurityEvent(
-            'rate_limit',
-            [
-                'hits'=>$hits,
-                'limit'=>$limit,
-                'window'=>$window
-            ]
-        );
-
-        if(!headers_sent()){
-            header('Retry-After: 60');
-        }
-
-        muchoV2Send([
-            'ok'=>false,
-            'api'=>'MuchoCore',
-            'error'=>'rate_limited',
-            'retry_after_seconds'=>60
-        ],429);
+    if ($protection['decision'] !== 'block') {
+        return;
     }
+
+    $retryAfter = match ($protection['reason']) {
+        'global_rate_limit' => 60,
+        'global_burst_limit' => 10,
+        'network_rate_limit' => 60,
+        'network_burst_limit' => 10,
+        'ip_rate_limit' => 60,
+        'burst_limit' => 10,
+        'temporary_penalty', 'network_penalty', 'account_penalty',
+        'username_penalty', 'email_penalty', 'device_penalty' => 15,
+        default => 60,
+    };
+
+    muchoV2SecurityEvent(
+        'rate_limit',
+        [
+            'reason' => $protection['reason'],
+            'retry_after' => $retryAfter,
+        ]
+    );
+
+    if (!headers_sent()) {
+        header('Retry-After: ' . $retryAfter);
+    }
+
+    muchoV2Send([
+        'ok' => false,
+        'api' => 'MuchoCore',
+        'version' => MUCHO_V2_VERSION,
+        'error' => 'rate_limited',
+        'retry_after_seconds' => $retryAfter,
+    ], 429);
 }
 
 
