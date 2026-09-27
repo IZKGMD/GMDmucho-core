@@ -180,3 +180,7 @@ The core can inspect plugin manifests without executing plugin code. The Admin P
 
 This diagnostic path is read-only and does not modify plugin files.
 
+
+## Lifecycle event privacy
+
+`request.received`, `request.completed` and `request.failed` use sanitized request/response event payloads. Credentials, cookies, forwarded headers, arbitrary request parameters and response bodies are omitted; failure events expose only the exception class name. Plugins should rely on documented event metadata rather than expecting raw HTTP payloads.
