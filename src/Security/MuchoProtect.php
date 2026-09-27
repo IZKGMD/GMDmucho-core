@@ -28,6 +28,28 @@ final readonly class MuchoProtect
         '/updategjleveldesc20' => ['limit' => 30, 'window' => 60, 'burst' => 8, 'burstWindow' => 10],
         '/uploadgjlevellist' => ['limit' => 5, 'window' => 60, 'burst' => 2, 'burstWindow' => 15],
         '/deletegjlevellist' => ['limit' => 10, 'window' => 60, 'burst' => 3, 'burstWindow' => 15],
+        '/updategjusername' => ['limit' => 20, 'window' => 60, 'burst' => 5, 'burstWindow' => 10],
+
+        // Clan API: authenticated writes get both IP and account/device limits.
+        '/api/clans/create' => ['limit' => 4, 'window' => 300, 'burst' => 2, 'burstWindow' => 30],
+        '/api/clans/my' => ['limit' => 120, 'window' => 60, 'burst' => 30, 'burstWindow' => 10],
+        '/api/clans/get' => ['limit' => 120, 'window' => 60, 'burst' => 30, 'burstWindow' => 10],
+        '/api/clans/search' => ['limit' => 60, 'window' => 60, 'burst' => 15, 'burstWindow' => 10],
+        '/api/clans/join' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
+        '/api/clans/leave' => ['limit' => 10, 'window' => 60, 'burst' => 3, 'burstWindow' => 10],
+        '/api/clans/invite' => ['limit' => 30, 'window' => 60, 'burst' => 8, 'burstWindow' => 10],
+        '/api/clans/invite/accept' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
+        '/api/clans/invite/decline' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
+        '/api/clans/kick' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
+        '/api/clans/role' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
+        '/api/clans/invites' => ['limit' => 60, 'window' => 60, 'burst' => 15, 'burstWindow' => 10],
+        '/api/clans/settings' => ['limit' => 10, 'window' => 60, 'burst' => 3, 'burstWindow' => 10],
+        '/api/clans/transfer' => ['limit' => 4, 'window' => 300, 'burst' => 2, 'burstWindow' => 30],
+        '/api/clans/disband' => ['limit' => 4, 'window' => 300, 'burst' => 2, 'burstWindow' => 30],
+        '/api/clans/invite/revoke' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
+        '/api/clans/ban' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
+        '/api/clans/unban' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
+        '/api/clans/bans' => ['limit' => 30, 'window' => 60, 'burst' => 8, 'burstWindow' => 10],
 
         // Read-heavy endpoints: high enough for normal gameplay, low enough
         // to prevent a single client from turning them into a DB flood.
@@ -125,10 +147,7 @@ final readonly class MuchoProtect
         }
 
         $ip = $request->clientIp();
-        $identity = $this->identityFingerprint($request);
-        $identityKey = $identity !== null
-            ? 'identity:' . $identity . ':endpoint:' . $endpoint
-            : null;
+        $identityKeys = $this->identityKeys($request);
 
         $ipPenaltyKey = 'ip:' . $ip . ':endpoint:' . $endpoint;
         $ipPenalty = $this->penalties->status($ipPenaltyKey);
@@ -144,18 +163,19 @@ final readonly class MuchoProtect
             return ['decision' => 'block', 'reason' => 'temporary_penalty'];
         }
 
-        if ($identityKey !== null) {
-            $identityPenalty = $this->penalties->status($identityKey);
+        foreach ($identityKeys as $kind => $identityKey) {
+            $penaltyKey = $kind . ':' . $identityKey . ':endpoint:' . $endpoint;
+            $identityPenalty = $this->penalties->status($penaltyKey);
 
             if ($identityPenalty['active']) {
                 $this->audit(
                     $request,
                     $endpoint,
-                    'account_penalty',
+                    $kind . '_penalty',
                     $identityPenalty['remaining'],
                     $identityPenalty['strikes']
                 );
-                return ['decision' => 'block', 'reason' => 'account_penalty'];
+                return ['decision' => 'block', 'reason' => $kind . '_penalty'];
             }
         }
 
@@ -231,23 +251,27 @@ final readonly class MuchoProtect
             return ['decision' => 'block', 'reason' => 'burst_limit'];
         }
 
-        if (
-            $identityKey !== null &&
-            !$this->allow(
-                $identityKey,
+        foreach ($identityKeys as $kind => $identityKey) {
+            $identityRateKey = $kind . ':' . $identityKey . ':endpoint:' . $endpoint;
+
+            if (!$this->allow(
+                $identityRateKey,
                 $policy['limit'],
                 $policy['window']
-            )
-        ) {
-            $penalty = $this->penalties->penalize($identityKey);
-            $this->audit(
-                $request,
-                $endpoint,
-                'account_rate_limit',
-                $penalty['seconds'],
-                $penalty['strikes']
-            );
-            return ['decision' => 'block', 'reason' => 'account_rate_limit'];
+            )) {
+                $penalty = $this->penalties->penalize($identityRateKey);
+                $this->audit(
+                    $request,
+                    $endpoint,
+                    $kind . '_rate_limit',
+                    $penalty['seconds'],
+                    $penalty['strikes']
+                );
+                return [
+                    'decision' => 'block',
+                    'reason' => $kind . '_rate_limit'
+                ];
+            }
         }
 
         return ['decision' => 'allow', 'reason' => 'ok'];
@@ -331,16 +355,74 @@ final readonly class MuchoProtect
         return substr($endpoint, 0, 256);
     }
 
-    private function identityFingerprint(Request $request): ?string
+    /**
+     * Build non-spoofable request identities without ever trusting accountID
+     * on its own. Authenticated requests use accountID + credential; pre-auth
+     * requests use username/email, while legacy clients may contribute a UDID.
+     *
+     * @return array<string,string> kind => stable hashed identity
+     */
+    private function identityKeys(Request $request): array
     {
+        $keys = [];
+
         $accountId = $this->accountId($request);
         $credential = $request->gdCredential();
 
-        if ($accountId === null || $credential === '') {
-            return null;
+        if ($accountId !== null && $credential !== '') {
+            $keys['account'] = hash(
+                'sha256',
+                'account:' . $accountId . ':' . $credential
+            );
         }
 
-        return hash('sha256', $accountId . ':' . $credential);
+        $username = $this->inputString($request, 'userName');
+        if ($username === '') {
+            $username = $this->inputString($request, 'username');
+        }
+
+        $email = $this->inputString($request, 'email');
+        $udid = $this->inputString($request, 'udid');
+
+        if ($username !== '') {
+            $keys['username'] = hash(
+                'sha256',
+                'username:' . strtolower(trim($username))
+            );
+        }
+
+        if ($email !== '') {
+            $keys['email'] = hash(
+                'sha256',
+                'email:' . strtolower(trim($email))
+            );
+        }
+
+        if ($udid !== '') {
+            $keys['device'] = hash(
+                'sha256',
+                'udid:' . trim($udid)
+            );
+        }
+
+        return $keys;
+    }
+
+    private function inputString(Request $request, string $key): string
+    {
+        $value = $request->post[$key] ?? $request->query[$key] ?? '';
+
+        if (!is_string($value)) {
+            return '';
+        }
+
+        $value = trim($value);
+
+        if ($value === '' || strlen($value) > 256) {
+            return '';
+        }
+
+        return $value;
     }
 
     private function accountId(Request $request): ?int
