@@ -1,0 +1,69 @@
+name: Rename MuchoCore 1.0.8x releases
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/rename-muchocore-releases.yml
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    if: github.event.after != github.event.before
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rename releases and assets
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const moves = [
+              { from: "v1.0.41", to: "v1.0.81" },
+              { from: "v1.0.42", to: "v1.0.82" },
+            ];
+
+            for (const move of moves) {
+              const { data: release } = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: move.from,
+              });
+
+              const targetCommitish =
+                release.target_commitish || move.from;
+
+              const { data: updated } = await github.rest.repos.updateRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.id,
+                tag_name: move.to,
+                target_commitish: targetCommitish,
+                name: `MuchoCore ${move.to}`,
+              });
+
+              for (const asset of release.assets) {
+                const newName = asset.name.replaceAll(move.from, move.to);
+                if (newName !== asset.name) {
+                  await github.rest.repos.updateReleaseAsset({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    asset_id: asset.id,
+                    name: newName,
+                  });
+                }
+              }
+
+              try {
+                await github.rest.git.deleteRef({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: `tags/${move.from}`,
+                });
+              } catch (error) {
+                core.warning(`Could not delete old tag ${move.from}: ${error.message}`);
+              }
+
+              core.info(`Renamed release ${move.from} -> ${updated.tag_name}`);
+            }
