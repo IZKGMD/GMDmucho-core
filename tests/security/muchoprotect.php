@@ -270,6 +270,170 @@ if ($differentCredential['decision'] !== 'allow') {
     exit(1);
 }
 
+/*
+ * Pre-auth identity protection: login attempts for one username remain
+ * throttled even when the attacker rotates source IPs.
+ */
+$preAuthDir = $dir . '-preauth';
+$preAuthProtect = new MuchoProtect(
+    new RateLimiter($preAuthDir),
+    new \MuchoCore\Security\AbusePenaltyStore($preAuthDir . '-penalty')
+);
+$loginSubject = '/loginGJAccount';
+
+for ($i = 0; $i < 12; $i++) {
+    $result = $preAuthProtect->inspect(
+        new Request(
+            'POST',
+            '/loginGJAccount22.php',
+            [],
+            [
+                'userName' => 'TargetPlayer',
+                'password' => 'wrong-password',
+                'gameVersion' => '22',
+                'binaryVersion' => '42',
+            ],
+            ['REMOTE_ADDR' => '198.51.100.' . ($i + 1)]
+        ),
+        $loginSubject
+    );
+
+    if ($result['decision'] !== 'allow') {
+        fwrite(STDERR, "MuchoProtect pre-auth username setup failed at request {$i}\n");
+        exit(1);
+    }
+}
+
+$preAuthBlocked = $preAuthProtect->inspect(
+    new Request(
+        'POST',
+        '/loginGJAccount22.php',
+        [],
+        [
+            'userName' => 'TargetPlayer',
+            'password' => 'wrong-password',
+            'gameVersion' => '22',
+            'binaryVersion' => '42',
+        ],
+        ['REMOTE_ADDR' => '198.51.100.200']
+    ),
+    $loginSubject
+);
+
+if (
+    $preAuthBlocked['decision'] !== 'block' ||
+    $preAuthBlocked['reason'] !== 'username_rate_limit'
+) {
+    fwrite(
+        STDERR,
+        "MuchoProtect pre-auth username limit failed: "
+        . json_encode($preAuthBlocked, JSON_UNESCAPED_SLASHES)
+        . "\n"
+    );
+    exit(1);
+}
+
+/*
+ * Legacy clients without credentials can still be throttled by a stable
+ * device identity (UDID) while source IP changes.
+ */
+$deviceBlocked = $preAuthProtect->inspect(
+    new Request(
+        'POST',
+        '/uploadGJLevel21.php',
+        [],
+        [
+            'udid' => 'legacy-device-123',
+        ],
+        ['REMOTE_ADDR' => '203.0.113.200']
+    ),
+    '/uploadGJLevel21'
+);
+if ($deviceBlocked['decision'] !== 'allow') {
+    fwrite(STDERR, "MuchoProtect first device request unexpectedly blocked\n");
+    exit(1);
+}
+
+for ($i = 0; $i < 7; $i++) {
+    $preAuthProtect->inspect(
+        new Request(
+            'POST',
+            '/uploadGJLevel21.php',
+            [],
+            [
+                'udid' => 'legacy-device-123',
+            ],
+            ['REMOTE_ADDR' => '203.0.113.' . ($i + 1)]
+        ),
+        '/uploadGJLevel21'
+    );
+}
+
+$deviceLimit = $preAuthProtect->inspect(
+    new Request(
+        'POST',
+        '/uploadGJLevel21.php',
+        [],
+        ['udid' => 'legacy-device-123'],
+        ['REMOTE_ADDR' => '203.0.113.250']
+    ),
+    '/uploadGJLevel21'
+);
+
+if (
+    $deviceLimit['decision'] !== 'block' ||
+    $deviceLimit['reason'] !== 'device_rate_limit'
+) {
+    fwrite(
+        STDERR,
+        "MuchoProtect device identity limit failed: "
+        . json_encode($deviceLimit, JSON_UNESCAPED_SLASHES)
+        . "\n"
+    );
+    exit(1);
+}
+
+/*
+ * Clan routes now have explicit limits instead of falling back to global
+ * protection only.
+ */
+$clanProtect = new MuchoProtect(
+    new RateLimiter($dir . '-clan'),
+    new \MuchoCore\Security\AbusePenaltyStore($dir . '-clan-penalty')
+);
+$clanRequest = new Request(
+    'POST',
+    '/api/clans/create',
+    [],
+    [
+        'accountID' => '777',
+        'gjp2' => 'credential-clan',
+    ],
+    ['REMOTE_ADDR' => '192.0.2.220']
+);
+
+for ($i = 0; $i < 4; $i++) {
+    $result = $clanProtect->inspect($clanRequest, '/api/clans/create');
+    if ($result['decision'] !== 'allow') {
+        fwrite(STDERR, "MuchoProtect clan create policy failed at request {$i}\n");
+        exit(1);
+    }
+}
+
+$clanBlocked = $clanProtect->inspect($clanRequest, '/api/clans/create');
+if (
+    $clanBlocked['decision'] !== 'block' ||
+    $clanBlocked['reason'] !== 'ip_rate_limit'
+) {
+    fwrite(
+        STDERR,
+        "MuchoProtect clan create limit failed: "
+        . json_encode($clanBlocked, JSON_UNESCAPED_SLASHES)
+        . "\n"
+    );
+    exit(1);
+}
+
 $strictFailurePath = $dir . '-strict-failure';
 if (file_put_contents($strictFailurePath, 'x') === false) {
     fwrite(STDERR, "Unable to create strict limiter fixture\n");
@@ -339,6 +503,10 @@ foreach ([
     $accountDir,
     $accountDir . '-penalty',
     $dir . '-penalty',
+    $preAuthDir,
+    $preAuthDir . '-penalty',
+    $dir . '-clan',
+    $dir . '-clan-penalty',
     $dir . '-global',
     $directPenaltyDir,
 ] as $cleanupDir) {
