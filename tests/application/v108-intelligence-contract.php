@@ -34,7 +34,7 @@ $invalid = LevelValidator::validate([
 
 foreach ([
     'invalid_account_id',
-    'invalid_level_name',
+    'level_name_contains_control_characters',
     'empty_level_data',
     'invalid_game_version',
 ] as $reason) {
