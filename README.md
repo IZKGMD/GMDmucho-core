@@ -569,37 +569,24 @@ Before large changes, back up the database and verify that your Cloud Save secre
 
 ---
 
-## 📦 MuchoCore v1.0.5
+## 📦 MuchoCore v1.0.6
 
-**v1.0.5** is the current stable release of MuchoCore.
+**v1.0.6** is the current stable release of MuchoCore.
 
-This release bundles the next reliability layer into one operator-focused update while keeping MuchoProtect soft by default.
+This release focuses on deep integrity and compatibility hardening across score writes, leaderboards, player search, social mutation semantics and regression coverage.
 
 ### Included
 
-- canonical AdminRbac authorization across the Admin Panel and MuchoAdminClient API;
-- optional score-integrity quarantine for suspicious regular and Platformer results;
-- MariaDB-backed shared MuchoProtect storage for multi-container deployments, with file storage remaining the default;
-- configurable trusted proxy CIDRs for safer X-Forwarded-For handling;
-- guided Migration Center with schema detection, read-only preflight, dry-run and explicit apply confirmation;
-- interactive VPS Control Center via `sudo mucho`;
-- database password rotation via `sudo muchodb-password`;
-- stable update checks based on GitHub's published latest release plus Git ancestry protection;
-- expanded security, migration and operator regression coverage.
+- serialized regular and Platformer score writes with database transactions and row locks;
+- eliminated the concurrent score write race while preserving existing best-score semantics;
+- database-level filtering keeps inactive and banned accounts out of regular and Platformer leaderboards;
+- corrected friend-request deletion, friend removal and unblock mutation reporting;
+- preserved idempotent friend-request reads while rejecting missing requests;
+- fixed numeric player-search counts and pagination semantics;
+- kept creator leaderboards version-aware across modern 2.x and legacy 1.x clients;
+- added dedicated v1.0.6 hardening contracts while retaining migration, client and deployment gates.
 
-### Operator flow
-
-```text
-sudo mucho
-  ↓
-Migration Center / configuration / backup / diagnostics
-  ↓
-/health → 1
-  ↓
-Geometry Dash client
-```
-
-See **[CHANGELOG.md](CHANGELOG.md)** for the complete v1.0.5 change list.
+See **[CHANGELOG.md](CHANGELOG.md)** for the complete v1.0.6 change list.
 
 ---
 
