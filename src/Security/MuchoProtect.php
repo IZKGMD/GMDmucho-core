@@ -21,7 +21,7 @@ final readonly class MuchoProtect
      */
     private const NETWORK_FACTOR = 3;
 
-    /** @var array<string, array{limit:int, window:int, burst:int, burstWindow:int, identityLimit?:int, identityWindow?:int, identityBurst?:int, identityBurstWindow?:int}> */
+    /** @var array<string, array{limit:int, window:int, burst:int, burstWindow:int, identityLimit?:int, identityWindow?:int}> */
     private const POLICIES = [
         '/logingjaccount' => ['limit' => 12, 'window' => 60, 'burst' => 5, 'burstWindow' => 10],
         '/registergjaccount' => ['limit' => 6, 'window' => 300, 'burst' => 2, 'burstWindow' => 30],
@@ -338,9 +338,6 @@ final readonly class MuchoProtect
             $identityRateKey = $kind . ':' . $identityKey . ':endpoint:' . $endpoint;
             $identityLimit = $policy['identityLimit'] ?? $policy['limit'];
             $identityWindow = $policy['identityWindow'] ?? $policy['window'];
-            $identityBurst = $policy['identityBurst'] ?? $policy['burst'];
-            $identityBurstWindow = $policy['identityBurstWindow'] ?? $policy['burstWindow'];
-
             if (!$this->allow(
                 $identityRateKey,
                 $identityLimit,
@@ -357,24 +354,6 @@ final readonly class MuchoProtect
                 return [
                     'decision' => 'block',
                     'reason' => $kind . '_rate_limit'
-                ];
-            }
-            if (!$this->allow(
-                $identityRateKey . ':burst',
-                $identityBurst,
-                $identityBurstWindow
-            )) {
-                $penalty = $this->penalties->penalize($identityRateKey);
-                $this->audit(
-                    $request,
-                    $endpoint,
-                    $kind . '_burst_limit',
-                    $penalty['seconds'],
-                    $penalty['strikes']
-                );
-                return [
-                    'decision' => 'block',
-                    'reason' => $kind . '_burst_limit'
                 ];
             }
         }
