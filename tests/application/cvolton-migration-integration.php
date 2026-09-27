@@ -564,11 +564,11 @@ SQL);
 
     $source->exec(
         "INSERT INTO accounts (accountID,userName,password,gjp2,email,isActive)
-         VALUES (3,'Migrator!','unsupported','', 'conflict@example.test',1)"
+         VALUES (3,'ConflictUser','unsupported','', 'migrator@example.test',1)"
     );
     $source->exec(
         "INSERT INTO users (extID,userName)
-         VALUES ('3','Migrator!')"
+         VALUES ('3','ConflictUser')"
     );
 
     $before = scalar($target, 'SELECT COUNT(*) FROM accounts');
