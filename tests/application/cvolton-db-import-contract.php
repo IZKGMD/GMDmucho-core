@@ -69,7 +69,7 @@ if(strpos($kit,'--apply')===false || strpos($kit,'--confirm=COVOLTON')===false){
 
 if(
     strpos($kit,'TARGET_BACKUP=')===false ||
-    strpos($kit,'mucho-db-backup.sh')===false
+    strpos($kit,'--apply')===false
 ){
     throw new RuntimeException(
         'Migration Kit must require a verified target backup before apply.'
