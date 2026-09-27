@@ -14,7 +14,7 @@
   <a href="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml">
     <img src="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml/badge.svg" alt="CI">
   </a>
-  <img src="https://img.shields.io/badge/release-v1.0.41-8A2BE2" alt="Stable release">
+  <img src="https://img.shields.io/badge/release-v1.0.42-8A2BE2" alt="Stable release">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/PHP-8.3-777BB4" alt="PHP 8.3">
   <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2-success" alt="Geometry Dash 1.0 through 2.2">
@@ -569,35 +569,32 @@ Before large changes, back up the database and verify that your Cloud Save secre
 
 ---
 
-## 📦 MuchoCore v1.0.4
+## 📦 MuchoCore v1.0.42
 
-**v1.0.4** is the current stable release of MuchoCore.
+**v1.0.42** is the current stable release of MuchoCore.
 
-This release focuses on making MuchoCore easier to discover, easier to evaluate before adoption, and safer to run alongside existing GDPS tenant deployments.
+This release consolidates the security hardening and compatibility work added since v1.0.41 while keeping MuchoProtect deliberately soft for normal players.
 
 ### Included
 
-- canonical MuchoCore product page at **[/muchocore/](https://muchogdps.space/muchocore/)**;
-- machine-readable SoftwareApplication and FAQ structured data;
-- dedicated documentation coverage for compatibility, architecture, Cvolton migration, plugins, security, deployment and administration;
-- responsive product-page layout with direct links to source, releases and setup documentation;
-- crawler directives for OAI-SearchBot, GPTBot, Googlebot and Google-Extended;
-- canonical **sitemap.xml** and **llms.txt** discovery surfaces;
-- explicit **MUCHOCORE_SITE_HOST** isolation for the public MuchoCore discovery surface;
-- non-canonical GDPS hosts return **404** for MuchoCore product/discovery paths;
-- fresh installations default the public MuchoCore discovery host to **disabled.invalid**;
-- normal GDPS tenant navigation no longer exposes the MuchoCore product page automatically;
-- added the operator-friendly **Migration Kit** for Cvolton/GMDprivateServer-style migrations with read-only preflight, verified target backup, transactional apply, post-migration healthcheck and local migration reports;
-- added **GETTING_STARTED.md** as the shortest installation and migration guide for new GDPS owners;
-- added a dedicated **MIGRATION_KIT.md** with exact commands, safety model, password handling and migration scope;
-- added automated Migration Kit contract checks to the release validation suite;
-- the same version-aware backend and production tooling remain available across the supported Geometry Dash generations documented above.
+- pre-auth identity throttling for usernames and email addresses;
+- stable legacy-device/UDID throttling;
+- complete Clan API rate and burst coverage;
+- secondary IPv4 /24 and IPv6 /64 rotation budgets with short exponential penalties;
+- one central MuchoProtect engine for both legacy endpoints and API v2;
+- preserved API v2 JSON 429 semantics and the music-upload 5-per-15-minute account budget;
+- bounded stale-state cleanup for file-backed rate-limit and penalty storage;
+- Clan System v2 settings, ownership transfer, disbanding, invitation revocation and persistent bans;
+- first-class GD 1.1 and GD 1.5 compatibility profiles, plus verified GD 1.6 build 16 support;
+- safer installer messaging for custom administrator usernames;
+- English-language account recovery email templates;
+- expanded security and compatibility regression coverage.
 
 ### Release safety
 
-v1.0.4 is a published stable GitHub Release and is the version referenced by the repository's release/update tooling.
+The production updater follows published stable GitHub Releases and deploys the exact release tag.
 
-See **[CHANGELOG.md](CHANGELOG.md)** and the **[v1.0.4 release](https://github.com/IZKGMD/GMDmucho-core/releases/tag/v1.0.4)** for release-specific details.
+See **[CHANGELOG.md](CHANGELOG.md)** and the **[v1.0.42 release](https://github.com/IZKGMD/GMDmucho-core/releases/tag/v1.0.42)** for release-specific details.
 
 ---
 
