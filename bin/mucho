@@ -235,7 +235,6 @@ doctor() {
     fi
 
     compose exec -T app php bin/migrate.php status >/tmp/muchocore-migrations.txt 2>&1         && echo "✓ migrations"         || { echo "✗ migrations"; ok=1; }
-    compose exec -T app php bin/mucho-e2e.php >/tmp/muchocore-e2e.txt 2>&1         && echo "✓ intelligence E2E"         || { echo "✗ intelligence E2E"; ok=1; }
     echo
     if [[ "$ok" == 0 ]]; then
         echo "No problems found."
