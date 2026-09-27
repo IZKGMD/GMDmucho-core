@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: "MuchoCore"
+message: "If you use MuchoCore in a project, server, article, benchmark, or other technical work, please cite this software."
+type: software
+abstract: >-
+  MuchoCore is an open-source PHP 8.3+ Geometry Dash Private Server (GDPS)
+  core for hosting, migrating, securing, and operating self-hosted Geometry
+  Dash private servers with MariaDB, Docker, Caddy, an integrated Admin Panel,
+  client patching tools, and version-aware Geometry Dash protocol compatibility.
+authors:
+  - family-names: "IZK"
+    given-names: "MuchoCore Maintainers"
+repository-code: "https://github.com/IZKGMD/GMDmucho-core"
+url: "https://muchogdps.space/muchocore/"
+license: "MIT"
+keywords:
+  - "geometry-dash"
+  - "geometry-dash-private-server"
+  - "gdps"
+  - "gdps-core"
+  - "geometry-dash-server"
+  - "php"
+  - "mariadb"
+  - "docker"
+  - "cvolton"
+  - "private-server"
