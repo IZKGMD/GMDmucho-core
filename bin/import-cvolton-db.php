@@ -11,7 +11,7 @@ function createVerifiedTargetBackup(): string
 {
     $script = dirname(__DIR__) . '/bin/mucho-db-backup.sh';
 
-    if (!is_file($script) || !is_executable($script)) {
+    if (!is_file($script)) {
         throw new RuntimeException(
             'Verified target backup is unavailable; migration was not started.'
         );
