@@ -219,72 +219,119 @@ final readonly class LevelScoreController
         int $isDaily
     ): ?int {
 
-        $now=time();
+        $this->db->beginTransaction();
 
+        try {
+            $now=time();
 
-        $q=$this->db->prepare("
-            SELECT
-                score_id,
-                percent
+            $q=$this->db->prepare("
+                SELECT
+                    score_id,
+                    percent
 
-            FROM mucho_level_scores
+                FROM mucho_level_scores
 
-            WHERE account_id=:account
-              AND level_id=:level
-              AND is_daily=:daily
+                WHERE account_id=:account
+                  AND level_id=:level
+                  AND is_daily=:daily
 
-            LIMIT 1
-        ");
-
-        $q->execute([
-            'account'=>$accountId,
-            'level'=>$levelId,
-            'daily'=>$isDaily,
-        ]);
-
-        $old=$q->fetch(PDO::FETCH_ASSOC);
-
-
-        if(!$old){
-
-            $insert=$this->db->prepare("
-                INSERT INTO mucho_level_scores
-                (
-                    account_id,
-                    level_id,
-                    is_daily,
-                    daily_id,
-                    percent,
-                    coins,
-                    attempts,
-                    clicks,
-                    play_time,
-                    progresses,
-                    created_at,
-                    updated_at
-                )
-
-                VALUES
-                (
-                    :account,
-                    :level,
-                    :is_daily,
-                    :daily_id,
-                    :percent,
-                    :coins,
-                    :attempts,
-                    :clicks,
-                    :play_time,
-                    :progresses,
-                    :created_at,
-                    :updated_at
-                )
+                LIMIT 1
+                FOR UPDATE
             ");
 
-            $insert->execute([
+            $q->execute([
                 'account'=>$accountId,
                 'level'=>$levelId,
-                'is_daily'=>$isDaily,
+                'daily'=>$isDaily,
+            ]);
+
+            $old=$q->fetch(PDO::FETCH_ASSOC);
+
+            if(!$old){
+                $insert=$this->db->prepare("
+                    INSERT INTO mucho_level_scores
+                    (
+                        account_id,
+                        level_id,
+                        is_daily,
+                        daily_id,
+                        percent,
+                        coins,
+                        attempts,
+                        clicks,
+                        play_time,
+                        progresses,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES
+                    (
+                        :account,
+                        :level,
+                        :is_daily,
+                        :daily_id,
+                        :percent,
+                        :coins,
+                        :attempts,
+                        :clicks,
+                        :play_time,
+                        :progresses,
+                        :created_at,
+                        :updated_at
+                    )
+                ");
+
+                $insert->execute([
+                    'account'=>$accountId,
+                    'level'=>$levelId,
+                    'is_daily'=>$isDaily,
+                    'daily_id'=>$dailyId,
+                    'percent'=>$percent,
+                    'coins'=>$coins,
+                    'attempts'=>$attempts,
+                    'clicks'=>$clicks,
+                    'play_time'=>$playTime,
+                    'progresses'=>$progresses,
+                    'created_at'=>$now,
+                    'updated_at'=>$now,
+                ]);
+
+                $scoreId=(int)$this->db->lastInsertId();
+                if($scoreId<=0){
+                    throw new RuntimeException('Score insert failed.');
+                }
+
+                $this->db->commit();
+                return $scoreId;
+            }
+
+            /*
+             * Never overwrite a better completion with a weaker attempt.
+             * The row lock also serializes concurrent submissions for the
+             * same account/level/daily scope.
+             */
+            if($percent < (int)$old['percent']){
+                $this->db->rollBack();
+                return null;
+            }
+
+            $update=$this->db->prepare("
+                UPDATE mucho_level_scores
+
+                SET
+                    daily_id=:daily_id,
+                    percent=:percent,
+                    coins=:coins,
+                    attempts=:attempts,
+                    clicks=:clicks,
+                    play_time=:play_time,
+                    progresses=:progresses,
+                    updated_at=:updated_at
+
+                WHERE score_id=:score
+            ");
+
+            $update->execute([
                 'daily_id'=>$dailyId,
                 'percent'=>$percent,
                 'coins'=>$coins,
@@ -292,55 +339,24 @@ final readonly class LevelScoreController
                 'clicks'=>$clicks,
                 'play_time'=>$playTime,
                 'progresses'=>$progresses,
-                'created_at'=>$now,
                 'updated_at'=>$now,
+                'score'=>(int)$old['score_id'],
             ]);
 
-            return (int)$this->db->lastInsertId();
+            if($update->rowCount() > 1){
+                throw new RuntimeException('Unexpected score update cardinality.');
+            }
+
+            $scoreId=(int)$old['score_id'];
+            $this->db->commit();
+            return $scoreId;
+        } catch (Throwable $e) {
+            if($this->db->inTransaction()){
+                $this->db->rollBack();
+            }
+
+            throw $e;
         }
-
-
-        /*
-         * Никогда не затираем лучший %
-         * более слабой попыткой.
-         */
-        if(
-            $percent <
-            (int)$old['percent']
-        ){
-            return null;
-        }
-
-
-        $update=$this->db->prepare("
-            UPDATE mucho_level_scores
-
-            SET
-                daily_id=:daily_id,
-                percent=:percent,
-                coins=:coins,
-                attempts=:attempts,
-                clicks=:clicks,
-                play_time=:play_time,
-                progresses=:progresses,
-                updated_at=:updated_at
-
-            WHERE score_id=:score
-        ");
-
-        $update->execute([
-            'daily_id'=>$dailyId,
-            'percent'=>$percent,
-            'coins'=>$coins,
-            'attempts'=>$attempts,
-            'clicks'=>$clicks,
-            'play_time'=>$playTime,
-            'progresses'=>$progresses,
-            'updated_at'=>$now,
-            'score'=>(int)$old['score_id'],
-        ]);
-
-        return (int)$old['score_id'];
     }
 
 
