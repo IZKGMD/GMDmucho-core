@@ -256,6 +256,7 @@ final readonly class PlatformerScoreController
         $where=[
             's.level_id=:level',
             's.time_ms>0',
+            'a.is_active=1',
             'a.is_banned=0',
         ];
 
