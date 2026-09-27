@@ -92,7 +92,7 @@ function muchoV2Db(): PDO
      */
     if (class_exists('MuchoCore\\Database\\Database')) {
         try {
-            $canonical = new \\MuchoCore\\Database\\Database();
+            $canonical = new \MuchoCore\Database\Database();
             return $db = $canonical->connection();
         } catch (Throwable) {
             // Fall back to the v2-specific connection resolver below.
