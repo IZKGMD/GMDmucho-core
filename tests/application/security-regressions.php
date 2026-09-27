@@ -140,6 +140,18 @@ assertSecurityRegression(
     'music upload uses the central account identity window without a second limiter'
 );
 
+assertSecurityRegression(
+    str_contains(
+        (string)file_get_contents(__DIR__ . '/../../src/Security/RateLimiter.php'),
+        'function cleanup('
+    ) &&
+    str_contains(
+        (string)file_get_contents(__DIR__ . '/../../src/Security/AbusePenaltyStore.php'),
+        'function cleanup('
+    ),
+    'security storage exposes bounded stale-state cleanup'
+);
+
 
 assertSecurityRegression(
     str_contains(
