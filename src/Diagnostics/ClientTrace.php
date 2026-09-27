@@ -30,15 +30,19 @@ final class ClientTrace
 
         $entry = [
             'time' => gmdate('c'),
+            'request_id' => (string)($_SERVER['MUCHO_REQUEST_ID'] ?? ''),
             'method' => self::$request->method,
             'path' => self::$request->path,
             'status' => $response->status,
             'content_type' => $response->contentType,
+            'response_length' => strlen($response->body),
+            'response_sha256' => hash('sha256', $response->body),
             'client_family' => $version->family(),
             'game_version' => $version->gameVersion,
             'binary_version' => $version->binaryVersion,
             'query_keys' => array_values(array_map('strval', array_keys(self::$request->query))),
             'post_keys' => self::safeKeys(self::$request->post),
+            'duration_ms' => null,
         ];
 
         $path = getenv('MUCHO_CLIENT_TRACE_FILE')
@@ -48,6 +52,15 @@ final class ClientTrace
 
         if (!is_dir($dir)) {
             @mkdir($dir, 0770, true);
+        }
+
+        if (self::$request !== null) {
+            $start = isset($_SERVER['MUCHO_REQUEST_STARTED_AT'])
+                ? (float)$_SERVER['MUCHO_REQUEST_STARTED_AT']
+                : 0.0;
+            if ($start > 0) {
+                $entry['duration_ms'] = round((microtime(true) - $start) * 1000, 3);
+            }
         }
 
         $line = json_encode(
