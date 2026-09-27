@@ -9,6 +9,7 @@ use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
 use MuchoCore\User\UserRepository;
 use PDO;
+use RuntimeException;
 use Throwable;
 
 /*
