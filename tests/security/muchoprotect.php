@@ -401,7 +401,7 @@ if (
 $networkDir = $dir . '-network';
 $networkProtect = new MuchoProtect(
     new RateLimiter($networkDir),
-    new \\MuchoCore\\Security\\AbusePenaltyStore($networkDir . '-penalty')
+    new \MuchoCore\Security\AbusePenaltyStore($networkDir . '-penalty')
 );
 
 $networkPath = '/uploadGJLevel21';
