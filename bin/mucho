@@ -1,0 +1,338 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+resolve_root() {
+    local source target
+    source="$(readlink -f "${BASH_SOURCE[0]}")"
+    target="$(dirname "$source")/.."
+    cd "$target"
+    pwd
+}
+
+ROOT="$(resolve_root)"
+ENV_FILE="$ROOT/.env"
+SECRETS="$ROOT/.secrets"
+
+require_root() {
+    [[ $EUID -eq 0 ]] || {
+        echo "Run: sudo mucho" >&2
+        exit 1
+    }
+}
+
+env_get() {
+    local key="$1"
+    [[ -f "$ENV_FILE" ]] || return 0
+    sed -n "s/^${key}=//p" "$ENV_FILE" | head -n1 | sed -E 's/^"(.*)"$/\1/'
+}
+
+env_set() {
+    local key="$1"
+    local value="$2"
+    local tmp
+    tmp="$(mktemp)"
+    awk -v key="$key" -v value="$value" '
+        BEGIN { found=0 }
+        $0 ~ ("^" key "=") {
+            print key "=" value
+            found=1
+            next
+        }
+        { print }
+        END {
+            if (!found) print key "=" value
+        }
+    ' "$ENV_FILE" > "$tmp"
+    chmod 600 "$tmp"
+    mv "$tmp" "$ENV_FILE"
+}
+
+validate_domain() {
+    [[ "$1" =~ ^[A-Za-z0-9.-]+$ ]]
+}
+
+compose() {
+    if [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
+        docker compose -f docker-compose.yml -f docker-compose.tunnel.yml "$@"
+    else
+        docker compose "$@"
+    fi
+}
+
+caddy_address_for() {
+    local host="$1"
+    local root_host="$host"
+    root_host="${root_host#http://}"
+    root_host="${root_host#https://}"
+    root_host="${root_host%%/*}"
+    [[ "$root_host" == www.* ]] && root_host="${root_host#www.}"
+    printf '"http://%s http://www.%s https://%s https://www.%s"'         "$root_host" "$root_host" "$root_host" "$root_host"
+}
+
+restart_services() {
+    cd "$ROOT"
+    compose up -d --remove-orphans >/dev/null
+}
+
+show_status() {
+    cd "$ROOT"
+    echo
+    echo "MuchoCore status"
+    echo "----------------"
+    echo "Version: $(tr -d '[:space:]' < "$ROOT/VERSION" 2>/dev/null || echo unknown)"
+    echo "Domain:  $(env_get DOMAIN)"
+    local php_version
+    php_version="$(compose exec -T app php -r 'echo PHP_VERSION;' 2>/dev/null || echo unknown)"
+    echo "PHP:     $php_version"
+    echo
+    compose ps
+}
+
+show_settings() {
+    echo
+    echo "MuchoCore configuration"
+    echo "-----------------------"
+    printf '%-24s %s\n' "Domain" "$(env_get DOMAIN)"
+    printf '%-24s %s\n' "Database name" "$(env_get DB_NAME)"
+    printf '%-24s %s\n' "Database user" "$(env_get DB_USER)"
+    printf '%-24s %s\n' "GD profile" "$(env_get MUCHO_GD_VERSIONS)"
+    printf '%-24s %s\n' "YouTube import" "$(env_get MUCHO_ENABLE_YOUTUBE_IMPORT)"
+    printf '%-24s %s\n' "Auto update" "$(env_get MUCHO_AUTO_UPDATE)"
+    if [[ -f "$ROOT/storage/control/music-moderation-required.flag" ]]; then
+        echo "Music moderation       1"
+    else
+        echo "Music moderation       0"
+    fi
+    echo
+}
+
+set_domain() {
+    local domain
+    read -r -p "New GDPS domain: " domain
+    validate_domain "$domain" || {
+        echo "Invalid domain." >&2
+        return 1
+    }
+    env_set DOMAIN "$domain"
+    env_set MUCHO_ACCOUNT_URL "https://$domain"
+    env_set CADDY_ADDRESS "$(caddy_address_for "$domain")"
+    restart_services
+    echo "Domain updated to https://$domain"
+}
+
+set_gd_profile() {
+    local profile
+    echo
+    echo "1) all"
+    echo "2) 1"
+    echo "3) 11"
+    echo "4) 19"
+    echo "5) 20"
+    echo "6) 21"
+    echo "7) 22"
+    echo "8) custom"
+    read -r -p "Select profile: " profile
+    case "$profile" in
+        1) profile="all" ;;
+        2) profile="1" ;;
+        3) profile="11" ;;
+        4) profile="19" ;;
+        5) profile="20" ;;
+        6) profile="21" ;;
+        7) profile="22" ;;
+        8) read -r -p "Enter versions (example 11,19,22): " profile ;;
+        *) echo "Invalid selection."; return 1 ;;
+    esac
+    env_set MUCHO_GD_VERSIONS "$profile"
+    restart_services
+    echo "GD profile updated to $profile"
+}
+
+toggle_env() {
+    local key="$1"
+    local label="$2"
+    local current
+    current="$(env_get "$key")"
+    if [[ "$current" == "1" ]]; then
+        env_set "$key" 0
+    else
+        env_set "$key" 1
+    fi
+    restart_services
+    echo "$label updated."
+}
+
+toggle_music_moderation() {
+    install -d -m 770 "$ROOT/storage/control"
+    if [[ -f "$ROOT/storage/control/music-moderation-required.flag" ]]; then
+        rm -f "$ROOT/storage/control/music-moderation-required.flag"
+        echo "Music moderation disabled."
+    else
+        : > "$ROOT/storage/control/music-moderation-required.flag"
+        echo "Music moderation required."
+    fi
+}
+
+set_admin_password() {
+    local first second
+    read -r -s -p "New admin password: " first < /dev/tty
+    printf '\\n'
+    read -r -s -p "Confirm admin password: " second < /dev/tty
+    printf '\\n'
+    [[ -n "$first" && "$first" == "$second" ]] || {
+        echo "Passwords are empty or do not match."
+        return 1
+    }
+
+    printf '%s' "$first" > "$SECRETS/admin_password"
+    chmod 600 "$SECRETS/admin_password"
+
+    cd "$ROOT"
+    compose up -d --force-recreate app >/dev/null
+    compose exec -T app php bin/mucho-sync-admin.php
+    echo "Admin password updated."
+}
+
+set_auto_update() {
+    local value
+    echo
+    echo "1) Enable automatic stable-release updates"
+    echo "2) Disable automatic stable-release updates"
+    read -r -p "Select: " value
+    case "$value" in
+        1) env_set MUCHO_AUTO_UPDATE 1 ;;
+        2) env_set MUCHO_AUTO_UPDATE 0 ;;
+        *) echo "Invalid selection."; return 1 ;;
+    esac
+    if [[ -x "$ROOT/bin/mucho-install-auto-update.sh" ]]; then
+        "$ROOT/bin/mucho-install-auto-update.sh"
+    fi
+    echo "Automatic updates setting saved."
+}
+
+doctor() {
+    cd "$ROOT"
+    local ok=0
+    echo
+    echo "MuchoCore Doctor"
+    echo "----------------"
+    [[ -f "$ENV_FILE" ]] && echo "✓ .env" || { echo "✗ .env"; ok=1; }
+    [[ -s "$SECRETS/db_password" ]] && echo "✓ database secret" || { echo "✗ database secret"; ok=1; }
+    [[ -s "$SECRETS/db_root_password" ]] && echo "✓ database root secret" || { echo "✗ database root secret"; ok=1; }
+    docker info >/dev/null 2>&1 && echo "✓ Docker" || { echo "✗ Docker"; ok=1; }
+    compose config -q >/dev/null 2>&1 && echo "✓ Compose" || { echo "✗ Compose"; ok=1; }
+
+    local domain health
+    domain="$(env_get DOMAIN)"
+    if [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
+        health="$(curl -4fsSf --connect-timeout 3 --max-time 5 http://127.0.0.1/health 2>/dev/null || true)"
+        [[ "$health" == "1" ]] && echo "✓ /health (tunnel)" || { echo "✗ /health (tunnel)"; ok=1; }
+    elif [[ -n "$domain" ]]; then
+        health="$(curl -4ksSf --connect-timeout 3 --max-time 5             --resolve "$domain:443:127.0.0.1" "https://$domain/health" 2>/dev/null || true)"
+        [[ "$health" == "1" ]] && echo "✓ /health" || { echo "✗ /health"; ok=1; }
+    else
+        echo "✗ domain"; ok=1
+    fi
+
+    compose exec -T app php bin/migrate.php status >/tmp/muchocore-migrations.txt 2>&1         && echo "✓ migrations"         || { echo "✗ migrations"; ok=1; }
+    echo
+    if [[ "$ok" == 0 ]]; then
+        echo "No problems found."
+    else
+        echo "Some checks failed. See the lines above."
+    fi
+    return "$ok"
+}
+
+main_menu() {
+    while true; do
+        clear
+        echo "=============================================="
+        echo "             MUCHOCORE CONTROL CENTER"
+        echo "=============================================="
+        echo
+        show_status
+        echo
+        echo "1) Server status"
+        echo "2) Configuration"
+        echo "3) Database & migrations"
+        echo "4) Update MuchoCore"
+        echo "5) Database backup"
+        echo "6) Restart services"
+        echo "7) Show logs"
+        echo "8) Mucho Doctor"
+        echo "0) Exit"
+        echo
+
+        local choice
+        read -r -p "Select: " choice
+        case "$choice" in
+            1) show_status; read -r -p "Press Enter..." _ ;;
+            2) configuration_menu ;;
+            3) database_menu ;;
+            4) "$ROOT/update.sh"; read -r -p "Press Enter..." _ ;;
+            5) "$ROOT/bin/mucho-db-backup.sh"; read -r -p "Press Enter..." _ ;;
+            6) restart_services; echo "Services restarted."; read -r -p "Press Enter..." _ ;;
+            7) cd "$ROOT"; compose logs --tail=120; read -r -p "Press Enter..." _ ;;
+            8) doctor || true; read -r -p "Press Enter..." _ ;;
+            0) exit 0 ;;
+            *) echo "Invalid selection."; sleep 1 ;;
+        esac
+    done
+}
+
+database_menu() {
+    while true; do
+        clear
+        echo "MuchoCore Database & Migrations"
+        echo "-------------------------------"
+        echo
+        compose exec -T app php bin/migrate.php status || true
+        echo
+        echo "1) Migration Center"
+        echo "2) Apply pending migrations"
+        echo "0) Back"
+        echo
+        local choice
+        read -r -p "Select: " choice
+        case "$choice" in
+            1) compose exec app php bin/mucho-migrate.php ;;
+            2) compose exec -T app php bin/migrate.php migrate ;;
+            0) return ;;
+            *) echo "Invalid selection." ;;
+        esac
+        read -r -p "Press Enter..." _
+    done
+}
+configuration_menu() {
+    while true; do
+        clear
+        show_settings
+        echo "1) Change domain"
+        echo "2) Change database password"
+        echo "3) Change admin password"
+        echo "4) Change GD compatibility profile"
+        echo "5) Toggle YouTube import"
+        echo "6) Toggle music moderation"
+        echo "7) Automatic updates"
+        echo "0) Back"
+        echo
+        local choice
+        read -r -p "Select: " choice
+        case "$choice" in
+            1) set_domain ;;
+            2) "$ROOT/bin/muchodb-password" ;;
+            3) set_admin_password ;;
+            4) set_gd_profile ;;
+            5) toggle_env MUCHO_ENABLE_YOUTUBE_IMPORT "YouTube import" ;;
+            6) toggle_music_moderation ;;
+            7) set_auto_update ;;
+            0) return ;;
+            *) echo "Invalid selection." ;;
+        esac
+        read -r -p "Press Enter..." _
+    done
+}
+
+require_root
+main_menu
