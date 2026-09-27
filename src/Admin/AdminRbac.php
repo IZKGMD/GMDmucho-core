@@ -358,6 +358,7 @@ final class AdminRbac
             'songs' => 'music.manage',
             'analytics' => 'analytics.view',
             'monitoring' => 'monitoring.view',
+            'intelligence' => 'monitoring.view',
             'securitycenter' => 'security.view',
             'database' => 'database.view',
             'endpoints' => 'tools.endpoint_test',
