@@ -818,8 +818,14 @@ final class CvoltonDatabaseImporter
 
     private function sourceTableExists(PDO $source, string $table): bool
     {
-        $q = $source->prepare('SHOW TABLES LIKE :table');
+        $q = $source->prepare(
+            'SELECT 1
+             FROM information_schema.tables
+             WHERE table_schema=DATABASE() AND table_name=:table
+             LIMIT 1'
+        );
         $q->execute(['table' => $table]);
+
         return $q->fetchColumn() !== false;
     }
 
