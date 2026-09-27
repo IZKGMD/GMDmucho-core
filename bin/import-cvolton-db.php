@@ -101,6 +101,10 @@ Dry-run is the default:
 Apply:
   php bin/import-cvolton-db.php     --source-host=127.0.0.1     --source-db=geometrydash     --source-user=root     --apply     --confirm=COVOLTON
 
+Apply safety:
+  A verified target database backup is mandatory before any destination write.
+  If the backup fails or cannot be verified, the import does not start.
+
 TXT);
     exit(isset($options['help']) ? 0 : 1);
 }
@@ -199,9 +203,9 @@ Creating verified target database backup before apply...
 
     $targetBackup = createVerifiedTargetBackup();
 
-    echo isset($options['json'])
-        ? ''
-        : "TARGET_BACKUP=" . $targetBackup . "\n";
+    if (!isset($options['json'])) {
+        echo "TARGET_BACKUP=" . $targetBackup . "\n";
+    }
 
     $target->beginTransaction();
 
@@ -217,7 +221,11 @@ Creating verified target database backup before apply...
 
     if (isset($options['json'])) {
         echo json_encode(
-            ['mode' => 'apply', 'stats' => $stats],
+            [
+                'mode' => 'apply',
+                'target_backup' => $targetBackup,
+                'stats' => $stats,
+            ],
             JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
         ) . PHP_EOL;
     } else {
