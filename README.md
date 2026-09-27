@@ -14,7 +14,7 @@
   <a href="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml">
     <img src="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml/badge.svg" alt="CI">
   </a>
-  <img src="https://img.shields.io/badge/release-v1.0.42-8A2BE2" alt="Stable release">
+  <img src="https://img.shields.io/badge/release-v1.0.5-8A2BE2" alt="Stable release">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/PHP-8.3-777BB4" alt="PHP 8.3">
   <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2-success" alt="Geometry Dash 1.0 through 2.2">
@@ -569,32 +569,37 @@ Before large changes, back up the database and verify that your Cloud Save secre
 
 ---
 
-## 📦 MuchoCore v1.0.42
+## 📦 MuchoCore v1.0.5
 
-**v1.0.42** is the current stable release of MuchoCore.
+**v1.0.5** is the current stable release of MuchoCore.
 
-This release consolidates the security hardening and compatibility work added since v1.0.41 while keeping MuchoProtect deliberately soft for normal players.
+This release bundles the next reliability layer into one operator-focused update while keeping MuchoProtect soft by default.
 
 ### Included
 
-- pre-auth identity throttling for usernames and email addresses;
-- stable legacy-device/UDID throttling;
-- complete Clan API rate and burst coverage;
-- secondary IPv4 /24 and IPv6 /64 rotation budgets with short exponential penalties;
-- one central MuchoProtect engine for both legacy endpoints and API v2;
-- preserved API v2 JSON 429 semantics and the music-upload 5-per-15-minute account budget;
-- bounded stale-state cleanup for file-backed rate-limit and penalty storage;
-- Clan System v2 settings, ownership transfer, disbanding, invitation revocation and persistent bans;
-- first-class GD 1.1 and GD 1.5 compatibility profiles, plus verified GD 1.6 build 16 support;
-- safer installer messaging for custom administrator usernames;
-- English-language account recovery email templates;
-- expanded security and compatibility regression coverage.
+- canonical AdminRbac authorization across the Admin Panel and MuchoAdminClient API;
+- optional score-integrity quarantine for suspicious regular and Platformer results;
+- MariaDB-backed shared MuchoProtect storage for multi-container deployments, with file storage remaining the default;
+- configurable trusted proxy CIDRs for safer X-Forwarded-For handling;
+- guided Migration Center with schema detection, read-only preflight, dry-run and explicit apply confirmation;
+- interactive VPS Control Center via `sudo mucho`;
+- database password rotation via `sudo muchodb-password`;
+- stable update checks based on GitHub's published latest release plus Git ancestry protection;
+- expanded security, migration and operator regression coverage.
 
-### Release safety
+### Operator flow
 
-The production updater follows published stable GitHub Releases and deploys the exact release tag.
+```text
+sudo mucho
+  ↓
+Migration Center / configuration / backup / diagnostics
+  ↓
+/health → 1
+  ↓
+Geometry Dash client
+```
 
-See **[CHANGELOG.md](CHANGELOG.md)** and the **[v1.0.42 release](https://github.com/IZKGMD/GMDmucho-core/releases/tag/v1.0.42)** for release-specific details.
+See **[CHANGELOG.md](CHANGELOG.md)** for the complete v1.0.5 change list.
 
 ---
 
