@@ -622,6 +622,50 @@ if ($status['active'] || is_dir($penaltyStatusDir)) {
     exit(1);
 }
 
+/*
+ * Storage hygiene: stale limiter and penalty files are removable without
+ * touching fresh state, and cleanup is bounded by the requested entry count.
+ */
+$rateCleanupDir = $dir . '-rate-cleanup';
+if (!is_dir($rateCleanupDir) && !mkdir($rateCleanupDir, 0700, true)) {
+    fwrite(STDERR, "Unable to create rate cleanup fixture\n");
+    exit(1);
+}
+
+$staleRateFile = $rateCleanupDir . '/' . hash('sha256', 'stale-rate') . '.json';
+$freshRateFile = $rateCleanupDir . '/' . hash('sha256', 'fresh-rate') . '.json';
+
+file_put_contents($staleRateFile, '{"start":1,"count":1}');
+file_put_contents($freshRateFile, '{"start":1,"count":1}');
+touch($staleRateFile, time() - 7200);
+touch($freshRateFile, time());
+
+$rateCleanup = new RateLimiter($rateCleanupDir);
+if ($rateCleanup->cleanup(3600, 1) !== 1 || is_file($staleRateFile) || !is_file($freshRateFile)) {
+    fwrite(STDERR, "RateLimiter stale cleanup contract failed\n");
+    exit(1);
+}
+
+$penaltyCleanupDir = $dir . '-penalty-cleanup';
+if (!is_dir($penaltyCleanupDir) && !mkdir($penaltyCleanupDir, 0700, true)) {
+    fwrite(STDERR, "Unable to create penalty cleanup fixture\n");
+    exit(1);
+}
+
+$stalePenaltyFile = $penaltyCleanupDir . '/' . hash('sha256', 'stale-penalty') . '.json';
+$freshPenaltyFile = $penaltyCleanupDir . '/' . hash('sha256', 'fresh-penalty') . '.json';
+
+file_put_contents($stalePenaltyFile, '{"expires":1,"last":1,"strikes":1}');
+file_put_contents($freshPenaltyFile, '{"expires":1,"last":1,"strikes":1}');
+touch($stalePenaltyFile, time() - 7200);
+touch($freshPenaltyFile, time());
+
+$penaltyCleanup = new \MuchoCore\Security\AbusePenaltyStore($penaltyCleanupDir);
+if ($penaltyCleanup->cleanup(3600, 1) !== 1 || is_file($stalePenaltyFile) || !is_file($freshPenaltyFile)) {
+    fwrite(STDERR, "AbusePenaltyStore stale cleanup contract failed\n");
+    exit(1);
+}
+
 $directPenaltyDir = $dir . '-backoff';
 $directPenalties = new \MuchoCore\Security\AbusePenaltyStore($directPenaltyDir);
 $first = $directPenalties->penalize('same-abuser');
@@ -648,6 +692,8 @@ foreach ([
     $dir . '-clan-penalty',
     $networkDir,
     $networkDir . '-penalty',
+    $rateCleanupDir,
+    $penaltyCleanupDir,
     $v2Dir,
     $v2Dir . '-penalty',
     $dir . '-global',
