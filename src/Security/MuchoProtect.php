@@ -21,7 +21,7 @@ final readonly class MuchoProtect
      */
     private const NETWORK_FACTOR = 3;
 
-    /** @var array<string, array{limit:int, window:int, burst:int, burstWindow:int}> */
+    /** @var array<string, array{limit:int, window:int, burst:int, burstWindow:int, identityLimit?:int, identityWindow?:int, identityBurst?:int, identityBurstWindow?:int}> */
     private const POLICIES = [
         '/logingjaccount' => ['limit' => 12, 'window' => 60, 'burst' => 5, 'burstWindow' => 10],
         '/registergjaccount' => ['limit' => 6, 'window' => 300, 'burst' => 2, 'burstWindow' => 30],
@@ -58,6 +58,24 @@ final readonly class MuchoProtect
         '/clans/ban' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
         '/clans/unban' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
         '/clans/bans' => ['limit' => 30, 'window' => 60, 'burst' => 8, 'burstWindow' => 10],
+
+        // API v2 uses the same MuchoProtect engine as the legacy transport.
+        '/v2' => ['limit' => 120, 'window' => 60, 'burst' => 30, 'burstWindow' => 10],
+        '/v2/health' => ['limit' => 60, 'window' => 60, 'burst' => 10, 'burstWindow' => 10],
+        '/v2/profile' => ['limit' => 180, 'window' => 60, 'burst' => 40, 'burstWindow' => 10],
+        '/v2/client-config' => ['limit' => 180, 'window' => 60, 'burst' => 40, 'burstWindow' => 10],
+        '/v2/heartbeat' => ['limit' => 120, 'window' => 60, 'burst' => 20, 'burstWindow' => 10],
+        '/v2/music' => ['limit' => 120, 'window' => 60, 'burst' => 30, 'burstWindow' => 10],
+        '/v2/music-upload' => [
+            'limit' => 20,
+            'window' => 60,
+            'burst' => 4,
+            'burstWindow' => 10,
+            'identityLimit' => 5,
+            'identityWindow' => 900,
+            'identityBurst' => 2,
+            'identityBurstWindow' => 60,
+        ],
 
         // Read-heavy endpoints: high enough for normal gameplay, low enough
         // to prevent a single client from turning them into a DB flood.
@@ -318,11 +336,15 @@ final readonly class MuchoProtect
 
         foreach ($identityKeys as $kind => $identityKey) {
             $identityRateKey = $kind . ':' . $identityKey . ':endpoint:' . $endpoint;
+            $identityLimit = $policy['identityLimit'] ?? $policy['limit'];
+            $identityWindow = $policy['identityWindow'] ?? $policy['window'];
+            $identityBurst = $policy['identityBurst'] ?? $policy['burst'];
+            $identityBurstWindow = $policy['identityBurstWindow'] ?? $policy['burstWindow'];
 
             if (!$this->allow(
                 $identityRateKey,
-                $policy['limit'],
-                $policy['window']
+                $identityLimit,
+                $identityWindow
             )) {
                 $penalty = $this->penalties->penalize($identityRateKey);
                 $this->audit(
@@ -335,6 +357,24 @@ final readonly class MuchoProtect
                 return [
                     'decision' => 'block',
                     'reason' => $kind . '_rate_limit'
+                ];
+            }
+            if (!$this->allow(
+                $identityRateKey . ':burst',
+                $identityBurst,
+                $identityBurstWindow
+            )) {
+                $penalty = $this->penalties->penalize($identityRateKey);
+                $this->audit(
+                    $request,
+                    $endpoint,
+                    $kind . '_burst_limit',
+                    $penalty['seconds'],
+                    $penalty['strikes']
+                );
+                return [
+                    'decision' => 'block',
+                    'reason' => $kind . '_burst_limit'
                 ];
             }
         }
