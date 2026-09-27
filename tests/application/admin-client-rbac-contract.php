@@ -16,7 +16,7 @@ foreach([
 }
 foreach([
 'use MuchoCore\\Admin\\AdminRbac;','AdminRbac::permissionForContext',
-'AdminRbac::can($db, $admin','AdminRbac::can($db, $loginAdmin)','mucho_admin_action'
+'AdminRbac::can($db, $admin','AdminRbac::can($db, $loginAdmin','mucho_admin_action'
 ] as $needle){
     if(!str_contains($client,$needle))throw new RuntimeException("Admin client canonical authorization missing: {$needle}");
 }
