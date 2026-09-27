@@ -19,7 +19,7 @@ usage() {
     cat <<'TXT'
 MuchoCore Migration Kit
 
-Safe Cvolton/fhGDPS-style database migration wrapper.
+Safe Cvolton/GMDprivateServer-style database migration wrapper.
 
 Default: read-only preflight / dry-run. No destination data is modified.
 
@@ -165,21 +165,11 @@ fi
 
 echo
 echo "============================================================"
-echo "Creating verified MuchoCore target backup"
+echo "Applying migration with mandatory verified target backup"
 echo "============================================================"
 
-BACKUP_OUTPUT="$(docker compose exec -T app /var/www/mucho-core/bin/mucho-db-backup.sh)"
-printf '%s\n' "$BACKUP_OUTPUT"
-
-BACKUP_FILE="$(printf '%s\n' "$BACKUP_OUTPUT" | sed -n 's/^FILE=//p' | tail -n1)"
-[[ -n "$BACKUP_FILE" ]] || fail "Backup script did not return a backup file."
-
-BACKUP_REL="$(printf '%s' "$BACKUP_FILE" | sed 's#^/var/www/mucho-core/##')"
-[[ "$BACKUP_REL" != "$BACKUP_FILE" ]] || fail "Backup path did not originate from the MuchoCore container."
-[[ -f "$ROOT/$BACKUP_REL" ]] || fail "Backup file was not found on the host: $BACKUP_FILE"
-
-info "Applying migration..."
-docker compose exec -T \
+info "The importer will create and verify the target backup before opening its transaction."
+IMPORT_OUTPUT="$(docker compose exec -T \
     -e "CVOLTON_SOURCE_PASS=$SOURCE_PASS" \
     app php /var/www/mucho-core/bin/import-cvolton-db.php \
     --source-host="$SOURCE_HOST" \
@@ -187,7 +177,18 @@ docker compose exec -T \
     --source-db="$SOURCE_DB" \
     --source-user="$SOURCE_USER" \
     --apply \
-    --confirm=COVOLTON
+    --confirm=COVOLTON)"
+
+printf '%s\n' "$IMPORT_OUTPUT"
+
+BACKUP_FILE="$(printf '%s\n' "$IMPORT_OUTPUT" | sed -n 's/^TARGET_BACKUP=//p' | tail -n1)"
+[[ -n "$BACKUP_FILE" ]] || fail "Migration did not report a verified target backup."
+
+BACKUP_REL="$(printf '%s' "$BACKUP_FILE" | sed 's#^/var/www/mucho-core/##')"
+[[ "$BACKUP_REL" != "$BACKUP_FILE" ]] || fail "Backup path did not originate from the MuchoCore container."
+[[ -f "$ROOT/$BACKUP_REL" ]] || fail "Verified target backup was not found on the host: $BACKUP_FILE"
+
+info "Verified target backup: $BACKUP_FILE"
 
 info "Running post-migration healthcheck..."
 docker compose exec -T app php /var/www/mucho-core/bin/mucho-healthcheck.php
