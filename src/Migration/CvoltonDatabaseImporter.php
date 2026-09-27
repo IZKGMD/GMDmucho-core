@@ -12,6 +12,40 @@ final class CvoltonDatabaseImporter
 {
     private const BATCH = 250;
 
+    /**
+     * Columns consumed by the importer are checked before any destination
+     * changes are allowed. This turns fork/schema mismatches into a clean
+     * preflight failure instead of a mid-import failure.
+     *
+     * @var array<string, list<string>>
+     */
+    private const REQUIRED_COLUMNS = [
+        'accounts' => [
+            'accountID', 'userName', 'password', 'gjp2', 'email', 'isActive',
+        ],
+        'users' => [
+            'extID', 'stars', 'moons', 'diamonds', 'coins', 'userCoins',
+            'demons', 'creatorPoints', 'icon', 'iconType', 'color1', 'color2',
+            'accGlow', 'isBanned',
+        ],
+        'levels' => [
+            'levelID', 'levelName', 'levelDesc', 'levelString', 'levelVersion',
+            'gameVersion', 'binaryVersion', 'levelLength', 'audioTrack',
+            'starDifficulty', 'starDemon', 'starDemonDiff', 'starAuto',
+            'starFeatured', 'starEpic', 'objects', 'original', 'twoPlayer',
+            'coins', 'requestedStars', 'isLDM', 'songID', 'songIDs', 'sfxIDs',
+            'wt', 'wt2', 'ts', 'downloads', 'likes', 'starStars', 'unlisted',
+            'isDeleted', 'extID',
+        ],
+        'levelscores' => [
+            'scoreID', 'accountID', 'levelID', 'percent', 'uploadDate',
+            'attempts', 'coins', 'clicks', 'time', 'progresses', 'dailyID',
+        ],
+        'platscores' => [
+            'ID', 'accountID', 'levelID', 'time', 'points', 'timestamp',
+        ],
+    ];
+
     public function __construct(
         private readonly PDO $target
     ) {
@@ -23,6 +57,7 @@ final class CvoltonDatabaseImporter
             $source,
             ['accounts', 'users', 'levels']
         );
+        $this->requireSourceSchema($source);
 
         return [
             'accounts' => $this->count($source, 'accounts'),
@@ -43,6 +78,7 @@ final class CvoltonDatabaseImporter
             $source,
             ['accounts', 'users', 'levels']
         );
+        $this->requireSourceSchema($source);
 
         $this->requireTargetMaps();
 
@@ -122,7 +158,11 @@ final class CvoltonDatabaseImporter
                 $existing = $this->mappedAccount($sourceId);
 
                 if ($existing === null) {
-                    $existing = $this->existingAccount($username, $email);
+                    $existing = $this->existingAccount(
+                        $sourceId,
+                        $username,
+                        $email
+                    );
 
                     if ($existing === null) {
                         $existing = $this->createAccount(
@@ -411,22 +451,60 @@ final class CvoltonDatabaseImporter
         ]);
     }
 
-    private function existingAccount(string $username, string $email): ?int
-    {
+    private function existingAccount(
+        int $sourceId,
+        string $username,
+        string $email
+    ): ?int {
         $q = $this->target->prepare(
-            'SELECT account_id
+            'SELECT account_id, username, email
              FROM accounts
              WHERE username=:username OR email=:email
-             ORDER BY account_id ASC
-             LIMIT 1'
+             ORDER BY account_id ASC'
         );
         $q->execute([
             'username' => $username,
             'email' => $email,
         ]);
 
-        $id = $q->fetchColumn();
-        return $id === false ? null : (int)$id;
+        $byUsername = null;
+        $byEmail = null;
+
+        foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $id = (int)$row['account_id'];
+            if ((string)$row['username'] === $username) {
+                $byUsername = $id;
+            }
+            if ((string)$row['email'] === $email) {
+                $byEmail = $id;
+            }
+        }
+
+        if ($byUsername !== null && $byEmail !== null) {
+            if ($byUsername !== $byEmail) {
+                throw new RuntimeException(
+                    sprintf(
+                        'Source account %d matches two different target accounts ' .
+                        'by username and email. Resolve the conflict before migration.',
+                        $sourceId
+                    )
+                );
+            }
+
+            return $byUsername;
+        }
+
+        if ($byUsername !== null || $byEmail !== null) {
+            throw new RuntimeException(
+                sprintf(
+                    'Source account %d conflicts with an existing target account ' .
+                    '(username/email). Refusing to merge it implicitly.',
+                    $sourceId
+                )
+            );
+        }
+
+        return null;
     }
 
     private function levelAccount(array $row): ?int
@@ -747,6 +825,60 @@ final class CvoltonDatabaseImporter
         $q = $source->prepare('SHOW TABLES LIKE :table');
         $q->execute(['table' => $table]);
         return $q->fetchColumn() !== false;
+    }
+
+    private function requireSourceSchema(PDO $source): void
+    {
+        foreach (['accounts', 'users', 'levels'] as $table) {
+            $this->requireSourceColumns(
+                $source,
+                $table,
+                self::REQUIRED_COLUMNS[$table]
+            );
+        }
+
+        foreach (['levelscores', 'platscores'] as $table) {
+            if ($this->sourceTableExists($source, $table)) {
+                $this->requireSourceColumns(
+                    $source,
+                    $table,
+                    self::REQUIRED_COLUMNS[$table]
+                );
+            }
+        }
+    }
+
+    /**
+     * @param list<string> $required
+     */
+    private function requireSourceColumns(
+        PDO $source,
+        string $table,
+        array $required
+    ): void {
+        $columns = [];
+        $q = $source->query('SHOW COLUMNS FROM `' . $table . '`');
+
+        foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $field = (string)($row['Field'] ?? '');
+            if ($field !== '') {
+                $columns[strtolower($field)] = $field;
+            }
+        }
+
+        $missing = [];
+        foreach ($required as $column) {
+            if (!isset($columns[strtolower($column)])) {
+                $missing[] = $column;
+            }
+        }
+
+        if ($missing !== []) {
+            throw new RuntimeException(
+                'Source table ' . $table .
+                ' is missing required columns: ' . implode(', ', $missing)
+            );
+        }
     }
 
     private function count(PDO $db, string $table): int
