@@ -568,7 +568,7 @@ SQL);
     );
     $source->exec(
         "INSERT INTO users (extID,userName)
-         VALUES ('3','Migrator')"
+         VALUES ('3','Migrator!')"
     );
 
     $before = scalar($target, 'SELECT COUNT(*) FROM accounts');
