@@ -2789,6 +2789,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
             $id=(int)$_POST['id'];
 
+            $oldAccount=$db->prepare(
+                'SELECT username FROM accounts WHERE account_id=:id LIMIT 1'
+            );
+            $oldAccount->execute(['id'=>$id]);
+            $oldUsername=(string)($oldAccount->fetchColumn() ?: '');
+
             $role=trim((string)$_POST['role']);
 
             $roleQuery=$db->prepare(
@@ -2818,12 +2824,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                  WHERE account_id=:id'
             );
 
+            $newUsername=substr(
+                trim((string)$_POST['username']),
+                0,
+                20
+            );
+
             $q->execute([
-                'username'=>substr(
-                    trim((string)$_POST['username']),
-                    0,
-                    20
-                ),
+                'username'=>$newUsername,
                 'email'=>substr(
                     trim((string)$_POST['email']),
                     0,
@@ -2834,6 +2842,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 'banned'=>isset($_POST['banned'])?1:0,
                 'id'=>$id
             ]);
+
+            if ($oldUsername !== $newUsername) {
+                (new \MuchoCore\Search\LevelSearchIndexer($db))
+                    ->rebuildAccount($id);
+            }
 
             audit($db,'account.save',(string)$id);
             flash('Account saved.');
