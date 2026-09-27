@@ -394,6 +394,64 @@ if (
 }
 
 /*
+ * API v2 uses the same policy engine. Music uploads keep their legacy
+ * account-wide 5-per-15-minute security budget while source IPs rotate.
+ */
+$v2Dir = $dir . '-v2';
+$v2Protect = new MuchoProtect(
+    new RateLimiter($v2Dir),
+    new \MuchoCore\Security\AbusePenaltyStore($v2Dir . '-penalty')
+);
+
+for ($i = 0; $i < 5; $i++) {
+    $result = $v2Protect->inspect(
+        new Request(
+            'POST',
+            '/api/v2/music-upload.php',
+            [],
+            [
+                'accountID' => '888',
+                'gjp2' => 'music-account-credential',
+            ],
+            ['REMOTE_ADDR' => '198.' . (20 + $i) . '.10.5']
+        ),
+        '/api/v2/music-upload.php'
+    );
+
+    if ($result['decision'] !== 'allow') {
+        fwrite(STDERR, "MuchoProtect v2 music account setup failed at request {$i}\\n");
+        exit(1);
+    }
+}
+
+$v2Blocked = $v2Protect->inspect(
+    new Request(
+        'POST',
+        '/api/v2/music-upload.php',
+        [],
+        [
+            'accountID' => '888',
+            'gjp2' => 'music-account-credential',
+        ],
+        ['REMOTE_ADDR' => '198.30.10.5']
+    ),
+    '/api/v2/music-upload.php'
+);
+
+if (
+    $v2Blocked['decision'] !== 'block' ||
+    $v2Blocked['reason'] !== 'account_rate_limit'
+) {
+    fwrite(
+        STDERR,
+        "MuchoProtect v2 central policy failed: "
+        . json_encode($v2Blocked, JSON_UNESCAPED_SLASHES)
+        . "\\n"
+    );
+    exit(1);
+}
+
+/*
  * Network rotation guard: multiple IPs inside one IPv4 /24 share a wider
  * endpoint budget. Once the shared burst is exceeded, the penalty follows
  * the network prefix and blocks the next rotated IP too.
@@ -590,6 +648,8 @@ foreach ([
     $dir . '-clan-penalty',
     $networkDir,
     $networkDir . '-penalty',
+    $v2Dir,
+    $v2Dir . '-penalty',
     $dir . '-global',
     $directPenaltyDir,
 ] as $cleanupDir) {

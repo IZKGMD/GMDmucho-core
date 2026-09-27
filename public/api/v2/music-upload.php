@@ -70,12 +70,6 @@ try {
         muchoV2Fail('mp3_only',415);
     }
 
-    $accountLimiter = new \MuchoCore\Security\RateLimiter();
-    if (!$accountLimiter->allowStrict('music-account:' . $accountId, 5, 900)) {
-        header('Retry-After: 900');
-        muchoV2Fail('music_account_rate_limited', 429);
-    }
-
     $ip = muchoV2ClientIp();
 
     if (
