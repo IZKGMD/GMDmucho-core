@@ -1,24 +1,27 @@
-# 🎮 MuchoCore
+# MuchoCore — Geometry Dash Private Server Core (GDPS)
+
+**MuchoCore** is an open-source **PHP 8.3+ Geometry Dash Private Server (GDPS) core** for hosting, migrating, securing, and operating self-hosted Geometry Dash private servers with MariaDB, Docker, Caddy, an integrated Admin Panel, client patching tools, and version-aware Geometry Dash protocol compatibility.
+
+The canonical source repository is **IZKGMD/GMDmucho-core**. **MuchoCore** and **GMDmucho-core** refer to the same software project.
 
 <p align="center">
-  <strong>A modern Geometry Dash Private Server core.</strong><br>
-  One backend • version-aware protocol compatibility • built-in protection • practical deployment tools
+  <strong>One Geometry Dash server core • version-aware compatibility • built-in security • migration tooling • administration • production operations</strong>
 </p>
 
 <p align="center">
-  <a href="https://muchogdps.space/muchocore/">🌐 MuchoCore product page</a> ·
-  <a href="https://github.com/IZKGMD/GMDmucho-core/releases">📦 Releases</a>
+  <a href="https://muchogdps.space/muchocore/">🌐 Official MuchoCore product page</a> ·
+  <a href="https://github.com/IZKGMD/GMDmucho-core/releases">📦 Stable releases</a>
 </p>
 
 <p align="center">
   <a href="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml">
-    <img src="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml/badge.svg" alt="CI">
+    <img src="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml/badge.svg" alt="MuchoCore CI">
   </a>
-  <img src="https://img.shields.io/badge/release-v1.0.8-8A2BE2" alt="Stable release">
+  <img src="https://img.shields.io/badge/release-v1.0.8-8A2BE2" alt="MuchoCore stable release v1.0.8">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
-  <img src="https://img.shields.io/badge/PHP-8.3-777BB4" alt="PHP 8.3">
-  <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2-success" alt="Geometry Dash 1.0 through 2.2">
-  <img src="https://img.shields.io/badge/MuchoProtect-enabled-success" alt="MuchoProtect">
+  <img src="https://img.shields.io/badge/PHP-8.3-777BB4" alt="PHP 8.3+">
+  <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2-success" alt="Geometry Dash 1.0 through 2.2 compatibility">
+  <img src="https://img.shields.io/badge/MariaDB-supported-blue" alt="MariaDB">
   <img src="https://img.shields.io/badge/Docker-ready-2496ED" alt="Docker">
 </p>
 
@@ -27,19 +30,70 @@
   <a href="docs/MIGRATION_KIT.md">🔄 Migration Kit</a> ·
   <a href="docs/SETUP.md">🚀 Setup</a> ·
   <a href="docs/CLIENT_SETUP.md">🎮 Client Setup</a> ·
-  <a href="docs/CLANS.md">🏰 Clans</a> ·
   <a href="docs/VERSIONS.md">📚 Version Profiles</a> ·
-  <a href="docs/CLIENT_COMPATIBILITY.md">🧩 Compatibility</a> ·
-  <a href="docs/SHOWCASE.md">🌍 Showcase</a> ·
-  <a href="docs/ADMIN_RBAC.md">🔐 Admin RBAC</a> ·
+  <a href="docs/CLIENT_COMPATIBILITY.md">🧩 Client Compatibility</a> ·
   <a href="docs/CUSTOM_PLUGINS.md">🧩 Custom Plugins</a> ·
   <a href="docs/V108_INTELLIGENCE.md">⚡ Intelligence & Scale</a>
 </p>
 
-> ⚡ **MuchoCore is a maintainable Geometry Dash Private Server foundation for owners who want one server core, version-aware compatibility, an integrated admin panel, client patching tools, and a security layer that can be validated in CI.**
+> **MuchoCore is a Geometry Dash private server core, GDPS backend, and PHP server framework for running a self-hosted Geometry Dash private server.** It provides accounts, levels, scores, comments, social features, ratings, cloud save, clans, moderation, JSON API v2, Cvolton-style migration tooling, MuchoProtect security, client patchers, Admin RBAC, Docker deployment, MariaDB storage, and multi-version protocol compatibility.
+
+## 🔎 What is MuchoCore?
+
+MuchoCore is a **self-hosted Geometry Dash Private Server core**, commonly described as a **GDPS server core** or **Geometry Dash server backend**. It is built for GDPS owners, developers, server operators, and moderators who need one maintainable backend instead of assembling unrelated services.
+
+### Canonical project facts
+
+| Property | Value |
+| --- | --- |
+| Project | **MuchoCore** |
+| Repository | **IZKGMD/GMDmucho-core** |
+| Type | **Open-source Geometry Dash Private Server (GDPS) core** |
+| Primary language | **PHP** |
+| Runtime | **PHP 8.3+** |
+| Database | **MariaDB / MySQL-compatible SQL** |
+| Deployment | **Docker Compose, Caddy, Linux/VPS** |
+| Protocol scope | **Geometry Dash client generations 1.0–2.2** |
+| Security | **MuchoProtect** |
+| Stable release | **v1.0.8** |
+| Official project page | **https://muchogdps.space/muchocore/** |
+
+### Who uses it?
+
+- GDPS owners running a self-hosted Geometry Dash private server.
+- PHP developers building or extending Geometry Dash server infrastructure.
+- Operators migrating a legacy Cvolton/GMDprivateServer-style database.
+- Administrators managing accounts, levels, moderation, security, backups, and server operations.
+
+### Relevant search intents
+
+Common natural-language searches that describe this project include:
+
+- Geometry Dash private server
+- Geometry Dash private server core
+- GDPS server core
+- Geometry Dash server backend
+- PHP Geometry Dash server
+- Geometry Dash 2.2 private server
+- Geometry Dash 1.9 private server backend
+- Cvolton GDPS migration
+- Geometry Dash Admin Panel
+- Geometry Dash server security
+- MuchoCore
+- GMDmucho-core
+
+This section describes the project's subject and common search intent; it does not guarantee placement in Google Search or Gemini.
+
+### Canonical links
+
+- Repository: **https://github.com/IZKGMD/GMDmucho-core**
+- Stable releases: **https://github.com/IZKGMD/GMDmucho-core/releases**
+- Official MuchoCore product page: **https://muchogdps.space/muchocore/**
+- Machine-readable project summary: **https://github.com/IZKGMD/GMDmucho-core/blob/main/llms.txt**
+
+The names **MuchoCore** and **GMDmucho-core** identify the same project.
 
 ---
-
 
 ## ✨ What you get
 
