@@ -2760,6 +2760,7 @@ require_once __DIR__.'/core/AdminRouter.php';
 require_once __DIR__.'/pages/dashboard.php';
 require_once __DIR__.'/pages/release.php';
 require_once __DIR__.'/pages/plugins.php';
+require_once __DIR__.'/pages/intelligence.php';
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     checkCsrf();
@@ -5037,7 +5038,7 @@ table{
 <nav>
 
 <div class="nav-title">Main</div>
-<?php foreach(['dashboard','analytics','advanced','monitoring'] as $key): ?>
+<?php foreach(['dashboard','analytics','advanced','monitoring','intelligence'] as $key): ?>
 <?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
@@ -5485,6 +5486,10 @@ elseif($page==='advanced') {
 
 elseif($page==='monitoring') {
     require __DIR__.'/monitoring-module.php';
+}
+
+elseif($page==='intelligence') {
+    renderIntelligenceScalePage($db);
 }
 
 /* =========================================================
