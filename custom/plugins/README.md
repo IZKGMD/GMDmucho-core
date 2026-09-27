@@ -107,3 +107,6 @@ This means you can customize a GDPS without editing `src/`, `public/` or other c
 ## Important security note
 
 A plugin is PHP code executed by the MuchoCore application. The manifest permissions control what the MuchoCore SDK exposes through `PluginContext`, but PHP itself is not a sandbox. Only install plugins whose source you trust.
+## Lifecycle event privacy
+
+`request.received`, `request.completed` and `request.failed` use sanitized request/response event payloads. Credentials, cookies, forwarded headers, arbitrary request parameters and response bodies are omitted; failure events expose only the exception class name. Plugins should rely on documented event metadata rather than expecting raw HTTP payloads.
