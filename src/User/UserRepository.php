@@ -72,13 +72,22 @@ final readonly class UserRepository
 
     public function searchCount(string $query): int
     {
+        $isNumeric = ctype_digit($query) && $query !== '';
+
         $stmt = $this->pdo->prepare(
             'SELECT COUNT(*)
-             FROM accounts
-             WHERE username LIKE :query'
+             FROM accounts a
+             LEFT JOIN profiles p
+               ON p.account_id = a.account_id
+             WHERE
+                (a.username LIKE :query
+                 OR (:numeric_query = 1 AND COALESCE(p.user_id, 0) = :user_id))'
         );
+
         $stmt->execute([
-            'query' => '%' . $query . '%'
+            'query' => '%' . $query . '%',
+            'numeric_query' => $isNumeric ? 1 : 0,
+            'user_id' => $isNumeric ? (int)$query : 0,
         ]);
 
         return (int)$stmt->fetchColumn();
@@ -330,6 +339,8 @@ final readonly class UserRepository
             LEFT JOIN roles ar
                 ON ar.id = a.role_id
             WHERE p.stars > 0
+              AND a.is_active=1
+              AND a.is_banned=0
             ORDER BY `rank`
             LIMIT ' . (int)$limit;
 
@@ -365,6 +376,8 @@ final readonly class UserRepository
             LEFT JOIN roles ar
                 ON ar.id = a.role_id
             WHERE p.creator_points > 0
+              AND a.is_active=1
+              AND a.is_banned=0
             ORDER BY `rank`
             LIMIT ' . (int)$limit;
 
