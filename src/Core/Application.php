@@ -7,6 +7,7 @@ use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Account\AccountController;
 use MuchoCore\Account\AccountRepository;
 use MuchoCore\Account\AccountService;
+use MuchoCore\Cache\CacheManager;
 use MuchoCore\Artist\TopArtistController;
 use MuchoCore\Artist\TopArtistRepository;
 use MuchoCore\Artist\TopArtistService;
@@ -32,6 +33,7 @@ use MuchoCore\Diagnostics\ClientTrace;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
 use MuchoCore\Interaction\CommentController;
+use MuchoCore\Job\JobQueue;
 use MuchoCore\Interaction\CommentRepository;
 use MuchoCore\Interaction\CommentService;
 use MuchoCore\Interaction\LikeController;
@@ -44,7 +46,10 @@ use MuchoCore\Level\LevelService;
 use MuchoCore\Level\LevelTransferController;
 use MuchoCore\Level\LevelTransferRepository;
 use MuchoCore\Level\LevelTransferService;
+use MuchoCore\Level\LevelRevisionService;
+use MuchoCore\Level\LevelValidator;
 use MuchoCore\Moderation\ModerationController;
+use MuchoCore\Search\LevelSearchIndexer;
 use MuchoCore\Moderation\ModerationRepository;
 use MuchoCore\Moderation\ModerationService;
 use MuchoCore\Music\SongController;
@@ -86,6 +91,8 @@ final readonly class Application
     {
         $this->pdo = (new Database())->connection();
         $this->router = new Router();
+        $cache = CacheManager::fromEnvironment($this->pdo);
+        $jobs = new JobQueue($this->pdo);
         $this->protect = new MuchoProtect();
         $this->plugins = PluginManager::fromEnvironment(
             $this->pdo,
@@ -95,7 +102,11 @@ final readonly class Application
         $this->plugins->load();
 
         $accountRepo = new AccountRepository($this->pdo);
-        $accountService = new AccountService($this->pdo, $accountRepo);
+        $accountService = new AccountService(
+            $this->pdo,
+            $accountRepo,
+            $jobs
+        );
         $accountController = new AccountController($accountService);
         $auth = new AccountAuthenticator($this->pdo);
 
@@ -131,7 +142,8 @@ final readonly class Application
         $levelRepo = new LevelRepository($this->pdo);
         $levelService = new LevelService(
             $levelRepo,
-            new GdLevelListEncoder()
+            new GdLevelListEncoder(),
+            $cache
         );
         $levelController = new LevelController($levelService, $auth);
 
@@ -141,7 +153,12 @@ final readonly class Application
             $auth,
             $legacy10Identity,
             $transferRepo,
-            new GdLevelDownloadEncoder()
+            new GdLevelDownloadEncoder(),
+            new LevelValidator(),
+            new LevelRevisionService($this->pdo),
+            new LevelSearchIndexer($this->pdo),
+            $cache,
+            $jobs
         );
         $transferController =
             new LevelTransferController($transferService);
