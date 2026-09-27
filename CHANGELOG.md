@@ -1,3 +1,40 @@
+## v1.0.5 — Platform Hardening & Operator Center
+
+### Security & Authorization
+
+- unified MuchoAdminClient authorization with the canonical AdminRbac permission model;
+- preserved legacy rank fields for compatibility while removing numeric-rank enforcement as the API authorization source of truth;
+- protected owner-level game-role escalation behind canonical owner permissions;
+- added configurable trusted proxy CIDRs for safer forwarded client IP handling.
+
+### Score Integrity
+
+- added a persisted quarantined score state behind the existing optional anti-cheat quarantine flag;
+- suspicious regular and Platformer scores are stored as quarantined when the feature is enabled;
+- leaderboards exclude suspicious and quarantined integrity records while quarantine is active;
+- kept the soft-by-default behavior with no automatic account bans.
+
+### Shared MuchoProtect Storage
+
+- added backend interfaces plus MariaDB-backed rate-limit and penalty storage;
+- kept file-backed storage as the default for simple single-instance installations;
+- added migration and regression coverage for shared security state.
+
+### Migration & Operator Center
+
+- added the guided Migration Center with schema detection, read-only source access, dry-run preview and explicit MIGRATE confirmation;
+- added the interactive VPS Control Center via `sudo mucho`;
+- added database password rotation via `sudo muchodb-password`;
+- added installer and updater integration for the operator tools.
+
+### Release & Update Reliability
+
+- made GitHub's explicit latest stable release the authoritative stable channel;
+- replaced the semver-only downgrade guard with a Git ancestry check, so release numbering can change without allowing unrelated source rebases;
+- refreshed stable configuration and release documentation for v1.0.5.
+
+---
+
 # Changelog
 
 ## v1.0.41 — Migration Safety & Backup Hardening
