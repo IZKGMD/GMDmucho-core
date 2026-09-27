@@ -120,6 +120,7 @@ function muchoV2ApplyRateLimit(): void
         'network_burst_limit' => 10,
         'ip_rate_limit' => 60,
         'burst_limit' => 10,
+        'account_rate_limit' => 900,
         'temporary_penalty', 'network_penalty', 'account_penalty',
         'username_penalty', 'email_penalty', 'device_penalty' => 15,
         default => 60,
