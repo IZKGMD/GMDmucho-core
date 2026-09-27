@@ -110,7 +110,7 @@ assertV106(
 assertV106(
     str_contains($v2Bootstrap, "new \\MuchoCore\\Database\\Database()") &&
     strpos($v2Bootstrap, "new \\MuchoCore\\Database\\Database()") <
-    strpos($v2Bootstrap, "if (!empty($e['DATABASE_URL']))"),
+    strpos($v2Bootstrap, "if (!empty(\$e['DATABASE_URL']))"),
     'API v2 prefers the canonical MuchoCore database connection'
 );
 
