@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use MuchoCore\Http\Request;
+use MuchoCore\Http\Response;
 use MuchoCore\Plugin\PluginManager;
 use MuchoCore\Routing\Router;
 
@@ -173,6 +175,55 @@ try {
 
     if (file_get_contents($marker) !== 'plugin-ok') {
         throw new RuntimeException('custom plugin event contract failed');
+    }
+
+    $unsafeRequest = new Request(
+        'POST',
+        '/uploadGJLevel21.php',
+        [
+            'levelID' => '123',
+            'gjp2' => 'query-secret',
+            'password' => 'query-password',
+        ],
+        [
+            'accountID' => '456',
+            'gameVersion' => '22',
+            'binaryVersion' => '42',
+            'gjp' => 'post-secret',
+            'email' => 'private@example.test',
+            'udid' => 'device-secret',
+        ],
+        [
+            'HTTP_COOKIE' => 'MUCHO_ADMIN=secret',
+            'HTTP_AUTHORIZATION' => 'Bearer secret',
+            'REMOTE_ADDR' => '203.0.113.9',
+        ]
+    );
+
+    $safeRequest = $unsafeRequest->forPluginEvent();
+
+    if (
+        isset($safeRequest->query['gjp2']) ||
+        isset($safeRequest->query['password']) ||
+        isset($safeRequest->post['gjp']) ||
+        isset($safeRequest->post['email']) ||
+        isset($safeRequest->post['udid']) ||
+        $safeRequest->server !== [] ||
+        ($safeRequest->post['accountID'] ?? null) !== '456' ||
+        ($safeRequest->post['gameVersion'] ?? null) !== '22'
+    ) {
+        throw new RuntimeException('plugin request event privacy contract failed');
+    }
+
+    $unsafeResponse = Response::text('sensitive-response-body', 201);
+    $safeResponse = $unsafeResponse->forPluginEvent();
+
+    if (
+        $safeResponse->body !== '' ||
+        $safeResponse->status !== 201 ||
+        $safeResponse->contentType !== $unsafeResponse->contentType
+    ) {
+        throw new RuntimeException('plugin response event privacy contract failed');
     }
 
     if (file_exists($futureMarker)) {
