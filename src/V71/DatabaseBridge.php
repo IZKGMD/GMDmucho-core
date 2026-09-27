@@ -77,17 +77,6 @@ final class DatabaseBridge
             }
         }
 
-        // Prefer the canonical MuchoCore connection so Docker runtime credentials
-        // from /var/lib/muchocore/runtime.env are loaded consistently.
-        if (class_exists('MuchoCore\\Database\\Database')) {
-            try {
-                $canonical = new \MuchoCore\Database\Database();
-                return self::$pdo = self::normalize($canonical->connection());
-            } catch (Throwable) {
-                // Fall through to legacy adapters.
-            }
-        }
-
         // Try already-loaded database classes without coupling v7.1 to a concrete implementation.
         foreach ([
             'Mucho\\Core\\Database',
