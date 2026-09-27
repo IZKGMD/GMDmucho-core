@@ -14,7 +14,7 @@
   <a href="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml">
     <img src="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml/badge.svg" alt="CI">
   </a>
-  <img src="https://img.shields.io/badge/release-v1.0.4-8A2BE2" alt="Stable release">
+  <img src="https://img.shields.io/badge/release-v1.0.41-8A2BE2" alt="Stable release">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/PHP-8.3-777BB4" alt="PHP 8.3">
   <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2-success" alt="Geometry Dash 1.0 through 2.2">
@@ -51,7 +51,7 @@
 | 🖥️ **Admin Control** | Dashboard, players, levels, moderation, analytics, monitoring, backups, API tools and server settings |
 | ⭐ **Rating Studio** | Search levels by ID/name/creator, review pending requests, publish 0–10 star ratings, choose difficulty faces, feature tiers and audit the change |
 | 🔐 **Admin security** | Separate administrator accounts, password login, native WebAuthn/FIDO2 passkeys, Google Authenticator TOTP, one-time recovery codes, self-service password setup for invited admins, customizable RBAC permissions, rate limiting and audit logging |
-| 🔄 **Cvolton migration** | Read-only source DB preflight, account/profile/level/score migration, persistent ID mapping and transactional apply |
+| 🔄 **Cvolton migration** | Read-only source DB preflight, verified target backup + checksum, conflict-safe account mapping, persistent ID mapping and transactional rollback |
 | 🏰 **Clans** | Player-dashboard clan directory, clan names/tags, owner/officer/member roles, membership, invitations and server-side in-game clan-tag display |
 | 🧰 **Client patchers** | Windows desktop patcher, browser-based Windows patcher and Android APK patcher |
 | 🐳 **Deployment** | Docker Compose, MariaDB, PHP 8.3, Caddy, automatic migrations, one-command manual updates and release detection |
@@ -76,7 +76,7 @@ sudo ./install
 
 Already running a Cvolton/GMDprivateServer-style GDPS? Start with **[docs/MIGRATION_KIT.md](docs/MIGRATION_KIT.md)**.
 
-The default migration command is a **dry-run**. It checks the target, inspects the source database, reports row counts and changes nothing until you explicitly use `--apply --confirm=COVOLTON`.
+The default migration command is a **dry-run**. It checks the target, validates the source schema, reports row counts and changes nothing until you explicitly use `--apply --confirm=COVOLTON`. Apply mode creates and verifies a target database backup before any destination write; if the backup fails, the import does not start.
 
 
 MuchoCore is designed so you do not have to assemble PHP, MariaDB and Caddy manually.
