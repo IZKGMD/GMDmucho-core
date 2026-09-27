@@ -40,5 +40,9 @@ if (!ScoreIntegrity::quarantineEnabled()) {
     throw new RuntimeException('quarantine feature flag contract failed');
 }
 
+if (ScoreIntegrity::effectiveStatus($suspicious) !== ScoreIntegrity::STATUS_QUARANTINED) {
+    throw new RuntimeException('suspicious score must persist as quarantined when quarantine is enabled');
+}
+
 echo "score-integrity-contract: OK
 ";
