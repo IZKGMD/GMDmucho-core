@@ -19,13 +19,13 @@ final readonly class LevelSearchIndexer
 
         try {
             $stmt = $this->pdo->prepare(
-                'SELECT l.level_id,l.account_id,l.name,l.game_version,
+                "SELECT l.level_id,l.account_id,l.name,l.game_version,
                         l.is_deleted,l.is_unlisted,
-                        COALESCE(a.username,'''') AS username
+                        COALESCE(a.username,'') AS username
                  FROM levels l
                  LEFT JOIN accounts a ON a.account_id=l.account_id
                  WHERE l.level_id=:level_id
-                 LIMIT 1'
+                 LIMIT 1"
             );
             $stmt->execute(['level_id' => $levelId]);
             $level = $stmt->fetch(PDO::FETCH_ASSOC);
