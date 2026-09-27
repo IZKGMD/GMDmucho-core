@@ -490,6 +490,37 @@ SQL);
     must($backup !== '' && is_file($backup), 'Verified target backup file is missing.');
     must(is_file($backup . '.sha256'), 'Verified target backup checksum is missing.');
 
+    file_put_contents(
+        $runtimeEnv,
+        "DB_HOST=$host\nDB_PORT=$port\nDB_NAME=$targetDb\nDB_USER=root\nDB_PASS=deliberately-wrong\n"
+    );
+
+    $backupFailure = runCli(
+        $root,
+        $host,
+        $port,
+        $sourceDb,
+        $rootPassword,
+        $fixtureRoot,
+        $runtimeEnv
+    );
+
+    must($backupFailure['code'] !== 0, 'Migration must stop when the verified backup fails.');
+    must(
+        str_contains($backupFailure['output'], 'Target database backup failed') ||
+        str_contains($backupFailure['output'], 'BACKUP'),
+        'Backup failure should be clearly reported.'
+    );
+    must(
+        scalar($target, 'SELECT COUNT(*) FROM accounts') === 2,
+        'A failed backup must not modify the destination.'
+    );
+
+    file_put_contents(
+        $runtimeEnv,
+        "DB_HOST=$host\nDB_PORT=$port\nDB_NAME=$targetDb\nDB_USER=root\nDB_PASS=$rootPassword\n"
+    );
+
     $preflight = (new CvoltonDatabaseImporter($target))->preflight($source);
     must($preflight['accounts'] === 2, 'Unexpected account preflight count.');
     must($preflight['levels'] === 1, 'Unexpected level preflight count.');
