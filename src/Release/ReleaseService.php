@@ -130,16 +130,16 @@ final class ReleaseService
                 "X-GitHub-Api-Version: 2022-11-28\r\n",
         ]]);
         $handle = @fopen(self::RELEASE_API, 'rb', false, $context);
-        if ($handle === false) throw new \\RuntimeException('Unable to reach GitHub.');
+        if ($handle === false) throw new \RuntimeException('Unable to reach GitHub.');
         $body = stream_get_contents($handle, self::MAX_RESPONSE_BYTES + 1);
         fclose($handle);
-        if ($body === false || strlen($body) > self::MAX_RESPONSE_BYTES) throw new \\RuntimeException('GitHub response is too large.');
+        if ($body === false || strlen($body) > self::MAX_RESPONSE_BYTES) throw new \RuntimeException('GitHub response is too large.');
         $statusLine = (string)($http_response_header[0] ?? '');
-        if (!preg_match('/\\s(2\\d\\d)\\s/', $statusLine)) throw new \\RuntimeException('GitHub release request failed.');
+        if (!preg_match('/\s(2\d\d)\s/', $statusLine)) throw new \RuntimeException('GitHub release request failed.');
         $release = json_decode($body, true);
-        if (!is_array($release) || !empty($release['draft']) || !empty($release['prerelease'])) throw new \\RuntimeException('No stable semantic release was found.');
+        if (!is_array($release) || !empty($release['draft']) || !empty($release['prerelease'])) throw new \RuntimeException('No stable semantic release was found.');
         $tag = trim((string)($release['tag_name'] ?? ''));
-        if (self::parseVersion($tag) === null) throw new \\RuntimeException('The latest stable release has an invalid version.');
+        if (self::parseVersion($tag) === null) throw new \RuntimeException('The latest stable release has an invalid version.');
         return [
             'tag_name' => ltrim($tag, 'vV'),
             'name' => trim((string)($release['name'] ?? '')),
