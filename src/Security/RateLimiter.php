@@ -6,6 +6,11 @@ namespace MuchoCore\Security;
 
 final readonly class RateLimiter
 {
+    private const AUTO_CLEANUP_INTERVAL = 128;
+    private const DEFAULT_STALE_AFTER = 3600;
+    private const DEFAULT_MAX_ENTRIES = 64;
+    private const MAX_CLEANUP_SCAN = 512;
+
     public function __construct(
         private string $directory = '/tmp/muchocore-rate-limit'
     ) {}
@@ -18,6 +23,8 @@ final readonly class RateLimiter
         if ($limit < 1 || $windowSeconds < 1) {
             return false;
         }
+
+        $this->maybeCleanup();
 
         if (
             !is_dir($this->directory) &&
@@ -85,6 +92,76 @@ final readonly class RateLimiter
         }
     }
 
+    /**
+     * Remove stale bucket files left behind by expired rate-limit windows.
+     *
+     * Only files older than the supplied age are eligible, so an active
+     * bucket that is still being written remains untouched. Cleanup is
+     * bounded to avoid turning a request into an unbounded directory scan.
+     */
+    public function cleanup(
+        int $staleAfterSeconds = self::DEFAULT_STALE_AFTER,
+        int $maxEntries = self::DEFAULT_MAX_ENTRIES
+    ): int {
+        if ($staleAfterSeconds < 1 || $maxEntries < 1 || !is_dir($this->directory)) {
+            return 0;
+        }
+
+        $removed = 0;
+        $cutoff = time() - $staleAfterSeconds;
+        $scanned = 0;
+
+        try {
+            $iterator = new \FilesystemIterator(
+                $this->directory,
+                \FilesystemIterator::SKIP_DOTS
+            );
+
+            foreach ($iterator as $file) {
+                if (++$scanned > self::MAX_CLEANUP_SCAN) {
+                    break;
+                }
+
+                if (
+                    !$file->isFile() ||
+                    $file->getExtension() !== 'json'
+                ) {
+                    continue;
+                }
+
+                $mtime = $file->getMTime();
+
+                if ($mtime >= $cutoff) {
+                    continue;
+                }
+
+                if (@unlink($file->getPathname())) {
+                    $removed++;
+
+                    if ($removed >= $maxEntries) {
+                        break;
+                    }
+                }
+            }
+        } catch (\Throwable) {
+            return $removed;
+        }
+
+        return $removed;
+    }
+
+    private function maybeCleanup(): void
+    {
+        static $calls = 0;
+
+        $calls++;
+
+        if ($calls >= self::AUTO_CLEANUP_INTERVAL) {
+            $calls = 0;
+            $this->cleanup();
+        }
+    }
+
     public function allow(
         string $key,
         int $limit,
@@ -93,6 +170,8 @@ final readonly class RateLimiter
         if ($limit < 1 || $windowSeconds < 1) {
             return true;
         }
+
+        $this->maybeCleanup();
 
         if (
             !is_dir($this->directory) &&
