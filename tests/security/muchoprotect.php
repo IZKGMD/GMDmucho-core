@@ -412,10 +412,10 @@ $clanRequest = new Request(
     ['REMOTE_ADDR' => '192.0.2.220']
 );
 
-for ($i = 0; $i < 4; $i++) {
+for ($i = 0; $i < 2; $i++) {
     $result = $clanProtect->inspect($clanRequest, '/api/clans/create');
     if ($result['decision'] !== 'allow') {
-        fwrite(STDERR, "MuchoProtect clan create policy failed at request {$i}\n");
+        fwrite(STDERR, "MuchoProtect clan create policy failed at burst request {$i}\n");
         exit(1);
     }
 }
@@ -423,11 +423,11 @@ for ($i = 0; $i < 4; $i++) {
 $clanBlocked = $clanProtect->inspect($clanRequest, '/api/clans/create');
 if (
     $clanBlocked['decision'] !== 'block' ||
-    $clanBlocked['reason'] !== 'ip_rate_limit'
+    $clanBlocked['reason'] !== 'burst_limit'
 ) {
     fwrite(
         STDERR,
-        "MuchoProtect clan create limit failed: "
+        "MuchoProtect clan create burst limit failed: "
         . json_encode($clanBlocked, JSON_UNESCAPED_SLASHES)
         . "\n"
     );
