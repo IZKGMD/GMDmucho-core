@@ -29,20 +29,16 @@ final class CvoltonDatabaseImporter
             'accGlow', 'isBanned',
         ],
         'levels' => [
+            // The remaining level fields are optional in older Cvolton forks;
+            // levelParams() supplies deterministic defaults for them.
             'levelID', 'levelName', 'levelDesc', 'levelString', 'levelVersion',
-            'gameVersion', 'binaryVersion', 'levelLength', 'audioTrack',
-            'starDifficulty', 'starDemon', 'starDemonDiff', 'starAuto',
-            'starFeatured', 'starEpic', 'objects', 'original', 'twoPlayer',
-            'coins', 'requestedStars', 'isLDM', 'songID', 'songIDs', 'sfxIDs',
-            'wt', 'wt2', 'ts', 'downloads', 'likes', 'starStars', 'unlisted',
-            'isDeleted', 'extID',
+            'gameVersion', 'levelLength', 'audioTrack', 'extID',
         ],
         'levelscores' => [
-            'scoreID', 'accountID', 'levelID', 'percent', 'uploadDate',
-            'attempts', 'coins', 'clicks', 'time', 'progresses', 'dailyID',
+            'scoreID', 'accountID', 'levelID',
         ],
         'platscores' => [
-            'ID', 'accountID', 'levelID', 'time', 'points', 'timestamp',
+            'ID', 'accountID', 'levelID',
         ],
     ];
 
