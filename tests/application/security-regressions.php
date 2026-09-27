@@ -195,10 +195,10 @@ assertSecurityRegression(
 );
 
 assertSecurityRegression(
-    str_contains($musicUpload, 'allowStrict') &&
+    str_contains($v2Security, 'MuchoProtect') &&
     str_contains($musicUpload, 'MUCHO_PUBLIC_URL') &&
     !str_contains($musicUpload, 'HTTP_HOST'),
-    'music upload uses fail-closed limiting and trusted public origin'
+    'music upload is covered by central MuchoProtect and uses trusted public origin'
 );
 
 assertSecurityRegression(
