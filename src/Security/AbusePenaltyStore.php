@@ -6,6 +6,11 @@ namespace MuchoCore\Security;
 
 final readonly class AbusePenaltyStore
 {
+    private const AUTO_CLEANUP_INTERVAL = 128;
+    private const DEFAULT_STALE_AFTER = 3600;
+    private const DEFAULT_MAX_ENTRIES = 64;
+    private const MAX_CLEANUP_SCAN = 512;
+
     public function __construct(
         private string $directory = '/tmp/muchocore-protect-penalties'
     ) {}
@@ -13,6 +18,8 @@ final readonly class AbusePenaltyStore
     /** @return array{active:bool, remaining:int, strikes:int} */
     public function status(string $key): array
     {
+        $this->maybeCleanup();
+
         $state = $this->readState($key);
         if ($state === null) {
             return ['active' => false, 'remaining' => 0, 'strikes' => 0];
@@ -79,6 +86,75 @@ final readonly class AbusePenaltyStore
         } finally {
             @flock($fp, LOCK_UN);
             fclose($fp);
+        }
+    }
+
+    /**
+     * Remove expired penalty files without scanning the whole directory.
+     *
+     * Penalties are short-lived by design (15 seconds to 15 minutes today),
+     * so a one-hour stale threshold is safely beyond every active penalty.
+     */
+    public function cleanup(
+        int $staleAfterSeconds = self::DEFAULT_STALE_AFTER,
+        int $maxEntries = self::DEFAULT_MAX_ENTRIES
+    ): int {
+        if ($staleAfterSeconds < 1 || $maxEntries < 1 || !is_dir($this->directory)) {
+            return 0;
+        }
+
+        $removed = 0;
+        $cutoff = time() - $staleAfterSeconds;
+        $scanned = 0;
+
+        try {
+            $iterator = new \FilesystemIterator(
+                $this->directory,
+                \FilesystemIterator::SKIP_DOTS
+            );
+
+            foreach ($iterator as $file) {
+                if (++$scanned > self::MAX_CLEANUP_SCAN) {
+                    break;
+                }
+
+                if (
+                    !$file->isFile() ||
+                    $file->getExtension() !== 'json'
+                ) {
+                    continue;
+                }
+
+                $mtime = $file->getMTime();
+
+                if ($mtime >= $cutoff) {
+                    continue;
+                }
+
+                if (@unlink($file->getPathname())) {
+                    $removed++;
+
+                    if ($removed >= $maxEntries) {
+                        break;
+                    }
+                }
+            }
+        } catch (\Throwable) {
+            return $removed;
+        }
+
+        return $removed;
+    }
+
+    private function maybeCleanup(): void
+    {
+        static $calls = 0;
+
+        $calls++;
+
+        if ($calls >= self::AUTO_CLEANUP_INTERVAL) {
+            $calls = 0;
+            $this->cleanup();
         }
     }
 
