@@ -105,6 +105,8 @@ grep -q '^TURNSTILE_SECRET=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SECRE
 grep -q '^MUCHO_GD_VERSIONS=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_GD_VERSIONS=all\n' >> "$ROOT/.env"
 grep -q '^CADDY_EXTRA_HOSTS=' "$ROOT/.env" 2>/dev/null || printf 'CADDY_EXTRA_HOSTS=\n' >> "$ROOT/.env"
 grep -q '^MUCHOCORE_SITE_HOST=' "$ROOT/.env" 2>/dev/null || printf 'MUCHOCORE_SITE_HOST=disabled.invalid\n' >> "$ROOT/.env"
+grep -q '^MUCHO_PROTECT_STORAGE=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_PROTECT_STORAGE=file\n' >> "$ROOT/.env"
+grep -q '^MUCHO_TRUSTED_PROXY_CIDRS=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_TRUSTED_PROXY_CIDRS=\n' >> "$ROOT/.env"
 MUCHOCORE_SITE_HOST="$(sed -n 's/^MUCHOCORE_SITE_HOST=//p' "$ROOT/.env" | head -n1 || true)"
 [[ "$MUCHOCORE_SITE_HOST" =~ ^[A-Za-z0-9.-]+$ ]] || {
     echo "[MuchoCore] ERROR: invalid MUCHOCORE_SITE_HOST: $MUCHOCORE_SITE_HOST" >&2
@@ -184,17 +186,13 @@ LATEST_SEMVER="$(printf '%s' "$LATEST_TAG" | sed 's/^v//')"
 REMOTE_TAG_SHA="$(git ls-remote origin "refs/tags/$LATEST_TAG" | awk 'NR == 1 {print $1}')"
 CURRENT_HEAD="$(git rev-parse HEAD)"
 
-if [[ "$CURRENT_SEMVER" == "$LATEST_SEMVER" ]]; then
-    if [[ -n "$REMOTE_TAG_SHA" && "$CURRENT_HEAD" == "$REMOTE_TAG_SHA" ]]; then
-        echo "[MuchoCore] Already on the latest stable release: v$CURRENT_SEMVER."
-        exit 0
-    fi
+[[ -n "$REMOTE_TAG_SHA" ]] || {
+    echo '[MuchoCore] ERROR: stable release tag could not be resolved.' >&2
+    exit 1
+}
 
-    echo "[MuchoCore] Reinstalling the published v$LATEST_SEMVER release because its tag points to a newer build."
-fi
-
-if [[ "$(printf '%s\n%s\n' "$CURRENT_SEMVER" "$LATEST_SEMVER" | sort -V | tail -n1)" != "$LATEST_SEMVER" ]]; then
-    echo "[MuchoCore] Installed release v$CURRENT_SEMVER is newer than GitHub's latest stable release v$LATEST_SEMVER; refusing to downgrade."
+if [[ "$CURRENT_SEMVER" == "$LATEST_SEMVER" && "$CURRENT_HEAD" == "$REMOTE_TAG_SHA" ]]; then
+    echo "[MuchoCore] Already on the latest stable release: v$CURRENT_SEMVER."
     exit 0
 fi
 
@@ -227,6 +225,15 @@ handle_update_interrupt() {
 trap handle_update_interrupt INT TERM
 
 git fetch --depth=1 origin "refs/tags/$LATEST_TAG:refs/tags/$LATEST_TAG"
+
+if ! git merge-base --is-ancestor "$CURRENT_HEAD" "$LATEST_TAG^{commit}"; then
+    if [[ "${MUCHO_ALLOW_RELEASE_REBASE:-0}" != "1" ]]; then
+        echo "[MuchoCore] ERROR: latest stable release v$LATEST_SEMVER is not a descendant of the installed source tree." >&2
+        echo "[MuchoCore] Refusing the release-line rebase. Set MUCHO_ALLOW_RELEASE_REBASE=1 only for an intentional source-line transition." >&2
+        exit 1
+    fi
+fi
+
 git reset --hard "$LATEST_TAG"
 UPDATE_SOURCE_SWITCHED=1
 
@@ -261,6 +268,8 @@ docker compose exec -T app php bin/migrate.php migrate
 
 echo '[MuchoCore] Synchronizing admin credentials...'
 docker compose exec -T app php bin/mucho-sync-admin.php
+if [[ -x "$ROOT/bin/mucho" ]]; then ln -sfn "$ROOT/bin/mucho" /usr/local/bin/mucho; fi
+if [[ -x "$ROOT/bin/muchodb-password" ]]; then ln -sfn "$ROOT/bin/muchodb-password" /usr/local/bin/muchodb-password; fi
 
 echo '[MuchoCore] Checking service status...'
 docker compose ps
