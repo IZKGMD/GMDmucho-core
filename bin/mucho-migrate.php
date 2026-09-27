@@ -155,6 +155,82 @@ function printHeader(string $mode): void
     echo "Destination:       MuchoCore" . PHP_EOL;
 }
 
+function createVerifiedTargetBackup(): string
+{
+    $script = dirname(__DIR__) . '/bin/mucho-db-backup.sh';
+
+    if (!is_file($script)) {
+        throw new RuntimeException(
+            'Verified target backup is unavailable; migration was not started.'
+        );
+    }
+
+    $output = [];
+    $exitCode = 0;
+
+    exec(
+        '/usr/bin/env bash ' . escapeshellarg($script) . ' 2>&1',
+        $output,
+        $exitCode
+    );
+
+    if ($exitCode !== 0) {
+        throw new RuntimeException(
+            "Target database backup failed; migration was not started.\n" .
+            implode("\n", $output)
+        );
+    }
+
+    $backup = null;
+
+    foreach ($output as $line) {
+        if (str_starts_with($line, 'FILE=')) {
+            $backup = trim(substr($line, 5));
+        }
+    }
+
+    if ($backup === null || $backup === '' || !is_file($backup)) {
+        throw new RuntimeException(
+            'Target database backup did not produce a verifiable backup file; migration was not started.'
+        );
+    }
+
+    $size = filesize($backup);
+
+    if ($size === false || $size < 100) {
+        throw new RuntimeException(
+            'Target database backup is unexpectedly small; migration was not started.'
+        );
+    }
+
+    $hashFile = $backup . '.sha256';
+
+    if (!is_file($hashFile) || trim((string)file_get_contents($hashFile)) === '') {
+        throw new RuntimeException(
+            'Target database backup checksum is missing; migration was not started.'
+        );
+    }
+
+    $hashOutput = [];
+    $hashExitCode = 0;
+
+    exec(
+        '/usr/bin/env sha256sum -c ' . escapeshellarg($hashFile) . ' 2>&1',
+        $hashOutput,
+        $hashExitCode
+    );
+
+    if ($hashExitCode !== 0) {
+        throw new RuntimeException(
+            "Target database backup checksum verification failed; migration was not started.\n" .
+            implode("\n", $hashOutput)
+        );
+    }
+
+    return $backup;
+}
+
+
 $options = getopt("", [
     "source-host:",
     "source-port::",
@@ -269,6 +345,12 @@ try {
             exit(4);
         }
     }
+
+    echo PHP_EOL . "Creating verified target database backup..." . PHP_EOL;
+
+    $targetBackup = createVerifiedTargetBackup();
+
+    echo "TARGET_BACKUP=" . $targetBackup . PHP_EOL . PHP_EOL;
 
     echo PHP_EOL . "Preparing MuchoCore schema..." . PHP_EOL;
     (new Migrator(
