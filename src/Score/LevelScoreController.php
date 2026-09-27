@@ -377,6 +377,13 @@ final readonly class LevelScoreController
         $where="
             level_id=:level
             AND is_daily=:daily
+            AND EXISTS (
+                SELECT 1
+                FROM accounts a
+                WHERE a.account_id=mucho_level_scores.account_id
+                  AND a.is_active=1
+                  AND a.is_banned=0
+            )
         ";
 
         if (ScoreIntegrity::quarantineEnabled()) {
