@@ -13,7 +13,7 @@ grep -Fq -- "--source-host=HOST" <<<"$help_output"
 grep -Fq -- "--apply" <<<"$help_output"
 grep -Fq -- "--confirm=COVOLTON" <<<"$help_output"
 
-grep -Fq "mucho-db-backup.sh" "$KIT"
+grep -Fq "TARGET_BACKUP=" "$KIT"
 grep -Fq "CVOLTON_SOURCE_PASS" "$KIT"
 grep -Fq "mucho-healthcheck.php" "$KIT"
 grep -Fq "bin/import-cvolton-db.php" "$KIT"
