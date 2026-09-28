@@ -56,7 +56,7 @@ assertInputHardening(
 );
 
 assertInputHardening(
-    str_contains($platformer, 'private function strictInt(mixed $value): int') &&
+    preg_match('/private function strictInt\\(mixed \\$value\\): int/', $platformer) === 1 &&
     str_contains($platformer, '$time<0 || $time>86400000') &&
     str_contains($platformer, '$points<0 || $points>100000000'),
     'platformer scores enforce strict integer and bounded score inputs'
