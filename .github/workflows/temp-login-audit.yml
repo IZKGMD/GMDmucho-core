@@ -1,0 +1,28 @@
+name: Temporary login audit
+
+on:
+  push:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Audit public login endpoints
+        run: |
+          set -euxo pipefail
+          for URL in \
+            "https://muchogdps.space/database/accounts/loginGJAccount.php" \
+            "https://muchogdps.space/a/database/accounts/loginGJAccount.php"; do
+            echo "=== $URL ==="
+            curl --http1.1 --connect-timeout 10 --max-time 20 \
+              -sS -D headers.txt -o body.txt \
+              -X POST "$URL" \
+              -H 'Content-Type: application/x-www-form-urlencoded' \
+              --data 'udid=audit-client&userName=abc&gjp2=def'
+            cat headers.txt
+            echo "BODY_HEX:"
+            od -An -tx1 -v body.txt
+            echo "BODY_TEXT:"
+            cat body.txt
+            echo
+          done
