@@ -187,6 +187,15 @@ final readonly class AccountService
         $userId = $this->accounts->ensureProfile($accountId);
 
         $this->accounts->markLogin($accountId);
+
+        /*
+         * Match Cvolton's sessionGrants compatibility: after a successful
+         * login, remember this account + client IP for one hour so legacy
+         * endpoints can authenticate the immediately-following requests even
+         * when the client does not resend a verifiable GJP/GJP2 value.
+         */
+        $this->rememberAuthSession($accountId, $ip);
+
         $this->accounts->audit($accountId, 'account.login', $ip);
 
         /*
@@ -205,6 +214,44 @@ final readonly class AccountService
         }
 
         return $accountId . ',' . $userId;
+    }
+
+    private function rememberAuthSession(
+        int $accountId,
+        string $ip
+    ): void {
+        $ip = trim($ip);
+
+        if ($accountId <= 0 || $ip === '') {
+            return;
+        }
+
+        $cleanup = $this->pdo->prepare(
+            'DELETE FROM mucho_auth_sessions
+             WHERE expires_at <= UTC_TIMESTAMP()'
+        );
+
+        $cleanup->execute();
+
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO mucho_auth_sessions
+                (account_id, ip_address, expires_at)
+             VALUES
+                (:account_id, :ip_address,
+                 DATE_ADD(UTC_TIMESTAMP(), INTERVAL 1 HOUR))
+             ON DUPLICATE KEY UPDATE
+                created_at = UTC_TIMESTAMP(),
+                last_used_at = NULL,
+                expires_at = DATE_ADD(
+                    UTC_TIMESTAMP(),
+                    INTERVAL 1 HOUR
+                )'
+        );
+
+        $stmt->execute([
+            'account_id' => $accountId,
+            'ip_address' => $ip,
+        ]);
     }
 
     private function rememberLegacy19UploadSession(
