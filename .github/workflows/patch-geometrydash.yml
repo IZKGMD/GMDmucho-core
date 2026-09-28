@@ -1,0 +1,34 @@
+name: Patch GeometryDash.exe for MuchoCore
+
+on:
+  push:
+    paths:
+      - GeometryDash.exe
+      - tools/client/client-patch.py
+      - .github/workflows/patch-geometrydash.yml
+  workflow_dispatch:
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Patch executable
+        run: |
+          python3 tools/client/client-patch.py             --input GeometryDash.exe             --output GeometryDash-MuchoCore.exe             --server-url https://muchogdps.space             --report GeometryDash-MuchoCore.patch-report.txt
+
+      - name: Verify output
+        run: |
+          test -f GeometryDash-MuchoCore.exe
+          sha256sum GeometryDash.exe GeometryDash-MuchoCore.exe
+          grep -E 'Server:|Output SHA256:|Replacements:' GeometryDash-MuchoCore.patch-report.txt
+
+      - name: Upload patched client
+        uses: actions/upload-artifact@v4
+        with:
+          name: GeometryDash-MuchoCore
+          path: |
+            GeometryDash-MuchoCore.exe
+            GeometryDash-MuchoCore.patch-report.txt
