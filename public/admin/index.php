@@ -5073,7 +5073,7 @@ table{
 <?php endforeach ?>
 
 <div class="nav-title">Tools</div>
-<?php foreach(['database','endpoints','clientfeatures','clientpatcher','updates','securitycenter','dbbackups','backups','settings','system'] as $key): ?>
+<?php foreach(['database','endpoints','clientfeatures','clientpatcher','updates','securitycenter','dbbackups','migration','backups','settings','system'] as $key): ?>
 <?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
