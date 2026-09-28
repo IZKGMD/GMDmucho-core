@@ -456,6 +456,20 @@ final readonly class PlatformerScoreController
     }
 
 
+    private function strictInt(mixed $value): int
+    {
+        if(is_int($value)){
+            return $value;
+        }
+
+        if(is_string($value) && preg_match('/^-?\\d{1,12}$/D',$value)===1){
+            return (int)$value;
+        }
+
+        return -1;
+    }
+
+
     private function age(int $seconds): string
     {
         $seconds=max(0,$seconds);
