@@ -13,53 +13,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Inspect client URLs
+      - name: Verify client is patched for MuchoCore
         shell: pwsh
         run: |
           $data = [IO.File]::ReadAllBytes("GeometryDash.exe")
           $ascii = [Text.Encoding]::ASCII.GetString($data)
-          $patterns = @("boomlings","www\.","http://","https://","database","boomlings\.com")
-          foreach ($p in $patterns) {
-            Write-Host "=== $p ==="
-            [regex]::Matches($ascii, ".{0,100}$p.{0,160}", [Text.RegularExpressions.RegexOptions]::IgnoreCase) |
-              Select-Object -First 40 |
-              ForEach-Object { Write-Host $_.Value }
-          }
 
-      - name: Patch GeometryDash.exe
+          $target = "muchogdps.space"
+          $old1 = "www.boomlings.com"
+          $old2 = "boomlings.com"
+
+          $targetCount = ([regex]::Matches($ascii, [regex]::Escape($target), [Text.RegularExpressions.RegexOptions]::IgnoreCase)).Count
+          $oldCount1 = ([regex]::Matches($ascii, [regex]::Escape($old1), [Text.RegularExpressions.RegexOptions]::IgnoreCase)).Count
+          $oldCount2 = ([regex]::Matches($ascii, [regex]::Escape($old2), [Text.RegularExpressions.RegexOptions]::IgnoreCase)).Count
+
+          Write-Host "MuchoCore hostname occurrences: $targetCount"
+          Write-Host "www.boomlings.com occurrences: $oldCount1"
+          Write-Host "boomlings.com occurrences: $oldCount2"
+
+          if ($targetCount -lt 1) { throw "No muchogdps.space URLs found in GeometryDash.exe" }
+
+      - name: Prepare patched EXE
         shell: pwsh
         run: |
-          $path = "GeometryDash.exe"
-          $target = [Text.Encoding]::ASCII.GetBytes("muchogdps.space")
-          $candidates = @(
-            [Text.Encoding]::ASCII.GetBytes("www.boomlings.com"),
-            [Text.Encoding]::ASCII.GetBytes("boomlings.com")
-          )
-
-          $data = [IO.File]::ReadAllBytes($path)
-          $total = 0
-
-          foreach ($source in $candidates) {
-            for ($i = 0; $i -le $data.Length - $source.Length; $i++) {
-              $match = $true
-              for ($j = 0; $j -lt $source.Length; $j++) {
-                if ($data[$i + $j] -ne $source[$j]) {
-                  $match = $false
-                  break
-                }
-              }
-              if ($match -and $target.Length -le $source.Length) {
-                for ($j = 0; $j -lt $source.Length; $j++) { $data[$i + $j] = 0 }
-                for ($j = 0; $j -lt $target.Length; $j++) { $data[$i + $j] = $target[$j] }
-                $total++
-                $i += $source.Length - 1
-              }
-            }
-          }
-
-          if ($total -eq 0) { throw "No supported endpoint hostname found" }
-          [IO.File]::WriteAllBytes("GeometryDash-patched.exe", $data)
-          Write-Host "Patched occurrences: $total"
+          Copy-Item "GeometryDash.exe" "GeometryDash-patched.exe" -Force
+          $hash = (Get-FileHash "GeometryDash-patched.exe" -Algorithm SHA256).Hash
+          $size = (Get-Item "GeometryDash-patched.exe").Length
+          Write-Host "Prepared GeometryDash-patched.exe"
+          Write-Host "SHA256: $hash"
+          Write-Host "Size: $size bytes"
 
       - name: Upload patched EXE
         uses: actions/upload-artifact@v4
