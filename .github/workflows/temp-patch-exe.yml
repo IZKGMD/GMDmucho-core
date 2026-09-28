@@ -1,0 +1,59 @@
+name: Build patched Geometry Dash EXE
+
+on:
+  push:
+    branches:
+      - temp/gd-exe-patch-20260928
+  workflow_dispatch:
+
+jobs:
+  patch:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Patch GeometryDash.exe
+        shell: pwsh
+        run: |
+          $path = "GeometryDash.exe"
+          $target = [Text.Encoding]::ASCII.GetBytes("muchogdps.space")
+          $source = [Text.Encoding]::ASCII.GetBytes("www.boomlings.com")
+
+          $data = [IO.File]::ReadAllBytes($path)
+          $count = 0
+
+          for ($i = 0; $i -le $data.Length - $source.Length; $i++) {
+            $match = $true
+            for ($j = 0; $j -lt $source.Length; $j++) {
+              if ($data[$i + $j] -ne $source[$j]) {
+                $match = $false
+                break
+              }
+            }
+            if ($match) {
+              for ($j = 0; $j -lt $source.Length; $j++) {
+                $data[$i + $j] = 0
+              }
+              for ($j = 0; $j -lt $target.Length; $j++) {
+                $data[$i + $j] = $target[$j]
+              }
+              $count++
+              $i += $source.Length - 1
+            }
+          }
+
+          if ($count -eq 0) {
+            throw "No www.boomlings.com occurrences found"
+          }
+
+          [IO.File]::WriteAllBytes("GeometryDash-patched.exe", $data)
+          Write-Host "Patched occurrences: $count"
+          Write-Host "Output size: $((Get-Item GeometryDash-patched.exe).Length) bytes"
+
+      - name: Upload patched EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: GeometryDash-patched-muchogdps
+          path: GeometryDash-patched.exe
+          if-no-files-found: error
