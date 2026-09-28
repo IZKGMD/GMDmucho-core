@@ -1,5 +1,29 @@
 # Migration Center
 
+## Easiest way: Admin Panel
+
+For normal server owners, use:
+
+~~~text
+MuchoCore Admin
+  → Tools
+  → Migration Center
+~~~
+
+Enter the old MySQL/MariaDB host, database name, user and password, then click **Check source**.
+
+When the preview looks correct, click **Migrate supported data**. MuchoCore then:
+
+1. detects the old schema automatically;
+2. creates and verifies a destination backup;
+3. runs the required MuchoCore migrations;
+4. imports the datasets with deterministic account/level mappings;
+5. shows anything that still needs a separate file copy.
+
+The old database is opened read-only by the importer. The source password is passed to the migration process through a protected environment variable rather than a command-line argument.
+
+The command-line Migration Center below remains available for VPS automation and troubleshooting.
+
 MuchoCore includes a guided database migration flow so moving an existing GDPS does not require manually rewriting SQL.
 
 ## What the wizard does
