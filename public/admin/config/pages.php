@@ -28,6 +28,7 @@ return [
 
     'securitycenter'=>'Security & Monitoring',
     'dbbackups'=>'DB Backup Center',
+    'migration'=>'Migration Center',
 
     'advanced'=>'Control v4',
 
