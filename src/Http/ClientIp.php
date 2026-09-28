@@ -44,8 +44,17 @@ final class ClientIp
             $remote,
             self::CLOUDFLARE_CIDRS
         );
+        $privateProxy = filter_var(
+            $remote,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+        ) === false;
 
-        if (!$explicitTrustedProxy && !$cloudflareTrustedProxy) {
+        if (
+            !$explicitTrustedProxy &&
+            !$cloudflareTrustedProxy &&
+            !$privateProxy
+        ) {
             return $remote;
         }
 
