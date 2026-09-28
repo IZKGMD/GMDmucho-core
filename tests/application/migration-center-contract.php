@@ -9,6 +9,13 @@ $wizard = file_get_contents($root . '/bin/mucho-migrate.php');
 $control = file_get_contents($root . '/bin/mucho');
 $workflow = file_get_contents($root . '/.github/workflows/validate.yml');
 $docs = file_get_contents($root . '/docs/MIGRATION_CENTER.md');
+$adminPage = file_get_contents($root . '/public/admin/pages/migration.php');
+$adminAction = file_get_contents($root . '/public/admin/actions/migration.php');
+$adminRouter = file_get_contents($root . '/public/admin/core/AdminRouter.php');
+$adminPages = file_get_contents($root . '/public/admin/config/pages.php');
+$adminActions = file_get_contents($root . '/public/admin/actions/map.php');
+$adminRbac = file_get_contents($root . '/src/Admin/AdminRbac.php');
+$adminIndex = file_get_contents($root . '/public/admin/index.php');
 
 foreach ([
     'src/Migration/SourceDetector.php' => $detector,
@@ -63,6 +70,41 @@ if ($backupAt === false || $prepareAt === false || $backupAt > $prepareAt) {
     );
 }
 $dryRunExitAt = strpos($wizard, 'if (!$requestedApply)');
+
+
+foreach ([
+    'FHGDPS / Cvolton Migration',
+    'Check source',
+    'Migrate supported data',
+    'Old database host',
+    'MUCHO_MIGRATION_SOURCE_PASS',
+    'proc_open(',
+] as $needle) {
+    if (stripos((string)$adminPage . (string)$adminAction, $needle) === false) {
+        throw new RuntimeException('Admin Migration Center contract missing: ' . $needle);
+    }
+}
+
+foreach ([
+    "'migration'=>'Migration Center'",
+    "'migration'",
+    "'migration-preview'",
+    "'migration-apply'",
+    "'migration' => 'system.manage'",
+] as $needle) {
+    if (
+        strpos($adminPages . $adminActions . $adminRouter . $adminRbac, $needle) === false
+    ) {
+        throw new RuntimeException('Admin migration wiring missing: ' . $needle);
+    }
+}
+
+if (
+    strpos($adminIndex, "in_array($action,['migration-preview','migration-apply'],true)") === false ||
+    strpos($adminIndex, "require __DIR__.'/actions/migration.php'") === false
+) {
+    throw new RuntimeException('Admin Migration Center action dispatch is missing.');
+}
 
 if ($prepareAt === false || $dryRunExitAt === false || $prepareAt < $dryRunExitAt) {
     throw new RuntimeException(
