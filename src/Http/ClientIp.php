@@ -50,10 +50,14 @@ final class ClientIp
             FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
         ) === false;
 
+        $privateProxyFallback =
+            $trustedProxyCidrs === [] &&
+            $privateProxy;
+
         if (
             !$explicitTrustedProxy &&
             !$cloudflareTrustedProxy &&
-            !$privateProxy
+            !$privateProxyFallback
         ) {
             return $remote;
         }
