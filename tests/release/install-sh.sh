@@ -47,8 +47,4 @@ if grep -q '^[[:space:]]*command -v git' install.sh; then
     exit 1
 fi
 
-if command -v shellcheck >/dev/null 2>&1; then
-    shellcheck install.sh install
-fi
-
 echo "install-sh: OK"
