@@ -171,7 +171,6 @@ def replace_null_terminated_url(
     new_host: str,
     label: str,
 ) -> tuple[bytes, int]:
-    """Replace a host inside a null-terminated HTTP(S) URL, preserving total field size."""
     old_host_b = old_host.encode("ascii")
     new_host_b = new_host.encode("ascii")
     count = 0
@@ -258,14 +257,11 @@ def replace_base64_embedded_host(
     new_host: str,
     label: str,
 ) -> tuple[bytes, int]:
-    """Patch Base64-encoded null/ASCII URL strings without touching unrelated Base64."""
     old_b = old_host.encode("ascii")
     new_b = new_host.encode("ascii")
     mutated = bytearray(data)
     count = 0
 
-    # Candidate strings are long enough to represent typical URLs and are
-    # decoded/validated before touching anything.
     for match in list(re.finditer(rb"[A-Za-z0-9+/]{24,}={0,2}", bytes(mutated))):
         raw = match.group(0)
         try:
@@ -307,7 +303,6 @@ def patch_client(data: bytes, server: str) -> tuple[bytes, list[PatchStat]]:
     server = validate_server(server)
     stats: list[PatchStat] = []
 
-    # 1) Exact legacy layouts with Geometry Dash's fixed-size fields.
     for length, old_url, label in (
         (34, "https://www.boomlings.com/database", "GD 2.2 HTTPS database URL"),
         (33, "http://www.boomlings.com/database", "Legacy HTTP database URL"),
@@ -340,7 +335,6 @@ def patch_client(data: bytes, server: str) -> tuple[bytes, list[PatchStat]]:
         if b64_count:
             stats.append(PatchStat(label + " [Base64]", b64_count, new_url))
 
-    # 2) Legacy bare database URL.
     try:
         bare_new = compatibility_url(server, 26, bare=True)
         data, count = replace_ascii_url(
@@ -354,8 +348,6 @@ def patch_client(data: bytes, server: str) -> tuple[bytes, list[PatchStat]]:
     except ValueError:
         pass
 
-    # 3) Generic known-host URL fields. This catches builds where the host
-    # appears in another fixed-size endpoint string not covered above.
     parsed = urlsplit(server)
     for old_host in KNOWN_HOSTS:
         if old_host in parsed.netloc:
@@ -416,7 +408,6 @@ def validate_result(original: bytes, patched: bytes, server: str, stats: list[Pa
     raw = bytes(patched)
     for host in old_remaining:
         if host in raw:
-            # Only fail when it still appears as a direct URL or decoded Base64 URL.
             for url in scan_urls(raw):
                 if host.decode("ascii") in url:
                     raise ValueError(
@@ -428,7 +419,6 @@ def validate_result(original: bytes, patched: bytes, server: str, stats: list[Pa
 
     parsed = urlsplit(validate_server(server))
     if parsed.netloc.encode("ascii") not in raw:
-        # Compatibility paths still contain the hostname, so this is a strong sanity check.
         raise ValueError("target hostname is not present in the patched executable")
 
 
@@ -506,7 +496,6 @@ def run_self_test() -> int:
         b"https://www.boomlings.com/database" +
         b"\x00" * 4
     )
-    # Add a PE signature at the location declared by the DOS header.
     source = bytearray(source)
     source[0x3C:0x40] = (0x80).to_bytes(4, "little")
     if len(source) < 0x84:
@@ -608,3 +597,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+# CI trigger: keep canonical patcher available for automated GDPS builds.
