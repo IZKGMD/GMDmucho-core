@@ -186,17 +186,47 @@ final readonly class AccountService
         $accountId = (int)$account['account_id'];
         $userId = $this->accounts->ensureProfile($accountId);
 
-        $this->accounts->markLogin($accountId);
-
         /*
-         * Match Cvolton's sessionGrants compatibility: after a successful
-         * login, remember this account + client IP for one hour so legacy
-         * endpoints can authenticate the immediately-following requests even
-         * when the client does not resend a verifiable GJP/GJP2 value.
+         * Everything below this point is post-login bookkeeping.
+         *
+         * IMPORTANT: the Geometry Dash login protocol must not turn a
+         * successful credential check into "-1" just because an auxiliary
+         * table, audit insert or compatibility session is unavailable.
+         * Cvolton returns the "accountID,userID" result immediately after
+         * resolving the user ID. Keep that same failure boundary here.
          */
-        $this->rememberAuthSession($accountId, $ip);
+        try {
+            $this->accounts->markLogin($accountId);
+        } catch (Throwable $e) {
+            error_log(sprintf(
+                '[MuchoCore Login] markLogin failed for account %d: %s: %s',
+                $accountId,
+                $e::class,
+                $e->getMessage()
+            ));
+        }
 
-        $this->accounts->audit($accountId, 'account.login', $ip);
+        try {
+            $this->rememberAuthSession($accountId, $ip);
+        } catch (Throwable $e) {
+            error_log(sprintf(
+                '[MuchoCore Login] session grant unavailable for account %d: %s: %s',
+                $accountId,
+                $e::class,
+                $e->getMessage()
+            ));
+        }
+
+        try {
+            $this->accounts->audit($accountId, 'account.login', $ip);
+        } catch (Throwable $e) {
+            error_log(sprintf(
+                '[MuchoCore Login] audit failed for account %d: %s: %s',
+                $accountId,
+                $e::class,
+                $e->getMessage()
+            ));
+        }
 
         /*
          * A small number of legacy 1.9 clients authenticate successfully but
@@ -206,13 +236,26 @@ final readonly class AccountService
         $udid = trim($udid);
 
         if ($udid !== '' && strlen($udid) <= 255) {
-            $this->rememberLegacy19UploadSession(
-                $accountId,
-                $udid,
-                $ip
-            );
+            try {
+                $this->rememberLegacy19UploadSession(
+                    $accountId,
+                    $udid,
+                    $ip
+                );
+            } catch (Throwable $e) {
+                error_log(sprintf(
+                    '[MuchoCore Login] legacy upload session unavailable for account %d: %s: %s',
+                    $accountId,
+                    $e::class,
+                    $e->getMessage()
+                ));
+            }
         }
 
+        /*
+         * Protocol-critical response. Keep this as the final operation and
+         * never allow auxiliary post-login persistence to replace it.
+         */
         return $accountId . ',' . $userId;
     }
 
