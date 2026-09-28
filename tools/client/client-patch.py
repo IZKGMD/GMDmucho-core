@@ -165,6 +165,28 @@ def replace_base64_url(
     return replace_fixed(data, old, new, label)
 
 
+def repair_checkifserveronline_path(
+    data: bytes,
+    server: str,
+) -> tuple[bytes, int]:
+    """
+    Geometry Dash contains one legacy endpoint with a one-character path typo:
+    /databas/checkIfServerOnline.php. The corrected /database/ form is one byte
+    longer, so consume one existing NUL-padding byte after the string terminator
+    and keep the executable size/layout unchanged.
+    """
+    parsed = urlsplit(validate_server(server))
+    prefix = f"{parsed.scheme}://{parsed.netloc}".encode("ascii")
+    old = prefix + b"/databas/checkIfServerOnline.php\x00\x00"
+    new = prefix + b"/database/checkIfServerOnline.php\x00"
+
+    count = data.count(old)
+    if not count:
+        return data, 0
+
+    return data.replace(old, new), count
+
+
 def replace_null_terminated_url(
     data: bytes,
     old_host: str,
@@ -388,6 +410,16 @@ def patch_client(data: bytes, server: str) -> tuple[bytes, list[PatchStat]]:
                 parsed.netloc,
             ))
 
+    data, count = repair_checkifserveronline_path(data, server)
+    if count:
+        stats.append(
+            PatchStat(
+                "Repair malformed checkIfServerOnline path",
+                count,
+                f"{validate_server(server)}/database/checkIfServerOnline.php",
+            )
+        )
+
     return data, stats
 
 
@@ -504,6 +536,18 @@ def run_self_test() -> int:
 
     patched, stats = patch_client(bytes(source), "https://gdps.example.com")
     validate_result(bytes(source), patched, "https://gdps.example.com", stats)
+
+    malformed = (
+        b"https://gdps.example.com/databas/checkIfServerOnline.php\x00\x00"
+    )
+    malformed_patched, malformed_count = repair_checkifserveronline_path(
+        malformed,
+        "https://gdps.example.com",
+    )
+    assert malformed_count == 1
+    assert malformed_patched == (
+        b"https://gdps.example.com/database/checkIfServerOnline.php\x00"
+    )
     assert stats
     print("PASS binary patch + PE validation")
     print("MUCHOCORE_CLIENT_PATCHER_OK")
