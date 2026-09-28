@@ -1,5 +1,9 @@
 # MuchoCore Migration Kit
 
+For normal use, prefer **Admin Panel → Tools → Migration Center**. It provides the same verified importer with a beginner-friendly form and a read-only preview.
+
+This CLI wrapper remains useful for VPS automation, scripted migrations and troubleshooting.
+
 The Migration Kit is the operator-friendly entry point for moving a Cvolton/GMDprivateServer-style GDPS database into MuchoCore.
 
 For hosted FHGDPS installations, the public GDPS/web hostname is not automatically the database hostname. Provide the actual MariaDB/MySQL host, database name and database credentials supplied by the source installation. The kit never assumes that a public web URL is a database endpoint.
