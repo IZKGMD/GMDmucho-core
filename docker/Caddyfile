@@ -87,6 +87,10 @@
     @admin_http {
         protocol http
         path /admin /admin/*
+        # Cloudflare and other TLS-terminating proxies can reach the origin
+        # over HTTP while the browser is already on HTTPS. Honor the original
+        # scheme marker so those requests are not redirected back into a loop.
+        not header X-Forwarded-Proto https
     }
     redir @admin_http https://{host}{uri} 308
 

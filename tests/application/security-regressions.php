@@ -53,8 +53,9 @@ assertSecurityRegression(
     str_contains($caddy, '@admin_http') &&
     str_contains($caddy, 'protocol http') &&
     str_contains($caddy, 'path /admin /admin/*') &&
+    str_contains($caddy, 'not header X-Forwarded-Proto https') &&
     str_contains($caddy, 'redir @admin_http https://{host}{uri} 308'),
-    'admin panel redirects HTTP to HTTPS while game HTTP remains available'
+    'admin panel redirects direct HTTP without looping behind TLS-terminating proxies'
 );
 
 $adminIndex = (string)file_get_contents(

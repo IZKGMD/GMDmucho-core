@@ -100,7 +100,7 @@ foreach ([
 }
 
 if (
-    strpos($adminIndex, "in_array($action,['migration-preview','migration-apply'],true)") === false ||
+    strpos($adminIndex, "in_array(\$action,['migration-preview','migration-apply'],true)") === false ||
     strpos($adminIndex, "require __DIR__.'/actions/migration.php'") === false
 ) {
     throw new RuntimeException('Admin Migration Center action dispatch is missing.');
