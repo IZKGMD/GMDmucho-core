@@ -25,15 +25,15 @@ RELEASE_API="${MUCHO_RELEASE_API:-https://api.github.com/repos/IZKGMD/GMDmucho-c
 
 get_latest_stable_release_tag() {
   local response tag
-  response="$(curl -4fsS --connect-timeout 5 --max-time 10 \
+response="$(curl -4fsS --retry 3 --retry-delay 1 \
+    --connect-timeout 5 --max-time 15 \
     -H 'Accept: application/vnd.github+json' \
-    -H 'User-Agent: MuchoCore-Installer/1.0' \
+    -H 'User-Agent: MuchoCore-Installer/1.1' \
     -H 'X-GitHub-Api-Version: 2022-11-28' \
     "$RELEASE_API")" || return 1
 
-  tag="$(printf '%s' "$response" |
-    sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' |
-    head -n1)"
+  command -v jq >/dev/null 2>&1 || return 1
+  tag="$(printf '%s' "$response" | jq -r '.tag_name // empty')"
 
   [[ "$tag" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
   printf '%s' "$tag"
@@ -50,6 +50,12 @@ log()  { printf "${GREEN}[MuchoCore]${RESET} %s\n" "$*"; }
 info() { printf "  ${CYAN}→${RESET} %s\n" "$*"; }
 warn() { printf "\n${YELLOW}[warning]${RESET} %s\n" "$*" >&2; }
 fail() { printf "\n${RED}[error]${RESET} %s\n" "$*" >&2; exit 1; }
+
+# Prevent two MuchoCore installations from changing the same host at once.
+exec 9>/run/muchocore-install.lock
+if ! flock -n 9; then
+  fail "Another MuchoCore installation is already running."
+fi
 
 print_banner() {
   printf "\n"
@@ -197,6 +203,15 @@ select_compatibility_profile() {
 preflight() {
   log "Running preflight checks..."
 
+  command -v apt-get >/dev/null 2>&1 || fail "This installer requires apt-get (Debian/Ubuntu-style VPS)."
+  command -v systemctl >/dev/null 2>&1 || fail "systemd is required to manage Docker automatically."
+
+  case "$(uname -m)" in
+    x86_64|amd64|aarch64|arm64) ;;
+    *) fail "Unsupported CPU architecture: $(uname -m)." ;;
+  esac
+
+
   local free_kib
   free_kib="$(df -Pk "$(dirname "$INSTALL_DIR")" 2>/dev/null | awk 'NR==2 {print $4}')"
   [[ -n "$free_kib" && "$free_kib" -ge 1048576 ]] ||
@@ -254,6 +269,9 @@ select_compatibility_profile
 
 if [[ -z "$DOMAIN" ]]; then
   read -r -p "  GDPS domain (for example gdps.example.com): " DOMAIN < /dev/tty
+DOMAIN="${DOMAIN#http://}"
+DOMAIN="${DOMAIN#https://}"
+DOMAIN="${DOMAIN%%/*}"
 fi
 [[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || fail "Invalid domain: $DOMAIN"
 
@@ -266,8 +284,8 @@ fi
 preflight
 
 log "Installing required packages..."
-apt-get update -y
-apt-get install -y ca-certificates curl git openssl
+DEBIAN_FRONTEND=noninteractive apt-get update -y
+DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git jq openssl
 
 log "Checking Docker..."
 if ! command -v docker >/dev/null 2>&1; then
@@ -281,6 +299,9 @@ LATEST_RELEASE_TAG="$(get_latest_stable_release_tag)" ||
   fail "Unable to resolve a published stable MuchoCore Release from GitHub."
 
 if [[ -d "$INSTALL_DIR/.git" ]]; then
+  if ! git -C "$INSTALL_DIR" diff --quiet || ! git -C "$INSTALL_DIR" diff --cached --quiet; then
+    fail "Existing MuchoCore installation has local tracked changes. Commit or back them up before re-running install.sh."
+  fi
   git -C "$INSTALL_DIR" fetch --depth=1 origin "refs/tags/$LATEST_RELEASE_TAG:refs/tags/$LATEST_RELEASE_TAG"
   git -C "$INSTALL_DIR" reset --hard "$LATEST_RELEASE_TAG"
 else
@@ -308,19 +329,19 @@ if [[ ! -s "$INSTALL_DIR/.secrets/testgdps_admin_password" ]]; then
 fi
 chmod 600 "$INSTALL_DIR/.secrets/testgdps_"*
 
-if [[ -f "$INSTALL_DIR/.secrets/db_password" ]]; then
+if [[ -s "$INSTALL_DIR/.secrets/db_password" ]]; then
   MUCHO_DB_PASSWORD="$(cat "$INSTALL_DIR/.secrets/db_password")"
 else
   MUCHO_DB_PASSWORD="$(openssl rand -hex 24)"
 fi
 
-if [[ -f "$INSTALL_DIR/.secrets/db_root_password" ]]; then
+if [[ -s "$INSTALL_DIR/.secrets/db_root_password" ]]; then
   MUCHO_DB_ROOT_PASSWORD="$(cat "$INSTALL_DIR/.secrets/db_root_password")"
 else
   MUCHO_DB_ROOT_PASSWORD="$(openssl rand -hex 32)"
 fi
 
-if [[ -f "$INSTALL_DIR/.secrets/admin_password" ]]; then
+if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then
   MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
 elif [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
   log "The admin panel username is: $ADMIN_USER"
@@ -337,13 +358,24 @@ if [[ ! -f "$INSTALL_DIR/.secrets/cloudsave_key" && -f "$INSTALL_DIR/config/clou
   chmod 600 "$INSTALL_DIR/.secrets/cloudsave_key"
 fi
 
-if [[ -f "$INSTALL_DIR/.secrets/cloudsave_key" ]]; then
+if [[ -s "$INSTALL_DIR/.secrets/cloudsave_key" ]]; then
   MUCHO_CLOUDSAVE_KEY="$(cat "$INSTALL_DIR/.secrets/cloudsave_key")"
 else
   MUCHO_CLOUDSAVE_KEY="$(openssl rand -base64 32)"
 fi
 printf '%s\n' "$MUCHO_CLOUDSAVE_KEY" > "$INSTALL_DIR/.secrets/cloudsave_key"
 chmod 600 "$INSTALL_DIR/.secrets/"*
+
+for secret in \
+  "$INSTALL_DIR/.secrets/db_password" \
+  "$INSTALL_DIR/.secrets/db_root_password" \
+  "$INSTALL_DIR/.secrets/admin_password" \
+  "$INSTALL_DIR/.secrets/cloudsave_key" \
+  "$INSTALL_DIR/.secrets/testgdps_db_password" \
+  "$INSTALL_DIR/.secrets/testgdps_db_root_password" \
+  "$INSTALL_DIR/.secrets/testgdps_admin_password"; do
+  [[ -s "$secret" ]] || fail "Required secret file is missing or empty: $secret"
+done
 
 if [[ -f "$INSTALL_DIR/.env" ]]; then
   backup_file="$INSTALL_DIR/.env.backup.$(date +%Y%m%d-%H%M%S)"
@@ -434,6 +466,29 @@ if [[ -n "$TUNNEL_TOKEN" ]]; then
 else
   docker compose up -d --build --remove-orphans
 fi
+
+log "Verifying running containers..."
+expected_services=(db app worker caddy testgdps-db testgdps-app)
+if [[ -n "$TUNNEL_TOKEN" ]]; then
+  expected_services+=(cloudflared)
+fi
+for service in "${expected_services[@]}"; do
+  container_id="$(docker compose ps -q "$service" 2>/dev/null || true)"
+  [[ -n "$container_id" ]] || fail "Service '$service' was not created."
+  running="$(docker inspect -f '{{.State.Running}}' "$container_id" 2>/dev/null || true)"
+  [[ "$running" == "true" ]] || {
+    docker compose ps || true
+    docker compose logs --tail=80 "$service" || true
+    fail "Service '$service' is not running."
+  }
+done
+
+log "Running database migrations..."
+docker compose exec -T app php bin/migrate.php migrate
+
+log "Running internal MuchoCore healthcheck..."
+docker compose exec -T app php bin/mucho-healthcheck.php
+
 
 log "Checking server health..."
 healthy=0
