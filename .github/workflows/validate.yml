@@ -416,5 +416,6 @@ jobs:
           find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/application/input-hardening-contract.php
           php tests/application/score-integrity-contract.php
+          php tests/security/client-ip-cloudflare.php
           php tests/client/client-compatibility.php
           php tests/protocol/protocol-matrix.php
