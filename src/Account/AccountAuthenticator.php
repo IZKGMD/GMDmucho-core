@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Account;
 
+use MuchoCore\Http\ClientIp;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -30,7 +31,8 @@ final readonly class AccountAuthenticator
 
     public function authenticate(
         int $accountId,
-        string $credential
+        string $credential,
+        string $ip = ''
     ): array {
         $credential = trim($credential);
 
@@ -82,10 +84,27 @@ final readonly class AccountAuthenticator
         $storedPass = (string)($account['password_hash'] ?? '');
         $storedGjp2 = (string)($account['gjp2_hash'] ?? '');
 
-        $valid = false;
+        $clientIp = trim($ip);
+
+        if ($clientIp === '') {
+            $clientIp = ClientIp::resolve($_SERVER);
+        }
 
         /*
-         * 1. Plain credential.
+         * Match Cvolton's sessionGrants behavior. A successful login creates
+         * a one-hour account+IP grant, allowing the client to perform the
+         * immediately-following legacy requests without resending a GJP that
+         * older/custom clients may not preserve correctly.
+         */
+        $valid = $clientIp !== ''
+            && $this->hasSessionGrant(
+                $accountId,
+                $clientIp
+            );
+
+        if (!$valid) {
+            /*
+             * 1. Plain credential.
          * Нужен для совместимости с текущим ядром/старыми клиентами.
          */
         if ($storedPass !== '') {
@@ -136,8 +155,9 @@ final readonly class AccountAuthenticator
             }
         }
 
-        if (!$valid) {
-            throw new RuntimeException('Unauthorized.');
+            if (!$valid) {
+                throw new RuntimeException('Unauthorized.');
+            }
         }
 
         if (empty($account['user_id'])) {
@@ -169,6 +189,47 @@ final readonly class AccountAuthenticator
         }
 
         return $account;
+    }
+
+    private function hasSessionGrant(
+        int $accountId,
+        string $ip
+    ): bool {
+        if ($accountId <= 0 || $ip === '') {
+            return false;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT id
+             FROM mucho_auth_sessions
+             WHERE account_id = :account_id
+               AND ip_address = :ip_address
+               AND expires_at > UTC_TIMESTAMP()
+             LIMIT 1'
+        );
+
+        $stmt->execute([
+            'account_id' => $accountId,
+            'ip_address' => $ip,
+        ]);
+
+        $sessionId = $stmt->fetchColumn();
+
+        if ($sessionId === false) {
+            return false;
+        }
+
+        $touch = $this->pdo->prepare(
+            'UPDATE mucho_auth_sessions
+             SET last_used_at = UTC_TIMESTAMP()
+             WHERE id = :id'
+        );
+
+        $touch->execute([
+            'id' => (int)$sessionId,
+        ]);
+
+        return true;
     }
 
     public function authenticateLegacy19Upload(
