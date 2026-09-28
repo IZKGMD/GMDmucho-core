@@ -525,9 +525,6 @@ else
   warn "Run: cd $INSTALL_DIR && sudo docker compose logs --tail=100"
 fi
 
-log "Running database migrations..."
-docker compose exec -T app php bin/migrate.php migrate
-
 cat <<EOFOUT
 
 MuchoCore is installed.
