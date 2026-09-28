@@ -2767,6 +2767,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
     $action=(string)($_POST['action'] ?? '');
 
+    if (in_array($action,['migration-preview','migration-apply'],true)) {
+        require __DIR__.'/actions/migration.php';
+    }
+
     if (str_starts_with($action,'client-patcher-')) {
         handleClientPatcherAction($db,$rootDir,$action);
     }
