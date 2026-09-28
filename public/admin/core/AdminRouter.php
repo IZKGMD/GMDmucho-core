@@ -255,6 +255,17 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
 
     /*
+     * Migration Center
+     */
+    $router->register(
+        'migration',
+        static function(PDO $db): void {
+            require __DIR__.'/../pages/migration.php';
+        }
+    );
+
+
+    /*
      * DB Backup Center
      */
 
