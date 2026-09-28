@@ -54,12 +54,12 @@ final readonly class PlatformerScoreController
                 return Response::text('-1');
             }
 
-            $time=max(
-                0,
-                (int)($d['time'] ?? 0)
-            );
+            $time=$this->strictInt($d['time'] ?? 0);
+            $points=$this->strictInt($d['points'] ?? 0);
 
-            $points=(int)($d['points'] ?? 0);
+            if($time<0 || $time>86400000 || $points<0 || $points>100000000){
+                return Response::text('-1');
+            }
 
             /*
              * Only time > 0 represents a real platformer result.
@@ -453,6 +453,20 @@ final readonly class PlatformerScoreController
         }
 
         return array_values($ids);
+    }
+
+
+    private function strictInt(mixed $value): int
+    {
+        if(is_int($value)){
+            return $value;
+        }
+
+        if(is_string($value) && preg_match('/^-?\\d{1,12}$/D',$value)===1){
+            return (int)$value;
+        }
+
+        return -1;
     }
 
 

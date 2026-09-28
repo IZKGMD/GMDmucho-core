@@ -7,6 +7,23 @@ namespace MuchoCore\Http;
 final class ClientIp
 {
     /**
+     * Cloudflare's current public proxy ranges. These are used only to
+     * decide whether CF-Connecting-IP may be trusted; an ordinary internet
+     * client cannot spoof the TCP source address of a Cloudflare edge.
+     * Keep explicit MUCHO_TRUSTED_PROXY_CIDRS for private/self-hosted proxies.
+     */
+    private const CLOUDFLARE_CIDRS = [
+        '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22',
+        '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18',
+        '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22',
+        '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+        '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
+        '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32',
+        '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29',
+        '2c0f:f248::/32',
+    ];
+
+    /**
      * Resolve the original client IP behind Caddy/Cloudflare.
      *
      * Forwarded headers are only trusted when the direct peer is a
@@ -20,30 +37,49 @@ final class ClientIp
             return '0.0.0.0';
         }
 
-        $isPrivateProxy = filter_var(
+        $trustedProxyCidrs = self::trustedProxyCidrs();
+        $explicitTrustedProxy = $trustedProxyCidrs !== []
+            && self::ipInAnyCidr($remote, $trustedProxyCidrs);
+        $cloudflareTrustedProxy = self::ipInAnyCidr(
+            $remote,
+            self::CLOUDFLARE_CIDRS
+        );
+        $privateProxy = filter_var(
             $remote,
             FILTER_VALIDATE_IP,
             FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
         ) === false;
 
-        $trustedProxyCidrs = self::trustedProxyCidrs();
-        if ($trustedProxyCidrs !== []) {
-            if (!self::ipInAnyCidr($remote, $trustedProxyCidrs)) {
-                return $remote;
-            }
-        } elseif (!$isPrivateProxy) {
+        $privateProxyFallback =
+            $trustedProxyCidrs === [] &&
+            $privateProxy;
+
+        if (
+            !$explicitTrustedProxy &&
+            !$cloudflareTrustedProxy &&
+            !$privateProxyFallback
+        ) {
             return $remote;
         }
 
+        if ($cloudflareTrustedProxy) {
+            $cloudflareClient = trim(
+                (string)($server['HTTP_CF_CONNECTING_IP'] ?? '')
+            );
+
+            if (
+                $cloudflareClient !== '' &&
+                filter_var($cloudflareClient, FILTER_VALIDATE_IP) !== false
+            ) {
+                return $cloudflareClient;
+            }
+        }
+
         /*
-         * Do not trust CDN-specific client-IP headers here. When the app sits
-         * behind Caddy, an attacker can otherwise inject CF-Connecting-IP or
-         * similar headers and evade IP-based rate limits. Caddy controls and
-         * sanitizes X-Forwarded-For before proxying to PHP.
-         *
-         * If a CDN is placed in front of Caddy, configure that proxy as a
-         * trusted proxy at the Caddy layer instead of trusting its headers in
-         * application code.
+         * For explicitly configured proxies, X-Forwarded-For is trusted only
+         * after the direct peer was matched against the operator's allow-list.
+         * Cloudflare requests prefer CF-Connecting-IP above because it is the
+         * canonical single-hop client address exposed by the CDN.
          */
         $forwarded = trim((string)($server['HTTP_X_FORWARDED_FOR'] ?? ''));
 

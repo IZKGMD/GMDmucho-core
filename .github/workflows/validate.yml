@@ -386,3 +386,36 @@ jobs:
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/cvolton-migration-integration.php
+
+
+  php-runtime:
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ["8.3", "8.4", "8.5"]
+    runs-on: ubuntu-latest
+    name: PHP ${{ matrix.php-version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, pdo_mysql, zip
+          tools: composer
+
+      - name: Validate Composer manifest
+        run: composer validate --strict --no-check-publish
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Run runtime compatibility contracts
+        run: |
+          find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          php tests/application/input-hardening-contract.php
+          php tests/application/score-integrity-contract.php
+          php tests/security/client-ip-cloudflare.php
+          php tests/client/client-compatibility.php
+          php tests/protocol/protocol-matrix.php
