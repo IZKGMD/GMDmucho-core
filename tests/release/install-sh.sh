@@ -35,6 +35,7 @@ internal_health_line="$(grep -n 'php bin/mucho-healthcheck.php' install.sh | hea
 
 [[ "$migration_line" -lt "$health_line" ]]
 [[ "$internal_health_line" -lt "$health_line" ]]
+[[ "$(grep -c 'php bin/migrate.php migrate' install.sh)" -eq 1 ]]
 
 if grep -q '^[[:space:]]*command -v curl' install.sh; then
     echo 'install-sh: curl must be installed before it is required by preflight' >&2
