@@ -36,6 +36,11 @@ return [
         'system-op'
     ],
 
+    'migration'=>[
+        'migration-preview',
+        'migration-apply'
+    ],
+
     'admins'=>[
         'admin-create',
         'admin-toggle',
