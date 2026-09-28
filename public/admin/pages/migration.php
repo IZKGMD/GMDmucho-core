@@ -3,7 +3,8 @@ declare(strict_types=1);
 
 $output=$_SESSION['migration_output'] ?? null;
 $status=$_SESSION['migration_status'] ?? null;
-unset($_SESSION['migration_output'],$_SESSION['migration_status']);
+$statusType=(string)($_SESSION['migration_status_type'] ?? 'ok');
+unset($_SESSION['migration_output'],$_SESSION['migration_status'],$_SESSION['migration_status_type']);
 
 $oldHost=(string)($_POST['source_host'] ?? '');
 $oldPort=(string)($_POST['source_port'] ?? '3306');
@@ -45,7 +46,7 @@ $oldUser=(string)($_POST['source_user'] ?? '');
     </div>
 
     <?php if ($status !== null): ?>
-        <div class="flash <?=($status==='error'?'error':'')?>">
+        <div class="flash <?=($statusType==='error'?'error':'')?>">
             <?=h((string)$status)?>
         </div>
     <?php endif; ?>
