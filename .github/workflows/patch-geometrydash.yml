@@ -32,3 +32,5 @@ jobs:
           path: |
             GeometryDash-MuchoCore.exe
             GeometryDash-MuchoCore.patch-report.txt
+
+# Trigger a fresh run after workflow installation.
