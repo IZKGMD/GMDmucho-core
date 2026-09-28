@@ -11,6 +11,7 @@ use Throwable;
 final readonly class AccountAuthenticator
 {
     private const XOR_KEY = '37526';
+    private const DUMMY_PASSWORD_HASH = '$2y$12$1/MaE58zhdgQZQpBkgNBhuqdaaih/yUIuXVGBWgthDWALLCBtilDC';
 
     public function __construct(
         private PDO $pdo
@@ -63,11 +64,18 @@ final readonly class AccountAuthenticator
 
         $account = $stmt->fetch(PDO::FETCH_ASSOC);
 
+        if (!$account) {
+            // Consume comparable password-hash work even when the account ID
+            // does not exist, reducing the usefulness of timing probes.
+            password_verify($credential, self::DUMMY_PASSWORD_HASH);
+            throw new RuntimeException('Unauthorized.');
+        }
+
         if (
-            !$account ||
             (int)$account['is_banned'] === 1 ||
             (int)$account['is_active'] !== 1
         ) {
+            password_verify($credential, self::DUMMY_PASSWORD_HASH);
             throw new RuntimeException('Unauthorized.');
         }
 
@@ -144,7 +152,20 @@ final readonly class AccountAuthenticator
                 ':aid' => $accountId
             ]);
 
-            $account['user_id'] = $accountId;
+            $profile = $this->pdo->prepare(
+                'SELECT user_id
+                 FROM profiles
+                 WHERE account_id = :account_id
+                 LIMIT 1'
+            );
+            $profile->execute(['account_id' => $accountId]);
+            $userId = (int)$profile->fetchColumn();
+
+            if ($userId <= 0) {
+                throw new RuntimeException('Unable to resolve profile user ID.');
+            }
+
+            $account['user_id'] = $userId;
         }
 
         return $account;
