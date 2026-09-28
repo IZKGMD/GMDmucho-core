@@ -54,12 +54,12 @@ final readonly class PlatformerScoreController
                 return Response::text('-1');
             }
 
-            $time=max(
-                0,
-                (int)($d['time'] ?? 0)
-            );
+            $time=$this->strictInt($d['time'] ?? 0);
+            $points=$this->strictInt($d['points'] ?? 0);
 
-            $points=(int)($d['points'] ?? 0);
+            if($time<0 || $time>86400000 || $points<0 || $points>100000000){
+                return Response::text('-1');
+            }
 
             /*
              * Only time > 0 represents a real platformer result.
