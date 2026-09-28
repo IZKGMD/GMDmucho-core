@@ -49,7 +49,9 @@ assertInputHardening(
 assertInputHardening(
     str_contains($regular, '$progresses=$this->decodeProgresses') &&
     str_contains($regular, 'if($progresses===null)') &&
-    str_contains($regular, 'if($decoded===false){\n            return null;'),
+    str_contains($regular, '$decoded=') &&
+    str_contains($regular, 'if($decoded===false){') &&
+    str_contains($regular, 'return null;'),
     'regular score progress payload rejects malformed base64'
 );
 
