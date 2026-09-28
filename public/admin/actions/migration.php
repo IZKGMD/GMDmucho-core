@@ -109,7 +109,7 @@ try {
             ? 'Migration completed successfully.'
             : 'Source check completed. MuchoCore did not change the destination database.';
     } else {
-        $_SESSION['migration_status']='Migration stopped with exit code '.$exitCode.'. Nothing after the failed transaction was applied.';
+        $_SESSION['migration_status']='Migration stopped with exit code '.$exitCode.'. Review the migration result and the verified target backup before retrying.';
         $_SESSION['migration_status_type']='error';
     }
 } catch (Throwable $e) {
