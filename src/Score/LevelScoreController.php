@@ -77,41 +77,25 @@ final readonly class LevelScoreController
             }
 
 
-            $attempts=
-                $this->decodedNumber(
-                    $data,
-                    's1',
-                    8354,
-                    0,
-                    1000000
-                );
+            $attempts=$this->decodedNumber($data,'s1',8354,0,1000000);
+            if($attempts===null){
+                return Response::text('-1');
+            }
 
-            $clicks=
-                $this->decodedNumber(
-                    $data,
-                    's2',
-                    3991,
-                    0,
-                    10000000
-                );
+            $clicks=$this->decodedNumber($data,'s2',3991,0,10000000);
+            if($clicks===null){
+                return Response::text('-1');
+            }
 
-            $playTime=
-                $this->decodedNumber(
-                    $data,
-                    's3',
-                    4085,
-                    0,
-                    86400
-                );
+            $playTime=$this->decodedNumber($data,'s3',4085,0,86400);
+            if($playTime===null){
+                return Response::text('-1');
+            }
 
-            $coins=
-                $this->decodedNumber(
-                    $data,
-                    's9',
-                    5819,
-                    0,
-                    3
-                );
+            $coins=$this->decodedNumber($data,'s9',5819,0,3);
+            if($coins===null){
+                return Response::text('-1');
+            }
 
             $dailyId=$this->strictInt(
                 $data['s10'] ?? 0
@@ -127,10 +111,10 @@ final readonly class LevelScoreController
                     : 0;
 
 
-            $progresses=
-                $this->decodeProgresses(
-                    $data['s6'] ?? ''
-                );
+            $progresses=$this->decodeProgresses($data['s6'] ?? '');
+            if($progresses===null){
+                return Response::text('-1');
+            }
 
             if(strlen($progresses)>100000){
                 return Response::text('-1');
@@ -788,7 +772,7 @@ final readonly class LevelScoreController
         int $offset,
         int $min,
         int $max
-    ): int {
+    ): ?int {
         if(!array_key_exists($key,$data) || $data[$key]===''){
             return 0;
         }
@@ -799,12 +783,16 @@ final readonly class LevelScoreController
             !(is_int($raw) || is_string($raw)) ||
             preg_match('/^-?\\d+$/D',(string)$raw)!==1
         ){
-            return 0;
+            return null;
         }
 
         $value=(int)$raw-$offset;
 
-        return max($min,min($max,$value));
+        if($value<$min || $value>$max){
+            return null;
+        }
+
+        return $value;
     }
 
     private function strictInt(mixed $value): int
@@ -823,7 +811,7 @@ final readonly class LevelScoreController
 
     private function decodeProgresses(
         mixed $value
-    ): string {
+    ): ?string {
 
         if(!is_string($value) || $value===''){
             return '';
@@ -857,7 +845,7 @@ final readonly class LevelScoreController
 
 
         if($decoded===false){
-            return '';
+            return null;
         }
 
 
