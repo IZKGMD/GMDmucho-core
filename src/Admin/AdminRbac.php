@@ -367,6 +367,7 @@ final class AdminRbac
             'updates' => 'system.manage',
             'plugins' => 'plugins.view',
             'dbbackups' => 'backups.view',
+            'migration' => 'system.manage',
             'backups' => 'backups.view',
             'settings' => 'settings.manage',
             'system' => 'system.manage',
