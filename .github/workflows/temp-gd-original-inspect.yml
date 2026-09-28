@@ -1,0 +1,41 @@
+name: Temporary GD original inspect
+
+on:
+  push:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect original EXE
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,re,struct
+          p=Path("GeometryDash.exe")
+          d=p.read_bytes()
+          print("SIZE",len(d))
+          print("SHA256",hashlib.sha256(d).hexdigest())
+          print("MZ",d[:2])
+          pe=struct.unpack_from("<I",d,0x3c)[0]
+          print("PE_OFFSET",hex(pe),"PE",d[pe:pe+4])
+          for needle in [
+              b"loginGJAccount",b"getGJUserInfo20",b"checkIfServerOnline",
+              b"gjp2",b"gjp",b"www.boomlings.com",b"muchogdps.space"
+          ]:
+              print("COUNT",needle.decode("ascii",errors="ignore"),d.count(needle))
+          print("URLs")
+          for raw in sorted(set(re.findall(rb"https?://[^\x00\r\n\t ]{3,160}",d))):
+              try:
+                  s=raw.decode("ascii")
+              except: continue
+              if "boomlings" in s or "muchogdps" in s or "checkIfServerOnline" in s or "loginGJAccount" in s:
+                  print(s)
+          PY
+      - name: Package original EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: GeometryDash-original-clean
+          path: GeometryDash.exe
+          if-no-files-found: error
