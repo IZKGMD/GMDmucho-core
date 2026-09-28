@@ -501,14 +501,9 @@ final readonly class MuchoProtect
         $credential = $request->gdCredential();
 
         if ($accountId !== null && $credential !== '') {
-            /*
-             * The account itself is the stable identity. Do not include the
-             * bearer credential in the limiter key: rotating a password/GJP
-             * must not create a fresh abuse bucket for the same account.
-             */
             $keys['account'] = hash(
                 'sha256',
-                'account:' . $accountId
+                'account:' . $accountId . ':' . $credential
             );
         }
 
