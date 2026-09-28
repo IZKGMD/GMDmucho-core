@@ -131,7 +131,7 @@ sudo ./install
 
 ### Existing GDPS migration
 
-Already running a Cvolton/GMDprivateServer-style GDPS? Start with **[docs/MIGRATION_KIT.md](docs/MIGRATION_KIT.md)**.
+Already running a Cvolton/GMDprivateServer-style GDPS? Open **Admin → Tools → Migration Center** for the guided workflow. The [Migration Kit](docs/MIGRATION_KIT.md) and [Migration Center](docs/MIGRATION_CENTER.md) documents cover the VPS/CLI fallback for advanced use.
 
 The default migration command is a **dry-run**. It checks the target, validates the source schema, reports row counts and changes nothing until you explicitly use `--apply --confirm=COVOLTON`. Apply mode creates and verifies a target database backup before any destination write; if the backup fails, the import does not start.
 
