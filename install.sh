@@ -368,7 +368,7 @@ normalize_caddy_address() {
     root="${host#www.}"
   fi
 
-  printf 'http://%s http://www.%s https://%s https://www.%s' "$root" "$root" "$root" "$root"
+  printf '%s www.%s' "$root" "$root"
   if [[ -n "${CADDY_EXTRA_HOSTS:-}" ]]; then
     printf ' %s' "$CADDY_EXTRA_HOSTS"
   fi
