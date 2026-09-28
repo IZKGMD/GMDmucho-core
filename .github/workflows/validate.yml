@@ -20,6 +20,7 @@ jobs:
       - name: Check shell scripts
         run: |
           bash -n install.sh
+          bash tests/release/install-sh.sh
           bash tests/release/release-deployment-tools.sh
           bash -n install
           bash -n update.sh
@@ -152,6 +153,7 @@ jobs:
           test -f tools/migration/mucho-migrate.sh
           test -x tools/migration/mucho-migrate.sh
           test -f tests/release/migration-kit.sh
+          test -f tests/release/install-sh.sh
           test -f .gitattributes
           git check-attr export-ignore -- Geometry.Dash.ver.1.40.build.11.apk | grep -Fq ': set'
           test -f database/migrations/20260926_001_plugin_admin.php
