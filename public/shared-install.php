@@ -442,12 +442,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $tableCount = databaseTableCount($pdo);
             $databaseSize = databaseSizeBytes($pdo);
 
-            if ($tableCount > 0 && !$existingMuchoInstall && isMuchoCoreDatabase($pdo)) {
-                throw new RuntimeException('This database already contains MuchoCore tables. Use the existing installation/update flow instead of the fresh installer.');
+            if ($tableCount > 0 && $existingMuchoInstall && !isMuchoCoreDatabase($pdo)) {
+                throw new RuntimeException(
+                    'The configured shared-hosting database does not look like a MuchoCore installation. ' .
+                    'The installer will not risk changing this database.'
+                );
             }
 
             if ($tableCount > 0 && !$existingMuchoInstall) {
-                throw new RuntimeException('The selected database is not empty (' . $tableCount . ' tables). Use a new empty database for a first installation. The installer will not risk overwriting another application.');
+                throw new RuntimeException(
+                    'The selected database is not empty (' . $tableCount . ' tables). ' .
+                    'Use a new empty database for a first installation. ' .
+                    'The installer will not risk overwriting another application.'
+                );
             }
 
             $freeBytes = @disk_free_space($storage);
@@ -510,10 +517,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Dotenv\Dotenv::createMutable($root)->safeLoad();
             $backupInfo = (new DatabaseBackupService($pdo,$backupDir))->create($dbName);
             (new Migrator($pdo,$root . '/database/migrations'))->migrate();
-            verifyInstalledSchema($pdo);
             $pdo->exec('CREATE TABLE IF NOT EXISTS admin_users (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, username VARCHAR(64) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, role VARCHAR(32) NOT NULL DEFAULT \'admin\', totp_secret VARCHAR(64) NULL, access_key_hash VARCHAR(255) NULL, access_key_created_at TIMESTAMP NULL, is_active TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
             $adminStmt = $pdo->prepare('INSERT INTO admin_users (username,password_hash,role,is_active) VALUES (:username,:password_hash,"owner",1) ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash), role="owner", is_active=1');
             $adminStmt->execute(['username'=>'admin','password_hash'=>$adminHash]);
+            verifyInstalledSchema($pdo);
             atomicWrite($installedMarker, 'MuchoCore shared-hosting installation completed: ' . gmdate('c') . PHP_EOL . 'Database server: ' . $version . PHP_EOL . 'Target database: ' . $dbName . PHP_EOL, 0600);
             $_SESSION['mucho_install_csrf'] = bin2hex(random_bytes(32));
             $success = true;
