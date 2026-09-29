@@ -66,7 +66,7 @@ $contracts = [
     [$page, 'Give Rate', 'visual difficulty picker'],
     [$page, 'muchoPickDifficulty', 'difficulty picker interaction'],
     [$page, 'contentPackDifficultyIcon', 'Geometry Dash style difficulty icon renderer'],
-    [$page, 'public/assets/difficulties/', 'static difficulty icon asset path'],
+    [$page, \'/assets/difficulties/\', \'static difficulty icon asset path\'],
     [$page, 'data-difficulty-label', 'selected difficulty label'],
     [$page, 'muchoPickColor', 'color picker interaction'],
     [$page, 'name="color1"', 'Color 1 form value'],
