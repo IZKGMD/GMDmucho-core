@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use MuchoCore\Backup\DatabaseBackupService;
+use MuchoCore\Database\Migrator;
 use MuchoCore\Migration\CvoltonDatabaseImporter;
+use MuchoCore\Migration\SharedMigrationService;
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 $root = dirname(__DIR__, 2);
