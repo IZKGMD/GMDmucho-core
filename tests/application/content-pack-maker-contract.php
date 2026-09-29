@@ -103,6 +103,20 @@ if (
     exit(1);
 }
 
+foreach ([
+    'data-picker-toggle',
+    'data-picker-menu',
+    'data-picker-preview',
+    'data-picker-color-preview',
+    'Click to choose difficulty',
+    'Click to choose color',
+] as $needle) {
+    if (!str_contains($page, $needle)) {
+        fwrite(STDERR, "Contract failed: interactive selector UI is missing {$needle}\n");
+        exit(1);
+    }
+}
+
 if (
     !str_contains($page, 'name="level_') ||
     !str_contains($page, 'foreach (range(0, $expected - 1) as $index)')
