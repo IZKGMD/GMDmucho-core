@@ -535,20 +535,12 @@ offer_database_migration() {
       return 0
     fi
 
-    printf "
-"
-    printf "${BOLD}  Do you want to migrate an existing GDPS database now?${RESET}
-"
-    printf "  ${CYAN}MuchoCore will run a read-only preflight and, before any import,
-"
-    printf "  create and verify a fresh backup of the new MuchoCore database.${RESET}
-
-"
-    printf "  ${CYAN}1${RESET}) No — finish installation
-"
-    printf "  ${CYAN}2${RESET}) Yes — open Migration Center
-
-"
+    printf '\n'
+    printf "${BOLD}  Do you want to migrate an existing GDPS database now?${RESET}\n"
+    printf "  ${CYAN}MuchoCore will run a read-only preflight and, before any import,\n"
+    printf "  create and verify a fresh backup of the new MuchoCore database.${RESET}\n\n"
+    printf "  ${CYAN}1${RESET}) No — finish installation\n"
+    printf "  ${CYAN}2${RESET}) Yes — open Migration Center\n\n"
 
     read -r -p "  Select [1]: " choice < /dev/tty || choice="1"
     choice="${choice:-1}"
@@ -566,8 +558,7 @@ offer_database_migration() {
         return 0
       }
 
-      printf "
-"
+      printf '\n'
       log "Opening MuchoCore Migration Center..."
       info "The old database stays read-only."
       info "Before import, MuchoCore will create and verify a fresh target backup."
