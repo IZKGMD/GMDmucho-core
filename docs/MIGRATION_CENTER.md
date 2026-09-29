@@ -134,7 +134,9 @@ The safe operating sequence is:
 8. Verify the new instance with Mucho Doctor and /health.
 ~~~
 
-Both the interactive Migration Center and the low-level importer require a verified target database backup before destination writes. The backup must be a valid dump, pass integrity checks, and have a SHA-256 checksum that passes verification.
+Both the interactive Migration Center and the low-level importer require a fresh, verified target database backup before destination writes. The backup must be a valid gzip-compressed dump, pass gzip integrity checks, have a SHA-256 checksum, and pass checksum verification again before the migration starts. Mandatory migration backups also fail when another backup is already running, so a skipped/background backup can never accidentally satisfy the migration safety gate.
+
+Only one migration process may run at a time. A second Migration Center process is rejected instead of competing for the same target database.
 
 The source database connection is opened with:
 
