@@ -22,7 +22,6 @@ $control = file_get_contents($root . '/bin/mucho');
 $workflow = file_get_contents($root . '/.github/workflows/validate.yml');
 $docs = file_get_contents($root . '/docs/MIGRATION_CENTER.md');
 $adminPage = file_get_contents($root . '/public/admin/pages/migration.php');
-$adminAction = file_get_contents($root . '/public/admin/actions/migration.php');
 $adminRouter = file_get_contents($root . '/public/admin/core/AdminRouter.php');
 $adminPages = file_get_contents($root . '/public/admin/config/pages.php');
 $adminActions = file_get_contents($root . '/public/admin/actions/map.php');
