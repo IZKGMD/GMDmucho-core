@@ -112,7 +112,7 @@ jobs:
         if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
         env:
           VERSION: ${{ steps.marker.outputs.version }}
-          OUTPUT: MuchoCore-shared-hosting.zip
+          OUTPUT: MuchoCore-v${{ steps.marker.outputs.version }}-shared-hosting.zip
         run: |
           bash tools/release/build-shared-hosting.sh
           unzip -t "$OUTPUT" >/dev/null
@@ -137,21 +137,6 @@ jobs:
             ':(exclude)assets/brand/sources/**' \
             ':(exclude).release/**'
           test -s "MuchoCore-${TAG}.zip"
-      - name: Build shared-hosting archive
-        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
-        env:
-          VERSION: ${{ steps.marker.outputs.version }}
-        run: |
-          composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
-          bash tools/release/build-shared-hosting.sh
-
-      - name: Upload shared-hosting archive
-        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          TAG: ${{ steps.marker.outputs.tag }}
-        run: |
-          gh release upload "$TAG" "MuchoCore-v${TAG#v}-shared-hosting.zip" --clobber
 
       - name: Upload source archive
         if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
