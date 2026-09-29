@@ -111,12 +111,14 @@ if (!str_contains($migrationPage, '$_SESSION[\'migration_form\']')) {
 }
 
 foreach ([
-    'test -f "$ROOT/.htaccess"',
+    'required=(',
+    '".htaccess"',
+    '"public"',
+    '"vendor"',
     'muchocore/public/shared-install.php',
     'muchocore/vendor/autoload.php',
-    '! unzip -Z1 "$OUTPUT"',
-    '.env($|\\.)',
-    '.secrets|storage',
+    'unzip -Z1 "$OUTPUT"',
+    'config/cloudsave.key',
 ] as $needle) {
     if (!str_contains($package, $needle)) {
         throw new RuntimeException(
