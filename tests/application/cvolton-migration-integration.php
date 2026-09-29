@@ -542,6 +542,33 @@ SQL);
         "DB_HOST=$host\nDB_PORT=$port\nDB_NAME=$targetDb\nDB_USER=root\nDB_PASS=$rootPassword\n"
     );
 
+    $backupDir = $fixtureRoot . '/backups/database';
+    $backupService = new DatabaseBackupService($target, $backupDir);
+    $backupResult = $backupService->create('service-integration');
+
+    must(!$target->inTransaction(), 'Database backup must not leave a transaction open.');
+    must(is_file($backupResult['file']), 'DatabaseBackupService did not create its backup file.');
+    must(is_file($backupResult['file'] . '.sha256'), 'DatabaseBackupService did not create its checksum file.');
+    must(($backupResult['sha256'] ?? '') !== '', 'DatabaseBackupService did not return a checksum.');
+
+    $backupHandle = gzopen($backupResult['file'], 'rb');
+    must($backupHandle !== false, 'DatabaseBackupService produced an unreadable gzip backup.');
+    $backupSample = '';
+    while (!gzeof($backupHandle)) {
+        $chunk = gzread($backupHandle, 65536);
+        if ($chunk === false) {
+            gzclose($backupHandle);
+            throw new RuntimeException('DatabaseBackupService gzip verification failed.');
+        }
+        $backupSample .= $chunk;
+        if (strlen($backupSample) > 2 * 1024 * 1024) {
+            break;
+        }
+    }
+    gzclose($backupHandle);
+    must(str_contains($backupSample, 'MuchoCore database backup'), 'Backup content marker is missing.');
+    must(hash_file('sha256', $backupResult['file']) === $backupResult['sha256'], 'Backup checksum does not match the generated file.');
+
     $cli = runCli(
         $root,
         $host,
