@@ -4,6 +4,9 @@ set -Eeuo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 VERSION="${VERSION:-$(tr -d '[:space:]' < "$ROOT/VERSION")}"
 OUTPUT="${OUTPUT:-$ROOT/MuchoCore-v${VERSION}-shared-hosting.zip}"
+if [[ "$OUTPUT" != /* ]]; then
+  OUTPUT="$ROOT/${OUTPUT#./}"
+fi
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
