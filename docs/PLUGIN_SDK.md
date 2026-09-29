@@ -65,3 +65,8 @@ The SDK permission manifest is an API contract, not a process sandbox. Plugins e
 ### Request event privacy
 
 `request.received`, `request.completed` and `request.failed` expose a sanitized `MuchoCore\Http\Request` snapshot. Only a small whitelist of non-secret protocol fields is included; credentials, cookies, forwarded headers and arbitrary request parameters are omitted. `request.completed` exposes a sanitized `MuchoCore\Http\Response` with status and content type only; the response body is omitted. `request.failed` exposes the exception class name instead of the original exception object or message.
+## Route ownership
+
+Core protocol routes are reserved by MuchoCore. Plugin routes are registered after the core routes and cannot shadow an existing core or plugin route. Route collisions are rejected instead of silently replacing an existing handler.
+
+For ecosystem-specific APIs, prefer a plugin-owned namespace such as `/api/plugin/<plugin-id>/...`.
