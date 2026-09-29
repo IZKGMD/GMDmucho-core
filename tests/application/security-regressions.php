@@ -62,6 +62,16 @@ $adminIndex = (string)file_get_contents(
     __DIR__ . '/../../public/admin/index.php'
 );
 
+$releaseModule = (string)file_get_contents(
+    __DIR__ . '/../../public/admin/client-release-upload-module.php'
+);
+
+assertSecurityRegression(
+    !preg_match('/^\\s*ensureReleaseManager\\(\\$db\\);/m', $releaseModule) &&
+    str_contains($releaseModule, 'ensureReleaseManager($db);\\n            checkCsrf();'),
+    'client release storage initialization is deferred to release upload actions'
+);
+
 $adminLevels = (string)file_get_contents(
     __DIR__ . '/../../public/admin/actions/levels.php'
 );
