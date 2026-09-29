@@ -404,6 +404,8 @@ function renderDbBackupCenter(
             (string)admin()['role']
         )>=40;
 
+    $sharedHosting=muchodbSharedHosting();
+
 
     $files=[];
 
@@ -571,6 +573,11 @@ function renderDbBackupCenter(
             14-day retention ·
             SHA-256 verification
         </div>
+        <?php if($sharedHosting): ?>
+            <div class="muted" style="margin-top:8px">
+                Shared hosting: backups are created by PHP. Restore is handled by your hosting database tool.
+            </div>
+        <?php endif ?>
 
     </div>
 
@@ -865,7 +872,8 @@ function renderDbBackupCenter(
 
 <?php if(
     $isOwner &&
-    $file['valid']
+    $file['valid'] &&
+    !$sharedHosting
 ): ?>
 
 <details class="db-restore-box">
