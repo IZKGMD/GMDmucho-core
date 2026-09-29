@@ -95,6 +95,15 @@ if (
 }
 
 if (
+    str_contains($page, 'name="difficulty" min=') ||
+    str_contains($page, 'name="color1" min=') ||
+    str_contains($page, 'name="color2" min=')
+) {
+    fwrite(STDERR, "Contract failed: difficulty/color must not be exposed as numeric inputs\n");
+    exit(1);
+}
+
+if (
     !str_contains($page, 'name="level_') ||
     !str_contains($page, 'foreach (range(0, $expected - 1) as $index)')
 ) {
