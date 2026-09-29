@@ -111,26 +111,23 @@ function renderContentPackDifficultyPicker(int $selected): void
 
     echo '<div class="mc-picker" style="margin-top:10px">';
     echo '<div style="display:flex;justify-content:space-between;align-items:end;gap:8px;margin-bottom:8px">';
-    echo '<div><strong style="font-size:14px">Give Rate</strong><div class="muted" style="font-size:12px;margin-top:2px">Choose the difficulty icon</div></div>';
+    echo '<div><strong style="font-size:14px">Give Rate</strong><div class="muted" style="font-size:12px;margin-top:2px">Click a difficulty icon</div></div>';
     echo '<span class="muted" style="font-size:12px">Selected: <strong data-difficulty-label>'.h($options[$selected][0] ?? 'Auto').'</strong></span>';
     echo '</div>';
     echo '<input type="hidden" name="difficulty" value="'.h($selected).'">';
-    echo '<div role="radiogroup" aria-label="Difficulty" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:7px">';
+    echo '<div role="radiogroup" aria-label="Difficulty" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:8px">';
 
     foreach ($options as $value => [$label, $accent]) {
         $isSelected = $selected === $value;
         $selectedStyle = $isSelected
-            ? 'outline:2px solid '.$accent.';box-shadow:0 5px 14px rgba(0,0,0,.22);transform:translateY(-2px);'
+            ? 'outline:3px solid '.$accent.';box-shadow:0 6px 16px rgba(0,0,0,.28);transform:translateY(-2px);'
             : '';
         echo '<button type="button" class="mc-rate-option" data-value="'.$value.'" data-label="'.h($label).'" '
             .'aria-pressed="'.($isSelected ? 'true' : 'false').'" '
             .'title="'.h($label).'" onclick="muchoPickDifficulty(this)" '
-            .'style="min-height:78px;padding:5px 4px;border:1px solid rgba(127,140,163,.25);'
-            .'border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(0,0,0,.10));'
-            .'color:inherit;cursor:pointer;'.$selectedStyle.'">';
-        echo '<span style="display:flex;justify-content:center;align-items:center;height:55px">';
-        echo '<img src="'.h(contentPackDifficultyIcon((int)$value)).'" width="54" height="54" alt="'.h($label).'" loading="lazy">';
-        echo '</span>';
+            .'style="min-height:92px;padding:7px 5px;border:1px solid rgba(127,140,163,.25);'
+            .'border-radius:12px;background:rgba(127,140,163,.08);color:inherit;cursor:pointer;transition:.12s;'.$selectedStyle.'">';
+        echo '<img src="'.h(contentPackDifficultyIcon((int)$value)).'" width="68" height="68" alt="" style="display:block;margin:0 auto 2px">';
         echo '<span style="display:block;font-size:10px;font-weight:800;line-height:12px;min-height:24px">'.h($label).'</span>';
         echo '</button>';
     }
@@ -162,31 +159,42 @@ function contentPackColorPresets(): array
 
 function renderContentPackColorPicker(string $field, int $selected): void
 {
-    echo '<div style="margin-top:8px">';
+    $presets = contentPackColorPresets();
+
+    echo '<div style="margin-top:10px">';
     echo '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px">';
     echo '<strong style="font-size:13px">'.h(ucwords(str_replace('_', ' ', $field))).'</strong>';
-    echo '<span class="muted" style="font-size:12px">Color ID <span data-color-value="'.h($field).'">'.h($selected).'</span></span>';
+    echo '<span class="muted" style="font-size:12px">Selected: <strong data-color-value="'.h($field).'">'.h($selected).'</strong></span>';
     echo '</div>';
     echo '<input type="hidden" name="'.h($field).'" value="'.h($selected).'">';
-    echo '<div role="radiogroup" aria-label="'.h($field).' color" style="display:flex;flex-wrap:wrap;gap:6px">';
-    foreach (contentPackColorPresets() as $value => $hex) {
-        $active = $selected === $value
-            ? 'box-shadow:0 0 0 2px currentColor;transform:scale(1.05);'
+    echo '<div role="radiogroup" aria-label="'.h($field).' color" style="display:flex;flex-wrap:wrap;gap:7px">';
+
+    foreach ($presets as $value => $hex) {
+        $isSelected = $selected === $value;
+        $selectedStyle = $isSelected
+            ? 'outline:3px solid currentColor;box-shadow:0 4px 10px rgba(0,0,0,.25);transform:scale(1.06);'
             : '';
+        $textColor = $value === 0 ? '#1f2937' : '#fff';
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 42 42" aria-hidden="true">'
+            .'<defs><linearGradient id="c'.$value.'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'.$hex.'"/><stop offset="1" stop-color="'.$hex.'"/></linearGradient></defs>'
+            .'<rect x="2" y="2" width="38" height="38" rx="10" fill="url(#c'.$value.')" stroke="rgba(255,255,255,.55)" stroke-width="2"/>'
+            .'<path d="M11 12h20" stroke="rgba(255,255,255,.35)" stroke-width="2" stroke-linecap="round"/>'
+            .'<text x="21" y="27" text-anchor="middle" font-size="10" font-weight="800" fill="'.$textColor.'">'.$value.'</text>'
+            .'</svg>';
+
         echo '<button type="button" class="mc-color-option" data-field="'.h($field).'" data-value="'.$value.'" '
-            .'aria-pressed="'.($selected === $value ? 'true' : 'false').'" '
-            .'title="Color ID '.$value.'" '
+            .'aria-pressed="'.($isSelected ? 'true' : 'false').'" title="Color ID '.$value.'" '
             .'onclick="muchoPickColor(this)" '
-            .'style="width:34px;height:34px;padding:0;border:2px solid rgba(255,255,255,.32);'
-            .'border-radius:9px;background:'.$hex.';cursor:pointer;'.$active.'">';
-        echo '<span style="font-size:10px;font-weight:800;color:'.($value === 0 ? '#1f2937' : '#fff').';text-shadow:0 1px 2px rgba(0,0,0,.35)">'.$value.'</span>';
+            .'style="width:48px;height:48px;padding:2px;border:0;background:transparent;border-radius:12px;'
+            .'cursor:pointer;transition:.12s;'.$selectedStyle.'">';
+        echo $svg;
         echo '</button>';
     }
+
     echo '</div>';
-    echo '<small class="muted">Palette buttons are a visual shortcut; the server still stores the numeric Color ID used by the GD protocol.</small>';
+    echo '<small class="muted">Click a color swatch. The selected Color ID is stored automatically.</small>';
     echo '</div>';
 }
-
 function renderContentPackPickerScript(): void
 {
     echo <<<'HTML'
@@ -363,4 +371,4 @@ if ($mapPacks === []) {
 }
 
 renderContentPackPickerScript();
-echo '<p class="muted" style="margin-top:16px">Gauntlets require exactly 5 unique levels. Map Packs accept any number of unique levels. Give Rate and color controls are clickable; the stored values remain GD-compatible numeric IDs.</p>';
+echo '<p class="muted" style="margin-top:16px">Gauntlets require exactly 5 unique levels. Map Packs accept any number of unique levels. Difficulty and colors are selected visually; the server stores the original numeric GD values.</p>';
