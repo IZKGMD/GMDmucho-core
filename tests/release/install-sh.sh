@@ -15,8 +15,8 @@ grep -Fq '20260925_000_admin_users.php' < <(git ls-files database/migrations/202
 php -l public/shared-install.php >/dev/null
 grep -Fq 'shared-install.installed' public/shared-install.php
 grep -Fq 'databasePreflight(' public/shared-install.php
-grep -Fq 'MUCHO_SHARED_HOSTING=1' public/shared-install.php
-grep -Fq 'MUCHO_DB_BACKUP_DIR=' public/shared-install.php
+grep -Fq "dotenvLine('MUCHO_SHARED_HOSTING', '1')" public/shared-install.php
+grep -Fq "dotenvLine('MUCHO_DB_BACKUP_DIR'" public/shared-install.php
 
 grep -Fq 'flock -n 9' install.sh
 grep -Fq 'DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git jq openssl' install.sh
