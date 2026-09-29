@@ -36,7 +36,7 @@ foreach ([
     'src/Migration/SharedMigrationService.php' => $sharedMigration,
     'public/shared-install.php' => $sharedInstaller,
     'public/admin/db-backup-center-module.php' => $adminBackup,
-    'public/admin/actions/migration.php' => $adminActionPrevious,
+    'public/admin/actions/migration.php' => $adminAction,
     'docker/Dockerfile' => $dockerfile,
     'database/migrations/20260925_000_admin_users.php' => $adminUsersMigration,
     'tools/release/build-shared-hosting.sh' => $sharedPackageBuilder,
@@ -83,7 +83,7 @@ if (strpos($control, 'compose exec -T app bash /var/www/mucho-core/bin/mucho-db-
 foreach ([
     'DatabaseBackupService',
     'gzopen(',
-    'hash_file('sha256'',
+    'hash_file(\'sha256\'',
     'LOCK_EX | LOCK_NB',
     'SET FOREIGN_KEY_CHECKS=0',
 ] as $needle) {
