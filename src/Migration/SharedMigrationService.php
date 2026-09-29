@@ -72,7 +72,35 @@ final class SharedMigrationService
 
     public function apply(PDO $source): array
     {
-        $lockPath = rtrim($this->root, '/\\') . '/storage/' . self::LOCK_FILE;
+        $storageDirectory = rtrim($this->root, '/\\') . '/storage';
+
+        if (
+            !is_dir($storageDirectory) &&
+            !mkdir($storageDirectory, 0750, true) &&
+            !is_dir($storageDirectory)
+        ) {
+            throw new RuntimeException(
+                'Unable to create the shared-hosting storage directory.'
+            );
+        }
+
+        if (!is_writable($storageDirectory)) {
+            throw new RuntimeException(
+                'The shared-hosting storage directory is not writable.'
+            );
+        }
+
+        $storageHtaccess = $storageDirectory . '/.htaccess';
+        if (!is_file($storageHtaccess)) {
+            @file_put_contents(
+                $storageHtaccess,
+                "Options -Indexes\nRequire all denied\nDeny from all\n",
+                LOCK_EX
+            );
+            @chmod($storageHtaccess, 0600);
+        }
+
+        $lockPath = $storageDirectory . '/' . self::LOCK_FILE;
         $lock = fopen($lockPath, 'c');
 
         if (!is_resource($lock) || !flock($lock, LOCK_EX | LOCK_NB)) {
