@@ -241,9 +241,6 @@ function apkSignerInfo(
 }
 
 
-ensureReleaseManager($db);
-
-
 /* =========================================================
    AJAX ACTIONS
 ========================================================= */
@@ -265,6 +262,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     ) {
         try {
 
+            ensureReleaseManager($db);
             checkCsrf();
             requireRank(30);
 
