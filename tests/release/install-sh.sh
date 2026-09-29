@@ -29,6 +29,13 @@ grep -Fq 'php bin/migrate.php migrate' install.sh
 grep -Fq 'php bin/mucho-healthcheck.php' install.sh
 grep -Fq 'https://$DOMAIN/health' install.sh
 
+grep -Fq 'offer_database_migration()' install.sh
+grep -Fq 'MUCHO_MIGRATION_ON_INSTALL' install.sh
+grep -Fq 'Do you want to migrate an existing GDPS database now?' install.sh
+grep -Fq 'create and verify a fresh backup of the new MuchoCore database' install.sh
+grep -Fq 'bin/mucho-migrate.php --apply' install.sh
+grep -Fq 'installer is non-interactive' install.sh
+
 migration_line="$(grep -n 'php bin/migrate.php migrate' install.sh | head -n1 | cut -d: -f1)"
 health_line="$(grep -n 'log \"Checking server health...\"' install.sh | head -n1 | cut -d: -f1)"
 internal_health_line="$(grep -n 'php bin/mucho-healthcheck.php' install.sh | head -n1 | cut -d: -f1)"
