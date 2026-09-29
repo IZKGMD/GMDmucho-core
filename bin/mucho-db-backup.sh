@@ -16,6 +16,12 @@ mkdir -p "$BACKUP_DIR" "$LOG_DIR"
 exec 9>"$LOCK"
 
 if ! flock -n 9; then
+    if [[ "${MUCHO_BACKUP_REQUIRED:-0}" == "1" ]]; then
+        echo "[$(date -Is)] ERROR: backup is already running; required backup was not completed." >> "$LOG"
+        echo "ERROR: another backup is already running; migration cannot continue without its own verified backup." >&2
+        exit 75
+    fi
+
     echo "[$(date -Is)] Backup already running, skip." >> "$LOG"
     exit 0
 fi
@@ -327,6 +333,12 @@ chmod 640 "$FINAL"
 
 # SHA-256
 sha256sum "$FINAL" > "$FINAL.sha256"
+
+if ! sha256sum -c "$FINAL.sha256" >/dev/null 2>&1; then
+    rm -f "$FINAL" "$FINAL.sha256"
+    echo "[$(date -Is)] ERROR: backup checksum verification failed after creation" >> "$LOG"
+    exit 1
+fi
 
 if [ "$(id -u)" -eq 0 ] && getent group www-data >/dev/null 2>&1; then
     chown root:www-data "$FINAL.sha256"
