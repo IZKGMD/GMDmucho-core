@@ -383,43 +383,6 @@ CREATE TABLE mucho_platformer_scores (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 SQL);
 
-    $sharedMigrationPreview = (new SharedMigrationService(
-        $sharedTarget,
-        $fixtureRoot,
-        $fixtureRoot . '/shared-service-backups'
-    ))->preview($source);
-    must(
-        ($sharedMigrationPreview['preflight']['accounts'] ?? -1) === 2,
-        'Shared Migration Center preview returned the wrong account count.'
-    );
-
-    $sharedMigration = (new SharedMigrationService(
-        $sharedTarget,
-        $fixtureRoot,
-        $fixtureRoot . '/shared-service-backups'
-    ))->apply($source);
-
-    must(
-        is_file($sharedMigration['backup']['file']),
-        'Shared Migration Center did not create its target backup.'
-    );
-    must(
-        scalar($sharedTarget, 'SELECT COUNT(*) FROM accounts') === 2,
-        'Shared Migration Center did not import accounts.'
-    );
-    must(
-        scalar($sharedTarget, 'SELECT COUNT(*) FROM levels') === 1,
-        'Shared Migration Center did not import levels.'
-    );
-    must(
-        scalar($sharedTarget, 'SELECT COUNT(*) FROM mucho_level_scores') === 1,
-        'Shared Migration Center did not import classic scores.'
-    );
-    must(
-        scalar($sharedTarget, 'SELECT COUNT(*) FROM mucho_platformer_scores') === 1,
-        'Shared Migration Center did not import Platformer scores.'
-    );
-
     $validPassword = password_hash('migration-test-password', PASSWORD_DEFAULT);
     $stmt = $source->prepare(
         'INSERT INTO accounts (accountID,userName,password,gjp2,email,isActive)
@@ -507,6 +470,43 @@ SQL);
         "INSERT INTO platscores
         (ID,accountID,levelID,time,points,timestamp)
         VALUES (601,1,101,12345,77,1700000001)"
+    );
+
+    $sharedMigrationPreview = (new SharedMigrationService(
+        $sharedTarget,
+        $fixtureRoot,
+        $fixtureRoot . '/shared-service-backups'
+    ))->preview($source);
+    must(
+        ($sharedMigrationPreview['preflight']['accounts'] ?? -1) === 2,
+        'Shared Migration Center preview returned the wrong account count.'
+    );
+
+    $sharedMigration = (new SharedMigrationService(
+        $sharedTarget,
+        $fixtureRoot,
+        $fixtureRoot . '/shared-service-backups'
+    ))->apply($source);
+
+    must(
+        is_file($sharedMigration['backup']['file']),
+        'Shared Migration Center did not create its target backup.'
+    );
+    must(
+        scalar($sharedTarget, 'SELECT COUNT(*) FROM accounts') === 2,
+        'Shared Migration Center did not import accounts.'
+    );
+    must(
+        scalar($sharedTarget, 'SELECT COUNT(*) FROM levels') === 1,
+        'Shared Migration Center did not import levels.'
+    );
+    must(
+        scalar($sharedTarget, 'SELECT COUNT(*) FROM mucho_level_scores') === 1,
+        'Shared Migration Center did not import classic scores.'
+    );
+    must(
+        scalar($sharedTarget, 'SELECT COUNT(*) FROM mucho_platformer_scores') === 1,
+        'Shared Migration Center did not import Platformer scores.'
     );
 
     mkdir($fixtureRoot, 0700, true);
