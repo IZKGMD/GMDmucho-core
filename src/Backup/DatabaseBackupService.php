@@ -47,7 +47,32 @@ final class DatabaseBackupService
         $temporary = $final . '.tmp';
         $checksumFile = $final . '.sha256';
 
+        $estimatedBytes = $this->databaseSizeBytes();
+        $freeBytes = @disk_free_space($this->directory);
+        if (is_float($freeBytes) || is_int($freeBytes)) {
+            $requiredBytes = max(
+                16 * 1024 * 1024,
+                (int)ceil($estimatedBytes * 1.50) + 8 * 1024 * 1024
+            );
+
+            if ((float)$freeBytes < $requiredBytes) {
+                throw new RuntimeException(
+                    'Not enough free storage for a safe database backup.'
+                );
+            }
+        }
+
+        $startedTransaction = false;
+
         try {
+            if (!$this->pdo->inTransaction()) {
+                $this->pdo->exec(
+                    'SET TRANSACTION ISOLATION LEVEL REPEATABLE READ'
+                );
+                $this->pdo->beginTransaction();
+                $startedTransaction = true;
+            }
+
             $gzip = gzopen($temporary, 'wb9');
 
             if ($gzip === false) {
@@ -112,12 +137,33 @@ final class DatabaseBackupService
                 'size' => (int)$size,
             ];
         } catch (Throwable $e) {
+            if ($startedTransaction && $this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+
             @unlink($temporary);
+            @unlink($final);
+            @unlink($checksumFile);
             throw $e;
         } finally {
+            if ($startedTransaction && $this->pdo->inTransaction()) {
+                $this->pdo->commit();
+            }
+
             flock($lock, LOCK_UN);
             fclose($lock);
         }
+    }
+
+    private function databaseSizeBytes(): int
+    {
+        $statement = $this->pdo->query(
+            'SELECT COALESCE(SUM(data_length + index_length), 0)
+             FROM information_schema.tables
+             WHERE table_schema = DATABASE()'
+        );
+
+        return max(0, (int)$statement->fetchColumn());
     }
 
     private function objects(): array
