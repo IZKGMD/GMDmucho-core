@@ -52,14 +52,25 @@ foreach ([
     'WHAT TO ENTER',
     'WHAT IS WHERE',
     'The destination will not be changed during this scan.',
-    'createVerifiedTargetBackup()',
+    'createVerifiedTargetBackup(',
+    'MUCHO_BACKUP_REQUIRED=1',
+    'BACKUP_OK',
     'sha256sum -c',
+    'filemtime(',
     'TARGET_BACKUP=',
     'Preparing MuchoCore schema...',
 ] as $needle) {
     if (strpos($wizard, $needle) === false) {
         throw new RuntimeException('Migration wizard contract missing: ' . $needle);
     }
+}
+
+if (strpos($wizard, 'Migration is already running') === false) {
+    throw new RuntimeException('Migration concurrency lock is missing.');
+}
+
+if (strpos($wizard, 'createVerifiedTargetBackup(microtime(true))') === false) {
+    throw new RuntimeException('Migration must request a fresh verified backup timestamp.');
 }
 
 $prepareAt = strpos($wizard, 'Preparing MuchoCore schema...');
@@ -119,6 +130,23 @@ foreach ([
 ] as $needle) {
     if (strpos($control, $needle) === false) {
         throw new RuntimeException('Control Center migration integration missing: ' . $needle);
+    }
+}
+
+$lowLevel = file_get_contents($root . '/bin/import-cvolton-db.php');
+if ($lowLevel === false) {
+    throw new RuntimeException('Unable to read bin/import-cvolton-db.php');
+}
+
+foreach ([
+    'MUCHO_BACKUP_REQUIRED=1',
+    'BACKUP_OK',
+    'filemtime(',
+    'Migration is already running',
+    'createVerifiedTargetBackup(microtime(true))',
+] as $needle) {
+    if (strpos($lowLevel, $needle) === false) {
+        throw new RuntimeException('Low-level importer safety contract missing: ' . $needle);
     }
 }
 
