@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: release-stable-${{ github.event.workflow_run.head_sha }}
@@ -18,10 +19,10 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout validated commit
+      - name: Checkout main for release-marker detection
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: main
           fetch-depth: 0
           token: ${{ github.token }}
           persist-credentials: false
@@ -63,11 +64,27 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve validated commit
+        id: source
+        if: steps.marker.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TRIGGER_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          RELEASE_SHA="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$TRIGGER_RUN_ID" --jq '.head_sha')"
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "ERROR: unable to resolve the validated commit SHA." >&2
+            exit 1
+          }
+          echo "sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
+          git fetch origin "$RELEASE_SHA"
+          git checkout --detach "$RELEASE_SHA"
+
       - name: Publish validated release
         if: steps.marker.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+          RELEASE_SHA: ${{ steps.source.outputs.sha }}
           VERSION: ${{ steps.marker.outputs.version }}
           TAG: ${{ steps.marker.outputs.tag }}
         run: |
