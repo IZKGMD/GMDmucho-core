@@ -509,8 +509,6 @@ SQL);
         'Shared Migration Center did not import Platformer scores.'
     );
 
-    mkdir($fixtureRoot, 0700, true);
-
     $sharedBackupDir = $fixtureRoot . '/shared-backups';
     $sharedBackup = (new DatabaseBackupService(
         $target,
