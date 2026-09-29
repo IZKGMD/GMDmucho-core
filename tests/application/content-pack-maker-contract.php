@@ -55,18 +55,18 @@ $contracts = [
     [$page, 'Give Rate', 'visual difficulty picker'],
     [$page, 'contentPackDifficultyOptions', 'difficulty options'],
     [$page, 'contentPackDifficultyIcon', 'difficulty icon resolver'],
-    [$page, 'Special:FilePath/Auto_Icon.svg', 'original Auto difficulty artwork'],
-    [$page, 'Special:FilePath/Easy_Icon.svg', 'original Easy difficulty artwork'],
-    [$page, 'Special:FilePath/Normal_Icon.svg', 'original Normal difficulty artwork'],
-    [$page, 'Special:FilePath/Hard_Icon.svg', 'original Hard difficulty artwork'],
-    [$page, 'Special:FilePath/Harder_Icon.svg', 'original Harder difficulty artwork'],
-    [$page, 'Special:FilePath/Insane_Icon.svg', 'original Insane difficulty artwork'],
-    [$page, 'Special:FilePath/Demon_Icon.webp', 'original Hard Demon artwork'],
-    [$page, 'Special:FilePath/Easy_Demon_Icon.webp', 'original Easy Demon artwork'],
-    [$page, 'Special:Redirect/file/MediumDemon.png', 'original Medium Demon artwork'],
-    [$page, 'Special:FilePath/Insane_Demon_Icon.webp', 'original Insane Demon artwork'],
-    [$page, 'Special:FilePath/Extreme_Demon_Icon.webp', 'original Extreme Demon artwork'],
-    [$page, '<details class="mc-field-picker"', 'native clickable selector'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/a/a8/Auto_Icon.svg', 'original Auto difficulty artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Easy_Icon.svg', 'original Easy difficulty artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/4/48/Normal_Icon.svg', 'original Normal difficulty artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/2/24/Hard_Icon.svg', 'original Hard difficulty artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/3/34/Harder_Icon.svg', 'original Harder difficulty artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/6/6c/Insane_Icon.svg', 'original Insane difficulty artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Demon_Icon.webp', 'original Hard Demon artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Easy_Demon_Icon.webp', 'original Easy Demon artwork'],
+    [$page, 'https://static.wikia.nocookie.net/geometry-dash/images/e/e2/MediumDemon.png', 'original Medium Demon artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/a/ae/Insane_Demon_Icon.webp', 'original Insane Demon artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/3/33/Extreme_Demon_Icon.webp', 'original Extreme Demon artwork'],
+    [$page, '<details class="mc-dropdown"', 'native clickable selector'],
     [$page, 'type="radio"', 'native selector inputs'],
     [$page, 'name="difficulty"', 'difficulty form field'],
     [$page, "renderContentPackColorPicker('color1'", 'Color 1 form value'],
@@ -146,9 +146,10 @@ foreach ([
     }
 }
 
-if (!str_contains($page, "Special:Redirect/file/Colour000.png") ||
-    !str_contains($page, "for ($value = 0; $value <= 106; $value++)")) {
-    fwrite(STDERR, "Contract failed: official icon color palette selector is missing\n");
+if (!str_contains($page, 'function contentPackColorPresets(): array') ||
+    !str_contains($page, "0 => '#f0f0f0'") ||
+    !str_contains($page, "24 => '#ff375f'")) {
+    fwrite(STDERR, "Contract failed: visual color palette selector is missing\n");
     exit(1);
 }
 
