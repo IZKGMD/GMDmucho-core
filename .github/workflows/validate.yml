@@ -96,6 +96,17 @@ jobs:
           php tests/client/windows-client-patcher.php
           php tests/client/android-client-patcher.php
 
+      - name: Check shared-hosting package
+        run: |
+          composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+          bash -n tools/release/build-shared-hosting.sh
+          php -l public/shared-install.php
+          mkdir -p /tmp/muchocore-shared-package-test
+          OUTPUT=/tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             bash tools/release/build-shared-hosting.sh
+          unzip -t /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip >/dev/null
+          unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/public/shared-install.php'
+          unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/vendor/autoload.php'
+
       - name: Check Python patcher
         run: |
           python3 -m py_compile tools/client/client-patch.py tools/client/client-trace-summary.py tests/client/client-patcher-fixture.py
