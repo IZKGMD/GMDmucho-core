@@ -175,33 +175,57 @@ final class DatabaseBackupService
             $columns
         ));
 
-        $query = $this->pdo->query(
-            'SELECT ' . $columnSql . ' FROM ' . $quotedTable
-        );
-        $query->setFetchMode(PDO::FETCH_ASSOC);
+        $buffered = true;
 
-        $rows = [];
+        try {
+            $buffered = (bool)$this->pdo->getAttribute(
+                PDO::MYSQL_ATTR_USE_BUFFERED_QUERY
+            );
+        } catch (Throwable) {
+        }
 
-        while (($row = $query->fetch()) !== false) {
-            $values = [];
+        try {
+            $this->pdo->setAttribute(
+                PDO::MYSQL_ATTR_USE_BUFFERED_QUERY,
+                false
+            );
 
-            foreach ($columns as $column) {
-                $values[] = $this->sqlValue($row[$column] ?? null);
+            $query = $this->pdo->query(
+                'SELECT ' . $columnSql . ' FROM ' . $quotedTable
+            );
+            $query->setFetchMode(PDO::FETCH_ASSOC);
+
+            $rows = [];
+
+            while (($row = $query->fetch()) !== false) {
+                $values = [];
+
+                foreach ($columns as $column) {
+                    $values[] = $this->sqlValue($row[$column] ?? null);
+                }
+
+                $rows[] = '(' . implode(', ', $values) . ')';
+
+                if (count($rows) >= self::ROW_BATCH) {
+                    $this->writeInsert($gzip, $quotedTable, $columnSql, $rows);
+                    $rows = [];
+                }
             }
 
-            $rows[] = '(' . implode(', ', $values) . ')';
-
-            if (count($rows) >= self::ROW_BATCH) {
+            if ($rows !== []) {
                 $this->writeInsert($gzip, $quotedTable, $columnSql, $rows);
-                $rows = [];
+            }
+
+            $this->write($gzip, "\n");
+        } finally {
+            try {
+                $this->pdo->setAttribute(
+                    PDO::MYSQL_ATTR_USE_BUFFERED_QUERY,
+                    $buffered
+                );
+            } catch (Throwable) {
             }
         }
-
-        if ($rows !== []) {
-            $this->writeInsert($gzip, $quotedTable, $columnSql, $rows);
-        }
-
-        $this->write($gzip, "\n");
     }
 
     private function columns(string $table): array
