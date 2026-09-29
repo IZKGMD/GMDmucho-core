@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
+use MuchoCore\Plugin\PluginContext;
+use MuchoCore\Plugin\PluginEventBus;
 use MuchoCore\Plugin\PluginManager;
 use MuchoCore\Routing\Router;
 
@@ -175,6 +177,51 @@ try {
 
     if (file_get_contents($marker) !== 'plugin-ok') {
         throw new RuntimeException('custom plugin event contract failed');
+    }
+
+    $extensionRouter = new Router();
+    $extensionRouter->add(
+        'ANY',
+        '/core-reserved',
+        static fn(Request $request): Response => Response::text('core')
+    );
+
+    $extensionContext = new PluginContext(
+        $pdo,
+        $extensionRouter,
+        new PluginEventBus(),
+        ['routes'],
+        'Demo Plugin'
+    );
+
+    $collisionRejected = false;
+
+    try {
+        $extensionContext->route(
+            'GET',
+            '/core-reserved',
+            static fn(Request $request): string => 'plugin'
+        );
+    } catch (RuntimeException) {
+        $collisionRejected = true;
+    }
+
+    if (!$collisionRejected) {
+        throw new RuntimeException('plugin route collision protection failed');
+    }
+
+    $extensionContext->route(
+        'GET',
+        '/plugin/demo',
+        static fn(Request $request): string => 'plugin-route-ok'
+    );
+
+    $pluginResponse = $extensionRouter->dispatch(
+        new Request('GET', '/plugin/demo', [], [], [])
+    );
+
+    if ($pluginResponse->body !== 'plugin-route-ok') {
+        throw new RuntimeException('plugin route registration contract failed');
     }
 
     $unsafeRequest = new Request(
