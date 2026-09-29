@@ -74,8 +74,11 @@ if (
     exit(1);
 }
 
-if (!str_contains($page, 'name="level_') || !str_contains($page, 'for ($i = 1; $i <= $expected; $i++)')) {
-    fwrite(STDERR, "Contract failed: dynamic level slot generation is missing\n");
+if (
+    !str_contains($page, 'name="level_') ||
+    !str_contains($page, 'foreach (range(0, $expected - 1) as $index)')
+) {
+    fwrite(STDERR, "Contract failed: Gauntlet level slot generation is missing\n");
     exit(1);
 }
 
