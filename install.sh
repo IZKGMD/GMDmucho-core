@@ -571,13 +571,18 @@ offer_database_migration() {
       info "Before import, MuchoCore will create and verify a fresh target backup."
       info "If the backup cannot be verified, migration stops before any target write."
 
+      local confirm_args=()
+      if [[ -n "${MUCHO_MIGRATION_ON_INSTALL:-}" ]]; then
+        confirm_args+=(--confirm=MIGRATE)
+      fi
+
       if [[ -n "$TUNNEL_TOKEN" ]]; then
-        if ! docker compose -f docker-compose.yml -f docker-compose.tunnel.yml exec app php bin/mucho-migrate.php --apply; then
+        if ! docker compose -f docker-compose.yml -f docker-compose.tunnel.yml exec app php bin/mucho-migrate.php --apply "${confirm_args[@]}"; then
           warn "Database migration was not completed. MuchoCore itself is installed; the old database was not modified."
           return 0
         fi
       else
-        if ! docker compose exec app php bin/mucho-migrate.php --apply; then
+        if ! docker compose exec app php bin/mucho-migrate.php --apply "${confirm_args[@]}"; then
           warn "Database migration was not completed. MuchoCore itself is installed; the old database was not modified."
           return 0
         fi
