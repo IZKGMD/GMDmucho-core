@@ -7,6 +7,8 @@ $root = dirname(__DIR__, 2);
 $detector = file_get_contents($root . '/src/Migration/SourceDetector.php');
 $wizard = file_get_contents($root . '/bin/mucho-migrate.php');
 $backupScript = file_get_contents($root . '/bin/mucho-db-backup.sh');
+$dockerfile = file_get_contents($root . '/docker/Dockerfile');
+
 $control = file_get_contents($root . '/bin/mucho');
 $workflow = file_get_contents($root . '/.github/workflows/validate.yml');
 $docs = file_get_contents($root . '/docs/MIGRATION_CENTER.md');
@@ -22,6 +24,8 @@ foreach ([
     'src/Migration/SourceDetector.php' => $detector,
     'bin/mucho-migrate.php' => $wizard,
     'bin/mucho-db-backup.sh' => $backupScript,
+    'docker/Dockerfile' => $dockerfile,
+    'bin/mucho' => $control,
     'bin/mucho' => $control,
     '.github/workflows/validate.yml' => $workflow,
     'docs/MIGRATION_CENTER.md' => $docs,
@@ -33,6 +37,22 @@ foreach ([
 
 if ($backupScript === false) {
     throw new RuntimeException('Unable to read bin/mucho-db-backup.sh');
+}
+
+if ($dockerfile === false || $control === false) {
+    throw new RuntimeException('Unable to read Dockerfile or Control Center.');
+}
+
+foreach ([
+    'mariadb-client',
+] as $needle) {
+    if (strpos($dockerfile, $needle) === false) {
+        throw new RuntimeException('Docker image is missing the MariaDB client required for verified backups.');
+    }
+}
+
+if (strpos($control, 'compose exec -T app bash /var/www/mucho-core/bin/mucho-db-backup.sh') === false) {
+    throw new RuntimeException('Control Center backup must run inside the app container.');
 }
 
 foreach ([
