@@ -525,6 +525,74 @@ else
   warn "Run: cd $INSTALL_DIR && sudo docker compose logs --tail=100"
 fi
 
+offer_database_migration() {
+  local choice=${MUCHO_MIGRATION_ON_INSTALL:-}
+
+  if [[ -z "$choice" ]]; then
+    if [[ ! -t 0 || ! -t 1 ]]; then
+      info "Migration prompt skipped because the installer is non-interactive."
+      info "You can run the Migration Center later from the admin panel or with: sudo ${INSTALL_DIR}/bin/mucho"
+      return 0
+    fi
+
+    printf "
+"
+    printf "${BOLD}  Do you want to migrate an existing GDPS database now?${RESET}
+"
+    printf "  ${CYAN}MuchoCore will run a read-only preflight and, before any import,
+"
+    printf "  create and verify a fresh backup of the new MuchoCore database.${RESET}
+
+"
+    printf "  ${CYAN}1${RESET}) No — finish installation
+"
+    printf "  ${CYAN}2${RESET}) Yes — open Migration Center
+
+"
+
+    read -r -p "  Select [1]: " choice < /dev/tty || choice="1"
+    choice="${choice:-1}"
+  fi
+
+  case "${choice,,}" in
+    1|no|n|false|0)
+      info "Database migration skipped. You can start it later from MuchoCore Admin → Tools → Migration Center."
+      return 0
+      ;;
+    2|yes|y|true)
+      [[ -f "$INSTALL_DIR/bin/mucho-migrate.php" ]] || {
+        warn "Migration Center is not included in this MuchoCore release."
+        warn "Finish installation first, then update MuchoCore to a release containing Migration Center."
+        return 0
+      }
+
+      printf "
+"
+      log "Opening MuchoCore Migration Center..."
+      info "The old database stays read-only."
+      info "Before import, MuchoCore will create and verify a fresh target backup."
+      info "If the backup cannot be verified, migration stops before any target write."
+
+      if [[ -n "$TUNNEL_TOKEN" ]]; then
+        if ! docker compose -f docker-compose.yml -f docker-compose.tunnel.yml exec app php bin/mucho-migrate.php --apply; then
+          warn "Database migration was not completed. MuchoCore itself is installed; the old database was not modified."
+          return 0
+        fi
+      else
+        if ! docker compose exec app php bin/mucho-migrate.php --apply; then
+          warn "Database migration was not completed. MuchoCore itself is installed; the old database was not modified."
+          return 0
+        fi
+      fi
+      ;;
+    *)
+      fail "Invalid migration choice. Use 1 (No) or 2 (Yes)."
+      ;;
+  esac
+}
+
+offer_database_migration
+
 cat <<EOFOUT
 
 MuchoCore is installed.
