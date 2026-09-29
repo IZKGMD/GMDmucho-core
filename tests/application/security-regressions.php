@@ -66,9 +66,24 @@ $releaseModule = (string)file_get_contents(
     __DIR__ . '/../../public/admin/client-release-upload-module.php'
 );
 
+$releasePost = strpos(
+    $releaseModule,
+    "if (\$_SERVER['REQUEST_METHOD']==='POST')"
+);
+
+$releaseStorageCall = strpos(
+    $releaseModule,
+    'ensureReleaseManager($db);'
+);
+
 assertSecurityRegression(
-    !preg_match('/^\\s*ensureReleaseManager\\(\\$db\\);/m', $releaseModule) &&
-    str_contains($releaseModule, 'ensureReleaseManager($db);\\n            checkCsrf();'),
+    $releasePost !== false &&
+    $releaseStorageCall !== false &&
+    $releaseStorageCall > $releasePost &&
+    preg_match(
+        '/ensureReleaseManager\\(\\$db\\);\\s*checkCsrf\\(\\);/',
+        $releaseModule
+    ) === 1,
     'client release storage initialization is deferred to release upload actions'
 );
 
