@@ -10,6 +10,7 @@ $root = dirname(__DIR__, 2);
 
 $required = [
     'database/migrations/20260929_001_content_packs.php',
+    'database/migrations/20260929_002_mappack_unbounded_levels.php',
     'public/admin/actions/contentpacks.php',
     'public/admin/pages/contentpacks.php',
     'public/admin/core/AdminRouter.php',
@@ -39,6 +40,8 @@ $contracts = [
     [$migration, 'ADD COLUMN IF NOT EXISTS name', 'legacy-schema compatibility'],
     [$action, "requirePermission('contentpacks.manage')", 'content-pack permission'],
     [$action, '$expected', 'expected level-count parameter'],
+    [$action, 'function contentPackLevelFieldFromPost', 'POST level field parser'],
+    [$action, "contentPackLevelFieldFromPost(5)", 'Gauntlet POST level wiring'],
     [$action, "'gauntlet-save'", 'Gauntlet save action'],
     [$action, "'gauntlet-delete'", 'Gauntlet delete action'],
     [$action, "'mappack-save'", 'Map Pack save action'],
@@ -63,9 +66,10 @@ foreach ($contracts as [$content, $needle, $label]) {
 
 if (
     !str_contains($page, 'renderContentPackLevelInput($db,[],5)') ||
-    !str_contains($page, 'renderContentPackLevelInput($db,[],3)')
+    !str_contains($page, 'name="levels"') ||
+    !str_contains($page, 'Any number of unique levels is allowed.')
 ) {
-    fwrite(STDERR, "Contract failed: maker pages do not generate the required 5/3 level slots\n");
+    fwrite(STDERR, "Contract failed: maker pages do not expose the required Gauntlet/Map Pack level editors\n");
     exit(1);
 }
 
@@ -79,12 +83,13 @@ if (substr_count($action, 'contentPackLevelIds(') < 3) {
     exit(1);
 }
 
-if (
-    !str_contains($action, "preg_split('/[\\\\s,]+/'") ||
-    substr_count($action, 'packLevelFieldFromPost(5)') < 1 ||
-    substr_count($action, 'packLevelFieldFromPost(3)') < 1
-) {
-    fwrite(STDERR, "Contract failed: maker form level fields are not wired into persistence\n");
+if (!str_contains($action, "preg_split('/[\\\\s,]+/'")) {
+    fwrite(STDERR, "Contract failed: level list parser does not accept whitespace/comma separators\n");
+    exit(1);
+}
+
+if (!str_contains($migration, 'MODIFY COLUMN levels TEXT NOT NULL')) {
+    fwrite(STDERR, "Contract failed: Map Pack level storage is not unbounded\n");
     exit(1);
 }
 
