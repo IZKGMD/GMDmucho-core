@@ -25,6 +25,16 @@ if (!is_dir($storage) && !mkdir($storage, 0750, true) && !is_dir($storage)) {
     exit('Unable to create the MuchoCore storage directory.');
 }
 
+$storageHtaccess = $storage . '/.htaccess';
+if (!is_file($storageHtaccess)) {
+    @file_put_contents(
+        $storageHtaccess,
+        "Options -Indexes\nRequire all denied\nDeny from all\n",
+        LOCK_EX
+    );
+    @chmod($storageHtaccess, 0600);
+}
+
 if (is_file($installedMarker)) {
     ?>
     <!doctype html>
@@ -346,6 +356,8 @@ function checkRequirements(string $root, string $storage): array {
         $root . '/vendor/autoload.php' => 'Composer dependencies',
         $root . '/public/index.php' => 'public/index.php',
         $root . '/public/.htaccess' => 'public/.htaccess',
+        $root . '/public/database' => 'public/database',
+        $root . '/public/admin' => 'public/admin',
         $root . '/database/migrations' => 'database/migrations',
         $root . '/src' => 'src',
         $root . '/.htaccess' => 'root .htaccess',
@@ -356,6 +368,27 @@ function checkRequirements(string $root, string $storage): array {
                 $label .
                 ' is missing or unreadable. Upload the complete MuchoCore shared-hosting package.'
             );
+    }
+
+    $memoryLimit = trim((string)ini_get('memory_limit'));
+    $memoryBytes = -1;
+    if ($memoryLimit !== '' && $memoryLimit !== '-1') {
+        $unit = strtolower(substr($memoryLimit, -1));
+        $number = (float)$memoryLimit;
+        $multiplier = match ($unit) {
+            'g' => 1024 ** 3,
+            'm' => 1024 ** 2,
+            'k' => 1024,
+            default => 1,
+        };
+        $memoryBytes = (int)($number * $multiplier);
+    }
+
+    if ($memoryBytes > 0 && $memoryBytes < 128 * 1024 * 1024) {
+        $checks[] = pass(
+            'PHP memory_limit is ' . $memoryLimit .
+            '; large database migrations may depend on the hosting provider limits.'
+        );
     }
 
     $checks[] = is_writable($root)
