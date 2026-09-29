@@ -68,7 +68,7 @@ function connectSource(
         );
     }
 
-    if (!preg_match("/^[A-Za-z0-9_-]{1,64}$/", $database)) {
+    if (!preg_match("/^[A-Za-z0-9_$.-]{1,128}$/", $database)) {
         throw new RuntimeException("Invalid source database name.");
     }
 
