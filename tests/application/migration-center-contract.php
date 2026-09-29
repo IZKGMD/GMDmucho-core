@@ -6,6 +6,7 @@ $root = dirname(__DIR__, 2);
 
 $detector = file_get_contents($root . '/src/Migration/SourceDetector.php');
 $wizard = file_get_contents($root . '/bin/mucho-migrate.php');
+$backupScript = file_get_contents($root . '/bin/mucho-db-backup.sh');
 $control = file_get_contents($root . '/bin/mucho');
 $workflow = file_get_contents($root . '/.github/workflows/validate.yml');
 $docs = file_get_contents($root . '/docs/MIGRATION_CENTER.md');
@@ -20,12 +21,30 @@ $adminIndex = file_get_contents($root . '/public/admin/index.php');
 foreach ([
     'src/Migration/SourceDetector.php' => $detector,
     'bin/mucho-migrate.php' => $wizard,
+    'bin/mucho-db-backup.sh' => $backupScript,
     'bin/mucho' => $control,
     '.github/workflows/validate.yml' => $workflow,
     'docs/MIGRATION_CENTER.md' => $docs,
 ] as $path => $content) {
     if ($content === false) {
         throw new RuntimeException('Unable to read ' . $path);
+    }
+}
+
+if ($backupScript === false) {
+    throw new RuntimeException('Unable to read bin/mucho-db-backup.sh');
+}
+
+foreach ([
+    'MUCHO_BACKUP_REQUIRED',
+    'backup is already running',
+    'exit 75',
+    'BACKUP_OK',
+    'sha256sum -c "$FINAL.sha256"',
+    'gzip -t "$TMP"',
+] as $needle) {
+    if (strpos($backupScript, $needle) === false) {
+        throw new RuntimeException('Database backup safety contract missing: ' . $needle);
     }
 }
 
