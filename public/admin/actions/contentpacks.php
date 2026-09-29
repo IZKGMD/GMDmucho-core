@@ -21,7 +21,7 @@ if (!in_array($action, $allowed, true)) {
 
 requirePermission('contentpacks.manage');
 
-function contentPackLevelIds(string $raw, int $expected): array
+function contentPackLevelIds(string $raw, int $expected = 0): array
 {
     $ids = [];
 
@@ -41,9 +41,15 @@ function contentPackLevelIds(string $raw, int $expected): array
         }
     }
 
-    if (count($ids) !== $expected) {
+    if ($expected > 0 && count($ids) !== $expected) {
         throw new RuntimeException(
             'Exactly '.$expected.' unique level IDs are required.'
+        );
+    }
+
+    if ($expected === 0 && $ids === []) {
+        throw new RuntimeException(
+            'At least one unique level ID is required.'
         );
     }
 
@@ -82,6 +88,17 @@ function assertContentPackLevels(PDO $db, array $ids): void
     }
 }
 
+function contentPackLevelFieldFromPost(int $expected): string
+{
+    $ids = [];
+
+    for ($i = 1; $i <= $expected; $i++) {
+        $ids[] = (string)($_POST['level_'.$i] ?? '');
+    }
+
+    return implode(' ', $ids);
+}
+
 function contentPackName(string $value, int $max, string $fallback): string
 {
     $value = trim(str_replace(["\0", "\r", "\n"], ' ', $value));
@@ -115,7 +132,7 @@ if ($action === 'gauntlet-save') {
         'Gauntlet'
     );
     $levelIds = contentPackLevelIds(
-        (string)packLevelFieldFromPost(5),
+        contentPackLevelFieldFromPost(5),
         5
     );
     assertContentPackLevels($db, $levelIds);
@@ -210,8 +227,8 @@ if ($action === 'mappack-save') {
         'Map Pack'
     );
     $levelIds = contentPackLevelIds(
-        (string)packLevelFieldFromPost(3),
-        3
+        (string)($_POST['levels'] ?? ''),
+        0
     );
     assertContentPackLevels($db, $levelIds);
 
