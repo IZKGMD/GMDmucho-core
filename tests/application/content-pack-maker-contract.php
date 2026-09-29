@@ -176,6 +176,11 @@ if (!str_contains((string)$migration2, 'MODIFY COLUMN levels TEXT NOT NULL')) {
     exit(1);
 }
 
+if (!str_contains($action, "return contentPackInt('sort_order', -1000000, 1000000);")) {
+    fwrite(STDERR, "Contract failed: sort_order fallback/validation is incorrect\n");
+    exit(1);
+}
+
 if (substr_count($action, 'assertContentPackLevels(') < 3) {
     fwrite(STDERR, "Contract failed: selected levels are not checked before persistence\n");
     exit(1);
