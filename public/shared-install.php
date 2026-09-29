@@ -408,23 +408,23 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
             <div class="grid">
                 <div>
                     <label for="db_host">Database host</label>
-                    <input id="db_host" name="db_host" value="<?= e((string)($_POST['db_host'] ?? 'localhost')) ?>" required>
+                    <input id="db_host" name="db_host" value="<?= e((string)($_POST['db_host'] ?? $defaultHost)) ?>" required>
                     <small>Often <code>localhost</code>, but use the value your host gives you.</small>
                 </div>
 
                 <div>
                     <label for="db_port">Database port</label>
-                    <input id="db_port" name="db_port" value="<?= e((string)($_POST['db_port'] ?? '3306')) ?>" required>
+                    <input id="db_port" name="db_port" value="<?= e((string)($_POST['db_port'] ?? $defaultPort)) ?>" required>
                 </div>
 
                 <div>
                     <label for="db_name">Database name</label>
-                    <input id="db_name" name="db_name" value="<?= e((string)($_POST['db_name'] ?? 'muchocore')) ?>" required>
+                    <input id="db_name" name="db_name" value="<?= e((string)($_POST['db_name'] ?? $defaultDb)) ?>" required>
                 </div>
 
                 <div>
                     <label for="db_user">Database username</label>
-                    <input id="db_user" name="db_user" value="<?= e((string)($_POST['db_user'] ?? '')) ?>" required>
+                    <input id="db_user" name="db_user" value="<?= e((string)($_POST['db_user'] ?? $defaultUser)) ?>" required>
                 </div>
             </div>
 
