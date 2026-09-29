@@ -26,6 +26,55 @@ final class Router
         $this->routes[$key] = Closure::fromCallable($handler);
     }
 
+    /**
+     * Register a third-party plugin route without allowing it to shadow
+     * an existing core or plugin route.
+     */
+    public function addPlugin(string $method, string $path, mixed $handler): void
+    {
+        if (!is_callable($handler)) {
+            throw new InvalidArgumentException(
+                sprintf('Invalid plugin route handler for %s %s', $method, $path)
+            );
+        }
+
+        $method = strtoupper(trim($method));
+        $path = $this->normalizePath(trim($path));
+
+        if ($path === '') {
+            throw new InvalidArgumentException('Plugin route path cannot be empty.');
+        }
+
+        $key = $this->routeKey($method, $path);
+
+        if (isset($this->routes[$key])) {
+            throw new InvalidArgumentException(
+                sprintf('Plugin route collision: %s %s', $method, $path)
+            );
+        }
+
+        if (
+            $method !== 'ANY' &&
+            isset($this->routes[$this->routeKey('ANY', $path)])
+        ) {
+            throw new InvalidArgumentException(
+                sprintf('Plugin route collides with ANY route: %s %s', $method, $path)
+            );
+        }
+
+        if ($method === 'ANY') {
+            foreach (array_keys($this->routes) as $existingKey) {
+                if (str_ends_with($existingKey, ' ' . $path)) {
+                    throw new InvalidArgumentException(
+                        sprintf('Plugin ANY route collides with existing route: %s', $path)
+                    );
+                }
+            }
+        }
+
+        $this->routes[$key] = Closure::fromCallable($handler);
+    }
+
     public function dispatch(Request $request): Response
     {
         $method = strtoupper((string)($request->method ?? 'GET'));
