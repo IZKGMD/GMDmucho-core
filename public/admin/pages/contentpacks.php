@@ -108,134 +108,138 @@ function contentPackDifficultyIcon(int $value): string
 function renderContentPackDifficultyPicker(int $selected): void
 {
     $options = contentPackDifficultyOptions();
+    $selected = array_key_exists($selected, $options) ? $selected : 0;
+    [$selectedLabel] = $options[$selected];
 
-    echo '<div class="mc-picker" style="margin-top:10px">';
-    echo '<div style="display:flex;justify-content:space-between;align-items:end;gap:8px;margin-bottom:8px">';
-    echo '<div><strong style="font-size:14px">Give Rate</strong><div class="muted" style="font-size:12px;margin-top:2px">Click a difficulty icon</div></div>';
-    echo '<span class="muted" style="font-size:12px">Selected: <strong data-difficulty-label>'.h($options[$selected][0] ?? 'Auto').'</strong></span>';
-    echo '</div>';
+    echo '<div class="mc-field-picker" data-picker="difficulty" style="margin-top:8px;position:relative">';
+    echo '<label style="display:block">Give Rate';
     echo '<input type="hidden" name="difficulty" value="'.h($selected).'">';
-    echo '<div role="radiogroup" aria-label="Difficulty" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:8px">';
-
+    echo '<button type="button" class="mc-select-field" data-picker-toggle style="width:100%;min-height:52px;display:flex;align-items:center;gap:10px;padding:6px 10px;text-align:left;border:1px solid rgba(127,140,163,.32);border-radius:10px;background:rgba(127,140,163,.08);color:inherit;cursor:pointer">';
+    echo '<img data-picker-preview src="'.h(contentPackDifficultyIcon($selected)).'" width="42" height="42" alt="">';
+    echo '<span style="flex:1"><strong data-difficulty-label>'.h($selectedLabel).'</strong><small class="muted" style="display:block">Click to choose difficulty</small></span>';
+    echo '<span aria-hidden="true" style="font-size:18px">▾</span>';
+    echo '</button>';
+    echo '</label>';
+    echo '<div class="mc-select-menu" data-picker-menu hidden style="position:absolute;z-index:50;left:0;right:0;margin-top:6px;padding:10px;border:1px solid rgba(127,140,163,.34);border-radius:12px;background:var(--card-bg,#111827);box-shadow:0 12px 30px rgba(0,0,0,.35)">';
+    echo '<div role="radiogroup" aria-label="Difficulty" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:7px">';
     foreach ($options as $value => [$label, $accent]) {
         $isSelected = $selected === $value;
-        $selectedStyle = $isSelected
-            ? 'outline:3px solid '.$accent.';box-shadow:0 6px 16px rgba(0,0,0,.28);transform:translateY(-2px);'
-            : '';
-        echo '<button type="button" class="mc-rate-option" data-value="'.$value.'" data-label="'.h($label).'" '
-            .'aria-pressed="'.($isSelected ? 'true' : 'false').'" '
-            .'title="'.h($label).'" onclick="muchoPickDifficulty(this)" '
-            .'style="min-height:92px;padding:7px 5px;border:1px solid rgba(127,140,163,.25);'
-            .'border-radius:12px;background:rgba(127,140,163,.08);color:inherit;cursor:pointer;transition:.12s;'.$selectedStyle.'">';
-        echo '<img src="'.h(contentPackDifficultyIcon((int)$value)).'" width="68" height="68" alt="" style="display:block;margin:0 auto 2px">';
-        echo '<span style="display:block;font-size:10px;font-weight:800;line-height:12px;min-height:24px">'.h($label).'</span>';
+        echo '<button type="button" class="mc-rate-option" data-value="'.$value.'" data-label="'.h($label).'" data-icon="'.h(contentPackDifficultyIcon((int)$value)).'" '
+            .'aria-pressed="'.($isSelected ? 'true' : 'false').'" title="'.h($label).'" onclick="muchoPickDifficulty(this)" '
+            .'style="min-height:84px;padding:5px 3px;border:1px solid rgba(127,140,163,.25);border-radius:10px;background:rgba(127,140,163,.08);color:inherit;cursor:pointer;transition:.12s">';
+        echo '<img src="'.h(contentPackDifficultyIcon((int)$value)).'" width="58" height="58" alt="">';
+        echo '<span style="display:block;font-size:10px;font-weight:800;line-height:12px">'.h($label).'</span>';
         echo '</button>';
     }
-
-    echo '</div>';
-    echo '</div>';
-}
-function contentPackColorPresets(): array
-{
-    return [
-        0 => '#f8fafc',
-        1 => '#3b82f6',
-        2 => '#22c55e',
-        3 => '#06b6d4',
-        4 => '#f59e0b',
-        5 => '#ef4444',
-        6 => '#a855f7',
-        7 => '#ec4899',
-        8 => '#14b8a6',
-        9 => '#eab308',
-        10 => '#84cc16',
-        11 => '#6366f1',
-        12 => '#f97316',
-        13 => '#8b5cf6',
-        14 => '#0ea5e9',
-        15 => '#10b981',
-    ];
+    echo '</div></div></div>';
 }
 
 function renderContentPackColorPicker(string $field, int $selected): void
 {
     $presets = contentPackColorPresets();
+    $selected = array_key_exists($selected, $presets) ? $selected : array_key_first($presets);
 
-    echo '<div style="margin-top:10px">';
-    echo '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px">';
-    echo '<strong style="font-size:13px">'.h(ucwords(str_replace('_', ' ', $field))).'</strong>';
-    echo '<span class="muted" style="font-size:12px">Selected: <strong data-color-value="'.h($field).'">'.h($selected).'</strong></span>';
-    echo '</div>';
+    echo '<div class="mc-field-picker" data-picker="'.h($field).'" style="margin-top:8px;position:relative">';
+    echo '<label style="display:block">'.h(ucwords(str_replace('_', ' ', $field)));
     echo '<input type="hidden" name="'.h($field).'" value="'.h($selected).'">';
+    echo '<button type="button" class="mc-select-field" data-picker-toggle style="width:100%;min-height:52px;display:flex;align-items:center;gap:10px;padding:6px 10px;text-align:left;border:1px solid rgba(127,140,163,.32);border-radius:10px;background:rgba(127,140,163,.08);color:inherit;cursor:pointer">';
+    echo '<span data-picker-color-preview style="width:36px;height:36px;border-radius:9px;border:2px solid rgba(255,255,255,.3);background:'.$presets[$selected].';display:block"></span>';
+    echo '<span style="flex:1"><strong data-color-value="'.h($field).'">Color '.$selected.'</strong><small class="muted" style="display:block">Click to choose color</small></span>';
+    echo '<span aria-hidden="true" style="font-size:18px">▾</span>';
+    echo '</button>';
+    echo '</label>';
+    echo '<div class="mc-select-menu" data-picker-menu hidden style="position:absolute;z-index:50;left:0;right:0;margin-top:6px;padding:10px;border:1px solid rgba(127,140,163,.34);border-radius:12px;background:var(--card-bg,#111827);box-shadow:0 12px 30px rgba(0,0,0,.35)">';
     echo '<div role="radiogroup" aria-label="'.h($field).' color" style="display:flex;flex-wrap:wrap;gap:7px">';
-
     foreach ($presets as $value => $hex) {
         $isSelected = $selected === $value;
-        $selectedStyle = $isSelected
-            ? 'outline:3px solid currentColor;box-shadow:0 4px 10px rgba(0,0,0,.25);transform:scale(1.06);'
-            : '';
         $textColor = $value === 0 ? '#1f2937' : '#fff';
-        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 42 42" aria-hidden="true">'
-            .'<defs><linearGradient id="c'.$value.'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'.$hex.'"/><stop offset="1" stop-color="'.$hex.'"/></linearGradient></defs>'
-            .'<rect x="2" y="2" width="38" height="38" rx="10" fill="url(#c'.$value.')" stroke="rgba(255,255,255,.55)" stroke-width="2"/>'
-            .'<path d="M11 12h20" stroke="rgba(255,255,255,.35)" stroke-width="2" stroke-linecap="round"/>'
-            .'<text x="21" y="27" text-anchor="middle" font-size="10" font-weight="800" fill="'.$textColor.'">'.$value.'</text>'
-            .'</svg>';
-
-        echo '<button type="button" class="mc-color-option" data-field="'.h($field).'" data-value="'.$value.'" '
-            .'aria-pressed="'.($isSelected ? 'true' : 'false').'" title="Color ID '.$value.'" '
-            .'onclick="muchoPickColor(this)" '
-            .'style="width:48px;height:48px;padding:2px;border:0;background:transparent;border-radius:12px;'
-            .'cursor:pointer;transition:.12s;'.$selectedStyle.'">';
-        echo $svg;
+        echo '<button type="button" class="mc-color-option" data-field="'.h($field).'" data-value="'.$value.'" data-hex="'.h($hex).'" aria-pressed="'.($isSelected ? 'true' : 'false').'" title="Color ID '.$value.'" onclick="muchoPickColor(this)" style="width:48px;height:48px;padding:2px;border:0;background:transparent;border-radius:12px;cursor:pointer;transition:.12s">';
+        echo '<svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 42 42" aria-hidden="true"><rect x="2" y="2" width="38" height="38" rx="10" fill="'.$hex.'" stroke="rgba(255,255,255,.55)" stroke-width="2"/><text x="21" y="27" text-anchor="middle" font-size="10" font-weight="800" fill="'.$textColor.'">'.$value.'</text></svg>';
         echo '</button>';
     }
-
-    echo '</div>';
-    echo '<small class="muted">Click a color swatch. The selected Color ID is stored automatically.</small>';
-    echo '</div>';
+    echo '</div></div></div>';
 }
+
+
 function renderContentPackPickerScript(): void
 {
     echo <<<'HTML'
 <script>
+function muchoClosePickers(except) {
+    document.querySelectorAll('.mc-select-menu').forEach((menu) => {
+        if (!except || menu !== except) menu.hidden = true;
+    });
+}
+
 function muchoPickDifficulty(button) {
     const form = button.closest('form');
-    const input = form.querySelector('input[name="difficulty"]');
-    if (!input) return;
+    const picker = button.closest('[data-picker="difficulty"]');
+    const input = form?.querySelector('input[name="difficulty"]');
+    if (!picker || !input) return;
 
     input.value = button.dataset.value;
 
-    const label = form.querySelector('[data-difficulty-label]');
+    const label = picker.querySelector('[data-difficulty-label]');
+    const preview = picker.querySelector('[data-picker-preview]');
     if (label) label.textContent = button.dataset.label;
+    if (preview) preview.src = button.dataset.icon;
 
-    form.querySelectorAll('.mc-rate-option').forEach((item) => {
+    picker.querySelectorAll('.mc-rate-option').forEach((item) => {
         const active = item === button;
         item.setAttribute('aria-pressed', active ? 'true' : 'false');
         item.style.outline = active ? '2px solid currentColor' : '';
-        item.style.boxShadow = active ? '0 5px 14px rgba(0,0,0,.22)' : '';
-        item.style.transform = active ? 'translateY(-2px)' : '';
+        item.style.transform = active ? 'translateY(-1px)' : '';
     });
+
+    const menu = picker.querySelector('[data-picker-menu]');
+    if (menu) menu.hidden = true;
 }
 
 function muchoPickColor(button) {
     const form = button.closest('form');
     const field = button.dataset.field;
-    const input = form.querySelector('input[name="' + field + '"]');
-    if (!input) return;
+    const picker = button.closest('[data-picker="' + field + '"]');
+    const input = form?.querySelector('input[name="' + field + '"]');
+    if (!picker || !input) return;
+
     input.value = button.dataset.value;
-    const valueLabel = form.querySelector('[data-color-value="' + field + '"]');
-    if (valueLabel) valueLabel.textContent = button.dataset.value;
-    form.querySelectorAll('.mc-color-option[data-field="' + field + '"]').forEach((item) => {
+
+    const valueLabel = picker.querySelector('[data-color-value]');
+    const preview = picker.querySelector('[data-picker-color-preview]');
+    if (valueLabel) valueLabel.textContent = 'Color ' + button.dataset.value;
+    if (preview) preview.style.background = button.dataset.hex;
+
+    picker.querySelectorAll('.mc-color-option').forEach((item) => {
         const active = item === button;
         item.setAttribute('aria-pressed', active ? 'true' : 'false');
-        item.style.boxShadow = active ? '0 0 0 2px currentColor' : '';
-        item.style.transform = active ? 'scale(1.05)' : '';
+        item.style.outline = active ? '2px solid currentColor' : '';
+        item.style.transform = active ? 'scale(1.06)' : '';
     });
+
+    const menu = picker.querySelector('[data-picker-menu]');
+    if (menu) menu.hidden = true;
 }
+
+document.addEventListener('click', (event) => {
+    const toggle = event.target.closest('[data-picker-toggle]');
+    if (toggle) {
+        const picker = toggle.closest('.mc-field-picker');
+        const menu = picker?.querySelector('[data-picker-menu]');
+        if (!menu) return;
+        const wasHidden = menu.hidden;
+        muchoClosePickers(menu);
+        menu.hidden = !wasHidden;
+        return;
+    }
+
+    if (!event.target.closest('.mc-field-picker')) {
+        muchoClosePickers();
+    }
+});
 </script>
 HTML;
 }
+
 
 $gauntlets = $db->query(
     'SELECT id,name,level1,level2,level3,level4,level5,enabled,sort_order
