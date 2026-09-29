@@ -1,3 +1,29 @@
+## v1.0.83 — Reliability, Migration & Deployment Hardening
+
+### Migration Safety
+
+- require a fresh, verified target database backup before migration writes;
+- fail closed when the mandatory backup is unavailable, already running, too small, corrupt or has a checksum mismatch;
+- prevent concurrent migration processes from operating on the same MuchoCore target;
+- keep source database access read-only and reject incompatible source schemas before import;
+- retain transactional rollback and deterministic source-to-target mappings for repeatable imports.
+
+### Installer & Operator Fixes
+
+- added an installer prompt to migrate an existing GDPS database immediately after MuchoCore installation;
+- support explicit non-interactive migration mode through MUCHO_MIGRATION_ON_INSTALL;
+- make installer Compose checks and diagnostics work correctly with Cloudflare Tunnel overrides;
+- run Control Center database backups inside the application container where the required runtime tools and credentials exist;
+- fix backup root resolution for direct script usage;
+- show tunnel services in updater status output.
+
+### Backup Runtime
+
+- include the MariaDB client in the application image so verified database backups work from the running MuchoCore container;
+- verify generated backup gzip integrity and SHA-256 immediately after creation;
+- preserve the old database untouched throughout migration.
+
+---
 ## v1.0.8 — Intelligence & Scale
 
 ### Level Intelligence
