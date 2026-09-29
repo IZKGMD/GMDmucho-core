@@ -5070,7 +5070,7 @@ table{
 <?php endforeach ?>
 
 <div class="nav-title">Content</div>
-<?php foreach(['players','muchoprofiles','levels','moderation','rating','comments','messages','social','songs'] as $key): ?>
+<?php foreach(['players','muchoprofiles','levels','contentpacks','moderation','rating','comments','messages','social','songs'] as $key): ?>
 <?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
