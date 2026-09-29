@@ -104,12 +104,13 @@ if (
 }
 
 if (
-    substr_count($page, '<details class="mc-field-picker"') < 3 ||
+    substr_count($page, '<details class="mc-dropdown"') < 3 ||
     substr_count($page, 'type="radio"') < 8 ||
-    !str_contains($page, 'Click an icon to select the difficulty ID automatically') ||
-    !str_contains($page, 'Click a color. The numeric Color ID is submitted automatically')
+    !str_contains($page, 'data-difficulty-preview') ||
+    !str_contains($page, 'data-color-preview') ||
+    !str_contains($page, 'onchange="const d=this.closest(\\'details\\')')
 ) {
-    fwrite(STDERR, "Contract failed: native difficulty/color selectors are incomplete\n");
+    fwrite(STDERR, "Contract failed: native dropdown selectors are incomplete\n");
     exit(1);
 }
 
@@ -143,6 +144,12 @@ foreach ([
         fwrite(STDERR, "Contract failed: demon difficulty ID mapping missing: {$needle}\n");
         exit(1);
     }
+}
+
+if (!str_contains($page, "Special:Redirect/file/Colour000.png") ||
+    !str_contains($page, "for ($value = 0; $value <= 106; $value++)")) {
+    fwrite(STDERR, "Contract failed: official icon color palette selector is missing\n");
+    exit(1);
 }
 
 
