@@ -16,6 +16,9 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
+header('X-Frame-Options: DENY');
+header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
 
 if (!is_dir($storage) && !mkdir($storage, 0750, true) && !is_dir($storage)) {
     http_response_code(500);
@@ -57,7 +60,13 @@ register_shutdown_function(static function () use ($lockHandle): void {
     fclose($lockHandle);
 });
 
-$isHttps = (($_SERVER['HTTPS'] ?? '') === 'on') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+$isHttps = (string)($_SERVER['HTTPS'] ?? '') === 'on'
+    || (string)($_SERVER['SERVER_PORT'] ?? '') === '443'
+    || strtolower((string)($_SERVER['REQUEST_SCHEME'] ?? '')) === 'https';
+
+if ($isHttps) {
+    header('Strict-Transport-Security: max-age=31536000');
+}
 
 ini_set('session.use_strict_mode', '1');
 ini_set('session.use_only_cookies', '1');
@@ -68,6 +77,15 @@ ini_set('session.cookie_secure', $isHttps ? '1' : '0');
 if (session_status() !== PHP_SESSION_ACTIVE && !session_start()) {
     http_response_code(500);
     exit('Unable to start the installer session.');
+}
+
+$sessionSavePath = session_save_path();
+if ($sessionSavePath !== '' && !is_dir($sessionSavePath)) {
+    $sessionSavePath = dirname($sessionSavePath);
+}
+if ($sessionSavePath !== '' && !is_writable($sessionSavePath)) {
+    http_response_code(500);
+    exit('The hosting account cannot write installer sessions. Enable PHP sessions in the hosting control panel.');
 }
 
 if (empty($_SESSION['mucho_install_csrf'])) {
@@ -164,23 +182,103 @@ function parseEnvValue(string $file, string $key): string {
     return '';
 }
 function databaseTableCount(PDO $pdo): int {
-    return (int)$pdo->query('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = "BASE TABLE"')->fetchColumn();
+    return (int)$pdo->query(
+        'SELECT COUNT(*) FROM information_schema.tables
+         WHERE table_schema = DATABASE()
+           AND table_type = "BASE TABLE"'
+    )->fetchColumn();
+}
+
+function databaseSizeBytes(PDO $pdo): int {
+    $statement = $pdo->prepare(
+        'SELECT COALESCE(SUM(data_length + index_length), 0)
+         FROM information_schema.tables
+         WHERE table_schema = DATABASE()'
+    );
+    $statement->execute();
+
+    return max(0, (int)$statement->fetchColumn());
+}
+
+function isMuchoCoreDatabase(PDO $pdo): bool {
+    $statement = $pdo->prepare(
+        'SELECT COUNT(*)
+         FROM information_schema.tables
+         WHERE table_schema = DATABASE()
+           AND table_name IN (
+               "schema_migrations",
+               "accounts",
+               "profiles",
+               "levels"
+           )'
+    );
+    $statement->execute();
+
+    return (int)$statement->fetchColumn() >= 3;
+}
+
+function verifyInstalledSchema(PDO $pdo): void {
+    foreach ([
+        'schema_migrations',
+        'accounts',
+        'profiles',
+        'levels',
+        'admin_users',
+    ] as $table) {
+        $statement = $pdo->prepare(
+            'SELECT 1
+             FROM information_schema.tables
+             WHERE table_schema = DATABASE()
+               AND table_name = :table
+             LIMIT 1'
+        );
+        $statement->execute(['table' => $table]);
+
+        if ($statement->fetchColumn() === false) {
+            throw new RuntimeException(
+                'Installation verification failed: required table "' .
+                $table . '" is missing.'
+            );
+        }
+    }
+
+    $pdo->query('SELECT 1')->fetchColumn();
 }
 
 function databasePreflight(PDO $pdo): string {
     $version = (string)$pdo->query('SELECT VERSION()')->fetchColumn();
     $lower = strtolower($version);
     if (str_contains($lower, 'mariadb')) {
-        $normalized = preg_replace('/[^0-9.].*$/', '', $version) ?: '';
-        if ($normalized !== '' && version_compare($normalized, '10.4.0', '<')) {
-            throw new RuntimeException('MariaDB 10.4 or newer is required. Your server reports ' . $version . '.');
+        $candidates = [];
+
+        if (preg_match_all('/\d+\.\d+(?:\.\d+)?/', $version, $matches)) {
+            $candidates = $matches[0];
+        }
+
+        $normalized = '';
+        foreach ($candidates as $candidate) {
+            if ($candidate === '5.5.5' && count($candidates) > 1) {
+                continue;
+            }
+            $normalized = $candidate;
+            break;
+        }
+
+        if ($normalized === '' || version_compare($normalized, '10.4.0', '<')) {
+            throw new RuntimeException(
+                'MariaDB 10.4 or newer is required. Your server reports ' . $version . '.'
+            );
         }
     } elseif (preg_match('/(\d+\.\d+(?:\.\d+)?)/', $version, $match)) {
         if (version_compare($match[1], '8.0.29', '<')) {
-            throw new RuntimeException('MySQL 8.0.29 or newer is required. Your server reports ' . $version . '.');
+            throw new RuntimeException(
+                'MySQL 8.0.29 or newer is required. Your server reports ' . $version . '.'
+            );
         }
     } else {
-        throw new RuntimeException('Unsupported MySQL/MariaDB server version: ' . $version . '.');
+        throw new RuntimeException(
+            'Unsupported MySQL/MariaDB server version: ' . $version . '.'
+        );
     }
 
     $probe = 'muchocore_install_probe_' . bin2hex(random_bytes(8));
@@ -204,18 +302,88 @@ function databasePreflight(PDO $pdo): string {
 
 function checkRequirements(string $root, string $storage): array {
     $checks = [];
-    $checks[] = version_compare(PHP_VERSION, '8.3.0', '>=') ? pass('PHP ' . PHP_VERSION . ' is supported.') : fail('PHP 8.3 or newer is required.');
-    foreach (['pdo','pdo_mysql','openssl','json','mbstring','session','zlib'] as $extension) {
-        $checks[] = extension_loaded($extension) ? pass('PHP extension ' . $extension . ' is enabled.') : fail('PHP extension ' . $extension . ' is missing. Enable it in your hosting control panel.');
+
+    $checks[] = version_compare(PHP_VERSION, '8.3.0', '>=')
+        ? pass('PHP ' . PHP_VERSION . ' is supported.')
+        : fail('PHP 8.3 or newer is required.');
+
+    foreach ([
+        'pdo',
+        'pdo_mysql',
+        'openssl',
+        'json',
+        'mbstring',
+        'session',
+        'zlib',
+    ] as $extension) {
+        $checks[] = extension_loaded($extension)
+            ? pass('PHP extension ' . $extension . ' is enabled.')
+            : fail(
+                'PHP extension ' . $extension .
+                ' is missing. Enable it in your hosting control panel.'
+            );
     }
-    foreach ([$root . '/composer.json'=>'composer.json',$root . '/composer.lock'=>'composer.lock',$root . '/vendor/autoload.php'=>'Composer dependencies',$root . '/public/index.php'=>'public/index.php',$root . '/public/.htaccess'=>'public/.htaccess',$root . '/database/migrations'=>'database/migrations',$root . '/src'=>'src',$root . '/.htaccess'=>'root .htaccess'] as $path=>$label) {
-        $checks[] = file_exists($path) ? pass($label . ' is present.') : fail($label . ' is missing. Upload the complete MuchoCore shared-hosting package.');
+
+    foreach ([
+        'flock',
+        'random_bytes',
+        'password_hash',
+        'gzopen',
+        'gzwrite',
+        'rename',
+    ] as $function) {
+        $checks[] = function_exists($function)
+            ? pass('PHP function ' . $function . ' is available.')
+            : fail(
+                'Required PHP function ' . $function .
+                ' is disabled by this hosting provider.'
+            );
     }
-    $checks[] = is_writable($root) ? pass('The MuchoCore project directory is writable.') : fail('The MuchoCore project directory is not writable by PHP.');
-    $checks[] = is_writable($storage) ? pass('The storage directory is writable.') : fail('The storage directory is not writable by PHP.');
+
+    foreach ([
+        $root . '/composer.json' => 'composer.json',
+        $root . '/composer.lock' => 'composer.lock',
+        $root . '/vendor/autoload.php' => 'Composer dependencies',
+        $root . '/public/index.php' => 'public/index.php',
+        $root . '/public/.htaccess' => 'public/.htaccess',
+        $root . '/database/migrations' => 'database/migrations',
+        $root . '/src' => 'src',
+        $root . '/.htaccess' => 'root .htaccess',
+    ] as $path => $label) {
+        $checks[] = is_readable($path)
+            ? pass($label . ' is present and readable.')
+            : fail(
+                $label .
+                ' is missing or unreadable. Upload the complete MuchoCore shared-hosting package.'
+            );
+    }
+
+    $checks[] = is_writable($root)
+        ? pass('The MuchoCore project directory is writable.')
+        : fail('The MuchoCore project directory is not writable by PHP.');
+
+    $checks[] = is_writable($storage)
+        ? pass('The storage directory is writable.')
+        : fail('The storage directory is not writable by PHP.');
+
     $configDir = $root . '/config';
-    if (!is_dir($configDir)) { @mkdir($configDir, 0750, true); }
-    $checks[] = is_writable($configDir) ? pass('The config directory is writable.') : fail('The config directory is not writable.');
+    if (!is_dir($configDir)) {
+        @mkdir($configDir, 0750, true);
+    }
+
+    $checks[] = is_writable($configDir)
+        ? pass('The config directory is writable.')
+        : fail('The config directory is not writable.');
+
+    $backupDir = $storage . '/backups/database';
+    if (!is_dir($backupDir)) {
+        @mkdir($backupDir, 0750, true);
+    }
+
+    $checks[] = is_writable($backupDir)
+        ? pass('The database backup directory is writable.')
+        : fail('The database backup directory is not writable.');
+
     return $checks;
 }
 
@@ -259,6 +427,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$isHttps) { $errors[] = 'Open the installer over HTTPS before entering database and administrator passwords.'; }
     if (strlen($adminPass) < 12) { $errors[] = 'Admin password must contain at least 12 characters.'; }
     if ($adminPass !== $adminPass2) { $errors[] = 'The two admin passwords do not match.'; }
+    if (preg_match('/[\x00-\x1F\x7F]/', $dbHost . $dbName . $dbUser . $accountUrl) === 1) {
+        $errors[] = 'Database and server fields cannot contain control characters.';
+    }
 
     if (!$errors) {
         $createdCloudsavePath = $root . '/config/cloudsave.key';
@@ -269,7 +440,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo = new PDO('mysql:host=' . $dbHost . ';port=' . $dbPort . ';dbname=' . $dbName . ';charset=utf8mb4', $dbUser, $dbPass, [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false]);
             $version = databasePreflight($pdo);
             $tableCount = databaseTableCount($pdo);
-            if (!$existingMuchoInstall && $tableCount > 0) { throw new RuntimeException('The selected database is not empty (' . $tableCount . ' tables). Use a new empty database for a first installation. The installer will not risk overwriting another application.'); }
+            $databaseSize = databaseSizeBytes($pdo);
+
+            if ($tableCount > 0 && !$existingMuchoInstall && isMuchoCoreDatabase($pdo)) {
+                throw new RuntimeException('This database already contains MuchoCore tables. Use the existing installation/update flow instead of the fresh installer.');
+            }
+
+            if ($tableCount > 0 && !$existingMuchoInstall) {
+                throw new RuntimeException('The selected database is not empty (' . $tableCount . ' tables). Use a new empty database for a first installation. The installer will not risk overwriting another application.');
+            }
+
+            $freeBytes = @disk_free_space($storage);
+            if (is_float($freeBytes) || is_int($freeBytes)) {
+                $requiredBytes = max(16 * 1024 * 1024, (int)ceil($databaseSize * 1.50) + 8 * 1024 * 1024);
+                if ((float)$freeBytes < $requiredBytes) {
+                    throw new RuntimeException(
+                        'Not enough free storage for a safe database backup. Required approximately ' .
+                        number_format($requiredBytes / 1024 / 1024, 1) .
+                        ' MB, available ' .
+                        number_format((float)$freeBytes / 1024 / 1024, 1) . ' MB.'
+                    );
+                }
+            }
             $controlDir = $storage . '/control';
             $backupDir = $storage . '/backups/database';
             $adminBackupDir = $storage . '/backups/admin-v2';
@@ -278,7 +470,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!is_writable($directory)) { throw new RuntimeException('Required directory is not writable: ' . $directory); }
             }
             if ($hadExistingEnv) {
-                $envBackup = $envFile . '.before-shared-install-' . gmdate('Ymd-His');
+                $envBackup = $envFile . '.before-shared-install-' . gmdate('Ymd-His') . '-' . bin2hex(random_bytes(4));
                 if (!copy($envFile, $envBackup)) { throw new RuntimeException('Could not back up the existing .env file.'); }
                 chmod($envBackup, 0600);
             }
@@ -308,7 +500,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!is_string($adminHash) || $adminHash === '') { throw new RuntimeException('Unable to hash the administrator password.'); }
             $bootstrap = "<?php\nreturn [\n    'username' => 'admin',\n    'password_hash' => " . var_export($adminHash,true) . ",\n];\n";
             if ($hadExistingBootstrap) {
-                $bootstrapBackup = $bootstrapPath . '.before-shared-install-' . gmdate('Ymd-His');
+                $bootstrapBackup = $bootstrapPath . '.before-shared-install-' . gmdate('Ymd-His') . '-' . bin2hex(random_bytes(4));
                 if (!copy($bootstrapPath, $bootstrapBackup)) { throw new RuntimeException('Could not back up the existing admin bootstrap file.'); }
                 chmod($bootstrapBackup, 0600);
             }
@@ -318,6 +510,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Dotenv\Dotenv::createMutable($root)->safeLoad();
             $backupInfo = (new DatabaseBackupService($pdo,$backupDir))->create($dbName);
             (new Migrator($pdo,$root . '/database/migrations'))->migrate();
+            verifyInstalledSchema($pdo);
             $pdo->exec('CREATE TABLE IF NOT EXISTS admin_users (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, username VARCHAR(64) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, role VARCHAR(32) NOT NULL DEFAULT \'admin\', totp_secret VARCHAR(64) NULL, access_key_hash VARCHAR(255) NULL, access_key_created_at TIMESTAMP NULL, is_active TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
             $adminStmt = $pdo->prepare('INSERT INTO admin_users (username,password_hash,role,is_active) VALUES (:username,:password_hash,"owner",1) ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash), role="owner", is_active=1');
             $adminStmt->execute(['username'=>'admin','password_hash'=>$adminHash]);
@@ -326,11 +519,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $success = true;
             @unlink(__FILE__);
         } catch (Throwable $e) {
-            $message = 'Installation failed: ' . $e->getMessage();
-            if ($backupInfo !== null) { $message .= ' A target database backup was created before migrations: ' . $backupInfo['file']; }
-            if ($envBackup !== null && is_file($envBackup)) { @copy($envBackup,$envFile); } elseif (!$hadExistingEnv && is_file($envFile)) { @unlink($envFile); }
-            if ($bootstrapBackup !== null && is_file($bootstrapBackup)) { @copy($bootstrapBackup,$bootstrapPath); } elseif (!$hadExistingBootstrap && is_file($bootstrapPath)) { @unlink($bootstrapPath); }
-            if ($cloudsaveCreated && is_file($createdCloudsavePath)) { @unlink($createdCloudsavePath); }
+            $requestId = bin2hex(random_bytes(8));
+            error_log(sprintf(
+                '[MuchoCore Shared Installer] request=%s %s: %s | %s:%d',
+                $requestId,
+                $e::class,
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine()
+            ));
+
+            $message = 'Installation could not be completed. Request ID: ' . $requestId . '.';
+            if ($backupInfo !== null && is_file((string)($backupInfo['file'] ?? ''))) {
+                $message .= ' A verified target backup was created before the failed step.';
+            }
+
+            if ($envBackup !== null && is_file($envBackup)) {
+                @copy($envBackup,$envFile);
+            } elseif (!$hadExistingEnv && is_file($envFile)) {
+                @unlink($envFile);
+            }
+
+            if ($bootstrapBackup !== null && is_file($bootstrapBackup)) {
+                @copy($bootstrapBackup,$bootstrapPath);
+            } elseif (!$hadExistingBootstrap && is_file($bootstrapPath)) {
+                @unlink($bootstrapPath);
+            }
+
+            if ($cloudsaveCreated && is_file($createdCloudsavePath)) {
+                @unlink($createdCloudsavePath);
+            }
+
             $errors[] = $message;
         }
     }
@@ -509,6 +728,7 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
         <p><strong>MySQL / MariaDB / Databases</strong></p>
         <p>You normally need four things: host, database name, username and password. The installer does not create the database for you because every hosting provider handles database creation differently.</p>
         <p><strong>Tip:</strong> with the official shared-hosting ZIP, <code>vendor/</code> is already included. You only need FTP/file-manager access and a MySQL/MariaDB database.</p>
+        <p><strong>Backup safety:</strong> the installer creates and verifies a compressed backup before applying migrations. It will stop rather than overwrite a non-MuchoCore database.</p>
     </div>
 </div>
 <div style="max-width:920px;width:calc(100% - 32px);margin:auto auto 0;padding:16px 0 12px;border-top:1px solid #d9dee5;text-align:center;color:#7a838f;font-size:11px;line-height:1.7">
