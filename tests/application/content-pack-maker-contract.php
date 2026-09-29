@@ -104,17 +104,45 @@ if (
 }
 
 if (
-    !str_contains($page, '<details class="mc-field-picker"') ||
+    substr_count($page, '<details class="mc-field-picker"') < 3 ||
     substr_count($page, 'type="radio"') < 8 ||
-    !str_contains($page, 'Special:FilePath/Auto_Icon.svg') ||
-    !str_contains($page, 'Special:FilePath/Easy_Icon.svg') ||
-    !str_contains($page, 'Special:FilePath/Normal_Icon.svg') ||
-    !str_contains($page, 'Special:FilePath/Hard_Icon.svg') ||
-    !str_contains($page, 'Special:FilePath/Harder_Icon.svg') ||
-    !str_contains($page, 'Special:FilePath/Insane_Icon.svg')
+    !str_contains($page, 'Click an icon to select the difficulty ID automatically') ||
+    !str_contains($page, 'Click a color. The numeric Color ID is submitted automatically')
 ) {
-    fwrite(STDERR, "Contract failed: native difficulty/color selectors or original wiki artwork are missing\n");
+    fwrite(STDERR, "Contract failed: native difficulty/color selectors are incomplete\n");
     exit(1);
+}
+
+foreach ([
+    'Special:FilePath/Auto_Icon.svg',
+    'Special:FilePath/Easy_Icon.svg',
+    'Special:FilePath/Normal_Icon.svg',
+    'Special:FilePath/Hard_Icon.svg',
+    'Special:FilePath/Harder_Icon.svg',
+    'Special:FilePath/Insane_Icon.svg',
+    'Special:FilePath/Demon_Icon.webp',
+    'Special:FilePath/Easy_Demon_Icon.webp',
+    'Special:Redirect/file/MediumDemon.png',
+    'Special:FilePath/Insane_Demon_Icon.webp',
+    'Special:FilePath/Extreme_Demon_Icon.webp',
+] as $needle) {
+    if (!str_contains($page, $needle)) {
+        fwrite(STDERR, "Contract failed: original wiki difficulty artwork missing: {$needle}\n");
+        exit(1);
+    }
+}
+
+foreach ([
+    "6 => ['Hard Demon'",
+    "7 => ['Easy Demon'",
+    "8 => ['Medium Demon'",
+    "9 => ['Insane Demon'",
+    "10 => ['Extreme Demon'",
+] as $needle) {
+    if (!str_contains($page, $needle)) {
+        fwrite(STDERR, "Contract failed: demon difficulty ID mapping missing: {$needle}\n");
+        exit(1);
+    }
 }
 
 
