@@ -288,9 +288,13 @@ final class DatabaseBackupService
 
         foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $name = (string)($row['Field'] ?? '');
-            if ($name !== '') {
-                $columns[] = $name;
+            $extra = strtoupper((string)($row['Extra'] ?? ''));
+
+            if ($name === '' || str_contains($extra, 'GENERATED')) {
+                continue;
             }
+
+            $columns[] = $name;
         }
 
         return $columns;
