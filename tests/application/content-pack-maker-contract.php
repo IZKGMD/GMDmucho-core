@@ -115,20 +115,20 @@ if (
 }
 
 foreach ([
-    'Special:FilePath/Auto_Icon.svg',
-    'Special:FilePath/Easy_Icon.svg',
-    'Special:FilePath/Normal_Icon.svg',
-    'Special:FilePath/Hard_Icon.svg',
-    'Special:FilePath/Harder_Icon.svg',
-    'Special:FilePath/Insane_Icon.svg',
-    'Special:FilePath/Demon_Icon.webp',
-    'Special:FilePath/Easy_Demon_Icon.webp',
-    'Special:Redirect/file/MediumDemon.png',
-    'Special:FilePath/Insane_Demon_Icon.webp',
-    'Special:FilePath/Extreme_Demon_Icon.webp',
+    'https://upload.wikimedia.org/wikipedia/commons/a/a8/Auto_Icon.svg',
+    'https://upload.wikimedia.org/wikipedia/commons/c/ce/Easy_Icon.svg',
+    'https://upload.wikimedia.org/wikipedia/commons/4/48/Normal_Icon.svg',
+    'https://upload.wikimedia.org/wikipedia/commons/2/24/Hard_Icon.svg',
+    'https://upload.wikimedia.org/wikipedia/commons/3/34/Harder_Icon.svg',
+    'https://upload.wikimedia.org/wikipedia/commons/6/6c/Insane_Icon.svg',
+    'https://upload.wikimedia.org/wikipedia/commons/1/1c/Demon_Icon.webp',
+    'https://upload.wikimedia.org/wikipedia/commons/a/a5/Easy_Demon_Icon.webp',
+    'https://static.wikia.nocookie.net/geometry-dash/images/e/e2/MediumDemon.png',
+    'https://upload.wikimedia.org/wikipedia/commons/a/ae/Insane_Demon_Icon.webp',
+    'https://upload.wikimedia.org/wikipedia/commons/3/33/Extreme_Demon_Icon.webp',
 ] as $needle) {
     if (!str_contains($page, $needle)) {
-        fwrite(STDERR, "Contract failed: original wiki difficulty artwork missing: {$needle}\n");
+        fwrite(STDERR, "Contract failed: direct difficulty artwork URL missing: {$needle}\n");
         exit(1);
     }
 }
