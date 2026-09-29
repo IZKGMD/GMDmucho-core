@@ -350,9 +350,16 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
         <h1>MuchoCore Shared Hosting Installer</h1>
         <p>Welcome! This page is for normal PHP hosting. You do not need Docker.</p>
         <div class="tip">
-            <strong>How this works:</strong>
-            first fix every red check, then enter your database details and create your admin password.
+            <strong>Shared-hosting mode:</strong>
+            this installer does not need Docker, sudo, or a hosting Terminal when you use the self-contained shared-hosting package.
+            Composer dependencies are included in that package.
         </div>
+        <?php if (!$isHttps): ?>
+            <div class="err" style="margin-top:12px">
+                <strong>HTTPS is required.</strong>
+                Open this installer through <code>https://</code> before entering database or administrator credentials.
+            </div>
+        <?php endif; ?>
     </div>
 
     <div class="card">
@@ -416,8 +423,8 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
             <div class="grid">
                 <div>
                     <label for="admin_pass">Admin password</label>
-                    <input id="admin_pass" type="password" name="admin_pass" minlength="8" required>
-                    <small>At least 8 characters.</small>
+                    <input id="admin_pass" type="password" name="admin_pass" minlength="12" required>
+                    <small>At least 12 characters.</small>
                 </div>
 
                 <div>
@@ -441,6 +448,7 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
         <p>Open your hosting control panel and look for:</p>
         <p><strong>MySQL / MariaDB / Databases</strong></p>
         <p>You normally need four things: host, database name, username and password. The installer does not create the database for you because every hosting provider handles database creation differently.</p>
+        <p><strong>Tip:</strong> with the official shared-hosting ZIP, <code>vendor/</code> is already included. You only need FTP/file-manager access and a MySQL/MariaDB database.</p>
     </div>
 </div>
 <div style="max-width:920px;width:calc(100% - 32px);margin:auto auto 0;padding:16px 0 12px;border-top:1px solid #d9dee5;text-align:center;color:#7a838f;font-size:11px;line-height:1.7">
