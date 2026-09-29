@@ -27,6 +27,7 @@ foreach ($required as $relative) {
 }
 
 $migration = file_get_contents($root.'/database/migrations/20260929_001_content_packs.php');
+$migration2 = file_get_contents($root.'/database/migrations/20260929_002_mappack_unbounded_levels.php');
 $action = file_get_contents($root.'/public/admin/actions/contentpacks.php');
 $page = file_get_contents($root.'/public/admin/pages/contentpacks.php');
 $router = file_get_contents($root.'/public/admin/core/AdminRouter.php');
@@ -92,7 +93,7 @@ if (!str_contains($action, "preg_split('/[\\\\s,]+/'")) {
     exit(1);
 }
 
-if (!str_contains($migration, 'MODIFY COLUMN levels TEXT NOT NULL')) {
+if (!str_contains((string)$migration2, 'MODIFY COLUMN levels TEXT NOT NULL')) {
     fwrite(STDERR, "Contract failed: Map Pack level storage is not unbounded\n");
     exit(1);
 }
