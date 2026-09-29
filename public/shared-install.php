@@ -97,23 +97,52 @@ function dotenvLine(string $key, string $value): string {
 }
 
 function parseEnvValue(string $file, string $key): string {
-    if (!is_file($file)) { return ''; }
+    if (!is_file($file)) {
+        return '';
+    }
+
     foreach (file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
         $line = trim($line);
-        if ($line === '' || str_starts_with($line, '#')) { continue; }
-        if (str_starts_with($line, 'export ')) { $line = substr($line, 7); }
+
+        if ($line === '' || str_starts_with($line, '#')) {
+            continue;
+        }
+
+        if (str_starts_with($line, 'export ')) {
+            $line = substr($line, 7);
+        }
+
         $prefix = $key . '=';
-        if (!str_starts_with($line, $prefix)) { continue; }
+
+        if (!str_starts_with($line, $prefix)) {
+            continue;
+        }
+
         $value = substr($line, strlen($prefix));
-        if (strlen($value) >= 2 && (($value[0] === '"' && $value[-1] === '"') || ($value[0] === "'" && $value[-1] === "'"))) {
+        $doubleQuoted = strlen($value) >= 2
+            && $value[0] === '"'
+            && $value[-1] === '"';
+        $singleQuoted = strlen($value) >= 2
+            && $value[0] === "'"
+            && $value[-1] === "'";
+
+        if ($doubleQuoted || $singleQuoted) {
             $value = substr($value, 1, -1);
-            if ($line[$prefix] ?? false) {
-                $value = str_replace(
-                    ['\\
+        }
+
+        if ($doubleQuoted) {
+            $value = str_replace(
+                ['\\$', '\\"', '\\\\'],
+                ['$', '"', '\\'],
+                $value
+            );
+        }
+
+        return $value;
     }
+
     return '';
 }
-
 function databaseTableCount(PDO $pdo): int {
     return (int)$pdo->query('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = "BASE TABLE"')->fetchColumn();
 }
