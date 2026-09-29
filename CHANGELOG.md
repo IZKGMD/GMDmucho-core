@@ -1,3 +1,24 @@
+## v1.0.9 — Gauntlet & Map Pack Maker
+
+### Admin Content Tools
+
+- added a dedicated **Gauntlet & Map Pack Maker** to the Admin Panel;
+- create, edit, reorder, enable and delete Gauntlets with exactly five unique levels;
+- create, edit, reorder, enable and delete Map Packs with exactly three unique levels;
+- validate every selected level before a collection is published, rejecting missing, deleted and unlisted levels;
+- added fine-grained RBAC permission `contentpacks.manage` for custom administrator roles;
+- added persistent MariaDB schema migration for Gauntlets and Map Packs;
+- kept the existing Geometry Dash discovery wire endpoints backed by the same stored collections;
+- added audit events for collection creation, edits and deletion.
+
+### Compatibility
+
+- Gauntlets continue through the existing `getGJGauntlets` / `getGJGauntlets21` routes;
+- Map Packs continue through the existing `getGJMapPacks` / `getGJMapPacks20` / `getGJMapPacks21` routes;
+- no client-side protocol changes are required for the new admin maker.
+
+---
+
 ## v1.0.84 — Worker & Updater Reliability
 
 ### Runtime Reliability

@@ -153,6 +153,18 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
 
     /*
+     * Gauntlet & Map Pack Maker
+     */
+
+    $router->register(
+        'contentpacks',
+        static function(PDO $db): void {
+            require __DIR__.'/../pages/contentpacks.php';
+        }
+    );
+
+
+    /*
      * Moderation
      */
 
