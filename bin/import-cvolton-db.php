@@ -7,7 +7,20 @@ use MuchoCore\Migration\CvoltonDatabaseImporter;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-function createVerifiedTargetBackup(): string
+$migrationLockPath = getenv('MUCHO_MIGRATION_LOCK') ?: '/tmp/muchocore-migration.lock';
+$migrationLock = fopen($migrationLockPath, 'c');
+
+if (!is_resource($migrationLock) || !flock($migrationLock, LOCK_EX | LOCK_NB)) {
+    fwrite(STDERR, "Migration is already running. Wait for the current migration to finish.\n");
+    exit(11);
+}
+
+register_shutdown_function(static function () use ($migrationLock): void {
+    flock($migrationLock, LOCK_UN);
+    fclose($migrationLock);
+});
+
+function createVerifiedTargetBackup(float $startedAt): string
 {
     $script = dirname(__DIR__) . '/bin/mucho-db-backup.sh';
 
@@ -21,7 +34,7 @@ function createVerifiedTargetBackup(): string
     $exitCode = 0;
 
     exec(
-        '/usr/bin/env bash ' . escapeshellarg($script) . ' 2>&1',
+        'MUCHO_BACKUP_REQUIRED=1 /usr/bin/env bash ' . escapeshellarg($script) . ' 2>&1',
         $output,
         $exitCode
     );
@@ -34,16 +47,34 @@ function createVerifiedTargetBackup(): string
     }
 
     $backup = null;
+    $backupOk = false;
 
     foreach ($output as $line) {
+        if (trim($line) === 'BACKUP_OK') {
+            $backupOk = true;
+        }
         if (str_starts_with($line, 'FILE=')) {
             $backup = trim(substr($line, 5));
         }
     }
 
+    if (!$backupOk) {
+        throw new RuntimeException(
+            "Target database backup did not report BACKUP_OK; migration was not started.\n" .
+            implode("\n", $output)
+        );
+    }
+
     if ($backup === null || $backup === '' || !is_file($backup)) {
         throw new RuntimeException(
             'Target database backup did not produce a verifiable backup file; migration was not started.'
+        );
+    }
+
+    $mtime = filemtime($backup);
+    if ($mtime === false || $mtime + 5 < $startedAt) {
+        throw new RuntimeException(
+            'Target database backup is not fresh for this migration; migration was not started.'
         );
     }
 
@@ -217,7 +248,7 @@ DRY-RUN complete. No destination data was modified.
 Creating verified target database backup before apply...
 ";
 
-    $targetBackup = createVerifiedTargetBackup();
+    $targetBackup = createVerifiedTargetBackup(microtime(true));
 
     if (!isset($options['json'])) {
         echo "TARGET_BACKUP=" . $targetBackup . "\n";
