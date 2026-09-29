@@ -15,6 +15,7 @@ if ($rootPassword === '') {
 }
 
 $targetDb = 'muchocore_migration_it';
+$sharedTargetDb = 'muchocore_shared_migration_it';
 $sourceDb = 'cvolton_migration_it';
 $fixtureRoot = sys_get_temp_dir() . '/muchocore-migration-it-' . bin2hex(random_bytes(4));
 $runtimeEnv = $fixtureRoot . '/runtime.env';
@@ -117,6 +118,7 @@ function runCli(
 try {
     $server = pdoRoot($host, $port, $rootPassword);
     $server->exec('DROP DATABASE IF EXISTS ' . $targetDb);
+    $server->exec('DROP DATABASE IF EXISTS ' . $sharedTargetDb);
     $server->exec('DROP DATABASE IF EXISTS ' . $sourceDb);
     $server->exec(
         'CREATE DATABASE ' . $targetDb .
@@ -126,9 +128,19 @@ try {
         'CREATE DATABASE ' . $sourceDb .
         ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
     );
+    $server->exec(
+        'CREATE DATABASE ' . $sharedTargetDb .
+        ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
+    );
 
     $source = pdoDb($host, $port, $sourceDb, $rootPassword);
     $target = pdoDb($host, $port, $targetDb, $rootPassword);
+    $sharedTarget = pdoDb($host, $port, $sharedTargetDb, $rootPassword);
+
+    (new Migrator(
+        $sharedTarget,
+        $root . '/database/migrations'
+    ))->migrate();
 
     $source->exec(<<<'SQL'
 CREATE TABLE accounts (
@@ -370,6 +382,43 @@ CREATE TABLE mucho_platformer_scores (
     UNIQUE KEY uq_mucho_platformer_score_account_level (account_id, level_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 SQL);
+
+    $sharedMigrationPreview = (new SharedMigrationService(
+        $sharedTarget,
+        $fixtureRoot,
+        $fixtureRoot . '/shared-service-backups'
+    ))->preview($source);
+    must(
+        ($sharedMigrationPreview['preflight']['accounts'] ?? -1) === 2,
+        'Shared Migration Center preview returned the wrong account count.'
+    );
+
+    $sharedMigration = (new SharedMigrationService(
+        $sharedTarget,
+        $fixtureRoot,
+        $fixtureRoot . '/shared-service-backups'
+    ))->apply($source);
+
+    must(
+        is_file($sharedMigration['backup']['file']),
+        'Shared Migration Center did not create its target backup.'
+    );
+    must(
+        scalar($sharedTarget, 'SELECT COUNT(*) FROM accounts') === 2,
+        'Shared Migration Center did not import accounts.'
+    );
+    must(
+        scalar($sharedTarget, 'SELECT COUNT(*) FROM levels') === 1,
+        'Shared Migration Center did not import levels.'
+    );
+    must(
+        scalar($sharedTarget, 'SELECT COUNT(*) FROM mucho_level_scores') === 1,
+        'Shared Migration Center did not import classic scores.'
+    );
+    must(
+        scalar($sharedTarget, 'SELECT COUNT(*) FROM mucho_platformer_scores') === 1,
+        'Shared Migration Center did not import Platformer scores.'
+    );
 
     $validPassword = password_hash('migration-test-password', PASSWORD_DEFAULT);
     $stmt = $source->prepare(
@@ -634,6 +683,7 @@ SQL);
     try {
         $server = pdoRoot($host, $port, $rootPassword);
         $server->exec('DROP DATABASE IF EXISTS ' . $targetDb);
+        $server->exec('DROP DATABASE IF EXISTS ' . $sharedTargetDb);
         $server->exec('DROP DATABASE IF EXISTS ' . $sourceDb);
     } catch (Throwable) {
         // Preserve the original test failure if cleanup cannot connect.
