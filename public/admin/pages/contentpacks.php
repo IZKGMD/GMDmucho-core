@@ -80,7 +80,7 @@ function contentPackDifficultyOptions(): array
         5 => ['Insane', 'https://upload.wikimedia.org/wikipedia/commons/6/6c/Insane_Icon.svg'],
         6 => ['Hard Demon', 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Demon_Icon.webp'],
         7 => ['Easy Demon', 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Easy_Demon_Icon.webp'],
-        8 => ['Medium Demon', 'https://static.wikia.nocookie.net/geometry-dash/images/e/e2/MediumDemon.png/revision/latest/scale-to-width-down/512?cb=20250312081829'],
+        8 => ['Medium Demon', 'https://static.wikia.nocookie.net/geometry-dash/images/e/e2/MediumDemon.png'],
         9 => ['Insane Demon', 'https://upload.wikimedia.org/wikipedia/commons/a/ae/Insane_Demon_Icon.webp'],
         10 => ['Extreme Demon', 'https://upload.wikimedia.org/wikipedia/commons/3/33/Extreme_Demon_Icon.webp'],
     ];
