@@ -67,6 +67,119 @@ function renderContentPackLevelInput(
     echo '</div>';
 }
 
+
+
+function contentPackDifficultyOptions(): array
+{
+    return [
+        0 => ['Auto', 'https://upload.wikimedia.org/wikipedia/commons/a/a8/Auto_Icon.svg'],
+        1 => ['Easy', 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Easy_Icon.svg'],
+        2 => ['Normal', 'https://upload.wikimedia.org/wikipedia/commons/4/48/Normal_Icon.svg'],
+        3 => ['Hard', 'https://upload.wikimedia.org/wikipedia/commons/2/24/Hard_Icon.svg'],
+        4 => ['Harder', 'https://upload.wikimedia.org/wikipedia/commons/3/34/Harder_Icon.svg'],
+        5 => ['Insane', 'https://upload.wikimedia.org/wikipedia/commons/6/6c/Insane_Icon.svg'],
+        6 => ['Hard Demon', 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Demon_Icon.webp'],
+        7 => ['Easy Demon', 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Easy_Demon_Icon.webp'],
+        8 => ['Medium Demon', 'https://static.wikia.nocookie.net/geometry-dash/images/e/e2/MediumDemon.png'],
+        9 => ['Insane Demon', 'https://upload.wikimedia.org/wikipedia/commons/a/ae/Insane_Demon_Icon.webp'],
+        10 => ['Extreme Demon', 'https://upload.wikimedia.org/wikipedia/commons/3/33/Extreme_Demon_Icon.webp'],
+    ];
+}
+
+function contentPackDifficultyIcon(int $value): string
+{
+    $value = max(0, min(10, $value));
+    return contentPackDifficultyOptions()[$value][1];
+}
+
+function renderContentPackDifficultyPicker(int $selected): void
+{
+    $options = contentPackDifficultyOptions();
+    $selected = array_key_exists($selected, $options) ? $selected : 0;
+    [$selectedLabel, $selectedIcon] = $options[$selected];
+
+    echo '<details class="mc-dropdown" style="margin-top:8px;width:100%">';
+    echo '<summary style="list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 10px;border:1px solid rgba(127,140,163,.32);border-radius:9px;background:rgba(127,140,163,.08);box-sizing:border-box">';
+    echo '<img data-difficulty-preview src="'.h($selectedIcon).'" width="40" height="40" alt="">';
+    echo '<span style="flex:1;min-width:0"><strong>Give Rate</strong><small class="muted" style="display:block" data-difficulty-selected>'.h($selectedLabel).'</small></span>';
+    echo '<span aria-hidden="true">▾</span>';
+    echo '</summary>';
+
+    echo '<div style="margin-top:5px;padding:5px;border:1px solid rgba(127,140,163,.30);border-radius:9px;background:var(--card-bg,#111827);box-sizing:border-box">';
+    foreach ($options as $value => [$label, $icon]) {
+        $checked = $selected === $value;
+        echo '<label style="display:flex;align-items:center;gap:10px;width:100%;min-height:56px;padding:5px 8px;margin:2px 0;border:1px solid '.($checked ? 'rgba(127,140,163,.45)' : 'transparent').';border-radius:8px;background:'.($checked ? 'rgba(127,140,163,.14)' : 'transparent').';cursor:pointer;box-sizing:border-box">';
+        echo '<input type="radio" name="difficulty" value="'.$value.'" '.($checked ? 'checked' : '').' data-icon="'.h($icon).'" data-label="'.h($label).'" onchange="const d=this.closest(\'details\');d.querySelector(\'[data-difficulty-preview]\').src=this.dataset.icon;d.querySelector(\'[data-difficulty-selected]\').textContent=this.dataset.label;d.open=false;" style="margin:0">';
+        echo '<img src="'.h($icon).'" width="44" height="44" alt="">';
+        echo '<span style="font-weight:700">'.h($label).'</span>';
+        echo '</label>';
+    }
+    echo '</div>';
+    echo '</details>';
+}
+
+function contentPackColorPresets(): array
+{
+    return [
+        0 => '#f0f0f0',
+        1 => '#ff3b30',
+        2 => '#ff9500',
+        3 => '#ffcc00',
+        4 => '#34c759',
+        5 => '#00c7be',
+        6 => '#30a9ff',
+        7 => '#5856d6',
+        8 => '#af52de',
+        9 => '#ff2d55',
+        10 => '#8e8e93',
+        11 => '#5ac8fa',
+        12 => '#64d2ff',
+        13 => '#bf5af2',
+        14 => '#ff375f',
+        15 => '#a2845e',
+        16 => '#30d158',
+        17 => '#ffd60a',
+        18 => '#ff9f0a',
+        19 => '#ff453a',
+        20 => '#64d2ff',
+        21 => '#0a84ff',
+        22 => '#5e5ce6',
+        23 => '#bf5af2',
+        24 => '#ff375f',
+    ];
+}
+
+function renderContentPackColorPicker(string $field, int $selected): void
+{
+    $presets = contentPackColorPresets();
+    $selected = array_key_exists($selected, $presets) ? $selected : 0;
+
+    echo '<details class="mc-dropdown" style="margin-top:8px;width:100%">';
+    echo '<summary style="list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 10px;border:1px solid rgba(127,140,163,.32);border-radius:9px;background:rgba(127,140,163,.08);box-sizing:border-box">';
+    echo '<span data-color-preview style="width:38px;height:38px;flex:0 0 38px;border-radius:9px;border:2px solid rgba(255,255,255,.4);background:'.$presets[$selected].';display:block"></span>';
+    echo '<span style="flex:1;min-width:0"><strong>'.h(ucwords(str_replace('_', ' ', $field))).'</strong><small class="muted" style="display:block">Color '.$selected.'</small></span>';
+    echo '<span aria-hidden="true">▾</span>';
+    echo '</summary>';
+
+    echo '<div style="margin-top:5px;padding:8px;border:1px solid rgba(127,140,163,.30);border-radius:9px;background:var(--card-bg,#111827);box-shadow:0 10px 24px rgba(0,0,0,.28);max-height:300px;overflow:auto">';
+    echo '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px">';
+
+    foreach ($presets as $value => $hex) {
+        $checked = $selected === $value;
+        echo '<label style="display:flex;align-items:center;gap:6px;padding:5px;border:1px solid '.($checked ? 'rgba(127,140,163,.55)' : 'transparent').';border-radius:8px;background:'.($checked ? 'rgba(127,140,163,.14)' : 'transparent').';cursor:pointer;box-sizing:border-box">';
+        echo '<input type="radio" name="'.h($field).'" value="'.$value.'" '.($checked ? 'checked' : '').' data-color="'.$hex.'" onchange="const d=this.closest(\'details\');d.querySelector(\'[data-color-preview]\').style.background=this.dataset.color;d.querySelector(\'summary small\').textContent=\'Color \'+this.value;d.open=false;" style="margin:0">';
+        echo '<span style="width:28px;height:28px;flex:0 0 28px;border-radius:7px;background:'.$hex.';border:1px solid rgba(255,255,255,.35);display:block"></span>';
+        echo '<span style="font-size:11px;font-weight:700">Color '.$value.'</span>';
+        echo '</label>';
+    }
+
+    echo '</div>';
+    echo '<small class="muted" style="display:block;margin-top:7px">Choose the color visually; the numeric Color ID is submitted automatically.</small>';
+    echo '</div>';
+    echo '</details>';
+}
+
+
 $gauntlets = $db->query(
     'SELECT id,name,level1,level2,level3,level4,level5,enabled,sort_order
      FROM mucho_gauntlets
@@ -111,9 +224,9 @@ echo '<input name="name" maxlength="64" placeholder="Map Pack name" required>';
 echo '<div class="grid" style="margin-top:8px">';
 echo '<label>Stars<input type="number" name="stars" min="0" max="255" value="10"></label>';
 echo '<label>Coins<input type="number" name="coins" min="0" max="255" value="3"></label>';
-echo '<label>Difficulty<input type="number" name="difficulty" min="0" max="10" value="1"></label>';
-echo '<label>Color 1<input type="number" name="color1" min="0" max="255" value="0"></label>';
-echo '<label>Color 2<input type="number" name="color2" min="0" max="255" value="3"></label>';
+renderContentPackDifficultyPicker(1);
+renderContentPackColorPicker('color1', 0);
+renderContentPackColorPicker('color2', 3);
 echo '<label>Order<input type="number" name="sort_order" value="0"></label>';
 echo '</div>';
 echo '<label style="display:flex;gap:6px;align-items:center;margin-top:8px">Enabled <input type="checkbox" name="enabled" checked></label>';
@@ -176,11 +289,11 @@ if ($mapPacks === []) {
         echo '<label>Name<input name="name" maxlength="64" value="'.h($m['name']).'" required></label>';
         echo '<label>Stars<input type="number" name="stars" min="0" max="255" value="'.h($m['stars']).'"></label>';
         echo '<label>Coins<input type="number" name="coins" min="0" max="255" value="'.h($m['coins']).'"></label>';
-        echo '<label>Difficulty<input type="number" name="difficulty" min="0" max="10" value="'.h($m['difficulty']).'"></label>';
+        renderContentPackDifficultyPicker((int)$m['difficulty']);
         echo '</div>';
         echo '<div class="grid" style="margin-top:8px">';
-        echo '<label>Color 1<input type="number" name="color1" min="0" max="255" value="'.h($m['color1']).'"></label>';
-        echo '<label>Color 2<input type="number" name="color2" min="0" max="255" value="'.h($m['color2']).'"></label>';
+        renderContentPackColorPicker('color1', (int)$m['color1']);
+        renderContentPackColorPicker('color2', (int)$m['color2']);
         echo '<label>Order<input type="number" name="sort_order" value="'.h($m['sort_order']).'"></label>';
         echo '<label style="display:flex;gap:6px;align-items:center">Enabled <input type="checkbox" name="enabled" '.((int)$m['enabled'] ? 'checked' : '').'></label>';
         echo '</div>';
@@ -200,4 +313,4 @@ if ($mapPacks === []) {
     }
 }
 
-echo '<p class="muted" style="margin-top:16px">Gauntlets require exactly 5 unique levels. Map Packs accept any number of unique levels. The client receives numeric IDs in the standard GD wire format.</p>';
+echo '<p class="muted" style="margin-top:16px">Gauntlets require exactly 5 unique levels. Map Packs accept any number of unique levels. Difficulty and colors are selected visually; the server stores the original numeric GD values.</p>';

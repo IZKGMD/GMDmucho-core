@@ -52,6 +52,25 @@ $contracts = [
     [$action, 'is_unlisted', 'unlisted-level validation'],
     [$page, 'New Gauntlet', 'Gauntlet creator'],
     [$page, 'New Map Pack', 'Map Pack creator'],
+    [$page, 'Give Rate', 'visual difficulty picker'],
+    [$page, 'contentPackDifficultyOptions', 'difficulty options'],
+    [$page, 'contentPackDifficultyIcon', 'difficulty icon resolver'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/a/a8/Auto_Icon.svg', 'original Auto difficulty artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Easy_Icon.svg', 'original Easy difficulty artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/4/48/Normal_Icon.svg', 'original Normal difficulty artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/2/24/Hard_Icon.svg', 'original Hard difficulty artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/3/34/Harder_Icon.svg', 'original Harder difficulty artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/6/6c/Insane_Icon.svg', 'original Insane difficulty artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Demon_Icon.webp', 'original Hard Demon artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Easy_Demon_Icon.webp', 'original Easy Demon artwork'],
+    [$page, 'https://static.wikia.nocookie.net/geometry-dash/images/e/e2/MediumDemon.png', 'original Medium Demon artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/a/ae/Insane_Demon_Icon.webp', 'original Insane Demon artwork'],
+    [$page, 'https://upload.wikimedia.org/wikipedia/commons/3/33/Extreme_Demon_Icon.webp', 'original Extreme Demon artwork'],
+    [$page, '<details class="mc-dropdown"', 'native clickable selector'],
+    [$page, 'type="radio"', 'native selector inputs'],
+    [$page, 'name="difficulty"', 'difficulty form field'],
+    [$page, "renderContentPackColorPicker('color1'", 'Color 1 form value'],
+    [$page, "renderContentPackColorPicker('color2'", 'Color 2 form value'],
     [$page, 'contentpacks', 'content-pack page'],
     [$router, "'contentpacks'", 'content-pack router'],
     [$pages, "'contentpacks'=>'Gauntlet & Map Pack Maker'", 'page registry'],
@@ -76,6 +95,68 @@ if (
 }
 
 if (
+    str_contains($page, 'name="difficulty" min=') ||
+    str_contains($page, 'name="color1" min=') ||
+    str_contains($page, 'name="color2" min=')
+) {
+    fwrite(STDERR, "Contract failed: difficulty/color must not be exposed as numeric inputs\n");
+    exit(1);
+}
+
+if (
+    !str_contains($page, '<details class="mc-dropdown"') ||
+    substr_count($page, 'type="radio"') < 2 ||
+    substr_count($page, 'renderContentPackDifficultyPicker(') < 3 ||
+    substr_count($page, 'renderContentPackColorPicker(') < 4 ||
+    !str_contains($page, 'data-difficulty-preview') ||
+    !str_contains($page, 'data-color-preview') ||
+    substr_count($page, 'd.open=false;') < 2
+) {
+    fwrite(STDERR, "Contract failed: native dropdown selectors are incomplete\n");
+    exit(1);
+}
+
+foreach ([
+    'https://upload.wikimedia.org/wikipedia/commons/a/a8/Auto_Icon.svg',
+    'https://upload.wikimedia.org/wikipedia/commons/c/ce/Easy_Icon.svg',
+    'https://upload.wikimedia.org/wikipedia/commons/4/48/Normal_Icon.svg',
+    'https://upload.wikimedia.org/wikipedia/commons/2/24/Hard_Icon.svg',
+    'https://upload.wikimedia.org/wikipedia/commons/3/34/Harder_Icon.svg',
+    'https://upload.wikimedia.org/wikipedia/commons/6/6c/Insane_Icon.svg',
+    'https://upload.wikimedia.org/wikipedia/commons/1/1c/Demon_Icon.webp',
+    'https://upload.wikimedia.org/wikipedia/commons/a/a5/Easy_Demon_Icon.webp',
+    'https://static.wikia.nocookie.net/geometry-dash/images/e/e2/MediumDemon.png',
+    'https://upload.wikimedia.org/wikipedia/commons/a/ae/Insane_Demon_Icon.webp',
+    'https://upload.wikimedia.org/wikipedia/commons/3/33/Extreme_Demon_Icon.webp',
+] as $needle) {
+    if (!str_contains($page, $needle)) {
+        fwrite(STDERR, "Contract failed: direct difficulty artwork URL missing: {$needle}\n");
+        exit(1);
+    }
+}
+
+foreach ([
+    "6 => ['Hard Demon'",
+    "7 => ['Easy Demon'",
+    "8 => ['Medium Demon'",
+    "9 => ['Insane Demon'",
+    "10 => ['Extreme Demon'",
+] as $needle) {
+    if (!str_contains($page, $needle)) {
+        fwrite(STDERR, "Contract failed: demon difficulty ID mapping missing: {$needle}\n");
+        exit(1);
+    }
+}
+
+if (!str_contains($page, 'function contentPackColorPresets(): array') ||
+    !str_contains($page, "0 => '#f0f0f0'") ||
+    !str_contains($page, "24 => '#ff375f'")) {
+    fwrite(STDERR, "Contract failed: visual color palette selector is missing\n");
+    exit(1);
+}
+
+
+if (
     !str_contains($page, 'name="level_') ||
     !str_contains($page, 'foreach (range(0, $expected - 1) as $index)')
 ) {
@@ -95,6 +176,11 @@ if (!str_contains($action, "preg_split('/[\\\\s,]+/'")) {
 
 if (!str_contains((string)$migration2, 'MODIFY COLUMN levels TEXT NOT NULL')) {
     fwrite(STDERR, "Contract failed: Map Pack level storage is not unbounded\n");
+    exit(1);
+}
+
+if (!str_contains($action, "return contentPackInt('sort_order', -1000000, 1000000);")) {
+    fwrite(STDERR, "Contract failed: sort_order fallback/validation is incorrect\n");
     exit(1);
 }
 

@@ -51,9 +51,13 @@ $assert(str_contains($rating,"https://upload.wikimedia.org/wikipedia/commons/3/3
 $assert(str_contains($rating,"https://upload.wikimedia.org/wikipedia/commons/6/6c/Insane_Icon.svg"),'original Insane SVG source');
 $assert(str_contains($rating,"https://upload.wikimedia.org/wikipedia/commons/0/0a/Unrated_Icon.svg"),'original Unrated SVG source');
 $assert(str_contains($rating,"https://upload.wikimedia.org/wikipedia/commons/a/a8/Auto_Icon.svg"),'original Auto SVG source');
-$assert(str_contains($rating,"'easy-demon' => 'EasyDemon.png'"),'Fandom Easy Demon original image');
-$assert(str_contains($rating,"'extreme-demon' => 'ExtremeDemon.png'"),'Fandom Extreme Demon original image');
+$assert(str_contains($rating,"'easy-demon' => 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Easy_Demon_Icon.webp'"),'direct Easy Demon artwork source');
+$assert(str_contains($rating,"'medium-demon' => 'https://static.wikia.nocookie.net/geometry-dash/images/e/e2/MediumDemon.png'"),'direct Medium Demon artwork source');
+$assert(str_contains($rating,"'hard-demon' => 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Demon_Icon.webp'"),'direct Hard Demon artwork source');
+$assert(str_contains($rating,"'insane-demon' => 'https://upload.wikimedia.org/wikipedia/commons/a/ae/Insane_Demon_Icon.webp'"),'direct Insane Demon artwork source');
+$assert(str_contains($rating,"'extreme-demon' => 'https://upload.wikimedia.org/wikipedia/commons/3/33/Extreme_Demon_Icon.webp'"),'direct Extreme Demon artwork source');
 $assert(!str_contains($rating,'/admin/assets/difficulty/'),'no reconstructed local difficulty faces');
+$assert(!str_contains($rating,'geometry-dash.fandom.com/wiki/Special:Redirect/file/'),'no Fandom Special:Redirect difficulty hotlinks');
 $assert(str_contains($rating,'Direct upload.wikimedia.org URLs avoid Fandom'), 'direct SVG mirror rationale documented');
 $assert(!str_contains($rating,'geometrydash.wiki.gg/wiki/Special:Redirect/file'),'no wiki.gg difficulty-face hotlink');
 $assert(!str_contains($rating,'name="demon" id="demon"'),'legacy demon checkbox removed');
