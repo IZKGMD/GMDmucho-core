@@ -83,7 +83,9 @@ foreach ($backupContracts as $needle) {
 
 if (!str_contains($sharedMigration, 'DatabaseBackupService')
     || !str_contains($sharedMigration, 'requireTargetMaps')
-    || !str_contains($sharedMigration, 'beginTransaction')) {
+    || !str_contains($sharedMigration, 'beginTransaction')
+    || !str_contains($sharedMigration, 'Unable to create the shared-hosting storage directory.')
+    || !str_contains($sharedMigration, "Require all denied")) {
     throw new RuntimeException(
         'Shared migration service must keep backup, target schema verification and transactional import.'
     );
