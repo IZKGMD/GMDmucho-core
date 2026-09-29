@@ -107,6 +107,9 @@ jobs:
           mkdir -p /tmp/muchocore-shared-package-test
           OUTPUT=/tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             bash tools/release/build-shared-hosting.sh
           unzip -t /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip >/dev/null
+          OUTPUT=MuchoCore-relative-output-test.zip bash tools/release/build-shared-hosting.sh
+          test -s MuchoCore-relative-output-test.zip
+          rm -f MuchoCore-relative-output-test.zip
           unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/public/shared-install.php'
           unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/vendor/autoload.php'
 
