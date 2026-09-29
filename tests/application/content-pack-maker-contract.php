@@ -13,17 +13,6 @@ $required = [
     'database/migrations/20260929_002_mappack_unbounded_levels.php',
     'public/admin/actions/contentpacks.php',
     'public/admin/pages/contentpacks.php',
-    'public/assets/difficulties/00-auto.svg',
-    'public/assets/difficulties/01-easy.svg',
-    'public/assets/difficulties/02-normal.svg',
-    'public/assets/difficulties/03-hard.svg',
-    'public/assets/difficulties/04-harder.svg',
-    'public/assets/difficulties/05-insane.svg',
-    'public/assets/difficulties/06-easy-demon.svg',
-    'public/assets/difficulties/07-medium-demon.svg',
-    'public/assets/difficulties/08-hard-demon.svg',
-    'public/assets/difficulties/09-insane-demon.svg',
-    'public/assets/difficulties/10-extreme-demon.svg',
     'public/admin/core/AdminRouter.php',
     'public/admin/config/pages.php',
     'public/admin/index.php',
@@ -64,11 +53,22 @@ $contracts = [
     [$page, 'New Gauntlet', 'Gauntlet creator'],
     [$page, 'New Map Pack', 'Map Pack creator'],
     [$page, 'Give Rate', 'visual difficulty picker'],
-    [$page, 'muchoPickDifficulty', 'difficulty picker interaction'],
-    [$page, 'contentPackDifficultyIcon', 'Geometry Dash style difficulty icon renderer'],
-    [$page, \'/assets/difficulties/\', \'static difficulty icon asset path\'],
-    [$page, 'data-difficulty-label', 'selected difficulty label'],
-    [$page, 'muchoPickColor', 'color picker interaction'],
+    [$page, 'contentPackDifficultyOptions', 'difficulty options'],
+    [$page, 'contentPackDifficultyIcon', 'difficulty icon resolver'],
+    [$page, 'Special:FilePath/Auto_Icon.svg', 'original Auto difficulty artwork'],
+    [$page, 'Special:FilePath/Easy_Icon.svg', 'original Easy difficulty artwork'],
+    [$page, 'Special:FilePath/Normal_Icon.svg', 'original Normal difficulty artwork'],
+    [$page, 'Special:FilePath/Hard_Icon.svg', 'original Hard difficulty artwork'],
+    [$page, 'Special:FilePath/Harder_Icon.svg', 'original Harder difficulty artwork'],
+    [$page, 'Special:FilePath/Insane_Icon.svg', 'original Insane difficulty artwork'],
+    [$page, 'Special:FilePath/Demon_Icon.webp', 'original Hard Demon artwork'],
+    [$page, 'Special:FilePath/Easy_Demon_Icon.webp', 'original Easy Demon artwork'],
+    [$page, 'Special:Redirect/file/MediumDemon.png', 'original Medium Demon artwork'],
+    [$page, 'Special:FilePath/Insane_Demon_Icon.webp', 'original Insane Demon artwork'],
+    [$page, 'Special:FilePath/Extreme_Demon_Icon.webp', 'original Extreme Demon artwork'],
+    [$page, '<details class="mc-field-picker"', 'native clickable selector'],
+    [$page, 'type="radio"', 'native selector inputs'],
+    [$page, 'name="difficulty"', 'difficulty form field'],
     [$page, 'name="color1"', 'Color 1 form value'],
     [$page, 'name="color2"', 'Color 2 form value'],
     [$page, 'contentpacks', 'content-pack page'],
@@ -103,19 +103,20 @@ if (
     exit(1);
 }
 
-foreach ([
-    'data-picker-toggle',
-    'data-picker-menu',
-    'data-picker-preview',
-    'data-picker-color-preview',
-    'Click to choose difficulty',
-    'Click to choose color',
-] as $needle) {
-    if (!str_contains($page, $needle)) {
-        fwrite(STDERR, "Contract failed: interactive selector UI is missing {$needle}\n");
-        exit(1);
-    }
+if (
+    !str_contains($page, '<details class="mc-field-picker"') ||
+    substr_count($page, 'type="radio"') < 8 ||
+    !str_contains($page, 'Special:FilePath/Auto_Icon.svg') ||
+    !str_contains($page, 'Special:FilePath/Easy_Icon.svg') ||
+    !str_contains($page, 'Special:FilePath/Normal_Icon.svg') ||
+    !str_contains($page, 'Special:FilePath/Hard_Icon.svg') ||
+    !str_contains($page, 'Special:FilePath/Harder_Icon.svg') ||
+    !str_contains($page, 'Special:FilePath/Insane_Icon.svg')
+) {
+    fwrite(STDERR, "Contract failed: native difficulty/color selectors or original wiki artwork are missing\n");
+    exit(1);
 }
+
 
 if (
     !str_contains($page, 'name="level_') ||
