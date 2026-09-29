@@ -12,6 +12,11 @@ $installedMarker = $storage . '/shared-install.installed';
 $bootstrapPath = $storage . '/admin-bootstrap.php';
 $envFile = $root . '/.env';
 
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: no-referrer');
+
 if (!is_dir($storage) && !mkdir($storage, 0750, true) && !is_dir($storage)) {
     http_response_code(500);
     exit('Unable to create the MuchoCore storage directory.');
@@ -180,6 +185,7 @@ $defaultPort = parseEnvValue($envFile, 'DB_PORT') ?: '3306';
 $defaultDb = parseEnvValue($envFile, 'DB_NAME') ?: 'muchocore';
 $defaultUser = parseEnvValue($envFile, 'DB_USER');
 $defaultUrl = parseEnvValue($envFile, 'MUCHO_ACCOUNT_URL');
+$existingMuchoInstall = parseEnvValue($envFile, 'MUCHO_SHARED_HOSTING') === '1';
 $errors = [];
 $success = false;
 $backupInfo = null;
@@ -222,10 +228,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo = new PDO('mysql:host=' . $dbHost . ';port=' . $dbPort . ';dbname=' . $dbName . ';charset=utf8mb4', $dbUser, $dbPass, [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false]);
             $version = databasePreflight($pdo);
             $tableCount = databaseTableCount($pdo);
-            if (!$hadExistingEnv && $tableCount > 0) { throw new RuntimeException('The selected database is not empty (' . $tableCount . ' tables). Use a new empty database for a first installation.'); }
+            if (!$existingMuchoInstall && $tableCount > 0) { throw new RuntimeException('The selected database is not empty (' . $tableCount . ' tables). Use a new empty database for a first installation. The installer will not risk overwriting another application.'); }
             $controlDir = $storage . '/control';
             $backupDir = $storage . '/backups/database';
-            foreach ([$controlDir,$backupDir] as $directory) {
+            $adminBackupDir = $storage . '/backups/admin-v2';
+            foreach ([$controlDir,$backupDir,$adminBackupDir] as $directory) {
                 if (!is_dir($directory) && !mkdir($directory, 0750, true) && !is_dir($directory)) { throw new RuntimeException('Unable to create required directory: ' . $directory); }
                 if (!is_writable($directory)) { throw new RuntimeException('Required directory is not writable: ' . $directory); }
             }
@@ -234,7 +241,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!copy($envFile, $envBackup)) { throw new RuntimeException('Could not back up the existing .env file.'); }
                 chmod($envBackup, 0600);
             }
-            $env = implode(PHP_EOL, ['DB_HOST=' . $dbHost,'DB_PORT=' . $dbPort,'DB_NAME=' . $dbName,'DB_USER=' . $dbUser,'DB_PASS=' . $dbPass,'MUCHO_ACCOUNT_URL=' . $accountUrl,'MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net','MUCHO_ADMIN_BOOTSTRAP=' . str_replace('\\','/',$bootstrapPath),'MUCHO_CONTROL_DIR=' . str_replace('\\','/',$controlDir),'MUCHO_BACKUP_DIR=' . str_replace('\\','/',$backupDir),'MUCHO_SHARED_HOSTING=1','MUCHO_GD_VERSIONS=all','MUCHO_PROTECT_STORAGE=file','MUCHO_TRUSTED_PROXY_CIDRS=','MUCHO_CACHE_DRIVER=database','MUCHO_AUTO_UPDATE=0','TZ=UTC','']);
+            $env = implode(PHP_EOL, ['DB_HOST=' . $dbHost,'DB_PORT=' . $dbPort,'DB_NAME=' . $dbName,'DB_USER=' . $dbUser,'DB_PASS=' . $dbPass,'MUCHO_ACCOUNT_URL=' . $accountUrl,'MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net','MUCHO_ADMIN_BOOTSTRAP=' . str_replace('\\','/',$bootstrapPath),'MUCHO_CONTROL_DIR=' . str_replace('\\','/',$controlDir),'MUCHO_BACKUP_DIR=' . str_replace('\\','/',$storage . '/backups/admin-v2'),
+                'MUCHO_DB_BACKUP_DIR=' . str_replace('\\','/',$backupDir),'MUCHO_SHARED_HOSTING=1','MUCHO_GD_VERSIONS=all','MUCHO_PROTECT_STORAGE=file','MUCHO_TRUSTED_PROXY_CIDRS=','MUCHO_CACHE_DRIVER=database','MUCHO_AUTO_UPDATE=0','TZ=UTC','']);
             atomicWrite($envFile, $env, 0600);
             $adminHash = password_hash($adminPass, PASSWORD_DEFAULT);
             if (!is_string($adminHash) || $adminHash === '') { throw new RuntimeException('Unable to hash the administrator password.'); }
