@@ -224,6 +224,13 @@ handle_update_interrupt() {
 
 trap handle_update_interrupt INT TERM
 
+# Older releases could leave the installation as a shallow clone. Expand it
+# before the ancestry check so valid release upgrades are not rejected.
+if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
+    echo "[MuchoCore] Expanding shallow Git history before release validation..."
+    git fetch --unshallow origin
+fi
+
 git fetch origin "refs/tags/$LATEST_TAG:refs/tags/$LATEST_TAG"
 
 if ! git merge-base --is-ancestor "$CURRENT_HEAD" "$LATEST_TAG^{commit}"; then
