@@ -461,6 +461,28 @@ SQL);
     );
 
     mkdir($fixtureRoot, 0700, true);
+
+    $sharedBackupDir = $fixtureRoot . '/shared-backups';
+    $sharedBackup = (new DatabaseBackupService(
+        $target,
+        $sharedBackupDir
+    ))->create('shared-integration');
+
+    must(is_file($sharedBackup['file']), 'Shared PHP backup file was not created.');
+    must(is_file($sharedBackup['file'] . '.sha256'), 'Shared PHP backup checksum was not created.');
+    must((int)$sharedBackup['size'] >= 100, 'Shared PHP backup is unexpectedly small.');
+    must(
+        hash_file('sha256', $sharedBackup['file']) === $sharedBackup['sha256'],
+        'Shared PHP backup checksum does not match.'
+    );
+    $gzip = gzopen($sharedBackup['file'], 'rb');
+    must($gzip !== false, 'Shared PHP backup cannot be reopened as gzip.');
+    $sample = $gzip !== false ? gzread($gzip, 4096) : false;
+    if ($gzip !== false) {
+        gzclose($gzip);
+    }
+    must(is_string($sample) && str_contains($sample, 'MuchoCore database backup'), 'Shared PHP backup header is invalid.');
+
     file_put_contents(
         $fixtureRoot . '/.env',
         "DB_HOST=$host\nDB_PORT=$port\nDB_NAME=$targetDb\nDB_USER=root\n"
