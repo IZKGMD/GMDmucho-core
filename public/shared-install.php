@@ -88,23 +88,12 @@ function fail(string $message): array {
 
 function dotenvLine(string $key, string $value): string {
     $escaped = str_replace(
-        ['\\', '"', 'function atomicWrite(string $path, string $content, int $mode = 0600): void {
-    $tmp = tempnam(dirname($path), '.muchocore-install-');
-    if ($tmp === false) {
-        throw new RuntimeException('Unable to create a temporary configuration file.');
-    }
-    try {
-        if (file_put_contents($tmp, $content, LOCK_EX) === false) {
-            throw new RuntimeException('Unable to write the temporary configuration file.');
-        }
-        chmod($tmp, $mode);
-        if (!rename($tmp, $path)) {
-            throw new RuntimeException('Unable to publish the configuration file.');
-        }
-    } catch (Throwable $e) {
-        @unlink($tmp);
-        throw $e;
-    }
+        ['\\', '"', '$'],
+        ['\\\\', '\\"', '\\$'],
+        $value
+    );
+
+    return $key . '="' . $escaped . '"';
 }
 
 function parseEnvValue(string $file, string $key): string {
