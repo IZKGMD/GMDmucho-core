@@ -4,12 +4,18 @@ declare(strict_types=1);
 $output=$_SESSION['migration_output'] ?? null;
 $status=$_SESSION['migration_status'] ?? null;
 $statusType=(string)($_SESSION['migration_status_type'] ?? 'ok');
-unset($_SESSION['migration_output'],$_SESSION['migration_status'],$_SESSION['migration_status_type']);
+$form=$_SESSION['migration_form'] ?? [];
+unset(
+    $_SESSION['migration_output'],
+    $_SESSION['migration_status'],
+    $_SESSION['migration_status_type'],
+    $_SESSION['migration_form']
+);
 
-$oldHost=(string)($_POST['source_host'] ?? '');
-$oldPort=(string)($_POST['source_port'] ?? '3306');
-$oldDb=(string)($_POST['source_db'] ?? '');
-$oldUser=(string)($_POST['source_user'] ?? '');
+$oldHost=(string)($form['source_host'] ?? '');
+$oldPort=(string)($form['source_port'] ?? '3306');
+$oldDb=(string)($form['source_db'] ?? '');
+$oldUser=(string)($form['source_user'] ?? '');
 ?>
 <div class="card">
     <div class="row" style="justify-content:space-between;align-items:flex-start">
