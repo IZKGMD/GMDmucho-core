@@ -108,7 +108,7 @@ if (
     substr_count($page, 'type="radio"') < 8 ||
     !str_contains($page, 'data-difficulty-preview') ||
     !str_contains($page, 'data-color-preview') ||
-    !str_contains($page, 'onchange="const d=this.closest(\\'details\\')')
+    !str_contains($page, "onchange=\"const d=this.closest('details')")
 ) {
     fwrite(STDERR, "Contract failed: native dropdown selectors are incomplete\n");
     exit(1);
