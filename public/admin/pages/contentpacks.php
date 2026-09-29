@@ -67,6 +67,137 @@ function renderContentPackLevelInput(
     echo '</div>';
 }
 
+
+
+function contentPackDifficultyOptions(): array
+{
+    return [
+        0 => ['⚙️', 'Auto'],
+        1 => ['🙂', 'Easy'],
+        2 => ['😐', 'Normal'],
+        3 => ['😕', 'Hard'],
+        4 => ['😠', 'Harder'],
+        5 => ['😡', 'Insane'],
+        6 => ['😈', 'Hard Demon'],
+        7 => ['😈', 'Easy Demon'],
+        8 => ['😈', 'Medium Demon'],
+        9 => ['😈', 'Insane Demon'],
+        10 => ['😈', 'Extreme Demon'],
+    ];
+}
+
+function renderContentPackDifficultyPicker(int $selected): void
+{
+    echo '<div class="mc-picker" style="margin-top:8px">';
+    echo '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px">';
+    echo '<strong style="font-size:13px">Give Rate</strong>';
+    echo '<span class="muted" style="font-size:12px">Choose difficulty</span>';
+    echo '</div>';
+    echo '<input type="hidden" name="difficulty" value="'.h($selected).'">';
+    echo '<div role="radiogroup" aria-label="Difficulty" style="display:flex;flex-wrap:wrap;gap:7px">';
+    foreach (contentPackDifficultyOptions() as $value => [$icon, $label]) {
+        $active = $selected === $value
+            ? 'box-shadow:0 0 0 2px currentColor;transform:translateY(-1px);'
+            : '';
+        echo '<button type="button" class="mc-rate-option" data-value="'.$value.'" '
+            .'aria-pressed="'.($selected === $value ? 'true' : 'false').'" '
+            .'title="'.h($label).'" '
+            .'onclick="muchoPickDifficulty(this)" '
+            .'style="min-width:74px;padding:8px 9px;border:1px solid rgba(127,140,163,.28);'
+            .'border-radius:10px;background:rgba(127,140,163,.08);cursor:pointer;'.$active.'">';
+        echo '<span style="display:block;font-size:20px;line-height:20px">'.$icon.'</span>';
+        echo '<span style="display:block;margin-top:4px;font-size:11px;font-weight:700">'.h($label).'</span>';
+        echo '</button>';
+    }
+    echo '</div>';
+    echo '</div>';
+}
+
+function contentPackColorPresets(): array
+{
+    return [
+        0 => '#f8fafc',
+        1 => '#3b82f6',
+        2 => '#22c55e',
+        3 => '#06b6d4',
+        4 => '#f59e0b',
+        5 => '#ef4444',
+        6 => '#a855f7',
+        7 => '#ec4899',
+        8 => '#14b8a6',
+        9 => '#eab308',
+        10 => '#84cc16',
+        11 => '#6366f1',
+        12 => '#f97316',
+        13 => '#8b5cf6',
+        14 => '#0ea5e9',
+        15 => '#10b981',
+    ];
+}
+
+function renderContentPackColorPicker(string $field, int $selected): void
+{
+    echo '<div style="margin-top:8px">';
+    echo '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px">';
+    echo '<strong style="font-size:13px">'.h(ucwords(str_replace('_', ' ', $field))).'</strong>';
+    echo '<span class="muted" style="font-size:12px">Color ID <span data-color-value="'.h($field).'">'.h($selected).'</span></span>';
+    echo '</div>';
+    echo '<input type="hidden" name="'.h($field).'" value="'.h($selected).'">';
+    echo '<div role="radiogroup" aria-label="'.h($field).' color" style="display:flex;flex-wrap:wrap;gap:6px">';
+    foreach (contentPackColorPresets() as $value => $hex) {
+        $active = $selected === $value
+            ? 'box-shadow:0 0 0 2px currentColor;transform:scale(1.05);'
+            : '';
+        echo '<button type="button" class="mc-color-option" data-field="'.h($field).'" data-value="'.$value.'" '
+            .'aria-pressed="'.($selected === $value ? 'true' : 'false').'" '
+            .'title="Color ID '.$value.'" '
+            .'onclick="muchoPickColor(this)" '
+            .'style="width:34px;height:34px;padding:0;border:2px solid rgba(255,255,255,.32);'
+            .'border-radius:9px;background:'.$hex.';cursor:pointer;'.$active.'">';
+        echo '<span style="font-size:10px;font-weight:800;color:'.($value === 0 ? '#1f2937' : '#fff').';text-shadow:0 1px 2px rgba(0,0,0,.35)">'.$value.'</span>';
+        echo '</button>';
+    }
+    echo '</div>';
+    echo '<small class="muted">Palette buttons are a visual shortcut; the server still stores the numeric Color ID used by the GD protocol.</small>';
+    echo '</div>';
+}
+
+function renderContentPackPickerScript(): void
+{
+    echo <<<'HTML'
+<script>
+function muchoPickDifficulty(button) {
+    const form = button.closest('form');
+    const input = form.querySelector('input[name="difficulty"]');
+    if (!input) return;
+    input.value = button.dataset.value;
+    form.querySelectorAll('.mc-rate-option').forEach((item) => {
+        const active = item === button;
+        item.setAttribute('aria-pressed', active ? 'true' : 'false');
+        item.style.boxShadow = active ? '0 0 0 2px currentColor' : '';
+        item.style.transform = active ? 'translateY(-1px)' : '';
+    });
+}
+
+function muchoPickColor(button) {
+    const form = button.closest('form');
+    const field = button.dataset.field;
+    const input = form.querySelector('input[name="' + field + '"]');
+    if (!input) return;
+    input.value = button.dataset.value;
+    const valueLabel = form.querySelector('[data-color-value="' + field + '"]');
+    if (valueLabel) valueLabel.textContent = button.dataset.value;
+    form.querySelectorAll('.mc-color-option[data-field="' + field + '"]').forEach((item) => {
+        const active = item === button;
+        item.setAttribute('aria-pressed', active ? 'true' : 'false');
+        item.style.boxShadow = active ? '0 0 0 2px currentColor' : '';
+        item.style.transform = active ? 'scale(1.05)' : '';
+    });
+}
+</script>
+HTML;
+}
+
 $gauntlets = $db->query(
     'SELECT id,name,level1,level2,level3,level4,level5,enabled,sort_order
      FROM mucho_gauntlets
@@ -111,9 +242,9 @@ echo '<input name="name" maxlength="64" placeholder="Map Pack name" required>';
 echo '<div class="grid" style="margin-top:8px">';
 echo '<label>Stars<input type="number" name="stars" min="0" max="255" value="10"></label>';
 echo '<label>Coins<input type="number" name="coins" min="0" max="255" value="3"></label>';
-echo '<label>Difficulty<input type="number" name="difficulty" min="0" max="10" value="1"></label>';
-echo '<label>Color 1<input type="number" name="color1" min="0" max="255" value="0"></label>';
-echo '<label>Color 2<input type="number" name="color2" min="0" max="255" value="3"></label>';
+renderContentPackDifficultyPicker(1);
+renderContentPackColorPicker('color1', 0);
+renderContentPackColorPicker('color2', 3);
 echo '<label>Order<input type="number" name="sort_order" value="0"></label>';
 echo '</div>';
 echo '<label style="display:flex;gap:6px;align-items:center;margin-top:8px">Enabled <input type="checkbox" name="enabled" checked></label>';
@@ -176,11 +307,11 @@ if ($mapPacks === []) {
         echo '<label>Name<input name="name" maxlength="64" value="'.h($m['name']).'" required></label>';
         echo '<label>Stars<input type="number" name="stars" min="0" max="255" value="'.h($m['stars']).'"></label>';
         echo '<label>Coins<input type="number" name="coins" min="0" max="255" value="'.h($m['coins']).'"></label>';
-        echo '<label>Difficulty<input type="number" name="difficulty" min="0" max="10" value="'.h($m['difficulty']).'"></label>';
+        renderContentPackDifficultyPicker((int)$m['difficulty']);
         echo '</div>';
         echo '<div class="grid" style="margin-top:8px">';
-        echo '<label>Color 1<input type="number" name="color1" min="0" max="255" value="'.h($m['color1']).'"></label>';
-        echo '<label>Color 2<input type="number" name="color2" min="0" max="255" value="'.h($m['color2']).'"></label>';
+        renderContentPackColorPicker('color1', (int)$m['color1']);
+        renderContentPackColorPicker('color2', (int)$m['color2']);
         echo '<label>Order<input type="number" name="sort_order" value="'.h($m['sort_order']).'"></label>';
         echo '<label style="display:flex;gap:6px;align-items:center">Enabled <input type="checkbox" name="enabled" '.((int)$m['enabled'] ? 'checked' : '').'></label>';
         echo '</div>';
@@ -200,4 +331,5 @@ if ($mapPacks === []) {
     }
 }
 
-echo '<p class="muted" style="margin-top:16px">Gauntlets require exactly 5 unique levels. Map Packs accept any number of unique levels. The client receives numeric IDs in the standard GD wire format.</p>';
+renderContentPackPickerScript();
+echo '<p class="muted" style="margin-top:16px">Gauntlets require exactly 5 unique levels. Map Packs accept any number of unique levels. Give Rate and color controls are clickable; the stored values remain GD-compatible numeric IDs.</p>';
