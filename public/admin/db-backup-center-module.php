@@ -6,9 +6,33 @@ declare(strict_types=1);
  * Copyright (C) 2026 IZK
  */
 
-const MUCHO_DB_BACKUP_DIR =
-    '/var/www/mucho-core/backups/database';
+function muchoDbBackupDir(): string
+{
+    $configured = (string)(
+        $_ENV['MUCHO_BACKUP_DIR']
+        ?? getenv('MUCHO_BACKUP_DIR')
+        ?? ''
+    );
 
+    if ($configured !== '') {
+        return rtrim($configured, '/\\');
+    }
+
+    if (defined('BACKUP_DIR')) {
+        return rtrim((string)BACKUP_DIR, '/\\') . '/database';
+    }
+
+    return dirname(__DIR__, 2) . '/storage/backups/database';
+}
+
+function muchodbSharedHosting(): bool
+{
+    return (string)(
+        $_ENV['MUCHO_SHARED_HOSTING']
+        ?? getenv('MUCHO_SHARED_HOSTING')
+        ?? ''
+    ) === '1';
+}
 
 function muchoDbBackupValidName(
     string $name
@@ -24,7 +48,7 @@ function muchoDbBackupPath(
     string $name
 ): string {
     return
-        MUCHO_DB_BACKUP_DIR.'/'.
+        muchoDbBackupDir().'/'.
         basename($name);
 }
 
@@ -33,6 +57,35 @@ function muchoDbBackupRun(
     string $action,
     ?string $file=null
 ): string {
+
+    global $db;
+
+    if(muchodbSharedHosting()){
+        if($action==='backup'){
+            $name=(string)$db->query('SELECT DATABASE()')->fetchColumn();
+            $service=new \MuchoCore\Backup\DatabaseBackupService(
+                $db,
+                muchoDbBackupDir()
+            );
+            $result=$service->create($name !== '' ? $name : 'muchocore');
+
+            return
+                'BACKUP_OK'."\\n".
+                'FILE='.$result['file']."\\n".
+                'SIZE='.$result['size']."\\n".
+                'SHA256='.$result['sha256'];
+        }
+
+        if($action==='restore'){
+            throw new RuntimeException(
+                'Database restore from the Admin Panel is not available on shared hosting. Restore the verified .sql.gz backup with phpMyAdmin or your hosting database tool.'
+            );
+        }
+
+        throw new RuntimeException(
+            'This database operation is VPS-only on shared hosting.'
+        );
+    }
 
     $command=
         'sudo -n '.
