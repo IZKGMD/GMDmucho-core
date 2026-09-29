@@ -17,7 +17,7 @@ The canonical source repository is **IZKGMD/GMDmucho-core**. **MuchoCore** and *
   <a href="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml">
     <img src="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml/badge.svg" alt="MuchoCore CI">
   </a>
-  <img src="https://img.shields.io/badge/release-v1.0.8-8A2BE2" alt="MuchoCore stable release v1.0.83">
+  <img src="https://img.shields.io/badge/release-v1.0.83-8A2BE2" alt="MuchoCore stable release v1.0.83">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/PHP-8.3-777BB4" alt="PHP 8.3+">
   <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2-success" alt="Geometry Dash 1.0 through 2.2 compatibility">
@@ -121,7 +121,9 @@ The names **MuchoCore** and **GMDmucho-core** identify the same project.
 
 ### New installation
 
-Start with **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)** for the shortest path from a fresh VPS to a working GDPS.
+For VPS, start with **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**.
+
+For normal PHP shared hosting, use **[docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md)** and download the `MuchoCore-vX.Y.Z-shared-hosting.zip` asset from the stable release page. It already contains `vendor/` and the browser installer, so FTP/file-manager access is enough.
 
 ```bash
 git clone https://github.com/IZKGMD/GMDmucho-core.git
@@ -626,9 +628,9 @@ Before large changes, back up the database and verify that your Cloud Save secre
 
 ---
 
-## 📦 MuchoCore v1.0.8
+## 📦 MuchoCore v1.0.83
 
-**v1.0.8** is the current stable release of MuchoCore.
+**v1.0.83** is the current stable release of MuchoCore.
 
 This is a major **Intelligence & Scale** release built on the v1.0.6/v1.0.7 integrity, compatibility and operational foundation.
 
