@@ -2,10 +2,6 @@
 
 declare(strict_types=1);
 
-<?php
-
-declare(strict_types=1);
-
 use MuchoCore\Backup\DatabaseBackupService;
 use MuchoCore\Database\Migrator;
 
