@@ -75,6 +75,7 @@ jobs:
           php tests/application/admin-rbac-contract.php
           php tests/application/admin-client-rbac-contract.php
           php tests/application/migration-center-contract.php
+          php tests/application/shared-hosting-installer-contract.php
           php tests/application/plugin-sdk-contract.php
           php tests/application/score-integrity-contract.php
           php tests/application/cvolton-db-import-contract.php
@@ -101,6 +102,7 @@ jobs:
           composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
           bash -n tools/release/build-shared-hosting.sh
           php -l public/shared-install.php
+          php tests/application/shared-hosting-installer-contract.php
           mkdir -p /tmp/muchocore-shared-package-test
           OUTPUT=/tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             bash tools/release/build-shared-hosting.sh
           unzip -t /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip >/dev/null
