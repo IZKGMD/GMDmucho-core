@@ -52,7 +52,7 @@ final readonly class PluginContext
             throw new RuntimeException('Plugin route path must start with /.');
         }
 
-        $this->router->add(
+        $this->router->addPlugin(
             $method,
             $path,
             static function (Request $request) use ($handler): Response {
