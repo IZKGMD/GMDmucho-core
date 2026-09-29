@@ -72,66 +72,57 @@ function renderContentPackLevelInput(
 function contentPackDifficultyOptions(): array
 {
     return [
-        0 => ['Auto', '#64748b'],
-        1 => ['Easy', '#43c36b'],
-        2 => ['Normal', '#6cc24a'],
-        3 => ['Hard', '#f2c94c'],
-        4 => ['Harder', '#f2994a'],
-        5 => ['Insane', '#eb5757'],
-        6 => ['Easy Demon', '#c95cff'],
-        7 => ['Medium Demon', '#b43cff'],
-        8 => ['Hard Demon', '#a12cff'],
-        9 => ['Insane Demon', '#8b20e8'],
-        10 => ['Extreme Demon', '#6d16ba'],
+        0 => ['Auto', 'https://commons.wikimedia.org/wiki/Special:FilePath/Auto_Icon.svg'],
+        1 => ['Easy', 'https://commons.wikimedia.org/wiki/Special:FilePath/Easy_Icon.svg'],
+        2 => ['Normal', 'https://commons.wikimedia.org/wiki/Special:FilePath/Normal_Icon.svg'],
+        3 => ['Hard', 'https://commons.wikimedia.org/wiki/Special:FilePath/Hard_Icon.svg'],
+        4 => ['Harder', 'https://commons.wikimedia.org/wiki/Special:FilePath/Harder_Icon.svg'],
+        5 => ['Insane', 'https://commons.wikimedia.org/wiki/Special:FilePath/Insane_Icon.svg'],
+        6 => ['Hard Demon', 'https://commons.wikimedia.org/wiki/Special:FilePath/Demon_Icon.webp'],
+        7 => ['Easy Demon', 'https://commons.wikimedia.org/wiki/Special:FilePath/Easy_Demon_Icon.webp'],
+        8 => ['Medium Demon', 'https://geometrydash.wiki.gg/wiki/Special:Redirect/file/MediumDemon.png'],
+        9 => ['Insane Demon', 'https://commons.wikimedia.org/wiki/Special:FilePath/Insane_Demon_Icon.webp'],
+        10 => ['Extreme Demon', 'https://commons.wikimedia.org/wiki/Special:FilePath/Extreme_Demon_Icon.webp'],
     ];
 }
 
 function contentPackDifficultyIcon(int $value): string
 {
     $value = max(0, min(10, $value));
-    $files = [
-        0 => '00-auto.svg',
-        1 => '01-easy.svg',
-        2 => '02-normal.svg',
-        3 => '03-hard.svg',
-        4 => '04-harder.svg',
-        5 => '05-insane.svg',
-        6 => '06-easy-demon.svg',
-        7 => '07-medium-demon.svg',
-        8 => '08-hard-demon.svg',
-        9 => '09-insane-demon.svg',
-        10 => '10-extreme-demon.svg',
-    ];
+    $options = contentPackDifficultyOptions();
 
-    return '/assets/difficulties/'.$files[$value];
+    return $options[$value][1];
 }
+
 function renderContentPackDifficultyPicker(int $selected): void
 {
     $options = contentPackDifficultyOptions();
     $selected = array_key_exists($selected, $options) ? $selected : 0;
-    [$selectedLabel] = $options[$selected];
+    [$selectedLabel, $selectedIcon] = $options[$selected];
 
-    echo '<div class="mc-field-picker" data-picker="difficulty" style="margin-top:8px;position:relative">';
-    echo '<label style="display:block">Give Rate';
-    echo '<input type="hidden" name="difficulty" value="'.h($selected).'">';
-    echo '<button type="button" class="mc-select-field" data-picker-toggle style="width:100%;min-height:52px;display:flex;align-items:center;gap:10px;padding:6px 10px;text-align:left;border:1px solid rgba(127,140,163,.32);border-radius:10px;background:rgba(127,140,163,.08);color:inherit;cursor:pointer">';
-    echo '<img data-picker-preview src="'.h(contentPackDifficultyIcon($selected)).'" width="42" height="42" alt="">';
-    echo '<span style="flex:1"><strong data-difficulty-label>'.h($selectedLabel).'</strong><small class="muted" style="display:block">Click to choose difficulty</small></span>';
+    echo '<details class="mc-field-picker" style="margin-top:8px">';
+    echo '<summary style="list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 10px;border:1px solid rgba(127,140,163,.32);border-radius:10px;background:rgba(127,140,163,.08)">';
+    echo '<img src="'.h($selectedIcon).'" width="42" height="42" alt="">';
+    echo '<span style="flex:1"><strong>Give Rate</strong><small class="muted" style="display:block">Selected: '.h($selectedLabel).'</small></span>';
     echo '<span aria-hidden="true" style="font-size:18px">▾</span>';
-    echo '</button>';
-    echo '</label>';
-    echo '<div class="mc-select-menu" data-picker-menu hidden style="position:absolute;z-index:50;left:0;right:0;margin-top:6px;padding:10px;border:1px solid rgba(127,140,163,.34);border-radius:12px;background:var(--card-bg,#111827);box-shadow:0 12px 30px rgba(0,0,0,.35)">';
-    echo '<div role="radiogroup" aria-label="Difficulty" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:7px">';
-    foreach ($options as $value => [$label, $accent]) {
-        $isSelected = $selected === $value;
-        echo '<button type="button" class="mc-rate-option" data-value="'.$value.'" data-label="'.h($label).'" data-icon="'.h(contentPackDifficultyIcon((int)$value)).'" '
-            .'aria-pressed="'.($isSelected ? 'true' : 'false').'" title="'.h($label).'" onclick="muchoPickDifficulty(this)" '
-            .'style="min-height:84px;padding:5px 3px;border:1px solid rgba(127,140,163,.25);border-radius:10px;background:rgba(127,140,163,.08);color:inherit;cursor:pointer;transition:.12s">';
-        echo '<img src="'.h(contentPackDifficultyIcon((int)$value)).'" width="58" height="58" alt="">';
-        echo '<span style="display:block;font-size:10px;font-weight:800;line-height:12px">'.h($label).'</span>';
-        echo '</button>';
+    echo '</summary>';
+    echo '<div style="margin-top:6px;padding:10px;border:1px solid rgba(127,140,163,.34);border-radius:12px;background:var(--card-bg,#111827);box-shadow:0 12px 30px rgba(0,0,0,.35)">';
+    echo '<input type="hidden" name="difficulty" value="'.h($selected).'">';
+    echo '<div role="radiogroup" aria-label="Difficulty" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(76px,1fr));gap:7px">';
+
+    foreach ($options as $value => [$label, $icon]) {
+        $checked = $selected === $value;
+        echo '<label style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:82px;padding:5px 3px;border:1px solid rgba(127,140,163,.25);border-radius:10px;background:rgba(127,140,163,.08);cursor:pointer;text-align:center">';
+        echo '<input type="radio" name="difficulty" value="'.$value.'" '.($checked ? 'checked' : '').' style="position:absolute;opacity:0;pointer-events:none">';
+        echo '<img src="'.h($icon).'" width="58" height="58" alt="">';
+        echo '<span style="font-size:10px;font-weight:800;line-height:12px">'.h($label).'</span>';
+        echo '</label>';
     }
-    echo '</div></div></div>';
+
+    echo '</div>';
+    echo '<small class="muted" style="display:block;margin-top:8px">Original Geometry Dash difficulty artwork is loaded from the listed wiki sources. The selected value is sent as the numeric GD protocol ID.</small>';
+    echo '</div>';
+    echo '</details>';
 }
 
 function renderContentPackColorPicker(string $field, int $selected): void
@@ -160,85 +151,6 @@ function renderContentPackColorPicker(string $field, int $selected): void
     echo '</div></div></div>';
 }
 
-
-function renderContentPackPickerScript(): void
-{
-    echo <<<'HTML'
-<script>
-function muchoClosePickers(except) {
-    document.querySelectorAll('.mc-select-menu').forEach((menu) => {
-        if (!except || menu !== except) menu.hidden = true;
-    });
-}
-
-function muchoPickDifficulty(button) {
-    const form = button.closest('form');
-    const picker = button.closest('[data-picker="difficulty"]');
-    const input = form?.querySelector('input[name="difficulty"]');
-    if (!picker || !input) return;
-
-    input.value = button.dataset.value;
-
-    const label = picker.querySelector('[data-difficulty-label]');
-    const preview = picker.querySelector('[data-picker-preview]');
-    if (label) label.textContent = button.dataset.label;
-    if (preview) preview.src = button.dataset.icon;
-
-    picker.querySelectorAll('.mc-rate-option').forEach((item) => {
-        const active = item === button;
-        item.setAttribute('aria-pressed', active ? 'true' : 'false');
-        item.style.outline = active ? '2px solid currentColor' : '';
-        item.style.transform = active ? 'translateY(-1px)' : '';
-    });
-
-    const menu = picker.querySelector('[data-picker-menu]');
-    if (menu) menu.hidden = true;
-}
-
-function muchoPickColor(button) {
-    const form = button.closest('form');
-    const field = button.dataset.field;
-    const picker = button.closest('[data-picker="' + field + '"]');
-    const input = form?.querySelector('input[name="' + field + '"]');
-    if (!picker || !input) return;
-
-    input.value = button.dataset.value;
-
-    const valueLabel = picker.querySelector('[data-color-value]');
-    const preview = picker.querySelector('[data-picker-color-preview]');
-    if (valueLabel) valueLabel.textContent = 'Color ' + button.dataset.value;
-    if (preview) preview.style.background = button.dataset.hex;
-
-    picker.querySelectorAll('.mc-color-option').forEach((item) => {
-        const active = item === button;
-        item.setAttribute('aria-pressed', active ? 'true' : 'false');
-        item.style.outline = active ? '2px solid currentColor' : '';
-        item.style.transform = active ? 'scale(1.06)' : '';
-    });
-
-    const menu = picker.querySelector('[data-picker-menu]');
-    if (menu) menu.hidden = true;
-}
-
-document.addEventListener('click', (event) => {
-    const toggle = event.target.closest('[data-picker-toggle]');
-    if (toggle) {
-        const picker = toggle.closest('.mc-field-picker');
-        const menu = picker?.querySelector('[data-picker-menu]');
-        if (!menu) return;
-        const wasHidden = menu.hidden;
-        muchoClosePickers(menu);
-        menu.hidden = !wasHidden;
-        return;
-    }
-
-    if (!event.target.closest('.mc-field-picker')) {
-        muchoClosePickers();
-    }
-});
-</script>
-HTML;
-}
 
 
 $gauntlets = $db->query(
