@@ -9,10 +9,18 @@ declare(strict_types=1);
 function muchoDbBackupDir(): string
 {
     $configured = (string)(
-        $_ENV['MUCHO_BACKUP_DIR']
-        ?? getenv('MUCHO_BACKUP_DIR')
+        $_ENV['MUCHO_DB_BACKUP_DIR']
+        ?? getenv('MUCHO_DB_BACKUP_DIR')
         ?? ''
     );
+
+    if ($configured === '' && muchodbSharedHosting()) {
+        $configured = (string)(
+            $_ENV['MUCHO_BACKUP_DIR']
+            ?? getenv('MUCHO_BACKUP_DIR')
+            ?? ''
+        );
+    }
 
     if ($configured !== '') {
         return rtrim($configured, '/\\');
