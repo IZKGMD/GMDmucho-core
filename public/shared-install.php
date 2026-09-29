@@ -2,76 +2,26 @@
 
 declare(strict_types=1);
 
+<?php
+
+declare(strict_types=1);
+
+use MuchoCore\Backup\DatabaseBackupService;
 use MuchoCore\Database\Migrator;
-
-session_start();
-
-if (empty($_SESSION['mucho_install_csrf'])) {
-    $_SESSION['mucho_install_csrf'] = bin2hex(random_bytes(32));
-}
 
 $root = dirname(__DIR__);
 $storage = $root . '/storage';
-$lock = $storage . '/shared-install.lock';
+$lockPath = $storage . '/shared-install.lock';
+$installedMarker = $storage . '/shared-install.installed';
 $bootstrapPath = $storage . '/admin-bootstrap.php';
 $envFile = $root . '/.env';
 
-function e(string $value): string
-{
-    return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+if (!is_dir($storage) && !mkdir($storage, 0750, true) && !is_dir($storage)) {
+    http_response_code(500);
+    exit('Unable to create the MuchoCore storage directory.');
 }
 
-function pass(string $message): array
-{
-    return ['ok' => true, 'message' => $message];
-}
-
-function fail(string $message): array
-{
-    return ['ok' => false, 'message' => $message];
-}
-
-function checkRequirements(string $root, string $storage): array
-{
-    $checks = [];
-
-    $checks[] = version_compare(PHP_VERSION, '8.3.0', '>=')
-        ? pass('PHP ' . PHP_VERSION . ' is supported.')
-        : fail('PHP 8.3 or newer is required. Ask your hosting provider to switch this website to PHP 8.3+.');
-
-    foreach (['pdo', 'pdo_mysql', 'openssl', 'json', 'mbstring', 'session'] as $extension) {
-        $checks[] = extension_loaded($extension)
-            ? pass('PHP extension ' . $extension . ' is enabled.')
-            : fail('PHP extension ' . $extension . ' is missing. Enable it in your hosting control panel.');
-    }
-
-    $checks[] = is_file($root . '/composer.json')
-        ? pass('MuchoCore files were found.')
-        : fail('composer.json is missing. Upload the complete MuchoCore repository.');
-
-    $checks[] = is_file($root . '/vendor/autoload.php')
-        ? pass('Composer dependencies are installed.')
-        : fail(
-            'Composer dependencies are missing. In the hosting terminal, run: ' .
-            'composer install --no-dev --optimize-autoloader'
-        );
-
-    $checks[] = is_writable($root)
-        ? pass('The MuchoCore directory is writable.')
-        : fail('The MuchoCore directory is not writable. Give your hosting PHP user write access.');
-
-    if (!is_dir($storage)) {
-        @mkdir($storage, 0750, true);
-    }
-
-    $checks[] = is_writable($storage)
-        ? pass('The storage directory is writable.')
-        : fail('The storage directory is not writable. PHP must be able to create its configuration and backup folders.');
-
-    return $checks;
-}
-
-if (is_file($lock)) {
+if (is_file($installedMarker)) {
     ?>
     <!doctype html>
     <html lang="en">
@@ -79,221 +29,248 @@ if (is_file($lock)) {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width,initial-scale=1">
         <title>MuchoCore Installer</title>
-        <style>
-            body{font-family:system-ui,sans-serif;background:#f4f6f8;margin:0;padding:40px;color:#222}
-            .box{max-width:760px;margin:auto;background:white;padding:32px;border-radius:16px;box-shadow:0 8px 30px #0001}
-            h1{margin-top:0}.ok{padding:14px;border-radius:10px;background:#e8f7ee;color:#145c2f}
-        </style>
+        <style>body{font-family:system-ui,sans-serif;background:#f4f6f8;margin:0;padding:40px;color:#222}.box{max-width:760px;margin:auto;background:white;padding:32px;border-radius:16px;box-shadow:0 8px 30px #0001}.ok{padding:14px;border-radius:10px;background:#e8f7ee;color:#145c2f}</style>
     </head>
-    <body>
-    <div class="box">
+    <body><div class="box">
         <h1>MuchoCore is already installed</h1>
-        <div class="ok">
-            The shared-hosting installer is locked.
-            For security, delete <code>public/shared-install.php</code> from your hosting account.
-        </div>
-        <p>Then open <code>/health</code> and <code>/admin/</code> to test the server.</p>
-        <p style="margin-top:24px;padding-top:14px;border-top:1px solid #d9dee5;text-align:center;color:#7a838f;font-size:12px">
-            Powered by MuchoCore 🛡️ · <a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">GitHub</a>
-        </p>
-    </div>
-    </body>
+        <div class="ok">The shared-hosting installer has been completed and locked.</div>
+        <p>For security, delete <code>public/shared-install.php</code> from your hosting account.</p>
+        <p>Then open <code>/health</code> and <code>/admin/</code> to verify the installation.</p>
+    </div></body>
     </html>
     <?php
     exit;
 }
 
+$lockHandle = fopen($lockPath, 'c');
+if (!is_resource($lockHandle) || !flock($lockHandle, LOCK_EX | LOCK_NB)) {
+    if (is_resource($lockHandle)) {
+        fclose($lockHandle);
+    }
+    http_response_code(409);
+    exit('Another MuchoCore shared-hosting installation is already running. Refresh after it finishes.');
+}
+
+register_shutdown_function(static function () use ($lockHandle): void {
+    flock($lockHandle, LOCK_UN);
+    fclose($lockHandle);
+});
+
+$isHttps = (($_SERVER['HTTPS'] ?? '') === 'on') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_samesite', 'Strict');
+ini_set('session.cookie_secure', $isHttps ? '1' : '0');
+
+if (session_status() !== PHP_SESSION_ACTIVE && !session_start()) {
+    http_response_code(500);
+    exit('Unable to start the installer session.');
+}
+
+if (empty($_SESSION['mucho_install_csrf'])) {
+    $_SESSION['mucho_install_csrf'] = bin2hex(random_bytes(32));
+}
+
+function e(string $value): string {
+    return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function pass(string $message): array {
+    return ['ok' => true, 'message' => $message];
+}
+
+function fail(string $message): array {
+    return ['ok' => false, 'message' => $message];
+}
+
+function atomicWrite(string $path, string $content, int $mode = 0600): void {
+    $tmp = tempnam(dirname($path), '.muchocore-install-');
+    if ($tmp === false) {
+        throw new RuntimeException('Unable to create a temporary configuration file.');
+    }
+    try {
+        if (file_put_contents($tmp, $content, LOCK_EX) === false) {
+            throw new RuntimeException('Unable to write the temporary configuration file.');
+        }
+        chmod($tmp, $mode);
+        if (!rename($tmp, $path)) {
+            throw new RuntimeException('Unable to publish the configuration file.');
+        }
+    } catch (Throwable $e) {
+        @unlink($tmp);
+        throw $e;
+    }
+}
+
+function parseEnvValue(string $file, string $key): string {
+    if (!is_file($file)) { return ''; }
+    foreach (file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#')) { continue; }
+        if (str_starts_with($line, 'export ')) { $line = substr($line, 7); }
+        $prefix = $key . '=';
+        if (!str_starts_with($line, $prefix)) { continue; }
+        $value = substr($line, strlen($prefix));
+        if (strlen($value) >= 2 && (($value[0] === '"' && $value[-1] === '"') || ($value[0] === "'" && $value[-1] === "'"))) {
+            $value = substr($value, 1, -1);
+        }
+        return $value;
+    }
+    return '';
+}
+
+function databaseTableCount(PDO $pdo): int {
+    return (int)$pdo->query('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = "BASE TABLE"')->fetchColumn();
+}
+
+function databasePreflight(PDO $pdo): string {
+    $version = (string)$pdo->query('SELECT VERSION()')->fetchColumn();
+    $lower = strtolower($version);
+    if (str_contains($lower, 'mariadb')) {
+        $normalized = preg_replace('/[^0-9.].*$/', '', $version) ?: '';
+        if ($normalized !== '' && version_compare($normalized, '10.4.0', '<')) {
+            throw new RuntimeException('MariaDB 10.4 or newer is required. Your server reports ' . $version . '.');
+        }
+    } elseif (preg_match('/(\d+\.\d+(?:\.\d+)?)/', $version, $match)) {
+        if (version_compare($match[1], '8.0.29', '<')) {
+            throw new RuntimeException('MySQL 8.0.29 or newer is required. Your server reports ' . $version . '.');
+        }
+    } else {
+        throw new RuntimeException('Unsupported MySQL/MariaDB server version: ' . $version . '.');
+    }
+
+    $probe = 'muchocore_install_probe_' . bin2hex(random_bytes(8));
+    $quote = chr(96);
+    $quotedProbe = $quote . str_replace($quote, $quote . $quote, $probe) . $quote;
+    try {
+        $pdo->exec('CREATE TABLE ' . $quotedProbe . ' (id INT NOT NULL PRIMARY KEY, value VARCHAR(64) NULL) ENGINE=InnoDB');
+        $pdo->exec('ALTER TABLE ' . $quotedProbe . ' ADD COLUMN extra INT NULL');
+        $pdo->exec('CREATE INDEX probe_value_idx ON ' . $quotedProbe . ' (value)');
+        $stmt = $pdo->prepare('INSERT INTO ' . $quotedProbe . ' (id, value) VALUES (1, :value)');
+        $stmt->execute(['value' => 'ok']);
+        $pdo->prepare('UPDATE ' . $quotedProbe . ' SET extra = 1 WHERE id = 1')->execute();
+        $pdo->exec('DELETE FROM ' . $quotedProbe . ' WHERE id = 1');
+    } catch (Throwable $e) {
+        throw new RuntimeException('The database user does not have all permissions required by MuchoCore migrations: ' . $e->getMessage(), 0, $e);
+    } finally {
+        try { $pdo->exec('DROP TABLE IF EXISTS ' . $quotedProbe); } catch (Throwable) {}
+    }
+    return $version;
+}
+
+function checkRequirements(string $root, string $storage): array {
+    $checks = [];
+    $checks[] = version_compare(PHP_VERSION, '8.3.0', '>=') ? pass('PHP ' . PHP_VERSION . ' is supported.') : fail('PHP 8.3 or newer is required.');
+    foreach (['pdo','pdo_mysql','openssl','json','mbstring','session','zlib'] as $extension) {
+        $checks[] = extension_loaded($extension) ? pass('PHP extension ' . $extension . ' is enabled.') : fail('PHP extension ' . $extension . ' is missing. Enable it in your hosting control panel.');
+    }
+    foreach ([$root . '/composer.json'=>'composer.json',$root . '/composer.lock'=>'composer.lock',$root . '/vendor/autoload.php'=>'Composer dependencies',$root . '/public/index.php'=>'public/index.php',$root . '/public/.htaccess'=>'public/.htaccess',$root . '/database/migrations'=>'database/migrations',$root . '/src'=>'src',$root . '/.htaccess'=>'root .htaccess'] as $path=>$label) {
+        $checks[] = file_exists($path) ? pass($label . ' is present.') : fail($label . ' is missing. Upload the complete MuchoCore shared-hosting package.');
+    }
+    $checks[] = is_writable($root) ? pass('The MuchoCore project directory is writable.') : fail('The MuchoCore project directory is not writable by PHP.');
+    $checks[] = is_writable($storage) ? pass('The storage directory is writable.') : fail('The storage directory is not writable by PHP.');
+    $configDir = $root . '/config';
+    if (!is_dir($configDir)) { @mkdir($configDir, 0750, true); }
+    $checks[] = is_writable($configDir) ? pass('The config directory is writable.') : fail('The config directory is not writable.');
+    return $checks;
+}
+
 $requirements = checkRequirements($root, $storage);
 $canInstall = !in_array(false, array_column($requirements, 'ok'), true);
-
-$defaultUrl = '';
+$defaultHost = parseEnvValue($envFile, 'DB_HOST') ?: 'localhost';
+$defaultPort = parseEnvValue($envFile, 'DB_PORT') ?: '3306';
+$defaultDb = parseEnvValue($envFile, 'DB_NAME') ?: 'muchocore';
+$defaultUser = parseEnvValue($envFile, 'DB_USER');
+$defaultUrl = parseEnvValue($envFile, 'MUCHO_ACCOUNT_URL');
 $errors = [];
 $success = false;
+$backupInfo = null;
+$envBackup = null;
+$bootstrapBackup = null;
+$cloudsaveCreated = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    set_time_limit(0);
     $postedCsrf = (string)($_POST['csrf'] ?? '');
-
-    if (
-        !hash_equals(
-            (string)$_SESSION['mucho_install_csrf'],
-            $postedCsrf
-        )
-    ) {
+    if (empty($_SESSION['mucho_install_csrf']) || !hash_equals((string)$_SESSION['mucho_install_csrf'], $postedCsrf)) {
         $errors[] = 'This installation form expired. Refresh the page and try again.';
     }
-
-    if (!$canInstall) {
-        $errors[] = 'Fix the red checks above before installing.';
-    }
-
-    $dbHost = trim((string)($_POST['db_host'] ?? 'localhost'));
-    $dbPort = trim((string)($_POST['db_port'] ?? '3306'));
-    $dbName = trim((string)($_POST['db_name'] ?? 'muchocore'));
-    $dbUser = trim((string)($_POST['db_user'] ?? ''));
+    if (!$canInstall) { $errors[] = 'Fix every red check above before installing.'; }
+    $dbHost = trim((string)($_POST['db_host'] ?? $defaultHost));
+    $dbPort = trim((string)($_POST['db_port'] ?? $defaultPort));
+    $dbName = trim((string)($_POST['db_name'] ?? $defaultDb));
+    $dbUser = trim((string)($_POST['db_user'] ?? $defaultUser));
     $dbPass = (string)($_POST['db_pass'] ?? '');
     $accountUrl = rtrim(trim((string)($_POST['account_url'] ?? $defaultUrl)), '/');
     $adminPass = (string)($_POST['admin_pass'] ?? '');
     $adminPass2 = (string)($_POST['admin_pass2'] ?? '');
-
-    if (!preg_match('/^[A-Za-z0-9._-]+$/', $dbHost)) {
-        $errors[] = 'Database host contains unsupported characters.';
-    }
-
-    if (!preg_match('/^\d{1,5}$/', $dbPort) || (int)$dbPort < 1 || (int)$dbPort > 65535) {
-        $errors[] = 'Database port must be a number such as 3306.';
-    }
-
-    if (!preg_match('/^[A-Za-z0-9_$.-]+$/', $dbName)) {
-        $errors[] = 'Database name contains unsupported characters.';
-    }
-
-    if ($dbUser === '') {
-        $errors[] = 'Database username cannot be empty.';
-    }
-
-    if ($accountUrl === '' || !preg_match('#^https?://[^/\s]+$#i', $accountUrl)) {
-        $errors[] = 'Server URL must look like https://gdps.example.com';
-    }
-
-    if (strlen($adminPass) < 8) {
-        $errors[] = 'Admin password must contain at least 8 characters.';
-    }
-
-    if ($adminPass !== $adminPass2) {
-        $errors[] = 'The two admin passwords do not match.';
-    }
+    if (!preg_match('/^[A-Za-z0-9._:-]+$/', $dbHost)) { $errors[] = 'Database host contains unsupported characters.'; }
+    if (!preg_match('/^\d{1,5}$/', $dbPort) || (int)$dbPort < 1 || (int)$dbPort > 65535) { $errors[] = 'Database port must be a number such as 3306.'; }
+    if (!preg_match('/^[A-Za-z0-9_$.-]+$/', $dbName) || strlen($dbName) > 128) { $errors[] = 'Database name contains unsupported characters.'; }
+    if ($dbUser === '' || strlen($dbUser) > 128) { $errors[] = 'Database username is invalid.'; }
+    $parts = parse_url($accountUrl);
+    $validAccountUrl = is_array($parts) && in_array(strtolower((string)($parts['scheme'] ?? '')), ['http','https'], true) && !empty($parts['host']) && empty($parts['user']) && empty($parts['pass']) && empty($parts['path']) && empty($parts['query']) && empty($parts['fragment']) && (filter_var($parts['host'], FILTER_VALIDATE_IP) !== false || filter_var($parts['host'], FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) !== false);
+    if (!$validAccountUrl) { $errors[] = 'Server URL must be a full URL such as https://gdps.example.com with no /database path.'; }
+    if (!$isHttps) { $errors[] = 'Open the installer over HTTPS before entering database and administrator passwords.'; }
+    if (strlen($adminPass) < 12) { $errors[] = 'Admin password must contain at least 12 characters.'; }
+    if ($adminPass !== $adminPass2) { $errors[] = 'The two admin passwords do not match.'; }
 
     if (!$errors) {
+        $createdCloudsavePath = $root . '/config/cloudsave.key';
+        $hadExistingEnv = is_file($envFile);
+        $hadExistingBootstrap = is_file($bootstrapPath);
+        $hadExistingCloudsave = is_file($createdCloudsavePath);
         try {
-            $pdo = new PDO(
-                "mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4",
-                $dbUser,
-                $dbPass,
-                [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false,
-                ]
-            );
-
-            $normalizedRoot = str_replace('\\', '/', $root);
-            $controlDir = $normalizedRoot . '/storage/control';
-            $backupDir = $normalizedRoot . '/storage/backups/admin-v2';
-
-            @mkdir($controlDir, 0750, true);
-            @mkdir($backupDir, 0750, true);
-
-            $env = implode(PHP_EOL, [
-                'DB_HOST=' . $dbHost,
-                'DB_PORT=' . $dbPort,
-                'DB_NAME=' . $dbName,
-                'DB_USER=' . $dbUser,
-                'DB_PASS=' . $dbPass,
-                'MUCHO_ACCOUNT_URL=' . $accountUrl,
-                'MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net',
-                'MUCHO_ADMIN_BOOTSTRAP=' . $normalizedRoot . '/storage/admin-bootstrap.php',
-                'MUCHO_CONTROL_DIR=' . $controlDir,
-                'MUCHO_BACKUP_DIR=' . $backupDir,
-                'MUCHO_SHARED_HOSTING=1',
-                'TZ=UTC',
-                '',
-            ]);
-
-            if (is_file($envFile)) {
-                $backup = $envFile . '.before-shared-install-' . date('Ymd-His');
-                if (!@copy($envFile, $backup)) {
-                    throw new RuntimeException('Could not back up the existing .env file.');
-                }
+            $pdo = new PDO('mysql:host=' . $dbHost . ';port=' . $dbPort . ';dbname=' . $dbName . ';charset=utf8mb4', $dbUser, $dbPass, [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false]);
+            $version = databasePreflight($pdo);
+            $tableCount = databaseTableCount($pdo);
+            if (!$hadExistingEnv && $tableCount > 0) { throw new RuntimeException('The selected database is not empty (' . $tableCount . ' tables). Use a new empty database for a first installation.'); }
+            $controlDir = $storage . '/control';
+            $backupDir = $storage . '/backups/database';
+            foreach ([$controlDir,$backupDir] as $directory) {
+                if (!is_dir($directory) && !mkdir($directory, 0750, true) && !is_dir($directory)) { throw new RuntimeException('Unable to create required directory: ' . $directory); }
+                if (!is_writable($directory)) { throw new RuntimeException('Required directory is not writable: ' . $directory); }
             }
-
-            if (@file_put_contents($envFile, $env, LOCK_EX) === false) {
-                throw new RuntimeException('Could not write .env. Check file permissions.');
+            if ($hadExistingEnv) {
+                $envBackup = $envFile . '.before-shared-install-' . gmdate('Ymd-His');
+                if (!copy($envFile, $envBackup)) { throw new RuntimeException('Could not back up the existing .env file.'); }
+                chmod($envBackup, 0600);
             }
-
-            @chmod($envFile, 0600);
-
-            $bootstrap = <<<PHP
-<?php
-return [
-    'username' => 'admin',
-    'password_hash' => %s,
-];
-PHP;
-
-            $bootstrap = sprintf(
-                $bootstrap,
-                var_export(password_hash($adminPass, PASSWORD_DEFAULT), true)
-            );
-
-            if (@file_put_contents($bootstrapPath, $bootstrap . PHP_EOL, LOCK_EX) === false) {
-                throw new RuntimeException('Could not write the admin bootstrap file.');
+            $env = implode(PHP_EOL, ['DB_HOST=' . $dbHost,'DB_PORT=' . $dbPort,'DB_NAME=' . $dbName,'DB_USER=' . $dbUser,'DB_PASS=' . $dbPass,'MUCHO_ACCOUNT_URL=' . $accountUrl,'MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net','MUCHO_ADMIN_BOOTSTRAP=' . str_replace('\\','/',$bootstrapPath),'MUCHO_CONTROL_DIR=' . str_replace('\\','/',$controlDir),'MUCHO_BACKUP_DIR=' . str_replace('\\','/',$backupDir),'MUCHO_SHARED_HOSTING=1','MUCHO_GD_VERSIONS=all','MUCHO_PROTECT_STORAGE=file','MUCHO_TRUSTED_PROXY_CIDRS=','MUCHO_CACHE_DRIVER=database','MUCHO_AUTO_UPDATE=0','TZ=UTC','']);
+            atomicWrite($envFile, $env, 0600);
+            $adminHash = password_hash($adminPass, PASSWORD_DEFAULT);
+            if (!is_string($adminHash) || $adminHash === '') { throw new RuntimeException('Unable to hash the administrator password.'); }
+            $bootstrap = "<?php\nreturn [\n    'username' => 'admin',\n    'password_hash' => " . var_export($adminHash,true) . ",\n];\n";
+            if ($hadExistingBootstrap) {
+                $bootstrapBackup = $bootstrapPath . '.before-shared-install-' . gmdate('Ymd-His');
+                if (!copy($bootstrapPath, $bootstrapBackup)) { throw new RuntimeException('Could not back up the existing admin bootstrap file.'); }
+                chmod($bootstrapBackup, 0600);
             }
-
-            @chmod($bootstrapPath, 0600);
-
-            if (!is_file($root . '/config/cloudsave.key')) {
-                @mkdir($root . '/config', 0750, true);
-                $key = base64_encode(random_bytes(32));
-                @file_put_contents($root . '/config/cloudsave.key', $key . PHP_EOL, LOCK_EX);
-                @chmod($root . '/config/cloudsave.key', 0600);
-            }
-
+            atomicWrite($bootstrapPath, $bootstrap, 0600);
+            if (!$hadExistingCloudsave) { atomicWrite($createdCloudsavePath, base64_encode(random_bytes(32)) . PHP_EOL, 0600); $cloudsaveCreated = true; }
             require_once $root . '/vendor/autoload.php';
-
-            Dotenv\Dotenv::createImmutable($root)->safeLoad();
-
-            $migrator = new Migrator(
-                $pdo,
-                $root . '/database/migrations'
-            );
-            $migrator->migrate();
-
-            /*
-             * The installer claims that the admin account is created.
-             * Make that true immediately instead of waiting for the
-             * first /admin/ page visit.
-             */
-            $adminStmt = $pdo->prepare(
-                'SELECT 1 FROM admin_users WHERE username = :username LIMIT 1'
-            );
-            $adminStmt->execute(['username' => 'admin']);
-
-            if ($adminStmt->fetchColumn() === false) {
-                $createAdmin = $pdo->prepare(
-                    'INSERT INTO admin_users
-                        (username, password_hash, role)
-                     VALUES
-                        (:username, :password_hash, :role)'
-                );
-
-                $createAdmin->execute([
-                    'username' => 'admin',
-                    'password_hash' => password_hash(
-                        $adminPass,
-                        PASSWORD_DEFAULT
-                    ),
-                    'role' => 'owner',
-                ]);
-            }
-
-            if (@file_put_contents(
-                $lock,
-                "Installed: " . gmdate('c') . PHP_EOL,
-                LOCK_EX
-            ) === false) {
-                throw new RuntimeException('Installation finished, but the security lock could not be created.');
-            }
-
-            @chmod($lock, 0600);
+            Dotenv\Dotenv::createMutable($root)->safeLoad();
+            $backupInfo = (new DatabaseBackupService($pdo,$backupDir))->create($dbName);
+            (new Migrator($pdo,$root . '/database/migrations'))->migrate();
+            $pdo->exec('CREATE TABLE IF NOT EXISTS admin_users (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, username VARCHAR(64) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, role VARCHAR(32) NOT NULL DEFAULT \'admin\', totp_secret VARCHAR(64) NULL, access_key_hash VARCHAR(255) NULL, access_key_created_at TIMESTAMP NULL, is_active TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+            $adminStmt = $pdo->prepare('INSERT INTO admin_users (username,password_hash,role,is_active) VALUES (:username,:password_hash,"owner",1) ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash), role="owner", is_active=1');
+            $adminStmt->execute(['username'=>'admin','password_hash'=>$adminHash]);
+            atomicWrite($installedMarker, 'MuchoCore shared-hosting installation completed: ' . gmdate('c') . PHP_EOL . 'Database server: ' . $version . PHP_EOL . 'Target database: ' . $dbName . PHP_EOL, 0600);
+            $_SESSION['mucho_install_csrf'] = bin2hex(random_bytes(32));
             $success = true;
-
             @unlink(__FILE__);
         } catch (Throwable $e) {
-            $errors[] = 'Installation failed: ' . $e->getMessage();
+            $message = 'Installation failed: ' . $e->getMessage();
+            if ($backupInfo !== null) { $message .= ' A target database backup was created before migrations: ' . $backupInfo['file']; }
+            if ($envBackup !== null && is_file($envBackup)) { @copy($envBackup,$envFile); } elseif (!$hadExistingEnv && is_file($envFile)) { @unlink($envFile); }
+            if ($bootstrapBackup !== null && is_file($bootstrapBackup)) { @copy($bootstrapBackup,$bootstrapPath); } elseif (!$hadExistingBootstrap && is_file($bootstrapPath)) { @unlink($bootstrapPath); }
+            if ($cloudsaveCreated && is_file($createdCloudsavePath)) { @unlink($createdCloudsavePath); }
+            $errors[] = $message;
         }
     }
 }
-
 if ($success) {
     ?>
     <!doctype html>
