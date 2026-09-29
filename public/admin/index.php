@@ -2771,6 +2771,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         require __DIR__.'/actions/migration.php';
     }
 
+    if (in_array($action,['gauntlet-save','gauntlet-delete','mappack-save','mappack-delete'],true)) {
+        require __DIR__.'/actions/contentpacks.php';
+    }
+
     if (str_starts_with($action,'client-patcher-')) {
         handleClientPatcherAction($db,$rootDir,$action);
     }
