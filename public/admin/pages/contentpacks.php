@@ -89,9 +89,7 @@ function contentPackDifficultyOptions(): array
 function contentPackDifficultyIcon(int $value): string
 {
     $value = max(0, min(10, $value));
-    $options = contentPackDifficultyOptions();
-
-    return $options[$value][1];
+    return contentPackDifficultyOptions()[$value][1];
 }
 
 function renderContentPackDifficultyPicker(int $selected): void
@@ -100,55 +98,56 @@ function renderContentPackDifficultyPicker(int $selected): void
     $selected = array_key_exists($selected, $options) ? $selected : 0;
     [$selectedLabel, $selectedIcon] = $options[$selected];
 
-    echo '<details class="mc-field-picker" style="margin-top:8px">';
-    echo '<summary style="list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 10px;border:1px solid rgba(127,140,163,.32);border-radius:10px;background:rgba(127,140,163,.08)">';
-    echo '<img src="'.h($selectedIcon).'" width="42" height="42" alt="">';
-    echo '<span style="flex:1"><strong>Give Rate</strong><small class="muted" style="display:block">Selected: '.h($selectedLabel).'</small></span>';
-    echo '<span aria-hidden="true" style="font-size:18px">▾</span>';
+    echo '<details class="mc-dropdown" style="margin-top:8px;width:100%">';
+    echo '<summary style="list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 10px;border:1px solid rgba(127,140,163,.32);border-radius:9px;background:rgba(127,140,163,.08);box-sizing:border-box">';
+    echo '<img data-difficulty-preview src="'.h($selectedIcon).'" width="40" height="40" alt="">';
+    echo '<span style="flex:1;min-width:0"><strong>Give Rate</strong><small class="muted" style="display:block" data-difficulty-selected>'.h($selectedLabel).'</small></span>';
+    echo '<span aria-hidden="true">▾</span>';
     echo '</summary>';
-    echo '<div style="margin-top:6px;padding:10px;border:1px solid rgba(127,140,163,.34);border-radius:12px;background:var(--card-bg,#111827);box-shadow:0 12px 30px rgba(0,0,0,.35)">';
-    echo '<div role="radiogroup" aria-label="Difficulty" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:7px">';
 
+    echo '<div style="margin-top:5px;padding:5px;border:1px solid rgba(127,140,163,.30);border-radius:9px;background:var(--card-bg,#111827);box-sizing:border-box">';
     foreach ($options as $value => [$label, $icon]) {
         $checked = $selected === $value;
-        echo '<label style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:92px;padding:5px 3px;border:1px solid rgba(127,140,163,.25);border-radius:10px;background:rgba(127,140,163,.08);cursor:pointer;text-align:center">';
-        echo '<input type="radio" name="difficulty" value="'.$value.'" '.($checked ? 'checked' : '').' style="position:absolute;opacity:0">';
-        echo '<img src="'.h($icon).'" width="66" height="66" alt="">';
-        echo '<span style="font-size:10px;font-weight:800;line-height:12px">'.h($label).'</span>';
+        echo '<label style="display:flex;align-items:center;gap:10px;width:100%;min-height:56px;padding:5px 8px;margin:2px 0;border:1px solid '.($checked ? 'rgba(127,140,163,.45)' : 'transparent').';border-radius:8px;background:'.($checked ? 'rgba(127,140,163,.14)' : 'transparent').';cursor:pointer;box-sizing:border-box">';
+        echo '<input type="radio" name="difficulty" value="'.$value.'" '.($checked ? 'checked' : '').' data-icon="'.h($icon).'" data-label="'.h($label).'" onchange="const d=this.closest(\'details\');d.querySelector(\'[data-difficulty-preview]\').src=this.dataset.icon;d.querySelector(\'[data-difficulty-selected]\').textContent=this.dataset.label;d.open=false;" style="margin:0">';
+        echo '<img src="'.h($icon).'" width="44" height="44" alt="">';
+        echo '<span style="font-weight:700">'.h($label).'</span>';
         echo '</label>';
     }
-
-    echo '</div>';
-    echo '<small class="muted" style="display:block;margin-top:8px">Original Geometry Dash difficulty artwork is loaded from wiki-hosted files. Click an icon to select the difficulty ID automatically.</small>';
     echo '</div>';
     echo '</details>';
 }
 
+function contentPackColorPresets(): array
+{
+    $colors = [];
+    for ($value = 0; $value <= 106; $value++) {
+        $colors[$value] = 'https://geometrydash.wiki.gg/wiki/Special:Redirect/file/Colour'.str_pad((string)$value, 3, '0', STR_PAD_LEFT).'.png';
+    }
+    return $colors;
+}
 
 function renderContentPackColorPicker(string $field, int $selected): void
 {
     $presets = contentPackColorPresets();
     $selected = array_key_exists($selected, $presets) ? $selected : 0;
 
-    echo '<details class="mc-field-picker" style="margin-top:8px">';
-    echo '<summary style="list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 10px;border:1px solid rgba(127,140,163,.32);border-radius:10px;background:rgba(127,140,163,.08)">';
-    echo '<span style="width:36px;height:36px;border-radius:9px;border:2px solid rgba(255,255,255,.3);background:'.$presets[$selected].';display:block"></span>';
-    echo '<span style="flex:1"><strong>'.h(ucwords(str_replace('_', ' ', $field))).'</strong><small class="muted" style="display:block">Selected: Color '.h($selected).'</small></span>';
-    echo '<span aria-hidden="true" style="font-size:18px">▾</span>';
+    echo '<details class="mc-dropdown" style="margin-top:8px;width:100%">';
+    echo '<summary style="list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 10px;border:1px solid rgba(127,140,163,.32);border-radius:9px;background:rgba(127,140,163,.08);box-sizing:border-box">';
+    echo '<img data-color-preview src="'.h($presets[$selected]).'" width="36" height="36" alt="">';
+    echo '<span style="flex:1;min-width:0"><strong>'.h(ucwords(str_replace('_', ' ', $field))).'</strong><small class="muted" style="display:block" data-color-selected>Selected palette color</small></span>';
+    echo '<span aria-hidden="true">▾</span>';
     echo '</summary>';
-    echo '<div style="margin-top:6px;padding:10px;border:1px solid rgba(127,140,163,.34);border-radius:12px;background:var(--card-bg,#111827);box-shadow:0 12px 30px rgba(0,0,0,.35)">';
-    echo '<div role="radiogroup" aria-label="'.h($field).' color" style="display:flex;flex-wrap:wrap;gap:7px">';
 
-    foreach ($presets as $value => $hex) {
+    echo '<div style="margin-top:5px;padding:5px;border:1px solid rgba(127,140,163,.30);border-radius:9px;background:var(--card-bg,#111827);box-sizing:border-box;max-height:360px;overflow:auto">';
+    foreach ($presets as $value => $icon) {
         $checked = $selected === $value;
-        echo '<label style="position:relative;width:48px;height:48px;display:block;cursor:pointer">';
-        echo '<input type="radio" name="'.h($field).'" value="'.$value.'" '.($checked ? 'checked' : '').' style="position:absolute;opacity:0;inset:0;cursor:pointer">';
-        echo '<span style="display:flex;width:48px;height:48px;align-items:center;justify-content:center;border-radius:12px;background:'.$hex.';border:2px solid rgba(255,255,255,.32);font-size:10px;font-weight:800;color:'.($value === 0 ? '#1f2937' : '#fff').';text-shadow:0 1px 2px rgba(0,0,0,.3)">Color '.$value.'</span>';
+        echo '<label style="display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:5px 8px;margin:2px 0;border:1px solid '.($checked ? 'rgba(127,140,163,.45)' : 'transparent').';border-radius:8px;background:'.($checked ? 'rgba(127,140,163,.14)' : 'transparent').';cursor:pointer;box-sizing:border-box">';
+        echo '<input type="radio" name="'.h($field).'" value="'.$value.'" '.($checked ? 'checked' : '').' data-icon="'.h($icon).'" onchange="const d=this.closest(\'details\');d.querySelector(\'[data-color-preview]\').src=this.dataset.icon;d.querySelector(\'[data-color-selected]\').textContent=\'Selected palette color\';d.open=false;" style="margin:0">';
+        echo '<img src="'.h($icon).'" width="40" height="40" alt="" loading="lazy">';
+        echo '<span style="flex:1;font-weight:700">Palette color</span>';
         echo '</label>';
     }
-
-    echo '</div>';
-    echo '<small class="muted" style="display:block;margin-top:8px">Click a color. The numeric Color ID is submitted automatically.</small>';
     echo '</div>';
     echo '</details>';
 }
