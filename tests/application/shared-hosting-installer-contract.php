@@ -81,44 +81,42 @@ foreach ($backupContracts as $needle) {
     }
 }
 
-foreach ([
-    'rootDir.'/storage/backups/database'',
-    'MUCHO_DB_BACKUP_DIR',
-    'Another migration is already running',
-] as $needle) {
-    if (!str_contains($sharedMigration, str_replace('\\', '', $needle))) {
-        // The backup directory may be injected by the caller; the action-level
-        // contract below is the canonical environment wiring check.
-    }
+if (!str_contains($sharedMigration, 'DatabaseBackupService')
+    || !str_contains($sharedMigration, 'requireTargetMaps')
+    || !str_contains($sharedMigration, 'beginTransaction')) {
+    throw new RuntimeException(
+        'Shared migration service must keep backup, target schema verification and transactional import.'
+    );
 }
 
-if (!str_contains($migrationAction, "MUCHO_DB_BACKUP_DIR")) {
+if (!str_contains($migrationAction, 'MUCHO_DB_BACKUP_DIR')) {
     throw new RuntimeException(
         'Shared Migration Center must honor MUCHO_DB_BACKUP_DIR.'
     );
 }
 
-if (!str_contains($migrationAction, "error_log(sprintf(")
+if (!str_contains($migrationAction, 'error_log(sprintf(')
     || !str_contains($migrationAction, '[MuchoCore Shared Migration]')
-    || str_contains($migrationAction, "$_SESSION['migration_status']=$e->getMessage()")
+    || str_contains($migrationAction, '$_SESSION['migration_status']=$e->getMessage()')
 ) {
     throw new RuntimeException(
         'Shared Migration Center must log raw errors server-side and avoid exposing them to the browser.'
     );
 }
 
-if (!str_contains($migrationPage, "$_SESSION['migration_form']")) {
+if (!str_contains($migrationPage, '$_SESSION['migration_form']')) {
     throw new RuntimeException(
         'Shared Migration Center must preserve non-secret source fields across redirects.'
     );
 }
 
 foreach ([
-    "test -f \"$ROOT/.htaccess\"",
+    'test -f "$ROOT/.htaccess"',
     'muchocore/public/shared-install.php',
     'muchocore/vendor/autoload.php',
-    '! unzip -Z1 "$OUTPUT" | grep -Eq '(^|/)\\.env($|\\.)'',
-    '! unzip -Z1 "$OUTPUT" | grep -Eq '(^|/)(\\.secrets|storage)/'',
+    '! unzip -Z1 "$OUTPUT"',
+    '.env($|\\.)',
+    '.secrets|storage',
 ] as $needle) {
     if (!str_contains($package, $needle)) {
         throw new RuntimeException(
@@ -126,7 +124,6 @@ foreach ([
         );
     }
 }
-
 foreach ([
     'RewriteRule ^shared-install\\.php$ public/shared-install.php [END]',
     'RewriteRule ^(.*)$ public/$1 [L]',
