@@ -86,38 +86,25 @@ function contentPackDifficultyOptions(): array
     ];
 }
 
-function contentPackDifficultyIcon(int $value, string $accent): string
+function contentPackDifficultyIcon(int $value): string
 {
-    $eyes = match ($value) {
-        0 => '<circle cx="31" cy="29" r="3" fill="white"/><circle cx="49" cy="29" r="3" fill="white"/>',
-        1, 2 => '<circle cx="30" cy="29" r="3.5" fill="white"/><circle cx="50" cy="29" r="3.5" fill="white"/>',
-        3, 4 => '<path d="M26 29l5-4 5 4-5 4zM44 29l5-4 5 4-5 4z" fill="white"/>',
-        5 => '<path d="M26 31l6-5 5 5-5 5zM43 31l5-5 6 5-6 5z" fill="white"/>',
-        default => '<path d="M27 31l4-6 4 4-4 6zM45 29l4-4 4 6-4 4z" fill="white"/>',
-    };
+    $value = max(0, min(10, $value));
+    $files = [
+        0 => '00-auto.svg',
+        1 => '01-easy.svg',
+        2 => '02-normal.svg',
+        3 => '03-hard.svg',
+        4 => '04-harder.svg',
+        5 => '05-insane.svg',
+        6 => '06-easy-demon.svg',
+        7 => '07-medium-demon.svg',
+        8 => '08-hard-demon.svg',
+        9 => '09-insane-demon.svg',
+        10 => '10-extreme-demon.svg',
+    ];
 
-    $mouth = match ($value) {
-        0 => '<path d="M33 43h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/>',
-        1 => '<path d="M33 41q7 7 14 0" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>',
-        2 => '<path d="M34 42q6 2 12 0" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>',
-        3 => '<path d="M34 43q6-5 12 0" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>',
-        4, 5 => '<path d="M34 45q6-7 12 0" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>',
-        default => '<path d="M35 44l3 3 4-6 4 6" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>',
-    };
-
-    $horns = $value >= 6
-        ? '<path d="M18 22L12 11l11 7M62 22l6-11-11 7" fill="'.$accent.'" stroke="#ffffff" stroke-opacity=".45" stroke-width="2" stroke-linejoin="round"/>'
-        : '';
-
-    return '<svg width="54" height="54" viewBox="0 0 80 80" aria-hidden="true">'
-        .$horns
-        .'<path d="M22 17L40 10l18 7 8 17-3 25-23 11-23-11-3-25z" fill="'.$accent.'" stroke="rgba(255,255,255,.72)" stroke-width="3" stroke-linejoin="round"/>'
-        .'<path d="M28 18l12-5 12 5" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2"/>'
-        .$eyes
-        .$mouth
-        .'</svg>';
+    return '/assets/difficulties/'.$files[$value];
 }
-
 function renderContentPackDifficultyPicker(int $selected): void
 {
     $options = contentPackDifficultyOptions();
@@ -141,8 +128,9 @@ function renderContentPackDifficultyPicker(int $selected): void
             .'style="min-height:78px;padding:5px 4px;border:1px solid rgba(127,140,163,.25);'
             .'border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(0,0,0,.10));'
             .'color:inherit;cursor:pointer;'.$selectedStyle.'">';
-        echo '<span style="display:flex;justify-content:center;align-items:center;height:55px">'.$
-            contentPackDifficultyIcon((int)$value, $accent).'</span>';
+        echo '<span style="display:flex;justify-content:center;align-items:center;height:55px">';
+        echo '<img src="'.h(contentPackDifficultyIcon((int)$value)).'" width="54" height="54" alt="'.h($label).'" loading="lazy">';
+        echo '</span>';
         echo '<span style="display:block;font-size:10px;font-weight:800;line-height:12px;min-height:24px">'.h($label).'</span>';
         echo '</button>';
     }
