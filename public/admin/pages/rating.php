@@ -172,20 +172,19 @@ $difficultyIconUrl = static function (string $profile) use ($difficultyProfiles)
     }
 
     /*
-     * Demon-specific originals are PNGs on the Fandom difficulty-icon
-     * category; keep those on the source wiki until equivalent SVG files
-     * exist there.
+     * Demon difficulty artwork uses direct media URLs rather than the
+     * Fandom Special:Redirect endpoint. That endpoint is not reliable for
+     * browser image embedding and was the cause of missing Demon faces.
      */
-    $fandomPng = [
-        'easy-demon' => 'EasyDemon.png',
-        'medium-demon' => 'MediumDemon.png',
-        'hard-demon' => 'Demon.png',
-        'insane-demon' => 'InsaneDemon.png',
-        'extreme-demon' => 'ExtremeDemon.png',
+    $demonIcons = [
+        'easy-demon' => 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Easy_Demon_Icon.webp',
+        'medium-demon' => 'https://static.wikia.nocookie.net/geometry-dash/images/e/e2/MediumDemon.png',
+        'hard-demon' => 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Demon_Icon.webp',
+        'insane-demon' => 'https://upload.wikimedia.org/wikipedia/commons/a/ae/Insane_Demon_Icon.webp',
+        'extreme-demon' => 'https://upload.wikimedia.org/wikipedia/commons/3/33/Extreme_Demon_Icon.webp',
     ];
 
-    return 'https://geometry-dash.fandom.com/wiki/Special:Redirect/file/'.
-        rawurlencode($fandomPng[$profile] ?? 'Unrated.png');
+    return $demonIcons[$profile] ?? $originalSvg['unrated'];
 };
 
 $pendingCount = 0;
