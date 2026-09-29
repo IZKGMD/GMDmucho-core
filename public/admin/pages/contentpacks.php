@@ -72,17 +72,17 @@ function renderContentPackLevelInput(
 function contentPackDifficultyOptions(): array
 {
     return [
-        0 => ['Auto', 'https://commons.wikimedia.org/wiki/Special:FilePath/Auto_Icon.svg'],
-        1 => ['Easy', 'https://commons.wikimedia.org/wiki/Special:FilePath/Easy_Icon.svg'],
-        2 => ['Normal', 'https://commons.wikimedia.org/wiki/Special:FilePath/Normal_Icon.svg'],
-        3 => ['Hard', 'https://commons.wikimedia.org/wiki/Special:FilePath/Hard_Icon.svg'],
-        4 => ['Harder', 'https://commons.wikimedia.org/wiki/Special:FilePath/Harder_Icon.svg'],
-        5 => ['Insane', 'https://commons.wikimedia.org/wiki/Special:FilePath/Insane_Icon.svg'],
-        6 => ['Hard Demon', 'https://commons.wikimedia.org/wiki/Special:FilePath/Demon_Icon.webp'],
-        7 => ['Easy Demon', 'https://commons.wikimedia.org/wiki/Special:FilePath/Easy_Demon_Icon.webp'],
-        8 => ['Medium Demon', 'https://geometrydash.wiki.gg/wiki/Special:Redirect/file/MediumDemon.png'],
-        9 => ['Insane Demon', 'https://commons.wikimedia.org/wiki/Special:FilePath/Insane_Demon_Icon.webp'],
-        10 => ['Extreme Demon', 'https://commons.wikimedia.org/wiki/Special:FilePath/Extreme_Demon_Icon.webp'],
+        0 => ['Auto', 'https://upload.wikimedia.org/wikipedia/commons/a/a8/Auto_Icon.svg'],
+        1 => ['Easy', 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Easy_Icon.svg'],
+        2 => ['Normal', 'https://upload.wikimedia.org/wikipedia/commons/4/48/Normal_Icon.svg'],
+        3 => ['Hard', 'https://upload.wikimedia.org/wikipedia/commons/2/24/Hard_Icon.svg'],
+        4 => ['Harder', 'https://upload.wikimedia.org/wikipedia/commons/3/34/Harder_Icon.svg'],
+        5 => ['Insane', 'https://upload.wikimedia.org/wikipedia/commons/6/6c/Insane_Icon.svg'],
+        6 => ['Hard Demon', 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Demon_Icon.webp'],
+        7 => ['Easy Demon', 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Easy_Demon_Icon.webp'],
+        8 => ['Medium Demon', 'https://static.wikia.nocookie.net/geometry-dash/images/e/e2/MediumDemon.png/revision/latest/scale-to-width-down/512?cb=20250312081829'],
+        9 => ['Insane Demon', 'https://upload.wikimedia.org/wikipedia/commons/a/ae/Insane_Demon_Icon.webp'],
+        10 => ['Extreme Demon', 'https://upload.wikimedia.org/wikipedia/commons/3/33/Extreme_Demon_Icon.webp'],
     ];
 }
 
@@ -120,11 +120,33 @@ function renderContentPackDifficultyPicker(int $selected): void
 
 function contentPackColorPresets(): array
 {
-    $colors = [];
-    for ($value = 0; $value <= 106; $value++) {
-        $colors[$value] = 'https://geometrydash.wiki.gg/wiki/Special:Redirect/file/Colour'.str_pad((string)$value, 3, '0', STR_PAD_LEFT).'.png';
-    }
-    return $colors;
+    return [
+        0 => '#f0f0f0',
+        1 => '#ff3b30',
+        2 => '#ff9500',
+        3 => '#ffcc00',
+        4 => '#34c759',
+        5 => '#00c7be',
+        6 => '#30a9ff',
+        7 => '#5856d6',
+        8 => '#af52de',
+        9 => '#ff2d55',
+        10 => '#8e8e93',
+        11 => '#5ac8fa',
+        12 => '#64d2ff',
+        13 => '#bf5af2',
+        14 => '#ff375f',
+        15 => '#a2845e',
+        16 => '#30d158',
+        17 => '#ffd60a',
+        18 => '#ff9f0a',
+        19 => '#ff453a',
+        20 => '#64d2ff',
+        21 => '#0a84ff',
+        22 => '#5e5ce6',
+        23 => '#bf5af2',
+        24 => '#ff375f',
+    ];
 }
 
 function renderContentPackColorPicker(string $field, int $selected): void
@@ -134,20 +156,25 @@ function renderContentPackColorPicker(string $field, int $selected): void
 
     echo '<details class="mc-dropdown" style="margin-top:8px;width:100%">';
     echo '<summary style="list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 10px;border:1px solid rgba(127,140,163,.32);border-radius:9px;background:rgba(127,140,163,.08);box-sizing:border-box">';
-    echo '<img data-color-preview src="'.h($presets[$selected]).'" width="36" height="36" alt="">';
-    echo '<span style="flex:1;min-width:0"><strong>'.h(ucwords(str_replace('_', ' ', $field))).'</strong><small class="muted" style="display:block" data-color-selected>Selected palette color</small></span>';
+    echo '<span data-color-preview style="width:38px;height:38px;flex:0 0 38px;border-radius:9px;border:2px solid rgba(255,255,255,.4);background:'.$presets[$selected].';display:block"></span>';
+    echo '<span style="flex:1;min-width:0"><strong>'.h(ucwords(str_replace('_', ' ', $field))).'</strong><small class="muted" style="display:block">Color '.$selected.'</small></span>';
     echo '<span aria-hidden="true">▾</span>';
     echo '</summary>';
 
-    echo '<div style="margin-top:5px;padding:5px;border:1px solid rgba(127,140,163,.30);border-radius:9px;background:var(--card-bg,#111827);box-sizing:border-box;max-height:360px;overflow:auto">';
-    foreach ($presets as $value => $icon) {
+    echo '<div style="margin-top:5px;padding:8px;border:1px solid rgba(127,140,163,.30);border-radius:9px;background:var(--card-bg,#111827);box-shadow:0 10px 24px rgba(0,0,0,.28);max-height:300px;overflow:auto">';
+    echo '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px">';
+
+    foreach ($presets as $value => $hex) {
         $checked = $selected === $value;
-        echo '<label style="display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:5px 8px;margin:2px 0;border:1px solid '.($checked ? 'rgba(127,140,163,.45)' : 'transparent').';border-radius:8px;background:'.($checked ? 'rgba(127,140,163,.14)' : 'transparent').';cursor:pointer;box-sizing:border-box">';
-        echo '<input type="radio" name="'.h($field).'" value="'.$value.'" '.($checked ? 'checked' : '').' data-icon="'.h($icon).'" onchange="const d=this.closest(\'details\');d.querySelector(\'[data-color-preview]\').src=this.dataset.icon;d.querySelector(\'[data-color-selected]\').textContent=\'Selected palette color\';d.open=false;" style="margin:0">';
-        echo '<img src="'.h($icon).'" width="40" height="40" alt="" loading="lazy">';
-        echo '<span style="flex:1;font-weight:700">Palette color</span>';
+        echo '<label style="display:flex;align-items:center;gap:6px;padding:5px;border:1px solid '.($checked ? 'rgba(127,140,163,.55)' : 'transparent').';border-radius:8px;background:'.($checked ? 'rgba(127,140,163,.14)' : 'transparent').';cursor:pointer;box-sizing:border-box">';
+        echo '<input type="radio" name="'.h($field).'" value="'.$value.'" '.($checked ? 'checked' : '').' data-color="'.$hex.'" onchange="const d=this.closest(\'details\');d.querySelector(\'[data-color-preview]\').style.background=this.dataset.color;d.querySelector(\'summary small\').textContent=\'Color \'+this.value;d.open=false;" style="margin:0">';
+        echo '<span style="width:28px;height:28px;flex:0 0 28px;border-radius:7px;background:'.$hex.';border:1px solid rgba(255,255,255,.35);display:block"></span>';
+        echo '<span style="font-size:11px;font-weight:700">Color '.$value.'</span>';
         echo '</label>';
     }
+
+    echo '</div>';
+    echo '<small class="muted" style="display:block;margin-top:7px">Choose the color visually; the numeric Color ID is submitted automatically.</small>';
     echo '</div>';
     echo '</details>';
 }
