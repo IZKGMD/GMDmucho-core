@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-ROOT="${MUCHO_CORE_ROOT:-/var/www/mucho-core}"
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="${MUCHO_CORE_ROOT:-$SCRIPT_ROOT}"
 RUNTIME_ENV_FILE="${MUCHO_RUNTIME_ENV_FILE:-/var/lib/muchocore/runtime.env}"
 BACKUP_DIR="$ROOT/backups/database"
 LOG_DIR="$ROOT/logs"
