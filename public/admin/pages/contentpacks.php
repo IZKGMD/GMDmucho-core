@@ -72,47 +72,84 @@ function renderContentPackLevelInput(
 function contentPackDifficultyOptions(): array
 {
     return [
-        0 => ['⚙️', 'Auto'],
-        1 => ['🙂', 'Easy'],
-        2 => ['😐', 'Normal'],
-        3 => ['😕', 'Hard'],
-        4 => ['😠', 'Harder'],
-        5 => ['😡', 'Insane'],
-        6 => ['😈', 'Hard Demon'],
-        7 => ['😈', 'Easy Demon'],
-        8 => ['😈', 'Medium Demon'],
-        9 => ['😈', 'Insane Demon'],
-        10 => ['😈', 'Extreme Demon'],
+        0 => ['Auto', '#64748b'],
+        1 => ['Easy', '#43c36b'],
+        2 => ['Normal', '#6cc24a'],
+        3 => ['Hard', '#f2c94c'],
+        4 => ['Harder', '#f2994a'],
+        5 => ['Insane', '#eb5757'],
+        6 => ['Easy Demon', '#c95cff'],
+        7 => ['Medium Demon', '#b43cff'],
+        8 => ['Hard Demon', '#a12cff'],
+        9 => ['Insane Demon', '#8b20e8'],
+        10 => ['Extreme Demon', '#6d16ba'],
     ];
+}
+
+function contentPackDifficultyIcon(int $value, string $accent): string
+{
+    $eyes = match ($value) {
+        0 => '<circle cx="31" cy="29" r="3" fill="white"/><circle cx="49" cy="29" r="3" fill="white"/>',
+        1, 2 => '<circle cx="30" cy="29" r="3.5" fill="white"/><circle cx="50" cy="29" r="3.5" fill="white"/>',
+        3, 4 => '<path d="M26 29l5-4 5 4-5 4zM44 29l5-4 5 4-5 4z" fill="white"/>',
+        5 => '<path d="M26 31l6-5 5 5-5 5zM43 31l5-5 6 5-6 5z" fill="white"/>',
+        default => '<path d="M27 31l4-6 4 4-4 6zM45 29l4-4 4 6-4 4z" fill="white"/>',
+    };
+
+    $mouth = match ($value) {
+        0 => '<path d="M33 43h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/>',
+        1 => '<path d="M33 41q7 7 14 0" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>',
+        2 => '<path d="M34 42q6 2 12 0" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>',
+        3 => '<path d="M34 43q6-5 12 0" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>',
+        4, 5 => '<path d="M34 45q6-7 12 0" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"/>',
+        default => '<path d="M35 44l3 3 4-6 4 6" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>',
+    };
+
+    $horns = $value >= 6
+        ? '<path d="M18 22L12 11l11 7M62 22l6-11-11 7" fill="'.$accent.'" stroke="#ffffff" stroke-opacity=".45" stroke-width="2" stroke-linejoin="round"/>'
+        : '';
+
+    return '<svg width="54" height="54" viewBox="0 0 80 80" aria-hidden="true">'
+        .$horns
+        .'<path d="M22 17L40 10l18 7 8 17-3 25-23 11-23-11-3-25z" fill="'.$accent.'" stroke="rgba(255,255,255,.72)" stroke-width="3" stroke-linejoin="round"/>'
+        .'<path d="M28 18l12-5 12 5" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2"/>'
+        .$eyes
+        .$mouth
+        .'</svg>';
 }
 
 function renderContentPackDifficultyPicker(int $selected): void
 {
-    echo '<div class="mc-picker" style="margin-top:8px">';
-    echo '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px">';
-    echo '<strong style="font-size:13px">Give Rate</strong>';
-    echo '<span class="muted" style="font-size:12px">Choose difficulty</span>';
+    $options = contentPackDifficultyOptions();
+
+    echo '<div class="mc-picker" style="margin-top:10px">';
+    echo '<div style="display:flex;justify-content:space-between;align-items:end;gap:8px;margin-bottom:8px">';
+    echo '<div><strong style="font-size:14px">Give Rate</strong><div class="muted" style="font-size:12px;margin-top:2px">Choose the difficulty icon</div></div>';
+    echo '<span class="muted" style="font-size:12px">Selected: <strong data-difficulty-label>'.h($options[$selected][0] ?? 'Auto').'</strong></span>';
     echo '</div>';
     echo '<input type="hidden" name="difficulty" value="'.h($selected).'">';
-    echo '<div role="radiogroup" aria-label="Difficulty" style="display:flex;flex-wrap:wrap;gap:7px">';
-    foreach (contentPackDifficultyOptions() as $value => [$icon, $label]) {
-        $active = $selected === $value
-            ? 'box-shadow:0 0 0 2px currentColor;transform:translateY(-1px);'
+    echo '<div role="radiogroup" aria-label="Difficulty" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:7px">';
+
+    foreach ($options as $value => [$label, $accent]) {
+        $isSelected = $selected === $value;
+        $selectedStyle = $isSelected
+            ? 'outline:2px solid '.$accent.';box-shadow:0 5px 14px rgba(0,0,0,.22);transform:translateY(-2px);'
             : '';
-        echo '<button type="button" class="mc-rate-option" data-value="'.$value.'" '
-            .'aria-pressed="'.($selected === $value ? 'true' : 'false').'" '
-            .'title="'.h($label).'" '
-            .'onclick="muchoPickDifficulty(this)" '
-            .'style="min-width:74px;padding:8px 9px;border:1px solid rgba(127,140,163,.28);'
-            .'border-radius:10px;background:rgba(127,140,163,.08);cursor:pointer;'.$active.'">';
-        echo '<span style="display:block;font-size:20px;line-height:20px">'.$icon.'</span>';
-        echo '<span style="display:block;margin-top:4px;font-size:11px;font-weight:700">'.h($label).'</span>';
+        echo '<button type="button" class="mc-rate-option" data-value="'.$value.'" data-label="'.h($label).'" '
+            .'aria-pressed="'.($isSelected ? 'true' : 'false').'" '
+            .'title="'.h($label).'" onclick="muchoPickDifficulty(this)" '
+            .'style="min-height:78px;padding:5px 4px;border:1px solid rgba(127,140,163,.25);'
+            .'border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(0,0,0,.10));'
+            .'color:inherit;cursor:pointer;'.$selectedStyle.'">';
+        echo '<span style="display:flex;justify-content:center;align-items:center;height:55px">'.$
+            contentPackDifficultyIcon((int)$value, $accent).'</span>';
+        echo '<span style="display:block;font-size:10px;font-weight:800;line-height:12px;min-height:24px">'.h($label).'</span>';
         echo '</button>';
     }
+
     echo '</div>';
     echo '</div>';
 }
-
 function contentPackColorPresets(): array
 {
     return [
@@ -170,12 +207,18 @@ function muchoPickDifficulty(button) {
     const form = button.closest('form');
     const input = form.querySelector('input[name="difficulty"]');
     if (!input) return;
+
     input.value = button.dataset.value;
+
+    const label = form.querySelector('[data-difficulty-label]');
+    if (label) label.textContent = button.dataset.label;
+
     form.querySelectorAll('.mc-rate-option').forEach((item) => {
         const active = item === button;
         item.setAttribute('aria-pressed', active ? 'true' : 'false');
-        item.style.boxShadow = active ? '0 0 0 2px currentColor' : '';
-        item.style.transform = active ? 'translateY(-1px)' : '';
+        item.style.outline = active ? '2px solid currentColor' : '';
+        item.style.boxShadow = active ? '0 5px 14px rgba(0,0,0,.22)' : '';
+        item.style.transform = active ? 'translateY(-2px)' : '';
     });
 }
 
