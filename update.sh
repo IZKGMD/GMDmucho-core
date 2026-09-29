@@ -272,7 +272,7 @@ if [[ -x "$ROOT/bin/mucho" ]]; then ln -sfn "$ROOT/bin/mucho" /usr/local/bin/muc
 if [[ -x "$ROOT/bin/muchodb-password" ]]; then ln -sfn "$ROOT/bin/muchodb-password" /usr/local/bin/muchodb-password; fi
 
 echo '[MuchoCore] Checking service status...'
-docker compose ps
+docker compose "${COMPOSE_ARGS[@]}" ps
 
 echo
 echo '[MuchoCore] Compatibility profile:'
