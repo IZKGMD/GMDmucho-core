@@ -21,6 +21,10 @@ final class DatabaseBackupService
 
     public function create(string $label = 'muchocore'): array
     {
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
+
         if (!is_dir($this->directory)
             && !mkdir($this->directory, 0750, true)
             && !is_dir($this->directory)) {
