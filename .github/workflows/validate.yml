@@ -165,6 +165,11 @@ jobs:
           grep -q 'MUCHO_TRUSTED_PROXY_CIDRS' .env.example
           test -f tools/migration/mucho-migrate.sh
           test -x tools/migration/mucho-migrate.sh
+          grep -Fq 'name: Build shared-hosting package' .github/workflows/release-stable.yml
+          grep -Fq 'name: Upload shared-hosting package' .github/workflows/release-stable.yml
+          [[ "$(grep -Fc 'name: Build shared-hosting package' .github/workflows/release-stable.yml)" -eq 1 ]]
+          [[ "$(grep -Fc 'name: Upload shared-hosting package' .github/workflows/release-stable.yml)" -eq 1 ]]
+          grep -Fq 'OUTPUT: MuchoCore-v${{ steps.marker.outputs.version }}-shared-hosting.zip' .github/workflows/release-stable.yml
           test -f tests/release/migration-kit.sh
           test -f tests/release/install-sh.sh
           test -f .gitattributes
