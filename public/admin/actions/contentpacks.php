@@ -21,7 +21,7 @@ if (!in_array($action, $allowed, true)) {
 
 requirePermission('contentpacks.manage');
 
-function contentPackLevelIds(string $raw, int $expected): array
+function contentPackLevelIds(string $raw, int $expected = 0): array
 {
     $ids = [];
 
@@ -41,9 +41,15 @@ function contentPackLevelIds(string $raw, int $expected): array
         }
     }
 
-    if (count($ids) !== $expected) {
+    if ($expected > 0 && count($ids) !== $expected) {
         throw new RuntimeException(
             'Exactly '.$expected.' unique level IDs are required.'
+        );
+    }
+
+    if ($expected === 0 && $ids === []) {
+        throw new RuntimeException(
+            'At least one unique level ID is required.'
         );
     }
 
@@ -221,8 +227,8 @@ if ($action === 'mappack-save') {
         'Map Pack'
     );
     $levelIds = contentPackLevelIds(
-        (string)packLevelFieldFromPost(3),
-        3
+        (string)($_POST['levels'] ?? ''),
+        0
     );
     assertContentPackLevels($db, $levelIds);
 
