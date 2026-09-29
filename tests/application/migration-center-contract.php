@@ -98,7 +98,7 @@ foreach ([
     'DatabaseBackupService',
     'new Migrator(',
     'beginTransaction()',
-    'Migration is already running',
+    'Another migration is already running',
 ] as $needle) {
     if (strpos($sharedMigration, $needle) === false) {
         throw new RuntimeException('Shared migration service contract missing: ' . $needle);
