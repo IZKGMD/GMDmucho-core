@@ -26,7 +26,6 @@ foreach ([
     'bin/mucho-db-backup.sh' => $backupScript,
     'docker/Dockerfile' => $dockerfile,
     'bin/mucho' => $control,
-    'bin/mucho' => $control,
     '.github/workflows/validate.yml' => $workflow,
     'docs/MIGRATION_CENTER.md' => $docs,
 ] as $path => $content) {
