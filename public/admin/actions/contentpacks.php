@@ -139,7 +139,7 @@ function contentPackSortOrder(): int
         return 0;
     }
 
-    return contentPackSortOrder();
+    return contentPackInt('sort_order', -1000000, 1000000);
 }
 
 if ($action === 'gauntlet-save') {
