@@ -112,8 +112,18 @@ function contentPackName(string $value, int $max, string $fallback): string
 
 function contentPackInt(string $key, int $min, int $max): int
 {
+    $value = $_POST[$key] ?? null;
+
+    if (is_array($value)) {
+        throw new RuntimeException('Invalid '.$key.'.');
+    }
+
+    if ($value === null || trim((string)$value) === '') {
+        throw new RuntimeException('Missing '.$key.'.');
+    }
+
     $value = filter_var(
-        $_POST[$key] ?? null,
+        $value,
         FILTER_VALIDATE_INT
     );
 
@@ -122,6 +132,17 @@ function contentPackInt(string $key, int $min, int $max): int
     }
 
     return max($min, min($max, (int)$value));
+}
+
+function contentPackSortOrder(): int
+{
+    $value = $_POST['sort_order'] ?? null;
+
+    if (is_array($value) || $value === null || trim((string)$value) === '') {
+        return 0;
+    }
+
+    return contentPackSortOrder();
 }
 
 if ($action === 'gauntlet-save') {
@@ -137,7 +158,7 @@ if ($action === 'gauntlet-save') {
     );
     assertContentPackLevels($db, $levelIds);
 
-    $sort = contentPackInt('sort_order', -1000000, 1000000);
+    $sort = contentPackSortOrder();
     $enabled = isset($_POST['enabled']) ? 1 : 0;
 
     if ($id > 0) {
@@ -237,7 +258,7 @@ if ($action === 'mappack-save') {
     $difficulty = contentPackInt('difficulty', 0, 10);
     $color1 = contentPackInt('color1', 0, 255);
     $color2 = contentPackInt('color2', 0, 255);
-    $sort = contentPackInt('sort_order', -1000000, 1000000);
+    $sort = contentPackSortOrder();
     $enabled = isset($_POST['enabled']) ? 1 : 0;
 
     $levels = implode(',', $levelIds);
