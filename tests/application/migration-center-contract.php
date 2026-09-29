@@ -7,7 +7,16 @@ $root = dirname(__DIR__, 2);
 $detector = file_get_contents($root . '/src/Migration/SourceDetector.php');
 $wizard = file_get_contents($root . '/bin/mucho-migrate.php');
 $backupScript = file_get_contents($root . '/bin/mucho-db-backup.sh');
+$phpBackup = file_get_contents($root . '/src/Backup/DatabaseBackupService.php');
+$sharedMigration = file_get_contents($root . '/src/Migration/SharedMigrationService.php');
+$sharedInstaller = file_get_contents($root . '/public/shared-install.php');
+$adminBackup = file_get_contents($root . '/public/admin/db-backup-center-module.php');
+$adminAction = file_get_contents($root . '/public/admin/actions/migration.php');
+$adminActionPrevious = $adminAction; // retain the existing admin action variable name
 $dockerfile = file_get_contents($root . '/docker/Dockerfile');
+$adminUsersMigration = file_get_contents($root . '/database/migrations/20260925_000_admin_users.php');
+$sharedPackageBuilder = file_get_contents($root . '/tools/release/build-shared-hosting.sh');
+$releaseWorkflow = file_get_contents($root . '/.github/workflows/release-stable.yml');
 
 $control = file_get_contents($root . '/bin/mucho');
 $workflow = file_get_contents($root . '/.github/workflows/validate.yml');
@@ -24,7 +33,15 @@ foreach ([
     'src/Migration/SourceDetector.php' => $detector,
     'bin/mucho-migrate.php' => $wizard,
     'bin/mucho-db-backup.sh' => $backupScript,
+    'src/Backup/DatabaseBackupService.php' => $phpBackup,
+    'src/Migration/SharedMigrationService.php' => $sharedMigration,
+    'public/shared-install.php' => $sharedInstaller,
+    'public/admin/db-backup-center-module.php' => $adminBackup,
+    'public/admin/actions/migration.php' => $adminActionPrevious,
     'docker/Dockerfile' => $dockerfile,
+    'database/migrations/20260925_000_admin_users.php' => $adminUsersMigration,
+    'tools/release/build-shared-hosting.sh' => $sharedPackageBuilder,
+    '.github/workflows/release-stable.yml' => $releaseWorkflow,
     'bin/mucho' => $control,
     '.github/workflows/validate.yml' => $workflow,
     'docs/MIGRATION_CENTER.md' => $docs,
@@ -38,8 +55,18 @@ if ($backupScript === false) {
     throw new RuntimeException('Unable to read bin/mucho-db-backup.sh');
 }
 
-if ($dockerfile === false || $control === false) {
-    throw new RuntimeException('Unable to read Dockerfile or Control Center.');
+if (
+    $dockerfile === false ||
+    $control === false ||
+    $phpBackup === false ||
+    $sharedMigration === false ||
+    $sharedInstaller === false ||
+    $adminBackup === false ||
+    $adminUsersMigration === false ||
+    $sharedPackageBuilder === false ||
+    $releaseWorkflow === false
+) {
+    throw new RuntimeException('Unable to read one of the shared-hosting migration safety files.');
 }
 
 foreach ([
@@ -52,6 +79,74 @@ foreach ([
 
 if (strpos($control, 'compose exec -T app bash /var/www/mucho-core/bin/mucho-db-backup.sh') === false) {
     throw new RuntimeException('Control Center backup must run inside the app container.');
+}
+
+foreach ([
+    'DatabaseBackupService',
+    'gzopen(',
+    'hash_file('sha256'',
+    'LOCK_EX | LOCK_NB',
+    'SET FOREIGN_KEY_CHECKS=0',
+] as $needle) {
+    if (strpos($phpBackup, $needle) === false) {
+        throw new RuntimeException('Portable PHP backup contract missing: ' . $needle);
+    }
+}
+
+foreach ([
+    'connectSource(',
+    'SET SESSION TRANSACTION READ ONLY',
+    'DatabaseBackupService',
+    'new Migrator(',
+    'beginTransaction()',
+    'Migration is already running',
+] as $needle) {
+    if (strpos($sharedMigration, $needle) === false) {
+        throw new RuntimeException('Shared migration service contract missing: ' . $needle);
+    }
+}
+
+foreach ([
+    'shared-install.installed',
+    'flock($lockHandle',
+    'databasePreflight(',
+    'tableCount > 0',
+    'MUCHO_SHARED_HOSTING=1',
+    'MUCHO_DB_BACKUP_DIR=',
+    'DatabaseBackupService',
+    'admin_users',
+    'password_hash',
+    'atomicWrite(',
+] as $needle) {
+    if (strpos($sharedInstaller, $needle) === false) {
+        throw new RuntimeException('Shared installer safety contract missing: ' . $needle);
+    }
+}
+
+if (strpos($adminBackup, 'muchodbSharedHosting()') === false ||
+    strpos($adminBackup, 'DatabaseBackupService') === false ||
+    strpos($adminBackup, 'MUCHO_DB_BACKUP_DIR') === false) {
+    throw new RuntimeException('Shared-hosting Admin Backup Center integration is missing.');
+}
+
+if (strpos($adminActionPrevious, 'SharedMigrationService::connectSource') === false ||
+    strpos($adminActionPrevious, 'sharedHosting') === false) {
+    throw new RuntimeException('Shared-hosting Migration Center action path is missing.');
+}
+
+if (strpos($adminUsersMigration, 'CREATE TABLE IF NOT EXISTS admin_users') === false) {
+    throw new RuntimeException('Canonical admin_users bootstrap migration is missing.');
+}
+
+if (strpos($sharedPackageBuilder, 'vendor/autoload.php') === false ||
+    strpos($sharedPackageBuilder, 'public/shared-install.php') === false ||
+    strpos($sharedPackageBuilder, 'SHARED_HOSTING_ARCHIVE_OK') === false) {
+    throw new RuntimeException('Shared-hosting package builder contract is missing.');
+}
+
+if (strpos($releaseWorkflow, 'Build shared-hosting archive') === false ||
+    strpos($releaseWorkflow, 'Upload shared-hosting archive') === false) {
+    throw new RuntimeException('Stable release workflow does not publish the shared-hosting package.');
 }
 
 foreach ([
