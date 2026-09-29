@@ -79,6 +79,15 @@ if (substr_count($action, 'contentPackLevelIds(') < 3) {
     exit(1);
 }
 
+if (
+    !str_contains($action, "preg_split('/[\\\\s,]+/'") ||
+    substr_count($action, 'packLevelFieldFromPost(5)') < 1 ||
+    substr_count($action, 'packLevelFieldFromPost(3)') < 1
+) {
+    fwrite(STDERR, "Contract failed: maker form level fields are not wired into persistence\n");
+    exit(1);
+}
+
 if (substr_count($action, 'assertContentPackLevels(') < 3) {
     fwrite(STDERR, "Contract failed: selected levels are not checked before persistence\n");
     exit(1);
