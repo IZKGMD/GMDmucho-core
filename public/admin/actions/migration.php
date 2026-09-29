@@ -14,6 +14,13 @@ $database=trim((string)($_POST['source_db'] ?? ''));
 $user=trim((string)($_POST['source_user'] ?? ''));
 $password=(string)($_POST['source_pass'] ?? '');
 
+$_SESSION['migration_form']=[
+    'source_host'=>$host,
+    'source_port'=>(string)$port,
+    'source_db'=>$database,
+    'source_user'=>$user,
+];
+
 try {
     if (!preg_match('/^[A-Za-z0-9._:-]+$/', $host)) {
         throw new RuntimeException('Invalid database host. Enter the MySQL/MariaDB host, not the GDPS website URL.');
@@ -185,7 +192,19 @@ try {
         $_SESSION['migration_status_type']='error';
     }
 } catch (Throwable $e) {
-    $_SESSION['migration_status']=$e->getMessage();
+    $requestId=bin2hex(random_bytes(8));
+    error_log(sprintf(
+        '[MuchoCore Shared Migration] request=%s %s: %s | %s:%d',
+        $requestId,
+        $e::class,
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine()
+    ));
+
+    $_SESSION['migration_status']=
+        'Migration could not be completed. Request ID: '.$requestId.'. ' .
+        'The source database was not modified by MuchoCore.';
     $_SESSION['migration_status_type']='error';
 }
 
