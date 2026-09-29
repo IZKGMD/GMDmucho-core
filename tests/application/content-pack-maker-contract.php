@@ -104,11 +104,13 @@ if (
 }
 
 if (
-    substr_count($page, '<details class="mc-dropdown"') < 3 ||
-    substr_count($page, 'type="radio"') < 8 ||
+    !str_contains($page, '<details class="mc-dropdown"') ||
+    substr_count($page, 'type="radio"') < 2 ||
+    substr_count($page, 'renderContentPackDifficultyPicker(') < 3 ||
+    substr_count($page, 'renderContentPackColorPicker(') < 4 ||
     !str_contains($page, 'data-difficulty-preview') ||
     !str_contains($page, 'data-color-preview') ||
-    substr_count($page, 'd.open=false;') < 3
+    substr_count($page, 'd.open=false;') < 2
 ) {
     fwrite(STDERR, "Contract failed: native dropdown selectors are incomplete\n");
     exit(1);
