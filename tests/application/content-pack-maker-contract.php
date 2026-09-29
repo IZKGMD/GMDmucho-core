@@ -54,6 +54,8 @@ $contracts = [
     [$page, 'New Map Pack', 'Map Pack creator'],
     [$page, 'Give Rate', 'visual difficulty picker'],
     [$page, 'muchoPickDifficulty', 'difficulty picker interaction'],
+    [$page, 'contentPackDifficultyIcon', 'Geometry Dash style difficulty icon renderer'],
+    [$page, 'data-difficulty-label', 'selected difficulty label'],
     [$page, 'muchoPickColor', 'color picker interaction'],
     [$page, 'name="color1"', 'Color 1 form value'],
     [$page, 'name="color2"', 'Color 2 form value'],
