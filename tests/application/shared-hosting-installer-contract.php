@@ -29,7 +29,7 @@ foreach ([
 $installerContracts = [
     'X-Frame-Options: DENY',
     'Content-Security-Policy:',
-    "session.cookie_secure',
+    'session.cookie_secure',
     'function databaseSizeBytes',
     'function isMuchoCoreDatabase',
     'function verifyInstalledSchema',
@@ -97,14 +97,14 @@ if (!str_contains($migrationAction, 'MUCHO_DB_BACKUP_DIR')) {
 
 if (!str_contains($migrationAction, 'error_log(sprintf(')
     || !str_contains($migrationAction, '[MuchoCore Shared Migration]')
-    || str_contains($migrationAction, '$_SESSION['migration_status']=$e->getMessage()')
+    || str_contains($migrationAction, '$_SESSION[\'migration_status\']=$e->getMessage()')
 ) {
     throw new RuntimeException(
         'Shared Migration Center must log raw errors server-side and avoid exposing them to the browser.'
     );
 }
 
-if (!str_contains($migrationPage, '$_SESSION['migration_form']')) {
+if (!str_contains($migrationPage, '$_SESSION[\'migration_form\']')) {
     throw new RuntimeException(
         'Shared Migration Center must preserve non-secret source fields across redirects.'
     );
