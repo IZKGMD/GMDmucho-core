@@ -11,6 +11,7 @@ bash -n install.sh
 bash -n install
 bash -n tools/release/build-shared-hosting.sh
 test -f public/shared-install.php
+grep -Fq '20260925_000_admin_users.php' < <(git ls-files database/migrations/20260925_000_admin_users.php)
 php -l public/shared-install.php >/dev/null
 grep -Fq 'shared-install.installed' public/shared-install.php
 grep -Fq 'databasePreflight(' public/shared-install.php
