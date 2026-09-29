@@ -243,8 +243,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!copy($envFile, $envBackup)) { throw new RuntimeException('Could not back up the existing .env file.'); }
                 chmod($envBackup, 0600);
             }
-            $env = implode(PHP_EOL, ['DB_HOST=' . $dbHost,'DB_PORT=' . $dbPort,'DB_NAME=' . $dbName,'DB_USER=' . $dbUser,'DB_PASS=' . $dbPass,'MUCHO_ACCOUNT_URL=' . $accountUrl,'MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net','MUCHO_ADMIN_BOOTSTRAP=' . str_replace('\\','/',$bootstrapPath),'MUCHO_CONTROL_DIR=' . str_replace('\\','/',$controlDir),'MUCHO_BACKUP_DIR=' . str_replace('\\','/',$storage . '/backups/admin-v2'),
-                'MUCHO_DB_BACKUP_DIR=' . str_replace('\\','/',$backupDir),'MUCHO_SHARED_HOSTING=1','MUCHO_GD_VERSIONS=all','MUCHO_PROTECT_STORAGE=file','MUCHO_TRUSTED_PROXY_CIDRS=','MUCHO_CACHE_DRIVER=database','MUCHO_AUTO_UPDATE=0','TZ=UTC','']);
+            $env = implode(PHP_EOL, [
+                dotenvLine('DB_HOST', $dbHost),
+                dotenvLine('DB_PORT', $dbPort),
+                dotenvLine('DB_NAME', $dbName),
+                dotenvLine('DB_USER', $dbUser),
+                dotenvLine('DB_PASS', $dbPass),
+                dotenvLine('MUCHO_ACCOUNT_URL', $accountUrl),
+                dotenvLine('MUCHO_CUSTOM_CONTENT_URL', 'https://geometrydashfiles.b-cdn.net'),
+                dotenvLine('MUCHO_ADMIN_BOOTSTRAP', str_replace('\\', '/', $bootstrapPath)),
+                dotenvLine('MUCHO_CONTROL_DIR', str_replace('\\', '/', $controlDir)),
+                dotenvLine('MUCHO_BACKUP_DIR', str_replace('\\', '/', $storage . '/backups/admin-v2')),
+                dotenvLine('MUCHO_DB_BACKUP_DIR', str_replace('\\', '/', $backupDir)),
+                dotenvLine('MUCHO_SHARED_HOSTING', '1'),
+                dotenvLine('MUCHO_GD_VERSIONS', 'all'),
+                dotenvLine('MUCHO_PROTECT_STORAGE', 'file'),
+                dotenvLine('MUCHO_TRUSTED_PROXY_CIDRS', ''),
+                dotenvLine('MUCHO_CACHE_DRIVER', 'database'),
+                dotenvLine('MUCHO_AUTO_UPDATE', '0'),
+                dotenvLine('TZ', 'UTC'),
+                '',
+            ]);
             atomicWrite($envFile, $env, 0600);
             $adminHash = password_hash($adminPass, PASSWORD_DEFAULT);
             if (!is_string($adminHash) || $adminHash === '') { throw new RuntimeException('Unable to hash the administrator password.'); }
