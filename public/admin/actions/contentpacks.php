@@ -25,7 +25,7 @@ function contentPackLevelIds(string $raw, int $expected): array
 {
     $ids = [];
 
-    foreach (preg_split('/[,s]+/', trim($raw)) ?: [] as $part) {
+    foreach (preg_split('/[\\s,]+/', trim($raw)) ?: [] as $part) {
         if (!ctype_digit($part)) {
             continue;
         }
@@ -115,7 +115,7 @@ if ($action === 'gauntlet-save') {
         'Gauntlet'
     );
     $levelIds = contentPackLevelIds(
-        (string)($_POST['levels'] ?? ''),
+        (string)packLevelFieldFromPost(5),
         5
     );
     assertContentPackLevels($db, $levelIds);
@@ -210,7 +210,7 @@ if ($action === 'mappack-save') {
         'Map Pack'
     );
     $levelIds = contentPackLevelIds(
-        (string)($_POST['levels'] ?? ''),
+        (string)packLevelFieldFromPost(3),
         3
     );
     assertContentPackLevels($db, $levelIds);
