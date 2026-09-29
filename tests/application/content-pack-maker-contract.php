@@ -42,6 +42,7 @@ $contracts = [
     [$action, '$expected', 'expected level-count parameter'],
     [$action, 'function contentPackLevelFieldFromPost', 'POST level field parser'],
     [$action, "contentPackLevelFieldFromPost(5)", 'Gauntlet POST level wiring'],
+    [$action, "(string)($_POST['levels'] ?? '')", 'Map Pack POST level wiring'],
     [$action, "'gauntlet-save'", 'Gauntlet save action'],
     [$action, "'gauntlet-delete'", 'Gauntlet delete action'],
     [$action, "'mappack-save'", 'Map Pack save action'],
