@@ -224,7 +224,7 @@ handle_update_interrupt() {
 
 trap handle_update_interrupt INT TERM
 
-git fetch --depth=1 origin "refs/tags/$LATEST_TAG:refs/tags/$LATEST_TAG"
+git fetch origin "refs/tags/$LATEST_TAG:refs/tags/$LATEST_TAG"
 
 if ! git merge-base --is-ancestor "$CURRENT_HEAD" "$LATEST_TAG^{commit}"; then
     if [[ "${MUCHO_ALLOW_RELEASE_REBASE:-0}" != "1" ]]; then
