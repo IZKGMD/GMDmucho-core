@@ -61,8 +61,16 @@ foreach ($contracts as [$content, $needle, $label]) {
     }
 }
 
-if (substr_count($page, 'name="level_') < 8) {
-    fwrite(STDERR, "Contract failed: expected five Gauntlet + three Map Pack level inputs\n");
+if (
+    !str_contains($page, 'renderContentPackLevelInput($db,[],5)') ||
+    !str_contains($page, 'renderContentPackLevelInput($db,[],3)')
+) {
+    fwrite(STDERR, "Contract failed: maker pages do not generate the required 5/3 level slots\n");
+    exit(1);
+}
+
+if (!str_contains($page, 'name="level_') || !str_contains($page, 'for ($i = 1; $i <= $expected; $i++)')) {
+    fwrite(STDERR, "Contract failed: dynamic level slot generation is missing\n");
     exit(1);
 }
 
