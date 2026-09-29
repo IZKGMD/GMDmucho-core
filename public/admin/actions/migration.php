@@ -30,7 +30,7 @@ try {
         throw new RuntimeException('Database port must be between 1 and 65535.');
     }
 
-    if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $database)) {
+    if (!preg_match('/^[A-Za-z0-9_$.-]{1,128}$/', $database)) {
         throw new RuntimeException('Invalid database name.');
     }
 
@@ -70,10 +70,20 @@ try {
             $password
         );
 
+        $backupDir=(string)(
+            $_ENV['MUCHO_DB_BACKUP_DIR']
+            ?? getenv('MUCHO_DB_BACKUP_DIR')
+            ?? ($rootDir.'/storage/backups/database')
+        );
+
+        if ($backupDir === '') {
+            throw new RuntimeException('Shared-hosting backup directory is not configured.');
+        }
+
         $service=new \MuchoCore\Migration\SharedMigrationService(
             $db,
             $rootDir,
-            $rootDir.'/storage/backups/database'
+            $backupDir
         );
 
         $result=$isApply
