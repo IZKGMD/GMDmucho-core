@@ -301,9 +301,11 @@ if ($success) {
         <p><a href="/">Open the GDPS</a></p>
         <p><a href="/admin/">Open the admin panel</a></p>
         <p><a href="/health">Open the health check</a></p>
+        <p><a href="/admin/?page=migration">Migrate an existing GDPS database</a></p>
 
         <h2>Important</h2>
         <p>Delete <code>public/shared-install.php</code> from your hosting account if the file still exists.</p>
+        <p>The target database was backed up before migrations. Keep that backup until you have tested the new server.</p>
         <p>Do not delete <code>.env</code>, <code>storage/admin-bootstrap.php</code> or <code>config/cloudsave.key</code>.</p>
         <p style="margin-top:24px;padding-top:14px;border-top:1px solid #d9dee5;text-align:center;color:#7a838f;font-size:12px">
             Powered by MuchoCore 🛡️ · <a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">GitHub</a>
