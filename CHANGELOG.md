@@ -1,3 +1,16 @@
+## v1.0.84 — Worker & Updater Reliability
+
+### Runtime Reliability
+
+- separate worker startup from administrator password bootstrap so background workers no longer require an admin secret they do not use;
+- add a regression contract covering worker secret isolation and admin-bearing service requirements.
+
+### Updater Reliability
+
+- fetch stable release tags without a shallow-history reset before ancestry validation, preventing false non-descendant failures on valid upgrades.
+
+---
+
 ## v1.0.83 — Reliability, Migration & Deployment Hardening
 
 ### Migration Safety
