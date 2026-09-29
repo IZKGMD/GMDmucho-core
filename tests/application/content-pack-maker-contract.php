@@ -38,7 +38,7 @@ $contracts = [
     [$migration, 'CREATE TABLE IF NOT EXISTS mucho_map_packs', 'Map Pack table'],
     [$migration, 'ADD COLUMN IF NOT EXISTS name', 'legacy-schema compatibility'],
     [$action, "requirePermission('contentpacks.manage')", 'content-pack permission'],
-    [$action, "$expected", 'expected level-count parameter'],
+    [$action, '$expected', 'expected level-count parameter'],
     [$action, "'gauntlet-save'", 'Gauntlet save action'],
     [$action, "'gauntlet-delete'", 'Gauntlet delete action'],
     [$action, "'mappack-save'", 'Map Pack save action'],
