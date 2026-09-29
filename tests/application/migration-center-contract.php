@@ -143,9 +143,16 @@ if (strpos($sharedPackageBuilder, 'vendor/autoload.php') === false ||
     throw new RuntimeException('Shared-hosting package builder contract is missing.');
 }
 
-if (strpos($releaseWorkflow, 'Build shared-hosting archive') === false ||
-    strpos($releaseWorkflow, 'Upload shared-hosting archive') === false) {
-    throw new RuntimeException('Stable release workflow does not publish the shared-hosting package.');
+if (strpos($releaseWorkflow, 'Build shared-hosting package') === false ||
+    strpos($releaseWorkflow, 'Upload shared-hosting package') === false ||
+    strpos($releaseWorkflow, 'MuchoCore-v${{ steps.marker.outputs.version }}-shared-hosting.zip') === false ||
+    strpos($releaseWorkflow, 'MuchoCore-v${TAG#v}-shared-hosting.zip') === false) {
+    throw new RuntimeException('Stable release workflow does not publish the shared-hosting package correctly.');
+}
+
+if (substr_count($releaseWorkflow, 'name: Build shared-hosting package') !== 1 ||
+    substr_count($releaseWorkflow, 'name: Upload shared-hosting package') !== 1) {
+    throw new RuntimeException('Stable release workflow must contain exactly one shared-hosting build and upload step.');
 }
 
 foreach ([
