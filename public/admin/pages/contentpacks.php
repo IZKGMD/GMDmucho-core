@@ -67,17 +67,6 @@ function renderContentPackLevelInput(
     echo '</div>';
 }
 
-function packLevelFieldFromPost(int $expected): string
-{
-    $ids = [];
-
-    for ($i = 1; $i <= $expected; $i++) {
-        $ids[] = (string)($_POST['level_'.$i] ?? '');
-    }
-
-    return implode(' ', $ids);
-}
-
 $gauntlets = $db->query(
     'SELECT id,name,level1,level2,level3,level4,level5,enabled,sort_order
      FROM mucho_gauntlets
@@ -128,7 +117,10 @@ echo '<label>Color 2<input type="number" name="color2" min="0" max="255" value="
 echo '<label>Order<input type="number" name="sort_order" value="0"></label>';
 echo '</div>';
 echo '<label style="display:flex;gap:6px;align-items:center;margin-top:8px">Enabled <input type="checkbox" name="enabled" checked></label>';
-renderContentPackLevelInput($db,[],3);
+echo '<label style="display:block;margin-top:10px">Levels';
+echo '<textarea name="levels" rows="5" placeholder="Level IDs separated by spaces, commas, or new lines" required></textarea>';
+echo '</label>';
+echo '<small class="muted">Any number of unique levels is allowed.</small>';
 echo '<button style="margin-top:10px">Create Map Pack</button>';
 echo '</form>';
 echo '</section>';
@@ -192,7 +184,10 @@ if ($mapPacks === []) {
         echo '<label>Order<input type="number" name="sort_order" value="'.h($m['sort_order']).'"></label>';
         echo '<label style="display:flex;gap:6px;align-items:center">Enabled <input type="checkbox" name="enabled" '.((int)$m['enabled'] ? 'checked' : '').'></label>';
         echo '</div>';
-        renderContentPackLevelInput($db,$levelIds,3);
+        echo '<label style="display:block;margin-top:10px">Levels';
+        echo '<textarea name="levels" rows="5" required>'.h(implode(' ', $levelIds)).'</textarea>';
+        echo '</label>';
+        echo '<small class="muted">Any number of unique levels is allowed.</small>';
         echo '<div style="display:flex;gap:8px;margin-top:10px"><button>Save</button></div>';
         echo '</form>';
         echo '<form method="post" style="margin-top:6px" onsubmit="return confirm(\'Delete this Map Pack?\')">';
@@ -205,4 +200,4 @@ if ($mapPacks === []) {
     }
 }
 
-echo '<p class="muted" style="margin-top:16px">Gauntlets require exactly 5 levels. Map Packs require exactly 3 unique levels. Level names shown under each ID are only an editor aid; the client receives numeric IDs and the standard GD wire format.</p>';
+echo '<p class="muted" style="margin-top:16px">Gauntlets require exactly 5 unique levels. Map Packs accept any number of unique levels. The client receives numeric IDs in the standard GD wire format.</p>';
