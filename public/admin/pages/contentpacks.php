@@ -145,7 +145,7 @@ if ($gauntlets === []) {
         echo '<form method="post">';
         echo '<input type="hidden" name="csrf" value="'.csrf().'">';
         echo '<input type="hidden" name="action" value="gauntlet-save">';
-        echo '<input type="hidden" name="id" value="'.h($g['id']).">';
+        echo '<input type="hidden" name="id" value="'.h($g['id']).'">';
         echo '<div style="display:grid;grid-template-columns:minmax(180px,2fr) minmax(90px,1fr) auto;gap:8px;align-items:end">';
         echo '<label>Name<input name="name" maxlength="96" value="'.h($g['name']).'" required></label>';
         echo '<label>Order<input type="number" name="sort_order" value="'.h($g['sort_order']).'"></label>';
