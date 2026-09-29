@@ -131,6 +131,11 @@ final class DatabaseBackupService
 
             $this->verifyChecksum($final, $checksumFile);
 
+            if ($startedTransaction && $this->pdo->inTransaction()) {
+                $this->pdo->commit();
+                $startedTransaction = false;
+            }
+
             return [
                 'file' => $final,
                 'sha256' => $sha256,
@@ -146,10 +151,6 @@ final class DatabaseBackupService
             @unlink($checksumFile);
             throw $e;
         } finally {
-            if ($startedTransaction && $this->pdo->inTransaction()) {
-                $this->pdo->commit();
-            }
-
             flock($lock, LOCK_UN);
             fclose($lock);
         }
