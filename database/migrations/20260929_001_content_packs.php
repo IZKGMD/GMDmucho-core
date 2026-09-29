@@ -45,7 +45,7 @@ return static function(PDO $db): void {
         CREATE TABLE IF NOT EXISTS mucho_map_packs (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             name VARCHAR(64) NOT NULL,
-            levels VARCHAR(96) NOT NULL,
+            levels TEXT NOT NULL,
             stars SMALLINT UNSIGNED NOT NULL DEFAULT 0,
             coins SMALLINT UNSIGNED NOT NULL DEFAULT 0,
             difficulty TINYINT NOT NULL DEFAULT 0,
