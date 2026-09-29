@@ -185,9 +185,12 @@ jobs:
         if: steps.marker.outputs.archive_only == 'true'
         env:
           TAG: ${{ steps.marker.outputs.tag }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           git config user.name "IZK"
           git config user.email "112145870+IZKGMD@users.noreply.github.com"
+          gh auth setup-git
           git fetch origin main
           git switch -C main origin/main
           rm -f ".release/archive-${TAG}.ready"
