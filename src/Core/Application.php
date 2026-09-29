@@ -99,7 +99,6 @@ final readonly class Application
             $this->router,
             dirname(__DIR__, 2)
         );
-        $this->plugins->load();
 
         $accountRepo = new AccountRepository($this->pdo);
         $accountService = new AccountService(
@@ -498,6 +497,9 @@ final readonly class Application
         $route('/getGJChallenges',
             [$rewardsController,'getChallenges']);
 
+        // Core routes are registered before third-party plugins so plugin
+        // routes can never shadow a core protocol endpoint.
+        $this->plugins->load();
         $this->plugins->boot();
     }
 
