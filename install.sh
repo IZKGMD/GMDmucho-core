@@ -451,21 +451,20 @@ chmod 600 "$INSTALL_DIR/.muchocore/profile.env"
 [[ -f "$INSTALL_DIR/docker/Dockerfile" ]] || fail "Repository does not contain docker/Dockerfile."
 [[ -f "$INSTALL_DIR/docker/Caddyfile" ]] || fail "Repository does not contain docker/Caddyfile."
 
-log "Validating Docker Compose..."
+COMPOSE_ARGS=()
 if [[ -n "$TUNNEL_TOKEN" ]]; then
-  docker compose -f docker-compose.yml -f docker-compose.tunnel.yml config -q
-else
-  docker compose config -q
+  COMPOSE_ARGS=(-f docker-compose.yml -f docker-compose.tunnel.yml)
 fi
+
+log "Validating Docker Compose..."
+docker compose "${COMPOSE_ARGS[@]}" config -q
 
 log "Starting MuchoCore..."
 cd "$INSTALL_DIR"
 if [[ -n "$TUNNEL_TOKEN" ]]; then
   log "Tunnel mode: no inbound ports will be opened; Cloudflare Tunnel provides ingress."
-  docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d --build --remove-orphans
-else
-  docker compose up -d --build --remove-orphans
 fi
+docker compose "${COMPOSE_ARGS[@]}" up -d --build --remove-orphans
 
 log "Verifying running containers..."
 expected_services=(db app worker caddy testgdps-db testgdps-app)
@@ -473,21 +472,21 @@ if [[ -n "$TUNNEL_TOKEN" ]]; then
   expected_services+=(cloudflared)
 fi
 for service in "${expected_services[@]}"; do
-  container_id="$(docker compose ps -q "$service" 2>/dev/null || true)"
+  container_id="$(docker compose "${COMPOSE_ARGS[@]}" ps -q "$service" 2>/dev/null || true)"
   [[ -n "$container_id" ]] || fail "Service '$service' was not created."
   running="$(docker inspect -f '{{.State.Running}}' "$container_id" 2>/dev/null || true)"
   [[ "$running" == "true" ]] || {
-    docker compose ps || true
-    docker compose logs --tail=80 "$service" || true
+    docker compose "${COMPOSE_ARGS[@]}" ps || true
+    docker compose "${COMPOSE_ARGS[@]}" logs --tail=80 "$service" || true
     fail "Service '$service' is not running."
   }
 done
 
 log "Running database migrations..."
-docker compose exec -T app php bin/migrate.php migrate
+docker compose "${COMPOSE_ARGS[@]}" exec -T app php bin/migrate.php migrate
 
 log "Running internal MuchoCore healthcheck..."
-docker compose exec -T app php bin/mucho-healthcheck.php
+docker compose "${COMPOSE_ARGS[@]}" exec -T app php bin/mucho-healthcheck.php
 
 
 log "Checking server health..."
@@ -512,7 +511,7 @@ if [[ "$healthy" -eq 1 ]]; then
   else
     if [[ -n "$TUNNEL_TOKEN" ]]; then
       warn "The server is running locally, but the domain is not reachable through Cloudflare Tunnel yet."
-      warn "Check the tunnel status: cd $INSTALL_DIR && sudo docker compose logs cloudflared --tail=50"
+      warn "Check the tunnel status: cd $INSTALL_DIR && sudo docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs cloudflared --tail=50"
       warn "Confirm that the tunnel's published application sends traffic to http://caddy:80."
     else
       warn "The server is running, but the domain is not reachable from this VPS yet."
@@ -521,8 +520,16 @@ if [[ "$healthy" -eq 1 ]]; then
   fi
 else
   warn "The services started, but the local health check did not pass in time."
-  warn "Run: cd $INSTALL_DIR && sudo docker compose ps"
-  warn "Run: cd $INSTALL_DIR && sudo docker compose logs --tail=100"
+  if [[ -n "$TUNNEL_TOKEN" ]]; then
+    warn "Run: cd $INSTALL_DIR && sudo docker compose -f docker-compose.yml -f docker-compose.tunnel.yml ps"
+  else
+    warn "Run: cd $INSTALL_DIR && sudo docker compose ps"
+  fi
+  if [[ -n "$TUNNEL_TOKEN" ]]; then
+    warn "Run: cd $INSTALL_DIR && sudo docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs --tail=100"
+  else
+    warn "Run: cd $INSTALL_DIR && sudo docker compose logs --tail=100"
+  fi
 fi
 
 offer_database_migration() {
