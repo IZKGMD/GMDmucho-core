@@ -386,6 +386,16 @@ CREATE TABLE mucho_platformer_scores (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 SQL);
 
+    $target->exec(<<<'SQL'
+CREATE TABLE backup_generated (
+    id INT NOT NULL PRIMARY KEY,
+    value INT NOT NULL,
+    doubled INT GENERATED ALWAYS AS (value * 2) STORED
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+SQL);
+    $target->exec("INSERT INTO backup_generated (id,value) VALUES (1,21)");
+
+
     $validPassword = password_hash('migration-test-password', PASSWORD_DEFAULT);
     $stmt = $source->prepare(
         'INSERT INTO accounts (accountID,userName,password,gjp2,email,isActive)
@@ -567,6 +577,20 @@ SQL);
     }
     gzclose($backupHandle);
     must(str_contains($backupSample, 'MuchoCore database backup'), 'Backup content marker is missing.');
+    must(
+        str_contains(
+            $backupSample,
+            'INSERT INTO `backup_generated` (`id`, `value`) VALUES'
+        ),
+        'Generated-column table was not emitted with writable columns.'
+    );
+    must(
+        !str_contains(
+            $backupSample,
+            'INSERT INTO `backup_generated` (`id`, `value`, `doubled`)'
+        ),
+        'Generated column was incorrectly included in backup INSERT.'
+    );
     must(hash_file('sha256', $backupResult['file']) === $backupResult['sha256'], 'Backup checksum does not match the generated file.');
 
     $cli = runCli(
