@@ -299,8 +299,21 @@ doctor() {
     [[ -f "$ENV_FILE" ]] && echo "✓ .env" || { echo "✗ .env"; ok=1; }
     [[ -s "$SECRETS/db_password" ]] && echo "✓ database secret" || { echo "✗ database secret"; ok=1; }
     [[ -s "$SECRETS/db_root_password" ]] && echo "✓ database root secret" || { echo "✗ database root secret"; ok=1; }
+    [[ -s "$SECRETS/cloudsave_key" ]] && echo "✓ Cloud Save secret" || { echo "✗ Cloud Save secret"; ok=1; }
     docker info >/dev/null 2>&1 && echo "✓ Docker" || { echo "✗ Docker"; ok=1; }
     compose config -q >/dev/null 2>&1 && echo "✓ Compose" || { echo "✗ Compose"; ok=1; }
+
+    local service container_id running
+    for service in db app worker caddy; do
+        container_id="$(compose ps -q "$service" 2>/dev/null || true)"
+        if [[ -z "$container_id" ]]; then
+            echo "✗ service $service (missing)"
+            ok=1
+            continue
+        fi
+        running="$(docker inspect -f '{{.State.Running}}' "$container_id" 2>/dev/null || true)"
+        [[ "$running" == "true" ]] && echo "✓ service $service" || { echo "✗ service $service"; ok=1; }
+    done
 
     local domain health
     domain="$(env_get DOMAIN)"
