@@ -282,6 +282,9 @@ if [[ -f "$INSTALL_DIR/.env" ]]; then
   if [[ -z "$TUNNEL_TOKEN" ]]; then
     TUNNEL_TOKEN="$(sed -n 's/^MUCHO_TUNNEL_TOKEN=//p' "$INSTALL_DIR/.env" | head -n1)"
   fi
+  if [[ -z "$TUNNEL_TOKEN" && -s "$INSTALL_DIR/.secrets/tunnel_token" ]]; then
+    TUNNEL_TOKEN="$(cat "$INSTALL_DIR/.secrets/tunnel_token")"
+  fi
   if [[ -z "$DOMAIN" ]]; then
     DOMAIN="$(sed -n 's/^DOMAIN=//p' "$INSTALL_DIR/.env" | head -n1)"
   fi
@@ -505,6 +508,8 @@ MUCHO_AUTO_UPDATE_INTERVAL=15min
 EOFENV
 if [[ -n "$TUNNEL_TOKEN" ]]; then
   printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
+  printf '%s\n' "$TUNNEL_TOKEN" > "$INSTALL_DIR/.secrets/tunnel_token"
+  chmod 600 "$INSTALL_DIR/.secrets/tunnel_token"
 fi
 chmod 600 "$INSTALL_DIR/.env"
 
