@@ -52,8 +52,17 @@ validate_domain() {
 }
 
 compose() {
-    if [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
-        docker compose -f docker-compose.yml -f docker-compose.tunnel.yml "$@"
+    cd "$ROOT"
+
+    local tunnel_token=""
+    if [[ -s "$SECRETS/tunnel_token" ]]; then
+        tunnel_token="$(cat "$SECRETS/tunnel_token")"
+    elif [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
+        tunnel_token="$(env_get MUCHO_TUNNEL_TOKEN)"
+    fi
+
+    if [[ -n "$tunnel_token" ]]; then
+        MUCHO_TUNNEL_TOKEN="$tunnel_token" docker compose -f docker-compose.yml -f docker-compose.tunnel.yml "$@"
     else
         docker compose "$@"
     fi
@@ -61,8 +70,16 @@ compose() {
 
 compose_test() {
     cd "$ROOT"
-    if [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
-        docker compose -f docker-compose.yml -f docker-compose.tunnel.yml -f docker-compose.test.yml "$@"
+
+    local tunnel_token=""
+    if [[ -s "$SECRETS/tunnel_token" ]]; then
+        tunnel_token="$(cat "$SECRETS/tunnel_token")"
+    elif [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
+        tunnel_token="$(env_get MUCHO_TUNNEL_TOKEN)"
+    fi
+
+    if [[ -n "$tunnel_token" ]]; then
+        MUCHO_TUNNEL_TOKEN="$tunnel_token" docker compose -f docker-compose.yml -f docker-compose.tunnel.yml -f docker-compose.test.yml "$@"
     else
         docker compose -f docker-compose.yml -f docker-compose.test.yml "$@"
     fi
@@ -310,7 +327,7 @@ doctor() {
     local service container_id running
     local services=(db app worker caddy)
     local tunnel_mode=0
-    if [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
+    if [[ -s "$SECRETS/tunnel_token" || -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
         tunnel_mode=1
         services+=(cloudflared)
     fi
