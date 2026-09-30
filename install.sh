@@ -565,21 +565,28 @@ docker compose "${COMPOSE_ARGS[@]}" exec -T app php bin/mucho-healthcheck.php
 
 INSTALL_STEP="checking public health"
 log "Checking server health..."
+
 healthy=0
-for _ in {1..20}; do
-  if [[ -n "$TUNNEL_TOKEN" ]]; then
-    check_url="http://127.0.0.1/health"
-    health_args=()
-  else
-    check_url="http://127.0.0.1/health"
-    health_args=(-H "Host: $DOMAIN")
-  fi
-  if curl -4fsS --connect-timeout 2 --max-time 3 "${health_args[@]}" "$check_url" 2>/dev/null | grep -qx "1"; then
-    healthy=1
-    break
-  fi
-  sleep 2
-done
+if [[ -n "$TUNNEL_TOKEN" ]]; then
+  for _ in {1..20}; do
+    if curl -4fsS --connect-timeout 2 --max-time 3 \
+      "http://127.0.0.1/health" 2>/dev/null | grep -qx "1"; then
+      healthy=1
+      break
+    fi
+    sleep 2
+  done
+else
+  for _ in {1..20}; do
+    public_body="$(curl -4ksS --connect-timeout 3 --max-time 6 \
+      "https://$DOMAIN/health" 2>/dev/null || true)"
+    if [[ "$public_body" == "1" ]]; then
+      healthy=1
+      break
+    fi
+    sleep 3
+  done
+fi
 
 provision_cloudflare_tunnel() {
   local api_token="$CLOUDFLARE_API_TOKEN"
