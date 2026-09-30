@@ -578,10 +578,69 @@ for _ in {1..20}; do
   sleep 2
 done
 
+enable_tunnel_fallback() {
+  local token
+  echo
+  warn "Cloudflare cannot reach this VPS on the public origin (typically HTTP 522 / blocked inbound 80/443)."
+  info "MuchoCore can switch this installation to Cloudflare Tunnel without opening inbound ports."
+  info "Configure this hostname in a Cloudflare Tunnel and set its published application to: http://caddy:80"
+  read -r -s -p "Paste the Cloudflare Tunnel connector token (leave empty to keep direct mode): " token < /dev/tty
+  printf '\n'
+  [[ -n "$token" ]] || return 1
+
+  TUNNEL_TOKEN="$token"
+  printf '%s\n' "$TUNNEL_TOKEN" > "$INSTALL_DIR/.secrets/tunnel_token"
+  chmod 600 "$INSTALL_DIR/.secrets/tunnel_token"
+
+  if grep -q '^MUCHO_TUNNEL_TOKEN=' "$INSTALL_DIR/.env"; then
+    sed -i "s|^MUCHO_TUNNEL_TOKEN=.*|MUCHO_TUNNEL_TOKEN=$TUNNEL_TOKEN|" "$INSTALL_DIR/.env"
+  else
+    printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
+  fi
+  sed -i 's|^CADDY_ADDRESS_VALUE=.*|CADDY_ADDRESS_VALUE=":80"|' "$INSTALL_DIR/.env"
+  sed -i 's|^CADDY_ADDRESS=.*|CADDY_ADDRESS=":80"|' "$INSTALL_DIR/.env"
+
+  COMPOSE_ARGS=(-f "$INSTALL_DIR/docker-compose.yml" -f "$INSTALL_DIR/docker-compose.tunnel.yml")
+  expected_services+=(cloudflared)
+
+  INSTALL_STEP="switching to Cloudflare Tunnel"
+  log "Switching MuchoCore to Cloudflare Tunnel..."
+  docker compose "\${COMPOSE_ARGS[@]}" up -d --remove-orphans
+
+  local tunnel_healthy=0
+  for _ in {1..20}; do
+    if curl -fsS --connect-timeout 2 --max-time 3 "http://127.0.0.1/health" | grep -qx "1"; then
+      tunnel_healthy=1
+      break
+    fi
+    sleep 2
+  done
+  [[ "$tunnel_healthy" -eq 1 ]] || return 1
+
+  log "Cloudflare Tunnel local health check passed."
+  return 0
+}
+
 if [[ "$healthy" -eq 1 ]]; then
   log "Local health check passed."
-  if curl -4ksSf --connect-timeout 3 --max-time 5 "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+  public_code="$(curl -4ksS --connect-timeout 3 --max-time 6 -o "/tmp/mucho-public-health.\$\$" -w '%{http_code}' "https://$DOMAIN/health" 2>/dev/null || true)"
+  public_body="$(cat "/tmp/mucho-public-health.\$\$" 2>/dev/null || true)"
+  rm -f "/tmp/mucho-public-health.\$\$"
+
+  if [[ "$public_body" == "1" ]]; then
     log "Public health check passed."
+  elif [[ -z "$TUNNEL_TOKEN" && "$public_code" =~ ^52[0-9]$ ]]; then
+    if enable_tunnel_fallback; then
+      if curl -4ksSf --connect-timeout 5 --max-time 10 "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+        log "Public health check passed through Cloudflare Tunnel."
+      else
+        warn "Tunnel is running locally, but the domain is not reachable through Cloudflare yet."
+        warn "Check: cd $INSTALL_DIR && sudo docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs cloudflared --tail=80"
+      fi
+    else
+      warn "Direct mode is still active."
+      warn "If this VPS blocks inbound 80/443, use the Cloudflare Tunnel fallback on the next install attempt."
+    fi
   else
     if [[ -n "$TUNNEL_TOKEN" ]]; then
       warn "The server is running locally, but the domain is not reachable through Cloudflare Tunnel yet."
