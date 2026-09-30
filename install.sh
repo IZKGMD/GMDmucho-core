@@ -534,16 +534,25 @@ if [[ -n "$TUNNEL_TOKEN" ]]; then
   COMPOSE_ARGS+=( -f "$INSTALL_DIR/docker-compose.tunnel.yml" )
 fi
 
+run_compose() {
+  if [[ -n "$TUNNEL_TOKEN" ]]; then
+    MUCHO_TUNNEL_TOKEN="$TUNNEL_TOKEN" docker compose "${COMPOSE_ARGS[@]}" "$@"
+  else
+    docker compose "${COMPOSE_ARGS[@]}" "$@"
+  fi
+}
+
+
 INSTALL_STEP="validating Docker Compose"
 log "Validating Docker Compose..."
-docker compose "${COMPOSE_ARGS[@]}" config -q
+run_compose config -q
 
 INSTALL_STEP="starting production services"
 log "Starting MuchoCore..."
 if [[ -n "$TUNNEL_TOKEN" ]]; then
   log "Tunnel mode: no inbound ports will be opened; Cloudflare Tunnel provides ingress."
 fi
-docker compose "${COMPOSE_ARGS[@]}" up -d --build --remove-orphans
+run_compose up -d --build --remove-orphans
 
 log "Verifying running containers..."
 expected_services=(db app worker caddy)
@@ -551,23 +560,23 @@ if [[ -n "$TUNNEL_TOKEN" ]]; then
   expected_services+=(cloudflared)
 fi
 for service in "${expected_services[@]}"; do
-  container_id="$(docker compose "${COMPOSE_ARGS[@]}" ps -q "$service" 2>/dev/null || true)"
+  container_id="$(run_compose ps -q "$service" 2>/dev/null || true)"
   [[ -n "$container_id" ]] || fail "Service '$service' was not created."
   running="$(docker inspect -f '{{.State.Running}}' "$container_id" 2>/dev/null || true)"
   [[ "$running" == "true" ]] || {
-    docker compose "${COMPOSE_ARGS[@]}" ps || true
-    docker compose "${COMPOSE_ARGS[@]}" logs --tail=80 "$service" || true
+    run_compose ps || true
+    run_compose logs --tail=80 "$service" || true
     fail "Service '$service' is not running."
   }
 done
 
 INSTALL_STEP="running database migrations"
 log "Running database migrations..."
-docker compose "${COMPOSE_ARGS[@]}" exec -T app php bin/migrate.php migrate
+run_compose exec -T app php bin/migrate.php migrate
 
 INSTALL_STEP="running the internal healthcheck"
 log "Running internal MuchoCore healthcheck..."
-docker compose "${COMPOSE_ARGS[@]}" exec -T app php bin/mucho-healthcheck.php
+run_compose exec -T app php bin/mucho-healthcheck.php
 
 
 INSTALL_STEP="checking public health"
@@ -618,7 +627,7 @@ provision_cloudflare_tunnel() {
 
   INSTALL_STEP="starting Cloudflare Tunnel"
   log "Starting Cloudflare Tunnel..."
-  docker compose "${COMPOSE_ARGS[@]}" up -d --remove-orphans
+  run_compose up -d --remove-orphans
 
   local tunnel_healthy=0
   for _ in {1..20}; do
@@ -745,16 +754,9 @@ offer_database_migration() {
         confirm_args+=(--confirm=MIGRATE)
       fi
 
-      if [[ -n "$TUNNEL_TOKEN" ]]; then
-        if ! docker compose -f docker-compose.yml -f docker-compose.tunnel.yml exec app php bin/mucho-migrate.php --apply "${confirm_args[@]}"; then
-          warn "Database migration was not completed. MuchoCore itself is installed; the old database was not modified."
-          return 0
-        fi
-      else
-        if ! docker compose exec app php bin/mucho-migrate.php --apply "${confirm_args[@]}"; then
-          warn "Database migration was not completed. MuchoCore itself is installed; the old database was not modified."
-          return 0
-        fi
+      if ! run_compose exec app php bin/mucho-migrate.php --apply "${confirm_args[@]}"; then
+        warn "Database migration was not completed. MuchoCore itself is installed; the old database was not modified."
+        return 0
       fi
       ;;
     *)
