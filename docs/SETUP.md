@@ -123,15 +123,24 @@ sudo /opt/mucho-core/update.sh
 
 ## Logs
 
+Use the operator CLI:
+
 ~~~bash
-cd /opt/mucho-core
-sudo docker compose logs --tail=100
+sudo mucho logs
 ~~~
 
 For live logs:
 
 ~~~bash
-sudo docker compose logs -f
+sudo mucho logs --follow
+~~~
+
+The low-level Docker command remains available when needed:
+
+~~~bash
+cd /opt/mucho-core
+sudo docker compose logs --tail=100
+~~~
 ~~~
 
 ## Backups
