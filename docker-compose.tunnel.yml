@@ -17,14 +17,18 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:2026.9.1
     restart: unless-stopped
-    # Prefer HTTP/2 over TCP for predictable operation on VPS networks where
-    # QUIC/UDP is unstable or filtered. Cloudflare supports both transports.
-    entrypoint: ["/bin/sh", "/usr/local/bin/muchocore-cloudflared"]
-    volumes:
-      - ./docker/cloudflared-entrypoint.sh:/usr/local/bin/muchocore-cloudflared:ro
-    environment:
-      MUCHO_TUNNEL_TOKEN: ${MUCHO_TUNNEL_TOKEN}
-      CLOUDFLARED_METRICS: 127.0.0.1:20241
+    # Keep cloudflared as PID 1. The official image does not ship /bin/sh, so
+    # readiness is exposed through cloudflared's native metrics endpoint.
+    command:
+      - tunnel
+      - --no-autoupdate
+      - --protocol
+      - http2
+      - --metrics
+      - 0.0.0.0:20241
+      - run
+      - --token
+      - ${MUCHO_TUNNEL_TOKEN}
     healthcheck:
       test: ["CMD", "cloudflared", "tunnel", "ready", "--metrics", "127.0.0.1:20241"]
       interval: 15s
