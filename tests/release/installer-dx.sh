@@ -23,7 +23,7 @@ grep -Fq 'POST "/zones/$zone_id/dns_records"' bin/mucho-cloudflare-tunnel.sh
 grep -Fq 'Cloudflare Tunnel → Edit' README.md
 grep -Fq 'profile/api-tokens?permissionGroupKeys=' install.sh
 grep -Fq 'sudo mucho doctor' install.sh
-grep -Fq -- '--token' docker-compose.tunnel.yml
+grep -Fq 'TUNNEL_TOKEN_FILE: /run/secrets/muchocore_tunnel_token' docker-compose.tunnel.yml
 ! grep -Fq 'expected_services=(db app worker caddy testgdps-db testgdps-app)' install.sh
 ! grep -Fq 'testgdps' docker-compose.yml
 grep -Fq 'testgdps' docker-compose.test.yml
