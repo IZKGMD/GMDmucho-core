@@ -20,8 +20,8 @@ grep -Fq 'sudo mucho doctor' install.sh
 grep -Fq 'testgdps' docker-compose.test.yml
 
 for command in status logs restart doctor repair update backup migrate migration config test-stack install test; do
-    grep -Fq "\${command})" bin/mucho || {
-        echo "Missing Mucho CLI command: \${command}" >&2
+    grep -Fq "${command})" bin/mucho || {
+        echo "Missing Mucho CLI command: ${command}" >&2
         exit 1
     }
 done
