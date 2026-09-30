@@ -51,6 +51,47 @@ info() { printf "  ${CYAN}→${RESET} %s\n" "$*"; }
 warn() { printf "\n${YELLOW}[warning]${RESET} %s\n" "$*" >&2; }
 fail() { printf "\n${RED}[error]${RESET} %s\n" "$*" >&2; exit 1; }
 
+# The installer is intentionally interactive only for the two values that are
+# genuinely deployment-specific: the public domain and the initial admin
+# password. Everything else has safe production defaults and can be changed
+# later through "sudo mucho".
+QUICK_MODE=0
+INSTALL_STEP="starting"
+MUCHO_MIGRATION_ON_INSTALL="${MUCHO_MIGRATION_ON_INSTALL:-}"
+
+usage() {
+  cat <<'EOF'
+MuchoCore installer
+
+Quick interactive install:
+  curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh | sudo bash
+
+Optional flags:
+  --quick                 Skip compatibility selection (defaults to all).
+  --domain=HOST           Set the GDPS hostname without prompting.
+  --gd-versions=PROFILE   Set all, or a comma-separated profile such as 19,22.
+  --admin-password=PASS   Set the initial admin password without prompting.
+  --migrate               Open the existing-GDPS migration flow after install.
+  --help                  Show this help.
+
+Environment equivalents are also supported.
+EOF
+}
+
+for arg in "$@"; do
+  case "$arg" in
+    --quick) QUICK_MODE=1 ;;
+    --domain=*) DOMAIN="${arg#*=}" ;;
+    --gd-versions=*) GD_VERSIONS="${arg#*=}" ;;
+    --admin-password=*) MUCHO_ADMIN_PASSWORD="${arg#*=}" ;;
+    --migrate) MUCHO_MIGRATION_ON_INSTALL=2 ;;
+    --help|-h) usage; exit 0 ;;
+    --*) fail "Unknown installer option: $arg. Run --help for supported options." ;;
+    *) fail "Unexpected installer argument: $arg. Run --help for supported options." ;;
+  esac
+done
+
+
 # Prevent two MuchoCore installations from changing the same host at once.
 exec 9>/run/muchocore-install.lock
 if ! flock -n 9; then
@@ -141,7 +182,7 @@ select_compatibility_profile() {
   valid_versions "$GD_VERSIONS" ||
     fail "Invalid MUCHO_GD_VERSIONS='$GD_VERSIONS'. Use all or a comma-separated set of 1,11,19,20,21,22."
 
-  if [[ ! -t 0 && ! -t 1 ]]; then
+  if [[ ! -t 0 || ! -t 1 || "$QUICK_MODE" -eq 1 ]]; then
     info "Compatibility profile: $(profile_label "$GD_VERSIONS")"
     return
   fi
@@ -226,7 +267,7 @@ preflight() {
   info "Disk and memory checks passed."
 }
 
-trap 'fail "Failure on line $LINENO. Check the output above."' ERR
+trap 'fail "Installation failed during: $INSTALL_STEP (line $LINENO). Check the output above, then run: sudo mucho doctor"' ERR
 
 [[ $EUID -eq 0 ]] || fail "Run the installer as root: sudo bash install.sh"
 
@@ -281,12 +322,53 @@ if [[ -n "$CADDY_EXTRA_HOSTS" ]]; then
   done
 fi
 
+check_domain_preflight() {
+  INSTALL_STEP="checking domain and host networking"
+  info "Checking domain and host networking..."
+
+  local domain_ips public_ip port_80 port_443 caddy_running
+  domain_ips="$(getent ahostsv4 "$DOMAIN" 2>/dev/null | awk '{print $1}' | sort -u | tr '\n' ' ' | sed 's/[[:space:]]*$//' || true)"
+
+  if [[ -n "$domain_ips" ]]; then
+    info "DNS resolves: $DOMAIN → $domain_ips"
+  else
+    warn "DNS for $DOMAIN does not resolve from this VPS yet."
+    warn "Installation can continue, but public HTTPS will not work until DNS points at this server."
+  fi
+
+  public_ip="$(curl -4fsS --connect-timeout 3 --max-time 5 https://api.ipify.org 2>/dev/null || true)"
+  if [[ -n "$public_ip" && -n "$domain_ips" ]]; then
+    if ! printf '%s\n' "$domain_ips" | tr ' ' '\n' | grep -Fxq "$public_ip"; then
+      warn "DNS does not currently resolve to this VPS public IPv4 ($public_ip)."
+      warn "Expected one of: $domain_ips"
+    else
+      info "DNS points to this VPS."
+    fi
+  fi
+
+  if [[ -z "$TUNNEL_TOKEN" && "$(command -v ss || true)" ]]; then
+    port_80="$(ss -ltnH 2>/dev/null | awk '$4 ~ /:80$/ {print; exit}' || true)"
+    port_443="$(ss -ltnH 2>/dev/null | awk '$4 ~ /:443$/ {print; exit}' || true)"
+    caddy_running="$(docker ps --filter 'label=com.docker.compose.service=caddy' --format '{{.ID}}' 2>/dev/null | head -n1 || true)"
+
+    if [[ -n "$port_80" || -n "$port_443" ]] && [[ -z "$caddy_running" ]]; then
+      local occupied=""
+      [[ -n "$port_80" ]] && occupied="80"
+      [[ -n "$port_443" ]] && occupied="${occupied:+$occupied,}443"
+      fail "Ports $occupied are already in use. Stop the service using them (often nginx/apache) and run the installer again."
+    fi
+  fi
+}
+
+check_domain_preflight
 preflight
 
+INSTALL_STEP="installing host prerequisites"
 log "Installing required packages..."
 DEBIAN_FRONTEND=noninteractive apt-get update -y
 DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git jq openssl
 
+INSTALL_STEP="checking Docker"
 log "Checking Docker..."
 if ! command -v docker >/dev/null 2>&1; then
   curl -fsSL https://get.docker.com | sh
@@ -294,6 +376,7 @@ fi
 systemctl enable --now docker
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 was not found."
 
+INSTALL_STEP="fetching the stable MuchoCore release"
 log "Preparing MuchoCore..."
 LATEST_RELEASE_TAG="$(get_latest_stable_release_tag)" ||
   fail "Unable to resolve a published stable MuchoCore Release from GitHub."
@@ -316,18 +399,6 @@ if [[ -x "$INSTALL_DIR/bin/mucho" ]]; then ln -sfn "$INSTALL_DIR/bin/mucho" /usr
 if [[ -x "$INSTALL_DIR/bin/muchodb-password" ]]; then ln -sfn "$INSTALL_DIR/bin/muchodb-password" /usr/local/bin/muchodb-password; fi
 
 install -d -m 700 "$INSTALL_DIR/.secrets"
-
-# Generate isolated credentials for the local integration-test tenant.
-if [[ ! -s "$INSTALL_DIR/.secrets/testgdps_db_password" ]]; then
-  openssl rand -hex 24 > "$INSTALL_DIR/.secrets/testgdps_db_password"
-fi
-if [[ ! -s "$INSTALL_DIR/.secrets/testgdps_db_root_password" ]]; then
-  openssl rand -hex 32 > "$INSTALL_DIR/.secrets/testgdps_db_root_password"
-fi
-if [[ ! -s "$INSTALL_DIR/.secrets/testgdps_admin_password" ]]; then
-  openssl rand -base64 24 > "$INSTALL_DIR/.secrets/testgdps_admin_password"
-fi
-chmod 600 "$INSTALL_DIR/.secrets/testgdps_"*
 
 if [[ -s "$INSTALL_DIR/.secrets/db_password" ]]; then
   MUCHO_DB_PASSWORD="$(cat "$INSTALL_DIR/.secrets/db_password")"
@@ -437,7 +508,8 @@ fi
 chmod 600 "$INSTALL_DIR/.env"
 
 if [[ -f "$INSTALL_DIR/bin/mucho-install-auto-update.sh" ]]; then
-  log "Configuring release-based automatic updates..."
+  INSTALL_STEP="configuring automatic updates"
+    log "Configuring release-based automatic updates..."
   bash "$INSTALL_DIR/bin/mucho-install-auto-update.sh"
 fi
 
@@ -456,9 +528,11 @@ if [[ -n "$TUNNEL_TOKEN" ]]; then
   COMPOSE_ARGS=(-f docker-compose.yml -f docker-compose.tunnel.yml)
 fi
 
+INSTALL_STEP="validating Docker Compose"
 log "Validating Docker Compose..."
 docker compose "${COMPOSE_ARGS[@]}" config -q
 
+INSTALL_STEP="starting production services"
 log "Starting MuchoCore..."
 cd "$INSTALL_DIR"
 if [[ -n "$TUNNEL_TOKEN" ]]; then
@@ -467,7 +541,7 @@ fi
 docker compose "${COMPOSE_ARGS[@]}" up -d --build --remove-orphans
 
 log "Verifying running containers..."
-expected_services=(db app worker caddy testgdps-db testgdps-app)
+expected_services=(db app worker caddy)
 if [[ -n "$TUNNEL_TOKEN" ]]; then
   expected_services+=(cloudflared)
 fi
@@ -482,13 +556,16 @@ for service in "${expected_services[@]}"; do
   }
 done
 
+INSTALL_STEP="running database migrations"
 log "Running database migrations..."
 docker compose "${COMPOSE_ARGS[@]}" exec -T app php bin/migrate.php migrate
 
+INSTALL_STEP="running the internal healthcheck"
 log "Running internal MuchoCore healthcheck..."
 docker compose "${COMPOSE_ARGS[@]}" exec -T app php bin/mucho-healthcheck.php
 
 
+INSTALL_STEP="checking public health"
 log "Checking server health..."
 healthy=0
 for _ in {1..20}; do
@@ -594,8 +671,13 @@ offer_database_migration() {
   esac
 }
 
-offer_database_migration
+if [[ -n "$MUCHO_MIGRATION_ON_INSTALL" ]]; then
+  offer_database_migration
+else
+  info "Migration skipped. To import an existing GDPS later, use Admin → Tools → Migration Center or: sudo mucho migration"
+fi
 
+INSTALL_STEP="completed"
 cat <<EOFOUT
 
 MuchoCore is installed.
@@ -613,7 +695,16 @@ Admin username: $ADMIN_USER
 Update:
   sudo $INSTALL_DIR/update.sh
 
+Operator:
+  sudo mucho
+  sudo mucho status
+  sudo mucho logs
+  sudo mucho doctor
+
 Logs:
-  cd $INSTALL_DIR && sudo docker compose logs -f
+  sudo mucho logs --follow
+
+Migration:
+  sudo mucho migration
 
 EOFOUT
