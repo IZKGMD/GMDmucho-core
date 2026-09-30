@@ -17,6 +17,7 @@ grep -Fq 'check_domain_preflight' install.sh
 grep -Fq 'sudo mucho doctor' install.sh
 ! grep -Fq 'expected_services=(db app worker caddy testgdps-db testgdps-app)' install.sh
 ! grep -Fq 'testgdps' docker-compose.yml
+grep -Fq 'testgdps' docker-compose.test.yml
 
 for command in status logs restart doctor repair update backup migrate migration config test-stack install test; do
     grep -Fq "\${command})" bin/mucho || {
