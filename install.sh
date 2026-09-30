@@ -666,7 +666,9 @@ if [[ "$healthy" -eq 1 ]]; then
     info "Public HTTPS is unavailable (HTTP $public_code). Automatic Tunnel setup is available."
     if provision_cloudflare_tunnel; then
       public_ok=0
-      for _ in {1..20}; do
+      # Give Cloudflare enough time to attach the hostname to the newly
+      # registered connector before declaring the public endpoint unhealthy.
+      for _ in {1..45}; do
         if curl -4ksSf --connect-timeout 3 --max-time 6 \
           "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
           public_ok=1
