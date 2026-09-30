@@ -195,15 +195,38 @@ Core updates are automatic **only after a published stable GitHub Release** exis
 ```text
 VPS
   ↓
-sudo ./install
+stable-release bootstrap
   ↓
-MuchoCore + MariaDB + Caddy
+domain + admin password
   ↓
-/health → 1
+MuchoCore + MariaDB + Caddy + worker
+  ↓
+migrations + health verification
   ↓
 Patch the client
   ↓
 🎮 GDPS online
+```
+
+### Operator commands
+
+After installation, day-to-day operations use the built-in `mucho` command:
+
+```bash
+sudo mucho status
+sudo mucho logs
+sudo mucho doctor
+sudo mucho repair
+sudo mucho update
+sudo mucho backup
+sudo mucho migrate
+sudo mucho migration
+```
+
+The optional integration-test tenant is separate from production:
+
+```bash
+sudo mucho test-stack up -d
 ```
 
 ---
