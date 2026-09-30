@@ -27,6 +27,8 @@ grep -Fq 'environment: MUCHO_TUNNEL_TOKEN' docker-compose.yml
 grep -Fq 'source: muchocore_tunnel_token' docker-compose.tunnel.yml
 grep -Fq 'mode: 0400' docker-compose.tunnel.yml
 grep -Fq -- '--metrics' docker-compose.tunnel.yml
+grep -Fq -- '--token-file' docker-compose.tunnel.yml
+grep -Fq '/run/secrets/muchocore_tunnel_token' docker-compose.tunnel.yml
 ! grep -Fq 'expected_services=(db app worker caddy testgdps-db testgdps-app)' install.sh
 ! grep -Fq 'testgdps' docker-compose.yml
 grep -Fq 'testgdps' docker-compose.test.yml
