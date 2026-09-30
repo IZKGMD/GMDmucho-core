@@ -6,7 +6,21 @@ MuchoCore is a modern Geometry Dash Private Server core for owners who want a ma
 
 For a normal PHP shared host without Docker, use **[docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md)** and the `MuchoCore-vX.Y.Z-shared-hosting.zip` release asset. It includes Composer dependencies and the browser installer, so no server terminal is required.
 
-Use the shortest installation path:
+Use the shortest VPS installation path:
+
+~~~bash
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
+~~~
+
+The installer asks only for your GDPS domain and initial admin password. All other production defaults are safe to change later from:
+
+~~~bash
+sudo mucho
+~~~
+
+The remote bootstrap resolves the latest **published stable release** first, then downloads that release's installer so the installer and release stay in sync.
+
+For a manual/source checkout, use:
 
 ~~~bash
 git clone https://github.com/IZKGMD/GMDmucho-core.git
@@ -14,7 +28,7 @@ cd GMDmucho-core
 sudo ./install
 ~~~
 
-Or read **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)** for the complete first-run path.
+Read **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)** for the complete first-run path.
 
 ## Already running a Cvolton/GMDprivateServer-style GDPS?
 
@@ -41,6 +55,15 @@ Test client
 Dry-run is the default. Nothing is imported until `--apply --confirm=COVOLTON` is supplied.
 
 ## After installation
+
+The production deployment contains only the services needed by a live GDPS: MariaDB, the PHP application, the background worker and Caddy. The integration-test tenant is intentionally separate from production and can be started with:
+
+~~~bash
+sudo mucho test-stack up -d
+~~~
+
+It uses **[docker-compose.test.yml](docker-compose.test.yml)** and does not run during a normal install or update.
+
 
 Check:
 
