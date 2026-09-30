@@ -91,7 +91,7 @@ ensure_tunnel() {
   fi
 
   list_response="$(cf_request GET "/accounts/$account_id/cfd_tunnel?per_page=100")"
-  tunnel_id="$(printf '%s' "$list_response" | jq -r --arg n "$tunnel_name" '.result[]? | select(.name == $n and (.deleted_at == null or .deleted_at == "")) | .id' | head -n1)"
+  tunnel_id="$(printf '%s' "$list_response" | jq -r --arg n "$tunnel_name" '.result[]? | select(.name == $n and .config_src == "cloudflare" and (.deleted_at == null or .deleted_at == "")) | .id' | head -n1)"
 
   if [[ -n "$tunnel_id" && "$tunnel_id" != "null" ]]; then
     info "Reusing existing Cloudflare Tunnel: $tunnel_name"
