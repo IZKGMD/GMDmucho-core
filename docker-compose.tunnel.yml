@@ -20,6 +20,8 @@ services:
     # Keep cloudflared as PID 1. The official image is distroless and does
     # not provide a shell. Keep metrics on loopback; readiness queries it
     # from inside the same container.
+    environment:
+      TUNNEL_TOKEN_FILE: /run/secrets/muchocore_tunnel_token
     command:
       - tunnel
       - --no-autoupdate
@@ -28,8 +30,6 @@ services:
       - --metrics
       - 127.0.0.1:20241
       - run
-      - --token-file
-      - /run/secrets/muchocore_tunnel_token
     volumes:
       - ./.secrets/tunnel_token:/run/secrets/muchocore_tunnel_token:ro
     healthcheck:
