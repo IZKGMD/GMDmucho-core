@@ -28,6 +28,7 @@
 - added operator-first `mucho` commands for status, logs, restart, repair, update, backup, migration and optional test-stack management;
 - expanded `mucho doctor` to validate production service state and the Cloud Save secret;
 - updated VPS onboarding and deployment documentation around the new quick-install path.
+- added automatic Cloudflare provisioning: one API token can create/reuse the Tunnel, configure ingress, update DNS, obtain the runtime token and switch the deployment to Tunnel mode when the origin is unreachable.
 
 ---
 
