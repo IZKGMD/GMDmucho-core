@@ -28,8 +28,10 @@ services:
       - --metrics
       - 127.0.0.1:20241
       - run
-      - --token
-      - ${MUCHO_TUNNEL_TOKEN}
+      - --token-file
+      - /run/secrets/muchocore_tunnel_token
+    volumes:
+      - ./.secrets/tunnel_token:/run/secrets/muchocore_tunnel_token:ro
     healthcheck:
       # "ready" accepts tunnel-level flags before the subcommand.
       # Passing --metrics after "ready" is invalid on cloudflared 2026.9.1.
