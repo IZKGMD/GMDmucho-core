@@ -64,13 +64,12 @@ usage() {
 MuchoCore installer
 
 Quick interactive install:
-  curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh | sudo bash
+  curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
 
 Optional flags:
   --quick                 Skip compatibility selection (defaults to all).
   --domain=HOST           Set the GDPS hostname without prompting.
   --gd-versions=PROFILE   Set all, or a comma-separated profile such as 19,22.
-  --admin-password=PASS   Set the initial admin password without prompting.
   --migrate               Open the existing-GDPS migration flow after install.
   --help                  Show this help.
 
