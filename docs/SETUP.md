@@ -95,13 +95,19 @@ After `/health` works, follow `CLIENT_SETUP.md` for the client patching/connecti
 
 ## Updating
 
-Use:
+Use the built-in operator command:
+
+~~~bash
+sudo mucho update
+~~~
+
+Updates preserve the selected compatibility profile and Cloudflare Tunnel deployment mode.
+
+The direct deployment script remains available for advanced troubleshooting:
 
 ~~~bash
 sudo /opt/mucho-core/update.sh
 ~~~
-
-Updates preserve the selected compatibility profile and Cloudflare Tunnel deployment mode.
 
 ### Release-based automatic updates
 
