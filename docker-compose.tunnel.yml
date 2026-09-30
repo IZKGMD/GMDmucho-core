@@ -18,8 +18,8 @@ services:
     image: cloudflare/cloudflared:2026.9.1
     restart: unless-stopped
     # Keep cloudflared as PID 1. The official image is distroless/non-root.
-    # The runtime token is injected as a Compose secret and never exposed
-    # through command-line interpolation.
+    # The runtime token is mounted read-only from the host with the same UID
+    # as the pinned cloudflared runtime user.
     command:
       - tunnel
       - --no-autoupdate
@@ -30,12 +30,11 @@ services:
       - run
       - --token-file
       - /run/secrets/muchocore_tunnel_token
-    secrets:
-      - source: muchocore_tunnel_token
-        target: muchocore_tunnel_token
-        uid: "65532"
-        gid: "65532"
-        mode: 0400
+    volumes:
+      - type: bind
+        source: ./.secrets/tunnel_token
+        target: /run/secrets/muchocore_tunnel_token
+        read_only: true
     healthcheck:
       # "ready" accepts tunnel-level flags before the subcommand.
       # Passing --metrics after "ready" is invalid on cloudflared 2026.9.1.
