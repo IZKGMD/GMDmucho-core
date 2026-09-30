@@ -441,10 +441,7 @@ for secret in \
   "$INSTALL_DIR/.secrets/db_password" \
   "$INSTALL_DIR/.secrets/db_root_password" \
   "$INSTALL_DIR/.secrets/admin_password" \
-  "$INSTALL_DIR/.secrets/cloudsave_key" \
-  "$INSTALL_DIR/.secrets/testgdps_db_password" \
-  "$INSTALL_DIR/.secrets/testgdps_db_root_password" \
-  "$INSTALL_DIR/.secrets/testgdps_admin_password"; do
+  "$INSTALL_DIR/.secrets/cloudsave_key"; do
   [[ -s "$secret" ]] || fail "Required secret file is missing or empty: $secret"
 done
 
@@ -509,7 +506,7 @@ chmod 600 "$INSTALL_DIR/.env"
 
 if [[ -f "$INSTALL_DIR/bin/mucho-install-auto-update.sh" ]]; then
   INSTALL_STEP="configuring automatic updates"
-    log "Configuring release-based automatic updates..."
+  log "Configuring release-based automatic updates..."
   bash "$INSTALL_DIR/bin/mucho-install-auto-update.sh"
 fi
 
