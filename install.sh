@@ -509,9 +509,7 @@ EOFENV
 if [[ -n "$TUNNEL_TOKEN" ]]; then
   printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
   printf '%s\n' "$TUNNEL_TOKEN" > "$INSTALL_DIR/.secrets/tunnel_token"
-  # cloudflared:2026.9.1 runs as UID/GID 65532.
-  chown 65532:65532 "$INSTALL_DIR/.secrets/tunnel_token"
-  chmod 400 "$INSTALL_DIR/.secrets/tunnel_token"
+  chmod 600 "$INSTALL_DIR/.secrets/tunnel_token"
 fi
 chmod 600 "$INSTALL_DIR/.env"
 
