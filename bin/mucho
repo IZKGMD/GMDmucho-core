@@ -61,7 +61,11 @@ compose() {
 
 compose_test() {
     cd "$ROOT"
-    docker compose -f docker-compose.yml -f docker-compose.test.yml "$@"
+    if [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
+        docker compose -f docker-compose.yml -f docker-compose.tunnel.yml -f docker-compose.test.yml "$@"
+    else
+        docker compose -f docker-compose.yml -f docker-compose.test.yml "$@"
+    fi
 }
 
 ensure_test_stack_secrets() {
