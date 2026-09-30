@@ -236,7 +236,7 @@ set_cache_driver() {
     env_set MUCHO_CACHE_DRIVER "$value"
 
     read -r -p "Level cache TTL in seconds [15]: " ttl
-    ttl="\${ttl:-15}"
+    ttl="${ttl:-15}"
 
     [[ "$ttl" =~ ^[0-9]+$ ]] || {
         echo "Invalid TTL."
@@ -248,7 +248,7 @@ set_cache_driver() {
     env_set MUCHO_LEVEL_CACHE_TTL "$ttl"
 
     restart_services
-    echo "Cache driver: $value (TTL \${ttl}s)"
+    echo "Cache driver: $value (TTL ${ttl}s)"
 }
 
 set_webhook() {
@@ -267,7 +267,7 @@ set_webhook() {
     read -r -s -p "Webhook secret (empty = unsigned): " secret
     printf '\n'
     read -r -p "Events CSV [*]: " events
-    events="\${events:-*}"
+    events="${events:-*}"
 
     env_set MUCHO_WEBHOOK_URL "$url"
     env_set MUCHO_WEBHOOK_SECRET "$secret"
@@ -477,7 +477,7 @@ EOF
 show_logs_cli() {
     cd "$ROOT"
     local follow=0
-    if [[ "\${1:-}" == "--follow" || "\${1:-}" == "-f" ]]; then
+    if [[ "${1:-}" == "--follow" || "${1:-}" == "-f" ]]; then
         follow=1
         shift
     fi
@@ -524,7 +524,7 @@ test_stack_cli() {
     compose_test "$@"
 }
 
-case "\${1:-}" in
+case "${1:-}" in
     ""|"menu")
         require_root
         main_menu
@@ -538,7 +538,7 @@ case "\${1:-}" in
         ;;
     logs)
         require_root
-        show_logs_cli "\${@:2}"
+        show_logs_cli "${@:2}"
         ;;
     restart)
         require_root
@@ -566,18 +566,18 @@ case "\${1:-}" in
         ;;
     migration)
         require_root
-        migration_cli "\${@:2}"
+        migration_cli "${@:2}"
         ;;
     config)
         require_root
         configuration_menu
         ;;
     test-stack)
-        test_stack_cli "\${@:2}"
+        test_stack_cli "${@:2}"
         ;;
     install)
         require_root
-        exec bash "$ROOT/install.sh" "\${@:2}"
+        exec bash "$ROOT/install.sh" "${@:2}"
         ;;
     test)
         require_root
@@ -585,23 +585,23 @@ case "\${1:-}" in
         ;;
     search)
         require_root
-        compose exec -T app php bin/mucho-search.php "\${@:2}"
+        compose exec -T app php bin/mucho-search.php "${@:2}"
         ;;
     level)
         require_root
-        compose exec -T app php bin/mucho-level.php "\${@:2}"
+        compose exec -T app php bin/mucho-level.php "${@:2}"
         ;;
     worker)
         require_root
-        compose exec -T app php bin/mucho-worker.php "\${@:2}"
+        compose exec -T app php bin/mucho-worker.php "${@:2}"
         ;;
     trace)
         require_root
-        compose exec -T app php bin/mucho-trace.php "\${@:2}"
+        compose exec -T app php bin/mucho-trace.php "${@:2}"
         ;;
     backup-verify)
         require_root
-        compose exec -T app php bin/mucho-backup-verify.php "\${@:2}"
+        compose exec -T app php bin/mucho-backup-verify.php "${@:2}"
         ;;
     *)
         usage
