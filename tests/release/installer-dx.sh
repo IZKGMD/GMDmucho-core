@@ -25,8 +25,7 @@ grep -Fq 'profile/api-tokens?permissionGroupKeys=' install.sh
 grep -Fq 'sudo mucho doctor' install.sh
 grep -Fq 'environment: MUCHO_TUNNEL_TOKEN' docker-compose.yml
 grep -Fq 'source: muchocore_tunnel_token' docker-compose.tunnel.yml
-grep -Fq 'uid: "65532"' docker-compose.tunnel.yml
-grep -Fq 'gid: "65532"' docker-compose.tunnel.yml
+grep -Fq 'mode: 0400' docker-compose.tunnel.yml
 grep -Fq -- '--metrics' docker-compose.tunnel.yml
 ! grep -Fq 'expected_services=(db app worker caddy testgdps-db testgdps-app)' install.sh
 ! grep -Fq 'testgdps' docker-compose.yml
