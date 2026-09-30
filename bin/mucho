@@ -337,8 +337,8 @@ doctor() {
             [[ "$public_health" == "1" ]] && echo "✓ /health (public tunnel)" || echo "! /health (public tunnel not reachable yet)"
         fi
     elif [[ -n "$domain" ]]; then
-        health="$(curl -4fsSf --connect-timeout 3 --max-time 5             -H "Host: $domain" "http://127.0.0.1/health" 2>/dev/null || true)"
-        [[ "$health" == "1" ]] && echo "✓ /health (local origin)" || { echo "✗ /health (local origin)"; ok=1; }
+        health="$(curl -4ksSf --connect-timeout 3 --max-time 5             --resolve "$domain:443:127.0.0.1" "https://$domain/health" 2>/dev/null || true)"
+        [[ "$health" == "1" ]] && echo "✓ /health (local HTTPS)" || echo "! /health (local HTTPS certificate/origin unavailable)"
 
         public_health="$(curl -4ksSf --connect-timeout 5 --max-time 8 "https://$domain/health" 2>/dev/null || true)"
         [[ "$public_health" == "1" ]] && echo "✓ /health (public)" || echo "! /health (public) not reachable"
