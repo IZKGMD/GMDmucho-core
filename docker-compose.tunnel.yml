@@ -17,6 +17,6 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:2026.9.1
     restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ${MUCHO_TUNNEL_TOKEN}
+    # Prefer HTTP/2 over TCP for predictable operation on VPS networks where\n    # QUIC/UDP is unstable or filtered. Cloudflare supports both transports.\n    command: tunnel --no-autoupdate --protocol http2 run --token ${MUCHO_TUNNEL_TOKEN}
     depends_on:
       - caddy
