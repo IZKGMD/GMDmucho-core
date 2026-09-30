@@ -10,14 +10,13 @@ if ($compose === false || $entrypoint === false) {
 }
 
 $worker = preg_match('/^  worker:\n(?P<body>.*?)(?=^  caddy:)/ms', $compose, $m) ? $m['body'] : '';
-$app = preg_match('/^  app:\n(?P<body>.*?)(?=^  # First hosted)/ms', $compose, $m) ? $m['body'] : '';
-$testGdps = preg_match('/^  testgdps-app:\n(?P<body>.*?)(?=^\n\n  worker:)/ms', $compose, $m) ? $m['body'] : '';
+$app = preg_match('/^  app:\n(?P<body>.*?)(?=^  worker:)/ms', $compose, $m) ? $m['body'] : '';
 
 $checks = [
     'worker has skip-admin-bootstrap flag' => str_contains($worker, 'MUCHO_SKIP_ADMIN_BOOTSTRAP: "1"'),
     'worker does not mount admin password secret' => !str_contains($worker, 'MUCHO_ADMIN_PASSWORD_FILE') && !preg_match('/^      - admin_password$/m', $worker),
     'main app still uses admin password secret' => str_contains($app, 'MUCHO_ADMIN_PASSWORD_FILE: /run/secrets/admin_password') && preg_match('/^      - admin_password$/m', $app),
-    'test GDPS app still uses admin password secret' => str_contains($testGdps, 'MUCHO_ADMIN_PASSWORD_FILE: /run/secrets/testgdps_admin_password') && preg_match('/^      - testgdps_admin_password$/m', $testGdps),
+    'production compose does not contain the integration test tenant' => !str_contains($compose, 'testgdps'),
     'entrypoint supports worker skip flag' => str_contains($entrypoint, 'MUCHO_SKIP_ADMIN_BOOTSTRAP'),
     'entrypoint requires admin secret for admin-bearing services' => str_contains($entrypoint, 'admin password secret is required for admin-bearing services'),
     'entrypoint only bootstraps admin when enabled' => str_contains($entrypoint, 'if [[ "$ADMIN_BOOTSTRAP_ENABLED" == "1" ]]; then'),
