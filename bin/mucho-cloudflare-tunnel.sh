@@ -9,6 +9,8 @@ API_BASE="https://api.cloudflare.com/client/v4"
 INSTALL_DIR="${MUCHO_INSTALL_DIR:-/opt/mucho-core}"
 DOMAIN="${MUCHO_DOMAIN:-}"
 API_TOKEN="${MUCHO_CLOUDFLARE_API_TOKEN:-}"
+# Normalize common clipboard forms such as "Bearer <token>".
+API_TOKEN="$(printf '%s' "$API_TOKEN" | sed 's/^Bearer[[:space:]]*//I; s/^[[:space:]]*//; s/[[:space:]]*$//')"
 TUNNEL_NAME="${MUCHO_CLOUDFLARE_TUNNEL_NAME:-}"
 
 die() { printf '[Cloudflare] ERROR: %s\n' "$*" >&2; exit 1; }
@@ -29,9 +31,9 @@ cf_request() {
   local http_code
 
   if [[ -n "$body" ]]; then
-    response="$(curl -4sS --retry 3 --retry-delay 1       --connect-timeout 5 --max-time 30       -X "$method"       -H "Authorization: Bearer $API_TOKEN"       -H 'Content-Type: application/json'       -H 'Accept: application/json'       -w '\n__HTTP_STATUS__:%{http_code}'       --data "$body"       "$API_BASE$path")" || die "Cloudflare API request failed: $method $path"
+    response="$(curl -4sS --retry 3 --retry-delay 1       --connect-timeout 5 --max-time 30       -X "$method"       -H "Authorization: Bearer $API_TOKEN"       -H 'Content-Type: application/json'       -H 'Accept: application/json'       -H 'User-Agent: MuchoCore-Installer/1.0'       -w '\n__HTTP_STATUS__:%{http_code}'       --data "$body"       "$API_BASE$path")" || die "Cloudflare API request failed: $method $path"
   else
-    response="$(curl -4sS --retry 3 --retry-delay 1       --connect-timeout 5 --max-time 30       -X "$method"       -H "Authorization: Bearer $API_TOKEN"       -H 'Accept: application/json'       -w '\n__HTTP_STATUS__:%{http_code}'       "$API_BASE$path")" || die "Cloudflare API request failed: $method $path"
+    response="$(curl -4sS --retry 3 --retry-delay 1       --connect-timeout 5 --max-time 30       -X "$method"       -H "Authorization: Bearer $API_TOKEN"       -H 'Accept: application/json'       -H 'User-Agent: MuchoCore-Installer/1.0'       -w '\n__HTTP_STATUS__:%{http_code}'       "$API_BASE$path")" || die "Cloudflare API request failed: $method $path"
   fi
 
   http_code="$(printf '%s\n' "$response" | sed -n 's/^__HTTP_STATUS__://p' | tail -n1)"
@@ -165,6 +167,17 @@ upsert_dns() {
   cf_request POST "/zones/$zone_id/dns_records" "$body" >/dev/null
   info "Created DNS CNAME: $host → $tunnel_target"
 }
+
+verify_token() {
+  local response
+  response="$(cf_request GET "/user/tokens/verify")"
+  local status
+  status="$(printf '%s' "$response" | jq -r '.result.status // empty')"
+  [[ "$status" == "active" ]] || die "Cloudflare API token is not active (status: ${status:-unknown})."
+  info "Cloudflare API token verified."
+}
+
+verify_token
 
 read -r ZONE_ID ACCOUNT_ID ZONE_NAME < <(find_zone) || die "Could not find an active Cloudflare zone for $DOMAIN. Make sure the domain is on this Cloudflare account and the API token has Zone Read."
 
