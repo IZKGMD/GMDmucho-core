@@ -17,11 +17,9 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:2026.9.1
     restart: unless-stopped
-    # Keep cloudflared as PID 1. The official image is distroless and does
-    # not provide a shell. Keep metrics on loopback; readiness queries it
-    # from inside the same container.
-    environment:
-      TUNNEL_TOKEN_FILE: /run/secrets/muchocore_tunnel_token
+    # Keep cloudflared as PID 1. The official image is distroless/non-root.
+    # The runtime token is injected as a Compose secret and never exposed
+    # through command-line interpolation.
     command:
       - tunnel
       - --no-autoupdate
