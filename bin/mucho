@@ -59,6 +59,28 @@ compose() {
     fi
 }
 
+compose_test() {
+    cd "$ROOT"
+    docker compose -f docker-compose.yml -f docker-compose.test.yml "$@"
+}
+
+ensure_test_stack_secrets() {
+    install -d -m 700 "$SECRETS"
+
+    [[ -s "$SECRETS/testgdps_db_password" ]] || openssl rand -hex 24 > "$SECRETS/testgdps_db_password"
+    [[ -s "$SECRETS/testgdps_db_root_password" ]] || openssl rand -hex 32 > "$SECRETS/testgdps_db_root_password"
+    [[ -s "$SECRETS/testgdps_admin_password" ]] || openssl rand -base64 24 > "$SECRETS/testgdps_admin_password"
+    chmod 600 "$SECRETS"/testgdps_*
+
+    for secret in "$SECRETS/testgdps_db_password" "$SECRETS/testgdps_db_root_password" "$SECRETS/testgdps_admin_password"; do
+        [[ -s "$secret" ]] || {
+            echo "[MuchoCore] ERROR: test-stack secret is missing: $secret" >&2
+            return 1
+        }
+    done
+}
+
+
 caddy_address_for() {
     local host="$1"
     local root_host="$host"
@@ -399,47 +421,161 @@ configuration_menu() {
     done
 }
 
-if [[ "${1:-}" == "doctor" ]]; then
-    require_root
+usage() {
+    cat <<'EOF'
+MuchoCore operator CLI
+
+Usage:
+  sudo mucho                     Open the Control Center
+  sudo mucho status              Show production status
+  sudo mucho logs [--follow]     Show production logs
+  sudo mucho restart             Restart production services
+  sudo mucho doctor              Run diagnostics
+  sudo mucho repair              Restart, migrate and health-check
+  sudo mucho update              Apply the latest stable release
+  sudo mucho backup              Create a database backup
+  sudo mucho migrate             Apply pending database migrations
+  sudo mucho migration [args]    Open the Migration Center
+  sudo mucho config              Open configuration
+  sudo mucho test-stack [args]   Manage the optional integration test stack
+  sudo mucho install [args]      Re-run the installer
+  sudo mucho test                Run the production E2E smoke test
+
+The production stack never starts the integration test tenant automatically.
+EOF
+}
+
+show_logs_cli() {
+    cd "$ROOT"
+    local follow=0
+    if [[ "\${1:-}" == "--follow" || "\${1:-}" == "-f" ]]; then
+        follow=1
+        shift
+    fi
+    if ((follow)); then
+        compose logs -f --tail=120 "$@"
+    else
+        compose logs --tail=120 "$@"
+    fi
+}
+
+restart_cli() {
+    cd "$ROOT"
+    compose up -d --remove-orphans
+    compose ps
+}
+
+repair_cli() {
+    cd "$ROOT"
+    echo "[MuchoCore] Repairing production services..."
+    compose up -d --remove-orphans
+    compose exec -T app php bin/migrate.php migrate
+    compose exec -T app php bin/mucho-healthcheck.php
     doctor
-    exit $?
-fi
+}
 
-if [[ "${1:-}" == "test" ]]; then
+backup_cli() {
+    cd "$ROOT"
+    compose exec -T app bash /var/www/mucho-core/bin/mucho-db-backup.sh
+}
+
+migrate_cli() {
+    cd "$ROOT"
+    compose exec -T app php bin/migrate.php migrate
+}
+
+migration_cli() {
+    cd "$ROOT"
+    compose exec app php bin/mucho-migrate.php "$@"
+}
+
+test_stack_cli() {
     require_root
-    compose exec -T app php bin/mucho-e2e.php
-    exit $?
-fi
+    ensure_test_stack_secrets
+    compose_test "$@"
+}
 
-if [[ "${1:-}" == "search" ]]; then
-    require_root
-    compose exec -T app php bin/mucho-search.php "${@:2}"
-    exit $?
-fi
-
-if [[ "${1:-}" == "level" ]]; then
-    require_root
-    compose exec -T app php bin/mucho-level.php "${@:2}"
-    exit $?
-fi
-
-if [[ "${1:-}" == "worker" ]]; then
-    require_root
-    compose exec -T app php bin/mucho-worker.php "${@:2}"
-    exit $?
-fi
-
-if [[ "${1:-}" == "trace" ]]; then
-    require_root
-    compose exec -T app php bin/mucho-trace.php "${@:2}"
-    exit $?
-fi
-
-if [[ "${1:-}" == "backup-verify" ]]; then
-    require_root
-    compose exec -T app php bin/mucho-backup-verify.php "${@:2}"
-    exit $?
-fi
-
-require_root
-main_menu
+case "\${1:-}" in
+    ""|"menu")
+        require_root
+        main_menu
+        ;;
+    help|--help|-h)
+        usage
+        ;;
+    status)
+        require_root
+        show_status
+        ;;
+    logs)
+        require_root
+        show_logs_cli "\${@:2}"
+        ;;
+    restart)
+        require_root
+        restart_cli
+        ;;
+    doctor)
+        require_root
+        doctor
+        ;;
+    repair)
+        require_root
+        repair_cli
+        ;;
+    update)
+        require_root
+        "$ROOT/update.sh"
+        ;;
+    backup)
+        require_root
+        backup_cli
+        ;;
+    migrate)
+        require_root
+        migrate_cli
+        ;;
+    migration)
+        require_root
+        migration_cli "\${@:2}"
+        ;;
+    config)
+        require_root
+        configuration_menu
+        ;;
+    test-stack)
+        test_stack_cli "\${@:2}"
+        ;;
+    install)
+        require_root
+        exec bash "$ROOT/install.sh" "\${@:2}"
+        ;;
+    test)
+        require_root
+        compose exec -T app php bin/mucho-e2e.php
+        ;;
+    search)
+        require_root
+        compose exec -T app php bin/mucho-search.php "\${@:2}"
+        ;;
+    level)
+        require_root
+        compose exec -T app php bin/mucho-level.php "\${@:2}"
+        ;;
+    worker)
+        require_root
+        compose exec -T app php bin/mucho-worker.php "\${@:2}"
+        ;;
+    trace)
+        require_root
+        compose exec -T app php bin/mucho-trace.php "\${@:2}"
+        ;;
+    backup-verify)
+        require_root
+        compose exec -T app php bin/mucho-backup-verify.php "\${@:2}"
+        ;;
+    *)
+        usage
+        exit 2
+        ;;
+esac
