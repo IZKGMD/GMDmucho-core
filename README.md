@@ -126,7 +126,7 @@ MuchoCore is designed so a new GDPS owner does not need to assemble PHP, MariaDB
 For the normal stable-release VPS install, run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo -E bash
 ```
 
 The installer keeps first-run interaction intentionally small:
