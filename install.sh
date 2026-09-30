@@ -526,13 +526,14 @@ if [[ -n "$TUNNEL_TOKEN" ]]; then
   COMPOSE_ARGS=(-f docker-compose.yml -f docker-compose.tunnel.yml)
 fi
 
+cd "$INSTALL_DIR"
+
 INSTALL_STEP="validating Docker Compose"
 log "Validating Docker Compose..."
 docker compose "${COMPOSE_ARGS[@]}" config -q
 
 INSTALL_STEP="starting production services"
 log "Starting MuchoCore..."
-cd "$INSTALL_DIR"
 if [[ -n "$TUNNEL_TOKEN" ]]; then
   log "Tunnel mode: no inbound ports will be opened; Cloudflare Tunnel provides ingress."
 fi
