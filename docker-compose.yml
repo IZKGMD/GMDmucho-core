@@ -122,7 +122,7 @@ secrets:
   cloudsave_key:
     file: ./.secrets/cloudsave_key
   muchocore_tunnel_token:
-    file: ./.secrets/tunnel_token
+    environment: MUCHO_TUNNEL_TOKEN
 
 volumes:
   db_data:
