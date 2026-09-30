@@ -25,6 +25,8 @@ services:
       - --no-autoupdate
       - --protocol
       - http2
+      - --loglevel
+      - debug
       - run
       - --token
       - ${MUCHO_TUNNEL_TOKEN}
