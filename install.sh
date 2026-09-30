@@ -521,12 +521,10 @@ chmod 600 "$INSTALL_DIR/.muchocore/profile.env"
 [[ -f "$INSTALL_DIR/docker/Dockerfile" ]] || fail "Repository does not contain docker/Dockerfile."
 [[ -f "$INSTALL_DIR/docker/Caddyfile" ]] || fail "Repository does not contain docker/Caddyfile."
 
-COMPOSE_ARGS=()
+COMPOSE_ARGS=(-f "$INSTALL_DIR/docker-compose.yml")
 if [[ -n "$TUNNEL_TOKEN" ]]; then
-  COMPOSE_ARGS=(-f docker-compose.yml -f docker-compose.tunnel.yml)
+  COMPOSE_ARGS+=( -f "$INSTALL_DIR/docker-compose.tunnel.yml" )
 fi
-
-cd "$INSTALL_DIR"
 
 INSTALL_STEP="validating Docker Compose"
 log "Validating Docker Compose..."
