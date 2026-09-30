@@ -55,7 +55,7 @@ fail() { printf "\n${RED}[error]${RESET} %s\n" "$*" >&2; exit 1; }
 # genuinely deployment-specific: the public domain and the initial admin
 # password. Everything else has safe production defaults and can be changed
 # later through "sudo mucho".
-QUICK_MODE=0
+QUICK_MODE=1
 INSTALL_STEP="starting"
 MUCHO_MIGRATION_ON_INSTALL="${MUCHO_MIGRATION_ON_INSTALL:-}"
 
@@ -67,7 +67,8 @@ Quick interactive install:
   curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
 
 Optional flags:
-  --quick                 Skip compatibility selection (defaults to all).
+  --quick                 Keep compatibility selection skipped (default).
+  --advanced              Show the interactive compatibility profile menu.
   --domain=HOST           Set the GDPS hostname without prompting.
   --gd-versions=PROFILE   Set all, or a comma-separated profile such as 19,22.
   --migrate               Open the existing-GDPS migration flow after install.
@@ -80,6 +81,7 @@ EOF
 for arg in "$@"; do
   case "$arg" in
     --quick) QUICK_MODE=1 ;;
+    --advanced) QUICK_MODE=0 ;;
     --domain=*) DOMAIN="${arg#*=}" ;;
     --gd-versions=*) GD_VERSIONS="${arg#*=}" ;;
     --migrate) MUCHO_MIGRATION_ON_INSTALL=2 ;;
