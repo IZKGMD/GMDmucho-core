@@ -22,6 +22,7 @@ MUCHO_ADMIN_PASSWORD="${MUCHO_ADMIN_PASSWORD:-}"
 TUNNEL_TOKEN="${MUCHO_TUNNEL_TOKEN:-}"
 GD_VERSIONS="${MUCHO_GD_VERSIONS:-}"
 RELEASE_API="${MUCHO_RELEASE_API:-https://api.github.com/repos/IZKGMD/GMDmucho-core/releases/latest}"
+INSTALL_REF="${MUCHO_INSTALL_REF:-}"
 
 get_latest_stable_release_tag() {
   local response tag
@@ -71,6 +72,7 @@ Optional flags:
   --advanced              Show the interactive compatibility profile menu.
   --domain=HOST           Set the GDPS hostname without prompting.
   --gd-versions=PROFILE   Set all, or a comma-separated profile such as 19,22.
+  --ref=REF               Install an explicit Git branch/tag (advanced/testing).
   --migrate               Open the existing-GDPS migration flow after install.
   --help                  Show this help.
 
@@ -84,6 +86,7 @@ for arg in "$@"; do
     --advanced) QUICK_MODE=0 ;;
     --domain=*) DOMAIN="${arg#*=}" ;;
     --gd-versions=*) GD_VERSIONS="${arg#*=}" ;;
+    --ref=*) INSTALL_REF="${arg#*=}" ;;
     --migrate) MUCHO_MIGRATION_ON_INSTALL=2 ;;
     --help|-h) usage; exit 0 ;;
     --*) fail "Unknown installer option: $arg. Run --help for supported options." ;;
@@ -369,14 +372,21 @@ docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 was not found.
 
 INSTALL_STEP="fetching the stable MuchoCore release"
 log "Preparing MuchoCore..."
-LATEST_RELEASE_TAG="$(get_latest_stable_release_tag)" ||
-  fail "Unable to resolve a published stable MuchoCore Release from GitHub."
+if [[ -n "$INSTALL_REF" ]]; then
+  [[ "$INSTALL_REF" =~ ^[A-Za-z0-9._/-]+$ ]] || fail "Invalid install ref: $INSTALL_REF"
+  LATEST_RELEASE_TAG="$INSTALL_REF"
+  info "Explicit install ref: $INSTALL_REF"
+else
+  LATEST_RELEASE_TAG="$(get_latest_stable_release_tag)" ||
+    fail "Unable to resolve a published stable MuchoCore Release from GitHub."
+fi
 
 if [[ -d "$INSTALL_DIR/.git" ]]; then
   if ! git -C "$INSTALL_DIR" diff --quiet || ! git -C "$INSTALL_DIR" diff --cached --quiet; then
     fail "Existing MuchoCore installation has local tracked changes. Commit or back them up before re-running install.sh."
   fi
-  git -C "$INSTALL_DIR" fetch --depth=1 origin "refs/tags/$LATEST_RELEASE_TAG:refs/tags/$LATEST_RELEASE_TAG"
+  git -C "$INSTALL_DIR" fetch --depth=1 origin "$LATEST_RELEASE_TAG"
+  git -C "$INSTALL_DIR" checkout -B mucho-installer "$LATEST_RELEASE_TAG"
   git -C "$INSTALL_DIR" reset --hard "$LATEST_RELEASE_TAG"
 else
   rm -rf "$INSTALL_DIR"
