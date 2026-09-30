@@ -308,7 +308,14 @@ doctor() {
     compose config -q >/dev/null 2>&1 && echo "✓ Compose" || { echo "✗ Compose"; ok=1; }
 
     local service container_id running
-    for service in db app worker caddy; do
+    local services=(db app worker caddy)
+    local tunnel_mode=0
+    if [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
+        tunnel_mode=1
+        services+=(cloudflared)
+    fi
+
+    for service in "${services[@]}"; do
         container_id="$(compose ps -q "$service" 2>/dev/null || true)"
         if [[ -z "$container_id" ]]; then
             echo "✗ service $service (missing)"
@@ -319,11 +326,16 @@ doctor() {
         [[ "$running" == "true" ]] && echo "✓ service $service" || { echo "✗ service $service"; ok=1; }
     done
 
-    local domain health
+    local domain health public_health
     domain="$(env_get DOMAIN)"
-    if [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
+    if [[ "$tunnel_mode" == 1 ]]; then
         health="$(curl -4fsSf --connect-timeout 3 --max-time 5 http://127.0.0.1/health 2>/dev/null || true)"
-        [[ "$health" == "1" ]] && echo "✓ /health (tunnel)" || { echo "✗ /health (tunnel)"; ok=1; }
+        [[ "$health" == "1" ]] && echo "✓ /health (tunnel origin)" || { echo "✗ /health (tunnel origin)"; ok=1; }
+
+        if [[ -n "$domain" ]]; then
+            public_health="$(curl -4ksSf --connect-timeout 5 --max-time 8 "https://$domain/health" 2>/dev/null || true)"
+            [[ "$public_health" == "1" ]] && echo "✓ /health (public tunnel)" || echo "! /health (public tunnel not reachable yet)"
+        fi
     elif [[ -n "$domain" ]]; then
         health="$(curl -4ksSf --connect-timeout 3 --max-time 5             --resolve "$domain:443:127.0.0.1" "https://$domain/health" 2>/dev/null || true)"
         [[ "$health" == "1" ]] && echo "✓ /health" || { echo "✗ /health"; ok=1; }
