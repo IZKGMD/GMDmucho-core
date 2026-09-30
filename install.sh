@@ -12,6 +12,7 @@ CUSTOM_CONTENT_URL="${MUCHO_CUSTOM_CONTENT_URL:-}"
 TURNSTILE_SITEKEY="${MUCHO_TURNSTILE_SITEKEY:-}"
 TURNSTILE_SECRET="${MUCHO_TURNSTILE_SECRET:-}"
 MUCHO_ADMIN_PASSWORD="${MUCHO_ADMIN_PASSWORD:-}"
+CLOUDFLARE_API_TOKEN="${MUCHO_CLOUDFLARE_API_TOKEN:-}"
 # Optional: set MUCHO_TUNNEL_TOKEN to deploy via Cloudflare Tunnel instead of
 # binding 80/443 directly. Use this on NAT/CGNAT VPS plans that have no
 # dedicated public IPv4 (inbound ports other than SSH are not reachable).
@@ -568,54 +569,68 @@ healthy=0
 for _ in {1..20}; do
   if [[ -n "$TUNNEL_TOKEN" ]]; then
     check_url="http://127.0.0.1/health"
+    health_args=()
   else
-    check_url="https://$DOMAIN/health"
+    check_url="http://127.0.0.1/health"
+    health_args=(-H "Host: $DOMAIN")
   fi
-  if curl -4ksSf --connect-timeout 2 --max-time 3 $([[ -z "$TUNNEL_TOKEN" ]] && echo "--resolve $DOMAIN:443:127.0.0.1") "$check_url" 2>/dev/null | grep -qx "1"; then
+  if curl -4fsS --connect-timeout 2 --max-time 3 "\${health_args[@]}" "$check_url" 2>/dev/null | grep -qx "1"; then
     healthy=1
     break
   fi
   sleep 2
 done
 
-enable_tunnel_fallback() {
-  local token
-  echo
-  warn "Cloudflare cannot reach this VPS on the public origin (typically HTTP 522 / blocked inbound 80/443)."
-  info "MuchoCore can switch this installation to Cloudflare Tunnel without opening inbound ports."
-  info "Configure this hostname in a Cloudflare Tunnel and set its published application to: http://caddy:80"
-  read -r -s -p "Paste the Cloudflare Tunnel connector token (leave empty to keep direct mode): " token < /dev/tty
-  printf '\n'
-  [[ -n "$token" ]] || return 1
+provision_cloudflare_tunnel() {
+  local api_token="$CLOUDFLARE_API_TOKEN"
 
-  TUNNEL_TOKEN="$token"
-  printf '%s\n' "$TUNNEL_TOKEN" > "$INSTALL_DIR/.secrets/tunnel_token"
-  chmod 600 "$INSTALL_DIR/.secrets/tunnel_token"
-
-  if grep -q '^MUCHO_TUNNEL_TOKEN=' "$INSTALL_DIR/.env"; then
-    sed -i "s|^MUCHO_TUNNEL_TOKEN=.*|MUCHO_TUNNEL_TOKEN=$TUNNEL_TOKEN|" "$INSTALL_DIR/.env"
-  else
-    printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
+  if [[ -z "$api_token" ]]; then
+    echo
+    info "Cloudflare API access is needed only to automate the Tunnel setup."
+    info "The API token is not stored by MuchoCore; only the Tunnel runtime token is kept."
+    read -r -s -p "Cloudflare API token (press Enter to keep direct mode): " api_token < /dev/tty
+    printf '\n'
   fi
-  sed -i 's|^CADDY_ADDRESS_VALUE=.*|CADDY_ADDRESS_VALUE=":80"|' "$INSTALL_DIR/.env"
-  sed -i 's|^CADDY_ADDRESS=.*|CADDY_ADDRESS=":80"|' "$INSTALL_DIR/.env"
+
+  [[ -n "$api_token" ]] || return 1
+
+  INSTALL_STEP="configuring Cloudflare automatically"
+  log "Configuring Cloudflare automatically..."
+  if ! MUCHO_CLOUDFLARE_API_TOKEN="$api_token" \
+      MUCHO_DOMAIN="$DOMAIN" \
+      MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+      bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh"; then
+    warn "Automatic Cloudflare setup failed."
+    return 1
+  fi
+
+  TUNNEL_TOKEN="$(cat "$INSTALL_DIR/.secrets/tunnel_token")"
+  [[ -n "$TUNNEL_TOKEN" ]] || {
+    warn "Cloudflare setup completed without a Tunnel runtime token."
+    return 1
+  }
 
   COMPOSE_ARGS=(-f "$INSTALL_DIR/docker-compose.yml" -f "$INSTALL_DIR/docker-compose.tunnel.yml")
-  expected_services+=(cloudflared)
+  if [[ " \${expected_services[*]} " != *" cloudflared "* ]]; then
+    expected_services+=(cloudflared)
+  fi
 
-  INSTALL_STEP="switching to Cloudflare Tunnel"
-  log "Switching MuchoCore to Cloudflare Tunnel..."
+  INSTALL_STEP="starting Cloudflare Tunnel"
+  log "Starting Cloudflare Tunnel..."
   docker compose "\${COMPOSE_ARGS[@]}" up -d --remove-orphans
 
   local tunnel_healthy=0
   for _ in {1..20}; do
-    if curl -fsS --connect-timeout 2 --max-time 3 "http://127.0.0.1/health" | grep -qx "1"; then
+    if curl -4fsS --connect-timeout 2 --max-time 3 "http://127.0.0.1/health" 2>/dev/null | grep -qx "1"; then
       tunnel_healthy=1
       break
     fi
     sleep 2
   done
-  [[ "$tunnel_healthy" -eq 1 ]] || return 1
+  [[ "$tunnel_healthy" -eq 1 ]] || {
+    warn "MuchoCore is not healthy locally after enabling Cloudflare Tunnel."
+    return 1
+  }
 
   log "Cloudflare Tunnel local health check passed."
   return 0
@@ -623,45 +638,49 @@ enable_tunnel_fallback() {
 
 if [[ "$healthy" -eq 1 ]]; then
   log "Local health check passed."
-  public_code="$(curl -4ksS --connect-timeout 3 --max-time 6 -o "/tmp/mucho-public-health.\$\$" -w '%{http_code}' "https://$DOMAIN/health" 2>/dev/null || true)"
-  public_body="$(cat "/tmp/mucho-public-health.\$\$" 2>/dev/null || true)"
-  rm -f "/tmp/mucho-public-health.\$\$"
+
+  public_code="$(curl -4ksS --connect-timeout 3 --max-time 6 \
+    -o "/tmp/mucho-public-health.$$" \
+    -w '%{http_code}' \
+    "https://$DOMAIN/health" 2>/dev/null || true)"
+  public_body="$(cat "/tmp/mucho-public-health.$$" 2>/dev/null || true)"
+  rm -f "/tmp/mucho-public-health.$$"
 
   if [[ "$public_body" == "1" ]]; then
     log "Public health check passed."
-  elif [[ -z "$TUNNEL_TOKEN" && "$public_code" =~ ^52[0-9]$ ]]; then
-    if enable_tunnel_fallback; then
-      if curl -4ksSf --connect-timeout 5 --max-time 10 "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+  elif [[ -z "$TUNNEL_TOKEN" && "$public_code" =~ ^52[013]$ ]]; then
+    if provision_cloudflare_tunnel; then
+      public_ok=0
+      for _ in {1..20}; do
+        if curl -4ksSf --connect-timeout 3 --max-time 6 "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+          public_ok=1
+          break
+        fi
+        sleep 2
+      done
+      if [[ "$public_ok" -eq 1 ]]; then
         log "Public health check passed through Cloudflare Tunnel."
       else
-        warn "Tunnel is running locally, but the domain is not reachable through Cloudflare yet."
-        warn "Check: cd $INSTALL_DIR && sudo docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs cloudflared --tail=80"
+        warn "Cloudflare Tunnel is running, but the public hostname is not healthy yet."
+        warn "Check: sudo mucho doctor"
       fi
     else
       warn "Direct mode is still active."
-      warn "If this VPS blocks inbound 80/443, use the Cloudflare Tunnel fallback on the next install attempt."
+      warn "The server is healthy locally, but Cloudflare cannot reach the origin."
     fi
+  elif [[ -n "$TUNNEL_TOKEN" ]]; then
+    warn "The server is running locally, but the domain is not reachable through Cloudflare Tunnel yet."
+    warn "Check: cd $INSTALL_DIR && sudo docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs cloudflared --tail=80"
   else
-    if [[ -n "$TUNNEL_TOKEN" ]]; then
-      warn "The server is running locally, but the domain is not reachable through Cloudflare Tunnel yet."
-      warn "Check the tunnel status: cd $INSTALL_DIR && sudo docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs cloudflared --tail=50"
-      warn "Confirm that the tunnel's published application sends traffic to http://caddy:80."
-    else
-      warn "The server is running, but the domain is not reachable from this VPS yet."
-      warn "Check that DNS points to this VPS and that ports 80 and 443 are open."
-    fi
+    warn "The server is running, but the domain is not reachable from this VPS yet."
+    warn "Check that DNS points to this VPS and that ports 80 and 443 are reachable."
   fi
 else
   warn "The services started, but the local health check did not pass in time."
-  if [[ -n "$TUNNEL_TOKEN" ]]; then
-    warn "Run: cd $INSTALL_DIR && sudo docker compose -f docker-compose.yml -f docker-compose.tunnel.yml ps"
-  else
-    warn "Run: cd $INSTALL_DIR && sudo docker compose ps"
-  fi
-  if [[ -n "$TUNNEL_TOKEN" ]]; then
-    warn "Run: cd $INSTALL_DIR && sudo docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs --tail=100"
-  else
-    warn "Run: cd $INSTALL_DIR && sudo docker compose logs --tail=100"
+  if [[ -z "$TUNNEL_TOKEN" && -n "$CLOUDFLARE_API_TOKEN" ]]; then
+    if provision_cloudflare_tunnel; then
+      log "Cloudflare Tunnel mode is enabled."
+    fi
   fi
 fi
 
