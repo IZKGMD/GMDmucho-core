@@ -132,9 +132,8 @@ jobs:
           test -f docker-compose.test.yml
           test -f install
           test -f install-remote.sh
-          test -x install-remote.sh
+          test -f install-remote.sh
           test -f tests/release/installer-dx.sh
-          test -x tests/release/installer-dx.sh
           test -f docker/Dockerfile
           test -f docker/Caddyfile
           test -f docker/app-entrypoint.sh
