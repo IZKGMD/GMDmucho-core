@@ -23,30 +23,29 @@ Replace the example domain with your own.
 
 ## 2. Run the installer
 
-From the repository root:
+The recommended path is:
 
 ~~~bash
-sudo ./install
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
 ~~~
 
-The installer opens a version-selection menu:
+The installer keeps first-run interaction deliberately small:
 
 ~~~text
-1) All supported versions (GD 1.9 - 2.2)
-2) GD 1.9 only
-3) GD 2.0 only
-4) GD 2.1 only
-5) GD 2.2 only
-6) Custom profile
+1. GDPS domain
+2. Admin password
 ~~~
 
-The selected compatibility profile is stored in `.env` and enforced by the runtime without duplicating the server core.
-
-For unattended deployment, set `MUCHO_GD_VERSIONS` first:
+Everything else uses production-safe defaults. The default compatibility profile is **all supported generations** and can be changed later with:
 
 ~~~bash
-export MUCHO_GD_VERSIONS=19,22
-sudo -E bash install.sh
+sudo mucho config
+~~~
+
+For unattended deployment:
+
+~~~bash
+sudo ./install --domain=gdps.example.com --gd-versions=19,22
 ~~~
 
 The installer prepares:
@@ -55,9 +54,12 @@ The installer prepares:
 - PHP 8.3;
 - Caddy;
 - the MuchoCore database;
-- cloud save keys;
+- Cloud Save keys;
 - the administrator account;
-- the selected Geometry Dash compatibility profile.
+- the selected Geometry Dash compatibility profile;
+- release-based automatic updates.
+
+The production Compose file contains only the live GDPS services. The integration-test tenant is isolated in **[docker-compose.test.yml](../docker-compose.test.yml)**.
 
 ## 3. Verify the server
 
