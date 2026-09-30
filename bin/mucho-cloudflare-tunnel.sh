@@ -201,7 +201,9 @@ if [[ "$DOMAIN" != www.* ]]; then
 fi
 
 printf '%s\n' "$TUNNEL_RUNTIME_TOKEN" > "$INSTALL_DIR/.secrets/tunnel_token"
-chmod 644 "$INSTALL_DIR/.secrets/tunnel_token"
+# cloudflared:2026.9.1 runs as UID/GID 65532.
+chown 65532:65532 "$INSTALL_DIR/.secrets/tunnel_token"
+chmod 400 "$INSTALL_DIR/.secrets/tunnel_token"
 
 if grep -q '^MUCHO_TUNNEL_TOKEN=' "$INSTALL_DIR/.env"; then
   sed -i "s|^MUCHO_TUNNEL_TOKEN=.*|MUCHO_TUNNEL_TOKEN=$TUNNEL_RUNTIME_TOKEN|" "$INSTALL_DIR/.env"
