@@ -159,9 +159,9 @@ https://YOUR-DOMAIN/admin/
 
 Some VPS/NAT providers do not pass inbound HTTP/HTTPS traffic to the machine. In that case Cloudflare may show **522 Connection timed out** even though MuchoCore itself is running.
 
-MuchoCore supports a Cloudflare Tunnel deployment for this case. The Tunnel sends traffic to the internal Caddy service, so the VPS does not need inbound 80/443.
+MuchoCore can automatically switch the deployment to a Cloudflare Tunnel. The installer uses the Cloudflare API to create or reuse a remotely managed Tunnel, configure its public hostname, update DNS, obtain the connector token, and route traffic to the internal Caddy service.
 
-The traffic path is:
+The resulting traffic path is:
 
 ```text
 Cloudflare
@@ -173,23 +173,33 @@ http://caddy:80
 MuchoCore
 ```
 
-Create or reuse a Cloudflare Tunnel for the domain and publish the hostname to:
+#### One-time Cloudflare API token
+
+For automatic Cloudflare provisioning, create one API token with only the permissions needed for this setup:
 
 ```text
-http://caddy:80
+Account
+  Cloudflare Tunnel → Edit
+
+Zone
+  DNS → Edit
+  Zone → Read
 ```
 
-Then provide its connector token to the installer:
+See the [Cloudflare API token permissions documentation](https://developers.cloudflare.com/fundamentals/api/reference/permissions/) for the current permission groups.
+
+You do **not** need to create the Tunnel, Public Hostname, or CNAME record manually. MuchoCore does that through the API.
+
+When a direct installation gets a Cloudflare **52x** origin error, the installer asks for the API token and configures the Tunnel automatically. The API token is used only during provisioning and is not persisted; only the Tunnel runtime token required by `cloudflared` is kept on the server.
+
+You can also provide the token non-interactively:
 
 ```bash
-export MUCHO_TUNNEL_TOKEN='YOUR_TUNNEL_TOKEN'
+export MUCHO_CLOUDFLARE_API_TOKEN='YOUR_CLOUDFLARE_API_TOKEN'
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
 ```
 
-When a direct installation receives a Cloudflare **52x** health response, the installer can offer the Tunnel fallback interactively. Leave the token empty to keep direct mode.
-
 For advanced NAT/CGNAT deployments, see **[docs/ADVANCED.md](docs/ADVANCED.md)**.
-
 ### Existing GDPS migration
 
 Already running a Cvolton/GMDprivateServer-style GDPS? Open **Admin → Tools → Migration Center** for the guided workflow. The [Migration Kit](docs/MIGRATION_KIT.md) and [Migration Center](docs/MIGRATION_CENTER.md) documents cover the VPS/CLI fallback for advanced use.
