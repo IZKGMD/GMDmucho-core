@@ -574,7 +574,7 @@ for _ in {1..20}; do
     check_url="http://127.0.0.1/health"
     health_args=(-H "Host: $DOMAIN")
   fi
-  if curl -4fsS --connect-timeout 2 --max-time 3 "\${health_args[@]}" "$check_url" 2>/dev/null | grep -qx "1"; then
+  if curl -4fsS --connect-timeout 2 --max-time 3 "${health_args[@]}" "$check_url" 2>/dev/null | grep -qx "1"; then
     healthy=1
     break
   fi
@@ -611,13 +611,13 @@ provision_cloudflare_tunnel() {
   }
 
   COMPOSE_ARGS=(-f "$INSTALL_DIR/docker-compose.yml" -f "$INSTALL_DIR/docker-compose.tunnel.yml")
-  if [[ " \${expected_services[*]} " != *" cloudflared "* ]]; then
+  if [[ " ${expected_services[*]} " != *" cloudflared "* ]]; then
     expected_services+=(cloudflared)
   fi
 
   INSTALL_STEP="starting Cloudflare Tunnel"
   log "Starting Cloudflare Tunnel..."
-  docker compose "\${COMPOSE_ARGS[@]}" up -d --remove-orphans
+  docker compose "${COMPOSE_ARGS[@]}" up -d --remove-orphans
 
   local tunnel_healthy=0
   for _ in {1..20}; do
