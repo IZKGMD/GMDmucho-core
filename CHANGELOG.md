@@ -17,6 +17,18 @@
 - Map Packs continue through the existing `getGJMapPacks` / `getGJMapPacks20` / `getGJMapPacks21` routes;
 - no client-side protocol changes are required for the new admin maker.
 
+
+### Installer & Operator DX
+
+- reduced the normal VPS installation to the deployment-specific domain and admin-password prompts;
+- made the `all` Geometry Dash compatibility profile the default, with `--advanced` for the interactive profile menu;
+- added a stable-release remote installer bootstrap that resolves the published release before downloading its installer;
+- added domain/DNS and port preflight diagnostics plus contextual installer failure messages;
+- removed the integration-test tenant from the production Compose stack and moved it to `docker-compose.test.yml`;
+- added operator-first `mucho` commands for status, logs, restart, repair, update, backup, migration and optional test-stack management;
+- expanded `mucho doctor` to validate production service state and the Cloud Save secret;
+- updated VPS onboarding and deployment documentation around the new quick-install path.
+
 ---
 
 ## v1.0.84 — Worker & Updater Reliability
