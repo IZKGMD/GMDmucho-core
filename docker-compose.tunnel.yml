@@ -17,20 +17,23 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:2026.9.1
     restart: unless-stopped
-    # Keep cloudflared as PID 1. The official image does not ship /bin/sh, so
-    # readiness is exposed through cloudflared's native metrics endpoint.
+    # Keep cloudflared as PID 1. The official image is distroless and does
+    # not provide a shell. Keep metrics on loopback; readiness queries it
+    # from inside the same container.
     command:
       - tunnel
       - --no-autoupdate
       - --protocol
       - http2
       - --metrics
-      - 0.0.0.0:20241
+      - 127.0.0.1:20241
       - run
       - --token
       - ${MUCHO_TUNNEL_TOKEN}
     healthcheck:
-      test: ["CMD", "cloudflared", "tunnel", "ready", "--metrics", "127.0.0.1:20241"]
+      # "ready" accepts tunnel-level flags before the subcommand.
+      # Passing --metrics after "ready" is invalid on cloudflared 2026.9.1.
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:20241", "ready"]
       interval: 15s
       timeout: 5s
       retries: 3
