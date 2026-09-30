@@ -508,10 +508,8 @@ MUCHO_AUTO_UPDATE_INTERVAL=15min
 EOFENV
 if [[ -n "$TUNNEL_TOKEN" ]]; then
   printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
-  # Keep .secrets itself mode 700; cloudflared runs as non-root and reads
-  # this file through a read-only bind mount.
   printf '%s\n' "$TUNNEL_TOKEN" > "$INSTALL_DIR/.secrets/tunnel_token"
-  chmod 644 "$INSTALL_DIR/.secrets/tunnel_token"
+  chmod 600 "$INSTALL_DIR/.secrets/tunnel_token"
 fi
 chmod 600 "$INSTALL_DIR/.env"
 
