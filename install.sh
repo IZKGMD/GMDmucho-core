@@ -655,20 +655,27 @@ provision_cloudflare_tunnel() {
 if [[ "$healthy" -eq 1 ]]; then
   log "Local health check passed."
 
+  public_probe_file="$(mktemp /tmp/mucho-public-health.XXXXXX)"
   public_code="$(curl -4ksS --connect-timeout 3 --max-time 6 \
-    -o "/tmp/mucho-public-health.$$" \
+    -o "$public_probe_file" \
     -w '%{http_code}' \
     "https://$DOMAIN/health" 2>/dev/null || true)"
-  public_body="$(cat "/tmp/mucho-public-health.$$" 2>/dev/null || true)"
-  rm -f "/tmp/mucho-public-health.$$"
+  public_body="$(cat "$public_probe_file" 2>/dev/null || true)"
+  rm -f "$public_probe_file"
 
   if [[ "$public_body" == "1" ]]; then
     log "Public health check passed."
-  elif [[ -z "$TUNNEL_TOKEN" && "$public_code" =~ ^52[013]$ ]]; then
+  elif [[ -z "$TUNNEL_TOKEN" ]]; then
+    # The local origin is healthy but public ingress is not. This is the
+    # normal CGNAT/provider-firewall case for a Cloudflare-proxied hostname.
+    # Do not require a specific 52x response: curl can report 000 when the
+    # connection times out before receiving Cloudflare's response.
+    info "Public HTTPS is unavailable (HTTP $public_code). Automatic Tunnel setup is available."
     if provision_cloudflare_tunnel; then
       public_ok=0
       for _ in {1..20}; do
-        if curl -4ksSf --connect-timeout 3 --max-time 6 "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+        if curl -4ksSf --connect-timeout 3 --max-time 6 \
+          "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
           public_ok=1
           break
         fi
@@ -678,62 +685,19 @@ if [[ "$healthy" -eq 1 ]]; then
         log "Public health check passed through Cloudflare Tunnel."
       else
         warn "Cloudflare Tunnel is running, but the public hostname is not healthy yet."
-        warn "Check: sudo mucho doctor"
+        warn "Run: sudo mucho doctor"
       fi
     else
-      warn "Direct mode is still active."
-      warn "The server is healthy locally, but Cloudflare cannot reach the origin."
+      warn "Automatic Cloudflare Tunnel setup was skipped."
+      warn "The application is healthy locally, but public ingress remains unavailable."
     fi
   elif [[ -n "$TUNNEL_TOKEN" ]]; then
-    warn "The server is running locally, but the domain is not reachable through Cloudflare Tunnel yet."
+    warn "The server is healthy locally, but the domain is not reachable through Cloudflare Tunnel yet."
     warn "Check: cd $INSTALL_DIR && sudo docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs cloudflared --tail=80"
-  else
-    warn "The server is running, but the domain is not reachable from this VPS yet."
-    warn "Check that DNS points to this VPS and that ports 80 and 443 are reachable."
   fi
 else
   warn "The origin did not become healthy locally in time."
   warn "Run: sudo mucho doctor"
-
-  if [[ -z "$TUNNEL_TOKEN" ]]; then
-    public_probe_file="$(mktemp /tmp/mucho-public-health.XXXXXX)"
-    public_code="$(curl -4ksS --connect-timeout 3 --max-time 6 \
-      -o "$public_probe_file" \
-      -w '%{http_code}' \
-      "https://$DOMAIN/health" 2>/dev/null || true)"
-    public_body="$(cat "$public_probe_file" 2>/dev/null || true)"
-    rm -f "$public_probe_file"
-
-    if [[ "$public_body" == "1" ]]; then
-      log "Public health check passed."
-      healthy=1
-    elif [[ "$public_code" =~ ^52[0-9]$ ]]; then
-      info "Cloudflare cannot reach the direct origin. Automatic Tunnel setup is available."
-      if provision_cloudflare_tunnel; then
-        public_ok=0
-        for _ in {1..20}; do
-          if curl -4ksSf --connect-timeout 3 --max-time 6 \
-            "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
-            public_ok=1
-            break
-          fi
-          sleep 2
-        done
-        if [[ "$public_ok" -eq 1 ]]; then
-          log "Public health check passed through Cloudflare Tunnel."
-        else
-          warn "Tunnel is configured, but the public hostname is not healthy yet."
-          warn "Run: sudo mucho doctor"
-        fi
-      else
-        warn "Automatic Cloudflare Tunnel setup was skipped."
-        warn "The application is running locally, but the public ingress is still unavailable."
-      fi
-    else
-      warn "Neither the local origin nor the public hostname became healthy."
-      warn "Check: sudo mucho doctor"
-    fi
-  fi
 fi
 
 offer_database_migration() {
