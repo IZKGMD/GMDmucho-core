@@ -200,8 +200,10 @@ if [[ "$DOMAIN" != www.* ]]; then
   upsert_dns "$ZONE_ID" "www.$DOMAIN" "$TUNNEL_TARGET"
 fi
 
+# Keep .secrets itself mode 700; the token file must be readable by the
+# non-root cloudflared container user through its read-only bind mount.
 printf '%s\n' "$TUNNEL_RUNTIME_TOKEN" > "$INSTALL_DIR/.secrets/tunnel_token"
-chmod 600 "$INSTALL_DIR/.secrets/tunnel_token"
+chmod 644 "$INSTALL_DIR/.secrets/tunnel_token"
 
 if grep -q '^MUCHO_TUNNEL_TOKEN=' "$INSTALL_DIR/.env"; then
   sed -i "s|^MUCHO_TUNNEL_TOKEN=.*|MUCHO_TUNNEL_TOKEN=$TUNNEL_RUNTIME_TOKEN|" "$INSTALL_DIR/.env"
