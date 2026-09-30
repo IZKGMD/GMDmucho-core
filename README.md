@@ -121,9 +121,17 @@ The names **MuchoCore** and **GMDmucho-core** identify the same project.
 
 ### New installation
 
-For VPS, start with **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**.
+For VPS, the shortest stable-release install is:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
+```
+
+It asks for the GDPS domain and Admin Panel password, then handles Docker, MariaDB, Caddy, secrets, migrations, release-based updates and health verification automatically. The remote bootstrap resolves the latest **published stable release** before fetching that release's installer.
 
 For normal PHP shared hosting, use **[docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md)** and download the `MuchoCore-vX.Y.Z-shared-hosting.zip` asset from the stable release page. It already contains `vendor/` and the browser installer, so FTP/file-manager access is enough.
+
+A source checkout is still available for development and explicit control:
 
 ```bash
 git clone https://github.com/IZKGMD/GMDmucho-core.git
