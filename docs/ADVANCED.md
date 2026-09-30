@@ -27,7 +27,7 @@ Then either let the installer ask for the token when it detects a Cloudflare 52x
 
 ```bash
 export MUCHO_CLOUDFLARE_API_TOKEN='YOUR_CLOUDFLARE_API_TOKEN'
-curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo -E bash
 ```
 
 MuchoCore uses the API to create or reuse a remotely managed Tunnel, configure the public hostname, point the DNS record at the Tunnel, obtain the connector token, switch Caddy to plain HTTP internally, and start `cloudflared`.
