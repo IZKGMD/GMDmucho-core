@@ -196,7 +196,7 @@ You can also provide the token non-interactively:
 
 ```bash
 export MUCHO_CLOUDFLARE_API_TOKEN='YOUR_CLOUDFLARE_API_TOKEN'
-curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo -E bash
 ```
 
 For advanced NAT/CGNAT deployments, see **[docs/ADVANCED.md](docs/ADVANCED.md)**.
