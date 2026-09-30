@@ -387,8 +387,10 @@ if [[ -d "$INSTALL_DIR/.git" ]]; then
     fail "Existing MuchoCore installation has local tracked changes. Commit or back them up before re-running install.sh."
   fi
   git -C "$INSTALL_DIR" fetch --depth=1 origin "$LATEST_RELEASE_TAG"
-  git -C "$INSTALL_DIR" checkout -B mucho-installer "$LATEST_RELEASE_TAG"
-  git -C "$INSTALL_DIR" reset --hard "$LATEST_RELEASE_TAG"
+  # The requested ref is fetched into FETCH_HEAD. Checkout that exact object
+  # instead of resolving the ref name against potentially stale local branches.
+  git -C "$INSTALL_DIR" checkout -B mucho-installer FETCH_HEAD
+  git -C "$INSTALL_DIR" reset --hard FETCH_HEAD
 else
   rm -rf "$INSTALL_DIR"
   git clone --depth=1 --branch "$LATEST_RELEASE_TAG" "$REPO_URL" "$INSTALL_DIR"
