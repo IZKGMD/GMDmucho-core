@@ -17,9 +17,10 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:2026.9.1
     restart: unless-stopped
-    # Keep cloudflared as PID 1. The official image is distroless/non-root.
-    # The runtime token is mounted read-only from the host with the same UID
-    # as the pinned cloudflared runtime user.
+    # Keep cloudflared as PID 1. The runtime token is supplied through the
+    # standard TUNNEL_TOKEN environment variable supported by cloudflared.
+    environment:
+      TUNNEL_TOKEN: ${MUCHO_TUNNEL_TOKEN}
     command:
       - tunnel
       - --no-autoupdate
@@ -28,13 +29,6 @@ services:
       - --metrics
       - 0.0.0.0:20241
       - run
-      - --token-file
-      - /run/secrets/muchocore_tunnel_token
-    volumes:
-      - type: bind
-        source: ./.secrets/tunnel_token
-        target: /run/secrets/muchocore_tunnel_token
-        read_only: true
     healthcheck:
       # "ready" accepts tunnel-level flags before the subcommand.
       # Passing --metrics after "ready" is invalid on cloudflared 2026.9.1.
