@@ -82,7 +82,6 @@ for arg in "$@"; do
     --quick) QUICK_MODE=1 ;;
     --domain=*) DOMAIN="${arg#*=}" ;;
     --gd-versions=*) GD_VERSIONS="${arg#*=}" ;;
-    --admin-password=*) MUCHO_ADMIN_PASSWORD="${arg#*=}" ;;
     --migrate) MUCHO_MIGRATION_ON_INSTALL=2 ;;
     --help|-h) usage; exit 0 ;;
     --*) fail "Unknown installer option: $arg. Run --help for supported options." ;;
@@ -325,24 +324,15 @@ check_domain_preflight() {
   INSTALL_STEP="checking domain and host networking"
   info "Checking domain and host networking..."
 
-  local domain_ips public_ip port_80 port_443 caddy_running
+  local domain_ips port_80 port_443 caddy_running
   domain_ips="$(getent ahostsv4 "$DOMAIN" 2>/dev/null | awk '{print $1}' | sort -u | tr '\n' ' ' | sed 's/[[:space:]]*$//' || true)"
 
   if [[ -n "$domain_ips" ]]; then
     info "DNS resolves: $DOMAIN → $domain_ips"
+    info "Public reachability will be verified after Caddy starts (Cloudflare-proxied DNS and Tunnel mode are supported)."
   else
     warn "DNS for $DOMAIN does not resolve from this VPS yet."
-    warn "Installation can continue, but public HTTPS will not work until DNS points at this server."
-  fi
-
-  public_ip="$(curl -4fsS --connect-timeout 3 --max-time 5 https://api.ipify.org 2>/dev/null || true)"
-  if [[ -n "$public_ip" && -n "$domain_ips" ]]; then
-    if ! printf '%s\n' "$domain_ips" | tr ' ' '\n' | grep -Fxq "$public_ip"; then
-      warn "DNS does not currently resolve to this VPS public IPv4 ($public_ip)."
-      warn "Expected one of: $domain_ips"
-    else
-      info "DNS points to this VPS."
-    fi
+    warn "Installation can continue, but public HTTPS will not work until DNS is configured."
   fi
 
   if [[ -z "$TUNNEL_TOKEN" && "$(command -v ss || true)" ]]; then
