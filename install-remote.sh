@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-REPO_ROOT="${MUCHO_REPO_ROOT:-https://github.com/IZKGMD/GMDmucho-core}"
+REPO_ROOT="${MUCHO_REPO_ROOT:-https://raw.githubusercontent.com/IZKGMD/GMDmucho-core}"
 RELEASE_API="${MUCHO_RELEASE_API:-https://api.github.com/repos/IZKGMD/GMDmucho-core/releases/latest}"
 
 [[ $EUID -eq 0 ]] || {
@@ -36,7 +36,7 @@ trap cleanup EXIT
 echo "[MuchoCore] Preparing stable release $tag..."
 curl -4fsSL --retry 3 --retry-delay 1 \
   --connect-timeout 5 --max-time 30 \
-  "${REPO_ROOT}/raw/refs/tags/${tag}/install.sh" \
+  "${REPO_ROOT}/${tag}/install.sh" \
   -o "$tmp"
 
 chmod 700 "$tmp"
