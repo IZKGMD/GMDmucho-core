@@ -569,6 +569,7 @@ INSTALL_STEP="checking public health"
 log "Checking server health..."
 
 healthy=0
+public_code=""
 if [[ -n "$TUNNEL_TOKEN" ]]; then
   for _ in {1..20}; do
     if curl -4fsS --connect-timeout 2 --max-time 3 \
@@ -580,12 +581,25 @@ if [[ -n "$TUNNEL_TOKEN" ]]; then
   done
 else
   for _ in {1..20}; do
-    public_body="$(curl -4ksS --connect-timeout 3 --max-time 6 \
+    probe_file="/tmp/mucho-public-health.$"
+    public_code="$(curl -4ksS --connect-timeout 3 --max-time 6 \
+      -o "$probe_file" \
+      -w '%{http_code}' \
       "https://$DOMAIN/health" 2>/dev/null || true)"
+    public_body="$(cat "$probe_file" 2>/dev/null || true)"
+    rm -f "$probe_file"
+
     if [[ "$public_body" == "1" ]]; then
       healthy=1
       break
     fi
+
+    # Cloudflare 52x means the proxy is reachable but the direct origin is
+    # unavailable. Switch to the automatic Tunnel path without extra retries.
+    if [[ "$public_code" =~ ^52[0-9]$ ]]; then
+      break
+    fi
+
     sleep 3
   done
 fi
