@@ -581,7 +581,7 @@ provision_cloudflare_tunnel() {
     echo
     info "Cloudflare API access is needed only to automate the Tunnel setup."
     info "Create the token with the required permissions using this link:"
-    printf '  https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys=%5B%7B%22key%22%3A%22zone%22%2C%22type%22%3A%22read%22%7D%2C%7B%22key%22%3A%22dns%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22argotunnel%22%2C%22type%22%3A%22edit%22%7D%5D&accountId=%2A&zoneId=all&name=MuchoCore%20Installer\n'
+    printf '%s\n' '  https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys=%5B%7B%22key%22%3A%22zone%22%2C%22type%22%3A%22read%22%7D%2C%7B%22key%22%3A%22dns%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22argotunnel%22%2C%22type%22%3A%22edit%22%7D%5D&accountId=%2A&zoneId=all&name=MuchoCore%20Installer'
     info "The token needs: Cloudflare Tunnel Edit, DNS Edit, and Zone Read."
     info "After Cloudflare shows the secret, paste it here. The secret is shown only once."
     read -r -s -p "Cloudflare API token (press Enter to keep direct mode): " api_token < /dev/tty
