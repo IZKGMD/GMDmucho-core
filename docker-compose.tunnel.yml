@@ -28,6 +28,8 @@ services:
       - --metrics
       - 0.0.0.0:20241
       - run
+      - --token-file
+      - /run/secrets/muchocore_tunnel_token
     secrets:
       - source: muchocore_tunnel_token
         target: muchocore_tunnel_token
