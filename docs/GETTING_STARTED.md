@@ -27,10 +27,10 @@ The installer asks for only:
 
 It installs Docker when needed, deploys the latest **published stable release**, creates the database and Cloud Save secrets, configures Caddy, enables release-based updates, runs migrations, and verifies the production health endpoint.
 
-For unattended or explicit profiles:
+For unattended or explicit profiles, pass the options through the remote bootstrap:
 
 ```bash
-sudo ./install --domain=gdps.example.com --gd-versions=22
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash -s -- --domain=gdps.example.com --gd-versions=22
 ```
 
 Use `--gd-versions=all` for all supported generations. Existing installations can change the profile later with:
