@@ -201,7 +201,7 @@ if [[ "$DOMAIN" != www.* ]]; then
 fi
 
 printf '%s\n' "$TUNNEL_RUNTIME_TOKEN" > "$INSTALL_DIR/.secrets/tunnel_token"
-chmod 600 "$INSTALL_DIR/.secrets/tunnel_token"
+chmod 644 "$INSTALL_DIR/.secrets/tunnel_token"
 
 if grep -q '^MUCHO_TUNNEL_TOKEN=' "$INSTALL_DIR/.env"; then
   sed -i "s|^MUCHO_TUNNEL_TOKEN=.*|MUCHO_TUNNEL_TOKEN=$TUNNEL_RUNTIME_TOKEN|" "$INSTALL_DIR/.env"
