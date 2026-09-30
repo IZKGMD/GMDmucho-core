@@ -581,7 +581,7 @@ if [[ -n "$TUNNEL_TOKEN" ]]; then
   done
 else
   for _ in {1..20}; do
-    probe_file="/tmp/mucho-public-health.$"
+    probe_file="$(mktemp /tmp/mucho-public-health.XXXXXX)"
     public_code="$(curl -4ksS --connect-timeout 3 --max-time 6 \
       -o "$probe_file" \
       -w '%{http_code}' \
@@ -704,8 +704,9 @@ if [[ "$healthy" -eq 1 ]]; then
 else
   warn "The services started, but the local health check did not pass in time."
 
-  public_code="$(curl -4ksS --connect-timeout 3 --max-time 6     -o "/tmp/mucho-public-health.$"     -w '%{http_code}'     "https://$DOMAIN/health" 2>/dev/null || true)"
-  rm -f "/tmp/mucho-public-health.$"
+  public_probe_file="$(mktemp /tmp/mucho-public-health.XXXXXX)"
+  public_code="$(curl -4ksS --connect-timeout 3 --max-time 6     -o "$public_probe_file"     -w '%{http_code}'     "https://$DOMAIN/health" 2>/dev/null || true)"
+  rm -f "$public_probe_file"
 
   if [[ -z "$TUNNEL_TOKEN" && "$public_code" =~ ^52[0-9]$ ]]; then
     info "Cloudflare cannot reach the direct origin. Automatic Tunnel setup is available."
