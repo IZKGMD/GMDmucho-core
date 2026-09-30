@@ -565,34 +565,14 @@ log "Running internal MuchoCore healthcheck..."
 docker compose "${COMPOSE_ARGS[@]}" exec -T app php bin/mucho-healthcheck.php
 
 
-INSTALL_STEP="checking origin health"
+INSTALL_STEP="checking public health"
 log "Checking server health..."
 
-healthy=0
+# The internal PHP healthcheck above is the authoritative origin-health test.
+# Do not probe Caddy locally here: in direct mode Caddy may still be waiting
+# for an ACME certificate, which can fail independently of the application.
+healthy=1
 public_code=""
-
-if [[ -n "$TUNNEL_TOKEN" ]]; then
-  for _ in {1..20}; do
-    if curl -4fsS --connect-timeout 2 --max-time 3 \
-      "http://127.0.0.1/health" 2>/dev/null | grep -qx "1"; then
-      healthy=1
-      break
-    fi
-    sleep 2
-  done
-else
-  # Direct mode: verify Caddy/app locally first. Do not confuse a blocked
-  # public ingress with an unhealthy MuchoCore origin.
-  for _ in {1..10}; do
-    if curl -4ksSf --connect-timeout 2 --max-time 4 \
-      --resolve "$DOMAIN:443:127.0.0.1" \
-      "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
-      healthy=1
-      break
-    fi
-    sleep 1
-  done
-fi
 
 provision_cloudflare_tunnel() {
   local api_token="$CLOUDFLARE_API_TOKEN"
@@ -653,23 +633,36 @@ provision_cloudflare_tunnel() {
 }
 
 if [[ "$healthy" -eq 1 ]]; then
-  log "Local health check passed."
+  log "Internal health check passed."
 
+  public_ok=0
   public_probe_file="$(mktemp /tmp/mucho-public-health.XXXXXX)"
-  public_code="$(curl -4ksS --connect-timeout 3 --max-time 6 \
-    -o "$public_probe_file" \
-    -w '%{http_code}' \
-    "https://$DOMAIN/health" 2>/dev/null || true)"
-  public_body="$(cat "$public_probe_file" 2>/dev/null || true)"
+
+  for _ in {1..3}; do
+    public_code="$(curl -4ksS --connect-timeout 3 --max-time 6 \
+      -o "$public_probe_file" \
+      -w '%{http_code}' \
+      "https://$DOMAIN/health" 2>/dev/null || true)"
+    public_body="$(cat "$public_probe_file" 2>/dev/null || true)"
+
+    if [[ "$public_body" == "1" ]]; then
+      public_ok=1
+      break
+    fi
+
+    sleep 2
+  done
+
   rm -f "$public_probe_file"
 
-  if [[ "$public_body" == "1" ]]; then
+  if [[ "$public_ok" -eq 1 ]]; then
     log "Public health check passed."
   elif [[ -z "$TUNNEL_TOKEN" ]]; then
-    # The local origin is healthy but public ingress is not. This is the
-    # normal CGNAT/provider-firewall case for a Cloudflare-proxied hostname.
-    # Do not require a specific 52x response: curl can report 000 when the
-    # connection times out before receiving Cloudflare's response.
+    # A Cloudflare-proxied hostname can return 52x or curl 000 when the
+    # provider blocks inbound 80/443. In both cases the application itself is
+    # already proven healthy by the internal healthcheck, so automatically
+    # switch transport instead of declaring installation complete with a
+    # broken public endpoint.
     info "Public HTTPS is unavailable (HTTP $public_code). Automatic Tunnel setup is available."
     if provision_cloudflare_tunnel; then
       public_ok=0
@@ -681,6 +674,7 @@ if [[ "$healthy" -eq 1 ]]; then
         fi
         sleep 2
       done
+
       if [[ "$public_ok" -eq 1 ]]; then
         log "Public health check passed through Cloudflare Tunnel."
       else
@@ -692,11 +686,11 @@ if [[ "$healthy" -eq 1 ]]; then
       warn "The application is healthy locally, but public ingress remains unavailable."
     fi
   elif [[ -n "$TUNNEL_TOKEN" ]]; then
-    warn "The server is healthy locally, but the domain is not reachable through Cloudflare Tunnel yet."
+    warn "The application is healthy locally, but the domain is not reachable through Cloudflare Tunnel yet."
     warn "Check: cd $INSTALL_DIR && sudo docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs cloudflared --tail=80"
   fi
 else
-  warn "The origin did not become healthy locally in time."
+  warn "The internal MuchoCore healthcheck did not pass."
   warn "Run: sudo mucho doctor"
 fi
 
