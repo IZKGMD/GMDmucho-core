@@ -12,7 +12,7 @@ API_TOKEN="${MUCHO_CLOUDFLARE_API_TOKEN:-}"
 TUNNEL_NAME="${MUCHO_CLOUDFLARE_TUNNEL_NAME:-}"
 
 die() { printf '[Cloudflare] ERROR: %s\n' "$*" >&2; exit 1; }
-info() { printf '[Cloudflare] %s\n' "$*"; }
+info() { printf '[Cloudflare] %s\n' "$*" >&2; }
 
 command -v curl >/dev/null 2>&1 || die "curl is required."
 command -v jq >/dev/null 2>&1 || die "jq is required."
