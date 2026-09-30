@@ -680,10 +680,34 @@ if [[ "$healthy" -eq 1 ]]; then
   fi
 else
   warn "The services started, but the local health check did not pass in time."
-  if [[ -z "$TUNNEL_TOKEN" && -n "$CLOUDFLARE_API_TOKEN" ]]; then
+
+  public_code="$(curl -4ksS --connect-timeout 3 --max-time 6     -o "/tmp/mucho-public-health.$"     -w '%{http_code}'     "https://$DOMAIN/health" 2>/dev/null || true)"
+  rm -f "/tmp/mucho-public-health.$"
+
+  if [[ -z "$TUNNEL_TOKEN" && "$public_code" =~ ^52[0-9]$ ]]; then
+    info "Cloudflare cannot reach the direct origin. Automatic Tunnel setup is available."
     if provision_cloudflare_tunnel; then
-      log "Cloudflare Tunnel mode is enabled."
+      public_ok=0
+      for _ in {1..20}; do
+        if curl -4ksSf --connect-timeout 3 --max-time 6 "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+          public_ok=1
+          break
+        fi
+        sleep 2
+      done
+      if [[ "$public_ok" -eq 1 ]]; then
+        log "Public health check passed through Cloudflare Tunnel."
+      else
+        warn "Tunnel is configured, but the public hostname is not healthy yet."
+        warn "Run: sudo mucho doctor"
+      fi
+    else
+      warn "Automatic Cloudflare Tunnel setup was skipped."
+      warn "The application is not reachable publicly until direct origin access or Tunnel mode is configured."
     fi
+  else
+    warn "The local origin did not become healthy."
+    warn "Run: sudo mucho doctor"
   fi
 fi
 
