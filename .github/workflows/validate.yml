@@ -33,7 +33,9 @@ jobs:
           bash -n tools/migration/mucho-migrate.sh
           bash -n bin/mucho
           find tests -name '*.sh' -print0 | xargs -0 -n1 bash -n
-          bash tests/release/migration-kit.sh
+          pwd
+          ls -l tests/release/migration-kit.sh tools/migration/mucho-migrate.sh
+          bash -x tests/release/migration-kit.sh
 
       - name: Validate Composer manifest
         run: composer validate --strict --no-check-publish
