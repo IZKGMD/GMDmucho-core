@@ -67,14 +67,16 @@ final class SqlDumpMigrationService
 
     /**
      * @param array<string,mixed> $upload
+     * @param array<string,mixed>|null $archiveUpload
      * @return array{
      *   prefix:string,
      *   filename:string,
      *   inspection:array<string,mixed>,
-     *   preflight:array<string,int>
+     *   preflight:array<string,int>,
+     *   level_data:array{stored_files:int,matched_files:int,stored_bytes:int,matched_bytes:int}
      * }
      */
-    public function stageUpload(array $upload): array
+    public function stageUpload(array $upload, ?array $archiveUpload = null): array
     {
         $this->cleanupStale();
 
@@ -122,6 +124,26 @@ final class SqlDumpMigrationService
             $importer = new CvoltonDatabaseImporter($this->target, $prefix);
             $preflight = $importer->preflight($this->target);
 
+            $levelData = [
+                'stored_files' => 0,
+                'matched_files' => 0,
+                'stored_bytes' => 0,
+                'matched_bytes' => 0,
+            ];
+
+            if ($archiveUpload !== null) {
+                $levelIds = array_map(
+                    'intval',
+                    $this->target->query(
+                        'SELECT levelID FROM ' . $this->quoteTable($prefix . 'levels')
+                    )->fetchAll(PDO::FETCH_COLUMN)
+                );
+
+                $archiveUpload['_staging_prefix'] = $prefix;
+                $levelData = (new GalaxxyLevelDataArchiveService($this->root))
+                    ->stageUpload($archiveUpload, $levelIds);
+            }
+
             $this->writeJobMarker(
                 $prefix,
                 [
@@ -136,6 +158,7 @@ final class SqlDumpMigrationService
                 'filename' => $this->safeFilename($name),
                 'inspection' => $inspection,
                 'preflight' => $preflight,
+                'level_data' => $levelData,
             ];
         } catch (Throwable $e) {
             $this->dropStaging($prefix);
@@ -213,6 +236,10 @@ final class SqlDumpMigrationService
 
         try {
             $stats = $importer->apply($this->target);
+            $hydration = $this->hydrateLevelData($prefix);
+            $stats['level_data_hydrated'] = $hydration['hydrated'];
+            $stats['level_data_missing'] = $hydration['missing'];
+            $stats['level_data_bytes'] = $hydration['bytes'];
             $this->target->commit();
         } catch (Throwable $e) {
             if ($this->target->inTransaction()) {
@@ -430,6 +457,71 @@ final class SqlDumpMigrationService
         throw new RuntimeException('Unable to safely isolate the SQL table name.');
     }
 
+    /**
+     * @return array{hydrated:int,missing:int,bytes:int}
+     */
+    private function hydrateLevelData(string $prefix): array
+    {
+        $archive = new GalaxxyLevelDataArchiveService($this->root);
+        $stagedLevels = $this->target->query(
+            'SELECT levelID FROM ' . $this->quoteTable($prefix . 'levels') .
+            ' ORDER BY levelID ASC'
+        )->fetchAll(PDO::FETCH_COLUMN);
+
+        $mapped = $this->target->prepare(
+            'SELECT target_id FROM mucho_cvolton_level_map
+             WHERE source_id=:source LIMIT 1'
+        );
+        $update = $this->target->prepare(
+            'UPDATE levels SET level_data=:data WHERE level_id=:target'
+        );
+
+        $hydrated = 0;
+        $missing = 0;
+        $bytes = 0;
+
+        foreach ($stagedLevels as $value) {
+            $sourceId = (int)$value;
+            $data = $archive->levelData($prefix, $sourceId);
+
+            if ($data === null) {
+                $missing++;
+                continue;
+            }
+
+            $mapped->execute(['source' => $sourceId]);
+            $targetId = $mapped->fetchColumn();
+
+            if ($targetId === false) {
+                $missing++;
+                continue;
+            }
+
+            $update->execute([
+                'data' => $data,
+                'target' => (int)$targetId,
+            ]);
+
+            $hydrated++;
+            $bytes += strlen($data);
+        }
+
+        return [
+            'hydrated' => $hydrated,
+            'missing' => $missing,
+            'bytes' => $bytes,
+        ];
+    }
+
+    private function quoteTable(string $table): string
+    {
+        if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', $table)) {
+            throw new RuntimeException('Invalid SQL migration staging table.');
+        }
+
+        return chr(96) . str_replace(chr(96), chr(96) . chr(96), $table) . chr(96);
+    }
+
     private function writeJobMarker(string $prefix, array $data): void
     {
         $path = $this->markerPath($prefix);
@@ -472,6 +564,8 @@ final class SqlDumpMigrationService
                 chr(96)
             );
         }
+
+        (new GalaxxyLevelDataArchiveService($this->root))->cleanup($prefix);
 
         @unlink($this->markerPath($prefix));
     }
