@@ -26,6 +26,25 @@ The command-line Migration Center below remains available for VPS automation and
 
 MuchoCore includes a guided database migration flow so moving an existing GDPS does not require manually rewriting SQL.
 
+## SQL file import
+
+When you only have a database dump, use the SQL file workflow in the Admin Panel:
+
+~~~text
+MuchoCore Admin
+  → Tools
+  → Migration Center
+  → SQL File Import
+~~~
+
+Upload `database.sql` or `database.sql.gz`. MuchoCore stages the supported Cvolton/MegaSa1nt tables under temporary names inside the current database, detects the source schema and shows the account, profile, level and score counts before the real import starts.
+
+The uploaded file is never executed directly against the production MuchoCore tables. Database-level commands, stored routines and triggers are not executed by the SQL file importer. The production import still requires an explicit confirmation and creates a fresh verified database backup first.
+
+The staging area is removed after a successful import or manual discard. Abandoned staging jobs expire automatically.
+
+The Docker/VPS image accepts SQL uploads up to 256 MB (uncompressed SQL is additionally capped at 512 MB).
+
 ## What the wizard does
 
 The Migration Center follows this order:
