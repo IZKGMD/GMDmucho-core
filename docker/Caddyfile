@@ -20,15 +20,24 @@
         respond 404
     }
 
-    # Public MuchoGDPS landing page. Keep the /index marketing surface
-    # separate from the Geometry Dash front controller and expose it only on
-    # the canonical MuchoCore project host.
+    # Main MuchoGDPS landing page. Only the canonical project host
+    # serves the marketing homepage; tenant GDPS hosts keep the API front controller.
+    @muchogdps_home {
+        host {$MUCHOCORE_SITE_HOST}
+        path /
+    }
+    handle @muchogdps_home {
+        rewrite * /index.html
+        file_server
+    }
+
+    # Public MuchoGDPS landing page. /index remains a compatibility alias.
     @muchogdps_index {
         host {$MUCHOCORE_SITE_HOST}
         path /index /index/
     }
     handle @muchogdps_index {
-        rewrite * /muchogdps-index.html
+        rewrite * /index.html
         file_server
     }
 
