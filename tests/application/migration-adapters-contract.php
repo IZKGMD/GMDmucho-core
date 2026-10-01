@@ -77,7 +77,7 @@ foreach ([
 
 foreach ([
     "return 'cvolton';",
-    "return ($inspection['engine'] ?? 'unknown') === $this->key();",
+    'return ($inspection['engine'] ?? 'unknown') === $this->key();',
     'CvoltonDatabaseImporter',
 ] as $needle) {
     if (strpos((string)$cvolton, $needle) === false) {
