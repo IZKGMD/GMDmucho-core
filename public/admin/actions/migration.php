@@ -63,7 +63,10 @@ if (in_array(
             $job=$service->stageUpload(
                 is_array($_FILES['sql_file'] ?? null)
                     ? $_FILES['sql_file']
-                    : []
+                    : [],
+                is_array($_FILES['galaxxy_archive'] ?? null)
+                    ? $_FILES['galaxxy_archive']
+                    : null
             );
 
             $_SESSION['migration_sql_job']=[
@@ -89,6 +92,9 @@ if (in_array(
                     'levels'=>(int)$job['preflight']['levels'],
                     'levelscores'=>(int)$job['preflight']['levelscores'],
                     'platscores'=>(int)$job['preflight']['platscores'],
+                    'level_data_files'=>(int)$job['level_data']['stored_files'],
+                    'level_data_matches'=>(int)$job['level_data']['matched_files'],
+                    'level_data_bytes'=>(int)$job['level_data']['matched_bytes'],
                 ]
             );
         } elseif ($action==='migration-sql-apply') {
@@ -127,6 +133,9 @@ if (in_array(
                 'Levels: '.(int)($result['preflight']['levels'] ?? 0),
                 'Classic scores: '.(int)($result['preflight']['levelscores'] ?? 0),
                 'Platformer scores: '.(int)($result['preflight']['platscores'] ?? 0),
+                'Level data hydrated: '.(int)($result['stats']['level_data_hydrated'] ?? 0),
+                'Level data missing: '.(int)($result['stats']['level_data_missing'] ?? 0),
+                'Level data bytes: '.(int)($result['stats']['level_data_bytes'] ?? 0),
                 'TARGET_BACKUP='.(string)($result['backup']['file'] ?? ''),
                 'MIGRATION COMPLETE',
             ];
