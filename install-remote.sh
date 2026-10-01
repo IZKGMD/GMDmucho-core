@@ -25,19 +25,32 @@ command -v curl >/dev/null 2>&1 || {
 
 resolve_ref_sha() {
   local ref="$1"
-  local response sha
-  response="$(curl -4fsS --retry 3 --retry-delay 1 \
-    --connect-timeout 5 --max-time 15 \
-    -H 'Accept: application/vnd.github+json' \
-    -H 'User-Agent: MuchoCore-Bootstrap/1.0' \
-    -H 'X-GitHub-Api-Version: 2022-11-28' \
-    "https://api.github.com/repos/IZKGMD/GMDmucho-core/commits/$(printf '%s' "$ref" | sed 's#/#%2F#g')")" || return 1
-  sha="$(printf '%s' "$response" \
-    | grep -o '"sha"[[:space:]]*:[[:space:]]*"\([0-9a-f]\{40\}\)"' \
-    | head -n1 \
-    | sed -n 's/.*"sha"[[:space:]]*:[[:space:]]*"\([0-9a-f]\{40\}\)".*/\1/p')"
-  [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || return 1
-  printf '%s' "$sha"
+  local response sha endpoint
+
+  # Resolve the ref itself, not an arbitrary SHA nested elsewhere in a
+  # /commits response. Branches and tags both expose the immutable commit as
+  # git ref -> object.sha.
+  for endpoint in \
+    "https://api.github.com/repos/IZKGMD/GMDmucho-core/git/ref/heads/$ref" \
+    "https://api.github.com/repos/IZKGMD/GMDmucho-core/git/ref/tags/$ref"; do
+    response="$(curl -4fsS --retry 3 --retry-delay 1 \
+      --connect-timeout 5 --max-time 15 \
+      -H 'Accept: application/vnd.github+json' \
+      -H 'User-Agent: MuchoCore-Bootstrap/1.0' \
+      -H 'X-GitHub-Api-Version: 2022-11-28' \
+      "$endpoint" 2>/dev/null)" || continue
+
+    sha="$(printf '%s' "$response" \
+      | sed -n 's/.*"object"[[:space:]]*:[[:space:]]*{[[:space:]]*"sha"[[:space:]]*:[[:space:]]*"\([0-9a-f]\{40\}\)".*/\1/p' \
+      | head -n1)"
+
+    if [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+      printf '%s' "$sha"
+      return 0
+    fi
+  done
+
+  return 1
 }
 
 if [[ -n "$INSTALL_REF" ]]; then
