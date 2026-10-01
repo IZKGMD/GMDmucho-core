@@ -12,6 +12,8 @@ $sharedMigration = file_get_contents($root . '/src/Migration/SharedMigrationServ
 $sharedInstaller = file_get_contents($root . '/public/shared-install.php');
 $adminBackup = file_get_contents($root . '/public/admin/db-backup-center-module.php');
 $adminAction = file_get_contents($root . '/public/admin/actions/migration.php');
+$sqlDumpService = file_get_contents($root . '/src/Migration/SqlDumpMigrationService.php');
+$sqlDumpTokenizer = file_get_contents($root . '/src/Migration/SqlDumpTokenizer.php');
 $adminActionPrevious = $adminAction; // retain the existing admin action variable name
 $dockerfile = file_get_contents($root . '/docker/Dockerfile');
 $adminUsersMigration = file_get_contents($root . '/database/migrations/20260925_000_admin_users.php');
@@ -37,6 +39,8 @@ foreach ([
     'public/shared-install.php' => $sharedInstaller,
     'public/admin/db-backup-center-module.php' => $adminBackup,
     'public/admin/actions/migration.php' => $adminAction,
+    'src/Migration/SqlDumpMigrationService.php' => $sqlDumpService,
+    'src/Migration/SqlDumpTokenizer.php' => $sqlDumpTokenizer,
     'docker/Dockerfile' => $dockerfile,
     'database/migrations/20260925_000_admin_users.php' => $adminUsersMigration,
     'tools/release/build-shared-hosting.sh' => $sharedPackageBuilder,
@@ -61,6 +65,8 @@ if (
     $sharedMigration === false ||
     $sharedInstaller === false ||
     $adminBackup === false ||
+    $sqlDumpService === false ||
+    $sqlDumpTokenizer === false ||
     $adminUsersMigration === false ||
     $sharedPackageBuilder === false ||
     $releaseWorkflow === false
@@ -224,6 +230,12 @@ $dryRunExitAt = strpos($wizard, 'if (!$requestedApply)');
 
 foreach ([
     'FHGDPS / Cvolton Migration',
+    'SQL File Import',
+    'Upload &amp; Check SQL',
+    'Import This SQL Dump',
+    'migration-sql-upload',
+    'migration-sql-apply',
+    'migration-sql-discard',
     'Check source',
     'Migrate supported data',
     'Old database host',
@@ -286,6 +298,30 @@ foreach ([
 ] as $needle) {
     if (strpos($lowLevel, $needle) === false) {
         throw new RuntimeException('Low-level importer safety contract missing: ' . $needle);
+    }
+}
+
+foreach ([
+    'stageUpload(',
+    'applyStaged(',
+    'mci_',
+    'SQL file must be between 1 byte and 256 MB.',
+    'Only .sql and .sql.gz database dumps are supported.',
+    'SET FOREIGN_KEY_CHECKS=0',
+    'DROP TABLE IF EXISTS',
+] as $needle) {
+    if (strpos($sqlDumpService, $needle) === false) {
+        throw new RuntimeException('SQL dump migration safety contract missing: ' . $needle);
+    }
+}
+
+foreach ([
+    'public/admin/actions/migration.php',
+    'src/Migration/SqlDumpMigrationService.php',
+] as $needle) {
+    if (strpos($sqlDumpTokenizer, 'fgets(') === false ||
+        strpos($sqlDumpTokenizer, 'yield $trimmed') === false) {
+        throw new RuntimeException('SQL dump tokenizer streaming contract is missing.');
     }
 }
 
