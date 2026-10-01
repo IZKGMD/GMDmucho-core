@@ -202,7 +202,7 @@ try {
             '/core-reserved',
             static fn(Request $request): string => 'plugin'
         );
-    } catch (RuntimeException) {
+    } catch (\InvalidArgumentException) {
         $collisionRejected = true;
     }
 
