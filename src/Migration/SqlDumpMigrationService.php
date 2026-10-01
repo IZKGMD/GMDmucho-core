@@ -190,7 +190,7 @@ final class SqlDumpMigrationService
         $backup = (new DatabaseBackupService(
             $this->target,
             $this->backupDirectory,
-            [$prefix]
+            ['mci_']
         ))->create('muchocore-before-sql-import');
 
         (new Migrator(
@@ -210,7 +210,12 @@ final class SqlDumpMigrationService
             throw $e;
         }
 
-        $this->dropStaging($prefix);
+        try {
+            $this->dropStaging($prefix);
+        } catch (Throwable) {
+            // The production transaction is already committed. Cleanup failure
+            // must not make a successful migration look like a failed import.
+        }
 
         return [
             'inspection' => $preview['inspection'],
