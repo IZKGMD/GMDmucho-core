@@ -13,6 +13,9 @@ TURNSTILE_SITEKEY="${MUCHO_TURNSTILE_SITEKEY:-}"
 TURNSTILE_SECRET="${MUCHO_TURNSTILE_SECRET:-}"
 MUCHO_ADMIN_PASSWORD="${MUCHO_ADMIN_PASSWORD:-}"
 CLOUDFLARE_API_TOKEN="${MUCHO_CLOUDFLARE_API_TOKEN:-}"
+CLOUDFLARE_AUTH_MODE="${MUCHO_CLOUDFLARE_AUTH_MODE:-}"
+CLOUDFLARE_EMAIL="${MUCHO_CLOUDFLARE_EMAIL:-}"
+CLOUDFLARE_GLOBAL_API_KEY="${MUCHO_CLOUDFLARE_GLOBAL_API_KEY:-}"
 # Optional: set MUCHO_TUNNEL_TOKEN to deploy via Cloudflare Tunnel instead of
 # binding 80/443 directly. Use this on NAT/CGNAT VPS plans that have no
 # dedicated public IPv4 (inbound ports other than SSH are not reachable).
@@ -728,12 +731,16 @@ public_code=""
 
 provision_cloudflare_tunnel() {
   local api_token="$CLOUDFLARE_API_TOKEN"
+  local auth_mode="$CLOUDFLARE_AUTH_MODE"
 
-  [[ -n "$api_token" ]] || return 1
+  [[ -n "$api_token" || -n "$CLOUDFLARE_GLOBAL_API_KEY" ]] || return 1
 
   INSTALL_STEP="configuring Cloudflare automatically"
   log "Configuring Cloudflare automatically..."
-  if ! MUCHO_CLOUDFLARE_API_TOKEN="$api_token" \
+  if ! MUCHO_CLOUDFLARE_AUTH_MODE="$auth_mode" \
+      MUCHO_CLOUDFLARE_API_TOKEN="$api_token" \
+      MUCHO_CLOUDFLARE_EMAIL="$CLOUDFLARE_EMAIL" \
+      MUCHO_CLOUDFLARE_GLOBAL_API_KEY="$CLOUDFLARE_GLOBAL_API_KEY" \
       MUCHO_DOMAIN="$DOMAIN" \
       MUCHO_INSTALL_DIR="$INSTALL_DIR" \
       bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh"; then
@@ -814,23 +821,50 @@ if [[ "$healthy" -eq 1 ]]; then
     # 1) try the direct VPS origin (including fixing Cloudflare DNS when a
     #    token is available), then
     # 2) fall back to a Cloudflare Tunnel if Direct still cannot serve HTTPS.
-    if [[ -z "$CLOUDFLARE_API_TOKEN" && -e /dev/tty ]]; then
-      printf "\n${BOLD}  Cloudflare API token (optional)${RESET}\n"
+    if [[ -z "$CLOUDFLARE_API_TOKEN" && -z "$CLOUDFLARE_GLOBAL_API_KEY" && -e /dev/tty ]]; then
+      printf "\n${BOLD}  Cloudflare credentials (optional)${RESET}\n"
       printf "  Needed only if MuchoCore must change Cloudflare DNS or create the NAT fallback Tunnel.\n"
-      printf "  Create one here:\n"
-      printf "    https://dash.cloudflare.com/profile/api-tokens\n"
-      printf "  Required permissions for this installer:\n"
+      printf "  API Token: https://dash.cloudflare.com/profile/api-tokens\n"
+      printf "  Token permissions:\n"
       printf "    Account → Cloudflare Tunnel → Edit\n"
       printf "    Zone → DNS → Edit\n"
       printf "    Zone → Zone → Read\n"
       printf "    Resource: only the zone containing $DOMAIN\n"
-      printf "  The token is used only during setup and is not stored by MuchoCore.\n\n"
-      read -r -s -p "  Cloudflare API token (Enter to skip): " CLOUDFLARE_API_TOKEN < /dev/tty
-      printf "\n"
+      printf "  Global API Key: legacy fallback; use your Cloudflare account email + Global API Key.\n"
+      printf "  The credential is used only during setup and is not stored by MuchoCore.\n\n"
+      printf "  1) API Token\n"
+      printf "  2) Global API Key\n"
+      printf "  3) Skip\n\n"
+      cf_choice=""
+      read -r -p "  Select [1]: " cf_choice < /dev/tty || cf_choice=1
+      cf_choice="${cf_choice:-1}"
+      case "$cf_choice" in
+        1)
+          CLOUDFLARE_AUTH_MODE="token"
+          read -r -s -p "  Cloudflare API token: " CLOUDFLARE_API_TOKEN < /dev/tty
+          printf "\n"
+          ;;
+        2)
+          CLOUDFLARE_AUTH_MODE="global-key"
+          read -r -p "  Cloudflare account email: " CLOUDFLARE_EMAIL < /dev/tty
+          read -r -s -p "  Cloudflare Global API Key: " CLOUDFLARE_GLOBAL_API_KEY < /dev/tty
+          printf "\n"
+          ;;
+        3)
+          CLOUDFLARE_AUTH_MODE=""
+          ;;
+        *)
+          warn "Invalid Cloudflare credential selection; skipping Cloudflare API access."
+          CLOUDFLARE_AUTH_MODE=""
+          ;;
+      esac
     fi
 
-    if [[ -n "$CLOUDFLARE_API_TOKEN" ]]; then
-      if MUCHO_CLOUDFLARE_API_TOKEN="$CLOUDFLARE_API_TOKEN" \
+    if [[ -n "$CLOUDFLARE_API_TOKEN" || -n "$CLOUDFLARE_GLOBAL_API_KEY" ]]; then
+      if MUCHO_CLOUDFLARE_AUTH_MODE="$CLOUDFLARE_AUTH_MODE" \
+          MUCHO_CLOUDFLARE_API_TOKEN="$CLOUDFLARE_API_TOKEN" \
+          MUCHO_CLOUDFLARE_EMAIL="$CLOUDFLARE_EMAIL" \
+          MUCHO_CLOUDFLARE_GLOBAL_API_KEY="$CLOUDFLARE_GLOBAL_API_KEY" \
           MUCHO_DOMAIN="$DOMAIN" \
           MUCHO_PUBLIC_IP="$PUBLIC_IP" \
           MUCHO_INSTALL_DIR="$INSTALL_DIR" \
@@ -855,7 +889,7 @@ if [[ "$healthy" -eq 1 ]]; then
     if [[ "$public_ok" -eq 1 ]]; then
       sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=direct/' "$INSTALL_DIR/.env"
       log "Public health check passed in direct mode."
-    elif [[ -n "$CLOUDFLARE_API_TOKEN" ]]; then
+    elif [[ -n "$CLOUDFLARE_API_TOKEN" || -n "$CLOUDFLARE_GLOBAL_API_KEY" ]]; then
       info "Direct origin is still unavailable. Falling back to Cloudflare Tunnel..."
       if provision_cloudflare_tunnel; then
         public_ok=0
