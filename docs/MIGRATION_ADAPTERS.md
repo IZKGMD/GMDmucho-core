@@ -19,26 +19,26 @@ MigrationDatabaseAdapterRegistry
   v
 target mapping / import
 
-Optional external level-data archive
+Optional full server archive
   |
   v
-MigrationLevelDataAdapterRegistry
+MigrationServerArchiveAdapterRegistry
   |
-  +--> GalaxxyFilesystemLevelDataAdapter
-  +--> future filesystem/archive adapters
+  +--> GalaxxyServerArchiveAdapter
+  +--> future server/archive adapters
 ~~~
 
-The two adapter layers are intentionally independent.
+The database and server-archive adapter layers are intentionally independent. The lower-level level-data adapter remains reusable by archive implementations that only need to restore level payload files.
 
 A source can use a Cvolton-compatible database schema while storing playable level payloads inside SQL. In that case no level-data adapter is needed.
 
-Another source can use the same compatible database schema but keep the playable payload in an external filesystem tree such as:
+Another source can use the same compatible database schema but keep playable payloads and other persistent data in an external filesystem tree such as:
 
 ~~~text
 public_html/data/levels/<levelID>
 ~~~
 
-That source can attach the archive and the Galaxxy filesystem adapter hydrates the target level payload after the normal database mapping has completed.
+That source can attach the full server archive and the Galaxxy server adapter restores external level payloads and legacy player Cloud Saves after account/level mappings have been created.
 
 ## Database adapter contract
 
@@ -52,6 +52,24 @@ That source can attach the archive and the Galaxxy filesystem adapter hydrates t
 The registry resolves an adapter from the `SourceDetector` inspection result. The SQL migration service does not instantiate `CvoltonDatabaseImporter` directly.
 
 This keeps the importer implementation specific to Cvolton-compatible schemas while leaving room for another schema family later.
+
+## Server archive adapter contract
+
+`MigrationServerArchiveAdapterInterface` owns a complete source-server archive that accompanies a database import:
+
+- archive detection;
+- safe staging of persistent source assets;
+- source-to-target hydration;
+- cleanup.
+
+The current `GalaxxyServerArchiveAdapter` restores:
+
+- `public_html/data/levels/<levelID>` playable level payloads;
+- `public_html/data/accounts/<accountID>` legacy Cloud Save payloads.
+
+It does not copy the old PHP application, configuration, runtime sessions, logs, or executable server code.
+
+Legacy Cloud Saves are re-encrypted into MuchoCore's Cloud Save storage using the server's configured MuchoCore Cloud Save key.
 
 ## Level-data adapter contract
 
