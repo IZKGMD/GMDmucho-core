@@ -63,8 +63,8 @@ $oldUser=(string)($form['source_user'] ?? '');
                 <div class="muted" style="margin-top:5px">Comments, social data, collections and legacy moderation</div>
             </div>
             <div>
-                <b>Files required separately</b>
-                <div class="muted" style="margin-top:5px">Old music/ and sfx/ files</div>
+                <b>Full server archive</b>
+                <div class="muted" style="margin-top:5px">Level data and legacy cloud saves are imported from the old server ZIP</div>
             </div>
         </div>
     </div>
@@ -120,9 +120,9 @@ $oldUser=(string)($form['source_user'] ?? '');
         <div>
             <h2 style="margin-top:0">SQL File Import</h2>
             <p class="muted" style="max-width:820px;line-height:1.6">
-                Have a <b>database.sql</b> instead of live database credentials?
-                Upload the dump here. MuchoCore selects the matching database adapter, stages its supported tables under temporary names,
-                checks the schema, and only changes the production database after you explicitly start the import.
+                Have the old database dump and the old server ZIP?
+                Upload both here. MuchoCore selects the matching database adapter, stages the SQL safely,
+                then uses a server-archive adapter to restore external player/level data without copying the old PHP code.
             </p>
         </div>
         <span class="badge">Staged before import</span>
@@ -160,9 +160,10 @@ $oldUser=(string)($form['source_user'] ?? '');
         </label>
 
         <p class="muted" style="font-size:11px;line-height:1.5">
-            some GDPS servers keep the playable levelString outside MySQL in
-            <code>public_html/data/levels/&lt;levelID&gt;</code>. Attach the old server .zip only when the detected source format stores level payloads on the filesystem.
-            SQL-only imports can restore level metadata but cannot reconstruct missing level data.
+            Some GDPS servers keep playable levels outside MySQL in
+            <code>public_html/data/levels/&lt;levelID&gt;</code> and player Cloud Save data in
+            <code>public_html/data/accounts/&lt;accountID&gt;</code>.
+            The full server archive lets MuchoCore restore those files through the selected archive adapter.
         </p>
 
         <div class="row" style="margin-top:12px">
@@ -170,8 +171,8 @@ $oldUser=(string)($form['source_user'] ?? '');
         </div>
 
         <p class="muted" style="font-size:11px;line-height:1.5;margin-bottom:0">
-            Maximum upload size: 256 MB per upload. The optional Galaxxy archive is read selectively:
-            only <code>public_html/data/levels/&lt;levelID&gt;</code> files are staged. Stored procedures and triggers are intentionally not executed.
+            Maximum upload size: 256 MB per upload. The server archive is read selectively:
+            only supported data paths are staged. Stored procedures, triggers, old PHP files and runtime sessions are never copied or executed.
         </p>
     </form>
 </div>
@@ -220,13 +221,16 @@ $oldUser=(string)($form['source_user'] ?? '');
     <p class="muted" style="line-height:1.6">
         The SQL dump is currently isolated under temporary staging table names.
         The real MuchoCore tables have not been replaced or cleared.
-        <?php $ld=$sqlPreview['level_data'] ?? []; ?>
-        <?php if ((int)($ld['stored_files'] ?? 0) > 0): ?>
-            Galaxxy level-data archive: <b><?=number_format((int)($ld['stored_files'] ?? 0))?></b> files staged,
-            <b><?=number_format((int)($ld['matched_files'] ?? 0))?></b> match the SQL level IDs,
-            <?=number_format((int)($ld['matched_bytes'] ?? 0))?> bytes matched.
+        <?php $archive=$sqlPreview['server_archive'] ?? []; ?>
+        <?php $ld=$archive['level_data'] ?? []; $cs=$archive['cloud_saves'] ?? []; ?>
+        <?php if ((int)($ld['stored_files'] ?? 0) > 0 || (int)($cs['stored_files'] ?? 0) > 0): ?>
+            Server archive adapter: <b><?=h((string)($archive['adapter'] ?? 'unknown'))?></b> —
+            level files: <b><?=number_format((int)($ld['stored_files'] ?? 0))?></b>,
+            matching levels: <b><?=number_format((int)($ld['matched_files'] ?? 0))?></b>;
+            legacy Cloud Saves: <b><?=number_format((int)($cs['stored_files'] ?? 0))?></b>,
+            matching accounts: <b><?=number_format((int)($cs['matched_files'] ?? 0))?></b>.
         <?php else: ?>
-            No external level-data archive is attached. This is fine when the source stores playable level data in SQL.
+            No full server archive is attached. SQL-only import remains valid when all required payloads are stored in the database.
         <?php endif; ?>
     </p>
 
@@ -278,6 +282,6 @@ $oldUser=(string)($form['source_user'] ?? '');
     <h2 style="margin-top:0">Simple migration flow</h2>
     <div class="muted" style="line-height:1.8">
         <b>Live database:</b> enter connection details → Check source → Migrate supported data.<br>
-        <b>SQL file:</b> upload database.sql + optional Galaxxy .zip → Upload &amp; Check SQL → review detected counts → Import This SQL Dump.
+        <b>Full server:</b> upload database.sql + old server .zip → Upload &amp; Check SQL → review the adapter inventory → Import This SQL Dump.
     </div>
 </div>
