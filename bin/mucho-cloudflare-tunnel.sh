@@ -166,7 +166,7 @@ configure_direct_dns() {
       A)
         if [[ "$kept" -eq 0 ]]; then
           body="$(jq -cn --arg name "$host" --arg content "$origin_ip" \
-            '{name:$name,type:"A",ttl:1,content:$content,proxied:true,comment:"Managed by MuchoCore"}')"
+            '{name:$name,type:"A",ttl:1,content:$content,proxied:false,comment:"Managed by MuchoCore (DNS-only direct origin)"}')"
           cf_request PATCH "/zones/$zone_id/dns_records/$record_id" "$body" >/dev/null
           kept=1
           info "Updated direct DNS A: $host → $origin_ip"
@@ -199,7 +199,7 @@ configure_direct_origin() {
     configure_direct_dns "$zone_id" "$origin_ip" "www.$DOMAIN"
   fi
 
-  info "Cloudflare DNS is configured for direct origin access."
+  info "Cloudflare DNS is configured for direct origin access (DNS-only, no Cloudflare proxy)."
 }
 
 configure_tunnel() {
