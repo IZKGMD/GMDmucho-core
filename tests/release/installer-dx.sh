@@ -24,6 +24,11 @@ grep -Fq 'inbound TCP 80/443' install.sh
 grep -Fq 'Cloudflare credentials are not required for the normal installation path.' install.sh
 grep -Fq 'Direct VPS origin is healthy at' install.sh
 grep -Fq 'Explicitly declare HTTP and HTTPS listeners in direct mode.' install.sh
+grep -Fq 'Direct VPS HTTPS remains the default.' README.md
+grep -Fq 'No Cloudflare API token, Global API Key, Cloudflare Tunnel or Cloudflare Proxy is required for this path.' README.md
+grep -Fq 'already-active UFW' README.md
+grep -Fq 'allowing inbound TCP 80 and 443' install.sh
+grep -Fq 'configure_local_firewall' install.sh
 
 ! grep -Fq 'resolve_ref_sha()' install-remote.sh
 grep -Fq 'installer_url="${REPO_ROOT}/${SOURCE_REF}/install.sh?cb=${cache_bust}"' install-remote.sh
