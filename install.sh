@@ -383,8 +383,6 @@ check_domain_preflight() {
   INSTALL_STEP="checking domain and host networking"
   info "Checking domain and host networking..."
 
-  detect_public_ip
-
   local domain_ips port_80 port_443 caddy_running
   domain_ips="$(getent ahostsv4 "$DOMAIN" 2>/dev/null | awk '{print $1}' | sort -u | tr '\n' ' ' | sed 's/[[:space:]]*$//' || true)"
 
@@ -417,6 +415,10 @@ INSTALL_STEP="installing host prerequisites"
 log "Installing required packages..."
 DEBIAN_FRONTEND=noninteractive apt-get update -y
 DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git jq openssl
+
+INSTALL_STEP="detecting public network"
+log "Detecting public network..."
+detect_public_ip
 
 INSTALL_STEP="checking Docker"
 log "Checking Docker..."
