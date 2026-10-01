@@ -82,6 +82,7 @@ jobs:
           php tests/application/admin-client-rbac-contract.php
           php tests/application/migration-center-contract.php
           php tests/application/sql-dump-tokenizer.php
+          php tests/application/migration-adapters-contract.php
           php tests/application/shared-hosting-installer-contract.php
           php tests/application/plugin-sdk-contract.php
           php tests/application/score-integrity-contract.php
