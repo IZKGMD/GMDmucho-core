@@ -16,6 +16,8 @@ $oldHost=(string)($form['source_host'] ?? '');
 $oldPort=(string)($form['source_port'] ?? '3306');
 $oldDb=(string)($form['source_db'] ?? '');
 $oldUser=(string)($form['source_user'] ?? '');
+$sqlToken=(string)($_SESSION['migration_sql_token'] ?? '');
+$sqlName=(string)($_SESSION['migration_sql_name'] ?? '');
 ?>
 <div class="card">
     <div class="row" style="justify-content:space-between;align-items:flex-start">
@@ -101,6 +103,51 @@ $oldUser=(string)($form['source_user'] ?? '');
             The old database is never modified by this tool.
         </p>
     </form>
+</div>
+
+<div class="card" style="margin-top:16px">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div>
+            <h3 style="margin-top:0">Upload database.sql</h3>
+            <p class="muted" style="max-width:780px;line-height:1.6;margin-bottom:0">
+                Have a database dump instead of access to the old MySQL server?
+                Upload the <b>database.sql</b> file here. MuchoCore imports it into an isolated migration database,
+                detects the schema, and then uses the same verified Cvolton importer.
+            </p>
+        </div>
+        <span class="badge">VPS / Docker</span>
+    </div>
+
+    <?php if ((string)(getenv('MUCHO_SHARED_HOSTING') ?: '') === '1'): ?>
+        <div class="flash error" style="margin-top:12px">
+            SQL file import is available on VPS/Docker installations. On shared hosting, connect the old MySQL/MariaDB database above.
+        </div>
+    <?php else: ?>
+        <form method="post" enctype="multipart/form-data" style="margin-top:14px">
+            <input type="hidden" name="csrf" value="<?=csrf()?>">
+            <input type="hidden" name="action" value="migration-sql-preview">
+            <label style="display:block">
+                <span class="muted">SQL dump</span><br>
+                <input type="file" name="source_sql" accept=".sql,.gz,application/sql,text/plain" required style="width:100%">
+            </label>
+            <button type="submit" style="margin-top:12px">Upload &amp; Check</button>
+            <p class="muted" style="font-size:11px;line-height:1.5;margin-bottom:0">
+                Maximum upload size: 64 MiB. The dump is stored outside the public web root and is cleaned after a successful import.
+            </p>
+        </form>
+
+        <?php if ($sqlToken !== ''): ?>
+            <div style="margin-top:14px;padding:12px;border:1px solid #273449;border-radius:10px">
+                <b>Loaded dump:</b> <?=h($sqlName !== '' ? $sqlName : 'database.sql')?>
+                <form method="post" style="margin-top:10px" onsubmit="return confirm('MuchoCore will re-import this dump, create and verify a fresh target backup, then migrate supported data. Continue?')">
+                    <input type="hidden" name="csrf" value="<?=csrf()?>">
+                    <input type="hidden" name="action" value="migration-sql-apply">
+                    <input type="hidden" name="sql_token" value="<?=h($sqlToken)?>">
+                    <button type="submit" class="green">Migrate uploaded database</button>
+                </form>
+            </div>
+        <?php endif; ?>
+    <?php endif; ?>
 </div>
 
 <?php if (is_string($output) && $output !== ''): ?>
