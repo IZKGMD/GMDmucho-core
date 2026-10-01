@@ -92,9 +92,13 @@ if (in_array(
                     'levels'=>(int)$job['preflight']['levels'],
                     'levelscores'=>(int)$job['preflight']['levelscores'],
                     'platscores'=>(int)$job['preflight']['platscores'],
-                    'level_data_files'=>(int)$job['level_data']['stored_files'],
-                    'level_data_matches'=>(int)$job['level_data']['matched_files'],
-                    'level_data_bytes'=>(int)$job['level_data']['matched_bytes'],
+                    'archive_adapter'=>(string)($job['server_archive']['adapter'] ?? ''),
+                    'level_data_files'=>(int)($job['server_archive']['level_data']['stored_files'] ?? 0),
+                    'level_data_matches'=>(int)($job['server_archive']['level_data']['matched_files'] ?? 0),
+                    'level_data_bytes'=>(int)($job['server_archive']['level_data']['matched_bytes'] ?? 0),
+                    'cloud_save_files'=>(int)($job['server_archive']['cloud_saves']['stored_files'] ?? 0),
+                    'cloud_save_matches'=>(int)($job['server_archive']['cloud_saves']['matched_files'] ?? 0),
+                    'cloud_save_bytes'=>(int)($job['server_archive']['cloud_saves']['matched_bytes'] ?? 0),
                 ]
             );
         } elseif ($action==='migration-sql-apply') {
@@ -133,9 +137,13 @@ if (in_array(
                 'Levels: '.(int)($result['preflight']['levels'] ?? 0),
                 'Classic scores: '.(int)($result['preflight']['levelscores'] ?? 0),
                 'Platformer scores: '.(int)($result['preflight']['platscores'] ?? 0),
+                'Archive adapter: '.(string)($result['stats']['server_archive_adapter'] ?? 'none'),
                 'Level data hydrated: '.(int)($result['stats']['level_data_hydrated'] ?? 0),
                 'Level data missing: '.(int)($result['stats']['level_data_missing'] ?? 0),
                 'Level data bytes: '.(int)($result['stats']['level_data_bytes'] ?? 0),
+                'Cloud saves imported: '.(int)($result['stats']['cloud_saves_imported'] ?? 0),
+                'Cloud saves missing: '.(int)($result['stats']['cloud_saves_missing'] ?? 0),
+                'Cloud save bytes: '.(int)($result['stats']['cloud_saves_bytes'] ?? 0),
                 'TARGET_BACKUP='.(string)($result['backup']['file'] ?? ''),
                 'MIGRATION COMPLETE',
             ];
