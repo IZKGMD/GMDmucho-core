@@ -8,9 +8,13 @@ set -Eeuo pipefail
 API_BASE="https://api.cloudflare.com/client/v4"
 INSTALL_DIR="${MUCHO_INSTALL_DIR:-/opt/mucho-core}"
 DOMAIN="${MUCHO_DOMAIN:-}"
+AUTH_MODE="${MUCHO_CLOUDFLARE_AUTH_MODE:-token}"
 API_TOKEN="${MUCHO_CLOUDFLARE_API_TOKEN:-}"
+API_EMAIL="${MUCHO_CLOUDFLARE_EMAIL:-}"
+GLOBAL_API_KEY="${MUCHO_CLOUDFLARE_GLOBAL_API_KEY:-}"
 # Normalize common clipboard forms such as "Bearer <token>".
 API_TOKEN="$(printf '%s' "$API_TOKEN" | sed 's/^Bearer[[:space:]]*//I; s/^[[:space:]]*//; s/[[:space:]]*$//')"
+GLOBAL_API_KEY="$(printf '%s' "$GLOBAL_API_KEY" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
 TUNNEL_NAME="${MUCHO_CLOUDFLARE_TUNNEL_NAME:-}"
 
 die() { printf '[Cloudflare] ERROR: %s\n' "$*" >&2; exit 1; }
@@ -20,8 +24,19 @@ command -v curl >/dev/null 2>&1 || die "curl is required."
 command -v jq >/dev/null 2>&1 || die "jq is required."
 command -v openssl >/dev/null 2>&1 || die "openssl is required."
 [[ -n "$DOMAIN" ]] || die "MUCHO_DOMAIN is required."
-[[ -n "$API_TOKEN" ]] || die "MUCHO_CLOUDFLARE_API_TOKEN is required."
 [[ -f "$INSTALL_DIR/.env" ]] || die "MuchoCore .env was not found at $INSTALL_DIR."
+case "$AUTH_MODE" in
+  token)
+    [[ -n "$API_TOKEN" ]] || die "MUCHO_CLOUDFLARE_API_TOKEN is required."
+    ;;
+  global-key)
+    [[ -n "$API_EMAIL" ]] || die "MUCHO_CLOUDFLARE_EMAIL is required for Global API Key authentication."
+    [[ -n "$GLOBAL_API_KEY" ]] || die "MUCHO_CLOUDFLARE_GLOBAL_API_KEY is required."
+    ;;
+  *)
+    die "Unsupported Cloudflare auth mode: $AUTH_MODE (use token or global-key)."
+    ;;
+esac
 
 cf_request() {
   local method="$1"
@@ -29,11 +44,21 @@ cf_request() {
   local body="${3:-}"
   local response
   local http_code
+  local -a headers=(
+    -H 'Accept: application/json'
+    -H 'User-Agent: MuchoCore-Installer/1.0'
+  )
+
+  if [[ "$AUTH_MODE" == "token" ]]; then
+    headers+=(-H "Authorization: Bearer $API_TOKEN")
+  else
+    headers+=(-H "X-Auth-Email: $API_EMAIL" -H "X-Auth-Key: $GLOBAL_API_KEY")
+  fi
 
   if [[ -n "$body" ]]; then
-    response="$(curl -4sS --retry 3 --retry-delay 1       --connect-timeout 5 --max-time 30       -X "$method"       -H "Authorization: Bearer $API_TOKEN"       -H 'Content-Type: application/json'       -H 'Accept: application/json'       -H 'User-Agent: MuchoCore-Installer/1.0'       -w '\n__HTTP_STATUS__:%{http_code}'       --data "$body"       "$API_BASE$path")" || die "Cloudflare API request failed: $method $path"
+    response="$(curl -4sS --retry 3 --retry-delay 1       --connect-timeout 5 --max-time 30       -X "$method" "${headers[@]}"       -H 'Content-Type: application/json'       -w '\n__HTTP_STATUS__:%{http_code}'       --data "$body" "$API_BASE$path")" || die "Cloudflare API request failed: $method $path"
   else
-    response="$(curl -4sS --retry 3 --retry-delay 1       --connect-timeout 5 --max-time 30       -X "$method"       -H "Authorization: Bearer $API_TOKEN"       -H 'Accept: application/json'       -H 'User-Agent: MuchoCore-Installer/1.0'       -w '\n__HTTP_STATUS__:%{http_code}'       "$API_BASE$path")" || die "Cloudflare API request failed: $method $path"
+    response="$(curl -4sS --retry 3 --retry-delay 1       --connect-timeout 5 --max-time 30       -X "$method" "${headers[@]}"       -w '\n__HTTP_STATUS__:%{http_code}'       "$API_BASE$path")" || die "Cloudflare API request failed: $method $path"
   fi
 
   http_code="$(printf '%s\n' "$response" | sed -n 's/^__HTTP_STATUS__://p' | tail -n1)"
@@ -222,16 +247,19 @@ upsert_dns() {
   info "Created DNS CNAME: $host → $tunnel_target"
 }
 
-verify_token() {
-  local response
-  response="$(cf_request GET "/user/tokens/verify")"
-  local status
-  status="$(printf '%s' "$response" | jq -r '.result.status // empty')"
-  [[ "$status" == "active" ]] || die "Cloudflare API token is not active (status: ${status:-unknown})."
-  info "Cloudflare API token verified."
+verify_credentials() {
+  if [[ "$AUTH_MODE" == "token" ]]; then
+    local response status
+    response="$(cf_request GET "/user/tokens/verify")"
+    status="$(printf '%s' "$response" | jq -r '.result.status // empty')"
+    [[ "$status" == "active" ]] || die "Cloudflare API token is not active (status: ${status:-unknown})."
+    info "Cloudflare API token verified."
+  else
+    info "Cloudflare Global API Key authentication selected."
+  fi
 }
 
-verify_token
+verify_credentials
 
 read -r ZONE_ID ACCOUNT_ID ZONE_NAME < <(find_zone) || die "Could not find an active Cloudflare zone for $DOMAIN. Make sure the domain is on this Cloudflare account and the API token has Zone Read."
 
