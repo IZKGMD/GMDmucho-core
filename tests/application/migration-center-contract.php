@@ -318,12 +318,13 @@ foreach ([
 }
 
 foreach ([
-    'public/admin/actions/migration.php',
-    'src/Migration/SqlDumpMigrationService.php',
+    'fgets(',
+    'yield $trimmed',
+    'maxBytes',
+    'quote tracking',
 ] as $needle) {
-    if (strpos($sqlDumpTokenizer, 'fgets(') === false ||
-        strpos($sqlDumpTokenizer, 'yield $trimmed') === false) {
-        throw new RuntimeException('SQL dump tokenizer streaming contract is missing.');
+    if (strpos($sqlDumpTokenizer, $needle) === false) {
+        throw new RuntimeException('SQL dump tokenizer contract missing: ' . $needle);
     }
 }
 
