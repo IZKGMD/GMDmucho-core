@@ -22,6 +22,11 @@ grep -Fq 'Transport policy: automatic' install.sh
 grep -Fq 'installer_url="${REPO_ROOT}/${SOURCE_REF}/install.sh?cb=${cache_bust}"' install-remote.sh
 grep -Fq '< /dev/tty' install.sh
 grep -Fq 'Cloudflare credentials (optional)' install.sh
+grep -Fq 'Create API Token: https://dash.cloudflare.com/profile/api-tokens' install.sh
+grep -Fq 'Official guide: https://developers.cloudflare.com/fundamentals/api/get-started/create-token/' install.sh
+grep -Fq 'Choose Custom Token.' install.sh
+grep -Fq 'Cloudflare Dashboard → My Profile → API Tokens → API Keys' install.sh
+grep -Fq 'https://developers.cloudflare.com/fundamentals/api/get-started/keys/' install.sh
 grep -Fq '1) API Token' install.sh
 grep -Fq '2) Global API Key' install.sh
 grep -Fq '3) Skip' install.sh
