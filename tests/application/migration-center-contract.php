@@ -13,6 +13,7 @@ $sharedInstaller = file_get_contents($root . '/public/shared-install.php');
 $adminBackup = file_get_contents($root . '/public/admin/db-backup-center-module.php');
 $adminAction = file_get_contents($root . '/public/admin/actions/migration.php');
 $sqlDumpService = file_get_contents($root . '/src/Migration/SqlDumpMigrationService.php');
+$cvoltonImporter = file_get_contents($root . '/src/Migration/CvoltonDatabaseImporter.php');
 $sqlDumpTokenizer = file_get_contents($root . '/src/Migration/SqlDumpTokenizer.php');
 $adminActionPrevious = $adminAction; // retain the existing admin action variable name
 $dockerfile = file_get_contents($root . '/docker/Dockerfile');
@@ -41,6 +42,7 @@ foreach ([
     'public/admin/actions/migration.php' => $adminAction,
     'src/Migration/SqlDumpMigrationService.php' => $sqlDumpService,
     'src/Migration/SqlDumpTokenizer.php' => $sqlDumpTokenizer,
+    'src/Migration/CvoltonDatabaseImporter.php' => $cvoltonImporter,
     'docker/Dockerfile' => $dockerfile,
     'database/migrations/20260925_000_admin_users.php' => $adminUsersMigration,
     'tools/release/build-shared-hosting.sh' => $sharedPackageBuilder,
@@ -67,6 +69,7 @@ if (
     $adminBackup === false ||
     $sqlDumpService === false ||
     $sqlDumpTokenizer === false ||
+    $cvoltonImporter === false ||
     $adminUsersMigration === false ||
     $sharedPackageBuilder === false ||
     $releaseWorkflow === false
@@ -301,6 +304,10 @@ foreach ([
     if (strpos($lowLevel, $needle) === false) {
         throw new RuntimeException('Low-level importer safety contract missing: ' . $needle);
     }
+}
+
+if (strpos($cvoltonImporter, "SHOW COLUMNS FROM ' . $this->sourceTable($table)") === false) {
+    throw new RuntimeException('Cvolton importer must inspect the prefixed staging table schema.');
 }
 
 foreach ([
