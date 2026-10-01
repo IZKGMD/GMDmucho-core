@@ -50,7 +50,7 @@ grep -Fq -- '--migrate' install.sh
 grep -Fq -- '--domain=HOST' install.sh
 grep -Fq -- '--gd-versions=PROFILE' install.sh
 grep -Fq 'sudo mucho doctor' install.sh
-! grep -Fq 'Do you want to migrate an existing GDPS database now?' install.sh
+grep -Fq 'Do you want to migrate an existing GDPS database now?' install.sh
 
 migration_line="$(grep -n 'php bin/migrate.php migrate' install.sh | head -n1 | cut -d: -f1)"
 health_line="$(grep -n 'log \"Checking server health...\"' install.sh | head -n1 | cut -d: -f1)"
