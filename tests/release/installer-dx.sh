@@ -18,6 +18,11 @@ grep -Fq 'check_domain_preflight' install.sh
 grep -Fq 'MUCHO_TRANSPORT_MODE' install.sh
 grep -Fq 'PUBLIC_IP' install.sh
 grep -Fq 'Transport policy: automatic' install.sh
+grep -Fq 'resolve_ref_sha()' install-remote.sh
+grep -Fq '${REPO_ROOT}/${SOURCE_SHA}/install.sh' install-remote.sh
+grep -Fq '< /dev/tty' install.sh
+! grep -Fq 'Cloudflare API token (Enter to skip)' install.sh
+grep -Fq 'Account → Cloudflare Tunnel → Edit' install.sh
 grep -Fq 'fall back to a Cloudflare Tunnel' install.sh
 grep -Fq 'neither direct origin nor Cloudflare Tunnel became healthy' install.sh
 grep -Fq 'Installation overview' install.sh
