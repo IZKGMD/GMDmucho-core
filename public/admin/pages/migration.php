@@ -4,6 +4,7 @@ declare(strict_types=1);
 $output=$_SESSION['migration_output'] ?? null;
 $status=$_SESSION['migration_status'] ?? null;
 $statusType=(string)($_SESSION['migration_status_type'] ?? 'ok');
+$form=$_SESSION['migration_form'] ?? [];
 unset(
     $_SESSION['migration_output'],
     $_SESSION['migration_status'],
