@@ -580,9 +580,14 @@ normalize_caddy_address() {
     root="${host#www.}"
   fi
 
-  printf '%s www.%s' "$root" "$root"
+  # Explicitly declare HTTP and HTTPS listeners in direct mode.
+  # The HTTP site keeps legacy Geometry Dash clients working on port 80 while
+  # the HTTPS site provides managed Let's Encrypt certificates on port 443.
+  printf 'http://%s http://www.%s %s www.%s' "$root" "$root" "$root" "$root"
   if [[ -n "${CADDY_EXTRA_HOSTS:-}" ]]; then
-    printf ' %s' "$CADDY_EXTRA_HOSTS"
+    for extra_host in $CADDY_EXTRA_HOSTS; do
+      printf ' http://%s %s' "$extra_host" "$extra_host"
+    done
   fi
 }
 
