@@ -321,7 +321,7 @@ foreach ([
     'fgets(',
     'yield $trimmed',
     'maxBytes',
-    'quote tracking',
+    '$quote = null',
 ] as $needle) {
     if (strpos($sqlDumpTokenizer, $needle) === false) {
         throw new RuntimeException('SQL dump tokenizer contract missing: ' . $needle);
