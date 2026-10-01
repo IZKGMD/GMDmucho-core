@@ -287,13 +287,18 @@ final class SqlDumpMigrationService
                 (string)($preview['server_archive']['adapter'] ?? ''),
                 $this->sourceSongIds($prefix)
             );
-            foreach ($archiveStats['hydrate'] as $name => $value) {
+            foreach ($archiveStats as $name => $value) {
                 $stats[$name] = $value;
             }
 
             $this->target->commit();
 
-            foreach ($archiveStats['publish'] as $name => $value) {
+            $published = $this->publishServerArchive(
+                $prefix,
+                (string)($preview['server_archive']['adapter'] ?? ''),
+                $this->sourceSongIds($prefix)
+            );
+            foreach ($published as $name => $value) {
                 $stats[$name] = $value;
             }
         } catch (Throwable $e) {
@@ -519,6 +524,9 @@ final class SqlDumpMigrationService
     /**
      * @return array<string,int>
      */
+    /**
+     * @return array<string,int>
+     */
     private function hydrateServerArchive(
         string $prefix,
         string $adapterKey,
@@ -538,14 +546,7 @@ final class SqlDumpMigrationService
         ];
 
         if ($adapterKey === '') {
-            return [
-                'hydrate' => $empty,
-                'publish' => [
-                    'music_files_published' => 0,
-                    'music_bytes_published' => 0,
-                    'song_urls_rewritten' => 0,
-                ],
-            ];
+            return $empty;
         }
 
         $adapter = $this->serverArchives->resolveKey($adapterKey);
@@ -557,27 +558,44 @@ final class SqlDumpMigrationService
             $sourceSongIds
         );
 
-        $publish = $adapter->publish(
+        foreach ($empty as $name => $unused) {
+            $empty[$name] = (int)($hydrated[$name] ?? 0);
+        }
+
+        return $empty;
+    }
+
+    /**
+     * @return array<string,int>
+     */
+    private function publishServerArchive(
+        string $prefix,
+        string $adapterKey,
+        array $sourceSongIds
+    ): array
+    {
+        $empty = [
+            'music_files_published' => 0,
+            'music_bytes_published' => 0,
+            'song_urls_rewritten' => 0,
+        ];
+
+        if ($adapterKey === '') {
+            return $empty;
+        }
+
+        $adapter = $this->serverArchives->resolveKey($adapterKey);
+        $published = $adapter->publish(
             $this->target,
             $prefix,
             $sourceSongIds
         );
 
-        return [
-            'hydrate' => [
-                'level_data_hydrated' => (int)($hydrated['level_data_hydrated'] ?? 0),
-                'level_data_missing' => (int)($hydrated['level_data_missing'] ?? 0),
-                'level_data_bytes' => (int)($hydrated['level_data_bytes'] ?? 0),
-                'cloud_saves_imported' => (int)($hydrated['cloud_saves_imported'] ?? 0),
-                'cloud_saves_missing' => (int)($hydrated['cloud_saves_missing'] ?? 0),
-                'cloud_saves_bytes' => (int)($hydrated['cloud_saves_bytes'] ?? 0),
-            ],
-            'publish' => [
-                'music_files_published' => (int)($publish['music_files_published'] ?? 0),
-                'music_bytes_published' => (int)($publish['music_bytes_published'] ?? 0),
-                'song_urls_rewritten' => (int)($publish['song_urls_rewritten'] ?? 0),
-            ],
-        ];
+        foreach ($empty as $name => $unused) {
+            $empty[$name] = (int)($published[$name] ?? 0);
+        }
+
+        return $empty;
     }
 
     /**
