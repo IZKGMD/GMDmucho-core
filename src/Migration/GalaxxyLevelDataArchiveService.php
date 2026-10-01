@@ -257,6 +257,19 @@ final class GalaxxyLevelDataArchiveService
             }
 
             $result = $decoded;
+        } elseif (
+            strlen($compressed) >= 2 &&
+            $compressed[0] === "\x78" &&
+            in_array($compressed[1], ["\x01", "\x5e", "\x9c", "\xda"], true)
+        ) {
+            $decoded = zlib_decode($compressed);
+            if ($decoded === false) {
+                throw new RuntimeException(
+                    'Invalid zlib level-data archive entry for level ' . $sourceLevelId . '.'
+                );
+            }
+
+            $result = $decoded;
         } else {
             $result = $compressed;
         }
