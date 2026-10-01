@@ -149,13 +149,29 @@ $oldUser=(string)($form['source_user'] ?? '');
             >
         </label>
 
+        <label style="display:block;margin-top:12px">
+            <span class="muted">Galaxxy level-data archive (.zip) — recommended</span><br>
+            <input
+                type="file"
+                name="galaxxy_archive"
+                accept=".zip,application/zip"
+                style="width:100%;padding:10px"
+            >
+        </label>
+
+        <p class="muted" style="font-size:11px;line-height:1.5">
+            Galaxxy-compatible servers normally keep the playable levelString outside MySQL in
+            <code>public_html/data/levels/&lt;levelID&gt;</code>. Attach the old server .zip to restore those level payloads.
+            SQL-only imports can restore level metadata but cannot reconstruct missing level data.
+        </p>
+
         <div class="row" style="margin-top:12px">
             <button type="submit" class="green">Upload &amp; Check SQL</button>
         </div>
 
         <p class="muted" style="font-size:11px;line-height:1.5;margin-bottom:0">
-            Maximum upload size: 256 MB. Stored uploads are removed after staging; abandoned staging data is cleaned automatically.
-            Stored procedures and triggers are intentionally not executed.
+            Maximum upload size: 256 MB per upload. The optional Galaxxy archive is read selectively:
+            only <code>public_html/data/levels/&lt;levelID&gt;</code> files are staged. Stored procedures and triggers are intentionally not executed.
         </p>
     </form>
 </div>
@@ -204,6 +220,14 @@ $oldUser=(string)($form['source_user'] ?? '');
     <p class="muted" style="line-height:1.6">
         The SQL dump is currently isolated under temporary staging table names.
         The real MuchoCore tables have not been replaced or cleared.
+        <?php $ld=$sqlPreview['level_data'] ?? []; ?>
+        <?php if ((int)($ld['stored_files'] ?? 0) > 0): ?>
+            Galaxxy level-data archive: <b><?=number_format((int)($ld['stored_files'] ?? 0))?></b> files staged,
+            <b><?=number_format((int)($ld['matched_files'] ?? 0))?></b> match the SQL level IDs,
+            <?=number_format((int)($ld['matched_bytes'] ?? 0))?> bytes matched.
+        <?php else: ?>
+            No Galaxxy level-data archive is attached. SQL-only imports leave playable level data empty.
+        <?php endif; ?>
     </p>
 
     <div class="row" style="margin-top:14px">
@@ -254,6 +278,6 @@ $oldUser=(string)($form['source_user'] ?? '');
     <h2 style="margin-top:0">Simple migration flow</h2>
     <div class="muted" style="line-height:1.8">
         <b>Live database:</b> enter connection details → Check source → Migrate supported data.<br>
-        <b>SQL file:</b> upload database.sql → Upload &amp; Check SQL → review detected counts → Import This SQL Dump.
+        <b>SQL file:</b> upload database.sql + optional Galaxxy .zip → Upload &amp; Check SQL → review detected counts → Import This SQL Dump.
     </div>
 </div>
