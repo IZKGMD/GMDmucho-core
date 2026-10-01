@@ -12,9 +12,9 @@ fwrite(
     $handle,
     "-- header\n" .
     "SET NAMES utf8mb4;\n" .
-    "CREATE TABLE \`accounts\` (name VARCHAR(64));\n" .
-    "INSERT INTO \`accounts\` VALUES ('one;two');\n" .
-    "/* comment; inside */ INSERT INTO \`accounts\` VALUES ('three');\n"
+    "CREATE TABLE `accounts` (name VARCHAR(64));\n" .
+    "INSERT INTO `accounts` VALUES ('one;two');\n" .
+    "/* comment; inside */ INSERT INTO `accounts` VALUES ('three');\n"
 );
 rewind($handle);
 
