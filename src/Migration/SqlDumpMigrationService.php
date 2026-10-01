@@ -393,7 +393,7 @@ final class SqlDumpMigrationService
         $offset = 0;
 
         if (preg_match(
-            '/^(CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?|DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?|(?:INSERT(?:\s+(?:IGNORE|LOW_PRIORITY|DELAYED))*\s+INTO|REPLACE\s+INTO)\s+)(?:(?:\x60[^\x60]+\x60|[A-Za-z0-9_$.-]+)\.)?(\x60[^\x60]+\x60|[A-Za-z0-9_$.-]+)/i',
+            '/^(CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?|DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?|(?:INSERT(?:\s+(?:IGNORE|LOW_PRIORITY|DELAYED))*\s+INTO|REPLACE\s+INTO)\s+)((?:(?:\x60[^\x60]+\x60|[A-Za-z0-9_$.-]+)\.)?(?:\x60[^\x60]+\x60|[A-Za-z0-9_$.-]+))/i',
             $sql,
             $match,
             PREG_OFFSET_CAPTURE
