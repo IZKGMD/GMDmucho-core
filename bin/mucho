@@ -52,12 +52,60 @@ validate_domain() {
 }
 
 compose() {
-    if [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
-        docker compose -f docker-compose.yml -f docker-compose.tunnel.yml "$@"
+    cd "$ROOT"
+
+    local tunnel_token=""
+    local transport_mode
+    transport_mode="$(env_get MUCHO_TRANSPORT_MODE)"
+    if [[ "$transport_mode" == "tunnel" ]]; then
+        if [[ -s "$SECRETS/tunnel_token" ]]; then
+            tunnel_token="$(cat "$SECRETS/tunnel_token")"
+        elif [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
+            tunnel_token="$(env_get MUCHO_TUNNEL_TOKEN)"
+        fi
+        [[ -n "$tunnel_token" ]] || {
+            echo "[MuchoCore] ERROR: Tunnel mode is enabled but the runtime token is missing." >&2
+            return 1
+        }
+        MUCHO_TUNNEL_TOKEN="$tunnel_token" docker compose -f docker-compose.yml -f docker-compose.tunnel.yml "$@"
     else
         docker compose "$@"
     fi
 }
+
+compose_test() {
+    cd "$ROOT"
+
+    local tunnel_token=""
+    if [[ -s "$SECRETS/tunnel_token" ]]; then
+        tunnel_token="$(cat "$SECRETS/tunnel_token")"
+    elif [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
+        tunnel_token="$(env_get MUCHO_TUNNEL_TOKEN)"
+    fi
+
+    if [[ -n "$tunnel_token" ]]; then
+        MUCHO_TUNNEL_TOKEN="$tunnel_token" docker compose -f docker-compose.yml -f docker-compose.tunnel.yml -f docker-compose.test.yml "$@"
+    else
+        docker compose -f docker-compose.yml -f docker-compose.test.yml "$@"
+    fi
+}
+
+ensure_test_stack_secrets() {
+    install -d -m 700 "$SECRETS"
+
+    [[ -s "$SECRETS/testgdps_db_password" ]] || openssl rand -hex 24 > "$SECRETS/testgdps_db_password"
+    [[ -s "$SECRETS/testgdps_db_root_password" ]] || openssl rand -hex 32 > "$SECRETS/testgdps_db_root_password"
+    [[ -s "$SECRETS/testgdps_admin_password" ]] || openssl rand -base64 24 > "$SECRETS/testgdps_admin_password"
+    chmod 600 "$SECRETS"/testgdps_*
+
+    for secret in "$SECRETS/testgdps_db_password" "$SECRETS/testgdps_db_root_password" "$SECRETS/testgdps_admin_password"; do
+        [[ -s "$secret" ]] || {
+            echo "[MuchoCore] ERROR: test-stack secret is missing: $secret" >&2
+            return 1
+        }
+    done
+}
+
 
 caddy_address_for() {
     local host="$1"
@@ -93,6 +141,7 @@ show_settings() {
     echo "MuchoCore configuration"
     echo "-----------------------"
     printf '%-24s %s\n' "Domain" "$(env_get DOMAIN)"
+    printf '%-24s %s\n' "Transport" "$(env_get MUCHO_TRANSPORT_MODE)"
     printf '%-24s %s\n' "Database name" "$(env_get DB_NAME)"
     printf '%-24s %s\n' "Database user" "$(env_get DB_USER)"
     printf '%-24s %s\n' "GD profile" "$(env_get MUCHO_GD_VERSIONS)"
@@ -115,7 +164,11 @@ set_domain() {
     }
     env_set DOMAIN "$domain"
     env_set MUCHO_ACCOUNT_URL "https://$domain"
-    env_set CADDY_ADDRESS "$(caddy_address_for "$domain")"
+    if [[ "$(env_get MUCHO_TRANSPORT_MODE)" == "tunnel" ]]; then
+        env_set CADDY_ADDRESS '":80"'
+    else
+        env_set CADDY_ADDRESS "$(caddy_address_for "$domain")"
+    fi
     restart_services
     echo "Domain updated to https://$domain"
 }
@@ -210,7 +263,7 @@ set_cache_driver() {
     env_set MUCHO_CACHE_DRIVER "$value"
 
     read -r -p "Level cache TTL in seconds [15]: " ttl
-    ttl="\${ttl:-15}"
+    ttl="${ttl:-15}"
 
     [[ "$ttl" =~ ^[0-9]+$ ]] || {
         echo "Invalid TTL."
@@ -222,7 +275,7 @@ set_cache_driver() {
     env_set MUCHO_LEVEL_CACHE_TTL "$ttl"
 
     restart_services
-    echo "Cache driver: $value (TTL \${ttl}s)"
+    echo "Cache driver: $value (TTL ${ttl}s)"
 }
 
 set_webhook() {
@@ -241,7 +294,7 @@ set_webhook() {
     read -r -s -p "Webhook secret (empty = unsigned): " secret
     printf '\n'
     read -r -p "Events CSV [*]: " events
-    events="\${events:-*}"
+    events="${events:-*}"
 
     env_set MUCHO_WEBHOOK_URL "$url"
     env_set MUCHO_WEBHOOK_SECRET "$secret"
@@ -277,17 +330,47 @@ doctor() {
     [[ -f "$ENV_FILE" ]] && echo "✓ .env" || { echo "✗ .env"; ok=1; }
     [[ -s "$SECRETS/db_password" ]] && echo "✓ database secret" || { echo "✗ database secret"; ok=1; }
     [[ -s "$SECRETS/db_root_password" ]] && echo "✓ database root secret" || { echo "✗ database root secret"; ok=1; }
+    [[ -s "$SECRETS/cloudsave_key" ]] && echo "✓ Cloud Save secret" || { echo "✗ Cloud Save secret"; ok=1; }
     docker info >/dev/null 2>&1 && echo "✓ Docker" || { echo "✗ Docker"; ok=1; }
     compose config -q >/dev/null 2>&1 && echo "✓ Compose" || { echo "✗ Compose"; ok=1; }
 
-    local domain health
+    local service container_id running
+    local services=(db app worker caddy)
+    local tunnel_mode=0
+    local transport_mode
+    transport_mode="$(env_get MUCHO_TRANSPORT_MODE)"
+    if [[ "$transport_mode" == "tunnel" || ( -z "$transport_mode" && ( -s "$SECRETS/tunnel_token" || -n "$(env_get MUCHO_TUNNEL_TOKEN)" ) ) ]]; then
+        tunnel_mode=1
+        services+=(cloudflared)
+    fi
+
+    for service in "${services[@]}"; do
+        container_id="$(compose ps -q "$service" 2>/dev/null || true)"
+        if [[ -z "$container_id" ]]; then
+            echo "✗ service $service (missing)"
+            ok=1
+            continue
+        fi
+        running="$(docker inspect -f '{{.State.Running}}' "$container_id" 2>/dev/null || true)"
+        [[ "$running" == "true" ]] && echo "✓ service $service" || { echo "✗ service $service"; ok=1; }
+    done
+
+    local domain health public_health
     domain="$(env_get DOMAIN)"
-    if [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
+    if [[ "$tunnel_mode" == 1 ]]; then
         health="$(curl -4fsSf --connect-timeout 3 --max-time 5 http://127.0.0.1/health 2>/dev/null || true)"
-        [[ "$health" == "1" ]] && echo "✓ /health (tunnel)" || { echo "✗ /health (tunnel)"; ok=1; }
+        [[ "$health" == "1" ]] && echo "✓ /health (tunnel origin)" || { echo "✗ /health (tunnel origin)"; ok=1; }
+
+        if [[ -n "$domain" ]]; then
+            public_health="$(curl -4ksSf --connect-timeout 5 --max-time 8 "https://$domain/health" 2>/dev/null || true)"
+            [[ "$public_health" == "1" ]] && echo "✓ /health (public tunnel)" || echo "! /health (public tunnel not reachable yet)"
+        fi
     elif [[ -n "$domain" ]]; then
         health="$(curl -4ksSf --connect-timeout 3 --max-time 5             --resolve "$domain:443:127.0.0.1" "https://$domain/health" 2>/dev/null || true)"
-        [[ "$health" == "1" ]] && echo "✓ /health" || { echo "✗ /health"; ok=1; }
+        [[ "$health" == "1" ]] && echo "✓ /health (local HTTPS)" || echo "! /health (local HTTPS certificate/origin unavailable)"
+
+        public_health="$(curl -4ksSf --connect-timeout 5 --max-time 8 "https://$domain/health" 2>/dev/null || true)"
+        [[ "$public_health" == "1" ]] && echo "✓ /health (public)" || echo "! /health (public) not reachable"
     else
         echo "✗ domain"; ok=1
     fi
@@ -399,47 +482,161 @@ configuration_menu() {
     done
 }
 
-if [[ "${1:-}" == "doctor" ]]; then
-    require_root
+usage() {
+    cat <<'EOF'
+MuchoCore operator CLI
+
+Usage:
+  sudo mucho                     Open the Control Center
+  sudo mucho status              Show production status
+  sudo mucho logs [--follow]     Show production logs
+  sudo mucho restart             Restart production services
+  sudo mucho doctor              Run diagnostics
+  sudo mucho repair              Restart, migrate and health-check
+  sudo mucho update              Apply the latest stable release
+  sudo mucho backup              Create a database backup
+  sudo mucho migrate             Apply pending database migrations
+  sudo mucho migration [args]    Open the Migration Center
+  sudo mucho config              Open configuration
+  sudo mucho test-stack [args]   Manage the optional integration test stack
+  sudo mucho install [args]      Re-run the installer
+  sudo mucho test                Run the production E2E smoke test
+
+The production stack never starts the integration test tenant automatically.
+EOF
+}
+
+show_logs_cli() {
+    cd "$ROOT"
+    local follow=0
+    if [[ "${1:-}" == "--follow" || "${1:-}" == "-f" ]]; then
+        follow=1
+        shift
+    fi
+    if ((follow)); then
+        compose logs -f --tail=120 "$@"
+    else
+        compose logs --tail=120 "$@"
+    fi
+}
+
+restart_cli() {
+    cd "$ROOT"
+    compose up -d --remove-orphans
+    compose ps
+}
+
+repair_cli() {
+    cd "$ROOT"
+    echo "[MuchoCore] Repairing production services..."
+    compose up -d --remove-orphans
+    compose exec -T app php bin/migrate.php migrate
+    compose exec -T app php bin/mucho-healthcheck.php
     doctor
-    exit $?
-fi
+}
 
-if [[ "${1:-}" == "test" ]]; then
+backup_cli() {
+    cd "$ROOT"
+    compose exec -T app bash /var/www/mucho-core/bin/mucho-db-backup.sh
+}
+
+migrate_cli() {
+    cd "$ROOT"
+    compose exec -T app php bin/migrate.php migrate
+}
+
+migration_cli() {
+    cd "$ROOT"
+    compose exec app php bin/mucho-migrate.php "$@"
+}
+
+test_stack_cli() {
     require_root
-    compose exec -T app php bin/mucho-e2e.php
-    exit $?
-fi
+    ensure_test_stack_secrets
+    compose_test "$@"
+}
 
-if [[ "${1:-}" == "search" ]]; then
-    require_root
-    compose exec -T app php bin/mucho-search.php "${@:2}"
-    exit $?
-fi
-
-if [[ "${1:-}" == "level" ]]; then
-    require_root
-    compose exec -T app php bin/mucho-level.php "${@:2}"
-    exit $?
-fi
-
-if [[ "${1:-}" == "worker" ]]; then
-    require_root
-    compose exec -T app php bin/mucho-worker.php "${@:2}"
-    exit $?
-fi
-
-if [[ "${1:-}" == "trace" ]]; then
-    require_root
-    compose exec -T app php bin/mucho-trace.php "${@:2}"
-    exit $?
-fi
-
-if [[ "${1:-}" == "backup-verify" ]]; then
-    require_root
-    compose exec -T app php bin/mucho-backup-verify.php "${@:2}"
-    exit $?
-fi
-
-require_root
-main_menu
+case "${1:-}" in
+    ""|"menu")
+        require_root
+        main_menu
+        ;;
+    help|--help|-h)
+        usage
+        ;;
+    status)
+        require_root
+        show_status
+        ;;
+    logs)
+        require_root
+        show_logs_cli "${@:2}"
+        ;;
+    restart)
+        require_root
+        restart_cli
+        ;;
+    doctor)
+        require_root
+        doctor
+        ;;
+    repair)
+        require_root
+        repair_cli
+        ;;
+    update)
+        require_root
+        "$ROOT/update.sh"
+        ;;
+    backup)
+        require_root
+        backup_cli
+        ;;
+    migrate)
+        require_root
+        migrate_cli
+        ;;
+    migration)
+        require_root
+        migration_cli "${@:2}"
+        ;;
+    config)
+        require_root
+        configuration_menu
+        ;;
+    test-stack)
+        test_stack_cli "${@:2}"
+        ;;
+    install)
+        require_root
+        exec bash "$ROOT/install.sh" "${@:2}"
+        ;;
+    test)
+        require_root
+        compose exec -T app php bin/mucho-e2e.php
+        ;;
+    search)
+        require_root
+        compose exec -T app php bin/mucho-search.php "${@:2}"
+        ;;
+    level)
+        require_root
+        compose exec -T app php bin/mucho-level.php "${@:2}"
+        ;;
+    worker)
+        require_root
+        compose exec -T app php bin/mucho-worker.php "${@:2}"
+        ;;
+    trace)
+        require_root
+        compose exec -T app php bin/mucho-trace.php "${@:2}"
+        ;;
+    backup-verify)
+        require_root
+        compose exec -T app php bin/mucho-backup-verify.php "${@:2}"
+        ;;
+    *)
+        usage
+        exit 2
+        ;;
+esac

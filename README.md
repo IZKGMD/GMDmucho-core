@@ -17,7 +17,7 @@ The canonical source repository is **IZKGMD/GMDmucho-core**. **MuchoCore** and *
   <a href="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml">
     <img src="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml/badge.svg" alt="MuchoCore CI">
   </a>
-  <img src="https://img.shields.io/badge/release-v1.0.83-8A2BE2" alt="MuchoCore stable release v1.0.83">
+  <img src="https://img.shields.io/badge/release-v1.0.8-8A2BE2" alt="MuchoCore stable release v1.0.83">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/PHP-8.3-777BB4" alt="PHP 8.3+">
   <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2-success" alt="Geometry Dash 1.0 through 2.2 compatibility">
@@ -119,34 +119,53 @@ The names **MuchoCore** and **GMDmucho-core** identify the same project.
 
 ## 🚀 Quick start
 
-### New installation
+### New VPS installation
 
-For VPS, start with **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**.
+MuchoCore is designed so a new GDPS owner does not need to assemble PHP, MariaDB, Docker and a reverse proxy manually.
 
-For normal PHP shared hosting, use **[docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md)** and download the `MuchoCore-vX.Y.Z-shared-hosting.zip` asset from the stable release page. It already contains `vendor/` and the browser installer, so FTP/file-manager access is enough.
-
-```bash
-git clone https://github.com/IZKGMD/GMDmucho-core.git
-cd GMDmucho-core
-sudo ./install
-```
-
-### Existing GDPS migration
-
-Already running a Cvolton/GMDprivateServer-style GDPS? Open **Admin → Tools → Migration Center** for the guided workflow. The [Migration Kit](docs/MIGRATION_KIT.md) and [Migration Center](docs/MIGRATION_CENTER.md) documents cover the VPS/CLI fallback for advanced use.
-
-The default migration command is a **dry-run**. It checks the target, validates the source schema, reports row counts and changes nothing until you explicitly use `--apply --confirm=COVOLTON`. Apply mode creates and verifies a target database backup before any destination write; if the backup fails, the import does not start.
-
-
-MuchoCore is designed so you do not have to assemble PHP, MariaDB and Caddy manually.
+For the normal stable-release VPS install, run:
 
 ```bash
-git clone https://github.com/IZKGMD/GMDmucho-core.git
-cd GMDmucho-core
-sudo ./install
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo -E bash
 ```
 
-The installer configures the database, PHP runtime, Caddy, Cloud Save secret, administrator account and the selected Geometry Dash compatibility profile.
+The normal deployment path is **direct VPS HTTPS**. Cloudflare is not required.
+
+On a normal public VPS, the installer needs only:
+
+1. A public IPv4 address assigned to the VPS.
+2. An `A` record for the GDPS hostname pointing to that IPv4 address.
+3. Inbound TCP **80** and **443** permitted by the VPS provider/network.
+4. Your initial Admin Panel password.
+
+The installer automatically:
+
+- detects the VPS public IPv4;
+- checks the domain and expected network layout;
+- installs Docker and required host packages;
+- creates the MuchoCore environment and protected secrets;
+- starts MariaDB, PHP, worker and Caddy;
+- runs database migrations and the internal MuchoCore healthcheck;
+- configures Caddy for legacy HTTP on port 80 and managed HTTPS on port 443;
+- automatically allows TCP 80/443 through an **already-active UFW** firewall without enabling or replacing the host firewall;
+- verifies the public health endpoint before declaring the installation complete.
+
+The expected direct traffic path is:
+
+```text
+GDPS domain
+    |
+    v
+DNS A record -> VPS public IPv4
+    |
+    +---- TCP 80 ----> Caddy ----> MuchoCore
+    |
+    +---- TCP 443 ---> Caddy ----> MuchoCore
+                         |
+                         +---- Let's Encrypt
+```
+
+No Cloudflare API token, Global API Key, Cloudflare Tunnel or Cloudflare Proxy is required for this path.
 
 After installation, verify:
 
@@ -166,39 +185,98 @@ Then open:
 https://YOUR-DOMAIN/admin/
 ```
 
-For the full VPS workflow, see **[docs/SETUP.md](docs/SETUP.md)**.
+### Direct HTTPS troubleshooting
 
-### Custom plugins
+If MuchoCore reports that the public hostname is unhealthy, the installer distinguishes between the **application/origin** and the **public network path**.
 
-MuchoCore supports a persistent custom plugin layer under:
+A healthy direct origin means Caddy and MuchoCore are working locally. If the domain also resolves to the detected VPS IPv4 but public TCP 80/443 still cannot reach the server, the remaining failure is outside the application stack, such as a provider-side firewall, security ACL or port policy.
 
-~~~text
-custom/plugins/
-~~~
-
-Plugins can add server-specific routes, lifecycle listeners and optional database-backed functionality without modifying the MuchoCore core source. The updater leaves this directory untouched, so customizations survive stable core updates.
-
-See **[docs/CUSTOM_PLUGINS.md](docs/CUSTOM_PLUGINS.md)** for the plugin format, permissions and examples. The Admin Panel also includes **Custom Plugins** for read-only diagnostics and compatibility status.
-
-Core updates are automatic **only after a published stable GitHub Release** exists. The Admin Panel detects the release, while the VPS updater deploys the exact release tag. `update.sh` remains available as the manual update/test path.
-
-### Deployment flow
+For a direct installation, the required DNS layout is:
 
 ```text
-VPS
-  ↓
-sudo ./install
-  ↓
-MuchoCore + MariaDB + Caddy
-  ↓
-/health → 1
-  ↓
-Patch the client
-  ↓
-🎮 GDPS online
+A     gdps.example.com      -> YOUR_VPS_IPV4
+A     www.gdps.example.com  -> YOUR_VPS_IPV4
 ```
 
----
+There should not be a conflicting `CNAME` or `AAAA` record for the same hostname unless you intentionally support that additional address/path.
+
+When Cloudflare is used only as the DNS provider, use **DNS only** for the direct-origin record. Cloudflare does not need to proxy the HTTP/HTTPS traffic.
+
+### VPS plans where ports 80/443 are not reachable
+
+Some VPS/NAT providers do not pass inbound HTTP/HTTPS traffic to the machine. This is common on NAT/CGNAT plans or VPS products where only RDP/SSH is exposed.
+
+In that case, MuchoCore supports an explicit **Cloudflare Tunnel** transport:
+
+```text
+Internet
+  |
+  v
+Cloudflare
+  |
+  v
+Cloudflare Tunnel
+  |
+  v
+http://caddy:80
+  |
+  v
+MuchoCore
+```
+
+Direct VPS HTTPS remains the default. Tunnel mode is a fallback for infrastructure where the VPS cannot accept inbound 80/443.
+
+To explicitly use Tunnel mode, provide a runtime connector token:
+
+```bash
+export MUCHO_TRANSPORT_MODE=tunnel
+export MUCHO_TUNNEL_TOKEN='YOUR_TUNNEL_CONNECTOR_TOKEN'
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo -E bash
+```
+
+For the advanced automatic Cloudflare provisioning path, use `MUCHO_TRANSPORT_MODE=auto`. In that mode MuchoCore tries direct access first and can ask for Cloudflare credentials only when it needs to change DNS or provision/reuse a Tunnel.
+
+For automatic Cloudflare provisioning, create one API token with only the permissions needed for the setup:
+
+```text
+Account
+  Cloudflare Tunnel -> Edit
+
+Zone
+  DNS -> Edit
+  Zone -> Read
+```
+
+See the [Cloudflare API token permissions documentation](https://developers.cloudflare.com/fundamentals/api/reference/permissions/) for the current permission groups.
+
+The installer can create or reuse the remotely managed Tunnel, configure the public hostname, obtain the connector token and route traffic to the internal Caddy service. The Cloudflare API credential is used for provisioning and is not persisted; only the Tunnel runtime token required by `cloudflared` is kept on the server.
+
+For more detail, see **[docs/ADVANCED.md](docs/ADVANCED.md)**.
+### Existing GDPS migration
+
+Already running a Cvolton/GMDprivateServer-style GDPS? Open **Admin → Tools → Migration Center** for the guided workflow. The [Migration Kit](docs/MIGRATION_KIT.md) and [Migration Center](docs/MIGRATION_CENTER.md) documents cover the VPS/CLI fallback for advanced use.
+
+The default migration command is a **dry-run**. It checks the target, validates the source schema, reports row counts and changes nothing until you explicitly use `--apply --confirm=COVOLTON`. Apply mode creates and verifies a target database backup before any destination write; if the backup fails, the import does not start.
+
+### Development and explicit source checkout
+
+For development, testing, or installing a specific branch/tag:
+
+```bash
+git clone https://github.com/IZKGMD/GMDmucho-core.git
+cd GMDmucho-core
+sudo ./install
+```
+
+For a specific installer ref, use:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/REF/install.sh | sudo bash -s -- --ref=REF
+```
+
+The stable one-line installer intentionally uses a published release; explicit branch/tag deployment is for testing and development.
+
+For the full VPS workflow, see **[docs/SETUP.md](docs/SETUP.md)**.
 
 ## 🎯 Geometry Dash compatibility
 
@@ -628,9 +706,9 @@ Before large changes, back up the database and verify that your Cloud Save secre
 
 ---
 
-## 📦 MuchoCore v1.0.83
+## 📦 MuchoCore v1.0.8
 
-**v1.0.83** is the current stable release of MuchoCore.
+**v1.0.8** is the current stable release of MuchoCore.
 
 This is a major **Intelligence & Scale** release built on the v1.0.6/v1.0.7 integrity, compatibility and operational foundation.
 

@@ -129,6 +129,11 @@ fi
 
 if [[ ! -f vendor/autoload.php ]]; then
   composer install --no-dev --optimize-autoloader --no-interaction
+else
+  # The source tree is bind-mounted into the container. Refresh Composer's
+  # project autoload map after updates so newly added MuchoCore classes are
+  # available even when vendor/ already exists from an earlier image/build.
+  composer dump-autoload --no-dev --optimize --no-interaction
 fi
 
 php bin/migrate.php migrate

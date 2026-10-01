@@ -17,6 +17,30 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:2026.9.1
     restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ${MUCHO_TUNNEL_TOKEN}
+    # Keep cloudflared as PID 1. The runtime token stays in a host-side
+    # file and is referenced through cloudflared's TUNNEL_TOKEN_FILE option.
+    environment:
+      TUNNEL_TOKEN_FILE: /run/secrets/muchocore_tunnel_token
+    command:
+      - tunnel
+      - --no-autoupdate
+      - --protocol
+      - http2
+      - --metrics
+      - 0.0.0.0:20241
+      - run
+    volumes:
+      - type: bind
+        source: ./.secrets/tunnel_token
+        target: /run/secrets/muchocore_tunnel_token
+        read_only: true
+    healthcheck:
+      # "ready" accepts tunnel-level flags before the subcommand.
+      # Passing --metrics after "ready" is invalid on cloudflared 2026.9.1.
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:20241", "ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     depends_on:
       - caddy

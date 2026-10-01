@@ -10,27 +10,42 @@ One option is Cloudflare Tunnel. It creates an outbound connection from the serv
 
 ### MuchoCore installer flow
 
-1. Open **Networking → Tunnels** in the Cloudflare Dashboard.
-2. Create or select a cloudflared Tunnel.
-3. Create a Published Application for your domain.
-4. Set the origin to:
+For a new deployment, prefer automatic Cloudflare provisioning. You do not need to create the Tunnel, Published Application, or DNS record manually.
+
+Create one Cloudflare API token with:
 
 ```text
-http://caddy:80
+Account
+  Cloudflare Tunnel → Edit
+
+Zone
+  DNS → Edit
+  Zone → Read
 ```
 
-5. Copy the connector token.
-6. Pass it to the installer:
+Then either let the installer ask for the token when it detects a Cloudflare 52x origin failure, or provide it up front:
+
+```bash
+export MUCHO_CLOUDFLARE_API_TOKEN='YOUR_CLOUDFLARE_API_TOKEN'
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo -E bash
+```
+
+MuchoCore uses the API to create or reuse a remotely managed Tunnel, configure the public hostname, point the DNS record at the Tunnel, obtain the connector token, switch Caddy to plain HTTP internally, and start `cloudflared`.
+
+The API token is used only for provisioning and is not stored by MuchoCore. Only the Tunnel runtime token needed by `cloudflared` is retained on the server.
+
+### Manual connector-token mode
+
+Existing operators can still provide an already-created Tunnel connector token directly:
 
 ```bash
 export MUCHO_TUNNEL_TOKEN='YOUR_TUNNEL_TOKEN'
-curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install.sh -o install.sh
-sudo -E bash install.sh
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo -E bash
 ```
 
-In tunnel mode MuchoCore switches Caddy to plain HTTP inside Docker and runs cloudflared as a separate container. TLS terminates at Cloudflare.
+In tunnel mode MuchoCore switches Caddy to plain HTTP inside Docker and runs `cloudflared` as a separate container. TLS terminates at Cloudflare.
 
-**Never publish the connector token.** It is a Tunnel credential.
+**Never publish a Cloudflare API token or connector token.**
 
 ## Existing Tunnel
 

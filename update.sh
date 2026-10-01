@@ -17,40 +17,6 @@ fi
 # the first update can repair that installation automatically.
 install -d -m 700 "$ROOT/.secrets"
 
-ensure_hosted_test_secrets() {
-    # Docker Compose reads secret files while parsing/creating services, so
-    # these files support the local integration-test tenant.
-    install -d -m 700 "$ROOT/.secrets"
-
-    if [[ ! -s "$ROOT/.secrets/testgdps_db_password" ]]; then
-        openssl rand -hex 24 > "$ROOT/.secrets/testgdps_db_password"
-    fi
-    if [[ ! -s "$ROOT/.secrets/testgdps_db_root_password" ]]; then
-        openssl rand -hex 32 > "$ROOT/.secrets/testgdps_db_root_password"
-    fi
-    if [[ ! -s "$ROOT/.secrets/testgdps_admin_password" ]]; then
-        openssl rand -base64 24 > "$ROOT/.secrets/testgdps_admin_password"
-    fi
-
-    chmod 600         "$ROOT/.secrets/testgdps_db_password"         "$ROOT/.secrets/testgdps_db_root_password"         "$ROOT/.secrets/testgdps_admin_password"
-
-    [[ -s "$ROOT/.secrets/testgdps_db_password" ]] || {
-        echo '[MuchoCore] ERROR: testgdps_db_password was not created.' >&2
-        exit 1
-    }
-    [[ -s "$ROOT/.secrets/testgdps_db_root_password" ]] || {
-        echo '[MuchoCore] ERROR: testgdps_db_root_password was not created.' >&2
-        exit 1
-    }
-    [[ -s "$ROOT/.secrets/testgdps_admin_password" ]] || {
-        echo '[MuchoCore] ERROR: testgdps_admin_password was not created.' >&2
-        exit 1
-    }
-}
-
-# Hosted test tenant secrets must exist before Docker Compose is invoked.
-ensure_hosted_test_secrets()
-
 if [[ ! -s "$ROOT/.secrets/cloudsave_key" && ! -s "$ROOT/config/cloudsave.key" ]]; then
     if docker compose ps app >/dev/null 2>&1; then
         docker compose exec -T app cat /var/lib/muchocore/cloudsave.key             > "$ROOT/.secrets/cloudsave_key.tmp" 2>/dev/null || true
@@ -250,12 +216,8 @@ if ! docker compose "${COMPOSE_ARGS[@]}" up -d --build --remove-orphans; then
     exit 1
 fi
 
-echo '[MuchoCore] Verifying the new application containers...'
+echo '[MuchoCore] Verifying the production application container...'
 if ! docker compose "${COMPOSE_ARGS[@]}" exec -T app php --version >/dev/null 2>&1; then
-    rollback_source_tree
-    exit 1
-fi
-if ! docker compose "${COMPOSE_ARGS[@]}" exec -T testgdps-app php --version >/dev/null 2>&1; then
     rollback_source_tree
     exit 1
 fi

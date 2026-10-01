@@ -1,4 +1,13 @@
-## v1.0.9 — Gauntlet & Map Pack Maker
+## v1.0.9 — One-Command Direct VPS Deployment
+
+### Direct VPS Deployment & Installer DX
+
+- made **direct VPS HTTPS the default transport**, so a normal public VPS no longer requires Cloudflare Tunnel or any third-party tunnel service;
+- reduced a clean MuchoCore deployment to a single remote installer command, with deployment-specific domain and administrator-password prompts;
+- added automatic Caddy exposure for both HTTP and HTTPS on ports 80/443 with managed TLS certificates;
+- added DNS preflight checks, public-origin convergence diagnostics and automatic firewall rules for 80/443 when an existing UFW firewall is active;
+- kept Cloudflare API credentials and Tunnel provisioning optional for NAT/CGNAT deployments or operators who explicitly choose Tunnel mode;
+- validated the complete path on a brand-new VPS: containers healthy, migrations applied, HTTP /health = 1, HTTPS /health = 1, and sudo mucho doctor reports **No problems found**.
 
 ### Admin Content Tools
 
@@ -16,6 +25,19 @@
 - Gauntlets continue through the existing `getGJGauntlets` / `getGJGauntlets21` routes;
 - Map Packs continue through the existing `getGJMapPacks` / `getGJMapPacks20` / `getGJMapPacks21` routes;
 - no client-side protocol changes are required for the new admin maker.
+
+
+### Installer & Operator DX
+
+- reduced the normal VPS installation to the deployment-specific domain and admin-password prompts;
+- made the `all` Geometry Dash compatibility profile the default, with `--advanced` for the interactive profile menu;
+- added a stable-release remote installer bootstrap that resolves the published release before downloading its installer;
+- added domain/DNS and port preflight diagnostics plus contextual installer failure messages;
+- removed the integration-test tenant from the production Compose stack and moved it to `docker-compose.test.yml`;
+- added operator-first `mucho` commands for status, logs, restart, repair, update, backup, migration and optional test-stack management;
+- expanded `mucho doctor` to validate production service state and the Cloud Save secret;
+- updated VPS onboarding and deployment documentation around the new quick-install path.
+- added automatic Cloudflare provisioning: one API token can create/reuse the Tunnel, configure ingress, update DNS, obtain the runtime token and switch the deployment to Tunnel mode when the origin is unreachable.
 
 ---
 

@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 require_once '/var/www/mucho-core/public/api/v2/bootstrap.php';
 
+use MuchoCore\Job\JobQueue;
+use MuchoCore\Monitoring\AlertService;
+
 try {
 
     $db=muchoV2Db();

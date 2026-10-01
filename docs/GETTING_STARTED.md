@@ -14,22 +14,36 @@ Wait until the DNS record resolves.
 
 ## 2. Install MuchoCore
 
-\`\`\`bash
-git clone https://github.com/IZKGMD/GMDmucho-core.git
-cd GMDmucho-core
-sudo ./install
-\`\`\`
+For the normal interactive VPS install, use the stable-release bootstrap:
 
-The installer installs and configures Docker-based PHP, MariaDB and Caddy. It also creates the database, Cloud Save secret, administrator account and compatibility profile.
+```bash
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
+```
 
-For automated profile selection:
+The installer asks for only:
 
-\`\`\`bash
-export MUCHO_GD_VERSIONS=22
-sudo -E bash install.sh
-\`\`\`
+- your GDPS domain;
+- the initial Admin Panel password.
 
-Use \`all\` for all supported generations.
+It installs Docker when needed, deploys the latest **published stable release**, creates the database and Cloud Save secrets, configures Caddy, enables release-based updates, runs migrations, and verifies the production health endpoint.
+
+For unattended or explicit profiles, pass the options through the remote bootstrap:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash -s -- --domain=gdps.example.com --gd-versions=22
+```
+
+Use `--gd-versions=all` for all supported generations. Existing installations can change the profile later with:
+
+```bash
+sudo mucho config
+```
+
+The normal production install does **not** start the integration-test tenant. To start that optional stack:
+
+```bash
+sudo mucho test-stack up -d
+```
 
 ## 3. Check health
 
