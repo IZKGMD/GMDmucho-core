@@ -15,21 +15,25 @@ interface MigrationServerArchiveAdapterInterface
     /**
      * @param list<int> $sourceLevelIds
      * @param list<int> $sourceAccountIds
+     * @param list<int> $sourceSongIds
      * @return array{
      *   level_data:array{stored_files:int,matched_files:int,stored_bytes:int,matched_bytes:int},
-     *   cloud_saves:array{stored_files:int,matched_files:int,stored_bytes:int,matched_bytes:int}
+     *   cloud_saves:array{stored_files:int,matched_files:int,stored_bytes:int,matched_bytes:int},
+     *   music:array{stored_files:int,matched_files:int,stored_bytes:int,matched_bytes:int}
      * }
      */
     public function stageUpload(
         array $upload,
         array $sourceLevelIds,
         array $sourceAccountIds,
+        array $sourceSongIds,
         string $stagingPrefix
     ): array;
 
     /**
      * @param list<int> $sourceLevelIds
      * @param list<int> $sourceAccountIds
+     * @param list<int> $sourceSongIds
      * @return array{
      *   level_data_hydrated:int,
      *   level_data_missing:int,
@@ -43,7 +47,18 @@ interface MigrationServerArchiveAdapterInterface
         PDO $target,
         string $stagingPrefix,
         array $sourceLevelIds,
-        array $sourceAccountIds
+        array $sourceAccountIds,
+        array $sourceSongIds
+    ): array;
+
+    /**
+     * @param list<int> $sourceSongIds
+     * @return array{music_files_published:int,music_bytes_published:int,song_urls_rewritten:int}
+     */
+    public function publish(
+        PDO $target,
+        string $stagingPrefix,
+        array $sourceSongIds
     ): array;
 
     public function cleanup(string $stagingPrefix): void;
