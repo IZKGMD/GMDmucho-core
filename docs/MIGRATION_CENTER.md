@@ -53,10 +53,11 @@ For the current Galaxxy-compatible server archive adapter, MuchoCore selectively
 
 ~~~text
 public_html/data/levels/<levelID>
+public_html/data/levels/deleted/<levelID>
 public_html/data/accounts/<accountID>
 ~~~
 
-Level files are decoded from the source's stored payload format and written to MuchoCore's `levels.level_data` after the source level IDs have been mapped to target IDs.
+Active and deleted level files are decoded from the source's stored payload format and written to MuchoCore's `levels.level_data` after the source level IDs have been mapped to target IDs.
 
 Legacy account save files are restored through MuchoCore's Cloud Save repository. They are re-encrypted with the configured MuchoCore Cloud Save key; the old encryption implementation is not copied into the new server.
 
