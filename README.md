@@ -159,7 +159,7 @@ https://YOUR-DOMAIN/admin/
 
 Some VPS/NAT providers do not pass inbound HTTP/HTTPS traffic to the machine. In that case Cloudflare may show **522 Connection timed out** even though MuchoCore itself is running.
 
-MuchoCore can automatically switch the deployment to a Cloudflare Tunnel. The installer uses the Cloudflare API to create or reuse a remotely managed Tunnel, configure its public hostname, update DNS, obtain the connector token, and route traffic to the internal Caddy service.
+MuchoCore prefers direct HTTPS when the VPS accepts inbound 80/443. If direct access is unavailable, the installer can automatically switch to a Cloudflare Tunnel. The installer uses the Cloudflare API to update DNS, and when needed, create or reuse a remotely managed Tunnel, configure its public hostname, obtain the connector token, and route traffic to the internal Caddy service.
 
 The resulting traffic path is:
 
@@ -190,7 +190,7 @@ See the [Cloudflare API token permissions documentation](https://developers.clou
 
 You do **not** need to create the Tunnel, Public Hostname, or CNAME record manually. MuchoCore does that through the API.
 
-When a direct installation gets a Cloudflare **52x** origin error, the installer asks for the API token and configures the Tunnel automatically. The API token is used only during provisioning and is not persisted; only the Tunnel runtime token required by `cloudflared` is kept on the server.
+When a direct installation cannot serve the public health endpoint, the installer first tries direct DNS/origin recovery and then falls back to the Tunnel automatically. The API token is used only during provisioning and is not persisted; only the Tunnel runtime token required by `cloudflared` is kept on the server.
 
 You can also provide the token non-interactively:
 
