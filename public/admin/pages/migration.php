@@ -32,7 +32,7 @@ $oldUser=(string)($form['source_user'] ?? '');
 <div class="card">
     <div class="row" style="justify-content:space-between;align-items:flex-start">
         <div>
-            <h2 style="margin-top:0">FHGDPS / Cvolton Migration</h2>
+            <h2 style="margin-top:0">GDPS Migration Center</h2>
             <p class="muted" style="max-width:780px;line-height:1.6">
                 Move your existing Geometry Dash GDPS database into MuchoCore.
                 MuchoCore automatically detects the source schema and imports the datasets it can map safely.
@@ -121,7 +121,7 @@ $oldUser=(string)($form['source_user'] ?? '');
             <h2 style="margin-top:0">SQL File Import</h2>
             <p class="muted" style="max-width:820px;line-height:1.6">
                 Have a <b>database.sql</b> instead of live database credentials?
-                Upload the dump here. MuchoCore stages supported Cvolton/MegaSa1nt tables under temporary names,
+                Upload the dump here. MuchoCore selects the matching database adapter, stages its supported tables under temporary names,
                 checks the schema, and only changes the production database after you explicitly start the import.
             </p>
         </div>
