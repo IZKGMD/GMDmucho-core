@@ -39,9 +39,9 @@ grep -Fq 'php bin/migrate.php migrate' install.sh
 grep -Fq 'php bin/mucho-healthcheck.php' install.sh
 grep -Fq 'https://$DOMAIN/health' install.sh
 
-grep -Fq 'COMPOSE_ARGS=(-f docker-compose.yml -f docker-compose.tunnel.yml)' install.sh
-grep -Fq 'docker compose "${COMPOSE_ARGS[@]}" ps -q' install.sh
-grep -Fq 'docker compose "${COMPOSE_ARGS[@]}" logs --tail=80' install.sh
+grep -Fq 'docker compose -f docker-compose.yml "$@"' install.sh
+grep -Fq 'docker compose -f docker-compose.yml -f docker-compose.tunnel.yml "$@"' install.sh
+grep -Fq 'Compose files verified: $INSTALL_DIR/docker-compose.yml' install.sh
 grep -Fq 'confirm_args+=(--confirm=MIGRATE)' install.sh
 
 grep -Fq 'offer_database_migration()' install.sh
