@@ -11,6 +11,9 @@ $files = [
     'src/Migration/MigrationLevelDataAdapterInterface.php',
     'src/Migration/MigrationLevelDataAdapterRegistry.php',
     'src/Migration/GalaxxyFilesystemLevelDataAdapter.php',
+    'src/Migration/MigrationServerArchiveAdapterInterface.php',
+    'src/Migration/MigrationServerArchiveAdapterRegistry.php',
+    'src/Migration/GalaxxyServerArchiveAdapter.php',
 ];
 
 foreach ($files as $relative) {
@@ -40,6 +43,15 @@ $galaxxy = file_get_contents(
 );
 $sqlService = file_get_contents(
     $root . '/src/Migration/SqlDumpMigrationService.php'
+);
+$archiveInterface = file_get_contents(
+    $root . '/src/Migration/MigrationServerArchiveAdapterInterface.php'
+);
+$archiveRegistry = file_get_contents(
+    $root . '/src/Migration/MigrationServerArchiveAdapterRegistry.php'
+);
+$serverArchive = file_get_contents(
+    $root . '/src/Migration/GalaxxyServerArchiveAdapter.php'
 );
 
 foreach ([
@@ -106,13 +118,49 @@ foreach ([
 }
 
 foreach ([
+    'public function stageUpload(',
+    'public function hydrate(',
+    'public function publish(',
+    'public function cleanup(',
+    'sourceSongIds',
+] as $needle) {
+    if (strpos((string)$archiveInterface, $needle) === false) {
+        throw new RuntimeException('Server archive adapter interface is incomplete: ' . $needle);
+    }
+}
+
+foreach ([
+    'GalaxxyServerArchiveAdapter::class',
+    'public function resolveUpload(',
+    'public function resolveKey(',
+] as $needle) {
+    if (strpos((string)$archiveRegistry, $needle) === false) {
+        throw new RuntimeException('Server archive adapter registry is missing: ' . $needle);
+    }
+}
+
+foreach ([
+    "return 'galaxxy-server';",
+    'public function publish(',
+    'dashboard/songs/',
+    'storage/music-public',
+    'MUCHO_PUBLIC_URL',
+    'musiclibrary',
+    'CloudSaveRepository',
+] as $needle) {
+    if (strpos((string)$serverArchive, $needle) === false) {
+        throw new RuntimeException('Galaxxy server archive contract missing: ' . $needle);
+    }
+}
+
+foreach ([
     'MigrationDatabaseAdapterRegistry',
-    'MigrationLevelDataAdapterRegistry',
+    'MigrationServerArchiveAdapterRegistry',
     '->resolve(',
     '->resolveUpload(',
-    '->instances()',
     'databaseAdapter->apply',
-    'hydrateExternalLevelData',
+    'hydrateServerArchive',
+    'publishServerArchive',
 ] as $needle) {
     if (strpos((string)$sqlService, $needle) === false) {
         throw new RuntimeException('SQL migration service is not adapter-driven: ' . $needle);
