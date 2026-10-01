@@ -820,6 +820,7 @@ if [[ "$healthy" -eq 1 ]]; then
       printf "  Create one here:\n"
       printf "    https://dash.cloudflare.com/profile/api-tokens\n"
       printf "  Required permissions for this installer:\n"
+      printf "    Account → Cloudflare Tunnel → Edit\n"
       printf "    Zone → DNS → Edit\n"
       printf "    Zone → Zone → Read\n"
       printf "    Resource: only the zone containing $DOMAIN\n"
