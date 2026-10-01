@@ -879,6 +879,7 @@ if [[ "$healthy" -eq 1 ]]; then
     fail "Direct transport was requested, but the public hostname is not healthy. Verify DNS and inbound 80/443 reach the VPS."
   elif [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
     fail "Cloudflare Tunnel transport was requested, but the public hostname is not healthy. Run: sudo mucho doctor"
+  fi
 else
   warn "The internal MuchoCore healthcheck did not pass."
   warn "Run: sudo mucho doctor"
