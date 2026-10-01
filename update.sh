@@ -238,8 +238,16 @@ ALTER USER '$migration_user'@'%' IDENTIFIED BY '$migration_password';
 GRANT ALL PRIVILEGES ON $migration_db.* TO '$migration_user'@'%';
 FLUSH PRIVILEGES;"
 
-    docker compose exec -T -e MYSQL_PWD="$(cat "$ROOT/.secrets/db_root_password")" db \
-        mariadb -uroot -e "$sql" >/dev/null
+    for _ in {1..30}; do
+        if docker compose exec -T -e MYSQL_PWD="$(cat "$ROOT/.secrets/db_root_password")" db \
+            mariadb -uroot -e "$sql" >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 2
+    done
+
+    echo '[MuchoCore] ERROR: MariaDB did not become ready for the SQL migration database after 60 seconds.' >&2
+    exit 1
 }
 echo '[MuchoCore] Rebuilding containers...'
 if ! docker compose "${COMPOSE_ARGS[@]}" up -d --build --remove-orphans; then
