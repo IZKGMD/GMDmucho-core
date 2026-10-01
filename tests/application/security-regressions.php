@@ -260,8 +260,8 @@ $recoveryService = (string)file_get_contents(
 );
 
 assertSecurityRegression(
-    str_contains($installer, 'Admin username: $ADMIN_USER') &&
-    str_contains($installer, 'The admin panel username is: $ADMIN_USER'),
+    str_contains($installer, 'Admin panel username: $ADMIN_USER') &&
+    str_contains($installer, 'Admin username: $ADMIN_USER'),
     'installer reports the configured administrator username'
 );
 
