@@ -2767,7 +2767,17 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
     $action=(string)($_POST['action'] ?? '');
 
-    if (in_array($action,['migration-preview','migration-apply'],true)) {
+    if (in_array(
+        $action,
+        [
+            'migration-preview',
+            'migration-apply',
+            'migration-sql-upload',
+            'migration-sql-apply',
+            'migration-sql-discard'
+        ],
+        true
+    )) {
         require __DIR__.'/actions/migration.php';
     }
 
