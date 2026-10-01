@@ -56,7 +56,7 @@ if ($sqlWizard === false) {
     throw new RuntimeException('Unable to read bin/mucho-migrate-sql.php');
 }
 
-
+if ($backupScript === false) {
     throw new RuntimeException('Unable to read bin/mucho-db-backup.sh');
 }
 
