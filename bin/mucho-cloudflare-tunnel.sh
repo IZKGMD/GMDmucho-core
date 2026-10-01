@@ -115,6 +115,178 @@ ensure_tunnel() {
   printf '%s\n' "$tunnel_name"
 }
 
+configure_direct_dns() {
+  local zone_id="$1"
+  local origin_ip="$2"
+  local host="$3"
+  local records record_id record_type body kept=0
+
+  [[ "$origin_ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || die "Invalid direct origin IPv4: $origin_ip"
+  records="$(cf_request GET "/zones/$zone_id/dns_records?name.exact=$(printf '%s' "$host" | jq -sRr @uri)&per_page=100")"
+  while IFS=  local account_id="$1"
+  local tunnel_id="$2"
+  local config_body
+
+  config_body="$(jq -cn     --arg host "$DOMAIN"     --arg www "www.$DOMAIN"     '{
+      config: {
+        ingress: [
+          {hostname:$host, service:"http://caddy:80"},
+          {hostname:$www, service:"http://caddy:80"},
+          {service:"http_status:404"}
+        ]
+      }
+    }')"
+
+  cf_request PUT "/accounts/$account_id/cfd_tunnel/$tunnel_id/configurations" "$config_body" >/dev/null
+  info "Configured Tunnel ingress: $DOMAIN, www.$DOMAIN → http://caddy:80"
+}
+
+upsert_dns() {
+  local zone_id="$1"
+  local host="$2"
+  local tunnel_target="$3"
+  local records record_count
+  local record_id record_type
+  local body
+
+  records="$(cf_request GET "/zones/$zone_id/dns_records?name.exact=$(printf '%s' "$host" | jq -sRr @uri)&per_page=100")"
+  record_count="$(printf '%s' "$records" | jq '.result | length')"
+
+  if [[ "$record_count" -gt 0 ]]; then
+    while IFS=$'\t' read -r record_id record_type; do
+      [[ -n "$record_id" ]] || continue
+      case "$record_type" in
+        CNAME)
+          body="$(jq -cn --arg name "$host" --arg content "$tunnel_target" '{name:$name,type:"CNAME",ttl:1,content:$content,proxied:true,comment:"Managed by MuchoCore"}')"
+          cf_request PATCH "/zones/$zone_id/dns_records/$record_id" "$body" >/dev/null
+          info "Updated DNS CNAME: $host → $tunnel_target"
+          return 0
+          ;;
+        A|AAAA)
+          cf_request DELETE "/zones/$zone_id/dns_records/$record_id" >/dev/null
+          info "Removed conflicting $record_type record for $host"
+          ;;
+      esac
+    done < <(printf '%s' "$records" | jq -r '.result[]? | [.id,.type] | @tsv')
+  fi
+
+  body="$(jq -cn --arg name "$host" --arg content "$tunnel_target" '{name:$name,type:"CNAME",ttl:1,content:$content,proxied:true,comment:"Managed by MuchoCore"}')"
+  cf_request POST "/zones/$zone_id/dns_records" "$body" >/dev/null
+  info "Created DNS CNAME: $host → $tunnel_target"
+}
+
+verify_token() {
+  local response
+  response="$(cf_request GET "/user/tokens/verify")"
+  local status
+  status="$(printf '%s' "$response" | jq -r '.result.status // empty')"
+  [[ "$status" == "active" ]] || die "Cloudflare API token is not active (status: ${status:-unknown})."
+  info "Cloudflare API token verified."
+}
+
+verify_token
+
+read -r ZONE_ID ACCOUNT_ID ZONE_NAME < <(find_zone) || die "Could not find an active Cloudflare zone for $DOMAIN. Make sure the domain is on this Cloudflare account and the API token has Zone Read."
+
+[[ -n "$ZONE_ID" && -n "$ACCOUNT_ID" ]] || die "Cloudflare zone/account lookup returned incomplete data."
+
+info "Using Cloudflare zone: $ZONE_NAME"
+info "Using Cloudflare account: $ACCOUNT_ID"
+
+if [[ "${1:-}" == "direct" ]]; then
+  ORIGIN_IP="${MUCHO_PUBLIC_IP:-}"
+  [[ -n "$ORIGIN_IP" ]] || ORIGIN_IP="$(curl -4fsS --connect-timeout 5 --max-time 10 https://api.ipify.org 2>/dev/null || true)"
+  [[ -n "$ORIGIN_IP" ]] || die "Could not determine the public origin IPv4 address."
+  configure_direct_origin "$ZONE_ID" "$ORIGIN_IP"
+  exit 0
+fi
+
+mapfile -t tunnel_info < <(ensure_tunnel "$ACCOUNT_ID")
+TUNNEL_ID="${tunnel_info[0]:-}"
+TUNNEL_RUNTIME_TOKEN="${tunnel_info[1]:-}"
+TUNNEL_NAME_EFFECTIVE="${tunnel_info[2]:-}"
+[[ -n "$TUNNEL_ID" && -n "$TUNNEL_RUNTIME_TOKEN" ]] || die "Failed to prepare the Cloudflare Tunnel."
+
+configure_tunnel "$ACCOUNT_ID" "$TUNNEL_ID"
+
+TUNNEL_TARGET="$TUNNEL_ID.cfargotunnel.com"
+upsert_dns "$ZONE_ID" "$DOMAIN" "$TUNNEL_TARGET"
+if [[ "$DOMAIN" != www.* ]]; then
+  upsert_dns "$ZONE_ID" "www.$DOMAIN" "$TUNNEL_TARGET"
+fi
+
+printf '%s\n' "$TUNNEL_RUNTIME_TOKEN" > "$INSTALL_DIR/.secrets/tunnel_token"
+chown 65532:65532 "$INSTALL_DIR/.secrets/tunnel_token"
+chmod 400 "$INSTALL_DIR/.secrets/tunnel_token"
+
+if grep -q '^MUCHO_TUNNEL_TOKEN=' "$INSTALL_DIR/.env"; then
+  sed -i "s|^MUCHO_TUNNEL_TOKEN=.*|MUCHO_TUNNEL_TOKEN=$TUNNEL_RUNTIME_TOKEN|" "$INSTALL_DIR/.env"
+else
+  printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_RUNTIME_TOKEN" >> "$INSTALL_DIR/.env"
+fi
+if grep -q '^MUCHO_CLOUDFLARE_ACCOUNT_ID=' "$INSTALL_DIR/.env"; then
+  sed -i "s|^MUCHO_CLOUDFLARE_ACCOUNT_ID=.*|MUCHO_CLOUDFLARE_ACCOUNT_ID=$ACCOUNT_ID|" "$INSTALL_DIR/.env"
+else
+  printf 'MUCHO_CLOUDFLARE_ACCOUNT_ID=%s\n' "$ACCOUNT_ID" >> "$INSTALL_DIR/.env"
+fi
+if grep -q '^MUCHO_CLOUDFLARE_ZONE_ID=' "$INSTALL_DIR/.env"; then
+  sed -i "s|^MUCHO_CLOUDFLARE_ZONE_ID=.*|MUCHO_CLOUDFLARE_ZONE_ID=$ZONE_ID|" "$INSTALL_DIR/.env"
+else
+  printf 'MUCHO_CLOUDFLARE_ZONE_ID=%s\n' "$ZONE_ID" >> "$INSTALL_DIR/.env"
+fi
+if grep -q '^MUCHO_CLOUDFLARE_TUNNEL_ID=' "$INSTALL_DIR/.env"; then
+  sed -i "s|^MUCHO_CLOUDFLARE_TUNNEL_ID=.*|MUCHO_CLOUDFLARE_TUNNEL_ID=$TUNNEL_ID|" "$INSTALL_DIR/.env"
+else
+  printf 'MUCHO_CLOUDFLARE_TUNNEL_ID=%s\n' "$TUNNEL_ID" >> "$INSTALL_DIR/.env"
+fi
+if grep -q '^CADDY_ADDRESS_VALUE=' "$INSTALL_DIR/.env"; then
+  sed -i 's|^CADDY_ADDRESS_VALUE=.*|CADDY_ADDRESS_VALUE=":80"|' "$INSTALL_DIR/.env"
+else
+  printf 'CADDY_ADDRESS_VALUE=":80"\n' >> "$INSTALL_DIR/.env"
+fi
+if grep -q '^CADDY_ADDRESS=' "$INSTALL_DIR/.env"; then
+  sed -i 's|^CADDY_ADDRESS=.*|CADDY_ADDRESS=":80"|' "$INSTALL_DIR/.env"
+else
+  printf 'CADDY_ADDRESS=":80"\n' >> "$INSTALL_DIR/.env"
+fi
+
+info "Cloudflare Tunnel is ready: $TUNNEL_NAME_EFFECTIVE"
+info "The API token was used only for setup and was not persisted."
+\t' read -r record_id record_type; do
+    [[ -n "$record_id" ]] || continue
+    case "$record_type" in
+      A)
+        if [[ "$kept" -eq 0 ]]; then
+          body="$(jq -cn --arg name "$host" --arg content "$origin_ip" '{name:$name,type:"A",ttl:1,content:$content,proxied:true,comment:"Managed by MuchoCore"}')"
+          cf_request PATCH "/zones/$zone_id/dns_records/$record_id" "$body" >/dev/null
+          kept=1
+          info "Updated direct DNS A: $host → $origin_ip"
+        else
+          cf_request DELETE "/zones/$zone_id/dns_records/$record_id" >/dev/null
+        fi
+        ;;
+      AAAA|CNAME)
+        cf_request DELETE "/zones/$zone_id/dns_records/$record_id" >/dev/null
+        info "Removed conflicting $record_type record for $host"
+        ;;
+    esac
+  done < <(printf '%s' "$records" | jq -r '.result[]? | [.id,.type] | @tsv')
+  if [[ "$kept" -eq 0 ]]; then
+    body="$(jq -cn --arg name "$host" --arg content "$origin_ip" '{name:$name,type:"A",ttl:1,content:$content,proxied:true,comment:"Managed by MuchoCore"}')"
+    cf_request POST "/zones/$zone_id/dns_records" "$body" >/dev/null
+    info "Created direct DNS A: $host → $origin_ip"
+  fi
+}
+
+configure_direct_origin() {
+  local zone_id="$1"
+  local origin_ip="$2"
+  configure_direct_dns "$zone_id" "$origin_ip" "$DOMAIN"
+  if [[ "$DOMAIN" != www.* ]]; then
+    configure_direct_dns "$zone_id" "$origin_ip" "www.$DOMAIN"
+  fi
+  info "Cloudflare DNS is configured for direct origin access."
+}
 configure_tunnel() {
   local account_id="$1"
   local tunnel_id="$2"
