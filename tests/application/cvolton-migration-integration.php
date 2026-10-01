@@ -708,10 +708,17 @@ SQL);
         }
     }
 
-    must($failed, 'Expected conflicting source account to abort migration.');
+    must(!$failed, 'Duplicate legacy email should be isolated with a deterministic fallback address.');
     must(
-        scalar($target, 'SELECT COUNT(*) FROM accounts') === $before,
-        'Failed migration must roll back destination changes.'
+        scalar($target, 'SELECT COUNT(*) FROM accounts') === $before + 1,
+        'Duplicate-email source account should be imported instead of being dropped.'
+    );
+    $fallback = (string)$target->query(
+        "SELECT email FROM accounts WHERE username='ConflictUser'"
+    )->fetchColumn();
+    must(
+        $fallback === 'cvolton.3@local.invalid',
+        'Duplicate legacy email did not receive the expected fallback address.'
     );
 
     $source->exec('ALTER TABLE levels DROP COLUMN levelString');

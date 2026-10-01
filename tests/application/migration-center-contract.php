@@ -12,6 +12,14 @@ $sharedMigration = file_get_contents($root . '/src/Migration/SharedMigrationServ
 $sharedInstaller = file_get_contents($root . '/public/shared-install.php');
 $adminBackup = file_get_contents($root . '/public/admin/db-backup-center-module.php');
 $adminAction = file_get_contents($root . '/public/admin/actions/migration.php');
+$sqlDumpService = file_get_contents($root . '/src/Migration/SqlDumpMigrationService.php');
+
+$galaxxyArchiveService = file_get_contents(
+    $root . '/src/Migration/GalaxxyLevelDataArchiveService.php'
+);
+$cvoltonImporter = file_get_contents($root . '/src/Migration/CvoltonDatabaseImporter.php');
+$sqlDumpTokenizer = file_get_contents($root . '/src/Migration/SqlDumpTokenizer.php');
+$galaxxyArchive = file_get_contents($root . '/src/Migration/GalaxxyLevelDataArchiveService.php');
 $adminActionPrevious = $adminAction; // retain the existing admin action variable name
 $dockerfile = file_get_contents($root . '/docker/Dockerfile');
 $adminUsersMigration = file_get_contents($root . '/database/migrations/20260925_000_admin_users.php');
@@ -37,6 +45,10 @@ foreach ([
     'public/shared-install.php' => $sharedInstaller,
     'public/admin/db-backup-center-module.php' => $adminBackup,
     'public/admin/actions/migration.php' => $adminAction,
+    'src/Migration/SqlDumpMigrationService.php' => $sqlDumpService,
+    'src/Migration/SqlDumpTokenizer.php' => $sqlDumpTokenizer,
+    'src/Migration/GalaxxyLevelDataArchiveService.php' => $galaxxyArchive,
+    'src/Migration/CvoltonDatabaseImporter.php' => $cvoltonImporter,
     'docker/Dockerfile' => $dockerfile,
     'database/migrations/20260925_000_admin_users.php' => $adminUsersMigration,
     'tools/release/build-shared-hosting.sh' => $sharedPackageBuilder,
@@ -61,6 +73,10 @@ if (
     $sharedMigration === false ||
     $sharedInstaller === false ||
     $adminBackup === false ||
+    $sqlDumpService === false ||
+    $sqlDumpTokenizer === false ||
+    $galaxxyArchive === false ||
+    $cvoltonImporter === false ||
     $adminUsersMigration === false ||
     $sharedPackageBuilder === false ||
     $releaseWorkflow === false
@@ -223,7 +239,13 @@ $dryRunExitAt = strpos($wizard, 'if (!$requestedApply)');
 
 
 foreach ([
-    'FHGDPS / Cvolton Migration',
+    'GDPS Migration Center',
+    'SQL File Import',
+    'Upload &amp; Check SQL',
+    'Import This SQL Dump',
+    'migration-sql-upload',
+    'migration-sql-apply',
+    'migration-sql-discard',
     'Check source',
     'Migrate supported data',
     'Old database host',
@@ -250,7 +272,9 @@ foreach ([
 }
 
 if (
-    strpos($adminIndex, "in_array(\$action,['migration-preview','migration-apply'],true)") === false ||
+    strpos($adminIndex, "migration-sql-upload") === false ||
+    strpos($adminIndex, "migration-sql-apply") === false ||
+    strpos($adminIndex, "migration-sql-discard") === false ||
     strpos($adminIndex, "require __DIR__.'/actions/migration.php'") === false
 ) {
     throw new RuntimeException('Admin Migration Center action dispatch is missing.');
@@ -289,12 +313,68 @@ foreach ([
     }
 }
 
+$schemaQueryAt=strpos($cvoltonImporter, "SHOW COLUMNS FROM ' . ");
+$schemaSourceCallAt=$schemaQueryAt===false
+    ? false
+    : strpos($cvoltonImporter, '$this->sourceTable($table)', $schemaQueryAt);
+
+if ($schemaQueryAt===false || $schemaSourceCallAt===false) {
+    throw new RuntimeException('Cvolton importer must inspect the prefixed staging table schema.');
+}
+
+foreach ([
+    'emailBelongsToDifferentAccount(',
+    'fallbackEmail(',
+    'stageUpload(',
+    'GalaxxyLevelDataArchiveService',
+    'MigrationServerArchiveAdapterRegistry',
+    'level_data_hydrated',
+    'cloud_saves_imported',
+    'music_files_published',
+    'galaxxy_archive',
+    'public_html/data/levels/',
+    'deleted/)?',
+    'Only .zip Galaxxy data archives are supported.',
+    'MAX_UNCOMPRESSED_BYTES',
+    'getStream(',
+    'dashboard/songs/',
+    'storage/music-public',
+    'MUCHO_PUBLIC_URL',
+    'levelData(',
+    'applyStaged(',
+    'mci_',
+    'SQL file must be between 1 byte and 256 MB.',
+    'Only .sql and .sql.gz database dumps are supported.',
+    'SET FOREIGN_KEY_CHECKS=0',
+    'DROP TABLE IF EXISTS',
+] as $needle) {
+    if (strpos($sqlDumpService, $needle) === false &&
+        strpos($cvoltonImporter, $needle) === false &&
+        strpos((string)$galaxxyArchiveService, $needle) === false &&
+        strpos($adminPage . $adminAction, $needle) === false
+    ) {
+        throw new RuntimeException('Migration safety contract missing: ' . $needle);
+    }
+}
+
+foreach ([
+    'fgets(',
+    'yield $trimmed',
+    'maxBytes',
+    '$quote = null',
+] as $needle) {
+    if (strpos($sqlDumpTokenizer, $needle) === false) {
+        throw new RuntimeException('SQL dump tokenizer contract missing: ' . $needle);
+    }
+}
+
 foreach ([
     'Old DB host',
     'Old DB name',
     'Comments',
     'Friends/requests/blocks/messages',
     'Music/SFX files',
+    'Full old server archive',
     'Unknown sources',
 ] as $needle) {
     if (stripos($docs, $needle) === false) {

@@ -12,6 +12,9 @@ final class CvoltonDatabaseImporter
 {
     private const BATCH = 250;
 
+    /** @var array<string,array<string,true>> */
+    private array $targetColumnCache = [];
+
     /**
      * Columns consumed by the importer are checked before any destination
      * changes are allowed. This turns fork/schema mismatches into a clean
@@ -43,8 +46,15 @@ final class CvoltonDatabaseImporter
     ];
 
     public function __construct(
-        private readonly PDO $target
+        private readonly PDO $target,
+        private readonly string $sourcePrefix = ''
     ) {
+        if (
+            $this->sourcePrefix !== '' &&
+            !preg_match('/^mci_[a-f0-9]{16}_$/', $this->sourcePrefix)
+        ) {
+            throw new \InvalidArgumentException('Invalid source table prefix.');
+        }
     }
 
     public function preflight(PDO $source): array
@@ -86,6 +96,13 @@ final class CvoltonDatabaseImporter
             'levels_updated' => 0,
             'regular_scores_upserted' => 0,
             'platformer_scores_upserted' => 0,
+            'comments_imported' => 0,
+            'account_comments_imported' => 0,
+            'friends_imported' => 0,
+            'friend_requests_imported' => 0,
+            'blocks_imported' => 0,
+            'messages_imported' => 0,
+            'songs_imported' => 0,
             'password_resets_required' => 0,
         ];
 
@@ -100,6 +117,34 @@ final class CvoltonDatabaseImporter
             $this->importPlatformerScores($source, $stats);
         }
 
+        if ($this->sourceTableExists($source, 'comments')) {
+            $this->importComments($source, $stats);
+        }
+
+        if ($this->sourceTableExists($source, 'acccomments')) {
+            $this->importAccountComments($source, $stats);
+        }
+
+        if ($this->sourceTableExists($source, 'friendships')) {
+            $this->importFriendships($source, $stats);
+        }
+
+        if ($this->sourceTableExists($source, 'friendreqs')) {
+            $this->importFriendRequests($source, $stats);
+        }
+
+        if ($this->sourceTableExists($source, 'blocks')) {
+            $this->importBlocks($source, $stats);
+        }
+
+        if ($this->sourceTableExists($source, 'messages')) {
+            $this->importMessages($source, $stats);
+        }
+
+        if ($this->sourceTableExists($source, 'songs')) {
+            $this->importSongs($source, $stats);
+        }
+
         return $stats;
     }
 
@@ -109,27 +154,11 @@ final class CvoltonDatabaseImporter
 
         $sql = '
             SELECT
-                a.accountID,
-                a.userName,
-                a.password,
-                a.gjp2,
-                a.email,
-                a.isActive,
-                COALESCE(u.stars,0) AS stars,
-                COALESCE(u.moons,0) AS moons,
-                COALESCE(u.diamonds,0) AS diamonds,
-                COALESCE(u.coins,0) AS secretCoins,
-                COALESCE(u.userCoins,0) AS userCoins,
-                COALESCE(u.demons,0) AS demons,
-                COALESCE(u.creatorPoints,0) AS creatorPoints,
-                COALESCE(u.icon,1) AS icon,
-                COALESCE(u.iconType,0) AS iconType,
-                COALESCE(u.color1,0) AS color1,
-                COALESCE(u.color2,3) AS color2,
-                COALESCE(u.accGlow,0) AS glow,
-                COALESCE(u.isBanned,0) AS isBanned
-            FROM accounts a
-            LEFT JOIN users u
+                a.*,
+                a.userName AS accountUserName,
+                u.*
+            FROM ' . $this->sourceTable('accounts') . ' a
+            LEFT JOIN ' . $this->sourceTable('users') . ' u
                 ON u.extID = CAST(a.accountID AS CHAR)
             WHERE a.accountID > :last
             ORDER BY a.accountID ASC
@@ -148,12 +177,28 @@ final class CvoltonDatabaseImporter
 
             foreach ($rows as $row) {
                 $sourceId = (int)$row['accountID'];
-                $username = $this->username((string)$row['userName']);
+                $username = $this->username((string)($row['accountUserName'] ?? $row['userName'] ?? ''));
                 $email = $this->email((string)$row['email'], $sourceId);
 
                 $existing = $this->mappedAccount($sourceId);
 
                 if ($existing === null) {
+                    /*
+                     * Legacy GDPS databases often contain several accounts
+                     * sharing one email address. MuchoCore keeps email unique,
+                     * so preserve the first real address and assign later
+                     * colliding source accounts deterministic local fallback
+                     * addresses instead of aborting the entire migration.
+                     */
+                    if (
+                        $this->emailBelongsToDifferentAccount(
+                            $email,
+                            $username
+                        )
+                    ) {
+                        $email = $this->fallbackEmail($sourceId);
+                    }
+
                     $existing = $this->existingAccount(
                         $sourceId,
                         $username,
@@ -195,7 +240,7 @@ final class CvoltonDatabaseImporter
         $last = 0;
         $q = $source->prepare(
             'SELECT *
-             FROM levels
+             FROM ' . $this->sourceTable('levels') . '
              WHERE levelID > :last
              ORDER BY levelID ASC
              LIMIT 250'
@@ -261,7 +306,7 @@ final class CvoltonDatabaseImporter
         $last = 0;
         $q = $source->prepare(
             'SELECT *
-             FROM levelscores
+             FROM ' . $this->sourceTable('levelscores') . '
              WHERE scoreID > :last
              ORDER BY scoreID ASC
              LIMIT 250'
@@ -329,7 +374,7 @@ final class CvoltonDatabaseImporter
         $last = 0;
         $q = $source->prepare(
             'SELECT *
-             FROM platscores
+             FROM ' . $this->sourceTable('platscores') . '
              WHERE ID > :last
              ORDER BY ID ASC
              LIMIT 250'
@@ -382,6 +427,409 @@ final class CvoltonDatabaseImporter
         }
     }
 
+    private function importComments(PDO $source, array &$stats): void
+    {
+        $last = 0;
+        $q = $source->prepare(
+            'SELECT *
+             FROM ' . $this->sourceTable('comments') . '
+             WHERE commentID > :last
+             ORDER BY commentID ASC
+             LIMIT 250'
+        );
+
+        $insert = $this->target->prepare(
+            'INSERT INTO comments
+             (level_id,account_id,content,percent,likes,is_spam,created_at)
+             SELECT :level,:account,:content,:percent,:likes,:spam,
+                    FROM_UNIXTIME(:created)
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM comments c
+                 WHERE c.level_id=:level2
+                   AND c.account_id=:account2
+                   AND c.content=:content2
+                   AND c.created_at=FROM_UNIXTIME(:created2)
+             )'
+        );
+
+        while (true) {
+            $q->execute(['last' => $last]);
+            $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $account = $this->mappedAccount((int)($row['userID'] ?? 0));
+                $level = $this->mappedLevel((int)($row['levelID'] ?? 0));
+
+                if ($account === null || $level === null) {
+                    $last = max($last, (int)($row['commentID'] ?? 0));
+                    continue;
+                }
+
+                $created = max(0, (int)($row['timestamp'] ?? 0));
+                $content = (string)($row['comment'] ?? '');
+
+                $insert->execute([
+                    'level' => $level,
+                    'account' => $account,
+                    'content' => $content,
+                    'percent' => max(0, min(100, (int)($row['percent'] ?? 0))),
+                    'likes' => (int)($row['likes'] ?? 0),
+                    'spam' => (int)($row['isSpam'] ?? 0) !== 0 ? 1 : 0,
+                    'created' => $created,
+                    'level2' => $level,
+                    'account2' => $account,
+                    'content2' => $content,
+                    'created2' => $created,
+                ]);
+
+                if ($insert->rowCount() > 0) {
+                    $stats['comments_imported']++;
+                }
+
+                $last = (int)($row['commentID'] ?? 0);
+            }
+        }
+    }
+
+    private function importAccountComments(PDO $source, array &$stats): void
+    {
+        $last = 0;
+        $q = $source->prepare(
+            'SELECT *
+             FROM ' . $this->sourceTable('acccomments') . '
+             WHERE commentID > :last
+             ORDER BY commentID ASC
+             LIMIT 250'
+        );
+
+        $insert = $this->target->prepare(
+            'INSERT INTO account_comments
+             (account_id,content,likes,is_spam,created_at)
+             SELECT :account,:content,:likes,:spam,FROM_UNIXTIME(:created)
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM account_comments c
+                 WHERE c.account_id=:account2
+                   AND c.content=:content2
+                   AND c.created_at=FROM_UNIXTIME(:created2)
+             )'
+        );
+
+        while (true) {
+            $q->execute(['last' => $last]);
+            $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $account = $this->mappedAccount((int)($row['userID'] ?? 0));
+
+                if ($account !== null) {
+                    $content = $this->decodeLegacyText(
+                        (string)($row['comment'] ?? '')
+                    );
+                    $created = max(0, (int)($row['timestamp'] ?? 0));
+
+                    $insert->execute([
+                        'account' => $account,
+                        'content' => $content,
+                        'likes' => (int)($row['likes'] ?? 0),
+                        'spam' => (int)($row['isSpam'] ?? 0) !== 0 ? 1 : 0,
+                        'created' => $created,
+                        'account2' => $account,
+                        'content2' => $content,
+                        'created2' => $created,
+                    ]);
+
+                    if ($insert->rowCount() > 0) {
+                        $stats['account_comments_imported']++;
+                    }
+                }
+
+                $last = (int)($row['commentID'] ?? 0);
+            }
+        }
+    }
+
+    private function importFriendships(PDO $source, array &$stats): void
+    {
+        $last = 0;
+        $q = $source->prepare(
+            'SELECT *
+             FROM ' . $this->sourceTable('friendships') . '
+             WHERE ID > :last
+             ORDER BY ID ASC
+             LIMIT 250'
+        );
+
+        $insert = $this->target->prepare(
+            'INSERT IGNORE INTO friends
+             (account_id,friend_account_id,is_new)
+             VALUES (:a,:b,:new1),(:b2,:a2,:new2)'
+        );
+
+        while (true) {
+            $q->execute(['last' => $last]);
+            $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $a = $this->mappedAccount((int)($row['person1'] ?? 0));
+                $b = $this->mappedAccount((int)($row['person2'] ?? 0));
+
+                if ($a !== null && $b !== null && $a !== $b) {
+                    $insert->execute([
+                        'a' => $a,
+                        'b' => $b,
+                        'new1' => (int)($row['isNew1'] ?? 0) !== 0 ? 1 : 0,
+                        'b2' => $b,
+                        'a2' => $a,
+                        'new2' => (int)($row['isNew2'] ?? 0) !== 0 ? 1 : 0,
+                    ]);
+
+                    $stats['friends_imported'] += $insert->rowCount();
+                }
+
+                $last = (int)($row['ID'] ?? 0);
+            }
+        }
+    }
+
+    private function importFriendRequests(PDO $source, array &$stats): void
+    {
+        $last = 0;
+        $q = $source->prepare(
+            'SELECT *
+             FROM ' . $this->sourceTable('friendreqs') . '
+             WHERE ID > :last
+             ORDER BY ID ASC
+             LIMIT 250'
+        );
+
+        $insert = $this->target->prepare(
+            'INSERT INTO friend_requests
+             (account_id,to_account_id,comment,is_read,created_at)
+             SELECT :account,:to,:comment,:read,FROM_UNIXTIME(:created)
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM friend_requests r
+                 WHERE r.account_id=:account2
+                   AND r.to_account_id=:to2
+                   AND r.comment=:comment2
+                   AND r.created_at=FROM_UNIXTIME(:created2)
+             )'
+        );
+
+        while (true) {
+            $q->execute(['last' => $last]);
+            $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $from = $this->mappedAccount((int)($row['accountID'] ?? 0));
+                $to = $this->mappedAccount((int)($row['toAccountID'] ?? 0));
+
+                if ($from !== null && $to !== null && $from !== $to) {
+                    $comment = (string)($row['comment'] ?? '');
+                    $created = max(0, (int)($row['uploadDate'] ?? 0));
+
+                    $insert->execute([
+                        'account' => $from,
+                        'to' => $to,
+                        'comment' => $comment,
+                        'read' => (int)($row['isNew'] ?? 0) !== 0 ? 0 : 1,
+                        'created' => $created,
+                        'account2' => $from,
+                        'to2' => $to,
+                        'comment2' => $comment,
+                        'created2' => $created,
+                    ]);
+
+                    if ($insert->rowCount() > 0) {
+                        $stats['friend_requests_imported']++;
+                    }
+                }
+
+                $last = (int)($row['ID'] ?? 0);
+            }
+        }
+    }
+
+    private function importBlocks(PDO $source, array &$stats): void
+    {
+        $last = 0;
+        $q = $source->prepare(
+            'SELECT *
+             FROM ' . $this->sourceTable('blocks') . '
+             WHERE ID > :last
+             ORDER BY ID ASC
+             LIMIT 250'
+        );
+
+        $insert = $this->target->prepare(
+            'INSERT IGNORE INTO blocks
+             (account_id,blocked_account_id)
+             VALUES (:a,:b)'
+        );
+
+        while (true) {
+            $q->execute(['last' => $last]);
+            $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $a = $this->mappedAccount((int)($row['person1'] ?? 0));
+                $b = $this->mappedAccount((int)($row['person2'] ?? 0));
+
+                if ($a !== null && $b !== null && $a !== $b) {
+                    $insert->execute(['a' => $a, 'b' => $b]);
+                    $stats['blocks_imported'] += $insert->rowCount();
+                }
+
+                $last = (int)($row['ID'] ?? 0);
+            }
+        }
+    }
+
+    private function importMessages(PDO $source, array &$stats): void
+    {
+        $last = 0;
+        $q = $source->prepare(
+            'SELECT *
+             FROM ' . $this->sourceTable('messages') . '
+             WHERE messageID > :last
+             ORDER BY messageID ASC
+             LIMIT 250'
+        );
+
+        $insert = $this->target->prepare(
+            'INSERT INTO messages
+             (account_id,to_account_id,subject,body,is_read,is_sender_deleted,is_receiver_deleted,created_at)
+             SELECT :account,:to,:subject,:body,:read,0,0,FROM_UNIXTIME(:created)
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM messages m
+                 WHERE m.account_id=:account2
+                   AND m.to_account_id=:to2
+                   AND m.subject=:subject2
+                   AND m.body=:body2
+                   AND m.created_at=FROM_UNIXTIME(:created2)
+             )'
+        );
+
+        while (true) {
+            $q->execute(['last' => $last]);
+            $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $from = $this->mappedAccount((int)($row['userID'] ?? 0));
+                $to = $this->mappedAccount((int)($row['toAccountID'] ?? 0));
+
+                if ($from !== null && $to !== null && $from !== $to) {
+                    $subject = $this->decodeLegacyText(
+                        (string)($row['subject'] ?? '')
+                    );
+                    $body = $this->decodeLegacyMessageBody(
+                        (string)($row['body'] ?? '')
+                    );
+                    $created = max(0, (int)($row['timestamp'] ?? 0));
+
+                    $insert->execute([
+                        'account' => $from,
+                        'to' => $to,
+                        'subject' => $subject,
+                        'body' => $body,
+                        'read' => (int)($row['isNew'] ?? 0) !== 0 ? 0 : 1,
+                        'created' => $created,
+                        'account2' => $from,
+                        'to2' => $to,
+                        'subject2' => $subject,
+                        'body2' => $body,
+                        'created2' => $created,
+                    ]);
+
+                    if ($insert->rowCount() > 0) {
+                        $stats['messages_imported']++;
+                    }
+                }
+
+                $last = (int)($row['messageID'] ?? 0);
+            }
+        }
+    }
+
+    private function importSongs(PDO $source, array &$stats): void
+    {
+        $last = 0;
+        $q = $source->prepare(
+            'SELECT *
+             FROM ' . $this->sourceTable('songs') . '
+             WHERE ID > :last
+             ORDER BY ID ASC
+             LIMIT 250'
+        );
+
+        $upsert = $this->target->prepare(
+            'INSERT INTO songs
+             (id,name,author_id,author_name,size,download_url,youtube_video_id,youtube_channel_id,is_verified)
+             VALUES (:id,:name,:author,:authorName,:size,:download,:youtubeVideo,:youtubeChannel,:verified)
+             ON DUPLICATE KEY UPDATE
+                name=VALUES(name),
+                author_id=VALUES(author_id),
+                author_name=VALUES(author_name),
+                size=VALUES(size),
+                download_url=VALUES(download_url),
+                youtube_video_id=VALUES(youtube_video_id),
+                youtube_channel_id=VALUES(youtube_channel_id),
+                is_verified=VALUES(is_verified)'
+        );
+
+        while (true) {
+            $q->execute(['last' => $last]);
+            $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $id = (int)($row['ID'] ?? 0);
+                if ($id <= 0) {
+                    $last = max($last, $id);
+                    continue;
+                }
+
+                $author = $this->mappedAccount(
+                    (int)($row['authorID'] ?? 0)
+                ) ?? 0;
+
+                $upsert->execute([
+                    'id' => $id,
+                    'name' => (string)($row['name'] ?? ''),
+                    'author' => $author,
+                    'authorName' => (string)($row['authorName'] ?? ''),
+                    'size' => (float)($row['size'] ?? 0),
+                    'download' => urldecode((string)($row['download'] ?? '')),
+                    'youtubeVideo' => '',
+                    'youtubeChannel' => '',
+                    'verified' => (int)($row['isDisabled'] ?? 0) !== 0 ? 0 : 1,
+                ]);
+
+                $stats['songs_imported']++;
+                $last = $id;
+            }
+        }
+    }
+
     private function createAccount(
         string $username,
         string $email,
@@ -403,7 +851,27 @@ final class CvoltonDatabaseImporter
             'banned' => (int)($row['isBanned'] ?? 0) === 1 ? 1 : 0,
         ]);
 
-        return (int)$this->target->lastInsertId();
+        $accountId = (int)$this->target->lastInsertId();
+
+        $this->updateOptionalColumns(
+            'accounts',
+            'account_id',
+            $accountId,
+            [
+                'youtube_url' => $this->sourceText((string)($row['youtubeUrl'] ?? ''), 255),
+                'twitter' => $this->sourceText((string)($row['twitter'] ?? ''), 64),
+                'twitch' => $this->sourceText((string)($row['twitch'] ?? ''), 64),
+                'instagram' => $this->sourceText((string)($row['instagram'] ?? ''), 64),
+                'tiktok' => $this->sourceText((string)($row['tiktok'] ?? ''), 64),
+                'discord' => $this->sourceText((string)($row['discord'] ?? ''), 64),
+                'custom_link' => $this->sourceText((string)($row['customLink'] ?? ''), 255),
+                'friend_requests_state' => max(0, min(2, (int)($row['friendRequestsState'] ?? 0))),
+                'messages_state' => max(0, min(2, (int)($row['messagesState'] ?? 0))),
+                'comments_state' => max(0, min(2, (int)($row['commentsState'] ?? 0))),
+            ]
+        );
+
+        return $accountId;
     }
 
     private function upsertProfile(int $accountId, array $row): void
@@ -445,6 +913,210 @@ final class CvoltonDatabaseImporter
             'color2' => max(0, min(65535, (int)($row['color2'] ?? 3))),
             'glow' => max(0, min(1, (int)($row['glow'] ?? 0))),
         ]);
+
+        $this->updateOptionalColumns(
+            'profiles',
+            'account_id',
+            $accountId,
+            [
+                'game_version' => max(0, (int)($row['gameVersion'] ?? 0)),
+                'binary_version' => max(0, (int)($row['binaryVersion'] ?? 0)),
+                'color3' => max(0, min(65535, (int)($row['color3'] ?? 0))),
+                'special' => max(0, min(65535, (int)($row['special'] ?? 0))),
+                'cube' => max(0, (int)($row['accIcon'] ?? 1)),
+                'ship' => max(0, (int)($row['accShip'] ?? 1)),
+                'ball' => max(0, (int)($row['accBall'] ?? 1)),
+                'ufo' => max(0, (int)($row['accBird'] ?? 1)),
+                'wave' => max(0, (int)($row['accDart'] ?? 1)),
+                'robot' => max(0, (int)($row['accRobot'] ?? 1)),
+                'spider' => max(0, (int)($row['accSpider'] ?? 1)),
+                'swing' => max(0, (int)($row['accSwing'] ?? 1)),
+                'jetpack' => max(0, (int)($row['accJetpack'] ?? 1)),
+                'explosion' => max(0, (int)($row['accExplosion'] ?? 1)),
+                'demon_info' => $this->sourceText((string)($row['demonInfo'] ?? ''), 255),
+                'star_info' => $this->sourceText((string)($row['starInfo'] ?? ''), 255),
+                'platformer_info' => $this->sourceText((string)($row['platformerInfo'] ?? ''), 255),
+                'last_ip' => $this->sourceText((string)($row['lastIp'] ?? ''), 45),
+                'last_played_at' => $this->timestampOrNull((int)($row['lastPlayed'] ?? 0)),
+            ]
+        );
+    }
+
+    private function decodeLegacyText(string $value): string
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        $normalized = strtr($value, '-_', '+/');
+        $remainder = strlen($normalized) % 4;
+
+        if ($remainder !== 0) {
+            $normalized .= str_repeat('=', 4 - $remainder);
+        }
+
+        $decoded = base64_decode($normalized, true);
+
+        if ($decoded === false || $decoded === '') {
+            return $value;
+        }
+
+        if (preg_match('//u', $decoded) !== 1) {
+            return $value;
+        }
+
+        if (preg_match('/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/', $decoded) === 1) {
+            return $value;
+        }
+
+        return $decoded;
+    }
+
+    private function decodeLegacyMessageBody(string $value): string
+    {
+        $decoded = $this->decodeLegacyText($value);
+
+        /*
+         * Galaxxy/MegaSa1nt's message storage uses URL-safe Base64 around
+         * a byte-wise XOR stream with the legacy numeric key 14251.
+         */
+        if ($decoded === $value) {
+            return $value;
+        }
+
+        return $this->xorLegacyMessage($decoded, '14251');
+    }
+
+    private function xorLegacyMessage(string $value, string $key): string
+    {
+        if ($key === '') {
+            return $value;
+        }
+
+        $result = '';
+        $keyLength = strlen($key);
+
+        for ($i = 0, $length = strlen($value); $i < $length; $i++) {
+            $result .= chr(
+                ord($value[$i]) ^ ord($key[$i % $keyLength])
+            );
+        }
+
+        return preg_match('//u', $result) === 1 &&
+            preg_match('/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/', $result) !== 1
+            ? $result
+            : $value;
+    }
+
+    private function sourceText(string $value, int $max): string
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, $max)
+            : substr($value, 0, $max);
+    }
+
+    private function timestampOrNull(int $timestamp): ?string
+    {
+        return $timestamp > 0
+            ? gmdate('Y-m-d H:i:s', $timestamp)
+            : null;
+    }
+
+    /**
+     * @param array<string,mixed> $values
+     */
+    private function updateOptionalColumns(
+        string $table,
+        string $keyColumn,
+        int $keyValue,
+        array $values
+    ): void {
+        $columns = $this->targetColumns($table);
+        $set = [];
+        $params = ['__key' => $keyValue];
+
+        foreach ($values as $column => $value) {
+            if (!isset($columns[$column])) {
+                continue;
+            }
+
+            $parameter = 'v_' . $column;
+            $set[] = chr(96) . $column . chr(96) . ' = :' . $parameter;
+            $params[$parameter] = $value;
+        }
+
+        if ($set === []) {
+            return;
+        }
+
+        $sql = 'UPDATE ' . $this->quoteTable($table) .
+            ' SET ' . implode(', ', $set) .
+            ' WHERE ' . chr(96) . $keyColumn . chr(96) . '=:__key';
+
+        $this->target->prepare($sql)->execute($params);
+    }
+
+    /**
+     * @return array<string,true>
+     */
+    private function targetColumns(string $table): array
+    {
+        if (isset($this->targetColumnCache[$table])) {
+            return $this->targetColumnCache[$table];
+        }
+
+        $rows = $this->target->query(
+            'SHOW COLUMNS FROM ' . $this->quoteTable($table)
+        )->fetchAll(PDO::FETCH_COLUMN, 0);
+
+        $columns = [];
+        foreach ($rows as $column) {
+            if (is_string($column) && preg_match('/^[A-Za-z0-9_]{1,64}$/', $column)) {
+                $columns[$column] = true;
+            }
+        }
+
+        return $this->targetColumnCache[$table] = $columns;
+    }
+
+    private function quoteTable(string $table): string
+    {
+        if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', $table)) {
+            throw new RuntimeException('Invalid target table name.');
+        }
+
+        return chr(96) . $table . chr(96);
+    }
+
+    private function emailBelongsToDifferentAccount(
+        string $email,
+        string $username
+    ): bool {
+        $q = $this->target->prepare(
+            'SELECT username
+             FROM accounts
+             WHERE email=:email
+             ORDER BY account_id ASC
+             LIMIT 1'
+        );
+        $q->execute(['email' => $email]);
+
+        $owner = $q->fetchColumn();
+
+        return $owner !== false && (string)$owner !== $username;
+    }
+
+    private function fallbackEmail(int $sourceId): string
+    {
+        return 'cvolton.' . $sourceId . '@local.invalid';
     }
 
     private function existingAccount(
@@ -604,7 +1276,9 @@ final class CvoltonDatabaseImporter
                 0,
                 64
             ),
-            'description' => (string)($row['levelDesc'] ?? ''),
+            'description' => $this->decodeLegacyText(
+                (string)($row['levelDesc'] ?? '')
+            ),
             'data' => (string)($row['levelString'] ?? ''),
             'version' => max(1, (int)($row['levelVersion'] ?? 1)),
             'game' => max(0, (int)($row['gameVersion'] ?? 22)),
@@ -818,15 +1492,37 @@ final class CvoltonDatabaseImporter
 
     private function sourceTableExists(PDO $source, string $table): bool
     {
+        $physical = $this->physicalSourceTable($table);
+
         $q = $source->prepare(
             'SELECT 1
              FROM information_schema.tables
              WHERE table_schema=DATABASE() AND table_name=:table
              LIMIT 1'
         );
-        $q->execute(['table' => $table]);
+        $q->execute(['table' => $physical]);
 
         return $q->fetchColumn() !== false;
+    }
+
+    private function sourceTable(string $table): string
+    {
+        return chr(96) .
+            str_replace(
+                chr(96),
+                chr(96) . chr(96),
+                $this->physicalSourceTable($table)
+            ) .
+            chr(96);
+    }
+
+    private function physicalSourceTable(string $table): string
+    {
+        if (!preg_match('/^[A-Za-z0-9_$.-]{1,64}$/', $table)) {
+            throw new RuntimeException('Invalid migration source table.');
+        }
+
+        return $this->sourcePrefix . $table;
     }
 
     private function requireSourceSchema(PDO $source): void
@@ -859,7 +1555,7 @@ final class CvoltonDatabaseImporter
         array $required
     ): void {
         $columns = [];
-        $q = $source->query('SHOW COLUMNS FROM `' . $table . '`');
+        $q = $source->query('SHOW COLUMNS FROM ' . $this->sourceTable($table));
 
         foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $field = (string)($row['Field'] ?? '');
@@ -886,7 +1582,7 @@ final class CvoltonDatabaseImporter
     private function count(PDO $db, string $table): int
     {
         return (int)$db->query(
-            'SELECT COUNT(*) FROM ' . $table
+            'SELECT COUNT(*) FROM ' . $this->sourceTable($table)
         )->fetchColumn();
     }
 

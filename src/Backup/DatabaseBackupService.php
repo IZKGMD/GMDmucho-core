@@ -16,6 +16,7 @@ final class DatabaseBackupService
     public function __construct(
         private readonly PDO $pdo,
         private readonly string $directory,
+        private readonly array $excludedTablePrefixes = [],
     ) {
     }
 
@@ -182,7 +183,7 @@ final class DatabaseBackupService
             $name = isset($row[0]) && is_string($row[0]) ? $row[0] : '';
             $type = strtoupper((string)($row[1] ?? ''));
 
-            if ($name === '') {
+            if ($name === '' || $this->excludedTable($name)) {
                 continue;
             }
 
@@ -350,6 +351,17 @@ final class DatabaseBackupService
         }
 
         return $quoted;
+    }
+
+    private function excludedTable(string $table): bool
+    {
+        foreach ($this->excludedTablePrefixes as $prefix) {
+            if ($prefix !== '' && str_starts_with($table, (string)$prefix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function quoteIdentifier(string $identifier): string

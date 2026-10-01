@@ -106,8 +106,8 @@ function printConnectionHelp(): void
     echo "Old DB user  = MySQL/MariaDB user with SELECT access to that database." . PHP_EOL;
     echo "Old DB pass  = password for that MySQL/MariaDB user." . PHP_EOL;
     echo PHP_EOL;
-    echo "For a MegaSa1nt/Cvolton-style server, database.sql is the schema file." . PHP_EOL;
-    echo "For a live server, use the actual database credentials instead of the file." . PHP_EOL;
+    echo "Migration adapters identify supported database schemas from their structure." . PHP_EOL;
+    echo "For a live server, use the actual database credentials instead of a SQL file." . PHP_EOL;
 }
 
 function printDatasetMap(array $datasets): void
@@ -338,11 +338,17 @@ try {
     }
 
     $target = (new Database())->connection();
-    $importer = new CvoltonDatabaseImporter($target);
-    $preflight = $importer->preflight($source);
+    $databaseAdapters = new MigrationDatabaseAdapterRegistry();
+    $databaseAdapter = $databaseAdapters->resolve(
+        $target,
+        '',
+        $inspection
+    );
+    $preflight = $databaseAdapter->preflight($source);
 
     echo PHP_EOL . "SOURCE DETECTED" . PHP_EOL;
     echo "Family:          " . $inspection["label"] . PHP_EOL;
+    echo "Adapter:         " . $databaseAdapter->key() . PHP_EOL;
     echo "Confidence:      " . $inspection["confidence"] . PHP_EOL;
     echo "Required tables: " . implode(", ", $inspection["required_tables"]) . PHP_EOL;
     echo "Optional tables: " . (implode(", ", $inspection["optional_tables"]) ?: "none") . PHP_EOL;
@@ -394,7 +400,7 @@ try {
 
     $target->beginTransaction();
     try {
-        $stats = $importer->apply($source);
+        $stats = $databaseAdapter->apply($source);
         $target->commit();
     } catch (Throwable $e) {
         if ($target->inTransaction()) {

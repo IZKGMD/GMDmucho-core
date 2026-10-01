@@ -26,6 +26,57 @@ The command-line Migration Center below remains available for VPS automation and
 
 MuchoCore includes a guided database migration flow so moving an existing GDPS does not require manually rewriting SQL.
 
+## SQL file import
+
+When you only have a database dump, use the SQL file workflow in the Admin Panel:
+
+~~~text
+MuchoCore Admin
+  → Tools
+  → Migration Center
+  → SQL File Import
+~~~
+
+Upload the populated `database.sql` or `database.sql.gz`. MuchoCore stages supported source tables under temporary names inside the current database, detects the source schema, selects the matching database adapter and shows the account, profile, level and score counts before the real import starts.
+
+The uploaded file is never executed directly against the production MuchoCore tables. Database-level commands, stored routines and triggers are not executed by the SQL file importer. The production import still requires an explicit confirmation and creates a fresh verified database backup first.
+
+The staging area is removed after a successful import or manual discard. Abandoned staging jobs expire automatically.
+
+The Docker/VPS image accepts SQL uploads up to 256 MB (uncompressed SQL is additionally capped at 512 MB).
+
+### Full server archives
+
+For sources that keep persistent data outside SQL, attach the old server `.zip` as the **Full old server archive**.
+
+For the current Galaxxy-compatible server archive adapter, MuchoCore selectively restores:
+
+~~~text
+public_html/data/levels/<levelID>
+public_html/data/levels/deleted/<levelID>
+public_html/data/accounts/<accountID>
+~~~
+
+Active and deleted level files are decoded from the source's stored payload format and written to MuchoCore's `levels.level_data` after the source level IDs have been mapped to target IDs.
+
+Legacy account save files are restored through MuchoCore's Cloud Save repository. They are re-encrypted with the configured MuchoCore Cloud Save key; the old encryption implementation is not copied into the new server.
+
+The archive is **not** installed as an application package. MuchoCore does not copy the old PHP files, configuration, web handlers, runtime sessions, logs or other executable source files into the production tree.
+
+The populated SQL dump and the server archive have different roles:
+
+~~~text
+database.sql
+  -> database tables, accounts, profiles, levels, scores and supported social/song metadata
+
+server.zip
+  -> external level payloads and legacy account Cloud Saves
+~~~
+
+For the Galaxxy archive supplied for this migration, the populated database dump is separate from the `public_html/database.sql` file bundled inside the archive. The bundled `database.sql` is a schema/template dump and must not be treated as the live populated database.
+
+SQL-only imports remain valid for sources whose playable level payloads are stored in SQL. External archive support is selected only when a server archive is actually attached.
+
 ## What the wizard does
 
 The Migration Center follows this order:
@@ -83,11 +134,11 @@ The current MegaSa1nt/Cvolton-compatible schema exposes these data areas:
 | Classic scores | levelscores | Imported automatically |
 | Platformer scores | platscores | Imported automatically |
 | Level/account comments | comments, acccomments | Detected and reported; dedicated mapping still required |
-| Friends/requests/blocks/messages | friendships, friendreqs, blocks, messages, links | Detected and reported; dedicated mapping still required |
+| Friends/requests/blocks/messages | friendships, friendreqs, blocks, messages, links | Friends, requests, blocks and messages are imported; legacy links remain source-specific |
 | Lists/Map Packs/Gauntlets/Daily | lists, mappacks, gauntlets, dailyfeatures | Detected and reported; dedicated mapping still required |
 | Legacy moderation/admin | roles, roleassign, modips, bannedips, reports, modactions, actions, suggest, modipperms | Detected and reported; not copied into MuchoCore RBAC |
-| Song metadata | songs | Detected; binary files need filesystem access |
-| Music/SFX files | old server music/ and sfx/ directories | Requires a separate file copy |
+| Song metadata | songs | Imported automatically; binary/music-library files still require an archive adapter |
+| Music/SFX files | old server music/ and sfx/ directories | Requires a dedicated music-library adapter; the old runtime files are not copied automatically |
 
 This is intentional: Migration Center never reports data as imported when it has only detected it.
 

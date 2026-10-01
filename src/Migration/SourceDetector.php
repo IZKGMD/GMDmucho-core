@@ -8,6 +8,17 @@ use PDO;
 
 final class SourceDetector
 {
+    public function __construct(
+        private readonly string $sourcePrefix = ''
+    ) {
+        if (
+            $this->sourcePrefix !== '' &&
+            !preg_match('/^mci_[a-f0-9]{16}_$/', $this->sourcePrefix)
+        ) {
+            throw new \InvalidArgumentException('Invalid source table prefix.');
+        }
+    }
+
     /**
      * Detect a source database by schema, not by product name.
      * GDPS-Maker commonly provisions a Cvolton-compatible database, so the
@@ -116,8 +127,8 @@ final class SourceDetector
                 'label' => 'Levels',
                 'tables' => ['levels'],
                 'status' => 'imported_now',
-                'where' => 'levels contains level metadata and the full levelString.',
-                'notes' => 'The source level ID is preserved when it is still free in MuchoCore; otherwise a new target ID is allocated.',
+                'where' => 'levels contains level metadata; playable level payload storage depends on the source layout.',
+                'notes' => 'The source level ID is preserved when it is still free in MuchoCore; otherwise a new target ID is allocated. If the source keeps payloads outside SQL, attach the matching external level-data archive.'
             ],
             [
                 'key' => 'scores',
@@ -131,17 +142,17 @@ final class SourceDetector
                 'key' => 'comments',
                 'label' => 'Comments',
                 'tables' => ['comments', 'acccomments'],
-                'status' => 'detected_only',
+                'status' => 'imported_now',
                 'where' => 'comments are level comments; acccomments are profile/account comments.',
-                'notes' => 'Detected and counted by Migration Center, but not yet written into MuchoCore automatically.',
+                'notes' => 'Mapped through imported account and level IDs and written into MuchoCore comments/account_comments tables.',
             ],
             [
                 'key' => 'social',
                 'label' => 'Friends, requests, blocks & messages',
                 'tables' => ['friendships', 'friendreqs', 'blocks', 'messages', 'links'],
-                'status' => 'detected_only',
+                'status' => 'imported_now',
                 'where' => 'friendships, friendreqs, blocks, messages and links hold the social graph and private messaging state.',
-                'notes' => 'Reported explicitly so the migration never pretends these datasets were moved when they were not.',
+                'notes' => 'Friends, requests, blocks and messages are mapped through imported account IDs. Legacy links are detected but not copied yet.',
             ],
             [
                 'key' => 'collections',
@@ -165,7 +176,7 @@ final class SourceDetector
                 'tables' => ['songs'],
                 'status' => 'filesystem',
                 'where' => 'songs contains metadata; MegaSa1nt/Cvolton also stores binary music under the old server music/ directory and SFX under sfx/.',
-                'notes' => 'Database-only migration can inspect song metadata, but the actual audio files require access to the old server filesystem or an archive.',
+                'notes' => 'Song metadata is imported automatically. Supported local song files and legacy music-library assets are restored when a full server archive is attached; runtime handlers are never copied.',
             ],
             [
                 'key' => 'analytics',
@@ -203,8 +214,55 @@ final class SourceDetector
         $tables = [];
 
         foreach ($rows as $row) {
-            if (isset($row[0]) && is_string($row[0])) {
-                $tables[] = $row[0];
+            if (!isset($row[0]) || !is_string($row[0])) {
+                continue;
+            }
+
+            $name = $row[0];
+
+            if ($this->sourcePrefix === '') {
+                $tables[] = $name;
+                continue;
+            }
+
+            if (!str_starts_with($name, $this->sourcePrefix)) {
+                continue;
+            }
+
+            $logical = substr($name, strlen($this->sourcePrefix));
+
+            if (in_array($logical, [
+                'accounts',
+                'users',
+                'levels',
+                'levelscores',
+                'platscores',
+                'comments',
+                'acccomments',
+                'friendships',
+                'friendreqs',
+                'blocks',
+                'messages',
+                'links',
+                'lists',
+                'mappacks',
+                'gauntlets',
+                'dailyfeatures',
+                'roles',
+                'roleassign',
+                'modips',
+                'bannedips',
+                'reports',
+                'modactions',
+                'actions',
+                'suggest',
+                'modipperms',
+                'songs',
+                'actions_downloads',
+                'actions_likes',
+                'cpshares',
+            ], true)) {
+                $tables[] = $logical;
             }
         }
 

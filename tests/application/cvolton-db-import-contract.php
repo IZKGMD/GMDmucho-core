@@ -47,7 +47,7 @@ if(strpos($source,"password_hash(")===false){
 }
 
 if(
-    strpos($source,"FROM platscores")===false ||
+    strpos($source,"sourceTable('platscores')")===false ||
     strpos($source,"WHERE ID > :last")===false
 ){
     throw new RuntimeException(
