@@ -1,12 +1,180 @@
 <?php
 declare(strict_types=1);
 
-if (!in_array($action, ['migration-preview','migration-apply'], true)) {
+if (!in_array(
+    $action,
+    [
+        'migration-preview',
+        'migration-apply',
+        'migration-sql-upload',
+        'migration-sql-apply',
+        'migration-sql-discard'
+    ],
+    true
+)) {
     throw new RuntimeException('Invalid migration action.');
 }
 
 requirePermission('system.manage');
 set_time_limit(0);
+
+$rootDir=defined('ROOT_DIR')
+    ? ROOT_DIR
+    : dirname(__DIR__,3);
+
+$backupDir=(string)(
+    $_ENV['MUCHO_DB_BACKUP_DIR']
+    ?? getenv('MUCHO_DB_BACKUP_DIR')
+    ?? ($rootDir.'/storage/backups/database')
+);
+
+/* =========================================================
+   SQL FILE IMPORT
+========================================================= */
+
+if (in_array(
+    $action,
+    ['migration-sql-upload','migration-sql-apply','migration-sql-discard'],
+    true
+)) {
+    try {
+        require_once $rootDir.'/vendor/autoload.php';
+
+        $service=new \MuchoCore\Migration\SqlDumpMigrationService(
+            $db,
+            $rootDir,
+            $backupDir
+        );
+
+        if ($action==='migration-sql-upload') {
+            $existing=$_SESSION['migration_sql_job'] ?? null;
+
+            if (is_array($existing) && isset($existing['prefix'])) {
+                try {
+                    $service->discard((string)$existing['prefix']);
+                } catch (Throwable) {
+                }
+            }
+
+            $job=$service->stageUpload(
+                is_array($_FILES['sql_file'] ?? null)
+                    ? $_FILES['sql_file']
+                    : []
+            );
+
+            $_SESSION['migration_sql_job']=[
+                'prefix'=>$job['prefix'],
+                'filename'=>$job['filename'],
+                'created_at'=>time(),
+            ];
+            $_SESSION['migration_sql_preview']=[
+                'inspection'=>$job['inspection'],
+                'preflight'=>$job['preflight'],
+            ];
+            $_SESSION['migration_sql_status']=
+                'SQL dump uploaded and verified. Review the detected source before importing.';
+            $_SESSION['migration_sql_status_type']='ok';
+
+            audit(
+                $db,
+                'database.migration_sql_stage',
+                $job['filename'],
+                [
+                    'accounts'=>(int)$job['preflight']['accounts'],
+                    'users'=>(int)$job['preflight']['users'],
+                    'levels'=>(int)$job['preflight']['levels'],
+                    'levelscores'=>(int)$job['preflight']['levelscores'],
+                    'platscores'=>(int)$job['preflight']['platscores'],
+                ]
+            );
+        } elseif ($action==='migration-sql-apply') {
+            $job=$_SESSION['migration_sql_job'] ?? null;
+
+            if (!is_array($job)) {
+                throw new RuntimeException('There is no staged SQL dump to import.');
+            }
+
+            $prefix=(string)($job['prefix'] ?? '');
+            $filename=(string)($job['filename'] ?? 'database.sql');
+
+            $result=$service->applyStaged($prefix);
+
+            audit(
+                $db,
+                'database.migration_sql_apply',
+                $filename,
+                [
+                    'backup'=>(string)($result['backup']['file'] ?? ''),
+                    'stats'=>$result['stats'],
+                ]
+            );
+
+            $_SESSION['migration_sql_job']=null;
+            $_SESSION['migration_sql_preview']=null;
+            $_SESSION['migration_sql_status']='SQL dump imported successfully.';
+            $_SESSION['migration_sql_status_type']='ok';
+
+            $output=[
+                'MUCHOCORE SQL FILE MIGRATION',
+                'Source: VERIFIED STAGING COPY',
+                'Family: '.(string)($result['inspection']['label'] ?? 'Unknown'),
+                'Accounts: '.(int)($result['preflight']['accounts'] ?? 0),
+                'Profiles: '.(int)($result['preflight']['users'] ?? 0),
+                'Levels: '.(int)($result['preflight']['levels'] ?? 0),
+                'Classic scores: '.(int)($result['preflight']['levelscores'] ?? 0),
+                'Platformer scores: '.(int)($result['preflight']['platscores'] ?? 0),
+                'TARGET_BACKUP='.(string)($result['backup']['file'] ?? ''),
+                'MIGRATION COMPLETE',
+            ];
+
+            foreach (($result['stats'] ?? []) as $name=>$value) {
+                $output[]=(string)$name.'='.(int)$value;
+            }
+
+            $_SESSION['migration_sql_output']=implode(PHP_EOL,$output);
+        } else {
+            $job=$_SESSION['migration_sql_job'] ?? null;
+
+            if (is_array($job) && isset($job['prefix'])) {
+                $service->discard((string)$job['prefix']);
+            }
+
+            $_SESSION['migration_sql_job']=null;
+            $_SESSION['migration_sql_preview']=null;
+            $_SESSION['migration_sql_status']='Staged SQL dump discarded. MuchoCore was not changed.';
+            $_SESSION['migration_sql_status_type']='ok';
+
+            audit(
+                $db,
+                'database.migration_sql_discard',
+                'staged',
+                []
+            );
+        }
+    } catch (Throwable $e) {
+        $requestId=bin2hex(random_bytes(8));
+
+        error_log(sprintf(
+            '[MuchoCore SQL Migration] request=%s %s: %s | %s:%d',
+            $requestId,
+            $e::class,
+            $e->getMessage(),
+            $e->getFile(),
+            $e->getLine()
+        ));
+
+        $_SESSION['migration_sql_status']=
+            'SQL file migration could not be completed. Request ID: '.$requestId.'.';
+        $_SESSION['migration_sql_status_type']='error';
+    }
+
+    header('Location:/admin/?page=migration');
+    exit;
+}
+
+/* =========================================================
+   DATABASE CONNECTION MIGRATION
+========================================================= */
 
 $host=trim((string)($_POST['source_host'] ?? ''));
 $port=(int)($_POST['source_port'] ?? 3306);
