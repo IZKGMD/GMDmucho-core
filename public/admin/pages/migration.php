@@ -150,7 +150,7 @@ $oldUser=(string)($form['source_user'] ?? '');
         </label>
 
         <label style="display:block;margin-top:12px">
-            <span class="muted">External level-data archive (.zip) — optional</span><br>
+            <span class="muted">Full old server archive (.zip) — recommended</span><br>
             <input
                 type="file"
                 name="galaxxy_archive"
