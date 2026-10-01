@@ -174,7 +174,7 @@ final class CvoltonDatabaseImporter
 
             foreach ($rows as $row) {
                 $sourceId = (int)$row['accountID'];
-                $username = $this->username((string)$row['userName']);
+                $username = $this->username((string)($row['accountUserName'] ?? $row['userName'] ?? ''));
                 $email = $this->email((string)$row['email'], $sourceId);
 
                 $existing = $this->mappedAccount($sourceId);
