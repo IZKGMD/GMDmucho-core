@@ -82,7 +82,8 @@ final class SqlDumpMigrationService
      *   server_archive:array{
      *     adapter:string,
      *     level_data:array{stored_files:int,matched_files:int,stored_bytes:int,matched_bytes:int},
-     *     cloud_saves:array{stored_files:int,matched_files:int,stored_bytes:int,matched_bytes:int}
+     *     cloud_saves:array{stored_files:int,matched_files:int,stored_bytes:int,matched_bytes:int},
+     *     music:array{stored_files:int,matched_files:int,stored_bytes:int,matched_bytes:int}
      *   }
      * }
      */
@@ -152,11 +153,18 @@ final class SqlDumpMigrationService
                     'stored_bytes' => 0,
                     'matched_bytes' => 0,
                 ],
+                'music' => [
+                    'stored_files' => 0,
+                    'matched_files' => 0,
+                    'stored_bytes' => 0,
+                    'matched_bytes' => 0,
+                ],
             ];
 
             if ($archiveUpload !== null) {
                 $levelIds = $this->sourceLevelIds($prefix);
                 $accountIds = $this->sourceAccountIds($prefix);
+                $songIds = $this->sourceSongIds($prefix);
                 $archiveAdapter = $this->serverArchives->resolveUpload($archiveUpload);
                 $serverArchive = [
                     'adapter' => $archiveAdapter->key(),
@@ -164,6 +172,7 @@ final class SqlDumpMigrationService
                         $archiveUpload,
                         $levelIds,
                         $accountIds,
+                        $songIds,
                         $prefix
                     ),
                 ];
@@ -275,13 +284,18 @@ final class SqlDumpMigrationService
             $stats = $databaseAdapter->apply($this->target);
             $archiveStats = $this->hydrateServerArchive(
                 $prefix,
-                (string)($preview['server_archive']['adapter'] ?? '')
+                (string)($preview['server_archive']['adapter'] ?? ''),
+                $this->sourceSongIds($prefix)
             );
-            foreach ($archiveStats as $name => $value) {
+            foreach ($archiveStats['hydrate'] as $name => $value) {
                 $stats[$name] = $value;
             }
 
             $this->target->commit();
+
+            foreach ($archiveStats['publish'] as $name => $value) {
+                $stats[$name] = $value;
+            }
         } catch (Throwable $e) {
             if ($this->target->inTransaction()) {
                 $this->target->rollBack();
@@ -505,12 +519,16 @@ final class SqlDumpMigrationService
     /**
      * @return array<string,int>
      */
-    private function hydrateServerArchive(string $prefix, string $adapterKey): array
+    private function hydrateServerArchive(
+        string $prefix,
+        string $adapterKey,
+        array $sourceSongIds
+    ): array
     {
         $levelIds = $this->sourceLevelIds($prefix);
         $accountIds = $this->sourceAccountIds($prefix);
 
-        $totals = [
+        $empty = [
             'level_data_hydrated' => 0,
             'level_data_missing' => 0,
             'level_data_bytes' => 0,
@@ -520,27 +538,76 @@ final class SqlDumpMigrationService
         ];
 
         if ($adapterKey === '') {
-            return $totals;
+            return [
+                'hydrate' => $empty,
+                'publish' => [
+                    'music_files_published' => 0,
+                    'music_bytes_published' => 0,
+                    'song_urls_rewritten' => 0,
+                ],
+            ];
         }
 
         $adapter = $this->serverArchives->resolveKey($adapterKey);
-        $result = $adapter->hydrate(
+        $hydrated = $adapter->hydrate(
             $this->target,
             $prefix,
             $levelIds,
-            $accountIds
+            $accountIds,
+            $sourceSongIds
         );
 
-        foreach ($totals as $name => $unused) {
-            $totals[$name] += (int)($result[$name] ?? 0);
-        }
+        $publish = $adapter->publish(
+            $this->target,
+            $prefix,
+            $sourceSongIds
+        );
 
-        return $totals;
+        return [
+            'hydrate' => [
+                'level_data_hydrated' => (int)($hydrated['level_data_hydrated'] ?? 0),
+                'level_data_missing' => (int)($hydrated['level_data_missing'] ?? 0),
+                'level_data_bytes' => (int)($hydrated['level_data_bytes'] ?? 0),
+                'cloud_saves_imported' => (int)($hydrated['cloud_saves_imported'] ?? 0),
+                'cloud_saves_missing' => (int)($hydrated['cloud_saves_missing'] ?? 0),
+                'cloud_saves_bytes' => (int)($hydrated['cloud_saves_bytes'] ?? 0),
+            ],
+            'publish' => [
+                'music_files_published' => (int)($publish['music_files_published'] ?? 0),
+                'music_bytes_published' => (int)($publish['music_bytes_published'] ?? 0),
+                'song_urls_rewritten' => (int)($publish['song_urls_rewritten'] ?? 0),
+            ],
+        ];
     }
 
     /**
      * @return list<int>
      */
+    private function sourceSongIds(string $prefix): array
+    {
+        $table = $prefix . 'songs';
+
+        $q = $this->target->prepare(
+            'SELECT COUNT(*)
+             FROM information_schema.tables
+             WHERE table_schema=DATABASE()
+               AND table_name=:table'
+        );
+        $q->execute(['table' => $table]);
+
+        if ((int)$q->fetchColumn() === 0) {
+            return [];
+        }
+
+        return array_map(
+            'intval',
+            $this->target->query(
+                'SELECT ID FROM ' . $this->quoteTable($table) .
+                ' ORDER BY ID ASC'
+            )->fetchAll(PDO::FETCH_COLUMN)
+        );
+    }
+
     private function sourceLevelIds(string $prefix): array
     {
         return array_map(
