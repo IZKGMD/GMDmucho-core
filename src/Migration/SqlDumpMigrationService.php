@@ -193,10 +193,21 @@ final class SqlDumpMigrationService
             ['mci_']
         ))->create('muchocore-before-sql-import');
 
-        (new Migrator(
-            $this->target,
-            rtrim($this->root, '/\\') . '/database/migrations'
-        ))->migrate();
+        /*
+         * Migrator emits human-readable status lines to stdout. The SQL file
+         * import runs inside an HTTP request, so keep those lines out of the
+         * response buffer or they can break the redirect headers.
+         */
+        ob_start();
+
+        try {
+            (new Migrator(
+                $this->target,
+                rtrim($this->root, '/\\') . '/database/migrations'
+            ))->migrate();
+        } finally {
+            ob_end_clean();
+        }
 
         $this->target->beginTransaction();
 
