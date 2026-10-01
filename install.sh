@@ -939,6 +939,17 @@ if [[ "$healthy" -eq 1 ]]; then
       fail "Public HTTPS is unavailable. For the default direct mode, point an A record for $DOMAIN to $PUBLIC_IP and allow inbound TCP 80/443, then run the installer again. Cloudflare Tunnel is optional: set MUCHO_TRANSPORT_MODE=tunnel only if direct inbound access is impossible."
     fi
   elif [[ "$TRANSPORT_MODE" == "direct" ]]; then
+    direct_origin_ok=0
+    if [[ -n "$PUBLIC_IP" ]] && curl -4ksSf --connect-timeout 3 --max-time 6 \
+      --resolve "$DOMAIN:443:$PUBLIC_IP" \
+      "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+      direct_origin_ok=1
+    fi
+
+    if [[ "$direct_origin_ok" -eq 1 ]]; then
+      fail "Direct VPS origin is healthy at $PUBLIC_IP:443, but $DOMAIN is not reaching that origin yet. DNS is still not converged. Ensure A $DOMAIN -> $PUBLIC_IP, remove conflicting AAAA/CNAME records, keep the DNS record DNS-only if using Cloudflare, then re-run the installer."
+    fi
+
     fail "Direct transport was requested, but the public hostname is not healthy. Verify DNS and inbound 80/443 reach the VPS."
   elif [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
     fail "Cloudflare Tunnel transport was requested, but the public hostname is not healthy. Run: sudo mucho doctor"
