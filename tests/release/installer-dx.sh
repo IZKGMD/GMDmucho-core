@@ -18,20 +18,26 @@ grep -Fq 'check_domain_preflight' install.sh
 grep -Fq 'MUCHO_TRANSPORT_MODE' install.sh
 grep -Fq 'PUBLIC_IP' install.sh
 grep -Fq 'Automatic transport selection' install.sh
+grep -Fq 'fall back to a Cloudflare Tunnel' install.sh
+grep -Fq 'neither direct origin nor Cloudflare Tunnel became healthy' install.sh
 grep -Fq 'Installation overview' install.sh
 grep -Fq 'Transport policy:' install.sh
 grep -Fq 'The installer will stop on a failed public health check' install.sh
 grep -Fq 'For full NAT/CGNAT automation' install.sh
 grep -Fq 'export MUCHO_CLOUDFLARE_API_TOKEN' install.sh
-grep -Fq 'fail "Automatic transport setup failed' install.sh
+! grep -Fq 'Automatic transport setup failed: direct public ingress is unavailable' install.sh
 grep -Fq 'requires an existing Tunnel runtime token' install.sh
-! grep -Fq 'Cloudflare API token (press Enter' install.sh
+grep -Fq 'https://dash.cloudflare.com/profile/api-tokens' install.sh
+grep -Fq 'Zone → DNS → Edit' install.sh
+grep -Fq 'Zone → Zone → Read' install.sh
 grep -Fq 'expected_services=(db app worker caddy)' install.sh
 ! grep -Fq 'Cloudflare API token (press Enter' install.sh
 grep -Fq 'MUCHO_CLOUDFLARE_API_TOKEN' install.sh
 grep -Fq 'mucho-cloudflare-tunnel.sh' install.sh
 grep -Fq 'bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct' install.sh
 grep -Fq 'configure_direct_origin' bin/mucho-cloudflare-tunnel.sh
+grep -Fq 'if [[ "${1:-}" == "direct" ]]; then' bin/mucho-cloudflare-tunnel.sh
+grep -Fq 'type:"A"' bin/mucho-cloudflare-tunnel.sh
 grep -Fq 'POST "/accounts/$account_id/cfd_tunnel"' bin/mucho-cloudflare-tunnel.sh
 grep -Fq 'PUT "/accounts/$account_id/cfd_tunnel/$tunnel_id/configurations"' bin/mucho-cloudflare-tunnel.sh
 grep -Fq 'POST "/zones/$zone_id/dns_records"' bin/mucho-cloudflare-tunnel.sh
