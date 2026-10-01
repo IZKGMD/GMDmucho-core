@@ -32,7 +32,10 @@ resolve_ref_sha() {
     -H 'User-Agent: MuchoCore-Bootstrap/1.0' \
     -H 'X-GitHub-Api-Version: 2022-11-28' \
     "https://api.github.com/repos/IZKGMD/GMDmucho-core/commits/$(printf '%s' "$ref" | sed 's#/#%2F#g')")" || return 1
-  sha="$(printf '%s' "$response" | sed -n 's/.*"sha":[[:space:]]*"\([0-9a-f]\{40\}\)".*/\1/p' | head -n1)"
+  sha="$(printf '%s' "$response" \
+    | grep -o '"sha"[[:space:]]*:[[:space:]]*"\([0-9a-f]\{40\}\)"' \
+    | head -n1 \
+    | sed -n 's/.*"sha"[[:space:]]*:[[:space:]]*"\([0-9a-f]\{40\}\)".*/\1/p')"
   [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || return 1
   printf '%s' "$sha"
 }
