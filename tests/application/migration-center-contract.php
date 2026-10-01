@@ -235,7 +235,7 @@ $dryRunExitAt = strpos($wizard, 'if (!$requestedApply)');
 
 
 foreach ([
-    'FHGDPS / Cvolton Migration',
+    'GDPS Migration Center',
     'SQL File Import',
     'Upload &amp; Check SQL',
     'Import This SQL Dump',
