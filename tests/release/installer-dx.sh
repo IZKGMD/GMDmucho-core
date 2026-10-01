@@ -22,6 +22,7 @@ grep -Fq 'direct HTTPS by default' install.sh
 grep -Fq 'DNS does not point directly to this VPS' install.sh
 grep -Fq 'inbound TCP 80/443' install.sh
 grep -Fq 'Cloudflare credentials are not required for the normal installation path.' install.sh
+grep -Fq 'Direct VPS origin is healthy at' install.sh
 
 ! grep -Fq 'resolve_ref_sha()' install-remote.sh
 grep -Fq 'installer_url="${REPO_ROOT}/${SOURCE_REF}/install.sh?cb=${cache_bust}"' install-remote.sh
