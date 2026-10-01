@@ -13,7 +13,7 @@ use Throwable;
 final class SqlDumpMigrationService
 {
     private readonly MigrationDatabaseAdapterRegistry $databaseAdapters;
-    private readonly MigrationLevelDataAdapterRegistry $levelDataAdapters;
+    private readonly MigrationServerArchiveAdapterRegistry $serverArchives;
 
     private const MAX_UPLOAD_BYTES = 268435456;
     private const MAX_UNCOMPRESSED_BYTES = 536870912;
@@ -60,7 +60,7 @@ final class SqlDumpMigrationService
         private readonly string $backupDirectory,
     ) {
         $this->databaseAdapters = new MigrationDatabaseAdapterRegistry();
-        $this->levelDataAdapters = new MigrationLevelDataAdapterRegistry($this->root);
+        $this->serverArchives = new MigrationServerArchiveAdapterRegistry($this->root);
 
         if (!is_dir($this->storageDirectory())
             && !mkdir($this->storageDirectory(), 0700, true)
@@ -79,7 +79,11 @@ final class SqlDumpMigrationService
      *   filename:string,
      *   inspection:array<string,mixed>,
      *   preflight:array<string,int>,
-     *   level_data:array{stored_files:int,matched_files:int,stored_bytes:int,matched_bytes:int}
+     *   server_archive:array{
+     *     adapter:string,
+     *     level_data:array{stored_files:int,matched_files:int,stored_bytes:int,matched_bytes:int},
+     *     cloud_saves:array{stored_files:int,matched_files:int,stored_bytes:int,matched_bytes:int}
+     *   }
      * }
      */
     public function stageUpload(array $upload, ?array $archiveUpload = null): array
@@ -134,21 +138,35 @@ final class SqlDumpMigrationService
             );
             $preflight = $databaseAdapter->preflight($this->target);
 
-            $levelData = [
-                'stored_files' => 0,
-                'matched_files' => 0,
-                'stored_bytes' => 0,
-                'matched_bytes' => 0,
+            $serverArchive = [
+                'adapter' => '',
+                'level_data' => [
+                    'stored_files' => 0,
+                    'matched_files' => 0,
+                    'stored_bytes' => 0,
+                    'matched_bytes' => 0,
+                ],
+                'cloud_saves' => [
+                    'stored_files' => 0,
+                    'matched_files' => 0,
+                    'stored_bytes' => 0,
+                    'matched_bytes' => 0,
+                ],
             ];
 
             if ($archiveUpload !== null) {
                 $levelIds = $this->sourceLevelIds($prefix);
-                $levelAdapter = $this->levelDataAdapters->resolveUpload($archiveUpload);
-                $levelData = $levelAdapter->stageUpload(
-                    $archiveUpload,
-                    $levelIds,
-                    $prefix
-                );
+                $accountIds = $this->sourceAccountIds($prefix);
+                $archiveAdapter = $this->serverArchives->resolveUpload($archiveUpload);
+                $serverArchive = [
+                    'adapter' => $archiveAdapter->key(),
+                    ...$archiveAdapter->stageUpload(
+                        $archiveUpload,
+                        $levelIds,
+                        $accountIds,
+                        $prefix
+                    ),
+                ];
             }
 
             $this->writeJobMarker(
@@ -165,7 +183,7 @@ final class SqlDumpMigrationService
                 'filename' => $this->safeFilename($name),
                 'inspection' => $inspection,
                 'preflight' => $preflight,
-                'level_data' => $levelData,
+                'server_archive' => $serverArchive,
             ];
         } catch (Throwable $e) {
             $this->dropStaging($prefix);
@@ -249,11 +267,12 @@ final class SqlDumpMigrationService
 
         try {
             $stats = $databaseAdapter->apply($this->target);
-            $hydration = $this->hydrateExternalLevelData($prefix);
-            $stats['level_data_hydrated'] = $hydration['hydrated'];
-            $stats['level_data_missing'] = $hydration['missing'];
-            $stats['level_data_bytes'] = $hydration['bytes'];
             $this->target->commit();
+
+            $archiveStats = $this->hydrateServerArchive($prefix);
+            foreach ($archiveStats as $name => $value) {
+                $stats[$name] = $value;
+            }
         } catch (Throwable $e) {
             if ($this->target->inTransaction()) {
                 $this->target->rollBack();
@@ -471,37 +490,43 @@ final class SqlDumpMigrationService
     }
 
     /**
-     * @return array{hydrated:int,missing:int,bytes:int}
+     * @return array<string,int>
      */
-    private function hydrateExternalLevelData(string $prefix): array
+    private function hydrateServerArchive(string $prefix): array
     {
-        $sourceLevelIds = $this->sourceLevelIds($prefix);
+        $levelIds = $this->sourceLevelIds($prefix);
+        $accountIds = $this->sourceAccountIds($prefix);
 
-        $hydrated = 0;
-        $missing = 0;
-        $bytes = 0;
+        $totals = [
+            'level_data_hydrated' => 0,
+            'level_data_missing' => 0,
+            'level_data_bytes' => 0,
+            'cloud_saves_imported' => 0,
+            'cloud_saves_missing' => 0,
+            'cloud_saves_bytes' => 0,
+        ];
 
-        foreach ($this->levelDataAdapters->instances() as $adapter) {
+        foreach ($this->serverArchives->instances() as $adapter) {
             $result = $adapter->hydrate(
                 $this->target,
                 $prefix,
-                $sourceLevelIds
+                $levelIds,
+                $accountIds
             );
 
-            $hydrated += (int)($result['hydrated'] ?? 0);
-            $missing += (int)($result['missing'] ?? 0);
-            $bytes += (int)($result['bytes'] ?? 0);
+            foreach ($totals as $name => $unused) {
+                $totals[$name] += (int)($result[$name] ?? 0);
+            }
 
-            if ($result['hydrated'] > 0 || $result['missing'] > 0) {
+            if (
+                $totals['level_data_hydrated'] > 0 ||
+                $totals['cloud_saves_imported'] > 0
+            ) {
                 break;
             }
         }
 
-        return [
-            'hydrated' => $hydrated,
-            'missing' => $missing,
-            'bytes' => $bytes,
-        ];
+        return $totals;
     }
 
     /**
@@ -514,6 +539,20 @@ final class SqlDumpMigrationService
             $this->target->query(
                 'SELECT levelID FROM ' . $this->quoteTable($prefix . 'levels') .
                 ' ORDER BY levelID ASC'
+            )->fetchAll(PDO::FETCH_COLUMN)
+        );
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function sourceAccountIds(string $prefix): array
+    {
+        return array_map(
+            'intval',
+            $this->target->query(
+                'SELECT accountID FROM ' . $this->quoteTable($prefix . 'accounts') .
+                ' ORDER BY accountID ASC'
             )->fetchAll(PDO::FETCH_COLUMN)
         );
     }
@@ -570,11 +609,11 @@ final class SqlDumpMigrationService
             );
         }
 
-        foreach ($this->levelDataAdapters->instances() as $adapter) {
+        foreach ($this->serverArchives->instances() as $adapter) {
             try {
                 $adapter->cleanup($prefix);
             } catch (Throwable) {
-                // Cleanup must not prevent other staging tables from being removed.
+                // Cleanup must not prevent other staging data from being removed.
             }
         }
 
