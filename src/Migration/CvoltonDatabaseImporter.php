@@ -936,6 +936,19 @@ final class CvoltonDatabaseImporter
         );
     }
 
+    private function sourceText(string $value, int $max): string
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, $max)
+            : substr($value, 0, $max);
+    }
+
     private function timestampOrNull(int $timestamp): ?string
     {
         return $timestamp > 0
