@@ -175,6 +175,7 @@ final class SqlDumpMigrationService
                     'prefix' => $prefix,
                     'filename' => $this->safeFilename($name),
                     'created_at' => time(),
+                    'server_archive_adapter' => (string)($serverArchive['adapter'] ?? ''),
                 ]
             );
 
@@ -194,7 +195,8 @@ final class SqlDumpMigrationService
     /**
      * @return array{
      *   inspection:array<string,mixed>,
-     *   preflight:array<string,int>
+     *   preflight:array<string,int>,
+     *   server_archive:array{adapter:string}
      * }
      */
     public function previewStaged(string $prefix): array
@@ -215,10 +217,14 @@ final class SqlDumpMigrationService
             $inspection
         );
         $preflight = $databaseAdapter->preflight($this->target);
+        $marker = $this->readJobMarker($prefix);
 
         return [
             'inspection' => $inspection,
             'preflight' => $preflight,
+            'server_archive' => [
+                'adapter' => (string)($marker['server_archive_adapter'] ?? ''),
+            ],
         ];
     }
 
@@ -267,7 +273,10 @@ final class SqlDumpMigrationService
 
         try {
             $stats = $databaseAdapter->apply($this->target);
-            $archiveStats = $this->hydrateServerArchive($prefix);
+            $archiveStats = $this->hydrateServerArchive(
+                $prefix,
+                (string)($preview['server_archive']['adapter'] ?? '')
+            );
             foreach ($archiveStats as $name => $value) {
                 $stats[$name] = $value;
             }
@@ -285,9 +294,13 @@ final class SqlDumpMigrationService
             // must not make a successful migration look like a failed import.
         }
 
+        $stats['server_archive_adapter'] =
+            (string)($preview['server_archive']['adapter'] ?? '');
+
         return [
             'inspection' => $preview['inspection'],
             'preflight' => $preview['preflight'],
+            'server_archive' => $preview['server_archive'],
             'backup' => $backup,
             'stats' => $stats,
         ];
@@ -490,7 +503,7 @@ final class SqlDumpMigrationService
     /**
      * @return array<string,int>
      */
-    private function hydrateServerArchive(string $prefix): array
+    private function hydrateServerArchive(string $prefix, string $adapterKey): array
     {
         $levelIds = $this->sourceLevelIds($prefix);
         $accountIds = $this->sourceAccountIds($prefix);
@@ -504,7 +517,11 @@ final class SqlDumpMigrationService
             'cloud_saves_bytes' => 0,
         ];
 
-        foreach ($this->serverArchives->instances() as $adapter) {
+        if ($adapterKey === '') {
+            return $totals;
+        }
+
+        $adapter = $this->serverArchives->resolveKey($adapterKey);
             $result = $adapter->hydrate(
                 $this->target,
                 $prefix,
@@ -553,6 +570,25 @@ final class SqlDumpMigrationService
                 ' ORDER BY accountID ASC'
             )->fetchAll(PDO::FETCH_COLUMN)
         );
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function readJobMarker(string $prefix): array
+    {
+        $path = $this->markerPath($prefix);
+
+        if (!is_file($path)) {
+            return [];
+        }
+
+        $data = json_decode(
+            (string)file_get_contents($path),
+            true
+        );
+
+        return is_array($data) ? $data : [];
     }
 
     private function quoteTable(string $table): string
