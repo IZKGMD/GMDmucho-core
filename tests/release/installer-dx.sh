@@ -17,7 +17,7 @@ grep -Fq 'curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main
 grep -Fq 'check_domain_preflight' install.sh
 grep -Fq 'MUCHO_TRANSPORT_MODE' install.sh
 grep -Fq 'PUBLIC_IP' install.sh
-grep -Fq 'Automatic transport selection' install.sh
+grep -Fq 'Transport policy: automatic' install.sh
 grep -Fq 'fall back to a Cloudflare Tunnel' install.sh
 grep -Fq 'neither direct origin nor Cloudflare Tunnel became healthy' install.sh
 grep -Fq 'Installation overview' install.sh
