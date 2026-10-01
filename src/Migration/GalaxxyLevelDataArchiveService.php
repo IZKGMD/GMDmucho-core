@@ -317,12 +317,12 @@ final class GalaxxyLevelDataArchiveService
         $match = [];
 
         if (!preg_match(
-            '#(?:^|/)public_html/data/levels/(\\d+)$#',
+            '#(?:^|/)public_html/data/levels/(?:deleted/)?(\\d+)$#',
             $path,
             $match
         )) {
             if (!preg_match(
-                '#(?:^|/)data/levels/(\\d+)$#',
+                '#(?:^|/)data/levels/(?:deleted/)?(\\d+)$#',
                 $path,
                 $match
             )) {
