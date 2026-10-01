@@ -93,6 +93,13 @@ final class CvoltonDatabaseImporter
             'levels_updated' => 0,
             'regular_scores_upserted' => 0,
             'platformer_scores_upserted' => 0,
+            'comments_imported' => 0,
+            'account_comments_imported' => 0,
+            'friends_imported' => 0,
+            'friend_requests_imported' => 0,
+            'blocks_imported' => 0,
+            'messages_imported' => 0,
+            'songs_imported' => 0,
             'password_resets_required' => 0,
         ];
 
@@ -105,6 +112,34 @@ final class CvoltonDatabaseImporter
 
         if ($this->sourceTableExists($source, 'platscores')) {
             $this->importPlatformerScores($source, $stats);
+        }
+
+        if ($this->sourceTableExists($source, 'comments')) {
+            $this->importComments($source, $stats);
+        }
+
+        if ($this->sourceTableExists($source, 'acccomments')) {
+            $this->importAccountComments($source, $stats);
+        }
+
+        if ($this->sourceTableExists($source, 'friendships')) {
+            $this->importFriendships($source, $stats);
+        }
+
+        if ($this->sourceTableExists($source, 'friendreqs')) {
+            $this->importFriendRequests($source, $stats);
+        }
+
+        if ($this->sourceTableExists($source, 'blocks')) {
+            $this->importBlocks($source, $stats);
+        }
+
+        if ($this->sourceTableExists($source, 'messages')) {
+            $this->importMessages($source, $stats);
+        }
+
+        if ($this->sourceTableExists($source, 'songs')) {
+            $this->importSongs($source, $stats);
         }
 
         return $stats;
@@ -401,6 +436,403 @@ final class CvoltonDatabaseImporter
                 }
 
                 $last = (int)($row['ID'] ?? $last);
+            }
+        }
+    }
+
+    private function importComments(PDO $source, array &$stats): void
+    {
+        $last = 0;
+        $q = $source->prepare(
+            'SELECT *
+             FROM ' . $this->sourceTable('comments') . '
+             WHERE commentID > :last
+             ORDER BY commentID ASC
+             LIMIT 250'
+        );
+
+        $insert = $source === $this->target ? null : $this->target->prepare(
+            'INSERT INTO comments
+             (level_id,account_id,content,percent,likes,is_spam,created_at)
+             SELECT :level,:account,:content,:percent,:likes,:spam,
+                    FROM_UNIXTIME(:created)
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM comments c
+                 WHERE c.level_id=:level2
+                   AND c.account_id=:account2
+                   AND c.content=:content2
+                   AND c.created_at=FROM_UNIXTIME(:created2)
+             )'
+        );
+
+        if ($insert === null) {
+            return;
+        }
+
+        while (true) {
+            $q->execute(['last' => $last]);
+            $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $account = $this->mappedAccount((int)($row['userID'] ?? 0));
+                $level = $this->mappedLevel((int)($row['levelID'] ?? 0));
+
+                if ($account === null || $level === null) {
+                    $last = max($last, (int)($row['commentID'] ?? 0));
+                    continue;
+                }
+
+                $created = max(0, (int)($row['timestamp'] ?? 0));
+                $content = (string)($row['comment'] ?? '');
+
+                $insert->execute([
+                    'level' => $level,
+                    'account' => $account,
+                    'content' => $content,
+                    'percent' => max(0, min(100, (int)($row['percent'] ?? 0))),
+                    'likes' => (int)($row['likes'] ?? 0),
+                    'spam' => (int)($row['isSpam'] ?? 0) !== 0 ? 1 : 0,
+                    'created' => $created,
+                    'level2' => $level,
+                    'account2' => $account,
+                    'content2' => $content,
+                    'created2' => $created,
+                ]);
+
+                if ($insert->rowCount() > 0) {
+                    $stats['comments_imported']++;
+                }
+
+                $last = (int)($row['commentID'] ?? 0);
+            }
+        }
+    }
+
+    private function importAccountComments(PDO $source, array &$stats): void
+    {
+        $last = 0;
+        $q = $source->prepare(
+            'SELECT *
+             FROM ' . $this->sourceTable('acccomments') . '
+             WHERE commentID > :last
+             ORDER BY commentID ASC
+             LIMIT 250'
+        );
+
+        $insert = $this->target->prepare(
+            'INSERT INTO account_comments
+             (account_id,content,likes,is_spam,created_at)
+             SELECT :account,:content,:likes,:spam,FROM_UNIXTIME(:created)
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM account_comments c
+                 WHERE c.account_id=:account2
+                   AND c.content=:content2
+                   AND c.created_at=FROM_UNIXTIME(:created2)
+             )'
+        );
+
+        while (true) {
+            $q->execute(['last' => $last]);
+            $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $account = $this->mappedAccount((int)($row['userID'] ?? 0));
+
+                if ($account !== null) {
+                    $content = (string)($row['comment'] ?? '');
+                    $created = max(0, (int)($row['timestamp'] ?? 0));
+
+                    $insert->execute([
+                        'account' => $account,
+                        'content' => $content,
+                        'likes' => (int)($row['likes'] ?? 0),
+                        'spam' => (int)($row['isSpam'] ?? 0) !== 0 ? 1 : 0,
+                        'created' => $created,
+                        'account2' => $account,
+                        'content2' => $content,
+                        'created2' => $created,
+                    ]);
+
+                    if ($insert->rowCount() > 0) {
+                        $stats['account_comments_imported']++;
+                    }
+                }
+
+                $last = (int)($row['commentID'] ?? 0);
+            }
+        }
+    }
+
+    private function importFriendships(PDO $source, array &$stats): void
+    {
+        $last = 0;
+        $q = $source->prepare(
+            'SELECT *
+             FROM ' . $this->sourceTable('friendships') . '
+             WHERE ID > :last
+             ORDER BY ID ASC
+             LIMIT 250'
+        );
+
+        $insert = $this->target->prepare(
+            'INSERT IGNORE INTO friends
+             (account_id,friend_account_id,is_new)
+             VALUES (:a,:b,:new1),(:b2,:a2,:new2)'
+        );
+
+        while (true) {
+            $q->execute(['last' => $last]);
+            $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $a = $this->mappedAccount((int)($row['person1'] ?? 0));
+                $b = $this->mappedAccount((int)($row['person2'] ?? 0));
+
+                if ($a !== null && $b !== null && $a !== $b) {
+                    $insert->execute([
+                        'a' => $a,
+                        'b' => $b,
+                        'new1' => (int)($row['isNew1'] ?? 0) !== 0 ? 1 : 0,
+                        'b2' => $b,
+                        'a2' => $a,
+                        'new2' => (int)($row['isNew2'] ?? 0) !== 0 ? 1 : 0,
+                    ]);
+
+                    $stats['friends_imported'] += $insert->rowCount();
+                }
+
+                $last = (int)($row['ID'] ?? 0);
+            }
+        }
+    }
+
+    private function importFriendRequests(PDO $source, array &$stats): void
+    {
+        $last = 0;
+        $q = $source->prepare(
+            'SELECT *
+             FROM ' . $this->sourceTable('friendreqs') . '
+             WHERE ID > :last
+             ORDER BY ID ASC
+             LIMIT 250'
+        );
+
+        $insert = $this->target->prepare(
+            'INSERT INTO friend_requests
+             (account_id,to_account_id,comment,is_read,created_at)
+             SELECT :account,:to,:comment,:read,FROM_UNIXTIME(:created)
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM friend_requests r
+                 WHERE r.account_id=:account2
+                   AND r.to_account_id=:to2
+                   AND r.comment=:comment2
+                   AND r.created_at=FROM_UNIXTIME(:created2)
+             )'
+        );
+
+        while (true) {
+            $q->execute(['last' => $last]);
+            $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $from = $this->mappedAccount((int)($row['accountID'] ?? 0));
+                $to = $this->mappedAccount((int)($row['toAccountID'] ?? 0));
+
+                if ($from !== null && $to !== null && $from !== $to) {
+                    $comment = (string)($row['comment'] ?? '');
+                    $created = max(0, (int)($row['uploadDate'] ?? 0));
+
+                    $insert->execute([
+                        'account' => $from,
+                        'to' => $to,
+                        'comment' => $comment,
+                        'read' => (int)($row['isNew'] ?? 0) !== 0 ? 0 : 1,
+                        'created' => $created,
+                        'account2' => $from,
+                        'to2' => $to,
+                        'comment2' => $comment,
+                        'created2' => $created,
+                    ]);
+
+                    if ($insert->rowCount() > 0) {
+                        $stats['friend_requests_imported']++;
+                    }
+                }
+
+                $last = (int)($row['ID'] ?? 0);
+            }
+        }
+    }
+
+    private function importBlocks(PDO $source, array &$stats): void
+    {
+        $last = 0;
+        $q = $source->prepare(
+            'SELECT *
+             FROM ' . $this->sourceTable('blocks') . '
+             WHERE ID > :last
+             ORDER BY ID ASC
+             LIMIT 250'
+        );
+
+        $insert = $this->target->prepare(
+            'INSERT IGNORE INTO blocks
+             (account_id,blocked_account_id)
+             VALUES (:a,:b)'
+        );
+
+        while (true) {
+            $q->execute(['last' => $last]);
+            $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $a = $this->mappedAccount((int)($row['person1'] ?? 0));
+                $b = $this->mappedAccount((int)($row['person2'] ?? 0));
+
+                if ($a !== null && $b !== null && $a !== $b) {
+                    $insert->execute(['a' => $a, 'b' => $b]);
+                    $stats['blocks_imported'] += $insert->rowCount();
+                }
+
+                $last = (int)($row['ID'] ?? 0);
+            }
+        }
+    }
+
+    private function importMessages(PDO $source, array &$stats): void
+    {
+        $last = 0;
+        $q = $source->prepare(
+            'SELECT *
+             FROM ' . $this->sourceTable('messages') . '
+             WHERE messageID > :last
+             ORDER BY messageID ASC
+             LIMIT 250'
+        );
+
+        $insert = $this->target->prepare(
+            'INSERT INTO messages
+             (account_id,to_account_id,subject,body,is_read,is_sender_deleted,is_receiver_deleted,created_at)
+             SELECT :account,:to,:subject,:body,:read,0,0,FROM_UNIXTIME(:created)
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM messages m
+                 WHERE m.account_id=:account2
+                   AND m.to_account_id=:to2
+                   AND m.subject=:subject2
+                   AND m.body=:body2
+                   AND m.created_at=FROM_UNIXTIME(:created2)
+             )'
+        );
+
+        while (true) {
+            $q->execute(['last' => $last]);
+            $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $from = $this->mappedAccount((int)($row['userID'] ?? 0));
+                $to = $this->mappedAccount((int)($row['toAccountID'] ?? 0));
+
+                if ($from !== null && $to !== null && $from !== $to) {
+                    $subject = (string)($row['subject'] ?? '');
+                    $body = (string)($row['body'] ?? '');
+                    $created = max(0, (int)($row['timestamp'] ?? 0));
+
+                    $insert->execute([
+                        'account' => $from,
+                        'to' => $to,
+                        'subject' => $subject,
+                        'body' => $body,
+                        'read' => (int)($row['isNew'] ?? 0) !== 0 ? 0 : 1,
+                        'created' => $created,
+                        'account2' => $from,
+                        'to2' => $to,
+                        'subject2' => $subject,
+                        'body2' => $body,
+                        'created2' => $created,
+                    ]);
+
+                    if ($insert->rowCount() > 0) {
+                        $stats['messages_imported']++;
+                    }
+                }
+
+                $last = (int)($row['messageID'] ?? 0);
+            }
+        }
+    }
+
+    private function importSongs(PDO $source, array &$stats): void
+    {
+        $last = 0;
+        $q = $source->prepare(
+            'SELECT *
+             FROM ' . $this->sourceTable('songs') . '
+             WHERE ID > :last
+             ORDER BY ID ASC
+             LIMIT 250'
+        );
+
+        $upsert = $this->target->prepare(
+            'INSERT INTO songs
+             (id,name,author_id,author_name,size,download_url,youtube_video_id,youtube_channel_id,is_verified)
+             VALUES (:id,:name,:author,:authorName,:size,:download,:youtubeVideo,:youtubeChannel,:verified)
+             ON DUPLICATE KEY UPDATE
+                name=VALUES(name),
+                author_id=VALUES(author_id),
+                author_name=VALUES(author_name),
+                size=VALUES(size),
+                download_url=VALUES(download_url),
+                youtube_video_id=VALUES(youtube_video_id),
+                youtube_channel_id=VALUES(youtube_channel_id),
+                is_verified=VALUES(is_verified)'
+        );
+
+        while (true) {
+            $q->execute(['last' => $last]);
+            $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) {
+                break;
+            }
+
+            foreach ($rows as $row) {
+                $id = (int)($row['ID'] ?? 0);
+                if ($id <= 0) {
+                    $last = max($last, $id);
+                    continue;
+                }
+
+                $upsert->execute([
+                    'id' => $id,
+                    'name' => (string)($row['name'] ?? ''),
+                    'author' => (int)($row['authorID'] ?? 0),
+                    'authorName' => (string)($row['authorName'] ?? ''),
+                    'size' => (float)($row['size'] ?? 0),
+                    'download' => urldecode((string)($row['download'] ?? '')),
+                    'youtubeVideo' => '',
+                    'youtubeChannel' => '',
+                    'verified' => (int)($row['isDisabled'] ?? 0) !== 0 ? 0 : 1,
+                ]);
+
+                $stats['songs_imported']++;
+                $last = $id;
             }
         }
     }
