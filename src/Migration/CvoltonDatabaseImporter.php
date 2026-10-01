@@ -1013,6 +1013,15 @@ final class CvoltonDatabaseImporter
         return $this->targetColumnCache[$table] = $columns;
     }
 
+    private function quoteTable(string $table): string
+    {
+        if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', $table)) {
+            throw new RuntimeException('Invalid target table name.');
+        }
+
+        return chr(96) . $table . chr(96);
+    }
+
     private function emailBelongsToDifferentAccount(
         string $email,
         string $username
