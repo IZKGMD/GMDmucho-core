@@ -16,6 +16,8 @@ final class GalaxxyServerArchiveAdapter implements MigrationServerArchiveAdapter
     private const MAX_UNCOMPRESSED_BYTES = 536870912;
     private const MAX_ACCOUNT_SAVE_BYTES = 33554432;
     private const MAX_ACCOUNT_FILES = 1000;
+    private const MAX_MUSIC_FILE_BYTES = 33554432;
+    private const MAX_MUSIC_TOTAL_BYTES = 134217728;
 
     public function __construct(
         private readonly string $root
@@ -38,6 +40,7 @@ final class GalaxxyServerArchiveAdapter implements MigrationServerArchiveAdapter
         array $upload,
         array $sourceLevelIds,
         array $sourceAccountIds,
+        array $sourceSongIds,
         string $stagingPrefix
     ): array {
         $upload['_staging_prefix'] = $stagingPrefix;
@@ -51,9 +54,16 @@ final class GalaxxyServerArchiveAdapter implements MigrationServerArchiveAdapter
             $stagingPrefix
         );
 
+        $music = $this->stageMusic(
+            $upload,
+            $sourceSongIds,
+            $stagingPrefix
+        );
+
         return [
             'level_data' => $levelData,
             'cloud_saves' => $cloudSaves,
+            'music' => $music,
         ];
     }
 
@@ -61,7 +71,8 @@ final class GalaxxyServerArchiveAdapter implements MigrationServerArchiveAdapter
         PDO $target,
         string $stagingPrefix,
         array $sourceLevelIds,
-        array $sourceAccountIds
+        array $sourceAccountIds,
+        array $sourceSongIds
     ): array {
         $levels = $this->hydrateLevelData(
             $target,
@@ -85,11 +96,396 @@ final class GalaxxyServerArchiveAdapter implements MigrationServerArchiveAdapter
         ];
     }
 
+    /**
+     * @return array{music_files_published:int,music_bytes_published:int,song_urls_rewritten:int}
+     */
+    public function publish(
+        PDO $target,
+        string $stagingPrefix,
+        array $sourceSongIds
+    ): array {
+        $directory = $this->archiveDirectory($stagingPrefix) . '/music';
+
+        if (!is_dir($directory)) {
+            return [
+                'music_files_published' => 0,
+                'music_bytes_published' => 0,
+                'song_urls_rewritten' => 0,
+            ];
+        }
+
+        $destinationRoot = rtrim($this->root, '/\\') . '/storage/music-public';
+        if (!is_dir($destinationRoot)
+            && !mkdir($destinationRoot, 0770, true)
+            && !is_dir($destinationRoot)) {
+            throw new RuntimeException('Unable to create MuchoCore music storage.');
+        }
+
+        $legacyDirectory = $destinationRoot . '/legacy/' . trim($stagingPrefix, '_');
+        $songDirectory = $legacyDirectory . '/songs';
+
+        if (!is_dir($songDirectory)
+            && !mkdir($songDirectory, 0770, true)
+            && !is_dir($songDirectory)) {
+            throw new RuntimeException('Unable to create migrated music storage.');
+        }
+
+        $published = 0;
+        $bytes = 0;
+        $rewritten = 0;
+
+        $songUrlBase = trim(
+            (string)(
+                getenv('MUCHO_PUBLIC_URL')
+                ?: getenv('MUCHO_ACCOUNT_URL')
+                ?: ''
+            )
+        );
+
+        $songIds = array_fill_keys(
+            array_values(
+                array_unique(
+                    array_filter(
+                        array_map('intval', $sourceSongIds),
+                        static fn(int $id): bool => $id > 0
+                    )
+                )
+            ),
+            true
+        );
+
+        $songFiles = glob($directory . '/songs/*.mp3') ?: [];
+
+        if ($songFiles !== [] && !preg_match(
+            '~^https://[A-Za-z0-9.-]+(?::\d+)?$~',
+            $songUrlBase
+        )) {
+            throw new RuntimeException(
+                'MUCHO_PUBLIC_URL must be configured before migrating local song files.'
+            );
+        }
+
+        if ($songUrlBase !== '') {
+            $songUrlBase = rtrim($songUrlBase, '/');
+        }
+
+        foreach ($songFiles as $sourcePath) {
+            $sourceId = $this->songIdFromStagedPath($sourcePath);
+
+            if ($sourceId === null) {
+                continue;
+            }
+
+            $fileSize = filesize($sourcePath);
+            if ($fileSize === false || $fileSize < 1 || $fileSize > self::MAX_MUSIC_FILE_BYTES) {
+                throw new RuntimeException(
+                    'Migrated song file is missing or exceeds the 32 MB limit.'
+                );
+            }
+
+            $destinationName = (string)$sourceId . '.mp3';
+            $destination = $songDirectory . '/' . $destinationName;
+
+            if (!copy($sourcePath, $destination)) {
+                throw new RuntimeException(
+                    'Unable to publish migrated song ' . $sourceId . '.'
+                );
+            }
+
+            @chmod($destination, 0640);
+
+            $published++;
+            $bytes += (int)$fileSize;
+
+            if (isset($songIds[$sourceId])) {
+                $url = ($songUrlBase !== ''
+                    ? $songUrlBase
+                    : ''
+                ) . '/music/legacy/' .
+                    trim($stagingPrefix, '_') .
+                    '/songs/' .
+                    rawurlencode($destinationName);
+
+                $q = $target->prepare(
+                    'UPDATE songs
+                     SET download_url=:url
+                     WHERE id=:id'
+                );
+                $q->execute([
+                    'url' => $url,
+                    'id' => $sourceId,
+                ]);
+
+                if ($q->rowCount() > 0) {
+                    $rewritten++;
+                }
+            }
+        }
+
+        $staticNames = [
+            'gdps.dat',
+            'gdps.txt',
+            'standalone.dat',
+            's1.dat',
+            's1.txt',
+            's4.dat',
+            's4.txt',
+            'ids.json',
+        ];
+
+        foreach ($staticNames as $name) {
+            $sourcePath = $directory . '/' . $name;
+
+            if (!is_file($sourcePath)) {
+                continue;
+            }
+
+            $destination = $legacyDirectory . '/' . $name;
+            $size = filesize($sourcePath);
+
+            if ($size === false || $size < 1 || $size > self::MAX_MUSIC_FILE_BYTES) {
+                throw new RuntimeException(
+                    'Migrated music library file is invalid or too large: ' . $name
+                );
+            }
+
+            if (!copy($sourcePath, $destination)) {
+                throw new RuntimeException(
+                    'Unable to publish migrated music library file ' . $name . '.'
+                );
+            }
+
+            @chmod($destination, 0640);
+            $published++;
+            $bytes += (int)$size;
+        }
+
+        return [
+            'music_files_published' => $published,
+            'music_bytes_published' => $bytes,
+            'song_urls_rewritten' => $rewritten,
+        ];
+    }
+
     public function cleanup(string $stagingPrefix): void
     {
         (new GalaxxyLevelDataArchiveService($this->root))->cleanup(
             $stagingPrefix
         );
+    }
+
+    /**
+     * @return array{stored_files:int,matched_files:int,stored_bytes:int,matched_bytes:int}
+     */
+    private function stageMusic(
+        array $upload,
+        array $sourceSongIds,
+        string $stagingPrefix
+    ): array {
+        $tmp = (string)($upload['tmp_name'] ?? '');
+        if ($tmp === '' || !is_uploaded_file($tmp)) {
+            throw new RuntimeException('The Galaxxy server archive is not available.');
+        }
+
+        $directory = $this->archiveDirectory($stagingPrefix) . '/music';
+        $songDirectory = $directory . '/songs';
+
+        if (!is_dir($songDirectory)
+            && !mkdir($songDirectory, 0700, true)
+            && !is_dir($songDirectory)) {
+            throw new RuntimeException('Unable to create music staging storage.');
+        }
+
+        $allowedSongs = array_fill_keys(
+            array_values(
+                array_unique(
+                    array_filter(
+                        array_map('intval', $sourceSongIds),
+                        static fn(int $id): bool => $id > 0
+                    )
+                )
+            ),
+            true
+        );
+
+        $staticNames = [
+            'gdps.dat',
+            'gdps.txt',
+            'standalone.dat',
+            's1.dat',
+            's1.txt',
+            's4.dat',
+            's4.txt',
+            'ids.json',
+        ];
+
+        $zip = new ZipArchive();
+        if ($zip->open($tmp) !== true) {
+            throw new RuntimeException('Unable to open the Galaxxy server archive.');
+        }
+
+        $storedFiles = 0;
+        $matchedFiles = 0;
+        $storedBytes = 0;
+        $matchedBytes = 0;
+
+        try {
+            for ($i = 0, $count = $zip->numFiles; $i < $count; $i++) {
+                $stat = $zip->statIndex($i);
+                if (!is_array($stat)) {
+                    continue;
+                }
+
+                $name = str_replace('\\', '/', (string)($stat['name'] ?? ''));
+                $songId = $this->songIdFromArchivePath($name);
+
+                $static = null;
+                foreach ($staticNames as $candidate) {
+                    if (
+                        $name === 'galaxxygdps/public_html/music/' . $candidate ||
+                        $name === 'public_html/music/' . $candidate ||
+                        $name === 'music/' . $candidate
+                    ) {
+                        $static = $candidate;
+                        break;
+                    }
+                }
+
+                if ($songId === null && $static === null) {
+                    continue;
+                }
+
+                $fileBytes = (int)($stat['size'] ?? -1);
+                if ($fileBytes < 1 || $fileBytes > self::MAX_MUSIC_FILE_BYTES) {
+                    throw new RuntimeException(
+                        'Migrated music file is missing or exceeds the 32 MB limit.'
+                    );
+                }
+
+                if ($storedBytes + $fileBytes > self::MAX_MUSIC_TOTAL_BYTES) {
+                    throw new RuntimeException(
+                        'Migrated music assets exceed the 128 MB total limit.'
+                    );
+                }
+
+                $stream = $zip->getStream($name);
+                if ($stream === false) {
+                    throw new RuntimeException('Unable to read migrated music asset.');
+                }
+
+                $relative = $songId !== null
+                    ? 'songs/' . $songId . '.mp3'
+                    : $static;
+
+                $target = $directory . '/' . $relative;
+                $parent = dirname($target);
+
+                if (!is_dir($parent)
+                    && !mkdir($parent, 0700, true)
+                    && !is_dir($parent)) {
+                    fclose($stream);
+                    throw new RuntimeException('Unable to create music staging directory.');
+                }
+
+                $output = fopen($target . '.tmp', 'wb');
+                if ($output === false) {
+                    fclose($stream);
+                    throw new RuntimeException('Unable to stage migrated music asset.');
+                }
+
+                try {
+                    $written = 0;
+
+                    while (!feof($stream)) {
+                        $chunk = fread($stream, 1024 * 1024);
+                        if ($chunk === false) {
+                            throw new RuntimeException('Failed while reading migrated music asset.');
+                        }
+
+                        if ($chunk === '') {
+                            continue;
+                        }
+
+                        $written += strlen($chunk);
+
+                        if ($written > self::MAX_MUSIC_FILE_BYTES) {
+                            throw new RuntimeException('Migrated music file exceeds the 32 MB limit.');
+                        }
+
+                        $length = strlen($chunk);
+                        if (fwrite($output, $chunk) !== $length) {
+                            throw new RuntimeException('Failed while staging migrated music asset.');
+                        }
+                    }
+                } finally {
+                    fclose($output);
+                    fclose($stream);
+                }
+
+                if (!rename($target . '.tmp', $target)) {
+                    @unlink($target . '.tmp');
+                    throw new RuntimeException('Unable to publish staged music asset.');
+                }
+
+                @chmod($target, 0600);
+
+                $storedFiles++;
+                $storedBytes += $written;
+
+                if ($songId !== null && isset($allowedSongs[$songId])) {
+                    $matchedFiles++;
+                    $matchedBytes += $written;
+                }
+            }
+        } finally {
+            $zip->close();
+        }
+
+        return [
+            'stored_files' => $storedFiles,
+            'matched_files' => $matchedFiles,
+            'stored_bytes' => $storedBytes,
+            'matched_bytes' => $matchedBytes,
+        ];
+    }
+
+    private function songIdFromArchivePath(string $path): ?int
+    {
+        $match = [];
+
+        if (!preg_match(
+            '#(?:^|/)public_html/dashboard/songs/(\\d+)\.mp3$#',
+            $path,
+            $match
+        )) {
+            if (!preg_match(
+                '#(?:^|/)dashboard/songs/(\\d+)\.mp3$#',
+                $path,
+                $match
+            )) {
+                return null;
+            }
+        }
+
+        $id = (int)($match[1] ?? 0);
+
+        return $id > 0 ? $id : null;
+    }
+
+    private function songIdFromStagedPath(string $path): ?int
+    {
+        $match = [];
+
+        if (!preg_match(
+            '#/music/songs/(\\d+)\.mp3$#',
+            str_replace('\\', '/', $path),
+            $match
+        )) {
+            return null;
+        }
+
+        $id = (int)($match[1] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     /**
