@@ -839,6 +839,8 @@ if [[ "$healthy" -eq 1 ]]; then
           MUCHO_INSTALL_DIR="$INSTALL_DIR" \
           bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct; then
         log "Cloudflare DNS switched to the direct VPS origin."
+        info "Restarting Caddy after DNS change so HTTPS can be provisioned cleanly..."
+        run_compose restart caddy >/dev/null 2>&1 || true
         info "Waiting for the public hostname to reach the VPS..."
 
         public_ok=0
