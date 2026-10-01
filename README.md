@@ -121,7 +121,7 @@ The names **MuchoCore** and **GMDmucho-core** identify the same project.
 
 ### New VPS installation
 
-MuchoCore is designed so a new GDPS owner does not need to assemble PHP, MariaDB, Docker and Caddy manually.
+MuchoCore is designed so a new GDPS owner does not need to assemble PHP, MariaDB, Docker and a reverse proxy manually.
 
 For the normal stable-release VPS install, run:
 
@@ -129,13 +129,43 @@ For the normal stable-release VPS install, run:
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo -E bash
 ```
 
-The installer keeps first-run interaction intentionally small. On a normal VPS it asks only for the GDPS domain and initial admin password; a Cloudflare API token is requested only when automatic DNS configuration or Tunnel fallback is actually needed:
+The normal deployment path is **direct VPS HTTPS**. Cloudflare is not required.
 
-1. Enter the GDPS domain.
-2. Create the Admin Panel password.
-3. Let MuchoCore install and configure Docker, MariaDB, Caddy, secrets, migrations and health checks.
+On a normal public VPS, the installer needs only:
 
-The normal deployment uses direct HTTPS through Caddy. You do not need to configure PHP, MariaDB or Docker by hand.
+1. A public IPv4 address assigned to the VPS.
+2. An `A` record for the GDPS hostname pointing to that IPv4 address.
+3. Inbound TCP **80** and **443** permitted by the VPS provider/network.
+4. Your initial Admin Panel password.
+
+The installer automatically:
+
+- detects the VPS public IPv4;
+- checks the domain and expected network layout;
+- installs Docker and required host packages;
+- creates the MuchoCore environment and protected secrets;
+- starts MariaDB, PHP, worker and Caddy;
+- runs database migrations and the internal MuchoCore healthcheck;
+- configures Caddy for legacy HTTP on port 80 and managed HTTPS on port 443;
+- automatically allows TCP 80/443 through an **already-active UFW** firewall without enabling or replacing the host firewall;
+- verifies the public health endpoint before declaring the installation complete.
+
+The expected direct traffic path is:
+
+```text
+GDPS domain
+    |
+    v
+DNS A record -> VPS public IPv4
+    |
+    +---- TCP 80 ----> Caddy ----> MuchoCore
+    |
+    +---- TCP 443 ---> Caddy ----> MuchoCore
+                         |
+                         +---- Let's Encrypt
+```
+
+No Cloudflare API token, Global API Key, Cloudflare Tunnel or Cloudflare Proxy is required for this path.
 
 After installation, verify:
 
@@ -155,51 +185,73 @@ Then open:
 https://YOUR-DOMAIN/admin/
 ```
 
-### VPS plans where ports 80/443 are not reachable
+### Direct HTTPS troubleshooting
 
-Some VPS/NAT providers do not pass inbound HTTP/HTTPS traffic to the machine. In that case Cloudflare may show **522 Connection timed out** even though MuchoCore itself is running.
+If MuchoCore reports that the public hostname is unhealthy, the installer distinguishes between the **application/origin** and the **public network path**.
 
-MuchoCore prefers direct HTTPS when the VPS accepts inbound 80/443. If direct access is unavailable, the installer can automatically switch to a Cloudflare Tunnel. The installer uses the Cloudflare API to update DNS, and when needed, create or reuse a remotely managed Tunnel, configure its public hostname, obtain the connector token, and route traffic to the internal Caddy service.
+A healthy direct origin means Caddy and MuchoCore are working locally. If the domain also resolves to the detected VPS IPv4 but public TCP 80/443 still cannot reach the server, the remaining failure is outside the application stack, such as a provider-side firewall, security ACL or port policy.
 
-The resulting traffic path is:
+For a direct installation, the required DNS layout is:
 
 ```text
+A     gdps.example.com      -> YOUR_VPS_IPV4
+A     www.gdps.example.com  -> YOUR_VPS_IPV4
+```
+
+There should not be a conflicting `CNAME` or `AAAA` record for the same hostname unless you intentionally support that additional address/path.
+
+When Cloudflare is used only as the DNS provider, use **DNS only** for the direct-origin record. Cloudflare does not need to proxy the HTTP/HTTPS traffic.
+
+### VPS plans where ports 80/443 are not reachable
+
+Some VPS/NAT providers do not pass inbound HTTP/HTTPS traffic to the machine. This is common on NAT/CGNAT plans or VPS products where only RDP/SSH is exposed.
+
+In that case, MuchoCore supports an explicit **Cloudflare Tunnel** transport:
+
+```text
+Internet
+  |
+  v
 Cloudflare
-  ↓
+  |
+  v
 Cloudflare Tunnel
-  ↓
+  |
+  v
 http://caddy:80
-  ↓
+  |
+  v
 MuchoCore
 ```
 
-#### One-time Cloudflare API token
+Direct VPS HTTPS remains the default. Tunnel mode is a fallback for infrastructure where the VPS cannot accept inbound 80/443.
 
-For automatic Cloudflare provisioning, create one API token with only the permissions needed for this setup:
+To explicitly use Tunnel mode, provide a runtime connector token:
+
+```bash
+export MUCHO_TRANSPORT_MODE=tunnel
+export MUCHO_TUNNEL_TOKEN='YOUR_TUNNEL_CONNECTOR_TOKEN'
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo -E bash
+```
+
+For the advanced automatic Cloudflare provisioning path, use `MUCHO_TRANSPORT_MODE=auto`. In that mode MuchoCore tries direct access first and can ask for Cloudflare credentials only when it needs to change DNS or provision/reuse a Tunnel.
+
+For automatic Cloudflare provisioning, create one API token with only the permissions needed for the setup:
 
 ```text
 Account
-  Cloudflare Tunnel → Edit
+  Cloudflare Tunnel -> Edit
 
 Zone
-  DNS → Edit
-  Zone → Read
+  DNS -> Edit
+  Zone -> Read
 ```
 
 See the [Cloudflare API token permissions documentation](https://developers.cloudflare.com/fundamentals/api/reference/permissions/) for the current permission groups.
 
-You do **not** need to create the Tunnel, Public Hostname, or CNAME record manually. MuchoCore does that through the API.
+The installer can create or reuse the remotely managed Tunnel, configure the public hostname, obtain the connector token and route traffic to the internal Caddy service. The Cloudflare API credential is used for provisioning and is not persisted; only the Tunnel runtime token required by `cloudflared` is kept on the server.
 
-When a direct installation cannot serve the public health endpoint, the installer first tries direct DNS/origin recovery and then falls back to the Tunnel automatically. The API token is used only during provisioning and is not persisted; only the Tunnel runtime token required by `cloudflared` is kept on the server.
-
-You can also provide the token non-interactively:
-
-```bash
-export MUCHO_CLOUDFLARE_API_TOKEN='YOUR_CLOUDFLARE_API_TOKEN'
-curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo -E bash
-```
-
-For advanced NAT/CGNAT deployments, see **[docs/ADVANCED.md](docs/ADVANCED.md)**.
+For more detail, see **[docs/ADVANCED.md](docs/ADVANCED.md)**.
 ### Existing GDPS migration
 
 Already running a Cvolton/GMDprivateServer-style GDPS? Open **Admin → Tools → Migration Center** for the guided workflow. The [Migration Kit](docs/MIGRATION_KIT.md) and [Migration Center](docs/MIGRATION_CENTER.md) documents cover the VPS/CLI fallback for advanced use.
