@@ -888,7 +888,7 @@ final class CvoltonDatabaseImporter
         array $required
     ): void {
         $columns = [];
-        $q = $source->query('SHOW COLUMNS FROM `' . $table . '`');
+        $q = $source->query('SHOW COLUMNS FROM ' . $this->sourceTable($table));
 
         foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $field = (string)($row['Field'] ?? '');
