@@ -812,27 +812,50 @@ if [[ "$healthy" -eq 1 ]]; then
       log "Public health check passed in direct mode."
     fi
   elif [[ "$TRANSPORT_MODE" == "auto" && "$USE_TUNNEL" -eq 0 ]]; then
-    info "Public HTTPS is unavailable (HTTP $public_code). Automatic Tunnel setup is available."
-    if [[ -n "$CLOUDFLARE_API_TOKEN" ]] && provision_cloudflare_tunnel; then
-      public_ok=0
-      for _ in {1..45}; do
-        if curl -4ksSf --connect-timeout 3 --max-time 6 \
-          "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
-          public_ok=1
-          break
-        fi
-        sleep 2
-      done
-      if [[ "$public_ok" -eq 1 ]]; then
-        log "Public health check passed through Cloudflare Tunnel."
-      else
-        fail "Cloudflare Tunnel was provisioned, but the public hostname is still unhealthy. Run: sudo mucho doctor"
-      fi
-    else
-      fail "Automatic transport setup failed: direct public ingress is unavailable and no usable Cloudflare API token was provided."
-    info "For automatic Tunnel fallback, export MUCHO_CLOUDFLARE_API_TOKEN and run the installer again."
+    info "Public HTTPS is unavailable (HTTP $public_code)."
+
+    # Prefer the direct origin on public-IP VPSes. If DNS still points at an
+    # old Tunnel/proxy target, ask once for Cloudflare credentials so the
+    # installer can switch the hostname automatically and continue.
+    if [[ -z "$CLOUDFLARE_API_TOKEN" && -t 0 && -t 1 ]]; then
+      printf "\n${BOLD}  Cloudflare API token${RESET}\n"
+      printf "  MuchoCore can automatically point $DOMAIN to the VPS public IP ($PUBLIC_IP).\n"
+      printf "  The token is used only for DNS setup and is not stored.\n\n"
+      read -r -s -p "  Cloudflare API token (Enter to skip): " CLOUDFLARE_API_TOKEN < /dev/tty
+      printf "\n"
     fi
 
+    if [[ -n "$CLOUDFLARE_API_TOKEN" ]]; then
+      if MUCHO_CLOUDFLARE_API_TOKEN="$CLOUDFLARE_API_TOKEN" \
+          MUCHO_DOMAIN="$DOMAIN" \
+          MUCHO_PUBLIC_IP="$PUBLIC_IP" \
+          MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+          bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct; then
+        log "Cloudflare DNS switched to the direct VPS origin."
+        info "Waiting for the public hostname to reach the VPS..."
+
+        public_ok=0
+        for _ in {1..45}; do
+          if curl -4ksSf --connect-timeout 3 --max-time 6 \
+            "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+            public_ok=1
+            break
+          fi
+          sleep 2
+        done
+
+        if [[ "$public_ok" -eq 1 ]]; then
+          sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=direct/' "$INSTALL_DIR/.env"
+          log "Public health check passed in direct mode."
+        else
+          fail "Cloudflare DNS was switched to the direct VPS, but public HTTPS is still unhealthy. Run: sudo mucho doctor"
+        fi
+      else
+        fail "Cloudflare DNS automation failed. Check the API token permissions and run: sudo mucho doctor"
+      fi
+    else
+      fail "Automatic transport setup needs either working direct DNS or Cloudflare API access to switch the domain to this VPS."
+    fi
   elif [[ "$TRANSPORT_MODE" == "direct" ]]; then
     fail "Direct transport was requested, but the public hostname is not healthy. Verify DNS and inbound 80/443 reach the VPS."
   else
