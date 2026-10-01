@@ -8,6 +8,17 @@ use PDO;
 
 final class SourceDetector
 {
+    public function __construct(
+        private readonly string $sourcePrefix = ''
+    ) {
+        if (
+            $this->sourcePrefix !== '' &&
+            !preg_match('/^mci_[a-f0-9]{16}_$/', $this->sourcePrefix)
+        ) {
+            throw new \InvalidArgumentException('Invalid source table prefix.');
+        }
+    }
+
     /**
      * Detect a source database by schema, not by product name.
      * GDPS-Maker commonly provisions a Cvolton-compatible database, so the
@@ -203,8 +214,55 @@ final class SourceDetector
         $tables = [];
 
         foreach ($rows as $row) {
-            if (isset($row[0]) && is_string($row[0])) {
-                $tables[] = $row[0];
+            if (!isset($row[0]) || !is_string($row[0])) {
+                continue;
+            }
+
+            $name = $row[0];
+
+            if ($this->sourcePrefix === '') {
+                $tables[] = $name;
+                continue;
+            }
+
+            if (!str_starts_with($name, $this->sourcePrefix)) {
+                continue;
+            }
+
+            $logical = substr($name, strlen($this->sourcePrefix));
+
+            if (in_array($logical, [
+                'accounts',
+                'users',
+                'levels',
+                'levelscores',
+                'platscores',
+                'comments',
+                'acccomments',
+                'friendships',
+                'friendreqs',
+                'blocks',
+                'messages',
+                'links',
+                'lists',
+                'mappacks',
+                'gauntlets',
+                'dailyfeatures',
+                'roles',
+                'roleassign',
+                'modips',
+                'bannedips',
+                'reports',
+                'modactions',
+                'actions',
+                'suggest',
+                'modipperms',
+                'songs',
+                'actions_downloads',
+                'actions_likes',
+                'cpshares',
+            ], true)) {
+                $tables[] = $logical;
             }
         }
 
