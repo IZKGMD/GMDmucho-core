@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Never keep the installer inside INSTALL_DIR: the reinstall path may remove it
+# before cloning the new checkout. A missing current working directory makes
+# Git fail with "Unable to read current working directory".
+cd /
+
 REPO_URL="${MUCHO_REPO_URL:-https://github.com/IZKGMD/GMDmucho-core.git}"
 INSTALL_DIR="${MUCHO_INSTALL_DIR:-/opt/mucho-core}"
 DOMAIN="${MUCHO_DOMAIN:-}"
@@ -469,7 +474,7 @@ fi
 systemctl enable --now docker
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 was not found."
 
-INSTALL_STEP="fetching the stable MuchoCore release"
+INSTALL_STEP="preparing the MuchoCore source"
 log "Preparing MuchoCore..."
 if [[ -n "$INSTALL_REF" ]]; then
   [[ "$INSTALL_REF" =~ ^[A-Za-z0-9._/-]+$ ]] || fail "Invalid install ref: $INSTALL_REF"
