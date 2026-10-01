@@ -29,7 +29,7 @@ CLOUDFLARE_GLOBAL_API_KEY="${MUCHO_CLOUDFLARE_GLOBAL_API_KEY:-}"
 # then use the connector token shown for the tunnel. The MuchoCore tunnel
 # compose override sends traffic to the internal Caddy service at http://caddy:80.
 TUNNEL_TOKEN="${MUCHO_TUNNEL_TOKEN:-}"
-TRANSPORT_MODE="${MUCHO_TRANSPORT_MODE:-auto}"
+TRANSPORT_MODE="${MUCHO_TRANSPORT_MODE:-direct}"
 PUBLIC_IP="${MUCHO_PUBLIC_IP:-}"
 USE_TUNNEL=0
 GD_VERSIONS="${MUCHO_GD_VERSIONS:-}"
@@ -88,7 +88,7 @@ Optional flags:
   --migrate               Open the existing-GDPS migration flow after install.
   --help                  Show this help.
 
-Transport is automatic by default. Set MUCHO_TRANSPORT_MODE to auto, direct, or tunnel.
+Transport is direct by default. Set MUCHO_TRANSPORT_MODE to direct, auto, or tunnel when needed.
 Environment equivalents are also supported.
 EOF
 }
@@ -134,13 +134,13 @@ print_installer_intro() {
   printf "\n${BOLD}Installation overview${RESET}\n"
   printf "  1. Check the VPS and Docker\n"
   printf "  2. Install MuchoCore and initialize the database\n"
-  printf "  3. Prefer direct HTTPS on ports 80/443\n"
-  printf "  4. If direct ingress is unavailable, use Cloudflare Tunnel automatically\n"
-  printf "  5. Verify public https://<domain>/health before declaring success\n"
+  printf "  3. Serve HTTPS directly from the VPS on ports 80/443\n"
+  printf "  4. Verify public https://<domain>/health before declaring success\n"
+  printf "  5. Cloudflare is optional and is used only when explicitly selected for NAT/CGNAT\n"
   printf "\n"
-  printf "${CYAN}You only need to provide the domain and admin password for a normal public VPS.${RESET}\n"
-  printf "${CYAN}Cloudflare API access is needed only when MuchoCore must change Cloudflare DNS or enable NAT fallback.${RESET}\n"
-  printf "  ${CYAN}When needed, the installer will ask for the token and explain how to create it.${RESET}\n"
+  printf "${CYAN}For a normal VPS, MuchoCore needs only a domain pointing to this VPS and inbound TCP 80/443.${RESET}\n"
+  printf "${CYAN}Cloudflare credentials are not required for the normal installation path.${RESET}\n"
+  printf "  ${CYAN}Cloudflare Tunnel remains available as an explicit NAT/CGNAT fallback.${RESET}\n"
   printf "${CYAN}The installer will stop on a failed public health check instead of leaving a broken deployment behind.${RESET}\n"
   printf "\n"
 }
@@ -418,11 +418,11 @@ detect_public_ip() {
     return
   }
   info "Detected public IPv4: $PUBLIC_IP"
-  printf "  ${CYAN}Transport policy:${RESET} automatic — direct HTTPS first, Cloudflare Tunnel only if direct ingress fails.\n"
+  printf "  ${CYAN}Transport policy:${RESET} direct HTTPS by default.\n"
   if [[ -n "$CLOUDFLARE_API_TOKEN" ]]; then
-    printf "  ${CYAN}Cloudflare fallback:${RESET} API credentials available.\n"
+    printf "  ${CYAN}Cloudflare integration:${RESET} API credentials available (optional).\n"
   else
-    printf "  ${CYAN}Cloudflare fallback:${RESET} API credentials not provided; direct mode remains fully automatic.\n"
+    printf "  ${CYAN}Cloudflare integration:${RESET} not configured; direct HTTPS remains the default.\n"
   fi
 }
 check_domain_preflight() {
@@ -434,7 +434,11 @@ check_domain_preflight() {
 
   if [[ -n "$domain_ips" ]]; then
     info "DNS resolves: $DOMAIN → $domain_ips"
-    info "Public reachability will be verified after Caddy starts (Cloudflare-proxied DNS and Tunnel mode are supported)."
+    if [[ -n "$PUBLIC_IP" && " $domain_ips " != *" $PUBLIC_IP "* ]]; then
+      warn "DNS does not point directly to this VPS ($PUBLIC_IP). For direct mode, create an A record for $DOMAIN pointing to $PUBLIC_IP and disable any DNS proxy."
+  else
+      info "DNS points to this VPS. Public HTTPS will be verified after Caddy starts."
+  fi
   else
     warn "DNS for $DOMAIN does not resolve from this VPS yet."
     warn "Installation can continue, but public HTTPS will not work until DNS is configured."
@@ -932,7 +936,7 @@ if [[ "$healthy" -eq 1 ]]; then
         fail "Automatic transport setup failed: neither direct origin nor Cloudflare Tunnel became healthy. Run: sudo mucho doctor"
       fi
     else
-      fail "Automatic transport setup needs either working direct DNS or a Cloudflare API token. Re-run the installer and provide it when prompted."
+      fail "Public HTTPS is unavailable. For the default direct mode, point an A record for $DOMAIN to $PUBLIC_IP and allow inbound TCP 80/443, then run the installer again. Cloudflare Tunnel is optional: set MUCHO_TRANSPORT_MODE=tunnel only if direct inbound access is impossible."
     fi
   elif [[ "$TRANSPORT_MODE" == "direct" ]]; then
     fail "Direct transport was requested, but the public hostname is not healthy. Verify DNS and inbound 80/443 reach the VPS."
