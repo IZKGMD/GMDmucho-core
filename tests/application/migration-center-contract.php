@@ -306,7 +306,7 @@ foreach ([
     }
 }
 
-if (strpos($cvoltonImporter, "SHOW COLUMNS FROM ' . $this->sourceTable($table)") === false) {
+if (strpos($cvoltonImporter, "SHOW COLUMNS FROM ' . \\$this->sourceTable(\\$table)") === false) {
     throw new RuntimeException('Cvolton importer must inspect the prefixed staging table schema.');
 }
 
