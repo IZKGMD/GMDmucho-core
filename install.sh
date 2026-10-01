@@ -122,6 +122,19 @@ print_banner() {
   printf "${CYAN}║${RESET}                                                                      ${CYAN}║${RESET}\n"
   printf "${CYAN}╚══════════════════════════════════════════════════════════════════════╝${RESET}\n"
 }
+print_installer_intro() {
+  printf "\n${BOLD}Installation overview${RESET}\n"
+  printf "  1. Check the VPS and Docker\n"
+  printf "  2. Install MuchoCore and initialize the database\n"
+  printf "  3. Prefer direct HTTPS on ports 80/443\n"
+  printf "  4. If direct ingress is unavailable, use Cloudflare Tunnel automatically\n"
+  printf "  5. Verify public https://<domain>/health before declaring success\n"
+  printf "\n"
+  printf "${CYAN}You only need to provide the domain and admin password for a normal public VPS.${RESET}\n"
+  printf "${CYAN}Cloudflare API access is only needed when automatic Tunnel fallback must be available.${RESET}\n"
+  printf "${CYAN}The installer will stop on a failed public health check instead of leaving a broken deployment behind.${RESET}\n"
+  printf "\n"
+}
 profile_label() {
   case "$1" in
     all) printf "GD 1.0 → 2.2" ;;
@@ -279,6 +292,9 @@ trap 'fail "Installation failed during: $INSTALL_STEP (line $LINENO). Check the 
 
 [[ $EUID -eq 0 ]] || fail "Run the installer as root: sudo bash install.sh"
 
+print_banner
+print_installer_intro
+
 if [[ -f "$INSTALL_DIR/.env" ]]; then
   if [[ -z "$CLOUDFLARE_API_TOKEN" && -s "$INSTALL_DIR/.secrets/cloudflare_api_token" ]]; then
     CLOUDFLARE_API_TOKEN="$(cat "$INSTALL_DIR/.secrets/cloudflare_api_token")"
@@ -328,7 +344,9 @@ esac
 select_compatibility_profile
 
 if [[ -z "$DOMAIN" ]]; then
-  read -r -p "  GDPS domain (for example gdps.example.com): " DOMAIN < /dev/tty
+  printf "\n${BOLD}  Public GDPS domain${RESET}\n"
+  printf "  Enter the hostname players will use, for example: gdps.example.com\n"
+  read -r -p "  Domain: " DOMAIN < /dev/tty
 DOMAIN="${DOMAIN#http://}"
 DOMAIN="${DOMAIN#https://}"
 DOMAIN="${DOMAIN%%/*}"
@@ -353,6 +371,12 @@ detect_public_ip() {
     return
   }
   info "Detected public IPv4: $PUBLIC_IP"
+  printf "  ${CYAN}Transport policy:${RESET} automatic — direct HTTPS first, Cloudflare Tunnel only if direct ingress fails.\n"
+  if [[ -n "$CLOUDFLARE_API_TOKEN" ]]; then
+    printf "  ${CYAN}Cloudflare fallback:${RESET} API credentials available.\n"
+  else
+    printf "  ${CYAN}Cloudflare fallback:${RESET} API credentials not provided; direct mode remains fully automatic.\n"
+  fi
 }
 check_domain_preflight() {
   INSTALL_STEP="checking domain and host networking"
@@ -449,8 +473,9 @@ fi
 if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then
   MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
 elif [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
-  log "The admin panel username is: $ADMIN_USER"
-  read -r -s -p "Create a password for the admin panel (you will use it to log in): " MUCHO_ADMIN_PASSWORD < /dev/tty
+  log "Admin panel username: $ADMIN_USER"
+  printf "  Create the initial admin password. It is stored locally as a protected secret.\n"
+  read -r -s -p "  Admin password: " MUCHO_ADMIN_PASSWORD < /dev/tty
   printf '\n'
 fi
 [[ -n "$MUCHO_ADMIN_PASSWORD" ]] || fail "Admin password cannot be empty."
@@ -822,6 +847,8 @@ INSTALL_STEP="completed"
 cat <<EOFOUT
 
 MuchoCore is installed.
+
+Transport:  $(sed -n 's/^MUCHO_TRANSPORT_MODE=//p' "$INSTALL_DIR/.env" | head -n1)
 
 Compatibility profile:
   GD_VERSIONS=$GD_VERSIONS
