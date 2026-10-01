@@ -333,6 +333,7 @@ foreach ([
     'music_files_published',
     'galaxxy_archive',
     'public_html/data/levels/',
+    'levels/deleted/',
     'Only .zip Galaxxy data archives are supported.',
     'MAX_UNCOMPRESSED_BYTES',
     'getStream(',
