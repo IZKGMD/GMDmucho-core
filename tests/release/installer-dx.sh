@@ -19,6 +19,8 @@ grep -Fq 'MUCHO_TRANSPORT_MODE' install.sh
 grep -Fq 'PUBLIC_IP' install.sh
 grep -Fq 'Automatic transport selection' install.sh
 grep -Fq 'fail "Automatic transport setup failed' install.sh
+grep -Fq 'requires an existing Tunnel runtime token' install.sh
+! grep -Fq 'Cloudflare API token (press Enter' install.sh
 grep -Fq 'expected_services=(db app worker caddy)' install.sh
 ! grep -Fq 'Cloudflare API token (press Enter' install.sh
 grep -Fq 'MUCHO_CLOUDFLARE_API_TOKEN' install.sh
