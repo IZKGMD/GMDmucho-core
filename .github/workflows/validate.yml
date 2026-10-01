@@ -32,10 +32,11 @@ jobs:
           bash -n uninstall.sh
           bash -n tools/migration/mucho-migrate.sh
           bash -n bin/mucho
-          find tests -name '*.sh' -print0 | xargs -0 -n1 bash -n
-          pwd
-          ls -l tests/release/migration-kit.sh tools/migration/mucho-migrate.sh
-          bash -x tests/release/migration-kit.sh
+          while IFS= read -r -d "" script; do
+            echo "Checking shell syntax: $script"
+            bash -n "$script"
+          done < <(find tests -name "*.sh" -print0)
+          bash tests/release/migration-kit.sh
 
       - name: Validate Composer manifest
         run: composer validate --strict --no-check-publish
