@@ -613,7 +613,7 @@ run_compose up -d --build --remove-orphans
 
 log "Verifying running containers..."
 expected_services=(db app worker caddy)
-if [[ -n "$TUNNEL_TOKEN" ]]; then
+if [[ "$USE_TUNNEL" -eq 1 ]]; then
   expected_services+=(cloudflared)
 fi
 for service in "${expected_services[@]}"; do
@@ -720,19 +720,17 @@ if [[ "$healthy" -eq 1 ]]; then
   rm -f "$public_probe_file"
 
   if [[ "$public_ok" -eq 1 ]]; then
-    sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=direct/' "$INSTALL_DIR/.env"
-    log "Public health check passed in direct mode."
+    if [[ "$USE_TUNNEL" -eq 1 ]]; then
+      sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
+      log "Public health check passed through Cloudflare Tunnel."
+    else
+      sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=direct/' "$INSTALL_DIR/.env"
+      log "Public health check passed in direct mode."
+    fi
   elif [[ "$TRANSPORT_MODE" == "auto" && "$USE_TUNNEL" -eq 0 ]]; then
-    # A Cloudflare-proxied hostname can return 52x or curl 000 when the
-    # provider blocks inbound 80/443. In both cases the application itself is
-    # already proven healthy by the internal healthcheck, so automatically
-    # switch transport instead of declaring installation complete with a
-    # broken public endpoint.
     info "Public HTTPS is unavailable (HTTP $public_code). Automatic Tunnel setup is available."
     if [[ -n "$CLOUDFLARE_API_TOKEN" ]] && provision_cloudflare_tunnel; then
       public_ok=0
-      # Give Cloudflare enough time to attach the hostname to the newly
-      # registered connector before declaring the public endpoint unhealthy.
       for _ in {1..45}; do
         if curl -4ksSf --connect-timeout 3 --max-time 6 \
           "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
@@ -741,20 +739,14 @@ if [[ "$healthy" -eq 1 ]]; then
         fi
         sleep 2
       done
-
       if [[ "$public_ok" -eq 1 ]]; then
         log "Public health check passed through Cloudflare Tunnel."
       else
-        warn "Cloudflare Tunnel is running, but the public hostname is not healthy yet."
-        warn "Run: sudo mucho doctor"
+        fail "Cloudflare Tunnel was provisioned, but the public hostname is still unhealthy. Run: sudo mucho doctor"
       fi
     else
-      warn "Automatic Cloudflare Tunnel setup was skipped."
-      warn "The application is healthy locally, but public ingress remains unavailable."
+      fail "Automatic transport setup failed: direct public ingress is unavailable and no usable Cloudflare API token was provided."
     fi
-  elif [[ "$TRANSPORT_MODE" == "tunnel" || "$USE_TUNNEL" -eq 1 ]]; then
-    warn "The application is healthy locally, but the domain is not reachable through Cloudflare Tunnel yet."
-    warn "Check: cd $INSTALL_DIR && sudo docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs cloudflared --tail=80"
   elif [[ "$TRANSPORT_MODE" == "tunnel" && "$USE_TUNNEL" -eq 0 ]]; then
     if [[ -n "$CLOUDFLARE_API_TOKEN" ]] && provision_cloudflare_tunnel; then
       public_ok=0
@@ -770,11 +762,9 @@ if [[ "$healthy" -eq 1 ]]; then
       warn "Tunnel mode was requested, but Cloudflare API credentials are unavailable."
     fi
   elif [[ "$TRANSPORT_MODE" == "direct" ]]; then
-    warn "Direct transport was requested, but the public hostname is not healthy."
-    warn "The application is healthy locally; verify DNS and inbound 80/443 reach the VPS."
+    fail "Direct transport was requested, but the public hostname is not healthy. Verify DNS and inbound 80/443 reach the VPS."
   else
-    warn "Automatic transport selection could not establish a healthy public endpoint."
-    warn "The application is healthy locally. Provide MUCHO_CLOUDFLARE_API_TOKEN for fully automatic Tunnel fallback."
+    fail "Automatic transport selection could not establish a healthy public endpoint. Provide MUCHO_CLOUDFLARE_API_TOKEN for fully automatic Tunnel fallback or fix DNS/inbound 80/443."
   fi
 else
   warn "The internal MuchoCore healthcheck did not pass."
