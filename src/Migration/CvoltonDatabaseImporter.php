@@ -43,8 +43,15 @@ final class CvoltonDatabaseImporter
     ];
 
     public function __construct(
-        private readonly PDO $target
+        private readonly PDO $target,
+        private readonly string $sourcePrefix = ''
     ) {
+        if (
+            $this->sourcePrefix !== '' &&
+            !preg_match('/^mci_[a-f0-9]{16}_$/', $this->sourcePrefix)
+        ) {
+            throw new \InvalidArgumentException('Invalid source table prefix.');
+        }
     }
 
     public function preflight(PDO $source): array
@@ -128,8 +135,8 @@ final class CvoltonDatabaseImporter
                 COALESCE(u.color2,3) AS color2,
                 COALESCE(u.accGlow,0) AS glow,
                 COALESCE(u.isBanned,0) AS isBanned
-            FROM accounts a
-            LEFT JOIN users u
+            FROM ' . $this->sourceTable('accounts') . ' a
+            LEFT JOIN ' . $this->sourceTable('users') . ' u
                 ON u.extID = CAST(a.accountID AS CHAR)
             WHERE a.accountID > :last
             ORDER BY a.accountID ASC
@@ -195,7 +202,7 @@ final class CvoltonDatabaseImporter
         $last = 0;
         $q = $source->prepare(
             'SELECT *
-             FROM levels
+             FROM ' . $this->sourceTable('levels') . '
              WHERE levelID > :last
              ORDER BY levelID ASC
              LIMIT 250'
@@ -261,7 +268,7 @@ final class CvoltonDatabaseImporter
         $last = 0;
         $q = $source->prepare(
             'SELECT *
-             FROM levelscores
+             FROM ' . $this->sourceTable('levelscores') . '
              WHERE scoreID > :last
              ORDER BY scoreID ASC
              LIMIT 250'
@@ -329,7 +336,7 @@ final class CvoltonDatabaseImporter
         $last = 0;
         $q = $source->prepare(
             'SELECT *
-             FROM platscores
+             FROM ' . $this->sourceTable('platscores') . '
              WHERE ID > :last
              ORDER BY ID ASC
              LIMIT 250'
@@ -818,15 +825,37 @@ final class CvoltonDatabaseImporter
 
     private function sourceTableExists(PDO $source, string $table): bool
     {
+        $physical = $this->physicalSourceTable($table);
+
         $q = $source->prepare(
             'SELECT 1
              FROM information_schema.tables
              WHERE table_schema=DATABASE() AND table_name=:table
              LIMIT 1'
         );
-        $q->execute(['table' => $table]);
+        $q->execute(['table' => $physical]);
 
         return $q->fetchColumn() !== false;
+    }
+
+    private function sourceTable(string $table): string
+    {
+        return chr(96) .
+            str_replace(
+                chr(96),
+                chr(96) . chr(96),
+                $this->physicalSourceTable($table)
+            ) .
+            chr(96);
+    }
+
+    private function physicalSourceTable(string $table): string
+    {
+        if (!preg_match('/^[A-Za-z0-9_$.-]{1,64}$/', $table)) {
+            throw new RuntimeException('Invalid migration source table.');
+        }
+
+        return $this->sourcePrefix . $table;
     }
 
     private function requireSourceSchema(PDO $source): void
@@ -886,7 +915,7 @@ final class CvoltonDatabaseImporter
     private function count(PDO $db, string $table): int
     {
         return (int)$db->query(
-            'SELECT COUNT(*) FROM ' . $table
+            'SELECT COUNT(*) FROM ' . $this->sourceTable($table)
         )->fetchColumn();
     }
 
