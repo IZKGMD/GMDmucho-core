@@ -31,6 +31,11 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       MUCHO_DB_PASSWORD_FILE: /run/secrets/db_password
+      MUCHO_MIGRATION_DB_HOST: ${MUCHO_MIGRATION_DB_HOST:-db}
+      MUCHO_MIGRATION_DB_PORT: ${MUCHO_MIGRATION_DB_PORT:-3306}
+      MUCHO_MIGRATION_DB_NAME: ${MUCHO_MIGRATION_DB_NAME:-muchocore_migration}
+      MUCHO_MIGRATION_DB_USER: ${MUCHO_MIGRATION_DB_USER:-muchocore_migration}
+      MUCHO_MIGRATION_DB_PASSWORD_FILE: /run/secrets/migration_db_password
       ADMIN_USER: ${ADMIN_USER}
       MUCHO_ADMIN_PASSWORD_FILE: /run/secrets/admin_password
       MUCHO_ACCOUNT_URL: ${MUCHO_ACCOUNT_URL}
@@ -54,6 +59,7 @@ services:
       MUCHO_WEBHOOK_EVENTS: ${MUCHO_WEBHOOK_EVENTS:-*}
     secrets:
       - db_password
+      - migration_db_password
       - admin_password
       - cloudsave_key
     volumes:
@@ -117,6 +123,8 @@ secrets:
     file: ./.secrets/db_password
   db_root_password:
     file: ./.secrets/db_root_password
+  migration_db_password:
+    file: ./.secrets/migration_db_password
   admin_password:
     file: ./.secrets/admin_password
   cloudsave_key:
