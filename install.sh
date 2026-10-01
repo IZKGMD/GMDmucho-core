@@ -302,6 +302,14 @@ print_installer_intro
 if [[ -f "$INSTALL_DIR/.env" ]]; then
   if [[ -z "$CLOUDFLARE_API_TOKEN" && -s "$INSTALL_DIR/.secrets/cloudflare_api_token" ]]; then
     CLOUDFLARE_API_TOKEN="$(cat "$INSTALL_DIR/.secrets/cloudflare_api_token")"
+    CLOUDFLARE_AUTH_MODE="${CLOUDFLARE_AUTH_MODE:-token}"
+  fi
+  if [[ -z "$CLOUDFLARE_AUTH_MODE" ]]; then
+    if [[ -n "$CLOUDFLARE_API_TOKEN" ]]; then
+      CLOUDFLARE_AUTH_MODE="token"
+    elif [[ -n "$CLOUDFLARE_GLOBAL_API_KEY" ]]; then
+      CLOUDFLARE_AUTH_MODE="global-key"
+    fi
   fi
   if [[ -z "$GD_VERSIONS" ]]; then
     GD_VERSIONS="$(sed -n 's/^MUCHO_GD_VERSIONS=//p' "$INSTALL_DIR/.env" | head -n1)"
