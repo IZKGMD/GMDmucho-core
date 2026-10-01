@@ -55,13 +55,18 @@ compose() {
     cd "$ROOT"
 
     local tunnel_token=""
-    if [[ -s "$SECRETS/tunnel_token" ]]; then
-        tunnel_token="$(cat "$SECRETS/tunnel_token")"
-    elif [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
-        tunnel_token="$(env_get MUCHO_TUNNEL_TOKEN)"
-    fi
-
-    if [[ -n "$tunnel_token" ]]; then
+    local transport_mode
+    transport_mode="$(env_get MUCHO_TRANSPORT_MODE)"
+    if [[ "$transport_mode" == "tunnel" ]]; then
+        if [[ -s "$SECRETS/tunnel_token" ]]; then
+            tunnel_token="$(cat "$SECRETS/tunnel_token")"
+        elif [[ -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
+            tunnel_token="$(env_get MUCHO_TUNNEL_TOKEN)"
+        fi
+        [[ -n "$tunnel_token" ]] || {
+            echo "[MuchoCore] ERROR: Tunnel mode is enabled but the runtime token is missing." >&2
+            return 1
+        }
         MUCHO_TUNNEL_TOKEN="$tunnel_token" docker compose -f docker-compose.yml -f docker-compose.tunnel.yml "$@"
     else
         docker compose "$@"
@@ -136,6 +141,7 @@ show_settings() {
     echo "MuchoCore configuration"
     echo "-----------------------"
     printf '%-24s %s\n' "Domain" "$(env_get DOMAIN)"
+    printf '%-24s %s\n' "Transport" "$(env_get MUCHO_TRANSPORT_MODE)"
     printf '%-24s %s\n' "Database name" "$(env_get DB_NAME)"
     printf '%-24s %s\n' "Database user" "$(env_get DB_USER)"
     printf '%-24s %s\n' "GD profile" "$(env_get MUCHO_GD_VERSIONS)"
@@ -158,7 +164,11 @@ set_domain() {
     }
     env_set DOMAIN "$domain"
     env_set MUCHO_ACCOUNT_URL "https://$domain"
-    env_set CADDY_ADDRESS "$(caddy_address_for "$domain")"
+    if [[ "$(env_get MUCHO_TRANSPORT_MODE)" == "tunnel" ]]; then
+        env_set CADDY_ADDRESS '":80"'
+    else
+        env_set CADDY_ADDRESS "$(caddy_address_for "$domain")"
+    fi
     restart_services
     echo "Domain updated to https://$domain"
 }
@@ -327,7 +337,9 @@ doctor() {
     local service container_id running
     local services=(db app worker caddy)
     local tunnel_mode=0
-    if [[ -s "$SECRETS/tunnel_token" || -n "$(env_get MUCHO_TUNNEL_TOKEN)" ]]; then
+    local transport_mode
+    transport_mode="$(env_get MUCHO_TRANSPORT_MODE)"
+    if [[ "$transport_mode" == "tunnel" || ( -z "$transport_mode" && ( -s "$SECRETS/tunnel_token" || -n "$(env_get MUCHO_TUNNEL_TOKEN)" ) ) ]]; then
         tunnel_mode=1
         services+=(cloudflared)
     fi
