@@ -12,9 +12,13 @@ check_file() {
     fi
 }
 
+echo "MIGRATION_KIT_TEST_ROOT=$ROOT"
 test -f "$KIT"
+echo "MIGRATION_KIT_FILE_OK"
 bash -n "$KIT"
+echo "MIGRATION_KIT_SYNTAX_OK"
 
+echo "MIGRATION_KIT_RUNNING_HELP"
 set +e
 help_output="$(bash "$KIT" --help 2>&1)"
 help_status=$?
@@ -33,6 +37,7 @@ check_help() {
     fi
 }
 
+echo "MIGRATION_KIT_HELP_OK"
 check_help "MuchoCore Migration Kit"
 check_help "--source-host=HOST"
 check_help "--apply"
