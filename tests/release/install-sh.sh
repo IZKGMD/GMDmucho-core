@@ -23,8 +23,8 @@ grep -Fq 'DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl
 grep -Fq "jq -r '.tag_name // empty'" install.sh
 grep -Fq 'git -C "$INSTALL_DIR" diff --quiet' install.sh
 grep -Fq 'git -C "$INSTALL_DIR" diff --cached --quiet' install.sh
-grep -Fq 'DOMAIN="${DOMAIN#http://}"' install.sh
-grep -Fq 'DOMAIN="${DOMAIN#https://}"' install.sh
+grep -Fq 'value="${value#http://}"' install.sh
+grep -Fq 'value="${value#https://}"' install.sh
 
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/db_password" ]]; then' install.sh
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/db_root_password" ]]; then' install.sh
