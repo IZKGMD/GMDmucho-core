@@ -128,7 +128,7 @@ $sqlName=(string)($_SESSION['migration_sql_name'] ?? '');
             <input type="hidden" name="action" value="migration-sql-preview">
             <label style="display:block">
                 <span class="muted">SQL dump</span><br>
-                <input type="file" name="source_sql" accept=".sql,.gz,application/sql,text/plain" required style="width:100%">
+                <input type="file" name="source_sql" accept=".sql,application/sql,text/plain" required style="width:100%">
             </label>
             <button type="submit" style="margin-top:12px">Upload &amp; Check</button>
             <p class="muted" style="font-size:11px;line-height:1.5;margin-bottom:0">
