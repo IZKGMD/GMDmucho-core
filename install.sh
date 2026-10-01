@@ -630,6 +630,7 @@ if [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
     COMPOSE_ARGS=(-f "$INSTALL_DIR/docker-compose.yml" -f "$INSTALL_DIR/docker-compose.tunnel.yml")
   else
     fail "MUCHO_TRANSPORT_MODE=tunnel requires an existing Tunnel runtime token. Use MUCHO_TRANSPORT_MODE=auto for automatic fallback."
+  fi
 fi
 INSTALL_STEP="starting production services"
 log "Starting MuchoCore..."
