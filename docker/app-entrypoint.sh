@@ -19,6 +19,7 @@ fi
 
 install -d -m 750 -o root -g www-data /var/lib/muchocore
 install -d -m 750 -o root -g www-data /var/lib/muchocore/android-signer
+install -d -m 770 -o www-data -g www-data /var/lib/muchocore/migration-uploads
 ANDROID_SIGNER_DIR=/var/lib/muchocore/android-signer
 SIGNER_KEY="$ANDROID_SIGNER_DIR/muchocore-android.key.pk8"
 LEGACY_SIGNER_KEY="$ANDROID_SIGNER_DIR/muchocore-android.key.pem"
