@@ -26,6 +26,7 @@ grep -Fq 'The installer will stop on a failed public health check' install.sh
 grep -Fq 'Automatic transport setup failed: neither direct origin nor Cloudflare Tunnel became healthy' install.sh
 grep -Fq 'requires an existing Tunnel runtime token' install.sh
 grep -Fq 'https://dash.cloudflare.com/profile/api-tokens' install.sh
+grep -Fq 'Account → Cloudflare Tunnel → Edit' install.sh
 grep -Fq 'Zone → DNS → Edit' install.sh
 grep -Fq 'Zone → Zone → Read' install.sh
 grep -Fq 'expected_services=(db app worker caddy)' install.sh
