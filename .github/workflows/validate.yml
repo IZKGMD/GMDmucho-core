@@ -241,7 +241,7 @@ jobs:
           test -f docs/AUTO_UPDATE.md
           grep -Fq 'MUCHO_AUTO_UPDATE=1' install.sh
           grep -Fq 'MUCHO_AUTO_UPDATE_INTERVAL=15min' install.sh
-          grep -Fq 'refs/tags/$LATEST_RELEASE_TAG' install.sh
+          grep -Fq 'git clone --depth=1 --branch "$LATEST_RELEASE_TAG" "$REPO_URL" "$INSTALL_DIR"' install.sh
           grep -Fq 'releases/latest' update.sh
           grep -Fq 'releases/latest' update.sh
           grep -Fq 'refs/tags/$LATEST_TAG' update.sh
