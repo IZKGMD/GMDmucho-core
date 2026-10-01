@@ -852,6 +852,16 @@ final class CvoltonDatabaseImporter
             'gjp2' => $this->gjp2Hash($row),
             'active' => (int)($row['isActive'] ?? 1) === 1 ? 1 : 0,
             'banned' => (int)($row['isBanned'] ?? 0) === 1 ? 1 : 0,
+            'youtube' => $this->sourceText((string)($row['youtubeUrl'] ?? ''), 255),
+            'twitter' => $this->sourceText((string)($row['twitter'] ?? ''), 64),
+            'twitch' => $this->sourceText((string)($row['twitch'] ?? ''), 64),
+            'instagram' => $this->sourceText((string)($row['instagram'] ?? ''), 64),
+            'tiktok' => $this->sourceText((string)($row['tiktok'] ?? ''), 64),
+            'discord' => $this->sourceText((string)($row['discord'] ?? ''), 64),
+            'custom' => $this->sourceText((string)($row['customLink'] ?? ''), 255),
+            'friend_requests' => max(0, min(2, (int)($row['friendRequestsState'] ?? 0))),
+            'messages' => max(0, min(2, (int)($row['messagesState'] ?? 0))),
+            'comments' => max(0, min(2, (int)($row['commentsState'] ?? 0))),
         ]);
 
         return (int)$this->target->lastInsertId();
@@ -861,12 +871,21 @@ final class CvoltonDatabaseImporter
     {
         $q = $this->target->prepare(
             'INSERT INTO profiles
-                (account_id,stars,moons,diamonds,secret_coins,user_coins,demons,
-                 creator_points,icon_id,icon_type,color1,color2,glow)
+                (account_id,game_version,binary_version,stars,moons,diamonds,
+                 secret_coins,user_coins,demons,creator_points,icon_id,icon_type,
+                 color1,color2,color3,special,glow,cube,ship,ball,ufo,wave,
+                 robot,spider,swing,jetpack,explosion,demon_info,star_info,
+                 platformer_info,last_ip,last_played_at)
              VALUES
-                (:account,:stars,:moons,:diamonds,:secret,:user_coins,:demons,
-                 :creator,:icon,:icon_type,:color1,:color2,:glow)
+                (:account,:game,:binary,:stars,:moons,:diamonds,
+                 :secret,:user_coins,:demons,:creator,:icon,:icon_type,
+                 :color1,:color2,:color3,:special,:glow,:cube,:ship,:ball,:ufo,:wave,
+                 :robot,:spider,:swing,:jetpack,:explosion,:demon_info,:star_info,
+                 :platformer_info,:last_ip,
+                 CASE WHEN :last_played > 0 THEN FROM_UNIXTIME(:last_played) ELSE NULL END)
              ON DUPLICATE KEY UPDATE
+                game_version=VALUES(game_version),
+                binary_version=VALUES(binary_version),
                 stars=VALUES(stars),
                 moons=VALUES(moons),
                 diamonds=VALUES(diamonds),
@@ -878,11 +897,30 @@ final class CvoltonDatabaseImporter
                 icon_type=VALUES(icon_type),
                 color1=VALUES(color1),
                 color2=VALUES(color2),
-                glow=VALUES(glow)'
+                color3=VALUES(color3),
+                special=VALUES(special),
+                glow=VALUES(glow),
+                cube=VALUES(cube),
+                ship=VALUES(ship),
+                ball=VALUES(ball),
+                ufo=VALUES(ufo),
+                wave=VALUES(wave),
+                robot=VALUES(robot),
+                spider=VALUES(spider),
+                swing=VALUES(swing),
+                jetpack=VALUES(jetpack),
+                explosion=VALUES(explosion),
+                demon_info=VALUES(demon_info),
+                star_info=VALUES(star_info),
+                platformer_info=VALUES(platformer_info),
+                last_ip=VALUES(last_ip),
+                last_played_at=VALUES(last_played_at)'
         );
 
         $q->execute([
             'account' => $accountId,
+            'game' => max(0, (int)($row['gameVersion'] ?? 0)),
+            'binary' => max(0, (int)($row['binaryVersion'] ?? 0)),
             'stars' => max(0, (int)($row['stars'] ?? 0)),
             'moons' => max(0, (int)($row['moons'] ?? 0)),
             'diamonds' => max(0, (int)($row['diamonds'] ?? 0)),
@@ -894,8 +932,38 @@ final class CvoltonDatabaseImporter
             'icon_type' => max(0, (int)($row['iconType'] ?? 0)),
             'color1' => max(0, min(65535, (int)($row['color1'] ?? 0))),
             'color2' => max(0, min(65535, (int)($row['color2'] ?? 3))),
+            'color3' => max(0, min(65535, (int)($row['color3'] ?? 0))),
+            'special' => max(0, min(65535, (int)($row['special'] ?? 0))),
             'glow' => max(0, min(1, (int)($row['glow'] ?? 0))),
+            'cube' => max(0, (int)($row['accIcon'] ?? 1)),
+            'ship' => max(0, (int)($row['accShip'] ?? 1)),
+            'ball' => max(0, (int)($row['accBall'] ?? 1)),
+            'ufo' => max(0, (int)($row['accBird'] ?? 1)),
+            'wave' => max(0, (int)($row['accDart'] ?? 1)),
+            'robot' => max(0, (int)($row['accRobot'] ?? 1)),
+            'spider' => max(0, (int)($row['accSpider'] ?? 1)),
+            'swing' => max(0, (int)($row['accSwing'] ?? 1)),
+            'jetpack' => max(0, (int)($row['accJetpack'] ?? 1)),
+            'explosion' => max(0, (int)($row['accExplosion'] ?? 1)),
+            'demon_info' => $this->sourceText((string)($row['demonInfo'] ?? ''), 255),
+            'star_info' => $this->sourceText((string)($row['starInfo'] ?? ''), 255),
+            'platformer_info' => $this->sourceText((string)($row['platformerInfo'] ?? ''), 255),
+            'last_ip' => $this->sourceText((string)($row['lastIp'] ?? ''), 45),
+            'last_played' => max(0, (int)($row['lastPlayed'] ?? 0)),
         ]);
+    }
+
+    private function sourceText(string $value, int $max): string
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, $max)
+            : substr($value, 0, $max);
     }
 
     private function emailBelongsToDifferentAccount(
