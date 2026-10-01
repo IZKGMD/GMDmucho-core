@@ -42,7 +42,7 @@ function migrationEnv(string $name, string $default): string
     return is_string($value) && $value !== "" ? $value : $default;
 }
 
-function connectMigrationSource(): PDO
+function connectMigrationSource(bool $readOnly): PDO
 {
     $host = migrationEnv("MUCHO_MIGRATION_DB_HOST", "db");
     $port = (int)migrationEnv("MUCHO_MIGRATION_DB_PORT", "3306");
@@ -56,16 +56,21 @@ function connectMigrationSource(): PDO
         throw new RuntimeException("Invalid migration database configuration.");
     }
 
+    $options = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ];
+
+    if ($readOnly) {
+        $options[PDO::MYSQL_ATTR_INIT_COMMAND] = "SET SESSION TRANSACTION READ ONLY";
+    }
+
     return new PDO(
         "mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4",
         $user,
         migrationSecret(),
-        [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false,
-            PDO::MYSQL_ATTR_INIT_COMMAND => "SET SESSION TRANSACTION READ ONLY",
-        ]
+        $options
     );
 }
 
@@ -317,10 +322,11 @@ try {
     $dump = validateDump((string)$options["file"]);
     echo "SQL_SOURCE=" . basename($dump) . PHP_EOL;
 
-    $source = connectMigrationSource();
-    resetMigrationDatabase($source);
+    $sourceLoader = connectMigrationSource(false);
+    resetMigrationDatabase($sourceLoader);
 
     $sanitized = importDump($dump);
+    $source = connectMigrationSource(true);
     if ($sanitized > 0) {
         echo "IMPORT_SANITIZED=" . $sanitized . PHP_EOL;
     }
@@ -393,9 +399,9 @@ try {
         echo $name . "=" . (int)$value . PHP_EOL;
     }
 } finally {
-    if ($source instanceof PDO) {
+    if ($sourceLoader instanceof PDO) {
         try {
-            resetMigrationDatabase($source);
+            resetMigrationDatabase($sourceLoader);
         } catch (Throwable $e) {
             fwrite(STDERR, "Warning: migration source cleanup failed: " . $e->getMessage() . PHP_EOL);
         }
