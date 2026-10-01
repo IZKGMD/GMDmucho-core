@@ -132,6 +132,7 @@ print_installer_intro() {
   printf "\n"
   printf "${CYAN}You only need to provide the domain and admin password for a normal public VPS.${RESET}\n"
   printf "${CYAN}Cloudflare API access is only needed when automatic Tunnel fallback must be available.${RESET}\n"
+  printf "  ${CYAN}For full NAT/CGNAT automation, provide MUCHO_CLOUDFLARE_API_TOKEN in the environment before starting.${RESET}\n"
   printf "${CYAN}The installer will stop on a failed public health check instead of leaving a broken deployment behind.${RESET}\n"
   printf "\n"
 }
@@ -770,6 +771,7 @@ if [[ "$healthy" -eq 1 ]]; then
       fi
     else
       fail "Automatic transport setup failed: direct public ingress is unavailable and no usable Cloudflare API token was provided."
+    info "For automatic Tunnel fallback, export MUCHO_CLOUDFLARE_API_TOKEN and run the installer again."
     fi
 
   elif [[ "$TRANSPORT_MODE" == "direct" ]]; then
