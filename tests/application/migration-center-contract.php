@@ -13,6 +13,10 @@ $sharedInstaller = file_get_contents($root . '/public/shared-install.php');
 $adminBackup = file_get_contents($root . '/public/admin/db-backup-center-module.php');
 $adminAction = file_get_contents($root . '/public/admin/actions/migration.php');
 $sqlDumpService = file_get_contents($root . '/src/Migration/SqlDumpMigrationService.php');
+
+$galaxxyArchiveService = file_get_contents(
+    $root . '/src/Migration/GalaxxyLevelDataArchiveService.php'
+);
 $cvoltonImporter = file_get_contents($root . '/src/Migration/CvoltonDatabaseImporter.php');
 $sqlDumpTokenizer = file_get_contents($root . '/src/Migration/SqlDumpTokenizer.php');
 $galaxxyArchive = file_get_contents($root . '/src/Migration/GalaxxyLevelDataArchiveService.php');
@@ -345,6 +349,7 @@ foreach ([
 ] as $needle) {
     if (strpos($sqlDumpService, $needle) === false &&
         strpos($cvoltonImporter, $needle) === false &&
+        strpos((string)$galaxxyArchiveService, $needle) === false &&
         strpos($adminPage . $adminAction, $needle) === false
     ) {
         throw new RuntimeException('Migration safety contract missing: ' . $needle);
