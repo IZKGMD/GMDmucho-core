@@ -267,8 +267,6 @@ final class SqlDumpMigrationService
 
         try {
             $stats = $databaseAdapter->apply($this->target);
-            $this->target->commit();
-
             $archiveStats = $this->hydrateServerArchive($prefix);
             foreach ($archiveStats as $name => $value) {
                 $stats[$name] = $value;
