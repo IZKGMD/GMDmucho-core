@@ -23,42 +23,13 @@ command -v curl >/dev/null 2>&1 || {
   exit 1
 }
 
-resolve_ref_sha() {
-  local ref="$1"
-  local response sha endpoint
-
-  # Resolve the ref itself, not an arbitrary SHA nested elsewhere in a
-  # /commits response. Branches and tags both expose the immutable commit as
-  # git ref -> object.sha.
-  for endpoint in \
-    "https://api.github.com/repos/IZKGMD/GMDmucho-core/git/ref/heads/$ref" \
-    "https://api.github.com/repos/IZKGMD/GMDmucho-core/git/ref/tags/$ref"; do
-    response="$(curl -4fsS --retry 3 --retry-delay 1 \
-      --connect-timeout 5 --max-time 15 \
-      -H 'Accept: application/vnd.github+json' \
-      -H 'User-Agent: MuchoCore-Bootstrap/1.0' \
-      -H 'X-GitHub-Api-Version: 2022-11-28' \
-      "$endpoint" 2>/dev/null)" || continue
-
-    sha="$(printf '%s' "$response" \
-      | sed -n 's/.*"object"[[:space:]]*:[[:space:]]*{[[:space:]]*"sha"[[:space:]]*:[[:space:]]*"\([0-9a-f]\{40\}\)".*/\1/p' \
-      | head -n1)"
-
-    if [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
-      printf '%s' "$sha"
-      return 0
-    fi
-  done
-
-  return 1
-}
-
 if [[ -n "$INSTALL_REF" ]]; then
   [[ "$INSTALL_REF" =~ ^[A-Za-z0-9._/-]+$ ]] || {
-    echo "[MuchoCore] Invalid MUCHO_INSTALL_REF: $INSTALL_REF" >&2
+    echo "[MuchoCore] Invalid installer ref: $INSTALL_REF" >&2
     exit 1
   }
-  tag="$INSTALL_REF"
+  SOURCE_REF="$INSTALL_REF"
+  echo "[MuchoCore] Using installer ref: $SOURCE_REF"
 else
   response="$(curl -4fsS --retry 3 --retry-delay 1 \
     --connect-timeout 5 --max-time 15 \
@@ -66,30 +37,37 @@ else
     -H 'User-Agent: MuchoCore-Bootstrap/1.0' \
     -H 'X-GitHub-Api-Version: 2022-11-28' \
     "$RELEASE_API")"
-  tag="$(printf '%s' "$response" | sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"
-  [[ "$tag" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+  SOURCE_REF="$(printf '%s' "$response" | sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"
+  [[ "$SOURCE_REF" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
     echo '[MuchoCore] Could not resolve the latest published stable release.' >&2
     exit 1
   }
+  echo "[MuchoCore] Using published release: $SOURCE_REF"
 fi
 
-SOURCE_SHA="$(resolve_ref_sha "$tag")" || {
-  echo "[MuchoCore] Could not resolve installer ref $tag to an immutable commit." >&2
-  exit 1
-}
-echo "[MuchoCore] Resolved installer ref $tag → $SOURCE_SHA"
 tmp="$(mktemp)"
 cleanup() {
   rm -f "$tmp"
 }
 trap cleanup EXIT
 
-echo "[MuchoCore] Preparing installer ref $tag..."
+echo "[MuchoCore] Preparing installer ref $SOURCE_REF..."
+
+# Fetch the installer directly from the selected Git ref. Do not resolve or
+# substitute Git object/blob SHAs here: that added failure modes (commit SHA
+# vs content SHA) without helping the one-command bootstrap.
+installer_url="${REPO_ROOT}/${SOURCE_REF}/install.sh"
 curl -4fsSL --retry 3 --retry-delay 1 \
   --connect-timeout 5 --max-time 30 \
-  "${REPO_ROOT}/${SOURCE_SHA}/install.sh" \
+  "$installer_url" \
   -o "$tmp"
 
+# A tiny integrity guard catches an HTML/error response masquerading as a
+# downloaded installer before bash executes it.
+grep -q '^#!/usr/bin/env bash$' "$tmp" || {
+  echo "[MuchoCore] Downloaded installer is not a valid Bash script: $installer_url" >&2
+  exit 1
+}
 chmod 700 "$tmp"
 
 # Keep an explicitly selected bootstrap ref visible to the inner installer.
