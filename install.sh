@@ -695,6 +695,22 @@ for service in "${expected_services[@]}"; do
   }
 done
 
+INSTALL_STEP="waiting for application dependencies"
+log "Waiting for Composer dependencies..."
+autoload_ready=0
+for _ in {1..60}; do
+  if run_compose exec -T app test -f vendor/autoload.php >/dev/null 2>&1; then
+    autoload_ready=1
+    break
+  fi
+  sleep 2
+done
+
+[[ "$autoload_ready" -eq 1 ]] || {
+  run_compose logs --tail=80 app || true
+  fail "Application dependencies were not ready after 120 seconds. Check: sudo mucho doctor"
+}
+
 INSTALL_STEP="running database migrations"
 log "Running database migrations..."
 run_compose exec -T app php bin/migrate.php migrate
