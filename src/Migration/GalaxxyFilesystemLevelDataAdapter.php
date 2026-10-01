@@ -41,6 +41,20 @@ final class GalaxxyFilesystemLevelDataAdapter implements MigrationLevelDataAdapt
         array $sourceLevelIds
     ): array {
         $archive = $this->service();
+
+        if (!is_dir(
+            rtrim($this->root, '/\\') .
+            '/storage/migration-sql/' .
+            trim($stagingPrefix, '_') .
+            '/levels'
+        )) {
+            return [
+                'hydrated' => 0,
+                'missing' => 0,
+                'bytes' => 0,
+            ];
+        }
+
         $mapped = $target->prepare(
             'SELECT target_id FROM mucho_cvolton_level_map
              WHERE source_id=:source LIMIT 1'
