@@ -836,7 +836,46 @@ if [[ "$healthy" -eq 1 ]]; then
   elif [[ "$TRANSPORT_MODE" == "direct" ]]; then
     fail "Direct transport was requested, but the public hostname is not healthy. Verify DNS and inbound 80/443 reach the VPS."
   else
-    fail "Automatic transport selection could not establish a healthy public endpoint. Provide MUCHO_CLOUDFLARE_API_TOKEN for fully automatic Tunnel fallback or fix DNS/inbound 80/443."
+    if [[ -z "$CLOUDFLARE_API_TOKEN" && -t 0 && -t 1 ]]; then
+      printf "\n${BOLD}  Cloudflare API token${RESET}\n"
+      printf "  The domain is not reaching this VPS yet (HTTP $public_code).\n"
+      printf "  MuchoCore can switch the existing Cloudflare DNS records to the detected VPS IP automatically.\n"
+      printf "  The token is used only for this setup and is not stored.\n\n"
+      read -r -s -p "  Cloudflare API token (Enter to skip): " CLOUDFLARE_API_TOKEN < /dev/tty
+      printf '\n'
+    fi
+
+    if [[ -n "$CLOUDFLARE_API_TOKEN" ]]; then
+      if MUCHO_CLOUDFLARE_API_TOKEN="$CLOUDFLARE_API_TOKEN" \
+          MUCHO_DOMAIN="$DOMAIN" \
+          MUCHO_PUBLIC_IP="$PUBLIC_IP" \
+          MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+          bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct; then
+        log "Cloudflare DNS switched to the direct VPS origin."
+        info "Refreshing Caddy after DNS change..."
+        run_compose restart caddy >/dev/null 2>&1 || true
+
+        public_ok=0
+        for _ in {1..45}; do
+          if curl -4ksSf --connect-timeout 3 --max-time 6 \
+            "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+            public_ok=1
+            break
+          fi
+          sleep 2
+        done
+        if [[ "$public_ok" -eq 1 ]]; then
+          sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=direct/' "$INSTALL_DIR/.env"
+          log "Public health check passed in direct mode."
+        else
+          fail "Cloudflare DNS was switched to the direct VPS, but public HTTPS is still unhealthy. Run: sudo mucho doctor"
+        fi
+      else
+        fail "Cloudflare DNS automation failed. Check the API token permissions and run: sudo mucho doctor"
+      fi
+    else
+      fail "Automatic transport setup needs either working direct DNS or a Cloudflare API token. Re-run the installer and provide it when prompted."
+    fi
   fi
 else
   warn "The internal MuchoCore healthcheck did not pass."
