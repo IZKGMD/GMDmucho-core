@@ -15,7 +15,15 @@ check_file() {
 test -f "$KIT"
 bash -n "$KIT"
 
+set +e
 help_output="$(bash "$KIT" --help 2>&1)"
+help_status=$?
+set -e
+if (( help_status != 0 )); then
+    echo "MIGRATION_KIT_HELP_EXIT=$help_status" >&2
+    echo "$help_output" >&2
+    exit "$help_status"
+fi
 check_help() {
     local pattern="$1"
     if ! grep -Fq -- "$pattern" <<<"$help_output"; then
