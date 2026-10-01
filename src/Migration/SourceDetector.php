@@ -127,8 +127,8 @@ final class SourceDetector
                 'label' => 'Levels',
                 'tables' => ['levels'],
                 'status' => 'imported_now',
-                'where' => 'levels contains level metadata and the full levelString.',
-                'notes' => 'The source level ID is preserved when it is still free in MuchoCore; otherwise a new target ID is allocated.',
+                'where' => 'levels contains level metadata; playable level payload storage depends on the source layout.',
+                'notes' => 'The source level ID is preserved when it is still free in MuchoCore; otherwise a new target ID is allocated. If the source keeps payloads outside SQL, attach the matching external level-data archive.'
             ],
             [
                 'key' => 'scores',
