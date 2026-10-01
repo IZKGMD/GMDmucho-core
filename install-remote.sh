@@ -58,4 +58,12 @@ curl -4fsSL --retry 3 --retry-delay 1 \
   -o "$tmp"
 
 chmod 700 "$tmp"
+
+# Keep an explicitly selected bootstrap ref visible to the inner installer.
+# This makes --ref / MUCHO_INSTALL_REF deterministic instead of silently
+# falling back to a published release inside install.sh.
+if [[ -n "$INSTALL_REF" ]]; then
+  export MUCHO_INSTALL_REF="$INSTALL_REF"
+fi
+
 exec bash "$tmp" "$@"
