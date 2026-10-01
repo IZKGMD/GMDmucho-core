@@ -600,9 +600,8 @@ if [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
       printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
     fi
     COMPOSE_ARGS=(-f "$INSTALL_DIR/docker-compose.yml" -f "$INSTALL_DIR/docker-compose.tunnel.yml")
-  elif [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
-    fail "MUCHO_TRANSPORT_MODE=tunnel requires a Tunnel runtime token or MUCHO_CLOUDFLARE_API_TOKEN."
-  fi
+  else
+    fail "MUCHO_TRANSPORT_MODE=tunnel requires an existing Tunnel runtime token. Use MUCHO_TRANSPORT_MODE=auto for automatic fallback."
 fi
 INSTALL_STEP="starting production services"
 log "Starting MuchoCore..."
@@ -747,20 +746,7 @@ if [[ "$healthy" -eq 1 ]]; then
     else
       fail "Automatic transport setup failed: direct public ingress is unavailable and no usable Cloudflare API token was provided."
     fi
-  elif [[ "$TRANSPORT_MODE" == "tunnel" && "$USE_TUNNEL" -eq 0 ]]; then
-    if [[ -n "$CLOUDFLARE_API_TOKEN" ]] && provision_cloudflare_tunnel; then
-      public_ok=0
-      for _ in {1..45}; do
-        if curl -4ksSf --connect-timeout 3 --max-time 6 "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
-          public_ok=1
-          break
-        fi
-        sleep 2
-      done
-      [[ "$public_ok" -eq 1 ]] && log "Public health check passed through Cloudflare Tunnel." || warn "Cloudflare Tunnel was provisioned, but public health is still unavailable. Run: sudo mucho doctor"
-    else
-      warn "Tunnel mode was requested, but Cloudflare API credentials are unavailable."
-    fi
+
   elif [[ "$TRANSPORT_MODE" == "direct" ]]; then
     fail "Direct transport was requested, but the public hostname is not healthy. Verify DNS and inbound 80/443 reach the VPS."
   else
