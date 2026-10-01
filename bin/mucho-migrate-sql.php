@@ -307,6 +307,10 @@ if (!isset($options["file"])) {
     failSql("Missing --file.");
 }
 
+if (isset($options["apply"]) && ($options["confirm"] ?? "") !== "MIGRATE") {
+    failSql("Apply requires --confirm=MIGRATE.");
+}
+
 $lockPath = getenv("MUCHO_MIGRATION_LOCK") ?: "/tmp/muchocore-migration.lock";
 $lock = fopen($lockPath, "c");
 
@@ -368,10 +372,6 @@ try {
         echo "DRY-RUN COMPLETE" . PHP_EOL;
         echo "The uploaded source remains isolated from the MuchoCore target database." . PHP_EOL;
         exit(0);
-    }
-
-    if (($options["confirm"] ?? "") !== "MIGRATE") {
-        failSql("Apply requires --confirm=MIGRATE.");
     }
 
     echo "Creating verified target database backup..." . PHP_EOL;
