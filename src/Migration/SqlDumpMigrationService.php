@@ -12,6 +12,9 @@ use Throwable;
 
 final class SqlDumpMigrationService
 {
+    private readonly MigrationDatabaseAdapterRegistry $databaseAdapters;
+    private readonly MigrationLevelDataAdapterRegistry $levelDataAdapters;
+
     private const MAX_UPLOAD_BYTES = 268435456;
     private const MAX_UNCOMPRESSED_BYTES = 536870912;
     private const STALE_AFTER_SECONDS = 86400;
@@ -56,6 +59,9 @@ final class SqlDumpMigrationService
         private readonly string $root,
         private readonly string $backupDirectory,
     ) {
+        $this->databaseAdapters = new MigrationDatabaseAdapterRegistry();
+        $this->levelDataAdapters = new MigrationLevelDataAdapterRegistry($this->root);
+
         if (!is_dir($this->storageDirectory())
             && !mkdir($this->storageDirectory(), 0700, true)
             && !is_dir($this->storageDirectory())) {
@@ -121,8 +127,12 @@ final class SqlDumpMigrationService
                 );
             }
 
-            $importer = new CvoltonDatabaseImporter($this->target, $prefix);
-            $preflight = $importer->preflight($this->target);
+            $databaseAdapter = $this->databaseAdapters->resolve(
+                $this->target,
+                $prefix,
+                $inspection
+            );
+            $preflight = $databaseAdapter->preflight($this->target);
 
             $levelData = [
                 'stored_files' => 0,
@@ -132,16 +142,13 @@ final class SqlDumpMigrationService
             ];
 
             if ($archiveUpload !== null) {
-                $levelIds = array_map(
-                    'intval',
-                    $this->target->query(
-                        'SELECT levelID FROM ' . $this->quoteTable($prefix . 'levels')
-                    )->fetchAll(PDO::FETCH_COLUMN)
+                $levelIds = $this->sourceLevelIds($prefix);
+                $levelAdapter = $this->levelDataAdapters->resolveUpload($archiveUpload);
+                $levelData = $levelAdapter->stageUpload(
+                    $archiveUpload,
+                    $levelIds,
+                    $prefix
                 );
-
-                $archiveUpload['_staging_prefix'] = $prefix;
-                $levelData = (new GalaxxyLevelDataArchiveService($this->root))
-                    ->stageUpload($archiveUpload, $levelIds);
             }
 
             $this->writeJobMarker(
@@ -184,10 +191,12 @@ final class SqlDumpMigrationService
             );
         }
 
-        $preflight = (new CvoltonDatabaseImporter(
+        $databaseAdapter = $this->databaseAdapters->resolve(
             $this->target,
-            $prefix
-        ))->preflight($this->target);
+            $prefix,
+            $inspection
+        );
+        $preflight = $databaseAdapter->preflight($this->target);
 
         return [
             'inspection' => $inspection,
@@ -208,7 +217,11 @@ final class SqlDumpMigrationService
         $this->validatePrefix($prefix);
 
         $preview = $this->previewStaged($prefix);
-        $importer = new CvoltonDatabaseImporter($this->target, $prefix);
+        $databaseAdapter = $this->databaseAdapters->resolve(
+            $this->target,
+            $prefix,
+            $preview['inspection']
+        );
 
         $backup = (new DatabaseBackupService(
             $this->target,
@@ -235,8 +248,8 @@ final class SqlDumpMigrationService
         $this->target->beginTransaction();
 
         try {
-            $stats = $importer->apply($this->target);
-            $hydration = $this->hydrateLevelData($prefix);
+            $stats = $databaseAdapter->apply($this->target);
+            $hydration = $this->hydrateExternalLevelData($prefix);
             $stats['level_data_hydrated'] = $hydration['hydrated'];
             $stats['level_data_missing'] = $hydration['missing'];
             $stats['level_data_bytes'] = $hydration['bytes'];
@@ -460,50 +473,28 @@ final class SqlDumpMigrationService
     /**
      * @return array{hydrated:int,missing:int,bytes:int}
      */
-    private function hydrateLevelData(string $prefix): array
+    private function hydrateExternalLevelData(string $prefix): array
     {
-        $archive = new GalaxxyLevelDataArchiveService($this->root);
-        $stagedLevels = $this->target->query(
-            'SELECT levelID FROM ' . $this->quoteTable($prefix . 'levels') .
-            ' ORDER BY levelID ASC'
-        )->fetchAll(PDO::FETCH_COLUMN);
-
-        $mapped = $this->target->prepare(
-            'SELECT target_id FROM mucho_cvolton_level_map
-             WHERE source_id=:source LIMIT 1'
-        );
-        $update = $this->target->prepare(
-            'UPDATE levels SET level_data=:data WHERE level_id=:target'
-        );
+        $sourceLevelIds = $this->sourceLevelIds($prefix);
 
         $hydrated = 0;
         $missing = 0;
         $bytes = 0;
 
-        foreach ($stagedLevels as $value) {
-            $sourceId = (int)$value;
-            $data = $archive->levelData($prefix, $sourceId);
+        foreach ($this->levelDataAdapters->instances() as $adapter) {
+            $result = $adapter->hydrate(
+                $this->target,
+                $prefix,
+                $sourceLevelIds
+            );
 
-            if ($data === null) {
-                $missing++;
-                continue;
+            $hydrated += (int)($result['hydrated'] ?? 0);
+            $missing += (int)($result['missing'] ?? 0);
+            $bytes += (int)($result['bytes'] ?? 0);
+
+            if ($result['hydrated'] > 0 || $result['missing'] > 0) {
+                break;
             }
-
-            $mapped->execute(['source' => $sourceId]);
-            $targetId = $mapped->fetchColumn();
-
-            if ($targetId === false) {
-                $missing++;
-                continue;
-            }
-
-            $update->execute([
-                'data' => $data,
-                'target' => (int)$targetId,
-            ]);
-
-            $hydrated++;
-            $bytes += strlen($data);
         }
 
         return [
@@ -511,6 +502,20 @@ final class SqlDumpMigrationService
             'missing' => $missing,
             'bytes' => $bytes,
         ];
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function sourceLevelIds(string $prefix): array
+    {
+        return array_map(
+            'intval',
+            $this->target->query(
+                'SELECT levelID FROM ' . $this->quoteTable($prefix . 'levels') .
+                ' ORDER BY levelID ASC'
+            )->fetchAll(PDO::FETCH_COLUMN)
+        );
     }
 
     private function quoteTable(string $table): string
@@ -565,7 +570,13 @@ final class SqlDumpMigrationService
             );
         }
 
-        (new GalaxxyLevelDataArchiveService($this->root))->cleanup($prefix);
+        foreach ($this->levelDataAdapters->instances() as $adapter) {
+            try {
+                $adapter->cleanup($prefix);
+            } catch (Throwable) {
+                // Cleanup must not prevent other staging tables from being removed.
+            }
+        }
 
         @unlink($this->markerPath($prefix));
     }
