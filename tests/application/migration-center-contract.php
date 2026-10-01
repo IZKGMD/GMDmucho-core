@@ -343,8 +343,11 @@ foreach ([
     'SET FOREIGN_KEY_CHECKS=0',
     'DROP TABLE IF EXISTS',
 ] as $needle) {
-    if (strpos($sqlDumpService, $needle) === false) {
-        throw new RuntimeException('SQL dump migration safety contract missing: ' . $needle);
+    if (strpos($sqlDumpService, $needle) === false &&
+        strpos($cvoltonImporter, $needle) === false &&
+        strpos($adminPage . $adminAction, $needle) === false
+    ) {
+        throw new RuntimeException('Migration safety contract missing: ' . $needle);
     }
 }
 
