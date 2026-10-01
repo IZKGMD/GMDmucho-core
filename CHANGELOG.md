@@ -1,4 +1,13 @@
-## v1.0.9 — Gauntlet & Map Pack Maker
+## v1.0.9 — One-Command Direct VPS Deployment
+
+### Direct VPS Deployment & Installer DX
+
+- made **direct VPS HTTPS the default transport**, so a normal public VPS no longer requires Cloudflare Tunnel or any third-party tunnel service;
+- reduced a clean MuchoCore deployment to a single remote installer command, with deployment-specific domain and administrator-password prompts;
+- added automatic Caddy exposure for both HTTP and HTTPS on ports 80/443 with managed TLS certificates;
+- added DNS preflight checks, public-origin convergence diagnostics and automatic firewall rules for 80/443 when an existing UFW firewall is active;
+- kept Cloudflare API credentials and Tunnel provisioning optional for NAT/CGNAT deployments or operators who explicitly choose Tunnel mode;
+- validated the complete path on a brand-new VPS: containers healthy, migrations applied, HTTP /health = 1, HTTPS /health = 1, and sudo mucho doctor reports **No problems found**.
 
 ### Admin Content Tools
 
