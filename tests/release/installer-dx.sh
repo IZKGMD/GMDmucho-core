@@ -15,17 +15,19 @@ grep -Fq -- '--gd-versions=PROFILE' install.sh
 grep -Fq -- '--migrate' install.sh
 grep -Fq 'curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash' install.sh
 grep -Fq 'check_domain_preflight' install.sh
+grep -Fq 'MUCHO_TRANSPORT_MODE' install.sh
+grep -Fq 'PUBLIC_IP' install.sh
+grep -Fq 'Automatic transport selection' install.sh
 grep -Fq 'MUCHO_CLOUDFLARE_API_TOKEN' install.sh
 grep -Fq 'mucho-cloudflare-tunnel.sh' install.sh
+grep -Fq 'bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct' install.sh
+grep -Fq 'configure_direct_origin' bin/mucho-cloudflare-tunnel.sh
 grep -Fq 'POST "/accounts/$account_id/cfd_tunnel"' bin/mucho-cloudflare-tunnel.sh
 grep -Fq 'PUT "/accounts/$account_id/cfd_tunnel/$tunnel_id/configurations"' bin/mucho-cloudflare-tunnel.sh
 grep -Fq 'POST "/zones/$zone_id/dns_records"' bin/mucho-cloudflare-tunnel.sh
 grep -Fq 'Cloudflare Tunnel → Edit' README.md
 grep -Fq 'profile/api-tokens?permissionGroupKeys=' install.sh
 grep -Fq 'sudo mucho doctor' install.sh
-grep -Fq 'environment: MUCHO_TUNNEL_TOKEN' docker-compose.yml
-grep -Fq 'source: muchocore_tunnel_token' docker-compose.tunnel.yml
-grep -Fq 'mode: 0400' docker-compose.tunnel.yml
 grep -Fq -- '--metrics' docker-compose.tunnel.yml
 grep -Fq 'TUNNEL_TOKEN_FILE: /run/secrets/muchocore_tunnel_token' docker-compose.tunnel.yml
 grep -Fq 'type: bind' docker-compose.tunnel.yml
@@ -34,6 +36,8 @@ grep -Fq '/run/secrets/muchocore_tunnel_token' docker-compose.tunnel.yml
 ! grep -Fq 'expected_services=(db app worker caddy testgdps-db testgdps-app)' install.sh
 ! grep -Fq 'testgdps' docker-compose.yml
 grep -Fq 'testgdps' docker-compose.test.yml
+
+grep -Fq 'env_get MUCHO_TRANSPORT_MODE' bin/mucho
 
 for command in status logs restart doctor repair update backup migrate migration config test-stack install test; do
     grep -Fq "${command})" bin/mucho || {
