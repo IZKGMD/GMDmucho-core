@@ -739,8 +739,15 @@ ALTER USER '$migration_user'@'%' IDENTIFIED BY '$migration_password';
 GRANT ALL PRIVILEGES ON $migration_db.* TO '$migration_user'@'%';
 FLUSH PRIVILEGES;"
 
-  run_compose exec -T -e MYSQL_PWD="$MUCHO_DB_ROOT_PASSWORD" db \
-    mariadb -uroot -e "$sql" >/dev/null
+  for _ in {1..30}; do
+    if run_compose exec -T -e MYSQL_PWD="$MUCHO_DB_ROOT_PASSWORD" db \
+      mariadb -uroot -e "$sql" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+
+  fail "MariaDB did not become ready for the SQL migration database after 60 seconds."
 }
 log "Starting MuchoCore..."
 if [[ "$USE_TUNNEL" -eq 1 ]]; then
