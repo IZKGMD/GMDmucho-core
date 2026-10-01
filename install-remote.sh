@@ -30,6 +30,24 @@ if [[ -n "$INSTALL_REF" ]]; then
   }
   tag="$INSTALL_REF"
   echo "[MuchoCore] Using explicit installer ref: $tag..."
+
+  # Resolve the ref to an immutable commit SHA before downloading. This avoids
+  # stale raw.githubusercontent.com responses for development branches.
+  ref_response="$(curl -4fsS --retry 3 --retry-delay 1 \
+    --connect-timeout 5 --max-time 15 \
+    -H 'Accept: application/vnd.github+json' \
+    -H 'User-Agent: MuchoCore-Bootstrap/1.0' \
+    -H 'X-GitHub-Api-Version: 2022-11-28' \
+    "https://api.github.com/repos/IZKGMD/GMDmucho-core/commits/$(printf '%s' "$tag" | sed 's#/#%2F#g')")" || {
+    echo "[MuchoCore] Could not resolve installer ref: $tag" >&2
+    exit 1
+  }
+  source_ref="$(printf '%s' "$ref_response" | sed -n 's/.*"sha":[[:space:]]*"\([0-9a-f]\{40\}\)".*/\1/p' | head -n1)"
+  [[ "$source_ref" =~ ^[0-9a-f]{40}$ ]] || {
+    echo "[MuchoCore] Could not resolve an immutable commit for installer ref: $tag" >&2
+    exit 1
+  }
+  source_url="${REPO_ROOT}/${source_ref}/install.sh"
 else
   response="$(curl -4fsS --retry 3 --retry-delay 1 \
     --connect-timeout 5 --max-time 15 \
@@ -43,6 +61,7 @@ else
     echo '[MuchoCore] Could not resolve the latest published stable release.' >&2
     exit 1
   }
+  source_url="$source_url"
 fi
 
 tmp="$(mktemp)"
