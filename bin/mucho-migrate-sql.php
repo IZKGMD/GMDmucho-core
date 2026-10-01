@@ -315,6 +315,7 @@ if (!is_resource($lock) || !flock($lock, LOCK_EX | LOCK_NB)) {
 }
 
 $source = null;
+$sourceLoader = null;
 
 try {
     set_time_limit(0);
