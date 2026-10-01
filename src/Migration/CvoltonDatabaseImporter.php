@@ -870,7 +870,7 @@ final class CvoltonDatabaseImporter
                  :color1,:color2,:color3,:special,:glow,:cube,:ship,:ball,:ufo,:wave,
                  :robot,:spider,:swing,:jetpack,:explosion,:demon_info,:star_info,
                  :platformer_info,:last_ip,
-                 CASE WHEN :last_played > 0 THEN FROM_UNIXTIME(:last_played) ELSE NULL END)
+                 CASE WHEN :last_played_check > 0 THEN FROM_UNIXTIME(:last_played_value) ELSE NULL END)
              ON DUPLICATE KEY UPDATE
                 game_version=VALUES(game_version),
                 binary_version=VALUES(binary_version),
@@ -937,7 +937,8 @@ final class CvoltonDatabaseImporter
             'star_info' => $this->sourceText((string)($row['starInfo'] ?? ''), 255),
             'platformer_info' => $this->sourceText((string)($row['platformerInfo'] ?? ''), 255),
             'last_ip' => $this->sourceText((string)($row['lastIp'] ?? ''), 45),
-            'last_played' => max(0, (int)($row['lastPlayed'] ?? 0)),
+            'last_played_check' => max(0, (int)($row['lastPlayed'] ?? 0)),
+            'last_played_value' => max(0, (int)($row['lastPlayed'] ?? 0)),
         ]);
     }
 
