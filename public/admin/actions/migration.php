@@ -22,11 +22,15 @@ $rootDir=defined('ROOT_DIR')
     ? ROOT_DIR
     : dirname(__DIR__,3);
 
-$backupDir=(string)(
+$configuredBackupDir=trim((string)(
     $_ENV['MUCHO_DB_BACKUP_DIR']
     ?? getenv('MUCHO_DB_BACKUP_DIR')
-    ?? ($rootDir.'/storage/backups/database')
-);
+    ?? ''
+));
+
+$backupDir=$configuredBackupDir!==''
+    ? $configuredBackupDir
+    : $rootDir.'/storage/backups/database';
 
 /* =========================================================
    SQL FILE IMPORT
@@ -238,15 +242,15 @@ try {
             $password
         );
 
-        $backupDir=(string)(
+        $configuredBackupDir=trim((string)(
             $_ENV['MUCHO_DB_BACKUP_DIR']
             ?? getenv('MUCHO_DB_BACKUP_DIR')
-            ?? ($rootDir.'/storage/backups/database')
-        );
+            ?? ''
+        ));
 
-        if ($backupDir === '') {
-            throw new RuntimeException('Shared-hosting backup directory is not configured.');
-        }
+        $backupDir=$configuredBackupDir!==''
+            ? $configuredBackupDir
+            : $rootDir.'/storage/backups/database';
 
         $service=new \MuchoCore\Migration\SharedMigrationService(
             $db,
