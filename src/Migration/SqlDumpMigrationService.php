@@ -61,6 +61,8 @@ final class SqlDumpMigrationService
             && !is_dir($this->storageDirectory())) {
             throw new RuntimeException('Unable to create SQL migration storage.');
         }
+
+        $this->cleanupStale();
     }
 
     /**
