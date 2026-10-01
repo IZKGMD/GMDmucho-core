@@ -820,7 +820,14 @@ if [[ "$healthy" -eq 1 ]]; then
     if [[ -z "$CLOUDFLARE_API_TOKEN" && -e /dev/tty ]]; then
       printf "\n${BOLD}  Cloudflare API token${RESET}\n"
       printf "  MuchoCore can automatically point $DOMAIN to the VPS public IP ($PUBLIC_IP).\n"
-      printf "  The token is used only for DNS setup and is not stored.\n\n"
+      printf "  Create the token here:\n"
+      printf "    https://dash.cloudflare.com/profile/api-tokens\n"
+      printf "  Required permissions:\n"
+      printf "    Zone → DNS → Edit\n"
+      printf "    Zone → Zone → Read\n"
+      printf "    Resource: only the zone containing $DOMAIN\n"
+      printf "  Cloudflare shows the token secret only once. Keep it private.\n"
+      printf "  The token is used only for DNS setup and is not stored by MuchoCore.\n\n"
       read -r -s -p "  Cloudflare API token (Enter to skip): " CLOUDFLARE_API_TOKEN < /dev/tty
       printf "\n"
     fi
