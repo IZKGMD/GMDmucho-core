@@ -20,6 +20,18 @@
         respond 404
     }
 
+    # Public MuchoGDPS landing page. Keep the /index marketing surface
+    # separate from the Geometry Dash front controller and expose it only on
+    # the canonical MuchoCore project host.
+    @muchogdps_index {
+        host {$MUCHOCORE_SITE_HOST}
+        path /index /index/
+    }
+    handle @muchogdps_index {
+        rewrite * /muchogdps-index.html
+        file_server
+    }
+
     # Serve the MuchoCore product page explicitly. Do not rely on the
     # application/PHP fallback for this static discovery surface.
     @muchocore_root {
