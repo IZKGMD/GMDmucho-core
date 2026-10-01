@@ -176,7 +176,7 @@ final class SourceDetector
                 'tables' => ['songs'],
                 'status' => 'imported_now',
                 'where' => 'songs contains metadata; MegaSa1nt/Cvolton also stores binary music under the old server music/ directory and SFX under sfx/.',
-                'notes' => 'Song metadata is imported. The old music library files remain filesystem assets and require a dedicated music-library adapter.',
+                'notes' => 'Song metadata and supported local song files are imported when a full server archive is attached. The legacy music library files are preserved as non-executable assets.',
             ],
             [
                 'key' => 'analytics',
