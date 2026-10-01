@@ -222,13 +222,15 @@ $oldUser=(string)($form['source_user'] ?? '');
         The SQL dump is currently isolated under temporary staging table names.
         The real MuchoCore tables have not been replaced or cleared.
         <?php $archive=$sqlPreview['server_archive'] ?? []; ?>
-        <?php $ld=$archive['level_data'] ?? []; $cs=$archive['cloud_saves'] ?? []; ?>
-        <?php if ((int)($ld['stored_files'] ?? 0) > 0 || (int)($cs['stored_files'] ?? 0) > 0): ?>
+        <?php $ld=$archive['level_data'] ?? []; $cs=$archive['cloud_saves'] ?? []; $mu=$archive['music'] ?? []; ?>
+        <?php if ((int)($ld['stored_files'] ?? 0) > 0 || (int)($cs['stored_files'] ?? 0) > 0 || (int)($mu['stored_files'] ?? 0) > 0): ?>
             Server archive adapter: <b><?=h((string)($archive['adapter'] ?? 'unknown'))?></b> —
             level files: <b><?=number_format((int)($ld['stored_files'] ?? 0))?></b>,
             matching levels: <b><?=number_format((int)($ld['matched_files'] ?? 0))?></b>;
             legacy Cloud Saves: <b><?=number_format((int)($cs['stored_files'] ?? 0))?></b>,
-            matching accounts: <b><?=number_format((int)($cs['matched_files'] ?? 0))?></b>.
+            matching accounts: <b><?=number_format((int)($cs['matched_files'] ?? 0))?></b>;
+            music assets: <b><?=number_format((int)($mu['stored_files'] ?? 0))?></b>,
+            matching songs: <b><?=number_format((int)($mu['matched_files'] ?? 0))?></b>.
         <?php else: ?>
             No full server archive is attached. SQL-only import remains valid when all required payloads are stored in the database.
         <?php endif; ?>
