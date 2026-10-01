@@ -240,6 +240,14 @@ read -r ZONE_ID ACCOUNT_ID ZONE_NAME < <(find_zone) || die "Could not find an ac
 info "Using Cloudflare zone: $ZONE_NAME"
 info "Using Cloudflare account: $ACCOUNT_ID"
 
+if [[ "${1:-}" == "direct" ]]; then
+  ORIGIN_IP="${MUCHO_PUBLIC_IP:-}"
+  [[ -n "$ORIGIN_IP" ]] || ORIGIN_IP="$(curl -4fsS --connect-timeout 5 --max-time 10 https://api.ipify.org 2>/dev/null || true)"
+  [[ -n "$ORIGIN_IP" ]] || die "Could not determine the public origin IPv4 address."
+  configure_direct_origin "$ZONE_ID" "$ORIGIN_IP"
+  exit 0
+fi
+
 mapfile -t tunnel_info < <(ensure_tunnel "$ACCOUNT_ID")
 TUNNEL_ID="${tunnel_info[0]:-}"
 TUNNEL_RUNTIME_TOKEN="${tunnel_info[1]:-}"
