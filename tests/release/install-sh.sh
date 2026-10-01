@@ -72,5 +72,7 @@ fi
 
 grep -Fq 'Installation failed during: $INSTALL_STEP' install.sh
 grep -Fq 'check_domain_preflight' install.sh
+grep -Fq 'INSTALL_STEP="detecting public network"' install.sh
+grep -Fq 'apt-get install -y ca-certificates curl git jq openssl' install.sh
 
 echo "install-sh: OK"
