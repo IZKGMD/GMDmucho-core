@@ -539,6 +539,12 @@ else
   MUCHO_DB_ROOT_PASSWORD="$(openssl rand -hex 32)"
 fi
 
+if [[ -s "$INSTALL_DIR/.secrets/migration_db_password" ]]; then
+  MUCHO_MIGRATION_DB_PASSWORD="$(cat "$INSTALL_DIR/.secrets/migration_db_password")"
+else
+  MUCHO_MIGRATION_DB_PASSWORD="$(openssl rand -hex 32)"
+fi
+
 if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then
   MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
 elif [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
@@ -551,6 +557,7 @@ fi
 
 printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
 printf '%s' "$MUCHO_DB_ROOT_PASSWORD" > "$INSTALL_DIR/.secrets/db_root_password"
+printf '%s' "$MUCHO_MIGRATION_DB_PASSWORD" > "$INSTALL_DIR/.secrets/migration_db_password"
 printf '%s' "$MUCHO_ADMIN_PASSWORD" > "$INSTALL_DIR/.secrets/admin_password"
 if [[ ! -f "$INSTALL_DIR/.secrets/cloudsave_key" && -f "$INSTALL_DIR/config/cloudsave.key" ]]; then
   cp "$INSTALL_DIR/config/cloudsave.key" "$INSTALL_DIR/.secrets/cloudsave_key"
@@ -568,6 +575,7 @@ chmod 600 "$INSTALL_DIR/.secrets/"*
 for secret in \
   "$INSTALL_DIR/.secrets/db_password" \
   "$INSTALL_DIR/.secrets/db_root_password" \
+  "$INSTALL_DIR/.secrets/migration_db_password" \
   "$INSTALL_DIR/.secrets/admin_password" \
   "$INSTALL_DIR/.secrets/cloudsave_key"; do
   [[ -s "$secret" ]] || fail "Required secret file is missing or empty: $secret"
@@ -615,6 +623,11 @@ CADDY_ADDRESS_VALUE="$CADDY_ADDRESS_VALUE"
 CADDY_ADDRESS="$CADDY_ADDRESS_VALUE"
 DB_NAME=$DB_NAME
 DB_USER=$DB_USER
+MUCHO_MIGRATION_DB_HOST=db
+MUCHO_MIGRATION_DB_PORT=3306
+MUCHO_MIGRATION_DB_NAME=muchocore_migration
+MUCHO_MIGRATION_DB_USER=muchocore_migration
+MUCHO_MIGRATION_DB_PASSWORD_FILE=/run/secrets/migration_db_password
 ADMIN_USER=$ADMIN_USER
 MUCHO_ACCOUNT_URL=https://$DOMAIN
 MUCHO_CUSTOM_CONTENT_URL=$CUSTOM_CONTENT_URL
@@ -711,11 +724,31 @@ if [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
   fi
 fi
 INSTALL_STEP="starting production services"
+ensure_migration_database() {
+  local migration_db="muchocore_migration"
+  local migration_user="muchocore_migration"
+  local migration_password="$MUCHO_MIGRATION_DB_PASSWORD"
+
+  [[ "$migration_password" =~ ^[A-Fa-f0-9]+$ ]] || fail "Migration database password has an unexpected format."
+
+  log "Preparing isolated SQL migration database..."
+  local sql
+  sql="CREATE DATABASE IF NOT EXISTS $migration_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '$migration_user'@'%' IDENTIFIED BY '$migration_password';
+ALTER USER '$migration_user'@'%' IDENTIFIED BY '$migration_password';
+GRANT ALL PRIVILEGES ON $migration_db.* TO '$migration_user'@'%';
+FLUSH PRIVILEGES;"
+
+  run_compose exec -T -e MYSQL_PWD="$MUCHO_DB_ROOT_PASSWORD" db \
+    mariadb -uroot -e "$sql" >/dev/null
+}
 log "Starting MuchoCore..."
 if [[ "$USE_TUNNEL" -eq 1 ]]; then
   log "Tunnel mode: no inbound ports will be opened; Cloudflare Tunnel provides ingress."
 fi
 run_compose up -d --build --remove-orphans
+
+ensure_migration_database
 
 log "Verifying running containers..."
 expected_services=(db app worker caddy)
