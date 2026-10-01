@@ -56,7 +56,8 @@ echo "[MuchoCore] Preparing installer ref $SOURCE_REF..."
 # Fetch the installer directly from the selected Git ref. Do not resolve or
 # substitute Git object/blob SHAs here: that added failure modes (commit SHA
 # vs content SHA) without helping the one-command bootstrap.
-installer_url="${REPO_ROOT}/${SOURCE_REF}/install.sh"
+cache_bust="$(date +%s%N 2>/dev/null || date +%s)"
+installer_url="${REPO_ROOT}/${SOURCE_REF}/install.sh?cb=${cache_bust}"
 curl -4fsSL --retry 3 --retry-delay 1 \
   --connect-timeout 5 --max-time 30 \
   "$installer_url" \
