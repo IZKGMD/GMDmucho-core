@@ -5,6 +5,14 @@ REPO_ROOT="${MUCHO_REPO_ROOT:-https://raw.githubusercontent.com/IZKGMD/GMDmucho-
 RELEASE_API="${MUCHO_RELEASE_API:-https://api.github.com/repos/IZKGMD/GMDmucho-core/releases/latest}"
 INSTALL_REF="${MUCHO_INSTALL_REF:-}"
 
+# Keep bootstrap selection explicit and deterministic. Passing --ref here must
+# select the same installer ref that the inner install.sh will use.
+for arg in "$@"; do
+  case "$arg" in
+    --ref=*) INSTALL_REF="${arg#*=}" ;;
+  esac
+done
+
 [[ $EUID -eq 0 ]] || {
   echo '[MuchoCore] Run the remote installer as root: sudo bash' >&2
   exit 1
@@ -21,6 +29,7 @@ if [[ -n "$INSTALL_REF" ]]; then
     exit 1
   }
   tag="$INSTALL_REF"
+  echo "[MuchoCore] Using explicit installer ref: $tag..."
 else
   response="$(curl -4fsS --retry 3 --retry-delay 1 \
     --connect-timeout 5 --max-time 15 \
