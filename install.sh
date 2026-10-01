@@ -21,6 +21,9 @@ CLOUDFLARE_API_TOKEN="${MUCHO_CLOUDFLARE_API_TOKEN:-}"
 # then use the connector token shown for the tunnel. The MuchoCore tunnel
 # compose override sends traffic to the internal Caddy service at http://caddy:80.
 TUNNEL_TOKEN="${MUCHO_TUNNEL_TOKEN:-}"
+TRANSPORT_MODE="${MUCHO_TRANSPORT_MODE:-auto}"
+PUBLIC_IP="${MUCHO_PUBLIC_IP:-}"
+USE_TUNNEL=0
 GD_VERSIONS="${MUCHO_GD_VERSIONS:-}"
 RELEASE_API="${MUCHO_RELEASE_API:-https://api.github.com/repos/IZKGMD/GMDmucho-core/releases/latest}"
 INSTALL_REF="${MUCHO_INSTALL_REF:-}"
@@ -77,6 +80,7 @@ Optional flags:
   --migrate               Open the existing-GDPS migration flow after install.
   --help                  Show this help.
 
+Transport is automatic by default. Set MUCHO_TRANSPORT_MODE to auto, direct, or tunnel.
 Environment equivalents are also supported.
 EOF
 }
@@ -276,6 +280,9 @@ trap 'fail "Installation failed during: $INSTALL_STEP (line $LINENO). Check the 
 [[ $EUID -eq 0 ]] || fail "Run the installer as root: sudo bash install.sh"
 
 if [[ -f "$INSTALL_DIR/.env" ]]; then
+  if [[ -z "$CLOUDFLARE_API_TOKEN" && -s "$INSTALL_DIR/.secrets/cloudflare_api_token" ]]; then
+    CLOUDFLARE_API_TOKEN="$(cat "$INSTALL_DIR/.secrets/cloudflare_api_token")"
+  fi
   if [[ -z "$GD_VERSIONS" ]]; then
     GD_VERSIONS="$(sed -n 's/^MUCHO_GD_VERSIONS=//p' "$INSTALL_DIR/.env" | head -n1)"
   fi
@@ -313,6 +320,11 @@ DB_USER="${DB_USER:-muchocore_user}"
 ADMIN_USER="${ADMIN_USER:-admin}"
 CUSTOM_CONTENT_URL="${CUSTOM_CONTENT_URL:-https://geometrydashfiles.b-cdn.net}"
 
+case "$TRANSPORT_MODE" in
+  auto|direct|tunnel) ;;
+  *) fail "Invalid MUCHO_TRANSPORT_MODE='$TRANSPORT_MODE'. Use auto, direct, or tunnel." ;;
+esac
+
 select_compatibility_profile
 
 if [[ -z "$DOMAIN" ]]; then
@@ -329,9 +341,24 @@ if [[ -n "$CADDY_EXTRA_HOSTS" ]]; then
   done
 fi
 
+detect_public_ip() {
+  if [[ -n "$PUBLIC_IP" ]]; then
+    [[ "$PUBLIC_IP" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || fail "Invalid MUCHO_PUBLIC_IP='$PUBLIC_IP'."
+    return
+  fi
+  PUBLIC_IP="$(curl -4fsS --retry 2 --connect-timeout 5 --max-time 10 https://api.ipify.org 2>/dev/null || true)"
+  [[ "$PUBLIC_IP" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || {
+    warn "Could not determine the public IPv4 address. Direct mode will rely on configured DNS and public health checks."
+    PUBLIC_IP=""
+    return
+  }
+  info "Detected public IPv4: $PUBLIC_IP"
+}
 check_domain_preflight() {
   INSTALL_STEP="checking domain and host networking"
   info "Checking domain and host networking..."
+
+  detect_public_ip
 
   local domain_ips port_80 port_443 caddy_running
   domain_ips="$(getent ahostsv4 "$DOMAIN" 2>/dev/null | awk '{print $1}' | sort -u | tr '\n' ' ' | sed 's/[[:space:]]*$//' || true)"
@@ -344,7 +371,7 @@ check_domain_preflight() {
     warn "Installation can continue, but public HTTPS will not work until DNS is configured."
   fi
 
-  if [[ -z "$TUNNEL_TOKEN" && "$(command -v ss || true)" ]]; then
+  if [[ "$USE_TUNNEL" -eq 0 && "$(command -v ss || true)" ]]; then
     port_80="$(ss -ltnH 2>/dev/null | awk '$4 ~ /:80$/ {print; exit}' || true)"
     port_443="$(ss -ltnH 2>/dev/null | awk '$4 ~ /:443$/ {print; exit}' || true)"
     caddy_running="$(docker ps --filter 'label=com.docker.compose.service=caddy' --format '{{.ID}}' 2>/dev/null | head -n1 || true)"
@@ -460,7 +487,7 @@ if [[ -f "$INSTALL_DIR/.env" ]]; then
 fi
 
 normalize_caddy_address() {
-  if [[ -n "$TUNNEL_TOKEN" ]]; then
+  if [[ "$USE_TUNNEL" -eq 1 ]]; then
     printf ':80'
     return
   fi
@@ -499,6 +526,8 @@ MUCHO_CONTROL_DIR=/var/lib/muchocore-control
 MUCHO_BACKUP_DIR=/var/lib/muchocore-backups
 TZ=UTC
 MUCHO_GD_VERSIONS=$GD_VERSIONS
+MUCHO_TRANSPORT_MODE=$TRANSPORT_MODE
+MUCHO_PUBLIC_IP=$PUBLIC_IP
 CADDY_EXTRA_HOSTS=$CADDY_EXTRA_HOSTS
 MUCHOCORE_SITE_HOST=disabled.invalid
 MUCHO_PROTECT_STORAGE=file
@@ -506,10 +535,10 @@ MUCHO_TRUSTED_PROXY_CIDRS=
 MUCHO_AUTO_UPDATE=1
 MUCHO_AUTO_UPDATE_INTERVAL=15min
 EOFENV
-if [[ -n "$TUNNEL_TOKEN" ]]; then
+if [[ "$USE_TUNNEL" -eq 1 && -n "$TUNNEL_TOKEN" ]]; then
   printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
   printf '%s\n' "$TUNNEL_TOKEN" > "$INSTALL_DIR/.secrets/tunnel_token"
-  chmod 600 "$INSTALL_DIR/.secrets/tunnel_token"
+  chmod 400 "$INSTALL_DIR/.secrets/tunnel_token"
 fi
 chmod 600 "$INSTALL_DIR/.env"
 
@@ -530,12 +559,12 @@ chmod 600 "$INSTALL_DIR/.muchocore/profile.env"
 [[ -f "$INSTALL_DIR/docker/Caddyfile" ]] || fail "Repository does not contain docker/Caddyfile."
 
 COMPOSE_ARGS=(-f "$INSTALL_DIR/docker-compose.yml")
-if [[ -n "$TUNNEL_TOKEN" ]]; then
+if [[ "$USE_TUNNEL" -eq 1 ]]; then
   COMPOSE_ARGS+=( -f "$INSTALL_DIR/docker-compose.tunnel.yml" )
 fi
 
 run_compose() {
-  if [[ -n "$TUNNEL_TOKEN" ]]; then
+  if [[ "$USE_TUNNEL" -eq 1 ]]; then
     MUCHO_TUNNEL_TOKEN="$TUNNEL_TOKEN" docker compose "${COMPOSE_ARGS[@]}" "$@"
   else
     docker compose "${COMPOSE_ARGS[@]}" "$@"
@@ -543,13 +572,41 @@ run_compose() {
 }
 
 
+if [[ "$USE_TUNNEL" -eq 0 && "$TRANSPORT_MODE" != "tunnel" && -n "$CLOUDFLARE_API_TOKEN" && -n "$PUBLIC_IP" ]]; then
+  INSTALL_STEP="configuring direct Cloudflare DNS"
+  log "Configuring Cloudflare DNS for direct origin $PUBLIC_IP..."
+  if ! MUCHO_CLOUDFLARE_API_TOKEN="$CLOUDFLARE_API_TOKEN" \
+      MUCHO_DOMAIN="$DOMAIN" \
+      MUCHO_PUBLIC_IP="$PUBLIC_IP" \
+      MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+      bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct; then
+    warn "Automatic direct DNS configuration failed. Continuing with the existing DNS configuration."
+  fi
+fi
 INSTALL_STEP="validating Docker Compose"
 log "Validating Docker Compose..."
 run_compose config -q
 
+if [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
+  if [[ -s "$INSTALL_DIR/.secrets/tunnel_token" && -z "$TUNNEL_TOKEN" ]]; then
+    TUNNEL_TOKEN="$(cat "$INSTALL_DIR/.secrets/tunnel_token")"
+  fi
+  if [[ -n "$TUNNEL_TOKEN" ]]; then
+    USE_TUNNEL=1
+    sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
+    sed -i 's/^CADDY_ADDRESS_VALUE=.*/CADDY_ADDRESS_VALUE=":80"/' "$INSTALL_DIR/.env"
+    sed -i 's/^CADDY_ADDRESS=.*/CADDY_ADDRESS=":80"/' "$INSTALL_DIR/.env"
+    if ! grep -q '^MUCHO_TUNNEL_TOKEN=' "$INSTALL_DIR/.env"; then
+      printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
+    fi
+    COMPOSE_ARGS=(-f "$INSTALL_DIR/docker-compose.yml" -f "$INSTALL_DIR/docker-compose.tunnel.yml")
+  elif [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
+    fail "MUCHO_TRANSPORT_MODE=tunnel requires a Tunnel runtime token or MUCHO_CLOUDFLARE_API_TOKEN."
+  fi
+fi
 INSTALL_STEP="starting production services"
 log "Starting MuchoCore..."
-if [[ -n "$TUNNEL_TOKEN" ]]; then
+if [[ "$USE_TUNNEL" -eq 1 ]]; then
   log "Tunnel mode: no inbound ports will be opened; Cloudflare Tunnel provides ingress."
 fi
 run_compose up -d --build --remove-orphans
@@ -591,17 +648,6 @@ public_code=""
 provision_cloudflare_tunnel() {
   local api_token="$CLOUDFLARE_API_TOKEN"
 
-  if [[ -z "$api_token" ]]; then
-    echo
-    info "Cloudflare API access is needed only to automate the Tunnel setup."
-    info "Create the token with the required permissions using this link:"
-    printf '%s\n' '  https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys=%5B%7B%22key%22%3A%22zone%22%2C%22type%22%3A%22read%22%7D%2C%7B%22key%22%3A%22dns%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22argotunnel%22%2C%22type%22%3A%22edit%22%7D%5D&accountId=%2A&zoneId=all&name=MuchoCore%20Installer'
-    info "The token needs: Cloudflare Tunnel Edit, DNS Edit, and Zone Read."
-    info "After Cloudflare shows the secret, paste it here. The secret is shown only once."
-    read -r -s -p "Cloudflare API token (press Enter to keep direct mode): " api_token < /dev/tty
-    printf '\n'
-  fi
-
   [[ -n "$api_token" ]] || return 1
 
   INSTALL_STEP="configuring Cloudflare automatically"
@@ -620,6 +666,10 @@ provision_cloudflare_tunnel() {
     return 1
   }
 
+  USE_TUNNEL=1
+  sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
+  sed -i 's/^CADDY_ADDRESS_VALUE=.*/CADDY_ADDRESS_VALUE=":80"/' "$INSTALL_DIR/.env"
+  sed -i 's/^CADDY_ADDRESS=.*/CADDY_ADDRESS=":80"/' "$INSTALL_DIR/.env"
   COMPOSE_ARGS=(-f "$INSTALL_DIR/docker-compose.yml" -f "$INSTALL_DIR/docker-compose.tunnel.yml")
   if [[ " ${expected_services[*]} " != *" cloudflared "* ]]; then
     expected_services+=(cloudflared)
@@ -670,15 +720,16 @@ if [[ "$healthy" -eq 1 ]]; then
   rm -f "$public_probe_file"
 
   if [[ "$public_ok" -eq 1 ]]; then
-    log "Public health check passed."
-  elif [[ -z "$TUNNEL_TOKEN" ]]; then
+    sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=direct/' "$INSTALL_DIR/.env"
+    log "Public health check passed in direct mode."
+  elif [[ "$TRANSPORT_MODE" == "auto" && "$USE_TUNNEL" -eq 0 ]]; then
     # A Cloudflare-proxied hostname can return 52x or curl 000 when the
     # provider blocks inbound 80/443. In both cases the application itself is
     # already proven healthy by the internal healthcheck, so automatically
     # switch transport instead of declaring installation complete with a
     # broken public endpoint.
     info "Public HTTPS is unavailable (HTTP $public_code). Automatic Tunnel setup is available."
-    if provision_cloudflare_tunnel; then
+    if [[ -n "$CLOUDFLARE_API_TOKEN" ]] && provision_cloudflare_tunnel; then
       public_ok=0
       # Give Cloudflare enough time to attach the hostname to the newly
       # registered connector before declaring the public endpoint unhealthy.
@@ -701,9 +752,29 @@ if [[ "$healthy" -eq 1 ]]; then
       warn "Automatic Cloudflare Tunnel setup was skipped."
       warn "The application is healthy locally, but public ingress remains unavailable."
     fi
-  elif [[ -n "$TUNNEL_TOKEN" ]]; then
+  elif [[ "$TRANSPORT_MODE" == "tunnel" || "$USE_TUNNEL" -eq 1 ]]; then
     warn "The application is healthy locally, but the domain is not reachable through Cloudflare Tunnel yet."
     warn "Check: cd $INSTALL_DIR && sudo docker compose -f docker-compose.yml -f docker-compose.tunnel.yml logs cloudflared --tail=80"
+  elif [[ "$TRANSPORT_MODE" == "tunnel" && "$USE_TUNNEL" -eq 0 ]]; then
+    if [[ -n "$CLOUDFLARE_API_TOKEN" ]] && provision_cloudflare_tunnel; then
+      public_ok=0
+      for _ in {1..45}; do
+        if curl -4ksSf --connect-timeout 3 --max-time 6 "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+          public_ok=1
+          break
+        fi
+        sleep 2
+      done
+      [[ "$public_ok" -eq 1 ]] && log "Public health check passed through Cloudflare Tunnel." || warn "Cloudflare Tunnel was provisioned, but public health is still unavailable. Run: sudo mucho doctor"
+    else
+      warn "Tunnel mode was requested, but Cloudflare API credentials are unavailable."
+    fi
+  elif [[ "$TRANSPORT_MODE" == "direct" ]]; then
+    warn "Direct transport was requested, but the public hostname is not healthy."
+    warn "The application is healthy locally; verify DNS and inbound 80/443 reach the VPS."
+  else
+    warn "Automatic transport selection could not establish a healthy public endpoint."
+    warn "The application is healthy locally. Provide MUCHO_CLOUDFLARE_API_TOKEN for fully automatic Tunnel fallback."
   fi
 else
   warn "The internal MuchoCore healthcheck did not pass."
