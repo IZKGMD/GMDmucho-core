@@ -145,6 +145,9 @@ if (in_array(
                 'Cloud saves imported: '.(int)($result['stats']['cloud_saves_imported'] ?? 0),
                 'Cloud saves missing: '.(int)($result['stats']['cloud_saves_missing'] ?? 0),
                 'Cloud save bytes: '.(int)($result['stats']['cloud_saves_bytes'] ?? 0),
+                'Music files published: '.(int)($result['stats']['music_files_published'] ?? 0),
+                'Music bytes published: '.(int)($result['stats']['music_bytes_published'] ?? 0),
+                'Song URLs rewritten: '.(int)($result['stats']['song_urls_rewritten'] ?? 0),
                 'TARGET_BACKUP='.(string)($result['backup']['file'] ?? ''),
                 'MIGRATION COMPLETE',
             ];
