@@ -45,6 +45,18 @@ The staging area is removed after a successful import or manual discard. Abandon
 
 The Docker/VPS image accepts SQL uploads up to 256 MB (uncompressed SQL is additionally capped at 512 MB).
 
+### Galaxxy level-data archives
+
+MegaSa1nt/Cvolton-compatible Galaxxy deployments commonly keep the playable level payload outside MySQL:
+
+~~~text
+public_html/data/levels/<levelID>
+~~~
+
+The SQL row may therefore contain an empty `levelString` even though the real level is present on disk. The Admin SQL workflow accepts an optional Galaxxy `.zip` archive and selectively stages only numeric files under `public_html/data/levels/` (or `data/levels/`). During apply, those payloads are decoded from Galaxxy's base64+gzip file format and written to MuchoCore's `levels.level_data` using the source-to-target level mapping.
+
+SQL-only imports remain valid, but they cannot reconstruct level data that exists only on the old server filesystem.
+
 ## What the wizard does
 
 The Migration Center follows this order:
