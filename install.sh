@@ -478,6 +478,22 @@ fi
 systemctl enable --now docker
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 was not found."
 
+configure_local_firewall() {
+  # MuchoCore only needs inbound TCP 80/443 in direct mode. If UFW is active,
+  # open those two ports automatically. Do not enable UFW or change an inactive
+  # firewall: the VPS provider may manage filtering outside the guest OS.
+  if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "^Status: active"; then
+    info "UFW is active; allowing inbound TCP 80 and 443 for MuchoCore..."
+    ufw allow 80/tcp >/dev/null || fail "Could not allow TCP 80 through UFW."
+    ufw allow 443/tcp >/dev/null || fail "Could not allow TCP 443 through UFW."
+  elif command -v ufw >/dev/null 2>&1; then
+    info "UFW is inactive; no guest firewall changes are needed."
+  fi
+}
+
+INSTALL_STEP="configuring local firewall"
+configure_local_firewall
+
 INSTALL_STEP="preparing the MuchoCore source"
 log "Preparing MuchoCore..."
 if [[ -n "$INSTALL_REF" ]]; then
