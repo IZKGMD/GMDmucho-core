@@ -131,8 +131,8 @@ print_installer_intro() {
   printf "  5. Verify public https://<domain>/health before declaring success\n"
   printf "\n"
   printf "${CYAN}You only need to provide the domain and admin password for a normal public VPS.${RESET}\n"
-  printf "${CYAN}Cloudflare API access is only needed when automatic Tunnel fallback must be available.${RESET}\n"
-  printf "  ${CYAN}For full NAT/CGNAT automation, provide MUCHO_CLOUDFLARE_API_TOKEN in the environment before starting.${RESET}\n"
+  printf "${CYAN}Cloudflare API access is needed only when MuchoCore must change Cloudflare DNS or enable NAT fallback.${RESET}\n"
+  printf "  ${CYAN}When needed, the installer will ask for the token and explain how to create it.${RESET}\n"
   printf "${CYAN}The installer will stop on a failed public health check instead of leaving a broken deployment behind.${RESET}\n"
   printf "\n"
 }
