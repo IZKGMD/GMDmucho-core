@@ -161,6 +161,22 @@ final class CvoltonDatabaseImporter
                 $existing = $this->mappedAccount($sourceId);
 
                 if ($existing === null) {
+                    /*
+                     * Legacy GDPS databases often contain several accounts
+                     * sharing one email address. MuchoCore keeps email unique,
+                     * so preserve the first real address and assign later
+                     * colliding source accounts deterministic local fallback
+                     * addresses instead of aborting the entire migration.
+                     */
+                    if (
+                        $this->emailBelongsToDifferentAccount(
+                            $email,
+                            $username
+                        )
+                    ) {
+                        $email = $this->fallbackEmail($sourceId);
+                    }
+
                     $existing = $this->existingAccount(
                         $sourceId,
                         $username,
@@ -452,6 +468,29 @@ final class CvoltonDatabaseImporter
             'color2' => max(0, min(65535, (int)($row['color2'] ?? 3))),
             'glow' => max(0, min(1, (int)($row['glow'] ?? 0))),
         ]);
+    }
+
+    private function emailBelongsToDifferentAccount(
+        string $email,
+        string $username
+    ): bool {
+        $q = $this->target->prepare(
+            'SELECT username
+             FROM accounts
+             WHERE email=:email
+             ORDER BY account_id ASC
+             LIMIT 1'
+        );
+        $q->execute(['email' => $email]);
+
+        $owner = $q->fetchColumn();
+
+        return $owner !== false && (string)$owner !== $username;
+    }
+
+    private function fallbackEmail(int $sourceId): string
+    {
+        return 'cvolton.' . $sourceId . '@local.invalid';
     }
 
     private function existingAccount(
