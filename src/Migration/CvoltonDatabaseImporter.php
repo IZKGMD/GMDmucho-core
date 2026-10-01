@@ -528,7 +528,9 @@ final class CvoltonDatabaseImporter
                 $account = $this->mappedAccount((int)($row['userID'] ?? 0));
 
                 if ($account !== null) {
-                    $content = (string)($row['comment'] ?? '');
+                    $content = $this->decodeLegacyText(
+                        (string)($row['comment'] ?? '')
+                    );
                     $created = max(0, (int)($row['timestamp'] ?? 0));
 
                     $insert->execute([
@@ -734,8 +736,12 @@ final class CvoltonDatabaseImporter
                 $to = $this->mappedAccount((int)($row['toAccountID'] ?? 0));
 
                 if ($from !== null && $to !== null && $from !== $to) {
-                    $subject = (string)($row['subject'] ?? '');
-                    $body = (string)($row['body'] ?? '');
+                    $subject = $this->decodeLegacyText(
+                        (string)($row['subject'] ?? '')
+                    );
+                    $body = $this->decodeLegacyMessageBody(
+                        (string)($row['body'] ?? '')
+                    );
                     $created = max(0, (int)($row['timestamp'] ?? 0));
 
                     $insert->execute([
@@ -934,6 +940,74 @@ final class CvoltonDatabaseImporter
                 'last_played_at' => $this->timestampOrNull((int)($row['lastPlayed'] ?? 0)),
             ]
         );
+    }
+
+    private function decodeLegacyText(string $value): string
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        $normalized = strtr($value, '-_', '+/');
+        $remainder = strlen($normalized) % 4;
+
+        if ($remainder !== 0) {
+            $normalized .= str_repeat('=', 4 - $remainder);
+        }
+
+        $decoded = base64_decode($normalized, true);
+
+        if ($decoded === false || $decoded === '') {
+            return $value;
+        }
+
+        if (preg_match('//u', $decoded) !== 1) {
+            return $value;
+        }
+
+        if (preg_match('/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/', $decoded) === 1) {
+            return $value;
+        }
+
+        return $decoded;
+    }
+
+    private function decodeLegacyMessageBody(string $value): string
+    {
+        $decoded = $this->decodeLegacyText($value);
+
+        /*
+         * Galaxxy/MegaSa1nt's message storage uses URL-safe Base64 around
+         * a byte-wise XOR stream with the legacy numeric key 14251.
+         */
+        if ($decoded === $value) {
+            return $value;
+        }
+
+        return $this->xorLegacyMessage($decoded, '14251');
+    }
+
+    private function xorLegacyMessage(string $value, string $key): string
+    {
+        if ($key === '') {
+            return $value;
+        }
+
+        $result = '';
+        $keyLength = strlen($key);
+
+        for ($i = 0, $length = strlen($value); $i < $length; $i++) {
+            $result .= chr(
+                ord($value[$i]) ^ ord($key[$i % $keyLength])
+            );
+        }
+
+        return preg_match('//u', $result) === 1 &&
+            preg_match('/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/', $result) !== 1
+            ? $result
+            : $value;
     }
 
     private function sourceText(string $value, int $max): string
@@ -1202,7 +1276,9 @@ final class CvoltonDatabaseImporter
                 0,
                 64
             ),
-            'description' => (string)($row['levelDesc'] ?? ''),
+            'description' => $this->decodeLegacyText(
+                (string)($row['levelDesc'] ?? '')
+            ),
             'data' => (string)($row['levelString'] ?? ''),
             'version' => max(1, (int)($row['levelVersion'] ?? 1)),
             'game' => max(0, (int)($row['gameVersion'] ?? 22)),
