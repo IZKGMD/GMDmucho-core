@@ -6,6 +6,7 @@ $root = dirname(__DIR__, 2);
 
 $detector = file_get_contents($root . '/src/Migration/SourceDetector.php');
 $wizard = file_get_contents($root . '/bin/mucho-migrate.php');
+$sqlWizard = file_get_contents($root . '/bin/mucho-migrate-sql.php');
 $backupScript = file_get_contents($root . '/bin/mucho-db-backup.sh');
 $phpBackup = file_get_contents($root . '/src/Backup/DatabaseBackupService.php');
 $sharedMigration = file_get_contents($root . '/src/Migration/SharedMigrationService.php');
@@ -31,6 +32,7 @@ $adminIndex = file_get_contents($root . '/public/admin/index.php');
 foreach ([
     'src/Migration/SourceDetector.php' => $detector,
     'bin/mucho-migrate.php' => $wizard,
+    'bin/mucho-migrate-sql.php' => $sqlWizard,
     'bin/mucho-db-backup.sh' => $backupScript,
     'src/Backup/DatabaseBackupService.php' => $phpBackup,
     'src/Migration/SharedMigrationService.php' => $sharedMigration,
@@ -50,7 +52,11 @@ foreach ([
     }
 }
 
-if ($backupScript === false) {
+if ($sqlWizard === false) {
+    throw new RuntimeException('Unable to read bin/mucho-migrate-sql.php');
+}
+
+
     throw new RuntimeException('Unable to read bin/mucho-db-backup.sh');
 }
 
@@ -165,6 +171,60 @@ foreach ([
 ] as $needle) {
     if (strpos($backupScript, $needle) === false) {
         throw new RuntimeException('Database backup safety contract missing: ' . $needle);
+    }
+}
+
+foreach ([
+    'MAX_DUMP_BYTES',
+    'mariadb',
+    'MUCHO_MIGRATION_DB_PASSWORD_FILE',
+    'SET SESSION TRANSACTION READ ONLY',
+    'resetMigrationDatabase(',
+    'prepareDump(',
+    'Creating verified target database backup...',
+    '--confirm=MIGRATE',
+    'MIGRATION COMPLETE',
+] as $needle) {
+    if (strpos($sqlWizard, $needle) === false) {
+        throw new RuntimeException('SQL dump migration contract missing: ' . $needle);
+    }
+}
+
+foreach ([
+    'Upload database.sql',
+    'multipart/form-data',
+    'migration-sql-preview',
+    'migration-sql-apply',
+    'sql_token',
+    'Migrate uploaded database',
+] as $needle) {
+    if (stripos((string)$adminPage . (string)$adminAction, $needle) === false) {
+        throw new RuntimeException('Admin SQL upload contract missing: ' . $needle);
+    }
+}
+
+foreach ([
+    'migration-sql-preview',
+    'migration-sql-apply',
+] as $needle) {
+    if (strpos($adminIndex, $needle) === false) {
+        throw new RuntimeException('Admin SQL action dispatch missing: ' . $needle);
+    }
+}
+
+foreach ([
+    'migration_db_password',
+    'MUCHO_MIGRATION_DB_NAME',
+    'MUCHO_MIGRATION_DB_USER',
+] as $needle) {
+    $compose = file_get_contents($root . '/docker-compose.yml');
+    $installer = file_get_contents($root . '/install.sh');
+    $updater = file_get_contents($root . '/update.sh');
+
+    if (strpos((string)$compose, $needle) === false ||
+        strpos((string)$installer, $needle) === false ||
+        strpos((string)$updater, $needle) === false) {
+        throw new RuntimeException('SQL migration database provisioning contract missing: ' . $needle);
     }
 }
 
