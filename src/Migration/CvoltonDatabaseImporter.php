@@ -802,10 +802,14 @@ final class CvoltonDatabaseImporter
                     continue;
                 }
 
+                $author = $this->mappedAccount(
+                    (int)($row['authorID'] ?? 0)
+                ) ?? 0;
+
                 $upsert->execute([
                     'id' => $id,
                     'name' => (string)($row['name'] ?? ''),
-                    'author' => (int)($row['authorID'] ?? 0),
+                    'author' => $author,
                     'authorName' => (string)($row['authorName'] ?? ''),
                     'size' => (float)($row['size'] ?? 0),
                     'download' => urldecode((string)($row['download'] ?? '')),
