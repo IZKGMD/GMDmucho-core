@@ -15,6 +15,7 @@ $adminAction = file_get_contents($root . '/public/admin/actions/migration.php');
 $sqlDumpService = file_get_contents($root . '/src/Migration/SqlDumpMigrationService.php');
 $cvoltonImporter = file_get_contents($root . '/src/Migration/CvoltonDatabaseImporter.php');
 $sqlDumpTokenizer = file_get_contents($root . '/src/Migration/SqlDumpTokenizer.php');
+$galaxxyArchive = file_get_contents($root . '/src/Migration/GalaxxyLevelDataArchiveService.php');
 $adminActionPrevious = $adminAction; // retain the existing admin action variable name
 $dockerfile = file_get_contents($root . '/docker/Dockerfile');
 $adminUsersMigration = file_get_contents($root . '/database/migrations/20260925_000_admin_users.php');
@@ -42,6 +43,7 @@ foreach ([
     'public/admin/actions/migration.php' => $adminAction,
     'src/Migration/SqlDumpMigrationService.php' => $sqlDumpService,
     'src/Migration/SqlDumpTokenizer.php' => $sqlDumpTokenizer,
+    'src/Migration/GalaxxyLevelDataArchiveService.php' => $galaxxyArchive,
     'src/Migration/CvoltonDatabaseImporter.php' => $cvoltonImporter,
     'docker/Dockerfile' => $dockerfile,
     'database/migrations/20260925_000_admin_users.php' => $adminUsersMigration,
@@ -69,6 +71,7 @@ if (
     $adminBackup === false ||
     $sqlDumpService === false ||
     $sqlDumpTokenizer === false ||
+    $galaxxyArchive === false ||
     $cvoltonImporter === false ||
     $adminUsersMigration === false ||
     $sharedPackageBuilder === false ||
@@ -319,6 +322,14 @@ foreach ([
     'emailBelongsToDifferentAccount(',
     'fallbackEmail(',
     'stageUpload(',
+    'GalaxxyLevelDataArchiveService',
+    'level_data_hydrated',
+    'galaxxy_archive',
+    'public_html/data/levels/',
+    'Only .zip Galaxxy data archives are supported.',
+    'MAX_UNCOMPRESSED_BYTES',
+    'getStream(',
+    'levelData(',
     'applyStaged(',
     'mci_',
     'SQL file must be between 1 byte and 256 MB.',
