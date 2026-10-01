@@ -107,7 +107,7 @@ The names **MuchoCore** and **GMDmucho-core** identify the same project.
 | 🖥️ **Admin Control** | Dashboard, players, levels, moderation, analytics, monitoring, backups, API tools and server settings |
 | ⭐ **Rating Studio** | Search levels by ID/name/creator, review pending requests, publish 0–10 star ratings, choose difficulty faces, feature tiers and audit the change |
 | 🔐 **Admin security** | Separate administrator accounts, password login, native WebAuthn/FIDO2 passkeys, Google Authenticator TOTP, one-time recovery codes, self-service password setup for invited admins, customizable RBAC permissions, rate limiting and audit logging |
-| 🔄 **Cvolton migration** | Read-only source DB preflight, verified target backup + checksum, conflict-safe account mapping, persistent ID mapping, transactional rollback and direct `database.sql` / `.sql.gz` import with optional Galaxxy filesystem level-data archives |
+| 🔄 **Migration Center** | Adapter-driven source detection, read-only preflight, verified target backup + checksum, conflict-safe ID mapping, transactional rollback and direct `database.sql` / `.sql.gz` import with optional external level-data adapters |
 | 🏰 **Clans** | Player-dashboard clan directory, clan names/tags, owner/officer/member roles, membership, invitations and server-side in-game clan-tag display |
 | 🧰 **Client patchers** | Windows desktop patcher, browser-based Windows patcher and Android APK patcher |
 | 🐳 **Deployment** | Docker Compose, MariaDB, PHP 8.3, Caddy, automatic migrations, one-command manual updates and release detection |
@@ -254,7 +254,7 @@ The installer can create or reuse the remotely managed Tunnel, configure the pub
 For more detail, see **[docs/ADVANCED.md](docs/ADVANCED.md)**.
 ### Existing GDPS migration
 
-Already running a Cvolton/GMDprivateServer-style GDPS? Open **Admin → Tools → Migration Center** for the guided workflow. You can either connect to the old MySQL/MariaDB database or upload a `database.sql` / `database.sql.gz` dump directly. Galaxxy-style servers that keep playable level data under `public_html/data/levels/<levelID>` can also attach the old server `.zip` so the level payloads are restored. The [Migration Kit](docs/MIGRATION_KIT.md) and [Migration Center](docs/MIGRATION_CENTER.md) documents cover the VPS/CLI fallback for advanced use.
+Already running a supported GDPS? Open **Admin → Tools → Migration Center** for the guided workflow. You can either connect to the old MySQL/MariaDB database or upload a `database.sql` / `database.sql.gz` dump directly. Galaxxy-style servers that keep playable level data under `public_html/data/levels/<levelID>` can also attach the old server `.zip` so the level payloads are restored. The [Migration Kit](docs/MIGRATION_KIT.md), [Migration Center](docs/MIGRATION_CENTER.md) and [Migration adapters](docs/MIGRATION_ADAPTERS.md) documents cover the supported workflows and extension points.
 
 The default migration command is a **dry-run**. It checks the target, validates the source schema, reports row counts and changes nothing until you explicitly use `--apply --confirm=COVOLTON`. Apply mode creates and verifies a target database backup before any destination write; if the backup fails, the import does not start.
 
