@@ -20,6 +20,7 @@ if ($rootPassword === '') {
 $targetDb = 'muchocore_migration_it';
 $sharedTargetDb = 'muchocore_shared_migration_it';
 $sourceDb = 'cvolton_migration_it';
+$sqlUploadDb = 'muchocore_sql_upload_it';
 $fixtureRoot = sys_get_temp_dir() . '/muchocore-migration-it-' . bin2hex(random_bytes(4));
 $runtimeEnv = $fixtureRoot . '/runtime.env';
 
@@ -60,6 +61,63 @@ function must(bool $condition, string $message): void
 function scalar(PDO $db, string $sql): int
 {
     return (int)$db->query($sql)->fetchColumn();
+}
+
+
+function runSqlCli(
+    string $root,
+    string $host,
+    string $port,
+    string $targetDb,
+    string $rootPassword,
+    string $dump,
+    string $migrationPasswordFile
+): array {
+    $command = escapeshellarg(PHP_BINARY) . ' ' .
+        escapeshellarg($root . '/bin/mucho-migrate-sql.php') . ' ' .
+        escapeshellarg('--file=' . $dump) . ' ' .
+        '';
+
+    $env = $_ENV;
+    $env['DB_HOST'] = $host;
+    $env['DB_PORT'] = $port;
+    $env['DB_NAME'] = $targetDb;
+    $env['DB_USER'] = 'root';
+    $env['DB_PASS'] = $rootPassword;
+    $env['MUCHO_MIGRATION_DB_HOST'] = $host;
+    $env['MUCHO_MIGRATION_DB_PORT'] = $port;
+    $env['MUCHO_MIGRATION_DB_NAME'] = 'muchocore_sql_upload_it';
+    $env['MUCHO_MIGRATION_DB_USER'] = 'root';
+    $env['MUCHO_MIGRATION_DB_PASSWORD_FILE'] = $migrationPasswordFile;
+    $env['MUCHO_CORE_ROOT'] = $root;
+
+    $pipes = [];
+    $process = proc_open(
+        $command,
+        [
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w'],
+        ],
+        $pipes,
+        $root,
+        $env
+    );
+
+    if (!is_resource($process)) {
+        throw new RuntimeException('Unable to start SQL dump migration CLI.');
+    }
+
+    fclose($pipes[0]);
+    $stdout = stream_get_contents($pipes[1]);
+    $stderr = stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+
+    return [
+        'code' => proc_close($process),
+        'output' => (string)$stdout . (string)$stderr,
+    ];
 }
 
 function runCli(
@@ -119,16 +177,25 @@ function runCli(
 }
 
 try {
+    if (!mkdir($fixtureRoot, 0700, true) && !is_dir($fixtureRoot)) {
+        throw new RuntimeException('Unable to create SQL migration test fixture directory.');
+    }
+
     $server = pdoRoot($host, $port, $rootPassword);
     $server->exec('DROP DATABASE IF EXISTS ' . $targetDb);
     $server->exec('DROP DATABASE IF EXISTS ' . $sharedTargetDb);
     $server->exec('DROP DATABASE IF EXISTS ' . $sourceDb);
+    $server->exec('DROP DATABASE IF EXISTS ' . $sqlUploadDb);
     $server->exec(
         'CREATE DATABASE ' . $targetDb .
         ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
     );
     $server->exec(
         'CREATE DATABASE ' . $sourceDb .
+        ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
+    );
+    $server->exec(
+        'CREATE DATABASE ' . $sqlUploadDb .
         ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
     );
     $server->exec(
@@ -485,6 +552,40 @@ SQL);
         VALUES (601,1,101,12345,77,1700000001)"
     );
 
+
+    $dump = $fixtureRoot . '/database.sql';
+    $dumpLines = [
+        'CREATE DATABASE IF NOT EXISTS cvolton_migration_it;',
+        'USE cvolton_migration_it;',
+        'GRANT ALL PRIVILEGES ON *.* TO "root"@"localhost";',
+        'CREATE TABLE accounts (userName varchar(255) NOT NULL,password varchar(255) NOT NULL,gjp2 varchar(255) DEFAULT NULL,email varchar(255) NOT NULL,accountID int NOT NULL AUTO_INCREMENT,isActive tinyint(1) NOT NULL DEFAULT 1,PRIMARY KEY (accountID),UNIQUE KEY uq_accounts_name (userName)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;',
+        'CREATE TABLE users (userID int NOT NULL AUTO_INCREMENT,extID varchar(255) NOT NULL,userName varchar(69) NOT NULL,stars int NOT NULL DEFAULT 0,moons int NOT NULL DEFAULT 0,diamonds int NOT NULL DEFAULT 0,coins int NOT NULL DEFAULT 0,userCoins int NOT NULL DEFAULT 0,demons int NOT NULL DEFAULT 0,creatorPoints double NOT NULL DEFAULT 0,icon int NOT NULL DEFAULT 1,iconType int NOT NULL DEFAULT 0,color1 int NOT NULL DEFAULT 0,color2 int NOT NULL DEFAULT 3,accGlow int NOT NULL DEFAULT 0,isBanned int NOT NULL DEFAULT 0,PRIMARY KEY (userID),KEY idx_users_extid (extID)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;',
+        'CREATE TABLE levels (gameVersion int NOT NULL,binaryVersion int NOT NULL DEFAULT 0,levelID int NOT NULL AUTO_INCREMENT,levelName varchar(255) NOT NULL,levelDesc mediumtext NOT NULL,levelVersion int NOT NULL,levelLength int NOT NULL DEFAULT 0,audioTrack int NOT NULL DEFAULT 0,original int NOT NULL DEFAULT 0,twoPlayer int NOT NULL DEFAULT 0,songID int NOT NULL DEFAULT 0,objects int NOT NULL DEFAULT 0,coins int NOT NULL DEFAULT 0,requestedStars int NOT NULL DEFAULT 0,levelString longtext DEFAULT NULL,starDifficulty int NOT NULL DEFAULT 0,downloads int NOT NULL DEFAULT 0,likes int NOT NULL DEFAULT 0,starDemon int NOT NULL DEFAULT 0,starAuto int NOT NULL DEFAULT 0,starStars int NOT NULL DEFAULT 0,starFeatured int NOT NULL DEFAULT 0,starEpic int NOT NULL DEFAULT 0,starDemonDiff int NOT NULL DEFAULT 0,extID varchar(255) NOT NULL,unlisted int NOT NULL DEFAULT 0,isDeleted int NOT NULL DEFAULT 0,isLDM int NOT NULL DEFAULT 0,wt int NOT NULL DEFAULT 0,wt2 int NOT NULL DEFAULT 0,ts bigint NOT NULL DEFAULT 0,songIDs text NOT NULL,sfxIDs text NOT NULL,PRIMARY KEY (levelID),KEY idx_levels_extid (extID)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;',
+        "INSERT INTO accounts (accountID,userName,password,gjp2,email,isActive) VALUES (1,'SqlMigrator'," . $source->quote($validPassword) . "," . $source->quote(sha1('migration-test-password' . 'GJP2')) . ",'sql@example.test',1);",
+        "INSERT INTO users (extID,userName,stars,diamonds,userCoins,icon,iconType,color1,color2,accGlow,isBanned) VALUES ('1','SqlMigrator',77,55,11,4,2,6,9,1,0);",
+        "INSERT INTO levels (levelID,gameVersion,binaryVersion,levelName,levelDesc,levelVersion,levelLength,audioTrack,levelString,starDifficulty,starStars,starFeatured,extID,songIDs,sfxIDs) VALUES (202,22,4,'SQL Imported Level','Imported from SQL',1,2,1,'1,1,1',20,5,1,'1','','');"
+    ];
+    file_put_contents($dump, implode(PHP_EOL, $dumpLines) . PHP_EOL);
+
+    $migrationPasswordFile = $fixtureRoot . '/migration-db-password';
+    file_put_contents($migrationPasswordFile, $rootPassword);
+
+    $sqlCli = runSqlCli(
+        $root,
+        $host,
+        $port,
+        $targetDb,
+        $rootPassword,
+        $dump,
+        $migrationPasswordFile
+    );
+
+    must($sqlCli['code'] === 0, "SQL dump migration preview failed:\n" . $sqlCli['output']);
+    must(str_contains($sqlCli['output'], 'IMPORT_SANITIZED=3'), 'SQL dump sanitizer did not remove unsafe database-management statements.');
+    must(str_contains($sqlCli['output'], 'SOURCE_DETECTED='), 'SQL dump migration did not detect the uploaded schema.');
+    must(str_contains($sqlCli['output'], 'ACCOUNTS=1'), 'SQL dump migration returned the wrong account count.');
+    must(str_contains($sqlCli['output'], 'LEVELS=1'), 'SQL dump migration returned the wrong level count.');
+
     $sharedMigrationPreview = (new SharedMigrationService(
         $sharedTarget,
         $fixtureRoot,
@@ -728,6 +829,8 @@ SQL);
     echo "cvolton-migration-integration: OK\n";
 } finally {
     @unlink($runtimeEnv);
+    @unlink($migrationPasswordFile);
+    @unlink($dump);
     if (is_dir($fixtureRoot)) {
         @exec('rm -rf ' . escapeshellarg($fixtureRoot));
     }
@@ -737,6 +840,7 @@ SQL);
         $server->exec('DROP DATABASE IF EXISTS ' . $targetDb);
         $server->exec('DROP DATABASE IF EXISTS ' . $sharedTargetDb);
         $server->exec('DROP DATABASE IF EXISTS ' . $sourceDb);
+        $server->exec('DROP DATABASE IF EXISTS ' . $sqlUploadDb);
     } catch (Throwable) {
         // Preserve the original test failure if cleanup cannot connect.
     }

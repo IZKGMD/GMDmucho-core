@@ -17,6 +17,11 @@ fi
 # the first update can repair that installation automatically.
 install -d -m 700 "$ROOT/.secrets"
 
+if [[ ! -s "$ROOT/.secrets/migration_db_password" ]]; then
+    openssl rand -hex 32 > "$ROOT/.secrets/migration_db_password"
+    chmod 600 "$ROOT/.secrets/migration_db_password"
+fi
+
 if [[ ! -s "$ROOT/.secrets/cloudsave_key" && ! -s "$ROOT/config/cloudsave.key" ]]; then
     if docker compose ps app >/dev/null 2>&1; then
         docker compose exec -T app cat /var/lib/muchocore/cloudsave.key             > "$ROOT/.secrets/cloudsave_key.tmp" 2>/dev/null || true
@@ -70,6 +75,11 @@ grep -q '^TURNSTILE_SITEKEY=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SITE
 grep -q '^TURNSTILE_SECRET=' "$ROOT/.env" 2>/dev/null || printf 'TURNSTILE_SECRET=\n' >> "$ROOT/.env"
 grep -q '^MUCHO_GD_VERSIONS=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_GD_VERSIONS=all\n' >> "$ROOT/.env"
 grep -q '^CADDY_EXTRA_HOSTS=' "$ROOT/.env" 2>/dev/null || printf 'CADDY_EXTRA_HOSTS=\n' >> "$ROOT/.env"
+grep -q '^MUCHO_MIGRATION_DB_HOST=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_MIGRATION_DB_HOST=db\n' >> "$ROOT/.env"
+grep -q '^MUCHO_MIGRATION_DB_PORT=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_MIGRATION_DB_PORT=3306\n' >> "$ROOT/.env"
+grep -q '^MUCHO_MIGRATION_DB_NAME=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_MIGRATION_DB_NAME=muchocore_migration\n' >> "$ROOT/.env"
+grep -q '^MUCHO_MIGRATION_DB_USER=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_MIGRATION_DB_USER=muchocore_migration\n' >> "$ROOT/.env"
+grep -q '^MUCHO_MIGRATION_DB_PASSWORD_FILE=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_MIGRATION_DB_PASSWORD_FILE=/run/secrets/migration_db_password\n' >> "$ROOT/.env"
 grep -q '^MUCHOCORE_SITE_HOST=' "$ROOT/.env" 2>/dev/null || printf 'MUCHOCORE_SITE_HOST=disabled.invalid\n' >> "$ROOT/.env"
 grep -q '^MUCHO_PROTECT_STORAGE=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_PROTECT_STORAGE=file\n' >> "$ROOT/.env"
 grep -q '^MUCHO_TRUSTED_PROXY_CIDRS=' "$ROOT/.env" 2>/dev/null || printf 'MUCHO_TRUSTED_PROXY_CIDRS=\n' >> "$ROOT/.env"
@@ -210,11 +220,42 @@ fi
 git reset --hard "$LATEST_TAG"
 UPDATE_SOURCE_SWITCHED=1
 
+ensure_migration_database() {
+    local migration_db migration_user migration_password
+    migration_db="$(sed -n 's/^MUCHO_MIGRATION_DB_NAME=//p' "$ROOT/.env" | head -n1 || true)"
+    migration_user="$(sed -n 's/^MUCHO_MIGRATION_DB_USER=//p' "$ROOT/.env" | head -n1 || true)"
+    migration_password="$(cat "$ROOT/.secrets/migration_db_password")"
+
+    [[ "$migration_db" =~ ^[A-Za-z0-9_]+$ ]] || { echo '[MuchoCore] ERROR: invalid migration database name.' >&2; exit 1; }
+    [[ "$migration_user" =~ ^[A-Za-z0-9_]+$ ]] || { echo '[MuchoCore] ERROR: invalid migration database user.' >&2; exit 1; }
+    [[ "$migration_password" =~ ^[A-Fa-f0-9]+$ ]] || { echo '[MuchoCore] ERROR: migration database password has an unexpected format.' >&2; exit 1; }
+
+    echo '[MuchoCore] Preparing isolated SQL migration database...'
+    local sql
+    sql="CREATE DATABASE IF NOT EXISTS $migration_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '$migration_user'@'%' IDENTIFIED BY '$migration_password';
+ALTER USER '$migration_user'@'%' IDENTIFIED BY '$migration_password';
+GRANT ALL PRIVILEGES ON $migration_db.* TO '$migration_user'@'%';
+FLUSH PRIVILEGES;"
+
+    for _ in {1..30}; do
+        if docker compose exec -T -e MYSQL_PWD="$(cat "$ROOT/.secrets/db_root_password")" db \
+            mariadb -uroot -e "$sql" >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 2
+    done
+
+    echo '[MuchoCore] ERROR: MariaDB did not become ready for the SQL migration database after 60 seconds.' >&2
+    exit 1
+}
 echo '[MuchoCore] Rebuilding containers...'
 if ! docker compose "${COMPOSE_ARGS[@]}" up -d --build --remove-orphans; then
     rollback_source_tree
     exit 1
 fi
+
+ensure_migration_database
 
 echo '[MuchoCore] Verifying the production application container...'
 if ! docker compose "${COMPOSE_ARGS[@]}" exec -T app php --version >/dev/null 2>&1; then

@@ -80,6 +80,7 @@ jobs:
           php tests/application/admin-password-setup-contract.php
           php tests/application/admin-rbac-contract.php
           php tests/application/admin-client-rbac-contract.php
+          php -l bin/mucho-migrate-sql.php
           php tests/application/migration-center-contract.php
           php tests/application/shared-hosting-installer-contract.php
           php tests/application/plugin-sdk-contract.php
