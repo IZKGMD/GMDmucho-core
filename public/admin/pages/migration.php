@@ -150,7 +150,7 @@ $oldUser=(string)($form['source_user'] ?? '');
         </label>
 
         <label style="display:block;margin-top:12px">
-            <span class="muted">Galaxxy level-data archive (.zip) — recommended</span><br>
+            <span class="muted">External level-data archive (.zip) — optional</span><br>
             <input
                 type="file"
                 name="galaxxy_archive"
@@ -160,8 +160,8 @@ $oldUser=(string)($form['source_user'] ?? '');
         </label>
 
         <p class="muted" style="font-size:11px;line-height:1.5">
-            Galaxxy-compatible servers normally keep the playable levelString outside MySQL in
-            <code>public_html/data/levels/&lt;levelID&gt;</code>. Attach the old server .zip to restore those level payloads.
+            some GDPS servers keep the playable levelString outside MySQL in
+            <code>public_html/data/levels/&lt;levelID&gt;</code>. Attach the old server .zip only when the detected source format stores level payloads on the filesystem.
             SQL-only imports can restore level metadata but cannot reconstruct missing level data.
         </p>
 
@@ -226,7 +226,7 @@ $oldUser=(string)($form['source_user'] ?? '');
             <b><?=number_format((int)($ld['matched_files'] ?? 0))?></b> match the SQL level IDs,
             <?=number_format((int)($ld['matched_bytes'] ?? 0))?> bytes matched.
         <?php else: ?>
-            No Galaxxy level-data archive is attached. SQL-only imports leave playable level data empty.
+            No external level-data archive is attached. This is fine when the source stores playable level data in SQL.
         <?php endif; ?>
     </p>
 
