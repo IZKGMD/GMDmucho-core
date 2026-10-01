@@ -451,7 +451,7 @@ final class CvoltonDatabaseImporter
              LIMIT 250'
         );
 
-        $insert = $source === $this->target ? null : $this->target->prepare(
+        $insert = $this->target->prepare(
             'INSERT INTO comments
              (level_id,account_id,content,percent,likes,is_spam,created_at)
              SELECT :level,:account,:content,:percent,:likes,:spam,
@@ -464,10 +464,6 @@ final class CvoltonDatabaseImporter
                    AND c.created_at=FROM_UNIXTIME(:created2)
              )'
         );
-
-        if ($insert === null) {
-            return;
-        }
 
         while (true) {
             $q->execute(['last' => $last]);
