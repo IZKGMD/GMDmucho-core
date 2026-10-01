@@ -280,6 +280,8 @@ final class SqlDumpMigrationService
             foreach ($archiveStats as $name => $value) {
                 $stats[$name] = $value;
             }
+
+            $this->target->commit();
         } catch (Throwable $e) {
             if ($this->target->inTransaction()) {
                 $this->target->rollBack();
@@ -522,23 +524,15 @@ final class SqlDumpMigrationService
         }
 
         $adapter = $this->serverArchives->resolveKey($adapterKey);
-            $result = $adapter->hydrate(
-                $this->target,
-                $prefix,
-                $levelIds,
-                $accountIds
-            );
+        $result = $adapter->hydrate(
+            $this->target,
+            $prefix,
+            $levelIds,
+            $accountIds
+        );
 
-            foreach ($totals as $name => $unused) {
-                $totals[$name] += (int)($result[$name] ?? 0);
-            }
-
-            if (
-                $totals['level_data_hydrated'] > 0 ||
-                $totals['cloud_saves_imported'] > 0
-            ) {
-                break;
-            }
+        foreach ($totals as $name => $unused) {
+            $totals[$name] += (int)($result[$name] ?? 0);
         }
 
         return $totals;
