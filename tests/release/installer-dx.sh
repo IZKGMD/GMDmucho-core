@@ -18,6 +18,9 @@ grep -Fq 'check_domain_preflight' install.sh
 grep -Fq 'MUCHO_TRANSPORT_MODE' install.sh
 grep -Fq 'PUBLIC_IP' install.sh
 grep -Fq 'Automatic transport selection' install.sh
+grep -Fq 'fail "Automatic transport setup failed' install.sh
+grep -Fq 'expected_services=(db app worker caddy)' install.sh
+! grep -Fq 'Cloudflare API token (press Enter' install.sh
 grep -Fq 'MUCHO_CLOUDFLARE_API_TOKEN' install.sh
 grep -Fq 'mucho-cloudflare-tunnel.sh' install.sh
 grep -Fq 'bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct' install.sh
@@ -26,7 +29,6 @@ grep -Fq 'POST "/accounts/$account_id/cfd_tunnel"' bin/mucho-cloudflare-tunnel.s
 grep -Fq 'PUT "/accounts/$account_id/cfd_tunnel/$tunnel_id/configurations"' bin/mucho-cloudflare-tunnel.sh
 grep -Fq 'POST "/zones/$zone_id/dns_records"' bin/mucho-cloudflare-tunnel.sh
 grep -Fq 'Cloudflare Tunnel → Edit' README.md
-grep -Fq 'profile/api-tokens?permissionGroupKeys=' install.sh
 grep -Fq 'sudo mucho doctor' install.sh
 grep -Fq -- '--metrics' docker-compose.tunnel.yml
 grep -Fq 'TUNNEL_TOKEN_FILE: /run/secrets/muchocore_tunnel_token' docker-compose.tunnel.yml
