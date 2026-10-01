@@ -151,25 +151,9 @@ final class CvoltonDatabaseImporter
 
         $sql = '
             SELECT
-                a.accountID,
-                a.userName,
-                a.password,
-                a.gjp2,
-                a.email,
-                a.isActive,
-                COALESCE(u.stars,0) AS stars,
-                COALESCE(u.moons,0) AS moons,
-                COALESCE(u.diamonds,0) AS diamonds,
-                COALESCE(u.coins,0) AS secretCoins,
-                COALESCE(u.userCoins,0) AS userCoins,
-                COALESCE(u.demons,0) AS demons,
-                COALESCE(u.creatorPoints,0) AS creatorPoints,
-                COALESCE(u.icon,1) AS icon,
-                COALESCE(u.iconType,0) AS iconType,
-                COALESCE(u.color1,0) AS color1,
-                COALESCE(u.color2,3) AS color2,
-                COALESCE(u.accGlow,0) AS glow,
-                COALESCE(u.isBanned,0) AS isBanned
+                a.*,
+                a.userName AS accountUserName,
+                u.*
             FROM ' . $this->sourceTable('accounts') . ' a
             LEFT JOIN ' . $this->sourceTable('users') . ' u
                 ON u.extID = CAST(a.accountID AS CHAR)
@@ -840,9 +824,13 @@ final class CvoltonDatabaseImporter
     ): int {
         $q = $this->target->prepare(
             'INSERT INTO accounts
-                (username,email,password_hash,gjp2_hash,is_active,is_banned)
+                (username,email,password_hash,gjp2_hash,is_active,is_banned,
+                 youtube_url,twitter,twitch,instagram,tiktok,discord,custom_link,
+                 friend_requests_state,messages_state,comments_state)
              VALUES
-                (:username,:email,:password,:gjp2,:active,:banned)'
+                (:username,:email,:password,:gjp2,:active,:banned,
+                 :youtube,:twitter,:twitch,:instagram,:tiktok,:discord,:custom,
+                 :friend_requests,:messages,:comments)'
         );
 
         $q->execute([
