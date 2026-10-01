@@ -145,7 +145,6 @@ foreach ([
     'dashboard/songs/',
     'storage/music-public',
     'MUCHO_PUBLIC_URL',
-    'musiclibrary',
     'CloudSaveRepository',
 ] as $needle) {
     if (strpos((string)$serverArchive, $needle) === false) {
