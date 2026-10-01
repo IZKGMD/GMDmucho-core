@@ -817,7 +817,7 @@ if [[ "$healthy" -eq 1 ]]; then
     # Prefer the direct origin on public-IP VPSes. If DNS still points at an
     # old Tunnel/proxy target, ask once for Cloudflare credentials so the
     # installer can switch the hostname automatically and continue.
-    if [[ -z "$CLOUDFLARE_API_TOKEN" && -r /dev/tty && -w /dev/tty ]]; then
+    if [[ -z "$CLOUDFLARE_API_TOKEN" && -e /dev/tty ]]; then
       printf "\n${BOLD}  Cloudflare API token${RESET}\n"
       printf "  MuchoCore can automatically point $DOMAIN to the VPS public IP ($PUBLIC_IP).\n"
       printf "  The token is used only for DNS setup and is not stored.\n\n"
@@ -859,7 +859,7 @@ if [[ "$healthy" -eq 1 ]]; then
   elif [[ "$TRANSPORT_MODE" == "direct" ]]; then
     fail "Direct transport was requested, but the public hostname is not healthy. Verify DNS and inbound 80/443 reach the VPS."
   else
-    if [[ -z "$CLOUDFLARE_API_TOKEN" && -r /dev/tty && -w /dev/tty ]]; then
+    if [[ -z "$CLOUDFLARE_API_TOKEN" && -e /dev/tty ]]; then
       printf "\n${BOLD}  Cloudflare API token${RESET}\n"
       printf "  The domain is not reaching this VPS yet (HTTP $public_code).\n"
       printf "  MuchoCore can switch the existing Cloudflare DNS records to the detected VPS IP automatically.\n"
