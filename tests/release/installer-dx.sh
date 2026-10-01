@@ -18,6 +18,9 @@ grep -Fq 'check_domain_preflight' install.sh
 grep -Fq 'MUCHO_TRANSPORT_MODE' install.sh
 grep -Fq 'PUBLIC_IP' install.sh
 grep -Fq 'Automatic transport selection' install.sh
+grep -Fq 'Installation overview' install.sh
+grep -Fq 'Transport policy:' install.sh
+grep -Fq 'The installer will stop on a failed public health check' install.sh
 grep -Fq 'fail "Automatic transport setup failed' install.sh
 grep -Fq 'requires an existing Tunnel runtime token' install.sh
 ! grep -Fq 'Cloudflare API token (press Enter' install.sh
