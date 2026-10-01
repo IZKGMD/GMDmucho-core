@@ -62,7 +62,7 @@ grep -Fq 'MUCHO_CLOUDFLARE_EMAIL' install.sh
 grep -Fq 'mucho-cloudflare-tunnel.sh' install.sh
 grep -Fq 'bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct' install.sh
 grep -Fq 'proxied:false,comment:"Managed by MuchoCore (DNS-only direct origin)"' bin/mucho-cloudflare-tunnel.sh
-! grep -Fq 'proxied:true,comment:"Managed by MuchoCore"' bin/mucho-cloudflare-tunnel.sh
+! grep -Fq 'type:"A",ttl:1,content:$content,proxied:true' bin/mucho-cloudflare-tunnel.sh
 
 grep -Fq 'configure_direct_origin' bin/mucho-cloudflare-tunnel.sh
 grep -Fq 'if [[ "${1:-}" == "direct" ]]; then' bin/mucho-cloudflare-tunnel.sh
@@ -74,7 +74,7 @@ grep -Fq 'POST "/accounts/$account_id/cfd_tunnel"' bin/mucho-cloudflare-tunnel.s
 grep -Fq 'PUT "/accounts/$account_id/cfd_tunnel/$tunnel_id/configurations"' bin/mucho-cloudflare-tunnel.sh
 grep -Fq 'POST "/zones/$zone_id/dns_records"' bin/mucho-cloudflare-tunnel.sh
 
-grep -Fq 'Cloudflare Tunnel → Edit' README.md
+grep -Fq 'Cloudflare Tunnel -> Edit' README.md
 grep -Fq 'sudo mucho doctor' install.sh
 grep -Fq -- '--metrics' docker-compose.tunnel.yml
 grep -Fq 'TUNNEL_TOKEN_FILE: /run/secrets/muchocore_tunnel_token' docker-compose.tunnel.yml
