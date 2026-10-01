@@ -4,7 +4,6 @@ declare(strict_types=1);
 $output=$_SESSION['migration_output'] ?? null;
 $status=$_SESSION['migration_status'] ?? null;
 $statusType=(string)($_SESSION['migration_status_type'] ?? 'ok');
-$form=$_SESSION['migration_form'] ?? [];
 unset(
     $_SESSION['migration_output'],
     $_SESSION['migration_status'],
@@ -12,6 +11,18 @@ unset(
     $_SESSION['migration_form']
 );
 
+$sqlJob=$_SESSION['migration_sql_job'] ?? null;
+$sqlPreview=$_SESSION['migration_sql_preview'] ?? null;
+$sqlStatus=$_SESSION['migration_sql_status'] ?? null;
+$sqlStatusType=(string)($_SESSION['migration_sql_status_type'] ?? 'ok');
+$sqlOutput=$_SESSION['migration_sql_output'] ?? null;
+unset(
+    $_SESSION['migration_sql_status'],
+    $_SESSION['migration_sql_status_type'],
+    $_SESSION['migration_sql_output']
+);
+
+$form=$_SESSION['migration_form'] ?? [];
 $oldHost=(string)($form['source_host'] ?? '');
 $oldPort=(string)($form['source_port'] ?? '3306');
 $oldDb=(string)($form['source_db'] ?? '');
@@ -28,6 +39,12 @@ $oldUser=(string)($form['source_user'] ?? '');
         </div>
         <span class="badge">Read-only check first</span>
     </div>
+
+    <?php if ($status !== null): ?>
+        <div class="flash <?=($statusType==='error'?'error':'')?>">
+            <?=h((string)$status)?>
+        </div>
+    <?php endif; ?>
 
     <div class="card" style="background:#0c1119;border-color:#273449;margin:16px 0">
         <h3 style="margin-top:0">What you need from the old GDPS</h3>
@@ -50,12 +67,6 @@ $oldUser=(string)($form['source_user'] ?? '');
             </div>
         </div>
     </div>
-
-    <?php if ($status !== null): ?>
-        <div class="flash <?=($statusType==='error'?'error':'')?>">
-            <?=h((string)$status)?>
-        </div>
-    <?php endif; ?>
 
     <form method="post">
         <input type="hidden" name="csrf" value="<?=csrf()?>">
@@ -103,6 +114,131 @@ $oldUser=(string)($form['source_user'] ?? '');
     </form>
 </div>
 
+<div class="card" style="margin-top:14px">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div>
+            <h2 style="margin-top:0">SQL File Import</h2>
+            <p class="muted" style="max-width:820px;line-height:1.6">
+                Have a <b>database.sql</b> instead of live database credentials?
+                Upload the dump here. MuchoCore stages supported Cvolton/MegaSa1nt tables under temporary names,
+                checks the schema, and only changes the production database after you explicitly start the import.
+            </p>
+        </div>
+        <span class="badge">Staged before import</span>
+    </div>
+
+    <?php if ($sqlStatus !== null): ?>
+        <div class="flash <?=($sqlStatusType==='error'?'error':'')?>" style="margin-top:12px">
+            <?=h((string)$sqlStatus)?>
+        </div>
+    <?php endif; ?>
+
+    <form method="post" enctype="multipart/form-data" style="margin-top:14px">
+        <input type="hidden" name="csrf" value="<?=csrf()?>">
+        <input type="hidden" name="action" value="migration-sql-upload">
+
+        <label style="display:block">
+            <span class="muted">database.sql or database.sql.gz</span><br>
+            <input
+                type="file"
+                name="sql_file"
+                accept=".sql,.gz,application/sql,application/gzip"
+                required
+                style="width:100%;padding:10px"
+            >
+        </label>
+
+        <div class="row" style="margin-top:12px">
+            <button type="submit" class="green">Upload &amp; Check SQL</button>
+        </div>
+
+        <p class="muted" style="font-size:11px;line-height:1.5;margin-bottom:0">
+            Maximum upload size: 256 MB. Stored uploads are removed after staging; abandoned staging data is cleaned automatically.
+            Stored procedures and triggers are intentionally not executed.
+        </p>
+    </form>
+</div>
+
+<?php if (is_array($sqlJob) && is_array($sqlPreview)): ?>
+<div class="card" style="margin-top:14px">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div>
+            <h2 style="margin-top:0">SQL Dump Ready</h2>
+            <p class="muted">
+                File: <b><?=h((string)($sqlJob['filename'] ?? 'database.sql'))?></b>
+            </p>
+        </div>
+        <span class="badge green">Schema verified</span>
+    </div>
+
+    <?php $p=$sqlPreview['preflight'] ?? []; $i=$sqlPreview['inspection'] ?? []; ?>
+
+    <div class="grid" style="margin:14px 0">
+        <div>
+            <b>Source family</b>
+            <div class="muted" style="margin-top:5px"><?=h((string)($i['label'] ?? 'Unknown'))?></div>
+        </div>
+        <div>
+            <b>Accounts</b>
+            <div class="muted" style="margin-top:5px"><?=number_format((int)($p['accounts'] ?? 0))?></div>
+        </div>
+        <div>
+            <b>Profiles</b>
+            <div class="muted" style="margin-top:5px"><?=number_format((int)($p['users'] ?? 0))?></div>
+        </div>
+        <div>
+            <b>Levels</b>
+            <div class="muted" style="margin-top:5px"><?=number_format((int)($p['levels'] ?? 0))?></div>
+        </div>
+        <div>
+            <b>Classic scores</b>
+            <div class="muted" style="margin-top:5px"><?=number_format((int)($p['levelscores'] ?? 0))?></div>
+        </div>
+        <div>
+            <b>Platformer scores</b>
+            <div class="muted" style="margin-top:5px"><?=number_format((int)($p['platscores'] ?? 0))?></div>
+        </div>
+    </div>
+
+    <p class="muted" style="line-height:1.6">
+        The SQL dump is currently isolated under temporary staging table names.
+        The real MuchoCore tables have not been replaced or cleared.
+    </p>
+
+    <div class="row" style="margin-top:14px">
+        <form method="post">
+            <input type="hidden" name="csrf" value="<?=csrf()?>">
+            <input type="hidden" name="action" value="migration-sql-apply">
+            <button
+                type="submit"
+                class="green"
+                onclick="return confirm('MuchoCore will create a fresh verified backup, then import the staged SQL data. Continue?')"
+            >Import This SQL Dump</button>
+        </form>
+
+        <form method="post">
+            <input type="hidden" name="csrf" value="<?=csrf()?>">
+            <input type="hidden" name="action" value="migration-sql-discard">
+            <button
+                type="submit"
+                class="gray"
+                onclick="return confirm('Discard the staged SQL dump? The production database will not be changed.')"
+            >Discard</button>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php if (is_string($sqlOutput) && $sqlOutput !== ''): ?>
+<div class="card" style="margin-top:14px">
+    <div class="row" style="justify-content:space-between">
+        <h2 style="margin-top:0">SQL Migration Result</h2>
+        <span class="badge">Sensitive data is not displayed</span>
+    </div>
+    <pre><?=h($sqlOutput)?></pre>
+</div>
+<?php endif; ?>
+
 <?php if (is_string($output) && $output !== ''): ?>
 <div class="card" style="margin-top:14px">
     <div class="row" style="justify-content:space-between">
@@ -116,9 +252,7 @@ $oldUser=(string)($form['source_user'] ?? '');
 <div class="card" style="margin-top:14px">
     <h2 style="margin-top:0">Simple migration flow</h2>
     <div class="muted" style="line-height:1.8">
-        1. Enter the old database details.<br>
-        2. Click <b>Check source</b> and review the detected data.<br>
-        3. Click <b>Migrate supported data</b>.<br>
-        4. MuchoCore backs up the target, imports supported records, verifies the operation and reports anything that still needs manual file access.
+        <b>Live database:</b> enter connection details → Check source → Migrate supported data.<br>
+        <b>SQL file:</b> upload database.sql → Upload &amp; Check SQL → review detected counts → Import This SQL Dump.
     </div>
 </div>
