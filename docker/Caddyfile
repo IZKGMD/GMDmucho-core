@@ -31,15 +31,13 @@
         file_server
     }
 
-    # Public MuchoGDPS landing page. /index remains a compatibility alias.
+    # Canonical homepage: / is the only public landing-page URL.
+    # Redirect legacy /index and /index/ requests to the root.
     @muchogdps_index {
         host {$MUCHOCORE_SITE_HOST}
         path /index /index/
     }
-    handle @muchogdps_index {
-        rewrite * /index.html
-        file_server
-    }
+    redir @muchogdps_index / 308
 
     # Serve the MuchoCore product page explicitly. Do not rely on the
     # application/PHP fallback for this static discovery surface.
