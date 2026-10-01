@@ -76,7 +76,7 @@ function runSqlCli(
     $command = escapeshellarg(PHP_BINARY) . ' ' .
         escapeshellarg($root . '/bin/mucho-migrate-sql.php') . ' ' .
         escapeshellarg('--file=' . $dump) . ' ' .
-        '--apply --confirm=MIGRATE';
+        '';
 
     $env = $_ENV;
     $env['DB_HOST'] = $host;
@@ -177,6 +177,10 @@ function runCli(
 }
 
 try {
+    if (!mkdir($fixtureRoot, 0700, true) && !is_dir($fixtureRoot)) {
+        throw new RuntimeException('Unable to create SQL migration test fixture directory.');
+    }
+
     $server = pdoRoot($host, $port, $rootPassword);
     $server->exec('DROP DATABASE IF EXISTS ' . $targetDb);
     $server->exec('DROP DATABASE IF EXISTS ' . $sharedTargetDb);
@@ -565,7 +569,22 @@ SQL);
 
     $migrationPasswordFile = $fixtureRoot . '/migration-db-password';
     file_put_contents($migrationPasswordFile, $rootPassword);
-    $serverSqlTarget = pdoRoot($host, $port, $rootPassword);
+
+    $sqlCli = runSqlCli(
+        $root,
+        $host,
+        $port,
+        $targetDb,
+        $rootPassword,
+        $dump,
+        $migrationPasswordFile
+    );
+
+    must($sqlCli['code'] === 0, "SQL dump migration preview failed:\n" . $sqlCli['output']);
+    must(str_contains($sqlCli['output'], 'IMPORT_SANITIZED=3'), 'SQL dump sanitizer did not remove unsafe database-management statements.');
+    must(str_contains($sqlCli['output'], 'SOURCE_DETECTED='), 'SQL dump migration did not detect the uploaded schema.');
+    must(str_contains($sqlCli['output'], 'ACCOUNTS=1'), 'SQL dump migration returned the wrong account count.');
+    must(str_contains($sqlCli['output'], 'LEVELS=1'), 'SQL dump migration returned the wrong level count.');
 
     $sharedMigrationPreview = (new SharedMigrationService(
         $sharedTarget,
