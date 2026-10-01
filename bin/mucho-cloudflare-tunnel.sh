@@ -184,7 +184,7 @@ configure_direct_dns() {
 
   if [[ "$kept" -eq 0 ]]; then
     body="$(jq -cn --arg name "$host" --arg content "$origin_ip" \
-      '{name:$name,type:"A",ttl:1,content:$content,proxied:true,comment:"Managed by MuchoCore"}')"
+      '{name:$name,type:"A",ttl:1,content:$content,proxied:false,comment:"Managed by MuchoCore (DNS-only direct origin)"}')"
     cf_request POST "/zones/$zone_id/dns_records" "$body" >/dev/null
     info "Created direct DNS A: $host → $origin_ip"
   fi
