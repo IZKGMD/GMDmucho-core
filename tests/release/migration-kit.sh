@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+set -x
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 KIT="$ROOT/tools/migration/mucho-migrate.sh"
