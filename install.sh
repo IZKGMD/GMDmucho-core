@@ -748,8 +748,6 @@ if [[ "$USE_TUNNEL" -eq 1 ]]; then
 fi
 run_compose up -d --build --remove-orphans
 
-ensure_migration_database
-
 log "Verifying running containers..."
 expected_services=(db app worker caddy)
 if [[ "$USE_TUNNEL" -eq 1 ]]; then
@@ -765,6 +763,8 @@ for service in "${expected_services[@]}"; do
     fail "Service '$service' is not running."
   }
 done
+
+ensure_migration_database
 
 INSTALL_STEP="waiting for application dependencies"
 log "Waiting for Composer dependencies..."
