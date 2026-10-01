@@ -34,7 +34,11 @@ final readonly class CloudSaveRepository
 
         $encrypted=$this->encrypt($saveData);
 
-        $this->db->beginTransaction();
+        $ownsTransaction = !$this->db->inTransaction();
+
+        if ($ownsTransaction) {
+            $this->db->beginTransaction();
+        }
 
         try {
 
@@ -89,7 +93,9 @@ final readonly class CloudSaveRepository
 
                 $revision=(int)$old['revision'];
 
-                $this->db->commit();
+                if ($ownsTransaction) {
+                    $this->db->commit();
+                }
 
                 return $revision;
             }
@@ -275,13 +281,15 @@ final readonly class CloudSaveRepository
             }
 
 
-            $this->db->commit();
+            if ($ownsTransaction) {
+                $this->db->commit();
+            }
 
             return $revision;
 
         } catch(Throwable $e) {
 
-            if($this->db->inTransaction()){
+            if ($ownsTransaction && $this->db->inTransaction()) {
                 $this->db->rollBack();
             }
 
