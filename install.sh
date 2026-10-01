@@ -620,8 +620,6 @@ chmod 600 "$INSTALL_DIR/.muchocore/profile.env"
   fail "MuchoCore repository is missing a readable docker/Caddyfile."
 info "Compose files verified: $INSTALL_DIR/docker-compose.yml";
 
-COMPOSE_ARGS=()
-
 run_compose() {
   # Always run Compose from the installation directory with explicit files.
   # Avoid relying on inherited working directories or mutable shell arrays.
@@ -667,7 +665,6 @@ if [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
     if ! grep -q '^MUCHO_TUNNEL_TOKEN=' "$INSTALL_DIR/.env"; then
       printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
     fi
-    COMPOSE_ARGS=()
   else
     fail "MUCHO_TRANSPORT_MODE=tunnel requires an existing Tunnel runtime token. Use MUCHO_TRANSPORT_MODE=auto for automatic fallback."
   fi
@@ -754,7 +751,6 @@ provision_cloudflare_tunnel() {
   sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
   sed -i 's/^CADDY_ADDRESS_VALUE=.*/CADDY_ADDRESS_VALUE=":80"/' "$INSTALL_DIR/.env"
   sed -i 's/^CADDY_ADDRESS=.*/CADDY_ADDRESS=":80"/' "$INSTALL_DIR/.env"
-  COMPOSE_ARGS=(-f "$INSTALL_DIR/docker-compose.yml" -f "$INSTALL_DIR/docker-compose.tunnel.yml")
   if [[ " ${expected_services[*]} " != *" cloudflared "* ]]; then
     expected_services+=(cloudflared)
   fi
