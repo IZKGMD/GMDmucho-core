@@ -612,20 +612,30 @@ MUCHO_GD_VERSIONS=$GD_VERSIONS
 EOFPROFILE
 chmod 600 "$INSTALL_DIR/.muchocore/profile.env"
 
-[[ -f "$INSTALL_DIR/docker-compose.yml" ]] || fail "Repository does not contain docker-compose.yml."
-[[ -f "$INSTALL_DIR/docker/Dockerfile" ]] || fail "Repository does not contain docker/Dockerfile."
-[[ -f "$INSTALL_DIR/docker/Caddyfile" ]] || fail "Repository does not contain docker/Caddyfile."
+[[ -f "$INSTALL_DIR/docker-compose.yml" && -r "$INSTALL_DIR/docker-compose.yml" ]] ||
+  fail "MuchoCore repository is missing a readable docker-compose.yml."
+[[ -f "$INSTALL_DIR/docker/Dockerfile" && -r "$INSTALL_DIR/docker/Dockerfile" ]] ||
+  fail "MuchoCore repository is missing a readable docker/Dockerfile."
+[[ -f "$INSTALL_DIR/docker/Caddyfile" && -r "$INSTALL_DIR/docker/Caddyfile" ]] ||
+  fail "MuchoCore repository is missing a readable docker/Caddyfile."
+info "Compose files verified: $INSTALL_DIR/docker-compose.yml";
 
-COMPOSE_ARGS=(-f "$INSTALL_DIR/docker-compose.yml")
-if [[ "$USE_TUNNEL" -eq 1 ]]; then
-  COMPOSE_ARGS+=( -f "$INSTALL_DIR/docker-compose.tunnel.yml" )
-fi
+COMPOSE_ARGS=()
 
 run_compose() {
+  # Always run Compose from the installation directory with explicit files.
+  # Avoid relying on inherited working directories or mutable shell arrays.
   if [[ "$USE_TUNNEL" -eq 1 ]]; then
-    MUCHO_TUNNEL_TOKEN="$TUNNEL_TOKEN" docker compose "${COMPOSE_ARGS[@]}" "$@"
+    (
+      cd "$INSTALL_DIR"
+      MUCHO_TUNNEL_TOKEN="$TUNNEL_TOKEN" \
+        docker compose -f docker-compose.yml -f docker-compose.tunnel.yml "$@"
+    )
   else
-    docker compose "${COMPOSE_ARGS[@]}" "$@"
+    (
+      cd "$INSTALL_DIR"
+      docker compose -f docker-compose.yml "$@"
+    )
   fi
 }
 
@@ -657,7 +667,7 @@ if [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
     if ! grep -q '^MUCHO_TUNNEL_TOKEN=' "$INSTALL_DIR/.env"; then
       printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
     fi
-    COMPOSE_ARGS=(-f "$INSTALL_DIR/docker-compose.yml" -f "$INSTALL_DIR/docker-compose.tunnel.yml")
+    COMPOSE_ARGS=()
   else
     fail "MUCHO_TRANSPORT_MODE=tunnel requires an existing Tunnel runtime token. Use MUCHO_TRANSPORT_MODE=auto for automatic fallback."
   fi
