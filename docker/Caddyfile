@@ -40,10 +40,11 @@
         file_server
     }
 
-    # Reject oversized HTTP bodies before PHP is invoked. PHP itself remains
-    # capped at 70M post_max_size / 64M upload_max_filesize.
+    # Reject oversized HTTP bodies before PHP is invoked. Keep the proxy
+    # slightly above PHP's 270M post_max_size so legitimate 256M uploads
+    # can reach the application.
     request_body {
-        max_size 75MB
+        max_size 270MB
     }
 
     header {
