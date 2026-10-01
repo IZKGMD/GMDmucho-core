@@ -334,4 +334,4 @@ else
 fi
 
 info "Cloudflare Tunnel is ready: $TUNNEL_NAME_EFFECTIVE"
-info "The API token was used only for setup and was not persisted."
+info "Cloudflare API credentials were used only for setup and were not persisted."
