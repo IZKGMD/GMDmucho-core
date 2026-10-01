@@ -129,7 +129,7 @@ For the normal stable-release VPS install, run:
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo -E bash
 ```
 
-The installer keeps first-run interaction intentionally small:
+The installer keeps first-run interaction intentionally small. On a normal VPS it asks only for the GDPS domain and initial admin password; a Cloudflare API token is requested only when automatic DNS configuration or Tunnel fallback is actually needed:
 
 1. Enter the GDPS domain.
 2. Create the Admin Panel password.
