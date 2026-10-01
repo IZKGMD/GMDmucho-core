@@ -344,15 +344,45 @@ esac
 
 select_compatibility_profile
 
+normalize_domain_input() {
+  local value="$1"
+
+  # Terminal paste/input can occasionally carry CR/LF, BOM, or other
+  # non-hostname bytes. Strip those at the edges before validating the host.
+  value="$(printf '%s' "$value" | tr -d '\r\n')"
+  value="$(printf '%s' "$value" | sed -E 's/^[^A-Za-z0-9.-]+//; s/[^A-Za-z0-9.-]+$//')"
+  value="${value#http://}"
+  value="${value#https://}"
+  value="${value%%/*}"
+
+  printf '%s' "$value"
+}
+
 if [[ -z "$DOMAIN" ]]; then
   printf "\n${BOLD}  Public GDPS domain${RESET}\n"
   printf "  Enter the hostname players will use, for example: gdps.example.com\n"
-  read -r -p "  Domain: " DOMAIN < /dev/tty
-DOMAIN="${DOMAIN#http://}"
-DOMAIN="${DOMAIN#https://}"
-DOMAIN="${DOMAIN%%/*}"
+
+  while true; do
+    read -r -p "  Domain: " DOMAIN < /dev/tty || fail "Could not read the domain from the terminal."
+    DOMAIN="$(normalize_domain_input "$DOMAIN")"
+
+    if [[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] &&
+       [[ "$DOMAIN" != .* ]] &&
+       [[ "$DOMAIN" != *.*. ]] &&
+       [[ "$DOMAIN" != *..* ]]; then
+      break
+    fi
+
+    warn "That does not look like a valid hostname. Please enter only the domain, for example: gdps.example.com"
+  done
+else
+  DOMAIN="$(normalize_domain_input "$DOMAIN")"
 fi
-[[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || fail "Invalid domain: $DOMAIN"
+
+[[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] ||
+  fail "Invalid domain: '$DOMAIN'. Example: gdps.example.com"
+[[ "$DOMAIN" != .* && "$DOMAIN" != *.*. && "$DOMAIN" != *..* ]] ||
+  fail "Invalid domain: '$DOMAIN'. Check for leading dots or repeated dots."
 
 if [[ -n "$CADDY_EXTRA_HOSTS" ]]; then
   for host in $CADDY_EXTRA_HOSTS; do
