@@ -17,6 +17,14 @@ API_TOKEN="$(printf '%s' "$API_TOKEN" | sed 's/^Bearer[[:space:]]*//I; s/^[[:spa
 GLOBAL_API_KEY="$(printf '%s' "$GLOBAL_API_KEY" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
 TUNNEL_NAME="${MUCHO_CLOUDFLARE_TUNNEL_NAME:-}"
 
+if [[ -z "$AUTH_MODE" ]]; then
+  if [[ -n "$API_TOKEN" ]]; then
+    AUTH_MODE="token"
+  elif [[ -n "$GLOBAL_API_KEY" ]]; then
+    AUTH_MODE="global-key"
+  fi
+fi
+
 die() { printf '[Cloudflare] ERROR: %s\n' "$*" >&2; exit 1; }
 info() { printf '[Cloudflare] %s\n' "$*" >&2; }
 
