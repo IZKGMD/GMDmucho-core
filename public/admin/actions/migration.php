@@ -77,6 +77,7 @@ if (in_array(
             $_SESSION['migration_sql_preview']=[
                 'inspection'=>$job['inspection'],
                 'preflight'=>$job['preflight'],
+                'server_archive'=>$job['server_archive'],
             ];
             $_SESSION['migration_sql_status']=
                 'SQL dump uploaded and verified. Review the detected source before importing.';
