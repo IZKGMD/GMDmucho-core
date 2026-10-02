@@ -2,6 +2,17 @@
 
 This is the no-VPS deployment mode for compatible PHP shared hosting. It does not require Docker, SSH, sudo, Composer, or a server terminal.
 
+## Provider compatibility
+
+The PHP installer requirements and the ability to run a Geometry Dash server are separate checks.
+
+| Hosting type | Installation files | Geometry Dash client traffic |
+| --- | --- | --- |
+| Compatible shared hosting | Supported | Supported when normal app/API requests are allowed |
+| InfinityFree Free | May pass the PHP/file checks | **Not compatible for a GDPS:** InfinityFree documents that its free hosting blocks programmatic access from mobile/desktop apps and game API clients |
+
+InfinityFree Free currently advertises PHP 8.4 and MySQL 8.0 / MariaDB 11.4, but its free-host browser security system is designed for browser traffic rather than app/API traffic. A successful bootstrap or PHP preflight therefore must not be interpreted as proof that a Geometry Dash client can connect.
+
 ## Requirements
 
 A shared-hosting account needs:
