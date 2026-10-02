@@ -23,7 +23,7 @@ foreach ([
 }
 
 foreach ([
-    "if ($deploymentType === 'shared')",
+    'if ($deploymentType === \'shared\')',
     "ftp_host",
     "ftp_username",
     "ftp_password",
