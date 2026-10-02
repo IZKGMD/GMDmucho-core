@@ -405,14 +405,14 @@ function ftp_connect_public(string $host, int $port, bool $secure): \FTP\Connect
     $ip = $ips[0];
 
     $ftp = $secure
-        ? @ftp_ssl_connect($ip, $port, 30)
-        : @ftp_connect($ip, $port, 30);
+        ? @ftp_ssl_connect($ip, $port, 8)
+        : @ftp_connect($ip, $port, 8);
 
     if ($ftp === false) {
         throw new RuntimeException('Could not connect to the FTP server.');
     }
 
-    @ftp_set_option($ftp, FTP_TIMEOUT_SEC, 30);
+    @ftp_set_option($ftp, FTP_TIMEOUT_SEC, 12);
     @ftp_set_option($ftp, FTP_AUTOSEEK, true);
     return $ftp;
 }
