@@ -17,12 +17,15 @@ const MAX_DOWNLOAD_BYTES = 256 * 1024 * 1024;
 const HTTP_TIMEOUT = 600;
 
 $jobId = '';
+$dispatchOnly = false;
 foreach (array_slice($argv, 1) as $arg) {
     if (str_starts_with($arg, '--job=')) {
         $jobId = substr($arg, 6);
+    } elseif ($arg === '--dispatch-queue') {
+        $dispatchOnly = true;
     }
 }
-if (!preg_match('/^[0-9]{14}-[a-f0-9]{12}$/', $jobId)) {
+if (!$dispatchOnly && !preg_match('/^[0-9]{14}-[a-f0-9]{12}$/', $jobId)) {
     exit(2);
 }
 
@@ -51,6 +54,89 @@ function log_line(string $path, string $line): void {
 function cleanup_secrets(string $dir): void {
     foreach (['ftp_password', 'shared_db_password', 'admin_password', 'shared_config', 'shared_cookie', 'shared_archive'] as $file) {
         @unlink($dir . '/' . $file);
+    }
+}
+
+function dispatch_queued_jobs(string $root): void {
+    $lock = JOB_ROOT . '/queue-dispatch.lock';
+    if (!@mkdir($lock, 0700)) {
+        return;
+    }
+
+    try {
+        $max = max(1, (int)($_ENV['MUCHO_DEPLOY_MAX_CONCURRENT'] ?? getenv('MUCHO_DEPLOY_MAX_CONCURRENT') ?: 2));
+        while (true) {
+            $running = 0;
+            $queued = [];
+
+            foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
+                if ($dispatchOnly) {
+    dispatch_queued_jobs(dirname(__DIR__));
+    exit(0);
+}
+
+$status = read_json_file($statusFile);
+                if (($status['status'] ?? '') === 'running' || ($status['status'] ?? '') === 'starting') {
+                    $running++;
+                } elseif (($status['status'] ?? '') === 'queued') {
+                    $queued[] = [$statusFile, $status];
+                }
+            }
+
+            if ($running >= $max || $queued === []) {
+                break;
+            }
+
+            usort($queued, static function(array $a, array $b): int {
+                $ta = strtotime((string)($a[1]['created_at'] ?? '')) ?: PHP_INT_MAX;
+                $tb = strtotime((string)($b[1]['created_at'] ?? '')) ?: PHP_INT_MAX;
+                return ($ta <=> $tb) ?: strcmp((string)($a[1]['id'] ?? ''), (string)($b[1]['id'] ?? ''));
+            });
+
+            [$statusFile, $status] = $queued[0];
+            $id = (string)($status['id'] ?? '');
+            $type = strtolower((string)($status['type'] ?? 'shared'));
+            $worker = $type === 'vps'
+                ? $root . '/bin/mucho-deploy-worker.php'
+                : $root . '/bin/mucho-shared-deploy-worker.php';
+
+            if (!preg_match('/^[0-9]{14}-[a-f0-9]{12}$/', $id) || !is_file($worker)) {
+                $status['status'] = 'failed';
+                $status['exit_code'] = 1;
+                $status['finished_at'] = gmdate('c');
+                @file_put_contents($statusFile, json_encode($status, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
+                continue;
+            }
+
+            $jobDir = dirname($statusFile);
+            $status['status'] = 'starting';
+            $status['started_at'] = gmdate('c');
+            $status['heartbeat_at'] = gmdate('c');
+            @file_put_contents($statusFile, json_encode($status, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
+            @file_put_contents($jobDir . '/log.txt', "[MuchoGDPS] Queue slot available. Starting queued job {$id}.\n", FILE_APPEND | LOCK_EX);
+
+            $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($worker)
+                . ' --job=' . escapeshellarg($id) . ' >/dev/null 2>&1 & echo $!';
+            $output = [];
+            $exit = 0;
+            @exec($cmd, $output, $exit);
+            $pid = (int)($output[0] ?? 0);
+
+            if ($exit !== 0 || $pid <= 0) {
+                $status['status'] = 'failed';
+                $status['exit_code'] = 1;
+                $status['finished_at'] = gmdate('c');
+                @file_put_contents($statusFile, json_encode($status, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
+                continue;
+            }
+
+            $status['status'] = 'running';
+            $status['pid'] = $pid;
+            $status['heartbeat_at'] = gmdate('c');
+            @file_put_contents($statusFile, json_encode($status, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
+        }
+    } finally {
+        @rmdir($lock);
     }
 }
 
