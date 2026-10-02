@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05080d">
+<meta name="description" content="Live MuchoCore shared-hosting FTP installation console.">
+<link rel="canonical" href="https://muchogdps.space/install/shared/go/">
+<link rel="icon" href="/assets/muchocore-logo.jpg" type="image/jpeg">
+<title>Installing MuchoCore — MuchoGDPS</title>
+<style>
+:root{--bg:#05080d;--panel:#0a0f16;--line:#192332;--text:#dfe7f2;--muted:#7f8ca1;--green:#59e6a4;--amber:#e5bf68;--red:#ff758d}
+*{box-sizing:border-box}html,body{min-height:100%}body{margin:0;background:radial-gradient(1000px 520px at 50% -5%,rgba(87,119,255,.11),transparent 65%),#05080d;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{width:min(1180px,calc(100% - 28px));margin:auto}.top{height:68px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;background:rgba(5,8,13,.8);backdrop-filter:blur(18px)}.topin{display:flex;align-items:center;justify-content:space-between;gap:15px}.brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:950}.brand img{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.11)}.brand small{display:block;color:#657287;font-size:7px;letter-spacing:.15em;text-transform:uppercase}.back{color:#8491a5;text-decoration:none;font-size:10px;font-weight:850;padding:8px 10px;border:1px solid #1b2635;border-radius:9px}.back:hover{color:#fff}
+main{padding:38px 0 60px}.eyebrow{display:inline-flex;gap:8px;align-items:center;color:#96f0c5;background:rgba(89,230,164,.06);border:1px solid rgba(89,230,164,.15);border-radius:999px;padding:7px 10px;font-size:8px;font-weight:950;letter-spacing:.12em;text-transform:uppercase}.dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 12px rgba(89,230,164,.7)}h1{margin:14px 0 7px;font-size:clamp(34px,5vw,54px);letter-spacing:-2.5px;line-height:1}.lead{margin:0;color:#7f8ca1;font-size:12px;line-height:1.7}.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:17px}.pill{padding:7px 9px;border:1px solid #1a2533;border-radius:8px;background:#080c12;color:#8592a7;font:8px ui-monospace,SFMono-Regular,Menlo,monospace}.pill strong{color:#c6d1df}.panel{margin-top:17px;border:1px solid #182230;border-radius:16px;background:#080c12;box-shadow:0 20px 70px rgba(0,0,0,.22);overflow:hidden}.head{height:47px;padding:0 13px;border-bottom:1px solid #17212e;display:flex;align-items:center;justify-content:space-between;background:#0a0f16}.dots{display:flex;gap:6px}.dots i{width:8px;height:8px;border-radius:50%;background:#333d4b}.title{display:flex;align-items:center;gap:9px;font:9px 800 ui-monospace,SFMono-Regular,Menlo,monospace;color:#95a1b2}.state{font-size:8px;font-weight:950;letter-spacing:.12em;text-transform:uppercase;color:#657287}.state.running{color:var(--green)}.state.done{color:#86f3bb}.state.failed{color:var(--red)}.state.wait{color:var(--amber)}.terminal{height:calc(100vh - 325px);min-height:430px;max-height:700px;overflow:auto;margin:0;padding:18px;color:#b8c4d2;background:#04070b;font:10px/1.72 ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;white-space:pre-wrap;overflow-wrap:anywhere;tab-size:2}.cursor{display:inline-block;width:7px;height:12px;background:#8eeec0;vertical-align:-2px;animation:blink 1s steps(1,end) infinite}@keyframes blink{50%{opacity:0}}
+.bottom{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}.hint{color:#667387;font-size:9px;line-height:1.6}.actions{display:flex;gap:8px}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:39px;padding:0 12px;border:1px solid #263449;border-radius:9px;background:#0b111a;color:#c6d1df;text-decoration:none;font-size:9px;font-weight:900;cursor:pointer}.btn.primary{border-color:rgba(89,230,164,.25);background:rgba(89,230,164,.07);color:#aaf2cf}.result{display:none;margin-top:12px;border:1px solid rgba(89,230,164,.2);background:rgba(89,230,164,.045);padding:14px;border-radius:12px}.result h2{margin:0 0 7px;font-size:12px}.result p{margin:0;color:#8895a8;font-size:9px;line-height:1.65}.password{display:none;margin-top:10px;padding:10px 11px;border:1px solid #1f2c3b;border-radius:9px;background:#060a10;font:10px ui-monospace,SFMono-Regular,Menlo,monospace;color:#bff1d9;overflow-wrap:anywhere}
+@media(max-width:680px){.wrap{width:min(100% - 20px,1180px)}.terminal{height:58vh;min-height:380px}.top{height:62px}.back{display:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap topin">
+<a class="brand" href="/"><img src="/assets/muchocore-logo.jpg" alt=""><span>MuchoGDPS<small>MuchoCore deployment</small></span></a>
+<a class="back" href="/install/shared/">← Back to shared hosting setup</a>
+</div></header>
+
+<main><div class="wrap">
+<span class="eyebrow"><i class="dot"></i> Live installation console</span>
+<h1>Installing MuchoCore.</h1>
+<p class="lead">This page follows the real deployment job running on MuchoGDPS. Every message written by the shared-hosting FTP worker is shown below.</p>
+
+<div class="meta">
+<div class="pill">JOB <strong id="job">loading…</strong></div>
+<div class="pill">STATUS <strong id="metaStatus">connecting…</strong></div>
+<div class="pill">REFRESH <strong>800ms</strong></div>
+</div>
+
+<section class="panel">
+<div class="head">
+<div class="title"><span class="dots"><i></i><i></i><i></i></span> mucho-shared-deploy-worker.php</div>
+<span class="state wait" id="state">Waiting</span>
+</div>
+<pre class="terminal" id="terminal">[MuchoGDPS] Connecting to deployment job…<span class="cursor"></span></pre>
+</section>
+
+<div class="result" id="result">
+<h2 id="resultTitle">Installation finished.</h2>
+<p id="resultText"></p>
+<div class="password" id="password"></div>
+</div>
+
+<div class="bottom">
+<div class="hint">Logs are read from the deployment job over HTTPS. FTP, database and admin passwords are never displayed in the terminal.</div>
+<div class="actions">
+<button class="btn" id="copy">Copy logs</button>
+<a class="btn" href="/install/shared/">New installation</a>
+</div>
+</div>
+</div></main>
+
+<script>
+const terminal=document.getElementById('terminal');
+const state=document.getElementById('state');
+const metaStatus=document.getElementById('metaStatus');
+const jobEl=document.getElementById('job');
+const result=document.getElementById('result');
+const resultTitle=document.getElementById('resultTitle');
+const resultText=document.getElementById('resultText');
+const password=document.getElementById('password');
+const params=new URLSearchParams(location.search);
+const job=params.get('job')||'';
+let timer=null,lastLog='',started=Date.now();
+
+jobEl.textContent=job||'missing';
+
+function setState(label,kind){
+  state.textContent=label;
+  state.className='state '+kind;
+  metaStatus.textContent=label;
+}
+function cleanInitial(){if(terminal.querySelector('.cursor')) terminal.querySelector('.cursor').remove()}
+function showLog(log){
+  cleanInitial();
+  terminal.textContent=log||'[MuchoGDPS] Waiting for worker output…';
+  terminal.scrollTop=terminal.scrollHeight;
+}
+function appendCursor(){
+  const span=document.createElement('span');span.className='cursor';terminal.appendChild(span);terminal.scrollTop=terminal.scrollHeight;
+}
+function finish(ok,status){
+  if(timer){clearInterval(timer);timer=null}
+  setState(ok?'Completed':'Failed',ok?'done':'failed');
+  result.style.display='block';
+  const seconds=Math.max(1,Math.round((Date.now()-started)/1000));
+  if(ok){
+    resultTitle.textContent='MuchoCore installation completed.';
+    resultText.textContent='The FTP upload, remote installer and /health verification all completed successfully in '+seconds+'s.';
+    const adminPassword=sessionStorage.getItem('muchodeployadminpassword')||'';
+    if(adminPassword){
+      password.style.display='block';
+      password.textContent='Generated admin password: '+adminPassword;
+    }
+  }else{
+    resultTitle.textContent='MuchoCore installation failed.';
+    resultText.textContent='The worker stopped with an error. Read the final ERROR line in the terminal, fix the reported configuration issue, and start a new deployment.';
+  }
+}
+async function poll(){
+  if(!job){
+    setState('No job','failed');
+    terminal.textContent='[MuchoGDPS] No deployment job was supplied. Return to the shared-hosting setup page and start an installation.';
+    return;
+  }
+  try{
+    const key=sessionStorage.getItem('muchodeploykey')||prompt('Enter the MuchoGDPS deployment access key:')||'';
+    if(!key){
+      setState('Access key required','failed');
+      terminal.textContent='[MuchoGDPS] A deployment access key is required to read this live console.';
+      return;
+    }
+    sessionStorage.setItem('muchodeploykey',key);
+    const r=await fetch('/api/deploy/log?id='+encodeURIComponent(job),{
+      headers:{'X-Mucho-Deploy-Key':key},
+      cache:'no-store'
+    });
+    const d=await r.json();
+    if(!r.ok||!d.ok)throw new Error(d.error||'Could not read deployment logs.');
+    if(d.log!==lastLog){lastLog=d.log;showLog(lastLog);appendCursor()}
+    if(d.status==='completed'){finish(true,d.status);return}
+    if(d.status==='failed'){finish(false,d.status);return}
+    setState('Installing','running');
+    setTimeout(poll,800);
+  }catch(e){
+    setState('Connection error','failed');
+    cleanInitial();
+    terminal.textContent=(lastLog?lastLog+'\n':'')+'[MuchoGDPS] '+e.message;
+  }
+}
+document.getElementById('copy').onclick=async()=>{
+  try{
+    await navigator.clipboard.writeText(lastLog||terminal.textContent.replace(/▮$/,''));
+    document.getElementById('copy').textContent='Copied';
+    setTimeout(()=>document.getElementById('copy').textContent='Copy logs',1200);
+  }catch(_){}
+};
+poll();
+</script>
+</body>
+</html>
