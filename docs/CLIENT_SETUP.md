@@ -140,6 +140,32 @@ The one-click patcher currently knows these common server URL forms:
 
 Real client compatibility is still verified by testing the actual client build. The patcher reporting `PATCH COMPLETE` only means that a known URL string was replaced safely.
 
+## Automatic deployment client pack
+
+The automatic VPS and shared-hosting deployment consoles can prepare both a Windows and an Android client for the newly installed GDPS.
+
+The control-plane server uses:
+
+- `GeometryDash.exe` from the repository root as the Windows source client.
+- An Android APK from `patched/apk/` as the default source, or the path configured by `MUCHO_ANDROID_BASE_APK`.
+
+Keep the Android source APK out of Git. The `patched/apk/*.apk` path is intentionally ignored by Git so the source client can remain on the control-plane server across repository updates.
+
+For example, place the source APK at:
+
+```text
+patched/apk/GeometryDash_2.2.13_MuchoGDPS_Unique_v2.apk
+```
+
+After deployment completes, MuchoGDPS generates:
+
+```text
+GeometryDash-MuchoGDPS.exe
+GeometryDash-MuchoGDPS.apk
+```
+
+Both files are patched for the deployment domain and are served through one-time deployment download links. The installation page also attempts to start both downloads automatically; browsers may still require permission for multiple downloads.
+
 ## Web patcher in the admin panel
 
 GDPS owners can also patch a Windows client directly from the MuchoCore admin panel.
