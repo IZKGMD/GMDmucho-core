@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+use MuchoCore\Core\Environment;
+
 function tenantClientStorage(string $rootDir): string
 {
     $dir = rtrim($rootDir, '/\\') . '/storage/clients';
@@ -74,7 +76,7 @@ function renderTenantClientsPage(PDO $db): void
     $manifest = tenantClientManifest($rootDir);
     $windows = is_array($manifest['windows'] ?? null) ? $manifest['windows'] : [];
     $android = is_array($manifest['android'] ?? null) ? $manifest['android'] : [];
-    $serverUrl = (string)($manifest['server_url'] ?? getenv('MUCHO_ACCOUNT_URL') ?? '');
+    $serverUrl = (string)($manifest['server_url'] ?? (Environment::get('MUCHO_ACCOUNT_URL', '') ?? ''));
     $serverName = (string)($manifest['server_name'] ?? 'Your GDPS');
     $windowsPath = $storage . '/GeometryDash-MuchoGDPS.exe';
     $androidPath = $storage . '/GeometryDash-MuchoGDPS.apk';
