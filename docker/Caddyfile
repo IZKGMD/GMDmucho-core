@@ -39,6 +39,22 @@
     }
     redir @muchogdps_index / 308
 
+    # Installation method selector belongs only to the canonical MuchoGDPS host.
+    @muchogdps_install_root {
+        host {$MUCHOCORE_SITE_HOST}
+        path /install
+    }
+    redir @muchogdps_install_root /install/ 308
+
+    @muchogdps_install_ui {
+        host {$MUCHOCORE_SITE_HOST}
+        path /install /install/*
+    }
+    handle @muchogdps_install_ui {
+        rewrite * /install/index.html
+        file_server
+    }
+
     # Web deployment UI/API belong only to the canonical MuchoGDPS host.
     @muchogdps_deploy_api {
         host {$MUCHOCORE_SITE_HOST}
