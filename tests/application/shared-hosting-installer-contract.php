@@ -40,6 +40,9 @@ $installerContracts = [
     'The configured shared-hosting database does not look like a MuchoCore installation.',
     '[MuchoCore Shared Installer]',
     'Request ID:',
+    "if (\$_SERVER['REQUEST_METHOD'] === 'POST' || \$autoConfig !== null)",
+    'browser_finalization_return_url',
+    'notify_browser_finalization',
     'A verified target backup was created before the failed step.',
 ];
 
