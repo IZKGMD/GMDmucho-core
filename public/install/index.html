@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#070912">
+  <meta name="description" content="Choose how to install MuchoCore: automatic deployment on your VPS or manual installation from the command line.">
+  <link rel="canonical" href="https://muchogdps.space/install/">
+  <link rel="icon" href="/assets/muchocore-logo.jpg" type="image/jpeg">
+  <title>Install MuchoCore — MuchoGDPS</title>
+  <style>
+    :root{
+      --bg:#060811;--surface:#0b101b;--surface2:#0e1523;--line:rgba(255,255,255,.09);
+      --text:#f5f7ff;--muted:#9da8bc;--dim:#68758a;--violet:#8c7dff;--cyan:#55e8df;--green:#69e2a8;
+      --max:980px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;min-height:100vh;color:var(--text);
+      background:
+        radial-gradient(850px 520px at 78% -10%,rgba(85,232,223,.10),transparent 62%),
+        radial-gradient(800px 520px at 10% 0%,rgba(140,125,255,.16),transparent 64%),
+        linear-gradient(180deg,#060811 0%,#080b13 100%);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      line-height:1.5;-webkit-font-smoothing:antialiased;
+    }
+    body:before{
+      content:"";position:fixed;inset:0;pointer-events:none;opacity:.22;
+      background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+      background-size:44px 44px;mask-image:linear-gradient(to bottom,black,transparent 72%);
+    }
+    a{text-decoration:none;color:inherit}
+    .wrap{width:min(var(--max),calc(100% - 30px));margin:auto}
+    .nav{height:70px;border-bottom:1px solid rgba(255,255,255,.065);background:rgba(6,8,17,.72);backdrop-filter:blur(20px)}
+    .navin{height:100%;display:flex;align-items:center;justify-content:space-between;gap:18px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:950;letter-spacing:-.5px}
+    .brand img{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.14);object-fit:cover}
+    .brand small{display:block;color:var(--dim);font-size:8px;letter-spacing:.15em;text-transform:uppercase;margin-top:1px}
+    .back{color:#9da8bc;font-size:11px;font-weight:850;padding:9px 11px;border:1px solid var(--line);border-radius:10px}
+    .back:hover{color:#fff;background:rgba(255,255,255,.04)}
+    main{padding:76px 0 90px}
+    .eyebrow{
+      display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border:1px solid rgba(140,125,255,.26);
+      border-radius:999px;background:rgba(140,125,255,.08);color:#c1baff;font-size:10px;font-weight:900;
+      letter-spacing:.11em;text-transform:uppercase
+    }
+    .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 14px rgba(105,226,168,.8)}
+    h1{margin:19px 0 13px;font-size:clamp(43px,7vw,72px);line-height:.97;letter-spacing:-4px}
+    h1 span{background:linear-gradient(95deg,#fff,#a49aff 50%,#62e7df);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .intro{max-width:720px;margin:0;color:var(--muted);font-size:15px;line-height:1.75}
+    .choices{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:34px}
+    .card{
+      position:relative;display:flex;flex-direction:column;min-height:360px;padding:28px;border-radius:22px;
+      border:1px solid var(--line);background:linear-gradient(180deg,#0d1320,#090e17);
+      overflow:hidden;transition:transform .18s,border-color .18s,box-shadow .18s;
+    }
+    .card:hover{transform:translateY(-3px);border-color:rgba(140,125,255,.35);box-shadow:0 24px 70px rgba(0,0,0,.25)}
+    .card.primary{background:linear-gradient(145deg,rgba(140,125,255,.13),rgba(85,232,223,.045) 58%,#090e17)}
+    .icon{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:rgba(140,125,255,.1);border:1px solid rgba(140,125,255,.2);font-size:20px}
+    .card h2{margin:19px 0 7px;font-size:23px;letter-spacing:-1px}
+    .card p{margin:0;color:var(--muted);font-size:12px;line-height:1.72}
+    .list{display:grid;gap:8px;margin:22px 0 0}
+    .item{display:flex;align-items:center;gap:9px;color:#b8c2d2;font-size:10px;font-weight:750}
+    .item i{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 9px rgba(105,226,168,.55)}
+    .item.manual i{background:#8d82ff;box-shadow:0 0 9px rgba(141,130,255,.55)}
+    .cta{
+      margin-top:auto;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 17px;
+      border-radius:12px;background:linear-gradient(135deg,#8f81ff,#7668f3);border:1px solid rgba(177,167,255,.55);
+      color:#fff;font-size:12px;font-weight:900;box-shadow:0 16px 36px rgba(118,103,243,.2)
+    }
+    .cta.alt{background:#0c131e;border-color:#293549;box-shadow:none;color:#dce3ef}
+    .command{
+      margin-top:26px;padding:18px;border:1px solid #202b3d;border-radius:15px;background:#080d15
+    }
+    .command-label{display:flex;justify-content:space-between;gap:10px;color:#68758a;font-size:8px;font-weight:900;letter-spacing:.11em;text-transform:uppercase}
+    pre{margin:10px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;color:#bcc7d9;font:10px/1.8 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .note{margin-top:27px;color:#748197;font-size:10px;line-height:1.7}
+    .note a{color:#a9a1ff}
+    @media(max-width:760px){
+      main{padding-top:52px}.choices{grid-template-columns:1fr}.card{min-height:330px}.wrap{width:min(var(--max),calc(100% - 24px))}
+    }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <div class="wrap navin">
+      <a class="brand" href="/" aria-label="MuchoGDPS home">
+        <img src="/assets/muchocore-logo.jpg" alt="" width="34" height="34">
+        <span>MuchoGDPS<small>Powered by MuchoCore</small></span>
+      </a>
+      <a class="back" href="/">← Back to MuchoGDPS</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <div class="eyebrow"><i class="dot"></i> MuchoCore installation</div>
+      <h1>Choose how you want to <span>install.</span></h1>
+      <p class="intro">Use the web installer for a guided deployment on your VPS, or install MuchoCore yourself from the command line when you want full manual control.</p>
+
+      <section class="choices" aria-label="Installation methods">
+        <article class="card primary">
+          <div class="icon">⚡</div>
+          <h2>Automatic deployment</h2>
+          <p>Connect your VPS through the MuchoGDPS web installer and watch the complete installation live in your browser.</p>
+          <div class="list">
+            <div class="item"><i></i> Guided VPS connection</div>
+            <div class="item"><i></i> Docker, Caddy and MariaDB setup</div>
+            <div class="item"><i></i> MuchoCore migration and health checks</div>
+            <div class="item"><i></i> Live installer output</div>
+          </div>
+          <a class="cta" href="/deploy/">Start automatic installation →</a>
+        </article>
+
+        <article class="card">
+          <div class="icon">⌘</div>
+          <h2>Manual installation</h2>
+          <p>Run the official installer yourself on a VPS. This is the direct option for users who prefer SSH and full control over every step.</p>
+          <div class="command">
+            <div class="command-label"><span>Install command</span><span>SSH / root</span></div>
+            <pre>curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/refactor/installer-dx/install-remote.sh \
+  | bash -s -- --ref=refactor/installer-dx</pre>
+          </div>
+          <div class="list">
+            <div class="item manual"><i></i> Run directly on your VPS</div>
+            <div class="item manual"><i></i> Interactive installer options</div>
+          </div>
+          <a class="cta alt" href="/muchocore/">Open MuchoCore →</a>
+        </article>
+      </section>
+
+      <p class="note">The automatic installer is the simplest path for a new GDPS. The manual path is available for advanced setups and custom infrastructure. Source and installer are maintained in <a href="https://github.com/IZKGMD/GMDmucho-core" rel="noopener">the MuchoCore repository</a>.</p>
+    </div>
+  </main>
+</body>
+</html>
