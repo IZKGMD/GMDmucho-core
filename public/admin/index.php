@@ -213,9 +213,8 @@ $count=(int)$db->query(
 
 if ($count===0) {
     $bootstrapPath=(string)(
-        $_ENV['MUCHO_ADMIN_BOOTSTRAP']
-        ?? getenv('MUCHO_ADMIN_BOOTSTRAP')
-        ?: $rootDir.'/storage/admin-bootstrap.php'
+        Environment::get('MUCHO_ADMIN_BOOTSTRAP', $rootDir.'/storage/admin-bootstrap.php')
+        ?? $rootDir.'/storage/admin-bootstrap.php'
     );
 
     if (!is_file($bootstrapPath)) {
