@@ -226,7 +226,6 @@ $adminUser = (string)($status['admin_user'] ?? 'admin');
 $sshPassword = is_file($dir . '/ssh_password') ? (string)file_get_contents($dir . '/ssh_password') : '';
 $sshKey = is_file($dir . '/ssh_key') ? (string)file_get_contents($dir . '/ssh_key') : '';
 $adminPassword = is_file($dir . '/admin_password') ? (string)file_get_contents($dir . '/admin_password') : '';
-$adminPassword = is_file($dir . '/admin_password') ? (string)file_get_contents($dir . '/admin_password') : '';
 $remoteEnv = is_file($dir . '/remote_env') ? (string)file_get_contents($dir . '/remote_env') : '';
 
 log_line($logFile, "[MuchoGDPS] Connecting with SSH...\n");
