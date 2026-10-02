@@ -45,34 +45,61 @@ final class Database
             }
         }
 
+        // On shared hosting, provider-level environment variables can contain
+        // generic names such as DB_HOST or DB_USER. Those must never override
+        // the database credentials configured by MuchoCore in its own .env.
+        $projectConfig = [];
+
+        if (is_readable($projectRoot . '/.env')) {
+            $projectContent = file_get_contents($projectRoot . '/.env');
+
+            if ($projectContent !== false && $projectContent !== '') {
+                try {
+                    $projectConfig = Dotenv::parse($projectContent);
+                } catch (\Throwable) {
+                    $projectConfig = [];
+                }
+            }
+        }
+
         $host = (string)(
             $runtimeConfig['DB_HOST']
+            ?? $projectConfig['DB_HOST']
+            ?? $_ENV['DB_HOST']
             ?? getenv('DB_HOST')
-            ?: ($_ENV['DB_HOST'] ?? '127.0.0.1')
+            ?: '127.0.0.1'
         );
 
         $port = (string)(
             $runtimeConfig['DB_PORT']
+            ?? $projectConfig['DB_PORT']
+            ?? $_ENV['DB_PORT']
             ?? getenv('DB_PORT')
-            ?: ($_ENV['DB_PORT'] ?? '3306')
+            ?: '3306'
         );
 
         $name = (string)(
             $runtimeConfig['DB_NAME']
+            ?? $projectConfig['DB_NAME']
+            ?? $_ENV['DB_NAME']
             ?? getenv('DB_NAME')
-            ?: ($_ENV['DB_NAME'] ?? '')
+            ?: ''
         );
 
         $user = (string)(
             $runtimeConfig['DB_USER']
+            ?? $projectConfig['DB_USER']
+            ?? $_ENV['DB_USER']
             ?? getenv('DB_USER')
-            ?: ($_ENV['DB_USER'] ?? '')
+            ?: ''
         );
 
         $pass = (string)(
             $runtimeConfig['DB_PASS']
+            ?? $projectConfig['DB_PASS']
+            ?? $_ENV['DB_PASS']
             ?? getenv('DB_PASS')
-            ?? ($_ENV['DB_PASS'] ?? '')
+            ?: ''
         );
         $dsn = "mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4";
 
