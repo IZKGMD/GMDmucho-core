@@ -274,6 +274,34 @@ function count_queued_jobs(): int
     return $count;
 }
 
+function queued_job_position(string $jobId): int
+{
+    $jobs = [];
+
+    foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
+        $status = read_json($statusFile);
+        if (($status['status'] ?? '') !== 'queued') {
+            continue;
+        }
+
+        $id = (string)($status['id'] ?? basename(dirname($statusFile)));
+        $createdAt = strtotime((string)($status['created_at'] ?? '')) ?: PHP_INT_MAX;
+        $jobs[] = [$createdAt, $id];
+    }
+
+    usort($jobs, static function(array $a, array $b): int {
+        return ($a[0] <=> $b[0]) ?: strcmp($a[1], $b[1]);
+    });
+
+    foreach ($jobs as $index => $job) {
+        if ($job[1] === $jobId) {
+            return $index + 1;
+        }
+    }
+
+    return 0;
+}
+
 function reset_deployment_session(): void
 {
     if (session_status() === PHP_SESSION_ACTIVE) {
@@ -497,11 +525,11 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
 
         $queuePosition = 0;
         if ($queueFull) {
-            $queuePosition = count_queued_jobs();
+            $queuePosition = queued_job_position($id);
             deployment_queue_dispatch();
             $fresh = read_json($dir . '/status.json');
             if (($fresh['status'] ?? '') !== 'running') {
-                $queuePosition = count_queued_jobs();
+                $queuePosition = queued_job_position($id);
             }
         } else {
             try {
@@ -712,7 +740,7 @@ if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/s
             'ok' => true,
             'job_id' => $id,
             'status' => $status['status'] ?? 'unknown',
-            'queue_position' => ($status['status'] ?? '') === 'queued' ? count_queued_jobs() : 0,
+            'queue_position' => ($status['status'] ?? '') === 'queued' ? queued_job_position($id) : 0,
             'heartbeat_at' => $status['heartbeat_at'] ?? null,
             'timed_out' => (bool)($status['timed_out'] ?? false),
             'log' => $log,
@@ -724,7 +752,7 @@ if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/s
         'ok' => true,
         'job_id' => $id,
         'status' => $status['status'] ?? 'unknown',
-        'queue_position' => ($status['status'] ?? '') === 'queued' ? count_queued_jobs() : 0,
+        'queue_position' => ($status['status'] ?? '') === 'queued' ? queued_job_position($id) : 0,
         'heartbeat_at' => $status['heartbeat_at'] ?? null,
         'timed_out' => (bool)($status['timed_out'] ?? false),
         'exit_code' => $status['exit_code'] ?? null,
