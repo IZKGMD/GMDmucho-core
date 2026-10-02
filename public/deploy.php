@@ -282,7 +282,8 @@ function handle_client_pack_request(string $root): never
             $manifest = \MuchoCore\Client\DeploymentClientPack::prepare(
                 $root,
                 $dir,
-                'https://' . $domain
+                'https://' . $domain,
+                (string)($status['gdps_name'] ?? 'Mucho GDPS')
             );
 
             json_response([
