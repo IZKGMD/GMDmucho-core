@@ -27,6 +27,8 @@ KNOWN_HOSTS = (
     "geometrydash.com",
     "www.gdserver.net",
     "gdserver.net",
+    "muchogdps.space",
+    "gdpsapi.page.gd",
 )
 KNOWN_URLS = (
     "https://www.boomlings.com/database",
