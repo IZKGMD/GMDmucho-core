@@ -147,7 +147,7 @@ function count_running_jobs(): int
 
 function cleanup_job_secrets(string $dir): void
 {
-    foreach (['ssh_password', 'ssh_key', 'admin_password', 'remote_env'] as $file) {
+    foreach (['ssh_password', 'ssh_key', 'admin_password', 'remote_env', 'ftp_password', 'shared_db_password', 'shared_config'] as $file) {
         @unlink($dir . '/' . $file);
     }
 }
@@ -176,6 +176,148 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
     }
 
     $data = request_json();
+    $deploymentType = strtolower(trim((string)($data['type'] ?? 'vps')));
+
+    if ($deploymentType === 'shared') {
+        $ftpHost = trim((string)($data['ftp_host'] ?? ''));
+        $ftpPort = (int)($data['ftp_port'] ?? 21);
+        $ftpUsername = trim((string)($data['ftp_username'] ?? ''));
+        $ftpPassword = (string)($data['ftp_password'] ?? '');
+        $ftpSecurity = strtolower(trim((string)($data['ftp_security'] ?? 'ftp')));
+        $ftpPath = trim((string)($data['ftp_path'] ?? ''));
+        $accountUrl = rtrim(trim((string)($data['account_url'] ?? '')), '/');
+        $dbHost = trim((string)($data['db_host'] ?? 'localhost'));
+        $dbPort = (int)($data['db_port'] ?? 3306);
+        $dbName = trim((string)($data['db_name'] ?? ''));
+        $dbUser = trim((string)($data['db_user'] ?? ''));
+        $dbPassword = (string)($data['db_password'] ?? '');
+        $adminPassword = (string)($data['admin_password'] ?? '');
+
+        if ($ftpHost === '' || strlen($ftpHost) > 253 || !preg_match('/^(?=.{1,253}$)(?!-)(?:[A-Za-z0-9-]{1,63}\\.)+[A-Za-z0-9-]{2,63}$/', $ftpHost)) {
+            json_response(['ok' => false, 'error' => 'Enter a valid FTP hostname.'], 422);
+        }
+        if ($ftpPort < 1 || $ftpPort > 65535) {
+            json_response(['ok' => false, 'error' => 'Invalid FTP port.'], 422);
+        }
+        if ($ftpUsername === '' || strlen($ftpUsername) > 128 || preg_match('/[\\x00-\\x1F\\x7F]/', $ftpUsername) === 1) {
+            json_response(['ok' => false, 'error' => 'Invalid FTP username.'], 422);
+        }
+        if ($ftpPassword === '') {
+            json_response(['ok' => false, 'error' => 'Enter the FTP password.'], 422);
+        }
+        if (!in_array($ftpSecurity, ['ftp', 'ftps'], true)) {
+            json_response(['ok' => false, 'error' => 'Choose FTP or FTPS.'], 422);
+        }
+        if ($ftpPath !== '' && (strlen($ftpPath) > 512 || preg_match('/[\\x00]/', $ftpPath) === 1 || preg_match('#(^|/)\\.\\.(/|$)#', str_replace('\\\\', '/', $ftpPath)) === 1)) {
+            json_response(['ok' => false, 'error' => 'Invalid remote FTP directory.'], 422);
+        }
+        $parts = parse_url($accountUrl);
+        $accountHost = is_array($parts) ? strtolower((string)($parts['host'] ?? '')) : '';
+        if (!is_array($parts) || strtolower((string)($parts['scheme'] ?? '')) !== 'https' || $accountHost === '' || !preg_match('/^(?=.{1,253}$)(?!-)(?:[A-Za-z0-9-]{1,63}\\.)+[A-Za-z0-9-]{2,63}$/', $accountHost) || !empty($parts['user']) || !empty($parts['pass']) || !empty($parts['path']) || !empty($parts['query']) || !empty($parts['fragment'])) {
+            json_response(['ok' => false, 'error' => 'GDPS address must be a public HTTPS hostname such as https://gdps.example.com.'], 422);
+        }
+        if ($dbHost === '' || strlen($dbHost) > 253 || preg_match('/[\\x00-\\x1F\\x7F]/', $dbHost) === 1) {
+            json_response(['ok' => false, 'error' => 'Invalid database host.'], 422);
+        }
+        if ($dbPort < 1 || $dbPort > 65535 || $dbName === '' || strlen($dbName) > 128 || preg_match('/[\\x00-\\x1F\\x7F]/', $dbName) === 1 || $dbUser === '' || strlen($dbUser) > 128 || preg_match('/[\\x00-\\x1F\\x7F]/', $dbUser) === 1) {
+            json_response(['ok' => false, 'error' => 'Invalid database connection values.'], 422);
+        }
+        if ($dbPassword === '') {
+            json_response(['ok' => false, 'error' => 'Enter the database password.'], 422);
+        }
+
+        $generatedAdminPassword = false;
+        if ($adminPassword === '') {
+            $adminPassword = rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=');
+            $generatedAdminPassword = true;
+        }
+        if (strlen($adminPassword) < 12 || strlen($adminPassword) > 200) {
+            json_response(['ok' => false, 'error' => 'MuchoCore admin password must be 12–200 characters.'], 422);
+        }
+
+        $id = job_id();
+        $dir = job_dir($id);
+        if (!@mkdir($dir, 0700, true)) {
+            json_response(['ok' => false, 'error' => 'Could not create the deployment job.'], 500);
+        }
+
+        $status = [
+            'id' => $id,
+            'type' => 'shared',
+            'status' => 'starting',
+            'created_at' => gmdate('c'),
+            'ftp_host' => $ftpHost,
+            'ftp_port' => $ftpPort,
+            'ftp_security' => $ftpSecurity,
+            'ftp_path' => $ftpPath,
+            'domain' => $accountHost,
+            'admin_user' => 'admin',
+            'generated_admin_password' => $generatedAdminPassword,
+            'exit_code' => null,
+        ];
+        write_json($dir . '/status.json', $status);
+        file_put_contents($dir . '/ftp_password', $ftpPassword, LOCK_EX);
+        @chmod($dir . '/ftp_password', 0600);
+        $config = [
+            'ftp_host' => $ftpHost,
+            'ftp_port' => $ftpPort,
+            'ftp_username' => $ftpUsername,
+            'ftp_security' => $ftpSecurity,
+            'ftp_path' => $ftpPath,
+            'account_url' => $accountUrl,
+            'db_host' => $dbHost,
+            'db_port' => $dbPort,
+            'db_name' => $dbName,
+            'db_user' => $dbUser,
+            'admin_user' => 'admin',
+        ];
+        write_json($dir . '/shared_config', $config);
+        file_put_contents($dir . '/shared_db_password', $dbPassword, LOCK_EX);
+        @chmod($dir . '/shared_db_password', 0600);
+        file_put_contents($dir . '/admin_password', $adminPassword, LOCK_EX);
+        @chmod($dir . '/admin_password', 0600);
+        file_put_contents($dir . '/log.txt',
+            "[MuchoGDPS] Shared-hosting deployment job {$id}\\n"
+            . "[MuchoGDPS] FTP target: {$ftpHost}:{$ftpPort} ({$ftpSecurity})\\n"
+            . "[MuchoGDPS] Remote directory: " . ($ftpPath !== '' ? $ftpPath : '/') . "\\n"
+            . "[MuchoGDPS] GDPS: {$accountUrl}\\n"
+            . "[MuchoGDPS] Connecting to shared hosting...\\n", LOCK_EX);
+        @chmod($dir . '/log.txt', 0600);
+
+        $worker = $root . '/bin/mucho-shared-deploy-worker.php';
+        if (!is_file($worker)) {
+            cleanup_job_secrets($dir);
+            @unlink($dir . '/status.json');
+            @unlink($dir . '/log.txt');
+            @rmdir($dir);
+            json_response(['ok' => false, 'error' => 'Shared-hosting deployment worker is not installed.'], 500);
+        }
+
+        $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($worker)
+            . ' --job=' . escapeshellarg($id) . ' > /dev/null 2>&1 & echo $!';
+        $output = [];
+        $exit = 0;
+        exec($cmd, $output, $exit);
+        $pid = (int)($output[0] ?? 0);
+        if ($exit !== 0 || $pid <= 0) {
+            cleanup_job_secrets($dir);
+            @unlink($dir . '/status.json');
+            @unlink($dir . '/log.txt');
+            @rmdir($dir);
+            json_response(['ok' => false, 'error' => 'Could not start the shared-hosting deployment worker.'], 500);
+        }
+
+        $status['status'] = 'running';
+        $status['pid'] = $pid;
+        write_json($dir . '/status.json', $status);
+        json_response([
+            'ok' => true,
+            'job_id' => $id,
+            'admin_user' => 'admin',
+            'admin_password' => $generatedAdminPassword ? $adminPassword : null,
+        ], 201);
+    }
+
     $host = trim((string)($data['host'] ?? ''));
     $port = (int)($data['port'] ?? 22);
     $username = trim((string)($data['username'] ?? 'root'));
