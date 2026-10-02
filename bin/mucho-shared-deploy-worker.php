@@ -600,8 +600,7 @@ function upload_tree(\FTP\Connection $ftp, string $localRoot, string $base, stri
     }
 
     log_line($logFile, "[MuchoGDPS] Uploading into web root: {$actualBase}\n");
-    $uploadRoot = '.';
-    $knownDirs = ['.' => true];
+    $knownDirs = [$actualBase => true];
     $count = 0;
 
     $iterator = new RecursiveIteratorIterator(
@@ -623,34 +622,40 @@ function upload_tree(\FTP\Connection $ftp, string $localRoot, string $base, stri
     usort($files, static fn(array $a, array $b): int => strcmp($a[1], $b[1]));
 
     foreach ($files as [$local, $relative]) {
+        // Always reset CWD to the selected web root. FTP servers keep CWD state
+        // between operations, so relative paths are otherwise resolved from the
+        // directory used for the previous file.
+        if (!@ftp_chdir($ftp, $actualBase)) {
+            throw new RuntimeException('Unable to restore the FTP web-root directory before upload: ' . $actualBase);
+        }
+
         $dir = dirname($relative);
         if ($dir !== '.' && $dir !== '') {
-            ensure_remote_dir($ftp, $uploadRoot, $dir, $knownDirs);
+            ensure_remote_dir($ftp, $actualBase, $dir, $knownDirs);
+            if (!@ftp_chdir($ftp, $actualBase)) {
+                throw new RuntimeException('Unable to restore the FTP web-root directory after preparing: ' . $dir);
+            }
         }
 
         $remote = str_replace('\\', '/', $relative);
-        $remoteDir = dirname($remote);
-        $remoteName = basename($remote);
-        if ($remoteDir !== '.' && $remoteDir !== '') {
-            if (!@ftp_chdir($ftp, $remoteDir)) {
-                throw new RuntimeException('Unable to enter remote directory before upload: ' . $remoteDir);
-            }
-        }
-        if (!@ftp_put($ftp, $remoteName, $local, FTP_BINARY)) {
+        if (!@ftp_put($ftp, $remote, $local, FTP_BINARY)) {
             throw new RuntimeException('Failed to upload: ' . $relative);
         }
-        if (!@ftp_chdir($ftp, '.')) {
+
+        // Keep the next iteration deterministic even when ftp_put changes CWD
+        // on a provider-specific FTP implementation.
+        if (!@ftp_chdir($ftp, $actualBase)) {
             throw new RuntimeException('Unable to restore the FTP web-root directory after upload.');
         }
+
         $count++;
         if (($count % 25) === 0) {
-            log_line($logFile, "[MuchoGDPS] Uploaded {$count} files...\\n");
+            log_line($logFile, "[MuchoGDPS] Uploaded {$count} files...\n");
         }
     }
 
     return $count;
 }
-
 function installer_csrf(string $html): string {
     $patterns = [
         '/name=["\']csrf["\'][^>]*value=["\']([^"\']+)["\']/i',
