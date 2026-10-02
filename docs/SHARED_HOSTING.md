@@ -1,255 +1,329 @@
-# MuchoCore на обычном PHP-хостинге
+# MuchoCore Shared Hosting
 
-Это полноценный вариант MuchoCore для shared hosting: **без Docker, без VPS и без обязательного Terminal**.
+This is the no-VPS deployment mode for compatible PHP shared hosting. It does not require Docker, SSH, sudo, Composer, or a server terminal.
 
-## Что нужно
+## Provider compatibility
 
-- PHP 8.3 или новее;
-- MySQL 8.0.29+ или MariaDB 10.4+;
+The PHP installer requirements and the ability to run a Geometry Dash server are separate checks.
+
+| Hosting type | Installation files | Geometry Dash client traffic |
+| --- | --- | --- |
+| Compatible shared hosting | Supported | Supported when normal app/API requests are allowed |
+| InfinityFree Free | May pass the PHP/file checks | **Not compatible for a GDPS:** InfinityFree documents that its free hosting blocks programmatic access from mobile/desktop apps and game API clients |
+
+InfinityFree Free currently advertises PHP 8.4 and MySQL 8.0 / MariaDB 11.4, but its free-host browser security system is designed for browser traffic rather than app/API traffic. A successful bootstrap or PHP preflight therefore must not be interpreted as proof that a Geometry Dash client can connect.
+
+## Requirements
+
+A shared-hosting account needs:
+
+- PHP 8.3 or newer;
+- MySQL 8.0.29+ or MariaDB 10.4+;
 - PDO MySQL;
 - HTTPS;
-- FTP / файловый менеджер;
-- база данных и пользователь базы.
+- PHP ZIP support for the one-file bootstrap installer;
+- outbound HTTPS access to GitHub;
+- FTP or the hosting file manager;
+- a database and database user.
 
-### Важное отличие от VPS
+## Automatic installation from MuchoGDPS
 
-На shared hosting нет Docker и нет systemd. Поэтому MuchoCore использует обычный PHP runtime, файловое хранилище и PHP-резервное копирование базы.
+The official MuchoGDPS installer page can also connect to a shared-hosting account directly:
 
-## 1. Скачай правильный пакет
+~~~text
+https://muchogdps.space/install/shared/
+~~~
 
-В странице нужного **stable release** скачай asset:
+Enter the FTP/FTPS host, port, username, password, remote web-root directory, public HTTPS URL, and database credentials. MuchoGDPS then downloads the latest published stable shared-hosting package on the control-plane server, verifies its SHA-256 digest, uploads the package through FTP/FTPS, starts the existing shared-hosting installer through the target site's HTTPS endpoint, and verifies the /health endpoint.
 
-```text
+FTP and database passwords are stored only in the temporary deployment job on the MuchoGDPS control plane. They are not written to the deployment log and are deleted when the job finishes.
+
+The target web root must already exist and the domain must already serve valid HTTPS. The shared hosting must permit normal PHP application/API traffic after installation.
+
+## Fastest path: FTP bootstrap
+
+For a new shared-hosting site, the simplest flow is:
+
+~~~text
+FTP / File Manager
+        ↓
+upload ftp-install.php
+        ↓
+open https://YOUR-DOMAIN/ftp-install.php
+        ↓
+resolve latest published stable release
+        ↓
+verify the release SHA-256 digest
+        ↓
+extract the shared-hosting package
+        ↓
+open /shared-install.php
+        ↓
+database + admin setup
+~~~
+
+Download public/ftp-install.php from the MuchoCore repository and upload only that file into a **fresh directory dedicated to the GDPS**.
+
+The bootstrap intentionally refuses to run when it finds an existing .env, .htaccess, composer.json, composer.lock, src/, database/, public/, vendor/, config/, or storage/ path. This prevents it from silently overwriting another application.
+
+Open the bootstrap over HTTPS:
+
+~~~text
+https://YOUR-DOMAIN/ftp-install.php
+~~~
+
+The bootstrap does not collect or transmit your FTP username or FTP password. FTP is only the delivery method used to put the bootstrap file on your hosting account.
+
+The bootstrap resolves the latest **published stable GitHub release**, selects:
+
+~~~text
 MuchoCore-vX.Y.Z-shared-hosting.zip
-```
+~~~
 
-Это специальный пакет для shared hosting. Он уже содержит `vendor/`, все PHP-зависимости и browser installer.
+and verifies the release asset's SHA-256 digest before extraction. It also checks the archive structure and embedded VERSION value before copying files into the target directory.
 
-Composer, SSH, Terminal, Docker и sudo для установки не нужны.
+After a successful extraction, the bootstrap removes itself when the filesystem allows it and redirects to:
 
-Не используй обычный source ZIP как единственный пакет: source ZIP предназначен для разработки/VPS и может не содержать `vendor/`.
+~~~text
+https://YOUR-DOMAIN/shared-install.php
+~~~
 
-Не используй для shared hosting VPS-архив как единственный пакет: в обычном исходном архиве `vendor/` отсутствует.
+The normal shared-hosting installer then performs the database and application setup.
 
-## 2. Распакуй через FTP
+## Manual shared-hosting package
 
-Распакуй содержимое архива в каталог сайта.
+The stable GitHub release also publishes a complete package:
 
-Структура должна выглядеть так:
+~~~text
+MuchoCore-vX.Y.Z-shared-hosting.zip
+~~~
 
-```text
+This package already contains:
+
+- vendor/ with production Composer dependencies;
+- the MuchoCore PHP source;
+- database migrations;
+- the shared-hosting browser installer;
+- the root and public Apache routing files;
+- shared-hosting documentation.
+
+Use the package directly when you prefer to upload the complete tree yourself.
+
+Do not treat a normal source archive as the shared-hosting package: development/source archives may not contain vendor/.
+
+## Project layout
+
+The completed shared-hosting installation should look like:
+
+~~~text
 muchocore/
 ├── public/
 ├── src/
 ├── database/
 ├── config/
 ├── vendor/
+├── storage/
 ├── composer.json
 ├── composer.lock
+├── .env
 ├── .htaccess
 └── ...
-```
+~~~
 
-Не переименовывай и не перемещай отдельно `public/`.
+There are two supported Apache layouts.
 
-### Два варианта document root
+### Option A — public document root
 
-**Вариант A — предпочтительный:** document root указывает прямо на:
+Point the hosting document root directly at:
 
-```text
+~~~text
 .../muchocore/public
-```
+~~~
 
-**Вариант B:** если хостинг не позволяет изменить document root, оставь его на корне проекта. Корневой `.htaccess` сам направит публичные запросы в `public/`.
+### Option B — project-root document root
 
-## 3. Создай пустую базу
+If the hosting provider does not allow a custom public document root, point the domain at the project root. The root .htaccess routes public requests into public/.
 
-В панели хостинга открой MySQL / MariaDB / Databases.
+The second layout is the default for the one-file FTP bootstrap because it can be installed into an ordinary shared-hosting web directory.
 
-Нужны:
+## Database setup
 
-```text
+Create a new empty MySQL/MariaDB database and user in the hosting control panel.
+
+The installer needs:
+
+~~~text
 DB host
 DB port
 DB name
 DB user
 DB password
-```
+~~~
 
-Для первой установки база должна быть **пустой**.
+For a first installation, the target database must be empty.
 
-Не используй базу другого сайта: установщик специально останавливается, если видит неизвестные существующие таблицы.
+The shared installer refuses to modify a non-empty database that is not already recognized as a MuchoCore installation.
 
-## 4. Установи MuchoCore
+## Browser installer
 
-Открой:
+Open:
 
-```text
+~~~text
 https://YOUR-DOMAIN/shared-install.php
-```
+~~~
 
-Установщик сначала проверит PHP, расширения, необходимые PHP-функции, файлы, каталоги, сессию и место для резервной копии.
+The installer checks:
 
-После отправки формы он дополнительно:
+- PHP version;
+- required PHP extensions and functions;
+- required MuchoCore files;
+- writable project and storage directories;
+- installer session support;
+- available backup space.
 
-1. подключится к MySQL/MariaDB;
-2. проверит версию СУБД;
-3. проверит реальные права пользователя через временную таблицу;
-4. создаст резервную копию выбранной базы;
-5. проверит gzip и SHA-256 backup;
-6. выполнит все миграции;
-7. создаст или обновит администратора;
-8. проверит итоговую схему и подключение к базе;
-9. запишет lock-marker завершённой установки.
+After you submit the database and administrator settings, it:
 
-Если миграция или проверка backup не сможет стартовать безопасно, установка останавливается вместо изменения целевой базы.
+1. connects to MySQL/MariaDB;
+2. checks the database server version;
+3. probes real DDL/DML permissions with a temporary table;
+4. creates a verified target backup;
+5. verifies the backup checksum;
+6. runs all pending MuchoCore migrations;
+7. creates or updates the administrator;
+8. verifies the final schema and database connection;
+9. writes the installation lock marker.
 
-## 5. Проверка
+If a safety check fails, the installer stops instead of continuing with an unsafe database operation.
 
-После успешной установки установщик автоматически удаляет себя, когда это разрешено файловой системой хостинга. Lock-marker остаётся в `storage/`, поэтому повторное открытие случайно сохранённого installer-файла не запускает установку заново.
+## Verify the installation
 
-Открой:
+Open:
 
-```text
+~~~text
 https://YOUR-DOMAIN/health
-```
+~~~
 
-Ожидаемый ответ:
+Expected response:
 
-```text
+~~~text
 1
-```
+~~~
 
-Затем:
+Then open:
 
-```text
+~~~text
 https://YOUR-DOMAIN/admin/
-```
+~~~
 
-Логин администратора:
+The default administrator username is:
 
-```text
+~~~text
 admin
-```
+~~~
 
-Пароль задаётся во время установки.
+The password is the one entered during installation.
 
-## 6. Перенос существующего GDPS
+## Existing GDPS migration
 
-Для существующего GDPS **не подключай старую базу как целевую базу MuchoCore**.
+Do not use the old GDPS database as the initial MuchoCore target database.
 
-Сначала нужна новая пустая база для MuchoCore. После установки открой Migration Center и укажи отдельные реквизиты старой базы.
+Create a fresh MuchoCore database first. After the installation is healthy, use the Migration Center:
 
-После чистой установки открой:
-
-```text
+~~~text
 https://YOUR-DOMAIN/admin/?page=migration
-```
+~~~
 
-В shared-hosting режиме Migration Center не использует `proc_open()`, Docker или sudo.
+The shared-hosting migration flow keeps the source database read-only and performs the target-side safety work before importing.
 
-Порядок:
+The general flow is:
 
-```text
-Старая GDPS БД
-      ↓
-Read-only подключение
-      ↓
-Проверка схемы
-      ↓
-Preview количества данных
-      ↓
-Свежий backup новой MuchoCore БД
-      ↓
-Проверка backup
-      ↓
-Миграции MuchoCore
-      ↓
-Транзакционный импорт
-      ↓
-Проверка результата
-```
+~~~text
+Legacy GDPS database
+        ↓
+Read-only source connection
+        ↓
+Schema detection
+        ↓
+Preview / counts
+        ↓
+Fresh verified target backup
+        ↓
+MuchoCore migrations
+        ↓
+Transactional import
+        ↓
+Result verification
+~~~
 
-Старая база открывается только на чтение.
+The first-class legacy datasets include accounts, profiles, levels, classic scores, and Platformer scores. Additional legacy datasets may be detected without being claimed as automatically migrated.
 
-Автоматически импортируются:
+Compatible password hashes can be preserved. Unsupported legacy password formats are not guessed or exposed; the account is marked for password recovery instead.
 
-- accounts;
-- profiles;
-- levels;
-- classic scores;
-- Platformer scores.
+## Security notes
 
-Дополнительные legacy datasets могут быть обнаружены и показаны как `DETECTED`, но не выдаются за перенесённые данные.
+Do not leave installer files publicly accessible after deployment.
 
-### Пароли
+The shared installer attempts to remove:
 
-Совместимый password hash переносится как есть.
-
-Если старый формат невозможно безопасно использовать, аккаунт получает отметку о необходимости восстановления пароля. Старый пароль не придумывается и не раскрывается.
-
-### База старой GDPS
-
-В поле **Old DB host** указывается именно сервер MySQL/MariaDB, а не адрес сайта.
-
-Например:
-
-```text
-127.0.0.1
-localhost
-mysql.example.com
-```
-
-## 7. После установки
-
-Удалить:
-
-```text
+~~~text
 public/shared-install.php
-```
+~~~
 
-Установщик также пытается удалить себя автоматически.
+when possible, and the lock marker prevents a completed installation from being executed again.
 
-Не удаляй:
+After setup, verify that temporary bootstrap files are gone and keep:
 
-```text
+~~~text
 .env
-storage/admin-bootstrap.php
+storage/
 config/cloudsave.key
-storage/backups/database/
-```
+~~~
 
-Backup до миграции рекомендуется скачать через Admin Panel и сохранить отдельно до окончания тестирования нового сервера.
+protected from direct web access.
 
-## 8. Ограничения shared hosting
+The root and public .htaccess files are part of the shared-hosting routing design. Review any provider-specific Apache rules before merging them into an existing site.
 
-Shared hosting не предоставляет функции, характерные для VPS:
+## Shared-hosting limitations
+
+Shared hosting does not provide VPS-only functionality such as:
 
 - Docker;
 - systemd timers;
-- sudo/root operations;
-- серверные shell-операции;
-- VPS-only restore/ops.
+- root/sudo operations;
+- server-side shell management;
+- VPS-specific restore and service-control commands.
 
-Основные GDPS API, Admin Panel, Cloud Save, миграции и PHP-backup при этом работают в shared режиме.
+The normal GDPS HTTP API, Admin Panel, Cloud Save, migrations, backup verification, and MuchoProtect runtime can operate in shared-hosting mode, subject to the hosting provider's PHP, database, filesystem, execution-time, memory, and storage limits.
 
-## 9. Если что-то не работает
+## Troubleshooting
 
-Проверяй в таком порядке:
+Check in this order:
 
-```text
+~~~text
 /health
 ↓
 PHP version
 ↓
 PHP extensions
 ↓
+PHP ZIP / cURL or allow_url_fopen
+↓
 DB host / port / name / user / password
 ↓
-directory permissions
+filesystem permissions
 ↓
 hosting PHP error log
-```
+~~~
 
-Не пытайся открывать `src/`, `vendor/`, `storage/` или `.env` через браузер.
+Do not expose these paths through the browser:
 
+~~~text
+src/
+vendor/
+storage/
+.env
+config/
+database/
+~~~
+
+For a provider that cannot supply PHP ZIP support or outbound HTTPS access, use the manually uploaded shared-hosting package instead of the one-file bootstrap.

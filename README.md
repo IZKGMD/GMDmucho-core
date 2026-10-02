@@ -119,6 +119,18 @@ The names **MuchoCore** and **GMDmucho-core** identify the same project.
 
 ## 🚀 Quick start
 
+### Shared hosting installation
+
+For compatible shared hosting, use the automatic FTP deployment page:
+
+~~~text
+https://muchogdps.space/install/shared/
+~~~
+
+Enter the hosting FTP/FTPS connection, the remote web-root directory, the site's HTTPS address, and the database credentials. MuchoGDPS downloads and verifies the published shared-hosting release on the control plane, uploads it through FTP/FTPS, drives the shared installer over HTTPS, and verifies `/health`.
+
+Shared hosting does **not** require a dedicated public IPv4. Provider-specific free-tier restrictions may still prevent Geometry Dash clients from reaching the API even when PHP and MySQL checks pass.
+
 ### New VPS installation
 
 MuchoCore is designed so a new GDPS owner does not need to assemble PHP, MariaDB, Docker and a reverse proxy manually.
@@ -129,12 +141,12 @@ For the normal stable-release VPS install, run:
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo -E bash
 ```
 
-The normal deployment path is **direct VPS HTTPS**. Cloudflare is not required.
+The normal deployment path is **direct VPS HTTPS** and requires a **dedicated public IPv4** on the VPS. Cloudflare is not required.
 
 On a normal public VPS, the installer needs only:
 
-1. A public IPv4 address assigned to the VPS.
-2. An `A` record for the GDPS hostname pointing to that IPv4 address.
+1. A **dedicated public IPv4 address** assigned to the VPS.
+2. An `A` record for the GDPS hostname pointing to that dedicated IPv4 address.
 3. Inbound TCP **80** and **443** permitted by the VPS provider/network.
 4. Your initial Admin Panel password.
 

@@ -39,7 +39,7 @@ assertMigrationAdapter(
 
 assertMigrationAdapter(
     str_contains($adapter, "return 'cvolton';") &&
-    str_contains($adapter, "($inspection['engine'] ?? '') === $this->id()") &&
+    str_contains($adapter, '($inspection[\'engine\'] ?? \'\') === $this->id()') &&
     str_contains($adapter, 'new CvoltonDatabaseImporter($this->target)'),
     'Cvolton implementation is isolated behind the adapter contract'
 );

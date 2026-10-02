@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#060811">
+<meta name="description" content="Automatically install MuchoCore on compatible shared hosting through FTP or FTPS.">
+<link rel="canonical" href="https://muchogdps.space/install/shared/">
+<link rel="icon" href="/assets/muchocore-logo.jpg" type="image/jpeg">
+<title>Shared Hosting Installation — MuchoGDPS</title>
+<style>
+:root{--bg:#060811;--panel:#0b101a;--line:rgba(255,255,255,.09);--text:#f4f7ff;--muted:#98a4b8;--dim:#65738a;--violet:#8c7dff;--green:#69e2a8;--red:#ff8197}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(900px 520px at 80% -10%,rgba(85,232,223,.08),transparent 65%),radial-gradient(800px 540px at 8% 0,rgba(140,125,255,.14),transparent 66%),var(--bg);line-height:1.5}
+a{text-decoration:none;color:inherit}.wrap{width:min(1080px,calc(100% - 28px));margin:auto}.top{height:70px;border-bottom:1px solid var(--line);display:flex;align-items:center;background:rgba(6,8,17,.72);backdrop-filter:blur(18px)}.top>.wrap{display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:10px;font-weight:950}.brand img{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);object-fit:cover}.brand small{display:block;color:var(--dim);font-size:7px;letter-spacing:.14em;text-transform:uppercase}.back{color:#9ba7bb;font-size:10px;font-weight:800}
+main{padding:48px 0 80px}.eyebrow{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;background:rgba(105,226,168,.07);border:1px solid rgba(105,226,168,.16);color:#b9eed3;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.1em}.dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 10px rgba(105,226,168,.7)}
+h1{margin:16px 0 10px;font-size:clamp(38px,6vw,61px);letter-spacing:-3px;line-height:.98}.lead{margin:0;max-width:830px;color:var(--muted);font-size:14px;line-height:1.75}
+.banner{margin-top:22px;padding:18px 19px;border-radius:17px;border:1px solid rgba(140,125,255,.2);background:linear-gradient(145deg,rgba(140,125,255,.10),rgba(85,232,223,.04),#0b1019)}.banner b{font-size:13px}.banner p{margin:6px 0 0;color:#aab5c7;font-size:10px;line-height:1.7}
+.layout{display:grid;grid-template-columns:minmax(350px,.93fr) minmax(0,1.07fr);gap:14px;margin-top:18px}.panel{padding:21px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,#0d1320,#090e17)}.panel h2{margin:0 0 14px;font-size:14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{color:#7c899e;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.1em}.field input,.field select{width:100%;border:1px solid #1e2939;border-radius:10px;background:#090e17;color:#eff3fc;padding:11px 12px;outline:0;font:10px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}.field input:focus,.field select:focus{border-color:#5148a7;box-shadow:0 0 0 3px rgba(140,125,255,.08)}.help{color:#68758a;font-size:8px;line-height:1.55}.check{display:flex;align-items:flex-start;gap:9px;margin-top:12px;color:#8793a7;font-size:9px;line-height:1.55}.check input{accent-color:#8c7dff;margin-top:2px}.actions{display:flex;gap:8px;margin-top:17px}.btn{border:1px solid rgba(176,167,255,.48);border-radius:10px;height:42px;padding:0 14px;background:linear-gradient(135deg,#8e80ff,#7567f1);color:#fff;font-size:10px;font-weight:900;cursor:pointer}.btn.alt{background:#0c121d;border-color:#273348;color:#a9b4c8}.btn:disabled{opacity:.5;cursor:not-allowed}
+.console{padding:0;overflow:hidden;min-height:560px}.console-head{height:50px;padding:0 15px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.console-head b{font-size:10px}.state{font-size:8px;font-weight:900;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}.state.running{color:#7aeab4}.state.error{color:var(--red)}.terminal{height:510px;overflow:auto;margin:0;padding:17px;background:#070b12;color:#bac5d5;font:9px/1.72 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap}.terminal .muted{color:#56647a}.secret{margin:12px 15px;padding:12px;border:1px solid rgba(105,226,168,.17);border-radius:11px;background:rgba(105,226,168,.045);display:none}.secret b{display:block;font-size:9px}.secret code{display:block;margin-top:6px;color:#bff0d7;font:10px ui-monospace}
+.notice{margin-top:15px;padding:11px 12px;border:1px solid rgba(255,255,255,.07);border-radius:10px;color:#778499;font-size:8px;line-height:1.62}.warning{border-color:rgba(255,129,151,.18);color:#9e8992}
+.steps{display:grid;gap:11px;margin-top:18px}.step{display:grid;grid-template-columns:40px 1fr;gap:13px;padding:18px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#0d1320,#090e17)}.num{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:rgba(140,125,255,.1);border:1px solid rgba(140,125,255,.18);font-size:10px;font-weight:950;color:#c9c4ff}.step h3{margin:0 0 5px;font-size:12px}.step p{margin:0;color:var(--muted);font-size:10px;line-height:1.7}.step code{display:block;margin-top:8px;padding:9px 10px;border:1px solid #202b3d;border-radius:9px;background:#070b12;color:#c2cce0;font:8px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-wrap:anywhere}
+@media(max-width:860px){.layout{grid-template-columns:1fr}.console{min-height:430px}.terminal{height:375px}}@media(max-width:600px){.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.top{height:64px}.back{display:none}.actions{flex-direction:column}.btn{width:100%}.step{grid-template-columns:1fr}.num{margin-bottom:-3px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap"><a class="brand" href="/" aria-label="MuchoGDPS home"><img src="/assets/muchocore-logo.jpg" alt=""><span>MuchoGDPS<small>Shared hosting</small></span></a><a class="back" href="/install/">← Installation methods</a></div></header>
+<main><div class="wrap">
+<span class="eyebrow"><i class="dot"></i> FTP / FTPS deployment</span>
+<h1>Install MuchoCore on shared hosting.</h1>
+<p class="lead">MuchoGDPS can connect to a compatible shared-hosting account itself, upload the verified MuchoCore release over FTP or FTPS, start the built-in shared installer, and verify the result. You do not need SSH or a hosting terminal.</p>
+
+<div class="banner"><b>How automatic shared hosting deployment works</b><p>Your browser sends the FTP and database credentials to the MuchoGDPS deployment service over HTTPS. The service uses them only for this deployment job, does not write them to deployment logs, and deletes them when the job finishes.</p></div>
+
+<div class="layout">
+<section class="panel">
+<h2>1. Hosting connection</h2>
+<div class="grid">
+<div class="field full"><label>FTP hostname</label><input id="ftpHost" placeholder="ftp.example.com" autocomplete="off"></div>
+<div class="field"><label>FTP security</label><select id="ftpSecurity"><option value="ftp">FTP</option><option value="ftps">FTPS / TLS</option></select></div>
+<div class="field"><label>FTP port</label><input id="ftpPort" value="21" inputmode="numeric"></div>
+<div class="field full"><label>FTP username</label><input id="ftpUser" autocomplete="username"></div>
+<div class="field full"><label>FTP password</label><input id="ftpPassword" type="password" autocomplete="off"></div>
+<div class="field full"><label>Remote directory</label><input id="ftpPath" value="." autocomplete="off" placeholder="."><span class="help">Use the directory that is the web root for this domain. On some hosts this may be empty, <code>htdocs</code>, <code>www</code>, or a provider-specific folder.</span></div>
+</div>
+
+<h2 style="margin-top:22px">2. Database</h2>
+<div class="grid">
+<div class="field full"><label>Database host</label><input id="dbHost" value="localhost"></div>
+<div class="field"><label>Database port</label><input id="dbPort" value="3306" inputmode="numeric"></div>
+<div class="field"><label>Database name</label><input id="dbName" autocomplete="off"></div>
+<div class="field full"><label>Database username</label><input id="dbUser" autocomplete="username"></div>
+<div class="field full"><label>Database password</label><input id="dbPassword" type="password" autocomplete="off"></div>
+</div>
+
+<h2 style="margin-top:22px">3. GDPS</h2>
+<div class="grid">
+<div class="field full"><label>Public GDPS HTTPS address</label><input id="accountUrl" placeholder="https://gdps.example.com" inputmode="url"></div>
+<div class="field full"><label>Admin password</label><input id="adminPassword" type="password" autocomplete="new-password" placeholder="Blank = securely generate one"></div>
+</div>
+
+<div class="check"><input id="confirm" type="checkbox"><span>I confirm that I own or have permission to administer this shared-hosting account and its database.</span></div>
+<div class="notice warning">FTP credentials are sensitive. Use this form only over the secure <code>https://muchogdps.space</code> connection. They are stored only in the temporary deployment job and are removed after completion.</div>
+<div class="actions"><button class="btn" id="start">Connect &amp; install</button><button class="btn alt" id="clear">Clear</button></div>
+</section>
+
+<section class="panel console">
+<div class="console-head"><b>Deployment console</b><span class="state" id="state">Idle</span></div>
+<div class="secret" id="secret"><b>Generated MuchoCore admin password</b><code id="secretValue"></code></div>
+<pre class="terminal" id="terminal"><span class="muted">[MuchoGDPS] Waiting for a shared-hosting deployment...</span></pre>
+</section>
+</div>
+
+<section class="steps" aria-label="Shared hosting instructions">
+<article class="step"><div class="num">01</div><div><h3>Prepare the shared-hosting account</h3><p>Create the domain/site and an empty MySQL/MariaDB database. MuchoCore will not overwrite a non-MuchoCore database.</p></div></article>
+<article class="step"><div class="num">02</div><div><h3>Find your FTP values</h3><p>In the hosting control panel, find the FTP hostname, FTP username, FTP password, port, and the directory that serves the domain.</p><code>FTP host · username · password · port · remote directory</code></div></article>
+<article class="step"><div class="num">03</div><div><h3>Enter the public GDPS URL</h3><p>The target website must already have a valid HTTPS certificate because the deployment service starts the remote installer over HTTPS.</p><code>https://gdps.example.com</code></div></article>
+<article class="step"><div class="num">04</div><div><h3>Start automatic deployment</h3><p>MuchoGDPS downloads the latest published stable shared-hosting package, verifies its SHA-256 digest, uploads it through FTP/FTPS, runs the shared installer and checks <code>/health</code>.</p></div></article>
+<article class="step"><div class="num">05</div><div><h3>Open your GDPS</h3><p>When the console reports success, open your GDPS and Admin Panel. The remote shared installer removes itself when possible.</p><code>https://gdps.example.com/health</code><code>https://gdps.example.com/admin/</code></div></article>
+</section>
+
+<div class="notice">Shared hosting does not require a dedicated public IPv4. The provider must still allow normal public HTTP/API requests from Geometry Dash clients. Some free hosting providers may pass PHP preflight checks but block game/app traffic.</div>
+</div></main>
+<script>
+const $=id=>document.getElementById(id),terminal=$('terminal'),state=$('state'),start=$('start');
+let timer=null,job=null,last='';
+function print(s){terminal.textContent=s;terminal.scrollTop=terminal.scrollHeight}
+function setState(s,cls=''){state.textContent=s;state.className='state '+cls}
+function clearTimer(){if(timer){clearInterval(timer);timer=null}}
+$('clear').onclick=()=>{clearTimer();job=null;last='';setState('Idle');$('secret').style.display='none';print('[MuchoGDPS] Waiting for a shared-hosting deployment...');start.disabled=false}
+async function poll(){
+ if(!job)return;
+ try{
+  const key=sessionStorage.getItem('muchodeploykey')||'';
+  const r=await fetch('/api/deploy/log?id='+encodeURIComponent(job),{headers:{'X-Mucho-Deploy-Key':key},cache:'no-store'});
+  const d=await r.json();if(!d.ok)throw new Error(d.error||'Log request failed');
+  if(d.log!==last){last=d.log;print(d.log)}
+  if(d.status==='completed'){clearTimer();setState('Completed','running');start.disabled=false}
+  else if(d.status==='failed'){clearTimer();setState('Failed','error');start.disabled=false}
+  else {setState('Installing','running')}
+ }catch(e){clearTimer();setState('Connection error','error');start.disabled=false;print(last+'\n[MuchoGDPS] '+e.message)}
+}
+start.onclick=async()=>{
+ if(!$('confirm').checked){alert('Confirm that you have permission to administer this shared-hosting account.');return}
+ if(location.protocol!=='https:'){alert('Use the HTTPS version of muchogdps.space before entering credentials.');return}
+ const key=sessionStorage.getItem('muchodeploykey')||prompt('Enter the MuchoGDPS deployment access key:');if(!key)return;
+ sessionStorage.setItem('muchodeploykey',key);clearTimer();start.disabled=true;$('secret').style.display='none';last='';
+ setState('Starting','running');print('[MuchoGDPS] Creating secure shared-hosting deployment job...\n');
+ const body={
+  type:'shared',
+  ftp_host:$('ftpHost').value.trim(),
+  ftp_security:$('ftpSecurity').value,
+  ftp_port:Number($('ftpPort').value||21),
+  ftp_username:$('ftpUser').value.trim(),
+  ftp_password:$('ftpPassword').value,
+  ftp_path:$('ftpPath').value.trim(),
+  account_url:$('accountUrl').value.trim(),
+  db_host:$('dbHost').value.trim(),
+  db_port:Number($('dbPort').value||3306),
+  db_name:$('dbName').value.trim(),
+  db_user:$('dbUser').value.trim(),
+  db_password:$('dbPassword').value,
+  admin_password:$('adminPassword').value
+ };
+ try{
+  const r=await fetch('/api/deploy/start',{method:'POST',headers:{'Content-Type':'application/json','X-Mucho-Deploy-Key':key},body:JSON.stringify(body)});
+  const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'Could not start deployment');
+  job=d.job_id;if(d.admin_password){$('secretValue').textContent=d.admin_password;$('secret').style.display='block'}
+  print('[MuchoGDPS] Job '+job+' started.\n[MuchoGDPS] Downloading and verifying stable release...\n');await poll();timer=setInterval(poll,800);
+ }catch(e){start.disabled=false;setState('Failed','error');print(last+'\n[MuchoGDPS] '+e.message)}
+}
+</script>
+</body>
+</html>

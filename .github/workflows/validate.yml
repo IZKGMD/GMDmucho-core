@@ -108,7 +108,11 @@ jobs:
           composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
           bash -n tools/release/build-shared-hosting.sh
           php -l public/shared-install.php
+          php -l public/ftp-install.php
+          php -l bin/mucho-shared-deploy-worker.php
           php tests/application/shared-hosting-installer-contract.php
+          php tests/application/shared-hosting-ftp-bootstrap-contract.php
+          php tests/application/shared-hosting-ftp-deploy-contract.php
           mkdir -p /tmp/muchocore-shared-package-test
           OUTPUT=/tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             bash tools/release/build-shared-hosting.sh
           unzip -t /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip >/dev/null
@@ -116,6 +120,7 @@ jobs:
           test -s MuchoCore-relative-output-test.zip
           rm -f MuchoCore-relative-output-test.zip
           unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/public/shared-install.php'
+          unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/public/ftp-install.php'
           unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/vendor/autoload.php'
 
       - name: Check Python patcher
@@ -186,6 +191,14 @@ jobs:
           grep -Fq '-shared-hosting.zip' .github/workflows/release-stable.yml
           test -f tests/release/migration-kit.sh
           test -f tests/release/install-sh.sh
+          test -f public/ftp-install.php
+          test -f public/install/shared/index.html
+          test -f public/install/vps/index.html
+          test -f docs/SHARED_HOSTING.md
+          grep -Fq 'auto_https disable_redirects' docker/Caddyfile
+          grep -Fq 'The game API remains available over HTTP' docker/Caddyfile
+          grep -Fq '80:80' docker-compose.yml
+          grep -Fq '443:443' docker-compose.yml
           test -f .gitattributes
           git check-attr export-ignore -- Geometry.Dash.ver.1.40.build.11.apk | grep -Fq ': set'
           test -f database/migrations/20260926_001_plugin_admin.php
