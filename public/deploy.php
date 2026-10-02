@@ -215,7 +215,7 @@ function cleanup_job_secrets(string $dir): void
 
 function deployment_queue_dispatch(): void
 {
-    $worker = $root . '/bin/mucho-shared-deploy-worker.php';
+    $worker = dirname(__DIR__) . '/bin/mucho-shared-deploy-worker.php';
     if (!is_file($worker)) {
         return;
     }
