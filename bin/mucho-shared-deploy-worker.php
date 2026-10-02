@@ -424,7 +424,9 @@ function ftp_open_authenticated(array $config, string $password, string $logFile
 
     $candidates = [];
     if ($requestedSecurity === 'auto' || $requestedSecurity === '') {
-        $ports = $requestedPort > 0 ? [$requestedPort] : [21, 990];
+        $ports = $requestedPort > 0
+            ? array_values(array_unique([$requestedPort, 21, 990]))
+            : [21, 990];
         foreach ($ports as $port) {
             foreach ([false, true] as $secure) {
                 $candidates[] = [$secure, $port];
