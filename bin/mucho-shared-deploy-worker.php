@@ -678,7 +678,16 @@ function upload_tree(\FTP\Connection $ftp, string $localRoot, string $base, stri
             continue;
         }
         $relative = str_replace('\\', '/', substr($item->getPathname(), strlen($localRoot) + 1));
-        if ($relative === 'public/ftp-install.php') {
+        if (
+            $relative === 'public/ftp-install.php'
+            || str_starts_with($relative, 'public/install/')
+            || $relative === 'public/install'
+            || str_starts_with($relative, 'public/deploy/')
+            || $relative === 'public/deploy'
+            || $relative === 'public/deploy.php'
+        ) {
+            // The installer/deployment UI belongs to the central MuchoGDPS
+            // control plane, never to an installed tenant GDPS.
             continue;
         }
         $files[] = [$item->getPathname(), $relative];
