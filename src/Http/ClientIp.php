@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MuchoCore\Http;
 
+use MuchoCore\Core\Environment;
+
 final class ClientIp
 {
     /**
@@ -102,10 +104,7 @@ final class ClientIp
     /** @return list<string> */
     private static function trustedProxyCidrs(): array
     {
-        $raw = $_ENV['MUCHO_TRUSTED_PROXY_CIDRS']
-            ?? $_SERVER['MUCHO_TRUSTED_PROXY_CIDRS']
-            ?? getenv('MUCHO_TRUSTED_PROXY_CIDRS')
-            ?? '';
+        $raw = Environment::get('MUCHO_TRUSTED_PROXY_CIDRS', '') ?? '';
         $tokens = preg_split('/[\\s,]+/', trim((string)$raw)) ?: [];
         $result = [];
         foreach ($tokens as $token) {
