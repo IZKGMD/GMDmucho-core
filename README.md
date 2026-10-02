@@ -127,7 +127,7 @@ For compatible shared hosting, use the automatic FTP deployment page:
 https://muchogdps.space/install/shared/
 ~~~
 
-Enter the hosting FTP/FTPS connection, the remote web-root directory, the site's HTTPS address, and the database credentials. MuchoGDPS downloads and verifies the published shared-hosting release on the control plane, uploads it through FTP/FTPS, drives the shared installer over HTTPS, and verifies `/health`.
+Enter the hosting FTP/FTPS connection, the site's HTTPS address, and the database credentials. FTP mode, port, and the remote web root default to automatic detection. MuchoGDPS downloads and verifies the published shared-hosting release on the control plane, uploads it through FTP/FTPS, drives the shared installer over HTTPS, and verifies `/health`.
 
 Shared hosting does **not** require a dedicated public IPv4. Provider-specific free-tier restrictions may still prevent Geometry Dash clients from reaching the API even when PHP and MySQL checks pass.
 
