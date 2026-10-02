@@ -76,9 +76,14 @@ function deploy_key_ok(): bool
 {
     $path = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
     $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    $path = is_string($path) ? rtrim($path, '/') : '/';
 
-    if ($method === 'GET' && rtrim((string)$path, '/') === '/api/deploy/session') {
+    if ($method === 'GET' && $path === '/api/deploy/session') {
         deployment_session_start();
+        return same_origin_ok();
+    }
+
+    if ($method === 'GET' && in_array($path, ['/api/deploy/status', '/api/deploy/log'], true)) {
         return same_origin_ok();
     }
 
@@ -587,10 +592,8 @@ if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/s
     }
 
     $status = read_json($dir . '/status.json');
-    $_SESSION['muchodeploy_job_id'] = $id;
-
-    if (($status['status'] ?? '') === 'failed' && ($status['timed_out'] ?? false) === true) {
-        reset_deployment_session();
+    if (session_status() === PHP_SESSION_ACTIVE && ($status['status'] ?? '') !== 'failed') {
+        $_SESSION['muchodeploy_job_id'] = $id;
     }
 
     deployment_queue_dispatch();
