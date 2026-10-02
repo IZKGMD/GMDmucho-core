@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Security;
 
+use MuchoCore\Core\Environment;
 use MuchoCore\Http\ClientIp;
 
 final class Turnstile
@@ -12,7 +13,7 @@ final class Turnstile
 
     public static function siteKey(): string
     {
-        return trim((string)($_ENV['TURNSTILE_SITEKEY'] ?? getenv('TURNSTILE_SITEKEY') ?? ''));
+        return trim((string)(Environment::get('TURNSTILE_SITEKEY') ?? ''));
     }
 
     public static function enabled(): bool
@@ -93,6 +94,6 @@ final class Turnstile
 
     private static function secret(): string
     {
-        return trim((string)($_ENV['TURNSTILE_SECRET'] ?? getenv('TURNSTILE_SECRET') ?? ''));
+        return trim((string)(Environment::get('TURNSTILE_SECRET') ?? ''));
     }
 }
