@@ -91,6 +91,10 @@ function deploy_key_ok(): bool
         return same_origin_ok();
     }
 
+    if (($method === 'GET' || $method === 'POST') && $path === '/api/deploy/client-pack') {
+        return same_origin_ok();
+    }
+
     if ($method === 'POST' && $path === '/api/deploy/browser-finish') {
         return true;
     }
@@ -198,6 +202,156 @@ function rate_limit_ok(): bool
     $timestamps[] = $now;
     write_json($bucket, ['timestamps' => $timestamps]);
     return true;
+}
+
+function client_pack_path(string $dir, string $kind): string
+{
+    $manifest = \MuchoCore\Client\DeploymentClientPack::manifest($dir);
+    $entry = $manifest[$kind] ?? null;
+
+    if (!is_array($entry)) {
+        throw new RuntimeException('Requested client is not available.');
+    }
+
+    $path = (string)($entry['path'] ?? '');
+    if ($path === '') {
+        throw new RuntimeException('Requested client path is invalid.');
+    }
+
+    $realPath = realpath($path);
+    $realDir = realpath($dir);
+
+    if (
+        $realPath === false ||
+        $realDir === false ||
+        !str_starts_with(
+            $realPath,
+            rtrim($realDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
+        )
+    ) {
+        throw new RuntimeException('Requested client path is outside the deployment job.');
+    }
+
+    if (!is_file($realPath) || !is_readable($realPath)) {
+        throw new RuntimeException('Requested client file is unavailable.');
+    }
+
+    return $realPath;
+}
+
+function handle_client_pack_request(string $root): never
+{
+    $id = trim((string)($_GET['id'] ?? $_POST['id'] ?? ''));
+    $token = strtolower(trim((string)($_GET['token'] ?? $_POST['token'] ?? '')));
+    $kind = strtolower(trim((string)($_GET['kind'] ?? $_POST['kind'] ?? 'prepare')));
+
+    try {
+        $dir = job_dir($id);
+    } catch (Throwable) {
+        json_response(['ok' => false, 'error' => 'Invalid deployment job.'], 422);
+    }
+
+    if (!is_dir($dir)) {
+        json_response(['ok' => false, 'error' => 'Deployment job not found.'], 404);
+    }
+
+    $status = read_json($dir . '/status.json');
+    if (($status['status'] ?? '') !== 'completed') {
+        json_response(['ok' => false, 'error' => 'The deployment is not complete yet.'], 409);
+    }
+
+    $storedToken = is_file($dir . '/client-pack-token')
+        ? trim((string)file_get_contents($dir . '/client-pack-token'))
+        : '';
+
+    if (
+        !preg_match('/^[a-f0-9]{64}$/', $token) ||
+        $storedToken === '' ||
+        !hash_equals($storedToken, $token)
+    ) {
+        json_response(['ok' => false, 'error' => 'Invalid client pack token.'], 403);
+    }
+
+    if ($kind === 'prepare') {
+        try {
+            $domain = strtolower(trim((string)($status['domain'] ?? '')));
+            if (!valid_domain($domain)) {
+                throw new RuntimeException('Deployment domain is invalid.');
+            }
+
+            $manifest = \MuchoCore\Client\DeploymentClientPack::prepare(
+                $root,
+                $dir,
+                'https://' . $domain
+            );
+
+            json_response([
+                'ok' => true,
+                'server_url' => $manifest['server_url'] ?? ('https://' . $domain),
+                'windows' => [
+                    'url' => '/api/deploy/client-pack?id=' . rawurlencode($id)
+                        . '&token=' . rawurlencode($token)
+                        . '&kind=windows',
+                    'name' => $manifest['windows']['name'] ?? 'GeometryDash-MuchoGDPS.exe',
+                    'size' => (int)($manifest['windows']['size'] ?? 0),
+                    'sha256' => (string)($manifest['windows']['sha256'] ?? ''),
+                ],
+                'android' => [
+                    'url' => '/api/deploy/client-pack?id=' . rawurlencode($id)
+                        . '&token=' . rawurlencode($token)
+                        . '&kind=android',
+                    'name' => $manifest['android']['name'] ?? 'GeometryDash-MuchoGDPS.apk',
+                    'size' => (int)($manifest['android']['size'] ?? 0),
+                    'sha256' => (string)($manifest['android']['sha256'] ?? ''),
+                ],
+            ]);
+        } catch (Throwable $e) {
+            json_response([
+                'ok' => false,
+                'error' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    if (!in_array($kind, ['windows', 'android'], true)) {
+        json_response(['ok' => false, 'error' => 'Unknown client pack file.'], 400);
+    }
+
+    try {
+        $file = client_pack_path($dir, $kind);
+        $manifest = \MuchoCore\Client\DeploymentClientPack::manifest($dir);
+        $entry = is_array($manifest[$kind] ?? null) ? $manifest[$kind] : [];
+        $name = basename((string)($entry['name'] ?? ($kind === 'android'
+            ? 'GeometryDash-MuchoGDPS.apk'
+            : 'GeometryDash-MuchoGDPS.exe')));
+        $size = filesize($file);
+
+        if ($size === false || $size < 1024) {
+            throw new RuntimeException('Client file is unavailable.');
+        }
+
+        header(
+            'Content-Type: ' . (
+                $kind === 'android'
+                    ? 'application/vnd.android.package-archive'
+                    : 'application/vnd.microsoft.portable-executable'
+            )
+        );
+        header(
+            'Content-Disposition: attachment; filename="' .
+            str_replace('"', '', $name) . '"'
+        );
+        header('Content-Length: ' . (string)$size);
+        header('Cache-Control: private, no-store');
+        header('X-Content-Type-Options: nosniff');
+
+        if (readfile($file) === false) {
+            throw new RuntimeException('Unable to stream client file.');
+        }
+        exit;
+    } catch (Throwable $e) {
+        json_response(['ok' => false, 'error' => $e->getMessage()], 404);
+    }
 }
 
 function count_running_jobs(): int
@@ -711,6 +865,10 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
     ], 201);
 }
 
+if (($method === 'GET' || $method === 'POST') && $path === '/api/deploy/client-pack') {
+    handle_client_pack_request($root);
+}
+
 if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/status', '/api/deploy/log'], true)) {
     $id = trim((string)($_GET['id'] ?? $_POST['id'] ?? ''));
     try {
@@ -759,6 +917,15 @@ if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/s
         'finished_at' => $status['finished_at'] ?? null,
         'domain' => $status['domain'] ?? null,
         'admin_user' => $status['admin_user'] ?? null,
+        'client_pack_token' => ($status['status'] ?? '') === 'completed'
+            ? (function () use ($dir): ?string {
+                try {
+                    return \MuchoCore\Client\DeploymentClientPack::token($dir);
+                } catch (Throwable) {
+                    return null;
+                }
+            })()
+            : null,
     ]);
 }
 
