@@ -223,6 +223,11 @@
     @shared_installer path /shared-install.php
     respond @shared_installer 404
 
+    # The legacy shared-hosting bootstrap is for fresh non-Docker accounts only.
+    # Never expose it from the MuchoCore VPS/control-plane site.
+    @shared_ftp_installer path /ftp-install.php
+    respond @shared_ftp_installer 404
+
     # Keep private project files unreachable, but do not block /database/*:
     # Geometry Dash client endpoints live under /public/database.
     @hidden path /.env* /.git/* /composer.json /composer.lock /config/* /src/* /tests/* /storage/*
