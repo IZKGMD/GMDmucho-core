@@ -1,3 +1,45 @@
+## v1.1.0 — Control Plane & Deployment Platform (Work in Progress)
+
+### MuchoGDPS Web Platform
+
+- added a new MuchoGDPS landing page at the canonical `/` route with a dedicated product presentation, platform overview, deployment flow and self-hosted VPS messaging;
+- added visible **Deploy your GDPS** entry points directly from the homepage;
+- added canonical `/index` → `/` routing so the root homepage remains the single landing-page URL;
+- added the MuchoCore installation method selector at `/install/`;
+- changed **Get MuchoCore** to open the installation selector instead of dropping users directly into the product page;
+- added separate **Automatic deployment** and **Manual installation** paths;
+- added a manual installation guide link and the official installer command to the installation selector.
+
+### Web VPS Deployment Gateway
+
+- added a browser-based deployment gateway at `/deploy/` for deploying MuchoCore onto a customer's own VPS;
+- added live deployment output streamed from a background deployment worker and polled by the browser;
+- added support for root SSH authentication with either a temporary password or a private key;
+- added fixed, pinned installer execution so the browser cannot send arbitrary remote shell commands;
+- added domain, VPS IPv4, SSH port, administrator username and administrator password configuration to the deployment flow;
+- added deployment access-key protection, concurrent-job limits and per-client rate limiting;
+- added validation that rejects private/local target IPv4 ranges before an automatic deployment is started;
+- added per-job SSH host-key storage and temporary secret files with cleanup after deployment completion or failure;
+- added Docker image support for the deployment worker by including the required OpenSSH client and `sshpass` tooling;
+- added dedicated Caddy routing for the deployment UI and API, including canonical `/deploy` → `/deploy/` redirecting;
+- added deployment environment settings to Compose and `.env.example`.
+
+### Migration Architecture
+
+- added the first formal migration adapter contract;
+- added a Cvolton migration adapter behind the new adapter interface;
+- added a migration adapter registry that selects an adapter from source schema inspection;
+- updated the shared Migration Center and CLI to report and execute the selected adapter instead of hardcoding the Cvolton importer;
+- added a CI regression contract for the migration adapter architecture.
+
+### Foundation for the 1.1.0 Control Plane
+
+- started the dedicated `release/1.1.0` branch and release tracking;
+- added the v1.1.0 roadmap covering node management, Mucho Agent enrollment, deployment 2.0, backup/restore, API tokens, security hardening, observability, content operations, plugin management and operator UX;
+- opened release tracking for the v1.1.0 milestone.
+
+---
+
 ## v1.0.9 — One-Command Direct VPS Deployment
 
 ### Direct VPS Deployment & Installer DX
