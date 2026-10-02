@@ -12,8 +12,9 @@ final class CacheManager
     public static function fromEnvironment(PDO $pdo): CacheInterface
     {
         $driver = strtolower(trim((string)(
-            getenv('MUCHO_CACHE_DRIVER')
-            ?: ($_ENV['MUCHO_CACHE_DRIVER'] ?? 'database')
+            $_ENV['MUCHO_CACHE_DRIVER']
+            ?? getenv('MUCHO_CACHE_DRIVER')
+            ?? 'database'
         )));
 
         if ($driver === '' || $driver === 'none' || $driver === 'null') {
@@ -23,11 +24,11 @@ final class CacheManager
         if ($driver === 'redis') {
             try {
                 return new RedisCache([
-                    'host' => getenv('MUCHO_REDIS_HOST') ?: ($_ENV['MUCHO_REDIS_HOST'] ?? '127.0.0.1'),
-                    'port' => getenv('MUCHO_REDIS_PORT') ?: ($_ENV['MUCHO_REDIS_PORT'] ?? '6379'),
-                    'password' => getenv('MUCHO_REDIS_PASSWORD') ?: ($_ENV['MUCHO_REDIS_PASSWORD'] ?? ''),
-                    'database' => getenv('MUCHO_REDIS_DATABASE') ?: ($_ENV['MUCHO_REDIS_DATABASE'] ?? '0'),
-                    'timeout' => getenv('MUCHO_REDIS_TIMEOUT') ?: ($_ENV['MUCHO_REDIS_TIMEOUT'] ?? '1.5'),
+                    'host' => $_ENV['MUCHO_REDIS_HOST'] ?? getenv('MUCHO_REDIS_HOST') ?: '127.0.0.1',
+                    'port' => $_ENV['MUCHO_REDIS_PORT'] ?? getenv('MUCHO_REDIS_PORT') ?: '6379',
+                    'password' => $_ENV['MUCHO_REDIS_PASSWORD'] ?? getenv('MUCHO_REDIS_PASSWORD') ?: '',
+                    'database' => $_ENV['MUCHO_REDIS_DATABASE'] ?? getenv('MUCHO_REDIS_DATABASE') ?: '0',
+                    'timeout' => $_ENV['MUCHO_REDIS_TIMEOUT'] ?? getenv('MUCHO_REDIS_TIMEOUT') ?: '1.5',
                 ]);
             } catch (Throwable) {
             }
