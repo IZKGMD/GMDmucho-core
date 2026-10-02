@@ -83,6 +83,10 @@ function deploy_key_ok(): bool
         return same_origin_ok();
     }
 
+    if ($method === 'GET' && $path === '/api/deploy/session/reset') {
+        return same_origin_ok();
+    }
+
     if ($method === 'GET' && in_array($path, ['/api/deploy/status', '/api/deploy/log'], true)) {
         return same_origin_ok();
     }
@@ -261,7 +265,12 @@ if (!deploy_key_ok()) {
 }
 
 if ($method === 'GET' && $path === '/api/deploy/session') {
-    json_response(['ok' => true, 'expires_in' => 3600]);
+    json_response(['ok' => true, 'expires_in' => 3600, 'stall_timeout' => 60]);
+}
+
+if ($method === 'GET' && $path === '/api/deploy/session/reset') {
+    reset_deployment_session();
+    json_response(['ok' => true, 'reset' => true]);
 }
 
 if ($method === 'POST' && $path === '/api/deploy/start') {
