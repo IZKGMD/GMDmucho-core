@@ -71,6 +71,10 @@
       color:#fff;font-size:12px;font-weight:900;box-shadow:0 18px 42px rgba(118,103,243,.21);transition:transform .18s,filter .18s
     }
     .btn:hover{transform:translateY(-2px);filter:brightness(1.05)}
+    .deploy-main{min-width:210px;min-height:54px;font-size:13px;box-shadow:0 20px 55px rgba(118,103,243,.30)}
+    .deploy-main span{font-size:16px;line-height:1}
+    .deploy-banner{margin-top:18px;padding:11px 14px;border:1px solid rgba(140,125,255,.24);border-radius:12px;background:rgba(140,125,255,.07);color:#bdb6ff;font-size:10px;font-weight:800;display:inline-flex;align-items:center;gap:9px}
+    .deploy-banner strong{color:#fff}
     .btn.alt{background:rgba(255,255,255,.045);border-color:var(--line-strong);box-shadow:none;color:#dce3ef}
     .tiny-note{margin-top:12px;color:var(--dim);font-size:10px}
     .hero-art{position:relative;min-height:470px}
@@ -178,7 +182,7 @@
         <a href="#platform">Platform</a>
         <a href="#how">How it works</a>
         <a href="/muchocore/">MuchoCore</a>
-        <a class="nav-cta" href="/deploy/">Deploy a GDPS</a>
+        <a class="nav-cta" href="/deploy/">Deploy your GDPS →</a>
       </nav>
     </div>
   </header>
@@ -192,9 +196,10 @@
             <h1><span class="soft">Your VPS.</span><span class="gradient">Your GDPS.<br>Your control.</span></h1>
             <p class="lead">Turn your own VPS into a managed Geometry Dash private server. MuchoGDPS brings deployment and MuchoCore together without taking ownership of your infrastructure.</p>
             <div class="actions">
-              <a class="btn" href="/deploy/">Start with your VPS <span>→</span></a>
+              <a class="btn deploy-main" href="/deploy/">Deploy your GDPS <span>→</span></a>
               <a class="btn alt" href="/muchocore/">Explore MuchoCore</a>
             </div>
+            <div class="deploy-banner"><strong>Ready to start?</strong> Open the web installer and connect your VPS.</div>
             <div class="tiny-note">Self-hosted by design · Built around your infrastructure</div>
           </div>
 
