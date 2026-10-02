@@ -206,15 +206,9 @@ async function poll(){
     if(d.timed_out===true){finish(false,d.status,true);return}
     if(d.status==='failed'){finish(false,d.status);return}
     if(d.status==='awaiting_browser' && d.browser_finalization_url){
-      setState('Finishing in browser','wait');
-      result.style.display='block';
-      resultTitle.textContent='Opening the GDPS installer in your browser…';
-      resultText.textContent='Your hosting provider requires a real browser for the final HTTPS step. MuchoGDPS has already uploaded the files and prepared a one-time installer handoff.';
-      continueBrowser.href=d.browser_finalization_url;
-      continueBrowser.style.display='inline-flex';
       if(!browserRedirected){
         browserRedirected=true;
-        setTimeout(()=>location.assign(d.browser_finalization_url),900);
+        location.replace(d.browser_finalization_url);
       }
       return;
     }
