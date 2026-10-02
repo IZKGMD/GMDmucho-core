@@ -26,7 +26,7 @@ main{padding:38px 0 60px}.eyebrow{display:inline-flex;gap:8px;align-items:center
 <main><div class="wrap">
 <span class="eyebrow"><i class="dot"></i> Live installation console</span>
 <h1>Installing MuchoCore.</h1>
-<p class="lead">This page follows the real deployment job running on MuchoGDPS. Every message written by the shared-hosting FTP worker is shown below.</p>
+<p class="lead">This page follows the real deployment job running on MuchoGDPS. If all deployment slots are busy, the job waits here and starts automatically when its queue position reaches the front.</p>
 
 <div class="meta">
 <div class="pill">JOB <strong id="job">loading…</strong></div>
@@ -118,7 +118,12 @@ async function poll(){
     if(d.log!==lastLog){lastLog=d.log;showLog(lastLog);appendCursor()}
     if(d.status==='completed'){finish(true,d.status);return}
     if(d.status==='failed'){finish(false,d.status);return}
-    setState('Installing','running');
+    if(d.status==='queued'){
+      const position=Number(d.queue_position||1);
+      setState('Queued #'+position,'wait');
+    }else{
+      setState('Installing','running');
+    }
     setTimeout(poll,800);
   }catch(e){
     setState('Connection error','failed');
