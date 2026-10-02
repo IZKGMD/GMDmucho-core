@@ -82,6 +82,7 @@
         path /install /install/*
     }
     handle @muchogdps_install_ui {
+        header Cache-Control "no-store, no-cache, must-revalidate"
         rewrite * /install/index.html
         file_server
     }
