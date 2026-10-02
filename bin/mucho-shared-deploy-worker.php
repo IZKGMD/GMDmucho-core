@@ -794,6 +794,54 @@ function http_request(string $url, string $ip, string $cookieFile, ?array $post 
     return ['status' => $status, 'body' => (string)$body];
 }
 
+function wait_for_browser_finalization(
+    array $config,
+    int $expiresAt,
+    string $cookieFile,
+    string $logFile
+): void {
+    $accountUrl = rtrim((string)$config['account_url'], '/');
+    $parsed = parse_url($accountUrl);
+    $host = strtolower((string)($parsed['host'] ?? ''));
+    $ips = public_ipv4s($host);
+    if ($ips === []) {
+        throw new RuntimeException('The GDPS hostname does not resolve to a public IPv4 address.');
+    }
+
+    while (time() < $expiresAt) {
+        log_line($logFile, "[MuchoGDPS] Checking remote /health for browser finalization...\n");
+
+        $ch = curl_init($accountUrl . '/health');
+        if ($ch !== false) {
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_TIMEOUT => 8,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+                CURLOPT_RESOLVE => [$host . ':443:' . $ips[0]],
+                CURLOPT_COOKIEFILE => $cookieFile,
+                CURLOPT_COOKIEJAR => $cookieFile,
+                CURLOPT_USERAGENT => 'MuchoCore-Shared-FTP-Installer/1.0',
+            ]);
+            $body = curl_exec($ch);
+            $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            if ($error === '' && $body !== false && $status >= 200 && $status < 400 && trim((string)$body) === '1') {
+                log_line($logFile, "[MuchoGDPS] Remote /health returned 1; browser finalization confirmed.\n");
+                return;
+            }
+        }
+
+        sleep(3);
+    }
+
+    throw new RuntimeException('Browser finalization did not complete before the authorization window expired.');
+}
+
 function run_remote_installer(array $config, string $dbPassword, string $adminPassword, string $cookieFile, string $logFile): void {
     $accountUrl = rtrim((string)$config['account_url'], '/');
     $parsed = parse_url($accountUrl);
@@ -991,11 +1039,16 @@ try {
     log_line($logFile, "[MuchoGDPS] FTP upload complete.\n");
 
     if ($browserFinalization !== null) {
-        log_line($logFile, "[MuchoGDPS] Waiting for browser finalization...\n");
-        exit(0);
+        log_line($logFile, "[MuchoGDPS] Waiting for browser finalization; the worker will verify /health automatically.\n");
+        wait_for_browser_finalization(
+            $config,
+            (int)$browserFinalization['expires_at'],
+            $dir . '/shared_cookie',
+            $logFile
+        );
+    } else {
+        run_remote_installer($config, $dbPassword, $adminPassword, $dir . '/shared_cookie', $logFile);
     }
-
-    run_remote_installer($config, $dbPassword, $adminPassword, $dir . '/shared_cookie', $logFile);
 
     $status = read_json_file($statusFile);
     if (($status['timed_out'] ?? false) === true) {
