@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 use MuchoCore\Database\Database;
 use MuchoCore\Database\Migrator;
-use MuchoCore\Migration\CvoltonDatabaseImporter;
-use MuchoCore\Migration\SourceDetector;
+use MuchoCore\Migration\MigrationAdapterRegistry;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -328,21 +327,29 @@ try {
 
     echo PHP_EOL . "Connecting to old database..." . PHP_EOL;
     $source = connectSource($host, $port, $database, $user, $password);
-    $inspection = (new SourceDetector())->inspect($source);
+    $target = (new Database())->connection();
+    $registry = new MigrationAdapterRegistry($target);
 
-    if ($inspection["engine"] === "unknown") {
+    try {
+        $detected = $registry->detect($source);
+    } catch (Throwable $e) {
         echo PHP_EOL . "UNSUPPORTED SOURCE SCHEMA" . PHP_EOL;
         echo "Nothing was changed in MuchoCore." . PHP_EOL;
-        echo "Detected tables: " . (implode(", ", $inspection["present_tables"]) ?: "none") . PHP_EOL;
+        echo $e->getMessage() . PHP_EOL;
+        echo "Available adapters: " . implode(", ", array_map(
+            static fn(array $adapter): string => $adapter["id"],
+            $registry->available()
+        )) . PHP_EOL;
         exit(3);
     }
 
-    $target = (new Database())->connection();
-    $importer = new CvoltonDatabaseImporter($target);
-    $preflight = $importer->preflight($source);
+    $inspection = $detected["inspection"];
+    $adapter = $detected["adapter"];
+    $preflight = $adapter->preflight($source);
 
     echo PHP_EOL . "SOURCE DETECTED" . PHP_EOL;
     echo "Family:          " . $inspection["label"] . PHP_EOL;
+    echo "Adapter:         " . $adapter->id() . " — " . $adapter->label() . PHP_EOL;
     echo "Confidence:      " . $inspection["confidence"] . PHP_EOL;
     echo "Required tables: " . implode(", ", $inspection["required_tables"]) . PHP_EOL;
     echo "Optional tables: " . (implode(", ", $inspection["optional_tables"]) ?: "none") . PHP_EOL;
@@ -365,6 +372,7 @@ try {
         echo PHP_EOL . "DRY-RUN COMPLETE" . PHP_EOL;
         echo "The old database was read only." . PHP_EOL;
         echo "The destination database was not changed by the import." . PHP_EOL;
+        echo "Adapter selected: " . $adapter->id() . PHP_EOL;
         echo "READY = imported automatically. DETECTED = found and reported, but not silently copied. FILES = database plus old-server filesystem data." . PHP_EOL;
         echo PHP_EOL . "To apply, run this wizard again with --apply and confirm MIGRATE." . PHP_EOL;
         exit(0);
@@ -394,7 +402,7 @@ try {
 
     $target->beginTransaction();
     try {
-        $stats = $importer->apply($source);
+        $stats = $adapter->apply($source);
         $target->commit();
     } catch (Throwable $e) {
         if ($target->inTransaction()) {

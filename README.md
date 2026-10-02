@@ -17,7 +17,7 @@ The canonical source repository is **IZKGMD/GMDmucho-core**. **MuchoCore** and *
   <a href="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml">
     <img src="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml/badge.svg" alt="MuchoCore CI">
   </a>
-  <img src="https://img.shields.io/badge/release-v1.0.8-8A2BE2" alt="MuchoCore stable release v1.0.83">
+  <img src="https://img.shields.io/badge/release-v1.1.0-8A2BE2" alt="MuchoCore stable release v1.0.83">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/badge/PHP-8.3-777BB4" alt="PHP 8.3+">
   <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2-success" alt="Geometry Dash 1.0 through 2.2 compatibility">
@@ -55,7 +55,7 @@ MuchoCore is a **self-hosted Geometry Dash Private Server core**, commonly descr
 | Deployment | **Docker Compose, Caddy, Linux/VPS** |
 | Protocol scope | **Geometry Dash client generations 1.0–2.2** |
 | Security | **MuchoProtect** |
-| Stable release | **v1.0.8** |
+| Stable release | **v1.1.0** |
 | Official project page | **https://muchogdps.space/muchocore/** |
 
 ### Who uses it?

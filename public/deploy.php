@@ -1,0 +1,336 @@
+<?php
+declare(strict_types=1);
+
+$root = dirname(__DIR__);
+$autoload = $root . '/vendor/autoload.php';
+if (is_file($autoload)) {
+    require_once $autoload;
+}
+if (class_exists('Dotenv\\Dotenv') && is_file($root . '/.env')) {
+    \Dotenv\Dotenv::createImmutable($root)->safeLoad();
+}
+
+const JOB_ROOT = '/var/lib/muchocore-control/deploy-jobs';
+
+header('Cache-Control: no-store');
+header('X-Content-Type-Options: nosniff');
+
+function json_response(array $body, int $status = 200): never
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($body, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    exit;
+}
+
+function deploy_key_ok(): bool
+{
+    $configured = (string)($_ENV['MUCHO_DEPLOY_ACCESS_KEY'] ?? getenv('MUCHO_DEPLOY_ACCESS_KEY') ?: '');
+    $provided = (string)($_SERVER['HTTP_X_MUCHO_DEPLOY_KEY'] ?? '');
+
+    return $configured !== '' && $provided !== ''
+        && strlen($configured) >= 24
+        && hash_equals($configured, $provided);
+}
+
+function job_id(): string
+{
+    return gmdate('YmdHis') . '-' . bin2hex(random_bytes(6));
+}
+
+function job_dir(string $id): string
+{
+    if (!preg_match('/^[0-9]{14}-[a-f0-9]{12}$/', $id)) {
+        throw new InvalidArgumentException('Invalid job id.');
+    }
+    return JOB_ROOT . '/' . $id;
+}
+
+function write_json(string $path, array $data): void
+{
+    file_put_contents(
+        $path,
+        json_encode($data, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR),
+        LOCK_EX
+    );
+    @chmod($path, 0600);
+}
+
+function read_json(string $path): array
+{
+    if (!is_file($path)) {
+        return [];
+    }
+    $data = json_decode((string)file_get_contents($path), true);
+    return is_array($data) ? $data : [];
+}
+
+function valid_ipv4(string $ip): bool
+{
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        return false;
+    }
+
+    $n = sprintf('%u', ip2long($ip));
+    foreach ([
+        [0, 16777215],
+        [167772160, 184549375],
+        [2130706432, 2147483647],
+        [2851995648, 2852061183],
+        [2886729728, 2887778303],
+        [3232235520, 3232301055],
+    ] as [$low, $high]) {
+        if ((int)$n >= $low && (int)$n <= $high) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function valid_domain(string $domain): bool
+{
+    return (bool)preg_match(
+        '/^(?=.{1,253}$)(?!-)(?:[A-Za-z0-9-]{1,63}\\.)+[A-Za-z]{2,63}$/',
+        $domain
+    );
+}
+
+function shell_quote(string $value): string
+{
+    return "'" . str_replace("'", "'\\''", $value) . "'";
+}
+
+function request_json(): array
+{
+    $raw = (string)file_get_contents('php://input');
+    $data = json_decode($raw, true);
+    return is_array($data) ? $data : [];
+}
+
+function client_ip(): string
+{
+    return (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+}
+
+function rate_limit_ok(): bool
+{
+    $ip = preg_replace('/[^0-9a-fA-F:._-]/', '_', client_ip()) ?: 'unknown';
+    $bucket = JOB_ROOT . '/rate-' . substr(hash('sha256', $ip), 0, 24) . '.json';
+    $now = time();
+    $data = read_json($bucket);
+    $timestamps = is_array($data['timestamps'] ?? null) ? $data['timestamps'] : [];
+    $timestamps = array_values(array_filter(
+        $timestamps,
+        static fn($t): bool => is_int($t) && $t > $now - 1800
+    ));
+
+    if (count($timestamps) >= 3) {
+        return false;
+    }
+
+    $timestamps[] = $now;
+    write_json($bucket, ['timestamps' => $timestamps]);
+    return true;
+}
+
+function count_running_jobs(): int
+{
+    $count = 0;
+    foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
+        if ((read_json($statusFile)['status'] ?? '') === 'running') {
+            $count++;
+        }
+    }
+    return $count;
+}
+
+function cleanup_job_secrets(string $dir): void
+{
+    foreach (['ssh_password', 'ssh_key', 'admin_password', 'remote_env'] as $file) {
+        @unlink($dir . '/' . $file);
+    }
+}
+
+$path = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+$path = is_string($path) ? rtrim($path, '/') : '/';
+$method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+
+if (!deploy_key_ok()) {
+    json_response(['ok' => false, 'error' => 'Deployment access is not configured or the access key is invalid.'], 403);
+}
+
+if ($method === 'POST' && $path === '/api/deploy/start') {
+    if (!is_dir(JOB_ROOT) && !@mkdir(JOB_ROOT, 0700, true) && !is_dir(JOB_ROOT)) {
+        json_response(['ok' => false, 'error' => 'Deployment storage is unavailable.'], 500);
+    }
+    @chmod(JOB_ROOT, 0700);
+
+    if (!rate_limit_ok()) {
+        json_response(['ok' => false, 'error' => 'Too many deployment attempts from this client. Try again later.'], 429);
+    }
+
+    $max = max(1, (int)($_ENV['MUCHO_DEPLOY_MAX_CONCURRENT'] ?? getenv('MUCHO_DEPLOY_MAX_CONCURRENT') ?: 2));
+    if (count_running_jobs() >= $max) {
+        json_response(['ok' => false, 'error' => 'The deployment queue is currently full.'], 429);
+    }
+
+    $data = request_json();
+    $host = trim((string)($data['host'] ?? ''));
+    $port = (int)($data['port'] ?? 22);
+    $username = trim((string)($data['username'] ?? 'root'));
+    $sshPassword = (string)($data['password'] ?? '');
+    $sshKey = (string)($data['private_key'] ?? '');
+    $domain = strtolower(trim((string)($data['domain'] ?? '')));
+    $adminUser = trim((string)($data['admin_user'] ?? 'admin'));
+    $adminPassword = (string)($data['admin_password'] ?? '');
+
+    if (!valid_ipv4($host)) {
+        json_response(['ok' => false, 'error' => 'Enter a public IPv4 address for the VPS.'], 422);
+    }
+    if ($port < 1 || $port > 65535) {
+        json_response(['ok' => false, 'error' => 'Invalid SSH port.'], 422);
+    }
+    if (!preg_match('/^[A-Za-z_][A-Za-z0-9_-]{0,31}$/', $username) || $username !== 'root') {
+        json_response(['ok' => false, 'error' => 'The web installer currently requires SSH access as root.'], 422);
+    }
+    if ($sshPassword === '' && trim($sshKey) === '') {
+        json_response(['ok' => false, 'error' => 'Provide an SSH password or a private key.'], 422);
+    }
+    if (!valid_domain($domain)) {
+        json_response(['ok' => false, 'error' => 'Enter a public GDPS hostname such as gdps.example.com.'], 422);
+    }
+    if (!preg_match('/^[A-Za-z_][A-Za-z0-9_-]{0,31}$/', $adminUser)) {
+        json_response(['ok' => false, 'error' => 'Invalid MuchoCore admin username.'], 422);
+    }
+
+    $generatedAdminPassword = false;
+    if ($adminPassword === '') {
+        $adminPassword = rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=');
+        $generatedAdminPassword = true;
+    }
+    if (strlen($adminPassword) < 12 || strlen($adminPassword) > 200) {
+        json_response(['ok' => false, 'error' => 'MuchoCore admin password must be 12–200 characters.'], 422);
+    }
+
+    $id = job_id();
+    $dir = job_dir($id);
+    if (!@mkdir($dir, 0700, true)) {
+        json_response(['ok' => false, 'error' => 'Could not create the deployment job.'], 500);
+    }
+
+    $status = [
+        'id' => $id,
+        'status' => 'starting',
+        'created_at' => gmdate('c'),
+        'host' => $host,
+        'port' => $port,
+        'domain' => $domain,
+        'admin_user' => $adminUser,
+        'generated_admin_password' => $generatedAdminPassword,
+        'exit_code' => null,
+    ];
+    write_json($dir . '/status.json', $status);
+
+    if ($sshPassword !== '') {
+        file_put_contents($dir . '/ssh_password', $sshPassword, LOCK_EX);
+        @chmod($dir . '/ssh_password', 0600);
+    }
+    if ($sshKey !== '') {
+        file_put_contents($dir . '/ssh_key', str_replace(["\r\n", "\r"], "\n", $sshKey), LOCK_EX);
+        @chmod($dir . '/ssh_key', 0600);
+    }
+    file_put_contents($dir . '/admin_password', $adminPassword, LOCK_EX);
+    @chmod($dir . '/admin_password', 0600);
+
+    $env = "MUCHO_DOMAIN=" . shell_quote($domain) . "\n"
+         . "MUCHO_ADMIN_USER=" . shell_quote($adminUser) . "\n"
+         . "MUCHO_ADMIN_PASSWORD=" . shell_quote($adminPassword) . "\n"
+         . "MUCHO_TRANSPORT_MODE='direct'\n"
+         . "MUCHO_GD_VERSIONS='all'\n";
+    file_put_contents($dir . '/remote_env', $env, LOCK_EX);
+    @chmod($dir . '/remote_env', 0600);
+
+    file_put_contents(
+        $dir . '/log.txt',
+        "[MuchoGDPS] Deployment job {$id}\n"
+        . "[MuchoGDPS] Target: {$host}:{$port}\n"
+        . "[MuchoGDPS] Domain: {$domain}\n"
+        . "[MuchoGDPS] Compatibility: all\n"
+        . "[MuchoGDPS] Waiting for SSH connection...\n",
+        LOCK_EX
+    );
+    @chmod($dir . '/log.txt', 0600);
+
+    $worker = $root . '/bin/mucho-deploy-worker.php';
+    if (!is_file($worker)) {
+        cleanup_job_secrets($dir);
+        json_response(['ok' => false, 'error' => 'Deployment worker is not installed.'], 500);
+    }
+
+    $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($worker)
+        . ' --job=' . escapeshellarg($id) . ' > /dev/null 2>&1 & echo $!';
+    $output = [];
+    $exit = 0;
+    exec($cmd, $output, $exit);
+    $pid = (int)($output[0] ?? 0);
+
+    if ($exit !== 0 || $pid <= 0) {
+        cleanup_job_secrets($dir);
+        @unlink($dir . '/status.json');
+        @unlink($dir . '/log.txt');
+        @rmdir($dir);
+        json_response(['ok' => false, 'error' => 'Could not start the deployment worker.'], 500);
+    }
+
+    $status['status'] = 'running';
+    $status['pid'] = $pid;
+    write_json($dir . '/status.json', $status);
+
+    json_response([
+        'ok' => true,
+        'job_id' => $id,
+        'admin_user' => $adminUser,
+        'admin_password' => $generatedAdminPassword ? $adminPassword : null,
+    ], 201);
+}
+
+if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/status', '/api/deploy/log'], true)) {
+    $id = trim((string)($_GET['id'] ?? $_POST['id'] ?? ''));
+    try {
+        $dir = job_dir($id);
+    } catch (Throwable) {
+        json_response(['ok' => false, 'error' => 'Invalid job id.'], 422);
+    }
+
+    if (!is_dir($dir)) {
+        json_response(['ok' => false, 'error' => 'Deployment job not found.'], 404);
+    }
+
+    $status = read_json($dir . '/status.json');
+    if ($path === '/api/deploy/log') {
+        $log = is_file($dir . '/log.txt') ? (string)file_get_contents($dir . '/log.txt') : '';
+        if (strlen($log) > 500000) {
+            $log = substr($log, -500000);
+        }
+        json_response([
+            'ok' => true,
+            'job_id' => $id,
+            'status' => $status['status'] ?? 'unknown',
+            'log' => $log,
+            'exit_code' => $status['exit_code'] ?? null,
+        ]);
+    }
+
+    json_response([
+        'ok' => true,
+        'job_id' => $id,
+        'status' => $status['status'] ?? 'unknown',
+        'exit_code' => $status['exit_code'] ?? null,
+        'finished_at' => $status['finished_at'] ?? null,
+        'domain' => $status['domain'] ?? null,
+        'admin_user' => $status['admin_user'] ?? null,
+    ]);
+}
+
+json_response(['ok' => false, 'error' => 'Not found.'], 404);
