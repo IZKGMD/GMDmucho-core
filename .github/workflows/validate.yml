@@ -191,6 +191,7 @@ jobs:
           test -f tests/release/install-sh.sh
           test -f public/ftp-install.php
           test -f public/install/shared/index.html
+          test -f public/install/vps/index.html
           test -f docs/SHARED_HOSTING.md
           test -f .gitattributes
           git check-attr export-ignore -- Geometry.Dash.ver.1.40.build.11.apk | grep -Fq ': set'
