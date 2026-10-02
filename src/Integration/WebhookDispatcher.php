@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace MuchoCore\Integration;
 
+use MuchoCore\Core\Environment;
+
 final class WebhookDispatcher
 {
     public function enabledFor(string $event): bool
     {
         $url = trim((string)(
-            $_ENV['MUCHO_WEBHOOK_URL']
-            ?? getenv('MUCHO_WEBHOOK_URL')
-            ?? ''
+            Environment::get('MUCHO_WEBHOOK_URL', '')
         ));
 
         if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
@@ -19,9 +19,7 @@ final class WebhookDispatcher
         }
 
         $raw = trim((string)(
-            $_ENV['MUCHO_WEBHOOK_EVENTS']
-            ?? getenv('MUCHO_WEBHOOK_EVENTS')
-            ?? '*'
+            Environment::get('MUCHO_WEBHOOK_EVENTS', '*')
         ));
 
         if ($raw === '' || $raw === '*') {
@@ -52,9 +50,7 @@ final class WebhookDispatcher
             ?? ''
         ));
         $secret = (string)(
-            $_ENV['MUCHO_WEBHOOK_SECRET']
-            ?? getenv('MUCHO_WEBHOOK_SECRET')
-            ?? ''
+            Environment::get('MUCHO_WEBHOOK_SECRET', '')
         );
 
         $payload = json_encode([
