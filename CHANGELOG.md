@@ -1,4 +1,4 @@
-## v1.1.0 — Control Plane & Deployment Platform (Work in Progress)
+## v1.1.0 — Control Plane & Deployment Platform
 
 ### MuchoGDPS Web Platform
 
