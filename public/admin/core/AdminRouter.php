@@ -249,6 +249,19 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
 
     /*
+     * My GDPS Clients
+     */
+    $router->register(
+        'clients',
+        static function(PDO $db): void {
+            if (!function_exists('renderTenantClientsPage')) {
+                throw new RuntimeException('Tenant clients module is unavailable.');
+            }
+            renderTenantClientsPage($db);
+        }
+    );
+
+    /*
      * Web Client Patcher
      */
 
