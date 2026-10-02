@@ -54,6 +54,24 @@ function cleanup_secrets(string $dir): void {
     }
 }
 
+function remove_tree(string $path): void {
+    if (!is_dir($path)) {
+        return;
+    }
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($iterator as $item) {
+        if ($item->isDir()) {
+            @rmdir($item->getPathname());
+        } else {
+            @unlink($item->getPathname());
+        }
+    }
+    @rmdir($path);
+}
+
 function public_ipv4s(string $host): array {
     if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
         return is_public_ipv4($host) ? [$host] : [];
