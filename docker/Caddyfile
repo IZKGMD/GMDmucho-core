@@ -40,6 +40,19 @@
     redir @muchogdps_index / 308
 
     # Dedicated installation pages must be matched before the general /install/* selector.
+    # Legacy shared-hosting aliases always land on the canonical automatic installer.
+    @muchogdps_legacy_shared_root {
+        host {$MUCHOCORE_SITE_HOST}
+        path /shared
+    }
+    redir @muchogdps_legacy_shared_root /install/shared/ 308
+
+    @muchogdps_legacy_shared_ui {
+        host {$MUCHOCORE_SITE_HOST}
+        path /shared/
+    }
+    redir @muchogdps_legacy_shared_ui /install/shared/ 308
+
 
     # Live shared-hosting deployment console must be matched before the general shared installer UI.
     @muchogdps_install_shared_go_root {
