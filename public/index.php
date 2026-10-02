@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Dotenv\Dotenv;
 use MuchoCore\Core\Application;
+use MuchoCore\Core\Environment;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
 use MuchoCore\Routing\Router;
@@ -67,9 +68,7 @@ try {
 }
 
 /* MUCHO CONTROL FLAGS */
-$__muchoControl = $_ENV['MUCHO_CONTROL_DIR']
-    ?? getenv('MUCHO_CONTROL_DIR')
-    ?: '/var/lib/muchocore-control';
+$__muchoControl = Environment::get('MUCHO_CONTROL_DIR', $root . '/storage/control') ?? ($root . '/storage/control');
 $__muchoUri = strtolower((string)($_SERVER['REQUEST_URI'] ?? ''));
 
 if (!is_dir($__muchoControl)) {
