@@ -49,6 +49,12 @@
         php_fastcgi app:9000
     }
 
+    @muchogdps_deploy_root {
+        host {$MUCHOCORE_SITE_HOST}
+        path /deploy
+    }
+    redir @muchogdps_deploy_root /deploy/ 308
+
     @muchogdps_deploy_ui {
         host {$MUCHOCORE_SITE_HOST}
         path /deploy /deploy/*
