@@ -629,7 +629,6 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
             'queued_at' => $queueFull ? gmdate('c') : null,
             'heartbeat_at' => $queueFull ? null : gmdate('c'),
             'gdps_name' => $gdpsName,
-            'gdps_name' => $gdpsName,
             'ftp_host' => $ftpHost,
             'ftp_port' => $ftpPort,
             'ftp_security' => $ftpSecurity,
