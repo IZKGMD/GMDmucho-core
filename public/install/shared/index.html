@@ -25,7 +25,15 @@ main{padding:54px 0 75px}.eyebrow{display:inline-flex;align-items:center;gap:7px
 <main><div class="wrap">
 <span class="eyebrow"><i class="dot"></i> Automatic Shared Hosting Deployment</span>
 <h1>Deploy MuchoCore without a VPS.</h1>
-<p class="lead">MuchoGDPS connects to your compatible shared-hosting account over FTP or FTPS, uploads the verified MuchoCore release, configures the database, creates the admin account and then opens a dedicated live installation terminal.</p>
+<p class="lead">Start by naming your GDPS. MuchoGDPS will use that name for the installed server branding, then deploy MuchoCore to your shared hosting account.</p>
+
+<section class="panel" style="margin-top:20px">
+<h2>1. Name your GDPS</h2>
+<p class="section-note">This name becomes the server name shown by MuchoCore throughout the installed GDPS. Use up to 64 characters.</p>
+<div class="grid">
+<div class="field full"><label>GDPS name</label><input id="gdpsName" placeholder="My Awesome GDPS" maxlength="64" autocomplete="off"></div>
+</div>
+</section>
 
 <section class="providers" aria-label="Supported shared hosting examples">
 <div class="provider active"><b>InfinityFree</b><span>Shared hosting · FTP/FTPS path</span></div>
@@ -35,7 +43,7 @@ main{padding:54px 0 75px}.eyebrow{display:inline-flex;align-items:center;gap:7px
 
 <div class="layout">
 <section class="panel">
-<h2>Hosting connection</h2>
+<h2>2. Hosting connection</h2>
 <p class="section-note">Create the site/domain and database first. MuchoGDPS will automatically detect the FTP mode, port and website root whenever the provider exposes enough information to do so.</p>
 <div class="grid">
 <div class="field full"><label>FTP hostname</label><input id="ftpHost" placeholder="ftp.example.com" autocomplete="off"></div>
@@ -76,7 +84,7 @@ main{padding:54px 0 75px}.eyebrow{display:inline-flex;align-items:center;gap:7px
 </div>
 </details>
 
-<h2 style="margin-top:24px">GDPS</h2>
+<h2 style="margin-top:24px">4. GDPS</h2>
 <div class="grid">
 <div class="field full"><label>Public HTTPS address</label><input id="accountUrl" placeholder="https://gdps.example.com" inputmode="url"></div>
 </div>
@@ -125,7 +133,7 @@ infinityPreset?.addEventListener('click',()=>{
   saveDraft();
 });
 const AUTOSAVE_KEY='muchogdps_shared_install_draft_v1';
-const autosaveFields=['ftpHost','ftpSecurity','ftpPort','ftpUser','ftpPath','dbHost','dbPort','dbName','dbUser','accountUrl'];
+const autosaveFields=['gdpsName','ftpHost','ftpSecurity','ftpPort','ftpUser','ftpPath','dbHost','dbPort','dbName','dbUser','accountUrl'];
 function saveDraft(){
   const data={};
   for(const id of autosaveFields){const el=$(id);if(el)data[id]=el.value}
@@ -158,6 +166,7 @@ start.onclick=async()=>{
  await fetch('/api/deploy/session',{cache:'no-store'});start.disabled=true;start.textContent='Creating deployment job…';
  const body={
   type:'shared',
+  gdps_name:$('gdpsName').value.trim(),
   ftp_host:$('ftpHost').value.trim(),
   ftp_security:$('ftpSecurity').value,
   ftp_port:Number($('ftpPort').value||0),
