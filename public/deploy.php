@@ -74,6 +74,14 @@ function deployment_session_ok(): bool
 
 function deploy_key_ok(): bool
 {
+    $path = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+    $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+
+    if ($method === 'GET' && rtrim((string)$path, '/') === '/api/deploy/session') {
+        deployment_session_start();
+        return same_origin_ok();
+    }
+
     return deployment_session_ok();
 }
 
@@ -201,7 +209,11 @@ $path = is_string($path) ? rtrim($path, '/') : '/';
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
 if (!deploy_key_ok()) {
-    json_response(['ok' => false, 'error' => 'Deployment access is not configured or the access key is invalid.'], 403);
+    json_response(['ok' => false, 'error' => 'Deployment session is missing or expired. Refresh the installer page and try again.'], 403);
+}
+
+if ($method === 'GET' && $path === '/api/deploy/session') {
+    json_response(['ok' => true, 'expires_in' => 3600]);
 }
 
 if ($method === 'POST' && $path === '/api/deploy/start') {
