@@ -829,6 +829,11 @@ try {
     run_remote_installer($config, $dbPassword, $adminPassword, $dir . '/shared_cookie', $logFile);
 
     $status = read_json_file($statusFile);
+    if (($status['timed_out'] ?? false) === true) {
+        cleanup_secrets($dir);
+        dispatch_queued_jobs(dirname(__DIR__));
+        exit(124);
+    }
     $status['status'] = 'completed';
     $status['exit_code'] = 0;
     $status['finished_at'] = gmdate('c');
