@@ -43,7 +43,7 @@ foreach ([
     'ftp_login',
     'ftp_put',
     'latest_release',
-    'hash_file('sha256'',
+    "hash_file('sha256',
     'installer_csrf',
     'MuchoCore is installed',
     "'/health'",
