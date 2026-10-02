@@ -91,7 +91,7 @@ function deploy_key_ok(): bool
         return same_origin_ok();
     }
 
-    if (($method === 'GET' || $method === 'POST') && $path === '/api/deploy/client-pack') {
+    if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/client-pack', '/api/deploy/details'], true)) {
         return same_origin_ok();
     }
 
@@ -875,6 +875,61 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
     ], 201);
 }
 
+if ($method === 'GET' && $path === '/api/deploy/details') {
+    $id = trim((string)($_GET['id'] ?? ''));
+    $token = trim((string)($_GET['token'] ?? ''));
+
+    try {
+        $dir = job_dir($id);
+    } catch (Throwable) {
+        json_response(['ok' => false, 'error' => 'Invalid deployment job.'], 422);
+    }
+
+    if (!is_dir($dir) || !is_file($dir . '/status.json')) {
+        json_response(['ok' => false, 'error' => 'Deployment job not found.'], 404);
+    }
+
+    $status = read_json($dir . '/status.json');
+    if (($status['status'] ?? '') !== 'completed') {
+        json_response(['ok' => false, 'error' => 'The deployment is not complete yet.'], 409);
+    }
+
+    $storedToken = is_file($dir . '/deployment-details-token')
+        ? trim((string)@file_get_contents($dir . '/deployment-details-token'))
+        : '';
+
+    if (
+        !preg_match('/^[a-f0-9]{64}$/', $token) ||
+        $storedToken === '' ||
+        !hash_equals($storedToken, $token)
+    ) {
+        json_response(['ok' => false, 'error' => 'Invalid deployment details token.'], 403);
+    }
+
+    $file = $dir . '/deployment-details.txt';
+    if (!is_file($file) || !is_readable($file)) {
+        json_response(['ok' => false, 'error' => 'Deployment details are unavailable.'], 404);
+    }
+
+    $size = filesize($file);
+    if ($size === false || $size < 1) {
+        json_response(['ok' => false, 'error' => 'Deployment details are unavailable.'], 404);
+    }
+
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Content-Disposition: attachment; filename="MuchoGDPS-Deployment-Details.txt"');
+    header('Content-Length: ' . (string)$size);
+    header('Cache-Control: private, no-store');
+    header('X-Content-Type-Options: nosniff');
+    header('X-Robots-Tag: noindex, nofollow');
+
+    if (@readfile($file) === false) {
+        http_response_code(500);
+        exit('Unable to read deployment details.');
+    }
+    exit;
+}
+
 if (($method === 'GET' || $method === 'POST') && $path === '/api/deploy/client-pack') {
     handle_client_pack_request($root);
 }
@@ -934,6 +989,15 @@ if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/s
             ? (function () use ($dir): ?string {
                 try {
                     return \MuchoCore\Client\DeploymentClientPack::token($dir);
+                } catch (Throwable) {
+                    return null;
+                }
+            })()
+            : null,
+        'deployment_details_token' => ($status['status'] ?? '') === 'completed'
+            ? (function () use ($dir): ?string {
+                try {
+                    return \MuchoCore\Deployment\DeploymentDetailsExporter::token($dir);
                 } catch (Throwable) {
                     return null;
                 }
