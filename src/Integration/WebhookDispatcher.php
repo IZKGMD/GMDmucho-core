@@ -44,11 +44,7 @@ final class WebhookDispatcher
             return true;
         }
 
-        $url = trim((string)(
-            $_ENV['MUCHO_WEBHOOK_URL']
-            ?? getenv('MUCHO_WEBHOOK_URL')
-            ?? ''
-        ));
+        $url = trim((string)(Environment::get('MUCHO_WEBHOOK_URL', '') ?? ''));
         $secret = (string)(
             Environment::get('MUCHO_WEBHOOK_SECRET', '')
         );
