@@ -12,6 +12,7 @@ require dirname(__DIR__,2).'/vendor/autoload.php';
 // are available when a direct download request arrives.
 require_once __DIR__.'/client-patcher-module.php';
 require_once __DIR__.'/android-client-patcher-module.php';
+require_once __DIR__.'/clients-module.php';
 
 $__muchoAdminRequestId = bin2hex(random_bytes(8));
 
@@ -1348,6 +1349,10 @@ if (admin() && isset($_GET['client_download'])) {
 
 if (admin() && isset($_GET['android_download'])) {
     handleAndroidPatcherDownload($rootDir);
+}
+
+if (admin() && isset($_GET['client_file'])) {
+    tenantClientDownload($rootDir);
 }
 
 /* =========================================================
