@@ -629,8 +629,18 @@ function upload_tree(\FTP\Connection $ftp, string $localRoot, string $base, stri
         }
 
         $remote = str_replace('\\', '/', $relative);
-        if (!@ftp_put($ftp, $remote, $local, FTP_BINARY)) {
+        $remoteDir = dirname($remote);
+        $remoteName = basename($remote);
+        if ($remoteDir !== '.' && $remoteDir !== '') {
+            if (!@ftp_chdir($ftp, $remoteDir)) {
+                throw new RuntimeException('Unable to enter remote directory before upload: ' . $remoteDir);
+            }
+        }
+        if (!@ftp_put($ftp, $remoteName, $local, FTP_BINARY)) {
             throw new RuntimeException('Failed to upload: ' . $relative);
+        }
+        if (!@ftp_chdir($ftp, '.')) {
+            throw new RuntimeException('Unable to restore the FTP web-root directory after upload.');
         }
         $count++;
         if (($count % 25) === 0) {
