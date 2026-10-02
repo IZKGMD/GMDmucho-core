@@ -30,6 +30,13 @@ function status_write(string $path, array $data): void {
 }
 function log_line(string $path, string $line): void {
     @file_put_contents($path, $line, FILE_APPEND | LOCK_EX);
+    $statusFile = dirname($path) . '/status.json';
+    if (is_file($statusFile)) {
+        $status = status_read($statusFile);
+        $status['heartbeat_at'] = gmdate('c');
+        @file_put_contents($statusFile, json_encode($status, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
+        @chmod($statusFile, 0600);
+    }
 }
 function shell_quote(string $value): string {
     return "'" . str_replace("'", "'\\''", $value) . "'";
