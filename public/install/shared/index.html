@@ -86,11 +86,37 @@ main{padding:54px 0 75px}.eyebrow{display:inline-flex;align-items:center;gap:7px
 
 <script>
 const $=id=>document.getElementById(id),start=$('start');
+
+const AUTOSAVE_KEY='muchogdps_shared_install_draft_v1';
+const autosaveFields=['ftpHost','ftpSecurity','ftpPort','ftpUser','ftpPath','dbHost','dbPort','dbName','dbUser','accountUrl','adminPassword'];
+function saveDraft(){
+  const data={};
+  for(const id of autosaveFields){const el=$(id);if(el)data[id]=el.value}
+  localStorage.setItem(AUTOSAVE_KEY,JSON.stringify(data));
+  sessionStorage.setItem(AUTOSAVE_KEY+'_secret',JSON.stringify({
+    ftpPassword:$('ftpPassword')?.value||'',
+    dbPassword:$('dbPassword')?.value||''
+  }));
+}
+function restoreDraft(){
+  try{
+    const data=JSON.parse(localStorage.getItem(AUTOSAVE_KEY)||'{}');
+    for(const id of autosaveFields){if($(id)&&typeof data[id]==='string')$(id).value=data[id]}
+    const secret=JSON.parse(sessionStorage.getItem(AUTOSAVE_KEY+'_secret')||'{}');
+    if($('ftpPassword'))$('ftpPassword').value=secret.ftpPassword||'';
+    if($('dbPassword'))$('dbPassword').value=secret.dbPassword||'';
+  }catch(_){}
+}
+function clearDraft(){
+  localStorage.removeItem(AUTOSAVE_KEY);
+  sessionStorage.removeItem(AUTOSAVE_KEY+'_secret');
+}
+autosaveFields.concat(['ftpPassword','dbPassword']).forEach(id=>$(id)?.addEventListener('input',saveDraft));
+restoreDraft();
 start.onclick=async()=>{
  if(!$('confirm').checked){alert('Confirm that you have permission to administer this shared-hosting account.');return}
  if(location.protocol!=='https:'){alert('Use the HTTPS version of muchogdps.space before entering credentials.');return}
- const key=sessionStorage.getItem('muchodeploykey')||prompt('Enter the MuchoGDPS deployment access key:');if(!key)return;
- sessionStorage.setItem('muchodeploykey',key);start.disabled=true;start.textContent='Creating deployment job…';
+ start.disabled=true;start.textContent='Creating deployment job…';
  const body={
   type:'shared',
   ftp_host:$('ftpHost').value.trim(),
@@ -108,10 +134,10 @@ start.onclick=async()=>{
   admin_password:$('adminPassword').value
  };
  try{
-  const r=await fetch('/api/deploy/start',{method:'POST',headers:{'Content-Type':'application/json','X-Mucho-Deploy-Key':key},body:JSON.stringify(body)});
+  const r=await fetch('/api/deploy/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'Could not start deployment');
   if(d.admin_password){sessionStorage.setItem('muchodeployadminpassword',d.admin_password);sessionStorage.setItem('muchodeployadminuser',d.admin_user||'admin')}else{sessionStorage.removeItem('muchodeployadminpassword');sessionStorage.setItem('muchodeployadminuser',d.admin_user||'admin')}
-  window.location.assign('/install/shared/go/?job='+encodeURIComponent(d.job_id));
+  clearDraft();window.location.assign('/install/shared/go/?job='+encodeURIComponent(d.job_id));
  }catch(e){start.disabled=false;start.textContent='Start automatic deployment →';alert(e.message)}
 };
 </script>
