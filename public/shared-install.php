@@ -102,6 +102,54 @@ if (empty($_SESSION['mucho_install_csrf'])) {
     $_SESSION['mucho_install_csrf'] = bin2hex(random_bytes(32));
 }
 
+$autoConfig = null;
+$autoConfigPath = null;
+$autoToken = trim((string)($_GET['mucho_auto'] ?? ''));
+if ($autoToken !== '') {
+    if (!preg_match('/^[a-f0-9]{64}$/', $autoToken)) {
+        http_response_code(400);
+        exit('Invalid MuchoCore browser finalization token.');
+    }
+
+    $candidate = $storage . '/.mucho-auto-' . $autoToken . '.json';
+    if (!is_file($candidate)) {
+        http_response_code(410);
+        exit('This MuchoCore browser finalization link has expired or was already used.');
+    }
+
+    $decoded = json_decode((string)@file_get_contents($candidate), true);
+    if (!is_array($decoded)
+        || (string)($decoded['token'] ?? '') !== $autoToken
+        || (int)($decoded['expires_at'] ?? 0) < time()
+    ) {
+        @unlink($candidate);
+        http_response_code(410);
+        exit('This MuchoCore browser finalization link has expired or is invalid.');
+    }
+
+    $configuredUrl = rtrim((string)($decoded['account_url'] ?? ''), '/');
+    $currentHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+    $configuredHost = strtolower((string)(parse_url($configuredUrl)['host'] ?? ''));
+    if ($configuredHost === '' || $currentHost === '' || $configuredHost !== preg_replace('/:\\d+$/', '', $currentHost)) {
+        http_response_code(400);
+        exit('This browser finalization token belongs to a different GDPS address.');
+    }
+
+    $autoConfig = $decoded;
+    $autoConfigPath = $candidate;
+    $_POST = [
+        'csrf' => (string)$_SESSION['mucho_install_csrf'],
+        'db_host' => (string)($autoConfig['db_host'] ?? ''),
+        'db_port' => (string)($autoConfig['db_port'] ?? '3306'),
+        'db_name' => (string)($autoConfig['db_name'] ?? ''),
+        'db_user' => (string)($autoConfig['db_user'] ?? ''),
+        'db_pass' => (string)($autoConfig['db_pass'] ?? ''),
+        'account_url' => $configuredUrl,
+        'admin_pass' => (string)($autoConfig['admin_pass'] ?? ''),
+        'admin_pass2' => (string)($autoConfig['admin_pass'] ?? ''),
+    ];
+}
+
 function e(string $value): string {
     return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
@@ -143,6 +191,44 @@ function atomicWrite(string $path, string $content, int $mode = 0600): void {
     }
 }
 
+
+function notify_browser_finalization(array $autoConfig, bool $ok): void {
+    $controlUrl = rtrim((string)($autoConfig['control_url'] ?? ''), '/');
+    $jobId = (string)($autoConfig['job_id'] ?? '');
+    $token = (string)($autoConfig['token'] ?? '');
+    if ($controlUrl === '' || $jobId === '' || !preg_match('/^[0-9]{14}-[a-f0-9]{12}$/', $jobId) || !preg_match('/^[a-f0-9]{64}$/', $token)) {
+        return;
+    }
+
+    $url = $controlUrl . '/api/deploy/browser-finish';
+    $payload = json_encode([
+        'job_id' => $jobId,
+        'token' => $token,
+        'ok' => $ok,
+    ], JSON_UNESCAPED_SLASHES);
+    if (!is_string($payload)) {
+        return;
+    }
+
+    $ch = @curl_init($url);
+    if ($ch === false) {
+        return;
+    }
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
+        CURLOPT_CONNECTTIMEOUT => 4,
+        CURLOPT_TIMEOUT => 8,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+        CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_USERAGENT => 'MuchoCore-Shared-Browser-Finalizer/1.0',
+    ]);
+    @curl_exec($ch);
+    @curl_close($ch);
+}
 
 function parseEnvValue(string $file, string $key): string {
     if (!is_file($file)) {
@@ -557,8 +643,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             atomicWrite($installedMarker, 'MuchoCore shared-hosting installation completed: ' . gmdate('c') . PHP_EOL . 'Database server: ' . $version . PHP_EOL . 'Target database: ' . $dbName . PHP_EOL, 0600);
             $_SESSION['mucho_install_csrf'] = bin2hex(random_bytes(32));
             $success = true;
+            if ($autoConfig !== null) {
+                notify_browser_finalization($autoConfig, true);
+                if ($autoConfigPath !== null) {
+                    @unlink($autoConfigPath);
+                }
+            }
             @unlink(__FILE__);
         } catch (Throwable $e) {
+            if ($autoConfig !== null) {
+                notify_browser_finalization($autoConfig, false);
+            }
             $requestId = bin2hex(random_bytes(8));
             error_log(sprintf(
                 '[MuchoCore Shared Installer] request=%s %s: %s | %s:%d',
