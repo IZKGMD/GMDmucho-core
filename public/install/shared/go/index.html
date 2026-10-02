@@ -86,6 +86,7 @@ function showLog(log){
 function appendCursor(){
   const span=document.createElement('span');span.className='cursor';terminal.appendChild(span);terminal.scrollTop=terminal.scrollHeight;
 }
+async function bootstrapSession(){try{await fetch('/api/deploy/session',{cache:'no-store'})}catch(_){}}
 function finish(ok,status){
   if(timer){clearInterval(timer);timer=null}
   setState(ok?'Completed':'Failed',ok?'done':'failed');
@@ -111,17 +112,7 @@ async function poll(){
     return;
   }
   try{
-    const key=sessionStorage.getItem('muchodeploykey')||prompt('Enter the MuchoGDPS deployment access key:')||'';
-    if(!key){
-      setState('Access key required','failed');
-      terminal.textContent='[MuchoGDPS] A deployment access key is required to read this live console.';
-      return;
-    }
-    sessionStorage.setItem('muchodeploykey',key);
-    const r=await fetch('/api/deploy/log?id='+encodeURIComponent(job),{
-      headers:{'X-Mucho-Deploy-Key':key},
-      cache:'no-store'
-    });
+    const r=await fetch('/api/deploy/log?id='+encodeURIComponent(job),{cache:'no-store'});
     const d=await r.json();
     if(!r.ok||!d.ok)throw new Error(d.error||'Could not read deployment logs.');
     if(d.log!==lastLog){lastLog=d.log;showLog(lastLog);appendCursor()}
@@ -142,7 +133,7 @@ document.getElementById('copy').onclick=async()=>{
     setTimeout(()=>document.getElementById('copy').textContent='Copy logs',1200);
   }catch(_){}
 };
-poll();
+bootstrapSession().then(poll);
 </script>
 </body>
 </html>
