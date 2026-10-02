@@ -199,8 +199,51 @@ function count_running_jobs(): int
 
 function cleanup_job_secrets(string $dir): void
 {
-    foreach (['ssh_password', 'ssh_key', 'admin_password', 'remote_env', 'ftp_password', 'shared_db_password', 'shared_config'] as $file) {
+    foreach (['ssh_password', 'ssh_key', 'admin_password', 'remote_env', 'ftp_password', 'shared_db_password', 'shared_config', 'shared_cookie', 'shared_archive'] as $file) {
         @unlink($dir . '/' . $file);
+    }
+}
+
+function deployment_queue_dispatch(): void
+{
+    $script = $root . '/bin/mucho-deploy-queue.php';
+    if (!is_file($script)) {
+        return;
+    }
+
+    $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($script) . ' >/dev/null 2>&1 &';
+    @exec($cmd);
+}
+
+function count_queued_jobs(): int
+{
+    $count = 0;
+    foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
+        $status = read_json($statusFile);
+        if (($status['status'] ?? '') === 'queued') {
+            $count++;
+        }
+    }
+    return $count;
+}
+
+function reset_deployment_session(): void
+{
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        $_SESSION = [];
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                (string)$params['path'],
+                (string)$params['domain'],
+                (bool)$params['secure'],
+                (bool)$params['httponly']
+            );
+        }
+        session_destroy();
     }
 }
 
@@ -226,10 +269,9 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         json_response(['ok' => false, 'error' => 'Too many deployment attempts from this client. Try again later.'], 429);
     }
 
+    deployment_queue_dispatch();
+
     $max = max(1, (int)($_ENV['MUCHO_DEPLOY_MAX_CONCURRENT'] ?? getenv('MUCHO_DEPLOY_MAX_CONCURRENT') ?: 2));
-    if (count_running_jobs() >= $max) {
-        json_response(['ok' => false, 'error' => 'The deployment queue is currently full.'], 429);
-    }
 
     $data = request_json();
     $deploymentType = strtolower(trim((string)($data['type'] ?? 'vps')));
@@ -297,11 +339,14 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
             json_response(['ok' => false, 'error' => 'Could not create the deployment job.'], 500);
         }
 
+        $queueFull = count_running_jobs() >= $max;
         $status = [
             'id' => $id,
             'type' => 'shared',
-            'status' => 'starting',
+            'status' => $queueFull ? 'queued' : 'starting',
             'created_at' => gmdate('c'),
+            'queued_at' => $queueFull ? gmdate('c') : null,
+            'heartbeat_at' => $queueFull ? null : gmdate('c'),
             'ftp_host' => $ftpHost,
             'ftp_port' => $ftpPort,
             'ftp_security' => $ftpSecurity,
@@ -333,11 +378,14 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         file_put_contents($dir . '/admin_password', $adminPassword, LOCK_EX);
         @chmod($dir . '/admin_password', 0600);
         file_put_contents($dir . '/log.txt',
-            "[MuchoGDPS] Shared-hosting deployment job {$id}\\n"
-            . "[MuchoGDPS] FTP target: {$ftpHost}:{$ftpPort} ({$ftpSecurity})\\n"
-            . "[MuchoGDPS] Remote directory: " . ($ftpPath !== '' ? $ftpPath : '/') . "\\n"
-            . "[MuchoGDPS] GDPS: {$accountUrl}\\n"
-            . "[MuchoGDPS] Connecting to shared hosting...\\n", LOCK_EX);
+            "[MuchoGDPS] Shared-hosting deployment job {$id}\n"
+            . "[MuchoGDPS] FTP target: {$ftpHost}:" . ($ftpPort > 0 ? $ftpPort : 0) . " ({$ftpSecurity})\n"
+            . "[MuchoGDPS] Remote directory: " . ($ftpPath !== '' ? $ftpPath : 'auto') . "\n"
+            . "[MuchoGDPS] GDPS: {$accountUrl}\n"
+            . ($queueFull
+                ? "[MuchoGDPS] Waiting in deployment queue...\n"
+                : "[MuchoGDPS] Starting deployment worker...\n"),
+            LOCK_EX);
         @chmod($dir . '/log.txt', 0600);
 
         $worker = $root . '/bin/mucho-shared-deploy-worker.php';
@@ -349,26 +397,41 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
             json_response(['ok' => false, 'error' => 'Shared-hosting deployment worker is not installed.'], 500);
         }
 
-        $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($worker)
-            . ' --job=' . escapeshellarg($id) . ' > /dev/null 2>&1 & echo $!';
-        $output = [];
-        $exit = 0;
-        exec($cmd, $output, $exit);
-        $pid = (int)($output[0] ?? 0);
-        if ($exit !== 0 || $pid <= 0) {
-            cleanup_job_secrets($dir);
-            @unlink($dir . '/status.json');
-            @unlink($dir . '/log.txt');
-            @rmdir($dir);
-            json_response(['ok' => false, 'error' => 'Could not start the shared-hosting deployment worker.'], 500);
+        $queuePosition = 0;
+        if ($queueFull) {
+            $queuePosition = count_queued_jobs();
+            deployment_queue_dispatch();
+            $fresh = read_json($dir . '/status.json');
+            if (($fresh['status'] ?? '') !== 'running') {
+                $queuePosition = count_queued_jobs();
+            }
+        } else {
+            $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($worker)
+                . ' --job=' . escapeshellarg($id) . ' > /dev/null 2>&1 & echo $!';
+            $output = [];
+            $exit = 0;
+            exec($cmd, $output, $exit);
+            $pid = (int)($output[0] ?? 0);
+            if ($exit !== 0 || $pid <= 0) {
+                cleanup_job_secrets($dir);
+                @unlink($dir . '/status.json');
+                @unlink($dir . '/log.txt');
+                @rmdir($dir);
+                json_response(['ok' => false, 'error' => 'Could not start the shared-hosting deployment worker.'], 500);
+            }
+
+            $status['status'] = 'running';
+            $status['pid'] = $pid;
+            $status['heartbeat_at'] = gmdate('c');
+            write_json($dir . '/status.json', $status);
         }
 
-        $status['status'] = 'running';
-        $status['pid'] = $pid;
-        write_json($dir . '/status.json', $status);
+        $_SESSION['muchodeploy_job_id'] = $id;
         json_response([
             'ok' => true,
             'job_id' => $id,
+            'status' => $queueFull ? 'queued' : 'running',
+            'queue_position' => $queueFull ? $queuePosition : 0,
             'admin_user' => 'admin',
             'admin_password' => $generatedAdminPassword ? $adminPassword : null,
         ], 201);
@@ -417,10 +480,14 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         json_response(['ok' => false, 'error' => 'Could not create the deployment job.'], 500);
     }
 
+    $queueFull = count_running_jobs() >= $max;
     $status = [
         'id' => $id,
-        'status' => 'starting',
+        'type' => 'vps',
+        'status' => $queueFull ? 'queued' : 'starting',
         'created_at' => gmdate('c'),
+        'queued_at' => $queueFull ? gmdate('c') : null,
+        'heartbeat_at' => $queueFull ? null : gmdate('c'),
         'host' => $host,
         'port' => $port,
         'domain' => $domain,
@@ -466,28 +533,42 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         json_response(['ok' => false, 'error' => 'Deployment worker is not installed.'], 500);
     }
 
-    $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($worker)
-        . ' --job=' . escapeshellarg($id) . ' > /dev/null 2>&1 & echo $!';
-    $output = [];
-    $exit = 0;
-    exec($cmd, $output, $exit);
-    $pid = (int)($output[0] ?? 0);
+    $queuePosition = 0;
+    if ($queueFull) {
+        $queuePosition = count_queued_jobs();
+        deployment_queue_dispatch();
+        $fresh = read_json($dir . '/status.json');
+        if (($fresh['status'] ?? '') !== 'running') {
+            $queuePosition = count_queued_jobs();
+        }
+    } else {
+        $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($worker)
+            . ' --job=' . escapeshellarg($id) . ' > /dev/null 2>&1 & echo $!';
+        $output = [];
+        $exit = 0;
+        exec($cmd, $output, $exit);
+        $pid = (int)($output[0] ?? 0);
 
-    if ($exit !== 0 || $pid <= 0) {
-        cleanup_job_secrets($dir);
-        @unlink($dir . '/status.json');
-        @unlink($dir . '/log.txt');
-        @rmdir($dir);
-        json_response(['ok' => false, 'error' => 'Could not start the deployment worker.'], 500);
+        if ($exit !== 0 || $pid <= 0) {
+            cleanup_job_secrets($dir);
+            @unlink($dir . '/status.json');
+            @unlink($dir . '/log.txt');
+            @rmdir($dir);
+            json_response(['ok' => false, 'error' => 'Could not start the deployment worker.'], 500);
+        }
+
+        $status['status'] = 'running';
+        $status['pid'] = $pid;
+        $status['heartbeat_at'] = gmdate('c');
+        write_json($dir . '/status.json', $status);
     }
 
-    $status['status'] = 'running';
-    $status['pid'] = $pid;
-    write_json($dir . '/status.json', $status);
-
+    $_SESSION['muchodeploy_job_id'] = $id;
     json_response([
         'ok' => true,
         'job_id' => $id,
+        'status' => $queueFull ? 'queued' : 'running',
+        'queue_position' => $queueFull ? $queuePosition : 0,
         'admin_user' => $adminUser,
         'admin_password' => $generatedAdminPassword ? $adminPassword : null,
     ], 201);
@@ -506,6 +587,15 @@ if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/s
     }
 
     $status = read_json($dir . '/status.json');
+    $_SESSION['muchodeploy_job_id'] = $id;
+
+    if (($status['status'] ?? '') === 'failed' && ($status['timed_out'] ?? false) === true) {
+        reset_deployment_session();
+    }
+
+    deployment_queue_dispatch();
+    $status = read_json($dir . '/status.json');
+
     if ($path === '/api/deploy/log') {
         $log = is_file($dir . '/log.txt') ? (string)file_get_contents($dir . '/log.txt') : '';
         if (strlen($log) > 500000) {
@@ -515,6 +605,9 @@ if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/s
             'ok' => true,
             'job_id' => $id,
             'status' => $status['status'] ?? 'unknown',
+            'queue_position' => ($status['status'] ?? '') === 'queued' ? count_queued_jobs() : 0,
+            'heartbeat_at' => $status['heartbeat_at'] ?? null,
+            'timed_out' => (bool)($status['timed_out'] ?? false),
             'log' => $log,
             'exit_code' => $status['exit_code'] ?? null,
         ]);
@@ -524,6 +617,9 @@ if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/s
         'ok' => true,
         'job_id' => $id,
         'status' => $status['status'] ?? 'unknown',
+        'queue_position' => ($status['status'] ?? '') === 'queued' ? count_queued_jobs() : 0,
+        'heartbeat_at' => $status['heartbeat_at'] ?? null,
+        'timed_out' => (bool)($status['timed_out'] ?? false),
         'exit_code' => $status['exit_code'] ?? null,
         'finished_at' => $status['finished_at'] ?? null,
         'domain' => $status['domain'] ?? null,
