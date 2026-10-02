@@ -54,7 +54,7 @@ log_line($logFile, "[MuchoGDPS] Connecting with SSH...\n");
 
 $knownHosts = $dir . '/known_hosts';
 $sshBase = [
-    '-o', 'BatchMode=yes',
+    '-o', $sshPassword !== '' ? 'BatchMode=no' : 'BatchMode=yes',
     '-o', 'StrictHostKeyChecking=accept-new',
     '-o', 'ConnectTimeout=10',
     '-o', 'ServerAliveInterval=15',
