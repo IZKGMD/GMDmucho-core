@@ -93,7 +93,8 @@ foreach ([
     'db_password',
     '/api/deploy/start',
     'type:\'shared\'',
-    'Generated MuchoCore admin password',
+    'Start automatic deployment',
+    '/install/shared/go/',
 ] as $needle) {
     if (!str_contains($page, $needle)) {
         throw new RuntimeException('Shared FTP UI contract missing: ' . $needle);
@@ -106,6 +107,7 @@ foreach ([
     "Copy logs",
     "muchodeployadminpassword",
     "Every message written by the shared-hosting FTP worker",
+    "Live installation console",
 ] as $needle) {
     if (!str_contains($goPage, $needle)) {
         throw new RuntimeException('Shared FTP live console contract missing: ' . $needle);
