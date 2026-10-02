@@ -543,6 +543,7 @@ function create_browser_finalization_payload(
         'db_user' => (string)$config['db_user'],
         'db_pass' => $dbPassword,
         'account_url' => rtrim((string)$config['account_url'], '/'),
+        'gdps_name' => (string)($config['gdps_name'] ?? ''),
         'admin_pass' => $adminPassword,
     ];
     $encoded = json_encode($payload, JSON_UNESCAPED_SLASHES);
@@ -680,6 +681,7 @@ function upload_tree(\FTP\Connection $ftp, string $localRoot, string $base, stri
         $relative = str_replace('\\', '/', substr($item->getPathname(), strlen($localRoot) + 1));
         if (
             $relative === 'public/ftp-install.php'
+            || $relative === 'public/index.html'
             || str_starts_with($relative, 'public/install/')
             || $relative === 'public/install'
             || str_starts_with($relative, 'public/deploy/')
