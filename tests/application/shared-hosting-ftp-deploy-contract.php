@@ -44,6 +44,8 @@ foreach ([
     'ftp_pasv',
     'ftp_open_authenticated',
     'detect_web_root',
+    'ftp_chdir($ftp, $base)',
+    'Uploading into web root:',
     'ftp_login',
     'ftp_put',
     'latest_release',
