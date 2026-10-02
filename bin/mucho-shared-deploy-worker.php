@@ -746,8 +746,11 @@ try {
     }
 
     $status['status'] = 'running';
+    $status['started_at'] = $status['started_at'] ?? gmdate('c');
+    $status['heartbeat_at'] = gmdate('c');
     write_status($statusFile, $status);
 
+    log_line($logFile, "[MuchoGDPS] Worker started. Watchdog: 60s without heartbeat.\n");
     log_line($logFile, "[MuchoGDPS] Fetching latest stable release metadata from GitHub...\n");
     $release = latest_release();
     log_line($logFile, "[MuchoGDPS] Stable release: {$release['tag']}\n");
