@@ -180,7 +180,23 @@ final class DatabaseBridge
             }
         }
 
-        foreach (array_keys($_ENV + $_SERVER) as $key) {
+        // Process-level environment variables are a fallback only. On shared
+        // hosting, providers may expose generic DB_* variables that belong to
+        // another application. MuchoCore's own config files must win.
+        foreach (array_keys($_ENV) as $key) {
+            if (array_key_exists((string)$key, $result)) {
+                continue;
+            }
+            $value = getenv((string)$key);
+            if ($value !== false) {
+                $result[(string)$key] = $value;
+            }
+        }
+
+        foreach (array_keys($_SERVER) as $key) {
+            if (array_key_exists((string)$key, $result)) {
+                continue;
+            }
             $value = getenv((string)$key);
             if ($value !== false) {
                 $result[(string)$key] = $value;
@@ -194,12 +210,12 @@ final class DatabaseBridge
     private static function pick(array $env, array $keys): ?string
     {
         foreach ($keys as $key) {
+            if (isset($env[$key]) && $env[$key] !== '') {
+                return $env[$key];
+            }
             $value = getenv($key);
             if ($value !== false && $value !== '') {
                 return $value;
-            }
-            if (isset($env[$key]) && $env[$key] !== '') {
-                return $env[$key];
             }
         }
         return null;
