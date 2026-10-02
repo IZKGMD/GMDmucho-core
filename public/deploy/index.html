@@ -57,6 +57,29 @@ main{padding:42px 0 70px}.eyebrow{display:inline-flex;gap:7px;align-items:center
 </div></div></main>
 <script>
 const $=id=>document.getElementById(id),terminal=$('terminal'),state=$('state'),start=$('start');
+
+const AUTOSAVE_KEY='muchogdps_vps_deploy_draft_v1';
+const autosaveFields=['host','port','user','key','domain','adminUser','adminPassword'];
+function saveDraft(){
+  const data={};
+  for(const id of autosaveFields){const el=$(id);if(el)data[id]=el.value}
+  sessionStorage.setItem(AUTOSAVE_KEY,JSON.stringify(data));
+}
+function restoreDraft(){
+  try{
+    const data=JSON.parse(sessionStorage.getItem(AUTOSAVE_KEY)||'{}');
+    for(const id of autosaveFields){if($(id)&&typeof data[id]==='string')$(id).value=data[id]}
+    const password=sessionStorage.getItem(AUTOSAVE_KEY+'_password')||'';
+    if($('password'))$('password').value=password;
+  }catch(_){}
+}
+function clearDraft(){
+  sessionStorage.removeItem(AUTOSAVE_KEY);
+  sessionStorage.removeItem(AUTOSAVE_KEY+'_password');
+}
+autosaveFields.forEach(id=>$(id)?.addEventListener('input',saveDraft));
+$('password')?.addEventListener('input',()=>sessionStorage.setItem(AUTOSAVE_KEY+'_password',$('password').value));
+restoreDraft();
 let timer=null,job=null,last='';
 function print(s){terminal.textContent=s;terminal.scrollTop=terminal.scrollHeight}
 function setState(s,cls=''){state.textContent=s;state.className='state '+cls}
@@ -75,14 +98,13 @@ async function poll(){
 }
 start.onclick=async()=>{
  if(!$('confirm').checked){alert('Confirm that you have permission to administer this VPS.');return}
- const key=sessionStorage.getItem('muchodeploykey')||prompt('Enter the MuchoGDPS deployment access key:');if(!key)return;
- sessionStorage.setItem('muchodeploykey',key);clearTimer();start.disabled=true;$('secret').style.display='none';last='';
+ clearTimer();start.disabled=true;$('secret').style.display='none';last='';
  setState('Starting','running');print('[MuchoGDPS] Creating secure deployment job...\n');
  const body={host:$('host').value.trim(),port:Number($('port').value||22),username:$('user').value.trim(),password:$('password').value,private_key:$('key').value,domain:$('domain').value.trim(),admin_user:$('adminUser').value.trim(),admin_password:$('adminPassword').value};
  try{
-  const r=await fetch('/api/deploy/start',{method:'POST',headers:{'Content-Type':'application/json','X-Mucho-Deploy-Key':key},body:JSON.stringify(body)});
+  const r=await fetch('/api/deploy/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'Could not start deployment');
-  job=d.job_id;if(d.admin_password){$('secretValue').textContent=d.admin_password;$('secret').style.display='block'}
+  job=d.job_id;clearDraft();if(d.admin_password){$('secretValue').textContent=d.admin_password;$('secret').style.display='block'}
   print('[MuchoGDPS] Job '+job+' started.\n[MuchoGDPS] Following live installer output...\n');await poll();timer=setInterval(poll,700);
  }catch(e){start.disabled=false;setState('Failed','error');print(last+'\n[MuchoGDPS] '+e.message)}
 }
