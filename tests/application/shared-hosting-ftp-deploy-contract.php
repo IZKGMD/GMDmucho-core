@@ -56,6 +56,11 @@ foreach ([
     'MuchoCore is installed',
     "'/health'",
     'cleanup_secrets',
+    'provider_requires_browser_finalization',
+    'create_browser_finalization_payload',
+    'upload_browser_finalization_payload',
+    'awaiting_browser',
+    'mucho_auto=',
 ] as $needle) {
     if (!str_contains($worker, $needle)) {
         throw new RuntimeException('Shared FTP worker contract missing: ' . $needle);
@@ -120,6 +125,9 @@ foreach ([
     "muchodeployadminpassword",
     "Every message written by the shared-hosting FTP worker",
     "Live installation console",
+    "Finishing in browser",
+    "Continue installation in browser",
+    "browser_finalization_url",
 ] as $needle) {
     if (!str_contains($goPage, $needle)) {
         throw new RuntimeException('Shared FTP live console contract missing: ' . $needle);
@@ -130,6 +138,7 @@ foreach ([
     'path /install/shared/go',
     'path /install/shared/go/ /install/shared/go/*',
     '/install/shared/go/index.html',
+    '/api/deploy/browser-finish',
 ] as $needle) {
     if (!str_contains($caddy, $needle)) {
         throw new RuntimeException('Shared FTP live console Caddy route missing: ' . $needle);
