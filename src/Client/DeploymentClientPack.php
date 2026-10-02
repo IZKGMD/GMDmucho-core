@@ -31,9 +31,14 @@ final class DeploymentClientPack
     public static function prepare(
         string $rootDir,
         string $jobDir,
-        string $serverUrl
+        string $serverUrl,
+        string $serverName = ''
     ): array {
         $server = WindowsClientPatcher::validateServerUrl($serverUrl);
+        $serverName = trim($serverName);
+        if ($serverName === '') {
+            $serverName = trim((string)(getenv('MUCHO_SERVER_NAME') ?: 'Mucho GDPS'));
+        }
         $sourceExe = $rootDir . '/GeometryDash.exe';
         $sourceApk = self::androidSource($rootDir);
 
@@ -94,6 +99,7 @@ final class DeploymentClientPack
 
             $manifest = [
                 'server_url' => $server,
+                'server_name' => $serverName,
                 'created_at' => gmdate('c'),
                 'windows' => [
                     'path' => $windowsPath,
