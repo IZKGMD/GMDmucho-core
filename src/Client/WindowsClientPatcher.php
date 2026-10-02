@@ -252,7 +252,7 @@ final class WindowsClientPatcher
         $result = '';
 
         for ($i = 0, $length = strlen($value); $i < $length; $i++) {
-            $result .= $value[$i] . "\\x00";
+            $result .= $value[$i] . "\x00";
         }
 
         return $result;
