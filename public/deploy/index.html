@@ -52,6 +52,11 @@ main{padding:42px 0 70px}.eyebrow{display:inline-flex;gap:7px;align-items:center
 <section class="panel console">
 <div class="console-head"><b>Installer console</b><span class="state" id="state">Idle</span></div>
 <div class="secret" id="secret"><b>Generated MuchoCore admin password</b><code id="secretValue"></code></div>
+<div class="secret" id="clients" style="display:none">
+  <b>Generated game clients</b>
+  <div id="clientStatus" style="margin-top:6px;color:#7f8ca1;font-size:9px;line-height:1.6"></div>
+  <div id="clientLinks" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:9px"></div>
+</div>
 <pre class="terminal" id="terminal"><span class="muted">[MuchoGDPS] Waiting for a deployment job...</span></pre>
 </section>
 </div></div></main>
@@ -80,18 +85,46 @@ function clearDraft(){
 autosaveFields.forEach(id=>$(id)?.addEventListener('input',saveDraft));
 $('password')?.addEventListener('input',()=>sessionStorage.setItem(AUTOSAVE_KEY+'_password',$('password').value));
 restoreDraft();
-let timer=null,job=null,last='';
+let timer=null,job=null,last='',clientPrepared=false;
 function print(s){terminal.textContent=s;terminal.scrollTop=terminal.scrollHeight}
 function setState(s,cls=''){state.textContent=s;state.className='state '+cls}
 function clearTimer(){if(timer){clearInterval(timer);timer=null}}
 $('clear').onclick=()=>{clearTimer();job=null;last='';setState('Idle');$('secret').style.display='none';print('[MuchoGDPS] Waiting for a deployment job...');start.disabled=false}
+function esc(value){
+ return String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
+}
+async function prepareClients(){
+ const box=$('clients'),status=$('clientStatus'),links=$('clientLinks');
+ box.style.display='block';
+ status.textContent='Preparing the Windows EXE and Android APK for this GDPS…';
+ links.innerHTML='';
+ try{
+  const sr=await fetch('/api/deploy/status?id='+encodeURIComponent(job),{cache:'no-store'});
+  const sd=await sr.json();
+  const token=sd.client_pack_token||'';
+  if(!sr.ok||!sd.ok||!/^[a-f0-9]{64}$/.test(token))throw new Error('Client download token is unavailable.');
+  const r=await fetch('/api/deploy/client-pack?id='+encodeURIComponent(job)+'&token='+encodeURIComponent(token)+'&kind=prepare',{cache:'no-store'});
+  const d=await r.json();
+  if(!r.ok||!d.ok)throw new Error(d.error||'Client pack generation failed.');
+  status.innerHTML='Server: <b>'+esc(d.server_url)+'</b>';
+  links.innerHTML='<a class="btn" id="downloadWindows" href="'+esc(d.windows.url)+'">⬇ Windows EXE</a><a class="btn" id="downloadAndroid" href="'+esc(d.android.url)+'">⬇ Android APK</a>';
+  const win=$('downloadWindows'),apk=$('downloadAndroid');
+  setTimeout(()=>{try{win.click()}catch(_){}},250);
+  setTimeout(()=>{try{apk.click()}catch(_){}},1200);
+ }catch(e){
+  status.textContent='Client files are not ready: '+(e?.message||'Unknown error');
+ }
+}
 async function poll(){
  if(!job)return;
  try{
   const r=await fetch('/api/deploy/log?id='+encodeURIComponent(job),{cache:'no-store'});
   const d=await r.json();if(!d.ok)throw new Error(d.error||'Log request failed');
   if(d.log!==last){last=d.log;print(d.log)}
-  if(d.status==='completed'){clearTimer();setState('Completed','running');start.disabled=false}
+  if(d.status==='completed'){
+   clearTimer();setState('Completed','running');start.disabled=false;
+   if(!clientPrepared){clientPrepared=true;prepareClients()}
+  }
   else if(d.status==='failed'){clearTimer();setState('Failed','error');start.disabled=false}
   else setState('Installing','running');
  }catch(e){clearTimer();setState('Connection error','error');start.disabled=false;print(last+'\n[MuchoGDPS] '+e.message)}
