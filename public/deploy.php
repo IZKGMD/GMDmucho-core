@@ -643,6 +643,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         file_put_contents($dir . '/ftp_password', $ftpPassword, LOCK_EX);
         @chmod($dir . '/ftp_password', 0600);
         $config = [
+            'gdps_name' => $gdpsName,
             'ftp_host' => $ftpHost,
             'ftp_port' => $ftpPort,
             'ftp_username' => $ftpUsername,
