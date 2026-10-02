@@ -34,7 +34,7 @@ The official MuchoGDPS installer page can also connect to a shared-hosting accou
 https://muchogdps.space/install/shared/
 ~~~
 
-Enter the FTP/FTPS host, port, username, password, remote web-root directory, public HTTPS URL, and database credentials. MuchoGDPS then downloads the latest published stable shared-hosting package on the control-plane server, verifies its SHA-256 digest, uploads the package through FTP/FTPS, starts the existing shared-hosting installer through the target site's HTTPS endpoint, and verifies the /health endpoint.
+Enter the FTP/FTPS host, username, password, public HTTPS URL, and database credentials. FTP mode, port, and the remote web root default to **Auto Detect**; you only need to override them when your provider requires a specific value. MuchoGDPS then downloads the latest published stable shared-hosting package on the control-plane server, verifies its SHA-256 digest, uploads the package through FTP/FTPS, starts the existing shared-hosting installer through the target site's HTTPS endpoint, and verifies the /health endpoint.
 
 FTP and database passwords are stored only in the temporary deployment job on the MuchoGDPS control plane. They are not written to the deployment log and are deleted when the job finishes.
 
