@@ -100,7 +100,7 @@ final readonly class DatabaseRateLimiter implements RateLimitBackend
     private function failOpen(): bool
     {
         return in_array(
-            strtolower(trim((string)(getenv('MUCHO_PROTECT_FAIL_OPEN') ?: ''))),
+            strtolower(trim((string)($_ENV['MUCHO_PROTECT_FAIL_OPEN'] ?? getenv('MUCHO_PROTECT_FAIL_OPEN') ?? ''))),
             ['1','true','yes','on'],
             true
         );
