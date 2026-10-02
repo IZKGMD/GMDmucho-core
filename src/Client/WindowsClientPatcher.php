@@ -21,6 +21,8 @@ final class WindowsClientPatcher
         'c92935bj.beget.tech',
         'www.gdserver.net',
         'gdserver.net',
+        'muchogdps.space',
+        'gdpsapi.page.gd',
     ];
 
     public static function validateServerUrl(string $value): string
