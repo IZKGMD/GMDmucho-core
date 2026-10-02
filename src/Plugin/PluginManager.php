@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Plugin;
 
+use MuchoCore\Core\Environment;
 use MuchoCore\Routing\Router;
 use PDO;
 use Throwable;
@@ -27,7 +28,7 @@ final class PluginManager
         Router $router,
         string $projectRoot
     ): self {
-        $configuredRoot = $_ENV['MUCHO_PLUGIN_DIR'] ?? getenv('MUCHO_PLUGIN_DIR');
+        $configuredRoot = Environment::get('MUCHO_PLUGIN_DIR');
         $root = is_string($configuredRoot) && trim($configuredRoot) !== ''
             ? trim($configuredRoot)
             : $projectRoot . '/custom/plugins';
@@ -394,7 +395,7 @@ final class PluginManager
 
     private function enabled(): bool
     {
-        $raw = $_ENV['MUCHO_PLUGINS_ENABLED'] ?? getenv('MUCHO_PLUGINS_ENABLED') ?? '1';
+        $raw = Environment::get('MUCHO_PLUGINS_ENABLED', '1') ?? '1';
 
         return in_array(
             strtolower(trim((string)$raw)),
