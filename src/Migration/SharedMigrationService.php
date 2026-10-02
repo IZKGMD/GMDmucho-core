@@ -9,6 +9,8 @@ use RuntimeException;
 use Throwable;
 use MuchoCore\Backup\DatabaseBackupService;
 use MuchoCore\Database\Migrator;
+use MuchoCore\Migration\MigrationAdapterInterface;
+use MuchoCore\Migration\MigrationAdapterRegistry;
 
 final class SharedMigrationService
 {
@@ -61,12 +63,16 @@ final class SharedMigrationService
 
     public function preview(PDO $source): array
     {
-        $this->inspection($source);
-        $importer = new CvoltonDatabaseImporter($this->target);
+        $detected = $this->adapter($source);
+        $adapter = $detected['adapter'];
 
         return [
-            'inspection' => (new SourceDetector())->inspect($source),
-            'preflight' => $importer->preflight($source),
+            'inspection' => $detected['inspection'],
+            'adapter' => [
+                'id' => $adapter->id(),
+                'label' => $adapter->label(),
+            ],
+            'preflight' => $adapter->preflight($source),
         ];
     }
 
@@ -113,9 +119,10 @@ final class SharedMigrationService
         }
 
         try {
-            $inspection = $this->inspection($source);
-            $importer = new CvoltonDatabaseImporter($this->target);
-            $preflight = $importer->preflight($source);
+            $detected = $this->adapter($source);
+            $inspection = $detected['inspection'];
+            $adapter = $detected['adapter'];
+            $preflight = $adapter->preflight($source);
 
             $backup = (new DatabaseBackupService(
                 $this->target,
@@ -140,7 +147,7 @@ final class SharedMigrationService
             $this->target->beginTransaction();
 
             try {
-                $stats = $importer->apply($source);
+                $stats = $adapter->apply($source);
                 $this->target->commit();
             } catch (Throwable $e) {
                 if ($this->target->inTransaction()) {
@@ -161,18 +168,12 @@ final class SharedMigrationService
         }
     }
 
-    private function inspection(PDO $source): array
+    /**
+     * @return array{adapter:MigrationAdapterInterface,inspection:array<string,mixed>}
+     */
+    private function adapter(PDO $source): array
     {
-        $inspection = (new SourceDetector())->inspect($source);
-
-        if (($inspection['engine'] ?? 'unknown') !== 'cvolton') {
-            throw new RuntimeException(
-                'Unsupported source schema. Detected tables: ' .
-                (implode(', ', $inspection['present_tables'] ?? []) ?: 'none')
-            );
-        }
-
-        return $inspection;
+        return (new MigrationAdapterRegistry($this->target))->detect($source);
     }
 
     private function requireTargetMaps(): void
