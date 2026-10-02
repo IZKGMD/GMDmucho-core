@@ -11,9 +11,14 @@ final readonly class RateLimiter implements RateLimitBackend
     private const DEFAULT_MAX_ENTRIES = 64;
     private const MAX_CLEANUP_SCAN = 512;
 
-    public function __construct(
-        private string $directory = dirname(__DIR__, 2) . '/storage/control/rate-limit'
-    ) {}
+    private string $directory;
+
+    public function __construct(?string $directory = null)
+    {
+        $this->directory = $directory !== null && trim($directory) !== ''
+            ? $directory
+            : dirname(__DIR__, 2) . '/storage/control/rate-limit';
+    }
 
     public function allowStrict(
         string $key,
