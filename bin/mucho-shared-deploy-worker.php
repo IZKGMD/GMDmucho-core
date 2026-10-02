@@ -557,7 +557,7 @@ function create_browser_finalization_payload(
 }
 
 function upload_browser_finalization_payload(
-    FTPConnection $ftp,
+    \FTP\Connection $ftp,
     string $base,
     string $token,
     string $payloadPath
