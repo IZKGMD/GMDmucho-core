@@ -60,7 +60,7 @@ final class BrandingService
         }
 
         $configuredName = self::sanitize(
-            (string)(getenv('MUCHO_SERVER_NAME') ?: '')
+            (string)($_ENV['MUCHO_SERVER_NAME'] ?? getenv('MUCHO_SERVER_NAME') ?? '')
         );
 
         return [
