@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#060811">
+  <meta name="description" content="Install MuchoCore on shared hosting with FTP or a hosting file manager.">
+  <title>Shared Hosting Installation — MuchoGDPS</title>
+  <style>
+    :root{--bg:#060811;--panel:#0c121d;--panel2:#0a0f18;--line:rgba(255,255,255,.09);--text:#f4f7ff;--muted:#98a4b8;--dim:#647188;--violet:#8c7dff;--cyan:#55e8df;--green:#69e2a8}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(900px 520px at 80% -10%,rgba(85,232,223,.08),transparent 65%),radial-gradient(800px 540px at 8% 0%,rgba(140,125,255,.14),transparent 66%),var(--bg)}
+    a{text-decoration:none;color:inherit}.wrap{width:min(980px,calc(100% - 28px));margin:auto}.top{height:70px;border-bottom:1px solid var(--line);display:flex;align-items:center;background:rgba(6,8,17,.72);backdrop-filter:blur(18px)}.top>.wrap{display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:10px;font-weight:950}.brand img{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);object-fit:cover}.brand small{display:block;color:var(--dim);font-size:7px;letter-spacing:.14em;text-transform:uppercase}.back{color:#9ba7bb;font-size:10px;font-weight:800}
+    main{padding:55px 0 80px}.eyebrow{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;background:rgba(105,226,168,.07);border:1px solid rgba(105,226,168,.16);color:#b9eed3;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.1em}.dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 10px rgba(105,226,168,.7)}
+    h1{margin:16px 0 10px;font-size:clamp(38px,6vw,58px);letter-spacing:-3px;line-height:.98}.lead{margin:0;max-width:790px;color:var(--muted);font-size:14px;line-height:1.75}
+    .hero{margin-top:25px;padding:22px;border:1px solid rgba(140,125,255,.2);border-radius:18px;background:linear-gradient(145deg,rgba(140,125,255,.10),rgba(85,232,223,.04),#0b1019)}
+    .hero b{font-size:13px}.hero p{margin:7px 0 0;color:#aab5c7;font-size:11px;line-height:1.65}
+    .steps{display:grid;gap:12px;margin-top:18px}.step{display:grid;grid-template-columns:44px 1fr;gap:14px;padding:19px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#0d1320,#090e17)}.num{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:rgba(140,125,255,.1);border:1px solid rgba(140,125,255,.18);font-size:11px;font-weight:950;color:#c9c4ff}.step h2{margin:0 0 5px;font-size:13px}.step p{margin:0;color:var(--muted);font-size:10px;line-height:1.7}.step code{display:block;margin-top:9px;padding:11px 12px;border:1px solid #202b3d;border-radius:10px;background:#070b12;color:#c2cce0;font:9px/1.7 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-wrap:anywhere}
+    .download{display:inline-flex;align-items:center;justify-content:center;margin-top:11px;min-height:44px;padding:0 15px;border-radius:10px;background:linear-gradient(135deg,#8f81ff,#7567f1);border:1px solid rgba(177,167,255,.55);font-size:10px;font-weight:900;box-shadow:0 14px 32px rgba(118,103,243,.18)}.download.alt{background:#0b121d;border-color:#28354a;color:#dbe2ee;box-shadow:none;margin-left:7px}
+    .note{margin-top:18px;color:#6f7c92;font-size:9px;line-height:1.7}
+    @media(max-width:650px){main{padding-top:36px}.step{grid-template-columns:1fr}.num{margin-bottom:-4px}.download.alt{margin:8px 0 0}}
+  </style>
+</head>
+<body>
+<header class="top"><div class="wrap"><a class="brand" href="/"><img src="/assets/muchocore-logo.jpg" alt=""><span>MuchoGDPS<small>Shared hosting</small></span></a><a class="back" href="/install/">← Installation methods</a></div></header>
+<main><div class="wrap">
+  <span class="eyebrow"><i class="dot"></i> FTP / file manager</span>
+  <h1>Install MuchoCore without a VPS.</h1>
+  <p class="lead">Use any compatible PHP shared host. Upload one small bootstrap file with FTP, open it in your browser, and MuchoCore will download the latest published shared-hosting package, verify its SHA-256 digest, unpack it, and open the normal database installer.</p>
+
+  <div class="hero">
+    <b>FTP credentials stay with your hosting provider.</b>
+    <p>MuchoGDPS does not need your FTP hostname, username or password. FTP is only the way you put the bootstrap file into your hosting account.</p>
+  </div>
+
+  <section class="steps" aria-label="Shared hosting installation steps">
+    <article class="step">
+      <div class="num">01</div>
+      <div>
+        <h2>Create a fresh site folder</h2>
+        <p>Use a dedicated folder or document root for the GDPS. The bootstrap intentionally refuses to overwrite an existing application or .htaccess file.</p>
+      </div>
+    </article>
+
+    <article class="step">
+      <div class="num">02</div>
+      <div>
+        <h2>Download the one-file FTP bootstrap</h2>
+        <p>Download the bootstrap, then upload <code>ftp-install.php</code> into that fresh web directory with FTP or the hosting file manager.</p>
+        <a class="download" href="https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/public/ftp-install.php">Download ftp-install.php ↗</a>
+        <a class="download alt" href="https://github.com/IZKGMD/GMDmucho-core/blob/main/public/ftp-install.php" target="_blank" rel="noopener noreferrer">View source ↗</a>
+      </div>
+    </article>
+
+    <article class="step">
+      <div class="num">03</div>
+      <div>
+        <h2>Open the bootstrap over HTTPS</h2>
+        <p>Visit the uploaded file in a browser:</p>
+        <code>https://YOUR-DOMAIN/ftp-install.php</code>
+        <p>The preflight checks PHP 8.3+, ZIP support, SHA-256 hashing, secure randomness, outbound HTTPS and writable storage.</p>
+      </div>
+    </article>
+
+    <article class="step">
+      <div class="num">04</div>
+      <div>
+        <h2>Start the verified installation</h2>
+        <p>The bootstrap resolves the latest published stable GitHub release, finds its shared-hosting package, verifies the release digest before extraction, and hands off to <code>/shared-install.php</code>.</p>
+      </div>
+    </article>
+
+    <article class="step">
+      <div class="num">05</div>
+      <div>
+        <h2>Enter the database and admin settings</h2>
+        <p>The normal shared-hosting installer creates the schema, verifies database permissions, creates a backup, runs migrations, bootstraps the administrator and verifies the final installation.</p>
+      </div>
+    </article>
+  </section>
+
+  <p class="note">Shared hosting still needs PHP 8.3+, PDO MySQL, HTTPS and a MySQL 8.0.29+ or MariaDB 10.4+ database. Docker, SSH, sudo and Composer are not required for this installation path. See the full <a href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/SHARED_HOSTING.md" target="_blank" rel="noopener noreferrer" style="color:#aaa2ff">shared-hosting guide</a> for migration and operational limitations.</p>
+</div></main>
+</body>
+</html>
