@@ -59,8 +59,14 @@ final class BrandingService
             // are not available yet.
         }
 
+        $configuredName = self::sanitize(
+            (string)(getenv('MUCHO_SERVER_NAME') ?: '')
+        );
+
         return [
-            'server_name' => self::DEFAULT_SERVER_NAME,
+            'server_name' => $configuredName !== ''
+                ? $configuredName
+                : self::DEFAULT_SERVER_NAME,
             'server_by_name' => '',
             'social_url' => '',
         ];
