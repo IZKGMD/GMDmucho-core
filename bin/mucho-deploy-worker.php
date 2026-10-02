@@ -89,7 +89,7 @@ $remoteCommand =
     . 'curl -4fsSL --retry 3 --connect-timeout 5 --max-time 60 '
     . shell_quote('https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/' . INSTALL_REF . '/install-remote.sh')
     . ' | bash -s -- --ref=' . shell_quote(INSTALL_REF)
-    . ' --domain="$MUCHO_DOMAIN" --gd-versions="$MUCHO_GD_VERSIONS"';
+    . ' --domain="$MUCHO_DOMAIN" --server-name="$MUCHO_SERVER_NAME" --gd-versions="$MUCHO_GD_VERSIONS"';
 
 $cmd .= ' ' . shell_quote($remoteCommand);
 
