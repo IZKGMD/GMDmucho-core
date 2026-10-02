@@ -213,6 +213,30 @@ function cleanup_job_secrets(string $dir): void
     }
 }
 
+function deployment_php_cli(): string
+{
+    $candidates = [];
+
+    if (defined('PHP_BINDIR')) {
+        $candidates[] = PHP_BINDIR . '/php';
+    }
+
+    $env = trim((string)(getenv('MUCHO_PHP_CLI') ?: ''));
+    if ($env !== '') {
+        $candidates[] = $env;
+    }
+
+    $candidates[] = '/usr/local/bin/php';
+
+    foreach ($candidates as $candidate) {
+        if (is_executable($candidate)) {
+            return $candidate;
+        }
+    }
+
+    throw new RuntimeException('PHP CLI binary is unavailable for deployment workers.');
+}
+
 function deployment_queue_dispatch(): void
 {
     $worker = dirname(__DIR__) . '/bin/mucho-shared-deploy-worker.php';
@@ -220,7 +244,13 @@ function deployment_queue_dispatch(): void
         return;
     }
 
-    $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($worker) . ' --dispatch-queue >/dev/null 2>&1 &';
+    try {
+        $phpCli = deployment_php_cli();
+    } catch (Throwable) {
+        return;
+    }
+
+    $cmd = 'nohup ' . escapeshellarg($phpCli) . ' ' . escapeshellarg($worker) . ' --dispatch-queue >/dev/null 2>&1 &';
     @exec($cmd);
 }
 
@@ -420,7 +450,17 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
                 $queuePosition = count_queued_jobs();
             }
         } else {
-            $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($worker)
+            try {
+                $phpCli = deployment_php_cli();
+            } catch (Throwable) {
+                cleanup_job_secrets($dir);
+                @unlink($dir . '/status.json');
+                @unlink($dir . '/log.txt');
+                @rmdir($dir);
+                json_response(['ok' => false, 'error' => 'PHP CLI is unavailable for the shared-hosting deployment worker.'], 500);
+            }
+
+            $cmd = 'nohup ' . escapeshellarg($phpCli) . ' ' . escapeshellarg($worker)
                 . ' --job=' . escapeshellarg($id) . ' > /dev/null 2>&1 & echo $!';
             $output = [];
             $exit = 0;
