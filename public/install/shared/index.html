@@ -116,7 +116,7 @@ restoreDraft();
 start.onclick=async()=>{
  if(!$('confirm').checked){alert('Confirm that you have permission to administer this shared-hosting account.');return}
  if(location.protocol!=='https:'){alert('Use the HTTPS version of muchogdps.space before entering credentials.');return}
- start.disabled=true;start.textContent='Creating deployment job…';
+ await fetch('/api/deploy/session',{cache:'no-store'});start.disabled=true;start.textContent='Creating deployment job…';
  const body={
   type:'shared',
   ftp_host:$('ftpHost').value.trim(),
