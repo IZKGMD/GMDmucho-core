@@ -358,7 +358,7 @@ function handle_client_pack_request(string $root): never
 function count_running_jobs(): int
 {
     $count = 0;
-    $activeStatuses = ['running', 'starting', 'awaiting_browser'];
+    $activeStatuses = ['running', 'starting', 'awaiting_browser', 'browser_completed', 'post_processing'];
 
     foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
         if (in_array((string)(read_json($statusFile)['status'] ?? ''), $activeStatuses, true)) {
@@ -506,13 +506,17 @@ if ($method === 'POST' && $path === '/api/deploy/browser-finish') {
         json_response(['ok' => false, 'error' => 'Invalid browser finalization token.'], 403);
     }
 
-    if (!in_array((string)($status['status'] ?? ''), ['awaiting_browser', 'completed'], true)) {
+    if (!in_array((string)($status['status'] ?? ''), ['awaiting_browser', 'browser_completed', 'completed'], true)) {
         json_response(['ok' => true, 'already_finalized' => true]);
     }
 
-    $status['status'] = $ok ? 'completed' : 'failed';
+    $status['status'] = $ok ? 'browser_completed' : 'failed';
     $status['exit_code'] = $ok ? 0 : 1;
-    $status['finished_at'] = gmdate('c');
+    if ($ok) {
+        $status['browser_finished_at'] = gmdate('c');
+    } else {
+        $status['finished_at'] = gmdate('c');
+    }
     unset($status['browser_finalization_token_hash']);
     write_json($statusFile, $status);
 
