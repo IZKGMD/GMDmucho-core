@@ -23,14 +23,53 @@ function json_response(array $body, int $status = 200): never
     exit;
 }
 
-function deploy_key_ok(): bool
+function deployment_session_start(): void
 {
-    $configured = (string)($_ENV['MUCHO_DEPLOY_ACCESS_KEY'] ?? getenv('MUCHO_DEPLOY_ACCESS_KEY') ?: '');
-    $provided = (string)($_SERVER['HTTP_X_MUCHO_DEPLOY_KEY'] ?? '');
+    if (session_status() === PHP_SESSION_NONE) {
+        session_set_cookie_params([
+            'lifetime' => 3600,
+            'path' => '/',
+            'secure' => true,
+            'httponly' => true,
+            'samesite' => 'Strict',
+        ]);
+        session_start();
+    }
 
-    return $configured !== '' && $provided !== ''
-        && strlen($configured) >= 24
-        && hash_equals($configured, $provided);
+    if (!isset($_SESSION['muchodeploy_nonce'])) {
+        $_SESSION['muchodeploy_nonce'] = bin2hex(random_bytes(24));
+        $_SESSION['muchodeploy_created_at'] = time();
+    }
+}
+
+function same_origin_ok(): bool
+{
+    $origin = trim((string)($_SERVER['HTTP_ORIGIN'] ?? ''));
+    if ($origin === '') {
+        return true;
+    }
+
+    $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+    return in_array($origin, [
+        'https://' . $host,
+        'https://muchogdps.space',
+    ], true);
+}
+
+function deployment_session_ok(): bool
+{
+    deployment_session_start();
+
+    if (!same_origin_ok()) {
+        return false;
+    }
+
+    $created = (int)($_SESSION['muchodeploy_created_at'] ?? 0);
+    $nonce = (string)($_SESSION['muchodeploy_nonce'] ?? '');
+
+    return $created > 0
+        && $created >= time() - 3600
+        && preg_match('/^[a-f0-9]{48}$/', $nonce) === 1;
 }
 
 function job_id(): string
