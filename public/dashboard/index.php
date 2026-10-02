@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 use MuchoCore\Account\AccountAuthenticator;
+use MuchoCore\Core\Environment;
 use MuchoCore\Branding\BrandingService;
 use MuchoCore\Database\Database;
 use MuchoCore\Security\RateLimiter;
@@ -105,7 +106,7 @@ function pdAntiBotOrReject(string $scope): void
     if (Turnstile::enabled()) {
         $token = (string)($_POST['cf-turnstile-response'] ?? '');
         $expectedHostname = parse_url(
-            (string)($_ENV['MUCHO_ACCOUNT_URL'] ?? getenv('MUCHO_ACCOUNT_URL') ?? ''),
+            (string)(Environment::get('MUCHO_ACCOUNT_URL', '') ?? ''),
             PHP_URL_HOST
         );
 
@@ -533,8 +534,7 @@ if ($action === 'upload') {
 
     $baseUrl = rtrim(
         (string)(
-            $_ENV['MUCHO_ACCOUNT_URL']
-            ?? getenv('MUCHO_ACCOUNT_URL')
+            Environment::get('MUCHO_ACCOUNT_URL', '')
             ?: ('https://' . (string)($_SERVER['HTTP_HOST'] ?? 'localhost'))
         ),
         '/'
