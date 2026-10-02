@@ -12,7 +12,7 @@ final readonly class RateLimiter implements RateLimitBackend
     private const MAX_CLEANUP_SCAN = 512;
 
     public function __construct(
-        private string $directory = '/tmp/muchocore-rate-limit'
+        private string $directory = dirname(__DIR__, 2) . '/storage/control/rate-limit'
     ) {}
 
     public function allowStrict(
