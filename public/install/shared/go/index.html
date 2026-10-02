@@ -52,6 +52,7 @@ main{padding:38px 0 60px}.eyebrow{display:inline-flex;gap:8px;align-items:center
 <div class="hint">Logs are read from the deployment job over HTTPS. FTP, database and admin passwords are never displayed in the terminal.</div>
 <div class="actions">
 <button class="btn" id="copy">Copy logs</button>
+<a class="btn" id="continueBrowser" href="#" style="display:none">Continue installation in browser</a>
 <a class="btn" href="/install/shared/">New installation</a>
 </div>
 </div>
@@ -66,9 +67,10 @@ const result=document.getElementById('result');
 const resultTitle=document.getElementById('resultTitle');
 const resultText=document.getElementById('resultText');
 const password=document.getElementById('password');
+const continueBrowser=document.getElementById('continueBrowser');
 const params=new URLSearchParams(location.search);
 const job=params.get('job')||'';
-let timer=null,lastLog='',started=Date.now();
+let timer=null,lastLog='',started=Date.now(),browserRedirected=false;
 
 jobEl.textContent=job||'missing';
 
@@ -123,6 +125,19 @@ async function poll(){
     if(d.status==='completed'){finish(true,d.status);return}
     if(d.timed_out===true){finish(false,d.status,true);return}
     if(d.status==='failed'){finish(false,d.status);return}
+    if(d.status==='awaiting_browser' && d.browser_finalization_url){
+      setState('Finishing in browser','wait');
+      result.style.display='block';
+      resultTitle.textContent='Opening the GDPS installer in your browser…';
+      resultText.textContent='Your hosting provider requires a real browser for the final HTTPS step. MuchoGDPS has already uploaded the files and prepared a one-time installer handoff.';
+      continueBrowser.href=d.browser_finalization_url;
+      continueBrowser.style.display='inline-flex';
+      if(!browserRedirected){
+        browserRedirected=true;
+        setTimeout(()=>location.assign(d.browser_finalization_url),900);
+      }
+      return;
+    }
     if(d.status==='queued'){
       const position=Number(d.queue_position||1);
       setState('Queued #'+position,'wait');
