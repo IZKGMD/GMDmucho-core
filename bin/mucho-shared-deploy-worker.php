@@ -566,7 +566,9 @@ function upload_browser_finalization_payload(
         throw new RuntimeException('Unable to return to the FTP web-root directory before browser finalization.');
     }
     if (!@ftp_chdir($ftp, 'storage')) {
-        throw new RuntimeException('Unable to enter the storage directory for browser finalization.');
+        if (!@ftp_mkdir($ftp, 'storage') || !@ftp_chdir($ftp, 'storage')) {
+            throw new RuntimeException('Unable to create the storage directory for browser finalization.');
+        }
     }
     $remote = '.mucho-auto-' . $token . '.json';
     if (!@ftp_put($ftp, $remote, $payloadPath, FTP_BINARY)) {
