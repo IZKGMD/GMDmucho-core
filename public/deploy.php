@@ -203,11 +203,14 @@ function rate_limit_ok(): bool
 function count_running_jobs(): int
 {
     $count = 0;
+    $activeStatuses = ['running', 'starting', 'awaiting_browser'];
+
     foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
-        if ((read_json($statusFile)['status'] ?? '') === 'running') {
+        if (in_array((string)(read_json($statusFile)['status'] ?? ''), $activeStatuses, true)) {
             $count++;
         }
     }
+
     return $count;
 }
 
