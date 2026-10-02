@@ -589,7 +589,17 @@ function detect_web_root(
 }
 
 function upload_tree(\FTP\Connection $ftp, string $localRoot, string $base, string $logFile): int {
-    $knownDirs = [$base => true];
+    if (!@ftp_chdir($ftp, $base)) {
+        throw new RuntimeException('Unable to switch to the selected FTP web-root directory before upload: ' . $base);
+    }
+
+    $actualBase = @ftp_pwd($ftp);
+    if (!is_string($actualBase) || $actualBase === '') {
+        throw new RuntimeException('Unable to verify the selected FTP web-root directory before upload.');
+    }
+
+    log_line($logFile, "[MuchoGDPS] Uploading into web root: {$actualBase}\n");
+    $knownDirs = [$actualBase => true];
     $count = 0;
 
     $iterator = new RecursiveIteratorIterator(
