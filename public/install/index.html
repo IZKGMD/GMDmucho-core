@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#070912">
-  <meta name="description" content="Choose how to install MuchoCore: automatic deployment on your VPS or manual installation from the command line.">
+  <meta name="description" content="Choose how to install MuchoCore on a VPS or compatible shared hosting account.">
   <link rel="canonical" href="https://muchogdps.space/install/">
   <link rel="icon" href="/assets/muchocore-logo.jpg" type="image/jpeg">
   <title>Install MuchoCore — MuchoGDPS</title>
@@ -49,7 +49,7 @@
     h1{margin:19px 0 13px;font-size:clamp(43px,7vw,72px);line-height:.97;letter-spacing:-4px}
     h1 span{background:linear-gradient(95deg,#fff,#a49aff 50%,#62e7df);-webkit-background-clip:text;background-clip:text;color:transparent}
     .intro{max-width:720px;margin:0;color:var(--muted);font-size:15px;line-height:1.75}
-    .choices{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:34px}
+    .choices{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:34px}
     .card{
       position:relative;display:flex;flex-direction:column;min-height:360px;padding:28px;border-radius:22px;
       border:1px solid var(--line);background:linear-gradient(180deg,#0d1320,#090e17);
@@ -77,7 +77,7 @@
     pre{margin:10px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;color:#bcc7d9;font:10px/1.8 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
     .note{margin-top:27px;color:#748197;font-size:10px;line-height:1.7}
     .note a{color:#a9a1ff}
-    @media(max-width:760px){
+    @media(max-width:980px){.choices{grid-template-columns:1fr 1fr}}\n    @media(max-width:760px){
       main{padding-top:52px}.choices{grid-template-columns:1fr}.card{min-height:330px}.wrap{width:min(var(--max),calc(100% - 24px))}
     }
   </style>
@@ -97,7 +97,7 @@
     <div class="wrap">
       <div class="eyebrow"><i class="dot"></i> MuchoCore installation</div>
       <h1>Choose how you want to <span>install.</span></h1>
-      <p class="intro">Use the web installer for a guided deployment on your VPS, or install MuchoCore yourself from the command line when you want full manual control.</p>
+      <p class="intro">Pick the deployment mode that matches your hosting: fully automatic VPS deployment, a shared-hosting setup through FTP/file manager, or a manual VPS installation when you want full control.</p>
 
       <section class="choices" aria-label="Installation methods">
         <article class="card primary">
@@ -111,6 +111,19 @@
             <div class="item"><i></i> Live installer output</div>
           </div>
           <a class="cta" href="/deploy/">Start automatic installation →</a>
+        </article>
+
+        <article class="card">
+          <div class="icon">⇩</div>
+          <h2>Shared hosting / FTP</h2>
+          <p>No VPS, Docker or SSH required. Upload one small bootstrap file by FTP, then let MuchoCore download and verify the stable shared-hosting package in your browser.</p>
+          <div class="list">
+            <div class="item"><i></i> Works with PHP shared hosting</div>
+            <div class="item"><i></i> One-file FTP bootstrap</div>
+            <div class="item"><i></i> SHA-256 release verification</div>
+            <div class="item"><i></i> Browser database installer</div>
+          </div>
+          <a class="cta alt" href="/install/shared/">Install with FTP →</a>
         </article>
 
         <article class="card">
@@ -130,7 +143,7 @@
         </article>
       </section>
 
-      <p class="note">The automatic installer is the simplest path for a new GDPS. The manual path is available for advanced setups and custom infrastructure. Source and installer are maintained in <a href="https://github.com/IZKGMD/GMDmucho-core" rel="noopener">the MuchoCore repository</a>.</p>
+      <p class="note">VPS deployment is best for full server control. Shared hosting is the no-VPS path for compatible PHP hosts. Manual VPS installation is available for advanced setups. Source and installers are maintained in <a href="https://github.com/IZKGMD/GMDmucho-core" rel="noopener">the MuchoCore repository</a>.</p>
     </div>
   </main>
 </body>
