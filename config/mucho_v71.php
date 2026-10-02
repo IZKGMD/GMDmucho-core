@@ -6,6 +6,11 @@ declare(strict_types=1);
  * Copyright (C) 2026 IZK
  */
 
+$projectRoot = dirname(__DIR__);
+if (class_exists('Dotenv\\Dotenv') && is_file($projectRoot . '/.env')) {
+    \Dotenv\Dotenv::createImmutable($projectRoot)->safeLoad();
+}
+
 $accountUrl = trim((string)($_ENV['MUCHO_ACCOUNT_URL'] ?? getenv('MUCHO_ACCOUNT_URL') ?? ''));
 
 if ($accountUrl === '') {
