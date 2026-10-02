@@ -63,10 +63,12 @@ The production Compose file contains only the live GDPS services. The integratio
 
 ## 3. Verify the server
 
+MuchoCore intentionally keeps both public HTTP and HTTPS available on a standard VPS deployment. Legacy Geometry Dash clients can use plain HTTP, while HTTPS is available for modern browsers and protected administrator sessions.
+
 Open:
 
 ~~~text
-https://YOUR-DOMAIN/health
+http://YOUR-DOMAIN/health
 ~~~
 
 Expected response:
@@ -74,6 +76,20 @@ Expected response:
 ~~~text
 1
 ~~~
+
+Then verify HTTPS:
+
+~~~text
+https://YOUR-DOMAIN/health
+~~~
+
+It should also return:
+
+~~~text
+1
+~~~
+
+The Admin Panel is forced to HTTPS when reached directly over HTTP.
 
 Then open:
 
