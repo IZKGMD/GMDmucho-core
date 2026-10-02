@@ -47,8 +47,8 @@
       </div>
     </article>
     <article class="panel">
-      <h2>Network layout</h2>
-      <p>For the standard direct deployment, the public hostname should resolve straight to the dedicated VPS IPv4.</p>
+      <h2>HTTP + HTTPS are both supported</h2>
+      <p>Port 80 is intentionally kept enabled for legacy Geometry Dash clients and normal HTTP requests. Port 443 provides HTTPS. HTTP is not globally redirected to HTTPS; only protected browser areas such as the Admin Panel require HTTPS.</p>
       <div class="cmd">GDPS domain
 ↓
 DNS A record
@@ -70,7 +70,7 @@ MuchoCore</div>
         <h2>Point your domain to the VPS</h2>
         <p>Create an A record for the hostname you want to use for the GDPS.</p>
         <code>gdps.example.com → YOUR_DEDICATED_VPS_IPV4</code>
-        <p>Wait for DNS to resolve before starting the installer. The direct deployment uses Caddy to obtain and manage HTTPS certificates.</p>
+        <p>Wait for DNS to resolve before starting the installer. Caddy serves both HTTP on port 80 and HTTPS on port 443, with managed TLS certificates on the HTTPS endpoint.</p>
       </div>
     </article>
 
@@ -101,6 +101,10 @@ MuchoCore</div>
       <div>
         <h2>Verify the server</h2>
         <p>After the installer finishes, open the public health endpoint:</p>
+        <code>http://gdps.example.com/health</code>
+        <p>HTTP is expected to respond with:</p>
+        <code>1</code>
+        <p>HTTPS should respond with the same health result:</p>
         <code>https://gdps.example.com/health</code>
         <p>Expected response:</p>
         <code>1</code>
