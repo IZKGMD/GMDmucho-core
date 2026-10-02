@@ -36,14 +36,14 @@ main{padding:54px 0 75px}.eyebrow{display:inline-flex;align-items:center;gap:7px
 <div class="layout">
 <section class="panel">
 <h2>Hosting connection</h2>
-<p class="section-note">Create the site/domain first and make sure its web root is ready to receive the MuchoCore files.</p>
+<p class="section-note">Create the site/domain and database first. MuchoGDPS will automatically detect the FTP mode, port and website root whenever the provider exposes enough information to do so.</p>
 <div class="grid">
 <div class="field full"><label>FTP hostname</label><input id="ftpHost" placeholder="ftp.example.com" autocomplete="off"></div>
-<div class="field"><label>Security</label><select id="ftpSecurity"><option value="ftp">FTP</option><option value="ftps">FTPS / TLS</option></select></div>
-<div class="field"><label>FTP port</label><input id="ftpPort" value="21" inputmode="numeric"></div>
+<div class="field"><label>Security</label><select id="ftpSecurity"><option value="auto">Auto Detect (recommended)</option><option value="ftp">FTP</option><option value="ftps">FTPS / TLS</option></select></div>
+<div class="field"><label>FTP port</label><input id="ftpPort" value="" placeholder="Auto detect" inputmode="numeric"></div>
 <div class="field full"><label>FTP username</label><input id="ftpUser" autocomplete="username"></div>
 <div class="field full"><label>FTP password</label><input id="ftpPassword" type="password" autocomplete="off"></div>
-<div class="field full"><label>Remote web root</label><input id="ftpPath" value="." placeholder="."><span class="help">Examples vary by provider: <code>htdocs</code>, <code>www</code>, a domain folder, or the account's current FTP directory.</span></div>
+<div class="field full"><label>Remote web root</label><input id="ftpPath" value="auto" placeholder="auto"><span class="help"><b>Auto detect:</b> MuchoGDPS probes common web-root locations with a temporary marker and removes the marker immediately. Enter a folder manually only when your provider requires it.</span></div>
 </div>
 
 <h2 style="margin-top:24px">Database</h2>
@@ -71,10 +71,11 @@ main{padding:54px 0 75px}.eyebrow{display:inline-flex;align-items:center;gap:7px
 <h3>What happens automatically</h3>
 <div class="flow">
 <div><i>01</i><span><b>Verify release</b>Download the latest stable shared-hosting package and verify SHA-256.</span></div>
-<div><i>02</i><span><b>Connect</b>Authenticate to FTP/FTPS and enter the selected web root.</span></div>
-<div><i>03</i><span><b>Upload</b>Transfer the MuchoCore package into the shared host.</span></div>
-<div><i>04</i><span><b>Install</b>Run the remote shared installer with your database settings.</span></div>
-<div><i>05</i><span><b>Verify</b>Check <code>/health</code> and finish the deployment job.</span></div>
+<div><i>02</i><span><b>Auto-detect connection</b>Try FTP/FTPS and common ports, then authenticate and enable passive mode.</span></div>
+<div><i>03</i><span><b>Auto-detect web root</b>Find the public directory and verify it over HTTPS.</span></div>
+<div><i>04</i><span><b>Upload</b>Transfer the verified MuchoCore package into the shared host.</span></div>
+<div><i>05</i><span><b>Install</b>Run the remote shared installer with your database settings.</span></div>
+<div><i>06</i><span><b>Verify</b>Check <code>/health</code> and finish the deployment job.</span></div>
 </div>
 </section>
 <section class="info secure"><h3>Credential handling</h3><p>FTP, database and admin credentials are sent over HTTPS to MuchoGDPS, kept only in the temporary deployment job, never printed in the installation log, and removed after the job exits.</p></section>
@@ -94,7 +95,7 @@ start.onclick=async()=>{
   type:'shared',
   ftp_host:$('ftpHost').value.trim(),
   ftp_security:$('ftpSecurity').value,
-  ftp_port:Number($('ftpPort').value||21),
+  ftp_port:Number($('ftpPort').value||0),
   ftp_username:$('ftpUser').value.trim(),
   ftp_password:$('ftpPassword').value,
   ftp_path:$('ftpPath').value.trim(),
