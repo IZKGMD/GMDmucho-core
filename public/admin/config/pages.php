@@ -38,6 +38,7 @@ return [
 
     'clientfeatures'=>'Client & Features',
     'clientpatcher'=>'Web Client Patcher',
+    'clients'=>'My GDPS Clients',
     'updates'=>'Core Updates',
     'plugins'=>'Custom Plugins',
 
