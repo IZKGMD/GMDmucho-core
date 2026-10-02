@@ -196,7 +196,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         if ($ftpHost === '' || strlen($ftpHost) > 253 || !preg_match('/^(?=.{1,253}$)(?!-)(?:[A-Za-z0-9-]{1,63}\\.)+[A-Za-z0-9-]{2,63}$/', $ftpHost)) {
             json_response(['ok' => false, 'error' => 'Enter a valid FTP hostname.'], 422);
         }
-        if ($ftpPort < 1 || $ftpPort > 65535) {
+        if ($ftpPort < 0 || $ftpPort > 65535) {
             json_response(['ok' => false, 'error' => 'Invalid FTP port.'], 422);
         }
         if ($ftpUsername === '' || strlen($ftpUsername) > 128 || preg_match('/[\\x00-\\x1F\\x7F]/', $ftpUsername) === 1) {
@@ -205,8 +205,8 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         if ($ftpPassword === '') {
             json_response(['ok' => false, 'error' => 'Enter the FTP password.'], 422);
         }
-        if (!in_array($ftpSecurity, ['ftp', 'ftps'], true)) {
-            json_response(['ok' => false, 'error' => 'Choose FTP or FTPS.'], 422);
+        if (!in_array($ftpSecurity, ['auto', 'ftp', 'ftps'], true)) {
+            json_response(['ok' => false, 'error' => 'Choose Auto Detect, FTP or FTPS.'], 422);
         }
         if ($ftpPath !== '' && (strlen($ftpPath) > 512 || preg_match('/[\\x00]/', $ftpPath) === 1 || preg_match('#(^|/)\\.\\.(/|$)#', str_replace('\\\\', '/', $ftpPath)) === 1)) {
             json_response(['ok' => false, 'error' => 'Invalid remote FTP directory.'], 422);
