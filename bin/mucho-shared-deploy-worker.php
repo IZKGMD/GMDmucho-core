@@ -536,11 +536,12 @@ try {
     );
 
     try {
-        @ftp_pasv($ftp, true);
-
         $username = (string)$config['ftp_username'];
         if (!@ftp_login($ftp, $username, $ftpPassword)) {
             throw new RuntimeException('FTP login failed. Check the FTP username/password and hosting account.');
+        }
+        if (!@ftp_pasv($ftp, true)) {
+            throw new RuntimeException('The FTP server refused passive mode, which is required for reliable file uploads.');
         }
 
         $remotePath = trim((string)$config['ftp_path']);
