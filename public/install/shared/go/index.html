@@ -87,9 +87,9 @@ function appendCursor(){
   const span=document.createElement('span');span.className='cursor';terminal.appendChild(span);terminal.scrollTop=terminal.scrollHeight;
 }
 async function bootstrapSession(){try{await fetch('/api/deploy/session',{cache:'no-store'})}catch(_){}}
-function finish(ok,status){
+async function finish(ok,status,timedOut=false){
   if(timer){clearInterval(timer);timer=null}
-  setState(ok?'Completed':'Failed',ok?'done':'failed');
+  setState(ok?'Completed':(timedOut?'Timed out':'Failed'),ok?'done':(timedOut?'failed':'failed'));
   result.style.display='block';
   const seconds=Math.max(1,Math.round((Date.now()-started)/1000));
   if(ok){
@@ -100,6 +100,10 @@ function finish(ok,status){
       password.style.display='block';
       password.textContent='Generated admin password: '+adminPassword;
     }
+  }else if(timedOut){
+    resultTitle.textContent='Deployment timed out after 60 seconds.';
+    resultText.textContent='The worker stopped reporting activity for 60 seconds. The deployment session has been reset. Check the final terminal message and start a new installation.';
+    try{await fetch('/api/deploy/session/reset',{cache:'no-store'})}catch(_){}
   }else{
     resultTitle.textContent='MuchoCore installation failed.';
     resultText.textContent='The worker stopped with an error. Read the final ERROR line in the terminal, fix the reported configuration issue, and start a new deployment.';
@@ -117,6 +121,7 @@ async function poll(){
     if(!r.ok||!d.ok)throw new Error(d.error||'Could not read deployment logs.');
     if(d.log!==lastLog){lastLog=d.log;showLog(lastLog);appendCursor()}
     if(d.status==='completed'){finish(true,d.status);return}
+    if(d.timed_out===true){finish(false,d.status,true);return}
     if(d.status==='failed'){finish(false,d.status);return}
     if(d.status==='queued'){
       const position=Number(d.queue_position||1);
