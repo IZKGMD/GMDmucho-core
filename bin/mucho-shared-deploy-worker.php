@@ -555,7 +555,6 @@ try {
         log_line($logFile, "[MuchoGDPS] FTP working directory: {$base}\n");
 
         $uploaded = upload_tree($ftp, $localRoot, $base, $logFile);
-        @ftp_delete($ftp, $remoteRoot . '/public/ftp-install.php');
         log_line($logFile, "[MuchoGDPS] Uploaded {$uploaded} files.\n");
     } finally {
         @ftp_close($ftp);
