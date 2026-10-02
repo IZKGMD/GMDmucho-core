@@ -7,6 +7,7 @@ $worker = file_get_contents($root . '/bin/mucho-shared-deploy-worker.php');
 $caddy = file_get_contents($root . '/docker/Caddyfile');
 $dockerfile = file_get_contents($root . '/docker/Dockerfile');
 $page = file_get_contents($root . '/public/install/shared/index.html');
+$goPage = file_get_contents($root . '/public/install/shared/go/index.html');
 
 foreach ([
     'public/deploy.php' => $deploy,
@@ -14,6 +15,7 @@ foreach ([
     'docker/Caddyfile' => $caddy,
     'docker/Dockerfile' => $dockerfile,
     'public/install/shared/index.html' => $page,
+    'public/install/shared/go/index.html' => $goPage,
 ] as $path => $content) {
     if ($content === false) {
         throw new RuntimeException('Unable to read ' . $path);
@@ -96,6 +98,32 @@ foreach ([
     if (!str_contains($page, $needle)) {
         throw new RuntimeException('Shared FTP UI contract missing: ' . $needle);
     }
+}
+
+foreach ([
+    "/install/shared/go/?job=",
+    "mucho-shared-deploy-worker.php",
+    "Copy logs",
+    "muchodeployadminpassword",
+    "Every message written by the shared-hosting FTP worker",
+] as $needle) {
+    if (!str_contains($goPage, $needle)) {
+        throw new RuntimeException('Shared FTP live console contract missing: ' . $needle);
+    }
+}
+
+foreach ([
+    'path /install/shared/go',
+    'path /install/shared/go/ /install/shared/go/*',
+    '/install/shared/go/index.html',
+] as $needle) {
+    if (!str_contains($caddy, $needle)) {
+        throw new RuntimeException('Shared FTP live console Caddy route missing: ' . $needle);
+    }
+}
+
+if (!str_contains($page, "window.location.assign('/install/shared/go/?job='+encodeURIComponent(job))")) {
+    throw new RuntimeException('Shared FTP UI must redirect to the live installation console after creating a job.');
 }
 
 echo "shared-hosting-ftp-deploy-contract: OK\n";
