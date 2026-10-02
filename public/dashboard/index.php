@@ -105,7 +105,7 @@ function pdAntiBotOrReject(string $scope): void
     if (Turnstile::enabled()) {
         $token = (string)($_POST['cf-turnstile-response'] ?? '');
         $expectedHostname = parse_url(
-            (string)(getenv('MUCHO_ACCOUNT_URL') ?: ''),
+            (string)($_ENV['MUCHO_ACCOUNT_URL'] ?? getenv('MUCHO_ACCOUNT_URL') ?? ''),
             PHP_URL_HOST
         );
 
@@ -533,7 +533,8 @@ if ($action === 'upload') {
 
     $baseUrl = rtrim(
         (string)(
-            getenv('MUCHO_ACCOUNT_URL')
+            $_ENV['MUCHO_ACCOUNT_URL']
+            ?? getenv('MUCHO_ACCOUNT_URL')
             ?: ('https://' . (string)($_SERVER['HTTP_HOST'] ?? 'localhost'))
         ),
         '/'
