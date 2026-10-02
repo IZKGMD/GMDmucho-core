@@ -189,6 +189,93 @@ foreach ($coveredReads as $index => $path) {
     }
 }
 
+
+/*
+ * Registration anti-spam uses two independent identities:
+ * - source IP: existing short-window registration budget;
+ * - device/UDID: a longer per-device budget when the client supplies UDID.
+ *
+ * The device identifier is not a cryptographic hardware fingerprint:
+ * it is client-provided and therefore remains a second-layer throttle.
+ */
+$registrationDir = $dir . '-registration';
+$registrationProtect = new MuchoProtect(
+    new RateLimiter($registrationDir),
+    new \MuchoCore\Security\AbusePenaltyStore($registrationDir . '-penalty')
+);
+
+$registrationPath = '/registerGJAccount';
+
+for ($i = 1; $i <= 2; $i++) {
+    $result = $registrationProtect->inspect(
+        new Request(
+            'POST',
+            '/registerGJAccount.php',
+            [],
+            [
+                'userName' => 'Player' . $i,
+                'email' => 'player' . $i . '@example.test',
+                'udid' => 'same-device-001',
+            ],
+            ['REMOTE_ADDR' => '198.51.100.' . (20 + $i)]
+        ),
+        $registrationPath
+    );
+
+    if ($result['decision'] !== 'allow') {
+        fwrite(STDERR, "Registration device budget rejected request {$i}\n");
+        exit(1);
+    }
+}
+
+$registrationDeviceBlocked = $registrationProtect->inspect(
+    new Request(
+        'POST',
+        '/registerGJAccount.php',
+        [],
+        [
+            'userName' => 'Player3',
+            'email' => 'player3@example.test',
+            'udid' => 'same-device-001',
+        ],
+        ['REMOTE_ADDR' => '198.51.100.40']
+    ),
+    $registrationPath
+);
+
+if (
+    $registrationDeviceBlocked['decision'] !== 'block' ||
+    $registrationDeviceBlocked['reason'] !== 'device_rate_limit'
+) {
+    fwrite(
+        STDERR,
+        "Registration device anti-spam failed: "
+        . json_encode($registrationDeviceBlocked, JSON_UNESCAPED_SLASHES)
+        . "\n"
+    );
+    exit(1);
+}
+
+$registrationDifferentDevice = $registrationProtect->inspect(
+    new Request(
+        'POST',
+        '/registerGJAccount.php',
+        [],
+        [
+            'userName' => 'Player4',
+            'email' => 'player4@example.test',
+            'udid' => 'different-device-002',
+        ],
+        ['REMOTE_ADDR' => '198.51.100.41']
+    ),
+    $registrationPath
+);
+
+if ($registrationDifferentDevice['decision'] !== 'allow') {
+    fwrite(STDERR, "Registration device isolation failed\n");
+    exit(1);
+}
+
 /*
  * Verify 2.2 credentials are recognized through gjp2 and account
  * protection remains bound to account + credential, not accountID alone.
