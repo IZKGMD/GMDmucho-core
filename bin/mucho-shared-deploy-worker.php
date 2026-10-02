@@ -507,6 +507,14 @@ function safe_remote_candidate(string $path): bool {
         && preg_match('#(^|/)\.\.?(/|$)#', $path) !== 1);
 }
 
+function provider_default_web_root(string $ftpHost): ?string {
+    $host = strtolower(trim($ftpHost));
+    if ($host === 'ftpupload.net' || $host === 'ftp.epizy.com' || str_ends_with($host, '.epizy.com')) {
+        return 'htdocs';
+    }
+    return null;
+}
+
 function detect_web_root(
     \FTP\Connection $ftp,
     string $configuredBase,
@@ -815,14 +823,25 @@ try {
             if ($ips === []) {
                 throw new RuntimeException('The GDPS hostname does not resolve to a public IPv4 address.');
             }
-            $base = detect_web_root(
-                $ftp,
-                $configuredBase,
-                (string)$config['account_url'],
-                $ips[0],
-                $dir,
-                $logFile
-            );
+            $providerRoot = provider_default_web_root((string)$config['ftp_host']);
+            if ($providerRoot !== null && @ftp_chdir($ftp, $configuredBase) && @ftp_chdir($ftp, $providerRoot)) {
+                $base = @ftp_pwd($ftp);
+                if (!is_string($base) || $base === '') {
+                    throw new RuntimeException('Unable to determine the provider web-root directory.');
+                }
+                @ftp_chdir($ftp, $configuredBase);
+                log_line($logFile, "[MuchoGDPS] Provider profile detected; using web root {$providerRoot}.
+");
+            } else {
+                $base = detect_web_root(
+                    $ftp,
+                    $configuredBase,
+                    (string)$config['account_url'],
+                    $ips[0],
+                    $dir,
+                    $logFile
+                );
+            }
         }
 
         $uploaded = upload_tree($ftp, $localRoot, $base, $logFile);
