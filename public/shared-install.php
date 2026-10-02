@@ -541,7 +541,7 @@ $envBackup = null;
 $bootstrapBackup = null;
 $cloudsaveCreated = false;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' || $autoConfig !== null) {
     set_time_limit(0);
     $postedCsrf = (string)($_POST['csrf'] ?? '');
     if (empty($_SESSION['mucho_install_csrf']) || !hash_equals((string)$_SESSION['mucho_install_csrf'], $postedCsrf)) {
