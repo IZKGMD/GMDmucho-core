@@ -9,8 +9,9 @@ final class WebhookDispatcher
     public function enabledFor(string $event): bool
     {
         $url = trim((string)(
-            getenv('MUCHO_WEBHOOK_URL')
-            ?: ($_ENV['MUCHO_WEBHOOK_URL'] ?? '')
+            $_ENV['MUCHO_WEBHOOK_URL']
+            ?? getenv('MUCHO_WEBHOOK_URL')
+            ?? ''
         ));
 
         if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
@@ -18,8 +19,9 @@ final class WebhookDispatcher
         }
 
         $raw = trim((string)(
-            getenv('MUCHO_WEBHOOK_EVENTS')
-            ?: ($_ENV['MUCHO_WEBHOOK_EVENTS'] ?? '*')
+            $_ENV['MUCHO_WEBHOOK_EVENTS']
+            ?? getenv('MUCHO_WEBHOOK_EVENTS')
+            ?? '*'
         ));
 
         if ($raw === '' || $raw === '*') {
@@ -45,12 +47,14 @@ final class WebhookDispatcher
         }
 
         $url = trim((string)(
-            getenv('MUCHO_WEBHOOK_URL')
-            ?: ($_ENV['MUCHO_WEBHOOK_URL'] ?? '')
+            $_ENV['MUCHO_WEBHOOK_URL']
+            ?? getenv('MUCHO_WEBHOOK_URL')
+            ?? ''
         ));
         $secret = (string)(
-            getenv('MUCHO_WEBHOOK_SECRET')
-            ?: ($_ENV['MUCHO_WEBHOOK_SECRET'] ?? '')
+            $_ENV['MUCHO_WEBHOOK_SECRET']
+            ?? getenv('MUCHO_WEBHOOK_SECRET')
+            ?? ''
         );
 
         $payload = json_encode([
