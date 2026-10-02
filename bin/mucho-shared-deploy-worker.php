@@ -59,7 +59,7 @@ function log_line(string $path, string $line): void {
 }
 
 function cleanup_secrets(string $dir): void {
-    foreach (['ftp_password', 'shared_db_password', 'admin_password', 'shared_config', 'shared_cookie', 'shared_archive'] as $file) {
+    foreach (['ftp_password', 'shared_db_password', 'admin_password', 'shared_config', 'shared_cookie', 'shared_archive', 'browser_finalization_payload'] as $file) {
         @unlink($dir . '/' . $file);
     }
 }
@@ -516,6 +516,68 @@ function provider_default_web_root(string $ftpHost): ?string {
     return null;
 }
 
+function provider_requires_browser_finalization(string $ftpHost): bool {
+    $host = strtolower(trim($ftpHost));
+    return $host === 'ftpupload.net'
+        || $host === 'ftp.epizy.com'
+        || str_ends_with($host, '.epizy.com');
+}
+
+function create_browser_finalization_payload(
+    array $config,
+    string $dbPassword,
+    string $adminPassword,
+    string $jobDir
+): array {
+    $token = bin2hex(random_bytes(32));
+    $expiresAt = time() + 900;
+    $payloadPath = $jobDir . '/browser_finalization_payload';
+    $payload = [
+        'token' => $token,
+        'expires_at' => $expiresAt,
+        'job_id' => basename($jobDir),
+        'control_url' => 'https://muchogdps.space',
+        'db_host' => (string)$config['db_host'],
+        'db_port' => (string)$config['db_port'],
+        'db_name' => (string)$config['db_name'],
+        'db_user' => (string)$config['db_user'],
+        'db_pass' => $dbPassword,
+        'account_url' => rtrim((string)$config['account_url'], '/'),
+        'admin_pass' => $adminPassword,
+    ];
+    $encoded = json_encode($payload, JSON_UNESCAPED_SLASHES);
+    if (!is_string($encoded) || $encoded === '') {
+        throw new RuntimeException('Unable to prepare the browser finalization payload.');
+    }
+    if (@file_put_contents($payloadPath, $encoded, LOCK_EX) === false) {
+        throw new RuntimeException('Unable to write the browser finalization payload.');
+    }
+    @chmod($payloadPath, 0600);
+    return [$token, $expiresAt, $payloadPath];
+}
+
+function upload_browser_finalization_payload(
+    FTPConnection $ftp,
+    string $base,
+    string $token,
+    string $payloadPath
+): void {
+    if (!@ftp_chdir($ftp, $base)) {
+        throw new RuntimeException('Unable to return to the FTP web-root directory before browser finalization.');
+    }
+    if (!@ftp_chdir($ftp, 'storage')) {
+        throw new RuntimeException('Unable to enter the storage directory for browser finalization.');
+    }
+    $remote = '.mucho-auto-' . $token . '.json';
+    if (!@ftp_put($ftp, $remote, $payloadPath, FTP_BINARY)) {
+        throw new RuntimeException('Unable to upload the browser finalization payload.');
+    }
+    if (!@ftp_chdir($ftp, $base)) {
+        throw new RuntimeException('Unable to restore the FTP web-root directory after browser finalization.');
+    }
+}
+
+
 function detect_web_root(
     \FTP\Connection $ftp,
     string $configuredBase,
@@ -852,6 +914,7 @@ try {
 
     log_line($logFile, "[MuchoGDPS] Connecting to shared hosting FTP...\n");
     [$ftp, $usedSecurity, $usedPort] = ftp_open_authenticated($config, $ftpPassword, $logFile);
+    $browserFinalization = null;
 
     try {
         $remotePath = trim((string)$config['ftp_path']);
@@ -898,12 +961,42 @@ try {
         }
 
         $uploaded = upload_tree($ftp, $localRoot, $base, $logFile);
+        if (provider_requires_browser_finalization((string)$config['ftp_host'])) {
+            [$browserToken, $browserExpiresAt, $browserPayloadPath] = create_browser_finalization_payload(
+                $config,
+                $dbPassword,
+                $adminPassword,
+                $dir
+            );
+            upload_browser_finalization_payload($ftp, $base, $browserToken, $browserPayloadPath);
+            $browserFinalization = [
+                'token' => $browserToken,
+                'expires_at' => $browserExpiresAt,
+                'url' => rtrim((string)$config['account_url'], '/')
+                    . '/shared-install.php?mucho_auto=' . rawurlencode($browserToken),
+            ];
+            $status = read_json_file($statusFile);
+            $status['status'] = 'awaiting_browser';
+            $status['browser_finalization_url'] = $browserFinalization['url'];
+            $status['browser_finalization_expires_at'] = gmdate('c', $browserExpiresAt);
+            $status['browser_finalization_token_hash'] = hash('sha256', $browserToken);
+            $status['heartbeat_at'] = gmdate('c');
+            write_status($statusFile, $status);
+            log_line($logFile, "[MuchoGDPS] InfinityFree browser security detected; final installation will continue in the user's browser.\n");
+            log_line($logFile, "[MuchoGDPS] Browser finalization URL: {$browserFinalization['url']}\n");
+        }
         log_line($logFile, "[MuchoGDPS] Uploaded {$uploaded} files via " . strtoupper($usedSecurity) . " port {$usedPort}.\n");
     } finally {
         @ftp_close($ftp);
     }
 
     log_line($logFile, "[MuchoGDPS] FTP upload complete.\n");
+
+    if ($browserFinalization !== null) {
+        log_line($logFile, "[MuchoGDPS] Waiting for browser finalization...\n");
+        exit(0);
+    }
+
     run_remote_installer($config, $dbPassword, $adminPassword, $dir . '/shared_cookie', $logFile);
 
     $status = read_json_file($statusFile);
