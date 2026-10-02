@@ -29,9 +29,14 @@ main{padding:42px 0 70px}.eyebrow{display:inline-flex;gap:7px;align-items:center
   <strong>Open →</strong>
 </a>
 </div>
+<section class="panel" style="margin-top:20px">
+<h2>1. Name your GDPS</h2>
+<p class="section-note">This becomes the server name used throughout the installed MuchoCore server. Use up to 64 characters.</p>
+<div class="field"><label>GDPS name</label><input id="gdpsName" placeholder="My Awesome GDPS" maxlength="64" autocomplete="off"></div>
+</section>
 <div class="layout">
 <section class="panel" id="vps">
-<h2>1. VPS connection</h2>
+<h2>2. VPS connection</h2>
 <div class="grid">
 <div class="field full"><label>Public IPv4</label><input id="host" placeholder="203.0.113.10" inputmode="decimal"></div>
 <div class="field"><label>SSH port</label><input id="port" value="22" inputmode="numeric"></div>
@@ -39,7 +44,7 @@ main{padding:42px 0 70px}.eyebrow{display:inline-flex;gap:7px;align-items:center
 <div class="field full"><label>SSH password</label><input id="password" type="password" autocomplete="off" placeholder="Used only during the deployment"></div>
 <div class="field full"><label>Or private key</label><textarea id="key" spellcheck="false" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"></textarea></div>
 </div>
-<h2 style="margin-top:22px">2. GDPS setup</h2>
+<h2 style="margin-top:22px">3. GDPS setup</h2>
 <div class="grid">
 <div class="field full"><label>GDPS domain</label><input id="domain" placeholder="gdps.example.com"></div>
 <div class="field"><label>Admin username</label><input id="adminUser" value="admin"></div>
@@ -64,7 +69,7 @@ main{padding:42px 0 70px}.eyebrow{display:inline-flex;gap:7px;align-items:center
 const $=id=>document.getElementById(id),terminal=$('terminal'),state=$('state'),start=$('start');
 
 const AUTOSAVE_KEY='muchogdps_vps_deploy_draft_v1';
-const autosaveFields=['host','port','user','key','domain','adminUser','adminPassword'];
+const autosaveFields=['gdpsName','host','port','user','key','domain','adminUser','adminPassword'];
 function saveDraft(){
   const data={};
   for(const id of autosaveFields){const el=$(id);if(el)data[id]=el.value}
@@ -133,7 +138,7 @@ start.onclick=async()=>{
  if(!$('confirm').checked){alert('Confirm that you have permission to administer this VPS.');return}
  await fetch('/api/deploy/session',{cache:'no-store'});clearTimer();start.disabled=true;$('secret').style.display='none';last='';
  setState('Starting','running');print('[MuchoGDPS] Creating secure deployment job...\n');
- const body={host:$('host').value.trim(),port:Number($('port').value||22),username:$('user').value.trim(),password:$('password').value,private_key:$('key').value,domain:$('domain').value.trim(),admin_user:$('adminUser').value.trim(),admin_password:$('adminPassword').value};
+ const body={gdps_name:$('gdpsName').value.trim(),host:$('host').value.trim(),port:Number($('port').value||22),username:$('user').value.trim(),password:$('password').value,private_key:$('key').value,domain:$('domain').value.trim(),admin_user:$('adminUser').value.trim(),admin_password:$('adminPassword').value};
  try{
   const r=await fetch('/api/deploy/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'Could not start deployment');
