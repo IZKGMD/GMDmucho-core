@@ -107,12 +107,16 @@ async function prepareClients(){
   const sr=await fetch('/api/deploy/status?id='+encodeURIComponent(job),{cache:'no-store'});
   const sd=await sr.json();
   const token=sd.client_pack_token||'';
+  const detailsToken=sd.deployment_details_token||'';
   if(!sr.ok||!sd.ok||!/^[a-f0-9]{64}$/.test(token))throw new Error('Client download token is unavailable.');
   const r=await fetch('/api/deploy/client-pack?id='+encodeURIComponent(job)+'&token='+encodeURIComponent(token)+'&kind=prepare',{cache:'no-store'});
   const d=await r.json();
   if(!r.ok||!d.ok)throw new Error(d.error||'Client pack generation failed.');
   status.innerHTML='Server: <b>'+esc(d.server_url)+'</b>';
-  links.innerHTML='<a class="btn" id="downloadWindows" href="'+esc(d.windows.url)+'">⬇ Windows EXE</a><a class="btn" id="downloadAndroid" href="'+esc(d.android.url)+'">⬇ Android APK</a>';
+  links.innerHTML='<a class="btn" id="downloadWindows" href="'+esc(d.windows.url)+'">⬇ Windows EXE</a><a class="btn" id="downloadAndroid" href="'+esc(d.android.url)+'">⬇ Android APK</a>'+
+   (detailsToken && /^[a-f0-9]{64}$/.test(detailsToken)
+    ? '<a class="btn alt" href="/api/deploy/details?id='+encodeURIComponent(job)+'&token='+encodeURIComponent(detailsToken)+'">⬇ Deployment details (.txt)</a>'
+    : '');
   const win=$('downloadWindows'),apk=$('downloadAndroid');
   setTimeout(()=>{try{win.click()}catch(_){}},250);
   setTimeout(()=>{try{apk.click()}catch(_){}},1200);
