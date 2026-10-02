@@ -49,6 +49,12 @@ mkdir -p "$STAGE/muchocore/docs"
 cp -a "$ROOT/docs/SHARED_HOSTING.md" "$ROOT/docs/CLIENT_SETUP.md" "$STAGE/muchocore/docs/"
 
 rm -f "$STAGE/muchocore/config/cloudsave.key"
+
+# The shared-hosting runtime must not receive the MuchoGDPS control-plane
+# installer/deployment UI. Those routes belong only to muchogdps.space.
+rm -rf "$STAGE/muchocore/public/install" "$STAGE/muchocore/public/deploy"
+rm -f "$STAGE/muchocore/public/deploy.php"
+
 rm -rf "$STAGE/muchocore/storage" "$STAGE/muchocore/.secrets" "$STAGE/muchocore/.git"
 
 mkdir -p "$(dirname "$OUTPUT")"
