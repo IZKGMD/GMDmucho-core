@@ -100,6 +100,9 @@ foreach ([
     'Auto detect web root',
     'value="auto"',
     '/install/shared/go/',
+    'AUTOSAVE_KEY',
+    'restoreDraft',
+    'sessionStorage',
 ] as $needle) {
     if (!str_contains($page, $needle)) {
         throw new RuntimeException('Shared FTP UI contract missing: ' . $needle);
@@ -129,7 +132,15 @@ foreach ([
     }
 }
 
-if (!str_contains($page, "window.location.assign('/install/shared/go/?job='+encodeURIComponent(job))")) {
+if (str_contains($page, 'Enter the MuchoGDPS deployment access key') || str_contains($goPage, 'Enter the MuchoGDPS deployment access key')) {
+    throw new RuntimeException('Deployment UI must not ask the user for the internal deployment access key.');
+}
+
+if (!str_contains($deploy, 'function deployment_session_start') || !str_contains($deploy, "'/api/deploy/session'")) {
+    throw new RuntimeException('Browser deployment session bootstrap contract missing.');
+}
+
+if (!str_contains($page, "window.location.assign('/install/shared/go/?job='+encodeURIComponent(d.job_id))")) {
     throw new RuntimeException('Shared FTP UI must redirect to the live installation console after creating a job.');
 }
 
