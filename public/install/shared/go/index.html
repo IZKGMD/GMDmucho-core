@@ -46,6 +46,7 @@ main{padding:38px 0 60px}.eyebrow{display:inline-flex;gap:8px;align-items:center
 <h2 id="resultTitle">Installation finished.</h2>
 <p id="resultText"></p>
 <div class="password" id="password"></div>
+<div id="clients" style="display:none;margin-top:12px"></div>
 </div>
 
 <div class="bottom">
@@ -67,6 +68,7 @@ const result=document.getElementById('result');
 const resultTitle=document.getElementById('resultTitle');
 const resultText=document.getElementById('resultText');
 const password=document.getElementById('password');
+const clients=document.getElementById('clients');
 const continueBrowser=document.getElementById('continueBrowser');
 const params=new URLSearchParams(location.search);
 const job=params.get('job')||'';
@@ -105,6 +107,67 @@ async function browserFinishCallback(){
     history.replaceState({},document.title,'/install/shared/go/?job='+encodeURIComponent(job));
   }catch(_){}
 }
+function escapeHtml(value){
+  return String(value)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#039;");
+}
+async function prepareClients(){
+  clients.style.display='block';
+  clients.innerHTML='<div style="color:#8895a8;font-size:9px;line-height:1.65">Preparing Windows EXE and Android APK for this GDPS…</div>';
+  try{
+    const statusResponse=await fetch('/api/deploy/status?id='+encodeURIComponent(job),{cache:'no-store'});
+    const statusData=await statusResponse.json();
+    const token=statusData.client_pack_token||'';
+    if(!statusResponse.ok||!statusData.ok||!/^[a-f0-9]{64}$/.test(token)){
+      throw new Error('The client download token is unavailable.');
+    }
+
+    const response=await fetch(
+      '/api/deploy/client-pack?id='+encodeURIComponent(job)+
+      '&token='+encodeURIComponent(token)+'&kind=prepare',
+      {cache:'no-store'}
+    );
+    const data=await response.json();
+    if(!response.ok||!data.ok){
+      throw new Error(data.error||'Client pack generation failed.');
+    }
+
+    clients.innerHTML=
+      '<div style="padding:12px;border:1px solid rgba(89,230,164,.2);border-radius:10px;background:rgba(89,230,164,.04)">'+
+      '<div style="font-size:10px;font-weight:900;color:#aaf2cf;margin-bottom:8px">🎮 Your clients are ready</div>'+
+      '<div style="color:#8895a8;font-size:9px;line-height:1.7;margin-bottom:10px">Server: <b style="color:#c7d2df">'+escapeHtml(data.server_url)+'</b></div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+      '<a class="btn primary" id="downloadWindows" href="'+escapeHtml(data.windows.url)+'">⬇ Windows EXE</a>'+
+      '<a class="btn primary" id="downloadAndroid" href="'+escapeHtml(data.android.url)+'">⬇ Android APK</a>'+
+      '</div></div>';
+
+    const links=[
+      document.getElementById('downloadWindows'),
+      document.getElementById('downloadAndroid')
+    ];
+    for(const link of links){
+      link.target='_self';
+    }
+
+    setStatus('Installation complete. Starting client downloads…');
+
+    try{
+      links[0].click();
+      await new Promise(resolve=>setTimeout(resolve,900));
+      links[1].click();
+    }catch(_){}
+  }catch(error){
+    clients.style.display='block';
+    clients.innerHTML=
+      '<div style="padding:12px;border:1px solid rgba(229,191,104,.2);border-radius:10px;background:rgba(229,191,104,.04);color:#d8c18b;font-size:9px;line-height:1.65">'+
+      '<b>Client pack is not ready yet.</b> '+escapeHtml(error?.message||'Try the download again from this page.')+
+      '</div>';
+  }
+}
 async function finish(ok,status,timedOut=false){
   if(timer){clearInterval(timer);timer=null}
   setState(ok?'Completed':(timedOut?'Timed out':'Failed'),ok?'done':(timedOut?'failed':'failed'));
@@ -118,6 +181,7 @@ async function finish(ok,status,timedOut=false){
       password.style.display='block';
       password.textContent='Generated admin password: '+adminPassword;
     }
+    await prepareClients();
   }else if(timedOut){
     resultTitle.textContent='Deployment timed out after 60 seconds.';
     resultText.textContent='The worker stopped reporting activity for 60 seconds. The deployment session has been reset. Check the final terminal message and start a new installation.';
@@ -138,7 +202,7 @@ async function poll(){
     const d=await r.json();
     if(!r.ok||!d.ok)throw new Error(d.error||'Could not read deployment logs.');
     if(d.log!==lastLog){lastLog=d.log;showLog(lastLog);appendCursor()}
-    if(d.status==='completed'){finish(true,d.status);return}
+    if(d.status==='completed'){await finish(true,d.status);return}
     if(d.timed_out===true){finish(false,d.status,true);return}
     if(d.status==='failed'){finish(false,d.status);return}
     if(d.status==='awaiting_browser' && d.browser_finalization_url){
