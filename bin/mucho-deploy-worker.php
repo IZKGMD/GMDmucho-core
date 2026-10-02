@@ -3,7 +3,24 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
-const INSTALL_REF = 'v1.1.0';
+function deployment_install_ref(string $rootDir): string
+{
+    $version = trim((string)@file_get_contents($rootDir . '/VERSION'));
+    if (!preg_match('/^[0-9]+\\.[0-9]+\\.[0-9]+$/', $version)) {
+        return 'main';
+    }
+
+    $tag = 'v' . $version;
+
+    // A release marker means the version is prepared but not published yet.
+    // Deploying from the tag at that point would fail because the tag does
+    // not exist. Use main until the stable release is actually published.
+    if (is_file($rootDir . '/.release/' . $tag . '.ready')) {
+        return 'main';
+    }
+
+    return $tag;
+}
 
 $jobId = '';
 foreach (array_slice($argv, 1) as $arg) {
@@ -16,6 +33,8 @@ if (!preg_match('/^[0-9]{14}-[a-f0-9]{12}$/', $jobId)) {
 }
 
 $dir = '/var/lib/muchocore-control/deploy-jobs/' . $jobId;
+$rootDir = dirname(__DIR__);
+$installRef = deployment_install_ref($rootDir);
 $statusFile = $dir . '/status.json';
 $logFile = $dir . '/log.txt';
 if (!is_dir($dir)) {
@@ -258,7 +277,7 @@ $remoteCommand =
     . 'cat > "$T"; '
     . 'set -a; . "$T"; set +a; rm -f "$T"; '
     . 'curl -4fsSL --retry 3 --connect-timeout 5 --max-time 60 '
-    . shell_quote('https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/' . INSTALL_REF . '/install-remote.sh')
+    . shell_quote('https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/' . $installRef . '/install-remote.sh')
     . ' | bash -s -- --ref=' . shell_quote(INSTALL_REF)
     . ' --domain="$MUCHO_DOMAIN" --server-name="$MUCHO_SERVER_NAME" --gd-versions="$MUCHO_GD_VERSIONS"';
 
