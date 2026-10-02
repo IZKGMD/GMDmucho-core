@@ -116,9 +116,7 @@ if (!defined('BACKUP_DIR')) {
     define(
         'BACKUP_DIR',
         (string)(
-            $_ENV['MUCHO_BACKUP_DIR']
-            ?? getenv('MUCHO_BACKUP_DIR')
-            ?: $rootDir.'/storage/backups/admin-v2'
+            Environment::get('MUCHO_BACKUP_DIR', $rootDir.'/storage/backups/admin-v2') ?? $rootDir.'/storage/backups/admin-v2'
         )
     );
 }
@@ -2925,7 +2923,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
             $baseUrl=rtrim(
                 (string)(
-                    getenv('MUCHO_ACCOUNT_URL')
+                    Environment::get('MUCHO_ACCOUNT_URL', '')
                     ?: (
                         'https://'.
                         (string)($_SERVER['HTTP_HOST'] ?? 'localhost')
@@ -5126,7 +5124,7 @@ Logout
 
 <div class="head-title">
 <h1><?=h($pages[$page])?></h1>
-<small><?=h((string)(getenv('MUCHO_ACCOUNT_URL') ?: $branding['server_name']))?></small>
+<small><?=h((string)((Environment::get('MUCHO_ACCOUNT_URL', '') ?: $branding['server_name'])))?></small>
 </div>
 
 <form class="global-search" method="get" id="globalSearch">
