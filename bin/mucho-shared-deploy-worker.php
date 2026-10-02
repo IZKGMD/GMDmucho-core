@@ -517,17 +517,18 @@ try {
     );
 
     try {
-        $remotePath = trim((string)$config['ftp_path']);
-        if ($remotePath !== '' && !@ftp_chdir($ftp, $remotePath)) {
-            throw new RuntimeException('The configured FTP remote directory does not exist or is not accessible.');
-        }
-        $remoteRoot = $remotePath !== '' ? $remotePath : '.';
         @ftp_pasv($ftp, true);
 
         $username = (string)$config['ftp_username'];
         if (!@ftp_login($ftp, $username, $ftpPassword)) {
             throw new RuntimeException('FTP login failed. Check the FTP username/password and hosting account.');
         }
+
+        $remotePath = trim((string)$config['ftp_path']);
+        if ($remotePath !== '' && !@ftp_chdir($ftp, $remotePath)) {
+            throw new RuntimeException('The configured FTP remote directory does not exist or is not accessible.');
+        }
+        $remoteRoot = '.';
 
         $pwd = @ftp_pwd($ftp);
         if (is_string($pwd) && $pwd !== '') {
