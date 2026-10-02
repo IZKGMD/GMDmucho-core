@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Copyright (C) 2026 IZK
  */
 
-$accountUrl = trim((string)getenv('MUCHO_ACCOUNT_URL'));
+$accountUrl = trim((string)($_ENV['MUCHO_ACCOUNT_URL'] ?? getenv('MUCHO_ACCOUNT_URL') ?? ''));
 
 if ($accountUrl === '') {
     $host = (string)($_SERVER['HTTP_HOST'] ?? '');
@@ -25,6 +25,6 @@ return [
     'account_url' => $accountUrl,
 
     // Keep official content CDN by default; override later for Mucho-hosted music/SFX.
-    'custom_content_url' => getenv('MUCHO_CUSTOM_CONTENT_URL')
+    'custom_content_url' => trim((string)($_ENV['MUCHO_CUSTOM_CONTENT_URL'] ?? getenv('MUCHO_CUSTOM_CONTENT_URL') ?? ''))
         ?: 'https://geometrydashfiles.b-cdn.net',
 ];
