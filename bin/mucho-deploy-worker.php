@@ -107,11 +107,11 @@ function upload_tenant_clients(
     $remote = 'root@' . $host;
 
     $sshPrefix = $sshPassword !== ''
-        ? 'sshpass -f ' . shell_quote($jobDir . '/ssh_password') . ' '
-        : 'ssh -i ' . shell_quote($sshKey) . ' -o IdentitiesOnly=yes ';
+        ? 'sshpass -f ' . shell_quote($jobDir . '/ssh_password') . ' ssh'
+        : 'ssh -i ' . shell_quote($sshKey) . ' -o IdentitiesOnly=yes ssh';
 
     shell_command(
-        $sshPrefix . 'ssh' . $sshOptions . ' ' . shell_quote($remote) . ' ' .
+        $sshPrefix . $sshOptions . ' ' . shell_quote($remote) . ' ' .
         shell_quote('mkdir -p /opt/mucho-core/storage/clients && chmod 750 /opt/mucho-core/storage/clients')
     );
 
@@ -143,7 +143,7 @@ function upload_tenant_clients(
     );
 
     shell_command(
-        $sshPrefix . 'ssh' . $sshOptions . ' ' . shell_quote($remote) . ' ' .
+        $sshPrefix . $sshOptions . ' ' . shell_quote($remote) . ' ' .
         shell_quote(
             'chmod 640 /opt/mucho-core/storage/clients/GeometryDash-MuchoGDPS.exe ' .
             '/opt/mucho-core/storage/clients/GeometryDash-MuchoGDPS.apk ' .
