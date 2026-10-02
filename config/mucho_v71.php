@@ -6,12 +6,7 @@ declare(strict_types=1);
  * Copyright (C) 2026 IZK
  */
 
-$projectRoot = dirname(__DIR__);
-if (class_exists('Dotenv\\Dotenv') && is_file($projectRoot . '/.env')) {
-    \Dotenv\Dotenv::createImmutable($projectRoot)->safeLoad();
-}
-
-$accountUrl = trim((string)($_ENV['MUCHO_ACCOUNT_URL'] ?? getenv('MUCHO_ACCOUNT_URL') ?? ''));
+$accountUrl = trim((string)(\MuchoCore\Core\Environment::get('MUCHO_ACCOUNT_URL', '') ?? ''));
 
 if ($accountUrl === '') {
     $host = (string)($_SERVER['HTTP_HOST'] ?? '');
@@ -30,6 +25,5 @@ return [
     'account_url' => $accountUrl,
 
     // Keep official content CDN by default; override later for Mucho-hosted music/SFX.
-    'custom_content_url' => trim((string)($_ENV['MUCHO_CUSTOM_CONTENT_URL'] ?? getenv('MUCHO_CUSTOM_CONTENT_URL') ?? ''))
-        ?: 'https://geometrydashfiles.b-cdn.net',
+    'custom_content_url' => trim((string)(\MuchoCore\Core\Environment::get('MUCHO_CUSTOM_CONTENT_URL', 'https://geometrydashfiles.b-cdn.net') ?? 'https://geometrydashfiles.b-cdn.net')),
 ];
