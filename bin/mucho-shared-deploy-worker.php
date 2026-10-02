@@ -72,6 +72,35 @@ function dispatch_queued_jobs(string $root): void {
 
     try {
         $max = max(1, (int)($_ENV['MUCHO_DEPLOY_MAX_CONCURRENT'] ?? getenv('MUCHO_DEPLOY_MAX_CONCURRENT') ?: 2));
+        $now = time();
+
+        foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
+            $stale = read_json_file($statusFile);
+            if (($stale['status'] ?? '') !== 'running') {
+                continue;
+            }
+            $heartbeat = strtotime((string)($stale['heartbeat_at'] ?? ''));
+            $started = strtotime((string)($stale['started_at'] ?? $stale['created_at'] ?? ''));
+            $reference = ($heartbeat !== false && $heartbeat > 0) ? $heartbeat : ($started ?: 0);
+            if ($reference <= 0 || $reference > $now - 60) {
+                continue;
+            }
+
+            $staleDir = dirname($statusFile);
+            $staleId = (string)($stale['id'] ?? basename($staleDir));
+            $stale['status'] = 'failed';
+            $stale['exit_code'] = 124;
+            $stale['finished_at'] = gmdate('c');
+            $stale['timed_out'] = true;
+            $stale['timeout_seconds'] = 60;
+            @file_put_contents($statusFile, json_encode($stale, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
+            @file_put_contents($staleDir . '/log.txt',
+                "\n[MuchoGDPS] ERROR: Deployment watchdog marked job {$staleId} failed after 60 seconds without a worker heartbeat.\n"
+                . "[MuchoGDPS] The deployment session was reset. Start a new installation after checking the previous error.\n",
+                FILE_APPEND | LOCK_EX
+            );
+        }
+
         while (true) {
             $running = 0;
             $queued = [];
