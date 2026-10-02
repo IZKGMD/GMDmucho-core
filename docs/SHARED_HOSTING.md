@@ -26,6 +26,20 @@ A shared-hosting account needs:
 - FTP or the hosting file manager;
 - a database and database user.
 
+## Automatic installation from MuchoGDPS
+
+The official MuchoGDPS installer page can also connect to a shared-hosting account directly:
+
+~~~text
+https://muchogdps.space/install/shared/
+~~~
+
+Enter the FTP/FTPS host, port, username, password, remote web-root directory, public HTTPS URL, and database credentials. MuchoGDPS then downloads the latest published stable shared-hosting package on the control-plane server, verifies its SHA-256 digest, uploads the package through FTP/FTPS, starts the existing shared-hosting installer through the target site's HTTPS endpoint, and verifies the /health endpoint.
+
+FTP and database passwords are stored only in the temporary deployment job on the MuchoGDPS control plane. They are not written to the deployment log and are deleted when the job finishes.
+
+The target web root must already exist and the domain must already serve valid HTTPS. The shared hosting must permit normal PHP application/API traffic after installation.
+
 ## Fastest path: FTP bootstrap
 
 For a new shared-hosting site, the simplest flow is:
