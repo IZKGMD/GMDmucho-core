@@ -60,6 +60,7 @@ foreach ([
     'create_browser_finalization_payload',
     'upload_browser_finalization_payload',
     'awaiting_browser',
+    "activeStatuses = ['running', 'starting', 'awaiting_browser']",
     'Browser finalization completed; deployment job confirmed.',
     'mucho_auto=',
 ] as $needle) {
