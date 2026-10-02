@@ -596,7 +596,7 @@ final readonly class MuchoProtect
         int $strikes = 0
     ): void {
         $directory = $this->env('MUCHO_PROTECT_AUDIT_DIR')
-            ?: '/tmp/muchocore-protect';
+            ?: dirname(__DIR__, 2) . '/storage/control/protect-audit';
 
         if (
             !is_dir($directory) &&
