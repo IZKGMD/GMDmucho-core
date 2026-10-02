@@ -12,7 +12,7 @@ final class Turnstile
 
     public static function siteKey(): string
     {
-        return trim((string)(getenv('TURNSTILE_SITEKEY') ?: ''));
+        return trim((string)($_ENV['TURNSTILE_SITEKEY'] ?? getenv('TURNSTILE_SITEKEY') ?? ''));
     }
 
     public static function enabled(): bool
@@ -93,6 +93,6 @@ final class Turnstile
 
     private static function secret(): string
     {
-        return trim((string)(getenv('TURNSTILE_SECRET') ?: ''));
+        return trim((string)($_ENV['TURNSTILE_SECRET'] ?? getenv('TURNSTILE_SECRET') ?? ''));
     }
 }
