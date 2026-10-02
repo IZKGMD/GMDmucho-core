@@ -60,6 +60,7 @@ rm -f "$OUTPUT"
 
 unzip -t "$OUTPUT" >/dev/null
 unzip -Z1 "$OUTPUT" | grep -Fxq 'muchocore/public/shared-install.php'
+unzip -Z1 "$OUTPUT" | grep -Fxq 'muchocore/public/ftp-install.php'
 unzip -Z1 "$OUTPUT" | grep -Fxq 'muchocore/vendor/autoload.php'
 unzip -Z1 "$OUTPUT" | grep -Fxq 'muchocore/docs/SHARED_HOSTING.md'
 ! unzip -Z1 "$OUTPUT" | grep -Eq '(^|/)\.env($|\.)'
