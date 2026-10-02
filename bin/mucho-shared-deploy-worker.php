@@ -14,7 +14,7 @@ const JOB_ROOT = '/var/lib/muchocore-control/deploy-jobs';
 const REPOSITORY = 'IZKGMD/GMDmucho-core';
 const RELEASES_API = 'https://api.github.com/repos/' . REPOSITORY . '/releases/latest';
 const MAX_DOWNLOAD_BYTES = 256 * 1024 * 1024;
-const HTTP_TIMEOUT = 600;
+const HTTP_TIMEOUT = 50;
 
 $jobId = '';
 $dispatchOnly = false;
@@ -49,6 +49,13 @@ function write_status(string $path, array $data): void {
 
 function log_line(string $path, string $line): void {
     @file_put_contents($path, $line, FILE_APPEND | LOCK_EX);
+    $statusFile = dirname($path) . '/status.json';
+    if (is_file($statusFile)) {
+        $status = read_json_file($statusFile);
+        $status['heartbeat_at'] = gmdate('c');
+        @file_put_contents($statusFile, json_encode($status, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
+        @chmod($statusFile, 0600);
+    }
 }
 
 function cleanup_secrets(string $dir): void {
@@ -213,7 +220,7 @@ function github_get(string $url): string {
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_MAXREDIRS => 4,
         CURLOPT_CONNECTTIMEOUT => 15,
-        CURLOPT_TIMEOUT => 60,
+        CURLOPT_TIMEOUT => 50,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
         CURLOPT_USERAGENT => 'MuchoCore-Shared-FTP-Installer/1.0',
@@ -292,7 +299,7 @@ function download_release(string $url, string $destination): int {
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 4,
             CURLOPT_CONNECTTIMEOUT => 20,
-            CURLOPT_TIMEOUT => 300,
+            CURLOPT_TIMEOUT => 50,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_USERAGENT => 'MuchoCore-Shared-FTP-Installer/1.0',
@@ -710,11 +717,13 @@ try {
     $status['status'] = 'running';
     write_status($statusFile, $status);
 
+    log_line($logFile, "[MuchoGDPS] Fetching latest stable release metadata from GitHub...\n");
     $release = latest_release();
     log_line($logFile, "[MuchoGDPS] Stable release: {$release['tag']}\n");
     log_line($logFile, "[MuchoGDPS] Package: {$release['name']}\n");
 
     $archive = $dir . '/shared_archive';
+    log_line($logFile, "[MuchoGDPS] Downloading {$release['name']} from GitHub...\n");
     $bytes = download_release($release['url'], $archive);
     $actual = hash_file('sha256', $archive);
     if (!is_string($actual) || !hash_equals($release['sha256'], strtolower($actual))) {
@@ -809,5 +818,6 @@ try {
     cleanup_secrets($dir);
     @unlink($dir . '/extracted');
     @unlink($dir . '/shared_archive');
+    dispatch_queued_jobs(dirname(__DIR__));
 }
 exit(0);
