@@ -206,12 +206,12 @@ function cleanup_job_secrets(string $dir): void
 
 function deployment_queue_dispatch(): void
 {
-    $script = $root . '/bin/mucho-deploy-queue.php';
-    if (!is_file($script)) {
+    $worker = $root . '/bin/mucho-shared-deploy-worker.php';
+    if (!is_file($worker)) {
         return;
     }
 
-    $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($script) . ' >/dev/null 2>&1 &';
+    $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($worker) . ' --dispatch-queue >/dev/null 2>&1 &';
     @exec($cmd);
 }
 
