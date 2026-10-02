@@ -170,12 +170,7 @@ final readonly class MuchoProtect
 
     public function storageMode(): string
     {
-        $value = strtolower(trim((string)(
-            $_ENV['MUCHO_PROTECT_STORAGE']
-            ?? $_SERVER['MUCHO_PROTECT_STORAGE']
-            ?? getenv('MUCHO_PROTECT_STORAGE')
-            ?? 'file'
-        )));
+        $value = strtolower(trim((string)(Environment::get('MUCHO_PROTECT_STORAGE', 'file') ?? 'file')));
         return in_array($value, ['db','database','mysql','mariadb'], true) ? 'db' : 'file';
     }
 
