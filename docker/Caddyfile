@@ -20,15 +20,63 @@
         respond 404
     }
 
-    # Public MuchoGDPS landing page. Keep the /index marketing surface
-    # separate from the Geometry Dash front controller and expose it only on
-    # the canonical MuchoCore project host.
+    # Main MuchoGDPS landing page. Only the canonical project host
+    # serves the marketing homepage; tenant GDPS hosts keep the API front controller.
+    @muchogdps_home {
+        host {$MUCHOCORE_SITE_HOST}
+        path /
+    }
+    handle @muchogdps_home {
+        rewrite * /index.html
+        file_server
+    }
+
+    # Canonical homepage: / is the only public landing-page URL.
+    # Redirect legacy /index and /index/ requests to the root.
     @muchogdps_index {
         host {$MUCHOCORE_SITE_HOST}
         path /index /index/
     }
-    handle @muchogdps_index {
-        rewrite * /muchogdps-index.html
+    redir @muchogdps_index / 308
+
+    # Installation method selector belongs only to the canonical MuchoGDPS host.
+    @muchogdps_install_root {
+        host {$MUCHOCORE_SITE_HOST}
+        path /install
+    }
+    redir @muchogdps_install_root /install/ 308
+
+    @muchogdps_install_ui {
+        host {$MUCHOCORE_SITE_HOST}
+        path /install /install/*
+    }
+    handle @muchogdps_install_ui {
+        rewrite * /install/index.html
+        file_server
+    }
+
+    # Web deployment UI/API belong only to the canonical MuchoGDPS host.
+    @muchogdps_deploy_api {
+        host {$MUCHOCORE_SITE_HOST}
+        path /api/deploy/start /api/deploy/status /api/deploy/log
+    }
+    handle @muchogdps_deploy_api {
+        rewrite * /deploy.php
+        php_fastcgi app:9000
+    }
+
+    @muchogdps_deploy_root {
+        host {$MUCHOCORE_SITE_HOST}
+        path /deploy
+    }
+    redir @muchogdps_deploy_root /deploy/ 308
+
+    @muchogdps_deploy_ui {
+        host {$MUCHOCORE_SITE_HOST}
+        path /deploy /deploy/*
+    }
+    handle @muchogdps_deploy_ui {
+        rewrite * /deploy/index.html
         file_server
     }
 
