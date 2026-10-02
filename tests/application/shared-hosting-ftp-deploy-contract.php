@@ -42,6 +42,8 @@ foreach ([
     'ftp_connect_public',
     'ftp_ssl_connect',
     'ftp_pasv',
+    'ftp_open_authenticated',
+    'detect_web_root',
     'ftp_login',
     'ftp_put',
     'latest_release',
@@ -94,6 +96,9 @@ foreach ([
     '/api/deploy/start',
     'type:\'shared\'',
     'Start automatic deployment',
+    'Auto Detect (recommended)',
+    'Auto detect web root',
+    'value="auto"',
     '/install/shared/go/',
 ] as $needle) {
     if (!str_contains($page, $needle)) {
