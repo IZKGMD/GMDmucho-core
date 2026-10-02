@@ -300,6 +300,58 @@ function ftp_connect_public(string $host, int $port, bool $secure): \FTP\Connect
     return $ftp;
 }
 
+function ftp_open_authenticated(array $config, string $password, string $logFile): array {
+    $host = (string)$config['ftp_host'];
+    $requestedSecurity = strtolower(trim((string)$config['ftp_security']));
+    $requestedPort = (int)$config['ftp_port'];
+
+    $candidates = [];
+    if ($requestedSecurity === 'auto' || $requestedSecurity === '') {
+        $ports = $requestedPort > 0 ? [$requestedPort] : [21, 990];
+        foreach ($ports as $port) {
+            foreach ([false, true] as $secure) {
+                $candidates[] = [$secure, $port];
+            }
+        }
+    } else {
+        $port = $requestedPort > 0 ? $requestedPort : ($requestedSecurity === 'ftps' ? 21 : 21);
+        $candidates[] = [$requestedSecurity === 'ftps', $port];
+    }
+
+    $seen = [];
+    $lastError = 'No FTP connection method succeeded.';
+    foreach ($candidates as [$secure, $port]) {
+        $key = ($secure ? 'ftps' : 'ftp') . ':' . $port;
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+
+        log_line($logFile, "[MuchoGDPS] Trying " . strtoupper($secure ? 'FTPS' : 'FTP') . " on {$host}:{$port}...\n");
+        try {
+            $ftp = ftp_connect_public($host, $port, $secure);
+            if (!@ftp_login($ftp, (string)$config['ftp_username'], $password)) {
+                throw new RuntimeException('FTP authentication failed.');
+            }
+            if (!@ftp_pasv($ftp, true)) {
+                throw new RuntimeException('FTP passive mode was refused.');
+            }
+
+            log_line($logFile, "[MuchoGDPS] Connected using " . strtoupper($secure ? 'FTPS' : 'FTP') . " on port {$port}.\n");
+            return [$ftp, $secure ? 'ftps' : 'ftp', $port];
+        } catch (Throwable $e) {
+            $lastError = $e->getMessage();
+            if (isset($ftp) && $ftp instanceof \FTP\Connection) {
+                @ftp_close($ftp);
+            }
+            unset($ftp);
+            log_line($logFile, "[MuchoGDPS] Method failed: {$lastError}\n");
+        }
+    }
+
+    throw new RuntimeException($lastError);
+}
+
 function ensure_remote_dir(\FTP\Connection $ftp, string $root, string $relative, array &$known): void {
     $parts = array_values(array_filter(
         explode('/', trim(str_replace('\\', '/', $relative), '/')),
@@ -326,6 +378,86 @@ function ensure_remote_dir(\FTP\Connection $ftp, string $root, string $relative,
             throw new RuntimeException('Unable to restore the FTP web-root directory.');
         }
     }
+}
+
+function safe_remote_candidate(string $path): bool {
+    $path = str_replace('\\', '/', trim($path));
+    return $path === '' || (strlen($path) <= 512
+        && !str_contains($path, "\0")
+        && preg_match('#(^|/)\.\.?(/|$)#', $path) !== 1);
+}
+
+function detect_web_root(
+    \FTP\Connection $ftp,
+    string $configuredBase,
+    string $accountUrl,
+    string $ip,
+    string $jobDir,
+    string $logFile
+): string {
+    $host = strtolower((string)(parse_url($accountUrl)['host'] ?? ''));
+    if ($host === '') {
+        throw new RuntimeException('Unable to determine the GDPS hostname for web-root detection.');
+    }
+
+    $candidates = ['.','htdocs','www','public_html','httpdocs','public'];
+    $domainCandidates = [
+        'domains/' . $host,
+        'domains/' . $host . '/public_html',
+        'www/' . $host,
+        'public_html/' . $host,
+    ];
+    $candidates = array_values(array_unique(array_merge($candidates, $domainCandidates)));
+
+    $token = bin2hex(random_bytes(12));
+    $markerName = '.muchocore-root-probe-' . $token . '.txt';
+    $markerLocal = $jobDir . '/' . $markerName;
+    file_put_contents($markerLocal, $token, LOCK_EX);
+    @chmod($markerLocal, 0600);
+
+    try {
+        foreach ($candidates as $candidate) {
+            if (!safe_remote_candidate($candidate)) {
+                continue;
+            }
+            if (!@ftp_chdir($ftp, $configuredBase)) {
+                throw new RuntimeException('Unable to restore the FTP base directory during web-root detection.');
+            }
+            if ($candidate !== '.' && !@ftp_chdir($ftp, $candidate)) {
+                continue;
+            }
+
+            $candidateBase = @ftp_pwd($ftp);
+            if (!is_string($candidateBase) || $candidateBase === '') {
+                continue;
+            }
+
+            log_line($logFile, "[MuchoGDPS] Probing web root: {$candidate}...\n");
+            if (!@ftp_put($ftp, $markerName, $markerLocal, FTP_ASCII)) {
+                log_line($logFile, "[MuchoGDPS] Probe upload failed for {$candidate}.\n");
+                continue;
+            }
+
+            try {
+                $probeUrl = rtrim($accountUrl, '/') . '/' . rawurlencode($markerName) . '?m=' . $token;
+                $response = http_request($probeUrl, $ip, $jobDir . '/shared_cookie', null);
+                if ($response['status'] === 200 && trim($response['body']) === $token) {
+                    @ftp_delete($ftp, $markerName);
+                    log_line($logFile, "[MuchoGDPS] Auto-detected web root: {$candidateBase}\n");
+                    return $candidateBase;
+                }
+            } finally {
+                @ftp_delete($ftp, $markerName);
+            }
+        }
+    } finally {
+        @unlink($markerLocal);
+        @ftp_chdir($ftp, $configuredBase);
+    }
+
+    throw new RuntimeException(
+        'Could not auto-detect the web root. Choose the hosting web-root directory manually and start a new deployment.'
+    );
 }
 
 function upload_tree(\FTP\Connection $ftp, string $localRoot, string $base, string $logFile): int {
@@ -527,35 +659,44 @@ try {
         throw new RuntimeException('The extracted shared-hosting package is missing its muchocore directory.');
     }
 
-    log_line($logFile, "[MuchoGDPS] Connecting to FTP " . $config['ftp_host'] . ":" . $config['ftp_port'] . " (" . strtoupper($config['ftp_security']) . ")...\n");
-    $ftp = ftp_connect_public(
-        (string)$config['ftp_host'],
-        (int)$config['ftp_port'],
-        (string)$config['ftp_security'] === 'ftps'
-    );
+    log_line($logFile, "[MuchoGDPS] Connecting to shared hosting FTP...\n");
+    [$ftp, $usedSecurity, $usedPort] = ftp_open_authenticated($config, $ftpPassword, $logFile);
 
     try {
-        $username = (string)$config['ftp_username'];
-        if (!@ftp_login($ftp, $username, $ftpPassword)) {
-            throw new RuntimeException('FTP login failed. Check the FTP username/password and hosting account.');
-        }
-        if (!@ftp_pasv($ftp, true)) {
-            throw new RuntimeException('The FTP server refused passive mode, which is required for reliable file uploads.');
-        }
-
         $remotePath = trim((string)$config['ftp_path']);
-        if ($remotePath !== '' && $remotePath !== '.' && !@ftp_chdir($ftp, $remotePath)) {
-            throw new RuntimeException('The configured FTP remote directory does not exist or is not accessible.');
+        $configuredBase = @ftp_pwd($ftp);
+        if (!is_string($configuredBase) || $configuredBase === '') {
+            throw new RuntimeException('Unable to determine the FTP base directory.');
         }
 
-        $base = @ftp_pwd($ftp);
-        if (!is_string($base) || $base === '') {
-            throw new RuntimeException('Unable to determine the FTP web-root directory.');
+        if ($remotePath !== '' && $remotePath !== '.' && strtolower($remotePath) !== 'auto') {
+            if (!@ftp_chdir($ftp, $remotePath)) {
+                throw new RuntimeException('The configured FTP web-root directory does not exist or is not accessible.');
+            }
+            $base = @ftp_pwd($ftp);
+            if (!is_string($base) || $base === '') {
+                throw new RuntimeException('Unable to determine the configured FTP web-root directory.');
+            }
+            log_line($logFile, "[MuchoGDPS] Using configured web root: {$base}\n");
+        } else {
+            $parsed = parse_url((string)$config['account_url']);
+            $accountHost = strtolower((string)($parsed['host'] ?? ''));
+            $ips = public_ipv4s($accountHost);
+            if ($ips === []) {
+                throw new RuntimeException('The GDPS hostname does not resolve to a public IPv4 address.');
+            }
+            $base = detect_web_root(
+                $ftp,
+                $configuredBase,
+                (string)$config['account_url'],
+                $ips[0],
+                $dir,
+                $logFile
+            );
         }
-        log_line($logFile, "[MuchoGDPS] FTP working directory: {$base}\n");
 
         $uploaded = upload_tree($ftp, $localRoot, $base, $logFile);
-        log_line($logFile, "[MuchoGDPS] Uploaded {$uploaded} files.\n");
+        log_line($logFile, "[MuchoGDPS] Uploaded {$uploaded} files via " . strtoupper($usedSecurity) . " port {$usedPort}.\n");
     } finally {
         @ftp_close($ftp);
     }
