@@ -461,7 +461,8 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
             }
 
             $cmd = 'nohup ' . escapeshellarg($phpCli) . ' ' . escapeshellarg($worker)
-                . ' --job=' . escapeshellarg($id) . ' > /dev/null 2>&1 & echo $!';
+                . ' --job=' . escapeshellarg($id)
+                . ' >> ' . escapeshellarg($dir . '/log.txt') . ' 2>&1 & echo $!';
             $output = [];
             $exit = 0;
             exec($cmd, $output, $exit);
