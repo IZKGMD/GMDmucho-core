@@ -122,6 +122,7 @@ async function prepareClients(){
     const statusResponse=await fetch('/api/deploy/status?id='+encodeURIComponent(job),{cache:'no-store'});
     const statusData=await statusResponse.json();
     const token=statusData.client_pack_token||'';
+    const detailsToken=statusData.deployment_details_token||'';
     if(!statusResponse.ok||!statusData.ok||!/^[a-f0-9]{64}$/.test(token)){
       throw new Error('The client download token is unavailable.');
     }
@@ -143,6 +144,9 @@ async function prepareClients(){
       '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
       '<a class="btn primary" id="downloadWindows" href="'+escapeHtml(data.windows.url)+'">⬇ Windows EXE</a>'+
       '<a class="btn primary" id="downloadAndroid" href="'+escapeHtml(data.android.url)+'">⬇ Android APK</a>'+
+      (detailsToken && /^[a-f0-9]{64}$/.test(detailsToken)
+        ? '<a class="btn" href="/api/deploy/details?id='+encodeURIComponent(job)+'&token='+encodeURIComponent(detailsToken)+'">⬇ Deployment details (.txt)</a>'
+        : '')+
       '</div></div>';
 
     const links=[
