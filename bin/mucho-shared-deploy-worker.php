@@ -725,21 +725,17 @@ function installer_csrf(string $html): string {
 
     foreach ($inputs[0] as $input) {
         $attributes = [];
-        if (preg_match_all(
-            '/([A-Za-z_:][A-Za-z0-9_.:-]*)\\s*=\\s*(?:"([^"]*)"|\\'([^\\']*)\\'|([^\\s>]+))/',
-            $input,
-            $matches,
-            PREG_SET_ORDER
-        ) !== false) {
-            foreach ($matches as $match) {
-                $name = strtolower((string)$match[1]);
-                $value = $match[2] !== '' ? $match[2] : ($match[3] !== '' ? $match[3] : (string)$match[4]);
-                $attributes[$name] = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            }
+        $name = '';
+        $value = '';
+        if (preg_match('/name\\s*=\\s*["\\']([^"\\']+)["\\']/i', $input, $nameMatch) === 1) {
+            $name = strtolower((string)$nameMatch[1]);
+        }
+        if (preg_match('/value\\s*=\\s*["\\']([^"\\']*)["\\']/i', $input, $valueMatch) === 1) {
+            $value = html_entity_decode((string)$valueMatch[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }
 
-        if (($attributes['name'] ?? '') === 'csrf' && ($attributes['value'] ?? '') !== '') {
-            return $attributes['value'];
+        if ($name === 'csrf' && $value !== '') {
+            return $value;
         }
     }
 
