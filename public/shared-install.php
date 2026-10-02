@@ -192,6 +192,25 @@ function atomicWrite(string $path, string $content, int $mode = 0600): void {
 }
 
 
+function browser_finalization_return_url(array $autoConfig, bool $ok): ?string {
+    $controlUrl = rtrim((string)($autoConfig['control_url'] ?? ''), '/');
+    $jobId = (string)($autoConfig['job_id'] ?? '');
+    $token = (string)($autoConfig['token'] ?? '');
+
+    if ($controlUrl === ''
+        || !preg_match('/^[0-9]{14}-[a-f0-9]{12}$/', $jobId)
+        || !preg_match('/^[a-f0-9]{64}$/', $token)
+    ) {
+        return null;
+    }
+
+    return $controlUrl
+        . '/install/shared/go/?job=' . rawurlencode($jobId)
+        . '&browser_finish=1'
+        . '&token=' . rawurlencode($token)
+        . '&ok=' . ($ok ? '1' : '0');
+}
+
 function notify_browser_finalization(array $autoConfig, bool $ok): void {
     $controlUrl = rtrim((string)($autoConfig['control_url'] ?? ''), '/');
     $jobId = (string)($autoConfig['job_id'] ?? '');
@@ -690,6 +709,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 if ($success) {
+    if ($autoConfig !== null) {
+        $returnUrl = browser_finalization_return_url($autoConfig, true);
+        if ($returnUrl !== null) {
+            header('Location: ' . $returnUrl, true, 303);
+            exit;
+        }
+    }
     ?>
     <!doctype html>
     <html lang="en">
@@ -729,6 +755,14 @@ if ($success) {
     </html>
     <?php
     exit;
+}
+
+if ($autoConfig !== null) {
+    $returnUrl = browser_finalization_return_url($autoConfig, false);
+    if ($returnUrl !== null) {
+        header('Location: ' . $returnUrl, true, 303);
+        exit;
+    }
 }
 
 $checksHtml = '';
