@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/vendor/autoload.php';
+
 const INSTALL_REF = 'v1.1.0';
 
 $jobId = '';
@@ -41,6 +43,117 @@ function log_line(string $path, string $line): void {
 function shell_quote(string $value): string {
     return "'" . str_replace("'", "'\\''", $value) . "'";
 }
+function shell_command(string $command): void
+{
+    $output = [];
+    $code = 0;
+    exec($command . ' 2>&1', $output, $code);
+    if ($code !== 0) {
+        throw new RuntimeException(trim(implode("\n", $output)) ?: 'Remote command failed.');
+    }
+}
+
+function upload_tenant_clients(
+    string $rootDir,
+    string $jobDir,
+    string $domain,
+    string $serverName,
+    string $host,
+    int $port,
+    string $sshPassword,
+    string $sshKey,
+    string $knownHosts,
+    string $adminUser,
+    string $logFile
+): void {
+    $manifest = \MuchoCore\Client\DeploymentClientPack::prepare(
+        $rootDir,
+        $jobDir,
+        'https://' . $domain,
+        $serverName
+    );
+
+    $manifestPath = $jobDir . '/tenant-client-manifest.json';
+    $tenantManifest = [
+        'server_url' => (string)($manifest['server_url'] ?? ('https://' . $domain)),
+        'server_name' => (string)($manifest['server_name'] ?? $serverName),
+        'created_at' => gmdate('c'),
+        'windows' => [
+            'name' => (string)($manifest['windows']['name'] ?? 'GeometryDash-MuchoGDPS.exe'),
+            'size' => (int)($manifest['windows']['size'] ?? 0),
+            'sha256' => (string)($manifest['windows']['sha256'] ?? ''),
+            'replacement_count' => (int)($manifest['windows']['replacement_count'] ?? 0),
+        ],
+        'android' => [
+            'name' => (string)($manifest['android']['name'] ?? 'GeometryDash-MuchoGDPS.apk'),
+            'size' => (int)($manifest['android']['size'] ?? 0),
+            'sha256' => (string)($manifest['android']['sha256'] ?? ''),
+            'replacement_count' => (int)($manifest['android']['replacement_count'] ?? 0),
+        ],
+    ];
+
+    file_put_contents(
+        $manifestPath,
+        json_encode($tenantManifest, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR),
+        LOCK_EX
+    );
+    @chmod($manifestPath, 0600);
+
+    $sshOptions =
+        ' -o StrictHostKeyChecking=accept-new' .
+        ' -o UserKnownHostsFile=' . shell_quote($knownHosts) .
+        ' -p ' . shell_quote((string)$port);
+
+    $remote = 'root@' . $host;
+
+    $sshPrefix = $sshPassword !== ''
+        ? 'sshpass -f ' . shell_quote($jobDir . '/ssh_password') . ' '
+        : 'ssh -i ' . shell_quote($sshKey) . ' -o IdentitiesOnly=yes ';
+
+    shell_command(
+        $sshPrefix . 'ssh' . $sshOptions . ' ' . shell_quote($remote) . ' ' .
+        shell_quote('mkdir -p /opt/mucho-core/storage/clients && chmod 750 /opt/mucho-core/storage/clients')
+    );
+
+    $scpPrefix = $sshPassword !== ''
+        ? 'sshpass -f ' . shell_quote($jobDir . '/ssh_password') . ' scp'
+        : 'scp -i ' . shell_quote($sshKey) . ' -o IdentitiesOnly=yes';
+
+    $scpOptions =
+        ' -o StrictHostKeyChecking=accept-new' .
+        ' -o UserKnownHostsFile=' . shell_quote($knownHosts) .
+        ' -P ' . shell_quote((string)$port);
+
+    $files = [
+        (string)$manifest['windows']['path'],
+        (string)$manifest['android']['path'],
+        $manifestPath,
+    ];
+
+    foreach ($files as $file) {
+        if (!is_file($file) || !is_readable($file)) {
+            throw new RuntimeException('Generated tenant client is unavailable.');
+        }
+    }
+
+    shell_command(
+        $scpPrefix . $scpOptions . ' ' .
+        implode(' ', array_map('shell_quote', $files)) . ' ' .
+        shell_quote($remote . ':/opt/mucho-core/storage/clients/')
+    );
+
+    shell_command(
+        $sshPrefix . 'ssh' . $sshOptions . ' ' . shell_quote($remote) . ' ' .
+        shell_quote(
+            'chmod 640 /opt/mucho-core/storage/clients/GeometryDash-MuchoGDPS.exe ' .
+            '/opt/mucho-core/storage/clients/GeometryDash-MuchoGDPS.apk ' .
+            '/opt/mucho-core/storage/clients/manifest.json'
+        )
+    );
+
+    log_line($logFile, "[MuchoGDPS] Generated tenant clients uploaded to {$remote}:/opt/mucho-core/storage/clients/\n");
+}
+
 function cleanup_secrets(string $dir): void {
     foreach (['ssh_password','ssh_key','admin_password','remote_env'] as $file) {
         @unlink($dir . '/' . $file);
@@ -151,6 +264,33 @@ $status['status'] = $exitCode === 0 ? 'completed' : 'failed';
 status_write($statusFile, $status);
 
 if ($exitCode === 0) {
+    try {
+        $rootDir = dirname(__DIR__);
+        log_line($logFile, "[MuchoGDPS] Generating clients for this GDPS...\n");
+        upload_tenant_clients(
+            $rootDir,
+            $dir,
+            $domain,
+            (string)($status['gdps_name'] ?? 'Mucho GDPS'),
+            $host,
+            $port,
+            $sshPassword,
+            $sshKey,
+            $knownHosts,
+            $adminUser,
+            $logFile
+        );
+    } catch (Throwable $clientError) {
+        log_line($logFile, "[MuchoGDPS] ERROR: Client generation/upload failed: " . $clientError->getMessage() . "\n");
+        $status = status_read($statusFile);
+        $status['exit_code'] = 1;
+        $status['status'] = 'failed';
+        $status['finished_at'] = gmdate('c');
+        status_write($statusFile, $status);
+        cleanup_secrets($dir);
+        exit(1);
+    }
+
     log_line($logFile, "\n[MuchoGDPS] Deployment completed successfully.\n");
     log_line($logFile, "[MuchoGDPS] GDPS: https://{$domain}\n");
     log_line($logFile, "[MuchoGDPS] Admin: https://{$domain}/admin/ (user: {$adminUser})\n");
