@@ -123,8 +123,8 @@ start.onclick=async()=>{
  try{
   const r=await fetch('/api/deploy/start',{method:'POST',headers:{'Content-Type':'application/json','X-Mucho-Deploy-Key':key},body:JSON.stringify(body)});
   const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'Could not start deployment');
-  job=d.job_id;if(d.admin_password){$('secretValue').textContent=d.admin_password;$('secret').style.display='block'}
-  print('[MuchoGDPS] Job '+job+' started.\n[MuchoGDPS] Downloading and verifying stable release...\n');await poll();timer=setInterval(poll,800);
+  job=d.job_id;if(d.admin_password){sessionStorage.setItem('muchodeployadminpassword',d.admin_password);sessionStorage.setItem('muchodeployadminuser',d.admin_user||'admin')}else{sessionStorage.removeItem('muchodeployadminpassword');sessionStorage.setItem('muchodeployadminuser',d.admin_user||'admin')}
+  print('[MuchoGDPS] Job '+job+' started.\n[MuchoGDPS] Opening the live Linux-style installation console...\n');window.location.assign('/install/shared/go/?job='+encodeURIComponent(job));
  }catch(e){start.disabled=false;setState('Failed','error');print(last+'\n[MuchoGDPS] '+e.message)}
 }
 </script>
