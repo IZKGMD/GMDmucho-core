@@ -16,6 +16,9 @@ const RELEASES_API = 'https://api.github.com/repos/' . REPOSITORY . '/releases/l
 const MAX_DOWNLOAD_BYTES = 256 * 1024 * 1024;
 const HTTP_TIMEOUT = 50;
 
+require_once dirname(__DIR__) . '/vendor/autoload.php';
+
+
 $jobId = '';
 $dispatchOnly = false;
 foreach (array_slice($argv, 1) as $arg) {
@@ -55,6 +58,96 @@ function log_line(string $path, string $line): void {
         $status['heartbeat_at'] = gmdate('c');
         @file_put_contents($statusFile, json_encode($status, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
         @chmod($statusFile, 0600);
+    }
+}
+
+function upload_client_pack_to_shared(
+    array $config,
+    string $ftpPassword,
+    string $base,
+    string $rootDir,
+    string $jobDir,
+    string $logFile
+): void {
+    $serverUrl = rtrim((string)$config['account_url'], '/');
+    $serverName = (string)($config['gdps_name'] ?? 'Mucho GDPS');
+
+    $manifest = MuchoCoreClientDeploymentClientPack::prepare(
+        $rootDir,
+        $jobDir,
+        $serverUrl,
+        $serverName
+    );
+
+    [$ftp, $usedSecurity, $usedPort] = ftp_open_authenticated($config, $ftpPassword, $logFile);
+
+    $manifestPath = $jobDir . '/tenant-client-manifest.json';
+    $tenantManifest = [
+        'server_url' => (string)($manifest['server_url'] ?? $serverUrl),
+        'server_name' => (string)($manifest['server_name'] ?? $serverName),
+        'created_at' => gmdate('c'),
+        'windows' => $manifest['windows'] ?? [],
+        'android' => $manifest['android'] ?? [],
+    ];
+
+    $encoded = json_encode(
+        $tenantManifest,
+        JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR
+    );
+    file_put_contents($manifestPath, $encoded, LOCK_EX);
+    @chmod($manifestPath, 0600);
+
+    try {
+        if (!@ftp_chdir($ftp, $base)) {
+            throw new RuntimeException('Unable to return to the shared-hosting web root for client upload.');
+        }
+
+        if (!@ftp_chdir($ftp, 'storage')) {
+            if (!@ftp_mkdir($ftp, 'storage') || !@ftp_chdir($ftp, 'storage')) {
+                throw new RuntimeException('Unable to create shared-hosting storage directory for clients.');
+            }
+        }
+
+        if (!@ftp_chdir($ftp, 'clients')) {
+            if (!@ftp_mkdir($ftp, 'clients') || !@ftp_chdir($ftp, 'clients')) {
+                throw new RuntimeException('Unable to create shared-hosting client directory.');
+            }
+        }
+
+        $files = [
+            'windows' => [
+                'local' => (string)$manifest['windows']['path'],
+                'remote' => 'GeometryDash-MuchoGDPS.exe',
+            ],
+            'android' => [
+                'local' => (string)$manifest['android']['path'],
+                'remote' => 'GeometryDash-MuchoGDPS.apk',
+            ],
+            'manifest' => [
+                'local' => $manifestPath,
+                'remote' => 'manifest.json',
+            ],
+        ];
+
+        foreach ($files as $label => $entry) {
+            if (!is_file($entry['local']) || !is_readable($entry['local'])) {
+                throw new RuntimeException('Generated ' . $label . ' client file is unavailable.');
+            }
+
+            if (!@ftp_put($ftp, $entry['remote'], $entry['local'], FTP_BINARY)) {
+                throw new RuntimeException('Failed to upload generated ' . $label . ' client.');
+            }
+
+            log_line(
+                $logFile,
+                '[MuchoGDPS] Uploaded tenant client ' . $entry['remote'] .
+                ' via ' . strtoupper($usedSecurity) . ' port ' . $usedPort . ".
+"
+            );
+        }
+    } finally {
+        @ftp_close($ftp);
+        @unlink($manifestPath);
     }
 }
 
@@ -1049,6 +1142,18 @@ try {
     $status['exit_code'] = 0;
     $status['finished_at'] = gmdate('c');
     write_status($statusFile, $status);
+    $rootDir = dirname(__DIR__);
+    log_line($logFile, "[MuchoGDPS] Generating clients for this GDPS...\n");
+    upload_client_pack_to_shared(
+        $config,
+        $ftpPassword,
+        (string)$base,
+        $rootDir,
+        $dir,
+        $logFile
+    );
+    log_line($logFile, "[MuchoGDPS] Tenant clients uploaded to /storage/clients/.\n");
+
     log_line($logFile, "\n[MuchoGDPS] Shared-hosting deployment completed successfully.\n");
     log_line($logFile, "[MuchoGDPS] GDPS: " . rtrim((string)$config['account_url'], '/') . "\n");
     log_line($logFile, "[MuchoGDPS] Admin: " . rtrim((string)$config['account_url'], '/') . "/admin/ (user: admin)\n");
