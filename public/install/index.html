@@ -1,72 +1,95 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#070912">
-  <meta name="description" content="Choose between MuchoCore shared hosting and VPS installation.">
-  <link rel="canonical" href="https://muchogdps.space/install/">
-  <link rel="icon" href="/assets/muchocore-logo.jpg" type="image/jpeg">
-  <title>Install MuchoCore — MuchoGDPS</title>
-  <style>
-    :root{--bg:#060811;--surface:#0b101b;--surface2:#0e1523;--line:rgba(255,255,255,.09);--text:#f5f7ff;--muted:#9da8bc;--dim:#68758a;--violet:#8c7dff;--cyan:#55e8df;--green:#69e2a8;--max:980px}
-    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;color:var(--text);background:radial-gradient(850px 520px at 78% -10%,rgba(85,232,223,.10),transparent 62%),radial-gradient(800px 520px at 10% 0%,rgba(140,125,255,.16),transparent 64%),linear-gradient(180deg,#060811 0%,#080b13 100%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
-    body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.22;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:44px 44px;mask-image:linear-gradient(to bottom,black,transparent 72%)}
-    a{text-decoration:none;color:inherit}.wrap{width:min(var(--max),calc(100% - 30px));margin:auto}.nav{height:70px;border-bottom:1px solid rgba(255,255,255,.065);background:rgba(6,8,17,.72);backdrop-filter:blur(20px)}.navin{height:100%;display:flex;align-items:center;justify-content:space-between;gap:18px}.brand{display:flex;align-items:center;gap:10px;font-weight:950;letter-spacing:-.5px}.brand img{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.14);object-fit:cover}.brand small{display:block;color:var(--dim);font-size:8px;letter-spacing:.15em;text-transform:uppercase;margin-top:1px}.back{color:#9da8bc;font-size:11px;font-weight:850;padding:9px 11px;border:1px solid var(--line);border-radius:10px}.back:hover{color:#fff;background:rgba(255,255,255,.04)}
-    main{padding:76px 0 90px}.eyebrow{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border:1px solid rgba(140,125,255,.26);border-radius:999px;background:rgba(140,125,255,.08);color:#c1baff;font-size:10px;font-weight:900;letter-spacing:.11em;text-transform:uppercase}.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 14px rgba(105,226,168,.8)}h1{margin:19px 0 13px;font-size:clamp(43px,7vw,72px);line-height:.97;letter-spacing:-4px}h1 span{background:linear-gradient(95deg,#fff,#a49aff 50%,#62e7df);-webkit-background-clip:text;background-clip:text;color:transparent}.intro{max-width:740px;margin:0;color:var(--muted);font-size:15px;line-height:1.75}
-    .choices{display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-top:34px}.card{position:relative;display:flex;flex-direction:column;min-height:390px;padding:30px;border-radius:22px;border:1px solid var(--line);background:linear-gradient(180deg,#0d1320,#090e17);overflow:hidden;transition:transform .18s,border-color .18s,box-shadow .18s}.card:hover{transform:translateY(-3px);border-color:rgba(140,125,255,.35);box-shadow:0 24px 70px rgba(0,0,0,.25)}.card.primary{background:linear-gradient(145deg,rgba(140,125,255,.13),rgba(85,232,223,.045) 58%,#090e17)}.icon{width:50px;height:50px;display:grid;place-items:center;border-radius:14px;background:rgba(140,125,255,.1);border:1px solid rgba(140,125,255,.2);font-size:21px}.card h2{margin:19px 0 7px;font-size:24px;letter-spacing:-1px}.card p{margin:0;color:var(--muted);font-size:12px;line-height:1.72}.list{display:grid;gap:9px;margin:23px 0 0}.item{display:flex;align-items:center;gap:9px;color:#b8c2d2;font-size:10px;font-weight:750}.item i{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 9px rgba(105,226,168,.55)}.item.violet i{background:#8d82ff;box-shadow:0 0 9px rgba(141,130,255,.55)}
-    .cta{margin-top:auto;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 17px;border-radius:12px;background:linear-gradient(135deg,#8f81ff,#7668f3);border:1px solid rgba(177,167,255,.55);color:#fff;font-size:12px;font-weight:900;box-shadow:0 16px 36px rgba(118,103,243,.2)}.cta.alt{background:#0c131e;border-color:#293549;box-shadow:none;color:#dce3ef}
-    .callout{margin-top:30px;padding:18px 19px;border:1px solid rgba(105,226,168,.15);border-radius:15px;background:#090f17;color:#8996ab;font-size:10px;line-height:1.7}.callout b{color:#cfd7e5}.callout a{color:#aaa2ff}.note{margin-top:18px;color:#748197;font-size:10px;line-height:1.7}
-    @media(max-width:760px){main{padding-top:52px}.choices{grid-template-columns:1fr}.card{min-height:330px}.wrap{width:min(var(--max),calc(100% - 24px))}}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070912">
+<meta name="description" content="Choose automatic VPS, manual VPS, or automatic shared-hosting FTP installation for MuchoCore.">
+<link rel="canonical" href="https://muchogdps.space/install/">
+<link rel="icon" href="/assets/muchocore-logo.jpg" type="image/jpeg">
+<title>Install MuchoCore — MuchoGDPS</title>
+<style>
+:root{--bg:#060811;--line:rgba(255,255,255,.09);--text:#f5f7ff;--muted:#9da8bc;--dim:#68758a;--violet:#8c7dff;--green:#69e2a8;--max:1100px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;color:var(--text);background:radial-gradient(900px 560px at 78% -10%,rgba(85,232,223,.10),transparent 62%),radial-gradient(820px 540px at 8% 0,rgba(140,125,255,.16),transparent 64%),linear-gradient(180deg,#060811 0%,#080b13 100%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.22;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:44px 44px;mask-image:linear-gradient(to bottom,black,transparent 72%)}
+a{text-decoration:none;color:inherit}.wrap{width:min(var(--max),calc(100% - 30px));margin:auto}.nav{height:70px;border-bottom:1px solid rgba(255,255,255,.065);background:rgba(6,8,17,.72);backdrop-filter:blur(20px)}.navin{height:100%;display:flex;align-items:center;justify-content:space-between;gap:18px}.brand{display:flex;align-items:center;gap:10px;font-weight:950;letter-spacing:-.5px}.brand img{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.14);object-fit:cover}.brand small{display:block;color:var(--dim);font-size:8px;letter-spacing:.15em;text-transform:uppercase;margin-top:1px}.back{color:#9da8bc;font-size:11px;font-weight:850;padding:9px 11px;border:1px solid var(--line);border-radius:10px}.back:hover{color:#fff;background:rgba(255,255,255,.04)}
+main{padding:76px 0 90px}.eyebrow{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border:1px solid rgba(140,125,255,.26);border-radius:999px;background:rgba(140,125,255,.08);color:#c1baff;font-size:10px;font-weight:900;letter-spacing:.11em;text-transform:uppercase}.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 14px rgba(105,226,168,.8)}h1{margin:19px 0 13px;font-size:clamp(43px,7vw,70px);line-height:.97;letter-spacing:-4px}h1 span{background:linear-gradient(95deg,#fff,#a49aff 50%,#62e7df);-webkit-background-clip:text;background-clip:text;color:transparent}.intro{max-width:800px;margin:0;color:var(--muted);font-size:15px;line-height:1.75}
+.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:34px}.card{position:relative;display:flex;flex-direction:column;min-height:430px;padding:28px;border-radius:22px;border:1px solid var(--line);background:linear-gradient(180deg,#0d1320,#090e17);overflow:hidden;transition:transform .18s,border-color .18s,box-shadow .18s}.card:hover{transform:translateY(-3px);border-color:rgba(140,125,255,.35);box-shadow:0 24px 70px rgba(0,0,0,.25)}.card.primary{background:linear-gradient(145deg,rgba(140,125,255,.13),rgba(85,232,223,.045) 58%,#090e17)}.icon{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:rgba(140,125,255,.1);border:1px solid rgba(140,125,255,.2);font-size:20px}.card h2{margin:19px 0 7px;font-size:23px;letter-spacing:-1px}.card p{margin:0;color:var(--muted);font-size:12px;line-height:1.72}.list{display:grid;gap:8px;margin:22px 0 0}.item{display:flex;align-items:flex-start;gap:9px;color:#b8c2d2;font-size:10px;font-weight:750;line-height:1.5}.item i{width:6px;height:6px;margin-top:4px;flex:0 0 auto;border-radius:50%;background:var(--green);box-shadow:0 0 9px rgba(105,226,168,.55)}.item.violet i{background:#8d82ff;box-shadow:0 0 9px rgba(141,130,255,.55)}.item.red i{background:#ff8197;box-shadow:0 0 9px rgba(255,129,151,.45)}
+.cta{margin-top:auto;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 17px;border-radius:12px;background:linear-gradient(135deg,#8f81ff,#7668f3);border:1px solid rgba(177,167,255,.55);color:#fff;font-size:12px;font-weight:900;box-shadow:0 16px 36px rgba(118,103,243,.2)}.cta.alt{background:#0c131e;border-color:#293549;box-shadow:none;color:#dce3ef}
+.callout{margin-top:28px;padding:18px 19px;border:1px solid rgba(105,226,168,.15);border-radius:15px;background:#090f17;color:#8996ab;font-size:10px;line-height:1.7}.callout b{color:#cfd7e5}.callout a{color:#aaa2ff}.note{margin-top:18px;color:#748197;font-size:10px;line-height:1.7}
+@media(max-width:980px){.choices{grid-template-columns:1fr 1fr}}@media(max-width:760px){main{padding-top:52px}.choices{grid-template-columns:1fr}.card{min-height:330px}.wrap{width:min(var(--max),calc(100% - 24px))}}
+</style>
 </head>
 <body>
-  <header class="nav"><div class="wrap navin">
-    <a class="brand" href="/" aria-label="MuchoGDPS home"><img src="/assets/muchocore-logo.jpg" alt="" width="34" height="34"><span>MuchoGDPS<small>Powered by MuchoCore</small></span></a>
-    <a class="back" href="/">← Back to MuchoGDPS</a>
-  </div></header>
+<header class="nav"><div class="wrap navin">
+<a class="brand" href="/" aria-label="MuchoGDPS home"><img src="/assets/muchocore-logo.jpg" alt="" width="34" height="34"><span>MuchoGDPS<small>Powered by MuchoCore</small></span></a>
+<a class="back" href="/">← Back to MuchoGDPS</a>
+</div></header>
 
-  <main><div class="wrap">
-    <div class="eyebrow"><i class="dot"></i> MuchoCore installation</div>
-    <h1>Choose your <span>hosting.</span></h1>
-    <p class="intro">Use the installation path that matches your hosting. Shared hosting is the no-VPS option for compatible PHP hosts. VPS is the full-server option with Docker, Caddy and automatic or manual deployment.</p>
+<main><div class="wrap">
+<div class="eyebrow"><i class="dot"></i> MuchoCore installation</div>
+<h1>Choose your <span>installation.</span></h1>
+<p class="intro">Choose one of the three supported onboarding paths: automatic VPS deployment, manual VPS installation, or automatic shared-hosting deployment through FTP/FTPS. Shared hosting is one universal path for compatible providers such as Beget, InfinityFree and similar hosts; provider restrictions still apply.</p>
 
-    <section class="choices" aria-label="Hosting installation methods">
-      <article class="card">
-        <div class="icon">⇩</div>
-        <h2>Shared hosting / FTP</h2>
-        <p>For hosts such as Beget or InfinityFree, when the account provides the PHP, database, HTTPS and filesystem features required by MuchoCore.</p>
-        <div class="list">
-          <div class="item"><i></i> No VPS, Docker or SSH</div>
-          <div class="item"><i></i> Upload one file by FTP / File Manager</div>
-          <div class="item"><i></i> Verified stable release download</div>
-          <div class="item"><i></i> Browser database and admin setup</div>
-          <div class="item"><i></i> Dedicated public IPv4 is not required</div>
-        </div>
-        <a class="cta" href="/install/shared/">Install on shared hosting →</a>
-      </article>
+<section class="choices" aria-label="Installation methods">
 
-      <article class="card primary">
-        <div class="icon">⚡</div>
-        <h2>VPS</h2>
-        <p>For Linux VPS servers where you want full control, Docker-based deployment, Caddy HTTPS and the complete MuchoCore operator stack.</p>
-        <div class="list">
-          <div class="item"><i></i> Dedicated public IPv4 required for direct HTTPS</div>
-          <div class="item"><i></i> Automatic browser deployment available</div>
-          <div class="item"><i></i> One-command SSH installation</div>
-          <div class="item"><i></i> Docker + Caddy + MariaDB setup</div>
-          <div class="item"><i></i> Health checks, migrations and operator tools</div>
-        </div>
-        <a class="cta" href="/install/vps/">View VPS installation guide →</a>
-      </article>
-    </section>
+<article class="card primary">
+<div class="icon">⚡</div>
+<h2>Automatic VPS</h2>
+<p>Connect your Linux VPS from the MuchoGDPS web installer. The deployment service installs MuchoCore and shows the real installer output live.</p>
+<div class="list">
+<div class="item"><i></i> Dedicated public IPv4 required for direct HTTPS</div>
+<div class="item"><i></i> Root SSH connection</div>
+<div class="item"><i></i> Docker, Caddy and MariaDB setup</div>
+<div class="item"><i></i> HTTP :80 and HTTPS :443</div>
+<div class="item"><i></i> Migrations and health checks</div>
+</div>
+<a class="cta" href="/deploy/">Start automatic VPS →</a>
+</article>
 
-    <div class="callout">
-      <b>Not sure which path you need?</b>
-      Use <a href="/install/shared/">Shared Hosting</a> when you only have FTP/file-manager access. Use <a href="/install/vps/">VPS</a> when you have root/sudo access and a dedicated public IPv4 for the standard direct-HTTPS deployment.
-    </div>
+<article class="card">
+<div class="icon">⌘</div>
+<h2>Manual VPS</h2>
+<p>Run the official MuchoCore installer yourself over SSH. This is the command-line path when you want full control over the server.</p>
+<div class="list">
+<div class="item violet"><i></i> Dedicated public IPv4 required for direct HTTPS</div>
+<div class="item violet"><i></i> Root or sudo access</div>
+<div class="item violet"><i></i> One-command stable installer</div>
+<div class="item violet"><i></i> Interactive configuration</div>
+<div class="item violet"><i></i> Full operator control</div>
+</div>
+<div style="margin-top:22px;padding:15px;border:1px solid #202b3d;border-radius:13px;background:#080d15">
+<div style="color:#68758a;font-size:8px;font-weight:900;letter-spacing:.11em;text-transform:uppercase">Stable installer</div>
+<pre style="margin:9px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;color:#bcc7d9;font:9px/1.8 ui-monospace,SFMono-Regular,Menlo,monospace">curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash</pre>
+</div>
+<a class="cta alt" href="/install/vps/">Open VPS guide →</a>
+</article>
 
-    <p class="note">Both paths include a step-by-step onboarding page. The shared-hosting path uses the dedicated <code>/ftp-install.php</code> bootstrap; the VPS path can use the web deployment gateway or the official SSH installer.</p>
-  </div></main>
+<article class="card">
+<div class="icon">⇩</div>
+<h2>Automatic Shared Hosting / FTP</h2>
+<p>One automatic path for compatible shared hosting. MuchoGDPS connects to the hosting account with FTP/FTPS, uploads the verified release, completes the browser installer and checks the result.</p>
+<div class="list">
+<div class="item"><i></i> Beget, InfinityFree and similar providers</div>
+<div class="item"><i></i> FTP or FTPS / File Manager</div>
+<div class="item"><i></i> No VPS, Docker or SSH</div>
+<div class="item"><i></i> Dedicated public IPv4 not required</div>
+<div class="item"><i></i> Database + admin setup from the browser</div>
+</div>
+<a class="cta alt" href="/install/shared/">Install via FTP →</a>
+</article>
+
+</section>
+
+<div class="callout">
+<b>VPS requirement:</b> the standard direct VPS deployment requires a dedicated public IPv4 and inbound TCP 80/443. Both HTTP and HTTPS remain available for the GDPS; the Admin Panel is forced to HTTPS when accessed directly over HTTP.
+</div>
+
+<div class="callout">
+<b>Shared hosting:</b> there is only one shared-hosting installation path. The installer checks the technical requirements, but a provider's free-tier restrictions can still block Geometry Dash client/API traffic. See the Shared Hosting page for provider-specific compatibility notes.
+</div>
+
+<p class="note">Detailed instructions: <a href="/install/vps/">VPS</a> and <a href="/install/shared/">Shared Hosting / FTP</a>. Project source and release packages are maintained in the <a href="https://github.com/IZKGMD/GMDmucho-core" rel="noopener">MuchoCore repository</a>.</p>
+</div></main>
 </body>
 </html>
