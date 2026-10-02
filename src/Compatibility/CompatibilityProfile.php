@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MuchoCore\Compatibility;
 
+use MuchoCore\Core\Environment;
+
 final readonly class CompatibilityProfile
 {
     /** @var array<int, string> */
@@ -42,9 +44,7 @@ final readonly class CompatibilityProfile
     {
         $raw = trim(
             (string)(
-                $_ENV['MUCHO_GD_VERSIONS']
-                ?? getenv('MUCHO_GD_VERSIONS')
-                ?? 'all'
+                Environment::get('MUCHO_GD_VERSIONS', 'all')
             )
         );
 
