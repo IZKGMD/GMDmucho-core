@@ -40,6 +40,24 @@
     redir @muchogdps_index / 308
 
     # Dedicated installation pages must be matched before the general /install/* selector.
+
+    # Live shared-hosting deployment console must be matched before the general shared installer UI.
+    @muchogdps_install_shared_go_root {
+        host {$MUCHOCORE_SITE_HOST}
+        path /install/shared/go
+    }
+    redir @muchogdps_install_shared_go_root /install/shared/go/ 308
+
+    @muchogdps_install_shared_go_ui {
+        host {$MUCHOCORE_SITE_HOST}
+        path /install/shared/go/ /install/shared/go/*
+    }
+    handle @muchogdps_install_shared_go_ui {
+        header Cache-Control "no-store, no-cache, must-revalidate"
+        rewrite * /install/shared/go/index.html
+        file_server
+    }
+
     @muchogdps_install_shared_root {
         host {$MUCHOCORE_SITE_HOST}
         path /install/shared
