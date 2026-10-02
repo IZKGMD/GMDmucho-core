@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MuchoCore\Client;
 
+use MuchoCore\Core\Environment;
+
 use RuntimeException;
 
 final class DeploymentClientPack
@@ -37,7 +39,7 @@ final class DeploymentClientPack
         $server = WindowsClientPatcher::validateServerUrl($serverUrl);
         $serverName = trim($serverName);
         if ($serverName === '') {
-            $serverName = trim((string)(getenv('MUCHO_SERVER_NAME') ?: 'Mucho GDPS'));
+            $serverName = trim((string)(Environment::get('MUCHO_SERVER_NAME', 'Mucho GDPS') ?? 'Mucho GDPS'));
         }
         $sourceExe = $rootDir . '/GeometryDash.exe';
         $sourceApk = self::androidSource($rootDir);
@@ -133,7 +135,7 @@ final class DeploymentClientPack
 
     public static function androidSource(string $rootDir): string
     {
-        $configured = trim((string)(getenv('MUCHO_ANDROID_BASE_APK') ?: ''));
+        $configured = trim((string)(Environment::get('MUCHO_ANDROID_BASE_APK', '') ?? ''));
         if ($configured !== '') {
             return $configured;
         }
