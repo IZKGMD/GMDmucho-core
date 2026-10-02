@@ -88,14 +88,15 @@ main{padding:54px 0 75px}.eyebrow{display:inline-flex;align-items:center;gap:7px
 const $=id=>document.getElementById(id),start=$('start');
 
 const AUTOSAVE_KEY='muchogdps_shared_install_draft_v1';
-const autosaveFields=['ftpHost','ftpSecurity','ftpPort','ftpUser','ftpPath','dbHost','dbPort','dbName','dbUser','accountUrl','adminPassword'];
+const autosaveFields=['ftpHost','ftpSecurity','ftpPort','ftpUser','ftpPath','dbHost','dbPort','dbName','dbUser','accountUrl'];
 function saveDraft(){
   const data={};
   for(const id of autosaveFields){const el=$(id);if(el)data[id]=el.value}
   localStorage.setItem(AUTOSAVE_KEY,JSON.stringify(data));
   sessionStorage.setItem(AUTOSAVE_KEY+'_secret',JSON.stringify({
     ftpPassword:$('ftpPassword')?.value||'',
-    dbPassword:$('dbPassword')?.value||''
+    dbPassword:$('dbPassword')?.value||'',
+    adminPassword:$('adminPassword')?.value||''
   }));
 }
 function restoreDraft(){
@@ -105,6 +106,7 @@ function restoreDraft(){
     const secret=JSON.parse(sessionStorage.getItem(AUTOSAVE_KEY+'_secret')||'{}');
     if($('ftpPassword'))$('ftpPassword').value=secret.ftpPassword||'';
     if($('dbPassword'))$('dbPassword').value=secret.dbPassword||'';
+    if($('adminPassword'))$('adminPassword').value=secret.adminPassword||'';
   }catch(_){}
 }
 function clearDraft(){
