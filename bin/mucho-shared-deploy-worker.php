@@ -803,9 +803,8 @@ function wait_for_browser_finalization(
     $accountUrl = rtrim((string)$config['account_url'], '/');
     $parsed = parse_url($accountUrl);
     $host = strtolower((string)($parsed['host'] ?? ''));
-    $ips = public_ipv4s($host);
-    if ($ips === []) {
-        throw new RuntimeException('The GDPS hostname does not resolve to a public IPv4 address.');
+    if ($host === '') {
+        throw new RuntimeException('The GDPS hostname is invalid.');
     }
 
     while (time() < $expiresAt) {
@@ -820,7 +819,6 @@ function wait_for_browser_finalization(
                 CURLOPT_TIMEOUT => 8,
                 CURLOPT_SSL_VERIFYPEER => true,
                 CURLOPT_SSL_VERIFYHOST => 2,
-                CURLOPT_RESOLVE => [$host . ':443:' . $ips[0]],
                 CURLOPT_COOKIEFILE => $cookieFile,
                 CURLOPT_COOKIEJAR => $cookieFile,
                 CURLOPT_USERAGENT => 'MuchoCore-Shared-FTP-Installer/1.0',
@@ -833,6 +831,19 @@ function wait_for_browser_finalization(
             if ($error === '' && $body !== false && $status >= 200 && $status < 400 && trim((string)$body) === '1') {
                 log_line($logFile, "[MuchoGDPS] Remote /health returned 1; browser finalization confirmed.\n");
                 return;
+            }
+
+            $snippet = '';
+            if ($body !== false) {
+                $snippet = trim(preg_replace('/\s+/', ' ', (string)$body) ?? '');
+                if (strlen($snippet) > 100) {
+                    $snippet = substr($snippet, 0, 100) . '...';
+                }
+            }
+            if ($error !== '') {
+                log_line($logFile, "[MuchoGDPS] /health probe did not succeed: {$error}\n");
+            } else {
+                log_line($logFile, "[MuchoGDPS] /health probe returned HTTP {$status}" . ($snippet !== '' ? " ({$snippet})" : '') . ".\n");
             }
         }
 
