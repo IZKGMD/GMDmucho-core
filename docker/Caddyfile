@@ -69,6 +69,7 @@
         path /install/shared/ /install/shared/*
     }
     handle @muchogdps_install_shared_ui {
+        header Cache-Control "no-store, no-cache, must-revalidate"
         rewrite * /install/shared/index.html
         file_server
     }
