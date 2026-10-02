@@ -392,8 +392,7 @@ function http_request(string $url, string $ip, string $cookieFile, ?array $post 
     $host = is_array($parsed) ? strtolower((string)($parsed['host'] ?? '')) : '';
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_MAXREDIRS => 3,
+        CURLOPT_FOLLOWLOCATION => false,
         CURLOPT_CONNECTTIMEOUT => 15,
         CURLOPT_TIMEOUT => HTTP_TIMEOUT,
         CURLOPT_SSL_VERIFYPEER => true,
