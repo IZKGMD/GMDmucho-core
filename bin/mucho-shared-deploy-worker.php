@@ -147,7 +147,8 @@ function dispatch_queued_jobs(string $root): void {
             @file_put_contents($jobDir . '/log.txt', "[MuchoGDPS] Queue slot available. Starting queued job {$id}.\n", FILE_APPEND | LOCK_EX);
 
             $cmd = 'nohup ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($worker)
-                . ' --job=' . escapeshellarg($id) . ' >/dev/null 2>&1 & echo $!';
+                . ' --job=' . escapeshellarg($id)
+                . ' >> ' . escapeshellarg($jobDir . '/log.txt') . ' 2>&1 & echo $!';
             $output = [];
             $exit = 0;
             @exec($cmd, $output, $exit);
