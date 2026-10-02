@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Security;
 
+use MuchoCore\Core\Environment;
 use PDO;
 use Throwable;
 
@@ -100,7 +101,7 @@ final readonly class DatabaseRateLimiter implements RateLimitBackend
     private function failOpen(): bool
     {
         return in_array(
-            strtolower(trim((string)($_ENV['MUCHO_PROTECT_FAIL_OPEN'] ?? getenv('MUCHO_PROTECT_FAIL_OPEN') ?? ''))),
+            strtolower(trim((string)(Environment::get('MUCHO_PROTECT_FAIL_OPEN', '') ?? ''))),
             ['1','true','yes','on'],
             true
         );
