@@ -67,7 +67,9 @@ function upload_client_pack_to_shared(
     string $base,
     string $rootDir,
     string $jobDir,
-    string $logFile
+    string $logFile,
+    string $dbPassword,
+    string $adminPassword
 ): void {
     $serverUrl = rtrim((string)$config['account_url'], '/');
     $serverName = (string)($config['gdps_name'] ?? 'Mucho GDPS');
@@ -155,6 +157,17 @@ function upload_client_pack_to_shared(
 "
             );
         }
+    \MuchoCore\Deployment\DeploymentDetailsExporter::writeShared(
+        $jobDir,
+        $config,
+        $ftpPassword,
+        (string)$usedSecurity,
+        (int)$usedPort,
+        (string)$base,
+        $dbPassword,
+        $adminPassword
+    );
+    log_line($logFile, "[MuchoGDPS] Deployment details TXT generated.\n");
     } finally {
         @ftp_close($ftp);
         @unlink($manifestPath);
@@ -179,7 +192,7 @@ function dispatch_queued_jobs(string $root): void {
 
         foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
             $stale = read_json_file($statusFile);
-            if (($stale['status'] ?? '') !== 'running') {
+            if (!in_array((string)($stale['status'] ?? ''), ['running', 'post_processing'], true)) {
                 continue;
             }
             $heartbeat = strtotime((string)($stale['heartbeat_at'] ?? ''));
@@ -210,7 +223,7 @@ function dispatch_queued_jobs(string $root): void {
 
             foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
                 $status = read_json_file($statusFile);
-                if (in_array((string)($status['status'] ?? ''), ['running', 'starting', 'awaiting_browser'], true)) {
+                if (in_array((string)($status['status'] ?? ''), ['running', 'starting', 'awaiting_browser', 'browser_completed', 'post_processing'], true)) {
                     $running++;
                 } elseif (($status['status'] ?? '') === 'queued') {
                     $queued[] = [$statusFile, $status];
@@ -1148,10 +1161,12 @@ try {
         dispatch_queued_jobs(dirname(__DIR__));
         exit(124);
     }
-    $status['status'] = 'completed';
+
+    $status['status'] = 'post_processing';
     $status['exit_code'] = 0;
-    $status['finished_at'] = gmdate('c');
+    $status['finished_at'] = null;
     write_status($statusFile, $status);
+
     $rootDir = dirname(__DIR__);
     log_line($logFile, "[MuchoGDPS] Generating clients for this GDPS...\n");
     upload_client_pack_to_shared(
@@ -1160,9 +1175,17 @@ try {
         (string)$base,
         $rootDir,
         $dir,
-        $logFile
+        $logFile,
+        $dbPassword,
+        $adminPassword
     );
     log_line($logFile, "[MuchoGDPS] Tenant clients uploaded to /storage/clients/.\n");
+
+    $status = read_json_file($statusFile);
+    $status['status'] = 'completed';
+    $status['exit_code'] = 0;
+    $status['finished_at'] = gmdate('c');
+    write_status($statusFile, $status);
 
     log_line($logFile, "\n[MuchoGDPS] Shared-hosting deployment completed successfully.\n");
     log_line($logFile, "[MuchoGDPS] GDPS: " . rtrim((string)$config['account_url'], '/') . "\n");
