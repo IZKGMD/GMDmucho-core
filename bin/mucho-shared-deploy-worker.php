@@ -795,59 +795,27 @@ function http_request(string $url, string $ip, string $cookieFile, ?array $post 
 }
 
 function wait_for_browser_finalization(
-    array $config,
     int $expiresAt,
-    string $cookieFile,
-    string $logFile
+    string $logFile,
+    string $statusFile
 ): void {
-    $accountUrl = rtrim((string)$config['account_url'], '/');
-    $parsed = parse_url($accountUrl);
-    $host = strtolower((string)($parsed['host'] ?? ''));
-    if ($host === '') {
-        throw new RuntimeException('The GDPS hostname is invalid.');
-    }
-
     while (time() < $expiresAt) {
-        log_line($logFile, "[MuchoGDPS] Checking remote /health for browser finalization...\n");
+        $status = read_json_file($statusFile);
+        $current = (string)($status['status'] ?? '');
 
-        $ch = curl_init($accountUrl . '/health');
-        if ($ch !== false) {
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_FOLLOWLOCATION => false,
-                CURLOPT_CONNECTTIMEOUT => 5,
-                CURLOPT_TIMEOUT => 8,
-                CURLOPT_SSL_VERIFYPEER => true,
-                CURLOPT_SSL_VERIFYHOST => 2,
-                CURLOPT_COOKIEFILE => $cookieFile,
-                CURLOPT_COOKIEJAR => $cookieFile,
-                CURLOPT_USERAGENT => 'MuchoCore-Shared-FTP-Installer/1.0',
-            ]);
-            $body = curl_exec($ch);
-            $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-            $error = curl_error($ch);
-            curl_close($ch);
-
-            if ($error === '' && $body !== false && $status >= 200 && $status < 400 && trim((string)$body) === '1') {
-                log_line($logFile, "[MuchoGDPS] Remote /health returned 1; browser finalization confirmed.\n");
-                return;
-            }
-
-            $snippet = '';
-            if ($body !== false) {
-                $snippet = trim(preg_replace('/\s+/', ' ', (string)$body) ?? '');
-                if (strlen($snippet) > 100) {
-                    $snippet = substr($snippet, 0, 100) . '...';
-                }
-            }
-            if ($error !== '') {
-                log_line($logFile, "[MuchoGDPS] /health probe did not succeed: {$error}\n");
-            } else {
-                log_line($logFile, "[MuchoGDPS] /health probe returned HTTP {$status}" . ($snippet !== '' ? " ({$snippet})" : '') . ".\n");
-            }
+        if ($current === 'completed') {
+            log_line($logFile, "[MuchoGDPS] Browser finalization completed; deployment job confirmed.
+");
+            return;
         }
 
-        sleep(3);
+        if ($current === 'failed') {
+            throw new RuntimeException('Browser finalization reported an installation error.');
+        }
+
+        log_line($logFile, "[MuchoGDPS] Waiting for browser finalization...
+");
+        sleep(2);
     }
 
     throw new RuntimeException('Browser finalization did not complete before the authorization window expired.');
@@ -1052,10 +1020,9 @@ try {
     if ($browserFinalization !== null) {
         log_line($logFile, "[MuchoGDPS] Waiting for browser finalization; the worker will verify /health automatically.\n");
         wait_for_browser_finalization(
-            $config,
             (int)$browserFinalization['expires_at'],
-            $dir . '/shared_cookie',
-            $logFile
+            $logFile,
+            $statusFile
         );
     } else {
         run_remote_installer($config, $dbPassword, $adminPassword, $dir . '/shared_cookie', $logFile);
