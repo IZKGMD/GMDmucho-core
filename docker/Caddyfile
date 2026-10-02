@@ -39,6 +39,37 @@
     }
     redir @muchogdps_index / 308
 
+    # Dedicated installation pages must be matched before the general /install/* selector.
+    @muchogdps_install_shared_root {
+        host {$MUCHOCORE_SITE_HOST}
+        path /install/shared
+    }
+    redir @muchogdps_install_shared_root /install/shared/ 308
+
+    @muchogdps_install_shared_ui {
+        host {$MUCHOCORE_SITE_HOST}
+        path /install/shared/ /install/shared/*
+    }
+    handle @muchogdps_install_shared_ui {
+        rewrite * /install/shared/index.html
+        file_server
+    }
+
+    @muchogdps_install_vps_root {
+        host {$MUCHOCORE_SITE_HOST}
+        path /install/vps
+    }
+    redir @muchogdps_install_vps_root /install/vps/ 308
+
+    @muchogdps_install_vps_ui {
+        host {$MUCHOCORE_SITE_HOST}
+        path /install/vps/ /install/vps/*
+    }
+    handle @muchogdps_install_vps_ui {
+        rewrite * /install/vps/index.html
+        file_server
+    }
+
     # Installation method selector belongs only to the canonical MuchoGDPS host.
     @muchogdps_install_root {
         host {$MUCHOCORE_SITE_HOST}
