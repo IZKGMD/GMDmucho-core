@@ -112,7 +112,7 @@ async function finish(ok,status,timedOut=false){
   const seconds=Math.max(1,Math.round((Date.now()-started)/1000));
   if(ok){
     resultTitle.textContent='MuchoCore installation completed.';
-    resultText.textContent='The FTP upload, remote installer and /health verification all completed successfully in '+seconds+'s.';
+    resultText.textContent='The FTP upload and browser finalization completed successfully in '+seconds+'s.';
     const adminPassword=sessionStorage.getItem('muchodeployadminpassword')||'';
     if(adminPassword){
       password.style.display='block';
