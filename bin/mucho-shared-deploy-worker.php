@@ -599,7 +599,8 @@ function upload_tree(\FTP\Connection $ftp, string $localRoot, string $base, stri
     }
 
     log_line($logFile, "[MuchoGDPS] Uploading into web root: {$actualBase}\n");
-    $knownDirs = [$actualBase => true];
+    $uploadRoot = '.';
+    $knownDirs = ['.' => true];
     $count = 0;
 
     $iterator = new RecursiveIteratorIterator(
@@ -623,7 +624,7 @@ function upload_tree(\FTP\Connection $ftp, string $localRoot, string $base, stri
     foreach ($files as [$local, $relative]) {
         $dir = dirname($relative);
         if ($dir !== '.' && $dir !== '') {
-            ensure_remote_dir($ftp, $base, $dir, $knownDirs);
+            ensure_remote_dir($ftp, $uploadRoot, $dir, $knownDirs);
         }
 
         $remote = str_replace('\\', '/', $relative);
