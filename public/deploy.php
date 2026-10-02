@@ -557,6 +557,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
     $deploymentType = strtolower(trim((string)($data['type'] ?? 'vps')));
 
     if ($deploymentType === 'shared') {
+        $gdpsName = trim((string)($data['gdps_name'] ?? ''));
         $ftpHost = trim((string)($data['ftp_host'] ?? ''));
         $ftpPort = (int)($data['ftp_port'] ?? 21);
         $ftpUsername = trim((string)($data['ftp_username'] ?? ''));
@@ -627,6 +628,8 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
             'created_at' => gmdate('c'),
             'queued_at' => $queueFull ? gmdate('c') : null,
             'heartbeat_at' => $queueFull ? null : gmdate('c'),
+            'gdps_name' => $gdpsName,
+            'gdps_name' => $gdpsName,
             'ftp_host' => $ftpHost,
             'ftp_port' => $ftpPort,
             'ftp_security' => $ftpSecurity,
@@ -728,6 +731,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         ], 201);
     }
 
+    $gdpsName = trim((string)($data['gdps_name'] ?? ''));
     $host = trim((string)($data['host'] ?? ''));
     $port = (int)($data['port'] ?? 22);
     $username = trim((string)($data['username'] ?? 'root'));
@@ -736,6 +740,10 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
     $domain = strtolower(trim((string)($data['domain'] ?? '')));
     $adminUser = trim((string)($data['admin_user'] ?? 'admin'));
     $adminPassword = (string)($data['admin_password'] ?? '');
+
+    if ($gdpsName === '' || mb_strlen($gdpsName, 'UTF-8') > 64 || preg_match('/[\x00-\x1F\x7F]/u', $gdpsName) === 1) {
+        json_response(['ok' => false, 'error' => 'Enter a GDPS name up to 64 characters.'], 422);
+    }
 
     if (!valid_ipv4($host)) {
         json_response(['ok' => false, 'error' => 'Enter a public IPv4 address for the VPS.'], 422);
@@ -779,6 +787,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         'created_at' => gmdate('c'),
         'queued_at' => $queueFull ? gmdate('c') : null,
         'heartbeat_at' => $queueFull ? null : gmdate('c'),
+        'gdps_name' => $gdpsName,
         'host' => $host,
         'port' => $port,
         'domain' => $domain,
