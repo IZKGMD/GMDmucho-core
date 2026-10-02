@@ -262,7 +262,7 @@ function validate_archive(ZipArchive $zip, string $version): void {
     }
 }
 
-function ftp_connect_public(string $host, int $port, bool $secure): FTPConnection {
+function ftp_connect_public(string $host, int $port, bool $secure): \FTP\Connection {
     $ips = public_ipv4s($host);
     if ($ips === []) {
         throw new RuntimeException('The FTP hostname does not resolve to a public IPv4 address.');
@@ -282,35 +282,36 @@ function ftp_connect_public(string $host, int $port, bool $secure): FTPConnectio
     return $ftp;
 }
 
-function ensure_remote_dir(FTPConnection $ftp, string $root, string $relative, array &$known): void {
-    $parts = array_values(array_filter(explode('/', trim(str_replace('\\', '/', $relative), '/')), static fn(string $v): bool => $v !== ''));
-    $current = rtrim($root, '/');
-    if ($current === '') {
-        $current = '.';
-    }
+function ensure_remote_dir(\FTP\Connection $ftp, string $root, string $relative, array &$known): void {
+    $parts = array_values(array_filter(
+        explode('/', trim(str_replace('\\', '/', $relative), '/')),
+        static fn(string $v): bool => $v !== ''
+    ));
+    $base = $root !== '' ? $root : '.';
 
     foreach ($parts as $part) {
-        if ($part === '.' || $part === '..' || $part === '' || preg_match('/[\x00-\x1F\x7F]/', $part) === 1) {
+        if ($part === '.' || $part === '..' || preg_match('/[\x00-\x1F\x7F]/', $part) === 1) {
             throw new RuntimeException('Unsafe remote FTP path component.');
         }
-        $key = $current . '/' . $part;
-        if (isset($known[$key])) {
-            $current = $key;
-            continue;
-        }
-        if (!@ftp_chdir($ftp, $key)) {
-            if (!@ftp_mkdir($ftp, $key)) {
-                throw new RuntimeException('Unable to create remote directory: ' . $key);
+
+        $current = $base . '/' . $part;
+        if (!isset($known[$current])) {
+            if (!@ftp_chdir($ftp, $current)) {
+                if (!@ftp_mkdir($ftp, $current) && !@ftp_chdir($ftp, $current)) {
+                    throw new RuntimeException('Unable to create remote directory: ' . $current);
+                }
             }
-            @ftp_chdir($ftp, $key);
+            $known[$current] = true;
         }
-        $known[$key] = true;
-        $current = $key;
+
+        if (!@ftp_chdir($ftp, $base)) {
+            throw new RuntimeException('Unable to restore the FTP web-root directory.');
+        }
     }
 }
 
-function upload_tree(FTPConnection $ftp, string $localRoot, string $remoteRoot, string $logFile): int {
-    $knownDirs = [rtrim($remoteRoot, '/') . '' => true];
+function upload_tree(\FTP\Connection $ftp, string $localRoot, string $base, string $logFile): int {
+    $knownDirs = [$base => true];
     $count = 0;
 
     $iterator = new RecursiveIteratorIterator(
@@ -334,16 +335,16 @@ function upload_tree(FTPConnection $ftp, string $localRoot, string $remoteRoot, 
     foreach ($files as [$local, $relative]) {
         $dir = dirname($relative);
         if ($dir !== '.' && $dir !== '') {
-            ensure_remote_dir($ftp, $remoteRoot, $dir, $knownDirs);
+            ensure_remote_dir($ftp, $base, $dir, $knownDirs);
         }
 
-        $remote = rtrim($remoteRoot, '/') . '/' . str_replace('\\', '/', $relative);
+        $remote = str_replace('\\', '/', $relative);
         if (!@ftp_put($ftp, $remote, $local, FTP_BINARY)) {
             throw new RuntimeException('Failed to upload: ' . $relative);
         }
         $count++;
         if (($count % 25) === 0) {
-            log_line($logFile, "[MuchoGDPS] Uploaded {$count} files...\n");
+            log_line($logFile, "[MuchoGDPS] Uploaded {$count} files...\\n");
         }
     }
 
@@ -525,18 +526,17 @@ try {
         }
 
         $remotePath = trim((string)$config['ftp_path']);
-        if ($remotePath !== '' && !@ftp_chdir($ftp, $remotePath)) {
+        if ($remotePath !== '' && $remotePath !== '.' && !@ftp_chdir($ftp, $remotePath)) {
             throw new RuntimeException('The configured FTP remote directory does not exist or is not accessible.');
         }
-        $remoteRoot = '.';
 
-        $pwd = @ftp_pwd($ftp);
-        if (is_string($pwd) && $pwd !== '') {
-            log_line($logFile, "[MuchoGDPS] FTP working directory: {$pwd}\n");
-            $remoteRoot = '.';
+        $base = @ftp_pwd($ftp);
+        if (!is_string($base) || $base === '') {
+            throw new RuntimeException('Unable to determine the FTP web-root directory.');
         }
+        log_line($logFile, "[MuchoGDPS] FTP working directory: {$base}\n");
 
-        $uploaded = upload_tree($ftp, $localRoot, $remoteRoot, $logFile);
+        $uploaded = upload_tree($ftp, $localRoot, $base, $logFile);
         @ftp_delete($ftp, $remoteRoot . '/public/ftp-install.php');
         log_line($logFile, "[MuchoGDPS] Uploaded {$uploaded} files.\n");
     } finally {
