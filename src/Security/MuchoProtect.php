@@ -164,7 +164,7 @@ final readonly class MuchoProtect
             $directory = $_ENV['MUCHO_PROTECT_PENALTY_DIR']
                 ?? $_SERVER['MUCHO_PROTECT_PENALTY_DIR']
                 ?? getenv('MUCHO_PROTECT_PENALTY_DIR')
-                ?: '/tmp/muchocore-protect-penalties';
+                ?: dirname(__DIR__, 2) . '/storage/control/protect-penalties';
             $this->penalties = new AbusePenaltyStore($directory);
         }
     }
