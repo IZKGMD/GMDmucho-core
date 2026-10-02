@@ -98,7 +98,7 @@ async function poll(){
 }
 start.onclick=async()=>{
  if(!$('confirm').checked){alert('Confirm that you have permission to administer this VPS.');return}
- clearTimer();start.disabled=true;$('secret').style.display='none';last='';
+ await fetch('/api/deploy/session',{cache:'no-store'});clearTimer();start.disabled=true;$('secret').style.display='none';last='';
  setState('Starting','running');print('[MuchoGDPS] Creating secure deployment job...\n');
  const body={host:$('host').value.trim(),port:Number($('port').value||22),username:$('user').value.trim(),password:$('password').value,private_key:$('key').value,domain:$('domain').value.trim(),admin_user:$('adminUser').value.trim(),admin_password:$('adminPassword').value};
  try{
