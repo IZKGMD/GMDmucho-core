@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Branding;
 
+use MuchoCore\Core\Environment;
 use PDO;
 use Throwable;
 
@@ -60,7 +61,7 @@ final class BrandingService
         }
 
         $configuredName = self::sanitize(
-            (string)($_ENV['MUCHO_SERVER_NAME'] ?? getenv('MUCHO_SERVER_NAME') ?? '')
+            (string)(Environment::get('MUCHO_SERVER_NAME') ?? '')
         );
 
         return [
