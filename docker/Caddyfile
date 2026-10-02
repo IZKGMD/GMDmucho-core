@@ -39,6 +39,25 @@
     }
     redir @muchogdps_index / 308
 
+    # Web deployment UI/API belong only to the canonical MuchoGDPS host.
+    @muchogdps_deploy_api {
+        host {$MUCHOCORE_SITE_HOST}
+        path /api/deploy/start /api/deploy/status /api/deploy/log
+    }
+    handle @muchogdps_deploy_api {
+        rewrite * /deploy.php
+        php_fastcgi app:9000
+    }
+
+    @muchogdps_deploy_ui {
+        host {$MUCHOCORE_SITE_HOST}
+        path /deploy /deploy/*
+    }
+    handle @muchogdps_deploy_ui {
+        rewrite * /deploy/index.html
+        file_server
+    }
+
     # Serve the MuchoCore product page explicitly. Do not rely on the
     # application/PHP fallback for this static discovery surface.
     @muchocore_root {
