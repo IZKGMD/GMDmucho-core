@@ -1,1793 +1,359 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <link rel="icon" href="/assets/muchocore-logo.jpg" type="image/jpeg">
-    <link rel="apple-touch-icon" href="/assets/muchocore-logo.jpg">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#090b10">
-
-<title>Mucho GDPS</title>
-<meta name="description" content="Mucho GDPS — custom Geometry Dash private server.">
-
-<style>
-:root{
-    --bg:#080a0f;
-    --sidebar:#0c1017;
-    --surface:#101620;
-    --surface2:#141b27;
-    --border:#222b3a;
-
-    --text:#f4f7ff;
-    --muted:#8793a8;
-
-    --accent:#7768ff;
-    --accent2:#43d7cf;
-    --green:#3ada98;
-    --red:#ff687c;
-
-    --radius:16px;
-}
-
-*{
-    box-sizing:border-box;
-}
-
-html{
-    scroll-behavior:smooth;
-}
-
-body{
-    margin:0;
-    min-height:100vh;
-    background:
-        radial-gradient(circle at 82% 4%,rgba(67,215,207,.09),transparent 25%),
-        radial-gradient(circle at 55% -8%,rgba(119,104,255,.12),transparent 32%),
-        var(--bg);
-
-    color:var(--text);
-    font-family:
-        Inter,
-        system-ui,
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        sans-serif;
-}
-
-a{
-    color:inherit;
-    text-decoration:none;
-}
-
-/* SIDEBAR */
-
-.sidebar{
-    position:fixed;
-    inset:0 auto 0 0;
-
-    width:245px;
-    padding:22px 14px;
-
-    background:rgba(11,15,22,.95);
-    border-right:1px solid var(--border);
-    backdrop-filter:blur(20px);
-
-    display:flex;
-    flex-direction:column;
-    z-index:50;
-}
-
-.brand{
-    padding:5px 10px 26px;
-    font-size:20px;
-    font-weight:900;
-    letter-spacing:-.6px;
-}
-
-.brand span{
-    color:var(--accent2);
-}
-
-.nav-title{
-    padding:15px 11px 7px;
-    color:#596579;
-    font-size:9px;
-    font-weight:800;
-    text-transform:uppercase;
-    letter-spacing:.1em;
-}
-
-.nav{
-    display:flex;
-    flex-direction:column;
-    gap:3px;
-}
-
-.nav a{
-    padding:11px 12px;
-    border:1px solid transparent;
-    border-radius:10px;
-
-    color:#96a2b6;
-    font-size:13px;
-    font-weight:650;
-
-    transition:.18s;
-}
-
-.nav a:hover,
-.nav a.active{
-    color:#fff;
-    background:rgba(119,104,255,.11);
-    border-color:rgba(119,104,255,.15);
-}
-
-.sidebar-bottom{
-    margin-top:auto;
-}
-
-.server-mini{
-    padding:13px;
-    border:1px solid var(--border);
-    background:#0f151e;
-    border-radius:12px;
-}
-
-.mini-label{
-    color:var(--muted);
-    font-size:10px;
-    margin-bottom:7px;
-}
-
-.mini-status{
-    display:flex;
-    align-items:center;
-    gap:7px;
-    font-size:12px;
-    font-weight:750;
-}
-
-.dot{
-    width:8px;
-    height:8px;
-    border-radius:50%;
-    background:#64748b;
-}
-
-.dot.online{
-    background:var(--green);
-    box-shadow:0 0 10px rgba(58,218,152,.7);
-}
-
-.dot.offline{
-    background:var(--red);
-}
-
-/* MAIN */
-
-.main{
-    margin-left:245px;
-}
-
-.topbar{
-    min-height:72px;
-
-    padding:0 34px;
-
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-
-    border-bottom:1px solid rgba(34,43,58,.75);
-    background:rgba(8,10,15,.72);
-    backdrop-filter:blur(18px);
-
-    position:sticky;
-    top:0;
-    z-index:30;
-}
-
-.top-title{
-    font-size:13px;
-    font-weight:750;
-}
-
-.live-pill{
-    display:flex;
-    align-items:center;
-    gap:8px;
-
-    padding:7px 12px;
-
-    background:#101720;
-    border:1px solid var(--border);
-    border-radius:999px;
-
-    color:#aab5c6;
-    font-size:11px;
-    font-weight:700;
-}
-
-.content{
-    width:min(1200px,100%);
-    padding:42px 34px 70px;
-}
-
-/* HERO */
-
-.hero{
-    position:relative;
-    overflow:hidden;
-
-    min-height:390px;
-
-    padding:48px;
-
-    border:1px solid var(--border);
-    border-radius:22px;
-
-    background:
-        linear-gradient(
-            135deg,
-            rgba(119,104,255,.11),
-            rgba(67,215,207,.045) 58%,
-            rgba(255,255,255,.01)
-        ),
-        #101620;
-}
-
-.hero::before{
-    content:"";
-    position:absolute;
-
-    width:360px;
-    height:360px;
-
-    right:-90px;
-    top:-130px;
-
-    background:var(--accent2);
-    opacity:.09;
-    filter:blur(70px);
-    border-radius:50%;
-}
-
-.hero::after{
-    content:"M";
-    position:absolute;
-
-    right:55px;
-    bottom:-60px;
-
-    font-size:300px;
-    font-weight:950;
-    line-height:1;
-
-    color:rgba(255,255,255,.025);
-}
-
-.eyebrow{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-
-    color:#9f95ff;
-
-    font-size:11px;
-    font-weight:850;
-    text-transform:uppercase;
-    letter-spacing:.09em;
-}
-
-.hero h1{
-    position:relative;
-    z-index:2;
-
-    max-width:700px;
-
-    margin:18px 0 14px;
-
-    font-size:clamp(43px,7vw,78px);
-    line-height:.95;
-
-    letter-spacing:-4px;
-}
-
-.hero h1 span{
-    color:var(--accent2);
-}
-
-.hero p{
-    position:relative;
-    z-index:2;
-
-    max-width:610px;
-
-    margin:0;
-
-    color:#9ba8ba;
-
-    font-size:16px;
-    line-height:1.65;
-}
-
-.actions{
-    position:relative;
-    z-index:2;
-
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
-
-    margin-top:30px;
-}
-
-.btn{
-    min-height:44px;
-
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-
-    padding:0 18px;
-
-    border-radius:10px;
-
-    background:var(--accent);
-
-    color:#fff;
-
-    font-size:12px;
-    font-weight:800;
-
-    transition:.18s;
-}
-
-.btn:hover{
-    transform:translateY(-2px);
-    filter:brightness(1.08);
-}
-
-.btn.secondary{
-    background:#171e2a;
-    border:1px solid #293548;
-    color:#d5dcea;
-}
-
-/* STATUS */
-
-.section-title{
-    margin:35px 0 14px;
-
-    color:#dfe5f0;
-
-    font-size:12px;
-    font-weight:850;
-    text-transform:uppercase;
-    letter-spacing:.07em;
-}
-
-.stats{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:12px;
-}
-
-.stat{
-    min-height:130px;
-
-    padding:20px;
-
-    background:linear-gradient(180deg,#121925,#0f151e);
-
-    border:1px solid var(--border);
-    border-radius:var(--radius);
-}
-
-.stat small{
-    display:block;
-
-    margin-bottom:12px;
-
-    color:var(--muted);
-
-    font-size:10px;
-    font-weight:750;
-
-    text-transform:uppercase;
-    letter-spacing:.05em;
-}
-
-.stat strong{
-    display:block;
-
-    font-size:23px;
-    letter-spacing:-.6px;
-}
-
-.stat p{
-    margin:7px 0 0;
-
-    color:#6f7c90;
-
-    font-size:11px;
-}
-
-/* FEATURES */
-
-.features{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:12px;
-}
-
-.feature{
-    padding:23px;
-
-    background:#101620;
-
-    border:1px solid var(--border);
-    border-radius:var(--radius);
-
-    transition:.18s;
-}
-
-.feature:hover{
-    background:#131b27;
-    border-color:#303c50;
-    transform:translateY(-2px);
-}
-
-.feature-icon{
-    width:38px;
-    height:38px;
-
-    display:grid;
-    place-items:center;
-
-    margin-bottom:18px;
-
-    background:rgba(119,104,255,.12);
-    border:1px solid rgba(119,104,255,.19);
-    border-radius:10px;
-
-    color:#a99fff;
-    font-size:17px;
-}
-
-.feature h3{
-    margin:0 0 7px;
-    font-size:14px;
-}
-
-.feature p{
-    margin:0;
-
-    color:var(--muted);
-
-    font-size:12px;
-    line-height:1.55;
-}
-
-/* LOWER GRID */
-
-.lower{
-    display:grid;
-    grid-template-columns:1.5fr 1fr;
-    gap:12px;
-}
-
-.panel{
-    padding:22px;
-
-    background:#101620;
-
-    border:1px solid var(--border);
-    border-radius:var(--radius);
-}
-
-.panel-head{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-
-    margin-bottom:17px;
-}
-
-.panel-head h3{
-    margin:0;
-    font-size:14px;
-}
-
-.api-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-
-    padding:12px 0;
-
-    border-bottom:1px solid #1d2633;
-
-    font-size:12px;
-}
-
-.api-row:last-child{
-    border-bottom:0;
-}
-
-.api-row span{
-    color:var(--muted);
-}
-
-.good{
-    color:var(--green)!important;
-}
-
-.bad{
-    color:var(--red)!important;
-}
-
-.links{
-    display:grid;
-    gap:8px;
-}
-
-.link-card{
-    padding:13px 14px;
-
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-
-    background:#151c28;
-    border:1px solid #242f40;
-    border-radius:10px;
-
-    font-size:12px;
-    font-weight:700;
-
-    transition:.15s;
-}
-
-.link-card:hover{
-    background:#192231;
-}
-
-footer{
-    margin-top:28px;
-    padding:18px 0 0;
-    border-top:1px solid rgba(34,43,58,.8);
-    color:#596579;
-    font-size:10px;
-    line-height:1.7;
-    text-align:center;
-}
-
-footer a{
-    color:#7d8ba3;
-    text-decoration:none;
-}
-
-footer a:hover{
-    color:#a9b5c8;
-    text-decoration:underline;
-}
-
-/* MOBILE */
-
-.mobile-menu{
-    display:none;
-}
-
-@media(max-width:900px){
-
-    .sidebar{
-        transform:translateX(-100%);
-        transition:.2s;
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#070912">
+  <meta name="description" content="MuchoGDPS is a self-hosted platform for deploying and managing Geometry Dash private servers with MuchoCore.">
+  <link rel="canonical" href="https://muchogdps.space/">
+  <link rel="icon" href="/assets/muchocore-logo.jpg" type="image/jpeg">
+  <title>MuchoGDPS — Own your server</title>
+  <style>
+    :root{
+      --bg:#060811;--surface:#0a0e19;--surface-2:#0e1422;--surface-3:#121a2b;
+      --line:rgba(255,255,255,.09);--line-strong:rgba(255,255,255,.15);
+      --text:#f5f7ff;--muted:#9da8bc;--dim:#66748d;
+      --violet:#8c7dff;--cyan:#55e8df;--green:#69e2a8;
+      --max:1180px;--radius:22px;
     }
-
-    body.menu-open .sidebar{
-        transform:translateX(0);
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;color:var(--text);
+      background:
+        radial-gradient(900px 580px at 75% -5%,rgba(85,232,223,.105),transparent 62%),
+        radial-gradient(850px 540px at 8% 0%,rgba(140,125,255,.16),transparent 64%),
+        linear-gradient(180deg,#060811 0%,#080b13 48%,#060811 100%);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      -webkit-font-smoothing:antialiased;line-height:1.5;
     }
-
-    .main{
-        margin-left:0;
+    body:before{
+      content:"";position:fixed;inset:0;pointer-events:none;opacity:.28;
+      background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+      background-size:44px 44px;mask-image:linear-gradient(to bottom,black,transparent 74%);
     }
-
-    .mobile-menu{
-        display:grid;
-        place-items:center;
-
-        width:38px;
-        height:38px;
-
-        border:1px solid var(--border);
-        border-radius:9px;
-
-        background:#111822;
-        color:white;
-
-        font-size:18px;
+    a{text-decoration:none;color:inherit}
+    button{font:inherit}
+    .wrap{width:min(var(--max),calc(100% - 36px));margin:auto}
+    .nav{
+      position:sticky;top:0;z-index:50;
+      border-bottom:1px solid rgba(255,255,255,.065);
+      background:rgba(6,8,17,.72);backdrop-filter:blur(20px);
     }
-
-    .topbar{
-        padding:0 16px;
+    .navin{height:74px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+    .brand{display:flex;align-items:center;gap:11px;font-weight:950;letter-spacing:-.7px}
+    .brand img{width:36px;height:36px;border-radius:11px;border:1px solid rgba(255,255,255,.15);object-fit:cover}
+    .brand small{display:block;color:var(--dim);font-size:8px;letter-spacing:.16em;text-transform:uppercase;margin-top:1px}
+    .links{display:flex;align-items:center;gap:3px}
+    .links a{padding:9px 12px;border-radius:10px;color:#aab5c7;font-size:11px;font-weight:800;transition:.18s}
+    .links a:hover{color:#fff;background:rgba(255,255,255,.055)}
+    .nav-cta{padding:10px 15px!important;color:#fff!important;background:linear-gradient(135deg,#8e80ff,#7567f1)!important;border:1px solid rgba(176,167,255,.55);box-shadow:0 10px 34px rgba(119,104,246,.22)}
+    .hero{padding:78px 0 32px}
+    .hero-shell{position:relative}
+    .hero-grid{display:grid;grid-template-columns:minmax(0,1.06fr) minmax(380px,.94fr);gap:42px;align-items:center}
+    .eyebrow{
+      display:inline-flex;align-items:center;gap:9px;padding:7px 11px;border-radius:999px;
+      border:1px solid rgba(140,125,255,.28);background:rgba(140,125,255,.08);
+      color:#c4bcff;font-size:10px;font-weight:900;letter-spacing:.11em;text-transform:uppercase
     }
-
-    .top-title{
-        margin-right:auto;
-        margin-left:12px;
+    .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 14px rgba(105,226,168,.85)}
+    h1{
+      margin:20px 0 18px;max-width:720px;font-size:clamp(55px,7.7vw,94px);
+      line-height:.91;letter-spacing:-5.8px
     }
-
-    .content{
-        padding:20px 16px 55px;
+    h1 .soft{display:block;color:#dce3f4}
+    h1 .gradient{display:block;background:linear-gradient(100deg,#aaa0ff 0%,#8d82ff 40%,#61e6df 92%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .lead{max-width:650px;color:#aeb8cb;font-size:16px;line-height:1.76}
+    .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 18px;border-radius:13px;
+      background:linear-gradient(135deg,#8f81ff,#7668f3);border:1px solid rgba(177,167,255,.52);
+      color:#fff;font-size:12px;font-weight:900;box-shadow:0 18px 42px rgba(118,103,243,.21);transition:transform .18s,filter .18s
     }
-
-    .hero{
-        min-height:auto;
-        padding:32px 24px;
+    .btn:hover{transform:translateY(-2px);filter:brightness(1.05)}
+    .deploy-main{min-width:210px;min-height:54px;font-size:13px;box-shadow:0 20px 55px rgba(118,103,243,.30)}
+    .deploy-main span{font-size:16px;line-height:1}
+    .deploy-banner{margin-top:18px;padding:11px 14px;border:1px solid rgba(140,125,255,.24);border-radius:12px;background:rgba(140,125,255,.07);color:#bdb6ff;font-size:10px;font-weight:800;display:inline-flex;align-items:center;gap:9px}
+    .deploy-banner strong{color:#fff}
+    .btn.alt{background:rgba(255,255,255,.045);border-color:var(--line-strong);box-shadow:none;color:#dce3ef}
+    .tiny-note{margin-top:12px;color:var(--dim);font-size:10px}
+    .hero-art{position:relative;min-height:470px}
+    .orb{
+      position:absolute;width:340px;height:340px;right:-75px;top:-55px;border-radius:50%;
+      background:radial-gradient(circle at 35% 30%,rgba(85,232,223,.28),rgba(140,125,255,.18) 35%,transparent 69%);
+      filter:blur(8px)
     }
-
-    .hero h1{
-        letter-spacing:-2.5px;
+    .dash{
+      position:absolute;left:22px;right:0;top:24px;bottom:24px;padding:13px;
+      border:1px solid var(--line-strong);border-radius:24px;background:rgba(9,13,23,.76);
+      box-shadow:0 30px 90px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.035);
+      transform:rotate(1.2deg)
     }
-
-    .stats{
-        grid-template-columns:1fr;
+    .window{height:100%;border:1px solid rgba(255,255,255,.07);border-radius:17px;background:#080c14;overflow:hidden}
+    .window-top{height:40px;display:flex;align-items:center;gap:7px;padding:0 13px;border-bottom:1px solid #171f2d;background:#0c111b}
+    .window-top i{width:7px;height:7px;border-radius:50%;background:#394558}
+    .window-title{margin-left:auto;color:#5f6c80;font:9px ui-monospace,SFMono-Regular,Menlo,monospace}
+    .dashboard{display:grid;grid-template-columns:95px 1fr;min-height:100%}
+    .side{padding:14px 10px;border-right:1px solid #171f2d;background:#0a0f18}
+    .side-logo{width:28px;height:28px;border-radius:9px;margin-bottom:18px;background:linear-gradient(135deg,#897cff,#59e6de);opacity:.9}
+    .side-item{height:27px;border-radius:8px;margin:4px 0;color:#647187;font-size:8px;display:flex;align-items:center;padding:0 8px}
+    .side-item.active{color:#eef2fb;background:rgba(140,125,255,.12);border:1px solid rgba(140,125,255,.13)}
+    .dash-main{padding:17px}
+    .dash-row{display:flex;justify-content:space-between;align-items:end;gap:10px}
+    .micro{font-size:8px;color:#68758a;text-transform:uppercase;letter-spacing:.12em;font-weight:900}
+    .node-title{font-size:21px;letter-spacing:-.9px;margin-top:3px;font-weight:900}
+    .online{display:inline-flex;align-items:center;gap:6px;padding:7px 9px;border-radius:9px;background:rgba(105,226,168,.07);border:1px solid rgba(105,226,168,.13);color:#75e7b1;font-size:8px;font-weight:900}
+    .online:before{content:"";width:5px;height:5px;border-radius:50%;background:#69e2a8;box-shadow:0 0 10px rgba(105,226,168,.75)}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+    .stat{padding:11px;border:1px solid #1c2636;border-radius:11px;background:#0b1019}
+    .stat b{display:block;font-size:14px}.stat span{display:block;color:#68758a;font-size:7px;margin-top:3px;text-transform:uppercase;letter-spacing:.09em}
+    .graph{height:140px;margin-top:8px;padding:12px;border:1px solid #1c2636;border-radius:11px;background:#0b1019;position:relative;overflow:hidden}
+    .graph:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(140,125,255,.10),transparent 65%)}
+    .line-chart{position:absolute;left:12px;right:12px;bottom:18px;height:85px}
+    .line-chart svg{width:100%;height:100%}
+    .node-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    .node-mini{padding:10px;border:1px solid #1c2636;border-radius:11px;background:#0b1019}
+    .node-mini strong{display:block;font-size:9px}.node-mini span{display:block;color:#68758a;font-size:7px;margin-top:4px}
+    .section{padding:70px 0 0}
+    .section-kicker{display:flex;align-items:center;gap:10px;color:#aaa1ff;font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+    .section-kicker:before{content:"";width:24px;height:1px;background:linear-gradient(90deg,#8c7dff,#55e8df)}
+    h2{margin:11px 0 0;font-size:clamp(30px,4vw,48px);line-height:1.02;letter-spacing:-2.3px;max-width:740px}
+    .intro{margin:12px 0 0;color:var(--muted);font-size:14px;line-height:1.72;max-width:690px}
+    .feature-layout{display:grid;grid-template-columns:1.15fr .85fr;gap:14px;margin-top:27px}
+    .feature-main,.feature-side{
+      border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(180deg,#0d1320,#090e17)
     }
-
-    .features{
-        grid-template-columns:1fr;
+    .feature-main{min-height:290px;padding:28px;position:relative;overflow:hidden}
+    .feature-main:after{content:"";position:absolute;right:-100px;bottom:-120px;width:320px;height:320px;border-radius:50%;background:rgba(140,125,255,.14);filter:blur(65px)}
+    .feature-icon{width:44px;height:44px;display:grid;place-items:center;border-radius:13px;background:rgba(140,125,255,.10);border:1px solid rgba(140,125,255,.2);font-size:18px}
+    .feature-main h3{font-size:21px;letter-spacing:-.8px;margin:18px 0 7px}.feature-main p{position:relative;z-index:1;color:var(--muted);max-width:500px;font-size:12px;line-height:1.72}
+    .feature-points{position:relative;z-index:2;display:flex;flex-wrap:wrap;gap:7px;margin-top:22px}
+    .pill{padding:7px 9px;border:1px solid #202b3e;border-radius:999px;background:#0b111b;color:#8996ab;font-size:8px;font-weight:800}
+    .feature-side{display:grid;grid-template-rows:1fr 1fr;overflow:hidden}
+    .mini-feature{padding:23px;border-bottom:1px solid var(--line)}.mini-feature:last-child{border-bottom:0}
+    .mini-feature .mini-icon{font-size:16px}.mini-feature h3{margin:9px 0 6px;font-size:14px}.mini-feature p{margin:0;color:var(--muted);font-size:10px;line-height:1.65}
+    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:27px}
+    .step{padding:20px;border:1px solid var(--line);border-radius:17px;background:#0b111b;min-height:180px}
+    .num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:9px;background:#121a28;border:1px solid #263248;color:#b1a9ff;font-size:9px;font-weight:900}
+    .step h3{margin:16px 0 7px;font-size:13px}.step p{margin:0;color:var(--muted);font-size:10px;line-height:1.65}
+    .adapter{
+      margin-top:15px;padding:26px;border:1px solid #222c3e;border-radius:var(--radius);
+      background:linear-gradient(135deg,rgba(140,125,255,.08),rgba(85,232,223,.045),rgba(255,255,255,.015))
     }
-
-    .lower{
-        grid-template-columns:1fr;
+    .adapter-grid{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center}
+    .adapter h3{margin:0;font-size:19px;letter-spacing:-.6px}.adapter p{margin:7px 0 0;color:var(--muted);font-size:11px;line-height:1.7;max-width:700px}
+    .adapter-tags{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;max-width:260px}.tag{padding:6px 8px;border-radius:8px;border:1px solid #222d40;background:#0b111b;color:#8d9ab0;font-size:8px;font-weight:800}
+    .connect{
+      margin-top:15px;padding:28px;border:1px solid var(--line-strong);border-radius:24px;
+      background:linear-gradient(125deg,rgba(140,125,255,.13),rgba(85,232,223,.055) 58%,rgba(255,255,255,.018))
     }
-}
-
-@media(max-width:500px){
-
-    .hero h1{
-        font-size:46px;
+    .connect-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;align-items:center}
+    .connect h2{font-size:clamp(28px,3.6vw,42px)}
+    .connect p{color:var(--muted);font-size:12px;line-height:1.72;max-width:650px}
+    .install{border:1px solid #222d40;border-radius:15px;background:#080d15;overflow:hidden;box-shadow:0 20px 55px rgba(0,0,0,.25)}
+    .install-top{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #182131;color:#65728a;font-size:8px;text-transform:uppercase;letter-spacing:.1em;font-weight:900}
+    .copy{border:1px solid #273449;border-radius:7px;background:#0c131f;color:#a8b5ca;padding:5px 7px;font-size:8px;cursor:pointer}
+    .install pre{margin:0;padding:15px;font:10px/1.85 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#bac5d8;white-space:pre-wrap;overflow-wrap:anywhere}
+    .install .green{color:#73e8b0}.install .violet{color:#b3aaff}
+    .trust{display:flex;flex-wrap:wrap;gap:16px;margin-top:22px;color:#69768d;font-size:9px;font-weight:800}.trust span{display:inline-flex;align-items:center;gap:7px}.trust i{width:5px;height:5px;border-radius:50%;background:#5fe0ae}
+    footer{padding:80px 0 45px;color:#66738a;font-size:10px}
+    .foot{display:flex;justify-content:space-between;gap:18px;align-items:center;border-top:1px solid rgba(255,255,255,.07);padding-top:22px}
+    .footlinks{display:flex;gap:17px}.footlinks a:hover{color:#cbd4e2}
+    @media(max-width:980px){
+      .hero-grid{grid-template-columns:1fr}.hero-art{min-height:420px}.feature-layout,.connect-grid{grid-template-columns:1fr}.steps{grid-template-columns:1fr 1fr}.adapter-grid{grid-template-columns:1fr}.adapter-tags{justify-content:flex-start;max-width:none}
     }
-
-    .hero p{
-        font-size:14px;
+    @media(max-width:680px){
+      .wrap{width:min(var(--max),calc(100% - 24px))}.navin{height:65px}.links a:not(.nav-cta){display:none}.hero{padding-top:58px}
+      h1{font-size:clamp(49px,15vw,72px);letter-spacing:-4.4px}.hero-art{min-height:330px}.dash{left:0;top:10px;bottom:10px;transform:none}.dashboard{grid-template-columns:72px 1fr}.stats{grid-template-columns:1fr 1fr}.stat:last-child{display:none}
+      .side{padding:12px 7px}.side-item{padding:0 6px}.dash-main{padding:13px}.node-list{grid-template-columns:1fr}
+      .feature-main,.mini-feature,.connect,.adapter{padding:21px}.steps{grid-template-columns:1fr}.step{min-height:auto}
+      .actions .btn{width:100%}.foot{align-items:flex-start;flex-direction:column}
     }
-
-    .live-pill{
-        font-size:0;
-        padding:9px;
-    }
-
-}
-</style>
-
-<style id="mucho-public-live-v2">
-
-.live-stats{
-    grid-template-columns:repeat(4,1fr);
-}
-
-.latest-panel{
-    padding:0;
-    overflow:hidden;
-}
-
-.latest-panel .panel-head{
-    padding:20px 22px 14px;
-    margin:0;
-}
-
-.level-list{
-    display:grid;
-}
-
-.level-row{
-    min-height:68px;
-    display:grid;
-    grid-template-columns:56px minmax(0,1fr) auto;
-    gap:14px;
-    align-items:center;
-    padding:11px 22px;
-    border-top:1px solid #1d2633;
-    transition:.15s ease;
-}
-
-.level-row:hover{
-    background:#141c28;
-}
-
-.level-id{
-    width:42px;
-    height:42px;
-    display:grid;
-    place-items:center;
-    border-radius:10px;
-    background:rgba(119,104,255,.10);
-    border:1px solid rgba(119,104,255,.18);
-    color:#a99fff;
-    font-size:11px;
-    font-weight:800;
-}
-
-.level-name{
-    font-size:13px;
-    font-weight:800;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-}
-
-.level-creator{
-    margin-top:4px;
-    color:var(--muted);
-    font-size:11px;
-}
-
-.level-meta{
-    display:flex;
-    gap:13px;
-    color:#78869a;
-    font-size:10px;
-    white-space:nowrap;
-}
-
-.empty-levels{
-    padding:35px 22px;
-    color:var(--muted);
-    text-align:center;
-    font-size:12px;
-}
-
-@media(max-width:900px){
-    .live-stats{
-        grid-template-columns:1fr 1fr!important;
-    }
-}
-
-@media(max-width:520px){
-    .level-row{
-        grid-template-columns:46px minmax(0,1fr);
-        padding:11px 14px;
-    }
-
-    .level-meta{
-        grid-column:2;
-        margin-top:-6px;
-    }
-}
-
-</style>
-
-
-<style id="mucho-music-ui">
-
-.music-layout{
-    display:grid;
-    grid-template-columns:.85fr 1.15fr;
-    gap:12px;
-}
-
-.music-limit,
-#musicState{
-    color:var(--muted);
-    font-size:10px;
-}
-
-.music-form{
-    display:grid;
-    gap:13px;
-}
-
-.music-form label{
-    display:grid;
-    gap:6px;
-    color:var(--muted);
-    font-size:11px;
-    font-weight:700;
-}
-
-.music-form input{
-    width:100%;
-    min-height:42px;
-    padding:9px 11px;
-
-    background:#0b1119;
-    color:var(--text);
-
-    border:1px solid var(--border);
-    border-radius:9px;
-}
-
-.music-form input:focus{
-    outline:none;
-    border-color:var(--accent);
-}
-
-.music-form .btn{
-    border:0;
-    cursor:pointer;
-}
-
-.music-message{
-    min-height:18px;
-    color:var(--muted);
-    font-size:11px;
-}
-
-.music-message.success{
-    color:var(--green);
-}
-
-.music-message.error{
-    color:var(--red);
-}
-
-.music-list{
-    display:grid;
-}
-
-.music-row{
-    display:grid;
-    grid-template-columns:52px minmax(0,1fr) auto;
-    gap:12px;
-    align-items:center;
-
-    padding:12px 0;
-
-    border-bottom:1px solid #1d2633;
-}
-
-.music-row:last-child{
-    border-bottom:0;
-}
-
-.music-id{
-    width:42px;
-    height:42px;
-
-    display:grid;
-    place-items:center;
-
-    background:rgba(67,215,207,.08);
-    border:1px solid rgba(67,215,207,.17);
-    border-radius:10px;
-
-    color:var(--accent2);
-    font-size:10px;
-    font-weight:800;
-}
-
-.music-name{
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-
-    font-size:12px;
-    font-weight:800;
-}
-
-.music-artist{
-    margin-top:3px;
-    color:var(--muted);
-    font-size:10px;
-}
-
-.music-download{
-    color:#a9b4c5;
-    font-size:11px;
-}
-
-@media(max-width:900px){
-    .music-layout{
-        grid-template-columns:1fr;
-    }
-}
-
-</style>
-
-<link rel="stylesheet" href="/muchocore-theme.css?v=3">
-<script src="/muchocore-theme.js?v=3" defer></script>
+  </style>
 </head>
-
 <body>
-
-<aside class="sidebar" id="sidebar">
-
-    <div class="brand">
-        <img class="mucho-brand-logo" src="/assets/muchocore-logo.jpg" alt="MuchoCore" width="44" height="44" decoding="async">
-        <span data-server-name>Mucho GDPS</span>
+  <header class="nav">
+    <div class="wrap navin">
+      <a class="brand" href="/" aria-label="MuchoGDPS home">
+        <img src="/assets/muchocore-logo.jpg" alt="" width="36" height="36">
+        <span>MuchoGDPS<small>Powered by MuchoCore</small></span>
+      </a>
+      <nav class="links" aria-label="Main navigation">
+        <a href="#platform">Platform</a>
+        <a href="#how">How it works</a>
+        <a href="/muchocore/">MuchoCore</a>
+        <a class="nav-cta" href="/deploy/">Deploy your GDPS →</a>
+      </nav>
     </div>
+  </header>
 
-    <div class="nav">
-
-        <div class="nav-title">Server</div>
-
-        <a href="/" class="active">
-            Dashboard
-        </a>
-
-        <a href="#features">
-            Features
-        </a>
-
-
-        <a href="#download">
-            Download
-        </a>
-
-        <a href="#music">
-            Music
-        </a>
-
-        <div class="nav-title">Tools</div>
-
-        <a href="/api/v2/health" target="_blank">
-            API Status
-        </a>
-
-        <a href="/admin/">
-            Admin Panel
-        </a>
-
-    </div>
-
-    <div class="sidebar-bottom">
-
-        <div class="server-mini">
-
-            <div class="mini-label">
-                MuchoCore
+  <main>
+    <section class="hero">
+      <div class="wrap hero-shell">
+        <div class="hero-grid">
+          <div>
+            <div class="eyebrow"><i class="dot"></i> Self-hosted GDPS platform</div>
+            <h1><span class="soft">Your VPS.</span><span class="gradient">Your GDPS.<br>Your control.</span></h1>
+            <p class="lead">Turn your own VPS into a managed Geometry Dash private server. MuchoGDPS brings deployment and MuchoCore together without taking ownership of your infrastructure.</p>
+            <div class="actions">
+              <a class="btn deploy-main" href="/deploy/">Deploy your GDPS <span>→</span></a>
+              <a class="btn alt" href="/muchocore/">Explore MuchoCore</a>
             </div>
+            <div class="deploy-banner"><strong>Ready to start?</strong> Open the web installer and connect your VPS.</div>
+            <div class="tiny-note">Self-hosted by design · Built around your infrastructure</div>
+          </div>
 
-            <div class="mini-status">
-
-                <span class="dot" id="miniDot"></span>
-
-                <span id="miniStatus">
-                    Checking…
-                </span>
-
+          <div class="hero-art" aria-label="MuchoGDPS dashboard preview">
+            <div class="orb"></div>
+            <div class="dash">
+              <div class="window">
+                <div class="window-top">
+                  <i></i><i></i><i></i><span class="window-title">muchogdps.space / dashboard</span>
+                </div>
+                <div class="dashboard">
+                  <aside class="side">
+                    <div class="side-logo"></div>
+                    <div class="side-item active">Overview</div>
+                    <div class="side-item">Deployments</div>
+                    <div class="side-item">Backups</div>
+                    <div class="side-item">Database</div>
+                    <div class="side-item">Logs</div>
+                  </aside>
+                  <div class="dash-main">
+                    <div class="dash-row">
+                      <div><div class="micro">Node</div><div class="node-title">your-vps</div></div>
+                      <div class="online">ONLINE</div>
+                    </div>
+                    <div class="stats">
+                      <div class="stat"><b>12%</b><span>CPU</span></div>
+                      <div class="stat"><b>2.4 GB</b><span>Memory</span></div>
+                      <div class="stat"><b>68 ms</b><span>Latency</span></div>
+                    </div>
+                    <div class="graph">
+                      <div class="micro">Node activity</div>
+                      <div class="line-chart">
+                        <svg viewBox="0 0 500 120" preserveAspectRatio="none" aria-hidden="true">
+                          <path d="M0,95 C35,88 44,83 67,90 S110,94 130,70 S173,77 198,61 S232,67 254,55 S292,68 318,47 S362,55 388,42 S430,57 500,21" fill="none" stroke="url(#g)" stroke-width="3" stroke-linecap="round"/>
+                          <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#8c7dff"/><stop offset="1" stop-color="#55e8df"/></linearGradient></defs>
+                        </svg>
+                      </div>
+                    </div>
+                    <div class="node-list">
+                      <div class="node-mini"><strong>MuchoCore</strong><span>Healthy · running</span></div>
+                      <div class="node-mini"><strong>MariaDB</strong><span>Connected · ready</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-
+          </div>
         </div>
-
-    </div>
-
-</aside>
-
-
-<main class="main">
-
-<header class="topbar">
-
-    <button
-        class="mobile-menu"
-        id="menuButton"
-        type="button"
-    >
-        ☰
-    </button>
-
-    <div class="top-title">
-        Mucho GDPS
-    </div>
-
-    <div class="live-pill">
-
-        <span class="dot" id="topDot"></span>
-
-        <span id="topStatus">
-            Connecting…
-        </span>
-
-    </div>
-
-</header>
-
-
-<div class="content">
-
-<section class="hero">
-
-    <div class="eyebrow">
-        Geometry Dash Private Server
-    </div>
-
-    <h1>
-        Welcome to<br>
-        <span id="heroBrand">Mucho GDPS.</span>
-    </h1>
-
-    <p>
-        Custom Geometry Dash server powered by MuchoCore.
-        Extended profiles, custom server systems and our own
-        client infrastructure.
-    </p>
-
-    <div class="actions">
-
-        <a
-            class="btn"
-            href="#download"
-        >
-            Download Client
-        </a>
-
-        <a
-            class="btn secondary"
-            href="/admin/"
-        >
-            Admin Panel
-        </a>
-
-    </div>
-
-</section>
-
-
-<div class="section-title">
-    Server
-</div>
-
-<div class="stats live-stats">
-
-    <div class="stat">
-        <small>Players</small>
-        <strong id="playersCount">—</strong>
-        <p>Registered accounts</p>
-    </div>
-
-    <div class="stat">
-        <small>Levels</small>
-        <strong id="levelsCount">—</strong>
-        <p>Uploaded levels</p>
-    </div>
-
-    <div class="stat">
-        <small>Comments</small>
-        <strong id="commentsCount">—</strong>
-        <p>Server comments</p>
-    </div>
-
-    <div class="stat">
-        <small>Status</small>
-        <strong id="serverStatus">Checking…</strong>
-        <p id="coreVersion">MuchoCore</p>
-    </div>
-
-</div>
-
-
-<div
-    class="section-title"
-    id="features"
->
-    Mucho Features
-</div>
-
-
-<div class="features">
-
-    <div class="feature">
-
-        <div class="feature-icon">✦</div>
-
-        <h3>Mucho Profiles</h3>
-
-        <p>
-            Custom titles, badges, status, biography,
-            themes, banners, pinned levels and profile
-            personalization.
-        </p>
-
-    </div>
-
-
-    <div class="feature">
-
-        <div class="feature-icon">◆</div>
-
-        <h3>Server Authority</h3>
-
-        <p>
-            OWNER, ADMIN and MOD authority is controlled
-            directly by MuchoCore instead of trusting
-            client-side profile data.
-        </p>
-
-    </div>
-
-
-    <div class="feature">
-
-        <div class="feature-icon">◉</div>
-
-        <h3>Live Presence</h3>
-
-        <p>
-            MuchoCore supports heartbeat-based online
-            presence and privacy-aware player visibility.
-        </p>
-
-    </div>
-
-
-    <div class="feature">
-
-        <div class="feature-icon">⚡</div>
-
-        <h3>Custom Infrastructure</h3>
-
-        <p>
-            Dedicated MuchoCore backend, custom APIs,
-            Cloudflare Tunnel and our own client-side
-            integrations.
-        </p>
-
-    </div>
-
-</div>
-
-
-
-<div class="section-title">
-    Latest Levels
-</div>
-
-<div class="panel latest-panel">
-
-    <div class="panel-head">
-        <h3>Recently uploaded</h3>
-        <span id="levelsLoadState" style="color:var(--muted);font-size:11px">
-            Loading…
-        </span>
-    </div>
-
-    <div id="latestLevels" class="level-list"></div>
-
-</div>
-
-
-<div class="section-title" id="music">
-    Music
-</div>
-
-<div class="music-layout">
-
-    <div class="panel">
-        <div class="panel-head">
-            <h3>Add Music</h3>
-            <span class="music-limit">
-                1 song / 3 min
-            </span>
-        </div>
-
-        <form id="musicUploadForm" class="music-form">
-
-            <label>
-                Song name
-                <input
-                    name="title"
-                    maxlength="128"
-                    placeholder="Song name"
-                    required
-                >
-            </label>
-
-            <label>
-                Artist
-                <input
-                    name="artist"
-                    maxlength="128"
-                    placeholder="Artist"
-                    required
-                >
-            </label>
-
-            <label class="music-file">
-                MP3 file
-                <input
-                    type="file"
-                    name="file"
-                    accept=".mp3,audio/mpeg"
-                    required
-                >
-            </label>
-
-            <button
-                type="submit"
-                class="btn"
-                id="musicSubmit"
-            >
-                Add Music
-            </button>
-
-            <div
-                class="music-message"
-                id="musicMessage"
-            ></div>
-
-        </form>
-    </div>
-
-    <div class="panel">
-
-        <div class="panel-head">
-            <h3>Latest Music</h3>
-            <span id="musicState">Loading…</span>
-        </div>
-
-        <div id="musicList" class="music-list"></div>
-
-    </div>
-
-</div>
-
-<div class="section-title">
-    System
-</div>
-
-
-<div class="lower">
-
-    <div class="panel">
-
-        <div class="panel-head">
-            <h3>MuchoCore status</h3>
-        </div>
-
-        <div class="api-row">
-            <span>API</span>
-            <b id="apiState">
-                Checking…
-            </b>
-        </div>
-
-        <div class="api-row">
-            <span>Database</span>
-            <b id="databaseState">
-                Checking…
-            </b>
-        </div>
-
-        <div class="api-row">
-            <span>Version</span>
-            <b id="apiVersion">
-                —
-            </b>
-        </div>
-
-        <div class="api-row">
-            <span>Endpoint</span>
-            <b>
-                /api/v2
-            </b>
-        </div>
-
-    </div>
-
-
-    <div
-        class="panel"
-        id="download"
-    >
-
-        <div class="panel-head">
-            <h3>Quick access</h3>
-        </div>
-
-        <div class="links">
-
-            <a
-                class="link-card"
-                href="/admin/"
-            >
-                <span>Admin Panel</span>
-                <span>→</span>
-            </a>
-
-            <a
-                class="link-card"
-                href="/api/v2/health"
-                target="_blank"
-            >
-                <span>API Health</span>
-                <span>→</span>
-            </a>
-
-            <div class="link-card">
-                <span>Mucho Client</span>
-                <span style="color:#8793a8">
-                    Soon
-                </span>
+      </div>
+    </section>
+
+    <section class="section" id="platform">
+      <div class="wrap">
+        <div class="section-kicker">The platform</div>
+        <h2>A control layer around the server you already own.</h2>
+        <p class="intro">MuchoGDPS is designed to make the infrastructure boring: deploy the stack, keep the data on your VPS, and build your GDPS on top of MuchoCore.</p>
+
+        <div class="feature-layout">
+          <article class="feature-main">
+            <div class="feature-icon">⚡</div>
+            <h3>Deploy the whole stack, not a checklist</h3>
+            <p>The installer handles the boring pieces around your GDPS so you can get to the part that matters: your server, your content, and your community.</p>
+            <div class="feature-points">
+              <span class="pill">Docker</span><span class="pill">MariaDB</span><span class="pill">Caddy</span><span class="pill">MuchoCore</span><span class="pill">Health checks</span>
             </div>
-
+          </article>
+          <div class="feature-side">
+            <article class="mini-feature">
+              <div class="mini-icon">🧩</div>
+              <h3>Database adapters</h3>
+              <p>Migration logic is built around adapters, so different GDPS schemas can be handled without forcing every server into one database layout.</p>
+            </article>
+            <article class="mini-feature">
+              <div class="mini-icon">🛡️</div>
+              <h3>Your infrastructure stays yours</h3>
+              <p>The long-term architecture uses a lightweight agent and short-lived credentials instead of keeping your VPS root password in the website.</p>
+            </article>
+          </div>
         </div>
 
+        <div class="adapter">
+          <div class="adapter-grid">
+            <div>
+              <h3>Designed for the messy reality of GDPS databases.</h3>
+              <p>Some servers share a schema. Some do not. MuchoCore can grow through adapters instead of assuming that every backup looks the same.</p>
+            </div>
+            <div class="adapter-tags"><span class="tag">Schema detection</span><span class="tag">Mappings</span><span class="tag">Migration plans</span><span class="tag">Validation</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="how">
+      <div class="wrap">
+        <div class="section-kicker">How it works</div>
+        <h2>From an empty VPS to a working GDPS.</h2>
+        <p class="intro">The flow is intentionally simple now, with room for a proper control plane later.</p>
+        <div class="steps">
+          <article class="step"><span class="num">01</span><h3>Connect</h3><p>Provide the VPS details needed for the initial deployment or use a short-lived deployment token.</p></article>
+          <article class="step"><span class="num">02</span><h3>Deploy</h3><p>The installer prepares the environment and brings up MuchoCore with the required services.</p></article>
+          <article class="step"><span class="num">03</span><h3>Configure</h3><p>Set the domain, compatibility profile, database path, and the pieces that make your GDPS yours.</p></article>
+          <article class="step"><span class="num">04</span><h3>Manage</h3><p>Move toward one control plane for nodes, updates, backups, migrations, and operational logs.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="connect">
+      <div class="wrap">
+        <div class="connect">
+          <div class="connect-grid">
+            <div>
+              <div class="section-kicker">Bring your own VPS</div>
+              <h2>Own the machine. Let MuchoGDPS handle the boring parts.</h2>
+              <p>Start with a VPS you control. MuchoCore runs on it, your data stays there, and the future node agent can provide ongoing management without turning your server credentials into a permanent dependency.</p>
+              <div class="actions">
+                <a class="btn" href="/install/">Get MuchoCore <span>→</span></a>
+                <a class="btn alt" href="https://github.com/IZKGMD/GMDmucho-core" rel="noopener">View source</a>
+              </div>
+              <div class="trust"><span><i></i> Self-hosted</span><span><i></i> Open source core</span><span><i></i> Your VPS</span></div>
+            </div>
+            <div class="install">
+              <div class="install-top"><span>One command</span><button class="copy" type="button" id="copy">Copy</button></div>
+              <pre id="command"><span class="violet">curl</span> -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/v1.1.0/install-remote.sh \
+  | <span class="violet">bash</span> -s -- --ref=v1.1.0</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot">
+      <div>© 2026 MuchoGDPS · Powered by MuchoCore</div>
+      <div class="footlinks"><a href="/muchocore/">MuchoCore</a><a href="https://github.com/IZKGMD/GMDmucho-core" rel="noopener">GitHub</a></div>
     </div>
-
-</div>
-
-
-<footer>
-    <span data-server-name>Mucho GDPS</span>
-    <span data-server-credit hidden> · Server by <a data-server-credit-link target="_blank" rel="noopener noreferrer"><span data-server-credit-name></span></a></span>
-    · Powered by MuchoCore · Copyright © 2026 IZK ·
-    <a href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer">GitHub</a>
-</footer>
-
-</div>
-</main>
-
-
-<script>
-
-const $ = id => document.getElementById(id);
-
-async function loadBranding(){
-
-    try{
-        const response = await fetch(
-            '/api/v2/branding.php',
-            {cache:'no-store'}
-        );
-
-        if(!response.ok){
-            throw new Error('branding unavailable');
-        }
-
-        const data = await response.json();
-        const serverName = String(
-            data.server_name || 'Mucho GDPS'
-        ).trim();
-
-        const creditName = String(
-            data.server_by_name || ''
-        ).trim();
-
-        const socialUrl = String(
-            data.social_url || ''
-        ).trim();
-
-        document
-            .querySelectorAll('[data-server-credit]')
-            .forEach(element => {
-                const name = element.querySelector('[data-server-credit-name]');
-                const link = element.querySelector('[data-server-credit-link]');
-
-                if (name && link && creditName && /^https?:\/\/[^\s]+$/i.test(socialUrl)) {
-                    name.textContent = creditName;
-                    link.href = socialUrl;
-                    element.hidden = false;
-                } else {
-                    element.hidden = true;
-                }
-            });
-
-        if(!serverName){
-            return;
-        }
-
-        document
-            .querySelectorAll('[data-server-name]')
-            .forEach(element => {
-                element.textContent = serverName;
-            });
-
-        const hero = $('heroBrand');
-
-        if(hero){
-            hero.textContent = serverName + '.';
-        }
-
-        document.title =
-            serverName +
-            ' — Geometry Dash Private Server';
-
-        const description =
-            document.querySelector(
-                'meta[name="description"]'
-            );
-
-        if(description){
-            description.content =
-                serverName +
-                ' — custom Geometry Dash private server powered by MuchoCore.';
-        }
-
-    }catch(e){
-        // The built-in Mucho GDPS branding remains visible on failure.
-    }
-}
-
-async function updateHealth(){
-
-    const topDot = $('topDot');
-    const miniDot = $('miniDot');
-
-    try{
-
-        const response = await fetch(
-            '/api/v2/health',
-            {
-                cache:'no-store'
-            }
-        );
-
-        if(!response.ok){
-            throw new Error();
-        }
-
-        const data = await response.json();
-
-        if(!data.ok){
-            throw new Error();
-        }
-
-        topDot.className = 'dot online';
-        miniDot.className = 'dot online';
-
-        $('topStatus').textContent = 'Online';
-        $('miniStatus').textContent = 'Online';
-
-        $('serverStatus').textContent = 'Online';
-        $('serverStatus').className = 'good';
-
-        $('apiState').textContent = 'Online';
-        $('apiState').className = 'good';
-
-        $('databaseState').textContent =
-            data.database === 'connected'
-                ? 'Connected'
-                : 'Unknown';
-
-        $('databaseState').className =
-            data.database === 'connected'
-                ? 'good'
-                : '';
-
-        $('apiVersion').textContent =
-            data.version || '—';
-
-        $('coreVersion').textContent =
-            'v' + (data.version || '?');
-
-    }catch(e){
-
-        topDot.className = 'dot offline';
-        miniDot.className = 'dot offline';
-
-        $('topStatus').textContent = 'Offline';
-        $('miniStatus').textContent = 'Offline';
-
-        $('serverStatus').textContent = 'Offline';
-        $('serverStatus').className = 'bad';
-
-        $('apiState').textContent = 'Unavailable';
-        $('apiState').className = 'bad';
-
-        $('databaseState').textContent = 'Unknown';
-        $('databaseState').className = '';
-    }
-
-}
-
-loadBranding();
-updateHealth();
-
-setInterval(
-    updateHealth,
-    15000
-);
-
-
-$('menuButton').addEventListener(
-    'click',
-    () => {
-        document.body.classList.toggle('menu-open');
-    }
-);
-
-
-document.addEventListener(
-    'click',
-    event => {
-
-        if(
-            window.innerWidth <= 900 &&
-            document.body.classList.contains('menu-open') &&
-            !event.target.closest('#sidebar') &&
-            !event.target.closest('#menuButton')
-        ){
-            document.body.classList.remove('menu-open');
-        }
-
-    }
-);
-
-
-
-async function updateDashboard(){
-
-    try{
-
-        const response=await fetch(
-            '/api/v2/dashboard',
-            {cache:'no-store'}
-        );
-
-        if(!response.ok){
-            throw new Error('dashboard unavailable');
-        }
-
-        const data=await response.json();
-
-        if(!data.ok){
-            throw new Error('dashboard failed');
-        }
-
-        const stats=data.stats || {};
-
-        $('playersCount').textContent =
-            Number(stats.players || 0).toLocaleString();
-
-        $('levelsCount').textContent =
-            Number(stats.levels || 0).toLocaleString();
-
-        $('commentsCount').textContent =
-            Number(stats.comments || 0).toLocaleString();
-
-        const box=$('latestLevels');
-        const state=$('levelsLoadState');
-
-        box.textContent='';
-
-        const levels=Array.isArray(data.latest_levels)
-            ? data.latest_levels
-            : [];
-
-        if(levels.length===0){
-
-            const empty=document.createElement('div');
-            empty.className='empty-levels';
-            empty.textContent='No levels uploaded yet.';
-
-            box.appendChild(empty);
-            state.textContent='0 levels';
-
-            return;
-        }
-
-        levels.forEach(level=>{
-
-            const row=document.createElement('div');
-            row.className='level-row';
-
-            const id=document.createElement('div');
-            id.className='level-id';
-            id.textContent='#'+String(level.id || '—');
-
-            const info=document.createElement('div');
-
-            const name=document.createElement('div');
-            name.className='level-name';
-            name.textContent=level.name || 'Unnamed Level';
-
-            const creator=document.createElement('div');
-            creator.className='level-creator';
-            creator.textContent='by '+(level.creator || 'Unknown');
-
-            info.append(name,creator);
-
-            const meta=document.createElement('div');
-            meta.className='level-meta';
-
-            const downloads=document.createElement('span');
-            downloads.textContent='↓ '+Number(
-                level.downloads || 0
-            ).toLocaleString();
-
-            const likes=document.createElement('span');
-            likes.textContent='♥ '+Number(
-                level.likes || 0
-            ).toLocaleString();
-
-            const stars=document.createElement('span');
-            stars.textContent='★ '+Number(
-                level.stars || 0
-            ).toLocaleString();
-
-            meta.append(downloads,likes,stars);
-
-            row.append(id,info,meta);
-            box.appendChild(row);
-        });
-
-        state.textContent='Live';
-
-    }catch(e){
-
-        $('levelsLoadState').textContent='Unavailable';
-
-        if(!$('latestLevels').children.length){
-            const empty=document.createElement('div');
-            empty.className='empty-levels';
-            empty.textContent='Could not load server data.';
-            $('latestLevels').appendChild(empty);
-        }
-    }
-}
-
-updateDashboard();
-
-setInterval(
-    updateDashboard,
-    15000
-);
-
-
-
-async function loadMusic(){
-
-    try{
-
-        const r=await fetch(
-            '/api/v2/music',
-            {cache:'no-store'}
-        );
-
-        const data=await r.json();
-
-        if(!data.ok){
-            throw new Error();
-        }
-
-        const list=$('musicList');
-        list.textContent='';
-
-        const songs=Array.isArray(data.songs)
-            ? data.songs
-            : [];
-
-        $('musicState').textContent=
-            songs.length+' songs';
-
-        if(!songs.length){
-
-            const empty=document.createElement('div');
-            empty.className='empty-levels';
-            empty.textContent='No music yet.';
-            list.appendChild(empty);
-
-            return;
-        }
-
-        songs.forEach(song=>{
-
-            const row=document.createElement('div');
-            row.className='music-row';
-
-            const id=document.createElement('div');
-            id.className='music-id';
-            id.textContent='#'+song.id;
-
-            const info=document.createElement('div');
-
-            const name=document.createElement('div');
-            name.className='music-name';
-            name.textContent=song.name;
-
-            const artist=document.createElement('div');
-            artist.className='music-artist';
-            artist.textContent=
-                song.artist+' · '+
-                Number(song.size_mb).toFixed(2)+
-                ' MB';
-
-            info.append(name,artist);
-
-            const link=document.createElement('a');
-            link.className='music-download';
-            link.href=song.download_url;
-            link.target='_blank';
-            link.rel='noopener';
-            link.textContent='Download';
-
-            row.append(id,info,link);
-            list.appendChild(row);
-
-        });
-
-    }catch(e){
-        $('musicState').textContent='Unavailable';
-    }
-}
-
-
-$('musicUploadForm').addEventListener(
-    'submit',
-    async event=>{
-
-        event.preventDefault();
-
-        const form=event.currentTarget;
-        const button=$('musicSubmit');
-        const message=$('musicMessage');
-
-        message.className='music-message';
-        message.textContent='Uploading…';
-
-        button.disabled=true;
-
+  </footer>
+
+  <script>
+    const button=document.getElementById('copy');
+    const command=document.getElementById('command');
+    if(button&&command){
+      button.addEventListener('click',async()=>{
+        const text=command.textContent.replace(/\n\s*/g,' ').trim();
         try{
-
-            const response=await fetch(
-                '/api/v2/music-upload',
-                {
-                    method:'POST',
-                    body:new FormData(form)
-                }
-            );
-
-            const data=await response.json();
-
-            if(!response.ok || !data.ok){
-
-                if(
-                    response.status===429 &&
-                    data.retry_after_seconds
-                ){
-                    throw new Error(
-                        'Try again in '+
-                        data.retry_after_seconds+
-                        ' seconds.'
-                    );
-                }
-
-                throw new Error(
-                    data.error || 'Upload failed.'
-                );
-            }
-
-            message.className=
-                'music-message success';
-
-            message.textContent=
-                'Added successfully. Song ID: '+
-                data.song.id;
-
-            form.reset();
-
-            await loadMusic();
-
-        }catch(error){
-
-            message.className=
-                'music-message error';
-
-            message.textContent=
-                error.message ||
-                'Upload failed.';
-
-        }finally{
-            button.disabled=false;
+          await navigator.clipboard.writeText(text);
+          const old=button.textContent;button.textContent='Copied';
+          setTimeout(()=>button.textContent=old,1400);
+        }catch{
+          button.textContent='Select manually';
+          setTimeout(()=>button.textContent='Copy',1600);
         }
-
+      });
     }
-);
-
-
-loadMusic();
-
-setInterval(
-    loadMusic,
-    30000
-);
-
-</script>
-
+  </script>
 </body>
 </html>
