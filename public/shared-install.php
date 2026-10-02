@@ -145,6 +145,7 @@ if ($autoToken !== '') {
         'db_user' => (string)($autoConfig['db_user'] ?? ''),
         'db_pass' => (string)($autoConfig['db_pass'] ?? ''),
         'account_url' => $configuredUrl,
+        'gdps_name' => (string)($autoConfig['gdps_name'] ?? ''),
         'admin_pass' => (string)($autoConfig['admin_pass'] ?? ''),
         'admin_pass2' => (string)($autoConfig['admin_pass'] ?? ''),
     ];
@@ -553,6 +554,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $dbUser = trim((string)($_POST['db_user'] ?? $defaultUser));
     $dbPass = (string)($_POST['db_pass'] ?? '');
     $accountUrl = rtrim(trim((string)($_POST['account_url'] ?? $defaultUrl)), '/');
+    $gdpsName = trim((string)($_POST['gdps_name'] ?? ''));
     $adminPass = (string)($_POST['admin_pass'] ?? '');
     $adminPass2 = (string)($_POST['admin_pass2'] ?? '');
     if (!preg_match('/^[A-Za-z0-9._:-]+$/', $dbHost)) { $errors[] = 'Database host contains unsupported characters.'; }
@@ -562,6 +564,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $parts = parse_url($accountUrl);
     $validAccountUrl = is_array($parts) && in_array(strtolower((string)($parts['scheme'] ?? '')), ['http','https'], true) && !empty($parts['host']) && empty($parts['user']) && empty($parts['pass']) && empty($parts['path']) && empty($parts['query']) && empty($parts['fragment']) && (filter_var($parts['host'], FILTER_VALIDATE_IP) !== false || filter_var($parts['host'], FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) !== false);
     if (!$validAccountUrl) { $errors[] = 'Server URL must be a full URL such as https://gdps.example.com with no /database path.'; }
+    if ($gdpsName === '' || mb_strlen($gdpsName, 'UTF-8') > 64 || preg_match('/[\x00-\x1F\x7F]/u', $gdpsName) === 1) { $errors[] = 'GDPS name must contain 1–64 characters and no control characters.'; }
     if (!$isHttps) { $errors[] = 'Open the installer over HTTPS before entering database and administrator passwords.'; }
     if (strlen($adminPass) < 12) { $errors[] = 'Admin password must contain at least 12 characters.'; }
     if ($adminPass !== $adminPass2) { $errors[] = 'The two admin passwords do not match.'; }
@@ -626,6 +629,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 dotenvLine('DB_USER', $dbUser),
                 dotenvLine('DB_PASS', $dbPass),
                 dotenvLine('MUCHO_ACCOUNT_URL', $accountUrl),
+                dotenvLine('MUCHO_SERVER_NAME', $gdpsName),
                 dotenvLine('MUCHO_CUSTOM_CONTENT_URL', 'https://geometrydashfiles.b-cdn.net'),
                 dotenvLine('MUCHO_ADMIN_BOOTSTRAP', str_replace('\\', '/', $bootstrapPath)),
                 dotenvLine('MUCHO_CONTROL_DIR', str_replace('\\', '/', $controlDir)),
@@ -655,6 +659,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Dotenv\Dotenv::createMutable($root)->safeLoad();
             $backupInfo = (new DatabaseBackupService($pdo,$backupDir))->create($dbName);
             (new Migrator($pdo,$root . '/database/migrations'))->migrate();
+            (new MuchoCoreBrandingBrandingService($pdo))->saveServerName($gdpsName);
             $pdo->exec('CREATE TABLE IF NOT EXISTS admin_users (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, username VARCHAR(64) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, role VARCHAR(32) NOT NULL DEFAULT \'admin\', totp_secret VARCHAR(64) NULL, access_key_hash VARCHAR(255) NULL, access_key_created_at TIMESTAMP NULL, is_active TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
             $adminStmt = $pdo->prepare('INSERT INTO admin_users (username,password_hash,role,is_active) VALUES (:username,:password_hash,"owner",1) ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash), role="owner", is_active=1');
             $adminStmt->execute(['username'=>'admin','password_hash'=>$adminHash]);
