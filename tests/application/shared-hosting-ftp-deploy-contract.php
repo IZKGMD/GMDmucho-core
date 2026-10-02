@@ -45,6 +45,8 @@ foreach ([
     'ftp_open_authenticated',
     'detect_web_root',
     'ftp_chdir($ftp, $base)',
+    '$uploadRoot = '.'',
+    'ensure_remote_dir($ftp, $uploadRoot, $dir, $knownDirs)',
     'Uploading into web root:',
     'ftp_login',
     'ftp_put',
