@@ -478,16 +478,17 @@ function ensure_remote_dir(\FTP\Connection $ftp, string $root, string $relative,
         static fn(string $v): bool => $v !== ''
     ));
     $base = $root !== '' ? $root : '.';
+    $current = $base;
 
     foreach ($parts as $part) {
         if ($part === '.' || $part === '..' || preg_match('/[\x00-\x1F\x7F]/', $part) === 1) {
             throw new RuntimeException('Unsafe remote FTP path component.');
         }
 
-        $current = $base . '/' . $part;
+        $current = rtrim($current, '/') . '/' . $part;
         if (!isset($known[$current])) {
             if (!@ftp_chdir($ftp, $current)) {
-                if (!@ftp_mkdir($ftp, $current) && !@ftp_chdir($ftp, $current)) {
+                if (!@ftp_mkdir($ftp, $current) || !@ftp_chdir($ftp, $current)) {
                     throw new RuntimeException('Unable to create remote directory: ' . $current);
                 }
             }
