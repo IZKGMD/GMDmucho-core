@@ -109,8 +109,10 @@ jobs:
           bash -n tools/release/build-shared-hosting.sh
           php -l public/shared-install.php
           php -l public/ftp-install.php
+          php -l bin/mucho-shared-deploy-worker.php
           php tests/application/shared-hosting-installer-contract.php
           php tests/application/shared-hosting-ftp-bootstrap-contract.php
+          php tests/application/shared-hosting-ftp-deploy-contract.php
           mkdir -p /tmp/muchocore-shared-package-test
           OUTPUT=/tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             bash tools/release/build-shared-hosting.sh
           unzip -t /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip >/dev/null
