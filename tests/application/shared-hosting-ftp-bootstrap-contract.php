@@ -10,11 +10,11 @@ if ($bootstrap === false) {
 }
 
 foreach ([
-    'https://api.github.com/repos/' . 'IZKGMD/GMDmucho-core' . '/releases/latest',
-    'MuchoCore-v' . $version . '-shared-hosting.zip',
-    'digest',
-    'sha256',
-    'hash_file('sha256'',
+    "https://api.github.com/repos/IZKGMD/GMDmucho-core/releases/latest",
+    "MuchoCore-v",
+    "-shared-hosting.zip",
+    "'digest'",
+    "hash_file('sha256'",
     'ZipArchive',
     'assert_clean_target',
     'muchocore/public/shared-install.php',
@@ -25,7 +25,7 @@ foreach ([
     'Content-Security-Policy:',
     'session.cookie_httponly',
     'session.cookie_samesite',
-    'header('Location: shared-install.php'',
+    "header('Location: shared-install.php'",
     '@unlink(__FILE__)',
 ] as $needle) {
     if (!str_contains($bootstrap, $needle)) {
