@@ -657,15 +657,41 @@ function upload_tree(\FTP\Connection $ftp, string $localRoot, string $base, stri
     return $count;
 }
 function installer_csrf(string $html): string {
-    $patterns = [
-        '/name=["\']csrf["\'][^>]*value=["\']([^"\']+)["\']/i',
-        '/value=["\']([^"\']+)["\'][^>]*name=["\']csrf["\']/i',
-    ];
-    foreach ($patterns as $pattern) {
-        if (preg_match($pattern, $html, $m) === 1 && isset($m[1]) && $m[1] !== '') {
-            return html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    if (preg_match_all('/<input\\b[^>]*>/i', $html, $inputs) === false) {
+        throw new RuntimeException('Unable to parse the shared installer response.');
+    }
+
+    foreach ($inputs[0] as $input) {
+        $attributes = [];
+        if (preg_match_all(
+            '/([A-Za-z_:][A-Za-z0-9_.:-]*)\\s*=\\s*(?:"([^"]*)"|\\'([^\\']*)\\'|([^\\s>]+))/',
+            $input,
+            $matches,
+            PREG_SET_ORDER
+        ) !== false) {
+            foreach ($matches as $match) {
+                $name = strtolower((string)$match[1]);
+                $value = $match[2] !== '' ? $match[2] : ($match[3] !== '' ? $match[3] : (string)$match[4]);
+                $attributes[$name] = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+        }
+
+        if (($attributes['name'] ?? '') === 'csrf' && ($attributes['value'] ?? '') !== '') {
+            return $attributes['value'];
         }
     }
+
+    $clean = trim(preg_replace('/\\s+/', ' ', strip_tags($html)) ?? '');
+    foreach ([
+        'MuchoCore is already installed',
+        'Unable to start the installer session',
+        'Another MuchoCore shared-hosting installation is already running',
+    ] as $marker) {
+        if ($clean !== '' && stripos($clean, $marker) !== false) {
+            throw new RuntimeException('Shared installer response: ' . $marker . '.');
+        }
+    }
+
     throw new RuntimeException('Could not obtain the shared installer CSRF token.');
 }
 
