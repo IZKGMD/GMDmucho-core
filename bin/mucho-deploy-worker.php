@@ -108,7 +108,7 @@ function upload_tenant_clients(
 
     $sshPrefix = $sshPassword !== ''
         ? 'sshpass -f ' . shell_quote($jobDir . '/ssh_password') . ' ssh'
-        : 'ssh -i ' . shell_quote($sshKey) . ' -o IdentitiesOnly=yes ssh';
+        : 'ssh -i ' . shell_quote($sshKey) . ' -o IdentitiesOnly=yes';
 
     shell_command(
         $sshPrefix . $sshOptions . ' ' . shell_quote($remote) . ' ' .
