@@ -10,7 +10,7 @@ if ($bootstrap === false) {
 }
 
 foreach ([
-    "https://api.github.com/repos/IZKGMD/GMDmucho-core/releases/latest",
+    "RELEASES_API = 'https://api.github.com/repos/' . REPOSITORY . '/releases/latest'",
     "MuchoCore-v",
     "-shared-hosting.zip",
     "'digest'",
