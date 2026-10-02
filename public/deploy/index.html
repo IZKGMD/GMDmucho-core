@@ -88,7 +88,7 @@ $('clear').onclick=()=>{clearTimer();job=null;last='';setState('Idle');$('secret
 async function poll(){
  if(!job)return;
  try{
-  const r=await fetch('/api/deploy/log?id='+encodeURIComponent(job),{headers:{'X-Mucho-Deploy-Key':sessionStorage.getItem('muchodeploykey')||''},cache:'no-store'});
+  const r=await fetch('/api/deploy/log?id='+encodeURIComponent(job),{cache:'no-store'});
   const d=await r.json();if(!d.ok)throw new Error(d.error||'Log request failed');
   if(d.log!==last){last=d.log;print(d.log)}
   if(d.status==='completed'){clearTimer();setState('Completed','running');start.disabled=false}
