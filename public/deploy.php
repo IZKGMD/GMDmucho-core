@@ -72,6 +72,11 @@ function deployment_session_ok(): bool
         && preg_match('/^[a-f0-9]{48}$/', $nonce) === 1;
 }
 
+function deploy_key_ok(): bool
+{
+    return deployment_session_ok();
+}
+
 function job_id(): string
 {
     return gmdate('YmdHis') . '-' . bin2hex(random_bytes(6));
