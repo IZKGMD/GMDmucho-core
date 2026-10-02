@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Security;
 
+use MuchoCore\Core\Environment;
 use MuchoCore\Database\Database;
 use MuchoCore\Http\Request;
 
@@ -161,9 +162,7 @@ final readonly class MuchoProtect
         } elseif ($db !== null) {
             $this->penalties = new DatabasePenaltyStore($db);
         } else {
-            $directory = $_ENV['MUCHO_PROTECT_PENALTY_DIR']
-                ?? $_SERVER['MUCHO_PROTECT_PENALTY_DIR']
-                ?? getenv('MUCHO_PROTECT_PENALTY_DIR')
+            $directory = Environment::get('MUCHO_PROTECT_PENALTY_DIR')
                 ?: dirname(__DIR__, 2) . '/storage/control/protect-penalties';
             $this->penalties = new AbusePenaltyStore($directory);
         }
@@ -579,7 +578,7 @@ final readonly class MuchoProtect
 
     private function env(string $key): ?string
     {
-        $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+        $value = Environment::get($key);
 
         if (!is_string($value) || $value === '') {
             return null;
