@@ -91,8 +91,13 @@ function deploy_key_ok(): bool
         return same_origin_ok();
     }
 
+    if ($method === 'POST' && $path === '/api/deploy/browser-finish') {
+        return true;
+    }
+
     return deployment_session_ok();
 }
+
 
 function job_id(): string
 {
@@ -289,6 +294,52 @@ function reset_deployment_session(): void
 $path = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
 $path = is_string($path) ? rtrim($path, '/') : '/';
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+
+if ($method === 'POST' && $path === '/api/deploy/browser-finish') {
+    $data = request_json();
+    $jobId = trim((string)($data['job_id'] ?? ''));
+    $token = trim((string)($data['token'] ?? ''));
+    $ok = filter_var($data['ok'] ?? false, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+    if (!preg_match('/^[0-9]{14}-[a-f0-9]{12}$/', $jobId)
+        || !preg_match('/^[a-f0-9]{64}$/', $token)
+        || $ok === null
+    ) {
+        json_response(['ok' => false, 'error' => 'Invalid browser finalization callback.'], 400);
+    }
+
+    $jobDir = JOB_ROOT . '/' . $jobId;
+    $statusFile = $jobDir . '/status.json';
+    if (!is_file($statusFile)) {
+        json_response(['ok' => false, 'error' => 'Deployment job not found.'], 404);
+    }
+
+    $status = read_json($statusFile);
+    $expectedHash = (string)($status['browser_finalization_token_hash'] ?? '');
+    if ($expectedHash === '' || !hash_equals($expectedHash, hash('sha256', $token))) {
+        json_response(['ok' => false, 'error' => 'Invalid browser finalization token.'], 403);
+    }
+
+    if (!in_array((string)($status['status'] ?? ''), ['awaiting_browser', 'completed'], true)) {
+        json_response(['ok' => true, 'already_finalized' => true]);
+    }
+
+    $status['status'] = $ok ? 'completed' : 'failed';
+    $status['exit_code'] = $ok ? 0 : 1;
+    $status['finished_at'] = gmdate('c');
+    unset($status['browser_finalization_token_hash']);
+    write_json($statusFile, $status);
+
+    @file_put_contents(
+        $jobDir . '/log.txt',
+        $ok
+            ? "[MuchoGDPS] Browser finalization completed successfully.\n"
+            : "[MuchoGDPS] Browser finalization reported an installation error.\n",
+        FILE_APPEND | LOCK_EX
+    );
+
+    json_response(['ok' => true, 'status' => $status['status']]);
+}
 
 if (!deploy_key_ok()) {
     json_response(['ok' => false, 'error' => 'Deployment session is missing or expired. Refresh the installer page and try again.'], 403);
