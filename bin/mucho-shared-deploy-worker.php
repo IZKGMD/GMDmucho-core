@@ -192,7 +192,7 @@ function dispatch_queued_jobs(string $root): void {
 
         foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
             $stale = read_json_file($statusFile);
-            if (!in_array((string)($stale['status'] ?? ''), ['running', 'post_processing'], true)) {
+            if (!in_array((string)($stale['status'] ?? ''), ['running', 'browser_completed', 'post_processing'], true)) {
                 continue;
             }
             $heartbeat = strtotime((string)($stale['heartbeat_at'] ?? ''));
