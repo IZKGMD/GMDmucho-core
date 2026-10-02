@@ -12,7 +12,7 @@ final readonly class AbusePenaltyStore implements PenaltyStoreBackend
     private const MAX_CLEANUP_SCAN = 512;
 
     public function __construct(
-        private string $directory = '/tmp/muchocore-protect-penalties'
+        private string $directory = dirname(__DIR__, 2) . '/storage/control/protect-penalties'
     ) {}
 
     /** @return array{active:bool, remaining:int, strikes:int} */
