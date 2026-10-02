@@ -53,6 +53,18 @@ function shell_command(string $command): void
     }
 }
 
+function shell_capture(string $command): string
+{
+    $output = [];
+    $code = 0;
+    exec($command . ' 2>&1', $output, $code);
+    if ($code !== 0) {
+        throw new RuntimeException(trim(implode("\n", $output)) ?: 'Remote command failed.');
+    }
+
+    return implode("\n", $output);
+}
+
 function upload_tenant_clients(
     string $rootDir,
     string $jobDir,
@@ -64,6 +76,7 @@ function upload_tenant_clients(
     string $sshKey,
     string $knownHosts,
     string $adminUser,
+    string $adminPassword,
     string $logFile
 ): void {
     $manifest = \MuchoCore\Client\DeploymentClientPack::prepare(
@@ -151,7 +164,51 @@ function upload_tenant_clients(
         )
     );
 
-    log_line($logFile, "[MuchoGDPS] Generated tenant clients uploaded to {$remote}:/opt/mucho-core/storage/clients/\n");
+    log_line($logFile, "[MuchoGDPS] Generated tenant clients uploaded to {$remote}:/opt/mucho-core/storage/clients/\n");    
+    $dbOutput = shell_capture(
+        $sshPrefix . $sshOptions . ' ' . shell_quote($remote) . ' ' .
+        shell_quote(
+            'set -e; ' .
+            'DB_NAME="$(sed -n "s/^DB_NAME=//p" /opt/mucho-core/.env | head -n1)"; ' .
+            'DB_USER="$(sed -n "s/^DB_USER=//p" /opt/mucho-core/.env | head -n1)"; ' .
+            'DB_PASSWORD="$(cat /opt/mucho-core/.secrets/db_password)"; ' .
+            'DB_ROOT_PASSWORD="$(cat /opt/mucho-core/.secrets/db_root_password)"; ' .
+            'printf "DB_NAME=%s\\nDB_USER=%s\\nDB_PASSWORD=%s\\nDB_ROOT_PASSWORD=%s\\n" "$DB_NAME" "$DB_USER" "$DB_PASSWORD" "$DB_ROOT_PASSWORD"'
+        )
+    );
+
+    $db = [];
+    foreach (preg_split('/\\r?\\n/', trim($dbOutput)) ?: [] as $line) {
+        $parts = explode('=', $line, 2);
+        if (count($parts) === 2) {
+            $db[$parts[0]] = $parts[1];
+        }
+    }
+
+    foreach (['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_ROOT_PASSWORD'] as $key) {
+        if (!isset($db[$key]) || $db[$key] === '') {
+            throw new RuntimeException('Unable to retrieve the generated VPS database credentials.');
+        }
+    }
+
+    \MuchoCore\Deployment\DeploymentDetailsExporter::writeVps(
+        $jobDir,
+        [
+            'domain' => $domain,
+            'gdps_name' => $serverName,
+            'host' => $host,
+            'port' => $port,
+            'admin_user' => $adminUser,
+        ],
+        $adminPassword,
+        $sshPassword,
+        $sshKey,
+        $db['DB_NAME'],
+        $db['DB_USER'],
+        $db['DB_PASSWORD'],
+        $db['DB_ROOT_PASSWORD']
+    );
+    log_line($logFile, "[MuchoGDPS] Deployment details TXT generated.\n");
 }
 
 function cleanup_secrets(string $dir): void {
@@ -168,6 +225,7 @@ $adminUser = (string)($status['admin_user'] ?? 'admin');
 
 $sshPassword = is_file($dir . '/ssh_password') ? (string)file_get_contents($dir . '/ssh_password') : '';
 $sshKey = is_file($dir . '/ssh_key') ? (string)file_get_contents($dir . '/ssh_key') : '';
+$adminPassword = is_file($dir . '/admin_password') ? (string)file_get_contents($dir . '/admin_password') : '';
 $remoteEnv = is_file($dir . '/remote_env') ? (string)file_get_contents($dir . '/remote_env') : '';
 
 log_line($logFile, "[MuchoGDPS] Connecting with SSH...\n");
@@ -278,8 +336,15 @@ if ($exitCode === 0) {
             $sshKey,
             $knownHosts,
             $adminUser,
+            $adminPassword,
             $logFile
         );
+
+        $status = status_read($statusFile);
+        $status['status'] = 'completed';
+        $status['exit_code'] = 0;
+        $status['finished_at'] = gmdate('c');
+        status_write($statusFile, $status);
     } catch (Throwable $clientError) {
         log_line($logFile, "[MuchoGDPS] ERROR: Client generation/upload failed: " . $clientError->getMessage() . "\n");
         $status = status_read($statusFile);
