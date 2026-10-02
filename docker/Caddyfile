@@ -122,7 +122,7 @@
     # Web deployment UI/API belong only to the canonical MuchoGDPS host.
     @muchogdps_deploy_api {
         host {$MUCHOCORE_SITE_HOST}
-        path /api/deploy/start /api/deploy/status /api/deploy/log
+        path /api/deploy/start /api/deploy/status /api/deploy/log /api/deploy/browser-finish
     }
     handle @muchogdps_deploy_api {
         rewrite * /deploy.php
