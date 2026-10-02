@@ -4,6 +4,7 @@ declare(strict_types=1);
 use MuchoCore\Admin\AdminPasskeyService;
 use MuchoCore\Admin\AdminRbac;
 use MuchoCore\Branding\BrandingService;
+use MuchoCore\Core\Environment;
 use MuchoCore\Database\Database;
 
 require dirname(__DIR__,2).'/vendor/autoload.php';
@@ -106,9 +107,7 @@ if (!defined('CONTROL_DIR')) {
     define(
         'CONTROL_DIR',
         (string)(
-            $_ENV['MUCHO_CONTROL_DIR']
-            ?? getenv('MUCHO_CONTROL_DIR')
-            ?: $rootDir.'/storage/control'
+            Environment::get('MUCHO_CONTROL_DIR', $rootDir.'/storage/control') ?? $rootDir.'/storage/control'
         )
     );
 }
@@ -465,7 +464,7 @@ function postLocal(string $path,array $data): string
     }
 
     $accountUrl=(string)(
-        getenv('MUCHO_ACCOUNT_URL')
+        Environment::get('MUCHO_ACCOUNT_URL', '')
         ?: 'https://localhost'
     );
 
@@ -1057,7 +1056,7 @@ if($passkeyAction!==''){
 function muchAdminSetupBaseUrl(): string
 {
     $configured=(string)(
-        getenv('MUCHO_PUBLIC_URL')
+        Environment::get('MUCHO_PUBLIC_URL', '')
         ?: getenv('MUCHO_ACCOUNT_URL')
         ?: ''
     );
