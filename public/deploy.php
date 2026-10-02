@@ -903,6 +903,9 @@ if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/s
             'timed_out' => (bool)($status['timed_out'] ?? false),
             'log' => $log,
             'exit_code' => $status['exit_code'] ?? null,
+            'browser_finalization_url' => ($status['status'] ?? '') === 'awaiting_browser'
+                ? ($status['browser_finalization_url'] ?? null)
+                : null,
         ]);
     }
 
