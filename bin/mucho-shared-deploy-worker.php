@@ -727,10 +727,10 @@ function installer_csrf(string $html): string {
         $attributes = [];
         $name = '';
         $value = '';
-        if (preg_match('/name\\s*=\\s*["\\']([^"\\']+)["\\']/i', $input, $nameMatch) === 1) {
+        if (preg_match("/name\\\\s*=\\\\s*[\"']([^\"']+)[\"']/i", $input, $nameMatch) === 1) {
             $name = strtolower((string)$nameMatch[1]);
         }
-        if (preg_match('/value\\s*=\\s*["\\']([^"\\']*)["\\']/i', $input, $valueMatch) === 1) {
+        if (preg_match("/value\\\\s*=\\\\s*[\"']([^\"']*)[\"']/i", $input, $valueMatch) === 1) {
             $value = html_entity_decode((string)$valueMatch[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }
 
