@@ -60,6 +60,7 @@ foreach ([
     'create_browser_finalization_payload',
     'upload_browser_finalization_payload',
     'awaiting_browser',
+    'Browser finalization completed; deployment job confirmed.',
     'mucho_auto=',
 ] as $needle) {
     if (!str_contains($worker, $needle)) {
@@ -112,6 +113,7 @@ foreach ([
     'AUTOSAVE_KEY',
     'restoreDraft',
     'sessionStorage',
+    'browser_finalization_return_url',
 ] as $needle) {
     if (!str_contains($page, $needle)) {
         throw new RuntimeException('Shared FTP UI contract missing: ' . $needle);
@@ -128,6 +130,8 @@ foreach ([
     "Finishing in browser",
     "Continue installation in browser",
     "browser_finalization_url",
+    "browser_finish",
+    "/api/deploy/browser-finish",
 ] as $needle) {
     if (!str_contains($goPage, $needle)) {
         throw new RuntimeException('Shared FTP live console contract missing: ' . $needle);
