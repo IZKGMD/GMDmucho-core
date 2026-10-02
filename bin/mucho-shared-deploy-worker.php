@@ -107,7 +107,7 @@ function dispatch_queued_jobs(string $root): void {
 
             foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
                 $status = read_json_file($statusFile);
-                if (($status['status'] ?? '') === 'running' || ($status['status'] ?? '') === 'starting') {
+                if (in_array((string)($status['status'] ?? ''), ['running', 'starting', 'awaiting_browser'], true)) {
                     $running++;
                 } elseif (($status['status'] ?? '') === 'queued') {
                     $queued[] = [$statusFile, $status];
