@@ -77,6 +77,7 @@ function dispatch_queued_jobs(string $root): void {
             $queued = [];
 
             foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
+                $status = read_json_file($statusFile);
                 if (($status['status'] ?? '') === 'running' || ($status['status'] ?? '') === 'starting') {
                     $running++;
                 } elseif (($status['status'] ?? '') === 'queued') {
@@ -688,6 +689,11 @@ function run_remote_installer(array $config, string $dbPassword, string $adminPa
     }
 
     log_line($logFile, "[MuchoGDPS] Remote /health check returned 1.\n");
+}
+
+if ($dispatchOnly) {
+    dispatch_queued_jobs(dirname(__DIR__));
+    exit(0);
 }
 
 $status = read_json_file($statusFile);
