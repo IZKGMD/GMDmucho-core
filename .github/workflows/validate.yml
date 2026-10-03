@@ -109,6 +109,7 @@ jobs:
           php tests/security/muchoprotect.php
           php tests/client/windows-client-patcher.php
           php tests/client/android-client-patcher.php
+          bash tests/client/client-auto-patch-contract.sh
 
       - name: Check shared-hosting package
         run: |
@@ -155,6 +156,8 @@ jobs:
           test -f tools/client/client-patch.bat
           test -f tools/client/client-patch.py
           test -f tools/client/client-patcher.ps1
+          test -f bin/mucho-client-patch.php
+          test -f docs/CLIENT_AUTO_PATCH.md
           test -f auto-update.sh
           test -f bin/mucho-install-auto-update.sh
           test -f docs/AUTO_UPDATE.md
