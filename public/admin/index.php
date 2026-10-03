@@ -5088,8 +5088,19 @@ table{
 <?php endif; ?>
 <?php endforeach ?>
 
+<div class="nav-title">Clients</div>
+<?php foreach(['clients','clientfeatures','clientpatcher'] as $key): ?>
+<?php if(canAdminPage($key)): ?>
+<a
+ href="/admin/?page=<?=h($key)?>"
+ title="<?=h($pages[$key])?>"
+ class="<?=$page===$key?'on':''?>"
+><?=h($pages[$key])?></a>
+<?php endif; ?>
+<?php endforeach ?>
+
 <div class="nav-title">Tools</div>
-<?php foreach(['database','endpoints','clientfeatures','clientpatcher','updates','securitycenter','dbbackups','migration','backups','settings','system'] as $key): ?>
+<?php foreach(['database','endpoints','updates','securitycenter','dbbackups','migration','backups','settings','system'] as $key): ?>
 <?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
