@@ -51,8 +51,11 @@ final class DeploymentClientPack
         }
 
         if (!is_file($sourceApk) || !is_readable($sourceApk)) {
+            $candidates = self::androidSourceCandidates($rootDir);
             throw new RuntimeException(
-                'Built-in Geometry Dash Android APK is unavailable. Upload the base APK to patched/apk/ or set MUCHO_ANDROID_BASE_APK.'
+                'Built-in Geometry Dash Android APK is unavailable. Checked: ' .
+                implode(', ', $candidates) .
+                '. Upload the base APK to patched/apk/ or set MUCHO_ANDROID_BASE_APK to a readable path inside the MuchoCore container.'
             );
         }
 
@@ -199,17 +202,21 @@ final class DeploymentClientPack
     public static function androidSource(string $rootDir): string
     {
         $configured = trim((string)(Environment::get('MUCHO_ANDROID_BASE_APK', '') ?? ''));
-        if ($configured !== '') {
+        if ($configured !== '' && is_file($configured) && is_readable($configured)) {
             return $configured;
         }
 
         $dir = $rootDir . '/patched/apk';
         $preferred = $dir . '/GeometryDash_2.2.13_MuchoGDPS_Unique_v2.apk';
-        if (is_file($preferred)) {
+        if (is_file($preferred) && is_readable($preferred)) {
             return $preferred;
         }
 
         $files = glob($dir . '/*.apk') ?: [];
+        $files = array_values(array_filter(
+            $files,
+            static fn(string $path): bool => is_file($path) && is_readable($path)
+        ));
         usort(
             $files,
             static fn(string $a, string $b): int =>
@@ -217,6 +224,24 @@ final class DeploymentClientPack
         );
 
         return (string)($files[0] ?? '');
+    }
+
+    public static function androidSourceCandidates(string $rootDir): array
+    {
+        $configured = trim((string)(Environment::get('MUCHO_ANDROID_BASE_APK', '') ?? ''));
+        $dir = $rootDir . '/patched/apk';
+
+        $candidates = [];
+        if ($configured !== '') {
+            $candidates[] = $configured;
+        }
+        $candidates[] = $dir . '/GeometryDash_2.2.13_MuchoGDPS_Unique_v2.apk';
+
+        foreach (glob($dir . '/*.apk') ?: [] as $path) {
+            $candidates[] = (string)$path;
+        }
+
+        return array_values(array_unique($candidates));
     }
 
     public static function manifest(string $jobDir): array
