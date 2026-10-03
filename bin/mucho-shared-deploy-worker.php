@@ -1182,6 +1182,20 @@ try {
     $rootDir = dirname(__DIR__);
     worker_state($statusFile, $logFile, 'Generating patched Windows and Android clients');
     log_line($logFile, "[MuchoGDPS] Generating clients for this GDPS...\n");
+    $androidSource = \MuchoCore\Client\DeploymentClientPack::androidSource($rootDir);
+    if ($androidSource !== '') {
+        $size = @filesize($androidSource);
+        log_line(
+            $logFile,
+            "[MuchoGDPS] Android base APK source: {$androidSource}" .
+            ($size !== false ? " (" . number_format((int)$size) . " bytes)" : "") . ".\n"
+        );
+    } else {
+        log_line(
+            $logFile,
+            "[MuchoGDPS] Android base APK source not found in the container; checking configured and patched/apk candidates.\n"
+        );
+    }
     upload_client_pack_to_shared(
         $config,
         $ftpPassword,
