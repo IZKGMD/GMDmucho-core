@@ -122,7 +122,7 @@ final class DeploymentClientPack
                 ],
             ];
 
-            $zip = new ZipArchive();
+            $zip = new \\ZipArchive();
             if ($zip->open($archivePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
                 throw new RuntimeException('Cannot create the client pack ZIP archive.');
             }
