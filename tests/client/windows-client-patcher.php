@@ -35,6 +35,10 @@ try {
     $payload .= str_repeat("F", 113);
     $payload .= base64_encode('http://www.boomlings.com/database');
     $payload .= str_repeat("C", 257);
+    $payload .= 'https://geometrydash.com/database/getGJLevels21.php' . "\0";
+    $payload .= base64_encode('https://geometrydash.com/database/getGJUsers20.php') . "\0";
+    $payload .= 'https://geometrydash.com/accounts/getGJAccount.php' . "\0";
+    $payload .= 'https://not-a-url.example/geometrydash.com' . "\0";
 
     $source .= $payload;
 
@@ -100,6 +104,17 @@ try {
 
     if (str_contains($patched, 'http://www.boomlings.com/database')) {
         throw new RuntimeException('Old HTTP server URL still present after patch.');
+    }
+
+    if (
+        str_contains($patched, 'https://geometrydash.com/database/getGJLevels21.php') ||
+        str_contains($patched, 'https://geometrydash.com/accounts/getGJAccount.php')
+    ) {
+        throw new RuntimeException('Known embedded Geometry Dash host remained after patch.');
+    }
+
+    if (!str_contains($patched, 'https://not-a-url.example/geometrydash.com')) {
+        throw new RuntimeException('Non-URL host-like text was incorrectly modified.');
     }
 
     if (!str_contains($patched, base64_encode($httpsTarget))) {
