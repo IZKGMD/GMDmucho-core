@@ -61,6 +61,15 @@ function log_line(string $path, string $line): void {
     }
 }
 
+function worker_state(string $statusFile, string $logFile, string $state): void {
+    $status = read_json_file($statusFile);
+    $status['state'] = $state;
+    $status['heartbeat_at'] = gmdate('c');
+    write_status($statusFile, $status);
+    log_line($logFile, "[MuchoGDPS] State: {$state}\n");
+}
+
+
 function upload_client_pack_to_shared(
     array $config,
     string $ftpPassword,
@@ -1039,22 +1048,28 @@ try {
     $status['started_at'] = $status['started_at'] ?? gmdate('c');
     $status['heartbeat_at'] = gmdate('c');
     write_status($statusFile, $status);
+    $status['state'] = 'Starting deployment worker';
+    write_status($statusFile, $status);
 
     log_line($logFile, "[MuchoGDPS] Worker started. Watchdog: 60s without heartbeat.\n");
+    worker_state($statusFile, $logFile, 'Fetching stable release metadata from GitHub');
     log_line($logFile, "[MuchoGDPS] Fetching latest stable release metadata from GitHub...\n");
     $release = latest_release();
     log_line($logFile, "[MuchoGDPS] Stable release: {$release['tag']}\n");
     log_line($logFile, "[MuchoGDPS] Package: {$release['name']}\n");
 
     $archive = $dir . '/shared_archive';
+    worker_state($statusFile, $logFile, 'Downloading the verified release package');
     log_line($logFile, "[MuchoGDPS] Downloading {$release['name']} from GitHub...\n");
     $bytes = download_release($release['url'], $archive);
+    worker_state($statusFile, $logFile, 'Verifying release SHA-256');
     $actual = hash_file('sha256', $archive);
     if (!is_string($actual) || !hash_equals($release['sha256'], strtolower($actual))) {
         throw new RuntimeException('Release SHA-256 verification failed. The package was not uploaded.');
     }
     log_line($logFile, "[MuchoGDPS] Verified release SHA-256. Downloaded " . number_format($bytes) . " bytes.\n");
 
+    worker_state($statusFile, $logFile, 'Validating and extracting the shared-hosting package');
     $zip = new ZipArchive();
     if ($zip->open($archive) !== true) {
         throw new RuntimeException('Unable to open the verified shared-hosting archive.');
@@ -1078,12 +1093,14 @@ try {
         throw new RuntimeException('The extracted shared-hosting package is missing its muchocore directory.');
     }
 
+    worker_state($statusFile, $logFile, 'Connecting to shared hosting over FTP');
     log_line($logFile, "[MuchoGDPS] Connecting to shared hosting FTP...\n");
     [$ftp, $usedSecurity, $usedPort] = ftp_open_authenticated($config, $ftpPassword, $logFile);
     $browserFinalization = null;
 
     try {
         $remotePath = trim((string)$config['ftp_path']);
+        worker_state($statusFile, $logFile, 'Selecting the shared-hosting web root');
         $configuredBase = @ftp_pwd($ftp);
         if (!is_string($configuredBase) || $configuredBase === '') {
             throw new RuntimeException('Unable to determine the FTP base directory.');
@@ -1126,6 +1143,7 @@ try {
             }
         }
 
+        worker_state($statusFile, $logFile, 'Uploading MuchoCore to the shared-hosting web root');
         $uploaded = upload_tree($ftp, $localRoot, $base, $logFile);
         if (provider_requires_browser_finalization((string)$config['ftp_host'])) {
             [$browserToken, $browserExpiresAt, $browserPayloadPath] = create_browser_finalization_payload(
@@ -1143,6 +1161,7 @@ try {
             ];
             $status = read_json_file($statusFile);
             $status['status'] = 'awaiting_browser';
+            $status['state'] = 'Waiting for browser finalization in the browser';
             $status['browser_finalization_url'] = $browserFinalization['url'];
             $status['browser_finalization_expires_at'] = gmdate('c', $browserExpiresAt);
             $status['browser_finalization_token_hash'] = hash('sha256', $browserToken);
@@ -1161,6 +1180,7 @@ try {
     // Generate and upload tenant clients before browser finalization so InfinityFree/browser
     // authorization delays cannot prevent the patched client pack from reaching the GDPS.
     $rootDir = dirname(__DIR__);
+    worker_state($statusFile, $logFile, 'Generating patched Windows and Android clients');
     log_line($logFile, "[MuchoGDPS] Generating clients for this GDPS...\n");
     upload_client_pack_to_shared(
         $config,
@@ -1175,6 +1195,7 @@ try {
     log_line($logFile, "[MuchoGDPS] Tenant clients uploaded to /storage/clients/.\n");
 
     if ($browserFinalization !== null) {
+        log_line($logFile, "[MuchoGDPS] State: Waiting for browser finalization in the browser\n");
         log_line($logFile, "[MuchoGDPS] Waiting for browser finalization; the worker will verify /health automatically.\n");
         wait_for_browser_finalization(
             (int)$browserFinalization['expires_at'],
@@ -1182,9 +1203,11 @@ try {
             $statusFile
         );
     } else {
+        worker_state($statusFile, $logFile, 'Running the remote MuchoCore installer and health check');
         run_remote_installer($config, $dbPassword, $adminPassword, $dir . '/shared_cookie', $logFile);
     }
 
+    worker_state($statusFile, $logFile, 'Post-processing deployment results');
     $status = read_json_file($statusFile);
     if (($status['timed_out'] ?? false) === true) {
         cleanup_secrets($dir);
@@ -1198,7 +1221,9 @@ try {
     write_status($statusFile, $status);
 
     $status = read_json_file($statusFile);
+    worker_state($statusFile, $logFile, 'Finalizing deployment');
     $status['status'] = 'completed';
+    $status['state'] = 'Deployment completed successfully';
     $status['exit_code'] = 0;
     $status['finished_at'] = gmdate('c');
     write_status($statusFile, $status);
@@ -1207,6 +1232,7 @@ try {
     log_line($logFile, "[MuchoGDPS] GDPS: " . rtrim((string)$config['account_url'], '/') . "\n");
     log_line($logFile, "[MuchoGDPS] Admin: " . rtrim((string)$config['account_url'], '/') . "/admin/ (user: admin)\n");
 } catch (Throwable $e) {
+    worker_state($statusFile, $logFile, 'Deployment failed');
     log_line($logFile, "\n[MuchoGDPS] ERROR: " . $e->getMessage() . "\n");
     $status = read_json_file($statusFile);
     $status['status'] = 'failed';
