@@ -22,9 +22,9 @@ foreach ([
 }
 
 foreach ([
-    "if ($method === 'POST' && $path === '/api/deploy/start')",
+    'if (\$method === \'POST\' && \$path === \'/api/deploy/start\')',
     "type' => 'vps'",
-    "$worker = $root . '/bin/mucho-deploy-worker.php';",
+    '\$worker = \$root . \'/bin/mucho-deploy-worker.php\';',
     "function deployment_queue_dispatch",
     "DeploymentClientPack::prepare",
     "'/api/deploy/client-pack'",
