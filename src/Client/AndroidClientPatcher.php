@@ -31,7 +31,8 @@ final class AndroidClientPatcher
     public static function patchFile(
         string $inputPath,
         string $outputPath,
-        string $serverUrl
+        string $serverUrl,
+        ?callable $heartbeat = null
     ): array {
         $server = WindowsClientPatcher::validateServerUrl($serverUrl);
 
@@ -66,6 +67,19 @@ final class AndroidClientPatcher
         $replacements = self::buildReplacements($server);
         $replacementCount = 0;
         $patchedEntries = [];
+        $lastHeartbeat = microtime(true);
+
+        $heartbeatNow = static function () use (&$lastHeartbeat, $heartbeat): void {
+            if ($heartbeat === null) {
+                return;
+            }
+            $now = microtime(true);
+            if (($now - $lastHeartbeat) >= 5.0) {
+                $heartbeat();
+                $lastHeartbeat = $now;
+            }
+        };
+        $heartbeatNow();
 
         $rebuiltPath = $outputPath . '.rebuilt';
         $alignedPath = $outputPath . '.aligned';
@@ -81,6 +95,7 @@ final class AndroidClientPatcher
         }
 
         for ($index = 0; $index < $source->numFiles; $index++) {
+            $heartbeatNow();
             $stat = $source->statIndex($index);
             $name = is_array($stat) ? (string)($stat['name'] ?? '') : '';
 
@@ -163,12 +178,15 @@ final class AndroidClientPatcher
             throw new RuntimeException('Failed to finalize the rebuilt APK.');
         }
 
+        $heartbeatNow();
         self::runTool(
             ['zipalign', '-p', '-f', '4', $rebuiltPath, $alignedPath],
             'zipalign'
         );
 
+        $heartbeatNow();
         self::signApk($alignedPath, $outputPath);
+        $heartbeatNow();
 
         @unlink($rebuiltPath);
         @unlink($alignedPath);
