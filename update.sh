@@ -137,7 +137,7 @@ get_latest_stable_release_tag() {
         'https://api.github.com/repos/IZKGMD/GMDmucho-core/releases/latest')" || return 1
 
     tag="$(printf '%s' "$response" |
-        sed -n 's/.*"tag_name":[[:space:]]*"\${[^"]*\).*/\1/p' |
+        sed -n 's/.*"tag_name":[[:space:]]*"\([^\"]*\)".*/\1/p' |
         head -n1)"
 
     [[ "$tag" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
