@@ -35,4 +35,11 @@ if grep -rIl $'\x00' "$ROOT/src/Client" >/tmp/muchocore-client-nul-files 2>/dev/
     exit 1
 fi
 
+worker_clients_line="$(grep -n 'Generating clients for this GDPS' "$ROOT/bin/mucho-shared-deploy-worker.php" | head -1 | cut -d: -f1)"
+worker_wait_line="$(grep -n 'Waiting for browser finalization' "$ROOT/bin/mucho-shared-deploy-worker.php" | head -1 | cut -d: -f1)"
+if [[ -z "$worker_clients_line" || -z "$worker_wait_line" || "$worker_clients_line" -ge "$worker_wait_line" ]]; then
+    echo "Shared worker must upload patched clients before browser finalization." >&2
+    exit 1
+fi
+
 echo "Auto Patch 2.0 contract passed"
