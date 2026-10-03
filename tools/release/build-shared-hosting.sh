@@ -65,14 +65,23 @@ rm -f "$OUTPUT"
 )
 
 unzip -t "$OUTPUT" >/dev/null
-unzip -Z1 "$OUTPUT" | grep -Fxq 'muchocore/public/shared-install.php'
-unzip -Z1 "$OUTPUT" | grep -Fxq 'muchocore/public/ftp-install.php'
-unzip -Z1 "$OUTPUT" | grep -Fxq 'muchocore/vendor/autoload.php'
-unzip -Z1 "$OUTPUT" | grep -Fxq 'muchocore/docs/SHARED_HOSTING.md'
-! unzip -Z1 "$OUTPUT" | grep -Eq '(^|/)\.env($|\.)'
-! unzip -Z1 "$OUTPUT" | grep -Eq '(^|/)(\.secrets|storage)/'
-! unzip -Z1 "$OUTPUT" | grep -Eq '(^|/)config/cloudsave\.key$'
-! unzip -Z1 "$OUTPUT" | grep -Eq '(^|/)\.git/'
+
+# Do not pipe unzip directly into grep under pipefail: grep -q exits as soon
+# as it finds a match, which sends SIGPIPE (141) to unzip and can falsely make
+# an otherwise valid archive look like a failed build.
+ZIP_LIST="$STAGE/zip-list.txt"
+unzip -Z1 "$OUTPUT" > "$ZIP_LIST"
+
+grep -Fxq 'muchocore/public/shared-install.php' "$ZIP_LIST"
+grep -Fxq 'muchocore/public/ftp-install.php' "$ZIP_LIST"
+grep -Fxq 'muchocore/vendor/autoload.php' "$ZIP_LIST"
+grep -Fxq 'muchocore/docs/SHARED_HOSTING.md' "$ZIP_LIST"
+! grep -Eq '(^|/)\.env($|\.)' "$ZIP_LIST"
+! grep -Eq '(^|/)(\.secrets|storage)/' "$ZIP_LIST"
+! grep -Eq '(^|/)config/cloudsave\.key
+echo "OUTPUT=$OUTPUT"
+ "$ZIP_LIST"
+! grep -Eq '(^|/)\.git/' "$ZIP_LIST"
 
 echo "SHARED_HOSTING_ARCHIVE_OK"
 echo "OUTPUT=$OUTPUT"
