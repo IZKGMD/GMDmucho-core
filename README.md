@@ -1,6 +1,6 @@
 # MuchoCore — Geometry Dash Private Server Core (GDPS)
 
-**MuchoCore** is an open-source **PHP 8.3+ Geometry Dash Private Server (GDPS) core** for hosting, migrating, securing, and operating self-hosted Geometry Dash private servers with MariaDB, Docker/Caddy on VPS, a no-Docker shared-hosting installer, an integrated Admin Panel, client patching tools, and version-aware Geometry Dash protocol compatibility.
+**MuchoCore** is an open-source **PHP 8.3+ Geometry Dash Private Server (GDPS) core** for hosting, migrating, securing, and operating self-hosted Geometry Dash private servers with MariaDB, Docker/Caddy on VPS, an integrated Admin Panel, client patching tools, and version-aware Geometry Dash protocol compatibility.
 
 The canonical source repository is **IZKGMD/GMDmucho-core**. **MuchoCore** and **GMDmucho-core** refer to the same software project.
 
@@ -118,18 +118,6 @@ The names **MuchoCore** and **GMDmucho-core** identify the same project.
 ---
 
 ## 🚀 Quick start
-
-### Shared hosting installation
-
-For compatible shared hosting, use the automatic FTP deployment page:
-
-~~~text
-https://muchogdps.space/install/shared/
-~~~
-
-Enter the hosting FTP/FTPS connection, the site's HTTPS address, and the database credentials. FTP mode, port, and the remote web root default to automatic detection. MuchoGDPS downloads and verifies the published shared-hosting release on the control plane, uploads it through FTP/FTPS, drives the shared installer over HTTPS, and verifies `/health`.
-
-Shared hosting does **not** require a dedicated public IPv4. Provider-specific free-tier restrictions may still prevent Geometry Dash clients from reaching the API even when PHP and MySQL checks pass.
 
 ### New VPS installation
 
@@ -644,7 +632,7 @@ Current validation includes:
 | Protocol | Version matrix, legacy wire behavior and modern protocol guards |
 | Security | MuchoProtect, authentication, TOTP and passkey contracts |
 | Client tools | Windows patcher, Android patcher and Python self-tests |
-| Routing | Caddy, Apache/shared-hosting compatibility and liveness routes |
+| Routing | Caddy and liveness routes |
 | Docker | Compose validation and deployment configuration checks |
 | Release | Version gate plus real-client 2.2 contract verification |
 
@@ -719,7 +707,6 @@ Before large changes, back up the database and verify that your Cloud Save secre
 | [Protocol Matrix](docs/PROTOCOL_MATRIX.md) | Protocol and wire-level coverage |
 | [Client Testing](docs/CLIENT_TESTING.md) | Real-client testing workflow |
 | [Advanced Deployment](docs/ADVANCED.md) | Tunnel, NAT/CGNAT and advanced deployment |
-| [Shared Hosting](docs/SHARED_HOSTING.md) | Shared-hosting deployment constraints |
 | [Account Recovery](docs/ACCOUNT_RECOVERY.md) | Account recovery behavior |
 | [Showcase](docs/SHOWCASE.md) | Community GDPS projects |
 
