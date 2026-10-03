@@ -138,27 +138,19 @@ function saveDraft(){
   const data={};
   for(const id of autosaveFields){const el=$(id);if(el)data[id]=el.value}
   localStorage.setItem(AUTOSAVE_KEY,JSON.stringify(data));
-  sessionStorage.setItem(AUTOSAVE_KEY+'_secret',JSON.stringify({
-    ftpPassword:$('ftpPassword')?.value||'',
-    dbPassword:$('dbPassword')?.value||'',
-    adminPassword:$('adminPassword')?.value||''
-  }));
 }
 function restoreDraft(){
   try{
     const data=JSON.parse(localStorage.getItem(AUTOSAVE_KEY)||'{}');
     for(const id of autosaveFields){if($(id)&&typeof data[id]==='string')$(id).value=data[id]}
-    const secret=JSON.parse(sessionStorage.getItem(AUTOSAVE_KEY+'_secret')||'{}');
-    if($('ftpPassword'))$('ftpPassword').value=secret.ftpPassword||'';
-    if($('dbPassword'))$('dbPassword').value=secret.dbPassword||'';
-    if($('adminPassword'))$('adminPassword').value=secret.adminPassword||'';
+
   }catch(_){}
 }
 function clearDraft(){
   localStorage.removeItem(AUTOSAVE_KEY);
-  sessionStorage.removeItem(AUTOSAVE_KEY+'_secret');
+
 }
-autosaveFields.concat(['ftpPassword','dbPassword']).forEach(id=>$(id)?.addEventListener('input',saveDraft));
+autosaveFields.forEach(id=>$(id)?.addEventListener('input',saveDraft));
 restoreDraft();
 start.onclick=async()=>{
  if(!$('confirm').checked){alert('Confirm that you have permission to administer this shared-hosting account.');return}
