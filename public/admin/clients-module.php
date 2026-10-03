@@ -100,7 +100,7 @@ function renderTenantClientsPage(PDO $db): void
 </style>
 <div class="mc-tenant-clients">
 <section class="card">
-<h2>🎮 Your GDPS Clients</h2>
+<h2>🎮 Client Downloads</h2>
 <p style="color:#9aa7bb;font-size:12px;line-height:1.7">Generated clients for this GDPS are stored on this server in protected storage and are available only to authenticated administrators.</p>
 <div class="mc-client-note" style="margin-top:12px"><b><?=h($serverName)?></b><?php if($serverUrl!==''): ?> · <code><?=h($serverUrl)?></code><?php endif; ?></div>
 </section>
