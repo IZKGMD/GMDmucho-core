@@ -104,6 +104,7 @@ final class DeploymentClientPack
 
             $createdAt = gmdate('c');
             $publicManifest = [
+                'patch_engine' => '2.0',
                 'server_url' => $server,
                 'server_name' => $serverName,
                 'created_at' => $createdAt,
@@ -155,6 +156,7 @@ final class DeploymentClientPack
             }
 
             $manifest = [
+                'patch_engine' => '2.0',
                 'server_url' => $server,
                 'server_name' => $serverName,
                 'created_at' => $createdAt,
