@@ -88,7 +88,7 @@ function deploy_key_ok(): bool
     }
 
     if ($method === 'GET' && in_array($path, ['/api/deploy/status', '/api/deploy/log'], true)) {
-        return same_origin_ok();
+        return deployment_session_ok();
     }
 
     if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/client-pack', '/api/deploy/details'], true)) {
@@ -577,6 +577,10 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         $dbPassword = (string)($data['db_password'] ?? '');
         $adminPassword = (string)($data['admin_password'] ?? '');
 
+        if ($gdpsName === '' || mb_strlen($gdpsName, 'UTF-8') > 64 || preg_match('/[\\x00-\\x1F\\x7F]/u', $gdpsName) === 1) {
+            json_response(['ok' => false, 'error' => 'Enter a GDPS name up to 64 characters.'], 422);
+        }
+
         if ($ftpHost === '' || strlen($ftpHost) > 253 || !preg_match('/^(?=.{1,253}$)(?!-)(?:[A-Za-z0-9-]{1,63}\\.)+[A-Za-z0-9-]{2,63}$/', $ftpHost)) {
             json_response(['ok' => false, 'error' => 'Enter a valid FTP hostname.'], 422);
         }
@@ -814,6 +818,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
     @chmod($dir . '/admin_password', 0600);
 
     $env = "MUCHO_DOMAIN=" . shell_quote($domain) . "\n"
+         . "MUCHO_SERVER_NAME=" . shell_quote($gdpsName) . "\n"
          . "MUCHO_ADMIN_USER=" . shell_quote($adminUser) . "\n"
          . "MUCHO_ADMIN_PASSWORD=" . shell_quote($adminPassword) . "\n"
          . "MUCHO_TRANSPORT_MODE='direct'\n"
