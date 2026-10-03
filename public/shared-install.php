@@ -567,7 +567,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $autoConfig !== null) {
     $parts = parse_url($accountUrl);
     $validAccountUrl = is_array($parts) && in_array(strtolower((string)($parts['scheme'] ?? '')), ['http','https'], true) && !empty($parts['host']) && empty($parts['user']) && empty($parts['pass']) && empty($parts['path']) && empty($parts['query']) && empty($parts['fragment']) && (filter_var($parts['host'], FILTER_VALIDATE_IP) !== false || filter_var($parts['host'], FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) !== false);
     if (!$validAccountUrl) { $errors[] = 'Server URL must be a full URL such as https://gdps.example.com with no /database path.'; }
-    if ($gdpsName === '' || mb_strlen($gdpsName, 'UTF-8') > 64 || preg_match('/[\x00-\x1F\x7F\x7F]/u', $gdpsName) === 1) { $errors[] = 'GDPS name must contain 1–64 characters and no control characters.'; }
+    if ($gdpsName === '' || mb_strlen($gdpsName, 'UTF-8') > 64 || preg_match('/[\x00-\x1F\x7F]/u', $gdpsName) === 1) { $errors[] = 'GDPS name must contain 1–64 characters and no control characters.'; }
     if (!preg_match('/^[A-Za-z_][A-Za-z0-9_-]{0,31}$/', $adminUser)) { $errors[] = 'Admin username must be 1–32 characters, start with a letter or underscore, and contain only letters, numbers, underscores or hyphens.'; }
     if (!$isHttps) { $errors[] = 'Open the installer over HTTPS before entering database and administrator passwords.'; }
     if (strlen($adminPass) < 12) { $errors[] = 'Admin password must contain at least 12 characters.'; }
@@ -751,6 +751,7 @@ if ($success) {
         <p><a href="/admin/">Open the admin panel</a></p>
         <p><a href="/health">Open the health check</a></p>
         <p><a href="/admin/?page=migration">Migrate an existing GDPS database</a></p>
+        <p><a href="/clients/">Player client downloads</a></p>
 
         <h2>Important</h2>
         <p>Delete <code>public/shared-install.php</code> from your hosting account if the file still exists.</p>
