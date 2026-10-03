@@ -454,7 +454,7 @@ function local_shared_release(string $rootDir, string $destination): array
     }
 
     $builder = $rootDir . '/tools/release/build-shared-hosting.sh';
-    if (!is_file($builder) || !is_executable($builder)) {
+    if (!is_file($builder) || !is_readable($builder)) {
         throw new RuntimeException('The shared-hosting package builder is unavailable on the control server.');
     }
 
@@ -1097,12 +1097,12 @@ try {
 
     if ($sourceMode === 'working-tree' || $sourceMode === 'local') {
         worker_state($statusFile, $logFile, 'Building the shared-hosting package from the current control-plane source');
-        log_line($logFile, "[MuchoGDPS] Shared deployment source: current control-plane working tree.\\n");
+        log_line($logFile, "[MuchoGDPS] Shared deployment source: current control-plane working tree.\n");
         $release = local_shared_release(dirname(__DIR__), $archive);
         $bytes = filesize($archive);
-        log_line($logFile, "[MuchoGDPS] Local package version: {$release['version']} (working-tree).\\n");
-        log_line($logFile, "[MuchoGDPS] Built package SHA-256: {$release['sha256']}\\n");
-        log_line($logFile, "[MuchoGDPS] Built " . number_format((int)$bytes) . " bytes from the current MuchoCore source.\\n");
+        log_line($logFile, "[MuchoGDPS] Local package version: {$release['version']} (working-tree).\n");
+        log_line($logFile, "[MuchoGDPS] Built package SHA-256: {$release['sha256']}\n");
+        log_line($logFile, "[MuchoGDPS] Built " . number_format((int)$bytes) . " bytes from the current MuchoCore source.\n");
     } else {
         worker_state($statusFile, $logFile, 'Fetching stable release metadata from GitHub');
         log_line($logFile, "[MuchoGDPS] Fetching latest stable release metadata from GitHub...\\n");
