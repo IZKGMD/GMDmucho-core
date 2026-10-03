@@ -409,6 +409,20 @@ function deployment_php_cli(): string
     throw new RuntimeException('PHP CLI binary is unavailable for deployment workers.');
 }
 
+function deployment_start_lock()
+{
+    $path = JOB_ROOT . '/start.lock';
+    $handle = @fopen($path, 'c');
+    if ($handle === false || !@flock($handle, LOCK_EX)) {
+        if (is_resource($handle)) {
+            @fclose($handle);
+        }
+        throw new RuntimeException('Deployment start lock is unavailable.');
+    }
+    @chmod($path, 0600);
+    return $handle;
+}
+
 function deployment_queue_dispatch(): void
 {
     $worker = dirname(__DIR__) . '/bin/mucho-shared-deploy-worker.php';
@@ -559,7 +573,15 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
     }
     @chmod(JOB_ROOT, 0700);
 
+    try {
+        $startLock = deployment_start_lock();
+    } catch (Throwable) {
+        json_response(['ok' => false, 'error' => 'Deployment start is temporarily unavailable.'], 503);
+    }
+
     if (!rate_limit_ok()) {
+        @flock($startLock, LOCK_UN);
+        @fclose($startLock);
         json_response(['ok' => false, 'error' => 'Too many deployment attempts from this client. Try again later.'], 429);
     }
 
