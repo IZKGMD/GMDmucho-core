@@ -421,11 +421,11 @@ function deployment_start_lock()
 {
     $path = JOB_ROOT . '/start.lock';
     $handle = @fopen($path, 'c');
-    if ($handle === false || !@flock($handle, LOCK_EX)) {
+    if ($handle === false || !@flock($handle, LOCK_EX | LOCK_NB)) {
         if (is_resource($handle)) {
             @fclose($handle);
         }
-        throw new RuntimeException('Deployment start lock is unavailable.');
+        throw new RuntimeException('Another deployment is being started. Please wait a moment and try again.');
     }
     @chmod($path, 0600);
     return $handle;
