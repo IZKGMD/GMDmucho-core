@@ -93,10 +93,11 @@ main{padding:54px 0 75px}.eyebrow{display:inline-flex;align-items:center;gap:7px
 <summary>Admin account settings</summary>
 <div class="advanced-body">
   <div class="grid">
+    <div class="field full"><label>Admin username</label><input id="adminUser" value="admin" maxlength="32" autocomplete="username" placeholder="admin"></div>
     <div class="field full"><label>Admin password</label><input id="adminPassword" type="password" autocomplete="new-password" placeholder="Blank = securely generate one"></div>
     <div class="field full"><label>Confirm admin password</label><input id="adminPasswordConfirm" type="password" autocomplete="new-password" placeholder="Re-enter the admin password"></div>
   </div>
-  <div class="help" id="adminPasswordHelp">Leave the password blank to securely generate one automatically. Confirmation is required only when you choose your own password.</div>
+  <div class="help" id="adminPasswordHelp">Choose the username you will use at <code>/admin/</code>. Leave the password blank to securely generate one automatically.</div>
 </div>
 </details>
 
@@ -195,6 +196,7 @@ start.onclick=async()=>{
   db_name:$('dbName').value.trim(),
   db_user:$('dbUser').value.trim(),
   db_password:$('dbPassword').value,
+  admin_user:$('adminUser').value.trim(),
   admin_password:$('adminPassword').value,
   admin_password_confirm:$('adminPasswordConfirm').value
  };
