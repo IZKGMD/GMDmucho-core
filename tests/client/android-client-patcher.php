@@ -162,7 +162,8 @@ try {
     if (!str_contains($native, 'https://not-a-url.example/geometrydash.com')) {
         throw new RuntimeException('Non-URL host-like text was incorrectly modified.');
     }
-\n    if (!str_contains($native, 'https://gdps.example.com' . "\0")) {
+
+    if (!str_contains($native, 'https://gdps.example.com' . "\0")) {
         throw new RuntimeException('NUL-terminated embedded host was not patched correctly.');
     }
 

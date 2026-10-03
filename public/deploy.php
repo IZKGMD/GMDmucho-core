@@ -104,10 +104,6 @@ function deploy_key_ok(): bool
         return same_origin_ok();
     }
 
-    if ($method === 'POST' && $path === '/api/deploy/browser-finish') {
-        return true;
-    }
-
     return deployment_session_ok();
 }
 
@@ -375,7 +371,7 @@ function handle_client_pack_request(string $root): never
 function count_running_jobs(): int
 {
     $count = 0;
-    $activeStatuses = ['running', 'starting', 'awaiting_browser', 'browser_completed', 'post_processing'];
+    $activeStatuses = ['running', 'starting', 'post_processing'];
 
     foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
         if (in_array((string)(read_json($statusFile)['status'] ?? ''), $activeStatuses, true)) {
@@ -388,7 +384,7 @@ function count_running_jobs(): int
 
 function cleanup_job_secrets(string $dir): void
 {
-    foreach (['ssh_password', 'ssh_key', 'admin_password', 'remote_env', 'ftp_password', 'shared_db_password', 'shared_config', 'shared_cookie', 'shared_archive'] as $file) {
+    foreach (['ssh_password', 'ssh_key', 'admin_password', 'remote_env'] as $file) {
         @unlink($dir . '/' . $file);
     }
 }
@@ -445,7 +441,7 @@ function release_deployment_start_lock(&$handle): void
 
 function deployment_queue_dispatch(): void
 {
-    $worker = dirname(__DIR__) . '/bin/mucho-shared-deploy-worker.php';
+    $worker = dirname(__DIR__) . '/bin/mucho-deploy-worker.php';
     if (!is_file($worker)) {
         return;
     }
@@ -524,56 +520,6 @@ $path = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
 $path = is_string($path) ? rtrim($path, '/') : '/';
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
-if ($method === 'POST' && $path === '/api/deploy/browser-finish') {
-    $data = request_json();
-    $jobId = trim((string)($data['job_id'] ?? ''));
-    $token = trim((string)($data['token'] ?? ''));
-    $ok = filter_var($data['ok'] ?? false, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-
-    if (!preg_match('/^[0-9]{14}-[a-f0-9]{12}$/', $jobId)
-        || !preg_match('/^[a-f0-9]{64}$/', $token)
-        || $ok === null
-    ) {
-        json_response(['ok' => false, 'error' => 'Invalid browser finalization callback.'], 400);
-    }
-
-    $jobDir = JOB_ROOT . '/' . $jobId;
-    $statusFile = $jobDir . '/status.json';
-    if (!is_file($statusFile)) {
-        json_response(['ok' => false, 'error' => 'Deployment job not found.'], 404);
-    }
-
-    $status = read_json($statusFile);
-    $expectedHash = (string)($status['browser_finalization_token_hash'] ?? '');
-    if ($expectedHash === '' || !hash_equals($expectedHash, hash('sha256', $token))) {
-        json_response(['ok' => false, 'error' => 'Invalid browser finalization token.'], 403);
-    }
-
-    if (!in_array((string)($status['status'] ?? ''), ['awaiting_browser', 'browser_completed', 'completed'], true)) {
-        json_response(['ok' => true, 'already_finalized' => true]);
-    }
-
-    $status['status'] = $ok ? 'browser_completed' : 'failed';
-    $status['exit_code'] = $ok ? 0 : 1;
-    if ($ok) {
-        $status['browser_finished_at'] = gmdate('c');
-    } else {
-        $status['finished_at'] = gmdate('c');
-    }
-    unset($status['browser_finalization_token_hash']);
-    write_json($statusFile, $status);
-
-    @file_put_contents(
-        $jobDir . '/log.txt',
-        $ok
-            ? "[MuchoGDPS] Browser finalization completed successfully.\n"
-            : "[MuchoGDPS] Browser finalization reported an installation error.\n",
-        FILE_APPEND | LOCK_EX
-    );
-
-    json_response(['ok' => true, 'status' => $status['status']]);
-}
-
 if (!deploy_key_ok()) {
     json_response(['ok' => false, 'error' => 'Deployment session is missing or expired. Refresh the installer page and try again.'], 403);
 }
@@ -611,197 +557,6 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
     $max = max(1, (int)($_ENV['MUCHO_DEPLOY_MAX_CONCURRENT'] ?? getenv('MUCHO_DEPLOY_MAX_CONCURRENT') ?: 2));
 
     $data = request_json();
-    $deploymentType = strtolower(trim((string)($data['type'] ?? 'vps')));
-
-    if ($deploymentType === 'shared') {
-        $gdpsName = trim((string)($data['gdps_name'] ?? ''));
-        $ftpHost = trim((string)($data['ftp_host'] ?? ''));
-        $ftpPort = (int)($data['ftp_port'] ?? 21);
-        $ftpUsername = trim((string)($data['ftp_username'] ?? ''));
-        $ftpPassword = (string)($data['ftp_password'] ?? '');
-        $ftpSecurity = strtolower(trim((string)($data['ftp_security'] ?? 'ftp')));
-        $ftpPath = trim((string)($data['ftp_path'] ?? ''));
-        $accountUrl = rtrim(trim((string)($data['account_url'] ?? '')), '/');
-        $dbHost = trim((string)($data['db_host'] ?? 'localhost'));
-        $dbPort = (int)($data['db_port'] ?? 3306);
-        $dbName = trim((string)($data['db_name'] ?? ''));
-        $dbUser = trim((string)($data['db_user'] ?? ''));
-        $dbPassword = (string)($data['db_password'] ?? '');
-        $adminUser = trim((string)($data['admin_user'] ?? 'admin'));
-        $adminPassword = (string)($data['admin_password'] ?? '');
-        $adminPasswordConfirm = (string)($data['admin_password_confirm'] ?? '');
-
-        if ($gdpsName === '' || mb_strlen($gdpsName, 'UTF-8') > 64 || preg_match('/[\\x00-\\x1F\\x7F]/u', $gdpsName) === 1) {
-            json_response(['ok' => false, 'error' => 'Enter a GDPS name up to 64 characters.'], 422);
-        }
-
-        if ($ftpHost === '' || strlen($ftpHost) > 253 || !preg_match('/^(?=.{1,253}$)(?!-)(?:[A-Za-z0-9-]{1,63}\\.)+[A-Za-z0-9-]{2,63}$/', $ftpHost)) {
-            json_response(['ok' => false, 'error' => 'Enter a valid FTP hostname.'], 422);
-        }
-        if ($ftpPort < 0 || $ftpPort > 65535) {
-            json_response(['ok' => false, 'error' => 'Invalid FTP port.'], 422);
-        }
-        if ($ftpUsername === '' || strlen($ftpUsername) > 128 || preg_match('/[\\x00-\\x1F\\x7F]/', $ftpUsername) === 1) {
-            json_response(['ok' => false, 'error' => 'Invalid FTP username.'], 422);
-        }
-        if ($ftpPassword === '') {
-            json_response(['ok' => false, 'error' => 'Enter the FTP password.'], 422);
-        }
-        if (!in_array($ftpSecurity, ['auto', 'ftp', 'ftps'], true)) {
-            json_response(['ok' => false, 'error' => 'Choose Auto Detect, FTP or FTPS.'], 422);
-        }
-        if ($ftpPath !== '' && (strlen($ftpPath) > 512 || preg_match('/[\\x00]/', $ftpPath) === 1 || preg_match('#(^|/)\\.\\.(/|$)#', str_replace('\\\\', '/', $ftpPath)) === 1)) {
-            json_response(['ok' => false, 'error' => 'Invalid remote FTP directory.'], 422);
-        }
-        $parts = parse_url($accountUrl);
-        $accountHost = is_array($parts) ? strtolower((string)($parts['host'] ?? '')) : '';
-        if (!is_array($parts) || strtolower((string)($parts['scheme'] ?? '')) !== 'https' || $accountHost === '' || !preg_match('/^(?=.{1,253}$)(?!-)(?:[A-Za-z0-9-]{1,63}\\.)+[A-Za-z0-9-]{2,63}$/', $accountHost) || !empty($parts['user']) || !empty($parts['pass']) || !empty($parts['path']) || !empty($parts['query']) || !empty($parts['fragment'])) {
-            json_response(['ok' => false, 'error' => 'GDPS address must be a public HTTPS hostname such as https://gdps.example.com.'], 422);
-        }
-        if ($dbHost === '' || strlen($dbHost) > 253 || preg_match('/[\\x00-\\x1F\\x7F]/', $dbHost) === 1) {
-            json_response(['ok' => false, 'error' => 'Invalid database host.'], 422);
-        }
-        if ($dbPort < 1 || $dbPort > 65535 || $dbName === '' || strlen($dbName) > 128 || preg_match('/[\\x00-\\x1F\\x7F]/', $dbName) === 1 || $dbUser === '' || strlen($dbUser) > 128 || preg_match('/[\\x00-\\x1F\\x7F]/', $dbUser) === 1) {
-            json_response(['ok' => false, 'error' => 'Invalid database connection values.'], 422);
-        }
-        if ($dbPassword === '') {
-            json_response(['ok' => false, 'error' => 'Enter the database password.'], 422);
-        }
-        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_-]{0,31}$/', $adminUser)) {
-            json_response(['ok' => false, 'error' => 'Invalid MuchoCore admin username. Use 1–32 letters, numbers, underscores or hyphens, starting with a letter or underscore.'], 422);
-        }
-
-        $generatedAdminPassword = false;
-        if ($adminPassword === '') {
-            $adminPassword = rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=');
-            $generatedAdminPassword = true;
-        } elseif (!hash_equals($adminPassword, $adminPasswordConfirm)) {
-            json_response(['ok' => false, 'error' => 'Admin passwords do not match.'], 422);
-        }
-        if (strlen($adminPassword) < 12 || strlen($adminPassword) > 200) {
-            json_response(['ok' => false, 'error' => 'MuchoCore admin password must be 12–200 characters.'], 422);
-        }
-
-        $id = job_id();
-        $dir = job_dir($id);
-        if (!@mkdir($dir, 0700, true)) {
-            json_response(['ok' => false, 'error' => 'Could not create the deployment job.'], 500);
-        }
-
-        $queueFull = count_running_jobs() >= $max;
-        $status = [
-            'id' => $id,
-            'type' => 'shared',
-            'status' => $queueFull ? 'queued' : 'starting',
-            'state' => $queueFull ? 'Waiting for deployment slot' : 'Starting deployment worker',
-            'created_at' => gmdate('c'),
-            'queued_at' => $queueFull ? gmdate('c') : null,
-            'heartbeat_at' => $queueFull ? null : gmdate('c'),
-            'gdps_name' => $gdpsName,
-            'ftp_host' => $ftpHost,
-            'ftp_port' => $ftpPort,
-            'ftp_security' => $ftpSecurity,
-            'ftp_path' => $ftpPath,
-            'domain' => $accountHost,
-            'admin_user' => $adminUser,
-            'generated_admin_password' => $generatedAdminPassword,
-            'exit_code' => null,
-        ];
-        write_json($dir . '/status.json', $status);
-        file_put_contents($dir . '/ftp_password', $ftpPassword, LOCK_EX);
-        @chmod($dir . '/ftp_password', 0600);
-        $config = [
-            'gdps_name' => $gdpsName,
-            'ftp_host' => $ftpHost,
-            'ftp_port' => $ftpPort,
-            'ftp_username' => $ftpUsername,
-            'ftp_security' => $ftpSecurity,
-            'ftp_path' => $ftpPath,
-            'account_url' => $accountUrl,
-            'db_host' => $dbHost,
-            'db_port' => $dbPort,
-            'db_name' => $dbName,
-            'db_user' => $dbUser,
-            'admin_user' => $adminUser,
-        ];
-        write_json($dir . '/shared_config', $config);
-        file_put_contents($dir . '/shared_db_password', $dbPassword, LOCK_EX);
-        @chmod($dir . '/shared_db_password', 0600);
-        file_put_contents($dir . '/admin_password', $adminPassword, LOCK_EX);
-        @chmod($dir . '/admin_password', 0600);
-        file_put_contents($dir . '/log.txt',
-            "[MuchoGDPS] Shared-hosting deployment job {$id}\n"
-            . "[MuchoGDPS] FTP target: {$ftpHost}:" . ($ftpPort > 0 ? $ftpPort : 0) . " ({$ftpSecurity})\n"
-            . "[MuchoGDPS] Remote directory: " . ($ftpPath !== '' ? $ftpPath : 'auto') . "\n"
-            . "[MuchoGDPS] GDPS: {$accountUrl}\n"
-            . ($queueFull
-                ? "[MuchoGDPS] Waiting in deployment queue...\n"
-                : "[MuchoGDPS] Starting deployment worker...\n"),
-            LOCK_EX);
-        @chmod($dir . '/log.txt', 0600);
-
-        $worker = $root . '/bin/mucho-shared-deploy-worker.php';
-        if (!is_file($worker)) {
-            cleanup_job_secrets($dir);
-            @unlink($dir . '/status.json');
-            @unlink($dir . '/log.txt');
-            @rmdir($dir);
-            json_response(['ok' => false, 'error' => 'Shared-hosting deployment worker is not installed.'], 500);
-        }
-
-        $queuePosition = 0;
-        if ($queueFull) {
-            $queuePosition = queued_job_position($id);
-            release_deployment_start_lock($startLock);
-            deployment_queue_dispatch();
-            $fresh = read_json($dir . '/status.json');
-            if (($fresh['status'] ?? '') !== 'running') {
-                $queuePosition = queued_job_position($id);
-            }
-        } else {
-            try {
-                $phpCli = deployment_php_cli();
-            } catch (Throwable) {
-                cleanup_job_secrets($dir);
-                @unlink($dir . '/status.json');
-                @unlink($dir . '/log.txt');
-                @rmdir($dir);
-                json_response(['ok' => false, 'error' => 'PHP CLI is unavailable for the shared-hosting deployment worker.'], 500);
-            }
-
-            release_deployment_start_lock($startLock);
-            $cmd = 'nohup ' . escapeshellarg($phpCli) . ' ' . escapeshellarg($worker)
-                . ' --job=' . escapeshellarg($id)
-                . ' >> ' . escapeshellarg($dir . '/log.txt') . ' 2>&1 & echo $!';
-            $output = [];
-            $exit = 0;
-            exec($cmd, $output, $exit);
-            $pid = (int)($output[0] ?? 0);
-            if ($exit !== 0 || $pid <= 0) {
-                cleanup_job_secrets($dir);
-                @unlink($dir . '/status.json');
-                @unlink($dir . '/log.txt');
-                @rmdir($dir);
-                json_response(['ok' => false, 'error' => 'Could not start the shared-hosting deployment worker.'], 500);
-            }
-
-            $status['status'] = 'running';
-            $status['pid'] = $pid;
-            $status['heartbeat_at'] = gmdate('c');
-            write_json($dir . '/status.json', $status);
-        }
-
-        $_SESSION['muchodeploy_job_id'] = $id;
-        json_response([
-            'ok' => true,
-            'job_id' => $id,
-            'status' => $queueFull ? 'queued' : 'running',
-            'queue_position' => $queueFull ? $queuePosition : 0,
-            'admin_user' => $adminUser,
-            'admin_password' => $generatedAdminPassword ? $adminPassword : null,
-        ], 201);
-    }
-
     $gdpsName = trim((string)($data['gdps_name'] ?? ''));
     $host = trim((string)($data['host'] ?? ''));
     $port = (int)($data['port'] ?? 22);
@@ -1042,9 +797,6 @@ if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/s
             'timed_out' => (bool)($status['timed_out'] ?? false),
             'log' => $log,
             'exit_code' => $status['exit_code'] ?? null,
-            'browser_finalization_url' => ($status['status'] ?? '') === 'awaiting_browser'
-                ? ($status['browser_finalization_url'] ?? null)
-                : null,
         ]);
     }
 
