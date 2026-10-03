@@ -7,6 +7,8 @@ php -l "$ROOT/src/Client/WindowsClientPatcher.php" >/dev/null
 php -l "$ROOT/src/Client/AndroidClientPatcher.php" >/dev/null
 php -l "$ROOT/src/Client/DeploymentClientPack.php" >/dev/null
 php -l "$ROOT/src/Database/Database.php" >/dev/null
+php -l "$ROOT/public/admin/index.php" >/dev/null
+php -l "$ROOT/public/admin/pages/players.php" >/dev/null
 php -l "$ROOT/bin/mucho-client-patch.php" >/dev/null
 
 grep -Fq "'www.geometrydash.com'" "$ROOT/src/Client/WindowsClientPatcher.php"
