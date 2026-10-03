@@ -28,6 +28,5 @@ grep -Fq "shell_quote(\$installRef)" bin/mucho-deploy-worker.php
 ! grep -Fq "sessionStorage.setItem(AUTOSAVE_KEY+'_password'" public/deploy/index.html
 ! grep -Fq "sessionStorage.getItem(AUTOSAVE_KEY+'_password'" public/deploy/index.html
 grep -Fq "const autosaveFields=['gdpsName','host','port','user','domain','adminUser'];" public/deploy/index.html
-! grep -Fq "'key'" public/deploy/index.html | true
 
 echo "deployment-contract: OK"
