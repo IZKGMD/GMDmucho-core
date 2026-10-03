@@ -109,7 +109,7 @@ The names **MuchoCore** and **GMDmucho-core** identify the same project.
 | 🔐 **Admin security** | Separate administrator accounts, password login, native WebAuthn/FIDO2 passkeys, Google Authenticator TOTP, one-time recovery codes, self-service password setup for invited admins, customizable RBAC permissions, rate limiting and audit logging |
 | 🔄 **Cvolton migration** | Read-only source DB preflight, verified target backup + checksum, conflict-safe account mapping, persistent ID mapping and transactional rollback |
 | 🏰 **Clans** | Player-dashboard clan directory, clan names/tags, owner/officer/member roles, membership, invitations and server-side in-game clan-tag display |
-| 🧰 **Client patchers** | Windows desktop patcher, browser-based Windows patcher and Android APK patcher |
+| 🧰 **Client patchers** | Windows desktop patcher, browser-based Windows patcher and Android APK patcher |\n| 📦 **Client distribution** | Automatic deployment builds a verified Client Pack ZIP containing Windows, Android and a checksum manifest; the same pack is stored in tenant Admin → Clients |
 | 🐳 **Deployment** | Docker Compose, MariaDB, PHP 8.3, Caddy, automatic migrations, one-command manual updates and release detection |
 | 🔄 **Operator onboarding** | Getting Started guide plus a Migration Kit with read-only preflight, verified target backup, transactional import, healthcheck and migration reports |
 | ⚡ **Intelligence & Scale** | Level validation, indexed search, short response cache, level revisions, background jobs, signed webhooks, trace analysis and backup verification |
