@@ -431,6 +431,18 @@ function deployment_start_lock()
     return $handle;
 }
 
+function release_deployment_start_lock(&$handle): void
+{
+    if (!is_resource($handle)) {
+        $handle = null;
+        return;
+    }
+
+    @flock($handle, LOCK_UN);
+    @fclose($handle);
+    $handle = null;
+}
+
 function deployment_queue_dispatch(): void
 {
     $worker = dirname(__DIR__) . '/bin/mucho-shared-deploy-worker.php';
@@ -583,6 +595,9 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
 
     try {
         $startLock = deployment_start_lock();
+        register_shutdown_function(static function () use (&$startLock): void {
+            release_deployment_start_lock($startLock);
+        });
     } catch (Throwable) {
         json_response(['ok' => false, 'error' => 'Deployment start is temporarily unavailable.'], 503);
     }
@@ -592,8 +607,6 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         @fclose($startLock);
         json_response(['ok' => false, 'error' => 'Too many deployment attempts from this client. Try again later.'], 429);
     }
-
-    deployment_queue_dispatch();
 
     $max = max(1, (int)($_ENV['MUCHO_DEPLOY_MAX_CONCURRENT'] ?? getenv('MUCHO_DEPLOY_MAX_CONCURRENT') ?: 2));
 
@@ -739,6 +752,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         $queuePosition = 0;
         if ($queueFull) {
             $queuePosition = queued_job_position($id);
+            release_deployment_start_lock($startLock);
             deployment_queue_dispatch();
             $fresh = read_json($dir . '/status.json');
             if (($fresh['status'] ?? '') !== 'running') {
@@ -755,6 +769,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
                 json_response(['ok' => false, 'error' => 'PHP CLI is unavailable for the shared-hosting deployment worker.'], 500);
             }
 
+            release_deployment_start_lock($startLock);
             $cmd = 'nohup ' . escapeshellarg($phpCli) . ' ' . escapeshellarg($worker)
                 . ' --job=' . escapeshellarg($id)
                 . ' >> ' . escapeshellarg($dir . '/log.txt') . ' 2>&1 & echo $!';
