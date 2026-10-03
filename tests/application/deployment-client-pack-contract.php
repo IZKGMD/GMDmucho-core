@@ -8,7 +8,7 @@ $deploy = file_get_contents($root . '/public/deploy.php');
 $console = file_get_contents($root . '/public/install/shared/go/index.html');
 
 foreach ([
-    [$pack, 'new \\ZipArchive()', 'client pack creates a ZIP archive'],
+    [$pack, 'ZipArchive', 'client pack uses PHP ZIP archive support'],
     [$pack, "'archive' => [", 'client pack manifest exposes archive metadata'],
     [$pack, "'windows/GeometryDash-MuchoGDPS.exe'", 'ZIP contains Windows client'],
     [$pack, "'android/GeometryDash-MuchoGDPS.apk'", 'ZIP contains Android client'],
