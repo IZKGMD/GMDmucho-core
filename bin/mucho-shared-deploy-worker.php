@@ -1158,6 +1158,22 @@ try {
 
     log_line($logFile, "[MuchoGDPS] FTP upload complete.\n");
 
+    // Generate and upload tenant clients before browser finalization so InfinityFree/browser
+    // authorization delays cannot prevent the patched client pack from reaching the GDPS.
+    $rootDir = dirname(__DIR__);
+    log_line($logFile, "[MuchoGDPS] Generating clients for this GDPS...\n");
+    upload_client_pack_to_shared(
+        $config,
+        $ftpPassword,
+        (string)$base,
+        $rootDir,
+        $dir,
+        $logFile,
+        $dbPassword,
+        $adminPassword
+    );
+    log_line($logFile, "[MuchoGDPS] Tenant clients uploaded to /storage/clients/.\n");
+
     if ($browserFinalization !== null) {
         log_line($logFile, "[MuchoGDPS] Waiting for browser finalization; the worker will verify /health automatically.\n");
         wait_for_browser_finalization(
@@ -1180,20 +1196,6 @@ try {
     $status['exit_code'] = 0;
     $status['finished_at'] = null;
     write_status($statusFile, $status);
-
-    $rootDir = dirname(__DIR__);
-    log_line($logFile, "[MuchoGDPS] Generating clients for this GDPS...\n");
-    upload_client_pack_to_shared(
-        $config,
-        $ftpPassword,
-        (string)$base,
-        $rootDir,
-        $dir,
-        $logFile,
-        $dbPassword,
-        $adminPassword
-    );
-    log_line($logFile, "[MuchoGDPS] Tenant clients uploaded to /storage/clients/.\n");
 
     $status = read_json_file($statusFile);
     $status['status'] = 'completed';
