@@ -46,3 +46,8 @@ if [[ -z "$worker_clients_line" || -z "$worker_wait_line" || "$worker_clients_li
 fi
 
 echo "Auto Patch 2.0 contract passed"
+
+grep -Fq 'id="adminPasswordConfirm"' "$ROOT/public/install/shared/index.html"
+grep -Fq 'admin_password_confirm' "$ROOT/public/install/shared/index.html"
+grep -Fq 'admin_password_confirm' "$ROOT/public/deploy.php"
+grep -Fq 'Admin passwords do not match.' "$ROOT/public/deploy.php"
