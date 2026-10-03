@@ -615,6 +615,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         $dbUser = trim((string)($data['db_user'] ?? ''));
         $dbPassword = (string)($data['db_password'] ?? '');
         $adminPassword = (string)($data['admin_password'] ?? '');
+        $adminPasswordConfirm = (string)($data['admin_password_confirm'] ?? '');
 
         if ($gdpsName === '' || mb_strlen($gdpsName, 'UTF-8') > 64 || preg_match('/[\\x00-\\x1F\\x7F]/u', $gdpsName) === 1) {
             json_response(['ok' => false, 'error' => 'Enter a GDPS name up to 64 characters.'], 422);
@@ -657,6 +658,8 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         if ($adminPassword === '') {
             $adminPassword = rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=');
             $generatedAdminPassword = true;
+        } elseif (!hash_equals($adminPassword, $adminPasswordConfirm)) {
+            json_response(['ok' => false, 'error' => 'Admin passwords do not match.'], 422);
         }
         if (strlen($adminPassword) < 12 || strlen($adminPassword) > 200) {
             json_response(['ok' => false, 'error' => 'MuchoCore admin password must be 12–200 characters.'], 422);
