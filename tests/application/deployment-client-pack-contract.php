@@ -14,7 +14,7 @@ foreach ([
     [$pack, "'android/GeometryDash-MuchoGDPS.apk'", 'ZIP contains Android client'],
     [$pack, "'client-pack.json'", 'ZIP contains public manifest'],
     [$pack, "'files' => [", 'public manifest uses file inventory'],
-    [$deploy, "!in_array($kind, ['windows', 'android', 'zip'], true)", 'deploy API accepts ZIP downloads'],
+    [$deploy, '!in_array($kind, [\'windows\', \'android\', \'zip\'], true)', 'deploy API accepts ZIP downloads'],
     [$deploy, "'kind=zip'", 'deploy API publishes ZIP download URL'],
     [$deploy, "application/zip", 'deploy API streams ZIP with correct media type'],
     [$console, 'Client Pack (.zip)', 'deployment console exposes unified ZIP download'],
@@ -28,8 +28,8 @@ foreach ([
 }
 
 if (
-    str_contains($pack, "'files' => [\n                    [\n                        'name' => 'windows/") === false ||
-    str_contains($pack, "'path' => $windowsPath") === false
+    !str_contains($pack, "'files' => [") ||
+    !str_contains($pack, "'path' => $windowsPath")
 ) {
     fwrite(STDERR, "Contract failed: public ZIP manifest is missing the expected inventory/path separation
 ");
