@@ -29,7 +29,7 @@ main{padding:76px 0 90px}.eyebrow{display:inline-flex;align-items:center;gap:8px
 <main><div class="wrap">
 <div class="eyebrow"><i class="dot"></i> MuchoCore installation</div>
 <h1>Choose your <span>installation.</span></h1>
-<p class="intro">Choose one of the three supported onboarding paths: automatic VPS deployment, manual VPS installation, or automatic shared-hosting deployment through FTP/FTPS. Shared hosting is one universal path for compatible providers such as Beget, InfinityFree and similar hosts; provider restrictions still apply.</p>
+<p class="intro">Choose between automatic VPS deployment and the manual VPS installer. Both paths use the same MuchoCore release and production checks.</p>
 
 <section class="choices" aria-label="Installation methods">
 
@@ -65,19 +65,7 @@ main{padding:76px 0 90px}.eyebrow{display:inline-flex;align-items:center;gap:8px
 <a class="cta alt" href="/install/vps/">Open VPS guide →</a>
 </article>
 
-<article class="card">
-<div class="icon">⇩</div>
-<h2>Automatic Shared Hosting / FTP</h2>
-<p>One automatic path for compatible shared hosting. MuchoGDPS connects to the hosting account with FTP/FTPS, uploads the verified release, completes the browser installer and checks the result.</p>
-<div class="list">
-<div class="item"><i></i> Beget, InfinityFree and similar providers</div>
-<div class="item"><i></i> FTP or FTPS / File Manager</div>
-<div class="item"><i></i> No VPS, Docker or SSH</div>
-<div class="item"><i></i> Dedicated public IPv4 not required</div>
-<div class="item"><i></i> Database + admin setup from the browser</div>
-</div>
-<a class="cta alt" href="/install/shared/">Install via FTP →</a>
-</article>
+
 
 </section>
 
@@ -85,11 +73,9 @@ main{padding:76px 0 90px}.eyebrow{display:inline-flex;align-items:center;gap:8px
 <b>VPS requirement:</b> the standard direct VPS deployment requires a dedicated public IPv4 and inbound TCP 80/443. Both HTTP and HTTPS remain available for the GDPS; the Admin Panel is forced to HTTPS when accessed directly over HTTP.
 </div>
 
-<div class="callout">
-<b>Shared hosting:</b> there is only one shared-hosting installation path. The installer checks the technical requirements, but a provider's free-tier restrictions can still block Geometry Dash client/API traffic. See the Shared Hosting page for provider-specific compatibility notes.
-</div>
 
-<p class="note">Detailed instructions: <a href="/install/vps/">VPS</a> and <a href="/install/shared/">Shared Hosting / FTP</a>. Project source and release packages are maintained in the <a href="https://github.com/IZKGMD/GMDmucho-core" rel="noopener">MuchoCore repository</a>.</p>
+
+<p class="note">Detailed instructions: <a href="/install/vps/">VPS installation</a>. Project source and release packages are maintained in the <a href="https://github.com/IZKGMD/GMDmucho-core" rel="noopener">MuchoCore repository</a>.</p>
 </div></main>
 </body>
 </html>
