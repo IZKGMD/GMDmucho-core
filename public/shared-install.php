@@ -13,6 +13,65 @@ $installedMarker = $storage . '/shared-install.installed';
 $bootstrapPath = $storage . '/admin-bootstrap.php';
 $envFile = $root . '/.env';
 
+function shared_installer_fatal_guard(string $storage): void
+{
+    register_shutdown_function(static function () use ($storage): void {
+        $error = error_get_last();
+        if (!is_array($error)) {
+            return;
+        }
+
+        $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+        if (!in_array((int)($error['type'] ?? 0), $fatalTypes, true)) {
+            return;
+        }
+
+        $requestId = bin2hex(random_bytes(8));
+        $file = basename((string)($error['file'] ?? 'unknown'));
+        $line = (int)($error['line'] ?? 0);
+        $message = trim((string)($error['message'] ?? 'Unknown PHP fatal error'));
+
+        @mkdir($storage, 0750, true);
+        @file_put_contents(
+            $storage . '/shared-install-errors.log',
+            sprintf(
+                "[%s] request=%s fatal=%s file=%s line=%d message=%s\\n",
+                gmdate('c'),
+                $requestId,
+                (string)($error['type'] ?? 0),
+                $file,
+                $line,
+                $message
+            ),
+            FILE_APPEND | LOCK_EX
+        );
+        @chmod($storage . '/shared-install-errors.log', 0600);
+
+        if (headers_sent()) {
+            return;
+        }
+
+        http_response_code(200);
+        header('Content-Type: text/html; charset=utf-8');
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('X-Content-Type-Options: nosniff');
+
+        echo '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            . '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            . '<title>MuchoCore Installer Error</title>'
+            . '<style>body{font-family:system-ui,sans-serif;background:#f4f6f8;margin:0;padding:40px;color:#222}.box{max-width:760px;margin:auto;background:#fff;padding:28px;border-radius:16px;box-shadow:0 8px 30px #0001}.err{padding:14px;border-radius:10px;background:#fff0f0;color:#8f1d1d}code{word-break:break-word}</style>'
+            . '</head><body><div class="box"><h1>MuchoCore installer runtime error</h1>'
+            . '<div class="err"><strong>PHP could not complete this request.</strong><br>'
+            . 'Request ID: <code>' . htmlspecialchars($requestId, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</code><br>'
+            . 'Error: <code>' . htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</code><br>'
+            . 'Location: <code>' . htmlspecialchars($file . ':' . $line, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</code></div>'
+            . '<p>The full diagnostic was stored in <code>storage/shared-install-errors.log</code>.</p>'
+            . '</div></body></html>';
+    });
+}
+
+shared_installer_fatal_guard($storage);
+
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('X-Content-Type-Options: nosniff');
