@@ -27,6 +27,7 @@ grep -Fq "'patch_engine' => '2.0'" "$ROOT/src/Client/DeploymentClientPack.php"
 grep -Fq 'MUCHO_ACCOUNT_URL' "$ROOT/bin/mucho-client-patch.php"
 grep -Fq 'client-patch.php' "$ROOT/bin/mucho"
 grep -Fq 'client-patch.php' "$ROOT/update.sh"
+grep -Fq '$zip = new \\ZipArchive();' "$ROOT/src/Client/DeploymentClientPack.php"
 
 if grep -rIl $'\x00' "$ROOT/src/Client" >/tmp/muchocore-client-nul-files 2>/dev/null; then
     echo "Client patcher source contains embedded NUL bytes." >&2
