@@ -332,9 +332,9 @@ final class WindowsClientPatcher
         $offset = 0;
 
         while (($position = strpos($data, $oldHost, $offset)) !== false) {
-            $start = strrpos(substr($data, 0, $position), "\\0");
+            $start = strrpos(substr($data, 0, $position), "\0");
             $start = $start === false ? 0 : $start + 1;
-            $end = strpos($data, "\\0", $position);
+            $end = strpos($data, "\0", $position);
 
             if ($end === false) {
                 $end = strlen($data);
@@ -353,7 +353,7 @@ final class WindowsClientPatcher
                 continue;
             }
 
-            $patched .= str_repeat("\\0", strlen($url) - strlen($patched));
+            $patched .= str_repeat("\0", strlen($url) - strlen($patched));
             $data = substr_replace($data, $patched, $start, $end - $start);
             $count++;
             $offset = $start + strlen($patched);
