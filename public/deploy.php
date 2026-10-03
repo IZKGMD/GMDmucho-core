@@ -314,6 +314,14 @@ function handle_client_pack_request(string $root): never
                     'size' => (int)($manifest['android']['size'] ?? 0),
                     'sha256' => (string)($manifest['android']['sha256'] ?? ''),
                 ],
+                'archive' => [
+                    'url' => '/api/deploy/client-pack?id=' . rawurlencode($id)
+                        . '&token=' . rawurlencode($token)
+                        . '&kind=zip',
+                    'name' => $manifest['archive']['name'] ?? 'MuchoGDPS-Client-Pack.zip',
+                    'size' => (int)($manifest['archive']['size'] ?? 0),
+                    'sha256' => (string)($manifest['archive']['sha256'] ?? ''),
+                ],
             ]);
         } catch (Throwable $e) {
             json_response([
@@ -323,7 +331,7 @@ function handle_client_pack_request(string $root): never
         }
     }
 
-    if (!in_array($kind, ['windows', 'android'], true)) {
+    if (!in_array($kind, ['windows', 'android', 'zip'], true)) {
         json_response(['ok' => false, 'error' => 'Unknown client pack file.'], 400);
     }
 
