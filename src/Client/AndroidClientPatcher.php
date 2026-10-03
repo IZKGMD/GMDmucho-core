@@ -17,9 +17,11 @@ final class AndroidClientPatcher
     ];
 
     private const KNOWN_HOSTS = [
+        'c92935bj.beget.tech',
         'www.boomlings.com',
         'boomlings.com',
-        'c92935bj.beget.tech',
+        'www.geometrydash.com',
+        'geometrydash.com',
         'www.gdserver.net',
         'gdserver.net',
         'muchogdps.space',
@@ -110,11 +112,17 @@ final class AndroidClientPatcher
             if (self::shouldPatchEntry($name)) {
                 $count = 0;
                 $data = self::replaceBuffer($data, $replacements, $count);
-                if ($count > 0) {
-                    $replacementCount += $count;
+                $hostCount = 0;
+                $data = self::replaceKnownHosts(
+                    $data,
+                    $server,
+                    $hostCount
+                );
+                if ($count > 0 || $hostCount > 0) {
+                    $replacementCount += $count + $hostCount;
                     $patchedEntries[] = [
                         'name' => $name,
-                        'replacements' => $count,
+                        'replacements' => $count + $hostCount,
                     ];
                 }
             }
@@ -568,6 +576,50 @@ final class AndroidClientPatcher
         }
 
         return $map;
+    }
+
+    private static function replaceKnownHosts(
+        string $data,
+        string $server,
+        int &$count
+    ): string {
+        $count = 0;
+        $parsed = parse_url($server);
+
+        if (!is_array($parsed) || !isset($parsed['host'])) {
+            return $data;
+        }
+
+        $targetHost = (string)$parsed['host'];
+
+        foreach (self::KNOWN_HOSTS as $oldHost) {
+            if ($oldHost === $targetHost || strlen($targetHost) > strlen($oldHost)) {
+                continue;
+            }
+
+            foreach ([
+                [$oldHost, $targetHost],
+                [self::asciiToUtf16Le($oldHost), self::asciiToUtf16Le($targetHost)],
+                [base64_encode($oldHost), base64_encode($targetHost)],
+            ] as [$old, $new]) {
+                $matches = substr_count($data, $old);
+                if ($matches > 0) {
+                    $data = str_replace($old, $new, $data);
+                    $count += $matches;
+                }
+            }
+        }
+
+        $prefix = strtolower((string)$parsed['scheme']) . '://' . $targetHost;
+        $oldMalformed = $prefix . '/databas/checkIfServerOnline.php' . "\0\0";
+        $newMalformed = $prefix . '/database/checkIfServerOnline.php' . "\0";
+        $matches = substr_count($data, $oldMalformed);
+        if ($matches > 0) {
+            $data = str_replace($oldMalformed, $newMalformed, $data);
+            $count += $matches;
+        }
+
+        return $data;
     }
 
     private static function asciiToUtf16Le(string $value): string
