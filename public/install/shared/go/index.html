@@ -210,6 +210,11 @@ async function poll(){
     if(d.status==='completed'){await finish(true,d.status);return}
     if(d.timed_out===true){finish(false,d.status,true);return}
     if(d.status==='failed'){finish(false,d.status);return}
+    const liveState=String(d.state||'');
+    if(liveState){
+      const kind=d.status==='failed'?'failed':(d.status==='awaiting_browser'?'wait':'running');
+      setState(liveState,kind);
+    }
     if(d.status==='awaiting_browser' && d.browser_finalization_url){
       if(!browserRedirected){
         browserRedirected=true;
@@ -219,8 +224,9 @@ async function poll(){
     }
     if(d.status==='queued'){
       const position=Number(d.queue_position||1);
-      setState('Queued #'+position,'wait');
-    }else{
+      setState(liveState||('Queued #'+position),'wait');
+      if(liveState) metaStatus.textContent=liveState+' · Queue #'+position;
+    }else if(!liveState){
       setState('Installing','running');
     }
     setTimeout(poll,800);
