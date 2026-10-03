@@ -16,6 +16,7 @@ RewriteRule ^composer\.(json|lock)$ - [F,L,NC]
 # The browser installer lives inside public/ so the same repository works
 # whether the hosting panel points the domain to the project root or public/.
 RewriteRule ^shared-install\.php$ public/shared-install.php [END]
+RewriteRule ^clients(?:/)?$ public/clients.php [END]
 
 # Serve the public directory as the website root.
 # NOTE: uses [L] (not [END]) so mod_rewrite restarts matching against
