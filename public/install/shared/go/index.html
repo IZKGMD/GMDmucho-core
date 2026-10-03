@@ -146,6 +146,9 @@ async function prepareClients(){
       '<a class="btn primary" id="downloadArchive" href="'+escapeHtml(data.archive.url)+'">⬇ Client Pack (.zip)</a>'+
       '<a class="btn" id="downloadWindows" href="'+escapeHtml(data.windows.url)+'">Windows EXE</a>'+
       '<a class="btn" id="downloadAndroid" href="'+escapeHtml(data.android.url)+'">Android APK</a>'+
+      (data.server_url
+        ? '<a class="btn" href="'+escapeHtml(new URL(data.server_url).origin+'/clients/')+'" target="_blank" rel="noopener">Player downloads</a>'
+        : '')+
       (detailsToken && /^[a-f0-9]{64}$/.test(detailsToken)
         ? '<a class="btn" href="/api/deploy/details?id='+encodeURIComponent(job)+'&token='+encodeURIComponent(detailsToken)+'">⬇ Deployment details (.txt)</a>'
         : '')+
@@ -181,10 +184,11 @@ async function finish(ok,status,timedOut=false){
   if(ok){
     resultTitle.textContent='MuchoCore installation completed.';
     resultText.textContent='The FTP upload and browser finalization completed successfully in '+seconds+'s.';
+    const adminUser=sessionStorage.getItem('muchodeployadminuser')||'admin';
     const adminPassword=sessionStorage.getItem('muchodeployadminpassword')||'';
     if(adminPassword){
       password.style.display='block';
-      password.textContent='Generated admin password: '+adminPassword;
+      password.textContent='Admin username: '+adminUser+' · Generated admin password: '+adminPassword;
     }
     await prepareClients();
   }else if(timedOut){
