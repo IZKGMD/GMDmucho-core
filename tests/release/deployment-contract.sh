@@ -18,6 +18,10 @@ grep -Fq '\\MuchoCore\\Client\\DeploymentClientPack::prepare(' bin/mucho-shared-
 grep -Fq "in_array(\$current, ['browser_completed', 'completed'], true)" bin/mucho-shared-deploy-worker.php
 grep -Fq "'gdps_name' => (string)(\$config['gdps_name'] ?? 'Mucho GDPS')" bin/mucho-shared-deploy-worker.php
 grep -Fq "remove_tree(\$dir . '/extracted');" bin/mucho-shared-deploy-worker.php
+grep -Fq "read_json_file(\$statusFile)['status']" bin/mucho-shared-deploy-worker.php
+! grep -Fq "status_read(\$statusFile)" bin/mucho-shared-deploy-worker.php
+grep -Fq "shell_quote(\$installRef)" bin/mucho-deploy-worker.php
+! grep -Fq "shell_quote(INSTALL_REF)" bin/mucho-deploy-worker.php
 
 ! grep -Fq "sessionStorage.setItem(AUTOSAVE_KEY+'_secret'" public/install/shared/index.html
 ! grep -Fq "sessionStorage.getItem(AUTOSAVE_KEY+'_secret')" public/install/shared/index.html
