@@ -76,24 +76,20 @@ assertProfile(
     'custom profile env serialization'
 );
 
-$_ENV['MUCHO_GD_VERSIONS'] = '10';
-$gd10Alias = CompatibilityProfile::fromEnvironment();
+$gd10Alias = CompatibilityProfile::fromValue('10');
 assertProfile(true, $gd10Alias->allows(ClientVersion::fromValues(1, 0)), 'legacy GD 1.0 10 alias');
 
-$_ENV['MUCHO_GD_VERSIONS'] = '1.5';
-$gd15Decimal = CompatibilityProfile::fromEnvironment();
+$gd15Decimal = CompatibilityProfile::fromValue('1.5');
 assertProfile(true, $gd15Decimal->allows(ClientVersion::fromValues(15, 0)), 'decimal 1.5 profile alias');
 
-$_ENV['MUCHO_GD_VERSIONS'] = 'gd1.1';
-$prefixed = CompatibilityProfile::fromEnvironment();
+$prefixed = CompatibilityProfile::fromValue('gd1.1');
 assertProfile(
     true,
     $prefixed->allows(ClientVersion::fromValues(11, 0)),
     'GD-prefixed 1.1 profile alias'
 );
 
-$_ENV['MUCHO_GD_VERSIONS'] = '1.1';
-$decimal = CompatibilityProfile::fromEnvironment();
+$decimal = CompatibilityProfile::fromValue('1.1');
 assertProfile(
     true,
     $decimal->allows(ClientVersion::fromValues(11, 0)),
@@ -101,9 +97,8 @@ assertProfile(
 );
 
 $invalidRejected = false;
-$_ENV['MUCHO_GD_VERSIONS'] = 'garbage';
 try {
-    CompatibilityProfile::fromEnvironment();
+    CompatibilityProfile::fromValue('garbage');
 } catch (InvalidArgumentException) {
     $invalidRejected = true;
 }
