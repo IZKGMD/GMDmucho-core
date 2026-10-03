@@ -12,6 +12,50 @@ use MuchoCore\Security\MuchoProtect;
 
 ob_start();
 
+/*
+ * Shared-hosting PHP can terminate the request with a fatal error before the
+ * normal Throwable handler gets a chance to run (for example memory exhaustion
+ * or a startup/parse failure from an autoloaded class). Keep the HTTP endpoint
+ * alive and write the exact fatal to the provider's PHP error log instead of
+ * exposing a generic server 500 page.
+ */
+register_shutdown_function(static function (): void {
+    $error = error_get_last();
+    if (!is_array($error)) {
+        return;
+    }
+
+    $fatalTypes = [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_PARSE];
+    if (!in_array((int)($error['type'] ?? 0), $fatalTypes, true)) {
+        return;
+    }
+
+    $requestId = (string)($_SERVER['MUCHO_REQUEST_ID'] ?? bin2hex(random_bytes(8)));
+    $message = (string)($error['message'] ?? 'Unknown fatal error');
+    $file = (string)($error['file'] ?? 'unknown');
+    $line = (int)($error['line'] ?? 0);
+
+    error_log(sprintf(
+        '[MuchoCore Fatal] request=%s %s | %s:%d',
+        $requestId,
+        $message,
+        $file,
+        $line
+    ));
+
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    if (!headers_sent()) {
+        http_response_code(200);
+        header('Content-Type: text/plain; charset=utf-8');
+        header('Cache-Control: no-store');
+    }
+
+    echo '-1';
+});
+
 //
 // Keep the legacy liveness endpoints independent from the database/application
 // bootstrap. Installers, load balancers, and Geometry Dash clients use these
