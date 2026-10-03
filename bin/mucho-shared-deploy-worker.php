@@ -74,7 +74,7 @@ function upload_client_pack_to_shared(
     $serverUrl = rtrim((string)$config['account_url'], '/');
     $serverName = (string)($config['gdps_name'] ?? 'Mucho GDPS');
 
-    $manifest = MuchoCoreClientDeploymentClientPack::prepare(
+    $manifest = \MuchoCore\Client\DeploymentClientPack::prepare(
         $rootDir,
         $jobDir,
         $serverUrl,
@@ -930,7 +930,7 @@ function wait_for_browser_finalization(
         $status = read_json_file($statusFile);
         $current = (string)($status['status'] ?? '');
 
-        if ($current === 'completed') {
+        if (in_array($current, ['browser_completed', 'completed'], true)) {
             log_line($logFile, "[MuchoGDPS] Browser finalization completed; deployment job confirmed.
 ");
             return;
@@ -975,6 +975,7 @@ function run_remote_installer(array $config, string $dbPassword, string $adminPa
         'db_user' => (string)$config['db_user'],
         'db_pass' => $dbPassword,
         'account_url' => $accountUrl,
+        'gdps_name' => (string)($config['gdps_name'] ?? 'Mucho GDPS'),
         'admin_pass' => $adminPassword,
         'admin_pass2' => $adminPassword,
     ];
@@ -1199,7 +1200,7 @@ try {
     write_status($statusFile, $status);
 } finally {
     cleanup_secrets($dir);
-    @unlink($dir . '/extracted');
+    remove_tree($dir . '/extracted');
     @unlink($dir . '/shared_archive');
     dispatch_queued_jobs(dirname(__DIR__));
 }
