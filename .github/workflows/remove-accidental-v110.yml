@@ -1,0 +1,23 @@
+name: Remove accidental v1.1.0 release
+
+on:
+  push:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove accidental stable release and tag
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${GH_TOKEN}" ]]; then
+            echo "RELEASE_TOKEN is required." >&2
+            exit 1
+          fi
+          gh release delete v1.1.0 --yes --cleanup-tag
