@@ -223,34 +223,54 @@ function notify_browser_finalization(array $autoConfig, bool $ok): void {
         return;
     }
 
-    $url = $controlUrl . '/api/deploy/browser-finish';
-    $payload = json_encode([
-        'job_id' => $jobId,
-        'token' => $token,
-        'ok' => $ok,
-    ], JSON_UNESCAPED_SLASHES);
-    if (!is_string($payload)) {
+    // Browser finalization is best-effort. A missing/broken cURL extension or
+    // a control-plane network failure must never turn a completed installation
+    // into an HTTP 500 response on the shared host.
+    if (!function_exists('curl_init')) {
+        error_log('[MuchoCore Shared Installer] Browser finalization callback skipped: cURL extension is unavailable.');
         return;
     }
 
-    $ch = @curl_init($url);
-    if ($ch === false) {
-        return;
+    try {
+        $url = $controlUrl . '/api/deploy/browser-finish';
+        $payload = json_encode([
+            'job_id' => $jobId,
+            'token' => $token,
+            'ok' => $ok,
+        ], JSON_UNESCAPED_SLASHES);
+        if (!is_string($payload)) {
+            return;
+        }
+
+        $ch = @curl_init($url);
+        if ($ch === false) {
+            return;
+        }
+
+        try {
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
+                CURLOPT_CONNECTTIMEOUT => 4,
+                CURLOPT_TIMEOUT => 8,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_USERAGENT => 'MuchoCore-Shared-Browser-Finalizer/1.0',
+            ]);
+            @curl_exec($ch);
+        } finally {
+            @curl_close($ch);
+        }
+    } catch (Throwable $e) {
+        error_log(sprintf(
+            '[MuchoCore Shared Installer] Browser finalization callback failed: %s: %s',
+            $e::class,
+            $e->getMessage()
+        ));
     }
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $payload,
-        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
-        CURLOPT_CONNECTTIMEOUT => 4,
-        CURLOPT_TIMEOUT => 8,
-        CURLOPT_SSL_VERIFYPEER => true,
-        CURLOPT_SSL_VERIFYHOST => 2,
-        CURLOPT_FOLLOWLOCATION => false,
-        CURLOPT_USERAGENT => 'MuchoCore-Shared-Browser-Finalizer/1.0',
-    ]);
-    @curl_exec($ch);
-    @curl_close($ch);
 }
 
 function parseEnvValue(string $file, string $key): string {
