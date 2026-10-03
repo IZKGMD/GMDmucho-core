@@ -100,6 +100,11 @@ function upload_client_pack_to_shared(
             'sha256' => (string)($manifest['android']['sha256'] ?? ''),
             'replacement_count' => (int)($manifest['android']['replacement_count'] ?? 0),
         ],
+        'archive' => [
+            'name' => (string)($manifest['archive']['name'] ?? 'MuchoGDPS-Client-Pack.zip'),
+            'size' => (int)($manifest['archive']['size'] ?? 0),
+            'sha256' => (string)($manifest['archive']['sha256'] ?? ''),
+        ],
     ];
 
     $encoded = json_encode(
@@ -134,6 +139,10 @@ function upload_client_pack_to_shared(
             'android' => [
                 'local' => (string)$manifest['android']['path'],
                 'remote' => 'GeometryDash-MuchoGDPS.apk',
+            ],
+            'archive' => [
+                'local' => (string)$manifest['archive']['path'],
+                'remote' => 'MuchoGDPS-Client-Pack.zip',
             ],
             'manifest' => [
                 'local' => $manifestPath,
