@@ -14,6 +14,8 @@ RewriteRule ^\.env(?:\.|$) - [F,L,NC]
 RewriteRule ^composer\.(json|lock)$ - [F,L,NC]
 
 
+RewriteRule ^clients(?:/)?$ public/clients.php [L]
+
 # Serve the public directory as the website root.
 # [L] keeps this compatible with shared-hosting Apache configurations.
 RewriteCond %{REQUEST_URI} !^/public(?:/|$) [NC]
