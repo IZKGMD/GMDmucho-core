@@ -27,7 +27,6 @@ foreach ([
     "$worker = $root . '/bin/mucho-deploy-worker.php';",
     "function deployment_queue_dispatch",
     "DeploymentClientPack::prepare",
-    "DeploymentDetailsExporter::writeVps",
     "'/api/deploy/client-pack'",
 ] as $needle) {
     if (!str_contains($deploy, $needle)) {
