@@ -487,15 +487,23 @@ function local_shared_release(string $rootDir, string $destination): array
         is_string($stderr) ? trim($stderr) : '',
     ], static fn(string $value): bool => $value !== '')));
 
+    clearstatcache(true, $destination);
+    $destinationExists = is_file($destination);
+    $destinationReadable = $destinationExists && is_readable($destination);
+    $destinationSize = $destinationExists ? (int)(@filesize($destination) ?: 0) : 0;
+
     if (
         $exit !== 0 ||
-        !is_file($destination) ||
-        !is_readable($destination) ||
-        (int)(@filesize($destination) ?: 0) < 1024
+        !$destinationExists ||
+        !$destinationReadable ||
+        $destinationSize < 1024
     ) {
         throw new RuntimeException(
             'Failed to build the shared-hosting package from the current control-plane source '
-            . '(exit code ' . $exit . ').'
+            . '(exit code ' . $exit
+            . ', file_exists=' . ($destinationExists ? 'yes' : 'no')
+            . ', readable=' . ($destinationReadable ? 'yes' : 'no')
+            . ', size=' . $destinationSize . ').'
             . ($output !== '' ? ' ' . $output : '')
         );
     }
