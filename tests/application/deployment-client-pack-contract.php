@@ -5,7 +5,7 @@ declare(strict_types=1);
 $root = dirname(__DIR__, 2);
 $pack = file_get_contents($root . '/src/Client/DeploymentClientPack.php');
 $deploy = file_get_contents($root . '/public/deploy.php');
-$console = file_get_contents($root . '/public/install/shared/go/index.html');
+$console = file_get_contents($root . '/public/deploy/index.html');
 
 foreach ([
     [$pack, 'ZipArchive', 'client pack uses PHP ZIP archive support'],
@@ -17,8 +17,8 @@ foreach ([
     [$deploy, '!in_array($kind, [\'windows\', \'android\', \'zip\'], true)', 'deploy API accepts ZIP downloads'],
     [$deploy, "&kind=zip", 'deploy API publishes ZIP download URL'],
     [$deploy, "application/zip", 'deploy API streams ZIP with correct media type'],
-    [$console, 'Client Pack (.zip)', 'deployment console exposes unified ZIP download'],
-    [$console, 'Individual downloads are also available.', 'deployment console keeps individual client downloads'],
+    [$console, 'Client Pack (.zip)', 'VPS deployment console exposes unified ZIP download'],
+    [$console, 'Windows EXE', 'VPS deployment console keeps individual Windows download'],
 ] as [$haystack, $needle, $description]) {
     if (!is_string($haystack) || !str_contains($haystack, $needle)) {
         fwrite(STDERR, "Contract failed: {$description}
