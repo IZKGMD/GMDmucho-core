@@ -1,4 +1,6 @@
 <?php
+
+require dirname(__DIR__, 2) . '/vendor/autoload.php';
 declare(strict_types=1);
 require dirname(__DIR__,2).'/src/Http/ClientIp.php';
 use MuchoCore\Http\ClientIp;
