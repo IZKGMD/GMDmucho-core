@@ -20,4 +20,11 @@ jobs:
             echo "RELEASE_TOKEN is required." >&2
             exit 1
           fi
-          gh release delete v1.1.0 --yes --cleanup-tag
+
+          if gh release view v1.1.0 >/dev/null 2>&1; then
+            gh release delete v1.1.0 --yes
+          else
+            echo "v1.1.0 release is already absent."
+          fi
+
+          gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/v1.1.0" >/dev/null 2>&1 || true
