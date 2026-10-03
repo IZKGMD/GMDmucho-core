@@ -100,13 +100,14 @@ async function prepareClients(){
   const d=await r.json();
   if(!r.ok||!d.ok)throw new Error(d.error||'Client pack generation failed.');
   status.innerHTML='Server: <b>'+esc(d.server_url)+'</b>';
-  links.innerHTML='<a class="btn" id="downloadWindows" href="'+esc(d.windows.url)+'">⬇ Windows EXE</a><a class="btn" id="downloadAndroid" href="'+esc(d.android.url)+'">⬇ Android APK</a>'+
+  links.innerHTML='<a class="btn" id="downloadArchive" href="'+esc(d.archive.url)+'">⬇ Client Pack (.zip)</a><a class="btn" id="downloadWindows" href="'+esc(d.windows.url)+'">Windows EXE</a><a class="btn" id="downloadAndroid" href="'+esc(d.android.url)+'">Android APK</a>'+
    (detailsToken && /^[a-f0-9]{64}$/.test(detailsToken)
     ? '<a class="btn alt" href="/api/deploy/details?id='+encodeURIComponent(job)+'&token='+encodeURIComponent(detailsToken)+'">⬇ Deployment details (.txt)</a>'
     : '');
-  const win=$('downloadWindows'),apk=$('downloadAndroid');
-  setTimeout(()=>{try{win.click()}catch(_){}},250);
-  setTimeout(()=>{try{apk.click()}catch(_){}},1200);
+  const archive=$('downloadArchive'),win=$('downloadWindows'),apk=$('downloadAndroid');
+  setTimeout(()=>{try{archive.click()}catch(_){}},250);
+  setTimeout(()=>{try{win.click()}catch(_){}},1000);
+  setTimeout(()=>{try{apk.click()}catch(_){}},1700);
  }catch(e){
   status.textContent='Client files are not ready: '+(e?.message||'Unknown error');
  }
