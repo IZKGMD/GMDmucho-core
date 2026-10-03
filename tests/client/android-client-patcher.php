@@ -59,7 +59,10 @@ try {
         "prefix\0" . $oldUrl . "\0" .
         base64_encode($oldUrl) . "\0" .
         $oldHttpsUrl . "\0" .
-        base64_encode($oldHttpsUrl) . "\0suffix"
+        base64_encode($oldHttpsUrl) . "\0" .
+        "https://geometrydash.com/database/getGJLevels21.php\0" .
+        base64_encode('https://geometrydash.com/accounts/getGJAccount.php') . "\0" .
+        "https://not-a-url.example/geometrydash.com\0suffix"
     );
 
     // Keep the synthetic APK above the production minimum-size guard.
@@ -144,6 +147,17 @@ try {
         str_contains($native, $oldHttpsUrl)
     ) {
         throw new RuntimeException('Old server URL remained in the patched native library.');
+    }
+
+    if (
+        str_contains($native, 'https://geometrydash.com/database/getGJLevels21.php') ||
+        str_contains($native, 'https://geometrydash.com/accounts/getGJAccount.php')
+    ) {
+        throw new RuntimeException('Known embedded Geometry Dash host remained after patch.');
+    }
+
+    if (!str_contains($native, 'https://not-a-url.example/geometrydash.com')) {
+        throw new RuntimeException('Non-URL host-like text was incorrectly modified.');
     }
 
     $signatureManifest = $check->getFromName('META-INF/MANIFEST.MF');
