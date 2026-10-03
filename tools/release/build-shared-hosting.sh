@@ -79,7 +79,6 @@ grep -Fxq 'muchocore/docs/SHARED_HOSTING.md' "$ZIP_LIST"
 ! grep -Eq '(^|/)\.env($|\.)' "$ZIP_LIST"
 ! grep -Eq '(^|/)(\.secrets|storage)/' "$ZIP_LIST"
 ! grep -Eq '(^|/)config/cloudsave\.key
-echo "OUTPUT=$OUTPUT"
  "$ZIP_LIST"
 ! grep -Eq '(^|/)\.git/' "$ZIP_LIST"
 
