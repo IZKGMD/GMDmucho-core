@@ -72,6 +72,15 @@ function deployment_session_ok(): bool
         && preg_match('/^[a-f0-9]{48}$/', $nonce) === 1;
 }
 
+function deployment_session_job_ok(string $jobId): bool
+{
+    return deployment_session_ok()
+        && hash_equals(
+            (string)($_SESSION['muchodeploy_job_id'] ?? ''),
+            $jobId
+        );
+}
+
 function deploy_key_ok(): bool
 {
     $path = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
@@ -955,10 +964,11 @@ if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/s
         json_response(['ok' => false, 'error' => 'Deployment job not found.'], 404);
     }
 
-    $status = read_json($dir . '/status.json');
-    if (session_status() === PHP_SESSION_ACTIVE && ($status['status'] ?? '') !== 'failed') {
-        $_SESSION['muchodeploy_job_id'] = $id;
+    if (!deployment_session_job_ok($id)) {
+        json_response(['ok' => false, 'error' => 'Deployment session does not own this job.'], 403);
     }
+
+    $status = read_json($dir . '/status.json');
 
     deployment_queue_dispatch();
     $status = read_json($dir . '/status.json');
