@@ -1204,4 +1204,4 @@ try {
     @unlink($dir . '/shared_archive');
     dispatch_queued_jobs(dirname(__DIR__));
 }
-exit(((string)(status_read($statusFile)['status'] ?? '')) === 'completed' ? 0 : 1);
+exit(((string)(read_json_file($statusFile)['status'] ?? '')) === 'completed' ? 0 : 1);
