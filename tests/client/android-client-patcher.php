@@ -61,6 +61,7 @@ try {
         $oldHttpsUrl . "\0" .
         base64_encode($oldHttpsUrl) . "\0" .
         "https://geometrydash.com/database/getGJLevels21.php\0" .
+        "https://geometrydash.com\0" .
         base64_encode('https://geometrydash.com/accounts/getGJAccount.php') . "\0" .
         "https://not-a-url.example/geometrydash.com\0suffix"
     );
@@ -158,6 +159,9 @@ try {
 
     if (!str_contains($native, 'https://not-a-url.example/geometrydash.com')) {
         throw new RuntimeException('Non-URL host-like text was incorrectly modified.');
+    }
+\n    if (!str_contains($native, 'https://gdps.example.com' . "\0")) {
+        throw new RuntimeException('NUL-terminated embedded host was not patched correctly.');
     }
 
     $signatureManifest = $check->getFromName('META-INF/MANIFEST.MF');
