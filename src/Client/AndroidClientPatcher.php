@@ -551,23 +551,15 @@ final class AndroidClientPatcher
             $length = $fixedLength ?? strlen($old);
 
             /*
-             * Preserve the scheme used by the original client string.
-             * GD 1.0 is hard-coded to HTTP and the legacy GDPS transport
-             * intentionally remains available over plain HTTP.
+             * Android 9+ blocks cleartext HTTP for applications that do not
+             * explicitly opt in. A modern 2.2 client should therefore keep
+             * HTTPS whenever the configured GDPS address uses HTTPS, even
+             * when the original fixed-size field was the older HTTP form.
+             *
+             * The compatibility URL builder can still produce a same-length
+             * HTTPS value for the fixed-size fields by adding path segments.
              */
-            $oldParsed = parse_url($old);
             $targetBase = $base;
-
-            if (
-                is_array($oldParsed) &&
-                isset($oldParsed['scheme'])
-            ) {
-                $targetBase =
-                    strtolower((string)$oldParsed['scheme']) .
-                    '://' .
-                    (string)$parsed['host'] .
-                    (isset($parsed['port']) ? ':' . (int)$parsed['port'] : '');
-            }
 
             $new = self::compatibleUrl($targetBase, $length, false);
 
