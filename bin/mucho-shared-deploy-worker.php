@@ -244,7 +244,11 @@ function dispatch_queued_jobs(string $root): void {
             $heartbeat = strtotime((string)($stale['heartbeat_at'] ?? ''));
             $started = strtotime((string)($stale['started_at'] ?? $stale['created_at'] ?? ''));
             $reference = ($heartbeat !== false && $heartbeat > 0) ? $heartbeat : ($started ?: 0);
-            if ($reference <= 0 || $reference > $now - 60) {
+            $stateText = strtolower((string)($stale['state'] ?? ''));
+            $timeoutSeconds = str_contains($stateText, 'generating patched windows and android clients')
+                ? 3600
+                : 60;
+            if ($reference <= 0 || $reference > $now - $timeoutSeconds) {
                 continue;
             }
 
@@ -254,7 +258,7 @@ function dispatch_queued_jobs(string $root): void {
             $stale['exit_code'] = 124;
             $stale['finished_at'] = gmdate('c');
             $stale['timed_out'] = true;
-            $stale['timeout_seconds'] = 60;
+            $stale['timeout_seconds'] = $timeoutSeconds;
             @file_put_contents($statusFile, json_encode($stale, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
             @file_put_contents($staleDir . '/log.txt',
                 "\n[MuchoGDPS] ERROR: Deployment watchdog marked job {$staleId} failed after 60 seconds without a worker heartbeat.\n"
@@ -934,47 +938,20 @@ function detect_web_root(
 
 function ftp_put_with_heartbeat(\FTP\Connection $ftp, string $remote, string $local, string $logFile): void {
     $size = @filesize($local);
-    $largeFile = is_int($size) && $size >= 8 * 1024 * 1024;
+    $mb = is_int($size) ? number_format($size / 1024 / 1024, 1) : 'unknown';
+    log_line(
+        $logFile,
+        '[MuchoGDPS] Uploading client file ' . $remote . ' (' . $mb . ' MB)...' . "\n"
+    );
 
-    if (!$largeFile) {
-        if (!@ftp_put($ftp, $remote, $local, FTP_BINARY)) {
-            throw new RuntimeException('Failed to upload: ' . $remote);
-        }
-        return;
+    if (!@ftp_put($ftp, $remote, $local, FTP_BINARY)) {
+        throw new RuntimeException('Failed to upload: ' . $remote);
     }
 
-    $state = @ftp_nb_put($ftp, $remote, $local, FTP_BINARY);
-    if ($state === false) {
-        throw new RuntimeException('Failed to start upload: ' . $remote);
-    }
-
-    $startedAt = time();
-    $lastHeartbeat = $startedAt;
-    $deadline = $startedAt + 900;
-
-    while ($state === FTP_MOREDATA) {
-        usleep(500000);
-        $state = @ftp_nb_continue($ftp);
-
-        $now = time();
-        if ($now - $lastHeartbeat >= 10) {
-            $mb = is_int($size) ? number_format($size / 1024 / 1024, 1) : 'unknown';
-            log_line($logFile, '[MuchoGDPS] Uploading large file ' . $remote . ' (' . $mb . ' MB)...\n');
-            $lastHeartbeat = $now;
-        }
-
-        if ($now >= $deadline) {
-            throw new RuntimeException('Timed out uploading large file: ' . $remote);
-        }
-
-        if ($state === false) {
-            throw new RuntimeException('FTP connection failed while uploading: ' . $remote);
-        }
-    }
-
-    if ($state !== FTP_FINISHED) {
-        throw new RuntimeException('Failed to finish upload: ' . $remote);
-    }
+    log_line(
+        $logFile,
+        '[MuchoGDPS] Finished uploading client file ' . $remote . '.' . "\n"
+    );
 }
 
 function upload_tree(\FTP\Connection $ftp, string $localRoot, string $base, string $logFile): int {
@@ -1340,31 +1317,6 @@ try {
 
         worker_state($statusFile, $logFile, 'Uploading MuchoCore to the shared-hosting web root');
         $uploaded = upload_tree($ftp, $localRoot, $base, $logFile);
-        if (provider_requires_browser_finalization((string)$config['ftp_host'])) {
-            [$browserToken, $browserExpiresAt, $browserPayloadPath] = create_browser_finalization_payload(
-                $config,
-                $dbPassword,
-                $adminPassword,
-                $dir
-            );
-            upload_browser_finalization_payload($ftp, $base, $browserToken, $browserPayloadPath);
-            $browserFinalization = [
-                'token' => $browserToken,
-                'expires_at' => $browserExpiresAt,
-                'url' => rtrim((string)$config['account_url'], '/')
-                    . '/shared-install.php?mucho_auto=' . rawurlencode($browserToken),
-            ];
-            $status = read_json_file($statusFile);
-            $status['status'] = 'awaiting_browser';
-            $status['state'] = 'Waiting for browser finalization in the browser';
-            $status['browser_finalization_url'] = $browserFinalization['url'];
-            $status['browser_finalization_expires_at'] = gmdate('c', $browserExpiresAt);
-            $status['browser_finalization_token_hash'] = hash('sha256', $browserToken);
-            $status['heartbeat_at'] = gmdate('c');
-            write_status($statusFile, $status);
-            log_line($logFile, "[MuchoGDPS] InfinityFree browser security detected; final installation will continue in the user's browser.\n");
-            log_line($logFile, "[MuchoGDPS] Browser finalization URL: {$browserFinalization['url']}\n");
-        }
         log_line($logFile, "[MuchoGDPS] Uploaded {$uploaded} files via " . strtoupper($usedSecurity) . " port {$usedPort}.\n");
     } finally {
         @ftp_close($ftp);
@@ -1402,6 +1354,32 @@ try {
         $adminPassword
     );
     log_line($logFile, "[MuchoGDPS] Tenant clients uploaded to /storage/clients/.\n");
+
+    if (provider_requires_browser_finalization((string)$config['ftp_host'])) {
+        [$browserToken, $browserExpiresAt, $browserPayloadPath] = create_browser_finalization_payload(
+            $config,
+            $dbPassword,
+            $adminPassword,
+            $dir
+        );
+        upload_browser_finalization_payload($ftp, $base, $browserToken, $browserPayloadPath);
+        $browserFinalization = [
+            'token' => $browserToken,
+            'expires_at' => $browserExpiresAt,
+            'url' => rtrim((string)$config['account_url'], '/')
+                . '/shared-install.php?mucho_auto=' . rawurlencode($browserToken),
+        ];
+        $status = read_json_file($statusFile);
+        $status['status'] = 'awaiting_browser';
+        $status['state'] = 'Waiting for browser finalization in the browser';
+        $status['browser_finalization_url'] = $browserFinalization['url'];
+        $status['browser_finalization_expires_at'] = gmdate('c', $browserExpiresAt);
+        $status['browser_finalization_token_hash'] = hash('sha256', $browserToken);
+        $status['heartbeat_at'] = gmdate('c');
+        write_status($statusFile, $status);
+        log_line($logFile, "[MuchoGDPS] InfinityFree browser security detected; final installation will continue in the user's browser.\n");
+        log_line($logFile, "[MuchoGDPS] Browser finalization URL: {$browserFinalization['url']}\n");
+    }
 
     if ($browserFinalization !== null) {
         log_line($logFile, "[MuchoGDPS] State: Waiting for browser finalization in the browser\n");
