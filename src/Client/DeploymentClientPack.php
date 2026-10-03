@@ -199,43 +199,41 @@ final class DeploymentClientPack
         }
     }
 
-    public static function androidSource(string $rootDir): string
+    public static function androidSource(string $rootDir, string $jobDir = ''): string
     {
-        $configured = trim((string)(Environment::get('MUCHO_ANDROID_BASE_APK', '') ?? ''));
-        if ($configured !== '' && is_file($configured) && is_readable($configured)) {
-            return $configured;
+        foreach (self::androidSourceCandidates($rootDir, $jobDir) as $candidate) {
+            if (is_file($candidate) && is_readable($candidate)) {
+                return $candidate;
+            }
         }
 
-        $dir = $rootDir . '/patched/apk';
-        $preferred = $dir . '/GeometryDash_2.2.13_MuchoGDPS_Unique_v2.apk';
-        if (is_file($preferred) && is_readable($preferred)) {
-            return $preferred;
-        }
-
-        $files = glob($dir . '/*.apk') ?: [];
-        $files = array_values(array_filter(
-            $files,
-            static fn(string $path): bool => is_file($path) && is_readable($path)
-        ));
-        usort(
-            $files,
-            static fn(string $a, string $b): int =>
-                (filemtime($b) ?: 0) <=> (filemtime($a) ?: 0)
-        );
-
-        return (string)($files[0] ?? '');
+        return '';
     }
 
-    public static function androidSourceCandidates(string $rootDir): array
+    /**
+     * Return the ordered locations where the control plane may keep the
+     * immutable Android base APK. Persistent control-storage locations survive
+     * repository updates and are shared by VPS and shared-hosting workers.
+     */
+    public static function androidSourceCandidates(string $rootDir, string $jobDir = ''): array
     {
         $configured = trim((string)(Environment::get('MUCHO_ANDROID_BASE_APK', '') ?? ''));
-        $dir = $rootDir . '/patched/apk';
-
+        $filename = 'GeometryDash_2.2.13_MuchoGDPS_Unique_v2.apk';
         $candidates = [];
+
         if ($configured !== '') {
             $candidates[] = $configured;
         }
-        $candidates[] = $dir . '/GeometryDash_2.2.13_MuchoGDPS_Unique_v2.apk';
+
+        if ($jobDir !== '') {
+            $controlRoot = dirname(dirname($jobDir));
+            $candidates[] = $controlRoot . '/client-sources/' . $filename;
+        }
+
+        $candidates[] = $rootDir . '/storage/client-sources/' . $filename;
+
+        $dir = $rootDir . '/patched/apk';
+        $candidates[] = $dir . '/' . $filename;
 
         foreach (glob($dir . '/*.apk') ?: [] as $path) {
             $candidates[] = (string)$path;
