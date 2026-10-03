@@ -6,6 +6,7 @@ $deploy = file_get_contents($root . '/public/deploy.php');
 $worker = file_get_contents($root . '/bin/mucho-shared-deploy-worker.php');
 $caddy = file_get_contents($root . '/docker/Caddyfile');
 $dockerfile = file_get_contents($root . '/docker/Dockerfile');
+$dockerCompose = file_get_contents($root . '/docker-compose.yml');
 $page = file_get_contents($root . '/public/install/shared/index.html');
 $goPage = file_get_contents($root . '/public/install/shared/go/index.html');
 
@@ -14,6 +15,7 @@ foreach ([
     'bin/mucho-shared-deploy-worker.php' => $worker,
     'docker/Caddyfile' => $caddy,
     'docker/Dockerfile' => $dockerfile,
+    'docker-compose.yml' => $dockerCompose,
     'public/install/shared/index.html' => $page,
     'public/install/shared/go/index.html' => $goPage,
 ] as $path => $content) {
@@ -86,12 +88,19 @@ if (str_contains($worker, 'ftpPassword]') || str_contains($worker, 'dbPassword]'
 
 foreach ([
     'auto_https disable_redirects',
-    '"80:80"',
-    '"443:443"',
     'The game API remains available over HTTP',
 ] as $needle) {
     if (!str_contains($caddy, $needle)) {
-        throw new RuntimeException('Public HTTP/HTTPS contract missing: ' . $needle);
+        throw new RuntimeException('Public HTTP/HTTPS Caddy contract missing: ' . $needle);
+    }
+}
+
+foreach ([
+    '"80:80"',
+    '"443:443"',
+] as $needle) {
+    if (!str_contains($dockerCompose, $needle)) {
+        throw new RuntimeException('Public HTTP/HTTPS port mapping contract missing: ' . $needle);
     }
 }
 
