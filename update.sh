@@ -237,6 +237,12 @@ docker compose exec -T app php bin/migrate.php migrate
 
 echo '[MuchoCore] Synchronizing admin credentials...'
 docker compose exec -T app php bin/mucho-sync-admin.php
+
+echo '[MuchoCore] Auto-patching tenant clients...'
+if ! docker compose exec -T app php bin/mucho-client-patch.php; then
+    echo '[MuchoCore] WARNING: automatic client repatching failed; core update will continue.' >&2
+fi
+
 if [[ -x "$ROOT/bin/mucho" ]]; then ln -sfn "$ROOT/bin/mucho" /usr/local/bin/mucho; fi
 if [[ -x "$ROOT/bin/muchodb-password" ]]; then ln -sfn "$ROOT/bin/muchodb-password" /usr/local/bin/muchodb-password; fi
 
