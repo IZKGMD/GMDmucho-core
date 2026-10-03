@@ -85,8 +85,12 @@ function upload_client_pack_to_shared(
 
     $manifestPath = $jobDir . '/tenant-client-manifest.json';
     $tenantManifest = [
+        'patch_engine' => '2.0',
         'server_url' => (string)($manifest['server_url'] ?? $serverUrl),
         'server_name' => (string)($manifest['server_name'] ?? $serverName),
+        'client_version' => (string)($manifest['client_version'] ?? ''),
+        'source_windows_sha256' => (string)($manifest['source_windows_sha256'] ?? ''),
+        'source_android_sha256' => (string)($manifest['source_android_sha256'] ?? ''),
         'created_at' => gmdate('c'),
         'windows' => [
             'name' => (string)($manifest['windows']['name'] ?? 'GeometryDash-MuchoGDPS.exe'),
