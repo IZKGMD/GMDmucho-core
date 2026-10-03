@@ -42,7 +42,7 @@ final class DeploymentClientPack
             $serverName = trim((string)(Environment::get('MUCHO_SERVER_NAME', 'Mucho GDPS') ?? 'Mucho GDPS'));
         }
         $sourceExe = $rootDir . '/GeometryDash.exe';
-        $sourceApk = self::androidSource($rootDir);
+        $sourceApk = self::androidSource($rootDir, $jobDir);
 
         if (!is_file($sourceExe) || !is_readable($sourceExe)) {
             throw new RuntimeException(
