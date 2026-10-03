@@ -104,7 +104,423 @@ function deploy_key_ok(): bool
         return same_origin_ok();
     }
 
-    if (!deploy_key_ok()) {
+    return deployment_session_ok();
+}
+
+
+function job_id(): string
+{
+    return gmdate('YmdHis') . '-' . bin2hex(random_bytes(6));
+}
+
+function job_dir(string $id): string
+{
+    if (!preg_match('/^[0-9]{14}-[a-f0-9]{12}$/', $id)) {
+        throw new InvalidArgumentException('Invalid job id.');
+    }
+    return JOB_ROOT . '/' . $id;
+}
+
+function write_json(string $path, array $data): void
+{
+    file_put_contents(
+        $path,
+        json_encode($data, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR),
+        LOCK_EX
+    );
+    @chmod($path, 0600);
+}
+
+function read_json(string $path): array
+{
+    if (!is_file($path)) {
+        return [];
+    }
+    $data = json_decode((string)file_get_contents($path), true);
+    return is_array($data) ? $data : [];
+}
+
+function valid_ipv4(string $ip): bool
+{
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        return false;
+    }
+
+    $n = sprintf('%u', ip2long($ip));
+    foreach ([
+        [0, 16777215],
+        [167772160, 184549375],
+        [2130706432, 2147483647],
+        [2851995648, 2852061183],
+        [2886729728, 2887778303],
+        [3232235520, 3232301055],
+    ] as [$low, $high]) {
+        if ((int)$n >= $low && (int)$n <= $high) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function valid_domain(string $domain): bool
+{
+    return (bool)preg_match(
+        '/^(?=.{1,253}$)(?!-)(?:[A-Za-z0-9-]{1,63}\\.)+[A-Za-z]{2,63}$/',
+        $domain
+    );
+}
+
+function shell_quote(string $value): string
+{
+    return "'" . str_replace("'", "'\\''", $value) . "'";
+}
+
+function request_json(): array
+{
+    $raw = (string)file_get_contents('php://input');
+    $data = json_decode($raw, true);
+    return is_array($data) ? $data : [];
+}
+
+function client_ip(): string
+{
+    return (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+}
+
+function rate_limit_ok(): bool
+{
+    $ip = preg_replace('/[^0-9a-fA-F:._-]/', '_', client_ip()) ?: 'unknown';
+    $bucket = JOB_ROOT . '/rate-' . substr(hash('sha256', $ip), 0, 24) . '.json';
+    $now = time();
+    $data = read_json($bucket);
+    $timestamps = is_array($data['timestamps'] ?? null) ? $data['timestamps'] : [];
+    $timestamps = array_values(array_filter(
+        $timestamps,
+        static fn($t): bool => is_int($t) && $t > $now - 1800
+    ));
+
+    if (count($timestamps) >= 3) {
+        return false;
+    }
+
+    $timestamps[] = $now;
+    write_json($bucket, ['timestamps' => $timestamps]);
+    return true;
+}
+
+function client_pack_path(string $dir, string $kind): string
+{
+    $manifest = \MuchoCore\Client\DeploymentClientPack::manifest($dir);
+    $entry = $manifest[$kind] ?? null;
+
+    if (!is_array($entry)) {
+        throw new RuntimeException('Requested client is not available.');
+    }
+
+    $path = (string)($entry['path'] ?? '');
+    if ($path === '') {
+        throw new RuntimeException('Requested client path is invalid.');
+    }
+
+    $realPath = realpath($path);
+    $realDir = realpath($dir);
+
+    if (
+        $realPath === false ||
+        $realDir === false ||
+        !str_starts_with(
+            $realPath,
+            rtrim($realDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
+        )
+    ) {
+        throw new RuntimeException('Requested client path is outside the deployment job.');
+    }
+
+    if (!is_file($realPath) || !is_readable($realPath)) {
+        throw new RuntimeException('Requested client file is unavailable.');
+    }
+
+    return $realPath;
+}
+
+function handle_client_pack_request(string $root): never
+{
+    $id = trim((string)($_GET['id'] ?? $_POST['id'] ?? ''));
+    $token = strtolower(trim((string)($_GET['token'] ?? $_POST['token'] ?? '')));
+    $kind = strtolower(trim((string)($_GET['kind'] ?? $_POST['kind'] ?? 'prepare')));
+
+    try {
+        $dir = job_dir($id);
+    } catch (Throwable) {
+        json_response(['ok' => false, 'error' => 'Invalid deployment job.'], 422);
+    }
+
+    if (!is_dir($dir)) {
+        json_response(['ok' => false, 'error' => 'Deployment job not found.'], 404);
+    }
+
+    $status = read_json($dir . '/status.json');
+    if (($status['status'] ?? '') !== 'completed') {
+        json_response(['ok' => false, 'error' => 'The deployment is not complete yet.'], 409);
+    }
+
+    $storedToken = is_file($dir . '/client-pack-token')
+        ? trim((string)file_get_contents($dir . '/client-pack-token'))
+        : '';
+
+    if (
+        !preg_match('/^[a-f0-9]{64}$/', $token) ||
+        $storedToken === '' ||
+        !hash_equals($storedToken, $token)
+    ) {
+        json_response(['ok' => false, 'error' => 'Invalid client pack token.'], 403);
+    }
+
+    if ($kind === 'prepare') {
+        try {
+            $domain = strtolower(trim((string)($status['domain'] ?? '')));
+            if (!valid_domain($domain)) {
+                throw new RuntimeException('Deployment domain is invalid.');
+            }
+
+            $manifest = \MuchoCore\Client\DeploymentClientPack::prepare(
+                $root,
+                $dir,
+                'https://' . $domain,
+                (string)($status['gdps_name'] ?? 'Mucho GDPS')
+            );
+
+            json_response([
+                'ok' => true,
+                'server_url' => $manifest['server_url'] ?? ('https://' . $domain),
+                'windows' => [
+                    'url' => '/api/deploy/client-pack?id=' . rawurlencode($id)
+                        . '&token=' . rawurlencode($token)
+                        . '&kind=windows',
+                    'name' => $manifest['windows']['name'] ?? 'GeometryDash-MuchoGDPS.exe',
+                    'size' => (int)($manifest['windows']['size'] ?? 0),
+                    'sha256' => (string)($manifest['windows']['sha256'] ?? ''),
+                ],
+                'android' => [
+                    'url' => '/api/deploy/client-pack?id=' . rawurlencode($id)
+                        . '&token=' . rawurlencode($token)
+                        . '&kind=android',
+                    'name' => $manifest['android']['name'] ?? 'GeometryDash-MuchoGDPS.apk',
+                    'size' => (int)($manifest['android']['size'] ?? 0),
+                    'sha256' => (string)($manifest['android']['sha256'] ?? ''),
+                ],
+                'archive' => [
+                    'url' => '/api/deploy/client-pack?id=' . rawurlencode($id)
+                        . '&token=' . rawurlencode($token)
+                        . '&kind=zip',
+                    'name' => $manifest['archive']['name'] ?? 'MuchoGDPS-Client-Pack.zip',
+                    'size' => (int)($manifest['archive']['size'] ?? 0),
+                    'sha256' => (string)($manifest['archive']['sha256'] ?? ''),
+                ],
+            ]);
+        } catch (Throwable $e) {
+            json_response([
+                'ok' => false,
+                'error' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    if (!in_array($kind, ['windows', 'android', 'zip'], true)) {
+        json_response(['ok' => false, 'error' => 'Unknown client pack file.'], 400);
+    }
+
+    try {
+        $file = client_pack_path($dir, $kind);
+        $manifest = \MuchoCore\Client\DeploymentClientPack::manifest($dir);
+        $entry = is_array($manifest[$kind] ?? null) ? $manifest[$kind] : [];
+        $name = basename((string)($entry['name'] ?? ($kind === 'android'
+            ? 'GeometryDash-MuchoGDPS.apk'
+            : 'GeometryDash-MuchoGDPS.exe')));
+        $size = filesize($file);
+
+        if ($size === false || $size < 1024) {
+            throw new RuntimeException('Client file is unavailable.');
+        }
+
+        header(
+            'Content-Type: ' . match ($kind) {
+                'android' => 'application/vnd.android.package-archive',
+                'zip' => 'application/zip',
+                default => 'application/vnd.microsoft.portable-executable',
+            }
+        );
+        header(
+            'Content-Disposition: attachment; filename="' .
+            str_replace('"', '', $name) . '"'
+        );
+        header('Content-Length: ' . (string)$size);
+        header('Cache-Control: private, no-store');
+        header('X-Content-Type-Options: nosniff');
+
+        if (readfile($file) === false) {
+            throw new RuntimeException('Unable to stream client file.');
+        }
+        exit;
+    } catch (Throwable $e) {
+        json_response(['ok' => false, 'error' => $e->getMessage()], 404);
+    }
+}
+
+function count_running_jobs(): int
+{
+    $count = 0;
+    $activeStatuses = ['running', 'starting', 'post_processing'];
+
+    foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
+        if (in_array((string)(read_json($statusFile)['status'] ?? ''), $activeStatuses, true)) {
+            $count++;
+        }
+    }
+
+    return $count;
+}
+
+function cleanup_job_secrets(string $dir): void
+{
+    foreach (['ssh_password', 'ssh_key', 'admin_password', 'remote_env'] as $file) {
+        @unlink($dir . '/' . $file);
+    }
+}
+
+function deployment_php_cli(): string
+{
+    $candidates = [];
+
+    if (defined('PHP_BINDIR')) {
+        $candidates[] = PHP_BINDIR . '/php';
+    }
+
+    $env = trim((string)(getenv('MUCHO_PHP_CLI') ?: ''));
+    if ($env !== '') {
+        $candidates[] = $env;
+    }
+
+    $candidates[] = '/usr/local/bin/php';
+
+    foreach ($candidates as $candidate) {
+        if (is_executable($candidate)) {
+            return $candidate;
+        }
+    }
+
+    throw new RuntimeException('PHP CLI binary is unavailable for deployment workers.');
+}
+
+function deployment_start_lock()
+{
+    $path = JOB_ROOT . '/start.lock';
+    $handle = @fopen($path, 'c');
+    if ($handle === false || !@flock($handle, LOCK_EX | LOCK_NB)) {
+        if (is_resource($handle)) {
+            @fclose($handle);
+        }
+        throw new RuntimeException('Another deployment is being started. Please wait a moment and try again.');
+    }
+    @chmod($path, 0600);
+    return $handle;
+}
+
+function release_deployment_start_lock(&$handle): void
+{
+    if (!is_resource($handle)) {
+        $handle = null;
+        return;
+    }
+
+    @flock($handle, LOCK_UN);
+    @fclose($handle);
+    $handle = null;
+}
+
+function deployment_queue_dispatch(): void
+{
+    $worker = dirname(__DIR__) . '/bin/mucho-deploy-worker.php';
+    if (!is_file($worker)) {
+        return;
+    }
+
+    try {
+        $phpCli = deployment_php_cli();
+    } catch (Throwable) {
+        return;
+    }
+
+    $cmd = 'nohup ' . escapeshellarg($phpCli) . ' ' . escapeshellarg($worker) . ' --dispatch-queue >/dev/null 2>&1 &';
+    @exec($cmd);
+}
+
+function count_queued_jobs(): int
+{
+    $count = 0;
+    foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
+        $status = read_json($statusFile);
+        if (($status['status'] ?? '') === 'queued') {
+            $count++;
+        }
+    }
+    return $count;
+}
+
+function queued_job_position(string $jobId): int
+{
+    $jobs = [];
+
+    foreach (glob(JOB_ROOT . '/*/status.json') ?: [] as $statusFile) {
+        $status = read_json($statusFile);
+        if (($status['status'] ?? '') !== 'queued') {
+            continue;
+        }
+
+        $id = (string)($status['id'] ?? basename(dirname($statusFile)));
+        $createdAt = strtotime((string)($status['created_at'] ?? '')) ?: PHP_INT_MAX;
+        $jobs[] = [$createdAt, $id];
+    }
+
+    usort($jobs, static function(array $a, array $b): int {
+        return ($a[0] <=> $b[0]) ?: strcmp($a[1], $b[1]);
+    });
+
+    foreach ($jobs as $index => $job) {
+        if ($job[1] === $jobId) {
+            return $index + 1;
+        }
+    }
+
+    return 0;
+}
+
+function reset_deployment_session(): void
+{
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        $_SESSION = [];
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                (string)$params['path'],
+                (string)$params['domain'],
+                (bool)$params['secure'],
+                (bool)$params['httponly']
+            );
+        }
+        session_destroy();
+    }
+}
+
+$path = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+$path = is_string($path) ? rtrim($path, '/') : '/';
+$method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+
+if (!deploy_key_ok()) {
     json_response(['ok' => false, 'error' => 'Deployment session is missing or expired. Refresh the installer page and try again.'], 403);
 }
 
