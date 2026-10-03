@@ -141,15 +141,18 @@ async function prepareClients(){
       '<div style="padding:12px;border:1px solid rgba(89,230,164,.2);border-radius:10px;background:rgba(89,230,164,.04)">'+
       '<div style="font-size:10px;font-weight:900;color:#aaf2cf;margin-bottom:8px">🎮 Your clients are ready</div>'+
       '<div style="color:#8895a8;font-size:9px;line-height:1.7;margin-bottom:10px">Server: <b style="color:#c7d2df">'+escapeHtml(data.server_url)+'</b></div>'+
+      '<div style="color:#758298;font-size:9px;line-height:1.65;margin-bottom:10px">The ZIP contains the Windows client, Android APK and a checksum manifest. Individual downloads are also available.</div>'+
       '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-      '<a class="btn primary" id="downloadWindows" href="'+escapeHtml(data.windows.url)+'">⬇ Windows EXE</a>'+
-      '<a class="btn primary" id="downloadAndroid" href="'+escapeHtml(data.android.url)+'">⬇ Android APK</a>'+
+      '<a class="btn primary" id="downloadArchive" href="'+escapeHtml(data.archive.url)+'">⬇ Client Pack (.zip)</a>'+
+      '<a class="btn" id="downloadWindows" href="'+escapeHtml(data.windows.url)+'">Windows EXE</a>'+
+      '<a class="btn" id="downloadAndroid" href="'+escapeHtml(data.android.url)+'">Android APK</a>'+
       (detailsToken && /^[a-f0-9]{64}$/.test(detailsToken)
         ? '<a class="btn" href="/api/deploy/details?id='+encodeURIComponent(job)+'&token='+encodeURIComponent(detailsToken)+'">⬇ Deployment details (.txt)</a>'
         : '')+
       '</div></div>';
 
     const links=[
+      document.getElementById('downloadArchive'),
       document.getElementById('downloadWindows'),
       document.getElementById('downloadAndroid')
     ];
@@ -161,8 +164,6 @@ async function prepareClients(){
 
     try{
       links[0].click();
-      await new Promise(resolve=>setTimeout(resolve,900));
-      links[1].click();
     }catch(_){}
   }catch(error){
     clients.style.display='block';
