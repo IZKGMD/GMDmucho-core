@@ -79,16 +79,15 @@ function restoreDraft(){
   try{
     const data=JSON.parse(sessionStorage.getItem(AUTOSAVE_KEY)||'{}');
     for(const id of autosaveFields){if($(id)&&typeof data[id]==='string')$(id).value=data[id]}
-    const password=sessionStorage.getItem(AUTOSAVE_KEY+'_password')||'';
-    if($('password'))$('password').value=password;
+
   }catch(_){}
 }
 function clearDraft(){
   sessionStorage.removeItem(AUTOSAVE_KEY);
-  sessionStorage.removeItem(AUTOSAVE_KEY+'_password');
+
 }
 autosaveFields.forEach(id=>$(id)?.addEventListener('input',saveDraft));
-$('password')?.addEventListener('input',()=>sessionStorage.setItem(AUTOSAVE_KEY+'_password',$('password').value));
+
 restoreDraft();
 let timer=null,job=null,last='',clientPrepared=false;
 function print(s){terminal.textContent=s;terminal.scrollTop=terminal.scrollHeight}
