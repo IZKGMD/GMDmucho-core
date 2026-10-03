@@ -458,8 +458,17 @@ function local_shared_release(string $rootDir, string $destination): array
         throw new RuntimeException('The shared-hosting package builder is unavailable on the control server.');
     }
 
+    // Build into the container's temporary filesystem first. This avoids
+    // provider-specific/container-volume permission or visibility quirks when
+    // the child shell writes directly into the control-plane job directory.
+    $builderOutput = @tempnam(sys_get_temp_dir(), 'muchocore-shared-');
+    if ($builderOutput === false) {
+        throw new RuntimeException('Unable to allocate a temporary path for the shared-hosting package.');
+    }
+    @unlink($builderOutput);
+
     $command = 'VERSION=' . escapeshellarg($version)
-        . ' OUTPUT=' . escapeshellarg($destination)
+        . ' OUTPUT=' . escapeshellarg($builderOutput)
         . ' bash ' . escapeshellarg($builder);
     $process = @proc_open(
         $command,
@@ -472,6 +481,7 @@ function local_shared_release(string $rootDir, string $destination): array
     );
 
     if (!is_resource($process)) {
+        @unlink($builderOutput);
         throw new RuntimeException('Unable to start the shared-hosting package builder.');
     }
 
@@ -485,26 +495,59 @@ function local_shared_release(string $rootDir, string $destination): array
     $output = trim(implode("\n", array_filter([
         is_string($stdout) ? trim($stdout) : '',
         is_string($stderr) ? trim($stderr) : '',
-    ], static fn(string $value): bool => $value !== '')));
+    ], static fn(string $value): bool => $value !== ''));
 
+    clearstatcache(true, $builderOutput);
+    $builderExists = is_file($builderOutput);
+    $builderReadable = $builderExists && is_readable($builderOutput);
+    $builderSize = $builderExists ? (int)(@filesize($builderOutput) ?: 0) : 0;
+
+    if ($exit !== 0 || !$builderExists || !$builderReadable || $builderSize < 1024) {
+        @unlink($builderOutput);
+        throw new RuntimeException(
+            'Failed to build the shared-hosting package from the current control-plane source '
+            . '(exit code ' . $exit
+            . ', temp_file_exists=' . ($builderExists ? 'yes' : 'no')
+            . ', temp_file_readable=' . ($builderReadable ? 'yes' : 'no')
+            . ', temp_size=' . $builderSize . ').'
+            . ($output !== '' ? ' ' . $output : '')
+        );
+    }
+
+    $destinationPart = $destination . '.part';
+    @unlink($destinationPart);
+    if (!@copy($builderOutput, $destinationPart)) {
+        @unlink($builderOutput);
+        throw new RuntimeException('The shared-hosting package was built, but could not be copied into the deployment job directory.');
+    }
+
+    clearstatcache(true, $destinationPart);
+    if (!is_file($destinationPart) || !is_readable($destinationPart) || (int)(@filesize($destinationPart) ?: 0) !== $builderSize) {
+        @unlink($destinationPart);
+        @unlink($builderOutput);
+        throw new RuntimeException('The shared-hosting package copy into the deployment job directory failed verification.');
+    }
+
+    if (!@rename($destinationPart, $destination)) {
+        @unlink($destinationPart);
+        @unlink($builderOutput);
+        throw new RuntimeException('The shared-hosting package was copied but could not be finalized in the deployment job directory.');
+    }
+
+    @unlink($builderOutput);
     clearstatcache(true, $destination);
+
     $destinationExists = is_file($destination);
     $destinationReadable = $destinationExists && is_readable($destination);
     $destinationSize = $destinationExists ? (int)(@filesize($destination) ?: 0) : 0;
 
-    if (
-        $exit !== 0 ||
-        !$destinationExists ||
-        !$destinationReadable ||
-        $destinationSize < 1024
-    ) {
+    if (!$destinationExists || !$destinationReadable || $destinationSize !== $builderSize) {
         throw new RuntimeException(
-            'Failed to build the shared-hosting package from the current control-plane source '
-            . '(exit code ' . $exit
-            . ', file_exists=' . ($destinationExists ? 'yes' : 'no')
+            'The built shared-hosting package failed final verification '
+            . '(file_exists=' . ($destinationExists ? 'yes' : 'no')
             . ', readable=' . ($destinationReadable ? 'yes' : 'no')
-            . ', size=' . $destinationSize . ').'
-            . ($output !== '' ? ' ' . $output : '')
+            . ', size=' . $destinationSize
+            . ', expected_size=' . $builderSize . ').'
         );
     }
 
