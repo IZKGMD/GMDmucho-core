@@ -109,7 +109,7 @@ if (!str_contains($dockerfile, 'pdo_mysql zip ftp')) {
 }
 
 foreach ([
-    'FTP / FTPS deployment',
+    'Automatic MuchoCore deployment to shared hosting through FTP or FTPS.',
     'ftp_host',
     'ftp_password',
     'db_password',
