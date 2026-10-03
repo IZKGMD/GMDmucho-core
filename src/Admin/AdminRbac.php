@@ -370,6 +370,7 @@ final class AdminRbac
             'endpoints' => 'tools.endpoint_test',
             'clientfeatures' => 'client.manage',
             'clientpatcher' => 'client.manage',
+            'clients' => 'client.manage',
             'updates' => 'system.manage',
             'plugins' => 'plugins.view',
             'dbbackups' => 'backups.view',
