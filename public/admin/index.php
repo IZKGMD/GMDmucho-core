@@ -3453,10 +3453,17 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
             $id=(int)$_POST['id'];
             $password=(string)$_POST['new_password'];
+            $passwordConfirm=(string)($_POST['new_password_confirm'] ?? '');
 
             if (strlen($password)<8) {
                 throw new RuntimeException(
                     'Password must be at least 8 characters.'
+                );
+            }
+
+            if (!hash_equals($password, $passwordConfirm)) {
+                throw new RuntimeException(
+                    'Passwords do not match.'
                 );
             }
 
