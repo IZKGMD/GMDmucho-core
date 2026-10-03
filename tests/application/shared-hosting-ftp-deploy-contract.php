@@ -108,6 +108,10 @@ if (!str_contains($dockerfile, 'pdo_mysql zip ftp')) {
     throw new RuntimeException('Deployment image must include PHP FTP support.');
 }
 
+if (!str_contains($dockerCompose, 'MUCHO_SHARED_DEPLOY_SOURCE: ${MUCHO_SHARED_DEPLOY_SOURCE:-stable}')) {
+    throw new RuntimeException('Shared deployment source must be passed into the worker container.');
+}
+
 foreach ([
     'Automatic MuchoCore deployment to shared hosting through FTP or FTPS.',
     'ftp_host',
