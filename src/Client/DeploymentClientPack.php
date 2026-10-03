@@ -76,16 +76,19 @@ final class DeploymentClientPack
                 is_array($existing) &&
                 ($existing['server_url'] ?? '') === $server &&
                 is_file((string)($existing['windows']['path'] ?? '')) &&
-                is_file((string)($existing['android']['path'] ?? ''))
+                is_file((string)($existing['android']['path'] ?? '')) &&
+                is_file((string)($existing['archive']['path'] ?? ''))
             ) {
                 return $existing;
             }
 
             $windowsPath = $jobDir . '/GeometryDash-MuchoGDPS.exe';
             $androidPath = $jobDir . '/GeometryDash-MuchoGDPS.apk';
+            $archivePath = $jobDir . '/MuchoGDPS-Client-Pack.zip';
 
             @unlink($windowsPath);
             @unlink($androidPath);
+            @unlink($archivePath);
 
             $windows = WindowsClientPatcher::patchFile(
                 $sourceExe,
@@ -99,10 +102,62 @@ final class DeploymentClientPack
                 $server
             );
 
+            $createdAt = gmdate('c');
+            $publicManifest = [
+                'server_url' => $server,
+                'server_name' => $serverName,
+                'created_at' => $createdAt,
+                'files' => [
+                    [
+                        'name' => 'windows/GeometryDash-MuchoGDPS.exe',
+                        'size' => (int)$windows['output_size'],
+                        'sha256' => (string)$windows['output_sha256'],
+                    ],
+                    [
+                        'name' => 'android/GeometryDash-MuchoGDPS.apk',
+                        'size' => (int)$android['output_size'],
+                        'sha256' => (string)$android['output_sha256'],
+                    ],
+                ],
+            ];
+
+            $zip = new ZipArchive();
+            if ($zip->open($archivePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+                throw new RuntimeException('Cannot create the client pack ZIP archive.');
+            }
+
+            try {
+                if (!$zip->addFile($windowsPath, 'windows/GeometryDash-MuchoGDPS.exe')) {
+                    throw new RuntimeException('Cannot add the Windows client to the client pack ZIP.');
+                }
+                if (!$zip->addFile($androidPath, 'android/GeometryDash-MuchoGDPS.apk')) {
+                    throw new RuntimeException('Cannot add the Android client to the client pack ZIP.');
+                }
+                if (!$zip->addFromString(
+                    'client-pack.json',
+                    json_encode($publicManifest, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR)
+                )) {
+                    throw new RuntimeException('Cannot add the client pack manifest to the ZIP archive.');
+                }
+            } finally {
+                $zip->close();
+            }
+
+            $archiveSize = filesize($archivePath);
+            $archiveSha256 = hash_file('sha256', $archivePath);
+            if (
+                $archiveSize === false ||
+                $archiveSize < 1024 ||
+                !is_string($archiveSha256) ||
+                $archiveSha256 === ''
+            ) {
+                throw new RuntimeException('Generated client pack ZIP archive is invalid.');
+            }
+
             $manifest = [
                 'server_url' => $server,
                 'server_name' => $serverName,
-                'created_at' => gmdate('c'),
+                'created_at' => $createdAt,
                 'windows' => [
                     'path' => $windowsPath,
                     'name' => 'GeometryDash-MuchoGDPS.exe',
@@ -116,6 +171,12 @@ final class DeploymentClientPack
                     'size' => (int)$android['output_size'],
                     'sha256' => (string)$android['output_sha256'],
                     'replacement_count' => (int)$android['replacement_count'],
+                ],
+                'archive' => [
+                    'path' => $archivePath,
+                    'name' => 'MuchoGDPS-Client-Pack.zip',
+                    'size' => (int)$archiveSize,
+                    'sha256' => $archiveSha256,
                 ],
             ];
 
