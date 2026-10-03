@@ -179,7 +179,7 @@ function upload_client_pack_to_shared(
                 throw new RuntimeException('Generated ' . $label . ' client file is unavailable.');
             }
 
-            ftp_put_with_heartbeat($ftp, $entry['remote'], $entry['local'], $logFile);
+            ftp_put_with_heartbeat($ftp, $entry['remote'], $entry['local'], $logFile, 'client file');
 
             $localSize = @filesize($entry['local']);
             $remoteSize = @ftp_size($ftp, $entry['remote']);
@@ -936,12 +936,12 @@ function detect_web_root(
     );
 }
 
-function ftp_put_with_heartbeat(\FTP\Connection $ftp, string $remote, string $local, string $logFile): void {
+function ftp_put_with_heartbeat(\FTP\Connection $ftp, string $remote, string $local, string $logFile, string $label = 'file'): void {
     $size = @filesize($local);
     $mb = is_int($size) ? number_format($size / 1024 / 1024, 1) : 'unknown';
     log_line(
         $logFile,
-        '[MuchoGDPS] Uploading client file ' . $remote . ' (' . $mb . ' MB)...' . "\n"
+        '[MuchoGDPS] Uploading ' . $label . ' ' . $remote . ' (' . $mb . ' MB)...' . "\n"
     );
 
     if (!@ftp_put($ftp, $remote, $local, FTP_BINARY)) {
@@ -950,7 +950,7 @@ function ftp_put_with_heartbeat(\FTP\Connection $ftp, string $remote, string $lo
 
     log_line(
         $logFile,
-        '[MuchoGDPS] Finished uploading client file ' . $remote . '.' . "\n"
+        '[MuchoGDPS] Finished uploading ' . $label . ' ' . $remote . '.' . "\n"
     );
 }
 
@@ -1362,7 +1362,33 @@ try {
             $adminPassword,
             $dir
         );
-        upload_browser_finalization_payload($ftp, $base, $browserToken, $browserPayloadPath);
+
+        $finalFtp = null;
+        try {
+            [$finalFtp, $finalSecurity, $finalPort] = ftp_open_authenticated(
+                $config,
+                $ftpPassword,
+                $logFile
+            );
+
+            if (!@ftp_chdir($finalFtp, $base)) {
+                throw new RuntimeException(
+                    'Unable to return to the shared-hosting web root for browser finalization.'
+                );
+            }
+
+            upload_browser_finalization_payload(
+                $finalFtp,
+                $base,
+                $browserToken,
+                $browserPayloadPath
+            );
+        } finally {
+            if ($finalFtp instanceof \FTP\Connection) {
+                @ftp_close($finalFtp);
+            }
+        }
+
         $browserFinalization = [
             'token' => $browserToken,
             'expires_at' => $browserExpiresAt,
