@@ -78,9 +78,7 @@ grep -Fxq 'muchocore/vendor/autoload.php' "$ZIP_LIST"
 grep -Fxq 'muchocore/docs/SHARED_HOSTING.md' "$ZIP_LIST"
 ! grep -Eq '(^|/)\.env($|\.)' "$ZIP_LIST"
 ! grep -Eq '(^|/)(\.secrets|storage)/' "$ZIP_LIST"
-! grep -Eq '(^|/)config/cloudsave\.key
- "$ZIP_LIST"
+! grep -Eq '(^|/)config/cloudsave\.key$' "$ZIP_LIST"
 ! grep -Eq '(^|/)\.git/' "$ZIP_LIST"
-
 echo "SHARED_HOSTING_ARCHIVE_OK"
 echo "OUTPUT=$OUTPUT"
