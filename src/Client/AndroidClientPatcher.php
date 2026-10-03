@@ -623,9 +623,9 @@ final class AndroidClientPatcher
         $offset = 0;
 
         while (($position = strpos($data, $oldHost, $offset)) !== false) {
-            $start = strrpos(substr($data, 0, $position), " ");
+            $start = strrpos(substr($data, 0, $position), "\\0");
             $start = $start === false ? 0 : $start + 1;
-            $end = strpos($data, " ", $position);
+            $end = strpos($data, "\\0", $position);
 
             if ($end === false) {
                 $end = strlen($data);
@@ -644,7 +644,7 @@ final class AndroidClientPatcher
                 continue;
             }
 
-            $patched .= str_repeat(" ", strlen($url) - strlen($patched));
+            $patched .= str_repeat("\\0", strlen($url) - strlen($patched));
             $data = substr_replace($data, $patched, $start, $end - $start);
             $count++;
             $offset = $start + strlen($patched);
@@ -660,7 +660,7 @@ final class AndroidClientPatcher
     ): int {
         $old = self::asciiToUtf16Le($oldHost);
         $new = self::asciiToUtf16Le($newHost);
-        $zero = "  ";
+        $zero = "\\0\\0";
         $http = self::asciiToUtf16Le('http://');
         $https = self::asciiToUtf16Le('https://');
         $count = 0;
@@ -688,7 +688,7 @@ final class AndroidClientPatcher
                 continue;
             }
 
-            $patched .= str_repeat(" ", intdiv(strlen($url) - strlen($patched), 2) * 2);
+            $patched .= str_repeat("\\0", intdiv(strlen($url) - strlen($patched), 2) * 2);
             $data = substr_replace($data, $patched, $start, $end - $start);
             $count++;
             $offset = $start + strlen($patched);
@@ -726,7 +726,7 @@ final class AndroidClientPatcher
             if ($replaced > 0 && strlen($encoded) <= strlen($raw)) {
                 $data = substr_replace(
                     $data,
-                    $encoded . str_repeat(" ", strlen($raw) - strlen($encoded)),
+                    $encoded . str_repeat("\\0", strlen($raw) - strlen($encoded)),
                     $offset,
                     strlen($raw)
                 );
