@@ -704,7 +704,7 @@ final class AndroidClientPatcher
     ): int {
         $count = 0;
         $cursor = 0;
-        $pattern = '/[A-Za-z0-9+/]{24,}={0,2}/';
+        $pattern = '~[A-Za-z0-9+/]{24,}={0,2}~';
 
         while (preg_match($pattern, $data, $match, PREG_OFFSET_CAPTURE, $cursor) === 1) {
             $raw = (string)$match[0][0];
