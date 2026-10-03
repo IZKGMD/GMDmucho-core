@@ -155,6 +155,17 @@ show_settings() {
     echo
 }
 
+patch_clients() {
+    cd "$ROOT"
+    echo "[MuchoCore] Rebuilding patched Windows and Android clients..."
+    if compose exec -T app php bin/mucho-client-patch.php; then
+        echo "[MuchoCore] Patched clients published."
+    else
+        echo "[MuchoCore] ERROR: client patching failed." >&2
+        return 1
+    fi
+}
+
 set_domain() {
     local domain
     read -r -p "New GDPS domain: " domain
@@ -170,6 +181,7 @@ set_domain() {
         env_set CADDY_ADDRESS "$(caddy_address_for "$domain")"
     fi
     restart_services
+    patch_clients || echo "[MuchoCore] WARNING: automatic client repatching failed. Run: sudo mucho client-patch"
     echo "Domain updated to https://$domain"
 }
 
@@ -402,6 +414,7 @@ main_menu() {
         echo "6) Restart services"
         echo "7) Show logs"
         echo "8) Mucho Doctor"
+        echo "9) Rebuild patched clients"
         echo "0) Exit"
         echo
 
@@ -419,6 +432,7 @@ main_menu() {
             6) restart_services; echo "Services restarted."; read -r -p "Press Enter..." _ ;;
             7) cd "$ROOT"; compose logs --tail=120; read -r -p "Press Enter..." _ ;;
             8) doctor || true; read -r -p "Press Enter..." _ ;;
+            9) patch_clients || true; read -r -p "Press Enter..." _ ;;
             0) exit 0 ;;
             *) echo "Invalid selection."; sleep 1 ;;
         esac
@@ -495,6 +509,7 @@ Usage:
   sudo mucho repair              Restart, migrate and health-check
   sudo mucho update              Apply the latest stable release
   sudo mucho backup              Create a database backup
+  sudo mucho client-patch        Rebuild and publish patched GDPS clients
   sudo mucho migrate             Apply pending database migrations
   sudo mucho migration [args]    Open the Migration Center
   sudo mucho config              Open configuration
@@ -591,6 +606,10 @@ case "${1:-}" in
     backup)
         require_root
         backup_cli
+        ;;
+    client-patch)
+        require_root
+        patch_clients
         ;;
     migrate)
         require_root
