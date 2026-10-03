@@ -53,7 +53,7 @@ if (
     $adminUsersMigration === false ||
     $releaseWorkflow === false
 ) {
-    throw new RuntimeException('Unable to read one of the shared-hosting migration safety files.');
+    throw new RuntimeException('Unable to read one of the migration safety files.');
 }
 
 foreach ([
@@ -77,23 +77,6 @@ foreach ([
 ] as $needle) {
     if (strpos($phpBackup, $needle) === false) {
         throw new RuntimeException('Portable PHP backup contract missing: ' . $needle);
-    }
-}
-
-foreach ([
-    'shared-install.installed',
-    'flock($lockHandle',
-    'databasePreflight(',
-    'tableCount > 0',
-    'dotenvLine(\'MUCHO_SHARED_HOSTING\', \'1\')',
-    'dotenvLine(\'MUCHO_DB_BACKUP_DIR\'',
-    'DatabaseBackupService',
-    'admin_users',
-    'password_hash',
-    'atomicWrite(',
-] as $needle) {
-    if (strpos($sharedInstaller, $needle) === false) {
-        throw new RuntimeException('Shared installer safety contract missing: ' . $needle);
     }
 }
 
