@@ -55,6 +55,7 @@ foreach ([
     'ftp_nb_put',
     'ftp_nb_continue',
     'ftp_put_with_heartbeat',
+    'ftp_size',
     'latest_release',
     "hash_file('sha256'",
     'installer_csrf',
