@@ -57,3 +57,5 @@ grep -Fq 'Admin passwords do not match.' "$ROOT/public/deploy.php"
 
 grep -Fq 'LOCK_EX | LOCK_NB' "$ROOT/public/deploy.php"
 grep -Fq "Deployment start timed out." "$ROOT/public/install/shared/index.html"
+
+grep -Fq 'is_readable($builder)' "$ROOT/bin/mucho-shared-deploy-worker.php"
