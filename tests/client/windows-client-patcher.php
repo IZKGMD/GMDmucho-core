@@ -36,6 +36,12 @@ try {
     $payload .= base64_encode('http://www.boomlings.com/database');
     $payload .= str_repeat("C", 257);
     $payload .= 'https://geometrydash.com/database/getGJLevels21.php' . "\0";
+    $payload .= 'https://geometrydash.com' . "\0";
+    $utf16Host = '';
+    foreach (str_split('https://geometrydash.com') as $character) {
+        $utf16Host .= $character . "\0";
+    }
+    $payload .= $utf16Host . "\0\0";
     $payload .= base64_encode('https://geometrydash.com/database/getGJUsers20.php') . "\0";
     $payload .= 'https://geometrydash.com/accounts/getGJAccount.php' . "\0";
     $payload .= 'https://not-a-url.example/geometrydash.com' . "\0";
@@ -115,6 +121,16 @@ try {
 
     if (!str_contains($patched, 'https://not-a-url.example/geometrydash.com')) {
         throw new RuntimeException('Non-URL host-like text was incorrectly modified.');
+    }
+\n    if (!str_contains($patched, 'https://gdps.example.com' . "\0")) {
+        throw new RuntimeException('NUL-terminated embedded host was not patched correctly.');
+    }
+\n    $utf16Target = '';
+    foreach (str_split('https://gdps.example.com') as $character) {
+        $utf16Target .= $character . "\0";
+    }
+    if (!str_contains($patched, $utf16Target . "\0\0")) {
+        throw new RuntimeException('UTF-16 NUL-terminated embedded host was not patched correctly.');
     }
 
     if (!str_contains($patched, base64_encode($httpsTarget))) {
