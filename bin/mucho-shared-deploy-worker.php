@@ -168,9 +168,7 @@ function upload_client_pack_to_shared(
                 throw new RuntimeException('Generated ' . $label . ' client file is unavailable.');
             }
 
-            if (!@ftp_put($ftp, $entry['remote'], $entry['local'], FTP_BINARY)) {
-                throw new RuntimeException('Failed to upload generated ' . $label . ' client.');
-            }
+            ftp_put_with_heartbeat($ftp, $entry['remote'], $entry['local'], $logFile);
 
             log_line(
                 $logFile,
@@ -908,6 +906,51 @@ function detect_web_root(
     );
 }
 
+function ftp_put_with_heartbeat(\FTP\Connection $ftp, string $remote, string $local, string $logFile): void {
+    $size = @filesize($local);
+    $largeFile = is_int($size) && $size >= 8 * 1024 * 1024;
+
+    if (!$largeFile) {
+        if (!@ftp_put($ftp, $remote, $local, FTP_BINARY)) {
+            throw new RuntimeException('Failed to upload: ' . $remote);
+        }
+        return;
+    }
+
+    $state = @ftp_nb_put($ftp, $remote, $local, FTP_BINARY);
+    if ($state === false) {
+        throw new RuntimeException('Failed to start upload: ' . $remote);
+    }
+
+    $startedAt = time();
+    $lastHeartbeat = $startedAt;
+    $deadline = $startedAt + 900;
+
+    while ($state === FTP_MOREDATA) {
+        usleep(500000);
+        $state = @ftp_nb_continue($ftp);
+
+        $now = time();
+        if ($now - $lastHeartbeat >= 10) {
+            $mb = is_int($size) ? number_format($size / 1024 / 1024, 1) : 'unknown';
+            log_line($logFile, '[MuchoGDPS] Uploading large file ' . $remote . ' (' . $mb . ' MB)...\n');
+            $lastHeartbeat = $now;
+        }
+
+        if ($now >= $deadline) {
+            throw new RuntimeException('Timed out uploading large file: ' . $remote);
+        }
+
+        if ($state === false) {
+            throw new RuntimeException('FTP connection failed while uploading: ' . $remote);
+        }
+    }
+
+    if ($state !== FTP_FINISHED) {
+        throw new RuntimeException('Failed to finish upload: ' . $remote);
+    }
+}
+
 function upload_tree(\FTP\Connection $ftp, string $localRoot, string $base, string $logFile): int {
     if (!@ftp_chdir($ftp, $base)) {
         throw new RuntimeException('Unable to switch to the selected FTP web-root directory before upload: ' . $base);
@@ -967,9 +1010,7 @@ function upload_tree(\FTP\Connection $ftp, string $localRoot, string $base, stri
         }
 
         $remote = str_replace('\\', '/', $relative);
-        if (!@ftp_put($ftp, $remote, $local, FTP_BINARY)) {
-            throw new RuntimeException('Failed to upload: ' . $relative);
-        }
+        ftp_put_with_heartbeat($ftp, $remote, $local, $logFile);
 
         // Keep the next iteration deterministic even when ftp_put changes CWD
         // on a provider-specific FTP implementation.
