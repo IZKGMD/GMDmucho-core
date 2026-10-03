@@ -21,4 +21,16 @@ foreach([
     if(!str_contains($client,$needle))throw new RuntimeException("Admin client canonical authorization missing: {$needle}");
 }
 if(str_contains($client,'if ($rank < $minimumRank)'))throw new RuntimeException('numeric-rank enforcement remains');
+$clients=(string)file_get_contents(__DIR__.'/../../public/admin/clients-module.php');
+
+foreach([
+    "'zip' => ['file' => 'MuchoGDPS-Client-Pack.zip'",
+    "application/zip",
+    "MuchoGDPS-Client-Pack.zip",
+    "client_file=zip",
+    "Unified Client Pack",
+] as $needle){
+    if(!str_contains($clients,$needle))throw new RuntimeException("Tenant client pack contract missing: {$needle}");
+}
+
 echo "admin-client-rbac-contract: OK\n";
