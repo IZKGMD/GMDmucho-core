@@ -490,6 +490,13 @@ Geometry Dash-compatible response
 
 Protection includes:
 
+Registration anti-spam uses two independent signals:
+
+- **IP throttling** limits registration bursts and short-window attempts from one source address;
+- **device throttling** uses the Geometry Dash `udid` field when the client supplies it, limiting the same device identifier to two registration requests per 24 hours.
+
+The `udid` value is not treated as a true hardware fingerprint or a tamper-proof identity. Clients can spoof or rotate it, so device throttling is an additional layer alongside IP and network limits.
+
 | Protection | Purpose |
 | --- | --- |
 | 🚦 Endpoint limits | Different limits for authentication, uploads, comments, messages, scores, ratings and other sensitive actions |
