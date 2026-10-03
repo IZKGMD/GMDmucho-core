@@ -130,39 +130,106 @@ get_latest_stable_release_tag() {
     local response
     local tag
 
-    response="$(curl -4fsS --connect-timeout 5 --max-time 10         -H 'Accept: application/vnd.github+json'         -H 'User-Agent: MuchoCore-Updater/1.0'         -H 'X-GitHub-Api-Version: 2022-11-28'         'https://api.github.com/repos/IZKGMD/GMDmucho-core/releases/latest')" || return 1
+    response="$(curl -4fsS --connect-timeout 5 --max-time 10 \
+        -H 'Accept: application/vnd.github+json' \
+        -H 'User-Agent: MuchoCore-Updater/1.0' \
+        -H 'X-GitHub-Api-Version: 2022-11-28' \
+        'https://api.github.com/repos/IZKGMD/GMDmucho-core/releases/latest')" || return 1
 
     tag="$(printf '%s' "$response" |
-        sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' |
+        sed -n 's/.*"tag_name":[[:space:]]*"\${[^"]*\).*/\1/p' |
         head -n1)"
 
     [[ "$tag" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
     printf '%s' "$tag"
 }
 
+get_latest_stable_release_tag_fallback() {
+    git ls-remote --tags --refs origin 'refs/tags/v[0-9]*' |
+        awk '{print $2}' |
+        sed 's#refs/tags/v##' |
+        grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' |
+        sort -V |
+        tail -n1 |
+        sed 's/^/v/'
+}
+
+version_gt() {
+    local left="${1#v}"
+    local right="${2#v}"
+
+    [[ "$left" != "$right" ]] &&
+        [[ "$(printf '%s\n%s\n' "$left" "$right" | sort -V | tail -n1)" == "$left" ]]
+}
+
 CURRENT_VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION" 2>/dev/null || true)"
-LATEST_TAG="$(get_latest_stable_release_tag)" || {
+CURRENT_SEMVER="$(printf '%s' "$CURRENT_VERSION" | sed 's/^v//')"
+CURRENT_HEAD="$(git rev-parse HEAD)"
+
+LATEST_TAG="$(get_latest_stable_release_tag || true)"
+if [[ -z "$LATEST_TAG" ]]; then
+    echo '[MuchoCore] GitHub Releases API was unavailable; resolving the latest stable tag from Git instead...'
+    LATEST_TAG="$(get_latest_stable_release_tag_fallback || true)"
+fi
+
+[[ "$LATEST_TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
     echo '[MuchoCore] ERROR: unable to resolve a published stable GitHub Release.' >&2
     exit 1
 }
 
-CURRENT_SEMVER="$(printf '%s' "$CURRENT_VERSION" | sed 's/^v//')"
 LATEST_SEMVER="$(printf '%s' "$LATEST_TAG" | sed 's/^v//')"
-
 REMOTE_TAG_SHA="$(git ls-remote origin "refs/tags/$LATEST_TAG" | awk 'NR == 1 {print $1}')"
-CURRENT_HEAD="$(git rev-parse HEAD)"
 
 [[ -n "$REMOTE_TAG_SHA" ]] || {
     echo '[MuchoCore] ERROR: stable release tag could not be resolved.' >&2
     exit 1
 }
 
-if [[ "$CURRENT_SEMVER" == "$LATEST_SEMVER" && "$CURRENT_HEAD" == "$REMOTE_TAG_SHA" ]]; then
-    echo "[MuchoCore] Already on the latest stable release: v$CURRENT_SEMVER."
-    exit 0
+# Update channel:
+#   auto   - stable installations follow the latest release; development
+#            installations (VERSION newer than the latest release) follow main.
+#   stable - always update to the latest published release.
+#   main   - always update to origin/main.
+UPDATE_CHANNEL="${MUCHO_UPDATE_CHANNEL:-auto}"
+case "$UPDATE_CHANNEL" in
+    auto|stable|main) ;;
+    *)
+        echo "[MuchoCore] ERROR: MUCHO_UPDATE_CHANNEL must be auto, stable, or main." >&2
+        exit 1
+        ;;
+esac
+
+TARGET_REF="$LATEST_TAG"
+TARGET_LABEL="v$LATEST_SEMVER"
+TARGET_SHA="$REMOTE_TAG_SHA"
+TARGET_KIND="stable"
+
+if [[ "$UPDATE_CHANNEL" == "main" ]] ||
+   [[ "$UPDATE_CHANNEL" == "auto" && "$(version_gt "$CURRENT_SEMVER" "$LATEST_SEMVER" && printf '1' || true)" == "1" ]]; then
+
+    git fetch origin "refs/heads/main:refs/remotes/origin/main"
+
+    TARGET_REF="origin/main"
+    TARGET_LABEL="main"
+    TARGET_KIND="development"
+    TARGET_SHA="$(git rev-parse origin/main)"
+
+    if [[ "$CURRENT_HEAD" == "$TARGET_SHA" ]]; then
+        echo '[MuchoCore] Already on the latest development source: origin/main.'
+        exit 0
+    fi
+else
+    if [[ "$CURRENT_SEMVER" == "$LATEST_SEMVER" && "$CURRENT_HEAD" == "$REMOTE_TAG_SHA" ]]; then
+        echo "[MuchoCore] Already on the latest stable release: v$CURRENT_SEMVER."
+        exit 0
+    fi
 fi
 
-echo "[MuchoCore] Updating core: v$CURRENT_SEMVER -> v$LATEST_SEMVER"
+if [[ "$TARGET_KIND" == "development" ]]; then
+    echo "[MuchoCore] Updating development core: v$CURRENT_SEMVER -> $TARGET_LABEL"
+else
+    echo "[MuchoCore] Updating stable core: v$CURRENT_SEMVER -> $TARGET_LABEL"
+fi
 
 # Preserve the previous source tree until the new containers build successfully.
 ORIGINAL_HEAD="$(git rev-parse HEAD)"
@@ -173,7 +240,7 @@ rollback_source_tree() {
         return 0
     fi
 
-    echo '[MuchoCore] New release build did not complete; restoring the previous source tree...'
+    echo '[MuchoCore] New source build did not complete; restoring the previous source tree...'
     if git reset --hard "$ORIGINAL_HEAD"; then
         UPDATE_SOURCE_SWITCHED=0
         echo '[MuchoCore] Previous source tree restored.'
@@ -191,13 +258,27 @@ handle_update_interrupt() {
 trap handle_update_interrupt INT TERM
 
 # Older releases could leave the installation as a shallow clone. Expand it
-# before the ancestry check so valid release upgrades are not rejected.
+# before the ancestry check so valid source upgrades are not rejected.
 if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
-    echo "[MuchoCore] Expanding shallow Git history before release validation..."
+    echo "[MuchoCore] Expanding shallow Git history before source validation..."
     git fetch --unshallow origin
 fi
 
-git fetch origin "refs/tags/$LATEST_TAG:refs/tags/$LATEST_TAG"
+if ! git merge-base --is-ancestor "$CURRENT_HEAD" "$TARGET_REF^{commit}"; then
+    if [[ "$UPDATE_CHANNEL" == "main" ]]; then
+        echo '[MuchoCore] ERROR: development source line is not a descendant of the installed source tree.' >&2
+        echo '[MuchoCore] Refusing the development rebase. Set MUCHO_ALLOW_RELEASE_REBASE=1 only for an intentional source-line transition.' >&2
+        exit 1
+    fi
+
+    if [[ "${MUCHO_ALLOW_RELEASE_REBASE:-0}" != "1" ]]; then
+        echo "[MuchoCore] ERROR: $TARGET_LABEL is not a descendant of the installed source tree." >&2
+        echo '[MuchoCore] Refusing the source-line rebase. Set MUCHO_ALLOW_RELEASE_REBASE=1 only for an intentional source-line transition.' >&2
+        exit 1
+    fi
+}
+
+git reset --hard "$TARGET_REF"
 
 if ! git merge-base --is-ancestor "$CURRENT_HEAD" "$LATEST_TAG^{commit}"; then
     if [[ "${MUCHO_ALLOW_RELEASE_REBASE:-0}" != "1" ]]; then
