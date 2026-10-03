@@ -15,7 +15,7 @@ foreach ([
     [$pack, "'client-pack.json'", 'ZIP contains public manifest'],
     [$pack, "'files' => [", 'public manifest uses file inventory'],
     [$deploy, '!in_array($kind, [\'windows\', \'android\', \'zip\'], true)', 'deploy API accepts ZIP downloads'],
-    [$deploy, "'kind=zip'", 'deploy API publishes ZIP download URL'],
+    [$deploy, "&kind=zip", 'deploy API publishes ZIP download URL'],
     [$deploy, "application/zip", 'deploy API streams ZIP with correct media type'],
     [$console, 'Client Pack (.zip)', 'deployment console exposes unified ZIP download'],
     [$console, 'Individual downloads are also available.', 'deployment console keeps individual client downloads'],
