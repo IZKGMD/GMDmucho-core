@@ -199,8 +199,19 @@ start.onclick=async()=>{
   admin_password_confirm:$('adminPasswordConfirm').value
  };
  try{
-  const r=await fetch('/api/deploy/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'Could not start deployment');
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),20000);
+  let r;
+  try{
+    r=await fetch('/api/deploy/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal});
+  }catch(e){
+    if(e?.name==='AbortError') throw new Error('Deployment start timed out. Please try again.');
+    throw new Error('Could not reach the deployment service.');
+  }finally{
+    clearTimeout(timeout);
+  }
+  const d=await r.json().catch(()=>({ok:false,error:'Invalid deployment service response.'}));
+  if(!r.ok||!d.ok)throw new Error(d.error||'Could not start deployment');
   if(d.admin_password){sessionStorage.setItem('muchodeployadminpassword',d.admin_password);sessionStorage.setItem('muchodeployadminuser',d.admin_user||'admin')}else{sessionStorage.removeItem('muchodeployadminpassword');sessionStorage.setItem('muchodeployadminuser',d.admin_user||'admin')}
   clearDraft();window.location.assign('/install/shared/go/?job='+encodeURIComponent(d.job_id));
  }catch(e){start.disabled=false;start.textContent='Start automatic deployment →';alert(e.message)}
