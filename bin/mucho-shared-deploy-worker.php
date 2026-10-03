@@ -83,11 +83,22 @@ function upload_client_pack_to_shared(
     $serverUrl = rtrim((string)$config['account_url'], '/');
     $serverName = (string)($config['gdps_name'] ?? 'Mucho GDPS');
 
+    $heartbeat = static function () use ($jobDir): void {
+        $statusFile = $jobDir . '/status.json';
+        if (!is_file($statusFile)) {
+            return;
+        }
+        $status = read_json_file($statusFile);
+        $status['heartbeat_at'] = gmdate('c');
+        write_status($statusFile, $status);
+    };
+
     $manifest = \MuchoCore\Client\DeploymentClientPack::prepare(
         $rootDir,
         $jobDir,
         $serverUrl,
-        $serverName
+        $serverName,
+        $heartbeat
     );
 
     [$ftp, $usedSecurity, $usedPort] = ftp_open_authenticated($config, $ftpPassword, $logFile);
