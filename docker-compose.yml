@@ -88,6 +88,7 @@ services:
       MUCHO_WEBHOOK_URL: ${MUCHO_WEBHOOK_URL:-}
       MUCHO_WEBHOOK_SECRET: ${MUCHO_WEBHOOK_SECRET:-}
       MUCHO_WEBHOOK_EVENTS: ${MUCHO_WEBHOOK_EVENTS:-*}
+      MUCHO_SHARED_DEPLOY_SOURCE: ${MUCHO_SHARED_DEPLOY_SOURCE:-working-tree}
     secrets:
       - db_password
     volumes:
