@@ -726,7 +726,7 @@ final class AndroidClientPatcher
             if ($replaced > 0 && strlen($encoded) <= strlen($raw)) {
                 $data = substr_replace(
                     $data,
-                    $encoded . str_repeat("\\0", strlen($raw) - strlen($encoded)),
+                    $encoded . str_repeat("\0", strlen($raw) - strlen($encoded)),
                     $offset,
                     strlen($raw)
                 );
