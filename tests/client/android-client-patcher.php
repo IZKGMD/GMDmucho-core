@@ -132,7 +132,7 @@ try {
 
     $native = $check->getFromName('lib/arm64-v8a/libcocos2dcpp.so');
 
-    $expectedHttp = 'http://gdps-example.com/a/api/api';
+    $expectedHttp = 'https://gdps-example.com/a/api/api';
     $expectedHttps = 'https://gdps-example.com/a/api/api';
 
     if (
