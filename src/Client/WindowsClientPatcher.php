@@ -275,19 +275,34 @@ final class WindowsClientPatcher
                 continue;
             }
 
-            foreach ([
-                [$oldHost, $targetHost, 'Known host'],
-                [self::asciiToUtf16Le($oldHost), self::asciiToUtf16Le($targetHost), 'Known host [UTF-16]'],
-                [base64_encode($oldHost), base64_encode($targetHost), 'Known host [Base64]'],
-            ] as [$old, $new, $label]) {
-                $count = substr_count($data, $old);
-                if ($count <= 0) {
-                    continue;
-                }
+            $count = self::replaceNullTerminatedUrlHost(
+                $data,
+                $oldHost,
+                $targetHost
+            );
+            if ($count > 0) {
+                $stats['Known host ' . $oldHost] =
+                    ($stats['Known host ' . $oldHost] ?? 0) + $count;
+            }
 
-                $data = str_replace($old, $new, $data);
-                $key = $label . ' ' . $oldHost;
-                $stats[$key] = ($stats[$key] ?? 0) + $count;
+            $count = self::replaceNullTerminatedUtf16Host(
+                $data,
+                $oldHost,
+                $targetHost
+            );
+            if ($count > 0) {
+                $stats['Known host [UTF-16] ' . $oldHost] =
+                    ($stats['Known host [UTF-16] ' . $oldHost] ?? 0) + $count;
+            }
+
+            $count = self::replaceBase64EmbeddedHost(
+                $data,
+                $oldHost,
+                $targetHost
+            );
+            if ($count > 0) {
+                $stats['Known host [Base64] ' . $oldHost] =
+                    ($stats['Known host [Base64] ' . $oldHost] ?? 0) + $count;
             }
         }
 
@@ -306,6 +321,132 @@ final class WindowsClientPatcher
         if (@file_put_contents($path, $data, LOCK_EX) === false) {
             throw new RuntimeException('Cannot write the patched executable after embedded-host patching.');
         }
+    }
+
+    private static function replaceNullTerminatedUrlHost(
+        string &$data,
+        string $oldHost,
+        string $newHost
+    ): int {
+        $count = 0;
+        $offset = 0;
+
+        while (($position = strpos($data, $oldHost, $offset)) !== false) {
+            $start = strrpos(substr($data, 0, $position), " ");
+            $start = $start === false ? 0 : $start + 1;
+            $end = strpos($data, " ", $position);
+
+            if ($end === false) {
+                $end = strlen($data);
+            }
+
+            $prefix = substr($data, $start, $position - $start);
+            if (!str_ends_with($prefix, 'http://') && !str_ends_with($prefix, 'https://')) {
+                $offset = $position + strlen($oldHost);
+                continue;
+            }
+
+            $url = substr($data, $start, $end - $start);
+            $patched = substr_replace($url, $newHost, $position - $start, strlen($oldHost));
+            if (strlen($patched) > strlen($url)) {
+                $offset = $position + strlen($oldHost);
+                continue;
+            }
+
+            $patched .= str_repeat(" ", strlen($url) - strlen($patched));
+            $data = substr_replace($data, $patched, $start, $end - $start);
+            $count++;
+            $offset = $start + strlen($patched);
+        }
+
+        return $count;
+    }
+
+    private static function replaceNullTerminatedUtf16Host(
+        string &$data,
+        string $oldHost,
+        string $newHost
+    ): int {
+        $old = self::asciiToUtf16Le($oldHost);
+        $new = self::asciiToUtf16Le($newHost);
+        $zero = "  ";
+        $http = self::asciiToUtf16Le('http://');
+        $https = self::asciiToUtf16Le('https://');
+        $count = 0;
+        $offset = 0;
+
+        while (($position = strpos($data, $old, $offset)) !== false) {
+            $prefixStart = strrpos(substr($data, 0, $position), $zero);
+            $start = $prefixStart === false ? 0 : $prefixStart + 2;
+            $end = strpos($data, $zero, $position);
+
+            if ($end === false) {
+                $end = strlen($data);
+            }
+
+            $prefix = substr($data, $start, $position - $start);
+            if (!str_ends_with($prefix, $http) && !str_ends_with($prefix, $https)) {
+                $offset = $position + strlen($old);
+                continue;
+            }
+
+            $url = substr($data, $start, $end - $start);
+            $patched = substr_replace($url, $new, $position - $start, strlen($old));
+            if (strlen($patched) > strlen($url)) {
+                $offset = $position + strlen($old);
+                continue;
+            }
+
+            $patched .= str_repeat(" ", intdiv(strlen($url) - strlen($patched), 2) * 2);
+            $data = substr_replace($data, $patched, $start, $end - $start);
+            $count++;
+            $offset = $start + strlen($patched);
+        }
+
+        return $count;
+    }
+
+    private static function replaceBase64EmbeddedHost(
+        string &$data,
+        string $oldHost,
+        string $newHost
+    ): int {
+        $count = 0;
+        $cursor = 0;
+        $pattern = '/[A-Za-z0-9+/]{24,}={0,2}/';
+
+        while (preg_match($pattern, $data, $match, PREG_OFFSET_CAPTURE, $cursor) === 1) {
+            $raw = (string)$match[0][0];
+            $offset = (int)$match[0][1];
+            $decoded = base64_decode($raw, true);
+
+            if (
+                $decoded === false ||
+                (!str_starts_with($decoded, 'http://') && !str_starts_with($decoded, 'https://')) ||
+                !str_contains($decoded, $oldHost)
+            ) {
+                $cursor = $offset + strlen($raw);
+                continue;
+            }
+
+            $patchedDecoded = str_replace($oldHost, $newHost, $decoded, $replaced);
+            $encoded = base64_encode($patchedDecoded);
+
+            if ($replaced > 0 && strlen($encoded) <= strlen($raw)) {
+                $data = substr_replace(
+                    $data,
+                    $encoded . str_repeat(" ", strlen($raw) - strlen($encoded)),
+                    $offset,
+                    strlen($raw)
+                );
+                $count += $replaced;
+                $cursor = $offset + strlen($encoded);
+            } else {
+                $cursor = $offset + strlen($raw);
+            }
+        }
+
+        return $count;
     }
 
     private static function asciiToUtf16Le(string $value): string
