@@ -458,9 +458,9 @@ function local_shared_release(string $rootDir, string $destination): array
         throw new RuntimeException('The shared-hosting package builder is unavailable on the control server.');
     }
 
-    // Build into the container's temporary filesystem first. This avoids
-    // provider-specific/container-volume permission or visibility quirks when
-    // the child shell writes directly into the control-plane job directory.
+    // Build inside the bind-mounted control-plane source tree first. This
+    // avoids filesystem-visibility quirks when the child shell writes directly
+    // into the separate control-plane job volume.
     $builderOutput = $rootDir . '/.muchocore-shared-build-' . bin2hex(random_bytes(8)) . '.zip';
 
     $command = 'VERSION=' . escapeshellarg($version)
