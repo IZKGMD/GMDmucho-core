@@ -797,6 +797,7 @@ function create_browser_finalization_payload(
         'db_pass' => $dbPassword,
         'account_url' => rtrim((string)$config['account_url'], '/'),
         'gdps_name' => (string)($config['gdps_name'] ?? ''),
+        'admin_user' => (string)($config['admin_user'] ?? 'admin'),
         'admin_pass' => $adminPassword,
     ];
     $encoded = json_encode($payload, JSON_UNESCAPED_SLASHES);
@@ -1371,7 +1372,8 @@ try {
 
     log_line($logFile, "\n[MuchoGDPS] Shared-hosting deployment completed successfully.\n");
     log_line($logFile, "[MuchoGDPS] GDPS: " . rtrim((string)$config['account_url'], '/') . "\n");
-    log_line($logFile, "[MuchoGDPS] Admin: " . rtrim((string)$config['account_url'], '/') . "/admin/ (user: admin)\n");
+    log_line($logFile, "[MuchoGDPS] Admin: " . rtrim((string)$config['account_url'], '/') . "/admin/ (user: " . (string)($config['admin_user'] ?? 'admin') . ")\n");
+    log_line($logFile, "[MuchoGDPS] Player clients: " . rtrim((string)$config['account_url'], '/') . "/clients/\n");
 } catch (Throwable $e) {
     worker_state($statusFile, $logFile, 'Deployment failed');
     log_line($logFile, "\n[MuchoGDPS] ERROR: " . $e->getMessage() . "\n");
