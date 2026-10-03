@@ -449,7 +449,7 @@ function latest_release(): array {
 function local_shared_release(string $rootDir, string $destination): array
 {
     $version = trim((string)@file_get_contents($rootDir . '/VERSION'));
-    if (!preg_match('/^\\d+\\.\\d+\\.\\d+$/', $version)) {
+    if (!preg_match('/^\d+\.\d+\.\d+$/', $version)) {
         throw new RuntimeException('The control-plane VERSION file is not a stable semantic version.');
     }
 
@@ -458,17 +458,45 @@ function local_shared_release(string $rootDir, string $destination): array
         throw new RuntimeException('The shared-hosting package builder is unavailable on the control server.');
     }
 
-    $output = [];
-    $exit = 0;
     $command = 'VERSION=' . escapeshellarg($version)
         . ' OUTPUT=' . escapeshellarg($destination)
-        . ' bash ' . escapeshellarg($builder) . ' 2>&1';
-    @exec($command, $output, $exit);
+        . ' bash ' . escapeshellarg($builder);
+    $process = @proc_open(
+        $command,
+        [
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w'],
+        ],
+        $pipes
+    );
 
-    if ($exit !== 0 || !is_file($destination) || !is_readable($destination)) {
+    if (!is_resource($process)) {
+        throw new RuntimeException('Unable to start the shared-hosting package builder.');
+    }
+
+    fclose($pipes[0]);
+    $stdout = stream_get_contents($pipes[1]);
+    $stderr = stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    $exit = proc_close($process);
+
+    $output = trim(implode("\n", array_filter([
+        is_string($stdout) ? trim($stdout) : '',
+        is_string($stderr) ? trim($stderr) : '',
+    ], static fn(string $value): bool => $value !== '')));
+
+    if (
+        $exit !== 0 ||
+        !is_file($destination) ||
+        !is_readable($destination) ||
+        (int)(@filesize($destination) ?: 0) < 1024
+    ) {
         throw new RuntimeException(
-            'Failed to build the shared-hosting package from the current control-plane source.'
-            . ($output !== [] ? ' ' . implode(' ', $output) : '')
+            'Failed to build the shared-hosting package from the current control-plane source '
+            . '(exit code ' . $exit . ').'
+            . ($output !== '' ? ' ' . $output : '')
         );
     }
 
