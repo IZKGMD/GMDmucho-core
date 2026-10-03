@@ -495,7 +495,7 @@ function local_shared_release(string $rootDir, string $destination): array
     $output = trim(implode("\n", array_filter([
         is_string($stdout) ? trim($stdout) : '',
         is_string($stderr) ? trim($stderr) : '',
-    ], static fn(string $value): bool => $value !== ''));
+    ], static fn(string $value): bool => $value !== '')));
 
     clearstatcache(true, $builderOutput);
     $builderExists = is_file($builderOutput);
