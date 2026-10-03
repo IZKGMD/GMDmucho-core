@@ -23,10 +23,21 @@ final readonly class MuchoProtect
      */
     private const NETWORK_FACTOR = 3;
 
-    /** @var array<string, array{limit:int, window:int, burst:int, burstWindow:int, identityLimit?:int, identityWindow?:int}> */
+    /** @var array<string, array{limit:int, window:int, burst:int, burstWindow:int, identityLimit?:int, identityWindow?:int, deviceLimit?:int, deviceWindow?:int}> */
     private const POLICIES = [
         '/logingjaccount' => ['limit' => 12, 'window' => 60, 'burst' => 5, 'burstWindow' => 10],
-        '/registergjaccount' => ['limit' => 6, 'window' => 300, 'burst' => 2, 'burstWindow' => 30],
+        // Registration is limited independently by source IP and the stable
+        // device identifier (UDID) supplied by Geometry Dash clients.
+        // UDID is not a true hardware fingerprint, so device throttling is
+        // deliberately a second layer rather than the only registration guard.
+        '/registergjaccount' => [
+            'limit' => 6,
+            'window' => 300,
+            'burst' => 2,
+            'burstWindow' => 30,
+            'deviceLimit' => 2,
+            'deviceWindow' => 86400,
+        ],
         '/backupgjaccount' => ['limit' => 12, 'window' => 60, 'burst' => 4, 'burstWindow' => 10],
         '/backupgjaccount20' => ['limit' => 12, 'window' => 60, 'burst' => 4, 'burstWindow' => 10],
         '/syncgjaccount' => ['limit' => 12, 'window' => 60, 'burst' => 4, 'burstWindow' => 10],
@@ -347,8 +358,27 @@ final readonly class MuchoProtect
 
         foreach ($identityKeys as $kind => $identityKey) {
             $identityRateKey = $kind . ':' . $identityKey . ':endpoint:' . $endpoint;
-            $identityLimit = $policy['identityLimit'] ?? $policy['limit'];
-            $identityWindow = $policy['identityWindow'] ?? $policy['window'];
+
+            if (
+                $kind === 'device' &&
+                isset($policy['deviceLimit'])
+            ) {
+                $identityLimit = $policy['deviceLimit'];
+                $identityWindow = $policy['deviceWindow'] ?? $policy['window'];
+            } else {
+                $identityLimit = $policy['identityLimit'] ?? $policy['limit'];
+                $identityWindow = $policy['identityWindow'] ?? $policy['window'];
+
+                // Registration has an explicit device budget only. Do not
+                // turn username/email into hidden registration quotas.
+                if (
+                    $endpoint === '/registergjaccount' &&
+                    !isset($policy['identityLimit'])
+                ) {
+                    continue;
+                }
+            }
+
             if (!$this->allow(
                 $identityRateKey,
                 $identityLimit,
