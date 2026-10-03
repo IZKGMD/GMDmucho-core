@@ -461,11 +461,7 @@ function local_shared_release(string $rootDir, string $destination): array
     // Build into the container's temporary filesystem first. This avoids
     // provider-specific/container-volume permission or visibility quirks when
     // the child shell writes directly into the control-plane job directory.
-    $builderOutput = @tempnam(sys_get_temp_dir(), 'muchocore-shared-');
-    if ($builderOutput === false) {
-        throw new RuntimeException('Unable to allocate a temporary path for the shared-hosting package.');
-    }
-    @unlink($builderOutput);
+    $builderOutput = $rootDir . '/.muchocore-shared-build-' . bin2hex(random_bytes(8)) . '.zip';
 
     $command = 'VERSION=' . escapeshellarg($version)
         . ' OUTPUT=' . escapeshellarg($builderOutput)
