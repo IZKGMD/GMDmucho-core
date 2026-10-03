@@ -50,6 +50,7 @@ if (is_file($installedMarker)) {
         <div class="ok">The shared-hosting installer has been completed and locked.</div>
         <p>For security, delete <code>public/shared-install.php</code> from your hosting account.</p>
         <p>Then open <code>/health</code> and <code>/admin/</code> to verify the installation.</p>
+        <p>Player downloads: <a href="/clients/">/clients/</a></p>
     </div></body>
     </html>
     <?php
@@ -146,6 +147,7 @@ if ($autoToken !== '') {
         'db_pass' => (string)($autoConfig['db_pass'] ?? ''),
         'account_url' => $configuredUrl,
         'gdps_name' => (string)($autoConfig['gdps_name'] ?? ''),
+        'admin_user' => (string)($autoConfig['admin_user'] ?? 'admin'),
         'admin_pass' => (string)($autoConfig['admin_pass'] ?? ''),
         'admin_pass2' => (string)($autoConfig['admin_pass'] ?? ''),
     ];
@@ -555,6 +557,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $autoConfig !== null) {
     $dbPass = (string)($_POST['db_pass'] ?? '');
     $accountUrl = rtrim(trim((string)($_POST['account_url'] ?? $defaultUrl)), '/');
     $gdpsName = trim((string)($_POST['gdps_name'] ?? ''));
+    $adminUser = trim((string)($_POST['admin_user'] ?? 'admin'));
     $adminPass = (string)($_POST['admin_pass'] ?? '');
     $adminPass2 = (string)($_POST['admin_pass2'] ?? '');
     if (!preg_match('/^[A-Za-z0-9._:-]+$/', $dbHost)) { $errors[] = 'Database host contains unsupported characters.'; }
@@ -564,7 +567,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $autoConfig !== null) {
     $parts = parse_url($accountUrl);
     $validAccountUrl = is_array($parts) && in_array(strtolower((string)($parts['scheme'] ?? '')), ['http','https'], true) && !empty($parts['host']) && empty($parts['user']) && empty($parts['pass']) && empty($parts['path']) && empty($parts['query']) && empty($parts['fragment']) && (filter_var($parts['host'], FILTER_VALIDATE_IP) !== false || filter_var($parts['host'], FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) !== false);
     if (!$validAccountUrl) { $errors[] = 'Server URL must be a full URL such as https://gdps.example.com with no /database path.'; }
-    if ($gdpsName === '' || mb_strlen($gdpsName, 'UTF-8') > 64 || preg_match('/[\x00-\x1F\x7F]/u', $gdpsName) === 1) { $errors[] = 'GDPS name must contain 1–64 characters and no control characters.'; }
+    if ($gdpsName === '' || mb_strlen($gdpsName, 'UTF-8') > 64 || preg_match('/[\x00-\x1F\x7F\x7F]/u', $gdpsName) === 1) { $errors[] = 'GDPS name must contain 1–64 characters and no control characters.'; }
+    if (!preg_match('/^[A-Za-z_][A-Za-z0-9_-]{0,31}$/', $adminUser)) { $errors[] = 'Admin username must be 1–32 characters, start with a letter or underscore, and contain only letters, numbers, underscores or hyphens.'; }
     if (!$isHttps) { $errors[] = 'Open the installer over HTTPS before entering database and administrator passwords.'; }
     if (strlen($adminPass) < 12) { $errors[] = 'Admin password must contain at least 12 characters.'; }
     if ($adminPass !== $adminPass2) { $errors[] = 'The two admin passwords do not match.'; }
@@ -647,7 +651,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $autoConfig !== null) {
             atomicWrite($envFile, $env, 0600);
             $adminHash = password_hash($adminPass, PASSWORD_DEFAULT);
             if (!is_string($adminHash) || $adminHash === '') { throw new RuntimeException('Unable to hash the administrator password.'); }
-            $bootstrap = "<?php\nreturn [\n    'username' => 'admin',\n    'password_hash' => " . var_export($adminHash,true) . ",\n];\n";
+            $bootstrap = "<?php\nreturn [\n    'username' => " . var_export($adminUser,true) . ","\n    'password_hash' => " . var_export($adminHash,true) . ",\n];\n";
             if ($hadExistingBootstrap) {
                 $bootstrapBackup = $bootstrapPath . '.before-shared-install-' . gmdate('Ymd-His') . '-' . bin2hex(random_bytes(4));
                 if (!copy($bootstrapPath, $bootstrapBackup)) { throw new RuntimeException('Could not back up the existing admin bootstrap file.'); }
@@ -662,7 +666,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $autoConfig !== null) {
             (new MuchoCoreBrandingBrandingService($pdo))->saveServerName($gdpsName);
             $pdo->exec('CREATE TABLE IF NOT EXISTS admin_users (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, username VARCHAR(64) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, role VARCHAR(32) NOT NULL DEFAULT \'admin\', totp_secret VARCHAR(64) NULL, access_key_hash VARCHAR(255) NULL, access_key_created_at TIMESTAMP NULL, is_active TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
             $adminStmt = $pdo->prepare('INSERT INTO admin_users (username,password_hash,role,is_active) VALUES (:username,:password_hash,"owner",1) ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash), role="owner", is_active=1');
-            $adminStmt->execute(['username'=>'admin','password_hash'=>$adminHash]);
+            $adminStmt->execute(['username'=>$adminUser,'password_hash'=>$adminHash]);
             verifyInstalledSchema($pdo);
             atomicWrite($installedMarker, 'MuchoCore shared-hosting installation completed: ' . gmdate('c') . PHP_EOL . 'Database server: ' . $version . PHP_EOL . 'Target database: ' . $dbName . PHP_EOL, 0600);
             $_SESSION['mucho_install_csrf'] = bin2hex(random_bytes(32));
@@ -875,6 +879,15 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
 
             <div class="grid">
                 <div>
+                    <label for="gdps_name">GDPS name</label>
+                    <input id="gdps_name" name="gdps_name" value="<?= e((string)($_POST['gdps_name'] ?? $gdpsName ?? '')) ?>" maxlength="64">
+                </div>
+                <div>
+                    <label for="admin_user">Admin username</label>
+                    <input id="admin_user" name="admin_user" value="<?= e((string)($_POST['admin_user'] ?? $adminUser ?? 'admin')) ?>" maxlength="32" pattern="[A-Za-z_][A-Za-z0-9_-]{0,31}" required>
+                    <small>1–32 characters. This is the username used at <code>/admin/</code>.</small>
+                </div>
+                <div>
                     <label for="admin_pass">Admin password</label>
                     <input id="admin_pass" type="password" name="admin_pass" minlength="12" required>
                     <small>At least 12 characters.</small>
@@ -887,7 +900,7 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
             </div>
 
             <div class="tip">
-                <strong>Admin username:</strong> <code>admin</code>
+                <strong>Admin account:</strong> choose the username and password you will use at <code>/admin/</code>.
             </div>
 
             <button class="button" type="submit" <?= $canInstall ? '' : 'disabled' ?>>
