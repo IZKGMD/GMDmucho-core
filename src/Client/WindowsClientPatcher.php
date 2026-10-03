@@ -16,9 +16,11 @@ final class WindowsClientPatcher
     ];
 
     private const KNOWN_HOSTS = [
+        'c92935bj.beget.tech',
         'www.boomlings.com',
         'boomlings.com',
-        'c92935bj.beget.tech',
+        'www.geometrydash.com',
+        'geometrydash.com',
         'www.gdserver.net',
         'gdserver.net',
         'muchogdps.space',
@@ -118,7 +120,11 @@ final class WindowsClientPatcher
             throw new RuntimeException('Patched executable size changed unexpectedly.');
         }
 
-        if (!self::fileContainsAny($outputPath, array_values($replacements))) {
+        self::patchKnownHostsInFile($outputPath, $server, $stats);
+
+        if (!self::fileContainsAny($outputPath, [
+            parse_url($server, PHP_URL_HOST) ?: '',
+        ])) {
             @unlink($outputPath);
             throw new RuntimeException('The target server hostname was not found in the patched executable.');
         }
@@ -245,6 +251,61 @@ final class WindowsClientPatcher
         }
 
         return $map;
+    }
+
+    private static function patchKnownHostsInFile(
+        string $path,
+        string $server,
+        array &$stats
+    ): void {
+        $parsed = parse_url($server);
+        if (!is_array($parsed) || !isset($parsed['host'])) {
+            return;
+        }
+
+        $targetHost = (string)$parsed['host'];
+
+        $data = @file_get_contents($path);
+        if (!is_string($data)) {
+            throw new RuntimeException('Cannot inspect patched executable for embedded server hosts.');
+        }
+
+        foreach (self::KNOWN_HOSTS as $oldHost) {
+            if ($oldHost === $targetHost || strlen($targetHost) > strlen($oldHost)) {
+                continue;
+            }
+
+            foreach ([
+                [$oldHost, $targetHost, 'Known host'],
+                [self::asciiToUtf16Le($oldHost), self::asciiToUtf16Le($targetHost), 'Known host [UTF-16]'],
+                [base64_encode($oldHost), base64_encode($targetHost), 'Known host [Base64]'],
+            ] as [$old, $new, $label]) {
+                $count = substr_count($data, $old);
+                if ($count <= 0) {
+                    continue;
+                }
+
+                $data = str_replace($old, $new, $data);
+                $key = $label . ' ' . $oldHost;
+                $stats[$key] = ($stats[$key] ?? 0) + $count;
+            }
+        }
+
+        $parsedPrefix = strtolower((string)$parsed['scheme']) . '://' . $targetHost;
+        $oldMalformed = $parsedPrefix . '/databas/checkIfServerOnline.php' . "\0\0";
+        $newMalformed = $parsedPrefix . '/database/checkIfServerOnline.php' . "\0";
+
+        $malformedCount = substr_count($data, $oldMalformed);
+        if ($malformedCount > 0) {
+            $data = str_replace($oldMalformed, $newMalformed, $data);
+            $stats['Repair malformed checkIfServerOnline path'] =
+                ($stats['Repair malformed checkIfServerOnline path'] ?? 0) +
+                $malformedCount;
+        }
+
+        if (@file_put_contents($path, $data, LOCK_EX) === false) {
+            throw new RuntimeException('Cannot write the patched executable after embedded-host patching.');
+        }
     }
 
     private static function asciiToUtf16Le(string $value): string
