@@ -124,7 +124,7 @@ foreach ([
     'AUTOSAVE_KEY',
     'restoreDraft',
     'sessionStorage',
-    'browser_finalization_return_url',
+    'browser_finalization_url',
 ] as $needle) {
     if (!str_contains($page, $needle)) {
         throw new RuntimeException('Shared FTP UI contract missing: ' . $needle);
