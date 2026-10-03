@@ -179,4 +179,8 @@ if (!str_contains($page, "window.location.assign('/install/shared/go/?job='+enco
 if (!str_contains($deploy, "function notify_browser_finalization") || !str_contains($deploy, "function_exists('curl_init')") || !str_contains($deploy, 'Browser finalization callback failed')) {
     throw new RuntimeException('Shared installer browser finalization must be non-fatal.');
 }
+
+if (!str_contains(file_get_contents($root . '/public/shared-install.php'), 'function shared_installer_fatal_guard') || !str_contains(file_get_contents($root . '/public/shared-install.php'), 'shared-install-errors.log')) {
+    throw new RuntimeException('Shared installer must record and surface PHP fatal diagnostics.');
+}
 echo "shared-hosting-ftp-deploy-contract: OK\n";
