@@ -78,6 +78,16 @@ jobs:
           }
           echo "sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
           git fetch origin "$RELEASE_SHA"
+          CURRENT_MAIN_SHA="$(git ls-remote origin "refs/heads/main" | awk 'NR == 1 {print $1}')"
+          [[ "$CURRENT_MAIN_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "ERROR: unable to resolve the current main branch SHA." >&2
+            exit 1
+          }
+          if [[ "$CURRENT_MAIN_SHA" != "$RELEASE_SHA" ]]; then
+            echo "ERROR: main advanced after the validated run ($RELEASE_SHA -> $CURRENT_MAIN_SHA)." >&2
+            echo "This release workflow will stop; the newer commit must pass Validate before it can be published." >&2
+            exit 1
+          fi
           git checkout --detach "$RELEASE_SHA"
 
       - name: Publish validated release
