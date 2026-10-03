@@ -175,4 +175,8 @@ if (!str_contains($page, "window.location.assign('/install/shared/go/?job='+enco
     throw new RuntimeException('Shared FTP UI must redirect to the live installation console after creating a job.');
 }
 
+
+if (!str_contains($deploy, "function notify_browser_finalization") || !str_contains($deploy, "function_exists('curl_init')") || !str_contains($deploy, 'Browser finalization callback failed')) {
+    throw new RuntimeException('Shared installer browser finalization must be non-fatal.');
+}
 echo "shared-hosting-ftp-deploy-contract: OK\n";
