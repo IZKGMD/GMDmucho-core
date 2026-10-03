@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/src/Core/Environment.php';
 require_once dirname(__DIR__, 2) . '/src/Http/ClientIp.php';
 require_once dirname(__DIR__, 2) . '/src/Compatibility/ClientVersion.php';
 require_once dirname(__DIR__, 2) . '/src/Http/Request.php';
