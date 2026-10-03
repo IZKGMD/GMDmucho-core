@@ -170,6 +170,21 @@ function upload_client_pack_to_shared(
 
             ftp_put_with_heartbeat($ftp, $entry['remote'], $entry['local'], $logFile);
 
+            $localSize = @filesize($entry['local']);
+            $remoteSize = @ftp_size($ftp, $entry['remote']);
+            if (is_int($localSize) && $localSize > 0 && $remoteSize >= 0 && $remoteSize !== $localSize) {
+                throw new RuntimeException(
+                    'Uploaded ' . $label . ' client size mismatch: local=' . $localSize . ', remote=' . $remoteSize . '.'
+                );
+            }
+
+            if ($remoteSize < 0) {
+                log_line(
+                    $logFile,
+                    '[MuchoGDPS] Remote size verification unavailable for ' . $entry['remote'] . '; FTP server did not report SIZE.\n'
+                );
+            }
+
             log_line(
                 $logFile,
                 '[MuchoGDPS] Uploaded tenant client ' . $entry['remote'] .
