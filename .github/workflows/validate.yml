@@ -88,6 +88,7 @@ jobs:
           php tests/application/admin-rbac-contract.php
           php tests/application/admin-client-rbac-contract.php
           php tests/application/migration-center-contract.php
+          php tests/application/vps-deployment-gateway-contract.php
           php tests/application/plugin-sdk-contract.php
           php tests/application/score-integrity-contract.php
           php tests/application/cvolton-db-import-contract.php
