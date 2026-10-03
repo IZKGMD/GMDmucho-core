@@ -308,7 +308,9 @@ if [[ -z "$SERVER_NAME" && -e /dev/tty ]]; then
 fi
 SERVER_NAME="${SERVER_NAME:-Mucho GDPS}"
 [[ "${#SERVER_NAME}" -le 64 ]] || fail "GDPS name must be 64 characters or fewer."
-[[ "$SERVER_NAME" != *
+if [[ "$SERVER_NAME" == *[[:cntrl:]]* ]]; then
+  fail "GDPS name cannot contain control characters."
+fi
 
 print_banner
 print_installer_intro
