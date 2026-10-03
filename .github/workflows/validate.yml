@@ -108,6 +108,7 @@ jobs:
           php tests/client/client-trace.php
           php tests/security/muchoprotect.php
           php tests/client/windows-client-patcher.php
+          php tests/client/windows-real-client.php
           php tests/client/android-client-patcher.php
           bash tests/client/client-auto-patch-contract.sh
 
