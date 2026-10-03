@@ -9,6 +9,8 @@ php -l bin/mucho-deploy-worker.php >/dev/null
 php -l bin/mucho-shared-deploy-worker.php >/dev/null
 
 grep -Fq "function deployment_session_job_ok(string \$jobId): bool" public/deploy.php
+grep -Fq "function deployment_start_lock" public/deploy.php
+grep -Fq "\$startLock = deployment_start_lock();" public/deploy.php
 grep -Fq "if (!deployment_session_job_ok(\$id))" public/deploy.php
 grep -Fq "if (\$gdpsName === '' || mb_strlen(\$gdpsName, 'UTF-8') > 64" public/deploy.php
 grep -Fq '"MUCHO_SERVER_NAME=" . shell_quote($gdpsName)' public/deploy.php
