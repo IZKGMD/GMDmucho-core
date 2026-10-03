@@ -731,7 +731,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $autoConfig !== null) {
             atomicWrite($envFile, $env, 0600);
             $adminHash = password_hash($adminPass, PASSWORD_DEFAULT);
             if (!is_string($adminHash) || $adminHash === '') { throw new RuntimeException('Unable to hash the administrator password.'); }
-            $bootstrap = "<?php\nreturn [\n    'username' => " . var_export($adminUser,true) . ","\n    'password_hash' => " . var_export($adminHash,true) . ",\n];\n";
+            $bootstrap = "<?php\nreturn [\n"
+                . "    'username' => " . var_export($adminUser, true) . ",\n"
+                . "    'password_hash' => " . var_export($adminHash, true) . ",\n"
+                . "];\n";
             if ($hadExistingBootstrap) {
                 $bootstrapBackup = $bootstrapPath . '.before-shared-install-' . gmdate('Ymd-His') . '-' . bin2hex(random_bytes(4));
                 if (!copy($bootstrapPath, $bootstrapBackup)) { throw new RuntimeException('Could not back up the existing admin bootstrap file.'); }
