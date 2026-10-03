@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+require __DIR__ . '/../../src/Core/Environment.php';
 require __DIR__ . '/../../src/Compatibility/ClientVersion.php';
 require __DIR__ . '/../../src/Compatibility/CompatibilityProfile.php';
 
