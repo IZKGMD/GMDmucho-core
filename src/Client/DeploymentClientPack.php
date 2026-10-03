@@ -34,7 +34,8 @@ final class DeploymentClientPack
         string $rootDir,
         string $jobDir,
         string $serverUrl,
-        string $serverName = ''
+        string $serverName = '',
+        ?callable $heartbeat = null
     ): array {
         $server = WindowsClientPatcher::validateServerUrl($serverUrl);
         $serverName = trim($serverName);
@@ -102,7 +103,8 @@ final class DeploymentClientPack
             $android = AndroidClientPatcher::patchFile(
                 $sourceApk,
                 $androidPath,
-                $server
+                $server,
+                $heartbeat
             );
 
             $createdAt = gmdate('c');
