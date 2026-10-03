@@ -132,15 +132,17 @@ try {
 
     $native = $check->getFromName('lib/arm64-v8a/libcocos2dcpp.so');
 
-    $expectedHttp = 'https://gdps-example.com/a/api/api';
     $expectedHttps = 'https://gdps-example.com/a/api/api';
 
     if (
         !is_string($native) ||
-        !str_contains($native, $expectedHttp) ||
         !str_contains($native, $expectedHttps)
     ) {
-        throw new RuntimeException('Patched server URL not found.');
+        throw new RuntimeException('Patched HTTPS server URL not found.');
+    }
+
+    if (str_contains($native, 'http://gdps-example.com')) {
+        throw new RuntimeException('Cleartext HTTP server URL remained in the Android client.');
     }
 
     if (
