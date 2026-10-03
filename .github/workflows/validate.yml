@@ -20,6 +20,11 @@ jobs:
       - name: Check shell scripts
         run: |
           bash -n install.sh
+          [[ "$(grep -c '^get_latest_stable_release_tag()' install.sh)" -eq 1 ]]
+          [[ "$(grep -c '^print_banner()' install.sh)" -eq 1 ]]
+          [[ "$(grep -c '^check_domain_preflight()' install.sh)" -eq 1 ]]
+          [[ "$(grep -c '^preflight()' install.sh)" -eq 1 ]]
+          ! grep -Fq "EOFOUT" <(sed -n '1,9999p' install.sh | sed -n '1,999p' | tail -n 1)
           bash tests/release/install-sh.sh
           bash tests/release/installer-dx.sh
           bash tests/release/release-deployment-tools.sh
