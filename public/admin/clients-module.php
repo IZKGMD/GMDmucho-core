@@ -29,6 +29,7 @@ function tenantClientDownload(string $rootDir): never
     $map = [
         'windows' => ['file' => 'GeometryDash-MuchoGDPS.exe', 'type' => 'application/vnd.microsoft.portable-executable'],
         'android' => ['file' => 'GeometryDash-MuchoGDPS.apk', 'type' => 'application/vnd.android.package-archive'],
+        'zip' => ['file' => 'MuchoGDPS-Client-Pack.zip', 'type' => 'application/zip'],
     ];
     if (!isset($map[$kind])) {
         http_response_code(404);
@@ -80,8 +81,11 @@ function renderTenantClientsPage(PDO $db): void
     $serverName = (string)($manifest['server_name'] ?? 'Your GDPS');
     $windowsPath = $storage . '/GeometryDash-MuchoGDPS.exe';
     $androidPath = $storage . '/GeometryDash-MuchoGDPS.apk';
+    $archivePath = $storage . '/MuchoGDPS-Client-Pack.zip';
     $windowsExists = is_file($windowsPath);
     $androidExists = is_file($androidPath);
+    $archiveExists = is_file($archivePath);
+    $archive = is_array($manifest['archive'] ?? null) ? $manifest['archive'] : [];
     ?>
 <style>
 .mc-tenant-clients{display:grid;gap:14px}.mc-client-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -124,6 +128,19 @@ function renderTenantClientsPage(PDO $db): void
 <?php endif; ?>
 </section>
 </div>
+</div>
+
+<?php if($archiveExists): ?>
+<section class="mc-client-card" style="margin-top:14px">
+<h3>📦 Unified Client Pack</h3>
+<p>One ZIP containing the Windows client, Android APK and checksum manifest.</p>
+<div class="mc-client-meta">
+<div>Size: <?=number_format(((int)($archive['size'] ?? filesize($archivePath)))/1048576,2)?> MB</div>
+<div>SHA-256: <code><?=h((string)($archive['sha256'] ?? hash_file('sha256',$archivePath)))?></code></div>
+</div>
+<div class="mc-client-actions"><a class="mc-client-btn primary" href="/admin/?page=clients&client_file=zip">⬇ Download Client Pack (.zip)</a></div>
+</section>
+<?php endif; ?>
 </div>
 <?php
 }
