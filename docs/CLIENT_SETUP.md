@@ -142,7 +142,7 @@ Real client compatibility is still verified by testing the actual client build. 
 
 ## Automatic deployment client pack
 
-The automatic VPS and shared-hosting deployment consoles can prepare both a Windows and an Android client for the newly installed GDPS.
+The automatic VPS deployment console can prepare both a Windows and an Android client for the newly installed GDPS.
 
 The control-plane server uses:
 
@@ -184,7 +184,7 @@ Then:
 4. Wait for the upload and patch to finish.
 5. Download `GeometryDash-MuchoCore.exe`.
 
-The web patcher uploads the executable in small chunks and performs a streaming PHP patch. It does not require Python, Docker, SSH, `exec()`, or a server-side native patching binary, which makes it suitable for many shared-hosting environments.
+The web patcher uploads the executable in small chunks and performs a streaming PHP patch. It does not require Python, Docker, SSH, `exec()`, or a server-side native patching binary.
 
 The web patcher accepts the server root only. Do not append `/database`; the patcher generates the client-compatible URL layout automatically.
 
