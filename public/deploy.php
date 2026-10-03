@@ -349,11 +349,11 @@ function handle_client_pack_request(string $root): never
         }
 
         header(
-            'Content-Type: ' . (
-                $kind === 'android'
-                    ? 'application/vnd.android.package-archive'
-                    : 'application/vnd.microsoft.portable-executable'
-            )
+            'Content-Type: ' . match ($kind) {
+                'android' => 'application/vnd.android.package-archive',
+                'zip' => 'application/zip',
+                default => 'application/vnd.microsoft.portable-executable',
+            }
         );
         header(
             'Content-Disposition: attachment; filename="' .
