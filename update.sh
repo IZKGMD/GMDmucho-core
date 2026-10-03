@@ -280,17 +280,6 @@ if ! git merge-base --is-ancestor "$CURRENT_HEAD" "$TARGET_REF^{commit}"; then
 
 git reset --hard "$TARGET_REF"
 
-if ! git merge-base --is-ancestor "$CURRENT_HEAD" "$LATEST_TAG^{commit}"; then
-    if [[ "${MUCHO_ALLOW_RELEASE_REBASE:-0}" != "1" ]]; then
-        echo "[MuchoCore] ERROR: latest stable release v$LATEST_SEMVER is not a descendant of the installed source tree." >&2
-        echo "[MuchoCore] Refusing the release-line rebase. Set MUCHO_ALLOW_RELEASE_REBASE=1 only for an intentional source-line transition." >&2
-        exit 1
-    fi
-fi
-
-git reset --hard "$LATEST_TAG"
-UPDATE_SOURCE_SWITCHED=1
-
 echo '[MuchoCore] Rebuilding containers...'
 if ! docker compose "${COMPOSE_ARGS[@]}" up -d --build --remove-orphans; then
     rollback_source_tree
