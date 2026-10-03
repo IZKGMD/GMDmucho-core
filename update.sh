@@ -186,8 +186,8 @@ REMOTE_TAG_SHA="$(git ls-remote origin "refs/tags/$LATEST_TAG" | awk 'NR == 1 {p
 }
 
 # Update channel:
-#   auto   - stable installations follow the latest release; development
-#            installations (VERSION newer than the latest release) follow main.
+#   auto   - exact version-tagged installations follow stable Releases;
+#            development checkouts follow origin/main.
 #   stable - always update to the latest published release.
 #   main   - always update to origin/main.
 UPDATE_CHANNEL="${MUCHO_UPDATE_CHANNEL:-auto}"
@@ -199,14 +199,18 @@ case "$UPDATE_CHANNEL" in
         ;;
 esac
 
-TARGET_REF="$LATEST_TAG"
-TARGET_LABEL="v$LATEST_SEMVER"
-TARGET_SHA="$REMOTE_TAG_SHA"
-TARGET_KIND="stable"
+# In auto mode, an exact semantic-version Git tag identifies a stable
+# installation. Everything else is treated as a development checkout.
+if [[ "$UPDATE_CHANNEL" == "auto" ]]; then
+    CURRENT_STABLE_TAG="$(git describe --exact-match --tags "$CURRENT_HEAD" 2>/dev/null || true)"
+    if [[ "$CURRENT_STABLE_TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        UPDATE_CHANNEL="stable"
+    else
+        UPDATE_CHANNEL="main"
+    fi
+fi
 
-if [[ "$UPDATE_CHANNEL" == "main" ]] ||
-   [[ "$UPDATE_CHANNEL" == "auto" && "$(version_gt "$CURRENT_SEMVER" "$LATEST_SEMVER" && printf '1' || true)" == "1" ]]; then
-
+if [[ "$UPDATE_CHANNEL" == "main" ]]; then
     git fetch origin "refs/heads/main:refs/remotes/origin/main"
 
     TARGET_REF="origin/main"
@@ -219,6 +223,11 @@ if [[ "$UPDATE_CHANNEL" == "main" ]] ||
         exit 0
     fi
 else
+    TARGET_REF="$LATEST_TAG"
+    TARGET_LABEL="v$LATEST_SEMVER"
+    TARGET_KIND="stable"
+    TARGET_SHA="$REMOTE_TAG_SHA"
+
     if [[ "$CURRENT_SEMVER" == "$LATEST_SEMVER" && "$CURRENT_HEAD" == "$REMOTE_TAG_SHA" ]]; then
         echo "[MuchoCore] Already on the latest stable release: v$CURRENT_SEMVER."
         exit 0
@@ -265,18 +274,17 @@ if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
 fi
 
 if ! git merge-base --is-ancestor "$CURRENT_HEAD" "$TARGET_REF^{commit}"; then
-    if [[ "$UPDATE_CHANNEL" == "main" ]]; then
-        echo '[MuchoCore] ERROR: development source line is not a descendant of the installed source tree.' >&2
-        echo '[MuchoCore] Refusing the development rebase. Set MUCHO_ALLOW_RELEASE_REBASE=1 only for an intentional source-line transition.' >&2
-        exit 1
-    fi
-
     if [[ "${MUCHO_ALLOW_RELEASE_REBASE:-0}" != "1" ]]; then
-        echo "[MuchoCore] ERROR: $TARGET_LABEL is not a descendant of the installed source tree." >&2
-        echo '[MuchoCore] Refusing the source-line rebase. Set MUCHO_ALLOW_RELEASE_REBASE=1 only for an intentional source-line transition.' >&2
+        if [[ "$TARGET_KIND" == "development" ]]; then
+            echo "[MuchoCore] ERROR: origin/main is not a descendant of the installed source tree." >&2
+            echo '[MuchoCore] Refusing the development source-line transition. Set MUCHO_ALLOW_RELEASE_REBASE=1 only for an intentional source-line transition.' >&2
+        else
+            echo "[MuchoCore] ERROR: latest stable release v$LATEST_SEMVER is not a descendant of the installed source tree." >&2
+            echo "[MuchoCore] Refusing the release-line rebase. Set MUCHO_ALLOW_RELEASE_REBASE=1 only for an intentional source-line transition." >&2
+        fi
         exit 1
     fi
-}
+fi
 
 git reset --hard "$TARGET_REF"
 
