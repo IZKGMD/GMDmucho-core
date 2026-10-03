@@ -32,6 +32,23 @@
 - updated the shared Migration Center and CLI to report and execute the selected adapter instead of hardcoding the Cvolton importer;
 - added a CI regression contract for the migration adapter architecture.
 
+
+### Client Distribution & Tenant Operations
+
+- added a unified **MuchoGDPS Client Pack** containing patched Windows and Android clients plus a public checksum manifest;
+- added verified ZIP generation with archive size and SHA-256 metadata, protected by per-job locking and server-URL-aware reuse;
+- exposed the verified client pack from the deployment console with download metadata and integrity information;
+- uploaded the generated client pack into each deployed tenant's `/storage/clients` directory alongside the individual clients;
+- added tenant Admin Panel support for downloading and inspecting the deployed Client Pack;
+- expanded deployment and Admin client-pack regression coverage across the generated archive, tenant storage and download flow;
+- documented the unified client distribution flow.
+
+### Registration Anti-Spam
+
+- added an independent device/UDID registration budget on top of the existing IP and network protections;
+- limit new registrations to two attempts per device identifier within 24 hours while preserving the wider shared-NAT safeguards;
+- document the registration anti-spam model and its limits, including the distinction between a client-provided UDID and a true hardware fingerprint.
+
 ### Foundation for the 1.1.0 Control Plane
 
 - started the dedicated `release/1.1.0` branch and release tracking;
