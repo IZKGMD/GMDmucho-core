@@ -29,7 +29,7 @@ foreach ([
 
 if (
     !str_contains($pack, "'files' => [") ||
-    !str_contains($pack, "'path' => $windowsPath")
+    !str_contains($pack, '$windowsPath')
 ) {
     fwrite(STDERR, "Contract failed: public ZIP manifest is missing the expected inventory/path separation
 ");
