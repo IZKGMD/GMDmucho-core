@@ -42,11 +42,14 @@ final readonly class CompatibilityProfile
 
     public static function fromEnvironment(): self
     {
-        $raw = trim(
-            (string)(
-                Environment::get('MUCHO_GD_VERSIONS', 'all')
-            )
+        return self::fromValue(
+            (string)Environment::get('MUCHO_GD_VERSIONS', 'all')
         );
+    }
+
+    public static function fromValue(string $raw): self
+    {
+        $raw = trim($raw);
 
         if ($raw === '' || strtolower($raw) === 'all') {
             return new self(array_keys(self::SUPPORTED));
