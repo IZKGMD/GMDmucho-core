@@ -614,6 +614,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         $dbName = trim((string)($data['db_name'] ?? ''));
         $dbUser = trim((string)($data['db_user'] ?? ''));
         $dbPassword = (string)($data['db_password'] ?? '');
+        $adminUser = trim((string)($data['admin_user'] ?? 'admin'));
         $adminPassword = (string)($data['admin_password'] ?? '');
         $adminPasswordConfirm = (string)($data['admin_password_confirm'] ?? '');
 
@@ -653,6 +654,9 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         if ($dbPassword === '') {
             json_response(['ok' => false, 'error' => 'Enter the database password.'], 422);
         }
+        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_-]{0,31}$/', $adminUser)) {
+            json_response(['ok' => false, 'error' => 'Invalid MuchoCore admin username. Use 1–32 letters, numbers, underscores or hyphens, starting with a letter or underscore.'], 422);
+        }
 
         $generatedAdminPassword = false;
         if ($adminPassword === '') {
@@ -686,7 +690,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
             'ftp_security' => $ftpSecurity,
             'ftp_path' => $ftpPath,
             'domain' => $accountHost,
-            'admin_user' => 'admin',
+            'admin_user' => $adminUser,
             'generated_admin_password' => $generatedAdminPassword,
             'exit_code' => null,
         ];
@@ -705,7 +709,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
             'db_port' => $dbPort,
             'db_name' => $dbName,
             'db_user' => $dbUser,
-            'admin_user' => 'admin',
+            'admin_user' => $adminUser,
         ];
         write_json($dir . '/shared_config', $config);
         file_put_contents($dir . '/shared_db_password', $dbPassword, LOCK_EX);
@@ -778,7 +782,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
             'job_id' => $id,
             'status' => $queueFull ? 'queued' : 'running',
             'queue_position' => $queueFull ? $queuePosition : 0,
-            'admin_user' => 'admin',
+            'admin_user' => $adminUser,
             'admin_password' => $generatedAdminPassword ? $adminPassword : null,
         ], 201);
     }
