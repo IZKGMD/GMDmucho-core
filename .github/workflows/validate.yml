@@ -34,6 +34,7 @@ jobs:
           bash -n docker/app-entrypoint.sh
           php tests/application/worker-entrypoint-contract.php
           php tests/application/content-pack-maker-contract.php
+          php tests/application/deployment-client-pack-contract.php
           ! grep -nE '\\\$[0-9]+' install.sh
           bash -n uninstall.sh
           bash -n tools/migration/mucho-migrate.sh
