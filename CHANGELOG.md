@@ -43,6 +43,16 @@
 - expanded deployment and Admin client-pack regression coverage across the generated archive, tenant storage and download flow;
 - documented the unified client distribution flow.
 
+### Auto Patch 2.0
+
+- expanded Windows and Android patching to embedded Geometry Dash host fields in ASCII, UTF-16 and Base64 representations;
+- added support for legacy Geometry Dash and deployment host variants beyond the primary Boomlings database URLs;
+- repaired the legacy `databas/checkIfServerOnline.php` path during patching when the binary contains the known padded form;
+- added persistent `sudo mucho client-patch` repatching for existing VPS installations;
+- automatically repatch clients after operator domain changes and after core updates;
+- added SHA-256 source/client integrity metadata and a versioned patch-engine marker to generated client manifests;
+- added CI coverage for the Auto Patch 2.0 wiring and source integrity safeguards.
+
 ### Registration Anti-Spam
 
 - added an independent device/UDID registration budget on top of the existing IP and network protections;
