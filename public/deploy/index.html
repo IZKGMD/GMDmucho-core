@@ -69,7 +69,7 @@ main{padding:42px 0 70px}.eyebrow{display:inline-flex;gap:7px;align-items:center
 const $=id=>document.getElementById(id),terminal=$('terminal'),state=$('state'),start=$('start');
 
 const AUTOSAVE_KEY='muchogdps_vps_deploy_draft_v1';
-const autosaveFields=['gdpsName','host','port','user','key','domain','adminUser','adminPassword'];
+const autosaveFields=['gdpsName','host','port','user','domain','adminUser'];
 function saveDraft(){
   const data={};
   for(const id of autosaveFields){const el=$(id);if(el)data[id]=el.value}
