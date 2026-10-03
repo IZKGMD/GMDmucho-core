@@ -124,8 +124,7 @@ foreach ([
     'AUTOSAVE_KEY',
     'restoreDraft',
     'sessionStorage',
-    'browser_finalization_url',
-] as $needle) {
+ ] as $needle) {
     if (!str_contains($page, $needle)) {
         throw new RuntimeException('Shared FTP UI contract missing: ' . $needle);
     }
@@ -136,10 +135,10 @@ foreach ([
     "mucho-shared-deploy-worker.php",
     "Copy logs",
     "muchodeployadminpassword",
-    "Every message written by the shared-hosting FTP worker",
+    "Logs are read from the deployment job over HTTPS.",
     "Live installation console",
-    "Finishing in browser",
     "Continue installation in browser",
+    "FTP upload and browser finalization completed successfully",
     "browser_finalization_url",
     "browser_finish",
     "/api/deploy/browser-finish",
