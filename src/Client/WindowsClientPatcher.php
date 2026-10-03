@@ -369,7 +369,7 @@ final class WindowsClientPatcher
     ): int {
         $old = self::asciiToUtf16Le($oldHost);
         $new = self::asciiToUtf16Le($newHost);
-        $zero = "\\0\\0";
+        $zero = "\0\0";
         $http = self::asciiToUtf16Le('http://');
         $https = self::asciiToUtf16Le('https://');
         $count = 0;
@@ -397,7 +397,7 @@ final class WindowsClientPatcher
                 continue;
             }
 
-            $patched .= str_repeat("\\0", intdiv(strlen($url) - strlen($patched), 2) * 2);
+            $patched .= str_repeat("\0", intdiv(strlen($url) - strlen($patched), 2) * 2);
             $data = substr_replace($data, $patched, $start, $end - $start);
             $count++;
             $offset = $start + strlen($patched);
@@ -435,7 +435,7 @@ final class WindowsClientPatcher
             if ($replaced > 0 && strlen($encoded) <= strlen($raw)) {
                 $data = substr_replace(
                     $data,
-                    $encoded . str_repeat("\\0", strlen($raw) - strlen($encoded)),
+                    $encoded . str_repeat("\0", strlen($raw) - strlen($encoded)),
                     $offset,
                     strlen($raw)
                 );
