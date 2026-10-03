@@ -8,5 +8,8 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [END]
 
+# Permanent patched client downloads for players.
+RewriteRule ^clients/?$ clients.php [END]
+
 # All Geometry Dash compatibility routes go through the front controller.
 RewriteRule ^ index.php [QSA,END]
