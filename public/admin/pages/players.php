@@ -133,10 +133,43 @@ foreach([
  type="password"
  name="new_password"
  placeholder="New password"
+ autocomplete="new-password"
+ required
+>
+
+<input
+ type="password"
+ name="new_password_confirm"
+ placeholder="Confirm new password"
+ autocomplete="new-password"
+ required
 >
 
 <button class="gray">Change password</button>
 </form>
+
+<script>
+(() => {
+    document.querySelectorAll('form').forEach(form => {
+        const password = form.querySelector('input[name="new_password"]');
+        const confirm = form.querySelector('input[name="new_password_confirm"]');
+
+        if (!password || !confirm) return;
+
+        const validate = () => {
+            confirm.setCustomValidity(
+                confirm.value !== '' && password.value !== confirm.value
+                    ? 'Passwords do not match.'
+                    : ''
+            );
+        };
+
+        password.addEventListener('input', validate);
+        confirm.addEventListener('input', validate);
+        form.addEventListener('submit', validate);
+    });
+})();
+</script>
 
 <?php if(rank(admin()['role'])>=40): ?>
 <form
