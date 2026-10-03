@@ -88,7 +88,6 @@ jobs:
           php tests/application/admin-rbac-contract.php
           php tests/application/admin-client-rbac-contract.php
           php tests/application/migration-center-contract.php
-          php tests/application/shared-hosting-installer-contract.php
           php tests/application/plugin-sdk-contract.php
           php tests/application/score-integrity-contract.php
           php tests/application/cvolton-db-import-contract.php
@@ -111,26 +110,6 @@ jobs:
           php tests/client/windows-real-client.php
           php tests/client/android-client-patcher.php
           bash tests/client/client-auto-patch-contract.sh
-
-      - name: Check shared-hosting package
-        run: |
-          composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
-          bash -n tools/release/build-shared-hosting.sh
-          php -l public/shared-install.php
-          php -l public/ftp-install.php
-          php -l bin/mucho-shared-deploy-worker.php
-          php tests/application/shared-hosting-installer-contract.php
-          php tests/application/shared-hosting-ftp-bootstrap-contract.php
-          php tests/application/shared-hosting-ftp-deploy-contract.php
-          mkdir -p /tmp/muchocore-shared-package-test
-          OUTPUT=/tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             bash tools/release/build-shared-hosting.sh
-          unzip -t /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip >/dev/null
-          OUTPUT=MuchoCore-relative-output-test.zip bash tools/release/build-shared-hosting.sh
-          test -s MuchoCore-relative-output-test.zip
-          rm -f MuchoCore-relative-output-test.zip
-          unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/public/shared-install.php'
-          unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/public/ftp-install.php'
-          unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/vendor/autoload.php'
 
       - name: Check Python patcher
         run: |
@@ -194,18 +173,10 @@ jobs:
           grep -q 'MUCHO_TRUSTED_PROXY_CIDRS' .env.example
           test -f tools/migration/mucho-migrate.sh
           test -x tools/migration/mucho-migrate.sh
-          grep -Fq 'name: Build shared-hosting package' .github/workflows/release-stable.yml
-          grep -Fq 'name: Upload shared-hosting package' .github/workflows/release-stable.yml
-          [[ "$(grep -Fc 'name: Build shared-hosting package' .github/workflows/release-stable.yml)" -eq 1 ]]
-          [[ "$(grep -Fc 'name: Upload shared-hosting package' .github/workflows/release-stable.yml)" -eq 1 ]]
           grep -Fq 'OUTPUT: MuchoCore-v' .github/workflows/release-stable.yml
-          grep -Fq '-shared-hosting.zip' .github/workflows/release-stable.yml
           test -f tests/release/migration-kit.sh
           test -f tests/release/install-sh.sh
-          test -f public/ftp-install.php
-          test -f public/install/shared/index.html
           test -f public/install/vps/index.html
-          test -f docs/SHARED_HOSTING.md
           grep -Fq 'auto_https disable_redirects' docker/Caddyfile
           grep -Fq 'The game API remains available over HTTP' docker/Caddyfile
           grep -Fq '80:80' docker-compose.yml
@@ -298,9 +269,6 @@ jobs:
         run: |
           grep -q "http://caddy" public/admin/index.php
           ! grep -q "http://127.0.0.1" public/admin/index.php
-
-      - name: Check Apache shared-hosting routing
-        run: bash tests/integration/apache-routing.sh
 
       - name: Check hardened audit surfaces
         run: |
