@@ -446,6 +446,46 @@ function latest_release(): array {
     throw new RuntimeException('Release ' . $tag . ' does not contain ' . $name . '.');
 }
 
+function local_shared_release(string $rootDir, string $destination): array
+{
+    $version = trim((string)@file_get_contents($rootDir . '/VERSION'));
+    if (!preg_match('/^\\d+\\.\\d+\\.\\d+$/', $version)) {
+        throw new RuntimeException('The control-plane VERSION file is not a stable semantic version.');
+    }
+
+    $builder = $rootDir . '/tools/release/build-shared-hosting.sh';
+    if (!is_file($builder) || !is_executable($builder)) {
+        throw new RuntimeException('The shared-hosting package builder is unavailable on the control server.');
+    }
+
+    $output = [];
+    $exit = 0;
+    $command = 'VERSION=' . escapeshellarg($version)
+        . ' OUTPUT=' . escapeshellarg($destination)
+        . ' bash ' . escapeshellarg($builder) . ' 2>&1';
+    @exec($command, $output, $exit);
+
+    if ($exit !== 0 || !is_file($destination) || !is_readable($destination)) {
+        throw new RuntimeException(
+            'Failed to build the shared-hosting package from the current control-plane source.'
+            . ($output !== [] ? ' ' . implode(' ', $output) : '')
+        );
+    }
+
+    $sha256 = hash_file('sha256', $destination);
+    if (!is_string($sha256) || $sha256 === '') {
+        throw new RuntimeException('Could not calculate the local shared-hosting package SHA-256.');
+    }
+
+    return [
+        'tag' => 'working-tree',
+        'version' => $version,
+        'name' => 'MuchoCore-v' . $version . '-shared-hosting.zip',
+        'url' => '',
+        'sha256' => strtolower($sha256),
+    ];
+}
+
 function download_release(string $url, string $destination): int {
     $handle = @fopen($destination, 'wb');
     if ($handle === false) {
@@ -1052,22 +1092,34 @@ try {
     write_status($statusFile, $status);
 
     log_line($logFile, "[MuchoGDPS] Worker started. Watchdog: 60s without heartbeat.\n");
-    worker_state($statusFile, $logFile, 'Fetching stable release metadata from GitHub');
-    log_line($logFile, "[MuchoGDPS] Fetching latest stable release metadata from GitHub...\n");
-    $release = latest_release();
-    log_line($logFile, "[MuchoGDPS] Stable release: {$release['tag']}\n");
-    log_line($logFile, "[MuchoGDPS] Package: {$release['name']}\n");
-
     $archive = $dir . '/shared_archive';
-    worker_state($statusFile, $logFile, 'Downloading the verified release package');
-    log_line($logFile, "[MuchoGDPS] Downloading {$release['name']} from GitHub...\n");
-    $bytes = download_release($release['url'], $archive);
-    worker_state($statusFile, $logFile, 'Verifying release SHA-256');
-    $actual = hash_file('sha256', $archive);
-    if (!is_string($actual) || !hash_equals($release['sha256'], strtolower($actual))) {
-        throw new RuntimeException('Release SHA-256 verification failed. The package was not uploaded.');
+    $sourceMode = strtolower(trim((string)(getenv('MUCHO_SHARED_DEPLOY_SOURCE') ?: 'stable')));
+
+    if ($sourceMode === 'working-tree' || $sourceMode === 'local') {
+        worker_state($statusFile, $logFile, 'Building the shared-hosting package from the current control-plane source');
+        log_line($logFile, "[MuchoGDPS] Shared deployment source: current control-plane working tree.\\n");
+        $release = local_shared_release(dirname(__DIR__), $archive);
+        $bytes = filesize($archive);
+        log_line($logFile, "[MuchoGDPS] Local package version: {$release['version']} (working-tree).\\n");
+        log_line($logFile, "[MuchoGDPS] Built package SHA-256: {$release['sha256']}\\n");
+        log_line($logFile, "[MuchoGDPS] Built " . number_format((int)$bytes) . " bytes from the current MuchoCore source.\\n");
+    } else {
+        worker_state($statusFile, $logFile, 'Fetching stable release metadata from GitHub');
+        log_line($logFile, "[MuchoGDPS] Fetching latest stable release metadata from GitHub...\\n");
+        $release = latest_release();
+        log_line($logFile, "[MuchoGDPS] Stable release: {$release['tag']}\\n");
+        log_line($logFile, "[MuchoGDPS] Package: {$release['name']}\\n");
+
+        worker_state($statusFile, $logFile, 'Downloading the verified release package');
+        log_line($logFile, "[MuchoGDPS] Downloading {$release['name']} from GitHub...\\n");
+        $bytes = download_release($release['url'], $archive);
+        worker_state($statusFile, $logFile, 'Verifying release SHA-256');
+        $actual = hash_file('sha256', $archive);
+        if (!is_string($actual) || !hash_equals($release['sha256'], strtolower($actual))) {
+            throw new RuntimeException('Release SHA-256 verification failed. The package was not uploaded.');
+        }
+        log_line($logFile, "[MuchoGDPS] Verified release SHA-256. Downloaded " . number_format($bytes) . " bytes.\\n");
     }
-    log_line($logFile, "[MuchoGDPS] Verified release SHA-256. Downloaded " . number_format($bytes) . " bytes.\n");
 
     worker_state($statusFile, $logFile, 'Validating and extracting the shared-hosting package');
     $zip = new ZipArchive();
