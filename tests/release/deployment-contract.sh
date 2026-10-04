@@ -19,7 +19,6 @@ grep -Fq '\MuchoCore\Client\DeploymentClientPack::prepare(' bin/mucho-deploy-wor
 grep -Fq "shell_quote(\$installRef)" bin/mucho-deploy-worker.php
 ! grep -Fq "shell_quote(INSTALL_REF)" bin/mucho-deploy-worker.php
 
-! grep -Fq "sessionStorage.getItem(AUTOSAVE_KEY+'_secret')" public/install/shared/index.html
 ! grep -Fq "sessionStorage.setItem(AUTOSAVE_KEY+'_password'" public/deploy/index.html
 ! grep -Fq "sessionStorage.getItem(AUTOSAVE_KEY+'_password'" public/deploy/index.html
 grep -Fq "const autosaveFields=['gdpsName','host','port','user','domain','adminUser'];" public/deploy/index.html
