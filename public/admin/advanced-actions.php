@@ -36,7 +36,7 @@ if($action==='v4-bulk-players'){
             };
 
             if ($targetRank > 0 && $targetRank >= $actorRank) {
-                if (AdminRbac::isBuiltInRole((string)(admin()['role'] ?? ''))) {
+                if (\MuchoCore\Admin\AdminRbac::isBuiltInRole((string)(admin()['role'] ?? ''))) {
                     requireRank(40);
                 } else {
                     requirePermission('roles.manage');
