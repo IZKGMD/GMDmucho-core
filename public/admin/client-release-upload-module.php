@@ -264,7 +264,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
             ensureReleaseManager($db);
             checkCsrf();
-            requireRank(30);
+            requirePermission('client.manage');
 
             cleanupReleaseUploads($db);
 
