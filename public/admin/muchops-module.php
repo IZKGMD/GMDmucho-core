@@ -21,6 +21,7 @@ $opsClients = $opsSnapshot['clients'] ?? [];
 $opsSearch = $opsSnapshot['search'] ?? [];
 $opsBackups = $opsSnapshot['backups'] ?? [];
 $opsLogs = $opsSnapshot['logs'] ?? [];
+$opsAutomation = $opsSnapshot['automation'] ?? [];
 $opsDbOk = (bool)($opsSnapshot['database']['ok'] ?? false);
 $opsAlertCount = (int)($opsAlerts['active'] ?? 0);
 $opsHealthy = $opsDbOk && $opsAlertCount === 0 && !(bool)($opsSnapshot['maintenance'] ?? false);
@@ -132,6 +133,16 @@ $opsHealthy = $opsDbOk && $opsAlertCount === 0 && !(bool)($opsSnapshot['maintena
         <div><small>Latest schema</small><b><?=h((string)($opsMigrations['latest']??'No migrations'))?></b></div>
       </div>
       <div style="margin-top:10px" class="ops-muted">Latest applied: <?=h((string)($opsMigrations['latest_applied']??'None recorded'))?></div>
+    </section>
+
+    <section class="card"><div class="ops-title"><h2>Automation scheduler</h2><a href="/admin/?page=automation">Automation Center →</a></div>
+      <div class="ops-kv">
+        <div><small>Schedules</small><b><?=$opsNum((int)($opsAutomation['enabled']??0))?> / <?=$opsNum((int)($opsAutomation['total']??0))?></b></div>
+        <div><small>Heartbeat</small><b class="<?=((int)($opsAutomation['heartbeat_age_seconds']??PHP_INT_MAX)<120)?'ok':'bad'?>"><?=h($opsAge($opsAutomation['heartbeat_age_seconds']??null))?></b></div>
+      </div>
+      <div style="margin-top:9px" class="ops-muted">
+        <?=h((string)($opsAutomation['heartbeat']['scheduler_id'] ?? 'Scheduler has not reported a heartbeat yet.'))?>
+      </div>
     </section>
 
     <section class="card"><div class="ops-title"><h2>Backups & Derived Data</h2><a href="/admin/?page=dbbackups">Backup Center →</a></div>
