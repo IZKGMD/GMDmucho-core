@@ -45,6 +45,10 @@ return [
         'automation-save'
     ],
 
+    'export'=>[
+        'gdps-export'
+    ],
+
     'admins'=>[
         'admin-create',
         'admin-toggle',
