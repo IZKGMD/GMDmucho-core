@@ -224,6 +224,7 @@ The Admin Panel is a full operator interface rather than a single database edito
 | --- | --- |
 | Dashboard | Server overview, operational information and quick actions |
 | Players | Search players, inspect accounts, moderation actions, role changes and profile management |
+| Player Timeline | Recent level, score, comment, security and operator activity for an individual player |
 | Levels | Search, inspect, edit and moderate levels |
 | Level Moderation | Moderation-oriented level workflow |
 | Rating Studio | Star ratings, demon difficulty, feature tiers and audit trail |
@@ -1057,6 +1058,26 @@ assets/                 Project branding
 | [PROTOCOL_MATRIX.md](docs/PROTOCOL_MATRIX.md) | Protocol coverage |
 | [V108_INTELLIGENCE.md](docs/V108_INTELLIGENCE.md) | Intelligence/scale layer |
 | [V110_ROADMAP.md](docs/V110_ROADMAP.md) | 1.1.0 roadmap and future work |
+
+---
+
+# 📤 GDPS Export Pack
+
+MuchoCore can create a transferable ZIP package from **Admin → GDPS Export Pack**.
+
+| Export component | Included |
+| --- | --- |
+| Verified database backup | ✅ |
+| SHA-256 database checksum | ✅ |
+| Client manifest | ✅ when published |
+| Safe server metadata | ✅ |
+| `.env.example` template | ✅ |
+| Migration state | ✅ |
+| Live `.env` | ❌ intentionally excluded |
+| `.secrets/` | ❌ intentionally excluded |
+| SSH credentials | ❌ intentionally excluded |
+
+The export format is designed for migration/recovery rather than cloning runtime secrets.
 
 ---
 
