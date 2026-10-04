@@ -9,6 +9,7 @@ declare(strict_types=1);
 return [
 
     'dashboard'=>'Dashboard',
+    'ops'=>'MuchoOps',
 
     'players'=>'Players',
     'muchoprofiles'=>'Mucho Profiles',
