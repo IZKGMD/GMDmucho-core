@@ -36,6 +36,6 @@ grep -Fq 'Generating clients for this GDPS' "$ROOT/bin/mucho-deploy-worker.php"
 ! grep -Fq 'MUCHO_SHARED_DEPLOY_SOURCE' "$ROOT/docker-compose.yml"
 grep -Fq 'client-patch.php' "$ROOT/bin/mucho"
 grep -Fq 'client-patch.php' "$ROOT/update.sh"
-grep -Fq '$zip = new \\ZipArchive();' "$ROOT/src/Client/DeploymentClientPack.php"
+grep -Fq '$zip = new \ZipArchive();' "$ROOT/src/Client/DeploymentClientPack.php"
 
 echo "Auto Patch 2.0 contract passed"
