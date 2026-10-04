@@ -41,6 +41,10 @@ return [
         'migration-apply'
     ],
 
+    'automation'=>[
+        'automation-save'
+    ],
+
     'admins'=>[
         'admin-create',
         'admin-toggle',
