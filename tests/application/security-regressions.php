@@ -123,13 +123,6 @@ assertSecurityRegression(
     'admin uncaught exceptions use a generic error page'
 );
 
-assertSecurityRegression(
-    str_contains($frontController, "in_array(\$__muchoRegistrationPath, [") &&
-    str_contains($frontController, "'/registergjaccount22'") &&
-    !str_contains($frontController, "str_contains(\$__muchoUri, 'registergjaccount')"),
-    'registration lock matches normalized API paths instead of arbitrary request text'
-);
-
 $monitoringModule = (string)file_get_contents(
     __DIR__ . '/../../public/admin/security-monitoring-module.php'
 );
@@ -292,6 +285,13 @@ assertSecurityRegression(
 
 $frontController = (string)file_get_contents(
     __DIR__ . '/../../public/index.php'
+);
+
+assertSecurityRegression(
+    str_contains($frontController, "in_array(\$__muchoRegistrationPath, [") &&
+    str_contains($frontController, "'/registergjaccount22'") &&
+    !str_contains($frontController, "str_contains(\$__muchoUri, 'registergjaccount')"),
+    'registration lock matches normalized API paths instead of arbitrary request text'
 );
 
 assertSecurityRegression(
