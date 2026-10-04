@@ -16,7 +16,6 @@ if ($rootPassword === '') {
 }
 
 $targetDb = 'muchocore_migration_it';
-$sharedTargetDb = 'muchocore_shared_migration_it';
 $sourceDb = 'cvolton_migration_it';
 $fixtureRoot = sys_get_temp_dir() . '/muchocore-migration-it-' . bin2hex(random_bytes(4));
 $runtimeEnv = $fixtureRoot . '/runtime.env';
