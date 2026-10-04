@@ -27,6 +27,7 @@ return [
     'analytics'=>'Analytics',
     'monitoring'=>'Monitoring',
     'intelligence'=>'Intelligence & Scale',
+    'compatibility'=>'Compatibility Lab',
 
     'securitycenter'=>'Security & Monitoring',
     'dbbackups'=>'DB Backup Center',
