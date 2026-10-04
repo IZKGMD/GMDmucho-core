@@ -298,7 +298,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                 $action==='dbbackup-restore'
             ){
 
-                requireRank(40);
+                requirePermission('system.manage');
 
                 $name=basename(
                     (string)(
