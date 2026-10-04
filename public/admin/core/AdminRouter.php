@@ -70,6 +70,18 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
 
     /*
+     * MuchoOps Control Plane
+     */
+
+    $router->register(
+        'ops',
+        static function(PDO $db): void {
+            require __DIR__.'/../muchops-module.php';
+        }
+    );
+
+
+    /*
      * Dashboard
      */
 
