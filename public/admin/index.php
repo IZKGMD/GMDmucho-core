@@ -5127,7 +5127,7 @@ table{
 <nav>
 
 <div class="nav-title">Main</div>
-<?php foreach(['dashboard','ops','analytics','advanced','monitoring','intelligence','compatibility','automation'] as $key): ?>
+<?php foreach(['dashboard','ops','analytics','advanced','monitoring','intelligence','compatibility'] as $key): ?>
 <?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
@@ -5160,7 +5160,7 @@ table{
 <?php endforeach ?>
 
 <div class="nav-title">Tools</div>
-<?php foreach(['database','endpoints','updates','securitycenter','dbbackups','migration','backups','settings','system'] as $key): ?>
+<?php foreach(['database','endpoints','updates','securitycenter','dbbackups','migration','backups','automation','export','settings','system'] as $key): ?>
 <?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
@@ -5181,7 +5181,7 @@ table{
 <?php endif; ?>
 <?php endforeach ?>
 
-<a class="logout href="/admin/?logout=1">
+<a class="logout" href="/admin/?logout=1">
 Logout
 </a>
 
