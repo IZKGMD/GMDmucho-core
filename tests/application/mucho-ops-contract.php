@@ -37,6 +37,9 @@ assertOps(str_contains($serviceText, 'mucho_security_events'), 'MuchoOps must in
 assertOps(str_contains($serviceText, 'mucho_backup_verifications'), 'MuchoOps must inspect backup verification state.');
 assertOps(str_contains($serviceText, 'mucho_client_releases'), 'MuchoOps must inspect client releases.');
 assertOps(str_contains($serviceText, 'mucho_level_search_index'), 'MuchoOps must inspect search index coverage.');
+assertOps(str_contains($serviceText, "'services' => $this->services()"), 'MuchoOps must expose service health checks.');
+assertOps(str_contains($serviceText, "'scheduler'"), 'MuchoOps service matrix must inspect scheduler health.');
+assertOps(str_contains($serviceText, "'storage'"), 'MuchoOps service matrix must inspect storage health.');
 assertOps(str_contains($serviceText, 'schema_migrations'), 'MuchoOps must inspect schema migration readiness.');
 assertOps(str_contains($moduleText, 'Migration readiness'), 'MuchoOps migration section is missing.');
 assertOps(str_contains($moduleText, 'window.setTimeout(refresh, 15000)'), 'MuchoOps live refresh is missing.');
@@ -51,5 +54,22 @@ assertOps(str_contains($rbacText, "'ops' => 'monitoring.view'"), 'MuchoOps is no
 assertOps(str_contains($indexText, "isset(\$_GET['ops_feed'])"), 'MuchoOps live feed is not wired in the admin front controller.');
 assertOps(str_contains($indexText, "ControlPlaneSnapshot"), 'Admin front controller does not expose the MuchoOps snapshot feed.');
 assertOps(str_contains($indexText, "'dashboard','ops','analytics'"), 'MuchoOps is not in the main admin navigation.');
+
+$opsAction = file_get_contents($root . '/public/admin/actions/ops.php');
+$opsMap = file_get_contents($root . '/public/admin/actions/map.php');
+assertOps(is_string($opsAction) && str_contains($opsAction, "requirePermission('system.manage')"), 'MuchoOps actions must require system.manage.');
+assertOps(is_string($opsAction) && str_contains($opsAction, 'muchoOpsSetFlag'), 'MuchoOps control flags must use the safe flag writer.');
+assertOps(is_string($opsAction) && str_contains($opsAction, 'retryStale('), 'MuchoOps must expose stale-job recovery.');
+assertOps(is_string($opsAction) && str_contains($opsAction, 'mucho_system_alerts'), 'MuchoOps must support alert resolution.');
+foreach ([
+    "'ops-maintenance'",
+    "'ops-registrations'",
+    "'ops-retry-stale-jobs'",
+    "'ops-resolve-alert'",
+] as $needle) {
+    assertOps(is_string($opsMap) && str_contains($opsMap, $needle), 'MuchoOps action map missing ' . $needle . '.');
+}
+assertOps(str_contains($rbacText, "'ops-maintenance' => 'system.manage'"), 'MuchoOps maintenance action is not RBAC protected.');
+assertOps(str_contains($rbacText, "'ops-resolve-alert' => 'system.manage'"), 'MuchoOps alert action is not RBAC protected.');
 
 echo "mucho-ops-contract: OK\n";
