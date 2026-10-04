@@ -127,6 +127,16 @@ $monitoringModule = (string)file_get_contents(
     __DIR__ . '/../../public/admin/security-monitoring-module.php'
 );
 
+$accountActions = (string)file_get_contents(
+    __DIR__ . '/../../public/admin/actions/accounts.php'
+);
+
+assertSecurityRegression(
+    str_contains($accountActions, "requirePermission('players.privileged');") &&
+    !str_contains($accountActions, "requireRank(40);"),
+    'privileged account mutations use an explicit owner-level permission'
+);
+
 assertSecurityRegression(
     str_contains($monitoringModule, "requirePermission('monitoring.manage')") &&
     str_contains($monitoringModule, 'mucho_security_rate_limits') &&
