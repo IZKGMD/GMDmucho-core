@@ -149,7 +149,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         try {
 
             checkCsrf();
-            requirePermission('monitoring.manage');
+
+            if ($monitorAction === 'monitor-release-rollback') {
+                requirePermission('client.manage');
+            } else {
+                requirePermission('monitoring.manage');
+            }
 
 
             /* ------------------------------------------------
