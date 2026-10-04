@@ -47,6 +47,18 @@ MuchoCore is designed for operators who want to run a GDPS without stitching tog
 
 ---
 
+# 🧪 Compatibility Lab
+
+MuchoCore includes a read-only Compatibility Lab for inspecting committed real-client fixtures, endpoint coverage and quick 2.2 probes through the existing Admin API Tester.
+
+| Capability | Included |
+| --- | --- |
+| Fixture discovery | ✅ |
+| Endpoint inventory | ✅ |
+| Quick 2.2 probes | ✅ |
+| Trace diff foundation | ✅ |
+| RBAC protection | ✅ |
+
 # ✨ Complete Feature Matrix
 
 ## 1. Geometry Dash backend
