@@ -427,7 +427,7 @@ The manifest records the target GDPS, client versions, patch-engine information,
 
 **MuchoCore 1.1.0 is VPS-only for production deployment.**
 
-The current architecture intentionally does not depend on browser-driven FTP/shared-hosting deployment.
+The production architecture uses direct VPS deployment with optional Cloudflare transport modes.
 
 ## Automatic deployment flow
 
@@ -512,9 +512,6 @@ For automatic Cloudflare provisioning, the required account permission is **Clou
 | Cloudflare Tunnel | NAT/CGNAT / blocked inbound ports | ✅ Supported |
 | Cloudflare API provisioning | Automatic Tunnel/DNS provisioning | ✅ Supported |
 | Manual Tunnel connector token | Existing operator-owned Tunnel | ✅ Supported |
-| Shared-hosting FTP deployment | Legacy architecture | ❌ Removed in 1.1.0 |
-
-The shared-hosting deployment path was removed from the 1.1.0 architecture so the product has one supported production deployment model instead of maintaining a fragile browser/FTP transport layer.
 
 ---
 
@@ -1153,7 +1150,6 @@ MuchoCore 1.1.0 is a major platform release focused on making the core easier to
 | 1.1.0 theme | Included in the architecture |
 | --- | --- |
 | VPS-first deployment | ✅ |
-| Removal of fragile shared-hosting transport | ✅ |
 | Unified deployment jobs | ✅ |
 | Automatic client generation | ✅ |
 | Client distribution metadata | ✅ |
