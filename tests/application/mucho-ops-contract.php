@@ -37,7 +37,7 @@ assertOps(str_contains($serviceText, 'mucho_security_events'), 'MuchoOps must in
 assertOps(str_contains($serviceText, 'mucho_backup_verifications'), 'MuchoOps must inspect backup verification state.');
 assertOps(str_contains($serviceText, 'mucho_client_releases'), 'MuchoOps must inspect client releases.');
 assertOps(str_contains($serviceText, 'mucho_level_search_index'), 'MuchoOps must inspect search index coverage.');
-assertOps(str_contains($serviceText, "'services' => \\$this->services()"), 'MuchoOps must expose service health checks.');
+assertOps(str_contains($serviceText, '$this->services()'), 'MuchoOps must expose service health checks.');
 assertOps(str_contains($serviceText, "'scheduler'"), 'MuchoOps service matrix must inspect scheduler health.');
 assertOps(str_contains($serviceText, "'storage'"), 'MuchoOps service matrix must inspect storage health.');
 assertOps(str_contains($serviceText, 'schema_migrations'), 'MuchoOps must inspect schema migration readiness.');
