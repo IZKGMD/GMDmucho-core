@@ -369,23 +369,47 @@ final class WindowsClientPatcher
     ): int {
         $old = self::asciiToUtf16Le($oldHost);
         $new = self::asciiToUtf16Le($newHost);
-        $http = self::asciiToUtf16Le('http://');
-        $https = self::asciiToUtf16Le('https://');
+        $prefixes = [
+            self::asciiToUtf16Le('https://'),
+            self::asciiToUtf16Le('http://'),
+        ];
+
+        /*
+         * When the host length is unchanged, patch the host bytes in place.
+         * This avoids ambiguities caused by UTF-16 NUL-termination while
+         * preserving every byte around the URL exactly.
+         */
+        if (strlen($new) === strlen($old)) {
+            $count = 0;
+
+            foreach ($prefixes as $prefix) {
+                $needle = $prefix . $old;
+                $offset = 0;
+
+                while (($position = strpos($data, $needle, $offset)) !== false) {
+                    $hostPosition = $position + strlen($prefix);
+                    $data = substr_replace(
+                        $data,
+                        $new,
+                        $hostPosition,
+                        strlen($old)
+                    );
+                    $count++;
+                    $offset = $hostPosition + strlen($new);
+                }
+            }
+
+            return $count;
+        }
+
         $count = 0;
         $offset = 0;
 
         while (($position = strpos($data, $old, $offset)) !== false) {
-            /*
-             * UTF-16 LE ASCII strings contain one NUL byte after every
-             * character, so "\0\0" is only a string terminator when it is
-             * aligned to a two-byte code-unit boundary. Searching for the
-             * byte sequence directly can otherwise stop on the final
-             * character's NUL plus the first terminator NUL.
-             */
             $prefixPosition = -1;
             $prefixLength = 0;
 
-            foreach ([$https, $http] as $prefix) {
+            foreach ($prefixes as $prefix) {
                 $candidate = strrpos(
                     substr($data, 0, $position),
                     $prefix
@@ -414,11 +438,13 @@ final class WindowsClientPatcher
                 if (substr($data, $end, 2) === "\0\0") {
                     break;
                 }
-
                 $end += 2;
             }
 
-            if ($end + 1 >= strlen($data) || substr($data, $end, 2) !== "\0\0") {
+            if (
+                $end + 1 >= strlen($data) ||
+                substr($data, $end, 2) !== "\0\0"
+            ) {
                 $offset = $position + strlen($old);
                 continue;
             }
