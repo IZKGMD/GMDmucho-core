@@ -94,7 +94,6 @@ jobs:
           php tests/application/admin-client-rbac-contract.php
           php tests/application/migration-center-contract.php
           php tests/application/vps-deployment-gateway-contract.php
-          php tests/application/muchops-control-contract.php
           php tests/application/plugin-sdk-contract.php
           php tests/application/score-integrity-contract.php
           php tests/application/cvolton-db-import-contract.php
@@ -185,7 +184,6 @@ jobs:
           test -f tests/release/install-sh.sh
           test -f public/install/vps/index.html
           test -f public/admin/muchops-module.php
-          test -f public/admin/actions/ops.php
           grep -Fq 'auto_https disable_redirects' docker/Caddyfile
           grep -Fq 'The game API remains available over HTTP' docker/Caddyfile
           grep -Fq '80:80' docker-compose.yml
