@@ -29,6 +29,7 @@ return [
     'intelligence'=>'Intelligence & Scale',
     'compatibility'=>'Compatibility Lab',
     'automation'=>'Automation Center',
+    'export'=>'GDPS Export Pack',
 
     'securitycenter'=>'Security & Monitoring',
     'dbbackups'=>'DB Backup Center',
