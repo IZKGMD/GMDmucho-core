@@ -41,7 +41,7 @@ MuchoCore is designed for operators who want to run a GDPS without stitching tog
 | 📦 Client tooling | Windows PE patching, Android APK patching, automatic Client Pack generation, SHA-256 manifests and client release metadata |
 | 🚀 Deployment | VPS installer, Docker Compose, Caddy, MariaDB, health checks, automatic migrations, deployment jobs and post-deploy client generation |
 | ☁️ Network transport | Direct public VPS HTTP/HTTPS by default, with explicit Cloudflare Tunnel support for NAT/CGNAT environments |
-| ⚡ Performance | Indexed level search, derived caches, optional Redis, MariaDB-backed jobs, rebuildable derived data and asynchronous webhooks |
+| ⚡ Performance | Indexed level search, derived caches, optional Redis, MariaDB-backed jobs, rebuildable derived data, background workers and asynchronous webhooks |
 | 🔌 Extensibility | PHP Plugin SDK, event bus, plugin routes, controlled database access, permissions and route-collision protection |
 | 🧪 Validation | PHP, shell, protocol, client, security, migration, integration, Docker/Caddy and release-gate tests |
 
@@ -502,6 +502,37 @@ For automatic Cloudflare provisioning, the required account permission is **Clou
 | Shared-hosting FTP deployment | Legacy architecture | ❌ Removed in 1.1.0 |
 
 The shared-hosting deployment path was removed from the 1.1.0 architecture so the product has one supported production deployment model instead of maintaining a fragile browser/FTP transport layer.
+
+---
+
+# 🤖 12. Automation Center
+
+MuchoCore includes a database-backed scheduler for safe recurring maintenance.
+
+| Capability | Included |
+| --- | --- |
+| Database-backed schedules | ✅ |
+| Enable/disable per task | ✅ |
+| Configurable intervals | ✅ |
+| Scheduler advisory lock | ✅ |
+| Atomic queue + schedule advancement | ✅ |
+| Scheduler heartbeat | ✅ |
+| Safe registered job types only | ✅ |
+| Worker retry handling | ✅ |
+| MuchoOps scheduler health | ✅ |
+| Admin Automation Center | ✅ |
+| Operator CLI | ✅ |
+
+Current built-in schedules:
+
+| Schedule | Default | Job |
+| --- | ---: | --- |
+| Maintenance cleanup | 6h | `maintenance.cleanup` |
+| Security event cleanup | 24h | `security.cleanup` |
+
+The scheduler never evaluates arbitrary PHP, SQL, shell commands or file paths from database rows.
+
+See [docs/AUTOMATION_CENTER.md](docs/AUTOMATION_CENTER.md).
 
 ---
 
