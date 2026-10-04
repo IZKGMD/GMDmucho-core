@@ -88,6 +88,16 @@ $opsHealthy = $opsDbOk && $opsAlertCount === 0 && !(bool)($opsSnapshot['maintena
 
 <div class="ops-columns">
   <div class="ops-stack">
+    <section class="card"><div class="ops-title"><h2>Runtime & Storage</h2><span class="ops-live">local instance</span></div>
+      <?php $opsRuntime=$opsSnapshot['runtime'] ?? []; ?>
+      <div class="ops-kv">
+        <div><small>PHP</small><b><?=h((string)($opsRuntime['php_version']??'unknown'))?></b></div>
+        <div><small>Database</small><b><?=h((string)($opsRuntime['database_server']??'unknown'))?></b></div>
+        <div><small>Platform</small><b><?=h((string)($opsRuntime['os']??'unknown'))?></b></div>
+        <div><small>Free storage</small><b><?=h((string)($opsRuntime['disk_free_percent']??'—'))?><?=($opsRuntime['disk_free_percent']??null)!==null?'%':''?></b></div>
+      </div>
+    </section>
+
     <section class="card"><div class="ops-title"><h2>System State</h2><span class="ops-live"><?=h((string)$opsSnapshot['generated_at'])?></span></div><div class="ops-kv">
       <div><small>Core</small><b>v<?=h((string)$opsSnapshot['version'])?></b></div>
       <div><small>Transport</small><b><?=h((string)$opsSnapshot['transport'])?></b></div>
