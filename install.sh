@@ -737,7 +737,7 @@ fi
 run_compose up -d --build --remove-orphans
 
 log "Verifying running containers..."
-expected_services=(db app worker caddy)
+expected_services=(db app worker scheduler caddy)
 if [[ "$USE_TUNNEL" -eq 1 ]]; then
   expected_services+=(cloudflared)
 fi
