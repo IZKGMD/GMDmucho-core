@@ -1418,6 +1418,33 @@ if (admin() && isset($_GET['audit_feed'])) {
 }
 
 /* =========================================================
+   MUCHOOPS LIVE FEED
+========================================================= */
+
+if (admin() && isset($_GET['ops_feed'])) {
+    requirePermission('monitoring.view');
+
+    $snapshot = (new \MuchoCore\Monitoring\ControlPlaneSnapshot(
+        $db,
+        ROOT_DIR,
+        CONTROL_DIR
+    ))->snapshot();
+
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('X-Request-ID: '.$__muchoAdminRequestId);
+
+    echo json_encode(
+        [
+            'ok' => true,
+            'snapshot' => $snapshot
+        ],
+        JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_INVALID_UTF8_SUBSTITUTE
+    );
+    exit;
+}
+
+/* =========================================================
    LOGIN PAGE
 ========================================================= */
 
@@ -2762,6 +2789,7 @@ require_once __DIR__.'/pages/dashboard.php';
 require_once __DIR__.'/pages/release.php';
 require_once __DIR__.'/pages/plugins.php';
 require_once __DIR__.'/pages/intelligence.php';
+require_once __DIR__.'/muchops-module.php';
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     checkCsrf();
@@ -5067,7 +5095,7 @@ table{
 <nav>
 
 <div class="nav-title">Main</div>
-<?php foreach(['dashboard','analytics','advanced','monitoring','intelligence'] as $key): ?>
+<?php foreach(['dashboard','ops','analytics','advanced','monitoring','intelligence'] as $key): ?>
 <?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
