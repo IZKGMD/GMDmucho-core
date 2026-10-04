@@ -49,6 +49,7 @@ final class ControlPlaneSnapshot
             'clients' => $this->clients(),
             'search' => $this->search(),
             'backups' => $this->backups(),
+            'migrations' => $this->migrations(),
             'logs' => $this->logs(),
             'snapshot_ms' => (int) round((microtime(true) - $started) * 1000),
         ];
@@ -173,6 +174,64 @@ final class ControlPlaneSnapshot
             try { $result['revisions_24h']=(int)$this->pdo->query("SELECT COUNT(*) FROM mucho_level_revisions WHERE created_at>=DATE_SUB(NOW(),INTERVAL 24 HOUR)")->fetchColumn(); } catch (Throwable) {}
         }
         if ($this->tableExists('mucho_cache')) $result['cache_rows']=$this->countTable('mucho_cache');
+        return $result;
+    }
+
+    private function migrations(): array
+    {
+        $result = [
+            'available' => false,
+            'total' => 0,
+            'applied' => 0,
+            'pending' => 0,
+            'latest' => null,
+            'latest_applied' => null,
+        ];
+
+        $path = rtrim($this->rootDir, '/\\') . '/database/migrations';
+        if (!is_dir($path)) {
+            return $result;
+        }
+
+        $files = glob($path . '/*.php') ?: [];
+        sort($files, SORT_STRING);
+
+        $result['available'] = true;
+        $result['total'] = count($files);
+        $versions = array_map(
+            static fn(string $file): string => basename($file, '.php'),
+            $files
+        );
+        $result['latest'] = $versions !== [] ? end($versions) : null;
+
+        if (!$this->tableExists('schema_migrations')) {
+            $result['pending'] = $result['total'];
+            return $result;
+        }
+
+        try {
+            $result['applied'] = (int)$this->pdo->query(
+                'SELECT COUNT(*) FROM schema_migrations'
+            )->fetchColumn();
+            $result['pending'] = max(
+                0,
+                $result['total'] - $result['applied']
+            );
+
+            $latest = $this->pdo->query(
+                'SELECT version
+                 FROM schema_migrations
+                 ORDER BY version DESC
+                 LIMIT 1'
+            )->fetchColumn();
+
+            $result['latest_applied'] =
+                is_string($latest) && $latest !== ''
+                    ? $latest
+                    : null;
+        } catch (Throwable) {
+        }
+
         return $result;
     }
 
