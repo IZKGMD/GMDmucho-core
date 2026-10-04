@@ -12,7 +12,7 @@ try{
 ========================================================= */
 
 if($action==='v4-bulk-players'){
-    requireRank(30);
+    requirePermission('players.manage');
 
     $ids=v4Ids((string)($_POST['ids'] ?? ''));
     $operation=(string)($_POST['operation'] ?? '');
@@ -114,7 +114,7 @@ if($action==='v4-bulk-players'){
         $q->execute(['role_id'=>(int)$roleId]);
     }
     elseif($operation==='delete'){
-        requireRank(40);
+        requirePermission('players.delete');
 
         if(
             (string)($_POST['confirm'] ?? '')
@@ -155,7 +155,7 @@ if($action==='v4-bulk-players'){
 ========================================================= */
 
 elseif($action==='v4-bulk-levels'){
-    requireRank(20);
+    requirePermission('moderation.manage');
 
     $ids=v4Ids((string)($_POST['ids'] ?? ''));
     $operation=(string)($_POST['operation'] ?? '');
@@ -237,7 +237,7 @@ elseif($action==='v4-bulk-levels'){
 ========================================================= */
 
 elseif($action==='v4-mod-preset'){
-    requireRank(20);
+    requirePermission('moderation.manage');
 
     $id=(int)($_POST['id'] ?? 0);
     $preset=(string)($_POST['preset'] ?? '');
@@ -341,7 +341,7 @@ elseif($action==='v4-mod-preset'){
 ========================================================= */
 
 elseif($action==='v4-settings'){
-    requireRank(40);
+    requirePermission('settings.manage');
 
     $serverName=substr(
         trim((string)($_POST['server_name'] ?? '')),
