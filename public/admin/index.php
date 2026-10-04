@@ -2836,6 +2836,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         require __DIR__.'/actions/contentpacks.php';
     }
 
+    if (in_array($action,[
+        'ops-maintenance',
+        'ops-registrations',
+        'ops-retry-stale-jobs',
+        'ops-resolve-alert',
+    ], true)) {
+        require __DIR__.'/actions/ops.php';
+    }
+
     if (str_starts_with($action,'client-patcher-')) {
         handleClientPatcherAction($db,$rootDir,$action);
     }
