@@ -160,6 +160,17 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
 
     /*
+     * Automation Center
+     */
+    $router->register(
+        'automation',
+        static function(PDO $db): void {
+            require __DIR__.'/../pages/automation.php';
+        }
+    );
+
+
+    /*
      * Levels
      */
 
