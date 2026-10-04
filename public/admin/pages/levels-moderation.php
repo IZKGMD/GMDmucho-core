@@ -15,6 +15,12 @@ echo '<span class="muted" style="align-self:center">Use Rating Studio for publis
 echo '</div>';
 
 $q=trim((string)($_GET['q'] ?? ''));
+$creator=trim((string)($_GET['creator'] ?? ''));
+$gameVersion=trim((string)($_GET['game_version'] ?? ''));
+$minStars=max(0,min(10,(int)($_GET['min_stars'] ?? 0)));
+$featured=isset($_GET['featured']) ? (int)$_GET['featured'] : -1;
+$deleted=isset($_GET['deleted']) ? (int)$_GET['deleted'] : -1;
+$sort=(string)($_GET['sort'] ?? 'newest');
 
 $sql=
 'SELECT
@@ -25,29 +31,75 @@ $sql=
  FROM levels';
 
 $args=[];
+$where=[];
 
 if ($page==='moderation') {
-    $sql.=' WHERE requested_stars>0';
+    $where[]='requested_stars>0';
 }
 elseif ($q!=='') {
-    $sql.=' WHERE name LIKE :q OR level_id=:id';
-
+    $where[]='(name LIKE :q OR level_id=:id)';
     $args=[
         'q'=>'%'.$q.'%',
         'id'=>ctype_digit($q)?(int)$q:0
     ];
 }
 
-$sql.=' ORDER BY level_id DESC LIMIT 150';
+if ($page==='levels') {
+    if ($creator!=='') {
+        $where[]='EXISTS (
+            SELECT 1 FROM accounts search_creator
+            WHERE search_creator.account_id=levels.account_id
+              AND search_creator.username LIKE :creator
+        )';
+        $args['creator']='%'.$creator.'%';
+    }
+
+    if (ctype_digit($gameVersion) && (int)$gameVersion>0) {
+        $where[]='game_version=:game_version';
+        $args['game_version']=(int)$gameVersion;
+    }
+
+    if ($minStars>0) {
+        $where[]='stars>=:min_stars';
+        $args['min_stars']=$minStars;
+    }
+
+    if ($featured===0 || $featured===1) {
+        $where[]='featured=:featured';
+        $args['featured']=$featured;
+    }
+
+    if ($deleted===0 || $deleted===1) {
+        $where[]='is_deleted=:deleted';
+        $args['deleted']=$deleted;
+    }
+}
+
+if ($where!==[]) {
+    $sql.=' WHERE '.implode(' AND ',$where);
+}
+
+$sql.=' ORDER BY '.match($sort){
+    'downloads'=>'downloads DESC, level_id DESC',
+    'likes'=>'likes DESC, level_id DESC',
+    'stars'=>'stars DESC, level_id DESC',
+    default=>'level_id DESC'
+}.' LIMIT 150';
 
 $st=$db->prepare($sql);
 $st->execute($args);
 
 if ($page==='levels') {
-    echo '<form class="search">';
+    echo '<form class="search" style="display:grid;grid-template-columns:2fr 1fr 120px 120px 120px 140px;gap:7px;align-items:end">';
     echo '<input type="hidden" name="page" value="levels">';
-    echo '<input name="q" value="'.h($q).'" placeholder="Level name / ID">';
-    echo '<button>Search</button></form>';
+    echo '<div><small>Name / ID</small><input name="q" value="'.h($q).'" placeholder="Level name / ID"></div>';
+    echo '<div><small>Creator</small><input name="creator" value="'.h($creator).'" placeholder="Username"></div>';
+    echo '<div><small>GD version</small><input name="game_version" value="'.h($gameVersion).'" placeholder="22"></div>';
+    echo '<div><small>Min stars</small><input type="number" min="0" max="10" name="min_stars" value="'.h((string)$minStars).'"></div>';
+    echo '<div><small>Featured</small><select name="featured"><option value="-1"'.($featured===-1?' selected':'').'>Any</option><option value="1"'.($featured===1?' selected':'').'>Featured</option><option value="0"'.($featured===0?' selected':'').'>Not featured</option></select></div>';
+    echo '<div><small>Sort</small><select name="sort"><option value="newest"'.($sort==='newest'?' selected':'').'>Newest</option><option value="downloads"'.($sort==='downloads'?' selected':'').'>Downloads</option><option value="likes"'.($sort==='likes'?' selected':'').'>Likes</option><option value="stars"'.($sort==='stars'?' selected':'').'>Stars</option></select></div>';
+    echo '<button style="grid-column:1/-1;width:max-content">Search levels</button>';
+    echo '</form>';
 }
 
 echo '<div class="table"><table>';
