@@ -179,7 +179,7 @@ jobs:
           grep -q 'MUCHO_TRUSTED_PROXY_CIDRS' .env.example
           test -f tools/migration/mucho-migrate.sh
           test -x tools/migration/mucho-migrate.sh
-          grep -Fq 'OUTPUT: MuchoCore-v' .github/workflows/release-stable.yml
+          grep -Fq 'name: Build source archive' .github/workflows/release-stable.yml
           test -f tests/release/migration-kit.sh
           test -f tests/release/install-sh.sh
           test -f public/install/vps/index.html
