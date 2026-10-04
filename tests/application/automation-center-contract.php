@@ -51,7 +51,7 @@ assertAutomation(str_contains($compose, '    scheduler:'), 'Production compose d
 assertAutomation(str_contains($installer, 'expected_services=(db app worker scheduler caddy)'), 'Installer does not expect the scheduler service.');
 assertAutomation(str_contains($cli, 'automation)'), 'Operator CLI does not expose automation command.');
 assertAutomation(str_contains($page, 'Automation Center'), 'Automation Center page is incomplete.');
-assertAutomation(str_contains($page, 'Registered safe job types'), 'Automation Center safety explanation is missing.');
+assertAutomation(str_contains($page, 'registered job types can be emitted'), 'Automation Center safety explanation is missing.');
 assertAutomation(str_contains($action, "requirePermission('automation.manage')"), 'Automation action is not permission protected.');
 
 echo "automation-center-contract: OK\n";
