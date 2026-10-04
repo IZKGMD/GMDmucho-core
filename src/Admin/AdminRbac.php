@@ -366,6 +366,7 @@ final class AdminRbac
             'analytics' => 'analytics.view',
             'monitoring' => 'monitoring.view',
             'intelligence' => 'monitoring.view',
+            'compatibility' => 'tools.endpoint_test',
             'securitycenter' => 'security.view',
             'database' => 'database.view',
             'endpoints' => 'tools.endpoint_test',
