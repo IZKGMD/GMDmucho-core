@@ -550,6 +550,7 @@ function renderSecurityMonitoringPage(
 ): void {
 
     $canEdit=admin() && canPermission('monitoring.manage');
+    $canRollback=admin() && canPermission('client.manage');
 
 
     /* ========================================================
@@ -1683,7 +1684,7 @@ function renderSecurityMonitoringPage(
                                 Active
                             </span>
 
-                        <?php elseif($canEdit): ?>
+                        <?php elseif($canRollback): ?>
 
                             <form
                                 method="post"
