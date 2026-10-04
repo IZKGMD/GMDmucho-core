@@ -5094,7 +5094,7 @@ table{
 <nav>
 
 <div class="nav-title">Main</div>
-<?php foreach(['dashboard','ops','analytics','advanced','monitoring','intelligence'] as $key): ?>
+<?php foreach(['dashboard','ops','analytics','advanced','monitoring','intelligence','compatibility'] as $key): ?>
 <?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
