@@ -1,7 +1,5 @@
 name: Release stable
 
-# Legacy source-archive contract marker retained for validation compatibility: OUTPUT: MuchoCore-v
-
 on:
   workflow_run:
     workflows: ["Validate"]
