@@ -12,6 +12,7 @@ return [
     'ops'=>'MuchoOps',
 
     'players'=>'Players',
+    'playertimeline'=>'Player Timeline',
     'muchoprofiles'=>'Mucho Profiles',
 
     'levels'=>'Levels',
