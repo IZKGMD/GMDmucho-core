@@ -9,6 +9,9 @@ use Throwable;
 
 final class ControlPlaneSnapshot
 {
+    /** @var array<string,bool> */
+    private array $tableExistsCache = [];
+
     public function __construct(
         private readonly PDO $pdo,
         private readonly string $rootDir,
@@ -28,10 +31,21 @@ final class ControlPlaneSnapshot
             $database['error'] = 'Database health check failed.';
         }
 
+        $runtime = $this->runtime();
+        $api = $this->apiMetrics();
+        $jobs = $this->jobs();
+        $alerts = $this->alerts();
+        $security = $this->security();
+        $clients = $this->clients();
+        $search = $this->search();
+        $backups = $this->backups();
+        $migrations = $this->migrations();
+        $automation = $this->automation();
+
         return [
             'generated_at' => gmdate('c'),
             'version' => $this->currentVersion(),
-            'runtime' => $this->runtime(),
+            'runtime' => $runtime,
             'transport' => $this->env('MUCHO_TRANSPORT_MODE') ?: 'direct',
             'domain' => $this->env('MUCHO_ACCOUNT_URL') ?: $this->env('MUCHO_PUBLIC_URL'),
             'maintenance' => $this->flag('maintenance.flag'),
@@ -43,16 +57,16 @@ final class ControlPlaneSnapshot
                 'comments' => $this->countTable('comments'),
                 'songs' => $this->countTable('songs'),
             ],
-            'api' => $this->apiMetrics(),
-            'jobs' => $this->jobs(),
-            'alerts' => $this->alerts(),
-            'security' => $this->security(),
-            'clients' => $this->clients(),
-            'search' => $this->search(),
-            'backups' => $this->backups(),
-            'migrations' => $this->migrations(),
-            'automation' => $this->automation(),
-            'services' => $this->services(),
+            'api' => $api,
+            'jobs' => $jobs,
+            'alerts' => $alerts,
+            'security' => $security,
+            'clients' => $clients,
+            'search' => $search,
+            'backups' => $backups,
+            'migrations' => $migrations,
+            'automation' => $automation,
+            'services' => $this->services($database, $runtime, $jobs, $clients, $search, $backups, $automation),
             'logs' => $this->logs(),
             'snapshot_ms' => (int) round((microtime(true) - $started) * 1000),
         ];
@@ -83,12 +97,17 @@ final class ControlPlaneSnapshot
 
     private function tableExists(string $table): bool
     {
+        if (array_key_exists($table, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$table];
+        }
+
         try {
             $q = $this->pdo->prepare('SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name=:table LIMIT 1');
             $q->execute(['table' => $table]);
-            return $q->fetchColumn() !== false;
+            return $this->tableExistsCache[$table] =
+                $q->fetchColumn() !== false;
         } catch (Throwable) {
-            return false;
+            return $this->tableExistsCache[$table] = false;
         }
     }
 
@@ -336,25 +355,26 @@ final class ControlPlaneSnapshot
         return $result;
     }
 
-    private function services(): array
+    private function services(
+        array $database,
+        array $runtime,
+        array $jobs,
+        array $clients,
+        array $search,
+        array $backups,
+        array $automation
+    ): array
     {
         $services = [];
 
         $services['database'] = [
-            'status' => 'healthy',
+            'status' => ($database['ok'] ?? false) ? 'healthy' : 'critical',
             'label' => 'Database',
-            'detail' => 'Connected',
+            'detail' => ($database['ok'] ?? false)
+                ? 'Connected'
+                : 'Database health check failed.',
+            'latency_ms' => $database['latency_ms'] ?? null,
         ];
-        
-        try {
-            $dbStarted = microtime(true);
-            $this->pdo->query('SELECT 1')->fetchColumn();
-            $services['database']['latency_ms'] = (int)round((microtime(true) - $dbStarted) * 1000);
-        } catch (Throwable) {
-            $services['database']['status'] = 'critical';
-            $services['database']['detail'] = 'Database health check failed.';
-            $services['database']['latency_ms'] = null;
-        }
 
         $controlPath = rtrim($this->controlDir, '/\\');
         $controlReady = is_dir($controlPath) && is_writable($controlPath);
@@ -364,15 +384,14 @@ final class ControlPlaneSnapshot
             'detail' => $controlReady ? 'Writable' : 'Missing or not writable',
         ];
 
-        $jobsReady = $this->tableExists('mucho_jobs');
+        $jobsReady = (bool)($jobs['available'] ?? false);
         $services['jobs'] = [
             'status' => $jobsReady ? 'healthy' : 'warning',
             'label' => 'Job queue',
             'detail' => $jobsReady ? 'Available' : 'Queue table unavailable',
         ];
 
-        $heartbeat = $this->automation();
-        $heartbeatAge = $heartbeat['heartbeat_age_seconds'];
+        $heartbeatAge = $automation['heartbeat_age_seconds'] ?? null;
         $schedulerStatus = $heartbeatAge === null
             ? ($heartbeat['available'] ? 'warning' : 'warning')
             : ($heartbeatAge < 120 ? 'healthy' : 'warning');
@@ -385,9 +404,9 @@ final class ControlPlaneSnapshot
                 : 'Heartbeat ' . $heartbeatAge . 's ago',
         ];
 
-        $search = $this->search();
-        $searchReady = $search['available'] &&
-            ($search['levels'] === 0 || $search['coverage_percent'] >= 95);
+        $searchReady = (bool)($search['available'] ?? false) &&
+            ((int)($search['levels'] ?? 0) === 0 ||
+             (int)($search['coverage_percent'] ?? 0) >= 95);
 
         $services['search'] = [
             'status' => $searchReady ? 'healthy' : 'warning',
@@ -397,10 +416,9 @@ final class ControlPlaneSnapshot
                 : 'Index unavailable',
         ];
 
-        $backup = $this->backups();
-        $backupGood = is_array($backup['last']) &&
-            (int)($backup['last']['gzip_valid'] ?? 0) === 1 &&
-            (int)($backup['last']['sql_valid'] ?? 0) === 1;
+        $backupGood = is_array($backups['last'] ?? null) &&
+            (int)($backups['last']['gzip_valid'] ?? 0) === 1 &&
+            (int)($backups['last']['sql_valid'] ?? 0) === 1;
 
         $services['backups'] = [
             'status' => $backupGood ? 'healthy' : 'warning',
@@ -410,8 +428,8 @@ final class ControlPlaneSnapshot
                 : 'No verified backup available',
         ];
 
-        $clients = $this->clients();
-        $clientsReady = $clients['available'] && $clients['releases'] !== [];
+        $clientsReady = (bool)($clients['available'] ?? false) &&
+            !empty($clients['releases']);
         $services['clients'] = [
             'status' => $clientsReady ? 'healthy' : 'warning',
             'label' => 'Client releases',
@@ -420,8 +438,7 @@ final class ControlPlaneSnapshot
                 : 'No client release metadata',
         ];
 
-        $runtime = $this->runtime();
-        $diskFree = $runtime['disk_free_percent'];
+        $diskFree = $runtime['disk_free_percent'] ?? null;
         $diskStatus = $diskFree === null
             ? 'warning'
             : ($diskFree >= 15 ? 'healthy' : ($diskFree >= 5 ? 'warning' : 'critical'));
