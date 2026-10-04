@@ -1058,6 +1058,7 @@ assets/                 Project branding
 | [PROTOCOL_MATRIX.md](docs/PROTOCOL_MATRIX.md) | Protocol coverage |
 | [V108_INTELLIGENCE.md](docs/V108_INTELLIGENCE.md) | Intelligence/scale layer |
 | [V110_ROADMAP.md](docs/V110_ROADMAP.md) | 1.1.0 roadmap and future work |
+| [AUTOMATION_CENTER.md](docs/AUTOMATION_CENTER.md) | Safe recurring task scheduler |
 
 ---
 
