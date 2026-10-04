@@ -115,7 +115,7 @@ try {
         $minutes = (int)($_POST['minutes'] ?? 10);
         $minutes = max(1, min(1440, $minutes));
 
-        $queue = new MuchoCoreJobJobQueue($db);
+        $queue = new \MuchoCore\Job\JobQueue($db);
         $count = $queue->retryStale($minutes);
 
         audit(
@@ -144,7 +144,8 @@ try {
 
         $stmt = $db->prepare(
             'UPDATE mucho_system_alerts
-             SET resolved=1
+             SET resolved=1,
+                 resolved_at=UTC_TIMESTAMP()
              WHERE id=:id AND resolved=0'
         );
         $stmt->execute(['id' => $id]);
