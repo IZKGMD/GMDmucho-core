@@ -253,6 +253,17 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
 
     /*
+     * Player Timeline
+     */
+    $router->register(
+        'playertimeline',
+        static function(PDO $db): void {
+            require __DIR__.'/../pages/player-timeline.php';
+        }
+    );
+
+
+    /*
      * Mucho Profiles
      */
 
