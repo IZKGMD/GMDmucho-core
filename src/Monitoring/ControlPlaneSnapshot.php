@@ -393,7 +393,7 @@ final class ControlPlaneSnapshot
 
         $heartbeatAge = $automation['heartbeat_age_seconds'] ?? null;
         $schedulerStatus = $heartbeatAge === null
-            ? ($heartbeat['available'] ? 'warning' : 'warning')
+            ? 'warning'
             : ($heartbeatAge < 120 ? 'healthy' : 'warning');
 
         $services['scheduler'] = [
