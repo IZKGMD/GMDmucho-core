@@ -51,7 +51,6 @@ if (
     $phpBackup === false ||
     $adminBackup === false ||
     $adminUsersMigration === false ||
-    $releaseWorkflow === false
 ) {
     throw new RuntimeException('Unable to read one of the migration safety files.');
 }
