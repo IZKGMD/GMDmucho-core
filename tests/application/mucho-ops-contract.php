@@ -37,6 +37,9 @@ assertOps(str_contains($serviceText, 'mucho_security_events'), 'MuchoOps must in
 assertOps(str_contains($serviceText, 'mucho_backup_verifications'), 'MuchoOps must inspect backup verification state.');
 assertOps(str_contains($serviceText, 'mucho_client_releases'), 'MuchoOps must inspect client releases.');
 assertOps(str_contains($serviceText, 'mucho_level_search_index'), 'MuchoOps must inspect search index coverage.');
+assertOps(str_contains($serviceText, 'schema_migrations'), 'MuchoOps must inspect schema migration readiness.');
+assertOps(str_contains($moduleText, 'Migration readiness'), 'MuchoOps migration section is missing.');
+assertOps(str_contains($moduleText, 'window.setTimeout(refresh, 15000)'), 'MuchoOps live refresh is missing.');
 assertOps(str_contains($moduleText, 'MuchoOps Control Plane'), 'MuchoOps page title is missing.');
 assertOps(str_contains($moduleText, 'Background Jobs'), 'MuchoOps jobs section is missing.');
 assertOps(str_contains($moduleText, 'API Performance'), 'MuchoOps API section is missing.');
