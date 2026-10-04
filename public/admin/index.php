@@ -1352,6 +1352,39 @@ if (admin() && isset($_GET['client_file'])) {
 }
 
 /* =========================================================
+   GDPS EXPORT DOWNLOAD
+========================================================= */
+
+if (admin() && isset($_GET['gdps_export_download'])) {
+    requirePermission('backups.export');
+
+    $name = basename((string)$_GET['gdps_export_download']);
+
+    if (!preg_match('/^muchocore-gdps-export_[0-9]{8}_[0-9]{6}\.zip$/', $name)) {
+        http_response_code(400);
+        exit('Invalid export file.');
+    }
+
+    $exportDir = rtrim(BACKUP_DIR, '/\\') . '/exports';
+    $file = $exportDir . '/' . $name;
+
+    if (!is_file($file) || !is_readable($file)) {
+        http_response_code(404);
+        exit('Not found');
+    }
+
+    audit($db, 'gdps.export.download', $name);
+
+    header('Content-Type: application/zip');
+    header('Content-Disposition: attachment; filename="' . $name . '"');
+    header('Content-Length: ' . filesize($file));
+    header('Cache-Control: private, no-store');
+
+    readfile($file);
+    exit;
+}
+
+/* =========================================================
    BACKUP DOWNLOAD
 ========================================================= */
 
