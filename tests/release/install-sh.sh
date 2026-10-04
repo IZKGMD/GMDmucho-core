@@ -25,7 +25,7 @@ grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then' install.sh
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/cloudsave_key" ]]; then' install.sh
 grep -Fq 'Required secret file is missing or empty' install.sh
 
-grep -Fq 'expected_services=(db app worker caddy)' install.sh
+grep -Fq 'expected_services=(db app worker scheduler caddy)' install.sh
 ! grep -Fq 'testgdps' install.sh
 ! grep -Fq 'testgdps' docker-compose.yml
 grep -Fq 'php bin/migrate.php migrate' install.sh
