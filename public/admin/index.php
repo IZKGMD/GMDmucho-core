@@ -5647,13 +5647,13 @@ unset($_SESSION['endpoint_result']);
 <input
  style="width:100%;margin-top:5px"
  name="endpoint"
- value="/getGJLevels21.php"
+ value="<?=h((string)($_GET['endpoint'] ?? '/getGJLevels21.php'))?>"
 >
 </div>
 
 <div style="margin-top:12px">
 <small>POST payload</small>
-<textarea name="payload" placeholder="type=0&page=0"></textarea>
+<textarea name="payload" placeholder="type=0&page=0"><?=h((string)($_GET['payload'] ?? ''))?></textarea>
 </div>
 
 <button>Send locally</button>
