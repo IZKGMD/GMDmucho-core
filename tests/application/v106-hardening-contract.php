@@ -115,9 +115,9 @@ assertV106(
 );
 
 assertV106(
-    str_contains($readme, '## 📦 MuchoCore v1.0.8') &&
+    str_contains($readme, '# 📦 34. Release 1.1.0 focus') &&
     !str_contains($readme, '**v1.0.6** is the current stable release'),
-    'README release state matches v1.0.8'
+    'README release state matches v1.1.0'
 );
 
 echo "MUCHOCORE_V106_HARDENING_OK\n";
