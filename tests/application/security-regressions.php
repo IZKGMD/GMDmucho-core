@@ -131,9 +131,9 @@ $accountActions = (string)file_get_contents(
     __DIR__ . '/../../public/admin/actions/accounts.php'
 );
 
-$accountSaveStart = strpos($accountActions, "if ($action==='account-save')");
-$passwordResetStart = strpos($accountActions, "elseif ($action==='password-reset')");
-$accountDeleteStart = strpos($accountActions, "elseif ($action==='account-delete')");
+$accountSaveStart = strpos($accountActions, "if (\$action==='account-save')");
+$passwordResetStart = strpos($accountActions, "elseif (\$action==='password-reset')");
+$accountDeleteStart = strpos($accountActions, "elseif (\$action==='account-delete')");
 
 assertSecurityRegression(
     $accountSaveStart !== false &&
