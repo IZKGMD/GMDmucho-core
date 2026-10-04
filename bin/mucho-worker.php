@@ -113,6 +113,22 @@ do {
                 );
                 break;
 
+            case 'security.cleanup':
+                $db->exec(
+                    "DELETE FROM mucho_security_events
+                     WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)"
+                );
+                $db->exec(
+                    "DELETE FROM mucho_security_rate_limits
+                     WHERE updated_at < DATE_SUB(NOW(), INTERVAL 2 DAY)"
+                );
+                $db->exec(
+                    "DELETE FROM mucho_security_penalties
+                     WHERE expires_at > 0
+                       AND expires_at < UNIX_TIMESTAMP()"
+                );
+                break;
+
             default:
                 throw new RuntimeException('Unknown job type: ' . $type);
         }
