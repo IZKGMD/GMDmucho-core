@@ -464,6 +464,8 @@ MuchoCore
 
 Cloudflare Tunnel is an explicit transport mode, not a requirement for normal public VPS deployment.
 
+**Direct VPS HTTPS remains the default.** No Cloudflare API token, Global API Key, Cloudflare Tunnel or Cloudflare Proxy is required for this path. A standard installation can use an already-active UFW firewall while MuchoCore configures the required inbound ports.
+
 ---
 
 # ☁️ 11. Network and transport options
