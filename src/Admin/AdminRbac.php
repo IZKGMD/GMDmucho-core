@@ -21,6 +21,7 @@ final class AdminRbac
         'players.manage' => 'Edit players',
         'players.password_reset' => 'Reset player passwords',
         'players.delete' => 'Delete players',
+        'players.privileged' => 'Manage privileged player accounts',
         'levels.view' => 'View levels',
         'levels.manage' => 'Edit levels',
         'levels.rate' => 'Rate / feature levels',
