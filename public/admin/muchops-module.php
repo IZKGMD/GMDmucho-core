@@ -123,6 +123,17 @@ $opsHealthy = $opsDbOk && $opsAlertCount === 0 && !(bool)($opsSnapshot['maintena
       <?php if(!empty($opsClients['releases'])): foreach($opsClients['releases'] as $release): ?><div class="ops-event"><b><?=h(strtoupper((string)$release['platform']))?></b><span class="ops-muted"> · v<?=h((string)$release['current_version'])?></span><div><small>Minimum v<?=h((string)$release['minimum_version'])?> · <?=((int)$release['maintenance']===1)?'maintenance':'live'?></small></div></div><?php endforeach; else: ?><div class="ops-empty">No client releases published yet.</div><?php endif; ?>
     </section>
 
+    <section class="card"><div class="ops-title"><h2>Migration readiness</h2><a href="/admin/?page=migration">Migration Center →</a></div>
+      <?php $opsMigrations=$opsSnapshot['migrations'] ?? []; ?>
+      <div class="ops-kv">
+        <div><small>Migration files</small><b><?=$opsNum((int)($opsMigrations['total']??0))?></b></div>
+        <div><small>Applied</small><b class="<?=((int)($opsMigrations['pending']??0)>0)?'amber':'ok'?>"><?=$opsNum((int)($opsMigrations['applied']??0))?></b></div>
+        <div><small>Pending</small><b class="<?=((int)($opsMigrations['pending']??0)>0)?'bad':'ok'?>"><?=$opsNum((int)($opsMigrations['pending']??0))?></b></div>
+        <div><small>Latest schema</small><b><?=h((string)($opsMigrations['latest']??'No migrations'))?></b></div>
+      </div>
+      <div style="margin-top:10px" class="ops-muted">Latest applied: <?=h((string)($opsMigrations['latest_applied']??'None recorded'))?></div>
+    </section>
+
     <section class="card"><div class="ops-title"><h2>Backups & Derived Data</h2><a href="/admin/?page=dbbackups">Backup Center →</a></div>
       <div class="ops-kv"><div><small>Health log</small><b><?=h($opsAge($opsLogs['health_age_seconds']??null))?></b></div><div><small>Backup log</small><b><?=h($opsAge($opsLogs['backup_age_seconds']??null))?></b></div><div><small>Search coverage</small><b><?=h((string)($opsSearch['coverage_percent']??0))?>%</b></div><div><small>Cache rows</small><b><?=$opsNum((int)($opsSearch['cache_rows']??0))?></b></div><div><small>Revisions · 24h</small><b><?=$opsNum((int)($opsSearch['revisions_24h']??0))?></b></div><div><small>Last verified</small><b><?=h((string)($opsBackups['last']['verified_at']??'No verification'))?></b></div></div>
       <?php if(!empty($opsBackups['last'])): ?><div style="margin-top:10px"><span class="ops-pill <?=((int)$opsBackups['last']['gzip_valid']===1 && (int)$opsBackups['last']['sql_valid']===1)?'green':'red'?>"><?=((int)$opsBackups['last']['gzip_valid']===1 && (int)$opsBackups['last']['sql_valid']===1)?'VERIFIED':'CHECK REQUIRED'?></span><span class="ops-muted" style="margin-left:7px"><?=h((string)$opsBackups['last']['file_name'])?></span></div><?php endif; ?>
