@@ -26,7 +26,7 @@ grep -Fq 'Direct VPS origin is healthy at' install.sh
 grep -Fq 'Explicitly declare HTTP and HTTPS listeners in direct mode.' install.sh
 grep -Fq 'Direct VPS HTTPS remains the default.' README.md
 grep -Fq 'No Cloudflare API token, Global API Key, Cloudflare Tunnel or Cloudflare Proxy is required for this path.' README.md
-grep -Fq 'already-active UFW' README.md
+grep -Fq 'an already-active UFW firewall' README.md
 grep -Fq 'allowing inbound TCP 80 and 443' install.sh
 grep -Fq 'configure_local_firewall' install.sh
 
@@ -55,7 +55,7 @@ grep -Fq 'Zone → Zone → Read' install.sh
 
 grep -Fq 'Installation overview' install.sh
 grep -Fq 'The installer will stop on a failed public health check' install.sh
-grep -Fq 'expected_services=(db app worker caddy)' install.sh
+grep -Fq 'expected_services=(db app worker scheduler caddy)' install.sh
 grep -Fq 'MUCHO_CLOUDFLARE_API_TOKEN' install.sh
 grep -Fq 'MUCHO_CLOUDFLARE_AUTH_MODE' install.sh
 grep -Fq 'MUCHO_CLOUDFLARE_EMAIL' install.sh
