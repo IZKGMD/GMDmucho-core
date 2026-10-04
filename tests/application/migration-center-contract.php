@@ -50,7 +50,7 @@ if (
     $control === false ||
     $phpBackup === false ||
     $adminBackup === false ||
-    $adminUsersMigration === false ||
+    $adminUsersMigration === false
 ) {
     throw new RuntimeException('Unable to read one of the migration safety files.');
 }
