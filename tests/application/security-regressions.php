@@ -136,6 +136,8 @@ assertSecurityRegression(
 
 assertSecurityRegression(
     str_contains($monitoringModule, '$canRollback=admin() && canPermission(\'client.manage\');') &&
+    str_contains($monitoringModule, "if (\$monitorAction === 'monitor-release-rollback')") &&
+    str_contains($monitoringModule, "requirePermission('client.manage')") &&
     str_contains($rbacText = (string)file_get_contents(__DIR__ . '/../../src/Admin/AdminRbac.php'), "'monitor-release-rollback' => 'client.manage'"),
     'client rollback is restricted to client management permission'
 );
