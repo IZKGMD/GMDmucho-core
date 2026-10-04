@@ -101,4 +101,15 @@ assertValue(
     'permission normalization'
 );
 
+$permissionMigration = (string)file_get_contents(
+    __DIR__ . '/../../database/migrations/20261004_003_monitoring_manage_permission.php'
+);
+assertValue(
+    true,
+    str_contains($permissionMigration, "'owner'") &&
+    str_contains($permissionMigration, "'admin'") &&
+    !str_contains($permissionMigration, "'moderator'"),
+    'monitoring management migration is limited to owner/admin'
+);
+
 echo "MUCHOCORE_ADMIN_RBAC_OK" . PHP_EOL;
