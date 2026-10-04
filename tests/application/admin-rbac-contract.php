@@ -52,6 +52,12 @@ assertValue(
 );
 
 assertValue(
+    'client.manage',
+    AdminRbac::permissionForContext('monitor-release-rollback',null,30),
+    'client rollback action permission'
+);
+
+assertValue(
     'music.manage',
     AdminRbac::permissionForContext('music-upload',null,30),
     'music action permission'
