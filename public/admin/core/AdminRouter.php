@@ -171,6 +171,17 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
 
     /*
+     * GDPS Export Pack
+     */
+    $router->register(
+        'export',
+        static function(PDO $db): void {
+            require __DIR__.'/../pages/export.php';
+        }
+    );
+
+
+    /*
      * Levels
      */
 
