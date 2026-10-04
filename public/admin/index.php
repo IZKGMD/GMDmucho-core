@@ -2789,7 +2789,6 @@ require_once __DIR__.'/pages/dashboard.php';
 require_once __DIR__.'/pages/release.php';
 require_once __DIR__.'/pages/plugins.php';
 require_once __DIR__.'/pages/intelligence.php';
-require_once __DIR__.'/muchops-module.php';
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     checkCsrf();
