@@ -41,13 +41,13 @@ assertOps(str_contains($serviceText, '$this->services()'), 'MuchoOps must expose
 assertOps(str_contains($serviceText, "'scheduler'"), 'MuchoOps service matrix must inspect scheduler health.');
 assertOps(str_contains($serviceText, "'storage'"), 'MuchoOps service matrix must inspect storage health.');
 assertOps(str_contains($serviceText, 'schema_migrations'), 'MuchoOps must inspect schema migration readiness.');
-assertOps(str_contains($moduleText, 'Migration readiness'), 'MuchoOps migration section is missing.');
+assertOps(str_contains($moduleText, 'Migration Readiness'), 'MuchoOps migration section is missing.');
 assertOps(str_contains($moduleText, 'window.setTimeout(refresh, 15000)'), 'MuchoOps live refresh is missing.');
-assertOps(str_contains($moduleText, 'MuchoOps Control Plane'), 'MuchoOps page title is missing.');
+assertOps(str_contains($moduleText, 'MuchoOps Control Center'), 'MuchoOps page title is missing.');
 assertOps(str_contains($moduleText, 'Background Jobs'), 'MuchoOps jobs section is missing.');
 assertOps(str_contains($moduleText, 'API Performance'), 'MuchoOps API section is missing.');
 assertOps(str_contains($moduleText, 'Security Activity'), 'MuchoOps security section is missing.');
-assertOps(str_contains($moduleText, 'Backups & Derived Data'), 'MuchoOps backup section is missing.');
+assertOps(str_contains($moduleText, 'Search & Backups'), 'MuchoOps backup section is missing.');
 assertOps(str_contains($routerText, "'ops'"), 'Admin router does not register the ops page.');
 assertOps(str_contains($pagesText, "'ops'=>'MuchoOps'"), 'Admin page registry does not expose MuchoOps.');
 assertOps(str_contains($rbacText, "'ops' => 'monitoring.view'"), 'MuchoOps is not protected by monitoring.view.');
