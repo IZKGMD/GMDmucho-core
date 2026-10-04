@@ -36,7 +36,7 @@ MuchoCore is designed for operators who want to run a GDPS without stitching tog
 | 🧩 Compatibility | Shared domain logic with protocol/version compatibility at the transport boundary |
 | 🛡️ Security | MuchoProtect, rate limits, burst limits, identity/device controls, temporary penalties, security events and hardened request handling |
 | 🔐 Admin security | Individual admin accounts, RBAC, TOTP, WebAuthn/FIDO2 passkeys, recovery codes, session limits, audit logging |
-| 🖥️ Admin panel | Dashboard, players, levels, moderation, ratings, migration, intelligence, plugins, content packs, release/client management, backups, monitoring and security views |
+| 🖥️ Admin panel | Dashboard, MuchoOps control plane, players, levels, moderation, ratings, migration, intelligence, plugins, content packs, release/client management, backups, monitoring and security views |
 | 🔄 Migration | Source schema detection, Cvolton-compatible import adapters, dry-run previews, deterministic mappings, verified backups and transactional import safety |
 | 📦 Client tooling | Windows PE patching, Android APK patching, automatic Client Pack generation, SHA-256 manifests and client release metadata |
 | 🚀 Deployment | VPS installer, Docker Compose, Caddy, MariaDB, health checks, automatic migrations, deployment jobs and post-deploy client generation |
@@ -134,6 +134,27 @@ MuchoCore keeps one application/domain layer and places compatibility behavior a
 | Fallback behavior | Derived infrastructure failures do not unnecessarily break core protocol paths |
 
 See [docs/VERSIONS.md](docs/VERSIONS.md), [docs/CLIENT_COMPATIBILITY.md](docs/CLIENT_COMPATIBILITY.md) and [docs/PROTOCOL_MATRIX.md](docs/PROTOCOL_MATRIX.md).
+
+---
+
+# 🛰️ MuchoOps Control Plane
+
+MuchoOps is the operator-facing control plane for `/admin/?page=ops`.
+
+| Area | What it shows |
+| --- | --- |
+| Runtime | Core version, transport mode, domain, database connectivity and latency |
+| API | Requests, 5xx errors, rate limits, average response time and busiest routes over 60 minutes |
+| Jobs | Queued/running/completed/failed jobs plus recent job state without exposing job payloads |
+| Security | Security-event volume and top event types over 24 hours |
+| Alerts | Unresolved critical/warning/info alerts |
+| Clients | Current Android/Windows release state and maintenance flags |
+| Migration | Total/applied/pending migration counts and latest schema versions |
+| Search | Level search-index coverage, recent revisions and cache row count |
+| Backups | Last verified backup and gzip/SQL verification state |
+| Health logs | Last observed health/backup log activity |
+
+The page is protected by `monitoring.view`. Live refresh uses an authenticated, no-store JSON snapshot and keeps the application protocol path independent from the operator dashboard.
 
 ---
 
