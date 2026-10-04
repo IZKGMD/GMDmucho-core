@@ -33,7 +33,7 @@ $page = (string)file_get_contents($root . '/public/admin/pages/export.php');
 $action = (string)file_get_contents($root . '/public/admin/actions/export.php');
 $index = (string)file_get_contents($root . '/public/admin/index.php');
 
-assertExport(str_contains($service, 'format'] = 'muchocore-gdps-export-v1'), 'Export format marker is missing.');
+assertExport(str_contains($service, "'format' => 'muchocore-gdps-export-v1'"), 'Export format marker is missing.');
 assertExport(str_contains($service, 'DatabaseBackupService'), 'Export must use the verified database backup service.');
 assertExport(str_contains($service, '.env.example'), 'Export must include only the safe environment template.');
 assertExport(str_contains($service, '.secrets/'), 'Export documentation must explicitly exclude runtime secrets.');
