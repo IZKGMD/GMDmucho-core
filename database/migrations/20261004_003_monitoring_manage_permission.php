@@ -8,7 +8,6 @@ return static function (PDO $db): void {
     $permissions = [
         'owner',
         'admin',
-        'moderator',
     ];
 
     $findRole = $db->prepare(
