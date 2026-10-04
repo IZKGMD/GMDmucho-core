@@ -38,6 +38,7 @@ assertValue(true, isset($permissions['roles.manage']), 'roles.manage exists');
 assertValue(true, isset($permissions['self.security']), 'self.security exists');
 assertValue(true, isset($permissions['plugins.view']), 'plugins.view exists');
 assertValue(true, isset($permissions['monitoring.manage']), 'monitoring.manage exists');
+assertValue(true, isset($permissions['players.privileged']), 'players.privileged exists');
 
 assertValue(
     'levels.rate',
@@ -55,6 +56,18 @@ assertValue(
     'client.manage',
     AdminRbac::permissionForContext('monitor-release-rollback',null,30),
     'client rollback action permission'
+);
+
+assertValue(
+    'players.manage',
+    AdminRbac::permissionForContext('account-save',null,30),
+    'account mutation action permission'
+);
+
+assertValue(
+    'players.password_reset',
+    AdminRbac::permissionForContext('password-reset',null,30),
+    'password reset action permission'
 );
 
 assertValue(
