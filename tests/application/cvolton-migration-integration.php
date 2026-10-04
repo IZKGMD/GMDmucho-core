@@ -20,6 +20,10 @@ $sourceDb = 'cvolton_migration_it';
 $fixtureRoot = sys_get_temp_dir() . '/muchocore-migration-it-' . bin2hex(random_bytes(4));
 $runtimeEnv = $fixtureRoot . '/runtime.env';
 
+if (!mkdir($fixtureRoot, 0700, true) && !is_dir($fixtureRoot)) {
+    throw new RuntimeException('Unable to create migration integration fixture directory.');
+}
+
 function pdoRoot(string $host, string $port, string $password): PDO
 {
     return new PDO(
