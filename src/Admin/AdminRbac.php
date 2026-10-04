@@ -359,6 +359,7 @@ final class AdminRbac
             'dashboard' => 'dashboard.view',
             'ops' => 'monitoring.view',
             'players' => 'players.view',
+            'playertimeline' => 'players.view',
             'muchoprofiles' => 'players.manage',
             'levels' => 'levels.view',
             'contentpacks' => 'contentpacks.manage',
