@@ -149,6 +149,17 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
 
     /*
+     * Compatibility Lab
+     */
+    $router->register(
+        'compatibility',
+        static function(PDO $db): void {
+            require __DIR__.'/../pages/compatibility.php';
+        }
+    );
+
+
+    /*
      * Levels
      */
 
