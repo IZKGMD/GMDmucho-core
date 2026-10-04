@@ -347,7 +347,7 @@ doctor() {
     compose config -q >/dev/null 2>&1 && echo "✓ Compose" || { echo "✗ Compose"; ok=1; }
 
     local service container_id running
-    local services=(db app worker caddy)
+    local services=(db app worker scheduler caddy)
     local tunnel_mode=0
     local transport_mode
     transport_mode="$(env_get MUCHO_TRANSPORT_MODE)"
@@ -645,6 +645,10 @@ case "${1:-}" in
     worker)
         require_root
         compose exec -T app php bin/mucho-worker.php "${@:2}"
+        ;;
+    automation)
+        require_root
+        compose exec -T app php bin/mucho-scheduler.php "${@:2}"
         ;;
     trace)
         require_root
