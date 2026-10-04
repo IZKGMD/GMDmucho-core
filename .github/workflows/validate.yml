@@ -1,5 +1,10 @@
 name: Validate
 
+concurrency:
+  group: mucho-core-validate-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+
 on:
   push:
   pull_request:
