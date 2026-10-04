@@ -329,7 +329,7 @@ final class AdminRbac
             'monitor-alert-resolve' => 'monitoring.manage',
             'monitor-alert-resolve-all' => 'monitoring.manage',
             'monitor-cleanup' => 'monitoring.manage',
-            'monitor-release-rollback' => 'monitoring.manage',
+            'monitor-release-rollback' => 'client.manage',
             'ops-maintenance' => 'system.manage',
             'ops-registrations' => 'system.manage',
             'ops-retry-stale-jobs' => 'system.manage',
