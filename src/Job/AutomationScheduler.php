@@ -45,6 +45,7 @@ final class AutomationScheduler
 
         try {
             $this->ensureTables();
+            $this->pdo->beginTransaction();
 
             $rows = $this->pdo->query(
                 "SELECT id,code,job_type,interval_seconds,next_run_at,enabled
@@ -113,7 +114,14 @@ final class AutomationScheduler
                 'count' => $enqueued,
             ]);
 
+            $this->pdo->commit();
+
             return $enqueued;
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
         } finally {
             $this->pdo->query(
                 'SELECT RELEASE_LOCK(' . $this->pdo->quote($lock) . ')'
