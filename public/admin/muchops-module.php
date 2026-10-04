@@ -25,16 +25,6 @@ $opsDbOk = (bool)($opsSnapshot['database']['ok'] ?? false);
 $opsAlertCount = (int)($opsAlerts['active'] ?? 0);
 $opsHealthy = $opsDbOk && $opsAlertCount === 0 && !(bool)($opsSnapshot['maintenance'] ?? false);
 
-if (!empty($_GET['ops_feed'])) {
-    if (!canPermission('monitoring.view')) {
-        http_response_code(403);
-        exit;
-    }
-    header('Content-Type: application/json; charset=utf-8');
-    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-    echo json_encode(['ok' => true, 'snapshot' => $opsSnapshot], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    return;
-}
 ?>
 <style>
 .ops-hero{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;padding:20px;margin-bottom:14px;border:1px solid var(--border);border-radius:16px;background:radial-gradient(circle at 80% 20%,rgba(119,100,255,.16),transparent 38%),linear-gradient(145deg,#121826,#0e131c)}
