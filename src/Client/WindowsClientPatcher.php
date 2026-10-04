@@ -369,35 +369,80 @@ final class WindowsClientPatcher
     ): int {
         $old = self::asciiToUtf16Le($oldHost);
         $new = self::asciiToUtf16Le($newHost);
-        $zero = "\0\0";
         $http = self::asciiToUtf16Le('http://');
         $https = self::asciiToUtf16Le('https://');
         $count = 0;
         $offset = 0;
 
         while (($position = strpos($data, $old, $offset)) !== false) {
-            $prefixStart = strrpos(substr($data, 0, $position), $zero);
-            $start = $prefixStart === false ? 0 : $prefixStart + 2;
-            $end = strpos($data, $zero, $position);
+            /*
+             * UTF-16 LE ASCII strings contain one NUL byte after every
+             * character, so "\0\0" is only a string terminator when it is
+             * aligned to a two-byte code-unit boundary. Searching for the
+             * byte sequence directly can otherwise stop on the final
+             * character's NUL plus the first terminator NUL.
+             */
+            $prefixPosition = -1;
+            $prefixLength = 0;
 
-            if ($end === false) {
-                $end = strlen($data);
+            foreach ([$https, $http] as $prefix) {
+                $candidate = strrpos(
+                    substr($data, 0, $position),
+                    $prefix
+                );
+
+                if (
+                    $candidate !== false &&
+                    $candidate + strlen($prefix) === $position &&
+                    $candidate > $prefixPosition
+                ) {
+                    $prefixPosition = $candidate;
+                    $prefixLength = strlen($prefix);
+                }
             }
 
-            $prefix = substr($data, $start, $position - $start);
-            if (!str_ends_with($prefix, $http) && !str_ends_with($prefix, $https)) {
+            if ($prefixPosition < 0) {
+                $offset = $position + strlen($old);
+                continue;
+            }
+
+            $start = $prefixPosition;
+            $urlLength = $prefixLength + strlen($old);
+            $end = $start + $urlLength;
+
+            while ($end + 1 < strlen($data)) {
+                if (substr($data, $end, 2) === "\0\0") {
+                    break;
+                }
+
+                $end += 2;
+            }
+
+            if ($end + 1 >= strlen($data) || substr($data, $end, 2) !== "\0\0") {
                 $offset = $position + strlen($old);
                 continue;
             }
 
             $url = substr($data, $start, $end - $start);
-            $patched = substr_replace($url, $new, $position - $start, strlen($old));
+            if ($url === '' || strlen($url) % 2 !== 0) {
+                $offset = $position + strlen($old);
+                continue;
+            }
+
+            $hostOffset = $position - $start;
+            $patched = substr_replace(
+                $url,
+                $new,
+                $hostOffset,
+                strlen($old)
+            );
+
             if (strlen($patched) > strlen($url)) {
                 $offset = $position + strlen($old);
                 continue;
             }
 
-            $patched .= str_repeat("\0", intdiv(strlen($url) - strlen($patched), 2) * 2);
+            $patched .= str_repeat("\0", strlen($url) - strlen($patched));
             $data = substr_replace($data, $patched, $start, $end - $start);
             $count++;
             $offset = $start + strlen($patched);
