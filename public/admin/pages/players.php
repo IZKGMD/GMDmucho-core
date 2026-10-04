@@ -61,7 +61,7 @@ foreach($rows as $r) {
 <div class="card" style="margin:12px 0">
 
 <div class="row">
-<b>#<?=h($r['account_id'])?> <?=h($r['username'])?></b>
+<b>#<?=h($r['account_id'])?> <?=h($r['username'])?></b> <a class="btn gray" style="margin-left:7px" href="/admin/?page=playertimeline&account_id=<?=rawurlencode((string)$r['account_id'])?>">Timeline</a>
 <span class="badge"><?=h($r['role'] === 'elder_moderator' ? 'Elder Moderator' : ucfirst((string)$r['role']))?></span>
 <?php if($r['is_banned']): ?>
 <span class="badge bad">BANNED</span>
