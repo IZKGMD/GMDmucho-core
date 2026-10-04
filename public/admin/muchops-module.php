@@ -145,3 +145,28 @@ $opsHealthy = $opsDbOk && $opsAlertCount === 0 && !(bool)($opsSnapshot['maintena
   window.setTimeout(refresh, 15000);
 })();
 </script>
+
+<div class="ops-live-refresh" style="margin-top:14px;text-align:right;color:#69778d;font-size:10px">
+    Live data refreshes every 15 seconds.
+</div>
+
+<script>
+(() => {
+    const refresh = async () => {
+        try {
+            const response = await fetch(
+                '/admin/?ops_feed=1&t=' + Date.now(),
+                {
+                    credentials: 'same-origin',
+                    cache: 'no-store',
+                    headers: {'Accept': 'application/json'}
+                }
+            );
+            if (!response.ok) return;
+            const data = await response.json();
+            if (data.ok) window.location.reload();
+        } catch {}
+    };
+    window.setTimeout(refresh, 15000);
+})();
+</script>
