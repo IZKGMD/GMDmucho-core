@@ -13,7 +13,7 @@ use MuchoCore\Security\MuchoProtect;
 ob_start();
 
 /*
- * Shared-hosting PHP can terminate the request with a fatal error before the
+ * A production PHP runtime can terminate the request with a fatal error before the
  * normal Throwable handler gets a chance to run (for example memory exhaustion
  * or a startup/parse failure from an autoloaded class). Keep the HTTP endpoint
  * alive and write the exact fatal to the provider's PHP error log instead of
@@ -113,7 +113,23 @@ try {
 
 /* MUCHO CONTROL FLAGS */
 $__muchoControl = Environment::get('MUCHO_CONTROL_DIR', $root . '/storage/control') ?? ($root . '/storage/control');
-$__muchoUri = strtolower((string)($_SERVER['REQUEST_URI'] ?? ''));
+$__muchoRequestPath = parse_url(
+    (string)($_SERVER['REQUEST_URI'] ?? '/'),
+    PHP_URL_PATH
+);
+$__muchoRequestPath = is_string($__muchoRequestPath)
+    ? strtolower(rtrim($__muchoRequestPath, '/'))
+    : '/';
+$__muchoRegistrationPath = preg_replace(
+    '#^/(?:database|accounts|api|a)(?:/|$)#',
+    '/',
+    $__muchoRequestPath
+) ?? $__muchoRequestPath;
+$__muchoRegistrationPath = preg_replace(
+    '#\.php$#',
+    '',
+    $__muchoRegistrationPath
+) ?? $__muchoRegistrationPath;
 
 if (!is_dir($__muchoControl)) {
     @mkdir($__muchoControl, 0770, true);
@@ -129,7 +145,13 @@ if (is_file($__muchoControl . '/maintenance.flag')) {
 
 if (
     is_file($__muchoControl . '/registrations-disabled.flag') &&
-    str_contains($__muchoUri, 'registergjaccount')
+    in_array($__muchoRegistrationPath, [
+        '/registergjaccount',
+        '/registergjaccount19',
+        '/registergjaccount20',
+        '/registergjaccount21',
+        '/registergjaccount22',
+    ], true)
 ) {
     while (ob_get_level() > 0) {
         ob_end_clean();
