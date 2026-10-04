@@ -31,6 +31,7 @@ final class ControlPlaneSnapshot
         return [
             'generated_at' => gmdate('c'),
             'version' => $this->currentVersion(),
+            'runtime' => $this->runtime(),
             'transport' => $this->env('MUCHO_TRANSPORT_MODE') ?: 'direct',
             'domain' => $this->env('MUCHO_ACCOUNT_URL'),
             'maintenance' => $this->flag('maintenance.flag'),
@@ -227,6 +228,45 @@ final class ControlPlaneSnapshot
         }
 
         return $result;
+    }
+
+    private function runtime(): array
+    {
+        $diskPath = $this->rootDir;
+        $diskTotal = @disk_total_space($diskPath);
+        $diskFree = @disk_free_space($diskPath);
+
+        $runtime = [
+            'php_version' => PHP_VERSION,
+            'os' => PHP_OS_FAMILY,
+            'database_server' => null,
+            'disk_total_bytes' => is_int($diskTotal) || is_float($diskTotal) ? (int)$diskTotal : null,
+            'disk_free_bytes' => is_int($diskFree) || is_float($diskFree) ? (int)$diskFree : null,
+            'disk_free_percent' => null,
+        ];
+
+        if (
+            $runtime['disk_total_bytes'] !== null &&
+            $runtime['disk_total_bytes'] > 0 &&
+            $runtime['disk_free_bytes'] !== null
+        ) {
+            $runtime['disk_free_percent'] = (int)round(
+                max(0, min(
+                    100,
+                    ($runtime['disk_free_bytes'] /
+                        $runtime['disk_total_bytes']) * 100
+                ))
+            );
+        }
+
+        try {
+            $runtime['database_server'] = (string)$this->pdo->getAttribute(
+                PDO::ATTR_SERVER_VERSION
+            );
+        } catch (Throwable) {
+        }
+
+        return $runtime;
     }
 
     private function migrations(): array
