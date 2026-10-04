@@ -33,7 +33,7 @@ final class ControlPlaneSnapshot
             'version' => $this->currentVersion(),
             'runtime' => $this->runtime(),
             'transport' => $this->env('MUCHO_TRANSPORT_MODE') ?: 'direct',
-            'domain' => $this->env('MUCHO_ACCOUNT_URL'),
+            'domain' => $this->env('MUCHO_ACCOUNT_URL') ?: $this->env('MUCHO_PUBLIC_URL'),
             'maintenance' => $this->flag('maintenance.flag'),
             'registrations_disabled' => $this->flag('registrations-disabled.flag'),
             'database' => $database,
@@ -52,6 +52,7 @@ final class ControlPlaneSnapshot
             'backups' => $this->backups(),
             'migrations' => $this->migrations(),
             'automation' => $this->automation(),
+            'services' => $this->services(),
             'logs' => $this->logs(),
             'snapshot_ms' => (int) round((microtime(true) - $started) * 1000),
         ];
@@ -333,6 +334,107 @@ final class ControlPlaneSnapshot
         if (!$result['available']) return $result;
         try { $result['last']=$this->pdo->query("SELECT file_name,size_bytes,sha256,gzip_valid,sql_valid,verified_at FROM mucho_backup_verifications ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC) ?: null; } catch (Throwable) {}
         return $result;
+    }
+
+    private function services(): array
+    {
+        $services = [];
+
+        $services['database'] = [
+            'status' => 'healthy',
+            'label' => 'Database',
+            'detail' => 'Connected',
+        ];
+        
+        try {
+            $dbStarted = microtime(true);
+            $this->pdo->query('SELECT 1')->fetchColumn();
+            $services['database']['latency_ms'] = (int)round((microtime(true) - $dbStarted) * 1000);
+        } catch (Throwable) {
+            $services['database']['status'] = 'critical';
+            $services['database']['detail'] = 'Database health check failed.';
+            $services['database']['latency_ms'] = null;
+        }
+
+        $controlPath = rtrim($this->controlDir, '/\\');
+        $controlReady = is_dir($controlPath) && is_writable($controlPath);
+        $services['control'] = [
+            'status' => $controlReady ? 'healthy' : 'warning',
+            'label' => 'Control storage',
+            'detail' => $controlReady ? 'Writable' : 'Missing or not writable',
+        ];
+
+        $jobsReady = $this->tableExists('mucho_jobs');
+        $services['jobs'] = [
+            'status' => $jobsReady ? 'healthy' : 'warning',
+            'label' => 'Job queue',
+            'detail' => $jobsReady ? 'Available' : 'Queue table unavailable',
+        ];
+
+        $heartbeat = $this->automation();
+        $heartbeatAge = $heartbeat['heartbeat_age_seconds'];
+        $schedulerStatus = $heartbeatAge === null
+            ? ($heartbeat['available'] ? 'warning' : 'warning')
+            : ($heartbeatAge < 120 ? 'healthy' : 'warning');
+
+        $services['scheduler'] = [
+            'status' => $schedulerStatus,
+            'label' => 'Automation scheduler',
+            'detail' => $heartbeatAge === null
+                ? 'No heartbeat recorded'
+                : 'Heartbeat ' . $heartbeatAge . 's ago',
+        ];
+
+        $search = $this->search();
+        $searchReady = $search['available'] &&
+            ($search['levels'] === 0 || $search['coverage_percent'] >= 95);
+
+        $services['search'] = [
+            'status' => $searchReady ? 'healthy' : 'warning',
+            'label' => 'Search index',
+            'detail' => $search['available']
+                ? $search['coverage_percent'] . '% coverage'
+                : 'Index unavailable',
+        ];
+
+        $backup = $this->backups();
+        $backupGood = is_array($backup['last']) &&
+            (int)($backup['last']['gzip_valid'] ?? 0) === 1 &&
+            (int)($backup['last']['sql_valid'] ?? 0) === 1;
+
+        $services['backups'] = [
+            'status' => $backupGood ? 'healthy' : 'warning',
+            'label' => 'Backup verification',
+            'detail' => $backupGood
+                ? 'Latest backup verified'
+                : 'No verified backup available',
+        ];
+
+        $clients = $this->clients();
+        $clientsReady = $clients['available'] && $clients['releases'] !== [];
+        $services['clients'] = [
+            'status' => $clientsReady ? 'healthy' : 'warning',
+            'label' => 'Client releases',
+            'detail' => $clientsReady
+                ? count($clients['releases']) . ' platform release record(s)'
+                : 'No client release metadata',
+        ];
+
+        $runtime = $this->runtime();
+        $diskFree = $runtime['disk_free_percent'];
+        $diskStatus = $diskFree === null
+            ? 'warning'
+            : ($diskFree >= 15 ? 'healthy' : ($diskFree >= 5 ? 'warning' : 'critical'));
+
+        $services['storage'] = [
+            'status' => $diskStatus,
+            'label' => 'Disk capacity',
+            'detail' => $diskFree === null
+                ? 'Capacity unavailable'
+                : $diskFree . '% free',
+        ];
+
+        return $services;
     }
 
     private function logs(): array
