@@ -50,6 +50,7 @@ final class ControlPlaneSnapshot
             'search' => $this->search(),
             'backups' => $this->backups(),
             'migrations' => $this->migrations(),
+            'automation' => $this->automation(),
             'logs' => $this->logs(),
             'snapshot_ms' => (int) round((microtime(true) - $started) * 1000),
         ];
@@ -174,6 +175,57 @@ final class ControlPlaneSnapshot
             try { $result['revisions_24h']=(int)$this->pdo->query("SELECT COUNT(*) FROM mucho_level_revisions WHERE created_at>=DATE_SUB(NOW(),INTERVAL 24 HOUR)")->fetchColumn(); } catch (Throwable) {}
         }
         if ($this->tableExists('mucho_cache')) $result['cache_rows']=$this->countTable('mucho_cache');
+        return $result;
+    }
+
+    private function automation(): array
+    {
+        $result = [
+            'available' => $this->tableExists('mucho_automation_schedules'),
+            'enabled' => 0,
+            'total' => 0,
+            'heartbeat' => null,
+            'heartbeat_age_seconds' => null,
+        ];
+
+        if ($result['available']) {
+            try {
+                $result['total'] = (int)$this->pdo->query(
+                    'SELECT COUNT(*) FROM mucho_automation_schedules'
+                )->fetchColumn();
+                $result['enabled'] = (int)$this->pdo->query(
+                    'SELECT COUNT(*) FROM mucho_automation_schedules WHERE enabled=1'
+                )->fetchColumn();
+            } catch (Throwable) {
+            }
+        }
+
+        if ($this->tableExists('mucho_automation_heartbeat')) {
+            try {
+                $heartbeat = $this->pdo->query(
+                    'SELECT scheduler_id,ticked_at,enqueued_count
+                     FROM mucho_automation_heartbeat
+                     WHERE id=1
+                     LIMIT 1'
+                )->fetch(PDO::FETCH_ASSOC);
+
+                if ($heartbeat) {
+                    $result['heartbeat'] = [
+                        'scheduler_id' => (string)$heartbeat['scheduler_id'],
+                        'ticked_at' => (string)$heartbeat['ticked_at'],
+                        'enqueued_count' => (int)$heartbeat['enqueued_count'],
+                    ];
+
+                    $timestamp = strtotime((string)$heartbeat['ticked_at']);
+                    if ($timestamp !== false) {
+                        $result['heartbeat_age_seconds'] =
+                            max(0, time() - $timestamp);
+                    }
+                }
+            } catch (Throwable) {
+            }
+        }
+
         return $result;
     }
 
