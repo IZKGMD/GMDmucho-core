@@ -37,11 +37,18 @@ $permissions=AdminRbac::permissions();
 assertValue(true, isset($permissions['roles.manage']), 'roles.manage exists');
 assertValue(true, isset($permissions['self.security']), 'self.security exists');
 assertValue(true, isset($permissions['plugins.view']), 'plugins.view exists');
+assertValue(true, isset($permissions['monitoring.manage']), 'monitoring.manage exists');
 
 assertValue(
     'levels.rate',
     AdminRbac::permissionForContext('level-rate-save',null,20),
     'level rating action permission'
+);
+
+assertValue(
+    'monitoring.manage',
+    AdminRbac::permissionForContext('monitor-alert-resolve',null,30),
+    'monitoring alert action permission'
 );
 
 assertValue(
