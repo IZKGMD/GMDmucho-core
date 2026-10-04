@@ -131,9 +131,24 @@ $accountActions = (string)file_get_contents(
     __DIR__ . '/../../public/admin/actions/accounts.php'
 );
 
+$accountSaveStart = strpos($accountActions, "if ($action==='account-save')");
+$passwordResetStart = strpos($accountActions, "elseif ($action==='password-reset')");
+$accountDeleteStart = strpos($accountActions, "elseif ($action==='account-delete')");
+
 assertSecurityRegression(
-    str_contains($accountActions, "requirePermission('players.privileged');") &&
-    !str_contains($accountActions, "requireRank(40);"),
+    $accountSaveStart !== false &&
+    $passwordResetStart !== false &&
+    $accountDeleteStart !== false &&
+    strpos($accountActions, "requirePermission('players.privileged');", $accountSaveStart) !== false &&
+    strpos($accountActions, "requirePermission('players.privileged');", $passwordResetStart) !== false &&
+    (
+        strpos($accountActions, "requirePermission('players.privileged');", $accountSaveStart) <
+        $passwordResetStart
+    ) &&
+    (
+        strpos($accountActions, "requirePermission('players.privileged');", $passwordResetStart) <
+        $accountDeleteStart
+    ),
     'privileged account mutations use an explicit owner-level permission'
 );
 
