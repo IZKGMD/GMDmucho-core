@@ -352,6 +352,7 @@ final class AdminRbac
 
         $pages = [
             'dashboard' => 'dashboard.view',
+            'ops' => 'monitoring.view',
             'players' => 'players.view',
             'muchoprofiles' => 'players.manage',
             'levels' => 'levels.view',
