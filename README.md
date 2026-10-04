@@ -518,7 +518,7 @@ The shared-hosting deployment path was removed from the 1.1.0 architecture so th
 
 ---
 
-# 🤖 12. Automation Center
+# 🤖 Automation Center
 
 MuchoCore includes a database-backed scheduler for safe recurring maintenance.
 
