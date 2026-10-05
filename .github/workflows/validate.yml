@@ -311,7 +311,8 @@ jobs:
           PY
           ! grep -q 'Gemini_Generated_Image_vemzsvemzsvemzsv.jpg' docker/Caddyfile
           grep -Fq '@legacy_recovery path /GD/accountHelp /GD/accountHelp.php' docker/Caddyfile
-          grep -Fq 'rewrite * /api/api/accounts/lostusername.php' docker/Caddyfile
+          grep -Fq 'rewrite @legacy_recovery /api/api/accounts/lostusername.php' docker/Caddyfile
+          ! grep -Fq 'handle @legacy_recovery' docker/Caddyfile
           grep -Fq 'path /.env* /.git/* /composer.json /composer.lock /config/* /src/* /tests/* /storage/*' docker/Caddyfile
           grep -Fq 'auto_https disable_redirects' docker/Caddyfile
           ! grep -Fq 'testgdps' docker-compose.yml
