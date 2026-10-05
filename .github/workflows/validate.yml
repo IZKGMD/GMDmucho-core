@@ -4,7 +4,6 @@ concurrency:
   group: mucho-core-validate-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-
 on:
   push:
   pull_request:
@@ -96,6 +95,7 @@ jobs:
           php tests/application/vps-deployment-gateway-contract.php
           php tests/application/mucho-ops-contract.php
           php tests/application/cache-driver-contract.php
+          php tests/application/database-connection-contract.php
           php tests/application/plugin-sdk-contract.php
           php tests/application/score-integrity-contract.php
           php tests/application/cvolton-db-import-contract.php
@@ -135,7 +135,6 @@ jobs:
           test -f docker-compose.tunnel.yml
           test -f docker-compose.test.yml
           test -f install
-          test -f install-remote.sh
           test -f install-remote.sh
           test -f tests/release/installer-dx.sh
           test -f docker/Dockerfile
