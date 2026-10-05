@@ -22,6 +22,14 @@ if (!str_contains($database, "LIKE :prefix")) {
     throw new RuntimeException('Database cache prefix deletion contract is missing.');
 }
 
+if (!str_contains($database, "LIKE :prefix ESCAPE")) {
+    throw new RuntimeException('Database cache prefix deletion must use an explicit LIKE escape character.');
+}
+
+if (!str_contains($database, "addcslashes")) {
+    throw new RuntimeException('Database cache prefix deletion must escape LIKE wildcards.');
+}
+
 if (
     !str_contains($redis, 'if ($keys === false)') ||
     !str_contains($redis, 'return;') ||
