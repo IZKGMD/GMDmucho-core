@@ -11,7 +11,7 @@ if (!is_string($database)) {
 
 foreach ([
     'public function connection(): PDO',
-    'SET time_zone = \' +00:00\'',
+    "SET time_zone = '+00:00'",
     'Environment::get(\'DB_HOST\'',
     'Environment::get(\'DB_PASS\'',
 ] as $needle) {
