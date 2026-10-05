@@ -11,9 +11,9 @@ if (!is_string($database)) {
 
 foreach ([
     'public function connection(): PDO',
-    'SET time_zone = '+00:00'',
-    'Environment::get('DB_HOST'',
-    'Environment::get('DB_PASS'',
+    'SET time_zone = \' +00:00\'',
+    'Environment::get(\'DB_HOST\'',
+    'Environment::get(\'DB_PASS\'',
 ] as $needle) {
     if (!str_contains($database, $needle)) {
         throw new RuntimeException('Database connection contract missing: ' . $needle);
