@@ -15,6 +15,11 @@ grep -Fq "if (\$gdpsName === '' || mb_strlen(\$gdpsName, 'UTF-8') > 64" public/d
 grep -Fq '"MUCHO_SERVER_NAME=" . shell_quote($gdpsName)' public/deploy.php
 
 grep -Fq '\MuchoCore\Client\DeploymentClientPack::prepare(' bin/mucho-deploy-worker.php
+grep -Fq -- '--dispatch-queue' bin/mucho-deploy-worker.php
+grep -Fq 'function deployment_dispatch_next' bin/mucho-deploy-worker.php
+grep -Fq 'MUCHO_DEPLOY_MAX_CONCURRENT' bin/mucho-deploy-worker.php
+grep -Fq 'dispatch.lock' bin/mucho-deploy-worker.php
+grep -Fq "status='running'" bin/mucho-deploy-worker.php
 ! grep -Fq 'MuchoCoreClientDeploymentClientPack::prepare(' bin/mucho-deploy-worker.php
 grep -Fq "shell_quote(\$installRef)" bin/mucho-deploy-worker.php
 ! grep -Fq "shell_quote(INSTALL_REF)" bin/mucho-deploy-worker.php
