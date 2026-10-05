@@ -64,8 +64,15 @@ final readonly class DatabaseCache implements CacheInterface
     public function deletePrefix(string $prefix): void
     {
         try {
-            $stmt = $this->pdo->prepare('DELETE FROM mucho_cache WHERE cache_key LIKE :prefix');
-            $stmt->execute(['prefix' => substr($prefix, 0, 190) . '%']);
+            $literalPrefix = substr($prefix, 0, 190);
+            $stmt = $this->pdo->prepare(
+                "DELETE FROM mucho_cache
+                 WHERE cache_key LIKE :prefix ESCAPE '\\\\'"
+            );
+            $stmt->execute([
+                'prefix' =>
+                    addcslashes($literalPrefix, '\\\\%_') . '%',
+            ]);
         } catch (Throwable) {
         }
     }
