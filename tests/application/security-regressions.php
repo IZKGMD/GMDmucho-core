@@ -123,6 +123,50 @@ assertSecurityRegression(
     'admin uncaught exceptions use a generic error page'
 );
 
+$monitoringModule = (string)file_get_contents(
+    __DIR__ . '/../../public/admin/security-monitoring-module.php'
+);
+
+$accountActions = (string)file_get_contents(
+    __DIR__ . '/../../public/admin/actions/accounts.php'
+);
+
+$accountSaveStart = strpos($accountActions, "if (\$action==='account-save')");
+$passwordResetStart = strpos($accountActions, "elseif (\$action==='password-reset')");
+$accountDeleteStart = strpos($accountActions, "elseif (\$action==='account-delete')");
+
+assertSecurityRegression(
+    $accountSaveStart !== false &&
+    $passwordResetStart !== false &&
+    $accountDeleteStart !== false &&
+    strpos($accountActions, "requirePermission('players.privileged');", $accountSaveStart) !== false &&
+    strpos($accountActions, "requirePermission('players.privileged');", $passwordResetStart) !== false &&
+    (
+        strpos($accountActions, "requirePermission('players.privileged');", $accountSaveStart) <
+        $passwordResetStart
+    ) &&
+    (
+        strpos($accountActions, "requirePermission('players.privileged');", $passwordResetStart) <
+        $accountDeleteStart
+    ),
+    'privileged account mutations use an explicit owner-level permission'
+);
+
+assertSecurityRegression(
+    str_contains($monitoringModule, "requirePermission('monitoring.manage')") &&
+    str_contains($monitoringModule, 'mucho_security_rate_limits') &&
+    !str_contains($monitoringModule, 'mucho_api_rate_limits'),
+    'security monitoring uses the explicit monitoring permission and correct rate-limit storage'
+);
+
+assertSecurityRegression(
+    str_contains($monitoringModule, '$canRollback=admin() && canPermission(\'client.manage\');') &&
+    str_contains($monitoringModule, "if (\$monitorAction === 'monitor-release-rollback')") &&
+    str_contains($monitoringModule, "requirePermission('client.manage')") &&
+    str_contains($rbacText = (string)file_get_contents(__DIR__ . '/../../src/Admin/AdminRbac.php'), "'monitor-release-rollback' => 'client.manage'"),
+    'client rollback is restricted to client management permission'
+);
+
 assertSecurityRegression(
     str_contains($adminLevels, 'The operation could not be completed. Please try again.'),
     'admin level action masks internal exceptions'
@@ -274,6 +318,13 @@ assertSecurityRegression(
 
 $frontController = (string)file_get_contents(
     __DIR__ . '/../../public/index.php'
+);
+
+assertSecurityRegression(
+    str_contains($frontController, "in_array(\$__muchoRegistrationPath, [") &&
+    str_contains($frontController, "'/registergjaccount22'") &&
+    !str_contains($frontController, "str_contains(\$__muchoUri, 'registergjaccount')"),
+    'registration lock matches normalized API paths instead of arbitrary request text'
 );
 
 assertSecurityRegression(

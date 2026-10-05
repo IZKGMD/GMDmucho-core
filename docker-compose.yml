@@ -55,7 +55,6 @@ services:
       MUCHO_WEBHOOK_EVENTS: ${MUCHO_WEBHOOK_EVENTS:-*}
       MUCHO_DEPLOY_ACCESS_KEY: ${MUCHO_DEPLOY_ACCESS_KEY:-}
       MUCHO_DEPLOY_MAX_CONCURRENT: ${MUCHO_DEPLOY_MAX_CONCURRENT:-2}
-      MUCHO_SHARED_DEPLOY_SOURCE: ${MUCHO_SHARED_DEPLOY_SOURCE:-stable}
     secrets:
       - db_password
       - admin_password
@@ -88,7 +87,28 @@ services:
       MUCHO_WEBHOOK_URL: ${MUCHO_WEBHOOK_URL:-}
       MUCHO_WEBHOOK_SECRET: ${MUCHO_WEBHOOK_SECRET:-}
       MUCHO_WEBHOOK_EVENTS: ${MUCHO_WEBHOOK_EVENTS:-*}
-      MUCHO_SHARED_DEPLOY_SOURCE: ${MUCHO_SHARED_DEPLOY_SOURCE:-stable}
+    secrets:
+      - db_password
+    volumes:
+      - ./:/var/www/mucho-core
+      - muchocore_runtime:/var/lib/muchocore
+    depends_on:
+      db:
+        condition: service_healthy
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    command: ["php", "/var/www/mucho-core/bin/mucho-scheduler.php", "--loop", "--sleep=15"]
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      MUCHO_DB_PASSWORD_FILE: /run/secrets/db_password
+      MUCHO_SKIP_ADMIN_BOOTSTRAP: "1"
     secrets:
       - db_password
     volumes:

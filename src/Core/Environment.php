@@ -31,8 +31,8 @@ final class Environment
             $value = $runtime[$key];
         }
 
-        // The installation's own .env is the source of truth on Shared Hosting
-        // and for deployment-specific MuchoCore settings on VPS installations.
+        // The installation's own .env is the source of truth for
+        // deployment-specific MuchoCore settings.
         if ($value === null) {
             $project = self::loadFile($root . '/.env');
 
@@ -46,9 +46,8 @@ final class Environment
             }
         }
 
-        // Process environment is only the final fallback. Shared-hosting
-        // providers may expose generic variables such as DB_HOST/DB_USER
-        // belonging to another application.
+        // Process environment is only the final fallback. Keep project-level
+        // configuration authoritative before accepting generic process values.
         if ($value === null) {
             foreach ([
                 static fn(string $name): mixed => $_ENV[$name] ?? null,

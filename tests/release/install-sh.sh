@@ -9,14 +9,7 @@ test -f install
 
 bash -n install.sh
 bash -n install
-bash -n tools/release/build-shared-hosting.sh
-test -f public/shared-install.php
 grep -Fq '20260925_000_admin_users.php' < <(git ls-files database/migrations/20260925_000_admin_users.php)
-php -l public/shared-install.php >/dev/null
-grep -Fq 'shared-install.installed' public/shared-install.php
-grep -Fq 'databasePreflight(' public/shared-install.php
-grep -Fq "dotenvLine('MUCHO_SHARED_HOSTING', '1')" public/shared-install.php
-grep -Fq "dotenvLine('MUCHO_DB_BACKUP_DIR'" public/shared-install.php
 
 grep -Fq 'flock -n 9' install.sh
 grep -Fq 'DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git jq openssl' install.sh
@@ -32,7 +25,7 @@ grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then' install.sh
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/cloudsave_key" ]]; then' install.sh
 grep -Fq 'Required secret file is missing or empty' install.sh
 
-grep -Fq 'expected_services=(db app worker caddy)' install.sh
+grep -Fq 'expected_services=(db app worker scheduler caddy)' install.sh
 ! grep -Fq 'testgdps' install.sh
 ! grep -Fq 'testgdps' docker-compose.yml
 grep -Fq 'php bin/migrate.php migrate' install.sh

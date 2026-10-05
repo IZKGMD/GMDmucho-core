@@ -4,7 +4,7 @@ MuchoCore is a modern Geometry Dash Private Server core for owners who want a ma
 
 ## New to MuchoCore?
 
-For a normal PHP shared host without Docker, use **[docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md)** and the `MuchoCore-vX.Y.Z-shared-hosting.zip` release asset. It includes Composer dependencies and the browser installer, so no server terminal is required.
+For production deployment, use the VPS installer. It provisions Docker, MariaDB, Caddy, migrations, health checks and the generated client pack on the target VPS.
 
 Use the shortest VPS installation path:
 

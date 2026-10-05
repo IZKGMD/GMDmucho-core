@@ -1,11 +1,8 @@
 # MuchoCore Getting Started
 
-Choose your hosting first:
-
-- **Shared hosting:** [Shared Hosting guide](SHARED_HOSTING.md) — FTP/file manager, no VPS required.
-- **VPS:** [VPS installation](https://muchogdps.space/install/vps/) — dedicated public IPv4 required for the standard direct-HTTPS deployment.
-
 This is the shortest path from a fresh VPS to a working Geometry Dash Private Server.
+
+Use the [VPS installation guide](https://muchogdps.space/install/vps/) for the standard direct deployment.
 
 ## 1. Point your domain
 

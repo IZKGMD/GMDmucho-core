@@ -37,11 +37,37 @@ $permissions=AdminRbac::permissions();
 assertValue(true, isset($permissions['roles.manage']), 'roles.manage exists');
 assertValue(true, isset($permissions['self.security']), 'self.security exists');
 assertValue(true, isset($permissions['plugins.view']), 'plugins.view exists');
+assertValue(true, isset($permissions['monitoring.manage']), 'monitoring.manage exists');
+assertValue(true, isset($permissions['players.privileged']), 'players.privileged exists');
 
 assertValue(
     'levels.rate',
     AdminRbac::permissionForContext('level-rate-save',null,20),
     'level rating action permission'
+);
+
+assertValue(
+    'monitoring.manage',
+    AdminRbac::permissionForContext('monitor-alert-resolve',null,30),
+    'monitoring alert action permission'
+);
+
+assertValue(
+    'client.manage',
+    AdminRbac::permissionForContext('monitor-release-rollback',null,30),
+    'client rollback action permission'
+);
+
+assertValue(
+    'players.manage',
+    AdminRbac::permissionForContext('account-save',null,30),
+    'account mutation action permission'
+);
+
+assertValue(
+    'players.password_reset',
+    AdminRbac::permissionForContext('password-reset',null,30),
+    'password reset action permission'
 );
 
 assertValue(
@@ -86,6 +112,17 @@ assertValue(
     ['players.manage','roles.manage'],
     $normalized,
     'permission normalization'
+);
+
+$permissionMigration = (string)file_get_contents(
+    __DIR__ . '/../../database/migrations/20261004_003_monitoring_manage_permission.php'
+);
+assertValue(
+    true,
+    str_contains($permissionMigration, "'owner'") &&
+    str_contains($permissionMigration, "'admin'") &&
+    !str_contains($permissionMigration, "'moderator'"),
+    'monitoring management migration is limited to owner/admin'
 );
 
 echo "MUCHOCORE_ADMIN_RBAC_OK" . PHP_EOL;

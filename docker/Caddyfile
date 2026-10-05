@@ -39,53 +39,7 @@
     }
     redir @muchogdps_index / 308
 
-    # Dedicated installation pages must be matched before the general /install/* selector.
-    # Legacy shared-hosting aliases always land on the canonical automatic installer.
-    @muchogdps_legacy_shared_root {
-        host {$MUCHOCORE_SITE_HOST}
-        path /shared
-    }
-    redir @muchogdps_legacy_shared_root /install/shared/ 308
-
-    @muchogdps_legacy_shared_ui {
-        host {$MUCHOCORE_SITE_HOST}
-        path /shared/
-    }
-    redir @muchogdps_legacy_shared_ui /install/shared/ 308
-
-
-    # Live shared-hosting deployment console must be matched before the general shared installer UI.
-    @muchogdps_install_shared_go_root {
-        host {$MUCHOCORE_SITE_HOST}
-        path /install/shared/go
-    }
-    redir @muchogdps_install_shared_go_root /install/shared/go/ 308
-
-    @muchogdps_install_shared_go_ui {
-        host {$MUCHOCORE_SITE_HOST}
-        path /install/shared/go/ /install/shared/go/*
-    }
-    handle @muchogdps_install_shared_go_ui {
-        header Cache-Control "no-store, no-cache, must-revalidate"
-        rewrite * /install/shared/go/index.html
-        file_server
-    }
-
-    @muchogdps_install_shared_root {
-        host {$MUCHOCORE_SITE_HOST}
-        path /install/shared
-    }
-    redir @muchogdps_install_shared_root /install/shared/ 308
-
-    @muchogdps_install_shared_ui {
-        host {$MUCHOCORE_SITE_HOST}
-        path /install/shared/ /install/shared/*
-    }
-    handle @muchogdps_install_shared_ui {
-        header Cache-Control "no-store, no-cache, must-revalidate"
-        rewrite * /install/shared/index.html
-        file_server
-    }
+    # Dedicated VPS installation pages are matched before the general /install/* selector.
 
     @muchogdps_install_vps_root {
         host {$MUCHOCORE_SITE_HOST}
@@ -122,7 +76,7 @@
     # Web deployment UI/API belong only to the canonical MuchoGDPS host.
     @muchogdps_deploy_api {
         host {$MUCHOCORE_SITE_HOST}
-        path /api/deploy/start /api/deploy/status /api/deploy/log /api/deploy/browser-finish
+        path /api/deploy/start /api/deploy/status /api/deploy/log
     }
     handle @muchogdps_deploy_api {
         rewrite * /deploy.php
@@ -202,9 +156,7 @@
     # Geometry Dash 1.9 opens these legacy account-recovery URLs.
     # Keep the original paths and serve the unified MuchoCore recovery flow.
     @legacy_recovery path /GD/accountHelp /GD/accountHelp.php
-    handle @legacy_recovery {
-        rewrite * /api/api/accounts/lostusername.php
-    }
+    rewrite @legacy_recovery /api/api/accounts/lostusername.php
 
     # The game API remains available over HTTP for legacy clients,
     # but the administrator session must always use HTTPS.
@@ -217,16 +169,6 @@
         not header X-Forwarded-Proto https
     }
     redir @admin_http https://{host}{uri} 308
-
-    # The shared-hosting installer is only for non-Docker deployments.
-    # Never expose it from the Docker/VPS public site.
-    @shared_installer path /shared-install.php
-    respond @shared_installer 404
-
-    # The legacy shared-hosting bootstrap is for fresh non-Docker accounts only.
-    # Never expose it from the MuchoCore VPS/control-plane site.
-    @shared_ftp_installer path /ftp-install.php
-    respond @shared_ftp_installer 404
 
     # Keep private project files unreachable, but do not block /database/*:
     # Geometry Dash client endpoints live under /public/database.

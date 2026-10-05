@@ -1352,6 +1352,39 @@ if (admin() && isset($_GET['client_file'])) {
 }
 
 /* =========================================================
+   GDPS EXPORT DOWNLOAD
+========================================================= */
+
+if (admin() && isset($_GET['gdps_export_download'])) {
+    requirePermission('backups.export');
+
+    $name = basename((string)$_GET['gdps_export_download']);
+
+    if (!preg_match('/^muchocore-gdps-export_[0-9]{8}_[0-9]{6}\.zip$/', $name)) {
+        http_response_code(400);
+        exit('Invalid export file.');
+    }
+
+    $exportDir = rtrim(BACKUP_DIR, '/\\') . '/exports';
+    $file = $exportDir . '/' . $name;
+
+    if (!is_file($file) || !is_readable($file)) {
+        http_response_code(404);
+        exit('Not found');
+    }
+
+    audit($db, 'gdps.export.download', $name);
+
+    header('Content-Type: application/zip');
+    header('Content-Disposition: attachment; filename="' . $name . '"');
+    header('Content-Length: ' . filesize($file));
+    header('Cache-Control: private, no-store');
+
+    readfile($file);
+    exit;
+}
+
+/* =========================================================
    BACKUP DOWNLOAD
 ========================================================= */
 
@@ -1413,6 +1446,33 @@ if (admin() && isset($_GET['audit_feed'])) {
             'events'=>$rows
         ],
         JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES
+    );
+    exit;
+}
+
+/* =========================================================
+   MUCHOOPS LIVE FEED
+========================================================= */
+
+if (admin() && isset($_GET['ops_feed'])) {
+    requirePermission('monitoring.view');
+
+    $snapshot = (new \MuchoCore\Monitoring\ControlPlaneSnapshot(
+        $db,
+        ROOT_DIR,
+        CONTROL_DIR
+    ))->snapshot();
+
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('X-Request-ID: '.$__muchoAdminRequestId);
+
+    echo json_encode(
+        [
+            'ok' => true,
+            'snapshot' => $snapshot
+        ],
+        JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_INVALID_UTF8_SUBSTITUTE
     );
     exit;
 }
@@ -2774,6 +2834,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
     if (in_array($action,['gauntlet-save','gauntlet-delete','mappack-save','mappack-delete'],true)) {
         require __DIR__.'/actions/contentpacks.php';
+    }
+
+    if (in_array($action,[
+        'ops-maintenance',
+        'ops-registrations',
+        'ops-retry-stale-jobs',
+        'ops-resolve-alert',
+    ], true)) {
+        require __DIR__.'/actions/ops.php';
     }
 
     if (str_starts_with($action,'client-patcher-')) {
@@ -5067,7 +5136,7 @@ table{
 <nav>
 
 <div class="nav-title">Main</div>
-<?php foreach(['dashboard','analytics','advanced','monitoring','intelligence'] as $key): ?>
+<?php foreach(['dashboard','ops','analytics','advanced','monitoring','intelligence','compatibility'] as $key): ?>
 <?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
@@ -5100,7 +5169,7 @@ table{
 <?php endforeach ?>
 
 <div class="nav-title">Tools</div>
-<?php foreach(['database','endpoints','updates','securitycenter','dbbackups','migration','backups','settings','system'] as $key): ?>
+<?php foreach(['database','endpoints','updates','securitycenter','dbbackups','migration','backups','automation','export','settings','system'] as $key): ?>
 <?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
@@ -5121,7 +5190,7 @@ table{
 <?php endif; ?>
 <?php endforeach ?>
 
-<a class="logout href="/admin/?logout=1">
+<a class="logout" href="/admin/?logout=1">
 Logout
 </a>
 
@@ -5620,13 +5689,13 @@ unset($_SESSION['endpoint_result']);
 <input
  style="width:100%;margin-top:5px"
  name="endpoint"
- value="/getGJLevels21.php"
+ value="<?=h((string)($_GET['endpoint'] ?? '/getGJLevels21.php'))?>"
 >
 </div>
 
 <div style="margin-top:12px">
 <small>POST payload</small>
-<textarea name="payload" placeholder="type=0&page=0"></textarea>
+<textarea name="payload" placeholder="type=0&page=0"><?=h((string)($_GET['payload'] ?? ''))?></textarea>
 </div>
 
 <button>Send locally</button>

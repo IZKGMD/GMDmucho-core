@@ -85,7 +85,7 @@ try {
                 ($currentRank > 0 && $currentRank >= $actorRank) ||
                 ($targetRank > 0 && $targetRank >= $actorRank)
             ) {
-                requireRank(40);
+                requirePermission('players.privileged');
             }
 
             $q=$db->prepare(
@@ -152,7 +152,7 @@ try {
             };
 
             if ($targetRank >= $actorRank && $targetRank > 0) {
-                requireRank(40);
+                requirePermission('players.privileged');
             }
 
             if (strlen($password)<8 || strlen($password)>256) {

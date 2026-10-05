@@ -149,7 +149,12 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         try {
 
             checkCsrf();
-            requireRank(30);
+
+            if ($monitorAction === 'monitor-release-rollback') {
+                requirePermission('client.manage');
+            } else {
+                requirePermission('monitoring.manage');
+            }
 
 
             /* ------------------------------------------------
@@ -255,11 +260,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 if(
                     muchoMonitoringTableExists(
                         $db,
-                        'mucho_api_rate_limits'
+                        'mucho_security_rate_limits'
                     )
                 ){
                     $rate=$db->exec("
-                        DELETE FROM mucho_api_rate_limits
+                        DELETE FROM mucho_security_rate_limits
                         WHERE updated_at <
                             DATE_SUB(
                                 NOW(),
@@ -268,6 +273,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     ");
                 }else{
                     $rate=0;
+                }
+
+                $penalties=0;
+                if (muchoMonitoringTableExists($db, 'mucho_security_penalties')) {
+                    $penalties=$db->exec("
+                        DELETE FROM mucho_security_penalties
+                        WHERE expires_at > 0
+                          AND expires_at < UNIX_TIMESTAMP()
+                    ");
                 }
 
                 $alerts=$db->exec("
@@ -293,6 +307,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
                         'rate_limits'=>
                             (int)$rate,
+
+                        'penalties'=>
+                            (int)$penalties,
 
                         'alerts'=>
                             (int)$alerts
@@ -537,11 +554,8 @@ function renderSecurityMonitoringPage(
     PDO $db
 ): void {
 
-    $canEdit=
-        admin() &&
-        rank(
-            (string)admin()['role']
-        )>=30;
+    $canEdit=admin() && canPermission('monitoring.manage');
+    $canRollback=admin() && canPermission('client.manage');
 
 
     /* ========================================================
@@ -1675,7 +1689,7 @@ function renderSecurityMonitoringPage(
                                 Active
                             </span>
 
-                        <?php elseif($canEdit): ?>
+                        <?php elseif($canRollback): ?>
 
                             <form
                                 method="post"

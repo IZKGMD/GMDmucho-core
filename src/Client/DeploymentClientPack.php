@@ -78,7 +78,9 @@ final class DeploymentClientPack
 
             if (
                 is_array($existing) &&
+                ($existing['patch_engine'] ?? '') === '2.0' &&
                 ($existing['server_url'] ?? '') === $server &&
+                ($existing['server_name'] ?? '') === $serverName &&
                 is_file((string)($existing['windows']['path'] ?? '')) &&
                 is_file((string)($existing['android']['path'] ?? '')) &&
                 is_file((string)($existing['archive']['path'] ?? ''))
@@ -215,7 +217,7 @@ final class DeploymentClientPack
     /**
      * Return the ordered locations where the control plane may keep the
      * immutable Android base APK. Persistent control-storage locations survive
-     * repository updates and are shared by VPS and shared-hosting workers.
+     * repository updates and are reused by VPS deployment workers.
      */
     public static function androidSourceCandidates(string $rootDir, string $jobDir = ''): array
     {

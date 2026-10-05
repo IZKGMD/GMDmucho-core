@@ -3,9 +3,7 @@
 declare(strict_types=1);
 
 use MuchoCore\Backup\DatabaseBackupService;
-use MuchoCore\Database\Migrator;
 use MuchoCore\Migration\CvoltonDatabaseImporter;
-use MuchoCore\Migration\SharedMigrationService;
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 $root = dirname(__DIR__, 2);
@@ -18,10 +16,13 @@ if ($rootPassword === '') {
 }
 
 $targetDb = 'muchocore_migration_it';
-$sharedTargetDb = 'muchocore_shared_migration_it';
 $sourceDb = 'cvolton_migration_it';
 $fixtureRoot = sys_get_temp_dir() . '/muchocore-migration-it-' . bin2hex(random_bytes(4));
 $runtimeEnv = $fixtureRoot . '/runtime.env';
+
+if (!mkdir($fixtureRoot, 0700, true) && !is_dir($fixtureRoot)) {
+    throw new RuntimeException('Unable to create migration integration fixture directory.');
+}
 
 function pdoRoot(string $host, string $port, string $password): PDO
 {
@@ -121,7 +122,6 @@ function runCli(
 try {
     $server = pdoRoot($host, $port, $rootPassword);
     $server->exec('DROP DATABASE IF EXISTS ' . $targetDb);
-    $server->exec('DROP DATABASE IF EXISTS ' . $sharedTargetDb);
     $server->exec('DROP DATABASE IF EXISTS ' . $sourceDb);
     $server->exec(
         'CREATE DATABASE ' . $targetDb .
@@ -131,19 +131,9 @@ try {
         'CREATE DATABASE ' . $sourceDb .
         ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
     );
-    $server->exec(
-        'CREATE DATABASE ' . $sharedTargetDb .
-        ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
-    );
 
     $source = pdoDb($host, $port, $sourceDb, $rootPassword);
     $target = pdoDb($host, $port, $targetDb, $rootPassword);
-    $sharedTarget = pdoDb($host, $port, $sharedTargetDb, $rootPassword);
-
-    (new Migrator(
-        $sharedTarget,
-        $root . '/database/migrations'
-    ))->migrate();
 
     $source->exec(<<<'SQL'
 CREATE TABLE accounts (
@@ -485,64 +475,6 @@ SQL);
         VALUES (601,1,101,12345,77,1700000001)"
     );
 
-    $sharedMigrationPreview = (new SharedMigrationService(
-        $sharedTarget,
-        $fixtureRoot,
-        $fixtureRoot . '/shared-service-backups'
-    ))->preview($source);
-    must(
-        ($sharedMigrationPreview['preflight']['accounts'] ?? -1) === 2,
-        'Shared Migration Center preview returned the wrong account count.'
-    );
-
-    $sharedMigration = (new SharedMigrationService(
-        $sharedTarget,
-        $fixtureRoot,
-        $fixtureRoot . '/shared-service-backups'
-    ))->apply($source);
-
-    must(
-        is_file($sharedMigration['backup']['file']),
-        'Shared Migration Center did not create its target backup.'
-    );
-    must(
-        scalar($sharedTarget, 'SELECT COUNT(*) FROM accounts') === 2,
-        'Shared Migration Center did not import accounts.'
-    );
-    must(
-        scalar($sharedTarget, 'SELECT COUNT(*) FROM levels') === 1,
-        'Shared Migration Center did not import levels.'
-    );
-    must(
-        scalar($sharedTarget, 'SELECT COUNT(*) FROM mucho_level_scores') === 1,
-        'Shared Migration Center did not import classic scores.'
-    );
-    must(
-        scalar($sharedTarget, 'SELECT COUNT(*) FROM mucho_platformer_scores') === 1,
-        'Shared Migration Center did not import Platformer scores.'
-    );
-
-    $sharedBackupDir = $fixtureRoot . '/shared-backups';
-    $sharedBackup = (new DatabaseBackupService(
-        $target,
-        $sharedBackupDir
-    ))->create('shared-integration');
-
-    must(is_file($sharedBackup['file']), 'Shared PHP backup file was not created.');
-    must(is_file($sharedBackup['file'] . '.sha256'), 'Shared PHP backup checksum was not created.');
-    must((int)$sharedBackup['size'] >= 100, 'Shared PHP backup is unexpectedly small.');
-    must(
-        hash_file('sha256', $sharedBackup['file']) === $sharedBackup['sha256'],
-        'Shared PHP backup checksum does not match.'
-    );
-    $gzip = gzopen($sharedBackup['file'], 'rb');
-    must($gzip !== false, 'Shared PHP backup cannot be reopened as gzip.');
-    $sample = $gzip !== false ? gzread($gzip, 4096) : false;
-    if ($gzip !== false) {
-        gzclose($gzip);
-    }
-    must(is_string($sample) && str_contains($sample, 'MuchoCore database backup'), 'Shared PHP backup header is invalid.');
-
     file_put_contents(
         $fixtureRoot . '/.env',
         "DB_HOST=$host\nDB_PORT=$port\nDB_NAME=$targetDb\nDB_USER=root\n"
@@ -735,7 +667,6 @@ SQL);
     try {
         $server = pdoRoot($host, $port, $rootPassword);
         $server->exec('DROP DATABASE IF EXISTS ' . $targetDb);
-        $server->exec('DROP DATABASE IF EXISTS ' . $sharedTargetDb);
         $server->exec('DROP DATABASE IF EXISTS ' . $sourceDb);
     } catch (Throwable) {
         // Preserve the original test failure if cleanup cannot connect.

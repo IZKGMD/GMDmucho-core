@@ -9,8 +9,10 @@ declare(strict_types=1);
 return [
 
     'dashboard'=>'Dashboard',
+    'ops'=>'MuchoOps',
 
     'players'=>'Players',
+    'playertimeline'=>'Player Timeline',
     'muchoprofiles'=>'Mucho Profiles',
 
     'levels'=>'Levels',
@@ -26,6 +28,9 @@ return [
     'analytics'=>'Analytics',
     'monitoring'=>'Monitoring',
     'intelligence'=>'Intelligence & Scale',
+    'compatibility'=>'Compatibility Lab',
+    'automation'=>'Automation Center',
+    'export'=>'GDPS Export Pack',
 
     'securitycenter'=>'Security & Monitoring',
     'dbbackups'=>'DB Backup Center',

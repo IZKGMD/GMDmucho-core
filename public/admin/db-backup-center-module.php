@@ -161,7 +161,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 
             if($action==='dbbackup-create'){
 
-                requireRank(30);
+                requirePermission('backups.view');
 
                 muchoDbBackupRun(
                     'backup'
@@ -186,7 +186,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                 $action==='dbbackup-download'
             ){
 
-                requireRank(30);
+                requirePermission('backups.download');
 
                 $name=basename(
                     (string)(
@@ -258,7 +258,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                 $action==='dbbackup-delete'
             ){
 
-                requireRank(40);
+                requirePermission('system.manage');
 
                 $name=basename(
                     (string)(
@@ -298,7 +298,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                 $action==='dbbackup-restore'
             ){
 
-                requireRank(40);
+                requirePermission('system.manage');
 
                 $name=basename(
                     (string)(

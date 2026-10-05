@@ -13,12 +13,10 @@ RewriteRule ^(?:\.git|config|src|tests|tools|vendor|storage)(?:/|$) - [F,L,NC]
 RewriteRule ^\.env(?:\.|$) - [F,L,NC]
 RewriteRule ^composer\.(json|lock)$ - [F,L,NC]
 
-# The browser installer lives inside public/ so the same repository works
-# whether the hosting panel points the domain to the project root or public/.
-RewriteRule ^shared-install\.php$ public/shared-install.php [L]
+
 RewriteRule ^clients(?:/)?$ public/clients.php [L]
 
 # Serve the public directory as the website root.
-# [L] keeps this compatible with shared-hosting Apache configurations.
+# [L] keeps this compatible with standard Apache configurations.
 RewriteCond %{REQUEST_URI} !^/public(?:/|$) [NC]
 RewriteRule ^(.*)$ public/$1 [L]

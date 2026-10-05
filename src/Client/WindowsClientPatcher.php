@@ -369,35 +369,106 @@ final class WindowsClientPatcher
     ): int {
         $old = self::asciiToUtf16Le($oldHost);
         $new = self::asciiToUtf16Le($newHost);
-        $zero = "\0\0";
-        $http = self::asciiToUtf16Le('http://');
-        $https = self::asciiToUtf16Le('https://');
+        $prefixes = [
+            self::asciiToUtf16Le('https://'),
+            self::asciiToUtf16Le('http://'),
+        ];
+
+        /*
+         * When the host length is unchanged, patch the host bytes in place.
+         * This avoids ambiguities caused by UTF-16 NUL-termination while
+         * preserving every byte around the URL exactly.
+         */
+        if (strlen($new) === strlen($old)) {
+            $count = 0;
+
+            foreach ($prefixes as $prefix) {
+                $needle = $prefix . $old;
+                $offset = 0;
+
+                while (($position = strpos($data, $needle, $offset)) !== false) {
+                    $hostPosition = $position + strlen($prefix);
+                    $data = substr_replace(
+                        $data,
+                        $new,
+                        $hostPosition,
+                        strlen($old)
+                    );
+                    $count++;
+                    $offset = $hostPosition + strlen($new);
+                }
+            }
+
+            return $count;
+        }
+
         $count = 0;
         $offset = 0;
 
         while (($position = strpos($data, $old, $offset)) !== false) {
-            $prefixStart = strrpos(substr($data, 0, $position), $zero);
-            $start = $prefixStart === false ? 0 : $prefixStart + 2;
-            $end = strpos($data, $zero, $position);
+            $prefixPosition = -1;
+            $prefixLength = 0;
 
-            if ($end === false) {
-                $end = strlen($data);
+            foreach ($prefixes as $prefix) {
+                $candidate = strrpos(
+                    substr($data, 0, $position),
+                    $prefix
+                );
+
+                if (
+                    $candidate !== false &&
+                    $candidate + strlen($prefix) === $position &&
+                    $candidate > $prefixPosition
+                ) {
+                    $prefixPosition = $candidate;
+                    $prefixLength = strlen($prefix);
+                }
             }
 
-            $prefix = substr($data, $start, $position - $start);
-            if (!str_ends_with($prefix, $http) && !str_ends_with($prefix, $https)) {
+            if ($prefixPosition < 0) {
+                $offset = $position + strlen($old);
+                continue;
+            }
+
+            $start = $prefixPosition;
+            $urlLength = $prefixLength + strlen($old);
+            $end = $start + $urlLength;
+
+            while ($end + 1 < strlen($data)) {
+                if (substr($data, $end, 2) === "\0\0") {
+                    break;
+                }
+                $end += 2;
+            }
+
+            if (
+                $end + 1 >= strlen($data) ||
+                substr($data, $end, 2) !== "\0\0"
+            ) {
                 $offset = $position + strlen($old);
                 continue;
             }
 
             $url = substr($data, $start, $end - $start);
-            $patched = substr_replace($url, $new, $position - $start, strlen($old));
+            if ($url === '' || strlen($url) % 2 !== 0) {
+                $offset = $position + strlen($old);
+                continue;
+            }
+
+            $hostOffset = $position - $start;
+            $patched = substr_replace(
+                $url,
+                $new,
+                $hostOffset,
+                strlen($old)
+            );
+
             if (strlen($patched) > strlen($url)) {
                 $offset = $position + strlen($old);
                 continue;
             }
 
-            $patched .= str_repeat("\0", intdiv(strlen($url) - strlen($patched), 2) * 2);
+            $patched .= str_repeat("\0", strlen($url) - strlen($patched));
             $data = substr_replace($data, $patched, $start, $end - $start);
             $count++;
             $offset = $start + strlen($patched);

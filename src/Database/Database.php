@@ -15,8 +15,7 @@ final class Database
     {
         // Environment is the single configuration source for database values.
         // On Docker/VPS installs it transparently reads the protected runtime
-        // environment first; on shared hosting it uses the installation's
-        // local .env and never touches Docker-only paths.
+        // environment first and never reads credentials from the public web root.
         $host = (string)(Environment::get('DB_HOST', '127.0.0.1') ?? '127.0.0.1');
         $port = (string)(Environment::get('DB_PORT', '3306') ?? '3306');
         $name = (string)(Environment::get('DB_NAME', '') ?? '');
@@ -30,7 +29,13 @@ final class Database
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
         ]);
+
+        // MuchoCore stores and compares scheduler/job timestamps as UTC.
+        // Pin the DB session to the same timezone so NOW()/CURRENT_TIMESTAMP
+        // cannot drift when the server's MariaDB timezone differs from UTC.
+        $this->pdo->exec("SET time_zone = '+00:00'");
     }
+
     public function connection(): PDO
     {
         return $this->pdo;

@@ -1,5 +1,10 @@
 ## v1.1.0 — Control Plane & Deployment Platform
 
+### VPS-Only Deployment
+
+- standardized automatic deployment, generated client distribution, and production operation on the direct VPS control plane;
+
+
 ### MuchoGDPS Web Platform
 
 - added a new MuchoGDPS landing page at the canonical `/` route with a dedicated product presentation, platform overview, deployment flow and self-hosted VPS messaging;

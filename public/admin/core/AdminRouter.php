@@ -70,6 +70,18 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
 
     /*
+     * MuchoOps Control Plane
+     */
+
+    $router->register(
+        'ops',
+        static function(PDO $db): void {
+            require __DIR__.'/../muchops-module.php';
+        }
+    );
+
+
+    /*
      * Dashboard
      */
 
@@ -132,6 +144,39 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
                 : $rootDir . '/storage/control';
 
             renderReleaseUpdatePage($rootDir, $controlDir);
+        }
+    );
+
+
+    /*
+     * Compatibility Lab
+     */
+    $router->register(
+        'compatibility',
+        static function(PDO $db): void {
+            require __DIR__.'/../pages/compatibility.php';
+        }
+    );
+
+
+    /*
+     * Automation Center
+     */
+    $router->register(
+        'automation',
+        static function(PDO $db): void {
+            require __DIR__.'/../pages/automation.php';
+        }
+    );
+
+
+    /*
+     * GDPS Export Pack
+     */
+    $router->register(
+        'export',
+        static function(PDO $db): void {
+            require __DIR__.'/../pages/export.php';
         }
     );
 
@@ -203,6 +248,17 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
             require __DIR__.
                 '/../pages/players.php';
+        }
+    );
+
+
+    /*
+     * Player Timeline
+     */
+    $router->register(
+        'playertimeline',
+        static function(PDO $db): void {
+            require __DIR__.'/../pages/player-timeline.php';
         }
     );
 

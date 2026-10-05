@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         try {
 
             checkCsrf();
-            requireRank(30);
+            requirePermission('client.manage');
 
             if ($cfAction==='clientflag-save') {
 

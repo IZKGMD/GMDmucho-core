@@ -36,9 +36,24 @@ return [
         'system-op'
     ],
 
+    'ops'=>[
+        'ops-maintenance',
+        'ops-registrations',
+        'ops-retry-stale-jobs',
+        'ops-resolve-alert'
+    ],
+
     'migration'=>[
         'migration-preview',
         'migration-apply'
+    ],
+
+    'automation'=>[
+        'automation-save'
+    ],
+
+    'export'=>[
+        'gdps-export'
     ],
 
     'admins'=>[

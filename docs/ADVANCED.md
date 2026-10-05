@@ -53,12 +53,6 @@ For an existing Tunnel, use its connector setup page. Cloudflare may show a Linu
 
 For a normal public VPS, a Tunnel is not required. Use `docs/SETUP.md`.
 
-## Shared hosting without Docker
-
-Shared hosting is a separate deployment mode. It uses PHP 8.3+, MySQL/MariaDB and Apache or a compatible web server.
-
-See `docs/SHARED_HOSTING.md`.
-
 ## API v2
 
 JSON API v2 is intended for programs, admin tools and integrations. Normal GDPS operation does not require it.

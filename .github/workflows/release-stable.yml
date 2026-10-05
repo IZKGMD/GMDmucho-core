@@ -130,28 +130,6 @@ jobs:
 
           rm -f RELEASE_NOTES.md
 
-      - name: Prepare shared-hosting dependencies
-        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
-        run: |
-          composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
-
-      - name: Build shared-hosting package
-        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
-        env:
-          VERSION: ${{ steps.marker.outputs.version }}
-          OUTPUT: MuchoCore-v${{ steps.marker.outputs.version }}-shared-hosting.zip
-        run: |
-          bash tools/release/build-shared-hosting.sh
-          unzip -t "$OUTPUT" >/dev/null
-          test -s "$OUTPUT"
-
-      - name: Upload shared-hosting package
-        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          TAG: ${{ steps.marker.outputs.tag }}
-        run: |
-          gh release upload "$TAG" "MuchoCore-v${TAG#v}-shared-hosting.zip" --clobber
       - name: Build source archive
         if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
         env:
