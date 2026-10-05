@@ -23,11 +23,21 @@ function deployment_install_ref(string $rootDir): string
 }
 
 $jobId = '';
+$dispatchQueue = false;
+
 foreach (array_slice($argv, 1) as $arg) {
     if (str_starts_with($arg, '--job=')) {
         $jobId = substr($arg, 6);
+    } elseif ($arg === '--dispatch-queue') {
+        $dispatchQueue = true;
     }
 }
+
+if ($dispatchQueue) {
+    deployment_dispatch_next();
+    exit(0);
+}
+
 if (!preg_match('/^[0-9]{14}-[a-f0-9]{12}$/', $jobId)) {
     exit(2);
 }
@@ -45,6 +55,139 @@ function status_read(string $path): array {
     $data = json_decode((string)@file_get_contents($path), true);
     return is_array($data) ? $data : [];
 }
+function deployment_worker_php(): string
+{
+    return is_executable(PHP_BINARY) ? PHP_BINARY : '/usr/local/bin/php';
+}
+
+function deployment_active_statuses(): array
+{
+    return ['starting', 'running', 'post_processing'];
+}
+
+function deployment_dispatch_next(): void
+{
+    $root = '/var/lib/muchocore-control/deploy-jobs';
+    if (!is_dir($root)) {
+        return;
+    }
+
+    $max = max(1, min(8, (int)(getenv('MUCHO_DEPLOY_MAX_CONCURRENT') ?: 2)));
+    $global = @fopen($root . '/dispatch.lock', 'c');
+
+    if ($global === false || !@flock($global, LOCK_EX | LOCK_NB)) {
+        if (is_resource($global)) {
+            @fclose($global);
+        }
+        return;
+    }
+
+    try {
+        $active = 0;
+        foreach (glob($root . '/*/status.json') ?: [] as $file) {
+            if (in_array(
+                (string)(status_read($file)['status'] ?? ''),
+                deployment_active_statuses(),
+                true
+            )) {
+                $active++;
+            }
+        }
+
+        while ($active < $max) {
+            $queued = [];
+            foreach (glob($root . '/*/status.json') ?: [] as $file) {
+                $status = status_read($file);
+                if (($status['status'] ?? '') !== 'queued') {
+                    continue;
+                }
+
+                $id = (string)($status['id'] ?? basename(dirname($file)));
+                if (preg_match('/^[0-9]{14}-[a-f0-9]{12}$/', $id) !== 1) {
+                    continue;
+                }
+
+                $created = strtotime((string)($status['created_at'] ?? '')) ?: PHP_INT_MAX;
+                $queued[] = [$created, $id, $file];
+            }
+
+            if ($queued === []) {
+                break;
+            }
+
+            usort(
+                $queued,
+                static fn(array $a, array $b): int =>
+                    ($a[0] <=> $b[0]) ?: strcmp($a[1], $b[1])
+            );
+
+            $startedOne = false;
+
+            foreach ($queued as [, $id, $statusFile]) {
+                $jobDir = dirname($statusFile);
+                $jobLock = @fopen($jobDir . '/dispatch.lock', 'c');
+
+                if ($jobLock === false || !@flock($jobLock, LOCK_EX | LOCK_NB)) {
+                    if (is_resource($jobLock)) {
+                        @fclose($jobLock);
+                    }
+                    continue;
+                }
+
+                try {
+                    $status = status_read($statusFile);
+                    if (($status['status'] ?? '') !== 'queued') {
+                        continue;
+                    }
+
+                    $status['status'] = 'starting';
+                    $status['state'] = 'Starting deployment worker';
+                    $status['heartbeat_at'] = gmdate('c');
+                    status_write($statusFile, $status);
+
+                    $cmd = 'nohup '
+                        . escapeshellarg(deployment_worker_php())
+                        . ' ' . escapeshellarg(__FILE__)
+                        . ' --job=' . escapeshellarg($id)
+                        . ' > /dev/null 2>&1 & echo $!';
+
+                    $output = [];
+                    $exit = 0;
+                    exec($cmd, $output, $exit);
+                    $pid = (int)($output[0] ?? 0);
+
+                    if ($exit !== 0 || $pid <= 0) {
+                        $status['status'] = 'failed';
+                        $status['state'] = 'Worker start failed';
+                        $status['exit_code'] = 255;
+                        $status['finished_at'] = gmdate('c');
+                        status_write($statusFile, $status);
+                        continue;
+                    }
+
+                    $status['status'] = 'running';
+                    $status['pid'] = $pid;
+                    status_write($statusFile, $status);
+                    $active++;
+                    $startedOne = true;
+                } finally {
+                    @flock($jobLock, LOCK_UN);
+                    @fclose($jobLock);
+                }
+
+                break;
+            }
+
+            if (!$startedOne) {
+                break;
+            }
+        }
+    } finally {
+        @flock($global, LOCK_UN);
+        @fclose($global);
+    }
+}
+
 function status_write(string $path, array $data): void {
     @file_put_contents($path, json_encode($data, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
     @chmod($path, 0600);
@@ -376,6 +519,7 @@ if ($exitCode === 0) {
         $status['finished_at'] = gmdate('c');
         status_write($statusFile, $status);
         cleanup_secrets($dir);
+        deployment_dispatch_next();
         exit(1);
     }
 
@@ -387,4 +531,5 @@ if ($exitCode === 0) {
 }
 
 cleanup_secrets($dir);
+deployment_dispatch_next();
 exit($exitCode === 0 ? 0 : 1);
