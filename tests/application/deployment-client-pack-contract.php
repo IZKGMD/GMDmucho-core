@@ -14,6 +14,8 @@ foreach ([
     [$pack, "'android/GeometryDash-MuchoGDPS.apk'", 'ZIP contains Android client'],
     [$pack, "'client-pack.json'", 'ZIP contains public manifest'],
     [$pack, "'files' => [", 'public manifest uses file inventory'],
+    [$pack, "($existing['server_name'] ?? '') === $serverName", 'cached client packs are invalidated when the GDPS name changes'],
+    [$pack, "($existing['patch_engine'] ?? '') === '2.0'", 'cached client packs are invalidated when the patch engine changes'],
     [$deploy, '!in_array($kind, [\'windows\', \'android\', \'zip\'], true)', 'deploy API accepts ZIP downloads'],
     [$deploy, "&kind=zip", 'deploy API publishes ZIP download URL'],
     [$deploy, "application/zip", 'deploy API streams ZIP with correct media type'],
