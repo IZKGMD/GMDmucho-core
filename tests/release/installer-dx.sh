@@ -56,6 +56,9 @@ grep -Fq 'Zone → Zone → Read' install.sh
 grep -Fq 'Installation overview' install.sh
 grep -Fq 'The installer will stop on a failed public health check' install.sh
 grep -Fq 'expected_services=(db app worker scheduler caddy)' install.sh
+grep -Fq '@legacy_recovery path /GD/accountHelp /GD/accountHelp.php' docker/Caddyfile
+grep -Fq 'rewrite @legacy_recovery /api/api/accounts/lostusername.php' docker/Caddyfile
+! grep -Fq 'handle @legacy_recovery' docker/Caddyfile
 grep -Fq 'MUCHO_CLOUDFLARE_API_TOKEN' install.sh
 grep -Fq 'MUCHO_CLOUDFLARE_AUTH_MODE' install.sh
 grep -Fq 'MUCHO_CLOUDFLARE_EMAIL' install.sh
