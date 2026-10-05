@@ -156,9 +156,7 @@
     # Geometry Dash 1.9 opens these legacy account-recovery URLs.
     # Keep the original paths and serve the unified MuchoCore recovery flow.
     @legacy_recovery path /GD/accountHelp /GD/accountHelp.php
-    handle @legacy_recovery {
-        rewrite * /api/api/accounts/lostusername.php
-    }
+    rewrite @legacy_recovery /api/api/accounts/lostusername.php
 
     # The game API remains available over HTTP for legacy clients,
     # but the administrator session must always use HTTPS.
