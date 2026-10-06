@@ -24,12 +24,33 @@ $adminAccounts = (string)file_get_contents(
 $caddy = (string)file_get_contents(
     __DIR__ . '/../../docker/Caddyfile'
 );
+$accountAuthenticator = (string)file_get_contents(
+    __DIR__ . '/../../src/Account/AccountAuthenticator.php'
+);
 
 assertSecurityRegression(
     str_contains($comment, "if (\n            \$cmd === '!rate'") &&
     str_contains($comment, 'GameRole::OWNER') &&
     str_contains($comment, 'GameRole::ELDER_MODERATOR'),
     'direct !rate command has an elder-moderator/owner authorization gate'
+);
+
+assertSecurityRegression(
+    !str_contains($accountAuthenticator, 'hasSessionGrant(') &&
+    !str_contains($accountAuthenticator, 'FROM mucho_auth_sessions') &&
+    str_contains(
+        $accountAuthenticator,
+        'password_verify($credential, $storedPass)'
+    ),
+    'standard account authentication never trusts account+IP session grants'
+);
+
+assertSecurityRegression(
+    str_contains($accountAuthenticator, 'authenticateLegacy19Upload(') &&
+    str_contains($accountAuthenticator, 's.ip_address = :ip_address') &&
+    str_contains($accountAuthenticator, 's.expires_at > UTC_TIMESTAMP()') &&
+    str_contains($accountAuthenticator, 'password_verify($udid'),
+    'credential-less legacy 1.9 fallback remains account, IP, UDID and expiry bound'
 );
 
 assertSecurityRegression(
