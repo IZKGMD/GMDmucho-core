@@ -54,7 +54,7 @@ if bad:
 PY
 
 worker_clients_line="$(grep -n 'Generating clients for this GDPS' "$ROOT/bin/mucho-shared-deploy-worker.php" | head -1 | cut -d: -f1)"
-worker_wait_line="$(grep -n 'Waiting for browser finalization' "$ROOT/bin/mucho-shared-deploy-worker.php" | head -1 | cut -d: -f1)"
+worker_wait_line="$(grep -nE '^[[:space:]]+wait_for_browser_finalization\(' "$ROOT/bin/mucho-shared-deploy-worker.php" | head -1 | cut -d: -f1)"
 if [[ -z "$worker_clients_line" || -z "$worker_wait_line" || "$worker_clients_line" -ge "$worker_wait_line" ]]; then
     echo "Shared worker must upload patched clients before browser finalization." >&2
     exit 1
