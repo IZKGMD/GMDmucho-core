@@ -24,6 +24,18 @@ $adminAccounts = (string)file_get_contents(
 $caddy = (string)file_get_contents(
     __DIR__ . '/../../docker/Caddyfile'
 );
+$deletedAccountAdmin = (string)file_get_contents(
+    __DIR__ . '/../../public/admin/advanced-lib.php'
+);
+$legacyAdminApi = (string)file_get_contents(
+    __DIR__ . '/../../public/admin/v5-api.php'
+);
+$adminIndex = (string)file_get_contents(
+    __DIR__ . '/../../public/admin/index.php'
+);
+$rewardsController = (string)file_get_contents(
+    __DIR__ . '/../../src/Interaction/RewardsController.php'
+);
 $accountAuthenticator = (string)file_get_contents(
     __DIR__ . '/../../src/Account/AccountAuthenticator.php'
 );
@@ -32,6 +44,33 @@ $accountService = (string)file_get_contents(
 );
 $cloudSaveService = (string)file_get_contents(
     __DIR__ . '/../../src/CloudSave/CloudSaveService.php'
+);
+
+assertSecurityRegression(
+    str_contains($deletedAccountAdmin, "unset(") &&
+    str_contains($deletedAccountAdmin, "'password_hash'") &&
+    str_contains($deletedAccountAdmin, "'gjp2_hash'"),
+    'deleted-account snapshots strip reusable credential hashes'
+);
+
+assertSecurityRegression(
+    str_contains($caddy, 'X-Frame-Options "DENY"') &&
+    str_contains($caddy, "frame-ancestors 'none'") &&
+    str_contains($adminIndex, 'X-Frame-Options: DENY') &&
+    str_contains($adminIndex, "frame-ancestors 'none'"),
+    'admin UI blocks framing on VPS and shared-hosting paths'
+);
+
+assertSecurityRegression(
+    str_contains($legacyAdminApi, 'SELECT id,username,role,is_active') &&
+    str_contains($legacyAdminApi, "session_destroy()") &&
+    substr_count($legacyAdminApi, '$currentAdminRank < 40') >= 2,
+    'legacy monitoring API refreshes admin state and keeps health/logs owner-only'
+);
+
+assertSecurityRegression(
+    str_contains($rewardsController, 'return $request->gdCredential();'),
+    'rewards use client-version-aware Geometry Dash credentials'
 );
 
 assertSecurityRegression(
