@@ -42,7 +42,7 @@ GD 1.1 therefore uses the legacy credential path and does not require GJP2.
 
 Standard authenticated endpoints always validate the credential supplied for the target account. A previously successful login from the same source IP is not, by itself, accepted as proof of account ownership. This matters on carrier-grade NAT, school/work networks, VPN exits, reverse proxies and other shared-address environments where multiple unrelated users can legitimately appear behind one public IP.
 
-The historical `mucho_auth_sessions` account+IP grant may remain in installations for schema/backward-compatibility reasons, but it is not consumed as an authentication bypass by `AccountAuthenticator::authenticate()`.
+The historical `mucho_auth_sessions` account+IP table may remain in installations for schema/backward-compatibility reasons, but new logins no longer issue those grants and `AccountAuthenticator::authenticate()` never consumes them as authentication proof.
 
 Credential-less compatibility is kept only at explicit protocol boundaries that have an additional device proof. In particular, the GD 1.9 upload fallback uses a short-lived `mucho_legacy_19_sessions` record bound to the account, source IP and a password-hashed UDID. The session must be unexpired and the presented UDID must verify before the request is authenticated.
 
