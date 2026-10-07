@@ -66,7 +66,6 @@ jobs:
           php tests/client/client-ip.php
           php tests/protocol/protocol-matrix.php
           php tests/protocol/endpoint-perfection.php
-          php tests/protocol/endpoint-perfection.php
           php tests/protocol/compatibility-profile.php
           php tests/protocol/v71-request.php
           php tests/protocol/legacy-text.php
@@ -483,3 +482,4 @@ jobs:
           php tests/security/client-ip-cloudflare.php
           php tests/client/client-compatibility.php
           php tests/protocol/protocol-matrix.php
+          php tests/protocol/endpoint-perfection.php
