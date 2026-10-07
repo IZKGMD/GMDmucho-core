@@ -154,7 +154,8 @@ final readonly class LevelTransferController
                 $extras,
                 $incrementDownloads,
                 $request->postInt('accountID'),
-                $request->gdCredential()
+                $request->gdCredential(),
+                $request->clientIp()
             );
 
             return Response::text($result);
