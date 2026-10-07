@@ -65,6 +65,8 @@ jobs:
           php tests/client/client-compatibility.php
           php tests/client/client-ip.php
           php tests/protocol/protocol-matrix.php
+          php tests/protocol/endpoint-perfection.php
+          php tests/protocol/endpoint-perfection.php
           php tests/protocol/compatibility-profile.php
           php tests/protocol/v71-request.php
           php tests/protocol/legacy-text.php
@@ -166,6 +168,9 @@ jobs:
           test -f docs/GETTING_STARTED.md
           test -f docs/MIGRATION_KIT.md
           test -f docs/MIGRATION_CENTER.md
+          test -f docs/ENDPOINT_PERFECTION.md
+          test -f tests/protocol/endpoint-contracts.json
+          test -f tests/protocol/endpoint-perfection.php
           test -f bin/mucho
           test -x bin/mucho
           test -f bin/mucho-migrate.php
