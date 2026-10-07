@@ -36,6 +36,16 @@ assertSameValue(
 );
 
 assertSameValue(
+    '203.0.113.10',
+    ClientIp::resolve([
+        'REMOTE_ADDR' => '203.0.113.10',
+        'HTTP_CF_CONNECTING_IP' => '198.51.100.20',
+        'HTTP_X_FORWARDED_FOR' => '198.51.100.21',
+    ]),
+    'reserved public peer cannot spoof forwarded client headers'
+);
+
+assertSameValue(
     '172.20.0.2',
     ClientIp::resolve([
         'REMOTE_ADDR' => '172.20.0.2',
