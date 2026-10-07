@@ -93,6 +93,16 @@ if (!str_contains($action, "preg_split('/[\\\\s,]+/'")) {
     exit(1);
 }
 
+if (substr_count($action, 'contentPackSortOrder();') !== 2) {
+    fwrite(STDERR, "Contract failed: empty sort_order must default safely for both Gauntlets and Map Packs\n");
+    exit(1);
+}
+
+if (!str_contains($action, "trim((string)$value) === ''")) {
+    fwrite(STDERR, "Contract failed: optional sort_order empty-value handling is missing\n");
+    exit(1);
+}
+
 if (!str_contains((string)$migration2, 'MODIFY COLUMN levels TEXT NOT NULL')) {
     fwrite(STDERR, "Contract failed: Map Pack level storage is not unbounded\n");
     exit(1);
