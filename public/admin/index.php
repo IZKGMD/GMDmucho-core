@@ -9,6 +9,11 @@ use MuchoCore\Database\Database;
 
 require dirname(__DIR__,2).'/vendor/autoload.php';
 
+if (!headers_sent()) {
+    header('X-Frame-Options: DENY');
+    header("Content-Security-Policy: frame-ancestors 'none'");
+}
+
 // Load patcher modules before download/action routing so their handlers
 // are available when a direct download request arrives.
 require_once __DIR__.'/client-patcher-module.php';
