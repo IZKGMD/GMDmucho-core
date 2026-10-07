@@ -155,12 +155,15 @@
         "status": "partial",
         "evidence": [
           "tests/protocol/compatibility-profile.php",
-          "tests/application/legacy-19-session.php"
+          "tests/application/legacy-19-session.php",
+          "tests/application/auth-session-isolation.php"
         ]
       },
       "negative_cases": {
-        "status": "pending",
-        "evidence": []
+        "status": "partial",
+        "evidence": [
+          "tests/application/auth-session-isolation.php"
+        ]
       },
       "db_integrity": {
         "status": "partial",
