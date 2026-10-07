@@ -5,8 +5,6 @@ declare(strict_types=1);
 require dirname(__DIR__, 2) . '/src/Account/AccountAuthenticator.php';
 
 use MuchoCore\Account\AccountAuthenticator;
-use PDO;
-use RuntimeException;
 
 function assertAuthIsolation(bool $condition, string $name): void
 {
