@@ -97,4 +97,19 @@ assertSameValue(
     '2.0 comment stays unchanged'
 );
 
+
+$rawProtocolField = "A:B|C#D~E\0F\r\nG";
+if (ProtocolText::field($rawProtocolField, 4) !== 'ABCD') {
+    fwrite(STDERR, "FAIL protocol field delimiter/control sanitization\n");
+    exit(1);
+}
+
+$rawProtocolComment = "A:B|C#D~E\0F\r\nG";
+if (ProtocolText::comment($rawProtocolComment, 5) !== 'A:BCD') {
+    fwrite(STDERR, "FAIL protocol comment delimiter/control sanitization\n");
+    exit(1);
+}
+
+echo "PASS protocol text sanitizer boundaries\n";
+
 echo "MUCHOCORE_LEGACY_TEXT_OK\n";
