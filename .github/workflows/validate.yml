@@ -8,7 +8,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up PHP and Composer
         uses: shivammathur/setup-php@v2
@@ -393,7 +393,7 @@ jobs:
   windows-patcher:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Run Windows PowerShell patcher self-test
         shell: powershell
         run: |
@@ -416,7 +416,7 @@ jobs:
           --health-retries=20
           --health-start-period=20s
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up PHP and Composer
         uses: shivammathur/setup-php@v2
@@ -459,7 +459,7 @@ jobs:
     runs-on: ubuntu-latest
     name: PHP ${{ matrix.php-version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up PHP and Composer
         uses: shivammathur/setup-php@v2
