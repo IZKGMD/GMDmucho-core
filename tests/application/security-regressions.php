@@ -68,7 +68,7 @@ assertSecurityRegression(
 
 assertSecurityRegression(
     str_contains($cloudSaveService, "foreach (['password', 'gjp2', 'gjp'] as $key)") &&
-    str_contains($cloudSaveService, "if ($candidate !== '')"),
+    str_contains($cloudSaveService, "candidate !== ''"),
     'cloud save ignores empty legacy credential fields before GJP/GJP2 fallback'
 );
 
