@@ -122,10 +122,12 @@ try {
     if (!str_contains($patched, 'https://not-a-url.example/geometrydash.com')) {
         throw new RuntimeException('Non-URL host-like text was incorrectly modified.');
     }
-\n    if (!str_contains($patched, 'https://gdps.example.com' . "\0")) {
+
+    if (!str_contains($patched, 'https://gdps.example.com' . "\0")) {
         throw new RuntimeException('NUL-terminated embedded host was not patched correctly.');
     }
-\n    $utf16Target = '';
+
+    $utf16Target = '';
     foreach (str_split('https://gdps.example.com') as $character) {
         $utf16Target .= $character . "\0";
     }
