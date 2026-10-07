@@ -30,6 +30,9 @@ $accountAuthenticator = (string)file_get_contents(
 $accountService = (string)file_get_contents(
     __DIR__ . '/../../src/Account/AccountService.php'
 );
+$cloudSaveService = (string)file_get_contents(
+    __DIR__ . '/../../src/CloudSave/CloudSaveService.php'
+);
 
 assertSecurityRegression(
     str_contains($comment, "if (\n            \$cmd === '!rate'") &&
@@ -61,6 +64,12 @@ assertSecurityRegression(
     !str_contains($accountService, 'INSERT INTO mucho_auth_sessions') &&
     str_contains($accountService, 'rememberLegacy19UploadSession('),
     'new logins do not issue obsolete account+IP grants while legacy 1.9 sessions remain explicit'
+);
+
+assertSecurityRegression(
+    str_contains($cloudSaveService, "foreach (['password', 'gjp2', 'gjp'] as $key)") &&
+    str_contains($cloudSaveService, "if ($candidate !== '')"),
+    'cloud save ignores empty legacy credential fields before GJP/GJP2 fallback'
 );
 
 assertSecurityRegression(
