@@ -41,6 +41,7 @@ use MuchoCore\Interaction\LikeRepository;
 use MuchoCore\Interaction\LikeService;
 use MuchoCore\Interaction\RewardsController;
 use MuchoCore\Level\LevelController;
+use MuchoCore\Level\LevelDownloadTracker;
 use MuchoCore\Level\LevelRepository;
 use MuchoCore\Level\LevelService;
 use MuchoCore\Level\LevelTransferController;
@@ -152,6 +153,7 @@ final readonly class Application
             $auth,
             $legacy10Identity,
             $transferRepo,
+            new LevelDownloadTracker($this->pdo),
             new GdLevelDownloadEncoder(),
             new LevelValidator(),
             new LevelRevisionService($this->pdo),
