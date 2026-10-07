@@ -98,7 +98,12 @@ if (substr_count($action, 'contentPackSortOrder();') !== 2) {
     exit(1);
 }
 
-if (!str_contains($action, "trim((string)$value) === ''")) {
+if (
+    preg_match(
+        '/function\\s+contentPackSortOrder\\(\\).*?trim\\(\\(string\\)\\$value\\)\\s*===\\s*[\'\"]{2}.*?return\\s+0;/s',
+        $action
+    ) !== 1
+) {
     fwrite(STDERR, "Contract failed: optional sort_order empty-value handling is missing\n");
     exit(1);
 }
