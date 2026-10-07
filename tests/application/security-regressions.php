@@ -27,6 +27,9 @@ $caddy = (string)file_get_contents(
 $accountAuthenticator = (string)file_get_contents(
     __DIR__ . '/../../src/Account/AccountAuthenticator.php'
 );
+$accountService = (string)file_get_contents(
+    __DIR__ . '/../../src/Account/AccountService.php'
+);
 
 assertSecurityRegression(
     str_contains($comment, "if (\n            \$cmd === '!rate'") &&
@@ -51,6 +54,13 @@ assertSecurityRegression(
     str_contains($accountAuthenticator, 's.expires_at > UTC_TIMESTAMP()') &&
     str_contains($accountAuthenticator, 'password_verify($udid'),
     'credential-less legacy 1.9 fallback remains account, IP, UDID and expiry bound'
+);
+
+assertSecurityRegression(
+    !str_contains($accountService, 'rememberAuthSession(') &&
+    !str_contains($accountService, 'INSERT INTO mucho_auth_sessions') &&
+    str_contains($accountService, 'rememberLegacy19UploadSession('),
+    'new logins do not issue obsolete account+IP grants while legacy 1.9 sessions remain explicit'
 );
 
 assertSecurityRegression(
