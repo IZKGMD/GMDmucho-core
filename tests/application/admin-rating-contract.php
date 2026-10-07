@@ -59,6 +59,26 @@ $assert(!str_contains($rating,'geometrydash.wiki.gg/wiki/Special:Redirect/file')
 $assert(!str_contains($rating,'name="demon" id="demon"'),'legacy demon checkbox removed');
 $assert(!str_contains($rating,'name="demon_difficulty" id="demonDifficulty"'),'legacy demon difficulty field removed');
 $assert(str_contains($rating,'Publish rating'),'publish control');
+$assert(
+    str_contains($rating,"/admin/assets/difficulty/'.rawurlencode($profile).'.svg"),
+    'local GD difficulty face asset source'
+);
+$assert(
+    !str_contains($rating,'upload.wikimedia.org') &&
+    !str_contains($rating,'geometry-dash.fandom.com'),
+    'no external difficulty-face hotlink'
+);
+
+foreach ([
+    'unrated','auto','easy','normal','hard','harder','insane',
+    'easy-demon','medium-demon','hard-demon','insane-demon','extreme-demon',
+] as $face) {
+    $assert(
+        is_file(__DIR__.'/../../public/admin/assets/difficulty/'.$face.'.svg'),
+        'local difficulty asset '.$face
+    );
+}
+
 $assert(str_contains($rating,'$profile = $difficultyProfileForRow($row);'),'row difficulty profile initialized before use');
 $assert(str_contains($rating,'$selectedName = trim((string)($selected[\'name\'] ?? \'\')) ?: \'Unnamed level\';'),'selected level name initialized before use');
 $assert(!str_contains($rating,'Current rating'),'stale duplicated preview block removed');
