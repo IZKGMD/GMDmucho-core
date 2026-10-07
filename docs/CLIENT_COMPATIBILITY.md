@@ -38,6 +38,16 @@ Geometry Dash 2.1 and older requests prefer `gjp`. Geometry Dash 2.2 prefers `gj
 
 GD 1.1 therefore uses the legacy credential path and does not require GJP2.
 
+### Session isolation and legacy fallback
+
+Standard authenticated endpoints always validate the credential supplied for the target account. A previously successful login from the same source IP is not, by itself, accepted as proof of account ownership. This matters on carrier-grade NAT, school/work networks, VPN exits, reverse proxies and other shared-address environments where multiple unrelated users can legitimately appear behind one public IP.
+
+The historical `mucho_auth_sessions` account+IP grant may remain in installations for schema/backward-compatibility reasons, but it is not consumed as an authentication bypass by `AccountAuthenticator::authenticate()`.
+
+Credential-less compatibility is kept only at explicit protocol boundaries that have an additional device proof. In particular, the GD 1.9 upload fallback uses a short-lived `mucho_legacy_19_sessions` record bound to the account, source IP and a password-hashed UDID. The session must be unexpired and the presented UDID must verify before the request is authenticated.
+
+This is an intentional security/compatibility trade-off: modern and credential-carrying flows do not weaken authentication for convenience, while known legacy clients that omit a later credential retain narrowly scoped compatibility with a device-bound proof.
+
 ## GD 1.0 status
 
 **Real-client smoke verification: passed.** GD 1.0 has been verified against the shared early legacy 1.x compatibility path, including the dedicated legacy identity boundary.
