@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 use MuchoCore\Plugin\PluginManager;
+use MuchoCore\Plugin\PluginCatalog;
 use MuchoCore\Routing\Router;
 
 function renderCustomPluginsPage(PDO $db): void
@@ -70,6 +71,8 @@ function renderCustomPluginsPage(PDO $db): void
         '</b></div>';
     echo '</div>';
 
+    renderMuchoPluginMarketplacePreview($rootDir);
+
     if (!$rows) {
         echo '<div class="card" style="margin-top:13px">';
         echo '<h3 style="margin-top:0">No custom plugins installed</h3>';
@@ -127,4 +130,60 @@ function renderCustomPluginsPage(PDO $db): void
     echo '</table></div>';
     echo '<p class="muted" style="font-size:10px;line-height:1.5">Manifest diagnostics are read-only and do not execute <code>plugin.php</code>. PHP plugins are not sandboxed and should only be installed from trusted sources.</p>';
     echo '</section>';
+}
+
+
+/**
+ * Marketplace discovery is intentionally read-only: no network downloads,
+ * archives, file writes or PHP execution occur on this admin page.
+ */
+function renderMuchoPluginMarketplacePreview(string $rootDir): void
+{
+    $coreVersion = trim((string)@file_get_contents($rootDir . '/VERSION'));
+    try {
+        $catalog = new PluginCatalog(
+            $rootDir . '/resources/plugin-catalog.json',
+            $coreVersion
+        );
+        $entries = $catalog->listings();
+    } catch (Throwable $e) {
+        error_log('[MuchoCore Catalog] ' . $e::class);
+        echo '<div class="card" style="margin-top:13px">';
+        echo '<h3>Plugin catalog unavailable</h3>';
+        echo '<p class="muted">The bundled plugin catalog could not be validated.</p>';
+        echo '</div>';
+        return;
+    }
+
+    echo '<div class="card" style="margin-top:13px">';
+    echo '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">';
+    echo '<div><div class="muted" style="font-size:11px">PLUGIN MARKETPLACE · PREVIEW</div>';
+    echo '<h3 style="margin:5px 0">Discover extensions</h3></div>';
+    echo '<span class="badge gray">Manual install only</span></div>';
+    echo '<p class="muted" style="line-height:1.5">Browse reviewed catalog entries, required SDK permissions and core compatibility. Plugins run server-side PHP and are not sandboxed; always inspect source code before installing.</p>';
+
+    if (!$entries) {
+        echo '<p class="muted">No plugins are listed in the bundled catalog yet.</p>';
+    }
+
+    foreach ($entries as $entry) {
+        $available = $entry['compatible'];
+        echo '<div class="card" style="margin:10px 0;background:#0b1018">';
+        echo '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">';
+        echo '<div><b>' . h($entry['name']) . '</b>';
+        echo ' <small class="muted">v' . h($entry['version']) . '</small></div>';
+        echo '<span class="badge ' . ($available ? 'green' : 'red') . '">' .
+            ($available ? 'Compatible' : 'Incompatible') . '</span>';
+        echo '</div>';
+        echo '<p class="muted" style="margin:8px 0">' . h($entry['description']) . '</p>';
+        echo '<div class="muted" style="font-size:11px">SDK v' . h((string)$entry['api']) .
+            ' · Core ≥ ' . h($entry['min_core_version']) .
+            ' · Permissions: ' . h(implode(', ', $entry['permissions']) ?: 'none') . '</div>';
+        echo '<p style="margin:10px 0 0"><a href="' . h($entry['source_url']) .
+            '" target="_blank" rel="noopener noreferrer">Inspect source and manual install ↗</a></p>';
+        echo '</div>';
+    }
+
+    echo '<p class="muted" style="font-size:11px">Packages are never downloaded or executed from this catalog. Managed installation, signatures and checksum verification require a future separate release.</p>';
+    echo '</div>';
 }
