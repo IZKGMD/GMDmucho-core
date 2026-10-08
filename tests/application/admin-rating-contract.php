@@ -49,7 +49,10 @@ $assert(!str_contains($rating,'name="demon" id="demon"'),'legacy demon checkbox 
 $assert(!str_contains($rating,'name="demon_difficulty" id="demonDifficulty"'),'legacy demon difficulty field removed');
 $assert(str_contains($rating,'Publish rating'),'publish control');
 $assert(
-    str_contains($rating,"/admin/assets/difficulty/'.rawurlencode($profile).'.svg"),
+    str_contains($rating, '$difficultyIconUrl = static function (string $profile)') &&
+    str_contains($rating, "'/admin/assets/difficulty/'.") &&
+    str_contains($rating, 'rawurlencode($profile).') &&
+    str_contains($rating, "'.svg';"),
     'local GD difficulty face asset source'
 );
 $assert(
