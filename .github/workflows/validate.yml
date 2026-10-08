@@ -93,6 +93,7 @@ jobs:
           php tests/application/shared-hosting-installer-contract.php
           php tests/application/plugin-sdk-contract.php
           php tests/application/plugin-marketplace-contract.php
+          php tests/release/v110-endpoint-gate-contract.php
           php tests/application/score-integrity-contract.php
           php tests/application/cvolton-db-import-contract.php
           php tests/application/comment-contract.php
@@ -288,6 +289,8 @@ jobs:
           test -f custom/plugins/README.md
           test -f docs/CUSTOM_PLUGINS.md
           test -f docs/PLUGIN_MARKETPLACE.md
+          test -f src/Release/V110EndpointGate.php
+          test -f tests/release/v110-endpoint-gate.php
           test -f resources/plugin-catalog.json
           test -f src/Plugin/PluginCatalog.php
           test -f examples/plugins/welcome-endpoint/plugin.php
