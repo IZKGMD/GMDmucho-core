@@ -48,4 +48,14 @@ if (V110EndpointGate::issues($noSignoff) === []) {
     throw new RuntimeException('Missing full endpoint signoff passed release.');
 }
 
+$workflow = (string)file_get_contents(
+    dirname(__DIR__, 2) . '/.github/workflows/release-stable.yml'
+);
+if (
+    !str_contains($workflow, 'php tests/release/v110-endpoint-gate.php') ||
+    !str_contains($workflow, "steps.marker.outputs.version == '1.1.0'")
+) {
+    throw new RuntimeException('Stable release workflow bypasses endpoint gate.');
+}
+
 echo "MUCHOCORE_V110_ENDPOINT_GATE_CONTRACT_OK\n";
