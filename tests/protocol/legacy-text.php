@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../../src/Protocol/GdLegacyText.php';
+require __DIR__ . '/../../src/Protocol/ProtocolText.php';
 
 use MuchoCore\Protocol\GdLegacyText;
+use MuchoCore\Protocol\ProtocolText;
 
 function assertSameValue(mixed $expected, mixed $actual, string $name): void
 {
