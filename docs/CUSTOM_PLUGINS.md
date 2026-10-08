@@ -52,8 +52,8 @@ Example plugin:
 
 declare(strict_types=1);
 
-use MuchoCore\\Plugin\\PluginContext;
-use MuchoCore\\Plugin\\PluginInterface;
+use MuchoCore\Plugin\PluginContext;
+use MuchoCore\Plugin\PluginInterface;
 
 return new class implements PluginInterface
 {
@@ -69,7 +69,7 @@ return new class implements PluginInterface
 Restart the application container after installing or changing a plugin:
 
 ~~~bash
-sudo docker compose restart app testgdps-app
+sudo docker compose restart app
 ~~~
 
 ## Permissions
