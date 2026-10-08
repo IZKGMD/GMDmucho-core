@@ -92,7 +92,7 @@ try {
 $page = (string)file_get_contents($root . '/public/admin/pages/plugins.php');
 $check(
     str_contains($page, 'renderMuchoPluginMarketplacePreview($rootDir);') &&
-    str_contains($page, "h($entry['source_url'])") &&
+    str_contains($page, 'h($entry[' . "'source_url'" . '])') &&
     str_contains($page, 'Manual install only'),
     'admin marketplace has read-only escaped link surface'
 );
