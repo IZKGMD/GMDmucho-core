@@ -90,6 +90,10 @@ jobs:
           fi
           git checkout --detach "$RELEASE_SHA"
 
+      - name: Verify MuchoCore 1.1.0 endpoint certification
+        if: steps.marker.outputs.ready == 'true' && steps.marker.outputs.version == '1.1.0'
+        run: php tests/release/v110-endpoint-gate.php
+
       - name: Publish validated release
         if: steps.marker.outputs.ready == 'true'
         env:
