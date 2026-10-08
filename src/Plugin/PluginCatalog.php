@@ -66,6 +66,12 @@ final readonly class PluginCatalog
             $description = $this->string($item, 'description', 280);
             $version = $this->version($item, 'version');
             $minCore = $this->version($item, 'min_core_version');
+            $maxCore = array_key_exists('max_core_version', $item)
+                ? $this->version($item, 'max_core_version')
+                : null;
+            if ($maxCore !== null && version_compare($minCore, $maxCore, '>')) {
+                throw new RuntimeException('Plugin core version range is inverted.');
+            }
 
             if (
                 preg_match('/^[a-z0-9][a-z0-9._-]*$/D', $id) !== 1 ||
@@ -117,10 +123,12 @@ final readonly class PluginCatalog
                 'version' => $version,
                 'api' => $api,
                 'min_core_version' => $minCore,
+                'max_core_version' => $maxCore,
                 'permissions' => $permissions,
                 'source_url' => $source,
                 'compatible' => $api === 1 &&
-                    version_compare($this->coreVersion, $minCore, '>='),
+                    version_compare($this->coreVersion, $minCore, '>=') &&
+                    ($maxCore === null || version_compare($this->coreVersion, $maxCore, '<=')),
             ];
         }
 
