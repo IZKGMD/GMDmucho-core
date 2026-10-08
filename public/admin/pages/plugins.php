@@ -176,8 +176,12 @@ function renderMuchoPluginMarketplacePreview(string $rootDir): void
             ($available ? 'Compatible' : 'Incompatible') . '</span>';
         echo '</div>';
         echo '<p class="muted" style="margin:8px 0">' . h($entry['description']) . '</p>';
+        $coreRange = 'Core ≥ ' . $entry['min_core_version'];
+        if ($entry['max_core_version'] !== null) {
+            $coreRange .= ' ≤ ' . $entry['max_core_version'];
+        }
         echo '<div class="muted" style="font-size:11px">SDK v' . h((string)$entry['api']) .
-            ' · Core ≥ ' . h($entry['min_core_version']) .
+            ' · ' . h($coreRange) .
             ' · Permissions: ' . h(implode(', ', $entry['permissions']) ?: 'none') . '</div>';
         echo '<p style="margin:10px 0 0"><a href="' . h($entry['source_url']) .
             '" target="_blank" rel="noopener noreferrer">Inspect source and manual install ↗</a></p>';
