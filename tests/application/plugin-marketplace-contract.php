@@ -64,6 +64,18 @@ try {
     $badVersion['plugins'][0]['min_core_version'] = 'latest';
     $reject($badVersion, 'invalid version rejected');
 
+    $badRange = $sample;
+    $badRange['plugins'][0]['max_core_version'] = '1.0.0';
+    $reject($badRange, 'inverted core version range rejected');
+
+    $maxRange = $sample;
+    $maxRange['plugins'][0]['max_core_version'] = '1.1.0';
+    file_put_contents($temp, json_encode($maxRange, JSON_THROW_ON_ERROR));
+    $check(
+        (new PluginCatalog($temp, '1.1.1'))->listings()[0]['compatible'] === false,
+        'catalog respects upper core compatibility boundary'
+    );
+
     $badApi = $sample;
     $badApi['plugins'][0]['api'] = 2;
     file_put_contents($temp, json_encode($badApi, JSON_THROW_ON_ERROR));
