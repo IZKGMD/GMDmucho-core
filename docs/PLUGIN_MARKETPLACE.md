@@ -67,3 +67,12 @@ Before enabling a one-click store, implement all of:
    verification, plus safe defaults for all existing installations.
 
 **No automatic third-party PHP execution is enabled by this preview.**
+
+## Release safety
+
+The v1.1.0 release workflow also checks endpoint certification with
+PHP tests/release/v110-endpoint-gate.php before creating a stable tag.
+The check fails closed until the registry covers the required P0 endpoints,
+all registered endpoints have passed required quality dimensions, and
+policy.certification_complete is explicitly true. The full roadmap still
+requires independent VPS, backup/restore, security and API token gates.
