@@ -92,6 +92,7 @@ jobs:
           php tests/application/migration-center-contract.php
           php tests/application/shared-hosting-installer-contract.php
           php tests/application/plugin-sdk-contract.php
+          php tests/application/plugin-marketplace-contract.php
           php tests/application/score-integrity-contract.php
           php tests/application/cvolton-db-import-contract.php
           php tests/application/comment-contract.php
@@ -286,6 +287,10 @@ jobs:
           grep -Fq "custom/plugins" .gitignore
           test -f custom/plugins/README.md
           test -f docs/CUSTOM_PLUGINS.md
+          test -f docs/PLUGIN_MARKETPLACE.md
+          test -f resources/plugin-catalog.json
+          test -f src/Plugin/PluginCatalog.php
+          test -f examples/plugins/welcome-endpoint/plugin.php
           grep -Fq 'MUCHO_PLUGINS_ENABLED=1' .env.example
           grep -Fq 'GD 1.1 only' install.sh
           grep -Fq 'GD_VERSIONS="11"' install.sh
