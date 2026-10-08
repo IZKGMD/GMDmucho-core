@@ -45,6 +45,9 @@ Catalog entries use this format:
 }
 ~~~
 
+An entry may also declare an optional max_core_version in MAJOR.MINOR.PATCH
+format. Its bound is checked alongside min_core_version and the SDK API.
+
 Catalog entries require a source link on GitHub over HTTPS. A new entry is
 published by a reviewed repository change. The catalog has no remote feed,
 update endpoint, upload control, or automatic installation.
