@@ -184,3 +184,16 @@ This diagnostic path is read-only and does not modify plugin files.
 ## Lifecycle event privacy
 
 `request.received`, `request.completed` and `request.failed` use sanitized request/response event payloads. Credentials, cookies, forwarded headers, arbitrary request parameters and response bodies are omitted; failure events expose only the exception class name. Plugins should rely on documented event metadata rather than expecting raw HTTP payloads.
+
+
+## Plugin Marketplace Preview (MuchoCore 1.1)
+
+The Admin → Custom Plugins page now includes a **read-only catalog preview**
+with supported core versions, required SDK permissions, plugin descriptions,
+and links to source code. See docs/PLUGIN_MARKETPLACE.md for the JSON schema,
+the bundled Welcome Endpoint example, and manual installation instructions.
+
+The preview does **not** fetch or execute code. One-click installation must
+wait for verified packages, explicit administrator consent, atomic rollback,
+and a reviewed publisher-trust mechanism. Existing manual plugins continue
+to work and stay outside the tracked core source tree.
