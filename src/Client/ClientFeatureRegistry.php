@@ -23,6 +23,7 @@ final class ClientFeatureRegistry
     ): void {
         if (
             !preg_match('/^[a-z][a-z0-9._-]{0,63}$/D', $id) ||
+            $id === 'clans' ||
             strlen($name) < 1 ||
             strlen($name) > 64 ||
             strlen($description) > 200 ||
