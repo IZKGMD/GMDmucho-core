@@ -21,7 +21,7 @@ $list = (new PluginCatalog($catalogPath, '1.1.0'))->listings();
 $check(count($list) === 1, 'bundled catalog loads without execution');
 $check($list[0]['id'] === 'welcome-endpoint', 'example is listed');
 $check($list[0]['compatible'] === true, 'supported core is compatible');
-$check($list[0]['permissions'] === ['routes'], 'SDK permissions visible');
+$check($list[0]['permissions'] === ['routes', 'client_features'], 'SDK permissions visible');
 
 $oldCore = (new PluginCatalog($catalogPath, '1.0.9'))->listings();
 $check($oldCore[0]['compatible'] === false, 'older core is incompatible');
