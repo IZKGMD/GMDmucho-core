@@ -167,6 +167,20 @@ Before major changes, create a database backup:
 sudo /opt/mucho-core/bin/mucho-db-backup.sh
 ~~~
 
+Before relying on a database dump, verify the complete archive, SHA-256
+sidecar and gzip SQL stream without executing any SQL:
+
+~~~bash
+php /opt/mucho-core/bin/mucho-verify-backup.php /path/to/backup.sql.gz
+~~~
+
+A result of `BACKUP_VERIFIED` verifies file integrity, not that a particular
+server is restorable. CI also restores a representative database into a fresh,
+isolated MariaDB schema and checks UTF-8, binary data, foreign keys, generated
+columns and views. **Do not test restores against a production GDPS.** Retain
+a protected copy of the database dump, its checksum and the Cloud Save
+encryption key for disaster recovery.
+
 Keep the Cloud Save secret safe:
 
 ~~~text
