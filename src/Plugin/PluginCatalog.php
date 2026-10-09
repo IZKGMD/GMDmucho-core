@@ -93,7 +93,7 @@ final readonly class PluginCatalog
             foreach ($permissions as $permission) {
                 if (
                     !is_string($permission) ||
-                    !in_array($permission, ['events', 'routes', 'database'], true)
+                    !in_array($permission, ['events', 'routes', 'database', 'client_features'], true)
                 ) {
                     throw new RuntimeException('Unknown plugin permission.');
                 }
