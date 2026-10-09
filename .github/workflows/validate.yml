@@ -108,6 +108,7 @@ jobs:
           php tests/application/auth-session-isolation.php
           php tests/application/security-regressions.php
           bash tests/release/release-update-detection.sh
+          bash tests/release/update-main-without-release.sh
           php tests/database/migrator-concurrency.php
           php tests/application/music-upload-contract.php
           php tests/application/clan-contract.php
