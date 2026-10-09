@@ -101,6 +101,8 @@ jobs:
           php tests/application/v106-hardening-contract.php
           php tests/application/v108-intelligence-contract.php
           php tests/application/legacy-19-session.php
+          php tests/application/cloudsave-key-contract.php
+          php tests/application/cloudsave-shared-key-path.php
           php tests/application/auth-session-isolation.php
           php tests/application/security-regressions.php
           bash tests/release/release-update-detection.sh
