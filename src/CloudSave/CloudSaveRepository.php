@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\CloudSave;
 
+use MuchoCore\Core\Environment;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -429,11 +430,40 @@ final readonly class CloudSaveRepository
     }
 
 
+    /**
+     * VPS deployments keep the key in a protected Docker volume. The
+     * no-Docker shared-hosting installer instead creates config/cloudsave.key.
+     * Never generate a new key here: rotating it would make old saves unreadable.
+     */
+    private function keyPath(): string
+    {
+        $configured = trim((string)(
+            Environment::get('MUCHO_CLOUDSAVE_KEY_FILE', '') ?? ''
+        ));
+
+        if ($configured !== '') {
+            if (
+                !str_starts_with($configured, '/') ||
+                preg_match('/[\x00-\x1F\x7F]/', $configured) === 1
+            ) {
+                throw new RuntimeException(
+                    'Cloud save key path must be an absolute private filesystem path.'
+                );
+            }
+
+            return $configured;
+        }
+
+        if (Environment::get('MUCHO_SHARED_HOSTING', '0') === '1') {
+            return dirname(__DIR__, 2) . '/config/cloudsave.key';
+        }
+
+        return self::KEY_FILE;
+    }
+
     private function key(): string
     {
-        $raw=@file_get_contents(
-            self::KEY_FILE
-        );
+        $raw = @file_get_contents($this->keyPath());
 
         if($raw===false){
             throw new RuntimeException(
