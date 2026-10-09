@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Plugin;
 
+use MuchoCore\Client\ClientFeatureRegistry;
 use MuchoCore\Core\Environment;
 use MuchoCore\Routing\Router;
 use PDO;
@@ -12,6 +13,7 @@ use Throwable;
 final class PluginManager
 {
     private PluginEventBus $events;
+    private ClientFeatureRegistry $clientFeatures;
     private array $loaded = [];
 
     public function __construct(
@@ -21,6 +23,7 @@ final class PluginManager
         private readonly string $coreVersion = '0.0.0'
     ) {
         $this->events = new PluginEventBus();
+        $this->clientFeatures = new ClientFeatureRegistry();
     }
 
     public static function fromEnvironment(
@@ -61,6 +64,11 @@ final class PluginManager
     public function emit(string $event, array $payload = []): void
     {
         $this->events->emit($event, $payload);
+    }
+
+    public function clientFeatures(): ClientFeatureRegistry
+    {
+        return $this->clientFeatures;
     }
 
     public function loaded(): array
@@ -162,7 +170,8 @@ final class PluginManager
                 $this->router,
                 $this->events,
                 (array)$metadata['permissions'],
-                $name
+                $name,
+                $this->clientFeatures
             );
 
             $plugin->register($context);
@@ -290,7 +299,7 @@ final class PluginManager
             (array)($manifest['permissions'] ?? ['events']),
             static fn(mixed $value): bool =>
                 is_string($value) &&
-                in_array($value, ['events', 'routes', 'database'], true)
+                in_array($value, ['events', 'routes', 'database', 'client_features'], true)
         )));
 
         $minCore = $this->normalizeCoreVersion(
