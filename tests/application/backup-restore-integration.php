@@ -203,11 +203,14 @@ SQL);
             ->fetchColumn() === 1,
         'foreign-key data survives restore'
     );
+    // A valid disaster-recovery restore must not silently reference tables
+    // in its original database. Remove the source before validating the view.
+    $server->exec('DROP DATABASE ' . $sourceName);
     backupCheck(
         (int)$target->query(
             'SELECT doubled FROM restore_items_view WHERE id=1'
         )->fetchColumn() === 42,
-        'view remains usable after restore'
+        'restored view is independent of the destroyed source database'
     );
 
     echo "MUCHOCORE_BACKUP_RESTORE_INTEGRATION_OK\n";
