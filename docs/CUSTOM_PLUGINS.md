@@ -81,8 +81,21 @@ Plugins declare the SDK capabilities they need:
 | `events` | Subscribe to MuchoCore lifecycle/request events |
 | `routes` | Register custom GET/POST/ANY HTTP routes |
 | `database` | Access the MuchoCore PDO connection |
+| `client_features` | Advertise in-game modules to MuchoClient (metadata only) |
 
 Unknown permission names are ignored.
+
+The client_features permission enables a validated feature-list contribution:
+
+~~~php
+$context->clientFeature(
+    'example', 'Example', 'Shows in the MuchoClient menu',
+    '/extensions/example'
+);
+~~~
+
+Use a separately authenticated route for any sensitive content. The menu
+entry alone does not grant access or prove a genuine Geode client is running.
 
 ## Lifecycle events
 
