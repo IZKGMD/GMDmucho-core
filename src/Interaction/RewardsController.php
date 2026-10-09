@@ -16,8 +16,7 @@ final readonly class RewardsController
 
     private function credential(Request $request): string
     {
-        return $request->postString('gjp2')
-            ?: $request->postString('gjp');
+        return $request->gdCredential();
     }
 
     public function getRewards(

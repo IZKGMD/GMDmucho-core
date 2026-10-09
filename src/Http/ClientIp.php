@@ -14,6 +14,16 @@ final class ClientIp
      * client cannot spoof the TCP source address of a Cloudflare edge.
      * Keep explicit MUCHO_TRUSTED_PROXY_CIDRS for private/self-hosted proxies.
      */
+    private const LOCAL_PROXY_CIDRS = [
+        '10.0.0.0/8',
+        '172.16.0.0/12',
+        '192.168.0.0/16',
+        '127.0.0.0/8',
+        '::1/128',
+        'fc00::/7',
+        'fe80::/10',
+    ];
+
     private const CLOUDFLARE_CIDRS = [
         '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22',
         '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18',
@@ -28,8 +38,8 @@ final class ClientIp
     /**
      * Resolve the original client IP behind Caddy/Cloudflare.
      *
-     * Forwarded headers are only trusted when the direct peer is a
-     * private/reserved address, which matches the container proxy path.
+     * Forwarded headers are only trusted when the direct peer is an
+     * explicitly trusted proxy, Cloudflare edge, or local/private proxy.
      */
     public static function resolve(array $server): string
     {
@@ -46,11 +56,10 @@ final class ClientIp
             $remote,
             self::CLOUDFLARE_CIDRS
         );
-        $privateProxy = filter_var(
+        $privateProxy = self::ipInAnyCidr(
             $remote,
-            FILTER_VALIDATE_IP,
-            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
-        ) === false;
+            self::LOCAL_PROXY_CIDRS
+        );
 
         $privateProxyFallback =
             $trustedProxyCidrs === [] &&

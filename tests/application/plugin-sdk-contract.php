@@ -158,7 +158,27 @@ try {
         throw new RuntimeException('incompatible plugin diagnostics contract failed');
     }
 
-    $manager->load();
+    $pluginErrorLog = $root . '/plugin-error.log';
+    if (ini_set('error_log', $pluginErrorLog) === false) {
+        throw new RuntimeException('cannot redirect expected plugin error log');
+    }
+
+    try {
+        $manager->load();
+    } finally {
+        ini_restore('error_log');
+    }
+
+    $pluginErrors = is_file($pluginErrorLog)
+        ? (string)file_get_contents($pluginErrorLog)
+        : '';
+
+    if (
+        !str_contains($pluginErrors, 'failed to load future-plugin') ||
+        !str_contains($pluginErrors, 'Supports MuchoCore up to 1.0.2')
+    ) {
+        throw new RuntimeException('incompatible plugin rejection was not logged');
+    }
 
     if (!isset($manager->loaded()['demo-plugin'])) {
         throw new RuntimeException(

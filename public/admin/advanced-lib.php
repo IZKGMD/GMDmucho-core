@@ -190,6 +190,12 @@ function v4HardDeleteAccount(PDO $db,int $id,string $by): void
         ['id'=>$id]
     );
 
+    /* Never retain reusable credential hashes in deletion recovery snapshots. */
+    unset(
+        $account['password_hash'],
+        $account['gjp2_hash']
+    );
+
     $snapshot=json_encode([
         'account'=>$account,
         'profile'=>$profile,

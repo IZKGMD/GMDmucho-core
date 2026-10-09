@@ -6,6 +6,30 @@ use MuchoCore\Score\ScoreIntegrity;
 
 require dirname(__DIR__, 2) . '/src/Score/ScoreIntegrity.php';
 
+$regularWriter = (string)file_get_contents(
+    dirname(__DIR__, 2) . '/src/Score/LevelScoreController.php'
+);
+$platformerWriter = (string)file_get_contents(
+    dirname(__DIR__, 2) . '/src/Score/PlatformerScoreController.php'
+);
+
+if (
+    !str_contains($regularWriter, 'ON DUPLICATE KEY UPDATE') ||
+    !str_contains($regularWriter, 'LAST_INSERT_ID(score_id)') ||
+    !str_contains($regularWriter, 'percent=GREATEST(percent,VALUES(percent))')
+) {
+    throw new RuntimeException('regular score writer lost atomic best-score upsert');
+}
+
+if (
+    !str_contains($platformerWriter, 'ON DUPLICATE KEY UPDATE') ||
+    !str_contains($platformerWriter, 'LAST_INSERT_ID(score_id)') ||
+    !str_contains($platformerWriter, 'VALUES(time_ms)<time_ms') ||
+    !str_contains($platformerWriter, 'VALUES(points)>points')
+) {
+    throw new RuntimeException('platformer score writer lost atomic best-score upsert');
+}
+
 $trusted = ScoreIntegrity::evaluateRegular(
     42, 100, 50, 120, 'progress'
 );

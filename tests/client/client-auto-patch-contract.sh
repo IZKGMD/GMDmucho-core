@@ -35,14 +35,26 @@ grep -Fq 'client-patch.php' "$ROOT/bin/mucho"
 grep -Fq 'client-patch.php' "$ROOT/update.sh"
 grep -Fq '$zip = new \ZipArchive();' "$ROOT/src/Client/DeploymentClientPack.php"
 
-if grep -rIl $'\x00' "$ROOT/src/Client" >/tmp/muchocore-client-nul-files 2>/dev/null; then
-    echo "Client patcher source contains embedded NUL bytes." >&2
-    cat /tmp/muchocore-client-nul-files >&2
-    exit 1
-fi
+python3 - "$ROOT/src/Client" <<'PY'
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+bad = [
+    path
+    for path in root.rglob("*")
+    if path.is_file() and b"\x00" in path.read_bytes()
+]
+
+if bad:
+    print("Client patcher source contains embedded NUL bytes.", file=sys.stderr)
+    for path in bad:
+        print(path, file=sys.stderr)
+    raise SystemExit(1)
+PY
 
 worker_clients_line="$(grep -n 'Generating clients for this GDPS' "$ROOT/bin/mucho-shared-deploy-worker.php" | head -1 | cut -d: -f1)"
-worker_wait_line="$(grep -n 'Waiting for browser finalization' "$ROOT/bin/mucho-shared-deploy-worker.php" | head -1 | cut -d: -f1)"
+worker_wait_line="$(grep -nE '^[[:space:]]+wait_for_browser_finalization\(' "$ROOT/bin/mucho-shared-deploy-worker.php" | head -1 | cut -d: -f1)"
 if [[ -z "$worker_clients_line" || -z "$worker_wait_line" || "$worker_clients_line" -ge "$worker_wait_line" ]]; then
     echo "Shared worker must upload patched clients before browser finalization." >&2
     exit 1

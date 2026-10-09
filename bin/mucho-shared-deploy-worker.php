@@ -944,8 +944,33 @@ function ftp_put_with_heartbeat(\FTP\Connection $ftp, string $remote, string $lo
         '[MuchoGDPS] Uploading ' . $label . ' ' . $remote . ' (' . $mb . ' MB)...' . "\n"
     );
 
-    if (!@ftp_put($ftp, $remote, $local, FTP_BINARY)) {
-        throw new RuntimeException('Failed to upload: ' . $remote);
+    $state = @ftp_nb_put($ftp, $remote, $local, FTP_BINARY);
+    if ($state === false || $state === FTP_FAILED) {
+        throw new RuntimeException('Failed to start upload: ' . $remote);
+    }
+
+    $lastHeartbeat = microtime(true);
+
+    while ($state === FTP_MOREDATA) {
+        $state = @ftp_nb_continue($ftp);
+
+        if ($state === false || $state === FTP_FAILED) {
+            throw new RuntimeException('Failed while uploading: ' . $remote);
+        }
+
+        if (microtime(true) - $lastHeartbeat >= 10.0) {
+            $statusFile = dirname($logFile) . '/status.json';
+            if (is_file($statusFile)) {
+                $status = read_json_file($statusFile);
+                $status['heartbeat_at'] = gmdate('c');
+                write_status($statusFile, $status);
+            }
+            $lastHeartbeat = microtime(true);
+        }
+    }
+
+    if ($state !== FTP_FINISHED) {
+        throw new RuntimeException('Upload did not finish cleanly: ' . $remote);
     }
 
     log_line(

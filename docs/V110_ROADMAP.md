@@ -108,6 +108,17 @@ The goal is to move MuchoCore from a strong GDPS core with deployment tooling in
 - Complete 1.1.0 migration notes.
 - Versioned docs and release checklist.
 
+### 12. Protocol Perfection & Endpoint Certification
+- Machine-readable endpoint contract registry.
+- Version-aware request and wire contracts for every supported Geometry Dash endpoint.
+- Explicit authentication policy and legacy fallback boundary per endpoint.
+- Golden and negative fixtures for protocol-critical flows.
+- Database-integrity and concurrency coverage for write endpoints.
+- p95 performance budgets for hot endpoints.
+- Real-client evidence linked to endpoint certification.
+- CI rejects release-gated endpoints with any pending quality dimension.
+- Endpoint certification standard documented in `docs/ENDPOINT_PERFECTION.md`.
+
 ## Release gates
 
 1. Full PHP, shell and protocol validation.
@@ -119,7 +130,8 @@ The goal is to move MuchoCore from a strong GDPS core with deployment tooling in
 7. Security session isolation regression suite passes.
 8. API token scope enforcement passes.
 9. Documentation and release metadata match VERSION.
-10. Only after all gates pass: create the 1.1.0 release marker and publish the stable release.
+10. Every supported Geometry Dash endpoint is represented in the Endpoint Perfection registry; release-gated endpoints have no pending quality dimension.
+11. Only after all gates pass: create the 1.1.0 release marker and publish the stable release.
 
 ## Intentionally deferred
 

@@ -26,6 +26,7 @@ final readonly class LevelTransferService
         private AccountAuthenticator $auth,
         private Legacy10IdentityService $legacy10,
         private LevelTransferRepository $repository,
+        private LevelDownloadTracker $downloadTracker,
         private GdLevelDownloadEncoder $downloadEncoder,
         private LevelValidator $validator,
         private LevelRevisionService $revisions,
@@ -390,7 +391,8 @@ final readonly class LevelTransferService
         bool $extras,
         bool $incrementDownloads,
         int $viewerAccountId = 0,
-        string $viewerCredential = ''
+        string $viewerCredential = '',
+        string $clientIp = ''
     ): string {
         $timelyId=0;
 
@@ -456,7 +458,10 @@ final readonly class LevelTransferService
         }
 
         if ($incrementDownloads) {
-            $this->repository->incrementDownloads($levelId);
+            $this->downloadTracker->record(
+                $levelId,
+                $clientIp
+            );
         }
 
         $response=$this->downloadEncoder->encode(

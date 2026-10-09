@@ -1,0 +1,346 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "name": "MuchoCore Endpoint Perfection",
+    "target_release": "1.1.0",
+    "required_dimensions": [
+      "request_contract",
+      "wire_contract",
+      "auth_contract",
+      "negative_cases",
+      "db_integrity",
+      "concurrency",
+      "performance_budget",
+      "real_client"
+    ],
+    "allowed_statuses": [
+      "covered",
+      "partial",
+      "pending",
+      "n/a"
+    ]
+  },
+  "contracts": [
+    {
+      "id": "levels.search",
+      "priority": "P0",
+      "method": "POST",
+      "canonical_path": "/getgjlevels21",
+      "aliases": [
+        "/getGJLevels.php",
+        "/getGJLevels19.php",
+        "/getGJLevels20.php",
+        "/getGJLevels21.php",
+        "/getGJLevels22.php",
+        "/database/getGJLevels21.php"
+      ],
+      "families": ["1.0", "1.1", "1.5", "1.9", "2.0", "2.1", "2.2"],
+      "release_gate": false,
+      "request_contract": {
+        "status": "partial",
+        "evidence": ["tests/client-fixtures/2.2/endpoints.json"]
+      },
+      "wire_contract": {
+        "status": "covered",
+        "evidence": [
+          "tests/protocol/protocol-19-wire.php",
+          "tests/protocol/protocol-20-wire.php",
+          "tests/protocol/protocol-21-wire.php",
+          "tests/protocol/protocol-22-surface.php"
+        ]
+      },
+      "auth_contract": {
+        "status": "partial",
+        "evidence": ["tests/protocol/compatibility-profile.php"]
+      },
+      "negative_cases": {
+        "status": "partial",
+        "evidence": ["tests/integration/regression.sh"]
+      },
+      "db_integrity": {
+        "status": "n/a",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "n/a",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": 100,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "partial",
+        "families": ["2.2"],
+        "evidence": ["tests/client-fixtures/2.2/endpoints.json"]
+      }
+    },
+    {
+      "id": "users.leaderboard",
+      "priority": "P0",
+      "method": "POST",
+      "canonical_path": "/getgjscores20",
+      "aliases": [
+        "/getGJScores19.php",
+        "/getGJScores20.php",
+        "/getGJScores21.php",
+        "/getGJScores22.php",
+        "/database/getGJScores20.php"
+      ],
+      "families": ["1.9", "2.0", "2.1", "2.2"],
+      "release_gate": false,
+      "request_contract": {
+        "status": "partial",
+        "evidence": ["tests/client-fixtures/2.2/endpoints.json"]
+      },
+      "wire_contract": {
+        "status": "partial",
+        "evidence": [
+          "tests/protocol/protocol-20-wire.php",
+          "tests/protocol/protocol-21-wire.php",
+          "tests/protocol/protocol-22-surface.php"
+        ]
+      },
+      "auth_contract": {
+        "status": "partial",
+        "evidence": ["tests/protocol/compatibility-profile.php"]
+      },
+      "negative_cases": {
+        "status": "partial",
+        "evidence": ["tests/integration/regression.sh"]
+      },
+      "db_integrity": {
+        "status": "n/a",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "n/a",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": 100,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "partial",
+        "families": ["2.2"],
+        "evidence": ["tests/client-fixtures/2.2/endpoints.json"]
+      }
+    },
+    {
+      "id": "account.login",
+      "priority": "P0",
+      "method": "POST",
+      "canonical_path": "/logingjaccount",
+      "aliases": [
+        "/loginGJAccount.php",
+        "/loginGJAccount19.php",
+        "/loginGJAccount20.php",
+        "/loginGJAccount21.php",
+        "/loginGJAccount22.php"
+      ],
+      "families": ["1.0", "1.1", "1.5", "1.9", "2.0", "2.1", "2.2"],
+      "release_gate": false,
+      "request_contract": {
+        "status": "partial",
+        "evidence": ["tests/protocol/protocol-matrix.php"]
+      },
+      "wire_contract": {
+        "status": "partial",
+        "evidence": ["tests/protocol/protocol-matrix.php"]
+      },
+      "auth_contract": {
+        "status": "partial",
+        "evidence": [
+          "tests/protocol/compatibility-profile.php",
+          "tests/application/legacy-19-session.php",
+          "tests/application/auth-session-isolation.php"
+        ]
+      },
+      "negative_cases": {
+        "status": "partial",
+        "evidence": [
+          "tests/application/auth-session-isolation.php"
+        ]
+      },
+      "db_integrity": {
+        "status": "partial",
+        "evidence": ["tests/application/security-regressions.php"]
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": 75,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "partial",
+        "families": ["1.1", "1.9"],
+        "evidence": ["docs/PROTOCOL_MATRIX.md"]
+      }
+    },
+    {
+      "id": "levels.upload",
+      "priority": "P0",
+      "method": "POST",
+      "canonical_path": "/uploadgjlevel21",
+      "aliases": [
+        "/uploadGJLevel.php",
+        "/uploadGJLevel19.php",
+        "/uploadGJLevel20.php",
+        "/uploadGJLevel21.php"
+      ],
+      "families": ["1.0", "1.1", "1.5", "1.9", "2.0", "2.1", "2.2"],
+      "release_gate": false,
+      "request_contract": {
+        "status": "partial",
+        "evidence": ["tests/protocol/level-protocol-guards.php"]
+      },
+      "wire_contract": {
+        "status": "partial",
+        "evidence": [
+          "tests/protocol/protocol-19-wire.php",
+          "tests/protocol/protocol-20-wire.php",
+          "tests/protocol/protocol-21-wire.php"
+        ]
+      },
+      "auth_contract": {
+        "status": "partial",
+        "evidence": ["tests/application/legacy-19-session.php"]
+      },
+      "negative_cases": {
+        "status": "partial",
+        "evidence": ["tests/integration/regression.sh"]
+      },
+      "db_integrity": {
+        "status": "partial",
+        "evidence": ["tests/protocol/level-protocol-guards.php"]
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": 250,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "partial",
+        "families": ["1.5", "1.9"],
+        "evidence": ["docs/PROTOCOL_MATRIX.md"]
+      }
+    },
+    {
+      "id": "levels.download",
+      "priority": "P0",
+      "method": "POST",
+      "canonical_path": "/downloadgjlevel21",
+      "aliases": [
+        "/downloadGJLevel.php",
+        "/downloadGJLevel19.php",
+        "/downloadGJLevel20.php",
+        "/downloadGJLevel21.php"
+      ],
+      "families": ["1.0", "1.1", "1.5", "1.9", "2.0", "2.1", "2.2"],
+      "release_gate": false,
+      "request_contract": {
+        "status": "partial",
+        "evidence": ["tests/protocol/level-protocol-guards.php"]
+      },
+      "wire_contract": {
+        "status": "covered",
+        "evidence": [
+          "tests/protocol/protocol-19-wire.php",
+          "tests/protocol/protocol-20-wire.php",
+          "tests/protocol/protocol-21-wire.php",
+          "tests/protocol/protocol-22-hashes.php"
+        ]
+      },
+      "auth_contract": {
+        "status": "partial",
+        "evidence": ["tests/protocol/compatibility-profile.php"]
+      },
+      "negative_cases": {
+        "status": "partial",
+        "evidence": ["tests/integration/regression.sh"]
+      },
+      "db_integrity": {
+        "status": "n/a",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "n/a",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": 150,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "partial",
+        "families": ["1.9"],
+        "evidence": ["docs/PROTOCOL_MATRIX.md"]
+      }
+    },
+    {
+      "id": "comments.read",
+      "priority": "P0",
+      "method": "POST",
+      "canonical_path": "/getgjcomments21",
+      "aliases": [
+        "/getGJComments.php",
+        "/getGJComments15.php",
+        "/getGJComments19.php",
+        "/getGJComments20.php",
+        "/getGJComments21.php"
+      ],
+      "families": ["1.5", "1.9", "2.0", "2.1", "2.2"],
+      "release_gate": false,
+      "request_contract": {
+        "status": "partial",
+        "evidence": ["tests/application/comment-contract.php"]
+      },
+      "wire_contract": {
+        "status": "covered",
+        "evidence": [
+          "tests/protocol/protocol-19-wire.php",
+          "tests/protocol/protocol-20-wire.php",
+          "tests/protocol/protocol-21-wire.php"
+        ]
+      },
+      "auth_contract": {
+        "status": "partial",
+        "evidence": ["tests/application/comment-contract.php"]
+      },
+      "negative_cases": {
+        "status": "partial",
+        "evidence": ["tests/application/comment-contract.php"]
+      },
+      "db_integrity": {
+        "status": "n/a",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "n/a",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": 100,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "partial",
+        "families": ["1.5", "1.9"],
+        "evidence": ["docs/PROTOCOL_MATRIX.md"]
+      }
+    }
+  ]
+}

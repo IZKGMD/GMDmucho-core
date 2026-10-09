@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../../src/Protocol/GdLegacyText.php';
+require __DIR__ . '/../../src/Protocol/ProtocolText.php';
 
 use MuchoCore\Protocol\GdLegacyText;
+use MuchoCore\Protocol\ProtocolText;
 
 function assertSameValue(mixed $expected, mixed $actual, string $name): void
 {
@@ -96,5 +98,20 @@ assertSameValue(
     GdLegacyText::decodeComment('modern comment', 20),
     '2.0 comment stays unchanged'
 );
+
+
+$rawProtocolField = "A:B|C#D~E\0F\r\nG";
+if (ProtocolText::field($rawProtocolField, 4) !== 'ABCD') {
+    fwrite(STDERR, "FAIL protocol field delimiter/control sanitization\n");
+    exit(1);
+}
+
+$rawProtocolComment = "A:B|C#D~E\0F\r\nG";
+if (ProtocolText::comment($rawProtocolComment, 5) !== 'A:BCD') {
+    fwrite(STDERR, "FAIL protocol comment delimiter/control sanitization\n");
+    exit(1);
+}
+
+echo "PASS protocol text sanitizer boundaries\n";
 
 echo "MUCHOCORE_LEGACY_TEXT_OK\n";

@@ -74,13 +74,24 @@ final readonly class CloudSaveService
         }
 
         // Match both the classic Cvolton contract and MuchoCore's GJP2 flow.
-        // AccountAuthenticator accepts the plain password as well as GJP/GJP2.
-        $credential = trim((string)(
-            $data['password']
-            ?? $data['gjp2']
-            ?? $data['gjp']
-            ?? ''
-        ));
+        // Some clients submit an empty legacy password field alongside GJP/GJP2,
+        // so choose the first non-empty credential instead of the first present key.
+        $credential = '';
+
+        foreach (['password', 'gjp2', 'gjp'] as $key) {
+            $candidate = $data[$key] ?? '';
+
+            if (!is_scalar($candidate)) {
+                continue;
+            }
+
+            $candidate = trim((string)$candidate);
+
+            if ($candidate !== '') {
+                $credential = $candidate;
+                break;
+            }
+        }
 
         if ($accountId <= 0 || $credential === '') {
             throw new RuntimeException('Unauthorized cloud save account.');

@@ -4,6 +4,16 @@ declare(strict_types=1);
 
 $checks = [
     [
+        __DIR__ . '/../../src/Protocol/GdLevelDownloadEncoder.php',
+        "ProtocolText::field(\$level['name'], 64)",
+        'level download sanitizes protocol-delimited names',
+    ],
+    [
+        __DIR__ . '/../../src/Protocol/GdLevelDownloadEncoder.php',
+        'ProtocolText::field($description, 8192)',
+        'level download sanitizes protocol-delimited descriptions',
+    ],
+    [
         __DIR__ . '/../../src/Level/LevelRepository.php',
         "case 6:\n            case 17:",
         '2.1 featured level type coverage',

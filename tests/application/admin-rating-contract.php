@@ -44,21 +44,33 @@ $assert(str_contains($rating,'Medium Demon'),'medium demon difficulty');
 $assert(str_contains($rating,'Hard Demon'),'hard demon difficulty');
 $assert(str_contains($rating,'Insane Demon'),'insane demon difficulty');
 $assert(str_contains($rating,'Extreme Demon'),'extreme demon difficulty');
-$assert(str_contains($rating,"https://upload.wikimedia.org/wikipedia/commons/c/ce/Easy_Icon.svg"),'original Easy SVG source');
-$assert(str_contains($rating,"https://upload.wikimedia.org/wikipedia/commons/4/48/Normal_Icon.svg"),'original Normal SVG source');
-$assert(str_contains($rating,"https://upload.wikimedia.org/wikipedia/commons/2/24/Hard_Icon.svg"),'original Hard SVG source');
-$assert(str_contains($rating,"https://upload.wikimedia.org/wikipedia/commons/3/34/Harder_Icon.svg"),'original Harder SVG source');
-$assert(str_contains($rating,"https://upload.wikimedia.org/wikipedia/commons/6/6c/Insane_Icon.svg"),'original Insane SVG source');
-$assert(str_contains($rating,"https://upload.wikimedia.org/wikipedia/commons/0/0a/Unrated_Icon.svg"),'original Unrated SVG source');
-$assert(str_contains($rating,"https://upload.wikimedia.org/wikipedia/commons/a/a8/Auto_Icon.svg"),'original Auto SVG source');
-$assert(str_contains($rating,"'easy-demon' => 'EasyDemon.png'"),'Fandom Easy Demon original image');
-$assert(str_contains($rating,"'extreme-demon' => 'ExtremeDemon.png'"),'Fandom Extreme Demon original image');
-$assert(!str_contains($rating,'/admin/assets/difficulty/'),'no reconstructed local difficulty faces');
-$assert(str_contains($rating,'Direct upload.wikimedia.org URLs avoid Fandom'), 'direct SVG mirror rationale documented');
 $assert(!str_contains($rating,'geometrydash.wiki.gg/wiki/Special:Redirect/file'),'no wiki.gg difficulty-face hotlink');
 $assert(!str_contains($rating,'name="demon" id="demon"'),'legacy demon checkbox removed');
 $assert(!str_contains($rating,'name="demon_difficulty" id="demonDifficulty"'),'legacy demon difficulty field removed');
 $assert(str_contains($rating,'Publish rating'),'publish control');
+$assert(
+    str_contains($rating, '$difficultyIconUrl = static function (string $profile)') &&
+    str_contains($rating, "'/admin/assets/difficulty/'.") &&
+    str_contains($rating, 'rawurlencode($profile).') &&
+    str_contains($rating, "'.svg';"),
+    'local GD difficulty face asset source'
+);
+$assert(
+    !str_contains($rating,'upload.wikimedia.org') &&
+    !str_contains($rating,'geometry-dash.fandom.com'),
+    'no external difficulty-face hotlink'
+);
+
+foreach ([
+    'unrated','auto','easy','normal','hard','harder','insane',
+    'easy-demon','medium-demon','hard-demon','insane-demon','extreme-demon',
+] as $face) {
+    $assert(
+        is_file(__DIR__.'/../../public/admin/assets/difficulty/'.$face.'.svg'),
+        'local difficulty asset '.$face
+    );
+}
+
 $assert(str_contains($rating,'$profile = $difficultyProfileForRow($row);'),'row difficulty profile initialized before use');
 $assert(str_contains($rating,'$selectedName = trim((string)($selected[\'name\'] ?? \'\')) ?: \'Unnamed level\';'),'selected level name initialized before use');
 $assert(!str_contains($rating,'Current rating'),'stale duplicated preview block removed');

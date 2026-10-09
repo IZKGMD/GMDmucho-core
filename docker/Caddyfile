@@ -173,6 +173,8 @@
     header {
         -Server
         X-Content-Type-Options nosniff
+        X-Frame-Options "DENY"
+        Content-Security-Policy "frame-ancestors 'none'"
         Referrer-Policy no-referrer
         Permissions-Policy "camera=(), microphone=(), geolocation=()"
     }

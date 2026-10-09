@@ -152,40 +152,9 @@ $difficultyIconUrl = static function (string $profile) use ($difficultyProfiles)
         $profile='unrated';
     }
 
-    /*
-     * These SVGs are the original Geometry Dash difficulty artwork sourced
-     * from the Geometry Dash Fandom category and mirrored on Wikimedia Commons.
-     * Direct upload.wikimedia.org URLs avoid Fandom's broken file redirect.
-     */
-    $originalSvg = [
-        'unrated' => 'https://upload.wikimedia.org/wikipedia/commons/0/0a/Unrated_Icon.svg',
-        'auto' => 'https://upload.wikimedia.org/wikipedia/commons/a/a8/Auto_Icon.svg',
-        'easy' => 'https://upload.wikimedia.org/wikipedia/commons/c/ce/Easy_Icon.svg',
-        'normal' => 'https://upload.wikimedia.org/wikipedia/commons/4/48/Normal_Icon.svg',
-        'hard' => 'https://upload.wikimedia.org/wikipedia/commons/2/24/Hard_Icon.svg',
-        'harder' => 'https://upload.wikimedia.org/wikipedia/commons/3/34/Harder_Icon.svg',
-        'insane' => 'https://upload.wikimedia.org/wikipedia/commons/6/6c/Insane_Icon.svg',
-    ];
-
-    if (isset($originalSvg[$profile])) {
-        return $originalSvg[$profile];
-    }
-
-    /*
-     * Demon-specific originals are PNGs on the Fandom difficulty-icon
-     * category; keep those on the source wiki until equivalent SVG files
-     * exist there.
-     */
-    $fandomPng = [
-        'easy-demon' => 'EasyDemon.png',
-        'medium-demon' => 'MediumDemon.png',
-        'hard-demon' => 'Demon.png',
-        'insane-demon' => 'InsaneDemon.png',
-        'extreme-demon' => 'ExtremeDemon.png',
-    ];
-
-    return 'https://geometry-dash.fandom.com/wiki/Special:Redirect/file/'.
-        rawurlencode($fandomPng[$profile] ?? 'Unrated.png');
+    return '/admin/assets/difficulty/'.
+        rawurlencode($profile).
+        '.svg';
 };
 
 $pendingCount = 0;

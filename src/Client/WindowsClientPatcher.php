@@ -369,41 +369,83 @@ final class WindowsClientPatcher
     ): int {
         $old = self::asciiToUtf16Le($oldHost);
         $new = self::asciiToUtf16Le($newHost);
-        $zero = "\0\0";
         $http = self::asciiToUtf16Le('http://');
         $https = self::asciiToUtf16Le('https://');
         $count = 0;
         $offset = 0;
 
         while (($position = strpos($data, $old, $offset)) !== false) {
-            $prefixStart = strrpos(substr($data, 0, $position), $zero);
-            $start = $prefixStart === false ? 0 : $prefixStart + 2;
-            $end = strpos($data, $zero, $position);
+            /*
+             * Do not search backwards for "\0\0": a UTF-16LE ASCII string
+             * contains NUL bytes in every code unit and binary data before the
+             * string may contain arbitrary double-NUL sequences. Anchor the
+             * URL from the scheme immediately preceding the host instead.
+             */
+            $start = null;
 
-            if ($end === false) {
-                $end = strlen($data);
+            if (
+                $position >= strlen($https) &&
+                substr($data, $position - strlen($https), strlen($https)) === $https
+            ) {
+                $start = $position - strlen($https);
+            } elseif (
+                $position >= strlen($http) &&
+                substr($data, $position - strlen($http), strlen($http)) === $http
+            ) {
+                $start = $position - strlen($http);
             }
 
-            $prefix = substr($data, $start, $position - $start);
-            if (!str_ends_with($prefix, $http) && !str_ends_with($prefix, $https)) {
+            if ($start === null) {
+                $offset = $position + strlen($old);
+                continue;
+            }
+
+            $end = self::findUtf16LeTerminator($data, $start);
+            if ($end === null || $end < $position + strlen($old)) {
                 $offset = $position + strlen($old);
                 continue;
             }
 
             $url = substr($data, $start, $end - $start);
-            $patched = substr_replace($url, $new, $position - $start, strlen($old));
+            $patched = substr_replace(
+                $url,
+                $new,
+                $position - $start,
+                strlen($old)
+            );
+
             if (strlen($patched) > strlen($url)) {
                 $offset = $position + strlen($old);
                 continue;
             }
 
-            $patched .= str_repeat("\0", intdiv(strlen($url) - strlen($patched), 2) * 2);
+            /*
+             * Keep the PE byte layout fixed. If the new host is shorter, the
+             * path shifts left and the remaining UTF-16 code units become the
+             * string terminator/padding at the end, never in the middle.
+             */
+            $patched .= str_repeat("\0", strlen($url) - strlen($patched));
             $data = substr_replace($data, $patched, $start, $end - $start);
             $count++;
-            $offset = $start + strlen($patched);
+            $offset = $start + strlen($patched) + 2;
         }
 
         return $count;
+    }
+
+    private static function findUtf16LeTerminator(
+        string $data,
+        int $start
+    ): ?int {
+        $length = strlen($data);
+
+        for ($position = $start; $position + 1 < $length; $position += 2) {
+            if ($data[$position] === "\0" && $data[$position + 1] === "\0") {
+                return $position;
+            }
+        }
+
+        return null;
     }
 
     private static function replaceBase64EmbeddedHost(

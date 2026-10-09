@@ -24,12 +24,91 @@ $adminAccounts = (string)file_get_contents(
 $caddy = (string)file_get_contents(
     __DIR__ . '/../../docker/Caddyfile'
 );
+$deletedAccountAdmin = (string)file_get_contents(
+    __DIR__ . '/../../public/admin/advanced-lib.php'
+);
+$legacyAdminApi = (string)file_get_contents(
+    __DIR__ . '/../../public/admin/v5-api.php'
+);
+$adminIndex = (string)file_get_contents(
+    __DIR__ . '/../../public/admin/index.php'
+);
+$rewardsController = (string)file_get_contents(
+    __DIR__ . '/../../src/Interaction/RewardsController.php'
+);
+$accountAuthenticator = (string)file_get_contents(
+    __DIR__ . '/../../src/Account/AccountAuthenticator.php'
+);
+$accountService = (string)file_get_contents(
+    __DIR__ . '/../../src/Account/AccountService.php'
+);
+$cloudSaveService = (string)file_get_contents(
+    __DIR__ . '/../../src/CloudSave/CloudSaveService.php'
+);
+
+assertSecurityRegression(
+    str_contains($deletedAccountAdmin, "unset(") &&
+    str_contains($deletedAccountAdmin, "'password_hash'") &&
+    str_contains($deletedAccountAdmin, "'gjp2_hash'"),
+    'deleted-account snapshots strip reusable credential hashes'
+);
+
+assertSecurityRegression(
+    str_contains($caddy, 'X-Frame-Options "DENY"') &&
+    str_contains($caddy, "frame-ancestors 'none'") &&
+    str_contains($adminIndex, 'X-Frame-Options: DENY') &&
+    str_contains($adminIndex, "frame-ancestors 'none'"),
+    'admin UI blocks framing on VPS and shared-hosting paths'
+);
+
+assertSecurityRegression(
+    str_contains($legacyAdminApi, 'SELECT id,username,role,is_active') &&
+    str_contains($legacyAdminApi, "session_destroy()") &&
+    substr_count($legacyAdminApi, '$currentAdminRank < 40') >= 2,
+    'legacy monitoring API refreshes admin state and keeps health/logs owner-only'
+);
+
+assertSecurityRegression(
+    str_contains($rewardsController, 'return $request->gdCredential();'),
+    'rewards use client-version-aware Geometry Dash credentials'
+);
 
 assertSecurityRegression(
     str_contains($comment, "if (\n            \$cmd === '!rate'") &&
     str_contains($comment, 'GameRole::OWNER') &&
     str_contains($comment, 'GameRole::ELDER_MODERATOR'),
     'direct !rate command has an elder-moderator/owner authorization gate'
+);
+
+assertSecurityRegression(
+    !str_contains($accountAuthenticator, 'hasSessionGrant(') &&
+    !str_contains($accountAuthenticator, 'FROM mucho_auth_sessions') &&
+    str_contains(
+        $accountAuthenticator,
+        'password_verify($credential, $storedPass)'
+    ),
+    'standard account authentication never trusts account+IP session grants'
+);
+
+assertSecurityRegression(
+    str_contains($accountAuthenticator, 'authenticateLegacy19Upload(') &&
+    str_contains($accountAuthenticator, 's.ip_address = :ip_address') &&
+    str_contains($accountAuthenticator, 's.expires_at > UTC_TIMESTAMP()') &&
+    str_contains($accountAuthenticator, 'password_verify($udid'),
+    'credential-less legacy 1.9 fallback remains account, IP, UDID and expiry bound'
+);
+
+assertSecurityRegression(
+    !str_contains($accountService, 'rememberAuthSession(') &&
+    !str_contains($accountService, 'INSERT INTO mucho_auth_sessions') &&
+    str_contains($accountService, 'rememberLegacy19UploadSession('),
+    'new logins do not issue obsolete account+IP grants while legacy 1.9 sessions remain explicit'
+);
+
+assertSecurityRegression(
+    str_contains($cloudSaveService, "foreach (['password', 'gjp2', 'gjp'] as \$key)") &&
+    str_contains($cloudSaveService, "candidate !== ''"),
+    'cloud save ignores empty legacy credential fields before GJP/GJP2 fallback'
 );
 
 assertSecurityRegression(

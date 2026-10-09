@@ -59,20 +59,24 @@ assertV106(
     'creator leaderboard keeps pre-2.x compatibility filtering'
 );
 
+// Current score writers use one atomic database upsert instead of
+// an application-managed SELECT ... FOR UPDATE transaction. Keep the
+// regression contract aligned with the best-score and race-safety rules.
 assertV106(
-    str_contains($regular, '$this->db->beginTransaction();') &&
-    str_contains($regular, 'FOR UPDATE') &&
-    str_contains($regular, '$this->db->commit();') &&
-    str_contains($regular, '$this->db->rollBack();'),
-    'regular score writes are serialized in a transaction'
+    str_contains($regular, 'INSERT INTO mucho_level_scores') &&
+    str_contains($regular, 'ON DUPLICATE KEY UPDATE') &&
+    str_contains($regular, 'score_id=LAST_INSERT_ID(score_id)') &&
+    str_contains($regular, 'percent=GREATEST(percent,VALUES(percent))'),
+    'regular score writes preserve atomic best-progress upsert'
 );
 
 assertV106(
-    str_contains($platformer, '$this->db->beginTransaction();') &&
-    str_contains($platformer, 'FOR UPDATE') &&
-    str_contains($platformer, '$this->db->commit();') &&
-    str_contains($platformer, '$this->db->rollBack();'),
-    'platformer score writes are serialized in a transaction'
+    str_contains($platformer, 'INSERT INTO mucho_platformer_scores') &&
+    str_contains($platformer, 'ON DUPLICATE KEY UPDATE') &&
+    str_contains($platformer, 'score_id=LAST_INSERT_ID(score_id)') &&
+    str_contains($platformer, 'VALUES(time_ms)<time_ms') &&
+    str_contains($platformer, 'VALUES(points)>points'),
+    'platformer score writes preserve atomic best-result upsert'
 );
 
 assertV106(

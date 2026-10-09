@@ -128,119 +128,72 @@ final readonly class PlatformerScoreController
         int $mode
     ): ?int {
 
-        $this->db->beginTransaction();
+        $now=time();
 
-        try {
-            $q=$this->db->prepare("
-                SELECT
-                    score_id,
-                    time_ms,
-                    points
-
-                FROM mucho_platformer_scores
-
-                WHERE account_id=:account
-                  AND level_id=:level
-
-                LIMIT 1
-                FOR UPDATE
-            ");
-
-            $q->execute([
-                'account'=>$accountId,
-                'level'=>$levelId,
-            ]);
-
-            $old=$q->fetch(PDO::FETCH_ASSOC);
-            $now=time();
-
-            if(!$old){
-                $q=$this->db->prepare("
-                    INSERT INTO mucho_platformer_scores
-                    (
-                        account_id,
-                        level_id,
-                        time_ms,
-                        points,
-                        created_at,
-                        updated_at
-                    )
-                    VALUES
-                    (
-                        :account,
-                        :level,
-                        :time,
-                        :points,
-                        :created,
-                        :updated
-                    )
-                ");
-
-                $q->execute([
-                    'account'=>$accountId,
-                    'level'=>$levelId,
-                    'time'=>$time,
-                    'points'=>$points,
-                    'created'=>$now,
-                    'updated'=>$now,
-                ]);
-
-                $scoreId=(int)$this->db->lastInsertId();
-                if($scoreId<=0){
-                    throw new RuntimeException('Platformer score insert failed.');
-                }
-
-                $this->db->commit();
-                return $scoreId;
-            }
-
-            $oldTime=(int)$old['time_ms'];
-            $oldPoints=(int)$old['points'];
-
-            $better=
-                $mode===0
-                    ? ($oldTime<=0 || $time<$oldTime)
-                    : ($points>$oldPoints);
-
-            if(!$better){
-                $this->db->rollBack();
-                return null;
-            }
-
-            $q=$this->db->prepare("
-                UPDATE mucho_platformer_scores
-
-                SET
-                    time_ms=:time,
-                    points=:points,
-                    updated_at=:updated
-
-                WHERE score_id=:score
-            ");
-
-            $q->execute([
-                'time'=>$time,
-                'points'=>$points,
-                'updated'=>$now,
-                'score'=>(int)$old['score_id'],
-            ]);
-
-            if($q->rowCount() > 1){
-                throw new RuntimeException('Unexpected platformer score update cardinality.');
-            }
-
-            $scoreId=(int)$old['score_id'];
-            $this->db->commit();
-            return $scoreId;
-        } catch (Throwable $e) {
-            if($this->db->inTransaction()){
-                $this->db->rollBack();
-            }
-
-            throw $e;
+        /*
+         * Keep the first insert and later improvements atomic. The update
+         * order deliberately leaves the comparison column until last so every
+         * IF() sees the pre-update value of the current best score.
+         */
+        if($mode===0){
+            $updates="
+                score_id=LAST_INSERT_ID(score_id),
+                points=IF(time_ms<=0 OR VALUES(time_ms)<time_ms,VALUES(points),points),
+                updated_at=IF(time_ms<=0 OR VALUES(time_ms)<time_ms,VALUES(updated_at),updated_at),
+                time_ms=IF(time_ms<=0 OR VALUES(time_ms)<time_ms,VALUES(time_ms),time_ms)
+            ";
+        }else{
+            $updates="
+                score_id=LAST_INSERT_ID(score_id),
+                time_ms=IF(VALUES(points)>points,VALUES(time_ms),time_ms),
+                updated_at=IF(VALUES(points)>points,VALUES(updated_at),updated_at),
+                points=IF(VALUES(points)>points,VALUES(points),points)
+            ";
         }
-    }
 
+        $q=$this->db->prepare("
+            INSERT INTO mucho_platformer_scores
+            (
+                account_id,
+                level_id,
+                time_ms,
+                points,
+                created_at,
+                updated_at
+            )
+            VALUES
+            (
+                :account,
+                :level,
+                :time,
+                :points,
+                :created,
+                :updated
+            )
+            ON DUPLICATE KEY UPDATE
+            ".$updates
+        );
+
+        $q->execute([
+            'account'=>$accountId,
+            'level'=>$levelId,
+            'time'=>$time,
+            'points'=>$points,
+            'created'=>$now,
+            'updated'=>$now,
+        ]);
+
+        if($q->rowCount()===0){
+            return null;
+        }
+
+        $scoreId=(int)$this->db->lastInsertId();
+        if($scoreId<=0){
+            throw new RuntimeException('Platformer score upsert failed.');
+        }
+
+        return $scoreId;
+    }
 
     private function leaderboard(
         int $accountId,

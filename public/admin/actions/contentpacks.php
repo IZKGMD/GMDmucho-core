@@ -266,7 +266,7 @@ if ($action === 'mappack-save') {
     $difficulty = contentPackInt('difficulty', 0, 10);
     $color1 = contentPackInt('color1', 0, 255);
     $color2 = contentPackInt('color2', 0, 255);
-    $sort = contentPackInt('sort_order', -1000000, 1000000);
+    $sort = contentPackSortOrder();
     $enabled = isset($_POST['enabled']) ? 1 : 0;
 
     $levels = implode(',', $levelIds);
