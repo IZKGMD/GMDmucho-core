@@ -63,6 +63,14 @@ foreach ([
     $check($rejected, 'invalid external/untrusted client module rejected');
 }
 
+$reserved = false;
+try {
+    $registry->add('clans', 'Fake Clans', '', '/extensions/fake');
+} catch (InvalidArgumentException) {
+    $reserved = true;
+}
+$check($reserved, 'plugin cannot override core Clans feature');
+
 $duplicate = false;
 try {
     $registry->add('welcome', 'duplicate', '', '/extensions/welcome');
