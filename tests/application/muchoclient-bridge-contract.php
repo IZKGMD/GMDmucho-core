@@ -201,14 +201,16 @@ $clientCpp = (string)file_get_contents($geodeRoot . '/src/main.cpp');
 
 $check(
     ($metadata['id'] ?? '') === 'izkgmd.muchoclient' &&
-    ($metadata['version'] ?? '') === 'v0.1.0' &&
+    ($metadata['version'] ?? '') === 'v0.1.1' &&
     isset($metadata['gd']['win'], $metadata['gd']['android']) &&
-    isset($metadata['settings']['server-url']),
+    ($metadata['settings']['server-url']['default'] ?? '') === 'https://muchogdps.space',
     'Geode companion metadata declares compatible client id and settings'
 );
 $check(
     str_contains($clientCpp, '"/muchoclient/manifest"') &&
     str_contains($clientCpp, '.followRedirects(false)') &&
+    str_contains($clientCpp, '"/muchoclient/negotiate"') &&
+    str_contains($clientCpp, '.bodyString("client_version=0.1.1&protocol=1")') &&
     !str_contains($clientCpp, 'certVerification(false)'),
     'native client scaffold uses discovery path and retains HTTPS verification'
 );
