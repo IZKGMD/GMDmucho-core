@@ -15,7 +15,7 @@ using namespace geode::prelude;
 
 namespace {
     constexpr char const* CLIENT_ID = "izkgmd.muchoclient";
-    constexpr char const* CLIENT_VERSION = "0.1.0";
+    constexpr char const* CLIENT_VERSION = "0.2.1";
     constexpr int PROTOCOL = 1;
 
     struct Feature {
@@ -57,7 +57,7 @@ namespace {
         ) != 3) {
             return false;
         }
-        return std::tuple{0u, 2u, 0u} >= std::tuple{major, minor, patch};
+        return std::tuple{0u, 2u, 1u} >= std::tuple{major, minor, patch};
     }
 
     // Untrusted server text is displayed only, never evaluated as UI markup.
@@ -177,6 +177,10 @@ protected:
                     return;
                 }
                 auto raw = response.string().unwrapOr("");
+                if (raw == "-1") {
+                    showInfo(feature.name, "Server returned -1. Check module endpoint and PHP logs.");
+                    return;
+                }
                 if (raw.size() > 8192) {
                     showInfo(feature.name, "Module response was too large.");
                     return;
@@ -259,6 +263,10 @@ class $modify(MuchoMenuLayer, MenuLayer) {
                     return;
                 }
                 auto raw = response.string().unwrapOr("");
+                if (raw == "-1") {
+                    showInfo("MuchoClient", "Server returned -1. Run sudo mucho client-doctor on VPS.");
+                    return;
+                }
                 if (raw.size() > 32768) {
                     showInfo("MuchoClient", "Module catalog is too large.");
                     return;
@@ -331,6 +339,10 @@ class $modify(MuchoMenuLayer, MenuLayer) {
                     [origin, features = std::move(features)](web::WebResponse reply) {
                         if (!reply.ok()) {
                             showInfo("MuchoClient", "Cannot negotiate with MuchoCore.");
+                            return;
+                        }
+                        if (reply.string().unwrapOr("") == "-1") {
+                            showInfo("MuchoClient", "Server handshake returned -1. Run sudo mucho client-doctor.");
                             return;
                         }
                         auto parsed = reply.json();
