@@ -1,13 +1,11 @@
-# MuchoClient — Geode companion (developer preview)
+# MuchoClient — Geode companion (v0.1.1 preview)
 
 MuchoClient is the **single Geode companion** for MuchoCore extension content.
 It adds a **Mucho** button to Geometry Dash's main menu and displays the
 modules enabled by the GDPS server.
 
-This folder is **source code**, not a tested or compiled .geode download.
-It targets Geometry Dash 2.2081 on Windows and Android, following the current
-Geode project template. Both native compilation and real-client testing are
-still required before shipping a production installer.
+Windows and Android native builds are compiled in GitHub Actions.
+Real-device connection and gameplay testing is still required before a production release.
 
 ## Build and use
 
@@ -15,10 +13,11 @@ still required before shipping a production installer.
 2. Set GEODE_SDK to your Geode SDK location.
 3. Run geode build from this folder with the matching GD and Geode versions.
 4. Install the generated .geode mod through Geode.
-5. Set MuchoCore Server URL in the mod settings to your GDPS HTTPS origin.
+5. By default the client connects to https://muchogdps.space. To use another GDPS, change MuchoCore Server URL in mod settings.
 6. Press **Mucho** on the Geometry Dash main menu.
 
-The client asynchronously requests GET /muchoclient/manifest. It displays
+The client first POSTs /muchoclient/negotiate (v0.1.1, protocol 1), then
+asynchronously requests GET /muchoclient/manifest when compatible. It displays
 module names and descriptions; it does **not** run downloaded scripts, fetch
 arbitrary URLs, or grant accounts any new privileges.
 
@@ -42,3 +41,17 @@ quests and cosmetics, using separate authenticated API endpoints. Treat
 server data as untrusted and never allow a module manifest to run C++,
 Lua, JS, PHP or install .geode packages without an independently reviewed
 and secured distribution system.
+
+## VPS troubleshooting
+
+If the menu shows `-1`, check the application path independently from the
+reverse proxy:
+
+```bash
+cd /opt/mucho-core
+sudo docker compose exec -T app php bin/mucho-client-doctor.php
+curl -sS -i https://muchogdps.space/muchoclient/manifest
+```
+
+The doctor tests the manifest and negotiation using the installed application
+and DB connection. It cannot by itself prove HTTPS/Caddy/Cloudflare works.
