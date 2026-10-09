@@ -4,7 +4,9 @@
 #include <Geode/utils/async.hpp>
 
 #include <chrono>
+#include <cstdio>
 #include <string>
+#include <tuple>
 
 using namespace geode::prelude;
 
@@ -20,6 +22,18 @@ namespace {
             return false;
         }
         return origin.substr(8).find('/') == std::string::npos;
+    }
+
+    bool compatibleClientVersion(std::string const& required) {
+        unsigned major = 0, minor = 0, patch = 0;
+        char trailing = '\0';
+        if (std::sscanf(
+            required.c_str(), "%u.%u.%u%c",
+            &major, &minor, &patch, &trailing
+        ) != 3) {
+            return false;
+        }
+        return std::tuple{0u, 1u, 0u} >= std::tuple{major, minor, patch};
     }
 
     std::string displaySafe(std::string text) {
@@ -75,6 +89,7 @@ class $modify(MuchoMenuLayer, MenuLayer) {
             "Fetch MuchoClient feature catalog",
             web::WebRequest()
                 .timeout(std::chrono::seconds(8))
+                .followRedirects(false)
                 .get(origin + "/muchoclient/manifest"),
             [](web::WebResponse response) {
                 if (!response.ok()) {
@@ -103,6 +118,16 @@ class $modify(MuchoMenuLayer, MenuLayer) {
                     FLAlertLayer::create(
                         "MuchoClient",
                         "This server requires a different MuchoClient version.",
+                        "OK"
+                    )->show();
+                    return;
+                }
+
+                auto minimum = client["min_version"].asString().unwrapOr("");
+                if (!compatibleClientVersion(minimum)) {
+                    FLAlertLayer::create(
+                        "MuchoClient",
+                        "Please update MuchoClient to access this GDPS content.",
                         "OK"
                     )->show();
                     return;
