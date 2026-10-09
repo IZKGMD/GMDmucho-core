@@ -11,14 +11,19 @@
 using namespace geode::prelude;
 
 namespace {
+    constexpr char CLIENT_VERSION[] = "0.1.1";
+    constexpr int CLIENT_PROTOCOL = 1;
+
     bool validOrigin(std::string const& origin) {
-        if (!origin.starts_with("https://") || origin.size() < 12) {
+        if (!origin.starts_with("https://") || origin.size() < 12 ||
+            origin.size() > 255) {
             return false;
         }
         if (origin.find('@') != std::string::npos ||
             origin.find('#') != std::string::npos ||
             origin.find('?') != std::string::npos ||
-            origin.find('\\') != std::string::npos) {
+            origin.find('\\') != std::string::npos ||
+            origin.find(' ') != std::string::npos) {
             return false;
         }
         return origin.substr(8).find('/') == std::string::npos;
@@ -33,22 +38,31 @@ namespace {
         ) != 3) {
             return false;
         }
-        return std::tuple{0u, 1u, 0u} >= std::tuple{major, minor, patch};
+        return std::tuple{0u, 1u, 1u} >= std::tuple{major, minor, patch};
     }
 
-    std::string displaySafe(std::string text) {
-        // Escape server-provided rich-text markup before FLAlertLayer display.
+    std::string displaySafe(std::string text, size_t maxLength = 75) {
+        // Avoid server-provided rich-text markup inside FLAlertLayer.
         for (auto& c : text) {
             if (c == '<') c = '[';
             if (c == '>') c = ']';
         }
-        if (text.size() > 90) text.resize(90);
+        if (text.size() > maxLength) text.resize(maxLength);
         return text;
+    }
+
+    void showClientError(char const* message) {
+        FLAlertLayer::create("MuchoClient", message, "OK")->show();
+    }
+
+    bool isLegacyFailure(web::WebResponse const& response) {
+        return response.string().unwrapOr("") == "-1";
     }
 }
 
 class $modify(MuchoMenuLayer, MenuLayer) {
     struct Fields {
+        async::TaskHolder<web::WebResponse> m_negotiateTask;
         async::TaskHolder<web::WebResponse> m_manifestTask;
     };
 
@@ -77,14 +91,61 @@ class $modify(MuchoMenuLayer, MenuLayer) {
         }
 
         if (!validOrigin(origin)) {
-            FLAlertLayer::create(
-                "MuchoClient",
-                "Enter your GDPS HTTPS URL in MuchoClient settings first.",
-                "OK"
-            )->show();
+            showClientError(
+                "Set a valid HTTPS GDPS URL in MuchoClient settings."
+            );
             return;
         }
 
+        // Negotiate BEFORE showing server-provided extension features.
+        // This establishes protocol compatibility, not player authentication.
+        m_fields->m_negotiateTask.spawn(
+            "Negotiate MuchoClient protocol",
+            web::WebRequest()
+                .timeout(std::chrono::seconds(8))
+                .followRedirects(false)
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .bodyString("client_version=0.1.1&protocol=1")
+                .post(origin + "/muchoclient/negotiate"),
+            [this, origin](web::WebResponse response) {
+                if (!response.ok()) {
+                    showClientError(
+                        "Server handshake failed. Check your GDPS URL and server."
+                    );
+                    return;
+                }
+                if (isLegacyFailure(response)) {
+                    showClientError(
+                        "MuchoCore returned -1 during handshake. Update or repair the server."
+                    );
+                    return;
+                }
+
+                auto parsed = response.json();
+                if (!parsed) {
+                    showClientError(
+                        "Invalid handshake response from MuchoCore."
+                    );
+                    return;
+                }
+
+                auto json = parsed.unwrap();
+                if (
+                    json["compatible"].asBool().unwrapOr(false) != true ||
+                    json["protocol"].asInt().unwrapOr(0) != CLIENT_PROTOCOL ||
+                    json["status"].asString().unwrapOr("") != "ready"
+                ) {
+                    showClientError(
+                        "MuchoCore and MuchoClient are incompatible. Update the client or server."
+                    );
+                    return;
+                }
+                this->requestManifest(origin);
+            }
+        );
+    }
+
+    void requestManifest(std::string const& origin) {
         m_fields->m_manifestTask.spawn(
             "Fetch MuchoClient feature catalog",
             web::WebRequest()
@@ -93,19 +154,19 @@ class $modify(MuchoMenuLayer, MenuLayer) {
                 .get(origin + "/muchoclient/manifest"),
             [](web::WebResponse response) {
                 if (!response.ok()) {
-                    FLAlertLayer::create(
-                        "MuchoClient",
-                        "Cannot contact your MuchoCore server.",
-                        "OK"
-                    )->show();
+                    showClientError("Cannot fetch MuchoCore extension catalog.");
+                    return;
+                }
+                if (isLegacyFailure(response)) {
+                    showClientError(
+                        "MuchoCore returned -1 for the feature catalog. Check the server."
+                    );
                     return;
                 }
 
                 auto parsed = response.json();
                 if (!parsed) {
-                    FLAlertLayer::create(
-                        "MuchoClient", "Invalid feature catalog.", "OK"
-                    )->show();
+                    showClientError("Invalid feature catalog from MuchoCore.");
                     return;
                 }
 
@@ -113,31 +174,21 @@ class $modify(MuchoMenuLayer, MenuLayer) {
                 auto client = json["client"];
                 if (
                     client["id"].asString().unwrapOr("") != "izkgmd.muchoclient" ||
-                    client["protocol"].asInt().unwrapOr(0) != 1
+                    client["protocol"].asInt().unwrapOr(0) != CLIENT_PROTOCOL
                 ) {
-                    FLAlertLayer::create(
-                        "MuchoClient",
-                        "This server requires a different MuchoClient version.",
-                        "OK"
-                    )->show();
+                    showClientError("This server requires a different MuchoClient version.");
                     return;
                 }
 
                 auto minimum = client["min_version"].asString().unwrapOr("");
                 if (!compatibleClientVersion(minimum)) {
-                    FLAlertLayer::create(
-                        "MuchoClient",
-                        "Please update MuchoClient to access this GDPS content.",
-                        "OK"
-                    )->show();
+                    showClientError("Please update MuchoClient to access this content.");
                     return;
                 }
 
                 auto features = json["features"];
                 if (!features.isArray()) {
-                    FLAlertLayer::create(
-                        "MuchoClient", "No feature list in server response.", "OK"
-                    )->show();
+                    showClientError("No feature list in MuchoCore response.");
                     return;
                 }
 
@@ -145,12 +196,11 @@ class $modify(MuchoMenuLayer, MenuLayer) {
                 size_t count = 0;
                 for (auto const& item : features) {
                     if (count >= 6) break;
-
                     auto name = displaySafe(
-                        item["name"].asString().unwrapOr("Unknown")
+                        item["name"].asString().unwrapOr("Unknown"), 50
                     );
                     auto description = displaySafe(
-                        item["description"].asString().unwrapOr("")
+                        item["description"].asString().unwrapOr(""), 75
                     );
                     lines += "\n" + name + ": " + description;
                     ++count;
@@ -158,9 +208,7 @@ class $modify(MuchoMenuLayer, MenuLayer) {
                 if (features.size() > count) lines += "\nMore modules available";
                 if (count == 0) lines += "\nNo modules yet";
 
-                FLAlertLayer::create(
-                    "MuchoClient", lines.c_str(), "OK"
-                )->show();
+                FLAlertLayer::create("MuchoClient", lines.c_str(), "OK")->show();
             }
         );
     }
