@@ -73,6 +73,21 @@ final class V110EndpointGate
             }
             $seen[$id] = true;
 
+            if (($contract['inventory_only'] ?? false) === true) {
+                $issues[] = $id . ' is still inventory-only.';
+            }
+            if (!in_array($contract['method'] ?? null, ['GET', 'POST'], true)) {
+                $issues[] = $id . ' does not have a verified HTTP method.';
+            }
+            $families = $contract['families'] ?? null;
+            if (
+                !is_array($families) ||
+                $families === [] ||
+                in_array('unverified', $families, true)
+            ) {
+                $issues[] = $id . ' has unverified client-version coverage.';
+            }
+
             if (($contract['release_gate'] ?? false) !== true) {
                 $issues[] = $id . ' is not release-gated.';
             }
@@ -87,6 +102,21 @@ final class V110EndpointGate
                 if ($status !== 'covered' && $status !== 'n/a') {
                     $issues[] = $id . '/' . $dimension . ' is not certified.';
                 }
+                if ($status === 'covered' && (
+                    !is_array($quality['evidence'] ?? null) ||
+                    $quality['evidence'] === []
+                )) {
+                    $issues[] = $id . '/' . $dimension . ' lacks test evidence.';
+                }
+            }
+
+            $budget = $contract['performance_budget'] ?? null;
+            if (
+                !is_array($budget) ||
+                !is_int($budget['p95_ms'] ?? null) ||
+                $budget['p95_ms'] <= 0
+            ) {
+                $issues[] = $id . ' has no valid p95 performance target.';
             }
 
             foreach (['performance_budget', 'real_client'] as $hardGate) {

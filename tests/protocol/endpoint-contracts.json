@@ -18,7 +18,8 @@
       "partial",
       "pending",
       "n/a"
-    ]
+    ],
+    "inventory_scope": "All statically registered Application.php routes excluding /health; unverified routes are inventory_only"
   },
   "contracts": [
     {
@@ -34,11 +35,21 @@
         "/getGJLevels22.php",
         "/database/getGJLevels21.php"
       ],
-      "families": ["1.0", "1.1", "1.5", "1.9", "2.0", "2.1", "2.2"],
+      "families": [
+        "1.0",
+        "1.1",
+        "1.5",
+        "1.9",
+        "2.0",
+        "2.1",
+        "2.2"
+      ],
       "release_gate": false,
       "request_contract": {
         "status": "partial",
-        "evidence": ["tests/client-fixtures/2.2/endpoints.json"]
+        "evidence": [
+          "tests/client-fixtures/2.2/endpoints.json"
+        ]
       },
       "wire_contract": {
         "status": "covered",
@@ -51,11 +62,15 @@
       },
       "auth_contract": {
         "status": "partial",
-        "evidence": ["tests/protocol/compatibility-profile.php"]
+        "evidence": [
+          "tests/protocol/compatibility-profile.php"
+        ]
       },
       "negative_cases": {
         "status": "partial",
-        "evidence": ["tests/integration/regression.sh"]
+        "evidence": [
+          "tests/integration/regression.sh"
+        ]
       },
       "db_integrity": {
         "status": "n/a",
@@ -72,8 +87,12 @@
       },
       "real_client": {
         "status": "partial",
-        "families": ["2.2"],
-        "evidence": ["tests/client-fixtures/2.2/endpoints.json"]
+        "families": [
+          "2.2"
+        ],
+        "evidence": [
+          "tests/client-fixtures/2.2/endpoints.json"
+        ]
       }
     },
     {
@@ -88,11 +107,18 @@
         "/getGJScores22.php",
         "/database/getGJScores20.php"
       ],
-      "families": ["1.9", "2.0", "2.1", "2.2"],
+      "families": [
+        "1.9",
+        "2.0",
+        "2.1",
+        "2.2"
+      ],
       "release_gate": false,
       "request_contract": {
         "status": "partial",
-        "evidence": ["tests/client-fixtures/2.2/endpoints.json"]
+        "evidence": [
+          "tests/client-fixtures/2.2/endpoints.json"
+        ]
       },
       "wire_contract": {
         "status": "partial",
@@ -104,11 +130,15 @@
       },
       "auth_contract": {
         "status": "partial",
-        "evidence": ["tests/protocol/compatibility-profile.php"]
+        "evidence": [
+          "tests/protocol/compatibility-profile.php"
+        ]
       },
       "negative_cases": {
         "status": "partial",
-        "evidence": ["tests/integration/regression.sh"]
+        "evidence": [
+          "tests/integration/regression.sh"
+        ]
       },
       "db_integrity": {
         "status": "n/a",
@@ -125,8 +155,12 @@
       },
       "real_client": {
         "status": "partial",
-        "families": ["2.2"],
-        "evidence": ["tests/client-fixtures/2.2/endpoints.json"]
+        "families": [
+          "2.2"
+        ],
+        "evidence": [
+          "tests/client-fixtures/2.2/endpoints.json"
+        ]
       }
     },
     {
@@ -141,15 +175,27 @@
         "/loginGJAccount21.php",
         "/loginGJAccount22.php"
       ],
-      "families": ["1.0", "1.1", "1.5", "1.9", "2.0", "2.1", "2.2"],
+      "families": [
+        "1.0",
+        "1.1",
+        "1.5",
+        "1.9",
+        "2.0",
+        "2.1",
+        "2.2"
+      ],
       "release_gate": false,
       "request_contract": {
         "status": "partial",
-        "evidence": ["tests/protocol/protocol-matrix.php"]
+        "evidence": [
+          "tests/protocol/protocol-matrix.php"
+        ]
       },
       "wire_contract": {
         "status": "partial",
-        "evidence": ["tests/protocol/protocol-matrix.php"]
+        "evidence": [
+          "tests/protocol/protocol-matrix.php"
+        ]
       },
       "auth_contract": {
         "status": "partial",
@@ -167,7 +213,9 @@
       },
       "db_integrity": {
         "status": "partial",
-        "evidence": ["tests/application/security-regressions.php"]
+        "evidence": [
+          "tests/application/security-regressions.php"
+        ]
       },
       "concurrency": {
         "status": "pending",
@@ -180,8 +228,13 @@
       },
       "real_client": {
         "status": "partial",
-        "families": ["1.1", "1.9"],
-        "evidence": ["docs/PROTOCOL_MATRIX.md"]
+        "families": [
+          "1.1",
+          "1.9"
+        ],
+        "evidence": [
+          "docs/PROTOCOL_MATRIX.md"
+        ]
       }
     },
     {
@@ -195,11 +248,21 @@
         "/uploadGJLevel20.php",
         "/uploadGJLevel21.php"
       ],
-      "families": ["1.0", "1.1", "1.5", "1.9", "2.0", "2.1", "2.2"],
+      "families": [
+        "1.0",
+        "1.1",
+        "1.5",
+        "1.9",
+        "2.0",
+        "2.1",
+        "2.2"
+      ],
       "release_gate": false,
       "request_contract": {
         "status": "partial",
-        "evidence": ["tests/protocol/level-protocol-guards.php"]
+        "evidence": [
+          "tests/protocol/level-protocol-guards.php"
+        ]
       },
       "wire_contract": {
         "status": "partial",
@@ -211,15 +274,21 @@
       },
       "auth_contract": {
         "status": "partial",
-        "evidence": ["tests/application/legacy-19-session.php"]
+        "evidence": [
+          "tests/application/legacy-19-session.php"
+        ]
       },
       "negative_cases": {
         "status": "partial",
-        "evidence": ["tests/integration/regression.sh"]
+        "evidence": [
+          "tests/integration/regression.sh"
+        ]
       },
       "db_integrity": {
         "status": "partial",
-        "evidence": ["tests/protocol/level-protocol-guards.php"]
+        "evidence": [
+          "tests/protocol/level-protocol-guards.php"
+        ]
       },
       "concurrency": {
         "status": "pending",
@@ -232,8 +301,13 @@
       },
       "real_client": {
         "status": "partial",
-        "families": ["1.5", "1.9"],
-        "evidence": ["docs/PROTOCOL_MATRIX.md"]
+        "families": [
+          "1.5",
+          "1.9"
+        ],
+        "evidence": [
+          "docs/PROTOCOL_MATRIX.md"
+        ]
       }
     },
     {
@@ -247,11 +321,21 @@
         "/downloadGJLevel20.php",
         "/downloadGJLevel21.php"
       ],
-      "families": ["1.0", "1.1", "1.5", "1.9", "2.0", "2.1", "2.2"],
+      "families": [
+        "1.0",
+        "1.1",
+        "1.5",
+        "1.9",
+        "2.0",
+        "2.1",
+        "2.2"
+      ],
       "release_gate": false,
       "request_contract": {
         "status": "partial",
-        "evidence": ["tests/protocol/level-protocol-guards.php"]
+        "evidence": [
+          "tests/protocol/level-protocol-guards.php"
+        ]
       },
       "wire_contract": {
         "status": "covered",
@@ -264,11 +348,15 @@
       },
       "auth_contract": {
         "status": "partial",
-        "evidence": ["tests/protocol/compatibility-profile.php"]
+        "evidence": [
+          "tests/protocol/compatibility-profile.php"
+        ]
       },
       "negative_cases": {
         "status": "partial",
-        "evidence": ["tests/integration/regression.sh"]
+        "evidence": [
+          "tests/integration/regression.sh"
+        ]
       },
       "db_integrity": {
         "status": "n/a",
@@ -285,8 +373,12 @@
       },
       "real_client": {
         "status": "partial",
-        "families": ["1.9"],
-        "evidence": ["docs/PROTOCOL_MATRIX.md"]
+        "families": [
+          "1.9"
+        ],
+        "evidence": [
+          "docs/PROTOCOL_MATRIX.md"
+        ]
       }
     },
     {
@@ -301,11 +393,19 @@
         "/getGJComments20.php",
         "/getGJComments21.php"
       ],
-      "families": ["1.5", "1.9", "2.0", "2.1", "2.2"],
+      "families": [
+        "1.5",
+        "1.9",
+        "2.0",
+        "2.1",
+        "2.2"
+      ],
       "release_gate": false,
       "request_contract": {
         "status": "partial",
-        "evidence": ["tests/application/comment-contract.php"]
+        "evidence": [
+          "tests/application/comment-contract.php"
+        ]
       },
       "wire_contract": {
         "status": "covered",
@@ -317,11 +417,15 @@
       },
       "auth_contract": {
         "status": "partial",
-        "evidence": ["tests/application/comment-contract.php"]
+        "evidence": [
+          "tests/application/comment-contract.php"
+        ]
       },
       "negative_cases": {
         "status": "partial",
-        "evidence": ["tests/application/comment-contract.php"]
+        "evidence": [
+          "tests/application/comment-contract.php"
+        ]
       },
       "db_integrity": {
         "status": "n/a",
@@ -338,8 +442,3823 @@
       },
       "real_client": {
         "status": "partial",
-        "families": ["1.5", "1.9"],
-        "evidence": ["docs/PROTOCOL_MATRIX.md"]
+        "families": [
+          "1.5",
+          "1.9"
+        ],
+        "evidence": [
+          "docs/PROTOCOL_MATRIX.md"
+        ]
+      }
+    },
+    {
+      "id": "route.updategjusername",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/updategjusername",
+      "aliases": [
+        "/updateGJUserName"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getaccounturl",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getaccounturl",
+      "aliases": [
+        "/getAccountURL"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getcustomcontenturl",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getcustomcontenturl",
+      "aliases": [
+        "/getCustomContentURL"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjcommenthistory",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjcommenthistory",
+      "aliases": [
+        "/getGJCommentHistory"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjlevellists",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjlevellists",
+      "aliases": [
+        "/getGJLevelLists"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.uploadgjlevellist",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/uploadgjlevellist",
+      "aliases": [
+        "/uploadGJLevelList"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.deletegjlevellist",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/deletegjlevellist",
+      "aliases": [
+        "/deleteGJLevelList"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjtopartists",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjtopartists",
+      "aliases": [
+        "/getGJTopArtists"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.registergjaccount",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/registergjaccount",
+      "aliases": [
+        "/registerGJAccount"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.backupgjaccount",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/backupgjaccount",
+      "aliases": [
+        "/backupGJAccount",
+        "/backupGJAccount20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.syncgjaccount",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/syncgjaccount",
+      "aliases": [
+        "/syncGJAccount",
+        "/syncGJAccount20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.updategjlevel",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/updategjlevel",
+      "aliases": [
+        "/updateGJLevel"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.uploadgjlevel22",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/uploadgjlevel22",
+      "aliases": [
+        "/uploadGJLevel22"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.downloadgjlevel22",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/downloadgjlevel22",
+      "aliases": [
+        "/downloadGJLevel22"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.deletegjleveluser20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/deletegjleveluser20",
+      "aliases": [
+        "/deleteGJLevelUser20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.updategjleveldesc20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/updategjleveldesc20",
+      "aliases": [
+        "/updateGJLevelDesc20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjsonginfo",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjsonginfo",
+      "aliases": [
+        "/getGJSongInfo"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.suggestgjstars20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/suggestgjstars20",
+      "aliases": [
+        "/suggestGJStars20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.rategjstars20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/rategjstars20",
+      "aliases": [
+        "/rateGJStars20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.rategjstars211",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/rategjstars211",
+      "aliases": [
+        "/rateGJStars211"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.rategjdemon21",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/rategjdemon21",
+      "aliases": [
+        "/rateGJDemon21"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.reportgjlevel",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/reportgjlevel",
+      "aliases": [
+        "/reportGJLevel"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.requestuseraccess",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/requestuseraccess",
+      "aliases": [
+        "/requestUserAccess"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjuserinfo20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjuserinfo20",
+      "aliases": [
+        "/getGJUserInfo20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjusers20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjusers20",
+      "aliases": [
+        "/getGJUsers20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.updategjaccsettings20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/updategjaccsettings20",
+      "aliases": [
+        "/updateGJAccSettings20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.updategjuserscore",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/updategjuserscore",
+      "aliases": [
+        "/updateGJUserScore"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.updategjuserscore22",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/updategjuserscore22",
+      "aliases": [
+        "/updateGJUserScore22"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.uploadgjcomment20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/uploadgjcomment20",
+      "aliases": [
+        "/uploadGJComment20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.uploadgjcomment21",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/uploadgjcomment21",
+      "aliases": [
+        "/uploadGJComment21"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.deletegjcomment20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/deletegjcomment20",
+      "aliases": [
+        "/deleteGJComment20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjaccountcomments20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjaccountcomments20",
+      "aliases": [
+        "/getGJAccountComments20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.uploadgjacccomment20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/uploadgjacccomment20",
+      "aliases": [
+        "/uploadGJAccComment20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.deletegjacccomment20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/deletegjacccomment20",
+      "aliases": [
+        "/deleteGJAccComment20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.likegjitem21",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/likegjitem21",
+      "aliases": [
+        "/likeGJItem21"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.likegjitem211",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/likegjitem211",
+      "aliases": [
+        "/likeGJItem211"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjmessages20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjmessages20",
+      "aliases": [
+        "/getGJMessages20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.downloadgjmessage20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/downloadgjmessage20",
+      "aliases": [
+        "/downloadGJMessage20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.uploadgjmessage20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/uploadgjmessage20",
+      "aliases": [
+        "/uploadGJMessage20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.deletegjmessages20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/deletegjmessages20",
+      "aliases": [
+        "/deleteGJMessages20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.uploadfriendrequest20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/uploadfriendrequest20",
+      "aliases": [
+        "/uploadFriendRequest20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjfriendrequests20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjfriendrequests20",
+      "aliases": [
+        "/getGJFriendRequests20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.readgjfriendrequest20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/readgjfriendrequest20",
+      "aliases": [
+        "/readGJFriendRequest20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.acceptgjfriendrequest20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/acceptgjfriendrequest20",
+      "aliases": [
+        "/acceptGJFriendRequest20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.deletegjfriendrequests20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/deletegjfriendrequests20",
+      "aliases": [
+        "/deleteGJFriendRequests20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.removegjfriend20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/removegjfriend20",
+      "aliases": [
+        "/removeGJFriend20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.blockgjuser20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/blockgjuser20",
+      "aliases": [
+        "/blockGJUser20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.unblockgjuser20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/unblockgjuser20",
+      "aliases": [
+        "/unblockGJUser20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjuserlist20",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjuserlist20",
+      "aliases": [
+        "/getGJUserList20"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.create",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/create",
+      "aliases": [
+        "/api/clans/create"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.my",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/my",
+      "aliases": [
+        "/api/clans/my"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.get",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/get",
+      "aliases": [
+        "/api/clans/get"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.search",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/search",
+      "aliases": [
+        "/api/clans/search"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.join",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/join",
+      "aliases": [
+        "/api/clans/join"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.leave",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/leave",
+      "aliases": [
+        "/api/clans/leave"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.invite",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/invite",
+      "aliases": [
+        "/api/clans/invite"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.invite.accept",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/invite/accept",
+      "aliases": [
+        "/api/clans/invite/accept"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.invite.decline",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/invite/decline",
+      "aliases": [
+        "/api/clans/invite/decline"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.kick",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/kick",
+      "aliases": [
+        "/api/clans/kick"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.role",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/role",
+      "aliases": [
+        "/api/clans/role"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.invites",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/invites",
+      "aliases": [
+        "/api/clans/invites"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.settings",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/settings",
+      "aliases": [
+        "/api/clans/settings"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.transfer",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/transfer",
+      "aliases": [
+        "/api/clans/transfer"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.disband",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/disband",
+      "aliases": [
+        "/api/clans/disband"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.invite.revoke",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/invite/revoke",
+      "aliases": [
+        "/api/clans/invite/revoke"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.ban",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/ban",
+      "aliases": [
+        "/api/clans/ban"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.unban",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/unban",
+      "aliases": [
+        "/api/clans/unban"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.clans.bans",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/bans",
+      "aliases": [
+        "/api/clans/bans"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjcreators",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjcreators",
+      "aliases": [
+        "/getGJCreators"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjcreators19",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjcreators19",
+      "aliases": [
+        "/getGJCreators19"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjdailylevel",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjdailylevel",
+      "aliases": [
+        "/getGJDailyLevel"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjgauntlets",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjgauntlets",
+      "aliases": [
+        "/getGJGauntlets"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjgauntlets21",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjgauntlets21",
+      "aliases": [
+        "/getGJGauntlets21"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjmappacks",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjmappacks",
+      "aliases": [
+        "/getGJMapPacks"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjmappacks21",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjmappacks21",
+      "aliases": [
+        "/getGJMapPacks20",
+        "/getGJMapPacks21"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjlevelscores",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjlevelscores",
+      "aliases": [
+        "/getGJLevelScores"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjlevelscores211",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjlevelscores211",
+      "aliases": [
+        "/getGJLevelScores211"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjlevelscoresplat",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjlevelscoresplat",
+      "aliases": [
+        "/getGJLevelScoresPlat"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjrewards",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjrewards",
+      "aliases": [
+        "/getGJRewards"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjsecretreward",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjsecretreward",
+      "aliases": [
+        "/getGJSecretReward"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.getgjchallenges",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjchallenges",
+      "aliases": [
+        "/getGJChallenges"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
       }
     }
   ]
