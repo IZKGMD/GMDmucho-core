@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Plugin;
 
+use MuchoCore\Client\ClientFeatureRegistry;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
 use MuchoCore\Routing\Router;
@@ -17,7 +18,8 @@ final readonly class PluginContext
         private Router $router,
         private PluginEventBus $events,
         private array $permissions,
-        private string $pluginName
+        private string $pluginName,
+        private ?ClientFeatureRegistry $clientFeatures = null
     ) {}
 
     public function name(): string
@@ -62,6 +64,22 @@ final readonly class PluginContext
                     : Response::text((string)$result);
             }
         );
+    }
+
+    /** Advertise a server-provided section inside the MuchoClient menu. */
+    public function clientFeature(
+        string $id,
+        string $name,
+        string $description,
+        string $entrypoint
+    ): void {
+        $this->requirePermission('client_features');
+
+        if ($this->clientFeatures === null) {
+            throw new RuntimeException('Client feature registry is unavailable.');
+        }
+
+        $this->clientFeatures->add($id, $name, $description, $entrypoint);
     }
 
     private function requirePermission(string $permission): void
