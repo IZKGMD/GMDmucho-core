@@ -66,6 +66,11 @@ Before enabling a one-click store, implement all of:
 6. Tests proving compromised feeds and packages cannot execute prior to
    verification, plus safe defaults for all existing installations.
 
+The PHP server plugin catalog is separate from Geode distribution.
+Server-side plugins can now advertise `client_features` in MuchoClient's
+discovery menu; this permission only contributes validated metadata. See
+docs/MUCHOCLIENT.md for the safe bridge API and source-only Geode companion.
+
 **No automatic third-party PHP execution is enabled by this preview.**
 
 ## Release safety
