@@ -60,6 +60,7 @@ try {
         base64_encode($oldUrl) . "\0" .
         $oldHttpsUrl . "\0" .
         base64_encode($oldHttpsUrl) . "\0" .
+        'LEVELS_B64:' . base64_encode('http://www.boomlings.com/database/getGJLevels21.php') . "\0" .
         "https://geometrydash.com/database/getGJLevels21.php\0" .
         "https://geometrydash.com\0" .
         base64_encode('https://geometrydash.com/accounts/getGJAccount.php') . "\0" .
@@ -139,6 +140,29 @@ try {
         !str_contains($native, $expectedHttps)
     ) {
         throw new RuntimeException('Patched HTTPS server URL not found.');
+    }
+
+    // Real Geometry Dash 2.2081 includes a Base64-encoded *complete* URL.
+    // A replacement of only its Base64 prefix with a padded, shorter value
+    // corrupts the string (an '=' would appear in the middle).
+    if (
+        preg_match('/LEVELS_B64:([A-Za-z0-9+\\/=]+)\\x00/', $native, $levelUrlMatch) !== 1 ||
+        !isset($levelUrlMatch[1])
+    ) {
+        throw new RuntimeException('Patched 2.2081 Base64 level URL was not preserved.');
+    }
+    $decodedLevelUrl = base64_decode($levelUrlMatch[1], true);
+    $parsedLevelUrl = is_string($decodedLevelUrl) ? parse_url($decodedLevelUrl) : false;
+    if (
+        !is_string($decodedLevelUrl) ||
+        !is_array($parsedLevelUrl) ||
+        ($parsedLevelUrl['scheme'] ?? '') !== 'https' ||
+        ($parsedLevelUrl['host'] ?? '') !== 'gdps-example.com' ||
+        !str_ends_with((string)($parsedLevelUrl['path'] ?? ''), '/getGJLevels21.php')
+    ) {
+        throw new RuntimeException(
+            'Patched 2.2081 Base64 level URL must decode to a complete HTTPS GDPS endpoint.'
+        );
     }
 
     if (str_contains($native, 'http://gdps-example.com')) {
