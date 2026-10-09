@@ -6,7 +6,7 @@
   },
   "id": "izkgmd.muchoclient",
   "name": "MuchoClient",
-  "version": "v0.2.0",
+  "version": "v0.2.1",
   "developer": "IZKGMD",
   "description": "Single Geode bridge for interactive MuchoCore server extensions",
   "tags": [
