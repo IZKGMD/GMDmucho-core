@@ -1,0 +1,66 @@
+name: Build MuchoClient Geode (Windows and Android)
+
+on:
+  push:
+    branches:
+      - feat/muchoclient-geode-bridge
+    paths:
+      - 'clients/geode/muchoclient/**'
+      - '.github/workflows/build-muchoclient.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  geode-build:
+    name: ${{ matrix.platform.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - {name: Windows x64, runner: windows-latest, target: Win64}
+          - {name: Android ARM64, runner: ubuntu-latest, target: Android64}
+          - {name: Android ARMv7, runner: ubuntu-latest, target: Android32}
+    runs-on: ${{ matrix.platform.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # The official action configures the repository root as the Geode
+      # CMake project. Overlay only source/metadata in the CI workspace;
+      # no tracked core PHP files are modified by this step.
+      - name: Stage standalone Geode project
+        shell: bash
+        run: |
+          cp clients/geode/muchoclient/CMakeLists.txt CMakeLists.txt
+          cp clients/geode/muchoclient/mod.json mod.json
+          cp clients/geode/muchoclient/src/main.cpp src/main.cpp
+          test -f CMakeLists.txt
+          test -f mod.json
+          test -f src/main.cpp
+
+      - name: Compile MuchoClient
+        uses: geode-sdk/build-geode-mod@main
+        with:
+          target: ${{ matrix.platform.target }}
+          sdk: latest
+          build-config: Release
+          use-lto: false
+          combine: true
+
+  geode-package:
+    name: Combine Windows and Android .geode
+    needs: geode-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Combine compatible native builds
+        uses: geode-sdk/build-geode-mod/combine@main
+        id: package
+
+      - name: Upload complete MuchoClient package
+        uses: actions/upload-artifact@v4
+        with:
+          name: MuchoClient-Windows-Android
+          path: ${{ steps.package.outputs.build-output }}
+          if-no-files-found: error
+          retention-days: 30
