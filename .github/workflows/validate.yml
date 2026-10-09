@@ -64,6 +64,7 @@ jobs:
         run: |
           find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l bin/mucho-verify-backup.php
+          php -l bin/mucho-client-doctor.php
           php tests/client/client-compatibility.php
           php tests/client/client-ip.php
           php tests/protocol/protocol-matrix.php
