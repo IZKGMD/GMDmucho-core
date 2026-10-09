@@ -17,14 +17,41 @@ $certified = $registry;
 $certified['policy']['certification_complete'] = true;
 foreach ($certified['contracts'] as &$contract) {
     $contract['release_gate'] = true;
+    $contract['inventory_only'] = false;
+    $contract['method'] = 'POST';
+    $contract['families'] = ['2.2'];
     foreach ($certified['policy']['required_dimensions'] as $dimension) {
         $contract[$dimension]['status'] = 'covered';
+        // Synthetic evidence belongs only to this unit test fixture.
+        // It does NOT certify the real registry or publish a release.
+        $contract[$dimension]['evidence'] = [
+            'tests/protocol/endpoint-perfection.php'
+        ];
     }
+    $contract['performance_budget']['p95_ms'] = 250;
 }
 unset($contract);
 
 if (V110EndpointGate::issues($certified) !== []) {
     throw new RuntimeException('Fully certified fixture rejected.');
+}
+
+$unverified = $certified;
+$unverified['contracts'][0]['inventory_only'] = true;
+if (V110EndpointGate::issues($unverified) === []) {
+    throw new RuntimeException('Inventory-only endpoint passed stable release.');
+}
+
+$evidenceFree = $certified;
+$evidenceFree['contracts'][0]['real_client']['evidence'] = [];
+if (V110EndpointGate::issues($evidenceFree) === []) {
+    throw new RuntimeException('Evidence-free real-client claim passed release.');
+}
+
+$unspecified = $certified;
+$unspecified['contracts'][0]['families'] = ['unverified'];
+if (V110EndpointGate::issues($unspecified) === []) {
+    throw new RuntimeException('Unverified client families passed release.');
 }
 
 $missing = $certified;
