@@ -7,6 +7,10 @@ trap 'rm -rf "$FIXTURE"' EXIT
 mkdir -p "$FIXTURE/bin" "$FIXTURE/.secrets"
 cp "$REPO/update.sh" "$FIXTURE/update.sh"
 
+# Production updater uses /run for locking. Confine its lock to the fixture
+# so CI never needs root privileges or touches host update locks.
+sed -i "s|exec 9>/run/muchocore-update.lock|exec 9>$FIXTURE/update.lock|" "$FIXTURE/update.sh"
+
 # The release test runs in GitHub Actions without root privileges. Only the
 # fixture copy's root check is removed; neither the real script nor the host
 # installation is changed.
