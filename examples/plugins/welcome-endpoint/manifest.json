@@ -1,0 +1,13 @@
+{
+  "id": "welcome-endpoint",
+  "name": "Welcome Endpoint",
+  "version": "1.0.0",
+  "author": "MuchoCore",
+  "description": "Adds a welcome endpoint at /extensions/welcome.",
+  "api": 1,
+  "min_core_version": "1.1.0",
+  "enabled": true,
+  "permissions": [
+    "routes"
+  ]
+}
