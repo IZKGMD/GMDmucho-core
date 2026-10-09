@@ -207,17 +207,6 @@ final readonly class AccountService
         }
 
         try {
-            $this->rememberAuthSession($accountId, $ip);
-        } catch (Throwable $e) {
-            error_log(sprintf(
-                '[MuchoCore Login] session grant unavailable for account %d: %s: %s',
-                $accountId,
-                $e::class,
-                $e->getMessage()
-            ));
-        }
-
-        try {
             $this->accounts->audit($accountId, 'account.login', $ip);
         } catch (Throwable $e) {
             error_log(sprintf(
@@ -257,44 +246,6 @@ final readonly class AccountService
          * never allow auxiliary post-login persistence to replace it.
          */
         return $accountId . ',' . $userId;
-    }
-
-    private function rememberAuthSession(
-        int $accountId,
-        string $ip
-    ): void {
-        $ip = trim($ip);
-
-        if ($accountId <= 0 || $ip === '') {
-            return;
-        }
-
-        $cleanup = $this->pdo->prepare(
-            'DELETE FROM mucho_auth_sessions
-             WHERE expires_at <= UTC_TIMESTAMP()'
-        );
-
-        $cleanup->execute();
-
-        $stmt = $this->pdo->prepare(
-            'INSERT INTO mucho_auth_sessions
-                (account_id, ip_address, expires_at)
-             VALUES
-                (:account_id, :ip_address,
-                 DATE_ADD(UTC_TIMESTAMP(), INTERVAL 1 HOUR))
-             ON DUPLICATE KEY UPDATE
-                created_at = UTC_TIMESTAMP(),
-                last_used_at = NULL,
-                expires_at = DATE_ADD(
-                    UTC_TIMESTAMP(),
-                    INTERVAL 1 HOUR
-                )'
-        );
-
-        $stmt->execute([
-            'account_id' => $accountId,
-            'ip_address' => $ip,
-        ]);
     }
 
     private function rememberLegacy19UploadSession(
