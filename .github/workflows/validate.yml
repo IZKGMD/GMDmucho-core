@@ -93,6 +93,7 @@ jobs:
           php tests/application/migration-center-contract.php
           php tests/application/shared-hosting-installer-contract.php
           php tests/application/plugin-sdk-contract.php
+          php tests/application/muchoclient-bridge-contract.php
           php tests/application/plugin-marketplace-contract.php
           php tests/release/v110-endpoint-gate-contract.php
           php tests/application/score-integrity-contract.php
@@ -296,6 +297,11 @@ jobs:
           test -f tests/release/v110-endpoint-gate.php
           test -f resources/plugin-catalog.json
           test -f src/Plugin/PluginCatalog.php
+          test -f src/Client/ClientFeatureRegistry.php
+          test -f src/Client/ClientBridgeController.php
+          test -f clients/geode/muchoclient/mod.json
+          test -f clients/geode/muchoclient/src/main.cpp
+          test -f docs/MUCHOCLIENT.md
           test -f examples/plugins/welcome-endpoint/plugin.php
           grep -Fq 'MUCHO_PLUGINS_ENABLED=1' .env.example
           grep -Fq 'GD 1.1 only' install.sh

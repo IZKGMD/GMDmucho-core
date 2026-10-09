@@ -16,6 +16,17 @@ https://YOUR-DOMAIN/
 
 Installing MuchoCore does not automatically change the game client. The client must be patched to use your server.
 
+## MuchoClient: optional Geode companion for extra content
+
+The MuchoClient Geode project in clients/geode/muchoclient adds a single
+in-game menu for MuchoCore extension modules. Its server-side discovery
+protocol is described in docs/MUCHOCLIENT.md. It is currently source-only,
+not included in the Windows/Android patched client pack.
+
+MuchoClient is intended for supported modern Geometry Dash + Geode builds;
+older GD 1.x/2.0/2.1 clients still use the normal patched-client protocol.
+Do not treat MuchoClient presence as an account authentication mechanism.
+
 ## Windows: one-click method
 
 ### 1. Get the patcher

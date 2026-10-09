@@ -1,0 +1,25 @@
+{
+  "geode": "5.10.1",
+  "gd": {
+    "win": "2.2081",
+    "android": "2.2081"
+  },
+  "id": "izkgmd.muchoclient",
+  "name": "MuchoClient",
+  "version": "v0.1.0",
+  "developer": "IZKGMD",
+  "description": "In-game client for MuchoCore extension content",
+  "tags": [
+    "online",
+    "content",
+    "interface"
+  ],
+  "settings": {
+    "server-url": {
+      "type": "string",
+      "name": "MuchoCore Server URL",
+      "description": "GDPS HTTPS origin only (without /database)",
+      "default": ""
+    }
+  }
+}

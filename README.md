@@ -33,6 +33,7 @@ The canonical source repository is **IZKGMD/GMDmucho-core**. **MuchoCore** and *
   <a href="docs/VERSIONS.md">📚 Version Profiles</a> ·
   <a href="docs/CLIENT_COMPATIBILITY.md">🧩 Client Compatibility</a> ·
   <a href="docs/CUSTOM_PLUGINS.md">🧩 Custom Plugins</a> ·
+  <a href="docs/MUCHOCLIENT.md">🎮 MuchoClient (Geode companion)</a> ·
   <a href="docs/V108_INTELLIGENCE.md">⚡ Intelligence & Scale</a>
 </p>
 

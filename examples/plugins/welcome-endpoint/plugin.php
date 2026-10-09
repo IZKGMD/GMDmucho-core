@@ -14,5 +14,11 @@ return new class implements PluginInterface
             '/extensions/welcome',
             static fn(): string => 'Welcome to MuchoCore!'
         );
+        $context->clientFeature(
+            'welcome',
+            'Welcome',
+            'A sample in-game MuchoClient feature from PHP Plugin SDK',
+            '/extensions/welcome'
+        );
     }
 };
