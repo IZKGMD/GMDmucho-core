@@ -63,6 +63,7 @@ jobs:
       - name: Check PHP sources
         run: |
           find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l bin/mucho-verify-backup.php
           php tests/client/client-compatibility.php
           php tests/client/client-ip.php
           php tests/protocol/protocol-matrix.php
@@ -464,6 +465,13 @@ jobs:
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/cvolton-migration-integration.php
+
+      - name: Verify backup and restore on isolated MariaDB
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/backup-restore-integration.php
 
 
   php-runtime:
