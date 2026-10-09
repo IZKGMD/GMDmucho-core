@@ -510,6 +510,7 @@ Usage:
   sudo mucho update              Apply the latest stable release
   sudo mucho backup              Create a database backup
   sudo mucho client-patch        Rebuild and publish patched GDPS clients
+  sudo mucho client-doctor       Test MuchoClient PHP manifest and handshake
   sudo mucho migrate             Apply pending database migrations
   sudo mucho migration [args]    Open the Migration Center
   sudo mucho config              Open configuration
@@ -610,6 +611,10 @@ case "${1:-}" in
     client-patch)
         require_root
         patch_clients
+        ;;
+    client-doctor)
+        require_root
+        compose exec -T app php bin/mucho-client-doctor.php
         ;;
     migrate)
         require_root
