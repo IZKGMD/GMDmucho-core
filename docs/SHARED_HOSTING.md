@@ -13,6 +13,23 @@ The PHP installer requirements and the ability to run a Geometry Dash server are
 
 InfinityFree Free currently advertises PHP 8.4 and MySQL 8.0 / MariaDB 11.4, but its free-host browser security system is designed for browser traffic rather than app/API traffic. A successful bootstrap or PHP preflight therefore must not be interpreted as proof that a Geometry Dash client can connect.
 
+## Cloud Save encryption and backup safety
+
+The shared-hosting installer writes the encrypted-save key to
+`config/cloudsave.key` (private, mode 0600). The Cloud Save backend reads
+that same key when `MUCHO_SHARED_HOSTING=1`, rather than trying to access
+Docker's `/var/lib/muchocore/cloudsave.key` path.
+
+**Back up this key securely together with database backups.** Database
+backups alone cannot decrypt existing game saves. Never regenerate or delete
+the key during upgrades. If the hosting provider requires another private
+location, move the **same existing key** outside the web root and set the
+absolute `MUCHO_CLOUDSAVE_KEY_FILE` path in `.env`.
+
+On a VPS, the historical Docker key path is unchanged. Missing/invalid keys
+cause Cloud Save to fail closed rather than silently creating incompatible
+new ciphertext.
+
 ## Requirements
 
 A shared-hosting account needs:
