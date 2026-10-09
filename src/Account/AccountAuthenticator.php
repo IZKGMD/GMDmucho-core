@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace MuchoCore\Account;
 
-use MuchoCore\Http\ClientIp;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -83,37 +82,27 @@ final readonly class AccountAuthenticator
 
         $storedPass = (string)($account['password_hash'] ?? '');
         $storedGjp2 = (string)($account['gjp2_hash'] ?? '');
-
-        $clientIp = trim($ip);
-
-        if ($clientIp === '') {
-            $clientIp = ClientIp::resolve($_SERVER);
-        }
+        $valid = false;
 
         /*
-         * Match Cvolton's sessionGrants behavior. A successful login creates
-         * a one-hour account+IP grant, allowing the client to perform the
-         * immediately-following legacy requests without resending a GJP that
-         * older/custom clients may not preserve correctly.
+         * Standard Geometry Dash endpoints must always prove possession of a
+         * valid account credential. The historical account+IP grant is not a
+         * safe authentication proof on shared/NAT networks because account IDs
+         * are public and IP addresses are shared identifiers.
+         *
+         * Keep the $ip argument for call-site compatibility, but deliberately
+         * do not use it to bypass credential verification. Protocol versions
+         * that genuinely omit a credential must use a dedicated, stronger
+         * compatibility path such as authenticateLegacy19Upload(), which is
+         * additionally bound to the client's UDID.
          */
-        $valid = $clientIp !== ''
-            && $this->hasSessionGrant(
-                $accountId,
-                $clientIp
-            );
 
-        if (!$valid) {
-            /*
-             * 1. Plain credential.
-         * Нужен для совместимости с текущим ядром/старыми клиентами.
-         */
+        // 1. Plain credential for current-core and older client compatibility.
         if ($storedPass !== '') {
             $valid = password_verify($credential, $storedPass);
         }
 
-        /*
-         * 2. Уже готовый 40-char hash.
-         */
+        // 2. Already-derived 40-character GJP2 hash.
         if (
             !$valid &&
             $storedGjp2 !== '' &&
@@ -122,10 +111,7 @@ final readonly class AccountAuthenticator
             $valid = password_verify($credential, $storedGjp2);
         }
 
-        /*
-         * 3. URL-safe Base64 + XOR вариант, который уже поддерживало
-         * старое ядро.
-         */
+        // 3. URL-safe Base64 + XOR credential supported by older MuchoCore.
         if (!$valid) {
             $decodedPassword = $this->decodeXorCredential($credential);
 
@@ -155,9 +141,8 @@ final readonly class AccountAuthenticator
             }
         }
 
-            if (!$valid) {
-                throw new RuntimeException('Unauthorized.');
-            }
+        if (!$valid) {
+            throw new RuntimeException('Unauthorized.');
         }
 
         if (empty($account['user_id'])) {
@@ -189,47 +174,6 @@ final readonly class AccountAuthenticator
         }
 
         return $account;
-    }
-
-    private function hasSessionGrant(
-        int $accountId,
-        string $ip
-    ): bool {
-        if ($accountId <= 0 || $ip === '') {
-            return false;
-        }
-
-        $stmt = $this->pdo->prepare(
-            'SELECT id
-             FROM mucho_auth_sessions
-             WHERE account_id = :account_id
-               AND ip_address = :ip_address
-               AND expires_at > UTC_TIMESTAMP()
-             LIMIT 1'
-        );
-
-        $stmt->execute([
-            'account_id' => $accountId,
-            'ip_address' => $ip,
-        ]);
-
-        $sessionId = $stmt->fetchColumn();
-
-        if ($sessionId === false) {
-            return false;
-        }
-
-        $touch = $this->pdo->prepare(
-            'UPDATE mucho_auth_sessions
-             SET last_used_at = UTC_TIMESTAMP()
-             WHERE id = :id'
-        );
-
-        $touch->execute([
-            'id' => (int)$sessionId,
-        ]);
-
-        return true;
     }
 
     public function authenticateLegacy19Upload(
