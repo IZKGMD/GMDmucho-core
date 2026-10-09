@@ -1,44 +1,59 @@
-# MuchoClient — Geode companion (developer preview)
+# MuchoClient — one Geode mod for server extensions (v0.2.1 preview)
 
-MuchoClient is the **single Geode companion** for MuchoCore extension content.
-It adds a **Mucho** button to Geometry Dash's main menu and displays the
-modules enabled by the GDPS server.
+MuchoClient connects Geometry Dash 2.2081 (Windows and Android) to MuchoCore.
+Players install **one .geode file**. Server-side PHP plugins publish safe,
+validated feature metadata in MuchoCore's manifest; MuchoClient renders
+the extra modules as buttons inside a Geometry Dash popup.
 
-This folder is **source code**, not a tested or compiled .geode download.
-It targets Geometry Dash 2.2081 on Windows and Android, following the current
-Geode project template. Both native compilation and real-client testing are
-still required before shipping a production installer.
+The first demo plugin is at `examples/muchoclient-welcome/`.
+The user can click **Welcome** to fetch a read-only JSON message from
+`/extensions/welcome`. Only trusted PHP runs on the server — the native
+client does not download or execute plugin code.
 
 ## Build and use
 
-1. Install the Geode CLI, SDK and platform-specific C++ toolchain.
-2. Set GEODE_SDK to your Geode SDK location.
-3. Run geode build from this folder with the matching GD and Geode versions.
-4. Install the generated .geode mod through Geode.
-5. Set MuchoCore Server URL in the mod settings to your GDPS HTTPS origin.
-6. Press **Mucho** on the Geometry Dash main menu.
+- GitHub Actions builds Win64, Android ARM64 and ARMv7, and packages them
+  in one cross-platform .geode.
+- Install through Geode on Geometry Dash 2.2081, then press **Mucho** on the
+  game main menu.
+- The default server is `https://muchogdps.space`. To use a different server,
+  edit the `MuchoCore Server URL` Geode setting (HTTPS origin, without
+  `/database`).
+- The client GETs `/muchoclient/manifest`, validates the feature catalog, and
+  POSTs `/muchoclient/negotiate` with `client_version=0.2.1&protocol=1`.
+- Compatible clients display a popup of feature buttons. Public extension
+  endpoints under `/extensions/` return constrained JSON text.
 
-The client asynchronously requests GET /muchoclient/manifest. It displays
-module names and descriptions; it does **not** run downloaded scripts, fetch
-arbitrary URLs, or grant accounts any new privileges.
+## VPS diagnosis
 
-## Compatibility contract
+After updating the MuchoCore VPS:
 
-- GET /muchoclient/manifest returns core version, required Geode client
-  version, API protocol revision, and advertised safe feature metadata.
-- POST /muchoclient/negotiate accepts client_version and protocol to determine
-  compatibility. It is **not authentication** and returns no access token.
-- Features can be contributed by a server PHP plugin with its declared
-  client_features permission.
-- Existing Geometry Dash 1.0–2.2 standard endpoints are unaffected, even when
-  Geode is not installed. Only the extra-client UX requires MuchoClient.
-- Geode cannot provide universal injection into every old Geometry Dash
-  version; legacy client support remains handled by MuchoCore server protocol.
+```bash
+cd /opt/mucho-core
+sudo mucho client-doctor
+curl -sS -i https://muchogdps.space/muchoclient/manifest
+curl -sS -i https://muchogdps.space/extensions/welcome
+```
 
-## Future work
+`sudo mucho client-doctor` probes the PHP application directly inside Docker,
+including its database connection, plugin registry, and client handshake.
+It does **not** prove that Caddy, Cloudflare, DNS or the public HTTPS endpoint
+works. Compare the CLI test with the two HTTPS curl results.
 
-Replace the initial read-only list with real screens for clans, events,
-quests and cosmetics, using separate authenticated API endpoints. Treat
-server data as untrusted and never allow a module manifest to run C++,
-Lua, JS, PHP or install .geode packages without an independently reviewed
-and secured distribution system.
+To install the first demo plugin on the server, copy
+`examples/muchoclient-welcome` into `custom/plugins/muchoclient-welcome`
+on the VPS. The plugin directory must be mounted inside the app container.
+See the example's README for detailed steps.
+
+## Security and compatibility
+
+- MuchoClient does not execute remote Lua/JS/PHP/C++ or install new .geode
+  binaries. Server responses are data only.
+- The feature manifest is public metadata, **not player authentication**.
+  Each privileged feature must independently validate the player session.
+- Feature paths are limited to trusted relative `/extensions/...` paths.
+  Arbitrary external URLs and redirects are rejected.
+- The single companion supports GD 2.2081 with Geode, not all legacy GD
+  binaries. Standard GD endpoints remain independent of MuchoClient.
+- Real-device runtime testing is still required; successful native CI
+  compilation does not guarantee a running VPS or installed game behavior.
