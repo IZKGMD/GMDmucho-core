@@ -74,8 +74,18 @@ foreach ($contracts as $index => $contract) {
     }
     $ids[$id] = true;
 
-    if ($method !== 'POST') {
-        endpointGateFail("{$id}: Geometry Dash game endpoints must use POST in the perfection registry");
+    $inventoryOnly = ($contract['inventory_only'] ?? false) === true;
+    if (
+        !in_array($method, ['POST', 'ANY'], true) ||
+        ($method === 'ANY' && !$inventoryOnly)
+    ) {
+        endpointGateFail("{$id}: unverified route inventory may use ANY, certified endpoints require POST");
+    }
+    if ($inventoryOnly && ($contract['release_gate'] ?? false) === true) {
+        endpointGateFail("{$id}: inventory-only route cannot become a release gate");
+    }
+    if ($inventoryOnly && ($contract['families'] ?? []) !== ['unverified']) {
+        endpointGateFail("{$id}: unverified inventory must not claim tested client families");
     }
     if (!is_string($canonical) || !str_starts_with($canonical, '/')) {
         endpointGateFail("{$id}: invalid canonical_path");
@@ -130,6 +140,9 @@ foreach ($contracts as $index => $contract) {
         if ($status === 'covered' && $evidence === []) {
             endpointGateFail("{$id}: covered {$dimension} requires evidence");
         }
+        if ($inventoryOnly && $status !== 'pending' && $status !== 'n/a') {
+            endpointGateFail("{$id}: inventory-only route cannot claim certified evidence");
+        }
 
         foreach ($evidence as $evidencePath) {
             if (!is_string($evidencePath) || $evidencePath === '') {
@@ -142,8 +155,11 @@ foreach ($contracts as $index => $contract) {
 
         if ($dimension === 'performance_budget') {
             $p95 = $entry['p95_ms'] ?? null;
-            if (!is_int($p95) || $p95 <= 0) {
-                endpointGateFail("{$id}: performance_budget.p95_ms must be a positive integer");
+            if (
+                !($inventoryOnly && $status === 'pending' && $p95 === null) &&
+                (!is_int($p95) || $p95 <= 0)
+            ) {
+                endpointGateFail("{$id}: a measured performance budget requires a positive p95 target");
             }
         }
     }
@@ -157,6 +173,60 @@ foreach ($contracts as $index => $contract) {
         }
     }
 }
+
+// Keep the endpoint registry in sync with every statically declared core
+// route. Plugin routes are intentionally dynamic; /health is not a game API.
+$applicationSource = file_get_contents($root . '/src/Core/Application.php');
+if (!is_string($applicationSource)) {
+    endpointGateFail('cannot read core application route definitions');
+}
+preg_match_all(
+    '~\$route\(\s*[\x27\x22](/[^\x27\x22]+)[\x27\x22]~',
+    $applicationSource,
+    $routeMatches
+);
+$applicationRoutes = $routeMatches[1] ?? [];
+if (!$applicationRoutes) {
+    endpointGateFail('no application routes were discovered');
+}
+
+$declaredCanonical = [];
+foreach ($applicationRoutes as $rawRoute) {
+    $canonical = $router->normalizePath($rawRoute);
+    if ($canonical === '/health') {
+        continue;
+    }
+    $declaredCanonical[$canonical] = true;
+}
+
+$contractCanonicals = [];
+foreach ($contracts as $contract) {
+    $canonical = $contract['canonical_path'];
+    if (isset($contractCanonicals[$canonical])) {
+        endpointGateFail("duplicate canonical endpoint {$canonical}");
+    }
+    $contractCanonicals[$canonical] = true;
+}
+
+foreach ($declaredCanonical as $canonical => $_) {
+    if (!isset($contractCanonicals[$canonical])) {
+        endpointGateFail(
+            "application route {$canonical} is missing from endpoint certification inventory"
+        );
+    }
+}
+
+foreach ($contractCanonicals as $canonical => $_) {
+    if (!isset($declaredCanonical[$canonical])) {
+        endpointGateFail(
+            "endpoint certification includes unregistered core route {$canonical}"
+        );
+    }
+}
+
+endpointGatePass(
+    count($declaredCanonical) . ' canonical application game routes inventoried'
+);
 
 $fixtureFiles = glob($root . '/tests/client-fixtures/*/endpoints.json') ?: [];
 foreach ($fixtureFiles as $fixtureFile) {
