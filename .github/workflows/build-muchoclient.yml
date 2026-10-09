@@ -7,6 +7,10 @@ on:
     paths:
       - 'clients/geode/muchoclient/**'
       - '.github/workflows/build-muchoclient.yml'
+  pull_request:
+    paths:
+      - 'clients/geode/muchoclient/**'
+      - '.github/workflows/build-muchoclient.yml'
   workflow_dispatch:
 
 permissions:
