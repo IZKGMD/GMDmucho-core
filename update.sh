@@ -166,25 +166,6 @@ CURRENT_VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION" 2>/dev/null || true)"
 CURRENT_SEMVER="$(printf '%s' "$CURRENT_VERSION" | sed 's/^v//')"
 CURRENT_HEAD="$(git rev-parse HEAD)"
 
-LATEST_TAG="$(get_latest_stable_release_tag || true)"
-if [[ -z "$LATEST_TAG" ]]; then
-    echo '[MuchoCore] GitHub Releases API was unavailable; resolving the latest stable tag from Git instead...'
-    LATEST_TAG="$(get_latest_stable_release_tag_fallback || true)"
-fi
-
-[[ "$LATEST_TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
-    echo '[MuchoCore] ERROR: unable to resolve a published stable GitHub Release.' >&2
-    exit 1
-}
-
-LATEST_SEMVER="$(printf '%s' "$LATEST_TAG" | sed 's/^v//')"
-REMOTE_TAG_SHA="$(git ls-remote origin "refs/tags/$LATEST_TAG" | awk 'NR == 1 {print $1}')"
-
-[[ -n "$REMOTE_TAG_SHA" ]] || {
-    echo '[MuchoCore] ERROR: stable release tag could not be resolved.' >&2
-    exit 1
-}
-
 # Update channel:
 #   auto   - exact version-tagged installations follow stable Releases;
 #            development checkouts follow origin/main.
@@ -223,6 +204,24 @@ if [[ "$UPDATE_CHANNEL" == "main" ]]; then
         exit 0
     fi
 else
+    # Only stable installations depend on a published GitHub Release.
+    # Development/main updates must work before the first stable tag exists.
+    LATEST_TAG="$(get_latest_stable_release_tag || true)"
+    if [[ -z "$LATEST_TAG" ]]; then
+        echo '[MuchoCore] GitHub Releases API was unavailable; resolving the latest stable tag from Git instead...'
+        LATEST_TAG="$(get_latest_stable_release_tag_fallback || true)"
+    fi
+    [[ "$LATEST_TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+        echo '[MuchoCore] ERROR: unable to resolve a published stable GitHub Release.' >&2
+        exit 1
+    }
+    LATEST_SEMVER="$(printf '%s' "$LATEST_TAG" | sed 's/^v//')"
+    REMOTE_TAG_SHA="$(git ls-remote origin "refs/tags/$LATEST_TAG" | awk 'NR == 1 {print $1}')"
+    [[ -n "$REMOTE_TAG_SHA" ]] || {
+        echo '[MuchoCore] ERROR: stable release tag could not be resolved.' >&2
+        exit 1
+    }
+
     TARGET_REF="$LATEST_TAG"
     TARGET_LABEL="v$LATEST_SEMVER"
     TARGET_KIND="stable"
