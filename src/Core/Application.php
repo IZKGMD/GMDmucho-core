@@ -8,6 +8,7 @@ use MuchoCore\Account\AccountController;
 use MuchoCore\Account\AccountRepository;
 use MuchoCore\Account\AccountService;
 use MuchoCore\Cache\CacheManager;
+use MuchoCore\Client\ClientBridgeController;
 use MuchoCore\Artist\TopArtistController;
 use MuchoCore\Artist\TopArtistRepository;
 use MuchoCore\Artist\TopArtistService;
@@ -256,6 +257,13 @@ final readonly class Application
         ): void {
             $this->router->add('ANY', $path, $handler);
         };
+
+        $bridge = new ClientBridgeController(
+            $this->plugins->clientFeatures(),
+            trim((string)@file_get_contents(dirname(__DIR__, 2) . '/VERSION'))
+        );
+        $route('/muchoclient/manifest', [$bridge, 'manifest']);
+        $route('/muchoclient/negotiate', [$bridge, 'negotiate']);
 
         $route('/health',
             static fn(Request $r): Response =>
