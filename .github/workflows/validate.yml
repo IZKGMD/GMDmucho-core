@@ -14,7 +14,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          extensions: mbstring, pdo_mysql, zip
+          extensions: mbstring, pdo_mysql, pdo_sqlite, zip
           tools: composer
 
       - name: Check shell scripts
@@ -97,6 +97,7 @@ jobs:
           php tests/application/v106-hardening-contract.php
           php tests/application/v108-intelligence-contract.php
           php tests/application/legacy-19-session.php
+          php tests/application/auth-session-isolation.php
           php tests/application/security-regressions.php
           bash tests/release/release-update-detection.sh
           php tests/database/migrator-concurrency.php
