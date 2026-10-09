@@ -201,7 +201,7 @@ $clientCpp = (string)file_get_contents($geodeRoot . '/src/main.cpp');
 
 $check(
     ($metadata['id'] ?? '') === 'izkgmd.muchoclient' &&
-    ($metadata['version'] ?? '') === 'v0.1.0' &&
+    ($metadata['version'] ?? '') === 'v0.2.0' &&
     isset($metadata['gd']['win'], $metadata['gd']['android']) &&
     isset($metadata['settings']['server-url']),
     'Geode companion metadata declares compatible client id and settings'
@@ -211,6 +211,78 @@ $check(
     str_contains($clientCpp, '.followRedirects(false)') &&
     !str_contains($clientCpp, 'certVerification(false)'),
     'native client scaffold uses discovery path and retains HTTPS verification'
+);
+
+
+// End-to-end plugin MVP contract: a standalone server plugin advertises one
+// menu item and serves its JSON payload without installing any client code.
+$sampleRoot = dirname(__DIR__, 2) . '/examples/muchoclient-welcome';
+$sampleManifest = json_decode(
+    (string)file_get_contents($sampleRoot . '/manifest.json'),
+    true,
+    8,
+    JSON_THROW_ON_ERROR
+);
+$check(
+    ($sampleManifest['enabled'] ?? false) === true &&
+    in_array('routes', $sampleManifest['permissions'] ?? [], true) &&
+    in_array('client_features', $sampleManifest['permissions'] ?? [], true),
+    'first plugin declares only necessary SDK permissions'
+);
+
+$sampleRegistry = new ClientFeatureRegistry();
+$sampleRouter = new Router();
+$sampleContext = new PluginContext(
+    $pdo,
+    $sampleRouter,
+    new PluginEventBus(),
+    $sampleManifest['permissions'],
+    'MuchoClient Welcome',
+    $sampleRegistry
+);
+$samplePlugin = require $sampleRoot . '/plugin.php';
+$check(
+    $samplePlugin instanceof \MuchoCore\Plugin\PluginInterface,
+    'sample plugin implements the actual PHP plugin SDK'
+);
+$samplePlugin->register($sampleContext);
+$features = $sampleRegistry->all();
+$check(
+    count($features) === 1 &&
+    $features[0]['id'] === 'welcome' &&
+    $features[0]['entrypoint'] === '/extensions/welcome',
+    'live server plugin advertises a same-origin menu button'
+);
+$sampleResponse = $sampleRouter->dispatch(
+    $request('GET', '/extensions/welcome')
+);
+$sampleBody = json_decode($sampleResponse->body, true, 8, JSON_THROW_ON_ERROR);
+$check(
+    $sampleResponse->status === 200 &&
+    $sampleResponse->contentType === 'application/json; charset=utf-8' &&
+    $sampleBody['schema_version'] === 1 &&
+    $sampleBody['feature_id'] === 'welcome' &&
+    str_contains($sampleBody['message'], 'server plugin'),
+    'feature click receives safe JSON from the PHP server plugin'
+);
+$sampleCatalog = json_decode(
+    (new ClientBridgeController($sampleRegistry, '1.1.0'))
+        ->manifest($request('GET', '/muchoclient/manifest'))->body,
+    true,
+    8,
+    JSON_THROW_ON_ERROR
+);
+$check(
+    count($sampleCatalog['features']) === 2 &&
+    $sampleCatalog['features'][1]['id'] === 'welcome',
+    'sample plugin appears alongside core modules in the global catalog'
+);
+$check(
+    str_contains($clientCpp, '"/muchoclient/negotiate"') &&
+    str_contains($clientCpp, 'MuchoFeaturesPopup') &&
+    str_contains($clientCpp, 'safeFeaturePath') &&
+    !str_contains($clientCpp, 'certVerification(false)'),
+    'client source performs explicit handshake and displays same-origin plugin JSON'
 );
 
 echo "MUCHOCORE_MUCHOCLIENT_BRIDGE_OK\n";

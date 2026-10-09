@@ -6,9 +6,9 @@
   },
   "id": "izkgmd.muchoclient",
   "name": "MuchoClient",
-  "version": "v0.1.0",
+  "version": "v0.2.0",
   "developer": "IZKGMD",
-  "description": "In-game client for MuchoCore extension content",
+  "description": "Single Geode bridge for interactive MuchoCore server extensions",
   "tags": [
     "online",
     "content",
@@ -19,7 +19,7 @@
       "type": "string",
       "name": "MuchoCore Server URL",
       "description": "GDPS HTTPS origin only (without /database)",
-      "default": ""
+      "default": "https://muchogdps.space"
     }
   }
 }
