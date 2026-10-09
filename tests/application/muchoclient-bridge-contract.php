@@ -190,4 +190,27 @@ $check(
     'real application registers MuchoClient endpoints'
 );
 
+$geodeRoot = dirname(__DIR__, 2) . '/clients/geode/muchoclient';
+$metadata = json_decode(
+    (string)file_get_contents($geodeRoot . '/mod.json'),
+    true,
+    16,
+    JSON_THROW_ON_ERROR
+);
+$clientCpp = (string)file_get_contents($geodeRoot . '/src/main.cpp');
+
+$check(
+    ($metadata['id'] ?? '') === 'izkgmd.muchoclient' &&
+    ($metadata['version'] ?? '') === 'v0.1.0' &&
+    isset($metadata['gd']['win'], $metadata['gd']['android']) &&
+    isset($metadata['settings']['server-url']),
+    'Geode companion metadata declares compatible client id and settings'
+);
+$check(
+    str_contains($clientCpp, '"/muchoclient/manifest"') &&
+    str_contains($clientCpp, '.followRedirects(false)') &&
+    !str_contains($clientCpp, 'certVerification(false)'),
+    'native client scaffold uses discovery path and retains HTTPS verification'
+);
+
 echo "MUCHOCORE_MUCHOCLIENT_BRIDGE_OK\n";
