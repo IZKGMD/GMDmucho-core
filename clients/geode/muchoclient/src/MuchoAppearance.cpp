@@ -86,6 +86,7 @@ namespace {
                 .followRedirects(false).header("Content-Type", "application/x-www-form-urlencoded")
                 .bodyString("accountIDs=" + clans::encoded(ids)).post(m_origin + "/api/appearance/batch"),
                 [this, accounts, generation](web::WebResponse response) {
+                    syncOrigin();
                     if (generation != m_generation) return;
                     m_busy = false;
                     m_inflight.clear();

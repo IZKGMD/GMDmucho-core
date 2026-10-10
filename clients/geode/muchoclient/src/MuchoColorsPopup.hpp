@@ -8,6 +8,7 @@
 #include "MuchoUi.hpp"
 #include <array>
 #include <chrono>
+#include <functional>
 
 using namespace geode::prelude;
 
@@ -26,6 +27,7 @@ class MuchoColorsPopup final : public Popup {
     CCMenu* m_controls = nullptr;
     std::vector<CCMenuItemSpriteExtra*> m_buttons;
     async::TaskHolder<web::WebResponse> m_task;
+    std::function<void(matjson::Value const&)> m_onSaved;
 
     CCLabelBMFont* label(char const* text, float y, float scale) {
         auto node = CCLabelBMFont::create(text, "bigFont.fnt");
@@ -135,6 +137,7 @@ class MuchoColorsPopup final : public Popup {
                 enabled(); select(m_editPrefix);
                 if (save) mucho::appearance::invalidate();
                 mucho::appearance::remember(player);
+                if (save && m_onSaved) m_onSaved(player);
                 status(save ? "Saved! Other players see the colors with MuchoClient" : m_owner ? "Choose nickname or clan prefix, then a color" : "You can change your nickname; the owner sets the clan color");
             });
     }
@@ -173,9 +176,10 @@ protected:
         m_closed = true; ++m_generation; m_task.cancel(); Popup::onClose(sender);
     }
 public:
-    static MuchoColorsPopup* create(std::string origin) {
+    static MuchoColorsPopup* create(std::string origin, std::function<void(matjson::Value const&)> onSaved = {}) {
         if (!mucho::appearance::validOrigin(origin)) return nullptr;
         auto popup = new MuchoColorsPopup();
+        popup->m_onSaved = std::move(onSaved);
         if (popup->init(std::move(origin))) { popup->autorelease(); return popup; }
         delete popup; return nullptr;
     }

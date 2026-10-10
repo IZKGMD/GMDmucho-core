@@ -18,7 +18,7 @@ namespace mucho::appearance {
         if (!tag.empty() || !nicknameColor.empty()) label->setFntFile("bigFont.fnt");
         label->setColor(rgb(nicknameColor));
         for (size_t i = 0; i < prefix.size(); ++i) {
-            if (auto glyph = geode::typeinfo_cast<cocos2d::CCSprite*>(label->getChildByTag(static_cast<int>(i))))
+            if (auto glyph = geode::cast::typeinfo_cast<cocos2d::CCSprite*>(label->getChildByTag(static_cast<int>(i))))
                 glyph->setColor(rgb(prefixColor, 0xFFD166));
         }
         label->limitLabelWidth(width, scale, 0.f);

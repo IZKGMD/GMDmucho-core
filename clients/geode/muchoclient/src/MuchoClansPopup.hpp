@@ -434,7 +434,24 @@ class MuchoClansPopup final : public geode::Popup {
         request(Action::Search, "/api/clans/search", {{"query", m_query}, {"offset", std::to_string(requested * 4)}, {"limit", "4"}});
     }
     void onMy(CCObject*) { m_afterRefresh = View::My; request(Action::My, "/api/clans/my"); }
-    void onColors(CCObject*) { if (!m_busy) if (auto popup = MuchoColorsPopup::create(m_origin)) popup->show(); }
+    void onColors(CCObject*) {
+        if (m_busy) return;
+        auto popup = MuchoColorsPopup::create(m_origin, [weak = WeakRef<MuchoClansPopup>(this)](matjson::Value const& player) {
+            auto self = weak.lock();
+            if (!self || self->m_closed) return;
+            int clan = num(player, "clan_id"), account = num(player, "account_id");
+            if (clan > 0 && clan == num(self->m_my, "clan_id")) {
+                self->m_my["prefix_color"] = player["prefix_color"];
+                if (self->m_my["members"].isArray()) for (auto& member : self->m_my["members"])
+                    if (num(member, "account_id") == account) member["nickname_color"] = player["nickname_color"];
+            }
+            if (clan > 0 && clan == num(self->m_selected, "clan_id")) self->m_selected["prefix_color"] = player["prefix_color"];
+            for (auto& row : self->m_results) if (clan > 0 && clan == num(row, "clan_id")) row["prefix_color"] = player["prefix_color"];
+            if (account == num(self->m_member, "account_id")) self->m_member["nickname_color"] = player["nickname_color"];
+            self->redraw();
+        });
+        if (popup) popup->show();
+    }
     void onBrowse(CCObject*) { search(true); }
     void onSearch(CCObject*) { search(true); }
     void onInvites(CCObject*) { request(Action::Invites, "/api/clans/invites"); }
