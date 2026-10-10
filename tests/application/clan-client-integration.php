@@ -162,7 +162,9 @@ try {
     $avatar=$ok($profileCall('upload',1,$upload),'upload avatar with GDPS account authentication');
     $firstVersion=$avatar['media']['avatar']['version'];
     clanCheck(strlen($firstVersion)===64 && $avatar['media']['avatar']['width']===256 && $avatar['media']['banner']===null,'avatar version and dimensions are stored independently');
-    $publicImage=$ok($profileCall('image',1,['kind'=>'avatar','version'=>$firstVersion,'gjp2'=>'']),'download exact public avatar version');
+    $publicImageResponse=$profileCall('image',1,['kind'=>'avatar','version'=>$firstVersion,'gjp2'=>'']);
+    clanCheck($publicImageResponse['ok'] && $publicImageResponse['http_status']===200,'download exact public avatar version');
+    $publicImage=$publicImageResponse['data'];
     clanCheck(getimagesizefromstring($publicImage)[0]===256 && hash('sha256',$publicImage)===$firstVersion,'public JPEG bytes match the metadata version');
     $banner=$ok($profileCall('upload',1,array_merge($upload,['kind'=>'banner'])),'upload independent profile cover');
     clanCheck($banner['media']['avatar']['version']===$firstVersion && $banner['media']['banner']['width']===960,'cover upload preserves avatar');
