@@ -38,7 +38,8 @@ jobs:
         run: |
           cp clients/geode/muchoclient/CMakeLists.txt CMakeLists.txt
           cp clients/geode/muchoclient/mod.json mod.json
-          cp clients/geode/muchoclient/src/main.cpp src/main.cpp
+          cp clients/geode/muchoclient/src/*.cpp src/
+          cp clients/geode/muchoclient/src/*.hpp src/
           test -f CMakeLists.txt
           test -f mod.json
           test -f src/main.cpp
