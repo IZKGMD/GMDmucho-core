@@ -35,18 +35,25 @@ namespace mucho::profile {
 
         void reset() {
             ++m_generation; m_task.cancel(); m_ready = false;
-            if (m_image) { m_image->cancelLoad(); m_image->removeFromParent(); }
+            if (m_image) m_image->removeFromParent();
             m_image = LazySprite::create(m_box, false);
             m_image->setOpacity(m_dim);
             m_image->setVisible(false); addChild(m_image, 1);
             m_hint->setVisible(true);
-            auto weak = WeakRef(this); auto generation = m_generation;
-            m_image->setLoadCallback([weak, generation](Result<> result) {
+        }
+        void decode(std::vector<uint8_t> bytes, CCImage::EImageFormat format) {
+            auto weak = WeakRef(this); auto generation = m_generation; auto image = m_image;
+            // Keep the decoder alive until completion, even when this view closes.
+            // Cancelling LazySprite mid-decode in Geode 5.10 can abandon its CCImage.
+            image->retain();
+            image->setLoadCallback([weak, generation, image](Result<> result) {
+                geode::queueInMainThread([image] { image->release(); });
                 auto self = weak.lock();
                 if (!self || generation != self->m_generation) return;
                 if (!result) { self->m_hint->setString("Image unavailable"); return; }
                 self->m_ready = true; self->m_hint->setVisible(false); self->fit();
             });
+            image->loadFromData(std::move(bytes),format);
         }
         void fit() {
             if (!m_ready) return;
@@ -78,13 +85,13 @@ namespace mucho::profile {
         }
         void selected(std::vector<uint8_t> const& bytes, bool png) {
             reset(); m_x = m_y = 500; m_zoom = 100; m_rotation = 0;
-            m_image->loadFromData(bytes, png ? CCImage::kFmtPng : CCImage::kFmtJpg);
+            decode(bytes, png ? CCImage::kFmtPng : CCImage::kFmtJpg);
         }
         void stored(std::string url, int account, std::string kind, std::string version) {
             empty(); m_origin = std::move(url); m_x = m_y = 500; m_zoom = 100; m_rotation = 0;
             if (!appearance::validOrigin(m_origin) || !validVersion(version) || account <= 0 || (kind != "avatar" && kind != "banner")) return;
             std::string key = m_origin + "/" + std::to_string(account) + "/" + kind + "/" + version;
-            if (auto bytes = cached(key)) { m_image->loadFromData(std::move(*bytes), CCImage::kFmtJpg); return; }
+            if (auto bytes = cached(key)) { decode(std::move(*bytes), CCImage::kFmtJpg); return; }
             auto generation = m_generation;
             m_task.spawn("MuchoCore profile image", web::WebRequest().timeout(std::chrono::seconds(12)).followRedirects(false)
                 .header("Content-Type", "application/x-www-form-urlencoded")
@@ -96,7 +103,7 @@ namespace mucho::profile {
                         size->width != (kind == "avatar" ? 256u : 960u) || size->height != (kind == "avatar" ? 256u : 320u)) {
                         m_hint->setString("Image unavailable"); return;
                     }
-                    cache(key, bytes); m_image->loadFromData(bytes, CCImage::kFmtJpg);
+                    cache(key, bytes); decode(bytes, CCImage::kFmtJpg);
                 });
         }
         static Artwork* create(CCSize size) {
@@ -111,6 +118,5 @@ namespace mucho::profile {
             node->m_hint->setOpacity(140); node->addChild(node->m_hint, 2);
             node->empty(); node->autorelease(); return node;
         }
-        ~Artwork() override { if (m_image) m_image->cancelLoad(); }
     };
 }
