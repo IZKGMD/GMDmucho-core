@@ -97,6 +97,7 @@ class MuchoClanLeaderboardPopup final : public geode::Popup {
             }
             label(row, mucho::clans::formattedCounter(score(clan)), 325.f, 13.5f, .34f, 99.f);
             auto item = mucho::button(row, this, menu_selector(MuchoClanLeaderboardPopup::onClan));
+            item->m_scaleMultiplier = 1.03f;
             item->setTag(id(clan, "clan_id")); item->setEnabled(!m_busy);
             item->setPosition({210.f, 170.f - i * 29.f});
             auto menu = CCMenu::create(); menu->setPosition({0.f, 0.f}); menu->addChild(item);
