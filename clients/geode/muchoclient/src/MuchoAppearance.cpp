@@ -201,12 +201,22 @@ class $modify(MuchoColorProfile, ProfilePage) {
         if (auto old = m_mainLayer->getChildByID("mucho-profile-menu")) old->removeFromParent();
         auto origin = mucho::profile::origin();
         if (!mucho::appearance::validOrigin(origin)) return;
-        auto size = CCDirector::get()->getWinSize();
-        if (auto header = mucho::profile::Header::create(origin,score->m_accountID)) {
-            header->setID("mucho-profile-header"); header->setPosition({size.width/2-175,size.height/2+102});
+        // The profile can be moved/scaled by GD or other mods. Keep artwork
+        // inside its own background, in the same coordinate space as the label.
+        auto background = m_mainLayer->getChildByID("background");
+        if (!background) background = m_mainLayer->getChildByType<CCScale9Sprite>(0);
+        if (!background || !m_usernameLabel) return;
+        auto bounds = background->boundingBox();
+        if (bounds.size.width < 180 || bounds.size.height < 80) return;
+        auto nameCenter = m_mainLayer->convertToNodeSpace(m_usernameLabel->convertToWorldSpace(m_usernameLabel->getContentSize()/2));
+        CCSize headerSize{std::min(344.f,bounds.size.width-80.f),28.f};
+        float headerY = std::clamp(nameCenter.y-headerSize.height/2,bounds.getMinY()+8.f,bounds.getMaxY()-8.f-headerSize.height);
+        if (auto header = mucho::profile::Header::create(origin,score->m_accountID,headerSize)) {
+            header->setID("mucho-profile-header"); header->setPosition({bounds.getMidX()-headerSize.width/2,headerY});
             m_mainLayer->addChild(header,1);
         }
-        auto menu = CCMenu::create(); menu->setID("mucho-profile-menu"); menu->setPosition({size.width/2+174,size.height/2+125});
+        auto menu = CCMenu::create(); menu->setID("mucho-profile-menu");
+        menu->setPosition({bounds.getMaxX()-40.f,std::clamp(nameCenter.y,bounds.getMinY()+14.f,bounds.getMaxY()-14.f)});
         auto button = mucho::button(ButtonSprite::create("Art"),this,menu_selector(MuchoColorProfile::onMuchoProfile),.32f);
         button->setID("mucho-profile-art-button"); menu->addChild(button); m_mainLayer->addChild(menu,25);
     }
