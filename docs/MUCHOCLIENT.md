@@ -106,17 +106,28 @@ Server plugins remain trusted executable PHP; the SDK capability list is
 - Operators may choose to *promote* the extras experience as their standard
   2.2 client pack in the future; that must not silently break legacy clients.
 
-## Initial implementation and limitations
+## Native clan manager v0.4.0
 
-The initial Geode code targets GD 2.2081 (Windows and Android) and shows
-up to six server-provided features in a simple MuchoClient popup.
-This is source-only: building and real-client testing still need a matching
-Geode SDK, C++ toolchain and platform build.
+MuchoClient targets GD 2.2081 and Geode 5.10.1 on Windows x64, Android ARM64
+and ARMv7. One combined `.geode` includes the three native builds.
 
-Not yet delivered: a native clan manager, dynamic level objects/assets,
-quest UI, events timeline, authenticated extension actions, client package
-signatures, one-click bundled installation or a compiled .geode binary.
-These are separate future milestones.
+The native clan manager authenticates using the current game's account ID
+and GJP2. It includes open/invite-only creation, paged search, joining,
+leaving, complete member lists, invitations and owner/officer management:
+roles, kicking, bans, settings, ownership transfer and disbanding. All writes
+are authorized by MuchoCore, regardless of the client's displayed controls.
 
-The client must not execute downloaded native code/JavaScript or inject
+`POST /api/clans/invites/sent` returns outgoing invitations to owners and
+officers. `/api/clans/search` accepts bounded `offset` and `limit` values and
+adds `has_more` to its response. Existing clients may ignore these fields.
+Both the core and the companion should be updated for these new capabilities.
+
+Controls keep a consistent scale after selection, block repeat requests
+while loading, retain form values on errors and cancel pending callbacks
+when the window closes. Test the installed game on real devices after native
+CI compilation and the isolated MariaDB clan lifecycle tests pass.
+
+Dynamic level objects/assets, quest UI, events timelines, client package
+signatures and one-click bundled installation remain separate milestones.
+The client never executes downloaded native code/JavaScript or injects
 arbitrary texture assets from unaudited module manifests.

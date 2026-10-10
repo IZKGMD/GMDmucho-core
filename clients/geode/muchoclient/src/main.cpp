@@ -1,5 +1,6 @@
 #include <Geode/Geode.hpp>
 #include "MuchoClansPopup.hpp"
+#include "MuchoUi.hpp"
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/ui/Popup.hpp>
 #include <Geode/utils/web.hpp>
@@ -16,7 +17,7 @@ using namespace geode::prelude;
 
 namespace {
     constexpr char const* CLIENT_ID = "izkgmd.muchoclient";
-    constexpr char const* CLIENT_VERSION = "0.3.0";
+    constexpr char const* CLIENT_VERSION = "0.4.0";
     constexpr int PROTOCOL = 1;
 
     struct Feature {
@@ -58,7 +59,7 @@ namespace {
         ) != 3) {
             return false;
         }
-        return std::tuple{0u, 3u, 0u} >= std::tuple{major, minor, patch};
+        return std::tuple{0u, 4u, 0u} >= std::tuple{major, minor, patch};
     }
 
     // Untrusted server text is displayed only, never evaluated as UI markup.
@@ -110,7 +111,7 @@ protected:
         if (!Popup::init(340.f, 270.f)) return false;
         m_origin = std::move(origin);
         m_features = std::move(features);
-        this->setTitle("MuchoClient | Modules");
+        this->setTitle("MuchoClient v0.4.0");
 
         auto status = CCLabelBMFont::create(
             "Connected to MuchoCore", "goldFont.fnt"
@@ -124,12 +125,10 @@ protected:
         size_t count = std::min(m_features.size(), size_t{5});
         for (size_t i = 0; i < count; ++i) {
             auto text = displaySafe(m_features[i].name, 22);
-            auto button = CCMenuItemSpriteExtra::create(
-                ButtonSprite::create(text.c_str()),
-                this,
-                menu_selector(MuchoFeaturesPopup::onFeature)
+            auto button = mucho::button(
+                ButtonSprite::create(text.c_str()), this,
+                menu_selector(MuchoFeaturesPopup::onFeature), .67f
             );
-            button->setScale(.67f);
             button->setTag(static_cast<int>(i));
             button->setPosition({0.f, 76.f - static_cast<float>(i) * 37.f});
             menu->addChild(button);
@@ -159,13 +158,13 @@ protected:
         if (index < 0 || static_cast<size_t>(index) >= m_features.size()) return;
         auto feature = m_features[static_cast<size_t>(index)];
 
-        if (feature.id == "clans" && feature.entrypoint == "/api/clans/my") {
+        if (feature.entrypoint == "/api/clans/my") {
             if (auto popup = MuchoClansPopup::create(m_origin)) popup->show();
             return;
         }
 
         if (!safeFeaturePath(feature.entrypoint)) {
-            showInfo(feature.name, "This module needs in-game account integration.");
+            showInfo(feature.name, "Unsupported module entrypoint. Check the server manifest.");
             return;
         }
 
@@ -230,7 +229,7 @@ class $modify(MuchoMenuLayer, MenuLayer) {
 
     bool init() {
         if (!MenuLayer::init()) return false;
-        auto button = CCMenuItemSpriteExtra::create(
+        auto button = mucho::button(
             ButtonSprite::create("Mucho"),
             this,
             menu_selector(MuchoMenuLayer::onMucho)

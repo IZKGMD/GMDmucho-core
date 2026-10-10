@@ -102,7 +102,7 @@ final readonly class ClanRepository
              FROM mucho_clans c
              INNER JOIN accounts a ON a.account_id=c.owner_account_id
              WHERE c.name LIKE :name OR c.tag LIKE :tag
-             ORDER BY c.created_at DESC
+             ORDER BY c.created_at DESC, c.clan_id DESC
              LIMIT '.(int)$limit.' OFFSET '.(int)$offset
         );
         $stmt->execute([
@@ -808,26 +808,50 @@ final readonly class ClanRepository
 
     public function removeMember(int $clanId, int $accountId): bool
     {
-        $stmt=$this->pdo->prepare(
-            'DELETE FROM mucho_clan_members
-             WHERE clan_id=:clan_id AND account_id=:account_id'
-        );
-        $stmt->execute([
-            'clan_id'=>$clanId,
-            'account_id'=>$accountId,
-        ]);
-
-        return $stmt->rowCount()>0;
+        $this->pdo->beginTransaction();
+        try {
+            $clan=$this->lockedClan($clanId);
+            $member=$this->member($clanId,$accountId);
+            if (!$clan || !$member) {
+                $this->pdo->commit();
+                return false;
+            }
+            // Recheck after the clan lock: ownership may have changed since
+            // the service's initial membership read.
+            if ((string)$member['role']==='owner') {
+                throw new RuntimeException('Clan owner cannot leave the clan.');
+            }
+            $stmt=$this->pdo->prepare(
+                'DELETE FROM mucho_clan_members
+                 WHERE clan_id=:clan_id AND account_id=:account_id'
+            );
+            $stmt->execute(['clan_id'=>$clanId,'account_id'=>$accountId]);
+            $this->pdo->commit();
+            return $stmt->rowCount()>0;
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $e;
+        }
     }
 
 
     public function invite(int $clanId, int $accountId, int $invitedBy): bool
     {
-        if ($this->isBanned($clanId,$accountId)) {
-            throw new RuntimeException('Target account is banned from this clan.');
-        }
-
-        $stmt=$this->pdo->prepare(
+        $this->pdo->beginTransaction();
+        try {
+            $clan=$this->lockedClan($clanId);
+            $actor=$this->member($clanId,$invitedBy);
+            if (!$clan || !$actor || !in_array((string)$actor['role'],['owner','officer'],true)) {
+                throw new RuntimeException('Clan officer permission required.');
+            }
+            if ($accountId<=0 || $accountId===$invitedBy) throw new RuntimeException('Invalid invite target.');
+            $account=$this->pdo->prepare('SELECT 1 FROM accounts WHERE account_id=:account_id LIMIT 1');
+            $account->execute(['account_id'=>$accountId]);
+            if ($account->fetchColumn()===false) throw new RuntimeException('Target account not found.');
+            if ($this->getForAccount($accountId)!==null) throw new RuntimeException('Target account is already in a clan.');
+            if ((int)$clan['member_count']>=(int)$clan['max_members']) throw new RuntimeException('Clan is full.');
+            if ($this->isBanned($clanId,$accountId)) throw new RuntimeException('Target account is banned from this clan.');
+            $stmt=$this->pdo->prepare(
             "INSERT INTO mucho_clan_invites
                 (clan_id, account_id, invited_by_account_id, expires_at)
              VALUES
@@ -838,11 +862,17 @@ final readonly class ClanRepository
                 expires_at=DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 DAY)"
         );
 
-        return $stmt->execute([
-            'clan_id'=>$clanId,
-            'account_id'=>$accountId,
-            'invited_by'=>$invitedBy,
-        ]);
+            $result=$stmt->execute([
+                'clan_id'=>$clanId,
+                'account_id'=>$accountId,
+                'invited_by'=>$invitedBy,
+            ]);
+            $this->pdo->commit();
+            return $result;
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $e;
+        }
     }
 
     public function getInvite(int $inviteId, int $accountId): ?array
@@ -877,6 +907,21 @@ final readonly class ClanRepository
         ]);
 
         return $stmt->rowCount()>0;
+    }
+
+    public function sentInvitations(int $clanId): array
+    {
+        $stmt=$this->pdo->prepare(
+            'SELECT i.invite_id, i.account_id, i.created_at, i.expires_at,
+                    a.username, sender.username AS invited_by_username
+             FROM mucho_clan_invites i
+             INNER JOIN accounts a ON a.account_id=i.account_id
+             INNER JOIN accounts sender ON sender.account_id=i.invited_by_account_id
+             WHERE i.clan_id=:clan_id AND i.expires_at>UTC_TIMESTAMP()
+             ORDER BY i.created_at DESC, i.invite_id DESC'
+        );
+        $stmt->execute(['clan_id'=>$clanId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function invitations(int $accountId): array

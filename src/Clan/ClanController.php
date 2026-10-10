@@ -6,6 +6,7 @@ namespace MuchoCore\Clan;
 
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
+use PDOException;
 use Throwable;
 
 final readonly class ClanController
@@ -51,12 +52,19 @@ final readonly class ClanController
     public function search(Request $request): Response
     {
         return $this->run(function() use ($request): array {
+            $offset=max(0,min(100000,$request->postInt('offset')));
+            $limit=max(1,min(50,$request->postInt('limit',20)));
+            $clans=$this->service->search(
+                $request->postInt('accountID'),
+                $request->gdCredential(),
+                $request->postString('query'),
+                $offset,
+                $limit+1
+            );
             return [
-                'clans'=>$this->service->search(
-                    $request->postInt('accountID'),
-                    $request->gdCredential(),
-                    $request->postString('query')
-                ),
+                'clans'=>array_slice($clans,0,$limit),
+                'has_more'=>count($clans)>$limit,
+                'offset'=>$offset,
             ];
         });
     }
@@ -257,6 +265,16 @@ final readonly class ClanController
         });
     }
 
+    public function sentInvites(Request $request): Response
+    {
+        return $this->run(fn(): array => [
+            'invites'=>$this->service->sentInvites(
+                $request->postInt('accountID'),
+                $request->gdCredential()
+            ),
+        ]);
+    }
+
     private function run(callable $action): Response
     {
         try {
@@ -273,7 +291,11 @@ final readonly class ClanController
 
             return Response::json([
                 'ok'=>false,
-                'error'=>$e->getMessage(),
+                'error'=>$e instanceof PDOException
+                    ? ((int)($e->errorInfo[1] ?? 0)===1062
+                        ? 'Clan name or tag already exists.'
+                        : 'Clan storage is unavailable. Check the server logs.')
+                    : $e->getMessage(),
             ],400);
         }
     }

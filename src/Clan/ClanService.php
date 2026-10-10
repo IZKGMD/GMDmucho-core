@@ -7,6 +7,7 @@ namespace MuchoCore\Clan;
 use MuchoCore\Account\AccountAuthenticator;
 use PDO;
 use RuntimeException;
+use Throwable;
 
 final readonly class ClanService
 {
@@ -81,9 +82,9 @@ final readonly class ClanService
         return $clan;
     }
 
-    public function search(int $accountId,string $credential,string $query): array {
+    public function search(int $accountId,string $credential,string $query,int $offset=0,int $limit=20): array {
         $this->auth->authenticate($accountId,$credential);
-        return $this->repository->search(trim($query),0,20);
+        return $this->repository->search(substr(trim($query),0,48),max(0,min(100000,$offset)),max(1,min(51,$limit)));
     }
 
     public function join(int $accountId,string $credential,int $clanId): bool {
@@ -415,8 +416,8 @@ final readonly class ClanService
         $this->auth->authenticate($accountId,$credential);
 
         $clan=$this->repository->getForAccount($accountId);
-        if ($clan===null) {
-            throw new RuntimeException('You are not in a clan.');
+        if ($clan===null || !in_array((string)$clan['role'],['owner','officer'],true)) {
+            throw new RuntimeException('Clan officer permission required.');
         }
 
         return $this->repository->bans((int)$clan['clan_id']);
@@ -425,6 +426,15 @@ final readonly class ClanService
     public function invites(int $accountId,string $credential): array {
         $this->auth->authenticate($accountId,$credential);
         return $this->repository->invitations($accountId);
+    }
+
+    public function sentInvites(int $accountId,string $credential): array {
+        $this->auth->authenticate($accountId,$credential);
+        $clan=$this->repository->getForAccount($accountId);
+        if ($clan===null || !in_array((string)$clan['role'],['owner','officer'],true)) {
+            throw new RuntimeException('Clan officer permission required.');
+        }
+        return $this->repository->sentInvitations((int)$clan['clan_id']);
     }
 
     private function audit(
@@ -475,10 +485,8 @@ final readonly class ClanService
     }
 
     private function normalizeDescription(string $description): string {
-        return substr(
-            trim(preg_replace('/\s+/',' ',$description) ?? ''),
-            0,
-            160
-        );
+        $description=trim(preg_replace('/\s+/u',' ',$description) ?? '');
+        preg_match('/^.{0,160}/us',$description,$match);
+        return $match[0] ?? '';
     }
 }
