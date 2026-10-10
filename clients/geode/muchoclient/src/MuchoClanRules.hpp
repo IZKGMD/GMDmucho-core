@@ -2,10 +2,17 @@
 
 #include <algorithm>
 #include <climits>
+#include <cstdint>
 #include <string>
 #include <string_view>
 
 namespace mucho::clans {
+    inline std::string formattedCounter(uint64_t value) {
+        auto text = std::to_string(value);
+        for (int i = static_cast<int>(text.size()) - 3; i > 0; i -= 3) text.insert(i, ",");
+        return text;
+    }
+
     inline int positiveId(std::string_view value) {
         if (value.empty()) return 0;
         int result = 0;

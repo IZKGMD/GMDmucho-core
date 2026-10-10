@@ -29,7 +29,7 @@ class MuchoClansPopup final : public geode::Popup {
     matjson::Value m_my, m_selected, m_member;
     Rows m_results, m_invites, m_sent, m_bans;
     Draft m_draft;
-    int m_page = 0, m_searchPage = 0, m_target = 0;
+    int m_page = 0, m_searchPage = 0, m_target = 0, m_openClan = 0;
     bool m_loaded = false, m_busy = false, m_closed = false, m_edit = false;
     bool m_remoteSearch = false, m_hasMore = false, m_renderQueued = false;
     unsigned m_generation = 0;
@@ -385,7 +385,12 @@ class MuchoClansPopup final : public geode::Popup {
                         m_my = data; m_loaded = true;
                         m_view = hasClan() ? m_afterRefresh : View::My;
                         if (!manager() && m_view == View::Manage) m_view = View::My;
-                        m_page = 0; break;
+                        m_page = 0;
+                        if (m_openClan > 0) {
+                            int clan = m_openClan; m_openClan = 0;
+                            request(Action::Detail, "/api/clans/get", {{"clanID", std::to_string(clan)}}); return;
+                        }
+                        break;
                     case Action::Search:
                         if (!data["clans"].isArray()) { fail("Invalid clan search response."); return; }
                         m_results = rows(data["clans"]); m_remoteSearch = data["has_more"].isBool();
@@ -514,9 +519,9 @@ class MuchoClansPopup final : public geode::Popup {
     }
 
 protected:
-    bool init(std::string origin) {
+    bool init(std::string origin, int clanId) {
         if (!Popup::init(420.f, 306.f)) return false;
-        m_origin = std::move(origin); setTitle("Mucho | Clans v0.4.0");
+        m_origin = std::move(origin); m_openClan = clanId; setTitle("Mucho | Clans v0.5.0");
         m_body = CCNode::create(); m_mainLayer->addChild(m_body);
         render(); request(Action::My, "/api/clans/my"); return true;
     }
@@ -527,9 +532,9 @@ protected:
         m_closed = true; ++m_generation; m_task.cancel(); Popup::onExit();
     }
 public:
-    static MuchoClansPopup* create(std::string origin) {
+    static MuchoClansPopup* create(std::string origin, int clanId = 0) {
         auto popup = new MuchoClansPopup();
-        if (popup->init(std::move(origin))) { popup->autorelease(); return popup; }
+        if (popup->init(std::move(origin), clanId)) { popup->autorelease(); return popup; }
         delete popup; return nullptr;
     }
 };

@@ -1,7 +1,9 @@
 #include <Geode/Geode.hpp>
 #include "MuchoClansPopup.hpp"
 #include "MuchoUi.hpp"
+#include "MuchoClanLeaderboardPopup.hpp"
 #include <Geode/modify/MenuLayer.hpp>
+#include <Geode/modify/CreatorLayer.hpp>
 #include <Geode/ui/Popup.hpp>
 #include <Geode/utils/web.hpp>
 #include <Geode/utils/async.hpp>
@@ -17,7 +19,7 @@ using namespace geode::prelude;
 
 namespace {
     constexpr char const* CLIENT_ID = "izkgmd.muchoclient";
-    constexpr char const* CLIENT_VERSION = "0.4.0";
+    constexpr char const* CLIENT_VERSION = "0.5.0";
     constexpr int PROTOCOL = 1;
 
     struct Feature {
@@ -59,7 +61,7 @@ namespace {
         ) != 3) {
             return false;
         }
-        return std::tuple{0u, 4u, 0u} >= std::tuple{major, minor, patch};
+        return std::tuple{0u, 5u, 0u} >= std::tuple{major, minor, patch};
     }
 
     // Untrusted server text is displayed only, never evaluated as UI markup.
@@ -111,7 +113,7 @@ protected:
         if (!Popup::init(340.f, 270.f)) return false;
         m_origin = std::move(origin);
         m_features = std::move(features);
-        this->setTitle("MuchoClient v0.4.0");
+        this->setTitle("MuchoClient v0.5.0");
 
         auto status = CCLabelBMFont::create(
             "Connected to MuchoCore", "goldFont.fnt"
@@ -369,5 +371,32 @@ class $modify(MuchoMenuLayer, MenuLayer) {
                 );
             }
         );
+    }
+};
+
+class $modify(MuchoCreatorLayer, CreatorLayer) {
+    bool init() {
+        if (!CreatorLayer::init()) return false;
+        auto size = CCDirector::sharedDirector()->getWinSize();
+        float x = size.width / 2.f;
+        if (auto scores = this->getChildByIDRecursive("scores-button")) {
+            auto bounds = scores->getContentSize();
+            x = scores->convertToWorldSpace({bounds.width / 2.f, bounds.height / 2.f}).x;
+        }
+        auto item = mucho::button(ButtonSprite::create("CLANS"), this,
+                                   menu_selector(MuchoCreatorLayer::onClanScores), .52f);
+        item->setID("clan-leaderboards-button");
+        auto menu = CCMenu::create(); menu->setID("mucho-clan-leaderboards-menu");
+        menu->setPosition({std::clamp(x, 80.f, size.width - 80.f), size.height - 16.f});
+        menu->addChild(item); this->addChild(menu, 20);
+        return true;
+    }
+    void onClanScores(CCObject*) {
+        auto origin = Mod::get()->getSettingValue<std::string>("server-url");
+        while (!origin.empty() && origin.back() == '/') origin.pop_back();
+        if (!validOrigin(origin)) {
+            showInfo("Clan Leaderboards", "Enter your GDPS HTTPS URL in MuchoClient settings first."); return;
+        }
+        if (auto popup = MuchoClanLeaderboardPopup::create(origin)) popup->show();
     }
 };

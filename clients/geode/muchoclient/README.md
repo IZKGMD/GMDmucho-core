@@ -1,4 +1,4 @@
-# MuchoClient — one Geode mod for server extensions (v0.4.0)
+# MuchoClient — one Geode mod for server extensions (v0.5.0)
 
 MuchoClient connects Geometry Dash 2.2081 (Windows and Android) to MuchoCore.
 Players install **one .geode file**. Server-side PHP plugins publish safe,
@@ -20,7 +20,7 @@ client does not download or execute plugin code.
   edit the `MuchoCore Server URL` Geode setting (HTTPS origin, without
   `/database`).
 - The client GETs `/muchoclient/manifest`, validates the feature catalog, and
-  POSTs `/muchoclient/negotiate` with `client_version=0.4.0&protocol=1`.
+  POSTs `/muchoclient/negotiate` with `client_version=0.5.0&protocol=1`.
 - Compatible clients display a popup of feature buttons. Public extension
   endpoints under `/extensions/` return constrained JSON text.
 
@@ -58,7 +58,7 @@ See the example's README for detailed steps.
 - Real-device runtime testing is still required; successful native CI
   compilation does not guarantee a running VPS or installed game behavior.
 
-## Clans v0.4.0
+## Clans v0.5.0
 
 The Clans window uses the current Geometry Dash account ID and GJP2, with
 server authorization for every operation. It supports browsing and paged
@@ -93,3 +93,22 @@ TEST_DB_HOST=127.0.0.1 TEST_DB_PORT=3306 TEST_DB_ROOT_PASSWORD=YOUR_TEST_PASSWOR
 The integration test creates and drops a randomly named test database. Never
 point it at production. Native compilation and these API tests do not replace
 verification inside the installed game on Windows and Android.
+
+## Clan leaderboards v0.5.0
+
+The **CLANS** button above Scores in the Create / Saved / Scores menu opens
+public clan rankings. Tabs rank current member totals for stars, demons, moons,
+diamonds, user coins, secret coins and creator points. Each row shows its global
+rank, clan name/tag, membership count and total; click it to open the clan.
+The current account's clan is highlighted and its rank is available even when
+it is outside the selected page. Viewing rankings does not require login;
+opening clan management still uses the authenticated game account.
+
+The core serves `POST /api/clans/leaderboard` with `metric` (default `stars`),
+`offset`, `limit` (1–50), and optional `accountID` for the public own-clan rank.
+Totals include current members only, exclude banned/inactive accounts, and
+use stored MuchoCore profiles. Joining, leaving and profile updates affect the
+next refresh. Equal totals use clan ID order, matching sequential player ranks.
+There is no invented combined score or new database migration. Update both
+the mod and core. Large totals use 64-bit numbers. Native game testing remains
+necessary after CI compilation and MariaDB integration tests.
