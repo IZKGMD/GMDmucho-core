@@ -48,7 +48,7 @@ jobs:
         uses: geode-sdk/build-geode-mod@main
         with:
           target: ${{ matrix.platform.target }}
-          sdk: latest
+          sdk: given
           build-config: Release
           use-lto: false
           combine: true
