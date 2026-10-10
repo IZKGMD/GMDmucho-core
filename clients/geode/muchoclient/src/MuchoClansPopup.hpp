@@ -374,7 +374,7 @@ class MuchoClansPopup final : public geode::Popup {
                     auto const& item = items[i]; float y = 181.f - i * (contributions ? 31.f : 43.f);
                     if (contributions) {
                         auto node = label("#" + std::to_string(m_extraPage * 4 + i + 1) + " " + str(item, "username"), 132.f, y, .33f, 211.f);
-                        if (auto rgb = mucho::appearance::rgb(str(item, "nickname_color"))) node->setColor(*rgb);
+                        node->setColor(mucho::appearance::rgb(str(item, "nickname_color")));
                         label(std::to_string(score(item, "contribution")) + " " + str(m_quest, "metric"), 326.f, y, .31f, 140.f);
                         if (!item["is_member"].asBool().unwrapOr(true)) label("Former member", 132.f, y - 12.f, .2f, 211.f);
                     } else {
