@@ -201,7 +201,7 @@ $clientCpp = (string)file_get_contents($geodeRoot . '/src/main.cpp');
 
 $check(
     ($metadata['id'] ?? '') === 'izkgmd.muchoclient' &&
-    ($metadata['version'] ?? '') === 'v0.2.1' &&
+    ($metadata['version'] ?? '') === 'v0.3.0' &&
     isset($metadata['gd']['win'], $metadata['gd']['android']) &&
     isset($metadata['settings']['server-url']),
     'Geode companion metadata declares compatible client id and settings'
@@ -212,6 +212,19 @@ $check(
     !str_contains($clientCpp, 'certVerification(false)'),
     'native client scaffold uses discovery path and retains HTTPS verification'
 );
+
+$clanUi = (string)file_get_contents($geodeRoot . '/src/MuchoClansPopup.hpp');
+$check(
+    str_contains($clientCpp, 'MuchoClansPopup::create') &&
+    str_contains($clanUi, 'GJAccountManager::sharedState()') &&
+    str_contains($clanUi, 'account->m_GJP2') &&
+    str_contains($clanUi, '"/api/clans/create"') &&
+    str_contains($clanUi, '"/api/clans/join"') &&
+    str_contains($clanUi, '"/api/clans/invites"') &&
+    str_contains($clanUi, '.followRedirects(false)'),
+    'authenticated Clans UI uses the game account and server clan routes'
+);
+
 
 
 // End-to-end plugin MVP contract: a standalone server plugin advertises one
