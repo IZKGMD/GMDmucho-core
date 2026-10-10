@@ -1,4 +1,5 @@
 #include <Geode/Geode.hpp>
+#include "MuchoClansPopup.hpp"
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/ui/Popup.hpp>
 #include <Geode/utils/web.hpp>
@@ -15,7 +16,7 @@ using namespace geode::prelude;
 
 namespace {
     constexpr char const* CLIENT_ID = "izkgmd.muchoclient";
-    constexpr char const* CLIENT_VERSION = "0.2.1";
+    constexpr char const* CLIENT_VERSION = "0.3.0";
     constexpr int PROTOCOL = 1;
 
     struct Feature {
@@ -57,7 +58,7 @@ namespace {
         ) != 3) {
             return false;
         }
-        return std::tuple{0u, 2u, 1u} >= std::tuple{major, minor, patch};
+        return std::tuple{0u, 3u, 0u} >= std::tuple{major, minor, patch};
     }
 
     // Untrusted server text is displayed only, never evaluated as UI markup.
@@ -158,8 +159,11 @@ protected:
         if (index < 0 || static_cast<size_t>(index) >= m_features.size()) return;
         auto feature = m_features[static_cast<size_t>(index)];
 
-        // Core Clans is authenticated; this proof-of-concept never pretends
-        // that an unauthenticated public call grants access to account data.
+        if (feature.id == "clans" && feature.entrypoint == "/api/clans/my") {
+            if (auto popup = MuchoClansPopup::create(m_origin)) popup->show();
+            return;
+        }
+
         if (!safeFeaturePath(feature.entrypoint)) {
             showInfo(feature.name, "This module needs in-game account integration.");
             return;
