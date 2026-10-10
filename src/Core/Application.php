@@ -26,6 +26,8 @@ use MuchoCore\CloudSave\CloudSaveService;
 use MuchoCore\Clan\ClanController;
 use MuchoCore\Clan\ClanRepository;
 use MuchoCore\Clan\ClanService;
+use MuchoCore\Appearance\AppearanceController;
+use MuchoCore\Appearance\AppearanceService;
 use MuchoCore\Compatibility\CompatibilityProfile;
 use MuchoCore\CloudSave\CloudSaveRepository;
 use MuchoCore\CloudSave\CloudSaveController;
@@ -246,6 +248,7 @@ final readonly class Application
             )
         );
 
+        $appearanceController = new AppearanceController(new AppearanceService($this->pdo,$auth));
         $discoveryController = new DiscoveryController($this->pdo);
 
         $levelScoreController = new LevelScoreController($this->pdo, $auth);
@@ -469,6 +472,10 @@ final readonly class Application
             [$clanController,'unban']);
         $route('/api/clans/bans',
             [$clanController,'bans']);
+
+        $route('/api/appearance/batch',[$appearanceController,'batch']);
+        $route('/api/appearance/my',[$appearanceController,'mine']);
+        $route('/api/appearance/save',[$appearanceController,'save']);
 
         $route('/getGJCreators',
             [$discoveryController,'creators']);

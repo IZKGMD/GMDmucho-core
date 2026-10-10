@@ -13,6 +13,8 @@ use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Clan\ClanController;
 use MuchoCore\Clan\ClanRepository;
 use MuchoCore\Clan\ClanService;
+use MuchoCore\Appearance\AppearanceController;
+use MuchoCore\Appearance\AppearanceService;
 use MuchoCore\Http\Request;
 
 function clanCheck(bool $condition,string $name): void {
@@ -42,7 +44,7 @@ try {
         is_active TINYINT NOT NULL DEFAULT 1, is_banned TINYINT NOT NULL DEFAULT 0
     ) ENGINE=InnoDB');
     foreach (require dirname(__DIR__,2).'/database/migrations/002_profiles.php' as $sql) $pdo->exec($sql);
-    foreach (['020_clans.php','20260926_002_clans_v2.php'] as $migration) {
+    foreach (['020_clans.php','20260926_002_clans_v2.php','20261010_001_appearance.php'] as $migration) {
         foreach (require dirname(__DIR__,2).'/database/migrations/'.$migration as $sql) $pdo->exec($sql);
     }
     $pdo->exec('CREATE TABLE audit_logs (id INT AUTO_INCREMENT PRIMARY KEY,account_id BIGINT,action VARCHAR(64),target_type VARCHAR(64),target_id BIGINT,metadata TEXT)');
@@ -56,6 +58,14 @@ try {
     $repository=new ClanRepository($pdo);
     $service=new ClanService($pdo,new AccountAuthenticator($pdo),$repository);
     $controller=new ClanController($service);
+    $appearance=new AppearanceController(new AppearanceService($pdo,new AccountAuthenticator($pdo)));
+    $colorCall=static function(string $method,int $id,array $fields=[],string $verb='POST') use ($appearance,$token): array {
+        $response=$appearance->$method(new Request($verb,'/api/appearance/test',[],
+            array_merge(['accountID'=>(string)$id,'gameVersion'=>'22','gjp2'=>$token($id)],$fields),[]));
+        $root=json_decode($response->body,true,32,JSON_THROW_ON_ERROR);
+        $root['http_status']=$response->status;
+        return $root;
+    };
     $call=static function(string $method,int $id,array $fields=[]) use ($controller,$token): array {
         $response=$controller->$method(new Request('POST','/api/clans/test',[],
             array_merge(['accountID'=>(string)$id,'gameVersion'=>'22','gjp2'=>$token($id)],$fields),[]));
@@ -85,6 +95,27 @@ try {
     $ok($call('join',3,['clanID'=>$clanId]),'join second member');
     $denied($call('setRole',2,['targetAccountID'=>'3','role'=>'officer']),'member cannot assign roles');
     $ok($call('setRole',1,['targetAccountID'=>'2','role'=>'officer']),'owner promotes officer');
+    $default=$ok($colorCall('mine',1),'load default player appearance');
+    clanCheck($default['nickname_color']==='' && $default['prefix_color']==='FFD166' && $default['can_edit_prefix'],'default colors and owner permission');
+    $saved=$ok($colorCall('save',1,['nicknameColor'=>'#66ccff','prefixColor'=>'#bd93f9']),'owner saves personal and clan colors');
+    clanCheck($saved['nickname_color']==='66CCFF' && $saved['prefix_color']==='BD93F9','HEX normalized to uppercase');
+    $memberColor=$ok($colorCall('save',2,['nicknameColor'=>'FF6B6B']),'officer changes only their nickname');
+    clanCheck($memberColor['prefix_color']==='BD93F9' && !$memberColor['can_edit_prefix'],'clan prefix shared with every member');
+    $denied($colorCall('save',2,['nicknameColor'=>'000000','prefixColor'=>'FF0000']),'officer cannot edit clan prefix');
+    clanCheck($colorCall('mine',2)['data']['nickname_color']==='FF6B6B','unauthorized combined save does not partly change nickname');
+    $denied($colorCall('save',1,['nicknameColor'=>'<cR>']),'nickname rejects markup');
+    $denied($colorCall('save',1,['nicknameColor'=>'FFFFFF','prefixColor'=>'red']),'prefix rejects non-HEX');
+    $denied($colorCall('save',1,['nicknameColor'=>'FFFFFF','gjp2'=>str_repeat('a',40)]),'color writes authenticate the game account');
+    $denied($colorCall('save',7,['nicknameColor'=>'FFFFFF','prefixColor'=>'FF0000']),'unaffiliated player cannot set clan color');
+    $public=$ok($colorCall('batch',0,['accountIDs'=>'1,2,1,999']),'public bounded batch requires no account credential');
+    clanCheck(count($public['players'])===2 && $public['players'][0]['username']==='Player1' && $public['players'][0]['clan_tag']==='MCP','batch deduplicates IDs and omits nonexistent accounts');
+    clanCheck(!str_contains(json_encode($public),'gjp2') && !str_contains(json_encode($public),'password'),'public appearance exposes no credentials');
+    foreach (['1 OR 1=1','0','-1','2147483648','1,',''] as $bad) $denied($colorCall('batch',0,['accountIDs'=>$bad]),'batch rejects invalid ID '.$bad);
+    $denied($colorCall('batch',0,['accountIDs'=>implode(',',range(1,51))]),'batch rejects more than 50 accounts');
+    clanCheck($colorCall('batch',0,['accountIDs'=>'1'],'GET')['http_status']===405,'color API rejects GET');
+    $ok($colorCall('save',2,['nicknameColor'=>'DEFAULT']),'nickname reset to normal GD color');
+    clanCheck($colorCall('mine',2)['data']['nickname_color']==='','default reset persists on server');
+    clanCheck($call('myClan',1)['data']['prefix_color']==='BD93F9' && $call('leaderboard',1)['data']['own_clan']['prefix_color']==='BD93F9','clan pages and ranking expose prefix color');
     $denied($call('setRole',1,['targetAccountID'=>'3','role'=>'owner']),'owner role requires ownership transfer');
     $denied($call('kick',2,['targetAccountID'=>'1']),'officer cannot kick owner');
     $denied($call('ban',2,['targetAccountID'=>'1']),'officer cannot ban owner');
@@ -138,6 +169,9 @@ try {
     $ok($call('kick',1,['targetAccountID'=>'5']),'owner kicks member');
     $denied($call('transferOwnership',2,['targetAccountID'=>'3']),'officer cannot transfer ownership');
     $ok($call('transferOwnership',1,['targetAccountID'=>'2']),'ownership transfers atomically');
+    $denied($colorCall('save',1,['nicknameColor'=>'66CCFF','prefixColor'=>'FFFFFF']),'former owner loses color permission');
+    $ok($colorCall('save',2,['nicknameColor'=>'64E572','prefixColor'=>'56E5DE']),'new owner can change clan prefix');
+    clanCheck(!$colorCall('mine',1)['data']['can_edit_prefix'] && $colorCall('mine',2)['data']['can_edit_prefix'],'color permission follows ownership');
     clanCheck($call('myClan',1)['data']['role']==='officer' && $call('myClan',2)['data']['role']==='owner','old owner demoted and new owner promoted');
     $denied($call('disband',1),'old owner cannot disband');
     for ($id=10;$id<=34;$id++) $ok($create($id,'Search Clan '.$id,'T'.$id),'create search fixture '.$id);
@@ -195,8 +229,11 @@ try {
     $ok($call('acceptInvite',35,['inviteID'=>(string)$contributorInvite]),'add ranked contributor');
     clanCheck($call('leaderboard',35)['data']['own_clan']['score']===473,'joining adds current member stats');
     $ok($call('leave',35),'ranked contributor leaves');
+    clanCheck($colorCall('mine',35)['data']['clan_tag']==='','leaving removes public clan prefix');
     clanCheck($call('leaderboard',1)['data']['own_clan']['score']===350 && $call('leaderboard',35)['data']['own_clan']===null,'leaving removes contribution and own rank');
     $ok($call('disband',2),'new owner disbands');
+    clanCheck((int)$pdo->query('SELECT COUNT(*) FROM mucho_clan_appearance WHERE clan_id='.(int)$clanId)->fetchColumn()===0,'disband cascades stored clan color');
+    clanCheck($colorCall('mine',1)['data']['clan_tag']==='' && $colorCall('mine',1)['data']['nickname_color']==='66CCFF','disband removes prefix but preserves personal nickname color');
     clanCheck($call('leaderboard',1)['data']['total_clans']===25 && $call('leaderboard',1)['data']['own_clan']===null,'disband removes clan from leaderboard');
     clanCheck($call('myClan',1)['data']===null && $call('myClan',3)['data']===null,'disband removes all memberships');
     clanCheck((int)$pdo->query('SELECT COUNT(*) FROM mucho_clan_invites WHERE clan_id='.(int)$clanId)->fetchColumn()===0,'disband cascades invitations');

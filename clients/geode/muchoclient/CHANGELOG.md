@@ -1,3 +1,13 @@
+# v0.6.0
+
+- Persistent personal nickname colors and a shared clan prefix color controlled by its owner.
+- Native Colors editor with twelve presets, custom HEX, live preview, default reset and authenticated Save.
+- Colored names in player profiles, comments, player rankings and clan members; colored tags in clan listings and rankings.
+- Batched public color lookups with a bounded cache, lifecycle-safe label references and retry backoff.
+- Automatic color refresh after clan changes and saved appearance; preserves regular game accounts and username protocol.
+
+Update MuchoCore as well for the appearance API and its automatic database migration.
+
 # MuchoClient v0.5.0
 
 - Add CLANS ranking button to the CreatorLayer menu, above Scores.

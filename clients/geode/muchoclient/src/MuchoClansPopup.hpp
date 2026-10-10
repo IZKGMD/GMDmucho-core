@@ -7,6 +7,7 @@
 #include <Geode/utils/web.hpp>
 #include "MuchoClanRules.hpp"
 #include "MuchoUi.hpp"
+#include "MuchoColorsPopup.hpp"
 
 #include <chrono>
 #include <string>
@@ -74,13 +75,19 @@ class MuchoClansPopup final : public geode::Popup {
     void info(std::string const& message) {
         FLAlertLayer::create("Clans", clean(message, 400).c_str(), "OK")->show();
     }
-    void label(std::string const& text, float x, float y, float scale = .38f, float maxWidth = 390.f) {
+    CCLabelBMFont* label(std::string const& text, float x, float y, float scale = .38f, float maxWidth = 390.f) {
         auto node = CCLabelBMFont::create(clean(text).c_str(), "bigFont.fnt");
         node->setScale(scale);
         if (node->getScaledContentSize().width > maxWidth)
             node->setScale(maxWidth / node->getContentSize().width);
         node->setPosition({x, y});
         m_body->addChild(node);
+        return node;
+    }
+    void clanLabel(matjson::Value const& clan, float x, float y, float scale, float width = 390.f) {
+        auto node = label("", x, y, scale, width);
+        mucho::appearance::paint(node, clean(str(clan, "name")), mucho::clans::normalizedTag(str(clan, "tag")),
+            "", str(clan, "prefix_color"), width, scale);
     }
     void button(std::string const& text, float x, float y, SEL_MenuHandler handler,
                 int tag = 0, float scale = .55f) {
@@ -157,15 +164,17 @@ class MuchoClansPopup final : public geode::Popup {
                     label("You are not in a clan yet", 210.f, 177.f, .49f);
                     button("Find a clan", 112.f, 114.f, menu_selector(MuchoClansPopup::onBrowse));
                     button("Create clan", 308.f, 114.f, menu_selector(MuchoClansPopup::onCreateView));
+                    button("Colors", 210.f, 64.f, menu_selector(MuchoClansPopup::onColors), 0, .46f);
                 } else {
-                    label("[" + str(m_my, "tag") + "] " + str(m_my, "name"), 210.f, 198.f, .53f);
+                    clanLabel(m_my, 210.f, 198.f, .53f);
                     label("Role: " + role() + "  |  Members: " + std::to_string(num(m_my, "member_count")) +
                           "/" + std::to_string(num(m_my, "max_members")), 210.f, 168.f, .36f);
                     label(str(m_my, "description"), 210.f, 138.f, .32f);
                     button("Members", 110.f, 98.f, menu_selector(MuchoClansPopup::onMembers));
                     if (manager()) button("Manage", 310.f, 98.f, menu_selector(MuchoClansPopup::onManage));
                     else button("Leave", 310.f, 98.f, menu_selector(MuchoClansPopup::onLeave));
-                    button("Refresh", 210.f, 51.f, menu_selector(MuchoClansPopup::onMy), 0, .46f);
+                    button("Refresh", 110.f, 51.f, menu_selector(MuchoClansPopup::onMy), 0, .46f);
+                    button("Colors", 310.f, 51.f, menu_selector(MuchoClansPopup::onColors), 0, .46f);
                 }
                 break;
             case View::Browse: {
@@ -177,7 +186,7 @@ class MuchoClansPopup final : public geode::Popup {
                 for (size_t i = 0; i < 4 && offset + i < m_results.size(); ++i) {
                     auto const& clan = m_results[offset + i];
                     float y = 166.f - i * 28.f;
-                    label("[" + str(clan, "tag") + "] " + str(clan, "name"), 156.f, y, .34f, 269.f);
+                    clanLabel(clan, 156.f, y, .34f, 269.f);
                     button("View", 351.f, y, menu_selector(MuchoClansPopup::onChooseClan), static_cast<int>(offset + i), .4f);
                 }
                 label("Page " + std::to_string(m_searchPage + 1), 210.f, 42.f, .3f);
@@ -187,7 +196,7 @@ class MuchoClansPopup final : public geode::Popup {
                 break;
             }
             case View::Detail:
-                label("[" + str(m_selected, "tag") + "] " + str(m_selected, "name"), 210.f, 197.f, .5f);
+                clanLabel(m_selected, 210.f, 197.f, .5f);
                 label("Owner: " + str(m_selected, "owner_username"), 210.f, 168.f, .36f);
                 label("Members: " + std::to_string(num(m_selected, "member_count")) + "/" +
                       std::to_string(num(m_selected, "max_members")), 210.f, 141.f, .35f);
@@ -220,7 +229,8 @@ class MuchoClansPopup final : public geode::Popup {
                 pager(members.size(), 4);
                 for (size_t i = static_cast<size_t>(m_page * 4); i < members.size() && i < static_cast<size_t>((m_page + 1) * 4); ++i) {
                     auto const& member = members[i]; float y = 205.f - (i % 4) * 37.f;
-                    label(str(member, "username"), 108.f, y, .39f, 164.f);
+                    auto name = label(str(member, "username"), 108.f, y, .39f, 164.f);
+                    name->setColor(mucho::appearance::rgb(str(member, "nickname_color")));
                     label(str(member, "role"), 239.f, y, .3f, 85.f);
                     button("View", 353.f, y, menu_selector(MuchoClansPopup::onMember), static_cast<int>(i), .42f);
                 }
@@ -228,7 +238,7 @@ class MuchoClansPopup final : public geode::Popup {
                 break;
             }
             case View::Member: {
-                label(str(m_member, "username"), 210.f, 201.f, .53f);
+                label(str(m_member, "username"), 210.f, 201.f, .53f)->setColor(mucho::appearance::rgb(str(m_member, "nickname_color")));
                 label("Account " + std::to_string(num(m_member, "account_id")) + "  |  " + str(m_member, "role"), 210.f, 170.f, .35f);
                 bool own = m_back != View::Detail || num(m_selected, "clan_id") == num(m_my, "clan_id");
                 bool allowed = own && mucho::clans::canModerate(role(), accountId(), str(m_member, "role"), num(m_member, "account_id"));
@@ -409,6 +419,7 @@ class MuchoClansPopup final : public geode::Popup {
                     case Action::Revoke: request(Action::Sent, "/api/clans/invites/sent"); return;
                     case Action::Unban: request(Action::Bans, "/api/clans/bans"); return;
                     default:
+                        mucho::appearance::invalidate();
                         m_afterRefresh = action == Action::Kick || action == Action::Ban || action == Action::Role ? View::Members :
                                          action == Action::Settings || action == Action::Transfer ? View::Manage : View::My;
                         m_back = View::My; m_notice = "Saved";
@@ -423,6 +434,7 @@ class MuchoClansPopup final : public geode::Popup {
         request(Action::Search, "/api/clans/search", {{"query", m_query}, {"offset", std::to_string(requested * 4)}, {"limit", "4"}});
     }
     void onMy(CCObject*) { m_afterRefresh = View::My; request(Action::My, "/api/clans/my"); }
+    void onColors(CCObject*) { if (!m_busy) if (auto popup = MuchoColorsPopup::create(m_origin)) popup->show(); }
     void onBrowse(CCObject*) { search(true); }
     void onSearch(CCObject*) { search(true); }
     void onInvites(CCObject*) { request(Action::Invites, "/api/clans/invites"); }
@@ -521,7 +533,7 @@ class MuchoClansPopup final : public geode::Popup {
 protected:
     bool init(std::string origin, int clanId) {
         if (!Popup::init(420.f, 306.f)) return false;
-        m_origin = std::move(origin); m_openClan = clanId; setTitle("Mucho | Clans v0.5.0");
+        m_origin = std::move(origin); m_openClan = clanId; setTitle("Mucho | Clans v0.6.0");
         m_body = CCNode::create(); m_mainLayer->addChild(m_body);
         render(); request(Action::My, "/api/clans/my"); return true;
     }
