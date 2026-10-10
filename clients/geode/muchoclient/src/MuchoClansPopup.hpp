@@ -154,7 +154,7 @@ class MuchoClansPopup final : public geode::Popup {
             }
             case View::Search: {
                 m_queryInput = input("Name or tag", 144.f, 194.f, 224.f, 48);
-                m_queryInput->setString(m_query);
+                m_queryInput->setString(m_query, false);
                 button("Search", 328.f, 194.f, menu_selector(MuchoClansPopup::onSearch), 0, .54f);
                 if (m_results.empty()) {
                     label("No clans found. Try another query.", 200.f, 133.f, .37f);
@@ -243,7 +243,7 @@ class MuchoClansPopup final : public geode::Popup {
             case View::InviteMember:
                 label("Invite an account by its ID", 200.f, 179.f, .43f);
                 m_accountInput = input("Account ID", 200.f, 140.f, 170.f, 12);
-                m_accountInput->setCommonFilter(geode::CommonFilter::Uint);
+                m_accountInput->setFilter("0123456789");
                 button("Send invite", 200.f, 93.f, menu_selector(MuchoClansPopup::onInvite));
                 button("Back", 200.f, 47.f, menu_selector(MuchoClansPopup::onMy), 0, .5f);
                 break;
@@ -260,7 +260,7 @@ class MuchoClansPopup final : public geode::Popup {
             return;
         }
         std::string body = "accountID=" + std::to_string(account->m_accountID)
-                         + "&gameVersion=22&gjp2=" + escaped(account->m_GJP2);
+                         + "&gameVersion=22&gjp2=" + escaped(std::string(account->m_GJP2.c_str()));
         for (auto const& [key, value] : fields) {
             body += "&" + key + "=" + escaped(value);
         }
