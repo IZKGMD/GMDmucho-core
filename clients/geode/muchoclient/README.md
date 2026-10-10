@@ -1,4 +1,4 @@
-# MuchoClient — one Geode mod for server extensions (v0.2.1 preview)
+# MuchoClient — one Geode mod for server extensions (v0.3.0 clan preview)
 
 MuchoClient connects Geometry Dash 2.2081 (Windows and Android) to MuchoCore.
 Players install **one .geode file**. Server-side PHP plugins publish safe,
@@ -20,7 +20,7 @@ client does not download or execute plugin code.
   edit the `MuchoCore Server URL` Geode setting (HTTPS origin, without
   `/database`).
 - The client GETs `/muchoclient/manifest`, validates the feature catalog, and
-  POSTs `/muchoclient/negotiate` with `client_version=0.2.1&protocol=1`.
+  POSTs `/muchoclient/negotiate` with `client_version=0.3.0&protocol=1`.
 - Compatible clients display a popup of feature buttons. Public extension
   endpoints under `/extensions/` return constrained JSON text.
 
@@ -57,3 +57,16 @@ See the example's README for detailed steps.
   binaries. Standard GD endpoints remain independent of MuchoClient.
 - Real-device runtime testing is still required; successful native CI
   compilation does not guarantee a running VPS or installed game behavior.
+
+## Clans v0.3.0
+
+The built-in **Clans** module uses the signed-in Geometry Dash account's ID and
+GJP2 token to authenticate with MuchoCore's existing `/api/clans/*` routes.
+The mod does **not** save credentials, and every operation is checked by the
+MuchoCore server. The client can browse, view, create and join clans; show
+members; invite an account by ID; leave a clan (non-owners); and manage
+received invitations. The old Welcome server-plugin demo remains intact.
+
+Note: The first clan UI release does not yet implement owner moderation,
+clan settings, or ownership transfer in-game. Those server APIs already exist
+and can be added in a later update. Real-device regression tests are required.
