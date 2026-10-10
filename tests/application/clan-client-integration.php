@@ -263,6 +263,7 @@ try {
     $denied($quests('quests',35),'unaffiliated player cannot read quests');
     $denied($quests('activity',10,['clanID'=>$clanId,'gjp2'=>str_repeat('a',40)]),'activity requires valid authentication');
     clanCheck($quests('quests',1,[],'GET')['http_status']===405,'quest API rejects GET');
+    $ok($call('setRole',2,['targetAccountID'=>'3','role'=>'member']),'demote fixture officer for ordinary-member quest tests');
     $denied($quests('create',3,['metric'=>'stars','target'=>'100']),'ordinary member cannot start a quest');
     foreach ([['stars','99'],['demons','4'],['stars','100001'],['demons','1001'],['stars DESC','100']] as [$metric,$target]) {
         $denied($quests('create',2,['metric'=>$metric,'target'=>$target]),'quest validates metric and goal '.$metric.' '.$target);
