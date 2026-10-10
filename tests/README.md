@@ -26,3 +26,5 @@ bash tests/client/client-contract.sh
 bash tests/release/release-1.9-gate.sh
 bash tests/release/release-2.2-gate.sh
 ```
+
+Profile media tests: `php tests/application/profile-images.php` needs PHP GD and validates real decoding, crop/zoom/rotation, re-encoding, size bounds and invalid content. The clan-client MariaDB integration also exercises authenticated avatar/cover upload, independent slots, public versioned download, stale hashes, invalid crop preservation, removal, banned-account access and account deletion cascade.

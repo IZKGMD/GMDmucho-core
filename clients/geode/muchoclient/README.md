@@ -1,4 +1,4 @@
-# MuchoClient — one Geode mod for server extensions (v0.7.0)
+# MuchoClient — one Geode mod for server extensions (v0.8.0)
 
 MuchoClient connects Geometry Dash 2.2081 (Windows and Android) to MuchoCore.
 Players install **one .geode file**. Server-side PHP plugins publish safe,
@@ -58,7 +58,7 @@ See the example's README for detailed steps.
 - Real-device runtime testing is still required; successful native CI
   compilation does not guarantee a running VPS or installed game behavior.
 
-## Clans v0.7.0
+## Clans
 
 The Clans window uses the current Geometry Dash account ID and GJP2, with
 server authorization for every operation. It supports browsing and paged
@@ -94,7 +94,7 @@ The integration test creates and drops a randomly named test database. Never
 point it at production. Native compilation and these API tests do not replace
 verification inside the installed game on Windows and Android.
 
-## Clan leaderboards v0.7.0
+## Clan leaderboards
 
 The **CLANS** button above Scores in the Create / Saved / Scores menu opens
 public clan rankings. Tabs rank current member totals for stars, demons, moons,
@@ -117,11 +117,11 @@ necessary after CI compilation and MariaDB integration tests.
 
 Open **Mucho > Colors**, or **My Clan > Colors**. Choose **Nickname** to customize your own name. Clan owners can select **Clan prefix** to set the shared `[TAG]` color. Twelve swatches and six-digit HEX input update a live preview. Press **Save** to persist both settings; **Default** restores the normal nickname color or the golden clan prefix after saving.
 
-Colors appear to clients running v0.7.0 in profiles, comments and player rankings, and in native clan pages. Vanilla clients and older MuchoClient versions keep compatible text prefixes. Login names and authentication are unchanged. Public appearance is loaded in batches of at most 50 accounts and cached for 60 seconds; failed lookups retry after 30 seconds when a view is loaded again.
+Colors appear to clients running v0.8.0 in profiles, comments and player rankings, and in native clan pages. Vanilla clients and older MuchoClient versions keep compatible text prefixes. Login names and authentication are unchanged. Public appearance is loaded in batches of at most 50 accounts and cached for 60 seconds; failed lookups retry after 30 seconds when a view is loaded again.
 
 The server migration `20261010_001_appearance.php` creates two small tables. Colors survive restarts. Nickname colors belong to the account; clan prefix colors belong to the clan and its current owner. Leaving or disbanding removes the prefix but preserves nickname color.
 
-## Clan quests and activity v0.7.0
+## Clan quests and activity
 
 In **Mucho > Clans > My Clan**, open **Quests** or **Activity**. Owners and officers can start a seven-day goal: 100–100000 stars or 5–1000 demons. One active quest per metric is allowed; the last 20 quests are displayed. Completed quests retain their contribution rankings. Cancelling needs confirmation and stops further progress.
 
@@ -136,3 +136,30 @@ Update MuchoCore from `main` and run `php bin/migrate.php migrate` before using 
 - `/api/clans/quests/cancel` (`questID`; owner/officer)
 - `/api/clans/quests/contributions` (`questID`, `offset`, `limit`)
 - `/api/clans/activity` (`offset`, `limit`)
+
+## Avatars and profile covers v0.8.0
+
+Open **Mucho > Profile**, or the **Art** button beside the username in a regular GD profile. The public card shows the avatar, cover, colored name/clan tag and server statistics. A saved avatar and dimmed cover strip also appear behind the normal profile header. Default GD icons, comments and statistics remain available.
+
+Your own card has **Avatar**, **Cover** and **Colors** buttons. Choose a local JPG/PNG with the system picker, adjust **Left/Up/Down/Right**, **Zoom** and **Rotate**, then press **Save**. Selection and crop changes are previews until saved. **Remove** clears only the selected slot. Source EXIF orientation is not applied automatically; Rotate corrects sideways photos in the preview.
+
+Inputs are limited to 4 MiB, 12 megapixels and 8192 pixels per dimension, with a minimum side of 16 pixels. The server crops/resizes to 256x256 avatars or 960x320 covers and re-encodes JPEG at quality 88, flattening transparent pixels against the profile background and removing source metadata. Each output is at most 512 KiB. The database retains only the current image per slot, so normal database backups include the images.
+
+Public reads never use player credentials. Image downloads accept only a kind and exact SHA-256 version from this server's profile metadata, not arbitrary image URLs. Cached JPEG bytes are limited to 24 entries / 4 MiB and isolated by server origin. File reads and Base64 preparation run asynchronously; image decoding uses Geode LazySprite. Closed windows cancel their requests and account/server changes prevent writes from a stale editor.
+
+Update the core first:
+
+```bash
+sudo env MUCHO_UPDATE_CHANNEL=main /opt/mucho-core/update.sh
+```
+
+The updater rebuilds the Docker app image with PHP GD and applies `20261011_001_profile_media.php`. On shared hosting enable PHP GD with JPEG/PNG support and run the migration. v0.7.0 and older clients keep their previous name-color and clan APIs.
+
+New POST endpoints:
+
+- `/api/profile/get`: public `accountID`; colors, statistics and media metadata.
+- `/api/profile/image`: public `accountID`, `kind`, `version`; exact JPEG bytes or 404.
+- `/api/profile/upload`: authenticated `accountID`, `gameVersion`, `gjp2`, `kind`, standard padded Base64 `imageData`; optional `cropX`/`cropY` (0–1000), `zoom` (100–300), `rotation` (0/90/180/270).
+- `/api/profile/remove`: authenticated `accountID`, `gameVersion`, `gjp2`, `kind`.
+
+`kind` is `avatar` or `banner`. Server/CI validation is in `tests/application/profile-images.php`, `tests/application/clan-client-integration.php` and `tests/client/muchoclient-clan-rules.cpp`. Native UI layout/file picker behavior still needs verification in the actual game on a device.

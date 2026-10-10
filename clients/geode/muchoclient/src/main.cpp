@@ -3,6 +3,7 @@
 #include "MuchoUi.hpp"
 #include "MuchoClanLeaderboardPopup.hpp"
 #include "MuchoColorsPopup.hpp"
+#include "MuchoProfilePopup.hpp"
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/CreatorLayer.hpp>
 #include <Geode/ui/Popup.hpp>
@@ -20,7 +21,7 @@ using namespace geode::prelude;
 
 namespace {
     constexpr char const* CLIENT_ID = "izkgmd.muchoclient";
-    constexpr char const* CLIENT_VERSION = "0.7.0";
+    constexpr char const* CLIENT_VERSION = "0.8.0";
     constexpr int PROTOCOL = 1;
 
     struct Feature {
@@ -62,7 +63,7 @@ namespace {
         ) != 3) {
             return false;
         }
-        return std::tuple{0u, 7u, 0u} >= std::tuple{major, minor, patch};
+        return std::tuple{0u, 8u, 0u} >= std::tuple{major, minor, patch};
     }
 
     // Untrusted server text is displayed only, never evaluated as UI markup.
@@ -114,7 +115,7 @@ protected:
         if (!Popup::init(340.f, 270.f)) return false;
         m_origin = std::move(origin);
         m_features = std::move(features);
-        this->setTitle("MuchoClient v0.7.0");
+        this->setTitle("MuchoClient v0.8.0");
 
         auto status = CCLabelBMFont::create(
             "Connected to MuchoCore", "goldFont.fnt"
@@ -156,12 +157,21 @@ protected:
         auto colors = mucho::button(ButtonSprite::create("Colors"), this,
             menu_selector(MuchoFeaturesPopup::onColors), .43f);
         auto colorsMenu = CCMenu::create(); colorsMenu->setPosition({170.f, 26.f});
+        colors->setPositionX(-58.f);
         colorsMenu->addChild(colors); m_mainLayer->addChild(colorsMenu);
+        auto profile = mucho::button(ButtonSprite::create("Profile"),this,menu_selector(MuchoFeaturesPopup::onProfile),.43f);
+        profile->setPositionX(58.f); colorsMenu->addChild(profile);
         return true;
     }
 
     void onColors(CCObject*) {
         if (auto popup = MuchoColorsPopup::create(m_origin)) popup->show();
+    }
+
+    void onProfile(CCObject*) {
+        auto account = GJAccountManager::sharedState();
+        if (!account || account->m_accountID <= 0) { showInfo("Profile","Log into your GDPS account first."); return; }
+        if (auto popup = MuchoProfilePopup::create(m_origin,account->m_accountID)) popup->show();
     }
 
     void onFeature(CCObject* sender) {

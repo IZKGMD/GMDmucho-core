@@ -1,7 +1,9 @@
 #include "../../clients/geode/muchoclient/src/MuchoClanRules.hpp"
 #include "../../clients/geode/muchoclient/src/MuchoAppearanceRules.hpp"
+#include "../../clients/geode/muchoclient/src/MuchoProfileRules.hpp"
 #include <cassert>
 #include <iostream>
+#include <vector>
 
 int main() {
     using namespace mucho::clans;
@@ -13,6 +15,20 @@ int main() {
     for (auto invalid : {"", "FFF", "FFFFFFF", "<cR>", "GGGGGG", "12;345", "FFFFFF\n"}) assert(!parsedColor(invalid));
     assert(validOrigin("https://muchogdps.space"));
     for (auto invalid : {"http://muchogdps.space", "https://a@b.com", "https://a.com/path", "https://a.com?x", "https://a.com#x"}) assert(!validOrigin(invalid));
+    assert(mucho::profile::validVersion(std::string(64,'a')));
+    for (auto invalid : {std::string(63,'a'),std::string(65,'a'),std::string(64,'A'),std::string(64,'g')}) assert(!mucho::profile::validVersion(invalid));
+    assert(mucho::profile::safeSize(4000,3000));
+    assert(!mucho::profile::safeSize(4001,3000) && !mucho::profile::safeSize(9000,16) && !mucho::profile::safeSize(15,256));
+    std::vector<uint8_t> png = {137,80,78,71,13,10,26,10,0,0,0,13,'I','H','D','R',0,0,1,0,0,0,1,0};
+    assert(mucho::profile::imageSize(png)->width == 256 && mucho::profile::imageSize(png)->png);
+    png[16] = 0xff; assert(!mucho::profile::imageSize(png));
+    png[16] = 0; png[12] = 'x'; assert(!mucho::profile::imageSize(png));
+    std::vector<uint8_t> jpeg = {0xff,0xd8,0xff,0xe0,0,4,0,0,0xff,0xc0,0,17,8,0,32,0,64,3,1,1,0,2,1,0,3,1,0,0xff,0xd9};
+    auto size = mucho::profile::imageSize(jpeg);
+    assert(size && !size->png && size->width == 64 && size->height == 32);
+    jpeg[10] = 0xff; assert(!mucho::profile::imageSize(jpeg));
+    assert(!mucho::profile::imageSize(std::vector<uint8_t>(30,0)));
+    assert(!mucho::profile::imageSize(std::vector<uint8_t>(mucho::profile::MAX_UPLOAD_BYTES+1,0)));
     assert(formattedCounter(0) == "0");
     assert(formattedCounter(999) == "999");
     assert(formattedCounter(1000) == "1,000");

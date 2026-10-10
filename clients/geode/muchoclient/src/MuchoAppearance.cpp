@@ -1,4 +1,5 @@
 #include "MuchoAppearance.hpp"
+#include "MuchoProfileHeader.hpp"
 #include <Geode/modify/ProfilePage.hpp>
 #include <Geode/modify/GJScoreCell.hpp>
 #include <Geode/modify/CommentCell.hpp>
@@ -189,9 +190,25 @@ namespace {
 }
 
 class $modify(MuchoColorProfile, ProfilePage) {
+    void onMuchoProfile(CCObject*) {
+        if (auto popup = MuchoProfilePopup::create(mucho::profile::origin(),m_accountID)) popup->show();
+    }
     void loadPageFromUserInfo(GJUserScore* score) {
         ProfilePage::loadPageFromUserInfo(score);
         if (score && m_usernameLabel) mucho::appearance::bind(this, m_usernameLabel, score->m_accountID, score->m_modBadge > 0 ? 140.f : 160.f);
+        if (!score || !m_mainLayer || score->m_accountID <= 0) return;
+        if (auto old = m_mainLayer->getChildByID("mucho-profile-header")) old->removeFromParent();
+        if (auto old = m_mainLayer->getChildByID("mucho-profile-menu")) old->removeFromParent();
+        auto origin = mucho::profile::origin();
+        if (!mucho::appearance::validOrigin(origin)) return;
+        auto size = CCDirector::get()->getWinSize();
+        if (auto header = mucho::profile::Header::create(origin,score->m_accountID)) {
+            header->setID("mucho-profile-header"); header->setPosition({size.width/2-175,size.height/2+102});
+            m_mainLayer->addChild(header,1);
+        }
+        auto menu = CCMenu::create(); menu->setID("mucho-profile-menu"); menu->setPosition({size.width/2+174,size.height/2+125});
+        auto button = mucho::button(ButtonSprite::create("Art"),this,menu_selector(MuchoColorProfile::onMuchoProfile),.32f);
+        button->setID("mucho-profile-art-button"); menu->addChild(button); m_mainLayer->addChild(menu,25);
     }
 };
 

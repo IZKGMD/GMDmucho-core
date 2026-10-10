@@ -14,7 +14,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          extensions: mbstring, pdo_mysql, pdo_sqlite, zip
+          extensions: mbstring, pdo_mysql, pdo_sqlite, zip, gd
           tools: composer
 
       - name: Check shell scripts
@@ -100,6 +100,7 @@ jobs:
           php tests/application/plugin-marketplace-contract.php
           php tests/release/v110-endpoint-gate-contract.php
           php tests/application/score-integrity-contract.php
+          php tests/application/profile-images.php
           php tests/application/cvolton-db-import-contract.php
           php tests/application/comment-contract.php
           php tests/application/social-crud-contract.php
@@ -448,7 +449,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          extensions: mbstring, pdo_mysql, zip
+          extensions: mbstring, pdo_mysql, zip, gd
           tools: composer
 
       - name: Install dependencies
@@ -498,7 +499,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
-          extensions: mbstring, pdo_mysql, zip
+          extensions: mbstring, pdo_mysql, zip, gd
           tools: composer
 
       - name: Validate Composer manifest
@@ -512,6 +513,7 @@ jobs:
           find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/application/input-hardening-contract.php
           php tests/application/score-integrity-contract.php
+          php tests/application/profile-images.php
           php tests/security/client-ip-cloudflare.php
           php tests/client/client-compatibility.php
           php tests/protocol/protocol-matrix.php

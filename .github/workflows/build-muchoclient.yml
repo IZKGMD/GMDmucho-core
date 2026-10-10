@@ -8,6 +8,7 @@ on:
       - feature/muchoclient-v0.5.0-clan-leaderboards
       - feature/muchoclient-v0.6.0-colors
       - feature/muchoclient-v0.7.0-quests
+      - feature/muchoclient-v0.8.0-profile
     paths:
       - 'clients/geode/muchoclient/**'
       - '.github/workflows/build-muchoclient.yml'
@@ -15,6 +16,9 @@ on:
       - 'src/Appearance/**'
       - 'database/migrations/20261010_001_appearance.php'
       - 'database/migrations/20261010_002_clan_quests.php'
+      - 'database/migrations/20261011_001_profile_media.php'
+      - 'tests/application/profile-images.php'
+      - 'docker/Dockerfile'
       - 'src/User/UserService.php'
       - 'tests/client/muchoclient-clan-rules.cpp'
       - 'tests/application/clan-client-integration.php'
@@ -26,6 +30,9 @@ on:
       - 'src/Appearance/**'
       - 'database/migrations/20261010_001_appearance.php'
       - 'database/migrations/20261010_002_clan_quests.php'
+      - 'database/migrations/20261011_001_profile_media.php'
+      - 'tests/application/profile-images.php'
+      - 'docker/Dockerfile'
       - 'src/User/UserService.php'
       - 'tests/client/muchoclient-clan-rules.cpp'
       - 'tests/application/clan-client-integration.php'
@@ -53,7 +60,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_mysql
+          extensions: pdo_mysql, gd
       - name: Test client validation and role permissions
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-clan-rules.cpp -o /tmp/clan-rules
@@ -63,7 +70,9 @@ jobs:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: mucho-clan-ci
-        run: php tests/application/clan-client-integration.php
+        run: |
+          php tests/application/profile-images.php
+          php tests/application/clan-client-integration.php
 
   geode-build:
     name: ${{ matrix.platform.name }}

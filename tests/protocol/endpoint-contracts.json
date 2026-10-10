@@ -4824,6 +4824,194 @@
         "status": "pending",
         "evidence": []
       }
+    },
+    {
+      "id": "route.profile.get",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/profile/get",
+      "aliases": [
+        "/api/profile/get"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.profile.upload",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/profile/upload",
+      "aliases": [
+        "/api/profile/upload"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.profile.remove",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/profile/remove",
+      "aliases": [
+        "/api/profile/remove"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.profile.image",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/profile/image",
+      "aliases": [
+        "/api/profile/image"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
     }
   ]
 }
