@@ -253,14 +253,15 @@ class MuchoClansPopup final : public geode::Popup {
     void request(Action action, std::string const& route,
                  std::vector<std::pair<std::string, std::string>> fields = {}) {
         auto* account = GJAccountManager::sharedState();
-        if (!account || account->m_accountID <= 0 || account->m_GJP2.size() != 40 ||
-            !std::all_of(account->m_GJP2.begin(), account->m_GJP2.end(),
+        std::string credential = account ? std::string(account->m_GJP2.c_str()) : "";
+        if (!account || account->m_accountID <= 0 || credential.size() != 40 ||
+            !std::all_of(credential.begin(), credential.end(),
                 [](unsigned char ch) { return std::isxdigit(ch) != 0; })) {
             info("Clans", "Please log into your GDPS account in Geometry Dash first.");
             return;
         }
         std::string body = "accountID=" + std::to_string(account->m_accountID)
-                         + "&gameVersion=22&gjp2=" + escaped(std::string(account->m_GJP2.c_str()));
+                         + "&gameVersion=22&gjp2=" + escaped(credential);
         for (auto const& [key, value] : fields) {
             body += "&" + key + "=" + escaped(value);
         }
