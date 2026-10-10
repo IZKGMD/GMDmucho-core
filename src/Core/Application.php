@@ -450,6 +450,8 @@ final readonly class Application
             [$clanController,'setRole']);
         $route('/api/clans/invites',
             [$clanController,'invites']);
+        $route('/api/clans/invites/sent',
+            [$clanController,'sentInvites']);
 
         $route('/api/clans/settings',
             [$clanController,'updateSettings']);

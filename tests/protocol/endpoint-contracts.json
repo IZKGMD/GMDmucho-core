@@ -3321,6 +3321,53 @@
       }
     },
     {
+      "id": "route.clans.invites.sent",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/clans/invites/sent",
+      "aliases": [
+        "/api/clans/invites/sent"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
       "id": "route.clans.settings",
       "priority": "untriaged",
       "method": "ANY",

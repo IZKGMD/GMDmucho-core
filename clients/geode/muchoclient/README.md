@@ -1,4 +1,4 @@
-# MuchoClient — one Geode mod for server extensions (v0.3.0 clan preview)
+# MuchoClient — one Geode mod for server extensions (v0.4.0)
 
 MuchoClient connects Geometry Dash 2.2081 (Windows and Android) to MuchoCore.
 Players install **one .geode file**. Server-side PHP plugins publish safe,
@@ -20,7 +20,7 @@ client does not download or execute plugin code.
   edit the `MuchoCore Server URL` Geode setting (HTTPS origin, without
   `/database`).
 - The client GETs `/muchoclient/manifest`, validates the feature catalog, and
-  POSTs `/muchoclient/negotiate` with `client_version=0.3.0&protocol=1`.
+  POSTs `/muchoclient/negotiate` with `client_version=0.4.0&protocol=1`.
 - Compatible clients display a popup of feature buttons. Public extension
   endpoints under `/extensions/` return constrained JSON text.
 
@@ -58,15 +58,38 @@ See the example's README for detailed steps.
 - Real-device runtime testing is still required; successful native CI
   compilation does not guarantee a running VPS or installed game behavior.
 
-## Clans v0.3.0
+## Clans v0.4.0
 
-The built-in **Clans** module uses the signed-in Geometry Dash account's ID and
-GJP2 token to authenticate with MuchoCore's existing `/api/clans/*` routes.
-The mod does **not** save credentials, and every operation is checked by the
-MuchoCore server. The client can browse, view, create and join clans; show
-members; invite an account by ID; leave a clan (non-owners); and manage
-received invitations. The old Welcome server-plugin demo remains intact.
+The Clans window uses the current Geometry Dash account ID and GJP2, with
+server authorization for every operation. It supports browsing and paged
+search, creating open or invite-only clans, joining, leaving, complete member
+lists, incoming invitations, and owner/officer management:
 
-Note: The first clan UI release does not yet implement owner moderation,
-clan settings, or ownership transfer in-game. Those server APIs already exist
-and can be added in a later update. Real-device regression tests are required.
+- invite by account ID, list outgoing invitations, revoke invitations;
+- promote/demote officers, kick members, ban with a reason, list/remove bans;
+- edit name, tag, description, member limit and joining mode;
+- transfer ownership and disband with explicit confirmation.
+
+Owners cannot leave until ownership is transferred. Officers cannot moderate
+owners or other officers. The server rechecks these permissions inside the
+mutation transactions. The client preserves failed form input, prevents
+concurrent button requests, and cancels callbacks when its popup closes.
+All buttons set the game's animation baseline to their intended scale.
+
+Update both the mod and MuchoCore for outgoing invitations and server-paged
+search. Existing v0.3 clients remain compatible with the extended JSON API.
+Run the clan integration tests against an isolated MariaDB; CI builds the
+three native targets and combines them only after those tests pass.
+
+### Validation
+
+```bash
+g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-clan-rules.cpp -o /tmp/clan-rules
+/tmp/clan-rules
+TEST_DB_HOST=127.0.0.1 TEST_DB_PORT=3306 TEST_DB_ROOT_PASSWORD=YOUR_TEST_PASSWORD \
+  php tests/application/clan-client-integration.php
+```
+
+The integration test creates and drops a randomly named test database. Never
+point it at production. Native compilation and these API tests do not replace
+verification inside the installed game on Windows and Android.

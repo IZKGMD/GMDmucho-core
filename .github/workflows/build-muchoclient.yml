@@ -4,19 +4,56 @@ on:
   push:
     branches:
       - feat/muchoclient-geode-bridge
+      - feature/muchoclient-v0.4.0-clans
     paths:
       - 'clients/geode/muchoclient/**'
       - '.github/workflows/build-muchoclient.yml'
+      - 'src/Clan/**'
+      - 'tests/client/muchoclient-clan-rules.cpp'
+      - 'tests/application/clan-client-integration.php'
   pull_request:
     paths:
       - 'clients/geode/muchoclient/**'
       - '.github/workflows/build-muchoclient.yml'
+      - 'src/Clan/**'
+      - 'tests/client/muchoclient-clan-rules.cpp'
+      - 'tests/application/clan-client-integration.php'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  clan-tests:
+    name: Clan API integration and client rules
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: mucho-clan-ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql
+      - name: Test client validation and role permissions
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-clan-rules.cpp -o /tmp/clan-rules
+          /tmp/clan-rules
+      - name: Test authenticated clan lifecycle against MariaDB
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: mucho-clan-ci
+        run: php tests/application/clan-client-integration.php
+
   geode-build:
     name: ${{ matrix.platform.name }}
     strategy:
@@ -38,6 +75,8 @@ jobs:
         run: |
           cp clients/geode/muchoclient/CMakeLists.txt CMakeLists.txt
           cp clients/geode/muchoclient/mod.json mod.json
+          cp clients/geode/muchoclient/README.md README.md
+          cp clients/geode/muchoclient/CHANGELOG.md CHANGELOG.md
           cp clients/geode/muchoclient/src/*.cpp src/
           cp clients/geode/muchoclient/src/*.hpp src/
           test -f CMakeLists.txt
@@ -55,7 +94,7 @@ jobs:
 
   geode-package:
     name: Combine Windows and Android .geode
-    needs: geode-build
+    needs: [geode-build, clan-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Combine compatible native builds
