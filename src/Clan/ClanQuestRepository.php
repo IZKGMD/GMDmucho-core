@@ -68,7 +68,7 @@ final readonly class ClanQuestRepository
                 FROM mucho_clan_quest_members s
                 JOIN mucho_clan_members m ON m.account_id=s.account_id AND m.clan_id=?
                 JOIN accounts a ON a.account_id=s.account_id AND a.is_active=1 AND a.is_banned=0
-                LEFT JOIN profiles p ON p.account_id=s.account_id WHERE s.quest_id=?");
+                LEFT JOIN profiles p ON p.account_id=s.account_id WHERE s.quest_id=? FOR UPDATE");
             $scores->execute([$clanId,$quest['quest_id']]);
             $delta=0;
             $update=$this->pdo->prepare('UPDATE mucho_clan_quest_members SET last_score=?,contribution=contribution+? WHERE quest_id=? AND account_id=?');
@@ -95,9 +95,9 @@ final readonly class ClanQuestRepository
             throw new RuntimeException('Quest goal: 100-100000 stars or 5-1000 demons.');
         }
         $this->settle($clanId);
-        $active=$this->pdo->prepare("SELECT COUNT(*) FROM mucho_clan_quests WHERE clan_id=? AND metric=? AND status='active' AND expires_at>UTC_TIMESTAMP()");
+        $active=$this->pdo->prepare("SELECT quest_id FROM mucho_clan_quests WHERE clan_id=? AND metric=? AND status='active' AND expires_at>UTC_TIMESTAMP() LIMIT 1 FOR UPDATE");
         $active->execute([$clanId,$metric]);
-        if ((int)$active->fetchColumn()>0) throw new RuntimeException('An active quest for this metric already exists.');
+        if ($active->fetchColumn()!==false) throw new RuntimeException('An active quest for this metric already exists.');
         $insert=$this->pdo->prepare("INSERT INTO mucho_clan_quests(clan_id,metric,target,expires_at) VALUES (?,?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 7 DAY))");
         $insert->execute([$clanId,$metric,$target]);
         $questId=(int)$this->pdo->lastInsertId();
@@ -124,7 +124,7 @@ final readonly class ClanQuestRepository
         $this->settle($clanId);
         $stmt=$this->pdo->prepare("SELECT q.*,IF(q.status='active' AND q.expires_at<=UTC_TIMESTAMP(),'expired',q.status) AS state
             FROM mucho_clan_quests q WHERE clan_id=?
-            ORDER BY (q.status='active' AND q.expires_at>UTC_TIMESTAMP()) DESC,q.quest_id DESC LIMIT 20");
+            ORDER BY (q.status='active' AND q.expires_at>UTC_TIMESTAMP()) DESC,q.quest_id DESC LIMIT 20 FOR UPDATE");
         $stmt->execute([$clanId]);
         $quests=$stmt->fetchAll(PDO::FETCH_ASSOC);
         foreach ($quests as &$quest) {
@@ -137,7 +137,7 @@ final readonly class ClanQuestRepository
     {
         $this->settle($clanId);
         $quest=$this->pdo->prepare("SELECT q.*,IF(q.status='active' AND q.expires_at<=UTC_TIMESTAMP(),'expired',q.status) AS state
-            FROM mucho_clan_quests q WHERE quest_id=? AND clan_id=?");
+            FROM mucho_clan_quests q WHERE quest_id=? AND clan_id=? FOR UPDATE");
         $quest->execute([$questId,$clanId]);
         $row=$quest->fetch(PDO::FETCH_ASSOC);
         if (!$row) throw new RuntimeException('Quest not found.');
@@ -146,7 +146,7 @@ final readonly class ClanQuestRepository
             FROM mucho_clan_quest_members s JOIN accounts a ON a.account_id=s.account_id
             LEFT JOIN mucho_clan_members m ON m.account_id=s.account_id AND m.clan_id=?
             LEFT JOIN mucho_user_appearance u ON u.account_id=s.account_id
-            WHERE s.quest_id=? ORDER BY s.contribution DESC,s.account_id ASC LIMIT ".($limit+1).' OFFSET '.$offset);
+            WHERE s.quest_id=? ORDER BY s.contribution DESC,s.account_id ASC LIMIT ".($limit+1).' OFFSET '.$offset.' FOR UPDATE');
         $stmt->execute([$clanId,$questId]);
         $rows=$stmt->fetchAll(PDO::FETCH_ASSOC);
         foreach ($rows as &$member) {
@@ -160,7 +160,7 @@ final readonly class ClanQuestRepository
 
     public function activity(int $clanId,int $offset,int $limit): array
     {
-        $stmt=$this->pdo->prepare('SELECT event_id,message,created_at FROM mucho_clan_events WHERE clan_id=? ORDER BY event_id DESC LIMIT '.($limit+1).' OFFSET '.$offset);
+        $stmt=$this->pdo->prepare('SELECT event_id,message,created_at FROM mucho_clan_events WHERE clan_id=? ORDER BY event_id DESC LIMIT '.($limit+1).' OFFSET '.$offset.' FOR UPDATE');
         $stmt->execute([$clanId]);
         $events=$stmt->fetchAll(PDO::FETCH_ASSOC);
         return ['events'=>array_slice($events,0,$limit),'has_more'=>count($events)>$limit,'offset'=>$offset];
