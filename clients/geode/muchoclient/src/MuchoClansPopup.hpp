@@ -17,9 +17,11 @@ using namespace geode::prelude;
 
 // HTTPS requests reuse the game's current account. Credentials are never persisted.
 class MuchoClansPopup final : public geode::Popup {
-    enum class View { My, Browse, Detail, Form, Members, Member, Invites, Sent, Manage, Bans, Invite, Confirm };
+    enum class View { My, Browse, Detail, Form, Members, Member, Invites, Sent, Manage, Bans, Invite, Confirm,
+                      Quests, Quest, QuestForm, Contributions, Activity };
     enum class Action { My, Search, Detail, Invites, Sent, Bans, Create, Settings, Join, Leave,
-                        Accept, Decline, Invite, Revoke, Kick, Role, Ban, Unban, Transfer, Disband };
+                        Accept, Decline, Invite, Revoke, Kick, Role, Ban, Unban, Transfer, Disband,
+                        Quests, QuestCreate, QuestCancel, Contributions, Activity };
     using Fields = std::vector<std::pair<std::string, std::string>>;
     using Rows = std::vector<matjson::Value>;
     struct Draft { std::string name, tag, description, limit = "50"; bool open = true; };
@@ -29,6 +31,12 @@ class MuchoClansPopup final : public geode::Popup {
     Action m_confirm = Action::Leave;
     matjson::Value m_my, m_selected, m_member;
     Rows m_results, m_invites, m_sent, m_bans;
+    Rows m_quests, m_contributions, m_events;
+    matjson::Value m_quest;
+    std::string m_questMetric = "stars", m_goal = "1000";
+    bool m_questManager = false, m_extraMore = false;
+    int m_extraPage = 0;
+    TextInput* m_goalField = nullptr;
     Draft m_draft;
     int m_page = 0, m_searchPage = 0, m_target = 0, m_openClan = 0;
     bool m_loaded = false, m_busy = false, m_closed = false, m_edit = false;
@@ -66,6 +74,17 @@ class MuchoClansPopup final : public geode::Popup {
     int accountId() const {
         auto account = GJAccountManager::sharedState();
         return account ? account->m_accountID : 0;
+    }
+    static int64_t score(matjson::Value const& value, char const* key) {
+        return std::max(int64_t{0}, value[key].asInt().unwrapOr(0));
+    }
+    void progress(matjson::Value const& quest, float x, float y, float width) {
+        auto bg = CCLayerColor::create({0, 0, 0, 100}, width, 5.f);
+        bg->setPosition({x, y}); m_body->addChild(bg);
+        auto target = score(quest, "target");
+        float ratio = target > 0 ? std::clamp(static_cast<double>(score(quest, "progress")) / target, 0., 1.) : 0.f;
+        auto fill = CCLayerColor::create({100, 229, 114, 255}, width * ratio, 5.f);
+        fill->setPosition({x, y}); m_body->addChild(fill);
     }
     std::string role() const { return str(m_my, "role"); }
     bool manager() const { return mucho::clans::canManage(role()); }
@@ -119,6 +138,7 @@ class MuchoClansPopup final : public geode::Popup {
         if (m_limitField) m_draft.limit = m_limitField->getString();
         if (m_targetField) m_targetInput = m_targetField->getString();
         if (m_reasonField) m_reason = m_reasonField->getString();
+        if (m_goalField) m_goal = m_goalField->getString();
     }
     void busy(bool value, std::string const& status = "") {
         m_busy = value;
@@ -149,6 +169,7 @@ class MuchoClansPopup final : public geode::Popup {
         m_body->removeAllChildrenWithCleanup(true);
         m_buttons.clear();
         m_queryField = m_nameField = m_tagField = m_descriptionField = m_limitField = m_targetField = m_reasonField = nullptr;
+        m_goalField = nullptr;
         button("My Clan", 70.f, 248.f, menu_selector(MuchoClansPopup::onMy), 0, .51f);
         button("Browse", 210.f, 248.f, menu_selector(MuchoClansPopup::onBrowse), 0, .51f);
         button("Invites", 350.f, 248.f, menu_selector(MuchoClansPopup::onInvites), 0, .51f);
@@ -170,11 +191,13 @@ class MuchoClansPopup final : public geode::Popup {
                     label("Role: " + role() + "  |  Members: " + std::to_string(num(m_my, "member_count")) +
                           "/" + std::to_string(num(m_my, "max_members")), 210.f, 168.f, .36f);
                     label(str(m_my, "description"), 210.f, 138.f, .32f);
-                    button("Members", 110.f, 98.f, menu_selector(MuchoClansPopup::onMembers));
-                    if (manager()) button("Manage", 310.f, 98.f, menu_selector(MuchoClansPopup::onManage));
-                    else button("Leave", 310.f, 98.f, menu_selector(MuchoClansPopup::onLeave));
-                    button("Refresh", 110.f, 51.f, menu_selector(MuchoClansPopup::onMy), 0, .46f);
-                    button("Colors", 310.f, 51.f, menu_selector(MuchoClansPopup::onColors), 0, .46f);
+                    button("Members", 110.f, 109.f, menu_selector(MuchoClansPopup::onMembers), 0, .48f);
+                    if (manager()) button("Manage", 310.f, 109.f, menu_selector(MuchoClansPopup::onManage), 0, .48f);
+                    else button("Leave", 310.f, 109.f, menu_selector(MuchoClansPopup::onLeave), 0, .48f);
+                    button("Quests", 110.f, 75.f, menu_selector(MuchoClansPopup::onQuests), 0, .48f);
+                    button("Activity", 310.f, 75.f, menu_selector(MuchoClansPopup::onActivity), 0, .48f);
+                    button("Refresh", 110.f, 41.f, menu_selector(MuchoClansPopup::onMy), 0, .43f);
+                    button("Colors", 310.f, 41.f, menu_selector(MuchoClansPopup::onColors), 0, .43f);
                 }
                 break;
             case View::Browse: {
@@ -304,6 +327,68 @@ class MuchoClansPopup final : public geode::Popup {
                 button("Send invite", 210.f, 85.f, menu_selector(MuchoClansPopup::onInvite));
                 button("Back", 210.f, 42.f, menu_selector(MuchoClansPopup::onManage), 0, .43f);
                 break;
+            case View::Quests: {
+                label("7-day clan quests", 190.f, 216.f, .38f, 225.f);
+                if (m_questManager) button("New", 354.f, 216.f, menu_selector(MuchoClansPopup::onQuestForm), 0, .39f);
+                if (m_quests.empty()) label("No quests yet", 210.f, 147.f, .44f);
+                pager(m_quests.size(), 3);
+                for (size_t i = m_page * 3; i < m_quests.size() && i < static_cast<size_t>((m_page + 1) * 3); ++i) {
+                    auto const& q = m_quests[i]; float y = 183.f - (i % 3) * 43.f;
+                    label(std::to_string(score(q, "target")) + " " + str(q, "metric") + " | " + str(q, "state"), 165.f, y, .30f, 279.f);
+                    label(std::to_string(score(q, "progress")) + "/" + std::to_string(score(q, "target")), 165.f, y - 15.f, .24f, 270.f);
+                    progress(q, 47.f, y - 25.f, 236.f);
+                    button("View", 353.f, y - 7.f, menu_selector(MuchoClansPopup::onQuest), static_cast<int>(i), .4f);
+                }
+                break;
+            }
+            case View::Quest: {
+                label(std::to_string(score(m_quest, "target")) + " " + str(m_quest, "metric"), 210.f, 208.f, .5f);
+                label("Status: " + str(m_quest, "state"), 210.f, 181.f, .36f);
+                label(std::to_string(score(m_quest, "progress")) + "/" + std::to_string(score(m_quest, "target")), 210.f, 153.f, .44f);
+                progress(m_quest, 60.f, 130.f, 300.f);
+                label("Ends (UTC): " + str(m_quest, "expires_at"), 210.f, 110.f, .27f);
+                if (m_questManager && str(m_quest, "state") == "active")
+                    button("Cancel quest", 110.f, 73.f, menu_selector(MuchoClansPopup::onQuestCancel), 0, .43f);
+                button("Contributors", m_questManager && str(m_quest, "state") == "active" ? 310.f : 210.f,
+                       73.f, menu_selector(MuchoClansPopup::onContributions), 0, .43f);
+                button("Back", 210.f, 38.f, menu_selector(MuchoClansPopup::onQuests), 0, .4f);
+                break;
+            }
+            case View::QuestForm:
+                label("New 7-day quest", 210.f, 212.f, .46f);
+                button(m_questMetric, 210.f, 174.f, menu_selector(MuchoClansPopup::onQuestMetric), 0, .55f);
+                m_goalField = input("Goal", 210.f, 131.f, 240.f, 6);
+                m_goalField->setFilter("0123456789"); m_goalField->setString(m_goal, false);
+                label(m_questMetric == "stars" ? "100-100000 stars" : "5-1000 demons", 210.f, 101.f, .3f);
+                label("Only new stats synced to the server count", 210.f, 78.f, .26f);
+                button("Start", 110.f, 41.f, menu_selector(MuchoClansPopup::onQuestCreate), 0, .48f);
+                button("Back", 310.f, 41.f, menu_selector(MuchoClansPopup::onQuests), 0, .48f);
+                break;
+            case View::Contributions:
+            case View::Activity: {
+                bool contributions = m_view == View::Contributions;
+                auto const& items = contributions ? m_contributions : m_events;
+                label(contributions ? "Quest contributions" : "Clan activity", 210.f, 216.f, .44f);
+                if (items.empty()) label(contributions ? "No contributions yet" : "No events yet", 210.f, 145.f, .4f);
+                for (size_t i = 0; i < items.size() && i < static_cast<size_t>(contributions ? 4 : 3); ++i) {
+                    auto const& item = items[i]; float y = 181.f - i * (contributions ? 31.f : 43.f);
+                    if (contributions) {
+                        auto node = label("#" + std::to_string(m_extraPage * 4 + i + 1) + " " + str(item, "username"), 132.f, y, .33f, 211.f);
+                        node->setColor(mucho::appearance::rgb(str(item, "nickname_color")));
+                        label(std::to_string(score(item, "contribution")) + " " + str(m_quest, "metric"), 326.f, y, .31f, 140.f);
+                        if (!item["is_member"].asBool().unwrapOr(true)) label("Former member", 132.f, y - 12.f, .2f, 211.f);
+                    } else {
+                        label(str(item, "message"), 210.f, y, .30f);
+                        label(str(item, "created_at") + " UTC", 210.f, y - 17.f, .23f);
+                    }
+                }
+                label("Page " + std::to_string(m_extraPage + 1), 210.f, 49.f, .3f);
+                if (m_extraPage > 0) button("<", 144.f, 49.f, menu_selector(MuchoClansPopup::onPrev), 0, .4f);
+                if (m_extraMore) button(">", 276.f, 49.f, menu_selector(MuchoClansPopup::onNext), 0, .4f);
+                button("Back", 53.f, 44.f, contributions ? menu_selector(MuchoClansPopup::onQuestBack) : menu_selector(MuchoClansPopup::onMy), 0, .38f);
+                button("Refresh", 354.f, 44.f, menu_selector(MuchoClansPopup::onExtraRefresh), 0, .38f);
+                break;
+            }
             case View::Confirm:
                 label(confirmTitle(), 210.f, 188.f, .5f);
                 label(m_confirm == Action::Disband ? "All members and invites will be removed" :
@@ -329,6 +414,7 @@ class MuchoClansPopup final : public geode::Popup {
             case Action::Unban: return "Remove this ban?";
             case Action::Accept: return "Join this invited clan?";
             case Action::Join: return "Join this clan?";
+            case Action::QuestCancel: return "Cancel this quest?";
             default: return "Leave your clan?";
         }
     }
@@ -348,11 +434,15 @@ class MuchoClansPopup final : public geode::Popup {
             case Action::Kick: return "kicked"; case Action::Role: return "updated";
             case Action::Ban: return "banned"; case Action::Unban: return "unbanned";
             case Action::Transfer: return "transferred"; case Action::Disband: return "disbanded";
+            case Action::QuestCancel: return "cancelled";
             default: return nullptr;
         }
     }
     void request(Action action, std::string const& route, Fields fields = {}) {
         if (m_busy || m_closed) return;
+        auto origin = Mod::get()->getSettingValue<std::string>("server-url");
+        while (!origin.empty() && origin.back() == '/') origin.pop_back();
+        if (!mucho::appearance::validOrigin(m_origin) || origin != m_origin) { fail("Server changed. Close Clans and open it again."); return; }
         capture();
         auto* account = GJAccountManager::sharedState();
         std::string credential = account ? std::string(account->m_GJP2.c_str()) : "";
@@ -368,11 +458,16 @@ class MuchoClansPopup final : public geode::Popup {
         if (action == Action::Search) for (auto const& [key, value] : fields)
             if (key == "offset") requestedPage = mucho::clans::positiveId(value) / 4;
         auto generation = ++m_generation;
+        if (action == Action::Activity || action == Action::Contributions) for (auto const& [key, value] : fields)
+            if (key == "offset") requestedPage = mucho::clans::positiveId(value) / (action == Action::Activity ? 3 : 4);
         busy(true, "Loading...");
         m_task.spawn("MuchoCore clans", web::WebRequest().timeout(std::chrono::seconds(12)).followRedirects(false)
             .header("Content-Type", "application/x-www-form-urlencoded").bodyString(body).post(m_origin + route),
             [this, action, generation, sentAccount, requestedPage](web::WebResponse response) {
                 if (m_closed || generation != m_generation) return;
+                auto origin = Mod::get()->getSettingValue<std::string>("server-url");
+                while (!origin.empty() && origin.back() == '/') origin.pop_back();
+                if (origin != m_origin) { fail("Server changed. Close Clans and open it again."); return; }
                 if (accountId() != sentAccount) { m_loaded = false; fail("The account changed. Close Clans and open it again."); return; }
                 busy(false);
                 auto raw = response.string().unwrapOr("");
@@ -412,6 +507,24 @@ class MuchoClansPopup final : public geode::Popup {
                     case Action::Invites: m_invites = rows(data["invites"]); m_view = View::Invites; m_page = 0; break;
                     case Action::Sent: m_sent = rows(data["invites"]); m_view = View::Sent; m_page = 0; break;
                     case Action::Bans: m_bans = rows(data["bans"]); m_view = View::Bans; m_page = 0; break;
+                    case Action::Quests:
+                        if (!data["quests"].isArray()) { fail("Invalid quest response."); return; }
+                        m_quests = rows(data["quests"]); m_questManager = data["can_manage"].asBool().unwrapOr(false);
+                        m_view = View::Quests; m_page = 0; break;
+                    case Action::QuestCreate:
+                    case Action::QuestCancel: request(Action::Quests, "/api/clans/quests"); return;
+                    case Action::Contributions:
+                    case Action::Activity: {
+                        bool contributions = action == Action::Contributions;
+                        auto key = contributions ? "members" : "events";
+                        if (!data[key].isArray()) { fail("Invalid clan activity response."); return; }
+                        (contributions ? m_contributions : m_events) = rows(data[key]);
+                        if (contributions && num(data["quest"], "quest_id") == num(m_quest, "quest_id")) {
+                            m_quest = data["quest"]; m_questManager = data["can_manage"].asBool().unwrapOr(false);
+                        }
+                        m_extraPage = requestedPage; m_extraMore = data["has_more"].asBool().unwrapOr(false);
+                        m_view = contributions ? View::Contributions : View::Activity; break;
+                    }
                     case Action::Decline: request(Action::Invites, "/api/clans/invites"); return;
                     case Action::Invite:
                         m_targetInput.clear(); m_notice = "Invitation sent";
@@ -434,6 +547,34 @@ class MuchoClansPopup final : public geode::Popup {
         request(Action::Search, "/api/clans/search", {{"query", m_query}, {"offset", std::to_string(requested * 4)}, {"limit", "4"}});
     }
     void onMy(CCObject*) { m_afterRefresh = View::My; request(Action::My, "/api/clans/my"); }
+    void onQuests(CCObject*) { request(Action::Quests, "/api/clans/quests"); }
+    void onActivity(CCObject*) { extra(false, 0); }
+    void onQuest(CCObject* sender) {
+        int i = static_cast<CCNode*>(sender)->getTag();
+        if (i >= 0 && static_cast<size_t>(i) < m_quests.size()) { m_quest = m_quests[i]; go(View::Quest); }
+    }
+    void onQuestForm(CCObject*) { if (m_questManager) { m_goal = "1000"; m_questMetric = "stars"; go(View::QuestForm); } }
+    void onQuestMetric(CCObject*) {
+        if (m_busy) return;
+        m_questMetric = m_questMetric == "stars" ? "demons" : "stars";
+        m_goal = m_questMetric == "stars" ? "1000" : "10"; redraw();
+    }
+    void onQuestCreate(CCObject*) {
+        capture(); int goal = mucho::clans::positiveId(m_goal);
+        int minimum = m_questMetric == "stars" ? 100 : 5, maximum = m_questMetric == "stars" ? 100000 : 1000;
+        if (goal < minimum || goal > maximum) { info("Goal: 100-100000 stars or 5-1000 demons."); return; }
+        request(Action::QuestCreate, "/api/clans/quests/create", {{"metric", m_questMetric}, {"target", std::to_string(goal)}});
+    }
+    void onQuestCancel(CCObject*) { confirm(Action::QuestCancel, num(m_quest, "quest_id")); }
+    void onQuestBack(CCObject*) { go(View::Quest); }
+    void extra(bool contributions, int page) {
+        Fields fields = {{"offset", std::to_string(page * (contributions ? 4 : 3))}, {"limit", contributions ? "4" : "3"}};
+        if (contributions) fields.push_back({"questID", std::to_string(num(m_quest, "quest_id"))});
+        request(contributions ? Action::Contributions : Action::Activity,
+                contributions ? "/api/clans/quests/contributions" : "/api/clans/activity", std::move(fields));
+    }
+    void onContributions(CCObject*) { extra(true, 0); }
+    void onExtraRefresh(CCObject*) { extra(m_view == View::Contributions, m_extraPage); }
     void onColors(CCObject*) {
         if (m_busy) return;
         auto popup = MuchoColorsPopup::create(m_origin, [weak = WeakRef<MuchoClansPopup>(this)](matjson::Value const& player) {
@@ -533,16 +674,19 @@ class MuchoClansPopup final : public geode::Popup {
             case Action::Revoke: request(m_confirm, "/api/clans/invite/revoke", {{"inviteID", std::to_string(m_target)}}); break;
             case Action::Unban: request(m_confirm, "/api/clans/unban", target); break;
             case Action::Accept: request(m_confirm, "/api/clans/invite/accept", {{"inviteID", std::to_string(m_target)}}); break;
+            case Action::QuestCancel: request(m_confirm, "/api/clans/quests/cancel", {{"questID", std::to_string(m_target)}}); break;
             default: break;
         }
     }
     void onPrev(CCObject*) {
         if (m_busy) return;
+        if (m_view == View::Contributions || m_view == View::Activity) { if (m_extraPage > 0) extra(m_view == View::Contributions, m_extraPage - 1); return; }
         if (m_view == View::Browse) { if (m_searchPage == 0) return; if (m_remoteSearch) search(false, m_searchPage - 1); else { --m_searchPage; redraw(); } }
         else { if (m_page > 0) --m_page; redraw(); }
     }
     void onNext(CCObject*) {
         if (m_busy) return;
+        if (m_view == View::Contributions || m_view == View::Activity) { if (m_extraMore) extra(m_view == View::Contributions, m_extraPage + 1); return; }
         if (m_view == View::Browse) { if (m_remoteSearch) search(false, m_searchPage + 1); else { ++m_searchPage; redraw(); } }
         else { ++m_page; redraw(); }
     }
@@ -550,7 +694,7 @@ class MuchoClansPopup final : public geode::Popup {
 protected:
     bool init(std::string origin, int clanId) {
         if (!Popup::init(420.f, 306.f)) return false;
-        m_origin = std::move(origin); m_openClan = clanId; setTitle("Mucho | Clans v0.6.0");
+        m_origin = std::move(origin); m_openClan = clanId; setTitle("Mucho | Clans v0.7.0");
         m_body = CCNode::create(); m_mainLayer->addChild(m_body);
         render(); request(Action::My, "/api/clans/my"); return true;
     }

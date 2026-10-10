@@ -1,3 +1,11 @@
+# v0.7.0
+
+- Clan quests: owners and officers can start one stars goal and one demons goal concurrently. Each runs for seven days.
+- Shared progress bars, quest history, paginated contribution ranking and cancellation confirmation.
+- Server-side score baselines and high-water marks exclude prior statistics and prevent duplicate/reset/rejoin contributions. Leaving preserves earned progress.
+- Private clan activity records creation, membership changes, roles, ownership, settings and quest outcomes.
+- Clan requests now reject stale account/server responses. All new buttons preserve their press-animation baseline.
+
 # v0.6.0
 
 - Persistent personal nickname colors and a shared clan prefix color controlled by its owner.

@@ -34,6 +34,19 @@ $connect=static fn(?string $db): PDO => new PDO(
     'root',$password,
     [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]
 );
+// Worker processes use independent connections to test overlapping score syncs.
+if (($argv[1] ?? '')==='--quest-score') {
+    $db=$argv[2] ?? '';
+    if (!preg_match('/^mc_clan_test_[a-f0-9]{12}$/D',$db)) throw new RuntimeException('Invalid isolated worker database.');
+    $workerPdo=$connect($db);
+    $id=(int)($argv[3] ?? 0);
+    $worker=new \MuchoCore\User\UserService($workerPdo,new AccountAuthenticator($workerPdo),
+        new \MuchoCore\Account\AccountRepository($workerPdo),new \MuchoCore\User\UserRepository($workerPdo),
+        new \MuchoCore\Protocol\GdUserEncoder(),null,new \MuchoCore\Clan\ClanQuestRepository($workerPdo));
+    $worker->updateScore($id,sha1('isolated-test-'.$id),['gameVersion'=>'22','stars'=>$argv[4] ?? '0','demons'=>$argv[5] ?? '0']);
+    echo 'QUEST_SCORE_WORKER_OK';
+    exit(0);
+}
 $server=$connect(null);
 try {
     $server->exec('CREATE DATABASE '.$name.' CHARACTER SET utf8mb4');
@@ -44,7 +57,7 @@ try {
         is_active TINYINT NOT NULL DEFAULT 1, is_banned TINYINT NOT NULL DEFAULT 0
     ) ENGINE=InnoDB');
     foreach (require dirname(__DIR__,2).'/database/migrations/002_profiles.php' as $sql) $pdo->exec($sql);
-    foreach (['020_clans.php','20260926_002_clans_v2.php','20261010_001_appearance.php'] as $migration) {
+    foreach (['020_clans.php','20260926_002_clans_v2.php','20261010_001_appearance.php','20261010_002_clan_quests.php'] as $migration) {
         foreach (require dirname(__DIR__,2).'/database/migrations/'.$migration as $sql) $pdo->exec($sql);
     }
     $pdo->exec('CREATE TABLE audit_logs (id INT AUTO_INCREMENT PRIMARY KEY,account_id BIGINT,action VARCHAR(64),target_type VARCHAR(64),target_id BIGINT,metadata TEXT)');
@@ -59,6 +72,22 @@ try {
     $service=new ClanService($pdo,new AccountAuthenticator($pdo),$repository);
     $controller=new ClanController($service);
     $appearance=new AppearanceController(new AppearanceService($pdo,new AccountAuthenticator($pdo)));
+    $questRepository=new \MuchoCore\Clan\ClanQuestRepository($pdo);
+    $questController=new \MuchoCore\Clan\ClanQuestController($pdo,new AccountAuthenticator($pdo),$questRepository);
+    $quests=static function(string $method,int $id,array $fields=[],string $verb='POST') use ($questController,$token): array {
+        $response=$questController->$method(new Request($verb,'/api/clans/quests',[],
+            array_merge(['accountID'=>(string)$id,'gameVersion'=>'22','gjp2'=>$token($id)],$fields),[]));
+        $root=json_decode($response->body,true,32,JSON_THROW_ON_ERROR);
+        $root['http_status']=$response->status;
+        return $root;
+    };
+    $scoreService=new \MuchoCore\User\UserService($pdo,new AccountAuthenticator($pdo),
+        new \MuchoCore\Account\AccountRepository($pdo),new \MuchoCore\User\UserRepository($pdo),
+        new \MuchoCore\Protocol\GdUserEncoder(),null,$questRepository);
+    $sync=static function(int $id,int $stars,int $demons) use ($scoreService,$token): void {
+        clanCheck($scoreService->updateScore($id,$token($id),['gameVersion'=>'22','stars'=>(string)$stars,'demons'=>(string)$demons])===(string)$id,
+            'authenticated score sync returns legacy user ID');
+    };
     $colorCall=static function(string $method,int $id,array $fields=[],string $verb='POST') use ($appearance,$token): array {
         $response=$appearance->$method(new Request($verb,'/api/appearance/test',[],
             array_merge(['accountID'=>(string)$id,'gameVersion'=>'22','gjp2'=>$token($id)],$fields),[]));
@@ -231,7 +260,91 @@ try {
     $ok($call('leave',35),'ranked contributor leaves');
     clanCheck($colorCall('mine',35)['data']['clan_tag']==='','leaving removes public clan prefix');
     clanCheck($call('leaderboard',1)['data']['own_clan']['score']===350 && $call('leaderboard',35)['data']['own_clan']===null,'leaving removes contribution and own rank');
+    $denied($quests('quests',35),'unaffiliated player cannot read quests');
+    $denied($quests('activity',10,['clanID'=>$clanId,'gjp2'=>str_repeat('a',40)]),'activity requires valid authentication');
+    clanCheck($quests('quests',1,[],'GET')['http_status']===405,'quest API rejects GET');
+    $ok($call('setRole',2,['targetAccountID'=>'3','role'=>'member']),'demote fixture officer for ordinary-member quest tests');
+    $denied($quests('create',3,['metric'=>'stars','target'=>'100']),'ordinary member cannot start a quest');
+    foreach ([['stars','99'],['demons','4'],['stars','100001'],['demons','1001'],['stars DESC','100']] as [$metric,$target]) {
+        $denied($quests('create',2,['metric'=>$metric,'target'=>$target]),'quest validates metric and goal '.$metric.' '.$target);
+    }
+    $starQuest=$ok($quests('create',1,['metric'=>'stars','target'=>'100']),'officer starts stars quest')['quest_id'];
+    $demonQuest=$ok($quests('create',2,['metric'=>'demons','target'=>'5']),'owner starts simultaneous demons quest')['quest_id'];
+    $denied($quests('create',2,['metric'=>'stars','target'=>'1000']),'one active quest per metric');
+    $state=$ok($quests('quests',3),'member reads shared quest progress');
+    clanCheck(count($state['quests'])===2 && array_sum(array_column($state['quests'],'progress'))===0 && !$state['can_manage'],'quest baseline excludes old statistics');
+    $sync(3,70,4);
+    $sync(3,70,4);
+    $sync(3,10,0);
+    $sync(3,70,4);
+    $state=$quests('quests',2)['data']['quests'];
+    $byId=array_column($state,null,'quest_id');
+    clanCheck($byId[$starQuest]['progress']===20 && $byId[$demonQuest]['progress']===1,'duplicate score and reset/restore cannot replay contributions');
+    $ok($call('invite',2,['targetAccountID'=>'35']),'invite quest participant');
+    $invite=(string)$call('invites',35)['data']['invites'][0]['invite_id'];
+    $sync(35,9000,100);
+    $ok($call('acceptInvite',35,['inviteID'=>$invite]),'invited member enrolls with current score baseline');
+    $sync(35,9010,101);
+    $ok($call('leave',35),'quest participant leaves');
+    $sync(35,9500,110);
+    $ok($call('invite',2,['targetAccountID'=>'35']),'invite returning quest participant');
+    $invite=(string)$call('invites',35)['data']['invites'][0]['invite_id'];
+    $ok($call('acceptInvite',35,['inviteID'=>$invite]),'returning participant keeps earned contribution');
+    $sync(35,9505,111);
+    $ok($call('kick',2,['targetAccountID'=>'35']),'kick quest participant');
+    $members=$ok($quests('contributions',2,['questID'=>(string)$starQuest,'limit'=>'2']),'paged quest contributions');
+    clanCheck(count($members['members'])===2 && $members['has_more'] && $members['members'][0]['account_id']===3,'contributions sorted by score with lookahead');
+    clanCheck($members['members'][1]['account_id']===35 && $members['members'][1]['contribution']===15 && !$members['members'][1]['is_member'],'past member contribution retained; outside-clan gains excluded');
+    $denied($quests('contributions',10,['questID'=>(string)$starQuest]),'other clan cannot inspect quest participants');
+    $denied($quests('cancel',3,['questID'=>(string)$starQuest]),'member cannot cancel quest');
+    $sync(1,200,4);
+    $state=array_column($quests('quests',2)['data']['quests'],null,'quest_id');
+    clanCheck($state[$starQuest]['state']==='completed' && $state[$starQuest]['progress']===135 && $state[$demonQuest]['state']==='completed','both metric quests complete through score sync');
+    $eventsBefore=(int)$pdo->query('SELECT COUNT(*) FROM mucho_clan_events WHERE clan_id='.(int)$clanId.' AND message LIKE \'Quest completed:%\'')->fetchColumn();
+    $sync(1,200,4);
+    $quests('quests',2);
+    clanCheck($eventsBefore===2 && (int)$pdo->query('SELECT COUNT(*) FROM mucho_clan_events WHERE clan_id='.(int)$clanId.' AND message LIKE \'Quest completed:%\'')->fetchColumn()===2,'completion event recorded exactly once');
+    $denied($quests('cancel',2,['questID'=>(string)$starQuest]),'completed quest cannot be cancelled');
+    $cancelled=$ok($quests('create',2,['metric'=>'stars','target'=>'1000']),'start next stars quest')['quest_id'];
+    $ok($quests('cancel',1,['questID'=>(string)$cancelled]),'officer cancels active quest');
+    $denied($quests('cancel',1,['questID'=>(string)$cancelled]),'repeated cancellation rejected');
+    $expired=$ok($quests('create',2,['metric'=>'stars','target'=>'1000']),'start expiry fixture')['quest_id'];
+    $pdo->exec('UPDATE mucho_clan_quests SET expires_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 SECOND) WHERE quest_id='.(int)$expired);
+    $sync(1,300,4);
+    $state=array_column($quests('quests',2)['data']['quests'],null,'quest_id');
+    clanCheck($state[$expired]['state']==='expired' && $state[$expired]['progress']===0 && $state[$cancelled]['progress']===0,'expired and cancelled quests stop accepting gains');
+    $race=$ok($quests('create',2,['metric'=>'stars','target'=>'100']),'expired quest frees its metric slot')['quest_id'];
+    $processes=[];
+    foreach ([[1,350,4],[3,120,4],[1,350,4]] as [$id,$stars,$demons]) {
+        $process=proc_open([PHP_BINARY,__FILE__,'--quest-score',$name,(string)$id,(string)$stars,(string)$demons],
+            [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);
+        if (!is_resource($process)) throw new RuntimeException('Cannot start score concurrency test worker.');
+        fclose($pipes[0]); $processes[]=[$process,$pipes];
+    }
+    foreach ($processes as [$process,$pipes]) {
+        $stdout=stream_get_contents($pipes[1]); $stderr=stream_get_contents($pipes[2]);
+        fclose($pipes[1]); fclose($pipes[2]);
+        clanCheck(proc_close($process)===0 && $stdout==='QUEST_SCORE_WORKER_OK','concurrent score worker succeeds '.$stderr);
+    }
+    $state=array_column($quests('quests',2)['data']['quests'],null,'quest_id');
+    clanCheck($state[$race]['state']==='completed' && $state[$race]['progress']===100,'overlapping syncs neither lose nor duplicate contributions');
+    $atomic=$ok($quests('create',2,['metric'=>'stars','target'=>'100']),'start atomic rollback fixture')['quest_id'];
+    $pdo->exec("CREATE TRIGGER quest_event_failure BEFORE INSERT ON mucho_clan_events FOR EACH ROW
+        BEGIN IF NEW.message LIKE 'Quest completed:%' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='isolated quest event fault'; END IF; END");
+    $failed=false;
+    try { $scoreService->updateScore(1,$token(1),['gameVersion'=>'22','stars'=>'450','demons'=>'4']); } catch (PDOException) { $failed=true; }
+    $pdo->exec('DROP TRIGGER quest_event_failure');
+    clanCheck($failed && !$pdo->inTransaction() && (int)$pdo->query('SELECT stars FROM profiles WHERE account_id=1')->fetchColumn()===350 &&
+        (int)$pdo->query('SELECT progress FROM mucho_clan_quests WHERE quest_id='.(int)$atomic)->fetchColumn()===0,'quest fault rolls back both score and progress');
+    $sync(1,450,4);
+    clanCheck(array_column($quests('quests',2)['data']['quests'],null,'quest_id')[$atomic]['progress']===100,'retry after a storage fault awards progress once');
+    $activity=$ok($quests('activity',3,['limit'=>'3']),'member reads private clan activity');
+    $older=$quests('activity',3,['limit'=>'3','offset'=>'3'])['data'];
+    clanCheck(count($activity['events'])===3 && $activity['has_more'] && !array_intersect(array_column($activity['events'],'event_id'),array_column($older['events'],'event_id')),'activity pages bounded with stable ordering');
+    clanCheck(str_contains(json_encode($quests('activity',3,['limit'=>'50'])['data']),'joined the clan') && !str_contains(json_encode($activity),'gjp2'),'activity contains membership events without credentials');
     $ok($call('disband',2),'new owner disbands');
+    foreach (['mucho_clan_quests','mucho_clan_events'] as $table) clanCheck((int)$pdo->query('SELECT COUNT(*) FROM '.$table.' WHERE clan_id='.(int)$clanId)->fetchColumn()===0,'disband cascades '.$table);
+    clanCheck((int)$pdo->query('SELECT COUNT(*) FROM mucho_clan_quest_members')->fetchColumn()===0,'disband cascades quest contributions');
     clanCheck((int)$pdo->query('SELECT COUNT(*) FROM mucho_clan_appearance WHERE clan_id='.(int)$clanId)->fetchColumn()===0,'disband cascades stored clan color');
     clanCheck($colorCall('mine',1)['data']['clan_tag']==='' && $colorCall('mine',1)['data']['nickname_color']==='66CCFF','disband removes prefix but preserves personal nickname color');
     clanCheck($call('leaderboard',1)['data']['total_clans']===25 && $call('leaderboard',1)['data']['own_clan']===null,'disband removes clan from leaderboard');

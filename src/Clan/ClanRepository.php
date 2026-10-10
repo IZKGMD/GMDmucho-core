@@ -104,6 +104,9 @@ final readonly class ClanRepository
                 'account_id'=>$ownerAccountId,
             ]);
 
+            $quests=new ClanQuestRepository($this->pdo);
+            $quests->event($clanId,$quests->player($ownerAccountId).' created the clan.');
+
             $this->pdo->commit();
 
             return $this->getById($clanId)
@@ -256,6 +259,9 @@ final readonly class ClanRepository
                 throw new RuntimeException('Account is already in a clan.');
             }
 
+            $quests=new ClanQuestRepository($this->pdo);
+            $quests->settle($clanId);
+
             $stmt=$this->pdo->prepare(
                 "INSERT INTO mucho_clan_members (clan_id, account_id, role)
                  VALUES (:clan_id, :account_id, 'member')"
@@ -274,6 +280,8 @@ final readonly class ClanRepository
                 'account_id'=>$accountId,
             ]);
 
+            $quests->enroll($clanId,$accountId);
+            $quests->event($clanId,$quests->player($accountId).' joined the clan.');
             $this->pdo->commit();
             return true;
         } catch (Throwable $e) {
@@ -369,6 +377,9 @@ final readonly class ClanRepository
                 throw new RuntimeException('Account is already in a clan.');
             }
 
+            $quests=new ClanQuestRepository($this->pdo);
+            $quests->settle($clanId);
+
             $insert=$this->pdo->prepare(
                 "INSERT INTO mucho_clan_members (clan_id, account_id, role)
                  VALUES (:clan_id, :account_id, 'member')"
@@ -387,6 +398,8 @@ final readonly class ClanRepository
                 'account_id'=>$accountId,
             ]);
 
+            $quests->enroll($clanId,$accountId);
+            $quests->event($clanId,$quests->player($accountId).' joined the clan.');
             $this->pdo->commit();
             return true;
         } catch (Throwable $e) {
@@ -441,6 +454,9 @@ final readonly class ClanRepository
                 'max_members'=>$maxMembers,
                 'clan_id'=>$clanId,
             ]);
+
+            $quests=new ClanQuestRepository($this->pdo);
+            $quests->event($clanId,$quests->player($ownerAccountId).' updated clan settings.');
 
             $this->pdo->commit();
 
@@ -508,6 +524,9 @@ final readonly class ClanRepository
                 'account_id'=>$targetAccountId,
                 'clan_id'=>$clanId,
             ]);
+
+            $quests=new ClanQuestRepository($this->pdo);
+            $quests->event($clanId,$quests->player($ownerAccountId).' transferred ownership to '.$quests->player($targetAccountId).'.');
 
             $this->pdo->commit();
             return true;
@@ -618,6 +637,7 @@ final readonly class ClanRepository
                 throw new RuntimeException('Officers cannot remove other officers.');
             }
 
+            (new ClanQuestRepository($this->pdo))->settle($clanId);
             $delete=$this->pdo->prepare(
                 'DELETE FROM mucho_clan_members
                  WHERE clan_id=:clan_id AND account_id=:account_id'
@@ -626,6 +646,9 @@ final readonly class ClanRepository
                 'clan_id'=>$clanId,
                 'account_id'=>$targetAccountId,
             ]);
+
+            $quests=new ClanQuestRepository($this->pdo);
+            $quests->event($clanId,$quests->player($actorAccountId).' kicked '.$quests->player($targetAccountId).'.');
 
             $this->pdo->commit();
             return $delete->rowCount() > 0;
@@ -673,6 +696,9 @@ final readonly class ClanRepository
                 'clan_id'=>$clanId,
                 'account_id'=>$targetAccountId,
             ]);
+
+            $quests=new ClanQuestRepository($this->pdo);
+            if ($stmt->rowCount()>0) $quests->event($clanId,$quests->player($ownerAccountId).' changed '.$quests->player($targetAccountId).' to '.$role.'.');
 
             $this->pdo->commit();
             return $stmt->rowCount() > 0;
@@ -730,6 +756,7 @@ final readonly class ClanRepository
                     throw new RuntimeException('Officers cannot ban other officers.');
                 }
 
+                (new ClanQuestRepository($this->pdo))->settle($clanId);
                 $delete=$this->pdo->prepare(
                     'DELETE FROM mucho_clan_members
                      WHERE clan_id=:clan_id AND account_id=:account_id'
@@ -767,6 +794,9 @@ final readonly class ClanRepository
                 'reason'=>$reason,
             ]);
 
+            $quests=new ClanQuestRepository($this->pdo);
+            $quests->event($clanId,$quests->player($actorAccountId).' banned '.$quests->player($targetAccountId).'.');
+
             $this->pdo->commit();
             return true;
         } catch (Throwable $e) {
@@ -798,6 +828,9 @@ final readonly class ClanRepository
                 'clan_id'=>$clanId,
                 'account_id'=>$targetAccountId,
             ]);
+
+            $quests=new ClanQuestRepository($this->pdo);
+            if ($stmt->rowCount()>0) $quests->event($clanId,$quests->player($actorAccountId).' unbanned '.$quests->player($targetAccountId).'.');
 
             $this->pdo->commit();
             return $stmt->rowCount() > 0;
@@ -880,11 +913,15 @@ final readonly class ClanRepository
             if ((string)$member['role']==='owner') {
                 throw new RuntimeException('Clan owner cannot leave the clan.');
             }
+            (new ClanQuestRepository($this->pdo))->settle($clanId);
             $stmt=$this->pdo->prepare(
                 'DELETE FROM mucho_clan_members
                  WHERE clan_id=:clan_id AND account_id=:account_id'
             );
             $stmt->execute(['clan_id'=>$clanId,'account_id'=>$accountId]);
+            $quests=new ClanQuestRepository($this->pdo);
+            $quests->event($clanId,$quests->player($accountId).' left the clan.');
+
             $this->pdo->commit();
             return $stmt->rowCount()>0;
         } catch (Throwable $e) {

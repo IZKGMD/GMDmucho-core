@@ -6,6 +6,7 @@ namespace MuchoCore\User;
 
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Account\AccountRepository;
+use MuchoCore\Clan\ClanQuestRepository;
 use MuchoCore\Compatibility\ClientVersion;
 use MuchoCore\Compatibility\Legacy10IdentityService;
 use MuchoCore\Protocol\GdUserEncoder;
@@ -20,7 +21,8 @@ final readonly class UserService
         private AccountRepository $accountRepository,
         private UserRepository $userRepository,
         private GdUserEncoder $userEncoder,
-        private ?Legacy10IdentityService $legacy10 = null
+        private ?Legacy10IdentityService $legacy10 = null,
+        private ?ClanQuestRepository $clanQuests = null
     ) {}
 
     public function updateScore(
@@ -222,32 +224,44 @@ final readonly class UserService
             implode(', ', $updates)
         );
 
-        $stmt = $this->pdo->prepare($sql);
+        // Lock the clan before the profile, matching join/leave and quest writes.
+        // Persist score and quest progress atomically; retries cannot double count.
+        if ($this->clanQuests!==null) $this->pdo->beginTransaction();
+        try {
+            $membership=$this->clanQuests?->lockForAccount($accountId);
+            $stmt = $this->pdo->prepare($sql);
 
-        if (!$stmt->execute(
-            array_merge(
-                ['account_id' => $accountId],
-                $fields
-            )
-        )) {
-            throw new RuntimeException('Unable to update profile.');
-        }
+            if (!$stmt->execute(
+                array_merge(
+                    ['account_id' => $accountId],
+                    $fields
+                )
+            )) {
+                throw new RuntimeException('Unable to update profile.');
+            }
 
-        $userStmt = $this->pdo->prepare(
-            'SELECT user_id
-             FROM profiles
-             WHERE account_id = :account_id
-             LIMIT 1'
-        );
+            $userStmt = $this->pdo->prepare(
+                'SELECT user_id
+                 FROM profiles
+                 WHERE account_id = :account_id
+                 LIMIT 1'
+            );
 
-        $userStmt->execute([
-            'account_id' => $accountId,
-        ]);
+            $userStmt->execute([
+                'account_id' => $accountId,
+            ]);
 
-        $userId = (int)$userStmt->fetchColumn();
+            $userId = (int)$userStmt->fetchColumn();
 
-        if ($userId <= 0) {
-            throw new RuntimeException('Unable to resolve profile user ID.');
+            if ($userId <= 0) {
+                throw new RuntimeException('Unable to resolve profile user ID.');
+            }
+
+            if ($membership!==null) $this->clanQuests?->settle((int)$membership['clan_id']);
+            if ($this->clanQuests!==null) $this->pdo->commit();
+        } catch (\Throwable $e) {
+            if ($this->clanQuests!==null && $this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $e;
         }
 
         /*
