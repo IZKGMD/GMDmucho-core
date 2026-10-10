@@ -16,7 +16,7 @@ class MuchoClanLeaderboardPopup final : public geode::Popup {
         {"secret_coins", "Secret Coins", "GJ_goldCoin_001.png"},
         {"creator_points", "Creator Points", "GJ_creatorPoint_001.png"}
     }};
-    static constexpr int PAGE_SIZE = 5;
+    static constexpr int kClansPerPage = 5;
     std::string m_origin, m_error;
     int m_metric = 0, m_page = 0, m_total = 0, m_retryMetric = 0, m_retryPage = 0;
     bool m_busy = false, m_closed = false, m_loaded = false, m_hasMore = false, m_renderQueued = false;
@@ -110,7 +110,7 @@ class MuchoClanLeaderboardPopup final : public geode::Popup {
                           menu_selector(MuchoClanLeaderboardPopup::onOwn), 0, 224.f, .37f);
             else label(m_body, "Join a clan to get a rank", 123.f, 21.f, .23f, 218.f);
         } else label(m_body, m_busy ? "Loading..." : m_error, 123.f, 21.f, .23f, 218.f);
-        int pages = std::max(1, (m_total - 1) / PAGE_SIZE + 1);
+        int pages = std::max(1, (m_total - 1) / kClansPerPage + 1);
         label(m_body, std::to_string(m_page + 1) + "/" + std::to_string(pages), 333.f, 21.f, .27f, 60.f);
         if (m_page > 0) addButton("<", 287.f, 21.f, menu_selector(MuchoClanLeaderboardPopup::onPrev), 0, 27.f, .4f);
         if (m_hasMore) addButton(">", 379.f, 21.f, menu_selector(MuchoClanLeaderboardPopup::onNext), 0, 27.f, .4f);
@@ -125,8 +125,8 @@ class MuchoClanLeaderboardPopup final : public geode::Popup {
         redraw();
         m_task.spawn("MuchoCore clan rankings", web::WebRequest().timeout(std::chrono::seconds(12))
             .followRedirects(false).header("Content-Type", "application/x-www-form-urlencoded")
-            .bodyString("metric=" + std::string(METRICS[metric].key) + "&offset=" + std::to_string(page * PAGE_SIZE) +
-                        "&limit=" + std::to_string(PAGE_SIZE) + "&accountID=" + std::to_string(std::max(0, account)))
+            .bodyString("metric=" + std::string(METRICS[metric].key) + "&offset=" + std::to_string(page * kClansPerPage) +
+                        "&limit=" + std::to_string(kClansPerPage) + "&accountID=" + std::to_string(std::max(0, account)))
             .post(m_origin + "/api/clans/leaderboard"),
             [this, generation, metric, page, account](web::WebResponse response) {
                 if (m_closed || generation != m_generation) return;
@@ -143,8 +143,8 @@ class MuchoClanLeaderboardPopup final : public geode::Popup {
                 }
                 auto data = parsed.unwrap()["data"];
                 if (text(data, "metric") != METRICS[metric].key || !data["clans"].isArray() ||
-                    data["offset"].asInt().unwrapOr(-1) != page * PAGE_SIZE ||
-                    data["clans"].size() > PAGE_SIZE || !data["has_more"].isBool()) {
+                    data["offset"].asInt().unwrapOr(-1) != page * kClansPerPage ||
+                    data["clans"].size() > kClansPerPage || !data["has_more"].isBool()) {
                     fail("Invalid clan leaderboard response"); return;
                 }
                 std::vector<matjson::Value> clans;
