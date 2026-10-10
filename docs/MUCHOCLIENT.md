@@ -106,7 +106,7 @@ Server plugins remain trusted executable PHP; the SDK capability list is
 - Operators may choose to *promote* the extras experience as their standard
   2.2 client pack in the future; that must not silently break legacy clients.
 
-## Native clan manager v0.4.0
+## Native clan manager v0.5.0
 
 MuchoClient targets GD 2.2081 and Geode 5.10.1 on Windows x64, Android ARM64
 and ARMv7. One combined `.geode` includes the three native builds.
@@ -131,3 +131,22 @@ Dynamic level objects/assets, quest UI, events timelines, client package
 signatures and one-click bundled installation remain separate milestones.
 The client never executes downloaded native code/JavaScript or injects
 arbitrary texture assets from unaudited module manifests.
+
+## Clan leaderboards v0.5.0
+
+The **CLANS** button above Scores in the Create / Saved / Scores menu opens
+public clan rankings. Tabs rank current member totals for stars, demons, moons,
+diamonds, user coins, secret coins and creator points. Each row shows its global
+rank, clan name/tag, membership count and total; click it to open the clan.
+The current account's clan is highlighted and its rank is available even when
+it is outside the selected page. Viewing rankings does not require login;
+opening clan management still uses the authenticated game account.
+
+The core serves `POST /api/clans/leaderboard` with `metric` (default `stars`),
+`offset`, `limit` (1–50), and optional `accountID` for the public own-clan rank.
+Totals include current members only, exclude banned/inactive accounts, and
+use stored MuchoCore profiles. Joining, leaving and profile updates affect the
+next refresh. Equal totals use clan ID order, matching sequential player ranks.
+There is no invented combined score or new database migration. Update both
+the mod and core. Large totals use 64-bit numbers. Native game testing remains
+necessary after CI compilation and MariaDB integration tests.

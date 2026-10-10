@@ -69,6 +69,16 @@ final readonly class ClanController
         });
     }
 
+    public function leaderboard(Request $request): Response
+    {
+        return $this->run(fn(): array => $this->service->leaderboard(
+            $request->postString('metric') ?: 'stars',
+            $request->postInt('offset'),
+            $request->postInt('limit',20),
+            $request->postInt('accountID')
+        ));
+    }
+
     public function join(Request $request): Response
     {
         return $this->run(function() use ($request): array {

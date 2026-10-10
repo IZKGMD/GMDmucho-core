@@ -434,6 +434,8 @@ final readonly class Application
             [$clanController,'get']);
         $route('/api/clans/search',
             [$clanController,'search']);
+        $route('/api/clans/leaderboard',
+            [$clanController,'leaderboard']);
         $route('/api/clans/join',
             [$clanController,'join']);
         $route('/api/clans/leave',

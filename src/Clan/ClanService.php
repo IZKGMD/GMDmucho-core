@@ -87,6 +87,10 @@ final readonly class ClanService
         return $this->repository->search(substr(trim($query),0,48),max(0,min(100000,$offset)),max(1,min(51,$limit)));
     }
 
+    public function leaderboard(string $metric,int $offset=0,int $limit=20,int $accountId=0): array {
+        return $this->repository->leaderboard($metric,$offset,$limit,$accountId);
+    }
+
     public function join(int $accountId,string $credential,int $clanId): bool {
         $this->auth->authenticate($accountId,$credential);
 

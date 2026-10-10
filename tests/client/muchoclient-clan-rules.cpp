@@ -4,6 +4,11 @@
 
 int main() {
     using namespace mucho::clans;
+    assert(formattedCounter(0) == "0");
+    assert(formattedCounter(999) == "999");
+    assert(formattedCounter(1000) == "1,000");
+    assert(formattedCounter(6000000000ULL) == "6,000,000,000");
+    assert(formattedCounter(UINT64_MAX) == "18,446,744,073,709,551,615");
     assert(positiveId("2147483647") == 2147483647);
     for (auto invalid : {"", "-1", "+2", "12x", " 42", "2147483648", "999999999999999999999"}) assert(positiveId(invalid) == 0);
     assert(positiveId("00042") == 42);

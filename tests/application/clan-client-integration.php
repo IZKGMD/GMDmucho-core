@@ -41,7 +41,7 @@ try {
         password_hash VARCHAR(255) NOT NULL DEFAULT \'\', gjp2_hash VARCHAR(255) NOT NULL,
         is_active TINYINT NOT NULL DEFAULT 1, is_banned TINYINT NOT NULL DEFAULT 0
     ) ENGINE=InnoDB');
-    $pdo->exec('CREATE TABLE profiles (user_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,account_id BIGINT UNSIGNED NOT NULL UNIQUE) ENGINE=InnoDB');
+    foreach (require dirname(__DIR__,2).'/database/migrations/002_profiles.php' as $sql) $pdo->exec($sql);
     foreach (['020_clans.php','20260926_002_clans_v2.php'] as $migration) {
         foreach (require dirname(__DIR__,2).'/database/migrations/'.$migration as $sql) $pdo->exec($sql);
     }
@@ -147,12 +147,65 @@ try {
     clanCheck(!array_intersect(array_column($first['clans'],'clan_id'),array_column($second['clans'],'clan_id')),'deterministic pages have no overlap for equal timestamps');
     $last=$call('search',1,['query'=>'Search Clan','offset'=>'24','limit'=>'4'])['data'];
     clanCheck(count($last['clans'])===1 && $last['has_more']===false,'search covers clans beyond first twenty');
+    $pdo->exec('UPDATE profiles SET stars=100,demons=1,diamonds=3000000000 WHERE account_id=1');
+    $pdo->exec('UPDATE profiles SET stars=200,demons=2,diamonds=3000000000 WHERE account_id=2');
+    $pdo->exec('UPDATE profiles SET stars=50,demons=3 WHERE account_id=3');
+    $pdo->exec('UPDATE profiles SET stars=1000 WHERE account_id=10');
+    $pdo->exec('UPDATE profiles SET stars=600,demons=200 WHERE account_id=11');
+    $pdo->exec('UPDATE profiles SET moons=300 WHERE account_id=12');
+    $pdo->exec('UPDATE profiles SET user_coins=100 WHERE account_id=14');
+    $pdo->exec('UPDATE profiles SET secret_coins=50 WHERE account_id=15');
+    $pdo->exec('UPDATE profiles SET creator_points=100 WHERE account_id=16');
+    $pdo->exec('UPDATE profiles SET stars=9000000 WHERE account_id IN (17,18)');
+    $pdo->exec('UPDATE accounts SET is_banned=1 WHERE account_id=17');
+    $pdo->exec('UPDATE accounts SET is_active=0 WHERE account_id=18');
+    $pdo->exec('DELETE FROM profiles WHERE account_id=19');
+    $ranking=$ok($call('leaderboard',1,['metric'=>'stars','limit'=>'2']),'clan leaderboard page');
+    clanCheck($ranking['total_clans']===26 && $ranking['has_more']===true && count($ranking['clans'])===2,'leaderboard pagination with lookahead');
+    clanCheck($ranking['clans'][0]['name']==='Search Clan 10' && $ranking['clans'][1]['name']==='Search Clan 11','clans ordered by summed stars');
+    clanCheck($ranking['own_clan']['rank']===3 && $ranking['own_clan']['stars']===350 && $ranking['own_clan']['member_count']===3,'own clan rank beyond current page');
+    clanCheck($ranking['own_clan']['diamonds']===6000000000,'clan totals exceed 32-bit without overflow');
+    $anonymous=$ok($call('leaderboard',0,['limit'=>'50']),'public anonymous clan leaderboard');
+    clanCheck($anonymous['metric']==='stars' && $anonymous['own_clan']===null,'default metric and no fabricated own clan');
+    $zeros=[];
+    foreach ($anonymous['clans'] as $row) {
+        if (in_array($row['name'],['Search Clan 17','Search Clan 18','Search Clan 19'],true))
+            clanCheck($row['score']===0 && $row['member_count']===1,'banned inactive or missing profile contributes no score '.$row['name']);
+        if ($row['score']===0) $zeros[]=$row['clan_id'];
+    }
+    $sorted=$zeros; sort($sorted);
+    clanCheck($zeros===$sorted,'equal clan totals have deterministic ranks');
+    foreach (['demons'=>'Search Clan 11','moons'=>'Search Clan 12','diamonds'=>'Mucho Renamed','user_coins'=>'Search Clan 14','secret_coins'=>'Search Clan 15','creator_points'=>'Search Clan 16'] as $metric=>$winner) {
+        $result=$ok($call('leaderboard',0,['metric'=>$metric,'limit'=>'1']),'leaderboard metric '.$metric);
+        clanCheck($result['clans'][0]['name']===$winner,'correct metric winner '.$metric);
+    }
+    $next=$call('leaderboard',1,['metric'=>'stars','offset'=>'2','limit'=>'2'])['data'];
+    clanCheck($next['clans'][0]['rank']===3 && !array_intersect(array_column($ranking['clans'],'clan_id'),array_column($next['clans'],'clan_id')),'global ranks continue across pages');
+    $outside=$call('leaderboard',0,['offset'=>'1000'])['data'];
+    clanCheck($outside['clans']===[] && $outside['total_clans']===26 && !$outside['has_more'],'past-end page retains total clan count');
+    $bounded=$call('leaderboard',0,['offset'=>'-1','limit'=>'500'])['data'];
+    clanCheck($bounded['offset']===0 && $bounded['limit']===50,'leaderboard bounds enforced');
+    $denied($call('leaderboard',0,['metric'=>'stars DESC; DROP TABLE profiles']),'leaderboard rejects unknown metric and SQL input');
+    $pdo->exec('UPDATE profiles SET stars=150 WHERE account_id=3');
+    clanCheck($call('leaderboard',1)['data']['own_clan']['score']===450,'profile updates appear in clan totals');
+    $pdo->exec('UPDATE profiles SET stars=50 WHERE account_id=3');
+    $pdo->exec('UPDATE profiles SET stars=123 WHERE account_id=35');
+    $ok($call('invite',2,['targetAccountID'=>'35']),'invite ranked contributor');
+    $contributorInvite=$call('invites',35)['data']['invites'][0]['invite_id'];
+    $ok($call('acceptInvite',35,['inviteID'=>(string)$contributorInvite]),'add ranked contributor');
+    clanCheck($call('leaderboard',35)['data']['own_clan']['score']===473,'joining adds current member stats');
+    $ok($call('leave',35),'ranked contributor leaves');
+    clanCheck($call('leaderboard',1)['data']['own_clan']['score']===350 && $call('leaderboard',35)['data']['own_clan']===null,'leaving removes contribution and own rank');
     $ok($call('disband',2),'new owner disbands');
+    clanCheck($call('leaderboard',1)['data']['total_clans']===25 && $call('leaderboard',1)['data']['own_clan']===null,'disband removes clan from leaderboard');
     clanCheck($call('myClan',1)['data']===null && $call('myClan',3)['data']===null,'disband removes all memberships');
     clanCheck((int)$pdo->query('SELECT COUNT(*) FROM mucho_clan_invites WHERE clan_id='.(int)$clanId)->fetchColumn()===0,'disband cascades invitations');
     $pdo->exec('DROP TABLE audit_logs');
     $new=$ok($create(7,'Audit Failure Clan','AFC'),'create clan without audit table');
     $ok($call('updateSettings',7,['clanID'=>(string)$new['clan_id'],'clanName'=>'Audit Safe Clan','clanTag'=>'ASC','clanMaxMembers'=>'50','clanOpen'=>'1']),'audit failure does not turn successful mutation into error');
+    $pdo->exec('DELETE FROM mucho_clans');
+    $empty=$ok($call('leaderboard',0),'empty clan leaderboard');
+    clanCheck($empty['clans']===[] && $empty['total_clans']===0 && !$empty['has_more'] && $empty['own_clan']===null,'empty leaderboard is successful');
     echo "MUCHOCLIENT_CLANS_INTEGRATION_OK\n";
 } finally {
     $pdo=null;

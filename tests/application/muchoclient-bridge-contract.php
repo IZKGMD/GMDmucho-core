@@ -201,7 +201,7 @@ $clientCpp = (string)file_get_contents($geodeRoot . '/src/main.cpp');
 
 $check(
     ($metadata['id'] ?? '') === 'izkgmd.muchoclient' &&
-    ($metadata['version'] ?? '') === 'v0.4.0' &&
+    ($metadata['version'] ?? '') === 'v0.5.0' &&
     isset($metadata['gd']['win'], $metadata['gd']['android']) &&
     isset($metadata['settings']['server-url']),
     'Geode companion metadata declares compatible client id and settings'
