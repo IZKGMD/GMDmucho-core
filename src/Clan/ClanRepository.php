@@ -30,13 +30,14 @@ final readonly class ClanRepository
         // The account ID only identifies a public ranking; it grants no permissions.
         $stmt=$this->pdo->prepare(
             'WITH totals AS (
-                SELECT c.clan_id,c.name,c.tag,COUNT(m.account_id) AS member_count,
+                SELECT c.clan_id,c.name,c.tag,COALESCE(MAX(s.prefix_color),\'FFD166\') AS prefix_color,COUNT(m.account_id) AS member_count,
                        MAX(CASE WHEN m.account_id=:account_id THEN 1 ELSE 0 END) AS is_own,
                        '.implode(',',$sums).'
                 FROM mucho_clans c
                 LEFT JOIN mucho_clan_members m ON m.clan_id=c.clan_id
                 LEFT JOIN accounts a ON a.account_id=m.account_id
                 LEFT JOIN profiles p ON p.account_id=m.account_id
+                LEFT JOIN mucho_clan_appearance s ON s.clan_id=c.clan_id
                 GROUP BY c.clan_id,c.name,c.tag
              ), ranked AS (
                 SELECT totals.*,ROW_NUMBER() OVER (ORDER BY '.$metric.' DESC,clan_id ASC) AS `rank`,
@@ -119,10 +120,11 @@ final readonly class ClanRepository
     public function getById(int $clanId): ?array
     {
         $stmt=$this->pdo->prepare(
-            'SELECT c.*, a.username AS owner_username,
+            'SELECT c.*, COALESCE(s.prefix_color,\'FFD166\') AS prefix_color, a.username AS owner_username,
                     (SELECT COUNT(*) FROM mucho_clan_members m WHERE m.clan_id=c.clan_id) AS member_count
              FROM mucho_clans c
              INNER JOIN accounts a ON a.account_id=c.owner_account_id
+             LEFT JOIN mucho_clan_appearance s ON s.clan_id=c.clan_id
              WHERE c.clan_id=:clan_id
              LIMIT 1'
         );
@@ -135,10 +137,11 @@ final readonly class ClanRepository
     public function getForAccount(int $accountId): ?array
     {
         $stmt=$this->pdo->prepare(
-            'SELECT c.*, m.role,
+            'SELECT c.*, COALESCE(s.prefix_color,\'FFD166\') AS prefix_color, m.role,
                     (SELECT COUNT(*) FROM mucho_clan_members mc WHERE mc.clan_id=c.clan_id) AS member_count
              FROM mucho_clan_members m
              INNER JOIN mucho_clans c ON c.clan_id=m.clan_id
+             LEFT JOIN mucho_clan_appearance s ON s.clan_id=c.clan_id
              WHERE m.account_id=:account_id
              LIMIT 1'
         );
@@ -151,10 +154,11 @@ final readonly class ClanRepository
     public function search(string $query, int $offset=0, int $limit=20): array
     {
         $stmt=$this->pdo->prepare(
-            'SELECT c.*, a.username AS owner_username,
+            'SELECT c.*, COALESCE(s.prefix_color,\'FFD166\') AS prefix_color, a.username AS owner_username,
                     (SELECT COUNT(*) FROM mucho_clan_members m WHERE m.clan_id=c.clan_id) AS member_count
              FROM mucho_clans c
              INNER JOIN accounts a ON a.account_id=c.owner_account_id
+             LEFT JOIN mucho_clan_appearance s ON s.clan_id=c.clan_id
              WHERE c.name LIKE :name OR c.tag LIKE :tag
              ORDER BY c.created_at DESC, c.clan_id DESC
              LIMIT '.(int)$limit.' OFFSET '.(int)$offset
@@ -171,10 +175,11 @@ final readonly class ClanRepository
     {
         $stmt=$this->pdo->prepare(
             "SELECT m.account_id, m.role, m.joined_at,
-                    a.username, p.user_id
+                    a.username, p.user_id, COALESCE(u.nickname_color,'') AS nickname_color
              FROM mucho_clan_members m
              INNER JOIN accounts a ON a.account_id=m.account_id
              LEFT JOIN profiles p ON p.account_id=a.account_id
+             LEFT JOIN mucho_user_appearance u ON u.account_id=a.account_id
              WHERE m.clan_id=:clan_id
              ORDER BY CASE m.role
                     WHEN 'owner' THEN 0

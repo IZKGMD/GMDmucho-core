@@ -87,8 +87,11 @@ class MuchoClanLeaderboardPopup final : public geode::Popup {
             auto rank = label(row, "#" + std::to_string(id(clan, "rank")), 25.f, 13.5f, .42f, 43.f);
             if (id(clan, "rank") <= 3) rank->setColor({255, 225, 85});
             label(row, text(clan, "name"), 53.f, 18.f, .32f, 193.f, true);
-            label(row, "[" + text(clan, "tag") + "]  " + std::to_string(id(clan, "member_count")) + " members",
+            auto tag = label(row, "[" + text(clan, "tag") + "]  " + std::to_string(id(clan, "member_count")) + " members",
                   53.f, 6.f, .2f, 193.f, true);
+            for (size_t j = 0; j < text(clan, "tag").size() + 2; ++j)
+                if (auto glyph = typeinfo_cast<CCSprite*>(tag->getChildByTag(static_cast<int>(j))))
+                    glyph->setColor(mucho::appearance::rgb(text(clan, "prefix_color"), 0xFFD166));
             auto frame = METRICS[m_metric].icon;
             if (CCSpriteFrameCache::sharedSpriteFrameCache()->spriteFrameByName(frame)) {
                 auto icon = CCSprite::createWithSpriteFrameName(frame);
@@ -174,7 +177,7 @@ class MuchoClanLeaderboardPopup final : public geode::Popup {
 protected:
     bool init(std::string origin) {
         if (!Popup::init(420.f, 306.f)) return false;
-        m_origin = std::move(origin); setTitle("Clan Leaderboards v0.5.0");
+        m_origin = std::move(origin); setTitle("Clan Leaderboards v0.6.0");
         m_body = CCNode::create(); m_mainLayer->addChild(m_body);
         render(); request(0, 0); return true;
     }

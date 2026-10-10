@@ -6,10 +6,13 @@ on:
       - feat/muchoclient-geode-bridge
       - feature/muchoclient-v0.4.0-clans
       - feature/muchoclient-v0.5.0-clan-leaderboards
+      - feature/muchoclient-v0.6.0-colors
     paths:
       - 'clients/geode/muchoclient/**'
       - '.github/workflows/build-muchoclient.yml'
       - 'src/Clan/**'
+      - 'src/Appearance/**'
+      - 'database/migrations/20261010_001_appearance.php'
       - 'tests/client/muchoclient-clan-rules.cpp'
       - 'tests/application/clan-client-integration.php'
   pull_request:
@@ -17,6 +20,8 @@ on:
       - 'clients/geode/muchoclient/**'
       - '.github/workflows/build-muchoclient.yml'
       - 'src/Clan/**'
+      - 'src/Appearance/**'
+      - 'database/migrations/20261010_001_appearance.php'
       - 'tests/client/muchoclient-clan-rules.cpp'
       - 'tests/application/clan-client-integration.php'
   workflow_dispatch:

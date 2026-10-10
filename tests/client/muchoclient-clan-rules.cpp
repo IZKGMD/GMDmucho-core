@@ -1,9 +1,18 @@
 #include "../../clients/geode/muchoclient/src/MuchoClanRules.hpp"
+#include "../../clients/geode/muchoclient/src/MuchoAppearanceRules.hpp"
 #include <cassert>
 #include <iostream>
 
 int main() {
     using namespace mucho::clans;
+    using namespace mucho::appearance;
+    assert(normalizedColor("#66ccff") == "66CCFF");
+    assert(parsedColor("000000").value() == 0);
+    assert(parsedColor("FFFFFF").value() == 0xFFFFFF);
+    assert(parsedColor("12ABcd").value() == 0x12ABCD);
+    for (auto invalid : {"", "FFF", "FFFFFFF", "<cR>", "GGGGGG", "12;345", "FFFFFF\n"}) assert(!parsedColor(invalid));
+    assert(validOrigin("https://muchogdps.space"));
+    for (auto invalid : {"http://muchogdps.space", "https://a@b.com", "https://a.com/path", "https://a.com?x", "https://a.com#x"}) assert(!validOrigin(invalid));
     assert(formattedCounter(0) == "0");
     assert(formattedCounter(999) == "999");
     assert(formattedCounter(1000) == "1,000");
