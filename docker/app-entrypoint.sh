@@ -79,6 +79,10 @@ install -d -m 750 /var/www/mucho-core/storage/music-public
 install -d -m 750 /var/www/mucho-core/storage/release-uploads
 install -d -m 750 /var/www/mucho-core/releases/android
 chown www-data:www-data /var/lib/muchocore-control /var/lib/muchocore-backups
+
+# MuchoProtect's strict limiter needs writable state *inside* storage/control.
+# MUCHO_CONTROL_DIR alone does not cover the file-backed rate limiter.
+bash "$ROOT/docker/init-protect-storage.sh" "$ROOT"
 chown www-data:www-data /var/www/mucho-core/storage /var/www/mucho-core/storage/music-public /var/www/mucho-core/storage/release-uploads /var/www/mucho-core/releases /var/www/mucho-core/releases/android
 
 # Keep the Cloud Save key outside the bind-mounted source tree.

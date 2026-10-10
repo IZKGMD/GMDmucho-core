@@ -32,6 +32,8 @@ jobs:
           bash -n install
           bash -n update.sh
           bash -n docker/app-entrypoint.sh
+          bash -n docker/init-protect-storage.sh
+          sudo bash tests/security/protect-storage-init.sh
           php tests/application/worker-entrypoint-contract.php
           php tests/application/content-pack-maker-contract.php
           php tests/application/deployment-client-pack-contract.php
