@@ -1,3 +1,11 @@
+# v0.8.1
+
+- Keep the normal GD profile cover inside its actual panel bounds, including moved or scaled profiles.
+- Compact native avatar with a clean frame and a profile button anchored to the username row.
+- Full 3:1 cover in the Mucho card, separate avatar/name row and six evenly spaced statistics.
+- White avatar frame, consistent margins and buttons clear of the statistics and footer.
+- Client layout update only; existing saved images and v0.8.0 profile API remain compatible.
+
 # v0.8.0
 
 - Upload personal avatar and profile cover from the system JPG/PNG file picker on Windows and Android.

@@ -202,7 +202,7 @@ class MuchoProfilePopup final : public Popup {
     unsigned m_generation = 0;
     matjson::Value m_player;
     mucho::profile::Artwork *m_avatar = nullptr, *m_banner = nullptr;
-    CCLabelBMFont *m_name = nullptr, *m_status = nullptr;
+    CCLabelBMFont *m_name = nullptr, *m_caption = nullptr, *m_status = nullptr;
     std::vector<CCLabelBMFont*> m_stats;
     std::vector<CCMenuItemSpriteExtra*> m_edits;
     async::TaskHolder<web::WebResponse> m_request;
@@ -218,16 +218,17 @@ class MuchoProfilePopup final : public Popup {
         m_player = player; m_loaded = true;
         mucho::appearance::paint(m_name,mucho::profile::text(player,"username"),
             mucho::clans::normalizedTag(mucho::profile::text(player,"clan_tag")),mucho::profile::text(player,"nickname_color"),
-            mucho::profile::text(player,"prefix_color"),248.f,.5f);
+            mucho::profile::text(player,"prefix_color"),288.f,.5f);
         m_avatar->stored(m_origin,m_account,"avatar",mucho::profile::version(player,"avatar"));
         m_banner->stored(m_origin,m_account,"banner",mucho::profile::version(player,"banner"));
         char const* fields[] = {"stars","moons","demons","diamonds","user_coins","creator_points"};
         for (size_t i = 0; i < m_stats.size(); ++i) {
             auto number = player["stats"][fields[i]].asInt().unwrapOr(0);
             m_stats[i]->setString(mucho::clans::formattedCounter(static_cast<uint64_t>(std::max(int64_t{0},number))).c_str());
-            m_stats[i]->limitLabelWidth(112.f,.42f,0.f);
+            m_stats[i]->limitLabelWidth(54.f,.4f,0.f);
         }
         for (auto b : m_edits) { b->setVisible(own()); b->setEnabled(own()); }
+        m_caption->setString(own() ? "Your profile" : "Player profile");
         mucho::appearance::remember(player); status("Profile images are visible to players with MuchoClient");
     }
     void load() {
@@ -265,18 +266,27 @@ class MuchoProfilePopup final : public Popup {
 protected:
     bool init(std::string url,int account) {
         if (!Popup::init(420.f,300.f)) return false;
-        m_origin = std::move(url); m_account = account; setTitle("Mucho Profile v0.8.0");
-        m_banner = mucho::profile::Artwork::create({376.f,125.3333f}); m_banner->setPosition({22.f,150.f}); m_mainLayer->addChild(m_banner);
-        auto border = CCScale9Sprite::create("square02_small.png"); border->setColor({235,235,245});
-        border->setContentSize({74,74}); border->setPosition({69,159}); m_mainLayer->addChild(border,3);
-        m_avatar = mucho::profile::Artwork::create({68,68}); m_avatar->setPosition({35,125}); m_mainLayer->addChild(m_avatar,4);
-        m_name = CCLabelBMFont::create("Loading...","bigFont.fnt"); m_name->setPosition({262,141}); m_mainLayer->addChild(m_name,4);
-        m_name->limitLabelWidth(248.f,.5f,0.f);
-        char const* labels[] = {"Stars","Moons","Demons","Diamonds","User coins","Creator points"};
+        m_origin = std::move(url); m_account = account; setTitle("Mucho Profile v0.8.1");
+        m_banner = mucho::profile::Artwork::create({376.f,125.3333f}); m_banner->setPosition({22.f,142.f}); m_mainLayer->addChild(m_banner);
+        // A separate identity row keeps both images and the name aligned;
+        // the square avatar never covers the banner or the statistics.
+        auto identity = CCLayerColor::create({55,29,18,35},376,62);
+        identity->setPosition({22,77}); m_mainLayer->addChild(identity);
+        auto border = CCLayerColor::create({235,235,245,255},54,54);
+        border->setPosition({28,81}); m_mainLayer->addChild(border,3);
+        m_avatar = mucho::profile::Artwork::create({50,50}); m_avatar->setPosition({30,83}); m_mainLayer->addChild(m_avatar,4);
+        m_name = CCLabelBMFont::create("Loading...","bigFont.fnt"); m_name->setAnchorPoint({0,.5f});
+        m_name->setPosition({98,116}); m_mainLayer->addChild(m_name,4); m_name->limitLabelWidth(288.f,.5f,0.f);
+        m_caption = CCLabelBMFont::create("","goldFont.fnt"); m_caption->setAnchorPoint({0,.5f});
+        m_caption->setScale(.3f); m_caption->setPosition({98,96}); m_mainLayer->addChild(m_caption,4);
+        auto statistics = CCLayerColor::create({55,29,18,35},376,35);
+        statistics->setPosition({22,39}); m_mainLayer->addChild(statistics);
+        char const* labels[] = {"Stars","Moons","Demons","Diamonds","User coins","Creator pts"};
         for (int i = 0; i < 6; ++i) {
-            float x = 80.f + (i % 3) * 130.f, y = 104.f - (i / 3) * 39.f;
-            auto title = CCLabelBMFont::create(labels[i],"goldFont.fnt"); title->setScale(.3f); title->setPosition({x,y+13}); m_mainLayer->addChild(title);
-            auto value = CCLabelBMFont::create("-","bigFont.fnt"); value->setScale(.42f); value->setPosition({x,y}); m_mainLayer->addChild(value); m_stats.push_back(value);
+            float x = 22.f + (i+.5f)*(376.f/6);
+            auto title = CCLabelBMFont::create(labels[i],"goldFont.fnt"); title->limitLabelWidth(54.f,.26f,0.f);
+            title->setPosition({x,66}); m_mainLayer->addChild(title,2);
+            auto value = CCLabelBMFont::create("-","bigFont.fnt"); value->setScale(.4f); value->setPosition({x,50}); m_mainLayer->addChild(value,2); m_stats.push_back(value);
         }
         auto menu = CCMenu::create(); menu->setPosition({0,0}); m_mainLayer->addChild(menu,5);
         auto refresh = mucho::button(CCSprite::createWithSpriteFrameName("GJ_updateBtn_001.png"),this,menu_selector(MuchoProfilePopup::onReload),.48f);
@@ -284,9 +294,9 @@ protected:
         char const* buttons[] = {"Avatar","Cover","Colors"};
         for (int i = 0; i < 3; ++i) {
             auto b = mucho::button(ButtonSprite::create(buttons[i]),this,i < 2 ? menu_selector(MuchoProfilePopup::onEdit) : menu_selector(MuchoProfilePopup::onColors),.43f);
-            b->setTag(i); b->setPosition({83.f+i*127.f,32.f}); b->setVisible(false); menu->addChild(b); m_edits.push_back(b);
+            b->setTag(i); b->setPosition({22.f+(i+.5f)*(376.f/3),25.f}); b->setVisible(false); menu->addChild(b); m_edits.push_back(b);
         }
-        m_status = CCLabelBMFont::create("","bigFont.fnt"); m_status->setPosition({210,12}); m_mainLayer->addChild(m_status);
+        m_status = CCLabelBMFont::create("","bigFont.fnt"); m_status->setPosition({210,9}); m_mainLayer->addChild(m_status);
         load(); return true;
     }
     void onClose(CCObject* sender) override { m_closed = true; ++m_generation; m_request.cancel(); Popup::onClose(sender); }
