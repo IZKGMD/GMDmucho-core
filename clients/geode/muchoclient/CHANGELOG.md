@@ -1,3 +1,11 @@
+# v0.8.0
+
+- Upload personal avatar and profile cover from the system JPG/PNG file picker on Windows and Android.
+- Live crop preview with position, zoom and clockwise rotation; authenticated save and independent removal.
+- Public profile card with player colors and server statistics, plus avatar/cover strip in the normal GD profile.
+- Fresh server-encoded JPEGs, strict input dimensions, versioned downloads, bounded image cache and stale-session protection.
+- Persistent images are included in ordinary database backups. Server update adds the migration and PHP GD extension.
+
 # v0.7.0
 
 - Clan quests: owners and officers can start one stars goal and one demons goal concurrently. Each runs for seven days.

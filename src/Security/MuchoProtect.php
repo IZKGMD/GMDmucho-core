@@ -78,6 +78,10 @@ final readonly class MuchoProtect
         '/clans/activity' => ['limit' => 60, 'window' => 60, 'burst' => 15, 'burstWindow' => 10],
         '/appearance/my' => ['limit' => 60, 'window' => 60, 'burst' => 15, 'burstWindow' => 10],
         '/appearance/save' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
+        '/profile/get' => ['limit' => 120, 'window' => 60, 'burst' => 30, 'burstWindow' => 10],
+        '/profile/image' => ['limit' => 240, 'window' => 60, 'burst' => 60, 'burstWindow' => 10],
+        '/profile/upload' => ['limit' => 10, 'window' => 60, 'burst' => 3, 'burstWindow' => 10, 'identityLimit' => 10, 'identityWindow' => 60],
+        '/profile/remove' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
 
         // API v2 uses the same MuchoProtect engine as the legacy transport.
         '/v2' => ['limit' => 120, 'window' => 60, 'burst' => 30, 'burstWindow' => 10],

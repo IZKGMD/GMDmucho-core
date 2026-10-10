@@ -1,3 +1,12 @@
+## MuchoClient v0.8.0 — avatars and profile covers
+
+- Personal JPG/PNG uploads through the native Windows/Android file picker, with crop position, zoom, rotation, preview, save and removal.
+- Public profile card and avatar/cover strip in regular Geometry Dash profiles; nickname/clan colors remain supported.
+- Authenticated per-account writes, compact freshly encoded JPEGs, bounded input/pixel/output limits and versioned public downloads. Banned/inactive accounts are hidden.
+- Database migration `20261011_001_profile_media.php` stores only the current avatar and cover; database backups preserve images and account deletion cascades them.
+- Database backup INSERT batches are bounded by bytes as well as row count, avoiding oversized restore statements when profiles contain large images.
+- Docker app image now provides PHP GD with JPEG/PNG support. Update the server from main and rebuild containers before using uploads; shared hosting needs PHP GD.
+
 ## MuchoClient v0.7.0 — clan quests and activity
 
 - Authenticated clan quest API with seven-day stars/demons goals, officer permissions, contribution ranking and cancellation.

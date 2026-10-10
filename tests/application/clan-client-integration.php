@@ -57,7 +57,7 @@ try {
         is_active TINYINT NOT NULL DEFAULT 1, is_banned TINYINT NOT NULL DEFAULT 0
     ) ENGINE=InnoDB');
     foreach (require dirname(__DIR__,2).'/database/migrations/002_profiles.php' as $sql) $pdo->exec($sql);
-    foreach (['020_clans.php','20260926_002_clans_v2.php','20261010_001_appearance.php','20261010_002_clan_quests.php'] as $migration) {
+    foreach (['020_clans.php','20260926_002_clans_v2.php','20261010_001_appearance.php','20261010_002_clan_quests.php','20261011_001_profile_media.php'] as $migration) {
         foreach (require dirname(__DIR__,2).'/database/migrations/'.$migration as $sql) $pdo->exec($sql);
     }
     $pdo->exec('CREATE TABLE audit_logs (id INT AUTO_INCREMENT PRIMARY KEY,account_id BIGINT,action VARCHAR(64),target_type VARCHAR(64),target_id BIGINT,metadata TEXT)');
@@ -72,6 +72,13 @@ try {
     $service=new ClanService($pdo,new AccountAuthenticator($pdo),$repository);
     $controller=new ClanController($service);
     $appearance=new AppearanceController(new AppearanceService($pdo,new AccountAuthenticator($pdo)));
+    $profileMedia=new \MuchoCore\Appearance\ProfileMediaController(new \MuchoCore\Appearance\ProfileMediaService($pdo,new AccountAuthenticator($pdo)));
+    $profileCall=static function(string $method,int $id,array $fields=[],string $verb='POST') use ($profileMedia,$token): array {
+        $response=$profileMedia->$method(new Request($verb,'/api/profile/test',[],
+            array_merge(['accountID'=>(string)$id,'gameVersion'=>'22','gjp2'=>$token($id)],$fields),[]));
+        if ($response->contentType==='image/jpeg') return ['ok'=>true,'data'=>$response->body,'http_status'=>$response->status];
+        $root=json_decode($response->body,true,32,JSON_THROW_ON_ERROR); $root['http_status']=$response->status; return $root;
+    };
     $questRepository=new \MuchoCore\Clan\ClanQuestRepository($pdo);
     $questController=new \MuchoCore\Clan\ClanQuestController($pdo,new AccountAuthenticator($pdo),$questRepository);
     $quests=static function(string $method,int $id,array $fields=[],string $verb='POST') use ($questController,$token): array {
@@ -145,6 +152,41 @@ try {
     $ok($colorCall('save',2,['nicknameColor'=>'DEFAULT']),'nickname reset to normal GD color');
     clanCheck($colorCall('mine',2)['data']['nickname_color']==='','default reset persists on server');
     clanCheck($call('myClan',1)['data']['prefix_color']==='BD93F9' && $call('leaderboard',1)['data']['own_clan']['prefix_color']==='BD93F9','clan pages and ranking expose prefix color');
+    $noMedia=$ok($profileCall('profile',1,['gjp2'=>'']),'public profile needs no credential');
+    clanCheck($noMedia['media']===['avatar'=>null,'banner'=>null] && $noMedia['nickname_color']==='66CCFF','profile keeps colors and empty media defaults');
+    clanCheck(isset($noMedia['stats']['stars']) && !str_contains(json_encode($noMedia),'password') && !str_contains(json_encode($noMedia),'gjp2'),'profile exposes public statistics and no credentials');
+    $picture=imagecreatetruecolor(360,180); imagefill($picture,0,0,imagecolorallocate($picture,100,170,240));
+    ob_start(); imagepng($picture); $pictureBytes=(string)ob_get_clean();
+    $upload=['kind'=>'avatar','imageData'=>base64_encode($pictureBytes),'cropX'=>'500','cropY'=>'500','zoom'=>'100','rotation'=>'0'];
+    $denied($profileCall('upload',1,array_merge($upload,['gjp2'=>$token(2)])),'another account token cannot upload to this profile');
+    $avatar=$ok($profileCall('upload',1,$upload),'upload avatar with GDPS account authentication');
+    $firstVersion=$avatar['media']['avatar']['version'];
+    clanCheck(strlen($firstVersion)===64 && $avatar['media']['avatar']['width']===256 && $avatar['media']['banner']===null,'avatar version and dimensions are stored independently');
+    $publicImageResponse=$profileCall('image',1,['kind'=>'avatar','version'=>$firstVersion,'gjp2'=>'']);
+    clanCheck($publicImageResponse['ok'] && $publicImageResponse['http_status']===200,'download exact public avatar version');
+    $publicImage=$publicImageResponse['data'];
+    clanCheck(getimagesizefromstring($publicImage)[0]===256 && hash('sha256',$publicImage)===$firstVersion,'public JPEG bytes match the metadata version');
+    $banner=$ok($profileCall('upload',1,array_merge($upload,['kind'=>'banner'])),'upload independent profile cover');
+    clanCheck($banner['media']['avatar']['version']===$firstVersion && $banner['media']['banner']['width']===960,'cover upload preserves avatar');
+    foreach ([['kind'=>'file'],['cropX'=>'NaN'],['cropY'=>'1001'],['zoom'=>'99'],['rotation'=>'45'],['imageData'=>base64_encode('<svg/>')]] as $bad) {
+        $denied($profileCall('upload',1,array_merge($upload,$bad)),'reject unsupported media or crop without replacing saved image');
+    }
+    clanCheck($profileCall('profile',1)['data']['media']['avatar']['version']===$firstVersion,'failed upload preserves prior image');
+    imagefill($picture,0,0,imagecolorallocate($picture,240,70,90)); ob_start(); imagejpeg($picture); $newPicture=(string)ob_get_clean();
+    $replacement=$ok($profileCall('upload',1,array_merge($upload,['imageData'=>base64_encode($newPicture)])),'replace avatar with a JPEG');
+    clanCheck($replacement['media']['avatar']['version']!==$firstVersion,'replacement changes cache version');
+    clanCheck($profileCall('image',1,['kind'=>'avatar','version'=>$firstVersion])['http_status']===404,'obsolete versions cannot return newer bytes under an old cache key');
+    $denied($profileCall('remove',1,['kind'=>'avatar','gjp2'=>$token(2)]),'only owner can remove their media');
+    $removed=$ok($profileCall('remove',1,['kind'=>'avatar']),'remove avatar');
+    clanCheck($removed['media']['avatar']===null && $removed['media']['banner']!==null,'removing avatar keeps cover');
+    $ok($profileCall('remove',1,['kind'=>'avatar']),'removing an empty slot is idempotent');
+    $pdo->exec('UPDATE accounts SET is_banned=1 WHERE account_id=1');
+    $denied($profileCall('profile',1),'banned profiles are not public');
+    clanCheck($profileCall('image',1,['kind'=>'banner','version'=>$banner['media']['banner']['version']])['http_status']===404,'banned profile image is unavailable');
+    $denied($profileCall('upload',1,$upload),'banned account cannot upload media');
+    $pdo->exec('UPDATE accounts SET is_banned=0 WHERE account_id=1');
+    foreach (['profile','upload','remove','image'] as $method) clanCheck($profileCall($method,1,[],'GET')['http_status']===405,'profile endpoint requires POST');
+    $denied($profileCall('profile',0),'invalid public account ID is rejected');
     $denied($call('setRole',1,['targetAccountID'=>'3','role'=>'owner']),'owner role requires ownership transfer');
     $denied($call('kick',2,['targetAccountID'=>'1']),'officer cannot kick owner');
     $denied($call('ban',2,['targetAccountID'=>'1']),'officer cannot ban owner');
@@ -356,6 +398,10 @@ try {
     $pdo->exec('DELETE FROM mucho_clans');
     $empty=$ok($call('leaderboard',0),'empty clan leaderboard');
     clanCheck($empty['clans']===[] && $empty['total_clans']===0 && !$empty['has_more'] && $empty['own_clan']===null,'empty leaderboard is successful');
+    $ok($profileCall('upload',40,$upload),'store account deletion fixture image');
+    $pdo->exec('DELETE FROM accounts WHERE account_id=40');
+    clanCheck((int)$pdo->query('SELECT COUNT(*) FROM mucho_profile_media WHERE account_id=40')->fetchColumn()===0,'account deletion cascades its images');
+    clanCheck($profileCall('profile',1)['data']['media']['banner']!==null,'clan disband preserves personal profile cover');
     echo "MUCHOCLIENT_CLANS_INTEGRATION_OK\n";
 } finally {
     $pdo=null;

@@ -84,9 +84,17 @@ SQL);
     $stmt->bindValue(':payload', $binary, PDO::PARAM_LOB);
     $stmt->execute();
     $source->exec('INSERT INTO restore_links (id,item_id) VALUES (10,1)');
+    $source->exec('CREATE TABLE restore_media (id INT PRIMARY KEY,payload MEDIUMBLOB NOT NULL) ENGINE=InnoDB');
+    $mediaBytes=substr(str_repeat(implode('',array_map('chr',range(0,255))),2048),0,512*1024);
+    $mediaInsert=$source->prepare('INSERT INTO restore_media (id,payload) VALUES (?,?)');
+    for ($id=1;$id<=6;$id++) $mediaInsert->execute([$id,$mediaBytes]);
 
     $backup = (new DatabaseBackupService($source, $dir))
         ->create('roundtrip');
+    $backupSql=file_get_contents('compress.zlib://'.$backup['file']);
+    backupCheck(is_string($backupSql) && substr_count($backupSql,'INSERT INTO `restore_media`')>=2,
+        'large profile-sized blobs use bounded restore statements');
+    unset($backupSql);
 
     $verified = DatabaseBackupVerifier::verify($backup['file']);
     backupCheck(
@@ -184,6 +192,9 @@ SQL);
     );
 
     $target = $connect($targetName);
+    $restoredMedia=$target->query('SELECT payload FROM restore_media ORDER BY id')->fetchAll(PDO::FETCH_COLUMN);
+    backupCheck(count($restoredMedia)===6 && count(array_filter($restoredMedia,static fn(string $bytes): bool => $bytes===$mediaBytes))===6,
+        'all profile-sized image blobs survive the database restore byte for byte');
     $row = $target->query(
         'SELECT user_text,payload,optional_value,number_value,doubled ' .
         'FROM restore_items WHERE id=1'

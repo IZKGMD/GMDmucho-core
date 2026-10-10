@@ -12,6 +12,7 @@ final class DatabaseBackupService
 {
     private const MIN_BACKUP_BYTES = 100;
     private const ROW_BATCH = 250;
+    private const MAX_BATCH_BYTES = 2 * 1024 * 1024;
 
     public function __construct(
         private readonly PDO $pdo,
@@ -247,6 +248,7 @@ final class DatabaseBackupService
             $query->setFetchMode(PDO::FETCH_ASSOC);
 
             $rows = [];
+            $batchBytes = 0;
 
             while (($row = $query->fetch()) !== false) {
                 $values = [];
@@ -255,11 +257,20 @@ final class DatabaseBackupService
                     $values[] = $this->sqlValue($row[$column] ?? null);
                 }
 
-                $rows[] = '(' . implode(', ', $values) . ')';
+                $rowSql = '(' . implode(', ', $values) . ')';
+                $rowBytes = strlen($rowSql) + 2;
+                // Profile JPEGs can be hundreds of KiB per row. Bound both
+                // memory usage and restore statement size, not just row count.
+                if ($rows !== [] && $batchBytes + $rowBytes > self::MAX_BATCH_BYTES) {
+                    $this->writeInsert($gzip, $quotedTable, $columnSql, $rows);
+                    $rows = []; $batchBytes = 0;
+                }
+                $rows[] = $rowSql; $batchBytes += $rowBytes;
 
                 if (count($rows) >= self::ROW_BATCH) {
                     $this->writeInsert($gzip, $quotedTable, $columnSql, $rows);
                     $rows = [];
+                    $batchBytes = 0;
                 }
             }
 

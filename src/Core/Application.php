@@ -250,6 +250,7 @@ final readonly class Application
         );
 
         $appearanceController = new AppearanceController(new AppearanceService($this->pdo,$auth));
+        $profileMediaController = new \MuchoCore\Appearance\ProfileMediaController(new \MuchoCore\Appearance\ProfileMediaService($this->pdo,$auth));
         $questController = new \MuchoCore\Clan\ClanQuestController($this->pdo,$auth,new \MuchoCore\Clan\ClanQuestRepository($this->pdo));
         $discoveryController = new DiscoveryController($this->pdo);
 
@@ -483,6 +484,10 @@ final readonly class Application
         $route('/api/clans/activity',[$questController,'activity']);
         $route('/api/appearance/my',[$appearanceController,'mine']);
         $route('/api/appearance/save',[$appearanceController,'save']);
+        $route('/api/profile/get',[$profileMediaController,'profile']);
+        $route('/api/profile/upload',[$profileMediaController,'upload']);
+        $route('/api/profile/remove',[$profileMediaController,'remove']);
+        $route('/api/profile/image',[$profileMediaController,'image']);
 
         $route('/getGJCreators',
             [$discoveryController,'creators']);
