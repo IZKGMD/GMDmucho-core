@@ -143,7 +143,7 @@ class MuchoImageEditor final : public Popup {
     void onSave(CCObject*) {
         if (m_busy || !session()) return;
         if (!m_selected) { status("Choose an image first"); return; }
-        if (!m_preview->ready()) { status("Wait for the image preview to load"); return; }
+        if (!m_preview->ready()) { status(m_preview->loading() ? "Wait for the image preview to load" : "Image preview failed. Choose another JPG or PNG"); return; }
         m_busy = true; enabled(); status("Preparing upload..."); auto generation = ++m_generation;
         m_encoder.spawn("Encode profile image", [bytes = m_bytes]() -> arc::Future<std::string> {
             co_return mucho::clans::encoded(base64::encode(bytes, base64::Base64Variant::Normal));

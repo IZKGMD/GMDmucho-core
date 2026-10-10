@@ -72,10 +72,12 @@ namespace mucho::profile {
             if (m_rotation == 270) rect = {w - top - ch, left, ch, cw};
             m_image->setTextureRect(rect); m_image->setRotation(static_cast<float>(m_rotation));
             m_image->setScale(scale); m_image->setPosition(m_box / 2);
+            m_image->setOpacity(m_dim);
             m_image->setVisible(true);
         }
     public:
         bool ready() const { return m_ready; }
+        bool loading() const { return m_image && m_image->isLoading(); }
         void dim(GLubyte opacity) { m_dim = opacity; if (m_image) m_image->setOpacity(opacity); }
         void crop(int x, int y, int zoom, int rotation) {
             m_x = x; m_y = y; m_zoom = zoom; m_rotation = rotation; fit();
