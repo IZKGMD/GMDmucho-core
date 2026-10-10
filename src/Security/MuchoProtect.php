@@ -71,6 +71,11 @@ final readonly class MuchoProtect
         '/clans/unban' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
         '/clans/bans' => ['limit' => 30, 'window' => 60, 'burst' => 8, 'burstWindow' => 10],
         '/appearance/batch' => ['limit' => 120, 'window' => 60, 'burst' => 30, 'burstWindow' => 10],
+        '/clans/quests' => ['limit' => 60, 'window' => 60, 'burst' => 15, 'burstWindow' => 10],
+        '/clans/quests/create' => ['limit' => 10, 'window' => 60, 'burst' => 3, 'burstWindow' => 10],
+        '/clans/quests/cancel' => ['limit' => 10, 'window' => 60, 'burst' => 3, 'burstWindow' => 10],
+        '/clans/quests/contributions' => ['limit' => 60, 'window' => 60, 'burst' => 15, 'burstWindow' => 10],
+        '/clans/activity' => ['limit' => 60, 'window' => 60, 'burst' => 15, 'burstWindow' => 10],
         '/appearance/my' => ['limit' => 60, 'window' => 60, 'burst' => 15, 'burstWindow' => 10],
         '/appearance/save' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
 

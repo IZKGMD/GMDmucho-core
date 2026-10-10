@@ -1,3 +1,10 @@
+## MuchoClient v0.7.0 — clan quests and activity
+
+- Authenticated clan quest API with seven-day stars/demons goals, officer permissions, contribution ranking and cancellation.
+- Atomic score updates and quest progress under the clan lock; baseline snapshots for joining players and durable contributions after departure.
+- Clan event journal and native Quests / Activity pages in the Windows and Android Geode client.
+- New schema migration `20261010_002_clan_quests.php`; update the server before installing the new client.
+
 ## v1.1.0 — Control Plane & Deployment Platform
 
 ### MuchoGDPS Web Platform

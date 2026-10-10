@@ -1,4 +1,4 @@
-# MuchoClient — one Geode mod for server extensions (v0.6.0)
+# MuchoClient — one Geode mod for server extensions (v0.7.0)
 
 MuchoClient connects Geometry Dash 2.2081 (Windows and Android) to MuchoCore.
 Players install **one .geode file**. Server-side PHP plugins publish safe,
@@ -20,7 +20,7 @@ client does not download or execute plugin code.
   edit the `MuchoCore Server URL` Geode setting (HTTPS origin, without
   `/database`).
 - The client GETs `/muchoclient/manifest`, validates the feature catalog, and
-  POSTs `/muchoclient/negotiate` with `client_version=0.6.0&protocol=1`.
+  POSTs `/muchoclient/negotiate` with `client_version=0.7.0&protocol=1`.
 - Compatible clients display a popup of feature buttons. Public extension
   endpoints under `/extensions/` return constrained JSON text.
 
@@ -58,7 +58,7 @@ See the example's README for detailed steps.
 - Real-device runtime testing is still required; successful native CI
   compilation does not guarantee a running VPS or installed game behavior.
 
-## Clans v0.6.0
+## Clans v0.7.0
 
 The Clans window uses the current Geometry Dash account ID and GJP2, with
 server authorization for every operation. It supports browsing and paged
@@ -94,7 +94,7 @@ The integration test creates and drops a randomly named test database. Never
 point it at production. Native compilation and these API tests do not replace
 verification inside the installed game on Windows and Android.
 
-## Clan leaderboards v0.6.0
+## Clan leaderboards v0.7.0
 
 The **CLANS** button above Scores in the Create / Saved / Scores menu opens
 public clan rankings. Tabs rank current member totals for stars, demons, moons,
@@ -117,6 +117,22 @@ necessary after CI compilation and MariaDB integration tests.
 
 Open **Mucho > Colors**, or **My Clan > Colors**. Choose **Nickname** to customize your own name. Clan owners can select **Clan prefix** to set the shared `[TAG]` color. Twelve swatches and six-digit HEX input update a live preview. Press **Save** to persist both settings; **Default** restores the normal nickname color or the golden clan prefix after saving.
 
-Colors appear to clients running v0.6.0 in profiles, comments and player rankings, and in native clan pages. Vanilla clients and older MuchoClient versions keep compatible text prefixes. Login names and authentication are unchanged. Public appearance is loaded in batches of at most 50 accounts and cached for 60 seconds; failed lookups retry after 30 seconds when a view is loaded again.
+Colors appear to clients running v0.7.0 in profiles, comments and player rankings, and in native clan pages. Vanilla clients and older MuchoClient versions keep compatible text prefixes. Login names and authentication are unchanged. Public appearance is loaded in batches of at most 50 accounts and cached for 60 seconds; failed lookups retry after 30 seconds when a view is loaded again.
 
 The server migration `20261010_001_appearance.php` creates two small tables. Colors survive restarts. Nickname colors belong to the account; clan prefix colors belong to the clan and its current owner. Leaving or disbanding removes the prefix but preserves nickname color.
+
+## Clan quests and activity v0.7.0
+
+In **Mucho > Clans > My Clan**, open **Quests** or **Activity**. Owners and officers can start a seven-day goal: 100–100000 stars or 5–1000 demons. One active quest per metric is allowed; the last 20 quests are displayed. Completed quests retain their contribution rankings. Cancelling needs confirmation and stops further progress.
+
+Only growth in the server's authenticated player statistics counts. Old totals at quest creation and at joining are snapshotted; duplicate updates and score resets cannot earn the same points twice. The game must sync player statistics to MuchoCore, as it does for normal player leaderboards. Departure freezes that player's contribution; rejoining baselines the current score while preserving prior earnings. Quests are cooperative goals and do not grant game currency.
+
+Activity is visible to current clan members. It records creation, joining, leaving, kicks/bans, roles, owner transfer, settings and quest outcomes. Both activity and contribution lists have server pagination. Banned and inactive accounts cannot contribute.
+
+Update MuchoCore from `main` and run `php bin/migrate.php migrate` before using these pages. The five new APIs require POST and an authenticated current clan member:
+
+- `/api/clans/quests`
+- `/api/clans/quests/create` (`metric`, `target`; owner/officer)
+- `/api/clans/quests/cancel` (`questID`; owner/officer)
+- `/api/clans/quests/contributions` (`questID`, `offset`, `limit`)
+- `/api/clans/activity` (`offset`, `limit`)

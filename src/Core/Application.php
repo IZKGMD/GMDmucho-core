@@ -188,7 +188,8 @@ final readonly class Application
                 $accountRepo,
                 $userRepo,
                 new GdUserEncoder(),
-                $legacy10Identity
+                $legacy10Identity,
+                new \MuchoCore\Clan\ClanQuestRepository($this->pdo)
             )
         );
 
@@ -249,6 +250,7 @@ final readonly class Application
         );
 
         $appearanceController = new AppearanceController(new AppearanceService($this->pdo,$auth));
+        $questController = new \MuchoCore\Clan\ClanQuestController($this->pdo,$auth,new \MuchoCore\Clan\ClanQuestRepository($this->pdo));
         $discoveryController = new DiscoveryController($this->pdo);
 
         $levelScoreController = new LevelScoreController($this->pdo, $auth);
@@ -474,6 +476,11 @@ final readonly class Application
             [$clanController,'bans']);
 
         $route('/api/appearance/batch',[$appearanceController,'batch']);
+        $route('/api/clans/quests',[$questController,'quests']);
+        $route('/api/clans/quests/create',[$questController,'create']);
+        $route('/api/clans/quests/cancel',[$questController,'cancel']);
+        $route('/api/clans/quests/contributions',[$questController,'contributions']);
+        $route('/api/clans/activity',[$questController,'activity']);
         $route('/api/appearance/my',[$appearanceController,'mine']);
         $route('/api/appearance/save',[$appearanceController,'save']);
 
