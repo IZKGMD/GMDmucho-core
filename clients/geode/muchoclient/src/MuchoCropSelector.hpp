@@ -62,6 +62,8 @@ namespace mucho::profile {
             if (m_changed) m_changed(x,y,zoom);
         }
     public:
+        CCSize imageSize() const { return {static_cast<float>(m_width),static_cast<float>(m_height)}; }
+        bool dragging() const { return m_touch >= 0; }
         void active(bool enabled) { m_enabled=enabled; if (!enabled) { m_touch=-1; m_drag=0; } }
         void clear() {
             active(false); m_width=m_height=0; m_overlay->clear(); m_hint->setVisible(true);

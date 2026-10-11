@@ -1,3 +1,12 @@
+# v0.8.3
+
+- Windows crop controls: smooth 100–300% zoom slider, mouse wheel over the photo, arrow-key fine adjustments and faster Shift + arrows.
+- Plus/minus zoom, R rotates clockwise and 0 resets; a help button lists mouse and keyboard controls.
+- Keep the selected source point centred when zooming or rotating; clamp the crop at the photo edges.
+- Larger photo selection view, separate control rows, source crop dimensions and matching live preview.
+- Save stays disabled until decoding finishes; confirm before discarding an unsaved image. Modal dialogs block crop input.
+- Existing avatars, covers, clan features and authenticated server APIs remain compatible; no server migration.
+
 # v0.8.2
 
 - Select the exact cover area on the full photo with a visible 3:1 rectangle, shaded outside area and composition grid.
