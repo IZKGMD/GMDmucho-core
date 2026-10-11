@@ -1,0 +1,147 @@
+name: MuchoLoader Standalone
+on:
+  push:
+    branches: ['codex/mucholoader-standalone-v010']
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  UPSTREAM_COMMIT: 413ac9b3936373e0983b3ebb8a056a3d39e8541c
+  BINDINGS_COMMIT: f8aec5d1f3df76d840dfd2609f02cef30dc6efdf
+jobs:
+  runtime:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python: ['3.12', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: |
+          cmake -S mucho -B host-tests
+          cmake --build host-tests --parallel 2
+          ctest --test-dir host-tests --output-on-failure
+  windows:
+    runs-on: ubuntu-24.04
+    needs: runtime
+    timeout-minutes: 60
+    env:
+      CPM_SOURCE_CACHE: ${{ github.workspace }}/cpm-cache
+      SPLAT_DIR: ${{ github.workspace }}/.xwin-cache/splat
+      HOST_ARCH: x86_64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: geode-sdk/geode
+          ref: ${{ env.UPSTREAM_COMMIT }}
+          path: upstream
+      - uses: actions/checkout@v4
+        with:
+          repository: geode-sdk/bindings
+          ref: ${{ env.BINDINGS_COMMIT }}
+          path: bindings
+      - uses: actions/checkout@v4
+        with:
+          repository: geode-sdk/clang-msvc-sdk
+          path: toolchain
+          submodules: recursive
+      - uses: actions/cache@v4
+        with:
+          path: |
+            cpm-cache
+            .xwin-cache
+          key: mucho-win-v1-5.11.1
+      - uses: geode-sdk/cli/.github/actions/setup@main
+      - name: LLVM 21 and Windows SDK
+        run: |
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 21 all
+          echo /usr/lib/llvm-21/bin >> "$GITHUB_PATH"
+          curl -fL https://github.com/Jake-Shadle/xwin/releases/download/0.10.0/xwin-0.10.0-x86_64-unknown-linux-musl.tar.gz -o xwin.tar.gz
+          tar -xzf xwin.tar.gz
+          ./xwin-0.10.0-x86_64-unknown-linux-musl/xwin --arch x86_64 --sdk-version 10.0.22621 --accept-license splat --include-debug-libs
+      - name: Target Python headers and embedded runtime
+        run: |
+          curl -fL https://www.nuget.org/api/v2/package/python/3.13.7 -o python.nupkg
+          unzip -q python.nupkg -d cpython
+          curl -fL https://www.python.org/ftp/python/3.13.7/python-3.13.7-embed-amd64.zip -o embedded.zip
+          unzip -q embedded.zip -d embedded
+          python3 -m pip install pefile
+      - name: Prepare standalone source and verify source contracts
+        run: |
+          python3 mucho/tools/prepare.py upstream
+          python3 mucho/tools/check_compatibility.py upstream
+      - name: Configure
+        run: >-
+          cmake -S upstream -B win-build -G Ninja
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/toolchain/clang-cl-msvc.cmake
+          -DGEODE_BINDINGS_REPO_PATH=${{ github.workspace }}/bindings
+          -DGEODE_CODEGEN_CMAKE_ARGS="-DCMAKE_C_COMPILER=clang;-DCMAKE_CXX_COMPILER=clang++;-G Ninja"
+          -DGEODE_DONT_BUILD_TEST_MODS=ON -DGEODE_UNITY_BUILD=ON
+          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -DMUCHO_WITH_PYTHON=ON
+          -DPython3_INCLUDE_DIR=${{ github.workspace }}/cpython/tools/include
+          -DPython3_LIBRARY=${{ github.workspace }}/cpython/tools/libs/python313.lib
+      - name: Build standalone loader
+        run: cmake --build win-build --config RelWithDebInfo --parallel 2
+      - name: Verify baseline DLL exports and package
+        run: |
+          curl -fL https://github.com/geode-sdk/geode/releases/download/v5.11.1/geode-v5.11.1-win.zip -o baseline.zip
+          echo '84d2e0b22e426870c1ec3ea97b5c66e130135acf5eacba1253d5fd0f25d22acd  baseline.zip' | sha256sum --check
+          unzip -q baseline.zip -d baseline
+          python3 mucho/tools/check_compatibility.py upstream --baseline-dll baseline/Geode.dll --loader-dll upstream/bin/nightly/Geode.dll --out upstream/compatibility.json
+          python3 mucho/tools/package_windows.py upstream embedded artifacts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MuchoLoader-v0.1.0-Windows
+          path: |
+            artifacts/*.zip
+            upstream/compatibility.json
+  android:
+    runs-on: ubuntu-24.04
+    needs: runtime
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: ['arm64-v8a', 'armeabi-v7a']
+    env:
+      CPM_SOURCE_CACHE: ${{ github.workspace }}/cpm-cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: geode-sdk/geode
+          ref: ${{ env.UPSTREAM_COMMIT }}
+          path: upstream
+      - uses: actions/checkout@v4
+        with:
+          repository: geode-sdk/bindings
+          ref: ${{ env.BINDINGS_COMMIT }}
+          path: bindings
+      - uses: geode-sdk/cli/.github/actions/setup@main
+      - name: Prepare
+        run: |
+          python3 mucho/tools/prepare.py upstream
+          python3 mucho/tools/check_compatibility.py upstream
+      - name: Configure native compatibility core
+        run: >-
+          cmake -S upstream -B android-build -G Ninja
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_LATEST_HOME/build/cmake/android.toolchain.cmake
+          -DANDROID_ABI=${{ matrix.abi }} -DANDROID_PLATFORM=android-23
+          -DANDROID_STL=c++_shared -DGEODE_DONT_BUILD_TEST_MODS=ON
+          -DGEODE_BINDINGS_REPO_PATH=${{ github.workspace }}/bindings
+          -DMUCHO_WITH_PYTHON=OFF -DGEODE_UNITY_BUILD=ON
+          -DGEODE_CODEGEN_CMAKE_ARGS="-DCMAKE_C_COMPILER=clang;-DCMAKE_CXX_COMPILER=clang++;-G Ninja"
+      - run: cmake --build android-build --config RelWithDebInfo --parallel 2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MuchoLoader-native-${{ matrix.abi }}
+          path: |
+            upstream/bin/nightly/Geode.*.so
+            upstream/bin/nightly/resources

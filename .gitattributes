@@ -1,6 +1,0 @@
-# Keep release/source archives focused on the runnable core.
-# Large test/demo binaries and release-only metadata remain available in git
-# but are intentionally excluded from packaged source archives.
-Geometry.Dash.ver.1.40.build.11.apk export-ignore
-assets/brand/sources/ export-ignore
-.release/ export-ignore

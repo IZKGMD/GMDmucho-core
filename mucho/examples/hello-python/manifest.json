@@ -1,0 +1,9 @@
+{
+  "id": "hello-python",
+  "name": "Hello Python",
+  "version": "1.0.0",
+  "api": 1,
+  "min_loader_version": "0.1.0",
+  "enabled": true,
+  "dependencies": {}
+}
