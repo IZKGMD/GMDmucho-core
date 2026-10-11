@@ -2419,14 +2419,17 @@ max-width:100%
 
 </style>
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
-<script src="/muchocore-theme.js?v=3" defer></script>
+<script src="/muchocore-theme.js?v=4" defer></script>
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>
+<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<link rel="stylesheet" href="/admin/product-admin.css?v=1">
+<script src="/assets/product-ui.js?v=1" defer></script>
 </head>
-<body class="admin-login" data-page="">
+<body class="admin-login mc-workspace" data-page="">
 <form method="post" class="box">
-<div class="logo"><img class="mucho-brand-logo" src="/assets/muchocore-logo.jpg" alt="MuchoCore" width="42" height="42" decoding="async"><span class="mucho-brand-name"><?=h($branding['server_name'])?></span><span>Control</span></div>
+<div class="logo"><img class="mucho-brand-logo" src="/assets/muchocore-icon.png" alt="MuchoCore" width="42" height="42" decoding="async"><span class="mucho-brand-name"><?=h($branding['server_name'])?></span><span>Control</span></div>
 <div class="sub">GDPS Administration</div>
 
 <?php if (!empty($loginError)): ?>
@@ -5043,15 +5046,19 @@ table{
 <link rel="stylesheet" href="/admin/admin-i18n.css?v=2">
 <link rel="stylesheet" href="/admin/admin-ui-v2.css?v=3">
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
-<script src="/muchocore-theme.js?v=3" defer></script>
+<script src="/muchocore-theme.js?v=4" defer></script>
+<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<link rel="stylesheet" href="/admin/product-admin.css?v=1">
+<script src="/assets/product-ui.js?v=1" defer></script>
 </head>
-<body style='--brand-initial:"<?=h($brandInitial)?>";'>
+<body class="mc-admin" data-page="<?=h($page)?>" style='--brand-initial:"<?=h($brandInitial)?>";'>
+<a class="mc-skip" href="#main">Skip to content</a>
 
 <div class="mobile-overlay" id="mobileOverlay"></div>
 
 <div class="shell">
 
-<aside>
+<aside id="adminNavigation" aria-label="Admin navigation">
 <!-- MUCHO_LANG_FLAGS -->
 <div id="muchoLangSwitcher" class="mucho-lang-switcher">
     <button type="button" data-lang="en" title="English">🇬🇧</button>
@@ -5060,7 +5067,7 @@ table{
 <!-- /MUCHO_LANG_FLAGS -->
 
 <div class="brandrow">
-<div class="logo"><img class="mucho-brand-logo" src="/assets/muchocore-logo.jpg" alt="MuchoCore" width="42" height="42" decoding="async"><span class="mucho-brand-name"><?=h($branding['server_name'])?></span><b>Control</b></div>
+<div class="logo"><img class="mucho-brand-logo" src="/assets/muchocore-icon.png" alt="MuchoCore" width="42" height="42" decoding="async"><span class="mucho-brand-name"><?=h($branding['server_name'])?></span><b>Control</b></div>
 <button
  type="button"
  class="sidebar-toggle"
@@ -5077,6 +5084,8 @@ table{
 <a
  href="/admin/?page=<?=h($key)?>"
  title="<?=h($pages[$key])?>"
+ data-short="<?=h(strtoupper(substr($key,0,2)))?>"
+ aria-current="<?=$page===$key?'page':'false'?>"
  class="<?=$page===$key?'on':''?>"
 ><?=h($pages[$key])?></a>
 <?php endif; ?>
@@ -5088,6 +5097,8 @@ table{
 <a
  href="/admin/?page=<?=h($key)?>"
  title="<?=h($pages[$key])?>"
+ data-short="<?=h(strtoupper(substr($key,0,2)))?>"
+ aria-current="<?=$page===$key?'page':'false'?>"
  class="<?=$page===$key?'on':''?>"
 ><?=h($pages[$key])?></a>
 <?php endif; ?>
@@ -5099,17 +5110,21 @@ table{
 <a
  href="/admin/?page=<?=h($key)?>"
  title="<?=h($pages[$key])?>"
+ data-short="<?=h(strtoupper(substr($key,0,2)))?>"
+ aria-current="<?=$page===$key?'page':'false'?>"
  class="<?=$page===$key?'on':''?>"
 ><?=h($pages[$key])?></a>
 <?php endif; ?>
 <?php endforeach ?>
 
 <div class="nav-title">Tools</div>
-<?php foreach(['database','endpoints','updates','securitycenter','dbbackups','migration','backups','settings','system'] as $key): ?>
+<?php foreach(['database','endpoints','updates','plugins','securitycenter','dbbackups','migration','backups','settings','system'] as $key): ?>
 <?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
  title="<?=h($pages[$key])?>"
+ data-short="<?=h(strtoupper(substr($key,0,2)))?>"
+ aria-current="<?=$page===$key?'page':'false'?>"
  class="<?=$page===$key?'on':''?>"
 ><?=h($pages[$key])?></a>
 <?php endif; ?>
@@ -5121,19 +5136,21 @@ table{
 <a
  href="/admin/?page=<?=h($key)?>"
  title="<?=h($pages[$key])?>"
+ data-short="<?=h(strtoupper(substr($key,0,2)))?>"
+ aria-current="<?=$page===$key?'page':'false'?>"
  class="<?=$page===$key?'on':''?>"
 ><?=h($pages[$key])?></a>
 <?php endif; ?>
 <?php endforeach ?>
 
-<a class="logout href="/admin/?logout=1">
+<a class="logout" data-short="↗" href="/admin/?logout=1">
 Logout
 </a>
 
 </nav>
 </aside>
 
-<main>
+<main id="main" tabindex="-1">
 
 <div class="head">
 
@@ -5142,6 +5159,8 @@ Logout
  class="mobile-menu-btn"
  id="mobileMenuButton"
  aria-label="Open menu"
+ aria-expanded="false"
+ aria-controls="adminNavigation"
 >☰</button>
 
 <div class="head-title">
@@ -5149,11 +5168,12 @@ Logout
 <small><?=h((string)((Environment::get('MUCHO_ACCOUNT_URL', '') ?: $branding['server_name'])))?></small>
 </div>
 
+<?php if (canAdminPage('advanced') || canAdminPage('players') || canAdminPage('levels')): ?>
 <form class="global-search" method="get" id="globalSearch">
 <select name="page" aria-label="Search type">
-<option value="advanced">Everywhere</option>
-<option value="players">Players</option>
-<option value="levels">Levels</option>
+<?php foreach (['advanced'=>'Everywhere','players'=>'Players','levels'=>'Levels'] as $searchPage=>$searchLabel): ?>
+<?php if (canAdminPage($searchPage)): ?><option value="<?=h($searchPage)?>"><?=h($searchLabel)?></option><?php endif; ?>
+<?php endforeach; ?>
 </select>
 
 <input
@@ -5166,7 +5186,10 @@ Logout
 
 <button type="submit">Search</button>
 </form>
+<?php endif; ?>
 
+<button type="button" id="commandLauncher" class="command-launcher">Quick navigation <kbd>⌘ K</kbd></button>
+<div class="mc-theme-slot"></div>
 <div class="user-pill">
 <div class="avatar">
 <?=h(strtoupper(substr(admin()['username'],0,1)))?>
@@ -6595,37 +6618,8 @@ echo '</table></div>';
 </main>
 </div>
 
-<script id="mucho-mobile-v5-js">
-(() => {
-    const body = document.body;
 
-    const open =
-        document.getElementById('mobileMenuButton');
-
-    const overlay =
-        document.getElementById('mobileOverlay');
-
-    function closeMenu(){
-        body.classList.remove('mobile-menu-open');
-    }
-
-    open?.addEventListener('click', () => {
-        body.classList.toggle('mobile-menu-open');
-    });
-
-    overlay?.addEventListener('click', closeMenu);
-
-    document.querySelectorAll('aside nav a')
-        .forEach(a => a.addEventListener('click', closeMenu));
-
-    document.addEventListener('keydown', e => {
-        if(e.key === 'Escape'){
-            closeMenu();
-        }
-    });
-})();
-</script>
-<script src="/admin/admin-i18n.js?v=100"></script>
+<script src="/admin/admin-i18n.js?v=101"></script>
 
 
 </body>

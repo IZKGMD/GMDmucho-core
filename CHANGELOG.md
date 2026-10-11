@@ -1,3 +1,10 @@
+## Unreleased — MuchoGDPS product interface
+
+- Rebuild the canonical homepage around the Mucho ecosystem, with Russian/English copy, real community data, working player/operator paths and a shared responsive dark/light interface across administration, deployment, downloads, recovery and player pages.
+- Add RBAC-aware quick navigation, current-page table filters, a compact mobile admin shell and working logout/plugin navigation. Gate dashboard data, audit feeds and server operations by the existing permissions.
+- Display MuchoClient avatars/covers in web profiles through a bounded, revalidated image endpoint. Exclude hidden levels and disabled accounts from the public overview and show explicit download/loading/failure states.
+- Add administrator access, public visibility, image request and navigation regressions to Validate CI.
+
 ## Unreleased — core reliability
 
 - Fence job completion/retry by worker and attempt, so stale workers cannot overwrite a new reservation or revive a completed job. Crashed leases stop retrying after five attempts.

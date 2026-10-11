@@ -21,10 +21,15 @@
     .two{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}.mini{padding:18px;border:1px solid var(--line);border-radius:15px;background:#0b1019}.mini h3{margin:0 0 7px;font-size:12px}.mini p{margin:0;color:var(--muted);font-size:10px;line-height:1.7}.note{margin-top:19px;color:#6f7c92;font-size:9px;line-height:1.75}
     @media(max-width:760px){.grid,.two{grid-template-columns:1fr}.step{grid-template-columns:1fr}.num{margin-bottom:-4px}}
   </style>
+
+<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<script src="/assets/product-ui.js?v=1" defer></script>
+<script src="/muchocore-theme.js?v=4" defer></script>
 </head>
-<body>
+<body class="mc-workspace">
+<a class="mc-skip" href="#main">Skip to content</a>
 <header class="top"><div class="wrap"><a class="brand" href="/"><img src="/assets/muchocore-logo.jpg" alt=""><span>MuchoGDPS<small>VPS installation</small></span></a><a class="back" href="/install/">← Installation methods</a></div></header>
-<main><div class="wrap">
+<main id="main" tabindex="-1"><div class="wrap">
   <span class="eyebrow"><i class="dot"></i> VPS / Linux</span>
   <h1>Install MuchoCore on your VPS.</h1>
   <p class="lead">Use this page for a normal Linux VPS deployment. You can start an automatic browser deployment or run the official installer yourself over SSH. Both paths use the same MuchoCore release and production checks.</p>

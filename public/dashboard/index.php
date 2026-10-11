@@ -585,6 +585,7 @@ $search = trim((string)($_GET['search'] ?? ''));
 $profileUsername = trim((string)($_GET['u'] ?? ''));
 
 $profile = null;
+$profileArt = [];
 $profileLevels = [];
 $profileSongs = [];
 
@@ -592,6 +593,11 @@ if ($profileUsername !== '') {
     if (mb_strlen($profileUsername, 'UTF-8') <= 20) {
         $profile = pdProfile($db, $profileUsername);
         if ($profile) {
+            try {
+                $profileArt = (new \MuchoCore\Appearance\ProfileMediaService($db, new AccountAuthenticator($db)))->profile((int)$profile['account_id']);
+            } catch (Throwable) {
+                // Artwork is optional on instances still upgrading their media storage.
+            }
             $profileLevels = pdPlayerLevels($db, (int)$profile['account_id']);
             $profileSongs = pdPlayerSongs($db, (int)$profile['account_id']);
         }
@@ -675,8 +681,8 @@ $uploadTurnstile = ($account && Turnstile::enabled());
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="/assets/muchocore-dashboard-logo.jpg?v=1" type="image/jpeg">
-<link rel="apple-touch-icon" href="/assets/muchocore-dashboard-logo.jpg?v=1">
+<link rel="icon" href="/assets/muchocore-icon.png" type="image/png">
+<link rel="apple-touch-icon" href="/assets/muchocore-icon.png">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#090b10">
@@ -1476,17 +1482,21 @@ body.dashboard-page .topbar{
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <?php endif; ?>
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
-<script src="/muchocore-theme.js?v=3" defer></script>
+<script src="/muchocore-theme.js?v=4" defer></script>
+
+<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<script src="/assets/product-ui.js?v=1" defer></script>
 </head>
-<body class="dashboard-page">
+<body class="dashboard-page mc-workspace">
 <div class="shell">
 
 <header class="topbar">
-    <a class="brand" href="/dashboard" aria-label="<?=pdH($serverName)?>"><img class="mucho-brand-logo" src="/assets/muchocore-dashboard-logo.jpg?v=1" alt="<?=pdH($serverName)?>" width="48" height="48" decoding="async"></a>
+    <a class="brand" href="/dashboard" aria-label="<?=pdH($serverName)?>"><img class="mucho-brand-logo" src="/assets/muchocore-icon.png" alt="<?=pdH($serverName)?>" width="48" height="48" decoding="async"></a>
     <nav class="nav">
         <a href="/dashboard">Discover</a>
         <a href="#players">Players</a>
         <a href="/dashboard/clans.php">Clans</a>
+        <a href="/clients/">Downloads</a>
         <a href="#music">Music</a>
         <?php if ($account): ?>
             <a href="#upload">Upload</a>
@@ -1507,6 +1517,10 @@ body.dashboard-page .topbar{
 
 <?php if ($profile): ?>
 
+<?php if (!empty($profileArt['media']['banner']['version'])): ?>
+<img class="mc-profile-cover" src="/profile-image.php?account=<?=((int)$profile['account_id'])?>&amp;kind=banner&amp;version=<?=pdH($profileArt['media']['banner']['version'])?>" alt="" width="960" height="320" data-hide-on-error>
+<?php endif; ?>
+
 <section class="section">
     <div class="section-head">
         <h2>Player profile</h2>
@@ -1517,7 +1531,8 @@ body.dashboard-page .topbar{
         <div class="panel profile-summary">
             <img
                 class="profile-avatar"
-                src="<?=pdH(pdIconUrl($profile, 160))?>"
+                src="<?=pdH(!empty($profileArt['media']['avatar']['version']) ? '/profile-image.php?account='.((int)$profile['account_id']).'&kind=avatar&version='.$profileArt['media']['avatar']['version'] : pdIconUrl($profile, 160))?>"
+                data-fallback-src="<?=pdH(pdIconUrl($profile, 160))?>"
                 alt=""
                 loading="lazy"
                 referrerpolicy="no-referrer"

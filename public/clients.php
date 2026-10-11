@@ -17,7 +17,12 @@ $manifest = is_file($manifestPath)
 
 if (!is_array($manifest)) {
     http_response_code(503);
-    exit('Client downloads are not ready yet.');
+    header('Retry-After: 300');
+    if (isset($_GET['download'])) {
+        exit('Client downloads are not ready yet.');
+    }
+    echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Client Downloads — MuchoGDPS</title><link rel="stylesheet" href="/assets/product-ui.css?v=1"><script src="/muchocore-theme.js?v=4" defer></script></head><body class="mc-workspace"><main class="mc-empty-download"><span>MUCHO / DOWNLOADS</span><h1>The next adventure is getting ready.</h1><p>The server owner has not published a client pack yet. Explore the community while the downloads are being prepared.</p><a href="/dashboard">Open player portal →</a><a href="/dashboard/clans.php">Explore clans →</a></main></body></html>';
+    exit;
 }
 
 function e(string $value): string
@@ -107,6 +112,18 @@ $files = [
     ],
 ];
 
+foreach ($files as $kind => &$file) {
+    try {
+        $path = client_file($file['entry'], $clientDir);
+        $size = filesize($path);
+        if ($size === false || $size < 1024) throw new RuntimeException('Client is not ready.');
+        $file['entry']['size'] = $size;
+    } catch (Throwable) {
+        unset($files[$kind]);
+    }
+}
+unset($file);
+
 function size_label(mixed $value): string
 {
     $size = max(0, (int)$value);
@@ -129,9 +146,14 @@ function size_label(mixed $value): string
 :root{--bg:#070a11;--panel:#0e141f;--line:#202b3b;--text:#f4f7ff;--muted:#95a2b6;--accent:#8c7dff;--good:#69e2a8}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(900px 500px at 20% -10%,rgba(140,125,255,.16),transparent 65%),var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{width:min(980px,calc(100% - 28px));margin:auto;padding:52px 0 72px}.eyebrow{display:inline-block;border:1px solid rgba(105,226,168,.18);background:rgba(105,226,168,.07);color:#bdeed5;border-radius:999px;padding:7px 11px;font-size:11px;font-weight:800}.hero{margin:18px 0 28px}.hero h1{font-size:clamp(34px,6vw,62px);letter-spacing:-2.5px;margin:0 0 10px;line-height:1}.hero p{max-width:720px;color:var(--muted);line-height:1.7}.server{color:#cfcaff;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.card{padding:19px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#101725,#0c111a)}.card h2{font-size:15px;margin:0 0 8px}.card p{color:var(--muted);font-size:11px;line-height:1.65;min-height:54px}.meta{color:#76849b;font-size:10px;margin:10px 0 14px}.btn{display:inline-block;width:100%;text-align:center;padding:11px 14px;border-radius:10px;border:1px solid rgba(140,125,255,.4);background:linear-gradient(135deg,#8e80ff,#7567f1);color:white;font-weight:900;font-size:11px}.good{margin-top:24px;padding:15px;border:1px solid rgba(105,226,168,.16);border-radius:13px;background:rgba(105,226,168,.05);color:#9ccdb4;font-size:10px;line-height:1.7}.note{margin-top:24px;color:#65738a;font-size:10px;line-height:1.7}.hash{margin-top:10px;color:#718098;font:8px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}@media(max-width:760px){.grid{grid-template-columns:1fr}}
 </style>
+
+<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<script src="/assets/product-ui.js?v=1" defer></script>
+<script src="/muchocore-theme.js?v=4" defer></script>
 </head>
-<body>
+<body class="mc-workspace">
 <main class="wrap">
+<nav class="mc-crumbs" aria-label="Navigation"><a href="/dashboard">Player portal</a><span>/</span><span>Client downloads</span></nav>
 <div class="eyebrow">MuchoGDPS · Player Downloads</div>
 <section class="hero">
 <h1><?= e($serverName) ?> clients.</h1>
@@ -140,6 +162,9 @@ function size_label(mixed $value): string
 </section>
 
 <section class="grid">
+<?php if (!$files): ?>
+    <article class="card"><h2>Downloads are being prepared</h2><p>The published client files are currently unavailable. Please try again later or explore the <a href="/dashboard">player portal</a>.</p></article>
+<?php endif; ?>
 <?php foreach ($files as $kind => $file): ?>
     <?php $entry = $file['entry']; ?>
     <article class="card">

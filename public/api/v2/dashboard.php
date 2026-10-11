@@ -7,6 +7,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__.'/bootstrap.php';
+require_once MUCHO_V2_ROOT.'/src/Community/PublicVisibility.php';
 
 muchoV2RequireMethod('GET');
 
@@ -29,8 +30,15 @@ function countPublic(PDO $db,string $table): int
     if (!tableExistsPublic($db,$table)) return 0;
 
     return (int)$db->query(
-        "SELECT COUNT(*) FROM `$table`"
+        "SELECT COUNT(*) FROM `$table`" . visibilityPublic($db,$table)
     )->fetchColumn();
+}
+
+function visibilityPublic(PDO $db,string $table,?array $columns=null,string $alias=''): string
+{
+    if (!in_array($table,['accounts','levels'],true)) return '';
+    $columns ??= $db->query("SHOW COLUMNS FROM `$table`")->fetchAll(PDO::FETCH_COLUMN);
+    return \MuchoCore\Community\PublicVisibility::where($table,$columns,$alias);
 }
 
 function pick(array $row,array $names,mixed $default=null): mixed
@@ -79,10 +87,14 @@ try {
             }
         }
 
-        $sql='SELECT * FROM levels';
+        $withCreator=in_array('account_id',$columns,true) && tableExistsPublic($db,'accounts');
+        $sql=$withCreator
+            ? 'SELECT l.*,a.username AS creator_name FROM levels l LEFT JOIN accounts a ON a.account_id=l.account_id'
+            : 'SELECT l.* FROM levels l';
+        $sql.=visibilityPublic($db,'levels',$columns,'l');
 
         if($order){
-            $sql.=" ORDER BY `$order` DESC";
+            $sql.=" ORDER BY l.`$order` DESC";
         }
 
         $sql.=' LIMIT 6';

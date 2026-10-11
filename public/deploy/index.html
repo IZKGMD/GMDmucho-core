@@ -10,10 +10,15 @@ main{padding:42px 0 70px}.eyebrow{display:inline-flex;gap:7px;align-items:center
 @media(max-width:850px){.layout{grid-template-columns:1fr}.console{min-height:430px}.terminal{height:375px}}@media(max-width:600px){.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.top{height:64px}.back{display:none}main{padding-top:28px}.panel{padding:16px}.actions{flex-direction:column}.btn{width:100%}}
 .modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}.mode{display:flex;align-items:center;gap:10px;padding:13px 14px;border:1px solid #1b2635;border-radius:12px;background:#090e16;transition:border-color .16s,transform .16s}.mode:hover{border-color:rgba(140,125,255,.35);transform:translateY(-1px)}.mode.active{border-color:rgba(140,125,255,.3);background:linear-gradient(145deg,rgba(140,125,255,.09),#090e16)}.mode-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;background:rgba(140,125,255,.09);border:1px solid rgba(140,125,255,.16)}.mode span:nth-child(2){min-width:0;display:grid;gap:2px}.mode b{font-size:10px}.mode small{color:#69768b;font-size:7px;line-height:1.4}.mode strong{margin-left:auto;color:#8f99aa;font-size:7px;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}@media(max-width:700px){.modes{grid-template-columns:1fr}}
 </style>
+
+<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<script src="/assets/product-ui.js?v=1" defer></script>
+<script src="/muchocore-theme.js?v=4" defer></script>
 </head>
-<body>
+<body class="mc-workspace">
+<a class="mc-skip" href="#main">Skip to content</a>
 <header class="top"><div class="wrap"><a class="brand" href="/"><img src="/assets/muchocore-logo.jpg" alt=""><span>MuchoGDPS<small>Automatic deployment</small></span></a><a class="back" href="/">← Back to MuchoGDPS</a></div></header>
-<main><div class="wrap">
+<main id="main" tabindex="-1"><div class="wrap">
 <span class="eyebrow"><i class="dot"></i> Live VPS deployment</span>
 <h1>Automatic deployment.</h1>
 <p class="lead">Choose where MuchoCore should be installed. VPS deployment uses root SSH; shared hosting deployment uses FTP or FTPS and the shared-hosting installer.</p>
@@ -32,30 +37,30 @@ main{padding:42px 0 70px}.eyebrow{display:inline-flex;gap:7px;align-items:center
 <section class="panel" style="margin-top:20px">
 <h2>1. Name your GDPS</h2>
 <p class="section-note">This becomes the server name used throughout the installed MuchoCore server. Use up to 64 characters.</p>
-<div class="field"><label>GDPS name</label><input id="gdpsName" placeholder="My Awesome GDPS" maxlength="64" autocomplete="off"></div>
+<div class="field"><label for="gdpsName">GDPS name</label><input id="gdpsName" placeholder="My Awesome GDPS" maxlength="64" autocomplete="off"></div>
 </section>
 <div class="layout">
 <section class="panel" id="vps">
 <h2>2. VPS connection</h2>
 <div class="grid">
-<div class="field full"><label>Public IPv4</label><input id="host" placeholder="203.0.113.10" inputmode="decimal"></div>
-<div class="field"><label>SSH port</label><input id="port" value="22" inputmode="numeric"></div>
-<div class="field"><label>SSH user</label><input id="user" value="root" autocomplete="username"></div>
-<div class="field full"><label>SSH password</label><input id="password" type="password" autocomplete="off" placeholder="Used only during the deployment"></div>
-<div class="field full"><label>Or private key</label><textarea id="key" spellcheck="false" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"></textarea></div>
+<div class="field full"><label for="host">Public IPv4</label><input id="host" placeholder="203.0.113.10" inputmode="decimal"></div>
+<div class="field"><label for="port">SSH port</label><input id="port" value="22" inputmode="numeric"></div>
+<div class="field"><label for="user">SSH user</label><input id="user" value="root" autocomplete="username"></div>
+<div class="field full"><label for="password">SSH password</label><input id="password" type="password" autocomplete="off" placeholder="Used only during the deployment"></div>
+<div class="field full"><label for="key">Or private key</label><textarea id="key" spellcheck="false" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"></textarea></div>
 </div>
 <h2 style="margin-top:22px">3. GDPS setup</h2>
 <div class="grid">
-<div class="field full"><label>GDPS domain</label><input id="domain" placeholder="gdps.example.com"></div>
-<div class="field"><label>Admin username</label><input id="adminUser" value="admin"></div>
-<div class="field"><label>Admin password</label><input id="adminPassword" type="password" autocomplete="new-password" placeholder="Blank = generate"></div>
+<div class="field full"><label for="domain">GDPS domain</label><input id="domain" placeholder="gdps.example.com"></div>
+<div class="field"><label for="adminUser">Admin username</label><input id="adminUser" value="admin"></div>
+<div class="field"><label for="adminPassword">Admin password</label><input id="adminPassword" type="password" autocomplete="new-password" placeholder="Blank = generate"></div>
 </div>
-<div class="check"><input id="confirm" type="checkbox"><span>I confirm that I own or have permission to administer this VPS and want MuchoGDPS to install MuchoCore on it.</span></div>
+<div class="check"><input id="confirm" type="checkbox" aria-labelledby="confirmLabel"><span id="confirmLabel">I confirm that I own or have permission to administer this VPS and want MuchoGDPS to install MuchoCore on it.</span></div>
 <div class="warning">The first web installer requires root SSH. It can install Docker, configure Caddy, initialize MariaDB, run migrations and health checks. Your domain must resolve to the VPS for public HTTPS to succeed.</div>
 <div class="actions"><button class="btn" id="start">Connect &amp; install</button><button class="btn alt" id="clear">Clear</button></div>
 </section>
 <section class="panel console">
-<div class="console-head"><b>Installer console</b><span class="state" id="state">Idle</span></div>
+<div class="console-head"><b>Installer console</b><span class="state" id="state" role="status" aria-live="polite">Idle</span></div>
 <div class="secret" id="secret"><b>Generated MuchoCore admin password</b><code id="secretValue"></code></div>
 <div class="secret" id="clients" style="display:none">
   <b>Generated game clients</b>

@@ -193,17 +193,25 @@ const RU = {
 'Yes':'Да',
 'No':'Нет',
 'On':'Вкл',
-'Off':'Выкл'
+'Off':'Выкл',
+'Quick navigation':'Быстрый переход',
+'Filter this page':'Фильтр на этой странице',
+'Text in rows…':'Текст в строках…',
+'No matches on this page':'Совпадений на этой странице нет',
+'Loading audit events…':'Загрузка журнала…',
+'No administrator events yet.':'Пока нет событий администраторов.',
+'Open Player Portal ↗':'Открыть кабинет игроков ↗'
 };
 
 function getLang() {
-    return localStorage.getItem(KEY) === 'ru' ? 'ru' : 'en';
+    try { return localStorage.getItem(KEY) === 'ru' ? 'ru' : 'en'; }
+    catch { return document.cookie.includes('mucho_admin_language=ru') ? 'ru' : 'en'; }
 }
 
 function setLang(lang) {
     lang = lang === 'ru' ? 'ru' : 'en';
 
-    localStorage.setItem(KEY, lang);
+    try { localStorage.setItem(KEY, lang); } catch { /* Cookie fallback. */ }
 
     document.cookie =
         'mucho_admin_language=' + lang +
@@ -244,6 +252,7 @@ function translateElement(el) {
 }
 
 function translatePage() {
+    document.documentElement.lang = getLang();
     if (getLang() !== 'ru')
         return;
 
