@@ -234,6 +234,17 @@ class Manager:
             if isinstance(error, BudgetExceeded) or plugin.failures >= 3:
                 plugin.status = "error"
                 self._unload(plugin)
+                unavailable = {plugin.id}
+                while True:
+                    blocked = [p for p in self.plugins.values() if p.status == "loaded"
+                               and unavailable.intersection(p.dependencies)]
+                    if not blocked:
+                        break
+                    for dependent in blocked:
+                        dependent.status = "blocked"
+                        dependent.error = "Dependency failed: " + plugin.id
+                        unavailable.add(dependent.id)
+                        self._unload(dependent)
 
     def dispatch(self, name, payload, scene=0):
         data = json.loads(payload)
@@ -290,6 +301,7 @@ class Manager:
             "id": p.id, "name": p.name, "version": p.version, "enabled": p.enabled,
             "status": p.status, "error": p.error, "generation": p.generation,
             "calls": p.calls, "last_ms": p.last_ms,
+            "dependencies": {key: ".".join(map(str, version)) for key, version in p.dependencies.items()},
             "buttons": [{"id": key, "title": title} for key, (title, _) in p.buttons.items()],
         } for p in self.plugins.values()], ensure_ascii=True))
 

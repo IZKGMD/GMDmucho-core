@@ -30,9 +30,30 @@ jobs:
           cmake -S mucho -B host-tests
           cmake --build host-tests --parallel 2
           ctest --test-dir host-tests --output-on-failure
+  windows-runtime:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.7'
+      - name: Test native Windows embedding and packaged interpreter paths
+        shell: pwsh
+        run: |
+          cmake -S mucho -B windows-host -DPython3_ROOT_DIR="$env:pythonLocation"
+          if ($LASTEXITCODE) { throw 'Configure failed' }
+          cmake --build windows-host --config Release --parallel 2
+          if ($LASTEXITCODE) { throw 'Native runtime build failed' }
+          ctest --test-dir windows-host -C Release --output-on-failure
+          if ($LASTEXITCODE) { throw 'Windows runtime tests failed' }
+          Invoke-WebRequest https://www.python.org/ftp/python/3.13.7/python-3.13.7-embed-amd64.zip -OutFile embedded.zip
+          Expand-Archive embedded.zip embedded
+          Get-ChildItem embedded/*.dll | Copy-Item -Destination windows-host/Release
+          & ./windows-host/Release/mucho-runtime-tests.exe "$pwd/mucho" "$pwd/embedded"
+          if ($LASTEXITCODE) { throw 'Packaged interpreter test failed' }
   windows:
     runs-on: ubuntu-24.04
-    needs: [runtime, installer]
+    needs: [runtime, installer, windows-runtime]
     timeout-minutes: 60
     env:
       CPM_SOURCE_CACHE: ${{ github.workspace }}/cpm-cache

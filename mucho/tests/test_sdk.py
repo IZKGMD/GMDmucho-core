@@ -111,6 +111,20 @@ class SDKTests(unittest.TestCase):
         self.assertEqual(manager.plugins["example"].status, "error")
         self.assertIn("BudgetExceeded", manager.plugins["example"].error)
 
+    def test_failed_dependency_blocks_transitive_dependents(self):
+        self.plugin("base", 'from mucho import events\n@events.on("level.start")\ndef start(e): raise RuntimeError("failed")\n')
+        self.plugin("middle", dependencies={"base": "1.0.0"})
+        self.plugin("last", dependencies={"middle": "1.0.0"})
+        manager = self.load()
+        for _ in range(3):
+            manager.dispatch("level.start", "{}", 1)
+        self.assertEqual(manager.plugins["base"].status, "error")
+        self.assertEqual(manager.plugins["middle"].status, "blocked")
+        self.assertEqual(manager.plugins["last"].status, "blocked")
+        self.assertIsNone(manager.plugins["last"].module)
+        manager.control('{"operation":"reload","id":"base"}')
+        self.assertTrue(all(p.status == "loaded" for p in manager.plugins.values()))
+
     def test_import_loop_budget(self):
         self.plugin(code='while True: pass\n')
         plugin = self.load().plugins["example"]

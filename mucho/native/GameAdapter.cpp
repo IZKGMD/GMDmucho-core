@@ -167,6 +167,8 @@ class MuchoHub : public Popup {
     void onInfo(CCObject* sender) {
         auto item=selected(sender); auto text=field(item,"id")+" | "+field(item,"status")+"\n"+field(item,"error");
         if (field(item,"error").empty()) text+="No errors recorded.";
+        text+="\nDependencies: "+item["dependencies"].dump();
+        text+="\nCalls: "+item["calls"].dump()+" / Last callback: "+item["last_ms"].dump()+" ms";
         FLAlertLayer::create("Python plugin",safe(text,700).c_str(),"OK")->show();
     }
     void onLogs(CCObject*) {

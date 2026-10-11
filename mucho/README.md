@@ -52,6 +52,8 @@ Python types for editor completion are included in `sdk/mucho/__init__.pyi`.
 disabled. Optional `min_loader_version` / `max_loader_version` constrain the
 Mucho Python layer. `dependencies` maps Python plugin IDs to minimum versions.
 Missing/disabled/incompatible dependencies block a dependent plugin.
+If a running dependency is quarantined after errors, its transitive dependents
+are unloaded and marked blocked too. Reload reconstructs the graph.
 
 Enable/disable persists in `.state.json`. Reload and rescan rebuild the complete
 dependency graph; relative helper modules are unloaded too. A module may define

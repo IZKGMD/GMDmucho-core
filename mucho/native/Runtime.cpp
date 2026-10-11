@@ -163,7 +163,7 @@ void Runtime::run(Config config) {
             // Do not let getpath infer those locations from the game executable.
             auto zip = config.pythonHome / ("python" + std::to_string(PY_MAJOR_VERSION) +
                 std::to_string(PY_MINOR_VERSION) + ".zip");
-            for (auto const& path : {zip, config.pythonHome}) {
+            for (auto const& path : {zip, config.pythonHome, config.pythonHome / "Lib", config.pythonHome / "DLLs"}) {
                 auto widePath = path.wstring();
                 auto append = PyWideStringList_Append(&settings.module_search_paths, widePath.c_str());
                 if (PyStatus_Exception(append)) {
