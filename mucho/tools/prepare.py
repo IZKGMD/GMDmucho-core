@@ -19,6 +19,13 @@ credit = args.checkout / "README_GEODE.md"
 if not credit.exists():
     shutil.copy2(readme, credit)
 shutil.copy2(overlay / "README.md", readme)
+workflows = args.checkout / ".github/workflows"
+saved_workflows = args.checkout / "mucho/upstream-workflows"
+saved_workflows.mkdir(exist_ok=True)
+for workflow in workflows.glob("*.yml"):
+    if workflow.name != "mucholoader.yml":
+        shutil.move(str(workflow), saved_workflows / workflow.name)
+shutil.copy2(overlay / "ci.yml", workflows / "mucholoader.yml")
 root = args.checkout / "CMakeLists.txt"
 if "include(mucho/Integrate.cmake)" not in root.read_text():
     root.write_text(root.read_text() + '\n# MuchoLoader standalone integration\nif(PROJECT_IS_TOP_LEVEL AND TARGET geode-loader)\n  include(mucho/Integrate.cmake)\nendif()\n')

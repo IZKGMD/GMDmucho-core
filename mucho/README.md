@@ -77,6 +77,9 @@ Windows library, native Android cores, and independent runtime tests.
 Use the bindings checkout at `f8aec5d1f3df76d840dfd2609f02cef30dc6efdf`;
 the complete platform/toolchain settings are in `ci.yml`. The source archive
 also includes a copy of this pinned bindings source under `vendor/bindings`.
+The root workflow is MuchoLoader's build/test/package pipeline. Original
+upstream workflows are retained as reference files in `mucho/upstream-workflows`
+and are not active in this fork.
 Native DLL / SO filenames retain Geode names for binary compatibility.
 The package/display name is MuchoLoader; `VERSION` stays the upstream ABI version.
 

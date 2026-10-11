@@ -14,7 +14,7 @@ args = parser.parse_args()
 pin = json.loads((args.checkout / "mucho/upstream.json").read_text())
 changed = subprocess.check_output(["git", "diff", "--name-only", pin["commit"]], cwd=args.checkout, text=True).splitlines()
 allowed = {"CMakeLists.txt", "loader/src/loader/updater.cpp", "README.md", "README_GEODE.md"}
-unexpected = [p for p in changed if p not in allowed and not p.startswith("mucho/") and not p.startswith(".github/workflows/mucho") and p != "README_MUCHO.md"]
+unexpected = [p for p in changed if p not in allowed and not p.startswith("mucho/") and not p.startswith(".github/workflows/") and p != "README_MUCHO.md"]
 if unexpected:
     raise SystemExit("Native compatibility surface changed: " + repr(unexpected))
 for name in ["VERSION", "loader/resources/mod.json.in", "cmake/Platform.cmake"]:
