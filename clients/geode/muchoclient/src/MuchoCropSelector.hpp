@@ -87,7 +87,7 @@ namespace mucho::profile {
                 if (distance<=nearest) {
                     nearest=distance;
                     m_sx=sx; m_sy=sy; m_drag=2;
-                    m_fixed={sx>0?m_frame.getMinX():m_frame.getMaxX(),sy>0?m_frame.getMinY():m_frame.getMaxY()};
+                    m_fixed=CCPoint{sx>0?m_frame.getMinX():m_frame.getMaxX(),sy>0?m_frame.getMinY():m_frame.getMaxY()};
                 }
             }
             if (m_drag==1 && !m_imageBox.containsPoint(point)) return false;
