@@ -177,7 +177,7 @@ class MuchoClanLeaderboardPopup final : public geode::Popup {
 protected:
     bool init(std::string origin) {
         if (!Popup::init(420.f, 306.f)) return false;
-        m_origin = std::move(origin); setTitle("Clan Leaderboards v0.8.1");
+        m_origin = std::move(origin); setTitle("Clan Leaderboards v0.8.2");
         m_body = CCNode::create(); m_mainLayer->addChild(m_body);
         render(); request(0, 0); return true;
     }

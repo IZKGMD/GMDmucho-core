@@ -1,6 +1,7 @@
 #include "../../clients/geode/muchoclient/src/MuchoClanRules.hpp"
 #include "../../clients/geode/muchoclient/src/MuchoAppearanceRules.hpp"
 #include "../../clients/geode/muchoclient/src/MuchoProfileRules.hpp"
+#include "../../clients/geode/muchoclient/src/MuchoCropRules.hpp"
 #include <cassert>
 #include <iostream>
 #include <vector>
@@ -29,6 +30,33 @@ int main() {
     jpeg[10] = 0xff; assert(!mucho::profile::imageSize(jpeg));
     assert(!mucho::profile::imageSize(std::vector<uint8_t>(30,0)));
     assert(!mucho::profile::imageSize(std::vector<uint8_t>(mucho::profile::MAX_UPLOAD_BYTES+1,0)));
+    // Absolute crop landmarks, including portrait rotation and all image edges.
+    using mucho::profile::cropRegion;
+    auto portrait=cropRegion(900,1200,0,1000,100,0);
+    assert(portrait.width==900 && portrait.height==300 && portrait.left==0 && portrait.top==900);
+    auto rotated=cropRegion(900,1200,1000,1000,100,90);
+    assert(rotated.imageWidth==1200 && rotated.imageHeight==900 && rotated.width==1200 && rotated.height==400 && rotated.top==500);
+    auto square=cropRegion(900,1200,1000,0,300,0,256,256);
+    assert(square.width==300 && square.height==300 && square.left==600 && square.top==0);
+    assert(mucho::profile::cropPosition(-12,100)==0 && mucho::profile::cropPosition(120,100)==1000);
+    assert(mucho::profile::cropPosition(50,100)==500 && mucho::profile::cropPosition(0,0)==500);
+    assert(mucho::profile::cropZoom(300,100)==300 && mucho::profile::cropZoom(300,600)==100);
+    assert(mucho::profile::cropZoom(.3,.1)==300);
+    // The displayed 120x40 preview must select the identical source pixels as
+    // the server's 960x320 output, not a second, independently rounded crop.
+    for (auto [w,h] : {std::pair{900,1200},std::pair{1920,1080},std::pair{4000,3000},std::pair{8192,16}})
+        for (int rotation : {0,90,180,270}) for (int zoom : {100,137,200,299,300})
+            for (int position : {0,253,500,1000}) {
+                auto output=cropRegion(w,h,position,1000-position,zoom,rotation);
+                auto preview=cropRegion(w,h,position,1000-position,zoom,rotation,120,40);
+                assert(output.width==preview.width && output.height==preview.height && output.left==preview.left && output.top==preview.top);
+                assert(output.left>=0 && output.top>=0 && output.width>0 && output.height>0);
+                assert(output.left+output.width<=output.imageWidth && output.top+output.height<=output.imageHeight);
+                int x=mucho::profile::cropPosition(output.left,output.imageWidth-output.width);
+                int y=mucho::profile::cropPosition(output.top,output.imageHeight-output.height);
+                auto recovered=cropRegion(w,h,x,y,zoom,rotation);
+                assert(std::abs(recovered.left-output.left)<=1 && std::abs(recovered.top-output.top)<=1);
+            }
     assert(formattedCounter(0) == "0");
     assert(formattedCounter(999) == "999");
     assert(formattedCounter(1000) == "1,000");
