@@ -144,7 +144,7 @@ class MuchoColorsPopup final : public Popup {
 protected:
     bool init(std::string origin) {
         if (!Popup::init(360.f, 300.f)) return false;
-        m_origin = std::move(origin); setTitle("Colors v0.8.3");
+        m_origin = std::move(origin); setTitle("Colors v0.8.4");
         m_controls = CCMenu::create(); m_controls->setPosition({0.f, 0.f}); m_mainLayer->addChild(m_controls);
         m_preview = label("YourName", 243.f, .6f);
         m_preview->setID("mucho-color-preview");

@@ -1,4 +1,5 @@
 #include "MuchoProfileHeader.hpp"
+#include "MuchoMenuAvatar.hpp"
 
 namespace mucho::profile {
 namespace { std::vector<WeakRef<Header>> headers; }
@@ -19,5 +20,6 @@ namespace { std::vector<WeakRef<Header>> headers; }
         clearCache(); appearance::remember(player);
         std::erase_if(headers,[](auto const& weak) { return !weak.lock(); });
         for (auto const& weak : headers) if (auto header = weak.lock()) header->saved(player);
+        menuAvatarChanged(player);
     }
 }
