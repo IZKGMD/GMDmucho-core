@@ -63,7 +63,7 @@
     };
     const closeMobile=()=>{body.classList.remove('mobile-menu-open');syncNavigation();};
     mobile?.addEventListener('click',()=>{const open=body.classList.toggle('mobile-menu-open');syncNavigation();if(open)sidebar?.querySelector('a')?.focus();});
-    overlay?.addEventListener('click',closeMobile);
+    overlay?.addEventListener('click',()=>{closeMobile();mobile?.focus();});
     sidebar?.querySelectorAll('a').forEach(a=>a.addEventListener('click',closeMobile));
     const collapse=document.getElementById('sidebarToggle');
     if(storage.get('mucho.control.collapsed',false)===true)body.classList.add('sidebar-collapsed');
@@ -95,7 +95,7 @@
         commands.replaceChildren();
         const stored=storage.get('mucho.control.recent',[]);
         const recent=Array.isArray(stored)?stored.filter(href=>entries.some(e=>e.href===href)).slice(0,5):[];
-        const results=entries.filter(e=>matches(e.node.textContent+' '+e.group,input.value));
+        const results=entries.filter(e=>matches(e.node.textContent+' '+e.group+' '+e.href,input.value));
         if(!input.value.trim())results.sort((a,b)=>{const x=recent.indexOf(a.href),y=recent.indexOf(b.href);return (x<0?999:x)-(y<0?999:y);});
         results.forEach(entry=>{
             const a=document.createElement('a');a.href=entry.href;

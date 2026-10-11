@@ -43,7 +43,10 @@ body.mc-workspace :is(.btn,.cta,button){font-size:13px;min-height:40px}
 body.mc-workspace :is(.grid,.choices,.split)>*{min-width:0}
 body.mc-workspace pre{max-width:100%;overflow:auto;font-size:12px!important;line-height:1.7!important}
 body.mc-workspace .brand img{object-fit:contain}
+body.mc-workspace header.nav{height:auto;min-height:70px}
+body.mc-workspace header :is(.wrap,.navbar){flex-wrap:wrap;height:auto;min-height:70px;padding-top:12px;padding-bottom:12px;gap:12px}
 body.mc-workspace .back{font-size:13px}
+body.mc-workspace header .back{margin-left:auto}
 body.mc-workspace :is(.item,.help,.section-note,.copy,.warning,.callout){color:var(--mc-muted)}
 body.mc-workspace :is(.nav a,.nav button){font-size:13px}
 body.mc-workspace .hash{font-size:11px}

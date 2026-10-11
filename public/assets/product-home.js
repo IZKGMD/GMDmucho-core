@@ -15,6 +15,7 @@
     function applyLanguage(next){
         language = next === 'en' ? 'en' : 'ru';
         document.documentElement.lang = language;
+        document.title = language === 'en' ? 'MuchoGDPS — Create your gaming universe' : 'MuchoGDPS — Создай свою игровую вселенную';
         labels.forEach(({node,ru,en}) => {node.textContent = language === 'en' ? en : ru;});
         switcher.textContent = language === 'en' ? 'RU' : 'EN';
         switcher.setAttribute('aria-label', language === 'en' ? 'Switch to Russian' : 'Switch to English');

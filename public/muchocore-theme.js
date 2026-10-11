@@ -39,7 +39,7 @@
             });
             let slot = document.querySelector('.mc-theme-slot');
             if (!slot && document.body.classList.contains('mc-workspace')) {
-                const header = document.querySelector('header .wrap, header.topbar');
+                const header = document.querySelector('header .wrap, header .navbar, header.topbar');
                 if (header) {
                     slot = document.createElement('div');
                     slot.className = 'mc-theme-slot';
