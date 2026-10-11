@@ -13,7 +13,7 @@ if [[ -f "$ROOT/.env" ]] && grep -q "^MUCHO_AUTO_UPDATE=0$" "$ROOT/.env"; then
     exit 0
 fi
 
-# update.sh is the single deployment path. It checks GitHub Releases and
-# refuses to deploy ordinary main-branch commits or downgrade the server.
-echo "[MuchoCore] Checking for a published stable release..."
+# update.sh selects stable tags or origin/main according to the installation
+# channel, and resumes a pending deployment even when its source is current.
+echo "[MuchoCore] Checking for core updates..."
 "$ROOT/update.sh"

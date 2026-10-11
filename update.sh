@@ -165,6 +165,16 @@ version_gt() {
 CURRENT_VERSION="$(tr -d '[:space:]' < "$ROOT/VERSION" 2>/dev/null || true)"
 CURRENT_SEMVER="$(printf '%s' "$CURRENT_VERSION" | sed 's/^v//')"
 CURRENT_HEAD="$(git rev-parse HEAD)"
+PENDING_UPDATE_FILE="$ROOT/.muchocore/update.pending"
+UPDATE_REPAIR="${MUCHO_UPDATE_REPAIR:-0}"
+case "$UPDATE_REPAIR" in
+    0|1) ;;
+    *) echo '[MuchoCore] ERROR: MUCHO_UPDATE_REPAIR must be 0 or 1.' >&2; exit 1 ;;
+esac
+
+deployment_is_complete() {
+    [[ "$UPDATE_REPAIR" == "0" && ! -f "$PENDING_UPDATE_FILE" ]]
+}
 
 # Update channel:
 #   auto   - exact version-tagged installations follow stable Releases;
@@ -199,7 +209,7 @@ if [[ "$UPDATE_CHANNEL" == "main" ]]; then
     TARGET_KIND="development"
     TARGET_SHA="$(git rev-parse origin/main)"
 
-    if [[ "$CURRENT_HEAD" == "$TARGET_SHA" ]]; then
+    if [[ "$CURRENT_HEAD" == "$TARGET_SHA" ]] && deployment_is_complete; then
         echo '[MuchoCore] Already on the latest development source: origin/main.'
         exit 0
     fi
@@ -216,23 +226,30 @@ else
         exit 1
     }
     LATEST_SEMVER="$(printf '%s' "$LATEST_TAG" | sed 's/^v//')"
-    REMOTE_TAG_SHA="$(git ls-remote origin "refs/tags/$LATEST_TAG" | awk 'NR == 1 {print $1}')"
+    REMOTE_TAG_SHA="$(git ls-remote origin "refs/tags/$LATEST_TAG" "refs/tags/$LATEST_TAG^{}" |
+        awk '/\^\{\}$/ {peeled=$1} !/\^\{\}$/ {tag=$1} END {print (peeled != "" ? peeled : tag)}')"
     [[ -n "$REMOTE_TAG_SHA" ]] || {
         echo '[MuchoCore] ERROR: stable release tag could not be resolved.' >&2
         exit 1
     }
+    # Fetch the exact release even in a full clone. Annotated tags resolve to
+    # their peeled commit above, rather than comparing HEAD with a tag object.
+    git fetch origin "refs/tags/$LATEST_TAG:refs/tags/$LATEST_TAG"
 
     TARGET_REF="$LATEST_TAG"
     TARGET_LABEL="v$LATEST_SEMVER"
     TARGET_KIND="stable"
     TARGET_SHA="$REMOTE_TAG_SHA"
 
-    if [[ "$CURRENT_SEMVER" == "$LATEST_SEMVER" && "$CURRENT_HEAD" == "$REMOTE_TAG_SHA" ]]; then
+    if [[ "$CURRENT_SEMVER" == "$LATEST_SEMVER" && "$CURRENT_HEAD" == "$REMOTE_TAG_SHA" ]] && deployment_is_complete; then
         echo "[MuchoCore] Already on the latest stable release: v$CURRENT_SEMVER."
         exit 0
     fi
 fi
 
+if [[ "$CURRENT_HEAD" == "$TARGET_SHA" ]]; then
+    echo '[MuchoCore] Completing or repairing deployment of the installed source...'
+fi
 if [[ "$TARGET_KIND" == "development" ]]; then
     echo "[MuchoCore] Updating development core: v$CURRENT_SEMVER -> $TARGET_LABEL"
 else
@@ -285,7 +302,16 @@ if ! git merge-base --is-ancestor "$CURRENT_HEAD" "$TARGET_REF^{commit}"; then
     fi
 fi
 
-git reset --hard "$TARGET_REF"
+# Keep this checkpoint through migrations/admin synchronization. A failed
+# deployment must be retried even when Git already points at the target SHA.
+install -d -m 700 "$ROOT/.muchocore"
+printf '%s\n' "$TARGET_SHA" > "$PENDING_UPDATE_FILE.tmp"
+mv "$PENDING_UPDATE_FILE.tmp" "$PENDING_UPDATE_FILE"
+UPDATE_SOURCE_SWITCHED=1
+if ! git reset --hard "$TARGET_REF"; then
+    rollback_source_tree
+    exit 1
+fi
 
 echo '[MuchoCore] Rebuilding containers...'
 if ! docker compose "${COMPOSE_ARGS[@]}" up -d --build --remove-orphans; then
@@ -310,13 +336,13 @@ UPDATE_SOURCE_SWITCHED=0
 trap - INT TERM
 
 echo '[MuchoCore] Applying database migrations...'
-docker compose exec -T app php bin/migrate.php migrate
+docker compose "${COMPOSE_ARGS[@]}" exec -T app php bin/migrate.php migrate
 
 echo '[MuchoCore] Synchronizing admin credentials...'
-docker compose exec -T app php bin/mucho-sync-admin.php
+docker compose "${COMPOSE_ARGS[@]}" exec -T app php bin/mucho-sync-admin.php
 
 echo '[MuchoCore] Auto-patching tenant clients...'
-if ! docker compose exec -T app php bin/mucho-client-patch.php; then
+if ! docker compose "${COMPOSE_ARGS[@]}" exec -T app php bin/mucho-client-patch.php; then
     echo '[MuchoCore] WARNING: automatic client repatching failed; core update will continue.' >&2
 fi
 
@@ -329,3 +355,4 @@ docker compose "${COMPOSE_ARGS[@]}" ps
 echo
 echo '[MuchoCore] Compatibility profile:'
 sed -n 's/^MUCHO_GD_VERSIONS=/  GD versions: /p' "$ROOT/.env" | sed 's/,/, /g'
+rm -f "$PENDING_UPDATE_FILE"

@@ -113,6 +113,7 @@ jobs:
           php tests/application/security-regressions.php
           bash tests/release/release-update-detection.sh
           bash tests/release/update-main-without-release.sh
+          bash tests/release/update-recovery.sh
           php tests/database/migrator-concurrency.php
           php tests/application/music-upload-contract.php
           php tests/application/clan-contract.php
@@ -429,6 +430,15 @@ jobs:
   migration-integration:
     runs-on: ubuntu-latest
     services:
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
       mariadb:
         image: mariadb:11.4
         env:
@@ -449,7 +459,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          extensions: mbstring, pdo_mysql, zip, gd
+          extensions: mbstring, pdo_mysql, zip, gd, redis
           tools: composer
 
       - name: Install dependencies
@@ -483,6 +493,19 @@ jobs:
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/backup-restore-integration.php
+
+      - name: Verify queue leases and database cache races
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/core-storage-integration.php
+
+      - name: Verify literal Redis prefix invalidation
+        env:
+          TEST_REDIS_HOST: 127.0.0.1
+          TEST_REDIS_PORT: 6379
+        run: php tests/application/redis-cache-integration.php
 
 
   php-runtime:

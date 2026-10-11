@@ -1,3 +1,11 @@
+## Unreleased — core reliability
+
+- Fence job completion/retry by worker and attempt, so stale workers cannot overwrite a new reservation or revive a completed job. Crashed leases stop retrying after five attempts.
+- Use database UTC time for job availability and lease recovery; claim in due-time/index order, retry transient deadlocks with bounded jitter, and expose other reservation failures instead of reporting an empty queue.
+- Preserve concurrent cache refreshes during expired-entry cleanup and treat invalidation prefixes literally in both database and Redis backends.
+- Repair updater source rollback, fetch exact stable release tags (including annotated tags), and checkpoint incomplete deployments through migrations/admin synchronization. A subsequent update resumes at the same source SHA; `MUCHO_UPDATE_REPAIR=1` explicitly reapplies it.
+- Keep tunnel Compose configuration on every deployment step. Add actual database/Redis concurrency regressions and isolated updater failure/recovery tests.
+
 ## MuchoClient v0.8.0 — avatars and profile covers
 
 - Personal JPG/PNG uploads through the native Windows/Android file picker, with crop position, zoom, rotation, preview, save and removal.
