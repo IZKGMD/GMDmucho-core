@@ -1,4 +1,4 @@
-# MuchoClient — one Geode mod for server extensions (v0.8.2)
+# MuchoClient — one Geode mod for server extensions (v0.8.3)
 
 MuchoClient connects Geometry Dash 2.2081 (Windows and Android) to MuchoCore.
 Players install **one .geode file**. Server-side PHP plugins publish safe,
@@ -20,7 +20,7 @@ client does not download or execute plugin code.
   edit the `MuchoCore Server URL` Geode setting (HTTPS origin, without
   `/database`).
 - The client GETs `/muchoclient/manifest`, validates the feature catalog, and
-  POSTs `/muchoclient/negotiate` with `client_version=0.8.2&protocol=1`.
+  POSTs `/muchoclient/negotiate` with `client_version=0.8.3&protocol=1`.
 - Compatible clients display a popup of feature buttons. Public extension
   endpoints under `/extensions/` return constrained JSON text.
 
@@ -117,7 +117,7 @@ necessary after CI compilation and MariaDB integration tests.
 
 Open **Mucho > Colors**, or **My Clan > Colors**. Choose **Nickname** to customize your own name. Clan owners can select **Clan prefix** to set the shared `[TAG]` color. Twelve swatches and six-digit HEX input update a live preview. Press **Save** to persist both settings; **Default** restores the normal nickname color or the golden clan prefix after saving.
 
-Colors appear to clients running v0.8.2 in profiles, comments and player rankings, and in native clan pages. Vanilla clients and older MuchoClient versions keep compatible text prefixes. Login names and authentication are unchanged. Public appearance is loaded in batches of at most 50 accounts and cached for 60 seconds; failed lookups retry after 30 seconds when a view is loaded again.
+Colors appear to clients running v0.8.3 in profiles, comments and player rankings, and in native clan pages. Vanilla clients and older MuchoClient versions keep compatible text prefixes. Login names and authentication are unchanged. Public appearance is loaded in batches of at most 50 accounts and cached for 60 seconds; failed lookups retry after 30 seconds when a view is loaded again.
 
 The server migration `20261010_001_appearance.php` creates two small tables. Colors survive restarts. Nickname colors belong to the account; clan prefix colors belong to the clan and its current owner. Leaving or disbanding removes the prefix but preserves nickname color.
 
@@ -137,13 +137,17 @@ Update MuchoCore from `main` and run `php bin/migrate.php migrate` before using 
 - `/api/clans/quests/contributions` (`questID`, `offset`, `limit`)
 - `/api/clans/activity` (`offset`, `limit`)
 
-## Avatars and profile covers v0.8.2
+## Avatars and profile covers v0.8.3
 
 Open **Mucho > Profile**, or the **Art** button beside the username in a regular GD profile. The public card shows the avatar, cover, colored name/clan tag and server statistics. A saved avatar and dimmed cover strip also appear behind the normal profile header. Default GD icons, comments and statistics remain available.
 
-The card keeps the full 3:1 cover above a separate avatar/name row. Six statistics share one evenly spaced row; the native GD strip is constrained to the actual profile background rather than screen coordinates. v0.8.2 needs no new migration after the v0.8.0 server update.
+The card keeps the full 3:1 cover above a separate avatar/name row. Six statistics share one evenly spaced row; the native GD strip is constrained to the actual profile background rather than screen coordinates. v0.8.3 needs no new migration after the v0.8.0 server update.
 
 Your own card has **Avatar**, **Cover** and **Colors** buttons. Choose a local JPG/PNG with the system picker. The full photo shows a crop rectangle with dimmed surroundings and a thirds grid. Drag the rectangle to move it, drag a corner to resize it, or tap the photo to recenter the selection. Covers keep a fixed **3:1** area and save at **960x320 pixels**; avatars use **1:1** and **256x256 pixels**. These dimensions are displayed above the selection view. The separate preview shows the chosen area live. **Left/Up/Down/Right**, **Zoom**, **Rotate** and **Reset** provide additional control, then press **Save**. Selection and crop changes are previews until saved. **Remove** clears only the selected slot. Source EXIF orientation is not applied automatically; Rotate corrects sideways photos in the preview.
+
+On Windows, the zoom slider adjusts **100–300%** continuously in 1% steps. Hover the photo and scroll the mouse wheel to zoom in 5% steps. **Arrow keys** move the selection precisely; **Shift + arrows** moves faster. **+/-** zoom, **R** rotates clockwise and **0** resets. Zoom and rotation keep the selected source point centred when the photo edges allow it. The editor shows the selected source area in pixels; the output sizes stay 960x320 or 256x256. Open the info button for all controls.
+
+Save is enabled once the selected photo has decoded. Closing an unsaved selection asks whether to keep editing or discard it. Help, removal and close dialogs own input, so scrolling or pressing shortcuts cannot change the image behind them. While an upload is running, wait for its result before closing.
 
 Inputs are limited to 4 MiB, 12 megapixels and 8192 pixels per dimension, with a minimum side of 16 pixels. The server crops/resizes to 256x256 avatars or 960x320 covers and re-encodes JPEG at quality 88, flattening transparent pixels against the profile background and removing source metadata. Each output is at most 512 KiB. The database retains only the current image per slot, so normal database backups include the images.
 
