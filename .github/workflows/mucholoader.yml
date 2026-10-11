@@ -81,7 +81,7 @@ jobs:
           path: |
             cpm-cache
             .xwin-cache
-          key: mucho-win-v1-5.11.1
+          key: mucho-win-v2-sdk26100-5.11.1
       - uses: geode-sdk/cli/.github/actions/setup@main
       - name: LLVM 21 and Windows SDK
         run: |
@@ -91,7 +91,7 @@ jobs:
           echo /usr/lib/llvm-21/bin >> "$GITHUB_PATH"
           curl -fL https://github.com/Jake-Shadle/xwin/releases/download/0.10.0/xwin-0.10.0-x86_64-unknown-linux-musl.tar.gz -o xwin.tar.gz
           tar -xzf xwin.tar.gz
-          ./xwin-0.10.0-x86_64-unknown-linux-musl/xwin --arch x86_64 --sdk-version 10.0.22621 --accept-license splat --include-debug-libs
+          ./xwin-0.10.0-x86_64-unknown-linux-musl/xwin --arch x86_64 --sdk-version 10.0.26100 --accept-license splat --include-debug-libs
       - name: Target Python headers and embedded runtime
         run: |
           curl -fL https://www.nuget.org/api/v2/package/python/3.13.7 -o python.nupkg

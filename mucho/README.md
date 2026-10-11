@@ -66,6 +66,7 @@ Build from the repository root using upstream Geode's platform toolchain:
 
 ```sh
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DGEODE_BINDINGS_REPO_PATH=/absolute/path/to/pinned-bindings \
   -DGEODE_DONT_BUILD_TEST_MODS=ON -DMUCHO_WITH_PYTHON=ON
 cmake --build build --parallel 2
 ```
@@ -73,6 +74,9 @@ cmake --build build --parallel 2
 Python development headers and libraries **for the target architecture** are
 required for embedding. CI pins Geode and bindings and builds the standalone
 Windows library, native Android cores, and independent runtime tests.
+Use the bindings checkout at `f8aec5d1f3df76d840dfd2609f02cef30dc6efdf`;
+the complete platform/toolchain settings are in `ci.yml`. The source archive
+also includes a copy of this pinned bindings source under `vendor/bindings`.
 Native DLL / SO filenames retain Geode names for binary compatibility.
 The package/display name is MuchoLoader; `VERSION` stays the upstream ABI version.
 

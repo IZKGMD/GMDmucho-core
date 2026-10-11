@@ -14,6 +14,11 @@ actual = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=args.checkout
 if actual != pin["commit"]:
     raise SystemExit("Unexpected Geode commit; refusing to apply overlay")
 shutil.copytree(overlay, args.checkout / "mucho", dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__"))
+readme = args.checkout / "README.md"
+credit = args.checkout / "README_GEODE.md"
+if not credit.exists():
+    shutil.copy2(readme, credit)
+shutil.copy2(overlay / "README.md", readme)
 root = args.checkout / "CMakeLists.txt"
 if "include(mucho/Integrate.cmake)" not in root.read_text():
     root.write_text(root.read_text() + '\n# MuchoLoader standalone integration\nif(PROJECT_IS_TOP_LEVEL AND TARGET geode-loader)\n  include(mucho/Integrate.cmake)\nendif()\n')
