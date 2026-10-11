@@ -402,7 +402,7 @@ class MuchoProfilePopup final : public Popup {
 protected:
     bool init(std::string url,int account) {
         if (!Popup::init(420.f,300.f)) return false;
-        m_origin = std::move(url); m_account = account; setTitle("Mucho Profile v0.8.3");
+        m_origin = std::move(url); m_account = account; setTitle("Mucho Profile v0.8.4");
         m_banner = mucho::profile::Artwork::create({376.f,125.3333f}); m_banner->setPosition({22.f,142.f}); m_mainLayer->addChild(m_banner);
         // A separate identity row keeps both images and the name aligned;
         // the square avatar never covers the banner or the statistics.

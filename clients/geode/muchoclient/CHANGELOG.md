@@ -1,3 +1,11 @@
+# v0.8.4
+
+- Show your uploaded avatar inside the circular profile button beneath your username on the main menu.
+- Keep the original button, rim, click action, hit area and press-animation scale.
+- Fall back to the normal profile icon until decoding succeeds, or when the avatar is removed or unavailable.
+- Refresh after avatar saves/removal and periodically; clear stale imagery on account/server changes and ignore late responses.
+- Use the existing bounded, versioned image cache and public profile APIs; no additional server migration.
+
 # v0.8.3
 
 - Windows crop controls: smooth 100–300% zoom slider, mouse wheel over the photo, arrow-key fine adjustments and faster Shift + arrows.
