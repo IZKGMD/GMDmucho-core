@@ -694,7 +694,7 @@ class MuchoClansPopup final : public geode::Popup {
 protected:
     bool init(std::string origin, int clanId) {
         if (!Popup::init(420.f, 306.f)) return false;
-        m_origin = std::move(origin); m_openClan = clanId; setTitle("Mucho | Clans v0.8.1");
+        m_origin = std::move(origin); m_openClan = clanId; setTitle("Mucho | Clans v0.8.2");
         m_body = CCNode::create(); m_mainLayer->addChild(m_body);
         render(); request(Action::My, "/api/clans/my"); return true;
     }

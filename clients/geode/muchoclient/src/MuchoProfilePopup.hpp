@@ -3,6 +3,7 @@
 #include <Geode/utils/file.hpp>
 #include <Geode/utils/base64.hpp>
 #include "MuchoProfileArtwork.hpp"
+#include "MuchoCropSelector.hpp"
 #include "MuchoColorsPopup.hpp"
 #include "MuchoUi.hpp"
 #include <fstream>
@@ -37,6 +38,7 @@ class MuchoImageEditor final : public Popup {
     unsigned m_generation = 0;
     std::vector<uint8_t> m_bytes;
     mucho::profile::Artwork* m_preview = nullptr;
+    mucho::profile::CropSelector* m_selector = nullptr;
     CCLabelBMFont* m_status = nullptr;
     CCLabelBMFont* m_cropLabel = nullptr;
     std::vector<CCMenuItemSpriteExtra*> m_buttons, m_cropButtons;
@@ -60,6 +62,7 @@ class MuchoImageEditor final : public Popup {
     void enabled() {
         for (auto b : m_buttons) b->setEnabled(!m_busy);
         for (auto b : m_cropButtons) b->setEnabled(!m_busy && m_selected);
+        if (m_selector) m_selector->active(!m_busy && m_selected && m_preview->ready());
     }
     CCMenuItemSpriteExtra* button(CCMenu* menu, char const* name, float x, float y, SEL_MenuHandler handler, float scale = .4f) {
         auto b = mucho::button(ButtonSprite::create(name), this, handler, scale);
@@ -67,6 +70,7 @@ class MuchoImageEditor final : public Popup {
     }
     void crop() {
         m_preview->crop(m_x, m_y, m_zoom, m_rotation);
+        m_selector->crop(m_x,m_y,m_zoom,m_rotation);
         m_cropLabel->setString(("Zoom " + std::to_string(m_zoom) + "% | Rotate " + std::to_string(m_rotation)).c_str());
         status("Preview only - press Save to apply");
     }
@@ -80,6 +84,7 @@ class MuchoImageEditor final : public Popup {
             case 4: m_zoom = std::max(100, m_zoom - 25); break;
             case 5: m_zoom = std::min(300, m_zoom + 25); break;
             case 6: m_rotation = (m_rotation + 90) % 360; break;
+            case 7: m_x=m_y=500; m_zoom=100; m_rotation=0; break;
         }
         crop();
     }
@@ -110,6 +115,7 @@ class MuchoImageEditor final : public Popup {
                 if (!dimensions) { status("Use a readable JPG/PNG up to 4 MB and 12 megapixels"); return; }
                 m_bytes = std::move(bytes); m_selected = true;
                 m_x = m_y = 500; m_zoom = 100; m_rotation = 0;
+                m_selector->clear();
                 m_preview->selected(m_bytes, dimensions->png); enabled(); crop();
             });
         });
@@ -134,6 +140,7 @@ class MuchoImageEditor final : public Popup {
                 auto player = json.unwrap()["data"];
                 if (player["account_id"].asInt().unwrapOr(0) != m_account) { status("Invalid account response"); return; }
                 m_selected = false; m_bytes.clear(); enabled();
+                m_selector->clear();
                 m_preview->stored(m_origin, m_account, m_kind, mucho::profile::version(player, m_kind));
                 mucho::profile::changed(player);
                 if (m_saved) m_saved(player);
@@ -159,26 +166,44 @@ class MuchoImageEditor final : public Popup {
     }
 protected:
     bool init(std::string url, int account, std::string kind, std::string savedVersion) {
-        if (!Popup::init(360.f,300.f)) return false;
+        if (!Popup::init(420.f,300.f)) return false;
         m_origin = std::move(url); m_account = account; m_kind = std::move(kind);
-        setTitle(m_kind == "avatar" ? "Profile Avatar" : "Profile Cover");
-        m_preview = mucho::profile::Artwork::create(m_kind == "avatar" ? CCSize{104.f,104.f} : CCSize{312.f,104.f});
-        m_preview->setPosition({m_kind == "avatar" ? 128.f : 24.f,143.f}); m_mainLayer->addChild(m_preview);
-        auto hint = CCLabelBMFont::create("JPG / PNG | max 4 MB | max 12 MP", "bigFont.fnt");
-        hint->setScale(.26f); hint->setPosition({180.f,132.f}); m_mainLayer->addChild(hint);
+        setTitle(m_kind == "avatar" ? "Profile Avatar" : "Profile Cover","goldFont.fnt",.6f,14.f);
+        auto hint = CCLabelBMFont::create(m_kind == "avatar" ? "256 x 256 px (1:1) | JPG/PNG | max 4 MB" :
+            "960 x 320 px (3:1) | JPG/PNG | max 4 MB", "bigFont.fnt");
+        hint->limitLabelWidth(376.f,.28f,0.f); hint->setPosition({210.f,266.f}); m_mainLayer->addChild(hint);
+        auto weak=WeakRef(this);
+        m_selector=mucho::profile::CropSelector::create({376,112},m_kind=="avatar",[weak](int x,int y,int zoom) {
+            if (auto self=weak.lock(); self && !self->m_closed && !self->m_busy && self->m_selected) {
+                self->m_x=x; self->m_y=y; self->m_zoom=zoom; self->crop();
+            }
+        });
+        m_selector->setPosition({22,142}); m_mainLayer->addChild(m_selector);
+        m_preview = mucho::profile::Artwork::create(m_kind == "avatar" ? CCSize{40.f,40.f} : CCSize{120.f,40.f});
+        m_preview->setPosition({m_kind == "avatar" ? 62.f : 22.f,88.f}); m_mainLayer->addChild(m_preview);
+        m_preview->onLoaded([weak](CCTexture2D* texture) {
+            if (auto self=weak.lock(); self && !self->m_closed && self->m_selected) {
+                self->m_selector->texture(texture); self->enabled();
+            }
+        });
+        auto previewTitle=CCLabelBMFont::create("Preview","goldFont.fnt"); previewTitle->setScale(.26f);
+        previewTitle->setPosition({82,135}); m_mainLayer->addChild(previewTitle);
+        auto instruction=CCLabelBMFont::create("Drag box to move | Drag corners to resize","bigFont.fnt");
+        instruction->limitLabelWidth(376,.23f,0.f); instruction->setPosition({210,75}); m_mainLayer->addChild(instruction);
         auto menu = CCMenu::create(); menu->setPosition({0,0}); m_mainLayer->addChild(menu);
-        char const* names[] = {"Left", "Up", "Down", "Right", "Zoom -", "Zoom +", "Rotate"};
-        for (int i = 0; i < 7; ++i) {
-            auto b = button(menu,names[i],i < 4 ? 54.f + i * 84.f : 67.f + (i - 4) * 113.f,
-                i < 4 ? 107.f : 79.f,menu_selector(MuchoImageEditor::onCrop),.32f);
+        char const* names[] = {"Left", "Up", "Down", "Right", "Zoom -", "Zoom +", "Rotate", "Reset"};
+        for (int i = 0; i < 8; ++i) {
+            float x=i<4?65.f+i*96.f:(i<7?200.f+(i-4)*78.f:278.f);
+            float y=i<4?55.f:(i<7?112.f:91.f);
+            auto b = button(menu,names[i],x,y,menu_selector(MuchoImageEditor::onCrop),.3f);
             b->setTag(i); m_cropButtons.push_back(b);
         }
-        m_cropLabel = CCLabelBMFont::create("Crop and rotate after choosing an image", "bigFont.fnt");
-        m_cropLabel->setScale(.24f); m_cropLabel->setPosition({180.f,55.f}); m_mainLayer->addChild(m_cropLabel);
-        button(menu,"Choose",62.f,31.f,menu_selector(MuchoImageEditor::onChoose),.43f);
-        button(menu,"Save",178.f,31.f,menu_selector(MuchoImageEditor::onSave),.5f);
-        button(menu,"Remove",296.f,31.f,menu_selector(MuchoImageEditor::onRemove),.43f);
-        m_status = CCLabelBMFont::create("", "bigFont.fnt"); m_status->setPosition({180.f,11.f}); m_mainLayer->addChild(m_status);
+        m_cropLabel = CCLabelBMFont::create("Choose a photo", "bigFont.fnt");
+        m_cropLabel->setScale(.23f); m_cropLabel->setPosition({278.f,135.f}); m_mainLayer->addChild(m_cropLabel);
+        button(menu,"Choose",75.f,28.f,menu_selector(MuchoImageEditor::onChoose),.43f);
+        button(menu,"Save",210.f,28.f,menu_selector(MuchoImageEditor::onSave),.5f);
+        button(menu,"Remove",345.f,28.f,menu_selector(MuchoImageEditor::onRemove),.43f);
+        m_status = CCLabelBMFont::create("", "bigFont.fnt"); m_status->setPosition({210.f,9.f}); m_mainLayer->addChild(m_status);
         enabled(); m_preview->stored(m_origin,m_account,m_kind,std::move(savedVersion)); status("Choose your own image, adjust the crop, then Save"); return true;
     }
     void onClose(CCObject* sender) override {
@@ -266,7 +291,7 @@ class MuchoProfilePopup final : public Popup {
 protected:
     bool init(std::string url,int account) {
         if (!Popup::init(420.f,300.f)) return false;
-        m_origin = std::move(url); m_account = account; setTitle("Mucho Profile v0.8.1");
+        m_origin = std::move(url); m_account = account; setTitle("Mucho Profile v0.8.2");
         m_banner = mucho::profile::Artwork::create({376.f,125.3333f}); m_banner->setPosition({22.f,142.f}); m_mainLayer->addChild(m_banner);
         // A separate identity row keeps both images and the name aligned;
         // the square avatar never covers the banner or the statistics.

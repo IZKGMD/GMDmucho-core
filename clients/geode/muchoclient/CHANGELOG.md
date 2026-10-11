@@ -1,3 +1,11 @@
+# v0.8.2
+
+- Select the exact cover area on the full photo with a visible 3:1 rectangle, shaded outside area and composition grid.
+- Drag the rectangle to move it or its corner handles to resize it; tap outside the rectangle to recenter, with live preview and Reset.
+- Show the saved cover size (960x320) and avatar size (256x256) directly in the editor.
+- Share one decoded image texture between the selection view and cropped preview; honor pixel coordinates on scaled displays.
+- Reuse the existing authenticated profile API and crop limits; no new server migration.
+
 # v0.8.1
 
 - Keep the normal GD profile cover inside its actual panel bounds, including moved or scaled profiles.

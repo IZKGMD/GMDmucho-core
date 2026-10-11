@@ -5,6 +5,7 @@
 #include <Geode/utils/web.hpp>
 #include "MuchoAppearance.hpp"
 #include "MuchoProfileRules.hpp"
+#include "MuchoCropRules.hpp"
 #include <chrono>
 #include <cmath>
 #include <functional>
@@ -31,6 +32,7 @@ namespace mucho::profile {
         bool m_ready = false;
         int m_x = 500, m_y = 500, m_zoom = 100, m_rotation = 0;
         GLubyte m_dim = 255;
+        std::function<void(CCTexture2D*)> m_loaded;
         async::TaskHolder<web::WebResponse> m_task;
 
         void reset() {
@@ -52,31 +54,37 @@ namespace mucho::profile {
                 if (!self || generation != self->m_generation) return;
                 if (!result) { self->m_hint->setString("Image unavailable"); return; }
                 self->m_ready = true; self->m_hint->setVisible(false); self->fit();
+                if (self->m_loaded) self->m_loaded(image->getTexture());
             });
             image->loadFromData(std::move(bytes),format);
         }
         void fit() {
             if (!m_ready) return;
             auto size = m_image->getTexture()->getContentSize();
-            float w = size.width, h = size.height;
+            auto pixels = m_image->getTexture()->getContentSizeInPixels();
+            float w = pixels.width, h = pixels.height;
             bool quarter = m_rotation == 90 || m_rotation == 270;
-            float rw = quarter ? h : w, rh = quarter ? w : h;
-            float scale = std::max(m_box.width / rw, m_box.height / rh) * (m_zoom / 100.f);
-            float cw = std::min(rw, std::round(m_box.width / scale));
-            float ch = std::min(rh, std::round(m_box.height / scale));
-            float left = std::round((rw - cw) * (m_x / 1000.f));
-            float top = std::round((rh - ch) * (m_y / 1000.f));
+            auto region = cropRegion(w,h,m_x,m_y,m_zoom,m_rotation,m_box.width,m_box.height);
+            float cw = static_cast<float>(region.width), ch = static_cast<float>(region.height);
+            float left = static_cast<float>(region.left), top = static_cast<float>(region.top);
             CCRect rect{left, top, cw, ch};
             if (m_rotation == 90) rect = {top, h - left - cw, ch, cw};
             if (m_rotation == 180) rect = {w - left - cw, h - top - ch, cw, ch};
             if (m_rotation == 270) rect = {w - top - ch, left, ch, cw};
+            float factor = size.width / w;
+            rect = {rect.origin.x*factor,rect.origin.y*factor,rect.size.width*factor,rect.size.height*factor};
             m_image->setTextureRect(rect); m_image->setRotation(static_cast<float>(m_rotation));
-            m_image->setScale(scale); m_image->setPosition(m_box / 2);
+            // Integer crop pixels are resampled into the exact output box on
+            // the server too. Avoid gaps caused by uniform-scale rounding.
+            m_image->setScaleX((quarter?m_box.height:m_box.width)/rect.size.width);
+            m_image->setScaleY((quarter?m_box.width:m_box.height)/rect.size.height);
+            m_image->setPosition(m_box / 2);
             m_image->setOpacity(m_dim);
             m_image->setVisible(true);
         }
     public:
         bool ready() const { return m_ready; }
+        void onLoaded(std::function<void(CCTexture2D*)> loaded) { m_loaded=std::move(loaded); }
         bool loading() const { return m_image && m_image->isLoading(); }
         void dim(GLubyte opacity) { m_dim = opacity; if (m_image) m_image->setOpacity(opacity); }
         void crop(int x, int y, int zoom, int rotation) {
