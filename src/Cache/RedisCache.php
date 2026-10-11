@@ -69,8 +69,9 @@ final class RedisCache implements CacheInterface
     {
         try {
             $iterator = null;
+            $pattern = strtr($prefix, ['\\' => '\\\\', '*' => '\\*', '?' => '\\?', '[' => '\\[', ']' => '\\]']) . '*';
             do {
-                $keys = $this->redis->scan($iterator, $prefix . '*', 200);
+                $keys = $this->redis->scan($iterator, $pattern, 200);
                 if ($keys !== false && $keys !== []) {
                     $this->redis->del($keys);
                 }

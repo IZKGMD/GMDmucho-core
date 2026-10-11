@@ -14,19 +14,28 @@ final readonly class DatabaseCache implements CacheInterface
     public function get(string $key): ?string
     {
         try {
+            $key = substr($key, 0, 191);
+            $now = time();
             $stmt = $this->pdo->prepare(
-                'SELECT cache_value FROM mucho_cache
-                 WHERE cache_key = :key
-                   AND (expires_at = 0 OR expires_at > :now)
-                 LIMIT 1'
+                'SELECT cache_value,expires_at FROM mucho_cache
+                 WHERE cache_key = :key LIMIT 1'
             );
-            $stmt->execute(['key' => substr($key, 0, 191), 'now' => time()]);
-            $value = $stmt->fetchColumn();
-            if ($value === false) {
-                $this->delete($key);
+            $stmt->execute(['key' => $key]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row === false) {
                 return null;
             }
-            return (string)$value;
+            if ((int)$row['expires_at'] > 0 && (int)$row['expires_at'] <= $now) {
+                // A writer may have refreshed this key since our SELECT.
+                // Delete only a value that is still expired, never its replacement.
+                $delete = $this->pdo->prepare(
+                    'DELETE FROM mucho_cache WHERE cache_key=:key
+                     AND expires_at > 0 AND expires_at <= :now'
+                );
+                $delete->execute(['key' => $key, 'now' => $now]);
+                return null;
+            }
+            return (string)$row['cache_value'];
         } catch (Throwable) {
             return null;
         }
@@ -64,8 +73,8 @@ final readonly class DatabaseCache implements CacheInterface
     public function deletePrefix(string $prefix): void
     {
         try {
-            $stmt = $this->pdo->prepare('DELETE FROM mucho_cache WHERE cache_key LIKE :prefix');
-            $stmt->execute(['prefix' => substr($prefix, 0, 190) . '%']);
+            $stmt = $this->pdo->prepare("DELETE FROM mucho_cache WHERE cache_key LIKE :prefix ESCAPE '!'");
+            $stmt->execute(['prefix' => strtr($prefix, ['!' => '!!', '%' => '!%', '_' => '!_']) . '%']);
         } catch (Throwable) {
         }
     }

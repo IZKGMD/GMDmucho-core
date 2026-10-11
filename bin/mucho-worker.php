@@ -117,10 +117,11 @@ do {
                 throw new RuntimeException('Unknown job type: ' . $type);
         }
 
-        $queue->complete($id);
-        echo "JOB_OK {$id} {$type}\n";
+        $completed = $queue->complete($id, $workerId, (int)$job['attempts']);
+        echo $completed ? "JOB_OK {$id} {$type}\n" : "JOB_LEASE_LOST {$id} {$type}\n";
     } catch (Throwable $e) {
-        $queue->fail($id, $e->getMessage());
-        fwrite(STDERR, "JOB_FAIL {$id}: {$e->getMessage()}\n");
+        $failed = $queue->fail($id, $e->getMessage(), $workerId, (int)$job['attempts']);
+        $result = $failed ? 'JOB_FAIL' : 'JOB_LEASE_LOST';
+        fwrite(STDERR, "{$result} {$id}: {$e->getMessage()}\n");
     }
 } while ($loop);

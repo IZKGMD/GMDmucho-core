@@ -103,7 +103,11 @@ sudo ./bin/mucho worker --loop
 
 Docker Compose includes a dedicated worker service in v1.0.8.
 
-Jobs retry failed processing and stale running jobs can be reclaimed safely.
+Jobs retry failed processing with a delay. Running leases expire after ten minutes; both explicit failures and crashed leases stop at five attempts by default. Completion/failure requires the current worker ID and attempt number, so a stale worker cannot change a replacement reservation.
+
+The queue uses the database's UTC clock, independent of PHP or connection time zones. Ready jobs are claimed in availability-time/ID order using the queue index. Transient deadlocks retry up to three times with short jitter; other reservation errors propagate to the worker log rather than appearing as `NO_JOBS`. Operations inside a caller-owned transaction are not individually replayed.
+
+Delivery remains at least once: a process can finish an external webhook and crash before acknowledging it. Webhook receivers should handle duplicate deliveries. Lease fencing protects queue state, but does not undo an external operation already performed by a stale worker.
 
 ## Signed webhooks
 
