@@ -1,5 +1,7 @@
 """Single-worker plugin lifecycle. Native mods remain under Geode's loader."""
 import importlib.util
+import importlib.abc
+import importlib.machinery
 import json
 import os
 from pathlib import Path
@@ -13,6 +15,34 @@ from . import _api
 
 _VERSION = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 _SDK_VERSION = (0, 1, 0)
+
+
+class _SourceLoader(importlib.machinery.SourceFileLoader):
+    def get_code(self, fullname):
+        # Compile current source even when an old .pyc has a matching timestamp/size.
+        path = Path(self.path)
+        if path.is_symlink() or path.stat().st_size > 524288:
+            raise ValueError("Symlink or oversized Python source")
+        return self.source_to_code(path.read_bytes(), self.path)
+
+
+class _SourceFinder(importlib.abc.MetaPathFinder):
+    def __init__(self):
+        self.roots = {}
+
+    def find_spec(self, fullname, path=None, target=None):
+        prefix, _, suffix = fullname.partition(".")
+        root = self.roots.get(prefix)
+        if root is None or not suffix:
+            return None
+        relative = root.joinpath(*suffix.split("."))
+        package = relative / "__init__.py"
+        source = package if package.is_file() else relative.with_suffix(".py")
+        if not source.is_file():
+            return None
+        return importlib.util.spec_from_file_location(fullname, source,
+            loader=_SourceLoader(fullname, str(source)),
+            submodule_search_locations=[str(relative)] if package.is_file() else None)
 
 
 class BudgetExceeded(RuntimeError):
@@ -57,6 +87,8 @@ class Manager:
         self.plugins = {}
         self.serial = 0
         self.state = {}
+        self.finder = _SourceFinder()
+        sys.meta_path.insert(0, self.finder)
         try:
             state = _read(self.root / ".state.json")
             if not isinstance(state, dict) or not all(_api._id.fullmatch(k) and type(v) is bool for k, v in state.items()):
@@ -156,7 +188,9 @@ class Manager:
         self._next(plugin)
         key = "_mucho_plugin_" + plugin.id.replace(".", "_").replace("-", "_") + "_" + str(plugin.generation)
         try:
-            spec = importlib.util.spec_from_file_location(key, plugin.path / "plugin.py", submodule_search_locations=[str(plugin.path)])
+            self.finder.roots[key] = plugin.path
+            spec = importlib.util.spec_from_file_location(key, plugin.path / "plugin.py",
+                loader=_SourceLoader(key, str(plugin.path / "plugin.py")), submodule_search_locations=[str(plugin.path)])
             module = importlib.util.module_from_spec(spec)
             sys.modules[key] = module
             plugin.module = module
@@ -179,6 +213,7 @@ class Manager:
                 except BaseException as error:
                     native.log(plugin.id, "Unload error: " + str(error))
             prefix = plugin.module.__name__
+            self.finder.roots.pop(prefix, None)
             for key in list(sys.modules):
                 if key == prefix or key.startswith(prefix + "."):
                     del sys.modules[key]
@@ -235,12 +270,14 @@ class Manager:
             if operation not in {"enable", "disable", "reload"}:
                 raise ValueError("Unknown control operation")
             if operation in {"enable", "disable"}:
-                self.state[plugin.id] = operation == "enable"
+                next_state = dict(self.state)
+                next_state[plugin.id] = operation == "enable"
                 temp = self.root / ".state.json.tmp"
                 if temp.is_symlink():
                     raise ValueError("Saved state path is symlinked")
-                temp.write_text(json.dumps(self.state, sort_keys=True), encoding="utf-8")
+                temp.write_text(json.dumps(next_state, sort_keys=True), encoding="utf-8")
                 os.replace(temp, self.root / ".state.json")
+                self.state = next_state
             # Rebuild the dependency graph, including dependents, on every lifecycle change.
             # Relative helper modules are recreated; no .pyc cache is used by the runtime.
             self.scan()
@@ -259,3 +296,5 @@ class Manager:
     def shutdown(self):
         for plugin in self.plugins.values():
             self._unload(plugin)
+        if self.finder in sys.meta_path:
+            sys.meta_path.remove(self.finder)

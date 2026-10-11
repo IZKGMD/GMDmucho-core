@@ -116,11 +116,11 @@ class MuchoHub : public Popup {
         button(menu,"Logs",menu_selector(MuchoHub::onLogs),350,196,85);
         auto parsed=matjson::parse(status.plugins);
         std::vector<matjson::Value> plugins;
-        if (parsed && parsed.unwrap().isArray()) plugins=parsed.unwrap().asArray().unwrapOrDefault();
+        if (parsed && parsed.unwrap().isArray()) plugins=parsed.unwrap().asArray().unwrap();
         if (m_buttons) {
             for (auto const& plugin:plugins) {
                 if (field(plugin,"status")!="loaded" || !plugin["buttons"].isArray()) continue;
-                for (auto entry:plugin["buttons"].asArray().unwrapOrDefault()) {
+                for (auto entry:plugin["buttons"].asArray().unwrap()) {
                     entry["owner"]=field(plugin,"id"); entry["generation"]=plugin["generation"];
                     m_items.push_back(std::move(entry));
                 }
@@ -220,6 +220,14 @@ class $modify(MuchoPlay,PlayLayer) {
         event("level.death");
     }
     void levelComplete() { PlayLayer::levelComplete(); event("level.complete"); }
+    void resetLevel() {
+        ++sceneEpoch;
+        PlayLayer::resetLevel();
+        if (auto overlay=getChildByID("mucholoader/pulse")) overlay->removeFromParent();
+        matjson::Value data=matjson::Value::object();
+        data["level_id"]=m_level?static_cast<int>(m_level->m_levelID):0;
+        event("level.start",data);
+    }
     void onExit() { ++sceneEpoch; PlayLayer::onExit(); }
 };
 $on_game(Loaded) { start(); MuchoPump::install(); }

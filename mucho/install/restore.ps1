@@ -9,6 +9,12 @@ foreach ($entry in $entries) {
     $relative = [string]$entry.path
     if ($relative -match '(^/|\\|(^|/)\.\.?(/|$)|:)' -or $relative -notmatch '^(Geode\.dll|XInput1_4\.dll|GeodeUpdater\.exe|python[0-9]+\.dll|vcruntime[^/]*\.dll|geode/(resources/geode\.loader|mucholoader)/.+)$') { throw 'Invalid backup path.' }
     $target = Join-Path $game $relative
+    $cursor = [IO.Path]::GetFullPath($target)
+    while ($cursor) {
+        if ((Test-Path $cursor) -and ((Get-Item $cursor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Restore through a junction or symlink is unsupported.' }
+        $parent = Split-Path $cursor -Parent
+        if ($parent -eq $cursor) { break }; $cursor = $parent
+    }
     if ($entry.existed) {
         $source = Join-Path $backup $relative
         if (!(Test-Path $source -PathType Leaf)) { throw 'Backup is incomplete.' }

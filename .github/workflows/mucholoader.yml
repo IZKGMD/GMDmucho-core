@@ -9,6 +9,13 @@ env:
   UPSTREAM_COMMIT: 413ac9b3936373e0983b3ebb8a056a3d39e8541c
   BINDINGS_COMMIT: f8aec5d1f3df76d840dfd2609f02cef30dc6efdf
 jobs:
+  installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify reversible installation
+        shell: pwsh
+        run: ./mucho/tests/installer.ps1
   runtime:
     runs-on: ubuntu-24.04
     strategy:
@@ -25,7 +32,7 @@ jobs:
           ctest --test-dir host-tests --output-on-failure
   windows:
     runs-on: ubuntu-24.04
-    needs: runtime
+    needs: [runtime, installer]
     timeout-minutes: 60
     env:
       CPM_SOURCE_CACHE: ${{ github.workspace }}/cpm-cache

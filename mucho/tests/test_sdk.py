@@ -177,6 +177,40 @@ class SDKTests(unittest.TestCase):
         manager.control('{"operation":"reload","id":"example"}')
         self.assertEqual(native.snapshot[0]["buttons"][0]["title"], "World")
 
+    def test_stale_bytecode_cannot_hide_edited_source(self):
+        import os
+        import py_compile
+        path = self.plugin(code='from .helper import text\nfrom mucho import ui\nui.button("hi",text,lambda:None)\n')
+        helper = path / "helper.py"
+        helper.write_text('text = "Hello"\n')
+        stamp = helper.stat().st_mtime
+        py_compile.compile(str(helper))
+        helper.write_text('text = "World"\n')
+        os.utime(helper, (stamp, stamp))
+        self.load()
+        self.assertEqual(native.snapshot[0]["buttons"][0]["title"], "World")
+
+    def test_removed_button_cannot_be_called_after_reload(self):
+        path = self.plugin(code='from mucho import ui\nui.button("hi","Hi",lambda:ui.notice("bad"))\n')
+        manager = self.load()
+        (path / "plugin.py").write_text('from mucho import log\nlog("new version")\n')
+        manager.control('{"operation":"reload","id":"example"}')
+        manager.dispatch("ui.button", json.dumps({"owner":"example","generation":manager.plugins["example"].generation,"id":"hi"}))
+        self.assertEqual(native.commands, [])
+
+    def test_symlinked_entry_is_rejected(self):
+        path = self.plugin()
+        (self.root / "outside.py").write_text('raise RuntimeError("must not run")')
+        (path / "plugin.py").unlink()
+        (path / "plugin.py").symlink_to(self.root / "outside.py")
+        self.assertEqual(self.load().plugins["example"].status, "invalid")
+
+    def test_events_are_immutable(self):
+        self.plugin(code='from mucho import events\n@events.on("level.start")\ndef event(e): e["level_id"]=1\n')
+        manager = self.load()
+        manager.dispatch("level.start", '{"level_id":2}')
+        self.assertIn("TypeError", manager.plugins["example"].error)
+
     def test_bad_state_is_diagnosed(self):
         (self.root / ".state.json").write_text('{"example":"true"}')
         self.plugin()
