@@ -1,7 +1,7 @@
 name: MuchoLoader Standalone
 on:
   push:
-    branches: ['codex/mucholoader-standalone-v010']
+    branches: ['codex/mucholoader-standalone-v010', 'mucho/main']
   workflow_dispatch:
 permissions:
   contents: read

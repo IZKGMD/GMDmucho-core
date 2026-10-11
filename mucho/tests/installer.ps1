@@ -27,6 +27,12 @@ try {
     & (Join-Path $dist 'restore.ps1') -GameDir $game -BackupDir $backup.FullName
     Assert ((Get-Content (Join-Path $game 'Geode.dll') -Raw).Trim() -eq 'old loader') 'Previous loader restored'
     Assert (!(Test-Path (Join-Path $game 'XInput1_4.dll'))) 'New files removed on restore'
+    New-Item (Join-Path $game 'geode/update') -ItemType Directory -Force | Out-Null
+    $failed=$false
+    try { & (Join-Path $dist 'install.ps1') -GameDir $game } catch { $failed=$true }
+    Assert $failed 'Pending upstream replacement refused'
+    Assert ((Get-Content (Join-Path $game 'Geode.dll') -Raw).Trim() -eq 'old loader') 'Pending update causes no writes'
+    Remove-Item (Join-Path $game 'geode/update') -Recurse
     Set-Content (Join-Path $payload 'Geode.dll') 'tampered'
     $failed = $false
     try { & (Join-Path $dist 'install.ps1') -GameDir $game } catch { $failed=$true }
@@ -36,5 +42,5 @@ try {
     $failed=$false
     try { & (Join-Path $dist 'install.ps1') -GameDir $game } catch { $failed=$true }
     Assert $failed 'Traversal refused'
-    Write-Host 'PASS: install/restore, native preservation, checksums and traversal'
+    Write-Host 'PASS: install/restore, native preservation, pending update, checksums and traversal'
 } finally { Remove-Item $root -Recurse -Force -ErrorAction SilentlyContinue }

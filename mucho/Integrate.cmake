@@ -3,6 +3,9 @@ target_compile_definitions(geode-loader PRIVATE MUCHO_LOADER=1)
 target_sources(geode-loader PRIVATE "${CMAKE_CURRENT_LIST_DIR}/native/GameAdapter.cpp")
 if(MUCHO_WITH_PYTHON)
   find_package(Python3 3.12 REQUIRED COMPONENTS Development.Embed)
+  # The loader target belongs to a child directory; expose this imported target
+  # there while keeping the dependency private to its implementation.
+  set_property(TARGET Python3::Python PROPERTY IMPORTED_GLOBAL TRUE)
   target_sources(geode-loader PRIVATE "${CMAKE_CURRENT_LIST_DIR}/native/Runtime.cpp")
   # Upstream uses the plain target_link_libraries signature. Append only the
   # implementation dependency, without exporting Python into the Geode SDK.

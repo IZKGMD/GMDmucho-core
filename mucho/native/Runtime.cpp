@@ -157,6 +157,21 @@ void Runtime::run(Config config) {
             auto wide = config.pythonHome.wstring();
             auto status = PyConfig_SetString(&settings, &settings.home, wide.c_str());
             if (PyStatus_Exception(status)) { PyConfig_Clear(&settings); throw std::runtime_error("Invalid Python home"); }
+#ifdef _WIN32
+            // The interpreter DLL is beside GeometryDash.exe, but the embeddable
+            // standard library and extension modules live in our private folder.
+            // Do not let getpath infer those locations from the game executable.
+            auto zip = config.pythonHome / ("python" + std::to_string(PY_MAJOR_VERSION) +
+                std::to_string(PY_MINOR_VERSION) + ".zip");
+            for (auto const& path : {zip, config.pythonHome}) {
+                auto widePath = path.wstring();
+                auto append = PyWideStringList_Append(&settings.module_search_paths, widePath.c_str());
+                if (PyStatus_Exception(append)) {
+                    PyConfig_Clear(&settings); throw std::runtime_error("Invalid embedded Python path");
+                }
+            }
+            settings.module_search_paths_set = 1;
+#endif
         }
         auto initializedStatus = Py_InitializeFromConfig(&settings);
         std::string initError = initializedStatus.err_msg ? initializedStatus.err_msg : "Python initialization failed";

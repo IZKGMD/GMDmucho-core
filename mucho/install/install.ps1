@@ -3,6 +3,8 @@ $ErrorActionPreference = 'Stop'
 $game = [IO.Path]::GetFullPath($GameDir)
 if (!(Test-Path (Join-Path $game 'GeometryDash.exe') -PathType Leaf)) { throw 'Choose the folder containing GeometryDash.exe.' }
 if (Get-Process GeometryDash -ErrorAction SilentlyContinue) { throw 'Close Geometry Dash before installing.' }
+if (Test-Path (Join-Path $game 'geode/update')) { throw 'Finish the pending Geode update by starting and closing the game before installing MuchoLoader.' }
+if (Test-Path (Join-Path $game 'GeodeBootstrapper.dll')) { throw 'Start and close the game to migrate the legacy Geode bootstrapper before installing MuchoLoader.' }
 $manifest = Get-Content (Join-Path $PSScriptRoot 'package.json') -Raw | ConvertFrom-Json
 $backup = Join-Path $game ('.mucholoader-backups/' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-ffff'))
 $plan = @()
