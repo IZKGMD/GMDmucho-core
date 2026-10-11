@@ -92,6 +92,9 @@ jobs:
           php tests/application/admin-passkey-contract.php
           php tests/application/admin-password-setup-contract.php
           php tests/application/admin-rbac-contract.php
+          php tests/application/admin-dashboard-access.php
+          php tests/application/public-overview-visibility.php
+          php tests/application/web-profile-images.php
           php tests/application/admin-client-rbac-contract.php
           php tests/application/migration-center-contract.php
           php tests/application/shared-hosting-installer-contract.php
@@ -146,6 +149,15 @@ jobs:
           unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/public/shared-install.php'
           unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/public/ftp-install.php'
           unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/vendor/autoload.php'
+
+      - name: Check product interface scripts
+        run: |
+          node --check public/assets/product-ui.js
+          node --check public/assets/product-home.js
+          node --check public/admin/product-dashboard.js
+          node --check public/muchocore-theme.js
+          node --check public/admin/admin-i18n.js
+          node --test tests/application/product-ui.test.cjs
 
       - name: Check Python patcher
         run: |

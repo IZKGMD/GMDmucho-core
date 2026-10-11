@@ -440,7 +440,7 @@ $myClan = $account ? $repo->getForAccount((int)$account['id']) : null;
 <meta name="theme-color" content="#090b10">
 <title><?=pcH($serverName)?> · Clans</title>
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
-<script src="/muchocore-theme.js?v=3" defer></script>
+<script src="/muchocore-theme.js?v=4" defer></script>
 <style>
 body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,system-ui,sans-serif}
 .shell{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:18px 0 44px}
@@ -460,12 +460,15 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
 @media(max-width:850px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.shell{width:min(100% - 18px,1180px)}.topbar{align-items:stretch;flex-direction:column}.nav{overflow-x:auto;flex-wrap:nowrap}.grid{grid-template-columns:1fr}.search{grid-template-columns:1fr}.panel{padding:17px}}
 </style>
+
+<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<script src="/assets/product-ui.js?v=1" defer></script>
 </head>
-<body>
+<body class="mc-workspace">
 <div class="shell">
 <header class="topbar">
     <a class="brand" href="/dashboard">
-        <img class="logo" src="/assets/muchocore-dashboard-logo.jpg?v=1" alt="" width="46" height="46">
+        <img class="logo" src="/assets/muchocore-icon.png" alt="" width="46" height="46">
         <span>
             <b><?=pcH($serverName)?></b>
             <small>MUCHOCORE PLAYER DASHBOARD</small>
@@ -475,6 +478,7 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
         <a href="/dashboard">Dashboard</a>
         <a href="/dashboard/clans.php">Clans</a>
         <a href="/dashboard#players">Players</a>
+        <a href="/clients/">Downloads</a>
         <?php if ($account): ?>
         <form method="post" style="margin:0">
             <input type="hidden" name="csrf" value="<?=pcH(pcCsrf())?>">

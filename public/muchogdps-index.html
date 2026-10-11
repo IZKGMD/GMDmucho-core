@@ -1,208 +1,107 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru" data-theme="dark">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#07090f">
-  <meta name="description" content="MuchoGDPS — deploy MuchoCore on your own VPS and manage your Geometry Dash private server from one place.">
-  <link rel="canonical" href="https://muchogdps.space/index">
-  <link rel="icon" href="/assets/muchocore-logo.jpg" type="image/jpeg">
-  <title>MuchoGDPS — Your VPS. Your GDPS. Your control.</title>
-  <style>
-    :root{
-      --bg:#07090f;--panel:#0d121c;--panel2:#111826;--line:#222b3a;
-      --text:#f7f8fc;--muted:#a1aabc;--dim:#69758a;--purple:#8477ff;--cyan:#55e6dc;
-      --green:#63e3a6;--radius:20px;--max:1160px;
-    }
-    *{box-sizing:border-box}
-    html{scroll-behavior:smooth}
-    body{
-      margin:0;color:var(--text);background:
-      radial-gradient(900px 500px at 82% -8%,rgba(85,230,220,.10),transparent 60%),
-      radial-gradient(900px 600px at 12% -10%,rgba(132,119,255,.18),transparent 62%),
-      linear-gradient(180deg,#07090f 0%,#090c13 55%,#07090f 100%);
-      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      -webkit-font-smoothing:antialiased;line-height:1.5;
-    }
-    a{text-decoration:none;color:inherit}
-    button{font:inherit}
-    .wrap{width:min(var(--max),calc(100% - 34px));margin:auto}
-    .nav{
-      position:sticky;top:0;z-index:20;border-bottom:1px solid rgba(34,43,58,.78);
-      background:rgba(7,9,15,.76);backdrop-filter:blur(18px)
-    }
-    .navin{height:72px;display:flex;align-items:center;justify-content:space-between;gap:20px}
-    .brand{display:flex;align-items:center;gap:11px;font-weight:950;letter-spacing:-.6px}
-    .brand img{width:34px;height:34px;border-radius:10px;border:1px solid #313b4d}
-    .brand small{display:block;color:var(--dim);font-size:9px;letter-spacing:.13em;text-transform:uppercase;margin-top:1px}
-    .links{display:flex;align-items:center;gap:4px}
-    .links a{padding:9px 11px;border-radius:10px;color:#aab5c7;font-size:11px;font-weight:800}
-    .links a:hover{color:#fff;background:#111925}
-    .cta{padding:10px 14px!important;color:#fff!important;background:var(--purple)!important;border:1px solid #9a90ff;box-shadow:0 10px 35px rgba(132,119,255,.22)}
-    .hero{padding:86px 0 42px}
-    .hero-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:22px;align-items:stretch}
-    .eyebrow{
-      display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border-radius:999px;
-      border:1px solid rgba(132,119,255,.25);background:rgba(132,119,255,.07);
-      color:#b8b0ff;font-size:10px;font-weight:900;letter-spacing:.11em;text-transform:uppercase
-    }
-    .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 12px rgba(99,227,166,.8)}
-    h1{margin:20px 0 17px;font-size:clamp(50px,7vw,86px);line-height:.94;letter-spacing:-5px;max-width:790px}
-    h1 span{background:linear-gradient(95deg,#fff 8%,#b1aaff 55%,#65e8df 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
-    .lead{max-width:700px;color:#abb5c6;font-size:16px;line-height:1.72}
-    .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
-    .btn{
-      display:inline-flex;align-items:center;justify-content:center;min-height:47px;padding:0 17px;border-radius:12px;
-      background:var(--purple);border:1px solid #9a90ff;color:#fff;font-size:12px;font-weight:900;
-      box-shadow:0 12px 35px rgba(132,119,255,.22);transition:.18s
-    }
-    .btn:hover{transform:translateY(-2px);filter:brightness(1.05)}
-    .btn.alt{background:#111925;border-color:#293548;box-shadow:none;color:#d8dfea}
-    .hero-card{
-      position:relative;overflow:hidden;padding:23px;border-radius:24px;border:1px solid var(--line);
-      background:linear-gradient(145deg,rgba(132,119,255,.11),rgba(85,230,220,.06) 56%,rgba(255,255,255,.015)),var(--panel);
-      box-shadow:0 28px 90px rgba(0,0,0,.28)
-    }
-    .hero-card:after{
-      content:"";position:absolute;right:-100px;top:-100px;width:280px;height:280px;border-radius:50%;
-      background:rgba(85,230,220,.12);filter:blur(58px)
-    }
-    .card-label{position:relative;z-index:1;color:#9da8ba;font-size:10px;font-weight:900;letter-spacing:.11em;text-transform:uppercase}
-    .terminal{
-      position:relative;z-index:1;margin-top:15px;padding:17px;border:1px solid #243043;border-radius:15px;background:#0a0f16;
-      font:12px/1.75 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#b9c4d6
-    }
-    .prompt{color:#71e0ad}.cmd{color:#fff}.ok{color:#6fe6af}.muted{color:#66758b}
-    .section{padding:40px 0}
-    .head{margin-bottom:16px}
-    .kicker{color:#a59dff;font-size:10px;font-weight:900;letter-spacing:.11em;text-transform:uppercase}
-    h2{margin:5px 0 0;font-size:30px;line-height:1.08;letter-spacing:-1.4px}
-    .intro{margin:8px 0 0;color:var(--muted);font-size:13px;max-width:720px;line-height:1.68}
-    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-    .card{padding:21px;border:1px solid var(--line);border-radius:17px;background:linear-gradient(180deg,#101722,#0d131c)}
-    .icon{width:40px;height:40px;display:grid;place-items:center;border-radius:11px;border:1px solid rgba(132,119,255,.18);background:rgba(132,119,255,.08);font-size:17px;margin-bottom:17px}
-    .card h3{margin:0 0 7px;font-size:14px}.card p{margin:0;color:var(--muted);font-size:11px;line-height:1.66}
-    .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-    .step{padding:18px;border:1px solid var(--line);border-radius:15px;background:#0d131c}
-    .num{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#151d2a;border:1px solid #2a374b;color:#aaa1ff;font-size:10px;font-weight:900}
-    .step h3{margin:12px 0 6px;font-size:13px}.step p{margin:0;color:var(--muted);font-size:10px;line-height:1.6}
-    .join{
-      display:grid;grid-template-columns:1.05fr .95fr;gap:12px;padding:25px;border:1px solid #2a3344;border-radius:21px;
-      background:linear-gradient(135deg,rgba(132,119,255,.11),rgba(85,230,220,.06),rgba(255,255,255,.01))
-    }
-    .join h2{font-size:31px}.join p{max-width:680px;color:var(--muted);font-size:12px;line-height:1.7}
-    .preview{padding:17px;border:1px solid #2a3547;border-radius:15px;background:#0a0f16}
-    .row{display:flex;justify-content:space-between;gap:15px;padding:10px 0;border-top:1px solid #202a39;font-size:11px}
-    .row:first-child{border-top:0}.row span{color:var(--dim)}.badge{color:#73e8b0}
-    footer{padding:35px 0 50px;color:#657286;font-size:10px}
-    .foot{display:flex;justify-content:space-between;gap:15px;align-items:center;border-top:1px solid #1d2634;padding-top:20px}
-    .footlinks{display:flex;gap:15px}.footlinks a:hover{color:#c5cedc}
-    @media(max-width:900px){
-      .hero-grid,.join{grid-template-columns:1fr}.grid3{grid-template-columns:1fr 1fr}.steps{grid-template-columns:1fr 1fr}
-      h1{font-size:clamp(46px,13vw,72px);letter-spacing:-4px}
-    }
-    @media(max-width:650px){
-      .links a:not(.cta){display:none}.navin{height:64px}.hero{padding-top:58px}
-      .wrap{width:min(var(--max),calc(100% - 24px))}.grid3,.steps{grid-template-columns:1fr}
-      .actions .btn{width:100%}.hero-card{padding:18px}.join{padding:20px}
-      .foot{align-items:flex-start;flex-direction:column}
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090a10">
+<meta name="description" content="MuchoGDPS — платформа для собственного Geometry Dash сервера. MuchoCore, кланы, профили, музыка и инструменты управления в одной экосистеме.">
+<link rel="canonical" href="https://muchogdps.space/">
+<link rel="icon" href="/assets/muchocore-icon.png" type="image/png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="MuchoGDPS — Создай свою игровую вселенную">
+<meta property="og:description" content="Собственный GDPS. Живое сообщество. Полный контроль.">
+<meta property="og:url" content="https://muchogdps.space/">
+<meta property="og:image" content="https://muchogdps.space/assets/muchocore-logo.jpg">
+<title>MuchoGDPS — Создай свою игровую вселенную</title>
+<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<link rel="stylesheet" href="/assets/product-home.css?v=1">
+<script src="/muchocore-theme.js?v=4" defer></script>
+<script src="/assets/product-ui.js?v=1" defer></script>
+<script src="/assets/product-home.js?v=1" defer></script>
 </head>
-<body>
-  <header class="nav">
-    <div class="wrap navin">
-      <a class="brand" href="/" aria-label="MuchoGDPS home">
-        <img src="/assets/muchocore-logo.jpg" alt="" width="34" height="34">
-        <span>MuchoGDPS<small>Powered by MuchoCore</small></span>
-      </a>
-      <nav class="links" aria-label="Main navigation">
-        <a href="#how">How it works</a>
-        <a href="#features">Features</a>
-        <a href="/muchocore/">MuchoCore</a>
-        <a class="cta" href="/install/">Connect VPS</a>
-      </nav>
+<body class="mc-home">
+<a class="mc-skip" href="#main" data-en="Skip to content">Перейти к содержимому</a>
+<header class="mc-header">
+ <div class="mc-wrap mc-header-inner">
+  <a class="mc-brand" href="/" aria-label="MuchoGDPS"><img src="/assets/muchocore-icon.png" alt="" width="38" height="38">Mucho<span>GDPS</span></a>
+  <nav class="mc-home-nav" id="productNavigation" aria-label="Navigation">
+   <a href="#platform" data-en="Platform">Платформа</a><a href="#community" data-en="Community">Сообщество</a><a href="/muchocore/">MuchoCore</a><a href="https://github.com/IZKGMD/GMDmucho-core/tree/main/docs" data-en="Documentation">Документация</a>
+  </nav>
+  <div class="mc-theme-slot">
+   <button class="mc-lang" type="button" id="productLanguage" aria-label="Switch language">EN</button>
+   <a class="mc-button" href="/install/" data-en="Get started ↗">Начать ↗</a>
+   <button class="mc-nav-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="productNavigation">☰</button>
+  </div>
+ </div>
+</header>
+<main id="main" tabindex="-1">
+ <section class="mc-hero">
+  <div class="mc-wrap mc-hero-grid">
+   <div>
+    <div class="mc-eyebrow" data-en="The Mucho ecosystem / Open source">Экосистема Mucho / Open source</div>
+    <h1><span data-en="Your game.">Твоя игра.</span><br><span data-en="Your community.">Твоё сообщество.</span><br><em data-en="Your universe.">Твоя вселенная.</em></h1>
+    <p class="mc-hero-copy" data-en="Build a Geometry Dash private server that feels like yours. Bring players, creators and clans together — with the tools to keep it growing.">Создай Geometry Dash сервер со своим характером. Объединяй игроков, авторов уровней и кланы — с инструментами, которые помогают сообществу расти.</p>
+    <div class="mc-actions"><a class="mc-button" href="/install/" data-en="Create your GDPS ↗">Создать свой GDPS ↗</a><a class="mc-button secondary" href="/dashboard" data-en="Explore the community →">Открыть сообщество →</a></div>
+    <div class="mc-note" data-en="Self-hosted · MIT license · Your infrastructure and data">Self-hosted · Лицензия MIT · Твоя инфраструктура и данные</div>
+   </div>
+   <div class="mc-platform" aria-label="Mucho ecosystem architecture">
+    <div class="mc-platform-top"><span>MUCHO / PLATFORM</span><span class="mc-pill" data-en="Architecture">Архитектура</span></div>
+    <div class="mc-platform-center">
+     <div class="mc-core-mark" aria-hidden="true"><span>M</span></div><h2>MuchoCore</h2><p data-en="One core. A connected experience.">Одно ядро. Единая экосистема.</p>
+     <div class="mc-node-grid"><div class="mc-node">MuchoClient<span data-en="In-game features">Функции в игре</span></div><div class="mc-node"><b data-en="Player portal">Кабинет игрока</b><span data-en="Profiles & clans">Профили и кланы</span></div><div class="mc-node"><b data-en="Admin Control">Управление</b><span data-en="Content & operations">Контент и сервер</span></div></div>
     </div>
-  </header>
-
-  <main>
-    <section class="hero">
-      <div class="wrap hero-grid">
-        <div>
-          <div class="eyebrow"><i class="dot"></i> Self-hosted GDPS platform</div>
-          <h1>Your VPS.<br><span>Your GDPS. Your control.</span></h1>
-          <p class="lead">Connect your own VPS and let MuchoGDPS handle the hard part. Deploy MuchoCore, provision your server stack, and manage your Geometry Dash private server from one clean control plane.</p>
-          <div class="actions">
-            <a class="btn" href="/install/">Connect your VPS</a>
-            <a class="btn alt" href="/muchocore/">Explore MuchoCore</a>
-          </div>
-        </div>
-
-        <aside class="hero-card" aria-label="Deployment preview">
-          <div class="card-label">Deployment flow</div>
-          <div class="terminal">
-            <div><span class="prompt">$</span> <span class="cmd">mucho deploy</span></div>
-            <div class="muted">Connecting to your VPS...</div>
-            <div><span class="ok">✓</span> SSH connection established</div>
-            <div><span class="ok">✓</span> Docker environment ready</div>
-            <div><span class="ok">✓</span> MuchoCore installed</div>
-            <div><span class="ok">✓</span> Database configured</div>
-            <div><span class="ok">✓</span> Health check passed</div>
-            <br>
-            <div><span class="ok">●</span> GDPS node online</div>
-          </div>
-        </aside>
-      </div>
-    </section>
-
-    <section class="section" id="features">
-      <div class="wrap">
-        <div class="head"><div class="kicker">Why MuchoGDPS</div><h2>Hosting without the hosting headache.</h2><p class="intro">You keep control of the machine. MuchoGDPS focuses on deployment, management, and the GDPS layer instead of locking you into our infrastructure.</p></div>
-        <div class="grid3">
-          <article class="card"><div class="icon">⚡</div><h3>One-click deployment</h3><p>Connect a VPS and automate the installation path instead of manually assembling PHP, MariaDB, Docker, and the reverse proxy.</p></article>
-          <article class="card"><div class="icon">🧩</div><h3>Built for different databases</h3><p>MuchoCore is being designed around adapters so migration logic does not assume every GDPS uses the same SQL schema.</p></article>
-          <article class="card"><div class="icon">🛡️</div><h3>You keep the server</h3><p>Your compute stays on your VPS. Credentials and long-lived root access should not be stored by the public website.</p></article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="how">
-      <div class="wrap">
-        <div class="head"><div class="kicker">How it works</div><h2>From empty VPS to working GDPS.</h2></div>
-        <div class="steps">
-          <article class="step"><span class="num">01</span><h3>Connect</h3><p>Provide your VPS connection details or use a one-time deployment token.</p></article>
-          <article class="step"><span class="num">02</span><h3>Deploy</h3><p>The installer prepares Docker and the MuchoCore application stack automatically.</p></article>
-          <article class="step"><span class="num">03</span><h3>Configure</h3><p>Choose your GDPS configuration, compatibility profile, domain, and database migration path.</p></article>
-          <article class="step"><span class="num">04</span><h3>Manage</h3><p>Use the MuchoGDPS control plane for nodes, deployments, backups, migrations, and updates.</p></article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="connect">
-      <div class="wrap">
-        <div class="join">
-          <div>
-            <div class="kicker">Bring your own VPS</div>
-            <h2>Connect the machine you already pay for.</h2>
-            <p>This page is the frontend foundation for the upcoming node system. The first deployment flow will use a short-lived credential or one-time token, then a MuchoCore agent can maintain the connection without keeping your VPS password.</p>
-            <div class="actions"><a class="btn" href="/install/">Get MuchoCore</a><a class="btn alt" href="https://github.com/IZKGMD/GMDmucho-core">View on GitHub</a></div>
-          </div>
-          <div class="preview" aria-label="Node preview">
-            <div class="row"><span>Node</span><strong>your-vps</strong></div>
-            <div class="row"><span>Runtime</span><strong>Docker + MuchoCore</strong></div>
-            <div class="row"><span>Status</span><strong class="badge">● Ready for deployment</strong></div>
-            <div class="row"><span>Control</span><strong>MuchoGDPS</strong></div>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    <div class="wrap foot">
-      <div>© 2026 MuchoGDPS · Powered by MuchoCore</div>
-      <div class="footlinks"><a href="/muchocore/">MuchoCore</a><a href="https://github.com/IZKGMD/GMDmucho-core">GitHub</a></div>
-    </div>
-  </footer>
+    <div class="mc-platform-bottom"><span data-en="Hosted on your infrastructure">На твоей инфраструктуре</span><strong>OPEN SOURCE ↗</strong></div>
+   </div>
+  </div>
+ </section>
+ <div class="mc-wrap mc-proof">
+  <div><b>GD 1.0–2.2</b><span data-en="Version-aware protocols">Поддержка протоколов</span></div><div><b>MuchoClient</b><span data-en="Windows & Android">Windows и Android</span></div><div><b>PHP + MariaDB</b><span data-en="Infrastructure you own">Инфраструктура под контролем</span></div><div><b>MIT</b><span data-en="Open code. Room to build.">Открытый код. Простор для идей.</span></div>
+ </div>
+ <section class="mc-section" id="platform">
+  <div class="mc-wrap">
+   <div class="mc-section-head"><div><div class="mc-eyebrow" data-en="01 / Build an experience">01 / Создавай впечатления</div><h2 data-en="More than a server address.">Больше, чем адрес сервера.</h2></div><p data-en="A connected platform for the people who play, create and run your GDPS.">Связанная платформа для тех, кто играет, создаёт уровни и развивает твой GDPS.</p></div>
+   <div class="mc-features">
+    <article class="mc-feature"><div class="mc-feature-number">01 / IDENTITY<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-3a8 8 0 0 1 16 0v3"/></svg></div><h3 data-en="A profile with character">Профиль с характером</h3><p data-en="Avatars, covers, colored names and prefixes in MuchoClient. Let players make their presence their own.">Аватарки, обложки, цветные ники и префиксы в MuchoClient. Игроки могут сделать свой профиль по-настоящему личным.</p><a class="mc-text-link" href="/dashboard#players" data-en="Discover players →">Найти игроков →</a></article>
+    <article class="mc-feature"><div class="mc-feature-number">02 / COMMUNITY<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 7v6c0 5 9 8 9 8s9-3 9-8V7Z"/><path d="M8 12h8M12 8v8"/></svg></div><h3 data-en="Find your people">Найди свою команду</h3><p data-en="Create a clan, invite members and follow your team's progress. A shared identity inside and outside the game.">Создавай кланы, приглашай участников и следи за прогрессом команды. Общая идентичность в игре и за её пределами.</p><a class="mc-text-link" href="/dashboard/clans.php" data-en="Explore clans →">Открыть кланы →</a></article>
+    <article class="mc-feature"><div class="mc-feature-number">03 / CREATION<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4Z M8 8h8v8H8Z"/></svg></div><h3 data-en="Give creativity a home">Место для творчества</h3><p data-en="Levels, custom music, gauntlets and map packs. Build a world worth returning to, with moderation tools behind it.">Уровни, своя музыка, гаунтлеты и мап-паки. Создавай мир, в который хочется возвращаться, с удобной модерацией за кулисами.</p><a class="mc-text-link" href="/dashboard#music" data-en="Explore the player portal →">В кабинет игроков →</a></article>
+   </div>
+  </div>
+ </section>
+ <section class="mc-section" id="community">
+  <div class="mc-wrap mc-control">
+   <div class="mc-control-copy"><div class="mc-eyebrow" data-en="02 / Real community">02 / Живое сообщество</div><h2><span data-en="Made for players.">Для игроков.</span><br><span data-en="Built for creators.">С заботой об авторах.</span></h2><p data-en="Discover the community running on this MuchoCore instance. These figures and recent levels come directly from the public server API.">Загляни в сообщество этого сервера MuchoCore. Счётчики и последние уровни загружаются напрямую из публичного API.</p><a class="mc-button secondary" href="/dashboard" data-en="Open player portal ↗">Открыть кабинет ↗</a></div>
+   <div class="mc-live-panel" id="communityPanel" aria-busy="true">
+    <div class="mc-live-head"><span data-en="Community / overview">Сообщество / обзор</span><span class="mc-live-state" id="communityState" role="status">Загрузка…</span></div>
+    <div class="mc-live-stats"><div><strong id="statPlayers">—</strong><span data-en="Players">Игроков</span></div><div><strong id="statLevels">—</strong><span data-en="Levels">Уровней</span></div><div><strong id="statComments">—</strong><span data-en="Comments">Комментариев</span></div></div>
+    <div class="mc-live-list" id="communityLevels"><p class="mc-live-empty" data-en="Loading recent levels…">Загружаем последние уровни…</p></div>
+    <div class="mc-live-footer"><a class="mc-text-link" href="/dashboard" data-en="Explore →">Исследовать →</a><button class="mc-retry" type="button" id="communityRefresh" data-en="Refresh ↻">Обновить ↻</button></div>
+   </div>
+  </div>
+ </section>
+ <section class="mc-section">
+  <div class="mc-wrap mc-control">
+   <div class="mc-live-panel"><div class="mc-eyebrow">MUCHO / ADMIN CONTROL</div><h2 data-en="Your control center.">Твой центр управления.</h2><ul class="mc-capabilities"><li><span>01</span><b data-en="Players, roles and moderation">Игроки, роли и модерация</b></li><li><span>02</span><b data-en="Rating Studio & content packs">Rating Studio и наборы уровней</b></li><li><span>03</span><b data-en="Backups, updates and diagnostics">Резервные копии, обновления и диагностика</b></li><li><span>04</span><b data-en="Passkeys, 2FA and access permissions">Passkeys, 2FA и права доступа</b></li></ul><a class="mc-text-link" href="/admin/" data-en="Open Admin Control ↗">Открыть Admin Control ↗</a></div>
+   <div class="mc-control-copy"><div class="mc-eyebrow" data-en="03 / Stay in control">03 / Держи всё под контролем</div><h2><span data-en="Less friction.">Меньше рутины.</span><br><span data-en="More room to grow.">Больше пространства для роста.</span></h2><p data-en="Run the community from one panel. Review content, manage access, check your server and keep recovery tools close at hand.">Управляй сообществом из одной панели. Проверяй контент, настраивай доступ, следи за сервером и держи инструменты восстановления под рукой.</p><a class="mc-button secondary" href="/muchocore/" data-en="Inside MuchoCore →">Как устроен MuchoCore →</a></div>
+  </div>
+ </section>
+ <section class="mc-section" id="start">
+  <div class="mc-wrap"><div class="mc-section-head"><div><div class="mc-eyebrow" data-en="04 / Make it yours">04 / Сделай своим</div><h2 data-en="Choose your starting point.">Твоя точка старта.</h2></div><p data-en="Play on this server, or build a private server of your own. Both journeys start here.">Присоединяйся к этому серверу или создай собственный. Здесь начинаются оба пути.</p></div>
+   <div class="mc-paths">
+    <article class="mc-path"><div class="mc-eyebrow" data-en="For players">Для игроков</div><h3 data-en="Meet the community.">Стань частью сообщества.</h3><p data-en="Find players and clans, discover music and get the clients published by the server owner.">Найди игроков и кланы, открой новую музыку и скачай клиенты, опубликованные владельцем сервера.</p><div class="mc-actions"><a class="mc-button" href="/dashboard" data-en="Player portal →">Кабинет игрока →</a><a class="mc-button secondary" href="/clients/" data-en="Downloads ↧">Скачать клиент ↧</a></div></article>
+    <article class="mc-path"><div class="mc-eyebrow" data-en="For server owners">Для владельцев серверов</div><h3 data-en="Create your own world.">Создай собственный мир.</h3><p data-en="Deploy on a VPS or compatible shared hosting. The guided installer walks you through configuration and setup.">Разверни GDPS на VPS или совместимом хостинге. Мастер установки проведёт через настройку и запуск.</p><a class="mc-button" href="/install/" data-en="Choose installation →">Выбрать установку →</a><div class="mc-terminal"><div class="mc-terminal-top"><span>VPS / CLI</span><button type="button" data-copy-target="installCommand" data-en="Copy">Копировать</button></div><code id="installCommand">curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash</code></div></article>
+   </div>
+  </div>
+ </section>
+ <section class="mc-section">
+  <div class="mc-wrap mc-faq"><div><div class="mc-eyebrow" data-en="Good to know">Полезно знать</div><h2 data-en="A few things before you start.">Перед первым шагом.</h2><p class="mc-note" data-en="More detail in the project documentation.">Подробности — в документации проекта.</p></div><div>
+   <details><summary data-en="Where does my server run?">Где будет работать мой сервер?</summary><p data-en="On your VPS or compatible shared hosting. MuchoCore is self-hosted: the infrastructure and database stay under your control.">На твоём VPS или совместимом хостинге. MuchoCore работает по модели self-hosted: инфраструктура и база данных остаются под твоим контролем.</p></details>
+   <details><summary data-en="Do all players need MuchoClient?">Всем игрокам нужен MuchoClient?</summary><p data-en="MuchoCore handles Geometry Dash server protocols. MuchoClient adds in-game clan tools, profile artwork and colors. Those visual additions are visible to players using the mod.">MuchoCore обрабатывает серверные протоколы Geometry Dash. MuchoClient добавляет инструменты кланов, оформление профилей и цвета внутри игры. Эти визуальные дополнения видят игроки с модом.</p></details>
+   <details><summary data-en="Can I move an existing GDPS?">Можно перенести существующий GDPS?</summary><p data-en="The Migration Center supports a Cvolton-oriented migration workflow with preflight checks and ID mapping. Read the Migration Kit and test against a database copy first.">Центр миграции поддерживает перенос из Cvolton с предварительной проверкой и сопоставлением ID. Изучи Migration Kit и сначала проверь перенос на копии базы.</p></details>
+   <details><summary data-en="Can I extend the platform?">Можно расширять платформу?</summary><p data-en="Yes. MuchoCore is MIT-licensed and includes a PHP Plugin SDK. Custom plugins live outside the tracked core so your own features can survive updates.">Да. MuchoCore распространяется под MIT и включает PHP Plugin SDK. Пользовательские плагины находятся отдельно от отслеживаемого ядра, чтобы твои функции сохранялись при обновлениях.</p></details>
+  </div></div>
+ </section>
+ <div class="mc-wrap mc-cta-banner"><div><h2 data-en="A world worth building.">Мир, который стоит создать.</h2><p data-en="Start small. Shape it your way.">Начни с малого. Развивай по-своему.</p></div><a class="mc-button" href="/install/" data-en="Build with Mucho ↗">Создать с Mucho ↗</a></div>
+</main>
+<footer class="mc-footer"><div class="mc-wrap"><div class="mc-footer-top"><div><a class="mc-brand" href="/">Mucho<span>GDPS</span></a><p data-en="An open platform for Geometry Dash communities. Powered by MuchoCore.">Открытая платформа для сообществ Geometry Dash. Работает на MuchoCore.</p></div><nav class="mc-footer-links" aria-label="Resources"><a href="/muchocore/">MuchoCore</a><a href="/install/" data-en="Installation">Установка</a><a href="/clients/" data-en="Clients">Клиенты</a><a href="/admin/" data-en="Admin Control">Управление</a><a href="https://github.com/IZKGMD/GMDmucho-core">GitHub ↗</a></nav></div><div class="mc-footer-bottom"><span>© MuchoGDPS · IZK · MIT</span><span data-en="Independent project. Not affiliated with RobTop Games.">Независимый проект. Не связан с RobTop Games.</span></div></div></footer>
 </body>
 </html>

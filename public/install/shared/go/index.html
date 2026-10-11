@@ -16,14 +16,19 @@ main{padding:38px 0 60px}.eyebrow{display:inline-flex;gap:8px;align-items:center
 .bottom{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}.hint{color:#667387;font-size:9px;line-height:1.6}.actions{display:flex;gap:8px}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:39px;padding:0 12px;border:1px solid #263449;border-radius:9px;background:#0b111a;color:#c6d1df;text-decoration:none;font-size:9px;font-weight:900;cursor:pointer}.btn.primary{border-color:rgba(89,230,164,.25);background:rgba(89,230,164,.07);color:#aaf2cf}.result{display:none;margin-top:12px;border:1px solid rgba(89,230,164,.2);background:rgba(89,230,164,.045);padding:14px;border-radius:12px}.result h2{margin:0 0 7px;font-size:12px}.result p{margin:0;color:#8895a8;font-size:9px;line-height:1.65}.password{display:none;margin-top:10px;padding:10px 11px;border:1px solid #1f2c3b;border-radius:9px;background:#060a10;font:10px ui-monospace,SFMono-Regular,Menlo,monospace;color:#bff1d9;overflow-wrap:anywhere}
 @media(max-width:680px){.wrap{width:min(100% - 20px,1180px)}.terminal{height:58vh;min-height:380px}.top{height:62px}.back{display:none}}
 </style>
+
+<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<script src="/assets/product-ui.js?v=1" defer></script>
+<script src="/muchocore-theme.js?v=4" defer></script>
 </head>
-<body>
+<body class="mc-workspace">
+<a class="mc-skip" href="#main">Skip to content</a>
 <header class="top"><div class="wrap topin">
 <a class="brand" href="/"><img src="/assets/muchocore-logo.jpg" alt=""><span>MuchoGDPS<small>MuchoCore deployment</small></span></a>
 <a class="back" href="/install/shared/">← Back to shared hosting setup</a>
 </div></header>
 
-<main><div class="wrap">
+<main id="main" tabindex="-1"><div class="wrap">
 <span class="eyebrow"><i class="dot"></i> Live installation console</span>
 <h1>Installing MuchoCore.</h1>
 <p class="lead">This page follows the real deployment job running on MuchoGDPS. If all deployment slots are busy, the job waits here and starts automatically when its queue position reaches the front.</p>

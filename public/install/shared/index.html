@@ -18,11 +18,16 @@ main{padding:54px 0 75px}.eyebrow{display:inline-flex;align-items:center;gap:7px
 .side{display:grid;gap:12px;align-content:start}.info{padding:17px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#0d1320,#090e17)}.info h3{margin:0 0 8px;font-size:11px}.info p{margin:0;color:#8290a4;font-size:9px;line-height:1.65}.flow{display:grid;gap:9px}.flow div{display:flex;gap:9px;align-items:flex-start;padding:10px 11px;border:1px solid #182332;border-radius:10px;background:#080d14}.flow i{width:20px;height:20px;display:grid;place-items:center;border-radius:6px;background:rgba(140,125,255,.1);color:#c6c1ff;font:8px ui-monospace}.flow b{display:block;font-size:9px}.flow span{display:block;color:#68758a;font-size:8px;line-height:1.45}.secure{border-color:rgba(105,226,168,.16)}.secure b{color:#bdeed5}.warning{border-color:rgba(255,129,151,.16)}.warning p{color:#96858d}
 @media(max-width:850px){.layout{grid-template-columns:1fr}.providers{grid-template-columns:1fr 1fr}}@media(max-width:600px){.providers{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.top{height:64px}.back{display:none}.actions{flex-direction:column}.btn{width:100%}}
 </style>
+
+<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<script src="/assets/product-ui.js?v=1" defer></script>
+<script src="/muchocore-theme.js?v=4" defer></script>
 </head>
-<body>
+<body class="mc-workspace">
+<a class="mc-skip" href="#main">Skip to content</a>
 <header class="top"><div class="wrap"><a class="brand" href="/" aria-label="MuchoGDPS home"><img src="/assets/muchocore-logo.jpg" alt=""><span>MuchoGDPS<small>Automatic shared hosting</small></span></a><a class="back" href="/install/">← Installation methods</a></div></header>
 
-<main><div class="wrap">
+<main id="main" tabindex="-1"><div class="wrap">
 <span class="eyebrow"><i class="dot"></i> Automatic Shared Hosting Deployment</span>
 <h1>Deploy MuchoCore without a VPS.</h1>
 <p class="lead">Start by naming your GDPS. MuchoGDPS will use that name for the installed server branding, then deploy MuchoCore to your shared hosting account.</p>
@@ -31,7 +36,7 @@ main{padding:54px 0 75px}.eyebrow{display:inline-flex;align-items:center;gap:7px
 <h2>1. Name your GDPS</h2>
 <p class="section-note">This name becomes the server name shown by MuchoCore throughout the installed GDPS. Use up to 64 characters.</p>
 <div class="grid">
-<div class="field full"><label>GDPS name</label><input id="gdpsName" placeholder="My Awesome GDPS" maxlength="64" autocomplete="off"></div>
+<div class="field full"><label for="gdpsName">GDPS name</label><input id="gdpsName" placeholder="My Awesome GDPS" maxlength="64" autocomplete="off"></div>
 </div>
 </section>
 
@@ -46,9 +51,9 @@ main{padding:54px 0 75px}.eyebrow{display:inline-flex;align-items:center;gap:7px
 <h2>2. Hosting connection</h2>
 <p class="section-note">Create the site/domain and database first. MuchoGDPS will automatically detect the FTP mode, port and website root whenever the provider exposes enough information to do so.</p>
 <div class="grid">
-<div class="field full"><label>FTP hostname</label><input id="ftpHost" placeholder="ftp.example.com" autocomplete="off"></div>
-<div class="field full"><label>FTP username</label><input id="ftpUser" autocomplete="username"></div>
-<div class="field full"><label>FTP password</label><input id="ftpPassword" type="password" autocomplete="off"></div>
+<div class="field full"><label for="ftpHost">FTP hostname</label><input id="ftpHost" placeholder="ftp.example.com" autocomplete="off"></div>
+<div class="field full"><label for="ftpUser">FTP username</label><input id="ftpUser" autocomplete="username"></div>
+<div class="field full"><label for="ftpPassword">FTP password</label><input id="ftpPassword" type="password" autocomplete="off"></div>
 </div>
 
 <div class="preset">
@@ -60,48 +65,48 @@ main{padding:54px 0 75px}.eyebrow{display:inline-flex;align-items:center;gap:7px
 <summary>Advanced connection settings</summary>
 <div class="advanced-body">
   <div class="grid">
-    <div class="field"><label>Security</label><select id="ftpSecurity"><option value="auto">Auto Detect (recommended)</option><option value="ftp">FTP</option><option value="ftps">FTPS / TLS</option></select></div>
-    <div class="field"><label>FTP port</label><input id="ftpPort" value="" placeholder="Auto detect" inputmode="numeric"></div>
-    <div class="field full"><label>Remote web root</label><input id="ftpPath" value="auto" placeholder="auto"><span class="help"><b>Auto detect:</b> MuchoGDPS detects provider-specific roots when known, then probes common web-root locations with a temporary marker and removes the marker immediately.</span></div>
+    <div class="field"><label for="ftpSecurity">Security</label><select id="ftpSecurity"><option value="auto">Auto Detect (recommended)</option><option value="ftp">FTP</option><option value="ftps">FTPS / TLS</option></select></div>
+    <div class="field"><label for="ftpPort">FTP port</label><input id="ftpPort" value="" placeholder="Auto detect" inputmode="numeric"></div>
+    <div class="field full"><label for="ftpPath">Remote web root</label><input id="ftpPath" value="auto" placeholder="auto"><span class="help"><b>Auto detect:</b> MuchoGDPS detects provider-specific roots when known, then probes common web-root locations with a temporary marker and removes the marker immediately.</span></div>
   </div>
 </div>
 </details>
 
 <h2 style="margin-top:24px">Database</h2>
 <div class="grid">
-<div class="field full"><label>Database host</label><input id="dbHost" value="localhost"></div>
-<div class="field"><label>Database name</label><input id="dbName" autocomplete="off"></div>
-<div class="field full"><label>Database username</label><input id="dbUser" autocomplete="username"></div>
-<div class="field full"><label>Database password</label><input id="dbPassword" type="password" autocomplete="off"></div>
+<div class="field full"><label for="dbHost">Database host</label><input id="dbHost" value="localhost"></div>
+<div class="field"><label for="dbName">Database name</label><input id="dbName" autocomplete="off"></div>
+<div class="field full"><label for="dbUser">Database username</label><input id="dbUser" autocomplete="username"></div>
+<div class="field full"><label for="dbPassword">Database password</label><input id="dbPassword" type="password" autocomplete="off"></div>
 </div>
 
 <details class="advanced">
 <summary>Advanced database settings</summary>
 <div class="advanced-body">
   <div class="grid">
-    <div class="field"><label>Database port</label><input id="dbPort" value="3306" inputmode="numeric"></div>
+    <div class="field"><label for="dbPort">Database port</label><input id="dbPort" value="3306" inputmode="numeric"></div>
   </div>
 </div>
 </details>
 
 <h2 style="margin-top:24px">4. GDPS</h2>
 <div class="grid">
-<div class="field full"><label>Public HTTPS address</label><input id="accountUrl" placeholder="https://gdps.example.com" inputmode="url"></div>
+<div class="field full"><label for="accountUrl">Public HTTPS address</label><input id="accountUrl" placeholder="https://gdps.example.com" inputmode="url"></div>
 </div>
 
 <details class="advanced">
 <summary>Admin account settings</summary>
 <div class="advanced-body">
   <div class="grid">
-    <div class="field full"><label>Admin username</label><input id="adminUser" value="admin" maxlength="32" autocomplete="username" placeholder="admin"></div>
-    <div class="field full"><label>Admin password</label><input id="adminPassword" type="password" autocomplete="new-password" placeholder="Blank = securely generate one"></div>
-    <div class="field full"><label>Confirm admin password</label><input id="adminPasswordConfirm" type="password" autocomplete="new-password" placeholder="Re-enter the admin password"></div>
+    <div class="field full"><label for="adminUser">Admin username</label><input id="adminUser" value="admin" maxlength="32" autocomplete="username" placeholder="admin"></div>
+    <div class="field full"><label for="adminPassword">Admin password</label><input id="adminPassword" type="password" autocomplete="new-password" placeholder="Blank = securely generate one"></div>
+    <div class="field full"><label for="adminPasswordConfirm">Confirm admin password</label><input id="adminPasswordConfirm" type="password" autocomplete="new-password" placeholder="Re-enter the admin password"></div>
   </div>
   <div class="help" id="adminPasswordHelp">Choose the username you will use at <code>/admin/</code>. Leave the password blank to securely generate one automatically.</div>
 </div>
 </details>
 
-<div class="check"><input id="confirm" type="checkbox"><span>I confirm that I own or have permission to administer this shared-hosting account and database.</span></div>
+<div class="check"><input id="confirm" type="checkbox" aria-labelledby="confirmLabel"><span id="confirmLabel">I confirm that I own or have permission to administer this shared-hosting account and database.</span></div>
 <div class="actions"><button class="btn" id="start">Start automatic deployment →</button><a class="btn alt" href="/install/">Back</a></div>
 <div class="help" style="margin-top:10px">After the job starts you will be moved to <code>/install/shared/go/</code>, where the live Linux-style installation log is shown.</div>
 </section>

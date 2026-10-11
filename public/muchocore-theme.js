@@ -2,7 +2,8 @@
     const KEY = 'mucho.theme';
 
     function preferredTheme(){
-        const saved = localStorage.getItem(KEY);
+        let saved;
+        try { saved = localStorage.getItem(KEY); } catch { /* Storage is optional. */ }
         if (saved === 'light' || saved === 'dark') return saved;
         return 'dark';
     }
@@ -33,10 +34,19 @@
             button.className = 'mucho-theme-toggle';
             button.addEventListener('click', () => {
                 const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-                localStorage.setItem(KEY, next);
+                try { localStorage.setItem(KEY, next); } catch { /* Private browsing. */ }
                 applyTheme(next);
             });
-            document.body.appendChild(button);
+            let slot = document.querySelector('.mc-theme-slot');
+            if (!slot && document.body.classList.contains('mc-workspace')) {
+                const header = document.querySelector('header .wrap, header.topbar');
+                if (header) {
+                    slot = document.createElement('div');
+                    slot.className = 'mc-theme-slot';
+                    header.appendChild(slot);
+                }
+            }
+            (slot || document.body).appendChild(button);
             applyTheme(document.documentElement.dataset.theme || 'dark');
         }
     }
