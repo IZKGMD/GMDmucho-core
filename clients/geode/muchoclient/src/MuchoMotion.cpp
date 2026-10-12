@@ -2,6 +2,7 @@
 #include "MuchoClanRules.hpp"
 #include <Geode/modify/CCMenuItemSpriteExtra.hpp>
 #include <Geode/binding/PlayLayer.hpp>
+#include <Geode/loader/GameEvent.hpp>
 #include <array>
 #include <vector>
 
@@ -11,6 +12,7 @@ namespace mucho::motion {
 namespace {
     constexpr int TRANSFORM = 0x4D4301, PAINT = 0x4D4302, NUMBER = 0x4D4303, PRESS = 0x4D4304, LOOP = 0x4D4305;
     std::vector<WeakRef<CCNode>> activeNodes;
+    bool stopped = false;
     bool reserve(CCNode* node) {
         if (!node || mode() == rules::Mode::Off) return false;
         std::erase_if(activeNodes,[](auto const& weak) {
@@ -101,12 +103,13 @@ namespace {
     public:
         static Count* create(int64_t from,int64_t to,float width,float scale,std::string prefix,std::string suffix,bool compact) {
             auto n = new Count(); if (!n->initWithDuration(.42f)) { delete n; return nullptr; }
-            n->m_from=from; n->m_to=to; n->m_width=width; n->m_scale=scale;
+            n->m_from=from; n->m_to=to; n->m_last=from; n->m_width=width; n->m_scale=scale;
             n->m_prefix=std::move(prefix); n->m_suffix=std::move(suffix); n->m_compact=compact; n->autorelease(); return n;
         }
     };
 }
     rules::Mode mode() {
+        if(stopped)return rules::Mode::Off;
         return rules::mode(Mod::get()->getSettingValue<bool>("ui-animations"),
             Mod::get()->getSettingValue<bool>("reduced-motion"),PlayLayer::get() != nullptr);
     }
@@ -204,6 +207,12 @@ namespace {
         item->stopActionByTag(PRESS);
         if(mode()!=rules::Mode::Full || !reserve(item)){item->setScale(item->m_baseScale);return;}
         action(item,CCEaseSineOut::create(CCScaleTo::create(down?.07f:.14f,item->m_baseScale*(down?.96f:1.f))),PRESS);
+    }
+    $on_game(Exiting) {
+        stopped=true;
+        for(auto const& weak:activeNodes)if(auto node=weak.lock())
+            for(int tag:{TRANSFORM,PAINT,NUMBER,PRESS,LOOP})node->stopActionByTag(tag);
+        activeNodes.clear();
     }
 }
 class $modify(MuchoMotionButton,CCMenuItemSpriteExtra) {
