@@ -37,8 +37,9 @@ namespace {
             }
             return value;
         }
-        void settle(CCNode* node) const {
-            node->stopActionByTag(TRANSFORM); node->setPosition(position); node->setScaleX(x); node->setScaleY(y);
+        void settle(CCNode* node, bool restoreScale = true) const {
+            node->stopActionByTag(TRANSFORM); node->setPosition(position);
+            if(restoreScale) { node->setScaleX(x); node->setScaleY(y); }
         }
     };
     void fade(CCNode* node, float duration, float delay = 0) {
@@ -120,7 +121,9 @@ namespace {
     }
     void reveal(CCNode* node,unsigned index) {
         if (!node) return;
-        auto rest = Rest::get(node); rest->settle(node);
+        // Labels can have just been fitted to new text. Entry movement must
+        // preserve that current scale instead of restoring an older caption.
+        auto rest = Rest::get(node); rest->settle(node,false);
         if (!reserve(node)) return;
         float delay = rules::delay(index);
         if (mode() == rules::Mode::Full) {
