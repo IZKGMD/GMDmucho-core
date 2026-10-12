@@ -22,6 +22,7 @@ The SDK supports:
 - events: subscribe to lifecycle/request events
 - routes: register plugin HTTP routes
 - database: access the MuchoCore PDO connection
+- client_features: advertise a validated section in MuchoClient
 
 A plugin receives only the permissions declared in its manifest.
 
@@ -60,6 +61,64 @@ Move the plugin root with:
     MUCHO_PLUGIN_DIR=/opt/mucho-plugins
 
 The SDK permission manifest is an API contract, not a process sandbox. Plugins execute as application PHP and should therefore only come from trusted sources.
+
+### Per-plugin settings
+
+Put defaults in the manifest's `config` object. Operators can override top-level
+keys in a `config.json` object beside `plugin.php`; this file lives in the custom
+plugin directory and survives core updates. Overrides are limited to 64 KiB.
+
+```php
+$allSettings = $context->config();
+$title = $context->config('title', 'Default title');
+```
+
+The override merge is shallow. A nested override replaces its entire top-level
+value. No configuration is automatically exposed in client discovery; each
+plugin chooses which public data its routes return. Plugins must validate the
+types and limits of settings they consume.
+
+### Dependencies and load order
+
+Declare required plugins by exact id. Both version boundaries are inclusive;
+omitting a boundary leaves that end unrestricted.
+
+```json
+{
+  "dependencies": {
+    "mucho-economy": { "min_version": "1.0.0", "max_version": "1.9.9" },
+    "mucho-news": {}
+  }
+}
+```
+
+Providers register before consumers regardless of directory names. Missing,
+disabled, incompatible or failed providers prevent dependent PHP from running.
+Duplicate ids, dependency cycles, inverted ranges and malformed declarations
+produce diagnostics rather than an arbitrary load order. A plugin may declare
+at most 64 dependencies. Dependency versions use `MAJOR.MINOR.PATCH`; ranges do
+not use Composer's `^`, `~` or comparison-expression syntax.
+
+### Registration rollback and lifecycle
+
+If `plugin.php` or `register()` throws, routes, event subscriptions and client
+features are restored to their state before that plugin. Healthy independent
+plugins still load. Database writes, files, network calls and other direct PHP
+side effects are **not** rolled back: keep registration declarative and perform
+such work only in an explicit authenticated operation or migration.
+
+`load()` and `boot()` are idempotent for one manager instance. The next normal
+request creates a new manager and reads current manifests/settings again.
+
+Before loading, diagnostics report readiness and dependency problems without
+executing PHP. After loading, the same manager additionally reports `loaded`,
+`failed` and runtime `blocked` states. The read-only admin page creates its own
+diagnostic manager, so its statuses are preflight information, not a persistent
+runtime health monitor. Disabled plugins stay disabled; this does not grant
+permission to run or install arbitrary PHP from the admin page.
+
+See [Mucho News](../examples/plugins/mucho-news/README.md) for a working module
+and [plugin roadmap](PLUGIN_ROADMAP.md) for proposed extensions.
 
 
 ### Request event privacy

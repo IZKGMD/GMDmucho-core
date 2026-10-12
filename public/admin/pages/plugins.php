@@ -25,6 +25,9 @@ function renderCustomPluginsPage(PDO $db): void
         'incompatible' => 0,
         'invalid' => 0,
         'missing-entrypoint' => 0,
+        'blocked' => 0,
+        'duplicate-id' => 0,
+        'dependency-cycle' => 0,
     ];
 
     foreach ($rows as $row) {
@@ -51,6 +54,7 @@ function renderCustomPluginsPage(PDO $db): void
         ['Disabled', $counts['disabled'], ''],
         ['Incompatible', $counts['incompatible'], 'red'],
         ['Invalid', $counts['invalid'] + $counts['missing-entrypoint'], 'red'],
+        ['Blocked', $counts['blocked'] + $counts['duplicate-id'] + $counts['dependency-cycle'], 'red'],
     ];
 
     foreach ($summary as [$label, $value, $tone]) {
@@ -83,7 +87,7 @@ function renderCustomPluginsPage(PDO $db): void
     }
 
     echo '<div class="table"><table>';
-    echo '<tr><th>Plugin</th><th>ID</th><th>Version</th><th>API</th><th>Compatibility</th><th>Permissions</th><th>Status</th></tr>';
+    echo '<tr><th>Plugin</th><th>ID</th><th>Version</th><th>API</th><th>Compatibility</th><th>Dependencies</th><th>Permissions</th><th>Status</th></tr>';
 
     foreach ($rows as $row) {
         $status = (string)($row['status'] ?? 'invalid');
@@ -118,6 +122,18 @@ function renderCustomPluginsPage(PDO $db): void
         echo '<td>' . h((string)($row['version'] ?? '—')) . '</td>';
         echo '<td>v' . h((string)($row['api'] ?? '—')) . '</td>';
         echo '<td>' . h($compatibility) . '</td>';
+        $dependencyLabels = [];
+        foreach ((array)($row['dependencies'] ?? []) as $dependencyId => $range) {
+            $label = $dependencyId;
+            if (($range['min_version'] ?? null) !== null) {
+                $label .= ' ≥ ' . $range['min_version'];
+            }
+            if (($range['max_version'] ?? null) !== null) {
+                $label .= ' ≤ ' . $range['max_version'];
+            }
+            $dependencyLabels[] = $label;
+        }
+        echo '<td>' . h(implode(', ', $dependencyLabels) ?: 'none') . '</td>';
         echo '<td>' . h($permissionText) . '</td>';
         echo '<td><span class="badge ' . h($statusClass) . '">' .
             h(strtoupper(str_replace('-', ' ', $status))) .

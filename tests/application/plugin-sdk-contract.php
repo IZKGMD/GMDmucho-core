@@ -301,3 +301,6 @@ try {
 } finally {
     $cleanup();
 }
+
+// The existing CI entrypoint also exercises dependency ordering and rollback.
+require __DIR__ . '/plugin-runtime-contract.php';

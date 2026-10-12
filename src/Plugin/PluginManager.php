@@ -15,6 +15,9 @@ final class PluginManager
     private PluginEventBus $events;
     private ClientFeatureRegistry $clientFeatures;
     private array $loaded = [];
+    private array $runtime = [];
+    private bool $loadAttempted = false;
+    private bool $bootEmitted = false;
 
     public function __construct(
         private readonly PDO $db,
@@ -45,17 +48,41 @@ final class PluginManager
 
     public function load(): void
     {
-        if (!$this->enabled() || !is_dir($this->rootDirectory)) {
+        if ($this->loadAttempted) {
             return;
         }
+        $this->loadAttempted = true;
 
-        foreach ($this->directories() as $directory) {
-            $this->loadOne($directory);
+        $plan = $this->loadPlan();
+        $metadataByDirectory = [];
+        foreach ($plan['plugins'] as $metadata) {
+            $metadataByDirectory[$metadata['directory']] = $metadata;
+            if (!in_array($metadata['status'], ['ready', 'disabled'], true)) {
+                error_log('[MuchoCore Plugin] failed to load ' .
+                    basename($metadata['directory']) . ': ' . $metadata['reason']);
+            }
+        }
+        foreach ($plan['order'] as $directory) {
+            $metadata = $metadataByDirectory[$directory];
+            foreach ($metadata['dependencies'] ?? [] as $id => $_range) {
+                if (!isset($this->loaded[$id])) {
+                    $this->runtime[$directory] = [
+                        'status' => 'blocked',
+                        'reason' => 'Dependency failed to load: ' . $id . '.',
+                    ];
+                    continue 2;
+                }
+            }
+            $this->loadOne($directory, $metadata);
         }
     }
 
     public function boot(): void
     {
+        if ($this->bootEmitted) {
+            return;
+        }
+        $this->bootEmitted = true;
         $this->events->emit('server.boot', [
             'plugins' => $this->loaded,
         ]);
@@ -93,21 +120,38 @@ final class PluginManager
      */
     public function diagnostics(): array
     {
-        if (!is_dir($this->rootDirectory)) {
-            return [];
+        $rows = $this->loadPlan()['plugins'];
+        foreach ($rows as &$row) {
+            if (isset($this->runtime[$row['directory']])) {
+                $row = array_replace($row, $this->runtime[$row['directory']]);
+            }
+            // Configuration may contain operator secrets; diagnostics are metadata only.
+            unset($row['config']);
         }
+        unset($row);
+        return $rows;
+    }
 
-        $result = [];
-
+    /** @return array{plugins: list<array<string,mixed>>, order: list<string>} */
+    private function loadPlan(): array
+    {
+        $rows = [];
         foreach ($this->directories() as $directory) {
-            $result[] = $this->diagnoseOne($directory);
+            $metadata = $this->diagnoseOne($directory);
+            if (!$this->enabled() && $metadata['status'] === 'ready') {
+                $metadata['status'] = 'disabled';
+                $metadata['reason'] = 'Disabled by MUCHO_PLUGINS_ENABLED.';
+            }
+            $rows[] = $metadata;
         }
-
-        return $result;
+        return (new PluginDependencyResolver())->resolve($rows);
     }
 
     private function directories(): array
     {
+        if (!is_dir($this->rootDirectory)) {
+            return [];
+        }
         $entries = scandir($this->rootDirectory);
         if ($entries === false) {
             return [];
@@ -131,7 +175,7 @@ final class PluginManager
         return $directories;
     }
 
-    private function loadOne(string $directory): void
+    private function loadOne(string $directory, array $metadata): void
     {
         $manifestPath = $directory . '/manifest.json';
         $pluginPath = $directory . '/plugin.php';
@@ -140,9 +184,11 @@ final class PluginManager
             return;
         }
 
-        try {
-            $metadata = $this->readManifest($directory);
+        $routerSnapshot = clone $this->router;
+        $eventsSnapshot = clone $this->events;
+        $featuresSnapshot = clone $this->clientFeatures;
 
+        try {
             if ($metadata['status'] !== 'ready') {
                 if ($metadata['status'] !== 'disabled') {
                     throw new \RuntimeException((string)$metadata['reason']);
@@ -171,7 +217,8 @@ final class PluginManager
                 $this->events,
                 (array)$metadata['permissions'],
                 $name,
-                $this->clientFeatures
+                $this->clientFeatures,
+                (array)($metadata['config'] ?? [])
             );
 
             $plugin->register($context);
@@ -185,6 +232,12 @@ final class PluginManager
                 'api' => (int)$metadata['api'],
                 'min_core_version' => $metadata['min_core_version'],
                 'max_core_version' => $metadata['max_core_version'],
+                'dependencies' => (array)($metadata['dependencies'] ?? []),
+            ];
+
+            $this->runtime[$directory] = [
+                'status' => 'loaded',
+                'reason' => 'Registered successfully for this request.',
             ];
 
             $this->events->emit('plugin.loaded', [
@@ -193,6 +246,13 @@ final class PluginManager
                 'version' => (string)$metadata['version'],
             ]);
         } catch (Throwable $e) {
+            $this->router->restoreRegistrationSnapshot($routerSnapshot);
+            $this->events->restoreRegistrationSnapshot($eventsSnapshot);
+            $this->clientFeatures->restoreRegistrationSnapshot($featuresSnapshot);
+            $this->runtime[$directory] = [
+                'status' => 'failed',
+                'reason' => 'Registration failed: ' . $e::class . ': ' . $e->getMessage(),
+            ];
             error_log(
                 '[MuchoCore Plugin] failed to load ' .
                 basename($directory) . ': ' .
@@ -236,6 +296,8 @@ final class PluginManager
             'enabled' => (bool)$metadata['enabled'],
             'status' => (string)$metadata['status'],
             'reason' => $metadata['reason'],
+            'dependencies' => (array)($metadata['dependencies'] ?? []),
+            'config' => (array)($metadata['config'] ?? []),
         ];
     }
 
@@ -311,6 +373,12 @@ final class PluginManager
             'max_core_version'
         );
 
+        if ($minCore !== null && $maxCore !== null && version_compare($minCore, $maxCore, '>')) {
+            throw new \RuntimeException('Core version range is inverted.');
+        }
+        $dependencies = $this->readDependencies($manifest['dependencies'] ?? []);
+        $configuration = $this->readConfiguration($directory, $manifest['config'] ?? []);
+
         if ($id === '' || !preg_match('/^[A-Za-z0-9._-]+$/', $id)) {
             throw new \RuntimeException('Plugin id contains unsupported characters.');
         }
@@ -333,6 +401,8 @@ final class PluginManager
                 'min_core_version' => $minCore,
                 'max_core_version' => $maxCore,
                 'enabled' => $enabled,
+                'dependencies' => $dependencies,
+                'config' => $configuration,
                 'status' => 'incompatible',
                 'reason' => 'Plugin API ' . $api . ' is newer than this core supports.',
             ];
@@ -351,6 +421,8 @@ final class PluginManager
                 'min_core_version' => $minCore,
                 'max_core_version' => $maxCore,
                 'enabled' => $enabled,
+                'dependencies' => $dependencies,
+                'config' => $configuration,
                 'status' => 'incompatible',
                 'reason' => 'Requires MuchoCore ' . $minCore . ' or newer.',
             ];
@@ -369,6 +441,8 @@ final class PluginManager
                 'min_core_version' => $minCore,
                 'max_core_version' => $maxCore,
                 'enabled' => $enabled,
+                'dependencies' => $dependencies,
+                'config' => $configuration,
                 'status' => 'incompatible',
                 'reason' => 'Supports MuchoCore up to ' . $maxCore . '.',
             ];
@@ -383,6 +457,8 @@ final class PluginManager
             'min_core_version' => $minCore,
             'max_core_version' => $maxCore,
             'enabled' => $enabled,
+            'dependencies' => $dependencies,
+            'config' => $configuration,
             'status' => $enabled ? 'ready' : 'disabled',
             'reason' => $enabled ? 'Ready to load.' : 'Disabled in manifest.json.',
         ];
@@ -390,7 +466,13 @@ final class PluginManager
 
     private function normalizeCoreVersion(mixed $value, string $field): ?string
     {
-        if ($value === null || trim((string)$value) === '') {
+        if ($value === null) {
+            return null;
+        }
+        if (!is_string($value)) {
+            throw new \RuntimeException($field . ' must be a version string.');
+        }
+        if (trim($value) === '') {
             return null;
         }
 
@@ -400,6 +482,58 @@ final class PluginManager
         }
 
         return $version;
+    }
+
+    private function readDependencies(mixed $value): array
+    {
+        if (!is_array($value) || ($value !== [] && array_is_list($value))) {
+            throw new \RuntimeException('dependencies must be an object keyed by plugin id.');
+        }
+        if (count($value) > 64) {
+            throw new \RuntimeException('A plugin may declare at most 64 dependencies.');
+        }
+        $dependencies = [];
+        foreach ($value as $id => $range) {
+            if (!is_string($id) || preg_match('/^[A-Za-z0-9._-]+$/D', $id) !== 1 ||
+                !is_array($range) || ($range !== [] && array_is_list($range))) {
+                throw new \RuntimeException('Invalid plugin dependency declaration.');
+            }
+            if (array_diff(array_keys($range), ['min_version', 'max_version']) !== []) {
+                throw new \RuntimeException('Dependency ranges support min_version and max_version.');
+            }
+            $min = $this->normalizeCoreVersion($range['min_version'] ?? null, 'min_version');
+            $max = $this->normalizeCoreVersion($range['max_version'] ?? null, 'max_version');
+            if ($min !== null && $max !== null && version_compare($min, $max, '>')) {
+                throw new \RuntimeException('Dependency version range is inverted: ' . $id . '.');
+            }
+            $dependencies[$id] = ['min_version' => $min, 'max_version' => $max];
+        }
+        return $dependencies;
+    }
+
+    private function readConfiguration(string $directory, mixed $defaults): array
+    {
+        if (!is_array($defaults) || ($defaults !== [] && array_is_list($defaults))) {
+            throw new \RuntimeException('config must be an object.');
+        }
+        $path = $directory . '/config.json';
+        if (!is_file($path)) {
+            return $defaults;
+        }
+        $size = filesize($path);
+        if ($size === false || $size > 65536) {
+            throw new \RuntimeException('config.json must not exceed 64 KiB.');
+        }
+        $raw = file_get_contents($path);
+        if (!is_string($raw)) {
+            throw new \RuntimeException('config.json could not be read.');
+        }
+        $decoded = json_decode($raw, false, 16, JSON_THROW_ON_ERROR);
+        if (!$decoded instanceof \stdClass) {
+            throw new \RuntimeException('config.json must be an object.');
+        }
+        $overrides = json_decode($raw, true, 16, JSON_THROW_ON_ERROR);
+        return array_replace($defaults, $overrides);
     }
 
     private function enabled(): bool

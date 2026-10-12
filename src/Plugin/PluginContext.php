@@ -19,12 +19,21 @@ final readonly class PluginContext
         private PluginEventBus $events,
         private array $permissions,
         private string $pluginName,
-        private ?ClientFeatureRegistry $clientFeatures = null
+        private ?ClientFeatureRegistry $clientFeatures = null,
+        private array $configuration = []
     ) {}
 
     public function name(): string
     {
         return $this->pluginName;
+    }
+
+    /** Settings from this plugin's manifest, overridden by its config.json. */
+    public function config(?string $key = null, mixed $default = null): mixed
+    {
+        return $key === null
+            ? $this->configuration
+            : ($this->configuration[$key] ?? $default);
     }
 
     public function db(): PDO

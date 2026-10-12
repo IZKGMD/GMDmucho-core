@@ -15,6 +15,11 @@ final class ClientFeatureRegistry
     /** @var array<string,array<string,mixed>> */
     private array $features = [];
 
+    public function restoreRegistrationSnapshot(self $snapshot): void
+    {
+        $this->features = $snapshot->features;
+    }
+
     public function add(
         string $id,
         string $name,
