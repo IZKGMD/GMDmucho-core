@@ -23,7 +23,7 @@ using namespace geode::prelude;
 
 namespace {
     constexpr char const* CLIENT_ID = "izkgmd.muchoclient";
-    constexpr char const* CLIENT_VERSION = "0.9.1";
+    constexpr char const* CLIENT_VERSION = "0.9.2";
     constexpr int PROTOCOL = 1;
 
     struct Feature {
@@ -65,7 +65,7 @@ namespace {
         ) != 3) {
             return false;
         }
-        return std::tuple{0u, 9u, 0u} >= std::tuple{major, minor, patch};
+        return std::tuple{0u, 9u, 2u} >= std::tuple{major, minor, patch};
     }
 
     // Untrusted server text is displayed only, never evaluated as UI markup.
@@ -120,7 +120,7 @@ protected:
         if (!Popup::init(340.f, 310.f)) return false;
         m_origin = std::move(origin);
         m_features = std::move(features);
-        this->setTitle("MuchoClient v0.9.1");
+        this->setTitle("MuchoClient v0.9.2");
 
         auto status = CCLabelBMFont::create(
             "Connected to MuchoCore", "goldFont.fnt"

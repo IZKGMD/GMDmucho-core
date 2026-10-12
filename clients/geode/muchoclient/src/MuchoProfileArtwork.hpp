@@ -6,6 +6,7 @@
 #include "MuchoAppearance.hpp"
 #include "MuchoProfileRules.hpp"
 #include "MuchoCropRules.hpp"
+#include "MuchoProfileAssets.hpp"
 #include <chrono>
 #include <cmath>
 #include <functional>
@@ -19,24 +20,21 @@ namespace mucho::profile {
         return url;
     }
     void clearCache();
-    std::optional<std::vector<uint8_t>> cached(std::string const& key);
-    void cache(std::string key, std::vector<uint8_t> bytes);
 
     class Artwork final : public CCNode {
         LazySprite* m_image = nullptr;
         CCScale9Sprite* m_background = nullptr;
         CCLabelBMFont* m_hint = nullptr;
         CCSize m_box;
-        std::string m_origin;
+        std::string m_origin, m_key;
         unsigned m_generation = 0;
-        bool m_ready = false;
+        bool m_ready = false, m_loading = false;
         int m_x = 500, m_y = 500, m_zoom = 100, m_rotation = 0;
         GLubyte m_dim = 255;
         std::function<void(CCTexture2D*)> m_loaded;
-        async::TaskHolder<web::WebResponse> m_task;
 
         void reset() {
-            ++m_generation; m_task.cancel(); m_ready = false;
+            ++m_generation; m_ready = false; m_loading = false; m_key.clear();
             if (m_image) m_image->removeFromParent();
             m_image = LazySprite::create(m_box, false);
             m_image->setOpacity(m_dim);
@@ -44,6 +42,7 @@ namespace mucho::profile {
             m_hint->setVisible(true);
         }
         void decode(std::vector<uint8_t> bytes, CCImage::EImageFormat format) {
+            m_loading = true;
             auto weak = WeakRef(this); auto generation = m_generation; auto image = m_image;
             // Keep the decoder alive until completion, even when this view closes.
             // Cancelling LazySprite mid-decode in Geode 5.10 can abandon its CCImage.
@@ -52,6 +51,7 @@ namespace mucho::profile {
                 geode::queueInMainThread([image] { image->release(); });
                 auto self = weak.lock();
                 if (!self || generation != self->m_generation) return;
+                self->m_loading = false;
                 if (!result) { self->m_hint->setString("Image unavailable"); return; }
                 self->m_ready = true; self->m_hint->setVisible(false); self->fit();
                 if (self->m_loaded) self->m_loaded(image->getTexture());
@@ -85,7 +85,8 @@ namespace mucho::profile {
     public:
         bool ready() const { return m_ready; }
         void onLoaded(std::function<void(CCTexture2D*)> loaded) { m_loaded=std::move(loaded); }
-        bool loading() const { return m_image && m_image->isLoading(); }
+        bool loading() const { return m_loading; }
+        void suspend() { ++m_generation; m_loading = false; }
         void dim(GLubyte opacity) { m_dim = opacity; if (m_image) m_image->setOpacity(opacity); }
         void crop(int x, int y, int zoom, int rotation) {
             m_x = x; m_y = y; m_zoom = zoom; m_rotation = rotation; fit();
@@ -98,23 +99,24 @@ namespace mucho::profile {
             decode(bytes, png ? CCImage::kFmtPng : CCImage::kFmtJpg);
         }
         void stored(std::string url, int account, std::string kind, std::string version) {
+            std::string key = url + "/" + std::to_string(account) + "/" + kind + "/" + version;
+            if (key == m_key && (m_ready || m_loading)) {
+                if (m_ready && m_loaded) m_loaded(m_image->getTexture());
+                return;
+            }
             empty(); m_origin = std::move(url); m_x = m_y = 500; m_zoom = 100; m_rotation = 0;
             if (!appearance::validOrigin(m_origin) || !validVersion(version) || account <= 0 || (kind != "avatar" && kind != "banner")) return;
-            std::string key = m_origin + "/" + std::to_string(account) + "/" + kind + "/" + version;
-            if (auto bytes = cached(key)) { decode(std::move(*bytes), CCImage::kFmtJpg); return; }
-            auto generation = m_generation;
-            m_task.spawn("MuchoCore profile image", web::WebRequest().timeout(std::chrono::seconds(12)).followRedirects(false)
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .bodyString("accountID=" + std::to_string(account) + "&kind=" + kind + "&version=" + version)
-                .post(m_origin + "/api/profile/image"), [this, key, kind, generation](web::WebResponse response) {
-                    if (generation != m_generation || origin() != m_origin) return;
-                    auto const& bytes = response.data(); auto size = imageSize(bytes);
-                    if (!response.ok() || bytes.size() > MAX_IMAGE_BYTES || !size || size->png ||
-                        size->width != (kind == "avatar" ? 256u : 960u) || size->height != (kind == "avatar" ? 256u : 320u)) {
-                        m_hint->setString("Image unavailable"); return;
-                    }
-                    cache(key, bytes); decode(bytes, CCImage::kFmtJpg);
-                });
+            m_key = std::move(key); m_loading = true;
+            auto weak = WeakRef(this); auto generation = m_generation;
+            if (!storedTexture(m_origin,account,std::move(kind),std::move(version),
+                [weak,generation] { auto self = weak.lock(); return self && generation == self->m_generation && origin() == self->m_origin; },
+                [weak,generation](CCTexture2D* texture) {
+                    auto self = weak.lock(); if (!self || generation != self->m_generation) return;
+                    self->m_loading = false;
+                    if (!texture || !self->m_image->CCSprite::initWithTexture(texture)) { self->m_hint->setString("Image unavailable"); return; }
+                    self->m_ready = true; self->m_hint->setVisible(false); self->fit();
+                    if (self->m_loaded) self->m_loaded(texture);
+                })) { m_loading = false; m_hint->setString("Image queue busy"); }
         }
         static Artwork* create(CCSize size) {
             auto node = new Artwork();

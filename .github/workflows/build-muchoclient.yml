@@ -3,6 +3,7 @@ name: Build MuchoClient Geode (Windows and Android)
 on:
   push:
     branches:
+      - codex/muchoclient-v092-performance
       - feat/muchoclient-geode-bridge
       - feature/muchoclient-v0.4.0-clans
       - feature/muchoclient-v0.5.0-clan-leaderboards
@@ -69,6 +70,8 @@ jobs:
           /tmp/daily-quest-rules
           g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-layout-rules.cpp -o /tmp/layout-rules
           /tmp/layout-rules
+          g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-performance.cpp -o /tmp/client-performance
+          /tmp/client-performance
       - name: Test authenticated clan lifecycle against MariaDB
         env:
           TEST_DB_HOST: 127.0.0.1

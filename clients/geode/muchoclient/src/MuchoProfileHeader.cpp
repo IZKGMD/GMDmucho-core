@@ -17,7 +17,7 @@ namespace { std::vector<WeakRef<Header>> headers; }
         node->load(); node->autorelease(); return node;
     }
     void changed(matjson::Value const& player) {
-        clearCache(); appearance::remember(player);
+        rememberPublicProfile(player); appearance::remember(player);
         std::erase_if(headers,[](auto const& weak) { return !weak.lock(); });
         for (auto const& weak : headers) if (auto header = weak.lock()) header->saved(player);
         menuAvatarChanged(player);

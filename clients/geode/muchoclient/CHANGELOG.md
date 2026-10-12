@@ -1,3 +1,12 @@
+# v0.9.2
+
+- Share public profile requests and decoded avatar/cover textures between menu, profiles and ranking rows.
+- Bound concurrency to two metadata requests and two image jobs; limit decoded texture cache to 8 MiB / 32 entries.
+- Defer decorative responses and GPU uploads while a PlayLayer exists; reject stale, closed or changed-server subscribers.
+- Repaint colored names only when their appearance revision changes; adding a row no longer repaints all previous rows.
+- Refresh Daily Quests countdown once a second, with no per-frame text update.
+- Preserve native fallback icons and cached textures across scene transitions. No server migration; one Windows/Android package.
+
 # v0.9.1
 
 - Fit Daily Quests inside landscape game viewports, with space for its title, close button, three cards and footer.

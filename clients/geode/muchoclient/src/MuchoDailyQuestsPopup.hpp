@@ -19,6 +19,7 @@ using namespace geode::prelude;
 class MuchoDailyQuestsPopup final : public geode::Popup {
     std::string m_origin, m_day, m_notice;
     int m_account = 0, m_remaining = 0;
+    int m_lastSecond = -1;
     int64_t m_xp = 0, m_level = 1;
     bool m_busy = false, m_loaded = false, m_closed = false, m_renderQueued = false;
     unsigned m_generation = 0;
@@ -94,7 +95,7 @@ class MuchoDailyQuestsPopup final : public geode::Popup {
         m_refresh = button(m_busy ? "Loading..." : "Refresh",210.f,L::refreshY,menu_selector(MuchoDailyQuestsPopup::onRefresh));
         m_refresh->setEnabled(!m_busy);
         label(m_notice.empty() ? "Progress follows accepted server profile syncs" : m_notice,210.f,L::noticeY,.23f,392.f);
-        update(0.f);
+        m_lastSecond = -1; refreshTimer(0.f);
     }
     void redraw() {
         if (m_closed || m_renderQueued) return;
@@ -182,11 +183,13 @@ protected:
         m_mainLayer->setID("daily-quests-panel");
         m_origin = std::move(origin); auto* account = GJAccountManager::sharedState(); m_account = account ? account->m_accountID : 0;
         setTitle("Mucho | Daily Quests"); m_body = CCNode::create(); m_mainLayer->addChild(m_body);
-        render(); scheduleUpdate(); request(false); return true;
+        render(); schedule(schedule_selector(MuchoDailyQuestsPopup::refreshTimer),1.f); request(false); return true;
     }
-    void update(float) override {
+    void refreshTimer(float) {
         if (!m_loaded || !m_reset || m_closed) return;
         int left = secondsLeft(); char timer[64];
+        if (left == m_lastSecond) return;
+        m_lastSecond = left;
         std::snprintf(timer,sizeof(timer),"UTC reset in %02d:%02d:%02d",left/3600,(left/60)%60,left%60);
         m_reset->setString(left > 0 ? timer : "New quest day. Press Refresh.");
         if (left == 0) for (auto* button : m_claimButtons) button->setEnabled(false);

@@ -2,6 +2,8 @@
 #include "MuchoProfileHeader.hpp"
 #include "MuchoScoreAvatar.hpp"
 #include "MuchoLayoutRules.hpp"
+#include "MuchoDeferred.hpp"
+#include "MuchoPerformanceRules.hpp"
 #include <Geode/modify/ProfilePage.hpp>
 #include <Geode/modify/GJScoreCell.hpp>
 #include <Geode/modify/CommentCell.hpp>
@@ -19,7 +21,7 @@ using namespace geode::prelude;
 namespace mucho::appearance {
 namespace {
     using Clock = std::chrono::steady_clock;
-    struct Style { std::string name, tag, nickname, prefix; Clock::time_point expires; };
+    struct Style { std::string name, tag, nickname, prefix; Clock::time_point expires; unsigned long long revision; };
     struct Binding {
         WeakRef<CCNode> root;
         WeakRef<CCLabelBMFont> label;
@@ -33,6 +35,7 @@ namespace {
         WeakRef<CCMenuItemSpriteExtra> button;
         CCSize buttonSize;
         CCPoint buttonPosition;
+        unsigned long long paintedRevision = 0;
     };
 
     class Styles {
@@ -45,6 +48,7 @@ namespace {
         async::TaskHolder<web::WebResponse> m_task;
         bool m_busy = false, m_queued = false;
         unsigned m_generation = 0;
+        unsigned long long m_revision = 0;
 
         bool live(Binding const& binding) {
             auto root = binding.root.lock();
@@ -57,13 +61,11 @@ namespace {
             return text == binding.original || text == binding.applied;
         }
 
-        void update() {
-            std::erase_if(m_bindings, [this](auto const& b) { return !live(b); });
-            for (auto& binding : m_bindings) {
+        void apply(Binding& binding) {
                 auto found = m_cache.find(binding.account);
-                if (found == m_cache.end()) continue;
+                if (found == m_cache.end() || !performance::repaintNeeded(binding.paintedRevision,found->second.revision)) return;
                 auto label = binding.label.lock();
-                if (!label) continue;
+                if (!label) return;
                 auto const& style = found->second;
                 label->setFntFile(binding.font.c_str());
                 paint(label.data(), style.name, style.tag, style.nickname, style.prefix, binding.width, binding.scale);
@@ -82,13 +84,17 @@ namespace {
                 }
                 if (style.tag.empty() && style.nickname.empty()) label->setColor(binding.color);
                 binding.applied = label->getString();
-            }
+                binding.paintedRevision = style.revision;
+        }
+        void update() {
+            std::erase_if(m_bindings, [this](auto const& b) { return !live(b); });
+            for (auto& binding : m_bindings) apply(binding);
         }
 
         void queue() {
             if (m_queued || m_busy || m_pending.empty()) return;
             m_queued = true;
-            geode::queueInMainThread([this] { m_queued = false; flush(); });
+            if (!performance::defer([] { return true; },[this] { m_queued = false; flush(); })) m_queued = false;
         }
 
         void flush() {
@@ -108,6 +114,7 @@ namespace {
                 .followRedirects(false).header("Content-Type", "application/x-www-form-urlencoded")
                 .bodyString("accountIDs=" + clans::encoded(ids)).post(m_origin + "/api/appearance/batch"),
                 [this, accounts, generation](web::WebResponse response) {
+                    performance::defer([] { return true; },[this,accounts,generation,response = std::move(response)] {
                     syncOrigin();
                     if (generation != m_generation) return;
                     m_busy = false;
@@ -128,6 +135,7 @@ namespace {
                         }
                     }
                     update(); queue();
+                    });
                 });
         }
 
@@ -140,7 +148,7 @@ namespace {
             for (auto& b : m_bindings) if (live(b)) {
                 if (auto label = b.label.lock()) {
                     label->setFntFile(b.font.c_str()); label->setString(b.original.c_str());
-                    label->setColor(b.color); label->setScale(b.scale); b.applied.clear();
+                    label->setColor(b.color); label->setScale(b.scale); b.applied.clear(); b.paintedRevision = 0;
                     if (b.alignLeft) {
                         label->setAnchorPoint(b.anchor); label->setPosition(b.position);
                         if (auto button = b.button.lock()) {
@@ -167,7 +175,10 @@ namespace {
                 auto oldest = std::min_element(m_cache.begin(), m_cache.end(), [](auto const& a, auto const& b) { return a.second.expires < b.second.expires; });
                 m_cache.erase(oldest);
             }
-            m_cache[static_cast<int>(id64)] = {name, tag, nickname, prefix, now + std::chrono::seconds(60)};
+            auto old = m_cache.find(static_cast<int>(id64));
+            auto revision = old != m_cache.end() && old->second.name == name && old->second.tag == tag &&
+                old->second.nickname == nickname && old->second.prefix == prefix ? old->second.revision : ++m_revision;
+            m_cache[static_cast<int>(id64)] = {name, tag, nickname, prefix, now + std::chrono::seconds(60),revision};
             m_retry.erase(static_cast<int>(id64));
         }
 
@@ -188,7 +199,7 @@ namespace {
             if (cache == m_cache.end() || cache->second.expires <= now) {
                 if (!m_inflight.contains(account) && (!m_retry.contains(account) || m_retry[account] <= now)) m_pending.insert(account);
             }
-            update(); queue();
+            apply(m_bindings.back()); queue();
         }
 
         void reload() {
