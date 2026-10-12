@@ -24,6 +24,10 @@ The SDK supports:
 - database: access the MuchoCore PDO connection
 - client_features: advertise a validated section in MuchoClient
 
+`PluginManager::fromEnvironment()` also discovers bundled modules under
+`plugins/builtin`; custom modules remain under `MUCHO_PLUGIN_DIR` or
+`custom/plugins`. Both roots share ids, dependency ordering and collision checks.
+
 A plugin receives only the permissions declared in its manifest.
 
 ## Events
@@ -119,6 +123,12 @@ permission to run or install arbitrary PHP from the admin page.
 
 See [Mucho News](../examples/plugins/mucho-news/README.md) for a working module
 and [plugin roadmap](PLUGIN_ROADMAP.md) for proposed extensions.
+
+`clientFeature()` accepts an optional fifth `minClientVersion` argument, using
+`MAJOR.MINOR.PATCH`; the default is `0.1.0`. MuchoClient 0.9.0 filters modules that
+require a newer client. New gameplay/UI capabilities still require a client
+update, packaged into the same single `.geode`; metadata cannot execute new PHP
+or native code inside Geometry Dash.
 
 
 ### Request event privacy

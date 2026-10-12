@@ -5,6 +5,7 @@
 #include "MuchoColorsPopup.hpp"
 #include "MuchoProfilePopup.hpp"
 #include "MuchoMenuAvatar.hpp"
+#include "MuchoDailyQuestsPopup.hpp"
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/CreatorLayer.hpp>
 #include <Geode/ui/Popup.hpp>
@@ -22,7 +23,7 @@ using namespace geode::prelude;
 
 namespace {
     constexpr char const* CLIENT_ID = "izkgmd.muchoclient";
-    constexpr char const* CLIENT_VERSION = "0.8.4";
+    constexpr char const* CLIENT_VERSION = "0.9.0";
     constexpr int PROTOCOL = 1;
 
     struct Feature {
@@ -64,7 +65,7 @@ namespace {
         ) != 3) {
             return false;
         }
-        return std::tuple{0u, 8u, 4u} >= std::tuple{major, minor, patch};
+        return std::tuple{0u, 9u, 0u} >= std::tuple{major, minor, patch};
     }
 
     // Untrusted server text is displayed only, never evaluated as UI markup.
@@ -109,36 +110,28 @@ namespace {
 class MuchoFeaturesPopup : public geode::Popup {
     std::string m_origin;
     std::vector<Feature> m_features;
+    CCMenu* m_featureMenu = nullptr;
+    CCLabelBMFont* m_pageLabel = nullptr;
+    size_t m_page = 0;
     async::TaskHolder<web::WebResponse> m_featureTask;
 
 protected:
     bool init(std::string origin, std::vector<Feature> features) {
-        if (!Popup::init(340.f, 270.f)) return false;
+        if (!Popup::init(340.f, 310.f)) return false;
         m_origin = std::move(origin);
         m_features = std::move(features);
-        this->setTitle("MuchoClient v0.8.4");
+        this->setTitle("MuchoClient v0.9.0");
 
         auto status = CCLabelBMFont::create(
             "Connected to MuchoCore", "goldFont.fnt"
         );
         status->setScale(.4f);
-        status->setPosition({170.f, 221.f});
+        status->setPosition({170.f, 261.f});
         m_mainLayer->addChild(status);
 
-        auto menu = CCMenu::create();
-        menu->setPosition({170.f, 121.f});
-        size_t count = std::min(m_features.size(), size_t{5});
-        for (size_t i = 0; i < count; ++i) {
-            auto text = displaySafe(m_features[i].name, 22);
-            auto button = mucho::button(
-                ButtonSprite::create(text.c_str()), this,
-                menu_selector(MuchoFeaturesPopup::onFeature), .67f
-            );
-            button->setTag(static_cast<int>(i));
-            button->setPosition({0.f, 76.f - static_cast<float>(i) * 37.f});
-            menu->addChild(button);
-        }
-        m_mainLayer->addChild(menu);
+        m_featureMenu = CCMenu::create();
+        m_featureMenu->setPosition({170.f, 161.f});
+        m_mainLayer->addChild(m_featureMenu);
 
         if (m_features.empty()) {
             auto label = CCLabelBMFont::create(
@@ -147,14 +140,15 @@ protected:
             label->setScale(.45f);
             label->setPosition({170.f, 120.f});
             m_mainLayer->addChild(label);
-        } else if (m_features.size() > count) {
-            auto label = CCLabelBMFont::create(
-                    "Showing the first 5 modules", "bigFont.fnt"
-            );
-            label->setScale(.35f);
-            label->setPosition({170.f, 9.f});
-            m_mainLayer->addChild(label);
         }
+        m_pageLabel = CCLabelBMFont::create("", "bigFont.fnt");
+        m_pageLabel->setScale(.30f); m_pageLabel->setPosition({170.f,57.f}); m_mainLayer->addChild(m_pageLabel);
+        auto pages = CCMenu::create(); pages->setPosition({170.f,57.f});
+        auto previous = mucho::button(ButtonSprite::create("Prev"),this,menu_selector(MuchoFeaturesPopup::onPrevious),.32f);
+        auto next = mucho::button(ButtonSprite::create("Next"),this,menu_selector(MuchoFeaturesPopup::onNext),.32f);
+        previous->setPositionX(-105.f); next->setPositionX(105.f);
+        pages->addChild(previous); pages->addChild(next); m_mainLayer->addChild(pages);
+        renderFeatures();
         auto colors = mucho::button(ButtonSprite::create("Colors"), this,
             menu_selector(MuchoFeaturesPopup::onColors), .43f);
         auto colorsMenu = CCMenu::create(); colorsMenu->setPosition({170.f, 26.f});
@@ -164,6 +158,22 @@ protected:
         profile->setPositionX(58.f); colorsMenu->addChild(profile);
         return true;
     }
+
+    void renderFeatures() {
+        m_featureMenu->removeAllChildren();
+        size_t start = mucho::quests::pageStart(m_features.size(),m_page);
+        size_t end = std::min(m_features.size(),start+5);
+        for (size_t i = start; i < end; ++i) {
+            auto text = displaySafe(m_features[i].name,22);
+            auto item = mucho::button(ButtonSprite::create(text.c_str()),this,menu_selector(MuchoFeaturesPopup::onFeature),.67f);
+            item->setTag(static_cast<int>(i));
+            item->setPosition({0.f,76.f-static_cast<float>(i-start)*37.f});
+            m_featureMenu->addChild(item);
+        }
+        m_pageLabel->setString((std::to_string(m_page+1)+" / "+std::to_string(mucho::quests::pageCount(m_features.size()))).c_str());
+    }
+    void onPrevious(CCObject*) { if (m_page > 0) { --m_page; renderFeatures(); } }
+    void onNext(CCObject*) { if (m_page+1 < mucho::quests::pageCount(m_features.size())) { ++m_page; renderFeatures(); } }
 
     void onColors(CCObject*) {
         if (auto popup = MuchoColorsPopup::create(m_origin)) popup->show();
@@ -182,6 +192,10 @@ protected:
 
         if (feature.entrypoint == "/api/clans/my") {
             if (auto popup = MuchoClansPopup::create(m_origin)) popup->show();
+            return;
+        }
+        if (feature.id == "daily-quests" && feature.entrypoint == "/extensions/daily-quests") {
+            if (auto popup = MuchoDailyQuestsPopup::create(m_origin)) popup->show();
             return;
         }
 
@@ -336,10 +350,11 @@ class $modify(MuchoMenuLayer, MenuLayer) {
 
                 std::vector<Feature> features;
                 for (auto const& item : data) {
-                    if (features.size() >= 50) break;
+                    if (features.size() >= 64) break;
                     auto id = item["id"].asString().unwrapOr("");
                     auto name = item["name"].asString().unwrapOr("");
                     auto path = item["entrypoint"].asString().unwrapOr("");
+                    if (!compatibleClientVersion(item["min_client_version"].asString().unwrapOr("0.1.0"))) continue;
                     if (id.empty() || id.size() > 64 ||
                         name.empty() || name.size() > 64 ||
                         !(safeFeaturePath(path) || path == "/api/clans/my")) {

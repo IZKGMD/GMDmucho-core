@@ -1,3 +1,24 @@
+# MuchoClient 0.9.0 — one file for all modules
+
+Install **one** `izkgmd.muchoclient.geode`, replacing the previous MuchoClient
+package with the same mod id. It includes Daily Quests, clans and clan quests,
+leaderboards, colors, profiles, avatars and paginated server-plugin navigation.
+The combined package carries native builds for Windows x64 and both Android
+architectures. It does not require Python, separate feature mods or sidecar DLLs.
+
+Daily Quests requires the matching MuchoCore server update and database migration.
+The player earns new stars, moons and demons; the server tracks accepted profile
+sync deltas and exposes three rotating daily goals. The **Claim** button adds
+Quest XP once. Each 250 Quest XP adds a Quest Level. Quest XP is separate from GD
+diamonds, stars, orbs and coins. Progress updates when the game's normal profile
+score sync reaches the server, not through a client-supplied completion flag.
+
+All days reset at 00:00 UTC. The countdown uses the server's remaining time and
+the client's monotonic elapsed time. A timeout can be retried without awarding
+the same reward twice. Account/server changes discard pending personal requests.
+
+See [server setup](../../../docs/DAILY_QUESTS.md) for flags, routes and limits.
+
 # MuchoClient — one Geode mod for server extensions (v0.8.4)
 
 MuchoClient connects Geometry Dash 2.2081 (Windows and Android) to MuchoCore.

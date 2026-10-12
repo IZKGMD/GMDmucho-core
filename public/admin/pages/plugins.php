@@ -42,7 +42,7 @@ function renderCustomPluginsPage(PDO $db): void
     echo '<div>';
     echo '<div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:#8c7dff">CUSTOM PLUGINS</div>';
     echo '<h2 style="margin:7px 0 4px">Persistent extension layer</h2>';
-    echo '<p class="muted" style="margin:0;line-height:1.55">These plugins live outside the tracked core source and are preserved across stable MuchoCore updates.</p>';
+    echo '<p class="muted" style="margin:0;line-height:1.55">Built-in modules ship with MuchoCore. Custom plugins live outside the tracked core source and survive stable updates.</p>';
     echo '</div>';
     echo '<a class="btn gray" href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/CUSTOM_PLUGINS.md" target="_blank" rel="noopener noreferrer">Plugin docs ↗</a>';
     echo '</div>';

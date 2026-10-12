@@ -23,7 +23,8 @@ final class PluginManager
         private readonly PDO $db,
         private readonly Router $router,
         private readonly string $rootDirectory,
-        private readonly string $coreVersion = '0.0.0'
+        private readonly string $coreVersion = '0.0.0',
+        private readonly ?string $builtInDirectory = null
     ) {
         $this->events = new PluginEventBus();
         $this->clientFeatures = new ClientFeatureRegistry();
@@ -43,7 +44,7 @@ final class PluginManager
             ? trim((string)file_get_contents($projectRoot . '/VERSION'))
             : '0.0.0';
 
-        return new self($db, $router, $root, $version);
+        return new self($db, $router, $root, $version, $projectRoot . '/plugins/builtin');
     }
 
     public function load(): void
@@ -149,10 +150,19 @@ final class PluginManager
 
     private function directories(): array
     {
-        if (!is_dir($this->rootDirectory)) {
+        $directories = $this->directoriesIn($this->rootDirectory);
+        if ($this->builtInDirectory !== null) {
+            $directories = array_merge($this->directoriesIn($this->builtInDirectory), $directories);
+        }
+        return array_values(array_unique($directories));
+    }
+
+    private function directoriesIn(string $root): array
+    {
+        if (!is_dir($root)) {
             return [];
         }
-        $entries = scandir($this->rootDirectory);
+        $entries = scandir($root);
         if ($entries === false) {
             return [];
         }
@@ -166,7 +176,7 @@ final class PluginManager
                 continue;
             }
 
-            $directory = $this->rootDirectory . '/' . $entry;
+            $directory = $root . '/' . $entry;
             if (is_dir($directory)) {
                 $directories[] = $directory;
             }

@@ -29,8 +29,8 @@ The JSON must be an object, not a list. Do not store private information here:
 the selected title and message are served publicly.
 
 Check `GET /extensions/news` and the client discovery manifest at
-`GET /api/client/manifest`. The original MuchoClient menu displays at most five
-plugin items, so keep News among the first five until client pagination lands.
+`GET /muchoclient/manifest`. MuchoClient 0.9.0 has paginated module navigation.
+Clients before 0.9.0 display at most five plugin items.
 
 This plugin publishes announcements only. It does not schedule notifications,
 award rewards or send player messages automatically.

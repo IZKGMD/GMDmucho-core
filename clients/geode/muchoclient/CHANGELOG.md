@@ -1,3 +1,12 @@
+# v0.9.0
+
+- Personal Daily Quests with three rotating UTC goals, progress bars, claim buttons and server-held Quest XP.
+- Quest rewards are retried safely; the server commits the claim marker and XP atomically.
+- Paginated extension navigation reaches every advertised module instead of the first five.
+- Per-feature minimum client version support and bounded quest response validation.
+- Clans, clan quests, leaderboards, colors, profiles and avatars remain in the same `izkgmd.muchoclient` package.
+- One combined `.geode` includes Windows x64, Android ARM64 and Android ARMv7 builds.
+
 # v0.8.4
 
 - Show your uploaded avatar inside the circular profile button beneath your username on the main menu.

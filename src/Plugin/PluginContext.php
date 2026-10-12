@@ -80,7 +80,8 @@ final readonly class PluginContext
         string $id,
         string $name,
         string $description,
-        string $entrypoint
+        string $entrypoint,
+        string $minClientVersion = '0.1.0'
     ): void {
         $this->requirePermission('client_features');
 
@@ -88,7 +89,7 @@ final readonly class PluginContext
             throw new RuntimeException('Client feature registry is unavailable.');
         }
 
-        $this->clientFeatures->add($id, $name, $description, $entrypoint);
+        $this->clientFeatures->add($id, $name, $description, $entrypoint, $minClientVersion);
     }
 
     private function requirePermission(string $permission): void
