@@ -1,3 +1,11 @@
+# v0.9.1
+
+- Fit Daily Quests inside landscape game viewports, with space for its title, close button, three cards and footer.
+- Keep clan-prefixed ranking names at their original left edge and fit them before the actual statistic bounds; resize the native clickable name area accordingly.
+- Show uploaded MuchoCore avatars in player rankings, with native-icon fallback during loading and for accounts without an avatar.
+- Cancel closed/recycled row requests and use public account-bound metadata plus the existing versioned, bounded image cache.
+- No additional server migration after 0.9.0; one combined Windows/Android `.geode`.
+
 # v0.9.0
 
 - Personal Daily Quests with three rotating UTC goals, progress bars, claim buttons and server-held Quest XP.

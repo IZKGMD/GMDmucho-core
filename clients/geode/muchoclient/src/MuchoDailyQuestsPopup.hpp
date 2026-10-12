@@ -7,6 +7,7 @@
 #include "MuchoDailyQuestRules.hpp"
 #include "MuchoClanRules.hpp"
 #include "MuchoUi.hpp"
+#include "MuchoLayoutRules.hpp"
 #include <chrono>
 #include <cstdio>
 #include <set>
@@ -65,33 +66,34 @@ class MuchoDailyQuestsPopup final : public geode::Popup {
         return item;
     }
     void render() {
+        using L = mucho::layout::DailyQuests;
         m_reset = nullptr; m_refresh = nullptr; m_claimButtons.clear(); m_body->removeAllChildren();
         label(m_loaded ? "Quest XP: " + std::to_string(m_xp) + "   |   Level " + std::to_string(m_level)
-            : "Quest XP syncs with your account",210.f,303.f,.43f,385.f);
-        m_reset = label(m_loaded ? "" : "Three daily goals | Refresh to connect",210.f,282.f,.31f,390.f);
+            : "Quest XP syncs with your account",210.f,L::xpY,.40f,385.f);
+        m_reset = label(m_loaded ? "" : "Three daily goals | Refresh to connect",210.f,L::resetY,.29f,390.f);
         if (m_loaded) {
             for (size_t i = 0; i < m_quests.size(); ++i) {
                 auto const& quest = m_quests[i];
-                float y = 207.f - static_cast<float>(i)*70.f;
-                auto card = CCLayerColor::create({0,0,0,85},392.f,62.f); card->setPosition({14.f,y}); m_body->addChild(card);
-                label(text(quest,"title"),150.f,y+46.f,.36f,246.f);
+                float y = L::cardBottom(static_cast<unsigned>(i));
+                auto card = CCLayerColor::create({0,0,0,85},L::cardWidth,L::cardHeight); card->setPosition({L::cardLeft,y}); m_body->addChild(card);
+                label(text(quest,"title"),L::textX,y+40.f,.34f,L::textWidth);
                 auto target = amount(quest,"target"), progress = amount(quest,"progress");
                 label(std::to_string(progress) + "/" + std::to_string(target) + "  |  +" +
-                    std::to_string(amount(quest,"reward_xp")) + " XP",150.f,y+26.f,.30f,246.f);
+                    std::to_string(amount(quest,"reward_xp")) + " XP",L::textX,y+23.f,.28f,L::textWidth);
                 auto track = CCLayerColor::create({20,25,40,255},242.f,5.f); track->setPosition({26.f,y+9.f}); m_body->addChild(track);
                 auto fill = CCLayerColor::create({105,225,145,255},242.f*static_cast<float>(mucho::quests::progressRatio(progress,target)),5.f);
                 fill->setPosition({26.f,y+9.f}); m_body->addChild(fill);
                 bool claimed = quest["claimed"].asBool().unwrapOr(false), ready = quest["claimable"].asBool().unwrapOr(false);
-                auto claim = button(claimed ? "Claimed" : ready ? "Claim" : "In progress",346.f,y+29.f,
+                auto claim = button(claimed ? "Claimed" : ready ? "Claim" : "In progress",L::buttonX,y+26.f,
                     menu_selector(MuchoDailyQuestsPopup::onClaim),static_cast<int>(i));
                 claim->setEnabled(!m_busy && ready && secondsLeft() > 0); m_claimButtons.push_back(claim);
             }
         } else {
-            label(m_busy ? "Loading Daily Quests..." : "Daily Quests connects to your GDPS account",210.f,178.f,.38f,385.f);
+            label(m_busy ? "Loading Daily Quests..." : "Daily Quests connects to your GDPS account",210.f,153.f,.38f,385.f);
         }
-        m_refresh = button(m_busy ? "Loading..." : "Refresh",210.f,35.f,menu_selector(MuchoDailyQuestsPopup::onRefresh));
+        m_refresh = button(m_busy ? "Loading..." : "Refresh",210.f,L::refreshY,menu_selector(MuchoDailyQuestsPopup::onRefresh));
         m_refresh->setEnabled(!m_busy);
-        label(m_notice.empty() ? "Progress follows accepted server profile syncs" : m_notice,210.f,13.f,.25f,392.f);
+        label(m_notice.empty() ? "Progress follows accepted server profile syncs" : m_notice,210.f,L::noticeY,.23f,392.f);
         update(0.f);
     }
     void redraw() {
@@ -173,7 +175,11 @@ class MuchoDailyQuestsPopup final : public geode::Popup {
     }
 protected:
     bool init(std::string origin) {
-        if (!Popup::init(420.f,360.f)) return false;
+        using L = mucho::layout::DailyQuests;
+        if (!Popup::init(L::width,L::height)) return false;
+        auto window = CCDirector::get()->getWinSize();
+        m_mainLayer->setScale(mucho::layout::popupScale(window.width,window.height,L::width,L::height));
+        m_mainLayer->setID("daily-quests-panel");
         m_origin = std::move(origin); auto* account = GJAccountManager::sharedState(); m_account = account ? account->m_accountID : 0;
         setTitle("Mucho | Daily Quests"); m_body = CCNode::create(); m_mainLayer->addChild(m_body);
         render(); scheduleUpdate(); request(false); return true;

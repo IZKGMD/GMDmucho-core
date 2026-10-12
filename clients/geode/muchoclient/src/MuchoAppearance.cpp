@@ -1,5 +1,7 @@
 #include "MuchoAppearance.hpp"
 #include "MuchoProfileHeader.hpp"
+#include "MuchoScoreAvatar.hpp"
+#include "MuchoLayoutRules.hpp"
 #include <Geode/modify/ProfilePage.hpp>
 #include <Geode/modify/GJScoreCell.hpp>
 #include <Geode/modify/CommentCell.hpp>
@@ -25,6 +27,12 @@ namespace {
         std::string original, applied, font;
         ccColor3B color;
         float width, scale;
+        bool alignLeft = false;
+        float left = 0;
+        CCPoint position, anchor;
+        WeakRef<CCMenuItemSpriteExtra> button;
+        CCSize buttonSize;
+        CCPoint buttonPosition;
     };
 
     class Styles {
@@ -59,6 +67,19 @@ namespace {
                 auto const& style = found->second;
                 label->setFntFile(binding.font.c_str());
                 paint(label.data(), style.name, style.tag, style.nickname, style.prefix, binding.width, binding.scale);
+                if (binding.alignLeft) {
+                    // A changed label does not resize its native menu item.
+                    // Keep the original left edge, fit before the statistics,
+                    // then resize the clickable area without moving that edge.
+                    label->setAnchorPoint({0.f,binding.anchor.y});
+                    label->setPosition({binding.left,binding.position.y});
+                    if (auto button = binding.button.lock()) {
+                        float width = std::max(1.f,binding.left+label->getScaledContentSize().width);
+                        button->setContentSize({width,binding.buttonSize.height});
+                        button->setPosition({mucho::layout::resizedButtonX(binding.buttonPosition.x,binding.buttonSize.width,
+                            width,button->getAnchorPoint().x,button->getScaleX()),binding.buttonPosition.y});
+                    }
+                }
                 if (style.tag.empty() && style.nickname.empty()) label->setColor(binding.color);
                 binding.applied = label->getString();
             }
@@ -120,6 +141,12 @@ namespace {
                 if (auto label = b.label.lock()) {
                     label->setFntFile(b.font.c_str()); label->setString(b.original.c_str());
                     label->setColor(b.color); label->setScale(b.scale); b.applied.clear();
+                    if (b.alignLeft) {
+                        label->setAnchorPoint(b.anchor); label->setPosition(b.position);
+                        if (auto button = b.button.lock()) {
+                            button->setContentSize(b.buttonSize); button->setPosition(b.buttonPosition);
+                        }
+                    }
                 }
             }
         }
@@ -144,12 +171,18 @@ namespace {
             m_retry.erase(static_cast<int>(id64));
         }
 
-        void add(CCNode* root, CCLabelBMFont* label, int account, float width) {
+        void add(CCNode* root, CCLabelBMFont* label, int account, float width, bool alignLeft) {
             syncOrigin();
             if (!root || !label || account <= 0 || !validOrigin(m_origin)) return;
             std::erase_if(m_bindings, [this, label](auto const& b) { return !live(b) || b.label.lock().data() == label; });
             // Font, scale and width are restored before tinting and on server changes.
-            m_bindings.push_back({root, label, account, label->getString(), "", label->getFntFile(), label->getColor(), width, label->getScale()});
+            Binding binding{root, label, account, label->getString(), "", label->getFntFile(), label->getColor(), width, label->getScale()};
+            binding.alignLeft = alignLeft; binding.position = label->getPosition(); binding.anchor = label->getAnchorPoint();
+            binding.left = binding.position.x - binding.anchor.x * label->getScaledContentSize().width;
+            if (alignLeft) if (auto button = typeinfo_cast<CCMenuItemSpriteExtra*>(label->getParent())) {
+                binding.button = button; binding.buttonSize = button->getContentSize(); binding.buttonPosition = button->getPosition();
+            }
+            m_bindings.push_back(std::move(binding));
             auto now = Clock::now();
             auto cache = m_cache.find(account);
             if (cache == m_cache.end() || cache->second.expires <= now) {
@@ -182,9 +215,45 @@ namespace {
         }
         return nullptr;
     }
+
+    CCRect boundsIn(CCNode* node, CCNode* space) {
+        auto size = node->getContentSize();
+        auto a = space->convertToNodeSpace(node->convertToWorldSpace({0.f,0.f}));
+        auto b = space->convertToNodeSpace(node->convertToWorldSpace({size.width,0.f}));
+        auto c = space->convertToNodeSpace(node->convertToWorldSpace({0.f,size.height}));
+        auto d = space->convertToNodeSpace(node->convertToWorldSpace({size.width,size.height}));
+        float left = std::min({a.x,b.x,c.x,d.x}), right = std::max({a.x,b.x,c.x,d.x});
+        float bottom = std::min({a.y,b.y,c.y,d.y}), top = std::max({a.y,b.y,c.y,d.y});
+        return {left,bottom,right-left,top-bottom};
+    }
+
+    float scoreNameWidth(CCNode* root, CCLabelBMFont* label, float cellWidth) {
+        auto space = label->getParent();
+        auto name = boundsIn(label,space);
+        float right = space->convertToNodeSpace(root->convertToWorldSpace({cellWidth-8.f,0.f})).x;
+        auto reserve = [&](CCNode* node) {
+            if (!node || !node->isVisible()) return;
+            auto rect = boundsIn(node,space);
+            if (rect.getMinX() > name.getMinX() && rect.getMaxY() > name.getMinY() && rect.getMinY() < name.getMaxY())
+                right = std::min(right,rect.getMinX());
+        };
+        for (auto id : {"stars-label","stars-icon","moons-label","moons-icon","demons-label","demons-icon", "user-coins-label","user-coins-icon"})
+            reserve(root->getChildByIDRecursive(id));
+        // Numeric labels are also a fallback when node IDs are unavailable.
+        auto scan = [&](auto&& self, CCNode* node) -> void {
+            if (!node->isVisible()) return;
+            if (auto number = typeinfo_cast<CCLabelBMFont*>(node); number && number != label) {
+                std::string text = number->getString();
+                if (!text.empty() && std::all_of(text.begin(),text.end(),[](unsigned char c) { return (c >= '0' && c <= '9') || c == ',' || c == '.'; })) reserve(number);
+            }
+            for (auto child : CCArrayExt<CCNode*>(node->getChildren())) self(self,child);
+        };
+        scan(scan,root);
+        return mucho::layout::nameWidth(name.getMinX(),right);
+    }
 }
 
-    void bind(CCNode* root, CCLabelBMFont* label, int account, float width) { styles().add(root, label, account, width); }
+    void bind(CCNode* root, CCLabelBMFont* label, int account, float width, bool alignLeft) { styles().add(root, label, account, width, alignLeft); }
     void remember(matjson::Value const& player) { styles().saved(player); }
     void invalidate() { styles().reload(); }
 }
@@ -224,10 +293,15 @@ class $modify(MuchoColorProfile, ProfilePage) {
 
 class $modify(MuchoColorScore, GJScoreCell) {
     void loadFromScore(GJUserScore* score) {
+        if (m_mainLayer) if (auto old = m_mainLayer->getChildByID("mucho-score-avatar")) old->removeFromParent();
         GJScoreCell::loadFromScore(score);
         if (!score) return;
         auto label = mucho::appearance::namedLabel(m_mainLayer, std::string(score->m_userName.c_str()));
-        if (label) mucho::appearance::bind(this, label, score->m_accountID, 180.f);
+        if (label) mucho::appearance::bind(this, label, score->m_accountID,
+            mucho::appearance::scoreNameWidth(m_mainLayer,label,m_width),true);
+        auto icon = m_mainLayer->getChildByID("player-icon");
+        if (!icon) icon = m_mainLayer->getChildByType<SimplePlayer>(0);
+        mucho::profile::bindScoreAvatar(m_mainLayer,icon,score->m_accountID,m_height*.48f);
     }
 };
 
@@ -241,3 +315,4 @@ class $modify(MuchoColorComment, CommentCell) {
         if (label) mucho::appearance::bind(this, label, account, m_compactMode ? 115.f : 170.f);
     }
 };
+

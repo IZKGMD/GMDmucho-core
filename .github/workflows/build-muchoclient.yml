@@ -67,6 +67,8 @@ jobs:
           /tmp/clan-rules
           g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-daily-quest-rules.cpp -o /tmp/daily-quest-rules
           /tmp/daily-quest-rules
+          g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-layout-rules.cpp -o /tmp/layout-rules
+          /tmp/layout-rules
       - name: Test authenticated clan lifecycle against MariaDB
         env:
           TEST_DB_HOST: 127.0.0.1

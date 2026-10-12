@@ -1,4 +1,13 @@
-# MuchoClient 0.9.0 — one file for all modules
+# MuchoClient 0.9.1 — one file for all modules
+
+Daily Quests uses a compact 420x300 panel and scales to the available screen,
+including room for its close button. Quest rows, claim controls and footer have
+separate reserved areas. Player rankings fit clan prefixes and nicknames before
+the first statistic, keeping their original left edge and matching hit area.
+Uploaded MuchoCore avatars replace native ranking icons after decoding; missing
+or unavailable images retain the normal GD icon. Public metadata is cached for
+60 seconds (at most 128 accounts), and image bytes use the existing bounded cache.
+This interface update requires no additional server migration after 0.9.0.
 
 Install **one** `izkgmd.muchoclient.geode`, replacing the previous MuchoClient
 package with the same mod id. It includes Daily Quests, clans and clan quests,
@@ -41,7 +50,7 @@ client does not download or execute plugin code.
   edit the `MuchoCore Server URL` Geode setting (HTTPS origin, without
   `/database`).
 - The client GETs `/muchoclient/manifest`, validates the feature catalog, and
-  POSTs `/muchoclient/negotiate` with `client_version=0.8.4&protocol=1`.
+  POSTs `/muchoclient/negotiate` with `client_version=0.9.1&protocol=1`.
 - Compatible clients display a popup of feature buttons. Public extension
   endpoints under `/extensions/` return constrained JSON text.
 

@@ -25,7 +25,8 @@ namespace mucho::appearance {
     }
 
     // Public colors are loaded in bounded batches, never with a player's credentials.
-    void bind(cocos2d::CCNode* root, cocos2d::CCLabelBMFont* label, int account, float width);
+    void bind(cocos2d::CCNode* root, cocos2d::CCLabelBMFont* label, int account, float width, bool alignLeft = false);
     void remember(matjson::Value const& player);
     void invalidate();
 }
+
