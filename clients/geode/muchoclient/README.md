@@ -1,4 +1,20 @@
-# MuchoClient 0.9.2 — one file for all modules
+# MuchoClient 0.9.3 — one file for all modules
+
+Smooth UI Animations is enabled by default in Geode settings. Mucho windows
+open/close with short scale transitions; module buttons, ranking rows, clan
+activity and color choices appear with a bounded stagger. Profile art fades
+in after loading. Clan and Daily Quest progress bars interpolate inside their
+tracks. Profile numbers and Quest XP count up with at most 13 glyph updates per
+transition, independent of display FPS. A newly confirmed Daily Quest claim
+shows a short XP/star effect; retries do not replay that reward animation.
+
+Disable Smooth UI Animations to use immediate transitions, or enable Reduced
+Motion for gentle fades and progress updates without zoom, movement, animated
+counters or reward particles. Extra effects are suppressed when a PlayLayer
+exists. There is no animation-specific network polling or permanent update
+loop: Cocos actions stop with their views, loading effects stop with requests,
+and the existing 0.9.2 shared asset queue, caches and one-second quest timer
+remain in place. Actual device frame times have not been measured.
 
 Daily Quests uses a compact 420x300 panel and scales to the available screen,
 including room for its close button. Quest rows, claim controls and footer have
@@ -50,7 +66,7 @@ client does not download or execute plugin code.
   edit the `MuchoCore Server URL` Geode setting (HTTPS origin, without
   `/database`).
 - The client GETs `/muchoclient/manifest`, validates the feature catalog, and
-  POSTs `/muchoclient/negotiate` with `client_version=0.9.2&protocol=1`.
+  POSTs `/muchoclient/negotiate` with `client_version=0.9.3&protocol=1`.
 - Compatible clients display a popup of feature buttons. Public extension
   endpoints under `/extensions/` return constrained JSON text.
 
@@ -203,3 +219,4 @@ New POST endpoints:
 `kind` is `avatar` or `banner`. Server/CI validation is in `tests/application/profile-images.php`, `tests/application/clan-client-integration.php` and `tests/client/muchoclient-clan-rules.cpp`. Daily Quest countdown text updates once a second; cached name colors repaint only when their appearance revision changes. Decorative processing is deferred while a PlayLayer exists, including while paused.
 
 Native UI layout/file picker behavior still needs verification in the actual game on a device.
+

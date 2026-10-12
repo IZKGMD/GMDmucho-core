@@ -7,6 +7,7 @@
 #include "MuchoProfileRules.hpp"
 #include "MuchoCropRules.hpp"
 #include "MuchoProfileAssets.hpp"
+#include "MuchoMotion.hpp"
 #include <chrono>
 #include <cmath>
 #include <functional>
@@ -54,6 +55,7 @@ namespace mucho::profile {
                 self->m_loading = false;
                 if (!result) { self->m_hint->setString("Image unavailable"); return; }
                 self->m_ready = true; self->m_hint->setVisible(false); self->fit();
+                mucho::motion::appear(self->m_image);
                 if (self->m_loaded) self->m_loaded(image->getTexture());
             });
             image->loadFromData(std::move(bytes),format);
@@ -115,6 +117,7 @@ namespace mucho::profile {
                     self->m_loading = false;
                     if (!texture || !self->m_image->CCSprite::initWithTexture(texture)) { self->m_hint->setString("Image unavailable"); return; }
                     self->m_ready = true; self->m_hint->setVisible(false); self->fit();
+                    mucho::motion::appear(self->m_image);
                     if (self->m_loaded) self->m_loaded(texture);
                 })) { m_loading = false; m_hint->setString("Image queue busy"); }
         }
@@ -132,3 +135,4 @@ namespace mucho::profile {
         }
     };
 }
+

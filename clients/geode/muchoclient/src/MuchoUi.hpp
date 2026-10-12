@@ -1,5 +1,6 @@
 #pragma once
 #include <Geode/Geode.hpp>
+#include "MuchoMotion.hpp"
 
 namespace mucho {
     inline CCMenuItemSpriteExtra* button(cocos2d::CCNode* sprite, cocos2d::CCObject* target,
@@ -8,6 +9,8 @@ namespace mucho {
         item->setScale(scale);
         // GD's selected/unselected animations restore m_baseScale, not getScale().
         item->m_baseScale = scale;
+        motion::markButton(item);
         return item;
     }
 }
+

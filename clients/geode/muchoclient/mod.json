@@ -6,7 +6,7 @@
   },
   "id": "izkgmd.muchoclient",
   "name": "MuchoClient",
-  "version": "v0.9.2",
+  "version": "v0.9.3",
   "developer": "IZKGMD",
   "description": "One MuchoCore client for Daily Quests, clans, profiles, colors and server plugins",
   "tags": [
@@ -15,6 +15,18 @@
     "interface"
   ],
   "settings": {
+    "ui-animations": {
+      "type": "bool",
+      "name": "Smooth UI Animations",
+      "description": "Animate Mucho windows, buttons, lists, progress and rewards. Extra effects are suspended during gameplay.",
+      "default": true
+    },
+    "reduced-motion": {
+      "type": "bool",
+      "name": "Reduced Motion",
+      "description": "Keep gentle fades and progress transitions; disable window zoom, movement, animated counters and reward particles.",
+      "default": false
+    },
     "server-url": {
       "type": "string",
       "name": "MuchoCore Server URL",
@@ -23,3 +35,4 @@
     }
   }
 }
+

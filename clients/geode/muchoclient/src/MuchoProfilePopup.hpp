@@ -228,7 +228,9 @@ class MuchoImageEditor final : public Popup {
     void closeEditor() {
         if (m_closed) return;
         m_closed=true; ++m_generation; setMouseEnabled(false);
-        m_picker.cancel(); m_reader.cancel(); m_encoder.cancel(); m_request.cancel(); Popup::onClose(nullptr);
+        m_picker.cancel(); m_reader.cancel(); m_encoder.cancel(); m_request.cancel();
+        auto weak=WeakRef(this);
+        if(!mucho::motion::dismiss(this,m_mainLayer,[weak] { if(auto self=weak.lock())self->Popup::onClose(nullptr); }))Popup::onClose(nullptr);
     }
 protected:
     bool init(std::string url, int account, std::string kind, std::string savedVersion) {
@@ -285,7 +287,7 @@ protected:
         button(menu,"Remove",365.f,25.f,menu_selector(MuchoImageEditor::onRemove),.43f);
         m_status = CCLabelBMFont::create("", "bigFont.fnt"); m_status->setPosition({225.f,9.f}); m_mainLayer->addChild(m_status);
         setMouseEnabled(true);
-        enabled(); m_preview->stored(m_origin,m_account,m_kind,std::move(savedVersion)); status("Choose your own image, adjust the crop, then Save"); return true;
+        enabled(); m_preview->stored(m_origin,m_account,m_kind,std::move(savedVersion)); status("Choose your own image, adjust the crop, then Save"); mucho::motion::panel(m_mainLayer); return true;
     }
     void onClose(CCObject*) override {
         if (m_closed || m_modal) return;
@@ -346,12 +348,13 @@ class MuchoProfilePopup final : public Popup {
     void status(std::string value) {
         for (auto& c : value) if (static_cast<unsigned char>(c) < 32 || c == '<' || c == '>') c = ' ';
         if (value.size() > 160) value.resize(160);
-        m_status->setString(value.c_str()); m_status->limitLabelWidth(380.f,.25f,0.f);
+        m_status->setString(value.c_str()); m_status->limitLabelWidth(350.f,.25f,0.f);
+        mucho::motion::feedback(m_status); mucho::motion::loading(m_mainLayer,m_busy,{395.f,8.f});
     }
     bool own() { auto manager = GJAccountManager::sharedState(); return manager && manager->m_accountID == m_account; }
     void apply(matjson::Value const& player) {
         ++m_generation; m_request.cancel(); m_busy = false;
-        m_player = player; m_loaded = true;
+        auto previous=m_player; m_player = player; m_loaded = true;
         mucho::appearance::paint(m_name,mucho::profile::text(player,"username"),
             mucho::clans::normalizedTag(mucho::profile::text(player,"clan_tag")),mucho::profile::text(player,"nickname_color"),
             mucho::profile::text(player,"prefix_color"),288.f,.5f);
@@ -360,8 +363,8 @@ class MuchoProfilePopup final : public Popup {
         char const* fields[] = {"stars","moons","demons","diamonds","user_coins","creator_points"};
         for (size_t i = 0; i < m_stats.size(); ++i) {
             auto number = player["stats"][fields[i]].asInt().unwrapOr(0);
-            m_stats[i]->setString(mucho::clans::formattedCounter(static_cast<uint64_t>(std::max(int64_t{0},number))).c_str());
-            m_stats[i]->limitLabelWidth(54.f,.4f,0.f);
+            auto from=previous["stats"][fields[i]].asInt().unwrapOr(0);
+            mucho::motion::number(m_stats[i],from,number,54.f,.4f,"","",true);
         }
         for (auto b : m_edits) { b->setVisible(own()); b->setEnabled(own()); }
         m_caption->setString(own() ? "Your profile" : "Player profile");
@@ -433,9 +436,13 @@ protected:
             b->setTag(i); b->setPosition({22.f+(i+.5f)*(376.f/3),25.f}); b->setVisible(false); menu->addChild(b); m_edits.push_back(b);
         }
         m_status = CCLabelBMFont::create("","bigFont.fnt"); m_status->setPosition({210,9}); m_mainLayer->addChild(m_status);
-        load(); return true;
+        load(); mucho::motion::panel(m_mainLayer); return true;
     }
-    void onClose(CCObject* sender) override { m_closed = true; ++m_generation; m_request.cancel(); Popup::onClose(sender); }
+    void onClose(CCObject* sender) override {
+        if(m_closed)return; m_closed = true; ++m_generation; m_request.cancel();
+        auto weak=WeakRef(this);
+        if(!mucho::motion::dismiss(this,m_mainLayer,[weak] { if(auto self=weak.lock())self->Popup::onClose(nullptr); }))Popup::onClose(sender);
+    }
 public:
     static MuchoProfilePopup* create(std::string url,int account) {
         if (!mucho::appearance::validOrigin(url) || account <= 0) return nullptr;
@@ -444,3 +451,4 @@ public:
         delete popup; return nullptr;
     }
 };
+

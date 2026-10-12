@@ -105,6 +105,7 @@ class MuchoClanLeaderboardPopup final : public geode::Popup {
             item->setPosition({210.f, 170.f - i * 29.f});
             auto menu = CCMenu::create(); menu->setPosition({0.f, 0.f}); menu->addChild(item);
             m_body->addChild(menu); m_buttons.push_back(item);
+            mucho::motion::reveal(item,static_cast<unsigned>(i));
         }
         if (m_loaded && m_error.empty() && !m_busy) {
             if (m_own.isObject())
@@ -117,6 +118,7 @@ class MuchoClanLeaderboardPopup final : public geode::Popup {
         label(m_body, std::to_string(m_page + 1) + "/" + std::to_string(pages), 333.f, 21.f, .27f, 60.f);
         if (m_page > 0) addButton("<", 287.f, 21.f, menu_selector(MuchoClanLeaderboardPopup::onPrev), 0, 27.f, .4f);
         if (m_hasMore) addButton(">", 379.f, 21.f, menu_selector(MuchoClanLeaderboardPopup::onNext), 0, 27.f, .4f);
+        mucho::motion::loading(m_body,m_busy,{250.f,19.f});
     }
     void request(int metric, int page) {
         if (m_busy || m_closed || metric < 0 || metric >= static_cast<int>(METRICS.size()) || page < 0 || page > 20000) return;
@@ -179,10 +181,12 @@ protected:
         if (!Popup::init(420.f, 306.f)) return false;
         m_origin = std::move(origin); setTitle("Clan Leaderboards v0.8.4");
         m_body = CCNode::create(); m_mainLayer->addChild(m_body);
-        render(); request(0, 0); return true;
+        render(); request(0, 0); mucho::motion::panel(m_mainLayer); return true;
     }
     void onClose(CCObject* sender) override {
-        m_closed = true; ++m_generation; m_task.cancel(); Popup::onClose(sender);
+        if(m_closed)return; m_closed = true; ++m_generation; m_task.cancel();
+        auto weak=WeakRef(this);
+        if(!mucho::motion::dismiss(this,m_mainLayer,[weak] { if(auto self=weak.lock())self->Popup::onClose(nullptr); }))Popup::onClose(sender);
     }
     void onExit() override {
         m_closed = true; ++m_generation; m_task.cancel(); Popup::onExit();
@@ -194,3 +198,4 @@ public:
         delete popup; return nullptr;
     }
 };
+

@@ -46,6 +46,8 @@ class MuchoColorsPopup final : public Popup {
         for (auto& c : text) if (static_cast<unsigned char>(c) < 32 || c == '<' || c == '>') c = ' ';
         if (text.size() > 180) text.resize(180);
         m_status->setString(text.c_str()); m_status->limitLabelWidth(320.f, .27f, 0.f);
+        mucho::motion::feedback(m_status);
+        mucho::motion::loading(m_mainLayer,m_busy,{342.f,12.f});
     }
     void preview() {
         mucho::appearance::paint(m_preview, m_name.empty() ? "YourName" : m_name, m_tag,
@@ -58,6 +60,7 @@ class MuchoColorsPopup final : public Popup {
         m_hex->setString(m_editPrefix ? m_prefix : m_nickname, false);
         status(m_editPrefix ? "This color applies to every clan member" : "Empty HEX restores the normal nickname color");
         preview();
+        mucho::motion::feedback(m_preview);
     }
     void onNickname(CCObject*) { select(false); }
     void onPrefix(CCObject*) { select(true); }
@@ -68,6 +71,7 @@ class MuchoColorsPopup final : public Popup {
         auto hex = std::string(PALETTE[static_cast<size_t>(index)]);
         (m_editPrefix ? m_prefix : m_nickname) = hex;
         m_hex->setString(hex, false); preview(); status("Preview only - press Save to apply");
+        mucho::motion::feedback(m_preview);
     }
     void onDefault(CCObject*) {
         if (!m_loaded || m_busy) return;
@@ -157,6 +161,7 @@ protected:
             auto item = mucho::button(sprite, this, menu_selector(MuchoColorsPopup::onPalette));
             item->setTag(static_cast<int>(i)); item->setPosition({60.f + (i % 6) * 48.f, 147.f - (i / 6) * 33.f});
             item->m_scaleMultiplier = 1.08f; m_controls->addChild(item); m_buttons.push_back(item);
+            mucho::motion::reveal(item,static_cast<unsigned>(i%6));
         }
         m_hex = TextInput::create(176.f, "HEX: 66CCFF", "bigFont.fnt");
         m_hex->setMaxCharCount(7); m_hex->setFilter("0123456789abcdefABCDEF#");
@@ -170,10 +175,12 @@ protected:
         auto retry = button("Retry", 100.f, 39.f, menu_selector(MuchoColorsPopup::onRetry));
         // Retry stays available before a successful load.
         m_buttons.erase(std::remove(m_buttons.begin(), m_buttons.end(), retry), m_buttons.end());
-        m_status = label("", 14.f, .27f); enabled(); request(false); return true;
+        m_status = label("", 14.f, .27f); enabled(); request(false); mucho::motion::panel(m_mainLayer); return true;
     }
     void onClose(CCObject* sender) override {
-        m_closed = true; ++m_generation; m_task.cancel(); Popup::onClose(sender);
+        if(m_closed)return; m_closed = true; ++m_generation; m_task.cancel();
+        auto weak=WeakRef(this);
+        if(!mucho::motion::dismiss(this,m_mainLayer,[weak] { if(auto self=weak.lock())self->Popup::onClose(nullptr); }))Popup::onClose(sender);
     }
 public:
     static MuchoColorsPopup* create(std::string origin, std::function<void(matjson::Value const&)> onSaved = {}) {
@@ -184,3 +191,4 @@ public:
         delete popup; return nullptr;
     }
 };
+
