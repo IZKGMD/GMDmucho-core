@@ -83,8 +83,10 @@ class MuchoClansPopup final : public geode::Popup {
         bg->setPosition({x, y}); m_body->addChild(bg);
         auto target = score(quest, "target");
         float ratio = target > 0 ? std::clamp(static_cast<double>(score(quest, "progress")) / target, 0., 1.) : 0.f;
-        auto fill = CCLayerColor::create({100, 229, 114, 255}, width * ratio, 5.f);
+        auto fill = CCLayerColor::create({100, 229, 114, 255}, width, 5.f);
+        fill->ignoreAnchorPointForPosition(false); fill->setAnchorPoint({0.f,0.f});
         fill->setPosition({x, y}); m_body->addChild(fill);
+        mucho::motion::progress(fill,0.f,ratio);
     }
     std::string role() const { return str(m_my, "role"); }
     bool manager() const { return mucho::clans::canManage(role()); }
@@ -143,7 +145,8 @@ class MuchoClansPopup final : public geode::Popup {
     void busy(bool value, std::string const& status = "") {
         m_busy = value;
         for (auto item : m_buttons) item->setEnabled(!value);
-        if (m_status) m_status->setString(clean(status, 80).c_str());
+        if (m_status) { m_status->setString(clean(status, 80).c_str()); mucho::motion::feedback(m_status); }
+        mucho::motion::loading(m_body,value,{391.f,15.f});
     }
     void redraw() {
         if (m_renderQueued || m_closed) return;
@@ -175,6 +178,8 @@ class MuchoClansPopup final : public geode::Popup {
         button("Invites", 350.f, 248.f, menu_selector(MuchoClansPopup::onInvites), 0, .51f);
         m_status = CCLabelBMFont::create(clean(m_busy ? "Loading..." : m_notice, 80).c_str(), "bigFont.fnt");
         m_status->setScale(.27f); m_status->setPosition({210.f, 17.f}); m_body->addChild(m_status);
+        m_status->limitLabelWidth(350.f,.27f,0.f);
+        mucho::motion::loading(m_body,m_busy,{391.f,15.f});
         switch (m_view) {
             case View::My:
                 if (!m_loaded) {
@@ -378,8 +383,10 @@ class MuchoClansPopup final : public geode::Popup {
                         label(std::to_string(score(item, "contribution")) + " " + str(m_quest, "metric"), 326.f, y, .31f, 140.f);
                         if (!item["is_member"].asBool().unwrapOr(true)) label("Former member", 132.f, y - 12.f, .2f, 211.f);
                     } else {
-                        label(str(item, "message"), 210.f, y, .30f);
-                        label(str(item, "created_at") + " UTC", 210.f, y - 17.f, .23f);
+                        auto event = label(str(item, "message"), 210.f, y, .30f);
+                        auto when = label(str(item, "created_at") + " UTC", 210.f, y - 17.f, .23f);
+                        mucho::motion::reveal(event,static_cast<unsigned>(i));
+                        mucho::motion::reveal(when,static_cast<unsigned>(i));
                     }
                 }
                 label("Page " + std::to_string(m_extraPage + 1), 210.f, 49.f, .3f);
@@ -402,6 +409,7 @@ class MuchoClansPopup final : public geode::Popup {
                 button("Cancel", 310.f, 75.f, menu_selector(MuchoClansPopup::onCancel));
                 break;
         }
+        mucho::motion::reveal(m_body);
     }
 
     std::string confirmTitle() const {
@@ -696,10 +704,12 @@ protected:
         if (!Popup::init(420.f, 306.f)) return false;
         m_origin = std::move(origin); m_openClan = clanId; setTitle("Mucho | Clans v0.8.4");
         m_body = CCNode::create(); m_mainLayer->addChild(m_body);
-        render(); request(Action::My, "/api/clans/my"); return true;
+        render(); request(Action::My, "/api/clans/my"); mucho::motion::panel(m_mainLayer); return true;
     }
     void onClose(CCObject* sender) override {
-        m_closed = true; ++m_generation; m_task.cancel(); Popup::onClose(sender);
+        if(m_closed)return; m_closed = true; ++m_generation; m_task.cancel();
+        auto weak=WeakRef(this);
+        if(!mucho::motion::dismiss(this,m_mainLayer,[weak] { if(auto self=weak.lock())self->Popup::onClose(nullptr); }))Popup::onClose(sender);
     }
     void onExit() override {
         m_closed = true; ++m_generation; m_task.cancel(); Popup::onExit();
@@ -711,3 +721,4 @@ public:
         delete popup; return nullptr;
     }
 };
+

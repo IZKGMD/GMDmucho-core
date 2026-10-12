@@ -1,3 +1,12 @@
+# v0.9.3
+
+- Add viewport-fitted opening/closing transitions to Mucho windows; preserve unsaved-image confirmation and cancel requests before closing.
+- Add soft press/release feedback for Mucho buttons, staggered module/ranking/palette rows, and animated clan activity entries.
+- Fade profile artwork after loading and animate profile counters with a fixed glyph-update budget.
+- Interpolate clan/Daily Quest progress, animate Quest XP, and show a bounded star effect only for newly confirmed rewards.
+- Show request-bound loading dots; add Smooth UI Animations and Reduced Motion settings.
+- Suppress extra animation during gameplay and preserve the 0.9.2 performance work. No server migration; one Windows/Android package.
+
 # v0.9.2
 
 - Share public profile requests and decoded avatar/cover textures between menu, profiles and ranking rows.
@@ -103,3 +112,4 @@ Update MuchoCore as well for the appearance API and its automatic database migra
 - Visible client version and native clan routing by the core API entrypoint.
 
 Update MuchoCore as well for sent invitations and paginated search.
+

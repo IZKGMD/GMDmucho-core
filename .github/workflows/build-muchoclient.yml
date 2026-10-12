@@ -70,6 +70,8 @@ jobs:
           /tmp/daily-quest-rules
           g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-layout-rules.cpp -o /tmp/layout-rules
           /tmp/layout-rules
+          g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-motion-rules.cpp -o /tmp/motion-rules
+          /tmp/motion-rules
           g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-performance.cpp -o /tmp/client-performance
           /tmp/client-performance
       - name: Test authenticated clan lifecycle against MariaDB
@@ -136,3 +138,4 @@ jobs:
           path: ${{ steps.package.outputs.build-output }}
           if-no-files-found: error
           retention-days: 30
+

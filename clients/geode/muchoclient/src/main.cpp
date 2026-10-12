@@ -23,7 +23,7 @@ using namespace geode::prelude;
 
 namespace {
     constexpr char const* CLIENT_ID = "izkgmd.muchoclient";
-    constexpr char const* CLIENT_VERSION = "0.9.2";
+    constexpr char const* CLIENT_VERSION = "0.9.3";
     constexpr int PROTOCOL = 1;
 
     struct Feature {
@@ -65,7 +65,7 @@ namespace {
         ) != 3) {
             return false;
         }
-        return std::tuple{0u, 9u, 2u} >= std::tuple{major, minor, patch};
+        return std::tuple{0u, 9u, 3u} >= std::tuple{major, minor, patch};
     }
 
     // Untrusted server text is displayed only, never evaluated as UI markup.
@@ -113,6 +113,7 @@ class MuchoFeaturesPopup : public geode::Popup {
     CCMenu* m_featureMenu = nullptr;
     CCLabelBMFont* m_pageLabel = nullptr;
     size_t m_page = 0;
+    bool m_closed = false;
     async::TaskHolder<web::WebResponse> m_featureTask;
 
 protected:
@@ -120,7 +121,7 @@ protected:
         if (!Popup::init(340.f, 310.f)) return false;
         m_origin = std::move(origin);
         m_features = std::move(features);
-        this->setTitle("MuchoClient v0.9.2");
+        this->setTitle("MuchoClient v0.9.3");
 
         auto status = CCLabelBMFont::create(
             "Connected to MuchoCore", "goldFont.fnt"
@@ -156,6 +157,7 @@ protected:
         colorsMenu->addChild(colors); m_mainLayer->addChild(colorsMenu);
         auto profile = mucho::button(ButtonSprite::create("Profile"),this,menu_selector(MuchoFeaturesPopup::onProfile),.43f);
         profile->setPositionX(58.f); colorsMenu->addChild(profile);
+        mucho::motion::panel(m_mainLayer);
         return true;
     }
 
@@ -169,11 +171,18 @@ protected:
             item->setTag(static_cast<int>(i));
             item->setPosition({0.f,76.f-static_cast<float>(i-start)*37.f});
             m_featureMenu->addChild(item);
+            mucho::motion::reveal(item,static_cast<unsigned>(i-start));
         }
         m_pageLabel->setString((std::to_string(m_page+1)+" / "+std::to_string(mucho::quests::pageCount(m_features.size()))).c_str());
     }
     void onPrevious(CCObject*) { if (m_page > 0) { --m_page; renderFeatures(); } }
     void onNext(CCObject*) { if (m_page+1 < mucho::quests::pageCount(m_features.size())) { ++m_page; renderFeatures(); } }
+    void onClose(CCObject* sender) override {
+        if(m_closed)return; m_closed=true; m_featureTask.cancel();
+        auto weak=WeakRef(this);
+        if(!mucho::motion::dismiss(this,m_mainLayer,[weak] { if(auto self=weak.lock())self->Popup::onClose(nullptr); }))Popup::onClose(sender);
+    }
+    void onExit() override { m_closed=true; m_featureTask.cancel(); Popup::onExit(); }
 
     void onColors(CCObject*) {
         if (auto popup = MuchoColorsPopup::create(m_origin)) popup->show();
@@ -275,6 +284,7 @@ class $modify(MuchoMenuLayer, MenuLayer) {
         auto size = CCDirector::sharedDirector()->getWinSize();
         menu->setPosition({size.width - 50.f, size.height - 42.f});
         this->addChild(menu, 20);
+        mucho::motion::reveal(menu);
         refreshMenuAvatar(0);
         schedule(schedule_selector(MuchoMenuLayer::refreshMenuAvatar),.5f);
         return true;
@@ -439,3 +449,4 @@ class $modify(MuchoCreatorLayer, CreatorLayer) {
         if (auto popup = MuchoClanLeaderboardPopup::create(origin)) popup->show();
     }
 };
+
