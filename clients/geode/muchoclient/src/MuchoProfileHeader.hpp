@@ -7,9 +7,9 @@ namespace mucho::profile {
         int m_account = 0;
         Artwork *m_avatar = nullptr, *m_banner = nullptr;
         CCLayerColor* m_avatarFrame = nullptr;
-        async::TaskHolder<web::WebResponse> m_request;
+        unsigned m_generation = 0;
     public:
-        void saved(matjson::Value const& player) { m_request.cancel(); apply(player); }
+        void saved(matjson::Value const& player) { ++m_generation; apply(player); }
         void apply(matjson::Value const& player) {
             if (player["account_id"].asInt().unwrapOr(0) != m_account || origin() != m_origin) return;
             auto avatar = version(player,"avatar"), banner = version(player,"banner");
@@ -18,13 +18,10 @@ namespace mucho::profile {
             m_avatar->stored(m_origin,m_account,"avatar",avatar); m_banner->stored(m_origin,m_account,"banner",banner);
         }
         void load() {
-            m_request.spawn("MuchoCore profile header", web::WebRequest().timeout(std::chrono::seconds(8)).followRedirects(false)
-                .header("Content-Type","application/x-www-form-urlencoded").bodyString("accountID=" + std::to_string(m_account))
-                .post(m_origin + "/api/profile/get"), [this](web::WebResponse response) {
-                    if (origin() != m_origin || !response.ok() || response.string().unwrapOr("").size() > 16384) return;
-                    auto json = response.json();
-                    if (json && json.unwrap()["ok"].asBool().unwrapOr(false)) apply(json.unwrap()["data"]);
-                });
+            auto weak = WeakRef(this); auto generation = ++m_generation;
+            publicProfile(m_origin,m_account,[weak,generation] {
+                auto self = weak.lock(); return self && self->m_generation == generation && origin() == self->m_origin;
+            },[weak](matjson::Value const& player) { if (auto self = weak.lock(); self && player.isObject()) self->apply(player); });
         }
         static Header* create(std::string url,int account,CCSize size);
     };

@@ -1,17 +1,8 @@
 #include "MuchoScoreAvatar.hpp"
 #include "MuchoProfileArtwork.hpp"
-#include <map>
 
 namespace mucho::profile {
 namespace {
-    using Clock = std::chrono::steady_clock;
-    struct AvatarInfo { std::string version; Clock::time_point expires; };
-    std::map<int, AvatarInfo> metadata;
-    std::string metadataOrigin;
-
-    void syncMetadata(std::string const& url) {
-        if (metadataOrigin != url) { metadata.clear(); metadataOrigin = url; }
-    }
 
     class ScoreAvatar final : public CCNode {
         std::string m_origin, m_version;
@@ -20,7 +11,6 @@ namespace {
         bool m_closed = false, m_iconVisible = true;
         WeakRef<CCNode> m_icon;
         Artwork* m_artwork = nullptr;
-        async::TaskHolder<web::WebResponse> m_request;
 
         bool current() const { return !m_closed && origin() == m_origin && m_icon.lock(); }
         void fallback() {
@@ -29,45 +19,32 @@ namespace {
         }
         void apply(std::string const& version) {
             if (!current()) return;
+            if (version == m_version && m_artwork->ready()) {
+                if (auto icon = m_icon.lock()) icon->setVisible(false);
+                m_artwork->setVisible(true); return;
+            }
             fallback(); m_version = version;
             if (validVersion(version)) m_artwork->stored(m_origin, m_account, "avatar", version);
             else m_artwork->empty();
         }
         void load() {
             if (!current() || !appearance::validOrigin(m_origin)) return;
-            syncMetadata(m_origin);
-            auto found = metadata.find(m_account);
-            if (found != metadata.end() && found->second.expires > Clock::now()) {
-                apply(found->second.version); return;
-            }
             auto generation = ++m_generation;
-            m_request.spawn("MuchoCore leaderboard avatar", web::WebRequest().timeout(std::chrono::seconds(8))
-                .followRedirects(false).header("Content-Type", "application/x-www-form-urlencoded")
-                .bodyString("accountID=" + std::to_string(m_account)).post(m_origin + "/api/profile/get"),
-                [this, generation](web::WebResponse response) {
-                    if (generation != m_generation || !current() || !response.ok() ||
-                        response.string().unwrapOr("").size() > 16384) return;
-                    auto json = response.json();
-                    if (!json || !json.unwrap()["ok"].asBool().unwrapOr(false)) return;
-                    auto player = json.unwrap()["data"];
-                    if (player["account_id"].asInt().unwrapOr(0) != m_account) return;
+            auto weak = WeakRef(this);
+            publicProfile(m_origin,m_account,[weak,generation] {
+                auto self = weak.lock(); return self && generation == self->m_generation && self->current();
+            },[weak](matjson::Value const& player) {
+                    auto self = weak.lock(); if (!self || !player.isObject()) return;
+                    if (player["account_id"].asInt().unwrapOr(0) != self->m_account) return;
                     auto version = player["media"]["avatar"]["version"].asString().unwrapOr("");
                     if (!version.empty() && !validVersion(version)) return;
-                    syncMetadata(m_origin);
-                    if (metadata.size() >= 128 && !metadata.contains(m_account)) {
-                        auto oldest = std::min_element(metadata.begin(), metadata.end(), [](auto const& a, auto const& b) {
-                            return a.second.expires < b.second.expires;
-                        });
-                        metadata.erase(oldest);
-                    }
-                    metadata[m_account] = {version, Clock::now() + std::chrono::seconds(60)};
-                    apply(version);
+                    self->apply(version);
                 });
         }
         void onEnter() override { CCNode::onEnter(); m_closed = false; load(); }
         void onExit() override {
-            m_closed = true; ++m_generation; m_request.cancel(); fallback();
-            m_artwork->empty(); m_version.clear(); CCNode::onExit();
+            m_closed = true; ++m_generation; fallback();
+            m_artwork->suspend(); CCNode::onExit();
         }
     public:
         static ScoreAvatar* create(CCNode* icon, int account, float side) {

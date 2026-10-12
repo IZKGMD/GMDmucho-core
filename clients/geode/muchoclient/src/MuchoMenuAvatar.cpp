@@ -11,7 +11,6 @@ namespace {
         float m_refresh=0;
         CCClippingNode* m_circle=nullptr;
         Artwork* m_avatar=nullptr;
-        async::TaskHolder<web::WebResponse> m_request;
 
         static int account() {
             auto manager=GJAccountManager::sharedState();
@@ -21,32 +20,29 @@ namespace {
         void apply(matjson::Value const& player) {
             if (!session() || player["account_id"].asInt().unwrapOr(0)!=m_account) return;
             auto version=player["media"]["avatar"]["version"].asString().unwrapOr("");
-            if (version==m_version && (m_avatar->ready() || m_avatar->loading())) return;
+            if (version==m_version && (m_avatar->ready() || m_avatar->loading())) {
+                m_circle->setVisible(m_avatar->ready()); return;
+            }
             m_version=std::move(version); m_circle->setVisible(false);
             if (validVersion(m_version)) m_avatar->stored(m_origin,m_account,"avatar",m_version);
             else m_avatar->empty();
         }
         void load() {
             m_busy=true; auto generation=++m_generation;
-            m_request.spawn("MuchoCore menu avatar",web::WebRequest().timeout(std::chrono::seconds(8)).followRedirects(false)
-                .header("Content-Type","application/x-www-form-urlencoded")
-                .bodyString("accountID="+std::to_string(m_account)).post(m_origin+"/api/profile/get"),
-                [this,generation](web::WebResponse response) {
-                    if (generation!=m_generation) return;
-                    m_busy=false; m_refresh=30;
-                    if (!session() || !response.ok() || response.string().unwrapOr("").size()>16384) return;
-                    auto json=response.json();
-                    if (!json || !json.unwrap()["ok"].asBool().unwrapOr(false)) return;
-                    auto player=json.unwrap()["data"];
-                    if (player["account_id"].asInt().unwrapOr(0)!=m_account) return;
-                    m_refresh=60; apply(player);
-                });
+            auto weak = WeakRef(this);
+            if (!publicProfile(m_origin,m_account,[weak,generation] {
+                auto self = weak.lock(); return self && self->m_generation == generation && self->session();
+            },[weak](matjson::Value const& player) {
+                auto self = weak.lock(); if (!self) return;
+                self->m_busy = false; self->m_refresh = player.isObject() ? 60 : 30;
+                if (player.isObject()) self->apply(player);
+            })) { m_busy = false; m_refresh = 30; }
         }
     public:
         void poll(float dt) {
             auto url=origin(); int active=account();
             if (active!=m_account || url!=m_origin) {
-                ++m_generation; m_request.cancel(); m_busy=false; m_refresh=0;
+                ++m_generation; m_busy=false; m_refresh=0;
                 m_circle->setVisible(false); m_avatar->empty(); m_version.clear();
                 m_account=active; m_origin=std::move(url);
             }
@@ -56,11 +52,11 @@ namespace {
         }
         void saved(matjson::Value const& player) {
             if (!session() || player["account_id"].asInt().unwrapOr(0)!=m_account) return;
-            ++m_generation; m_request.cancel(); m_busy=false; m_refresh=60; apply(player);
+            ++m_generation; m_busy=false; m_refresh=60; apply(player);
         }
         void onExit() override {
-            ++m_generation; m_request.cancel(); m_busy=false; m_refresh=0;
-            m_circle->setVisible(false); m_avatar->empty(); m_version.clear();
+            ++m_generation; m_busy=false; m_refresh=0;
+            m_circle->setVisible(false); m_avatar->suspend();
             CCNode::onExit();
         }
         static MenuAvatar* create(CCSize normalSize) {

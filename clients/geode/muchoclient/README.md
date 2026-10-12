@@ -1,4 +1,4 @@
-# MuchoClient 0.9.1 — one file for all modules
+# MuchoClient 0.9.2 — one file for all modules
 
 Daily Quests uses a compact 420x300 panel and scales to the available screen,
 including room for its close button. Quest rows, claim controls and footer have
@@ -6,7 +6,7 @@ separate reserved areas. Player rankings fit clan prefixes and nicknames before
 the first statistic, keeping their original left edge and matching hit area.
 Uploaded MuchoCore avatars replace native ranking icons after decoding; missing
 or unavailable images retain the normal GD icon. Public metadata is cached for
-60 seconds (at most 128 accounts), and image bytes use the existing bounded cache.
+60 seconds (at most 128 accounts), and decoded textures use a shared bounded cache.
 This interface update requires no additional server migration after 0.9.0.
 
 Install **one** `izkgmd.muchoclient.geode`, replacing the previous MuchoClient
@@ -50,7 +50,7 @@ client does not download or execute plugin code.
   edit the `MuchoCore Server URL` Geode setting (HTTPS origin, without
   `/database`).
 - The client GETs `/muchoclient/manifest`, validates the feature catalog, and
-  POSTs `/muchoclient/negotiate` with `client_version=0.9.1&protocol=1`.
+  POSTs `/muchoclient/negotiate` with `client_version=0.9.2&protocol=1`.
 - Compatible clients display a popup of feature buttons. Public extension
   endpoints under `/extensions/` return constrained JSON text.
 
@@ -183,7 +183,7 @@ Save is enabled once the selected photo has decoded. Closing an unsaved selectio
 
 Inputs are limited to 4 MiB, 12 megapixels and 8192 pixels per dimension, with a minimum side of 16 pixels. The server crops/resizes to 256x256 avatars or 960x320 covers and re-encodes JPEG at quality 88, flattening transparent pixels against the profile background and removing source metadata. Each output is at most 512 KiB. The database retains only the current image per slot, so normal database backups include the images.
 
-Public reads never use player credentials. Image downloads accept only a kind and exact SHA-256 version from this server's profile metadata, not arbitrary image URLs. Cached JPEG bytes are limited to 24 entries / 4 MiB and isolated by server origin. File reads and Base64 preparation run asynchronously; image decoding uses Geode LazySprite. Closed windows cancel their requests and account/server changes prevent writes from a stale editor.
+Public reads never use player credentials. Image downloads accept only a kind and exact SHA-256 version from this server's profile metadata, not arbitrary image URLs. Decoded textures are shared between views, limited to 32 entries / 8 MiB and isolated by server origin. Public profile metadata is shared across avatar views. Each queue permits two simultaneous requests; identical image keys download/decode once. File reads and Base64 preparation run asynchronously; uploaded-photo previews use Geode LazySprite; stored avatars/covers decode in the worker pool and upload to the GPU through a bounded menu-only queue. Closed windows cancel their requests and account/server changes prevent writes from a stale editor.
 
 Update the core first:
 
@@ -200,4 +200,6 @@ New POST endpoints:
 - `/api/profile/upload`: authenticated `accountID`, `gameVersion`, `gjp2`, `kind`, standard padded Base64 `imageData`; optional `cropX`/`cropY` (0–1000), `zoom` (100–300), `rotation` (0/90/180/270).
 - `/api/profile/remove`: authenticated `accountID`, `gameVersion`, `gjp2`, `kind`.
 
-`kind` is `avatar` or `banner`. Server/CI validation is in `tests/application/profile-images.php`, `tests/application/clan-client-integration.php` and `tests/client/muchoclient-clan-rules.cpp`. Native UI layout/file picker behavior still needs verification in the actual game on a device.
+`kind` is `avatar` or `banner`. Server/CI validation is in `tests/application/profile-images.php`, `tests/application/clan-client-integration.php` and `tests/client/muchoclient-clan-rules.cpp`. Daily Quest countdown text updates once a second; cached name colors repaint only when their appearance revision changes. Decorative processing is deferred while a PlayLayer exists, including while paused.
+
+Native UI layout/file picker behavior still needs verification in the actual game on a device.
