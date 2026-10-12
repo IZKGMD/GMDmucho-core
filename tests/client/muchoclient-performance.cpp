@@ -13,6 +13,7 @@ int main() {
     alive = false; work.drain(false); assert(work.empty() && applied == 2);
     for (int i=0;i<256;++i) assert(work.add([] { return true; },[] {}));
     assert(!work.add([] { return true; },[] {}));
+    work.clear(); assert(work.empty());
 
     SharedRequests<int,int,std::string> requests;
     int delivered = 0; bool first = true, second = true;
@@ -32,6 +33,7 @@ int main() {
     for (int i=0;i<128;++i) assert(requests.add(i,i,[] { return true; },[](auto const&) {}));
     assert(!requests.add(999,0,[] { return true; },[](auto const&) {}));
     assert(requests.size() == 128);
+    requests.clear(); assert(requests.size() == 0 && requests.active() == 0);
 
     WeightedCache<int,std::string> cache(8,3);
     cache.put(1,"first",3); cache.put(2,"second",3);

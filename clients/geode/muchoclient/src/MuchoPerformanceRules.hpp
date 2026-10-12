@@ -26,6 +26,7 @@ namespace mucho::performance {
             }
         }
         bool empty() const { return m_work.empty(); }
+        void clear() { m_work.clear(); }
     };
 
     // One request per key, a fixed number of active jobs and weak subscribers.
@@ -76,6 +77,7 @@ namespace mucho::performance {
         }
         size_t active() const { return m_active; }
         size_t size() const { return m_jobs.size(); }
+        void clear() { m_jobs.clear(); m_active = 0; }
     };
 
     template<class Key, class Value> class WeightedCache {

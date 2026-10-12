@@ -3,6 +3,7 @@
 #include "MuchoDeferred.hpp"
 #include "MuchoPerformanceRules.hpp"
 #include <memory>
+#include <Geode/loader/GameEvent.hpp>
 
 namespace mucho::profile {
 namespace {
@@ -18,6 +19,7 @@ namespace {
     std::map<std::string,std::shared_ptr<async::TaskHolder<web::WebResponse>>> profileTasks,imageTasks;
     std::string cacheOrigin;
     bool profilePumpQueued = false, picturePumpQueued = false;
+    bool stopped = false;
     void sync(std::string const& url) {
         if (cacheOrigin == url) return;
         metadata.clear(); textures.clear(); cacheOrigin = url;
@@ -31,6 +33,7 @@ namespace {
         imageTasks.erase(key); pictures.complete(key,std::move(texture)); pumpPictures();
     }
     void pumpProfiles() {
+        if (stopped) return;
         while (auto next = profiles.take()) {
             auto [key,params] = *next;
             auto task = std::make_shared<async::TaskHolder<web::WebResponse>>(); profileTasks[key] = task;
@@ -75,6 +78,7 @@ namespace {
         });
     }
     void pumpPictures() {
+        if (stopped) return;
         while (auto next = pictures.take()) {
             auto [key,params] = *next;
             auto task = std::make_shared<async::TaskHolder<web::WebResponse>>(); imageTasks[key] = task;
@@ -95,7 +99,7 @@ namespace {
 }
     void clearCache() { textures.clear(); }
     bool publicProfile(std::string url,int account,ValidAsset valid,ProfileLoaded loaded) {
-        if (!appearance::validOrigin(url) || account <= 0) return false;
+        if (stopped || !appearance::validOrigin(url) || account <= 0) return false;
         sync(url); auto key = url+"/"+std::to_string(account);
         if (auto entry = metadata.get(key); entry && entry->expires > Clock::now()) {
             return performance::cached(std::move(valid),[loaded = std::move(loaded),player = entry->player] { loaded(player); });
@@ -113,6 +117,7 @@ namespace {
         metadata.put(url+"/"+std::to_string(account),{player,Clock::now()+std::chrono::seconds(60)},player.dump().size());
     }
     bool storedTexture(std::string url,int account,std::string kind,std::string version,ValidAsset valid,TextureLoaded loaded) {
+        if (stopped) return false;
         sync(url); auto key = url+"/"+std::to_string(account)+"/"+kind+"/"+version;
         if (auto texture = textures.get(key)) {
             return performance::cached(std::move(valid),[loaded = std::move(loaded),texture = *texture] { loaded(texture.data()); });
@@ -123,5 +128,11 @@ namespace {
         if (performance::defer([] { return true; },[] { picturePumpQueued = false; pumpPictures(); })) return true;
         picturePumpQueued = false;
         pictures.discard(key); return false;
+    }
+    $on_game(Exiting) {
+        stopped = true;
+        performance::shutdown();
+        profileTasks.clear(); imageTasks.clear(); profiles.clear(); pictures.clear();
+        metadata.clear(); textures.clear();
     }
 }
