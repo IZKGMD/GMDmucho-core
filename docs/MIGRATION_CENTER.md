@@ -138,6 +138,28 @@ Both the interactive Migration Center and the low-level importer require a fresh
 
 Only one migration process may run at a time. A second Migration Center process is rejected instead of competing for the same target database.
 
+## Uploading database.sql
+
+On VPS/Docker installations, Migration Center also accepts a plain `database.sql` dump when you do not have direct access to the old MySQL/MariaDB server.
+
+The flow is:
+
+~~~text
+Admin → Tools → Migration Center
+       ↓
+Upload database.sql
+       ↓
+Upload & Check
+       ↓
+Schema detection + row-count preview
+       ↓
+Migrate uploaded database
+~~~
+
+The uploaded dump is stored outside the public web root and imported into a dedicated migration database that cannot access the production MuchoCore database. The source database is read-only during detection and migration.
+
+The importer accepts plain `.sql` dumps up to 64 MiB. Database-selection, account-management and server-control statements are removed or rejected before the dump is executed. A fresh verified MuchoCore target backup is still mandatory before any destination write.
+
 The source database connection is opened with:
 
 ~~~sql

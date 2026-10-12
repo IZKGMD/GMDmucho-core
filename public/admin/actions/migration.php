@@ -1,12 +1,189 @@
 <?php
 declare(strict_types=1);
 
-if (!in_array($action, ['migration-preview','migration-apply'], true)) {
+if (!in_array($action, ['migration-preview','migration-apply','migration-sql-preview','migration-sql-apply'], true)) {
     throw new RuntimeException('Invalid migration action.');
 }
 
 requirePermission('system.manage');
 set_time_limit(0);
+
+$isSqlAction = str_starts_with($action, 'migration-sql-');
+$isSqlApply = $action === 'migration-sql-apply';
+
+if ($isSqlAction) {
+    $sharedHosting=(string)(
+        $_ENV['MUCHO_SHARED_HOSTING']
+        ?? getenv('MUCHO_SHARED_HOSTING')
+        ?? ''
+    ) === '1';
+
+    try {
+        if ($sharedHosting) {
+            throw new RuntimeException(
+                'SQL file import is available on VPS/Docker installations. Shared hosting uses the source database connection fields above.'
+            );
+        }
+
+        $rootDir=defined('ROOT_DIR')
+            ? ROOT_DIR
+            : dirname(__DIR__,3);
+
+        $wizard=$rootDir.'/bin/mucho-migrate-sql.php';
+
+        if (!is_file($wizard)) {
+            throw new RuntimeException('SQL dump migration is not available in this MuchoCore release.');
+        }
+
+        $uploadDir='/var/lib/muchocore/migration-uploads';
+
+        if (!is_dir($uploadDir) &&
+            !mkdir($uploadDir,0700,true) &&
+            !is_dir($uploadDir)) {
+            throw new RuntimeException('Unable to create the private SQL migration storage directory.');
+        }
+
+        foreach (glob($uploadDir.'/*.sql') ?: [] as $oldFile) {
+            if (is_file($oldFile) && filemtime($oldFile) !== false &&
+                filemtime($oldFile) < time()-86400) {
+                @unlink($oldFile);
+            }
+        }
+
+        if (!$isSqlApply) {
+            if (!isset($_FILES['source_sql']) || !is_array($_FILES['source_sql'])) {
+                throw new RuntimeException('Choose a database.sql file first.');
+            }
+
+            $file=$_FILES['source_sql'];
+
+            if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                throw new RuntimeException('The SQL upload did not complete successfully.');
+            }
+
+            if (!isset($file['tmp_name']) || !is_uploaded_file((string)$file['tmp_name'])) {
+                throw new RuntimeException('The uploaded SQL file could not be validated.');
+            }
+
+            $size=(int)($file['size'] ?? 0);
+
+            if ($size < 1 || $size > 67108864) {
+                throw new RuntimeException('SQL dump size must be between 1 byte and 64 MiB.');
+            }
+
+            $originalName=basename((string)($file['name'] ?? 'database.sql'));
+
+            if (!preg_match('/^[A-Za-z0-9_. -]+\.sql$/i', $originalName)) {
+                throw new RuntimeException('Only .sql database dumps are accepted.');
+            }
+
+            $sample=(string)file_get_contents((string)$file['tmp_name'], false, null, 0, 4096);
+
+            if (str_contains($sample, chr(0))) {
+                throw new RuntimeException('The uploaded SQL dump contains binary data.');
+            }
+
+            $token=bin2hex(random_bytes(24));
+            $path=$uploadDir.'/'.$token.'.sql';
+
+            if (!move_uploaded_file((string)$file['tmp_name'], $path)) {
+                throw new RuntimeException('Unable to store the SQL dump securely.');
+            }
+
+            chmod($path,0600);
+            $_SESSION['migration_sql_token']=$token;
+            $_SESSION['migration_sql_name']=$originalName;
+        } else {
+            $token=(string)($_POST['sql_token'] ?? '');
+
+            if (!preg_match('/^[a-f0-9]{48}$/', $token)) {
+                throw new RuntimeException('The uploaded SQL migration session is invalid or expired.');
+            }
+
+            $path=$uploadDir.'/'.$token.'.sql';
+
+            if (!is_file($path) || !is_readable($path)) {
+                throw new RuntimeException('The uploaded SQL dump is no longer available. Upload database.sql again.');
+            }
+        }
+
+        $command=
+            escapeshellarg(PHP_BINARY).' '.
+            escapeshellarg($wizard).' '.
+            '--file='.escapeshellarg($path);
+
+        if ($isSqlApply) {
+            $command.=' --apply --confirm=MIGRATE';
+        } else {
+            $command.=' --json';
+        }
+
+        $environment=getenv();
+
+        if (!is_array($environment)) {
+            $environment=[];
+        }
+
+        $pipes=[];
+        $process=proc_open(
+            $command,
+            [
+                0=>['pipe','r'],
+                1=>['pipe','w'],
+                2=>['pipe','w'],
+            ],
+            $pipes,
+            $rootDir,
+            $environment
+        );
+
+        if (!is_resource($process)) {
+            throw new RuntimeException('Unable to start the SQL migration process.');
+        }
+
+        fclose($pipes[0]);
+
+        $stdout=stream_get_contents($pipes[1]);
+        $stderr=stream_get_contents($pipes[2]);
+
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+
+        $exitCode=proc_close($process);
+
+        $combined=trim(
+            (string)$stdout.
+            ($stderr!=='' ? PHP_EOL.PHP_EOL.'ERROR OUTPUT'.PHP_EOL.$stderr : '')
+        );
+
+        if (strlen($combined)>60000) {
+            $combined=substr($combined,0,60000).PHP_EOL.'[output truncated]';
+        }
+
+        $_SESSION['migration_output']=$combined;
+
+        if ($exitCode===0) {
+            $_SESSION['migration_status']=$isSqlApply
+                ? 'Uploaded database migration completed successfully.'
+                : 'database.sql was imported into the isolated source database. Review the preview, then migrate it.';
+            $_SESSION['migration_status_type']='ok';
+
+            if ($isSqlApply) {
+                @unlink($path);
+                unset($_SESSION['migration_sql_token'],$_SESSION['migration_sql_name']);
+            }
+        } else {
+            $_SESSION['migration_status']='SQL migration stopped with exit code '.$exitCode.'. Review the migration result and retry when the source dump is corrected.';
+            $_SESSION['migration_status_type']='error';
+        }
+    } catch (Throwable $e) {
+        $_SESSION['migration_status']='SQL file migration could not be completed: '.$e->getMessage();
+        $_SESSION['migration_status_type']='error';
+    }
+
+    header('Location:/admin/?page=migration');
+    exit;
+}
 
 $host=trim((string)($_POST['source_host'] ?? ''));
 $port=(int)($_POST['source_port'] ?? 3306);
