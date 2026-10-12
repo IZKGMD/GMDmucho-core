@@ -1,0 +1,12 @@
+{
+  "id": "mucho-news",
+  "name": "Mucho News",
+  "version": "1.0.0",
+  "api": 1,
+  "min_core_version": "1.1.0",
+  "permissions": ["routes", "client_features"],
+  "config": {
+    "title": "MuchoGDPS News",
+    "message": "Welcome to MuchoGDPS! Server announcements and event details appear here."
+  }
+}

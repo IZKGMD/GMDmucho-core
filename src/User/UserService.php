@@ -22,7 +22,8 @@ final readonly class UserService
         private UserRepository $userRepository,
         private GdUserEncoder $userEncoder,
         private ?Legacy10IdentityService $legacy10 = null,
-        private ?ClanQuestRepository $clanQuests = null
+        private ?ClanQuestRepository $clanQuests = null,
+        private ?\MuchoCore\Quest\DailyQuestRepository $dailyQuests = null
     ) {}
 
     public function updateScore(
@@ -226,9 +227,11 @@ final readonly class UserService
 
         // Lock the clan before the profile, matching join/leave and quest writes.
         // Persist score and quest progress atomically; retries cannot double count.
-        if ($this->clanQuests!==null) $this->pdo->beginTransaction();
+        $questTransaction = $this->clanQuests!==null || $this->dailyQuests!==null;
+        if ($questTransaction) $this->pdo->beginTransaction();
         try {
             $membership=$this->clanQuests?->lockForAccount($accountId);
+            $dailyCalendar=$this->dailyQuests?->prepare($accountId);
             $stmt = $this->pdo->prepare($sql);
 
             if (!$stmt->execute(
@@ -258,9 +261,10 @@ final readonly class UserService
             }
 
             if ($membership!==null) $this->clanQuests?->settle((int)$membership['clan_id']);
-            if ($this->clanQuests!==null) $this->pdo->commit();
+            if ($dailyCalendar!==null) $this->dailyQuests?->recordAcceptedScore($accountId,$fields,$dailyCalendar);
+            if ($questTransaction) $this->pdo->commit();
         } catch (\Throwable $e) {
-            if ($this->clanQuests!==null && $this->pdo->inTransaction()) $this->pdo->rollBack();
+            if ($questTransaction && $this->pdo->inTransaction()) $this->pdo->rollBack();
             throw $e;
         }
 

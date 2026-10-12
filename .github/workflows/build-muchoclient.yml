@@ -65,6 +65,10 @@ jobs:
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-clan-rules.cpp -o /tmp/clan-rules
           /tmp/clan-rules
+          g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-daily-quest-rules.cpp -o /tmp/daily-quest-rules
+          /tmp/daily-quest-rules
+          g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-layout-rules.cpp -o /tmp/layout-rules
+          /tmp/layout-rules
       - name: Test authenticated clan lifecycle against MariaDB
         env:
           TEST_DB_HOST: 127.0.0.1
@@ -73,6 +77,7 @@ jobs:
         run: |
           php tests/application/profile-images.php
           php tests/application/clan-client-integration.php
+          php tests/application/daily-quest-integration.php
 
   geode-build:
     name: ${{ matrix.platform.name }}

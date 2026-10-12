@@ -10,6 +10,11 @@ final class PluginEventBus
 {
     private array $listeners = [];
 
+    public function restoreRegistrationSnapshot(self $snapshot): void
+    {
+        $this->listeners = $snapshot->listeners;
+    }
+
     public function on(string $event, callable $listener): void
     {
         $event = strtolower(trim($event));

@@ -15,15 +15,22 @@ final class ClientFeatureRegistry
     /** @var array<string,array<string,mixed>> */
     private array $features = [];
 
+    public function restoreRegistrationSnapshot(self $snapshot): void
+    {
+        $this->features = $snapshot->features;
+    }
+
     public function add(
         string $id,
         string $name,
         string $description,
-        string $entrypoint
+        string $entrypoint,
+        string $minClientVersion = '0.1.0'
     ): void {
         if (
             !preg_match('/^[a-z][a-z0-9._-]{0,63}$/D', $id) ||
             $id === 'clans' ||
+            preg_match('/^\d+\.\d+\.\d+$/D', $minClientVersion) !== 1 ||
             strlen($name) < 1 ||
             strlen($name) > 64 ||
             strlen($description) > 200 ||
@@ -48,6 +55,7 @@ final class ClientFeatureRegistry
             'entrypoint' => $entrypoint,
             'origin' => 'plugin',
             'requires_client' => true,
+            'min_client_version' => $minClientVersion,
         ];
     }
 

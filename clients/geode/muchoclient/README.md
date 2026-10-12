@@ -1,3 +1,33 @@
+# MuchoClient 0.9.1 — one file for all modules
+
+Daily Quests uses a compact 420x300 panel and scales to the available screen,
+including room for its close button. Quest rows, claim controls and footer have
+separate reserved areas. Player rankings fit clan prefixes and nicknames before
+the first statistic, keeping their original left edge and matching hit area.
+Uploaded MuchoCore avatars replace native ranking icons after decoding; missing
+or unavailable images retain the normal GD icon. Public metadata is cached for
+60 seconds (at most 128 accounts), and image bytes use the existing bounded cache.
+This interface update requires no additional server migration after 0.9.0.
+
+Install **one** `izkgmd.muchoclient.geode`, replacing the previous MuchoClient
+package with the same mod id. It includes Daily Quests, clans and clan quests,
+leaderboards, colors, profiles, avatars and paginated server-plugin navigation.
+The combined package carries native builds for Windows x64 and both Android
+architectures. It does not require Python, separate feature mods or sidecar DLLs.
+
+Daily Quests requires the matching MuchoCore server update and database migration.
+The player earns new stars, moons and demons; the server tracks accepted profile
+sync deltas and exposes three rotating daily goals. The **Claim** button adds
+Quest XP once. Each 250 Quest XP adds a Quest Level. Quest XP is separate from GD
+diamonds, stars, orbs and coins. Progress updates when the game's normal profile
+score sync reaches the server, not through a client-supplied completion flag.
+
+All days reset at 00:00 UTC. The countdown uses the server's remaining time and
+the client's monotonic elapsed time. A timeout can be retried without awarding
+the same reward twice. Account/server changes discard pending personal requests.
+
+See [server setup](../../../docs/DAILY_QUESTS.md) for flags, routes and limits.
+
 # MuchoClient — one Geode mod for server extensions (v0.8.4)
 
 MuchoClient connects Geometry Dash 2.2081 (Windows and Android) to MuchoCore.
@@ -20,7 +50,7 @@ client does not download or execute plugin code.
   edit the `MuchoCore Server URL` Geode setting (HTTPS origin, without
   `/database`).
 - The client GETs `/muchoclient/manifest`, validates the feature catalog, and
-  POSTs `/muchoclient/negotiate` with `client_version=0.8.4&protocol=1`.
+  POSTs `/muchoclient/negotiate` with `client_version=0.9.1&protocol=1`.
 - Compatible clients display a popup of feature buttons. Public extension
   endpoints under `/extensions/` return constrained JSON text.
 

@@ -198,13 +198,21 @@ $metadata = json_decode(
     JSON_THROW_ON_ERROR
 );
 $clientCpp = (string)file_get_contents($geodeRoot . '/src/main.cpp');
+$clientCmake = (string)file_get_contents($geodeRoot . '/CMakeLists.txt');
+$validClientVersion = preg_match('/^v(\d+\.\d+\.\d+)$/D', $metadata['version'] ?? '', $clientVersionMatch) === 1;
+$clientVersion = $clientVersionMatch[1] ?? '';
 
 $check(
     ($metadata['id'] ?? '') === 'izkgmd.muchoclient' &&
-    ($metadata['version'] ?? '') === 'v0.8.4' &&
+    $validClientVersion && version_compare($clientVersion, '0.9.0', '>=') &&
     isset($metadata['gd']['win'], $metadata['gd']['android']) &&
     isset($metadata['settings']['server-url']),
     'Geode companion metadata declares compatible client id and settings'
+);
+$check(
+    str_contains($clientCpp, 'CLIENT_VERSION = "' . $clientVersion . '"') &&
+    str_contains($clientCmake, 'project(MuchoClient VERSION ' . $clientVersion . ' '),
+    'package, compiled handshake and native build declare the same client version'
 );
 $check(
     str_contains($clientCpp, '"/muchoclient/manifest"') &&

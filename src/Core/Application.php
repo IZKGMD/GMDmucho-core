@@ -189,7 +189,10 @@ final readonly class Application
                 $userRepo,
                 new GdUserEncoder(),
                 $legacy10Identity,
-                new \MuchoCore\Clan\ClanQuestRepository($this->pdo)
+                new \MuchoCore\Clan\ClanQuestRepository($this->pdo),
+                \MuchoCore\Quest\DailyQuestPolicy::enabled()
+                    ? new \MuchoCore\Quest\DailyQuestRepository($this->pdo)
+                    : null
             )
         );
 

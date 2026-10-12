@@ -14,6 +14,12 @@ final class Router
     /** @var array<string, Closure> */
     private array $routes = [];
 
+    /** Restore a request-local checkpoint after plugin registration fails. */
+    public function restoreRegistrationSnapshot(self $snapshot): void
+    {
+        $this->routes = $snapshot->routes;
+    }
+
     public function add(string $method, string $path, mixed $handler): void
     {
         if (!is_callable($handler)) {
