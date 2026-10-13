@@ -5,6 +5,7 @@ from PySide6.QtGui import QFont,QDesktopServices
 from PySide6.QtWidgets import QApplication,QMainWindow,QWidget,QHBoxLayout,QVBoxLayout,QLabel,QPushButton,QFrame,QFileDialog,QProgressBar,QMessageBox,QScrollArea
 from engine import Engine
 import build_config
+from runtime import DOWNLOAD
 BASE=Path(getattr(sys,'_MEIPASS',Path(__file__).parent))
 STYLE='''QWidget{background:#090a10;color:#f4f3ff;font-family:"Segoe UI";font-size:14px;}QFrame#sidebar{background:#11131d;border-right:1px solid #2b2e40;}QFrame#card{background:#11131d;border:1px solid #2b2e40;border-radius:18px;}QLabel{background:transparent;}QLabel#muted{color:#aaaec4;}QLabel#eyebrow{color:#b4a0ff;font-size:11px;font-weight:700;}QLabel#heading{font-size:45px;font-weight:750;}QLabel#logo{font-size:24px;font-weight:800;color:#b4a0ff;}QLabel#success{color:#b7ef76;}QPushButton{background:#191c29;border:1px solid #2b2e40;border-radius:10px;padding:12px 18px;text-align:left;font-weight:600;}QPushButton:hover{border-color:#b4a0ff;background:#222638;}QPushButton:disabled{color:#77798e;background:#151723;}QPushButton#primary{background:#7960f2;border-color:#907bff;font-size:19px;padding:17px 23px;}QPushButton#primary:hover{background:#8b74ff;}QProgressBar{background:#191c29;border:0;border-radius:5px;height:10px;}QProgressBar::chunk{background:#b4a0ff;border-radius:5px;}'''
 class Worker(QObject):
@@ -24,8 +25,8 @@ class Window(QMainWindow):
    except Exception:pass
   host=QWidget();self.setCentralWidget(host);outer=QHBoxLayout(host);outer.setContentsMargins(0,0,0,0);outer.setSpacing(0)
   side=QFrame();side.setObjectName('sidebar');side.setFixedWidth(224);sl=QVBoxLayout(side);sl.setContentsMargins(24,30,24,25);sl.setSpacing(15)
-  sl.addWidget(self.label('M / MUCHO','logo'));sl.addWidget(self.label('LAUNCHER  /  1.0.0','eyebrow'));sl.addSpacing(35)
-  for title,url in [('Главная',None),('Сообщество','https://muchogdps.space/dashboard'),('MuchoCore','https://muchogdps.space/muchocore/')]:
+  sl.addWidget(self.label('M / MUCHO','logo'));sl.addWidget(self.label('LAUNCHER  /  1.1.0','eyebrow'));sl.addSpacing(35)
+  for title,url in [('Главная',None),('Сообщество','https://muchogdps.space/dashboard'),('MuchoCore','https://muchogdps.space/muchocore/'),('Visual C++ x64',DOWNLOAD)]:
    b=QPushButton(title);b.clicked.connect((lambda checked=False,u=url:QDesktopServices.openUrl(QUrl(u))) if url else self.home);sl.addWidget(b)
   sl.addStretch();sl.addWidget(self.label('Твоя игра.\nТвоё сообщество.\nТвоя вселенная.','muted'));outer.addWidget(side)
   main=QWidget();ml=QVBoxLayout(main);ml.setContentsMargins(38,30,38,26);ml.setSpacing(20);main.setMinimumSize(786,700);scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setFrameShape(QFrame.NoFrame);scroll.setWidget(main);outer.addWidget(scroll,1)
@@ -36,7 +37,7 @@ class Window(QMainWindow):
   self.choose=QPushButton('Папка игры');self.choose.clicked.connect(self.select);actions.addWidget(self.choose);hl.addLayout(actions)
   self.path=self.label('Выбери папку клиента MuchoGDPS 2.2081','muted');self.path.setWordWrap(True);hl.addWidget(self.path);ml.addWidget(hero)
   columns=QHBoxLayout();self.cards=[]
-  for title,detail in [('MuchoGeode','Загрузка модов и расширений'),('MuchoClient','Профили, смайлики и Social'),('Защита файлов','SHA-256 / обязательный runtime')]:
+  for title,detail in [('MuchoGeode','Загрузка модов и расширений'),('MuchoClient','Профили, Social и Creator Hub'),('Защита файлов','SHA-256 / обязательный runtime')]:
    c=QFrame();c.setObjectName('card');cl=QVBoxLayout(c);cl.setContentsMargins(18,19,18,19);cl.addWidget(self.label(title));cl.addWidget(self.label(detail,'muted'));st=self.label('Требуется проверка','eyebrow');cl.addWidget(st);self.cards.append(st);columns.addWidget(c)
   ml.addLayout(columns)
   panel=QFrame();panel.setObjectName('card');pl=QVBoxLayout(panel);pl.setContentsMargins(22,20,22,20)

@@ -35,3 +35,6 @@
 /public/__probe_*.txt
 /public/__schema_*.txt
 /storage/client-trace.ndjson
+
+clients/launcher/**/__pycache__/
+clients/launcher/__pycache__/

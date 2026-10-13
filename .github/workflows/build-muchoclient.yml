@@ -14,6 +14,10 @@ on:
       - 'clients/geode/muchoclient/**'
       - 'clients/launcher/**'
       - 'src/Social/**'
+      - 'src/Creator/**'
+      - 'plugins/builtin/mucho-creator-hub/**'
+      - 'tests/application/creator-hub.php'
+      - 'database/migrations/20261013_002_creator_hub.php'
       - 'tests/application/social-live.php'
       - 'database/migrations/20261013_001_social_live.php'
       - '.github/workflows/build-muchoclient.yml'
@@ -32,6 +36,10 @@ on:
       - 'clients/geode/muchoclient/**'
       - 'clients/launcher/**'
       - 'src/Social/**'
+      - 'src/Creator/**'
+      - 'plugins/builtin/mucho-creator-hub/**'
+      - 'tests/application/creator-hub.php'
+      - 'database/migrations/20261013_002_creator_hub.php'
       - 'tests/application/social-live.php'
       - 'database/migrations/20261013_001_social_live.php'
       - '.github/workflows/build-muchoclient.yml'
@@ -96,6 +104,7 @@ jobs:
           php tests/application/clan-client-integration.php
           php tests/application/daily-quest-integration.php
           php tests/application/social-live.php
+          php tests/application/creator-hub.php
 
   emoji-assets:
     name: Build pinned offline emoji atlas
@@ -208,6 +217,8 @@ jobs:
           python -m pip install PySide6==6.8.3 pyinstaller==6.12.0 pefile==2023.2.7
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python clients/launcher/tests/test_engine.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python clients/launcher/tests/test_runtime.py
       - name: Pin native runtime and compile mandatory bootstrap
         shell: cmd
         run: |
@@ -224,9 +235,9 @@ jobs:
           $smoke = Start-Process -FilePath dist/MuchoLauncher/MuchoLauncher.exe -ArgumentList '--screenshot' -Wait -PassThru
           if ($smoke.ExitCode -ne 0 -or !(Test-Path launcher-preview.png)) { throw 'Packaged launcher UI smoke test failed' }
           Copy-Item README-RU.txt dist/MuchoLauncher/README-RU.txt
-          Compress-Archive -Path dist/MuchoLauncher -DestinationPath MuchoLauncher-v1.0.0-Windows.zip
+          Compress-Archive -Path dist/MuchoLauncher -DestinationPath MuchoLauncher-v1.1.0-Windows.zip
       - uses: actions/upload-artifact@v4
         with:
           name: MuchoLauncher-Windows
-          path: clients/launcher/MuchoLauncher-v1.0.0-Windows.zip
+          path: clients/launcher/MuchoLauncher-v1.1.0-Windows.zip
           retention-days: 30

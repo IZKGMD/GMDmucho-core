@@ -14,6 +14,7 @@ return [
     'muchoprofiles'=>'Mucho Profiles',
 
     'levels'=>'Levels',
+    'creatorhub'=>'Creator Hub',
     'contentpacks'=>'Gauntlet & Map Pack Maker',
     'moderation'=>'Moderation',
     'rating'=>'Rating Studio',

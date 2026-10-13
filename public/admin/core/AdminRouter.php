@@ -67,6 +67,7 @@ final class MuchoAdminRouter
 function buildMuchoAdminRouter(): MuchoAdminRouter
 {
     $router=new MuchoAdminRouter();
+    $router->register('creatorhub',static function(PDO $db):void {renderCreatorHubPage($db);});
 
 
     /*

@@ -1,6 +1,7 @@
 import hashlib,json,os,shutil,subprocess,tempfile,zipfile
 from pathlib import Path,PurePosixPath
 from pe_gate import patch,gated
+from runtime import inspect_runtime,DLLS
 
 def sha(data):return hashlib.sha256(data).hexdigest()
 def file_sha(path):
@@ -63,6 +64,7 @@ class Engine:
    path=safe_path(root,item['path'])
    if not path.is_file() or path.stat().st_size!=item['size'] or file_sha(path)!=item['sha256']:issues.append(item['path'])
    progress((i+1)*90//len(self.manifest['files']),item['path'])
+  runtime=inspect_runtime(root);issues.extend(runtime['issues']);issues.extend('Старая DLL в папке игры: '+n+' — нажми «Установить / восстановить»' for n in runtime['quarantine'])
   if not self.state(root):issues.append('GeometryDash.exe / mandatory gate not installed')
   else:
    original,_=self.source(root);expected=sha(patch(original,self.manifest['text_sha']))
@@ -73,14 +75,21 @@ class Engine:
   root=Path(folder).resolve()
   if not root.is_dir():raise ValueError('Выбери папку установленного клиента MuchoGDPS.')
   writable_exe(root)
+  runtime=inspect_runtime(root)
+  if runtime['issues']:raise ValueError('\n'.join(runtime['issues']))
   original,backup=self.source(root);patched=patch(original,self.manifest['text_sha']);files=self.payload()
+  previous=self.state(root) or {};runtime_backups=list(previous.get('runtime_backups',[]))
+  for name in runtime['quarantine']:
+   data=safe_path(root,name).read_bytes();saved='.mucho-launcher/runtime-backups/'+sha(data)+'-'+name
+   files[saved]=data;runtime_backups=[r for r in runtime_backups if r['name']!=name]
+   runtime_backups.append({'name':name,'backup':saved,'sha256':sha(data)})
   source_path=safe_path(root,backup)
   if source_path.exists():
    if file_sha(source_path)!=sha(original):raise ValueError('Резервная копия не совпадает.')
   else:files[backup]=original
   files['GeometryDash.exe']=patched
-  files['.mucho-launcher/install.json']=(json.dumps({'backup':backup,'source_sha':sha(original),'version':self.manifest['version']},ensure_ascii=False)+'\n').encode()
-  stage=Path(tempfile.mkdtemp(prefix='mucho-install-'));changed=[]
+  files['.mucho-launcher/install.json']=(json.dumps({'backup':backup,'source_sha':sha(original),'version':self.manifest['version'],'runtime_backups':runtime_backups},ensure_ascii=False)+'\n').encode()
+  stage=Path(tempfile.mkdtemp(prefix='.mucho-stage-',dir=root));changed=[]
   try:
    # Validate every destination before any mutation.
    destinations={name:safe_path(root,name) for name in files}
@@ -96,6 +105,8 @@ class Engine:
     finally:
      if os.path.exists(tmp):os.unlink(tmp)
     progress((i+1)*95//len(files),name)
+   for name in runtime['quarantine']:
+    path=safe_path(root,name);old=stage/('runtime-'+name);shutil.copyfile(path,old);path.unlink();changed.append((path,old))
    issues=self.verify(root,lambda p,t:None)
    if issues:raise IOError('Проверка после установки не прошла: '+', '.join(issues[:3]))
   except Exception:
@@ -117,4 +128,6 @@ class Engine:
  def launch(self,folder,progress=lambda p,t:None):
   root=Path(folder).resolve();issues=self.verify(root,progress)
   if issues:raise ValueError('Запуск заблокирован: нажми «Восстановить» ('+', '.join(issues[:3])+').')
+  diagnostics={'runtime':inspect_runtime(root),'launcher_version':self.manifest['version']}
+  safe_path(root,'.mucho-launcher/last-launch.json').write_text(json.dumps(diagnostics,ensure_ascii=False,indent=2),'utf8')
   return subprocess.Popen([str(root/'GeometryDash.exe')],cwd=root)

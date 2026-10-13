@@ -67,4 +67,18 @@ class Integrity(unittest.TestCase):
    with self.assertRaises(OSError):self.engine.install(self.game)
   self.assertEqual((self.game/'Geode.dll').read_bytes(),b'previous runtime')
   self.assertEqual((self.game/'GeometryDash.exe').read_bytes(),original);self.assertFalse(self.engine.state(self.game))
+ def test_old_local_runtime_quarantined(self):
+  original,digest=fixture();self.manifest['text_sha']=digest;(self.game/'GeometryDash.exe').write_bytes(original)
+  name='vcruntime140.dll';(self.game/name).write_bytes(b'old Microsoft runtime')
+  def report(root):return {'issues':[],'quarantine':[name] if (root/name).exists() else [],'versions':[]}
+  with mock_patch('engine.inspect_runtime',side_effect=report):self.engine.install(self.game)
+  self.assertFalse((self.game/name).exists());state=self.engine.state(self.game);entry=state['runtime_backups'][0]
+  self.assertEqual((self.game/entry['backup']).read_bytes(),b'old Microsoft runtime')
+ def test_runtime_quarantine_rolls_back_on_failure(self):
+  original,digest=fixture();self.manifest['text_sha']=digest;(self.game/'GeometryDash.exe').write_bytes(original)
+  name='vcruntime140.dll';(self.game/name).write_bytes(b'old runtime')
+  with mock_patch('engine.inspect_runtime',return_value={'issues':[],'quarantine':[name],'versions':[]}),mock_patch.object(self.engine,'verify',side_effect=OSError('Late verification failed')):
+   with self.assertRaises(OSError):self.engine.install(self.game)
+  self.assertEqual((self.game/name).read_bytes(),b'old runtime');self.assertEqual((self.game/'GeometryDash.exe').read_bytes(),original)
+  self.assertFalse(self.engine.state(self.game))
 if __name__=='__main__':unittest.main()

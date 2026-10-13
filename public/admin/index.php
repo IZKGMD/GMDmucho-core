@@ -2769,12 +2769,14 @@ require_once __DIR__.'/core/AdminRouter.php';
 require_once __DIR__.'/pages/dashboard.php';
 require_once __DIR__.'/pages/release.php';
 require_once __DIR__.'/pages/plugins.php';
+require_once __DIR__.'/pages/creatorhub.php';
 require_once __DIR__.'/pages/intelligence.php';
 
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     checkCsrf();
 
     $action=(string)($_POST['action'] ?? '');
+    if(str_starts_with($action,'creatorhub-'))handleCreatorHubAdminAction($db,$action);
 
     if (in_array($action,['migration-preview','migration-apply'],true)) {
         require __DIR__.'/actions/migration.php';
@@ -5092,7 +5094,7 @@ table{
 <?php endforeach ?>
 
 <div class="nav-title">Content</div>
-<?php foreach(['players','muchoprofiles','levels','contentpacks','moderation','rating','comments','messages','social','songs'] as $key): ?>
+<?php foreach(['players','muchoprofiles','levels','creatorhub','contentpacks','moderation','rating','comments','messages','social','songs'] as $key): ?>
 <?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
