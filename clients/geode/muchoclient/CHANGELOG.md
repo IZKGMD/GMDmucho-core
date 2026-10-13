@@ -1,3 +1,7 @@
+# v1.1.0
+
+- Creator Hub: published-level submissions, version-bound reviews, feedback history, author resubmissions and moderator queue.
+
 # v1.0.0
 
 - Social activity, friend profiles, milestone reactions and shared-level room invitations.

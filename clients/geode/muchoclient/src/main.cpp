@@ -8,6 +8,7 @@
 #include "MuchoDailyQuestsPopup.hpp"
 #include "MuchoEmoji.hpp"
 #include "MuchoSocial.hpp"
+#include "MuchoCreatorHub.hpp"
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/CreatorLayer.hpp>
 #include <Geode/ui/Popup.hpp>
@@ -25,7 +26,7 @@ using namespace geode::prelude;
 
 namespace {
     constexpr char const* CLIENT_ID = "izkgmd.muchoclient";
-    constexpr char const* CLIENT_VERSION = "1.0.0";
+    constexpr char const* CLIENT_VERSION = "1.1.0";
     constexpr int PROTOCOL = 1;
 
     struct Feature {
@@ -67,7 +68,7 @@ namespace {
         ) != 3) {
             return false;
         }
-        return std::tuple{1u, 0u, 0u} >= std::tuple{major, minor, patch};
+        return std::tuple{1u, 1u, 0u} >= std::tuple{major, minor, patch};
     }
 
     // Untrusted server text is displayed only, never evaluated as UI markup.
@@ -206,6 +207,11 @@ protected:
         auto index = static_cast<CCMenuItemSpriteExtra*>(sender)->getTag();
         if (index < 0 || static_cast<size_t>(index) >= m_features.size()) return;
         auto feature = m_features[static_cast<size_t>(index)];
+
+        if (feature.id == "creator-hub" && feature.entrypoint == "/extensions/creator-hub") {
+            if(auto popup=MuchoCreatorHub::create(m_origin))popup->show();
+            return;
+        }
 
         if (feature.entrypoint == "/api/clans/my") {
             if (auto popup = MuchoClansPopup::create(m_origin)) popup->show();

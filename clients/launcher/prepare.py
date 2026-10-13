@@ -23,7 +23,7 @@ pins={n:hashlib.sha256(files[n]).hexdigest() for n in ['Geode.dll','geode/mods/i
 if not a.guard:print('Native pins generated');raise SystemExit(0)
 files['MuchoBootstrap.dll']=Path(a.guard).read_bytes()
 policy=json.loads((Path(__file__).parent/'game-policy.json').read_text())
-manifest={'version':'1.0.0','text_sha':policy['text_sha'],'files':[{'path':n,'sha256':hashlib.sha256(data).hexdigest(),'size':len(data)} for n,data in sorted(files.items())]}
+manifest={'version':'1.1.0','text_sha':policy['text_sha'],'files':[{'path':n,'sha256':hashlib.sha256(data).hexdigest(),'size':len(data)} for n,data in sorted(files.items())]}
 with zipfile.ZipFile(out/'payload.zip','w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
  for n,data in sorted(files.items()):z.writestr(n,data)
 sha=hashlib.sha256((out/'payload.zip').read_bytes()).hexdigest()
