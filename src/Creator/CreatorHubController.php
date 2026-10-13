@@ -19,7 +19,8 @@ final readonly class CreatorHubController {
     'release'=>$this->hub->release($a,$request,$revision),
     'withdraw'=>$this->hub->withdraw($a,$request,$revision),default=>throw new RuntimeException('Unknown Creator Hub action.')};
    return Response::json(['ok'=>true,'schema_version'=>1,'data'=>$data]);
-  }catch(RuntimeException $e){return Response::json(['ok'=>false,'error'=>$e->getMessage()],$e->getMessage()==='Unauthorized.'?401:400);}
+  }catch(\PDOException $e){error_log('[CreatorHub] storage failure');return Response::json(['ok'=>false,'error'=>'Creator Hub storage is unavailable. Update MuchoCore and run migrations.'],503);}
+  catch(RuntimeException $e){return Response::json(['ok'=>false,'error'=>$e->getMessage()],$e->getMessage()==='Unauthorized.'?401:400);}
   catch(Throwable $e){error_log('[CreatorHub] '.$e::class);return Response::json(['ok'=>false,'error'=>'Creator Hub is unavailable. Update MuchoCore and run migrations.'],503);}
  }
 }

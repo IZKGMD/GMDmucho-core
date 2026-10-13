@@ -57,5 +57,8 @@ try {
  }
  ck((int)$db->query("SELECT COUNT(*) FROM mucho_creator_requests WHERE account_id=5 AND state IN ('submitted','in_review')")->fetchColumn()<=3,'Active quota failed');
  ck(count($hub->listing($mod,'archive')['items'])>=2,'Archive missing decisions');
+ $db->exec('ALTER TABLE mucho_creator_requests DROP COLUMN content_hash');
+ $storage=$controller->handle(new Request('POST','/extensions/creator-hub',[],['accountID'=>'1','gjp2'=>$credential,'action'=>'list'],[]));
+ ck($storage->status===503&&!str_contains($storage->body,'SQLSTATE')&&!str_contains($storage->body,'content_hash'),'Storage failure leaked SQL details');
  echo "Creator Hub ownership, auth, review assignment, snapshots, history, cooldown, rollback and concurrent quota: OK\n";
 }finally{$root->exec("DROP DATABASE $name");}

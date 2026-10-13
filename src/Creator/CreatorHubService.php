@@ -69,7 +69,7 @@ final readonly class CreatorHubService
    $this->event($a,$r,'submitted',$note,['level_version'=>(int)$l['level_version'],'content_hash'=>$l['content_hash']]);return $id;
   });return $this->detail($a,$id);
  }
- private function selection(): string {return "SELECT r.*,a.username creator_name,l.stars,l.rate_tier,l.level_version current_level_version,(r.content_hash<>SHA2(l.level_data,256) OR r.level_version<>l.level_version) level_changed FROM mucho_creator_requests r JOIN accounts a ON a.account_id=r.account_id JOIN levels l ON l.level_id=r.level_id";}
+ private function selection(): string {return "SELECT r.*,a.username creator_name,l.stars,l.rate_tier,l.level_version current_level_version,(BINARY r.content_hash<>BINARY SHA2(l.level_data,256) OR r.level_version<>l.level_version) level_changed FROM mucho_creator_requests r JOIN accounts a ON a.account_id=r.account_id JOIN levels l ON l.level_id=r.level_id";}
  private function clean(array $r): array {
   foreach(['id','level_id','account_id','revision','cycle','level_version','current_level_version','stars','rate_tier'] as $key)if(isset($r[$key]))$r[$key]=(int)$r[$key];
   $r['level_changed']=(bool)$r['level_changed'];unset($r['content_hash']);return $r;
