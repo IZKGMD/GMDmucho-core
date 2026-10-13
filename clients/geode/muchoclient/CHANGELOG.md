@@ -1,3 +1,8 @@
+# v1.0.0
+
+- Social activity, friend profiles, milestone reactions and shared-level room invitations.
+- Native readiness handshake for MuchoLauncher mandatory game gate.
+
 # v0.9.7
 
 - Keep every adjacent emoji render slot even when native glyphs are missing or hidden.

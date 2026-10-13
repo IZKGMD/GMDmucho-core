@@ -271,6 +271,9 @@ final readonly class Application
             $this->plugins->clientFeatures(),
             trim((string)@file_get_contents(dirname(__DIR__, 2) . '/VERSION'))
         );
+        $liveSocial = new \MuchoCore\Social\LiveSocialController($this->pdo,$auth);
+        $route('/api/social/live',[$liveSocial,'handle']);
+
         $route('/muchoclient/manifest', [$bridge, 'manifest']);
         $route('/muchoclient/negotiate', [$bridge, 'negotiate']);
 
@@ -617,3 +620,4 @@ final readonly class Application
         $this->handle(Request::fromGlobals())->send();
     }
 }
+

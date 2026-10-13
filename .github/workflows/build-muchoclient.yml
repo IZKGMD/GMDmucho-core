@@ -12,6 +12,10 @@ on:
       - feature/muchoclient-v0.8.0-profile
     paths:
       - 'clients/geode/muchoclient/**'
+      - 'clients/launcher/**'
+      - 'src/Social/**'
+      - 'tests/application/social-live.php'
+      - 'database/migrations/20261013_001_social_live.php'
       - '.github/workflows/build-muchoclient.yml'
       - 'src/Clan/**'
       - 'src/Appearance/**'
@@ -26,6 +30,10 @@ on:
   pull_request:
     paths:
       - 'clients/geode/muchoclient/**'
+      - 'clients/launcher/**'
+      - 'src/Social/**'
+      - 'tests/application/social-live.php'
+      - 'database/migrations/20261013_001_social_live.php'
       - '.github/workflows/build-muchoclient.yml'
       - 'src/Clan/**'
       - 'src/Appearance/**'
@@ -87,6 +95,7 @@ jobs:
           php tests/application/profile-images.php
           php tests/application/clan-client-integration.php
           php tests/application/daily-quest-integration.php
+          php tests/application/social-live.php
 
   emoji-assets:
     name: Build pinned offline emoji atlas
@@ -170,3 +179,50 @@ jobs:
           retention-days: 30
 
 
+
+  launcher:
+    name: MuchoLauncher Windows
+    needs: geode-package
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: MuchoClient-Windows-Android
+          path: client-artifact
+      - uses: actions/download-artifact@v4
+        with:
+          name: MuchoLoader-v0.1.0-Windows
+          run-id: 38161767363
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: loader-artifact
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Install build dependencies and test launcher core
+        run: |
+          python -m pip install PySide6==6.8.3 pyinstaller==6.12.0 pefile==2024.8.26
+          python clients/launcher/tests/test_engine.py
+      - name: Pin native runtime and compile mandatory bootstrap
+        shell: cmd
+        run: |
+          python clients/launcher/prepare.py --loader loader-artifact --client client-artifact --out clients/launcher
+          copy clients\launcher\pins.h clients\launcher\native\pins.h
+          cl /nologo /LD /O2 /utf-8 /MT clients\launcher\native\bootstrap.c advapi32.lib user32.lib /Fe:clients\launcher\MuchoBootstrap.dll
+          if errorlevel 1 exit /b 1
+          python clients/launcher/prepare.py --loader loader-artifact --client client-artifact --guard clients/launcher/MuchoBootstrap.dll --out clients/launcher
+      - name: Package native Windows launcher
+        working-directory: clients/launcher
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed --onedir --name MuchoLauncher --add-data "payload.zip;." app.py
+          Copy-Item README-RU.txt dist/MuchoLauncher/README-RU.txt
+          Compress-Archive -Path dist/MuchoLauncher -DestinationPath MuchoLauncher-v1.0.0-Windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MuchoLauncher-Windows
+          path: clients/launcher/MuchoLauncher-v1.0.0-Windows.zip
+          retention-days: 30
