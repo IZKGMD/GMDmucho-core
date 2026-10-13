@@ -58,6 +58,35 @@ jobs:
           name: MuchoLauncher-Android-unsigned
           path: android-artifact/*
           if-no-files-found: error
+      - name: Build UI smoke APK for emulator only
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('android-build/app/build.gradle.kts')
+          text = p.read_text().replace('ndk.abiFilters += listOf("arm64-v8a", "armeabi-v7a")', 'ndk.abiFilters += listOf("x86_64")')
+          p.write_text(text.replace('isEnable = true', 'isEnable = false'))
+          PY
+          cd android-build
+          ./gradlew app:assembleDebug --no-daemon
+      - name: Enable emulator acceleration
+        run: |
+          sudo chmod 666 /dev/kvm
+      - name: Exercise launcher screens on Android 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_5
+          disable-animations: true
+          script: |
+            adb install android-build/app/build/outputs/apk/debug/app-debug.apk
+            python clients/android-launcher/smoke_ui.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: MuchoLauncher-Android-UI
+          path: android-ui/
       - uses: actions/upload-artifact@v4
         if: always()
         with:

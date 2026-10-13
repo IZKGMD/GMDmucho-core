@@ -121,6 +121,8 @@ extern "C" JNIEXPORT jboolean JNICALL Java_com_geode_launcher_LauncherFix_muchoC
 }
 ''')
     change(root, "app/src/main/cpp/CMakeLists.txt", "PRIVATE log)", "PRIVATE log dl)")
+    # CMake 3.22's IPO probe selects host ld.gold rather than Android's LLD.
+    change(root, "app/src/main/cpp/CMakeLists.txt", "INTERPROCEDURAL_OPTIMIZATION ON", "INTERPROCEDURAL_OPTIMIZATION OFF")
     renderer = root / "app/src/main/java/org/cocos2dx/lib/Cocos2dxRenderer.kt"
     text = renderer.read_text().replace("    override fun onDrawFrame(gl: GL10?) {", """    private var muchoReady = false
     private val muchoStart = System.nanoTime()
