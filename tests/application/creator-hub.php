@@ -26,7 +26,7 @@ try {
  $hub=new CreatorHubService($db);$creator=$hub->gameActor(1);$other=$hub->gameActor(2);$mod=$hub->gameActor(3);$mod2=$hub->gameActor(4);$admin=$hub->adminActor(1,'Admin');
  $controller=new CreatorHubController(new AccountAuthenticator($db),$hub);
  $anon=$controller->handle(new Request('POST','/extensions/creator-hub',[],['action'=>'list'],[]));ck($anon->status===401,'Anonymous access allowed');
- $api=$controller->handle(new Request('POST','/extensions/creator-hub',[],['accountID'=>'1','gjp2'=>$credential,'action'=>'list'],[]));ck(json_decode($api->body,true)['ok'],'Authenticated API failed');
+ $api=$controller->handle(new Request('POST','/extensions/creator-hub',[],['accountID'=>'1','gjp2'=>$credential,'action'=>'list'],[]));ck(json_decode($api->body,true)['ok'],'Authenticated API failed: '.$api->body);
  fails(fn()=>$hub->submit($creator,201,'Not mine'),'Other creator level accepted');
  $db->exec('UPDATE levels SET is_unlisted=1 WHERE level_id=104');fails(fn()=>$hub->submit($creator,104,''),'Unlisted level accepted');$db->exec('UPDATE levels SET is_unlisted=0 WHERE level_id=104');
  $r=$hub->submit($creator,101,'First review request.');$id=$r['id'];ck($r['state']==='submitted','Initial state wrong');
