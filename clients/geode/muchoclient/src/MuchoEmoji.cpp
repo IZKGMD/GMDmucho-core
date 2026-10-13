@@ -332,6 +332,14 @@ namespace {
         "\u2764\ufe0f","\U0001f494","\U0001f49c","\U0001f49a","\U0001f499","\U0001f49b","\u2b50","\u2728",
         "\U0001f44d","\U0001f44e","\U0001f44f","\U0001f64f","\U0001f4aa","\U0001f440","\U0001f680","\U0001f3c6"
     };
+    struct NativeInsert : CCTextFieldTTF {
+        static void apply(CCTextFieldTTF* field,char const* text,int length) {
+            // Take the inherited member pointer in an access-authorized scope;
+            // call it on the real base object without downcasting the instance.
+            auto method=&NativeInsert::insertText;
+            (field->*method)(text,length,KEY_None);
+        }
+    };
     class Picker final : public Popup {
         CCLabelBMFont* m_status=nullptr;
         WeakRef<CCTextInputNode> m_target;
@@ -368,7 +376,7 @@ namespace {
                 Filter guard(input,text);
                 auto before=input->getString();
                 input->m_textField->m_uCursorPos=m_cursorPosition;
-                input->m_textField->insertText(text,static_cast<int>(std::strlen(text)),KEY_None);
+                NativeInsert::apply(input->m_textField,text,static_cast<int>(std::strlen(text)));
                 if(input->getString()==before) {
                     m_status->setString("Text limit reached - remove some text first");
                     return;
