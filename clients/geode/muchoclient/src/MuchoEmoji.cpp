@@ -291,9 +291,11 @@ namespace {
             tip->setScale(.28f); tip->setPosition({180,241}); m_mainLayer->addChild(tip);
             auto menu=CCMenu::create(); menu->setPosition({180,207}); m_mainLayer->addChild(menu);
             for(size_t i=0;i<Choices.size();++i) {
-                auto text=CCLabelBMFont::create(Choices[i],"bigFont.fnt"); text->setScale(.5f);
+                auto text=CCLabelBMFont::create(Choices[i],"bigFont.fnt");
+                text->setScale(24.f/std::max(1.f,text->getContentHeight()));
                 auto item=mucho::button(text,this,menu_selector(Picker::onChoice)); item->setTag(static_cast<int>(i));
-                item->setContentSize({32,32}); item->setPosition({(static_cast<int>(i%8)-3.5f)*39.f,-static_cast<float>(i/8)*30.f});
+                item->setContentSize({32,32}); text->setPosition({16,16});
+                item->setPosition({(static_cast<int>(i%8)-3.5f)*39.f,-static_cast<float>(i/8)*30.f});
                 menu->addChild(item);
             }
             m_status=CCLabelBMFont::create("4009 emoji | offline | Twemoji 17","bigFont.fnt");
