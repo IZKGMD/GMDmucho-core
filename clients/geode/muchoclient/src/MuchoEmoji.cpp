@@ -281,6 +281,7 @@ class $modify(MuchoEmojiInput,CCTextInputNode) {
             auto menu=CCMenu::create(); menu->setID("mucho-emoji-input-menu");
             menu->setPosition({0,0}); menu->addChild(button); addChild(menu,100);
             m_fields->menu=menu;
+            geode::cocos::handleTouchPriority(this);
         }
         if(m_fields->menu) {
             m_fields->menu->setVisible(eligible);
