@@ -12,6 +12,9 @@ Emoji pages are loaded on demand from the package (16 pages of 512x512, at most
 16 MiB of RGBA textures if every page is used). ASCII labels retain the native
 path. Parsing happens on text changes, with at most 128 image sprites per label
 and a 16 KiB rich-label limit; there is no emoji network traffic or polling.
+Sprite nodes are reused across layout/scale changes, and emoji sharing an atlas
+page use one sprite batch. Input cursor positions map UTF-16 sequences to visible
+emoji slots without changing the submitted text.
 Native rich-text descriptors and batched level-text objects retain their original
 rendering. This is not a replacement for a general Unicode text engine. Device
 rendering, keyboard behavior and frame times still require in-game verification.

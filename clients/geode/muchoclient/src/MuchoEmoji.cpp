@@ -10,6 +10,7 @@
 #include <Geode/loader/GameEvent.hpp>
 #include <Geode/ui/Popup.hpp>
 #include <Geode/utils/general.hpp>
+#include <Geode/utils/string.hpp>
 #include <array>
 #include <cmath>
 #include <cstdlib>
@@ -20,10 +21,11 @@ namespace {
     constexpr char const* StateKey="mucho-emoji-label";
     bool enabled=true, stopped=false;
     std::vector<WeakRef<CCLabelBMFont>> labels;
-    struct Slot { size_t index; Ref<CCSprite> image; };
+    struct Slot { size_t index; uint16_t id; Ref<CCSprite> image; };
     class State final : public CCObject {
     public:
         Plan text; Ref<CCNode> layer; std::vector<Slot> slots; bool dirty=true;
+        std::array<Ref<CCSpriteBatchNode>,data::PageCount> batches;
     };
     State* state(CCNode* node) { return static_cast<State*>(node->getUserObject(StateKey)); }
     void remember(CCLabelBMFont* label) {
@@ -51,7 +53,7 @@ namespace {
         if(stopped||id>=data::ImageCount) return nullptr;
         auto page=id/data::PerPage, cell=id%data::PerPage;
         auto path=Mod::get()->getResourcesDir()/fmt::format("emoji-page-{}.png",page);
-        auto texture=CCTextureCache::get()->addImage(path.string().c_str(),false);
+        auto texture=CCTextureCache::get()->addImage(utils::string::pathToString(path).c_str(),false);
         if(!texture) return nullptr;
         auto rect=CC_RECT_PIXELS_TO_POINTS(CCRect(
             static_cast<float>((cell%data::Columns)*data::Cell+2),
@@ -60,17 +62,36 @@ namespace {
         return CCSprite::createWithTexture(texture,rect);
     }
     void rebuild(CCLabelBMFont* label,State* value) {
-        value->dirty=false; value->slots.clear();
-        value->layer=CCNode::create(); value->layer->setAnchorPoint({0,0});
+        value->dirty=false;
+        if(!value->layer) {value->layer=CCNode::create(); value->layer->setAnchorPoint({0,0});}
         if(!label->m_sString) return;
         size_t ordinal=0;
         for(size_t i=0;label->m_sString[i]&&i<MaxBytes;++i) {
             if(label->m_sString[i]!=static_cast<unsigned char>(Placeholder)) continue;
             if(ordinal>=value->text.images.size()) break;
-            auto sprite=image(value->text.images[ordinal++]);
-            if(sprite) value->layer->addChild(sprite);
-            value->slots.push_back({i,sprite});
+            auto id=value->text.images[ordinal];
+            if(ordinal<value->slots.size()&&value->slots[ordinal].id==id) {
+                value->slots[ordinal].index=i; ++ordinal; continue;
+            }
+            if(ordinal<value->slots.size()&&value->slots[ordinal].image)
+                value->slots[ordinal].image->removeFromParentAndCleanup(true);
+            auto sprite=image(id);
+            if(sprite) {
+                auto page=id/data::PerPage;
+                auto& batch=value->batches[page];
+                if(!batch) {
+                    batch=CCSpriteBatchNode::createWithTexture(sprite->getTexture(),8);
+                    batch->setAnchorPoint({0,0}); value->layer->addChild(batch);
+                } else if(batch->getTexture()!=sprite->getTexture()) batch->setTexture(sprite->getTexture());
+                batch->addChild(sprite);
+            }
+            if(ordinal<value->slots.size()) value->slots[ordinal]={i,id,sprite};
+            else value->slots.push_back({i,id,sprite});
+            ++ordinal;
         }
+        for(size_t i=ordinal;i<value->slots.size();++i)
+            if(value->slots[i].image)value->slots[i].image->removeFromParentAndCleanup(true);
+        value->slots.resize(ordinal);
     }
     void prepareDraw(CCLabelBMFont* label,State* value) {
         if(value->dirty) rebuild(label,value);
@@ -129,6 +150,7 @@ $on_game(Exiting) {
     stopped=true;
     for(auto const& weak:labels) if(auto label=weak.lock()) if(auto st=state(label)) {
         st->slots.clear(); st->layer=nullptr;
+        for(auto& batch:st->batches)batch=nullptr;
     }
     labels.clear();
 }
