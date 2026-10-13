@@ -26,6 +26,10 @@ def find(text):
             if " ".join(value.split()) == " ".join(text.split()) or value.endswith(", " + text) or value.endswith("\n" + text):
                 return node
         time.sleep(1)
+    (OUT / "failure.xml").write_text(ET.tostring(root, encoding="unicode"))
+    screenshot("failure")
+    (OUT / "logcat.txt").write_text(adb("logcat", "-d", "-v", "brief"))
+    print("Observed UI:", [(node.get("text"), node.get("content-desc")) for node in root.iter("node")])
     raise AssertionError(f"UI text not found: {text}")
 
 
@@ -41,7 +45,7 @@ def screenshot(name):
 
 
 adb("logcat", "-c")
-adb("shell", "am", "start", "-W", "-n", "space.muchocore.launcher/com.geode.launcher.MainActivity")
+print(adb("shell", "am", "start", "-W", "-n", "space.muchocore.launcher/com.geode.launcher.MainActivity"))
 find("Играй. Создавай.\nБудь Mucho.")
 screenshot("home")
 for tab, expected, filename in [
