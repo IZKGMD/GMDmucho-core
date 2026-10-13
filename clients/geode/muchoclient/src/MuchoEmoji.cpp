@@ -14,6 +14,7 @@
 #include <array>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 
 using namespace geode::prelude;
 namespace mucho::emoji {
@@ -262,7 +263,34 @@ class $modify(MuchoEmojiMultiline,MultilineBitmapFont) {
         return true;
     }
 };
+namespace mucho::emoji { void showPickerFor(CCTextInputNode* input); }
 class $modify(MuchoEmojiInput,CCTextInputNode) {
+    struct Fields { Ref<CCMenu> menu; };
+    void onEmoji(CCObject*) {
+        if(mucho::emoji::freeText(this)) mucho::emoji::showPickerFor(this);
+    }
+    void visit() {
+        using namespace mucho::emoji;
+        bool eligible=enabled&&!stopped&&freeText(this)&&isVisible()&&getContentWidth()>=60;
+        if(eligible&&!m_fields->menu) {
+            auto face=CCLabelBMFont::create("\U0001f60a","bigFont.fnt");
+            face->setScale(20.f/std::max(1.f,face->getContentHeight()));
+            auto button=mucho::button(face,this,menu_selector(MuchoEmojiInput::onEmoji));
+            button->setContentSize({26,26}); face->setPosition({13,13});
+            button->setID("mucho-emoji-button");
+            auto menu=CCMenu::create(); menu->setID("mucho-emoji-input-menu");
+            menu->setPosition({0,0}); menu->addChild(button); addChild(menu,100);
+            m_fields->menu=menu;
+        }
+        if(m_fields->menu) {
+            m_fields->menu->setVisible(eligible);
+            // Inputs use a centred coordinate system. Keep the control inside
+            // the right edge so popup clipping does not hide it.
+            auto button=m_fields->menu->getChildren()->objectAtIndex(0);
+            static_cast<CCNode*>(button)->setPosition({getContentWidth()/2.f-14.f,0});
+        }
+        CCTextInputNode::visit();
+    }
     void updateBlinkLabelToChar(int index) {
         if(m_textLabel&&mucho::emoji::state(m_textLabel)) {
             auto source=getString();
@@ -298,10 +326,12 @@ namespace {
     };
     class Picker final : public Popup {
         CCLabelBMFont* m_status=nullptr;
-        bool init() {
+        WeakRef<CCTextInputNode> m_target;
+        bool init(CCTextInputNode* target) {
             if(!Popup::init(360,286)) return false;
+            m_target=target;
             setTitle("Mucho Emoji");
-            auto tip=CCLabelBMFont::create("Tap to copy. Paste into a comment or message.","bigFont.fnt");
+            auto tip=CCLabelBMFont::create(target?"Tap an emoji to insert it into your text.":"Tap to copy. Paste into a comment or message.","bigFont.fnt");
             tip->setScale(.28f); tip->setPosition({180,241}); m_mainLayer->addChild(tip);
             auto menu=CCMenu::create(); menu->setPosition({180,207}); m_mainLayer->addChild(menu);
             for(size_t i=0;i<Choices.size();++i) {
@@ -319,14 +349,27 @@ namespace {
         void onChoice(CCObject* sender) {
             auto item=typeinfo_cast<CCNode*>(sender); if(!item) return;
             auto index=item->getTag(); if(index<0||static_cast<size_t>(index)>=Choices.size()) return;
+            if(auto input=m_target.lock()) {
+                if(!freeText(input)||!input->m_textField) return;
+                auto text=Choices[static_cast<size_t>(index)];
+                // Use the native insertion path: preserve cursor, length checks,
+                // swear filtering, and TextInputDelegate notifications.
+                Filter guard(input,text);
+                input->m_textField->insertText(text,static_cast<int>(std::strlen(text)),KEY_None);
+                onClose(nullptr);
+                return;
+            }
             if(clipboard::write(Choices[static_cast<size_t>(index)]))
                 m_status->setString((std::string("Copied ")+Choices[static_cast<size_t>(index)]+" - paste into your text").c_str());
             else m_status->setString("Clipboard unavailable on this device");
             m_status->limitLabelWidth(330,.28f,.18f);
         }
     public:
-        static Picker* create() { auto p=new Picker(); if(p->init()){p->autorelease();return p;} delete p; return nullptr; }
+        static Picker* create(CCTextInputNode* target=nullptr) { auto p=new Picker(); if(p->init(target)){p->autorelease();return p;} delete p; return nullptr; }
     };
+}
+void showPickerFor(CCTextInputNode* input) {
+    if(enabled&&!stopped&&input&&freeText(input)) if(auto popup=Picker::create(input)) popup->show();
 }
 void showPicker() {
     if(!enabled) { FLAlertLayer::create("Emoji", "Enable Emoji Support in MuchoClient settings first.","OK")->show(); return; }
