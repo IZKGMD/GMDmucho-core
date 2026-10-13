@@ -14,6 +14,7 @@
 #include <array>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 
 using namespace geode::prelude;
 namespace mucho::emoji {
@@ -262,7 +263,43 @@ class $modify(MuchoEmojiMultiline,MultilineBitmapFont) {
         return true;
     }
 };
+namespace mucho::emoji { void showPickerFor(CCTextInputNode* input); }
 class $modify(MuchoEmojiInput,CCTextInputNode) {
+    struct Fields { Ref<CCMenu> menu; };
+    void onEmoji(CCObject*) {
+        if(mucho::emoji::freeText(this)) mucho::emoji::showPickerFor(this);
+    }
+    void visit() {
+        using namespace mucho::emoji;
+        bool eligible=enabled&&!stopped&&freeText(this)&&isVisible()&&getContentWidth()>=60;
+        if(eligible&&!m_fields->menu) {
+            auto face=CCLabelBMFont::create("\U0001f60a","bigFont.fnt");
+            face->setScale(20.f/std::max(1.f,face->getContentHeight()));
+            auto button=mucho::button(face,this,menu_selector(MuchoEmojiInput::onEmoji));
+            button->setContentSize({26,26}); face->setPosition({13,13});
+            button->setID("mucho-emoji-button");
+            auto menu=CCMenu::create(); menu->setID("mucho-emoji-input-menu");
+            menu->setPosition({0,0}); menu->addChild(button); addChild(menu,100);
+            m_fields->menu=menu;
+            geode::cocos::handleTouchPriority(this);
+        }
+        if(m_fields->menu) {
+            m_fields->menu->setVisible(eligible);
+            // Inputs use a centred coordinate system. Keep the control inside
+            // the right edge so popup clipping does not hide it.
+            auto button=m_fields->menu->getChildren()->objectAtIndex(0);
+            static_cast<CCNode*>(button)->setPosition({getContentWidth()/2.f-14.f,0});
+        }
+        CCTextInputNode::visit();
+    }
+    bool ccTouchBegan(CCTouch* touch,CCEvent* event) {
+        if(m_fields->menu&&m_fields->menu->isVisible()) {
+            auto point=convertToNodeSpace(touch->getLocation());
+            auto button=static_cast<CCNode*>(m_fields->menu->getChildren()->objectAtIndex(0));
+            if(button->boundingBox().containsPoint(point)) return false;
+        }
+        return CCTextInputNode::ccTouchBegan(touch,event);
+    }
     void updateBlinkLabelToChar(int index) {
         if(m_textLabel&&mucho::emoji::state(m_textLabel)) {
             auto source=getString();
@@ -296,12 +333,25 @@ namespace {
         "\u2764\ufe0f","\U0001f494","\U0001f49c","\U0001f49a","\U0001f499","\U0001f49b","\u2b50","\u2728",
         "\U0001f44d","\U0001f44e","\U0001f44f","\U0001f64f","\U0001f4aa","\U0001f440","\U0001f680","\U0001f3c6"
     };
+    struct NativeInsert : CCTextFieldTTF {
+        static void apply(CCTextFieldTTF* field,char const* text,int length) {
+            // Take the inherited member pointer in an access-authorized scope;
+            // call it on the real base object without downcasting the instance.
+            auto method=&NativeInsert::insertText;
+            (field->*method)(text,length,KEY_None);
+        }
+    };
     class Picker final : public Popup {
         CCLabelBMFont* m_status=nullptr;
-        bool init() {
+        WeakRef<CCTextInputNode> m_target;
+        bool m_insert=false;
+        int m_cursorPosition=0;
+        bool init(CCTextInputNode* target) {
             if(!Popup::init(360,286)) return false;
+            m_target=target; m_insert=target!=nullptr;
+            if(target&&target->m_textField) m_cursorPosition=target->m_textField->m_uCursorPos;
             setTitle("Mucho Emoji");
-            auto tip=CCLabelBMFont::create("Tap to copy. Paste into a comment or message.","bigFont.fnt");
+            auto tip=CCLabelBMFont::create(target?"Tap an emoji to insert it into your text.":"Tap to copy. Paste into a comment or message.","bigFont.fnt");
             tip->setScale(.28f); tip->setPosition({180,241}); m_mainLayer->addChild(tip);
             auto menu=CCMenu::create(); menu->setPosition({180,207}); m_mainLayer->addChild(menu);
             for(size_t i=0;i<Choices.size();++i) {
@@ -319,14 +369,34 @@ namespace {
         void onChoice(CCObject* sender) {
             auto item=typeinfo_cast<CCNode*>(sender); if(!item) return;
             auto index=item->getTag(); if(index<0||static_cast<size_t>(index)>=Choices.size()) return;
+            if(auto input=m_target.lock()) {
+                if(!freeText(input)||!input->m_textField) return;
+                auto text=Choices[static_cast<size_t>(index)];
+                // Use the native insertion path: preserve cursor, length checks,
+                // swear filtering, and TextInputDelegate notifications.
+                Filter guard(input,text);
+                auto before=input->getString();
+                input->m_textField->m_uCursorPos=m_cursorPosition;
+                NativeInsert::apply(input->m_textField,text,static_cast<int>(std::strlen(text)));
+                if(input->getString()==before) {
+                    m_status->setString("Text limit reached - remove some text first");
+                    return;
+                }
+                onClose(nullptr);
+                return;
+            }
+            if(m_insert) { onClose(nullptr); return; }
             if(clipboard::write(Choices[static_cast<size_t>(index)]))
                 m_status->setString((std::string("Copied ")+Choices[static_cast<size_t>(index)]+" - paste into your text").c_str());
             else m_status->setString("Clipboard unavailable on this device");
             m_status->limitLabelWidth(330,.28f,.18f);
         }
     public:
-        static Picker* create() { auto p=new Picker(); if(p->init()){p->autorelease();return p;} delete p; return nullptr; }
+        static Picker* create(CCTextInputNode* target=nullptr) { auto p=new Picker(); if(p->init(target)){p->autorelease();return p;} delete p; return nullptr; }
     };
+}
+void showPickerFor(CCTextInputNode* input) {
+    if(enabled&&!stopped&&input&&freeText(input)) if(auto popup=Picker::create(input)) popup->show();
 }
 void showPicker() {
     if(!enabled) { FLAlertLayer::create("Emoji", "Enable Emoji Support in MuchoClient settings first.","OK")->show(); return; }
