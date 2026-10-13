@@ -74,6 +74,10 @@ jobs:
           /tmp/motion-rules
           g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-performance.cpp -o /tmp/client-performance
           /tmp/client-performance
+          g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-emoji.cpp -o /tmp/client-emoji
+          /tmp/client-emoji
+          python3 clients/geode/muchoclient/build-emoji-assets.py --index-only
+          git diff --exit-code clients/geode/muchoclient/src/MuchoEmojiData.hpp
       - name: Test authenticated clan lifecycle against MariaDB
         env:
           TEST_DB_HOST: 127.0.0.1
@@ -84,8 +88,28 @@ jobs:
           php tests/application/clan-client-integration.php
           php tests/application/daily-quest-integration.php
 
+  emoji-assets:
+    name: Build pinned offline emoji atlas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate and verify Twemoji atlas
+        run: |
+          python -m pip install Pillow==11.3.0
+          python clients/geode/muchoclient/build-emoji-assets.py
+          git diff --exit-code clients/geode/muchoclient/src/MuchoEmojiData.hpp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MuchoClient-Emoji-Assets
+          path: clients/geode/muchoclient/resources/emoji-*
+          if-no-files-found: error
+
   geode-build:
     name: ${{ matrix.platform.name }}
+    needs: [emoji-assets]
     strategy:
       fail-fast: false
       matrix:
@@ -96,6 +120,10 @@ jobs:
     runs-on: ${{ matrix.platform.runner }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: MuchoClient-Emoji-Assets
+          path: clients/geode/muchoclient/resources
 
       # The official action configures the repository root as the Geode
       # CMake project. Overlay only source/metadata in the CI workspace;
@@ -109,6 +137,8 @@ jobs:
           cp clients/geode/muchoclient/CHANGELOG.md CHANGELOG.md
           cp clients/geode/muchoclient/src/*.cpp src/
           cp clients/geode/muchoclient/src/*.hpp src/
+          mkdir -p resources
+          cp clients/geode/muchoclient/resources/emoji-* resources/
           test -f CMakeLists.txt
           test -f mod.json
           test -f src/main.cpp
@@ -138,4 +168,5 @@ jobs:
           path: ${{ steps.package.outputs.build-output }}
           if-no-files-found: error
           retention-days: 30
+
 

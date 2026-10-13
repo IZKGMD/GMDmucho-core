@@ -1,4 +1,25 @@
-# MuchoClient 0.9.3 — one file for all modules
+# MuchoClient 0.9.4 — one file for all modules
+
+
+Emoji Support renders 4009 bundled Twemoji 17 images in ordinary bitmap labels,
+plain multiline comments/descriptions and Mucho UI. Whole UTF-8 sequences map to
+one native layout slot: flags, skin tones, keycaps and ZWJ families are supported.
+Original text is retained for getters, copying and protocol transmission. Free-text
+inputs temporarily allow bytes belonging to recognized emoji; numeric/password
+filters stay active. The Emoji button copies 48 common choices for pasting.
+
+Emoji pages are loaded on demand from the package (16 pages of 512x512, at most
+16 MiB of RGBA textures if every page is used). ASCII labels retain the native
+path. Parsing happens on text changes, with at most 128 image sprites per label
+and a 16 KiB rich-label limit; there is no emoji network traffic or polling.
+Sprite nodes are reused across layout/scale changes, and emoji sharing an atlas
+page use one sprite batch. Input cursor positions map UTF-16 sequences to visible
+emoji slots without changing the submitted text.
+Native rich-text descriptors and batched level-text objects retain their original
+rendering. This is not a replacement for a general Unicode text engine. Device
+rendering, keyboard behavior and frame times still require in-game verification.
+Disable Emoji Support in Geode settings and restart to return to native text.
+Graphics attribution and CC BY 4.0 license are included in the package.
 
 Smooth UI Animations is enabled by default in Geode settings. Mucho windows
 open/close with short scale transitions; module buttons, ranking rows, clan
@@ -219,4 +240,5 @@ New POST endpoints:
 `kind` is `avatar` or `banner`. Server/CI validation is in `tests/application/profile-images.php`, `tests/application/clan-client-integration.php` and `tests/client/muchoclient-clan-rules.cpp`. Daily Quest countdown text updates once a second; cached name colors repaint only when their appearance revision changes. Decorative processing is deferred while a PlayLayer exists, including while paused.
 
 Native UI layout/file picker behavior still needs verification in the actual game on a device.
+
 

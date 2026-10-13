@@ -1,3 +1,13 @@
+# v0.9.4
+
+- Bundle 4009 Twemoji 17 color emoji in 16 offline atlas pages with source hash verification and attribution.
+- Render whole Unicode emoji sequences in bitmap labels and plain multiline comments/descriptions; preserve source text.
+- Extend only eligible free-text input filters temporarily for known emoji bytes; preserve password/numeric filters.
+- Add Emoji Support setting, a 48-choice copy/paste picker and UTF-8/emoji-safe Mucho clan text truncation.
+- Keep ASCII labels on the native path, cap per-label sprites and parse on text changes. No server migration.
+- Reuse emoji sprites across layout changes, batch by atlas page and map input cursor positions to complete emoji slots.
+- Native rich-text descriptor and batched level-text paths remain unchanged; device UI/FPS validation remains pending.
+
 # v0.9.3
 
 - Add viewport-fitted opening/closing transitions to Mucho windows; preserve unsaved-image confirmation and cancel requests before closing.
@@ -112,4 +122,5 @@ Update MuchoCore as well for the appearance API and its automatic database migra
 - Visible client version and native clan routing by the core API entrypoint.
 
 Update MuchoCore as well for sent invitations and paginated search.
+
 

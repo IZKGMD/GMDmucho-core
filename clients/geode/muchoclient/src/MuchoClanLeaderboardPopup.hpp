@@ -1,4 +1,5 @@
 #pragma once
+#include "MuchoEmoji.hpp"
 
 #include "MuchoClansPopup.hpp"
 #include <array>
@@ -38,7 +39,7 @@ class MuchoClanLeaderboardPopup final : public geode::Popup {
     static std::string text(matjson::Value const& value, char const* key) {
         auto result = value[key].asString().unwrapOr("");
         for (auto& c : result) if (c == '<' || c == '>' || static_cast<unsigned char>(c) < 32) c = ' ';
-        if (result.size() > 60) result.resize(60);
+        if (result.size() > 60) result = mucho::emoji::shortenText(result,60);
         return result;
     }
     CCLabelBMFont* label(CCNode* parent, std::string const& value, float x, float y,
@@ -198,4 +199,5 @@ public:
         delete popup; return nullptr;
     }
 };
+
 

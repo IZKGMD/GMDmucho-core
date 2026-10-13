@@ -6,7 +6,7 @@
   },
   "id": "izkgmd.muchoclient",
   "name": "MuchoClient",
-  "version": "v0.9.3",
+  "version": "v0.9.4",
   "developer": "IZKGMD",
   "description": "One MuchoCore client for Daily Quests, clans, profiles, colors and server plugins",
   "tags": [
@@ -32,7 +32,19 @@
       "name": "MuchoCore Server URL",
       "description": "GDPS HTTPS origin only (without /database)",
       "default": "https://muchogdps.space"
+    },
+    "emoji-support": {
+      "type": "bool",
+      "name": "Emoji Support",
+      "description": "Display bundled color emoji in bitmap text, plain comments/descriptions and Mucho UI. Restart after toggling for all existing paragraphs.",
+      "default": true
     }
+  },
+  "resources": {
+    "files": [
+      "resources/emoji-page-*.png",
+      "resources/emoji-attribution.txt",
+      "resources/emoji-manifest.json"
+    ]
   }
 }
-
