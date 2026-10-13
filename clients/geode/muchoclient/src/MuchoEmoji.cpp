@@ -122,16 +122,22 @@ namespace {
         return filter.empty()||(filter.find(' ')!=std::string_view::npos&&filter.find('a')!=std::string_view::npos);
     }
     struct Filter {
-        CCTextInputNode* input; gd::string original;
+        CCTextInputNode* input; gd::string original; std::string applied; bool changed=false;
         Filter(CCTextInputNode* node,std::string_view text):input(node),original(node->m_allowedChars) {
             if(enabled&&!stopped&&freeText(node)&&!original.empty()) {
                 auto extra=inputBytes(text,data::catalog());
                 std::string extended(original.c_str(),original.size());
                 for(char c:extra) if(extended.find(c)==std::string::npos) extended+=c;
-                input->m_allowedChars=extended;
+                if(extended!=std::string_view(original.c_str(),original.size())) {
+                    applied=std::move(extended); input->m_allowedChars=applied; changed=true;
+                }
             }
         }
-        ~Filter(){input->m_allowedChars=std::move(original);}
+        ~Filter(){
+            // Preserve an intentional filter change made by an input callback.
+            if(changed&&std::string_view(input->m_allowedChars.c_str(),input->m_allowedChars.size())==applied)
+                input->m_allowedChars=std::move(original);
+        }
     };
     void refresh(bool value) {
         enabled=value;
@@ -216,10 +222,12 @@ class $modify(MuchoEmojiDraw,CCSpriteBatchNode) {
 class $modify(MuchoEmojiMultiline,MultilineBitmapFont) {
     bool initWithFont(char const* font,gd::string text,float scale,float width,CCPoint anchor,int height,bool disableColor) {
         using namespace mucho::emoji;
-        auto parsed=enabled&&!stopped?plan(std::string_view(text.c_str(),text.size()),data::catalog()):Plan{};
+        std::string_view view(text.c_str(),text.size());
+        if(!enabled||stopped||!hasNonAscii(view))
+            return MultilineBitmapFont::initWithFont(font,text,scale,width,anchor,height,disableColor);
+        auto parsed=plan(view,data::catalog());
         // Retain GD's rich-text path when descriptors are present. Plain emoji
         // paragraphs use one normal bitmap label, including native line wrapping.
-        std::string_view view(text.c_str(),text.size());
         bool descriptors=view.find("<c")!=std::string_view::npos||view.find("</c>")!=std::string_view::npos||
             view.find("<d")!=std::string_view::npos||view.find("<i")!=std::string_view::npos||view.find("<s")!=std::string_view::npos;
         if(parsed.images.empty()||descriptors||scale<=0||width<=0)
@@ -249,11 +257,16 @@ class $modify(MuchoEmojiInput,CCTextInputNode) {
         CCTextInputNode::updateBlinkLabelToChar(index);
     }
     void updateLabel(gd::string text) {
+        if(!mucho::emoji::enabled||mucho::emoji::stopped||!mucho::emoji::hasNonAscii(std::string_view(text.c_str(),text.size()))) {
+            CCTextInputNode::updateLabel(text); return;
+        }
         mucho::emoji::Filter guard(this,std::string_view(text.c_str(),text.size()));
         CCTextInputNode::updateLabel(text);
     }
     bool onTextFieldInsertText(CCTextFieldTTF* sender,char const* text,int length,enumKeyCodes keys) {
-        if(!text||length<=0) return CCTextInputNode::onTextFieldInsertText(sender,text,length,keys);
+        if(!text||length<=0||!mucho::emoji::enabled||mucho::emoji::stopped||
+            !mucho::emoji::hasNonAscii(std::string_view(text,static_cast<size_t>(length))))
+            return CCTextInputNode::onTextFieldInsertText(sender,text,length,keys);
         mucho::emoji::Filter guard(this,std::string_view(text,static_cast<size_t>(length)));
         return CCTextInputNode::onTextFieldInsertText(sender,text,length,keys);
     }
