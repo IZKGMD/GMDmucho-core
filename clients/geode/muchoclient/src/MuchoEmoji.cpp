@@ -343,6 +343,7 @@ class $modify(MuchoEmojiInput,CCTextInputNode) {
         m_fields->selecting=true;
         CCTextInputNode::updateCursorPosition(position,rect);
         m_fields->selecting=false;
+        if(!m_textField) return;
         auto source=getString();std::string_view text(source.c_str(),source.size());
         if(m_textField&&mucho::emoji::enabled&&mucho::emoji::hasNonAscii(text)&&mucho::emoji::freeText(this)) {
             m_textField->m_uCursorPos=mucho::emoji::sourceCursor(text,m_textField->m_uCursorPos,
@@ -351,6 +352,7 @@ class $modify(MuchoEmojiInput,CCTextInputNode) {
         }
     }
     void updateBlinkLabelToChar(int index) {
+        if(!m_textField) {CCTextInputNode::updateBlinkLabelToChar(index);return;}
         using namespace mucho::emoji;
         auto source=getString();std::string_view text(source.c_str(),source.size());
         if(enabled&&!stopped&&!m_fields->selecting&&freeText(this)&&hasNonAscii(text))
