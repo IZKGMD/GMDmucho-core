@@ -291,6 +291,14 @@ class $modify(MuchoEmojiInput,CCTextInputNode) {
         }
         CCTextInputNode::visit();
     }
+    bool ccTouchBegan(CCTouch* touch,CCEvent* event) {
+        if(m_fields->menu&&m_fields->menu->isVisible()) {
+            auto point=convertToNodeSpace(touch->getLocation());
+            auto button=static_cast<CCNode*>(m_fields->menu->getChildren()->objectAtIndex(0));
+            if(button->boundingBox().containsPoint(point)) return false;
+        }
+        return CCTextInputNode::ccTouchBegan(touch,event);
+    }
     void updateBlinkLabelToChar(int index) {
         if(m_textLabel&&mucho::emoji::state(m_textLabel)) {
             auto source=getString();
@@ -327,9 +335,12 @@ namespace {
     class Picker final : public Popup {
         CCLabelBMFont* m_status=nullptr;
         WeakRef<CCTextInputNode> m_target;
+        bool m_insert=false;
+        int m_cursorPosition=0;
         bool init(CCTextInputNode* target) {
             if(!Popup::init(360,286)) return false;
-            m_target=target;
+            m_target=target; m_insert=target!=nullptr;
+            if(target&&target->m_textField) m_cursorPosition=target->m_textField->m_uCursorPos;
             setTitle("Mucho Emoji");
             auto tip=CCLabelBMFont::create(target?"Tap an emoji to insert it into your text.":"Tap to copy. Paste into a comment or message.","bigFont.fnt");
             tip->setScale(.28f); tip->setPosition({180,241}); m_mainLayer->addChild(tip);
@@ -355,10 +366,17 @@ namespace {
                 // Use the native insertion path: preserve cursor, length checks,
                 // swear filtering, and TextInputDelegate notifications.
                 Filter guard(input,text);
+                auto before=input->getString();
+                input->m_textField->m_uCursorPos=m_cursorPosition;
                 input->m_textField->insertText(text,static_cast<int>(std::strlen(text)),KEY_None);
+                if(input->getString()==before) {
+                    m_status->setString("Text limit reached - remove some text first");
+                    return;
+                }
                 onClose(nullptr);
                 return;
             }
+            if(m_insert) { onClose(nullptr); return; }
             if(clipboard::write(Choices[static_cast<size_t>(index)]))
                 m_status->setString((std::string("Copied ")+Choices[static_cast<size_t>(index)]+" - paste into your text").c_str());
             else m_status->setString("Clipboard unavailable on this device");
