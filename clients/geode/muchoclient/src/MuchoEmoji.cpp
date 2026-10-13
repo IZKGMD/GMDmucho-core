@@ -28,6 +28,17 @@ namespace {
         std::array<Ref<CCSpriteBatchNode>,data::PageCount> batches;
     };
     State* state(CCNode* node) { return static_cast<State*>(node->getUserObject(StateKey)); }
+    std::string fontText(std::string_view text,CCBMFontConfiguration* config) {
+        std::string result; result.reserve(text.size());
+        for(size_t at=0;at<text.size();) {
+            auto r=decode(text,at);
+            if(r.cp>=128&&config&&config->m_pCharacterSet&&config->m_pCharacterSet->find(r.cp)==config->m_pCharacterSet->end())
+                result+='?';
+            else result.append(text.substr(at,r.bytes));
+            at+=r.bytes;
+        }
+        return result;
+    }
     void remember(CCLabelBMFont* label) {
         std::erase_if(labels,[](auto const& weak){return !weak.lock();});
         for(auto const& weak:labels) if(weak.lock().data()==label) return;
@@ -186,6 +197,9 @@ class $modify(MuchoEmojiLabel,CCLabelBMFont) {
             CCLabelBMFont::setString(original.c_str(),true); return;
         }
         auto parsed=plan(original,data::catalog());
+        // Missing BMP letters get a stable fallback slot instead of leaving
+        // holes in the native bitmap-font wrapping/cursor arrays.
+        parsed.render=fontText(parsed.render,m_pConfiguration);
         if(parsed.images.empty()) {
             if(old) setUserObject(StateKey,nullptr);
             CCLabelBMFont::setString(parsed.render.c_str(),true);
