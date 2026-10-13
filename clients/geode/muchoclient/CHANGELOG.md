@@ -1,3 +1,9 @@
+# v0.9.5
+
+- Smiley buttons in free-text input fields open an emoji menu.
+- Picking an emoji inserts at the cursor using native input filtering and length limits.
+- Numeric and password fields are excluded.
+
 # v0.9.4
 
 - Bundle 4009 Twemoji 17 color emoji in 16 offline atlas pages with source hash verification and attribution.

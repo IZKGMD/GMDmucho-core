@@ -1,4 +1,4 @@
-# MuchoClient 0.9.4 — one file for all modules
+# MuchoClient 0.9.5 — one file for all modules
 
 
 Emoji Support renders 4009 bundled Twemoji 17 images in ordinary bitmap labels,
@@ -242,3 +242,8 @@ New POST endpoints:
 Native UI layout/file picker behavior still needs verification in the actual game on a device.
 
 
+
+
+## Emoji input menus
+
+Free-text fields show a smiley button at the right edge. Tap it and select one of 48 quick emoji to insert at the saved cursor position. Numeric and password fields keep their original input controls. The standalone Emoji menu still copies to the clipboard. Native device UI testing is pending.
