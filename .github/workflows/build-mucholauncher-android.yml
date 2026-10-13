@@ -1,0 +1,94 @@
+name: Build MuchoLauncher Android
+on:
+  pull_request:
+    paths:
+      - 'clients/android-launcher/**'
+      - '.github/workflows/build-mucholauncher-android.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install stable Android build tools
+        run: |
+          set +o pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
+          set -o pipefail
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
+      - uses: actions/download-artifact@v4
+        with:
+          name: MuchoClient-Windows-Android
+          run-id: 38432138150
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: client-artifact
+      - name: Obtain pinned launcher source
+        run: |
+          git clone --depth 1 --branch 1.8.0 https://github.com/geode-sdk/android-launcher.git android-build
+          test "$(git -C android-build rev-parse HEAD)" = 38bc97b7b6551acb1295dd241231ca22e2cd8995
+      - name: Prepare verified client and loader
+        run: |
+          CLIENT_PACKAGE=$(find client-artifact -name '*.geode' -type f -print -quit)
+          test -n "$CLIENT_PACKAGE"
+          python clients/android-launcher/prepare.py --upstream android-build --client "$CLIENT_PACKAGE"
+      - name: Build both ARM architectures and test integrity engine
+        working-directory: android-build
+        run: |
+          chmod +x gradlew
+          ./gradlew app:testDebugUnitTest app:assembleRelease --no-daemon
+      - name: Verify APK contents
+        run: |
+          python clients/android-launcher/verify_apk.py android-build/app/build/outputs/apk/release/app-universal-release-unsigned.apk
+          mkdir android-artifact
+          cp android-build/app/build/outputs/apk/release/app-universal-release-unsigned.apk android-artifact/MuchoLauncher-v1.0.0-Android-unsigned.apk
+          cp android-build/app/build/outputs/apk/release/app-armeabi-v7a-release-unsigned.apk android-artifact/MuchoLauncher-v1.0.0-Android32-unsigned.apk
+          SIGNER_JAR=$(find "$ANDROID_HOME/build-tools" -name apksigner.jar | sort -V | tail -1)
+          cp "$SIGNER_JAR" android-artifact/apksigner.jar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MuchoLauncher-Android-unsigned
+          path: android-artifact/*
+          if-no-files-found: error
+      - name: Build UI smoke APK for emulator only
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('android-build/app/build.gradle.kts')
+          text = p.read_text().replace('ndk.abiFilters += listOf("arm64-v8a", "armeabi-v7a")', 'ndk.abiFilters += listOf("x86_64")')
+          p.write_text(text.replace('isEnable = true', 'isEnable = false'))
+          PY
+          cd android-build
+          ./gradlew app:assembleDebug --no-daemon
+      - name: Enable emulator acceleration
+        run: |
+          sudo chmod 666 /dev/kvm
+      - name: Exercise launcher screens on Android 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          profile: pixel_5
+          disable-animations: true
+          script: |
+            adb install android-build/app/build/outputs/apk/debug/app-debug.apk
+            python clients/android-launcher/smoke_ui.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: MuchoLauncher-Android-UI
+          path: android-ui/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: MuchoLauncher-Android-tests
+          path: android-build/app/build/reports/tests/
