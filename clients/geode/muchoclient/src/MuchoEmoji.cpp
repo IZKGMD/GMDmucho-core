@@ -22,10 +22,10 @@ namespace {
     constexpr char const* StateKey="mucho-emoji-label";
     bool enabled=true, stopped=false;
     std::vector<WeakRef<CCLabelBMFont>> labels;
-    struct Slot { size_t index; uint16_t id; Ref<CCSprite> image; };
+    struct Slot { size_t index; uint16_t id; Ref<CCSprite> image; CCPoint fallback; };
     class State final : public CCObject {
     public:
-        Plan text; Ref<CCNode> layer; std::vector<Slot> slots; bool dirty=true;
+        Plan text; Ref<CCNode> layer; std::vector<Slot> slots; bool dirty=true, input=false;
         std::array<Ref<CCSpriteBatchNode>,data::PageCount> batches;
     };
     State* state(CCNode* node) { return static_cast<State*>(node->getUserObject(StateKey)); }
@@ -76,31 +76,55 @@ namespace {
     void rebuild(CCLabelBMFont* label,State* value) {
         value->dirty=false;
         if(!value->layer) {value->layer=CCNode::create(); value->layer->setAnchorPoint({0,0});}
-        if(!label->m_sString) return;
+        auto config=label->m_pConfiguration;
+        auto anchors=markerAnchors(value->text.render,config?static_cast<float>(config->m_nCommonHeight):data::Tile,
+            [config](uint32_t prev,uint32_t cp) {
+                FontMetric result;if(!config) return result;
+                unsigned int key=cp;tCCFontDefHashElement* found=nullptr;
+                HASH_FIND_INT(config->m_pFontDefDictionary,&key,found);
+                if(found) {auto const& f=found->fontDef;
+                    result={static_cast<float>(f.xAdvance),f.rect.size.width,f.rect.size.height,
+                            static_cast<float>(f.xOffset),static_cast<float>(f.yOffset),0};}
+                tCCKerningHashElement* kern=nullptr;key=(prev<<16)|(cp&0xffff);
+                HASH_FIND_INT(config->m_pKerningDictionary,&key,kern);
+                if(kern) result.kerning=static_cast<float>(kern->amount);
+                return result;
+            });
+        // Native wrapped buffers may change tags; use their indices when all
+        // planned slots survive, but never truncate the image list to that buffer.
+        std::vector<size_t> native;
+        if(label->m_sString) for(size_t i=0;label->m_sString[i]&&i<MaxBytes;++i)
+            if(label->m_sString[i]==static_cast<unsigned char>(Placeholder)) native.push_back(i);
+        CCPoint offset={0,0};bool aligned=false;
         size_t ordinal=0;
-        for(size_t i=0;label->m_sString[i]&&i<MaxBytes;++i) {
-            if(label->m_sString[i]!=static_cast<unsigned char>(Placeholder)) continue;
+        for(auto const& anchor:anchors) {
             if(ordinal>=value->text.images.size()) break;
+            auto i=native.size()==anchors.size()?native[ordinal]:anchor.index;
+            auto fallback=CC_POINT_PIXELS_TO_POINTS(CCPoint(anchor.x,anchor.y));
+            if(!aligned) if(auto glyph=typeinfo_cast<CCSprite*>(label->getChildByTag(static_cast<int>(i)))) {
+                offset=glyph->getPosition()-fallback;aligned=true;
+            }
             auto id=value->text.images[ordinal];
             if(ordinal<value->slots.size()&&value->slots[ordinal].id==id) {
-                value->slots[ordinal].index=i; ++ordinal; continue;
+                value->slots[ordinal].index=i;value->slots[ordinal].fallback=fallback;
+                ++ordinal;continue;
             }
             if(ordinal<value->slots.size()&&value->slots[ordinal].image)
                 value->slots[ordinal].image->removeFromParentAndCleanup(true);
             auto sprite=image(id);
             if(sprite) {
-                auto page=id/data::PerPage;
-                auto& batch=value->batches[page];
+                auto page=id/data::PerPage;auto& batch=value->batches[page];
                 if(!batch) {
                     batch=CCSpriteBatchNode::createWithTexture(sprite->getTexture(),8);
-                    batch->setAnchorPoint({0,0}); value->layer->addChild(batch);
+                    batch->setAnchorPoint({0,0});value->layer->addChild(batch);
                 } else if(batch->getTexture()!=sprite->getTexture()) batch->setTexture(sprite->getTexture());
                 batch->addChild(sprite);
             }
-            if(ordinal<value->slots.size()) value->slots[ordinal]={i,id,sprite};
-            else value->slots.push_back({i,id,sprite});
+            if(ordinal<value->slots.size()) value->slots[ordinal]={i,id,sprite,fallback};
+            else value->slots.push_back({i,id,sprite,fallback});
             ++ordinal;
         }
+        for(auto& slot:value->slots) slot.fallback+=offset;
         for(size_t i=ordinal;i<value->slots.size();++i)
             if(value->slots[i].image)value->slots[i].image->removeFromParentAndCleanup(true);
         value->slots.resize(ordinal);
@@ -110,19 +134,35 @@ namespace {
         float unit=label->m_pConfiguration?static_cast<float>(label->m_pConfiguration->m_nCommonHeight)/data::Tile:1.f;
         for(auto& slot:value->slots) {
             auto glyph=typeinfo_cast<CCSprite*>(label->getChildByTag(static_cast<int>(slot.index)));
-            if(!glyph){if(slot.image)slot.image->setVisible(false);continue;}
+            if(value->input&&slot.image) {
+                slot.image->setVisible(true);slot.image->setPosition(slot.fallback);
+                slot.image->setScale(unit);slot.image->setRotationX(0);slot.image->setRotationY(0);
+                slot.image->setSkewX(0);slot.image->setSkewY(0);
+                slot.image->setOpacity(label->getDisplayedOpacity());
+                if(glyph) glyph->setTextureRect(CCRect(0,0,0,0),false,glyph->getContentSize());
+                continue;
+            }
+            if(!glyph) {
+                if(slot.image) {
+                    slot.image->setVisible(value->input);
+                    slot.image->setPosition(slot.fallback);
+                    slot.image->setScale(unit);
+                    slot.image->setOpacity(label->getDisplayedOpacity());
+                }
+                continue;
+            }
             if(!slot.image) {
                 unsigned int key='?'; tCCFontDefHashElement* fallback=nullptr;
                 if(label->m_pConfiguration) HASH_FIND_INT(label->m_pConfiguration->m_pFontDefDictionary,&key,fallback);
                 glyph->setTextureRect(fallback?CC_RECT_PIXELS_TO_POINTS(fallback->fontDef.rect):CCRect(0,0,0,0),false,glyph->getContentSize());
                 continue;
             }
-            slot.image->setVisible(glyph->isVisible());
+            slot.image->setVisible(value->input||glyph->isVisible());
             slot.image->setPosition(glyph->getPosition());
             slot.image->setScaleX(unit*glyph->getScaleX()); slot.image->setScaleY(unit*glyph->getScaleY());
             slot.image->setRotationX(glyph->getRotationX()); slot.image->setRotationY(glyph->getRotationY());
             slot.image->setSkewX(glyph->getSkewX()); slot.image->setSkewY(glyph->getSkewY());
-            slot.image->setOpacity(glyph->getDisplayedOpacity());
+            slot.image->setOpacity(value->input?label->getDisplayedOpacity():glyph->getDisplayedOpacity());
             // Keep the marker's size, visibility and opacity for native wrapping/fades;
             // a zero texture rectangle prevents its font-atlas quad from drawing.
             glyph->setTextureRect(CCRect(0,0,0,0),false,glyph->getContentSize());
@@ -365,6 +405,12 @@ class $modify(MuchoEmojiInput,CCTextInputNode) {
         }
         mucho::emoji::Filter guard(this,std::string_view(text.c_str(),text.size()));
         CCTextInputNode::updateLabel(text);
+        // Editable text is static. Native glyph fade/hide flags are not an
+        // authoritative visibility mask for the separate emoji images.
+        if(m_textLabel) if(auto st=mucho::emoji::state(m_textLabel)) st->input=true;
+        if(m_textArea&&m_textArea->m_label&&m_textArea->m_label->m_lines)
+            for(auto line:CCArrayExt<CCLabelBMFont*>(m_textArea->m_label->m_lines))
+                if(auto st=mucho::emoji::state(line)) st->input=true;
     }
     bool onTextFieldInsertText(CCTextFieldTTF* sender,char const* text,int length,enumKeyCodes keys) {
         if(!text||length<=0||!mucho::emoji::enabled||mucho::emoji::stopped||

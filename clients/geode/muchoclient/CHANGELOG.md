@@ -1,3 +1,8 @@
+# v0.9.7
+
+- Keep every adjacent emoji render slot even when native glyphs are missing or hidden.
+- Use stable font-metric positions and static image state in editable fields.
+
 # v0.9.6
 
 - Keep native multiline lines, glyphs and metrics while drawing emoji.
