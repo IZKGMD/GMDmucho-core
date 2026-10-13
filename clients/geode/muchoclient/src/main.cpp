@@ -6,6 +6,7 @@
 #include "MuchoProfilePopup.hpp"
 #include "MuchoMenuAvatar.hpp"
 #include "MuchoDailyQuestsPopup.hpp"
+#include "MuchoEmoji.hpp"
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/CreatorLayer.hpp>
 #include <Geode/ui/Popup.hpp>
@@ -23,7 +24,7 @@ using namespace geode::prelude;
 
 namespace {
     constexpr char const* CLIENT_ID = "izkgmd.muchoclient";
-    constexpr char const* CLIENT_VERSION = "0.9.3";
+    constexpr char const* CLIENT_VERSION = "0.9.4";
     constexpr int PROTOCOL = 1;
 
     struct Feature {
@@ -65,7 +66,7 @@ namespace {
         ) != 3) {
             return false;
         }
-        return std::tuple{0u, 9u, 3u} >= std::tuple{major, minor, patch};
+        return std::tuple{0u, 9u, 4u} >= std::tuple{major, minor, patch};
     }
 
     // Untrusted server text is displayed only, never evaluated as UI markup.
@@ -76,7 +77,7 @@ namespace {
                 c != '\n' && c != '\t') c = ' ';
             if (c == '\n' || c == '\t') c = ' ';
         }
-        if (text.size() > limit) text.resize(limit);
+        if (text.size() > limit) text = mucho::emoji::shortenText(text,limit);
         return text;
     }
 
@@ -121,7 +122,7 @@ protected:
         if (!Popup::init(340.f, 310.f)) return false;
         m_origin = std::move(origin);
         m_features = std::move(features);
-        this->setTitle("MuchoClient v0.9.3");
+        this->setTitle("MuchoClient v0.9.4");
 
         auto status = CCLabelBMFont::create(
             "Connected to MuchoCore", "goldFont.fnt"
@@ -153,10 +154,12 @@ protected:
         auto colors = mucho::button(ButtonSprite::create("Colors"), this,
             menu_selector(MuchoFeaturesPopup::onColors), .43f);
         auto colorsMenu = CCMenu::create(); colorsMenu->setPosition({170.f, 26.f});
-        colors->setPositionX(-58.f);
+        colors->setPositionX(-108.f);
         colorsMenu->addChild(colors); m_mainLayer->addChild(colorsMenu);
         auto profile = mucho::button(ButtonSprite::create("Profile"),this,menu_selector(MuchoFeaturesPopup::onProfile),.43f);
-        profile->setPositionX(58.f); colorsMenu->addChild(profile);
+        profile->setPositionX(108.f); colorsMenu->addChild(profile);
+        auto emoji=mucho::button(ButtonSprite::create("Emoji"),this,menu_selector(MuchoFeaturesPopup::onEmoji),.43f);
+        colorsMenu->addChild(emoji);
         mucho::motion::panel(m_mainLayer);
         return true;
     }
@@ -175,6 +178,7 @@ protected:
         }
         m_pageLabel->setString((std::to_string(m_page+1)+" / "+std::to_string(mucho::quests::pageCount(m_features.size()))).c_str());
     }
+    void onEmoji(CCObject*) { mucho::emoji::showPicker(); }
     void onPrevious(CCObject*) { if (m_page > 0) { --m_page; renderFeatures(); } }
     void onNext(CCObject*) { if (m_page+1 < mucho::quests::pageCount(m_features.size())) { ++m_page; renderFeatures(); } }
     void onClose(CCObject* sender) override {
@@ -449,4 +453,5 @@ class $modify(MuchoCreatorLayer, CreatorLayer) {
         if (auto popup = MuchoClanLeaderboardPopup::create(origin)) popup->show();
     }
 };
+
 

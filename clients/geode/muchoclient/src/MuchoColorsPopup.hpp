@@ -1,4 +1,5 @@
 #pragma once
+#include "MuchoEmoji.hpp"
 
 #include <Geode/ui/Popup.hpp>
 #include <Geode/ui/TextInput.hpp>
@@ -44,7 +45,7 @@ class MuchoColorsPopup final : public Popup {
     }
     void status(std::string text) {
         for (auto& c : text) if (static_cast<unsigned char>(c) < 32 || c == '<' || c == '>') c = ' ';
-        if (text.size() > 180) text.resize(180);
+        if (text.size() > 180) text = mucho::emoji::shortenText(text,180);
         m_status->setString(text.c_str()); m_status->limitLabelWidth(320.f, .27f, 0.f);
         mucho::motion::feedback(m_status);
         mucho::motion::loading(m_mainLayer,m_busy,{342.f,12.f});
@@ -191,4 +192,5 @@ public:
         delete popup; return nullptr;
     }
 };
+
 

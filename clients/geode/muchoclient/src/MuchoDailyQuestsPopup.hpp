@@ -1,4 +1,5 @@
 #pragma once
+#include "MuchoEmoji.hpp"
 
 #include <Geode/Geode.hpp>
 #include <Geode/ui/Popup.hpp>
@@ -45,7 +46,7 @@ class MuchoDailyQuestsPopup final : public geode::Popup {
     }
     static std::string clean(std::string value, size_t limit = 100) {
         for (auto& c : value) if (c == '<' || c == '>' || static_cast<unsigned char>(c) < 32) c = ' ';
-        if (value.size() > limit) value.resize(limit);
+        if (value.size() > limit) value = mucho::emoji::shortenText(value,limit);
         return value;
     }
     bool sameSession() const {
@@ -235,4 +236,5 @@ public:
         delete popup; return nullptr;
     }
 };
+
 

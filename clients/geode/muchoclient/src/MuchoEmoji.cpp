@@ -1,0 +1,270 @@
+#include "MuchoEmoji.hpp"
+#include "MuchoEmojiData.hpp"
+#include "MuchoUi.hpp"
+#include <Geode/Geode.hpp>
+#include <Geode/modify/CCLabelBMFont.hpp>
+#include <Geode/modify/CCSpriteBatchNode.hpp>
+#include <Geode/modify/CCBMFontConfiguration.hpp>
+#include <Geode/modify/MultilineBitmapFont.hpp>
+#include <Geode/modify/CCTextInputNode.hpp>
+#include <Geode/loader/GameEvent.hpp>
+#include <Geode/ui/Popup.hpp>
+#include <Geode/utils/general.hpp>
+#include <array>
+#include <cmath>
+#include <cstdlib>
+
+using namespace geode::prelude;
+namespace mucho::emoji {
+namespace {
+    constexpr char const* StateKey="mucho-emoji-label";
+    bool enabled=true, stopped=false;
+    std::vector<WeakRef<CCLabelBMFont>> labels;
+    struct Slot { size_t index; Ref<CCSprite> image; };
+    class State final : public CCObject {
+    public:
+        Plan text; Ref<CCNode> layer; std::vector<Slot> slots; bool dirty=true;
+    };
+    State* state(CCNode* node) { return static_cast<State*>(node->getUserObject(StateKey)); }
+    void remember(CCLabelBMFont* label) {
+        std::erase_if(labels,[](auto const& weak){return !weak.lock();});
+        for(auto const& weak:labels) if(weak.lock().data()==label) return;
+        if(labels.size()<512) labels.emplace_back(label);
+    }
+    bool installMarker(CCBMFontConfiguration* config) {
+        if(!config||!config->m_pCharacterSet||config->m_nCommonHeight<1||config->m_nCommonHeight>1024) return false;
+        unsigned int key=static_cast<unsigned char>(Placeholder);
+        tCCFontDefHashElement* found=nullptr;
+        HASH_FIND_INT(config->m_pFontDefDictionary,&key,found);
+        if(found) return true;
+        auto entry=static_cast<tCCFontDefHashElement*>(std::calloc(1,sizeof(tCCFontDefHashElement)));
+        if(!entry) return false;
+        auto h=config->m_nCommonHeight;
+        entry->key=key; entry->fontDef.charID=key;
+        entry->fontDef.rect=CCRect(0,0,static_cast<float>(h),static_cast<float>(h));
+        entry->fontDef.xAdvance=static_cast<short>(h);
+        // Cocos owns this allocation and frees it with the font configuration.
+        HASH_ADD_INT(config->m_pFontDefDictionary,key,entry);
+        config->m_pCharacterSet->insert(key); return true;
+    }
+    CCSprite* image(uint16_t id) {
+        if(stopped||id>=data::ImageCount) return nullptr;
+        auto page=id/data::PerPage, cell=id%data::PerPage;
+        auto path=Mod::get()->getResourcesDir()/fmt::format("emoji-page-{}.png",page);
+        auto texture=CCTextureCache::get()->addImage(path.string().c_str(),false);
+        if(!texture) return nullptr;
+        auto rect=CC_RECT_PIXELS_TO_POINTS(CCRect(
+            static_cast<float>((cell%data::Columns)*data::Cell+2),
+            static_cast<float>((cell/data::Columns)*data::Cell+2),
+            static_cast<float>(data::Tile),static_cast<float>(data::Tile)));
+        return CCSprite::createWithTexture(texture,rect,false);
+    }
+    void rebuild(CCLabelBMFont* label,State* value) {
+        value->dirty=false; value->slots.clear();
+        value->layer=CCNode::create(); value->layer->setAnchorPoint({0,0});
+        if(!label->m_sString) return;
+        size_t ordinal=0;
+        for(size_t i=0;label->m_sString[i]&&i<MaxBytes;++i) {
+            if(label->m_sString[i]!=static_cast<unsigned char>(Placeholder)) continue;
+            if(ordinal>=value->text.images.size()) break;
+            auto sprite=image(value->text.images[ordinal++]);
+            if(sprite) value->layer->addChild(sprite);
+            value->slots.push_back({i,sprite});
+        }
+    }
+    void prepareDraw(CCLabelBMFont* label,State* value) {
+        if(value->dirty) rebuild(label,value);
+        float unit=label->m_pConfiguration?static_cast<float>(label->m_pConfiguration->m_nCommonHeight)/data::Tile:1.f;
+        for(auto& slot:value->slots) {
+            auto glyph=typeinfo_cast<CCSprite*>(label->getChildByTag(static_cast<int>(slot.index)));
+            if(!glyph){if(slot.image)slot.image->setVisible(false);continue;}
+            if(!slot.image) {
+                unsigned int key='?'; tCCFontDefHashElement* fallback=nullptr;
+                if(label->m_pConfiguration) HASH_FIND_INT(label->m_pConfiguration->m_pFontDefDictionary,&key,fallback);
+                glyph->setTextureRect(fallback?CC_RECT_PIXELS_TO_POINTS(fallback->fontDef.rect):CCRect(0,0,0,0),false,glyph->getContentSize());
+                continue;
+            }
+            slot.image->setVisible(glyph->isVisible());
+            slot.image->setPosition(glyph->getPosition());
+            slot.image->setScaleX(unit*glyph->getScaleX()); slot.image->setScaleY(unit*glyph->getScaleY());
+            slot.image->setRotationX(glyph->getRotationX()); slot.image->setRotationY(glyph->getRotationY());
+            slot.image->setSkewX(glyph->getSkewX()); slot.image->setSkewY(glyph->getSkewY());
+            slot.image->setOpacity(glyph->getDisplayedOpacity());
+            // Keep the marker's size, visibility and opacity for native wrapping/fades;
+            // a zero texture rectangle prevents its font-atlas quad from drawing.
+            glyph->setTextureRect(CCRect(0,0,0,0),false,glyph->getContentSize());
+        }
+    }
+    bool freeText(CCTextInputNode* input) {
+        if(input->m_usePasswordChar||input->m_numberInput) return false;
+        auto const& filter=input->m_allowedChars;
+        return filter.empty()||(filter.find(' ')!=gd::string::npos&&filter.find('a')!=gd::string::npos);
+    }
+    struct Filter {
+        CCTextInputNode* input; gd::string original;
+        Filter(CCTextInputNode* node,std::string_view text):input(node),original(node->m_allowedChars) {
+            if(enabled&&!stopped&&freeText(node)&&!original.empty()) {
+                auto extra=inputBytes(text,data::catalog());
+                for(char c:extra) if(input->m_allowedChars.find(c)==gd::string::npos) input->m_allowedChars+=c;
+            }
+        }
+        ~Filter(){input->m_allowedChars=std::move(original);}
+    };
+    void refresh(bool value) {
+        enabled=value;
+        auto current=labels;
+        for(auto const& weak:current) if(auto label=weak.lock()) if(auto st=state(label)) {
+            auto original=st->text.original; label->setString(original.c_str());
+        }
+    }
+}
+std::string shortenText(std::string_view text,size_t limit) { return shorten(text,limit,data::catalog()); }
+$on_mod(Loaded) {
+    enabled=Mod::get()->getSettingValue<bool>("emoji-support");
+    listenForSettingChanges<bool>("emoji-support",[](bool value){refresh(value);});
+}
+$on_game(Exiting) {
+    stopped=true;
+    for(auto const& weak:labels) if(auto label=weak.lock()) if(auto st=state(label)) {
+        st->slots.clear(); st->layer=nullptr;
+    }
+    labels.clear();
+}
+}
+
+class $modify(MuchoEmojiFontConfig,CCBMFontConfiguration) {
+    bool initWithFNTfile(char const* file) {
+        auto ok=CCBMFontConfiguration::initWithFNTfile(file);
+        if(ok) mucho::emoji::installMarker(this);
+        return ok;
+    }
+};
+class $modify(MuchoEmojiLabel,CCLabelBMFont) {
+    void setString(char const* text) { this->setString(text,true); }
+    void setString(char const* text,bool update) {
+        using namespace mucho::emoji;
+        if(!update){CCLabelBMFont::setString(text,update);return;}
+        // Copy before dropping old state: callers may pass our getString() result.
+        std::string original=text?text:"";
+        auto old=state(this);
+        if(!enabled||stopped||m_bIsBatched||!hasNonAscii(original)||!installMarker(m_pConfiguration)) {
+            if(old) setUserObject(StateKey,nullptr);
+            CCLabelBMFont::setString(original.c_str(),true); return;
+        }
+        auto parsed=plan(original,data::catalog());
+        if(parsed.images.empty()) {
+            if(old) setUserObject(StateKey,nullptr);
+            CCLabelBMFont::setString(parsed.render.c_str(),true);
+            // Unicode repairs are presentation-only.
+            m_sInitialStringUTF8=original.c_str(); return;
+        }
+        auto value=old;
+        if(!value) { value=new State(); setUserObject(StateKey,value); value->release(); remember(this); }
+        value->text=std::move(parsed); value->dirty=true;
+        CCLabelBMFont::setString(value->text.render.c_str(),true);
+        m_sInitialStringUTF8=value->text.original.c_str();
+    }
+    void createFontChars() {
+        CCLabelBMFont::createFontChars();
+        if(auto value=mucho::emoji::state(this)) value->dirty=true;
+    }
+};
+class $modify(MuchoEmojiDraw,CCSpriteBatchNode) {
+    void visit() {
+        using namespace mucho::emoji;
+        if(!isVisible()){CCSpriteBatchNode::visit();return;}
+        auto value=state(this);
+        auto label=value?typeinfo_cast<CCLabelBMFont*>(this):nullptr;
+        if(label&&!stopped) prepareDraw(label,value);
+        CCSpriteBatchNode::visit();
+        if(label&&!stopped&&value->layer) {
+            // This separate node uses the same parent transform and active clipping
+            // as the font. Different textures never enter a font sprite batch.
+            value->layer->setAdditionalTransform(label->nodeToParentTransform());
+            value->layer->visit();
+        }
+    }
+};
+class $modify(MuchoEmojiMultiline,MultilineBitmapFont) {
+    bool initWithFont(char const* font,gd::string text,float scale,float width,CCPoint anchor,int height,bool disableColor) {
+        using namespace mucho::emoji;
+        auto parsed=enabled&&!stopped?plan(std::string_view(text.c_str(),text.size()),data::catalog()):Plan{};
+        // Retain GD's rich-text path when descriptors are present. Plain emoji
+        // paragraphs use one normal bitmap label, including native line wrapping.
+        bool descriptors=text.find("<c")!=gd::string::npos||text.find("</c>")!=gd::string::npos||
+            text.find("<d")!=gd::string::npos||text.find("<i")!=gd::string::npos||text.find("<s")!=gd::string::npos;
+        if(parsed.images.empty()||descriptors||scale<=0||width<=0)
+            return MultilineBitmapFont::initWithFont(font,text,scale,width,anchor,height,disableColor);
+        if(!MultilineBitmapFont::initWithFont(font,"",scale,width,anchor,height,disableColor)) return false;
+        removeAllChildrenWithCleanup(true);
+        if(m_lines)m_lines->removeAllObjects();
+        if(m_characters)m_characters->removeAllObjects();
+        auto label=CCLabelBMFont::create(text.c_str(),font,width/scale,kCCTextAlignmentLeft);
+        if(!label) return false;
+        label->setAnchorPoint({0,0}); label->setScale(scale); label->setPosition({0,0});
+        addChild(label);
+        if(m_lines) m_lines->addObject(label);
+        if(m_characters) for(auto glyph:CCArrayExt<CCNode*>(label->getChildren())) m_characters->addObject(glyph);
+        auto size=label->getContentSize()*scale;
+        setContentSize(size); setAnchorPoint(anchor);
+        m_width=static_cast<int>(std::ceil(size.width)); m_height=static_cast<int>(std::ceil(size.height));
+        return true;
+    }
+};
+class $modify(MuchoEmojiInput,CCTextInputNode) {
+    void updateLabel(gd::string text) {
+        mucho::emoji::Filter guard(this,std::string_view(text.c_str(),text.size()));
+        CCTextInputNode::updateLabel(text);
+    }
+    bool onTextFieldInsertText(CCTextFieldTTF* sender,char const* text,int length,enumKeyCodes keys) {
+        if(!text||length<=0) return CCTextInputNode::onTextFieldInsertText(sender,text,length,keys);
+        mucho::emoji::Filter guard(this,std::string_view(text,static_cast<size_t>(length)));
+        return CCTextInputNode::onTextFieldInsertText(sender,text,length,keys);
+    }
+};
+
+namespace mucho::emoji {
+namespace {
+    constexpr std::array<char const*,48> Choices={
+        "\U0001f600","\U0001f603","\U0001f604","\U0001f601","\U0001f606","\U0001f605","\U0001f602","\U0001f923",
+        "\U0001f642","\U0001f609","\U0001f60a","\U0001f60d","\U0001f970","\U0001f618","\U0001f60e","\U0001f913",
+        "\U0001f914","\U0001f928","\U0001f62d","\U0001f622","\U0001f621","\U0001f633","\U0001f631","\U0001f634",
+        "\U0001f525","\U0001f4af","\U0001f480","\U0001f4a9","\U0001f47b","\U0001f916","\U0001f389","\U0001f38a",
+        "\u2764\ufe0f","\U0001f494","\U0001f49c","\U0001f49a","\U0001f499","\U0001f49b","\u2b50","\u2728",
+        "\U0001f44d","\U0001f44e","\U0001f44f","\U0001f64f","\U0001f4aa","\U0001f440","\U0001f680","\U0001f3c6"
+    };
+    class Picker final : public Popup {
+        CCLabelBMFont* m_status=nullptr;
+        bool init() {
+            if(!Popup::init(360,286)) return false;
+            setTitle("Mucho Emoji");
+            auto tip=CCLabelBMFont::create("Tap to copy. Paste into a comment or message.","bigFont.fnt");
+            tip->setScale(.28f); tip->setPosition({180,241}); m_mainLayer->addChild(tip);
+            auto menu=CCMenu::create(); menu->setPosition({180,207}); m_mainLayer->addChild(menu);
+            for(size_t i=0;i<Choices.size();++i) {
+                auto text=CCLabelBMFont::create(Choices[i],"bigFont.fnt"); text->setScale(.5f);
+                auto item=mucho::button(text,this,menu_selector(Picker::onChoice)); item->setTag(static_cast<int>(i));
+                item->setContentSize({32,32}); item->setPosition({(static_cast<int>(i%8)-3.5f)*39.f,-static_cast<float>(i/8)*30.f});
+                menu->addChild(item);
+            }
+            m_status=CCLabelBMFont::create("4009 emoji | offline | Twemoji 17","bigFont.fnt");
+            m_status->setScale(.28f); m_status->setPosition({180,28}); m_mainLayer->addChild(m_status);
+            motion::panel(m_mainLayer); return true;
+        }
+        void onChoice(CCObject* sender) {
+            auto item=typeinfo_cast<CCNode*>(sender); if(!item) return;
+            auto index=item->getTag(); if(index<0||static_cast<size_t>(index)>=Choices.size()) return;
+            if(clipboard::write(Choices[static_cast<size_t>(index)]))
+                m_status->setString((std::string("Copied ")+Choices[static_cast<size_t>(index)]+" - paste into your text").c_str());
+            else m_status->setString("Clipboard unavailable on this device");
+            m_status->limitLabelWidth(330,.28f,.18f);
+        }
+    public:
+        static Picker* create() { auto p=new Picker(); if(p->init()){p->autorelease();return p;} delete p; return nullptr; }
+    };
+}
+void showPicker() {
+    if(!enabled) { FLAlertLayer::create("Emoji", "Enable Emoji Support in MuchoClient settings first.","OK")->show(); return; }
+    if(auto popup=Picker::create()) popup->show();
+}
+}

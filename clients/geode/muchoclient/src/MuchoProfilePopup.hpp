@@ -1,4 +1,5 @@
 #pragma once
+#include "MuchoEmoji.hpp"
 #include <Geode/ui/Popup.hpp>
 #include <Geode/ui/SliderNode.hpp>
 #include <Geode/utils/file.hpp>
@@ -60,7 +61,7 @@ class MuchoImageEditor final : public Popup {
     }
     void status(std::string value) {
         for (auto& c : value) if (static_cast<unsigned char>(c) < 32 || c == '<' || c == '>') c = ' ';
-        if (value.size() > 160) value.resize(160);
+        if (value.size() > 160) value = mucho::emoji::shortenText(value,160);
         m_status->setString(value.c_str()); m_status->limitLabelWidth(330.f, .24f, 0.f);
     }
     void enabled() {
@@ -347,7 +348,7 @@ class MuchoProfilePopup final : public Popup {
 
     void status(std::string value) {
         for (auto& c : value) if (static_cast<unsigned char>(c) < 32 || c == '<' || c == '>') c = ' ';
-        if (value.size() > 160) value.resize(160);
+        if (value.size() > 160) value = mucho::emoji::shortenText(value,160);
         m_status->setString(value.c_str()); m_status->limitLabelWidth(350.f,.25f,0.f);
         mucho::motion::feedback(m_status); mucho::motion::loading(m_mainLayer,m_busy,{395.f,8.f});
     }
@@ -451,4 +452,5 @@ public:
         delete popup; return nullptr;
     }
 };
+
 

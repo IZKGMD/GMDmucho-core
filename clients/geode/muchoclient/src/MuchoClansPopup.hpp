@@ -3,6 +3,7 @@
 #include <Geode/Geode.hpp>
 #include <Geode/ui/Popup.hpp>
 #include <Geode/ui/TextInput.hpp>
+#include "MuchoEmoji.hpp"
 #include <Geode/utils/async.hpp>
 #include <Geode/utils/web.hpp>
 #include "MuchoClanRules.hpp"
@@ -52,7 +53,7 @@ class MuchoClansPopup final : public geode::Popup {
 
     static std::string clean(std::string text, size_t limit = 120) {
         for (auto& c : text) if (c == '<' || c == '>' || static_cast<unsigned char>(c) < 32) c = ' ';
-        if (text.size() > limit) text = text.substr(0, limit - 3) + "...";
+        if (text.size() > limit) text = mucho::emoji::shortenText(text,limit);
         return text;
     }
     static std::string str(matjson::Value const& object, char const* key) {
@@ -721,4 +722,5 @@ public:
         delete popup; return nullptr;
     }
 };
+
 
