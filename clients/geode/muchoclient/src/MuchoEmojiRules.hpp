@@ -54,7 +54,8 @@ namespace mucho::emoji {
     inline bool clusterPart(uint32_t cp) {
         return cp==0x200d||cp==0xfe0f||(cp>=0x1f3fb&&cp<=0x1f3ff)||(cp>=0xe0020&&cp<=0xe007f);
     }
-    struct Plan { std::string original,render; std::vector<uint16_t> images; };
+    struct ImageSpan { size_t start,end; };
+    struct Plan { std::string original,render; std::vector<uint16_t> images; std::vector<ImageSpan> spans; };
     inline Plan plan(std::string_view s,Catalog c) {
         Plan p; p.original=s; p.render.reserve(s.size());
         for(size_t at=0;at<s.size();) {
@@ -72,7 +73,7 @@ namespace mucho::emoji {
                     p.render+='?'; at=end; continue;
                 }
                 if(p.images.size()<MaxGlyphs&&s.size()<=MaxBytes) {
-                    p.images.push_back(static_cast<uint16_t>(m.image)); p.render+=Placeholder;
+                    p.images.push_back(static_cast<uint16_t>(m.image)); p.spans.push_back({at,m.end}); p.render+=Placeholder;
                 } else p.render+='?';
                 at=m.end; continue;
             }
@@ -96,19 +97,51 @@ namespace mucho::emoji {
         std::string result; for(unsigned int i=128;i<256;++i) if(bytes[i]) result+=static_cast<char>(i);
         return result;
     }
-    inline int cursorIndex(std::string_view text,int sourceIndex,Catalog c) {
+    inline int sourceUnits(std::string_view text,bool utf16) {
+        int count=0;
+        for(size_t at=0;at<text.size();) {auto r=decode(text,at);count+=utf16&&r.cp>0xffff?2:1;at+=r.bytes;}
+        return count;
+    }
+    inline int cursorIndex(std::string_view text,int sourceIndex,Catalog c,bool utf16=true) {
         if(sourceIndex<=0) return sourceIndex;
         int source=0,display=0;
         for(size_t at=0;at<text.size();) {
             auto m=match(text,at,c);
             size_t end=m.image>=0?m.end:at+decode(text,at).bytes;
-            int units=0;
-            for(size_t p=at;p<end;) {auto r=decode(text,p);units+=r.cp>0xffff?2:1;p+=r.bytes;}
+            auto units=sourceUnits(text.substr(at,end-at),utf16);
             if(source+units>sourceIndex) return display;
             source+=units; ++display; at=end;
             if(source==sourceIndex) return display;
         }
         return display;
+    }
+    inline int sourceCursor(std::string_view text,int displayIndex,Catalog c,bool utf16) {
+        if(displayIndex<0) return -1;
+        int source=0,display=0;
+        for(size_t at=0;at<text.size()&&display<displayIndex;++display) {
+            auto m=match(text,at,c);size_t end=m.image>=0?m.end:at+decode(text,at).bytes;
+            source+=sourceUnits(text.substr(at,end-at),utf16);at=end;
+        }
+        return source;
+    }
+    inline size_t cursorByte(std::string_view text,int sourceIndex,Catalog c,bool utf16) {
+        if(sourceIndex<0) return text.size();
+        int source=0;
+        for(size_t at=0;at<text.size();) {
+            if(source>=sourceIndex) return at;
+            auto m=match(text,at,c);size_t end=m.image>=0?m.end:at+decode(text,at).bytes;
+            auto units=sourceUnits(text.substr(at,end-at),utf16);
+            if(source+units>sourceIndex) return at;
+            source+=units;at=end;
+        }
+        return text.size();
+    }
+    // A whole cluster either fits or is rejected; never cut UTF-8 at a byte limit.
+    inline std::string insertAtCursor(std::string_view original,std::string_view addition,int cursor,
+                                     Catalog c,bool utf16,size_t byteLimit) {
+        if(original.size()>byteLimit||addition.size()>byteLimit-original.size()) return std::string(original);
+        auto at=cursorByte(original,cursor,c,utf16);
+        return std::string(original.substr(0,at))+std::string(addition)+std::string(original.substr(at));
     }
     inline std::string shorten(std::string_view text,size_t limit,Catalog c) {
         if(text.size()<=limit) return std::string(text);

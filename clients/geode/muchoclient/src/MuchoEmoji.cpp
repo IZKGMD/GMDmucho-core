@@ -235,37 +235,76 @@ class $modify(MuchoEmojiDraw,CCSpriteBatchNode) {
     }
 };
 class $modify(MuchoEmojiMultiline,MultilineBitmapFont) {
+    struct Fields { int markerWidth=0; };
+    gd::string stringWithMaxWidth(gd::string text,float width,float scale) {
+        if(m_fields->markerWidth>0)
+            m_fontWidths[static_cast<unsigned char>(mucho::emoji::Placeholder)]=m_fields->markerWidth;
+        return MultilineBitmapFont::stringWithMaxWidth(text,width,scale);
+    }
     bool initWithFont(char const* font,gd::string text,float scale,float width,CCPoint anchor,int height,bool disableColor) {
         using namespace mucho::emoji;
         std::string_view view(text.c_str(),text.size());
         if(!enabled||stopped||!hasNonAscii(view))
             return MultilineBitmapFont::initWithFont(font,text,scale,width,anchor,height,disableColor);
         auto parsed=plan(view,data::catalog());
-        // Retain GD's rich-text path when descriptors are present. Plain emoji
-        // paragraphs use one normal bitmap label, including native line wrapping.
         bool descriptors=view.find("<c")!=std::string_view::npos||view.find("</c>")!=std::string_view::npos||
             view.find("<d")!=std::string_view::npos||view.find("<i")!=std::string_view::npos||view.find("<s")!=std::string_view::npos;
         if(parsed.images.empty()||descriptors||scale<=0||width<=0)
             return MultilineBitmapFont::initWithFont(font,text,scale,width,anchor,height,disableColor);
-        if(!MultilineBitmapFont::initWithFont(font,"",scale,width,anchor,height,disableColor)) return false;
-        removeAllChildrenWithCleanup(true);
-        if(m_lines)m_lines->removeAllObjects();
-        if(m_characters)m_characters->removeAllObjects();
-        auto label=CCLabelBMFont::create(text.c_str(),font,width/scale,kCCTextAlignmentLeft);
-        if(!label) return false;
-        label->setAnchorPoint({0,0}); label->setScale(scale); label->setPosition({0,0});
-        addChild(label);
-        if(m_lines) m_lines->addObject(label);
-        if(m_characters) for(auto glyph:CCArrayExt<CCNode*>(label->getChildren())) m_characters->addObject(glyph);
-        auto size=label->getContentSize()*scale;
-        setContentSize(size); setAnchorPoint(anchor);
-        m_width=static_cast<int>(std::ceil(size.width)); m_height=static_cast<int>(std::ceil(size.height));
+        auto probe=CCLabelBMFont::create("",font?font:"bigFont.fnt");
+        if(!probe||!installMarker(probe->m_pConfiguration))
+            return MultilineBitmapFont::initWithFont(font,text,scale,width,anchor,height,disableColor);
+        m_fields->markerWidth=probe->m_pConfiguration->m_nCommonHeight;
+        parsed.render=fontText(parsed.render,probe->m_pConfiguration);
+        // Keep GD's native lines, glyph arrays, line metrics and positioning.
+        // Input carets and TextArea fades use these exact objects.
+        if(!MultilineBitmapFont::initWithFont(font,parsed.render,scale,width,anchor,height,disableColor)) return false;
+        size_t ordinal=0;
+        if(m_lines) for(auto line:CCArrayExt<CCLabelBMFont*>(m_lines)) {
+            auto raw=line->getString();std::string render=raw?raw:"";
+            Plan part;part.render=render;
+            for(char ch:render) {
+                if(ch==Placeholder&&ordinal<parsed.images.size()) {
+                    part.images.push_back(parsed.images[ordinal]);
+                    auto span=parsed.spans[ordinal++];
+                    part.original+=parsed.original.substr(span.start,span.end-span.start);
+                } else part.original+=ch;
+            }
+            if(part.images.empty()) continue;
+            auto value=new State();value->text=std::move(part);
+            line->setUserObject(StateKey,value);value->release();remember(line);
+            line->m_sInitialStringUTF8=value->text.original.c_str();
+        }
         return true;
     }
 };
+namespace mucho::emoji {
+    bool nativeUtf16(CCTextInputNode* input,std::string_view text) {
+        return input->m_textField&&input->m_textField->getCharCount()==sourceUnits(text,true);
+    }
+    bool insertInto(CCTextInputNode* input,std::string_view addition,int cursor) {
+        if(!enabled||stopped||!input||!input->m_textField||!freeText(input)) return false;
+        auto source=input->getString();std::string before(source.c_str(),source.size());
+        auto utf16=nativeUtf16(input,before);
+        auto limit=input->m_maxLabelLength>0?static_cast<size_t>(input->m_maxLabelLength):MaxBytes;
+        auto next=insertAtCursor(before,addition,cursor,data::catalog(),utf16,limit);
+        if(next==before) return false;
+        auto offset=cursorByte(before,cursor,data::catalog(),utf16);
+        // Native multi-byte paste replaces the whole string. Compose it first,
+        // then let setString rebuild the native input and notify its delegate.
+        input->setString(next);
+        if(input->getString()==next.c_str()) {
+            auto units=nativeUtf16(input,next);
+            auto position=sourceUnits(std::string_view(next).substr(0,offset+addition.size()),units);
+            input->m_textField->m_uCursorPos=position>=input->m_textField->getCharCount()?-1:position;
+            input->updateBlinkLabelToChar(input->m_textField->m_uCursorPos);
+        }
+        return true;
+    }
+}
 namespace mucho::emoji { void showPickerFor(CCTextInputNode* input); }
 class $modify(MuchoEmojiInput,CCTextInputNode) {
-    struct Fields { Ref<CCMenu> menu; };
+    struct Fields { Ref<CCMenu> menu; bool selecting=false; };
     void onEmoji(CCObject*) {
         if(mucho::emoji::freeText(this)) mucho::emoji::showPickerFor(this);
     }
@@ -300,11 +339,22 @@ class $modify(MuchoEmojiInput,CCTextInputNode) {
         }
         return CCTextInputNode::ccTouchBegan(touch,event);
     }
-    void updateBlinkLabelToChar(int index) {
-        if(m_textLabel&&mucho::emoji::state(m_textLabel)) {
-            auto source=getString();
-            index=mucho::emoji::cursorIndex(std::string_view(source.c_str(),source.size()),index,mucho::emoji::data::catalog());
+    void updateCursorPosition(CCPoint position,CCRect rect) {
+        m_fields->selecting=true;
+        CCTextInputNode::updateCursorPosition(position,rect);
+        m_fields->selecting=false;
+        auto source=getString();std::string_view text(source.c_str(),source.size());
+        if(m_textField&&mucho::emoji::enabled&&mucho::emoji::hasNonAscii(text)&&mucho::emoji::freeText(this)) {
+            m_textField->m_uCursorPos=mucho::emoji::sourceCursor(text,m_textField->m_uCursorPos,
+                mucho::emoji::data::catalog(),mucho::emoji::nativeUtf16(this,text));
+            updateBlinkLabelToChar(m_textField->m_uCursorPos);
         }
+    }
+    void updateBlinkLabelToChar(int index) {
+        using namespace mucho::emoji;
+        auto source=getString();std::string_view text(source.c_str(),source.size());
+        if(enabled&&!stopped&&!m_fields->selecting&&freeText(this)&&hasNonAscii(text))
+            index=cursorIndex(text,index,data::catalog(),nativeUtf16(this,text));
         CCTextInputNode::updateBlinkLabelToChar(index);
     }
     void updateLabel(gd::string text) {
@@ -318,7 +368,23 @@ class $modify(MuchoEmojiInput,CCTextInputNode) {
         if(!text||length<=0||!mucho::emoji::enabled||mucho::emoji::stopped||
             !mucho::emoji::hasNonAscii(std::string_view(text,static_cast<size_t>(length))))
             return CCTextInputNode::onTextFieldInsertText(sender,text,length,keys);
-        mucho::emoji::Filter guard(this,std::string_view(text,static_cast<size_t>(length)));
+        auto incoming=std::string_view(text,static_cast<size_t>(length));
+        auto parsed=mucho::emoji::plan(incoming,mucho::emoji::data::catalog());
+        if(mucho::emoji::freeText(this)&&!parsed.images.empty()) {
+            auto allowed=std::string_view(m_allowedChars.c_str(),m_allowedChars.size());
+            std::string filtered;
+            for(size_t at=0;at<incoming.size();) {
+                auto found=mucho::emoji::match(incoming,at,mucho::emoji::data::catalog());
+                if(found.image>=0) {filtered.append(incoming.substr(at,found.end-at));at=found.end;}
+                else {auto r=mucho::emoji::decode(incoming,at);
+                    if(r.cp<128&&(allowed.empty()||allowed.find(static_cast<char>(r.cp))!=std::string_view::npos))
+                        filtered+=static_cast<char>(r.cp);
+                    at+=r.bytes;}
+            }
+            mucho::emoji::insertInto(this,filtered,sender->m_uCursorPos);
+            return true;
+        }
+        mucho::emoji::Filter guard(this,incoming);
         return CCTextInputNode::onTextFieldInsertText(sender,text,length,keys);
     }
 };
@@ -332,14 +398,6 @@ namespace {
         "\U0001f525","\U0001f4af","\U0001f480","\U0001f4a9","\U0001f47b","\U0001f916","\U0001f389","\U0001f38a",
         "\u2764\ufe0f","\U0001f494","\U0001f49c","\U0001f49a","\U0001f499","\U0001f49b","\u2b50","\u2728",
         "\U0001f44d","\U0001f44e","\U0001f44f","\U0001f64f","\U0001f4aa","\U0001f440","\U0001f680","\U0001f3c6"
-    };
-    struct NativeInsert : CCTextFieldTTF {
-        static void apply(CCTextFieldTTF* field,char const* text,int length) {
-            // Take the inherited member pointer in an access-authorized scope;
-            // call it on the real base object without downcasting the instance.
-            auto method=&NativeInsert::insertText;
-            (field->*method)(text,length,KEY_None);
-        }
     };
     class Picker final : public Popup {
         CCLabelBMFont* m_status=nullptr;
@@ -374,11 +432,7 @@ namespace {
                 auto text=Choices[static_cast<size_t>(index)];
                 // Use the native insertion path: preserve cursor, length checks,
                 // swear filtering, and TextInputDelegate notifications.
-                Filter guard(input,text);
-                auto before=input->getString();
-                input->m_textField->m_uCursorPos=m_cursorPosition;
-                NativeInsert::apply(input->m_textField,text,static_cast<int>(std::strlen(text)));
-                if(input->getString()==before) {
+                if(!insertInto(input,text,m_cursorPosition)) {
                     m_status->setString("Text limit reached - remove some text first");
                     return;
                 }

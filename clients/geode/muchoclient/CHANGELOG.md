@@ -1,3 +1,9 @@
+# v0.9.6
+
+- Keep native multiline lines, glyphs and metrics while drawing emoji.
+- Fix caret conversion in multiline fields and convert clicked glyph positions back to native cursor units.
+- Compose emoji insertion without replacing existing text or cutting UTF-8 at length limits.
+
 # v0.9.5
 
 - Smiley buttons in free-text input fields open an emoji menu.

@@ -19,6 +19,7 @@ void all(uint32_t node,std::string sequence,std::set<int>& seen) {
         auto p=plan(sequence,data::catalog());
         require(p.original==sequence,"original bytes retained");
         require(p.images.size()==1&&p.images[0]==n.image,"all catalog sequences match whole image");
+        require(p.spans.size()==1&&p.spans[0].start==0&&p.spans[0].end==sequence.size(),"native line image retains its source span");
         require(p.render==std::string(1,Placeholder),"one native layout slot per sequence");
         seen.insert(n.image);
     }
@@ -43,6 +44,22 @@ int main() {
     require(cursorIndex("A\U0001f44d\U0001f3fdB",5,catalog)==2,"UTF-16 cursor after skin-tone sequence");
     require(cursorIndex("\U0001f1f7\U0001f1fa",4,catalog)==1,"flag cursor uses one visible slot");
     require(cursorIndex("abc",99,catalog)==3,"cursor clamped to final slot");
+    for(bool units:{false,true}) {
+        auto mixed=std::string("A")+"\U0001f44d\U0001f3fd"+" B "+"\U0001f1f7\U0001f1fa";
+        for(int slot=0;slot<=6;++slot) {
+            auto native=sourceCursor(mixed,slot,catalog,units);
+            require(cursorIndex(mixed,native,catalog,units)==slot,"touch and caret indices round-trip across emoji sequences");
+        }
+        auto point=sourceCursor(mixed,2,catalog,units);
+        require(insertAtCursor(mixed,"\U0001f600",point,catalog,units,140)==std::string("A\U0001f44d\U0001f3fd\U0001f600 B \U0001f1f7\U0001f1fa"),"insert into existing emoji text without replacing it");
+        require(insertAtCursor("hello","\U0001f600",-1,catalog,units,140)=="hello\U0001f600","append at native end sentinel");
+        require(insertAtCursor("hello","\U0001f600",2,catalog,units,140)=="he\U0001f600llo","insert within ordinary text");
+        require(insertAtCursor("hello","\U0001f600",2,catalog,units,8)=="hello","reject whole emoji at byte limit");
+        require(cursorByte("A\U0001f44d\U0001f3fdB",2,catalog,units)==1,"cursor inside combined emoji snaps to its beginning");
+        require(sourceCursor(mixed,-1,catalog,units)==-1,"end sentinel preserved after touch conversion");
+    }
+    auto lines=plan("hello \U0001f600\nworld \U0001f1f7\U0001f1fa",catalog);
+    require(lines.spans.size()==2&&lines.original.substr(lines.spans[1].start,lines.spans[1].end-lines.spans[1].start)=="\U0001f1f7\U0001f1fa","wrapped native lines retain flag sequence");
     std::string large;for(size_t i=0;i<MaxGlyphs+25;++i) large+="\U0001f600";
     require(plan(large,catalog).images.size()==MaxGlyphs,"sprite budget");
     auto p=plan(std::string(MaxBytes,'x')+"\U0001f600",catalog);
