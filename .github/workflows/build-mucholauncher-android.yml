@@ -19,7 +19,12 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
-      - uses: android-actions/setup-android@v3
+      - name: Install stable Android build tools
+        run: |
+          set +o pipefail
+          yes | sdkmanager --licenses > /dev/null
+          set -o pipefail
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
       - uses: actions/download-artifact@v4
         with:
           name: MuchoClient-Windows-Android
