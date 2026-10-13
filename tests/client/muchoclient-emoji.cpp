@@ -39,6 +39,10 @@ int main() {
     }
     require(plan("\u2764\ufe0e",catalog).images.empty(),"text presentation selector respected");
     require(plan("\U0001f600\u200d\U0001f680",catalog).images.empty(),"unknown ZWJ sequence not split");
+    require(cursorIndex("A\U0001f600B",3,catalog)==2,"UTF-16 cursor after astral emoji");
+    require(cursorIndex("A\U0001f44d\U0001f3fdB",5,catalog)==2,"UTF-16 cursor after skin-tone sequence");
+    require(cursorIndex("\U0001f1f7\U0001f1fa",4,catalog)==1,"flag cursor uses one visible slot");
+    require(cursorIndex("abc",99,catalog)==3,"cursor clamped to final slot");
     std::string large;for(size_t i=0;i<MaxGlyphs+25;++i) large+="\U0001f600";
     require(plan(large,catalog).images.size()==MaxGlyphs,"sprite budget");
     auto p=plan(std::string(MaxBytes,'x')+"\U0001f600",catalog);

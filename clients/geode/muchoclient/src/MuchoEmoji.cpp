@@ -57,7 +57,7 @@ namespace {
             static_cast<float>((cell%data::Columns)*data::Cell+2),
             static_cast<float>((cell/data::Columns)*data::Cell+2),
             static_cast<float>(data::Tile),static_cast<float>(data::Tile)));
-        return CCSprite::createWithTexture(texture,rect,false);
+        return CCSprite::createWithTexture(texture,rect);
     }
     void rebuild(CCLabelBMFont* label,State* value) {
         value->dirty=false; value->slots.clear();
@@ -97,15 +97,17 @@ namespace {
     }
     bool freeText(CCTextInputNode* input) {
         if(input->m_usePasswordChar||input->m_numberInput) return false;
-        auto const& filter=input->m_allowedChars;
-        return filter.empty()||(filter.find(' ')!=gd::string::npos&&filter.find('a')!=gd::string::npos);
+        std::string_view filter(input->m_allowedChars.c_str(),input->m_allowedChars.size());
+        return filter.empty()||(filter.find(' ')!=std::string_view::npos&&filter.find('a')!=std::string_view::npos);
     }
     struct Filter {
         CCTextInputNode* input; gd::string original;
         Filter(CCTextInputNode* node,std::string_view text):input(node),original(node->m_allowedChars) {
             if(enabled&&!stopped&&freeText(node)&&!original.empty()) {
                 auto extra=inputBytes(text,data::catalog());
-                for(char c:extra) if(input->m_allowedChars.find(c)==gd::string::npos) input->m_allowedChars+=c;
+                std::string extended(original.c_str(),original.size());
+                for(char c:extra) if(extended.find(c)==std::string::npos) extended+=c;
+                input->m_allowedChars=extended;
             }
         }
         ~Filter(){input->m_allowedChars=std::move(original);}
@@ -140,13 +142,17 @@ class $modify(MuchoEmojiFontConfig,CCBMFontConfiguration) {
     }
 };
 class $modify(MuchoEmojiLabel,CCLabelBMFont) {
+    using CCLabelBMFont::setString;
     void setString(char const* text) { this->setString(text,true); }
     void setString(char const* text,bool update) {
         using namespace mucho::emoji;
         if(!update){CCLabelBMFont::setString(text,update);return;}
+        auto old=state(this);
+        if(!old&&(!enabled||stopped||m_bIsBatched||!hasNonAscii(text?text:""))) {
+            CCLabelBMFont::setString(text,true); return;
+        }
         // Copy before dropping old state: callers may pass our getString() result.
         std::string original=text?text:"";
-        auto old=state(this);
         if(!enabled||stopped||m_bIsBatched||!hasNonAscii(original)||!installMarker(m_pConfiguration)) {
             if(old) setUserObject(StateKey,nullptr);
             CCLabelBMFont::setString(original.c_str(),true); return;
@@ -191,8 +197,9 @@ class $modify(MuchoEmojiMultiline,MultilineBitmapFont) {
         auto parsed=enabled&&!stopped?plan(std::string_view(text.c_str(),text.size()),data::catalog()):Plan{};
         // Retain GD's rich-text path when descriptors are present. Plain emoji
         // paragraphs use one normal bitmap label, including native line wrapping.
-        bool descriptors=text.find("<c")!=gd::string::npos||text.find("</c>")!=gd::string::npos||
-            text.find("<d")!=gd::string::npos||text.find("<i")!=gd::string::npos||text.find("<s")!=gd::string::npos;
+        std::string_view view(text.c_str(),text.size());
+        bool descriptors=view.find("<c")!=std::string_view::npos||view.find("</c>")!=std::string_view::npos||
+            view.find("<d")!=std::string_view::npos||view.find("<i")!=std::string_view::npos||view.find("<s")!=std::string_view::npos;
         if(parsed.images.empty()||descriptors||scale<=0||width<=0)
             return MultilineBitmapFont::initWithFont(font,text,scale,width,anchor,height,disableColor);
         if(!MultilineBitmapFont::initWithFont(font,"",scale,width,anchor,height,disableColor)) return false;
@@ -212,6 +219,13 @@ class $modify(MuchoEmojiMultiline,MultilineBitmapFont) {
     }
 };
 class $modify(MuchoEmojiInput,CCTextInputNode) {
+    void updateBlinkLabelToChar(int index) {
+        if(m_textLabel&&mucho::emoji::state(m_textLabel)) {
+            auto source=getString();
+            index=mucho::emoji::cursorIndex(std::string_view(source.c_str(),source.size()),index,mucho::emoji::data::catalog());
+        }
+        CCTextInputNode::updateBlinkLabelToChar(index);
+    }
     void updateLabel(gd::string text) {
         mucho::emoji::Filter guard(this,std::string_view(text.c_str(),text.size()));
         CCTextInputNode::updateLabel(text);

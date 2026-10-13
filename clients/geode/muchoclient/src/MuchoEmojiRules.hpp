@@ -96,6 +96,20 @@ namespace mucho::emoji {
         std::string result; for(unsigned int i=128;i<256;++i) if(bytes[i]) result+=static_cast<char>(i);
         return result;
     }
+    inline int cursorIndex(std::string_view text,int sourceIndex,Catalog c) {
+        if(sourceIndex<=0) return sourceIndex;
+        int source=0,display=0;
+        for(size_t at=0;at<text.size();) {
+            auto m=match(text,at,c);
+            size_t end=m.image>=0?m.end:at+decode(text,at).bytes;
+            int units=0;
+            for(size_t p=at;p<end;) {auto r=decode(text,p);units+=r.cp>0xffff?2:1;p+=r.bytes;}
+            if(source+units>sourceIndex) return display;
+            source+=units; ++display; at=end;
+            if(source==sourceIndex) return display;
+        }
+        return display;
+    }
     inline std::string shorten(std::string_view text,size_t limit,Catalog c) {
         if(text.size()<=limit) return std::string(text);
         if(limit<3) return std::string(limit,'.');
