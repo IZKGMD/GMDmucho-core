@@ -22,9 +22,9 @@ jobs:
       - name: Install stable Android build tools
         run: |
           set +o pipefail
-          yes | sdkmanager --licenses > /dev/null
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
           set -o pipefail
-          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'ndk;29.0.14206865' 'cmake;3.22.1'
       - uses: actions/download-artifact@v4
         with:
           name: MuchoClient-Windows-Android
