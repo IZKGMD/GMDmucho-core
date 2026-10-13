@@ -9,6 +9,7 @@ import json
 import shutil
 import urllib.request
 import zipfile
+import xml.etree.ElementTree as ET
 
 UPSTREAM_SHA = "38bc97b7b6551acb1295dd241231ca22e2cd8995"
 CLIENT_SHA = "bc6471de1920d36ca88b44fcdca5dbd3229214944ccae70d49be81edab4a699a"
@@ -76,10 +77,28 @@ def prepare(root, client):
     # Explicit intents from other apps cannot bypass preparation.
     text = text.replace('android:exported="true"', 'android:exported="false"')
     text = text.replace('android:name=".MainActivity"\n            android:exported="false"', 'android:name=".MainActivity"\n            android:exported="true"')
-    text = text.replace('android:name=".UserDirectoryProvider"\n            android:authorities="${applicationId}.user"\n            android:exported="false"', 'android:name=".UserDirectoryProvider"\n            android:authorities="${applicationId}.user"\n            android:exported="true"')
     for permission in ["MANAGE_EXTERNAL_STORAGE", "REQUEST_INSTALL_PACKAGES", "RECORD_AUDIO"]:
         text = text.replace(f'    <uses-permission android:name="android.permission.{permission}" />\n', "")
-    manifest.write_text(text)
+    # The pinned release hardcodes provider authorities; main uses placeholders.
+    # Use parsed attributes so changing an app ID cannot leave a broken provider.
+    ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
+    ET.register_namespace("tools", "http://schemas.android.com/tools")
+    tree = ET.fromstring(text)
+    android = "{http://schemas.android.com/apk/res/android}"
+    providers = tree.findall("application/provider")
+    for provider in providers:
+        if provider.get(android + "name") == ".UserDirectoryProvider":
+            provider.set(android + "exported", "true")
+            provider.set(android + "authorities", "${applicationId}.user")
+            assert provider.get(android + "permission") == "android.permission.MANAGE_DOCUMENTS"
+        elif provider.get(android + "name") == "androidx.core.content.FileProvider":
+            provider.set(android + "exported", "false")
+            provider.set(android + "authorities", "${applicationId}.fileprovider")
+    assert len(providers) == 2
+    assert tree.find('application/activity[@' + android + 'name=".MainActivity"]').get(android + "exported") == "true"
+    assert tree.find('application/activity[@' + android + 'name=".GeometryDashActivity"]').get(android + "exported") == "false"
+    ET.indent(tree)
+    manifest.write_text(ET.tostring(tree, encoding="unicode"))
     change(root, "app/src/main/res/values/strings.xml", '<string name="app_name" translatable="false">Geode</string>', '<string name="app_name" translatable="false">MuchoLauncher</string>')
 
     game = root / package / "GeometryDashActivity.kt"
