@@ -2,7 +2,7 @@ import json,sys,os
 from pathlib import Path
 from PySide6.QtCore import Qt,QObject,QThread,Signal,QTimer,QStandardPaths,QLockFile,QUrl
 from PySide6.QtGui import QFont,QDesktopServices
-from PySide6.QtWidgets import QApplication,QMainWindow,QWidget,QHBoxLayout,QVBoxLayout,QLabel,QPushButton,QFrame,QFileDialog,QProgressBar,QMessageBox
+from PySide6.QtWidgets import QApplication,QMainWindow,QWidget,QHBoxLayout,QVBoxLayout,QLabel,QPushButton,QFrame,QFileDialog,QProgressBar,QMessageBox,QScrollArea
 from engine import Engine
 import build_config
 BASE=Path(getattr(sys,'_MEIPASS',Path(__file__).parent))
@@ -28,7 +28,7 @@ class Window(QMainWindow):
   for title,url in [('Главная',None),('Сообщество','https://muchogdps.space/dashboard'),('MuchoCore','https://muchogdps.space/muchocore/')]:
    b=QPushButton(title);b.clicked.connect((lambda checked=False,u=url:QDesktopServices.openUrl(QUrl(u))) if url else self.home);sl.addWidget(b)
   sl.addStretch();sl.addWidget(self.label('Твоя игра.\nТвоё сообщество.\nТвоя вселенная.','muted'));outer.addWidget(side)
-  main=QWidget();ml=QVBoxLayout(main);ml.setContentsMargins(38,30,38,26);ml.setSpacing(20);outer.addWidget(main,1)
+  main=QWidget();ml=QVBoxLayout(main);ml.setContentsMargins(38,30,38,26);ml.setSpacing(20);main.setMinimumSize(786,700);scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setFrameShape(QFrame.NoFrame);scroll.setWidget(main);outer.addWidget(scroll,1)
   top=QHBoxLayout();top.addWidget(self.label('ЭКОСИСТЕМА MUCHO / WINDOWS','eyebrow'));top.addStretch();top.addWidget(self.label('●  Проверка перед запуском','success'));ml.addLayout(top)
   hero=QFrame();hero.setObjectName('card');hl=QVBoxLayout(hero);hl.setContentsMargins(27,25,27,25);hl.setSpacing(11)
   hl.addWidget(self.label('Твоя вселенная.','heading'));hl.addWidget(self.label('MuchoGeode + MuchoClient\nВсе функции — внутри твоей игры.','muted'))
