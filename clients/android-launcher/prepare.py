@@ -86,6 +86,7 @@ def prepare(root, client):
     text = game.read_text()
     text = text.replace("createVersionFile()\n            tryLoadGame()", "com.geode.launcher.mucho.MuchoIntegrity.prepare(this, false)\n            com.geode.launcher.mucho.MuchoIntegrity.requireGame(this)\n            createVersionFile()\n            tryLoadGame()")
     text = text.replace("        loadInternalMods()", "        // Pinned client and resources were prepared before launch.")
+    text = text.replace("        startActivity(launchIntent)", "        startActivity(launchIntent)\n        android.os.Process.killProcess(android.os.Process.myPid()) // Only the isolated game process.")
     start = text.index('    @SuppressLint("UnsafeDynamicallyLoadedCode")\n    private fun loadGeodeLibrary()')
     end = text.index("\n    private fun", start + 110)
     # The next method is the safe boundary; preserve annotation if any by checking pinned source.
