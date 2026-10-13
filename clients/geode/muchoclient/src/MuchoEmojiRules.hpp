@@ -84,6 +84,26 @@ namespace mucho::emoji {
         }
         return p;
     }
+    struct FontMetric { float advance=0,width=0,height=0,xOffset=0,yOffset=0,kerning=0; };
+    struct MarkerAnchor { size_t index; float x,y; };
+    // Build every emoji anchor from the render plan, independently of native
+    // glyph visibility/reuse. Coordinates follow bitmap-font pixel metrics.
+    template<class Lookup>
+    std::vector<MarkerAnchor> markerAnchors(std::string_view render,float lineHeight,Lookup lookup) {
+        size_t lines=1;for(char c:render) if(c=='\n') ++lines;
+        float x=0,y=lineHeight*static_cast<float>(lines);uint32_t previous=0xffff;
+        size_t index=0;std::vector<MarkerAnchor> result;
+        for(size_t at=0;at<render.size();++index) {
+            auto r=decode(render,at);at+=r.bytes;
+            if(r.cp=='\n') {x=0;y-=lineHeight;continue;}
+            auto metric=lookup(previous,r.cp);
+            if(r.cp==static_cast<unsigned char>(Placeholder))
+                result.push_back({index,x+metric.xOffset+metric.width*.5f+metric.kerning,
+                                  y-metric.yOffset-metric.height*.5f});
+            x+=metric.advance+metric.kerning;previous=r.cp;
+        }
+        return result;
+    }
     // Byte-filter support is scoped to known emoji in a free-text input.
     inline std::string inputBytes(std::string_view s,Catalog c) {
         bool bytes[256]{};

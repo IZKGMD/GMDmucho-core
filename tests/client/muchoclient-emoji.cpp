@@ -60,6 +60,20 @@ int main() {
     }
     auto lines=plan("hello \U0001f600\nworld \U0001f1f7\U0001f1fa",catalog);
     require(lines.spans.size()==2&&lines.original.substr(lines.spans[1].start,lines.spans[1].end-lines.spans[1].start)=="\U0001f1f7\U0001f1fa","wrapped native lines retain flag sequence");
+    auto metric=[](uint32_t,uint32_t cp) {return cp==static_cast<unsigned char>(Placeholder)?
+        FontMetric{24,24,24,0,0,0}:FontMetric{12,12,24,0,0,0};};
+    for(auto text:{"\U0001f60a\U0001f60a","\U0001f60a\U0001f525","\U0001f525\U0001f60a","\U0001f60a\U0001f525\U0001f600"}) {
+        auto pair=plan(text,catalog);auto anchors=markerAnchors(pair.render,24,metric);
+        require(anchors.size()==pair.images.size(),"adjacent emoji retain every render anchor independently of native glyphs");
+        for(size_t i=1;i<anchors.size();++i)
+            require(anchors[i].x-anchors[i-1].x==24&&anchors[i].y==anchors[i-1].y,"adjacent emoji occupy distinct non-overlapping slots");
+        auto next=insertAtCursor(text,"\U0001f525",-1,catalog,false,140);
+        require(plan(next,catalog).images.size()==pair.images.size()+1,"repeated insertion retains existing adjacent emoji");
+    }
+    auto wrapped=markerAnchors(std::string(1,Placeholder)+"\n"+Placeholder,24,metric);
+    require(wrapped.size()==2&&wrapped[0].x==wrapped[1].x&&wrapped[0].y-wrapped[1].y==24,"emoji line break retains both image anchors");
+    auto surrounded=markerAnchors(std::string("AB")+Placeholder+Placeholder+"C",24,metric);
+    require(surrounded.size()==2&&surrounded[0].x==36&&surrounded[1].x==60,"adjacent emoji align with surrounding bitmap text");
     std::string large;for(size_t i=0;i<MaxGlyphs+25;++i) large+="\U0001f600";
     require(plan(large,catalog).images.size()==MaxGlyphs,"sprite budget");
     auto p=plan(std::string(MaxBytes,'x')+"\U0001f600",catalog);
