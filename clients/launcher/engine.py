@@ -19,6 +19,19 @@ def safe_path(root,name):
  if target.exists() and target.is_file() and target.stat().st_nlink>1:raise ValueError('Файл имеет несколько жёстких ссылок.')
  return target
 
+def writable_exe(root):
+ if os.name!='nt':return
+ # Windows refuses an exclusive writable handle for a running image.
+ import ctypes
+ from ctypes import wintypes
+ kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+ kernel.CreateFileW.argtypes=[wintypes.LPCWSTR,wintypes.DWORD,wintypes.DWORD,ctypes.c_void_p,wintypes.DWORD,wintypes.DWORD,wintypes.HANDLE]
+ kernel.CreateFileW.restype=wintypes.HANDLE
+ kernel.CloseHandle.argtypes=[wintypes.HANDLE]
+ handle=kernel.CreateFileW(str(safe_path(root,'GeometryDash.exe')),0xC0000000,0,None,3,0x80,None)
+ if handle==ctypes.c_void_p(-1).value:raise ValueError('EXE занят или недоступен для записи. Закрой игру и проверь права на папку.')
+ kernel.CloseHandle(handle)
+
 class Engine:
  def __init__(self,bundle,manifest,payload_hash):
   self.bundle=Path(bundle);self.manifest=manifest;self.payload_hash=payload_hash
@@ -59,6 +72,7 @@ class Engine:
  def install(self,folder,progress=lambda p,t:None):
   root=Path(folder).resolve()
   if not root.is_dir():raise ValueError('Выбери папку установленного клиента MuchoGDPS.')
+  writable_exe(root)
   original,backup=self.source(root);patched=patch(original,self.manifest['text_sha']);files=self.payload()
   source_path=safe_path(root,backup)
   if source_path.exists():
@@ -92,7 +106,7 @@ class Engine:
   finally:shutil.rmtree(stage,ignore_errors=True)
   progress(100,'Готово. Все обязательные компоненты проверены.');return []
  def restore(self,folder,progress=lambda p,t:None):
-  root=Path(folder).resolve();original,_=self.source(root)
+  root=Path(folder).resolve();original,_=self.source(root);writable_exe(root)
   target=safe_path(root,'GeometryDash.exe');fd,tmp=tempfile.mkstemp(prefix='.mucho-restore-',dir=root)
   try:
    with os.fdopen(fd,'wb') as f:f.write(original);f.flush();os.fsync(f.fileno())
