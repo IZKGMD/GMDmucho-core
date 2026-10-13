@@ -7,6 +7,7 @@
 #include "MuchoMenuAvatar.hpp"
 #include "MuchoDailyQuestsPopup.hpp"
 #include "MuchoEmoji.hpp"
+#include "MuchoSocial.hpp"
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/CreatorLayer.hpp>
 #include <Geode/ui/Popup.hpp>
@@ -24,7 +25,7 @@ using namespace geode::prelude;
 
 namespace {
     constexpr char const* CLIENT_ID = "izkgmd.muchoclient";
-    constexpr char const* CLIENT_VERSION = "0.9.7";
+    constexpr char const* CLIENT_VERSION = "1.0.0";
     constexpr int PROTOCOL = 1;
 
     struct Feature {
@@ -66,7 +67,7 @@ namespace {
         ) != 3) {
             return false;
         }
-        return std::tuple{0u, 9u, 4u} >= std::tuple{major, minor, patch};
+        return std::tuple{1u, 0u, 0u} >= std::tuple{major, minor, patch};
     }
 
     // Untrusted server text is displayed only, never evaluated as UI markup.
@@ -122,7 +123,7 @@ protected:
         if (!Popup::init(340.f, 310.f)) return false;
         m_origin = std::move(origin);
         m_features = std::move(features);
-        this->setTitle("MuchoClient v0.9.7");
+        this->setTitle("MuchoClient v1.0.0");
 
         auto status = CCLabelBMFont::create(
             "Connected to MuchoCore", "goldFont.fnt"
@@ -160,6 +161,8 @@ protected:
         profile->setPositionX(108.f); colorsMenu->addChild(profile);
         auto emoji=mucho::button(ButtonSprite::create("Emoji"),this,menu_selector(MuchoFeaturesPopup::onEmoji),.43f);
         colorsMenu->addChild(emoji);
+        auto social = mucho::button(ButtonSprite::create("Social"),this,menu_selector(MuchoFeaturesPopup::onSocial),.40f);
+        social->setPosition({0,44}); colorsMenu->addChild(social);
         mucho::motion::panel(m_mainLayer);
         return true;
     }
@@ -178,6 +181,7 @@ protected:
         }
         m_pageLabel->setString((std::to_string(m_page+1)+" / "+std::to_string(mucho::quests::pageCount(m_features.size()))).c_str());
     }
+    void onSocial(CCObject*) { mucho::social::show(); }
     void onEmoji(CCObject*) { mucho::emoji::showPicker(); }
     void onPrevious(CCObject*) { if (m_page > 0) { --m_page; renderFeatures(); } }
     void onNext(CCObject*) { if (m_page+1 < mucho::quests::pageCount(m_features.size())) { ++m_page; renderFeatures(); } }

@@ -1,4 +1,4 @@
-# MuchoClient 0.9.7 — one file for all modules
+# MuchoClient 1.0.0 — one file for all modules
 
 
 Emoji Support renders 4009 bundled Twemoji 17 images in ordinary bitmap labels,

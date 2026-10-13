@@ -1,0 +1,62 @@
+name: Build MuchoLauncher Windows
+on:
+  pull_request:
+    paths:
+      - 'clients/launcher/**'
+      - '.github/workflows/build-mucholauncher.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  launcher:
+    name: MuchoLauncher Windows
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: MuchoClient-Windows-Android
+          run-id: 38390237503
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: client-artifact
+      - uses: actions/download-artifact@v4
+        with:
+          name: MuchoLoader-v0.1.0-Windows
+          run-id: 38161767363
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: loader-artifact
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Install build dependencies and test launcher core
+        run: |
+          python -m pip install PySide6==6.8.3 pyinstaller==6.12.0 pefile==2023.2.7
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python clients/launcher/tests/test_engine.py
+      - name: Pin native runtime and compile mandatory bootstrap
+        shell: cmd
+        run: |
+          python clients/launcher/prepare.py --loader loader-artifact --client client-artifact --out clients/launcher
+          if errorlevel 1 exit /b 1
+          copy clients\launcher\pins.h clients\launcher\native\pins.h
+          cl /nologo /LD /O2 /utf-8 /MT clients\launcher\native\bootstrap.c advapi32.lib user32.lib /Fe:clients\launcher\MuchoBootstrap.dll
+          if errorlevel 1 exit /b 1
+          python clients/launcher/prepare.py --loader loader-artifact --client client-artifact --guard clients/launcher/MuchoBootstrap.dll --out clients/launcher
+      - name: Package native Windows launcher
+        working-directory: clients/launcher
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed --onedir --name MuchoLauncher --add-data "payload.zip;." app.py
+          $smoke = Start-Process -FilePath dist/MuchoLauncher/MuchoLauncher.exe -ArgumentList '--screenshot' -Wait -PassThru
+          if ($smoke.ExitCode -ne 0 -or !(Test-Path launcher-preview.png)) { throw 'Packaged launcher UI smoke test failed' }
+          Copy-Item README-RU.txt dist/MuchoLauncher/README-RU.txt
+          Compress-Archive -Path dist/MuchoLauncher -DestinationPath MuchoLauncher-v1.0.0-Windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MuchoLauncher-Windows
+          path: clients/launcher/MuchoLauncher-v1.0.0-Windows.zip
+          retention-days: 30
