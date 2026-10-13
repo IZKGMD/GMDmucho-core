@@ -221,6 +221,8 @@ jobs:
         working-directory: clients/launcher
         run: |
           python -m PyInstaller --noconfirm --clean --windowed --onedir --name MuchoLauncher --add-data "payload.zip;." app.py
+          $smoke = Start-Process -FilePath dist/MuchoLauncher/MuchoLauncher.exe -ArgumentList '--screenshot' -Wait -PassThru
+          if ($smoke.ExitCode -ne 0 -or !(Test-Path launcher-preview.png)) { throw 'Packaged launcher UI smoke test failed' }
           Copy-Item README-RU.txt dist/MuchoLauncher/README-RU.txt
           Compress-Archive -Path dist/MuchoLauncher -DestinationPath MuchoLauncher-v1.0.0-Windows.zip
       - uses: actions/upload-artifact@v4
