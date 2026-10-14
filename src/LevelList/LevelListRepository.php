@@ -25,13 +25,16 @@ final class LevelListRepository
             $rows = $this->db->prepare(
                 'SELECT friend_account_id
                  FROM friends
-                 WHERE account_id=:account_id
+                 WHERE account_id=:outgoing_account_id
                  UNION
                  SELECT account_id
                  FROM friends
-                 WHERE friend_account_id=:account_id'
+                 WHERE friend_account_id=:incoming_account_id'
             );
-            $rows->execute(['account_id' => $accountId]);
+            $rows->execute([
+                'outgoing_account_id' => $accountId,
+                'incoming_account_id' => $accountId,
+            ]);
 
             $ids = array_map(
                 'intval',
@@ -203,8 +206,11 @@ final class LevelListRepository
             $params[$key] = (int)$levelId;
         }
 
+        $visible = $this->schema->columnExists('levels', 'is_deleted')
+            ? ' AND COALESCE(is_deleted, 0) = 0'
+            : '';
         $stmt = $this->db->prepare(
-            'SELECT COUNT(DISTINCT level_id) FROM levels WHERE level_id IN (' . implode(',', $marks) . ')'
+            'SELECT COUNT(DISTINCT level_id) FROM levels WHERE level_id IN (' . implode(',', $marks) . ')' . $visible
         );
 
         foreach ($params as $key => $value) {

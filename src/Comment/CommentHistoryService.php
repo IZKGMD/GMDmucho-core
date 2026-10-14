@@ -15,6 +15,7 @@ final class CommentHistoryService
     public function get(): string
     {
         $userId = Request::int('userID');
+        $byAccountId = $userId <= 0;
 
         if ($userId <= 0) {
             $userId = Request::int('accountID');
@@ -26,13 +27,16 @@ final class CommentHistoryService
 
         $binaryVersion = Request::int('binaryVersion', 0);
         $gameVersion = Request::int('gameVersion', 0);
+        $inlineUsers = $binaryVersion > 31 || $gameVersion >= 22;
         $mode = Request::int('mode', 0);
         $count = min(50, max(1, Request::int('count', 10)));
         $page = min(1000, max(0, Request::int('page', 0)));
         $offset = $page * $count;
 
         try {
-            $result = $this->repo->byUserId($userId, $offset, $count, $mode !== 0);
+            $result = $byAccountId
+                ? $this->repo->byAccountId($userId, $offset, $count, $mode !== 0)
+                : $this->repo->byUserId($userId, $offset, $count, $mode !== 0);
         } catch (Throwable) {
             return '-1';
         }
@@ -69,7 +73,7 @@ final class CommentHistoryService
             $extId = is_numeric((string)$row['extID']) ? (int)$row['extID'] : 0;
 
             if ($userName !== '') {
-                if ($binaryVersion > 31) {
+                if ($inlineUsers) {
                     // v7.1 does not forge moderator state; badge stays 0 until permission service integration.
                     $base .= '~11~0'
                         . ':1~' . $userName
@@ -94,7 +98,7 @@ final class CommentHistoryService
 
         $out = implode('|', $comments);
 
-        if ($binaryVersion < 32) {
+        if (!$inlineUsers) {
             $out .= '#' . implode('|', $users);
         }
 

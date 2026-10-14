@@ -519,6 +519,13 @@ jobs:
           TEST_REDIS_PORT: 6379
         run: php tests/application/redis-cache-integration.php
 
+      - name: Verify comment history identities and friends lists
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/history-lists-integration.php
+
 
   php-runtime:
     strategy:
