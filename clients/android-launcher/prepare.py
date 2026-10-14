@@ -12,7 +12,7 @@ import zipfile
 import xml.etree.ElementTree as ET
 
 UPSTREAM_SHA = "38bc97b7b6551acb1295dd241231ca22e2cd8995"
-CLIENT_SHA = "8f197de5e248e996463b7001cf36b98bc7c990a5012eb336c7d39d50a4b994ef"
+CLIENT_SHA = "197f1b07f53b4ba34720b3ba0eb921b554d44cbf5314ef070f33aebf007c2eab"
 GEODE_VERSION = "5.10.1"
 
 

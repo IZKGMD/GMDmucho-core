@@ -28,7 +28,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: MuchoClient-Windows-Android
-          run-id: 38522874473
+          run-id: 38524038763
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: client-artifact
       - name: Obtain pinned launcher source

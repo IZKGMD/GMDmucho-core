@@ -38,7 +38,7 @@ not implemented as a separate web dashboard in this launcher.
 ## Build
 
 Workflow `build-mucholauncher-android.yml` downloads the verified client from
-run 38522874473, checks its fixed SHA-256, obtains loader archives from Geode
+run 38524038763, checks its fixed SHA-256, obtains loader archives from Geode
 version metadata and checks those hashes. It builds an unsigned release APK
 for both ABIs, runs corruption/traversal/atomic-replacement tests, then checks
 the actual APK payload. Signing is performed outside CI with the retained
