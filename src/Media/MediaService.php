@@ -165,9 +165,9 @@ final readonly class MediaService {
             WHERE c.room_id=? AND a.is_active=1 AND a.is_banned=0
             AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.account_id=? AND b.blocked_account_id=c.account_id) OR (b.account_id=c.account_id AND b.blocked_account_id=?))
             $filter ORDER BY c.id DESC LIMIT 30",$args)->fetchAll(PDO::FETCH_ASSOC);
-        $images=$this->configuration()['images_enabled'];
+        $config=$this->configuration();$images=$config['images_enabled'];
         if(!$images)foreach($rows as &$row)$row['media_id']=null;unset($row);
-        return ['messages'=>array_reverse($rows),'images_enabled'=>$images];
+        return ['messages'=>array_reverse($rows),'images_enabled'=>$images,'moderation'=>$config['moderation']];
     }
     public function sendChat(int $id,string $credential,int $room,string $text): array {
         $this->auth->authenticate($id,$credential);$this->gate($id,'room',$room);$text=self::text($text,500);

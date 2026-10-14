@@ -109,7 +109,7 @@ class MediaPopup final:public Popup {
    button("Send",307,46,menu_selector(MediaPopup::onSend),0,.32f);if(images)button("Photo",369,46,menu_selector(MediaPopup::onPhoto),0,.29f);
   }enable();
  }
- void chatData(matjson::Value const& data){images=data["images_enabled"].asBool().unwrapOr(false);rows.clear();if(auto a=data["messages"].asArray())for(auto const& row:a.unwrap())rows.push_back(row);if(caption)caption->setString("");page=rows.empty()?0:static_cast<int>((rows.size()-1)/4);listing();status(images?"Room chat / photos enabled":"Room chat / photos disabled by server");}
+ void chatData(matjson::Value const& data){images=data["images_enabled"].asBool().unwrapOr(false);rows.clear();if(auto a=data["messages"].asArray())for(auto const& row:a.unwrap())rows.push_back(row);if(caption)caption->setString("");page=rows.empty()?0:static_cast<int>((rows.size()-1)/4);listing();status(text(data,"moderation")=="openai"?"Room messages are screened by OpenAI before delivery":images?"Room chat / photos enabled":"Room chat / photos disabled by server");}
  void reload(){
   if(busy||modal||!session())return;
   if(mode=="chat"){request("chat","&roomID="+std::to_string(target),[this](matjson::Value const& v){chatData(v);});return;}
