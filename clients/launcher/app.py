@@ -25,7 +25,7 @@ class Window(QMainWindow):
    except Exception:pass
   host=QWidget();self.setCentralWidget(host);outer=QHBoxLayout(host);outer.setContentsMargins(0,0,0,0);outer.setSpacing(0)
   side=QFrame();side.setObjectName('sidebar');side.setFixedWidth(224);sl=QVBoxLayout(side);sl.setContentsMargins(24,30,24,25);sl.setSpacing(15)
-  sl.addWidget(self.label('M / MUCHO','logo'));sl.addWidget(self.label('LAUNCHER  /  1.2.0','eyebrow'));sl.addSpacing(35)
+  sl.addWidget(self.label('M / MUCHO','logo'));sl.addWidget(self.label('LAUNCHER  /  1.2.1','eyebrow'));sl.addSpacing(35)
   for title,url in [('Главная',None),('Сообщество','https://muchogdps.space/dashboard'),('MuchoCore','https://muchogdps.space/muchocore/'),('Visual C++ x64',DOWNLOAD)]:
    b=QPushButton(title);b.clicked.connect((lambda checked=False,u=url:QDesktopServices.openUrl(QUrl(u))) if url else self.home);sl.addWidget(b)
   sl.addStretch();sl.addWidget(self.label('Твоя игра.\nТвоё сообщество.\nТвоя вселенная.','muted'));outer.addWidget(side)

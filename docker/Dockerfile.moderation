@@ -1,0 +1,8 @@
+FROM python:3.12-slim-bookworm
+WORKDIR /opt/mucho-moderation
+COPY tools/moderation/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+COPY tools/moderation/ ./
+RUN python fetch_model.py --out /opt/mucho-moderation/weights
+USER 33:33
+CMD ["python", "service.py", "--model", "/opt/mucho-moderation/weights/model.onnx", "--socket", "/run/mucho-moderation/moderation.sock"]

@@ -105,6 +105,7 @@ jobs:
           php tests/application/score-integrity-contract.php
           php tests/application/profile-images.php
           php tests/application/media-moderator.php
+          php tests/application/media-compression.php
           php tests/application/cvolton-db-import-contract.php
           php tests/application/comment-contract.php
           php tests/application/social-crud-contract.php
@@ -284,6 +285,7 @@ jobs:
           EOF
           docker compose --env-file .ci.env config -q
           docker compose --env-file .ci.env -f docker-compose.yml -f docker-compose.tunnel.yml config -q
+          docker compose --env-file .ci.env -f docker-compose.yml -f docker-compose.moderation.yml config -q
           printf 'ci-testgdps-db-password' > .secrets/testgdps_db_password
           printf 'ci-testgdps-db-root-password' > .secrets/testgdps_db_root_password
           printf 'ci-testgdps-admin-password' > .secrets/testgdps_admin_password
@@ -551,6 +553,7 @@ jobs:
           php tests/application/score-integrity-contract.php
           php tests/application/profile-images.php
           php tests/application/media-moderator.php
+          php tests/application/media-compression.php
           php tests/security/client-ip-cloudflare.php
           php tests/client/client-compatibility.php
           php tests/protocol/protocol-matrix.php

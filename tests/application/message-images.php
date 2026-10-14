@@ -6,7 +6,6 @@ use MuchoCore\Media\ImageModerator;
 use MuchoCore\Media\MediaController;
 use MuchoCore\Media\MediaService;
 use MuchoCore\Media\MessageImage;
-use MuchoCore\Media\OpenAiImageModerator;
 spl_autoload_register(static function(string $class):void {if(str_starts_with($class,'MuchoCore\\'))require dirname(__DIR__,2).'/src/'.str_replace('\\','/',substr($class,10)).'.php';});
 function check(bool $ok,string $message):void {if(!$ok)throw new RuntimeException($message);}
 function refused(callable $call,string $message):void {try{$call();}catch(RuntimeException){return;}throw new RuntimeException($message);}
@@ -44,13 +43,13 @@ try {
  $message=(int)$db->query('SELECT id FROM messages LIMIT 1')->fetchColumn();$image=(int)$pending['id'];
  check(count($service->attachments(2,$token,$message)['images'])===1,'Recipient attachment missing');
  refused(fn()=>$service->attachments(3,$token,$message),'Attachment leaked to outsider');
- $response=$call(2,'image',['imageID'=>(string)$image]);check($response->status===200&&$response->contentType==='image/jpeg'&&($response->headers['Cache-Control']??'')==='no-store','Private JPEG transport/cache headers missing');
+ $response=$call(2,'image',['imageID'=>(string)$image]);check($response->status===200&&in_array($response->contentType,['image/jpeg','image/png'],true)&&($response->headers['Cache-Control']??'')==='no-store','Private JPEG transport/cache headers missing');
  check($response->forPluginEvent()->body==='','Private image exposed to plugins');
- check(getimagesizefromstring($response->body)[2]===IMAGETYPE_JPEG,'Upload not sanitized to JPEG');
+ check(in_array(getimagesizefromstring($response->body)[2],[IMAGETYPE_JPEG,IMAGETYPE_PNG],true),'Upload not sanitized to JPEG/PNG');
  $db->exec('UPDATE messages SET is_receiver_deleted=1');refused(fn()=>$service->image(2,$token,$image),'Deleted DM image accessible');check($service->image(1,$token,$image)!=='','Receiver deletion removed sender access');$db->exec('UPDATE messages SET is_receiver_deleted=0');
  $db->exec('INSERT INTO blocks VALUES(2,1)');refused(fn()=>$upload(),'Blocked DM upload accepted');refused(fn()=>$service->image(1,$token,$image),'Blocked DM image accessible');$db->exec('DELETE FROM blocks');
  $db->exec('UPDATE accounts SET messages_state=1 WHERE account_id=2');refused(fn()=>$upload(),'Friends-only upload accepted');$db->exec('INSERT INTO friends VALUES(1,2),(2,1)');
- $setting('media.moderation.mode','openai');$safe=$upload();check($safe['state']==='approved'&&$moderator->calls===1,'Automatic approval failed');
+ $setting('media.moderation.mode','local');$safe=$upload();check($safe['state']==='approved'&&$moderator->calls===1,'Automatic approval failed');
  $service->report(2,$token,$image,'nsfw');refused(fn()=>$service->image(1,$token,$image),'Reported image not quarantined');
  refused(fn()=>$service->image(2,$token,(int)$safe['id']),'Reported duplicate hash still accessible');
  $before=$moderator->calls;refused(fn()=>$upload(),'Reported raw hash accepted');check($moderator->calls===$before,'Reported material sent to external AI');
@@ -68,8 +67,8 @@ try {
  $setting('media.images.enabled','1');$service->remove(1,$token,(int)$roomImage['id']);refused(fn()=>$service->remove(2,$token,(int)$safe['id']),'Nonowner removed file');
  $db->exec('DELETE FROM mucho_social_members WHERE room_id=10 AND account_id=2');refused(fn()=>$service->chat(2,$token,10),'Former member retained chat access');
  $db->exec('UPDATE mucho_social_rooms SET expires_at=UTC_TIMESTAMP()-INTERVAL 1 SECOND WHERE id=10');refused(fn()=>$service->sendChat(1,$token,10,'expired'),'Expired room accepted text');
- $setting('media.moderation.mode','openai');$moderator->decision=['state'=>'approved','reason'=>'test_passed'];$moderator->before=static fn()=>$setting('media.moderation.mode','manual');$changed=$upload(4,'message',2,base64_encode($png(205,100,46)));check($changed['state']==='pending','Changed moderation policy still published image');$moderator->before=null;
- $large=MessageImage::render($png(1600,800));check($large['width']===1280&&$large['height']===640&&strlen($large['bytes'])<=MessageImage::MAX_OUTPUT,'Resize/byte cap wrong');
+ $setting('media.moderation.mode','local');$moderator->decision=['state'=>'approved','reason'=>'test_passed'];$moderator->before=static fn()=>$setting('media.moderation.mode','manual');$changed=$upload(4,'message',2,base64_encode($png(205,100,46)));check($changed['state']==='pending','Changed moderation policy still published image');$moderator->before=null;
+ $large=MessageImage::render($png(1600,800));check($large['width']===1600&&$large['height']===800&&strlen($large['bytes'])<=MessageImage::MAX_OUTPUT,'Resize/byte cap wrong');
  refused(fn()=>MessageImage::render('<svg><script>alert(1)</script></svg>'),'SVG accepted');refused(fn()=>MessageImage::decode($encoded.' '),'Noncanonical base64 accepted');refused(fn()=>MessageImage::render($png(8192,16)),'Extreme aspect ratio accepted');
  $sourceHash=hash('sha256',$source);$service->review((int)$safe['id'],'rejected','admin_rejected',true);refused(fn()=>$upload(),'Admin hash block ignored');refused(fn()=>$service->image(2,$token,$image),'Admin block did not hide existing matching image');check($db->query("SELECT COUNT(*) FROM mucho_media_blocklist WHERE sha256='$sourceHash'")->fetchColumn()>0,'Hash block missing');
  $db->exec("INSERT INTO mucho_message_media(account_id,scope,target_id,source_hash,image_hash,width,height,image_data,state,created_at) SELECT 4,'message',2,source_hash,image_hash,width,height,image_data,'pending',UTC_TIMESTAMP() FROM mucho_message_media WHERE id=".(int)$changed['id']);

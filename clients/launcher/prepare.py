@@ -18,14 +18,14 @@ if client.is_dir():client=next(client.rglob('*.geode'))
 files['geode/mods/izkgmd.muchoclient.geode']=client.read_bytes()
 # Refuse packages without the mandatory readiness handshake.
 with zipfile.ZipFile(client) as z:
- if json.loads(z.read('mod.json'))['version'].lstrip('v')!='1.2.0':raise SystemExit('Client release version mismatch')
+ if json.loads(z.read('mod.json'))['version'].lstrip('v')!='1.2.1':raise SystemExit('Client release version mismatch')
  if b'MuchoClientHealth_v1' not in z.read('izkgmd.muchoclient.dll'):raise SystemExit('Client lacks native health export')
 pins={n:hashlib.sha256(files[n]).hexdigest() for n in ['Geode.dll','geode/mods/izkgmd.muchoclient.geode']}
 (out/'pins.h').write_text('#define MUCHO_LOADER_SHA "'+pins['Geode.dll']+'"\n#define MUCHO_CLIENT_SHA "'+pins['geode/mods/izkgmd.muchoclient.geode']+'"\n')
 if not a.guard:print('Native pins generated');raise SystemExit(0)
 files['MuchoBootstrap.dll']=Path(a.guard).read_bytes()
 policy=json.loads((Path(__file__).parent/'game-policy.json').read_text())
-manifest={'version':'1.2.0','text_sha':policy['text_sha'],'files':[{'path':n,'sha256':hashlib.sha256(data).hexdigest(),'size':len(data)} for n,data in sorted(files.items())]}
+manifest={'version':'1.2.1','text_sha':policy['text_sha'],'files':[{'path':n,'sha256':hashlib.sha256(data).hexdigest(),'size':len(data)} for n,data in sorted(files.items())]}
 with zipfile.ZipFile(out/'payload.zip','w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
  for n,data in sorted(files.items()):z.writestr(n,data)
 sha=hashlib.sha256((out/'payload.zip').read_bytes()).hexdigest()

@@ -1,4 +1,5 @@
 #include "MuchoMedia.hpp"
+#include "MuchoAttachmentViewport.hpp"
 #include "MuchoProfilePopup.hpp"
 #include <Geode/modify/GJWriteMessagePopup.hpp>
 #include <Geode/modify/GJMessagePopup.hpp>
@@ -20,6 +21,7 @@ class MediaPopup final:public Popup {
  bool closed=false,busy=false,images=false,ready=false,modal=false;
  CCNode* content=nullptr;CCMenu* menu=nullptr;CCLabelBMFont* statusLabel=nullptr;
  TextInput* caption=nullptr;TextInput* subject=nullptr;
+ AttachmentViewport* viewport=nullptr;
  LazySprite* image=nullptr;std::vector<uint8_t> bytes;
  std::vector<matjson::Value> rows;std::function<void()> accepted;
  async::TaskHolder<web::WebResponse> requestTask;
@@ -33,7 +35,7 @@ class MediaPopup final:public Popup {
  void enable(){for(auto b:buttons)b->setEnabled(!closed&&!busy&&!modal);}
  CCMenuItemSpriteExtra* button(char const* title,float x,float y,SEL_MenuHandler selector,int tag=0,float scale=.32f){auto b=mucho::button(ButtonSprite::create(title),this,selector,scale);b->setPosition({x,y});b->setTag(tag);menu->addChild(b);buttons.push_back(b);return b;}
  void label(std::string value,float x,float y,float width=320,float scale=.30f){auto l=CCLabelBMFont::create(clean(std::move(value)).c_str(),"bigFont.fnt");l->setPosition({x,y});l->limitLabelWidth(width,scale,0);content->addChild(l);}
- void reset(){++generation;content->removeAllChildren();buttons.clear();menu=CCMenu::create();menu->setPosition({0,0});content->addChild(menu);caption=subject=nullptr;image=nullptr;}
+ void reset(){++generation;content->removeAllChildren();buttons.clear();menu=CCMenu::create();menu->setPosition({0,0});content->addChild(menu);caption=subject=nullptr;image=nullptr;viewport=nullptr;}
  void request(std::string action,std::string extra,std::function<void(matjson::Value const&)> done){
   if(busy||modal||!session())return;std::string token;if(!profile::credential(account,token))return;
   busy=true;enable();status("Connecting...");auto stamp=generation;
@@ -46,12 +48,12 @@ class MediaPopup final:public Popup {
   });
  }
  void decode(std::vector<uint8_t> data,bool png){
-  ready=false;if(image)image->removeFromParent();image=LazySprite::create({344,mode=="compose"?100.f:150.f},false);image->setPosition({202,mode=="compose"?190.f:172.f});image->setVisible(false);content->addChild(image);
+  ready=false;if(image)image->removeFromParent();image=LazySprite::create({344,mode=="compose"?100.f:150.f},false);image->setPosition({202,mode=="compose"?190.f:172.f});image->setVisible(false);if(mode=="view"){viewport=AttachmentViewport::create({344,150});viewport->setPosition({30,97});content->addChild(viewport);viewport->image(image);}else content->addChild(image);
   auto sprite=image;auto weak=WeakRef(this);auto stamp=generation;sprite->retain();
   sprite->setLoadCallback([weak,stamp,sprite](Result<> result){geode::queueInMainThread([sprite]{sprite->release();});auto self=weak.lock();if(!self||self->closed||self->generation!=stamp||self->image!=sprite)return;
    if(!self->session())return;if(!result){self->status("Image could not be decoded");return;}
    auto size=sprite->getTexture()->getContentSize();if(size.width<=0||size.height<=0){self->status("Invalid image size");return;}
-   sprite->setScale(std::min(344.f/size.width,(self->mode=="compose"?100.f:150.f)/size.height));sprite->setVisible(true);self->ready=true;self->status(self->mode=="compose"?"Preview ready. Press Send to upload":"Private image");
+   if(self->viewport)self->viewport->loaded();else sprite->setScale(std::min(344.f/size.width,(self->mode=="compose"?100.f:150.f)/size.height));sprite->setVisible(true);self->ready=true;self->status(self->mode=="compose"?"Preview ready. Press Send to upload":"Zoom with +/- and drag to read details");
   });sprite->loadFromData(std::move(data),png?CCImage::kFmtPng:CCImage::kFmtJpg);
  }
  void onPick(CCObject*){
@@ -87,6 +89,7 @@ class MediaPopup final:public Popup {
  void onRemove(CCObject* o){if(busy||modal||!session())return;auto id=static_cast<CCNode*>(o)->getTag();modal=true;enable();auto weak=WeakRef(this);
   createQuickPopup("Remove image","Remove this uploaded image?", "Cancel","Remove",[weak,id](FLAlertLayer*,bool yes){if(auto self=weak.lock();self&&!self->closed){self->modal=false;self->enable();if(yes)self->request("remove","&imageID="+std::to_string(id),[weak](matjson::Value const&){if(auto p=weak.lock())p->reload();});}},true,true);
  }
+ void onZoom(CCObject* o){if(!viewport||!ready||!session())return;auto tag=static_cast<CCNode*>(o)->getTag();if(tag==0)viewport->fit();else viewport->zoom(tag>0?1.6f:1.f/1.6f);}
  void onReport(CCObject* o){if(busy||modal||!session())return;char const* reasons[]={"nsfw","violence","child_safety","other"};auto index=static_cast<CCNode*>(o)->getTag();if(index<0||index>3)return;auto reason=std::string(reasons[index]);modal=true;enable();auto weak=WeakRef(this);
   createQuickPopup("Report image","Hide this image and send it to the server moderators?","Cancel","Report",[weak,reason](FLAlertLayer*,bool yes){if(auto self=weak.lock();self&&!self->closed){self->modal=false;self->enable();if(yes)self->request("report","&imageID="+std::to_string(self->target)+"&reason="+reason,[weak](matjson::Value const&){if(auto p=weak.lock()){p->onClose(nullptr);FLAlertLayer::create("Image reported","Hidden until a moderator reviews it.","OK")->show();}});}},true,true);
  }
@@ -109,7 +112,7 @@ class MediaPopup final:public Popup {
    button("Send",307,46,menu_selector(MediaPopup::onSend),0,.32f);if(images)button("Photo",369,46,menu_selector(MediaPopup::onPhoto),0,.29f);
   }enable();
  }
- void chatData(matjson::Value const& data){images=data["images_enabled"].asBool().unwrapOr(false);rows.clear();if(auto a=data["messages"].asArray())for(auto const& row:a.unwrap())rows.push_back(row);if(caption)caption->setString("");page=rows.empty()?0:static_cast<int>((rows.size()-1)/4);listing();status(text(data,"moderation")=="openai"?"Room messages are screened by OpenAI before delivery":images?"Room chat / photos enabled":"Room chat / photos disabled by server");}
+ void chatData(matjson::Value const& data){images=data["images_enabled"].asBool().unwrapOr(false);rows.clear();if(auto a=data["messages"].asArray())for(auto const& row:a.unwrap())rows.push_back(row);if(caption)caption->setString("");page=rows.empty()?0:static_cast<int>((rows.size()-1)/4);listing();status(text(data,"moderation")=="local"?"Local server rules / images screened offline":images?"Room chat / photos enabled":"Room chat / photos disabled by server");}
  void reload(){
   if(busy||modal||!session())return;
   if(mode=="chat"){request("chat","&roomID="+std::to_string(target),[this](matjson::Value const& v){chatData(v);});return;}
@@ -119,7 +122,7 @@ class MediaPopup final:public Popup {
   if(busy||!session())return;std::string token;if(!profile::credential(account,token))return;busy=true;enable();status("Loading private image...");auto stamp=generation;
   requestTask.spawn("Download private image",web::WebRequest().timeout(std::chrono::seconds(20)).followRedirects(false).header("Content-Type","application/x-www-form-urlencoded").bodyString("accountID="+std::to_string(account)+"&gameVersion=22&gjp2="+token+"&action=image&imageID="+std::to_string(target)).post(url+"/api/media"),[this,stamp](web::WebResponse r){
    if(closed||stamp!=generation)return;busy=false;enable();if(!session())return;auto data=r.data();
-   if(!r.ok()||data.size()>profile::MAX_IMAGE_BYTES){status("Image unavailable or access revoked");return;}auto dimensions=profile::imageSize(data);if(!dimensions||dimensions->png||dimensions->width>1280||dimensions->height>1280){status("Invalid image");return;}decode(std::move(data),false);
+   if(!r.ok()||data.size()>256*1024){status("Image unavailable or access revoked");return;}auto dimensions=profile::imageSize(data);if(!dimensions||dimensions->width>2048||dimensions->height>2048){status("Invalid image");return;}decode(std::move(data),dimensions->png);
   });
  }
  void watchSession(float){if(closed)return;std::string token;if(url!=profile::origin()||!profile::credential(account,token)){if(image)image->setVisible(false);requestTask.cancel();picker.cancel();reader.cancel();encoder.cancel();bytes.clear();ready=false;status("Account or server changed. Close and reopen this window");}}
@@ -137,10 +140,10 @@ class MediaPopup final:public Popup {
    if(scope=="message"){subject=TextInput::create(244,"Subject");subject->setFilter("");subject->setMaxCharCount(40);subject->setString(emoji::shortenText(title,40));subject->setPosition({160,115});content->addChild(subject);}
    button("Choose photo",120,45,menu_selector(MediaPopup::onPick));button("Send",288,45,menu_selector(MediaPopup::onSend));
    request("config","",[this](matjson::Value const& v){images=v["images_enabled"].asBool().unwrapOr(false);auto policy=text(v,"moderation");if(!images){status("Image sending is disabled by the server owner");return;}
-    status(policy=="openai"?"Images + captions are screened by OpenAI before delivery":policy=="manual"?"Images appear only after a server moderator approves them":"Image sending enabled / moderation disabled");
+    status(policy=="local"?"Local AI on this server / photos never go to external APIs":policy=="manual"?"Images appear only after a server moderator approves them":"Image sending enabled / moderation disabled");
    });
   }else if(mode=="view"){
-   label("Report inappropriate content",202,75,330,.27f);button("NSFW",68,43,menu_selector(MediaPopup::onReport),0,.27f);button("Violence",155,43,menu_selector(MediaPopup::onReport),1,.25f);button("Child safety",258,43,menu_selector(MediaPopup::onReport),2,.24f);button("Other",350,43,menu_selector(MediaPopup::onReport),3,.26f);loadImage();
+   button("-",137,83,menu_selector(MediaPopup::onZoom),-1,.28f);button("Fit",202,83,menu_selector(MediaPopup::onZoom),0,.28f);button("+",267,83,menu_selector(MediaPopup::onZoom),1,.28f);label("Report inappropriate content",202,63,330,.20f);button("NSFW",68,43,menu_selector(MediaPopup::onReport),0,.27f);button("Violence",155,43,menu_selector(MediaPopup::onReport),1,.25f);button("Child safety",258,43,menu_selector(MediaPopup::onReport),2,.24f);button("Other",350,43,menu_selector(MediaPopup::onReport),3,.26f);loadImage();
   }else{listing();reload();}return true;
  }
  static void open(std::string view,int id){if(auto p=create(std::move(view),id,"","","",{}))p->show();}

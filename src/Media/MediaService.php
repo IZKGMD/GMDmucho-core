@@ -10,16 +10,16 @@ use Throwable;
 
 final readonly class MediaService {
     public function __construct(private PDO $db,private AccountAuthenticator $auth,
-        private ImageModerator $moderator=new OpenAiImageModerator()){}
+        private ImageModerator $moderator=new LocalImageModerator()){}
     private function q(string $sql,array $args=[]): \PDOStatement {
         $q=$this->db->prepare($sql);$q->execute($args);return $q;
     }
     public function configuration(): array {
         $settings=new SystemRepository($this->db);
         $mode=$settings->setting('media.moderation.mode','manual');
-        if(!in_array($mode,['off','manual','openai'],true))$mode='manual';
+        if(!in_array($mode,['off','manual','local'],true))$mode='manual';
         return ['images_enabled'=>$settings->boolSetting('media.images.enabled'),
-            'moderation'=>$mode,'max_upload_bytes'=>MessageImage::MAX_INPUT,'max_image_bytes'=>MessageImage::MAX_OUTPUT];
+            'moderation'=>$mode,'max_upload_bytes'=>MessageImage::MAX_INPUT,'max_image_bytes'=>MessageImage::MAX_OUTPUT,'max_edge'=>MessageImage::MAX_EDGE];
     }
     private function enabled(): void {
         if(!$this->configuration()['images_enabled'])throw new RuntimeException('Images are disabled on this server.');
@@ -58,7 +58,7 @@ final readonly class MediaService {
         $source=MessageImage::decode($encoded);$sourceHash=hash('sha256',$source);
         // Known prohibited/suspected material never goes to an external classifier.
         $this->denyHash($sourceHash);
-        $image=MessageImage::render($source);unset($source);
+        $image=MessageImage::render($source);$moderationSource=$source;unset($source);
         $this->denyHash($image['hash']);
         $this->db->beginTransaction();
         try {
@@ -74,7 +74,7 @@ final readonly class MediaService {
         }catch(Throwable $e){if($this->db->inTransaction())$this->db->rollBack();throw $e;}
         $decision=match($config['moderation']){
             'off'=>['state'=>'approved','reason'=>'moderation_disabled'],
-            'openai'=>$this->moderator->classify($image['bytes'],$subject."\n".$caption),
+            'local'=>$this->moderator->classify($moderationSource,$subject."\n".$caption),
             default=>['state'=>'pending','reason'=>'manual_review']};
         if(!in_array($decision['state']??null,['approved','rejected','pending'],true))$decision=['state'=>'pending','reason'=>'moderator_invalid_response'];
         if($decision['state']==='approved'&&$this->configuration()!==$config)$decision=['state'=>'pending','reason'=>'policy_changed'];
@@ -172,7 +172,7 @@ final readonly class MediaService {
     public function sendChat(int $id,string $credential,int $room,string $text): array {
         $this->auth->authenticate($id,$credential);$this->gate($id,'room',$room);$text=self::text($text,500);
         if($text==='')throw new RuntimeException('Write a message.');
-        if($this->configuration()['moderation']==='openai'){
+        if($this->configuration()['moderation']==='local'){
             $result=$this->moderator->classify('',$text);
             if(($result['state']??'pending')!=='approved')throw new RuntimeException('Message did not pass moderation. Try later or contact a moderator.');
         }

@@ -1,15 +1,10 @@
 <?php
 declare(strict_types=1);
-use MuchoCore\Media\OpenAiImageModerator;
+use MuchoCore\Media\LocalImageModerator;
 spl_autoload_register(static function(string $class):void {if(str_starts_with($class,'MuchoCore\\'))require dirname(__DIR__,2).'/src/'.str_replace('\\','/',substr($class,10)).'.php';});
 function check(bool $value,string $message):void {if(!$value)throw new RuntimeException($message);}
-$categories=['sexual'=>false,'violence'=>false,'violence/graphic'=>false,'self-harm'=>false,'self-harm/intent'=>false,'self-harm/instructions'=>false];
-$types=array_fill_keys(array_keys($categories),['image','text']);
-$r=['results'=>[['flagged'=>false,'categories'=>$categories,'category_applied_input_types'=>$types]]];
-check(OpenAiImageModerator::decision($r)['state']==='approved','Valid safe image rejected');
-$unsafe=$r;$unsafe['results'][0]['categories']['sexual']=true;check(OpenAiImageModerator::decision($unsafe)['state']==='rejected','Positive category ignored when flagged=false');
-foreach([[],['results'=>[]],['results'=>[['flagged'=>false,'categories'=>[]]]]] as $broken)check(OpenAiImageModerator::decision($broken)['state']==='pending','Missing image classification approved');
-$missing=$r;$missing['results'][0]['category_applied_input_types']['sexual']=['text'];check(OpenAiImageModerator::decision($missing)['state']==='pending','Text-only classification approved image');
-$bad=$r;$bad['results'][0]['categories']['sexual']=0;check(OpenAiImageModerator::decision($bad)['state']==='pending','Coerced classifier boolean');
-check(OpenAiImageModerator::decision(['results'=>[['flagged'=>false,'categories'=>['harassment'=>false]]]],false)['state']==='approved','Text result needs image categories');
-echo "Moderation decisions fail closed with incomplete image classifications: OK\n";
+check(LocalImageModerator::decision(['schema_version'=>1,'local'=>true,'state'=>'approved','reason'=>'local_passed'])['state']==='approved','Valid local decision rejected');
+foreach([[],['schema_version'=>1,'local'=>false,'state'=>'approved','reason'=>'local_passed'],['schema_version'=>1,'local'=>true,'state'=>'approved','reason'=>'unknown']] as $broken)check(LocalImageModerator::decision($broken)['state']==='pending','Invalid local decision approved');
+check((new LocalImageModerator('/does/not/exist.sock'))->classify('','hello')['state']==='pending','Missing local worker failed open');
+check((new LocalImageModerator('https://example.com'))->classify('','hello')['state']==='pending','Remote endpoint accepted as local IPC');
+echo "Local-only moderation decisions and unavailable worker fail closed: OK\n";

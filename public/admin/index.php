@@ -5831,8 +5831,8 @@ Disable new registrations
 <?php $mediaConfig=(new \MuchoCore\Media\MediaService($db,new \MuchoCore\Account\AccountAuthenticator($db)))->configuration(); ?>
 <input type="hidden" name="media_settings_present" value="1">
 <p><label><input type="checkbox" name="media_images" <?=$mediaConfig['images_enabled']?'checked':''?>> Allow images in game messages and room chats</label></p>
-<p><label>Image moderation <select name="media_moderation"><?php foreach(['manual'=>'Manual review (default)','openai'=>'OpenAI automatic screening + reports','off'=>'Disabled'] as $mode=>$title): ?><option value="<?=h($mode)?>" <?=$mediaConfig['moderation']===$mode?'selected':''?>><?=h($title)?></option><?php endforeach; ?></select></label></p>
-<p class="muted">Automatic screening needs MUCHO_MODERATION_API_KEY in the server environment. Images, captions and room text messages are sent to OpenAI when enabled. Service failures keep images hidden. AI cannot detect all prohibited content; review reports and maintain a hash blocklist. <a href="/admin/?page=media">Review images</a></p>
+<p><label>Image moderation <select name="media_moderation"><?php foreach(['manual'=>'Manual review (default)','local'=>'Local AI screening + reports','off'=>'Disabled'] as $mode=>$title): ?><option value="<?=h($mode)?>" <?=$mediaConfig['moderation']===$mode?'selected':''?>><?=h($title)?></option><?php endforeach; ?></select></label></p>
+<p class="muted">Local AI runs on this server; no player images or messages go to an external API. Start the optional local moderation service before enabling it. It checks NSFW images and local text rules. Service failures keep images hidden. AI cannot detect all prohibited content; review reports and maintain a hash blocklist. <a href="/admin/?page=media">Review images</a></p>
 <button>Apply</button>
 </form>
 </div>

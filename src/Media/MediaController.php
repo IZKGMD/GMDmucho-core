@@ -15,8 +15,10 @@ final readonly class MediaController {
         if($r->method!=='POST')return self::json(['ok'=>false,'error'=>'Use authenticated POST.'],405);
         try {
             $id=$r->postInt('accountID');$credential=$r->gdCredential();$action=$r->postString('action');
-            if($action==='image')return new Response($this->service->image($id,$credential,$r->postInt('imageID')),200,'image/jpeg',
-                ['Cache-Control'=>'no-store','X-Content-Type-Options'=>'nosniff']);
+            if($action==='image'){
+                $bytes=$this->service->image($id,$credential,$r->postInt('imageID'));return new Response($bytes,200,MessageImage::mime($bytes),
+                    ['Cache-Control'=>'no-store','X-Content-Type-Options'=>'nosniff']);
+            }
             $data=match($action){
                 'config'=>$this->service->configuration(),
                 'upload'=>$this->service->upload($id,$credential,$r->postString('scope'),$r->postInt('targetID'),$r->postString('imageData'),$r->postString('caption'),$r->postString('subject')),

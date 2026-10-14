@@ -27,7 +27,7 @@ using namespace geode::prelude;
 
 namespace {
     constexpr char const* CLIENT_ID = "izkgmd.muchoclient";
-    constexpr char const* CLIENT_VERSION = "1.2.0";
+    constexpr char const* CLIENT_VERSION = "1.2.1";
     constexpr int PROTOCOL = 1;
 
     struct Feature {

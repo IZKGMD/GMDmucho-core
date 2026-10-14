@@ -248,6 +248,6 @@ Native UI layout/file picker behavior still needs verification in the actual gam
 
 Free-text fields show a smiley button at the right edge. Tap it and select one of 48 quick emoji to insert at the saved cursor position. Numeric and password fields keep their original input controls. The standalone Emoji menu still copies to the clipboard. Native device UI testing is pending.
 
-## 1.2.0: private images and registration fix
+## 1.2.1: private images, readable compression and offline moderation
 
-Photo attachments in game messages, room text/photo chat, upload status/removal and report buttons. Images are opt-in on the server, with manual or optional OpenAI screening. See [server setup](../../../docs/features/message-images.md). Account forms, passwords and numeric inputs never receive an emoji picker; touch priority changes stay local to its menu.
+Photo attachments in native messages, room text/photo chat, upload status/removal and reports. Adaptive JPEG/PNG compression caps attachments at 256 KiB while guarding sharp text edges; the private viewer supports zoom/pan. Image sending is opt-in. Optional NSFW screening runs locally on the server with ONNX Runtime, not through a remote API. See [setup](../../../docs/features/message-images.md). Login/registration, passwords and numeric inputs do not receive an emoji picker.
