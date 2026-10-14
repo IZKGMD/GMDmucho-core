@@ -1,4 +1,4 @@
-# MuchoLauncher Android 1.0.0
+# MuchoLauncher Android 1.0.1
 
 Native Android launcher in MuchoCore's dark violet palette. Based on Geode
 Android Launcher 1.8.0, pinned to `38bc97b7b6551acb1295dd241231ca22e2cd8995`,
@@ -6,15 +6,20 @@ licensed under Boost Software License 1.0; upstream notices are retained.
 
 ## Install
 
-Install the signed APK and open MuchoLauncher. Install original Geometry Dash
-2.2081 (Android versionCode 41) from Google Play or Amazon first. ARM32 and ARM64,
-Android 6.0 or newer. The game is not distributed in this APK. Root and a separate
+Install the signed APK and open MuchoLauncher. Install Geometry Dash
+2.2081 (Android versionName 2.2.144 or 2.2081) first. ARM32 and ARM64,
+Android 6.0 or newer. Sideloaded and renamed packages can be selected using
+«Выбрать игру» on Home or Settings; the selected package survives process restarts.
+The installer and store signing certificate do not determine compatibility.
+Changed versionCodes are normalized to 41 for the bundled loader only after the
+versionName compatibility check. A removed selection requires choosing again.
+The game is not distributed in this APK. Root and a separate
 Geode app are not needed.
 
 The APK bundles Geode 5.10.1 and the already verified MuchoClient 1.1.0 package.
 An initial check restores bundled client/resources to app-owned storage. Play
 rechecks the package and restores damaged payload files, checks the bundled
-loader, game version and recognized game signing certificate. Saves and
+loader, game version and native library architecture. Saves and
 third-party mods are not repaired or removed. Loader replacement requires
 reinstalling the APK.
 
@@ -39,4 +44,10 @@ for both ABIs, runs corruption/traversal/atomic-replacement tests, then checks
 the actual APK payload. Signing is performed outside CI with the retained
 private MuchoLauncher key; private signing material must never enter git.
 
-This initial build needs physical-device testing with a purchased game.
+Tests cover both ARM payloads, split-APK library inspection, version metadata,
+and an Android 15 emulator picker with a renamed, sideloaded synthetic app.
+The fixture contains no GD code and cannot validate gameplay. Modified game
+binaries still need physical-device testing. For ARM32-only GD on a 64-bit phone,
+install the signed Android32 launcher over the current launcher; the same
+application ID and signing key preserve app data. The launcher reports this
+architecture mismatch before trying to load incompatible libraries.

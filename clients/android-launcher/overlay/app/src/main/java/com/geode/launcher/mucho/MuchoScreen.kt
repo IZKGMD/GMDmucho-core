@@ -5,6 +5,8 @@ import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -42,7 +44,9 @@ private fun Panel(content: @Composable ColumnScope.() -> Unit) {
 
 @Composable
 fun MuchoScreen(status: String, busy: Boolean, verified: Boolean, game: String,
-                onCheck: (Boolean, Boolean) -> Unit, onBackup: () -> Unit) {
+                onCheck: (Boolean, Boolean) -> Unit, onBackup: () -> Unit,
+                onChooseGame: () -> Unit, games: List<MuchoGame.InstalledGame>?,
+                onDismissGames: () -> Unit, onSelectGame: (MuchoGame.InstalledGame) -> Unit) {
     val context = LocalContext.current
     var tab by remember { mutableIntStateOf(0) }
     val openUrl: (String) -> Unit = { url ->
@@ -50,6 +54,22 @@ fun MuchoScreen(status: String, busy: Boolean, verified: Boolean, game: String,
     }
     MaterialTheme(colorScheme = darkColorScheme(primary = Accent, onPrimary = Background,
         background = Background, surface = SurfaceColor, onSurface = White, onBackground = White)) {
+        if (games != null) AlertDialog(onDismissRequest = onDismissGames,
+            title = { Text("Выбери установленную GD") },
+            text = {
+                if (games.isEmpty()) Text("Не нашёл GD с библиотеками игры. Установи GD 2.2081 и повтори поиск.")
+                else LazyColumn(Modifier.heightIn(max = 360.dp)) {
+                    items(games, key = { it.packageName }) { installed ->
+                        TextButton(onClick = { onSelectGame(installed) }, modifier = Modifier.fillMaxWidth()) {
+                            Column(Modifier.fillMaxWidth()) {
+                                Text(installed.label + " " + installed.version, fontWeight = FontWeight.Bold)
+                                Text(installed.packageName, fontSize = 11.sp)
+                                Text(installed.architectures.joinToString(), fontSize = 11.sp, color = Muted)
+                            }
+                        }
+                    }
+                }
+            }, confirmButton = { TextButton(onClick = onDismissGames) { Text("Закрыть") } })
         Surface(Modifier.fillMaxSize(), color = Background) {
             Column(Modifier.safeDrawingPadding()) {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).fillMaxWidth()
@@ -86,6 +106,8 @@ fun MuchoScreen(status: String, busy: Boolean, verified: Boolean, game: String,
                                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                                 Text(status, color = if (verified) Green else Muted, fontSize = 13.sp)
                                 Text(game, color = Muted, fontSize = 12.sp)
+                                OutlinedButton(onClick = onChooseGame, enabled = !busy,
+                                    modifier = Modifier.fillMaxWidth()) { Text("Выбрать игру") }
                                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     OutlinedButton(onClick = { onCheck(false, false) }, enabled = !busy, modifier = Modifier.weight(1f)) { Text("Проверить") }
                                     OutlinedButton(onClick = { onCheck(true, false) }, enabled = !busy, modifier = Modifier.weight(1f)) { Text("Восстановить") }
@@ -146,6 +168,9 @@ fun MuchoScreen(status: String, busy: Boolean, verified: Boolean, game: String,
                             }
                             Panel {
                                 Text("Geometry Dash 2.2081", fontWeight = FontWeight.Bold)
+                                Text(game, color = Muted, fontSize = 12.sp)
+                                OutlinedButton(onClick = onChooseGame, enabled = !busy) { Text("Выбрать игру") }
+                                Text("Поддерживает установленную GD вне магазина и с другим именем пакета. Версия игры должна быть совместима с загрузчиком.", color = Muted, fontSize = 12.sp)
                                 Text("Android 6+ • ARM32 / ARM64\nЗагрузчик Geode 5.10.1 • MuchoClient 1.1.0", color = Muted, fontSize = 13.sp)
                                 Text("MuchoLauncher создан на основе открытого Android Launcher Geode (Boost Software License).", color = Muted, fontSize = 12.sp)
                                 TextButton(onClick = { openUrl("https://github.com/geode-sdk/android-launcher/tree/1.8.0") }) { Text("Исходная основа ↗") }

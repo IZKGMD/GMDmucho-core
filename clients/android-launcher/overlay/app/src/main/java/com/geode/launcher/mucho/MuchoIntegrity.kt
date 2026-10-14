@@ -1,7 +1,6 @@
 package com.geode.launcher.mucho
 
 import android.content.Context
-import com.geode.launcher.utils.GamePackageUtils
 import com.geode.launcher.utils.LaunchUtils
 import org.json.JSONObject
 import java.io.File
@@ -63,15 +62,5 @@ object MuchoIntegrity {
         return Report(repaired, files.length() + 1)
     }
 
-    fun requireGame(context: Context) {
-        check(GamePackageUtils.isGameInstalled(context.packageManager)) {
-            "Установи Geometry Dash из Google Play или Amazon, затем вернись сюда."
-        }
-        check(GamePackageUtils.getGameVersionCode(context.packageManager) == 41L) {
-            "Эта сборка поддерживает Geometry Dash 2.2081. Установлена ${GamePackageUtils.getUnifiedVersionName(context.packageManager)}."
-        }
-        check(GamePackageUtils.identifyGameLegitimacy(context.packageManager)) {
-            "Не удалось подтвердить подпись Geometry Dash. Нужна оригинальная игра."
-        }
-    }
+    fun requireGame(context: Context): MuchoGame.InstalledGame = MuchoGame.require(context)
 }
