@@ -26,7 +26,8 @@ services:
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     mem_limit: 768m
-    cpus: 2
+    # Safe on single-vCPU VPS hosts; raise only within the host's CPU count.
+    cpus: ${MUCHO_MODERATION_CPUS:-1.0}
     pids_limit: 64
     volumes:
       - moderation_socket:/run/mucho-moderation
