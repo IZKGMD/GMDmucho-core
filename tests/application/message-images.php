@@ -52,6 +52,7 @@ try {
  $db->exec('UPDATE accounts SET messages_state=1 WHERE account_id=2');refused(fn()=>$upload(),'Friends-only upload accepted');$db->exec('INSERT INTO friends VALUES(1,2),(2,1)');
  $setting('media.moderation.mode','openai');$safe=$upload();check($safe['state']==='approved'&&$moderator->calls===1,'Automatic approval failed');
  $service->report(2,$token,$image,'nsfw');refused(fn()=>$service->image(1,$token,$image),'Reported image not quarantined');
+ refused(fn()=>$service->image(2,$token,(int)$safe['id']),'Reported duplicate hash still accessible');
  $before=$moderator->calls;refused(fn()=>$upload(),'Reported raw hash accepted');check($moderator->calls===$before,'Reported material sent to external AI');
  $canonical=base64_encode($response->body);refused(fn()=>$upload(1,'message',2,$canonical),'Reported normalized hash accepted');check($moderator->calls===$before,'Normalized blocked file sent to AI');
  $service->review($image,'approved','admin_approved');check((int)$db->query('SELECT COUNT(*) FROM messages')->fetchColumn()===2,'False report reapproval duplicated DM');
@@ -70,6 +71,13 @@ try {
  $setting('media.moderation.mode','openai');$moderator->decision=['state'=>'approved','reason'=>'test_passed'];$moderator->before=static fn()=>$setting('media.moderation.mode','manual');$changed=$upload(4,'message',2,base64_encode($png(205,100,46)));check($changed['state']==='pending','Changed moderation policy still published image');$moderator->before=null;
  $large=MessageImage::render($png(1600,800));check($large['width']===1280&&$large['height']===640&&strlen($large['bytes'])<=MessageImage::MAX_OUTPUT,'Resize/byte cap wrong');
  refused(fn()=>MessageImage::render('<svg><script>alert(1)</script></svg>'),'SVG accepted');refused(fn()=>MessageImage::decode($encoded.' '),'Noncanonical base64 accepted');refused(fn()=>MessageImage::render($png(8192,16)),'Extreme aspect ratio accepted');
- $sourceHash=hash('sha256',$source);$service->review((int)$safe['id'],'rejected','admin_rejected',true);refused(fn()=>$upload(),'Admin hash block ignored');check($db->query("SELECT COUNT(*) FROM mucho_media_blocklist WHERE sha256='$sourceHash'")->fetchColumn()>0,'Hash block missing');
+ $sourceHash=hash('sha256',$source);$service->review((int)$safe['id'],'rejected','admin_rejected',true);refused(fn()=>$upload(),'Admin hash block ignored');refused(fn()=>$service->image(2,$token,$image),'Admin block did not hide existing matching image');check($db->query("SELECT COUNT(*) FROM mucho_media_blocklist WHERE sha256='$sourceHash'")->fetchColumn()>0,'Hash block missing');
+ $db->exec("INSERT INTO mucho_message_media(account_id,scope,target_id,source_hash,image_hash,width,height,image_data,state,created_at) SELECT 4,'message',2,source_hash,image_hash,width,height,image_data,'pending',UTC_TIMESTAMP() FROM mucho_message_media WHERE id=".(int)$changed['id']);
+ for($i=0;$i<18;$i++)$db->exec("INSERT INTO mucho_message_media(account_id,scope,target_id,source_hash,image_hash,width,height,image_data,state,created_at) SELECT 4,'message',2,source_hash,image_hash,width,height,image_data,'pending',UTC_TIMESTAMP() FROM mucho_message_media WHERE id=".(int)$changed['id']);
+ $before=$moderator->calls;refused(fn()=>$upload(4,'message',2),'Hourly quota ignored');check($moderator->calls===$before,'Rate limited image sent to AI');
+ $db->exec('UPDATE mucho_message_media SET created_at=UTC_TIMESTAMP()-INTERVAL 2 HOUR WHERE account_id=4');
+ for($i=0;$i<30;$i++)$db->exec("INSERT INTO mucho_message_media(account_id,scope,target_id,source_hash,image_hash,width,height,image_data,state,created_at) SELECT 4,'message',2,source_hash,image_hash,width,height,image_data,'pending',UTC_TIMESTAMP()-INTERVAL 2 HOUR FROM mucho_message_media WHERE id=".(int)$changed['id']);
+ refused(fn()=>$upload(4,'message',2),'Storage quota ignored');
+ check(($call(2,'mine')->headers['Cache-Control']??'')==='no-store','Private JSON response cacheable');
  echo "Media opt-in, moderation, reports, JPEG limits, DM privacy and room chat: OK\n";
 }finally{$root->exec("DROP DATABASE $name");}

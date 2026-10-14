@@ -78,7 +78,7 @@ final readonly class MediaService {
             default=>['state'=>'pending','reason'=>'manual_review']};
         if(!in_array($decision['state']??null,['approved','rejected','pending'],true))$decision=['state'=>'pending','reason'=>'moderator_invalid_response'];
         if($decision['state']==='approved'&&$this->configuration()!==$config)$decision=['state'=>'pending','reason'=>'policy_changed'];
-        $this->review($media,$decision['state'],$decision['reason']??'moderation',false);
+        $this->review($media,$decision['state'],$decision['reason']??'moderation',$decision['state']==='rejected');
         return $this->metadata($media,$id);
     }
     private function metadata(int $media,int $owner): array {
@@ -118,7 +118,7 @@ final readonly class MediaService {
             }
             if($state==='rejected'){
                 if($block)foreach(array_unique([$row['source_hash'],$row['image_hash']]) as $hash)
-                    $this->q('INSERT IGNORE INTO mucho_media_blocklist(sha256,reason) VALUES(?,?)',[$hash,'server_policy']);
+                    $this->q('INSERT INTO mucho_media_blocklist(sha256,reason) VALUES(?,?) ON DUPLICATE KEY UPDATE reason=VALUES(reason)',[$hash,'server_policy']);
                 $this->q('UPDATE mucho_message_media SET image_data=NULL WHERE id=?',[$media]);
             }
             $this->q('UPDATE mucho_message_media SET state=?,reason=?,reviewed_at=UTC_TIMESTAMP() WHERE id=?',[$state,substr($reason,0,128),$media]);
@@ -134,7 +134,7 @@ final readonly class MediaService {
     public function attachments(int $id,string $credential,int $message): array {
         $this->auth->authenticate($id,$credential);$this->enabled();
         if(!$this->messageAccess($id,$message))throw new RuntimeException('Message is unavailable.');
-        return ['images'=>$this->q("SELECT id,width,height FROM mucho_message_media WHERE message_id=? AND state='approved' AND image_data IS NOT NULL LIMIT 10",[$message])->fetchAll(PDO::FETCH_ASSOC)];
+        return ['images'=>$this->q("SELECT id,width,height FROM mucho_message_media m WHERE message_id=? AND NOT EXISTS(SELECT 1 FROM mucho_media_blocklist b WHERE b.sha256=m.source_hash OR b.sha256=m.image_hash) AND state='approved' AND image_data IS NOT NULL LIMIT 10",[$message])->fetchAll(PDO::FETCH_ASSOC)];
     }
     public function image(int $id,string $credential,int $media): string {
         $this->auth->authenticate($id,$credential);$this->enabled();
@@ -144,6 +144,7 @@ final readonly class MediaService {
             if(!$this->messageAccess($id,(int)$row['message_id']))throw new RuntimeException('Image is unavailable.');
         }else{$this->gate($id,'room',(int)$row['target_id']);if($this->blocked($id,(int)$row['account_id']))throw new RuntimeException('Image is unavailable.');}
         if(!$this->q('SELECT 1 FROM accounts WHERE account_id=? AND is_active=1 AND is_banned=0',[$row['account_id']])->fetchColumn())throw new RuntimeException('Image is unavailable.');
+        $this->denyHash($row['source_hash']);$this->denyHash($row['image_hash']);
         return $row['image_data'];
     }
     public function remove(int $id,string $credential,int $media): array {
@@ -158,13 +159,15 @@ final readonly class MediaService {
         $this->auth->authenticate($id,$credential);$this->gate($id,'room',$room);
         $filter=$before>0?' AND c.id<?':'';$args=[$room,$id,$id];if($before>0)$args[]=$before;
         $rows=$this->q("SELECT c.id,c.account_id,a.username,c.content,c.created_at,
-            CASE WHEN m.state='approved' AND m.image_data IS NOT NULL THEN m.id ELSE NULL END media_id
+            CASE WHEN m.state='approved' AND m.image_data IS NOT NULL AND NOT EXISTS(SELECT 1 FROM mucho_media_blocklist b WHERE b.sha256=m.source_hash OR b.sha256=m.image_hash) THEN m.id ELSE NULL END media_id
             FROM mucho_room_chat c JOIN accounts a ON a.account_id=c.account_id
             LEFT JOIN mucho_message_media m ON m.id=c.media_id
             WHERE c.room_id=? AND a.is_active=1 AND a.is_banned=0
             AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.account_id=? AND b.blocked_account_id=c.account_id) OR (b.account_id=c.account_id AND b.blocked_account_id=?))
             $filter ORDER BY c.id DESC LIMIT 30",$args)->fetchAll(PDO::FETCH_ASSOC);
-        return ['messages'=>array_reverse($rows),'images_enabled'=>$this->configuration()['images_enabled']];
+        $images=$this->configuration()['images_enabled'];
+        if(!$images)foreach($rows as &$row)$row['media_id']=null;unset($row);
+        return ['messages'=>array_reverse($rows),'images_enabled'=>$images];
     }
     public function sendChat(int $id,string $credential,int $room,string $text): array {
         $this->auth->authenticate($id,$credential);$this->gate($id,'room',$room);$text=self::text($text,500);
