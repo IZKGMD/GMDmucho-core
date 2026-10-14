@@ -8,7 +8,7 @@ on:
     inputs:
       client_run_id:
         description: Verified MuchoClient 1.2.1 artifact run
-        default: '38524038763'
+        default: '38543436028'
         required: true
 permissions:
   contents: read
@@ -28,7 +28,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: MuchoClient-Windows-Android
-          run-id: ${{ inputs.client_run_id || '38524038763' }}
+          run-id: ${{ inputs.client_run_id || '38543436028' }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: client-artifact
       - uses: actions/download-artifact@v4

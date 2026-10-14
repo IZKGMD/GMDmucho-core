@@ -9,7 +9,7 @@ def verify(path):
     with zipfile.ZipFile(path) as z:
         assert z.testzip() is None
         manifest = json.loads(z.read("assets/mucho/payload.json"))
-        assert manifest["client_version"] == "1.2.0"
+        assert manifest["client_version"] == "1.2.1"
         assert manifest["geode_version"] == "5.10.1"
         for entry in manifest["files"]:
             data = z.read("assets/" + entry["asset"])

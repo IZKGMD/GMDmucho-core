@@ -122,7 +122,7 @@ fun MuchoScreen(status: String, busy: Boolean, verified: Boolean, game: String,
                         1 -> {
                             Text("Твоя библиотека", fontSize = 28.sp, fontWeight = FontWeight.Bold)
                             Panel {
-                                Text("MuchoClient 1.2.0", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                                Text("MuchoClient 1.2.1", fontWeight = FontWeight.Bold, fontSize = 20.sp)
                                 Text("Смайлики • социальный профиль • кланы\nDaily Quests • Creator Hub", color = Muted)
                                 Text("Встроен в APK. Восстанавливается из проверенной копии.", color = Accent, fontSize = 13.sp)
                                 Button(onClick = { onCheck(true, false) }, enabled = !busy) { Text("Проверить и восстановить") }
@@ -171,7 +171,7 @@ fun MuchoScreen(status: String, busy: Boolean, verified: Boolean, game: String,
                                 Text(game, color = Muted, fontSize = 12.sp)
                                 OutlinedButton(onClick = onChooseGame, enabled = !busy) { Text("Выбрать игру") }
                                 Text("Поддерживает установленную GD вне магазина и с другим именем пакета. Версия игры должна быть совместима с загрузчиком.", color = Muted, fontSize = 12.sp)
-                                Text("Android 6+ • ARM32 / ARM64\nЗагрузчик Geode 5.10.1 • MuchoClient 1.2.0", color = Muted, fontSize = 13.sp)
+                                Text("Android 6+ • ARM32 / ARM64\nЗагрузчик Geode 5.10.1 • MuchoClient 1.2.1", color = Muted, fontSize = 13.sp)
                                 Text("MuchoLauncher создан на основе открытого Android Launcher Geode (Boost Software License).", color = Muted, fontSize = 12.sp)
                                 TextButton(onClick = { openUrl("https://github.com/geode-sdk/android-launcher/tree/1.8.0") }) { Text("Исходная основа ↗") }
                                 TextButton(onClick = { openUrl("https://play.google.com/store/apps/details?id=com.robtopx.geometryjump") }) { Text("Установить Geometry Dash ↗") }
