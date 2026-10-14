@@ -37,5 +37,9 @@ with zipfile.ZipFile(unsigned, "a", compression=zipfile.ZIP_DEFLATED) as zip:
   zip.writestr("lib/x86_64/" + name, native.read_bytes())
 aligned = out / "game-fixture-aligned.apk"
 subprocess.run([str(tools / "zipalign"), "-f", "4", str(unsigned), str(aligned)], check=True)
-subprocess.run([str(tools / "apksigner"), "sign", "--ks", str(Path.home() / ".android/debug.keystore"),
+key = out / "fixture-only.p12"
+subprocess.run(["keytool", "-genkeypair", "-keystore", str(key), "-storetype", "PKCS12",
+ "-storepass", "android", "-keypass", "android", "-alias", "fixture", "-keyalg", "RSA",
+ "-keysize", "2048", "-validity", "7", "-dname", "CN=CI fixture only"], check=True)
+subprocess.run([str(tools / "apksigner"), "sign", "--ks", str(key),
  "--ks-pass", "pass:android", "--key-pass", "pass:android", "--out", str(out / "game-fixture.apk"), str(aligned)], check=True)
