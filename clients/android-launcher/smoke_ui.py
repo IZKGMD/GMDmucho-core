@@ -19,12 +19,20 @@ def tree():
 
 
 def find(text):
-    for _ in range(12):
+    for attempt in range(12):
         root = tree()
         for node in root.iter("node"):
             value = node.get("text", "")
-            if " ".join(value.split()) == " ".join(text.split()) or value.endswith(", " + text) or value.endswith("\n" + text):
-                return node
+            parts = [value] + value.splitlines()
+            if any(" ".join(part.split()) == " ".join(text.split()) for part in parts) or value.endswith(", " + text) or value.endswith("\n" + text):
+                bounds = list(map(int, re.findall(r"\d+", node.get("bounds", ""))))
+                if len(bounds) == 4 and bounds[2] > bounds[0] and bounds[3] > bounds[1]:
+                    return node
+        if attempt in (2, 5, 8):
+            size = list(map(int, re.findall(r"\d+", adb("shell", "wm", "size"))))[-2:]
+            width, height = size
+            adb("shell", "input", "swipe", str(width // 2), str(height * 3 // 4),
+                str(width // 2), str(height // 3), "400")
         time.sleep(1)
     (OUT / "failure.xml").write_text(ET.tostring(root, encoding="unicode"))
     screenshot("failure")
