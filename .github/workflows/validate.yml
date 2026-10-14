@@ -104,6 +104,7 @@ jobs:
           php tests/release/v110-endpoint-gate-contract.php
           php tests/application/score-integrity-contract.php
           php tests/application/profile-images.php
+          php tests/application/media-moderator.php
           php tests/application/cvolton-db-import-contract.php
           php tests/application/comment-contract.php
           php tests/application/social-crud-contract.php
@@ -549,6 +550,7 @@ jobs:
           php tests/application/input-hardening-contract.php
           php tests/application/score-integrity-contract.php
           php tests/application/profile-images.php
+          php tests/application/media-moderator.php
           php tests/security/client-ip-cloudflare.php
           php tests/client/client-compatibility.php
           php tests/protocol/protocol-matrix.php

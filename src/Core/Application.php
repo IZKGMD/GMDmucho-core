@@ -273,6 +273,8 @@ final readonly class Application
         );
         $liveSocial = new \MuchoCore\Social\LiveSocialController($this->pdo,$auth);
         $route('/api/social/live',[$liveSocial,'handle']);
+        $media=new \MuchoCore\Media\MediaController(new \MuchoCore\Media\MediaService($this->pdo,$auth));
+        $route('/api/media',[$media,'handle']);
 
         $route('/muchoclient/manifest', [$bridge, 'manifest']);
         $route('/muchoclient/negotiate', [$bridge, 'negotiate']);

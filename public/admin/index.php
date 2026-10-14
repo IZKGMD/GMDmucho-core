@@ -19,6 +19,7 @@ if (!headers_sent()) {
 require_once __DIR__.'/client-patcher-module.php';
 require_once __DIR__.'/android-client-patcher-module.php';
 require_once __DIR__.'/clients-module.php';
+require_once __DIR__.'/pages/media.php';
 
 $__muchoAdminRequestId = bin2hex(random_bytes(8));
 
@@ -1343,6 +1344,8 @@ if (isset($_GET['logout'])) {
 /* =========================================================
    WEB CLIENT PATCHER DOWNLOAD
 ========================================================= */
+
+if (admin() && isset($_GET['media_preview'])) mediaAdminPreview($db);
 
 if (admin() && isset($_GET['client_download'])) {
     handleClientPatcherDownload($rootDir);
@@ -2776,6 +2779,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     checkCsrf();
 
     $action=(string)($_POST['action'] ?? '');
+    if($action==='media-review')handleMediaAdminAction($db);
     if(str_starts_with($action,'creatorhub-'))handleCreatorHubAdminAction($db,$action);
 
     if (in_array($action,['migration-preview','migration-apply'],true)) {
@@ -4239,6 +4243,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 );
             }
 
+            saveMediaSettings($db);
             audit($db,'settings.save');
             flash('Settings applied.');
         }
@@ -5823,6 +5828,11 @@ Disable new registrations
 </label>
 </p>
 
+<?php $mediaConfig=(new \MuchoCore\Media\MediaService($db,new \MuchoCore\Account\AccountAuthenticator($db)))->configuration(); ?>
+<input type="hidden" name="media_settings_present" value="1">
+<p><label><input type="checkbox" name="media_images" <?=$mediaConfig['images_enabled']?'checked':''?>> Allow images in game messages and room chats</label></p>
+<p><label>Image moderation <select name="media_moderation"><?php foreach(['manual'=>'Manual review (default)','openai'=>'OpenAI automatic screening + reports','off'=>'Disabled'] as $mode=>$title): ?><option value="<?=h($mode)?>" <?=$mediaConfig['moderation']===$mode?'selected':''?>><?=h($title)?></option><?php endforeach; ?></select></label></p>
+<p class="muted">Automatic screening needs MUCHO_MODERATION_API_KEY in the server environment. Images and captions are sent to OpenAI when enabled. Service failures keep images hidden. AI cannot detect all prohibited content; review reports and maintain a hash blocklist. <a href="/admin/?page=media">Review images</a></p>
 <button>Apply</button>
 </form>
 </div>

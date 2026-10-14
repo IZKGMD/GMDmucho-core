@@ -14,6 +14,9 @@ on:
       - 'clients/geode/muchoclient/**'
       - 'clients/launcher/**'
       - 'src/Social/**'
+      - 'src/Media/**'
+      - 'tests/application/message-images.php'
+      - 'database/migrations/20261014_001_message_media.php'
       - 'src/Creator/**'
       - 'plugins/builtin/mucho-creator-hub/**'
       - 'tests/application/creator-hub.php'
@@ -36,6 +39,9 @@ on:
       - 'clients/geode/muchoclient/**'
       - 'clients/launcher/**'
       - 'src/Social/**'
+      - 'src/Media/**'
+      - 'tests/application/message-images.php'
+      - 'database/migrations/20261014_001_message_media.php'
       - 'src/Creator/**'
       - 'plugins/builtin/mucho-creator-hub/**'
       - 'tests/application/creator-hub.php'
@@ -77,7 +83,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_mysql, gd
+          extensions: pdo_mysql, gd, mbstring, curl
       - name: Test client validation and role permissions
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-clan-rules.cpp -o /tmp/clan-rules
@@ -105,6 +111,8 @@ jobs:
           php tests/application/daily-quest-integration.php
           php tests/application/social-live.php
           php tests/application/creator-hub.php
+          php tests/application/message-images.php
+          php tests/application/media-moderator.php
 
   emoji-assets:
     name: Build pinned offline emoji atlas
@@ -235,9 +243,9 @@ jobs:
           $smoke = Start-Process -FilePath dist/MuchoLauncher/MuchoLauncher.exe -ArgumentList '--screenshot' -Wait -PassThru
           if ($smoke.ExitCode -ne 0 -or !(Test-Path launcher-preview.png)) { throw 'Packaged launcher UI smoke test failed' }
           Copy-Item README-RU.txt dist/MuchoLauncher/README-RU.txt
-          Compress-Archive -Path dist/MuchoLauncher -DestinationPath MuchoLauncher-v1.1.0-Windows.zip
+          Compress-Archive -Path dist/MuchoLauncher -DestinationPath MuchoLauncher-v1.2.0-Windows.zip
       - uses: actions/upload-artifact@v4
         with:
           name: MuchoLauncher-Windows
-          path: clients/launcher/MuchoLauncher-v1.1.0-Windows.zip
+          path: clients/launcher/MuchoLauncher-v1.2.0-Windows.zip
           retention-days: 30

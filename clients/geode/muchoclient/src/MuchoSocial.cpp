@@ -1,4 +1,5 @@
 #include "MuchoSocial.hpp"
+#include "MuchoMedia.hpp"
 #include "MuchoAppearanceRules.hpp"
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/PlayLayer.hpp>
@@ -76,7 +77,7 @@ class SocialPopup:public Popup {
   button("<",165,70,menu_selector(SocialPopup::onPrev),0,.29f);label(std::to_string(page+1),210,70,.26f,40);button(">",255,70,menu_selector(SocialPopup::onNext),0,.29f);
   input=TextInput::create(165,view=="room"?(roomID?"Friend account ID":"Published level ID"):"Account ID");input->setCommonFilter(CommonFilter::Uint);input->setMaxCharCount(10);input->setPosition({111,42});content->addChild(input);
   button(view=="room"?(roomID?"Invite":"Create"):"View",259,42,menu_selector(SocialPopup::onInput),0,.34f);
-  if(view=="room"&&roomID){button("Level",339,42,menu_selector(SocialPopup::onLevel),0,.3f);button("Leave",381,78,menu_selector(SocialPopup::onLeave),0,.27f);}
+  if(view=="room"&&roomID){button("Level",339,42,menu_selector(SocialPopup::onLevel),0,.3f);button("Chat",321,78,menu_selector(SocialPopup::onChat),0,.27f);button("Leave",381,78,menu_selector(SocialPopup::onLeave),0,.27f);}
  }
  void onFriends(CCObject*){view="friends";page=0;request("friends");}
  void onProfile(CCObject*){page=0;request("profile");}
@@ -85,6 +86,7 @@ class SocialPopup:public Popup {
  void onFriend(CCObject* o){page=0;request("profile",{{"targetID",std::to_string(static_cast<CCNode*>(o)->getTag())}});}
  void onAccept(CCObject* o){page=0;request("accept",{{"roomID",std::to_string(static_cast<CCNode*>(o)->getTag())}});}
  void onDecline(CCObject* o){request("decline",{{"roomID",std::to_string(static_cast<CCNode*>(o)->getTag())}});}
+ void onChat(CCObject*){if(roomID>0)mucho::media::showChat(roomID);}
  void onLeave(CCObject*){auto id=roomID;roomID=0;request("leave",{{"roomID",std::to_string(id)}});}
  void onInput(CCObject*){auto id=input?clans::positiveId(input->getString()):0;if(!id){notice="Enter a positive ID";redraw();return;}
   if(view=="room")request(roomID?"invite":"room-create",{{roomID?"targetID":"levelID",std::to_string(id)},{"roomID",std::to_string(roomID)}});

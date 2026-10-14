@@ -1,3 +1,5 @@
+#include <Geode/binding/AccountRegisterLayer.hpp>
+#include <Geode/binding/AccountLoginLayer.hpp>
 #include "MuchoEmoji.hpp"
 #include "MuchoEmojiData.hpp"
 #include "MuchoUi.hpp"
@@ -169,9 +171,15 @@ namespace {
         }
     }
     bool freeText(CCTextInputNode* input) {
-        if(input->m_usePasswordChar||input->m_numberInput) return false;
+        if(!input) return false;
+        bool accountForm=false;
+        for(auto parent=input->getParent();parent;parent=parent->getParent()) {
+            if(typeinfo_cast<AccountRegisterLayer*>(parent)||typeinfo_cast<AccountLoginLayer*>(parent)) {
+                accountForm=true;break;
+            }
+        }
         std::string_view filter(input->m_allowedChars.c_str(),input->m_allowedChars.size());
-        return filter.empty()||(filter.find(' ')!=std::string_view::npos&&filter.find('a')!=std::string_view::npos);
+        return pickerEligible(filter,input->m_usePasswordChar,input->m_numberInput,accountForm);
     }
     struct Filter {
         CCTextInputNode* input; gd::string original; std::string applied; bool changed=false;
@@ -350,7 +358,7 @@ class $modify(MuchoEmojiInput,CCTextInputNode) {
     }
     void visit() {
         using namespace mucho::emoji;
-        bool eligible=enabled&&!stopped&&freeText(this)&&isVisible()&&getContentWidth()>=60;
+        bool eligible=enabled&&!stopped&&isRunning()&&freeText(this)&&isVisible()&&getContentWidth()>=60;
         if(eligible&&!m_fields->menu) {
             auto face=CCLabelBMFont::create("\U0001f60a","bigFont.fnt");
             face->setScale(20.f/std::max(1.f,face->getContentHeight()));
@@ -360,7 +368,13 @@ class $modify(MuchoEmojiInput,CCTextInputNode) {
             auto menu=CCMenu::create(); menu->setID("mucho-emoji-input-menu");
             menu->setPosition({0,0}); menu->addChild(button); addChild(menu,100);
             m_fields->menu=menu;
-            geode::cocos::handleTouchPriority(this);
+            // Adjust only this control. Credential forms keep their native
+            // delegates and Submit menu untouched, including empty filters.
+            for(CCNode* owner=this;owner;owner=owner->getParent()) {
+                auto delegate=typeinfo_cast<CCTouchDelegate*>(owner);
+                auto handler=delegate?CCTouchDispatcher::get()->findHandler(delegate):nullptr;
+                if(handler){menu->setTouchPriority(handler->m_nPriority-1);break;}
+            }
         }
         if(m_fields->menu) {
             m_fields->menu->setVisible(eligible);
@@ -372,7 +386,7 @@ class $modify(MuchoEmojiInput,CCTextInputNode) {
         CCTextInputNode::visit();
     }
     bool ccTouchBegan(CCTouch* touch,CCEvent* event) {
-        if(m_fields->menu&&m_fields->menu->isVisible()) {
+        if(mucho::emoji::freeText(this)&&m_fields->menu&&m_fields->menu->isVisible()) {
             auto point=convertToNodeSpace(touch->getLocation());
             auto button=static_cast<CCNode*>(m_fields->menu->getChildren()->objectAtIndex(0));
             if(button->boundingBox().containsPoint(point)) return false;

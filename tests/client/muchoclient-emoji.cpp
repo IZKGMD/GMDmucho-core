@@ -28,6 +28,11 @@ void all(uint32_t node,std::string sequence,std::set<int>& seen) {
     }
 }
 int main() {
+    require(!mucho::emoji::pickerEligible("",false,false,true),"registration empty filters never create an emoji touch delegate");
+    require(!mucho::emoji::pickerEligible(" abc",false,false,true),"registration and login content remains native even with permissive filters");
+    require(!mucho::emoji::pickerEligible(" abc",true,false,false),"passwords never get emoji controls");
+    require(!mucho::emoji::pickerEligible("0123456789",false,true,false),"numeric inputs stay native");
+    require(mucho::emoji::pickerEligible(" abc",false,false,false),"comments and chat keep emoji controls");
     auto catalog=data::catalog();
     std::set<int> seen; all(0,"",seen); require(seen.size()==4009,"pinned complete catalog");
     for(auto s:{"Hello! 123 :)","http://example.com/a:b","[Clan] Player","line 1\nline 2"}) {

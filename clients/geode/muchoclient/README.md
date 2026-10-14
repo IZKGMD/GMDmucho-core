@@ -247,3 +247,7 @@ Native UI layout/file picker behavior still needs verification in the actual gam
 ## Emoji input menus
 
 Free-text fields show a smiley button at the right edge. Tap it and select one of 48 quick emoji to insert at the saved cursor position. Numeric and password fields keep their original input controls. The standalone Emoji menu still copies to the clipboard. Native device UI testing is pending.
+
+## 1.2.0: private images and registration fix
+
+Photo attachments in game messages, room text/photo chat, upload status/removal and report buttons. Images are opt-in on the server, with manual or optional OpenAI screening. See [server setup](../../../docs/features/message-images.md). Account forms, passwords and numeric inputs never receive an emoji picker; touch priority changes stay local to its menu.
