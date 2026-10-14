@@ -50,6 +50,27 @@ class GameCompatibilityTest {
         } finally { root.deleteRecursively() }
     }
 
+    @Test fun routesEachLibraryToItsActualSplitAndCopiesCompressedEntries() {
+        val root = Files.createTempDirectory("mucho-game").toFile()
+        try {
+            val fmod = elf("arm64-v8a") + byteArrayOf(1, 2, 3)
+            val cocos = elf("arm64-v8a") + byteArrayOf(4, 5, 6)
+            val base = apk(root, "base.apk", mapOf("lib/arm64-v8a/libfmod.so" to fmod))
+            val split = apk(root, "renamed-native.apk", mapOf("lib/arm64-v8a/libcocos2dcpp.so" to cocos))
+            val sources = listOf(base, split)
+            val fmodPath = GameCompatibility.libraryPath(sources, null, "arm64-v8a", "libfmod.so")!!
+            val cocosPath = GameCompatibility.libraryPath(sources, null, "arm64-v8a", "libcocos2dcpp.so")!!
+            assertTrue(fmodPath.startsWith(base.absolutePath + "!/"))
+            assertTrue(cocosPath.startsWith(split.absolutePath + "!/"))
+            val copy = File(root, "copy.so")
+            GameCompatibility.copyLibrary(cocosPath, copy)
+            assertArrayEquals(cocos, copy.readBytes())
+            GameCompatibility.copyLibrary(fmodPath, copy)
+            assertArrayEquals(fmod, copy.readBytes())
+            assertNull(GameCompatibility.libraryPath(sources, null, "armeabi-v7a", "libfmod.so"))
+        } finally { root.deleteRecursively() }
+    }
+
     @Test fun distinguishesArm32AndArm64AndSupportsExtractedLibraries() {
         val root = Files.createTempDirectory("mucho-game").toFile()
         try {

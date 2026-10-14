@@ -49,4 +49,32 @@ object GameCompatibility {
         }
         return found.filterValues { it.containsAll(libraries) }.keys.toSet()
     }
+
+    fun libraryPath(apks: List<File>, nativeDirectory: File?, abi: String, library: String): String? {
+        require(library in libraries)
+        val native = nativeDirectory?.let { File(it, library) }
+        if (native != null && runCatching { native.inputStream().use { architecture(it) } }.getOrNull() == abi)
+            return native.absolutePath
+        val entryName = "lib/$abi/$library"
+        for (apk in apks) {
+            val present = runCatching {
+                ZipFile(apk).use { zip ->
+                    val entry = zip.getEntry(entryName) ?: return@use false
+                    zip.getInputStream(entry).use { architecture(it) } == abi
+                }
+            }.getOrDefault(false)
+            if (present) return "${apk.absolutePath}!/$entryName"
+        }
+        return null
+    }
+
+    fun copyLibrary(path: String, target: File) {
+        val parts = path.split("!/", limit = 2)
+        if (parts.size == 1) File(path).inputStream().use { input ->
+            target.outputStream().use { input.copyTo(it) }
+        } else ZipFile(parts[0]).use { zip ->
+            val entry = zip.getEntry(parts[1]) ?: error("Native library missing: ${parts[1]}")
+            zip.getInputStream(entry).use { input -> target.outputStream().use { input.copyTo(it) } }
+        }
+    }
 }

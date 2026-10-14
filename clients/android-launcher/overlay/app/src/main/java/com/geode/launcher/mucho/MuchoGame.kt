@@ -2,6 +2,7 @@ package com.geode.launcher.mucho
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageInfo
 import com.geode.launcher.utils.Constants
 import com.geode.launcher.utils.GamePackageUtils
 import com.geode.launcher.utils.LaunchUtils
@@ -15,13 +16,20 @@ object MuchoGame {
     private const val PREFERENCES = "mucho-game"
     private const val PACKAGE = "selected-package"
 
+    fun libraryPath(info: PackageInfo, libraryName: String, abi: String): String? {
+        val app = info.applicationInfo ?: return null
+        val sources = listOf(app.sourceDir) + (app.splitSourceDirs?.toList() ?: emptyList())
+        return GameCompatibility.libraryPath(sources.map { File(it) }, app.nativeLibraryDir?.let { File(it) },
+            abi, "lib$libraryName.so")
+    }
+
     @Suppress("DEPRECATION")
     private fun inspect(context: Context, name: String): InstalledGame? = runCatching {
         val info = context.packageManager.getPackageInfo(name, 0)
         val app = info.applicationInfo ?: return null
         if (!app.enabled || name == context.packageName) return null
         val sources = listOf(app.sourceDir) + (app.splitSourceDirs?.toList() ?: emptyList())
-        val abis = GameCompatibility.architectures(sources.map { File(it) }, File(app.nativeLibraryDir))
+        val abis = GameCompatibility.architectures(sources.map { File(it) }, app.nativeLibraryDir?.let { File(it) })
         if (abis.isEmpty()) return null
         InstalledGame(name, app.loadLabel(context.packageManager).toString(), info.versionName ?: "?", abis)
     }.getOrNull()

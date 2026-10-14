@@ -133,6 +133,24 @@ def prepare(root, client):
     assert early_check in text
     text = text.replace(early_check, "")
     text = text.replace("getPackageInfo(Constants.PACKAGE_NAME,", "getPackageInfo(GamePackageUtils.gamePackageName(),")
+    old_path = '''        val nativeDir = getNativeLibraryDirectory(packageInfo.applicationInfo!!)
+        val libraryPath = if (nativeDir.endsWith('/')) "${nativeDir}lib$libraryName.so" else "$nativeDir/lib$libraryName.so"'''
+    assert old_path in text
+    text = text.replace(old_path, '''        val libraryPath = com.geode.launcher.mucho.MuchoGame.libraryPath(
+            packageInfo, libraryName, LaunchUtils.applicationArchitecture)
+            ?: throw UnsatisfiedLinkError("Missing lib$libraryName.so for ${LaunchUtils.applicationArchitecture}")''')
+    text = text.replace('if (ule.message?.contains("not accessible for the namespace") != true) {',
+        'if (!libraryPath.contains("!/") && ule.message?.contains("not accessible for the namespace") != true) {')
+    start = text.index('    @SuppressLint("UnsafeDynamicallyLoadedCode")\n    private fun loadLibraryCopy(')
+    end = text.index('    @SuppressLint("UnsafeDynamicallyLoadedCode")\n    private fun loadGeodeLibrary()', start)
+    text = text[:start] + '''    @SuppressLint("UnsafeDynamicallyLoadedCode")
+    private fun loadLibraryCopy(libraryName: String, libraryPath: String) {
+        val copy = File(cacheDir, "lib$libraryName.so")
+        com.geode.launcher.mucho.GameCompatibility.copyLibrary(libraryPath, copy)
+        System.load(copy.path)
+    }
+
+''' + text[end:]
     text = text.replace("createVersionFile()\n            tryLoadGame()", "com.geode.launcher.mucho.MuchoIntegrity.prepare(this, false)\n            com.geode.launcher.mucho.MuchoIntegrity.requireGame(this)\n            createVersionFile()\n            tryLoadGame()")
     text = text.replace("        loadInternalMods()", "        // Pinned client and resources were prepared before launch.")
     text = text.replace("        startActivity(launchIntent)", "        startActivity(launchIntent)\n        android.os.Process.killProcess(android.os.Process.myPid()) // Only the isolated game process.")
