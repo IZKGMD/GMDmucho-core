@@ -19,12 +19,20 @@ def tree():
 
 
 def find(text):
-    for _ in range(12):
+    for attempt in range(12):
         root = tree()
         for node in root.iter("node"):
             value = node.get("text", "")
-            if " ".join(value.split()) == " ".join(text.split()) or value.endswith(", " + text) or value.endswith("\n" + text):
-                return node
+            parts = [value] + value.splitlines()
+            if any(" ".join(part.split()) == " ".join(text.split()) for part in parts) or value.endswith(", " + text) or value.endswith("\n" + text):
+                bounds = list(map(int, re.findall(r"\d+", node.get("bounds", ""))))
+                if len(bounds) == 4 and bounds[2] > bounds[0] and bounds[3] > bounds[1]:
+                    return node
+        if attempt in (2, 5, 8):
+            size = list(map(int, re.findall(r"\d+", adb("shell", "wm", "size"))))[-2:]
+            width, height = size
+            adb("shell", "input", "swipe", str(width // 2), str(height * 3 // 4),
+                str(width // 2), str(height // 3), "400")
         time.sleep(1)
     (OUT / "failure.xml").write_text(ET.tostring(root, encoding="unicode"))
     screenshot("failure")
@@ -60,7 +68,25 @@ tap("○  60 FPS")
 find("●  60 FPS")
 tap("Старт")
 find("Играй. Создавай.\nБудь Mucho.")
+tap("Выбрать игру")
+find("Выбери установленную GD")
+tap("GD Fixture 2.2081")
+find("GD Fixture 2.2081 • space.muchocore.fixture.gd")
+preferences = adb("shell", "run-as", "space.muchocore.launcher", "cat", "shared_prefs/mucho-game.xml")
+assert 'name="selected-package"' in preferences and "space.muchocore.fixture.gd" in preferences
+screenshot("selected-game")
+adb("shell", "am", "force-stop", "space.muchocore.launcher")
+adb("shell", "am", "start", "-W", "-n", "space.muchocore.launcher/com.geode.launcher.MainActivity")
+find("GD Fixture 2.2081 • space.muchocore.fixture.gd")
+screenshot("restored-selection")
+adb("uninstall", "space.muchocore.fixture.gd")
+adb("shell", "am", "force-stop", "space.muchocore.launcher")
+adb("shell", "am", "start", "-W", "-n", "space.muchocore.launcher/com.geode.launcher.MainActivity")
+find("Выбранная игра удалена: space.muchocore.fixture.gd. Нажми «Выбрать игру».")
+tap("Выбрать игру")
+find("Не нашёл GD с библиотеками игры. Установи GD 2.2081 и повтори поиск.")
+tap("Закрыть")
 logs = adb("logcat", "-d", "-v", "brief")
 (OUT / "logcat.txt").write_text(logs)
 assert "FATAL EXCEPTION" not in logs
-print("UI smoke passed: four screens, navigation, persisted FPS control; no crash.")
+print("UI smoke passed: four screens, FPS, renamed sideloaded game picker, persisted selection and uninstall recovery; no crash. Fixture does not contain GD.")

@@ -59,8 +59,8 @@ def prepare(root, client):
     change(root, package + "MainActivity.kt", "import android.content.Intent", "import android.content.Intent\nimport androidx.lifecycle.lifecycleScope")
 
     change(root, "app/build.gradle.kts", 'applicationId = "com.geode.launcher"', 'applicationId = "space.muchocore.launcher"')
-    change(root, "app/build.gradle.kts", "versionCode = 29", "versionCode = 10000")
-    change(root, "app/build.gradle.kts", 'versionName = "1.8.0"', 'versionName = "1.0.0"')
+    change(root, "app/build.gradle.kts", "versionCode = 29", "versionCode = 10001")
+    change(root, "app/build.gradle.kts", 'versionName = "1.8.0"', 'versionName = "1.0.1"')
     change(root, "app/build.gradle.kts", 'resources {\n            excludes', 'jniLibs { useLegacyPackaging = true }\n        resources {\n            excludes')
     change(root, "app/build.gradle.kts", 'dependencies {', 'dependencies {\n    testImplementation("junit:junit:4.13.2")')
 
@@ -69,6 +69,21 @@ def prepare(root, client):
     change(root, package + "utils/GeodeUtils.kt", '"com.geode.launcher.user" == uri.authority', '"${BuildConfig.APPLICATION_ID}.user" == uri.authority')
     change(root, package + "utils/GeodeUtils.kt", "fun clearLaunchArguments() = setAdditionalLaunchArguments()", "fun clearLaunchArguments() = additionalLaunchArguments.clear()")
     change(root, package + "utils/GeodeUtils.kt", 'val userArgs = preferences.getString(PreferenceUtils.Key.LAUNCH_ARGUMENTS)', 'val userArgs: String? = null // MuchoClient must not be bypassed by safe-mode launch flags.')
+
+    # Every package lookup (version, source APK, native libraries, diagnostics) must
+    # use the same selected game. The isolated :game process initializes it again.
+    change(root, package + "utils/GamePackageUtils.kt", "object GamePackageUtils {", '''object GamePackageUtils {
+    @Volatile private var selectedPackage: String? = null
+    fun usePackage(name: String) { selectedPackage = name }
+    fun gamePackageName(): String = selectedPackage ?: Constants.PACKAGE_NAME
+''')
+    change(root, package + "utils/GamePackageUtils.kt", "getPackageInfo(Constants.PACKAGE_NAME,", "getPackageInfo(gamePackageName(),")
+    change(root, package + "utils/GamePackageUtils.kt", "val game = packageManager.getPackageInfo(gamePackageName(), 0)\n\n        return if", '''val game = packageManager.getPackageInfo(gamePackageName(), 0)
+        // Repackaged builds may change versionCode; Geode expects RobTop's code.
+        if (com.geode.launcher.mucho.GameCompatibility.supportedVersion(game.versionName)) return 41L
+
+        return if''')
+    change(root, package + "utils/GamePackageUtils.kt", "!isGameInstalled(packageManager) || !identifyGameLegitimacy(packageManager)", "!isGameInstalled(packageManager)")
 
     manifest = root / "app/src/main/AndroidManifest.xml"
     text = manifest.read_text().replace('android:scheme="geode-launcher"', 'android:scheme="mucho-launcher"')
@@ -85,6 +100,12 @@ def prepare(root, client):
     ET.register_namespace("tools", "http://schemas.android.com/tools")
     tree = ET.fromstring(text)
     android = "{http://schemas.android.com/apk/res/android}"
+    # Android 11+ hides renamed sideloaded apps unless we declare the picker query.
+    queries = tree.find("queries")
+    assert queries is not None
+    query = ET.SubElement(queries, "intent")
+    ET.SubElement(query, "action", {android + "name": "android.intent.action.MAIN"})
+    ET.SubElement(query, "category", {android + "name": "android.intent.category.LAUNCHER"})
     providers = tree.findall("application/provider")
     for provider in providers:
         if provider.get(android + "name") == ".UserDirectoryProvider":
@@ -103,6 +124,33 @@ def prepare(root, client):
 
     game = root / package / "GeometryDashActivity.kt"
     text = game.read_text()
+    early_check = '''        // return back to main if Geometry Dash isn't found
+        if (!GamePackageUtils.isGameInstalled(packageManager)) {
+            returnToMain()
+            return
+        }
+'''
+    assert early_check in text
+    text = text.replace(early_check, "")
+    text = text.replace("getPackageInfo(Constants.PACKAGE_NAME,", "getPackageInfo(GamePackageUtils.gamePackageName(),")
+    old_path = '''        val nativeDir = getNativeLibraryDirectory(packageInfo.applicationInfo!!)
+        val libraryPath = if (nativeDir.endsWith('/')) "${nativeDir}lib$libraryName.so" else "$nativeDir/lib$libraryName.so"'''
+    assert old_path in text
+    text = text.replace(old_path, '''        val libraryPath = com.geode.launcher.mucho.MuchoGame.libraryPath(
+            packageInfo, libraryName, LaunchUtils.applicationArchitecture)
+            ?: throw UnsatisfiedLinkError("Missing lib$libraryName.so for ${LaunchUtils.applicationArchitecture}")''')
+    text = text.replace('if (ule.message?.contains("not accessible for the namespace") != true) {',
+        'if (!libraryPath.contains("!/") && ule.message?.contains("not accessible for the namespace") != true) {')
+    start = text.index('    @SuppressLint("UnsafeDynamicallyLoadedCode")\n    private fun loadLibraryCopy(')
+    end = text.index('    @SuppressLint("UnsafeDynamicallyLoadedCode")\n    private fun loadGeodeLibrary()', start)
+    text = text[:start] + '''    @SuppressLint("UnsafeDynamicallyLoadedCode")
+    private fun loadLibraryCopy(libraryName: String, libraryPath: String) {
+        val copy = File(cacheDir, "lib$libraryName.so")
+        com.geode.launcher.mucho.GameCompatibility.copyLibrary(libraryPath, copy)
+        System.load(copy.path)
+    }
+
+''' + text[end:]
     text = text.replace("createVersionFile()\n            tryLoadGame()", "com.geode.launcher.mucho.MuchoIntegrity.prepare(this, false)\n            com.geode.launcher.mucho.MuchoIntegrity.requireGame(this)\n            createVersionFile()\n            tryLoadGame()")
     text = text.replace("        loadInternalMods()", "        // Pinned client and resources were prepared before launch.")
     text = text.replace("        startActivity(launchIntent)", "        startActivity(launchIntent)\n        android.os.Process.killProcess(android.os.Process.myPid()) // Only the isolated game process.")
