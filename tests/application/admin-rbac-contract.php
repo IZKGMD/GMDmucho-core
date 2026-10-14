@@ -89,3 +89,6 @@ assertValue(
 );
 
 echo "MUCHOCORE_ADMIN_RBAC_OK" . PHP_EOL;
+
+assertValue('messages.manage',AdminRbac::permissionForContext('media-review',null,20),'image review requires message moderation');
+assertValue('messages.manage',AdminRbac::permissionForContext('', 'media',20),'image queue requires message moderation');

@@ -55,6 +55,7 @@ if ($action==='settings-save') {
                 );
             }
 
+            saveMediaSettings($db);
             audit($db,'settings.save');
             flash('Settings applied.');
         }

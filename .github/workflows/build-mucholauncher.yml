@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
     inputs:
       client_run_id:
-        description: Verified MuchoClient 1.1.0 artifact run
-        default: '38432138150'
+        description: Verified MuchoClient 1.2.1 artifact run
+        default: '38543436028'
         required: true
 permissions:
   contents: read
@@ -28,7 +28,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: MuchoClient-Windows-Android
-          run-id: ${{ inputs.client_run_id || '38432138150' }}
+          run-id: ${{ inputs.client_run_id || '38543436028' }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: client-artifact
       - uses: actions/download-artifact@v4
@@ -61,9 +61,9 @@ jobs:
           $smoke = Start-Process -FilePath dist/MuchoLauncher/MuchoLauncher.exe -ArgumentList '--screenshot' -Wait -PassThru
           if ($smoke.ExitCode -ne 0 -or !(Test-Path launcher-preview.png)) { throw 'Packaged launcher UI smoke test failed' }
           Copy-Item README-RU.txt dist/MuchoLauncher/README-RU.txt
-          Compress-Archive -Path dist/MuchoLauncher -DestinationPath MuchoLauncher-v1.1.0-Windows.zip
+          Compress-Archive -Path dist/MuchoLauncher -DestinationPath MuchoLauncher-v1.2.1-Windows.zip
       - uses: actions/upload-artifact@v4
         with:
           name: MuchoLauncher-Windows
-          path: clients/launcher/MuchoLauncher-v1.1.0-Windows.zip
+          path: clients/launcher/MuchoLauncher-v1.2.1-Windows.zip
           retention-days: 30

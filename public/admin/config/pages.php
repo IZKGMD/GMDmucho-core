@@ -21,6 +21,7 @@ return [
 
     'comments'=>'Comments',
     'messages'=>'Messages',
+    'media'=>'Image moderation',
     'social'=>'Social',
     'songs'=>'Music',
 

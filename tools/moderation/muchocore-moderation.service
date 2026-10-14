@@ -1,0 +1,26 @@
+[Unit]
+Description=MuchoCore local image screening
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/muchocore/tools/moderation
+ExecStart=/opt/muchocore/.venv-moderation/bin/python service.py --model /opt/muchocore/storage/moderation-model/model.onnx --socket /run/mucho-moderation/moderation.sock
+RuntimeDirectory=mucho-moderation
+RuntimeDirectoryMode=0750
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+RestrictAddressFamilies=AF_UNIX
+IPAddressDeny=any
+MemoryMax=768M
+CPUQuota=200%
+TasksMax=64
+UMask=0007
+
+[Install]
+WantedBy=multi-user.target

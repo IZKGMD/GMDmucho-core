@@ -1,10 +1,11 @@
 FROM php:8.3-fpm-bookworm
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git unzip zip openssl openssh-client sshpass mariadb-client libzip-dev libpng-dev libjpeg62-turbo-dev android-sdk-build-tools \
+    && apt-get install -y --no-install-recommends git unzip zip openssl openssh-client sshpass mariadb-client libzip-dev libpng-dev libjpeg62-turbo-dev libonig-dev libcurl4-openssl-dev android-sdk-build-tools \
     && docker-php-ext-configure gd --with-jpeg \
     && docker-php-ext-install gd \
-    && docker-php-ext-install pdo_mysql zip ftp \
+    && docker-php-ext-install pdo_mysql zip ftp mbstring \
+    && if ! php -r 'exit(extension_loaded("curl") ? 0 : 1);'; then docker-php-ext-install curl; fi \
     && docker-php-ext-enable opcache \
     && printf '%s\n' 'display_errors=0' 'display_startup_errors=0' 'log_errors=1' 'expose_php=0' 'memory_limit=256M' 'max_execution_time=60' 'max_input_time=60' 'upload_max_filesize=64M' 'post_max_size=70M' 'max_file_uploads=20' > /usr/local/etc/php/conf.d/muchocore-production.ini \
     && printf '%s\n' 'clear_env = no' > /usr/local/etc/php-fpm.d/zz-muchocore-environment.conf \

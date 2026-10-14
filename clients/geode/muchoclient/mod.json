@@ -6,7 +6,7 @@
   },
   "id": "izkgmd.muchoclient",
   "name": "MuchoClient",
-  "version": "v1.1.0",
+  "version": "v1.2.1",
   "developer": "IZKGMD",
   "description": "One MuchoCore client for Daily Quests, clans, profiles, colors and server plugins",
   "tags": [

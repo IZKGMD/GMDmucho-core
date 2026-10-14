@@ -8,6 +8,7 @@
 #include "MuchoDailyQuestsPopup.hpp"
 #include "MuchoEmoji.hpp"
 #include "MuchoSocial.hpp"
+#include "MuchoMedia.hpp"
 #include "MuchoCreatorHub.hpp"
 #include <Geode/modify/MenuLayer.hpp>
 #include <Geode/modify/CreatorLayer.hpp>
@@ -26,7 +27,7 @@ using namespace geode::prelude;
 
 namespace {
     constexpr char const* CLIENT_ID = "izkgmd.muchoclient";
-    constexpr char const* CLIENT_VERSION = "1.1.0";
+    constexpr char const* CLIENT_VERSION = "1.2.1";
     constexpr int PROTOCOL = 1;
 
     struct Feature {
@@ -163,7 +164,8 @@ protected:
         auto emoji=mucho::button(ButtonSprite::create("Emoji"),this,menu_selector(MuchoFeaturesPopup::onEmoji),.43f);
         colorsMenu->addChild(emoji);
         auto social = mucho::button(ButtonSprite::create("Social"),this,menu_selector(MuchoFeaturesPopup::onSocial),.40f);
-        social->setPosition({0,44}); colorsMenu->addChild(social);
+        social->setPosition({-48,44}); colorsMenu->addChild(social);
+        auto images=mucho::button(ButtonSprite::create("My images"),this,menu_selector(MuchoFeaturesPopup::onImages),.30f);images->setPosition({64,44});colorsMenu->addChild(images);
         mucho::motion::panel(m_mainLayer);
         return true;
     }
@@ -182,6 +184,7 @@ protected:
         }
         m_pageLabel->setString((std::to_string(m_page+1)+" / "+std::to_string(mucho::quests::pageCount(m_features.size()))).c_str());
     }
+    void onImages(CCObject*) { mucho::media::showMine(); }
     void onSocial(CCObject*) { mucho::social::show(); }
     void onEmoji(CCObject*) { mucho::emoji::showPicker(); }
     void onPrevious(CCObject*) { if (m_page > 0) { --m_page; renderFeatures(); } }

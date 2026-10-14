@@ -10,6 +10,7 @@ final readonly class Response
         public string $body,
         public int $status = 200,
         public string $contentType = 'text/plain; charset=utf-8',
+        public array $headers = [],
     ) {}
 
     public static function text(
@@ -57,6 +58,7 @@ final readonly class Response
 
         http_response_code($this->status);
         header('Content-Type: ' . $this->contentType);
+        foreach($this->headers as $name=>$value)header($name.': '.$value);
 
         echo $this->body;
         exit;

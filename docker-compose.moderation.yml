@@ -1,0 +1,38 @@
+# Optional overlay: docker compose -f docker-compose.yml -f docker-compose.moderation.yml up -d --build
+services:
+  app:
+    environment:
+      MUCHO_LOCAL_MODERATION_SOCKET: /run/mucho-moderation/moderation.sock
+    volumes:
+      - moderation_socket:/run/mucho-moderation
+  moderation-init:
+    image: alpine:3.21
+    user: "0:0"
+    command: ["sh", "-c", "chown 33:33 /run/mucho-moderation && chmod 750 /run/mucho-moderation"]
+    network_mode: none
+    volumes:
+      - moderation_socket:/run/mucho-moderation
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER]
+    security_opt: [no-new-privileges:true]
+  moderation:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.moderation
+    user: "33:33"
+    restart: unless-stopped
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 768m
+    # Safe on single-vCPU VPS hosts; raise only within the host's CPU count.
+    cpus: ${MUCHO_MODERATION_CPUS:-1.0}
+    pids_limit: 64
+    volumes:
+      - moderation_socket:/run/mucho-moderation
+    depends_on:
+      moderation-init:
+        condition: service_completed_successfully
+volumes:
+  moderation_socket:

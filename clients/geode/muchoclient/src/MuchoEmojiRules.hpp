@@ -7,6 +7,10 @@
 #include <vector>
 
 namespace mucho::emoji {
+    inline bool pickerEligible(std::string_view filter,bool password,bool number,bool accountForm) {
+        return !password&&!number&&!accountForm&&(filter.empty()||
+            (filter.find(' ')!=std::string_view::npos&&filter.find('a')!=std::string_view::npos));
+    }
     // Render-only marker. The original UTF-8 text is retained by the label.
     inline constexpr char Placeholder = '\x1f';
     inline constexpr size_t MaxBytes = 16384, MaxGlyphs = 128, MaxSequence = 24;

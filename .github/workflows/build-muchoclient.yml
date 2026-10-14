@@ -14,6 +14,12 @@ on:
       - 'clients/geode/muchoclient/**'
       - 'clients/launcher/**'
       - 'src/Social/**'
+      - 'src/Media/**'
+      - 'tools/moderation/**'
+      - 'tests/application/media-compression.php'
+      - 'database/migrations/20261014_002_local_media.php'
+      - 'tests/application/message-images.php'
+      - 'database/migrations/20261014_001_message_media.php'
       - 'src/Creator/**'
       - 'plugins/builtin/mucho-creator-hub/**'
       - 'tests/application/creator-hub.php'
@@ -36,6 +42,12 @@ on:
       - 'clients/geode/muchoclient/**'
       - 'clients/launcher/**'
       - 'src/Social/**'
+      - 'src/Media/**'
+      - 'tools/moderation/**'
+      - 'tests/application/media-compression.php'
+      - 'database/migrations/20261014_002_local_media.php'
+      - 'tests/application/message-images.php'
+      - 'database/migrations/20261014_001_message_media.php'
       - 'src/Creator/**'
       - 'plugins/builtin/mucho-creator-hub/**'
       - 'tests/application/creator-hub.php'
@@ -77,7 +89,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_mysql, gd
+          extensions: pdo_mysql, gd, mbstring, curl
       - name: Test client validation and role permissions
         run: |
           g++ -std=c++20 -Wall -Wextra -Werror tests/client/muchoclient-clan-rules.cpp -o /tmp/clan-rules
@@ -105,6 +117,30 @@ jobs:
           php tests/application/daily-quest-integration.php
           php tests/application/social-live.php
           php tests/application/creator-hub.php
+          php tests/application/message-images.php
+          php tests/application/media-moderator.php
+          php tests/application/media-compression.php
+
+  local-moderation:
+    name: Offline local AI and IPC integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: curl
+      - name: Install pinned local inference dependencies
+        run: python -m pip install -r tools/moderation/requirements.txt
+      - name: Fetch and verify pinned model during setup
+        run: python tools/moderation/fetch_model.py --out /tmp/mucho-model
+      - name: Test offline decisions, Unix IPC and the actual model
+        env:
+          MUCHO_TEST_MODEL: /tmp/mucho-model/model.onnx
+        run: python tests/media/local_moderation.py
 
   emoji-assets:
     name: Build pinned offline emoji atlas
@@ -172,7 +208,7 @@ jobs:
 
   geode-package:
     name: Combine Windows and Android .geode
-    needs: [geode-build, clan-tests]
+    needs: [geode-build, clan-tests, local-moderation]
     runs-on: ubuntu-latest
     steps:
       - name: Combine compatible native builds
@@ -235,9 +271,9 @@ jobs:
           $smoke = Start-Process -FilePath dist/MuchoLauncher/MuchoLauncher.exe -ArgumentList '--screenshot' -Wait -PassThru
           if ($smoke.ExitCode -ne 0 -or !(Test-Path launcher-preview.png)) { throw 'Packaged launcher UI smoke test failed' }
           Copy-Item README-RU.txt dist/MuchoLauncher/README-RU.txt
-          Compress-Archive -Path dist/MuchoLauncher -DestinationPath MuchoLauncher-v1.1.0-Windows.zip
+          Compress-Archive -Path dist/MuchoLauncher -DestinationPath MuchoLauncher-v1.2.1-Windows.zip
       - uses: actions/upload-artifact@v4
         with:
           name: MuchoLauncher-Windows
-          path: clients/launcher/MuchoLauncher-v1.1.0-Windows.zip
+          path: clients/launcher/MuchoLauncher-v1.2.1-Windows.zip
           retention-days: 30

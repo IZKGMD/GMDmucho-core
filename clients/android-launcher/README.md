@@ -1,4 +1,4 @@
-# MuchoLauncher Android 1.0.1
+# MuchoLauncher Android 1.1.1
 
 Native Android launcher in MuchoCore's dark violet palette. Based on Geode
 Android Launcher 1.8.0, pinned to `38bc97b7b6551acb1295dd241231ca22e2cd8995`,
@@ -16,7 +16,7 @@ versionName compatibility check. A removed selection requires choosing again.
 The game is not distributed in this APK. Root and a separate
 Geode app are not needed.
 
-The APK bundles Geode 5.10.1 and the already verified MuchoClient 1.1.0 package.
+The APK bundles Geode 5.10.1 and the already verified MuchoClient 1.2.1 package.
 An initial check restores bundled client/resources to app-owned storage. Play
 rechecks the package and restores damaged payload files, checks the bundled
 loader, game version and native library architecture. Saves and
@@ -38,7 +38,7 @@ not implemented as a separate web dashboard in this launcher.
 ## Build
 
 Workflow `build-mucholauncher-android.yml` downloads the verified client from
-run 38432138150, checks its fixed SHA-256, obtains loader archives from Geode
+run 38543436028, checks its fixed SHA-256, obtains loader archives from Geode
 version metadata and checks those hashes. It builds an unsigned release APK
 for both ABIs, runs corruption/traversal/atomic-replacement tests, then checks
 the actual APK payload. Signing is performed outside CI with the retained
@@ -51,3 +51,5 @@ binaries still need physical-device testing. For ARM32-only GD on a 64-bit phone
 install the signed Android32 launcher over the current launcher; the same
 application ID and signing key preserve app data. The launcher reports this
 architecture mismatch before trying to load incompatible libraries.
+
+The bundled MuchoClient 1.2.1 adds adaptive JPEG/PNG attachments, zoom/pan and server-local NSFW screening. Enable these in the matching core; setup is in docs/features/message-images.md. Images are not sent to an external moderation API.

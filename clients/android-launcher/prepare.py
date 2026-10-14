@@ -12,7 +12,7 @@ import zipfile
 import xml.etree.ElementTree as ET
 
 UPSTREAM_SHA = "38bc97b7b6551acb1295dd241231ca22e2cd8995"
-CLIENT_SHA = "bc6471de1920d36ca88b44fcdca5dbd3229214944ccae70d49be81edab4a699a"
+CLIENT_SHA = "4370381748207feecf2b0cb7da4b5bf46c9b8c3ac43bd86ec05dead91f77b5a9"
 GEODE_VERSION = "5.10.1"
 
 
@@ -40,7 +40,7 @@ def prepare(root, client):
         raise RuntimeError("MuchoClient package SHA-256 mismatch")
     with zipfile.ZipFile(client) as z:
         metadata = json.loads(z.read("mod.json"))
-        assert metadata["id"] == "izkgmd.muchoclient" and metadata["version"] == "v1.1.0"
+        assert metadata["id"] == "izkgmd.muchoclient" and metadata["version"] == "v1.2.1"
         for platform in ["android32", "android64"]:
             assert f"izkgmd.muchoclient.{platform}.so" in z.namelist()
 
@@ -59,8 +59,8 @@ def prepare(root, client):
     change(root, package + "MainActivity.kt", "import android.content.Intent", "import android.content.Intent\nimport androidx.lifecycle.lifecycleScope")
 
     change(root, "app/build.gradle.kts", 'applicationId = "com.geode.launcher"', 'applicationId = "space.muchocore.launcher"')
-    change(root, "app/build.gradle.kts", "versionCode = 29", "versionCode = 10001")
-    change(root, "app/build.gradle.kts", 'versionName = "1.8.0"', 'versionName = "1.0.1"')
+    change(root, "app/build.gradle.kts", "versionCode = 29", "versionCode = 10101")
+    change(root, "app/build.gradle.kts", 'versionName = "1.8.0"', 'versionName = "1.1.1"')
     change(root, "app/build.gradle.kts", 'resources {\n            excludes', 'jniLibs { useLegacyPackaging = true }\n        resources {\n            excludes')
     change(root, "app/build.gradle.kts", 'dependencies {', 'dependencies {\n    testImplementation("junit:junit:4.13.2")')
 
@@ -228,7 +228,7 @@ extern "C" JNIEXPORT jboolean JNICALL Java_com_geode_launcher_LauncherFix_muchoC
     manifest_file.write_text(manifest_file.read_text().replace('android:icon="@mipmap/ic_launcher"', 'android:icon="@drawable/mucho_icon"'))
 
     resources = json.loads(download(f"https://api.geode-sdk.org/v1/loader/versions/{GEODE_VERSION}"))["payload"]["downloads"]
-    manifest = {"client_version": "1.1.0", "geode_version": GEODE_VERSION, "files": [], "loaders": {}}
+    manifest = {"client_version": "1.2.1", "geode_version": GEODE_VERSION, "files": [], "loaders": {}}
     assets = root / "app/src/main/assets"
     def add(path, asset, data):
         file = assets / asset

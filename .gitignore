@@ -38,3 +38,9 @@
 
 clients/launcher/**/__pycache__/
 clients/launcher/__pycache__/
+
+# Local moderation bytecode and installed model weights
+tools/moderation/__pycache__/
+tests/media/__pycache__/
+/storage/moderation-model/
+/.venv-moderation/
