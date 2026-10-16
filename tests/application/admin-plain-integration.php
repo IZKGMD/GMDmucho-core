@@ -23,8 +23,8 @@ $fixture=<<<'HTML'
 <script src="/muchocore-theme.js"></script><script src="/admin/admin-simple.js"></script></head>
 <body style="color:red"><h1>Кланы &amp; игроки</h1><form method="post" action="/admin/?page=players">
 <input name="csrf" type="hidden" value="plain-fixture-token"><input name="id" value="42">
-<input name="username" value="&quot;&lt;script&gt; &amp; Игрок"><button name="action" value="account-save">Save</button></form>
-<details><summary>Statistics</summary><input name="stars" value="50"></details>
+<input name="username" value="&quot;&lt;script&gt; &amp; Игрок"><label>Clan name<input name="clan_name" value="Native form"></label><label><input type="checkbox" name="enabled" checked>Enabled</label><button name="action" value="account-save">Save</button></form>
+<table><tr><th>Name</th></tr><tr><td>Native table</td></tr></table><details><summary>Statistics</summary><input name="stars" value="50"></details>
 <a href="/admin/?page=players&amp;p=2">Next</a><a href="/admin/?page=players" data-styled-admin>Styled</a>
 <a href="/admin/assets/gd/players.png">Asset</a><a href="https://example.test/admin/">External</a>
 <script>const config={token:'<&test'};</script></body></html>
@@ -37,6 +37,8 @@ check($xpath->query('//form[@action="/admin/plain/?page=players"]//button[@name=
 check($xpath->query('//input[@name="csrf"]')->item(0)->getAttribute('value')==='plain-fixture-token','CSRF token survives unchanged');
 check($xpath->query('//input[@name="username"]')->item(0)->getAttribute('value')==='"<script> & Игрок','escaped user content survives without becoming markup');
 check($xpath->query('//h1')->item(0)->textContent==='Кланы & игроки','UTF-8 labels survive');
+check($xpath->query('//form/p/label/br')->length===1 && $xpath->query('//form/p/label/input[@name="clan_name"]')->length===1,'plain labels gain native spacing without moving controls out of their form');
+check($xpath->query('//table[@border="1" and @cellpadding="6"]//th[@scope="col"]')->length===1,'plain tables have native cell separation and scoped headers');
 check($xpath->query('//details/summary')->length===1,'native expandable forms survive');
 check($xpath->query('//a[@data-styled-admin]')->item(0)->getAttribute('href')==='/admin/?page=players','explicit styled switch remains available');
 check(str_contains($html,'href="/admin/plain/?page=players&amp;p=2"'),'pagination stays in the plain panel');

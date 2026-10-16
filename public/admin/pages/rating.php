@@ -372,13 +372,13 @@ if (!$selected) {
 
     echo '<div class="rating-section">';
     echo '<div class="rating-section-title"><b>Star rating</b><span>0–10 stars</span></div>';
-    echo '<div class="rating-stars-pick" id="starsPicker">';
+    echo '<div class="rating-stars-pick" id="starsPicker" hidden>';
     foreach ($starsOptions as $star) {
         $active = $selectedStars === $star ? ' on' : '';
         echo '<button type="button" class="'.$active.'" data-stars="'.$star.'" title="'.$star.' stars">'.$star.'</button>';
     }
     echo '</div>';
-    echo '<input type="hidden" name="stars" id="starsValue" value="'.$selectedStars.'">';
+    echo '<p class="rating-field"><label for="starsValue">Stars</label> <input type="number" name="stars" id="starsValue" min="0" max="10" step="1" value="'.$selectedStars.'" required></p>';
     echo '</div>';
 
     echo '<div class="rating-section">';
@@ -447,6 +447,9 @@ echo '<script>
     const faceRight = document.getElementById("difficultyFaceRight");
     const starsPreview = document.getElementById("starsPreview");
     const feature = document.getElementById("feature");
+
+    if (picker) picker.hidden=false;
+    starsValue?.addEventListener("input", () => setStars(starsValue.value));
 
     const setStars = value => {
         if (!starsValue || !picker) return;

@@ -32,10 +32,11 @@ jobs:
           mkdir -p public/assets
 
           # Main horizontal MuchoCore mark from the dark presentation panel.
-          convert "$SRC"             -crop 1000x405+115+675             -resize "1400x>"             -strip             -quality 92             -interlace Plane             public/assets/muchocore-logo.jpg
+          convert "$SRC"             -crop 1280x600+100+740 +repage             -resize "1400x>"             -strip             -quality 92             -interlace Plane             public/assets/muchocore-logo.jpg
 
+          # Source artwork is 2048x2048; use native coordinates, not preview pixels.
           # Compact MC cube mark from the dedicated icon panel.
-          convert "$SRC"             -crop 455x440+1310+85             -resize "512x512>"             -strip             public/assets/muchocore-icon.png
+          convert "$SRC"             -crop 500x500+1490+95 +repage             -resize "256x256"             -strip             public/assets/muchocore-icon.png
 
           test -s public/assets/muchocore-logo.jpg
           test -s public/assets/muchocore-icon.png

@@ -8,6 +8,7 @@ use MuchoCore\Core\Environment;
 use MuchoCore\Database\Database;
 
 require_once __DIR__.'/core/PlainAdmin.php';
+require_once __DIR__.'/core/AdminChrome.php';
 if (adminIsPlain()) {
     header_register_callback(static function (): void {
         foreach (headers_list() as $header) {
@@ -1452,12 +1453,13 @@ if (admin() && isset($_GET['audit_feed'])) {
 
 if (! admin()):
 if (adminIsPlain()) adminPlainStartOutput();
+else ob_start();
 ?>
 <!doctype html>
 <html lang="ru">
 <head>
-<link rel="icon" href="/assets/muchocore-icon.png" type="image/jpeg">
-<link rel="apple-touch-icon" href="/assets/muchocore-icon.png">
+<link rel="icon" href="/assets/muchocore-icon.png?v=2" type="image/png">
+<link rel="apple-touch-icon" href="/assets/muchocore-icon.png?v=2">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?=h($branding['server_name'])?> Control</title>
@@ -2448,66 +2450,42 @@ max-width:100%
 
 <link rel="stylesheet" href="/assets/product-ui.css?v=1">
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
-<script src="/assets/product-ui.js?v=1" defer></script>
+<link rel="stylesheet" href="/admin/admin-polish.css?v=1">
+<script src="/admin/admin-simple.js?v=2" defer></script>
 </head>
 <body class="admin-login mc-workspace" data-page="">
-<form method="post" class="box">
-<div class="logo"><img class="mucho-brand-logo" src="/assets/muchocore-icon.png" alt="MuchoCore" width="42" height="42" decoding="async"><span class="mucho-brand-name"><?=h($branding['server_name'])?></span><span>Control</span></div>
-<div class="sub">GDPS Administration</div>
-<p><?php if(adminIsPlain()): ?>Plain Admin · <a href="/admin/" data-styled-admin>Styled admin</a><?php else: ?><a href="/admin/plain/">Plain admin (no CSS)</a><?php endif ?></p>
-
-<?php if (!empty($loginError)): ?>
-<div class="err"><?=h($loginError)?></div>
-<?php endif ?>
-
-<div class="admin-login-methods" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-<button type="button" class="gray" id="passwordMode">Password login</button>
-<button type="button" class="gray" id="passkeyMode">Passkey login</button>
+<main class="admin-auth-card">
+<header>
+<?php adminBrand($branding['server_name']); adminInterfaceSwitch(); ?>
+</header>
+<h1>Administrator sign in</h1>
+<?php if (!empty($loginError)): ?><p class="err" role="alert"><?=h($loginError)?></p><?php endif ?>
+<form method="post" id="adminLoginForm">
+<div class="admin-login-methods" hidden>
+<button type="button" class="gray" id="passwordMode" aria-controls="passwordLoginFields" aria-pressed="true">Password login</button>
+<button type="button" class="gray" id="passkeyMode" aria-controls="passkeyLoginFields" aria-pressed="false">Passkey login</button>
 </div>
-
 <div id="passwordLoginFields">
-<input
- name="username"
- autocomplete="username webauthn"
- placeholder="Username"
->
-
-<input
- type="password"
- name="password"
- autocomplete="current-password"
- placeholder="Password"
->
+<p class="admin-auth-field"><label for="adminUsername">Username</label><br>
+<input id="adminUsername" name="username" autocomplete="username webauthn" autocapitalize="none" spellcheck="false" maxlength="64" required></p>
+<p class="admin-auth-field"><label for="adminPassword">Password</label><br>
+<input id="adminPassword" type="password" name="password" autocomplete="current-password" required></p>
 </div>
-
 <div id="passkeyLoginFields" hidden>
-<div style="padding:11px 12px;margin-bottom:10px;border:1px solid #2d3a50;border-radius:12px;background:#0c121c;color:#9aa7bb;font-size:12px;line-height:1.5">
-Use a saved passkey. Your browser will open the native passkey picker so you can choose the account or device credential.
-</div>
+<p>Use a saved passkey. Your browser will open the native account or device picker.</p>
 <button type="button" id="passkeyLoginButton">Continue with passkey</button>
-<div id="passkeyStatus" style="margin-top:8px;color:#7f8ba0;font-size:11px;min-height:16px"></div>
+<p id="passkeyStatus" role="status" aria-live="polite"></p>
 </div>
-
-<div id="otpLoginField">
-<input
- name="otp"
- inputmode="numeric"
- autocomplete="one-time-code"
- placeholder="2FA code, if enabled"
->
+<p id="otpLoginField" class="admin-auth-field"><label for="adminOtp">2FA or recovery code</label><br>
+<input id="adminOtp" name="otp" autocomplete="one-time-code" autocapitalize="none" spellcheck="false" aria-describedby="adminOtpHelp">
+<br><small id="adminOtpHelp">Leave empty if two-factor authentication is disabled.</small></p>
+<div id="passkeyTotpField" hidden>
+<p class="admin-auth-field"><label for="passkeyTotp">2FA or recovery code</label><br>
+<input id="passkeyTotp" autocomplete="one-time-code" autocapitalize="none" spellcheck="false"></p>
+<button type="button" id="passkeyTotpButton">Complete passkey sign-in</button>
 </div>
-
-<div id="passkeyTotpField" hidden style="margin-top:10px">
-<input
- id="passkeyTotp"
- inputmode="numeric"
- autocomplete="one-time-code"
- placeholder="2FA code or recovery code"
->
-<button type="button" id="passkeyTotpButton" style="margin-top:8px">Complete passkey sign-in</button>
-</div>
-
 <button id="normalSignInButton" name="login" value="1">Sign in</button>
+<noscript><p>Password sign-in works without JavaScript. Passkeys require JavaScript.</p></noscript>
 <script>
 (() => {
     const passwordMode=document.getElementById('passwordMode');
@@ -2523,6 +2501,8 @@ Use a saved passkey. Your browser will open the native passkey picker so you can
     const passkeyTotp=document.getElementById('passkeyTotp');
     const status=document.getElementById('passkeyStatus');
 
+    document.querySelector('.admin-login-methods').hidden=false;
+
     function setMode(mode){
         const passkey=mode==='passkey';
 
@@ -2536,6 +2516,8 @@ Use a saved passkey. Your browser will open the native passkey picker so you can
         password.disabled=passkey;
         otp.disabled=passkey;
 
+        passwordMode.setAttribute('aria-pressed',String(!passkey));
+        passkeyMode.setAttribute('aria-pressed',String(passkey));
         passwordMode.classList.toggle('green',mode==='password');
         passkeyMode.classList.toggle('green',passkey);
 
@@ -2659,119 +2641,17 @@ Use a saved passkey. Your browser will open the native passkey picker so you can
         }
     });
 
+    passkeyTotp?.addEventListener('keydown',event=>{
+        if(event.key==='Enter'){event.preventDefault();document.getElementById('passkeyTotpButton').click();}
+    });
     passwordMode?.addEventListener('click',() => setMode('password'));
     passkeyMode?.addEventListener('click',() => setMode('passkey'));
     setMode('password');
 })();
 </script>
-<div style="margin-top:16px;color:#7f8aa0;font-size:12px;text-align:center"><?=h($branding['server_name'])?><?php if (!empty($branding['server_by_name']) && !empty($branding['social_url'])): ?> · Server by <a href="<?=h($branding['social_url'])?>" target="_blank" rel="noopener noreferrer"><?=h($branding['server_by_name'])?></a><?php endif; ?> · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK · <a href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;color:#7d8ba3;text-decoration:none;vertical-align:middle"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.24c-3.34.73-4.04-1.61-4.04-1.61-.55-1.4-1.34-1.77-1.34-1.77-1.09-.75.08-.74.08-.74 1.2.08 1.83 1.23 1.83 1.23 1.07 1.83 2.8 1.3 3.48.99.11-.77.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.94 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.63-5.48 5.93.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.57A12 12 0 0 0 12 .5"/></svg><span>GitHub</span></a></div>
 </form>
-
-<script>
-(() => {
-    const body = document.body;
-    const toggle = document.getElementById('sidebarToggle');
-
-    if (localStorage.getItem('mucho.sidebar') === 'collapsed') {
-        body.classList.add('sidebar-collapsed');
-    }
-
-    toggle?.addEventListener('click', () => {
-        body.classList.toggle('sidebar-collapsed');
-
-        localStorage.setItem(
-            'mucho.sidebar',
-            body.classList.contains('sidebar-collapsed')
-                ? 'collapsed'
-                : 'open'
-        );
-    });
-
-    const search = document.getElementById('globalSearchInput');
-
-    document.addEventListener('keydown', e => {
-        const tag = document.activeElement?.tagName;
-
-        if (
-            (e.key === '/' || (e.ctrlKey && e.key.toLowerCase() === 'k')) &&
-            !['INPUT','TEXTAREA','SELECT'].includes(tag)
-        ) {
-            e.preventDefault();
-            search?.focus();
-            search?.select();
-        }
-
-        if (e.key === 'Escape') {
-            document.activeElement?.blur();
-        }
-    });
-
-    const dangerous = new Set([
-        'account-delete',
-        'comment-delete',
-        'message-delete',
-        'relation-delete'
-    ]);
-
-    document.querySelectorAll('form').forEach(form => {
-        if (form.hasAttribute('onsubmit')) return;
-
-        const action =
-            form.querySelector('input[name="action"]')?.value;
-
-        if (!dangerous.has(action)) return;
-
-        form.addEventListener('submit', e => {
-            if (!confirm('Confirm this action?')) {
-                e.preventDefault();
-            }
-        });
-    });
-
-    document.querySelectorAll('.table td').forEach(td => {
-        const text = td.textContent.trim();
-
-        if (text.length > 60 && !td.title) {
-            td.title = text;
-        }
-    });
-
-    document.querySelectorAll('nav a').forEach(link => {
-        if (!link.title) {
-            link.title = link.textContent.trim();
-        }
-    });
-})();
-</script>
-
-
-<script>
-(() => {
-    const body = document.body;
-    const open = document.getElementById('mobileMenuButton');
-    const overlay = document.getElementById('mobileOverlay');
-
-    const closeMenu = () => {
-        body.classList.remove('mobile-menu-open');
-    };
-
-    open?.addEventListener('click', () => {
-        body.classList.toggle('mobile-menu-open');
-    });
-
-    overlay?.addEventListener('click', closeMenu);
-
-    document.querySelectorAll('aside nav a').forEach(link => {
-        link.addEventListener('click', closeMenu);
-    });
-
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-            closeMenu();
-        }
-    });
-})();
-</script>
+<?php adminFooter($branding) ?>
+</main>
 
 </body>
 </html>
@@ -4640,6 +4520,7 @@ if (adminIsPlain()) {
     adminPlainStartOutput();
     require __DIR__.'/core/plain-shell.php';
 } else {
+    ob_start();
 ?>
 <!doctype html>
 <html lang="ru">
@@ -5105,7 +4986,8 @@ table{
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
 <script src="/assets/product-ui.js?v=1" defer></script>
 <link rel="stylesheet" href="/admin/admin-simple.css?v=1">
-<script src="/admin/admin-simple.js?v=1" defer></script>
+<script src="/admin/admin-simple.js?v=2" defer></script>
+<link rel="stylesheet" href="/admin/admin-polish.css?v=1">
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>
@@ -5126,7 +5008,7 @@ table{
 <!-- /MUCHO_LANG_FLAGS -->
 
 <div class="brandrow">
-<div class="logo"><img class="mucho-brand-logo" src="/assets/muchocore-icon.png" alt="MuchoCore" width="42" height="42" decoding="async"><span class="mucho-brand-name"><?=h($branding['server_name'])?></span><b>Control</b></div>
+<?php adminBrand($branding['server_name']); ?>
 <button
  type="button"
  class="sidebar-toggle"
@@ -5158,7 +5040,7 @@ table{
 <small><?=h((string)((Environment::get('MUCHO_ACCOUNT_URL', '') ?: $branding['server_name'])))?></small>
 </div>
 
-<?php if (canAdminPage('advanced') || canAdminPage('players') || canAdminPage('levels')): ?>
+<?php if (canAdminPage('players') || canAdminPage('levels')): ?>
 <form class="global-search" method="get" id="globalSearch">
 <select name="page" aria-label="Search type">
 <?php foreach (['players'=>'Players','levels'=>'Levels'] as $searchPage=>$searchLabel): ?>
@@ -5179,7 +5061,7 @@ table{
 <?php endif; ?>
 
 
-<p><a href="/admin/plain/?page=<?=h($page)?>">Plain admin (no CSS)</a></p>
+<?php adminInterfaceSwitch($_GET); ?>
 <div class="mc-theme-slot"></div>
 <div class="user-pill">
 <div class="avatar">
@@ -5195,7 +5077,7 @@ table{
 </div>
 
 <?php if($flash): ?>
-<div class="flash <?=h($flash['type'])?>">
+<div class="flash <?=h($flash['type'])?>" role="<?=in_array($flash['type'],['err','error'],true)?'alert':'status'?>">
 <?=h($flash['text'])?>
 </div>
 <?php endif ?>
@@ -5876,6 +5758,7 @@ $rolePermissions=array_fill_keys(
 
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
 <button>Save permissions</button>
+</div>
 </form>
 
 <form method="post" onsubmit="return confirm('Delete this custom role?')">
@@ -5885,7 +5768,6 @@ $rolePermissions=array_fill_keys(
 <input type="hidden" name="id" value="<?=h((string)$roleRow['id'])?>">
 <button class="gray" type="submit">Delete role</button>
 </form>
-</div>
 <?php endif; ?>
 </div>
 <?php endforeach; ?>
@@ -5992,7 +5874,7 @@ Keep access to your authenticator device. Disabling 2FA removes the extra sign-i
 <div class="setup-grid">
     <div class="qr-box">
         <div id="totpQr" aria-label="Authenticator QR code"></div>
-        <div id="totpQrStatus" class="qr-placeholder" style="display:none">QR renderer is loading…</div>
+        <div id="totpQrStatus" class="qr-placeholder" hidden>QR renderer is loading…</div>
     </div>
 
     <div>
@@ -6058,7 +5940,7 @@ This setup key is the recovery credential for your TOTP factor. Store it private
         if (!qr || !uri) return;
         if (typeof QRCode === 'undefined') {
             if (status) {
-                status.style.display = 'grid';
+                status.hidden = false;
                 status.textContent = 'Loading QR renderer…';
             }
             const script=document.createElement('script');
@@ -6066,7 +5948,7 @@ This setup key is the recovery credential for your TOTP factor. Store it private
             script.onload=renderQr;
             script.onerror=() => {
                 if (status) {
-                    status.style.display='grid';
+                    status.hidden=false;
                     status.textContent='QR renderer failed to load. Use the manual setup key below.';
                 }
             };
@@ -6084,7 +5966,7 @@ This setup key is the recovery credential for your TOTP factor. Store it private
             correctLevel: QRCode.CorrectLevel.L
         });
 
-        if (status) status.style.display='none';
+        if (status) status.hidden=true;
     };
 
     renderQr();
@@ -6512,14 +6394,7 @@ echo '</table></div>';
 
 ?>
 
-<div class="mucho-page-footer" style="margin-top:auto;padding:16px 6px 0;border-top:1px solid rgba(36,45,60,.75);color:#69758a;font-size:12px;text-align:center">
- <?=h($branding['server_name'])?>
- <?php if (!empty($branding['server_by_name']) && !empty($branding['social_url'])): ?>
- · Server by <a href="<?=h($branding['social_url'])?>" target="_blank" rel="noopener noreferrer"><?=h($branding['server_by_name'])?></a>
- <?php endif; ?>
- · Powered by MuchoCore · Copyright © <?=date('Y')?> IZK · <a class="github-footer-link" href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer" aria-label="GitHub IZKGMD">
-<svg class="github-footer-logo" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.24c-3.34.73-4.04-1.61-4.04-1.61-.55-1.4-1.34-1.77-1.34-1.77-1.09-.75.08-.74.08-.74 1.2.08 1.83 1.23 1.83 1.23 1.07 1.83 2.8 1.3 3.48.99.11-.77.42-1.3.76-1.6-2.67-.3-5.47-1.34-5.47-5.94 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.63-5.48 5.93.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.57A12 12 0 0 0 12 .5"/></svg><span>GitHub</span></a>
-</div>
+<?php adminFooter($branding) ?>
 
 </main>
 <?php if (!adminIsPlain()): ?>
