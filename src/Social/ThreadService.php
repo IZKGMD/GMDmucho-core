@@ -304,7 +304,8 @@ final readonly class ThreadService
                  WHERE t.id=:thread AND m.account_id=:sender FOR UPDATE'
             );
             $lock->execute(['thread'=>$threadId,'sender'=>$accountId]);
-            if ((int)$lock->fetchColumn() !== 0) {
+            $closed = $lock->fetchColumn();
+            if ($closed === false || (int)$closed !== 0) {
                 $this->db->rollBack();
                 return false;
             }
