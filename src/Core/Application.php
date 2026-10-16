@@ -69,6 +69,7 @@ use MuchoCore\Protocol\GdUserEncoder;
 use MuchoCore\Plugin\PluginManager;
 use MuchoCore\Routing\Router;
 use MuchoCore\News\NewsService;
+use MuchoCore\News\NativeNewsFormat;
 use MuchoCore\Score\LevelScoreController;
 use MuchoCore\Score\PlatformerScoreController;
 use MuchoCore\Security\MuchoProtect;
@@ -284,6 +285,42 @@ final readonly class Application
                 strtoupper((string)$r->method) === 'GET'
                     ? Response::json(['version' => 1, 'posts' => $news->published()])
                     : Response::json(['error' => 'Method not allowed'], 405));
+
+        // GD 2.209 native news fallback. Ordinary Caddy/PHP installations
+        // may route unknown non-PHP extensions to public/index.php before a
+        // custom Caddyfile reload. Serve the *same* news payload here, too,
+        // rather than returning the generic "-1" API not-found marker.
+        $nativeNewsData = static function (Request $r) use ($news): Response {
+            if (strtoupper((string)$r->method) !== 'GET') {
+                return Response::text('', 405);
+            }
+            try {
+                return Response::text(
+                    NativeNewsFormat::encode($news->published(30))
+                );
+            } catch (\Throwable $e) {
+                error_log('[MuchoCore Native News Data] ' . $e::class . ': ' . $e->getMessage());
+                return Response::text('', 503);
+            }
+        };
+        $nativeNewsVersion = static function (Request $r) use ($news): Response {
+            if (strtoupper((string)$r->method) !== 'GET') {
+                return Response::text('', 405);
+            }
+            try {
+                return Response::text($news->nativeVersion());
+            } catch (\Throwable $e) {
+                error_log('[MuchoCore Native News Version] ' . $e::class . ': ' . $e->getMessage());
+                return Response::text('', 503);
+            }
+        };
+
+        // Paths used by the native client after getCustomContentURL.
+        $route('/gd-content/news/news.dat', $nativeNewsData);
+        $route('/gd-content/news/news_version.txt', $nativeNewsVersion);
+        // Direct diagnostic aliases, also handled in the Caddyfile.
+        $route('/news/news.dat', $nativeNewsData);
+        $route('/news/news_version.txt', $nativeNewsVersion);
 
         // Legacy/compatibility endpoints implemented by dedicated services.
         $route('/updateGJUserName',
