@@ -160,6 +160,12 @@ final class NewsService
         $this->bumpNativeVersion();
         $this->db->commit();
         return $createdId;
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
     }
 
     public function togglePublished(int $id): void
