@@ -7,6 +7,19 @@ use MuchoCore\Branding\BrandingService;
 use MuchoCore\Core\Environment;
 use MuchoCore\Database\Database;
 
+require_once __DIR__.'/core/PlainAdmin.php';
+if (adminIsPlain()) {
+    header_register_callback(static function (): void {
+        foreach (headers_list() as $header) {
+            if (stripos($header, 'Location:') === 0) {
+                header('Location: '.adminPlainUrl(trim(substr($header, 9))));
+            }
+        }
+        header("Content-Security-Policy: frame-ancestors 'none'; style-src 'none'; base-uri 'self'");
+        header('Cache-Control: no-store');
+    });
+}
+
 require dirname(__DIR__,2).'/vendor/autoload.php';
 
 if (!headers_sent()) {
@@ -42,6 +55,8 @@ function muchoAdminHandleException(Throwable $e): void
     while (ob_get_level() > 0) {
         ob_end_clean();
     }
+
+    if (adminIsPlain()) adminPlainStartOutput();
 
     if (!headers_sent()) {
         http_response_code(500);
@@ -90,6 +105,7 @@ try {
 
     http_response_code(503);
     header('Content-Type: text/html; charset=utf-8');
+    if (adminIsPlain()) adminPlainStartOutput();
     echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MuchoCore Admin</title><style>body{font-family:system-ui,sans-serif;background:#07090f;color:#f4f7ff;display:grid;place-items:center;min-height:100vh;margin:0}.box{max-width:520px;padding:32px;border:1px solid #263246;border-radius:16px;background:#0f1520;text-align:center}p{color:#8e9bb0;line-height:1.6}</style></head><body><main class="box"><h1>MuchoCore Admin</h1><p>The database is temporarily unavailable. Please try again shortly.</p><p style="margin:24px 0 0;padding-top:14px;border-top:1px solid #263246;color:#69758a;font-size:12px">Powered by <a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer" style="color:#8f9cff;text-decoration:none">MuchoCore 🛡️</a></p></main></body></html>';
     exit;
 }
@@ -718,6 +734,9 @@ function muchAdminPasskeyService(PDO $db): AdminPasskeyService
 
 function muchPasskeyJson(mixed $payload,int $status=200): never
 {
+    if (adminIsPlain() && is_array($payload) && isset($payload['redirect'])) {
+        $payload['redirect']=adminPlainUrl((string)$payload['redirect']);
+    }
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -1082,6 +1101,7 @@ function muchAdminSetupBaseUrl(): string
 
 function muchAdminRenderPasswordSetup(PDO $db,string $token): never
 {
+    if (adminIsPlain()) adminPlainStartOutput();
     $token=trim($token);
 
     if (
@@ -1431,6 +1451,7 @@ if (admin() && isset($_GET['audit_feed'])) {
 ========================================================= */
 
 if (! admin()):
+if (adminIsPlain()) adminPlainStartOutput();
 ?>
 <!doctype html>
 <html lang="ru">
@@ -2433,6 +2454,7 @@ max-width:100%
 <form method="post" class="box">
 <div class="logo"><img class="mucho-brand-logo" src="/assets/muchocore-icon.png" alt="MuchoCore" width="42" height="42" decoding="async"><span class="mucho-brand-name"><?=h($branding['server_name'])?></span><span>Control</span></div>
 <div class="sub">GDPS Administration</div>
+<p><?php if(adminIsPlain()): ?>Plain Admin · <a href="/admin/" data-styled-admin>Styled admin</a><?php else: ?><a href="/admin/plain/">Plain admin (no CSS)</a><?php endif ?></p>
 
 <?php if (!empty($loginError)): ?>
 <div class="err"><?=h($loginError)?></div>
@@ -2557,7 +2579,7 @@ Use a saved passkey. Your browser will open the native passkey picker so you can
     };
 
     const passkeyFetch=async(action,body={})=>{
-        const response=await fetch('/admin/?passkey='+encodeURIComponent(action),{
+        const response=await fetch(window.location.pathname+'?passkey='+encodeURIComponent(action),{
             method:'POST',
             credentials:'same-origin',
             cache:'no-store',
@@ -2615,7 +2637,7 @@ Use a saved passkey. Your browser will open the native passkey picker so you can
             return;
         }
 
-        window.location.href=response.redirect||'/admin/';
+        window.location.href=response.redirect||window.location.pathname;
     };
 
     document.getElementById('passkeyLoginButton')?.addEventListener('click',async()=>{
@@ -2631,7 +2653,7 @@ Use a saved passkey. Your browser will open the native passkey picker so you can
             const response=await passkeyFetch('login-totp',{
                 otp:passkeyTotp?.value?.trim()||''
             });
-            window.location.href=response.redirect||'/admin/';
+            window.location.href=response.redirect||window.location.pathname;
         }catch(error){
             if(status) status.textContent=error?.message||'Second-factor verification failed.';
         }
@@ -2780,6 +2802,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $action=(string)($_POST['action'] ?? '');
 
     try {
+        if (in_array($action,['clan-save','clan-role','clan-kick','clan-transfer','clan-delete'],true)) {
+            require __DIR__.'/actions/clans.php';
+        }
+
         if (in_array($action,['migration-preview','migration-apply'],true)) {
             require __DIR__.'/actions/migration.php';
         }
@@ -4570,7 +4596,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     $knownPages=require __DIR__.'/config/pages.php';
     if (!isset($knownPages[$return])) $return='dashboard';
     $returnQuery=['page'=>$return];
-    if (in_array($return,['players','levels','moderation','songs'],true)) {
+    if (in_array($return,['players','levels','moderation','songs','clans'],true)) {
         $returnState=adminListState([
             'q'=>$_POST['return_q'] ?? '',
             'filter'=>$_POST['return_filter'] ?? '',
@@ -4578,6 +4604,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         ]);
         $returnQuery+=$returnState;
     }
+    if ($return==='clans' && $action!=='clan-delete') $returnQuery['id']=max(0,(int)($_POST['id'] ?? 0));
     header('Location:/admin/?'.http_build_query($returnQuery));
 
     exit;
@@ -4609,6 +4636,10 @@ if (admin() && !canAdminPage($page)) {
 $flash=$_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
 
+if (adminIsPlain()) {
+    adminPlainStartOutput();
+    require __DIR__.'/core/plain-shell.php';
+} else {
 ?>
 <!doctype html>
 <html lang="ru">
@@ -5148,6 +5179,7 @@ table{
 <?php endif; ?>
 
 
+<p><a href="/admin/plain/?page=<?=h($page)?>">Plain admin (no CSS)</a></p>
 <div class="mc-theme-slot"></div>
 <div class="user-pill">
 <div class="avatar">
@@ -5169,6 +5201,7 @@ table{
 <?php endif ?>
 
 <?php
+} // Styled shell; page modules below are shared by both interfaces.
 
 /* =========================================================
    DASHBOARD
@@ -6215,7 +6248,7 @@ The private key stays on the authenticator. MuchoCore stores only the public cre
     };
 
     const request=async(action,body={})=>{
-        const response=await fetch('/admin/?passkey='+encodeURIComponent(action),{
+        const response=await fetch(window.location.pathname+'?passkey='+encodeURIComponent(action),{
             method:'POST',
             credentials:'same-origin',
             cache:'no-store',
@@ -6489,10 +6522,10 @@ echo '</table></div>';
 </div>
 
 </main>
+<?php if (!adminIsPlain()): ?>
 </div>
-
-
 <script src="/admin/admin-i18n.js?v=102"></script>
+<?php endif ?>
 
 
 </body>

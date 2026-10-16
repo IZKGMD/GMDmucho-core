@@ -346,5 +346,9 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
     );
 
 
+    $router->register('clans', static function(PDO $db): void {
+        require __DIR__.'/../pages/clans.php';
+    });
+
     return $router;
 }

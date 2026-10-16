@@ -12,7 +12,7 @@ final readonly class ClanRepository
 {
     public const LEADERBOARD_METRICS = ['stars','demons','moons','diamonds','user_coins','secret_coins','creator_points'];
 
-    public function __construct(private PDO $pdo) {}
+    public function __construct(private PDO $pdo, private ?string $activityActor = null) {}
 
     public function leaderboard(string $metric,int $offset,int $limit,int $accountId=0): array
     {
@@ -105,7 +105,7 @@ final readonly class ClanRepository
             ]);
 
             $quests=new ClanQuestRepository($this->pdo);
-            $quests->event($clanId,$quests->player($ownerAccountId).' created the clan.');
+            $quests->event($clanId,($this->activityActor ?? $quests->player($ownerAccountId)).' created the clan.');
 
             $this->pdo->commit();
 
@@ -456,7 +456,7 @@ final readonly class ClanRepository
             ]);
 
             $quests=new ClanQuestRepository($this->pdo);
-            $quests->event($clanId,$quests->player($ownerAccountId).' updated clan settings.');
+            $quests->event($clanId,($this->activityActor ?? $quests->player($ownerAccountId)).' updated clan settings.');
 
             $this->pdo->commit();
 
@@ -526,7 +526,7 @@ final readonly class ClanRepository
             ]);
 
             $quests=new ClanQuestRepository($this->pdo);
-            $quests->event($clanId,$quests->player($ownerAccountId).' transferred ownership to '.$quests->player($targetAccountId).'.');
+            $quests->event($clanId,($this->activityActor ?? $quests->player($ownerAccountId)).' transferred ownership to '.$quests->player($targetAccountId).'.');
 
             $this->pdo->commit();
             return true;
@@ -648,7 +648,7 @@ final readonly class ClanRepository
             ]);
 
             $quests=new ClanQuestRepository($this->pdo);
-            $quests->event($clanId,$quests->player($actorAccountId).' kicked '.$quests->player($targetAccountId).'.');
+            $quests->event($clanId,($this->activityActor ?? $quests->player($actorAccountId)).' kicked '.$quests->player($targetAccountId).'.');
 
             $this->pdo->commit();
             return $delete->rowCount() > 0;
@@ -698,7 +698,7 @@ final readonly class ClanRepository
             ]);
 
             $quests=new ClanQuestRepository($this->pdo);
-            if ($stmt->rowCount()>0) $quests->event($clanId,$quests->player($ownerAccountId).' changed '.$quests->player($targetAccountId).' to '.$role.'.');
+            if ($stmt->rowCount()>0) $quests->event($clanId,($this->activityActor ?? $quests->player($ownerAccountId)).' changed '.$quests->player($targetAccountId).' to '.$role.'.');
 
             $this->pdo->commit();
             return $stmt->rowCount() > 0;
@@ -795,7 +795,7 @@ final readonly class ClanRepository
             ]);
 
             $quests=new ClanQuestRepository($this->pdo);
-            $quests->event($clanId,$quests->player($actorAccountId).' banned '.$quests->player($targetAccountId).'.');
+            $quests->event($clanId,($this->activityActor ?? $quests->player($actorAccountId)).' banned '.$quests->player($targetAccountId).'.');
 
             $this->pdo->commit();
             return true;
@@ -830,7 +830,7 @@ final readonly class ClanRepository
             ]);
 
             $quests=new ClanQuestRepository($this->pdo);
-            if ($stmt->rowCount()>0) $quests->event($clanId,$quests->player($actorAccountId).' unbanned '.$quests->player($targetAccountId).'.');
+            if ($stmt->rowCount()>0) $quests->event($clanId,($this->activityActor ?? $quests->player($actorAccountId)).' unbanned '.$quests->player($targetAccountId).'.');
 
             $this->pdo->commit();
             return $stmt->rowCount() > 0;
