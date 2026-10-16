@@ -34,7 +34,7 @@ Do not modify `MUCHO_ACCOUNT_URL`: it is reused to form the `https://<account-ho
 
 The native in-game files are then served at:
 - `/gd-content/news/news.dat` — GZIP + Base64URL feed
-- `/gd-content/news/news_version.txt` — content-derived integer version, changes on every published update
+- `/gd-content/news/news_version.txt` — monotonically increasing database version, advanced when the owner saves, publishes, unpublishes or deletes a news entry
 - `/news/news.dat` and `/news/news_version.txt` — identical direct routes for checking
 
 ### Checks
