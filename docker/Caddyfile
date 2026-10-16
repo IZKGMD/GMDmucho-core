@@ -187,6 +187,34 @@
         file_server
     }
 
+    # Native GD 2.209 news: explicit paths take priority over the content CDN proxy.
+    handle /gd-content/news/news.dat {
+        rewrite * /news/news.dat.php
+        php_fastcgi app:9000
+    }
+    handle /gd-content/news/news_version.txt {
+        rewrite * /news/version.php
+        php_fastcgi app:9000
+    }
+    # Also make the same wire-format data available for isolated testing.
+    handle /news/news.dat {
+        rewrite * /news/news.dat.php
+        php_fastcgi app:9000
+    }
+    handle /news/news_version.txt {
+        rewrite * /news/version.php
+        php_fastcgi app:9000
+    }
+
+    # Preserve the official Music Library, SFX and other asset downloads when
+    # the opt-in native News content URL points clients to this server.
+    # This uses a fixed CDN upstream, not a user-supplied proxy destination.
+    handle_path /gd-content/* {
+        reverse_proxy https://geometrydashfiles.b-cdn.net {
+            header_up Host geometrydashfiles.b-cdn.net
+        }
+    }
+
     # Custom uploaded music lives outside public/ and is exposed only through
     # this explicit, read-only /music/ path.
     handle_path /music/* {

@@ -8,6 +8,9 @@ if ((string)(admin()['role'] ?? '') !== 'owner') {
     throw new RuntimeException('Only the GDPS owner may edit the news board.');
 }
 
+$nativeNewsFlag = (string)(\MuchoCore\Core\Environment::get('MUCHO_NATIVE_NEWS', '0') ?? '0') === '1';
+$nativeNewsUrl = (string)(\MuchoCore\Core\Environment::get('MUCHO_ACCOUNT_URL', '') ?? '');
+$nativeNewsUrl = rtrim($nativeNewsUrl, '/') . '/gd-content/news/news.dat';
 $newsService = new NewsService($db);
 $posts = $newsService->allForOwner();
 $editId = max(0, (int)($_GET['edit'] ?? 0));
@@ -37,7 +40,12 @@ foreach ($posts as $post) {
 @media(max-width:960px){.mucho-news-layout{grid-template-columns:minmax(0,1fr)}}
 </style>
 <div class="section-actions" style="margin-bottom:14px">
-    <span class="muted">Owner-only editor. Drafts are private. Published posts are immediately available from the MuchoCore news API.</span>
+    <span class="muted">Owner-only editor. Drafts are private. Published posts appear in the public feed.</span>
+    <?php if ($nativeNewsFlag): ?>
+    <span class="badge green">Native GD News: enabled</span>
+    <?php else: ?>
+    <span class="badge">Native GD News: off (set MUCHO_NATIVE_NEWS=1 on server)</span>
+    <?php endif; ?>
     <a class="btn gray" href="/api/muchocore/news" target="_blank" rel="noopener">View public JSON ↗</a>
 </div>
 <div class="mucho-news-layout">

@@ -19,11 +19,20 @@ if ($accountUrl === '') {
     }
 }
 
+// Optional native 2.209 news host. All other CDN paths are transparently
+// proxied to the official asset host under /gd-content/*.
+$nativeNewsEnabled = (string)(\MuchoCore\Core\Environment::get('MUCHO_NATIVE_NEWS', '0') ?? '0') === '1';
+$nativeNewsContentUrl = $accountUrl !== ''
+    ? rtrim($accountUrl, '/') . '/gd-content'
+    : '';
+
 return [
     // Use the configured account URL when provided. Otherwise use the host
     // that contacted this server, so every GDPS installation gets its own URL.
     'account_url' => $accountUrl,
 
     // Keep official content CDN by default; override later for Mucho-hosted music/SFX.
-    'custom_content_url' => trim((string)(\MuchoCore\Core\Environment::get('MUCHO_CUSTOM_CONTENT_URL', 'https://geometrydashfiles.b-cdn.net') ?? 'https://geometrydashfiles.b-cdn.net')),
+    'custom_content_url' => $nativeNewsEnabled && $nativeNewsContentUrl !== ''
+        ? $nativeNewsContentUrl
+        : trim((string)(\MuchoCore\Core\Environment::get('MUCHO_CUSTOM_CONTENT_URL', 'https://geometrydashfiles.b-cdn.net') ?? 'https://geometrydashfiles.b-cdn.net')),
 ];

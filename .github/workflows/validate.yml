@@ -95,6 +95,7 @@ jobs:
           php tests/application/admin-password-setup-contract.php
           php tests/application/admin-rbac-contract.php
           php tests/application/news-board-contract.php
+          php tests/application/native-news-contract.php
           php tests/application/admin-dashboard-access.php
           php tests/application/public-overview-visibility.php
           php tests/application/web-profile-images.php
