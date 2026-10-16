@@ -40,4 +40,25 @@ foreach([false,true] as $plain) {
     if($plain) check($xpath->query('//img')->length===0,'native menu avoids decorative icon clutter');
 }
 check(!str_contains(adminInterfaceUrl(true,['q'=>['invalid']]),'Array'),'switch ignores non-scalar query values');
+// Fresh-install pages must render before upload tables or backup constants exist.
+function admin(): array { return ['id'=>1,'username'=>'Fixture','role'=>'owner']; }
+function rank(string $role): int { return $role==='owner'?40:0; }
+function csrf(): string { return 'fixture-csrf'; }
+function tableExists(PDO $db,string $table): bool { return false; }
+$_SERVER['REQUEST_METHOD']='GET';
+require __DIR__.'/../../public/admin/db-backup-center-module.php';
+require __DIR__.'/../../public/admin/client-release-upload-module.php';
+$db=new PDO('sqlite::memory:');
+$backupDir=sys_get_temp_dir().'/mc_admin_empty_'.bin2hex(random_bytes(6));
+mkdir($backupDir,0700);
+putenv('MUCHO_DB_BACKUP_DIR='.$backupDir);
+try {
+    ob_start();renderDbBackupCenter($db);$backupHtml=(string)ob_get_clean();
+    check(str_contains($backupHtml,'DB Backup Center'),'backup page renders without a legacy directory constant');
+    ob_start();renderClientReleaseUploader($db);$uploadHtml=(string)ob_get_clean();
+    check(str_contains($uploadHtml,'muchoApkUpload'),'release page renders before the first upload initializes tables');
+} finally {
+    putenv('MUCHO_DB_BACKUP_DIR');
+    rmdir($backupDir);
+}
 echo "MUCHOCORE_ADMIN_CHROME_OK\n";

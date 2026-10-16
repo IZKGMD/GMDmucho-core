@@ -160,10 +160,10 @@ assertSecurityRegression(
     $releaseStorageCall !== false &&
     $releaseStorageCall > $releasePost &&
     preg_match(
-        '/ensureReleaseManager\\(\\$db\\);\\s*checkCsrf\\(\\);/',
+        '/checkCsrf\\(\\);\\s*requireRank\\(30\\);\\s*ensureReleaseManager\\(\\$db\\);/',
         $releaseModule
     ) === 1,
-    'client release storage initialization is deferred to release upload actions'
+    'release storage initializes only after upload CSRF and permission checks'
 );
 
 $adminLevels = (string)file_get_contents(
