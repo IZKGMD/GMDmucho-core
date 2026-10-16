@@ -26,8 +26,12 @@ The news.dat fixture captured from a real GD 2.209 Windows installation has been
 After updating to a revision containing this feature, opt in to replacing the GD custom content host URL with the server-hosted `/gd-content` prefix:
 
 ```sh
-sudo sh -c 'grep -q "^MUCHO_NATIVE_NEWS=" /opt/mucho-core/.env && sed -i "s/^MUCHO_NATIVE_NEWS=.*/MUCHO_NATIVE_NEWS=1/" /opt/mucho-core/.env || printf "\\nMUCHO_NATIVE_NEWS=1\\n" >> /opt/mucho-core/.env'
-cd /opt/mucho-core && sudo docker compose up -d --remove-orphans
+sudo sed -i '/^MUCHO_NATIVE_NEWS=/d' /opt/mucho-core/.env
+printf 'MUCHO_NATIVE_NEWS=1\\n' | sudo tee -a /opt/mucho-core/.env
+cd /opt/mucho-core
+sudo docker compose up -d --remove-orphans
+sudo docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+sudo docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 ```
 
 Do not modify `MUCHO_ACCOUNT_URL`: it is reused to form the `https://<account-host>/gd-content` address. The game discovers the address via `getCustomContentURL.php`. The Caddy proxy forwards unrelated CDN resources to the fixed official `geometrydashfiles.b-cdn.net` upstream to avoid breaking music libraries and SFX when the base URL changes. **This increases traffic through your VPS**, and depends on the upstream CDN remaining reachable.
