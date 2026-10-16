@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MuchoCore\Client;
 
+require_once __DIR__ . '/Gd2209Binary.php';
+
 use RuntimeException;
 
 final class WindowsClientPatcher
