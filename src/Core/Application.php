@@ -61,6 +61,8 @@ use MuchoCore\Moderation\ModerationService;
 use MuchoCore\Music\SongController;
 use MuchoCore\Music\SongRepository;
 use MuchoCore\Music\SongService;
+use MuchoCore\Music\EditorSoundController;
+use MuchoCore\Music\EditorSoundService;
 use MuchoCore\Protocol\GdCommentEncoder;
 use MuchoCore\Protocol\GdLevelDownloadEncoder;
 use MuchoCore\Protocol\GdLevelListEncoder;
@@ -183,6 +185,10 @@ final readonly class Application
 
         $legacy10IdentityController =
             new Legacy10IdentityController($legacy10Identity);
+
+        $editorSounds = new EditorSoundController(
+            new EditorSoundService($this->pdo, $auth)
+        );
 
         $songRepo = new SongRepository($this->pdo);
         $songController = new SongController(
@@ -564,6 +570,13 @@ final readonly class Application
         $route('/api/profile/upload',[$profileMediaController,'upload']);
         $route('/api/profile/remove',[$profileMediaController,'remove']);
         $route('/api/profile/image',[$profileMediaController,'image']);
+
+        // GD 2.209: editor audio content with authenticated uploader ownership.
+        $route('/getGJEditorSounds', [$editorSounds, 'get']);
+        $route('/uploadGJEditorSound', [$editorSounds, 'upload']);
+        $route('/downloadGJEditorSound', [$editorSounds, 'download']);
+        $route('/deleteGJEditorSound', [$editorSounds, 'delete']);
+        $route('/updateGJSoundDesc', [$editorSounds, 'updateDescription']);
 
         // GD 2.209: per-level death-marker positions and custom controls.
         $route('/getGJDeathData', [$levelTelemetry, 'getDeaths']);
