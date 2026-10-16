@@ -202,10 +202,10 @@ final readonly class RelationshipRepository
 
             $q=$this->pdo->prepare(
                 'INSERT IGNORE INTO friends
-                 (account_id,friend_account_id,is_new)
+                 (account_id,friend_account_id,is_new,created_at)
                  VALUES
-                 (:a1,:b1,1),
-                 (:a2,:b2,1)'
+                 (:a1,:b1,1,CURRENT_TIMESTAMP),
+                 (:a2,:b2,1,CURRENT_TIMESTAMP)'
             );
             $q->execute([
                 'a1'=>$accountId,
@@ -340,7 +340,7 @@ final readonly class RelationshipRepository
                         p.color2,p.special,
                         COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,
                         f.friend_account_id AS account_id,
-                        f.is_new
+                        f.is_new,UNIX_TIMESTAMP(f.created_at) AS friend_since
                  FROM friends f
                  JOIN accounts a
                    ON a.account_id=f.friend_account_id

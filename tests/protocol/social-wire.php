@@ -93,4 +93,17 @@ assertSameValue(
     'friend user payload includes clan prefix'
 );
 
+$dated = $relationship->users([[
+    'account_id' => 31, 'user_id' => 21, 'username' => 'Friend',
+    'friend_since' => 1792022400,
+]]);
+assertSameValue(true, str_ends_with($dated, ':64:1792022400'), '2.209 friends-since Unix timestamp');
+foreach ([null, 0, -1, 'invalid'] as $unknownDate) {
+    $unknown = $relationship->users([[
+        'account_id' => 31, 'username' => 'Friend', 'friend_since' => $unknownDate,
+    ]]);
+    assertSameValue(false, str_contains($unknown, ':64:'), 'unknown historical date is omitted');
+}
+assertSameValue(false, str_contains($users, ':64:'), 'undated legacy payload remains unchanged');
+
 echo "MUCHOCORE_SOCIAL_WIRE_OK\n";

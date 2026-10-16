@@ -68,7 +68,7 @@ final class GdRelationshipEncoder
         foreach ($rows as $r) {
             $accountId = (int)($r['account_id'] ?? 0);
 
-            $out[] = implode(':', [
+            $data = [
                 1, $this->displayUsername($r),
                 2, (int)($r['user_id'] ?? $accountId),
                 9, (int)($r['icon_id'] ?? $r['cube'] ?? 1),
@@ -79,7 +79,18 @@ final class GdRelationshipEncoder
                 16, $accountId,
                 18, 0,
                 41, (int)($r['is_new'] ?? 0),
-            ]);
+            ];
+
+            // GD 2.209's friends-since field is a Unix timestamp, not a
+            // formatted date. Older clients ignore unknown dictionary keys.
+            // Never invent dates for imported friendships or blocked users.
+            $since = (int)($r['friend_since'] ?? 0);
+            if ($since > 0) {
+                $data[] = 64;
+                $data[] = $since;
+            }
+
+            $out[] = implode(':', $data);
         }
 
         return implode('|', $out);
