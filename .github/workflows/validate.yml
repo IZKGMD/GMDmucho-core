@@ -524,6 +524,13 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/gd2209-social-integration.php
 
+      - name: Verify GD 2.209 thread invite and message access isolation
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/gd2209-thread-integration.php
+
       - name: Verify literal Redis prefix invalidation
         env:
           TEST_REDIS_HOST: 127.0.0.1
