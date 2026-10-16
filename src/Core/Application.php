@@ -83,6 +83,8 @@ use MuchoCore\Social\FollowingController;
 use MuchoCore\Social\FollowingService;
 use MuchoCore\Social\NotificationController;
 use MuchoCore\Social\NotificationService;
+use MuchoCore\Social\ThreadController;
+use MuchoCore\Social\ThreadService;
 use MuchoCore\User\UserController;
 use MuchoCore\User\UserRepository;
 use MuchoCore\User\UserService;
@@ -226,6 +228,11 @@ final readonly class Application
                 $auth,
                 new GdRelationshipEncoder()
             )
+        );
+
+        $threadController = new ThreadController(
+            new ThreadService($this->pdo, $auth),
+            new GdRelationshipEncoder()
         );
 
         $notificationController = new NotificationController(
@@ -551,6 +558,15 @@ final readonly class Application
         $route('/api/profile/upload',[$profileMediaController,'upload']);
         $route('/api/profile/remove',[$profileMediaController,'remove']);
         $route('/api/profile/image',[$profileMediaController,'image']);
+
+        // GD 2.209: private group threads, messages and invitations.
+        $route('/getGJThreads', [$threadController, 'getThreads']);
+        $route('/getGJThreadMessages', [$threadController, 'getMessages']);
+        $route('/getGJThreadMembers', [$threadController, 'getMembers']);
+        $route('/getGJThreadInvites', [$threadController, 'getInvites']);
+        $route('/sendGJThreadMessage', [$threadController, 'send']);
+        $route('/searchGJThreadMessages', [$threadController, 'search']);
+        $route('/updateGJThread', [$threadController, 'update']);
 
         // GD 2.209: authenticated following and mute operations.
         $route('/getGJNotifications', [$notificationController, 'get']);
