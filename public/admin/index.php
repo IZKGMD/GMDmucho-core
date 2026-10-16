@@ -348,9 +348,8 @@ function canAdminPage(string $pageKey): bool
         return (string)($a['role'] ?? '') === 'owner';
     }
 
-    if (AdminRbac::isBuiltInRole((string)($a['role'] ?? ''))) {
-        return true;
-    }
+    if ($pageKey === 'admins') return canPermission('self.security') || canPermission('admins.manage');
+    if ($pageKey === 'advanced') return canPermission('system.manage');
 
     $permission=AdminRbac::permissionForContext(null,$pageKey,0);
     return $permission !== null && AdminRbac::can($db,$a,$permission);
@@ -2425,9 +2424,7 @@ max-width:100%
 </style>
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
 <script src="/muchocore-theme.js?v=4" defer></script>
-<?php if ($page==='admins'): ?>
-<script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
-<?php endif; ?>
+
 <link rel="stylesheet" href="/assets/product-ui.css?v=1">
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
 <script src="/assets/product-ui.js?v=1" defer></script>
@@ -2771,6 +2768,7 @@ require_once __DIR__.'/client-release-upload-module.php';
 require_once __DIR__.'/security-monitoring-module.php';
 require_once __DIR__.'/db-backup-center-module.php';
 require_once __DIR__.'/core/AdminRouter.php';
+require_once __DIR__.'/core/AdminUi.php';
 require_once __DIR__.'/pages/dashboard.php';
 require_once __DIR__.'/pages/release.php';
 require_once __DIR__.'/pages/plugins.php';
@@ -2781,32 +2779,30 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
     $action=(string)($_POST['action'] ?? '');
 
-    if (in_array($action,['migration-preview','migration-apply'],true)) {
-        require __DIR__.'/actions/migration.php';
-    }
-
-    if (in_array($action,['news-save','news-toggle','news-delete'],true)) {
-        require __DIR__.'/actions/news.php';
-    }
-
-    if (in_array($action,['gauntlet-save','gauntlet-delete','mappack-save','mappack-delete'],true)) {
-        require __DIR__.'/actions/contentpacks.php';
-    }
-
-    if (str_starts_with($action,'client-patcher-')) {
-        handleClientPatcherAction($db,$rootDir,$action);
-    }
-
-    if (str_starts_with($action,'android-patcher-')) {
-        handleAndroidPatcherAction($db,$rootDir,$action);
-    }
-
-    if (str_starts_with($action,'v4-')) {
-        require __DIR__.'/advanced-actions.php';
-    }
-
-
     try {
+        if (in_array($action,['migration-preview','migration-apply'],true)) {
+            require __DIR__.'/actions/migration.php';
+        }
+
+        if (in_array($action,['news-save','news-toggle','news-delete'],true)) {
+            require __DIR__.'/actions/news.php';
+        }
+
+        if (in_array($action,['gauntlet-save','gauntlet-delete','mappack-save','mappack-delete'],true)) {
+            require __DIR__.'/actions/contentpacks.php';
+        }
+
+        if (str_starts_with($action,'client-patcher-')) {
+            handleClientPatcherAction($db,$rootDir,$action);
+        }
+
+        if (str_starts_with($action,'android-patcher-')) {
+            handleAndroidPatcherAction($db,$rootDir,$action);
+        }
+
+        if (str_starts_with($action,'v4-')) {
+            require __DIR__.'/advanced-actions.php';
+        }
 
         /* ACCOUNTS */
 
@@ -3778,6 +3774,16 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
         /* LEVELS */
 
+        elseif ($action==='level-details-save') {
+            requirePermission('levels.manage');
+            $id=(int)($_POST['id'] ?? 0);
+            \MuchoCore\Admin\LevelAdminService::saveDetails(
+                $db,$id,(string)($_POST['name'] ?? ''),isset($_POST['deleted'])
+            );
+            audit($db,'level.details.save',(string)$id);
+            flash('Level saved.');
+        }
+
         elseif ($action==='level-save') {
             requireRank(20);
 
@@ -4561,10 +4567,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         ?? 'dashboard'
     );
 
-    header(
-        'Location:/admin/?page='.
-        rawurlencode($return)
-    );
+    $knownPages=require __DIR__.'/config/pages.php';
+    if (!isset($knownPages[$return])) $return='dashboard';
+    $returnQuery=['page'=>$return];
+    if (in_array($return,['players','levels','moderation','songs'],true)) {
+        $returnState=adminListState([
+            'q'=>$_POST['return_q'] ?? '',
+            'filter'=>$_POST['return_filter'] ?? '',
+            'p'=>$_POST['return_p'] ?? 1,
+        ]);
+        $returnQuery+=$returnState;
+    }
+    header('Location:/admin/?'.http_build_query($returnQuery));
 
     exit;
 }
@@ -5059,6 +5073,11 @@ table{
 <link rel="stylesheet" href="/assets/product-ui.css?v=1">
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
 <script src="/assets/product-ui.js?v=1" defer></script>
+<link rel="stylesheet" href="/admin/admin-simple.css?v=1">
+<script src="/admin/admin-simple.js?v=1" defer></script>
+<?php if ($page==='admins'): ?>
+<script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
+<?php endif; ?>
 </head>
 <body class="mc-admin" data-page="<?=h($page)?>" style='--brand-initial:"<?=h($brandInitial)?>";'>
 <a class="mc-skip" href="#main">Skip to content</a>
@@ -5070,8 +5089,8 @@ table{
 <aside id="adminNavigation" aria-label="Admin navigation">
 <!-- MUCHO_LANG_FLAGS -->
 <div id="muchoLangSwitcher" class="mucho-lang-switcher">
-    <button type="button" data-lang="en" title="English">🇬🇧</button>
-    <button type="button" data-lang="ru" title="Русский">🇷🇺</button>
+    <button type="button" data-lang="en" title="English">EN</button>
+    <button type="button" data-lang="ru" title="Русский">RU</button>
 </div>
 <!-- /MUCHO_LANG_FLAGS -->
 
@@ -5081,82 +5100,13 @@ table{
  type="button"
  class="sidebar-toggle"
  id="sidebarToggle"
+ aria-expanded="true"
+ aria-controls="adminNavigation"
  title="Collapse menu"
 >☰</button>
 </div>
 
-<nav>
-
-<div class="nav-title">Main</div>
-<?php foreach(['dashboard','analytics','advanced','monitoring','intelligence'] as $key): ?>
-<?php if(canAdminPage($key)): ?>
-<a
- href="/admin/?page=<?=h($key)?>"
- title="<?=h($pages[$key])?>"
- data-short="<?=h(strtoupper(substr($key,0,2)))?>"
- aria-current="<?=$page===$key?'page':'false'?>"
- class="<?=$page===$key?'on':''?>"
-><?=h($pages[$key])?></a>
-<?php endif; ?>
-<?php endforeach ?>
-
-<div class="nav-title">Content</div>
-<?php foreach(['players','muchoprofiles','levels','contentpacks','news','moderation','rating','comments','messages','social','songs'] as $key): ?>
-<?php if(canAdminPage($key)): ?>
-<a
- href="/admin/?page=<?=h($key)?>"
- title="<?=h($pages[$key])?>"
- data-short="<?=h(strtoupper(substr($key,0,2)))?>"
- aria-current="<?=$page===$key?'page':'false'?>"
- class="<?=$page===$key?'on':''?>"
-><?=h($pages[$key])?></a>
-<?php endif; ?>
-<?php endforeach ?>
-
-<div class="nav-title">Clients</div>
-<?php foreach(['clients','clientfeatures','clientpatcher'] as $key): ?>
-<?php if(canAdminPage($key)): ?>
-<a
- href="/admin/?page=<?=h($key)?>"
- title="<?=h($pages[$key])?>"
- data-short="<?=h(strtoupper(substr($key,0,2)))?>"
- aria-current="<?=$page===$key?'page':'false'?>"
- class="<?=$page===$key?'on':''?>"
-><?=h($pages[$key])?></a>
-<?php endif; ?>
-<?php endforeach ?>
-
-<div class="nav-title">Tools</div>
-<?php foreach(['database','endpoints','updates','plugins','securitycenter','dbbackups','migration','backups','settings','system'] as $key): ?>
-<?php if(canAdminPage($key)): ?>
-<a
- href="/admin/?page=<?=h($key)?>"
- title="<?=h($pages[$key])?>"
- data-short="<?=h(strtoupper(substr($key,0,2)))?>"
- aria-current="<?=$page===$key?'page':'false'?>"
- class="<?=$page===$key?'on':''?>"
-><?=h($pages[$key])?></a>
-<?php endif; ?>
-<?php endforeach ?>
-
-<div class="nav-title">Access</div>
-<?php foreach(['admins','roles','audit'] as $key): ?>
-<?php if(canAdminPage($key)): ?>
-<a
- href="/admin/?page=<?=h($key)?>"
- title="<?=h($pages[$key])?>"
- data-short="<?=h(strtoupper(substr($key,0,2)))?>"
- aria-current="<?=$page===$key?'page':'false'?>"
- class="<?=$page===$key?'on':''?>"
-><?=h($pages[$key])?></a>
-<?php endif; ?>
-<?php endforeach ?>
-
-<a class="logout" data-short="↗" href="/admin/?logout=1">
-Logout
-</a>
-
-</nav>
+<?php require __DIR__.'/core/navigation.php'; ?>
 </aside>
 
 <main id="main" tabindex="-1">
@@ -5180,8 +5130,8 @@ Logout
 <?php if (canAdminPage('advanced') || canAdminPage('players') || canAdminPage('levels')): ?>
 <form class="global-search" method="get" id="globalSearch">
 <select name="page" aria-label="Search type">
-<?php foreach (['advanced'=>'Everywhere','players'=>'Players','levels'=>'Levels'] as $searchPage=>$searchLabel): ?>
-<?php if (canAdminPage($searchPage)): ?><option value="<?=h($searchPage)?>"><?=h($searchLabel)?></option><?php endif; ?>
+<?php foreach (['players'=>'Players','levels'=>'Levels'] as $searchPage=>$searchLabel): ?>
+<?php if (canAdminPage($searchPage)): ?><option value="<?=h($searchPage)?>" <?=$page===$searchPage?'selected':''?>><?=h($searchLabel)?></option><?php endif; ?>
 <?php endforeach; ?>
 </select>
 
@@ -5197,7 +5147,7 @@ Logout
 </form>
 <?php endif; ?>
 
-<button type="button" id="commandLauncher" class="command-launcher">Quick navigation <kbd>⌘ K</kbd></button>
+
 <div class="mc-theme-slot"></div>
 <div class="user-pill">
 <div class="avatar">
@@ -5412,93 +5362,7 @@ foreach(
 ========================================================= */
 
 elseif($page==='songs') {
-
-if (!tableExists($db,'songs')) {
-    echo '<div class="card">Songs table does not exist.</div>';
-} else {
-
-if (canPermission('music.manage')) {
-    echo '<div class="card" style="margin-bottom:14px">';
-    echo '<h2>Upload Music</h2>';
-    echo '<p class="muted">MP3 only, maximum 20 MB.</p>';
-    echo '<form method="post" enctype="multipart/form-data" class="row">';
-    echo '<input type="hidden" name="csrf" value="'.csrf().'">';
-    echo '<input type="hidden" name="action" value="music-upload">';
-    echo '<input type="hidden" name="return" value="songs">';
-    echo '<input name="title" maxlength="128" placeholder="Song title" required>';
-    echo '<input name="artist" maxlength="128" placeholder="Artist" required>';
-    echo '<input type="file" name="music_file" accept=".mp3,audio/mpeg" required>';
-    echo '<button>Upload MP3</button>';
-    echo '</form>';
-    echo '</div>';
-}
-
-    $rows=$db->query(
-        'SELECT * FROM songs ORDER BY 1 DESC LIMIT 150'
-    )->fetchAll(PDO::FETCH_ASSOC);
-
-    echo '<div class="table"><table>';
-
-    if($rows) {
-        echo '<tr>';
-
-        foreach(array_keys($rows[0]) as $k) {
-            echo '<th>'.h($k).'</th>';
-        }
-
-        echo '<th>actions</th>';
-        echo '</tr>';
-
-        foreach($rows as $r) {
-            echo '<tr>';
-
-            foreach($r as $v) {
-                $v=(string)$v;
-
-                if(strlen($v)>100) {
-                    $v=substr($v,0,100).'…';
-                }
-
-                echo '<td>'.h($v).'</td>';
-            }
-
-            echo '<td>';
-            echo '<div class="row" style="gap:5px">';
-
-            if((int)$r['is_verified']===1) {
-                echo '<form method="post">
-                    <input type="hidden" name="csrf" value="'.csrf().'">
-                    <input type="hidden" name="action" value="music-unverify">
-                    <input type="hidden" name="return" value="songs">
-                    <input type="hidden" name="id" value="'.h($r['id']).'">
-                    <button class="gray">Hide</button>
-                </form>';
-            } else {
-                echo '<form method="post">
-                    <input type="hidden" name="csrf" value="'.csrf().'">
-                    <input type="hidden" name="action" value="music-verify">
-                    <input type="hidden" name="return" value="songs">
-                    <input type="hidden" name="id" value="'.h($r['id']).'">
-                    <button class="green">Verify</button>
-                </form>';
-            }
-
-            echo '<form method="post" onsubmit="return confirm(\'Delete this song?\')">
-                <input type="hidden" name="csrf" value="'.csrf().'">
-                <input type="hidden" name="action" value="music-delete">
-                <input type="hidden" name="return" value="songs">
-                <input type="hidden" name="id" value="'.h($r['id']).'">
-                <button class="red">Delete</button>
-            </form>';
-
-            echo '</div>';
-            echo '</td>';
-            echo '</tr>';
-        }
-    }
-
-    echo '</table></div>';
-}
+    require __DIR__.'/pages/songs.php';
 }
 
 /* =========================================================
@@ -6628,7 +6492,7 @@ echo '</table></div>';
 </div>
 
 
-<script src="/admin/admin-i18n.js?v=101"></script>
+<script src="/admin/admin-i18n.js?v=102"></script>
 
 
 </body>

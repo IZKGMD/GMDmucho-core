@@ -6,6 +6,7 @@ $files = [
     __DIR__ . '/../../public/admin/index.php',
     __DIR__ . '/../../public/api/v2/music-upload.php',
     __DIR__ . '/../../docker/Dockerfile',
+    __DIR__ . '/../../public/admin/pages/songs.php',
 ];
 
 foreach ($files as $file) {
@@ -15,11 +16,12 @@ foreach ($files as $file) {
     }
 }
 
-$admin = file_get_contents($files[0]);
+$admin = file_get_contents($files[3]);
 $api = file_get_contents($files[1]);
 $docker = file_get_contents($files[2]);
 
 $checks = [
+    [file_get_contents($files[0]), "require __DIR__.'/pages/songs.php'", 'admin music module is routed'],
     [$admin, 'name="music_file"', 'admin music upload field'],
     [$admin, "enctype=\"multipart/form-data\"", 'admin multipart form'],
     [$admin, "action\" value=\"music-upload", 'admin music action'],

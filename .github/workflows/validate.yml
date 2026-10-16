@@ -96,6 +96,7 @@ jobs:
           php tests/application/admin-rbac-contract.php
           php tests/application/news-board-contract.php
           php tests/application/native-news-contract.php
+          php tests/application/admin-simple-integration.php
           php tests/application/admin-dashboard-access.php
           php tests/application/public-overview-visibility.php
           php tests/application/web-profile-images.php
@@ -156,6 +157,7 @@ jobs:
 
       - name: Check product interface scripts
         run: |
+          node --check public/admin/admin-simple.js
           node --check public/assets/product-ui.js
           node --check public/assets/product-home.js
           node --check public/admin/product-dashboard.js

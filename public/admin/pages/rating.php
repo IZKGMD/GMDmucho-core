@@ -152,9 +152,9 @@ $difficultyIconUrl = static function (string $profile) use ($difficultyProfiles)
         $profile='unrated';
     }
 
-    return '/admin/assets/difficulty/'.
+    return '/admin/assets/gd/'.
         rawurlencode($profile).
-        '.svg';
+        '.png';
 };
 
 $pendingCount = 0;
@@ -214,7 +214,7 @@ linear-gradient(135deg,#151826,#10151f)}
 .rating-row-right{text-align:right}
 .rating-row-rating{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:76px;gap:3px}
 .rating-face{display:block;object-fit:contain;filter:drop-shadow(0 4px 7px rgba(0,0,0,.22));background:transparent}
-.rating-face[src$=".svg"]{image-rendering:auto}
+.rating-face[src$=".png"]{image-rendering:auto}
 .rating-face-sm{width:50px;height:50px}
 .rating-face-lg{width:76px;height:76px}
 .rating-face-label{font-size:10px;font-weight:800;color:#c4cada;line-height:1.15;text-align:center;white-space:nowrap}
@@ -268,16 +268,7 @@ linear-gradient(135deg,#151826,#10151f)}
 @media(max-width:640px){.rating-grid,.rating-switches{grid-template-columns:1fr}.rating-field.full{grid-column:auto}.rating-stars-pick{grid-template-columns:repeat(6,1fr)}.rating-stats{grid-template-columns:1fr 1fr 1fr}.rating-row{grid-template-columns:44px minmax(0,1fr);}.rating-row-right{grid-column:2;text-align:left}.rating-savebar{position:static}.rating-hero h2{font-size:23px}}
 </style>';
 
-echo '<section class="rating-hero">';
-echo '<div class="rating-hero-main">';
-echo '<div class="rating-kicker">Moderator workspace</div>';
-echo '<h2>Rating Studio</h2>';
-echo '<p>Review level requests, assign stars and difficulty, set a feature tier, and publish a clean rating in one place.</p>';
-echo '<div class="rating-hero-actions">';
-echo '<a class="btn" href="/admin/?page=moderation&q='.rawurlencode($q).'">Open moderation queue</a>';
-echo '<a class="btn gray" href="/admin/?page=levels&q='.rawurlencode($q).'">Open raw level editor</a>';
-echo '</div>';
-echo '</div>';
+echo '<section class="rating-hero rating-hero-compact">';
 echo '<div class="rating-stats">';
 echo '<div class="rating-stat"><span>Pending requests</span><b>'.number_format($pendingCount).'</b></div>';
 echo '<div class="rating-stat"><span>Rated levels</span><b>'.number_format($ratedCount).'</b></div>';
@@ -413,7 +404,7 @@ if (!$selected) {
     echo '</div>';
 
     echo '<div class="rating-field full">';
-    echo '<label>Quick presets</label>';
+    echo '<details class="rating-preset-details"><summary>Quick presets</summary>';
     echo '<div class="rating-presets">';
     echo '<button type="button" class="rating-preset" data-preset="unrated">Clear rating</button>';
     echo '<button type="button" class="rating-preset" data-preset="easy">Easy · 2 stars</button>';
@@ -426,7 +417,7 @@ if (!$selected) {
     echo '<button type="button" class="rating-preset" data-preset="hard-demon">Hard Demon · 10 stars</button>';
     echo '<button type="button" class="rating-preset" data-preset="insane-demon">Insane Demon · 10 stars</button>';
     echo '<button type="button" class="rating-preset" data-preset="extreme-demon">Extreme Demon · 10 stars</button>';
-    echo '</div>';
+    echo '</div></details>';
     echo '</div>';
 
     echo '</div>';

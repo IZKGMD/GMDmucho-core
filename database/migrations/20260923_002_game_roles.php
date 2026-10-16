@@ -82,12 +82,9 @@ return static function(PDO $db): void {
     $db->exec("
         DELETE old_role
         FROM roles old_role
+        INNER JOIN roles canonical
+            ON canonical.code = 'elder_moderator'
+            AND canonical.id <> old_role.id
         WHERE old_role.code = 'admin'
-          AND EXISTS (
-              SELECT 1
-              FROM roles canonical
-              WHERE canonical.code = 'elder_moderator'
-                AND canonical.id <> old_role.id
-          )
     ");
 };

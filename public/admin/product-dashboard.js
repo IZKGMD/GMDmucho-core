@@ -3,10 +3,11 @@
     const root=document.getElementById('muchoLiveAudit');
     const state=document.getElementById('auditLiveState');
     if(!root||!state)return;
+    const details=document.getElementById('auditDetails');
     let active=false;
     const ru=()=>document.documentElement.lang==='ru';
     async function refresh(){
-        if(active||document.hidden)return;
+        if(active||document.hidden||(details&&!details.open))return;
         active=true;
         const controller=new AbortController();
         const timer=setTimeout(()=>controller.abort(),10000);
@@ -30,6 +31,7 @@
             if(!root.querySelector('.admin-live-audit-row'))root.textContent=ru()?'Не удалось загрузить журнал. Повторим автоматически.':'Could not load the audit feed. Retrying automatically.';
         }finally{clearTimeout(timer);active=false;}
     }
+    details?.addEventListener('toggle',()=>{if(details.open)refresh();});
     refresh();
     setInterval(refresh,15000);
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
