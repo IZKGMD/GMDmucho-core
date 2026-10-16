@@ -130,6 +130,23 @@ final class NewsService
         return (int)$this->db->lastInsertId();
     }
 
+    public function togglePublished(int $id): void
+    {
+        if ($id < 1) {
+            throw new RuntimeException('Invalid news ID.');
+        }
+        $stmt = $this->db->prepare(
+            'UPDATE mucho_news_posts
+             SET published_at=IF(is_published=1,NULL,UTC_TIMESTAMP()),
+                 is_published=IF(is_published=1,0,1)
+             WHERE id=:id'
+        );
+        $stmt->execute(['id' => $id]);
+        if ($stmt->rowCount() === 0) {
+            throw new RuntimeException('News post not found.');
+        }
+    }
+
     public function delete(int $id): bool
     {
         if ($id < 1) {
