@@ -343,6 +343,11 @@ function canAdminPage(string $pageKey): bool
         return false;
     }
 
+    // News publishing is reserved to the actual owner, not every built-in role.
+    if ($pageKey === 'news') {
+        return (string)($a['role'] ?? '') === 'owner';
+    }
+
     if (AdminRbac::isBuiltInRole((string)($a['role'] ?? ''))) {
         return true;
     }
@@ -2780,6 +2785,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         require __DIR__.'/actions/migration.php';
     }
 
+    if (in_array($action,['news-save','news-toggle','news-delete'],true)) {
+        require __DIR__.'/actions/news.php';
+    }
+
     if (in_array($action,['gauntlet-save','gauntlet-delete','mappack-save','mappack-delete'],true)) {
         require __DIR__.'/actions/contentpacks.php';
     }
@@ -5092,7 +5101,7 @@ table{
 <?php endforeach ?>
 
 <div class="nav-title">Content</div>
-<?php foreach(['players','muchoprofiles','levels','contentpacks','moderation','rating','comments','messages','social','songs'] as $key): ?>
+<?php foreach(['players','muchoprofiles','levels','contentpacks','news','moderation','rating','comments','messages','social','songs'] as $key): ?>
 <?php if(canAdminPage($key)): ?>
 <a
  href="/admin/?page=<?=h($key)?>"
