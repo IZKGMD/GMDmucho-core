@@ -48,9 +48,19 @@ final class DeploymentClientPack
          * The binary patcher selects exact-build 2.209 handling by SHA-256.
          */
         $windows2209Base = $rootDir . '/storage/client-sources/GeometryDash-2.209.exe';
-        $sourceExe = is_file($windows2209Base) && is_readable($windows2209Base)
-            ? $windows2209Base
-            : $rootDir . '/GeometryDash.exe';
+        if (is_file($windows2209Base)) {
+            if (!is_readable($windows2209Base)) {
+                throw new RuntimeException('GD 2.209 base EXE exists but is not readable.');
+            }
+            if (!Gd2209Binary::supports($windows2209Base)) {
+                throw new RuntimeException(
+                    'GD 2.209 base EXE has an unexpected SHA-256. Refusing to silently use the older executable.'
+                );
+            }
+            $sourceExe = $windows2209Base;
+        } else {
+            $sourceExe = $rootDir . '/GeometryDash.exe';
+        }
         $sourceApk = self::androidSource($rootDir, $jobDir);
 
         if (!is_file($sourceExe) || !is_readable($sourceExe)) {
@@ -68,6 +78,16 @@ final class DeploymentClientPack
             );
         }
 
+        $windowsSourceSha = hash_file('sha256', $sourceExe);
+        $androidSourceSha = hash_file('sha256', $sourceApk);
+        if (!is_string($windowsSourceSha) || !is_string($androidSourceSha)) {
+            throw new RuntimeException('Cannot calculate the input client SHA-256 hashes.');
+        }
+        $sourceSha256 = [
+            'windows' => $windowsSourceSha,
+            'android' => $androidSourceSha,
+        ];
+
         $lockPath = $jobDir . '/client-pack.lock';
         $lock = fopen($lockPath, 'c');
         if ($lock === false) {
@@ -84,13 +104,7 @@ final class DeploymentClientPack
                 ? json_decode((string)file_get_contents($manifestPath), true)
                 : null;
 
-            if (
-                is_array($existing) &&
-                ($existing['server_url'] ?? '') === $server &&
-                is_file((string)($existing['windows']['path'] ?? '')) &&
-                is_file((string)($existing['android']['path'] ?? '')) &&
-                is_file((string)($existing['archive']['path'] ?? ''))
-            ) {
+            if (self::canReuseClientPack($existing, $server, $sourceSha256)) {
                 return $existing;
             }
 
@@ -173,6 +187,9 @@ final class DeploymentClientPack
                 'server_url' => $server,
                 'server_name' => $serverName,
                 'created_at' => $createdAt,
+                // Key the cached pack to the actual input binaries, not only
+                // the server URL. Existing manifests without hashes expire.
+                'source_sha256' => $sourceSha256,
                 'windows' => [
                     'path' => $windowsPath,
                     'name' => 'GeometryDash-MuchoGDPS.exe',
@@ -207,6 +224,37 @@ final class DeploymentClientPack
             flock($lock, LOCK_UN);
             fclose($lock);
         }
+    }
+
+    /**
+     * A cached pack must match both input clients. This prevents an EXE
+     * upgrade from silently republishing the previous Windows build.
+     *
+     * @param array<string, mixed>|null $existing
+     * @param array{windows:string,android:string} $sourceSha256
+     */
+    public static function canReuseClientPack(
+        ?array $existing,
+        string $server,
+        array $sourceSha256
+    ): bool {
+        if (
+            !is_array($existing) ||
+            ($existing['server_url'] ?? null) !== $server ||
+            ($existing['source_sha256']['windows'] ?? null) !== $sourceSha256['windows'] ||
+            ($existing['source_sha256']['android'] ?? null) !== $sourceSha256['android']
+        ) {
+            return false;
+        }
+
+        foreach (['windows', 'android', 'archive'] as $type) {
+            $path = $existing[$type]['path'] ?? null;
+            if (!is_string($path) || $path === '' || !is_file($path)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static function androidSource(string $rootDir, string $jobDir = ''): string
