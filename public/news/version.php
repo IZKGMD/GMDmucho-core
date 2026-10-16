@@ -1,10 +1,9 @@
 <?php
 declare(strict_types=1);
-use MuchoCore\News\NativeNewsFormat;
 
 require __DIR__ . '/_native_boot.php';
 try {
-    $version = NativeNewsFormat::version($nativeNewsPosts);
+    $version = $nativeNewsService->nativeVersion();
 } catch (Throwable $e) {
     error_log('[MuchoCore News Version] ' . $e::class . ': ' . $e->getMessage());
     http_response_code(503);
