@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__.'/AdminUi.php';
-$primary=['dashboard','players','levels','rating','songs','news','clients','settings'];
+$primary=['dashboard','players','levels','rating','clans','songs','news','clients','settings'];
 $extra=array_diff(array_keys($pages),$primary);
 $extra=array_values(array_filter($extra,'canAdminPage'));
 $navLink=static function(string $key) use ($page,$pages): void {

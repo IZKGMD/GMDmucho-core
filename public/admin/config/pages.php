@@ -11,6 +11,7 @@ return [
     'dashboard'=>'Dashboard',
 
     'players'=>'Players',
+    'clans'=>'Clans',
     'muchoprofiles'=>'Mucho Profiles',
 
     'levels'=>'Levels',

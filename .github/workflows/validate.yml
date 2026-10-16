@@ -97,6 +97,7 @@ jobs:
           php tests/application/news-board-contract.php
           php tests/application/native-news-contract.php
           php tests/application/admin-simple-integration.php
+          php tests/application/admin-plain-integration.php
           php tests/application/admin-dashboard-access.php
           php tests/application/public-overview-visibility.php
           php tests/application/web-profile-images.php
@@ -518,6 +519,13 @@ jobs:
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/core-storage-integration.php
+
+      - name: Verify plain admin clan operations
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/admin-clans-integration.php
 
       - name: Verify GD 2.209 social relationship and notification flows
         env:
