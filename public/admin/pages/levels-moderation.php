@@ -1,94 +1,60 @@
 <?php
 declare(strict_types=1);
-
-/*
- * MuchoCore Admin — Levels & Moderation
- * Extracted verbatim from legacy admin.
- * Copyright (C) 2026 IZK
- */
-
-if (true) {
-
-echo '<div class="section-actions" style="margin-bottom:12px">';
-echo '<a class="btn" href="/admin/?page=rating'.(!empty($_GET['q']) ? '&q='.rawurlencode((string)$_GET['q']) : '').'">Open Rating Studio →</a>';
-echo '<span class="muted" style="align-self:center">Use Rating Studio for publishing stars, difficulty, feature tiers and Creator Points.</span>';
-echo '</div>';
-
-$q=trim((string)($_GET['q'] ?? ''));
-
-$sql=
-'SELECT
- level_id,name,account_id,stars,difficulty,
- demon,demon_difficulty,featured,epic,
- requested_stars,downloads,likes,is_deleted,
- created_at
- FROM levels';
-
+require_once __DIR__.'/../core/AdminUi.php';
+$state=adminListState($_GET);
+$q=$state['q'];
+$filter=in_array($state['filter'],['pending','rated','deleted'],true) ? $state['filter'] : '';
+if ($page==='moderation') $filter='pending';
+$state['filter']=$filter;
+$where=[$filter==='deleted'?'l.is_deleted=1':'l.is_deleted=0'];
 $args=[];
-
-if ($page==='moderation') {
-    $sql.=' WHERE requested_stars>0';
+if ($filter==='pending') $where[]='l.requested_stars>0';
+if ($filter==='rated') $where[]='l.stars>0';
+if ($q!=='') {
+    $where[]='(l.name LIKE :name OR l.level_id=:id OR a.username LIKE :creator)';
+    $args=['name'=>'%'.$q.'%','id'=>ctype_digit($q)?(int)$q:0,'creator'=>'%'.$q.'%'];
 }
-elseif ($q!=='') {
-    $sql.=' WHERE name LIKE :q OR level_id=:id';
-
-    $args=[
-        'q'=>'%'.$q.'%',
-        'id'=>ctype_digit($q)?(int)$q:0
-    ];
-}
-
-$sql.=' ORDER BY level_id DESC LIMIT 150';
-
-$st=$db->prepare($sql);
+$offset=($state['p']-1)*25;
+$st=$db->prepare('SELECT l.level_id,l.name,l.account_id,l.stars,l.difficulty,l.demon,
+    l.demon_difficulty,l.auto_level,l.featured,l.epic,l.requested_stars,l.downloads,l.likes,l.is_deleted,
+    COALESCE(a.username,\'—\') AS creator_name FROM levels l
+    LEFT JOIN accounts a ON a.account_id=l.account_id WHERE '.implode(' AND ',$where).
+    ' ORDER BY l.level_id DESC LIMIT 26 OFFSET '.$offset);
 $st->execute($args);
-
-if ($page==='levels') {
-    echo '<form class="search">';
-    echo '<input type="hidden" name="page" value="levels">';
-    echo '<input name="q" value="'.h($q).'" placeholder="Level name / ID">';
-    echo '<button>Search</button></form>';
-}
-
-echo '<div class="table"><table>';
-echo '<tr>
-<th>ID</th><th>Name</th><th>Stars</th>
-<th>Diff</th><th>Demon</th><th>Demon diff</th>
-<th>Featured</th><th>Epic</th><th>Requested</th>
-<th>Downloads</th><th>Likes</th><th>Deleted</th><th></th>
-</tr>';
-
-foreach($st as $r):
+$rows=$st->fetchAll(PDO::FETCH_ASSOC);
+$hasMore=count($rows)>25;
+$rows=array_slice($rows,0,25);
+$manage=canPermission('levels.manage');
+$rate=canPermission('levels.rate');
 ?>
-<tr>
-<form method="post">
-<input type="hidden" name="csrf" value="<?=csrf()?>">
-<input type="hidden" name="action" value="level-save">
-<input type="hidden" name="return" value="<?=h($page)?>">
-<input type="hidden" name="id" value="<?=h($r['level_id'])?>">
-
-<td><?=h($r['level_id'])?></td>
-<td><input name="name" value="<?=h($r['name'])?>" style="width:160px"></td>
-<td><input name="stars" value="<?=h($r['stars'])?>" style="width:50px"></td>
-<td><input name="difficulty" value="<?=h($r['difficulty'])?>" style="width:55px"></td>
-<td><input type="checkbox" name="demon" <?=$r['demon']?'checked':''?>></td>
-<td><input name="demon_difficulty" value="<?=h($r['demon_difficulty'])?>" style="width:55px"></td>
-<td><input type="checkbox" name="featured" <?=$r['featured']?'checked':''?>></td>
-<td><input name="epic" value="<?=h($r['epic'])?>" style="width:48px"></td>
-<td><input name="requested_stars" value="<?=h($r['requested_stars'])?>" style="width:55px"></td>
-<td><input name="downloads" value="<?=h($r['downloads'])?>" style="width:75px"></td>
-<td><input name="likes" value="<?=h($r['likes'])?>" style="width:60px"></td>
-<td><input type="checkbox" name="deleted" <?=$r['is_deleted']?'checked':''?>></td>
-<td><button>Save</button></td>
-</form>
-</tr>
-<?php endforeach ?>
-
-</table></div>
-<?php
-}
-
-/* =========================================================
-   COMMENTS
-========================================================= */
-
+<form class="search admin-list-search" method="get">
+<input type="hidden" name="page" value="<?=h($page)?>">
+<input type="search" name="q" value="<?=h($q)?>" placeholder="Level name / ID / creator" aria-label="Search levels">
+<?php if($page!=='moderation'): ?><select name="filter" aria-label="Status">
+<?php foreach([''=>'All levels','pending'=>'Requested Stars','rated'=>'Rated','deleted'=>'Deleted'] as $value=>$label): ?>
+<option value="<?=h($value)?>" <?=$filter===$value?'selected':''?>><?=h($label)?></option>
+<?php endforeach ?></select><?php endif ?>
+<button>Search</button><a class="btn gray" href="/admin/?page=<?=h($page)?>">Reset</a></form>
+<?php if(!$rows): ?><div class="card empty-state">No levels found. Change the search or filters.</div><?php endif ?>
+<div class="admin-records">
+<?php foreach($rows as $r): $id=(int)$r['level_id']; $profile=adminDifficultyProfile($r); ?>
+<details class="card admin-record" id="level-<?=$id?>">
+<summary><?=adminGdIcon($profile,'gd-face')?>
+<span class="record-name"><b><?=h($r['name'])?></b><small>#<?=$id?> · <?=h($r['creator_name'])?></small></span>
+<span class="record-stat"><?=adminGdIcon('stars')?><?=(int)$r['stars']?></span>
+<?php if($r['requested_stars']>0): ?><span class="badge"><?=h($r['requested_stars'])?> ★</span><?php endif ?>
+<span class="record-open">Open</span></summary>
+<div class="record-body">
+<div class="record-metrics"><span><?=adminGdIcon('downloads')?><?=number_format((int)$r['downloads'])?></span><span><?=adminGdIcon('likes')?><?=number_format((int)$r['likes'])?></span><span><?=h(ucwords(str_replace('-',' ',$profile)))?></span></div>
+<?php if($rate): ?><a class="btn" href="/admin/?page=rating&amp;id=<?=$id?>&amp;q=<?=rawurlencode($q)?>">Publish rating</a><?php endif ?>
+<?php if($manage): ?>
+<form method="post" class="admin-edit-grid record-extra">
+<input type="hidden" name="csrf" value="<?=csrf()?>"><input type="hidden" name="action" value="level-details-save">
+<input type="hidden" name="return" value="<?=h($page)?>"><input type="hidden" name="id" value="<?=$id?>">
+<?php adminListReturnFields($state) ?>
+<label>Name<input name="name" value="<?=h($r['name'])?>" maxlength="64" required></label>
+<label class="record-checks"><input type="checkbox" name="deleted" <?=$r['is_deleted']?'checked':''?>>Deleted</label>
+<button>Save changes</button></form>
+<?php endif ?></div></details>
+<?php endforeach ?></div>
+<?php adminListPager($page,$state,$hasMore); ?>

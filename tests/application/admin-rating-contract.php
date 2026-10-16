@@ -50,9 +50,9 @@ $assert(!str_contains($rating,'name="demon_difficulty" id="demonDifficulty"'),'l
 $assert(str_contains($rating,'Publish rating'),'publish control');
 $assert(
     str_contains($rating, '$difficultyIconUrl = static function (string $profile)') &&
-    str_contains($rating, "'/admin/assets/difficulty/'.") &&
+    str_contains($rating, "'/admin/assets/gd/'.") &&
     str_contains($rating, 'rawurlencode($profile).') &&
-    str_contains($rating, "'.svg';"),
+    str_contains($rating, "'.png';"),
     'local GD difficulty face asset source'
 );
 $assert(
@@ -66,7 +66,7 @@ foreach ([
     'easy-demon','medium-demon','hard-demon','insane-demon','extreme-demon',
 ] as $face) {
     $assert(
-        is_file(__DIR__.'/../../public/admin/assets/difficulty/'.$face.'.svg'),
+        is_file(__DIR__.'/../../public/admin/assets/gd/'.$face.'.png'),
         'local difficulty asset '.$face
     );
 }

@@ -311,6 +311,7 @@ final class AdminRbac
             'password-reset' => 'players.password_reset',
             'account-delete' => 'players.delete',
             'level-save' => 'levels.manage',
+            'level-details-save' => 'levels.manage',
             'level-rate-save' => 'levels.rate',
             'gauntlet-save' => 'contentpacks.manage',
             'gauntlet-delete' => 'contentpacks.manage',
