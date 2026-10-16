@@ -81,6 +81,31 @@ final class NewsService
         return $rows;
     }
 
+    /**
+     * A persistent monotonic version avoids stale clients when a news update
+     * happens to produce a smaller content hash, or the last post is removed.
+     */
+    public function nativeVersion(): string
+    {
+        $version = $this->db->query(
+            'SELECT version FROM mucho_news_state WHERE id=1'
+        )->fetchColumn();
+        if ($version === false) {
+            throw new RuntimeException('Native news version state is missing.');
+        }
+        return (string)$version;
+    }
+
+    private function bumpNativeVersion(): void
+    {
+        $updated = $this->db->exec(
+            'UPDATE mucho_news_state SET version=version+1 WHERE id=1'
+        );
+        if ($updated !== 1) {
+            throw new RuntimeException('Unable to increment native news version.');
+        }
+    }
+
     public function save(
         int $id,
         string $title,
@@ -91,6 +116,8 @@ final class NewsService
         int $adminId
     ): int {
         $fields = self::validate($title, $body, $url);
+        $this->db->beginTransaction();
+        try {
         $fields['published'] = $publish ? 1 : 0;
         $fields['pinned'] = $pin ? 1 : 0;
         if ($id > 0) {
@@ -115,6 +142,8 @@ final class NewsService
                     throw new RuntimeException('News post not found.');
                 }
             }
+            $this->bumpNativeVersion();
+            $this->db->commit();
             return $id;
         }
 
@@ -127,7 +156,10 @@ final class NewsService
         );
         $fields['publish_now'] = $publish ? 1 : 0;
         $stmt->execute($fields);
-        return (int)$this->db->lastInsertId();
+        $createdId = (int)$this->db->lastInsertId();
+        $this->bumpNativeVersion();
+        $this->db->commit();
+        return $createdId;
     }
 
     public function togglePublished(int $id): void
@@ -135,6 +167,8 @@ final class NewsService
         if ($id < 1) {
             throw new RuntimeException('Invalid news ID.');
         }
+        $this->db->beginTransaction();
+        try {
         $stmt = $this->db->prepare(
             'UPDATE mucho_news_posts
              SET published_at=IF(is_published=1,NULL,UTC_TIMESTAMP()),
@@ -145,6 +179,14 @@ final class NewsService
         if ($stmt->rowCount() === 0) {
             throw new RuntimeException('News post not found.');
         }
+        $this->bumpNativeVersion();
+        $this->db->commit();
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
     }
 
     public function delete(int $id): bool
@@ -152,8 +194,21 @@ final class NewsService
         if ($id < 1) {
             throw new RuntimeException('Invalid news ID.');
         }
+        $this->db->beginTransaction();
+        try {
         $stmt = $this->db->prepare('DELETE FROM mucho_news_posts WHERE id=:id');
         $stmt->execute(['id' => $id]);
-        return $stmt->rowCount() === 1;
+        $deleted = $stmt->rowCount() === 1;
+        if ($deleted) {
+            $this->bumpNativeVersion();
+        }
+        $this->db->commit();
+        return $deleted;
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
     }
 }
