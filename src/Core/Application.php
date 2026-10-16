@@ -81,6 +81,8 @@ use MuchoCore\Social\RelationshipRepository;
 use MuchoCore\Social\RelationshipService;
 use MuchoCore\Social\FollowingController;
 use MuchoCore\Social\FollowingService;
+use MuchoCore\Social\NotificationController;
+use MuchoCore\Social\NotificationService;
 use MuchoCore\User\UserController;
 use MuchoCore\User\UserRepository;
 use MuchoCore\User\UserService;
@@ -224,6 +226,10 @@ final readonly class Application
                 $auth,
                 new GdRelationshipEncoder()
             )
+        );
+
+        $notificationController = new NotificationController(
+            new NotificationService($this->pdo, $auth)
         );
 
         $followingController = new FollowingController(
@@ -547,6 +553,8 @@ final readonly class Application
         $route('/api/profile/image',[$profileMediaController,'image']);
 
         // GD 2.209: authenticated following and mute operations.
+        $route('/getGJNotifications', [$notificationController, 'get']);
+        $route('/claimGJNotificationReward', [$notificationController, 'claim']);
         $route('/getGJFollowing', [$followingController, 'get']);
         $route('/syncGJFollowing', [$followingController, 'sync']);
         $route('/followGJUser', [$followingController, 'follow']);
