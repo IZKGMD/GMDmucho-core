@@ -137,6 +137,16 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
 
 
     /*
+     * News Board — owner-only
+     */
+    $router->register(
+        'news',
+        static function(PDO $db): void {
+            require __DIR__.'/../pages/news.php';
+        }
+    );
+
+    /*
      * Levels
      */
 
