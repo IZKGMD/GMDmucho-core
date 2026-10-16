@@ -74,19 +74,6 @@ final class NativeNewsFormat
         return self::base64url($compressed);
     }
 
-    /**
-     * News version must change on edits, publish/unpublish, reorder and delete.
-     * A content-derived stable integer avoids stale caches and unnecessary reloads.
-     *
-     * @param array<int,array<string,mixed>> $posts
-     */
-    public static function version(array $posts): string
-    {
-        $hash = hash('sha256', self::textPayload($posts));
-        $number = hexdec(substr($hash, 0, 7));
-        return (string)max(1, $number);
-    }
-
     private static function base64url(string $value): string
     {
         // Native format uses URL-safe characters AND keeps '=' padding.
