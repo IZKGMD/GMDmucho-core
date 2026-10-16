@@ -15,6 +15,7 @@ return [
 
     'levels'=>'Levels',
     'contentpacks'=>'Gauntlet & Map Pack Maker',
+    'news'=>'News Board',
     'moderation'=>'Moderation',
     'rating'=>'Rating Studio',
 
