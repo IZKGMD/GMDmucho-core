@@ -17,11 +17,37 @@ Owner-only content management, available under `/admin/?page=news`.
 3. Write a headline, body, and optional HTTPS link. Check **Publish** to make it public; optionally check **Pin to top**.
 4. Save. To edit an entry select **Edit**; to change its publication status use **Publish/Unpublish**.
 
-## Geometry Dash 2.209 native News tab: integration pending
+## Native GD 2.209 News integration (opt-in)
 
-The official Windows 2.209 client contains the resource paths `/news/news.dat` and `/news/news_version.txt` in its binary. These are **not** PHP API endpoints. The current Windows URL patcher only changes identified `.php` endpoint URLs, leaving those news resource lookups untouched. We have not verified the native file format, host resolution, or refresh protocol with actual traffic.
+The news.dat fixture captured from a real GD 2.209 Windows installation has been decoded and used to implement its actual compressed wire format: URL-safe Base64 of GZIP text, header `4,<count>`, post records `1:<id>;2:<base64-date>;3:<base64-title>;4:<content-element>`, with `0` text, `1` image and `2` link content elements. The current publisher generates text, with an optional hyperlink; image upload and hosting are not included.
 
-**Do not claim that the in-game News tab is populated by this feature yet.** The owner publishing system, public web view, and public feed are functional server-side once deployed. Native client integration requires a captured valid `news.dat` payload/version response, a tested formatter, and a safe patch/loader for the resource host (Windows and Android separately). Avoid shipping arbitrary JSON as native `news.dat`.
+### VPS activation
+
+After updating to a revision containing this feature, opt in to replacing the GD custom content host URL with the server-hosted `/gd-content` prefix:
+
+```sh
+sudo sh -c 'grep -q "^MUCHO_NATIVE_NEWS=" /opt/mucho-core/.env && sed -i "s/^MUCHO_NATIVE_NEWS=.*/MUCHO_NATIVE_NEWS=1/" /opt/mucho-core/.env || printf "\\nMUCHO_NATIVE_NEWS=1\\n" >> /opt/mucho-core/.env'
+cd /opt/mucho-core && sudo docker compose up -d --remove-orphans
+```
+
+Do not modify `MUCHO_ACCOUNT_URL`: it is reused to form the `https://<account-host>/gd-content` address. The game discovers the address via `getCustomContentURL.php`. The Caddy proxy forwards unrelated CDN resources to the fixed official `geometrydashfiles.b-cdn.net` upstream to avoid breaking music libraries and SFX when the base URL changes. **This increases traffic through your VPS**, and depends on the upstream CDN remaining reachable.
+
+The native in-game files are then served at:
+- `/gd-content/news/news.dat` — GZIP + Base64URL feed
+- `/gd-content/news/news_version.txt` — content-derived integer version, changes on every published update
+- `/news/news.dat` and `/news/news_version.txt` — identical direct routes for checking
+
+### Checks
+
+```sh
+curl -fsS https://muchogdps.space/news/news_version.txt
+curl -fsS https://muchogdps.space/news/news.dat | head -c 100
+curl -fsS https://muchogdps.space/database/getCustomContentURL.php
+```
+
+The content URL must point at `https://muchogdps.space/gd-content` after the opt-in flag reaches the PHP app container. To verify in-game, close GD, rename `%LOCALAPPDATA%\\GeometryDash\\news\\news.dat` as a backup, start the GDPS client, open News and compare titles to the admin board. Do **not** delete player saves. No Windows binary re-patch is required for the native news URL path if GD uses the custom-content URL as expected.
+
+**Verification status:** Wire-format conversion is covered by regression tests and real sample parsing. The custom-content URL ↔ native News request chain is based on the 2.209 client's static resource paths; the actual patched game must still be tested at runtime on Windows. Android is not yet confirmed. Do not claim full runtime compatibility until this smoke test passes.
 
 ## API
 
