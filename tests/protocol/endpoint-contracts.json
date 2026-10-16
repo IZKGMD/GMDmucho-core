@@ -6159,6 +6159,246 @@
         "status": "pending",
         "evidence": []
       }
+    },
+    {
+      "id": "route.gd2209.getgjeditorsounds",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjeditorsounds",
+      "aliases": [
+        "/getgjeditorsounds",
+        "/database/getGJEditorSounds.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "evidence": [],
+        "p95_ms": null
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.uploadgjeditorsound",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/uploadgjeditorsound",
+      "aliases": [
+        "/uploadgjeditorsound",
+        "/database/uploadGJEditorSound.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "evidence": [],
+        "p95_ms": null
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.downloadgjeditorsound",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/downloadgjeditorsound",
+      "aliases": [
+        "/downloadgjeditorsound",
+        "/database/downloadGJEditorSound.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "evidence": [],
+        "p95_ms": null
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.deletegjeditorsound",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/deletegjeditorsound",
+      "aliases": [
+        "/deletegjeditorsound",
+        "/database/deleteGJEditorSound.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "evidence": [],
+        "p95_ms": null
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.updategjsounddesc",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/updategjsounddesc",
+      "aliases": [
+        "/updategjsounddesc",
+        "/database/updateGJSoundDesc.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "evidence": [],
+        "p95_ms": null
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
     }
   ]
 }
