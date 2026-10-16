@@ -68,6 +68,7 @@ use MuchoCore\Protocol\GdSongEncoder;
 use MuchoCore\Protocol\GdUserEncoder;
 use MuchoCore\Plugin\PluginManager;
 use MuchoCore\Routing\Router;
+use MuchoCore\News\NewsService;
 use MuchoCore\Score\LevelScoreController;
 use MuchoCore\Score\PlatformerScoreController;
 use MuchoCore\Security\MuchoProtect;
@@ -274,6 +275,15 @@ final readonly class Application
         $route('/health',
             static fn(Request $r): Response =>
                 Response::text('1'));
+
+        // JSON feed for custom clients and the web news board. This is NOT
+        // the undocumented native GD 2.209 /news/news.dat format.
+        $news = new NewsService($this->pdo);
+        $route('/muchocore/news',
+            static fn(Request $r): Response =>
+                strtoupper((string)$r->method) === 'GET'
+                    ? Response::json(['version' => 1, 'posts' => $news->published()])
+                    : Response::json(['error' => 'Method not allowed'], 405));
 
         // Legacy/compatibility endpoints implemented by dedicated services.
         $route('/updateGJUserName',
