@@ -67,4 +67,31 @@ checkNativeNews(str_contains($docker, 'MUCHO_NATIVE_NEWS'), 'news flag forwarded
 checkNativeNews(str_contains($caddy, '/gd-content/news/news.dat'), 'native news route');
 checkNativeNews(str_contains($caddy, '/gd-content/news/news_version.txt'), 'native version route');
 checkNativeNews(str_contains($caddy, 'geometrydashfiles.b-cdn.net'), 'non-news CDN proxy configured');
+// Regression for deployments where /news/*.dat falls back to the common
+// public/index.php instead of reaching the native PHP file rewrite in Caddy.
+$appSource = file_get_contents(__DIR__ . '/../../src/Core/Application.php');
+foreach ([
+    '/news/news.dat',
+    '/news/news_version.txt',
+    '/gd-content/news/news.dat',
+    '/gd-content/news/news_version.txt',
+] as $fallbackPath) {
+    checkNativeNews(
+        str_contains($appSource, "\$route('".$fallbackPath."'"),
+        'news path handled by PHP core fallback: ' . $fallbackPath
+    );
+}
+checkNativeNews(
+    str_contains($appSource, 'NativeNewsFormat::encode($news->published(30))'),
+    'Caddy and fallback publish the same native wire representation'
+);
+checkNativeNews(
+    str_contains($appSource, '$news->nativeVersion()'),
+    'Caddy and fallback publish the same monotonic revision'
+);
+checkNativeNews(
+    str_contains($appSource, "Response::text('', 503)"),
+    'news generator failures return an explicit error, not -1'
+);
+
 echo "MUCHOCORE_GD_2209_NATIVE_NEWS_OK\n";

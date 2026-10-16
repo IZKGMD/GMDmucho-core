@@ -5059,6 +5059,194 @@
         "status": "pending",
         "evidence": []
       }
+    },
+    {
+      "id": "route.native.gd.content.news.news.dat",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/gd-content/news/news.dat",
+      "aliases": [
+        "/gd-content/news/news.dat"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "evidence": [],
+        "p95_ms": null
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.native.gd.content.news.news.version.txt",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/gd-content/news/news_version.txt",
+      "aliases": [
+        "/gd-content/news/news_version.txt"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "evidence": [],
+        "p95_ms": null
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.native.news.news.dat",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/news/news.dat",
+      "aliases": [
+        "/news/news.dat"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "evidence": [],
+        "p95_ms": null
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.native.news.news.version.txt",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/news/news_version.txt",
+      "aliases": [
+        "/news/news_version.txt"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "evidence": [],
+        "p95_ms": null
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
     }
   ]
 }
