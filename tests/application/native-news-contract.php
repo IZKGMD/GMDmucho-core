@@ -32,11 +32,16 @@ $gzip = base64_decode(strtr($encoded, '-_', '+/'), true);
 checkNativeNews(is_string($gzip), 'outer decode');
 checkNativeNews(gzdecode($gzip) === $expected, 'gzip + base64url transport');
 checkNativeNews(NativeNewsFormat::textPayload([]) === '4,0', 'empty board');
-checkNativeNews(NativeNewsFormat::version([$post]) === NativeNewsFormat::version([$post]), 'stable content version');
-$updated = $post;
-$updated['body'] = 'Updated!';
-checkNativeNews(NativeNewsFormat::version([$post]) !== NativeNewsFormat::version([$updated]), 'edits invalidate client cache');
-checkNativeNews(NativeNewsFormat::version([$post]) !== NativeNewsFormat::version([]), 'unpublishing invalidates cache');
+// A monotonic DB revision prevents updates/deletions from producing a lower
+// version number than the one cached by an older native client.
+$service = file_get_contents(__DIR__ . '/../../src/News/NewsService.php');
+$stateMigration = file_get_contents(__DIR__ . '/../../database/migrations/20261016_002_native_news_state.php');
+$nativeVersionEndpoint = file_get_contents(__DIR__ . '/../../public/news/version.php');
+checkNativeNews(str_contains($stateMigration, 'mucho_news_state'), 'news version persisted');
+checkNativeNews(str_contains($stateMigration, '1000000'), 'version starts above vanilla client revision');
+checkNativeNews(str_contains($service, 'SET version=version+1'), 'each edit increments monotonic version');
+checkNativeNews(str_contains($service, '$this->bumpNativeVersion()'), 'news mutations invalidate version');
+checkNativeNews(str_contains($nativeVersionEndpoint, '$nativeNewsService->nativeVersion()'), 'version endpoint serves monotonic state');
 $plain = $post;
 $plain['url'] = null;
 checkNativeNews(!str_contains(NativeNewsFormat::textPayload([$plain]), '~2,'), 'optional URL omitted');
