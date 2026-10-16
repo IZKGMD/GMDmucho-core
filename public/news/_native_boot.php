@@ -18,7 +18,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
     exit;
 }
 try {
-    $nativeNewsPosts = (new NewsService((new Database())->connection()))->published(30);
+    $nativeNewsService = new NewsService((new Database())->connection());
+    $nativeNewsPosts = $nativeNewsService->published(30);
 } catch (Throwable $e) {
     error_log('[MuchoCore Native News] ' . $e::class . ': ' . $e->getMessage());
     http_response_code(503);
