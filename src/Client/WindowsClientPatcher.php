@@ -99,6 +99,16 @@ final class WindowsClientPatcher
             throw new RuntimeException('Output path must be different from input path.');
         }
 
+        /*
+         * GD 2.209 uses a larger endpoint family, including notifications,
+         * follows, editor sounds, threads and death data. Patch complete
+         * NUL-terminated URLs in .rdata; never patch code or guess offsets.
+         * Keep the legacy patcher for other known client versions.
+         */
+        if (Gd2209Binary::supports($inputPath)) {
+            return Gd2209Binary::patchFile($inputPath, $outputPath, $server);
+        }
+
         $replacements = self::buildReplacements($server);
 
         if ($replacements === []) {
