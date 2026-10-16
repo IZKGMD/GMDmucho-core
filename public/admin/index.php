@@ -1554,7 +1554,7 @@ color:#596579;
 padding:16px 11px 6px
 }
 
-nav a{
+.admin-nav a{
 display:flex;
 align-items:center;
 min-height:39px;
@@ -1567,12 +1567,12 @@ font-weight:570;
 transition:.13s ease
 }
 
-nav a:hover{
+.admin-nav a:hover{
 background:#161c27;
 color:#fff
 }
 
-nav a.on{
+.admin-nav a.on{
 background:linear-gradient(135deg,#28234a,#1d2031);
 box-shadow:inset 0 0 0 1px #41396a;
 color:#fff
@@ -1609,12 +1609,12 @@ body.sidebar-collapsed .nav-title{
 display:none
 }
 
-body.sidebar-collapsed nav a{
+body.sidebar-collapsed .admin-nav a{
 font-size:0;
 justify-content:center
 }
 
-body.sidebar-collapsed nav a:after{
+body.sidebar-collapsed .admin-nav a:after{
 content:"•";
 font-size:19px
 }
@@ -2015,7 +2015,7 @@ padding-bottom:8px
 
 .sidebar-toggle{display:none}
 
-nav{
+.admin-nav{
 display:flex;
 overflow-x:auto;
 gap:4px;
@@ -2023,19 +2023,19 @@ padding-bottom:3px;
 scrollbar-width:none
 }
 
-nav::-webkit-scrollbar{display:none}
+.admin-nav::-webkit-scrollbar{display:none}
 
 .nav-title{display:none}
 
-nav a,
-body.sidebar-collapsed nav a{
+.admin-nav a,
+body.sidebar-collapsed .admin-nav a{
 font-size:12px;
 white-space:nowrap;
 justify-content:flex-start;
 padding:9px 11px
 }
 
-body.sidebar-collapsed nav a:after{
+body.sidebar-collapsed .admin-nav a:after{
 display:none
 }
 
@@ -2173,13 +2173,13 @@ max-width:100%
         font-size:10px;
     }
 
-    nav{
+    .admin-nav{
         display:block !important;
         overflow:visible !important;
     }
 
-    nav a,
-    body.sidebar-collapsed nav a{
+    .admin-nav a,
+    body.sidebar-collapsed .admin-nav a{
         display:flex;
         justify-content:flex-start;
         width:100%;
@@ -2189,7 +2189,7 @@ max-width:100%
         white-space:normal;
     }
 
-    body.sidebar-collapsed nav a:after{
+    body.sidebar-collapsed .admin-nav a:after{
         display:none !important;
     }
 
@@ -2450,7 +2450,7 @@ max-width:100%
 
 <link rel="stylesheet" href="/assets/product-ui.css?v=1">
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
-<link rel="stylesheet" href="/admin/admin-polish.css?v=1">
+<link rel="stylesheet" href="/admin/admin-polish.css?v=2">
 <script src="/admin/admin-simple.js?v=2" defer></script>
 </head>
 <body class="admin-login mc-workspace" data-page="">
@@ -4561,12 +4561,12 @@ font-size:21px;font-weight:900;
 padding:9px 12px 19px
 }
 .logo b{color:#8877ff}
-nav a{
+.admin-nav a{
 display:flex;padding:10px 12px;
 border-radius:9px;margin:2px 0;
 color:#9aa5b9;font-size:13px
 }
-nav a:hover,nav a.on{
+.admin-nav a:hover,.admin-nav a.on{
 background:#191f2b;color:white
 }
 main{
@@ -4678,10 +4678,10 @@ aside{
 position:static;width:100%;height:auto;
 overflow:auto
 }
-nav{
+.admin-nav{
 display:flex;overflow-x:auto;gap:3px
 }
-nav a{white-space:nowrap}
+.admin-nav a{white-space:nowrap}
 main{margin:0;width:100%;padding:15px}
 .logo{padding-bottom:9px}
 .head{margin-top:5px}
@@ -4758,13 +4758,13 @@ body.mobile-menu-open .mobile-overlay{
     padding:15px 10px 5px !important;
 }
 
-aside nav{
+aside .admin-nav{
     display:block !important;
     overflow:visible !important;
 }
 
-aside nav a,
-body.sidebar-collapsed aside nav a{
+aside .admin-nav a,
+body.sidebar-collapsed aside .admin-nav a{
     display:flex !important;
     width:100% !important;
     font-size:14px !important;
@@ -4774,7 +4774,7 @@ body.sidebar-collapsed aside nav a{
     white-space:normal !important;
 }
 
-body.sidebar-collapsed aside nav a:after{
+body.sidebar-collapsed aside .admin-nav a:after{
     display:none !important;
 }
 
@@ -4979,7 +4979,7 @@ table{
 }
 </style>
 <link rel="stylesheet" href="/admin/admin-i18n.css?v=2">
-<link rel="stylesheet" href="/admin/admin-ui-v2.css?v=3">
+<link rel="stylesheet" href="/admin/admin-ui-v2.css?v=4">
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
 <script src="/muchocore-theme.js?v=4" defer></script>
 <link rel="stylesheet" href="/assets/product-ui.css?v=1">
@@ -4987,7 +4987,7 @@ table{
 <script src="/assets/product-ui.js?v=1" defer></script>
 <link rel="stylesheet" href="/admin/admin-simple.css?v=1">
 <script src="/admin/admin-simple.js?v=2" defer></script>
-<link rel="stylesheet" href="/admin/admin-polish.css?v=1">
+<link rel="stylesheet" href="/admin/admin-polish.css?v=2">
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>

@@ -29,7 +29,7 @@ function adminInterfaceSwitch(array $query=[]): void
     foreach ([false=>'Styled admin',true=>'Plain admin (no CSS)'] as $plain=>$label) {
         echo '<a href="'.h(adminInterfaceUrl((bool)$plain,$query)).'"'.(!$plain?' data-styled-admin':'').
             (adminIsPlain()===(bool)$plain?' aria-current="true"':'').'>'.h($label).'</a>';
-        if (!$plain) echo ' · ';
+        if (!$plain) echo '<span class="admin-interface-separator" aria-hidden="true"> · </span>';
     }
     echo '</nav>';
 }
