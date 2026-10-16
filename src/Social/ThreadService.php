@@ -297,20 +297,27 @@ final readonly class ThreadService
 
         $this->db->beginTransaction();
         try {
+            // Serialize against owner-side close/rename and member removals.
+            $lock = $this->db->prepare(
+                'SELECT t.is_closed FROM mucho_threads t
+                 JOIN mucho_thread_members m ON m.thread_id=t.id
+                 WHERE t.id=:thread AND m.account_id=:sender FOR UPDATE'
+            );
+            $lock->execute(['thread'=>$threadId,'sender'=>$accountId]);
+            if ((int)$lock->fetchColumn() !== 0) {
+                $this->db->rollBack();
+                return false;
+            }
             $stmt = $this->db->prepare(
                 'INSERT INTO mucho_thread_messages (thread_id,sender_account_id,body)
                  VALUES (:thread,:sender,:body)'
             );
             $stmt->execute(['thread'=>$threadId,'sender'=>$accountId,'body'=>$body]);
             $touch = $this->db->prepare(
-                'UPDATE mucho_threads SET updated_at=UTC_TIMESTAMP()
-                 WHERE id=:thread AND is_closed=0'
+                'UPDATE mucho_threads SET updated_at=UTC_TIMESTAMP() WHERE id=:thread'
             );
             $touch->execute(['thread'=>$threadId]);
-            if ($touch->rowCount() === 0) {
-                $this->db->rollBack();
-                return false;
-            }
+            // UPDATE rowCount can be zero when the timestamp has not changed.
             $this->db->commit();
             return true;
         } catch (Throwable $e) {
