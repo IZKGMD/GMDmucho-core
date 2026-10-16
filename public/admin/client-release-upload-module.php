@@ -262,9 +262,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     ) {
         try {
 
-            ensureReleaseManager($db);
             checkCsrf();
             requireRank(30);
+            ensureReleaseManager($db);
 
             cleanupReleaseUploads($db);
 
@@ -927,7 +927,8 @@ function renderClientReleaseUploader(
     PDO $db
 ): void {
 
-    $history=$db->query("
+    // A fresh installation initializes upload tables on its first upload.
+    $history=tableExists($db, 'mucho_client_release_files') ? $db->query("
         SELECT
             version,
             file_name,
@@ -941,7 +942,7 @@ function renderClientReleaseUploader(
         WHERE platform='android'
         ORDER BY id DESC
         LIMIT 10
-    ")->fetchAll();
+    ")->fetchAll() : [];
 
     ?>
 
@@ -1033,7 +1034,7 @@ function renderClientReleaseUploader(
 
             <div
                 id="muchoUploadBox"
-                style="display:none;margin-top:16px"
+                hidden style="margin-top:16px"
             >
 
                 <div class="row"
@@ -1413,7 +1414,7 @@ form.addEventListener(
         }
 
         button.disabled=true;
-        box.style.display='block';
+        box.hidden=false;
 
         result.textContent='';
         bar.style.width='0%';

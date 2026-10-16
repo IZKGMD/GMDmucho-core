@@ -411,7 +411,7 @@ function renderDbBackupCenter(
 
     foreach(
         glob(
-            MUCHO_DB_BACKUP_DIR.
+            muchoDbBackupDir().
             '/*.sql.gz'
         ) ?: []
         as $path

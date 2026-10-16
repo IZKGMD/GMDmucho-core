@@ -5,11 +5,16 @@ Open `/admin/plain/` for the second administration interface. The **Plain admin
 The **Styled admin** link switches back. Both interfaces can stay open in separate
 tabs and use the same administrator session.
 
+Both interfaces use the same complete cube logo and clearly separated server name.
+Switching interfaces keeps the search, filters, page, selected record and tool tab.
+The native menu is expandable so it does not push content down on phones.
+
 Plain Admin serves ordinary HTML, native controls, expandable records and tables.
 It removes stylesheets and inline styles from shared modules and enforces
 `style-src 'none'`. Functional JavaScript remains for passkeys, confirmation
 dialogs and tools that require it. Players, levels, music and clans use ordinary
-GET/POST forms; their basic workflows do not require JavaScript.
+GET/POST forms; their basic workflows do not require JavaScript. Star rating has
+a native number input alongside the optional quick-pick buttons.
 
 The entrypoint delegates to the existing authenticated admin controller. Passwords,
 2FA/recovery codes, permission checks, CSRF tokens, audit records and download

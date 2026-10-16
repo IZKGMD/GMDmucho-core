@@ -98,6 +98,7 @@ jobs:
           php tests/application/native-news-contract.php
           php tests/application/admin-simple-integration.php
           php tests/application/admin-plain-integration.php
+          php tests/application/admin-chrome-integration.php
           php tests/application/admin-dashboard-access.php
           php tests/application/public-overview-visibility.php
           php tests/application/web-profile-images.php

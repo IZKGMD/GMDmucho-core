@@ -21,7 +21,7 @@ $fields=static function(string $action, int $clanId) use($state): void {
     adminListReturnFields($state);
 };
 ?>
-<form method="get">
+<form method="get" class="admin-list-search">
 <input type="hidden" name="page" value="clans">
 <label>Search <input type="search" name="q" value="<?=h($state['q'])?>" placeholder="Name, tag, owner or clan ID"></label>
 <label>Joining <select name="filter">
@@ -32,10 +32,10 @@ $fields=static function(string $action, int $clanId) use($state): void {
 </form>
 <?php if($id && !$clan): ?><p>Clan not found.</p><?php endif ?>
 <?php if($clan): $members=$repository->members($id); ?>
-<section>
+<section class="card">
 <h2>[<?=h($clan['tag'])?>] <?=h($clan['name'])?> #<?=$id?></h2>
 <p>Owner: <?=h($clan['owner_username'])?> (#<?=(int)$clan['owner_account_id']?>). Members: <?=(int)$clan['member_count']?>.</p>
-<form method="post">
+<form method="post" class="admin-clan-form">
 <?php $fields('clan-save',$id) ?>
 <p><label>Name <input name="name" value="<?=h($clan['name'])?>" minlength="2" maxlength="24" required></label></p>
 <p><label>Tag <input name="tag" value="<?=h($clan['tag'])?>" pattern="[A-Za-z0-9]{2,6}" minlength="2" maxlength="6" required></label></p>
@@ -45,7 +45,7 @@ $fields=static function(string $action, int $clanId) use($state): void {
 <button>Save clan</button>
 </form>
 <h3>Members</h3>
-<table>
+<div class="table"><table data-no-filter>
 <thead><tr><th scope="col">Account</th><th scope="col">Role</th><th scope="col">Actions</th></tr></thead>
 <tbody>
 <?php foreach($members as $member): $accountId=(int)$member['account_id']; ?>
@@ -57,7 +57,7 @@ $fields=static function(string $action, int $clanId) use($state): void {
 <form method="post" data-confirm="Remove this member from the clan?"><?php $fields('clan-kick',$id) ?><input type="hidden" name="account_id" value="<?=$accountId?>"><button>Remove member</button></form>
 <?php else: ?>Use Transfer ownership before removing the owner.<?php endif ?>
 </td></tr>
-<?php endforeach ?></tbody></table>
+<?php endforeach ?></tbody></table></div>
 <details><summary>Transfer ownership</summary>
 <form method="post" data-confirm="Transfer clan ownership to this member?">
 <?php $fields('clan-transfer',$id) ?>
@@ -92,9 +92,9 @@ $hasMore=count($rows)>25;
 ?>
 <h2>Clans</h2>
 <?php if(!$rows): ?><p>No clans found.</p><?php else: ?>
-<table><thead><tr><th scope="col">ID</th><th scope="col">Clan</th><th scope="col">Owner</th><th scope="col">Members</th><th scope="col">Joining</th></tr></thead><tbody>
+<div class="table"><table data-no-filter><thead><tr><th scope="col">ID</th><th scope="col">Clan</th><th scope="col">Owner</th><th scope="col">Members</th><th scope="col">Joining</th></tr></thead><tbody>
 <?php foreach(array_slice($rows,0,25) as $row): ?>
 <tr><td><?=(int)$row['clan_id']?></td><td><a href="<?=h(adminListUrl('clans',$state,$state['p']).'&id='.(int)$row['clan_id'])?>">[<?=h($row['tag'])?>] <?=h($row['name'])?></a></td><td><?=h($row['owner_username'])?></td><td><?=(int)$row['member_count']?> / <?=(int)$row['max_members']?></td><td><?=$row['is_open']?'Open':'Invite only'?></td></tr>
-<?php endforeach ?></tbody></table>
+<?php endforeach ?></tbody></table></div>
 <?php endif ?>
 <?php adminListPager('clans',$state,$hasMore) ?>

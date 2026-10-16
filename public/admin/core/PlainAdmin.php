@@ -32,6 +32,31 @@ function adminPlainHtml(string $html): string
         $node->parentNode?->removeChild($node);
     }
     foreach ($xpath->query('//*[@style]') as $node) $node->removeAttribute('style');
+    // Native HTML spacing replaces layout classes; no CSS is introduced.
+    foreach ($xpath->query('//table') as $table) {
+        $table->setAttribute('border', '1');
+        $table->setAttribute('cellpadding', '6');
+    }
+    foreach ($xpath->query('//th[not(@scope)]') as $cell) $cell->setAttribute('scope', 'col');
+    foreach ($xpath->query('//form//label') as $label) {
+        $parent=$label->parentNode;
+        if ($parent instanceof DOMElement && in_array($parent->tagName, ['form','div','fieldset'], true)) {
+            $paragraph=$doc->createElement('p');
+            $parent->insertBefore($paragraph, $label);
+            $paragraph->appendChild($label);
+        }
+        $control=$xpath->query('.//input[not(@type="checkbox" or @type="radio" or @type="hidden")] | .//select | .//textarea', $label)->item(0);
+        if ($control && $control->previousSibling?->nodeName!=='br') {
+            $control->parentNode->insertBefore($doc->createElement('br'), $control);
+        }
+    }
+    foreach ($xpath->query('//*[contains(concat(" ",@class," ")," record-name ")]/small') as $small) {
+        $small->parentNode->insertBefore($doc->createElement('br'), $small);
+    }
+    foreach ($xpath->query('//img[contains(concat(" ",@class," ")," rating-face ") and not(@width)]') as $img) {
+        $img->setAttribute('width', '48');
+        $img->setAttribute('height', '48');
+    }
     // These scripts create styled controls or inject CSS. Functional page scripts stay.
     foreach ($xpath->query('//script[@src]') as $node) {
         $path = parse_url($node->getAttribute('src'), PHP_URL_PATH);
