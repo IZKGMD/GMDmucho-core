@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS mucho_editor_sounds (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_mucho_editor_sound_account_hash (account_id,sha256),
     KEY idx_mucho_editor_sounds_account (account_id, id),
     KEY idx_mucho_editor_sounds_recent (id),
     CONSTRAINT fk_mucho_editor_sound_owner FOREIGN KEY (account_id)
