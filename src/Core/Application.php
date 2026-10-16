@@ -79,6 +79,8 @@ use MuchoCore\Social\MessageService;
 use MuchoCore\Social\RelationshipController;
 use MuchoCore\Social\RelationshipRepository;
 use MuchoCore\Social\RelationshipService;
+use MuchoCore\Social\FollowingController;
+use MuchoCore\Social\FollowingService;
 use MuchoCore\User\UserController;
 use MuchoCore\User\UserRepository;
 use MuchoCore\User\UserService;
@@ -219,6 +221,14 @@ final readonly class Application
         $relationshipController = new RelationshipController(
             new RelationshipService(
                 $relationshipRepo,
+                $auth,
+                new GdRelationshipEncoder()
+            )
+        );
+
+        $followingController = new FollowingController(
+            new FollowingService(
+                $this->pdo,
                 $auth,
                 new GdRelationshipEncoder()
             )
@@ -535,6 +545,13 @@ final readonly class Application
         $route('/api/profile/upload',[$profileMediaController,'upload']);
         $route('/api/profile/remove',[$profileMediaController,'remove']);
         $route('/api/profile/image',[$profileMediaController,'image']);
+
+        // GD 2.209: authenticated following and mute operations.
+        $route('/getGJFollowing', [$followingController, 'get']);
+        $route('/syncGJFollowing', [$followingController, 'sync']);
+        $route('/followGJUser', [$followingController, 'follow']);
+        $route('/unfollowGJUser', [$followingController, 'unfollow']);
+        $route('/muteGJUser', [$followingController, 'mute']);
 
         $route('/getGJCreators',
             [$discoveryController,'creators']);
