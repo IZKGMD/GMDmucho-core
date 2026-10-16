@@ -68,6 +68,8 @@ jobs:
           php -l bin/mucho-verify-backup.php
           php -l bin/mucho-client-doctor.php
           php tests/client/client-compatibility.php
+          php tests/client/client-audit.php
+          python3 tests/client/client-probe.py
           php tests/client/client-ip.php
           php tests/protocol/protocol-matrix.php
           php tests/protocol/endpoint-perfection.php
@@ -501,6 +503,13 @@ jobs:
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/cvolton-migration-integration.php
+
+      - name: Verify GD 2.209 friend timestamps and migration
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/gd2209-friend-dates.php
 
       - name: Verify backup and restore on isolated MariaDB
         env:
