@@ -42,7 +42,15 @@ final class DeploymentClientPack
         if ($serverName === '') {
             $serverName = trim((string)(Environment::get('MUCHO_SERVER_NAME', 'Mucho GDPS') ?? 'Mucho GDPS'));
         }
-        $sourceExe = $rootDir . '/GeometryDash.exe';
+        /*
+         * Prefer a persistent GD 2.209 base executable when supplied on the
+         * VPS. Do not overwrite the tracked legacy GeometryDash.exe file.
+         * The binary patcher selects exact-build 2.209 handling by SHA-256.
+         */
+        $windows2209Base = $rootDir . '/storage/client-sources/GeometryDash-2.209.exe';
+        $sourceExe = is_file($windows2209Base) && is_readable($windows2209Base)
+            ? $windows2209Base
+            : $rootDir . '/GeometryDash.exe';
         $sourceApk = self::androidSource($rootDir, $jobDir);
 
         if (!is_file($sourceExe) || !is_readable($sourceExe)) {
