@@ -50,6 +50,8 @@ use MuchoCore\Level\LevelService;
 use MuchoCore\Level\LevelTransferController;
 use MuchoCore\Level\LevelTransferRepository;
 use MuchoCore\Level\LevelTransferService;
+use MuchoCore\Level\LevelTelemetryController;
+use MuchoCore\Level\LevelTelemetryService;
 use MuchoCore\Level\LevelRevisionService;
 use MuchoCore\Level\LevelValidator;
 use MuchoCore\Moderation\ModerationController;
@@ -174,6 +176,10 @@ final readonly class Application
         );
         $transferController =
             new LevelTransferController($transferService);
+
+        $levelTelemetry = new LevelTelemetryController(
+            new LevelTelemetryService($this->pdo, $auth)
+        );
 
         $legacy10IdentityController =
             new Legacy10IdentityController($legacy10Identity);
@@ -558,6 +564,13 @@ final readonly class Application
         $route('/api/profile/upload',[$profileMediaController,'upload']);
         $route('/api/profile/remove',[$profileMediaController,'remove']);
         $route('/api/profile/image',[$profileMediaController,'image']);
+
+        // GD 2.209: per-level death-marker positions and custom controls.
+        $route('/getGJDeathData', [$levelTelemetry, 'getDeaths']);
+        $route('/uploadGJDeathData', [$levelTelemetry, 'uploadDeath']);
+        $route('/getGJLevelControls', [$levelTelemetry, 'getControls']);
+        $route('/uploadGJLevelControls', [$levelTelemetry, 'uploadControls']);
+        $route('/deleteGJLevelControls', [$levelTelemetry, 'deleteControls']);
 
         // GD 2.209: private group threads, messages and invitations.
         $route('/getGJThreads', [$threadController, 'getThreads']);
