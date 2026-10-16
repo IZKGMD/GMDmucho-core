@@ -7,7 +7,7 @@ namespace MuchoCore\Social;
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Protocol\GdRelationshipEncoder;
 use PDO;
-use RuntimeException;
+use Throwable;
 
 /**
  * Persistent follow and mute operations for the GD 2.209 endpoint family.
@@ -62,13 +62,38 @@ final readonly class FollowingService
             return false;
         }
 
-        $stmt = $this->db->prepare(
-            'INSERT IGNORE INTO mucho_follows (follower_account_id, followed_account_id)
-             VALUES (:me,:target)'
-        );
-        $stmt->execute(['me' => $accountId, 'target' => $target]);
-        // Repeating a follow is idempotent rather than a protocol failure.
-        return true;
+        $this->db->beginTransaction();
+        try {
+            $stmt = $this->db->prepare(
+                'INSERT IGNORE INTO mucho_follows (follower_account_id, followed_account_id)
+                 VALUES (:me,:target)'
+            );
+            $stmt->execute(['me' => $accountId, 'target' => $target]);
+
+            if ($stmt->rowCount() === 1) {
+                // A genuine new follow is visible to its recipient. Duplicate
+                // requests do not create repeated notifications.
+                $notify = $this->db->prepare(
+                    'INSERT IGNORE INTO mucho_notifications
+                        (account_id,actor_account_id,notification_type,source_id)
+                     VALUES (:target,:actor,:type,:source)'
+                );
+                $notify->execute([
+                    'target' => $target,
+                    'actor' => $accountId,
+                    'type' => 'follow',
+                    'source' => $accountId,
+                ]);
+            }
+
+            $this->db->commit();
+            return true;
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
     }
 
     public function unfollow(int $accountId, string $credential, int $target): bool
