@@ -53,9 +53,10 @@ try {
     ) ENGINE=InnoDB");
     $db->exec("CREATE TABLE levels (
         level_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+        account_id BIGINT UNSIGNED NOT NULL,
         is_deleted TINYINT NOT NULL DEFAULT 0
     ) ENGINE=InnoDB");
-    $db->exec('INSERT INTO levels(level_id) VALUES (91), (92)');
+    $db->exec('INSERT INTO levels(level_id,account_id) VALUES (91,5), (92,5)');
 
     foreach ([1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 3] as $id => $role) {
         $stmt = $db->prepare('INSERT INTO accounts
@@ -75,6 +76,18 @@ try {
     foreach ($migration as $sql) {
         $db->exec($sql);
     }
+    // Existing 2.209 reports are safely backfilled by the migration.
+    $db->exec("INSERT INTO mucho_content_reports
+        (reporter_account_id,content_type,content_id,reason,details)
+        VALUES (3,0,91,3,'pre-migration report')");
+    $accountMigration = require dirname(__DIR__, 2)
+        . '/database/migrations/20261017_003_gd2209_account_report_cases.php';
+    foreach ($accountMigration as $sql) {
+        $db->exec($sql);
+    }
+    $assert((int)$db->query('SELECT target_account_id
+        FROM mucho_content_reports WHERE reporter_account_id=3')->fetchColumn() === 5,
+        'pre-migration level report must resolve target account');
     $auth = new AccountAuthenticator($db);
     $repo = new ReportQueueRepository($db);
     $service = new ReportQueueService($auth, new ModerationRepository($db), $repo);
@@ -87,7 +100,7 @@ try {
             'gameVersion' => '22',
             'binaryVersion' => '51',
             'mode' => '0',
-            'flags' => '0',
+            'flags' => '1',
             'sort' => $sort,
             'page' => '0',
         ], []);
@@ -113,14 +126,23 @@ try {
     $assert($service->reportLevel(1, 'pass-1', 92, 5, 'abuse'),
         'same account may report another level');
 
-    $assert((int)$db->query('SELECT COUNT(*) FROM mucho_content_reports')->fetchColumn() === 3,
+    $assert((int)$db->query('SELECT COUNT(*) FROM mucho_content_reports')->fetchColumn() === 4,
         'repeated report did not create duplicates');
 
+    $assert(!$service->reportLevel(5, 'pass-5', 91, 2, 'self report'),
+        'users cannot inflate their own abuse score');
+    $group = $repo->pending(0, 2);
+    $assert($group['total'] === 1 && count($group['rows']) === 1,
+        'multiple levels by one account create one moderation case');
+    $assert((int)$group['rows'][0]['target_account_id'] === 5 &&
+        (int)$group['rows'][0]['report_count'] === 4 &&
+        (int)$group['rows'][0]['report_points'] === 12,
+        'verified 2.209 report score is three points per report');
     $queue = $ctrl->queue($req(3, 'pass-3'))->body;
-    $assert(str_contains($queue, ':3:91:4:3:5:2:6:'),
-        'same target reports grouped into a single queue item');
-    $assert(str_contains($queue, '#2:0:20'),
-        'grouped queue pagination count');
+    $assert(str_contains($queue, '1:5:2:U5:3:12:4:4:5:'),
+        'provisional queue maps all reports to offending account');
+    $assert(str_contains($queue, '#1:0:20'),
+        'account case pagination counts distinct reported accounts');
     $assert(!str_contains($queue,'spam') && !str_contains($queue,'pass-1'),
         'sensitive report text/credentials not serialized');
 
