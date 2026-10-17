@@ -6,12 +6,12 @@ MuchoCore tracks their routing separately from exact wire protocol parity.
 
 Run the route inventory:
 
-\`\`\`sh
+```sh
 php bin/mucho-gd2209-coverage.php
 php bin/mucho-gd2209-coverage.php --json
-\`\`\`
+```
 
-\`--fail-missing\` exits nonzero until **every** new name is registered.
+`--fail-missing` exits nonzero until **every** new name is registered.
 It is intended as a release-gate command, not as a passing CI check while
 routes remain unimplemented.
 
@@ -21,22 +21,22 @@ empty and error semantics, persistence, and live client acceptance.
 
 ## Moderation Queue
 
-New moderator-specific routes include \`adminGetReportQueue\`,
-\`adminGetReportedContent\`, \`adminGetUserHistory\`, and several comment,
+New moderator-specific routes include `adminGetReportQueue`,
+`adminGetReportedContent`, `adminGetUserHistory`, and several comment,
 ban, investigation and case actions. Their request and response semantics are
 **not** yet documented publicly to a degree that permits exact implementation.
 Do not return an invented list or a success marker to conceal missing support.
 
-Separately, existing \`getGJLevels21\` uses \`type=8\` for pending moderator
-suggestions and \`type=27\` for a signed-in advisor's sent suggestions.
+Separately, existing `getGJLevels21` uses `type=8` for pending moderator
+suggestions and `type=27` for a signed-in advisor's sent suggestions.
 MuchoCore now implements those two filters and authenticates the requester.
 
-To identify the actual failing call, enable \`MUCHO_CLIENT_TRACE=1\` for the
+To identify the actual failing call, enable `MUCHO_CLIENT_TRACE=1` for the
 app service, reproduce Moderation Queue once in a real 2.209 client, and inspect:
 
-\`\`\`sh
+```sh
 php bin/mucho-gd2209-trace-report.php --min-binary=51 --json
-\`\`\`
+```
 
 A **local copy** of the trace should be treated as private diagnostic data.
 The trace captures request field names and safe numeric list selectors but
@@ -48,7 +48,7 @@ not credentials, arbitrary field values or response bodies.
    routes, without granting moderator permissions to non-moderators.
 2. Implement exact byte-level request/response fixtures captured on
    legally obtained Windows and Android 2.209 clients.
-3. Confirm 2.209-specific keys (\`62\`, \`63\`, \`54\`), thread fields, notification
+3. Confirm 2.209-specific keys (`62`, `63`, `54`), thread fields, notification
    fields, editor audio, death data and new error payloads.
 4. Check new administrative commands with a test matrix of regular users,
    advisors, moderators and owners, including access denial and repeat calls.
