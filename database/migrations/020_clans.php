@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS mucho_clan_invites (
     account_id BIGINT UNSIGNED NOT NULL,
     invited_by_account_id BIGINT UNSIGNED NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP NOT NULL,
+    expires_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (invite_id),
     UNIQUE KEY uq_mucho_clan_invite (clan_id, account_id),
