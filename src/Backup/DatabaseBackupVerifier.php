@@ -33,13 +33,16 @@ final class DatabaseBackupVerifier
             throw new RuntimeException('Backup checksum sidecar is invalid.');
         }
 
+        // Older VPS backups contain an absolute path in the sidecar;
+        // newer backups and PHP exports use the archive basename.
+        // Only permit identifiers that exactly name this archive.
         if (
             preg_match(
                 '/^([a-f0-9]{64})[ \t]+\*?([^\r\n]+)\r?\n?$/iD',
                 $sidecarText,
                 $matches
             ) !== 1 ||
-            $matches[2] !== basename($path)
+            !in_array($matches[2], [basename($path), $path], true)
         ) {
             throw new RuntimeException('Backup checksum or filename is invalid.');
         }
@@ -74,10 +77,21 @@ final class DatabaseBackupVerifier
             gzclose($gzip);
         }
 
-        if (
-            $sqlBytes === 0 ||
-            !str_starts_with($prefix, '-- MuchoCore database backup')
-        ) {
+        // The native PHP dumper writes a MuchoCore header. The VPS shell
+        // script historically used mariadb-dump with its normal SQL banner,
+        // optionally preceded by the MariaDB sandbox-mode comment.
+        // Validate the entire gzip stream and checksum before trusting either.
+        $header = $prefix;
+        if (str_starts_with($header, '/*M!999999')) {
+            $closing = strpos($header, '*/');
+            if ($closing !== false && $closing < 150) {
+                $header = ltrim(substr($header, $closing + 2), "\r\n");
+            }
+        }
+        $validSqlHeader =
+            str_starts_with($header, '-- MuchoCore database backup') ||
+            preg_match('/^-- (?:MariaDB|MySQL) dump\\b/', $header) === 1;
+        if ($sqlBytes === 0 || !$validSqlHeader) {
             throw new RuntimeException('Backup SQL header is missing.');
         }
 

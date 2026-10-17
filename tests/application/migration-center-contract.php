@@ -160,7 +160,7 @@ foreach ([
     'backup is already running',
     'exit 75',
     'BACKUP_OK',
-    'sha256sum -c "$FINAL.sha256"',
+    'sha256sum -c "$(basename "$FINAL.sha256")"',
     'gzip -t "$TMP"',
 ] as $needle) {
     if (strpos($backupScript, $needle) === false) {
