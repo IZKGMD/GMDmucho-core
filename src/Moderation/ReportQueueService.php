@@ -8,7 +8,8 @@ use MuchoCore\Account\AccountAuthenticator;
 use RuntimeException;
 
 /**
- * Content abuse queue for 2.209. Its native response layout is not verified.
+ * Account abuse queue for 2.209. Wire framing and record positions are
+ * recovered from the original EXE; unknown event sources remain absent.
  */
 final readonly class ReportQueueService
 {
@@ -59,24 +60,40 @@ final readonly class ReportQueueService
             return $header . '#';
         }
 
-        // Native AdminReportQueueEntry is split on ':' and reads positional
-        // fields 0..8; further optional blocks are read only for >=12,
-        // >=18 and >=20 fields. Account ID/name are verified from the
-        // constructor's downstream user lookup, remaining fields are
-        // placeholders until their client UI semantics are established.
+        // Verified through AdminReportQueueEntry positional parser
+        // (image VA 0x140242c47) and ReportQueuePopup field consumers:
+        //   slot 0 account ID; 1 username; 2 item count; 4 anonymous count;
+        //   slot 5 most reported reason (-1 = none);
+        //   slot 8 direct-reported count; slot 12 abuse score;
+        //   slot 13 flagged reason code (0 = unflagged);
+        //   slot 16 flagged occurrences; slot 19 reporter count.
+        // All other slots remain placeholders, not fabricated filter events.
+        // Supplying twenty slots enables the client's optional score/summary
+        // UI (>=18/20 slot branches); unknown values are zero/empty.
         $items = [];
         foreach ($result['rows'] as $row) {
-            $stamp = strtotime((string)$row['last_report_at']);
+            $count = (int)$row['report_count'];
             $items[] = implode(':', [
-                (int)$row['target_account_id'],                           // 0 account ID
-                \MuchoCore\Protocol\ProtocolText::username((string)$row['username']), // 1 username
-                (int)$row['report_points'],                              // 2 (provisional)
-                (int)$row['report_count'],                               // 3 (provisional)
-                0,                                                        // 4
-                0,                                                        // 5
-                max(0, $stamp === false ? 0 : $stamp),                    // 6
-                '',                                                       // 7
-                0,                                                        // 8
+                (int)$row['target_account_id'],                              // 0 account
+                \MuchoCore\Protocol\ProtocolText::username((string)$row['username']), // 1 name
+                $count,                                                       // 2 items
+                0,                                                            // 3 reserved
+                0,                                                            // 4 anonymous
+                -1,                                                           // 5 no validated leading reason
+                0,                                                            // 6 reserved
+                '',                                                           // 7 reporter-related string
+                $count,                                                       // 8 directly reported
+                0,                                                            // 9
+                '',                                                           // 10
+                '',                                                           // 11
+                (int)$row['report_points'],                                   // 12 abuse score
+                0,                                                            // 13 no text-filter flag
+                0,                                                            // 14
+                0,                                                            // 15
+                0,                                                            // 16 filter hits
+                0,                                                            // 17
+                0,                                                            // 18
+                $count,                                                       // 19 reporters (upper bound)
             ]);
         }
 
