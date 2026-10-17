@@ -54,16 +54,22 @@ final readonly class ReportQueueService
             return '-2';
         }
 
+        // The 2.209 queue contains *accounts*, with abuse points from
+        // player reports (3 each) and recent text-filter hits (1 each).
+        // We currently have only the report side. Field numbering and
+        // success envelope remain provisional until native parser verified.
         $items = [];
         foreach ($result['rows'] as $row) {
             $stamp = strtotime((string)$row['last_report_at']);
             $items[] = implode(':', [
-                1, (int)$row['last_report_id'],
-                2, (int)$row['content_type'],
-                3, (int)$row['content_id'],
-                4, (int)$row['reason'],
-                5, (int)$row['report_count'],
-                6, max(0, $stamp === false ? 0 : $stamp),
+                1, (int)$row['target_account_id'],
+                2, \MuchoCore\Protocol\ProtocolText::username(
+                    (string)$row['username']
+                ),
+                3, (int)$row['report_points'],
+                4, (int)$row['report_count'],
+                5, max(0, $stamp === false ? 0 : $stamp),
+                6, (int)$row['last_report_id'],
             ]);
         }
 
