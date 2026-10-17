@@ -175,6 +175,7 @@ try {
 
     $sent1 = $ctrl->list($request(27,1,'pw1'))->body;
     $assert(str_contains($sent1,'1:100:2:Pending Alpha'), 'advisor sees own submitted level');
+    $assert(str_contains($sent1, ':39:6:'), 'advisor sees own stars, not other advisor latest suggestion');
     $assert(str_contains($sent1,'1:101:2:Rated Beta'), 'sent history keeps rated entries');
     $assert(!str_contains($sent1,'1:104:2:Pending Delta'), 'advisor cannot see other sent list');
     $assert(str_contains($sent1, '#2:0:10#'), 'sender total respects account boundary');
