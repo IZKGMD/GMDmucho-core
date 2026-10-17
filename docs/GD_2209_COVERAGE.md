@@ -69,13 +69,17 @@ The existing app returned literal `-1`. A separate call to
 
 The new handler is wired to an isolated moderation report table. It enforces
 native account credentials, rejects normal users and rating advisors,
-and permits elder moderators/owners to query pending reports. It returns
-`-2` for no pending reports and a **provisional** colon/piped report list for
-nonempty results. Exact RobTop queue item serialization and interpretation
-of `mode` and `flags` are **not verified**. None of the latter are used as
+and permits elder moderators/owners to query pending reports. After native EXE disassembly, it returns
+`0:0:20#` for an empty queue and `total:offset:20#` before pipe-delimited,
+colon-positional entries, with at least nine fields per entry.
+**Parser framing is verified**, but entry fields after account ID/name,
+case threshold, filter points and `mode`/`sort`/ `flags` semantics
+remain unverified. None of the latter are used as
 security controls. Reporting support from 2.209 for non-level content is
 not implemented. Consequently, the screenshot is not yet confirmed fixed.
 
 On staging with this branch, reproduce the queue and inspect the trace report.
 Record whether it changes from `rejected` to `no_results` or `data`.
 **Only native acceptance of the response removes this blocker.**
+
+See [verified native EXE response parser analysis](GD_2209_NATIVE_EXE_FINDINGS.md).
