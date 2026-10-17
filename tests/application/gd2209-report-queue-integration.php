@@ -88,6 +88,7 @@ try {
     $assert((int)$db->query('SELECT target_account_id
         FROM mucho_content_reports WHERE reporter_account_id=3')->fetchColumn() === 5,
         'pre-migration level report must resolve target account');
+    $db->exec("UPDATE mucho_content_reports SET status='closed' WHERE reporter_account_id=3");
     $auth = new AccountAuthenticator($db);
     $repo = new ReportQueueRepository($db);
     $service = new ReportQueueService($auth, new ModerationRepository($db), $repo);
@@ -115,6 +116,7 @@ try {
     $assert($ctrl->queue($req(3, 'pass-3'))->body === '0:0:20#',
         '2.209 native parser requires total:offset:pageSize# even for empty queue');
 
+    $db->exec("UPDATE mucho_content_reports SET status='pending' WHERE reporter_account_id=3");
     $assert($service->reportLevel(1, 'pass-1', 91, 3, 'spam'),
         'regular player can report existing level');
     $assert(!$service->reportLevel(1, 'pass-1', 999, 3, 'invalid'),
