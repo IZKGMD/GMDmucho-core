@@ -20,17 +20,6 @@ final readonly class ReportQueueRepository
         $page = min(1000, max(0, $page));
         $offset = $page * 20;
 
-        $count = $this->pdo->query(
-            "SELECT COUNT(*) FROM mucho_content_reports WHERE status='pending'"
-        );
-        $total = (int)$count->fetchColumn();
-
-        $order = match ($sort) {
-            1 => 'r.id ASC',
-            2 => 'report_count DESC, r.id DESC',
-            default => 'r.id DESC',
-        };
-
         $sql = "SELECT
                 r.content_type, r.content_id, r.reason,
                 MIN(r.id) AS first_report_id,
