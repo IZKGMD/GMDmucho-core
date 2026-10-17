@@ -48,6 +48,9 @@ jobs:
           done < <(find tests -name "*.sh" -print0)
           bash tests/release/migration-kit.sh
 
+      - name: Verify MuchoCore search and AI discovery contracts
+        run: python3 tests/seo/ai_discovery.py
+
       - name: Validate Composer manifest
         run: composer validate --strict --no-check-publish
 
