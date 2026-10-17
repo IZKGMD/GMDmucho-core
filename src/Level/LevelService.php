@@ -108,6 +108,7 @@ final readonly class LevelService
                 offset: $offset,
                 limit: self::PAGE_SIZE,
                 gameVersion: $gameVersion,
+                binaryVersion: $binaryVersion,
             );
         }
 

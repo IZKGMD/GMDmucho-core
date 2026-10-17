@@ -58,9 +58,14 @@ use MuchoCore\Moderation\ModerationController;
 use MuchoCore\Search\LevelSearchIndexer;
 use MuchoCore\Moderation\ModerationRepository;
 use MuchoCore\Moderation\ModerationService;
+use MuchoCore\Moderation\ReportQueueController;
+use MuchoCore\Moderation\ReportQueueRepository;
+use MuchoCore\Moderation\ReportQueueService;
 use MuchoCore\Music\SongController;
 use MuchoCore\Music\SongRepository;
 use MuchoCore\Music\SongService;
+use MuchoCore\Music\SongUsageController;
+use MuchoCore\Music\SongUsageService;
 use MuchoCore\Music\EditorSoundController;
 use MuchoCore\Music\EditorSoundService;
 use MuchoCore\Protocol\GdCommentEncoder;
@@ -160,7 +165,8 @@ final readonly class Application
             new GdLevelListEncoder(),
             $cache
         );
-        $levelController = new LevelController($levelService, $auth);
+        $modRepo = new ModerationRepository($this->pdo);
+        $levelController = new LevelController($levelService, $auth, $modRepo);
 
         $transferRepo = new LevelTransferRepository($this->pdo);
         $transferService = new LevelTransferService(
@@ -194,10 +200,14 @@ final readonly class Application
         $songController = new SongController(
             new SongService($songRepo, new GdSongEncoder())
         );
+        $songUsageController = new SongUsageController(new SongUsageService($this->pdo));
 
-        $modRepo = new ModerationRepository($this->pdo);
         $modController = new ModerationController(
             new ModerationService($auth, $modRepo)
+        );
+        $reportQueueController = new ReportQueueController(
+            new ReportQueueService($auth, $modRepo,
+                new ReportQueueRepository($this->pdo))
         );
 
         $userRepo = new UserRepository($this->pdo);
@@ -425,6 +435,8 @@ final readonly class Application
 
         $route('/getGJSongInfo',
             [$songController,'info']);
+        // 2.209 documented comma/hash/pipe song-usage statistics.
+        $route('/getGJSongUsage', [$songUsageController, 'get']);
 
         $route('/suggestGJStars20',
             [$modController,'suggest']);
@@ -440,6 +452,8 @@ final readonly class Application
 
         $route('/reportGJLevel',
             [$modController,'report']);
+        // GD 2.209 moderator abuse report queue. Native reply framing TBD.
+        $route('/adminGetReportQueue', [$reportQueueController, 'queue']);
         $route('/requestUserAccess',
             [$userController,'requestAccess']);
 
@@ -447,6 +461,9 @@ final readonly class Application
             [$userController,'profile']);
         $route('/getGJUsers20',
             [$userController,'search']);
+        // GD 2.209: provisional alias to the existing read-only user search.
+        $route('/getGJUserSearch',
+            [$userController,'search209']);
         $route('/getGJScores20',
             [$userController,'scores']);
         $route('/updateGJAccSettings20',

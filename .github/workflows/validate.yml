@@ -79,6 +79,9 @@ jobs:
           find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l bin/mucho-verify-backup.php
           php -l bin/mucho-client-doctor.php
+          php -l bin/mucho-gd2209-trace-report.php
+          php -l bin/mucho-gd2209-coverage.php
+          php bin/mucho-gd2209-coverage.php --json > /dev/null
           php tests/client/client-compatibility.php
           php tests/client/gd-2209-synthetic.php
           php tests/client/client-pack-cache.php
@@ -95,6 +98,8 @@ jobs:
           php tests/protocol/protocol-22-hashes.php
           php tests/protocol/protocol-22-surface.php
           php tests/protocol/backup-verifier-legacy.php
+          php tests/protocol/gd2209-comment-timestamps.php
+          php tests/protocol/gd2209-level-time.php
           php tests/protocol/protocol-20-surface.php
           php tests/protocol/protocol-20-wire.php
           php tests/protocol/protocol-21-surface.php
@@ -147,6 +152,7 @@ jobs:
           php tests/security/client-ip-trusted-proxy.php
           php tests/security/security-storage-contract.php
           php tests/client/client-trace.php
+          php tests/client/gd-2209-trace.php
           php tests/security/muchoprotect.php
           php tests/client/windows-client-patcher.php
           php tests/client/windows-real-client.php
@@ -585,6 +591,27 @@ jobs:
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/gd2209-level-integration.php
+
+      - name: Verify GD 2.209 moderation queue roles, filters and sent history
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/gd2209-moderation-queue-integration.php
+
+      - name: Verify GD 2.209 native report queue access controls
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/gd2209-report-queue-integration.php
+
+      - name: Verify GD 2.209 song usage wire and grouping
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/gd2209-song-usage-integration.php
 
       - name: Verify GD 2.209 editor audio ownership and payload validation
         env:

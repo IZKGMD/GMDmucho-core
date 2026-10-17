@@ -24,7 +24,7 @@ final class GdUserEncoder
         return ProtocolText::username($prefix.$name);
     }
 
-    public function profile(array $u): string
+    public function profile(array $u, int $gameVersion = 22, int $binaryVersion = 0): string
     {
         $accountId = (int)($u['account_id'] ?? 0);
         $userId = (int)($u['user_id'] ?? $accountId);
@@ -94,6 +94,23 @@ final class GdUserEncoder
             $pairs[] = '38:' . (int)($u['messages_count'] ?? 0);
             $pairs[] = '39:' . (int)($u['friend_requests_count'] ?? 0);
             $pairs[] = '40:' . (int)($u['friends_count'] ?? 0);
+        }
+
+        // GD 2.209 profile extension. Self-only fields are added by the
+        // service only when the credential-backed viewer equals target.
+        if ($gameVersion >= 22 && $binaryVersion >= 51) {
+            if (array_key_exists('gd2209_followers', $u)) {
+                $pairs[] = '67:' . max(0, (int)$u['gd2209_followers']);
+            }
+            if (array_key_exists('gd2209_following', $u)) {
+                $pairs[] = '68:' . max(0, (int)$u['gd2209_following']);
+            }
+            if (array_key_exists('gd2209_is_following', $u)) {
+                $pairs[] = '69:' . ((int)$u['gd2209_is_following'] > 0 ? 1 : 0);
+            }
+            if (array_key_exists('gd2209_notifications', $u)) {
+                $pairs[] = '66:' . max(0, (int)$u['gd2209_notifications']);
+            }
         }
 
         $pairs[] = '29:1';

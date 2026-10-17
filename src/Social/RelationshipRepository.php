@@ -338,6 +338,8 @@ final readonly class RelationshipRepository
             $q = $this->pdo->prepare(
                 "SELECT a.username,p.user_id,p.cube,p.color1,
                         p.color2,p.special,
+                        p.stars,p.demons,p.diamonds,p.moons,
+                        p.creator_points,p.secret_coins,p.user_coins,
                         COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,
                         f.friend_account_id AS account_id,
                         f.is_new
@@ -353,6 +355,8 @@ final readonly class RelationshipRepository
             $q = $this->pdo->prepare(
                 "SELECT a.username,p.user_id,p.cube,p.color1,
                         p.color2,p.special,
+                        p.stars,p.demons,p.diamonds,p.moons,
+                        p.creator_points,p.secret_coins,p.user_coins,
                         COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,
                         b.blocked_account_id AS account_id,
                         0 AS is_new
@@ -362,6 +366,38 @@ final readonly class RelationshipRepository
                  JOIN profiles p
                    ON p.account_id=b.blocked_account_id
                  WHERE b.account_id=:id
+                 ORDER BY a.username ASC"
+            );
+        } elseif ($type === 3) {
+            // GD 2.209 getGJUserList20 type=3: users followed by viewer.
+            $q = $this->pdo->prepare(
+                "SELECT a.username,p.user_id,p.cube,p.color1,p.color2,p.special,
+                        p.stars,p.demons,p.diamonds,p.moons,
+                        p.creator_points,p.secret_coins,p.user_coins,
+                        '' AS clan_tag,
+                        f.followed_account_id AS account_id,
+                        0 AS is_new
+                 FROM mucho_follows f
+                 JOIN accounts a ON a.account_id=f.followed_account_id
+                 JOIN profiles p ON p.account_id=f.followed_account_id
+                 WHERE f.follower_account_id=:id
+                   AND a.is_active=1 AND a.is_banned=0
+                 ORDER BY a.username ASC"
+            );
+        } elseif ($type === 4) {
+            // GD 2.209 getGJUserList20 type=4: users muted by viewer.
+            $q = $this->pdo->prepare(
+                "SELECT a.username,p.user_id,p.cube,p.color1,p.color2,p.special,
+                        p.stars,p.demons,p.diamonds,p.moons,
+                        p.creator_points,p.secret_coins,p.user_coins,
+                        '' AS clan_tag,
+                        m.muted_account_id AS account_id,
+                        0 AS is_new
+                 FROM mucho_muted_users m
+                 JOIN accounts a ON a.account_id=m.muted_account_id
+                 JOIN profiles p ON p.account_id=m.muted_account_id
+                 WHERE m.account_id=:id
+                   AND a.is_active=1 AND a.is_banned=0
                  ORDER BY a.username ASC"
             );
         } else {

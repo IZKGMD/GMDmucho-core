@@ -113,6 +113,32 @@ final readonly class UserRepository
         return (int)($stmt->fetchColumn() ?: 0);
     }
 
+    /** Accurate 2.209 profile counters using indexed social/notification tables. */
+    public function getGd2209ProfileCounters(int $targetId, int $viewerId): array
+    {
+        $query = $this->pdo->prepare(
+            'SELECT
+                (SELECT COUNT(*) FROM mucho_follows
+                 WHERE followed_account_id=:followers_for) AS followers,
+                (SELECT COUNT(*) FROM mucho_follows
+                 WHERE follower_account_id=:following_for) AS following,
+                (SELECT COUNT(*) FROM mucho_follows
+                 WHERE follower_account_id=:viewer AND followed_account_id=:peer)
+                    AS is_following,
+                (SELECT COUNT(*) FROM mucho_notifications
+                 WHERE account_id=:notifications_for AND is_read=0)
+                    AS notification_count'
+        );
+        $query->execute([
+            'followers_for' => $targetId,
+            'following_for' => $targetId,
+            'viewer' => max(0, $viewerId),
+            'peer' => $targetId,
+            'notifications_for' => $viewerId === $targetId ? $targetId : 0,
+        ]);
+        return $query->fetch(PDO::FETCH_ASSOC) ?: [];
+    }
+
     private function ensureProfileForAccount(
         int $accountId
     ): void {

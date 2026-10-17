@@ -57,7 +57,7 @@ final class GdRelationshipEncoder
             . '#' . $total . ':' . $offset . ':10';
     }
 
-    public function users(array $rows): string
+    public function users(array $rows, bool $include209Stats = false): string
     {
         if ($rows === []) {
             return '-2';
@@ -68,7 +68,7 @@ final class GdRelationshipEncoder
         foreach ($rows as $r) {
             $accountId = (int)($r['account_id'] ?? 0);
 
-            $out[] = implode(':', [
+            $fields = [
                 1, $this->displayUsername($r),
                 2, (int)($r['user_id'] ?? $accountId),
                 9, (int)($r['icon_id'] ?? $r['cube'] ?? 1),
@@ -79,7 +79,19 @@ final class GdRelationshipEncoder
                 16, $accountId,
                 18, 0,
                 41, (int)($r['is_new'] ?? 0),
-            ]);
+            ];
+            if ($include209Stats) {
+                $fields = array_merge($fields, [
+                    3, (int)($r['stars'] ?? 0),
+                    4, (int)($r['demons'] ?? 0),
+                    8, (int)($r['creator_points'] ?? 0),
+                    13, (int)($r['secret_coins'] ?? 0),
+                    17, (int)($r['user_coins'] ?? 0),
+                    46, (int)($r['diamonds'] ?? 0),
+                    52, (int)($r['moons'] ?? 0),
+                ]);
+            }
+            $out[] = implode(':', $fields);
         }
 
         return implode('|', $out);

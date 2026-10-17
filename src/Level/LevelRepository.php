@@ -360,13 +360,55 @@ final readonly class LevelRepository
                 }
                 break;
 
-            case 27:
+            case 8:
+                // Queue: unrated levels with real moderator submissions.
+                $where[] = 'l.stars = 0';
                 $where[] = 'EXISTS (
-                    SELECT 1
-                    FROM moderation_suggestions ms
+                    SELECT 1 FROM moderation_suggestions ms
                     WHERE ms.level_id = l.level_id
                 )';
-                $order = 'l.updated_at DESC, l.level_id DESC';
+                $order = '(SELECT MAX(ms_order.id)
+                    FROM moderation_suggestions ms_order
+                    WHERE ms_order.level_id = l.level_id) DESC, l.level_id DESC';
+                if ($search !== '') {
+                    if (ctype_digit($search)) {
+                        $where[] = 'l.level_id = :queue_level_id';
+                        $params['queue_level_id'] = (int)$search;
+                    } else {
+                        $where[] = 'l.name LIKE :queue_name';
+                        $params['queue_name'] = '%' . $search . '%';
+                    }
+                }
+                break;
+
+            case 27:
+                // Sent: only submissions by the authenticated advisor.
+                $senderId = (int)($input['accountID'] ?? 0);
+                if ($senderId <= 0) {
+                    return ['levels' => [], 'total' => 0];
+                }
+                $where[] = 'EXISTS (
+                    SELECT 1 FROM moderation_suggestions ms
+                    WHERE ms.level_id = l.level_id
+                      AND ms.account_id = :sender_account_id
+                )';
+                $params['sender_account_id'] = $senderId;
+                // This ORDER BY subquery does not participate in the COUNT
+                // query, so do not add an ORDER-only bound param to $params.
+                $order = '(SELECT MAX(ms_order.id)
+                    FROM moderation_suggestions ms_order
+                    WHERE ms_order.level_id = l.level_id
+                      AND ms_order.account_id = ' . (int)$senderId .
+                ') DESC, l.level_id DESC';
+                if ($search !== '') {
+                    if (ctype_digit($search)) {
+                        $where[] = 'l.level_id = :sent_level_id';
+                        $params['sent_level_id'] = (int)$search;
+                    } else {
+                        $where[] = 'l.name LIKE :sent_name';
+                        $params['sent_name'] = '%' . $search . '%';
+                    }
+                }
                 break;
 
             default:
@@ -467,8 +509,7 @@ final readonly class LevelRepository
              AND s.is_verified = 1
         ";
 
-        // Counts only need the relations referenced by WHERE. Do not join
-        // accounts or verified songs for each row in large level searches.
+        // COUNT(*) should not pay for username and song metadata joins.
         $countFrom = "FROM levels l {$historyJoin}";
         if ($type === 5 && ctype_digit($search)) {
             $countFrom .= " LEFT JOIN profiles p ON p.account_id=l.account_id";
@@ -489,18 +530,32 @@ final readonly class LevelRepository
             $orderSql = 'FIELD(l.level_id,' . implode(',', $escaped) . ')';
         }
 
+        // Type 27 is the requesting advisor's history, not the global last
+        // suggestion. The sender ID is an integer from the authenticated
+        // request, not an interpolated untrusted string.
+        $senderFilterSql = $type === 27
+            ? ' AND ms_stars.account_id = ' . (int)$senderId
+            : '';
+        $requestedStarsExpr = in_array($type, [8, 27], true)
+            ? 'COALESCE((SELECT ms_stars.stars
+                  FROM moderation_suggestions ms_stars
+                  WHERE ms_stars.level_id = l.level_id'
+                    . $senderFilterSql .
+                  ' ORDER BY ms_stars.id DESC LIMIT 1), l.requested_stars)'
+            : 'l.requested_stars';
+
         $sql = '
             SELECT
-                -- Never retrieve level_data (LONGTEXT), level_info or revision
-                -- payloads when the client asked for a ten-row metadata list.
+                -- No LONGTEXT level_data or revision fields in level lists.
                 l.level_id, l.account_id, l.name, l.description,
                 l.level_version, l.game_version, l.length,
                 l.difficulty, l.downloads, l.likes, l.audio_track,
                 l.demon, l.demon_difficulty, l.auto_level,
                 l.stars, l.featured, l.epic, l.object_count,
                 l.original_level_id, l.two_player, l.coins,
-                l.coins_verified, l.requested_stars, l.ldm, l.song_id,
+                l.coins_verified, l.ldm, l.song_id,
                 l.created_at, l.updated_at,
+                ' . $requestedStarsExpr . ' AS requested_stars,
                 COALESCE(a.username, "Player") AS username,
                 COALESCE(p.user_id, l.account_id) AS user_id,
                 s.id AS song_protocol_id,

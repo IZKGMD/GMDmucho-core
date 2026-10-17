@@ -144,6 +144,28 @@ final readonly class UserController
         }
     }
 
+    /**
+     * GD 2.209 user-search endpoint, backed by the existing profile search.
+     * Request key aliases are provisional until native captures exist.
+     */
+    public function search209(Request $request): Response
+    {
+        $query = $request->postString('str')
+            ?: $request->postString('search')
+            ?: $request->postString('query');
+        $page = $request->postInt('page', 0);
+
+        if ($query === '' || strlen($query) > 100 || $page < 0 || $page > 1000) {
+            return Response::text('-1');
+        }
+
+        try {
+            return Response::text($this->service->search($query, $page));
+        } catch (Throwable) {
+            return Response::text('-1');
+        }
+    }
+
     public function profile(Request $request): Response
     {
         $targetAccountId = $request->postInt('targetAccountID');
@@ -194,7 +216,9 @@ final readonly class UserController
             return Response::text(
                 $this->service->getProfile(
                     $targetAccountId,
-                    $viewerAccountId
+                    $viewerAccountId,
+                    $request->clientVersion()->effectiveGameVersion(),
+                    $request->clientVersion()->binaryVersion
                 )
             );
         } catch (Throwable $e) {

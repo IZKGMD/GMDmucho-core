@@ -13,7 +13,8 @@ final class GdLevelDownloadEncoder
     public function encode(
         array $level,
         int $gameVersion,
-        bool $extras = false
+        bool $extras = false,
+        int $binaryVersion = 0
     ): string {
         $levelString = (string) $level['level_data'];
         $protocolStars = max(
@@ -109,6 +110,17 @@ final class GdLevelDownloadEncoder
             53, $level['sfx_ids'] ?? '',
             57, $level['ts'],
         ];
+
+        if ($gameVersion >= 22 && $binaryVersion >= 51) {
+            $fields[] = 62;
+            $fields[] = (new DateTimeImmutable(
+                (string)$level['created_at'], new \DateTimeZone('UTC')
+            ))->getTimestamp();
+            $fields[] = 63;
+            $fields[] = (new DateTimeImmutable(
+                (string)$level['updated_at'], new \DateTimeZone('UTC')
+            ))->getTimestamp();
+        }
 
         if ($extras) {
             $fields[] = 26;

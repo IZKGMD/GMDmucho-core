@@ -53,6 +53,13 @@ final class GdCommentEncoder
             '10', (string)($comment['percent'] ?? 0),
         ];
 
+        // GD 2.209 added key 15: exact Unix creation timestamp.
+        // Never add it to 2.2081 or earlier wire responses.
+        if ($gameVersion >= 22 && $binaryVersion >= 51) {
+            $commentParts[] = '15';
+            $commentParts[] = (string)$this->dateEpoch((string)($comment['created_at'] ?? ''));
+        }
+
         if ($binaryVersion > 31 || $gameVersion >= 22) {
             $commentParts[] = '11';
             $commentParts[] = (string)$badge;
@@ -87,7 +94,8 @@ final class GdCommentEncoder
 
     public function encodeAccountComment(
         array $comment,
-        int $gameVersion = 22
+        int $gameVersion = 22,
+        int $binaryVersion = 0
     ): string {
         $content = (string)($comment['content'] ?? '');
 
@@ -96,7 +104,7 @@ final class GdCommentEncoder
             $gameVersion
         );
 
-        return implode('~', [
+        $parts = [
             '2', $content,
             '3', (string)(
                 $comment['user_id']
@@ -107,7 +115,25 @@ final class GdCommentEncoder
             '7', (string)($comment['is_spam'] ?? 0),
             '9', $this->date((string)($comment['created_at'] ?? '')),
             '6', (string)$comment['id'],
-        ]);
+        ];
+        if ($gameVersion >= 22 && $binaryVersion >= 51) {
+            $parts[] = '15';
+            $parts[] = (string)$this->dateEpoch((string)($comment['created_at'] ?? ''));
+        }
+        return implode('~', $parts);
+    }
+
+    private function dateEpoch(string $value): int
+    {
+        if ($value === '') {
+            return 0;
+        }
+        try {
+            return max(0, (new \DateTimeImmutable($value,
+                new \DateTimeZone('UTC')))->getTimestamp());
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 
     private function date(string $value): string
