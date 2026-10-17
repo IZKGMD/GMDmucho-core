@@ -509,8 +509,13 @@ final readonly class LevelRepository
              AND s.is_verified = 1
         ";
 
+        // COUNT(*) should not pay for username and song metadata joins.
+        $countFrom = "FROM levels l {$historyJoin}";
+        if ($type === 5 && ctype_digit($search)) {
+            $countFrom .= " LEFT JOIN profiles p ON p.account_id=l.account_id";
+        }
         $count = $this->pdo->prepare(
-            'SELECT COUNT(*) ' . $from . ' WHERE ' . $whereSql
+            'SELECT COUNT(*) ' . $countFrom . ' WHERE ' . $whereSql
         );
         $count->execute($params);
         $total = (int)$count->fetchColumn();
@@ -541,7 +546,15 @@ final readonly class LevelRepository
 
         $sql = '
             SELECT
-                l.*,
+                -- No LONGTEXT level_data or revision fields in level lists.
+                l.level_id, l.account_id, l.name, l.description,
+                l.level_version, l.game_version, l.length,
+                l.difficulty, l.downloads, l.likes, l.audio_track,
+                l.demon, l.demon_difficulty, l.auto_level,
+                l.stars, l.featured, l.epic, l.object_count,
+                l.original_level_id, l.two_player, l.coins,
+                l.coins_verified, l.ldm, l.song_id,
+                l.created_at, l.updated_at,
                 ' . $requestedStarsExpr . ' AS requested_stars,
                 COALESCE(a.username, "Player") AS username,
                 COALESCE(p.user_id, l.account_id) AS user_id,
