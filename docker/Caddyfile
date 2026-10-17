@@ -206,6 +206,15 @@
         php_fastcgi app:9000
     }
 
+    handle /gd-content/news/mcnews_*.jpg {
+        rewrite * /news/image.php?file={path}
+        php_fastcgi app:9000
+    }
+    handle /news/mcnews_*.jpg {
+        rewrite * /news/image.php?file={path}
+        php_fastcgi app:9000
+    }
+
     # Preserve the official Music Library, SFX and other asset downloads when
     # the opt-in native News content URL points clients to this server.
     # This uses a fixed CDN upstream, not a user-supplied proxy destination.

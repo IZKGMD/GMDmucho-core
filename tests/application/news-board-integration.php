@@ -23,7 +23,7 @@ try {
     $db=new PDO('mysql:host='.$host.';port='.$port.';dbname='.$name.';charset=utf8mb4','root',$password,[
         PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false,
     ]);
-    foreach (['20261016_001_news_board.php','20261016_002_native_news_state.php'] as $file) {
+    foreach (['20261016_001_news_board.php','20261016_002_native_news_state.php','20261017_001_news_media.php'] as $file) {
         foreach (require dirname(__DIR__,2).'/database/migrations/'.$file as $sql) $db->exec($sql);
     }
     $news=new NewsService($db);

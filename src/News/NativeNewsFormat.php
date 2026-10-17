@@ -13,8 +13,8 @@ use RuntimeException;
  *  url-safe-base64(gzip("4,<count>|1:<id>;2:<date64>;3:<title64>;4:<element>~..."))
  * Element types: 0=body text, 1=image, 2=hyperlink.
  *
- * We intentionally generate text and optional link elements only: an image
- * needs an independently served news image resource and dimensions.
+ * Image: 1,<filename>,<width>,<height>,<video-play-overlay>,<base64url-link>.
+ * Both clickable YouTube previews and ordinary images use this native element.
  */
 final class NativeNewsFormat
 {
@@ -35,18 +35,32 @@ final class NativeNewsFormat
 
             $title = (string)($post['title'] ?? '');
             $body = (string)($post['body'] ?? '');
-            if ($title === '' || $body === '') {
-                throw new RuntimeException('Native news title and body cannot be empty.');
+            $media=$post['media'] ?? [];
+            if ($title === '' || ($body === '' && $media===[])) {
+                throw new RuntimeException('Native news title and content cannot be empty.');
             }
             $date = strtotime((string)($post['published_at'] ?? ''));
             if ($date === false || $date <= 0) {
                 throw new RuntimeException('Native news publication date is invalid.');
             }
 
+            $elements=[];
+            if ($body!=='') $elements[]='0,'.self::base64url($body);
+            foreach ($media as $image) {
+                $file=(string)($image['filename'] ?? '');
+                $width=$image['width'] ?? 0;$height=$image['height'] ?? 0;
+                if (!preg_match('/^mcnews_[a-f0-9]{64}\.jpg$/D',$file)
+                    || !is_int($width) || !is_int($height) || $width<1 || $height<1 || $width>1600 || $height>1600
+                    || !in_array($image['kind'] ?? '',['image','youtube'],true)) throw new RuntimeException('Invalid news image metadata.');
+                $video=$image['kind']==='youtube';
+                $target=$video?YouTubeVideo::canonicalUrl((string)($image['target_url'] ?? '')):(string)($post['url'] ?? '');
+                if (($video && $target==='') || ($target!=='' && !NewsService::isSafeLink($target))) throw new RuntimeException('Invalid news image link.');
+                $elements[]='1,'.$file.','.$width.','.$height.','.($video?'1':'0').','.self::base64url($target);
+            }
             $row = '1:' . $id
                 . ';2:' . self::base64url(gmdate('F j, Y', $date))
                 . ';3:' . self::base64url($title)
-                . ';4:0,' . self::base64url($body);
+                . ';4:' . implode('~',$elements);
 
             $link = (string)($post['url'] ?? '');
             if ($link !== '') {

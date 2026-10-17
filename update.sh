@@ -341,6 +341,9 @@ docker compose "${COMPOSE_ARGS[@]}" exec -T app php bin/migrate.php migrate
 echo '[MuchoCore] Synchronizing admin credentials...'
 docker compose "${COMPOSE_ARGS[@]}" exec -T app php bin/mucho-sync-admin.php
 
+echo '[MuchoCore] Reloading web routes...'
+docker compose "${COMPOSE_ARGS[@]}" exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+
 echo '[MuchoCore] Auto-patching tenant clients...'
 if ! docker compose "${COMPOSE_ARGS[@]}" exec -T app php bin/mucho-client-patch.php; then
     echo '[MuchoCore] WARNING: automatic client repatching failed; core update will continue.' >&2
