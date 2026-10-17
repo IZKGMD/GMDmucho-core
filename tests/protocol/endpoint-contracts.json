@@ -6463,33 +6463,24 @@
       "release_gate": false,
       "inventory_only": true,
       "request_contract": {
-        "status": "partial",
-        "evidence": [
-          "docs/GD_2209_SONG_USAGE.md",
-          "tests/application/gd2209-song-usage-integration.php"
-        ]
+        "status": "pending",
+        "evidence": []
       },
       "wire_contract": {
-        "status": "partial",
-        "evidence": [
-          "tests/application/gd2209-song-usage-integration.php"
-        ]
+        "status": "pending",
+        "evidence": []
       },
       "auth_contract": {
         "status": "pending",
         "evidence": []
       },
       "negative_cases": {
-        "status": "partial",
-        "evidence": [
-          "tests/application/gd2209-song-usage-integration.php"
-        ]
+        "status": "pending",
+        "evidence": []
       },
       "db_integrity": {
-        "status": "partial",
-        "evidence": [
-          "tests/application/gd2209-song-usage-integration.php"
-        ]
+        "status": "pending",
+        "evidence": []
       },
       "concurrency": {
         "status": "pending",
