@@ -575,6 +575,13 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/gd2209-level-integration.php
 
+      - name: Verify GD 2.209 moderation queue roles, filters and sent history
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/gd2209-moderation-queue-integration.php
+
       - name: Verify GD 2.209 editor audio ownership and payload validation
         env:
           TEST_DB_HOST: 127.0.0.1
