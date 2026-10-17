@@ -20,8 +20,10 @@ guard() {
         die "Stage root is not the isolated checkout."
     [[ "$STAGE" != "/opt/mucho-core" ]] ||
         die "Stage root points to production."
-    [[ "$(readlink -f /opt/mucho-core 2>/dev/null || true)" !=
-       "$(readlink -f "$STAGE" 2>/dev/null || echo missing)" ]] ||
+    local resolved_prod resolved_stage
+    resolved_prod="$(readlink -f /opt/mucho-core 2>/dev/null || true)"
+    resolved_stage="$(readlink -f "$STAGE" 2>/dev/null || echo missing)"
+    [[ "$resolved_prod" != "$resolved_stage" ]] ||
         die "Stage directory resolves to production."
 }
 
