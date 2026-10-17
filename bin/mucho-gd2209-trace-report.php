@@ -81,11 +81,26 @@ while (!$file->eof()) {
             'total' => 0, 'rejected' => 0, 'http_error' => 0,
             'no_results' => 0, 'empty' => 0, 'data' => 0,
             'post_keys' => [],
+            'moderation_queue_variants' => [],
         ];
     }
     $group = &$summary['endpoints'][$path];
     $group['total']++;
     $group[$kind]++;
+    $filters = $row['moderation_queue_filters'] ?? null;
+    if (is_array($filters)) {
+        $numericFilters = [];
+        foreach (['mode', 'sort', 'flags', 'page'] as $field) {
+            if (isset($filters[$field]) && is_int($filters[$field])) {
+                $numericFilters[$field] = $filters[$field];
+            }
+        }
+        if ($numericFilters !== []) {
+            $signature = json_encode($numericFilters, JSON_THROW_ON_ERROR);
+            $group['moderation_queue_variants'][$signature] =
+                ($group['moderation_queue_variants'][$signature] ?? 0) + 1;
+        }
+    }
     foreach (($row['post_keys'] ?? []) as $key) {
         if (is_string($key)
             && preg_match('/^[a-zA-Z][a-zA-Z0-9_]{0,63}$/D', $key) === 1) {
@@ -97,6 +112,11 @@ while (!$file->eof()) {
 foreach ($summary['endpoints'] as &$group) {
     $group['post_keys'] = array_slice(array_keys($group['post_keys']), 0, 64);
     sort($group['post_keys']);
+    $variants = [];
+    foreach ($group['moderation_queue_variants'] as $signature => $count) {
+        $variants[] = ['filters' => json_decode($signature, true), 'count' => $count];
+    }
+    $group['moderation_queue_variants'] = $variants;
 }
 unset($group);
 uksort($summary['endpoints'], static function (string $a, string $b) use ($summary): int {
