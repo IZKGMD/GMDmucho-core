@@ -82,6 +82,29 @@ try {
         throw new RuntimeException('GD 2.209 queue selector classification failed.');
     }
 
+    $moderatorRequest = new Request('POST',
+        '/database/adminGetReportQueue.php', [], [
+            'accountID' => '44444',
+            'gjp2' => 'never-log-me',
+            'gameVersion' => '22',
+            'binaryVersion' => '51',
+            'flags' => '11',
+            'sort' => '2',
+            'page' => '4',
+            'mode' => '1',
+        ], []);
+    ClientTrace::captureRequest($moderatorRequest);
+    ClientTrace::captureResponse(Response::text('-1'));
+    $rows = array_values(array_filter(explode("\n",
+        trim((string)file_get_contents($trace)))));
+    $last = json_decode((string)end($rows), true, 512, JSON_THROW_ON_ERROR);
+    if (($last['moderation_queue_filters'] ?? null) !== [
+        'mode' => 1, 'flags' => 11, 'sort' => 2, 'page' => 4
+    ] || str_contains((string)file_get_contents($trace), 'never-log-me')
+        || str_contains((string)file_get_contents($trace), '44444')) {
+        throw new RuntimeException('GD 2.209 queue request filter privacy regression.');
+    }
+
     echo "MUCHOCORE_GD_2209_TRACE_OK\n";
 } finally {
     putenv('MUCHO_CLIENT_TRACE');
