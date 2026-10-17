@@ -13,7 +13,8 @@ final class GdLevelListEncoder
         int $total,
         int $offset,
         int $limit,
-        int $gameVersion = 22
+        int $gameVersion = 22,
+        int $binaryVersion = 0
     ): string {
         if (empty($levels) || $total === 0) {
             return '-2';
@@ -78,6 +79,12 @@ final class GdLevelListEncoder
                 47, 2,
                 40, (int)$level['ldm'],
                 35, (int)$level['song_id'],
+                ...($gameVersion >= 22 && $binaryVersion >= 51
+                    ? [
+                        62, $this->dateEpoch($level['created_at'] ?? null),
+                        63, $this->dateEpoch($level['updated_at'] ?? null),
+                    ]
+                    : []),
             ]);
 
             if (!isset($uniqueUsers[$userId])) {
@@ -136,6 +143,20 @@ final class GdLevelListEncoder
             . '#'
             . $hashPart;
     }    
+    private function dateEpoch(mixed $value): int
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return 0;
+        }
+        try {
+            return max(0, (new \DateTimeImmutable(
+                $value, new \DateTimeZone('UTC')
+            ))->getTimestamp());
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
     private function wireDifficulty(int $difficulty): int
     {
         /*
