@@ -467,7 +467,8 @@ final readonly class LevelTransferService
         $response=$this->downloadEncoder->encode(
             $level,
             $gameVersion,
-            $extras
+            $extras,
+            $binaryVersion
         );
 
         if(
