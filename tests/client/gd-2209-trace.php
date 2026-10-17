@@ -64,6 +64,24 @@ try {
         throw new RuntimeException('Wire classification regression: ' . json_encode($kinds));
     }
 
+    $levelRequest = new Request(
+        'POST', '/database/getGJLevels21.php', [], [
+            'type' => '8',
+            'gameVersion' => '22',
+            'binaryVersion' => '51',
+            'accountID' => '123',
+            'gjp2' => 'do-not-log-me',
+        ], []
+    );
+    ClientTrace::captureRequest($levelRequest);
+    ClientTrace::captureResponse(Response::text('-2'));
+    $last = array_values(array_filter(explode("\n", trim((string)file_get_contents($trace)))));
+    $levelTrace = json_decode((string)end($last), true, 512, JSON_THROW_ON_ERROR);
+    if ($levelTrace['level_list_type'] !== 8 || $levelTrace['result_kind'] !== 'no_results'
+        || str_contains((string)file_get_contents($trace), 'do-not-log-me')) {
+        throw new RuntimeException('GD 2.209 queue selector classification failed.');
+    }
+
     echo "MUCHOCORE_GD_2209_TRACE_OK\n";
 } finally {
     putenv('MUCHO_CLIENT_TRACE');
