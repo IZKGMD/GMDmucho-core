@@ -62,6 +62,7 @@ case "$args" in
     *' exec -T app composer install '*) [[ "${UPDATE_TEST_FAIL:-}" != composer ]] ;;
     *' exec -T app php bin/migrate.php migrate') [[ "${UPDATE_TEST_FAIL:-}" != migration ]] ;;
     *' exec -T app php bin/mucho-sync-admin.php') [[ "${UPDATE_TEST_FAIL:-}" != admin ]] ;;
+    *' exec -T caddy caddy reload '*) [[ "${UPDATE_TEST_FAIL:-}" != routes ]] ;;
     *' exec -T app php bin/mucho-client-patch.php') [[ "${UPDATE_TEST_FAIL:-}" != patch ]] ;;
     *' ps') exit 0 ;;
     *) echo "UNEXPECTED_DOCKER: $*" >&2; exit 43 ;;
@@ -94,7 +95,7 @@ for phase in build runtime composer signal; do
     echo "PASS failed $phase restores original source and retains deployment checkpoint"
 done
 
-for phase in migration admin; do
+for phase in migration admin routes; do
     printf '%s\n' "$UPDATE_TEST_OLD_SHA" > "$FIXTURE/head"
     UPDATE_TEST_FAIL="$phase" run_update
     check test "$code" -ne 0
@@ -105,6 +106,7 @@ for phase in migration admin; do
     check test "$code" -eq 0
     check grep -Fq 'Completing or repairing deployment' <<< "$output"
     check grep -Fq 'exec -T app php bin/migrate.php migrate' "$FIXTURE/actions"
+    check grep -Fq 'exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile' "$FIXTURE/actions"
     check test ! -f "$FIXTURE/.muchocore/update.pending"
     echo "PASS $phase failure is resumed at the same SHA, with migrations and tunnel configuration"
 done

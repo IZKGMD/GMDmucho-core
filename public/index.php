@@ -111,6 +111,15 @@ try {
     exit;
 }
 
+// Native news images also work when Apache/Caddy sends non-PHP paths through
+// this front controller. These bytes must never become a GD "-1" response.
+if (preg_match('~^/(?:gd-content/)?news/(mcnews_[a-f0-9]{64}\.jpg)$~D',
+    (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? ''),PHP_URL_PATH),$newsImageMatch)) {
+    $_GET['file']=$newsImageMatch[1];
+    require __DIR__.'/news/image.php';
+    exit;
+}
+
 /* MUCHO CONTROL FLAGS */
 $__muchoControl = Environment::get('MUCHO_CONTROL_DIR', $root . '/storage/control') ?? ($root . '/storage/control');
 $__muchoUri = strtolower((string)($_SERVER['REQUEST_URI'] ?? ''));

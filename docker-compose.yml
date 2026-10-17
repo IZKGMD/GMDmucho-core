@@ -102,6 +102,10 @@ services:
   caddy:
     image: caddy:2.10-alpine
     restart: unless-stopped
+    # Recreate Caddy on the first News-media upgrade, even when the running
+    # older updater does not yet know how to reload a changed bind-mounted file.
+    labels:
+      io.muchocore.news-media: "1"
     environment:
       DOMAIN: ${DOMAIN}
       CADDY_ADDRESS: ${CADDY_ADDRESS}

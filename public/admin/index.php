@@ -2676,6 +2676,13 @@ require_once __DIR__.'/pages/release.php';
 require_once __DIR__.'/pages/plugins.php';
 require_once __DIR__.'/pages/intelligence.php';
 
+// Draft media previews use the same refreshed owner session as the editor.
+if (isset($_GET['news_image'])) {
+    if ((string)(admin()['role'] ?? '')!=='owner') { http_response_code(403);exit; }
+    $filename=is_string($_GET['news_image'])?$_GET['news_image']:'';
+    \MuchoCore\News\NewsImageResponse::send($db,$filename,true);
+}
+
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     checkCsrf();
 
@@ -4485,6 +4492,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $returnQuery+=$returnState;
     }
     if ($return==='clans' && $action!=='clan-delete') $returnQuery['id']=max(0,(int)($_POST['id'] ?? 0));
+    if ($return==='news' && $action==='news-save' && isset($_SESSION['news_editor_draft'])) {
+        $returnQuery['edit']=max(0,(int)($_POST['id'] ?? 0));
+    }
     header('Location:/admin/?'.http_build_query($returnQuery));
 
     exit;

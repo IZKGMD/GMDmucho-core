@@ -17,20 +17,20 @@ final class NewsService
 {
     public function __construct(private readonly PDO $db) {}
 
-    public static function validate(string $title, string $body, string $url): array
+    public static function validate(string $title, string $body, string $url, bool $hasMedia=false): array
     {
         $title = trim(str_replace(["\r", "\n", "\0"], ' ', $title));
         $body = trim(str_replace("\0", '', $body));
         $url = trim($url);
 
         if ($title === '' || mb_strlen($title, 'UTF-8') > 140) {
-            throw new RuntimeException('News title must contain 1–140 characters.');
+            throw new NewsValidationException('News title must contain 1–140 characters.');
         }
-        if ($body === '' || mb_strlen($body, 'UTF-8') > 5000) {
-            throw new RuntimeException('News body must contain 1–5000 characters.');
+        if (($body === '' && !$hasMedia) || mb_strlen($body, 'UTF-8') > 5000) {
+            throw new NewsValidationException('News body must contain 1–5000 characters.');
         }
         if (strlen($url) > 512 || ($url !== '' && !self::isSafeLink($url))) {
-            throw new RuntimeException('News link must be an HTTPS URL (up to 512 bytes).');
+            throw new NewsValidationException('News link must be an HTTPS URL (up to 512 bytes).');
         }
 
         return ['title' => $title, 'body' => $body, 'external_url' => $url !== '' ? $url : null];
@@ -78,6 +78,9 @@ final class NewsService
                 'published_at' => (string)$row['published_at'],
             ];
         }
+        $media=(new NewsMediaService($this->db))->forPosts(array_column($rows,'id'));
+        foreach ($rows as &$row) $row['media']=$media[$row['id']] ?? [];
+        unset($row);
         return $rows;
     }
 
@@ -113,9 +116,12 @@ final class NewsService
         string $url,
         bool $publish,
         bool $pin,
-        int $adminId
+        int $adminId,
+        ?array $mediaChanges=null
     ): int {
-        $fields = self::validate($title, $body, $url);
+        $media=new NewsMediaService($this->db);
+        $hasMedia=$mediaChanges!==null || ($id>0 && $media->forOwner($id)!==[]);
+        $fields = self::validate($title, $body, $url, $hasMedia);
         $this->db->beginTransaction();
         try {
         $fields['published'] = $publish ? 1 : 0;
@@ -141,6 +147,8 @@ final class NewsService
                     throw new RuntimeException('News post not found.');
                 }
             }
+            if ($mediaChanges!==null) $media->apply($id,$mediaChanges);
+            if ($fields['body']==='' && $media->forOwner($id)===[]) throw new NewsValidationException('Add news text, an image or a YouTube video.');
             $this->bumpNativeVersion();
             $this->db->commit();
             return $id;
@@ -156,6 +164,8 @@ final class NewsService
         $fields['publish_now'] = $publish ? 1 : 0;
         $stmt->execute($fields);
         $createdId = (int)$this->db->lastInsertId();
+        if ($mediaChanges!==null) $media->apply($createdId,$mediaChanges);
+        if ($fields['body']==='' && $media->forOwner($createdId)===[]) throw new NewsValidationException('Add news text, an image or a YouTube video.');
         $this->bumpNativeVersion();
         $this->db->commit();
         return $createdId;

@@ -1,3 +1,10 @@
+## Unreleased — News images and native YouTube cards
+
+- Add JPG/PNG uploads, image-only posts and YouTube cards to both admin interfaces, public web News and native GD 2.209 News. Decode/re-encode bounded uploads and serve content-hashed JPEG resources.
+- Store media in the news database with cascading deletion, owner-only draft previews, published-only public access and atomic post/media/revision changes. Support automatic YouTube previews, manual preview uploads and retained editor text after validation failures.
+- Match the original native image element, dimensions, Play overlay and video URL fields. Reload Caddy during updates and preserve retry checkpoints when route reload fails.
+- Add GD image/URL tests, MariaDB media/privacy/rollback tests and updater reload recovery coverage.
+
 ## Unreleased — 1.1.0 release preparation and News reliability
 
 - Fix news editing and publication with native PDO prepares; cover draft privacy, publication dates, native serialization, revision invalidation and transaction rollback on isolated MariaDB.

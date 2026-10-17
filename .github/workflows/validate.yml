@@ -103,6 +103,7 @@ jobs:
           php tests/application/admin-rbac-contract.php
           php tests/application/news-board-contract.php
           php tests/application/native-news-contract.php
+          php tests/application/news-media.php
           php tests/application/admin-simple-integration.php
           php tests/application/admin-plain-integration.php
           php tests/application/admin-chrome-integration.php
@@ -543,6 +544,13 @@ jobs:
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/news-board-integration.php
+
+      - name: Verify News image privacy and native YouTube cards
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/news-media-integration.php
 
       - name: Verify GD 2.209 social relationship and notification flows
         env:

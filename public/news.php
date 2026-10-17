@@ -24,7 +24,7 @@ try {
 header('Content-Type: text/html; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 header('Cache-Control: public, max-age=30');
-header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+header("Content-Security-Policy: default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
 $escape = static fn(mixed $s): string => htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 ?>
 <!doctype html>
@@ -47,6 +47,7 @@ article p{white-space:pre-wrap;line-height:1.7;overflow-wrap:anywhere;color:#c6c
 .meta{font-size:12px;color:#959fbd}.pin{color:#ffd783}
 .article-link{display:inline-flex;margin-top:19px;color:#b7a8ff;font-weight:700;text-decoration:none}
 .article-link:hover{text-decoration:underline}.empty{padding:32px;border:1px dashed #38405f;border-radius:16px;color:#aeb7d1}
+.news-image{display:block;width:100%;height:auto;margin:18px 0;border-radius:10px}.news-video{display:block;position:relative;color:white;text-decoration:none}.news-video span{position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);background:#e21b1b;border-radius:14px;padding:12px 24px;font-size:28px;box-shadow:0 2px 12px #0008}
 </style>
 </head>
 <body><main>
@@ -63,6 +64,11 @@ article p{white-space:pre-wrap;line-height:1.7;overflow-wrap:anywhere;color:#c6c
 <div class="meta"><?= $item['pinned'] ? '<span class="pin">📌 PINNED</span> · ' : '' ?><?= $escape($item['published_at']) ?></div>
 <h2><?= $escape($item['title']) ?></h2>
 <p><?= $escape($item['body']) ?></p>
+<?php foreach ($item['media'] ?? [] as $media): ?>
+<?php if ($media['kind']==='youtube'): ?><a class="news-video" href="<?=$escape($media['target_url'])?>" target="_blank" rel="noopener noreferrer" aria-label="Watch video on YouTube"><?php endif; ?>
+<img class="news-image" src="<?=$escape($media['url'])?>" width="<?=(int)$media['width']?>" height="<?=(int)$media['height']?>" alt="<?=$media['kind']==='youtube'?'YouTube video preview':'News image'?>" loading="lazy">
+<?php if ($media['kind']==='youtube'): ?><span aria-hidden="true">▶</span></a><?php endif; ?>
+<?php endforeach; ?>
 <?php if ($item['url']): ?><a class="article-link" target="_blank" rel="noopener noreferrer" href="<?= $escape($item['url']) ?>">Read more ↗</a><?php endif; ?>
 </article>
 <?php endforeach; ?>
