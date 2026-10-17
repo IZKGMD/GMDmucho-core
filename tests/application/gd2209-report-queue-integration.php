@@ -112,8 +112,8 @@ try {
         'rating advisor cannot access administrative report queue');
     $assert($ctrl->queue($req(3, 'wrong'))->body === '-1',
         'wrong credential cannot impersonate moderator');
-    $assert($ctrl->queue($req(3, 'pass-3'))->body === '-2',
-        'authorized empty queue returns no-results marker');
+    $assert($ctrl->queue($req(3, 'pass-3'))->body === '0:0:20#',
+        '2.209 native parser requires total:offset:pageSize# even for empty queue');
 
     $assert($service->reportLevel(1, 'pass-1', 91, 3, 'spam'),
         'regular player can report existing level');
@@ -139,10 +139,15 @@ try {
         (int)$group['rows'][0]['report_points'] === 12,
         'verified 2.209 report score is three points per report');
     $queue = $ctrl->queue($req(3, 'pass-3'))->body;
-    $assert(str_contains($queue, '1:5:2:U5:3:12:4:4:5:'),
-        'provisional queue maps all reports to offending account');
-    $assert(str_contains($queue, '#1:0:20'),
-        'account case pagination counts distinct reported accounts');
+    $assert(str_starts_with($queue, '1:0:20#5:U5:12:4:0:0:'),
+        'native pagination comes before positional account case entries');
+    $records = explode('|', explode('#', $queue, 2)[1]);
+    $fields = explode(':', $records[0]);
+    $assert(count($fields) === 9 && (int)$fields[0] === 5
+        && $fields[1] === 'U5',
+        'native parser requires nine positional fields per case');
+    $assert(substr_count($queue, '#') === 1,
+        'native queue has exactly one pagination separator');
     $assert(!str_contains($queue,'spam') && !str_contains($queue,'pass-1'),
         'sensitive report text/credentials not serialized');
 
