@@ -4,6 +4,8 @@ This is the no-VPS deployment mode for compatible PHP shared hosting. It does no
 
 ## Provider compatibility
 
+For a documented, provider-specific preflight of SpaceWeb Free (including its MySQL 5.7 and CPU limitations), see [SpaceWeb / free-hosting compatibility](FREE_HOSTING_SPACEWEB.md). Do not treat passing the PHP installer as proof that a patched Geometry Dash client can reach the API.
+
 The PHP installer requirements and the ability to run a Geometry Dash server are separate checks.
 
 | Hosting type | Installation files | Geometry Dash client traffic |
