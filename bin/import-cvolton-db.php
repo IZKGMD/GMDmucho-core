@@ -97,7 +97,9 @@ function createVerifiedTargetBackup(float $startedAt): string
     $hashExitCode = 0;
 
     exec(
-        '/usr/bin/env sha256sum -c ' . escapeshellarg($hashFile) . ' 2>&1',
+        'cd ' . escapeshellarg(dirname($backup)) .
+        ' && /usr/bin/env sha256sum -c ' .
+        escapeshellarg(basename($hashFile)) . ' 2>&1',
         $hashOutput,
         $hashExitCode
     );
