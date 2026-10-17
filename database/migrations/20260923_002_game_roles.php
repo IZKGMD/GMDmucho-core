@@ -61,17 +61,15 @@ return static function(PDO $db): void {
     ");
 
     $db->exec("
-        UPDATE roles
+        UPDATE roles role_to_change
+        LEFT JOIN roles existing_canonical
+          ON existing_canonical.code = 'elder_moderator'
         SET
-            code = 'elder_moderator',
-            name = 'Elder Moderator',
-            priority = 75
-        WHERE code = 'admin'
-          AND NOT EXISTS (
-              SELECT 1
-              FROM roles r2
-              WHERE r2.code = 'elder_moderator'
-          )
+            role_to_change.code = 'elder_moderator',
+            role_to_change.name = 'Elder Moderator',
+            role_to_change.priority = 75
+        WHERE role_to_change.code = 'admin'
+          AND existing_canonical.id IS NULL
     ");
 
     $db->exec("
