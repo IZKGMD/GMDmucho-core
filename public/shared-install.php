@@ -470,7 +470,10 @@ function databasePreflight(PDO $pdo): string {
     } elseif (preg_match('/(\d+\.\d+(?:\.\d+)?)/', $version, $match)) {
         if (version_compare($match[1], '8.0.29', '<')) {
             throw new RuntimeException(
-                'MySQL 8.0.29 or newer is required. Your server reports ' . $version . '.'
+                'MySQL 8.0.29 or newer is required. Your server reports ' . $version . '. ' .
+                'On SpaceWeb Free the provider documents MySQL 5.7; this is not yet supported. ' .
+                'See https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/FREE_HOSTING_SPACEWEB.md ' .
+                'and do not bypass the database version check.'
             );
         }
     } else {
