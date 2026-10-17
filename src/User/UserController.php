@@ -216,7 +216,9 @@ final readonly class UserController
             return Response::text(
                 $this->service->getProfile(
                     $targetAccountId,
-                    $viewerAccountId
+                    $viewerAccountId,
+                    $request->clientVersion()->effectiveGameVersion(),
+                    $request->clientVersion()->binaryVersion
                 )
             );
         } catch (Throwable $e) {
