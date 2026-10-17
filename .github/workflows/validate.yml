@@ -90,6 +90,7 @@ jobs:
           php tests/protocol/level-protocol-guards.php
           php tests/protocol/protocol-22-hashes.php
           php tests/protocol/protocol-22-surface.php
+          php tests/protocol/gd2209-level-time.php
           php tests/protocol/protocol-20-surface.php
           php tests/protocol/protocol-20-wire.php
           php tests/protocol/protocol-21-surface.php
