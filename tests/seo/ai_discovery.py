@@ -124,8 +124,9 @@ def main() -> None:
                 f"Missing intended crawl rule for {bot}")
     require((ROOT / "public/llms.txt").read_bytes() == (ROOT / "llms.txt").read_bytes(),
             "Public and repository llms.txt differ")
-    require("100% compatible" not in (ROOT / "public/llms.txt").read_text(),
-            "Do not make an unverified 2.209 compatibility claim")
+    llms = (ROOT / "public/llms.txt").read_text()
+    require("Not independently confirmed 100% compatible" in llms,
+            "Clearly qualify 2.209 support rather than overstating coverage")
     caddy = (ROOT / "docker/Caddyfile").read_text()
     require("uri strip_prefix /muchocore" in caddy and "file_server" in caddy,
             "Caddy must serve the knowledge pages as static HTML")
