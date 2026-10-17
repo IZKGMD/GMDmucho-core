@@ -1,0 +1,24 @@
+# GD 2.209 isolated staging overlay.
+# Use ONLY with docker-compose.test.yml and a separate checkout/project.
+# Production compose services/volumes are NOT loaded.
+services:
+  testgdps-app:
+    environment:
+      MUCHO_STAGE_MODE: "1"
+      MUCHO_AUTO_UPDATE: "0"
+      MUCHO_GD_VERSIONS: "22"
+      MUCHO_CLIENT_TRACE: "1"
+      MUCHO_CLIENT_TRACE_FILE: /var/www/mucho-core/storage/testgdps-client-trace.ndjson
+      MUCHOCORE_SITE_HOST: disabled.invalid
+
+  gd2209-stage-web:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    # Loopback-only: external clients must NOT be able to access this listener.
+    ports:
+      - "127.0.0.1:18080:80"
+    volumes:
+      - ./docker/Caddyfile.gd2209-stage:/etc/caddy/Caddyfile:ro
+      - ./:/var/www/mucho-core:ro
+    depends_on:
+      - testgdps-app
