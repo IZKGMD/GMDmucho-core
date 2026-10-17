@@ -992,7 +992,7 @@ final class CommentService
         return 1;
     }
 
-    public function getAccountComments(int $accountId, int $page, int $gameVersion = 22): string
+    public function getAccountComments(int $accountId, int $page, int $gameVersion = 22, int $binaryVersion = 0): string
     {
         $limit = 10;
         $offset = max(0, $page) * $limit;
@@ -1007,7 +1007,8 @@ final class CommentService
         foreach ($comments as $comment) {
             $encoded[] = $this->encoder->encodeAccountComment(
                 $comment,
-                $gameVersion
+                $gameVersion,
+                $binaryVersion
             );
         }
 
