@@ -106,3 +106,28 @@ have produced `Failed to load the queue` despite a registered HTTP route.
 Our updated adapter follows the **verified framing and positional structure**,
 but fields 2..8 remain provisional until their UI mappings are fully
 recovered.
+
+## Report queue record fields recovered from native UI code
+
+At image VA `0x1400c7260` and its record renderer, the client associates
+these colon-delimited positions with the following labels:
+
+| Index | Field | Native evidence |
+|---|---|---|
+| 0 | Account ID | account lookup argument |
+| 1 | Username | account lookup argument |
+| 2 | Number of distinct reported items | `%i item%s` |
+| 4 | Anonymous reporter count | `+%i anonymous` |
+| 5 | Most common report category; use -1 for unknown | eight-entry name table |
+| 8 | Number of reports made directly against the profile | `reported directly x%i` |
+| 12 | Abuse score | `score %i` |
+| 13 | Automatic text-filter flag category | checked to display flag label |
+| 16 | Automatic flag occurrence count | `x%i` |
+| 19 | Distinct reporting accounts | `%i reporter%s` |
+
+Values at positions 3, 6, 7, 9-11, 14-15 and 17-18 are not fully
+mapped. The server writes only known persisted statistics, keeping
+unimplemented event-source counts at zero and unknown case type at -1.
+
+This record type is positional and is **not** the conventional
+`1:value:2:value` Geometry Dash key/value object wire.
