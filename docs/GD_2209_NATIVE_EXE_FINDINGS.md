@@ -81,3 +81,28 @@ strings -a -n 6 GeometryDash.exe | grep -A 3 'reportGJContent.php'
 
 Never execute unknown downloaded binaries on the production VPS; static
 inspection should be performed in an isolated development environment.
+
+## Decompilation-level finding: native queue reply grammar
+
+Located the `AdminReportQueueEntry` constructor and response parser by resolving
+MSVC RTTI `.?AVAdminReportQueueEntry@@` to its virtual function table
+and disassembling the related GameLevelManager routines.
+
+- At image VA `0x140242a29`, the response parser searches for the literal
+  `#` delimiter. **No `#` invokes its failed-load callback.**
+- The part **before `#`** is split on `:` into three integer fields:
+  `total:offset:pageSize`.
+- The part **after `#`** is split into entries on `|`. Each entry splits
+  on `:` and needs **at least 9 positional fields**.
+- Each entry's first field is an integer account ID and the second a username;
+  after parsing, the client uses both to create/lookup its user object.
+- Optional extended record sections are parsed only when enough fields exist
+  (12+, 18+, 20+). Their exact semantics are still being investigated.
+
+**Consequence:** empty queue wire should be `0:0:20#`, not `-2`. A
+populated page starts `TOTAL:OFFSET:20#ACCOUNT_ID:USERNAME:...`, not the
+earlier incorrect `KEY:VALUE...#PAGINATION`. Old provisional replies would
+have produced `Failed to load the queue` despite a registered HTTP route.
+Our updated adapter follows the **verified framing and positional structure**,
+but fields 2..8 remain provisional until their UI mappings are fully
+recovered.
