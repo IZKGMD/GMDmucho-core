@@ -48,35 +48,39 @@ final readonly class ReportQueueService
         }
 
         $result = $this->reports->pending($page, $sort);
+        // Disassembled native GD 2.209 parser at 0x140242a0c:
+        // response MUST have "<total>:<offset>:<pageSize>#<rows>".
+        // A '-2' body or a reversed envelope calls the client's failure
+        // delegate and displays "Failed to load the queue".
+        // Entry records are pipe-separated, colon-positional and need >=9
+        // fields. Record semantics beyond account ID/name are provisional.
+        $header = $result['total'] . ':' . ($page * 20) . ':20';
         if ($result['rows'] === []) {
-            // Provisional GD no-results marker. Actual 2.209 client parsing
-            // must be confirmed against a native success/empty response.
-            return '-2';
+            return $header . '#';
         }
 
-        // The 2.209 queue contains *accounts*, with abuse points from
-        // player reports (3 each) and recent text-filter hits (1 each).
-        // We currently have only the report side. Field numbering and
-        // success envelope remain provisional until native parser verified.
+        // Native AdminReportQueueEntry is split on ':' and reads positional
+        // fields 0..8; further optional blocks are read only for >=12,
+        // >=18 and >=20 fields. Account ID/name are verified from the
+        // constructor's downstream user lookup, remaining fields are
+        // placeholders until their client UI semantics are established.
         $items = [];
         foreach ($result['rows'] as $row) {
             $stamp = strtotime((string)$row['last_report_at']);
             $items[] = implode(':', [
-                1, (int)$row['target_account_id'],
-                2, \MuchoCore\Protocol\ProtocolText::username(
-                    (string)$row['username']
-                ),
-                3, (int)$row['report_points'],
-                4, (int)$row['report_count'],
-                5, max(0, $stamp === false ? 0 : $stamp),
-                6, (int)$row['last_report_id'],
+                (int)$row['target_account_id'],                           // 0 account ID
+                \MuchoCore\Protocol\ProtocolText::username((string)$row['username']), // 1 username
+                (int)$row['report_points'],                              // 2 (provisional)
+                (int)$row['report_count'],                               // 3 (provisional)
+                0,                                                        // 4
+                0,                                                        // 5
+                max(0, $stamp === false ? 0 : $stamp),                    // 6
+                '',                                                       // 7
+                0,                                                        // 8
             ]);
         }
 
-        // This is an explicit adapter candidate, not a verified RobTop wire
-        // response. Never mislabel it as native 2.209 compatibility.
-        return implode('|', $items) . '#' .
-            $result['total'] . ':' . ($page * 20) . ':20';
+        return $header . '#' . implode('|', $items);
     }
 
     public function reportLevel(
