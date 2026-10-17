@@ -61,6 +61,8 @@ use MuchoCore\Moderation\ModerationService;
 use MuchoCore\Music\SongController;
 use MuchoCore\Music\SongRepository;
 use MuchoCore\Music\SongService;
+use MuchoCore\Music\SongUsageController;
+use MuchoCore\Music\SongUsageService;
 use MuchoCore\Music\EditorSoundController;
 use MuchoCore\Music\EditorSoundService;
 use MuchoCore\Protocol\GdCommentEncoder;
@@ -195,6 +197,7 @@ final readonly class Application
         $songController = new SongController(
             new SongService($songRepo, new GdSongEncoder())
         );
+        $songUsageController = new SongUsageController(new SongUsageService($this->pdo));
 
         $modController = new ModerationController(
             new ModerationService($auth, $modRepo)
@@ -425,6 +428,8 @@ final readonly class Application
 
         $route('/getGJSongInfo',
             [$songController,'info']);
+        // 2.209 documented comma/hash/pipe song-usage statistics.
+        $route('/getGJSongUsage', [$songUsageController, 'get']);
 
         $route('/suggestGJStars20',
             [$modController,'suggest']);
