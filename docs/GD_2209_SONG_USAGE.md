@@ -20,8 +20,8 @@ totalLevels,ratedLevels,ratedDownloads#tier:difficulty:count|...
   \`3\` Legendary, \`4\` Mythic.
 - Difficulty: \`0\` Auto, \`1\` Easy, \`2\` Normal, \`3\` Hard,
   \`4\` Harder, \`5\` Insane, \`6\` Demon.
-- MuchoCore's storage uses \`epic=2\` for Mythic and
-  \`epic=3\` for Legendary; the response reorders those to protocol tiers.
+- MuchoCore uses the GD wire/storage values \`epic=2\` for Legendary
+  and \`epic=3\` for Mythic, matching the documented 2.209 tier numbers.
 - No usage is encoded as \`0,0,0#\`; missing/invalid \`songID\` is \`-1\`.
 - No database schema changes or credentials are needed.
 
