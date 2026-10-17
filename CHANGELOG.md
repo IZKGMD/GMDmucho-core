@@ -1,3 +1,12 @@
+## Unreleased — 1.1.0 release preparation and News reliability
+
+- Fix news editing and publication with native PDO prepares; cover draft privacy, publication dates, native serialization, revision invalidation and transaction rollback on isolated MariaDB.
+- Fix the native-News activation command so it writes an actual newline into `.env`.
+- Show newer development sources separately from published stable releases; do not offer a downgrade as an update or claim an offline release check is current.
+- Report the installed source version in `HealthService` instead of an obsolete database seed, and repair Composer integration-test commands.
+- Build both release archives before creating a release draft, publish only after both uploads succeed, and build archive repairs from their exact release tag. Test failed uploads, safe retries and immutable tag targets without external GitHub writes.
+- Expose a JSON endpoint-certification report and reject an uncertified 1.1.0 publication marker in Validate. Document the remaining release blockers rather than claiming 1.1.0 is already stable.
+
 ## Unreleased — MuchoGDPS product interface
 
 - Rebuild the canonical homepage around the Mucho ecosystem, with Russian/English copy, real community data, working player/operator paths and a shared responsive dark/light interface across administration, deployment, downloads, recovery and player pages.

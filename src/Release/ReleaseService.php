@@ -16,6 +16,7 @@ final class ReleaseService
      *     current_version:string,
      *     latest_version:?string,
      *     update_available:bool,
+     *     ahead_of_stable:bool,
      *     release_url:?string,
      *     release_name:?string,
      *     release_body:?string,
@@ -69,6 +70,7 @@ final class ReleaseService
                 'current_version' => $current,
                 'latest_version' => null,
                 'update_available' => false,
+                'ahead_of_stable' => false,
                 'release_url' => null,
                 'release_name' => null,
                 'release_body' => null,
@@ -209,6 +211,7 @@ final class ReleaseService
      *     current_version:string,
      *     latest_version:?string,
      *     update_available:bool,
+     *     ahead_of_stable:bool,
      *     release_url:?string,
      *     release_name:?string,
      *     release_body:?string,
@@ -235,7 +238,10 @@ final class ReleaseService
             'latest_version' => $latestVersion !== '' ? $latestVersion : null,
             'update_available' =>
                 $latestVersion !== '' &&
-                $latestVersion !== $current,
+                self::compareVersions($latestVersion, $current) > 0,
+            'ahead_of_stable' =>
+                $latestVersion !== '' &&
+                self::compareVersions($current, $latestVersion) > 0,
             'release_url' => ($latest['html_url'] ?? '') !== ''
                 ? (string)$latest['html_url']
                 : null,

@@ -62,6 +62,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends android-sdk-build-tools
 
+      - name: Check stable release readiness when marked for publication
+        run: |
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          if [[ "$VERSION" == '1.1.0' && -f ".release/v${VERSION}.ready" ]]; then
+            php tests/release/v110-endpoint-gate.php
+          fi
+
       - name: Check PHP sources
         run: |
           find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
@@ -99,6 +106,7 @@ jobs:
           php tests/application/admin-simple-integration.php
           php tests/application/admin-plain-integration.php
           php tests/application/admin-chrome-integration.php
+          php tests/application/release-status-integration.php
           php tests/application/admin-dashboard-access.php
           php tests/application/public-overview-visibility.php
           php tests/application/web-profile-images.php
@@ -122,6 +130,7 @@ jobs:
           php tests/application/auth-session-isolation.php
           php tests/application/security-regressions.php
           bash tests/release/release-update-detection.sh
+          python3 tests/release/release-publication.py
           bash tests/release/update-main-without-release.sh
           bash tests/release/update-recovery.sh
           php tests/database/migrator-concurrency.php
@@ -527,6 +536,13 @@ jobs:
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/admin-clans-integration.php
+
+      - name: Verify native news publishing and cache revisions
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/news-board-integration.php
 
       - name: Verify GD 2.209 social relationship and notification flows
         env:

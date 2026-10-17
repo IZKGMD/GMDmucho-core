@@ -27,15 +27,6 @@ jobs:
           token: ${{ github.token }}
           persist-credentials: false
 
-      - name: Verify release token
-        env:
-          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        run: |
-          if [[ -z "${RELEASE_TOKEN}" ]]; then
-            echo "ERROR: RELEASE_TOKEN repository secret is required for stable releases." >&2
-            exit 1
-          fi
-
       - name: Check release marker
         id: marker
         run: |
@@ -63,6 +54,16 @@ jobs:
           echo "ready=true" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Verify release token
+        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if [[ -z "${RELEASE_TOKEN}" ]]; then
+            echo "ERROR: RELEASE_TOKEN repository secret is required for stable releases." >&2
+            exit 1
+          fi
 
       - name: Resolve validated commit
         id: source
@@ -94,7 +95,41 @@ jobs:
         if: steps.marker.outputs.ready == 'true' && steps.marker.outputs.version == '1.1.0'
         run: php tests/release/v110-endpoint-gate.php
 
-      - name: Publish validated release
+      - name: Prepare shared-hosting dependencies
+        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
+        env:
+          ARCHIVE_ONLY: ${{ steps.marker.outputs.archive_only }}
+          TAG: ${{ steps.marker.outputs.tag }}
+        run: |
+          if [[ "$ARCHIVE_ONLY" == 'true' ]]; then
+            git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
+            git checkout --detach "$TAG^{commit}"
+          fi
+          composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
+      - name: Build shared-hosting package
+        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
+        env:
+          VERSION: ${{ steps.marker.outputs.version }}
+          OUTPUT: MuchoCore-v${{ steps.marker.outputs.version }}-shared-hosting.zip
+        run: |
+          bash tools/release/build-shared-hosting.sh
+          unzip -t "$OUTPUT" >/dev/null
+          test -s "$OUTPUT"
+
+      - name: Build source archive
+        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
+        env:
+          TAG: ${{ steps.marker.outputs.tag }}
+        run: |
+          git archive --format=zip --prefix="MuchoCore-${TAG}/" -o "MuchoCore-${TAG}.zip" HEAD -- \
+            . \
+            ':(exclude)Geometry.Dash.ver.1.40.build.11.apk' \
+            ':(exclude)assets/brand/sources/**' \
+            ':(exclude).release/**'
+          test -s "MuchoCore-${TAG}.zip"
+
+      - name: Prepare validated release draft
         if: steps.marker.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
@@ -129,25 +164,10 @@ jobs:
             gh release create "$TAG" \
               --title "MuchoCore $TAG" \
               --notes-file RELEASE_NOTES.md \
-              --latest
+              --draft
           fi
 
           rm -f RELEASE_NOTES.md
-
-      - name: Prepare shared-hosting dependencies
-        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
-        run: |
-          composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
-
-      - name: Build shared-hosting package
-        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
-        env:
-          VERSION: ${{ steps.marker.outputs.version }}
-          OUTPUT: MuchoCore-v${{ steps.marker.outputs.version }}-shared-hosting.zip
-        run: |
-          bash tools/release/build-shared-hosting.sh
-          unzip -t "$OUTPUT" >/dev/null
-          test -s "$OUTPUT"
 
       - name: Upload shared-hosting package
         if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
@@ -156,19 +176,6 @@ jobs:
           TAG: ${{ steps.marker.outputs.tag }}
         run: |
           gh release upload "$TAG" "MuchoCore-v${TAG#v}-shared-hosting.zip" --clobber
-      - name: Build source archive
-        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
-        env:
-          TAG: ${{ steps.marker.outputs.tag }}
-        run: |
-          git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
-          git archive --format=zip --prefix="MuchoCore-${TAG}/" -o "MuchoCore-${TAG}.zip" "$TAG" -- \
-            . \
-            ':(exclude)Geometry.Dash.ver.1.40.build.11.apk' \
-            ':(exclude)assets/brand/sources/**' \
-            ':(exclude).release/**'
-          test -s "MuchoCore-${TAG}.zip"
-
       - name: Upload source archive
         if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
         env:
@@ -176,6 +183,14 @@ jobs:
           TAG: ${{ steps.marker.outputs.tag }}
         run: |
           gh release upload "$TAG" "MuchoCore-${TAG}.zip" --clobber
+
+      - name: Publish complete validated release
+        if: steps.marker.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          TAG: ${{ steps.marker.outputs.tag }}
+        run: |
+          gh release edit "$TAG" --draft=false --latest
 
       - name: Remove one-time release marker
         if: steps.marker.outputs.ready == 'true'

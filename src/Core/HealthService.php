@@ -18,6 +18,12 @@ final readonly class HealthService
     public function check(): array
     {
         $database = false;
+        // The installed source is authoritative; a database can retain the
+        // version seeded by the first installation after years of updates.
+        $version = trim((string)@file_get_contents(dirname(__DIR__, 2) . '/VERSION'));
+        if (!preg_match('/^\d+\.\d+\.\d+$/D', $version)) {
+            $version = 'unknown';
+        }
 
         try {
             $database =
@@ -35,11 +41,7 @@ final readonly class HealthService
 
             'core' => 'MuchoCore',
 
-            'version' =>
-                $this->system->setting(
-                    'server.version',
-                    'unknown'
-                ),
+            'version' => $version,
 
             'database' => $database
                 ? 'ok'

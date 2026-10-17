@@ -127,9 +127,8 @@ final class NewsService
                  SET title=:title,body=:body,external_url=:external_url,
                      is_published=:published,is_pinned=:pinned,
                      published_at=CASE
-                         WHEN :publish_now=1 AND published_at IS NULL THEN UTC_TIMESTAMP()
-                         WHEN :publish_now=0 THEN NULL
-                         ELSE published_at END
+                         WHEN :publish_now=1 THEN COALESCE(published_at,UTC_TIMESTAMP())
+                         ELSE NULL END
                  WHERE id=:id'
             );
             // Separate marker avoids duplicated PDO named placeholders.

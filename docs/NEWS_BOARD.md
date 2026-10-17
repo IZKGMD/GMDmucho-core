@@ -27,7 +27,7 @@ After updating to a revision containing this feature, opt in to replacing the GD
 
 ```sh
 sudo sed -i '/^MUCHO_NATIVE_NEWS=/d' /opt/mucho-core/.env
-printf 'MUCHO_NATIVE_NEWS=1\\n' | sudo tee -a /opt/mucho-core/.env
+printf 'MUCHO_NATIVE_NEWS=1\n' | sudo tee -a /opt/mucho-core/.env
 cd /opt/mucho-core
 sudo docker compose up -d --remove-orphans
 sudo docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
@@ -49,7 +49,7 @@ curl -fsS https://muchogdps.space/news/news.dat | head -c 100
 curl -fsS https://muchogdps.space/database/getCustomContentURL.php
 ```
 
-The content URL must point at `https://muchogdps.space/gd-content` after the opt-in flag reaches the PHP app container. To verify in-game, close GD, rename `%LOCALAPPDATA%\\GeometryDash\\news\\news.dat` as a backup, start the GDPS client, open News and compare titles to the admin board. Do **not** delete player saves. No Windows binary re-patch is required for the native news URL path if GD uses the custom-content URL as expected.
+The content URL must point at `https://muchogdps.space/gd-content` after the opt-in flag reaches the PHP app container. To verify in-game, close GD, rename `%LOCALAPPDATA%\GeometryDash\news\news.dat` as a backup, start the GDPS client, open News and compare titles to the admin board. Do **not** delete player saves. No Windows binary re-patch is required for the native news URL path if GD uses the custom-content URL as expected.
 
 **Verification status:** Wire-format conversion is covered by regression tests and real sample parsing. The custom-content URL ↔ native News request chain is based on the 2.209 client's static resource paths; the actual patched game must still be tested at runtime on Windows. Android is not yet confirmed. Do not claim full runtime compatibility until this smoke test passes.
 
