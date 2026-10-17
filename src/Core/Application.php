@@ -447,6 +447,9 @@ final readonly class Application
             [$userController,'profile']);
         $route('/getGJUsers20',
             [$userController,'search']);
+        // GD 2.209: provisional alias to the existing read-only user search.
+        $route('/getGJUserSearch',
+            [$userController,'search209']);
         $route('/getGJScores20',
             [$userController,'scores']);
         $route('/updateGJAccSettings20',
