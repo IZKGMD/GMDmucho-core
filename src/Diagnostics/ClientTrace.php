@@ -40,6 +40,7 @@ final class ClientTrace
             'response_length' => strlen($response->body),
             'response_sha256' => hash('sha256', $response->body),
             'result_kind' => self::resultKind($response),
+            'level_list_type' => self::levelListType(self::$request),
             'client_family' => $version->family(),
             'game_version' => $version->gameVersion,
             'binary_version' => $version->binaryVersion,
@@ -74,6 +75,17 @@ final class ClientTrace
             ['1', 'true', 'yes', 'on'],
             true
         );
+    }
+
+    /** A public search selector only; never log accounts or credentials. */
+    private static function levelListType(Request $request): ?int
+    {
+        if (preg_match('#/(?:getGJLevels(?:21|22)?)(?:\\.php)?$#i',
+            $request->path) !== 1) {
+            return null;
+        }
+        $type = $request->postInt('type', 0);
+        return $type >= 0 && $type <= 100 ? $type : null;
     }
 
     /** Classify the GD wire marker, never record response bodies. */
