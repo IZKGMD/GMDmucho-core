@@ -7,6 +7,8 @@ require dirname(__DIR__, 2) . '/vendor/autoload.php';
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Protocol\GdRelationshipEncoder;
 use MuchoCore\Social\FollowingService;
+use MuchoCore\Social\RelationshipRepository;
+use MuchoCore\Social\RelationshipService;
 use MuchoCore\Social\NotificationService;
 
 $host = getenv('TEST_DB_HOST');
@@ -88,6 +90,7 @@ try {
 
     $auth = new AccountAuthenticator($db);
     $following = new FollowingService($db, $auth, new GdRelationshipEncoder());
+    $relationship = new RelationshipService(new RelationshipRepository($db), $auth, new GdRelationshipEncoder());
     $notifications = new NotificationService($db, $auth);
 
     $check(!$following->follow(1, 'pass-1', 1), 'self-follow must fail');
@@ -113,6 +116,14 @@ try {
     $check(
         str_contains($following->encodedList(1, 'pass-1', 0, false), 'Beta'),
         'following wire payload contains target username'
+    );
+    $check(
+        str_contains($relationship->userList(1, 'pass-1', 3), '1:Beta:'),
+        '2.209 getGJUserList20 type 3 returns followed accounts'
+    );
+    $check(
+        $relationship->userList(2, 'pass-2', 3) === '-2',
+        'followed list is viewer-private, not follower list'
     );
     $check(
         $following->encodedList(1, 'pass-1', 1001, false) === '-2',
@@ -148,6 +159,21 @@ try {
         (int)$db->query('SELECT COUNT(*) FROM mucho_muted_users')->fetchColumn() === 1,
         'mute stores one row'
     );
+    $check(
+        str_contains($relationship->userList(1, 'pass-1', 4), '1:Beta:'),
+        '2.209 getGJUserList20 type 4 returns muted accounts'
+    );
+    $check(
+        $relationship->userList(2, 'pass-2', 4) === '-2',
+        'muted accounts remain private to owner'
+    );
+    try {
+        $relationship->userList(1, 'pass-2', 4);
+        throw new RuntimeException('muted list accepted invalid credential');
+    } catch (RuntimeException $e) {
+        $check($e->getMessage() === 'Unauthorized.',
+            'GD 2.209 user list enforces credential ownership');
+    }
     $check($following->mute(1, 'pass-1', 2, false), 'unmute succeeds');
     $check(
         (int)$db->query('SELECT COUNT(*) FROM mucho_muted_users')->fetchColumn() === 0,
