@@ -189,7 +189,8 @@ final readonly class CommentController
                 $this->service->getAccountComments(
                     $accountId,
                     $page,
-                    $request->clientVersion()->effectiveGameVersion()
+                    $request->clientVersion()->effectiveGameVersion(),
+                    $request->clientVersion()->binaryVersion
                 )
             );
         } catch (Throwable) {
