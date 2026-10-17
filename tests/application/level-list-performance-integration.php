@@ -111,7 +111,7 @@ try {
     }
     $wire = (new GdLevelListEncoder())->encode($result['levels'], 12, 0, 10, 22);
     if (!str_contains($wire, 'Level 12')
-        || !str_contains($wire, 'Normal description')
+        || !str_contains($wire, base64_encode('Normal description'))
         || !str_contains($wire, '#12:0:10#')) {
         throw new RuntimeException('Client list wire regressed after projection optimization.');
     }
