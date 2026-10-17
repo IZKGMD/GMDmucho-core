@@ -72,17 +72,19 @@ final readonly class ReportQueueService
         // UI (>=18/20 slot branches); unknown values are zero/empty.
         $items = [];
         foreach ($result['rows'] as $row) {
-            $count = (int)$row['report_count'];
+            $reports = (int)$row['report_count'];
+            $reportedItems = (int)$row['reported_items'];
+            $reporters = (int)$row['reporter_count'];
             $items[] = implode(':', [
                 (int)$row['target_account_id'],                              // 0 account
                 \MuchoCore\Protocol\ProtocolText::username((string)$row['username']), // 1 name
-                $count,                                                       // 2 items
+                $reportedItems,                                               // 2 items
                 0,                                                            // 3 reserved
                 0,                                                            // 4 anonymous
                 -1,                                                           // 5 no validated leading reason
                 0,                                                            // 6 reserved
                 '',                                                           // 7 reporter-related string
-                $count,                                                       // 8 directly reported
+                0,                                                            // 8 direct profile reports unknown
                 0,                                                            // 9
                 '',                                                           // 10
                 '',                                                           // 11
@@ -93,7 +95,7 @@ final readonly class ReportQueueService
                 0,                                                            // 16 filter hits
                 0,                                                            // 17
                 0,                                                            // 18
-                $count,                                                       // 19 reporters (upper bound)
+                $reporters,                                                   // 19 distinct reporters
             ]);
         }
 
