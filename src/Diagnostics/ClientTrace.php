@@ -41,6 +41,7 @@ final class ClientTrace
             'response_sha256' => hash('sha256', $response->body),
             'result_kind' => self::resultKind($response),
             'level_list_type' => self::levelListType(self::$request),
+            'moderation_queue_filters' => self::moderationQueueFilters(self::$request),
             'client_family' => $version->family(),
             'game_version' => $version->gameVersion,
             'binary_version' => $version->binaryVersion,
@@ -75,6 +76,30 @@ final class ClientTrace
             ['1', 'true', 'yes', 'on'],
             true
         );
+    }
+
+    /**
+     * GD 2.209 moderator queue filter selectors only; no identifying,
+     * credential or arbitrary string values leave this process.
+     */
+    private static function moderationQueueFilters(Request $request): ?array
+    {
+        if (preg_match('#/(?:adminGetReportQueue)(?:\\.php)?$#i',
+            $request->path) !== 1) {
+            return null;
+        }
+        $out = [];
+        foreach (['mode', 'flags', 'sort', 'page'] as $field) {
+            if (!array_key_exists($field, $request->post)) {
+                continue;
+            }
+            $raw = $request->post[$field];
+            if (is_int($raw) || (is_string($raw)
+                && preg_match('/^-?[0-9]{1,6}$/D', $raw) === 1)) {
+                $out[$field] = (int)$raw;
+            }
+        }
+        return $out;
     }
 
     /** A public search selector only; never log accounts or credentials. */
