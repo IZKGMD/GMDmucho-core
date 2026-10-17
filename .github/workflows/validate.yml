@@ -74,6 +74,7 @@ jobs:
           find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l bin/mucho-verify-backup.php
           php -l bin/mucho-client-doctor.php
+          php -l bin/mucho-gd2209-trace-report.php
           php tests/client/client-compatibility.php
           php tests/client/gd-2209-synthetic.php
           php tests/client/client-pack-cache.php
@@ -141,6 +142,7 @@ jobs:
           php tests/security/client-ip-trusted-proxy.php
           php tests/security/security-storage-contract.php
           php tests/client/client-trace.php
+          php tests/client/gd-2209-trace.php
           php tests/security/muchoprotect.php
           php tests/client/windows-client-patcher.php
           php tests/client/windows-real-client.php
