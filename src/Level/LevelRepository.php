@@ -524,12 +524,18 @@ final readonly class LevelRepository
             $orderSql = 'FIELD(l.level_id,' . implode(',', $escaped) . ')';
         }
 
-        // Recent proposed stars are metadata of the submission, not of the level itself.
+        // Type 27 is the requesting advisor's history, not the global last
+        // suggestion. The sender ID is an integer from the authenticated
+        // request, not an interpolated untrusted string.
+        $senderFilterSql = $type === 27
+            ? ' AND ms_stars.account_id = ' . (int)$senderId
+            : '';
         $requestedStarsExpr = in_array($type, [8, 27], true)
             ? 'COALESCE((SELECT ms_stars.stars
                   FROM moderation_suggestions ms_stars
-                  WHERE ms_stars.level_id = l.level_id
-                  ORDER BY ms_stars.id DESC LIMIT 1), l.requested_stars)'
+                  WHERE ms_stars.level_id = l.level_id'
+                    . $senderFilterSql .
+                  ' ORDER BY ms_stars.id DESC LIMIT 1), l.requested_stars)'
             : 'l.requested_stars';
 
         $sql = '
