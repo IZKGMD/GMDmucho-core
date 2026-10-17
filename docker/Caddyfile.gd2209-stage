@@ -15,6 +15,10 @@
         X-Frame-Options DENY
         Cache-Control no-store
     }
+    # One genuine GD 2.209 EXE URL is misspelled as /databas/.
+    # Internal rewrite preserves fixed-size patched binary strings.
+    rewrite /databas/checkIfServerOnline.php /database/checkIfServerOnline.php
+
     # The PHP-FPM service in docker-compose.test.yml belongs to this
     # isolated project. Never proxy to a production 'app' container.
     php_fastcgi testgdps-app:9000
