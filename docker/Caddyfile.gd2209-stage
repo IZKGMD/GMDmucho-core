@@ -1,0 +1,22 @@
+{
+    auto_https off
+    admin off
+}
+
+:80 {
+    root * /var/www/mucho-core/public
+    encode gzip
+    request_body {
+        max_size 75MB
+    }
+    header {
+        -Server
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Cache-Control no-store
+    }
+    # The PHP-FPM service in docker-compose.test.yml belongs to this
+    # isolated project. Never proxy to a production 'app' container.
+    php_fastcgi testgdps-app:9000
+    file_server
+}
