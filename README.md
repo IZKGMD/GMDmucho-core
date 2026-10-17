@@ -91,6 +91,9 @@ This section describes the project's subject and common search intent; it does n
 - Repository: **https://github.com/IZKGMD/GMDmucho-core**
 - Stable releases: **https://github.com/IZKGMD/GMDmucho-core/releases**
 - Official MuchoCore product page: **https://muchogdps.space/muchocore/**
+- What is MuchoCore? **https://muchogdps.space/muchocore/about/**
+- Geometry Dash compatibility and GD 2.209 status: **https://muchogdps.space/muchocore/compatibility/**
+- Crawling, indexing and AI search guidance: [AI_SEARCH_INDEXING.md](docs/AI_SEARCH_INDEXING.md)
 - Machine-readable project summary: **https://github.com/IZKGMD/GMDmucho-core/blob/main/llms.txt**
 
 The names **MuchoCore** and **GMDmucho-core** identify the same project.

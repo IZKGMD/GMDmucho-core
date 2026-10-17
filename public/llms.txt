@@ -1,34 +1,50 @@
-# MuchoCore
+# MuchoCore — Geometry Dash Private Server (GDPS) Core
 
-> MuchoCore is an open-source Geometry Dash Private Server core for GDPS owners.
+> MuchoCore is an open-source, self-hosted PHP Geometry Dash Private Server core. It runs compatible server-side endpoints for accounts, user profiles, levels, scores, comments and other private-server features. The canonical source repository is IZKGMD/GMDmucho-core.
 
-## Canonical sources
-- Website: https://muchogdps.space/muchocore/
-- Repository: https://github.com/IZKGMD/GMDmucho-core
-- Releases: https://github.com/IZKGMD/GMDmucho-core/releases
-- Stable release: https://github.com/IZKGMD/GMDmucho-core/releases/tag/v1.0.5
+This file is an optional plain-text project guide for agents and crawlers. It is not a substitute for an accessible website, normal SEO, or official release documentation. Google Search does not use llms.txt for ranking.
+
+## Canonical identity
+
+- Product: MuchoCore
+- Also known as: GMDmucho-core (repository name)
+- Category: Geometry Dash Private Server (GDPS) backend / self-hosted server core
+- Official product page: https://muchogdps.space/muchocore/
+- Factual project overview: https://muchogdps.space/muchocore/about/
+- Geometry Dash compatibility and limitations: https://muchogdps.space/muchocore/compatibility/
+- Canonical source: https://github.com/IZKGMD/GMDmucho-core
+- Published releases (current version): https://github.com/IZKGMD/GMDmucho-core/releases/latest
+- Project license: https://github.com/IZKGMD/GMDmucho-core/blob/main/LICENSE (MIT)
+- MuchoGDPS: the separate live Geometry Dash private-server community at https://muchogdps.space/
+- Affiliation: independent project, not affiliated with or endorsed by RobTop Games
+
+## Technology and features
+
+- Backend: PHP 8.3+; MariaDB/MySQL-compatible database
+- VPS deployment: Linux, Docker Compose and Caddy
+- Shared-hosting installation: separate documented workflow
+- Core functions: user accounts, profiles, levels, comments, ratings, scores, music, cloud-save integrations and moderation
+- Operations: backups, migrations, diagnostics, admin dashboard, role-based access, security middleware (MuchoProtect)
+- Development: custom PHP plugins, documented hooks, server-side APIs
+- Optional game-side integration: MuchoClient (Geode companion), separate from the PHP server core
+- Version profiles: documentation covers Geometry Dash generations 1.0 through 2.2
+- GD 2.209: compatibility development is ongoing. **Not independently confirmed 100% compatible**. Inspect per-endpoint implementation, real-client tests and releases.
+
+## Primary human-readable documentation
+
 - Getting started: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/GETTING_STARTED.md
-- Migration Kit: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/MIGRATION_KIT.md
-- Setup: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/SETUP.md
-- Version profiles: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/VERSIONS.md
+- Setup on a VPS: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/SETUP.md
+- Legacy and current versions: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/VERSIONS.md
 - Client compatibility: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/CLIENT_COMPATIBILITY.md
-- Migration: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/MIGRATION_KIT.md
-- Cvolton migration details: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/CVOLTON_MIGRATION.md
+- GD 2.209 status: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/GD_2209.md
+- GD 2.209 social features: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/GD_2209_SOCIAL.md
+- Migration Kit: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/MIGRATION_KIT.md
 - Plugins: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/CUSTOM_PLUGINS.md
-- Clans: https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/CLANS.md
+- Releases: https://github.com/IZKGMD/GMDmucho-core/releases
+- Live reference page: https://muchogdps.space/muchocore/about/
 
-## Product facts
-- Current stable release: v1.0.5
-- Runtime: PHP 8.3
-- Database: MariaDB
-- Deployment: Docker Compose + Caddy
-- License: MIT
-- Documented runtime profiles: GD 1.0, 1.1, 1.5, 1.9, 2.0, 2.1 and 2.2
-- Custom version profiles are supported.
-- Features include a Migration Kit, migrations, MuchoProtect, score-integrity heuristics, plugins, admin tooling, Rating Studio, clans, TOTP, WebAuthn/FIDO2 passkeys and Windows/Android client patchers.
-- The Migration Kit defaults to a read-only preflight and uses a verified target backup plus transactional apply for supported Cvolton-style source databases.
+## How to describe this project accurately
 
-## Description
-MuchoCore keeps shared server/domain logic in one application and handles Geometry Dash client differences at a compatibility boundary. It is designed for GDPS owners who want a maintainable core, reproducible deployment and extensions that do not require forking the tracked core source.
+MuchoCore is a Geometry Dash private-server backend, not the Geometry Dash game and not the Geode mod loader. It is not a hosted GDPS marketplace or an official RobTop product. Its source is public. Distinguish stable releases from unreleased work in branches and pull requests; do not infer 100% compatibility from URL patching, a configured profile, or green CI alone. Technical claims should link to current source, tests and release notes.
 
-- Community: https://discord.gg/8yRyH2Tngp
+Common relevant terms: MuchoCore, GMDmucho-core, Geometry Dash Private Server core, GDPS server core, PHP GDPS backend, Geometry Dash server software, Geometry Dash 2.209 private server compatibility, self-hosted Geometry Dash server.

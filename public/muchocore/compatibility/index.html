@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MuchoCore Geometry Dash Version Compatibility — 2.209 and Legacy GD</title>
+<meta name="description" content="MuchoCore client compatibility explained: documented GD 1.0–2.2 server profiles, ongoing GD 2.209 work, Windows/Android patching and how to verify supported features.">
+<meta name="robots" content="index,follow,max-snippet:-1">
+<link rel="canonical" href="https://muchogdps.space/muchocore/compatibility/">
+<link rel="icon" href="/assets/muchocore-icon.png" type="image/png">
+<link rel="stylesheet" href="/muchocore/discovery.css">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="MuchoCore">
+<meta property="og:title" content="Geometry Dash Compatibility | MuchoCore">
+<meta property="og:description" content="Documented GDPS protocol profiles and the difference between URL patching and fully tested GD 2.209 compatibility.">
+<meta property="og:url" content="https://muchogdps.space/muchocore/compatibility/">
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"TechArticle",
+  "@id":"https://muchogdps.space/muchocore/compatibility/#article",
+  "headline":"MuchoCore Geometry Dash version compatibility",
+  "url":"https://muchogdps.space/muchocore/compatibility/",
+  "dateModified":"2026-10-17",
+  "inLanguage":"en",
+  "about":{"@id":"https://muchogdps.space/muchocore/#software"},
+  "isPartOf":{"@id":"https://muchogdps.space/muchocore/#website"}
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="site-header"><div class="wrap"><a class="brand" href="/muchocore/">MuchoCore</a>
+<nav class="site-nav" aria-label="MuchoCore"><a href="/muchocore/">Home</a><a href="/muchocore/about/">About</a><a href="/muchocore/compatibility/" aria-current="page">Compatibility</a><a href="https://github.com/IZKGMD/GMDmucho-core">GitHub source</a></nav></div></header>
+<main class="wrap" id="content">
+<header class="hero">
+<p class="kicker">Technical reference / Updated 17 October 2026</p>
+<h1>Geometry Dash compatibility</h1>
+<p class="lead">MuchoCore exposes version-aware GDPS server endpoints. Supporting a version's server protocol, patching a client executable and verifying every feature in the real game are three different milestones.</p>
+<p>Read the <a href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/VERSIONS.md">protocol/version profiles</a> and <a href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/CLIENT_COMPATIBILITY.md">client testing guide</a> before claiming a fully supported configuration.</p>
+</header>
+<section aria-labelledby="matrix">
+<h2 id="matrix">Compatibility at a glance</h2>
+<div style="overflow-x:auto">
+<table>
+<thead><tr><th>Geometry Dash generation</th><th>MuchoCore scope</th><th>What the status means</th></tr></thead>
+<tbody>
+<tr><td>1.0–1.9</td><td>Legacy compatibility profiles</td><td>Version-specific wire behavior and migration utilities are documented. Consult tested fixtures for individual client builds.</td></tr>
+<tr><td>2.0–2.1</td><td>Protocol compatibility profiles</td><td>Shared server logic with version-specific request/response handling. Feature-by-feature client testing still matters.</td></tr>
+<tr><td>2.2 family</td><td>Modern protocol support and integrations</td><td>Accounts, levels and other core services, with some 2.2-specific feature implementations.</td></tr>
+<tr><td>2.209 (binaryVersion 51)</td><td>Active compatibility engineering</td><td>Client URL-patching work and new API implementation are documented. <strong>100% native compatibility is not yet independently verified.</strong></td></tr>
+</tbody></table>
+</div>
+</section>
+<section aria-labelledby="209">
+<h2 id="209">What is the GD 2.209 status?</h2>
+<p>Geometry Dash 2.209 introduced new server endpoints for social and moderation features, editor audio, user searching and more. MuchoCore tracks their implementation separately from full client acceptance. In particular, the new in-game Moderation Queue requires a newer administrative API; registering the route alone is not sufficient proof that the game can parse every response.</p>
+<p>For current project-specific engineering status, consult <a href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/GD_2209.md">GD 2.209 notes</a>, <a href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/GD_2209_SOCIAL.md">social API notes</a> and the <a href="https://github.com/IZKGMD/GMDmucho-core/pulls">open compatibility pull requests</a>. A test branch or pending pull request is not equivalent to a published stable release.</p>
+</section>
+<section aria-labelledby="client">
+<h2 id="client">Windows, Android and MuchoClient</h2>
+<p>Server-side protocol support is distinct from the official game executable. Windows and Android clients require a correctly configured GDPS endpoint, and some versions require URL patching. MuchoClient is an optional, separately built Geode companion for client-side additions. Geode compatibility and client packaging must be validated per platform and game build.</p>
+<p>See the repository's <a href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/CLIENT_SETUP.md">client setup guide</a> and <a href="https://github.com/IZKGMD/GMDmucho-core/releases">published releases</a>.</p>
+</section>
+<section aria-labelledby="proof">
+<h2 id="proof">What would prove 100% compatibility?</h2>
+<ul>
+<li>Captured request and successful response fixtures for all required client endpoints.</li>
+<li>Registration, login, profile, level list, download/upload, comments, scores and cloud-save tests against actual builds.</li>
+<li>Moderation, notifications, threads, editor sounds and version-new features accepted by the game UI.</li>
+<li>Windows and Android smoke tests, repeatable CI and no major regressions.</li>
+</ul>
+<p class="callout">This page deliberately separates supported protocol concepts from fully verified client behavior. For the most recent status, use GitHub tests, pull requests and release notes instead of assuming a marketing claim has been tested.</p>
+</section>
+</main>
+<footer class="site-footer"><div class="wrap"><span>MuchoCore · Version-aware private server core</span><span><a href="/muchocore/about/">Project overview</a> · <a href="/muchocore/">Product homepage</a> · <a href="https://github.com/IZKGMD/GMDmucho-core">Repository</a></span></div></footer>
+</body></html>
