@@ -381,29 +381,9 @@ final readonly class UserService
         if ($gameVersion >= 22 && $binaryVersion >= 51) {
             // A single indexed lookup for all 2.209 follow/notification
             // counters; do not alter 2.2081 or older profile responses.
-            $stmt = $this->pdo->prepare(
-                'SELECT
-                    (SELECT COUNT(*) FROM mucho_follows
-                     WHERE followed_account_id=:followers_for) AS followers,
-                    (SELECT COUNT(*) FROM mucho_follows
-                     WHERE follower_account_id=:following_for) AS following,
-                    (SELECT COUNT(*) FROM mucho_follows
-                     WHERE follower_account_id=:viewer AND followed_account_id=:peer)
-                        AS is_following,
-                    (SELECT COUNT(*) FROM mucho_notifications
-                     WHERE account_id=:notifications_for AND is_read=0)
-                        AS notification_count'
+            $counters = $this->userRepository->getGd2209ProfileCounters(
+                $targetAccountId, $viewerAccountId
             );
-            $stmt->execute([
-                'followers_for' => $targetAccountId,
-                'following_for' => $targetAccountId,
-                'viewer' => max(0, $viewerAccountId),
-                'peer' => $targetAccountId,
-                // Never disclose target's unread inbox to another viewer.
-                'notifications_for' => $viewerAccountId === $targetAccountId
-                    ? $targetAccountId : 0,
-            ]);
-            $counters = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
             $profile['gd2209_followers'] = (int)($counters['followers'] ?? 0);
             $profile['gd2209_is_following'] = (int)($counters['is_following'] ?? 0);
             if ($viewerAccountId === $targetAccountId) {
