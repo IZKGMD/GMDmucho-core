@@ -80,65 +80,7 @@ MUCHO_CUSTOM_CONTENT_URL=https://geometrydashfiles.b-cdn.net
 STAGE_ENV
         chmod 600 "$STAGE/.env"
     fi
-    if grep -Eq '^MUCHO_AUTO_UPDATE=1
-        die "Staging auto-update is enabled; refusing to start."
-    fi
-}
-
-smoke() {
-    need curl
-    local body
-    body="$(curl --fail --silent --show-error --max-time 15 http://127.0.0.1:18080/health)" ||
-        die "Local staging HTTP health check failed."
-    [[ "$body" == "1" ]] || die "Unexpected staging health body."
-    body="$(curl --fail --silent --show-error --max-time 15 \
-        -X POST --data 'accountID=0&gjp2=&binaryVersion=51&gameVersion=22' \
-        http://127.0.0.1:18080/database/adminGetReportQueue.php)" ||
-        die "Staging queue route did not respond."
-    [[ "$body" == "-1" ]] ||
-        die "Unauthenticated staging moderator route did not reject access."
-    note "PASS staging /health and unauthenticated adminGetReportQueue denial."
-    note "Next: configure a SEPARATE HTTPS staging hostname to test the real game."
-}
-
-case "$MODE" in
-    start)
-        guard; need git; need docker; need openssl; need curl
-        docker compose version >/dev/null 2>&1 || die "Docker Compose plugin is unavailable."
-        init_checkout
-        init_stage_secrets
-        # No 'down -v', no production paths, no production network/ports.
-        compose_stage config --quiet || die "Stage Docker Compose configuration is invalid."
-        compose_stage up -d --build testgdps-db testgdps-app gd2209-stage-web
-        smoke
-        note "Stage: $STAGE | Compose project: $PROJECT"
-        note "Listener: http://127.0.0.1:18080 (VPS loopback only)"
-        ;;
-    smoke)
-        guard; [[ -d "$STAGE/.git" ]] || die "Stage not installed"; smoke ;;
-    status)
-        guard; [[ -d "$STAGE/.git" ]] || die "Stage not installed"
-        compose_stage ps ;;
-    logs)
-        guard; [[ -d "$STAGE/.git" ]] || die "Stage not installed"
-        compose_stage logs --tail=70 testgdps-app gd2209-stage-web ;;
-    stop)
-        guard; [[ -d "$STAGE/.git" ]] || die "Stage not installed"
-        compose_stage stop
-        note "Only staging containers stopped; staging database volume retained."
-        ;;
-    *)
-        cat <<'USAGE'
-Usage: bash bin/mucho-gd2209-staging.sh {start|smoke|status|logs|stop}
-Starts independent MariaDB + PHP + Caddy, on VPS loopback 127.0.0.1:18080.
-Requires Docker Compose, git, openssl and curl. Do not run from a production
-source checkout; the script downloads a fresh branch to /opt/mucho-gd2209-staging.
-Does not bind 80/443, patch clients, modify prod or publish a test endpoint.
-Do not use 'docker compose down -v' (would erase the test database).
-USAGE
-        ;;
-esac
- "$STAGE/.env"; then
+    if grep -Eq '^MUCHO_AUTO_UPDATE=1$' "$STAGE/.env"; then
         die "Staging auto-update is enabled; refusing to start."
     fi
 }
