@@ -338,6 +338,8 @@ final readonly class RelationshipRepository
             $q = $this->pdo->prepare(
                 "SELECT a.username,p.user_id,p.cube,p.color1,
                         p.color2,p.special,
+                        p.stars,p.demons,p.diamonds,p.moons,
+                        p.creator_points,p.secret_coins,p.user_coins,
                         COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,
                         f.friend_account_id AS account_id,
                         f.is_new
@@ -353,6 +355,8 @@ final readonly class RelationshipRepository
             $q = $this->pdo->prepare(
                 "SELECT a.username,p.user_id,p.cube,p.color1,
                         p.color2,p.special,
+                        p.stars,p.demons,p.diamonds,p.moons,
+                        p.creator_points,p.secret_coins,p.user_coins,
                         COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,
                         b.blocked_account_id AS account_id,
                         0 AS is_new
@@ -368,6 +372,8 @@ final readonly class RelationshipRepository
             // GD 2.209 getGJUserList20 type=3: users followed by viewer.
             $q = $this->pdo->prepare(
                 "SELECT a.username,p.user_id,p.cube,p.color1,p.color2,p.special,
+                        p.stars,p.demons,p.diamonds,p.moons,
+                        p.creator_points,p.secret_coins,p.user_coins,
                         '' AS clan_tag,
                         f.followed_account_id AS account_id,
                         0 AS is_new
@@ -382,6 +388,8 @@ final readonly class RelationshipRepository
             // GD 2.209 getGJUserList20 type=4: users muted by viewer.
             $q = $this->pdo->prepare(
                 "SELECT a.username,p.user_id,p.cube,p.color1,p.color2,p.special,
+                        p.stars,p.demons,p.diamonds,p.moons,
+                        p.creator_points,p.secret_coins,p.user_coins,
                         '' AS clan_tag,
                         m.muted_account_id AS account_id,
                         0 AS is_new
