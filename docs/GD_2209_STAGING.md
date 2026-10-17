@@ -57,7 +57,11 @@ ports**; its target must be a short HTTPS hostname.
 
 For the original client, `t.muchogdps.space` is a candidate: it is 17 bytes,
 the same as `www.boomlings.com` and shorter than
-`www.geometrydash.com`. This is a test hostname **proposal**, not a claim
+`www.geometrydash.com`. The original 2.209 EXE contains one
+malformed, one-byte-shorter `/databas/checkIfServerOnline.php` URL.
+The staging patcher keeps its spelling and the staging Caddyfile internally
+rewrites it to `/database/checkIfServerOnline.php`. This preserves PE size.
+This is a test hostname **proposal**, not a claim
 that DNS or TLS has already been configured.
 
 A practical secure ingress is a **separate Cloudflare Tunnel** with hostname
