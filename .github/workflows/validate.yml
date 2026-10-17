@@ -40,7 +40,6 @@ jobs:
           php tests/application/download-dedupe-contract.php
           ! grep -nE '\\\$[0-9]+' install.sh
           bash -n bin/mucho-indexing-audit.sh
-          bash -n bin/mucho-gd2209-staging.sh
           bash -n uninstall.sh
           bash -n tools/migration/mucho-migrate.sh
           bash -n bin/mucho
@@ -49,11 +48,6 @@ jobs:
             bash -n "$script"
           done < <(find tests -name "*.sh" -print0)
           bash tests/release/migration-kit.sh
-
-      - name: Verify isolated GD 2.209 staging configuration
-        run: |
-          php tests/deployment/gd2209-stage-contract.php
-          docker compose -p muchocore-gd2209-staging -f docker-compose.test.yml -f docker-compose.gd2209-stage.yml config --quiet
 
       - name: Verify MuchoCore search and AI discovery contracts
         run: python3 tests/seo/ai_discovery.py
