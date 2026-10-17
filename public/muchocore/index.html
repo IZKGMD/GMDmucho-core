@@ -309,14 +309,26 @@ details p{margin:0 2px 16px;color:var(--muted);font-size:10.5px;line-height:1.65
 <script type="application/ld+json">
 {
   "@context":"https://schema.org",
+  "@type":"WebSite",
+  "@id":"https://muchogdps.space/muchocore/#website",
+  "name":"MuchoCore",
+  "url":"https://muchogdps.space/muchocore/",
+  "description":"Official documentation and product information for the MuchoCore open-source Geometry Dash private server backend.",
+  "inLanguage":"en"
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
   "@type":"SoftwareApplication",
+  "@id":"https://muchogdps.space/muchocore/#software",
   "name":"MuchoCore",
   "alternateName":"MuchoCore GDPS Core",
   "applicationCategory":"DeveloperApplication",
   "operatingSystem":"Linux",
-  "softwareVersion":"1.0.4",
   "license":"https://opensource.org/license/mit/",
-  "dateModified":"2026-09-27",
+  "dateModified":"2026-10-17",
   "url":"https://muchogdps.space/muchocore/",
   "downloadUrl":"https://github.com/IZKGMD/GMDmucho-core/releases",
   "codeRepository":"https://github.com/IZKGMD/GMDmucho-core",
@@ -374,6 +386,7 @@ details p{margin:0 2px 16px;color:var(--muted);font-size:10.5px;line-height:1.65
     </a>
     <nav class="navlinks" id="navLinks" aria-label="Primary">
       <a href="#features">Features</a>
+      <a href="/muchocore/about/">About</a>
       <a href="#compatibility">Compatibility</a>
       <a href="#architecture">Architecture</a>
       <a href="#migration">Migration</a>
@@ -399,6 +412,7 @@ details p{margin:0 2px 16px;color:var(--muted);font-size:10.5px;line-height:1.65
         <div class="hero-actions">
           <a class="btn" href="https://github.com/IZKGMD/GMDmucho-core/releases/latest" target="_blank" rel="noopener noreferrer">Download stable release ↗</a>
           <a class="btn alt" href="/install/">Get started</a>
+          <a class="btn alt" href="/muchocore/about/">What is MuchoCore?</a>
           <a class="btn alt" href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/MIGRATION_KIT.md" target="_blank" rel="noopener noreferrer">Migrate an existing GDPS</a>
           <a class="btn alt" href="https://discord.gg/8yRyH2Tngp" target="_blank" rel="noopener noreferrer">Join Discord</a>
         </div>
@@ -500,6 +514,7 @@ details p{margin:0 2px 16px;color:var(--muted);font-size:10.5px;line-height:1.65
             <div class="v"><strong>Custom</strong><small>For example 1,19,22</small></div>
           </div>
           <p class="note">The repository documents real-client verification for GD 1.0–1.9 across the listed early generations, plus a committed GD 2.2 client contract fixture. Other compatibility coverage is backed by protocol and regression tests where a separate real-client gate is not claimed.</p>
+          <p class="note">GD 2.209 compatibility work is ongoing; do not assume every new 2.209 API is verified. <a href="/muchocore/compatibility/">Read the client compatibility status and validation limits</a>.</p>
         </div>
 
         <div class="panel">
@@ -708,6 +723,8 @@ PluginContext
 <footer class="footer">
   <div class="container">
     MuchoCore — Geometry Dash Private Server Core · MIT License ·
+    <a href="/muchocore/about/">About MuchoCore</a> ·
+    <a href="/muchocore/compatibility/">Version compatibility</a> ·
     <a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">GitHub</a> ·
     <a href="https://github.com/IZKGMD/GMDmucho-core/releases/latest" target="_blank" rel="noopener noreferrer">Releases</a> ·
     <a href="https://discord.gg/8yRyH2Tngp" target="_blank" rel="noopener noreferrer">Discord</a>
