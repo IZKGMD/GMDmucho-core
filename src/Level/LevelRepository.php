@@ -467,8 +467,14 @@ final readonly class LevelRepository
              AND s.is_verified = 1
         ";
 
+        // Counts only need the relations referenced by WHERE. Do not join
+        // accounts or verified songs for each row in large level searches.
+        $countFrom = "FROM levels l {$historyJoin}";
+        if ($type === 5 && ctype_digit($search)) {
+            $countFrom .= " LEFT JOIN profiles p ON p.account_id=l.account_id";
+        }
         $count = $this->pdo->prepare(
-            'SELECT COUNT(*) ' . $from . ' WHERE ' . $whereSql
+            'SELECT COUNT(*) ' . $countFrom . ' WHERE ' . $whereSql
         );
         $count->execute($params);
         $total = (int)$count->fetchColumn();
@@ -485,7 +491,16 @@ final readonly class LevelRepository
 
         $sql = '
             SELECT
-                l.*,
+                -- Never retrieve level_data (LONGTEXT), level_info or revision
+                -- payloads when the client asked for a ten-row metadata list.
+                l.level_id, l.account_id, l.name, l.description,
+                l.level_version, l.game_version, l.length,
+                l.difficulty, l.downloads, l.likes, l.audio_track,
+                l.demon, l.demon_difficulty, l.auto_level,
+                l.stars, l.featured, l.epic, l.object_count,
+                l.original_level_id, l.two_player, l.coins,
+                l.coins_verified, l.requested_stars, l.ldm, l.song_id,
+                l.created_at, l.updated_at,
                 COALESCE(a.username, "Player") AS username,
                 COALESCE(p.user_id, l.account_id) AS user_id,
                 s.id AS song_protocol_id,
