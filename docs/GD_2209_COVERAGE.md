@@ -57,3 +57,25 @@ not credentials, arbitrary field values or response bodies.
    tests with no regressions or performance blockers.
 
 Do not publish a "100%" success badge solely from a successful CI pipeline.
+
+## Captured moderator report queue request (October 17, 2026)
+
+Actual MuchoCore client trace confirmed `POST /database/adminGetReportQueue.php`
+with `gameVersion=22`, `binaryVersion=51` and field names:
+`accountID`, `binaryVersion`, `dvs`, `flags`, `gameVersion`,
+`gjp2`, `mode`, `page`, `secret`, `sort`, `udid`, `uuid`.
+The existing app returned literal `-1`. A separate call to
+`getGJFollowing.php` returned `-2` (no results).
+
+The new handler is wired to an isolated moderation report table. It enforces
+native account credentials, rejects normal users and rating advisors,
+and permits elder moderators/owners to query pending reports. It returns
+`-2` for no pending reports and a **provisional** colon/piped report list for
+nonempty results. Exact RobTop queue item serialization and interpretation
+of `mode` and `flags` are **not verified**. None of the latter are used as
+security controls. Reporting support from 2.209 for non-level content is
+not implemented. Consequently, the screenshot is not yet confirmed fixed.
+
+On staging with this branch, reproduce the queue and inspect the trace report.
+Record whether it changes from `rejected` to `no_results` or `data`.
+**Only native acceptance of the response removes this blocker.**
