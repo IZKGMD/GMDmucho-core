@@ -58,6 +58,9 @@ use MuchoCore\Moderation\ModerationController;
 use MuchoCore\Search\LevelSearchIndexer;
 use MuchoCore\Moderation\ModerationRepository;
 use MuchoCore\Moderation\ModerationService;
+use MuchoCore\Moderation\ReportQueueController;
+use MuchoCore\Moderation\ReportQueueRepository;
+use MuchoCore\Moderation\ReportQueueService;
 use MuchoCore\Music\SongController;
 use MuchoCore\Music\SongRepository;
 use MuchoCore\Music\SongService;
@@ -201,6 +204,10 @@ final readonly class Application
 
         $modController = new ModerationController(
             new ModerationService($auth, $modRepo)
+        );
+        $reportQueueController = new ReportQueueController(
+            new ReportQueueService($auth, $modRepo,
+                new ReportQueueRepository($this->pdo))
         );
 
         $userRepo = new UserRepository($this->pdo);
@@ -445,6 +452,8 @@ final readonly class Application
 
         $route('/reportGJLevel',
             [$modController,'report']);
+        // GD 2.209 moderator abuse report queue. Native reply framing TBD.
+        $route('/adminGetReportQueue', [$reportQueueController, 'queue']);
         $route('/requestUserAccess',
             [$userController,'requestAccess']);
 
