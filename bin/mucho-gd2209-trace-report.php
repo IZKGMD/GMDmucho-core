@@ -57,6 +57,12 @@ while (!$file->eof()) {
         continue;
     }
     $path = (string)($row['path'] ?? '');
+    $listType = $row['level_list_type'] ?? null;
+    if (is_int($listType) && $listType >= 0 && $listType <= 100) {
+        // This selector disambiguates moderator queue type=8 from
+        // sent history type=27 on the same standard GD list endpoint.
+        $path .= ' [type=' . $listType . ']';
+    }
     if ($path === '' || strlen($path) > 256) {
         $summary['invalid_lines']++;
         continue;
