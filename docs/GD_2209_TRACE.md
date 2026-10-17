@@ -18,9 +18,9 @@ the actual captured request.
    ```sh
    php bin/mucho-gd2209-trace-report.php
    # If the new client's binaryVersion is known from your trace:
-   php bin/mucho-gd2209-trace-report.php --min-binary=49 --json
+   php bin/mucho-gd2209-trace-report.php --min-binary=51 --json
    ```
-   The number `49` is an example, **not** a verified 2.209 binaryVersion.
+   The value `51` is documented for current 2.209 PC/mobile builds by GD Docs; verify the value in the captured request before filtering.
 5. Compare rejected paths with `src/Core/Application.php` routes. If
    `getGJLevels21` fails, inspect request *field names* and moderation
    filter semantics; if an unregistered endpoint fails, implement that
@@ -43,6 +43,8 @@ successful data.
 Validation:
 ```sh
 php tests/client/gd-2209-trace.php
+# MariaDB isolated integration test:
+php tests/application/gd2209-moderation-queue-integration.php
 php tests/protocol/router-compatibility.php
 ```
 
@@ -50,6 +52,7 @@ php tests/protocol/router-compatibility.php
 
 - Record redacted request and response fixtures from **real** Windows
   and Android 2.209 clients for every new endpoint.
+- Confirm moderator level-search `type=8` and sent-history `type=27` in the real client.
 - Confirm `getLevelRateInfo`, `getGJContentStatus`,
   `getGJSongUsage`, `reportGJContent` and all moderation queue paths.
 - Validate notification, thread, audio and level-data serialization
@@ -57,3 +60,16 @@ php tests/protocol/router-compatibility.php
 - Test startup, login, levels, profile, cloud save/sync and new features
   on both patched platforms; run regression and performance suites.
 - Rebuild MuchoClient only against confirmed Geode 2.209 bindings.
+
+## Moderation list correction
+
+The legacy GD level search endpoint uses `type=8` for moderator sent
+levels and `type=27` for an advisor's sent history (GD Docs). The server
+now requires a valid moderator credential for both. Type 8 lists unrated,
+listed, undeleted levels with recorded suggestions; type 27 lists only
+suggestions sent by the authenticated advisor, including their rated history.
+Both support name/ID search and the GD `levels#creators#songs#pagination#hash`
+wire shape. Requested stars use the newest recorded suggestion for those
+list types. This is a **server implementation**, not verified 2.209
+moderation popup acceptance. Reproduce in a patched client and inspect
+traces; failure can also originate from other endpoints or permissions.
