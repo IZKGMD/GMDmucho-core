@@ -37,8 +37,8 @@ final readonly class SongUsageService
         $grouped = $this->pdo->prepare(
             'SELECT
                 CASE
-                  WHEN epic = 2 THEN 4
-                  WHEN epic = 3 THEN 3
+                  WHEN epic = 3 THEN 4
+                  WHEN epic = 2 THEN 3
                   WHEN epic = 1 THEN 2
                   WHEN featured > 0 THEN 1
                   ELSE 0
