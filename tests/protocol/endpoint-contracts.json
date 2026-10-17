@@ -6465,7 +6465,7 @@
       "request_contract": {
         "status": "partial",
         "evidence": [
-          "docs/endpoints/songs/getGJSongUsage.md",
+          "docs/GD_2209_SONG_USAGE.md",
           "tests/application/gd2209-song-usage-integration.php"
         ]
       },
