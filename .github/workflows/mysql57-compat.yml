@@ -1,0 +1,37 @@
+name: Experimental MySQL 5.7 Compatibility
+on:
+  push:
+    branches:
+      - feature/free-shared-hosting-spaceweb-preflight
+  workflow_dispatch:
+
+jobs:
+  mysql57:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7.44
+        env:
+          MYSQL_ROOT_PASSWORD: ci-mysql57
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -pci-mysql57 --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, zip
+          tools: composer
+      - name: Install Composer packages
+        run: composer install --no-interaction --no-progress --prefer-dist
+      - name: Test SQL syntax compatibility on MySQL 5.7
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_ROOT_PASSWORD: ci-mysql57
+        run: php tests/database/mysql57-migrations.php
