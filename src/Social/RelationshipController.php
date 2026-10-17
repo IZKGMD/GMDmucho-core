@@ -146,7 +146,9 @@ final readonly class RelationshipController
                 $this->service->userList(
                     $r->postInt('accountID'),
                     $this->gjp($r),
-                    $r->postInt('type')
+                    $r->postInt('type'),
+                    $r->clientVersion()->effectiveGameVersion() >= 22
+                        && $r->clientVersion()->binaryVersion >= 51
                 )
             );
         } catch (Throwable) {
