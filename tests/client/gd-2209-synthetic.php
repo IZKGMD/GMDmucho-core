@@ -33,6 +33,18 @@ verify2209($count === 2, 'Expected 2 endpoint replacements');
 verify2209(strlen($patched) === strlen($original), 'Executable size must not change');
 verify2209(str_contains($patched, "https://muchogdps.space/database/getGJNotifications.php\0"), 'Notification endpoint missing');
 verify2209(str_contains($patched, "https://muchogdps.space/database/checkIfServerOnline.php\0"), 'Malformed legacy check endpoint not corrected');
+// A 17-character staging hostname fits normal GD URLs, but does not
+// fit the expanded /database/ spelling of the original 2.209 /databas/
+// health typo. Preserve the original one-byte-shorter path and route it
+// internally on the staging gateway.
+[$stagePatched, $stageCount] = Gd2209Binary::patchBytes($original, 't.muchogdps.space');
+verify2209($stageCount === 2, 'Staging host must patch both native endpoints');
+verify2209(str_contains($stagePatched, "https://t.muchogdps.space/databas/checkIfServerOnline.php\0"),
+    '17-byte host should preserve the single typo rather than overflow');
+verify2209(str_contains($stagePatched, "https://t.muchogdps.space/database/getGJNotifications.php\0"),
+    'Normal staging endpoint must retain valid database path');
+verify2209(strlen($stagePatched) === strlen($original),
+    'Staging PE size must remain unchanged');
 verify2209(substr($patched, -15) === 'EXTRA-UNTOUCHED', 'Data after .rdata was modified');
 verify2209(substr($patched, 0, 0x400) === substr($original, 0, 0x400), 'PE code/header modified');
 try {
