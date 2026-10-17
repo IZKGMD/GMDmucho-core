@@ -172,6 +172,16 @@ try {
     $assert(!str_contains($queue, '1:102:2:No Suggestion'), 'unsubmitted level excluded');
     $assert(str_contains($queue, ':39:9:'), 'newest requested star count reflected');
     $assert(str_contains($queue, '#2:0:10#'), 'queue correct total/offset/page size');
+    $assert(str_contains($queue, ':62:') && str_contains($queue, ':63:'),
+        '2.209 responses include exact upload and update Unix timestamps');
+    $oldRequest = $request(8,1,'pw1');
+    $oldPost = $oldRequest->post;
+    $oldPost['binaryVersion'] = '47';
+    $oldResponse = $ctrl->list(new Request('POST', $oldRequest->path,
+        [], $oldPost, []))->body;
+    $assert(!str_contains($oldResponse, ':62:') && !str_contains($oldResponse, ':63:'),
+        '2.2081 response excludes new level time fields');
+
 
     $sent1 = $ctrl->list($request(27,1,'pw1'))->body;
     $assert(str_contains($sent1,'1:100:2:Pending Alpha'), 'advisor sees own submitted level');
