@@ -10,6 +10,10 @@ function renderReleaseUpdatePage(string $rootDir, string $controlDir): void
     $current = (string)$status['current_version'];
     $latest = (string)($status['latest_version'] ?? '');
     $available = (bool)$status['update_available'];
+    $ahead = (bool)$status['ahead_of_stable'];
+    $known = $latest !== '';
+    $title = !$known ? 'Release check unavailable' : ($available ? 'Update available' : ($ahead ? 'Ahead of stable release' : 'You are up to date'));
+    $badge = !$known ? 'UNKNOWN' : ($available ? 'UPDATE READY' : ($ahead ? 'DEVELOPMENT' : 'CURRENT'));
     $releaseUrl = (string)($status['release_url'] ?? '');
     $releaseName = (string)($status['release_name'] ?? '');
     $body = (string)($status['release_body'] ?? '');
@@ -25,19 +29,23 @@ function renderReleaseUpdatePage(string $rootDir, string $controlDir): void
     echo '<div>';
     echo '<div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:#8c7dff">MUCHOCORE RELEASES</div>';
     echo '<h2 style="margin:7px 0 4px">' .
-        ($available ? 'Update available' : 'You are up to date') .
+        h($title) .
         '</h2>';
     echo '<p class="muted" style="margin:0;line-height:1.5">';
-    echo 'Installed <b style="color:#eef2ff">v' . h($current) . '</b>';
+    echo 'Installed <b>v' . h($current) . '</b>';
     if ($latest !== '') {
-        echo ' · Latest stable <b style="color:#eef2ff">v' . h($latest) . '</b>';
+        echo ' · Latest stable <b>v' . h($latest) . '</b>';
     }
     echo '</p>';
     echo '</div>';
-    echo '<span class="badge ' . ($available ? '' : 'green') . '">' .
-        ($available ? 'UPDATE READY' : 'CURRENT') .
+    echo '<span class="badge ' . ($known && !$available && !$ahead ? 'green' : '') . '">' .
+        h($badge) .
         '</span>';
     echo '</div>';
+
+    if ($ahead) {
+        echo '<p class="muted">This installation is newer than the published stable release. A lower version is not an upgrade; source version numbers do not by themselves confirm stable release status.</p>';
+    }
 
     if ($status['error'] !== null) {
         echo '<div class="warning" style="margin-top:14px">' .
