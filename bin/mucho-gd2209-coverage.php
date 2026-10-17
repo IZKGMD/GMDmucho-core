@@ -67,7 +67,10 @@ if (!is_string($source)) {
     fwrite(STDERR, "Unable to read Application.php\n");
     exit(2);
 }
-preg_match_all("~\\$route\\('/([^']+)'~", $source, $found);
+$pattern = <<<'REGEX'
+~\$route\('/([^']+)'~
+REGEX;
+preg_match_all($pattern, $source, $found);
 $implementedPaths = array_fill_keys(
     array_map('strtolower', $found[1] ?? []), true
 );
