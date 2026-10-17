@@ -360,13 +360,54 @@ final readonly class LevelRepository
                 }
                 break;
 
-            case 27:
+            case 8:
+                // Queue: unrated levels with real moderator submissions.
+                $where[] = 'l.stars = 0';
                 $where[] = 'EXISTS (
-                    SELECT 1
-                    FROM moderation_suggestions ms
+                    SELECT 1 FROM moderation_suggestions ms
                     WHERE ms.level_id = l.level_id
                 )';
-                $order = 'l.updated_at DESC, l.level_id DESC';
+                $order = '(SELECT MAX(ms_order.id)
+                    FROM moderation_suggestions ms_order
+                    WHERE ms_order.level_id = l.level_id) DESC, l.level_id DESC';
+                if ($search !== '') {
+                    if (ctype_digit($search)) {
+                        $where[] = 'l.level_id = :queue_level_id';
+                        $params['queue_level_id'] = (int)$search;
+                    } else {
+                        $where[] = 'l.name LIKE :queue_name';
+                        $params['queue_name'] = '%' . $search . '%';
+                    }
+                }
+                break;
+
+            case 27:
+                // Sent: only submissions by the authenticated advisor.
+                $senderId = (int)($input['accountID'] ?? 0);
+                if ($senderId <= 0) {
+                    return ['levels' => [], 'total' => 0];
+                }
+                $where[] = 'EXISTS (
+                    SELECT 1 FROM moderation_suggestions ms
+                    WHERE ms.level_id = l.level_id
+                      AND ms.account_id = :sender_account_id
+                )';
+                $params['sender_account_id'] = $senderId;
+                $order = '(SELECT MAX(ms_order.id)
+                    FROM moderation_suggestions ms_order
+                    WHERE ms_order.level_id = l.level_id
+                      AND ms_order.account_id = :sender_order_account_id
+                ) DESC, l.level_id DESC';
+                $params['sender_order_account_id'] = $senderId;
+                if ($search !== '') {
+                    if (ctype_digit($search)) {
+                        $where[] = 'l.level_id = :sent_level_id';
+                        $params['sent_level_id'] = (int)$search;
+                    } else {
+                        $where[] = 'l.name LIKE :sent_name';
+                        $params['sent_name'] = '%' . $search . '%';
+                    }
+                }
                 break;
 
             default:
@@ -483,9 +524,18 @@ final readonly class LevelRepository
             $orderSql = 'FIELD(l.level_id,' . implode(',', $escaped) . ')';
         }
 
+        // Recent proposed stars are metadata of the submission, not of the level itself.
+        $requestedStarsExpr = in_array($type, [8, 27], true)
+            ? 'COALESCE((SELECT ms_stars.stars
+                  FROM moderation_suggestions ms_stars
+                  WHERE ms_stars.level_id = l.level_id
+                  ORDER BY ms_stars.id DESC LIMIT 1), l.requested_stars)'
+            : 'l.requested_stars';
+
         $sql = '
             SELECT
                 l.*,
+                ' . $requestedStarsExpr . ' AS requested_stars,
                 COALESCE(a.username, "Player") AS username,
                 COALESCE(p.user_id, l.account_id) AS user_id,
                 s.id AS song_protocol_id,
