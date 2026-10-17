@@ -139,13 +139,18 @@ try {
         (int)$group['rows'][0]['report_points'] === 12,
         'verified 2.209 report score is three points per report');
     $queue = $ctrl->queue($req(3, 'pass-3'))->body;
-    $assert(str_starts_with($queue, '1:0:20#5:U5:12:4:0:0:'),
+    $assert(str_starts_with($queue, '1:0:20#5:U5:2:0:0:-1:'),
         'native pagination comes before positional account case entries');
     $records = explode('|', explode('#', $queue, 2)[1]);
     $fields = explode(':', $records[0]);
-    $assert(count($fields) === 9 && (int)$fields[0] === 5
+    $assert(count($fields) === 20 && (int)$fields[0] === 5
         && $fields[1] === 'U5',
-        'native parser requires nine positional fields per case');
+        'native parser supports twenty positional case fields');
+    $assert((int)$fields[2] === 2 && (int)$fields[8] === 0
+        && (int)$fields[12] === 12 && (int)$fields[19] === 3,
+        'distinct items, no invented direct reports, abuse score and reporters');
+    $assert((int)$fields[13] === 0 && (int)$fields[16] === 0,
+        'no fabricated text-filter flags or hits');
     $assert(substr_count($queue, '#') === 1,
         'native queue has exactly one pagination separator');
     $assert(!str_contains($queue,'spam') && !str_contains($queue,'pass-1'),
