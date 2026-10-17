@@ -393,12 +393,13 @@ final readonly class LevelRepository
                       AND ms.account_id = :sender_account_id
                 )';
                 $params['sender_account_id'] = $senderId;
+                // This ORDER BY subquery does not participate in the COUNT
+                // query, so do not add an ORDER-only bound param to $params.
                 $order = '(SELECT MAX(ms_order.id)
                     FROM moderation_suggestions ms_order
                     WHERE ms_order.level_id = l.level_id
-                      AND ms_order.account_id = :sender_order_account_id
-                ) DESC, l.level_id DESC';
-                $params['sender_order_account_id'] = $senderId;
+                      AND ms_order.account_id = ' . (int)$senderId .
+                ') DESC, l.level_id DESC';
                 if ($search !== '') {
                     if (ctype_digit($search)) {
                         $where[] = 'l.level_id = :sent_level_id';
