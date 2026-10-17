@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What is MuchoCore? Open-source Geometry Dash Private Server Core</title>
+<meta name="description" content="MuchoCore explained: an open-source PHP Geometry Dash private server (GDPS) backend with admin tools, plugins, migration, MariaDB, Docker and client compatibility profiles.">
+<meta name="robots" content="index,follow,max-snippet:-1">
+<link rel="canonical" href="https://muchogdps.space/muchocore/about/">
+<link rel="icon" href="/assets/muchocore-icon.png" type="image/png">
+<link rel="stylesheet" href="/muchocore/discovery.css">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="MuchoCore">
+<meta property="og:title" content="What is MuchoCore? | GDPS Server Core">
+<meta property="og:description" content="A factual introduction to MuchoCore, the self-hosted Geometry Dash private server backend.">
+<meta property="og:url" content="https://muchogdps.space/muchocore/about/">
+<meta property="og:image" content="https://muchogdps.space/assets/muchocore-logo.jpg">
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"AboutPage",
+  "@id":"https://muchogdps.space/muchocore/about/#webpage",
+  "url":"https://muchogdps.space/muchocore/about/",
+  "name":"What is MuchoCore?",
+  "description":"A factual overview of the open-source MuchoCore Geometry Dash Private Server backend.",
+  "inLanguage":"en",
+  "about":{"@id":"https://muchogdps.space/muchocore/#software"},
+  "isPartOf":{"@id":"https://muchogdps.space/muchocore/#website"}
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="site-header"><div class="wrap">
+<a class="brand" href="/muchocore/">MuchoCore</a>
+<nav class="site-nav" aria-label="MuchoCore">
+<a href="/muchocore/">Home</a><a href="/muchocore/about/" aria-current="page">About</a><a href="/muchocore/compatibility/">Compatibility</a><a href="https://github.com/IZKGMD/GMDmucho-core">GitHub source</a>
+</nav></div></header>
+<main class="wrap" id="content">
+<header class="hero">
+<p class="kicker">MuchoCore / Official project information</p>
+<h1>What is MuchoCore?</h1>
+<p class="lead"><strong>MuchoCore</strong> is an open-source, self-hosted <strong>Geometry Dash Private Server (GDPS) core</strong> written in PHP. It is the server-side software used to operate a private Geometry Dash community: accounts, user profiles, levels, scores, moderation and related game endpoints.</p>
+<p>Its canonical source repository is <a href="https://github.com/IZKGMD/GMDmucho-core">IZKGMD/GMDmucho-core</a>. The names <strong>MuchoCore</strong> and <strong>GMDmucho-core</strong> refer to the same project. <strong>MuchoGDPS</strong> is the separately named public GDPS community/site, not another name for the server framework itself.</p>
+</header>
+<section aria-labelledby="facts">
+<h2 id="facts">Project facts</h2>
+<dl>
+<dt>Type</dt><dd>Geometry Dash private server core / GDPS backend</dd>
+<dt>Source code</dt><dd><a href="https://github.com/IZKGMD/GMDmucho-core">GitHub: IZKGMD/GMDmucho-core</a></dd>
+<dt>License</dt><dd><a href="https://github.com/IZKGMD/GMDmucho-core/blob/main/LICENSE">MIT (repository license)</a></dd>
+<dt>Language and runtime</dt><dd>PHP 8.3+</dd>
+<dt>Data storage</dt><dd>MariaDB / MySQL-compatible relational database</dd>
+<dt>Deployment</dt><dd>Linux VPS using Docker Compose and Caddy; a separate shared-hosting installer is documented</dd>
+<dt>Latest release</dt><dd><a href="https://github.com/IZKGMD/GMDmucho-core/releases/latest">Consult the current published GitHub release</a> (rather than treating a cached version number as current)</dd>
+<dt>Relationship to Geometry Dash</dt><dd>Independent community software. Not an official RobTop Games product.</dd>
+</dl>
+</section>
+<section aria-labelledby="features">
+<h2 id="features">What can you build with MuchoCore?</h2>
+<div class="cards">
+<article class="card"><h3>Run a GDPS</h3><p>Host account registration, profiles, levels, comments, ratings, scores, music and cloud-save-related services through a shared PHP server application.</p></article>
+<article class="card"><h3>Manage a community</h3><p>Use role-based admin workflows for accounts, moderation, level ratings, maintenance, diagnostics, and backups.</p></article>
+<article class="card"><h3>Move an existing server</h3><p>The <a href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/MIGRATION_KIT.md">Migration Kit</a> includes Cvolton-oriented source checks and mapped data migration. Validate with a database backup first.</p></article>
+<article class="card"><h3>Develop extensions</h3><p>A PHP plugin system supports custom routes and lifecycle hooks. MuchoClient is a separate Geode-side integration for additional in-game features.</p></article>
+</div>
+</section>
+<section aria-labelledby="difference">
+<h2 id="difference">How is MuchoCore different from Geometry Dash or Geode?</h2>
+<p><strong>Geometry Dash</strong> is the game. <strong>Geode</strong> is an independently developed mod loader for the game client. <strong>MuchoCore</strong> provides server-side infrastructure. <strong>MuchoClient</strong>, where installed, adds features inside the game and communicates with MuchoCore. A GDPS is a private community using its own compatible endpoints and data.</p>
+<p>A game version being listed in a compatibility profile does <strong>not</strong> prove that every feature is tested against the original executable. For detailed version and validation status, read the <a href="/muchocore/compatibility/">compatibility overview</a> and the <a href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/CLIENT_COMPATIBILITY.md">client compatibility documentation</a>.</p>
+</section>
+<section aria-labelledby="install">
+<h2 id="install">How to start</h2>
+<ol>
+<li>Read the <a href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/GETTING_STARTED.md">Getting Started guide</a> and <a href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/SETUP.md">setup instructions</a>.</li>
+<li>Choose a deployment environment and configure the database, application secrets and domain.</li>
+<li>Install and verify the server, configure a compatible client, and test registration, levels, backups and permissions.</li>
+<li>Follow updates and security advisories in <a href="https://github.com/IZKGMD/GMDmucho-core/releases">GitHub Releases</a>.</li>
+</ol>
+<p class="callout">Looking for the official description of MuchoCore to cite? Use this page and the public GitHub repository. The source code and release notes, not marketing claims, determine the current implementation.</p>
+</section>
+</main>
+<footer class="site-footer"><div class="wrap"><span>MuchoCore · Open-source GDPS core · Independent of RobTop Games</span><span><a href="/muchocore/">Product page</a> · <a href="/muchocore/compatibility/">Version support</a> · <a href="/llms.txt">Machine-readable summary</a></span></div></footer>
+</body></html>

@@ -1,6 +1,9 @@
+# MuchoCore and MuchoGDPS canonical public pages.
+# Crawling permission does not guarantee indexing or AI-search citations.
 User-agent: *
 Allow: /
 
+# OpenAI search indexing. GPTBot (model training) is a separate crawler.
 User-agent: OAI-SearchBot
 Allow: /
 
@@ -10,7 +13,13 @@ Allow: /
 User-agent: Googlebot
 Allow: /
 
-User-agent: Google-Extended
+User-agent: Bingbot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Claude-SearchBot
 Allow: /
 
 Sitemap: https://muchogdps.space/sitemap.xml
