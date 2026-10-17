@@ -127,6 +127,7 @@ jobs:
           php tests/application/shared-hosting-installer-contract.php
           php -l tools/hosting/muchocore-probe.php
           php tests/application/free-hosting-probe-contract.php
+          php tests/application/sql-capabilities-contract.php
           php tests/application/plugin-sdk-contract.php
           php tests/application/muchoclient-bridge-contract.php
           php tests/application/plugin-marketplace-contract.php
