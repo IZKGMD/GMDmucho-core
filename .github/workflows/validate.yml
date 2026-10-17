@@ -528,6 +528,13 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/backup-restore-integration.php
 
+      - name: Verify lightweight level search and client wire compatibility
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/level-list-performance-integration.php
+
       - name: Verify queue leases and database cache races
         env:
           TEST_DB_HOST: 127.0.0.1
