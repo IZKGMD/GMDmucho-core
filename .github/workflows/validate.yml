@@ -75,6 +75,8 @@ jobs:
           php -l bin/mucho-verify-backup.php
           php -l bin/mucho-client-doctor.php
           php -l bin/mucho-gd2209-trace-report.php
+          php -l bin/mucho-gd2209-coverage.php
+          php bin/mucho-gd2209-coverage.php --json > /dev/null
           php tests/client/client-compatibility.php
           php tests/client/gd-2209-synthetic.php
           php tests/client/client-pack-cache.php
