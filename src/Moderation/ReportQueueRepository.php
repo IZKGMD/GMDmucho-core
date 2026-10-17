@@ -48,6 +48,8 @@ final readonly class ReportQueueRepository
                   MIN(r.id) AS first_report_id,
                   MAX(r.id) AS last_report_id,
                   COUNT(*) AS report_count,
+                  COUNT(DISTINCT r.content_type, r.content_id) AS reported_items,
+                  COUNT(DISTINCT r.reporter_account_id) AS reporter_count,
                   COUNT(*) * 3 AS report_points,
                   MAX(r.created_at) AS last_report_at
                 FROM mucho_content_reports r
