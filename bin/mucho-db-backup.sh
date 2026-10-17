@@ -281,7 +281,7 @@ TMP="$FINAL.tmp"
 # PHP backup service. 'pipefail' catches MariaDB dump failures as well as
 # compressor failures; a gzip-success with an empty DB dump is not enough.
 if ! {
-    printf '%s\\n' '-- MuchoCore database backup'
+    printf '%s\n' '-- MuchoCore database backup'
     "$DUMP_BIN" \
         --defaults-extra-file="$TMP_CNF" \
         --single-transaction \
