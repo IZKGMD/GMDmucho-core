@@ -113,11 +113,13 @@ final readonly class RelationshipService
     public function userList(
         int $id,
         string $gjp,
-        int $type
+        int $type,
+        bool $include209Stats = false
     ): string {
         $this->auth($id, $gjp);
         return $this->encoder->users(
-            $this->repo->userList($id, $type)
+            $this->repo->userList($id, $type),
+            $include209Stats
         );
     }
 }
