@@ -113,6 +113,16 @@ final class Gd2209Binary
             }
             $patched = 'https://' . $targetHost . $oldPath;
             $oldLength = strlen($url);
+            if (strlen($patched) > $oldLength
+                && str_contains($url, '/databas/checkIfServerOnline.php')) {
+                // The original 2.209 binary has a one-byte-shorter typo.
+                // A 17-character staging host fits the original exact
+                // string but does not fit when /databas/ is expanded.
+                // Retain the original spelling when fixed-size storage
+                // requires it; server routing must accept this one alias.
+                $patched = 'https://' . $targetHost .
+                    '/databas/checkIfServerOnline.php';
+            }
             if (strlen($patched) > $oldLength) {
                 throw new RuntimeException("GD 2.209 target host too long for {$url}");
             }
