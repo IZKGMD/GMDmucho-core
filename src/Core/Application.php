@@ -160,7 +160,8 @@ final readonly class Application
             new GdLevelListEncoder(),
             $cache
         );
-        $levelController = new LevelController($levelService, $auth);
+        $modRepo = new ModerationRepository($this->pdo);
+        $levelController = new LevelController($levelService, $auth, $modRepo);
 
         $transferRepo = new LevelTransferRepository($this->pdo);
         $transferService = new LevelTransferService(
@@ -195,7 +196,6 @@ final readonly class Application
             new SongService($songRepo, new GdSongEncoder())
         );
 
-        $modRepo = new ModerationRepository($this->pdo);
         $modController = new ModerationController(
             new ModerationService($auth, $modRepo)
         );
