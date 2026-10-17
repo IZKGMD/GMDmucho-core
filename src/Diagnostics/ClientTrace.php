@@ -39,10 +39,11 @@ final class ClientTrace
             'content_type' => $response->contentType,
             'response_length' => strlen($response->body),
             'response_sha256' => hash('sha256', $response->body),
+            'result_kind' => self::resultKind($response),
             'client_family' => $version->family(),
             'game_version' => $version->gameVersion,
             'binary_version' => $version->binaryVersion,
-            'query_keys' => array_values(array_map('strval', array_keys(self::$request->query))),
+            'query_keys' => self::safeKeys(self::$request->query),
             'post_keys' => self::safeKeys(self::$request->post),
             'duration_ms' => self::$startedAt > 0
                 ? round((microtime(true) - self::$startedAt) * 1000, 3)
@@ -75,8 +76,34 @@ final class ClientTrace
         );
     }
 
+    /** Classify the GD wire marker, never record response bodies. */
+    private static function resultKind(Response $response): string
+    {
+        if ($response->status >= 400) {
+            return 'http_error';
+        }
+        return match ($response->body) {
+            '-1' => 'rejected',
+            '-2' => 'no_results',
+            '' => 'empty',
+            default => 'data',
+        };
+    }
+
+    /** Only conventional field names; do not allow values disguised as keys. */
     private static function safeKeys(array $values): array
     {
-        return array_values(array_map('strval', array_keys($values)));
+        $keys = [];
+        foreach (array_keys($values) as $key) {
+            if (!is_string($key)
+                || preg_match('/^[a-zA-Z][a-zA-Z0-9_]{0,63}$/D', $key) !== 1) {
+                continue;
+            }
+            $keys[] = $key;
+            if (count($keys) >= 64) {
+                break;
+            }
+        }
+        return $keys;
     }
 }
