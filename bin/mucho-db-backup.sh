@@ -277,15 +277,20 @@ TMP="$FINAL.tmp"
 } >> "$LOG"
 
 
-if ! "$DUMP_BIN" \
-    --defaults-extra-file="$TMP_CNF" \
-    --single-transaction \
-    --quick \
-    --triggers \
-    --hex-blob \
-    --default-character-set=utf8mb4 \
-    "$DB_NAME" \
-    | gzip -9 > "$TMP"
+# Prefix the native SQL dump with the same stable banner used by the
+# PHP backup service. 'pipefail' catches MariaDB dump failures as well as
+# compressor failures; a gzip-success with an empty DB dump is not enough.
+if ! {
+    printf '%s\\n' '-- MuchoCore database backup'
+    "$DUMP_BIN" \
+        --defaults-extra-file="$TMP_CNF" \
+        --single-transaction \
+        --quick \
+        --triggers \
+        --hex-blob \
+        --default-character-set=utf8mb4 \
+        "$DB_NAME"
+} | gzip -9 > "$TMP"
 then
     rm -f "$TMP"
 
@@ -333,9 +338,17 @@ chmod 640 "$FINAL"
 
 
 # SHA-256
-sha256sum "$FINAL" > "$FINAL.sha256"
+# Keep the filename relative to the sidecar directory. The verifier
+# rejects checksums that refer to any other archive.
+(
+    cd "$BACKUP_DIR"
+    sha256sum "$(basename "$FINAL")" > "$(basename "$FINAL.sha256")"
+)
 
-if ! sha256sum -c "$FINAL.sha256" >/dev/null 2>&1; then
+if ! (
+    cd "$BACKUP_DIR"
+    sha256sum -c "$(basename "$FINAL.sha256")" >/dev/null 2>&1
+); then
     rm -f "$FINAL" "$FINAL.sha256"
     echo "[$(date -Is)] ERROR: backup checksum verification failed after creation" >> "$LOG"
     exit 1
