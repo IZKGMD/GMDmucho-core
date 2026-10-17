@@ -57,6 +57,13 @@ try {
         color1 INT NOT NULL DEFAULT 0,
         color2 INT NOT NULL DEFAULT 3,
         special INT NOT NULL DEFAULT 0,
+        stars INT NOT NULL DEFAULT 0,
+        demons INT NOT NULL DEFAULT 0,
+        diamonds INT NOT NULL DEFAULT 0,
+        moons INT NOT NULL DEFAULT 0,
+        creator_points INT NOT NULL DEFAULT 0,
+        secret_coins INT NOT NULL DEFAULT 0,
+        user_coins INT NOT NULL DEFAULT 0,
         UNIQUE KEY(account_id)
     ) ENGINE=InnoDB');
     $db->exec('CREATE TABLE blocks (
@@ -123,6 +130,14 @@ try {
         str_contains($relationship->userList(1, 'pass-1', 3), '1:Beta:'),
         '2.209 getGJUserList20 type 3 returns followed accounts'
     );
+    $db->exec('UPDATE profiles SET stars=99, demons=7, diamonds=1000 WHERE account_id=2');
+    $newList = $relationship->userList(1, 'pass-1', 3, true);
+    $oldList = $relationship->userList(1, 'pass-1', 3, false);
+    $check(str_contains($newList, ':3:99:4:7:8:0:13:0:17:0:46:1000'),
+        '2.209 list emits in-game user statistics');
+    $check(!str_contains($oldList, ':3:99:4:7'),
+        '2.2081 list response remains unchanged');
+
     $check(
         $relationship->userList(2, 'pass-2', 3) === '-2',
         'followed list is viewer-private, not follower list'
