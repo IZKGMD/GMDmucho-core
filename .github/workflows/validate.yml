@@ -585,6 +585,13 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/gd2209-moderation-queue-integration.php
 
+      - name: Verify GD 2.209 native report queue access controls
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/gd2209-report-queue-integration.php
+
       - name: Verify GD 2.209 song usage wire and grouping
         env:
           TEST_DB_HOST: 127.0.0.1
