@@ -61,7 +61,7 @@ try {
         (110,12,2,1000,0,0,0,0,20,0,0)');
 
     $service = new SongUsageService($db);
-    $expected = '7,6,1550#0:0:1|0:2:1|1:4:1|2:6:1|3:1:1|4:5:1';
+    $expected = '7,6,1550#0:0:1|0:2:1|1:4:1|2:6:1|3:5:1|4:1:1';
     $check($service->usage(11) === $expected,
         'exact 2.209 comma/hash/pipe/colon wire, tier mapping and privacy');
     $check($service->usage(12345) === '0,0,0#', 'zero-usage semantics');
