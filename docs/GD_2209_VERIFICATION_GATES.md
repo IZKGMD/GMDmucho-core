@@ -14,7 +14,7 @@ that the unmodified 2.209 game accepts every server response.
 | GD 2.209 profiles | Keys 66 (self unread), 67 (followers), 68 (self following count), 69 (viewer follows) from persisted DB; credentials required for viewer identity; legacy 2.2081 response unchanged | Invite privacy key 62, friendship timestamp 64 and unknown keys pending |
 | GD 2.209 social lists | List types 3/4 plus player stats for binaryVersion>=51; legacy format unchanged | Full native client format to verify |
 | Song usage | Documented tier/difficulty aggregation with DB-backed test | Native 2.209 acceptance pending |
-| New admin report queue | New route, separate table, authenticated owner/elder-moderator access and safe reporting aggregation | Response framing is **provisional**; exact 2.209 mode/flags and report content support not yet known |
+| New admin report queue | New route, separate table, authenticated owner/elder-moderator access and safe reporting aggregation | Header-first `total:offset:20#entries` and 9-field positional parser **verified from native EXE**; remaining entry field meanings, threshold and filter integration provisional |
 | Diagnostics | Privately classified response status, route request key names and numeric selectors only; no credentials/payloads logged | Must be deliberately enabled, disabled after use |
 
 ## Live request evidence
@@ -54,3 +54,8 @@ Do not publish any intercepted passwords, `gjp2` tokens, UDIDs, IP addresses,
 personal reports or full private responses. To reverse-engineer the remaining
 client parsing logic, provide a legally obtained 2.209 EXE as a fresh
 conversation upload; an unavailable binary reference is not sufficient.
+
+**Native EXE breakthrough (SHA-256 524265b3…):** response parser expects
+`total:offset:pageSize#` before `|`-separated `:`-positional entries with
+nine minimum fields. An empty list is `0:0:20#`, **not `-2`**. See
+[GD_2209_NATIVE_EXE_FINDINGS.md](GD_2209_NATIVE_EXE_FINDINGS.md).
