@@ -6447,6 +6447,63 @@
         "status": "pending",
         "evidence": []
       }
+    },
+    {
+      "id": "route.gd2209.getgjsongusage",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjsongusage",
+      "aliases": [
+        "/getGJSongUsage",
+        "/database/getGJSongUsage.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "partial",
+        "evidence": [
+          "docs/endpoints/songs/getGJSongUsage.md",
+          "tests/application/gd2209-song-usage-integration.php"
+        ]
+      },
+      "wire_contract": {
+        "status": "partial",
+        "evidence": [
+          "tests/application/gd2209-song-usage-integration.php"
+        ]
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "partial",
+        "evidence": [
+          "tests/application/gd2209-song-usage-integration.php"
+        ]
+      },
+      "db_integrity": {
+        "status": "partial",
+        "evidence": [
+          "tests/application/gd2209-song-usage-integration.php"
+        ]
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
     }
   ]
 }
