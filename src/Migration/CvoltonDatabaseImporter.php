@@ -113,20 +113,7 @@ final class CvoltonDatabaseImporter
 
     public function apply(PDO $source): array
     {
-        $preflight = $this->preflight($source);
-
-        foreach ([
-            'levels_missing_data' => 'levels have no levelString in SQL; copy the source level files before migrating',
-            'levels_without_account' => 'levels refer to accounts that are not present in the source accounts table',
-            'ambiguous_profile_links' => 'accounts have multiple matching source profiles',
-        ] as $key => $reason) {
-            if (($preflight[$key] ?? 0) > 0) {
-                throw new RuntimeException(
-                    'Unsafe GDPS migration: ' . $preflight[$key] . ' ' . $reason .
-                    '. The destination was not modified by this import.'
-                );
-            }
-        }
+        MigrationPreflightGuard::assertSafe($this->preflight($source));
 
         $this->requireTargetMaps();
 
