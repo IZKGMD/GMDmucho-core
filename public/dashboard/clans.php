@@ -461,7 +461,7 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
 @media(max-width:620px){.shell{width:min(100% - 18px,1180px)}.topbar{align-items:stretch;flex-direction:column}.nav{overflow-x:auto;flex-wrap:nowrap}.grid{grid-template-columns:1fr}.search{grid-template-columns:1fr}.panel{padding:17px}}
 </style>
 
-<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <script src="/assets/product-ui.js?v=1" defer></script>
 </head>
 <body class="mc-workspace">
