@@ -190,6 +190,39 @@ final readonly class ThreadController
             $account = $r->postInt('accountID');
             $credential = $r->gdCredential();
             $thread = $this->threadId($r);
+            // Actual 2.209 client uses numeric "mode" and Base64 "value".
+            if (array_key_exists('mode', $r->post)) {
+                $mode = $r->postInt('mode', -1);
+                $value = $r->postString('value');
+                $needsValue = in_array($mode, [2, 4, 12], true);
+                $decoded = $needsValue ? self::decoded($value) : '';
+                if ($needsValue && $decoded === null) {
+                    return Response::text('-1');
+                }
+                $ok = match ($mode) {
+                    2 => $this->service->modify(
+                        $account, $credential, $thread, 'rename', (string)$decoded
+                    ),
+                    4 => ctype_digit((string)$decoded) && (int)$decoded > 0
+                        && $this->service->invite(
+                            $account, $credential, $thread, (int)$decoded
+                        ),
+                    5 => $this->service->leave($account, $credential, $thread),
+                    8 => $this->service->respondThreadInvite(
+                        $account, $credential, $thread, true
+                    ),
+                    9 => $this->service->respondThreadInvite(
+                        $account, $credential, $thread, false
+                    ),
+                    12 => ctype_digit((string)$decoded) && (int)$decoded > 0
+                        && $this->service->deleteOwnMessage(
+                            $account, $credential, $thread, (int)$decoded
+                        ),
+                    default => false,
+                };
+                return Response::text($ok ? '1' : '-1');
+            }
+            // Legacy custom-client adapter, not the GD 2.209 native contract.
             $action = strtolower(trim($r->postString('action')));
             $title = $r->postString('title') ?: $r->postString('name');
 
