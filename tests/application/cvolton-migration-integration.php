@@ -704,8 +704,10 @@ SQL);
     ]);
     $source->exec("INSERT INTO users (extID,userName) VALUES ('3','SharedEmail')");
 
+    $source->exec("INSERT INTO users (extID,userName) VALUES ('0','GuestFixture')");
     $duplicatePreview = (new CvoltonDatabaseImporter($target))->preflight($source);
     must($duplicatePreview['duplicate_email_accounts'] === 1, 'Duplicate email was not detected.');
+    must($duplicatePreview['guest_or_orphan_profiles'] === 1, 'Guest user was not counted separately.');
 
     $target->beginTransaction();
     try {
@@ -729,6 +731,16 @@ SQL);
         "SELECT gjp2_hash FROM accounts WHERE username='SharedEmail'"
     )->fetchColumn();
     must($preservedHash === $bcryptGjp2, 'Existing bcrypt GJP2 hash was not preserved.');
+    $sharedEmailAccountId = scalar(
+        $target,
+        "SELECT account_id FROM accounts WHERE username='SharedEmail'"
+    );
+    $authenticated = (new \MuchoCore\Account\AccountAuthenticator($target))
+        ->authenticateGjp2(
+            $sharedEmailAccountId,
+            sha1('gdpsfh-fixture-passwordGJP2')
+        );
+    must(is_array($authenticated), 'Migrated bcrypt GJP2 cannot authenticate.');
 
     // A collision with an *unrelated existing target* remains a hard error.
     $target->exec(
