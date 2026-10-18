@@ -36,13 +36,42 @@ jobs:
 
           # Source artwork is 2048x2048; use native coordinates, not preview pixels.
           # Compact MC cube mark from the dedicated icon panel.
-          convert "$SRC"             -crop 500x500+1490+95 +repage             -resize "256x256"             -strip             public/assets/muchocore-icon.png
+          # Remove the near-white background around the cube, not the
+          # light faces inside its dark outline. Flood fill starts outside
+          # the mark, before shrinking, to preserve antialiased edges.
+          convert "$SRC" \
+            -crop 500x500+1490+95 +repage \
+            -alpha on -fuzz 18% -fill none \
+            -draw 'matte 0,0 floodfill' \
+            -resize "256x256" \
+            -strip PNG32:public/assets/muchocore-icon.png
 
           test -s public/assets/muchocore-logo.jpg
           test -s public/assets/muchocore-icon.png
 
           identify public/assets/muchocore-logo.jpg
           identify public/assets/muchocore-icon.png
+          # A white/opaque background must not regress unnoticed.
+          convert public/assets/muchocore-icon.png -format '%[fx:a.p{0,0}]' info: | grep -Eq '^0(\\.0+)?
+
+      - name: Commit generated assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add public/assets/muchocore-logo.jpg public/assets/muchocore-icon.png
+
+          if git diff --cached --quiet; then
+            echo "Brand assets are already current."
+            exit 0
+          fi
+
+          git commit -m "chore: add cropped MuchoCore brand assets"
+          git push
+
+          identify -format '%[channels]' public/assets/muchocore-icon.png | grep -qi 'a'
 
       - name: Commit generated assets
         shell: bash
