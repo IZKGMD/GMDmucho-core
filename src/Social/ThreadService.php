@@ -284,6 +284,11 @@ final readonly class ThreadService
         string $body
     ): bool {
         $this->authorize($accountId, $credential);
+        if (\MuchoCore\Moderation\Gd2209Restrictions::active(
+            $this->db, $accountId, 'message'
+        )) {
+            return false;
+        }
         $body = trim($body);
         if ($body === '' || mb_strlen($body, 'UTF-8') > 4000 ||
             strlen($body) > 16000) {
