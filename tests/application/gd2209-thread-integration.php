@@ -295,6 +295,22 @@ try {
         explode(':',$dmParts[0])[12] === '1',
         'native DM filter and type flag are real');
 
+    $filteredDm = $http->getThreads($req(1,'pass-1','getGJThreads',[
+        'filter'=>'1','user'=>'2'
+    ]))->body;
+    $check(str_ends_with($filteredDm,'#1:0:10:0:60'),
+        'native user filter only returns own threads containing that account');
+    $unrelated = $http->getThreads($req(1,'pass-1','getGJThreads',[
+        'filter'=>'1','user'=>'3'
+    ]))->body;
+    $check($unrelated === '#0:0:10:0:60',
+        'native user filtering does not return unrelated private DMs');
+    $invalidFiltered = $http->getThreads($req(1,'pass-1','getGJThreads',[
+        'user'=>'2,not-a-number'
+    ]))->body;
+    $check($invalidFiltered === '-1', 'malformed member filter denied');
+
+
     $groupCreate = $http->send($req(1,'pass-1','sendGJThreadMessage',[
         'threadID'=>'0','isDM'=>'0','toAccountID'=>'0',
         'body'=>base64_encode('Hello group'),
