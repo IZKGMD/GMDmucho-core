@@ -152,6 +152,21 @@ Passwords are not assumed to be portable between unrelated hashing schemes. When
 
 The source gjp2 value is retained only as a hash when it matches the expected legacy format.
 
+## GDPSFH duplicate emails, GJP2 and level files
+
+The preflight now reports four independent data-safety checks:
+
+| Check | Behavior |
+|---|---|
+| `duplicate_email_accounts` | Report-only. The oldest source account keeps the shared email; subsequent accounts use deterministic addresses such as `cvolton.87@local.invalid` to avoid accidental identity merges. Owners must arrange replacement real emails for those accounts after migrating. |
+| `levels_missing_data` | Blocking. A level with NULL or empty `levelString` must be restored from the old server's level file storage *before* applying the SQL migration. A SQL dump alone is not sufficient. |
+| `levels_without_account` | Blocking. Every imported level must map to an existing source account ID. No levels are silently dropped. |
+| `ambiguous_profile_links` | Blocking. Multiple `users` profiles linked to the same account are not arbitrarily selected. |
+
+GDPSFH forks may store GJP2 as a bcrypt hash, rather than as a raw 40-character SHA-1 value. Both formats are handled without converting a bcrypt hash into an unusable double hash. Passwords with unrecognized formats still require resets.
+
+**Important:** FTP access and automatic file restoration are **not** implemented yet. When `levels_missing_data` is nonzero, do not click Apply; first obtain a full copy of the old GDPS level files and complete a separate level-data restoration step. Retain the source database and the original filesystem until gameplay testing is finished.
+
 ## Unknown sources
 
 Unknown schemas are rejected:
