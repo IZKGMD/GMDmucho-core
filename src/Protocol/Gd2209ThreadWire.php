@@ -71,6 +71,43 @@ final class Gd2209ThreadWire
         return implode('|', $result);
     }
 
+    /** Thread object is fixed positional, not a key/value encoder. */
+    public static function thread(array $row): string
+    {
+        // GD Docs: 26 fields, including the 4th (group title), 8th
+        // (member count), 10th (owner) and 24th (last message time).
+        return implode(':', [
+            (int)$row['id'],         // 1 threadID
+            0,                       // 2 peer account (DM only)
+            '',                      // 3 DM username
+            base64_encode((string)$row['title']), // 4 group title
+            0,                       // 5 unread count (not yet stored)
+            (int)($row['last_sender'] ?? 0), // 6 sender
+            '',                      // 7 relative time (not stored)
+            (int)($row['member_count'] ?? 0), // 8 actual group size
+            '',                      // 9 sender username not joined
+            (int)$row['owner_account_id'], // 10 group owner
+            0, 0, 0, 0, 0,           // 11-15 mute/type/pin
+            0, 0, 0, 0, 0, 0,        // 16-21 DM-only appearance
+            '', '',                  // 22/23 group description/emote
+            (int)($row['last_timestamp'] ?? 0), // 24 real UNIX time
+            0, 0,                   // 25/26 badge/status
+        ]);
+    }
+
+    /**
+     * Native thread-list pagination: list#total:offset:amount:invites:interval.
+     * GD Docs says 10/page; RobTop examples may return 20 items per page.
+     */
+    public static function threads(array $page): string
+    {
+        $items = array_map(self::thread(...), $page['rows']);
+        return implode('|', $items) . '#' . implode(':', [
+            (int)$page['total'], (int)$page['offset'], 10,
+            (int)$page['invites'], 60
+        ]);
+    }
+
     public static function snapshot(
         array $data, GdRelationshipEncoder $users
     ): string {
