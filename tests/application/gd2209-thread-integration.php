@@ -164,6 +164,21 @@ try {
         'query'=>base64_encode('Client')
     ]))->body === '-1', 'outsider cannot search private native messages');
 
+    $check($http->update($req(1,'pass-1','updateGJThread',[
+        'mode'=>'2','value'=>base64_encode('Native rename')
+    ]))->body === '1', 'native numeric rename is accepted');
+    $check($service->threads(1,'pass-1',0)[0]['title'] === 'Native rename',
+        'native mode 2 decodes Base64 before persisting title');
+    $check($http->update($req(2,'pass-2','updateGJThread',[
+        'mode'=>'12','value'=>base64_encode((string)$sentId)
+    ]))->body === '1', 'only sender can delete their own thread message');
+    $check((int)$db->query('SELECT COUNT(*) FROM mucho_thread_messages
+        WHERE id='.$sentId)->fetchColumn() === 0, 'mode 12 deletion persisted');
+    $check($http->update($req(2,'pass-2','updateGJThread',[
+        'mode'=>'6','value'=>base64_encode('1')
+    ]))->body === '-1', 'unimplemented kick mode fails closed');
+
+
 
     $check($service->modify(1,'pass-1',$thread,'rename','Renamed'), 'owner renames');
     $check(
