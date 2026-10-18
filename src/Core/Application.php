@@ -103,6 +103,7 @@ use MuchoCore\Social\NotificationService;
 use MuchoCore\Social\ThreadController;
 use MuchoCore\Social\ThreadService;
 use MuchoCore\Social\Gd2209NativeThreadOperations;
+use MuchoCore\Social\Gd2209ThreadActionService;
 use MuchoCore\User\UserController;
 use MuchoCore\User\UserRepository;
 use MuchoCore\User\UserService;
@@ -281,7 +282,8 @@ final readonly class Application
         $threadController = new ThreadController(
             new ThreadService($this->pdo, $auth),
             new GdRelationshipEncoder(),
-            new Gd2209NativeThreadOperations($this->pdo, $auth, $relationshipRepo)
+            new Gd2209NativeThreadOperations($this->pdo, $auth, $relationshipRepo),
+            new Gd2209ThreadActionService($this->pdo, $auth)
         );
 
         $notificationController = new NotificationController(
