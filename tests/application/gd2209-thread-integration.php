@@ -107,13 +107,23 @@ try {
     );
     $invitations = $service->invites(2,'pass-2');
     $check(count($invitations) === 1, 'recipient receives invite');
+    $memberPreview = $http->getMembers(
+        $req(2,'pass-2','getGJThreadMembers')
+    )->body;
+    $previewSegments = explode('#',$memberPreview);
+    $check(count($previewSegments) === 3 &&
+        count(explode(':',$previewSegments[2])) === 17,
+        'invited player may see roster and complete 17-slot invitation user');
+
     $check($service->invites(3,'pass-3') === [], 'other users cannot read invitation');
     $invite = (int)$invitations[0]['id'];
     $check(
         !$service->respondInvite(3,'pass-3',$invite,true),
         'third-party invite acceptance denied'
     );
-    $check($service->respondInvite(2,'pass-2',$invite,true), 'recipient can accept');
+    $check($http->update($req(2,'pass-2','updateGJThread',[
+        'mode'=>'8'
+    ]))->body === '1', 'native mode 8 accepts invitation using thread ID');
     $check(!$service->respondInvite(2,'pass-2',$invite,true), 'cannot double-accept');
     $check(count($service->members(2,'pass-2',$thread)) === 2, 'joined member visible');
     $check($service->send(2,'pass-2',$thread,'Hello there!'), 'joined member sends');
