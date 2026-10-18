@@ -45,9 +45,7 @@ final readonly class Gd2209UtilityController
     public function openedRegister(Request $r): Response
     {
         return $this->run($r, fn(): string =>
-            $this->service->openedRegister(
-                $r->postString('rsession'), $r->postString('udid')
-            ) ? '1' : '-1'
+            $this->service->openedRegister($r->postString('secret'))
         );
     }
 }
