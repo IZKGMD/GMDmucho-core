@@ -787,6 +787,26 @@ SQL);
         $blocked = str_contains($e->getMessage(), 'levels have no levelString');
     }
     must($blocked, 'The importer must refuse empty level content.');
+
+    // The shared-hosting orchestrator must reject this source BEFORE any
+    // target backup or DDL migration is started.
+    $sharedBackupFilesBefore = glob($fixtureRoot . '/shared-service-backups/*') ?: [];
+    $sharedBlocked = false;
+    try {
+        (new SharedMigrationService(
+            $sharedTarget,
+            $fixtureRoot,
+            $fixtureRoot . '/shared-service-backups'
+        ))->apply($source);
+    } catch (RuntimeException $e) {
+        $sharedBlocked = str_contains($e->getMessage(), 'levels have no levelString');
+    }
+    must($sharedBlocked, 'Shared migration did not reject missing level files.');
+    must(
+        count(glob($fixtureRoot . '/shared-service-backups/*') ?: []) === count($sharedBackupFilesBefore),
+        'Shared migration created a backup before its blocking preflight.'
+    );
+
     $source->exec("UPDATE levels SET levelString='1,1,1' WHERE levelID=101");
 
     $source->exec('ALTER TABLE levels DROP COLUMN levelString');
