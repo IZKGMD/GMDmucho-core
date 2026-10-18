@@ -9,6 +9,26 @@ Both interfaces use the same complete cube logo and clearly separated server nam
 Switching interfaces keeps the search, filters, page, selected record and tool tab.
 The native menu is expandable so it does not push content down on phones.
 
+## Everyday navigation
+
+The primary navigation contains Dashboard, Players, Levels, Rating Studio,
+Clans, Music, News Board, Client Downloads and Settings. Additional features
+are grouped by task: Community, Content & moderation, Clients & extensions,
+Operations & security, and Administration. The category containing the current
+page expands automatically. Sections that are not allowed for the signed-in
+administrator are never included, even inside collapsed categories. The
+CSS-free version uses native nested `<details>` elements for exactly the same
+navigation.
+
+In the styled interface, **Ctrl+K** (or **Cmd+K**) opens a section picker
+that searches those permission-filtered links and shows their category;
+**/** focuses the global player/level search only when the field exists.
+The Dashboard includes one-click links for reviewing levels, posting news,
+patching clients, backups and server configuration. These are regular
+navigation links, not automatic state changes, and are hidden when the
+administrator lacks access.
+
+
 Plain Admin serves ordinary HTML, native controls, expandable records and tables.
 It removes stylesheets and inline styles from shared modules and enforces
 `style-src 'none'`. Functional JavaScript remains for passkeys, confirmation

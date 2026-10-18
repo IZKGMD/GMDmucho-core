@@ -118,6 +118,7 @@ jobs:
           php tests/application/admin-simple-integration.php
           php tests/application/admin-plain-integration.php
           php tests/application/admin-chrome-integration.php
+          php tests/application/admin-navigation-workflows.php
           php tests/application/release-status-integration.php
           php tests/application/admin-dashboard-access.php
           php tests/application/public-overview-visibility.php

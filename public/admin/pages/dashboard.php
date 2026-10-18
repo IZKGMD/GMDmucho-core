@@ -95,6 +95,31 @@ function renderAdminDashboard(PDO $db): void
 
     echo '<div class="admin-overview-heading"><h2>Server overview</h2><a class="btn gray" href="/dashboard" target="_blank" rel="noopener">Open Player Portal ↗</a></div>';
 
+    // The most common operator tasks belong one click away. These are links,
+    // not side-effecting actions, and never bypass normal admin permissions.
+    $quickActions = [
+        ['rating', 'Review levels', 'Rate and moderate submitted levels'],
+        ['news', 'Publish news', 'Create an in-game announcement'],
+        ['clientpatcher', 'Patch clients', 'Prepare GDPS Windows and Android clients'],
+        ['dbbackups', 'Back up database', 'Create or restore a verified backup'],
+        ['settings', 'Server settings', 'Configure the GDPS'],
+    ];
+    $visibleActions = array_values(array_filter(
+        $quickActions,
+        static fn(array $action): bool => canAdminPage($action[0])
+    ));
+    if ($visibleActions) {
+        echo '<section class="admin-quick-section" aria-labelledby="adminQuickHeading">';
+        echo '<div class="section-heading"><div><h2 id="adminQuickHeading">Quick actions</h2><small>Jump to a task without searching through menus</small></div></div>';
+        echo '<div class="admin-quick-actions">';
+        foreach ($visibleActions as [$section, $label, $description]) {
+            echo '<a class="admin-quick-action" href="/admin/?page='.h($section).'">';
+            echo '<strong>'.h($label).'</strong><small>'.h($description).'</small>';
+            echo '</a>';
+        }
+        echo '</div></section>';
+    }
+
     echo '<div class="admin-kpi-grid">';
 
     $kpis = [
