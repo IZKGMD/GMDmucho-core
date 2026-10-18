@@ -29,21 +29,22 @@ $manage=canPermission('music.manage');
 <button>Search</button><a class="btn gray" href="/admin/?page=songs">Reset</a></form>
 <?php if($manage): ?>
 <details class="card"><summary>Upload Music</summary>
-<p class="muted">MP3 only, maximum 20 MB.</p>
+<p class="muted" id="musicUploadHelp">MP3 only, maximum 20 MiB. You will see an error before uploading an oversized file.</p>
 <form method="post" enctype="multipart/form-data" class="admin-edit-grid">
 <input type="hidden" name="csrf" value="<?=csrf()?>"><input type="hidden" name="action" value="music-upload"><input type="hidden" name="return" value="songs">
 <?php adminListReturnFields($state) ?>
 <label>Name<input name="title" maxlength="128" required></label><label>Author<input name="artist" maxlength="128" required></label>
-<label>MP3<input type="file" name="music_file" accept=".mp3,audio/mpeg" required></label><button>Upload MP3</button></form></details>
+<label>MP3<input type="file" name="music_file" accept=".mp3,audio/mpeg" data-max-file-mib="20" aria-describedby="musicUploadHelp" required></label><button>Upload MP3</button></form></details>
 <?php endif ?>
-<?php if(!$rows): ?><div class="card empty-state">No music found. Change the search or filters.</div><?php else: ?>
+<?php adminListSummary($state,count($rows),$hasMore,'tracks'); ?>
+<?php if(!$rows): ?><div class="card empty-state" role="status"><h2>No matching tracks</h2><p>Change the query or switch between Pending and Verified.</p><a class="btn gray" href="/admin/?page=songs">Clear filters</a></div><?php else: ?>
 <div class="table"><table data-no-filter><thead><tr><th>ID</th><th>Name</th><th>Author</th><th>Size</th><th>Status</th><th>Actions</th></tr></thead><tbody>
 <?php foreach($rows as $r): ?><tr>
 <td>#<?=(int)$r['id']?></td><td><?=h($r['name'])?></td><td><?=h($r['author_name'])?></td><td><?=h($r['size'])?> MB</td>
 <td><span class="badge <?=$r['is_verified']?'green':''?>"><?=$r['is_verified']?'Verified':'Pending'?></span></td>
 <td><?php if($manage): ?><div class="row">
 <?php foreach([$r['is_verified']?'music-unverify':'music-verify'=>$r['is_verified']?'Hide':'Verify','music-delete'=>'Delete'] as $action=>$label): ?>
-<form method="post"><input type="hidden" name="csrf" value="<?=csrf()?>"><input type="hidden" name="action" value="<?=h($action)?>"><input type="hidden" name="return" value="songs"><input type="hidden" name="id" value="<?=(int)$r['id']?>">
+<form method="post" <?=$action==='music-delete'?'data-confirm="Permanently delete this track and its file?"':''?>><input type="hidden" name="csrf" value="<?=csrf()?>"><input type="hidden" name="action" value="<?=h($action)?>"><input type="hidden" name="return" value="songs"><input type="hidden" name="id" value="<?=(int)$r['id']?>">
 <?php adminListReturnFields($state) ?><button class="<?=$action==='music-delete'?'red':'gray'?>"><?=h($label)?></button></form>
 <?php endforeach ?></div><?php endif ?></td></tr>
 <?php endforeach ?></tbody></table></div>
