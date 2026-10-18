@@ -154,3 +154,64 @@ body.mc-admin .admin-quick-action:hover{border-color:var(--mc-accent);background
 body.mc-admin .admin-quick-action strong{font-size:13px;font-weight:650}
 body.mc-admin .admin-quick-action small{font-size:11px;line-height:1.5;color:var(--mc-muted)}
 @media(max-width:540px){body.mc-admin .admin-quick-actions{grid-template-columns:1fr 1fr}body.mc-admin .admin-quick-action{padding:12px;min-height:90px}}
+
+/* Operator workflow polish: scoped to styled admin; plain remains native HTML. */
+body.mc-admin .admin-list-summary{
+    color:var(--mc-muted);font-size:12px;margin:6px 0 12px;
+    font-variant-numeric:tabular-nums;
+}
+body.mc-admin .admin-pagination{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}
+body.mc-admin .admin-pagination .btn{min-height:40px}
+body.mc-admin .admin-danger-note{
+    color:#e4a5ae;border-left:3px solid #d86478;padding:8px 12px;
+    background:rgba(216,100,120,.07);border-radius:4px;line-height:1.55;
+}
+body.mc-admin .admin-news-preview{margin:14px 0;padding:12px 14px;border:1px solid var(--mc-line);border-radius:10px}
+body.mc-admin .admin-news-preview>summary{cursor:pointer;font-weight:650;color:var(--mc-text)}
+body.mc-admin .admin-news-preview-content{padding:12px 4px 0;overflow-wrap:anywhere}
+body.mc-admin .admin-news-preview-content h3{font-size:17px;margin:4px 0 9px}
+body.mc-admin .admin-news-preview-content p{white-space:pre-wrap;overflow-wrap:anywhere;max-height:350px;overflow:auto}
+body.mc-admin #newsBodyCounter{font-variant-numeric:tabular-nums}
+body.mc-admin .admin-monitor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+body.mc-admin .admin-monitor-grid>*{min-width:0}
+body.mc-admin .admin-monitor-guide .section-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+body.mc-admin .admin-monitor-row{
+    display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;
+    gap:4px 14px;padding:13px 4px;border-bottom:1px solid var(--mc-line);
+    overflow-wrap:anywhere;
+}
+body.mc-admin .admin-monitor-row:last-child{border-bottom:0}
+body.mc-admin .admin-monitor-row strong{font-size:13px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+body.mc-admin .admin-monitor-row small{font-size:11px;color:var(--mc-muted);grid-column:1/-1}
+body.mc-admin .admin-monitor-status{font-size:11px;white-space:nowrap;color:var(--mc-muted);font-weight:600}
+body.mc-admin .admin-monitor-online{color:#61cca0}
+body.mc-admin .admin-monitor-warning{color:#f0ab74}
+body.mc-admin .admin-monitor-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:12px 0}
+body.mc-admin .admin-monitor-toolbar>label{display:inline-flex;align-items:center;gap:6px;font-size:12px}
+body.mc-admin .admin-monitor-toolbar select{min-width:160px;max-width:100%}
+body.mc-admin #v5Logs{
+    max-height:460px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;
+    tab-size:2;padding:15px;border-radius:10px;border:1px solid var(--mc-line);
+    background:var(--mc-bg);color:var(--mc-text);font-size:12px;line-height:1.6;
+}
+body.mc-admin :is(.admin-monitor-guide,.admin-news-preview,.admin-quick-action) :focus-visible{
+    outline:3px solid var(--mc-accent);outline-offset:3px;
+}
+@media(max-width:850px){
+ body.mc-admin .admin-monitor-grid{grid-template-columns:1fr}
+ body.mc-admin .admin-monitor-row{grid-template-columns:minmax(0,1fr) auto}
+}
+@media(max-width:540px){
+ body.mc-admin .admin-list-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+ body.mc-admin .admin-list-search input[type=search]{grid-column:1/-1;width:100%!important;min-width:0}
+ body.mc-admin .admin-list-search select{min-width:0;width:100%!important}
+ body.mc-admin .admin-list-search a.btn{justify-self:start}
+ body.mc-admin .admin-record>summary{flex-wrap:wrap}
+ body.mc-admin .record-stat{flex:0 0 auto}
+ body.mc-admin .admin-monitor-toolbar{align-items:stretch;flex-direction:column}
+ body.mc-admin .admin-monitor-toolbar>*{width:100%}
+ body.mc-admin .admin-monitor-row{grid-template-columns:1fr;gap:3px}
+ body.mc-admin .admin-monitor-row small{grid-column:1}
+ body.mc-admin .admin-quick-actions{grid-template-columns:1fr}
+ body.mc-admin .admin-quick-action{min-height:70px}
+}
