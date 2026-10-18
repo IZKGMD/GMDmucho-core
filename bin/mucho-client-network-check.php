@@ -65,8 +65,8 @@ $parts = parse_url($base);
 if (!is_array($parts)
     || strtolower((string)($parts['scheme'] ?? '')) !== 'https'
     || empty($parts['host'])
-    || isset($parts['user'], $parts['pass'])
-    || ($parts['path'] ?? '') !== ''
+    || isset($parts['user']) || isset($parts['pass'])
+    || !in_array(($parts['path'] ?? ''), ['', '/'], true)
     || isset($parts['query'])
     || isset($parts['fragment'])) {
     fwrite(STDERR, "Usage: php bin/mucho-client-network-check.php https://your-gdps-domain\n");
