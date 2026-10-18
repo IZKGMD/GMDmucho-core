@@ -11,7 +11,7 @@ use Throwable;
 
 final readonly class Gd2209SanctionService
 {
-    private const KINDS = ['comment','upload','message','freeze'];
+    private const KINDS = ['comment','upload','message','freeze','trending','name'];
 
     public function __construct(
         private PDO $db,
