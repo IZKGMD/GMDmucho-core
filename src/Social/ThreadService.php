@@ -437,31 +437,53 @@ final readonly class ThreadService
     ): array {
         $this->authorize($accountId, $credential);
         $thread = $this->threadForMember($accountId, $threadId);
-        if ($thread === null || $before < 0 || $after < 0 || $around < 0
-            || ($before > 0 && $after > 0) || $around > 0) {
-            throw new RuntimeException('Unsupported thread cursor or access denied');
+        if ($thread === null || $before < 0 || $after < 0 || $around < 0 ||
+            (int)($before > 0) + (int)($after > 0) + (int)($around > 0) > 1) {
+            throw new RuntimeException('Invalid thread cursor or access denied');
         }
 
-        $filter = '';
         $args = ['thread'=>$threadId,
             'cleared'=>(int)$thread['last_cleared_message_id']];
-        if ($before > 0) {
-            $filter = ' AND m.id < :cursor';
-            $args['cursor'] = $before;
-        } elseif ($after > 0) {
-            $filter = ' AND m.id > :cursor';
-            $args['cursor'] = $after;
+        $select = 'SELECT m.id,m.thread_id,m.sender_account_id,m.body,
+                          m.created_at,a.username
+                   FROM mucho_thread_messages m
+                   JOIN accounts a ON a.account_id=m.sender_account_id
+                   WHERE m.thread_id=:thread AND m.id>:cleared';
+
+        if ($around > 0) {
+            $args['cursor'] = $around;
+            // Center on the requested message and include newer context.
+            // Clamp the window to at most 50 persisted messages.
+            $older = $this->db->prepare(
+                $select . ' AND m.id<=:cursor ORDER BY m.id DESC LIMIT 25'
+            );
+            $older->execute($args);
+            $newer = $this->db->prepare(
+                $select . ' AND m.id>:cursor ORDER BY m.id ASC LIMIT 25'
+            );
+            $newer->execute($args);
+            $messages = array_merge(
+                $older->fetchAll(PDO::FETCH_ASSOC),
+                $newer->fetchAll(PDO::FETCH_ASSOC)
+            );
+            usort($messages, static fn(array $a,array $b): int =>
+                (int)$b['id'] <=> (int)$a['id']
+            );
+        } else {
+            $filter = '';
+            if ($before > 0) {
+                $filter = ' AND m.id<:cursor';
+                $args['cursor'] = $before;
+            } elseif ($after > 0) {
+                $filter = ' AND m.id>:cursor';
+                $args['cursor'] = $after;
+            }
+            $stmt = $this->db->prepare(
+                $select . $filter . ' ORDER BY m.id DESC LIMIT 50'
+            );
+            $stmt->execute($args);
+            $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
-        $stmt = $this->db->prepare(
-            'SELECT m.id,m.thread_id,m.sender_account_id,m.body,m.created_at,
-                    a.username
-             FROM mucho_thread_messages m
-             INNER JOIN accounts a ON a.account_id=m.sender_account_id
-             WHERE m.thread_id=:thread AND m.id>:cleared' . $filter .
-            ' ORDER BY m.id DESC LIMIT 50'
-        );
-        $stmt->execute($args);
-        $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $stmt = $this->db->prepare(
             'SELECT m.account_id,a.username,p.user_id,p.cube,p.color1,
