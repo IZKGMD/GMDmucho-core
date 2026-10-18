@@ -30,7 +30,7 @@ function mustNav(bool $condition, string $message): void
 }
 function inspectNav(): DOMXPath
 {
-    global $root;
+    global $root, $pages, $page;
     ob_start();
     require $root . '/public/admin/core/navigation.php';
     $markup = (string)ob_get_clean();
