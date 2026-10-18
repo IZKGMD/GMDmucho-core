@@ -38,10 +38,29 @@ $assert($segments[0] === $expected, 'messages segment uses native object');
 $assert(str_contains($segments[1], '1:Owner:2:100'), 'real member segment');
 $assert($segments[2] === '' && $segments[3] === '',
     'unknown historical and empty pending invites have empty sections');
-$assert(str_starts_with($segments[4], '11:0:2:'),
-    'native metadata positional group prefix');
+$meta = explode(':', $segments[4]);
+$assert(count($meta) === 11, 'native metadata has eleven positions');
+$assert($meta[0] === '9' && $meta[1] === '0' && $meta[2] === '1',
+    'metadata starts with thread ID, zero and actual member count');
+$assert($meta[8] === base64_encode('My group'),
+    'metadata slot 9 is the group title, never the emote icon');
+$assert($meta[9] === '0', 'open threads have zero lock flag');
 $assert($segments[5] === '0' && $segments[6] === '3,1,10,50',
     'native last-message and tail constants');
+$metadata = Gd2209ThreadWire::metadata([
+    'id'=>45, 'owner_account_id'=>99, 'member_count'=>3,
+    'title'=>'Another group', 'emote'=>'shocked',
+    'description'=>'Some text', 'is_closed'=>1
+]);
+$fields = explode(':', $metadata);
+$assert($fields[0] === '45' && $fields[0] !== '99',
+    'native metadata thread ID must not be owner account ID');
+$assert($fields[2] === '3' && $fields[3] === base64_encode('Some text'),
+    'native metadata reads actual group size and description');
+$assert($fields[8] === base64_encode('Another group')
+    && $fields[8] !== base64_encode('shocked') && $fields[9] === '1',
+    'native metadata title is in slot nine and closed state in slot ten');
+
 $inviteUser = Gd2209ThreadWire::invites([[
     'invitee_account_id'=>23, 'user_id'=>57, 'username'=>'Join me',
     'inviter_account_id'=>11,'cube'=>2,'color1'=>3,'color2'=>4,'special'=>1,
