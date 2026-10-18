@@ -132,11 +132,42 @@ final readonly class ThreadService
         if ($thread === null || (int)$thread['owner_account_id'] === $accountId) {
             return false;
         }
-        $stmt = $this->db->prepare(
-            'DELETE FROM mucho_thread_members WHERE thread_id=:thread AND account_id=:account'
-        );
-        $stmt->execute(['thread' => $threadId, 'account' => $accountId]);
-        return $stmt->rowCount() === 1;
+        $this->db->beginTransaction();
+        try {
+            $q = $this->db->prepare(
+                'SELECT COALESCE(MAX(id),0) FROM mucho_thread_messages
+                 WHERE thread_id=:thread'
+            );
+            $q->execute(['thread'=>$threadId]);
+            $latest = (int)$q->fetchColumn();
+            $former = $this->db->prepare(
+                "INSERT INTO mucho_thread_former_members
+                 (thread_id,account_id,reason,last_visible_message_id)
+                 VALUES (:thread,:account,'left',:latest)
+                 ON DUPLICATE KEY UPDATE reason='left',
+                   last_visible_message_id=VALUES(last_visible_message_id),
+                   left_at=UTC_TIMESTAMP()"
+            );
+            $former->execute([
+                'thread'=>$threadId,'account'=>$accountId,'latest'=>$latest
+            ]);
+            $stmt = $this->db->prepare(
+                'DELETE FROM mucho_thread_members
+                 WHERE thread_id=:thread AND account_id=:account'
+            );
+            $stmt->execute(['thread'=>$threadId,'account'=>$accountId]);
+            if ($stmt->rowCount() !== 1) {
+                $this->db->rollBack();
+                return false;
+            }
+            $this->db->commit();
+            return true;
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
     }
 
     public function invite(int $accountId, string $credential, int $threadId, int $target): bool
