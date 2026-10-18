@@ -11,10 +11,10 @@ Native source: https://boomlings.dev/endpoints/threads/getGJThreadMessages
 - Empty message section is the literal `none`.
 - Request cursors `beforeID`, `afterID` and `aroundID` are implemented; `aroundID` uses a bounded 25-older/25-newer window. Their combined or ambiguous use is rejected.
 - Access to the message snapshot is limited to active thread members. The member-roster endpoint also permits invited accounts.
-- `sendGJThreadMessage` accepts URL-safe Base64 in `body` and replies `threadID:messageID` for an existing thread. Creating a new DM/group with `threadID=0` is **not implemented** in this branch.
-- `getGJThreads` uses fixed positional thread objects with pagination metadata `total:offset:10:invites:60`, not keyed `1:value:2:value` objects. Current DB stores only group threads, no DM types.
+- `sendGJThreadMessage` accepts URL-safe Base64 in `body` and replies `threadID:messageID` for an existing thread. Creating a new DM/group with `threadID=0` is implemented with atomic thread/message creation and optional group invitations.
+- `getGJThreads` uses fixed positional thread objects with pagination metadata `total:offset:10:invites:60`, not keyed `1:value:2:value` objects. The staging schema now stores both group and DM threads.
 - `searchGJThreadMessages` accepts Base64 query and `beforeID`, returning `messages#remainingPages`. The remaining pages are counted from actual database matches.
-- `updateGJThread` accepts native numeric `mode` and Base64 `value`, with modes 2 (rename), 4 (single invite), 5 (leave), 8/9 (respond to invite), 12 (delete own message). Unsupported modes fail closed.
+- `updateGJThread` accepts native numeric `mode` and Base64 `value`, with documented modes 1–16 (except mode 17, which is undocumented) and 18, using owner/member permissions; unsupported modes fail closed.
 
 Sources:
 - https://boomlings.dev/endpoints/threads/getGJThreadMessages
@@ -28,9 +28,9 @@ Sources:
 
 ## Remaining compatibility limitations
 
-**Critical:** Member/invite object *trailing optional fields* and eleven-slot group metadata are only partially mapped. In particular, MuchoCore does not yet persist a native group description, emote icon, per-user thread mute/pin state, departed members, native unread counters, or full DM conversation records. These remain zero/empty rather than inventing user data.
+**Critical:** Exact native values for several optional invite/member fields and UI counters remain provisional. Group description/emote, member mute/pin/read cursors, former-member records and DM messages are now stored, but exact real-client rendering and departed-member serialization require further analysis.
 
-Full invitation objects in `getGJThreadInvites` still use MuchoCore's earlier provisional serializer. The client may not parse these successfully. The content and structure of optional system messages are also not implemented.
+Incoming invite responses now use the documented nineteen-value positional envelope, but several optional attributes remain provisional and real-client parsing is not yet verified. The content and structure of optional system messages are also not implemented.
 
 No real-client Windows or Android packet capture validating these new commits is present. Code only on draft PR #133. Do not merge to `main` or deploy to production solely on the strength of route and unit-test coverage.
 
