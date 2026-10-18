@@ -2452,6 +2452,7 @@ max-width:100%
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
 <link rel="stylesheet" href="/admin/admin-polish.css?v=4">
 <script src="/admin/admin-simple.js?v=2" defer></script>
+<script src="/admin/admin-workflows.js?v=1" defer></script>
 </head>
 <body class="admin-login mc-workspace" data-page="">
 <main class="admin-auth-card">
@@ -4997,6 +4998,7 @@ table{
 <script src="/assets/product-ui.js?v=2" defer></script>
 <link rel="stylesheet" href="/admin/admin-simple.css?v=1">
 <script src="/admin/admin-simple.js?v=2" defer></script>
+<script src="/admin/admin-workflows.js?v=1" defer></script>
 <link rel="stylesheet" href="/admin/admin-polish.css?v=4">
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
