@@ -65,16 +65,55 @@ final class CvoltonDatabaseImporter
             'platscores' => $this->sourceTableExists($source, 'platscores')
                 ? $this->count($source, 'platscores')
                 : 0,
+            // The target requires unique emails, while FHGDPS/Cvolton does
+            // not. Later duplicates receive a deterministic local.invalid
+            // placeholder; the first account retains the real address.
+            'duplicate_email_accounts' => (int)$source->query(
+                "SELECT COALESCE(SUM(c - 1), 0)
+                 FROM (
+                     SELECT COUNT(*) AS c
+                     FROM accounts
+                     WHERE TRIM(email) <> ''
+                     GROUP BY LOWER(TRIM(email))
+                     HAVING COUNT(*) > 1
+                 ) AS duplicate_groups"
+            )->fetchColumn(),
+            // An empty levelString often means level data lives on disk.
+            // A SQL-only migration must never silently create empty levels.
+            'levels_missing_data' => (int)$source->query(
+                "SELECT COUNT(*) FROM levels
+                 WHERE levelString IS NULL OR TRIM(levelString) = ''"
+            )->fetchColumn(),
+            'levels_without_account' => (int)$source->query(
+                "SELECT COUNT(*) FROM levels l
+                 LEFT JOIN accounts a
+                   ON l.extID = CAST(a.accountID AS CHAR)
+                 WHERE a.accountID IS NULL"
+            )->fetchColumn(),
+            'ambiguous_profile_links' => (int)$source->query(
+                "SELECT COUNT(*) FROM (
+                    SELECT u.extID
+                    FROM users u
+                    INNER JOIN accounts a
+                      ON u.extID = CAST(a.accountID AS CHAR)
+                    GROUP BY u.extID
+                    HAVING COUNT(*) > 1
+                 ) AS ambiguous_profiles"
+            )->fetchColumn(),
+            // Guest/orphan player rows are not account-backed profiles and
+            // cannot be represented by an account_id in MuchoCore.
+            'guest_or_orphan_profiles' => (int)$source->query(
+                "SELECT COUNT(*) FROM users u
+                 LEFT JOIN accounts a
+                   ON u.extID = CAST(a.accountID AS CHAR)
+                 WHERE a.accountID IS NULL"
+            )->fetchColumn(),
         ];
     }
 
     public function apply(PDO $source): array
     {
-        $this->requireSourceTables(
-            $source,
-            ['accounts', 'users', 'levels']
-        );
-        $this->requireSourceSchema($source);
+        MigrationPreflightGuard::assertSafe($this->preflight($source));
 
         $this->requireTargetMaps();
 
@@ -87,6 +126,7 @@ final class CvoltonDatabaseImporter
             'regular_scores_upserted' => 0,
             'platformer_scores_upserted' => 0,
             'password_resets_required' => 0,
+            'email_aliases_assigned' => 0,
         ];
 
         $this->importAccounts($source, $stats);
@@ -106,6 +146,7 @@ final class CvoltonDatabaseImporter
     private function importAccounts(PDO $source, array &$stats): void
     {
         $last = 0;
+        $seenEmails = [];
 
         $sql = '
             SELECT
@@ -150,6 +191,16 @@ final class CvoltonDatabaseImporter
                 $sourceId = (int)$row['accountID'];
                 $username = $this->username((string)$row['userName']);
                 $email = $this->email((string)$row['email'], $sourceId);
+                $emailKey = strtolower($email);
+
+                if (isset($seenEmails[$emailKey])) {
+                    // Reusing the same real email would merge accounts or
+                    // violate the target's UNIQUE email constraint.
+                    $email = $this->email('', $sourceId);
+                    $stats['email_aliases_assigned']++;
+                } else {
+                    $seenEmails[$emailKey] = true;
+                }
 
                 $existing = $this->mappedAccount($sourceId);
 
@@ -663,8 +714,15 @@ final class CvoltonDatabaseImporter
     {
         $gjp2 = trim((string)($row['gjp2'] ?? ''));
 
-        return preg_match('/^[a-f0-9]{40}$/i', $gjp2) === 1
-            ? password_hash($gjp2, PASSWORD_DEFAULT)
+        if (preg_match('/^[a-f0-9]{40}$/i', $gjp2) === 1) {
+            return password_hash(strtolower($gjp2), PASSWORD_DEFAULT);
+        }
+
+        // FHGDPS may already store a password_hash() of the derived GJP2
+        // digest. Keep that hash intact instead of hashing its ciphertext.
+        $algorithm = password_get_info($gjp2)['algo'] ?? null;
+        return !in_array($algorithm, [null, 0, '0'], true)
+            ? $gjp2
             : null;
     }
 

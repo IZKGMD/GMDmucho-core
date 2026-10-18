@@ -1,0 +1,55 @@
+name: Test GDPS Migration
+
+on:
+  push:
+    paths:
+      - 'src/Migration/**'
+      - 'src/Backup/**'
+      - 'bin/*migrat*'
+      - 'bin/*backup*'
+      - 'tests/application/cvolton-migration-integration.php'
+      - '.github/workflows/test-gdps-migration.yml'
+  pull_request:
+    paths:
+      - 'src/Migration/**'
+      - 'src/Backup/**'
+      - 'bin/*migrat*'
+      - 'bin/*backup*'
+      - 'tests/application/cvolton-migration-integration.php'
+      - '.github/workflows/test-gdps-migration.yml'
+
+jobs:
+  cvolton-import:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: migration-test-only
+          MARIADB_ROOT_HOST: '%'
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, zip
+          tools: composer
+      - name: Install PHP dependencies and MariaDB client
+        run: |
+          composer install --no-interaction --no-progress --prefer-dist
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends mariadb-client
+      - name: Run migration integration tests
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: '3306'
+          TEST_DB_ROOT_PASSWORD: migration-test-only
+        run: php tests/application/cvolton-migration-integration.php
