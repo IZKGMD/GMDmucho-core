@@ -250,6 +250,8 @@ DRY-RUN complete. No destination data was modified.
 Creating verified target database backup before apply...
 ";
 
+    \MuchoCore\Migration\MigrationPreflightGuard::assertSafe($preflight);
+
     $targetBackup = createVerifiedTargetBackup(microtime(true));
 
     if (!isset($options['json'])) {
