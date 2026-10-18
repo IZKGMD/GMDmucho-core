@@ -10,6 +10,19 @@ use PDOException;
 /** Shared check for actual, non-expired 2.209 account restrictions. */
 final class Gd2209Restrictions
 {
+    public static function schemaAvailable(PDO $db): bool
+    {
+        // Legacy isolated tests and old, not-yet-migrated environments may
+        // predate this feature. No query referencing the new table is added
+        // to a legacy level search when the table does not exist.
+        $q = $db->query(
+            "SELECT COUNT(*) FROM information_schema.TABLES
+             WHERE TABLE_SCHEMA=DATABASE()
+             AND TABLE_NAME='mucho_gd2209_restrictions'"
+        );
+        return (int)$q->fetchColumn() > 0;
+    }
+
     public static function active(PDO $db, int $accountId, string $kind): bool
     {
         if ($accountId <= 0 || !in_array($kind, ['comment','upload','message','trending','name'], true)) {
