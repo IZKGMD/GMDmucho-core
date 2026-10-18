@@ -31,46 +31,28 @@ jobs:
           SRC="assets/brand/sources/Gemini_Generated_Image_af007baf007baf00.jpg"
           mkdir -p public/assets
 
-          # Main horizontal MuchoCore mark from the dark presentation panel.
-          convert "$SRC"             -crop 1280x600+100+740 +repage             -resize "1400x>"             -strip             -quality 92             -interlace Plane             public/assets/muchocore-logo.jpg
+          # The horizontal wordmark keeps its dark branded background for
+          # OpenGraph preview cards, never square navbar positions.
+          convert "$SRC" -crop 1280x600+100+740 +repage \
+            -resize "1400x>" -strip -quality 92 -interlace Plane \
+            public/assets/muchocore-logo.jpg
 
-          # Source artwork is 2048x2048; use native coordinates, not preview pixels.
-          # Compact MC cube mark from the dedicated icon panel.
-          # Remove the near-white background around the cube, not the
-          # light faces inside its dark outline. Flood fill starts outside
-          # the mark, before shrinking, to preserve antialiased edges.
-          convert "$SRC" \
-            -crop 500x500+1490+95 +repage \
+          # Only the *connected outer* near-white area becomes transparent.
+          # The white surfaces INSIDE the cube's dark outline stay intact.
+          convert "$SRC" -crop 500x500+1490+95 +repage \
             -alpha on -fuzz 18% -fill none \
             -draw 'matte 0,0 floodfill' \
-            -resize "256x256" \
-            -strip PNG32:public/assets/muchocore-icon.png
+            -resize "256x256" -strip \
+            PNG32:public/assets/muchocore-icon.png
 
           test -s public/assets/muchocore-logo.jpg
           test -s public/assets/muchocore-icon.png
-
           identify public/assets/muchocore-logo.jpg
           identify public/assets/muchocore-icon.png
-          # A white/opaque background must not regress unnoticed.
-          convert public/assets/muchocore-icon.png -format '%[fx:a.p{0,0}]' info: | grep -Eq '^0(\\.0+)?
 
-      - name: Commit generated assets
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add public/assets/muchocore-logo.jpg public/assets/muchocore-icon.png
-
-          if git diff --cached --quiet; then
-            echo "Brand assets are already current."
-            exit 0
-          fi
-
-          git commit -m "chore: add cropped MuchoCore brand assets"
-          git push
-
+          # Explicit RGBA output with a fully clear pixel at the top-left.
+          alpha="$(convert public/assets/muchocore-icon.png -format '%[fx:a.p{0,0}]' info:)"
+          test "$alpha" = "0"
           identify -format '%[channels]' public/assets/muchocore-icon.png | grep -qi 'a'
 
       - name: Commit generated assets
@@ -87,5 +69,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "chore: add cropped MuchoCore brand assets"
+          git commit -m "chore: generate transparent MuchoCore brand icon"
           git push
