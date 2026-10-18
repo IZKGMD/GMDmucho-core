@@ -132,20 +132,7 @@ final readonly class ThreadController
             $rows = $this->service->invites(
                 $r->postInt('accountID'), $r->gdCredential()
             );
-            if ($rows === []) {
-                return Response::text('none');
-            }
-            $out = [];
-            foreach ($rows as $row) {
-                $out[] = implode(':', [
-                    1, (int)$row['id'],
-                    2, (int)$row['thread_id'],
-                    3, (int)$row['inviter_account_id'],
-                    4, self::b64((string)$row['title']),
-                    5, self::when((string)$row['created_at']),
-                ]);
-            }
-            return Response::text(implode('|', $out));
+            return Response::text(Gd2209ThreadWire::inboxInvites($rows));
         } catch (Throwable) {
             return Response::text('-1');
         }
