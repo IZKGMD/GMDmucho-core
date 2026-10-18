@@ -86,7 +86,8 @@ final readonly class ThreadController
         try {
             $page = $this->service->nativeThreads(
                 $r->postInt('accountID'), $r->gdCredential(),
-                $r->postInt('page'), $r->postInt('filter')
+                $r->postInt('page'), $r->postInt('filter'),
+                $r->postString('user')
             );
             return Response::text(Gd2209ThreadWire::threads($page));
         } catch (Throwable) {
