@@ -123,6 +123,7 @@ final class SharedMigrationService
             $inspection = $detected['inspection'];
             $adapter = $detected['adapter'];
             $preflight = $adapter->preflight($source);
+            MigrationPreflightGuard::assertSafe($preflight);
 
             $backup = (new DatabaseBackupService(
                 $this->target,
