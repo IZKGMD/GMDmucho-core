@@ -79,6 +79,8 @@ jobs:
           find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l bin/mucho-verify-backup.php
           php -l bin/mucho-client-doctor.php
+          php -l bin/mucho-client-network-check.php
+          php bin/mucho-client-network-check.php --self-test
           php -l bin/mucho-gd2209-trace-report.php
           php -l bin/mucho-gd2209-coverage.php
           php bin/mucho-gd2209-coverage.php --json > /dev/null
@@ -132,6 +134,7 @@ jobs:
           php tests/application/score-integrity-contract.php
           php tests/application/profile-images.php
           php tests/application/cvolton-db-import-contract.php
+          php tests/application/cvolton-level-description.php
           php tests/application/comment-contract.php
           php tests/application/social-crud-contract.php
           php tests/application/v106-hardening-contract.php
