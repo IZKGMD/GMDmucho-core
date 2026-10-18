@@ -6543,6 +6543,1208 @@
         "status": "pending",
         "evidence": []
       }
+    },
+    {
+      "id": "route.gd2209.reportgjcontent",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/reportgjcontent",
+      "aliases": [
+        "/reportGJContent",
+        "/database/reportGJContent.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.getgjaudiofilesize",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjaudiofilesize",
+      "aliases": [
+        "/getGJAudioFilesize",
+        "/database/getGJAudioFilesize.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.getgjcontentstatus",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/getgjcontentstatus",
+      "aliases": [
+        "/getGJContentStatus",
+        "/database/getGJContentStatus.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.openedregister",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/openedregister",
+      "aliases": [
+        "/openedRegister",
+        "/database/openedRegister.php",
+        "/accounts/openedRegister",
+        "/database/accounts/openedRegister.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.admingetuserhistory",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/admingetuserhistory",
+      "aliases": [
+        "/adminGetUserHistory",
+        "/database/adminGetUserHistory.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.admingetreportedcontent",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/admingetreportedcontent",
+      "aliases": [
+        "/adminGetReportedContent",
+        "/database/adminGetReportedContent.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.adminclearreportedcontent",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/adminclearreportedcontent",
+      "aliases": [
+        "/adminClearReportedContent",
+        "/database/adminClearReportedContent.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.admingetabuseinfo",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/admingetabuseinfo",
+      "aliases": [
+        "/adminGetAbuseInfo",
+        "/database/adminGetAbuseInfo.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.admingetaccountreview",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/admingetaccountreview",
+      "aliases": [
+        "/adminGetAccountReview",
+        "/database/adminGetAccountReview.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.adminthreadaction",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/adminthreadaction",
+      "aliases": [
+        "/adminThreadAction",
+        "/database/adminThreadAction.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.admindeleteusercomments",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/admindeleteusercomments",
+      "aliases": [
+        "/adminDeleteUserComments",
+        "/database/adminDeleteUserComments.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.admincommentban",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/admincommentban",
+      "aliases": [
+        "/adminCommentBan",
+        "/database/adminCommentBan.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.adminuploadban",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/adminuploadban",
+      "aliases": [
+        "/adminUploadBan",
+        "/database/adminUploadBan.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.adminmessageban",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/adminmessageban",
+      "aliases": [
+        "/adminMessageBan",
+        "/database/adminMessageBan.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.adminfreezeaccount",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/adminfreezeaccount",
+      "aliases": [
+        "/adminFreezeAccount",
+        "/database/adminFreezeAccount.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.admintrendingban",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/admintrendingban",
+      "aliases": [
+        "/adminTrendingBan",
+        "/database/adminTrendingBan.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.adminnamelock",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/adminnamelock",
+      "aliases": [
+        "/adminNameLock",
+        "/database/adminNameLock.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.admincommentunban",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/admincommentunban",
+      "aliases": [
+        "/adminCommentUnban",
+        "/database/adminCommentUnban.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.adminuploadunban",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/adminuploadunban",
+      "aliases": [
+        "/adminUploadUnban",
+        "/database/adminUploadUnban.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.adminclosecase",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/adminclosecase",
+      "aliases": [
+        "/adminCloseCase",
+        "/database/adminCloseCase.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.adminmessageunban",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/adminmessageunban",
+      "aliases": [
+        "/adminMessageUnban",
+        "/database/adminMessageUnban.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.adminunfreezeaccount",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/adminunfreezeaccount",
+      "aliases": [
+        "/adminUnfreezeAccount",
+        "/database/adminUnfreezeAccount.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.admintrendingunban",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/admintrendingunban",
+      "aliases": [
+        "/adminTrendingUnban",
+        "/database/adminTrendingUnban.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.adminnameunlock",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/adminnameunlock",
+      "aliases": [
+        "/adminNameUnlock",
+        "/database/adminNameUnlock.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
+    },
+    {
+      "id": "route.gd2209.deletegjcomments",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/deletegjcomments",
+      "aliases": [
+        "/deleteGJComments",
+        "/database/deleteGJComments.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
     }
   ]
 }
