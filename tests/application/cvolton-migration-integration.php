@@ -646,6 +646,10 @@ SQL);
     must($preflight['levels'] === 1, 'Unexpected level preflight count.');
     must($preflight['levelscores'] === 1, 'Unexpected regular score preflight count.');
     must($preflight['platscores'] === 1, 'Unexpected platformer score preflight count.');
+    must($preflight['duplicate_email_accounts'] === 0, 'Unexpected duplicate email diagnosis.');
+    must($preflight['levels_missing_data'] === 0, 'Valid level data was flagged as missing.');
+    must($preflight['levels_without_account'] === 0, 'Valid creator was flagged as missing.');
+    must($preflight['ambiguous_profile_links'] === 0, 'Profiles are unexpectedly ambiguous.');
 
     must(scalar($target, 'SELECT COUNT(*) FROM accounts') === 2, 'Expected two migrated accounts.');
     must(scalar($target, 'SELECT COUNT(*) FROM levels') === 1, 'Expected one migrated level.');
@@ -685,13 +689,59 @@ SQL);
     must($stats['levels_updated'] === 1, 'Expected idempotent level update on second apply.');
     must(scalar($target, 'SELECT COUNT(*) FROM accounts') === 2, 'Idempotent apply changed account count.');
 
+    // FHGDPS permits duplicate email addresses and bcrypt-based GJP2.
+    // Importing these accounts must not merge identities or break login.
+    $bcryptGjp2 = password_hash(sha1('gdpsfh-fixture-passwordGJP2'), PASSWORD_DEFAULT);
+    $duplicate = $source->prepare(
+        'INSERT INTO accounts (accountID,userName,password,gjp2,email,isActive)
+         VALUES (3,:name,:password,:gjp2,:email,1)'
+    );
+    $duplicate->execute([
+        'name' => 'SharedEmail',
+        'password' => password_hash('gdpsfh-fixture-password', PASSWORD_DEFAULT),
+        'gjp2' => $bcryptGjp2,
+        'email' => 'migrator@example.test',
+    ]);
+    $source->exec("INSERT INTO users (extID,userName) VALUES ('3','SharedEmail')");
+
+    $duplicatePreview = (new CvoltonDatabaseImporter($target))->preflight($source);
+    must($duplicatePreview['duplicate_email_accounts'] === 1, 'Duplicate email was not detected.');
+
+    $target->beginTransaction();
+    try {
+        $duplicateStats = (new CvoltonDatabaseImporter($target))->apply($source);
+        $target->commit();
+    } catch (Throwable $e) {
+        if ($target->inTransaction()) {
+            $target->rollBack();
+        }
+        throw $e;
+    }
+
+    must($duplicateStats['accounts_created'] === 1, 'Duplicate-email account was not imported.');
+    must($duplicateStats['email_aliases_assigned'] === 1, 'Duplicate-email alias was not reported.');
+    must(scalar($target, 'SELECT COUNT(*) FROM accounts') === 3, 'Duplicate email merged accounts.');
+    $aliasedEmail = (string)$target->query(
+        "SELECT email FROM accounts WHERE username='SharedEmail'"
+    )->fetchColumn();
+    must($aliasedEmail === 'cvolton.3@local.invalid', 'Duplicate email alias is not deterministic.');
+    $preservedHash = (string)$target->query(
+        "SELECT gjp2_hash FROM accounts WHERE username='SharedEmail'"
+    )->fetchColumn();
+    must($preservedHash === $bcryptGjp2, 'Existing bcrypt GJP2 hash was not preserved.');
+
+    // A collision with an *unrelated existing target* remains a hard error.
+    $target->exec(
+        "INSERT INTO accounts (username,email,password_hash)
+         VALUES ('ThirdParty','third-party@example.test','unusable')"
+    );
     $source->exec(
         "INSERT INTO accounts (accountID,userName,password,gjp2,email,isActive)
-         VALUES (3,'ConflictUser','unsupported','', 'migrator@example.test',1)"
+         VALUES (4,'ConflictUser','unsupported','', 'third-party@example.test',1)"
     );
     $source->exec(
         "INSERT INTO users (extID,userName)
-         VALUES ('3','ConflictUser')"
+         VALUES ('4','ConflictUser')"
     );
 
     $before = scalar($target, 'SELECT COUNT(*) FROM accounts');
@@ -713,6 +763,19 @@ SQL);
         scalar($target, 'SELECT COUNT(*) FROM accounts') === $before,
         'Failed migration must roll back destination changes.'
     );
+
+    // Database metadata is insufficient when levels are stored as files.
+    $source->exec('UPDATE levels SET levelString=NULL WHERE levelID=101');
+    $missingPreview = (new CvoltonDatabaseImporter($target))->preflight($source);
+    must($missingPreview['levels_missing_data'] === 1, 'Missing external level data was not detected.');
+    $blocked = false;
+    try {
+        (new CvoltonDatabaseImporter($target))->apply($source);
+    } catch (RuntimeException $e) {
+        $blocked = str_contains($e->getMessage(), 'levels have no levelString');
+    }
+    must($blocked, 'The importer must refuse empty level content.');
+    $source->exec("UPDATE levels SET levelString='1,1,1' WHERE levelID=101");
 
     $source->exec('ALTER TABLE levels DROP COLUMN levelString');
     $schemaFailed = false;
