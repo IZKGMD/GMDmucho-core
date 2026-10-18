@@ -153,6 +153,18 @@ function printCounts(array $preflight): void
             (int)($preflight[$key] ?? 0)
         );
     }
+
+    $checks = [
+        'duplicate_email_accounts' => 'Accounts needing unique placeholder emails',
+        'levels_missing_data' => 'Levels requiring external file data (BLOCKS APPLY)',
+        'levels_without_account' => 'Levels with missing creators (BLOCKS APPLY)',
+        'ambiguous_profile_links' => 'Ambiguous player profiles (BLOCKS APPLY)',
+    ];
+
+    echo PHP_EOL . "DATA SAFETY CHECKS" . PHP_EOL;
+    foreach ($checks as $key => $label) {
+        echo sprintf("  %5d  %s" . PHP_EOL, (int)($preflight[$key] ?? 0), $label);
+    }
 }
 
 function printHeader(string $mode): void
