@@ -1,4 +1,25 @@
 /* Shared admin markup has a usable native flow when these rules are absent. */
+/* Alpha cube mark: no image background, inset frame or misplaced padding. */
+body.admin-login .admin-brand-mark,body.mc-admin .admin-brand-mark{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  background:transparent;
+  border:0;
+  box-shadow:none;
+}
+body.admin-login img.admin-brand-icon,body.mc-admin img.admin-brand-icon{
+  display:block;
+  object-position:center;
+  aspect-ratio:1;
+  padding:0;
+  margin:0;
+  border:0;
+  background:transparent;
+  box-shadow:none;
+}
+
 body.admin-login .admin-brand,body.mc-admin .admin-brand{display:flex;align-items:center;gap:12px;min-width:0;letter-spacing:normal}
 body.admin-login .admin-brand-mark,body.mc-admin .admin-brand-mark{flex:0 0 48px;line-height:0}
 body.admin-login .admin-brand-icon,body.mc-admin .admin-brand-icon{display:block;width:48px;height:48px;max-width:none;max-height:none;object-fit:contain;border-radius:10px}
