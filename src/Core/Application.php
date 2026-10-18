@@ -22,6 +22,8 @@ use MuchoCore\Url\UrlController;
 use MuchoCore\Compatibility\DiscoveryController;
 use MuchoCore\Compatibility\Legacy10IdentityController;
 use MuchoCore\Compatibility\Legacy10IdentityService;
+use MuchoCore\Compatibility\Gd2209UtilityController;
+use MuchoCore\Compatibility\Gd2209UtilityService;
 use MuchoCore\CloudSave\CloudSaveService;
 use MuchoCore\Clan\ClanController;
 use MuchoCore\Clan\ClanRepository;
@@ -227,6 +229,10 @@ final readonly class Application
 
         $gd2209Sanctions = new Gd2209SanctionController(
             new Gd2209SanctionService($this->pdo, $auth, $modRepo)
+        );
+
+        $gd2209Utilities = new Gd2209UtilityController(
+            new Gd2209UtilityService($this->pdo, $auth)
         );
 
         $userRepo = new UserRepository($this->pdo);
@@ -500,6 +506,11 @@ final readonly class Application
         $route('/adminTrendingUnban', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'trending', false));
         $route('/adminNameLock', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'name', true));
         $route('/adminNameUnlock', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'name', false));
+        // Remaining native 2.209 URLs; payload parsers are provisional.
+        $route('/getGJAudioFilesize', [$gd2209Utilities, 'audioSize']);
+        $route('/getGJContentStatus', [$gd2209Utilities, 'contentStatus']);
+        $route('/openedRegister', [$gd2209Utilities, 'openedRegister']);
+        $route('/accounts/openedRegister', [$gd2209Utilities, 'openedRegister']);
         $route('/requestUserAccess',
             [$userController,'requestAccess']);
 
