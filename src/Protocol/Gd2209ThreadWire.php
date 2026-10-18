@@ -46,9 +46,11 @@ final class Gd2209ThreadWire
     {
         return implode(':', [
             (int)$thread['owner_account_id'],
-            0, 2, '', 0, 0, 0, 0,
-            base64_encode((string)$thread['title']),
-            0, 0,
+            0, 2,
+            base64_encode((string)($thread['description'] ?? '')),
+            0, 0, 0, 0,
+            base64_encode((string)($thread['emote'] ?? '')),
+            0, (int)($thread['invite_owner_only'] ?? 1),
         ]);
     }
 
@@ -82,24 +84,35 @@ final class Gd2209ThreadWire
     /** Thread object is fixed positional, not a key/value encoder. */
     public static function thread(array $row): string
     {
-        // GD Docs: 26 fields, including the 4th (group title), 8th
-        // (member count), 10th (owner) and 24th (last message time).
+        $dm = (int)($row['is_dm'] ?? 0) === 1;
+        $peer = $dm ? (int)($row['peer_account_id'] ?? 0) : 0;
         return implode(':', [
-            (int)$row['id'],         // 1 threadID
-            0,                       // 2 peer account (DM only)
-            '',                      // 3 DM username
-            base64_encode((string)$row['title']), // 4 group title
-            0,                       // 5 unread count (not yet stored)
-            (int)($row['last_sender'] ?? 0), // 6 sender
-            '',                      // 7 relative time (not stored)
-            (int)($row['member_count'] ?? 0), // 8 actual group size
-            '',                      // 9 sender username not joined
-            (int)$row['owner_account_id'], // 10 group owner
-            0, 0, 0, 0, 0,           // 11-15 mute/type/pin
-            0, 0, 0, 0, 0, 0,        // 16-21 DM-only appearance
-            '', '',                  // 22/23 group description/emote
-            (int)($row['last_timestamp'] ?? 0), // 24 real UNIX time
-            0, 0,                   // 25/26 badge/status
+            (int)$row['id'],                                // 1
+            $peer,                                         // 2 DM peer
+            $dm ? base64_encode((string)($row['peer_username'] ?? '')) : '', // 3
+            $dm ? '' : base64_encode((string)$row['title']), // 4
+            (int)($row['unread_count'] ?? 0),               // 5
+            (int)($row['last_sender'] ?? 0),                // 6
+            '',                                            // 7 relative age
+            (int)($row['member_count'] ?? 0),               // 8
+            base64_encode((string)($row['last_username'] ?? '')), // 9
+            (int)$row['owner_account_id'],                 // 10
+            (int)($row['is_muted'] ?? 0),                   // 11
+            0,                                             // 12
+            $dm ? 1 : 0,                                   // 13
+            0,                                             // 14
+            (int)($row['is_pinned'] ?? 0),                  // 15
+            $dm ? (int)($row['peer_cube'] ?? 1) : 0,        // 16
+            $dm ? (int)($row['peer_color1'] ?? 0) : 0,      // 17
+            $dm ? (int)($row['peer_color2'] ?? 0) : 0,      // 18
+            0,                                             // 19
+            0,                                             // 20
+            $dm ? (int)($row['peer_special'] ?? 0) : 0,     // 21
+            $dm ? '' : base64_encode((string)($row['description'] ?? '')), // 22
+            $dm ? '' : (string)($row['emote'] ?? ''),         // 23
+            (int)($row['last_timestamp'] ?? 0),             // 24
+            0,                                             // 25 mod badge
+            0,                                             // 26 status
         ]);
     }
 
