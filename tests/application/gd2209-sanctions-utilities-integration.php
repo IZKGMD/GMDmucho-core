@@ -145,16 +145,24 @@ try {
     $assert($utilities->contentStatus($request(5,'pw5',
         ['special'=>'1']))->body === '1:5:2:0:3:0:4:0',
         'content status matches persisted restriction state');
-    $open = $request(1,'pw1',[
-        'rsession'=>'abcdefghijklmnopqrstuvwxyz12',
-        'udid'=>'unit-test-device-identifier',
-    ]);
-    $assert($utilities->openedRegister($open)->body === '1',
-        'opening an eligible register session stores a hashed diagnostic');
-    $assert($utilities->openedRegister($open)->body === '1',
-        'repeated registration open is idempotent');
+    $open = $request(1,'pw1',['secret'=>'Wmfv3899gc9']);
+    $token1 = $utilities->openedRegister($open)->body;
+    $token2 = $utilities->openedRegister($open)->body;
+    $assert(preg_match('/^[a-f0-9]{32}$/D', $token1) === 1,
+        'native openedRegister must issue a 32-char hexadecimal session');
+    $assert(preg_match('/^[a-f0-9]{32}$/D', $token2) === 1
+        && $token1 !== $token2,
+        'repeated register opening issues fresh unpredictable sessions');
+    $assert($utilities->openedRegister(
+        $request(1,'pw1',['secret'=>'wrong'])
+    )->body === '-1', 'invalid account secret denied');
     $assert((int)$db->query('SELECT COUNT(*) FROM mucho_gd2209_registration_opens')
-        ->fetchColumn() === 1, 'no duplicate diagnostic record');
+        ->fetchColumn() === 2, 'token hashes stored without plaintext values');
+    $lookup = $db->prepare('SELECT 1 FROM mucho_gd2209_registration_opens
+        WHERE token_hash=:hash');
+    $lookup->execute(['hash'=>hash('sha256', $token1, true)]);
+    $assert($lookup->fetchColumn() !== false,
+        'server retained hash of issued native session token');
     echo "MUCHOCORE_GD2209_SANCTIONS_UTILITIES_OK\n";
 } finally {
     $admin->exec('DROP DATABASE IF EXISTS '.$dbname);
