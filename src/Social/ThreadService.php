@@ -277,6 +277,69 @@ final readonly class ThreadService
         }
     }
 
+
+    /** Resolve invitation by native thread ID, not by internal invite row ID. */
+    public function respondThreadInvite(
+        int $accountId, string $credential,
+        int $threadId, bool $accept
+    ): bool {
+        $this->authorize($accountId, $credential);
+        if ($threadId <= 0) {
+            return false;
+        }
+        $stmt = $this->db->prepare(
+            "SELECT id FROM mucho_thread_invites
+             WHERE thread_id=:thread AND invitee_account_id=:account
+               AND status='pending' LIMIT 1"
+        );
+        $stmt->execute(['thread'=>$threadId,'account'=>$accountId]);
+        $inviteId = $stmt->fetchColumn();
+        return $inviteId !== false && $this->respondInvite(
+            $accountId, $credential, (int)$inviteId, $accept
+        );
+    }
+
+    /** Owner-only deletion of one's own message, scoped to an active group. */
+    public function deleteOwnMessage(
+        int $accountId, string $credential,
+        int $threadId, int $messageId
+    ): bool {
+        $this->authorize($accountId, $credential);
+        if ($threadId <= 0 || $messageId <= 0 ||
+            $this->threadForMember($accountId, $threadId) === null) {
+            return false;
+        }
+        $this->db->beginTransaction();
+        try {
+            $lock = $this->db->prepare(
+                'SELECT sender_account_id FROM mucho_thread_messages
+                 WHERE id=:id AND thread_id=:thread FOR UPDATE'
+            );
+            $lock->execute(['id'=>$messageId,'thread'=>$threadId]);
+            if ((int)$lock->fetchColumn() !== $accountId) {
+                $this->db->rollBack();
+                return false;
+            }
+            $del = $this->db->prepare(
+                'DELETE FROM mucho_thread_messages
+                 WHERE id=:id AND thread_id=:thread AND sender_account_id=:actor'
+            );
+            $del->execute(['id'=>$messageId,'thread'=>$threadId,'actor'=>$accountId]);
+            $ok = $del->rowCount() === 1;
+            if ($ok) {
+                $this->db->commit();
+            } else {
+                $this->db->rollBack();
+            }
+            return $ok;
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
+    }
+
     public function send(
         int $accountId,
         string $credential,
