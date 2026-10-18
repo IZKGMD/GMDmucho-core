@@ -162,6 +162,7 @@ The preflight now reports four independent data-safety checks:
 | `levels_missing_data` | Blocking. A level with NULL or empty `levelString` must be restored from the old server's level file storage *before* applying the SQL migration. A SQL dump alone is not sufficient. |
 | `levels_without_account` | Blocking. Every imported level must map to an existing source account ID. No levels are silently dropped. |
 | `ambiguous_profile_links` | Blocking. Multiple `users` profiles linked to the same account are not arbitrarily selected. |
+| `guest_or_orphan_profiles` | Report-only. Unregistered players or orphan `users` rows have no matching source `accounts` record and therefore cannot be imported as account-backed profiles. |
 
 GDPSFH forks may store GJP2 as a bcrypt hash, rather than as a raw 40-character SHA-1 value. Both formats are handled without converting a bcrypt hash into an unusable double hash. Passwords with unrecognized formats still require resets.
 
