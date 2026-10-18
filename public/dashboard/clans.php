@@ -468,7 +468,7 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
 <div class="shell">
 <header class="topbar">
     <a class="brand" href="/dashboard">
-        <img class="logo" src="/assets/muchocore-icon.png" alt="" width="46" height="46">
+        <img class="logo mc-brand-mark" src="/assets/muchocore-icon.png?v=3" alt="" width="46" height="46">
         <span>
             <b><?=pcH($serverName)?></b>
             <small>MUCHOCORE PLAYER DASHBOARD</small>
