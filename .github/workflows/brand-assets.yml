@@ -45,8 +45,18 @@ jobs:
             -resize "256x256" -strip \
             PNG32:public/assets/muchocore-icon.png
 
+          # A separate, versioned favicon path defeats Chrome's persistent
+          # favicon cache. The legacy /favicon.ico also uses the same alpha
+          # cube instead of the old white JPEG-backed badge.
+          convert public/assets/muchocore-icon.png -resize 64x64 -strip \
+            PNG32:public/assets/muchocore-favicon-v4.png
+          convert public/assets/muchocore-icon.png \
+            -define icon:auto-resize=64,48,32,16 public/favicon.ico
+
           test -s public/assets/muchocore-logo.jpg
           test -s public/assets/muchocore-icon.png
+          test -s public/assets/muchocore-favicon-v4.png
+          test -s public/favicon.ico
           identify public/assets/muchocore-logo.jpg
           identify public/assets/muchocore-icon.png
 
@@ -54,6 +64,9 @@ jobs:
           opaque="$(identify -format '%[opaque]' public/assets/muchocore-icon.png)"
           test "${opaque,,}" = "false"
           identify -format '%[channels]' public/assets/muchocore-icon.png | grep -qi 'a'
+          favicon_opaque="$(identify -format '%[opaque]' public/assets/muchocore-favicon-v4.png)"
+          test "${favicon_opaque,,}" = "false"
+          test "$(identify public/favicon.ico | wc -l)" -eq 4
 
       - name: Commit generated assets
         shell: bash
@@ -62,7 +75,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add public/assets/muchocore-logo.jpg public/assets/muchocore-icon.png
+          git add public/assets/muchocore-logo.jpg public/assets/muchocore-icon.png \
+            public/assets/muchocore-favicon-v4.png public/favicon.ico
 
           if git diff --cached --quiet; then
             echo "Brand assets are already current."
