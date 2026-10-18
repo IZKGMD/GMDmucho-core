@@ -23,12 +23,27 @@ function adminListUrl(string $page, array $state, int $number): string
     return '/admin/?'.http_build_query(['page'=>$page, 'q'=>$state['q'], 'filter'=>$state['filter'], 'p'=>$number]);
 }
 
+/** A predictable list contract shared by Players, Levels and Music. */
+function adminListSummary(array $state, int $count, bool $hasMore, string $item): void
+{
+    $count=max(0,$count);
+    $start=$count ? (($state['p']-1)*25)+1 : 0;
+    $end=$start+$count-($count ? 1 : 0);
+    $range=$count ? number_format($start).'–'.number_format($end) : 'No results';
+    $more=$hasMore ? ' · More available' : '';
+    echo '<p class="admin-list-summary" role="status">'.h($range.' '.$item.$more).'</p>';
+}
+
 function adminListPager(string $page, array $state, bool $hasMore): void
 {
-    echo '<nav class="admin-pagination" aria-label="Pagination">';
-    if ($state['p'] > 1) echo '<a class="btn gray" href="'.h(adminListUrl($page,$state,$state['p']-1)).'">Previous</a>';
-    echo '<span class="muted">'.h((string)$state['p']).'</span>';
-    if ($hasMore) echo '<a class="btn gray" href="'.h(adminListUrl($page,$state,$state['p']+1)).'">Next</a>';
+    $number=max(1,(int)$state['p']);
+    echo '<nav class="admin-pagination" aria-label="Results pages">';
+    if ($number>1) {
+        echo '<a class="btn gray" href="'.h(adminListUrl($page,$state,1)).'" aria-label="First page">First</a>';
+        echo '<a class="btn gray" href="'.h(adminListUrl($page,$state,$number-1)).'" rel="prev">Previous</a>';
+    }
+    echo '<span class="muted" aria-current="page">Page '.h((string)$number).'</span>';
+    if ($hasMore) echo '<a class="btn gray" href="'.h(adminListUrl($page,$state,$number+1)).'" rel="next">Next</a>';
     echo '</nav>';
 }
 

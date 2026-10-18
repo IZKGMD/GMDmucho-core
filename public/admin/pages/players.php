@@ -40,11 +40,12 @@ $roleOptions=$manage ? $db->query("SELECT code FROM roles WHERE code IN ('user',
 <?php endforeach ?></select><button>Search</button>
 <?php if($q!=='' || $filter!==''): ?><a class="btn gray" href="/admin/?page=players">Reset</a><?php endif ?>
 </form>
-<?php if(!$rows): ?><div class="card empty-state">No players found. Change the search or filters.</div><?php endif ?>
+<?php adminListSummary($state,count($rows),$hasMore,'players'); ?>
+<?php if(!$rows): ?><div class="card empty-state" role="status"><h2>No matching players</h2><p>Try another username, email, account ID, or status.</p><a class="btn gray" href="/admin/?page=players">Clear filters</a></div><?php endif ?>
 <div class="admin-records">
 <?php foreach($rows as $r): $id=(int)$r['account_id']; ?>
 <details class="card admin-record" id="player-<?=$id?>">
-<summary><?=adminGdIcon('players')?>
+<summary aria-label="Player <?=h($r['username'])?>, account #<?=$id?>"><?=adminGdIcon('players')?>
 <span class="record-name"><b><?=h($r['username'])?></b><small>#<?=$id?> · <?=h($r['role'])?></small></span>
 <span class="record-stat"><?=adminGdIcon('stars')?><?=number_format((int)($r['stars'] ?? 0))?></span>
 <span class="badge <?=$r['is_banned']?'bad':($r['is_active']?'green':'')?>"><?=$r['is_banned']?'Banned':($r['is_active']?'Active':'Inactive')?></span>
@@ -81,7 +82,8 @@ $roleOptions=$manage ? $db->query("SELECT code FROM roles WHERE code IN ('user',
 <?php endif ?>
 <?php if($delete): ?>
 <details class="record-extra"><summary>Delete account permanently</summary>
-<form method="post" data-confirm="Permanently delete this account and all related data?">
+<p class="admin-danger-note">This cannot be undone. The player account and its related data will be removed.</p>
+<form method="post" data-confirm="Permanently delete this player account and all related data?">
 <input type="hidden" name="csrf" value="<?=csrf()?>"><input type="hidden" name="action" value="account-delete">
 <input type="hidden" name="return" value="players"><input type="hidden" name="id" value="<?=$id?>">
 <?php adminListReturnFields($state) ?><button class="red">Delete account permanently</button></form></details>

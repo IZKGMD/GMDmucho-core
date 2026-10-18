@@ -121,6 +121,7 @@ jobs:
           php tests/application/admin-navigation-workflows.php
           php tests/application/release-status-integration.php
           php tests/application/admin-dashboard-access.php
+          php tests/application/admin-usability-contract.php
           php tests/application/public-overview-visibility.php
           php tests/application/web-profile-images.php
           php tests/application/admin-client-rbac-contract.php
@@ -184,6 +185,8 @@ jobs:
       - name: Check product interface scripts
         run: |
           node --check public/admin/admin-simple.js
+          node --check public/admin/admin-workflows.js
+          node --check public/admin/admin-monitoring.js
           node --check public/assets/product-ui.js
           node --check public/assets/product-home.js
           node --check public/admin/product-dashboard.js

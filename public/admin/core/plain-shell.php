@@ -7,6 +7,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?=h($pages[$page])?> — <?=h($branding['server_name'])?> Plain Admin</title>
 <script src="/admin/admin-simple.js?v=2" defer></script>
+<script src="/admin/admin-workflows.js?v=1" defer></script>
 <?php if ($page==='admins'): ?><script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script><?php endif ?>
 </head>
 <body>
