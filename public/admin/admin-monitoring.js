@@ -5,6 +5,7 @@
     if (!serviceRoot) return;
     const endpointsRoot=document.getElementById('v5Endpoints');
     const anomalyRoot=document.getElementById('v5Abuse');
+    const checksRoot=document.getElementById('v5Checks');
     const checked=document.getElementById('v5LastChecked');
     const logs=document.getElementById('v5Logs');
     const logType=document.getElementById('v5LogType');
@@ -67,11 +68,25 @@
                 item.status?'HTTP '+item.status:'No HTTP response'
             ));
             endpointsRoot.replaceChildren(...endpoints);
+            if (checksRoot) {
+                const checks=Array.isArray(data.checks) ? data.checks.map(item=>{
+                    const measured=item.count!==null && Number.isFinite(Number(item.count));
+                    const count=measured?Number(item.count):null;
+                    return row(
+                        item.name,
+                        !measured?'unknown':(count>0?'warning':'online'),
+                        !measured?'Not available':count+' · '+String(item.hint || '')
+                    );
+                }) : [];
+                checksRoot.replaceChildren(...checks);
+                if (!checks.length) message(checksRoot,'No diagnostic counters available.');
+            }
             message(checked,'Checked: '+String(data.time || 'just now'));
         } catch(error) {
             message(checked,'Health checks unavailable: '+error.message);
             message(serviceRoot,'Could not load health measurements. Use sudo mucho doctor on the VPS.');
             message(endpointsRoot,'No endpoint measurements available.');
+            message(checksRoot,'No diagnostic counters available.');
         } finally { healthBusy=false; }
     }
     async function abuse() {
