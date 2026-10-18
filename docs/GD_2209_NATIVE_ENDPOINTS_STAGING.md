@@ -55,3 +55,9 @@ References: docs/GD_2209_NATIVE_EXE_FINDINGS.md, docs/GD_2209_COVERAGE.md and do
 - GD Docs: https://boomlings.dev/endpoints/accounts/openedRegister — requires account `secret` and returns a 32-character hexadecimal session token; the previous diagnostic-only `1` response was incompatible and has been corrected in this branch.
 - GD Docs: https://boomlings.dev/endpoints/misc/reportGJContent — `type=0` is user, `type=1` is level, `reasons` can be comma-separated. The mistaken level type 0 mapping was corrected; anonymous reports and other content families still need safe implementations.
 - GD Docs: https://boomlings.dev/endpoints/threads/getGJThreadMessages — native success framing has seven `#`-delimited segments; the current MuchoCore thread controller's simple message list is **not yet native-compatible**. Do not mark this endpoint verified before fixing the serializer and testing real client acceptance.
+
+## GD 2.209 thread wire follow-up
+
+The staged thread controller now emits the documented five-value message object and seven-part message response, uses Base64 query/body values and native numeric update modes, and returns actual persisted message IDs. Group thread listings use positional object records and real pagination/count information. Supporting isolated tests were added for serialized framing, persisted message IDs, and outsider authorization. See [GD_2209_THREADS_NATIVE_WIRE.md](GD_2209_THREADS_NATIVE_WIRE.md).
+
+**Still unverified:** full group metadata, native invite objects, departed members, DMs, threadID=0 creation, several update modes, full native game acceptance. This remains an unfinished staged implementation, not 2.209 parity certification.
