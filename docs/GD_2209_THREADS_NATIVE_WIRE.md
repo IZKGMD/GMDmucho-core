@@ -57,3 +57,5 @@ No real-client Windows or Android packet capture validating these new commits is
 Integration coverage is checked into `tests/application/gd2209-thread-integration.php`; it runs against isolated MariaDB in CI. This implementation has **not** been accepted by a real unmodified Windows or Android GD 2.209 client. Exact invite object defaults, DM metadata, group read receipts, real-client rate behavior and former-member framing require network fixture verification.
 
 All changes remain on a draft pull request. Do not claim fully verified protocol compatibility solely from registered routes or PHP tests.
+
+- `getGJThreads` supports the optional comma-separated `user` account-ID filter through bound SQL parameters, while still requiring the viewer's authenticated thread membership. Its match-any semantics should be compared with native client fixtures.
