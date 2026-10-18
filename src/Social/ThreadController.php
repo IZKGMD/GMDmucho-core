@@ -7,6 +7,7 @@ namespace MuchoCore\Social;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
 use MuchoCore\Protocol\GdRelationshipEncoder;
+use MuchoCore\Protocol\Gd2209ThreadWire;
 use Throwable;
 
 /**
@@ -36,6 +37,25 @@ final readonly class ThreadController
         return $r->postInt('threadID', $r->postInt('threadId'));
     }
 
+    /** Native thread bodies and searches use URL-safe Base64. */
+    private static function decoded(string $encoded): ?string
+    {
+        if ($encoded === '' || strlen($encoded) > 22000 ||
+            preg_match('/^[A-Za-z0-9_-]+={0,2}$/D', $encoded) !== 1) {
+            return null;
+        }
+        $normalized = strtr($encoded, '-_', '+/');
+        $normalized .= str_repeat('=', (4 - strlen($normalized) % 4) % 4);
+        $decoded = base64_decode($normalized, true);
+        if ($decoded === false || !mb_check_encoding($decoded, 'UTF-8')) {
+            return null;
+        }
+        if (rtrim(strtr(base64_encode($decoded), '+/', '-_'), '=') !== rtrim($encoded, '=')) {
+            return null;
+        }
+        return $decoded;
+    }
+
     private function encodeThreads(array $rows): string
     {
         if ($rows === []) {
@@ -56,20 +76,7 @@ final readonly class ThreadController
 
     private function encodeMessages(array $rows): string
     {
-        if ($rows === []) {
-            return '-2';
-        }
-        $out = [];
-        foreach ($rows as $r) {
-            $out[] = implode(':', [
-                1, (int)$r['id'],
-                2, (int)$r['thread_id'],
-                3, (int)$r['sender_account_id'],
-                4, self::b64((string)$r['body']),
-                5, self::when((string)$r['created_at']),
-            ]);
-        }
-        return implode('|', $out);
+        return Gd2209ThreadWire::messages($rows);
     }
 
     public function getThreads(Request $r): Response
@@ -86,10 +93,14 @@ final readonly class ThreadController
     public function getMessages(Request $r): Response
     {
         try {
-            return Response::text($this->encodeMessages($this->service->messages(
+            $snapshot = $this->service->nativeSnapshot(
                 $r->postInt('accountID'), $r->gdCredential(),
-                $this->threadId($r), $r->postInt('page')
-            )));
+                $this->threadId($r), $r->postInt('beforeID'),
+                $r->postInt('afterID'), $r->postInt('aroundID')
+            );
+            return Response::text(Gd2209ThreadWire::snapshot(
+                $snapshot, $this->userEncoder
+            ));
         } catch (Throwable) {
             return Response::text('-1');
         }
@@ -101,7 +112,9 @@ final readonly class ThreadController
             $users = $this->service->members(
                 $r->postInt('accountID'), $r->gdCredential(), $this->threadId($r)
             );
-            return Response::text($this->userEncoder->users($users));
+            return Response::text(
+                ($users === [] ? '' : $this->userEncoder->users($users, true)) . '##'
+            );
         } catch (Throwable) {
             return Response::text('-1');
         }
@@ -114,7 +127,7 @@ final readonly class ThreadController
                 $r->postInt('accountID'), $r->gdCredential()
             );
             if ($rows === []) {
-                return Response::text('-2');
+                return Response::text('none');
             }
             $out = [];
             foreach ($rows as $row) {
@@ -135,10 +148,15 @@ final readonly class ThreadController
     public function send(Request $r): Response
     {
         try {
-            return Response::text($this->service->send(
-                $r->postInt('accountID'), $r->gdCredential(), $this->threadId($r),
-                $r->postString('body') ?: $r->postString('message')
-            ) ? '1' : '-1');
+            $body = self::decoded($r->postString('body'));
+            if ($body === null) {
+                return Response::text('-1');
+            }
+            $threadId = $this->threadId($r);
+            $messageId = $this->service->sendWithId(
+                $r->postInt('accountID'), $r->gdCredential(), $threadId, $body
+            );
+            return Response::text($messageId > 0 ? $threadId . ':' . $messageId : '-1');
         } catch (Throwable) {
             return Response::text('-1');
         }
@@ -147,11 +165,15 @@ final readonly class ThreadController
     public function search(Request $r): Response
     {
         try {
-            return Response::text($this->encodeMessages($this->service->search(
+            $needle = self::decoded($r->postString('query'));
+            if ($needle === null) {
+                return Response::text('-1');
+            }
+            $rows = $this->service->search(
                 $r->postInt('accountID'), $r->gdCredential(), $this->threadId($r),
-                $r->postString('query') ?: $r->postString('search'),
-                $r->postInt('page')
-            )));
+                $needle, $r->postInt('page')
+            );
+            return Response::text($this->encodeMessages($rows) . '#0');
         } catch (Throwable) {
             return Response::text('-1');
         }
