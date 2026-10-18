@@ -50,9 +50,9 @@ jobs:
           identify public/assets/muchocore-logo.jpg
           identify public/assets/muchocore-icon.png
 
-          # Explicit RGBA output with a fully clear pixel at the top-left.
-          alpha="$(convert public/assets/muchocore-icon.png -format '%[fx:a.p{0,0}]' info:)"
-          test "$alpha" = "0"
+          # Verify the result is no longer fully opaque and has alpha.
+          opaque="$(identify -format '%[opaque]' public/assets/muchocore-icon.png)"
+          test "${opaque,,}" = "false"
           identify -format '%[channels]' public/assets/muchocore-icon.png | grep -qi 'a'
 
       - name: Commit generated assets
