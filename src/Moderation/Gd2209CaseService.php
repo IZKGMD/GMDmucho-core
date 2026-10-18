@@ -217,7 +217,9 @@ final readonly class Gd2209CaseService
             );
             $q->execute(array_merge([$target], $ids));
             $changed = $q->rowCount();
-            if ($changed < 1) {
+            // All selected IDs must belong to this pending case. Reject
+            // mixed-owner/missing input atomically instead of partial success.
+            if ($changed !== count($ids)) {
                 $this->db->rollBack();
                 return false;
             }
