@@ -383,6 +383,40 @@ try {
         'cannot kick oneself');
     $check($mode(1,'pass-1',$newGroup,16,"bad\nicon") === '-1',
         'invalid group metadata refused');
+    // Exercise the native pagination hint with more than 50 messages.
+    // Inserts are fixtures, not normal post requests (which are rate limited).
+    $fixture = $db->prepare(
+        'INSERT INTO mucho_thread_messages(thread_id,sender_account_id,body)
+         VALUES (:thread,:actor,:body)'
+    );
+    for ($i = 0; $i < 52; $i++) {
+        $fixture->execute([
+            'thread'=>$newGroup, 'actor'=>1, 'body'=>'archive-'.$i
+        ]);
+    }
+    $pageWire = $http->getMessages($req(1,'pass-1','getGJThreadMessages',[
+        'threadID'=>(string)$newGroup
+    ]))->body;
+    $pageSegments = explode('#', $pageWire);
+    $pageMetadata = explode(':', $pageSegments[4]);
+    $check(count($pageSegments) === 7 &&
+        count(explode('|', $pageSegments[0])) === 50 &&
+        $pageMetadata[0] === (string)$newGroup &&
+        $pageMetadata[2] === '1' &&
+        $pageMetadata[8] === base64_encode('New GD 2.209 group') &&
+        $pageMetadata[5] === '1',
+        'native group snapshot uses actual id/title/members and Show Earlier=1');
+    $visibleRows = explode('|', $pageSegments[0]);
+    $oldest = (int)explode(':', end($visibleRows))[0];
+    $earlierWire = $http->getMessages($req(1,'pass-1','getGJThreadMessages',[
+        'threadID'=>(string)$newGroup, 'beforeID'=>(string)$oldest
+    ]))->body;
+    $earlierSegments = explode('#', $earlierWire);
+    $earlierMetadata = explode(':', $earlierSegments[4]);
+    $check($earlierMetadata[5] === '0' &&
+        str_contains($earlierSegments[0], base64_encode('Hello group')),
+        'native Show Earlier becomes zero on the actual oldest page');
+
     $db->exec('DELETE FROM accounts WHERE account_id=1');
     $check(
         (int)$db->query('SELECT COUNT(*) FROM mucho_threads')->fetchColumn() === 0,
