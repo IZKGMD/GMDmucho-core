@@ -128,7 +128,7 @@ final class Migrator
                     continue;
                 }
 
-                $this->pdo->exec($sql);
+                $this->executePortableMigrationSql($sql);
             }
 
             return;
@@ -137,6 +137,38 @@ final class Migrator
         throw new RuntimeException(
             "Migration {$version} must return SQL array, callable, or Migration object"
         );
+    }
+
+
+    /**
+     * MySQL does not support MariaDB's ADD COLUMN IF NOT EXISTS syntax.
+     * Keep the historical migration idempotent without disabling SQL checks.
+     * Only simple quoted/unquoted identifier names are accepted.
+     */
+    private function executePortableMigrationSql(string $sql): void
+    {
+        if (preg_match(
+            '/^\s*ALTER\s+TABLE\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+' .
+            'ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+' .
+            '([a-zA-Z_][a-zA-Z0-9_]*)\s+([\s\S]+)$/i',
+            $sql,
+            $match
+        ) === 1) {
+            $exists = $this->pdo->prepare(
+                'SELECT 1 FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME=:table AND COLUMN_NAME=:column
+                 LIMIT 1'
+            );
+            $exists->execute(['table' => $match[1], 'column' => $match[2]]);
+            if ($exists->fetchColumn() === false) {
+                $this->pdo->exec(
+                    'ALTER TABLE ' . $match[1] . ' ADD COLUMN ' . $match[2] . ' ' . $match[3]
+                );
+            }
+            return;
+        }
+
+        $this->pdo->exec($sql);
     }
 
     private function migrationFiles(): array

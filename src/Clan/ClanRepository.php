@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Clan;
 
+use MuchoCore\Database\SqlCapabilities;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -26,6 +27,10 @@ final readonly class ClanRepository
             $sums[]="COALESCE(SUM(CASE WHEN a.is_active=1 AND a.is_banned=0
                 THEN GREATEST(COALESCE(p.$column,0),0) ELSE 0 END),0) AS $column";
         }
+        if (!SqlCapabilities::supportsWindowFunctions($this->pdo)) {
+            return $this->leaderboardLegacy($metric, $offset, $limit, $accountId, $sums);
+        }
+
         // Rank once, before selecting the requested page and the caller's clan.
         // The account ID only identifies a public ranking; it grants no permissions.
         $stmt=$this->pdo->prepare(
@@ -65,6 +70,58 @@ final readonly class ClanRepository
         if ($total===0) $total=(int)$this->pdo->query('SELECT COUNT(*) FROM mucho_clans')->fetchColumn();
         return ['metric'=>$metric,'offset'=>$offset,'limit'=>$limit,'total_clans'=>$total,
                 'has_more'=>$hasMore,'clans'=>$clans,'own_clan'=>$own];
+    }
+
+
+    /**
+     * MySQL 5.7 compatibility for small shared-hosted servers. Ranking uses
+     * deterministic PHP indexes after the SQL aggregate is ordered.
+     *
+     * @param list<string> $sums
+     */
+    private function leaderboardLegacy(string $metric, int $offset, int $limit, int $accountId, array $sums): array
+    {
+        $sql = '
+            SELECT c.clan_id,c.name,c.tag,
+                   COALESCE(MAX(s.prefix_color),\'FFD166\') AS prefix_color,
+                   COUNT(m.account_id) AS member_count,
+                   MAX(CASE WHEN m.account_id=:account_id THEN 1 ELSE 0 END) AS is_own,
+                   ' . implode(',', $sums) . '
+            FROM mucho_clans c
+            LEFT JOIN mucho_clan_members m ON m.clan_id=c.clan_id
+            LEFT JOIN accounts a ON a.account_id=m.account_id
+            LEFT JOIN profiles p ON p.account_id=m.account_id
+            LEFT JOIN mucho_clan_appearance s ON s.clan_id=c.clan_id
+            GROUP BY c.clan_id,c.name,c.tag
+            ORDER BY ' . $metric . ' DESC, c.clan_id ASC';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['account_id' => max(0, $accountId)]);
+
+        $all = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $total = count($all);
+        $clans = [];
+        $own = null;
+        foreach ($all as $index => $row) {
+            $row['rank'] = $index + 1;
+            foreach (array_merge(self::LEADERBOARD_METRICS, ['clan_id','rank','member_count']) as $field) {
+                $row[$field] = (int)$row[$field];
+            }
+            $row['is_own'] = (bool)$row['is_own'];
+            $row['score'] = $row[$metric];
+            if ($row['is_own']) {
+                $own = $row;
+            }
+            if ($row['rank'] > $offset && $row['rank'] <= $offset + $limit) {
+                $clans[] = $row;
+            }
+        }
+
+        return [
+            'metric' => $metric, 'offset' => $offset, 'limit' => $limit,
+            'total_clans' => $total,
+            'has_more' => $offset + $limit < $total,
+            'clans' => $clans, 'own_clan' => $own,
+        ];
     }
 
     public function create(

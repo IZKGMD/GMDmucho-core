@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\User;
 
+use MuchoCore\Database\SqlCapabilities;
 use PDO;
 
 final readonly class UserRepository
@@ -384,6 +385,15 @@ final readonly class UserRepository
             );
         }
 
+        if (!SqlCapabilities::supportsWindowFunctions($this->pdo)) {
+            $sql = str_replace(
+                'ROW_NUMBER() OVER (ORDER BY p.stars DESC, p.account_id ASC) AS `rank`',
+                '0 AS `rank`', $sql
+            );
+            $sql = str_replace('ORDER BY `rank`', 'ORDER BY p.stars DESC, p.account_id ASC', $sql);
+            return self::withRanks($this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC));
+        }
+
         return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -421,6 +431,15 @@ final readonly class UserRepository
             );
         }
 
+        if (!SqlCapabilities::supportsWindowFunctions($this->pdo)) {
+            $sql = str_replace(
+                'ROW_NUMBER() OVER (ORDER BY p.creator_points DESC, p.account_id ASC) AS `rank`',
+                '0 AS `rank`', $sql
+            );
+            $sql = str_replace('ORDER BY `rank`', 'ORDER BY p.creator_points DESC, p.account_id ASC', $sql);
+            return self::withRanks($this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC));
+        }
+
         return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -428,6 +447,39 @@ final readonly class UserRepository
     {
         if ($accountId <= 0) {
             return [];
+        }
+
+        if (!SqlCapabilities::supportsWindowFunctions($this->pdo)) {
+            // MySQL 5.7 has derived tables and UNION, but no CTE/ROW_NUMBER.
+            $sql = '
+                SELECT p.*, a.username,
+                       COALESCE((SELECT c.tag FROM mucho_clan_members cm
+                         INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id
+                         WHERE cm.account_id=p.account_id LIMIT 1), \'\') AS clan_tag,
+                       COALESCE(ar.code, \'user\') AS role_code,
+                       0 AS `rank`
+                FROM (
+                    SELECT friend_account_id AS account_id FROM friends WHERE account_id=:account_a
+                    UNION
+                    SELECT account_id FROM friends WHERE friend_account_id=:account_b
+                    UNION
+                    SELECT :self_id AS account_id
+                ) f
+                INNER JOIN profiles p ON p.account_id=f.account_id
+                INNER JOIN accounts a ON a.account_id=f.account_id
+                LEFT JOIN roles ar ON ar.id=a.role_id
+                WHERE a.is_active=1 AND a.is_banned=0
+                  AND (:game_version < 20 OR COALESCE(p.game_version,0)>=20)
+                ORDER BY p.stars DESC, p.account_id ASC
+                LIMIT ' . (int)$limit;
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                'account_a' => $accountId,
+                'account_b' => $accountId,
+                'self_id' => $accountId,
+                'game_version' => $gameVersion,
+            ]);
+            return self::withRanks($stmt->fetchAll(PDO::FETCH_ASSOC));
         }
 
         $sql = '
@@ -479,6 +531,10 @@ final readonly class UserRepository
     }
     public function leaderboardRelative(int $accountId, int $limit = 50, int $gameVersion = 0): array
     {
+        if (!SqlCapabilities::supportsWindowFunctions($this->pdo)) {
+            return $this->leaderboardRelativeLegacy($accountId, $limit, $gameVersion);
+        }
+
         $versionFilter = $gameVersion >= 20
             ? 'WHERE COALESCE(p.game_version, 0) >= 20'
             : ($gameVersion > 0
@@ -510,4 +566,60 @@ final readonly class UserRepository
             ? $this->leaderboardTop($limit, $gameVersion)
             : $res;
     }
+    /** @param array<int,array<string,mixed>> $rows */
+    private static function withRanks(array $rows, int $offset = 0): array
+    {
+        foreach ($rows as $index => &$row) {
+            $row['rank'] = $offset + $index + 1;
+        }
+        unset($row);
+        return $rows;
+    }
+
+    private function leaderboardRelativeLegacy(int $accountId, int $limit, int $gameVersion): array
+    {
+        $versionClause = $gameVersion >= 20
+            ? ' AND COALESCE(p.game_version,0) >= 20'
+            : ($gameVersion > 0
+                ? ' AND COALESCE(p.game_version,0) > 0 AND COALESCE(p.game_version,0) < 20'
+                : '');
+
+        $target = $this->pdo->prepare(
+            'SELECT p.stars FROM profiles p WHERE p.account_id=:account_id' . $versionClause
+        );
+        $target->execute(['account_id' => $accountId]);
+        $stars = $target->fetchColumn();
+        if ($stars === false) {
+            return $this->leaderboardTop($limit, $gameVersion);
+        }
+
+        $count = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM profiles p WHERE
+             (p.stars > :stars OR (p.stars = :stars_tie AND p.account_id < :account_id))'
+            . $versionClause
+        );
+        $count->execute([
+            'stars' => (int)$stars,
+            'stars_tie' => (int)$stars,
+            'account_id' => $accountId,
+        ]);
+        $rank = (int)$count->fetchColumn() + 1;
+        $offset = max(0, $rank - 26);
+        $sql = '
+            SELECT p.*, a.username,
+                   COALESCE((SELECT c.tag FROM mucho_clan_members cm
+                     INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id
+                     WHERE cm.account_id=p.account_id LIMIT 1), \'\') AS clan_tag,
+                   COALESCE(ar.code, \'user\') AS role_code,
+                   0 AS `rank`
+            FROM profiles p
+            INNER JOIN accounts a ON a.account_id=p.account_id
+            LEFT JOIN roles ar ON ar.id=a.role_id
+            WHERE 1=1' . $versionClause . '
+            ORDER BY p.stars DESC, p.account_id ASC
+            LIMIT ' . max(1, min(100, $limit)) . ' OFFSET ' . $offset;
+
+        return self::withRanks($this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC), $offset);
+    }
+
 }

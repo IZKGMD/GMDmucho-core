@@ -38,7 +38,7 @@ $rbac = file_get_contents($root.'/src/Admin/AdminRbac.php');
 $contracts = [
     [$migration, 'CREATE TABLE IF NOT EXISTS mucho_gauntlets', 'Gauntlet table'],
     [$migration, 'CREATE TABLE IF NOT EXISTS mucho_map_packs', 'Map Pack table'],
-    [$migration, 'ADD COLUMN IF NOT EXISTS name', 'legacy-schema compatibility'],
+    [$migration, '$ensureColumns', 'portable legacy-schema compatibility'],
     [$action, "requirePermission('contentpacks.manage')", 'content-pack permission'],
     [$action, '$expected', 'expected level-count parameter'],
     [$action, 'function contentPackLevelFieldFromPost', 'POST level field parser'],
