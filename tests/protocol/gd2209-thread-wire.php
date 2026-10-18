@@ -12,6 +12,15 @@ $assert = static function (bool $condition, string $message): void {
         throw new RuntimeException('GD2.209 thread wire: ' . $message);
     }
 };
+$assert(Gd2209ThreadWire::relativeTime(0, 10000) === '',
+    'unknown last-message timestamp must stay empty');
+$assert(Gd2209ThreadWire::relativeTime(9940, 10000) === '1 minute',
+    'native last-message label displays minute units');
+$assert(Gd2209ThreadWire::relativeTime(2800, 10000) === '2 hours',
+    'native last-message label displays hour units');
+$assert(Gd2209ThreadWire::relativeTime(7000, 10000) === '50 minutes',
+    'native last-message relative time is based on actual elapsed seconds');
+
 $rows = [[
     'id'=>589952, 'thread_id'=>9, 'sender_account_id'=>14054365,
     'body'=>'hello', 'created_at'=>'2026-10-18 12:00:00 UTC'
