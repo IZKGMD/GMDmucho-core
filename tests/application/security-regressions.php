@@ -64,8 +64,10 @@ assertSecurityRegression(
 assertSecurityRegression(
     str_contains($legacyAdminApi, 'SELECT id,username,role,is_active') &&
     str_contains($legacyAdminApi, "session_destroy()") &&
-    substr_count($legacyAdminApi, '$currentAdminRank < 40') >= 2,
-    'legacy monitoring API refreshes admin state and keeps health/logs owner-only'
+    str_contains($legacyAdminApi, "AdminRbac::can(\$db, \$currentAdmin, 'monitoring.view')") &&
+    str_contains($legacyAdminApi, "AdminRbac::can(\$db,\$currentAdmin,'system.manage')") &&
+    !str_contains($legacyAdminApi,'CREATE TABLE IF NOT EXISTS admin_notifications'),
+    'monitoring refreshes admin state, enforces fine-grained RBAC and avoids read-time DDL'
 );
 
 assertSecurityRegression(
