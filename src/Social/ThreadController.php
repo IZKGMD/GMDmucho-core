@@ -20,6 +20,7 @@ final readonly class ThreadController
         private ThreadService $service,
         private GdRelationshipEncoder $userEncoder,
         private ?Gd2209NativeThreadOperations $creator = null,
+        private ?Gd2209ThreadActionService $actions = null,
     ) {}
 
     private static function b64(string $value): string
@@ -228,7 +229,9 @@ final readonly class ThreadController
             if (array_key_exists('mode', $r->post)) {
                 $mode = $r->postInt('mode', -1);
                 $value = $r->postString('value');
-                $needsValue = in_array($mode, [2, 4, 12], true);
+                $needsValue = in_array(
+                    $mode, [2,3,4,6,7,10,11,12,13,14,15,16], true
+                );
                 $decoded = $needsValue ? self::decoded($value) : '';
                 if ($needsValue && $decoded === null) {
                     return Response::text('-1');
@@ -237,10 +240,6 @@ final readonly class ThreadController
                     2 => $this->service->modify(
                         $account, $credential, $thread, 'rename', (string)$decoded
                     ),
-                    4 => ctype_digit((string)$decoded) && (int)$decoded > 0
-                        && $this->service->invite(
-                            $account, $credential, $thread, (int)$decoded
-                        ),
                     5 => $this->service->leave($account, $credential, $thread),
                     8 => $this->service->respondThreadInvite(
                         $account, $credential, $thread, true
@@ -252,7 +251,9 @@ final readonly class ThreadController
                         && $this->service->deleteOwnMessage(
                             $account, $credential, $thread, (int)$decoded
                         ),
-                    default => false,
+                    default => $this->actions?->change(
+                        $account, $credential, $thread, $mode, (string)$decoded
+                    ) ?? false,
                 };
                 return Response::text($ok ? '1' : '-1');
             }
