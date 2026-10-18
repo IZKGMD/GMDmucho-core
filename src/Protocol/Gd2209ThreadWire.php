@@ -60,12 +60,20 @@ final class Gd2209ThreadWire
     {
         $result = [];
         foreach ($rows as $row) {
+            // Native 2.209 Thread Invite User Object: seventeen positional
+            // fields, unlike the distinct getGJThreadInvites invite records.
             $result[] = implode(':', [
-                (int)$row['id'],
-                (int)$row['invitee_account_id'],
+                (int)$row['invitee_account_id'], // account ID
+                (int)($row['user_id'] ?? 0),     // user ID
                 base64_encode((string)$row['username']),
                 (int)$row['inviter_account_id'],
-                3,
+                (int)($row['cube'] ?? 1),
+                (int)($row['color1'] ?? 0),
+                (int)($row['color2'] ?? 3),
+                0, // glow color not persisted
+                0, // icon type unavailable in this query
+                (int)($row['special'] ?? 0),
+                0, 0, 0, 0, 0, 0, 0, // unavailable profile counters/date
             ]);
         }
         return implode('|', $result);
