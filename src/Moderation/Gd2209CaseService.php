@@ -30,15 +30,27 @@ final readonly class Gd2209CaseService
         int $targetId, int $special, string $reasons
     ): bool {
         $this->auth->authenticate($actor, $credential);
-        // Type 0 is a provisional level-only mapping. Refuse rather than
-        // attributing unknown new content categories to the wrong account.
-        if ($type !== 0 || $special !== 0 || $targetId <= 0
-            || !preg_match('/^[0-9]{1,3}$/D', $reasons)) {
+        // GD Docs 2.209: type 0=user; type 1=level; see
+        // https://boomlings.dev/endpoints/misc/reportGJContent
+        // Never interpret type 0 (user) as a level report.
+        if ($type !== 1 || $special !== 0 || $targetId <= 0
+            || strlen($reasons) > 40
+            || !preg_match('/^[0-7](?:,[0-7]){0,7}$/D', $reasons)) {
             return false;
         }
-        $reason = (int)$reasons;
-        return $reason <= 255
-            && $this->reports->reportLevel($actor, $targetId, $reason, '');
+        $values = array_map('intval', explode(',', $reasons));
+        if (count(array_unique($values)) !== count($values)) {
+            return false;
+        }
+        foreach ($values as $reason) {
+            if (!in_array($reason, [0, 1, 2, 3, 6, 7], true)) {
+                return false;
+            }
+        }
+        // Store the primary reason and preserve the rest for auditing.
+        return $this->reports->reportLevel(
+            $actor, $targetId, $values[0], implode(',', $values)
+        );
     }
 
     /** Only verified elder moderators and owners can access abuse cases. */
