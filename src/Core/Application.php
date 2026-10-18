@@ -65,6 +65,8 @@ use MuchoCore\Moderation\Gd2209CaseController;
 use MuchoCore\Moderation\Gd2209CaseService;
 use MuchoCore\Moderation\Gd2209ContentActionController;
 use MuchoCore\Moderation\Gd2209ContentActionService;
+use MuchoCore\Moderation\Gd2209SanctionController;
+use MuchoCore\Moderation\Gd2209SanctionService;
 use MuchoCore\Music\SongController;
 use MuchoCore\Music\SongRepository;
 use MuchoCore\Music\SongService;
@@ -221,6 +223,10 @@ final readonly class Application
 
         $gd2209ContentActions = new Gd2209ContentActionController(
             new Gd2209ContentActionService($this->pdo, $auth, $modRepo)
+        );
+
+        $gd2209Sanctions = new Gd2209SanctionController(
+            new Gd2209SanctionService($this->pdo, $auth, $modRepo)
         );
 
         $userRepo = new UserRepository($this->pdo);
@@ -479,6 +485,17 @@ final readonly class Application
         $route('/deleteGJComments', [$gd2209ContentActions, 'deleteOwn']);
         $route('/adminDeleteUserComments', [$gd2209ContentActions, 'deleteUser']);
         $route('/adminThreadAction', [$gd2209ContentActions, 'threadAction']);
+
+        // 2.209 account restrictions: only roles from the database authorize
+        // actions. The enforcement is shared with legacy upload/send endpoints.
+        $route('/adminCommentBan', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'comment', true));
+        $route('/adminCommentUnban', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'comment', false));
+        $route('/adminUploadBan', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'upload', true));
+        $route('/adminUploadUnban', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'upload', false));
+        $route('/adminMessageBan', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'message', true));
+        $route('/adminMessageUnban', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'message', false));
+        $route('/adminFreezeAccount', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'freeze', true));
+        $route('/adminUnfreezeAccount', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'freeze', false));
         $route('/requestUserAccess',
             [$userController,'requestAccess']);
 
