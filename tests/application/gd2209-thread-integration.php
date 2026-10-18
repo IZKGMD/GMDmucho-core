@@ -154,6 +154,16 @@ try {
     $check($http->send($req(2,'pass-2','sendGJThreadMessage',[
         'body'=>'**not-valid**'
     ]))->body === '-1', 'malformed Base64 content rejected');
+    $searchWire = $http->search($req(1,'pass-1','searchGJThreadMessages',[
+        'query'=>base64_encode('Client')
+    ]))->body;
+    $check(str_ends_with($searchWire,'#0') &&
+        str_contains($searchWire,base64_encode('Client ping')),
+        'native search uses decoded query and real remaining page count');
+    $check($http->search($req(3,'pass-3','searchGJThreadMessages',[
+        'query'=>base64_encode('Client')
+    ]))->body === '-1', 'outsider cannot search private native messages');
+
 
     $check($service->modify(1,'pass-1',$thread,'rename','Renamed'), 'owner renames');
     $check(
