@@ -644,6 +644,8 @@ SQL);
     $preflight = (new CvoltonDatabaseImporter($target))->preflight($source);
     must($preflight['accounts'] === 2, 'Unexpected account preflight count.');
     must($preflight['levels'] === 1, 'Unexpected level preflight count.');
+    must(($preflight['unmapped_level_owners'] ?? -1) === 0,
+        'A normal source must not report orphan levels.');
     must($preflight['levelscores'] === 1, 'Unexpected regular score preflight count.');
     must($preflight['platscores'] === 1, 'Unexpected platformer score preflight count.');
 
@@ -671,6 +673,31 @@ SQL);
         'Expected GJP2 credential to be rehashed.'
     );
 
+    // A source level referencing a missing account used to be silently skipped.
+    // Applying such an export must now be rejected before the target is changed.
+    $source->exec("UPDATE levels SET extID='99999' WHERE levelID=101");
+    $unsafe = (new CvoltonDatabaseImporter($target))->preflight($source);
+    must(($unsafe['unmapped_level_owners'] ?? 0) === 1,
+        'Dry run must show a level with an unmapped owner.');
+    $beforeOrphan = scalar($target, 'SELECT COUNT(*) FROM levels');
+    $orphanFailed = false;
+    try {
+        (new CvoltonDatabaseImporter($target))->apply($source);
+    } catch (RuntimeException $e) {
+        $orphanFailed = str_contains($e->getMessage(), 'silently lose levels');
+    }
+    must($orphanFailed, 'Importer must refuse to discard source levels.');
+    must(scalar($target, 'SELECT COUNT(*) FROM levels') === $beforeOrphan,
+        'Orphan preflight failure must not mutate target.');
+    $source->exec("UPDATE levels SET extID='1' WHERE levelID=101");
+
+    // Cvolton stores GD 2.x level descriptions as Base64 wire text.
+    // Imported descriptions must be plain UTF-8 to avoid double-encoding on response.
+    $expectedDescription = 'A timing based extreme demon. (LDM: Blue Mode)';
+    $encodedDescription = base64_encode($expectedDescription);
+    $updateDescription = $source->prepare('UPDATE levels SET levelDesc=? WHERE levelID=101');
+    $updateDescription->execute([$encodedDescription]);
+
     $target->beginTransaction();
     try {
         $stats = (new CvoltonDatabaseImporter($target))->apply($source);
@@ -683,6 +710,12 @@ SQL);
     }
 
     must($stats['levels_updated'] === 1, 'Expected idempotent level update on second apply.');
+    $storedDescription = (string)$target->query(
+        'SELECT description FROM levels WHERE level_id=101'
+    )->fetchColumn();
+    must($storedDescription === $expectedDescription,
+        'GD 2.x Cvolton Base64 description must be decoded once when imported.');
+
     must(scalar($target, 'SELECT COUNT(*) FROM accounts') === 2, 'Idempotent apply changed account count.');
 
     $source->exec(
