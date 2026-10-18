@@ -56,6 +56,7 @@ final class Gd2209Binary
             'output_sha256' => hash('sha256', $data),
             'endpoint_paths' => $paths,
             'verified' => 'static-binary-only',
+            'native_client_verified' => false,
         ];
     }
 

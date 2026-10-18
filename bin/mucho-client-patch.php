@@ -123,6 +123,7 @@ try {
     echo "[MuchoCore] Windows SHA-256: {$windowsSha}\n";
     echo "[MuchoCore] Android SHA-256: {$androidSha}\n";
     echo "[MuchoCore] Client Pack SHA-256: {$packSha}\n";
+    echo "[MuchoCore] Verification: static file/signature only; real GD client connectivity NOT tested.\n";
     exit(0);
 } catch (Throwable $e) {
     fwrite(

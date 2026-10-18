@@ -158,6 +158,8 @@ final class WindowsClientPatcher
             'replacement_count' => $totalReplacements,
             'input_sha256' => hash_file('sha256', $inputPath) ?: '',
             'output_sha256' => hash_file('sha256', $outputPath) ?: '',
+            'verification' => 'static-binary-only',
+            'native_client_verified' => false,
         ];
     }
 
