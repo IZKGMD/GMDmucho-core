@@ -153,16 +153,12 @@ if($kind==='health'){
         ['name'=>'Application', 'state'=>'unknown', 'detail'=>'See /health and API probes below'],
         ['name'=>'Worker / queue', 'state'=>'unknown', 'detail'=>'Not directly observable from PHP'],
     ];
+    // Probe read-only endpoints only. Never send automated requests to
+    // registration, likes, uploads or other state-changing protocol routes.
     $paths=[
         '/health',
         '/getGJLevels21.php',
-        '/loginGJAccount.php',
-        '/registerGJAccount.php',
-        '/getGJComments21.php',
-        '/getGJMessages20.php',
-        '/getGJUserList20.php',
-        '/likeGJItem211.php',
-        '/uploadFriendRequest20.php'
+        '/getGJUserList20.php'
     ];
 
     $endpoints=[];
@@ -196,7 +192,7 @@ if($kind==='health'){
         'endpoints'=>$endpoints,
         'checks'=>$checks,
         'time'=>date('Y-m-d H:i:s'),
-        'explanation'=>'GD endpoints are probed with empty requests; 400/401/403 can be normal. A response is not a gameplay test.',
+        'explanation'=>'Read-only GD endpoints are probed with empty requests; 400/401/403 can be normal. A response is not a gameplay test.',
     ]);
 }
 
