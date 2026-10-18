@@ -23,6 +23,15 @@ $canReadHostLogs=canPermission('system.manage');
         <div id="v5Endpoints" role="status">Waiting for probe results…</div>
     </section>
 </div>
+<section class="card" aria-labelledby="monitorChecksLabel">
+    <h2 id="monitorChecksLabel">Actionable diagnostics</h2>
+    <p class="muted">Counts come from the server database. If a subsystem is not installed, its count is marked unavailable.</p>
+    <div id="v5Checks" role="status">Waiting for diagnostic counts…</div>
+    <div class="section-actions">
+        <?php if (canAdminPage('intelligence')): ?><a class="btn gray" href="/admin/?page=intelligence">Background jobs ↗</a><?php endif; ?>
+        <?php if (canAdminPage('securitycenter')): ?><a class="btn gray" href="/admin/?page=securitycenter">Security alerts ↗</a><?php endif; ?>
+    </div>
+</section>
 <section class="card" aria-labelledby="monitorAbuseLabel">
     <h2 id="monitorAbuseLabel">Possible stat anomalies</h2>
     <p class="muted">These are thresholds for manual review, not evidence of cheating or automatic bans.</p>
