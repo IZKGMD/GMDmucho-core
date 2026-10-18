@@ -659,9 +659,14 @@ final readonly class ThreadService
         $this->authorize($accountId, $credential);
         $stmt = $this->db->prepare(
             "SELECT i.id,i.thread_id,i.inviter_account_id,
-                    t.title,i.created_at
+                    t.title,t.description,t.emote,t.is_dm,
+                    i.created_at,a.username AS inviter_username,
+                    p.cube AS inviter_cube,p.color1 AS inviter_color1,
+                    p.color2 AS inviter_color2,p.special AS inviter_special
              FROM mucho_thread_invites i
              JOIN mucho_threads t ON t.id=i.thread_id
+             JOIN accounts a ON a.account_id=i.inviter_account_id
+             JOIN profiles p ON p.account_id=i.inviter_account_id
              WHERE i.invitee_account_id=:account AND i.status='pending'
                AND t.is_closed=0
              ORDER BY i.id DESC LIMIT 50"
