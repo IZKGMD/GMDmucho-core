@@ -11,6 +11,13 @@ final readonly class MessageRepository
 
     public function __construct(private PDO $pdo) {}
 
+    public function isMessageBanned(int $accountId): bool
+    {
+        return \MuchoCore\Moderation\Gd2209Restrictions::active(
+            $this->pdo, $accountId, 'message'
+        );
+    }
+
     public function send(
         int $from,
         int $to,
