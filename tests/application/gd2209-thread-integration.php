@@ -6,6 +6,8 @@ require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Social\ThreadService;
+use MuchoCore\Social\RelationshipRepository;
+use MuchoCore\Social\Gd2209NativeThreadOperations;
 use MuchoCore\Social\ThreadController;
 use MuchoCore\Protocol\GdRelationshipEncoder;
 use MuchoCore\Http\Request;
@@ -41,7 +43,8 @@ try {
         password_hash VARCHAR(255) NOT NULL,
         gjp2_hash VARCHAR(255) NOT NULL,
         is_active TINYINT NOT NULL DEFAULT 1,
-        is_banned TINYINT NOT NULL DEFAULT 0
+        is_banned TINYINT NOT NULL DEFAULT 0,
+        messages_state TINYINT NOT NULL DEFAULT 0
     ) ENGINE=InnoDB');
     $db->exec('CREATE TABLE profiles (
         user_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -58,6 +61,10 @@ try {
     ) ENGINE=InnoDB');
     $migration = require dirname(__DIR__, 2) . '/database/migrations/20261016_005_gd2209_threads.php';
     foreach ($migration as $sql) {
+        $db->exec($sql);
+    }
+    foreach (require dirname(__DIR__, 2) .
+        '/database/migrations/20261018_004_gd2209_native_threads.php' as $sql) {
         $db->exec($sql);
     }
     foreach ([1=>'Owner',2=>'Member',3=>'Stranger'] as $id=>$username) {
@@ -83,7 +90,12 @@ try {
     $check(count($service->members(1,'pass-1',$thread)) === 1, 'creator is first member');
     $check(count($service->members(2,'pass-2',$thread)) === 0, 'member list private');
 
-    $http = new ThreadController($service, new GdRelationshipEncoder());
+    $http = new ThreadController(
+        $service, new GdRelationshipEncoder(),
+        new Gd2209NativeThreadOperations(
+            $db, new AccountAuthenticator($db), new RelationshipRepository($db)
+        )
+    );
     $req = static fn(int $account,string $password,string $path,array $extra=[]): Request =>
         new Request('POST','/database/'.$path.'.php',[],array_merge([
             'accountID'=>(string)$account, 'gjp2'=>$password,
@@ -223,6 +235,47 @@ try {
             $check($e->getMessage() === 'Unauthorized.', 'account credentials enforced');
         }
     }
+
+    // Starting native DM and group chats must create real messages and
+    // auto-enter DM recipient, while preserving group invite consent.
+    $dmCreate = $http->send($req(1,'pass-1','sendGJThreadMessage',[
+        'threadID'=>'0','isDM'=>'1','toAccountID'=>'2',
+        'body'=>base64_encode('Private hello')
+    ]))->body;
+    $check(preg_match('/^[1-9][0-9]*:[1-9][0-9]*:0$/D',$dmCreate) === 1,
+        'new DM wire response is threadID:messageID:0');
+    $dm = (int)explode(':',$dmCreate)[0];
+    $check(count($service->messages(2,'pass-2',$dm,0)) === 1,
+        'DM recipient can read message as member without invitation');
+    $dmCreate2 = $http->send($req(2,'pass-2','sendGJThreadMessage',[
+        'threadID'=>'0','isDM'=>'1','toAccountID'=>'1',
+        'body'=>base64_encode('Reply')
+    ]))->body;
+    $check((int)explode(':',$dmCreate2)[0] === $dm,
+        'same unordered DM pair shares one database conversation');
+    $onlyDms = $http->getThreads($req(1,'pass-1','getGJThreads',[
+        'filter'=>'1'
+    ]))->body;
+    $dmParts = explode('#',$onlyDms);
+    $check($dmParts[1] === '1:0:10:0:60' &&
+        explode(':',$dmParts[0])[12] === '1',
+        'native DM filter and type flag are real');
+
+    $groupCreate = $http->send($req(1,'pass-1','sendGJThreadMessage',[
+        'threadID'=>'0','isDM'=>'0','toAccountID'=>'0',
+        'body'=>base64_encode('Hello group'),
+        'subject'=>base64_encode('New GD 2.209 group'),
+        'description'=>base64_encode('Private test group'),
+        'emote'=>base64_encode('globe'),
+        'targets'=>base64_encode('3')
+    ]))->body;
+    $check(preg_match('/^[1-9][0-9]*:[1-9][0-9]*:1:0$/D',$groupCreate)===1,
+        'new group response has real invite count and tail zero');
+    $newGroup = (int)explode(':',$groupCreate)[0];
+    $check($service->messages(3,'pass-3',$newGroup,0) === [],
+        'group invitee cannot read messages before accepting invitation');
+    $check(count($service->invites(3,'pass-3')) === 1,
+        'new native group issued one pending invitation');
 
     $db->exec('DELETE FROM accounts WHERE account_id=1');
     $check(
