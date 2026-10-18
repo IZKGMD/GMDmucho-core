@@ -16,6 +16,26 @@ function adminPrimaryPages(): array
     return ['dashboard','players','levels','rating','clans','songs','news','clients','settings'];
 }
 
+/** Group secondary tools by actual operator workflow, not database order.
+ * Used by both styled and CSS-free administration.
+ *
+ * @return array<string, list<string>>
+ */
+function adminExtraGroups(): array
+{
+    return [
+        'Community' => ['muchoprofiles', 'comments', 'messages', 'social'],
+        'Content & moderation' => ['contentpacks', 'moderation'],
+        'Clients & extensions' => ['clientfeatures', 'clientpatcher', 'plugins', 'updates'],
+        'Operations & security' => [
+            'analytics', 'monitoring', 'intelligence', 'securitycenter',
+            'dbbackups', 'migration', 'advanced', 'database', 'endpoints',
+            'backups', 'system',
+        ],
+        'Administration' => ['admins', 'roles', 'audit'],
+    ];
+}
+
 function adminInterfaceUrl(bool $plain, array $query): string
 {
     $safe=[];
