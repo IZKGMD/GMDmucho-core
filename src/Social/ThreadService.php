@@ -33,7 +33,8 @@ final readonly class ThreadService
             return null;
         }
         $stmt = $this->db->prepare(
-            'SELECT t.id,t.title,t.owner_account_id,t.is_closed,t.updated_at
+            'SELECT t.id,t.title,t.description,t.emote,t.invite_owner_only,
+                    t.is_dm,t.owner_account_id,t.is_closed,t.updated_at
              FROM mucho_threads t
              INNER JOIN mucho_thread_members m ON m.thread_id=t.id
              WHERE t.id=:thread AND m.account_id=:account
@@ -488,51 +489,60 @@ final readonly class ThreadService
         int $accountId, string $credential, int $page, int $filter
     ): array {
         $this->authorize($accountId, $credential);
-        if ($page < 0 || $page > 1000 || !in_array($filter,[0,1,2],true)) {
-            throw new RuntimeException('Invalid thread listing filter');
+        if ($page < 0 || $page > 1000 || !in_array($filter, [0,1,2], true)) {
+            throw new RuntimeException('Invalid thread filter');
         }
         $offset = $page * 10;
         $invites = $this->db->prepare(
             "SELECT COUNT(*) FROM mucho_thread_invites i
              JOIN mucho_threads t ON t.id=i.thread_id
-             WHERE i.invitee_account_id=:account AND i.status='pending'
+             WHERE i.invitee_account_id=:actor AND i.status='pending'
                AND t.is_closed=0"
         );
-        $invites->execute(['account'=>$accountId]);
+        $invites->execute(['actor'=>$accountId]);
         $inviteCount = (int)$invites->fetchColumn();
-
-        if ($filter === 1) {
-            return [
-                'rows'=>[], 'total'=>0, 'offset'=>$offset,
-                'invites'=>$inviteCount
-            ];
-        }
+        $filterSql = $filter === 1 ? ' AND t.is_dm=1'
+            : ($filter === 2 ? ' AND t.is_dm=0' : '');
 
         $count = $this->db->prepare(
             'SELECT COUNT(*) FROM mucho_threads t
              JOIN mucho_thread_members m ON m.thread_id=t.id
-             WHERE m.account_id=:account'
+             WHERE m.account_id=:actor' . $filterSql
         );
-        $count->execute(['account'=>$accountId]);
+        $count->execute(['actor'=>$accountId]);
         $total = (int)$count->fetchColumn();
 
-        $stmt = $this->db->prepare(
-            'SELECT t.id,t.title,t.owner_account_id,t.is_closed,t.updated_at,
-                    (SELECT COUNT(*) FROM mucho_thread_members mt
-                     WHERE mt.thread_id=t.id) AS member_count,
-                    (SELECT lm.sender_account_id
-                     FROM mucho_thread_messages lm WHERE lm.thread_id=t.id
-                     ORDER BY lm.id DESC LIMIT 1) AS last_sender,
-                    (SELECT UNIX_TIMESTAMP(lm.created_at)
-                     FROM mucho_thread_messages lm WHERE lm.thread_id=t.id
-                     ORDER BY lm.id DESC LIMIT 1) AS last_timestamp
-             FROM mucho_threads t
-             INNER JOIN mucho_thread_members m ON m.thread_id=t.id
-             WHERE m.account_id=:account
-             ORDER BY t.updated_at DESC,t.id DESC
-             LIMIT 10 OFFSET ' . $offset
-        );
-        $stmt->execute(['account'=>$accountId]);
+        $sql = 'SELECT
+                t.id,t.title,t.description,t.emote,t.is_dm,
+                t.owner_account_id,t.is_closed,t.updated_at,
+                m.is_muted,m.is_pinned,
+                (SELECT COUNT(*) FROM mucho_thread_members mt
+                 WHERE mt.thread_id=t.id) AS member_count,
+                (SELECT COUNT(*) FROM mucho_thread_messages un
+                 WHERE un.thread_id=t.id AND un.id>m.last_read_message_id) AS unread_count,
+                (SELECT lm.sender_account_id
+                 FROM mucho_thread_messages lm WHERE lm.thread_id=t.id
+                 ORDER BY lm.id DESC LIMIT 1) AS last_sender,
+                (SELECT UNIX_TIMESTAMP(lm.created_at)
+                 FROM mucho_thread_messages lm WHERE lm.thread_id=t.id
+                 ORDER BY lm.id DESC LIMIT 1) AS last_timestamp,
+                (SELECT sa.username FROM mucho_thread_messages lm
+                 JOIN accounts sa ON sa.account_id=lm.sender_account_id
+                 WHERE lm.thread_id=t.id ORDER BY lm.id DESC LIMIT 1) AS last_username,
+                peer.account_id AS peer_account_id,
+                peer.username AS peer_username,
+                pp.cube AS peer_cube,pp.color1 AS peer_color1,
+                pp.color2 AS peer_color2,pp.special AS peer_special
+            FROM mucho_threads t
+            JOIN mucho_thread_members m ON m.thread_id=t.id
+            LEFT JOIN accounts peer ON peer.account_id=(
+              CASE WHEN t.dm_low=:actor_peer THEN t.dm_high ELSE t.dm_low END
+            ) AND t.is_dm=1
+            LEFT JOIN profiles pp ON pp.account_id=peer.account_id
+            WHERE m.account_id=:actor' . $filterSql .
+            ' ORDER BY m.is_pinned DESC,t.updated_at DESC,t.id DESC LIMIT 10 OFFSET ' . $offset;
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['actor'=>$accountId,'actor_peer'=>$accountId]);
         return [
             'rows'=>$stmt->fetchAll(PDO::FETCH_ASSOC),
             'total'=>$total, 'offset'=>$offset, 'invites'=>$inviteCount
