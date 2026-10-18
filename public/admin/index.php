@@ -2448,9 +2448,9 @@ max-width:100%
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
 <script src="/muchocore-theme.js?v=4" defer></script>
 
-<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
-<link rel="stylesheet" href="/admin/admin-polish.css?v=2">
+<link rel="stylesheet" href="/admin/admin-polish.css?v=3">
 <script src="/admin/admin-simple.js?v=2" defer></script>
 </head>
 <body class="admin-login mc-workspace" data-page="">
@@ -4992,12 +4992,12 @@ table{
 <link rel="stylesheet" href="/admin/admin-ui-v2.css?v=4">
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
 <script src="/muchocore-theme.js?v=4" defer></script>
-<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
 <script src="/assets/product-ui.js?v=1" defer></script>
 <link rel="stylesheet" href="/admin/admin-simple.css?v=1">
 <script src="/admin/admin-simple.js?v=2" defer></script>
-<link rel="stylesheet" href="/admin/admin-polish.css?v=2">
+<link rel="stylesheet" href="/admin/admin-polish.css?v=3">
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>
