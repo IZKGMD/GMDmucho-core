@@ -43,7 +43,7 @@ function classifyResponse(string $kind, int $status, string $body): array
 if (in_array('--self-test', $argv, true)) {
     foreach ([
         ['liveness', 200, '1', 'OK'],
-        ['liveness', 200, '1\n', 'OK'],
+        ['liveness', 200, "1\n", 'OK'],
         ['liveness', 200, '<html><title>Checking your browser</title>', 'FAIL'],
         ['liveness', 301, '1', 'FAIL'],
         ['liveness', 403, '1', 'FAIL'],
