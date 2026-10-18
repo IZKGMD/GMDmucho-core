@@ -1484,7 +1484,7 @@ body.dashboard-page .topbar{
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
 <script src="/muchocore-theme.js?v=4" defer></script>
 
-<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <script src="/assets/product-ui.js?v=1" defer></script>
 </head>
 <body class="dashboard-page mc-workspace">
