@@ -42,6 +42,16 @@ $assert(str_starts_with($segments[4], '11:0:2:'),
     'native metadata positional group prefix');
 $assert($segments[5] === '0' && $segments[6] === '3,1,10,50',
     'native last-message and tail constants');
+$inviteUser = Gd2209ThreadWire::invites([[
+    'invitee_account_id'=>23, 'user_id'=>57, 'username'=>'Join me',
+    'inviter_account_id'=>11,'cube'=>2,'color1'=>3,'color2'=>4,'special'=>1,
+]]);
+$inviteFields = explode(':',$inviteUser);
+$assert(count($inviteFields) === 17, 'native invited user has 17 positional values');
+$assert($inviteFields[0] === '23' && $inviteFields[1] === '57'
+    && $inviteFields[2] === base64_encode('Join me')
+    && $inviteFields[3] === '11', 'identity fields for invited player');
+
 $reference['messages'] = [];
 $assert(str_starts_with(Gd2209ThreadWire::snapshot(
     $reference, new GdRelationshipEncoder()
