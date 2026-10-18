@@ -61,6 +61,10 @@ final readonly class MessageService
     ): bool {
         $this->auth->authenticate($id, $gjp);
 
+        if ($this->repository->isMessageBanned($id)) {
+            return false;
+        }
+
         if (
             $to <= 0 ||
             $subject === '' ||
