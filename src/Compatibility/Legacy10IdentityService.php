@@ -129,6 +129,11 @@ final readonly class Legacy10IdentityService
         }
 
         $accountIdInt = (int)$accountId;
+        if (\MuchoCore\Moderation\Gd2209Restrictions::active(
+            $this->pdo, $accountIdInt, 'name'
+        )) {
+            return false;
+        }
         $name = $this->uniqueUsername(
             $this->normalizeUsername($username, $hash),
             $accountIdInt,
