@@ -38,19 +38,24 @@ final class Gd2209ThreadWire
     }
 
     /**
-     * Positional GD 2.209 group metadata. Only owner/title are populated
-     * from DB facts; currently unavailable description/emote data stay empty.
-     * More fields must be mapped before declaring verified native parity.
+     * Native GD 2.209 thread metadata (11 positional values).
+     * GD Docs: threadID, unknown, memberCount, description, mv,
+     * showLoadEarlier, unknown, unknown, title, locked, unknown.
+     * Keep unknown fields at zero rather than substituting unrelated data.
      */
     public static function metadata(array $thread): string
     {
         return implode(':', [
-            (int)$thread['owner_account_id'],
-            0, 2,
+            (int)$thread['id'],
+            0,
+            (int)($thread['member_count'] ?? 0),
             base64_encode((string)($thread['description'] ?? '')),
-            0, 0, 0, 0,
-            base64_encode((string)($thread['emote'] ?? '')),
-            0, (int)($thread['invite_owner_only'] ?? 1),
+            0,
+            (int)($thread['has_older_messages'] ?? 0),
+            0, 0,
+            base64_encode((string)($thread['title'] ?? '')),
+            (int)($thread['is_closed'] ?? 0),
+            0,
         ]);
     }
 
@@ -171,13 +176,15 @@ final class Gd2209ThreadWire
     ): string {
         $members = $data['members'] === []
             ? '' : $users->users($data['members'], true);
+        $thread = $data['thread'];
+        $thread['member_count'] = count($data['members']);
         return implode('#', [
             self::messages($data['messages']),
             $members,
-            '', // No departed-user archive exists in MuchoCore yet.
+            '', // Former members are not yet serialized in this response.
             self::invites($data['invites']),
-            self::metadata($data['thread']),
-            '0', // Snapshot visibility is restricted to active members.
+            self::metadata($thread),
+            '0', // Active members see all permitted messages.
             '3,1,10,50',
         ]);
     }
