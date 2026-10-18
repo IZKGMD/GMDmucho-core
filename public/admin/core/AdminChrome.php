@@ -4,9 +4,11 @@ declare(strict_types=1);
 /** Shared identity and navigation for styled and CSS-free administration. */
 function adminBrand(string $name): void
 {
-    echo '<div class="admin-brand"><div class="admin-brand-mark">';
-    echo '<img class="admin-brand-icon" src="/assets/muchocore-icon.png?v=2" width="48" height="48" alt="MuchoCore" decoding="async">';
-    echo '</div><div class="admin-brand-copy"><strong class="mucho-brand-name">'.h($name).'</strong><br><small>GDPS Administration</small></div></div>';
+    // Inline semantic wrappers also align the mark and server name in the
+    // intentionally CSS-free admin interface; styled mode uses flex layout.
+    echo '<span class="admin-brand"><span class="admin-brand-mark">';
+    echo '<img class="admin-brand-icon mc-brand-mark" src="/assets/muchocore-icon.png?v=3" width="48" height="48" alt="MuchoCore" decoding="async">';
+    echo '</span><span class="admin-brand-copy"><strong class="mucho-brand-name">'.h($name).'</strong><br><small>GDPS Administration</small></span></span>';
 }
 
 function adminPrimaryPages(): array

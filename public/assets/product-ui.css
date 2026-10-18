@@ -1,4 +1,47 @@
 /* Shared Mucho product foundation. No external fonts or tracking dependencies. */
+/* One square mark, used by website, installers and dashboards. The asset
+   itself has alpha; do not hide a white raster background with CSS hacks. */
+img.mc-brand-mark{
+  display:block;
+  width:var(--mc-brand-mark-size,36px);
+  height:var(--mc-brand-mark-size,36px);
+  max-width:none;
+  max-height:none;
+  flex:0 0 auto;
+  aspect-ratio:1 / 1;
+  object-fit:contain;
+  object-position:center;
+  padding:0;
+  margin:0;
+  background:transparent;
+  border:0;
+  border-radius:0;
+  box-shadow:none;
+  vertical-align:middle;
+}
+body.mc-workspace header .brand:has(> img.mc-brand-mark),
+header :is(.brand,.mc-brand):has(> img.mc-brand-mark){
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+body.dashboard-page .topbar .brand{--mc-brand-mark-size:48px}
+body.dashboard-page .topbar .brand img.mc-brand-mark{
+  width:48px;
+  height:48px;
+  max-width:48px;
+  max-height:48px;
+}
+@media(max-width:650px){
+  body.dashboard-page .topbar .brand img.mc-brand-mark{
+    width:44px;
+    height:44px;
+    max-width:44px;
+    max-height:44px;
+  }
+}
+
 :root{--mc-bg:#090a10;--mc-surface:#11131d;--mc-raised:#191c29;--mc-line:#2b2e40;--mc-text:#f4f3ff;--mc-muted:#aaaec4;--mc-accent:#b4a0ff;--mc-action:#7960f2;--mc-success:#b7ef76;--mc-radius:18px;color-scheme:dark}
 html[data-theme="light"]{--mc-bg:#f5f5fa;--mc-surface:#fff;--mc-raised:#eeedf7;--mc-line:#d5d6e5;--mc-text:#202033;--mc-muted:#5e6177;--mc-accent:#6344c4;--mc-action:#6a4cdb;--mc-success:#396c16;color-scheme:light}
 *,*::before,*::after{box-sizing:border-box}

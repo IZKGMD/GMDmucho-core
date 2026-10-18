@@ -31,18 +31,29 @@ jobs:
           SRC="assets/brand/sources/Gemini_Generated_Image_af007baf007baf00.jpg"
           mkdir -p public/assets
 
-          # Main horizontal MuchoCore mark from the dark presentation panel.
-          convert "$SRC"             -crop 1280x600+100+740 +repage             -resize "1400x>"             -strip             -quality 92             -interlace Plane             public/assets/muchocore-logo.jpg
+          # The horizontal wordmark keeps its dark branded background for
+          # OpenGraph preview cards, never square navbar positions.
+          convert "$SRC" -crop 1280x600+100+740 +repage \
+            -resize "1400x>" -strip -quality 92 -interlace Plane \
+            public/assets/muchocore-logo.jpg
 
-          # Source artwork is 2048x2048; use native coordinates, not preview pixels.
-          # Compact MC cube mark from the dedicated icon panel.
-          convert "$SRC"             -crop 500x500+1490+95 +repage             -resize "256x256"             -strip             public/assets/muchocore-icon.png
+          # Only the *connected outer* near-white area becomes transparent.
+          # The white surfaces INSIDE the cube's dark outline stay intact.
+          convert "$SRC" -crop 500x500+1490+95 +repage \
+            -alpha on -fuzz 18% -fill none \
+            -draw 'matte 0,0 floodfill' \
+            -resize "256x256" -strip \
+            PNG32:public/assets/muchocore-icon.png
 
           test -s public/assets/muchocore-logo.jpg
           test -s public/assets/muchocore-icon.png
-
           identify public/assets/muchocore-logo.jpg
           identify public/assets/muchocore-icon.png
+
+          # Verify the result is no longer fully opaque and has alpha.
+          opaque="$(identify -format '%[opaque]' public/assets/muchocore-icon.png)"
+          test "${opaque,,}" = "false"
+          identify -format '%[channels]' public/assets/muchocore-icon.png | grep -qi 'a'
 
       - name: Commit generated assets
         shell: bash
@@ -58,5 +69,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "chore: add cropped MuchoCore brand assets"
+          git commit -m "chore: generate transparent MuchoCore brand icon"
           git push

@@ -681,8 +681,8 @@ $uploadTurnstile = ($account && Turnstile::enabled());
 <!doctype html>
 <html lang="en">
 <head>
-<link rel="icon" href="/assets/muchocore-icon.png" type="image/png">
-<link rel="apple-touch-icon" href="/assets/muchocore-icon.png">
+<link rel="icon" href="/assets/muchocore-icon.png?v=3" type="image/png">
+<link rel="apple-touch-icon" href="/assets/muchocore-icon.png?v=3">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#090b10">
@@ -1484,14 +1484,14 @@ body.dashboard-page .topbar{
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
 <script src="/muchocore-theme.js?v=4" defer></script>
 
-<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <script src="/assets/product-ui.js?v=1" defer></script>
 </head>
 <body class="dashboard-page mc-workspace">
 <div class="shell">
 
 <header class="topbar">
-    <a class="brand" href="/dashboard" aria-label="<?=pdH($serverName)?>"><img class="mucho-brand-logo" src="/assets/muchocore-icon.png" alt="<?=pdH($serverName)?>" width="48" height="48" decoding="async"></a>
+    <a class="brand" href="/dashboard" aria-label="<?=pdH($serverName)?>"><img class="mucho-brand-logo mc-brand-mark" src="/assets/muchocore-icon.png?v=3" alt="<?=pdH($serverName)?>" width="48" height="48" decoding="async"></a>
     <nav class="nav">
         <a href="/dashboard">Discover</a>
         <a href="#players">Players</a>

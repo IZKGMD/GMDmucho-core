@@ -445,7 +445,7 @@ $myClan = $account ? $repo->getForAccount((int)$account['id']) : null;
 body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,system-ui,sans-serif}
 .shell{width:min(1180px,calc(100% - 32px));margin:0 auto;padding:18px 0 44px}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid #263246;border-radius:18px;background:rgba(8,12,19,.86);backdrop-filter:blur(20px)}
-.brand{display:flex;align-items:center;gap:10px}.logo{width:46px;height:46px;object-fit:contain;border-radius:12px}.brand b{display:block;font-size:13px}.brand small{display:block;color:#708098;font-size:9px;font-weight:800;letter-spacing:.12em}
+.brand{display:flex;align-items:center;gap:10px;--mc-brand-mark-size:46px}.logo{width:46px;height:46px;object-fit:contain;border-radius:0}.brand b{display:block;font-size:13px}.brand small{display:block;color:#708098;font-size:9px;font-weight:800;letter-spacing:.12em}
 .nav{display:flex;gap:7px;flex-wrap:wrap}.nav a,.nav button{border:1px solid #263246;background:#101724;color:#cbd3e2;padding:9px 11px;border-radius:10px;font-size:11px;font-weight:800;text-decoration:none}
 .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:12px;margin-top:14px}.panel{padding:20px;border:1px solid #263246;border-radius:18px;background:linear-gradient(160deg,#111824,#0b1019);box-shadow:0 18px 55px rgba(0,0,0,.28)}
 .eyebrow{color:#a89dff;font-size:9px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}.hero h1{margin:6px 0 10px;font-size:clamp(34px,5vw,50px);line-height:.98;letter-spacing:-1.8px}.hero h1 span{color:#a89dff}.copy{color:#8e9bb0;font-size:12px;line-height:1.65}
@@ -461,14 +461,14 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
 @media(max-width:620px){.shell{width:min(100% - 18px,1180px)}.topbar{align-items:stretch;flex-direction:column}.nav{overflow-x:auto;flex-wrap:nowrap}.grid{grid-template-columns:1fr}.search{grid-template-columns:1fr}.panel{padding:17px}}
 </style>
 
-<link rel="stylesheet" href="/assets/product-ui.css?v=1">
+<link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <script src="/assets/product-ui.js?v=1" defer></script>
 </head>
 <body class="mc-workspace">
 <div class="shell">
 <header class="topbar">
     <a class="brand" href="/dashboard">
-        <img class="logo" src="/assets/muchocore-icon.png" alt="" width="46" height="46">
+        <img class="logo mc-brand-mark" src="/assets/muchocore-icon.png?v=3" alt="" width="46" height="46">
         <span>
             <b><?=pcH($serverName)?></b>
             <small>MUCHOCORE PLAYER DASHBOARD</small>
