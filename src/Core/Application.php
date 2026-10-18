@@ -63,6 +63,8 @@ use MuchoCore\Moderation\ReportQueueRepository;
 use MuchoCore\Moderation\ReportQueueService;
 use MuchoCore\Moderation\Gd2209CaseController;
 use MuchoCore\Moderation\Gd2209CaseService;
+use MuchoCore\Moderation\Gd2209ContentActionController;
+use MuchoCore\Moderation\Gd2209ContentActionService;
 use MuchoCore\Music\SongController;
 use MuchoCore\Music\SongRepository;
 use MuchoCore\Music\SongService;
@@ -215,6 +217,10 @@ final readonly class Application
         $gd2209Cases = new Gd2209CaseController(
             new Gd2209CaseService($this->pdo, $auth, $modRepo,
                 new ReportQueueRepository($this->pdo))
+        );
+
+        $gd2209ContentActions = new Gd2209ContentActionController(
+            new Gd2209ContentActionService($this->pdo, $auth, $modRepo)
         );
 
         $userRepo = new UserRepository($this->pdo);
@@ -470,6 +476,9 @@ final readonly class Application
         $route('/adminGetAccountReview', [$gd2209Cases, 'accountReview']);
         $route('/adminClearReportedContent', [$gd2209Cases, 'clearReportedContent']);
         $route('/adminCloseCase', [$gd2209Cases, 'closeCase']);
+        $route('/deleteGJComments', [$gd2209ContentActions, 'deleteOwn']);
+        $route('/adminDeleteUserComments', [$gd2209ContentActions, 'deleteUser']);
+        $route('/adminThreadAction', [$gd2209ContentActions, 'threadAction']);
         $route('/requestUserAccess',
             [$userController,'requestAccess']);
 
