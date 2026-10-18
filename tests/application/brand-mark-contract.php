@@ -42,7 +42,7 @@ if ((int)($bg['alpha'] ?? 0) < 120) {
 }
 
 $ico = file_get_contents($root . '/public/favicon.ico');
-if (!is_string($ico) || strlen($ico) < 64 || substr($ico, 0, 4) !== "\\x00\\x00\\x01\\x00") {
+if (!is_string($ico) || strlen($ico) < 64 || substr($ico, 0, 4) !== "\x00\x00\x01\x00") {
     throw new RuntimeException('Missing or invalid browser fallback favicon.ico.');
 }
 $icoCount = unpack('vcount', substr($ico, 4, 2))['count'] ?? 0;
