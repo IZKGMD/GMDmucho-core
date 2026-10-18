@@ -59,3 +59,13 @@ Integration coverage is checked into `tests/application/gd2209-thread-integratio
 All changes remain on a draft pull request. Do not claim fully verified protocol compatibility solely from registered routes or PHP tests.
 
 - `getGJThreads` supports the optional comma-separated `user` account-ID filter through bound SQL parameters, while still requiring the viewer's authenticated thread membership. Its match-any semantics should be compared with native client fixtures.
+
+## Corrected against GD Docs native metadata structure
+
+The eleven-field `getGJThreadMessages` metadata segment now contains actual thread ID in field 1, current member count in field 3, Base64 group description in field 4, Base64 group title in field 9 and persisted locked flag in field 10. Previous staging output incorrectly used owner account ID, a constant group size and an emote where the title belongs. Regression tests distinguish those values.
+
+Thread listings also populate the relative-time text from real last-message timestamps, where the previous server returned an empty field.
+
+Evidence: https://boomlings.dev/resources/server/thread (Thread Metadata positions 1-11 and Thread positions 1-26).
+
+Passing CI does not establish native GD 2.209 acceptance. Real Windows/Android client packet-level fixtures remain a release gate.
