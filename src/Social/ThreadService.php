@@ -283,21 +283,31 @@ final readonly class ThreadService
         int $threadId,
         string $body
     ): bool {
+        return $this->sendWithId($accountId, $credential, $threadId, $body) > 0;
+    }
+
+    /** Persist a message and return the actual ID required by GD 2.209. */
+    public function sendWithId(
+        int $accountId,
+        string $credential,
+        int $threadId,
+        string $body
+    ): int {
         $this->authorize($accountId, $credential);
         if (\MuchoCore\Moderation\Gd2209Restrictions::active(
             $this->db, $accountId, 'message'
         )) {
-            return false;
+            return 0;
         }
         $body = trim($body);
         if ($body === '' || mb_strlen($body, 'UTF-8') > 4000 ||
             strlen($body) > 16000) {
-            return false;
+            return 0;
         }
 
         $thread = $this->threadForMember($accountId, $threadId);
         if ($thread === null || (int)$thread['is_closed'] === 1) {
-            return false;
+            return 0;
         }
 
         $this->db->beginTransaction();
@@ -312,26 +322,95 @@ final readonly class ThreadService
             $closed = $lock->fetchColumn();
             if ($closed === false || (int)$closed !== 0) {
                 $this->db->rollBack();
-                return false;
+                return 0;
             }
             $stmt = $this->db->prepare(
                 'INSERT INTO mucho_thread_messages (thread_id,sender_account_id,body)
                  VALUES (:thread,:sender,:body)'
             );
             $stmt->execute(['thread'=>$threadId,'sender'=>$accountId,'body'=>$body]);
+            $messageId = (int)$this->db->lastInsertId();
+            if ($messageId <= 0) {
+                throw new RuntimeException('Message not persisted');
+            }
             $touch = $this->db->prepare(
                 'UPDATE mucho_threads SET updated_at=UTC_TIMESTAMP() WHERE id=:thread'
             );
             $touch->execute(['thread'=>$threadId]);
             // UPDATE rowCount can be zero when the timestamp has not changed.
             $this->db->commit();
-            return true;
+            return $messageId;
         } catch (Throwable $e) {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
             }
             throw $e;
         }
+    }
+
+
+    /**
+     * Private 2.209 thread view. The caller MUST be an active member.
+     * Page-window cursor support: beforeID and afterID, not aroundID yet.
+     * All rows are read only after server-side account authentication.
+     *
+     * @return array{thread:array<string,mixed>,messages:array,members:array,invites:array}
+     */
+    public function nativeSnapshot(
+        int $accountId, string $credential, int $threadId,
+        int $before = 0, int $after = 0, int $around = 0
+    ): array {
+        $this->authorize($accountId, $credential);
+        $thread = $this->threadForMember($accountId, $threadId);
+        if ($thread === null || $before < 0 || $after < 0 || $around < 0
+            || ($before > 0 && $after > 0) || $around > 0) {
+            throw new RuntimeException('Unsupported thread cursor or access denied');
+        }
+
+        $filter = '';
+        $args = ['thread'=>$threadId];
+        if ($before > 0) {
+            $filter = ' AND m.id < :cursor';
+            $args['cursor'] = $before;
+        } elseif ($after > 0) {
+            $filter = ' AND m.id > :cursor';
+            $args['cursor'] = $after;
+        }
+        $stmt = $this->db->prepare(
+            'SELECT m.id,m.thread_id,m.sender_account_id,m.body,m.created_at,
+                    a.username
+             FROM mucho_thread_messages m
+             INNER JOIN accounts a ON a.account_id=m.sender_account_id
+             WHERE m.thread_id=:thread' . $filter .
+            ' ORDER BY m.id DESC LIMIT 50'
+        );
+        $stmt->execute($args);
+        $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmt = $this->db->prepare(
+            'SELECT m.account_id,a.username,p.user_id,p.cube,p.color1,
+                    p.color2,p.special
+             FROM mucho_thread_members m
+             JOIN accounts a ON a.account_id=m.account_id
+             JOIN profiles p ON p.account_id=a.account_id
+             WHERE m.thread_id=:thread
+             ORDER BY m.joined_at ASC,m.account_id ASC LIMIT 32'
+        );
+        $stmt->execute(['thread'=>$threadId]);
+        $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmt = $this->db->prepare(
+            "SELECT i.id,i.inviter_account_id,i.invitee_account_id,a.username
+             FROM mucho_thread_invites i
+             JOIN accounts a ON a.account_id=i.invitee_account_id
+             WHERE i.thread_id=:thread AND i.status='pending'
+             ORDER BY i.id DESC LIMIT 32"
+        );
+        $stmt->execute(['thread'=>$threadId]);
+        return [
+            'thread'=>$thread, 'messages'=>$messages,
+            'members'=>$members, 'invites'=>$stmt->fetchAll(PDO::FETCH_ASSOC)
+        ];
     }
 
     /**
