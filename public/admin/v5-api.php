@@ -28,17 +28,6 @@ if(empty($_SESSION['admin'])){
     exit;
 }
 
-function legacyAdminRank(string $role): int
-{
-    return match (strtolower($role)) {
-        'owner' => 40,
-        'admin' => 30,
-        'moderator' => 20,
-        'viewer' => 10,
-        default => 0,
-    };
-}
-
 $db=(new Database())->connection();
 $db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
 
@@ -104,11 +93,7 @@ function localEndpoint(string $path): array
     $baseUrl=$shared
         ? rtrim(
             (string)(
-                getenv('MUCHO_ACCOUNT_URL')
-                ?: (
-                    'https://'.
-                    (string)($_SERVER['HTTP_HOST'] ?? 'localhost')
-                )
+                getenv('MUCHO_ACCOUNT_URL') ?: 'https://invalid.invalid'
             ),
             '/'
         )
@@ -121,7 +106,7 @@ function localEndpoint(string $path): array
 
     $ctx=stream_context_create([
         'http'=>[
-            'method'=>'POST',
+            'method'=>$path==='/health' ? 'GET' : 'POST',
             'header'=>
                 "Host: ".$host."\r\n".
                 "Content-Type: application/x-www-form-urlencoded\r\n",
@@ -219,7 +204,7 @@ if($kind==='logs'){
     }
 
     $helper='/usr/local/sbin/mucho-admin-ops';
-    if (!is_file($helper)) {
+    if (!is_file($helper) || !function_exists('shell_exec')) {
         output(['type'=>$type, 'text'=>'Host log helper unavailable in this deployment. Use sudo mucho logs on the VPS.', 'available'=>false]);
     }
     $text=(string)shell_exec(
