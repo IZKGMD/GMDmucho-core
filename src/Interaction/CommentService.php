@@ -48,6 +48,11 @@ final class CommentService
             $udid,
             $ip
         );
+        if (\MuchoCore\Moderation\Gd2209Restrictions::active(
+            $this->getPdo(), $accountId, 'comment'
+        )) {
+            throw new \RuntimeException('Account temporarily restricted from comments.');
+        }
         $decodedContent = GdLegacyText::decodeComment(
             $content,
             $gameVersion
@@ -974,6 +979,11 @@ final class CommentService
             $udid,
             $ip
         );
+        if (\MuchoCore\Moderation\Gd2209Restrictions::active(
+            $this->getPdo(), $accountId, 'comment'
+        )) {
+            throw new \RuntimeException('Account temporarily restricted from comments.');
+        }
         $decodedContent = GdLegacyText::decodeComment(
             $content,
             $gameVersion
