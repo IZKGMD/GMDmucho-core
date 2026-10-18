@@ -159,6 +159,7 @@ function printCounts(array $preflight): void
         'levels_missing_data' => 'Levels requiring external file data (BLOCKS APPLY)',
         'levels_without_account' => 'Levels with missing creators (BLOCKS APPLY)',
         'ambiguous_profile_links' => 'Ambiguous player profiles (BLOCKS APPLY)',
+        'guest_or_orphan_profiles' => 'Guest/unlinked profiles (reported, not imported)',
     ];
 
     echo PHP_EOL . "DATA SAFETY CHECKS" . PHP_EOL;
