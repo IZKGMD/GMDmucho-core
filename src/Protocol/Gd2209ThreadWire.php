@@ -21,6 +21,30 @@ final class Gd2209ThreadWire
         return $time === false ? 0 : $time;
     }
 
+    /** Native client-facing relative time. Unknown dates stay empty. */
+    public static function relativeTime(int $timestamp, ?int $now = null): string
+    {
+        if ($timestamp <= 0) {
+            return '';
+        }
+        $elapsed = max(0, ($now ?? time()) - $timestamp);
+        if ($elapsed < 60) {
+            return 'just now';
+        }
+        $units = [
+            [31536000, 'year'], [2592000, 'month'],
+            [604800, 'week'], [86400, 'day'], [3600, 'hour'],
+            [60, 'minute'],
+        ];
+        foreach ($units as [$seconds, $name]) {
+            if ($elapsed >= $seconds) {
+                $amount = max(1, (int)floor($elapsed / $seconds));
+                return $amount . ' ' . $name . ($amount === 1 ? '' : 's');
+            }
+        }
+        return 'just now';
+    }
+
     public static function message(array $row): string
     {
         return implode(':', [
@@ -90,10 +114,7 @@ final class Gd2209ThreadWire
     public static function inboxInvite(array $row): string
     {
         $timestamp = self::timestamp((string)$row['created_at']);
-        $ageMinutes = max(0, (int)floor((time()-$timestamp) / 60));
-        $age = $ageMinutes < 60 ? $ageMinutes . ' minutes'
-            : ($ageMinutes < 1440 ? (int)floor($ageMinutes/60) . ' hours'
-                : (int)floor($ageMinutes/1440) . ' days');
+        $age = self::relativeTime($timestamp);
         return implode(':', [
             (int)$row['thread_id'],
             (int)$row['inviter_account_id'],
@@ -135,7 +156,7 @@ final class Gd2209ThreadWire
             $dm ? '' : base64_encode((string)$row['title']), // 4
             (int)($row['unread_count'] ?? 0),               // 5
             (int)($row['last_sender'] ?? 0),                // 6
-            '',                                            // 7 relative age
+            self::relativeTime((int)($row['last_timestamp'] ?? 0)), // 7
             (int)($row['member_count'] ?? 0),               // 8
             base64_encode((string)($row['last_username'] ?? '')), // 9
             (int)$row['owner_account_id'],                 // 10
