@@ -15,9 +15,21 @@ active players) to switch its clients or DNS to MuchoCore.
    clients. Verify backup integrity; store a copy off-server.
 4. Test on a separate target database and test hostname. Preserve the original
    production server and avoid an in-place schema rewrite.
-5. For a Cvolton import, use read-only dry-run first and compare per-table counts.
-   The new `unmapped_level_owners` count must be **zero** before apply.
-   This importer now aborts when it would otherwise silently omit orphan levels.
+5. For a Cvolton/FHGDPS import, use read-only dry-run first and compare
+   source/target counts and referential integrity. The importer exposes:
+   - `unmapped_level_owners`: blocks importing orphan-owned levels.
+   - `levels_missing_payload`: blocks importing missing `levelString`.
+   - `duplicate_account_emails`: blocks unresolved email collisions.
+   - `scores_missing_levels`: shows scores referring to missing/official
+     level IDs, currently not imported by the private-level importer.
+   - `unregistered_profiles`: guest profiles not linked to an account.
+   The blocking checks prevent a falsely successful migration. For FHGDPS
+   SQL dumps with empty `levelString`, locate/obtain the separate server
+   level storage or export full level data using an authorized GD client/API.
+   A SQL dump without these contents is **not** a complete backup.
+   Never resolve duplicate source emails by silently merging users.
+   FHGDPS can store `gjp2` as a PHP bcrypt hash; preserve valid pre-hashed
+   credentials without rehashing and verify actual logins.
 6. Do not claim that legacy comments, private messages, friend lists, gauntlets,
    map packs, ratings or source moderation roles have been transferred. They are
    currently detected/reported separately, not automatically migrated.
