@@ -389,6 +389,16 @@ final readonly class ThreadService
                 $this->db->rollBack();
                 return 0;
             }
+            $rate = $this->db->prepare(
+                'SELECT COUNT(*) FROM mucho_thread_messages
+                 WHERE sender_account_id=:actor
+                   AND created_at>UTC_TIMESTAMP()-INTERVAL 60 SECOND'
+            );
+            $rate->execute(['actor'=>$accountId]);
+            if ((int)$rate->fetchColumn() >= 20) {
+                $this->db->rollBack();
+                return 0;
+            }
             $stmt = $this->db->prepare(
                 'INSERT INTO mucho_thread_messages (thread_id,sender_account_id,body)
                  VALUES (:thread,:sender,:body)'
