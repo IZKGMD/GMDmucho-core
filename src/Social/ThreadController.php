@@ -82,9 +82,11 @@ final readonly class ThreadController
     public function getThreads(Request $r): Response
     {
         try {
-            return Response::text($this->encodeThreads($this->service->threads(
-                $r->postInt('accountID'), $r->gdCredential(), $r->postInt('page')
-            )));
+            $page = $this->service->nativeThreads(
+                $r->postInt('accountID'), $r->gdCredential(),
+                $r->postInt('page'), $r->postInt('filter')
+            );
+            return Response::text(Gd2209ThreadWire::threads($page));
         } catch (Throwable) {
             return Response::text('-1');
         }
@@ -109,11 +111,13 @@ final readonly class ThreadController
     public function getMembers(Request $r): Response
     {
         try {
-            $users = $this->service->members(
+            $data = $this->service->nativeMemberView(
                 $r->postInt('accountID'), $r->gdCredential(), $this->threadId($r)
             );
+            $users = $data['members'] === []
+                ? '' : $this->userEncoder->users($data['members'], true);
             return Response::text(
-                ($users === [] ? '' : $this->userEncoder->users($users, true)) . '##'
+                $users . '##' . Gd2209ThreadWire::invites($data['invites'])
             );
         } catch (Throwable) {
             return Response::text('-1');
