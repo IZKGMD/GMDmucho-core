@@ -413,6 +413,106 @@ final readonly class ThreadService
         ];
     }
 
+
+    /**
+     * Native 2.209 thread listing with its proper 10-per-page envelope.
+     * MuchoCore currently stores group threads only; DM-only filter returns
+     * zero results rather than pretending a group is a DM.
+     */
+    public function nativeThreads(
+        int $accountId, string $credential, int $page, int $filter
+    ): array {
+        $this->authorize($accountId, $credential);
+        if ($page < 0 || $page > 1000 || !in_array($filter,[0,1,2],true)) {
+            throw new RuntimeException('Invalid thread listing filter');
+        }
+        $offset = $page * 10;
+        $invites = $this->db->prepare(
+            "SELECT COUNT(*) FROM mucho_thread_invites i
+             JOIN mucho_threads t ON t.id=i.thread_id
+             WHERE i.invitee_account_id=:account AND i.status='pending'
+               AND t.is_closed=0"
+        );
+        $invites->execute(['account'=>$accountId]);
+        $inviteCount = (int)$invites->fetchColumn();
+
+        if ($filter === 1) {
+            return [
+                'rows'=>[], 'total'=>0, 'offset'=>$offset,
+                'invites'=>$inviteCount
+            ];
+        }
+
+        $count = $this->db->prepare(
+            'SELECT COUNT(*) FROM mucho_threads t
+             JOIN mucho_thread_members m ON m.thread_id=t.id
+             WHERE m.account_id=:account'
+        );
+        $count->execute(['account'=>$accountId]);
+        $total = (int)$count->fetchColumn();
+
+        $stmt = $this->db->prepare(
+            'SELECT t.id,t.title,t.owner_account_id,t.is_closed,t.updated_at,
+                    (SELECT COUNT(*) FROM mucho_thread_members mt
+                     WHERE mt.thread_id=t.id) AS member_count,
+                    (SELECT lm.sender_account_id
+                     FROM mucho_thread_messages lm WHERE lm.thread_id=t.id
+                     ORDER BY lm.id DESC LIMIT 1) AS last_sender,
+                    (SELECT UNIX_TIMESTAMP(lm.created_at)
+                     FROM mucho_thread_messages lm WHERE lm.thread_id=t.id
+                     ORDER BY lm.id DESC LIMIT 1) AS last_timestamp
+             FROM mucho_threads t
+             INNER JOIN mucho_thread_members m ON m.thread_id=t.id
+             WHERE m.account_id=:account
+             ORDER BY t.updated_at DESC,t.id DESC
+             LIMIT 10 OFFSET ' . $offset
+        );
+        $stmt->execute(['account'=>$accountId]);
+        return [
+            'rows'=>$stmt->fetchAll(PDO::FETCH_ASSOC),
+            'total'=>$total, 'offset'=>$offset, 'invites'=>$inviteCount
+        ];
+    }
+
+    /** A member or an invited player may view the member roster. */
+    public function nativeMemberView(
+        int $accountId, string $credential, int $threadId
+    ): array {
+        $this->authorize($accountId,$credential);
+        $member = $this->threadForMember($accountId,$threadId);
+        if ($member === null) {
+            $invite = $this->db->prepare(
+                "SELECT 1 FROM mucho_thread_invites
+                 WHERE thread_id=:thread AND invitee_account_id=:account
+                   AND status='pending' LIMIT 1"
+            );
+            $invite->execute(['thread'=>$threadId,'account'=>$accountId]);
+            if ($invite->fetchColumn() === false) {
+                throw new RuntimeException('Private member roster');
+            }
+        }
+        $members = $this->db->prepare(
+            'SELECT m.account_id,a.username,p.user_id,p.cube,p.color1,
+                    p.color2,p.special
+             FROM mucho_thread_members m JOIN accounts a
+                 ON a.account_id=m.account_id
+             JOIN profiles p ON p.account_id=a.account_id
+             WHERE m.thread_id=:thread
+             ORDER BY m.joined_at ASC LIMIT 32'
+        );
+        $members->execute(['thread'=>$threadId]);
+        $invites = $this->db->prepare(
+            "SELECT i.id,i.invitee_account_id,i.inviter_account_id,a.username
+             FROM mucho_thread_invites i
+             JOIN accounts a ON a.account_id=i.invitee_account_id
+             WHERE i.thread_id=:thread AND i.status='pending'
+             ORDER BY i.id DESC LIMIT 32"
+        );
+        $invites->execute(['thread'=>$threadId]);
+        return ['members'=>$members->fetchAll(PDO::FETCH_ASSOC),
+            'invites'=>$invites->fetchAll(PDO::FETCH_ASSOC)];
+    }
+
     /**
      * @return array<int,array<string,mixed>>
      */
