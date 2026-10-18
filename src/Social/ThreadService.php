@@ -516,6 +516,27 @@ final readonly class ThreadService
             $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
+        // Native metadata field 6 tells the client when "Show Earlier"
+        // should be available. Never hide history if older rows exist.
+        $hasOlder = false;
+        if ($messages !== []) {
+            $lowest = min(array_map(
+                static fn(array $message): int => (int)$message['id'],
+                $messages
+            ));
+            $olderCheck = $this->db->prepare(
+                'SELECT 1 FROM mucho_thread_messages
+                 WHERE thread_id=:thread AND id>:cleared AND id<:lowest LIMIT 1'
+            );
+            $olderCheck->execute([
+                'thread'=>$threadId,
+                'cleared'=>(int)$thread['last_cleared_message_id'],
+                'lowest'=>$lowest
+            ]);
+            $hasOlder = $olderCheck->fetchColumn() !== false;
+        }
+        $thread['has_older_messages'] = $hasOlder ? 1 : 0;
+
         $stmt = $this->db->prepare(
             'SELECT m.account_id,a.username,p.user_id,p.cube,p.color1,
                     p.color2,p.special
