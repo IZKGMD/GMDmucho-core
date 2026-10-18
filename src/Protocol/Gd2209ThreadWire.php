@@ -81,6 +81,43 @@ final class Gd2209ThreadWire
         return implode('|', $result);
     }
 
+    /** Inbox invite is a separate, 19-position native object. */
+    public static function inboxInvite(array $row): string
+    {
+        $timestamp = self::timestamp((string)$row['created_at']);
+        $ageMinutes = max(0, (int)floor((time()-$timestamp) / 60));
+        $age = $ageMinutes < 60 ? $ageMinutes . ' minutes'
+            : ($ageMinutes < 1440 ? (int)floor($ageMinutes/60) . ' hours'
+                : (int)floor($ageMinutes/1440) . ' days');
+        return implode(':', [
+            (int)$row['thread_id'],
+            (int)$row['inviter_account_id'],
+            base64_encode((string)$row['inviter_username']),
+            base64_encode((string)$row['title']),
+            (int)($row['is_dm'] ?? 0) === 1 ? 0 : 1,
+            $age,
+            $age,
+            '',
+            base64_encode((string)($row['description'] ?? '')),
+            0,
+            0,
+            (int)($row['inviter_cube'] ?? 1),
+            (int)($row['inviter_color1'] ?? 0),
+            (int)($row['inviter_color2'] ?? 0),
+            0,
+            (int)($row['inviter_special'] ?? 0),
+            0,
+            (string)($row['emote'] ?? ''),
+            $timestamp,
+        ]);
+    }
+
+    public static function inboxInvites(array $rows): string
+    {
+        return $rows === [] ? 'none'
+            : implode('|', array_map(self::inboxInvite(...), $rows));
+    }
+
     /** Thread object is fixed positional, not a key/value encoder. */
     public static function thread(array $row): string
     {
