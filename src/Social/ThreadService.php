@@ -463,9 +463,11 @@ final readonly class ThreadService
         $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $stmt = $this->db->prepare(
-            "SELECT i.id,i.inviter_account_id,i.invitee_account_id,a.username
+            "SELECT i.id,i.inviter_account_id,i.invitee_account_id,a.username,
+                    p.user_id,p.cube,p.color1,p.color2,p.special
              FROM mucho_thread_invites i
              JOIN accounts a ON a.account_id=i.invitee_account_id
+             JOIN profiles p ON p.account_id=i.invitee_account_id
              WHERE i.thread_id=:thread AND i.status='pending'
              ORDER BY i.id DESC LIMIT 32"
         );
@@ -565,9 +567,11 @@ final readonly class ThreadService
         );
         $members->execute(['thread'=>$threadId]);
         $invites = $this->db->prepare(
-            "SELECT i.id,i.invitee_account_id,i.inviter_account_id,a.username
+            "SELECT i.id,i.invitee_account_id,i.inviter_account_id,a.username,
+                    p.user_id,p.cube,p.color1,p.color2,p.special
              FROM mucho_thread_invites i
              JOIN accounts a ON a.account_id=i.invitee_account_id
+             JOIN profiles p ON p.account_id=i.invitee_account_id
              WHERE i.thread_id=:thread AND i.status='pending'
              ORDER BY i.id DESC LIMIT 32"
         );
