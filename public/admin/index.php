@@ -1458,8 +1458,8 @@ else ob_start();
 <!doctype html>
 <html lang="ru">
 <head>
-<link rel="icon" href="/assets/muchocore-icon.png?v=2" type="image/png">
-<link rel="apple-touch-icon" href="/assets/muchocore-icon.png?v=2">
+<link rel="icon" href="/assets/muchocore-icon.png?v=3" type="image/png">
+<link rel="apple-touch-icon" href="/assets/muchocore-icon.png?v=3">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?=h($branding['server_name'])?> Control</title>
