@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 use MuchoCore\Database\Database;
+use MuchoCore\Admin\AdminRbac;
 
 require dirname(__DIR__,2).'/vendor/autoload.php';
 
@@ -75,21 +76,12 @@ if(!$currentAdmin || (int)$currentAdmin['is_active']!==1){
 $_SESSION['admin']['username']=(string)$currentAdmin['username'];
 $_SESSION['admin']['role']=(string)$currentAdmin['role'];
 
-$currentAdminRank=legacyAdminRank((string)$currentAdmin['role']);
-
-$db->exec("
-CREATE TABLE IF NOT EXISTS admin_notifications (
- id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
- fingerprint VARCHAR(190) NOT NULL UNIQUE,
- severity VARCHAR(20) NOT NULL,
- title VARCHAR(190) NOT NULL,
- body TEXT NULL,
- is_resolved TINYINT(1) NOT NULL DEFAULT 0,
- created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
- updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-   ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-");
+// Re-check permissions on each request: session roles may have been revoked.
+if (!AdminRbac::can($db, $currentAdmin, 'monitoring.view')) {
+    http_response_code(403);
+    echo json_encode(['error'=>'Monitoring access denied']);
+    exit;
+}
 
 function output(array $x): never {
     echo json_encode(
@@ -157,43 +149,25 @@ function localEndpoint(string $path): array
     return [
         'path'=>$path,
         'status'=>$status,
-        'ok'=>$status===200,
-        'body'=>substr(trim((string)$body),0,100)
+        // GD endpoints normally reject empty authentication/form payloads
+        // with HTTP 400/401/403. Report connectivity rather than claiming
+        // the endpoint's full protocol behavior was successfully tested.
+        'ok'=>$status>=200 && $status<500 && $status!==404,
+        'body'=>''
     ];
 }
 
 $kind=(string)($_GET['kind'] ?? 'health');
 
 if($kind==='health'){
-    if ($currentAdminRank < 40) {
-        http_response_code(403);
-        echo json_encode(['error'=>'Forbidden']);
-        exit;
-    }
-
-    $raw=(string)shell_exec(
-        'sudo /usr/local/sbin/mucho-admin-ops status 2>&1'
-    );
-
-    $services=[];
-
-    foreach([
-        'NGINX'=>'Nginx',
-        'PHP'=>'PHP-FPM',
-        'CLOUDFLARE'=>'Cloudflare'
-    ] as $key=>$name){
-
-        $ok=str_contains(
-            strtoupper($raw),
-            $key.'=ACTIVE'
-        );
-
-        $services[]=[
-            'name'=>$name,
-            'ok'=>$ok
-        ];
-    }
-
+    // A successful DB connection already happened above. Do not call
+    // obsolete Nginx/PHP-FPM/Cloudflare root helpers from Docker installs.
+    // Unknown services are explicitly unknown rather than falsely offline.
+    $services=[
+        ['name'=>'Database', 'state'=>'online', 'detail'=>'Authenticated SQL connection'],
+        ['name'=>'Application', 'state'=>'unknown', 'detail'=>'See /health and API probes below'],
+        ['name'=>'Worker / queue', 'state'=>'unknown', 'detail'=>'Not directly observable from PHP'],
+    ];
     $paths=[
         '/health',
         '/getGJLevels21.php',
@@ -207,20 +181,25 @@ if($kind==='health'){
     ];
 
     $endpoints=[];
+    foreach ($paths as $path) $endpoints[]=localEndpoint($path);
 
-    foreach($paths as $path){
-        $endpoints[]=localEndpoint($path);
-    }
+    // /health is a meaningful application probe, unlike empty GD requests.
+    $services[1]['state']=$endpoints[0]['status']===200?'online':
+        ($endpoints[0]['status']===0?'unknown':'warning');
+    $services[1]['detail']=$endpoints[0]['status']
+        ? 'Health endpoint returned HTTP '.$endpoints[0]['status']
+        : 'Internal HTTP probe unavailable';
 
     output([
         'services'=>$services,
         'endpoints'=>$endpoints,
-        'time'=>date('Y-m-d H:i:s')
+        'time'=>date('Y-m-d H:i:s'),
+        'explanation'=>'GD endpoints are probed with empty requests; 400/401/403 can be normal. A response is not a gameplay test.',
     ]);
 }
 
 if($kind==='logs'){
-    if ($currentAdminRank < 40) {
+    if (!AdminRbac::can($db,$currentAdmin,'system.manage')) {
         http_response_code(403);
         echo json_encode(['error'=>'Forbidden']);
         exit;
@@ -239,11 +218,14 @@ if($kind==='logs'){
         output(['error'=>'Invalid log type']);
     }
 
+    $helper='/usr/local/sbin/mucho-admin-ops';
+    if (!is_file($helper)) {
+        output(['type'=>$type, 'text'=>'Host log helper unavailable in this deployment. Use sudo mucho logs on the VPS.', 'available'=>false]);
+    }
     $text=(string)shell_exec(
-        'sudo /usr/local/sbin/mucho-admin-ops '.
-        escapeshellarg($map[$type]).
-        ' 2>&1'
+        'sudo '.$helper.' '.escapeshellarg($map[$type]).' 2>&1'
     );
+    $text=mb_substr($text,0,100000,'UTF-8');
 
     output([
         'type'=>$type,
@@ -261,9 +243,7 @@ if($kind==='abuse'){
           p.stars,
           p.demons,
           p.creator_points,
-          p.diamonds,
-          p.last_ip,
-          p.last_played
+          p.diamonds
         FROM accounts a
         JOIN profiles p
           ON p.account_id=a.account_id
@@ -283,15 +263,18 @@ if($kind==='abuse'){
 }
 
 if($kind==='notifications'){
-
-    $rows=$db->query("
-        SELECT *
-        FROM admin_notifications
-        WHERE is_resolved=0
-        ORDER BY updated_at DESC
-        LIMIT 100
-    ")->fetchAll(PDO::FETCH_ASSOC);
-
+    // Reading monitoring must never mutate schema or create tables.
+    try {
+        $rows=$db->query(
+            'SELECT id,severity,title,body,created_at
+             FROM admin_notifications
+             WHERE is_resolved=0
+             ORDER BY updated_at DESC
+             LIMIT 100'
+        )->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable) {
+        $rows=[];
+    }
     output(['notifications'=>$rows]);
 }
 
