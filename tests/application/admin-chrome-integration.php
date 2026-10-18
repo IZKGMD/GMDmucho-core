@@ -37,8 +37,23 @@ foreach([false,true] as $plain) {
     $xpath=document($nav);
     check($xpath->query('//a[contains(@href,"page=clans") or contains(@href,"page=settings")]')->length===0,'navigation respects permissions in both modes');
     check($xpath->query('//li/a[@aria-current="page"]')->length===1,'navigation identifies the current section');
+    check($xpath->query('//details[contains(concat(" ", normalize-space(@class), " "), " admin-nav-extra ")]//details[contains(concat(" ", normalize-space(@class), " "), " admin-nav-group ")]/summary')->length===1,'secondary sections are grouped even for restricted roles');
+    check($xpath->query('//details[contains(concat(" ", normalize-space(@class), " "), " admin-nav-group ")]/ul/li/a[contains(@href,"page=admins")]')->length===1,'allowed administration section remains accessible');
+    check($xpath->query('//details[contains(concat(" ", normalize-space(@class), " "), " admin-nav-group ")]/ul/li/a[contains(@href,"page=settings")]')->length===0,'groups do not leak inaccessible pages');
     if($plain) check($xpath->query('//img')->length===0,'native menu avoids decorative icon clutter');
 }
+$page='admins';
+ob_start();
+require __DIR__.'/../../public/admin/core/navigation.php';
+$adminNav=document((string)ob_get_clean());
+check($adminNav->query('//details[contains(@class,"admin-nav-extra") and @open]')->length===1,
+    'more tools expands automatically for the active secondary page');
+check($adminNav->query('//details[contains(@class,"admin-nav-group") and @open]//a[@aria-current="page"]')->length===1,
+    'the active category expands automatically and highlights its current page');
+$expectedGroups=adminExtraGroups();
+check(count($expectedGroups) >= 4 && in_array('clientpatcher',$expectedGroups['Clients & extensions'],true),
+    'all operator tool categories have stable labels');
+
 check(!str_contains(adminInterfaceUrl(true,['q'=>['invalid']]),'Array'),'switch ignores non-scalar query values');
 // Fresh-install pages must render before upload tables or backup constants exist.
 function admin(): array { return ['id'=>1,'username'=>'Fixture','role'=>'owner']; }
