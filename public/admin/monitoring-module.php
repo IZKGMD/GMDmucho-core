@@ -1,150 +1,53 @@
 <?php
 declare(strict_types=1);
+
+// Monitoring is read-only and permission-gated by the admin controller.
+// Host-level log access remains restricted to system administrators.
+$canReadHostLogs=canPermission('system.manage');
 ?>
-
-<div class="boxgrid">
-
-<div class="card">
-<h2 style="margin-top:0">Services</h2>
-<div id="v5Services">Loading…</div>
+<section class="admin-monitor-guide card" aria-labelledby="monitorIntro">
+    <h2 id="monitorIntro">Server diagnostics</h2>
+    <p class="muted">Health checks report what PHP can actually observe. A responding Geometry Dash endpoint is not proof that login or gameplay succeeds. Unknown means not measured — not offline.</p>
+    <div class="section-actions">
+        <button type="button" id="v5RefreshHealth">Refresh checks</button>
+        <span id="v5LastChecked" class="muted" role="status" aria-live="polite">No check completed yet.</span>
+    </div>
+</section>
+<div class="admin-monitor-grid">
+    <section class="card" aria-labelledby="monitorServicesLabel">
+        <h2 id="monitorServicesLabel">Services</h2>
+        <div id="v5Services" role="status">Checking connectivity…</div>
+    </section>
+    <section class="card" aria-labelledby="monitorEndpointsLabel">
+        <h2 id="monitorEndpointsLabel">API responses</h2>
+        <div id="v5Endpoints" role="status">Waiting for probe results…</div>
+    </section>
 </div>
-
-<div class="card">
-<h2 style="margin-top:0">API Health</h2>
-<div id="v5Endpoints">Loading…</div>
-</div>
-
-</div>
-
-<h2>Anti-Abuse</h2>
-<div class="card">
-<div id="v5Abuse">Loading…</div>
-</div>
-
-<h2>Live Logs</h2>
-
-<div class="row" style="margin-bottom:10px">
-<select id="v5LogType">
-<option value="php">PHP-FPM</option>
-<option value="nginx">Nginx Error</option>
-<option value="access">Nginx Access</option>
-<option value="cloudflare">Cloudflare</option>
-</select>
-
-<button type="button" id="v5RefreshLogs">
-Refresh
-</button>
-
-<label>
-<input type="checkbox" id="v5AutoLogs">
-Auto refresh
-</label>
-</div>
-
-<pre id="v5Logs">Loading…</pre>
-
-<script>
-(() => {
-
-const services=document.getElementById('v5Services');
-const endpoints=document.getElementById('v5Endpoints');
-const abuse=document.getElementById('v5Abuse');
-const logs=document.getElementById('v5Logs');
-const type=document.getElementById('v5LogType');
-const auto=document.getElementById('v5AutoLogs');
-
-async function json(url){
-    const r=await fetch(url,{
-        credentials:'same-origin',
-        cache:'no-store'
-    });
-    return await r.json();
-}
-
-async function health(){
-    try{
-        const d=await json('/admin/v5-api.php?kind=health');
-
-        services.innerHTML=d.services.map(x=>
-            `<div style="margin:8px 0">
-             <span class="badge ${x.ok?'ok':'bad'}">
-             ${x.ok?'●':'●'} ${x.name}
-             </span>
-             </div>`
-        ).join('');
-
-        endpoints.innerHTML=d.endpoints.map(x=>
-            `<div style="display:flex;justify-content:space-between;
-            gap:10px;border-bottom:1px solid #222b39;padding:7px 0">
-             <code>${x.path}</code>
-             <span class="${x.ok?'ok':'bad'}">
-             HTTP ${x.status}
-             </span>
-             </div>`
-        ).join('');
-
-    }catch(e){
-        services.textContent='Health request failed';
-    }
-}
-
-async function abuseLoad(){
-    try{
-        const d=await json('/admin/v5-api.php?kind=abuse');
-
-        if(!d.players.length){
-            abuse.innerHTML='<span class="ok">No obvious anomalies detected.</span>';
-            return;
-        }
-
-        abuse.innerHTML=d.players.map(x=>
-            `<div class="v4result">
-             <b>#${x.account_id} ${x.username}</b><br>
-             <small>
-             Stars ${x.stars} ·
-             Demons ${x.demons} ·
-             CP ${x.creator_points} ·
-             Diamonds ${x.diamonds}
-             </small>
-             </div>`
-        ).join('');
-
-    }catch(e){
-        abuse.textContent='Anti-abuse request failed';
-    }
-}
-
-async function loadLogs(){
-    try{
-        const d=await json(
-            '/admin/v5-api.php?kind=logs&type='+
-            encodeURIComponent(type.value)
-        );
-
-        logs.textContent=d.text || 'No log output';
-        logs.scrollTop=logs.scrollHeight;
-
-    }catch(e){
-        logs.textContent='Log request failed';
-    }
-}
-
-document.getElementById('v5RefreshLogs')
-?.addEventListener('click',loadLogs);
-
-type?.addEventListener('change',loadLogs);
-
-setInterval(()=>{
-    health();
-
-    if(auto?.checked){
-        loadLogs();
-    }
-},5000);
-
-health();
-abuseLoad();
-loadLogs();
-
-})();
-</script>
+<section class="card" aria-labelledby="monitorAbuseLabel">
+    <h2 id="monitorAbuseLabel">Possible stat anomalies</h2>
+    <p class="muted">These are thresholds for manual review, not evidence of cheating or automatic bans.</p>
+    <button type="button" class="gray" id="v5RefreshAbuse">Review stats</button>
+    <div id="v5Abuse" role="status">Waiting for results…</div>
+</section>
+<section class="card" aria-labelledby="monitorLogsLabel">
+    <h2 id="monitorLogsLabel">Host logs</h2>
+    <?php if ($canReadHostLogs): ?>
+    <p class="muted">Available only when the VPS has the legacy log helper. On Docker installs, use <code>sudo mucho logs</code> over SSH.</p>
+    <div class="admin-monitor-toolbar">
+        <label for="v5LogType">Log source</label>
+        <select id="v5LogType">
+            <option value="php">PHP-FPM (legacy)</option>
+            <option value="nginx">Nginx error (legacy)</option>
+            <option value="access">Nginx access (legacy)</option>
+            <option value="cloudflare">Cloudflare (legacy)</option>
+        </select>
+        <button type="button" id="v5RefreshLogs">Refresh logs</button>
+        <label><input type="checkbox" id="v5AutoLogs"> Auto-refresh logs</label>
+    </div>
+    <pre id="v5Logs" tabindex="0" role="status">Select Refresh logs to load output.</pre>
+    <?php else: ?>
+    <p class="muted" role="status">Host logs are restricted to system administrators. Health diagnostics remain available.</p>
+    <?php endif; ?>
+</section>
+<noscript><p class="card">Automatic checks require JavaScript. On your VPS, use <code>sudo mucho doctor</code> or <code>sudo mucho logs</code>.</p></noscript>
+<script src="/admin/admin-monitoring.js?v=1" defer></script>
