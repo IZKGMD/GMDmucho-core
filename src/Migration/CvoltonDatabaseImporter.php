@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MuchoCore\Migration;
 
 use PDO;
+use MuchoCore\Protocol\GdLegacyText;
 use RuntimeException;
 use Throwable;
 
@@ -59,6 +60,8 @@ final class CvoltonDatabaseImporter
             'accounts' => $this->count($source, 'accounts'),
             'users' => $this->count($source, 'users'),
             'levels' => $this->count($source, 'levels'),
+            // Non-mappable levels are a data-loss risk: preview them, never silently drop them.
+            'unmapped_level_owners' => $this->countUnmappedLevelOwners($source),
             'levelscores' => $this->sourceTableExists($source, 'levelscores')
                 ? $this->count($source, 'levelscores')
                 : 0,
@@ -75,6 +78,18 @@ final class CvoltonDatabaseImporter
             ['accounts', 'users', 'levels']
         );
         $this->requireSourceSchema($source);
+
+        // Fail before writing a single target row. Previously these levels
+        // were silently skipped because levelAccount() returned null.
+        $unmapped = $this->countUnmappedLevelOwners($source);
+        if ($unmapped > 0) {
+            throw new RuntimeException(
+                'Migration aborted: ' . $unmapped . ' source level(s) have no matching ' .
+                'registered account. Importing now would silently lose levels. ' .
+                'Review their levels.extID and accounts.accountID in the read-only ' .
+                'preview, or use an explicit migration policy for guest levels.'
+            );
+        }
 
         $this->requireTargetMaps();
 
@@ -604,7 +619,14 @@ final class CvoltonDatabaseImporter
                 0,
                 64
             ),
-            'description' => (string)($row['levelDesc'] ?? ''),
+            // Cvolton commonly stores wire-format Base64 in levelDesc. GD 2.x
+            // MuchoCore stores plain text, then encodes it once on response.
+            // Keep GD 1.9's intentionally wire-encoded storage untouched.
+            'description' => (int)($row['gameVersion'] ?? 22) < 20
+                ? (string)($row['levelDesc'] ?? '')
+                : GdLegacyText::decodeDescriptionForStorage(
+                    (string)($row['levelDesc'] ?? '')
+                ),
             'data' => (string)($row['levelString'] ?? ''),
             'version' => max(1, (int)($row['levelVersion'] ?? 1)),
             'game' => max(0, (int)($row['gameVersion'] ?? 22)),
@@ -881,6 +903,25 @@ final class CvoltonDatabaseImporter
                 ' is missing required columns: ' . implode(', ', $missing)
             );
         }
+    }
+
+    /**
+     * Source levels with no registered account cannot be mapped by this
+     * importer. Surface the exact count before any destructive cutover.
+     * This is read-only and also works for a preview/dry run.
+     */
+    private function countUnmappedLevelOwners(PDO $source): int
+    {
+        $stmt = $source->query(
+            'SELECT COUNT(*)
+             FROM levels l
+             LEFT JOIN accounts a ON a.accountID = CAST(l.extID AS UNSIGNED)
+             WHERE a.accountID IS NULL
+                OR l.extID IS NULL
+                OR CAST(l.extID AS UNSIGNED) = 0'
+        );
+
+        return (int)$stmt->fetchColumn();
     }
 
     private function count(PDO $db, string $table): int
