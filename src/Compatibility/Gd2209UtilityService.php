@@ -107,6 +107,15 @@ final readonly class Gd2209UtilityService
         // No plaintext device or session ID is retained.
         $token = hash('sha256', $session, true);
         $actor = hash('sha256', $udid, true);
+        $existing = $this->db->prepare(
+            'SELECT actor_hash FROM mucho_gd2209_registration_opens
+             WHERE token_hash=:token LIMIT 1'
+        );
+        $existing->execute(['token'=>$token]);
+        $bound = $existing->fetchColumn();
+        if ($bound !== false && !hash_equals((string)$bound, $actor)) {
+            return false;
+        }
         // Prevent one device from opening unbounded unique sessions.
         $q = $this->db->prepare(
             'SELECT COUNT(*) FROM mucho_gd2209_registration_opens
