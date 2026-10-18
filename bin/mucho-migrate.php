@@ -401,6 +401,8 @@ try {
         }
     }
 
+    \MuchoCore\Migration\MigrationPreflightGuard::assertSafe($preflight);
+
     echo PHP_EOL . "Creating verified target database backup..." . PHP_EOL;
 
     $targetBackup = createVerifiedTargetBackup(microtime(true));
