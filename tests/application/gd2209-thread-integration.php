@@ -121,6 +121,16 @@ try {
     );
     $invitations = $service->invites(2,'pass-2');
     $check(count($invitations) === 1, 'recipient receives invite');
+
+    $wireInvites = $http->getInvites(
+        $req(2,'pass-2','getGJThreadInvites')
+    )->body;
+    $wireValues = explode(':',$wireInvites);
+    $check(count($wireValues) === 19 &&
+        $wireValues[0] === (string)$thread &&
+        $wireValues[2] === base64_encode('Owner'),
+        'native pending invites use 19 positional fields, including actual inviter');
+
     $memberPreview = $http->getMembers(
         $req(2,'pass-2','getGJThreadMembers')
     )->body;
