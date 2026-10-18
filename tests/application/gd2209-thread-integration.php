@@ -8,6 +8,7 @@ use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Social\ThreadService;
 use MuchoCore\Social\RelationshipRepository;
 use MuchoCore\Social\Gd2209NativeThreadOperations;
+use MuchoCore\Social\Gd2209ThreadActionService;
 use MuchoCore\Social\ThreadController;
 use MuchoCore\Protocol\GdRelationshipEncoder;
 use MuchoCore\Http\Request;
@@ -94,7 +95,8 @@ try {
         $service, new GdRelationshipEncoder(),
         new Gd2209NativeThreadOperations(
             $db, new AccountAuthenticator($db), new RelationshipRepository($db)
-        )
+        ),
+        new Gd2209ThreadActionService($db, new AccountAuthenticator($db))
     );
     $req = static fn(int $account,string $password,string $path,array $extra=[]): Request =>
         new Request('POST','/database/'.$path.'.php',[],array_merge([
@@ -277,6 +279,62 @@ try {
     $check(count($service->invites(3,'pass-3')) === 1,
         'new native group issued one pending invitation');
 
+
+    $mode = static fn(int $who,string $pw,int $tid,int $action,string $raw='') =>
+        $http->update($req($who,$pw,'updateGJThread',[
+            'threadID'=>(string)$tid,
+            'mode'=>(string)$action,
+            'value'=>$raw === '' ? '' : base64_encode($raw)
+        ]))->body;
+
+    $check($mode(1,'pass-1',$newGroup,14,'New description') === '1',
+        'owner changes persisted group description');
+    $check($mode(1,'pass-1',$newGroup,16,'globe') === '1',
+        'owner changes persisted group icon');
+    $check($mode(1,'pass-1',$newGroup,13,'0') === '1',
+        'owner can enable member invites');
+    $check($mode(1,'pass-1',$newGroup,4,'2') === '1',
+        'native group mode 4 atomically invites member 2');
+    $check($mode(2,'pass-2',$newGroup,8) === '1',
+        'native mode 8 accepts invitation to new group');
+    $check($mode(1,'pass-1',$newGroup,7,'2') === '1',
+        'owner can transfer group ownership to active member');
+    $check($mode(1,'pass-1',$newGroup,6,'2') === '-1',
+        'former owner may not kick new owner');
+    $check($mode(2,'pass-2',$newGroup,7,'1') === '1',
+        'new owner can hand ownership back');
+    $check($mode(1,'pass-1',$newGroup,6,'2') === '1',
+        'restored owner can kick a non-owner member');
+    $check($http->getMessages($req(2,'pass-2','getGJThreadMessages',[
+        'threadID'=>(string)$newGroup
+    ]))->body === '-1', 'kicked member cannot read group history');
+    $check($mode(2,'pass-2',$newGroup,18) === '1',
+        'kicked player can dismiss own former-thread record');
+    $check($mode(1,'pass-1',$newGroup,11,'3') === '1',
+        'owner can revoke an outstanding invite');
+    $check($service->invites(3,'pass-3') === [],
+        'revoked invited user no longer sees this group');
+    $check($mode(1,'pass-1',$dm,10,'1') === '1',
+        'member can mute DM for themselves');
+    $check($mode(1,'pass-1',$dm,15,'1') === '1',
+        'member can pin DM for themselves');
+    $check($mode(1,'pass-1',0,3,(string)$dm) === '1',
+        'threadID 0 mark-read mode acknowledges a real member thread');
+    $check($mode(1,'pass-1',$dm,1) === '1',
+        'clear-history only changes the requesting member view');
+    $cleared = $http->getMessages($req(1,'pass-1','getGJThreadMessages',[
+        'threadID'=>(string)$dm
+    ]))->body;
+    $check(str_starts_with($cleared,'none#'), 'cleared member does not see old DMs');
+    $otherHistory = $http->getMessages($req(2,'pass-2','getGJThreadMessages',[
+        'threadID'=>(string)$dm
+    ]))->body;
+    $check(str_contains($otherHistory,base64_encode('Private hello')),
+        'clearing own history cannot delete the peer conversation');
+    $check($mode(1,'pass-1',$newGroup,6,'1') === '-1',
+        'cannot kick oneself');
+    $check($mode(1,'pass-1',$newGroup,16,"bad\nicon") === '-1',
+        'invalid group metadata refused');
     $db->exec('DELETE FROM accounts WHERE account_id=1');
     $check(
         (int)$db->query('SELECT COUNT(*) FROM mucho_threads')->fetchColumn() === 0,
