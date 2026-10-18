@@ -6,6 +6,9 @@ require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Social\ThreadService;
+use MuchoCore\Social\ThreadController;
+use MuchoCore\Protocol\GdRelationshipEncoder;
+use MuchoCore\Http\Request;
 
 $host = getenv('TEST_DB_HOST');
 $password = getenv('TEST_DB_ROOT_PASSWORD');
@@ -79,6 +82,19 @@ try {
     $check(count($service->threads(2,'pass-2',0)) === 0, 'nonmembers cannot list thread');
     $check(count($service->members(1,'pass-1',$thread)) === 1, 'creator is first member');
     $check(count($service->members(2,'pass-2',$thread)) === 0, 'member list private');
+
+    $http = new ThreadController($service, new GdRelationshipEncoder());
+    $req = static fn(int $account,string $password,string $path,array $extra=[]): Request =>
+        new Request('POST','/database/'.$path.'.php',[],array_merge([
+            'accountID'=>(string)$account, 'gjp2'=>$password,
+            'gameVersion'=>'22','binaryVersion'=>'51',
+            'threadID'=>(string)$thread,
+        ],$extra),[]);
+    $check($http->getMembers($req(2,'pass-2','getGJThreadMembers'))->body === '-1',
+        'outsider cannot enumerate the native roster');
+    $check($http->getMessages($req(2,'pass-2','getGJThreadMessages'))->body === '-1',
+        'outsider cannot receive a falsely successful seven-part thread');
+
     $check(!$service->send(2,'pass-2',$thread,'Hack'), 'nonmember cannot send');
     $check($service->messages(2,'pass-2',$thread,0) === [], 'nonmember cannot read');
     $check(!$service->modify(2,'pass-2',$thread,'rename','Hijacked'), 'non-owner cannot rename');
@@ -109,6 +125,36 @@ try {
         'outsider cannot search messages');
     $check($service->search(2,'pass-2',$thread,'there%xx',0) === [],
         'search wildcard must not disclose unrelated messages');
+
+    $snapshot = $service->nativeSnapshot(1,'pass-1',$thread);
+    $check(count($snapshot['messages']) === 1 && count($snapshot['members']) === 2,
+        'only active members receive full native snapshot');
+    $wire = $http->getMessages($req(1,'pass-1','getGJThreadMessages'))->body;
+    $parts = explode('#',$wire);
+    $check(count($parts) === 7 && str_contains($parts[0], base64_encode('Hello there!')),
+        'real native thread reply has seven sections with positional messages');
+    $check($parts[5] === '0' && $parts[6] === '3,1,10,50',
+        'native thread trailing segments');
+
+    $list = $http->getThreads($req(1,'pass-1','getGJThreads'))->body;
+    $listParts = explode('#',$list);
+    $check(count($listParts) === 2 && $listParts[1] === '1:0:10:0:60'
+        && count(explode(':',$listParts[0])) === 26,
+        'native thread list uses fixed positional record and page envelope');
+
+    $sent = $http->send($req(2,'pass-2','sendGJThreadMessage',[
+        'body'=>rtrim(strtr(base64_encode('Client ping'),'+/','-_'),'=')
+    ]))->body;
+    $check(preg_match('/^'.preg_quote((string)$thread,'/').':[1-9][0-9]*$/D',$sent) === 1,
+        'native send responds with persisted threadID:messageID');
+    $sentId = (int)explode(':',$sent)[1];
+    $check((int)$db->query('SELECT COUNT(*) FROM mucho_thread_messages
+        WHERE id='.$sentId.' AND body="Client ping"')->fetchColumn() === 1,
+        'native Base64 body must be decoded before storing actual message');
+    $check($http->send($req(2,'pass-2','sendGJThreadMessage',[
+        'body'=>'**not-valid**'
+    ]))->body === '-1', 'malformed Base64 content rejected');
+
     $check($service->modify(1,'pass-1',$thread,'rename','Renamed'), 'owner renames');
     $check(
         $service->threads(1,'pass-1',0)[0]['title'] === 'Renamed',
