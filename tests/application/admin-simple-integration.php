@@ -59,9 +59,11 @@ check(!str_contains($html,'method="post"'),'read-only players list exposes no mu
 $html=renderPage($db,'levels');
 check(!str_contains($html,'method="post"') && !str_contains($html,'Publish rating'),'read-only level access exposes no edit or rating action');
 $permissions=['players.manage','levels.manage','levels.rate','music.manage'];
-$html=renderPage($db,'moderation',['q'=>'Rated level']);
-check(str_contains($html,'level-1"') && !str_contains($html,'level-2"'),'moderation queue combines search with requested-star filtering');
-check(str_contains($html,'/gd/extreme-demon.png'),'levels use original GD difficulty sprites');
+$html=renderPage($db,'moderation',['q'=>'Unrated']);
+check(str_contains($html,'level-2"') && !str_contains($html,'level-1"'),'moderation queue excludes already rated levels');
+$ratingView=renderPage($db,'levels',['filter'=>'rated']);
+check(str_contains($ratingView,'level-1"') && !str_contains($ratingView,'level-2"'),'rated levels remain accessible through their own filter');
+check(str_contains($ratingView,'/gd/extreme-demon.png'),'levels use original GD difficulty sprites');
 $xpath=document($html);
 check($xpath->query('//form[@method="post"][not(input[@name="id"]) or not(input[@name="csrf"])]')->length===0,'level forms keep their target and CSRF inside the form');
 $before=$db->query('SELECT * FROM levels WHERE level_id=1')->fetch(PDO::FETCH_ASSOC);
