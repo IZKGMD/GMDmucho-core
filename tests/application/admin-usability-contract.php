@@ -67,6 +67,11 @@ function canPermission(string $permission): bool
     global $hostLogsAllowed;
     return $permission==='system.manage' && $hostLogsAllowed;
 }
+function canAdminPage(string $section): bool
+{
+    // A restricted monitoring reader has no cross-page permissions.
+    return false;
+}
 $hostLogsAllowed=false;
 require $root.'/public/admin/monitoring-module.php';
 $restricted=(string)ob_get_clean();
