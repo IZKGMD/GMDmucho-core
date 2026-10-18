@@ -262,7 +262,7 @@ final class RecoveryController
 
     private function page(string $content): void
     {
-        $brand = '<img class="mucho-brand-logo" src="/assets/muchocore-logo.jpg" alt="MuchoCore" width="955" height="370" decoding="async">';
+
 
         $serverCredit = '';
         if (
@@ -283,7 +283,7 @@ final class RecoveryController
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<link rel="icon" href="/assets/muchocore-icon.png" type="image/png">
+<link rel="icon" href="/assets/muchocore-icon.png?v=3" type="image/png">
 <title>MuchoCore — восстановление аккаунта</title>
 <link rel="stylesheet" href="/recovery/recovery.css">
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
@@ -299,7 +299,7 @@ final class RecoveryController
 
 <main class="shell">
     <section class="card">
-        <div class="brand"><img class="mucho-brand-logo" src="/assets/muchocore-logo.jpg" alt="MuchoCore" width="44" height="44" decoding="async">' . $brand . '</div>
+        <div class="brand"><img class="mc-brand-mark" src="/assets/muchocore-icon.png?v=3" alt="" width="44" height="44" decoding="async"><span>MuchoCore</span></div>
         ' . $content . '
     </section>
 
