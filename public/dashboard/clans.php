@@ -435,6 +435,7 @@ $myClan = $account ? $repo->getForAccount((int)$account['id']) : null;
 <!doctype html>
 <html lang="en">
 <head>
+<link rel="icon" href="/assets/muchocore-favicon-v4.png" type="image/png" sizes="64x64">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#090b10">

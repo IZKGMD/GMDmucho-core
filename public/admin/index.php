@@ -1458,7 +1458,7 @@ else ob_start();
 <!doctype html>
 <html lang="ru">
 <head>
-<link rel="icon" href="/assets/muchocore-icon.png?v=3" type="image/png">
+<link rel="icon" href="/assets/muchocore-favicon-v4.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="/assets/muchocore-icon.png?v=3">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">

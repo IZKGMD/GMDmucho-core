@@ -24,6 +24,60 @@ if ((int)($corner['alpha'] ?? 0) < 120) {
     throw new RuntimeException('MuchoCore icon background is not transparent.');
 }
 
+// Tabs must use a new dedicated filename, not the old cached brand icon.
+$faviconPath = $root . '/public/assets/muchocore-favicon-v4.png';
+$faviconInfo = getimagesize($faviconPath);
+if (!$faviconInfo || $faviconInfo[2] !== IMAGETYPE_PNG ||
+    $faviconInfo[0] !== 64 || $faviconInfo[1] !== 64) {
+    throw new RuntimeException('The PNG favicon must be 64x64.');
+}
+$favicon = imagecreatefrompng($faviconPath);
+if ($favicon === false) {
+    throw new RuntimeException('Cannot inspect the PNG favicon.');
+}
+$bg = imagecolorsforindex($favicon, imagecolorat($favicon, 0, 0));
+imagedestroy($favicon);
+if ((int)($bg['alpha'] ?? 0) < 120) {
+    throw new RuntimeException('The tab favicon still has an opaque background.');
+}
+
+$ico = file_get_contents($root . '/public/favicon.ico');
+if (!is_string($ico) || strlen($ico) < 64 || substr($ico, 0, 4) !== "\x00\x00\x01\x00") {
+    throw new RuntimeException('Missing or invalid browser fallback favicon.ico.');
+}
+$icoCount = unpack('vcount', substr($ico, 4, 2))['count'] ?? 0;
+if ($icoCount < 4) {
+    throw new RuntimeException('The ICO must include multiple sizes.');
+}
+
+$faviconPages = [
+    'public/index.html',
+    'public/muchogdps-index.html',
+    'public/muchocore/index.html',
+    'public/muchocore/about/index.html',
+    'public/muchocore/compatibility/index.html',
+    'public/install/index.html',
+    'public/install/vps/index.html',
+    'public/install/shared/index.html',
+    'public/install/shared/go/index.html',
+    'public/deploy/index.html',
+    'public/dashboard/index.php',
+    'public/dashboard/clans.php',
+    'public/clients.php',
+    'public/admin/index.php',
+    'public/admin/core/plain-shell.php',
+    'src/Account/RecoveryController.php',
+];
+foreach ($faviconPages as $path) {
+    $html = (string)file_get_contents($root . '/' . $path);
+    if (!str_contains($html, '<link rel="icon" href="/assets/muchocore-favicon-v4.png"')) {
+        throw new RuntimeException('Missing current favicon link: ' . $path);
+    }
+    if (str_contains($html, '<link rel="icon" href="/assets/muchocore-icon.png')) {
+        throw new RuntimeException('Stale cached favicon URL in ' . $path);
+    }
+}
+
 $headerPages = [
     'public/index.html',
     'public/muchogdps-index.html',
