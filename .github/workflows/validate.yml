@@ -608,6 +608,20 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/gd2209-report-queue-integration.php
 
+      - name: Verify GD 2.209 report actions, auth and persisted cases
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/gd2209-case-actions-integration.php
+
+      - name: Verify GD 2.209 account sanctions and utility handlers
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/gd2209-sanctions-utilities-integration.php
+
       - name: Verify GD 2.209 song usage wire and grouping
         env:
           TEST_DB_HOST: 127.0.0.1

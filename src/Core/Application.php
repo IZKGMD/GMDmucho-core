@@ -22,6 +22,8 @@ use MuchoCore\Url\UrlController;
 use MuchoCore\Compatibility\DiscoveryController;
 use MuchoCore\Compatibility\Legacy10IdentityController;
 use MuchoCore\Compatibility\Legacy10IdentityService;
+use MuchoCore\Compatibility\Gd2209UtilityController;
+use MuchoCore\Compatibility\Gd2209UtilityService;
 use MuchoCore\CloudSave\CloudSaveService;
 use MuchoCore\Clan\ClanController;
 use MuchoCore\Clan\ClanRepository;
@@ -61,6 +63,12 @@ use MuchoCore\Moderation\ModerationService;
 use MuchoCore\Moderation\ReportQueueController;
 use MuchoCore\Moderation\ReportQueueRepository;
 use MuchoCore\Moderation\ReportQueueService;
+use MuchoCore\Moderation\Gd2209CaseController;
+use MuchoCore\Moderation\Gd2209CaseService;
+use MuchoCore\Moderation\Gd2209ContentActionController;
+use MuchoCore\Moderation\Gd2209ContentActionService;
+use MuchoCore\Moderation\Gd2209SanctionController;
+use MuchoCore\Moderation\Gd2209SanctionService;
 use MuchoCore\Music\SongController;
 use MuchoCore\Music\SongRepository;
 use MuchoCore\Music\SongService;
@@ -208,6 +216,23 @@ final readonly class Application
         $reportQueueController = new ReportQueueController(
             new ReportQueueService($auth, $modRepo,
                 new ReportQueueRepository($this->pdo))
+        );
+
+        $gd2209Cases = new Gd2209CaseController(
+            new Gd2209CaseService($this->pdo, $auth, $modRepo,
+                new ReportQueueRepository($this->pdo))
+        );
+
+        $gd2209ContentActions = new Gd2209ContentActionController(
+            new Gd2209ContentActionService($this->pdo, $auth, $modRepo)
+        );
+
+        $gd2209Sanctions = new Gd2209SanctionController(
+            new Gd2209SanctionService($this->pdo, $auth, $modRepo)
+        );
+
+        $gd2209Utilities = new Gd2209UtilityController(
+            new Gd2209UtilityService($this->pdo, $auth)
         );
 
         $userRepo = new UserRepository($this->pdo);
@@ -454,6 +479,38 @@ final readonly class Application
             [$modController,'report']);
         // GD 2.209 moderator abuse report queue. Native reply framing TBD.
         $route('/adminGetReportQueue', [$reportQueueController, 'queue']);
+        // GD 2.209 staged account-abuse service: authenticated and persisted;
+        // wire formats other than queue remain provisional until native captures.
+        $route('/reportGJContent', [$gd2209Cases, 'reportContent']);
+        $route('/adminGetUserHistory', [$gd2209Cases, 'userHistory']);
+        $route('/adminGetReportedContent', [$gd2209Cases, 'reportedContent']);
+        $route('/adminGetAbuseInfo', [$gd2209Cases, 'abuseInfo']);
+        $route('/adminGetAccountReview', [$gd2209Cases, 'accountReview']);
+        $route('/adminClearReportedContent', [$gd2209Cases, 'clearReportedContent']);
+        $route('/adminCloseCase', [$gd2209Cases, 'closeCase']);
+        $route('/deleteGJComments', [$gd2209ContentActions, 'deleteOwn']);
+        $route('/adminDeleteUserComments', [$gd2209ContentActions, 'deleteUser']);
+        $route('/adminThreadAction', [$gd2209ContentActions, 'threadAction']);
+
+        // 2.209 account restrictions: only roles from the database authorize
+        // actions. The enforcement is shared with legacy upload/send endpoints.
+        $route('/adminCommentBan', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'comment', true));
+        $route('/adminCommentUnban', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'comment', false));
+        $route('/adminUploadBan', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'upload', true));
+        $route('/adminUploadUnban', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'upload', false));
+        $route('/adminMessageBan', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'message', true));
+        $route('/adminMessageUnban', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'message', false));
+        $route('/adminFreezeAccount', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'freeze', true));
+        $route('/adminUnfreezeAccount', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'freeze', false));
+        $route('/adminTrendingBan', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'trending', true));
+        $route('/adminTrendingUnban', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'trending', false));
+        $route('/adminNameLock', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'name', true));
+        $route('/adminNameUnlock', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'name', false));
+        // Remaining native 2.209 URLs; payload parsers are provisional.
+        $route('/getGJAudioFilesize', [$gd2209Utilities, 'audioSize']);
+        $route('/getGJContentStatus', [$gd2209Utilities, 'contentStatus']);
+        $route('/openedRegister', [$gd2209Utilities, 'openedRegister']);
+        $route('/accounts/openedRegister', [$gd2209Utilities, 'openedRegister']);
         $route('/requestUserAccess',
             [$userController,'requestAccess']);
 

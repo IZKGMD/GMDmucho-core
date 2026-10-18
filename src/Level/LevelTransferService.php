@@ -73,6 +73,12 @@ final readonly class LevelTransferService
             throw new RuntimeException('Unauthorized.');
         }
 
+        if (\MuchoCore\Moderation\Gd2209Restrictions::active(
+            $this->pdo, $accountId, 'upload'
+        )) {
+            throw new RuntimeException('Account temporarily restricted from uploads.');
+        }
+
         $levelId = $this->intField(
             $data,
             'levelID',

@@ -206,6 +206,14 @@ final readonly class LevelRepository
 
             case 3:
                 $where[] = 'l.created_at >= (CURRENT_TIMESTAMP - INTERVAL 7 DAY)';
+                // Prevent trending bans from promoting affected creators.
+                if (\MuchoCore\Moderation\Gd2209Restrictions::schemaAvailable($this->pdo)) {
+                    $where[] = 'NOT EXISTS (
+                        SELECT 1 FROM mucho_gd2209_restrictions ban
+                        WHERE ban.account_id=l.account_id AND ban.kind="trending"
+                          AND (ban.expires_at IS NULL OR ban.expires_at>UTC_TIMESTAMP())
+                    )';
+                }
                 $order = 'l.likes DESC, l.level_id DESC';
                 break;
 
