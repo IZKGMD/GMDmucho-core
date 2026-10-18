@@ -34,7 +34,8 @@ final readonly class ThreadService
         }
         $stmt = $this->db->prepare(
             'SELECT t.id,t.title,t.description,t.emote,t.invite_owner_only,
-                    t.is_dm,t.owner_account_id,t.is_closed,t.updated_at
+                    t.is_dm,t.owner_account_id,t.is_closed,t.updated_at,
+                    m.last_cleared_message_id,m.last_read_message_id
              FROM mucho_threads t
              INNER JOIN mucho_thread_members m ON m.thread_id=t.id
              WHERE t.id=:thread AND m.account_id=:account
@@ -432,7 +433,8 @@ final readonly class ThreadService
         }
 
         $filter = '';
-        $args = ['thread'=>$threadId];
+        $args = ['thread'=>$threadId,
+            'cleared'=>(int)$thread['last_cleared_message_id']];
         if ($before > 0) {
             $filter = ' AND m.id < :cursor';
             $args['cursor'] = $before;
@@ -445,7 +447,7 @@ final readonly class ThreadService
                     a.username
              FROM mucho_thread_messages m
              INNER JOIN accounts a ON a.account_id=m.sender_account_id
-             WHERE m.thread_id=:thread' . $filter .
+             WHERE m.thread_id=:thread AND m.id>:cleared' . $filter .
             ' ORDER BY m.id DESC LIMIT 50'
         );
         $stmt->execute($args);
@@ -687,15 +689,17 @@ final readonly class ThreadService
         if (mb_strlen($term,'UTF-8') < 2 || mb_strlen($term,'UTF-8') > 120) {
             throw new RuntimeException('Invalid search query');
         }
+        $state = $this->threadForMember($accountId, $threadId);
         $needle = '%' . addcslashes($term, '%_\\') . '%';
         $condition = $beforeId > 0 ? ' AND m.id < :before' : '';
-        $args = ['thread'=>$threadId,'needle'=>$needle];
+        $args = ['thread'=>$threadId,'needle'=>$needle,
+            'cleared'=>(int)$state['last_cleared_message_id']];
         if ($beforeId > 0) {
             $args['before'] = $beforeId;
         }
         $count = $this->db->prepare(
             'SELECT COUNT(*) FROM mucho_thread_messages m
-             WHERE m.thread_id=:thread AND m.body LIKE :needle' . $condition
+             WHERE m.thread_id=:thread AND m.id>:cleared AND m.body LIKE :needle' . $condition
         );
         $count->execute($args);
         $total = (int)$count->fetchColumn();
@@ -705,7 +709,7 @@ final readonly class ThreadService
                     a.username
              FROM mucho_thread_messages m
              JOIN accounts a ON a.account_id=m.sender_account_id
-             WHERE m.thread_id=:thread AND m.body LIKE :needle' . $condition .
+             WHERE m.thread_id=:thread AND m.id>:cleared AND m.body LIKE :needle' . $condition .
             ' ORDER BY m.id DESC LIMIT 20'
         );
         $rows->execute($args);
