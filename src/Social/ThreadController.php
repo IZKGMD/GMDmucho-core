@@ -19,6 +19,7 @@ final readonly class ThreadController
     public function __construct(
         private ThreadService $service,
         private GdRelationshipEncoder $userEncoder,
+        private ?Gd2209NativeThreadOperations $creator = null,
     ) {}
 
     private static function b64(string $value): string
@@ -157,6 +158,39 @@ final readonly class ThreadController
                 return Response::text('-1');
             }
             $threadId = $this->threadId($r);
+            if ($threadId === 0) {
+                if ($this->creator === null || !in_array($r->postInt('isDM'), [0,1], true)) {
+                    return Response::text('-1');
+                }
+                $isDm = $r->postInt('isDM') === 1;
+                $subject = $isDm ? '' : self::decoded($r->postString('subject'));
+                $description = $isDm ? '' : (
+                    $r->postString('description') === '' ? '' :
+                    self::decoded($r->postString('description'))
+                );
+                $emote = $isDm ? '' : (
+                    $r->postString('emote') === '' ? '' :
+                    self::decoded($r->postString('emote'))
+                );
+                $targets = $isDm ? '' : (
+                    $r->postString('targets') === '' ? '' :
+                    self::decoded($r->postString('targets'))
+                );
+                if ((!$isDm && ($subject === null || $description === null
+                    || $emote === null || $targets === null))) {
+                    return Response::text('-1');
+                }
+                $created = $this->creator->start(
+                    $r->postInt('accountID'), $r->gdCredential(), $body,
+                    $isDm, $r->postInt('toAccountID'),
+                    (string)$subject, (string)$description, (string)$emote,
+                    Gd2209NativeThreadOperations::targetIds((string)$targets)
+                );
+                return Response::text(
+                    $created['thread_id'] . ':' . $created['message_id'] .
+                    ($isDm ? ':0' : ':' . $created['invites'] . ':0')
+                );
+            }
             $messageId = $this->service->sendWithId(
                 $r->postInt('accountID'), $r->gdCredential(), $threadId, $body
             );
