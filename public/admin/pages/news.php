@@ -67,22 +67,22 @@ $isEditing=$editId>0;
 <div class="mucho-news-layout">
     <section class="card">
         <h2 style="margin-top:0"><?= $isEditing ? 'Edit news #'.$editId : 'Write a news post' ?></h2>
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" id="newsEditorForm">
             <input type="hidden" name="csrf" value="<?=h(csrf())?>">
             <input type="hidden" name="action" value="news-save">
             <input type="hidden" name="return" value="news">
             <input type="hidden" name="id" value="<?= (int)($editPost['id'] ?? 0) ?>">
             <label class="mucho-news-field">
                 <b>Headline</b>
-                <input name="title" maxlength="140" required placeholder="New MuchoGDPS update" value="<?=h($editPost['title'] ?? '')?>">
+                <input name="title" maxlength="140" required aria-describedby="newsPreviewHint" placeholder="New MuchoGDPS update" value="<?=h($editPost['title'] ?? '')?>">
             </label>
             <label class="mucho-news-field">
                 <b>News text (optional with an image or video, up to 5000 characters)</b>
-                <textarea name="body" maxlength="5000" placeholder="What's new? Tell players here."><?=h($editPost['body'] ?? '')?></textarea>
+                <textarea name="body" maxlength="5000" data-counter-target="newsBodyCounter" aria-describedby="newsBodyCounter" placeholder="What's new? Tell players here."><?=h($editPost['body'] ?? '')?></textarea><small id="newsBodyCounter" role="status"><?=mb_strlen((string)($editPost['body'] ?? ''),'UTF-8')?> / 5000 characters</small>
             </label>
             <label class="mucho-news-field">
                 <b>Add images</b>
-                <input type="file" name="images[]" accept="image/jpeg,image/png" multiple>
+                <input type="file" name="images[]" accept="image/jpeg,image/png" multiple data-max-file-mib="5" data-max-files="6">
                 <small>Up to 6 images per post, 5 MiB each. Images are resized to fit 1600 × 1600 and stored as JPEG.</small>
             </label>
             <label class="mucho-news-field">
@@ -92,7 +92,7 @@ $isEditing=$editId>0;
             </label>
             <label class="mucho-news-field">
                 <b>Video preview image (optional)</b>
-                <input type="file" name="video_thumbnail" accept="image/jpeg,image/png">
+                <input type="file" name="video_thumbnail" accept="image/jpeg,image/png" data-max-file-mib="5">
                 <small>Leave empty to download the YouTube preview automatically. Upload your own if the preview is unavailable.</small>
             </label>
             <?php if ($editMedia): ?>
@@ -113,6 +113,14 @@ $isEditing=$editId>0;
                 <label><input type="checkbox" name="published" value="1" <?= (int)($editPost['is_published'] ?? 0) === 1 ? 'checked' : '' ?>> Publish</label>
                 <label><input type="checkbox" name="pinned" value="1" <?= (int)($editPost['is_pinned'] ?? 0) === 1 ? 'checked' : '' ?>> Pin to top</label>
             </div>
+            <p class="muted" id="newsPreviewHint">Check the preview before publishing. Images and video previews are processed after upload.</p>
+            <details class="admin-news-preview" id="newsPreviewPanel">
+                <summary>Preview headline and text</summary>
+                <div class="admin-news-preview-content" aria-live="polite">
+                    <h3 id="newsPreviewTitle"><?=h((string)($editPost['title'] ?? 'Your headline'))?></h3>
+                    <p id="newsPreviewBody"><?=h((string)($editPost['body'] ?? 'Your message will appear here.'))?></p>
+                </div>
+            </details>
             <button type="submit"><?= $isEditing ? 'Save changes' : 'Create post' ?></button>
             <?php if ($isEditing): ?><a class="btn gray" href="/admin/?page=news" style="margin-left:8px">Cancel editing</a><?php endif; ?>
         </form>
@@ -153,7 +161,7 @@ $isEditing=$editId>0;
                             <?= (int)$post['is_published'] === 1 ? 'Unpublish' : 'Publish' ?>
                         </button>
                     </form>
-                    <form method="post" onsubmit="return confirm('Delete this news post permanently?')">
+                    <form method="post" data-confirm="Permanently delete this news post and its uploaded media?">
                         <input type="hidden" name="csrf" value="<?=h(csrf())?>">
                         <input type="hidden" name="action" value="news-delete">
                         <input type="hidden" name="return" value="news">
