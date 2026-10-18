@@ -100,6 +100,14 @@ final class CvoltonDatabaseImporter
                     HAVING COUNT(*) > 1
                  ) AS ambiguous_profiles"
             )->fetchColumn(),
+            // Guest/orphan player rows are not account-backed profiles and
+            // cannot be represented by an account_id in MuchoCore.
+            'guest_or_orphan_profiles' => (int)$source->query(
+                "SELECT COUNT(*) FROM users u
+                 LEFT JOIN accounts a
+                   ON u.extID = CAST(a.accountID AS CHAR)
+                 WHERE a.accountID IS NULL"
+            )->fetchColumn(),
         ];
     }
 
