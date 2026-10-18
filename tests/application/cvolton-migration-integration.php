@@ -397,6 +397,7 @@ SQL);
 
 
     $validPassword = password_hash('migration-test-password', PASSWORD_DEFAULT);
+    $bcryptGjp2 = password_hash(sha1('migration-test-password-2' . 'GJP2'), PASSWORD_DEFAULT);
     $stmt = $source->prepare(
         'INSERT INTO accounts (accountID,userName,password,gjp2,email,isActive)
          VALUES (:id,:name,:password,:gjp2,:email,1)'
@@ -412,7 +413,7 @@ SQL);
         'id' => 2,
         'name' => 'NeedsReset',
         'password' => 'legacy-unsupported',
-        'gjp2' => null,
+        'gjp2' => $bcryptGjp2,
         'email' => 'reset@example.test',
     ]);
 
@@ -644,6 +645,12 @@ SQL);
     $preflight = (new CvoltonDatabaseImporter($target))->preflight($source);
     must($preflight['accounts'] === 2, 'Unexpected account preflight count.');
     must($preflight['levels'] === 1, 'Unexpected level preflight count.');
+    must(($preflight['levels_missing_payload'] ?? -1) === 0,
+        'Complete fixtures must not report missing level data.');
+    must(($preflight['duplicate_account_emails'] ?? -1) === 0,
+        'Complete fixtures must not report conflicting source emails.');
+    must(($preflight['scores_missing_levels'] ?? -1) === 0,
+        'Complete fixtures must not report missing level-score references.');
     must(($preflight['unmapped_level_owners'] ?? -1) === 0,
         'A normal source must not report orphan levels.');
     must($preflight['levelscores'] === 1, 'Unexpected regular score preflight count.');
@@ -657,6 +664,15 @@ SQL);
         scalar($target, 'SELECT COUNT(*) FROM mucho_cvolton_account_map WHERE needs_password_reset=1') === 1,
         'Expected one account requiring password recovery.'
     );
+
+    // FHGDPS stores GJP2 as bcrypt, while old Cvolton exports store SHA1.
+    // Both representations must stay verifiable after import.
+    $savedGjp2 = (string)$target->query(
+        "SELECT gjp2_hash FROM accounts WHERE username='NeedsReset'"
+    )->fetchColumn();
+    must($savedGjp2 === $bcryptGjp2
+        && password_verify(sha1('migration-test-password-2' . 'GJP2'), $savedGjp2),
+        'Migrated FHGDPS bcrypt GJP2 must retain original verification.');
 
     $levelId = scalar(
         $target,
@@ -672,6 +688,36 @@ SQL);
         password_verify(sha1('migration-test-password' . 'GJP2'), $gJp2Hash),
         'Expected GJP2 credential to be rehashed.'
     );
+
+    // GDPSFH can export level metadata without any levelString payload.
+    // Treating these rows as migrated would leave blank/unplayable levels.
+    $source->exec("UPDATE levels SET levelString='' WHERE levelID=101");
+    $noData = (new CvoltonDatabaseImporter($target))->preflight($source);
+    must(($noData['levels_missing_payload'] ?? 0) === 1,
+        'Dry run must detect the missing level data.');
+    $emptyFailed = false;
+    try {
+        (new CvoltonDatabaseImporter($target))->apply($source);
+    } catch (RuntimeException $e) {
+        $emptyFailed = str_contains($e->getMessage(), 'no levelString payload');
+    }
+    must($emptyFailed, 'Importer must not accept a broken/missing level payload.');
+    $source->exec("UPDATE levels SET levelString='1,1,1' WHERE levelID=101");
+
+    // Duplicate source emails are legal in Cvolton but violate the target
+    // unique-email constraint. Fail clearly before modifying any target row.
+    $source->exec("UPDATE accounts SET email='migrator@example.test' WHERE accountID=2");
+    $clashes = (new CvoltonDatabaseImporter($target))->preflight($source);
+    must(($clashes['duplicate_account_emails'] ?? 0) === 1,
+        'Dry run must detect duplicated source emails.');
+    $duplicateFailed = false;
+    try {
+        (new CvoltonDatabaseImporter($target))->apply($source);
+    } catch (RuntimeException $e) {
+        $duplicateFailed = str_contains($e->getMessage(), 'reuse an email address');
+    }
+    must($duplicateFailed, 'Importer must refuse an ambiguous duplicated email.');
+    $source->exec("UPDATE accounts SET email='reset@example.test' WHERE accountID=2");
 
     // A source level referencing a missing account used to be silently skipped.
     // Applying such an export must now be rejected before the target is changed.
