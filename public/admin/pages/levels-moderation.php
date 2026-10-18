@@ -8,7 +8,7 @@ if ($page==='moderation') $filter='pending';
 $state['filter']=$filter;
 $where=[$filter==='deleted'?'l.is_deleted=1':'l.is_deleted=0'];
 $args=[];
-if ($filter==='pending') $where[]='l.requested_stars>0';
+if ($filter==='pending') $where[]='l.requested_stars>0 AND l.stars=0';
 if ($filter==='rated') $where[]='l.stars>0';
 if ($q!=='') {
     $where[]='(l.name LIKE :name OR l.level_id=:id OR a.username LIKE :creator)';
@@ -35,7 +35,8 @@ $rate=canPermission('levels.rate');
 <option value="<?=h($value)?>" <?=$filter===$value?'selected':''?>><?=h($label)?></option>
 <?php endforeach ?></select><?php endif ?>
 <button>Search</button><a class="btn gray" href="/admin/?page=<?=h($page)?>">Reset</a></form>
-<?php if(!$rows): ?><div class="card empty-state">No levels found. Change the search or filters.</div><?php endif ?>
+<?php adminListSummary($state,count($rows),$hasMore,'levels'); ?>
+<?php if(!$rows): ?><div class="card empty-state" role="status"><h2>No matching levels</h2><p>Try another level ID, title or creator, or reset filters.</p><a class="btn gray" href="/admin/?page=<?=h($page)?>">Clear filters</a></div><?php endif ?>
 <div class="admin-records">
 <?php foreach($rows as $r): $id=(int)$r['level_id']; $profile=adminDifficultyProfile($r); ?>
 <details class="card admin-record" id="level-<?=$id?>">
