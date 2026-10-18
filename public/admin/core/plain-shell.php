@@ -2,6 +2,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+<link rel="icon" href="/assets/muchocore-favicon-v4.png" type="image/png" sizes="64x64">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?=h($pages[$page])?> — <?=h($branding['server_name'])?> Plain Admin</title>
