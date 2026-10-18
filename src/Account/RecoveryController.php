@@ -283,7 +283,7 @@ final class RecoveryController
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<link rel="icon" href="/assets/muchocore-icon.png?v=3" type="image/png">
+<link rel="icon" href="/assets/muchocore-favicon-v4.png" type="image/png" sizes="64x64">
 <title>MuchoCore — восстановление аккаунта</title>
 <link rel="stylesheet" href="/recovery/recovery.css">
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
