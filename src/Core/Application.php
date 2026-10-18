@@ -496,6 +496,10 @@ final readonly class Application
         $route('/adminMessageUnban', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'message', false));
         $route('/adminFreezeAccount', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'freeze', true));
         $route('/adminUnfreezeAccount', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'freeze', false));
+        $route('/adminTrendingBan', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'trending', true));
+        $route('/adminTrendingUnban', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'trending', false));
+        $route('/adminNameLock', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'name', true));
+        $route('/adminNameUnlock', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'name', false));
         $route('/requestUserAccess',
             [$userController,'requestAccess']);
 
