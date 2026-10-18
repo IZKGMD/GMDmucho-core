@@ -21,7 +21,8 @@ if (!is_array($manifest)) {
     if (isset($_GET['download'])) {
         exit('Client downloads are not ready yet.');
     }
-    echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Client Downloads — MuchoGDPS</title><link rel="stylesheet" href="/assets/product-ui.css?v=2"><script src="/muchocore-theme.js?v=4" defer></script></head><body class="mc-workspace"><main class="mc-empty-download"><span>MUCHO / DOWNLOADS</span><h1>The next adventure is getting ready.</h1><p>The server owner has not published a client pack yet. Explore the community while the downloads are being prepared.</p><a href="/dashboard">Open player portal →</a><a href="/dashboard/clans.php">Explore clans →</a></main></body></html>';
+    echo '<!doctype html><html lang="en"><head>
+<link rel="icon" href="/assets/muchocore-favicon-v4.png" type="image/png" sizes="64x64"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Client Downloads — MuchoGDPS</title><link rel="stylesheet" href="/assets/product-ui.css?v=2"><script src="/muchocore-theme.js?v=4" defer></script></head><body class="mc-workspace"><main class="mc-empty-download"><span>MUCHO / DOWNLOADS</span><h1>The next adventure is getting ready.</h1><p>The server owner has not published a client pack yet. Explore the community while the downloads are being prepared.</p><a href="/dashboard">Open player portal →</a><a href="/dashboard/clans.php">Explore clans →</a></main></body></html>';
     exit;
 }
 
@@ -139,6 +140,7 @@ function size_label(mixed $value): string
 <!doctype html>
 <html lang="en">
 <head>
+<link rel="icon" href="/assets/muchocore-favicon-v4.png" type="image/png" sizes="64x64">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?= e($serverName) ?> — Client Downloads</title>
