@@ -175,9 +175,26 @@ if($kind==='health'){
         ? 'Health endpoint returned HTTP '.$endpoints[0]['status']
         : 'Internal HTTP probe unavailable';
 
+    // Optional database-backed diagnostics. A missing table or inaccessible
+    // query is "not measured", never an invented zero/healthy reading.
+    $checks=[];
+    foreach ([
+        ['Failed jobs', "SELECT COUNT(*) FROM mucho_jobs WHERE status='failed'", 'Investigate worker failures'],
+        ['Unresolved alerts', 'SELECT COUNT(*) FROM mucho_system_alerts WHERE resolved=0', 'Review Security Center'],
+    ] as [$name,$sql,$hint]) {
+        $count=null;
+        try {
+            $count=(int)$db->query($sql)->fetchColumn();
+        } catch (Throwable) {
+            // Some installations do not have optional monitoring tables.
+        }
+        $checks[]=['name'=>$name,'count'=>$count,'hint'=>$hint];
+    }
+
     output([
         'services'=>$services,
         'endpoints'=>$endpoints,
+        'checks'=>$checks,
         'time'=>date('Y-m-d H:i:s'),
         'explanation'=>'GD endpoints are probed with empty requests; 400/401/403 can be normal. A response is not a gameplay test.',
     ]);
