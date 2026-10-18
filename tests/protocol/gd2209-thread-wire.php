@@ -52,6 +52,23 @@ $assert($inviteFields[0] === '23' && $inviteFields[1] === '57'
     && $inviteFields[2] === base64_encode('Join me')
     && $inviteFields[3] === '11', 'identity fields for invited player');
 
+$inbox = Gd2209ThreadWire::inboxInvites([[
+    'thread_id'=>57,'inviter_account_id'=>81,'inviter_username'=>'Alice',
+    'title'=>'A group','description'=>'Join us','emote'=>'globe',
+    'is_dm'=>0,'created_at'=>'2026-10-18 12:00:00 UTC',
+    'inviter_cube'=>4,'inviter_color1'=>2,
+    'inviter_color2'=>3,'inviter_special'=>2
+]]);
+$inboxFields = explode(':',$inbox);
+$assert(count($inboxFields) === 19,
+    'native inbox invite has nineteen positional fields');
+$assert($inboxFields[0] === '57' && $inboxFields[1] === '81'
+    && $inboxFields[2] === base64_encode('Alice')
+    && $inboxFields[3] === base64_encode('A group'),
+    'inbox invite has actual thread and inviter identities');
+$assert(Gd2209ThreadWire::inboxInvites([]) === 'none',
+    'native empty invite inbox returns literal none');
+
 $reference['messages'] = [];
 $assert(str_starts_with(Gd2209ThreadWire::snapshot(
     $reference, new GdRelationshipEncoder()
