@@ -96,52 +96,37 @@ final readonly class Gd2209UtilityService
             . ':3:' . $upload . ':4:' . $message;
     }
 
-    public function openedRegister(string $session, string $udid): bool
+    /**
+     * GD Docs 2.209 registration-open operation:
+     * POST requires the account secret only; reply is 32 hex characters.
+     * Token hashes are retained for future registration handshake validation.
+     * A registration response must never blindly trust a supplied rsession.
+     */
+    public function openedRegister(string $secret): string
     {
-        if (strlen($session) < 16 || strlen($session) > 128 ||
-            preg_match('/^[A-Za-z0-9_-]+$/D', $session) !== 1 ||
-            $udid === '' || strlen($udid) > 128 ||
-            preg_match('/^[A-Za-z0-9._:-]+$/D', $udid) !== 1) {
-            return false;
+        if (!hash_equals('Wmfv3899gc9', $secret)) {
+            throw new RuntimeException('Invalid account secret');
         }
-        // No plaintext device or session ID is retained.
-        $token = hash('sha256', $session, true);
-        $actor = hash('sha256', $udid, true);
-        $existing = $this->db->prepare(
-            'SELECT actor_hash FROM mucho_gd2209_registration_opens
-             WHERE token_hash=:token LIMIT 1'
+        $token = bin2hex(random_bytes(16));
+        $tokenHash = hash('sha256', $token, true);
+
+        // No user/device ID accompanies the native request. Do not invent one,
+        // or derive a reversible hash of the caller's IP address.
+        $anonymous = random_bytes(32);
+        $cleanup = $this->db->prepare(
+            'DELETE FROM mucho_gd2209_registration_opens
+             WHERE expires_at < UTC_TIMESTAMP() LIMIT 1000'
         );
-        $existing->execute(['token'=>$token]);
-        $bound = $existing->fetchColumn();
-        if ($bound !== false && !hash_equals((string)$bound, $actor)) {
-            return false;
-        }
-        // Prevent one device from opening unbounded unique sessions.
-        $q = $this->db->prepare(
-            'SELECT COUNT(*) FROM mucho_gd2209_registration_opens
-             WHERE actor_hash=:actor AND last_seen_at > (UTC_TIMESTAMP() - INTERVAL 1 HOUR)'
-        );
-        $q->execute(['actor'=>$actor]);
-        if ((int)$q->fetchColumn() >= 10) {
-            $exists = $this->db->prepare(
-                'SELECT 1 FROM mucho_gd2209_registration_opens
-                 WHERE token_hash=:token AND actor_hash=:actor LIMIT 1'
-            );
-            $exists->execute(['token'=>$token, 'actor'=>$actor]);
-            if ($exists->fetchColumn() === false) {
-                return false;
-            }
-        }
+        $cleanup->execute();
+
         $q = $this->db->prepare(
             'INSERT INTO mucho_gd2209_registration_opens
              (token_hash,actor_hash,last_seen_at,expires_at)
              VALUES (:token,:actor,UTC_TIMESTAMP(),
-                     DATE_ADD(UTC_TIMESTAMP(), INTERVAL 1 HOUR))
-             ON DUPLICATE KEY UPDATE
-                 last_seen_at=UTC_TIMESTAMP(),
-                 expires_at=DATE_ADD(UTC_TIMESTAMP(), INTERVAL 1 HOUR)'
+                     DATE_ADD(UTC_TIMESTAMP(), INTERVAL 1 HOUR))'
         );
-        $q->execute(['token'=>$token,'actor'=>$actor]);
-        return true;
+        $q->execute(['token'=>$tokenHash,'actor'=>$anonymous]);
+
+        return $token;
     }
 }
