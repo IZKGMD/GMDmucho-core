@@ -62,6 +62,12 @@ final class CvoltonDatabaseImporter
             'levels' => $this->count($source, 'levels'),
             // Non-mappable levels are a data-loss risk: preview them, never silently drop them.
             'unmapped_level_owners' => $this->countUnmappedLevelOwners($source),
+            'levels_missing_payload' => $this->countMissingLevelPayloads($source),
+            'duplicate_account_emails' => $this->countDuplicateAccountEmails($source),
+            'unregistered_profiles' => $this->countUnregisteredProfiles($source),
+            'scores_missing_levels' => $this->sourceTableExists($source, 'levelscores')
+                ? $this->countScoresMissingLevels($source)
+                : 0,
             'levelscores' => $this->sourceTableExists($source, 'levelscores')
                 ? $this->count($source, 'levelscores')
                 : 0,
@@ -88,6 +94,31 @@ final class CvoltonDatabaseImporter
                 'registered account. Importing now would silently lose levels. ' .
                 'Review their levels.extID and accounts.accountID in the read-only ' .
                 'preview, or use an explicit migration policy for guest levels.'
+            );
+        }
+
+        // FHGDPS/MegaSa1nt exports can list 1000s of objects yet store
+        // levelString in external files, with a blank SQL value. Importing
+        // metadata alone would produce broken/unplayable GDPS levels.
+        $emptyLevels = $this->countMissingLevelPayloads($source);
+        if ($emptyLevels > 0) {
+            throw new RuntimeException(
+                'Migration aborted: ' . $emptyLevels . ' source level(s) have no ' .
+                'levelString payload in the SQL database. GDPSFH may store ' .
+                'level data separately; obtain the original level storage ' .
+                'before importing. Metadata-only levels are not playable.'
+            );
+        }
+
+        // The target accounts.email column is unique; Cvolton permits
+        // duplicate emails. No silent email substitution/reassignment.
+        $emailCollisions = $this->countDuplicateAccountEmails($source);
+        if ($emailCollisions > 0) {
+            throw new RuntimeException(
+                'Migration aborted: ' . $emailCollisions . ' source account(s) ' .
+                'reuse an email address. MuchoCore requires unique emails. ' .
+                'Resolve collisions with the owner or an explicit audited ' .
+                'email-claim policy before importing.'
             );
         }
 
@@ -685,6 +716,14 @@ final class CvoltonDatabaseImporter
     {
         $gjp2 = trim((string)($row['gjp2'] ?? ''));
 
+        // FHGDPS/MegaSa1nt can already store GJP2 as a PHP bcrypt hash.
+        // Rehashing that hash would change the credential; discarding it
+        // would break GD 2.x authentication. Preserve recognized hashes.
+        $info = password_get_info($gjp2);
+        if ($gjp2 !== '' && (int)($info['algo'] ?? 0) !== 0) {
+            return $gjp2;
+        }
+
         return preg_match('/^[a-f0-9]{40}$/i', $gjp2) === 1
             ? password_hash($gjp2, PASSWORD_DEFAULT)
             : null;
@@ -922,6 +961,46 @@ final class CvoltonDatabaseImporter
         );
 
         return (int)$stmt->fetchColumn();
+    }
+
+    private function countMissingLevelPayloads(PDO $source): int
+    {
+        return (int)$source->query(
+            "SELECT COUNT(*) FROM levels
+             WHERE levelString IS NULL OR levelString = ''"
+        )->fetchColumn();
+    }
+
+    private function countDuplicateAccountEmails(PDO $source): int
+    {
+        return (int)$source->query(
+            "SELECT COALESCE(SUM(duplicate_count - 1), 0)
+             FROM (
+                 SELECT COUNT(*) AS duplicate_count
+                 FROM accounts
+                 WHERE TRIM(email) <> ''
+                 GROUP BY LOWER(TRIM(email))
+                 HAVING COUNT(*) > 1
+             ) email_collisions"
+        )->fetchColumn();
+    }
+
+    private function countUnregisteredProfiles(PDO $source): int
+    {
+        return (int)$source->query(
+            'SELECT COUNT(*) FROM users u
+             LEFT JOIN accounts a ON u.extID = CAST(a.accountID AS CHAR)
+             WHERE a.accountID IS NULL'
+        )->fetchColumn();
+    }
+
+    private function countScoresMissingLevels(PDO $source): int
+    {
+        return (int)$source->query(
+            'SELECT COUNT(*) FROM levelscores s
+             LEFT JOIN levels l ON s.levelID = l.levelID
+             WHERE l.levelID IS NULL'
+        )->fetchColumn();
     }
 
     private function count(PDO $db, string $table): int
