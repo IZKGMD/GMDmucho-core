@@ -6,7 +6,7 @@ The 25 formerly missing names now route to real PHP services on this *feature br
 
 ## Implemented backend effects
 
-- reportGJContent: credential-backed level-only reports; unknown client type/reason combinations fail closed.
+- reportGJContent: credential-backed level-only reports using the documented native `type=1` (type 0 denotes a user). Valid comma-separated reasons are stored in the existing report record; other content types currently reject.
 - adminGetUserHistory, adminGetReportedContent, adminGetAbuseInfo, adminGetAccountReview: moderator-only reads of persisted account data, real reports and action history.
 - adminClearReportedContent, adminCloseCase: transactionally close scoped pending reports and audit the mutation. Incorrect IDs, permissions or unknown cases fail.
 - adminDeleteUserComments, deleteGJComments: permission-scoped, bounded, transactional deletion of real level comments and associated likes.
@@ -17,7 +17,7 @@ The 25 formerly missing names now route to real PHP services on this *feature br
 - adminNameLock/Unlock: persistent restriction enforced on legacy username edits; other account editing surfaces require audit.
 - getGJAudioFilesize: compute sizes only from verified song metadata and locally persisted editor audio; unknown records fail rather than inventing SFX sizes.
 - getGJContentStatus: credential-backed status of persisted restrictions.
-- openedRegister: hashed, rate-bounded, non-authorizing registration opening diagnostic; NOT equivalent to a verified native registration session handshake.
+- openedRegister: documented account-secret-only POST generates a fresh 32-character hexadecimal token with only its hash stored; this is not yet wired into the subsequent registration token-consumption handshake.
 
 Existing 27 routes include social following, notifications, threads, editor audio, telemetry, song usage, user search and moderation queue. Many existing implementations also have provisional wire formats.
 
@@ -33,7 +33,7 @@ Existing 27 routes include social following, notifications, threads, editor audi
 
 ## Not yet verified
 
-The real Geometry Dash 2.209 binary has NOT confirmed many response formats, parameter aliases, enum values or empty/error semantics. Only the report queue response header was directly recovered from the native parser. Other moderator read envelopes are provisional; file-size response framing, content status and openedRegister receipt framing are also provisional. The report type 0 mapping is level-only and must be checked against actual native requests.
+The real Geometry Dash 2.209 binary has NOT confirmed many response formats, parameter aliases, enum values or empty/error semantics. Only the report queue response header was directly recovered from the native parser. Other moderator read envelopes are provisional; file-size response framing, content status and openedRegister receipt framing are also provisional. Native `reportGJContent` type 1 is level; type 0 is user. Other report categories, anonymous reporting and the later registration token-consumption step require additional work.
 
 **Do not claim 100% compatibility, do not deploy blindly and do not call passing route inventory a native-client release gate.**
 
@@ -49,3 +49,9 @@ The real Geometry Dash 2.209 binary has NOT confirmed many response formats, par
 References: docs/GD_2209_NATIVE_EXE_FINDINGS.md, docs/GD_2209_COVERAGE.md and docs/GD_2209_VERIFICATION_GATES.md.
 
 **Publication order:** Keep GD-2.209-Decompiled unchanged until the backend branch and native protocol findings pass the appropriate gates.
+
+## Newly grounded documentation (October 18)
+
+- GD Docs: https://boomlings.dev/endpoints/accounts/openedRegister — requires account `secret` and returns a 32-character hexadecimal session token; the previous diagnostic-only `1` response was incompatible and has been corrected in this branch.
+- GD Docs: https://boomlings.dev/endpoints/misc/reportGJContent — `type=0` is user, `type=1` is level, `reasons` can be comma-separated. The mistaken level type 0 mapping was corrected; anonymous reports and other content families still need safe implementations.
+- GD Docs: https://boomlings.dev/endpoints/threads/getGJThreadMessages — native success framing has seven `#`-delimited segments; the current MuchoCore thread controller's simple message list is **not yet native-compatible**. Do not mark this endpoint verified before fixing the serializer and testing real client acceptance.
