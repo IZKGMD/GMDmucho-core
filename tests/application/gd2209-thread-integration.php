@@ -188,6 +188,28 @@ try {
     $check($http->send($req(2,'pass-2','sendGJThreadMessage',[
         'body'=>'**not-valid**'
     ]))->body === '-1', 'malformed Base64 content rejected');
+
+    $aroundWire = $http->getMessages($req(1,'pass-1','getGJThreadMessages',[
+        'aroundID'=>(string)$sentId
+    ]))->body;
+    $check(str_contains(explode('#',$aroundWire)[0],base64_encode('Client ping')),
+        'native aroundID window includes selected persisted message');
+    $olderWire = $http->getMessages($req(1,'pass-1','getGJThreadMessages',[
+        'beforeID'=>(string)$sentId
+    ]))->body;
+    $check(str_contains(explode('#',$olderWire)[0],base64_encode('Hello there!')) &&
+        !str_contains(explode('#',$olderWire)[0],base64_encode('Client ping')),
+        'beforeID excludes newer message but includes older one');
+    $newerWire = $http->getMessages($req(1,'pass-1','getGJThreadMessages',[
+        'afterID'=>(string)($sentId-1)
+    ]))->body;
+    $check(str_contains(explode('#',$newerWire)[0],base64_encode('Client ping')),
+        'afterID includes only the requested newer messages');
+    $invalidCursor = $http->getMessages($req(1,'pass-1','getGJThreadMessages',[
+        'aroundID'=>(string)$sentId, 'beforeID'=>(string)$sentId
+    ]))->body;
+    $check($invalidCursor === '-1', 'ambiguous multiple cursors refused');
+
     $searchWire = $http->search($req(1,'pass-1','searchGJThreadMessages',[
         'query'=>base64_encode('Client')
     ]))->body;
