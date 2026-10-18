@@ -76,11 +76,15 @@
     desktop.addEventListener('change',()=>{closeMobile();syncCollapse();});
     syncNavigation();
     // Build commands from the server-rendered, RBAC-filtered navigation only.
-    const entries=[];let group='';
+    const entries=[];let fallbackGroup='';
     sidebar?.querySelectorAll('.nav-title,a').forEach(node=>{
-        if(node.classList.contains('nav-title')){group=node.textContent.trim();return;}
+        if(node.classList.contains('nav-title')){fallbackGroup=node.textContent.trim();return;}
         const href=adminRoute(node.getAttribute('href'),location.origin);
-        if(href)entries.push({node,href,group});
+        if(!href)return;
+        const category=node.closest('.admin-nav-group');
+        const title=category?.querySelector(':scope > summary')?.childNodes[0]?.textContent?.trim();
+        const group=title || fallbackGroup || label('Основное','Main');
+        entries.push({node,href,group});
     });
     const dialog=document.createElement('dialog');dialog.className='mc-dialog';dialog.setAttribute('aria-labelledby','commandTitle');
     const head=document.createElement('div');head.className='mc-dialog-head';
@@ -118,7 +122,8 @@
     document.addEventListener('keydown',event=>{
         if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();if(!dialog.open)openCommands();return;}
         if(event.key==='Escape'&&body.classList.contains('mobile-menu-open')){closeMobile();mobile?.focus();}
-        if(event.key==='/'&&!dialog.open&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)&&!document.activeElement?.isContentEditable){event.preventDefault();document.getElementById('globalSearchInput')?.focus();}
+        const globalSearch=document.getElementById('globalSearchInput');
+        if(event.key==='/'&&!dialog.open&&globalSearch&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)&&!document.activeElement?.isContentEditable){event.preventDefault();globalSearch.focus();}
     });
     document.querySelectorAll('.table').forEach((wrapper,index)=>{
         const table=wrapper.querySelector('table');
