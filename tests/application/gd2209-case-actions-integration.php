@@ -94,8 +94,14 @@ try {
     };
 
     $assert($controller->reportContent($r(1,'pass1',[
+        'type'=>'1','special'=>'0','targetID'=>'50','reasons'=>'2,6'
+    ]))->body === '1', 'authenticated native type=1 level report must be persisted');
+    $assert($controller->reportContent($r(1,'pass1',[
         'type'=>'0','special'=>'0','targetID'=>'50','reasons'=>'2'
-    ]))->body === '1', 'authenticated level report must be persisted');
+    ]))->body === '-1', 'native type=0 means user, not level, must be denied');
+    $assert($controller->reportContent($r(1,'pass1',[
+        'type'=>'1','special'=>'0','targetID'=>'50','reasons'=>'4'
+    ]))->body === '-1', 'cheating reason is user-only, not valid for a level');
     $assert($controller->reportContent($r(1,'pass1',[
         'type'=>'88','special'=>'0','targetID'=>'50','reasons'=>'2'
     ]))->body === '-1', 'unknown native content type denied');
