@@ -94,6 +94,26 @@ final readonly class Gd2209NativeThreadOperations
 
         $this->db->beginTransaction();
         try {
+            // Serialize a player's concurrent new-chat requests to enforce
+            // the same per-minute limit even across different new threads.
+            $lock = $this->db->prepare(
+                'SELECT account_id FROM accounts
+                 WHERE account_id=:actor AND is_active=1 AND is_banned=0
+                 FOR UPDATE'
+            );
+            $lock->execute(['actor'=>$actor]);
+            if ($lock->fetchColumn() === false) {
+                throw new RuntimeException('Inactive thread sender');
+            }
+            $fresh = $this->db->prepare(
+                'SELECT COUNT(*) FROM mucho_thread_messages
+                 WHERE sender_account_id=:actor
+                   AND created_at>UTC_TIMESTAMP()-INTERVAL 60 SECOND'
+            );
+            $fresh->execute(['actor'=>$actor]);
+            if ((int)$fresh->fetchColumn() >= 20) {
+                throw new RuntimeException('Message sending rate limited');
+            }
             if (!$isDm) {
                 foreach ($targets as $target) {
                     $check = $this->db->prepare(
@@ -136,6 +156,15 @@ final readonly class Gd2209NativeThreadOperations
             $thread = (int)$this->db->lastInsertId();
             if ($thread <= 0) {
                 throw new RuntimeException('Failed creating native thread');
+            }
+            $state = $this->db->prepare(
+                'SELECT is_closed,is_dm FROM mucho_threads WHERE id=:thread FOR UPDATE'
+            );
+            $state->execute(['thread'=>$thread]);
+            $row = $state->fetch(PDO::FETCH_ASSOC);
+            if (!$row || (int)$row['is_closed'] !== 0 ||
+                (int)$row['is_dm'] !== ($isDm ? 1 : 0)) {
+                throw new RuntimeException('Closed or invalid DM/group thread');
             }
 
             $join = $this->db->prepare(
