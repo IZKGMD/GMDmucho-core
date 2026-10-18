@@ -61,6 +61,8 @@ use MuchoCore\Moderation\ModerationService;
 use MuchoCore\Moderation\ReportQueueController;
 use MuchoCore\Moderation\ReportQueueRepository;
 use MuchoCore\Moderation\ReportQueueService;
+use MuchoCore\Moderation\Gd2209CaseController;
+use MuchoCore\Moderation\Gd2209CaseService;
 use MuchoCore\Music\SongController;
 use MuchoCore\Music\SongRepository;
 use MuchoCore\Music\SongService;
@@ -207,6 +209,11 @@ final readonly class Application
         );
         $reportQueueController = new ReportQueueController(
             new ReportQueueService($auth, $modRepo,
+                new ReportQueueRepository($this->pdo))
+        );
+
+        $gd2209Cases = new Gd2209CaseController(
+            new Gd2209CaseService($this->pdo, $auth, $modRepo,
                 new ReportQueueRepository($this->pdo))
         );
 
@@ -454,6 +461,15 @@ final readonly class Application
             [$modController,'report']);
         // GD 2.209 moderator abuse report queue. Native reply framing TBD.
         $route('/adminGetReportQueue', [$reportQueueController, 'queue']);
+        // GD 2.209 staged account-abuse service: authenticated and persisted;
+        // wire formats other than queue remain provisional until native captures.
+        $route('/reportGJContent', [$gd2209Cases, 'reportContent']);
+        $route('/adminGetUserHistory', [$gd2209Cases, 'userHistory']);
+        $route('/adminGetReportedContent', [$gd2209Cases, 'reportedContent']);
+        $route('/adminGetAbuseInfo', [$gd2209Cases, 'abuseInfo']);
+        $route('/adminGetAccountReview', [$gd2209Cases, 'accountReview']);
+        $route('/adminClearReportedContent', [$gd2209Cases, 'clearReportedContent']);
+        $route('/adminCloseCase', [$gd2209Cases, 'closeCase']);
         $route('/requestUserAccess',
             [$userController,'requestAccess']);
 
