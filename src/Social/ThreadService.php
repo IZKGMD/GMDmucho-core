@@ -551,13 +551,37 @@ final readonly class ThreadService
      * zero results rather than pretending a group is a DM.
      */
     public function nativeThreads(
-        int $accountId, string $credential, int $page, int $filter
+        int $accountId, string $credential, int $page, int $filter,
+        string $userFilter = ''
     ): array {
         $this->authorize($accountId, $credential);
         if ($page < 0 || $page > 1000 || !in_array($filter, [0,1,2], true)) {
             throw new RuntimeException('Invalid thread filter');
         }
         $offset = $page * 10;
+        $extra = [];
+        $targetSql = '';
+        if ($userFilter !== '') {
+            if (strlen($userFilter) > 300 ||
+                !preg_match('/^[1-9][0-9]*(?:,[1-9][0-9]*){0,30}$/D', $userFilter)) {
+                throw new RuntimeException('Invalid thread user filter');
+            }
+            $ids = array_values(array_unique(array_map('intval', explode(',', $userFilter))));
+            $binds = [];
+            foreach ($ids as $i => $id) {
+                if ($id <= 0) {
+                    throw new RuntimeException('Invalid user account');
+                }
+                $key = 'user_filter_' . $i;
+                $binds[] = ':' . $key;
+                $extra[$key] = $id;
+            }
+            $targetSql = ' AND EXISTS (
+              SELECT 1 FROM mucho_thread_members fm
+              WHERE fm.thread_id=t.id
+                AND fm.account_id IN (' . implode(',', $binds) . ')
+            )';
+        }
         $invites = $this->db->prepare(
             "SELECT COUNT(*) FROM mucho_thread_invites i
              JOIN mucho_threads t ON t.id=i.thread_id
@@ -568,13 +592,14 @@ final readonly class ThreadService
         $inviteCount = (int)$invites->fetchColumn();
         $filterSql = $filter === 1 ? ' AND t.is_dm=1'
             : ($filter === 2 ? ' AND t.is_dm=0' : '');
+        $where = 'm.account_id=:actor' . $filterSql . $targetSql;
 
         $count = $this->db->prepare(
             'SELECT COUNT(*) FROM mucho_threads t
              JOIN mucho_thread_members m ON m.thread_id=t.id
-             WHERE m.account_id=:actor' . $filterSql
+             WHERE ' . $where
         );
-        $count->execute(['actor'=>$accountId]);
+        $count->execute(array_merge(['actor'=>$accountId], $extra));
         $total = (int)$count->fetchColumn();
 
         $sql = 'SELECT
@@ -604,10 +629,12 @@ final readonly class ThreadService
               CASE WHEN t.dm_low=:actor_peer THEN t.dm_high ELSE t.dm_low END
             ) AND t.is_dm=1
             LEFT JOIN profiles pp ON pp.account_id=peer.account_id
-            WHERE m.account_id=:actor' . $filterSql .
+            WHERE ' . $where .
             ' ORDER BY m.is_pinned DESC,t.updated_at DESC,t.id DESC LIMIT 10 OFFSET ' . $offset;
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(['actor'=>$accountId,'actor_peer'=>$accountId]);
+        $stmt->execute(array_merge(
+            ['actor'=>$accountId,'actor_peer'=>$accountId], $extra
+        ));
         return [
             'rows'=>$stmt->fetchAll(PDO::FETCH_ASSOC),
             'total'=>$total, 'offset'=>$offset, 'invites'=>$inviteCount
