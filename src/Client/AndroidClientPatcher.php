@@ -208,6 +208,9 @@ final class AndroidClientPatcher
             'input_sha256' => hash_file('sha256', $inputPath) ?: '',
             'output_sha256' => hash_file('sha256', $outputPath) ?: '',
             'signed' => true,
+            // APK signatures verify file integrity, NOT whether the game connects.
+            'verification' => 'static-binary-only',
+            'native_client_verified' => false,
         ];
     }
 
