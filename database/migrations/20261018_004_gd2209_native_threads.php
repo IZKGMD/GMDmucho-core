@@ -24,6 +24,21 @@ SQL,
 ALTER TABLE mucho_thread_members
     ADD COLUMN is_muted TINYINT(1) NOT NULL DEFAULT 0,
     ADD COLUMN is_pinned TINYINT(1) NOT NULL DEFAULT 0,
-    ADD COLUMN last_read_message_id BIGINT UNSIGNED NOT NULL DEFAULT 0
+    ADD COLUMN last_read_message_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    ADD COLUMN last_cleared_message_id BIGINT UNSIGNED NOT NULL DEFAULT 0
+SQL,
+    <<<'SQL'
+CREATE TABLE IF NOT EXISTS mucho_thread_former_members (
+    thread_id BIGINT UNSIGNED NOT NULL,
+    account_id BIGINT UNSIGNED NOT NULL,
+    reason VARCHAR(12) NOT NULL,
+    left_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_visible_message_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (thread_id,account_id),
+    CONSTRAINT fk_thread_former_thread FOREIGN KEY (thread_id)
+        REFERENCES mucho_threads(id) ON DELETE CASCADE,
+    CONSTRAINT fk_thread_former_account FOREIGN KEY (account_id)
+        REFERENCES accounts(account_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL,
 ];
