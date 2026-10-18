@@ -16,7 +16,7 @@
         if (!node) return;
         node.textContent=String(value);
     };
-    const row=(label,status,detail)=>{
+    const row=(label,status,detail,override)=>{
         const entry=document.createElement('div');
         entry.className='admin-monitor-row';
         const name=document.createElement('strong');
@@ -25,7 +25,7 @@
         const mode=String(status || 'unknown');
         value.className='admin-monitor-status admin-monitor-'+
             (['online','warning','unknown'].includes(mode)?mode:'unknown');
-        value.textContent=mode==='online'?'Responding':(mode==='warning'?'Needs attention':'Not measured');
+        value.textContent=override || (mode==='online'?'Responding':(mode==='warning'?'Needs attention':'Not measured'));
         entry.append(name,value);
         if (detail) {
             const note=document.createElement('small');
@@ -75,7 +75,8 @@
                     return row(
                         item.name,
                         !measured?'unknown':(count>0?'warning':'online'),
-                        !measured?'Not available':count+' · '+String(item.hint || '')
+                        !measured?'Not available':count+' · '+String(item.hint || ''),
+                        !measured?'Unavailable':(count>0?'Review':'Clear')
                     );
                 }) : [];
                 checksRoot.replaceChildren(...checks);
