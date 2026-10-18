@@ -592,6 +592,53 @@ final readonly class ThreadService
     }
 
     /**
+     * Native GD 2.209 search: Base64 query is decoded at HTTP boundary.
+     * beforeID is a message-ID cursor. Report real remaining 20-item pages.
+     *
+     * @return array{rows:array,remaining:int}
+     */
+    public function nativeSearch(
+        int $accountId, string $credential, int $threadId,
+        string $term, int $beforeId
+    ): array {
+        $this->authorize($accountId,$credential);
+        if ($beforeId < 0 || $beforeId > PHP_INT_MAX
+            || !$this->threadForMember($accountId,$threadId)) {
+            throw new RuntimeException('Thread search access denied');
+        }
+        $term = trim($term);
+        if (mb_strlen($term,'UTF-8') < 2 || mb_strlen($term,'UTF-8') > 120) {
+            throw new RuntimeException('Invalid search query');
+        }
+        $needle = '%' . addcslashes($term, '%_\\') . '%';
+        $condition = $beforeId > 0 ? ' AND m.id < :before' : '';
+        $args = ['thread'=>$threadId,'needle'=>$needle];
+        if ($beforeId > 0) {
+            $args['before'] = $beforeId;
+        }
+        $count = $this->db->prepare(
+            'SELECT COUNT(*) FROM mucho_thread_messages m
+             WHERE m.thread_id=:thread AND m.body LIKE :needle' . $condition
+        );
+        $count->execute($args);
+        $total = (int)$count->fetchColumn();
+
+        $rows = $this->db->prepare(
+            'SELECT m.id,m.thread_id,m.sender_account_id,m.body,m.created_at,
+                    a.username
+             FROM mucho_thread_messages m
+             JOIN accounts a ON a.account_id=m.sender_account_id
+             WHERE m.thread_id=:thread AND m.body LIKE :needle' . $condition .
+            ' ORDER BY m.id DESC LIMIT 20'
+        );
+        $rows->execute($args);
+        return [
+            'rows'=>$rows->fetchAll(PDO::FETCH_ASSOC),
+            'remaining'=>max(0,(int)ceil($total / 20)-1),
+        ];
+    }
+
+    /**
      * @return array<int,array<string,mixed>>
      */
     public function search(
