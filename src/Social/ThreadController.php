@@ -173,11 +173,12 @@ final readonly class ThreadController
             if ($needle === null) {
                 return Response::text('-1');
             }
-            $rows = $this->service->search(
+            $page = $this->service->nativeSearch(
                 $r->postInt('accountID'), $r->gdCredential(), $this->threadId($r),
-                $needle, $r->postInt('page')
+                $needle, $r->postInt('beforeID')
             );
-            return Response::text($this->encodeMessages($rows) . '#0');
+            return Response::text($this->encodeMessages($page['rows'])
+                . '#' . $page['remaining']);
         } catch (Throwable) {
             return Response::text('-1');
         }
