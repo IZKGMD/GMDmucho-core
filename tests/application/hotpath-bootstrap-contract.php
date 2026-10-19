@@ -65,4 +65,27 @@ hotpathAssert(
     'prechecked requests skip duplicate guard construction but direct calls remain protected'
 );
 
+$front = (string)file_get_contents(
+    dirname(__DIR__, 2) . '/public/index.php'
+);
+$guardSource = (string)file_get_contents(
+    dirname(__DIR__, 2) . '/src/Security/MuchoProtect.php'
+);
+hotpathAssert(
+    str_contains($front, '$guard = new MuchoProtect();')
+    && str_contains($front, '(new Application($guard->storageConnection()))->run();')
+    && str_contains($guardSource, '$this->storageConnection = $db;'),
+    'front controller reuses the DB protection connection without bypassing inspection'
+);
+$constructorMethod = new ReflectionMethod(
+    \MuchoCore\Core\Application::class, '__construct'
+);
+$pdoArg = $constructorMethod->getParameters()[0] ?? null;
+hotpathAssert(
+    $pdoArg !== null
+    && $pdoArg->getType()?->getName() === PDO::class
+    && $pdoArg->allowsNull(),
+    'standalone Application remains backward compatible without an injected PDO'
+);
+
 echo "MUCHOCORE_HOTPATH_BOOTSTRAP_OK\n";
