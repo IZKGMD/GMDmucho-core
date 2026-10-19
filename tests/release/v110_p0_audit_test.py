@@ -53,8 +53,52 @@ class AuditTest(unittest.TestCase):
                 "no GD 2.209 (binaryVersion 51) route observation",
                 search["blockers"],
             )
-            self.assertIn("p95 measurement missing", search["blockers"])
+            self.assertIn("p95 certification missing", search["blockers"])
             self.assertIn("native client acceptance not certified", search["blockers"])
+
+    def test_global_binary_51_cannot_certify_unrelated_endpoint(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "tests/protocol").mkdir(parents=True)
+            (root / "tests/client-fixtures/2.2").mkdir(parents=True)
+            entry = {
+                "id": "levels.search",
+                "canonical_path": "/getgjlevels21",
+                "aliases": ["/database/getGJLevels21.php"],
+                "families": ["2.2"],
+                "release_gate": False,
+                "inventory_only": False,
+            }
+            for dimension in module.DIMENSIONS:
+                entry[dimension] = {"status": "pending", "evidence": []}
+            (root / "tests/protocol/endpoint-contracts.json").write_text(
+                json.dumps({"contracts": [entry]}), encoding="utf-8"
+            )
+            (root / "tests/client-fixtures/2.2/endpoints.json").write_text(
+                json.dumps({
+                    "trace_binary_versions": ["47", "51"],
+                    "endpoints": [{
+                        "path": "/database/getGJLevels21.php",
+                        "client_families": ["2.2"],
+                        "game_versions": ["22"],
+                        "binary_versions": ["47"],
+                    }, {
+                        "path": "/database/getGJFollowing.php",
+                        "client_families": ["2.2"],
+                        "game_versions": ["22"],
+                        "binary_versions": ["51"],
+                    }],
+                }), encoding="utf-8"
+            )
+            report = module.audit(root)
+            search = next(item for item in report["p0"] if item["id"] == "levels.search")
+            self.assertIn(
+                "no GD 2.209 (binaryVersion 51) route observation",
+                search["blockers"],
+            )
+            self.assertEqual(
+                search["observed_routes"][0]["binary_versions"], ["47"]
+            )
 
     def test_missing_p0_is_reported(self):
         with tempfile.TemporaryDirectory() as temporary:
