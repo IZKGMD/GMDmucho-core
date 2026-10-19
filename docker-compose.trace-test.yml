@@ -1,0 +1,13 @@
+# Optional trace capture for the ISOLATED testgdps-app ONLY.
+# Usage (after starting a separately routed test tenant):
+# docker compose -f docker-compose.yml -f docker-compose.test.yml \
+#   -f docker-compose.trace-test.yml up -d --no-deps --force-recreate testgdps-app
+#
+# Never overlay this file onto the production app service. The test app has
+# separate MariaDB credentials and a separate trace filename. Access to the
+# test app must be configured on a private staging hostname separately.
+services:
+  testgdps-app:
+    environment:
+      MUCHO_CLIENT_TRACE: "1"
+      MUCHO_CLIENT_TRACE_FILE: /var/www/mucho-core/storage/testgdps-client-trace.ndjson
