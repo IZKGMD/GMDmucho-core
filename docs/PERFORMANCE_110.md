@@ -30,7 +30,10 @@ request/response wire formats and the stable-release marker remain unchanged.
   already completes the MuchoProtect precheck. `Application` now only
   constructs its own guard for direct/standalone handlers, preserving both
   security paths while avoiding an unnecessary second DB connection when
-  DB-backed penalties and rate limits are enabled.
+  DB-backed penalties and rate limits are enabled. In DB-backed mode,
+  the front controller also passes that same PDO connection into
+  `Application` so protection and gameplay do not establish two independent
+  database sessions. Standalone `new Application()` remains supported.
 - **Configuration snapshots:** the protected runtime file and `.env` files
   are parsed at most once each per PHP request by `Environment`, rather than
   once for each distinct configuration key.
