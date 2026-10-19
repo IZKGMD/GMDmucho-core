@@ -45,6 +45,11 @@ python3 tools/release/v110_p0_audit.py --json > p0-readiness.json
 python3 tests/release/v110_p0_audit_test.py
 ```
 
+For an opt-in, isolated Windows/Android 2.209 capture and per-endpoint server
+p95 measurement, see [P0 native capture](V110_P0_NATIVE_CAPTURE.md).
+The optional `docker-compose.trace-test.yml` targets **testgdps-app only** and
+must never be merged into the production service.
+
 This additional tool is **diagnostic only**. It links the P0 contract dimensions
 to the existing sanitized route-observation fixtures and highlights missing
 GD 2.209 (`binaryVersion=51`) observations and p95 evidence. The existing 2.2
