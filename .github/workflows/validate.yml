@@ -143,6 +143,7 @@ jobs:
           php tests/application/cloudsave-key-contract.php
           php tests/application/cloudsave-shared-key-path.php
           php tests/application/auth-session-isolation.php
+          php tests/application/hotpath-bootstrap-contract.php
           php tests/application/security-regressions.php
           bash tests/release/release-update-detection.sh
           python3 tests/release/release-publication.py
@@ -685,6 +686,7 @@ jobs:
         run: |
           find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/application/input-hardening-contract.php
+          php tests/application/hotpath-bootstrap-contract.php
           php tests/application/score-integrity-contract.php
           php tests/application/profile-images.php
           php tests/security/client-ip-cloudflare.php
