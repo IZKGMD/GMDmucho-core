@@ -117,9 +117,9 @@ final readonly class Application
     private PDO $pdo;
     private PluginManager $plugins;
 
-    public function __construct()
+    public function __construct(?PDO $requestDatabase = null)
     {
-        $this->pdo = (new Database())->connection();
+        $this->pdo = $requestDatabase ?? (new Database())->connection();
         $this->router = new Router();
         $cache = CacheManager::fromEnvironment($this->pdo);
         $jobs = new JobQueue($this->pdo);
