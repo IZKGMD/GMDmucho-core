@@ -326,6 +326,7 @@ jobs:
           printf 'ci-testgdps-db-root-password' > .secrets/testgdps_db_root_password
           printf 'ci-testgdps-admin-password' > .secrets/testgdps_admin_password
           docker compose --env-file .ci.env -f docker-compose.yml -f docker-compose.test.yml config -q
+          docker compose --env-file .ci.env -f docker-compose.yml -f docker-compose.test.yml -f docker-compose.trace-test.yml config -q
 
       - name: Check release-based automatic update wiring
         run: |
