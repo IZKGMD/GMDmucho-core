@@ -115,7 +115,6 @@ final readonly class Application
 {
     private Router $router;
     private PDO $pdo;
-    private MuchoProtect $protect;
     private PluginManager $plugins;
 
     public function __construct()
@@ -124,7 +123,6 @@ final readonly class Application
         $this->router = new Router();
         $cache = CacheManager::fromEnvironment($this->pdo);
         $jobs = new JobQueue($this->pdo);
-        $this->protect = new MuchoProtect();
         $this->plugins = PluginManager::fromEnvironment(
             $this->pdo,
             $this->router,
@@ -738,7 +736,9 @@ final readonly class Application
         ]);
 
         if (($_SERVER['MUCHO_PROTECT_PRECHECKED'] ?? '') !== '1') {
-            $protection = $this->protect->inspect(
+            // The front controller has already inspected this request.
+            // Only standalone Application::handle() calls need a guard here.
+            $protection = (new MuchoProtect())->inspect(
                 $request,
                 $this->router->normalizePath($request->path)
             );
