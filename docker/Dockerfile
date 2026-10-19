@@ -10,6 +10,8 @@ RUN apt-get update \
     && printf '%s\n' 'clear_env = no' > /usr/local/etc/php-fpm.d/zz-muchocore-environment.conf \
     && rm -rf /var/lib/apt/lists/*
 
+COPY docker/php-performance.ini /usr/local/etc/php/conf.d/zz-muchocore-performance.ini
+
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
 WORKDIR /var/www/mucho-core
