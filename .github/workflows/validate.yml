@@ -560,6 +560,13 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/core-storage-integration.php
 
+      - name: Verify bounded search index rebuild
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/search-index-batch-integration.php
+
       - name: Verify plain admin clan operations
         env:
           TEST_DB_HOST: 127.0.0.1
