@@ -57,13 +57,13 @@ $indexer = new LevelSearchIndexer($db);
 $webhooks = new WebhookDispatcher();
 $workerId = (gethostname() ?: 'worker') . ':' . getmypid();
 
-// Keep maintenance outside the request path. Run at most once per hour per
+// Keep maintenance outside the request path. Run at most once per minute per
 // worker process, pruning a bounded batch via the created_at index.
 $nextDownloadPrune = 0;
 
 do {
     if ($loop && time() >= $nextDownloadPrune) {
-        $nextDownloadPrune = time() + 3600;
+        $nextDownloadPrune = time() + 60;
         try {
             LevelDownloadTracker::pruneExpired($db, 512);
         } catch (Throwable $e) {
