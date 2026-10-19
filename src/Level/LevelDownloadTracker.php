@@ -98,12 +98,10 @@ final readonly class LevelDownloadTracker
                 }
 
                 $this->pdo->commit();
-                $this->pruneExpiredOccasionally($window);
                 return true;
             }
 
             $this->pdo->commit();
-            $this->pruneExpiredOccasionally($window);
             return false;
         } catch (Throwable $e) {
             if ($this->pdo->inTransaction()) {
@@ -119,28 +117,26 @@ final readonly class LevelDownloadTracker
     }
 
     /**
-     * Opportunistic bounded cleanup across all levels. Uses the created_at
-     * index and runs outside the download transaction; cleanup failures must
-     * never change an already committed download counter.
+     * Bounded cleanup for the background worker, never the request path.
+     * The window matches record() so active deduplication slots survive.
      */
-    private function pruneExpiredOccasionally(int $window): void
+    public static function pruneExpired(PDO $pdo, int $batch = 512): int
     {
-        if (random_int(1, 128) !== 1) {
-            return;
-        }
-
-        try {
-            $this->pdo->exec(
-                'DELETE FROM mucho_level_downloads
-                 WHERE created_at < (
-                     CURRENT_TIMESTAMP - INTERVAL '.$window.' SECOND
-                 )
-                 ORDER BY created_at ASC
-                 LIMIT 256'
-            );
-        } catch (Throwable) {
-            // Best-effort maintenance, never a prerequisite for downloads.
-        }
+        $window = (int)(Environment::get(
+            'MUCHO_DOWNLOAD_DEDUP_SECONDS', '300'
+        ) ?? '300');
+        $window = max(30, min(604800, $window));
+        $batch = max(1, min(10000, $batch));
+        $stmt = $pdo->prepare(
+            'DELETE FROM mucho_level_downloads
+             WHERE created_at < (
+                 CURRENT_TIMESTAMP - INTERVAL ' . $window . ' SECOND
+             )
+             ORDER BY created_at ASC
+             LIMIT ' . $batch
+        );
+        $stmt->execute();
+        return $stmt->rowCount();
     }
 
     private function hashKey(): string
