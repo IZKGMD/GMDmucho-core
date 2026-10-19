@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from collections import Counter
 from pathlib import Path
 
@@ -13,6 +14,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, help="NDJSON trace file.")
     parser.add_argument("--output", required=True, help="Endpoint contract JSON.")
+    parser.add_argument(
+        "--min-binary", type=int, default=0,
+        help="Keep only requests with binary_version at least N (0 = unfiltered).",
+    )
     parser.add_argument(
         "--expected-family",
         default="",
@@ -37,6 +42,13 @@ def main() -> int:
             continue
 
         entry = json.loads(line)
+        binary_version = entry.get("binary_version")
+        if args.min_binary > 0:
+            try:
+                if int(binary_version) < args.min_binary:
+                    continue
+            except (TypeError, ValueError):
+                continue
         method = str(entry.get("method", "GET")).upper()
         path = str(entry.get("path", "/"))
         key = (method, path)
@@ -52,7 +64,6 @@ def main() -> int:
         if game_version is not None:
             game_versions[str(game_version)] += 1
 
-        binary_version = entry.get("binary_version")
         if binary_version is not None:
             binary_versions[str(binary_version)] += 1
 
@@ -63,6 +74,9 @@ def main() -> int:
             "query_keys": set(),
             "post_keys": set(),
             "client_families": set(),
+            "game_versions": set(),
+            "binary_versions": set(),
+            "durations_ms": [],
         })
 
         if entry.get("status") is not None:
@@ -76,6 +90,14 @@ def main() -> int:
         )
         if family:
             current["client_families"].add(family)
+        if game_version is not None:
+            current["game_versions"].add(str(game_version))
+        if binary_version is not None:
+            current["binary_versions"].add(str(binary_version))
+        duration = entry.get("duration_ms")
+        if isinstance(duration, (int, float)) and not isinstance(duration, bool):
+            if math.isfinite(duration) and duration >= 0:
+                current["durations_ms"].append(float(duration))
 
     if args.expected_family:
         if not families:
@@ -116,6 +138,11 @@ def main() -> int:
     output = []
     for key in sorted(endpoints):
         item = endpoints[key]
+        timings = sorted(item["durations_ms"])
+        p95 = (
+            round(timings[math.ceil(0.95 * len(timings)) - 1], 3)
+            if timings else None
+        )
         output.append({
             "method": item["method"],
             "path": item["path"],
@@ -124,6 +151,10 @@ def main() -> int:
             "query_keys": sorted(item["query_keys"]),
             "post_keys": sorted(item["post_keys"]),
             "client_families": sorted(item["client_families"]),
+            "game_versions": sorted(item["game_versions"]),
+            "binary_versions": sorted(item["binary_versions"]),
+            "server_duration_sample_count": len(timings),
+            "server_duration_p95_ms": p95,
         })
 
     target = Path(args.output)
@@ -131,7 +162,7 @@ def main() -> int:
     target.write_text(
         json.dumps(
             {
-                "generated_by": "tools/client-trace-summary.py",
+                "generated_by": "tools/client/client-trace-summary.py",
                 "trace_client_families": sorted(families),
                 "trace_game_versions": sorted(game_versions),
                 "trace_binary_versions": sorted(binary_versions),
