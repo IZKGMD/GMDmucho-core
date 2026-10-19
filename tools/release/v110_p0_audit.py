@@ -87,7 +87,15 @@ def audit(root):
                 "client_families": item.get(
                     "client_families", registry.get("trace_client_families", [])
                 ),
-                "binary_versions": registry.get("trace_binary_versions", []),
+                # The registry-level versions refer to the *entire file* and
+                # must not be attributed to an individual endpoint.
+                "binary_versions": item.get("binary_versions", []),
+                "game_versions": item.get("game_versions", []),
+                "server_duration_sample_count": item.get(
+                    "server_duration_sample_count", 0
+                ),
+                "server_duration_p95_ms": item.get("server_duration_p95_ms"),
+
             })
 
         if not observed:
@@ -108,11 +116,20 @@ def audit(root):
             )
         if not any(
             "51" in [str(v) for v in obs["binary_versions"]]
+            and "22" in [str(v) for v in obs["game_versions"]]
+            and "2.2" in [str(v) for v in obs["client_families"]]
             for obs in observed
         ):
             blockers.append("no GD 2.209 (binaryVersion 51) route observation")
         if statuses["performance_budget"] != "covered":
-            blockers.append("p95 measurement missing")
+            blockers.append("p95 certification missing")
+        if not any(
+            isinstance(obs["server_duration_p95_ms"], (int, float))
+            and obs["server_duration_sample_count"] >= 30
+            for obs in observed
+        ):
+            blockers.append("insufficient measured server-duration samples (minimum 30)")
+
         if statuses["real_client"] != "covered":
             blockers.append("native client acceptance not certified")
 
