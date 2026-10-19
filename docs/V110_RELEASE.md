@@ -32,10 +32,25 @@ The first command validates the inventory and its existing evidence. The second
 enforces complete release certification and returns nonzero while it is missing.
 `--report` produces a diagnostic report without making the release ready.
 
-At this preparation checkpoint, the registry contains **132 routes**, of which
-**126 are inventory-only**. The six original P0 contracts also have incomplete
-quality dimensions. There are no fully release-gated endpoints. These are missing
-certification claims/evidence, not a count of demonstrated runtime defects.
+At the 2026-10-19 VPS checkpoint, the registry contains **160 routes**, of which
+**154 are inventory-only**, with **0 fully release-gated endpoints** and **2,366
+blocking findings**. These are certification gaps, not 2,366 demonstrated runtime
+defects. Counts change as routes/tests are added; rerun the gate for current data.
+
+To inspect the six critical P0 endpoints without reading thousands of findings:
+
+```sh
+python3 tools/release/v110_p0_audit.py
+python3 tools/release/v110_p0_audit.py --json > p0-readiness.json
+python3 tests/release/v110_p0_audit_test.py
+```
+
+This additional tool is **diagnostic only**. It links the P0 contract dimensions
+to the existing sanitized route-observation fixtures and highlights missing
+GD 2.209 (`binaryVersion=51`) observations and p95 evidence. The existing 2.2
+fixture with `binaryVersion=47` is **not** a 2.209 acceptance test. Neither a
+matching request path nor a passing P0 audit test certifies wire compatibility.
+The authoritative stable-release gate remains `v110-endpoint-gate.php`.
 
 Required work includes version-aware request/wire and authorization tests,
 negative cases, integrity/concurrency coverage for writes, measured p95 budgets,
