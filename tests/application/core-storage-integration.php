@@ -155,6 +155,35 @@ try {
         $writer->query("SELECT status FROM mucho_jobs WHERE id={$retry}")->fetchColumn() === 'failed',
         'explicit failures stop at the configured attempt limit');
 
+    // A slow transaction holding the oldest job must not block the
+    // reservation of the next ready job on modern MariaDB/InnoDB.
+    $lockedJob = $queue->enqueue('unit.skip.locked');
+    $freeJob = $queue->enqueue('unit.skip.free');
+    $pdo->beginTransaction();
+    try {
+        $pdo->query("SELECT id FROM mucho_jobs WHERE id={$lockedJob} FOR UPDATE")->fetchColumn();
+        $writer->exec('SET SESSION innodb_lock_wait_timeout=2');
+        $freeClaim = $otherQueue->reserve('skip-locked-worker');
+        storageCheck(
+            $freeClaim !== null && (int)$freeClaim['id'] === $freeJob,
+            'concurrent worker skips a locked oldest queue job'
+        );
+        storageCheck(
+            $otherQueue->complete($freeJob, 'skip-locked-worker', (int)$freeClaim['attempts']),
+            'skip-locked worker can complete an independent job'
+        );
+    } finally {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+    }
+    $lockedClaim = $queue->reserve('previously-locked-worker');
+    storageCheck(
+        $lockedClaim !== null && (int)$lockedClaim['id'] === $lockedJob
+        && $queue->complete($lockedJob, 'previously-locked-worker', (int)$lockedClaim['attempts']),
+        'previously locked job remains available after the lock releases'
+    );
+
     $pdo->beginTransaction();
     $rejected = false;
     try { $queue->reserve('nested'); } catch (LogicException) { $rejected = true; }
