@@ -12,6 +12,9 @@ final class Environment
     /** @var array<string,string|null> */
     private static array $cache = [];
 
+    /** @var array<string,array<string,string>> */
+    private static array $fileCache = [];
+
     public static function get(string $key, ?string $default = null): ?string
     {
         if (array_key_exists($key, self::$cache)) {
@@ -69,19 +72,27 @@ final class Environment
     /** @return array<string,string> */
     private static function loadFile(string $path): array
     {
+        // Parse each env file at most once per PHP request. Previously every
+        // different Environment::get() key re-read and re-parsed the same
+        // runtime / project file; this is particularly costly with the many
+        // config reads in MuchoProtect and Application bootstrap.
+        if (array_key_exists($path, self::$fileCache)) {
+            return self::$fileCache[$path];
+        }
+
         if (!is_readable($path)) {
-            return [];
+            return self::$fileCache[$path] = [];
         }
 
         $content = @file_get_contents($path);
         if (!is_string($content) || $content === '') {
-            return [];
+            return self::$fileCache[$path] = [];
         }
 
         try {
             $parsed = Dotenv::parse($content);
         } catch (Throwable) {
-            return [];
+            return self::$fileCache[$path] = [];
         }
 
         $result = [];
@@ -91,6 +102,6 @@ final class Environment
             }
         }
 
-        return $result;
+        return self::$fileCache[$path] = $result;
     }
 }
