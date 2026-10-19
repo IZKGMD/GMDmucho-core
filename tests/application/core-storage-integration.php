@@ -82,6 +82,33 @@ try {
         game_version INT,is_deleted TINYINT,is_unlisted TINYINT) ENGINE=InnoDB');
     $migration = require dirname(__DIR__, 2) . '/database/migrations/20260928_001_intelligence_scale.php';
     $migration->up($pdo);
+    // Download counters use indexed client slots and must not break the
+    // exact two-downloads-per-client compatibility contract.
+    $downloadMigration = require dirname(__DIR__, 2)
+        . '/database/migrations/20261007_001_level_download_dedup.php';
+    $downloadMigration($pdo);
+    $pdo->exec(
+        "INSERT INTO levels(level_id,account_id,name,game_version,is_deleted,is_unlisted)
+         VALUES(99,2,'Download test',22,0,0)"
+    );
+    $tracker = new \MuchoCore\Level\LevelDownloadTracker($pdo);
+    storageCheck(
+        $tracker->record(99, '192.0.2.101') &&
+        $tracker->record(99, '192.0.2.101') &&
+        !$tracker->record(99, '192.0.2.101') &&
+        (int)$pdo->query('SELECT downloads FROM levels WHERE level_id=99')->fetchColumn() === 2,
+        'download dedupe permits exactly two client slots per window'
+    );
+    $pdo->exec(
+        'UPDATE mucho_level_downloads
+         SET created_at=DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 400 SECOND)
+         WHERE level_id=99'
+    );
+    storageCheck(
+        $tracker->record(99, '192.0.2.101') &&
+        (int)$pdo->query('SELECT downloads FROM levels WHERE level_id=99')->fetchColumn() === 3,
+        'expired slots are reusable without increasing unrelated row locks'
+    );
 
     $writer = $connect($name);
     $cache = new DatabaseCache($pdo);
