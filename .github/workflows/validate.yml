@@ -412,7 +412,7 @@ jobs:
           from pathlib import Path
           source = Path("public/index.php").read_text(encoding="utf-8")
           liveness = source.index("if (")
-          application = source.index("(new Application())->run();")
+          application = source.index("(new Application($guard->storageConnection()))->run();")
           assert "__muchoLivenessPath" in source
           assert "/health" in source
           assert "/checkifserveronline" in source
