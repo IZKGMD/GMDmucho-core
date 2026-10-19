@@ -57,15 +57,25 @@ final readonly class JobQueue
         try {
             $this->pdo->beginTransaction();
 
-            $stmt = $this->pdo->query(
-                "SELECT *
+            // SKIP LOCKED lets concurrent workers reserve different jobs
+            // instead of serializing on the oldest locked queue entry.
+            // MariaDB <10.6 / older shared-hosting engines fall back safely.
+            $selection = "SELECT *
                  FROM mucho_jobs
                  WHERE status='queued'
                    AND available_at<=UTC_TIMESTAMP()
                  ORDER BY available_at ASC,id ASC
                  LIMIT 1
-                 FOR UPDATE"
-            );
+                 FOR UPDATE";
+            try {
+                $stmt = $this->pdo->query($selection . ' SKIP LOCKED');
+            } catch (PDOException $e) {
+                $driverCode = (int)($e->errorInfo[1] ?? 0);
+                if (!in_array($driverCode, [1064, 1235], true)) {
+                    throw $e;
+                }
+                $stmt = $this->pdo->query($selection);
+            }
 
             $job = $stmt->fetch(PDO::FETCH_ASSOC);
 
