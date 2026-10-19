@@ -79,7 +79,7 @@ try {
     $pdo->exec('CREATE TABLE accounts (account_id BIGINT UNSIGNED PRIMARY KEY,username VARCHAR(20)) ENGINE=InnoDB');
     $pdo->exec('CREATE TABLE levels (
         level_id BIGINT UNSIGNED PRIMARY KEY,account_id BIGINT UNSIGNED,name VARCHAR(128),
-        game_version INT,is_deleted TINYINT,is_unlisted TINYINT) ENGINE=InnoDB');
+        game_version INT,downloads INT NOT NULL DEFAULT 0,is_deleted TINYINT,is_unlisted TINYINT) ENGINE=InnoDB');
     $migration = require dirname(__DIR__, 2) . '/database/migrations/20260928_001_intelligence_scale.php';
     $migration->up($pdo);
     // Download counters use indexed client slots and must not break the
