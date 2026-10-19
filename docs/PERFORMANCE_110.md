@@ -10,7 +10,7 @@ request/response wire formats and the stable-release marker remain unchanged.
 |---|---|---|---|
 | Background queue | Workers wait on the oldest locked job | `FOR UPDATE SKIP LOCKED` reserves other available jobs on MariaDB 10.6+; older engines fall back | Isolated concurrent MariaDB worker test |
 | Download deduplication | Every player download scans/deletes *all* expired rows for its level | Delete only expired slots for the requesting `(level_id, client_hash)` through the existing composite unique index | Two-download-per-client, expiry reuse and counter checks |
-| Deduplication storage | Popular levels can accumulate expiry rows until a download reaps all of them | One-in-128 requests performs a bounded expiry cleanup (`LIMIT 256`) outside the main transaction using the existing timestamp index | MariaDB integration plus existing dedupe contract |
+| Deduplication storage | Popular levels can accumulate expiry rows until a download reaps all of them | The background worker prunes up to 512 expired rows hourly, outside the request path using the existing timestamp index | MariaDB integration plus existing dedupe contract |
 | Search indexing | One `fetchAll()` loads every ID into PHP | Fixed 256-row keyset batches, a high-water ID and no increasing OFFSET | 700-level MariaDB integration |
 | Redis invalidation | Prefix invalidation uses synchronous `DEL` for all matches | `UNLINK` asynchronously reclaims payloads when supported, with `DEL` fallback | Literal wildcard + multi-batch Redis test |
 | PHP runtime | Distribution-default OPcache limits | Conservative cache sizing and realpath cache; **timestamps remain validated** | Docker build + existing PHP and routing tests |
@@ -22,6 +22,72 @@ request/response wire formats and the stable-release marker remain unchanged.
 - No change to GD protocol framing or authentication.
 - No certification of previously unverified GD 2.209 endpoints.
 - No production database benchmark has been run.
+
+
+## Additional end-to-end latency work
+
+- **No duplicate protection backend initialization:** `public/index.php`
+  already completes the MuchoProtect precheck. `Application` now only
+  constructs its own guard for direct/standalone handlers, preserving both
+  security paths while avoiding an unnecessary second DB connection when
+  DB-backed penalties and rate limits are enabled.
+- **Configuration snapshots:** the protected runtime file and `.env` files
+  are parsed at most once each per PHP request by `Environment`, rather than
+  once for each distinct configuration key.
+- **Zero on-request global download cleanup:** a bounded prune runs once an
+  hour from the existing worker (not from `LevelDownloadTracker::record`).
+  The per-client expiry required for correct counting stays in the transaction.
+- **Opt-in Redis cache sidecar:** `docker-compose.redis-cache.yml` provides
+  volatile, local-only Redis and enables the existing RedisCache for app and
+  worker. The Docker PHP image now includes the Redis extension. The overlay
+  is **not** active by default; compare baseline and Redis p95 before enabling
+  it in production. If Redis is unavailable, CacheManager falls back to
+  database cache, so availability must be checked explicitly.
+
+### Measure p50/p95/p99 on localhost
+
+```bash
+# Reproducible health baseline. Includes a fresh TCP connection each request.
+python3 tools/performance/http_latency.py \
+  --url http://127.0.0.1/health --count 50 --warmup 5
+
+# Local-only *read* workload. Supply the actual tenant Host header.
+python3 tools/performance/http_latency.py \
+  --url http://127.0.0.1/database/getGJLevels21.php \
+  --host-header staging.example.test --method POST \
+  --data 'type=0&page=0&gameVersion=22&binaryVersion=51' \
+  --count 100 --warmup 10 --concurrency 2
+```
+
+Use a functioning **staging** tenant with representative non-empty levels.
+A fast empty response is not a representative search measurement. The command
+refuses remote hosts without `--allow-remote`, rejects credential fields and
+limits concurrency. It performs fresh HTTP connections; its p95 contains
+network/proxy/application time, and does **not** measure exact Geometry Dash
+client acceptance or a steady-state keep-alive connection. Compare the
+existing sanitized `ClientTrace` `duration_ms` for PHP handler time.
+
+Run the same read-only workload and dataset before and after each change;
+check both cold and warm cache. Avoid benchmarking account creation, level
+uploads, message sends, or real user traffic.
+
+### Optional Redis evaluation (staging only)
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.redis-cache.yml config -q
+# Only after isolated staging is configured and the PHP image was built
+# with the optional Redis extension:
+docker compose -f docker-compose.yml -f docker-compose.redis-cache.yml \
+  up -d --build redis-cache app worker
+docker compose -f docker-compose.yml -f docker-compose.redis-cache.yml \
+  exec -T app php -m
+```
+
+**Do not run these overlay commands on a production tenant without an approved
+maintenance window and a backup.** Redis is in-memory cache only; its 128 MiB
+budget should be sized to the host's available RAM. The existing DB-cache
+fallback remains available and the overlay must be present on subsequent
+`docker compose` invocations to preserve the chosen configuration.
 
 ## Run before production deployment
 
