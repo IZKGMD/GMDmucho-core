@@ -81,6 +81,7 @@ jobs:
           php -l bin/mucho-client-doctor.php
           php -l bin/mucho-gd2209-trace-report.php
           php -l bin/mucho-gd2209-coverage.php
+          php -l bin/mucho-worker.php
           php bin/mucho-gd2209-coverage.php --json > /dev/null
           php tests/client/client-compatibility.php
           php tests/client/gd-2209-synthetic.php
@@ -167,6 +168,7 @@ jobs:
         run: |
           python3 tests/release/v110_p0_audit_test.py
           python3 tests/client/client_trace_summary_test.py
+          python3 tests/performance/http_latency_test.py
           python3 tools/release/v110_p0_audit.py --json > /dev/null
 
       - name: Check shared-hosting package
@@ -328,6 +330,7 @@ jobs:
           printf 'ci-testgdps-admin-password' > .secrets/testgdps_admin_password
           docker compose --env-file .ci.env -f docker-compose.yml -f docker-compose.test.yml config -q
           docker compose --env-file .ci.env -f docker-compose.yml -f docker-compose.test.yml -f docker-compose.trace-test.yml config -q
+          docker compose --env-file .ci.env -f docker-compose.yml -f docker-compose.redis-cache.yml config -q
 
       - name: Check release-based automatic update wiring
         run: |
