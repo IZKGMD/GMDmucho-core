@@ -92,6 +92,20 @@ def audit(root):
 
         if not observed:
             blockers.append("no matching real-client route observation")
+        declared_families = {
+            str(family) for family in contract.get("families", [])
+        }
+        observed_families = {
+            str(family)
+            for item in observed
+            for family in item["client_families"]
+        }
+        missing_families = sorted(declared_families - observed_families)
+        if missing_families:
+            blockers.append(
+                "no route observation for client families: "
+                + ", ".join(missing_families)
+            )
         if not any(
             "51" in [str(v) for v in obs["binary_versions"]]
             for obs in observed
