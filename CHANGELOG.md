@@ -47,6 +47,19 @@
 
 ## v1.1.0 — Control Plane & Deployment Platform
 
+> **Release status:** 1.1.0 source is on `main`, but the stable release is **not published yet**. The endpoint-certification gate and release archive checks must pass first.
+
+### What's new — in plain language
+
+- **A more usable Admin Panel.** Refreshed navigation and layouts, an optional CSS-free interface, and more direct tools for server management.
+- **News with media.** Publish posts containing images and YouTube links, preview drafts and manage publication from the panel.
+- **Geometry Dash 2.209 backend work.** New social, message-thread, invitation, notification, moderation and editor-audio routes, with better data handling and regression tests. **Full native-client compatibility is not yet certified.**
+- **Simpler setup.** Clearer VPS/manual installation paths, guided browser deployment and Auto Patch 2.0 for client URLs and verified client packs.
+- **More reliable operations.** Improved backups, migration foundations, updater recovery, background workers and cache concurrency.
+- **Player features.** Profile avatars/covers and clan-quest backend support; separately built MuchoClient/launcher packages are not automatically part of this release.
+
+For installation caveats, testing status and a Russian summary, see [the human-readable 1.1.0 release notes](docs/RELEASE_NOTES_1.1.0.md). Features still in open pull requests are not included.
+
 ### MuchoGDPS Web Platform
 
 - added a new MuchoGDPS landing page at the canonical `/` route with a dedicated product presentation, platform overview, deployment flow and self-hosted VPS messaging;
