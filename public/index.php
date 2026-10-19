@@ -158,7 +158,8 @@ try {
     $path = strtolower($router->normalizePath($request->path));
 
     // Apply the unified protection layer before constructing Application/DB state.
-    $protection = (new MuchoProtect())->inspect(
+    $guard = new MuchoProtect();
+    $protection = $guard->inspect(
         $request,
         $path
     );
@@ -171,7 +172,9 @@ try {
 
     $_SERVER['MUCHO_PROTECT_PRECHECKED'] = '1';
 
-    (new Application())->run();
+    // The guard's DB-backed storage and the application share a connection
+    // for this request. File-based protection supplies null as before.
+    (new Application($guard->storageConnection()))->run();
 
 } catch (\Throwable $e) {
     error_log(sprintf(
