@@ -165,6 +165,7 @@ jobs:
       - name: Audit 1.1.0 P0 endpoint evidence (diagnostic, not release signoff)
         run: |
           python3 tests/release/v110_p0_audit_test.py
+          python3 tests/client/client_trace_summary_test.py
           python3 tools/release/v110_p0_audit.py --json > /dev/null
 
       - name: Check shared-hosting package
