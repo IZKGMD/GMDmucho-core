@@ -110,6 +110,32 @@ try {
         'expired slots are reusable without increasing unrelated row locks'
     );
 
+    // Maintenance is performed by the background worker, not during
+    // record(): it should prune only a bounded number of expired rows.
+    $pdo->exec(
+        'UPDATE mucho_level_downloads
+         SET created_at=DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 400 SECOND)
+         WHERE level_id=99'
+    );
+    $pdo->exec(
+        "INSERT INTO mucho_level_downloads(level_id,client_hash,slot)
+         VALUES (99,'" . str_repeat('f', 64) . "',1)"
+    );
+    storageCheck(
+        \MuchoCore\Level\LevelDownloadTracker::pruneExpired($pdo, 1) === 1,
+        'background download pruning is limited to a single expired row'
+    );
+    storageCheck(
+        (int)$pdo->query(
+            "SELECT COUNT(*) FROM mucho_level_downloads
+             WHERE level_id=99 AND client_hash='" . str_repeat('f', 64) . "'"
+        )->fetchColumn() === 1
+        && (int)$pdo->query(
+            'SELECT downloads FROM levels WHERE level_id=99'
+        )->fetchColumn() === 3,
+        'background pruning preserves active dedupe slots and download count'
+    );
+
     $writer = $connect($name);
     $cache = new DatabaseCache($pdo);
     $otherCache = new DatabaseCache($writer);
