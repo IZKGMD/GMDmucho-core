@@ -7,6 +7,7 @@ namespace MuchoCore\Security;
 use MuchoCore\Core\Environment;
 use MuchoCore\Database\Database;
 use MuchoCore\Http\Request;
+use PDO;
 
 final readonly class MuchoProtect
 {
@@ -166,6 +167,7 @@ final readonly class MuchoProtect
 
     private RateLimitBackend $limiter;
     private PenaltyStoreBackend $penalties;
+    private ?PDO $storageConnection;
 
     public function __construct(
         ?RateLimitBackend $limiter = null,
@@ -175,6 +177,10 @@ final readonly class MuchoProtect
         if (($limiter === null || $penalties === null) && $this->storageMode() === 'db') {
             $db = (new Database())->connection();
         }
+        // Reuse the DB-mode security connection in the application request.
+        // File-backed protection returns null so blocked requests never
+        // open an unnecessary application connection.
+        $this->storageConnection = $db;
 
         $this->limiter = $limiter
             ?? ($db !== null ? new DatabaseRateLimiter($db) : new RateLimiter());
@@ -188,6 +194,11 @@ final readonly class MuchoProtect
                 ?: dirname(__DIR__, 2) . '/storage/control/protect-penalties';
             $this->penalties = new AbusePenaltyStore($directory);
         }
+    }
+
+    public function storageConnection(): ?PDO
+    {
+        return $this->storageConnection;
     }
 
     public function storageMode(): string
