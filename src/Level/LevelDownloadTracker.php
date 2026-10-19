@@ -43,13 +43,21 @@ final readonly class LevelDownloadTracker
         $this->pdo->beginTransaction();
 
         try {
-            $this->pdo->exec(
+            // The unique index starts with (level_id, client_hash). Avoid
+            // deleting every expired record for a popular level on each
+            // download: clean only the requesting client's expired slots.
+            $delete = $this->pdo->prepare(
                 'DELETE FROM mucho_level_downloads
-                 WHERE level_id='.(int)$levelId.'
+                 WHERE level_id=:level_id
+                   AND client_hash=:client_hash
                    AND created_at < (
                        CURRENT_TIMESTAMP - INTERVAL '.$window.' SECOND
                    )'
             );
+            $delete->execute([
+                'level_id' => $levelId,
+                'client_hash' => $clientHash,
+            ]);
 
             /*
              * Keep two bounded slots for compatibility with clients that may
@@ -90,10 +98,12 @@ final readonly class LevelDownloadTracker
                 }
 
                 $this->pdo->commit();
+                $this->pruneExpiredOccasionally($window);
                 return true;
             }
 
             $this->pdo->commit();
+            $this->pruneExpiredOccasionally($window);
             return false;
         } catch (Throwable $e) {
             if ($this->pdo->inTransaction()) {
@@ -105,6 +115,31 @@ final readonly class LevelDownloadTracker
                 0,
                 $e
             );
+        }
+    }
+
+    /**
+     * Opportunistic bounded cleanup across all levels. Uses the created_at
+     * index and runs outside the download transaction; cleanup failures must
+     * never change an already committed download counter.
+     */
+    private function pruneExpiredOccasionally(int $window): void
+    {
+        if (random_int(1, 128) !== 1) {
+            return;
+        }
+
+        try {
+            $this->pdo->exec(
+                'DELETE FROM mucho_level_downloads
+                 WHERE created_at < (
+                     CURRENT_TIMESTAMP - INTERVAL '.$window.' SECOND
+                 )
+                 ORDER BY created_at ASC
+                 LIMIT 256'
+            );
+        } catch (Throwable) {
+            // Best-effort maintenance, never a prerequisite for downloads.
         }
     }
 
