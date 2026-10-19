@@ -19,11 +19,12 @@ The machine-readable registry lives in `tests/protocol/endpoint-contracts.json`.
 
 ## Complete route inventory (release work)
 
-The registry now inventories **87 canonical application game routes**, derived
-from 91 statically registered paths in `src/Core/Application.php` (excluding
-`/health` and collapsing routes that normalize to the same canonical path).
-The original six P0 contracts retain their existing evidence statuses. The
-other 81 routes are explicitly `inventory_only: true` and **not certified**.
+At the 2026-10-19 verification checkpoint, the registry inventories **160
+canonical application game routes** (excluding `/health`). The original six
+P0 contracts still have incomplete quality evidence. The other **154** routes
+are explicitly `inventory_only: true` and **not certified**. Re-run
+`php tests/protocol/endpoint-perfection.php` for current counts; the inventory
+grows as core routes are added.
 
 Inventory-only entries have `priority: "untriaged"`, `method: "ANY"`
 (the actual router registration type), `families: ["unverified"]`, and
