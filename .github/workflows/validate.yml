@@ -162,6 +162,11 @@ jobs:
           php tests/client/android-client-patcher.php
           bash tests/client/client-auto-patch-contract.sh
 
+      - name: Audit 1.1.0 P0 endpoint evidence (diagnostic, not release signoff)
+        run: |
+          python3 tests/release/v110_p0_audit_test.py
+          python3 tools/release/v110_p0_audit.py --json > /dev/null
+
       - name: Check shared-hosting package
         run: |
           composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
