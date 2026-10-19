@@ -16,6 +16,16 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *_):
+        # A redirect may silently convert GD's POST to GET and corrupt
+        # the benchmark. Treat 3xx as failures instead.
+        return None
+
+
+OPENER = urllib.request.build_opener(NoRedirect)
+
+
 def quantile(values, percent):
     if not values:
         return None
@@ -35,7 +45,7 @@ def probe(url, method, payload, timeout, host_header):
     )
     start = time.perf_counter()
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with OPENER.open(request, timeout=timeout) as response:
             data = response.read(1024 * 1024 + 1)
             code = response.status
             if len(data) > 1024 * 1024:
@@ -95,7 +105,10 @@ def main():
                              or any(c in args.host_header for c in "\r\n/")):
         parser.error("Invalid virtual Host header")
 
-    payload = args.data.encode("ascii") if args.data else b""
+    try:
+        payload = args.data.encode("ascii") if args.data else b""
+    except UnicodeEncodeError:
+        parser.error("--data must be URL-encoded ASCII; use percent-encoding")
     kw = (args.url, args.method, payload, args.timeout, args.host_header)
     for _ in range(args.warmup):
         probe(*kw)
