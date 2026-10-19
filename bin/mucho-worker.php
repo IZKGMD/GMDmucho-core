@@ -7,6 +7,7 @@ use MuchoCore\Database\Database;
 use MuchoCore\Integration\WebhookDispatcher;
 use MuchoCore\Job\JobQueue;
 use MuchoCore\Search\LevelSearchIndexer;
+use MuchoCore\Level\LevelDownloadTracker;
 
 $root = dirname(__DIR__);
 require_once $root . '/vendor/autoload.php';
@@ -56,7 +57,21 @@ $indexer = new LevelSearchIndexer($db);
 $webhooks = new WebhookDispatcher();
 $workerId = (gethostname() ?: 'worker') . ':' . getmypid();
 
+// Keep maintenance outside the request path. Run at most once per hour per
+// worker process, pruning a bounded batch via the created_at index.
+$nextDownloadPrune = 0;
+
 do {
+    if ($loop && time() >= $nextDownloadPrune) {
+        $nextDownloadPrune = time() + 3600;
+        try {
+            LevelDownloadTracker::pruneExpired($db, 512);
+        } catch (Throwable $e) {
+            // Old/incomplete installations may not have the dedupe table.
+            // Gameplay must never depend on this optional cleanup.
+            error_log('[MuchoCore Worker] dedupe cleanup: ' . $e->getMessage());
+        }
+    }
     $queue->retryStale();
     $job = $queue->reserve($workerId);
 
