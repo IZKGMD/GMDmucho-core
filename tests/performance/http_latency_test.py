@@ -19,6 +19,11 @@ spec.loader.exec_module(module)
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == "/redirect":
+            self.send_response(302)
+            self.send_header("Location", "/")
+            self.end_headers()
+            return
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"-1" if self.path == "/bad" else b"1")
@@ -56,6 +61,14 @@ class LatencyTest(unittest.TestCase):
             self.assertEqual(error.returncode, 1)
             self.assertEqual(
                 json.loads(error.stdout)["failure_types"], {"gd_rejected": 2}
+            )
+            redirected = subprocess.run([
+                sys.executable, str(SCRIPT), "--url", url + "redirect",
+                "--warmup", "0", "--count", "1",
+            ], capture_output=True, text=True)
+            self.assertEqual(redirected.returncode, 1)
+            self.assertEqual(
+                json.loads(redirected.stdout)["failure_types"], {"http_302": 1}
             )
         finally:
             httpd.shutdown()
