@@ -73,7 +73,8 @@ p.write_text(json.dumps(d))
     (binaries/'composer').write_text('#!/bin/sh\nexit 0\n')
     (binaries/'composer').chmod(0o755)
     for path in ['.htaccess','composer.json','composer.lock','README.md','START_HERE.md',
-                 'public/install.php','public/shared-install.php','public/ftp-install.php','src/example.php',
+                 'public/install.php','public/php7.php','public/shared-install.php','public/ftp-install.php',
+                 'compat/php7/runtime.php','compat/php7/config.example.php','src/example.php',
                  'database/example.sql','config/example.php','vendor/autoload.php',
                  'docs/SHARED_HOSTING.md','docs/CLIENT_SETUP.md',
                  'docs/SHARED_INSTALL_RU.txt']:
