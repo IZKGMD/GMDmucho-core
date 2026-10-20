@@ -3,6 +3,10 @@ DirectoryIndex index.php
 
 RewriteEngine On
 
+# PHP7 native runtime is STRICTLY opt-in: it stays disabled until the
+# operator places public/php7-mode.on and private config/php7-local.php.
+# It never invokes PHP8 application code on a PHP7 host.
+RewriteRule ^php7-mode\.on$ - [F,L,NC]
 # Real files and directories are served normally.
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
@@ -10,6 +14,12 @@ RewriteRule ^ - [L]
 
 # Permanent patched client downloads for players.
 RewriteRule ^clients/?$ clients.php [L]
+
+# The marker path differs when the site points at project root vs public/.
+# Existing real files (including install.php) have already been served above.
+RewriteCond %{DOCUMENT_ROOT}/public/php7-mode.on -f [OR]
+RewriteCond %{DOCUMENT_ROOT}/php7-mode.on -f
+RewriteRule ^ php7.php [QSA,L]
 
 # All Geometry Dash compatibility routes go through the front controller.
 RewriteRule ^ index.php [QSA,L]
