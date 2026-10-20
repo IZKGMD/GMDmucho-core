@@ -126,18 +126,18 @@ class GD2209PatcherTest(unittest.TestCase):
     @unittest.skipUnless(shutil.which("php"), "PHP needed for byte parity test")
     def test_very_long_5v_host_uses_root_alias_and_matches_php(self):
         source = fixture()
-        host = "linasgdpsprivatese22.5v.pl"
+        host = "linasgdpsprivatese.5v.pl"
         patched, stats = module.patch_gd2209_exact(
             source, "https://" + host
         )
         self.assertEqual(len(source), len(patched))
         self.assertEqual(sum(x.count for x in stats), 2)
         self.assertIn(
-            b"https://linasgdpsprivatese22.5v.pl/getGJLevels21.php\x00",
+            b"https://linasgdpsprivatese.5v.pl/getGJLevels21.php\x00",
             patched,
         )
         self.assertIn(
-            b"https://linasgdpsprivatese22.5v.pl/checkIfServerOnline.php\x00",
+            b"https://linasgdpsprivatese.5v.pl/checkIfServerOnline.php\x00",
             patched,
         )
         with tempfile.TemporaryDirectory() as d:
@@ -147,8 +147,8 @@ class GD2209PatcherTest(unittest.TestCase):
             code = (
                 'require $argv[1];'
                 '$source=file_get_contents($argv[2]);'
-                '[$patched]=\MuchoCore\Client\Gd2209Binary::patchBytes('
-                '$source,"linasgdpsprivatese22.5v.pl");'
+                '[$patched]=\\MuchoCore\\Client\\Gd2209Binary::patchBytes('
+                '$source,"linasgdpsprivatese.5v.pl");'
                 'file_put_contents($argv[3],$patched);'
             )
             result = subprocess.run(
