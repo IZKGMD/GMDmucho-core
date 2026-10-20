@@ -75,6 +75,10 @@ def main():
     parser.add_argument("--count", type=int, default=50)
     parser.add_argument("--warmup", type=int, default=5)
     parser.add_argument("--concurrency", type=int, default=1)
+    parser.add_argument(
+        "--interval-ms", type=int, default=0,
+        help="Delay between measured requests (concurrency=1); helps avoid hitting game rate limits"
+    )
     parser.add_argument("--timeout", type=float, default=5)
     parser.add_argument(
         "--allow-remote", action="store_true",
@@ -101,6 +105,10 @@ def main():
         parser.error("Count must be 1..1000 and warmup 0..100")
     if not (1 <= args.concurrency <= 8 and 0.2 <= args.timeout <= 30):
         parser.error("Concurrency must be 1..8 and timeout 0.2..30")
+    if not (0 <= args.interval_ms <= 30000):
+        parser.error("--interval-ms must be 0..30000")
+    if args.interval_ms and args.concurrency != 1:
+        parser.error("--interval-ms requires --concurrency 1 for predictable pacing")
     if args.host_header and (not args.host_header.isascii()
                              or any(c in args.host_header for c in "\r\n/")):
         parser.error("Invalid virtual Host header")
@@ -116,12 +124,28 @@ def main():
     samples = []
     errors = {}
     start = time.perf_counter()
-    with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
-        for elapsed, reason in pool.map(lambda _: probe(*kw), range(args.count)):
+    if args.interval_ms:
+        # Deliberate spacing keeps a benchmark from tripping MuchoProtect's
+        # 30/10s endpoint burst limiter and causing false -1 samples.
+        # Pace *starts* rather than adding the probe's latency to every delay.
+        next_start = start
+        for _ in range(args.count):
+            delay = next_start - time.perf_counter()
+            if delay > 0:
+                time.sleep(delay)
+            elapsed, reason = probe(*kw)
+            next_start = max(time.perf_counter(), next_start + args.interval_ms / 1000)
             if reason is None:
                 samples.append(elapsed)
             else:
                 errors[reason] = errors.get(reason, 0) + 1
+    else:
+        with ThreadPoolExecutor(max_workers=args.concurrency) as pool:
+            for elapsed, reason in pool.map(lambda _: probe(*kw), range(args.count)):
+                if reason is None:
+                    samples.append(elapsed)
+                else:
+                    errors[reason] = errors.get(reason, 0) + 1
     duration = time.perf_counter() - start
 
     report = {
@@ -130,6 +154,7 @@ def main():
         "failures": sum(errors.values()),
         "failure_types": errors,
         "concurrency": args.concurrency,
+        "interval_ms": args.interval_ms,
         "method": args.method,
         "elapsed_seconds": round(duration, 3),
         "completed_requests_per_second": (
