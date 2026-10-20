@@ -50,6 +50,7 @@ services:
       MUCHO_CLIENT_TRACE_FILE: ${MUCHO_CLIENT_TRACE_FILE:-/var/www/mucho-core/storage/client-trace.ndjson}
       MUCHO_GD_VERSIONS: ${MUCHO_GD_VERSIONS:-all}
       MUCHO_CACHE_DRIVER: ${MUCHO_CACHE_DRIVER:-database}
+      MUCHO_FILE_CACHE_DIR: ${MUCHO_FILE_CACHE_DIR:-/var/www/mucho-core/storage/cache/files}
       MUCHO_LEVEL_CACHE_TTL: ${MUCHO_LEVEL_CACHE_TTL:-15}
       MUCHO_REDIS_HOST: ${MUCHO_REDIS_HOST:-127.0.0.1}
       MUCHO_REDIS_PORT: ${MUCHO_REDIS_PORT:-6379}
@@ -86,6 +87,7 @@ services:
       MUCHO_DB_PASSWORD_FILE: /run/secrets/db_password
       MUCHO_SKIP_ADMIN_BOOTSTRAP: "1"
       MUCHO_CACHE_DRIVER: ${MUCHO_CACHE_DRIVER:-database}
+      MUCHO_FILE_CACHE_DIR: ${MUCHO_FILE_CACHE_DIR:-/var/www/mucho-core/storage/cache/files}
       MUCHO_REDIS_HOST: ${MUCHO_REDIS_HOST:-127.0.0.1}
       MUCHO_REDIS_PORT: ${MUCHO_REDIS_PORT:-6379}
       MUCHO_REDIS_PASSWORD: ${MUCHO_REDIS_PASSWORD:-}
