@@ -215,6 +215,8 @@ jobs:
           python3 -m py_compile tools/client/client-patch.py tools/client/client-trace-summary.py tools/release/gd2209_native_evidence.py tests/client/client-patcher-fixture.py tools/release/publish-muchogdps-apk.py
           python3 tools/client/client-patch.py --self-test
           python3 tests/client/client-patcher-fixture.py
+          python3 tests/client/gd2209_python_patcher_test.py
+          python3 tests/hosting/edge5v_test.py
 
       - name: Check required files
         run: |
