@@ -4,6 +4,7 @@ cd /d "%~dp0"
 
 set "PATCHER=%~dp0client-patch.py"
 set "SERVER=https://muchogdps.space"
+if defined MUCHO_GDPS_URL set "SERVER=%MUCHO_GDPS_URL%"
 
 if not exist "%PATCHER%" (
   echo ERROR: client-patch.py was not found.
