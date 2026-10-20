@@ -113,3 +113,35 @@ use **PHP 8.2 or newer** and `/install.php` in the same ZIP.
 Next milestones: native installer/schema management, account credentials,
 level downloads, upload/write integrity, comments, social, admin and GD 2.209
 client certification. Track issue #148.
+
+## PHP7 native News — experimental (GD 2.209)
+
+The same shared archive now includes `compat/php7/news.php` and the editable
+`compat/php7/news.example.json`. The runtime serves the native
+`/gd-content/news/news.dat`, `/gd-content/news/news_version.txt` and direct
+`/news/*` diagnostic aliases using the genuine GZIP/Base64URL GD 2.209
+format. There is no HTTP proxy or dependency on the MuchoCore VPS.
+
+To try it on a **private, disposable test GDPS**:
+1. Copy `compat/php7/news.example.json` to `config/php7-news.json`
+   (outside the website's public folder).
+2. Replace its example title/body with your own text. Bump the integer
+   `version` every time you update a post; keep it above 1,000,000.
+3. In private `config/php7-local.php`, set
+   `'enable_native_news'=>true` and
+   `'site_url'=>'https://YOUR-OWN-5V-DOMAIN.5v.pl'`.
+4. Read the plain version at `/news/news_version.txt`; decode the content
+   at `/news/news.dat` only when checking protocol bytes.
+5. POST to `/a/getCustomContentURL.php`: expected result is
+   `https://YOUR-OWN-5V-DOMAIN.5v.pl/gd-content`.
+
+**Limitation:** the custom content prefix may also be used for GD music and
+SFX. This PHP7 preview handles *news* only; other CDN content needs a
+separately tested safe asset route. Do not enable it on a public server until
+that path and the real client have been verified. Image/video elements and
+in-game native runtime acceptance remain pending. Text/link-only news is
+supported, but the PHP8 News admin cannot be run under PHP7.
+
+For PHP8 VPS News, use `MUCHO_NATIVE_NEWS=1` and verify actual container
+settings via `docs/NEWS_BOARD.md`. The new VPS-only read-only diagnostics:
+`php tools/diagnostics/gd2209-feature-check.php`.
