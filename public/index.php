@@ -174,7 +174,7 @@ try {
 
     // The guard's DB-backed storage and the application share a connection
     // for this request. File-based protection supplies null as before.
-    (new Application($guard->storageConnection()))->run();
+    (new Application($guard->storageConnection()))->run($request);
 
 } catch (\Throwable $e) {
     error_log(sprintf(
