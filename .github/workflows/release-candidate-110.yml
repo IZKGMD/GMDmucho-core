@@ -1,0 +1,116 @@
+name: Package MuchoCore 1.1.0 release candidate
+
+on:
+  push:
+    branches: [release/v1.1.0-rc.1]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: muchocore-v110-rc1-publish
+  cancel-in-progress: false
+
+jobs:
+  release-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact source commit
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Configure PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_mysql, pdo_sqlite, zip, gd
+          tools: composer
+
+      - name: Run candidate checks and record unresolved stable blockers
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(tr -d '[:space:]' < VERSION)" == "1.1.0" ]]
+          composer validate --strict --no-check-publish
+          composer audit --no-dev --locked --format=plain
+          php tests/protocol/endpoint-perfection.php
+          php tests/protocol/gd2209-thread-wire.php
+          php tests/client/gd-2209-synthetic.php
+          python3 tests/release/v110_p0_audit_test.py
+          php tests/release/v110-endpoint-gate.php --json --report > v110-certification-report.json
+          python3 tools/release/v110_p0_audit.py --json > p0-readiness.json
+          python3 -c 'import json; r=json.load(open("v110-certification-report.json")); assert not r["ready"] and r["blocking_finding_count"]>0; print("Preview only: stable certification not passed")'
+
+      - name: Build source and shared-hosting distributions
+        shell: bash
+        env:
+          TAG: v1.1.0-rc.1
+          VERSION: 1.1.0
+          OUTPUT: MuchoCore-v1.1.0-rc.1-shared-hosting.zip
+        run: |
+          set -euo pipefail
+          composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+          bash tools/release/build-shared-hosting.sh
+          git archive --format=zip --prefix="MuchoCore-$TAG/" \
+            -o "MuchoCore-$TAG.zip" HEAD -- . \
+            ':(exclude)Geometry.Dash.ver.1.40.build.11.apk' \
+            ':(exclude)GeometryDash.exe' \
+            ':(exclude)patched/**' \
+            ':(exclude)assets/brand/sources/**' \
+            ':(exclude).release/**'
+          unzip -t "MuchoCore-$TAG.zip" >/dev/null
+          unzip -t "MuchoCore-$TAG-shared-hosting.zip" >/dev/null
+          test -s "MuchoCore-$TAG.zip"
+          test -s "MuchoCore-$TAG-shared-hosting.zip"
+          sha256sum "MuchoCore-$TAG.zip" "MuchoCore-$TAG-shared-hosting.zip" > checksums.sha256
+          sha256sum -c checksums.sha256
+
+      - name: Publish prerelease only after both packages pass
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v1.1.0-rc.1
+        run: |
+          set -euo pipefail
+          SOURCE="MuchoCore-$TAG.zip"
+          SHARED="MuchoCore-$TAG-shared-hosting.zip"
+
+          if git ls-remote --exit-code --refs origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
+            TARGET="$(git rev-parse "$TAG^{commit}")"
+            [[ "$TARGET" == "$GITHUB_SHA" ]] || {
+              echo "Tag $TAG exists at another commit; refusing to move it" >&2
+              exit 1
+            }
+          fi
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            DRAFT="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft')"
+            if [[ "$DRAFT" != "true" ]]; then
+              echo "Existing published candidate; no overwrite"
+              exit 0
+            fi
+          else
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "MuchoCore v1.1.0 RC1 (testing only)" \
+              --notes-file docs/RELEASE_CANDIDATE_1.1.0.md --draft --prerelease
+          fi
+
+          gh release upload "$TAG" "$SOURCE" "$SHARED" \
+            v110-certification-report.json p0-readiness.json checksums.sha256 \
+            --repo "$GITHUB_REPOSITORY" --clobber
+
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq '.assets[].name' > /tmp/muchocore-rc-assets.txt
+          for asset in "$SOURCE" "$SHARED" v110-certification-report.json p0-readiness.json checksums.sha256; do
+            grep -Fxq "$asset" /tmp/muchocore-rc-assets.txt || {
+              echo "Release asset missing: $asset" >&2
+              exit 1
+            }
+          done
+
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease
+          echo "Published TEST prerelease $TAG; stable latest unchanged."
