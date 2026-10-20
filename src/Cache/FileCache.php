@@ -102,6 +102,12 @@ final readonly class FileCache implements CacheInterface
                 @unlink($temporary);
             }
             $this->unlock($lock);
+            // GC is amortized across writes and restricted to one small
+            // shard; this prevents expired 15-second entries accumulating
+            // indefinitely without a full directory scan on normal reads.
+            if (isset($bucket) && mt_rand(1, 128) === 1) {
+                $this->pruneBucket($bucket);
+            }
         }
     }
 
@@ -163,6 +169,45 @@ final readonly class FileCache implements CacheInterface
             }
         } catch (Throwable) {
             // Avoid making level changes fail if cache storage is unhealthy.
+        } finally {
+            $this->unlock($lock);
+        }
+    }
+
+    /**
+     * Opportunistically reclaim expired entries. At most 256 files are
+     * examined per pass; expired rows eventually drain from busy shards.
+     * Locking against writers prevents removal of concurrent fresh values.
+     */
+    private function pruneBucket(string $bucket): void
+    {
+        $lock = $this->lock(LOCK_EX);
+        if ($lock === null) {
+            return;
+        }
+        try {
+            if (!is_dir($bucket)) {
+                return;
+            }
+            $seen = 0;
+            $files = new FilesystemIterator($bucket, FilesystemIterator::SKIP_DOTS);
+            foreach ($files as $file) {
+                if (++$seen > 256) {
+                    break;
+                }
+                if (!$file->isFile() || $file->isLink()
+                    || $file->getExtension() !== 'json') {
+                    continue;
+                }
+                $raw = @file_get_contents($file->getPathname());
+                $entry = is_string($raw) ? json_decode($raw, true) : null;
+                if (is_array($entry) && is_int($entry['expires'] ?? null)
+                    && $entry['expires'] > 0 && $entry['expires'] <= time()) {
+                    @unlink($file->getPathname());
+                }
+            }
+        } catch (Throwable) {
+            // Cache hygiene is best effort; never block an API write.
         } finally {
             $this->unlock($lock);
         }
