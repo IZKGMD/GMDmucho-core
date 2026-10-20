@@ -484,8 +484,12 @@ def patch_gd2209_exact(data: bytes, server: str) -> tuple[bytes, list[PatchStat]
             # Long shared-hosting domains use the equivalent short /a/
             # GD API alias; replacing the whole URL avoids embedded NULs.
             new = b"https://" + host.encode("ascii") + b"/a/" + path[len(b"/database/"):]
+        if len(new) > len(url) and path.startswith(b"/database/"):
+            # Final safe fallback: root GD API alias, handled by both PHP7
+            # and PHP8 routers. No PE resizing, offsets or partial strings.
+            new = b"https://" + host.encode("ascii") + b"/" + path[len(b"/database/"):]
         if len(new) > len(url):
-            raise ValueError(f"GD 2.209 target hostname too long even with /a/ alias for {url.decode('ascii')}")
+            raise ValueError("GD 2.209 domain too long for safe in-place URL patch. Use a shorter hostname or domain alias.")
         patched[match.start():match.end()] = new + b"\x00" * (len(url) - len(new))
         changes += 1
     if changes == 0:
