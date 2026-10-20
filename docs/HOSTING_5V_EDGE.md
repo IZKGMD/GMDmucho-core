@@ -52,7 +52,11 @@ without a redesigned streaming relay.
 
 ## Verifying the actual 5v transport
 
-Test that `https://YOUR-SITE.5v.pl/health` returns only `1` and that
+Test that `https://YOUR-SITE.5v.pl/health` returns only `1` **while the
+actual MuchoCore backend is healthy**. The edge now proxies this request to
+the backend instead of always returning `1`; it fails closed with `-1` if
+outgoing HTTPS cURL is unavailable or the backend fails. The result does not
+prove that every gameplay endpoint works. Then verify that
 the **real** client-facing route returns the same byte-for-byte body as
 the VPS origin for an equivalent request:
 

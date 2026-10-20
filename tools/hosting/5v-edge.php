@@ -18,19 +18,17 @@ $uri = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '/';
 $path = parse_url($uri, PHP_URL_PATH);
 $method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper((string) $_SERVER['REQUEST_METHOD']) : 'GET';
 
-if ($path === '/health' || $path === '/health/') {
-    header('Content-Type: text/plain; charset=utf-8');
-    echo '1';
-    exit;
-}
-
-// Never expose a generic public HTTP proxy, admin panel or arbitrary URL.
+// Health must reach the real MuchoCore backend. A static "1" here
+// incorrectly reported success when the VPS was offline.
+$health = $path === '/health' || $path === '/health/';
 $gdApiPath = is_string($path) &&
     preg_match(
         '~^/(?:a/|api/)*(?:(?:database/)(?:accounts/)?|accounts/)[A-Za-z][A-Za-z0-9]{0,70}\.php$~iD',
         $path
     ) === 1;
-if (!$gdApiPath || ($method !== 'GET' && $method !== 'POST')) {
+if ((!$gdApiPath && !$health) ||
+    ($method !== 'GET' && $method !== 'POST') ||
+    ($health && $method !== 'GET')) {
     http_response_code(404);
     header('Content-Type: text/plain');
     echo '-1';
