@@ -684,8 +684,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # PHP 8.2 is a compatibility probe, not a supported deployment
-        # until Composer, installers, migrations and real-client gates pass.
+        # Include the PHP 8.2 shared-hosting runtime; Docker production stays on 8.3.
         php-version: ["8.2", "8.3", "8.4", "8.5"]
     runs-on: ubuntu-latest
     name: PHP ${{ matrix.php-version }}
@@ -702,20 +701,15 @@ jobs:
       - name: Validate Composer manifest
         run: composer validate --strict --no-check-publish
 
-      - name: Install Composer dependencies (supported PHP)
-        if: matrix.php-version != '8.2'
+      - name: Install Composer dependencies
         run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
-
-      - name: Install dependencies for PHP 8.2 exploration only
-        if: matrix.php-version == '8.2'
-        run: |
-          # Does not change composer.json/lock or the supported minimum.
-          # This is syntax/runtime exploration, NOT release certification.
-          composer install --ignore-platform-req=php --no-interaction --no-progress --prefer-dist --optimize-autoloader
 
       - name: Run runtime compatibility contracts
         run: |
-          find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          find src public tests database bin -name '*.php' -print0 | xargs -0 -n1 php -l
+          php tests/application/shared-hosting-installer-contract.php
+          php tests/application/shared-hosting-ftp-bootstrap-contract.php
+          php tests/application/shared-hosting-ftp-deploy-contract.php
           php tests/application/input-hardening-contract.php
           php tests/application/hotpath-bootstrap-contract.php
           php tests/application/fast-level-bootstrap-contract.php
