@@ -53,6 +53,35 @@ try {
     @unlink($path);
 }
 
+// The .env.local overlay must remain correct and be merged once per
+// request even if the files are changed between unrelated config reads.
+$projectFixture = sys_get_temp_dir() . '/mucho-config-' . bin2hex(random_bytes(6));
+if (!mkdir($projectFixture, 0700)) {
+    throw new RuntimeException('Cannot create project env fixture');
+}
+try {
+    file_put_contents($projectFixture . '/.env', "MC_SOURCE=base\nMC_OVERLAY=base\n");
+    file_put_contents($projectFixture . '/.env.local', "MC_OVERLAY=local\n");
+    $projectMethod = new ReflectionMethod(Environment::class, 'projectFileConfig');
+    $firstProject = $projectMethod->invoke(null, $projectFixture);
+    hotpathAssert(
+        ($firstProject['MC_SOURCE'] ?? null) === 'base'
+        && ($firstProject['MC_OVERLAY'] ?? null) === 'local',
+        'project environment preserves .env.local override precedence'
+    );
+
+    file_put_contents($projectFixture . '/.env.local', "MC_OVERLAY=changed\n");
+    $againProject = $projectMethod->invoke(null, $projectFixture);
+    hotpathAssert(
+        $againProject === $firstProject,
+        'project overlay is snapshotted once for each PHP request'
+    );
+} finally {
+    @unlink($projectFixture . '/.env.local');
+    @unlink($projectFixture . '/.env');
+    @rmdir($projectFixture);
+}
+
 $source = (string)file_get_contents(
     dirname(__DIR__, 2) . '/src/Core/Application.php'
 );
