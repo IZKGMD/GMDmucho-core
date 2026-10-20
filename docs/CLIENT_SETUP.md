@@ -34,10 +34,10 @@ Do not treat MuchoClient presence as an account authentication mechanism.
 Download this repository and open:
 
 ```text
-tools/client-patch.bat
+tools/client/client-patch.bat
 ```
 
-You do **not** need to install Python.
+For the batch-file patcher, install **Python 3** (the batch file calls the\nPython script directly). The web patcher in the admin panel does **not**\nrequire Python. For exact GD 2.209, both now use a matching build-aware\nfull-URL replacement rather than blindly shortening the embedded host.
 
 ### 2. Choose your game
 
@@ -67,7 +67,7 @@ https://gdps.example.com
 
 Do not add `/database`. The patcher builds the client-compatible path automatically.
 
-### 4. Click Patch client
+### 4. Run the batch script (or click **Upload & Patch Client** in the web panel)
 
 The patcher:
 
@@ -210,7 +210,7 @@ These are advanced because the server URL is usually inside native binaries or p
 The existing Python helper can still be used:
 
 ```bash
-python3 tools/client-patch.py
+python3 tools/client/client-patch.py
 ```
 
 For Android 2.2, common native libraries are:
@@ -229,3 +229,7 @@ The patcher changes only known Geometry Dash server URL strings.
 It does not change player data, levels, passwords or the MuchoCore database.
 
 It always writes a new output file and leaves the original file untouched.
+
+## Experimental 5v.pl PHP 7 frontend
+
+5v.pl currently advertises PHP 7, while MuchoCore requires PHP 8.3+.\nThe complete core therefore cannot run directly there. See\n[the 5v.pl edge proof of concept](HOSTING_5V_EDGE.md) for a test-only\nPHP 7 HTTP bridge to your own PHP 8.3+ VPS. This is not native hosting.\n
