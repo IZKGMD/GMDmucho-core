@@ -4,7 +4,7 @@ MuchoCore is a modern Geometry Dash Private Server core for owners who want a ma
 
 ## New to MuchoCore?
 
-For a normal PHP shared host without Docker, use **[docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md)** and the `MuchoCore-vX.Y.Z-shared-hosting.zip` release asset. It includes Composer dependencies and the browser installer, so no server terminal is required.
+For a normal **PHP 8.2+** shared host without Docker, use **[docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md)** and the complete `MuchoCore-vX.Y.Z-shared-hosting.zip` release asset (or a clearly labeled CI preview for testing). Extract its `muchocore/` folder, upload the *contents* to your website via FTP, and open **`https://YOUR-DOMAIN/install.php`**. The ZIP already includes Composer dependencies, migrations and the admin/database wizard; no SSH or VPS is required. An unsupported PHP 7 host gets an honest diagnostic, not a fake installation. Russian instructions: `docs/SHARED_INSTALL_RU.txt` inside the ZIP.
 
 Use the shortest VPS installation path:
 
