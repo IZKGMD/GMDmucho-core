@@ -496,7 +496,12 @@ jobs:
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/client/client-patcher.ps1 -SelfTest
 
   migration-integration:
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ["8.2", "8.3"]
     runs-on: ubuntu-latest
+    name: MariaDB integration PHP ${{ matrix.php-version }}
     services:
       redis:
         image: redis:7.4-alpine
@@ -526,7 +531,7 @@ jobs:
       - name: Set up PHP and Composer
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.3"
+          php-version: ${{ matrix.php-version }}
           extensions: mbstring, pdo_mysql, zip, gd, redis
           tools: composer
 
