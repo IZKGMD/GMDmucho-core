@@ -1,10 +1,71 @@
-name: A/B smoke
+name: PHP-FPM baseline vs performance A/B
+
 on:
   push:
     branches: [perf/global-core-20261019]
+    paths:
+      - src/**
+      - public/**
+      - tools/performance/ab_fpm*
+      - .github/workflows/performance-ab-fpm.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
-  smoke:
-    runs-on: ubuntu-latest
+  comparison:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      maria:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: bench-root
+          MARIADB_DATABASE: bench
+          MARIADB_USER: bench
+          MARIADB_PASSWORD: bench-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s
+          --health-timeout 4s
+          --health-retries 25
     steps:
       - uses: actions/checkout@v5
-      - run: bash -n tools/performance/ab_fpm_ci.sh
+        with:
+          ref: main
+          path: baseline
+      - uses: actions/checkout@v5
+        with:
+          path: candidate
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_mysql, mbstring, zip, gd
+          tools: composer
+      - name: Install local PHP-FPM and Nginx
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends nginx php8.3-fpm php8.3-mysql
+      - name: Install dependencies in both versions
+        run: |
+          cd baseline && composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader
+          cd ../candidate && composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader
+      - name: Prepare isolated fixture and dual FPM pools
+        run: bash candidate/tools/performance/ab_fpm_ci.sh
+      - name: Benchmark identical one-level search on both versions
+        run: |
+          git -C baseline rev-parse HEAD > ab-main-revision.txt
+          git -C candidate rev-parse HEAD > ab-candidate-revision.txt
+          python3 candidate/tools/performance/ab_fpm_benchmark.py --samples 18 --rounds 2 --warmups 2 --pause 0.6 --output ab-fpm-results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: php-fpm-comparison
+          path: |
+            ab-fpm-results.json
+            ab-main-revision.txt
+            ab-candidate-revision.txt
+          if-no-files-found: warn
