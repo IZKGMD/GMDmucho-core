@@ -74,6 +74,34 @@ class LatencyTest(unittest.TestCase):
             httpd.shutdown()
             httpd.server_close()
 
+    def test_paced_requests_and_concurrency_guard(self):
+        httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        server = threading.Thread(target=httpd.serve_forever, daemon=True)
+        server.start()
+        url = f"http://127.0.0.1:{httpd.server_port}/"
+        try:
+            response = subprocess.run([
+                sys.executable, str(SCRIPT), "--url", url,
+                "--count", "4", "--warmup", "0", "--concurrency", "1",
+                "--interval-ms", "40",
+            ], capture_output=True, text=True, check=True)
+            report = json.loads(response.stdout)
+            self.assertEqual(report["successful"], 4)
+            self.assertEqual(report["failures"], 0)
+            self.assertEqual(report["interval_ms"], 40)
+            # Four starts are separated by at least 3 * 40ms.
+            self.assertGreaterEqual(report["elapsed_seconds"], 0.115)
+
+            invalid = subprocess.run([
+                sys.executable, str(SCRIPT), "--url", url,
+                "--count", "4", "--interval-ms", "40", "--concurrency", "2",
+            ], capture_output=True, text=True)
+            self.assertNotEqual(invalid.returncode, 0)
+            self.assertIn("requires --concurrency 1", invalid.stderr)
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
+
     def test_remote_and_secrets_rejected(self):
         for args in (
             ["--url", "https://example.com/"],
