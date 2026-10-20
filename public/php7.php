@@ -35,6 +35,7 @@ if (($method !== 'POST' && $method !== 'GET')
 }
 
 require_once $root . '/compat/php7/runtime.php';
+require_once $root . '/compat/php7/download.php';
 
 try {
     $settings = require $root . '/config/php7-local.php';
