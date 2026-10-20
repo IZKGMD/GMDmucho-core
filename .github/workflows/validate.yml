@@ -192,6 +192,7 @@ jobs:
           php tests/application/shared-one-archive-installer-contract.php
           php tests/compat/php7-native-pure.php
           php tests/compat/php7-native-parity.php
+          php tests/compat/php7-native-download-parity.php
           php tests/application/shared-hosting-ftp-bootstrap-contract.php
           php tests/application/shared-hosting-ftp-deploy-contract.php
           mkdir -p /tmp/muchocore-shared-package-test
@@ -715,6 +716,7 @@ jobs:
             -v "$GITHUB_WORKSPACE:/app:ro" -w /app \
             php:7.0-cli sh -ec '
               php -l compat/php7/runtime.php
+              php -l compat/php7/download.php
               php -l compat/php7/config.example.php
               php -l public/php7.php
               php tests/compat/php7-native-pure.php
