@@ -15,5 +15,6 @@ return array(
     'password' => 'REPLACE_LOCALLY_NOT_IN_GIT',
     'auth_pepper' => 'GENERATED_BY_EXPERIMENTAL_INSTALLER',
     'enable_accounts' => false,
-    'enable_registration' => false
+    'enable_registration' => false,
+    'enable_writes' => false
 );
