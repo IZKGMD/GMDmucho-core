@@ -15,6 +15,9 @@ RewriteRule ^composer\.(json|lock)$ - [F,L,NC]
 
 # The browser installer lives inside public/ so the same repository works
 # whether the hosting panel points the domain to the project root or public/.
+# Unified ZIP entrypoint. The handler is PHP 7 readable and blocks hosts
+# that cannot run the full modern core before loading PHP 8.2 source.
+RewriteRule ^install\.php$ public/install.php [END]
 RewriteRule ^shared-install\.php$ public/shared-install.php [END]
 RewriteRule ^clients(?:/)?$ public/clients.php [L]
 
