@@ -26,6 +26,14 @@ check7(mucho7_epoch('2026-10-20 00:00:00') === 1792454400,
 
 check7(mucho7_dispatch(null, '/health', 'GET', array()) === '1',
     'native health without upstream');
+check7(mucho7_path('/a/getGJLevels21.php') === '/getgjlevels21',
+    'short 5v API path routes to GD search');
+check7(mucho7_dispatch(null, '/a/checkIfServerOnline.php', 'POST', array()) === '1',
+    'real GD 2.209 POST online probe over short /a/ alias');
+check7(mucho7_dispatch(null, '/a/checkIfServerOnline.php', 'GET', array()) === '1',
+    'browser online probe works');
+check7(mucho7_dispatch(null, '/health', 'POST', array()) === '-1',
+    'health only allows GET');
 check7(mucho7_dispatch(null, '/database/getGJLevels21.php', 'GET', array()) === '-1',
     'search must require POST');
 check7(mucho7_dispatch(null, '/database/getGJLevels21.php', 'POST', array()) === '-1',
