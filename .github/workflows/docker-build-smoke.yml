@@ -1,0 +1,53 @@
+name: Docker production image smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docker/Dockerfile
+      - docker-compose.redis-cache.yml
+      - .github/workflows/docker-build-smoke.yml
+  pull_request:
+    paths:
+      - docker/Dockerfile
+      - docker-compose.redis-cache.yml
+      - .github/workflows/docker-build-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  default-app-image:
+    name: Default PHP-FPM image builds without PECL Redis
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build production image with defaults
+        run: docker build --progress=plain -f docker/Dockerfile -t muchocore:docker-smoke .
+      - name: Verify required extensions and no Redis dependency
+        run: |
+          docker run --rm --entrypoint php muchocore:docker-smoke -r '
+            foreach (["gd", "pdo_mysql", "zip", "ftp", "Zend OPcache"] as $extension) {
+                if (!extension_loaded($extension)) {
+                    fwrite(STDERR, "Missing extension: $extension\n");
+                    exit(1);
+                }
+            }
+            if (extension_loaded("redis")) {
+                fwrite(STDERR, "Redis must be opt-in, not present in default image\n");
+                exit(1);
+            }
+            echo "MUCHOCORE_DOCKER_DEFAULT_OK\n";
+          '
+      - name: Check Redis overlay explicitly enables extension
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s = Path('docker-compose.redis-cache.yml').read_text()
+          for service in ('app:', 'worker:'):
+              section = s.split('  ' + service, 1)[1].split('\n  ', 1)[0]
+              assert 'MUCHO_WITH_REDIS: "1"' in section, service
+          print('MUCHOCORE_REDIS_OPT_IN_OK')
+          PY
