@@ -41,6 +41,27 @@ This is a PHP **CLI** microbenchmark. The production PHP-FPM pool has
 different OPcache, worker lifecycle and connection-reuse behavior. Compare
 the same schema/workload at staging before altering DB connectivity.
 
+## October 20 follow-up: three independent CLI samples
+
+The unchanged production checkout (main `247cd0a`) yielded:
+
+| Stage | Run 1 | Run 2 | Run 3 | Average |
+|---|---:|---:|---:|---:|
+| Composer autoload | 2.926 ms | 2.185 ms | 3.860 ms | 2.990 ms |
+| Configuration | 7.824 ms | 5.746 ms | 8.611 ms | **7.394 ms** |
+| PDO connect | 2.653 ms | 1.798 ms | 2.407 ms | 2.286 ms |
+| 20 SELECT 1 | 3.255 ms | 1.956 ms | 3.198 ms | 2.803 ms |
+| Total measured | 16.658 ms | 11.685 ms | 18.076 ms | 15.473 ms |
+
+The bootstrap probe came from the performance branch but loaded the
+**production code** via `vendor/autoload.php`. As a result these numbers
+measure pre-optimization `Environment`, which re-reads and re-parses
+runtime and project dotenv files for every distinct key. In PR #136,
+`Environment::loadFile()` already caches its parse result per PHP request;
+we now also cache the merged `.env.local` overlay to avoid repeated
+filesystem checks and `array_merge`. The CLI sample cannot establish the
+exact PHP-FPM savings until staging testing.
+
 ## Safe code-path change in this PR
 
 The front controller now reuses its already-inspected, immutable
