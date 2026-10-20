@@ -9,6 +9,42 @@ database using PDO, reads the existing MuchoCore tables, and encodes GD
 public level lists on the host. It does not load any PHP 8 application
 classes, Composer packages or custom extensions.
 
+## Phase 2 — native disposable database installer and accounts
+
+An experimental standalone browser wizard now exists at
+`public/php7-setup.php`. It is **not** the main `/install.php` and does
+not turn the modern PHP8 core into a PHP7 core. To prevent drive-by remote
+installation it requires HTTPS, a previously placed strong private
+`config/php7-setup-key.txt`, CSRF token and an **empty, disposable MySQL
+database**. It creates only the native adapter's base roles, accounts, profiles,
+songs, levels, and login-throttle tables. Never point it at an existing GDPS.
+MySQL DDL cannot roll back; on interruption use a new empty test database.
+After setup it writes `config/php7-local.php` privately and removes the
+setup key. Delete `public/php7-setup.php` after testing.
+
+The optional `compat/php7/auth.php` implements registration and login with
+bcrypt-hashed passwords, the existing GD GJP2 derivation, profile creation in
+a transaction, banned-account checks and DB-backed login/registration limits.
+**Both account switches default to FALSE** in the generated private
+configuration. Do not turn them on for public players: PHP 7.0 is unpatched,
+real 5v.pl acceptance/security has not been established, and these functions
+are isolated technical tests, not a certified account service.
+
+To enable routing on a private throwaway site, the existing
+`public/php7-mode.on` must still be created separately. This feature remains
+off by default in the ZIP. To test accounts, explicitly enable
+`enable_accounts` and `enable_registration` in the private config; disable
+immediately after testing. The `/install.php` production installer continues
+to reject PHP 7.
+
+The MariaDB CI test `tests/compat/php7-native-mysql.php` independently creates
+an isolated temporary database and tests native registration, login,
+2.209 public search/download and repeat-install refusal. The PHP 7.0 CLI CI
+job checks syntax, while the PHP 8.2-8.5 job tests security contracts.
+
+**Not complete:** no levels.upload, comments, user cloud save, full GD 2.209
+features, admin, full modern migrations/plugins or real client acceptance.
+
 ## Implemented
 
 - PHP 7.0-syntax runtime: `compat/php7/runtime.php`.
@@ -29,7 +65,7 @@ classes, Composer packages or custom extensions.
 
 ## What is *not* available
 
-Native GD account registration and login, password recovery, level upload,
+Default-off experimental account registration/login are implemented but not certified; password recovery, level upload,
 advanced level downloads, comments, leaderboard, friends, Cloud Save, 2.209 social,
 admin, migrations, plugins and WebAuthn. Full PHP7 feature parity, complete
 installation, provider acceptance and actual GD 2.209 client acceptance are
