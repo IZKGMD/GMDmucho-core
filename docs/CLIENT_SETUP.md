@@ -232,4 +232,4 @@ It always writes a new output file and leaves the original file untouched.
 
 ## Experimental 5v.pl PHP 7 frontend
 
-5v.pl currently advertises PHP 7, while MuchoCore requires PHP 8.3+.\nThe complete core therefore cannot run directly there. See\n[the 5v.pl edge proof of concept](HOSTING_5V_EDGE.md) for a test-only\nPHP 7 HTTP bridge to your own PHP 8.3+ VPS. This is not native hosting.\n
+5v.pl currently advertises PHP 7, while MuchoCore requires PHP 8.2+.\nThe complete core therefore cannot run directly there. See\n[the 5v.pl edge proof of concept](HOSTING_5V_EDGE.md) for a test-only\nPHP 7 HTTP bridge to your own PHP 8.2+ VPS. This is not native hosting.\n
