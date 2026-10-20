@@ -10,7 +10,17 @@ declare(strict_types=1);
  * php tools/performance/level_sql_audit.php
  */
 
-require dirname(__DIR__, 2) . '/vendor/autoload.php';
+// Also support piping the script into 'docker compose exec -T app php'
+// from a VPS checkout, without copying files into a live container.
+$root = dirname(__DIR__, 2);
+if (!is_file($root . '/vendor/autoload.php')) {
+    $root = getcwd() ?: '';
+}
+if (!is_file($root . '/vendor/autoload.php')) {
+    fwrite(STDERR, "Run from the MuchoCore project root inside the PHP container.\n");
+    exit(2);
+}
+require $root . '/vendor/autoload.php';
 
 use MuchoCore\Database\Database;
 
