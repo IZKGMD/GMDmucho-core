@@ -96,11 +96,11 @@ class GD2209PatcherTest(unittest.TestCase):
         )
         self.assertEqual(len(python_bytes), len(source))
         self.assertIn(
-            b"https://muchocoretest.5v.pl/a/checkIfServerOnline.php\\x00",
+            b"https://muchocoretest.5v.pl/a/checkIfServerOnline.php\x00",
             python_bytes
         )
         self.assertIn(
-            b"https://muchocoretest.5v.pl/a/getGJLevels21.php\\x00",
+            b"https://muchocoretest.5v.pl/a/getGJLevels21.php\x00",
             python_bytes
         )
         with tempfile.TemporaryDirectory() as temp:
@@ -110,7 +110,7 @@ class GD2209PatcherTest(unittest.TestCase):
             script = (
                 'require $argv[1];'
                 '$input=file_get_contents($argv[2]);'
-                '[$patched]=\\\\MuchoCore\\\\Client\\\\Gd2209Binary::patchBytes('
+                '[$patched]=\MuchoCore\Client\Gd2209Binary::patchBytes('
                 '$input, "muchocoretest.5v.pl");'
                 'file_put_contents($argv[3], $patched);'
             )
