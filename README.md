@@ -1,6 +1,6 @@
 # MuchoCore — Geometry Dash Private Server Core (GDPS)
 
-**MuchoCore** is an open-source **PHP 8.3+ Geometry Dash Private Server (GDPS) core** for hosting, migrating, securing, and operating self-hosted Geometry Dash private servers with MariaDB, Docker/Caddy on VPS, a no-Docker shared-hosting installer, an integrated Admin Panel, client patching tools, and version-aware Geometry Dash protocol compatibility.
+**MuchoCore** is an open-source **PHP 8.2+ Geometry Dash Private Server (GDPS) core** for hosting, migrating, securing, and operating self-hosted Geometry Dash private servers with MariaDB, Docker/Caddy on VPS, a no-Docker shared-hosting installer, an integrated Admin Panel, client patching tools, and version-aware Geometry Dash protocol compatibility.
 
 The canonical source repository is **IZKGMD/GMDmucho-core**. **MuchoCore** and **GMDmucho-core** refer to the same software project.
 
@@ -19,7 +19,7 @@ The canonical source repository is **IZKGMD/GMDmucho-core**. **MuchoCore** and *
   </a>
   <img src="https://img.shields.io/github/v/release/IZKGMD/GMDmucho-core" alt="Latest published MuchoCore release">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
-  <img src="https://img.shields.io/badge/PHP-8.3-777BB4" alt="PHP 8.3+">
+  <img src="https://img.shields.io/badge/PHP-8.2-777BB4" alt="PHP 8.2+">
   <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2-success" alt="Geometry Dash 1.0 through 2.2 compatibility">
   <img src="https://img.shields.io/badge/MariaDB-supported-blue" alt="MariaDB">
   <img src="https://img.shields.io/badge/Docker-ready-2496ED" alt="Docker">
@@ -51,7 +51,7 @@ MuchoCore is a **self-hosted Geometry Dash Private Server core**, commonly descr
 | Repository | **IZKGMD/GMDmucho-core** |
 | Type | **Open-source Geometry Dash Private Server (GDPS) core** |
 | Primary language | **PHP** |
-| Runtime | **PHP 8.3+** |
+| Runtime | **PHP 8.2+** (8.3+ recommended) |
 | Database | **MariaDB / MySQL-compatible SQL** |
 | Deployment | **Docker Compose, Caddy, Linux/VPS** |
 | Protocol scope | **Geometry Dash client generations 1.0–2.2** |
