@@ -20,8 +20,8 @@ from urllib.parse import urlsplit, urlunsplit
 
 GD2209_SHA256 = "524265b3781596fcc7c9e4d60dc5ac2d0a4cd9530ee3ea637e123f9ac1f9b6a8"
 GD2209_URL_REGEX = re.compile(
-    rb"https?://(?:www\\.boomlings\\.com|boomlings\\.com|www\\.geometrydash\\.com)"
-    rb"/(?:database|databas)/[A-Za-z0-9._/-]+\\.php(?=\\x00)"
+    rb"https?://(?:www\.boomlings\.com|boomlings\.com|www\.geometrydash\.com)"
+    rb"/(?:database|databas)/[A-Za-z0-9._/-]+\.php(?=\x00)"
 )
 
 SEGMENTS = ("a", "api", "database", "accounts")
