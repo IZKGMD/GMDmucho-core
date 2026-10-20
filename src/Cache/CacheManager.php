@@ -20,6 +20,14 @@ final class CacheManager
             return new NullCache();
         }
 
+        if ($driver === 'file') {
+            $directory = Environment::get(
+                'MUCHO_FILE_CACHE_DIR',
+                dirname(__DIR__, 2) . '/storage/cache/files'
+            );
+            return new FileCache((string)$directory);
+        }
+
         if ($driver === 'redis') {
             try {
                 return new RedisCache([
