@@ -73,7 +73,7 @@ $guardSource = (string)file_get_contents(
 );
 hotpathAssert(
     str_contains($front, '$guard = new MuchoProtect();')
-    && str_contains($front, '(new Application($guard->storageConnection()))->run();')
+    && str_contains($front, '(new Application($guard->storageConnection()))->run($request);')
     && str_contains($guardSource, '$this->storageConnection = $db;'),
     'front controller reuses the DB protection connection without bypassing inspection'
 );
@@ -86,6 +86,17 @@ hotpathAssert(
     && $pdoArg->getType()?->getName() === PDO::class
     && $pdoArg->allowsNull(),
     'standalone Application remains backward compatible without an injected PDO'
+);
+
+$run = new ReflectionMethod(\MuchoCore\Core\Application::class, 'run');
+$param = $run->getParameters()[0] ?? null;
+hotpathAssert(
+    $param !== null
+    && $param->allowsNull()
+    && $param->isDefaultValueAvailable()
+    && $param->getType()?->getName() === \MuchoCore\Http\Request::class
+    && substr_count($front, 'Request::fromGlobals()') === 1,
+    'HTTP requests are parsed once, then reused after MuchoProtect precheck'
 );
 
 echo "MUCHOCORE_HOTPATH_BOOTSTRAP_OK\n";
