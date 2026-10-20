@@ -283,6 +283,45 @@ try {
         'changing a gameplay filter never reuses an incompatible cached result'
     );
 
+    // Sparse first-page lookups have a known exact total from the rows.
+    // The old implementation always issued a separate COUNT(*) read.
+    $levelRepo = new LevelRepository($db);
+    $readsCounter = static function () use ($db): int {
+        $value = $db->query("SHOW SESSION STATUS LIKE 'Com_select'")->fetch(PDO::FETCH_NUM);
+        return (int)($value[1] ?? -1);
+    };
+    $beforeSparse = $readsCounter();
+    $one = $levelRepo->search(0, '100', 22, 0, 10);
+    $sparseReads = $readsCounter() - $beforeSparse;
+    $assert(
+        $one['total'] === 1
+        && count($one['levels']) === 1
+        && $sparseReads === 1,
+        'first-page numeric level lookup returns exact total with one SELECT'
+    );
+
+    $none = $levelRepo->search(0, 'nonexistent-search-text', 22, 0, 10);
+    $assert(
+        $none['total'] === 0 && $none['levels'] === [],
+        'first-page empty search retains its exact zero total'
+    );
+
+    // Full and later pages still require the real total; the wire format
+    // must never undercount pages after the sparse COUNT optimization.
+    for ($extra = 200; $extra < 212; $extra++) {
+        $db->prepare(
+            'INSERT INTO levels(level_id,account_id,name,stars,is_deleted,is_unlisted)
+             VALUES (:id,1,:name,0,0,0)'
+        )->execute(['id'=>$extra, 'name'=>'Extra ' . $extra]);
+    }
+    $full = $levelRepo->search(0, '', 22, 0, 10);
+    $last = $levelRepo->search(0, '', 22, 10, 10);
+    $assert(
+        $full['total'] === 16 && count($full['levels']) === 10
+        && $last['total'] === 16 && count($last['levels']) === 6,
+        'full and later pages retain exact totals for Geometry Dash'
+    );
+
     echo "MUCHOCORE_GD_2209_MODERATION_QUEUE_OK\n";
 } finally {
     $server->exec('DROP DATABASE IF EXISTS ' . $dbName);
