@@ -327,6 +327,12 @@ function mucho7_dispatch($pdo, $uri, $method, $post, $options = array())
     ), true)) {
         return $pdo instanceof PDO ? mucho7_search($pdo, $post) : '-1';
     }
+    if ($pdo instanceof PDO && !empty($options['enable_accounts'])
+        && !empty($options['enable_writes']) && function_exists('mucho7_upload')
+        && in_array($path,array('/uploadgjlevel','/uploadgjlevel19',
+          '/uploadgjlevel20','/uploadgjlevel21','/uploadgjlevel22'),true)) {
+        return mucho7_upload($pdo,$post);
+    }
     if (in_array($path, array(
         '/downloadgjlevel', '/downloadgjlevel19', '/downloadgjlevel20',
         '/downloadgjlevel21', '/downloadgjlevel22'
