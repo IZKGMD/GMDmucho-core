@@ -290,7 +290,7 @@ function mucho7_search(PDO $pdo, $data)
     );
 }
 
-function mucho7_dispatch($pdo, $uri, $method, $post)
+function mucho7_dispatch($pdo, $uri, $method, $post, $options = array())
 {
     $path = mucho7_path($uri);
     if (($path === '/health' || $path === '/checkifserveronline')
@@ -299,6 +299,27 @@ function mucho7_dispatch($pdo, $uri, $method, $post)
     }
     if (strtoupper($method) !== 'POST') {
         return '-1';
+    }
+    // Account endpoints require an explicit experimental switch. No PHP7
+    // credential processing occurs with the default downloaded package.
+    if ($pdo instanceof PDO && function_exists('mucho7_login')
+        && !empty($options['enable_accounts'])) {
+        $ip = isset($options['ip']) && is_string($options['ip'])
+            ? $options['ip'] : '';
+        $pepper = isset($options['auth_pepper']) ? $options['auth_pepper'] : '';
+        if (in_array($path, array(
+            '/logingjaccount','/logingjaccount19',
+            '/logingjaccount20','/logingjaccount21'
+        ), true)) {
+            return mucho7_login($pdo, $post, $ip, $pepper);
+        }
+        if (!empty($options['enable_registration'])
+            && in_array($path, array(
+                '/registergjaccount','/registergjaccount19',
+                '/registergjaccount20','/registergjaccount21'
+            ), true)) {
+            return mucho7_register($pdo, $post, $ip, $pepper);
+        }
     }
     if (in_array($path, array(
         '/getgjlevels', '/getgjlevels19', '/getgjlevels20',
