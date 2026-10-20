@@ -124,3 +124,25 @@ The official release proof remains the existing
 
 Don't run schema migrations, use `do-release-upgrade`, or publish a stable
 1.1.0 tag to apply this patch.
+
+## Rate-limit-aware search benchmarks
+
+`getGJLevels21` is protected by MuchoProtect: 30 requests per 10 seconds and
+120 requests per minute per client IP. A benchmark with 5 warmups followed
+by 50 immediate requests can legitimately return 25 successful responses
+and 25 `-1` rejections. This does NOT mean the server reached its capacity.
+
+For a correct read-only p95 sample on a staging tenant, avoid flooding:
+
+```bash
+python3 tools/performance/http_latency.py \
+  --url http://127.0.0.1/database/getGJLevels21.php \
+  --host-header staging.example.test --method POST \
+  --data 'type=0&page=0&gameVersion=22&binaryVersion=51' \
+  --count 20 --warmup 2 --concurrency 1 --interval-ms 600
+```
+
+Wait for any preexisting temporary anti-abuse penalty to expire first.
+Never disable MuchoProtect on the production service to benchmark it.
+The output's RPS with `--interval-ms` is pacing-limited, not capacity.
+Only accepted 2xx/non-`-1` responses enter the latency distribution.
