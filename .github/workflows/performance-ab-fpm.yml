@@ -1,0 +1,10 @@
+name: A/B smoke
+on:
+  push:
+    branches: [perf/global-core-20261019]
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: bash -n tools/performance/ab_fpm_ci.sh
