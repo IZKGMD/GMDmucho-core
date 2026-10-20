@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import importlib.util
 import hashlib
+import shutil
+import subprocess
+import tempfile
 import struct
 import sys
 import unittest
@@ -57,6 +60,32 @@ class GD2209PatcherTest(unittest.TestCase):
         self.assertNotIn(b"https://www.boomlings.com/database/", patched)
         self.assertEqual(source[:0x400], patched[:0x400])
         self.assertEqual(source[0x1400:], patched[0x1400:])
+
+    @unittest.skipUnless(shutil.which("php"), "PHP CLI needed for native parity test")
+    def test_php_web_patcher_and_python_patcher_produce_identical_bytes(self):
+        source = fixture()
+        python_bytes, _ = module.patch_gd2209_exact(
+            source, "https://muchogdps.space"
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            original = Path(temp) / "source.exe"
+            result = Path(temp) / "result.exe"
+            original.write_bytes(source)
+            code = (
+                'require $argv[1]; '
+                '$source=file_get_contents($argv[2]); '
+                '[$patched]=\\MuchoCore\\Client\\Gd2209Binary::patchBytes('
+                '$source, "muchogdps.space"); '
+                'file_put_contents($argv[3], $patched);'
+            )
+            proc = subprocess.run(
+                ["php", "-r", code,
+                 str(ROOT / "src/Client/Gd2209Binary.php"),
+                 str(original), str(result)],
+                capture_output=True, text=True,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertEqual(python_bytes, result.read_bytes())
 
     def test_full_url_is_never_truncated_at_hostname(self):
         source = fixture()
