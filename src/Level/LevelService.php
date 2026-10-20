@@ -73,6 +73,7 @@ final readonly class LevelService
                 'diff', 'len', 'original', 'coins', 'twoPlayer', 'star',
                 'noStar', 'featured', 'epic', 'mythic', 'legendary',
                 'song', 'customSong', 'uncompleted', 'onlyCompleted',
+                'gauntlet',
             ] as $key) {
                 if (isset($input[$key]) && is_scalar($input[$key])) {
                     $cacheInput[$key] = (string)$input[$key];
