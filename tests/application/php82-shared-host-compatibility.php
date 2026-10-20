@@ -28,15 +28,12 @@ foreach ([
     $root . '/public/ftp-install.php',
 ] as $path) {
     $source = (string)file_get_contents($path);
-    if (!str_contains($source, "version_compare(PHP_VERSION, '8.2.0', '>=' )")
-        && !str_contains($source, "version_compare(PHP_VERSION, '8.2.0', '>=' )")) {
-        // Whitespace-tolerant check without evaluating the installer.
-        if (!preg_match(
-            '/version_compare\\s*\\(\\s*PHP_VERSION\\s*,\\s*[\\x27]8\\.2\\.0[\\x27]\\s*,\\s*[\\x27]>=[\\x27]\\s*\\)/',
-            $source
-        )) {
-            throw new RuntimeException('Shared installer PHP guard is out of sync: ' . basename($path));
-        }
+    // Whitespace-tolerant static guard, without invoking installation.
+    if (!preg_match(
+        '/version_compare\\s*\\(\\s*PHP_VERSION\\s*,\\s*[\\x27]8\\.2\\.0[\\x27]\\s*,\\s*[\\x27]>=[\\x27]\\s*\\)/',
+        $source
+    )) {
+        throw new RuntimeException('Shared installer PHP guard is out of sync: ' . basename($path));
     }
 }
 echo "PHP_82_SHARED_HOSTING_REQUIREMENTS_OK\n";
