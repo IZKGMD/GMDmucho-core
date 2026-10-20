@@ -74,9 +74,22 @@ final readonly class FileCache implements CacheInterface
         try {
             $file = $this->filePath($key);
             $bucket = dirname($file);
-            if (!is_dir($bucket) && !@mkdir($bucket, 0700, true)
-                && !is_dir($bucket)) {
-                return;
+            if (!is_dir($bucket)) {
+                if (!@mkdir($bucket, 0700, true) && !is_dir($bucket)) {
+                    return;
+                }
+                // The CLI worker may run as root while PHP-FPM runs as
+                // www-data. Keep shared cache shards owned by the private
+                // cache directory's owner, not the process that wrote first.
+                $owner = @fileowner($this->directory);
+                $group = @filegroup($this->directory);
+                if (is_int($owner)) {
+                    @chown($bucket, $owner);
+                }
+                if (is_int($group)) {
+                    @chgrp($bucket, $group);
+                }
+                @chmod($bucket, 0700);
             }
 
             $encoded = json_encode([
@@ -89,6 +102,14 @@ final readonly class FileCache implements CacheInterface
             $temporary = @tempnam($bucket, '.mc-');
             if (!is_string($temporary) || dirname($temporary) !== $bucket) {
                 return;
+            }
+            $owner = @fileowner($bucket);
+            $group = @filegroup($bucket);
+            if (is_int($owner)) {
+                @chown($temporary, $owner);
+            }
+            if (is_int($group)) {
+                @chgrp($temporary, $group);
             }
             @chmod($temporary, 0600);
             if (@file_put_contents($temporary, $encoded) !== strlen($encoded)) {
