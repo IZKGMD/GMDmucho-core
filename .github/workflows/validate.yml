@@ -684,7 +684,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: ["8.3", "8.4", "8.5"]
+        # PHP 8.2 is a compatibility probe, not a supported deployment
+        # until Composer, installers, migrations and real-client gates pass.
+        php-version: ["8.2", "8.3", "8.4", "8.5"]
     runs-on: ubuntu-latest
     name: PHP ${{ matrix.php-version }}
     steps:
@@ -700,8 +702,16 @@ jobs:
       - name: Validate Composer manifest
         run: composer validate --strict --no-check-publish
 
-      - name: Install Composer dependencies
+      - name: Install Composer dependencies (supported PHP)
+        if: matrix.php-version != '8.2'
         run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Install dependencies for PHP 8.2 exploration only
+        if: matrix.php-version == '8.2'
+        run: |
+          # Does not change composer.json/lock or the supported minimum.
+          # This is syntax/runtime exploration, NOT release certification.
+          composer install --ignore-platform-req=php --no-interaction --no-progress --prefer-dist --optimize-autoloader
 
       - name: Run runtime compatibility contracts
         run: |
