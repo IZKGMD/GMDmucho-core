@@ -31,6 +31,7 @@ required=(
   "public/php7.php"
   "compat/php7/runtime.php"
   "compat/php7/config.example.php"
+  "docs/PHP7_NATIVE_PHASE1.md"
   "docs/SHARED_INSTALL_RU.txt"
 )
 
@@ -52,7 +53,7 @@ cp -a "$ROOT/config" "$STAGE/muchocore/"
 cp -a "$ROOT/vendor" "$STAGE/muchocore/"
 cp -a "$ROOT/composer.json" "$ROOT/composer.lock" "$ROOT/VERSION" "$ROOT/README.md" "$ROOT/START_HERE.md" "$STAGE/muchocore/"
 mkdir -p "$STAGE/muchocore/docs"
-cp -a "$ROOT/docs/SHARED_HOSTING.md" "$ROOT/docs/CLIENT_SETUP.md" "$ROOT/docs/SHARED_INSTALL_RU.txt" "$STAGE/muchocore/docs/"
+cp -a "$ROOT/docs/SHARED_HOSTING.md" "$ROOT/docs/CLIENT_SETUP.md" "$ROOT/docs/PHP7_NATIVE_PHASE1.md" "$ROOT/docs/SHARED_INSTALL_RU.txt" "$STAGE/muchocore/docs/"
 
 rm -f "$STAGE/muchocore/config/cloudsave.key"
 
@@ -81,6 +82,7 @@ unzip -Z1 "$OUTPUT" > "$ZIP_LIST"
 grep -Fxq 'muchocore/public/php7.php' "$ZIP_LIST"
 grep -Fxq 'muchocore/compat/php7/runtime.php' "$ZIP_LIST"
 grep -Fxq 'muchocore/compat/php7/config.example.php' "$ZIP_LIST"
+grep -Fxq 'muchocore/docs/PHP7_NATIVE_PHASE1.md' "$ZIP_LIST"
 ! grep -Fxq 'muchocore/public/php7-mode.on' "$ZIP_LIST"
 ! grep -Fxq 'muchocore/config/php7-local.php' "$ZIP_LIST"
 grep -Fxq 'muchocore/public/install.php' "$ZIP_LIST"
