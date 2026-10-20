@@ -10,7 +10,7 @@ use RuntimeException;
  * Exact-build Windows GD 2.209 URL patcher.
  *
  * No code/instruction patching, no binary version spoofing, no PE resizing.
- * Patched origin must be a shorter or equal-length HTTPS hostname.
+ * Patched URL bytes cannot exceed their original length. For long HTTPS\n * subdomains, MuchoCore's /a/ route alias is used when needed.
  */
 final class Gd2209Binary
 {
@@ -113,8 +113,14 @@ final class Gd2209Binary
             }
             $patched = 'https://' . $targetHost . $oldPath;
             $oldLength = strlen($url);
+            if (strlen($patched) > $oldLength && str_starts_with($oldPath, '/database/')) {
+                // GD 2.209 reserves only its original URL bytes. The /a/
+                // shared-hosting alias saves enough space for long subdomains.
+                $patched = 'https://' . $targetHost . '/a/' .
+                    substr($oldPath, strlen('/database/'));
+            }
             if (strlen($patched) > $oldLength) {
-                throw new RuntimeException("GD 2.209 target host too long for {$url}");
+                throw new RuntimeException("GD 2.209 target host too long even with /a/ alias for {$url}");
             }
             $section = substr_replace(
                 $section,
