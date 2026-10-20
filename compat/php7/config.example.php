@@ -12,5 +12,9 @@ return array(
     'port' => 3306,
     'database' => 'your_muchocore_db',
     'username' => 'your_db_user',
-    'password' => 'REPLACE_LOCALLY_NOT_IN_GIT'
+    'password' => 'REPLACE_LOCALLY_NOT_IN_GIT',
+    'auth_pepper' => 'GENERATED_BY_EXPERIMENTAL_INSTALLER',
+    'enable_accounts' => false,
+    'enable_registration' => false,
+    'enable_writes' => false
 );
