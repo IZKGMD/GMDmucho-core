@@ -35,6 +35,7 @@ jobs:
           [[ "$(tr -d '[:space:]' < VERSION)" == "1.1.0" ]]
           composer validate --strict --no-check-publish
           composer audit --no-dev --locked --format=plain
+          composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
           php tests/protocol/endpoint-perfection.php
           php tests/protocol/gd2209-thread-wire.php
           php tests/client/gd-2209-synthetic.php
