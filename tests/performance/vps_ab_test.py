@@ -67,7 +67,7 @@ class VpsAbTest(unittest.TestCase):
             return ""
 
         with patch.object(module, "compose", side_effect=fake_compose):
-            with patch.object(module, "read_flag", side_effect=lambda k: "1"):
+            with patch.object(module, "read_flag", side_effect=lambda k: "0" if k == "MUCHO_PERF_PROFILE" else "1"):
                 module.switch(experimental=True)
         cmd, env = calls[0]
         self.assertEqual(cmd, ("up", "-d", "--no-deps", "--force-recreate", "app"))
