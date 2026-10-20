@@ -11,7 +11,7 @@ request/response wire formats and the stable-release marker remain unchanged.
 | Background queue | Workers wait on the oldest locked job | `FOR UPDATE SKIP LOCKED` reserves other available jobs on MariaDB 10.6+; older engines fall back | Isolated concurrent MariaDB worker test |
 | Download deduplication | Every player download scans/deletes *all* expired rows for its level | Delete only expired slots for the requesting `(level_id, client_hash)` through the existing composite unique index | Two-download-per-client, expiry reuse and counter checks |
 | Deduplication storage | Popular levels can accumulate expiry rows until a download reaps all of them | The background worker prunes up to 512 expired rows per minute, outside the request path using the existing timestamp index | MariaDB integration plus existing dedupe contract |
-| Search indexing | One `fetchAll()` loads every ID into PHP | Fixed 256-row keyset batches, a high-water ID and no increasing OFFSET | 700-level MariaDB integration |
+| Search indexing | Unbounded IDs; then one extra SELECT per level even after pagination | Fixed 256-row keyset batches fetch required level/creator fields in one joined read, avoiding N+1 SELECTs; high-water ID and no OFFSET | 700-level MariaDB integration + SELECT-count regression |
 | Redis invalidation | Prefix invalidation uses synchronous `DEL` for all matches | `UNLINK` asynchronously reclaims payloads when supported, with `DEL` fallback | Literal wildcard + multi-batch Redis test |
 | PHP runtime | Distribution-default OPcache limits | Conservative cache sizing and realpath cache; **timestamps remain validated** | Docker build + existing PHP and routing tests |
 
@@ -22,6 +22,7 @@ request/response wire formats and the stable-release marker remain unchanged.
 - No change to GD protocol framing or authentication.
 - No certification of previously unverified GD 2.209 endpoints.
 - No production database benchmark has been run.
+- The 300-level search-index SELECT-count test proves fewer reads; it does **not** measure latency in milliseconds or p95.
 
 
 ## Additional end-to-end latency work
