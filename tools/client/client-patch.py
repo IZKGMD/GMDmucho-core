@@ -480,8 +480,12 @@ def patch_gd2209_exact(data: bytes, server: str) -> tuple[bytes, list[PatchStat]
         if path.startswith(b"/databas/"):
             path = b"/database/" + path[len(b"/databas/"):]
         new = b"https://" + host.encode("ascii") + path
+        if len(new) > len(url) and path.startswith(b"/database/"):
+            # Long shared-hosting domains use the equivalent short /a/
+            # GD API alias; replacing the whole URL avoids embedded NULs.
+            new = b"https://" + host.encode("ascii") + b"/a/" + path[len(b"/database/"):]
         if len(new) > len(url):
-            raise ValueError(f"GD 2.209 target hostname too long for {url.decode('ascii')}")
+            raise ValueError(f"GD 2.209 target hostname too long even with /a/ alias for {url.decode('ascii')}")
         patched[match.start():match.end()] = new + b"\x00" * (len(url) - len(new))
         changes += 1
     if changes == 0:
