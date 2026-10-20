@@ -5,11 +5,13 @@ declare(strict_types=1);
 use Dotenv\Dotenv;
 use MuchoCore\Core\Application;
 use MuchoCore\Core\Environment;
+use MuchoCore\Diagnostics\RequestProfiler;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
 use MuchoCore\Routing\Router;
 use MuchoCore\Security\MuchoProtect;
 
+$__muchoEntryStartedAt = hrtime(true);
 ob_start();
 
 /*
@@ -157,12 +159,16 @@ try {
     $router = new Router();
     $path = strtolower($router->normalizePath($request->path));
 
+    // No work or logging on other routes; explicit opt-in for level search only.
+    RequestProfiler::begin($path, $__muchoEntryStartedAt);
+
     // Apply the unified protection layer before constructing Application/DB state.
     $guard = new MuchoProtect();
     $protection = $guard->inspect(
         $request,
         $path
     );
+    RequestProfiler::phase('protection');
 
     if ($protection['decision'] === 'block') {
         $_SERVER['MUCHO_PROTECT_PRECHECKED'] = '1';

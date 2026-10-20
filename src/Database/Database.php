@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MuchoCore\Database;
 
 use MuchoCore\Core\Environment;
+use MuchoCore\Diagnostics\RequestProfiler;
 use PDO;
 
 final class Database
@@ -25,11 +26,13 @@ final class Database
 
         $dsn = "mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4";
 
+        $connectStartedAt = RequestProfiler::clock();
         $this->pdo = new PDO($dsn, $user, $pass, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
         ]);
+        RequestProfiler::observe('db_connect', $connectStartedAt);
     }
     public function connection(): PDO
     {

@@ -35,6 +35,7 @@ use MuchoCore\CloudSave\CloudSaveRepository;
 use MuchoCore\CloudSave\CloudSaveController;
 use MuchoCore\Database\Database;
 use MuchoCore\Diagnostics\ClientTrace;
+use MuchoCore\Diagnostics\RequestProfiler;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
 use MuchoCore\Interaction\CommentController;
@@ -724,6 +725,7 @@ final readonly class Application
         // routes can never shadow a core protocol endpoint.
         $this->plugins->load();
         $this->plugins->boot();
+        RequestProfiler::phase('app_init');
     }
 
     public function handle(Request $request): Response
@@ -805,6 +807,8 @@ final readonly class Application
     {
         // Reuse the exact immutable Request already inspected by the
         // front-controller guard. Direct callers can still omit it.
-        $this->handle($request ?? Request::fromGlobals())->send();
+        $response = $this->handle($request ?? Request::fromGlobals());
+        RequestProfiler::response($response);
+        $response->send();
     }
 }
