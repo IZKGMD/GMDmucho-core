@@ -87,6 +87,42 @@ class GD2209PatcherTest(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, proc.stderr)
             self.assertEqual(python_bytes, result.read_bytes())
 
+    @unittest.skipUnless(shutil.which("php"), "PHP CLI needed for native parity test")
+    def test_long_5v_shared_host_uses_short_alias_and_matches_php(self):
+        source = fixture()
+        host = "muchocoretest.5v.pl"
+        python_bytes, _ = module.patch_gd2209_exact(
+            source, "https://" + host
+        )
+        self.assertEqual(len(python_bytes), len(source))
+        self.assertIn(
+            b"https://muchocoretest.5v.pl/a/checkIfServerOnline.php\x00",
+            python_bytes
+        )
+        self.assertIn(
+            b"https://muchocoretest.5v.pl/a/getGJLevels21.php\x00",
+            python_bytes
+        )
+        with tempfile.TemporaryDirectory() as temp:
+            original = Path(temp) / "source.exe"
+            output = Path(temp) / "patched.exe"
+            original.write_bytes(source)
+            script = (
+                'require $argv[1];'
+                '$input=file_get_contents($argv[2]);'
+                '[$patched]=\MuchoCore\Client\Gd2209Binary::patchBytes('
+                '$input, "muchocoretest.5v.pl");'
+                'file_put_contents($argv[3], $patched);'
+            )
+            result = subprocess.run(
+                ["php", "-r", script,
+                 str(ROOT / "src/Client/Gd2209Binary.php"),
+                 str(original), str(output)],
+                capture_output=True, text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(python_bytes, output.read_bytes())
+
     def test_full_url_is_never_truncated_at_hostname(self):
         source = fixture()
         patched, _ = module.patch_gd2209_exact(
