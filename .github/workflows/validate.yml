@@ -194,6 +194,7 @@ jobs:
           php tests/compat/php7-native-parity.php
           php tests/compat/php7-native-download-parity.php
           php tests/compat/php7-native-auth.php
+          php tests/compat/php7-native-upload.php
           php tests/application/shared-hosting-ftp-bootstrap-contract.php
           php tests/application/shared-hosting-ftp-deploy-contract.php
           mkdir -p /tmp/muchocore-shared-package-test
@@ -726,6 +727,7 @@ jobs:
               php -l compat/php7/runtime.php
               php -l compat/php7/download.php
               php -l compat/php7/auth.php
+              php -l compat/php7/upload.php
               php -l compat/php7/schema.php
               php -l public/php7-setup.php
               php -l compat/php7/config.example.php
