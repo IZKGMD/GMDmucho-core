@@ -85,6 +85,23 @@ chown www-data:www-data /var/lib/muchocore-control /var/lib/muchocore-backups
 bash "$ROOT/docker/init-protect-storage.sh" "$ROOT"
 chown www-data:www-data /var/www/mucho-core/storage /var/www/mucho-core/storage/music-public /var/www/mucho-core/storage/release-uploads /var/www/mucho-core/releases /var/www/mucho-core/releases/android
 
+# This experimental backend shares one private directory among PHP-FPM and
+# the root-running CLI worker. Align ownership before either serves requests,
+# otherwise the worker could leave root-owned 0600 cache entries behind.
+if [[ "${MUCHO_FILE_CACHE_EXPERIMENT:-0}" == "1" || "${MUCHO_CACHE_DRIVER:-database}" == "file" ]]; then
+  FILE_CACHE_DIR="${MUCHO_FILE_CACHE_DIR:-/var/www/mucho-core/storage/cache/files}"
+  case "$FILE_CACHE_DIR" in
+    /var/www/mucho-core/storage/*) ;;
+    *) echo "[MuchoCore] File cache must be inside private project storage." >&2; exit 1 ;;
+  esac
+  install -d -m 0700 -o www-data -g www-data "$FILE_CACHE_DIR"
+  if [[ ! -f "$FILE_CACHE_DIR/.lock" ]]; then
+    install -m 0600 -o www-data -g www-data /dev/null "$FILE_CACHE_DIR/.lock"
+  fi
+  chown www-data:www-data "$FILE_CACHE_DIR/.lock"
+  chmod 0600 "$FILE_CACHE_DIR/.lock"
+fi
+
 # Keep the Cloud Save key outside the bind-mounted source tree.
 # Migrate an older project-local key exactly once without changing it, then
 # remove the source-tree copy so PHP workers cannot replace the key in config/.
