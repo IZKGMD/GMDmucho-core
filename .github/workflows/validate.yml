@@ -187,6 +187,7 @@ jobs:
           php -l public/shared-install.php
           php -l public/ftp-install.php
           php -l bin/mucho-shared-deploy-worker.php
+          php tests/application/php82-shared-host-compatibility.php
           php tests/application/shared-hosting-installer-contract.php
           php tests/application/shared-hosting-ftp-bootstrap-contract.php
           php tests/application/shared-hosting-ftp-deploy-contract.php
