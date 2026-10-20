@@ -2,6 +2,7 @@
 /** Run without vendor, MySQL or any PHP8 classes; supports PHP 7.0. */
 declare(strict_types=1);
 require __DIR__ . '/../../compat/php7/runtime.php';
+require __DIR__ . '/../../compat/php7/download.php';
 
 function check7($value, $label)
 {
@@ -31,6 +32,8 @@ check7(mucho7_dispatch(null, '/database/getGJLevels21.php', 'POST', array()) ===
     'missing DB fails closed');
 check7(mucho7_dispatch(null, '/database/loginGJAccount21.php', 'POST', array()) === '-1',
     'authentication never accepts unimplemented requests');
+check7(mucho7_dispatch(null, '/database/downloadGJLevel22.php', 'POST', array()) === '-1',
+    'download without database must fail closed');
 check7(mucho7_dispatch(null, '/database/uploadGJLevel21.php', 'POST', array()) === '-1',
     'level writes never accept unimplemented requests');
 check7(mucho7_dispatch(null, '/getGJScores20.php', 'POST', array()) === '-1',
