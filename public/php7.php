@@ -36,6 +36,7 @@ if (($method !== 'POST' && $method !== 'GET')
 
 require_once $root . '/compat/php7/runtime.php';
 require_once $root . '/compat/php7/download.php';
+require_once $root . '/compat/php7/auth.php';
 
 try {
     $settings = require $root . '/config/php7-local.php';
@@ -69,7 +70,13 @@ try {
         $pdo,
         isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/',
         $method,
-        $_POST
+        $_POST,
+        array(
+            'enable_accounts'=>!empty($settings['enable_accounts']),
+            'enable_registration'=>!empty($settings['enable_registration']),
+            'auth_pepper'=>isset($settings['auth_pepper']) ? $settings['auth_pepper'] : '',
+            'ip'=>isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : ''
+        )
     );
 } catch (Exception $exception) {
     // A public API must never disclose the DB name, password or SQL statement.
