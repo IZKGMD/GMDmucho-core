@@ -1,0 +1,12 @@
+{
+  "version": 1000001,
+  "posts": [
+    {
+      "id": 1,
+      "title": "Welcome to MuchoCore Shared",
+      "body": "This is an example announcement. Replace or remove it before publishing your own GDPS news.",
+      "published_at": "2026-10-20 00:00:00",
+      "url": ""
+    }
+  ]
+}

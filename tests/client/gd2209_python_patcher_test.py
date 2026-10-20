@@ -123,6 +123,49 @@ class GD2209PatcherTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(python_bytes, output.read_bytes())
 
+    @unittest.skipUnless(shutil.which("php"), "PHP needed for byte parity test")
+    def test_very_long_5v_host_uses_root_alias_and_matches_php(self):
+        source = fixture()
+        host = "linasgdpsprivatese.5v.pl"
+        patched, stats = module.patch_gd2209_exact(
+            source, "https://" + host
+        )
+        self.assertEqual(len(source), len(patched))
+        self.assertEqual(sum(x.count for x in stats), 2)
+        self.assertIn(
+            b"https://linasgdpsprivatese.5v.pl/a/getGJLevels21.php\x00",
+            patched,
+        )
+        self.assertIn(
+            b"https://linasgdpsprivatese.5v.pl/checkIfServerOnline.php\x00",
+            patched,
+        )
+        with tempfile.TemporaryDirectory() as d:
+            original = Path(d) / "original.exe"
+            output = Path(d) / "patched.exe"
+            original.write_bytes(source)
+            code = (
+                'require $argv[1];'
+                '$source=file_get_contents($argv[2]);'
+                '[$patched]=\\MuchoCore\\Client\\Gd2209Binary::patchBytes('
+                '$source,"linasgdpsprivatese.5v.pl");'
+                'file_put_contents($argv[3],$patched);'
+            )
+            result = subprocess.run(
+                ["php", "-r", code,
+                 str(ROOT / "src/Client/Gd2209Binary.php"),
+                 str(original), str(output)],
+                text=True, capture_output=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(output.read_bytes(), patched)
+
+    def test_unpatchably_long_host_fails_without_partial_output(self):
+        with self.assertRaisesRegex(ValueError, "shorter hostname"):
+            module.patch_gd2209_exact(
+                fixture(), "https://linasgdpsprivatese555.5v.pl"
+            )
+
     def test_full_url_is_never_truncated_at_hostname(self):
         source = fixture()
         patched, _ = module.patch_gd2209_exact(

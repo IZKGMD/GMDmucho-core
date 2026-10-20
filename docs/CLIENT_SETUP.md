@@ -233,3 +233,18 @@ It always writes a new output file and leaves the original file untouched.
 ## Experimental 5v.pl PHP 7 frontend
 
 5v.pl currently advertises PHP 7, while MuchoCore requires PHP 8.2+.\nThe complete core therefore cannot run directly there. See\n[the 5v.pl edge proof of concept](HOSTING_5V_EDGE.md) for a test-only\nPHP 7 HTTP bridge to your own PHP 8.2+ VPS. This is not native hosting.\n
+## Patch clients for any GDPS owner domain (not just muchogdps.space)
+
+The Windows `tools/client/client-patch.bat` now asks for **your HTTPS
+GDPS root domain** (or accepts `MUCHO_GDPS_URL` for scripted builds).
+Examples: `https://piskabobra.5v.pl` and
+`https://linasgdpsprivatese.5v.pl`. Each player/deployer must enter
+their own hostname; do not append `/database/` or `/a/`.
+
+The SHA-pinned GD 2.209 patcher attempts the full `/database/` URL,
+then shorter `/a/`, then the root `/` GD route, always preserving the
+exact original PE URL-byte allocation. An extremely long hostname that
+still does not fit is rejected with instructions to choose a shorter
+domain; no dangerous offset edits, truncated URLs or made-up success.
+This checks binary integrity only — a working in-game GDPS also needs
+correct server endpoints, HTTPS and native client acceptance tests.

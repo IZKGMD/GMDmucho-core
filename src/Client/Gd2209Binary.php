@@ -119,8 +119,14 @@ final class Gd2209Binary
                 $patched = 'https://' . $targetHost . '/a/' .
                     substr($oldPath, strlen('/database/'));
             }
+            if (strlen($patched) > $oldLength && str_starts_with($oldPath, '/database/')) {
+                // The root GD API alias also works through public/index.php
+                // and the PHP7 native router, saving nine path bytes.
+                $patched = 'https://' . $targetHost . '/' .
+                    substr($oldPath, strlen('/database/'));
+            }
             if (strlen($patched) > $oldLength) {
-                throw new RuntimeException("GD 2.209 target host too long even with /a/ alias for {$url}");
+                throw new RuntimeException("GD 2.209 hostname too long for in-place patch; use a shorter HTTPS domain or alias.");
             }
             $section = substr_replace(
                 $section,

@@ -16,5 +16,9 @@ return array(
     'auth_pepper' => 'GENERATED_BY_EXPERIMENTAL_INSTALLER',
     'enable_accounts' => false,
     'enable_registration' => false,
-    'enable_writes' => false
+    'enable_writes' => false,
+    // Native News is independent of the player's GDPS domain.
+    // Enabling changes the custom content CDN base; check other game assets.
+    'enable_native_news' => false,
+    'site_url' => 'https://YOUR-OWN-GDPS.5v.pl'
 );

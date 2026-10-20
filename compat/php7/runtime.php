@@ -302,6 +302,14 @@ function mucho7_dispatch($pdo, $uri, $method, $post, $options = array())
         in_array(strtoupper($method), array('GET', 'POST'), true)) {
         return '1';
     }
+    if (function_exists('mucho7_news_response') &&
+        in_array($path, array('/news/news.dat',
+            '/gd-content/news/news.dat',
+            '/news/news_version.txt',
+            '/gd-content/news/news_version.txt',
+            '/getcustomcontenturl'), true)) {
+        return mucho7_news_response($path, $method, $options);
+    }
     if (strtoupper($method) !== 'POST') {
         return '-1';
     }

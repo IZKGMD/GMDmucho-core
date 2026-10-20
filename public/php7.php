@@ -38,6 +38,7 @@ require_once $root . '/compat/php7/runtime.php';
 require_once $root . '/compat/php7/download.php';
 require_once $root . '/compat/php7/auth.php';
 require_once $root . '/compat/php7/upload.php';
+require_once $root . '/compat/php7/news.php';
 
 try {
     $settings = require $root . '/config/php7-local.php';
@@ -76,6 +77,9 @@ try {
             'enable_accounts'=>!empty($settings['enable_accounts']),
             'enable_registration'=>!empty($settings['enable_registration']),
             'enable_writes'=>!empty($settings['enable_writes']),
+            'enable_native_news'=>!empty($settings['enable_native_news']),
+            'site_url'=>isset($settings['site_url']) ? $settings['site_url'] : '',
+            'news_file'=>$root . '/config/php7-news.json',
             'auth_pepper'=>isset($settings['auth_pepper']) ? $settings['auth_pepper'] : '',
             'ip'=>isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : ''
         )

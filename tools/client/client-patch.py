@@ -484,8 +484,12 @@ def patch_gd2209_exact(data: bytes, server: str) -> tuple[bytes, list[PatchStat]
             # Long shared-hosting domains use the equivalent short /a/
             # GD API alias; replacing the whole URL avoids embedded NULs.
             new = b"https://" + host.encode("ascii") + b"/a/" + path[len(b"/database/"):]
+        if len(new) > len(url) and path.startswith(b"/database/"):
+            # Final safe fallback: root GD API alias, handled by both PHP7
+            # and PHP8 routers. No PE resizing, offsets or partial strings.
+            new = b"https://" + host.encode("ascii") + b"/" + path[len(b"/database/"):]
         if len(new) > len(url):
-            raise ValueError(f"GD 2.209 target hostname too long even with /a/ alias for {url.decode('ascii')}")
+            raise ValueError("GD 2.209 domain too long for safe in-place URL patch. Use a shorter hostname or domain alias.")
         patched[match.start():match.end()] = new + b"\x00" * (len(url) - len(new))
         changes += 1
     if changes == 0:
@@ -646,8 +650,8 @@ def main() -> int:
     parser.add_argument("--output", help="Output path; defaults to *-MuchoCore.exe")
     parser.add_argument(
         "--server-url",
-        default="https://muchogdps.space",
-        help="Server root URL (default: https://muchogdps.space)",
+        default=None,
+        help="Your own GDPS root URL (prompted if omitted)",
     )
     parser.add_argument(
         "--report",
@@ -678,7 +682,10 @@ def main() -> int:
         if output_path.resolve() == input_path.resolve():
             raise ValueError("output must be a different file from input")
 
-        server = validate_server(args.server_url)
+        own_server = args.server_url or input(
+            "Your GDPS HTTPS hostname (e.g. https://yourname.5v.pl): "
+        ).strip()
+        server = validate_server(own_server)
         original = input_path.read_bytes()
 
         if not is_pe_file(original):
