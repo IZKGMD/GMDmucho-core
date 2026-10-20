@@ -293,8 +293,13 @@ function mucho7_search(PDO $pdo, $data)
 function mucho7_dispatch($pdo, $uri, $method, $post, $options = array())
 {
     $path = mucho7_path($uri);
-    if (($path === '/health' || $path === '/checkifserveronline')
-        && strtoupper($method) === 'GET') {
+    // Health is a browser GET. Geometry Dash may probe the server through
+    // a POST to checkIfServerOnline.php, including via the short /a/ alias.
+    if ($path === '/health' && strtoupper($method) === 'GET') {
+        return '1';
+    }
+    if ($path === '/checkifserveronline' &&
+        in_array(strtoupper($method), array('GET', 'POST'), true)) {
         return '1';
     }
     if (strtoupper($method) !== 'POST') {
