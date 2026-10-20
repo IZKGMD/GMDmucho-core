@@ -256,6 +256,14 @@ else
     echo "[MuchoCore] Updating stable core: v$CURRENT_SEMVER -> $TARGET_LABEL"
 fi
 
+# Git checkout writes files using the caller's umask. Administrators may
+# have umask 077 enabled for database backups, which would silently turn
+# public/index.php and source files into mode 600. Limit the standard source
+# umask to Git operations; never relax permissions for .env, .secrets or backups.
+git_reset_source() {
+    ( umask 022; git reset --hard "$1" )
+}
+
 # Preserve the previous source tree until the new containers build successfully.
 ORIGINAL_HEAD="$(git rev-parse HEAD)"
 UPDATE_SOURCE_SWITCHED=0
@@ -266,7 +274,7 @@ rollback_source_tree() {
     fi
 
     echo '[MuchoCore] New source build did not complete; restoring the previous source tree...'
-    if git reset --hard "$ORIGINAL_HEAD"; then
+    if git_reset_source "$ORIGINAL_HEAD"; then
         UPDATE_SOURCE_SWITCHED=0
         echo '[MuchoCore] Previous source tree restored.'
     else
@@ -308,7 +316,7 @@ install -d -m 700 "$ROOT/.muchocore"
 printf '%s\n' "$TARGET_SHA" > "$PENDING_UPDATE_FILE.tmp"
 mv "$PENDING_UPDATE_FILE.tmp" "$PENDING_UPDATE_FILE"
 UPDATE_SOURCE_SWITCHED=1
-if ! git reset --hard "$TARGET_REF"; then
+if ! git_reset_source "$TARGET_REF"; then
     rollback_source_tree
     exit 1
 fi
