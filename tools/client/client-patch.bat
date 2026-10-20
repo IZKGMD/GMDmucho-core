@@ -19,7 +19,7 @@ if not defined SERVER (
   exit /b 2
 )
 if /i not "%SERVER:~0,8%"=="https://" (
-  if "%SERVER:~0,1%"=="h" (
+  if /i "%SERVER:~0,7%"=="http://" (
     echo ERROR: HTTPS required. Enter https://your-domain
     pause
     exit /b 2
