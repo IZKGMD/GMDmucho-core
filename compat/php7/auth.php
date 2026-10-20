@@ -19,10 +19,11 @@ function mucho7_auth_event(PDO $pdo, $action, $username, $ip, $pepper)
     // The DB event log is intentionally bounded by explicit cleanup.
     $check = $pdo->prepare(
         'SELECT COUNT(*) FROM php7_auth_events
-         WHERE action=:action AND created_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 10 MINUTE)
+         WHERE action=:action AND created_at > :cutoff
          AND (ip_hash=:ip OR username_hash=:name)'
     );
-    $check->execute(array(':action'=>$action, ':ip'=>$ipHash, ':name'=>$nameHash));
+    $check->execute(array(':action'=>$action, ':ip'=>$ipHash, ':name'=>$nameHash,
+        ':cutoff'=>gmdate('Y-m-d H:i:s', time()-600)));
     $count = (int)$check->fetchColumn();
     if ($count >= ($action === 'login' ? 10 : 3)) {
         return false;
@@ -34,8 +35,8 @@ function mucho7_auth_event(PDO $pdo, $action, $username, $ip, $pepper)
     $insert->execute(array(':action'=>$action, ':ip'=>$ipHash, ':name'=>$nameHash));
     // Avoid a table growing indefinitely on low-resource shared hosting.
     if (random_int(1, 100) === 1) {
-        $pdo->exec('DELETE FROM php7_auth_events
-            WHERE created_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 2 DAY)');
+        $cleanup = $pdo->prepare('DELETE FROM php7_auth_events WHERE created_at < :cutoff');
+        $cleanup->execute(array(':cutoff'=>gmdate('Y-m-d H:i:s', time()-172800)));
     }
     return true;
 }
