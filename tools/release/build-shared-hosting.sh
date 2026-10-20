@@ -27,6 +27,7 @@ required=(
   "START_HERE.md"
   "docs/SHARED_HOSTING.md"
   "docs/CLIENT_SETUP.md"
+  "public/install.php"
 )
 
 for path in "${required[@]}"; do
@@ -72,6 +73,7 @@ unzip -t "$OUTPUT" >/dev/null
 ZIP_LIST="$STAGE/zip-list.txt"
 unzip -Z1 "$OUTPUT" > "$ZIP_LIST"
 
+grep -Fxq 'muchocore/public/install.php' "$ZIP_LIST"
 grep -Fxq 'muchocore/public/shared-install.php' "$ZIP_LIST"
 grep -Fxq 'muchocore/public/ftp-install.php' "$ZIP_LIST"
 grep -Fxq 'muchocore/vendor/autoload.php' "$ZIP_LIST"
