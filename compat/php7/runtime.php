@@ -306,5 +306,12 @@ function mucho7_dispatch($pdo, $uri, $method, $post)
     ), true)) {
         return $pdo instanceof PDO ? mucho7_search($pdo, $post) : '-1';
     }
+    if (in_array($path, array(
+        '/downloadgjlevel', '/downloadgjlevel19', '/downloadgjlevel20',
+        '/downloadgjlevel21', '/downloadgjlevel22'
+    ), true)) {
+        return $pdo instanceof PDO && function_exists('mucho7_download')
+            ? mucho7_download($pdo, $post) : '-1';
+    }
     return '-1';
 }
