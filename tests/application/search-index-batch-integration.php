@@ -80,9 +80,24 @@ try {
         'SELECT COUNT(*) FROM mucho_level_search_index'
     )->fetchColumn();
 
+    // An indexed 300-row rebuild should need just two batched reads,
+    // not a separate SELECT for every level.
+    $selectCount = static function () use ($db): int {
+        $row = $db->query("SHOW SESSION STATUS LIKE 'Com_select'")->fetch(PDO::FETCH_NUM);
+        if (!is_array($row) || !isset($row[1])) {
+            throw new RuntimeException('Com_select counter unavailable');
+        }
+        return (int)$row[1];
+    };
+    $beforeSelects = $selectCount();
     $assert(
         $indexer->rebuild(300) === 300 && $count() === 300,
         'limited rebuild spans multiple bounded batches'
+    );
+    $reads = $selectCount() - $beforeSelects;
+    $assert(
+        $reads < 25,
+        '300-level rebuild avoids N+1 SELECT queries (' . $reads . ' reads)'
     );
     $assert(
         (int)$db->query(
