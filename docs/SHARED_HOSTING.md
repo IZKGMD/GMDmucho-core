@@ -34,7 +34,7 @@ new ciphertext.
 
 A shared-hosting account needs:
 
-- PHP 8.3 or newer;
+- PHP 8.2 or newer (PHP 8.3+ recommended);
 - MySQL 8.0.29+ or MariaDB 10.4+;
 - PDO MySQL;
 - HTTPS;

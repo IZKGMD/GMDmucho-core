@@ -2,14 +2,14 @@
 
 As of 2026-10-20, 5v.pl publicly advertises PHP **7.0.19**,
 128 MB per PHP request, 30 seconds maximum execution time, no Docker,
-and no `exec()`. MuchoCore requires PHP **8.3+** (`composer.json`).
+and no `exec()`. MuchoCore requires PHP **8.2+** (`composer.json`).
 **The complete MuchoCore server, admin panel, migrations and worker
 cannot run natively on this hosting environment.** Do not downgrade the
 core to PHP 7 and do not claim otherwise.
 
 The optional `tools/hosting/5v-edge.php` is a *PHP 7-compatible, narrow HTTP
 relay* for GD protocol endpoints. **The real core and database still run on
-your own VPS or other PHP 8.3+ host.** It can give a patched game client a
+your own VPS or other PHP 8.2+ host.** It can give a patched game client a
 `https://<your-site>.5v.pl/` URL only if the host allows outgoing HTTPS
 cURL and does not rewrite the response. This arrangement is experimental
 and has NOT been verified on a live 5v account.
@@ -39,7 +39,7 @@ GD 2.209 patched client
     -> https://YOUR-SITE.5v.pl/database/getGJLevels21.php
     -> 5v-edge.php (PHP 7 + cURL)
     -> https://YOUR-OWN-VPS-HOST/database/getGJLevels21.php
-    -> MuchoCore 1.1.0 server on PHP 8.3+ + database
+    -> MuchoCore 1.1.0 server on PHP 8.2+ + database
 ```
 
 Only GET/POST and a narrowly validated GD API route shape are relayed.
@@ -86,5 +86,5 @@ the new `.rdata` full-URL method. Patch the client using the HTTPS 5v
 subdomain as the server **root** (no `/database` suffix). Do not assume
 that successful binary patching certifies actual client connectivity.
 
-For native PHP 8.3+ shared hosting rather than 5v's PHP 7, see
+For native PHP 8.2+ shared hosting rather than 5v's PHP 7, see
 `docs/CLIENT_SETUP.md` and the existing shared-hosting install path.

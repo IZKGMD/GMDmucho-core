@@ -187,6 +187,7 @@ jobs:
           php -l public/shared-install.php
           php -l public/ftp-install.php
           php -l bin/mucho-shared-deploy-worker.php
+          php tests/application/php82-shared-host-compatibility.php
           php tests/application/shared-hosting-installer-contract.php
           php tests/application/shared-hosting-ftp-bootstrap-contract.php
           php tests/application/shared-hosting-ftp-deploy-contract.php
@@ -495,7 +496,12 @@ jobs:
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/client/client-patcher.ps1 -SelfTest
 
   migration-integration:
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ["8.2", "8.3"]
     runs-on: ubuntu-latest
+    name: MariaDB integration PHP ${{ matrix.php-version }}
     services:
       redis:
         image: redis:7.4-alpine
@@ -525,7 +531,7 @@ jobs:
       - name: Set up PHP and Composer
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.3"
+          php-version: ${{ matrix.php-version }}
           extensions: mbstring, pdo_mysql, zip, gd, redis
           tools: composer
 
@@ -684,7 +690,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: ["8.3", "8.4", "8.5"]
+        # Include the PHP 8.2 shared-hosting runtime; Docker production stays on 8.3.
+        php-version: ["8.2", "8.3", "8.4", "8.5"]
     runs-on: ubuntu-latest
     name: PHP ${{ matrix.php-version }}
     steps:
@@ -705,7 +712,10 @@ jobs:
 
       - name: Run runtime compatibility contracts
         run: |
-          find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          find src public tests database bin -name '*.php' -print0 | xargs -0 -n1 php -l
+          php tests/application/shared-hosting-installer-contract.php
+          php tests/application/shared-hosting-ftp-bootstrap-contract.php
+          php tests/application/shared-hosting-ftp-deploy-contract.php
           php tests/application/input-hardening-contract.php
           php tests/application/hotpath-bootstrap-contract.php
           php tests/application/fast-level-bootstrap-contract.php
