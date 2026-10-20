@@ -15,6 +15,9 @@ final class Environment
     /** @var array<string,array<string,string>> */
     private static array $fileCache = [];
 
+    /** @var array<string,array<string,string>> */
+    private static array $projectFileCache = [];
+
     public static function get(string $key, ?string $default = null): ?string
     {
         if (array_key_exists($key, self::$cache)) {
@@ -37,12 +40,7 @@ final class Environment
         // The installation's own .env is the source of truth on Shared Hosting
         // and for deployment-specific MuchoCore settings on VPS installations.
         if ($value === null) {
-            $project = self::loadFile($root . '/.env');
-
-            if (is_file($root . '/.env.local')) {
-                $local = self::loadFile($root . '/.env.local');
-                $project = array_merge($project, $local);
-            }
+            $project = self::projectFileConfig($root);
 
             if (array_key_exists($key, $project) && $project[$key] !== '') {
                 $value = $project[$key];
@@ -67,6 +65,27 @@ final class Environment
         }
 
         return self::$cache[$key] = $value !== null ? $value : $default;
+    }
+
+    /**
+     * Keep the project/env.local overlay as a per-request snapshot.
+     * Avoid a repeated stat() and array_merge() for every config key
+     * requested by security, cache, database and application bootstrap.
+     *
+     * @return array<string,string>
+     */
+    private static function projectFileConfig(string $root): array
+    {
+        if (array_key_exists($root, self::$projectFileCache)) {
+            return self::$projectFileCache[$root];
+        }
+
+        $config = self::loadFile($root . '/.env');
+        if (is_file($root . '/.env.local')) {
+            $config = array_merge($config, self::loadFile($root . '/.env.local'));
+        }
+
+        return self::$projectFileCache[$root] = $config;
     }
 
     /** @return array<string,string> */
