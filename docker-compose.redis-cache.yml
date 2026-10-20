@@ -22,6 +22,9 @@ services:
       timeout: 3s
       retries: 10
   app:
+    build:
+      args:
+        MUCHO_WITH_REDIS: "1"
     environment:
       MUCHO_CACHE_DRIVER: redis
       MUCHO_REDIS_HOST: redis-cache
@@ -30,6 +33,9 @@ services:
       redis-cache:
         condition: service_healthy
   worker:
+    build:
+      args:
+        MUCHO_WITH_REDIS: "1"
     environment:
       MUCHO_CACHE_DRIVER: redis
       MUCHO_REDIS_HOST: redis-cache
