@@ -522,11 +522,6 @@ final readonly class LevelRepository
         if ($type === 5 && ctype_digit($search)) {
             $countFrom .= " LEFT JOIN profiles p ON p.account_id=l.account_id";
         }
-        $count = $this->pdo->prepare(
-            'SELECT COUNT(*) ' . $countFrom . ' WHERE ' . $whereSql
-        );
-        $count->execute($params);
-        $total = (int)$count->fetchColumn();
 
         $orderSql = $order;
 
@@ -582,9 +577,26 @@ final readonly class LevelRepository
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
+        $levels = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // For non-rotation searches, a first page with fewer rows than
+        // LIMIT is the entire result set. No exact COUNT(*) is needed.
+        // Rotation joins can repeat a level, so keep their original count.
+        // Full pages and later offsets still query the precise total used
+        // by Geometry Dash pagination and hash framing.
+        if ($offset === 0 && $limit > 0 && $historyJoin === ''
+            && count($levels) < $limit) {
+            $total = count($levels);
+        } else {
+            $count = $this->pdo->prepare(
+                'SELECT COUNT(*) ' . $countFrom . ' WHERE ' . $whereSql
+            );
+            $count->execute($params);
+            $total = (int)$count->fetchColumn();
+        }
 
         return [
-            'levels' => $stmt->fetchAll(PDO::FETCH_ASSOC),
+            'levels' => $levels,
             'total' => $total,
         ];
     }
