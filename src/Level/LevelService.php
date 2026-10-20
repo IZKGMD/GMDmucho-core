@@ -64,13 +64,18 @@ final readonly class LevelService
         $cacheKey = '';
 
         if ($cacheable) {
+            // Only inputs inspected by LevelRepository affect a public list.
+            // Client-specific transport fields (UDID, UUID, GJP, etc.) must
+            // not splinter the cache or cause identical queries to hit SQL.
+            // Keep the wire-version separate: 2.209 includes timestamp fields.
             $cacheInput = [];
-            foreach ($input as $key => $value) {
-                if (in_array((string)$key, ['gjp','gjp2','password','email'], true)) {
-                    continue;
-                }
-                if (is_scalar($value)) {
-                    $cacheInput[(string)$key] = (string)$value;
+            foreach ([
+                'diff', 'len', 'original', 'coins', 'twoPlayer', 'star',
+                'noStar', 'featured', 'epic', 'mythic', 'legendary',
+                'song', 'customSong', 'uncompleted', 'onlyCompleted',
+            ] as $key) {
+                if (isset($input[$key]) && is_scalar($input[$key])) {
+                    $cacheInput[$key] = (string)$input[$key];
                 }
             }
             $cacheKey = 'mucho:levels:' . hash(
@@ -79,7 +84,9 @@ final readonly class LevelService
                     'type' => $type,
                     'page' => $page,
                     'game_version' => $gameVersion,
+                    'binary_version' => $binaryVersion,
                     'demon_filter' => $demonFilter,
+                    'search' => $search,
                     'input' => $cacheInput,
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE)
             );
