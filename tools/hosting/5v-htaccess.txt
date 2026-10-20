@@ -1,5 +1,4 @@
 # Put this alongside 5v-edge.php in the 5v.pl web root.
-Options -Indexes
 RewriteEngine On
 RewriteRule ^health/?$ 5v-edge.php [L,NC]
 RewriteRule ^((a|api)/)*(database/(accounts/)?|accounts/)[A-Za-z][A-Za-z0-9]{0,70}\.php$ 5v-edge.php [L,NC,QSA]
