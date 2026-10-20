@@ -147,6 +147,7 @@ jobs:
           php tests/application/hotpath-bootstrap-contract.php
           php tests/application/fast-level-bootstrap-contract.php
           php tests/application/perf-profiler-contract.php
+          php tests/application/file-cache-contract.php
           php tests/application/security-regressions.php
           bash tests/release/release-update-detection.sh
           python3 tests/release/release-publication.py

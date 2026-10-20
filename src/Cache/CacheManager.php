@@ -20,6 +20,21 @@ final class CacheManager
             return new NullCache();
         }
 
+        // Process-scoped A/B override. Environment::get intentionally
+        // prioritizes project .env over process variables, so a separate
+        // opt-in switch avoids editing persistent production configuration.
+        if (getenv('MUCHO_FILE_CACHE_EXPERIMENT') === '1') {
+            $driver = 'file';
+        }
+
+        if ($driver === 'file') {
+            $directory = Environment::get(
+                'MUCHO_FILE_CACHE_DIR',
+                dirname(__DIR__, 2) . '/storage/cache/files'
+            );
+            return new FileCache((string)$directory);
+        }
+
         if ($driver === 'redis') {
             try {
                 return new RedisCache([
