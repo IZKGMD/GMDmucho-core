@@ -650,8 +650,8 @@ def main() -> int:
     parser.add_argument("--output", help="Output path; defaults to *-MuchoCore.exe")
     parser.add_argument(
         "--server-url",
-        default="https://muchogdps.space",
-        help="Server root URL (default: https://muchogdps.space)",
+        default=None,
+        help="Your own GDPS root URL (prompted if omitted)",
     )
     parser.add_argument(
         "--report",
@@ -682,7 +682,10 @@ def main() -> int:
         if output_path.resolve() == input_path.resolve():
             raise ValueError("output must be a different file from input")
 
-        server = validate_server(args.server_url)
+        own_server = args.server_url or input(
+            "Your GDPS HTTPS hostname (e.g. https://yourname.5v.pl): "
+        ).strip()
+        server = validate_server(own_server)
         original = input_path.read_bytes()
 
         if not is_pe_file(original):
