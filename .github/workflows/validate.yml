@@ -572,6 +572,13 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/search-index-batch-integration.php
 
+      - name: Verify optional level-index plans on isolated 10k-row MariaDB
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/level-index-staging-integration.php
+
       - name: Verify plain admin clan operations
         env:
           TEST_DB_HOST: 127.0.0.1
