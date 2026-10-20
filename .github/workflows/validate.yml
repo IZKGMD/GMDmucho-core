@@ -173,6 +173,7 @@ jobs:
           python3 tests/client/client_trace_summary_test.py
           python3 tests/performance/http_latency_test.py
           python3 tests/performance/profile_summary_test.py
+          python3 tests/performance/vps_ab_test.py
           php -l tools/performance/level_sql_audit.php
           php -l tools/performance/db_bootstrap_probe.php
           python3 tools/release/v110_p0_audit.py --json > /dev/null
