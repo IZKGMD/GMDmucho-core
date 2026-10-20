@@ -801,8 +801,10 @@ final readonly class Application
         }
     }
 
-    public function run(): void
+    public function run(?Request $request = null): void
     {
-        $this->handle(Request::fromGlobals())->send();
+        // Reuse the exact immutable Request already inspected by the
+        // front-controller guard. Direct callers can still omit it.
+        $this->handle($request ?? Request::fromGlobals())->send();
     }
 }
