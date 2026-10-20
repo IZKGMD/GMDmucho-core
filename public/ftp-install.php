@@ -431,8 +431,8 @@ function page(string $title, string $body): never
 
 $checks = [
     [
-        'ok' => version_compare(PHP_VERSION, '8.3.0', '>='),
-        'text' => 'PHP ' . PHP_VERSION . ' (8.3+ required)',
+        'ok' => version_compare(PHP_VERSION, '8.2.0', '>='),
+        'text' => 'PHP ' . PHP_VERSION . ' (8.2+ required)',
     ],
     [
         'ok' => class_exists('ZipArchive'),
