@@ -16,6 +16,7 @@ classes, Composer packages or custom extensions.
   default, requires HTTPS, explicit opt-in marker and local DB config).
 - GET `/health` or `/checkIfServerOnline` checks *native DB connection*,
   not an external upstream.
+- Public POST `/downloadGJLevel{19,20,21,22}.php` read-only level downloads, only publicly visible levels (no private, friend-only or daily negative IDs), GD 2.209 metadata/hash byte parity.
 - Public POST `/getGJLevels{19,20,21,22}.php` search/list aliases,
   conservative public types 0,1,2,6,11,15,16,17 with some filters.
 - Wire-byte regression parity with the modern
@@ -29,7 +30,7 @@ classes, Composer packages or custom extensions.
 ## What is *not* available
 
 Native GD account registration and login, password recovery, level upload,
-level downloads, comments, leaderboard, friends, Cloud Save, 2.209 social,
+advanced level downloads, comments, leaderboard, friends, Cloud Save, 2.209 social,
 admin, migrations, plugins and WebAuthn. Full PHP7 feature parity, complete
 installation, provider acceptance and actual GD 2.209 client acceptance are
 **NOT** established. `/install.php` still blocks PHP 7 to prevent a false
@@ -57,6 +58,7 @@ Test:
 ```sh
 php tests/compat/php7-native-pure.php
 php tests/compat/php7-native-parity.php
+php tests/compat/php7-native-download-parity.php
 ```
 
 GitHub Actions also runs native syntax and route tests inside an isolated
