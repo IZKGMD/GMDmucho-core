@@ -146,6 +146,7 @@ jobs:
           php tests/application/auth-session-isolation.php
           php tests/application/hotpath-bootstrap-contract.php
           php tests/application/fast-level-bootstrap-contract.php
+          php tests/application/fast-discovery-bootstrap-contract.php
           php tests/application/perf-profiler-contract.php
           php tests/application/file-cache-contract.php
           php tests/application/security-regressions.php
@@ -705,6 +706,7 @@ jobs:
           php tests/application/input-hardening-contract.php
           php tests/application/hotpath-bootstrap-contract.php
           php tests/application/fast-level-bootstrap-contract.php
+          php tests/application/fast-discovery-bootstrap-contract.php
           php tests/application/score-integrity-contract.php
           php tests/application/profile-images.php
           php tests/security/client-ip-cloudflare.php

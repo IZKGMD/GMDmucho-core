@@ -156,6 +156,28 @@ final readonly class Application
             return;
         }
 
+        // Optional reduced route graph for commonly requested, public GD
+        // discovery endpoints. The full MuchoProtect precheck, plugins and
+        // compatibility gating are preserved, as for level-list fast boot.
+        if (
+            $knownRequest !== null
+            && ($_SERVER['MUCHO_PROTECT_PRECHECKED'] ?? '') === '1'
+            && Environment::get('MUCHO_FAST_DISCOVERY_BOOT', '0') === '1'
+            && FastDiscoveryRoutes::supports(
+                $this->router->normalizePath($knownRequest->path)
+            )
+        ) {
+            FastDiscoveryRoutes::register(
+                $this->router,
+                $this->pdo,
+                $this->router->normalizePath($knownRequest->path)
+            );
+            $this->plugins->load();
+            $this->plugins->boot();
+            RequestProfiler::phase('app_init');
+            return;
+        }
+
         $jobs = new JobQueue($this->pdo);
         $accountRepo = new AccountRepository($this->pdo);
         $accountService = new AccountService(
