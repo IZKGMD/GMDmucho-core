@@ -42,7 +42,13 @@ an isolated temporary database and tests native registration, login,
 2.209 public search/download and repeat-install refusal. The PHP 7.0 CLI CI
 job checks syntax, while the PHP 8.2-8.5 job tests security contracts.
 
-**Not complete:** no levels.upload, comments, user cloud save, full GD 2.209
+**Now experimental:** level uploads/updates with credential verification, owner-bound
+SQL updates and a 200 KiB levelString cap, gated by both
+`enable_accounts` and `enable_writes` (both OFF by default). This is
+not full GD 2.209 editor parity; large levels, revisions, permissions,
+telemetry and advanced validation still need work.
+
+**Not complete:** no production-certified levels.upload, comments, user cloud save, full GD 2.209
 features, admin, full modern migrations/plugins or real client acceptance.
 
 ## Implemented
