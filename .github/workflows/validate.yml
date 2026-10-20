@@ -190,6 +190,8 @@ jobs:
           php tests/application/php82-shared-host-compatibility.php
           php tests/application/shared-hosting-installer-contract.php
           php tests/application/shared-one-archive-installer-contract.php
+          php tests/compat/php7-native-pure.php
+          php tests/compat/php7-native-parity.php
           php tests/application/shared-hosting-ftp-bootstrap-contract.php
           php tests/application/shared-hosting-ftp-deploy-contract.php
           mkdir -p /tmp/muchocore-shared-package-test
@@ -199,6 +201,8 @@ jobs:
           test -s MuchoCore-relative-output-test.zip
           rm -f MuchoCore-relative-output-test.zip
           unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/public/install.php'
+          unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/public/php7.php'
+          unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/compat/php7/runtime.php'
           unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/public/shared-install.php'
           unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/public/ftp-install.php'
           unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/vendor/autoload.php'
@@ -698,6 +702,23 @@ jobs:
           TEST_REDIS_PORT: 6379
         run: php tests/application/redis-cache-integration.php
 
+
+  php70-native-compat:
+    runs-on: ubuntu-latest
+    name: Experimental PHP 7.0 native syntax/route guard
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run only isolated PHP7.0 syntax and public-route checks
+        run: |
+          docker pull php:7.0-cli
+          docker run --rm --network none --read-only \
+            -v "$GITHUB_WORKSPACE:/app:ro" -w /app \
+            php:7.0-cli sh -ec '
+              php -l compat/php7/runtime.php
+              php -l compat/php7/config.example.php
+              php -l public/php7.php
+              php tests/compat/php7-native-pure.php
+            '
 
   php-runtime:
     strategy:
