@@ -104,13 +104,12 @@ function mucho7_encode_download($level, $gameVersion, $binaryVersion)
         $fields[] = mucho7_epoch($level['updated_at']);
     }
 
-    $metadata = (string)$level['user_id']
-        . (string)$level['stars']
-        . (string)$level['demon']
-        . (string)$level['level_id']
-        . (string)$level['coins']
-        . (string)$level['featured']
-        . $plainPassword . ',0';
+    $metadata = implode(',', array(
+        (string)$level['user_id'], (string)$level['stars'],
+        (string)$level['demon'], (string)$level['level_id'],
+        (string)$level['coins'], (string)$level['featured'],
+        $plainPassword, '0'
+    ));
     return implode(':', $fields)
         . '#' . mucho7_level_hash($data)
         . '#' . sha1($metadata . 'xI25fpAapCQg');
