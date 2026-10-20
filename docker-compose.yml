@@ -47,6 +47,8 @@ services:
       MUCHO_PERF_PROFILE: ${MUCHO_PERF_PROFILE:-0}
       # Experimental, reversible fast path for the already-protected GD search route.
       MUCHO_FAST_LEVEL_BOOT: ${MUCHO_FAST_LEVEL_BOOT:-0}
+      # Optional narrow public discovery bootstrap; off by default.
+      MUCHO_FAST_DISCOVERY_BOOT: ${MUCHO_FAST_DISCOVERY_BOOT:-0}
       MUCHO_CLIENT_TRACE_FILE: ${MUCHO_CLIENT_TRACE_FILE:-/var/www/mucho-core/storage/client-trace.ndjson}
       MUCHO_GD_VERSIONS: ${MUCHO_GD_VERSIONS:-all}
       MUCHO_CACHE_DRIVER: ${MUCHO_CACHE_DRIVER:-database}
