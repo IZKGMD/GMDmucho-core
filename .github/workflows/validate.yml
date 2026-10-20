@@ -171,6 +171,7 @@ jobs:
       - name: Audit 1.1.0 P0 endpoint evidence (diagnostic, not release signoff)
         run: |
           python3 tests/release/v110_p0_audit_test.py
+          python3 tests/release/gd2209_native_evidence_test.py
           python3 tests/client/client_trace_summary_test.py
           python3 tests/performance/http_latency_test.py
           python3 tests/performance/profile_summary_test.py
@@ -211,7 +212,7 @@ jobs:
 
       - name: Check Python patcher
         run: |
-          python3 -m py_compile tools/client/client-patch.py tools/client/client-trace-summary.py tests/client/client-patcher-fixture.py tools/release/publish-muchogdps-apk.py
+          python3 -m py_compile tools/client/client-patch.py tools/client/client-trace-summary.py tools/release/gd2209_native_evidence.py tests/client/client-patcher-fixture.py tools/release/publish-muchogdps-apk.py
           python3 tools/client/client-patch.py --self-test
           python3 tests/client/client-patcher-fixture.py
 

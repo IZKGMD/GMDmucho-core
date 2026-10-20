@@ -88,5 +88,56 @@ class TraceSummaryTest(unittest.TestCase):
             self.assertEqual(levels["server_duration_sample_count"], 31)
 
 
+    def test_exact_gd2209_filter_does_not_mix_versions(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            raw = root / "trace.ndjson"
+            output = root / "2209.json"
+            rows = [
+                {"path": "/database/getGJLevels21.php", "method": "POST",
+                 "client_family": "2.2", "game_version": 22,
+                 "binary_version": 47, "status": 200},
+                {"path": "/database/getGJLevels21.php", "method": "POST",
+                 "client_family": "2.2", "game_version": 22,
+                 "binary_version": 52, "status": 200},
+                {"path": "/database/getGJLevels21.php", "method": "POST",
+                 "client_family": "2.2", "game_version": 21,
+                 "binary_version": 51, "status": 200},
+                {"path": "/a/database/getGJLevels21.php", "method": "POST",
+                 "client_family": "2.2", "game_version": 22,
+                 "binary_version": 51, "status": 200, "duration_ms": 9},
+            ]
+            raw.write_text("".join(json.dumps(row) + "\n" for row in rows),
+                           encoding="utf-8")
+            common = [
+                sys.executable, str(TOOL), "--input", str(raw),
+                "--output", str(output), "--expected-family", "2.2",
+                "--binary-version", "51", "--game-version", "22",
+            ]
+            subprocess.run(common, check=True, capture_output=True, text=True)
+            data = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(data["trace_binary_versions"], ["51"])
+            self.assertEqual(data["trace_game_versions"], ["22"])
+            self.assertEqual(len(data["endpoints"]), 1)
+            self.assertEqual(data["endpoints"][0]["request_count"], 1)
+            self.assertEqual(data["endpoints"][0]["path"],
+                             "/a/database/getGJLevels21.php")
+
+            no_matches = subprocess.run(
+                [sys.executable, str(TOOL), "--input", str(raw),
+                 "--output", str(root / "missing.json"),
+                 "--binary-version", "99", "--game-version", "22"],
+                capture_output=True, text=True
+            )
+            self.assertNotEqual(no_matches.returncode, 0)
+            self.assertFalse((root / "missing.json").exists())
+
+            conflicting = subprocess.run(
+                common + ["--min-binary", "51"],
+                capture_output=True, text=True,
+            )
+            self.assertNotEqual(conflicting.returncode, 0)
+
+
 if __name__ == "__main__":
     unittest.main()

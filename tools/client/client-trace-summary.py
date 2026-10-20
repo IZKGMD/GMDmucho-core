@@ -19,11 +19,25 @@ def main() -> int:
         help="Keep only requests with binary_version at least N (0 = unfiltered).",
     )
     parser.add_argument(
+        "--binary-version", type=int, default=None,
+        help="Keep only this exact binary_version (recommended for GD 2.209: 51).",
+    )
+    parser.add_argument(
+        "--game-version", type=int, default=None,
+        help="Keep only this exact game_version (GD 2.209: 22).",
+    )
+    parser.add_argument(
         "--expected-family",
         default="",
         help="Require every trace entry to belong to this Geometry Dash family.",
     )
     args = parser.parse_args()
+    if args.binary_version is not None and args.min_binary > 0:
+        parser.error("--binary-version and --min-binary cannot be combined")
+    if args.binary_version is not None and args.binary_version < 0:
+        parser.error("--binary-version must be nonnegative")
+    if args.game_version is not None and args.game_version < 0:
+        parser.error("--game-version must be nonnegative")
 
     source = Path(args.input)
     if not source.is_file():
@@ -43,6 +57,18 @@ def main() -> int:
 
         entry = json.loads(line)
         binary_version = entry.get("binary_version")
+        if args.binary_version is not None:
+            try:
+                if int(binary_version) != args.binary_version:
+                    continue
+            except (TypeError, ValueError):
+                continue
+        if args.game_version is not None:
+            try:
+                if int(entry.get("game_version")) != args.game_version:
+                    continue
+            except (TypeError, ValueError):
+                continue
         if args.min_binary > 0:
             try:
                 if int(binary_version) < args.min_binary:
@@ -98,6 +124,12 @@ def main() -> int:
         if isinstance(duration, (int, float)) and not isinstance(duration, bool):
             if math.isfinite(duration) and duration >= 0:
                 current["durations_ms"].append(float(duration))
+
+    if (args.binary_version is not None or args.game_version is not None) and not counts:
+        raise SystemExit(
+            "No matching client requests for the exact version filter; "
+            "refusing to write an empty version-specific capture."
+        )
 
     if args.expected_family:
         if not families:

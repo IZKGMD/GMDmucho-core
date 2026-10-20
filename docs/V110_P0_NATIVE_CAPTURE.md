@@ -59,10 +59,42 @@ docker compose -f docker-compose.yml -f docker-compose.test.yml \
 python3 tools/client/client-trace-summary.py \
   --input storage/testgdps-client-trace.ndjson \
   --output /root/mucho-gd2209-p0-summary.json \
-  --expected-family 2.2 --min-binary 51
+  --expected-family 2.2 --binary-version 51 --game-version 22
+
+python3 tools/release/gd2209_native_evidence.py \
+  --summary /root/mucho-gd2209-p0-summary.json \
+  --fail-on-missing
 
 python3 tools/release/v110_p0_audit.py
 ```
+
+Use exact client-version filters for GD **2.209**: `--min-binary=51` also includes
+newer builds and therefore cannot isolate `binaryVersion=51`. Both exact filters
+apply to **each request**, and an empty matching capture now fails rather than
+creating apparent evidence. If you intentionally check a later build, record
+its actual binary version and separate the resulting evidence. The
+`mucho-gd2209-trace-report.php --min-binary=51` command is a broad exploratory
+overview, not the exact-version release evidence.
+
+The `gd2209_native_evidence.py` tool reports whether the **six P0 routes**
+were observed with `gameVersion=22` / `binaryVersion=51` and matching
+`2.2` client-family metadata, taking aliases like
+`/a/database/getGJLevels21.php` into account. It can signal missing
+observations and preliminary timing sample counts but **cannot prove successful
+game-client parsing, data integrity, authentication, or native acceptance**.
+`--fail-on-missing` returns nonzero if any P0 route was not observed; its
+success still is not a stable-release green light.
+
+### Record the native client's outcome separately
+
+For **both Windows and Android GD 2.209**, use only throwaway accounts and
+test levels. For each P0 action, record the exact game build, test tenant,
+UTC date, observed endpoint, in-game outcome, negative-case outcome, and any
+deserialization/UI errors in a privacy-reviewed report outside the public
+repository. Actions: log in and reject a wrong password; search and open
+search results; upload a level and reject unauthorized changes; download and
+play that level; display leaderboard entries; read comments and empty pages.
+Evidence from request logs alone must be marked *route observed*, not *passed*.
 
 The new summary records `binary_versions`, `game_versions` and observed
 `server_duration_p95_ms` **per endpoint**; an older global version list
