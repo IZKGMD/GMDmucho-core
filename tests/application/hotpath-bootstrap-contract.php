@@ -102,7 +102,7 @@ $guardSource = (string)file_get_contents(
 );
 hotpathAssert(
     str_contains($front, '$guard = new MuchoProtect();')
-    && str_contains($front, '(new Application($guard->storageConnection()))->run($request);')
+    && str_contains($front, '(new Application($guard->storageConnection(), $request))->run($request);')
     && str_contains($guardSource, '$this->storageConnection = $db;'),
     'front controller reuses the DB protection connection without bypassing inspection'
 );

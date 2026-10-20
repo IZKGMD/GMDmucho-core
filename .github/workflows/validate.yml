@@ -145,6 +145,7 @@ jobs:
           php tests/application/cloudsave-shared-key-path.php
           php tests/application/auth-session-isolation.php
           php tests/application/hotpath-bootstrap-contract.php
+          php tests/application/fast-level-bootstrap-contract.php
           php tests/application/perf-profiler-contract.php
           php tests/application/security-regressions.php
           bash tests/release/release-update-detection.sh
@@ -416,7 +417,7 @@ jobs:
           from pathlib import Path
           source = Path("public/index.php").read_text(encoding="utf-8")
           liveness = source.index("if (")
-          application = source.index("(new Application($guard->storageConnection()))->run($request);")
+          application = source.index("(new Application($guard->storageConnection(), $request))->run($request);")
           assert "__muchoLivenessPath" in source
           assert "/health" in source
           assert "/checkifserveronline" in source
@@ -701,6 +702,7 @@ jobs:
           find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/application/input-hardening-contract.php
           php tests/application/hotpath-bootstrap-contract.php
+          php tests/application/fast-level-bootstrap-contract.php
           php tests/application/score-integrity-contract.php
           php tests/application/profile-images.php
           php tests/security/client-ip-cloudflare.php

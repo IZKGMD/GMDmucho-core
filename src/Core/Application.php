@@ -118,18 +118,45 @@ final readonly class Application
     private PDO $pdo;
     private PluginManager $plugins;
 
-    public function __construct(?PDO $requestDatabase = null)
+    public function __construct(?PDO $requestDatabase = null, ?Request $knownRequest = null)
     {
         $this->pdo = $requestDatabase ?? (new Database())->connection();
         $this->router = new Router();
         $cache = CacheManager::fromEnvironment($this->pdo);
-        $jobs = new JobQueue($this->pdo);
         $this->plugins = PluginManager::fromEnvironment(
             $this->pdo,
             $this->router,
             dirname(__DIR__, 2)
         );
 
+        // Experimental, opt-in reduced bootstrap for public level discovery.
+        // Only the already-protected front-controller request may take this
+        // branch. Authenticated level-list types still use LevelController's
+        // unchanged credential and moderator checks. Plugin hooks run as
+        // usual; all other routes follow the complete application boot.
+        if (
+            $knownRequest !== null
+            && ($_SERVER['MUCHO_PROTECT_PRECHECKED'] ?? '') === '1'
+            && Environment::get('MUCHO_FAST_LEVEL_BOOT', '0') === '1'
+            && $this->router->normalizePath($knownRequest->path) === '/getgjlevels21'
+        ) {
+            $levelController = new LevelController(
+                new LevelService(
+                    new LevelRepository($this->pdo),
+                    new GdLevelListEncoder(),
+                    $cache
+                ),
+                new AccountAuthenticator($this->pdo),
+                new ModerationRepository($this->pdo)
+            );
+            $this->router->add('ANY', '/getGJLevels21', [$levelController, 'list']);
+            $this->plugins->load();
+            $this->plugins->boot();
+            RequestProfiler::phase('app_init');
+            return;
+        }
+
+        $jobs = new JobQueue($this->pdo);
         $accountRepo = new AccountRepository($this->pdo);
         $accountService = new AccountService(
             $this->pdo,
