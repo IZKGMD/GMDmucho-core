@@ -189,6 +189,7 @@ jobs:
           php -l bin/mucho-shared-deploy-worker.php
           php tests/application/php82-shared-host-compatibility.php
           php tests/application/shared-hosting-installer-contract.php
+          php tests/application/shared-one-archive-installer-contract.php
           php tests/application/shared-hosting-ftp-bootstrap-contract.php
           php tests/application/shared-hosting-ftp-deploy-contract.php
           mkdir -p /tmp/muchocore-shared-package-test
@@ -197,9 +198,21 @@ jobs:
           OUTPUT=MuchoCore-relative-output-test.zip bash tools/release/build-shared-hosting.sh
           test -s MuchoCore-relative-output-test.zip
           rm -f MuchoCore-relative-output-test.zip
+          unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/public/install.php'
           unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/public/shared-install.php'
           unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/public/ftp-install.php'
           unzip -Z1 /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             | grep -Fxq 'muchocore/vendor/autoload.php'
+
+      # Development snapshot artifact only; this is not a stable release.
+      # The 1.1.0 release still requires real-client endpoint certification.
+      - name: Upload complete shared-hosting preview ZIP
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MuchoCore-Shared-Preview-${{ github.sha }}
+          path: /tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Check product interface scripts
         run: |

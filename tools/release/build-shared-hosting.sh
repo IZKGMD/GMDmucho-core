@@ -27,6 +27,8 @@ required=(
   "START_HERE.md"
   "docs/SHARED_HOSTING.md"
   "docs/CLIENT_SETUP.md"
+  "public/install.php"
+  "docs/SHARED_INSTALL_RU.txt"
 )
 
 for path in "${required[@]}"; do
@@ -46,7 +48,7 @@ cp -a "$ROOT/config" "$STAGE/muchocore/"
 cp -a "$ROOT/vendor" "$STAGE/muchocore/"
 cp -a "$ROOT/composer.json" "$ROOT/composer.lock" "$ROOT/VERSION" "$ROOT/README.md" "$ROOT/START_HERE.md" "$STAGE/muchocore/"
 mkdir -p "$STAGE/muchocore/docs"
-cp -a "$ROOT/docs/SHARED_HOSTING.md" "$ROOT/docs/CLIENT_SETUP.md" "$STAGE/muchocore/docs/"
+cp -a "$ROOT/docs/SHARED_HOSTING.md" "$ROOT/docs/CLIENT_SETUP.md" "$ROOT/docs/SHARED_INSTALL_RU.txt" "$STAGE/muchocore/docs/"
 
 rm -f "$STAGE/muchocore/config/cloudsave.key"
 
@@ -72,10 +74,12 @@ unzip -t "$OUTPUT" >/dev/null
 ZIP_LIST="$STAGE/zip-list.txt"
 unzip -Z1 "$OUTPUT" > "$ZIP_LIST"
 
+grep -Fxq 'muchocore/public/install.php' "$ZIP_LIST"
 grep -Fxq 'muchocore/public/shared-install.php' "$ZIP_LIST"
 grep -Fxq 'muchocore/public/ftp-install.php' "$ZIP_LIST"
 grep -Fxq 'muchocore/vendor/autoload.php' "$ZIP_LIST"
 grep -Fxq 'muchocore/docs/SHARED_HOSTING.md' "$ZIP_LIST"
+grep -Fxq 'muchocore/docs/SHARED_INSTALL_RU.txt' "$ZIP_LIST"
 ! grep -Eq '(^|/)\.env($|\.)' "$ZIP_LIST"
 ! grep -Eq '(^|/)(\.secrets|storage)/' "$ZIP_LIST"
 ! grep -Eq '(^|/)config/cloudsave\.key$' "$ZIP_LIST"

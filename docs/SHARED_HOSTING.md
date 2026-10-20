@@ -107,6 +107,35 @@ https://YOUR-DOMAIN/shared-install.php
 
 The normal shared-hosting installer then performs the database and application setup.
 
+## One archive + browser installer (recommended for manual FTP)
+
+A full shared-hosting ZIP already contains the MuchoCore source, production
+`vendor/`, migrations, GD endpoints, admin and both Apache routing files.
+It also includes **`public/install.php`**, a PHP 7-readable preflight that
+never parses the full core on an incompatible host.
+
+1. Extract `MuchoCore-vX.Y.Z-shared-hosting.zip` locally.
+2. Upload the **contents of its `muchocore/` directory** to your site's
+   document root, including the hidden root `.htaccess`.
+3. Configure an empty MySQL/MariaDB database in your host's control panel.
+4. Open `https://YOUR-DOMAIN/install.php`. The root Apache rewrite directs
+   it to `public/install.php`; a custom public document root serves it
+   directly.
+5. On PHP 8.2+, the preflight delegates to the actual database/admin
+   installer at `public/shared-install.php`. No second ZIP or separate VPS
+   runtime is needed.
+6. After setup, confirm `/health` and `/admin/`, then delete both public
+   installer PHP files and preserve the Cloud Save key.
+
+If the shared host only offers PHP 7 (such as the advertised 5v.pl
+environment), the preflight displays a **blocked** page without collecting
+credentials or writing to the DB. This package is a true native shared-host
+distribution for PHP 8.2+, **not** a complete PHP 7 port.
+
+A Russian quick start is bundled in `docs/SHARED_INSTALL_RU.txt`. CI publishes
+a short-lived development ZIP artifact for testing after pushes to `main`;
+stable releases retain their separate endpoint certification gate.
+
 ## Manual shared-hosting package
 
 The stable GitHub release also publishes a complete package:
