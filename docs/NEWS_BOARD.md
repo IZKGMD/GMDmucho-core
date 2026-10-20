@@ -79,3 +79,34 @@ Example when no posts are published:
 ```
 
 No passwords, administration sessions, drafts, or admin metadata are returned.
+
+## Troubleshooting: News UI not loading in patched GD 2.209
+
+The modern PHP8 News Board's content is not automatically used by the
+client. `MUCHO_NATIVE_NEWS=0` leaves `getCustomContentURL.php` pointing
+to the official CDN; enable `MUCHO_NATIVE_NEWS=1` in the Docker app
+environment, recreate the app safely, then confirm:
+
+```sh
+cd /opt/mucho-core
+docker compose exec -T app printenv MUCHO_NATIVE_NEWS
+docker compose exec -T app php tools/diagnostics/gd2209-feature-check.php
+curl -fsS https://YOUR-GDPS-HOST/news/news_version.txt
+curl -fsS https://YOUR-GDPS-HOST/news/news.dat | head -c 70
+curl -fsS -X POST https://YOUR-GDPS-HOST/database/getCustomContentURL.php
+```
+
+Expected: enabled flag `1`, a numeric version, an encoded news payload
+and the content root `https://YOUR-GDPS-HOST/gd-content`. The board
+also needs at least one published post if the client should display news.
+
+On the **experimental PHP7** host, the modern owner News Board is
+unavailable: see `docs/PHP7_NATIVE_PHASE1.md` for text/link-only native
+news loaded from a private JSON file. No images/video or full CDN
+compatibility are claimed for PHP7.
+
+If Weekly/Event spin or Quests show `00:00:00`, run the same diagnostic
+script on VPS. It detects missing `mucho_daily_rotation` entries for
+daily/weekly/event and fewer than three active `mucho_challenge_pool`
+rows. Those require actual configured game content rather than returning
+fabricated API success.
