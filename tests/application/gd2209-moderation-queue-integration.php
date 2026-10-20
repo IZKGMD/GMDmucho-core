@@ -13,6 +13,44 @@ use MuchoCore\Level\LevelService;
 use MuchoCore\Moderation\ModerationRepository;
 use MuchoCore\Protocol\GdLevelListEncoder;
 
+// Public level-list cache must depend on gameplay filters and wire version,
+// never on identifiers carried by a client's otherwise identical request.
+final class LevelPublicCacheFixture implements \MuchoCore\Cache\CacheInterface
+{
+    public array $entries = [];
+    public int $hits = 0;
+    public int $writes = 0;
+
+    public function get(string $key): ?string
+    {
+        $value = $this->entries[$key] ?? null;
+        if ($value !== null) {
+            ++$this->hits;
+        }
+        return $value;
+    }
+
+    public function set(string $key, string $value, int $ttlSeconds): void
+    {
+        $this->entries[$key] = $value;
+        ++$this->writes;
+    }
+
+    public function delete(string $key): void
+    {
+        unset($this->entries[$key]);
+    }
+
+    public function deletePrefix(string $prefix): void
+    {
+        foreach (array_keys($this->entries) as $key) {
+            if (str_starts_with($key, $prefix)) {
+                unset($this->entries[$key]);
+            }
+        }
+    }
+}
+
 $host = getenv('TEST_DB_HOST');
 $password = getenv('TEST_DB_ROOT_PASSWORD');
 $port = getenv('TEST_DB_PORT') ?: '3306';
@@ -200,6 +238,89 @@ try {
     $assert(!str_contains($search, '1:100:2:Pending Alpha'), 'queue filter excludes other IDs');
     $empty = $ctrl->list($request(8,1,'pw1','does not exist'))->body;
     $assert($empty === '-2', 'empty queue search stays no-results response');
+
+    // Two anonymous clients requesting the same public level must reuse the
+    // cache despite transport-only fields, input order and whitespace.
+    $cache = new LevelPublicCacheFixture();
+    $publicService = new LevelService(
+        new LevelRepository($db), new GdLevelListEncoder(), $cache
+    );
+    $firstInput = [
+        'type' => '0', 'page' => '0', 'str' => '100',
+        'gameVersion' => '22', 'binaryVersion' => '51',
+        'udid' => 'device-one', 'uuid' => 'client-one',
+        'gjp2' => 'anonymous-placeholder',
+    ];
+    $firstList = $publicService->getLevels($firstInput);
+    $secondList = $publicService->getLevels([
+        'uuid' => 'client-two', 'binaryVersion' => '51',
+        'str' => ' 100 ', 'page' => '0',
+        'type' => '0', 'gameVersion' => '22',
+        'udid' => 'device-two', 'unrelated' => 'ignored',
+    ]);
+    $assert(
+        $firstList !== '-1' && $firstList !== '-2'
+        && $firstList === $secondList
+        && $cache->writes === 1 && $cache->hits === 1,
+        'public search ignores client identity and reuses one cached response'
+    );
+    $oldWire = $publicService->getLevels([
+        'str' => '100', 'type' => '0', 'page' => '0',
+        'gameVersion' => '22', 'binaryVersion' => '47',
+    ]);
+    $assert(
+        $oldWire !== $firstList && !str_contains($oldWire, ':62:')
+        && $cache->writes === 2,
+        'old client cannot receive cached 2.209 timestamp fields'
+    );
+    $demonOnly = $publicService->getLevels([
+        'str' => '100', 'type' => '0', 'page' => '0',
+        'gameVersion' => '22', 'binaryVersion' => '51',
+        'diff' => '-2',
+    ]);
+    $assert(
+        $demonOnly === '-2' && $cache->writes === 3,
+        'changing a gameplay filter never reuses an incompatible cached result'
+    );
+
+    // Sparse first-page lookups have a known exact total from the rows.
+    // The old implementation always issued a separate COUNT(*) read.
+    $levelRepo = new LevelRepository($db);
+    $readsCounter = static function () use ($db): int {
+        $value = $db->query("SHOW SESSION STATUS LIKE 'Com_select'")->fetch(PDO::FETCH_NUM);
+        return (int)($value[1] ?? -1);
+    };
+    $beforeSparse = $readsCounter();
+    $one = $levelRepo->search(0, '100', 22, 0, 10);
+    $sparseReads = $readsCounter() - $beforeSparse;
+    $assert(
+        $one['total'] === 1
+        && count($one['levels']) === 1
+        && $sparseReads === 1,
+        'first-page numeric level lookup returns exact total with one SELECT'
+    );
+
+    $none = $levelRepo->search(0, 'nonexistent-search-text', 22, 0, 10);
+    $assert(
+        $none['total'] === 0 && $none['levels'] === [],
+        'first-page empty search retains its exact zero total'
+    );
+
+    // Full and later pages still require the real total; the wire format
+    // must never undercount pages after the sparse COUNT optimization.
+    for ($extra = 200; $extra < 212; $extra++) {
+        $db->prepare(
+            'INSERT INTO levels(level_id,account_id,name,stars,is_deleted,is_unlisted)
+             VALUES (:id,1,:name,0,0,0)'
+        )->execute(['id'=>$extra, 'name'=>'Extra ' . $extra]);
+    }
+    $full = $levelRepo->search(0, '', 22, 0, 10);
+    $last = $levelRepo->search(0, '', 22, 10, 10);
+    $assert(
+        $full['total'] === 16 && count($full['levels']) === 10
+        && $last['total'] === 16 && count($last['levels']) === 6,
+        'full and later pages retain exact totals for Geometry Dash'
+    );
 
     echo "MUCHOCORE_GD_2209_MODERATION_QUEUE_OK\n";
 } finally {

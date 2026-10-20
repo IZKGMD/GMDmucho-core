@@ -43,13 +43,21 @@ final readonly class LevelDownloadTracker
         $this->pdo->beginTransaction();
 
         try {
-            $this->pdo->exec(
+            // The unique index starts with (level_id, client_hash). Avoid
+            // deleting every expired record for a popular level on each
+            // download: clean only the requesting client's expired slots.
+            $delete = $this->pdo->prepare(
                 'DELETE FROM mucho_level_downloads
-                 WHERE level_id='.(int)$levelId.'
+                 WHERE level_id=:level_id
+                   AND client_hash=:client_hash
                    AND created_at < (
                        CURRENT_TIMESTAMP - INTERVAL '.$window.' SECOND
                    )'
             );
+            $delete->execute([
+                'level_id' => $levelId,
+                'client_hash' => $clientHash,
+            ]);
 
             /*
              * Keep two bounded slots for compatibility with clients that may
@@ -106,6 +114,29 @@ final readonly class LevelDownloadTracker
                 $e
             );
         }
+    }
+
+    /**
+     * Bounded cleanup for the background worker, never the request path.
+     * The window matches record() so active deduplication slots survive.
+     */
+    public static function pruneExpired(PDO $pdo, int $batch = 512): int
+    {
+        $window = (int)(Environment::get(
+            'MUCHO_DOWNLOAD_DEDUP_SECONDS', '300'
+        ) ?? '300');
+        $window = max(30, min(604800, $window));
+        $batch = max(1, min(10000, $batch));
+        $stmt = $pdo->prepare(
+            'DELETE FROM mucho_level_downloads
+             WHERE created_at < (
+                 CURRENT_TIMESTAMP - INTERVAL ' . $window . ' SECOND
+             )
+             ORDER BY created_at ASC
+             LIMIT ' . $batch
+        );
+        $stmt->execute();
+        return $stmt->rowCount();
     }
 
     private function hashKey(): string

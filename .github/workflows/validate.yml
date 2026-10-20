@@ -81,6 +81,7 @@ jobs:
           php -l bin/mucho-client-doctor.php
           php -l bin/mucho-gd2209-trace-report.php
           php -l bin/mucho-gd2209-coverage.php
+          php -l bin/mucho-worker.php
           php bin/mucho-gd2209-coverage.php --json > /dev/null
           php tests/client/client-compatibility.php
           php tests/client/gd-2209-synthetic.php
@@ -143,6 +144,7 @@ jobs:
           php tests/application/cloudsave-key-contract.php
           php tests/application/cloudsave-shared-key-path.php
           php tests/application/auth-session-isolation.php
+          php tests/application/hotpath-bootstrap-contract.php
           php tests/application/security-regressions.php
           bash tests/release/release-update-detection.sh
           python3 tests/release/release-publication.py
@@ -166,6 +168,9 @@ jobs:
         run: |
           python3 tests/release/v110_p0_audit_test.py
           python3 tests/client/client_trace_summary_test.py
+          python3 tests/performance/http_latency_test.py
+          php -l tools/performance/level_sql_audit.php
+          php -l tools/performance/db_bootstrap_probe.php
           python3 tools/release/v110_p0_audit.py --json > /dev/null
 
       - name: Check shared-hosting package
@@ -327,6 +332,7 @@ jobs:
           printf 'ci-testgdps-admin-password' > .secrets/testgdps_admin_password
           docker compose --env-file .ci.env -f docker-compose.yml -f docker-compose.test.yml config -q
           docker compose --env-file .ci.env -f docker-compose.yml -f docker-compose.test.yml -f docker-compose.trace-test.yml config -q
+          docker compose --env-file .ci.env -f docker-compose.yml -f docker-compose.redis-cache.yml config -q
 
       - name: Check release-based automatic update wiring
         run: |
@@ -408,7 +414,7 @@ jobs:
           from pathlib import Path
           source = Path("public/index.php").read_text(encoding="utf-8")
           liveness = source.index("if (")
-          application = source.index("(new Application())->run();")
+          application = source.index("(new Application($guard->storageConnection()))->run($request);")
           assert "__muchoLivenessPath" in source
           assert "/health" in source
           assert "/checkifserveronline" in source
@@ -560,6 +566,20 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/core-storage-integration.php
 
+      - name: Verify bounded search index rebuild
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/search-index-batch-integration.php
+
+      - name: Verify optional level-index plans on isolated 10k-row MariaDB
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/level-index-staging-integration.php
+
       - name: Verify plain admin clan operations
         env:
           TEST_DB_HOST: 127.0.0.1
@@ -678,6 +698,7 @@ jobs:
         run: |
           find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/application/input-hardening-contract.php
+          php tests/application/hotpath-bootstrap-contract.php
           php tests/application/score-integrity-contract.php
           php tests/application/profile-images.php
           php tests/security/client-ip-cloudflare.php

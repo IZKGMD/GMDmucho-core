@@ -1,0 +1,39 @@
+# OPTIONAL staging fast-cache overlay. Do not enable globally by default:
+# Redis is volatile (cache only) and not exposed on any host port.
+# Combine with docker-compose.yml only after load and memory checks:
+# docker compose -f docker-compose.yml -f docker-compose.redis-cache.yml config -q
+services:
+  redis-cache:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+      - --maxmemory
+      - "128mb"
+      - --maxmemory-policy
+      - allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  app:
+    environment:
+      MUCHO_CACHE_DRIVER: redis
+      MUCHO_REDIS_HOST: redis-cache
+      MUCHO_REDIS_PORT: "6379"
+    depends_on:
+      redis-cache:
+        condition: service_healthy
+  worker:
+    environment:
+      MUCHO_CACHE_DRIVER: redis
+      MUCHO_REDIS_HOST: redis-cache
+      MUCHO_REDIS_PORT: "6379"
+    depends_on:
+      redis-cache:
+        condition: service_healthy

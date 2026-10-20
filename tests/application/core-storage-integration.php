@@ -79,9 +79,62 @@ try {
     $pdo->exec('CREATE TABLE accounts (account_id BIGINT UNSIGNED PRIMARY KEY,username VARCHAR(20)) ENGINE=InnoDB');
     $pdo->exec('CREATE TABLE levels (
         level_id BIGINT UNSIGNED PRIMARY KEY,account_id BIGINT UNSIGNED,name VARCHAR(128),
-        game_version INT,is_deleted TINYINT,is_unlisted TINYINT) ENGINE=InnoDB');
+        game_version INT,downloads INT NOT NULL DEFAULT 0,is_deleted TINYINT,is_unlisted TINYINT) ENGINE=InnoDB');
     $migration = require dirname(__DIR__, 2) . '/database/migrations/20260928_001_intelligence_scale.php';
     $migration->up($pdo);
+    // Download counters use indexed client slots and must not break the
+    // exact two-downloads-per-client compatibility contract.
+    $downloadMigration = require dirname(__DIR__, 2)
+        . '/database/migrations/20261007_001_level_download_dedup.php';
+    $downloadMigration($pdo);
+    $pdo->exec(
+        "INSERT INTO levels(level_id,account_id,name,game_version,is_deleted,is_unlisted)
+         VALUES(99,2,'Download test',22,0,0)"
+    );
+    $tracker = new \MuchoCore\Level\LevelDownloadTracker($pdo);
+    storageCheck(
+        $tracker->record(99, '192.0.2.101') &&
+        $tracker->record(99, '192.0.2.101') &&
+        !$tracker->record(99, '192.0.2.101') &&
+        (int)$pdo->query('SELECT downloads FROM levels WHERE level_id=99')->fetchColumn() === 2,
+        'download dedupe permits exactly two client slots per window'
+    );
+    $pdo->exec(
+        'UPDATE mucho_level_downloads
+         SET created_at=DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 400 SECOND)
+         WHERE level_id=99'
+    );
+    storageCheck(
+        $tracker->record(99, '192.0.2.101') &&
+        (int)$pdo->query('SELECT downloads FROM levels WHERE level_id=99')->fetchColumn() === 3,
+        'expired slots are reusable without increasing unrelated row locks'
+    );
+
+    // Maintenance is performed by the background worker, not during
+    // record(): it should prune only a bounded number of expired rows.
+    $pdo->exec(
+        'UPDATE mucho_level_downloads
+         SET created_at=DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 400 SECOND)
+         WHERE level_id=99'
+    );
+    $pdo->exec(
+        "INSERT INTO mucho_level_downloads(level_id,client_hash,slot)
+         VALUES (99,'" . str_repeat('f', 64) . "',1)"
+    );
+    storageCheck(
+        \MuchoCore\Level\LevelDownloadTracker::pruneExpired($pdo, 1) === 1,
+        'background download pruning is limited to a single expired row'
+    );
+    storageCheck(
+        (int)$pdo->query(
+            "SELECT COUNT(*) FROM mucho_level_downloads
+             WHERE level_id=99 AND client_hash='" . str_repeat('f', 64) . "'"
+        )->fetchColumn() === 1
+        && (int)$pdo->query(
+            'SELECT downloads FROM levels WHERE level_id=99'
+        )->fetchColumn() === 3,
+        'background pruning preserves active dedupe slots and download count'
+    );
 
     $writer = $connect($name);
     $cache = new DatabaseCache($pdo);
@@ -154,6 +207,35 @@ try {
     storageCheck($queue->fail($retry, 'permanent', 'retry', 2, 5, 2) &&
         $writer->query("SELECT status FROM mucho_jobs WHERE id={$retry}")->fetchColumn() === 'failed',
         'explicit failures stop at the configured attempt limit');
+
+    // A slow transaction holding the oldest job must not block the
+    // reservation of the next ready job on modern MariaDB/InnoDB.
+    $lockedJob = $queue->enqueue('unit.skip.locked');
+    $freeJob = $queue->enqueue('unit.skip.free');
+    $pdo->beginTransaction();
+    try {
+        $pdo->query("SELECT id FROM mucho_jobs WHERE id={$lockedJob} FOR UPDATE")->fetchColumn();
+        $writer->exec('SET SESSION innodb_lock_wait_timeout=2');
+        $freeClaim = $otherQueue->reserve('skip-locked-worker');
+        storageCheck(
+            $freeClaim !== null && (int)$freeClaim['id'] === $freeJob,
+            'concurrent worker skips a locked oldest queue job'
+        );
+        storageCheck(
+            $otherQueue->complete($freeJob, 'skip-locked-worker', (int)$freeClaim['attempts']),
+            'skip-locked worker can complete an independent job'
+        );
+    } finally {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+    }
+    $lockedClaim = $queue->reserve('previously-locked-worker');
+    storageCheck(
+        $lockedClaim !== null && (int)$lockedClaim['id'] === $lockedJob
+        && $queue->complete($lockedJob, 'previously-locked-worker', (int)$lockedClaim['attempts']),
+        'previously locked job remains available after the lock releases'
+    );
 
     $pdo->beginTransaction();
     $rejected = false;

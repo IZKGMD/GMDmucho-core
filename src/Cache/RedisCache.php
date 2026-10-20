@@ -73,7 +73,20 @@ final class RedisCache implements CacheInterface
             do {
                 $keys = $this->redis->scan($iterator, $pattern, 200);
                 if ($keys !== false && $keys !== []) {
-                    $this->redis->del($keys);
+                    // Redis UNLINK removes key names immediately and reclaims
+                    // large payloads asynchronously, avoiding DEL stalls on
+                    // the request path. Older servers/extensions use DEL.
+                    $unlinked = false;
+                    if (method_exists($this->redis, 'unlink')) {
+                        try {
+                            $unlinked = $this->redis->unlink($keys) !== false;
+                        } catch (Throwable) {
+                            // Redis <4.0 can reject UNLINK; try DEL instead.
+                        }
+                    }
+                    if (!$unlinked) {
+                        $this->redis->del($keys);
+                    }
                 }
             } while ($iterator !== 0);
         } catch (Throwable) {
