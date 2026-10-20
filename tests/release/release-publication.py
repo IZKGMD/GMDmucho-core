@@ -77,7 +77,7 @@ p.write_text(json.dumps(d))
                  'compat/php7/runtime.php','compat/php7/config.example.php','src/example.php',
                  'database/example.sql','config/example.php','vendor/autoload.php',
                  'docs/SHARED_HOSTING.md','docs/CLIENT_SETUP.md',
-                 'docs/SHARED_INSTALL_RU.txt']:
+                 'docs/PHP7_NATIVE_PHASE1.md','docs/SHARED_INSTALL_RU.txt']:
         file=repo/path
         file.parent.mkdir(parents=True,exist_ok=True)
         file.write_text('fixture\n')
