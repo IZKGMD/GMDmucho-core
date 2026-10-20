@@ -31,4 +31,11 @@ grep -Fq "shell_quote(\$installRef)" bin/mucho-deploy-worker.php
 ! grep -Fq "sessionStorage.getItem(AUTOSAVE_KEY+'_password'" public/deploy/index.html
 grep -Fq "const autosaveFields=['gdpsName','host','port','user','domain','adminUser'];" public/deploy/index.html
 
+# Git source checkouts must ignore a restrictive backup-session umask.
+# The scoped override keeps .env and secrets handling unchanged.
+grep -Fq 'git_reset_source() {' update.sh
+grep -Fq '( umask 022; git reset --hard "$1" )' update.sh
+grep -Fq 'git_reset_source "$ORIGINAL_HEAD"' update.sh
+grep -Fq 'git_reset_source "$TARGET_REF"' update.sh
+
 echo "deployment-contract: OK"
