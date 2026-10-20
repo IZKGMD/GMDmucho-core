@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Level;
 
+use MuchoCore\Diagnostics\RequestProfiler;
 use PDO;
 use Throwable;
 
@@ -575,9 +576,11 @@ final readonly class LevelRepository
             LIMIT ' . (int)$limit . '
             OFFSET ' . (int)$offset;
 
+        $sqlStartedAt = RequestProfiler::clock();
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
         $levels = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        RequestProfiler::observe('sql_levels', $sqlStartedAt);
 
         // For non-rotation searches, a first page with fewer rows than
         // LIMIT is the entire result set. No exact COUNT(*) is needed.
@@ -588,11 +591,13 @@ final readonly class LevelRepository
             && count($levels) < $limit) {
             $total = count($levels);
         } else {
+            $countStartedAt = RequestProfiler::clock();
             $count = $this->pdo->prepare(
                 'SELECT COUNT(*) ' . $countFrom . ' WHERE ' . $whereSql
             );
             $count->execute($params);
             $total = (int)$count->fetchColumn();
+            RequestProfiler::observe('sql_count', $countStartedAt);
         }
 
         return [
@@ -610,6 +615,7 @@ final readonly class LevelRepository
         }
 
         try {
+            $indexProbeStartedAt = RequestProfiler::clock();
             $stmt = $this->pdo->query(
                 "SELECT COUNT(*)
                  FROM information_schema.tables
@@ -617,6 +623,7 @@ final readonly class LevelRepository
                    AND table_name = 'mucho_level_search_index'"
             );
             $available = (int)$stmt->fetchColumn() === 1;
+            RequestProfiler::observe('sql_index_probe', $indexProbeStartedAt);
         } catch (Throwable) {
             $available = false;
         }
