@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MuchoCore\Level;
 
 use MuchoCore\Cache\CacheInterface;
+use MuchoCore\Diagnostics\RequestProfiler;
 use MuchoCore\Protocol\GdLevelListEncoder;
 
 final readonly class LevelService
@@ -91,12 +92,16 @@ final readonly class LevelService
                     'input' => $cacheInput,
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE)
             );
+            $cacheStartedAt = RequestProfiler::clock();
             $cached = $this->cache->get($cacheKey);
+            RequestProfiler::observe('cache_read', $cacheStartedAt);
+            RequestProfiler::cacheHit($cached !== null);
             if ($cached !== null) {
                 return $cached;
             }
         }
 
+        $searchStartedAt = RequestProfiler::clock();
         $result = $this->levels->search(
             type: $type,
             search: $search,
@@ -106,7 +111,9 @@ final readonly class LevelService
             demonFilter: $demonFilter,
             input: $input,
         );
+        RequestProfiler::observe('search', $searchStartedAt);
 
+        $encodeStartedAt = RequestProfiler::clock();
         if (empty($result['levels'])) {
             $encoded = '-2';
         } else {
@@ -120,9 +127,13 @@ final readonly class LevelService
             );
         }
 
+        RequestProfiler::observe('encode', $encodeStartedAt);
+
         if ($cacheable && $cacheKey !== '') {
             $ttl = max(1, min(300, (int)(getenv('MUCHO_LEVEL_CACHE_TTL') ?: 15)));
+            $writeStartedAt = RequestProfiler::clock();
             $this->cache->set($cacheKey, $encoded, $ttl);
+            RequestProfiler::observe('cache_write', $writeStartedAt);
         }
 
         return $encoded;
