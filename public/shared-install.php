@@ -501,9 +501,9 @@ function databasePreflight(PDO $pdo): string {
 function checkRequirements(string $root, string $storage): array {
     $checks = [];
 
-    $checks[] = version_compare(PHP_VERSION, '8.3.0', '>=')
+    $checks[] = version_compare(PHP_VERSION, '8.2.0', '>=')
         ? pass('PHP ' . PHP_VERSION . ' is supported.')
-        : fail('PHP 8.3 or newer is required.');
+        : fail('PHP 8.2 or newer is required.');
 
     foreach ([
         'pdo',
