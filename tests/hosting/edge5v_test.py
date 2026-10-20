@@ -11,16 +11,17 @@ EDGE = ROOT / "tools/hosting/5v-edge.php"
 PROBE = ROOT / "tools/hosting/5v-probe.php"
 
 
-def cli(path, method, uri):
+def cli(path, method, uri, no_extensions=False):
     src = (
         '$_SERVER["REQUEST_METHOD"]=$argv[1];'
         '$_SERVER["REQUEST_URI"]=$argv[2];'
         'require $argv[3];'
     )
-    return subprocess.run(
-        ["php", "-r", src, method, uri, str(path)],
-        text=True, capture_output=True,
-    )
+    command = ["php"]
+    if no_extensions:
+        command.append("-n")
+    command += ["-r", src, method, uri, str(path)]
+    return subprocess.run(command, text=True, capture_output=True)
 
 
 @unittest.skipUnless(shutil.which("php"), "PHP required")
@@ -40,10 +41,17 @@ class Edge5vTest(unittest.TestCase):
         self.assertIn("php_version", data)
         self.assertIn("full_muchocore_possible", data)
 
-    def test_health_without_upstream(self):
-        result = cli(EDGE, "GET", "/health")
+    def test_health_never_forges_success_without_upstream(self):
+        # PHP -n disables cURL, giving an offline test with zero network traffic.
+        result = cli(EDGE, "GET", "/health", no_extensions=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, "1")
+        self.assertEqual(result.stdout, "-1")
+        self.assertNotIn("echo '1';", EDGE.read_text(encoding="utf-8"))
+
+    def test_health_rejects_post_without_connecting(self):
+        result = cli(EDGE, "POST", "/health")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "-1")
 
     def test_administration_and_external_proxy_paths_blocked(self):
         for method, path in (
