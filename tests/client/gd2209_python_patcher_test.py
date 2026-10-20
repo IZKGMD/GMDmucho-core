@@ -133,7 +133,7 @@ class GD2209PatcherTest(unittest.TestCase):
         self.assertEqual(len(source), len(patched))
         self.assertEqual(sum(x.count for x in stats), 2)
         self.assertIn(
-            b"https://linasgdpsprivatese.5v.pl/getGJLevels21.php\x00",
+            b"https://linasgdpsprivatese.5v.pl/a/getGJLevels21.php\x00",
             patched,
         )
         self.assertIn(
