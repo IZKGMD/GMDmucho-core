@@ -76,8 +76,32 @@ function handleAndroidPatcherAction(
             'ok' => true,
             'upload_id' => $id,
             'next_offset' => 0,
-            'chunk_size' => 512 * 1024,
+            'chunk_size' => 4 * 1024 * 1024,
         ]);
+    }
+
+    // Let a reconnecting browser verify committed bytes before retrying.
+    // This also recovers from a lost HTTP response after a successful write.
+    if ($action === 'android-patcher-status') {
+        $session = $_SESSION['android_patcher_upload'] ?? null;
+        $id = (string)($_POST['upload_id'] ?? '');
+        if (!is_array($session) ||
+            !preg_match('/^[a-f0-9]{32}$/', $id) ||
+            !hash_equals((string)($session['id'] ?? ''), $id) ||
+            (int)($session['expires'] ?? 0) <= time()) {
+            clientPatcherJson(['ok' => false, 'error' => 'Upload session expired.'], 410);
+        }
+        $part = $dir . '/' . $id . '.apk.upload';
+        if (!hash_equals((string)($session['part_path'] ?? ''), $part) ||
+            !is_file($part)) {
+            clientPatcherJson(['ok' => false, 'error' => 'Upload not found.'], 404);
+        }
+        clearstatcache(true, $part);
+        $offset = filesize($part);
+        if ($offset === false || $offset > (int)$session['total_size']) {
+            clientPatcherJson(['ok' => false, 'error' => 'Invalid upload state.'], 409);
+        }
+        clientPatcherJson(['ok' => true, 'next_offset' => $offset]);
     }
 
     if ($action === 'android-patcher-chunk') {
@@ -147,7 +171,7 @@ function handleAndroidPatcherAction(
         if (
             !is_uploaded_file($tmp) ||
             $chunkSize <= 0 ||
-            $chunkSize > 512 * 1024 ||
+            $chunkSize > 4 * 1024 * 1024 ||
             $offset + $chunkSize > $totalSize
         ) {
             clientPatcherJson(
@@ -184,6 +208,7 @@ function handleAndroidPatcherAction(
             );
         }
 
+        clearstatcache(true, $part);
         $next = filesize($part);
         if ($next === false) {
             clientPatcherJson(
@@ -192,10 +217,11 @@ function handleAndroidPatcherAction(
             );
         }
 
+        $_SESSION['android_patcher_upload']['expires'] = time() + 3600;
         clientPatcherJson([
             'ok' => true,
             'next_offset' => $next,
-            'complete' => $next >= $totalSize,
+            'complete' => $next === $totalSize,
         ]);
     }
 
@@ -458,7 +484,7 @@ function renderAndroidPatcherSection(PDO $db): void
             <div>
                 <h3>Patch & rebuild</h3>
                 <div class="muted small">
-                    Uploads use the same <b>512 KB chunks</b> as the Windows patcher.
+                    Uploads use <b>adaptive 512 KiB–4 MiB chunks</b> to reduce request overhead on mobile connections.
                 </div>
             </div>
         </div>
@@ -513,7 +539,8 @@ function renderAndroidPatcherSection(PDO $db): void
     const result = document.getElementById('mcAndroidPatcherResult');
     const button = document.getElementById('mcAndroidPatcherButton');
     const csrf = <?=json_encode(csrf(), JSON_UNESCAPED_SLASHES)?>;
-    const CHUNK_SIZE = 512 * 1024;
+    const MIN_CHUNK_SIZE = 512 * 1024;
+    const MAX_CHUNK_SIZE = 4 * 1024 * 1024;
     let selected = null;
 
     const escapeHtml = value => String(value)
@@ -630,9 +657,16 @@ function renderAndroidPatcherSection(PDO $db): void
 
             let offset = Number(start.next_offset || 0);
             const uploadId = start.upload_id;
+            // Negotiate size with the backend: old deployments may cap 512 KiB.
+            const serverChunkSize = Number(start.chunk_size) || MIN_CHUNK_SIZE;
+            const maxChunkSize = Math.min(MAX_CHUNK_SIZE,
+                Math.max(MIN_CHUNK_SIZE, serverChunkSize));
+            let chunkSize = Math.min(maxChunkSize, 2 * 1024 * 1024);
+            const uploadStarted = Date.now();
 
             while (offset < selected.size) {
-                const end = Math.min(offset + CHUNK_SIZE, selected.size);
+                const end = Math.min(offset + chunkSize, selected.size);
+                const chunkStarted = Date.now();
                 const chunk = selected.slice(offset, end);
 
                 setStatus(
@@ -650,18 +684,35 @@ function renderAndroidPatcherSection(PDO $db): void
                     try {
                         data = await api(
                             'android-patcher-chunk',
-                            {
-                                upload_id: uploadId,
-                                offset
-                            },
+                            { upload_id: uploadId, offset },
                             chunk
                         );
-                        lastError = null;
                         break;
                     } catch (error) {
                         lastError = error;
+                        // A lost acknowledgement does not imply lost bytes.
+                        // Check the committed offset before re-uploading.
+                        try {
+                            const checkpoint = await api(
+                                'android-patcher-status',
+                                { upload_id: uploadId }
+                            );
+                            const confirmed = Number(checkpoint.next_offset);
+                            if (!Number.isSafeInteger(confirmed) ||
+                                confirmed < offset || confirmed > end) {
+                                throw new Error('Unexpected upload offset. Refresh and try again.');
+                            }
+                            if (confirmed > offset) {
+                                data = { next_offset: confirmed };
+                                break;
+                            }
+                        } catch (checkError) {
+                            if (/Unexpected upload offset/.test(checkError.message || '')) {
+                                throw checkError;
+                            }
+                        }
                         if (attempt < 3) {
-                            setStatus('Upload retry ' + attempt + '/2…');
+                            setStatus('Network interrupted. Retrying upload ' + attempt + '/2…');
                             await new Promise(resolve =>
                                 setTimeout(resolve, 700 * attempt)
                             );
@@ -673,8 +724,26 @@ function renderAndroidPatcherSection(PDO $db): void
                     throw lastError || new Error('APK upload chunk failed.');
                 }
 
-                offset = Number(data.next_offset || end);
+                const next = Number(data.next_offset);
+                if (!Number.isSafeInteger(next) || next <= offset || next > end) {
+                    throw new Error('Invalid upload acknowledgement.');
+                }
+                offset = next;
                 setProgress((offset / selected.size) * 85);
+                const elapsed = Math.max(1, (Date.now() - uploadStarted) / 1000);
+                const speed = offset / elapsed / 1048576;
+                const eta = speed > 0 ?
+                    Math.ceil((selected.size - offset) / (speed * 1048576)) : 0;
+                setStatus('Uploaded ' + (offset / 1048576).toFixed(1) +
+                    ' / ' + (selected.size / 1048576).toFixed(1) +
+                    ' MiB · ' + speed.toFixed(2) + ' MiB/s · about ' +
+                    (eta < 60 ? eta + 's' : Math.ceil(eta / 60) + 'min') + ' left');
+                const chunkSeconds = (Date.now() - chunkStarted) / 1000;
+                if (chunkSeconds > 22) {
+                    chunkSize = Math.max(MIN_CHUNK_SIZE, Math.floor(chunkSize / 2));
+                } else if (chunkSeconds < 7 && chunkSize < maxChunkSize) {
+                    chunkSize = Math.min(maxChunkSize, chunkSize * 2);
+                }
             }
 
             setStatus('Patching and rebuilding APK…');

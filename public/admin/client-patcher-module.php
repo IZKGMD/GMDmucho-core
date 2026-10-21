@@ -162,8 +162,30 @@ function handleClientPatcherAction(
             'ok' => true,
             'upload_id' => $id,
             'next_offset' => 0,
-            'chunk_size' => 512 * 1024,
+            'chunk_size' => 4 * 1024 * 1024,
         ]);
+    }
+
+    // Return the committed offset without re-uploading file bytes. The session
+    // lock serializes this with any in-flight chunk append.
+    if ($action === 'client-patcher-status') {
+        $session = clientPatcherUploadSession();
+        if (!$session) {
+            clientPatcherJson(['ok' => false, 'error' => 'Upload session expired.'], 410);
+        }
+        $id = (string)($_POST['upload_id'] ?? '');
+        clientPatcherAssertUpload($session, $id);
+        $part = $dir . '/' . $id . '.upload';
+        if (!hash_equals((string)($session['part_path'] ?? ''), $part) ||
+            !is_file($part)) {
+            clientPatcherJson(['ok' => false, 'error' => 'Upload not found.'], 404);
+        }
+        clearstatcache(true, $part);
+        $offset = filesize($part);
+        if ($offset === false || $offset > (int)$session['total_size']) {
+            clientPatcherJson(['ok' => false, 'error' => 'Invalid upload state.'], 409);
+        }
+        clientPatcherJson(['ok' => true, 'next_offset' => $offset]);
     }
 
     if ($action === 'client-patcher-chunk') {
@@ -222,7 +244,7 @@ function handleClientPatcherAction(
         if (
             !is_uploaded_file($tmp) ||
             $chunkSize <= 0 ||
-            $chunkSize > 512 * 1024 ||
+            $chunkSize > 4 * 1024 * 1024 ||
             $offset + $chunkSize > $totalSize
         ) {
             clientPatcherJson(
@@ -261,7 +283,11 @@ function handleClientPatcherAction(
 
         $_SESSION['client_patcher_upload']['expires'] = time() + 3600;
 
-        $next = $offset + $chunkSize;
+        clearstatcache(true, $part);
+        $next = filesize($part);
+        if ($next === false || $next > $totalSize) {
+            clientPatcherJson(['ok' => false, 'error' => 'Invalid upload length.'], 500);
+        }
 
         clientPatcherJson([
             'ok' => true,
@@ -495,7 +521,7 @@ function renderClientPatcherPage(PDO $db): void
                     <div>
                         <h3>Patch the client</h3>
                         <div class="muted small">
-                            The server uploads the file in <b>512 KB chunks</b> and patches
+                            The server uploads the file in <b>adaptive chunks up to 4 MiB</b> and patches
                             known Geometry Dash server URL layouts without loading the
                             entire executable into PHP memory.
                         </div>
@@ -595,7 +621,8 @@ function renderClientPatcherPage(PDO $db): void
     const result = document.getElementById('mcPatcherResult');
     const button = document.getElementById('mcPatcherButton');
     const csrf = <?=json_encode(csrf(), JSON_UNESCAPED_SLASHES)?>;
-    const CHUNK_SIZE = 512 * 1024;
+    const MIN_CHUNK_SIZE = 512 * 1024;
+    const MAX_CHUNK_SIZE = 4 * 1024 * 1024;
 
     let selected = null;
 
@@ -732,9 +759,16 @@ function renderClientPatcherPage(PDO $db): void
 
             let offset = Number(start.next_offset || 0);
             const uploadId = start.upload_id;
+            // Negotiate size with the backend: old deployments may cap 512 KiB.
+            const serverChunkSize = Number(start.chunk_size) || MIN_CHUNK_SIZE;
+            const maxChunkSize = Math.min(MAX_CHUNK_SIZE,
+                Math.max(MIN_CHUNK_SIZE, serverChunkSize));
+            let chunkSize = Math.min(maxChunkSize, 2 * 1024 * 1024);
+            const uploadStarted = Date.now();
 
             while (offset < selected.size) {
-                const end = Math.min(offset + CHUNK_SIZE, selected.size);
+                const end = Math.min(offset + chunkSize, selected.size);
+                const chunkStarted = Date.now();
                 const chunk = selected.slice(offset, end);
 
                 setStatus(
@@ -752,21 +786,38 @@ function renderClientPatcherPage(PDO $db): void
                     try {
                         data = await api(
                             'client-patcher-chunk',
-                            {
-                                upload_id: uploadId,
-                                offset
-                            },
+                            { upload_id: uploadId, offset },
                             chunk
                         );
-                        lastError = null;
                         break;
                     } catch (error) {
                         lastError = error;
-                        if (attempt < 3) {
-                            setStatus(
-                                'Upload retry ' + attempt + '/2…'
+                        // A lost acknowledgement does not imply lost bytes.
+                        // Check the committed offset before re-uploading.
+                        try {
+                            const checkpoint = await api(
+                                'client-patcher-status',
+                                { upload_id: uploadId }
                             );
-                            await new Promise(resolve => setTimeout(resolve, 700 * attempt));
+                            const confirmed = Number(checkpoint.next_offset);
+                            if (!Number.isSafeInteger(confirmed) ||
+                                confirmed < offset || confirmed > end) {
+                                throw new Error('Unexpected upload offset. Refresh and try again.');
+                            }
+                            if (confirmed > offset) {
+                                data = { next_offset: confirmed };
+                                break;
+                            }
+                        } catch (checkError) {
+                            if (/Unexpected upload offset/.test(checkError.message || '')) {
+                                throw checkError;
+                            }
+                        }
+                        if (attempt < 3) {
+                            setStatus('Network interrupted. Retrying upload ' + attempt + '/2…');
+                            await new Promise(resolve =>
+                                setTimeout(resolve, 700 * attempt)
+                            );
                         }
                     }
                 }
@@ -775,8 +826,26 @@ function renderClientPatcherPage(PDO $db): void
                     throw lastError || new Error('Upload chunk failed.');
                 }
 
-                offset = Number(data.next_offset || end);
+                const next = Number(data.next_offset);
+                if (!Number.isSafeInteger(next) || next <= offset || next > end) {
+                    throw new Error('Invalid upload acknowledgement.');
+                }
+                offset = next;
                 setProgress((offset / selected.size) * 90);
+                const elapsed = Math.max(1, (Date.now() - uploadStarted) / 1000);
+                const speed = offset / elapsed / 1048576;
+                const eta = speed > 0 ?
+                    Math.ceil((selected.size - offset) / (speed * 1048576)) : 0;
+                setStatus('Uploaded ' + (offset / 1048576).toFixed(1) +
+                    ' / ' + (selected.size / 1048576).toFixed(1) +
+                    ' MiB · ' + speed.toFixed(2) + ' MiB/s · about ' +
+                    (eta < 60 ? eta + 's' : Math.ceil(eta / 60) + 'min') + ' left');
+                const chunkSeconds = (Date.now() - chunkStarted) / 1000;
+                if (chunkSeconds > 22) {
+                    chunkSize = Math.max(MIN_CHUNK_SIZE, Math.floor(chunkSize / 2));
+                } else if (chunkSeconds < 7 && chunkSize < maxChunkSize) {
+                    chunkSize = Math.min(maxChunkSize, chunkSize * 2);
+                }
             }
 
             setStatus('Patching executable…');

@@ -236,6 +236,7 @@ jobs:
           node --check public/muchocore-theme.js
           node --check public/admin/admin-i18n.js
           node --test tests/application/product-ui.test.cjs
+          node --test tests/application/client-upload-speed.test.cjs
 
       - name: Check Python patcher
         run: |
