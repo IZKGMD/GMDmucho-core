@@ -55,8 +55,8 @@ assertTrue(
     \MuchoCore\Protocol\GdLegacyText::encodeCommentForResponse(
         'Hello 2.0',
         20
-    ) === 'Hello 2.0',
-    '2.0 comment response remains plain text'
+    ) === base64_encode('Hello 2.0'),
+    '2.0 comment response is Base64 encoded'
 );
 
 $userEncoder = new GdUserEncoder();
