@@ -101,6 +101,18 @@ assertCommentContract(
 );
 
 assertCommentContract(
+    substr_count($service, "'#' . $total . ':' . $offset . ':' . $limit") >= 2
+    && str_contains($service, '"#" . $total . ":" . $offset . ":" . $limit'),
+    'partial comment pages retain the requested page size'
+);
+
+assertCommentContract(
+    str_contains($controller, "'[MuchoCore CommentRead]'")
+    && !str_contains($controller, 'Response::text("#0:0:10")'),
+    'comment read failures are logged, not emitted as malformed pagination'
+);
+
+assertCommentContract(
     str_contains($service, '$mode !== 0') &&
     str_contains($service, 'int $count = 10'),
     'comment service honors pagination and sort mode'
