@@ -7,9 +7,26 @@
 ```apache
 # In the SITE ROOT .htaccess, not inside /mc:
 RewriteEngine On
+RewriteRule ^a/accounts/[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^a/[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^checkIfServerOnline\.php$ mc/public/php7.php [QSA,L,NC]
 ```
+
+В оригинальном Windows GD 2.209 от 19 октября 2026 года **6 из 113 URL** имеют вид `/a/accounts/*.php`. Обычное правило `^a/[...]+\\.php# Shared hosting / 5v.pl — что делать с длинным доменом
+
+На 5v.pl MuchoCore PHP 7 может лежать в `/mc/`, а Windows GD 2.209 сохраняет адреса сервера в **строках фиксированной длины**. Если в адрес не помещается `/database/`, патчер использует `/a/`, иногда — маршрут без префикса.
+
+**Пример для отдельного тестового сайта** `longgdpsname.5v.pl` (условный домен, не результат его проверки):
+
+```apache
+# In the SITE ROOT .htaccess, not inside /mc:
+RewriteEngine On
+RewriteRule ^a/accounts/[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^a/[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^checkIfServerOnline\.php$ mc/public/php7.php [QSA,L,NC]
+```
+
+ их **не перехватывает**; нужна отдельная первая строка для вложенного пути `a/accounts/`. Одному `checkIfServerOnline.php` требуется маршрут прямо из корня сайта. Эти правила обеспечивают маршрутизацию, но экспериментальные аккаунты PHP 7 остаются отключёнными по умолчанию.
 
 *Добавьте* правила до общих правил маршрутизации и сохраните существующие записи. Это пример для изолированного сайта, **не** универсальное разрешение всех PHP-путей.
 
