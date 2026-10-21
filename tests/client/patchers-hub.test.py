@@ -10,7 +10,8 @@ ROOT = Path(__file__).resolve().parents[2]
 class PatchersHubTest(unittest.TestCase):
     def test_entry_points_link_to_canonical_engines(self):
         files = [
-            "patchers/README.md",\n            "patchers/START-PATCHER.cmd",
+            "patchers/README.md",
+            "patchers/START-PATCHER.cmd",
             "patchers/windows/START-WINDOWS.cmd",
             "patchers/windows/README.md",
             "patchers/android/OPEN-ANDROID.cmd",
@@ -49,7 +50,8 @@ class PatchersHubTest(unittest.TestCase):
             self.assertIn(word, hub)
         self.assertIn("patchers/README.md", root)
         self.assertIn("GD2209_SHA256_OCT19", python)
-        self.assertIn("GD2209_BUILDS", python)\n        self.assertNotIn("linasgdpsprivatese", hub)
+        self.assertIn("GD2209_BUILDS", python)
+        self.assertNotIn("linasgdpsprivatese", hub)
         self.assertIn("Unknown GD 2.209 build", python)
 
 
