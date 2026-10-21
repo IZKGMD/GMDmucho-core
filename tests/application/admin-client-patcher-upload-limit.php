@@ -6,8 +6,8 @@ declare(strict_types=1);
  * Regression: both web patchers advertised 512 MB, but an accidental
  * 51512 * 1024 bound rejected ordinary 160 MB APKs before upload.
  *
- * The upload itself stays chunked in 512 KiB requests; only the maximum
- * total file size is 512 MiB.
+ * Total file limit is 512 MiB, while adaptive upload chunks are bounded
+ * between 512 KiB and 4 MiB to fit PHP/Caddy request limits.
  */
 $root = dirname(__DIR__, 2);
 $maxBytes = 512 * 1024 * 1024;
@@ -35,8 +35,15 @@ foreach ([
     if (str_contains($source, '51512 * 1024')) {
         throw new RuntimeException('The old 50 MiB typo remains: ' . $relative);
     }
-    if (!str_contains($source, '512 * 1024')) {
-        throw new RuntimeException('The 512 KiB chunk limit is missing: ' . $relative);
+    if (!str_contains($source, 'const MIN_CHUNK_SIZE = 512 * 1024;') ||
+        !str_contains($source, 'const MAX_CHUNK_SIZE = 4 * 1024 * 1024;') ||
+        !str_contains($source, "'chunk_size' => 4 * 1024 * 1024") ||
+        !str_contains($source, '$chunkSize > 4 * 1024 * 1024')) {
+        throw new RuntimeException('Adaptive chunk negotiation mismatch: ' . $relative);
+    }
+    if (!str_contains($source, "-status')") ||
+        !str_contains($source, "-status',")) {
+        throw new RuntimeException('Upload status recovery missing: ' . $relative);
     }
 }
 echo "admin-client-patcher-upload-limit: OK\\n";
