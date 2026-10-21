@@ -18,29 +18,33 @@ use MuchoCore\Client\Gd2209Binary;
 function gd2209Usage(): void
 {
     echo "MuchoCore | GD 2.209 exact-build patch studio\n\n";
-    echo "Usage: php bin/mucho-patch-gd2209.php --input=GeometryDash.exe --server=https://your-gdps.example [--output=patched.exe] [--dry-run] [--json] [--manifest=report.json]\n";
+    echo "Usage: php bin/mucho-patch-gd2209.php --input=GeometryDash.exe --server=https://your-gdps.example [--output=patched.exe] [--dry-run] [--json] [--manifest=report.json] [--apache-snippet=route-rules.txt]\n";
     echo "  --dry-run   Validate source, compute hash and inspect all route rewrites; do not write client.\n";
     echo "  --json      Print the full route manifest as JSON.\n";
     echo "  --manifest  Save the report to a new JSON file (never overwrite).\n";
+    echo "  --apache-snippet Save scoped Apache rules for /mc/ shared hosting.\n";
     echo "  --help      Show this usage.\n\n";
     echo "Source must be an exact known, unmodified GD 2.209 Windows x64 EXE.\n";
 }
 
-function gd2209WriteManifest(string $path, array $report): void
+function gd2209WriteNewFile(string $path, string $payload): void
 {
     if (file_exists($path) || is_link($path)) {
-        throw new RuntimeException('Manifest already exists; choose another filename.');
+        throw new RuntimeException('Report file already exists; choose another filename.');
     }
-    $payload = json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES |
-        JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR) . "\n";
     $fp = @fopen($path, 'xb');
     if (!is_resource($fp)) {
-        throw new RuntimeException('Unable to create manifest file.');
+        throw new RuntimeException('Unable to create report file.');
     }
     try {
-        $written = fwrite($fp, $payload);
-        if ($written !== strlen($payload)) {
-            throw new RuntimeException('Unable to write complete manifest.');
+        $offset = 0;
+        $length = strlen($payload);
+        while ($offset < $length) {
+            $written = fwrite($fp, substr($payload, $offset));
+            if ($written === false || $written === 0) {
+                throw new RuntimeException('Unable to write complete report.');
+            }
+            $offset += $written;
         }
     } catch (Throwable $error) {
         fclose($fp);
@@ -52,7 +56,7 @@ function gd2209WriteManifest(string $path, array $report): void
 
 function gd2209Cli(array $argv): int
 {
-    $options = getopt('', ['input:', 'server:', 'output:', 'dry-run', 'json', 'manifest:', 'help']);
+    $options = getopt('', ['input:', 'server:', 'output:', 'dry-run', 'json', 'manifest:', 'apache-snippet:', 'help']);
     if ($options === false || isset($options['help'])) {
         gd2209Usage();
         return 0;
@@ -84,6 +88,18 @@ function gd2209Cli(array $argv): int
         return 2;
     }
 
+    foreach (['manifest', 'apache-snippet'] as $reportOption) {
+        if (isset($options[$reportOption])) {
+            $filename = $options[$reportOption];
+            if (!is_string($filename) || $filename === '' ||
+                file_exists($filename) || is_link($filename)) {
+                fwrite(STDERR, "ERROR: Invalid or existing --" . $reportOption .
+                    " filename. Nothing was patched.\\n");
+                return 2;
+            }
+        }
+    }
+
     try {
         $report = $dryRun
             ? Gd2209Binary::inspectFile($input, $server)
@@ -93,10 +109,17 @@ function gd2209Cli(array $argv): int
             $report['output_path'] = $output;
         }
         if (isset($options['manifest'])) {
-            if (!is_string($options['manifest']) || $options['manifest'] === '') {
-                throw new RuntimeException('--manifest requires a filename.');
-            }
-            gd2209WriteManifest($options['manifest'], $report);
+            gd2209WriteNewFile(
+                $options['manifest'],
+                json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES |
+                    JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR) . "\\n"
+            );
+        }
+        if (isset($options['apache-snippet'])) {
+            gd2209WriteNewFile(
+                $options['apache-snippet'],
+                Gd2209Binary::apacheRewriteSnippet($report)
+            );
         }
         if (isset($options['json'])) {
             echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES |
