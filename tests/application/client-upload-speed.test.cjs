@@ -39,10 +39,11 @@ for (const variant of [
 ]) {
     test(variant.file + ': 4 MiB negotiation and reconnect without retransmitting', async () => {
         const php = fs.readFileSync(path.join(root, variant.file), 'utf8');
-        const match = php.match(/<script>([\\s\\S]*?)<\\/script>/);
-        assert.ok(match, 'embedded uploader script exists');
-        const js = match[1].replace(
-            /<\\?=json_encode\\(csrf\\(\\), JSON_UNESCAPED_SLASHES\\)\\?>/g,
+        const scriptStart = php.indexOf('<script>');
+        const scriptEnd = php.indexOf('</script>', scriptStart);
+        assert.ok(scriptStart !== -1 && scriptEnd > scriptStart, 'uploader script exists');
+        const js = php.slice(scriptStart + '<script>'.length, scriptEnd).replace(
+            '<?=json_encode(csrf(), JSON_UNESCAPED_SLASHES)?>',
             '"test-csrf-token"'
         );
         assert.ok(!js.includes('<?'), 'server bindings were replaced');
