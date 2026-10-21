@@ -76,8 +76,32 @@ function handleAndroidPatcherAction(
             'ok' => true,
             'upload_id' => $id,
             'next_offset' => 0,
-            'chunk_size' => 512 * 1024,
+            'chunk_size' => 4 * 1024 * 1024,
         ]);
+    }
+
+    // Let a reconnecting browser verify committed bytes before retrying.
+    // This also recovers from a lost HTTP response after a successful write.
+    if ($action === 'android-patcher-status') {
+        $session = $_SESSION['android_patcher_upload'] ?? null;
+        $id = (string)($_POST['upload_id'] ?? '');
+        if (!is_array($session) ||
+            !preg_match('/^[a-f0-9]{32}$/', $id) ||
+            !hash_equals((string)($session['id'] ?? ''), $id) ||
+            (int)($session['expires'] ?? 0) <= time()) {
+            clientPatcherJson(['ok' => false, 'error' => 'Upload session expired.'], 410);
+        }
+        $part = $dir . '/' . $id . '.apk.upload';
+        if (!hash_equals((string)($session['part_path'] ?? ''), $part) ||
+            !is_file($part)) {
+            clientPatcherJson(['ok' => false, 'error' => 'Upload not found.'], 404);
+        }
+        clearstatcache(true, $part);
+        $offset = filesize($part);
+        if ($offset === false || $offset > (int)$session['total_size']) {
+            clientPatcherJson(['ok' => false, 'error' => 'Invalid upload state.'], 409);
+        }
+        clientPatcherJson(['ok' => true, 'next_offset' => $offset]);
     }
 
     if ($action === 'android-patcher-chunk') {
@@ -147,7 +171,7 @@ function handleAndroidPatcherAction(
         if (
             !is_uploaded_file($tmp) ||
             $chunkSize <= 0 ||
-            $chunkSize > 512 * 1024 ||
+            $chunkSize > 4 * 1024 * 1024 ||
             $offset + $chunkSize > $totalSize
         ) {
             clientPatcherJson(
@@ -184,6 +208,7 @@ function handleAndroidPatcherAction(
             );
         }
 
+        clearstatcache(true, $part);
         $next = filesize($part);
         if ($next === false) {
             clientPatcherJson(
@@ -192,10 +217,11 @@ function handleAndroidPatcherAction(
             );
         }
 
+        $_SESSION['android_patcher_upload']['expires'] = time() + 3600;
         clientPatcherJson([
             'ok' => true,
             'next_offset' => $next,
-            'complete' => $next >= $totalSize,
+            'complete' => $next === $totalSize,
         ]);
     }
 
