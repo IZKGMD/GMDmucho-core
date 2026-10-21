@@ -53,7 +53,7 @@ foreach ($legacyPaths as $path) {
 foreach ([
     ['/getGJComments21.php', '51', '2.2'],
     ['/getGJComments21.php', '47', '2.1'],
-    ['/getGJComments20.php', '30', '2.0'],
+    ['/getGJComments20.php', '27', '2.0'],
     ['/getGJAccountComments20.php', '51', '2.2'],
 ] as [$route, $binary, $family]) {
     $request = new Request('POST', $route, [], [
