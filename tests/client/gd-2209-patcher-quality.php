@@ -58,6 +58,25 @@ foreach ($routes as $route) {
 }
 must($seen['short_alias'] >= 1, 'Missing long-host /a/ rewrite');
 must($seen['root_alias'] >= 1, 'Malformed /databas/ URL must use a root alias');
+$rules = Gd2209Binary::apacheRewriteSnippet([
+    'server_url' => 'https://linasgdpsprivatese.5v.pl',
+    'routes' => $routes,
+]);
+must(str_contains($rules, 'RewriteEngine On'), 'Missing rewrite directives');
+must(str_contains($rules, 'mc/public/php7.php [QSA,L,NC]'),
+    'Generated handler must point to the native PHP7 adapter');
+must(str_contains($rules, 'a/getGJLevels21\\.php'),
+    'Short alias omitted from Apache rules');
+must(str_contains($rules, 'checkIfServerOnline\\.php'),
+    'Root fallback omitted from Apache rules');
+must(!str_contains($rules, 'RewriteRule ^(.*)'), 'Unsafe catch-all rewrite');
+rejected(static fn () => Gd2209Binary::apacheRewriteSnippet([
+    'routes' => [['target_path' => '/../../config/php7-local.php']],
+]), 'Unexpected patched');
+rejected(static fn () => Gd2209Binary::apacheRewriteSnippet([
+    'routes' => $routes,
+], '../config/secret.php'), 'Invalid PHP route handler');
+
 must(str_contains($patched, 'https://linasgdpsprivatese.5v.pl/a/getGJLevels21.php'),
     'Long-host URL was not encoded');
 must(!str_contains($patched, 'https://www.boomlings.com/database/getGJLevels21.php'),
