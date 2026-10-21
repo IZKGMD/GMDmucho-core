@@ -15,7 +15,11 @@ if not exist "%~dp0LAUNCH-DOCTOR.ps1" (
   pause
   exit /b 1
 )
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0LAUNCH-DOCTOR.ps1" -Launch
+if "%~1"=="" (
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0LAUNCH-DOCTOR.ps1" -Launch
+) else (
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0LAUNCH-DOCTOR.ps1" -ExePath "%~f1" -Launch
+)
 set "RC=%ERRORLEVEL%"
 echo.
 echo Please send the report written to your Desktop.
