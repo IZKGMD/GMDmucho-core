@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use MuchoCore\Client\AndroidClientPatcher;
+use MuchoCore\Client\ParallelApkUpload;
 
 function handleAndroidPatcherAction(
     PDO $db,
@@ -55,12 +56,18 @@ function handleAndroidPatcherAction(
 
         $id = bin2hex(random_bytes(16));
         $part = $dir . '/' . $id . '.apk.upload';
-
-        if (@file_put_contents($part, '') === false) {
-            clientPatcherJson(
-                ['ok' => false, 'error' => 'Cannot create temporary APK storage.'],
-                507
-            );
+        // Parallel uploads are explicitly negotiated; older browsers still
+        // use the unchanged sequential protocol.
+        $parallel = (string)($_POST['supports_parallel'] ?? '') === '1';
+        try {
+            $partBytes = $parallel ? ParallelApkUpload::recommendedPartBytes() : 8 * 1024 * 1024;
+            if ($parallel) {
+                ParallelApkUpload::prepare($part, $totalSize);
+            } elseif (@file_put_contents($part, '') === false) {
+                throw new RuntimeException('Cannot create temporary APK storage.');
+            }
+        } catch (Throwable $error) {
+            clientPatcherJson(['ok' => false, 'error' => $error->getMessage()], 507);
         }
 
         $_SESSION['android_patcher_upload'] = [
@@ -70,15 +77,19 @@ function handleAndroidPatcherAction(
             'server_url' => $server,
             'install_alongside' => $installAlongside,
             'part_path' => $part,
+            'upload_mode' => $parallel ? 'parallel-v1' : 'sequential',
+            'part_size' => $partBytes,
             'started_at' => time(),
-            'expires' => time() + 3600,
+            'expires' => time() + 4 * 3600,
         ];
 
         clientPatcherJson([
             'ok' => true,
             'upload_id' => $id,
             'next_offset' => 0,
-            'chunk_size' => 8 * 1024 * 1024,
+            'chunk_size' => $partBytes,
+            'upload_mode' => $parallel ? 'parallel-v1' : 'sequential',
+            'max_parallel' => $parallel ? 3 : 1,
         ]);
     }
 
@@ -98,6 +109,16 @@ function handleAndroidPatcherAction(
             !is_file($part)) {
             clientPatcherJson(['ok' => false, 'error' => 'Upload not found.'], 404);
         }
+        if (($session['upload_mode'] ?? '') === 'parallel-v1') {
+            $size = (int)$session['total_size'];
+            $partSize = (int)$session['part_size'];
+            $done = ParallelApkUpload::completed($part, $size, $partSize);
+            clientPatcherJson([
+                'ok' => true,
+                'upload_mode' => 'parallel-v1',
+                'completed_parts' => $done,
+            ]);
+        }
         clearstatcache(true, $part);
         $offset = filesize($part);
         if ($offset === false || $offset > (int)$session['total_size']) {
@@ -106,9 +127,54 @@ function handleAndroidPatcherAction(
         clientPatcherJson(['ok' => true, 'next_offset' => $offset]);
     }
 
+    if ($action === 'android-patcher-part') {
+        $session = $_SESSION['android_patcher_upload'] ?? null;
+        $uploadId = (string)($_POST['upload_id'] ?? '');
+        if (!is_array($session) || !preg_match('/^[a-f0-9]{32}$/', $uploadId) ||
+            !hash_equals((string)($session['id'] ?? ''), $uploadId) ||
+            ($session['upload_mode'] ?? '') !== 'parallel-v1' ||
+            (int)($session['expires'] ?? 0) <= time()) {
+            clientPatcherJson(['ok' => false, 'error' => 'Invalid or expired APK upload session.'], 410);
+        }
+        $part = $dir . '/' . $uploadId . '.apk.upload';
+        if (!hash_equals((string)($session['part_path'] ?? ''), $part) || !is_file($part)) {
+            clientPatcherJson(['ok' => false, 'error' => 'APK upload storage unavailable.'], 404);
+        }
+        $indexString = (string)($_POST['part_index'] ?? '');
+        if (!preg_match('/^(0|[1-9][0-9]{0,3})$/D', $indexString)) {
+            clientPatcherJson(['ok' => false, 'error' => 'Invalid APK part index.'], 400);
+        }
+        $index = (int)$indexString;
+        $totalSize = (int)$session['total_size'];
+        $partSize = (int)$session['part_size'];
+        if (!isset($_FILES['chunk']) || ($_FILES['chunk']['error'] ?? -1) !== UPLOAD_ERR_OK) {
+            clientPatcherJson(['ok' => false, 'error' => 'APK part upload rejected by PHP or reverse proxy.'], 400);
+        }
+        $tmp = (string)($_FILES['chunk']['tmp_name'] ?? '');
+        $inputSize = (int)($_FILES['chunk']['size'] ?? 0);
+        if (!is_uploaded_file($tmp) || $inputSize <= 0 ||
+            $inputSize > ParallelApkUpload::MAX_PART_BYTES) {
+            clientPatcherJson(['ok' => false, 'error' => 'Invalid APK upload data.'], 400);
+        }
+
+        // Release the PHP session lock before slow disk writes. Otherwise
+        // concurrent browser requests for this same admin are serialized.
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+        try {
+            $new = ParallelApkUpload::store(
+                $part, $totalSize, $partSize, $index, $tmp, $inputSize
+            );
+            clientPatcherJson(['ok' => true, 'part_index' => $index, 'new' => $new]);
+        } catch (Throwable $error) {
+            clientPatcherJson(['ok' => false, 'error' => $error->getMessage()], 409);
+        }
+    }
+
     if ($action === 'android-patcher-chunk') {
         $session = $_SESSION['android_patcher_upload'] ?? null;
-        if (!is_array($session)) {
+        if (!is_array($session) || ($session['upload_mode'] ?? 'sequential') !== 'sequential') {
             clientPatcherJson(
                 ['ok' => false, 'error' => 'APK upload session not found. Start again.'],
                 410
@@ -250,9 +316,14 @@ function handleAndroidPatcherAction(
         $part = (string)($session['part_path'] ?? '');
         $totalSize = (int)($session['total_size'] ?? 0);
 
+        $parallel = ($session['upload_mode'] ?? '') === 'parallel-v1';
         if (
             !is_file($part) ||
-            filesize($part) !== $totalSize
+            ($parallel
+                ? !ParallelApkUpload::isComplete(
+                    $part, $totalSize, (int)$session['part_size']
+                )
+                : filesize($part) !== $totalSize)
         ) {
             clientPatcherJson(
                 ['ok' => false, 'error' => 'APK upload is incomplete.'],
@@ -272,6 +343,9 @@ function handleAndroidPatcherAction(
             );
         } catch (Throwable $e) {
             @unlink($part);
+            if ($parallel) {
+                ParallelApkUpload::cleanup($part, $totalSize, (int)$session['part_size']);
+            }
             unset($_SESSION['android_patcher_upload']);
 
             audit(
@@ -288,6 +362,9 @@ function handleAndroidPatcherAction(
         }
 
         @unlink($part);
+        if ($parallel) {
+            ParallelApkUpload::cleanup($part, $totalSize, (int)$session['part_size']);
+        }
         unset($_SESSION['android_patcher_upload']);
 
         $_SESSION['android_patcher_result'] = [
@@ -638,6 +715,99 @@ function renderAndroidPatcherSection(PDO $db): void
         return data;
     }
 
+    // Three HTTPS requests can move independent ranges simultaneously.
+    // Older MuchoCore servers return no upload_mode: use the original
+    // sequential uploader below without attempting unsupported actions.
+    async function uploadParallelParts(file, start, maxPartSize) {
+        const partCount = Math.ceil(file.size / maxPartSize);
+        const concurrent = Math.max(1, Math.min(3, Number(start.max_parallel) || 1));
+        let nextPart = 0;
+        let committedBytes = 0;
+        let stopped = false;
+        const committed = new Set();
+        const uploadStarted = Date.now();
+
+        const record = index => {
+            if (committed.has(index)) return;
+            committed.add(index);
+            const length = Math.min(maxPartSize, file.size - index * maxPartSize);
+            committedBytes += length;
+            setProgress((committedBytes / file.size) * 85);
+            const elapsed = Math.max(0.1, (Date.now() - uploadStarted) / 1000);
+            const speed = committedBytes / elapsed / 1048576;
+            const eta = speed > 0 ? Math.ceil((file.size - committedBytes) /
+                (speed * 1048576)) : 0;
+            setStatus('Uploaded ' + (committedBytes / 1048576).toFixed(1) +
+                ' / ' + (file.size / 1048576).toFixed(1) +
+                ' MiB · ' + speed.toFixed(2) + ' MiB/s · ' +
+                (eta < 60 ? eta + 's' : Math.ceil(eta / 60) + 'min') +
+                ' left · ' + concurrent + ' streams');
+        };
+
+        async function worker() {
+            while (!stopped) {
+                const index = nextPart++;
+                if (index >= partCount) return;
+                const begin = index * maxPartSize;
+                const end = Math.min(begin + maxPartSize, file.size);
+                const blob = file.slice(begin, end);
+                let acknowledged = false;
+                let lastError = null;
+
+                for (let attempt = 1; attempt <= 3 && !acknowledged; attempt++) {
+                    if (stopped) return;
+                    try {
+                        const answer = await api('android-patcher-part', {
+                            upload_id: start.upload_id,
+                            part_index: index
+                        }, blob);
+                        if (Number(answer.part_index) !== index) {
+                            throw new Error('Invalid APK part acknowledgement.');
+                        }
+                        acknowledged = true;
+                    } catch (error) {
+                        lastError = error;
+                        // A missing HTTP acknowledgement is not evidence that
+                        // the server lost data: ask for its committed parts.
+                        try {
+                            const checkpoint = await api('android-patcher-status', {
+                                upload_id: start.upload_id
+                            });
+                            if (checkpoint.upload_mode !== 'parallel-v1' ||
+                                !Array.isArray(checkpoint.completed_parts)) {
+                                throw new Error('Unsupported APK upload status response.');
+                            }
+                            acknowledged = checkpoint.completed_parts.includes(index);
+                        } catch (checkError) {
+                            if (/Unsupported APK upload status/.test(checkError.message || '')) {
+                                throw checkError;
+                            }
+                        }
+                        if (!acknowledged && attempt < 3) {
+                            setStatus('Connection interrupted. Retrying APK part ' +
+                                (index + 1) + '/' + partCount + '…');
+                            await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+                        }
+                    }
+                }
+                if (!acknowledged) {
+                    stopped = true;
+                    throw lastError || new Error('APK upload failed for part ' + (index + 1));
+                }
+                record(index);
+            }
+        }
+
+        const workers = await Promise.allSettled(
+            Array.from({length: Math.min(concurrent, partCount)}, () => worker())
+        );
+        const failure = workers.find(entry => entry.status === 'rejected');
+        if (failure) throw failure.reason;
+        if (committed.size !== partCount) {
+            throw new Error('APK upload did not confirm every part.');
+        }
+    }
+
     form.addEventListener('submit', async event => {
         event.preventDefault();
         result.innerHTML = '';
@@ -669,7 +839,8 @@ function renderAndroidPatcherSection(PDO $db): void
                     filename: selected.name,
                     total_size: selected.size,
                     server_url: server.value.trim(),
-                    install_alongside: alongside.checked ? '1' : '0'
+                    install_alongside: alongside.checked ? '1' : '0',
+                    supports_parallel: '1'
                 }
             );
 
@@ -682,6 +853,9 @@ function renderAndroidPatcherSection(PDO $db): void
             let chunkSize = Math.min(maxChunkSize, 2 * 1024 * 1024);
             const uploadStarted = Date.now();
 
+            if (start.upload_mode === 'parallel-v1') {
+                await uploadParallelParts(selected, start, maxChunkSize);
+            } else {
             while (offset < selected.size) {
                 const end = Math.min(offset + chunkSize, selected.size);
                 const chunkStarted = Date.now();
@@ -762,6 +936,7 @@ function renderAndroidPatcherSection(PDO $db): void
                 } else if (chunkSeconds < 7 && chunkSize < maxChunkSize) {
                     chunkSize = Math.min(maxChunkSize, chunkSize * 2);
                 }
+            }
             }
 
             setStatus('Patching and rebuilding APK…');
