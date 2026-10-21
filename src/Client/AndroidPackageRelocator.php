@@ -86,6 +86,7 @@ final class AndroidPackageRelocator
         }
 
         $matches = 0;
+        $alreadyRelocated = 0;
         for ($i = 0; $i < $count; $i++) {
             $relative = self::le32($xml, $poolOffset + $header + $i * 4);
             $pos = $poolOffset + $stringsStart + $relative;
@@ -102,8 +103,12 @@ final class AndroidPackageRelocator
             if ($length > 8192 || $start + $length * 2 + 2 > $poolOffset + $poolSize) {
                 throw new RuntimeException('Malformed Android manifest string.');
             }
-            if ($length !== strlen(self::SOURCE_ID) ||
-                substr($xml, $start, $length * 2) !== $old) {
+            $value = substr($xml, $start, $length * 2);
+            if ($length === strlen(self::SIDE_BY_SIDE_ID) && $value === $new) {
+                $alreadyRelocated++;
+                continue;
+            }
+            if ($length !== strlen(self::SOURCE_ID) || $value !== $old) {
                 continue;
             }
             $matches++;
@@ -111,7 +116,10 @@ final class AndroidPackageRelocator
                 $xml = substr_replace($xml, $new, $start, strlen($old));
             }
         }
-        if ($matches !== 1) {
+        if ($target === null && $matches === 0 && $alreadyRelocated === 1) {
+            return [$xml, self::SIDE_BY_SIDE_ID];
+        }
+        if ($matches !== 1 || $alreadyRelocated !== 0) {
             throw new RuntimeException('Expected one original GD package identifier in AndroidManifest.xml.');
         }
         return [$xml, $target ?? self::SOURCE_ID];
