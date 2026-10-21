@@ -862,8 +862,10 @@ final class CommentService
             $body .= '#' . implode('|', $users);
         }
 
+        // The third pagination value is the requested PAGE SIZE, not the
+        // number of entries on this particular (possibly short) page.
         return $body
-            . '#' . $total . ':' . $offset . ':' . count($comments);
+            . '#' . $total . ':' . $offset . ':' . $limit;
     }
 
     public function getUserComments(
@@ -960,7 +962,7 @@ final class CommentService
         }
 
         return $body .
-            '#' . $total . ':' . $offset . ':' . count($comments);
+            '#' . $total . ':' . $offset . ':' . $limit;
     }
 
     public function uploadAccountComment(
@@ -1022,7 +1024,7 @@ final class CommentService
             );
         }
 
-        return implode("|", $encoded) . "#" . $total . ":" . $offset . ":" . count($comments);
+        return implode("|", $encoded) . "#" . $total . ":" . $offset . ":" . $limit;
     }
 
     public function deleteComment(
