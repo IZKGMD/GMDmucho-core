@@ -162,8 +162,30 @@ function handleClientPatcherAction(
             'ok' => true,
             'upload_id' => $id,
             'next_offset' => 0,
-            'chunk_size' => 512 * 1024,
+            'chunk_size' => 4 * 1024 * 1024,
         ]);
+    }
+
+    // Return the committed offset without re-uploading file bytes. The session
+    // lock serializes this with any in-flight chunk append.
+    if ($action === 'client-patcher-status') {
+        $session = clientPatcherUploadSession();
+        if (!$session) {
+            clientPatcherJson(['ok' => false, 'error' => 'Upload session expired.'], 410);
+        }
+        $id = (string)($_POST['upload_id'] ?? '');
+        clientPatcherAssertUpload($session, $id);
+        $part = $dir . '/' . $id . '.upload';
+        if (!hash_equals((string)($session['part_path'] ?? ''), $part) ||
+            !is_file($part)) {
+            clientPatcherJson(['ok' => false, 'error' => 'Upload not found.'], 404);
+        }
+        clearstatcache(true, $part);
+        $offset = filesize($part);
+        if ($offset === false || $offset > (int)$session['total_size']) {
+            clientPatcherJson(['ok' => false, 'error' => 'Invalid upload state.'], 409);
+        }
+        clientPatcherJson(['ok' => true, 'next_offset' => $offset]);
     }
 
     if ($action === 'client-patcher-chunk') {
@@ -222,7 +244,7 @@ function handleClientPatcherAction(
         if (
             !is_uploaded_file($tmp) ||
             $chunkSize <= 0 ||
-            $chunkSize > 512 * 1024 ||
+            $chunkSize > 4 * 1024 * 1024 ||
             $offset + $chunkSize > $totalSize
         ) {
             clientPatcherJson(
@@ -261,7 +283,11 @@ function handleClientPatcherAction(
 
         $_SESSION['client_patcher_upload']['expires'] = time() + 3600;
 
-        $next = $offset + $chunkSize;
+        clearstatcache(true, $part);
+        $next = filesize($part);
+        if ($next === false || $next > $totalSize) {
+            clientPatcherJson(['ok' => false, 'error' => 'Invalid upload length.'], 500);
+        }
 
         clientPatcherJson([
             'ok' => true,
