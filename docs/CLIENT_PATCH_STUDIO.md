@@ -76,6 +76,23 @@ just inside `/mc/`, and verify that POSTs to `/a/getGJLevels21.php` are
 forwarded to the actual PHP 7 front controller. The `--server` argument is
 the **HTTPS origin only**, without `/mc`, `/a`, or `/database`.
 
+You can generate an **exact, narrowly scoped** set of Apache rewrite rules
+from a real 111/113-route plan instead of guessing which aliases exist:
+
+```sh
+php bin/mucho-patch-gd2209.php --input="/path/to/GeometryDash.exe" \\
+  --server="https://linasgdpsprivatese.5v.pl" --dry-run \\
+  --apache-snippet="/path/to/root-rewrites.txt"
+```
+
+The file includes only the GD endpoints actually present in the patch report,
+with grouped rules targeting `mc/public/php7.php`. Add them to the domain
+**root** `.htaccess` *before* any catch-all rule. Do not replace existing
+unrelated directives. If an old `/databas/` URL is especially short, even
+`/a/` might be too long: a **root alias** such as
+`/checkIfServerOnline.php` may be necessary. The `route_modes` report
+makes this visible. Creating this snippet does not change server files.
+
 Do not automatically rewrite all requests or expose the web-facing PHP 7
 installer, configuration, or credentials. PHP 7.0 is unsupported and the
 experimental GDPS adapter is not certified for public player accounts.
