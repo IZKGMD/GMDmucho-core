@@ -120,8 +120,8 @@ Write-Host ''
 try {
     if ([string]::IsNullOrWhiteSpace($ExePath) -and
         [string]::IsNullOrWhiteSpace($GameFolder)) {
-        $selection = Read-Host 'Paste full path to PATCHED EXE (preferred), original EXE, or game folder'
-        if ($selection -match '(?i)\\.exe$') {
+        $selection = (Read-Host 'Paste full path to PATCHED EXE (preferred), original EXE, or game folder').Trim().Trim('"')
+        if ($selection -match '(?i)[.]exe$') {
             $ExePath = $selection.Trim('"')
         } else {
             $GameFolder = $selection.Trim('"')
