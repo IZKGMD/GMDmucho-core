@@ -715,6 +715,99 @@ function renderAndroidPatcherSection(PDO $db): void
         return data;
     }
 
+    // Three HTTPS requests can move independent ranges simultaneously.
+    // Older MuchoCore servers return no upload_mode: use the original
+    // sequential uploader below without attempting unsupported actions.
+    async function uploadParallelParts(file, start, maxPartSize) {
+        const partCount = Math.ceil(file.size / maxPartSize);
+        const concurrent = Math.max(1, Math.min(3, Number(start.max_parallel) || 1));
+        let nextPart = 0;
+        let committedBytes = 0;
+        let stopped = false;
+        const committed = new Set();
+        const uploadStarted = Date.now();
+
+        const record = index => {
+            if (committed.has(index)) return;
+            committed.add(index);
+            const length = Math.min(maxPartSize, file.size - index * maxPartSize);
+            committedBytes += length;
+            setProgress((committedBytes / file.size) * 85);
+            const elapsed = Math.max(0.1, (Date.now() - uploadStarted) / 1000);
+            const speed = committedBytes / elapsed / 1048576;
+            const eta = speed > 0 ? Math.ceil((file.size - committedBytes) /
+                (speed * 1048576)) : 0;
+            setStatus('Uploaded ' + (committedBytes / 1048576).toFixed(1) +
+                ' / ' + (file.size / 1048576).toFixed(1) +
+                ' MiB · ' + speed.toFixed(2) + ' MiB/s · ' +
+                (eta < 60 ? eta + 's' : Math.ceil(eta / 60) + 'min') +
+                ' left · ' + concurrent + ' streams');
+        };
+
+        async function worker() {
+            while (!stopped) {
+                const index = nextPart++;
+                if (index >= partCount) return;
+                const begin = index * maxPartSize;
+                const end = Math.min(begin + maxPartSize, file.size);
+                const blob = file.slice(begin, end);
+                let acknowledged = false;
+                let lastError = null;
+
+                for (let attempt = 1; attempt <= 3 && !acknowledged; attempt++) {
+                    if (stopped) return;
+                    try {
+                        const answer = await api('android-patcher-part', {
+                            upload_id: start.upload_id,
+                            part_index: index
+                        }, blob);
+                        if (Number(answer.part_index) !== index) {
+                            throw new Error('Invalid APK part acknowledgement.');
+                        }
+                        acknowledged = true;
+                    } catch (error) {
+                        lastError = error;
+                        // A missing HTTP acknowledgement is not evidence that
+                        // the server lost data: ask for its committed parts.
+                        try {
+                            const checkpoint = await api('android-patcher-status', {
+                                upload_id: start.upload_id
+                            });
+                            if (checkpoint.upload_mode !== 'parallel-v1' ||
+                                !Array.isArray(checkpoint.completed_parts)) {
+                                throw new Error('Unsupported APK upload status response.');
+                            }
+                            acknowledged = checkpoint.completed_parts.includes(index);
+                        } catch (checkError) {
+                            if (/Unsupported APK upload status/.test(checkError.message || '')) {
+                                throw checkError;
+                            }
+                        }
+                        if (!acknowledged && attempt < 3) {
+                            setStatus('Connection interrupted. Retrying APK part ' +
+                                (index + 1) + '/' + partCount + '…');
+                            await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+                        }
+                    }
+                }
+                if (!acknowledged) {
+                    stopped = true;
+                    throw lastError || new Error('APK upload failed for part ' + (index + 1));
+                }
+                record(index);
+            }
+        }
+
+        const workers = await Promise.allSettled(
+            Array.from({length: Math.min(concurrent, partCount)}, () => worker())
+        );
+        const failure = workers.find(entry => entry.status === 'rejected');
+        if (failure) throw failure.reason;
+        if (committed.size !== partCount) {
+            throw new Error('APK upload did not confirm every part.');
+        }
+    }
+
     form.addEventListener('submit', async event => {
         event.preventDefault();
         result.innerHTML = '';
@@ -746,7 +839,8 @@ function renderAndroidPatcherSection(PDO $db): void
                     filename: selected.name,
                     total_size: selected.size,
                     server_url: server.value.trim(),
-                    install_alongside: alongside.checked ? '1' : '0'
+                    install_alongside: alongside.checked ? '1' : '0',
+                    supports_parallel: '1'
                 }
             );
 
@@ -759,6 +853,9 @@ function renderAndroidPatcherSection(PDO $db): void
             let chunkSize = Math.min(maxChunkSize, 2 * 1024 * 1024);
             const uploadStarted = Date.now();
 
+            if (start.upload_mode === 'parallel-v1') {
+                await uploadParallelParts(selected, start, maxChunkSize);
+            } else {
             while (offset < selected.size) {
                 const end = Math.min(offset + chunkSize, selected.size);
                 const chunkStarted = Date.now();
@@ -839,6 +936,7 @@ function renderAndroidPatcherSection(PDO $db): void
                 } else if (chunkSeconds < 7 && chunkSize < maxChunkSize) {
                     chunkSize = Math.min(maxChunkSize, chunkSize * 2);
                 }
+            }
             }
 
             setStatus('Patching and rebuilding APK…');
