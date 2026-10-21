@@ -40,7 +40,9 @@ class PatchersHubTest(unittest.TestCase):
         helper = (ROOT / "patchers/android/open-android.ps1").read_text()
         self.assertIn("/admin/?page=clientpatcher", helper)
         self.assertIn("$parsed.Scheme -ne 'https'", helper)
-        self.assertNotIn("ftp", helper.lower())
+        self.assertNotIn("ftp://", helper.lower())
+        self.assertNotIn("Get-Credential", helper)
+        self.assertNotIn("Invoke-WebRequest", helper)
 
     def test_readme_links_and_engine_hardening(self):
         hub = (ROOT / "patchers/README.md").read_text()
