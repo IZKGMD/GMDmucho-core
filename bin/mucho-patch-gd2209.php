@@ -94,7 +94,7 @@ function gd2209Cli(array $argv): int
             if (!is_string($filename) || $filename === '' ||
                 file_exists($filename) || is_link($filename)) {
                 fwrite(STDERR, "ERROR: Invalid or existing --" . $reportOption .
-                    " filename. Nothing was patched.\\n");
+                    " filename. Nothing was patched.\n");
                 return 2;
             }
         }
@@ -112,7 +112,7 @@ function gd2209Cli(array $argv): int
             gd2209WriteNewFile(
                 $options['manifest'],
                 json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES |
-                    JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR) . "\\n"
+                    JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR) . "\n"
             );
         }
         if (isset($options['apache-snippet'])) {
