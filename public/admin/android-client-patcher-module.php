@@ -697,11 +697,38 @@ function renderAndroidPatcherSection(PDO $db): void
             body.append('chunk', blob, 'chunk.bin');
         }
 
-        const response = await fetch('/admin/?page=clientpatcher', {
-            method: 'POST',
-            credentials: 'same-origin',
-            body
-        });
+        const isStart = action === 'android-patcher-start';
+        const controller = isStart && typeof AbortController === 'function'
+            ? new AbortController() : null;
+        // A session-start request has no APK bytes. Expose its delay clearly
+        // instead of leaving the user looking at an empty progress bar.
+        const slowNotice = controller
+            ? setTimeout(() => setStatus(
+                'Still waiting for MuchoCore to create the upload session. ' +
+                'No APK data has been sent yet. Checking the server…'
+            ), 6000)
+            : null;
+        const timeout = controller ? setTimeout(() => controller.abort(), 30000) : null;
+        let response;
+        try {
+            response = await fetch('/admin/?page=clientpatcher', {
+                method: 'POST',
+                credentials: 'same-origin',
+                body,
+                ...(controller ? { signal: controller.signal } : {})
+            });
+        } catch (error) {
+            if (isStart && error?.name === 'AbortError') {
+                throw new Error(
+                    'MuchoCore did not create an APK upload session within 30 seconds. ' +
+                    'No APK was uploaded. Check VPS PHP/database logs and free disk space.'
+                );
+            }
+            throw error;
+        } finally {
+            if (slowNotice !== null) clearTimeout(slowNotice);
+            if (timeout !== null) clearTimeout(timeout);
+        }
 
         const data = await response.json().catch(() => ({
             ok: false,
