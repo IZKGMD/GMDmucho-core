@@ -521,7 +521,7 @@ function renderClientPatcherPage(PDO $db): void
                     <div>
                         <h3>Patch the client</h3>
                         <div class="muted small">
-                            The server uploads the file in <b>512 KB chunks</b> and patches
+                            The server uploads the file in <b>adaptive chunks up to 4 MiB</b> and patches
                             known Geometry Dash server URL layouts without loading the
                             entire executable into PHP memory.
                         </div>
@@ -763,7 +763,7 @@ function renderClientPatcherPage(PDO $db): void
             const serverChunkSize = Number(start.chunk_size) || MIN_CHUNK_SIZE;
             const maxChunkSize = Math.min(MAX_CHUNK_SIZE,
                 Math.max(MIN_CHUNK_SIZE, serverChunkSize));
-            let chunkSize = maxChunkSize;
+            let chunkSize = Math.min(maxChunkSize, 2 * 1024 * 1024);
             const uploadStarted = Date.now();
 
             while (offset < selected.size) {
