@@ -515,7 +515,7 @@ The `udid` value is not treated as a true hardware fingerprint or a tamper-proof
 
 ## 🧰 Client patching
 
-**Start here: [📁 patchers/ — simple Windows / Android / GD 2.209 instructions](patchers/README.md).**
+**Start here: [📁 patchers/ — simple Windows / Android / GD 2.209 instructions](patchers/README.md).**\nOn Windows, double-click **\`patchers/START-PATCHER.cmd\`** to select a patcher.
 The folder has Windows launchers and shared-hosting guidance; the tested patching
 engines stay in `src/Client/` and `tools/client/`. No client binaries are shipped.
 
