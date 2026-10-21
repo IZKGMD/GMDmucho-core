@@ -527,6 +527,17 @@ jobs:
         shell: powershell
         run: |
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/client/client-patcher.ps1 -SelfTest
+      - name: Parse Windows launch doctor with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile("patchers/windows/LAUNCH-DOCTOR.ps1", [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Host $_ }
+            throw "Windows launch doctor PowerShell syntax is invalid."
+          }
+          Write-Host "WINDOWS_LAUNCH_DOCTOR_SYNTAX_OK"
 
   migration-integration:
     strategy:
