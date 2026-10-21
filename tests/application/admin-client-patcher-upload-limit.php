@@ -7,7 +7,7 @@ declare(strict_types=1);
  * 51512 * 1024 bound rejected ordinary 160 MB APKs before upload.
  *
  * Total file limit is 512 MiB, while adaptive upload chunks are bounded
- * between 512 KiB and 4 MiB to fit PHP/Caddy request limits.
+ * between 512 KiB and 8 MiB to fit PHP/Caddy request limits.
  */
 $root = dirname(__DIR__, 2);
 $maxBytes = 512 * 1024 * 1024;
@@ -36,9 +36,9 @@ foreach ([
         throw new RuntimeException('The old 50 MiB typo remains: ' . $relative);
     }
     if (!str_contains($source, 'const MIN_CHUNK_SIZE = 512 * 1024;') ||
-        !str_contains($source, 'const MAX_CHUNK_SIZE = 4 * 1024 * 1024;') ||
-        !str_contains($source, "'chunk_size' => 4 * 1024 * 1024") ||
-        !str_contains($source, '$chunkSize > 4 * 1024 * 1024')) {
+        !str_contains($source, 'const MAX_CHUNK_SIZE = 8 * 1024 * 1024;') ||
+        !str_contains($source, "'chunk_size' => 8 * 1024 * 1024") ||
+        !str_contains($source, '$chunkSize > 8 * 1024 * 1024')) {
         throw new RuntimeException('Adaptive chunk negotiation mismatch: ' . $relative);
     }
     if (!str_contains($source, "-status')") ||
