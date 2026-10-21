@@ -21,6 +21,7 @@ function handleAndroidPatcherAction(
         $filename = trim((string)($_POST['filename'] ?? ''));
         $totalSize = (int)($_POST['total_size'] ?? 0);
         $serverUrl = (string)($_POST['server_url'] ?? '');
+        $installAlongside = (string)($_POST['install_alongside'] ?? '1') === '1';
 
         if (
             $filename === '' ||
@@ -67,6 +68,7 @@ function handleAndroidPatcherAction(
             'filename' => basename($filename),
             'total_size' => $totalSize,
             'server_url' => $server,
+            'install_alongside' => $installAlongside,
             'part_path' => $part,
             'started_at' => time(),
             'expires' => time() + 3600,
@@ -264,7 +266,9 @@ function handleAndroidPatcherAction(
             $report = AndroidClientPatcher::patchFile(
                 $part,
                 $output,
-                (string)$session['server_url']
+                (string)$session['server_url'],
+                null,
+                (bool)($session['install_alongside'] ?? true)
             );
         } catch (Throwable $e) {
             @unlink($part);
@@ -296,6 +300,8 @@ function handleAndroidPatcherAction(
             'output_size' => $report['output_size'],
             'input_sha256' => $report['input_sha256'],
             'output_sha256' => $report['output_sha256'],
+            'package_id' => (string)($report['package_id'] ?? ''),
+            'source_build' => (string)($report['source_build'] ?? 'Legacy Android GD'),
             'expires' => time() + 900,
         ];
 
@@ -323,6 +329,8 @@ function handleAndroidPatcherAction(
             'output_size' => $report['output_size'],
             'output_sha256' => $report['output_sha256'],
             'signed' => true,
+            'package_id' => (string)($report['package_id'] ?? ''),
+            'source_build' => (string)($report['source_build'] ?? 'Legacy Android GD'),
             'download_url' =>
                 '/admin/?android_download=' .
                 rawurlencode(basename($output, '.apk')),
@@ -455,8 +463,10 @@ function renderAndroidPatcherSection(PDO $db): void
     </p>
 
     <div class="warning" style="margin:12px 0">
-        <b>Important:</b> APK contents are changed, so the original Android signature is
-        removed. The downloaded APK is <b>signed by MuchoCore</b>. The patcher aligns and signs the APK automatically before download.
+        <b>Important:</b> the patched APK is signed with a separate MuchoCore key.
+        For the verified GD 2.209 ARM64 build, side-by-side installation also changes the
+        application ID to <code>com.muchogd.geometryjump</code>. Your official Geometry Dash
+        installation stays installed; the two apps have separate data and saves.
     </div>
 
     <div class="mc-patcher-steps">
@@ -504,6 +514,12 @@ function renderAndroidPatcherSection(PDO $db): void
             >
         </label>
 
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px">
+            <input type="checkbox" id="mcAndroidPatcherAlongside" checked
+                style="width:18px;height:18px;flex-shrink:0">
+            Install alongside the original Geometry Dash (GD 2.209 ARM64)
+        </label>
+
         <label for="mcAndroidPatcherFile" class="mc-drop" id="mcAndroidPatcherDrop">
             <strong>📱 Drop your Geometry Dash .apk here</strong>
             <span>or tap to choose an Android APK</span>
@@ -532,6 +548,7 @@ function renderAndroidPatcherSection(PDO $db): void
     const form = document.getElementById('mcAndroidPatcherForm');
     const server = document.getElementById('mcAndroidPatcherServer');
     const fileInput = document.getElementById('mcAndroidPatcherFile');
+    const alongside = document.getElementById('mcAndroidPatcherAlongside');
     const drop = document.getElementById('mcAndroidPatcherDrop');
     const fileName = document.getElementById('mcAndroidPatcherFileName');
     const progress = document.getElementById('mcAndroidPatcherProgress');
@@ -651,7 +668,8 @@ function renderAndroidPatcherSection(PDO $db): void
                 {
                     filename: selected.name,
                     total_size: selected.size,
-                    server_url: server.value.trim()
+                    server_url: server.value.trim(),
+                    install_alongside: alongside.checked ? '1' : '0'
                 }
             );
 
@@ -758,6 +776,12 @@ function renderAndroidPatcherSection(PDO $db): void
             result.innerHTML =
                 '<div class="warning mc-result">' +
                 '<div><b>✅ APK patch completed.</b></div>' +
+                '<div class="rowline"><span>Detected build</span><b>' +
+                    escapeHtml(finished.source_build || 'Android GD') +
+                '</b></div>' +
+                '<div class="rowline"><span>Android app ID</span><code>' +
+                    escapeHtml(finished.package_id || 'Original package') +
+                '</code></div>' +
                 '<div class="rowline"><span>Patched entries</span><b>' +
                     escapeHtml(finished.patched_entries) +
                 '</b></div>' +
