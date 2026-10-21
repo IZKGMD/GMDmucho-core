@@ -33,7 +33,7 @@ function handleAndroidPatcherAction(
             );
         }
 
-        if ($totalSize < 1024 || $totalSize > 51512 * 1024) {
+        if ($totalSize < 1024 || $totalSize > 512 * 1024 * 1024) {
             clientPatcherJson(
                 [
                     'ok' => false,
@@ -609,7 +609,7 @@ function renderAndroidPatcherSection(PDO $db): void
             return;
         }
 
-        if (selected.size > 51512 * 1024) {
+        if (selected.size > 512 * 1024 * 1024) {
             setStatus('Maximum supported APK size is 512 MB.');
             return;
         }
