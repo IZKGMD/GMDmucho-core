@@ -10,7 +10,7 @@ level="${1:-152}"
   echo 'MUCHO_GDPS_URL must be an HTTPS origin without a path' >&2; exit 2;
 }
 command -v curl >/dev/null || { echo 'curl is required' >&2; exit 2; }
-command -v php >/dev/null || { echo 'php is required' >&2; exit 2; }
+command -v python3 >/dev/null || { echo 'python3 is required' >&2; exit 2; }
 
 tmp="$(mktemp)"
 chmod 600 "$tmp"
@@ -29,41 +29,46 @@ if ! timing="$(curl --silent --show-error --location --max-redirs 2 \
 fi
 printf '%s\n' "$timing"
 
-php -r '
-$body = file_get_contents($argv[1]);
-if ($body === false) exit(1);
-$body = trim($body);
-if ($body === "-2") {
-    echo "WIRE=NO_COMMENTS (valid empty result)\n";
-    exit(0);
-}
-if ($body === "-1" || $body === "") {
-    echo "WIRE=FAILED (check PHP error log for [MuchoCore CommentRead])\n";
-    exit(1);
-}
-if (!preg_match("/#(\\d+):(\\d+):(\\d+)$/D", $body, $matches)) {
-    echo "WIRE=INVALID pagination trailer\n";
-    exit(1);
-}
-$parts = explode("#", $body, 2);
-$entries = explode("|", $parts[0]);
-if (count($entries) > 10 || count($entries) === 0) {
-    echo "WIRE=INVALID comment count\n";
-    exit(1);
-}
-foreach ($entries as $entry) {
-    $segments = explode(":", $entry, 2);
-    if (!isset($segments[1]) ||
-        preg_match("/(?:^|~)2~([A-Za-z0-9_+\\/=-]+)/", $segments[0], $comment) !== 1) {
-        echo "WIRE=INVALID comment/user structure\n";
-        exit(1);
-    }
-    $encoded = strtr($comment[1], "-_", "+/");
-    if (base64_decode($encoded, true) === false) {
-        echo "WIRE=INVALID Base64 comment content\n";
-        exit(1);
-    }
-}
-echo "WIRE=OK total=" . $matches[1] . " offset=" . $matches[2] .
-    " page_size=" . $matches[3] . " entries=" . count($entries) . "\n";
-' "$tmp"
+python3 - "$tmp" <<'PY'
+import base64
+import re
+import sys
+
+with open(sys.argv[1], "rb") as fh:
+    body = fh.read().decode("utf-8", "replace").strip()
+
+if body == "-2":
+    print("WIRE=NO_COMMENTS (valid empty result)")
+    sys.exit(0)
+if body in ("-1", ""):
+    print("WIRE=FAILED (check PHP error log for [MuchoCore CommentRead])")
+    sys.exit(1)
+
+header, mark, trailer = body.rpartition("#")
+match = re.fullmatch(r"(\d+):(\d+):(\d+)", trailer)
+if not mark or not match:
+    print("WIRE=INVALID pagination trailer")
+    sys.exit(1)
+
+entries = header.split("|")
+if not 1 <= len(entries) <= 10:
+    print("WIRE=INVALID comment count")
+    sys.exit(1)
+
+for entry in entries:
+    parts = entry.split(":", 1)
+    match_content = re.search(r"(?:^|~)2~([A-Za-z0-9_+/=-]+)", parts[0])
+    if len(parts) != 2 or match_content is None:
+        print("WIRE=INVALID comment/user structure")
+        sys.exit(1)
+    encoded = match_content.group(1).replace("-", "+").replace("_", "/")
+    try:
+        decoded = base64.b64decode(encoded + "=" * (-len(encoded) % 4), validate=True)
+        decoded.decode("utf-8")
+    except (ValueError, UnicodeError, base64.binascii.Error):
+        print("WIRE=INVALID Base64 comment content")
+        sys.exit(1)
+
+print("WIRE=OK total=%s offset=%s page_size=%s entries=%d" %
+      (match.group(1), match.group(2), match.group(3), len(entries)))
+PY
