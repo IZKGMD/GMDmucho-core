@@ -35,10 +35,20 @@ foreach ([
     if (str_contains($source, '51512 * 1024')) {
         throw new RuntimeException('The old 50 MiB typo remains: ' . $relative);
     }
-    if (!str_contains($source, 'const MIN_CHUNK_SIZE = 512 * 1024;') ||
-        !str_contains($source, 'const MAX_CHUNK_SIZE = 8 * 1024 * 1024;') ||
-        !str_contains($source, "'chunk_size' => 8 * 1024 * 1024") ||
-        !str_contains($source, '$chunkSize > 8 * 1024 * 1024')) {
+    $negotiatesChunks = str_contains($source, 'const MIN_CHUNK_SIZE = 512 * 1024;') &&
+        str_contains($source, 'const MAX_CHUNK_SIZE = 8 * 1024 * 1024;') &&
+        str_contains($source, '$chunkSize > 8 * 1024 * 1024');
+    if ($relative === 'public/admin/android-client-patcher-module.php') {
+        $negotiatesChunks = $negotiatesChunks &&
+            str_contains($source, 'ParallelApkUpload::recommendedPartBytes()') &&
+            str_contains($source, "'chunk_size' => $partBytes") &&
+            str_contains($source, 'supports_parallel') &&
+            str_contains($source, 'android-patcher-part');
+    } else {
+        $negotiatesChunks = $negotiatesChunks &&
+            str_contains($source, "'chunk_size' => 8 * 1024 * 1024");
+    }
+    if (!$negotiatesChunks) {
         throw new RuntimeException('Adaptive chunk negotiation mismatch: ' . $relative);
     }
     if (!str_contains($source, "-status')") ||
