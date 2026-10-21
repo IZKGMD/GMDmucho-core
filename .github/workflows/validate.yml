@@ -660,6 +660,13 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/gd2209-thread-integration.php
 
+      - name: Verify GD 2.209 Daily, Weekly, Event, Quests and Rewards schema
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/gd2209-gameplay-schema-integration.php
+
       - name: Verify GD 2.209 level telemetry permissions and aggregation
         env:
           TEST_DB_HOST: 127.0.0.1
