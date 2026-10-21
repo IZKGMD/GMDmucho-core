@@ -79,12 +79,14 @@ jobs:
           find src public tests -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l bin/mucho-verify-backup.php
           php -l bin/mucho-client-doctor.php
+          php -l bin/mucho-patch-gd2209.php
           php -l bin/mucho-gd2209-trace-report.php
           php -l bin/mucho-gd2209-coverage.php
           php -l bin/mucho-worker.php
           php bin/mucho-gd2209-coverage.php --json > /dev/null
           php tests/client/client-compatibility.php
           php tests/client/gd-2209-synthetic.php
+          php tests/client/gd-2209-patcher-quality.php
           php tests/client/android-gd2209-synthetic.php
           php tests/client/client-pack-cache.php
           php tests/client/client-ip.php
