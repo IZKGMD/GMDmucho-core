@@ -484,7 +484,7 @@ function renderAndroidPatcherSection(PDO $db): void
             <div>
                 <h3>Patch & rebuild</h3>
                 <div class="muted small">
-                    Uploads use the same <b>512 KB chunks</b> as the Windows patcher.
+                    Uploads use <b>adaptive 512 KiB–4 MiB chunks</b> to reduce request overhead on mobile connections.
                 </div>
             </div>
         </div>
@@ -661,7 +661,7 @@ function renderAndroidPatcherSection(PDO $db): void
             const serverChunkSize = Number(start.chunk_size) || MIN_CHUNK_SIZE;
             const maxChunkSize = Math.min(MAX_CHUNK_SIZE,
                 Math.max(MIN_CHUNK_SIZE, serverChunkSize));
-            let chunkSize = maxChunkSize;
+            let chunkSize = Math.min(maxChunkSize, 2 * 1024 * 1024);
             const uploadStarted = Date.now();
 
             while (offset < selected.size) {
