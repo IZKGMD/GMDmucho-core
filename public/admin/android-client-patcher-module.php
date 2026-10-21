@@ -78,7 +78,7 @@ function handleAndroidPatcherAction(
             'ok' => true,
             'upload_id' => $id,
             'next_offset' => 0,
-            'chunk_size' => 4 * 1024 * 1024,
+            'chunk_size' => 8 * 1024 * 1024,
         ]);
     }
 
@@ -173,7 +173,7 @@ function handleAndroidPatcherAction(
         if (
             !is_uploaded_file($tmp) ||
             $chunkSize <= 0 ||
-            $chunkSize > 4 * 1024 * 1024 ||
+            $chunkSize > 8 * 1024 * 1024 ||
             $offset + $chunkSize > $totalSize
         ) {
             clientPatcherJson(
@@ -494,7 +494,7 @@ function renderAndroidPatcherSection(PDO $db): void
             <div>
                 <h3>Patch & rebuild</h3>
                 <div class="muted small">
-                    Uploads use <b>adaptive 512 KiB–4 MiB chunks</b> to reduce request overhead on mobile connections.
+                    Uploads use <b>adaptive 512 KiB–8 MiB chunks</b> to reduce request overhead on mobile connections.
                 </div>
             </div>
         </div>
@@ -557,7 +557,7 @@ function renderAndroidPatcherSection(PDO $db): void
     const button = document.getElementById('mcAndroidPatcherButton');
     const csrf = <?=json_encode(csrf(), JSON_UNESCAPED_SLASHES)?>;
     const MIN_CHUNK_SIZE = 512 * 1024;
-    const MAX_CHUNK_SIZE = 4 * 1024 * 1024;
+    const MAX_CHUNK_SIZE = 8 * 1024 * 1024;
     let selected = null;
 
     const escapeHtml = value => String(value)
