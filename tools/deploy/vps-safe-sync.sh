@@ -2,7 +2,11 @@
 # Preserve local VPS commits while incorporating the latest origin/main.
 # This deliberately does NOT use update.sh (which resets source to a release/ref).
 set -Eeuo pipefail
-umask 077
+# Git creates newly checked-out files subject to this umask. A private
+# umask (077) makes new PHP source files 0600 and prevents PHP-FPM's
+# www-data user from loading them from the bind-mounted checkout.
+# No secret directories are touched by the source-permission repair below.
+umask 022
 
 ROOT="${MUCHO_CORE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 cd "$ROOT"
@@ -73,6 +77,33 @@ log "Database backup: $backup_host_path"
 if ! git merge --no-ff --no-edit origin/main; then
     die "Git merge stopped. Resolve conflicts; NO reset and NO deployment executed. Database backup: $backup_host_path"
 fi
+
+# Previous versions of this script used umask 077, leaving some checked-out
+# source files unreadable by www-data (a permanent admin HTTP 500 / class-not-found).
+# Repair ONLY application code/assets in src/ and public/; do not touch
+# .env, .secrets, storage, backups or private runtime data.
+log 'Ensuring application sources are readable by PHP-FPM...'
+for source_dir in "$ROOT/src" "$ROOT/public"; do
+    [[ -d "$source_dir" ]] || die "Missing source directory: $source_dir"
+    find "$source_dir" -type d -exec chmod a+rx -- {} +
+    find "$source_dir" -type f -exec chmod a+r -- {} +
+done
+
+# Test as the actual PHP-FPM user, not root: root can read mode-0600 code.
+"${COMPOSE[@]}" exec -T -u www-data app php -r '
+foreach ([
+    "/var/www/mucho-core/public/admin/client-patcher-module.php",
+    "/var/www/mucho-core/public/admin/android-client-patcher-module.php",
+    "/var/www/mucho-core/src/Client/WindowsClientPatcher.php",
+    "/var/www/mucho-core/src/Client/AndroidClientPatcher.php",
+    "/var/www/mucho-core/src/Client/Gd2209Binary.php",
+] as $file) {
+    if (!is_readable($file)) {
+        fwrite(STDERR, "Source unreadable by www-data: " . $file . PHP_EOL);
+        exit(1);
+    }
+}
+' || die 'PHP-FPM source readability check failed; deployment stopped.'
 
 log 'Building and starting the updated Docker services (entrypoint runs migrations)...'
 "${COMPOSE[@]}" up -d --build --remove-orphans || die "Container update failed. Source backup: $backup_branch; database backup: $backup_host_path"
