@@ -107,7 +107,7 @@ assertCommentContract(
 );
 
 assertCommentContract(
-    str_contains($controller, "'[MuchoCore CommentRead]'")
+    str_contains($controller, '[MuchoCore CommentRead]')
     && !str_contains($controller, 'Response::text("#0:0:10")'),
     'comment read failures are logged, not emitted as malformed pagination'
 );
