@@ -515,6 +515,10 @@ The `udid` value is not treated as a true hardware fingerprint or a tamper-proof
 
 ## 🧰 Client patching
 
+**Start here: [📁 patchers/ — simple Windows / Android / GD 2.209 instructions](patchers/README.md).**\nOn Windows, double-click **\`patchers/START-PATCHER.cmd\`** to select a patcher.
+The folder has Windows launchers and shared-hosting guidance; the tested patching
+engines stay in `src/Client/` and `tools/client/`. No client binaries are shipped.
+
 MuchoCore includes both local and web-based client patching workflows.
 
 ### Windows desktop patcher
@@ -539,7 +543,7 @@ Typical output:
 GeometryDash-MuchoCore.exe
 ```
 
-Python is not required for the one-click batch workflow.
+The Windows batch/GUI workflow **requires Python 3**. For a no-Python option, use the authenticated admin web patcher on PHP 8.2+.
 
 ### Web Client Patcher
 
@@ -565,7 +569,7 @@ It can:
 - remove invalid old signature metadata before rebuilding;
 - produce a new APK archive.
 
-The generated APK is **unsigned**. Sign it with your own Android signing key before installation or distribution.
+The admin APK workflow **aligns, signs and verifies** its generated APK using a separate MuchoCore signing key. Keep that key private; test that the generated client installs correctly before distribution.
 
 ### Client paths
 
