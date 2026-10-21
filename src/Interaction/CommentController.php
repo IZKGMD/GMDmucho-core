@@ -145,8 +145,17 @@ final readonly class CommentController
                     $mode
                 )
             );
-        } catch (Throwable) {
-            return Response::text("#0:0:10");
+        } catch (Throwable $e) {
+            error_log(sprintf(
+                '[MuchoCore CommentRead] request_id=%s route=level-comments level_id=%d user_id=%d page=%d count=%d mode=%d version=%d binary=%d exception=%s message=%s',
+                (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
+                $levelId, $userId, $page, $count, $mode,
+                $version->effectiveGameVersion(), $version->binaryVersion,
+                $e::class, $e->getMessage()
+            ));
+            // -1 denotes failure. "#0:0:10" is a malformed success page and
+            // can keep the native comment pager in its loading state.
+            return Response::text("-1");
         }
     }
 
@@ -193,8 +202,16 @@ final readonly class CommentController
                     $request->clientVersion()->binaryVersion
                 )
             );
-        } catch (Throwable) {
-            return Response::text("#0:0:10");
+        } catch (Throwable $e) {
+            $version = $request->clientVersion();
+            error_log(sprintf(
+                '[MuchoCore CommentRead] request_id=%s route=account-comments account_id=%d page=%d version=%d binary=%d exception=%s message=%s',
+                (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
+                $accountId, $page,
+                $version->effectiveGameVersion(), $version->binaryVersion,
+                $e::class, $e->getMessage()
+            ));
+            return Response::text("-1");
         }
     }
 
