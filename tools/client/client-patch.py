@@ -19,6 +19,12 @@ from dataclasses import dataclass
 from urllib.parse import urlsplit, urlunsplit
 
 GD2209_SHA256 = "524265b3781596fcc7c9e4d60dc5ac2d0a4cd9530ee3ea637e123f9ac1f9b6a8"
+GD2209_SHA256_OCT19 = "4eee06d5c2e2213b4ba2b1f6233dd426bbdd0e9b29d7c375e499516b6f8f69d5"
+# Keep exact hashes and URL counts in parity with src/Client/Gd2209Binary.php.
+GD2209_BUILDS = {
+    GD2209_SHA256: ("GD 2.209, 13 Oct 2026", 13158400, 111),
+    GD2209_SHA256_OCT19: ("GD 2.209, 19 Oct 2026", 13178880, 113),
+}
 GD2209_URL_REGEX = re.compile(
     rb"https?://(?:www\.boomlings\.com|boomlings\.com|www\.geometrydash\.com)"
     rb"/(?:database|databas)/[A-Za-z0-9._/-]+\.php(?=\x00)"
@@ -331,8 +337,29 @@ def scan_urls(data: bytes) -> list[str]:
 
 def patch_client(data: bytes, server: str) -> tuple[bytes, list[PatchStat]]:
     server = validate_server(server)
-    if sha256(data) == GD2209_SHA256:
-        return patch_gd2209_exact(data, server)
+    digest = sha256(data)
+    if digest in GD2209_BUILDS:
+        label, expected_size, expected_urls = GD2209_BUILDS[digest]
+        if len(data) != expected_size:
+            raise ValueError(f"{label}: unexpected executable size")
+        patched, stats = patch_gd2209_exact(data, server)
+        if sum(item.count for item in stats) != expected_urls:
+            raise ValueError(
+                f"{label}: expected {expected_urls} embedded API URLs; "
+                "original binary may be damaged"
+            )
+        return patched, stats
+    # Do not pass a modified or unknown GD 2.209 binary through the
+    # permissive legacy host-replacement path.
+    if (
+        10 * 1024 * 1024 <= len(data) <= 20 * 1024 * 1024
+        and b"getGJNotifications.php" in data
+        and b"getGJThreadInvites.php" in data
+    ):
+        raise ValueError(
+            "Unknown GD 2.209 build: SHA-256 is not recognized. "
+            "Use an original supported GeometryDash.exe."
+        )
     stats: list[PatchStat] = []
 
     for length, old_url, label in (
@@ -510,7 +537,7 @@ def validate_result(original: bytes, patched: bytes, server: str, stats: list[Pa
     # The exact GD 2.209 patch updates only API URLs in .rdata. Legitimate
     # external informational links (e.g. Boomlings FAQ) remain unchanged.
     # The old generic URL validator incorrectly treated those as failures.
-    if sha256(original) == GD2209_SHA256:
+    if sha256(original) in GD2209_BUILDS:
         if len(patched) != len(original):
             raise ValueError("GD 2.209 executable size changed")
         if not any(s.count > 0 for s in stats):
