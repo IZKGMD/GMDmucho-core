@@ -55,6 +55,23 @@ final class Gd2209Binary
     }
 
     /**
+     * Refuse to pass an unknown modern 2.209 build through the legacy
+     * short-URL patcher: that strategy can produce a misleading usable EXE.
+     */
+    public static function resembles2209(string $path): bool
+    {
+        $size = @filesize($path);
+        if (!is_file($path) || $size === false ||
+            $size < 10 * 1024 * 1024 || $size > 20 * 1024 * 1024) {
+            return false;
+        }
+        $bytes = @file_get_contents($path);
+        return is_string($bytes) &&
+            str_contains($bytes, 'getGJNotifications.php') &&
+            str_contains($bytes, 'getGJThreadInvites.php');
+    }
+
+    /**
      * @return array<string, mixed> Matches WindowsClientPatcher::patchFile() manifest.
      */
     public static function patchFile(string $inputPath, string $outputPath, string $serverUrl): array
