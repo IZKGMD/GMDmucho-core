@@ -1,5 +1,6 @@
 param(
     [string]$GameFolder = '',
+    [string]$ExePath = '',
     [string]$ServerUrl = 'https://linasgdpsprivatese.5v.pl',
     [switch]$Launch
 )
@@ -117,18 +118,39 @@ Write-Host 'This tool does not alter the game or bypass Steam DRM.'
 Write-Host ''
 
 try {
-    if ([string]::IsNullOrWhiteSpace($GameFolder)) {
-        $GameFolder = Read-Host 'Path to the folder CONTAINING GeometryDash.exe'
+    if ([string]::IsNullOrWhiteSpace($ExePath) -and
+        [string]::IsNullOrWhiteSpace($GameFolder)) {
+        $selection = Read-Host 'Paste full path to PATCHED EXE (preferred), original EXE, or game folder'
+        if ($selection -match '(?i)\\.exe$') {
+            $ExePath = $selection.Trim('"')
+        } else {
+            $GameFolder = $selection.Trim('"')
+        }
     }
-    $folder = (Resolve-Path -LiteralPath $GameFolder -ErrorAction Stop).ProviderPath
-    $exe = Join-Path $folder 'GeometryDash.exe'
-    if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) {
-        # Support an already separately patched client.
+
+    if (-not [string]::IsNullOrWhiteSpace($ExePath)) {
+        $exe = (Resolve-Path -LiteralPath $ExePath -ErrorAction Stop).ProviderPath
+        if (-not (Test-Path -LiteralPath $exe -PathType Leaf) -or
+            [System.IO.Path]::GetExtension($exe).ToLowerInvariant() -ne '.exe') {
+            throw 'Choose an existing Windows EXE'
+        }
+        $folder = Split-Path -Path $exe -Parent
+    } else {
+        $folder = (Resolve-Path -LiteralPath $GameFolder -ErrorAction Stop).ProviderPath
+        $exe = Join-Path $folder 'GeometryDash.exe'
         $alternates = @(Get-ChildItem -LiteralPath $folder -Filter '*MuchoCore*.exe' -File -ErrorAction SilentlyContinue |
             Select-Object -First 1)
         if ($alternates.Count -gt 0) {
-            $exe = $alternates[0].FullName
-        } else {
+            if (Test-Path -LiteralPath $exe -PathType Leaf) {
+                $answer = Read-Host ('Found patched client ' + $alternates[0].Name +
+                    '. Type ORIGINAL to inspect GeometryDash.exe instead (Enter = patched)')
+                if ($answer -cne 'ORIGINAL') {
+                    $exe = $alternates[0].FullName
+                }
+            } else {
+                $exe = $alternates[0].FullName
+            }
+        } elseif (-not (Test-Path -LiteralPath $exe -PathType Leaf)) {
             throw ('No GeometryDash.exe or *MuchoCore*.exe in ' + $folder)
         }
     }
