@@ -10,6 +10,7 @@ import tempfile
 import struct
 import sys
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -183,6 +184,40 @@ class GD2209PatcherTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             module.patch_gd2209_exact(
                 fixture(), "https://" + "x" * 80 + ".example.net")
+
+    def test_oct19_original_uses_exact_engine_not_legacy_fallback(self):
+        # A synthetic file cannot satisfy a real SHA-256. Mock only build
+        # identification, then assert dispatch selects the exact PE engine.
+        source = b"x" * 13178880
+        fake = [module.PatchStat("GD 2.209", 113, "https://gdps.example.com")]
+        with mock.patch.object(
+            module, "sha256", return_value=module.GD2209_SHA256_OCT19
+        ), mock.patch.object(
+            module, "patch_gd2209_exact", return_value=(source, fake)
+        ) as exact:
+            patched, stats = module.patch_client(source, "https://gdps.example.com")
+        exact.assert_called_once()
+        self.assertEqual(patched, source)
+        self.assertEqual(sum(x.count for x in stats), 113)
+
+    def test_oct19_wrong_endpoint_count_is_rejected(self):
+        source = b"x" * 13178880
+        fake = [module.PatchStat("GD 2.209", 112, "https://gdps.example.com")]
+        with mock.patch.object(
+            module, "sha256", return_value=module.GD2209_SHA256_OCT19
+        ), mock.patch.object(
+            module, "patch_gd2209_exact", return_value=(source, fake)
+        ):
+            with self.assertRaisesRegex(ValueError, "expected 113"):
+                module.patch_client(source, "https://gdps.example.com")
+
+    def test_unknown_2209_never_falls_back_to_legacy_patcher(self):
+        source = bytearray(10 * 1024 * 1024)
+        source[:2] = b"MZ"
+        source[100:122] = b"getGJNotifications.php"
+        source[200:222] = b"getGJThreadInvites.php"
+        with self.assertRaisesRegex(ValueError, "Unknown GD 2.209 build"):
+            module.patch_client(bytes(source), "https://gdps.example.com")
 
     def test_exact_sha_ensures_custom_builds_use_legacy_route(self):
         self.assertNotEqual(
