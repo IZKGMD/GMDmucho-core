@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace MuchoCore\Comment;
 
 use MuchoCore\V71\Request;
+use MuchoCore\Protocol\GdLegacyText;
 use Throwable;
 
 final class CommentHistoryService
@@ -25,7 +26,9 @@ final class CommentHistoryService
         }
 
         $binaryVersion = Request::int('binaryVersion', 0);
-        $gameVersion = Request::int('gameVersion', 0);
+        // Comment history is a GD 2.x endpoint. The client may omit
+        // gameVersion, but key 2 still requires URL-safe Base64.
+        $gameVersion = max(20, Request::int('gameVersion', 22));
         $mode = Request::int('mode', 0);
         $count = min(50, max(1, Request::int('count', 10)));
         $page = min(1000, max(0, Request::int('page', 0)));
@@ -49,10 +52,9 @@ final class CommentHistoryService
             $timestamp = is_numeric((string)$row['timestamp']) ? (int)$row['timestamp'] : 0;
             $uploadDate = $timestamp > 0 ? date('d/m/Y G.i', $timestamp) : '01/01/1970 0.00';
 
-            $comment = str_replace(
-                ['~', '#', '|', ':'],
-                ['', '', '', ''],
-                (string)$row['comment']
+            $comment = GdLegacyText::encodeCommentForResponse(
+                (string)$row['comment'],
+                $gameVersion
             );
 
             $base = '1~' . (int)$row['levelID']
@@ -64,6 +66,10 @@ final class CommentHistoryService
                 . '~9~' . $uploadDate
                 . '~6~' . (int)$row['commentID']
                 . '~10~' . (int)$row['percent'];
+
+            if ($gameVersion >= 22 && $binaryVersion >= 51) {
+                $base .= '~15~' . $timestamp;
+            }
 
             $userName = str_replace(['~', ':', '#', '|'], ['', '', '', ''], (string)$row['userName']);
             $extId = is_numeric((string)$row['extID']) ? (int)$row['extID'] : 0;
@@ -101,7 +107,7 @@ final class CommentHistoryService
         $out .= '#'
             . (int)$result['total']
             . ':' . $offset
-            . ':' . (int)$result['visible'];
+            . ':' . $count;
 
         return $out;
     }
