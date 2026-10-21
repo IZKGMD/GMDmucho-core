@@ -14,11 +14,61 @@ use RuntimeException;
  */
 final class Gd2209Binary
 {
+    // Exact unmodified Windows GD 2.209 builds, verified against supplied PE64 binaries.
+    // Never accept arbitrary EXEs solely because they contain Boomlings URLs.
     public const SHA256 = '524265b3781596fcc7c9e4d60dc5ac2d0a4cd9530ee3ea637e123f9ac1f9b6a8';
+    public const SHA256_OCT19 = '4eee06d5c2e2213b4ba2b1f6233dd426bbdd0e9b29d7c375e499516b6f8f69d5';
+
+    private const BUILDS = [
+        self::SHA256 => [
+            'label' => 'Geometry Dash 2.209 (13 Oct 2026)',
+            'size' => 13158400,
+            'url_count' => 111,
+        ],
+        self::SHA256_OCT19 => [
+            'label' => 'Geometry Dash 2.209 (19 Oct 2026)',
+            'size' => 13178880,
+            'url_count' => 113,
+        ],
+    ];
+
+    /** @return array{label:string,size:int,url_count:int,sha256:string}|null */
+    public static function identifyBuild(string $path): ?array
+    {
+        if (!is_file($path) || !is_readable($path)) {
+            return null;
+        }
+        $size = filesize($path);
+        if ($size !== 13158400 && $size !== 13178880) {
+            return null;
+        }
+        $hash = hash_file('sha256', $path);
+        if ($hash === false || !isset(self::BUILDS[$hash])) {
+            return null;
+        }
+        return ['sha256' => $hash] + self::BUILDS[$hash];
+    }
 
     public static function supports(string $path): bool
     {
-        return is_file($path) && hash_file('sha256', $path) === self::SHA256;
+        return self::identifyBuild($path) !== null;
+    }
+
+    /**
+     * Refuse to pass an unknown modern 2.209 build through the legacy
+     * short-URL patcher: that strategy can produce a misleading usable EXE.
+     */
+    public static function resembles2209(string $path): bool
+    {
+        $size = @filesize($path);
+        if (!is_file($path) || $size === false ||
+            $size < 10 * 1024 * 1024 || $size > 20 * 1024 * 1024) {
+            return false;
+        }
+        $bytes = @file_get_contents($path);
+        return is_string($bytes) &&
+            str_contains($bytes, 'getGJNotifications.php') &&
+            str_contains($bytes, 'getGJThreadInvites.php');
     }
 
     /**
@@ -31,7 +81,8 @@ final class Gd2209Binary
         if (($parts['scheme'] ?? '') !== 'https' || isset($parts['port'])) {
             throw new RuntimeException('GD 2.209 patcher requires an HTTPS origin without a port.');
         }
-        if (!self::supports($inputPath)) {
+        $build = self::identifyBuild($inputPath);
+        if ($build === null) {
             throw new RuntimeException('Unrecognized GD 2.209 EXE build (SHA-256 mismatch).');
         }
         if ($inputPath === $outputPath || realpath($inputPath) === realpath($outputPath)) {
@@ -42,6 +93,10 @@ final class Gd2209Binary
             throw new RuntimeException('Unable to read the Geometry Dash executable.');
         }
         [$data, $count, $paths] = self::patchBytes($binary, (string)$parts['host']);
+        if ($count !== $build['url_count']) {
+            throw new RuntimeException('GD 2.209 endpoint count mismatch: expected ' .
+                $build['url_count'] . ', found ' . $count . '. No output was written.');
+        }
         if (file_put_contents($outputPath, $data, LOCK_EX) !== strlen($data)) {
             @unlink($outputPath);
             throw new RuntimeException('Unable to save patched GD 2.209 executable.');
@@ -52,7 +107,8 @@ final class Gd2209Binary
             'output_size' => strlen($data),
             'replacements' => ['GD 2.209 server URLs' => $count],
             'replacement_count' => $count,
-            'input_sha256' => self::SHA256,
+            'input_sha256' => $build['sha256'],
+            'source_build' => $build['label'],
             'output_sha256' => hash('sha256', $data),
             'endpoint_paths' => $paths,
             'verified' => 'static-binary-only',

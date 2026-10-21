@@ -111,6 +111,12 @@ final class WindowsClientPatcher
             return Gd2209Binary::patchFile($inputPath, $outputPath, $server);
         }
 
+        if (Gd2209Binary::resembles2209($inputPath)) {
+            throw new RuntimeException(
+                'Unknown GD 2.209 client build; upgrade the patcher before attempting this file.'
+            );
+        }
+
         $replacements = self::buildReplacements($server);
 
         if ($replacements === []) {
