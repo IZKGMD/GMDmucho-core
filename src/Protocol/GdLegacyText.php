@@ -100,14 +100,17 @@ final class GdLegacyText
         int $gameVersion
     ): string {
         /*
-         * Geometry Dash 1.9 sends comments as plain protocol text.
-         * Cvolton only Base64-encodes level comments when persisting them
-         * to the database, then decodes them again for the response.
+         * GD 2.0+ submits comment text as URL-safe Base64. Always decode
+         * that representation into MuchoCore's canonical plain-text storage,
+         * exactly as level descriptions are decoded. Older 1.x/1.9
+         * clients use plain comments and must remain byte-compatible.
          *
-         * MuchoCore stores comments as plain UTF-8 text, so the wire value
-         * is already ready for persistence for every supported client family.
+         * decodeWireText() deliberately returns malformed/unrecognizable
+         * payloads unchanged, maintaining existing custom-client behavior.
          */
-        return $comment;
+        return $gameVersion >= 20
+            ? self::decodeWireText($comment)
+            : $comment;
     }
 
     /**
@@ -118,20 +121,17 @@ final class GdLegacyText
         int $gameVersion
     ): string {
         /*
-         * MuchoCore normally stores comments as plain UTF-8 text. Older
-         * migrated databases may still contain the historical Base64
-         * representation used by Cvolton for pre-2.0 comments. Decode that
-         * representation on the way out when it is unambiguously valid.
+         * GD 2.0+ clients expect Base64 text in comment response key 2.
+         * encodeWireText() also recognizes canonical Base64 values imported
+         * from older GDPS databases, avoiding a double-encode regression.
          */
-        if ($gameVersion < 20) {
-            $decoded = self::decodeWireText($comment);
-
-            if ($decoded !== $comment) {
-                return $decoded;
-            }
+        if ($gameVersion >= 20) {
+            return strtr(self::encodeWireText($comment), '+/', '-_');
         }
 
-        return $comment;
+        // Historical pre-2.0 protocols receive a plain-text comment.
+        $decoded = self::decodeWireText($comment);
+        return $decoded !== $comment ? $decoded : $comment;
     }
 
     private static function normalizeBase64Url(string $value): string

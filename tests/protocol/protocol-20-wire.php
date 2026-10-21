@@ -55,8 +55,8 @@ assertTrue(
     \MuchoCore\Protocol\GdLegacyText::encodeCommentForResponse(
         'Hello 2.0',
         20
-    ) === 'Hello 2.0',
-    '2.0 comment response remains plain text'
+    ) === base64_encode('Hello 2.0'),
+    '2.0 comment response is Base64 encoded'
 );
 
 $userEncoder = new GdUserEncoder();
@@ -107,7 +107,7 @@ $comment = $comments->encode(
     27
 );
 
-assertTrue(str_contains($comment, '2~Hello 2.0'), '2.0 comment wire text');
+assertTrue(str_contains($comment, '2~' . base64_encode('Hello 2.0')), '2.0 comment wire Base64 text');
 assertTrue(!str_contains($comment, '~11~'), '2.0 legacy comment layout');
 assertTrue(!str_contains($comment, ':'), '2.0 comment has no inline user payload');
 
@@ -124,7 +124,7 @@ $accountComment = $comments->encodeAccountComment(
 );
 
 assertTrue(
-    str_contains($accountComment, '2~Profile hello'),
+    str_contains($accountComment, '2~' . base64_encode('Profile hello')),
     '2.0 account comment wire text'
 );
 

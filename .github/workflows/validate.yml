@@ -101,6 +101,8 @@ jobs:
           php tests/protocol/protocol-22-surface.php
           php tests/protocol/backup-verifier-legacy.php
           php tests/protocol/gd2209-comment-timestamps.php
+          php tests/protocol/gd2209-comment-base64.php
+          bash -n tools/diagnostics/gd2209-comment-smoke.sh
           php tests/protocol/gd2209-level-time.php
           php tests/protocol/gd2209-thread-wire.php
           php tests/protocol/protocol-20-surface.php

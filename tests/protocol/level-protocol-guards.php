@@ -95,8 +95,8 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Protocol/GdLegacyText.php',
-        'return $comment;',
-        'GD 2.0+ comments stay plain text',
+        'self::encodeWireText($comment)',
+        'GD 2.0+ comments are encoded as Base64 on the wire',
     ],
     [
         __DIR__ . '/../../src/Protocol/GdLevelListEncoder.php',

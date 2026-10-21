@@ -48,6 +48,23 @@ foreach ($legacyPaths as $path) {
     );
 }
 
+// Versioned comment routes are modern even when the client omits
+// gameVersion. GD 2.209 identifies itself with binaryVersion 51.
+foreach ([
+    ['/getGJComments21.php', '51', '2.2'],
+    ['/getGJComments21.php', '47', '2.1'],
+    ['/getGJComments20.php', '27', '2.0'],
+    ['/getGJAccountComments20.php', '51', '2.2'],
+] as [$route, $binary, $family]) {
+    $request = new Request('POST', $route, [], [
+        'levelID' => '152', 'binaryVersion' => $binary
+    ], []);
+    assertCommentContract(
+        $request->clientVersion()->family() === $family,
+        'modern versionless comment route: ' . $route . ' / ' . $binary
+    );
+}
+
 $expectedAliases = [
     '/getGJComments19.php' => '/getgjcomments21',
     '/getGJComments20.php' => '/getgjcomments21',
@@ -98,6 +115,18 @@ assertCommentContract(
     str_contains($controller, '$legacyUdidUpload') &&
     str_contains($controller, '$version->effectiveGameVersion() < 19'),
     'legacy UDID comments may omit accountID'
+);
+
+assertCommentContract(
+    preg_match_all('/\\$offset\\s*\\.\\s*\\x27:\\x27\\s*\\.\\s*\\$limit/', $service) >= 2
+    && str_contains($service, '"#" . $total . ":" . $offset . ":" . $limit'),
+    'partial comment pages retain the requested page size'
+);
+
+assertCommentContract(
+    str_contains($controller, '[MuchoCore CommentRead]')
+    && !str_contains($controller, 'Response::text("#0:0:10")'),
+    'comment read failures are logged, not emitted as malformed pagination'
 );
 
 assertCommentContract(
