@@ -87,6 +87,7 @@ jobs:
           php tests/client/client-compatibility.php
           php tests/client/gd-2209-synthetic.php
           php tests/client/gd-2209-patcher-quality.php
+          php tests/client/parallel-apk-upload.php
           php tests/client/android-gd2209-synthetic.php
           php tests/client/client-pack-cache.php
           php tests/client/client-ip.php
@@ -242,6 +243,7 @@ jobs:
           node --check public/admin/admin-i18n.js
           node --test tests/application/product-ui.test.cjs
           node --test tests/application/client-upload-speed.test.cjs
+          node --test tests/application/apk-parallel-upload.test.cjs
 
       - name: Check Python patcher
         run: |
