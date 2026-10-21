@@ -52,6 +52,7 @@ function cleanupClientPatcherFiles(string $dir): void
     // One cleanup per 5 minutes is enough, with a nonblocking cross-worker
     // flock to avoid a thundering herd of PHP-FPM workers scanning at once.
     $lockPath = $dir . '/.cleanup.lock';
+    $hasCleanupStamp = is_file($lockPath);
     $lock = @fopen($lockPath, 'c+b');
     if (!is_resource($lock)) {
         return; // Uploads must not fail because housekeeping is unavailable.
@@ -63,7 +64,7 @@ function cleanupClientPatcherFiles(string $dir): void
         $now = time();
         clearstatcache(true, $lockPath);
         $last = @filemtime($lockPath);
-        if ($last !== false && $now - $last < 300) {
+        if ($hasCleanupStamp && $last !== false && $now - $last < 300) {
             return;
         }
 
