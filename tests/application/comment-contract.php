@@ -118,7 +118,7 @@ assertCommentContract(
 );
 
 assertCommentContract(
-    substr_count($service, "'#' . $total . ':' . $offset . ':' . $limit") >= 2
+    preg_match_all('/\\$offset\\s*\\.\\s*\\x27:\\x27\\s*\\.\\s*\\$limit/', $service) >= 2
     && str_contains($service, '"#" . $total . ":" . $offset . ":" . $limit'),
     'partial comment pages retain the requested page size'
 );
