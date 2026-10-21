@@ -48,11 +48,16 @@ must(count($routes) === 3, 'Incomplete route manifest');
 must(strlen($patched) === strlen($pe), 'Modified original EXE length');
 must(substr($patched, 0, 0x400) === substr($pe, 0, 0x400), 'PE header changed');
 must(substr($patched, 0x600) === substr($pe, 0x600), 'Unexpected non-.rdata change');
+$seen = ['short_alias' => 0, 'root_alias' => 0];
 foreach ($routes as $route) {
-    must($route['mode'] === 'short_alias', 'Expected /a/ for long shared domain');
-    must(str_starts_with($route['target_path'], '/a/'), 'Incorrect target route');
+    must(isset($seen[$route['mode']]), 'Long shared domain unexpectedly used /database/');
+    ++$seen[$route['mode']];
+    $prefix = $route['mode'] === 'short_alias' ? '/a/' : '/';
+    must(str_starts_with($route['target_path'], $prefix), 'Incorrect target route');
     must(str_starts_with($route['source_path'], '/database/'), 'Source canonicalization missing');
 }
+must($seen['short_alias'] >= 1, 'Missing long-host /a/ rewrite');
+must($seen['root_alias'] >= 1, 'Malformed /databas/ URL must use a root alias');
 must(str_contains($patched, 'https://linasgdpsprivatese.5v.pl/a/getGJLevels21.php'),
     'Long-host URL was not encoded');
 must(!str_contains($patched, 'https://www.boomlings.com/database/getGJLevels21.php'),
