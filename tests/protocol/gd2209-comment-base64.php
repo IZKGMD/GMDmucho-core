@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require dirname(__DIR__, 2) . '/src/Protocol/GdLegacyText.php';
+require dirname(__DIR__, 2) . '/src/Protocol/ProtocolText.php';
 require dirname(__DIR__, 2) . '/src/Protocol/GdCommentEncoder.php';
 
 use MuchoCore\Protocol\GdLegacyText;
