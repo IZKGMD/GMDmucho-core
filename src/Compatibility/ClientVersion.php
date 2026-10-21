@@ -60,6 +60,24 @@ final readonly class ClientVersion
             $gameVersion = 1;
         }
 
+        /*
+         * Comment requests can omit gameVersion while still targeting an
+         * explicitly modern endpoint. The original 2.209 client may send
+         * binaryVersion=51 on getGJComments21. Do not format its comments
+         * as an unknown/legacy client (raw key-2 text).
+         *
+         * This inference is restricted to versioned comment endpoints;
+         * old unsuffixed 1.x comment compatibility remains unchanged.
+         */
+        if ($gameVersion === 0) {
+            $path = strtolower((string)$request->path);
+            if (preg_match('#/(?:getgjcomments21|uploadgjcomment21)(?:\\.php)?$#D', $path)) {
+                $gameVersion = $binaryVersion >= 51 ? 22 : 21;
+            } elseif (preg_match('#/(?:getgjcomments20|uploadgjcomment20|getgjaccountcomments20|uploadgjacccomment20)(?:\\.php)?$#D', $path)) {
+                $gameVersion = $binaryVersion >= 51 ? 22 : 20;
+            }
+        }
+
         return self::fromValues(
             $gameVersion,
             $binaryVersion
