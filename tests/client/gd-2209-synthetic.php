@@ -43,18 +43,18 @@ try {
 }
 // New 19 Oct 2026 build adds two account moderation queue actions.
 $modern = str_replace(
-    "https://www.boomlings.com/database/getGJNotifications.php\\0",
-    "https://www.boomlings.com/database/adminQueueUnmute.php\\0",
+    "https://www.boomlings.com/database/getGJNotifications.php\0",
+    "https://www.boomlings.com/database/adminQueueUnmute.php\0",
     $original
 );
 [$modernPatched, $modernCount] = Gd2209Binary::patchBytes($modern, 'muchogdps.space');
 verify2209($modernCount === 2, 'New GD 2.209 action URL should be patched');
 verify2209(
-    str_contains($modernPatched, "https://muchogdps.space/database/adminQueueUnmute.php\\0"),
+    str_contains($modernPatched, "https://muchogdps.space/database/adminQueueUnmute.php\0"),
     'New native moderation action URL was not patched'
 );
 verify2209(Gd2209Binary::SHA256_OCT19 ===
     '4eee06d5c2e2213b4ba2b1f6233dd426bbdd0e9b29d7c375e499516b6f8f69d5',
     'Latest known exact build SHA256 mismatch'
 );
-echo "MUCHOCORE_GD_2209_SYNTHETIC_OK\\n";
+echo "MUCHOCORE_GD_2209_SYNTHETIC_OK\n";
