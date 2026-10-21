@@ -37,7 +37,7 @@ for (const variant of [
         filename: 'GeometryDash.apk',
     },
 ]) {
-    test(variant.file + ': 4 MiB negotiation and reconnect without retransmitting', async () => {
+    test(variant.file + ': 8 MiB negotiation and reconnect without retransmitting', async () => {
         const php = fs.readFileSync(path.join(root, variant.file), 'utf8');
         const scriptStart = php.indexOf('<script>');
         const scriptEnd = php.indexOf('</script>', scriptStart);
@@ -87,14 +87,14 @@ for (const variant of [
                     ok: true,
                     upload_id: 'a'.repeat(32),
                     next_offset: 0,
-                    chunk_size: 4 * MiB,
+                    chunk_size: 8 * MiB,
                 });
             }
             if (action === variant.chunk) {
                 const offset = Number(data.get('offset'));
                 const binary = data.get('chunk');
                 assert.equal(offset, serverOffset, 'no duplicated write after lost ACK');
-                assert.ok(binary.size <= 4 * MiB, 'bounded chunk');
+                assert.ok(binary.size <= 8 * MiB, 'bounded chunk');
                 assert.ok(binary.size >= 1, 'nonempty chunk');
                 serverOffset += binary.size;
                 chunks.push(binary.size);

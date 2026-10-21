@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace MuchoCore\Client;
 
+require_once __DIR__ . '/AndroidGd2209Binary.php';
+require_once __DIR__ . '/AndroidPackageRelocator.php';
+
 use RuntimeException;
 use ZipArchive;
 
@@ -32,7 +35,8 @@ final class AndroidClientPatcher
         string $inputPath,
         string $outputPath,
         string $serverUrl,
-        ?callable $heartbeat = null
+        ?callable $heartbeat = null,
+        bool $installAlongside = false
     ): array {
         $server = WindowsClientPatcher::validateServerUrl($serverUrl);
 
@@ -61,6 +65,29 @@ final class AndroidClientPatcher
         $openResult = $source->open($inputPath);
         if ($openResult !== true) {
             throw new RuntimeException('The uploaded file is not a readable APK/ZIP archive.');
+        }
+
+        // This exact native 2.209 build contains 113 standalone NUL-terminated
+        // API URL strings. The generic older short-prefix patcher can corrupt
+        // these paths; use a strict native branch and a fast ZIP update instead.
+        $native = $source->getFromName('lib/arm64-v8a/libcocos2dcpp.so');
+        if (is_string($native) && AndroidGd2209Binary::supports($native)) {
+            $source->close();
+            return self::patchGd2209Apk(
+                $inputPath, $outputPath, $server, $native, $heartbeat, $installAlongside
+            );
+        }
+        if (is_string($native) && AndroidGd2209Binary::resembles2209($native)) {
+            $source->close();
+            throw new RuntimeException(
+                'Unknown Android GD 2.209 native build. Its API layout must be verified before patching.'
+            );
+        }
+        if ($installAlongside) {
+            $source->close();
+            throw new RuntimeException(
+                'Side-by-side package relocation is currently supported for the verified GD 2.209 ARM64 build.'
+            );
         }
 
         $hasManifest = false;
@@ -209,6 +236,150 @@ final class AndroidClientPatcher
             'output_sha256' => hash_file('sha256', $outputPath) ?: '',
             'signed' => true,
         ];
+    }
+
+    /**
+     * Fast path for the verified GD 2.209 ARM64 APK. Edit ONLY the native
+     * endpoint library, compiled package manifest and resource package name.
+     * All 6,000+ untouched sound/image/asset entries keep their original ZIP
+     * data instead of passing through expensive string scans and re-encoding.
+     */
+    private static function patchGd2209Apk(
+        string $inputPath,
+        string $outputPath,
+        string $server,
+        string $native,
+        ?callable $heartbeat,
+        bool $installAlongside
+    ): array {
+        $rebuilt = $outputPath . '.rebuilt';
+        $aligned = $outputPath . '.aligned';
+        @unlink($rebuilt);
+        @unlink($aligned);
+        @unlink($outputPath);
+        [$patched, $replacements, $paths] = AndroidGd2209Binary::patchBytes(
+            $native,
+            $server,
+            AndroidGd2209Binary::ENDPOINTS
+        );
+        if (strlen($patched) !== strlen($native)) {
+            throw new RuntimeException('GD 2.209 ELF size changed unexpectedly.');
+        }
+        $packageId = AndroidPackageRelocator::SOURCE_ID;
+        if (!@copy($inputPath, $rebuilt)) {
+            throw new RuntimeException('Cannot create the APK patch working copy.');
+        }
+        try {
+            $zip = new ZipArchive();
+            if ($zip->open($rebuilt) !== true) {
+                throw new RuntimeException('Cannot open the temporary APK patch copy.');
+            }
+            try {
+                if ($zip->getFromName('AndroidManifest.xml') === false ||
+                    $zip->getFromName('resources.arsc') === false) {
+                    throw new RuntimeException('APK has no Android manifest or resource table.');
+                }
+
+                // Signatures are invalidated by changing the native ELF and
+                // package ID. Delete stale V1 signing entries before re-signing.
+                $oldSignatures = [];
+                for ($index = 0; $index < $zip->numFiles; $index++) {
+                    $entry = $zip->getNameIndex($index);
+                    if (is_string($entry) && self::isSignatureEntry($entry)) {
+                        $oldSignatures[] = $entry;
+                    }
+                }
+                foreach ($oldSignatures as $entry) {
+                    if (!$zip->deleteName($entry)) {
+                        throw new RuntimeException('Cannot remove old APK signature.');
+                    }
+                }
+
+                if (!$zip->addFromString('lib/arm64-v8a/libcocos2dcpp.so', $patched)) {
+                    throw new RuntimeException('Cannot write patched GD 2.209 native library.');
+                }
+                // This library was stored uncompressed in the verified source.
+                $zip->setCompressionName(
+                    'lib/arm64-v8a/libcocos2dcpp.so',
+                    ZipArchive::CM_STORE
+                );
+
+                if ($installAlongside) {
+                    $manifest = $zip->getFromName('AndroidManifest.xml');
+                    $arsc = $zip->getFromName('resources.arsc');
+                    if (!is_string($manifest) || !is_string($arsc)) {
+                        throw new RuntimeException('Unable to read compiled Android package data.');
+                    }
+                    $manifest = AndroidPackageRelocator::relocateManifest($manifest);
+                    $arsc = AndroidPackageRelocator::relocateResources($arsc);
+                    if (!$zip->addFromString('AndroidManifest.xml', $manifest) ||
+                        !$zip->addFromString('resources.arsc', $arsc)) {
+                        throw new RuntimeException('Unable to write side-by-side app package.');
+                    }
+                    $zip->setCompressionName('AndroidManifest.xml', ZipArchive::CM_STORE);
+                    $zip->setCompressionName('resources.arsc', ZipArchive::CM_STORE);
+                    $packageId = AndroidPackageRelocator::SIDE_BY_SIDE_ID;
+                }
+            } finally {
+                if (!$zip->close()) {
+                    throw new RuntimeException('Failed to finalize patched APK ZIP.');
+                }
+            }
+
+            if ($heartbeat !== null) $heartbeat();
+            self::runTool(
+                ['zipalign', '-p', '-f', '4', $rebuilt, $aligned],
+                'zipalign'
+            );
+            if ($heartbeat !== null) $heartbeat();
+            self::signApk($aligned, $outputPath);
+            self::verifyApk($outputPath);
+            if ($heartbeat !== null) $heartbeat();
+
+            $check = new ZipArchive();
+            if ($check->open($outputPath) !== true) {
+                throw new RuntimeException('Unable to reopen signed APK.');
+            }
+            try {
+                $manifest = $check->getFromName('AndroidManifest.xml');
+                if (!is_string($manifest) ||
+                    AndroidPackageRelocator::manifestPackage($manifest) !== $packageId) {
+                    throw new RuntimeException('Signed APK application ID verification failed.');
+                }
+                $resultNative = $check->getFromName('lib/arm64-v8a/libcocos2dcpp.so');
+                if (!is_string($resultNative) ||
+                    hash('sha256', $resultNative) !== hash('sha256', $patched)) {
+                    throw new RuntimeException('Signed APK native library checksum mismatch.');
+                }
+            } finally {
+                $check->close();
+            }
+            $bytes = filesize($outputPath);
+            if ($bytes === false || $bytes < 1024) {
+                throw new RuntimeException('Signed GD 2.209 APK output is missing.');
+            }
+            return [
+                'server_url' => $server,
+                'input_size' => filesize($inputPath),
+                'output_size' => $bytes,
+                'replacement_count' => $replacements,
+                'patched_entries' => [['name' => 'lib/arm64-v8a/libcocos2dcpp.so',
+                    'replacements' => $replacements]],
+                'source_build' => 'GD 2.209 API / Android package 2.2.145 (verified ARM64)',
+                'package_id' => $packageId,
+                'endpoint_paths' => $paths,
+                'input_sha256' => hash_file('sha256', $inputPath),
+                'output_sha256' => hash_file('sha256', $outputPath),
+                'signed' => true,
+                'verified' => 'static-binary-and-APK-signature',
+            ];
+        } catch (\Throwable $e) {
+            @unlink($outputPath);
+            throw $e;
+        } finally {
+            @unlink($rebuilt);
+            @unlink($aligned);
+        }
     }
 
     private static function runTool(array $arguments, string $label): void

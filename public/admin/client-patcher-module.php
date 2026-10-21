@@ -162,7 +162,7 @@ function handleClientPatcherAction(
             'ok' => true,
             'upload_id' => $id,
             'next_offset' => 0,
-            'chunk_size' => 4 * 1024 * 1024,
+            'chunk_size' => 8 * 1024 * 1024,
         ]);
     }
 
@@ -244,7 +244,7 @@ function handleClientPatcherAction(
         if (
             !is_uploaded_file($tmp) ||
             $chunkSize <= 0 ||
-            $chunkSize > 4 * 1024 * 1024 ||
+            $chunkSize > 8 * 1024 * 1024 ||
             $offset + $chunkSize > $totalSize
         ) {
             clientPatcherJson(
@@ -521,7 +521,7 @@ function renderClientPatcherPage(PDO $db): void
                     <div>
                         <h3>Patch the client</h3>
                         <div class="muted small">
-                            The server uploads the file in <b>adaptive chunks up to 4 MiB</b> and patches
+                            The server uploads the file in <b>adaptive chunks up to 8 MiB</b> and patches
                             known Geometry Dash server URL layouts without loading the
                             entire executable into PHP memory.
                         </div>
@@ -622,7 +622,7 @@ function renderClientPatcherPage(PDO $db): void
     const button = document.getElementById('mcPatcherButton');
     const csrf = <?=json_encode(csrf(), JSON_UNESCAPED_SLASHES)?>;
     const MIN_CHUNK_SIZE = 512 * 1024;
-    const MAX_CHUNK_SIZE = 4 * 1024 * 1024;
+    const MAX_CHUNK_SIZE = 8 * 1024 * 1024;
 
     let selected = null;
 

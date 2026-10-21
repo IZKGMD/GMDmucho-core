@@ -85,6 +85,7 @@ jobs:
           php bin/mucho-gd2209-coverage.php --json > /dev/null
           php tests/client/client-compatibility.php
           php tests/client/gd-2209-synthetic.php
+          php tests/client/android-gd2209-synthetic.php
           php tests/client/client-pack-cache.php
           php tests/client/client-ip.php
           php tests/protocol/protocol-matrix.php
