@@ -29,7 +29,7 @@ $data = str_repeat('A', $partSize) . str_repeat('B', $partSize) .
 $size = strlen($data);
 try {
     ParallelApkUpload::prepare($file, $size);
-    verify(filesize($file) === $size, 'Sparse staging length mismatch');
+    verify(filesize($file) === 0, 'Session start must not allocate APK bytes');
     verify(ParallelApkUpload::partCount($size, $partSize) === 3,
         'Expected 3 parts');
     verify(!ParallelApkUpload::isComplete($file, $size, $partSize),

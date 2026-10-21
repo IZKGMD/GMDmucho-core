@@ -47,16 +47,46 @@ function cleanupClientPatcherFiles(string $dir): void
         return;
     }
 
-    $now = time();
-    foreach (glob($dir . '/*') ?: [] as $file) {
-        if (!is_file($file)) {
-            continue;
+    // Previously every chunk and every APK session start scanned the entire
+    // directory. Thousands of completed-part markers can make this slow.
+    // One cleanup per 5 minutes is enough, with a nonblocking cross-worker
+    // flock to avoid a thundering herd of PHP-FPM workers scanning at once.
+    $lockPath = $dir . '/.cleanup.lock';
+    $hasCleanupStamp = is_file($lockPath);
+    $lock = @fopen($lockPath, 'c+b');
+    if (!is_resource($lock)) {
+        return; // Uploads must not fail because housekeeping is unavailable.
+    }
+    try {
+        if (!@flock($lock, LOCK_EX | LOCK_NB)) {
+            return;
+        }
+        $now = time();
+        clearstatcache(true, $lockPath);
+        $last = @filemtime($lockPath);
+        if ($hasCleanupStamp && $last !== false && $now - $last < 300) {
+            return;
         }
 
-        $mtime = @filemtime($file);
-        if ($mtime !== false && ($now - $mtime) > 3600) {
-            @unlink($file);
+        // Use a durable timestamp before scanning so concurrent new
+        // requests can enter the upload endpoint immediately.
+        @touch($lockPath, $now);
+        foreach (glob($dir . '/*') ?: [] as $file) {
+            if (!is_file($file) || is_link($file)) {
+                continue;
+            }
+            $mtime = @filemtime($file);
+            // Parallel APK sessions can legitimately run for up to 4 hours;
+            // deleting their parts after just 1 hour corrupts big uploads.
+            $ttl = str_contains(basename($file), '.apk.upload')
+                ? 5 * 3600 : 3600;
+            if ($mtime !== false && $now - $mtime > $ttl) {
+                @unlink($file);
+            }
         }
+    } finally {
+        @flock($lock, LOCK_UN);
+        fclose($lock);
     }
 }
 

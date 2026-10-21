@@ -76,15 +76,10 @@ final class ParallelApkUpload
         if ($out === false) {
             throw new RuntimeException('Unable to initialize private APK storage.');
         }
-        try {
-            if (!ftruncate($out, $totalSize)) {
-                throw new RuntimeException('Unable to allocate APK staging file.');
-            }
-        } catch (\Throwable $error) {
-            fclose($out);
-            @unlink($path);
-            throw $error;
-        }
+        // Do not pre-allocate or zero-fill an entire 100–512 MiB APK on
+        // android-patcher-start. Some shared filesystems make ftruncate()
+        // slow; the first uploaded part will grow this sparse staging file.
+        // isComplete() still requires every part marker AND the final size.
         fclose($out);
     }
 
