@@ -55,12 +55,15 @@ test('Android APK upload: 3 concurrent streams, failed ACK recovery, every part 
         const action = data.get('action');
         if (action === 'android-patcher-start') {
             assert.equal(data.get('supports_parallel'), '1');
+            assert.equal(data.get('preferred_part_bytes'), String(2 * MiB));
             return response({
                 ok: true, upload_id: 'a'.repeat(32), next_offset: 0,
                 upload_mode: 'parallel-v1', chunk_size: partSize, max_parallel: 3,
             });
         }
         if (action === 'android-patcher-part') {
+            assert.match(nodes.mcAndroidPatcherStatus.textContent, /Uploading APK/);
+            assert.doesNotMatch(nodes.mcAndroidPatcherStatus.textContent, /Creating APK upload session/);
             const index = Number(data.get('part_index'));
             const chunk = data.get('chunk');
             assert.ok(index >= 0 && index < partCount);
@@ -105,7 +108,10 @@ test('Android APK upload: 3 concurrent streams, failed ACK recovery, every part 
 
     new vm.Script(js, {
         filename: 'public/admin/android-client-patcher-module.php',
-    }).runInNewContext({ document, fetch, FormData, setTimeout, console });
+    }).runInNewContext({
+        document, fetch, FormData, setTimeout, console,
+        navigator: { userAgent: 'Mozilla/5.0 (Linux; Android 17) Chrome/155 Mobile' },
+    });
 
     const file = new Blob([Buffer.alloc(fileBytes)]);
     file.name = 'GeometryDash.apk';
