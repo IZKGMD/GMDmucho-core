@@ -92,3 +92,33 @@ supported editor/social features.
 
 Working `/a/getGJLevels21.php` only establishes that **public search**
 works. It does not imply any account/News/social endpoint is available.
+
+## HTTP 503 after replacing `/mc/` from a newer PHP7 archive
+
+The `-1` body with **HTTP 503** is a bootstrap/configuration failure, not
+proof that an individual Geometry Dash endpoint is implemented incorrectly.
+The archive intentionally **omits** private `config/php7-local.php` and the
+`public/php7-mode.on` activation marker. Preserve these files between
+updates; do not replace the real MySQL host/password with placeholders from
+`compat/php7/config.example.php`.
+
+As of this fix, the News URL discovery, version and feed (GET requests) need
+only the activation marker, valid private config, news flag and JSON file,
+**not a working MySQL connection**. Existing level/user/account endpoints
+still require the `pdo_mysql` PHP extension and a reachable database.
+
+After updating `mc/public/php7.php`, verify:
+
+```sh
+curl -sS -w '\nHTTP %{http_code}\n' https://linasgdpsprivatese.5v.pl/gd-content/news/news_version.txt
+curl -sS -w '\nHTTP %{http_code}\n' -X POST https://linasgdpsprivatese.5v.pl/a/getGJLevels21.php -d 'gameVersion=22&binaryVersion=51&type=0&page=0'
+```
+
+- News `200` with a seven-digit integer confirms the local JSON/feed path.
+- News `503`: inspect the PHP error log and check the local PHP7 marker,
+  config syntax and validity of `php7-news.json`; never share secrets.
+- Levels `503` while News `200`: focus on `pdo_mysql`, DB host, database
+  name, DB user/password, and permissions. Don't recreate a populated DB.
+- Level `-2` with HTTP `200`: empty public level list, not a broken DB.
+
+**Do not** enable registration/writes on EOL PHP 7 merely to overcome a 503.
