@@ -60,7 +60,12 @@ function handleAndroidPatcherAction(
         // use the unchanged sequential protocol.
         $parallel = (string)($_POST['supports_parallel'] ?? '') === '1';
         try {
-            $partBytes = $parallel ? ParallelApkUpload::recommendedPartBytes() : 8 * 1024 * 1024;
+            $partBytes = $parallel
+                ? ParallelApkUpload::negotiatedPartBytes(
+                    isset($_POST['preferred_part_bytes'])
+                        ? (string)$_POST['preferred_part_bytes'] : null
+                )
+                : 8 * 1024 * 1024;
             if ($parallel) {
                 ParallelApkUpload::prepare($part, $totalSize);
             } elseif (@file_put_contents($part, '') === false) {
@@ -732,11 +737,14 @@ function renderAndroidPatcherSection(PDO $db): void
 
         const data = await response.json().catch(() => ({
             ok: false,
-            error: 'Invalid server response.'
+            error: 'Non-JSON response from the server.'
         }));
 
         if (!response.ok || !data.ok) {
-            throw new Error(data.error || 'Request failed.');
+            const statusCode = Number(response.status);
+            const prefix = Number.isInteger(statusCode) && statusCode >= 400
+                ? 'HTTP ' + statusCode + ': ' : '';
+            throw new Error(prefix + (data.error || 'APK upload request failed.'));
         }
 
         return data;
@@ -753,6 +761,12 @@ function renderAndroidPatcherSection(PDO $db): void
         let stopped = false;
         const committed = new Set();
         const uploadStarted = Date.now();
+
+        // The session is already created here. Do not leave the previous
+        // "Creating session" message on screen while first parts travel.
+        setStatus('Uploading APK… 0.0 / ' + (file.size / 1048576).toFixed(1) +
+            ' MiB · ' + concurrent + ' parallel streams · ' +
+            (maxPartSize / 1048576).toFixed(1) + ' MiB parts');
 
         const record = index => {
             if (committed.has(index)) return;
@@ -867,7 +881,13 @@ function renderAndroidPatcherSection(PDO $db): void
                     total_size: selected.size,
                     server_url: server.value.trim(),
                     install_alongside: alongside.checked ? '1' : '0',
-                    supports_parallel: '1'
+                    supports_parallel: '1',
+                    // Three 8 MiB requests at once can be unstable on
+                    // mobile networks. Prefer smaller requests there.
+                    preferred_part_bytes: typeof navigator !== 'undefined' &&
+                        /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent || '')
+                        ? String(2 * 1024 * 1024)
+                        : String(8 * 1024 * 1024)
                 }
             );
 
