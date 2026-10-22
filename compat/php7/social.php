@@ -201,7 +201,7 @@ function mucho7_social_friends(PDO $pdo, $data, $aid)
     }
     $query = $pdo->prepare('SELECT a.account_id,a.username,p.user_id,'
         . 'p.icon_id,p.icon_type,p.color1,p.color2,'
-        . 'CASE WHEN f.account_low=? THEN f.high_new ELSE f.low_new END AS is_new'
+        . 'CASE WHEN f.account_low=? THEN f.low_new ELSE f.high_new END AS is_new'
         . ' FROM php7_friendships f'
         . ' JOIN accounts a ON a.account_id=CASE WHEN f.account_low=?'
         . ' THEN f.account_high ELSE f.account_low END'
