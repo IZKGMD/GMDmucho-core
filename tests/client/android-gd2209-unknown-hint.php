@@ -17,7 +17,7 @@ if (!mkdir($dir, 0700)) {
 }
 $input = $dir . '/original.apk';
 $output = $dir . '/patched.apk';
-$elf = "\x7fELF\0" . str_repeat('X', 1500) .
+$elf = "\x7fELF\0" . random_bytes(2048) .
     "getGJNotifications.php\0getGJThreadInvites.php\0";
 $zip = new ZipArchive();
 try {
