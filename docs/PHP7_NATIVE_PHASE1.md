@@ -1,176 +1,142 @@
-# MuchoCore Shared / PHP 7 native runtime — Phase 1 (experimental)
+# MuchoCore on shared hosting — native PHP 7.0 runtime
 
-**Status: incomplete, disabled by default, never advertised as a complete GDPS.**
-
-This is the first **native PHP 7.0-compatible** code path in the *same*
-MuchoCore shared-hosting ZIP. Unlike `5v-edge.php`, it does not forward
-requests to a VPS. It connects **directly** to the operator's own MySQL
-database using PDO, reads the existing MuchoCore tables, and encodes GD
-public level lists on the host. It does not load any PHP 8 application
-classes, Composer packages or custom extensions.
-
-## Phase 2 — native disposable database installer and accounts
-
-An experimental standalone browser wizard now exists at
-`public/php7-setup.php`. It is **not** the main `/install.php` and does
-not turn the modern PHP8 core into a PHP7 core. To prevent drive-by remote
-installation it requires HTTPS, a previously placed strong private
-`config/php7-setup-key.txt`, CSRF token and an **empty, disposable MySQL
-database**. It creates only the native adapter's base roles, accounts, profiles,
-songs, levels, and login-throttle tables. Never point it at an existing GDPS.
-MySQL DDL cannot roll back; on interruption use a new empty test database.
-After setup it writes `config/php7-local.php` privately and removes the
-setup key. Delete `public/php7-setup.php` after testing.
-
-The optional `compat/php7/auth.php` implements registration and login with
-bcrypt-hashed passwords, the existing GD GJP2 derivation, profile creation in
-a transaction, banned-account checks and DB-backed login/registration limits.
-**Both account switches default to FALSE** in the generated private
-configuration. Do not turn them on for public players: PHP 7.0 is unpatched,
-real 5v.pl acceptance/security has not been established, and these functions
-are isolated technical tests, not a certified account service.
-
-To enable routing on a private throwaway site, the existing
-`public/php7-mode.on` must still be created separately. This feature remains
-off by default in the ZIP. To test accounts, explicitly enable
-`enable_accounts` and `enable_registration` in the private config; disable
-immediately after testing. The `/install.php` production installer continues
-to reject PHP 7.
-
-The MariaDB CI test `tests/compat/php7-native-mysql.php` independently creates
-an isolated temporary database and tests native registration, login,
-2.209 public search/download and repeat-install refusal. The PHP 7.0 CLI CI
-job checks syntax, while the PHP 8.2-8.5 job tests security contracts.
-
-**Now experimental:** level uploads/updates with credential verification, owner-bound
-SQL updates and a 200 KiB levelString cap, gated by both
-`enable_accounts` and `enable_writes` (both OFF by default). This is
-not full GD 2.209 editor parity; large levels, revisions, permissions,
-telemetry and advanced validation still need work.
-
-**Not complete:** no production-certified levels.upload, comments, user cloud save, full GD 2.209
-features, admin, full modern migrations/plugins or real client acceptance.
+This is an ongoing native port, running entirely on the shared host with its
+own PDO/MySQL connection. It does not proxy to a VPS, load PHP8 application
+classes, or require Composer. It is **not yet full MuchoCore feature parity**.
+PHP 7.0 is obsolete; provider and real GD client acceptance are still separate
+from the automated checks below. The full PHP8 core remains available for
+shared hosts running PHP 8.2 or newer.
 
 ## Implemented
 
-- PHP 7.0-syntax runtime: `compat/php7/runtime.php`.
-- Experimental HTTP front controller: `public/php7.php` (disabled by
-  default, requires HTTPS, explicit opt-in marker and local DB config).
-- GET `/health` or `/checkIfServerOnline` checks *native DB connection*,
-  not an external upstream.
-- Public POST `/downloadGJLevel{19,20,21,22}.php` read-only level downloads, only publicly visible levels (no private, friend-only or daily negative IDs), GD 2.209 metadata/hash byte parity. The native handler accepts stored public levelString data up to **8 MiB** (previously 1 MiB); larger levels remain intentionally unavailable on PHP7 shared hosting.
-- Public POST `/getGJLevels{19,20,21,22}.php` search/list aliases,
-  conservative public types 0,1,2,6,11,15,16,17 with some filters.
-- Wire-byte regression parity with the modern
-  `GdLevelListEncoder`, including GD 2.209 `binaryVersion=51` timestamps.
-- Unknown, private, permissioned and write endpoints refuse with `-1`.
-  This is intentional until authentication and DB mutation semantics are
-  independently audited.
-- No automatic activation, no database creation, no credentials in the
-  shared ZIP. It is an **in-progress read-only compatibility adapter**.
+| Area | Current native behavior |
+| --- | --- |
+| Installation | Standalone `public/php7-setup.php` for a new empty native database; existing installations use the additive upgrade below |
+| Accounts | Registration, password/GJP2 login, banned/inactive checks, bcrypt, registration/login attempt limits; legacy XOR GJP accepted for authenticated actions |
+| Levels | Public search/list, author search (type 5), recent (type 2), downloads up to 8 MiB, authenticated upload/update up to 200 KiB |
+| Users | Public profiles/search/top/creator rankings, authenticated public browsing, score/appearance updates returning legacy userID |
+| Comments | Local level comments, own profile posts, history, pagination, recent/likes ordering, UTF-8 text, GD 2.209 exact timestamps |
+| Votes | Authenticated likes/dislikes for levels and both comment kinds; duplicate requests are idempotent |
+| Saves | Local database backup/sync up to 8 MiB, byte preservation and SHA-256 integrity; account ID or username authentication |
+| News | Native GZIP/Base64URL GD 2.209 text/link news, version file, custom content URL discovery; no MySQL dependency |
+| Routing | `/a/`, `/database/`, `/accounts/`, nested account routes and `/mc/` installation paths |
 
-## What is *not* available
+Comments, votes and saves use `php7_comments`, `php7_votes` and
+`php7_cloud_saves`. These are new native tables. This milestone does **not**
+import PHP8/Cvolton comments or saves; existing data must be migrated explicitly.
+Public comment reads and history exclude deleted, unlisted and friend-only
+levels. Writes require authenticated active accounts. Comment deletion is
+owner-bound and kind-bound. Comments are limited to 300 UTF-8 characters and
+one post per account per ten seconds, serialized by an account row lock.
+Votes lock the target before applying the change in vote direction.
+Client score uploads cannot change roles, creator points or level ratings.
+These score fields are client-reported, not an anti-cheat certification.
 
-Default-off experimental account registration/login are implemented but not certified; password recovery, level upload,
-advanced level downloads, comments, leaderboard, friends, Cloud Save, 2.209 social,
-admin, migrations, plugins and WebAuthn. Full PHP7 feature parity, complete
-installation, provider acceptance and actual GD 2.209 client acceptance are
-**NOT** established. `/install.php` still blocks PHP 7 to prevent a false
-complete installation. Do not replace that guard with an unchecked shortcut.
+## Upgrade an existing native PHP7 installation
 
-The adapter expects a **pre-existing MuchoCore SQL schema**, with `levels`,
-`accounts`, `profiles`, and `songs`. It is not a turnkey PHP7 installation.
+1. Preserve the current files and database backup.
+2. Upload the new `mc/compat/php7/` files and `mc/public/php7.php` from the
+   native FTP archive. Preserve private `mc/config/php7-local.php`, the
+   existing `mc/public/php7-mode.on` marker and all existing data.
+3. In phpMyAdmin select the **same existing native database** and import
+   `mc/compat/php7/features.sql`. It uses only `CREATE TABLE IF NOT EXISTS`
+   for the three new tables. It neither alters nor clears existing tables.
+   It can be imported again. No installer reset or database recreation.
+4. Keep the root routing rules described below. `/mc/...` paths now have
+   their installation prefix removed before endpoint matching.
+5. Account processing still needs `enable_accounts => true` in the private
+   configuration. Registration separately needs `enable_registration => true`.
+   Mutations need `enable_writes => true`. Backup/sync additionally needs
+   `enable_cloudsave => true`. The archive leaves all these switches off.
+6. For saves configure PHP `post_max_size` to at least `26M` and
+   `memory_limit` to at least `128M`. A URL-encoded 8 MiB save can approach
+   24 MiB on the wire. The accepted decoded save limit remains 8 MiB.
+   A host's lower POST/proxy limit can still reject a request before PHP runs.
 
-## Opt-in for controlled tests only
+Example feature switches in the **existing private** config (retain DB fields
+and the installer-generated auth pepper):
 
-On a throwaway, isolated test host/database with a dedicated user that has
-**SELECT-only** privileges on the four tables, copy
-`compat/php7/config.example.php` to `config/php7-local.php` and fill in
-the local MySQL connection details. Create `public/php7-mode.on` as an empty
-file to enable Apache routing. The root `.htaccess` blocks direct reads of
-`config/` and `compat/`, and `public/.htaccess` blocks direct reads of the
-marker. Only use HTTPS. A shared host that does not honor these rules is NOT
-acceptable. Remove the marker to disable the adapter immediately.
-
-Do not publish PHP7-hosted user credentials: PHP 7.0 has been without
-security fixes for many years. This experimental adapter intentionally
-disables all credential processing; keep it private until separately reviewed.
-
-Test:
-```sh
-php tests/compat/php7-native-pure.php
-php tests/compat/php7-native-parity.php
-php tests/compat/php7-native-download-parity.php
+```php
+'enable_accounts' => true,
+'enable_registration' => true,
+'enable_writes' => true,
+'enable_cloudsave' => true,
 ```
 
-GitHub Actions also runs native syntax and route tests inside an isolated
-`php:7.0-cli` Docker image with networking disabled, plus main PHP8.2+
-wire parity. These tests do not certify live shared hosting.
+## New installation
 
-For the fully working shared-hosting GDPS with browser installer today,
-use **PHP 8.2 or newer** and `/install.php` in the same ZIP.
+The native archive contains `public/php7-setup.php`. Its existing setup flow
+requires HTTPS, a private strong `config/php7-setup-key.txt`, a session CSRF
+check and an empty database. It initializes the base schema plus the new
+feature tables, then writes private `config/php7-local.php`. It refuses an
+existing or partially initialized native schema. MySQL DDL cannot roll back;
+do not use first-time setup for an upgrade.
 
-Next milestones: native installer/schema management, account credentials,
-level downloads, upload/write integrity, comments, social, admin and GD 2.209
-client certification. Track issue #148.
+Create the empty `public/php7-mode.on` marker to enable routing after setup.
+Delete `public/php7-setup.php` after first installation. Keep `config/` and
+`compat/` private via the included Apache guards. `/install.php` is still the
+PHP8 installer and is not the PHP7 setup path.
 
-## PHP7 native News — experimental (GD 2.209)
+## Domain-root Apache routing
 
-The same shared archive now includes `compat/php7/news.php` and the editable
-`compat/php7/news.example.json`. The runtime serves the native
-`/gd-content/news/news.dat`, `/gd-content/news/news_version.txt` and direct
-`/news/*` diagnostic aliases using the genuine GZIP/Base64URL GD 2.209
-format. There is no HTTP proxy or dependency on the MuchoCore VPS.
+For an installation in `/mc`, add these rules below an existing
+`RewriteEngine On`, before catch-all rules in the **domain-root** `.htaccess`.
+The native ZIP includes them as `5V_ROOT_REWRITE_RULES.txt`.
 
-To try it on a **private, disposable test GDPS**:
-1. Copy `compat/php7/news.example.json` to `config/php7-news.json`
-   (outside the website's public folder).
-2. Replace its example title/body with your own text. Bump the integer
-   `version` every time you update a post; keep it above 1,000,000.
-3. In private `config/php7-local.php`, set
-   `'enable_native_news'=>true` and
-   `'site_url'=>'https://YOUR-OWN-5V-DOMAIN.5v.pl'`.
-4. Read the plain version at `/news/news_version.txt`; decode the content
-   at `/news/news.dat` only when checking protocol bytes.
-5. POST to `/a/getCustomContentURL.php`: expected result is
-   `https://YOUR-OWN-5V-DOMAIN.5v.pl/gd-content`.
+```apache
+RewriteRule ^(?:a|database|accounts|api)/(?:accounts/)?[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^(?:getAccountURL|getCustomContentURL|checkIfServerOnline)\.php$ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^gd-content/news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^gd-content/news/news\.dat$ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^news/news\.dat$ mc/public/php7.php [QSA,L,NC]
+```
 
-**Limitation:** the custom content prefix may also be used for GD music and
-SFX. This PHP7 preview handles *news* only; other CDN content needs a
-separately tested safe asset route. Do not enable it on a public server until
-that path and the real client have been verified. Image/video elements and
-in-game native runtime acceptance remain pending. Text/link-only news is
-supported, but the PHP8 News admin cannot be run under PHP7.
+Keep other root rules. An HTTP 404 at `/a/...` indicates routing must be
+checked. An adapter HTTP 503 indicates config, extension or schema failure;
+it does not prove a protocol error. Check PHP logs without publishing secrets.
+The adapter's browser `/mc/health` checks native DB connectivity.
 
-For PHP8 VPS News, use `MUCHO_NATIVE_NEWS=1` and verify actual container
-settings via `docs/NEWS_BOARD.md`. The new VPS-only read-only diagnostics:
-`php tools/diagnostics/gd2209-feature-check.php`.
+## News configuration
 
+Copy `compat/php7/news.example.json` to private `config/php7-news.json`.
+Set `enable_native_news => true` and `site_url` to the HTTPS **origin** of
+your own host, e.g. `https://your-gdps.5v.pl`, without `/mc`.
+Increment each post's version above 1,000,000 after editing.
 
-## PHP7 native public users — isolated milestone (GD 2.209)
+- POST `/a/getCustomContentURL.php` returns the origin plus `/gd-content`.
+- `/gd-content/news/news_version.txt` returns the integer version.
+- `/gd-content/news/news.dat` returns the native GD payload.
+- `/news/*` aliases are also available for diagnostics.
 
-`compat/php7/users.php` adds three **read-only** self-hosted endpoints over
-the **local** `accounts` and `profiles` MySQL tables:
+News does not require MySQL. Image/video elements and safe music/SFX CDN
+routing are not implemented by this native milestone.
 
-- POST `/a/getGJUserInfo20.php`: publicly visible player profile by
-  `targetAccountID`, `targetUserID`, or `userID`. Supplying a viewer
-  `accountID` is refused instead of pretending the caller authenticated.
-- POST `/a/getGJUsers20.php`: indexed public username/user-ID search with
-  bounded result pages.
-- POST `/a/getGJScores20.php`: public `top`/`creators` rankings; friend
-  and relative leaderboards, or requests containing a viewer `accountID`,
-  are rejected.
+## Still pending in the PHP7 port
 
-All player profiles use only the fields stored by the experimental
-`compat/php7/schema.php`; unsupported 2.209 fields are omitted/defaulted,
-not fabricated from nonexistent tables. The public wire format is compared
-with `GdUserEncoder` in `tests/compat/php7-native-users-parity.php`, and
-disposable MariaDB tests exercise the real queries. None of this enables
-registrations, cloud saves, private social graphs, admin or PHP8 plugins.
+Native administration/moderation, friend requests and private messages,
+cloud-save migration/encryption/recovery parity, password recovery,
+full profile appearance/settings, daily quests/rewards, clans, level lists,
+2.209 threads/following and sanctions, plugin/migration parity, advanced
+private/permissioned searches/downloads and large editor uploads.
+Unknown routes return `-1`; unsupported/private features are not simulated.
+Track the overall port in issue #148.
 
-**5v.pl constraint:** 5v.pl publishes PHP 7.0.19 and 3 GB of storage; neither
-makes a full PHP8.2+ core deployable. Continue using production MuchoCore on
-a supported PHP8.2+ environment for real accounts. Before moving any data,
-make a verified database backup and restore only to an isolated disposable
-test database with matching schema; never run `php7-setup.php` against an
-existing live database.
+## Verification
+
+The native source and pure routing/encoding tests run on **PHP 7.0.33**.
+Disposable MariaDB tests cover registration/login, native level protocol,
+public users, comments/history, duplicate and reversed votes, owner checks,
+private-level visibility, client scores and cloud-save integrity/isolation.
+PHP8 tests compare existing encoders byte-for-byte. Provider FTP deployment,
+Apache configuration and actual GD 2.209 client acceptance must still be
+verified on the target host.
+
+```sh
+php tests/compat/php7-native-features-pure.php
+TEST_DB_ROOT_PASSWORD=... php tests/compat/php7-native-mysql.php
+TEST_DB_ROOT_PASSWORD=... php tests/compat/php7-native-features-mysql.php
+```
+
+Both MySQL tests create and remove their own fixed disposable `*_ci`
+databases; never grant that test runner credentials to a production database.

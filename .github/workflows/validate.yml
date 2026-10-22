@@ -212,6 +212,8 @@ jobs:
           php tests/compat/php7-native-news-front.php
           php tests/compat/php7-native-users.php
           php tests/compat/php7-native-users-parity.php
+          php tests/compat/php7-native-features-pure.php
+          php tests/compat/php7-native-comments-parity.php
           php tests/application/shared-hosting-ftp-bootstrap-contract.php
           php tests/application/shared-hosting-ftp-deploy-contract.php
           mkdir -p /tmp/muchocore-shared-package-test
@@ -634,6 +636,13 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/compat/php7-native-mysql.php
 
+      - name: Verify native PHP7 comments, votes, profile updates and cloud saves
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/compat/php7-native-features-mysql.php
+
       - name: Verify queue leases and database cache races
         env:
           TEST_DB_HOST: 127.0.0.1
@@ -770,6 +779,10 @@ jobs:
               php -l compat/php7/upload.php
               php -l compat/php7/news.php
               php -l compat/php7/users.php
+              php -l compat/php7/features.php
+              php -l compat/php7/interactions.php
+              php -l compat/php7/cloudsave.php
+              php -l compat/php7/profile.php
               php -l compat/php7/schema.php
               php -l public/php7-setup.php
               php -l compat/php7/config.example.php
@@ -778,6 +791,7 @@ jobs:
               php tests/compat/php7-native-news.php
               php tests/compat/php7-native-news-front.php
               php tests/compat/php7-native-users.php
+              php tests/compat/php7-native-features-pure.php
             '
 
   php-runtime:

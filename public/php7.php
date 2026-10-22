@@ -26,8 +26,14 @@ if (!$https) {
 }
 
 $method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper((string)$_SERVER['REQUEST_METHOD']) : 'GET';
+require_once $root . '/compat/php7/runtime.php';
+$uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
+$uri = mucho7_mount_uri($uri, isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '');
+// URL-encoded binary saves can expand to three times their decoded size.
+$requestLimit = preg_match('~^/backupgjaccount(?:19|20|21|22)?$~D', mucho7_path($uri))
+    ? 24*1024*1024+8192 : 262144;
 if (($method !== 'POST' && $method !== 'GET')
-    || (isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH'] > 262144)) {
+    || (isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH'] > $requestLimit)) {
     http_response_code(413);
     echo '-1';
     exit;
@@ -39,6 +45,9 @@ require_once $root . '/compat/php7/auth.php';
 require_once $root . '/compat/php7/upload.php';
 require_once $root . '/compat/php7/news.php';
 require_once $root . '/compat/php7/users.php';
+require_once $root . '/compat/php7/interactions.php';
+require_once $root . '/compat/php7/cloudsave.php';
+require_once $root . '/compat/php7/profile.php';
 
 try {
     $settings = require $root . '/config/php7-local.php';
@@ -50,13 +59,13 @@ try {
         'enable_accounts'=>!empty($settings['enable_accounts']),
         'enable_registration'=>!empty($settings['enable_registration']),
         'enable_writes'=>!empty($settings['enable_writes']),
+        'enable_cloudsave'=>!empty($settings['enable_cloudsave']),
         'enable_native_news'=>!empty($settings['enable_native_news']),
         'site_url'=>isset($settings['site_url']) ? $settings['site_url'] : '',
         'news_file'=>$root . '/config/php7-news.json',
         'auth_pepper'=>isset($settings['auth_pepper']) ? $settings['auth_pepper'] : '',
         'ip'=>isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : ''
     );
-    $uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
     $path = mucho7_path($uri);
 
     // The public News CDN and discovery endpoints read private local config

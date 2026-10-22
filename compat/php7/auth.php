@@ -182,10 +182,52 @@ function mucho7_authenticate(PDO $pdo, $accountId, $credential)
     if (!$row || (int)$row['is_active'] !== 1 || (int)$row['is_banned'] === 1) {
         return false;
     }
+    // GD 2.209 normally sends GJP2. Verify its hash first instead of spending
+    // an extra bcrypt operation trying that digest as a plaintext password.
+    if (preg_match('/^[a-f0-9]{40}$/iD', $credential)
+        && (string)$row['gjp2_hash'] !== ''
+        && password_verify($credential, (string)$row['gjp2_hash'])) {
+        return true;
+    }
     if (password_verify($credential, (string)$row['password_hash'])) {
         return true;
     }
-    return preg_match('/^[a-f0-9]{40}$/iD', $credential)
-        && (string)$row['gjp2_hash'] !== ''
-        && password_verify($credential, (string)$row['gjp2_hash']);
+    // Older clients send URL-safe Base64 of password XOR "37526" as gjp.
+    if (!preg_match('/^[A-Za-z0-9+\/_-]+={0,2}$/D', $credential)) { return false; }
+    $wire = strtr($credential, '-_', '+/');
+    $wire .= str_repeat('=', (4 - strlen($wire)%4)%4);
+    $decoded = base64_decode($wire, true);
+    if ($decoded === false || strlen($decoded) > 256) { return false; }
+    $password = ''; $key = '37526';
+    for ($i=0; $i<strlen($decoded); $i++) {
+        $password .= $decoded[$i] ^ $key[$i%5];
+    }
+    return password_verify($password, (string)$row['password_hash'])
+        || ((string)$row['gjp2_hash'] !== '' &&
+            (password_verify(sha1($password.'mI29fmAnxgTs'), (string)$row['gjp2_hash'])
+            || password_verify(sha1($password.'mPtFakeGJKeyPair'), (string)$row['gjp2_hash'])));
+}
+
+function mucho7_credential($data)
+{
+    foreach (array('gjp2','gjp','password') as $key) {
+        if (isset($data[$key]) && is_string($data[$key]) && $data[$key] !== '') {
+            return $data[$key];
+        }
+    }
+    return '';
+}
+
+function mucho7_identity(PDO $pdo, $data, $allowUsername = false)
+{
+    $aid = mucho7_number(isset($data['accountID']) ? $data['accountID'] : 0, 0, 2147483647);
+    if ($aid <= 0 && $allowUsername) {
+        $name = isset($data['userName']) ? $data['userName'] :
+            (isset($data['username']) ? $data['username'] : '');
+        if (!is_string($name) || !preg_match('/^[A-Za-z0-9_-]{1,20}$/D', $name)) { return 0; }
+        $find = $pdo->prepare('SELECT account_id FROM accounts WHERE username=? LIMIT 1');
+        $find->execute(array($name));
+        $aid = (int)$find->fetchColumn();
+    }
+    return $aid > 0 && mucho7_authenticate($pdo, $aid, mucho7_credential($data)) ? $aid : 0;
 }

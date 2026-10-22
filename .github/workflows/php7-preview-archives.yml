@@ -47,8 +47,10 @@ jobs:
               php tests/compat/php7-native-pure.php
               php tests/compat/php7-native-news.php
               php tests/compat/php7-native-users.php
+              php tests/compat/php7-native-features-pure.php
             '
           php tests/compat/php7-native-users-parity.php
+          php tests/compat/php7-native-comments-parity.php
 
       - name: Build and inspect native PHP7 5v.pl FTP package
         run: |

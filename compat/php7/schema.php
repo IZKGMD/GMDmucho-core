@@ -5,6 +5,7 @@
  * Not a replacement for modern MuchoCore migrations, admin or plugin schemas.
  */
 declare(strict_types=1);
+require_once __DIR__ . '/features.php';
 
 function mucho7_schema_statements()
 {
@@ -134,7 +135,7 @@ function mucho7_create_schema(PDO $pdo)
     // DDL commits implicitly in MariaDB. Never touch an existing installation;
     // require empty disposable schema to avoid partial/incompatible migrations.
     $tableNames = array('roles', 'accounts', 'profiles', 'songs', 'levels',
-        'php7_auth_events');
+        'php7_auth_events', 'php7_comments', 'php7_votes', 'php7_cloud_saves');
     $marks = implode(',', array_fill(0, count($tableNames), '?'));
     $count = $pdo->prepare(
         'SELECT COUNT(*) FROM information_schema.tables
@@ -147,6 +148,7 @@ function mucho7_create_schema(PDO $pdo)
     foreach (mucho7_schema_statements() as $sql) {
         $pdo->exec($sql);
     }
+    mucho7_upgrade_features($pdo);
     $pdo->exec(
         "INSERT INTO roles (code,name,priority) VALUES
         ('user','User',0),('moderator','Moderator',50),

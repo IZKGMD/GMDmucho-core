@@ -1,14 +1,30 @@
 <?php
 /**
- * Experimental PHP 7.0+ READ-ONLY native MuchoCore endpoint runtime.
+ * Experimental PHP 7.0+ native MuchoCore endpoint runtime.
  * Uses its own PDO connection and the existing MuchoCore SQL schema.
  *
- * Not a full core: no authentication, registration, level uploads, comments,
- * social, Cloud Save, moderation, or admin. Unsupported routes fail closed.
+ * Not a full core: social, moderation and admin are still pending.
+ * Authentication and writes require explicit configuration switches.
  *
  * This code MUST NOT include modern src/ classes or Composer dependencies.
  */
 declare(strict_types=1);
+
+function mucho7_mount_uri($uri, $scriptName)
+{
+    // Apache preserves REQUEST_URI when /mc/... is rewritten to public/php7.php.
+    $scriptDirectory = rtrim(str_replace('\\', '/', dirname((string)$scriptName)), '/.');
+    $mounts = array($scriptDirectory);
+    if (substr($scriptDirectory, -7) === '/public') {
+        $mounts[] = substr($scriptDirectory, 0, -7);
+    }
+    foreach ($mounts as $mount) {
+        if ($mount !== '' && ($uri === $mount || strpos($uri, $mount . '/') === 0)) {
+            return substr($uri, strlen($mount)) ?: '/';
+        }
+    }
+    return $uri;
+}
 
 function mucho7_path($uri)
 {
@@ -150,7 +166,7 @@ function mucho7_encode_levels($levels, $total, $offset, $gameVersion, $binaryVer
 function mucho7_search(PDO $pdo, $data)
 {
     $type = mucho7_number(isset($data['type']) ? $data['type'] : 0, 0, 999);
-    if (!in_array($type, array(0, 1, 2, 6, 11, 15, 16, 17), true)) {
+    if (!in_array($type, array(0, 1, 2, 5, 6, 11, 15, 16, 17), true)) {
         return '-1';
     }
     foreach (array(
@@ -177,7 +193,14 @@ function mucho7_search(PDO $pdo, $data)
     $offset = $page * 10;
     $where = array('l.is_deleted=0', 'l.is_unlisted=0', 'l.game_version<=:gv');
     $params = array(':gv' => $gameVersion);
-    if ($type === 0 || $type === 15) {
+    if ($type === 5) {
+        if (!ctype_digit($search) || strlen($search)>10 || (int)$search<=0) { return '-1'; }
+        $where[] = 'l.account_id=(SELECT account_id FROM profiles WHERE user_id=:author LIMIT 1)';
+        $params[':author'] = (int)$search;
+        $order = 'l.level_id DESC';
+    } elseif ($type === 2) {
+        $order = 'l.level_id DESC';
+    } elseif ($type === 0 || $type === 15) {
         if ($search !== '') {
             if (ctype_digit($search)) {
                 $where[] = 'l.level_id=:id';
@@ -321,6 +344,39 @@ function mucho7_dispatch($pdo, $uri, $method, $post, $options = array())
     if (strtoupper($method) !== 'POST') {
         return '-1';
     }
+    if ($pdo instanceof PDO && function_exists('mucho7_comments_read')) {
+        if (preg_match('~^/getgjcomments(?:19|20|21|22)?$~D', $path)) {
+            return mucho7_comments_read($pdo, $post, 1);
+        }
+        if (preg_match('~^/getgjaccountcomments(?:19|20|21|22)?$~D', $path)) {
+            return mucho7_comments_read($pdo, $post, 2);
+        }
+        if (preg_match('~^/getgjcommenthistory(?:19|20|21|22)?$~D', $path)) {
+            return mucho7_comments_read($pdo, $post, 1, true);
+        }
+    }
+    if ($pdo instanceof PDO && !empty($options['enable_accounts'])) {
+        if (!empty($options['enable_cloudsave']) && function_exists('mucho7_cloudsave')
+            && preg_match('~^/(backup|sync)gjaccount(?:19|20|21|22)?$~D', $path, $match)) {
+            $backup = $match[1] === 'backup';
+            if ($backup && empty($options['enable_writes'])) { return '-1'; }
+            return mucho7_cloudsave($pdo, $post, $backup);
+        }
+        if (!empty($options['enable_writes'])) {
+            if (function_exists('mucho7_update_score')
+                && preg_match('~^/updategjuserscore(?:19|20|21|22)?$~D', $path)) {
+                return mucho7_update_score($pdo, $post);
+            }
+            if (function_exists('mucho7_comments_write')
+                && preg_match('~^/(upload|delete)gj(account)?comment(?:19|20|21|22)?$~D', $path, $match)) {
+                return mucho7_comments_write($pdo, $post, !empty($match[2]) ? 2 : 1, $match[1] === 'delete');
+            }
+            if (function_exists('mucho7_vote')
+                && preg_match('~^/likegjitem(?:19|20|21|211|22)?$~D', $path)) {
+                return mucho7_vote($pdo, $post);
+            }
+        }
+    }
     // Account endpoints require an explicit experimental switch. No PHP7
     // credential processing occurs with the default downloaded package.
     if ($pdo instanceof PDO && function_exists('mucho7_login')
@@ -342,6 +398,20 @@ function mucho7_dispatch($pdo, $uri, $method, $post, $options = array())
             return mucho7_register($pdo, $post, $ip, $pepper);
         }
     }
+    // Authenticate the viewer before removing their ID from public-only queries.
+    // This lets a logged-in 2.209 client search without inventing private access.
+    $publicPost = $post;
+    if ($pdo instanceof PDO && function_exists('mucho7_identity')
+        && !empty($options['enable_accounts'])
+        && mucho7_number(isset($post['accountID']) ? $post['accountID'] : 0,0,2147483647)>0
+        && preg_match('~^/(getgjlevels|getgjuserinfo|getgjscores)(?:19|20|21|22)?$~D', $path)) {
+        if (mucho7_identity($pdo, $post) <= 0) { return '-1'; }
+        if (strpos($path, '/getgjuserinfo') === 0 && empty($publicPost['targetAccountID'])
+            && empty($publicPost['targetUserID']) && empty($publicPost['userID'])) {
+            $publicPost['targetAccountID'] = $post['accountID'];
+        }
+        unset($publicPost['accountID']);
+    }
     // Public profile/search/leaderboard reads are independent of accounts
     // and are available even when PHP7 credential handling is disabled.
     if ($pdo instanceof PDO && function_exists('mucho7_public_profile')) {
@@ -349,7 +419,7 @@ function mucho7_dispatch($pdo, $uri, $method, $post, $options = array())
             '/getgjuserinfo', '/getgjuserinfo19', '/getgjuserinfo20',
             '/getgjuserinfo21', '/getgjuserinfo22'
         ), true)) {
-            return mucho7_public_profile($pdo, $post);
+            return mucho7_public_profile($pdo, $publicPost);
         }
         if (in_array($path, array(
             '/getgjusers20', '/getgjusers21', '/getgjusers22',
@@ -361,14 +431,14 @@ function mucho7_dispatch($pdo, $uri, $method, $post, $options = array())
             '/getgjscores19', '/getgjscores20', '/getgjscores21',
             '/getgjscores22', '/getgjscores'
         ), true)) {
-            return mucho7_public_leaderboard($pdo, $post);
+            return mucho7_public_leaderboard($pdo, $publicPost);
         }
     }
     if (in_array($path, array(
         '/getgjlevels', '/getgjlevels19', '/getgjlevels20',
         '/getgjlevels21', '/getgjlevels22'
     ), true)) {
-        return $pdo instanceof PDO ? mucho7_search($pdo, $post) : '-1';
+        return $pdo instanceof PDO ? mucho7_search($pdo, $publicPost) : '-1';
     }
     if ($pdo instanceof PDO && !empty($options['enable_accounts'])
         && !empty($options['enable_writes']) && function_exists('mucho7_upload')

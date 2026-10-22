@@ -4,8 +4,8 @@
  * Keep this file outside public/, do not commit real credentials.
  *
  * This PHP7 adapter uses your OWN MySQL database. It does not contact a VPS.
- * Currently supported: /health and read-only getGJLevels* public searches.
- * Account logins, uploads, private searches and admin are NOT implemented.
+ * Local accounts, public levels/users/comments, writes and cloud saves.
+ * Admin, private social routes and full modern feature parity are pending.
  */
 return array(
     'host' => 'localhost',
@@ -17,6 +17,7 @@ return array(
     'enable_accounts' => false,
     'enable_registration' => false,
     'enable_writes' => false,
+    'enable_cloudsave' => false,
     // Native News is independent of the player's GDPS domain.
     // Enabling changes the custom content CDN base; check other game assets.
     'enable_native_news' => false,
