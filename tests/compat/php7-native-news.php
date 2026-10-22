@@ -18,6 +18,15 @@ newsCheck(mucho7_news_payload(array())==='4,0','native news empty feed');
 $settings = array('enable_native_news'=>true,
     'site_url'=>'https://linasgdpsprivatese.5v.pl',
     'news_file'=>__DIR__.'/../../compat/php7/news.example.json');
+$accountUrl = mucho7_dispatch(null,'/a/getAccountURL.php','POST',array(),$settings);
+newsCheck($accountUrl==='https://linasgdpsprivatese.5v.pl',
+    'PHP7 public account URL discovery must match configured site origin');
+newsCheck(mucho7_dispatch(null,'/a/getAccountURL.php','GET',array(),$settings)
+    ===$accountUrl,'public account URL GET probe');
+$settingsInvalid = $settings;
+$settingsInvalid['site_url']='https://bad-host.test:8080';
+newsCheck(mucho7_dispatch(null,'/getAccountURL.php','POST',array(),$settingsInvalid)
+    ==='-1','custom-port account URL must fail closed');
 $origin = mucho7_dispatch(null,'/database/getCustomContentURL.php','POST',array(),$settings);
 newsCheck($origin==='https://linasgdpsprivatese.5v.pl/gd-content',
     'custom content host must match owner-configured hostname');
