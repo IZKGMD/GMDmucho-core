@@ -76,7 +76,7 @@ p.write_text(json.dumps(d))
                  'public/install.php','public/php7.php','public/shared-install.php','public/ftp-install.php',
                  'compat/php7/runtime.php','compat/php7/download.php','compat/php7/auth.php',
                  'compat/php7/schema.php','compat/php7/upload.php',
-                 'compat/php7/news.php','compat/php7/news.example.json',
+                 'compat/php7/news.php','compat/php7/news.example.json','compat/php7/users.php',
                  'compat/php7/config.example.php',
                  'public/php7-setup.php','src/example.php',
                  'database/example.sql','config/example.php','vendor/autoload.php',

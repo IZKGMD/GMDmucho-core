@@ -1,0 +1,87 @@
+name: Build FTP and PHP7 native preview ZIPs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'compat/php7/**'
+      - 'public/php7.php'
+      - 'public/php7-setup.php'
+      - 'tools/release/build-php7-native.sh'
+      - 'tools/release/build-shared-hosting.sh'
+      - '.github/workflows/php7-preview-archives.yml'
+  pull_request:
+    paths:
+      - 'compat/php7/**'
+      - 'public/php7.php'
+      - 'public/php7-setup.php'
+      - 'tools/release/build-php7-native.sh'
+      - 'tools/release/build-shared-hosting.sh'
+      - '.github/workflows/php7-preview-archives.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Prepare PHP for test and complete package
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: zip, mbstring, pdo_mysql
+          tools: composer
+
+      - name: Verify native PHP7.0 source and wire tests
+        run: |
+          docker run --rm --network none --read-only \
+            -v "$GITHUB_WORKSPACE:/app:ro" -w /app \
+            php:7.0-cli sh -ec '
+              for src in compat/php7/*.php public/php7.php public/php7-setup.php; do
+                php -l "$src"
+              done
+              php tests/compat/php7-native-pure.php
+              php tests/compat/php7-native-news.php
+              php tests/compat/php7-native-users.php
+            '
+          php tests/compat/php7-native-users-parity.php
+
+      - name: Build and inspect native PHP7 5v.pl FTP package
+        run: |
+          bash -n tools/release/build-php7-native.sh
+          bash tools/release/build-php7-native.sh
+          unzip -t MuchoCore-PHP7-5v-native-preview.zip
+          unzip -Z1 MuchoCore-PHP7-5v-native-preview.zip |
+            grep -Fx 'mc/compat/php7/users.php'
+          test -s MuchoCore-PHP7-5v-native-preview.zip
+
+      - name: Prepare complete PHP8.2+ core archive
+        run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
+      - name: Build and inspect complete PHP8.2+ shared-hosting package
+        env:
+          OUTPUT: MuchoCore-full-PHP82-shared-hosting.zip
+        run: |
+          bash tools/release/build-shared-hosting.sh
+          unzip -t "$OUTPUT"
+          test -s "$OUTPUT"
+
+      - name: Upload standalone PHP7 preview ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: MuchoCore-PHP7-5v-native-preview
+          path: MuchoCore-PHP7-5v-native-preview.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload complete PHP8 shared-hosting ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: MuchoCore-full-PHP82-shared-hosting
+          path: MuchoCore-full-PHP82-shared-hosting.zip
+          if-no-files-found: error
+          retention-days: 30
