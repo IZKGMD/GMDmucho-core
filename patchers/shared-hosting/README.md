@@ -93,6 +93,31 @@ supported editor/social features.
 Working `/a/getGJLevels21.php` only establishes that **public search**
 works. It does not imply any account/News/social endpoint is available.
 
+## Public level downloads (GD 2.209)
+
+Unlike level searches, opening a level calls `downloadGJLevel22.php` (often
+through the shortened `/a/` URL on long 5v.pl domains). The experimental
+local PHP7 handler now accepts a public stored levelString up to **8 MiB**
+instead of 1 MiB, but still returns `-1` for nonexistent, deleted,
+unlisted, friend-only and over-limit levels. A visible search result does not
+prove that the separate download route is reachable.
+
+Inspect a **public test level ID** (not a private level or credential) without
+printing the level content:
+
+```sh
+curl -sS --output /tmp/mucho-level-response.txt \
+  --write-out 'HTTP %{http_code}, bytes %{size_download}\n' \
+  -X POST 'https://linasgdpsprivatese.5v.pl/a/downloadGJLevel22.php' \
+  --data 'levelID=REPLACE_WITH_PUBLIC_LEVEL_ID&gameVersion=22&binaryVersion=51'
+```
+
+A very small `-1` response means the local adapter rejected the request.
+A `404` or HTML error suggests a missing/incorrect domain-root rewrite;
+`503` means runtime/database/bootstrap failure. A larger response still needs
+real GD 2.209 client acceptance testing. Do not publicly enable password
+registration merely to fix a level-download error.
+
 ## HTTP 503 after replacing `/mc/` from a newer PHP7 archive
 
 The `-1` body with **HTTP 503** is a bootstrap/configuration failure, not
