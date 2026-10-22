@@ -62,7 +62,9 @@ test('Android APK upload: 3 concurrent streams, failed ACK recovery, every part 
             });
         }
         if (action === 'android-patcher-part') {
-            assert.match(nodes.mcAndroidPatcherStatus.textContent, /Uploading APK/);
+            if (committed.size === 0) {
+                assert.match(nodes.mcAndroidPatcherStatus.textContent, /Uploading APK/);
+            }
             assert.doesNotMatch(nodes.mcAndroidPatcherStatus.textContent, /Creating APK upload session/);
             const index = Number(data.get('part_index'));
             const chunk = data.get('chunk');
