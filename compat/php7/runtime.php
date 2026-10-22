@@ -302,6 +302,14 @@ function mucho7_dispatch($pdo, $uri, $method, $post, $options = array())
         in_array(strtoupper($method), array('GET', 'POST'), true)) {
         return '1';
     }
+    // GD account-service discovery is a public endpoint. It must be
+    // available even when experimental PHP7 registration stays disabled.
+    if ($path === '/getaccounturl' &&
+        in_array(strtoupper($method), array('GET', 'POST'), true)) {
+        $site = isset($options['site_url']) && is_string($options['site_url'])
+            ? rtrim($options['site_url'], '/') : '';
+        return preg_match('~^https://[A-Za-z0-9.-]+$~D', $site) ? $site : '-1';
+    }
     if (function_exists('mucho7_news_response') &&
         in_array($path, array('/news/news.dat',
             '/gd-content/news/news.dat',
