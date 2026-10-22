@@ -78,9 +78,34 @@ final class AndroidClientPatcher
             );
         }
         if (is_string($native) && AndroidGd2209Binary::resembles2209($native)) {
+            $manifest = $source->getFromName('AndroidManifest.xml');
+            $alreadyRelocated = false;
+            if (is_string($manifest)) {
+                try {
+                    $alreadyRelocated = AndroidPackageRelocator::manifestPackage($manifest)
+                        === AndroidPackageRelocator::SIDE_BY_SIDE_ID;
+                } catch (RuntimeException) {
+                    // Unknown manifests must remain unsupported, not trusted.
+                }
+            }
+            $fingerprint = hash('sha256', $native);
             $source->close();
+
+            // Most often this is a re-uploaded MuchoCore APK. Never attempt
+            // to repatch its already changed URL slots using the old layout.
+            if ($alreadyRelocated) {
+                throw new RuntimeException(
+                    'This APK is already installed alongside Geometry Dash (MuchoCore package). ' .
+                    'Do not patch the output APK again. Choose the ORIGINAL, unmodified ' .
+                    'GeometryDash-v2.209.apk instead.'
+                );
+            }
             throw new RuntimeException(
-                'Unknown Android GD 2.209 native build. Its API layout must be verified before patching.'
+                'Unsupported or previously modified Android GD 2.209 ARM64 APK. ' .
+                'Upload the ORIGINAL, unmodified GeometryDash-v2.209.apk, not a ' .
+                'GeometryDash-MuchoCore APK. If the original still fails, its native ' .
+                'build requires verification. ELF SHA-256: ' . $fingerprint .
+                ' (size ' . strlen($native) . ' bytes).'
             );
         }
         if ($installAlongside) {

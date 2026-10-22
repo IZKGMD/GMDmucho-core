@@ -663,6 +663,12 @@ function renderAndroidPatcherSection(PDO $db): void
         fileName.textContent = selected
             ? selected.name + ' · ' + (selected.size / 1048576).toFixed(2) + ' MB'
             : 'No file selected';
+        if (selected && /muchocore|[_ .-]patched/i.test(selected.name)) {
+            setStatus('This looks like an already patched APK. Select the original ' +
+                'GeometryDash-v2.209.apk. Patching an output APK again is unsupported.');
+        } else {
+            setStatus('');
+        }
     });
 
     drop.addEventListener('dragover', event => {
@@ -687,6 +693,12 @@ function renderAndroidPatcherSection(PDO $db): void
         selected = file;
         fileName.textContent =
             file.name + ' · ' + (file.size / 1048576).toFixed(2) + ' MB';
+        if (/muchocore|[_ .-]patched/i.test(file.name)) {
+            setStatus('This looks like an already patched APK. Select the original ' +
+                'GeometryDash-v2.209.apk before uploading.');
+        } else {
+            setStatus('');
+        }
     });
 
     async function api(action, fields = {}, blob = null) {
@@ -861,6 +873,12 @@ function renderAndroidPatcherSection(PDO $db): void
 
         if (!/\.apk$/i.test(selected.name)) {
             setStatus('Please select an Android .apk file.');
+            return;
+        }
+
+        if (/muchocore|[_ .-]patched/i.test(selected.name)) {
+            setStatus('Select the ORIGINAL unmodified APK, not an output from MuchoCore. ' +
+                'Renaming a patched file does not restore the original.');
             return;
         }
 
