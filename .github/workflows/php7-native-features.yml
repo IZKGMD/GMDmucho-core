@@ -46,3 +46,4 @@ jobs:
         run: |
           php -d memory_limit=128M tests/compat/php7-native-mysql.php
           php -d memory_limit=128M tests/compat/php7-native-features-mysql.php
+          php -d memory_limit=128M tests/compat/php7-native-social-mysql.php
