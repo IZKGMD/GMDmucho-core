@@ -71,6 +71,12 @@ try {
     $check = $pdo->query('SELECT id FROM php7_friend_requests LIMIT 1')->fetchColumn();
     $rid = (int)$check;
     socialAssert($rid>0,'request stored');
+    socialAssert($call('readGJFriendRequest20',array_merge($gamma,
+        array('requestID'=>(string)$rid)))==='-1','stranger cannot read request');
+    socialAssert($call('readGJFriendRequest20',array_merge($beta,
+        array('requestID'=>(string)$rid)))==='1','recipient marks as seen');
+    socialAssert(strpos($call('getGJFriendRequests20',$beta),':41:0:37:')!==false,
+        'read request unread state cleared');
     socialAssert($call('acceptGJFriendRequest20',array_merge($gamma,
         array('requestID'=>(string)$rid)))==='-1','cannot accept other inbox');
     socialAssert($call('acceptGJFriendRequest20',array_merge($beta,
