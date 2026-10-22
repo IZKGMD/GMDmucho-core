@@ -58,7 +58,7 @@ features, admin, full modern migrations/plugins or real client acceptance.
   default, requires HTTPS, explicit opt-in marker and local DB config).
 - GET `/health` or `/checkIfServerOnline` checks *native DB connection*,
   not an external upstream.
-- Public POST `/downloadGJLevel{19,20,21,22}.php` read-only level downloads, only publicly visible levels (no private, friend-only or daily negative IDs), GD 2.209 metadata/hash byte parity.
+- Public POST `/downloadGJLevel{19,20,21,22}.php` read-only level downloads, only publicly visible levels (no private, friend-only or daily negative IDs), GD 2.209 metadata/hash byte parity. The native handler accepts stored public levelString data up to **8 MiB** (previously 1 MiB); larger levels remain intentionally unavailable on PHP7 shared hosting.
 - Public POST `/getGJLevels{19,20,21,22}.php` search/list aliases,
   conservative public types 0,1,2,6,11,15,16,17 with some filters.
 - Wire-byte regression parity with the modern
