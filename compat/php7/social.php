@@ -148,6 +148,16 @@ function mucho7_social_send(PDO $pdo, $data, $aid)
     }
 }
 
+function mucho7_social_read(PDO $pdo, $data, $aid)
+{
+    $rid = mucho7_social_id($data, 'requestID');
+    if ($rid <= 0) { return '-1'; }
+    $query = $pdo->prepare('UPDATE php7_friend_requests SET is_new=0'
+        . ' WHERE id=? AND receiver_id=? AND is_new=1');
+    $query->execute(array($rid,$aid));
+    return $query->rowCount() === 1 ? '1' : '-1';
+}
+
 function mucho7_social_accept(PDO $pdo, $data, $aid)
 {
     $rid = mucho7_social_id($data, 'requestID');
@@ -248,6 +258,9 @@ function mucho7_social_dispatch(PDO $pdo, $path, $post, $options)
         return mucho7_social_friends($pdo,$post,$aid);
     }
     if (empty($options['enable_writes'])) { return '-1'; }
+    if (preg_match('~^/readgjfriendrequest(?:20|21|22)?$~D',$path)) {
+        return mucho7_social_read($pdo,$post,$aid);
+    }
     if (preg_match('~^/uploadfriendrequest(?:20|21|22)?$~D',$path)) {
         return mucho7_social_send($pdo,$post,$aid);
     }
