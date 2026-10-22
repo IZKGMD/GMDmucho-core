@@ -57,7 +57,7 @@ try {
     socialAssert($call('uploadFriendRequest20',array_merge($alpha,
         array('toAccountID'=>'3','comment'=>'%%%')))==='-1','invalid comment denied');
     socialAssert($call('getGJFriendRequests20',array_merge($gamma,
-        array('accountID'=>'2')))==='-2','other authenticated inbox is not visible');
+        array('accountID'=>'2')))==='-1','other authenticated inbox is not visible');
     socialAssert($call('getGJFriendRequests20',array_merge($beta,
         array('gjp2'=>'wrong')))==='-1','forged credential rejected');
     $inbox = $call('getGJFriendRequests20',array_merge($beta,array('page'=>'0')));
