@@ -48,6 +48,7 @@ require_once $root . '/compat/php7/users.php';
 require_once $root . '/compat/php7/interactions.php';
 require_once $root . '/compat/php7/cloudsave.php';
 require_once $root . '/compat/php7/profile.php';
+require_once $root . '/compat/php7/social.php';
 
 try {
     $settings = require $root . '/config/php7-local.php';
@@ -58,6 +59,7 @@ try {
     $options = array(
         'enable_accounts'=>!empty($settings['enable_accounts']),
         'enable_registration'=>!empty($settings['enable_registration']),
+        'enable_social'=>!empty($settings['enable_social']),
         'enable_writes'=>!empty($settings['enable_writes']),
         'enable_cloudsave'=>!empty($settings['enable_cloudsave']),
         'enable_native_news'=>!empty($settings['enable_native_news']),
