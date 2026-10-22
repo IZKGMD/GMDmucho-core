@@ -17,6 +17,7 @@ for path in compat/php7/runtime.php compat/php7/download.php \
   compat/php7/upload.php compat/php7/auth.php compat/php7/news.php \
   compat/php7/schema.php compat/php7/users.php compat/php7/config.example.php \
   compat/php7/features.php compat/php7/features.sql \
+  compat/php7/social.php compat/php7/social.sql \
   compat/php7/interactions.php compat/php7/cloudsave.php compat/php7/profile.php \
   public/php7.php public/php7-setup.php docs/PHP7_NATIVE_PHASE1.md; do
   if [[ ! -f "$ROOT/$path" ]]; then
@@ -92,13 +93,15 @@ What is included:
 * GD 2.209 text-only Native News (requires opt-in).
 * Public server checks and account URL discovery.
 * Native level/profile comments, comment history and authenticated likes.
+* Optional friend requests and friend list (enable_social switch), with separate
+  php7_friend_requests/php7_friendships tables.
 * Authenticated score/appearance updates and logged-in public browsing.
 * Local database cloud saves up to 8 MiB (separate enable_cloudsave switch).
 * Experimental accounts and level uploads are present but DISABLED by
   default and NOT certified for live/public use.
 * Strict opt-in native installer for an EMPTY, THROWAWAY test MySQL DB.
-* No admin panel, full modern migrations, clans or native
-  2.209 private-social features. Those still need a supported PHP runtime.
+* No admin panel, full modern migrations, clans, blocking, private messages
+  or complete 2.209 private-social feature parity. Those still need a supported PHP runtime.
 
 INSTALLATION FOR AN ISOLATED TEST GDPS ONLY
 ------------------------------------------
@@ -110,12 +113,13 @@ INSTALLATION FOR AN ISOLATED TEST GDPS ONLY
 4. If you have already installed the experimental native adapter, keep
    existing PRIVATE /mc/config/php7-local.php and data as-is; never overwrite.
    Its "site_url" setting must be the HTTPS base origin of YOUR test host.
-   Import mc/compat/php7/features.sql using phpMyAdmin into that SAME native
-   database. This adds three new tables without altering existing player data;
+   Import mc/compat/php7/features.sql AND social.sql using phpMyAdmin into that SAME native
+   database. This adds native feature/social tables without altering player data;
    it does not import or migrate PHP8/Cvolton comments or cloud saves.
    No installer reset or database cleanup is required for this upgrade.
    Experimental writes still require enable_accounts and enable_writes=true;
-   registration needs enable_registration=true, saves need enable_cloudsave=true.
+   registration needs enable_registration=true, saves need enable_cloudsave=true,
+   friends need enable_social=true.
    For saves set the host's post_max_size to at least 26M and memory_limit
    to at least 128M. The cloud-save limit itself remains 8 MiB.
 5. For a new EMPTY and DISPOSABLE TEST database only, read
@@ -150,6 +154,7 @@ for item in mc/public/php7.php mc/public/php7-setup.php \
   mc/compat/php7/users.php mc/compat/php7/runtime.php \
   mc/compat/php7/news.php mc/compat/php7/schema.php \
   mc/compat/php7/features.sql mc/compat/php7/interactions.php \
+  mc/compat/php7/social.php mc/compat/php7/social.sql \
   mc/compat/php7/cloudsave.php mc/compat/php7/profile.php \
   mc/.htaccess mc/public/.htaccess \
   5V_ROOT_REWRITE_RULES.txt; do

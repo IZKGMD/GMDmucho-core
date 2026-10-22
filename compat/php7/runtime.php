@@ -377,6 +377,11 @@ function mucho7_dispatch($pdo, $uri, $method, $post, $options = array())
             }
         }
     }
+    // Native authenticated friends only; never fall back to public user lists.
+    if ($pdo instanceof PDO && function_exists('mucho7_social_dispatch')
+        && preg_match('~^/(?:getgjfriendrequests|getgjuserlist|readgjfriendrequest|uploadfriendrequest|acceptgjfriendrequest|deletegjfriendrequests|removegjfriend)(?:20|21|22)?$~D', $path)) {
+        return mucho7_social_dispatch($pdo, $path, $post, $options);
+    }
     // Account endpoints require an explicit experimental switch. No PHP7
     // credential processing occurs with the default downloaded package.
     if ($pdo instanceof PDO && function_exists('mucho7_login')

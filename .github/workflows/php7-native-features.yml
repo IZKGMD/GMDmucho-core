@@ -39,6 +39,8 @@ jobs:
             php -l "$src"
           done
           php tests/compat/php7-native-features-pure.php
+          php -l tools/mobile/php7-account-reset.php
+          php tests/compat/php7-local-reset.php
       - name: Check real database behavior on native and modern PHP
         env:
           TEST_DB_ROOT_PASSWORD: native-ci-only
@@ -46,3 +48,4 @@ jobs:
         run: |
           php -d memory_limit=128M tests/compat/php7-native-mysql.php
           php -d memory_limit=128M tests/compat/php7-native-features-mysql.php
+          php -d memory_limit=128M tests/compat/php7-native-social-mysql.php

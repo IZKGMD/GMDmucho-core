@@ -16,6 +16,7 @@ return array(
     'auth_pepper' => 'GENERATED_BY_EXPERIMENTAL_INSTALLER',
     'enable_accounts' => false,
     'enable_registration' => false,
+    'enable_social' => false,
     'enable_writes' => false,
     'enable_cloudsave' => false,
     // Native News is independent of the player's GDPS domain.

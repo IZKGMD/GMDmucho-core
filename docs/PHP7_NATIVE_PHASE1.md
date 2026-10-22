@@ -17,6 +17,7 @@ shared hosts running PHP 8.2 or newer.
 | Users | Public profiles/search/top/creator rankings, authenticated public browsing, score/appearance updates returning legacy userID |
 | Comments | Local level comments, own profile posts, history, pagination, recent/likes ordering, UTF-8 text, GD 2.209 exact timestamps |
 | Votes | Authenticated likes/dislikes for levels and both comment kinds; duplicate requests are idempotent |
+| Friends | Authenticated friend requests, incoming/sent pages, accept/ignore/cancel, friend lists and removal (optional, new local tables) |
 | Saves | Local database backup/sync up to 8 MiB, byte preservation and SHA-256 integrity; account ID or username authentication |
 | News | Native GZIP/Base64URL GD 2.209 text/link news, version file, custom content URL discovery; no MySQL dependency |
 | Routing | `/a/`, `/database/`, `/accounts/`, nested account routes and `/mc/` installation paths |
@@ -40,13 +41,14 @@ These score fields are client-reported, not an anti-cheat certification.
    existing `mc/public/php7-mode.on` marker and all existing data.
 3. In phpMyAdmin select the **same existing native database** and import
    `mc/compat/php7/features.sql`. It uses only `CREATE TABLE IF NOT EXISTS`
-   for the three new tables. It neither alters nor clears existing tables.
+   for the additive native tables. It neither alters nor clears existing tables.
    It can be imported again. No installer reset or database recreation.
 4. Keep the root routing rules described below. `/mc/...` paths now have
    their installation prefix removed before endpoint matching.
 5. Account processing still needs `enable_accounts => true` in the private
    configuration. Registration separately needs `enable_registration => true`.
-   Mutations need `enable_writes => true`. Backup/sync additionally needs
+   Mutations need `enable_writes => true`. Friend routes also need
+   `enable_social => true`. Backup/sync additionally needs
    `enable_cloudsave => true`. The archive leaves all these switches off.
 6. For saves configure PHP `post_max_size` to at least `26M` and
    `memory_limit` to at least `128M`. A URL-encoded 8 MiB save can approach
@@ -59,6 +61,7 @@ and the installer-generated auth pepper):
 ```php
 'enable_accounts' => true,
 'enable_registration' => true,
+'enable_social' => true,
 'enable_writes' => true,
 'enable_cloudsave' => true,
 ```
@@ -114,11 +117,14 @@ routing are not implemented by this native milestone.
 
 ## Still pending in the PHP7 port
 
-Native administration/moderation, friend requests and private messages,
+Native administration/moderation, private messages, blocking and mute lists,
 cloud-save migration/encryption/recovery parity, password recovery,
 full profile appearance/settings, daily quests/rewards, clans, level lists,
 2.209 threads/following and sanctions, plugin/migration parity, advanced
 private/permissioned searches/downloads and large editor uploads.
+Friend data is stored in `php7_friend_requests` and `php7_friendships`, independent
+of PHP8 or Cvolton tables. Friend requests support only the implemented privacy
+model; user blocks and per-account request privacy settings are not yet portable.
 Unknown routes return `-1`; unsupported/private features are not simulated.
 Track the overall port in issue #148.
 
@@ -140,3 +146,14 @@ TEST_DB_ROOT_PASSWORD=... php tests/compat/php7-native-features-mysql.php
 
 Both MySQL tests create and remove their own fixed disposable `*_ci`
 databases; never grant that test runner credentials to a production database.
+
+## Termux: recover a TEST account password without database access
+
+On Android Termux run `pkg install php curl` and retrieve
+`tools/mobile/php7-account-reset.php` from this repository, then run
+`php php7-account-reset.php 2 izk` (substitute your test account ID/name).
+The program prompts for the new password twice with input hidden and prints
+SQL that updates only `password_hash` and `gjp2_hash`. After a database backup,
+execute it through phpMyAdmin in the existing native database. The script
+makes no network or database calls. Never share your password or saved hashes
+in chat, logs or tickets. Check the account is yours before changing it.
