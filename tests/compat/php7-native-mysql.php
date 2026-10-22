@@ -5,6 +5,7 @@ require dirname(__DIR__,2) . '/compat/php7/runtime.php';
 require dirname(__DIR__,2) . '/compat/php7/schema.php';
 require dirname(__DIR__,2) . '/compat/php7/auth.php';
 require dirname(__DIR__,2) . '/compat/php7/download.php';
+require dirname(__DIR__,2) . '/compat/php7/users.php';
 
 $host = getenv('TEST_DB_HOST') ?: '127.0.0.1';
 $port = (int)(getenv('TEST_DB_PORT') ?: 3306);
@@ -74,7 +75,29 @@ try {
     if (strpos($download,':62:') === false || substr_count($download,'#') !== 2) {
         throw new RuntimeException('Download did not return 2.209-native level wire.');
     }
-    echo "PHP7_NATIVE_REAL_MARIADB_SCHEMA_AUTH_LEVELS_OK\n";
+    $profile = mucho7_dispatch($test, '/database/getGJUserInfo20.php', 'POST',
+        ['targetAccountID'=>'1', 'gameVersion'=>'22', 'binaryVersion'=>'51'], $opts);
+    if (strpos($profile, '1:NativeP7:2:1:13:0') !== 0 ||
+        strpos($profile, ':16:1:31:0') === false) {
+        throw new RuntimeException('Native PHP7 public profile is unavailable.');
+    }
+    $found = mucho7_dispatch($test, '/database/getGJUsers20.php', 'POST',
+        ['str'=>'NativeP7', 'page'=>'0', 'gameVersion'=>'22'], $opts);
+    if (strpos($found, '1:NativeP7:2:1') !== 0 ||
+        substr($found, -7) !== '#1:0:10') {
+        throw new RuntimeException('Native PHP7 user search returned invalid wire.');
+    }
+    $top = mucho7_dispatch($test, '/database/getGJScores20.php', 'POST',
+        ['type'=>'top'], $opts);
+    if (strpos($top, '1:NativeP7:2:1:13:0') !== 0) {
+        throw new RuntimeException('Native PHP7 top leaderboard is unavailable.');
+    }
+    $privateTop = mucho7_dispatch($test, '/database/getGJScores20.php',
+        'POST', ['type'=>'friends', 'accountID'=>'1'], $opts);
+    if ($privateTop !== '-1') {
+        throw new RuntimeException('Credentialled/friend leaderboard leaked.');
+    }
+    echo "PHP7_NATIVE_REAL_MARIADB_SCHEMA_AUTH_LEVELS_USERS_OK\n";
 } finally {
     $pdo->exec('DROP DATABASE IF EXISTS mucho_php7_native_ci');
 }
