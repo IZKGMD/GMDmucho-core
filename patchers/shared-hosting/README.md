@@ -1,49 +1,94 @@
-# Shared hosting / 5v.pl — что делать с длинным доменом
+# Shared hosting / 5v.pl — GD 2.209 patch routes and feature diagnostics
 
-На 5v.pl MuchoCore PHP 7 может лежать в `/mc/`, а Windows GD 2.209 сохраняет адреса сервера в **строках фиксированной длины**. Если в адрес не помещается `/database/`, патчер использует `/a/`, иногда — маршрут без префикса.
+MuchoCore can expose an **experimental, incomplete PHP 7** GD 2.209 adapter
+under `/mc/` on a shared host. A patched game uses paths at the **domain
+root**, not `/mc/`. Apache must route only the required paths to
+`mc/public/php7.php`. This page is for a controlled test installation.
 
-**Пример для отдельного тестового сайта** `longgdpsname.5v.pl` (условный домен, не результат его проверки):
+## Domain-root `.htaccess`
+
+**Append** the following directives to `/YOUR-FTP-DOMAIN/.htaccess`
+immediately below the existing `RewriteEngine On` and **before** other
+catch-all rewrite rules. Keep unrelated rules and backup the existing file.
+Do not put these directives in `/mc/.htaccess`.
 
 ```apache
-# In the SITE ROOT .htaccess, not inside /mc:
-RewriteEngine On
+# Short GD 2.209 native client paths
 RewriteRule ^a/accounts/[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^a/[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^checkIfServerOnline\.php$ mc/public/php7.php [QSA,L,NC]
+
+# GD 2.209 native News content files: these are NOT PHP URL paths.
+RewriteRule ^gd-content/news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^gd-content/news/news\.dat$ mc/public/php7.php [QSA,L,NC]
+
+# Optional direct diagnostic aliases for the same news payload
+RewriteRule ^news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^news/news\.dat$ mc/public/php7.php [QSA,L,NC]
 ```
 
-В оригинальном Windows GD 2.209 от 19 октября 2026 года **6 из 113 URL** имеют вид `/a/accounts/*.php`. Обычное правило `^a/[...]+\\.php# Shared hosting / 5v.pl — что делать с длинным доменом
+Why: Windows GD 2.209's fixed-length URL slots may force `/a/` or a
+root-level alias; six original URLs in the 19 October build use the nested
+`/a/accounts/*.php` path. The News files are **GET** requests to
+`/gd-content/news/news_version.txt` and `/gd-content/news/news.dat`.
+A rule matching only `*.php` cannot route them.
 
-На 5v.pl MuchoCore PHP 7 может лежать в `/mc/`, а Windows GD 2.209 сохраняет адреса сервера в **строках фиксированной длины**. Если в адрес не помещается `/database/`, патчер использует `/a/`, иногда — маршрут без префикса.
+**Do not** rewrite unrelated static files or expose `/mc/config`,
+`/mc/compat`, `php7-mode.on` or the old setup wizard. Ensure the current
+private `config/php7-local.php` remains unchanged when deploying.
 
-**Пример для отдельного тестового сайта** `longgdpsname.5v.pl` (условный домен, не результат его проверки):
+## Native News: configuration for a private test site
 
-```apache
-# In the SITE ROOT .htaccess, not inside /mc:
-RewriteEngine On
-RewriteRule ^a/accounts/[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
-RewriteRule ^a/[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
-RewriteRule ^checkIfServerOnline\.php$ mc/public/php7.php [QSA,L,NC]
+The adapter returns `-1` for News unless explicitly enabled. On a
+**throwaway test host**, save `compat/php7/news.example.json` as
+`/mc/config/php7-news.json`, give it your own posts, and bump the numeric
+`version` after editing. In the already-private
+`/mc/config/php7-local.php`, ensure the following *non-secret keys* have
+their own valid values:
+
+```php
+'enable_native_news' => true,
+'site_url' => 'https://your-test-gdps.5v.pl',
 ```
 
- их **не перехватывает**; нужна отдельная первая строка для вложенного пути `a/accounts/`. Одному `checkIfServerOnline.php` требуется маршрут прямо из корня сайта. Эти правила обеспечивают маршрутизацию, но экспериментальные аккаунты PHP 7 остаются отключёнными по умолчанию.
+The text-only News preview lacks official CDN asset forwarding, so enabling
+it may interfere with song/SFX downloads. Never enable for a public GDPS
+until these requests have been tested. Full News/media management belongs to
+MuchoCore **PHP 8.2+** on your VPS.
 
-*Добавьте* правила до общих правил маршрутизации и сохраните существующие записи. Это пример для изолированного сайта, **не** универсальное разрешение всех PHP-путей.
+## Verify without sending credentials
 
-**Важно:** пример отображает только транспортную совместимость. Большинство конечных точек GD 2.209 в PHP 7-порте могут возвращать `-1`. Не включайте регистрацию или настоящие аккаунты на неподдерживаемом PHP 7.0.
-
-Для **конкретного оригинального EXE** лучше генерировать точные правила с помощью PHP 8.2+ на компьютере из корня репозитория:
-
-```sh
-php bin/mucho-patch-gd2209.php --input=/path/to/GeometryDash.exe --server=https://longgdpsname.5v.pl --dry-run --apache-snippet=5v-routes.txt
-```
-
-После изменения `.htaccess` проверьте маршруты **POST**:
+Run this from the repository on a computer with Python 3:
 
 ```powershell
-curl.exe -sS -X POST -d "gameVersion=22&binaryVersion=51&type=0&page=0" "https://longgdpsname.5v.pl/a/getGJLevels21.php"
+python tools/diagnostics/gd2209-shared-probe.py https://your-test-gdps.5v.pl
 ```
 
-`-2` означает пустой поиск; строка с названием уровня означает, что поиск ответил. Ни тот, ни другой результат **не доказывает** полноценную совместимость игры.
+Or manually (Windows PowerShell):
 
-Никогда не загружайте конфигурацию MySQL или секреты в публичные каталоги.
+```powershell
+curl.exe -i "https://your-test-gdps.5v.pl/gd-content/news/news_version.txt"
+curl.exe -i "https://your-test-gdps.5v.pl/gd-content/news/news.dat"
+curl.exe -i -X POST "https://your-test-gdps.5v.pl/a/getCustomContentURL.php"
+```
+
+Expected: News version = integer `>=1000000`, News data = Base64URL-encoded
+gzip, content URL = `https://your-test-gdps.5v.pl/gd-content`.
+`404` usually indicates missing Apache rewrite rules; `-1` usually
+indicates disabled/unavailable PHP7 features; `503` points to runtime,
+configuration, or database failure. These are diagnostics, not proof of
+full-game support.
+
+## Registration: an intentional PHP 7 limitation
+
+`registerGJAccount.php` and `loginGJAccount.php` are **disabled by
+default** via `enable_accounts=false` and
+`enable_registration=false`. A patched GD 2.209 client may display
+“Something went wrong” because the server intentionally answers `-1`.
+Do **not** publicly enable real registration or upload passwords on
+unmaintained PHP 7.0: the test adapter is not production ready. Use the
+modern PHP 8.2+ MuchoCore server/VPS for player accounts, GD 2.209 News and
+supported editor/social features.
+
+Working `/a/getGJLevels21.php` only establishes that **public search**
+works. It does not imply any account/News/social endpoint is available.
