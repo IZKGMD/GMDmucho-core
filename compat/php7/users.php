@@ -96,6 +96,13 @@ function mucho7_public_profile(PDO $pdo, $post)
     $aid = mucho7_number(isset($post['targetAccountID']) ?
         $post['targetAccountID'] : (isset($post['accountID']) ?
             $post['accountID'] : 0), 0, 2147483647);
+    // AccountID is a viewer identity in the modern protocol. Do not
+    // impersonate that viewer without verifying a credential on PHP7.
+    $viewer = mucho7_number(isset($post['accountID']) ?
+        $post['accountID'] : 0, 0, 2147483647);
+    if ($viewer > 0) {
+        return '-1';
+    }
     $uid = mucho7_number(isset($post['targetUserID']) ?
         $post['targetUserID'] : (isset($post['userID']) ?
             $post['userID'] : 0), 0, 2147483647);
@@ -167,6 +174,9 @@ function mucho7_public_leaderboard(PDO $pdo, $post)
     }
     $type = isset($post['type']) && is_string($post['type']) ?
         strtolower($post['type']) : 'top';
+    if ($type === '' || $type === '0') {
+        $type = 'top';
+    }
     if (!in_array($type, array('top', 'creators'), true)) {
         return '-1';
     }
