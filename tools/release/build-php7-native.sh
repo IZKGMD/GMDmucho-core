@@ -4,7 +4,7 @@ set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 OUTPUT="$ROOT/MuchoCore-PHP7-5v-native-preview.zip"
-if [[ -n "$OUTPUT_PATH" ]]; then
+if [[ -n "${OUTPUT_PATH:-}" ]]; then
   OUTPUT="$OUTPUT_PATH"
 fi
 if [[ "$OUTPUT" != /* ]]; then
