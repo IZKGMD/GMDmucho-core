@@ -209,6 +209,7 @@ jobs:
           php -l tools/diagnostics/gd2209-feature-check.php
           php tools/diagnostics/gd2209-feature-check.php --help
           php tests/compat/php7-native-news.php
+          php tests/compat/php7-native-news-front.php
           php tests/compat/php7-native-users.php
           php tests/compat/php7-native-users-parity.php
           php tests/application/shared-hosting-ftp-bootstrap-contract.php
@@ -775,6 +776,7 @@ jobs:
               php -l public/php7.php
               php tests/compat/php7-native-pure.php
               php tests/compat/php7-native-news.php
+              php tests/compat/php7-native-news-front.php
               php tests/compat/php7-native-users.php
             '
 
