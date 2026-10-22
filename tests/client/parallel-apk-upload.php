@@ -19,6 +19,20 @@ verify(ParallelApkUpload::recommendedPartBytes('64M', '128M') === 8 * 1048576,
     'Large post limit should use 8 MiB parts');
 verify(ParallelApkUpload::recommendedPartBytes('2M', '2M') === 1024 * 1024,
     '2M PHP upload limit must leave safe overhead');
+verify(ParallelApkUpload::negotiatedPartBytes('2097152', '64M', '70M') ===
+    2 * 1048576, 'Mobile preference should use 2 MiB');
+verify(ParallelApkUpload::negotiatedPartBytes('8388608', '8M', '8M') ===
+    4 * 1048576, 'Server PHP limit should override browser preference');
+verify(ParallelApkUpload::negotiatedPartBytes(null, '64M', '70M') ===
+    8 * 1048576, 'Legacy client preference should keep server default');
+try {
+    ParallelApkUpload::negotiatedPartBytes('1234567', '64M', '70M');
+    throw new RuntimeException('Unsupported part-size preference accepted');
+} catch (RuntimeException $error) {
+    verify(str_contains($error->getMessage(), 'Invalid APK upload part size preference'),
+        'Wrong part preference validation');
+}
+
 
 $dir = sys_get_temp_dir() . '/mucho-parallel-apk-' . bin2hex(random_bytes(5));
 verify(mkdir($dir, 0700), 'Cannot create test storage');

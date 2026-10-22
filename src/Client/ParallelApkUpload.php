@@ -43,6 +43,33 @@ final class ParallelApkUpload
         throw new RuntimeException('PHP upload_max_filesize/post_max_size must allow at least 768 KiB.');
     }
 
+    /**
+     * The browser may request smaller fixed-size parts on mobile links.
+     * Server's own PHP limits always win; only discrete powers-of-two
+     * sizes are allowed so retries and part offsets stay deterministic.
+     */
+    public static function negotiatedPartBytes(
+        ?string $preference,
+        ?string $fileLimit = null,
+        ?string $postLimit = null
+    ): int {
+        $limit = self::recommendedPartBytes($fileLimit, $postLimit);
+        if ($preference === null || $preference === '') {
+            return $limit;
+        }
+        $allowed = [
+            '524288' => 524288,
+            '1048576' => 1048576,
+            '2097152' => 2097152,
+            '4194304' => 4194304,
+            '8388608' => 8388608,
+        ];
+        if (!isset($allowed[$preference])) {
+            throw new RuntimeException('Invalid APK upload part size preference.');
+        }
+        return min($limit, $allowed[$preference]);
+    }
+
     private static function parseLimit(string $limit): int
     {
         if (!preg_match('/^\\s*(\\d+(?:\\.\\d+)?)\\s*([KMG]?)B?\\s*$/iD', $limit, $matches)) {
