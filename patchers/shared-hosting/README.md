@@ -162,3 +162,12 @@ Opt in with `'enable_social' => true` along with
 This supports requests, accept/ignore/cancel, friends list and removal;
 blocking, user-level privacy settings and direct messages remain unsupported.
 Use only on isolated test installs while PHP 7.0 is unsupported.
+
+## Termux offline test account recovery
+
+The native PHP7 adapter stores two independent bcrypt hashes. If a local
+password check shows both do not match, run
+`php tools/mobile/php7-account-reset.php ACCOUNT_ID USERNAME` locally in
+Termux, after obtaining the file from GitHub. It prints SQL; it does not
+connect to MySQL or upload credentials. Back up the existing database,
+then run the SQL only for an account you control in phpMyAdmin.
