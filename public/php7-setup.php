@@ -97,7 +97,8 @@ if ((isset($_SERVER['REQUEST_METHOD']) ? strtoupper($_SERVER['REQUEST_METHOD']) 
                         // disabled until explicitly enabled for isolated tests.
                         'enable_accounts'=>false,
                         'enable_registration'=>false,
-                        'enable_writes'=>false
+                        'enable_writes'=>false,
+                        'enable_cloudsave'=>false
                     );
                     $tmp = $cfg . '.tmp.' . bin2hex(random_bytes(8));
                     $serialized = "<?php\nreturn " . var_export($options, true) . ";\n";

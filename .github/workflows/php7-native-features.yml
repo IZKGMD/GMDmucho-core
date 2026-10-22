@@ -1,0 +1,48 @@
+name: Native PHP7 feature integration
+
+on:
+  push:
+    branches: [main]
+    paths: ['compat/php7/**', 'public/php7.php', 'tests/compat/php7-native-features-*', '.github/workflows/php7-native-features.yml']
+  pull_request:
+    paths: ['compat/php7/**', 'public/php7.php', 'tests/compat/php7-native-features-*', '.github/workflows/php7-native-features.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['7.0', '8.3']
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: native-ci-only
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_mysql
+          coverage: none
+      - name: Check native syntax and pure protocol behavior
+        run: |
+          for src in compat/php7/*.php public/php7.php public/php7-setup.php; do
+            php -l "$src"
+          done
+          php tests/compat/php7-native-features-pure.php
+      - name: Check real database behavior on native and modern PHP
+        env:
+          TEST_DB_ROOT_PASSWORD: native-ci-only
+          TEST_DB_HOST: 127.0.0.1
+        run: |
+          php -d memory_limit=128M tests/compat/php7-native-mysql.php
+          php -d memory_limit=128M tests/compat/php7-native-features-mysql.php
