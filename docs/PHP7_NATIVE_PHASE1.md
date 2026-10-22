@@ -145,3 +145,32 @@ supported, but the PHP8 News admin cannot be run under PHP7.
 For PHP8 VPS News, use `MUCHO_NATIVE_NEWS=1` and verify actual container
 settings via `docs/NEWS_BOARD.md`. The new VPS-only read-only diagnostics:
 `php tools/diagnostics/gd2209-feature-check.php`.
+
+
+## PHP7 native public users — isolated milestone (GD 2.209)
+
+`compat/php7/users.php` adds three **read-only** self-hosted endpoints over
+the **local** `accounts` and `profiles` MySQL tables:
+
+- POST `/a/getGJUserInfo20.php`: publicly visible player profile by
+  `targetAccountID`, `targetUserID`, or `userID`. Supplying a viewer
+  `accountID` is refused instead of pretending the caller authenticated.
+- POST `/a/getGJUsers20.php`: indexed public username/user-ID search with
+  bounded result pages.
+- POST `/a/getGJScores20.php`: public `top`/`creators` rankings; friend
+  and relative leaderboards, or requests containing a viewer `accountID`,
+  are rejected.
+
+All player profiles use only the fields stored by the experimental
+`compat/php7/schema.php`; unsupported 2.209 fields are omitted/defaulted,
+not fabricated from nonexistent tables. The public wire format is compared
+with `GdUserEncoder` in `tests/compat/php7-native-users-parity.php`, and
+disposable MariaDB tests exercise the real queries. None of this enables
+registrations, cloud saves, private social graphs, admin or PHP8 plugins.
+
+**5v.pl constraint:** 5v.pl publishes PHP 7.0.19 and 3 GB of storage; neither
+makes a full PHP8.2+ core deployable. Continue using production MuchoCore on
+a supported PHP8.2+ environment for real accounts. Before moving any data,
+make a verified database backup and restore only to an isolated disposable
+test database with matching schema; never run `php7-setup.php` against an
+existing live database.

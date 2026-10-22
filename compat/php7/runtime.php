@@ -334,6 +334,28 @@ function mucho7_dispatch($pdo, $uri, $method, $post, $options = array())
             return mucho7_register($pdo, $post, $ip, $pepper);
         }
     }
+    // Public profile/search/leaderboard reads are independent of accounts
+    // and are available even when PHP7 credential handling is disabled.
+    if ($pdo instanceof PDO && function_exists('mucho7_public_profile')) {
+        if (in_array($path, array(
+            '/getgjuserinfo', '/getgjuserinfo19', '/getgjuserinfo20',
+            '/getgjuserinfo21', '/getgjuserinfo22'
+        ), true)) {
+            return mucho7_public_profile($pdo, $post);
+        }
+        if (in_array($path, array(
+            '/getgjusers20', '/getgjusers21', '/getgjusers22',
+            '/getgjusers'
+        ), true)) {
+            return mucho7_public_user_search($pdo, $post);
+        }
+        if (in_array($path, array(
+            '/getgjscores19', '/getgjscores20', '/getgjscores21',
+            '/getgjscores22', '/getgjscores'
+        ), true)) {
+            return mucho7_public_leaderboard($pdo, $post);
+        }
+    }
     if (in_array($path, array(
         '/getgjlevels', '/getgjlevels19', '/getgjlevels20',
         '/getgjlevels21', '/getgjlevels22'
