@@ -146,3 +146,14 @@ TEST_DB_ROOT_PASSWORD=... php tests/compat/php7-native-features-mysql.php
 
 Both MySQL tests create and remove their own fixed disposable `*_ci`
 databases; never grant that test runner credentials to a production database.
+
+## Termux: recover a TEST account password without database access
+
+On Android Termux run `pkg install php curl` and retrieve
+`tools/mobile/php7-account-reset.php` from this repository, then run
+`php php7-account-reset.php 2 izk` (substitute your test account ID/name).
+The program prompts for the new password twice with input hidden and prints
+SQL that updates only `password_hash` and `gjp2_hash`. After a database backup,
+execute it through phpMyAdmin in the existing native database. The script
+makes no network or database calls. Never share your password or saved hashes
+in chat, logs or tickets. Check the account is yours before changing it.
