@@ -17,6 +17,9 @@ Do not put these directives in `/mc/.htaccess`.
 RewriteRule ^a/accounts/[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^a/[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^checkIfServerOnline\.php$ mc/public/php7.php [QSA,L,NC]
+# Some exact-length GD 2.209 URL slots need a domain-root PHP alias.
+# Only GD-specific endpoint filenames; never catch unrelated PHP files.
+RewriteRule ^(?:[A-Za-z][A-Za-z0-9_-]*GJ[A-Za-z0-9_-]*|getAccountURL|getCustomContentURL)\.php$ mc/public/php7.php [QSA,L,NC]
 
 # GD 2.209 native News content files: these are NOT PHP URL paths.
 RewriteRule ^gd-content/news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]
@@ -117,23 +120,6 @@ A `404` or HTML error suggests a missing/incorrect domain-root rewrite;
 `503` means runtime/database/bootstrap failure. A larger response still needs
 real GD 2.209 client acceptance testing. Do not publicly enable password
 registration merely to fix a level-download error.
-
-## GD 2.209: levels visible but download fails
-
-Public level search and download are separate GD API requests. Confirm
-the client's exact patched alias for `downloadGJLevel22.php` reaches the
-domain-root Apache rewrite (typically `/a/downloadGJLevel22.php` or
-`/downloadGJLevel22.php`), not an HTML 404 page. The PHP 7 adapter
-accepts **public** level IDs only; deleted, unlisted and friend-only
-levels intentionally return `-1`. The shared-host adapter now accepts
-stored level data up to **8 MiB** (previously 1 MiB), but larger data,
-daily/weekly negative IDs and `extras=1` still fail closed. A working
-search list does **not** prove download compatibility.
-
-Do not mistake this limited fix for complete GD 2.209 support. The
-native PHP 7 adapter does not run the PHP 8 MuchoCore kernel; public
-registration remains disabled by default, and no publicly deployed
-PHP 7 account service is certified.
 
 ## HTTP 503 after replacing `/mc/` from a newer PHP7 archive
 
