@@ -40,7 +40,7 @@ foreach ([
         str_contains($source, '$chunkSize > 8 * 1024 * 1024');
     if ($relative === 'public/admin/android-client-patcher-module.php') {
         $negotiatesChunks = $negotiatesChunks &&
-            str_contains($source, 'ParallelApkUpload::recommendedPartBytes()') &&
+            str_contains($source, 'ParallelApkUpload::negotiatedPartBytes(') &&
             str_contains($source, "'chunk_size' => $partBytes") &&
             str_contains($source, 'supports_parallel') &&
             str_contains($source, 'android-patcher-part');
