@@ -32,13 +32,17 @@ try {
         . ' VALUES(?,?,?,?,?)');
     $insert->execute(array(1,'Alpha','a@example.invalid',$hash,$gjpHash));
     $insert->execute(array(2,'Beta','b@example.invalid',$hash,$gjpHash));
-    $insert->execute(array(3,'Gamma','c@example.invalid',$hash,$gjpHash));
+    $thirdPass = 'DifferentTestPass_567';
+    $thirdHash = password_hash($thirdPass,PASSWORD_BCRYPT,array('cost'=>4));
+    $thirdGjp = sha1($thirdPass.'mI29fmAnxgTs');
+    $thirdGjpHash = password_hash($thirdGjp,PASSWORD_BCRYPT,array('cost'=>4));
+    $insert->execute(array(3,'Gamma','c@example.invalid',$thirdHash,$thirdGjpHash));
     $pdo->exec('INSERT INTO profiles(user_id,account_id) VALUES(12,1),(34,2),(56,3)');
     $opts = array('enable_accounts'=>true,'enable_registration'=>false,
         'enable_writes'=>true,'enable_social'=>true);
     $alpha = array('accountID'=>'1','gjp2'=>$gjp,'gameVersion'=>'22','binaryVersion'=>'51');
     $beta = array('accountID'=>'2','gjp2'=>$gjp,'gameVersion'=>'22','binaryVersion'=>'51');
-    $gamma = array('accountID'=>'3','gjp2'=>$gjp,'gameVersion'=>'22','binaryVersion'=>'51');
+    $gamma = array('accountID'=>'3','gjp2'=>$thirdGjp,'gameVersion'=>'22','binaryVersion'=>'51');
     $call = function($route,$data,$features=null) use($pdo,$opts) {
         return mucho7_dispatch($pdo,'/a/accounts/'.$route.'.php','POST',$data,
             $features === null ? $opts : $features);
