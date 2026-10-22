@@ -118,6 +118,23 @@ A `404` or HTML error suggests a missing/incorrect domain-root rewrite;
 real GD 2.209 client acceptance testing. Do not publicly enable password
 registration merely to fix a level-download error.
 
+## GD 2.209: levels visible but download fails
+
+Public level search and download are separate GD API requests. Confirm
+the client's exact patched alias for `downloadGJLevel22.php` reaches the
+domain-root Apache rewrite (typically `/a/downloadGJLevel22.php` or
+`/downloadGJLevel22.php`), not an HTML 404 page. The PHP 7 adapter
+accepts **public** level IDs only; deleted, unlisted and friend-only
+levels intentionally return `-1`. The shared-host adapter now accepts
+stored level data up to **8 MiB** (previously 1 MiB), but larger data,
+daily/weekly negative IDs and `extras=1` still fail closed. A working
+search list does **not** prove download compatibility.
+
+Do not mistake this limited fix for complete GD 2.209 support. The
+native PHP 7 adapter does not run the PHP 8 MuchoCore kernel; public
+registration remains disabled by default, and no publicly deployed
+PHP 7 account service is certified.
+
 ## HTTP 503 after replacing `/mc/` from a newer PHP7 archive
 
 The `-1` body with **HTTP 503** is a bootstrap/configuration failure, not
