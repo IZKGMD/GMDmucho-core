@@ -26,6 +26,9 @@ $opts = ['enable_accounts'=>true,'enable_registration'=>true,
  'ip'=>$ip,'auth_pepper'=>$pepper];
 ck(mucho7_dispatch($pdo,'/database/registerGJAccount20.php','POST',$base,$opts) === '1',
    'register must create account and profile');
+ck(mucho7_dispatch($pdo,'/a/accounts/registerGJAccount22.php','POST',
+    ['userName'=>'invalid!'], $opts) === '-4',
+    'GD 2.209 registration 22 alias must reach validation');
 ck((int)$pdo->query('SELECT COUNT(*) FROM profiles')->fetchColumn() === 1,
    'register must create the user profile atomically');
 ck((int)$pdo->query('SELECT role_id FROM accounts')->fetchColumn() === 1,
@@ -39,6 +42,8 @@ ck(mucho7_dispatch($pdo,'/database/registerGJAccount20.php','POST',
 $login = ['userName'=>'TestP7','password'=>'MyStrongPassword_99'];
 $success = mucho7_dispatch($pdo,'/database/loginGJAccount20.php','POST',$login,$opts);
 ck($success === '1,1', 'GD account login must return accountID,userID');
+ck(mucho7_dispatch($pdo,'/a/accounts/loginGJAccount22.php','POST',$login,$opts) === '1,1',
+    'GD 2.209 nested login 22 alias must authenticate');
 $hash = sha1($login['password'] . 'mI29fmAnxgTs');
 ck(mucho7_dispatch($pdo,'/database/loginGJAccount20.php','POST',
     ['userName'=>'TestP7','gjp2'=>$hash],$opts) === '1,1',
