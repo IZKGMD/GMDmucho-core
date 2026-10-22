@@ -209,6 +209,8 @@ jobs:
           php -l tools/diagnostics/gd2209-feature-check.php
           php tools/diagnostics/gd2209-feature-check.php --help
           php tests/compat/php7-native-news.php
+          php tests/compat/php7-native-users.php
+          php tests/compat/php7-native-users-parity.php
           php tests/application/shared-hosting-ftp-bootstrap-contract.php
           php tests/application/shared-hosting-ftp-deploy-contract.php
           mkdir -p /tmp/muchocore-shared-package-test
@@ -766,12 +768,14 @@ jobs:
               php -l compat/php7/auth.php
               php -l compat/php7/upload.php
               php -l compat/php7/news.php
+              php -l compat/php7/users.php
               php -l compat/php7/schema.php
               php -l public/php7-setup.php
               php -l compat/php7/config.example.php
               php -l public/php7.php
               php tests/compat/php7-native-pure.php
               php tests/compat/php7-native-news.php
+              php tests/compat/php7-native-users.php
             '
 
   php-runtime:
