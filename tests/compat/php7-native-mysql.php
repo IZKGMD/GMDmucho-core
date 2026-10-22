@@ -81,6 +81,12 @@ try {
         strpos($profile, ':16:1:31:0') === false) {
         throw new RuntimeException('Native PHP7 public profile is unavailable.');
     }
+    $viewerWithoutAuth = mucho7_dispatch($test,
+        '/database/getGJUserInfo20.php', 'POST',
+        ['targetAccountID'=>'1', 'accountID'=>'1', 'gameVersion'=>'22'], $opts);
+    if ($viewerWithoutAuth !== '-1') {
+        throw new RuntimeException('PHP7 public profile must not impersonate viewers.');
+    }
     $found = mucho7_dispatch($test, '/database/getGJUsers20.php', 'POST',
         ['str'=>'NativeP7', 'page'=>'0', 'gameVersion'=>'22'], $opts);
     if (strpos($found, '1:NativeP7:2:1') !== 0 ||
