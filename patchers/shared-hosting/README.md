@@ -150,3 +150,15 @@ curl -sS -w '\nHTTP %{http_code}\n' -X POST https://linasgdpsprivatese.5v.pl/a/g
 - Level `-2` with HTTP `200`: empty public level list, not a broken DB.
 
 **Do not** enable registration/writes on EOL PHP 7 merely to overcome a 503.
+
+## Native friend requests (isolated test installs)
+
+For an existing native database, import `mc/compat/php7/social.sql` into the
+same database after backing it up. The migration adds two independent tables
+and does not replace player records. Upload updated `social.php`,
+`runtime.php`, `php7.php` and preserve the private config.
+Opt in with `'enable_social' => true` along with
+`enable_accounts` (and `enable_writes` for modifications).
+This supports requests, accept/ignore/cancel, friends list and removal;
+blocking, user-level privacy settings and direct messages remain unsupported.
+Use only on isolated test installs while PHP 7.0 is unsupported.
