@@ -386,14 +386,16 @@ function mucho7_dispatch($pdo, $uri, $method, $post, $options = array())
         $pepper = isset($options['auth_pepper']) ? $options['auth_pepper'] : '';
         if (in_array($path, array(
             '/logingjaccount','/logingjaccount19',
-            '/logingjaccount20','/logingjaccount21'
+            '/logingjaccount20','/logingjaccount21',
+            '/logingjaccount22'
         ), true)) {
             return mucho7_login($pdo, $post, $ip, $pepper);
         }
         if (!empty($options['enable_registration'])
             && in_array($path, array(
                 '/registergjaccount','/registergjaccount19',
-                '/registergjaccount20','/registergjaccount21'
+                '/registergjaccount20','/registergjaccount21',
+                '/registergjaccount22'
             ), true)) {
             return mucho7_register($pdo, $post, $ip, $pepper);
         }
