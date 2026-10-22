@@ -11,8 +11,7 @@ header('X-Frame-Options: DENY');
 
 $root = dirname(__DIR__);
 if (!is_file(__DIR__ . '/php7-mode.on')
-    || !is_file($root . '/config/php7-local.php')
-    || !extension_loaded('pdo_mysql')) {
+    || !is_file($root . '/config/php7-local.php')) {
     http_response_code(503);
     echo '-1';
     exit;
@@ -46,6 +45,35 @@ try {
     if (!is_array($settings)) {
         throw new RuntimeException('No configuration');
     }
+
+    $options = array(
+        'enable_accounts'=>!empty($settings['enable_accounts']),
+        'enable_registration'=>!empty($settings['enable_registration']),
+        'enable_writes'=>!empty($settings['enable_writes']),
+        'enable_native_news'=>!empty($settings['enable_native_news']),
+        'site_url'=>isset($settings['site_url']) ? $settings['site_url'] : '',
+        'news_file'=>$root . '/config/php7-news.json',
+        'auth_pepper'=>isset($settings['auth_pepper']) ? $settings['auth_pepper'] : '',
+        'ip'=>isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : ''
+    );
+    $uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
+    $path = mucho7_path($uri);
+
+    // The public News CDN and discovery endpoints read private local config
+    // and JSON only. Do NOT make them dependent on a live MySQL connection.
+    // All account, level, moderation and other endpoints still need PDO.
+    if (in_array($path, array(
+        '/getcustomcontenturl', '/getaccounturl',
+        '/news/news.dat', '/news/news_version.txt',
+        '/gd-content/news/news.dat', '/gd-content/news/news_version.txt'
+    ), true)) {
+        echo mucho7_dispatch(null, $uri, $method, $_POST, $options);
+        exit;
+    }
+
+    if (!extension_loaded('pdo_mysql')) {
+        throw new RuntimeException('PDO MySQL extension unavailable');
+    }
     foreach (array('host','port','database','username','password') as $key) {
         if (!isset($settings[$key]) || !is_scalar($settings[$key])) {
             throw new RuntimeException('Incomplete configuration');
@@ -69,22 +97,7 @@ try {
             PDO::ATTR_TIMEOUT => 3
         )
     );
-    echo mucho7_dispatch(
-        $pdo,
-        isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/',
-        $method,
-        $_POST,
-        array(
-            'enable_accounts'=>!empty($settings['enable_accounts']),
-            'enable_registration'=>!empty($settings['enable_registration']),
-            'enable_writes'=>!empty($settings['enable_writes']),
-            'enable_native_news'=>!empty($settings['enable_native_news']),
-            'site_url'=>isset($settings['site_url']) ? $settings['site_url'] : '',
-            'news_file'=>$root . '/config/php7-news.json',
-            'auth_pepper'=>isset($settings['auth_pepper']) ? $settings['auth_pepper'] : '',
-            'ip'=>isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : ''
-        )
-    );
+    echo mucho7_dispatch($pdo, $uri, $method, $_POST, $options);
 } catch (Exception $exception) {
     // A public API must never disclose the DB name, password or SQL statement.
     error_log('[MuchoCore PHP7 experimental] Request rejected (configuration or schema unavailable)');
