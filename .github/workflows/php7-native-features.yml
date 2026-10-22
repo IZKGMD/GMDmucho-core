@@ -39,6 +39,8 @@ jobs:
             php -l "$src"
           done
           php tests/compat/php7-native-features-pure.php
+          php -l tools/mobile/php7-account-reset.php
+          php tests/compat/php7-local-reset.php
       - name: Check real database behavior on native and modern PHP
         env:
           TEST_DB_ROOT_PASSWORD: native-ci-only
