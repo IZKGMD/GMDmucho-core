@@ -3,6 +3,9 @@
  * Experimental PHP7 read-only public level download. Requires the real
  * MuchoCore "levels" and "profiles" schema; never increments counters.
  * Private/unlisted/banned levels are denied without session impersonation.
+ * Public GD 2.209 downloads allow up to 8 MiB stored levelString bytes.
+ * A hard SQL size bound prevents fetching unexpectedly huge LONGTEXT blobs
+ * into constrained shared-host memory. Larger files still fail closed.
  */
 declare(strict_types=1);
 
@@ -141,7 +144,7 @@ function mucho7_download(PDO $pdo, $input)
         'SELECT l.*,COALESCE(p.user_id,l.account_id) AS user_id
          FROM levels l LEFT JOIN profiles p ON p.account_id=l.account_id
          WHERE l.level_id=:id AND l.is_deleted=0 AND l.is_unlisted=0
-           AND l.unlisted2=0 AND length(l.level_data)<=1048576
+           AND l.unlisted2=0 AND length(l.level_data)<=8388608
          LIMIT 1'
     );
     $query->execute(array(':id' => (int)$rawId));

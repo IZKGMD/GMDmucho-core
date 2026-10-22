@@ -66,6 +66,27 @@ foreach ([47, 51] as $binary) {
             'GD 2.209 download epoch metadata missing');
     }
 }
+// Native 2.209 can list an existing level whose stored levelString is over
+// 1 MiB. Such a level must also download successfully on shared hosting.
+$updateData = $pdo->prepare('UPDATE levels SET level_data=? WHERE level_id=42');
+$large = 'kS1' . str_repeat('A', 1200000);
+$updateData->execute(array($large));
+$largeResult = mucho7_dispatch($pdo, '/a/downloadGJLevel22.php', 'POST', array(
+    'levelID'=>'42', 'gameVersion'=>'22', 'binaryVersion'=>'51'
+));
+checkDownload($largeResult === $modern->encode(array_merge($row, array(
+    'level_data'=>$large
+)), 22, false, 51), 'Valid 2.209 level larger than 1 MiB must download');
+
+// Bound work on legacy shared hosts: unknown 8+ MiB levels must fail closed
+// instead of bringing an unexpectedly large LONGTEXT into PHP memory.
+$updateData->execute(array('kS1' . str_repeat('B', 8388608)));
+checkDownload(mucho7_dispatch($pdo, '/a/downloadGJLevel22.php', 'POST', array(
+    'levelID'=>'42', 'gameVersion'=>'22', 'binaryVersion'=>'51'
+)) === '-1', 'Oversize 2.209 levelString must not exhaust shared-host memory');
+$updateData->execute(array($row['level_data']));
+unset($large, $largeResult);
+
 checkDownload(mucho7_dispatch($pdo,'/database/uploadGJLevel21.php',
     'POST',['levelID'=>'42']) === '-1','upload must fail closed');
 checkDownload(mucho7_download($pdo,['levelID'=>'-1']) === '-1','timely needs separate auth');
