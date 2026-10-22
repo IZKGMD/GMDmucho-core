@@ -39,6 +39,7 @@ require_once $root . '/compat/php7/download.php';
 require_once $root . '/compat/php7/auth.php';
 require_once $root . '/compat/php7/upload.php';
 require_once $root . '/compat/php7/news.php';
+require_once $root . '/compat/php7/users.php';
 
 try {
     $settings = require $root . '/config/php7-local.php';
