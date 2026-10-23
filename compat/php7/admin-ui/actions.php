@@ -2,6 +2,13 @@
 /** Bind the original admin form contracts to native shared transactions. */
 declare(strict_types=1);
 function mucho7_admin_ui_action(PDO $pdo,$aid,$action,$data,$root,$settings){
+    if($action==='dbbackup-create'){
+        require_once __DIR__.'/../admin-backups.php';
+        mucho7_admin_backup_action($pdo,$aid,$action,$data);return;
+    }
+    if(in_array($action,array('admin-create','admin-toggle','admin-role','role-create','role-update','role-delete'),true)){
+        mucho7_admin_registry_action($pdo,$aid,$action,$data,$settings);return;
+    }
     if(in_array($action,array('2fa-generate','2fa-enable','2fa-disable','2fa-cancel','recovery-generate'),true)){
         mucho7_admin_security_action($pdo,$aid,$action,$data,$settings);return;
     }
@@ -14,7 +21,7 @@ function mucho7_admin_ui_action(PDO $pdo,$aid,$action,$data,$root,$settings){
         return;
     }
     if($action==='settings-save'){
-        $user=mucho7_admin_user($pdo,$aid);if(!$user||$user['role']!=='owner')throw new RuntimeException('Нет прав на это действие.');
+        $user=mucho7_admin_user($pdo,$aid);if(!mucho7_admin_can($pdo,$user,$action==='message-delete'?'messages.manage':($action==='music-upload'?'music.manage':'settings.manage')))throw new RuntimeException('Нет прав на это действие.');
         $name=isset($data['server_name'])&&is_string($data['server_name'])?trim($data['server_name']):'';
         $by=isset($data['server_by_name'])&&is_string($data['server_by_name'])?trim($data['server_by_name']):'';
         $url=isset($data['social_url'])&&is_string($data['social_url'])?trim($data['social_url']):'';
@@ -32,7 +39,7 @@ function mucho7_admin_ui_action(PDO $pdo,$aid,$action,$data,$root,$settings){
         mucho7_admin_audit($pdo,$aid,'settings-save',0);return;
     }
     if($action==='message-delete'){
-        $user=mucho7_admin_user($pdo,$aid);if(!$user||$user['role']!=='owner')throw new RuntimeException('Нет прав на это действие.');
+        $user=mucho7_admin_user($pdo,$aid);if(!mucho7_admin_can($pdo,$user,$action==='message-delete'?'messages.manage':($action==='music-upload'?'music.manage':'settings.manage')))throw new RuntimeException('Нет прав на это действие.');
         $id=mucho7_number(isset($data['id'])?$data['id']:0,1,2147483647);
         $pdo->beginTransaction();try{$pdo->prepare('DELETE FROM php7_messages WHERE id=?')->execute(array($id));mucho7_admin_audit($pdo,$aid,$action,$id);$pdo->commit();}catch(Exception $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}return;
     }
@@ -53,7 +60,7 @@ function mucho7_admin_ui_action(PDO $pdo,$aid,$action,$data,$root,$settings){
         $data['coins_verified']=isset($data['coins_verified'])?'1':'0';$action='rate_level';
         $data['original_rating_ui']=true;
     }elseif($action==='music-upload'){
-        $user=mucho7_admin_user($pdo,$aid);if(!$user||$user['role']!=='owner')throw new RuntimeException('Нет прав на это действие.');
+        $user=mucho7_admin_user($pdo,$aid);if(!mucho7_admin_can($pdo,$user,$action==='message-delete'?'messages.manage':($action==='music-upload'?'music.manage':'settings.manage')))throw new RuntimeException('Нет прав на это действие.');
         $file=isset($_FILES['music_file'])?$_FILES['music_file']:null;
         if(!$file||!is_array($file)||$file['error']!==UPLOAD_ERR_OK||$file['size']<=0||$file['size']>20*1024*1024||!is_uploaded_file($file['tmp_name']))throw new RuntimeException('Не удалось загрузить MP3. Лимит: 20 МиБ и ограничения хостинга.');
         $header=file_get_contents($file['tmp_name'],false,null,0,3);

@@ -1,5 +1,12 @@
 /* Only the host integration differs from the original VPS scripts. */
 (() => {
+    document.querySelectorAll('[data-copy-invite]').forEach(button=>{
+        button.addEventListener('click',async()=>{
+            const input=button.previousElementSibling;
+            try{await navigator.clipboard.writeText(input.value);button.textContent='Copied';}
+            catch{input.select();document.execCommand('copy');button.textContent='Copied';}
+        });
+    });
     document.querySelectorAll('form[data-confirm]').forEach(form=>{
         form.addEventListener('submit',event=>{if(!confirm(form.dataset.confirm))event.preventDefault();});
     });

@@ -31,7 +31,7 @@ if(!$user || !adminIsPlain()):
 <?php if($error!==''):?><p class="err" role="alert"><?=h($error)?></p><?php endif ?>
 <?php if($pdo):?><form method="post" id="adminLoginForm"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="action" value="<?=$hasOwner?'login':'bootstrap'?>">
 <?php if(!$hasOwner):?><p class="admin-auth-field"><label for="dbpass">Пароль базы данных</label><input id="dbpass" type="password" name="db_password" required autocomplete="off"></p><?php endif ?>
-<div id="passwordLoginFields"><p class="admin-auth-field"><label for="adminUsername">Username</label><br><input id="adminUsername" name="userName" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required></p>
+<div id="passwordLoginFields"><p class="admin-auth-field"><label for="adminUsername">Username</label><br><input id="adminUsername" name="userName" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32" required></p>
 <p class="admin-auth-field"><label for="adminPassword">Password</label><br><input id="adminPassword" type="password" name="password" autocomplete="<?=$hasOwner?'current-password':'new-password'?>" required></p></div>
 <?php if(!$hasOwner):?><p class="admin-auth-field"><label for="email">Email</label><input id="email" type="email" name="email" required maxlength="254"></p><?php endif ?>
 <?php if($hasOwner):?><p id="otpLoginField" class="admin-auth-field"><label for="adminOtp">2FA or recovery code</label><br><input id="adminOtp" name="otp" autocomplete="one-time-code" autocapitalize="none" spellcheck="false" maxlength="32" aria-describedby="adminOtpHelp"><br><small id="adminOtpHelp">Leave empty if two-factor authentication is disabled.</small></p><?php endif ?>
@@ -48,11 +48,12 @@ if($schemaReady && canAdminPage($page)){
     elseif($page==='players')require __DIR__.'/admin-ui/players.php';
     elseif($page==='levels'||$page==='moderation')require __DIR__.'/admin-ui/levels-moderation.php';
     elseif($page==='rating')require __DIR__.'/admin-ui/rating.php';
-    elseif(in_array($page,array('songs','comments','messages','audit','settings','news','admins'),true)){
-        require __DIR__.'/admin-ui/'.$page.'.php';
+    elseif(in_array($page,array('songs','comments','messages','audit','settings','news','admins','roles'),true)){
+        if($page!=='admins'||canPermission('self.security'))require __DIR__.'/admin-ui/'.$page.'.php';
+        if($page==='admins')require __DIR__.'/admin-ui/admin-management.php';
         if($page==='settings'){$titles=$pages;require __DIR__.'/admin-ui/native-pages.php';}
     }
-    elseif($page==='dbbackups'){?><div class="card"><h2>DB Backup Center</h2><form method="post"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="action" value="backup"><button>Download SQL backup</button></form></div><?php }
+    elseif($page==='dbbackups'){require_once __DIR__.'/admin-backups.php';renderDbBackupCenter($db);}
     else{$titles=$pages;$oldPage=$page;if($page==='system')$page='diagnostics';require __DIR__.'/admin-ui/native-pages.php';$page=$oldPage;}
 }else{$titles=$pages;require __DIR__.'/admin-ui/native-pages.php';}
 adminFooter($branding);

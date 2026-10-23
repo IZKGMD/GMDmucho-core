@@ -64,11 +64,13 @@ function mucho7_admin_factor_login(PDO $db,$aid,$code) {
 }
 
 function mucho7_admin_security_action(PDO $db,$aid,$action,$data,$settings) {
-    if(!mucho7_admin_user($db,$aid))throw new RuntimeException('Нет доступа.');
+    $actor=mucho7_admin_user($db,$aid);
+    if(!$actor || (function_exists('mucho7_admin_can') && !mucho7_admin_can($db,$actor,'self.security')))throw new RuntimeException('Нет доступа.');
     if($action==='2fa-cancel'){unset($_SESSION['pending_totp']);return;}
     mucho7_admin_security_install($db);
     $db->prepare('INSERT IGNORE INTO php7_admin_security(account_id) VALUES(?)')->execute(array($aid));
-    $account=$db->prepare('SELECT username,password_hash FROM accounts WHERE account_id=?');$account->execute(array($aid));$account=$account->fetch(PDO::FETCH_ASSOC);
+    if(function_exists('mucho7_admin_registry_ready') && mucho7_admin_registry_ready($db))$account=mucho7_admin_identity($db,$aid);
+    else{$account=$db->prepare('SELECT username,password_hash FROM accounts WHERE account_id=?');$account->execute(array($aid));$account=$account->fetch(PDO::FETCH_ASSOC);}
     $ip=isset($_SERVER['REMOTE_ADDR'])?(string)$_SERVER['REMOTE_ADDR']:'';
     if(!mucho7_auth_event($db,'admin-2fa',$account['username'],$ip,(string)$settings['auth_pepper']))throw new RuntimeException('Слишком много попыток. Повтори через 10 минут.');
     if($action!=='2fa-enable' && (!isset($data['current_password']) || !is_string($data['current_password']) || !password_verify($data['current_password'],$account['password_hash'])))

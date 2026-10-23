@@ -50,3 +50,4 @@ jobs:
           php -d memory_limit=128M tests/compat/php7-native-social-mysql.php
           NATIVE_SOCIAL_LEGACY=1 php -d memory_limit=128M tests/compat/php7-native-social-mysql.php
           php -d memory_limit=128M tests/compat/php7-native-news-security.php --mysql
+          php -d memory_limit=128M tests/compat/php7-native-admin-registry.php --mysql

@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 function mucho7_admin_user(PDO $pdo, $id)
 {
+    if(function_exists('mucho7_admin_registry_ready') && mucho7_admin_registry_ready($pdo)){
+        $row=mucho7_admin_identity($pdo,$id);
+        if($row)unset($row['password_hash']);
+        return $row;
+    }
     $query=$pdo->prepare('SELECT a.account_id,a.username,r.code AS role FROM accounts a
         JOIN roles r ON r.id=a.role_id WHERE a.account_id=? AND a.is_active=1 AND a.is_banned=0');
     $query->execute(array($id)); $user=$query->fetch(PDO::FETCH_ASSOC);
@@ -18,6 +23,9 @@ function mucho7_admin_audit(PDO $pdo, $aid, $action, $target, $details = '')
 
 function mucho7_admin_has_owner(PDO $pdo)
 {
+    if(function_exists('mucho7_admin_registry_ready') && mucho7_admin_registry_ready($pdo)){
+        return (int)$pdo->query("SELECT COUNT(*) FROM php7_admin_users u LEFT JOIN accounts a ON a.account_id=u.account_id WHERE u.role='owner' AND u.is_active=1 AND u.password_must_set=0 AND (u.account_id IS NULL OR (a.is_active=1 AND a.is_banned=0))")->fetchColumn()>0;
+    }
     return (int)$pdo->query("SELECT COUNT(*) FROM accounts a JOIN roles r ON r.id=a.role_id
         WHERE r.code='owner' AND a.is_active=1 AND a.is_banned=0")->fetchColumn()>0;
 }
@@ -150,6 +158,7 @@ function mucho7_admin_action(PDO $pdo, $aid, $action, $data, $root, $settings)
     $user=mucho7_admin_user($pdo,$aid);
     if(!$user){throw new RuntimeException('Нет доступа к панели.');}
     $owner=$user['role']==='owner';
+    $can=function($permission)use($pdo,&$user){return function_exists('mucho7_admin_can')?mucho7_admin_can($pdo,$user,$permission):$user['role']==='owner';};
     $elder=$owner || $user['role']==='elder_moderator';
     $id=mucho7_number(isset($data['id'])?$data['id']:0,0,2147483647);
     if($action==='upgrade' && $owner){
@@ -178,16 +187,27 @@ function mucho7_admin_action(PDO $pdo, $aid, $action, $data, $root, $settings)
     }
     $pdo->beginTransaction();
     try {
-        if($action==='player' && $owner && $id>0) {
+        if(function_exists('mucho7_admin_registry_ready') && mucho7_admin_registry_ready($pdo)){
+            $pdo->query('SELECT version FROM php7_admin_registry_state WHERE id=1 FOR UPDATE')->fetchColumn();
+            $user=mucho7_admin_user($pdo,$aid);if(!$user)throw new RuntimeException('Нет доступа к панели.');
+            $owner=$user['role']==='owner';$elder=$owner||$user['role']==='elder_moderator';
+        }
+        if($action==='player' && $can('players.manage') && $id>0) {
             // Serialize owner changes so concurrent requests cannot remove the last owner.
             $pdo->query("SELECT id FROM roles WHERE code='owner' FOR UPDATE")->fetchColumn();
             $query=$pdo->prepare('SELECT a.*,r.code AS role FROM accounts a JOIN roles r ON r.id=a.role_id WHERE account_id=? FOR UPDATE');
             $query->execute(array($id)); $target=$query->fetch(PDO::FETCH_ASSOC);
             $role=isset($data['role']) && is_string($data['role'])?$data['role']:'user';
             $banned=isset($data['banned']) && (string)$data['banned']==='1'?1:0;
+            if($target && !$owner && ($target['role']==='owner'||$role!==$target['role']))throw new RuntimeException('Only the owner may change game roles or manage owners.');
             if(!$target || !in_array($role,array('user','moderator','elder_moderator','owner'),true)) {throw new RuntimeException('Игрок или роль не найдены.');}
             $active=isset($data['original_ui'])?(isset($data['active'])?1:0):(int)$target['is_active'];
-            if($id===$aid && ($banned || !$active || $role!=='owner')){throw new RuntimeException('Нельзя убрать собственный доступ владельца.');}
+            $ownGameId=array_key_exists('game_account_id',$user)?(int)$user['game_account_id']:$aid;
+            if($id===$ownGameId && ($banned || !$active || $role!=='owner')){throw new RuntimeException('Нельзя убрать собственный доступ владельца.');}
+            if(function_exists('mucho7_admin_registry_ready') && mucho7_admin_registry_ready($pdo) && ($banned||!$active)){
+                $q=$pdo->prepare("SELECT id FROM php7_admin_users WHERE account_id=? AND role='owner' AND is_active=1 AND password_must_set=0");$q->execute(array($id));
+                if($q->fetchColumn() && (int)$pdo->query("SELECT COUNT(*) FROM php7_admin_users u LEFT JOIN accounts a ON a.account_id=u.account_id WHERE u.role='owner' AND u.is_active=1 AND u.password_must_set=0 AND (u.account_id IS NULL OR (a.is_active=1 AND a.is_banned=0))")->fetchColumn()<=1)throw new RuntimeException('На сервере должен остаться хотя бы один владелец.');
+            }
             if($target['role']==='owner' && (int)$target['is_banned']===0 && ($banned || !$active || $role!=='owner')) {
                 $count=(int)$pdo->query("SELECT COUNT(*) FROM accounts a JOIN roles r ON r.id=a.role_id WHERE r.code='owner' AND a.is_active=1 AND a.is_banned=0")->fetchColumn();
                 if($count<=1){throw new RuntimeException('На сервере должен остаться хотя бы один владелец.');}
@@ -199,8 +219,9 @@ function mucho7_admin_action(PDO $pdo, $aid, $action, $data, $root, $settings)
                 $pdo->prepare('UPDATE accounts SET username=?,email=?,is_active=? WHERE account_id=?')->execute(array($name,$email,$active,$id));
             }
             $pdo->prepare('UPDATE accounts SET is_banned=?,role_id=(SELECT id FROM roles WHERE code=?) WHERE account_id=?')->execute(array($banned,$role,$id));
-        } elseif(in_array($action,array('profile-save','password-reset'),true) && $owner && $id>0){
-            $q=$pdo->prepare('SELECT account_id FROM accounts WHERE account_id=? FOR UPDATE');$q->execute(array($id));if(!$q->fetchColumn())throw new RuntimeException('Аккаунт не найден.');
+        } elseif(in_array($action,array('profile-save','password-reset'),true) && $can($action==='password-reset'?'players.password_reset':'players.manage') && $id>0){
+            $q=$pdo->prepare('SELECT a.account_id,r.code FROM accounts a JOIN roles r ON r.id=a.role_id WHERE account_id=? FOR UPDATE');$q->execute(array($id));$target=$q->fetch(PDO::FETCH_ASSOC);if(!$target)throw new RuntimeException('Аккаунт не найден.');
+            if(!$owner && $target['code']==='owner')throw new RuntimeException('Only an owner may manage another owner.');
             if($action==='password-reset'){
                 $pass=isset($data['new_password'])&&is_string($data['new_password'])?$data['new_password']:'';
                 if(strlen($pass)<8||strlen($pass)>72||!isset($data['new_password_confirm'])||!is_string($data['new_password_confirm'])||!hash_equals($pass,$data['new_password_confirm']))throw new RuntimeException('Проверь пароль и подтверждение.');
@@ -209,7 +230,7 @@ function mucho7_admin_action(PDO $pdo, $aid, $action, $data, $root, $settings)
                 $values=array();foreach(array('stars','moons','diamonds','secret_coins','user_coins','demons','creator_points') as $key)$values[]=mucho7_number(isset($data[$key])?$data[$key]:0,0,2147483647);
                 $values[]=$id;$pdo->prepare('UPDATE profiles SET stars=?,moons=?,diamonds=?,secret_coins=?,user_coins=?,demons=?,creator_points=? WHERE account_id=?')->execute($values);
             }
-        } elseif(in_array($action,array('rate_level','delete_level','restore_level','level_details'),true) && $elder && $id>0) {
+        } elseif(in_array($action,array('rate_level','delete_level','restore_level','level_details'),true) && ($can($action==='rate_level'?'levels.rate':'levels.manage')||$elder) && $id>0) {
             $query=$pdo->prepare('SELECT account_id,coins_verified FROM levels WHERE level_id=? FOR UPDATE');$query->execute(array($id));
             $levelState=$query->fetch(PDO::FETCH_ASSOC);$author=$levelState?(int)$levelState['account_id']:0;if($author<=0){throw new RuntimeException('Уровень не найден.');}
             if($action==='rate_level') {
@@ -238,12 +259,12 @@ function mucho7_admin_action(PDO $pdo, $aid, $action, $data, $root, $settings)
             $query=$pdo->prepare('SELECT COALESCE(SUM((stars>0)+(featured>0)+epic),0) FROM levels WHERE account_id=? AND is_deleted=0');
             $query->execute(array($author));
             $pdo->prepare('UPDATE profiles SET creator_points=? WHERE account_id=?')->execute(array((int)$query->fetchColumn(),$author));
-        } elseif($action==='delete_comment' && $id>0) {
+        } elseif($action==='delete_comment' && $can('comments.manage') && $id>0) {
             $pdo->prepare('DELETE FROM php7_comments WHERE id=?')->execute(array($id));
-        } elseif(in_array($action,array('music-verify','music-unverify','music-delete'),true) && $owner && $id>0){
+        } elseif(in_array($action,array('music-verify','music-unverify','music-delete'),true) && $can('music.manage') && $id>0){
             if($action==='music-delete')$pdo->prepare('DELETE FROM songs WHERE id=?')->execute(array($id));
             else $pdo->prepare('UPDATE songs SET is_verified=? WHERE id=?')->execute(array($action==='music-verify'?1:0,$id));
-        } elseif($action==='song' && $owner) {
+        } elseif($action==='song' && $can('music.manage')) {
             foreach(array('name','author_name','download_url') as $field){if(!isset($data[$field]) || !is_string($data[$field])){throw new RuntimeException('Заполни поля песни.');}}
             $url=trim($data['download_url']);$name=trim($data['name']);$author=trim($data['author_name']);
             if(strlen($url)>255 || stripos($url,'https://')!==0 || !filter_var($url,FILTER_VALIDATE_URL) || strpos($url,'#')!==false
@@ -274,7 +295,7 @@ function mucho7_admin_backup(PDO $pdo, $aid)
     if(!$user || $user['role']!=='owner'){throw new RuntimeException('Только владелец может скачать резервную копию.');}
     $tables=$pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
     if(array_diff(mucho7_admin_tables(),$tables)){throw new RuntimeException('Сначала обнови таблицы базы.');}
-    $backupTables=array_merge(mucho7_admin_tables(),array_values(array_intersect(array('php7_admin_security','php7_admin_recovery_codes','mucho_news_posts','mucho_news_state','mucho_news_media','php7_friendships'),$tables)));
+    $backupTables=array_merge(mucho7_admin_tables(),array_values(array_intersect(array('php7_admin_users','php7_admin_roles','php7_admin_role_permissions','php7_admin_registry_state','php7_admin_security','php7_admin_recovery_codes','mucho_news_posts','mucho_news_state','mucho_news_media','php7_friendships'),$tables)));
     mucho7_admin_audit($pdo,$aid,'database_export',0);
     header('Content-Type: application/sql; charset=utf-8');
     header('Content-Disposition: attachment; filename="MuchoCore-shared-'.gmdate('Ymd-His').'.sql"');

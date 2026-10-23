@@ -103,7 +103,7 @@ idle/old sessions. Owner changes cannot remove one's own owner access.
 from the original source; `admin-ui/upstream-sources.json` records their hashes.
 It preserves the original CSS and GD assets. The shared host bridge changes
 storage, mount URLs and PHP syntax. News Board and authenticator/recovery are
-original templates too; the complete original Administrators/passkey tools
+original templates too. Separate administrator identities, one-time password invitations, custom roles, assignment and activation are supported. Passkey tools
 and DB Backup Center are not yet ported. CSP authorizes original inline blocks
 with per-response nonces; no `unsafe-inline` is enabled. QR images are generated
 locally, without sending authenticator secrets to an external QR service.
@@ -183,8 +183,7 @@ Cloud-save migration/encryption/recovery parity, password recovery,
 daily quests/rewards, clans, level lists,
 2.209 threads/following and sanctions, plugin/migration parity,
 advanced private searches and remaining modern core modules.
-Passkey/WebAuthn and the remaining administrator-management/role tools are
-also pending; only working controls are exposed on the shared panel.
+Passkey/WebAuthn is still pending; only working controls are exposed on the shared panel. Administrator identities and roles are now ported, while game roles remain separate. Database Backup Center creates and verifies private .sql.gz files; restore uses the hosting database tool. Automatic scheduling/retention and VPS operations are not available.
 Unknown routes return `-1`; unsupported/private features are not simulated.
 Track the overall port in issue #148.
 
@@ -226,3 +225,5 @@ SQL that updates only `password_hash` and `gjp2_hash`. After a database backup,
 execute it through phpMyAdmin in the existing native database. The script
 makes no network or database calls. Never share your password or saved hashes
 in chat, logs or tickets. Check the account is yours before changing it.
+
+Administrator registry and stored-backup regressions: `tests/compat/php7-native-admin-registry.php --mysql` runs on PHP 7.0 and 8.3. It checks idempotent legacy import, preserved factors, panel-only identity separation, invitation expiry/use, permissions, role assignment/deletion and session revision; it restores a compressed SQL archive into a disposable database and checks binary data and views.

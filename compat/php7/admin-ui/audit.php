@@ -2,8 +2,7 @@
 
 
 $rows=$db->query(
-    'SELECT c.created_at,a.username,c.action,c.target_id AS target,NULL AS ip,c.details AS metadata FROM php7_admin_audit c LEFT JOIN accounts a ON a.account_id=c.account_id ORDER BY c.id DESC
-     LIMIT 400'
+    mucho7_admin_audit_rows_sql($db).' LIMIT 400'
 )->fetchAll(PDO::FETCH_ASSOC);
 
 echo '<div class="table"><table>';

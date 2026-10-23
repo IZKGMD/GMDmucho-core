@@ -7,19 +7,27 @@ function admin(){return $GLOBALS['user'];}
 function adminIsPlain(){return (isset($_GET['ui']) && $_GET['ui']==='plain') || (isset($_POST['ui']) && $_POST['ui']==='plain');}
 function canAdminPage($page){
     $user=admin();if(!$user)return false;
-    $pages=array('dashboard','players','levels','comments','messages','rating','moderation','songs','news','settings','system','audit','dbbackups','admins');
+    $pages=array('dashboard','players','levels','comments','messages','rating','moderation','songs','news','settings','system','audit','dbbackups','admins','roles');
     if(!in_array($page,$pages,true))return false;
+    if(isset($GLOBALS['pdo']) && $GLOBALS['pdo'] instanceof PDO && mucho7_admin_registry_ready($GLOBALS['pdo'])){
+        if($page==='news')return $user['role']==='owner';
+        if($page==='admins')return mucho7_admin_can($GLOBALS['pdo'],$user,'self.security')||mucho7_admin_can($GLOBALS['pdo'],$user,'admins.manage');
+        return mucho7_admin_can($GLOBALS['pdo'],$user,\MuchoCore\Admin\AdminRbac::permissionForContext(null,$page,0));
+    }
     if(in_array($page,array('dashboard','players','levels','comments','moderation','system','admins'),true))return true;
     if($page==='rating')return in_array($user['role'],array('owner','elder_moderator'),true);
     return $user['role']==='owner';
 }
 function canPermission($permission){
     $user=admin();if(!$user)return false;
+    if(isset($GLOBALS['pdo']) && $GLOBALS['pdo'] instanceof PDO && mucho7_admin_registry_ready($GLOBALS['pdo']))return mucho7_admin_can($GLOBALS['pdo'],$user,$permission);
     if($permission==='players.delete')return false;
     if(in_array($permission,array('levels.manage','levels.rate'),true))return in_array($user['role'],array('owner','elder_moderator'),true);
     return $user['role']==='owner';
 }
-function requireRank($rank){$user=admin();$ranks=array('moderator'=>10,'elder_moderator'=>20,'owner'=>30);if(!$user||$ranks[$user['role']]<$rank)throw new RuntimeException('Нет доступа.');}
+function requireRank($rank){$user=admin();$ranks=array('moderator'=>10,'elder_moderator'=>20,'owner'=>40,'admin'=>30,'viewer'=>10);if(!$user||!isset($ranks[$user['role']])||$ranks[$user['role']]<$rank)throw new RuntimeException('Нет доступа.');}
+function requirePermission($permission){if(!canPermission($permission))throw new RuntimeException('Insufficient permissions.');}
+function mucho7_admin_utf8_length($value,$encoding='UTF-8'){return function_exists('mb_strlen')?mb_strlen($value,$encoding):preg_match_all('/./us',$value,$unused);}
 function tableExists(PDO $db,$table){if($db->getAttribute(PDO::ATTR_DRIVER_NAME)==='sqlite'){$q=$db->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?");$q->execute(array($table));return (bool)$q->fetchColumn();}$q=$db->prepare('SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name=?');$q->execute(array($table));return (bool)$q->fetchColumn();}
 function countTable(PDO $db,$table){if(!in_array($table,array('accounts','levels','songs'),true))return 0;return (int)$db->query('SELECT COUNT(*) FROM '.$table)->fetchColumn();}
 function mucho7_admin_difficulty($row){
@@ -90,3 +98,4 @@ function mucho7_ui_trimwidth($value,$start,$width,$marker='',$encoding='UTF-8'){
     preg_match_all('/./us',$value,$chars);$chars=isset($chars[0])?$chars[0]:array();
     return implode('',array_slice($chars,$start,$width)).(count($chars)>$start+$width?$marker:'');
 }
+require_once __DIR__.'/../admin-registry.php';
