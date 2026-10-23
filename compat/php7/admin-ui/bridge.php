@@ -25,7 +25,14 @@ function canPermission($permission){
     if(in_array($permission,array('levels.manage','levels.rate'),true))return in_array($user['role'],array('owner','elder_moderator'),true);
     return $user['role']==='owner';
 }
-function requireRank($rank){$user=admin();$ranks=array('moderator'=>10,'elder_moderator'=>20,'owner'=>40,'admin'=>30,'viewer'=>10);if(!$user||!isset($ranks[$user['role']])||$ranks[$user['role']]<$rank)throw new RuntimeException('Нет доступа.');}
+function requireRank($rank){
+    $user=admin();
+    if(isset($GLOBALS['pdo']) && $GLOBALS['pdo'] instanceof PDO && mucho7_admin_registry_ready($GLOBALS['pdo'])){
+        $permission=\MuchoCore\Admin\AdminRbac::permissionForContext(isset($_POST['action'])&&is_string($_POST['action'])?$_POST['action']:null,isset($GLOBALS['page'])?$GLOBALS['page']:null,$rank);
+        if(!mucho7_admin_can($GLOBALS['pdo'],$user,$permission))throw new RuntimeException('Insufficient permissions.');return;
+    }
+    $ranks=array('moderator'=>10,'elder_moderator'=>20,'owner'=>40,'admin'=>30,'viewer'=>10);if(!$user||!isset($ranks[$user['role']])||$ranks[$user['role']]<$rank)throw new RuntimeException('Нет доступа.');
+}
 function requirePermission($permission){if(!canPermission($permission))throw new RuntimeException('Insufficient permissions.');}
 function mucho7_admin_utf8_length($value,$encoding='UTF-8'){return function_exists('mb_strlen')?mb_strlen($value,$encoding):preg_match_all('/./us',$value,$unused);}
 function tableExists(PDO $db,$table){if($db->getAttribute(PDO::ATTR_DRIVER_NAME)==='sqlite'){$q=$db->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?");$q->execute(array($table));return (bool)$q->fetchColumn();}$q=$db->prepare('SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name=?');$q->execute(array($table));return (bool)$q->fetchColumn();}

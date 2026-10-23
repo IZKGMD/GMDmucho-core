@@ -137,7 +137,8 @@ try {
     if(!is_resource($process))throw new RuntimeException('Unable to launch controller fixture');
     $response=stream_get_contents($pipes[1]);$stderr=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$exit=proc_close($process);
     nsCheck($exit===0,'Front controller fixture failed: '.$stderr);
-    nsCheck(strpos($response,'Use a YouTube watch, Shorts, live or youtu.be video link.')!==false,'missing form validation error');
+    preg_match('~<(?:p|div)[^>]*class="[^"]*(?:err|flash)[^"]*"[^>]*>(.*?)</(?:p|div)>~s',$response,$failureMessage);
+    nsCheck(strpos($response,'Use a YouTube watch, Shorts, live or youtu.be video link.')!==false,'missing form validation error: '.(isset($failureMessage[1])?strip_tags($failureMessage[1]):substr(strip_tags($response),-900)).' stderr: '.$stderr);
     nsCheck(strpos($response,'mucho-news-layout')!==false && strpos($response,'Keep this editor draft')!==false,'validation lost original editor/draft');
     nsCheck(strpos($response,'Доступно обновление базы')===false,'validation incorrectly offered a schema upgrade');
     nsCheck(count($news->allForOwner())===1,'rejected front-controller POST created news');
