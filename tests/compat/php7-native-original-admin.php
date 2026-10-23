@@ -23,6 +23,7 @@ foreach(array('dashboard','players','levels','rating','songs','comments','messag
  $_GET=array('page'=>$page,'id'=>1);ob_start();require $root.'/compat/php7/admin-view.php';$html=ob_get_clean();
  if(strpos($html,'GDPS Administration')===false||strpos($html,'/mc/public/admin/admin-simple.css')===false||strpos($html,'/mc/public/admin/assets/gd/')===false)throw new RuntimeException('Original shell/assets absent: '.$page);
  if(preg_match('~<[^>]+\sstyle=~',$html))throw new RuntimeException('Unnonced layout attribute: '.$page);
+ foreach(array('admin-simple.js','php7-admin-product.js') as $asset){if(substr_count($html,$asset)!==1)throw new RuntimeException('Duplicate or missing behavior script: '.$page.' '.$asset);}
  if($page==='players'&&strpos($html,'admin-record')===false)throw new RuntimeException('Original player record absent');
  if($page==='levels'&&strpos($html,'&lt;script&gt;alert(1)&lt;/script&gt;')===false)throw new RuntimeException('Level XSS escaping failed');
  if($page==='rating'&&strpos($html,'difficultyFacePreview')===false)throw new RuntimeException('Original rating editor absent');
@@ -30,6 +31,7 @@ foreach(array('dashboard','players','levels','rating','songs','comments','messag
  echo 'ORIGINAL_ADMIN_RENDER_OK '.$page."\n";
 }
 $page='players';$_GET=array('ui'=>'plain','q'=>'Owner');ob_start();require $root.'/compat/php7/admin-view.php';$plain=ob_get_clean();if(substr_count(strtolower($plain),'<!doctype')!==1||strpos($plain,'rel="stylesheet"')!==false)throw new RuntimeException('Plain document regression');
+foreach(array('admin-simple.js','php7-admin-product.js') as $asset){if(substr_count($plain,$asset)!==1)throw new RuntimeException('Duplicate or missing Plain behavior script: '.$asset);}
 preg_match_all('~<a\\b[^>]*>~',$plain,$links);
 foreach($links[0] as $link){
  if(strpos($link,'data-styled-admin')!==false){if(strpos($link,'ui=plain')!==false)throw new RuntimeException('Styled switch retained Plain mode');continue;}
