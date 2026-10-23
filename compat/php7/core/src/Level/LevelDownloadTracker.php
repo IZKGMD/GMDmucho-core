@@ -15,6 +15,9 @@ final class LevelDownloadTracker
     }
     public function record(int $levelId, string $clientIp): bool
     {
+        if (\mucho7_domain_read_only()) {
+            return false;
+        }
         $clientIp = trim($clientIp);
         if ($levelId <= 0 || filter_var($clientIp, FILTER_VALIDATE_IP) === false) {
             return false;

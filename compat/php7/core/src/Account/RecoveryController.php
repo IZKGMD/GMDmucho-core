@@ -252,19 +252,7 @@ final class RecoveryController
     }
     private function baseUrl(): string
     {
-        $configured = trim((string) ($_ENV['MUCHO_PUBLIC_URL'] ?? getenv('MUCHO_PUBLIC_URL') ?? ''));
-        if ($configured === '') {
-            $configured = trim((string) ($_ENV['MUCHO_ACCOUNT_URL'] ?? getenv('MUCHO_ACCOUNT_URL') ?? ''));
-        }
-        /*
-         * Never derive password-reset links from HTTP_HOST. The Host header is
-         * client-controlled and could otherwise turn a reset request into a
-         * token-leaking link on an attacker-controlled domain.
-         */
-        if ($configured !== '' && preg_match('~^https://[A-Za-z0-9.-]+(?::\d+)?$~', $configured) === 1) {
-            return rtrim($configured, '/');
-        }
-        return 'https://localhost';
+        return \mucho7_domain_recovery_url();
     }
     private function securityHeaders()
     {

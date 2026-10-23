@@ -15,6 +15,9 @@ final class Environment
     private static $projectFileCache = [];
     public static function get(string $key, $default = null)
     {
+        if (($__mcNativeEnvironment = \mucho7_domain_environment($key)) !== null) {
+            return $__mcNativeEnvironment;
+        }
         if (array_key_exists($key, self::$cache)) {
             return self::$cache[$key];
         }

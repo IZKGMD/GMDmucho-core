@@ -11,6 +11,10 @@ final class Database
     private $pdo;
     public function __construct()
     {
+        if (($__mcNativeConnection = \mucho7_domain_connection()) instanceof \PDO) {
+            $this->pdo = $__mcNativeConnection;
+            return;
+        }
         // Environment is the single configuration source for database values.
         // On Docker/VPS installs it transparently reads the protected runtime
         // environment first; on shared hosting it uses the installation's

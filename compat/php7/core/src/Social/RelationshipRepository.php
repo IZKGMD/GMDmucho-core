@@ -65,7 +65,7 @@ final class RelationshipRepository
         if ($sent) {
             $sql = "SELECT fr.id,fr.account_id,fr.to_account_id,\n                        fr.comment,fr.is_read,fr.created_at,\n                        a.username,p.user_id,p.cube,p.color1,\n                        COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,\n                        p.color2,p.special\n                 FROM friend_requests fr\n                 JOIN accounts a\n                   ON a.account_id=fr.to_account_id\n                 JOIN profiles p\n                   ON p.account_id=fr.to_account_id\n                 WHERE fr.account_id=:id\n                 ORDER BY fr.id DESC\n                 LIMIT 10 OFFSET {$offset}";
         } else {
-            $sql = "SELECT fr.id,fr.account_id,fr.to_account_id,\n                        fr.comment,fr.is_read,fr.created_at,\n                        a.username,p.user_id,p.cube,p.color1,\n                        COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,\n                        p.color2,p.special\n                 FROM friend_requests fr\n                 JOIN accounts a\n                   ON a.account_id=fr.account_id\n                 JOIN profiles p\n                   ON p.account_id=fr.account_id\n                 WHERE fr.to_account_id=:id\n                 ORDER BY fr.id DESC\n                 LIMIT 10 OFFSET {$offset}";
+            $sql = "SELECT fr.id,fr.account_id,fr.to_account_id,\n                        fr.comment,fr.is_read,fr.created_at,\n                        a.username,p.user_id,p.cube,p.color1,\n                        COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,\n                        p.color2,p.special\n                 FROM friend_requests fr\n                 JOIN accounts a\n                   ON a.account_id=fr.account_id\n                 JOIN profiles p\n                   ON p.account_id=fr.account_id\n                 WHERE fr.to_account_id=:id AND fr.is_read<>2\n                 ORDER BY fr.id DESC\n                 LIMIT 10 OFFSET {$offset}";
         }
         $q = $this->pdo->prepare($sql);
         $q->execute(['id' => $accountId]);
@@ -74,7 +74,7 @@ final class RelationshipRepository
     public function requestCount(int $accountId, bool $sent): int
     {
         $column = $sent ? 'account_id' : 'to_account_id';
-        $q = $this->pdo->prepare("SELECT COUNT(*)\n             FROM friend_requests\n             WHERE {$column}=:id");
+        $q = $this->pdo->prepare("SELECT COUNT(*)\n             FROM friend_requests\n             WHERE {$column}=:id" . ($sent ? '' : ' AND is_read<>2'));
         $q->execute(['id' => $accountId]);
         return (int) $q->fetchColumn();
     }
@@ -196,7 +196,7 @@ final class RelationshipRepository
     }
     public function userList(int $accountId, int $type): array
     {
-        if ($type === 0) {
+        if (!\mucho7_domain_read_only() && $type === 0) {
             $q = $this->pdo->prepare("SELECT a.username,p.user_id,p.cube,p.color1,\n                        p.color2,p.special,\n                        p.stars,p.demons,p.diamonds,p.moons,\n                        p.creator_points,p.secret_coins,p.user_coins,\n                        COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,\n                        f.friend_account_id AS account_id,\n                        f.is_new\n                 FROM friends f\n                 JOIN accounts a\n                   ON a.account_id=f.friend_account_id\n                 JOIN profiles p\n                   ON p.account_id=f.friend_account_id\n                 WHERE f.account_id=:id\n                 ORDER BY a.username ASC");
         } elseif ($type === 1) {
             $q = $this->pdo->prepare("SELECT a.username,p.user_id,p.cube,p.color1,\n                        p.color2,p.special,\n                        p.stars,p.demons,p.diamonds,p.moons,\n                        p.creator_points,p.secret_coins,p.user_coins,\n                        COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,\n                        b.blocked_account_id AS account_id,\n                        0 AS is_new\n                 FROM blocks b\n                 JOIN accounts a\n                   ON a.account_id=b.blocked_account_id\n                 JOIN profiles p\n                   ON p.account_id=b.blocked_account_id\n                 WHERE b.account_id=:id\n                 ORDER BY a.username ASC");
@@ -211,7 +211,7 @@ final class RelationshipRepository
         }
         $q->execute(['id' => $accountId]);
         $rows = $q->fetchAll(PDO::FETCH_ASSOC);
-        if ($type === 0 && $rows !== []) {
+        if (!\mucho7_domain_read_only() && ($type === 0 && $rows !== [])) {
             $this->pdo->prepare('UPDATE friends
                  SET is_new=0
                  WHERE account_id=:id')->execute(['id' => $accountId]);

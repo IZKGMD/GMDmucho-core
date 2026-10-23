@@ -1,7 +1,7 @@
 <?php
 /** Native shared-host operations for the original Database Backup Center. */
 declare(strict_types=1);
-require_once __DIR__.'/admin-ui/DatabaseBackupService.php';
+if(!class_exists('MuchoCore\\Backup\\DatabaseBackupService',false))require_once __DIR__.'/admin-ui/DatabaseBackupService.php';
 require_once __DIR__.'/admin-ui/dbbackups.php';
 function mucho7_admin_contains($haystack,$needle){return $needle===''||strpos($haystack,$needle)!==false;}
 function muchodbSharedHosting(){return true;}

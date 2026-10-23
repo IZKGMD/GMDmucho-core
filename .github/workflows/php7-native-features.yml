@@ -41,6 +41,8 @@ jobs:
           php tests/compat/php7-native-features-pure.php
           php tests/compat/php7-compiled-domain-pure.php
           php tests/compat/php7-aead-compat.php
+          php tests/compat/php7-core-pack.php
+          php tests/compat/php7-content-proxy.php
       - name: Check real database behavior on native and modern PHP
         env:
           TEST_DB_ROOT_PASSWORD: native-ci-only
@@ -54,6 +56,7 @@ jobs:
           php -d memory_limit=128M tests/compat/php7-native-admin-registry.php --mysql
           php -d memory_limit=128M tests/compat/php7-native-news-security.php --mysql
           php -d memory_limit=128M tests/compat/php7-original-schema-upgrade.php
+          php -d memory_limit=128M tests/compat/php7-original-schema-upgrade.php --legacy
       - name: Exercise compiled original core features on PHP7 and modern PHP
         env:
           TEST_DB_ROOT_PASSWORD: native-ci-only

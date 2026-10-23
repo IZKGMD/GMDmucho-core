@@ -44,16 +44,25 @@ for name in ['dashboard.php','players.php','levels-moderation.php','songs.php','
         source=source.replace('/api/muchocore/news','/admin/?news_feed=1')
         source=source.replace('<input type="hidden" name="action"', '<input type="hidden" name="news_version" value="<?=h($newsService->nativeVersion())?>"><input type="hidden" name="action"')
     record('public/admin/pages/'+name,name,source)
-# Preserve the original table-page markup; only map native storage names.
-comments=index[index.index("elseif($page==='comments') {")+len("elseif($page==='comments') {"):index.index('/* =========================================================\n   MESSAGES')].rstrip()
-comments=comments[:comments.rfind('}')]
-comments=comments.replace("'comments'=>'Level comments'", "'php7_comments'=>'Level comments'").replace("'account_comments'=>'Profile comments'", "'php7_account_comments'=>'Profile comments'")
-comments=comments.replace("if (!tableExists($db,$table)) continue;", "$kind=$table==='php7_comments'?1:0; if (!tableExists($db,'php7_comments')) continue;")
-comments=comments.replace('SELECT * FROM `$table`', 'SELECT * FROM php7_comments WHERE kind=$kind')
-record('public/admin/index.php','comments.php','<?php\n'+lower(comments))
-messages=index[index.index("elseif($page==='messages') {")+len("elseif($page==='messages') {"):index.index('/* =========================================================\n   SOCIAL')].rstrip()
-messages=messages[:messages.rfind('}')].replace("tableExists($db,'messages')", "tableExists($db,'php7_messages')").replace('FROM messages m','FROM php7_messages m')
-record('public/admin/index.php','messages.php','<?php\n'+lower(messages))
+# Preserve original table markup and select the active storage after cutover.
+def original_table_page(page,next_marker):
+    start=index.index("elseif($page==='"+page+"') {")+len("elseif($page==='"+page+"') {")
+    end=index.index('/* =========================================================\n   '+next_marker,start)
+    body=index[start:end].rstrip()
+    return body[:body.rfind('}')]
+comments=original_table_page('comments','MESSAGES')
+legacy_comments=comments.replace("'comments'=>'Level comments'", "'php7_comments'=>'Level comments'").replace("'account_comments'=>'Profile comments'", "'php7_account_comments'=>'Profile comments'")
+legacy_comments=legacy_comments.replace("if (!tableExists($db,$table)) continue;", "$kind=$table==='php7_comments'?'=1':' IN (0,2)'; if (!tableExists($db,'php7_comments')) continue;")
+legacy_comments=legacy_comments.replace('SELECT * FROM `$table`', 'SELECT * FROM php7_comments WHERE kind$kind')
+record('public/admin/index.php','comments.php',"<?php\nif(is_file($root.'/config/php7-complete.on')){\n"+lower(comments)+"\n}else{\n"+lower(legacy_comments)+"\n}\n")
+messages=original_table_page('messages','SOCIAL')
+legacy_messages=messages.replace("tableExists($db,'messages')", "tableExists($db,'php7_messages')").replace('FROM messages m','FROM php7_messages m')
+record('public/admin/index.php','messages.php',"<?php\nif(is_file($root.'/config/php7-complete.on')){\n"+lower(messages)+"\n}else{\n"+lower(legacy_messages)+"\n}\n")
+record('public/admin/index.php','social.php','<?php\n'+lower(original_table_page('social','SONGS')))
+analytics=index[index.index("elseif($page==='analytics') {")+len("elseif($page==='analytics') {"):index.index("elseif($page==='advanced') {")].rstrip()
+record('public/admin/index.php','analytics.php','<?php\n'+lower(analytics[:analytics.rfind('}')]))
+for page,next_marker in [('database','ENDPOINT TESTER'),('endpoints','BACKUPS')]:
+    record('public/admin/index.php',page+'.php','<?php\n'+lower(original_table_page(page,next_marker)))
 audit=index[index.index("elseif($page==='audit') {")+len("elseif($page==='audit') {"):index.index('?>\n\n<?php adminFooter($branding)',index.index("elseif($page==='audit') {"))].rstrip()
 audit=audit[:audit.rfind('}')]
 audit=audit.replace('SELECT *\n     FROM admin_audit_logs\n     ORDER BY id DESC', "SELECT c.created_at,a.username,c.action,c.target_id AS target,NULL AS ip,c.details AS metadata FROM php7_admin_audit c LEFT JOIN accounts a ON a.account_id=c.account_id ORDER BY c.id DESC")

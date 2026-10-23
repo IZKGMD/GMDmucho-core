@@ -296,6 +296,7 @@ function mucho7_admin_backup(PDO $pdo, $aid)
     $tables=$pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
     if(array_diff(mucho7_admin_tables(),$tables)){throw new RuntimeException('Сначала обнови таблицы базы.');}
     $backupTables=array_merge(mucho7_admin_tables(),array_values(array_intersect(array('php7_admin_users','php7_admin_roles','php7_admin_role_permissions','php7_admin_registry_state','php7_admin_security','php7_admin_recovery_codes','mucho_news_posts','mucho_news_state','mucho_news_media','php7_friendships'),$tables)));
+    if(is_file(dirname(__DIR__,2).'/config/php7-complete.on'))$backupTables=$tables;
     mucho7_admin_audit($pdo,$aid,'database_export',0);
     header('Content-Type: application/sql; charset=utf-8');
     header('Content-Disposition: attachment; filename="MuchoCore-shared-'.gmdate('Ymd-His').'.sql"');

@@ -17,11 +17,16 @@ header('Referrer-Policy: no-referrer');
 $adminNonce=base64_encode(random_bytes(18));
 header("Content-Security-Policy: default-src 'none'; style-src 'self' 'nonce-".$adminNonce."'; script-src 'self' 'nonce-".$adminNonce."'; connect-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
 $root=dirname(__DIR__);
+$script=isset($_SERVER['SCRIPT_NAME'])?$_SERVER['SCRIPT_NAME']:'/public/php7-admin.php';
+$publicBase=rtrim(str_replace('\\','/',dirname($script)),'/.');
+if(substr($script,-10)==='/admin.php')$publicBase.='/public';
+define('ROOT_DIR',$root);define('CONTROL_DIR',$root.'/config');
 require_once $root.'/compat/php7/bootstrap.php';
 if(!mucho7_https()) {http_response_code(403);echo 'Открой панель по HTTPS.';exit;}
 foreach(array('runtime','schema','auth','news','admin') as $module){require_once $root.'/compat/php7/'.$module.'.php';}
 require_once $root.'/compat/php7/admin-ui/actions.php';
 require_once $root.'/compat/php7/admin-ui/bridge.php';
+require_once $root.'/compat/php7/core-update.php';
 session_name('muchocore7_admin_'.substr(hash('sha256',$root),0,12));
 ini_set('session.cookie_httponly','1');ini_set('session.cookie_secure','1');
 ini_set('session.use_strict_mode','1');ini_set('session.cookie_samesite','Strict');
@@ -34,7 +39,7 @@ $error='';$notice=isset($_SESSION['notice'])?$_SESSION['notice']:'';unset($_SESS
 $user=null;$pdo=null;$settings=array();$hasOwner=true;$schemaReady=false;$freshInstall=false;
 $page=isset($_GET['page']) && is_string($_GET['page'])?$_GET['page']:'overview';
 if($page==='diagnostics')$page='system';
-if(!in_array($page,array('overview','dashboard','players','levels','rating','moderation','comments','messages','songs','news','settings','system','audit','dbbackups','admins','roles'),true)){$page='dashboard';}
+if(!in_array($page,array('overview','dashboard','players','levels','rating','moderation','comments','messages','songs','news','settings','system','audit','dbbackups','admins','roles','clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','securitycenter','monitoring'),true)){$page='dashboard';}
 $method=isset($_SERVER['REQUEST_METHOD'])?strtoupper((string)$_SERVER['REQUEST_METHOD']):'GET';
 try {
     if(!is_file($root.'/config/php7-local.php')){throw new RuntimeException('Сначала настрой подключение в config/php7-local.php или выполни php7-setup.php.');}
@@ -115,6 +120,14 @@ try {
         if($action==='logout') {
             $_SESSION=array();session_regenerate_id(true);header('Location: ?',true,303);exit;
         }
+        if($action==='core-upgrade'||$action==='core-install'){
+            $progress=$action==='core-install'?mucho7_core_deploy($pdo,(int)$user['account_id'],$root):mucho7_core_upgrade($pdo,(int)$user['account_id'],$root,$settings);
+            $_SESSION['notice']=$progress['message'];
+            if(!$progress['done'])$_SESSION['core_upgrade_continue']=$progress['delay'];
+            header('Location: ?page=system',true,303);exit;
+        }
+        $runtimeLock=mucho7_core_lock($root,false);
+        if(is_file($root.'/config/php7-core-transition.json'))throw new RuntimeException('Идёт перенос ядра. Изменения доступны после его завершения.');
         if($action==='backup'){mucho7_admin_clean_response();mucho7_admin_backup($pdo,(int)$user['account_id']);exit;}
         if($action==='dbbackup-download'){
             require_once $root.'/compat/php7/admin-backups.php';
@@ -124,6 +137,7 @@ try {
         mucho7_admin_ui_action($pdo,(int)$user['account_id'],$action,$_POST,$root,$settings);
         $_SESSION['notice']=$action==='upgrade'?'База обновлена. Данные сохранены.':'Изменения сохранены.';
         $return=array('page'=>$page);
+        if($action==='endpoint-test')$return['page']='endpoints';
         foreach(array('q','filter','p') as $key){if(isset($_POST['return_'.$key]) && is_string($_POST['return_'.$key]))$return[$key]=substr($_POST['return_'.$key],0,128);}
         if($page==='rating' && isset($_POST['id']))$return['id']=(int)$_POST['id'];
         if(isset($_GET['ui']) && $_GET['ui']==='plain')$return['ui']='plain';
@@ -131,9 +145,10 @@ try {
         }
     }
 } catch(PDOException $e){
+    unset($_SESSION['core_upgrade_continue']);
     $error='Не удалось выполнить запрос к базе. Проверь подключение и обнови схему базы в панели.';
     error_log('[MuchoCore Shared admin] Database operation failed');
-} catch(Exception $e){$error=$e->getMessage();}
+} catch(Exception $e){unset($_SESSION['core_upgrade_continue']);$error=$e->getMessage();}
 if(!empty($setupMode)){
     $script=isset($_SERVER['SCRIPT_NAME'])?(string)$_SERVER['SCRIPT_NAME']:'/mc/admin.php';$publicBase='';
     $row=$pdo&&!$setupSuccess?mucho7_admin_setup_row($pdo,$setupToken):null;

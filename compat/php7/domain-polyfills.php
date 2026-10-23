@@ -104,3 +104,8 @@ function mucho7_openssl_decrypt($encrypted,$method,$key,$options=0,$nonce='',$ta
         return $cipher->decrypt($encrypted);
     }catch(\phpseclib3\Exception\BadDecryptionException $error){return false;}
 }
+
+// PHP 7.0 lacks hrtime(); profiling uses a nondecreasing wall-clock fallback.
+if(!function_exists('hrtime')){
+    function hrtime($asNumber=false){static $last=0;$now=(int)round(microtime(true)*1000000000);$last=max($last,$now);return $asNumber?$last:array(intdiv($last,1000000000),$last%1000000000);}
+}

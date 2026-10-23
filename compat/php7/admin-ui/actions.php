@@ -2,6 +2,36 @@
 /** Bind the original admin form contracts to native shared transactions. */
 declare(strict_types=1);
 function mucho7_admin_ui_action(PDO $pdo,$aid,$action,$data,$root,$settings){
+    if(in_array($action,array('clan-save','clan-role','clan-kick','clan-transfer','clan-delete','gauntlet-save','gauntlet-delete','mappack-save','mappack-delete','muchoprofile-save','muchoprofile-token','relation-delete'),true)){
+        if(!is_file($root.'/config/php7-complete.on'))throw new RuntimeException('Сначала заверши перенос ядра.');
+        require_once $root.'/compat/php7/domain.php';mucho7_domain_configure($settings,$root,$pdo);
+        $module=strpos($action,'clan-')===0?'clans':(strpos($action,'muchoprofile-')===0?'profiles':($action==='relation-delete'?'social':'contentpacks'));
+        $db=$pdo;require mucho7_compiled_include($root.'/public/admin/actions/'.$module.'.php');return;
+    }
+    if($action==='comment-delete'&&is_file($root.'/config/php7-complete.on')){
+        $actor=mucho7_admin_user($pdo,$aid);if(!mucho7_admin_can($pdo,$actor,'comments.manage'))throw new RuntimeException('Нет прав на это действие.');
+        $table=isset($data['table'])&&is_string($data['table'])?$data['table']:'';
+        if(!in_array($table,array('comments','account_comments'),true))throw new RuntimeException('Неверный тип комментария.');
+        $id=mucho7_number(isset($data['id'])?$data['id']:0,0,2147483647);if(!$id)throw new RuntimeException('Неверный ID.');
+        $pdo->beginTransaction();try{$pdo->prepare('DELETE FROM '.$table.' WHERE id=?')->execute(array($id));mucho7_admin_audit($pdo,$aid,$action,$id,$table);$pdo->commit();}catch(Exception $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}return;
+    }
+    if($action==='endpoint-test'){
+        requirePermission('tools.endpoint_test');
+        if(!is_file($root.'/config/php7-complete.on'))throw new RuntimeException('Сначала заверши перенос ядра.');
+        $endpoint=isset($data['endpoint'])&&is_string($data['endpoint'])?trim($data['endpoint']):'';
+        $payload=isset($data['payload'])&&is_string($data['payload'])?$data['payload']:'';
+        if(!preg_match('~^/[A-Za-z0-9_/-]+(?:\.php)?$~D',$endpoint)||strlen($payload)>32768)throw new RuntimeException('Неверный адрес или слишком большой запрос.');
+        parse_str($payload,$post);require_once $root.'/compat/php7/domain.php';
+        $previous=$_POST;$_POST=$post;
+        try{$response=mucho7_domain_handle($pdo,$endpoint,'POST',$post,$settings,$root);$_SESSION['endpoint_result']=substr($response->body,0,65536);}finally{$_POST=$previous;}
+        mucho7_admin_audit($pdo,$aid,$action,0,$endpoint);return;
+    }
+    if(in_array($action,array('clientflag-save','clientrelease-save','monitor-alert-resolve','monitor-alert-resolve-all','monitor-cleanup','monitor-release-rollback'),true)){
+        $client=strpos($action,'client')===0;requirePermission($client?'client.manage':'settings.manage');
+        if(!is_file($root.'/config/php7-complete.on'))throw new RuntimeException('Сначала заверши перенос ядра.');
+        require_once $root.'/compat/php7/domain.php';mucho7_domain_configure($settings,$root,$pdo);$db=$pdo;
+        require mucho7_compiled_include($root.'/public/admin/'.($client?'client-features-module':'security-monitoring-module').'.php');return;
+    }
     if($action==='dbbackup-create'){
         require_once __DIR__.'/../admin-backups.php';
         mucho7_admin_backup_action($pdo,$aid,$action,$data);return;
@@ -41,7 +71,7 @@ function mucho7_admin_ui_action(PDO $pdo,$aid,$action,$data,$root,$settings){
     if($action==='message-delete'){
         $user=mucho7_admin_user($pdo,$aid);if(!mucho7_admin_can($pdo,$user,$action==='message-delete'?'messages.manage':($action==='music-upload'?'music.manage':'settings.manage')))throw new RuntimeException('Нет прав на это действие.');
         $id=mucho7_number(isset($data['id'])?$data['id']:0,1,2147483647);
-        $pdo->beginTransaction();try{$pdo->prepare('DELETE FROM php7_messages WHERE id=?')->execute(array($id));mucho7_admin_audit($pdo,$aid,$action,$id);$pdo->commit();}catch(Exception $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}return;
+        $pdo->beginTransaction();try{$pdo->prepare('DELETE FROM '.(is_file($root.'/config/php7-complete.on')?'messages':'php7_messages').' WHERE id=?')->execute(array($id));mucho7_admin_audit($pdo,$aid,$action,$id);$pdo->commit();}catch(Exception $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}return;
     }
     if($action==='comment-delete')$action='delete_comment';
     if($action==='account-save'){

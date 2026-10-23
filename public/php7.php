@@ -1,9 +1,10 @@
 <?php
 /**
  * Native PHP 7 shared runtime; no forwarding to a VPS.
- * Does NOT include modern PHP8 MuchoCore classes or Composer dependencies.
+ * Uses compiled original domains after the owner completes the data upgrade.
  */
 declare(strict_types=1);
+ob_start();
 header('Content-Type: text/plain; charset=utf-8');
 header('Cache-Control: no-store, private');
 header('X-Content-Type-Options: nosniff');
@@ -28,11 +29,17 @@ if (!$https) {
 $method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper((string)$_SERVER['REQUEST_METHOD']) : 'GET';
 require_once $root . '/compat/php7/runtime.php';
 require_once $root . '/compat/php7/bootstrap.php';
+require_once $root . '/compat/php7/core-update.php';
+try {
+    $runtimeLock=mucho7_core_lock($root,false);
+    if(is_file($root.'/config/php7-core-transition.json'))throw new RuntimeException('Core transition in progress.');
+} catch(Exception $e){http_response_code(503);header('Retry-After: 10');echo '-1';exit;}
 $uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
 $uri = mucho7_mount_uri($uri, isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '');
 // URL-encoded binary saves can expand to three times their decoded size.
-$requestLimit = preg_match('~^/(?:backupgjaccount|uploadgjlevel)(?:19|20|21|22)?$~D', mucho7_path($uri))
+$requestLimit = preg_match('~^/(?:backupgjaccount|uploadgjlevel)(?:new|19|20|21|211|22)?$~D', mucho7_path($uri))
     ? 24*1024*1024+8192 : 262144;
+if(preg_match('~^/(?:(?:api/)?profile/upload|uploadgjeditorsound)(?:19|20|21|211|22)?$~D',mucho7_path($uri)))$requestLimit=18*1024*1024;
 if (($method !== 'POST' && $method !== 'GET' && $method !== 'HEAD')
     || (isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH'] > $requestLimit)) {
     http_response_code(413);
@@ -54,6 +61,7 @@ require_once $root . '/compat/php7/levels.php';
 
 try {
     $settings = require $root . '/config/php7-local.php';
+    if(ob_get_length()>0)ob_clean();
     if (!is_array($settings)) {
         throw new RuntimeException('No configuration');
     }
@@ -81,6 +89,10 @@ try {
         if(!$newsSql){http_response_code(404);exit;}
         $file=isset($imageMatch[1])?$imageMatch[1]:(isset($_GET['file']) && is_string($_GET['file'])?$_GET['file']:'');
         \MuchoCore\News\NewsImageResponse::send(mucho7_connect($settings),$file);
+    }
+    if(strpos($path,'/gd-content/')===0&&!in_array($path,array('/gd-content/news/news.dat','/gd-content/news/news_version.txt'),true)){
+        if(empty($settings['enable_native_news'])){http_response_code(404);exit;}
+        require_once $root.'/compat/php7/content-proxy.php';mucho7_content_send($uri,$method,$_SERVER);
     }
     if($method==='HEAD'){http_response_code(405);header('Allow: GET, POST');exit;}
 
@@ -123,6 +135,15 @@ try {
         )
     );
     $pdo->exec("SET time_zone='+00:00'");
+    if(is_file($root.'/config/php7-complete.on')){
+        require_once $root.'/compat/php7/domain.php';
+        if(!mucho7_domain_complete($pdo))throw new RuntimeException('Core data upgrade incomplete.');
+        if($path==='/lostusername'){
+            if(empty($settings['enable_accounts'])||empty($settings['enable_writes'])){http_response_code(503);echo '-1';exit;}
+            header('Content-Type: text/html; charset=utf-8');echo mucho7_domain_recovery($pdo,$settings,$root);exit;
+        }
+        mucho7_domain_handle($pdo,$uri,$method,$_POST,$settings,$root)->send();
+    }
     echo mucho7_dispatch($pdo, $uri, $method, $_POST, $options);
 } catch (Exception $exception) {
     // A public API must never disclose the DB name, password or SQL statement.

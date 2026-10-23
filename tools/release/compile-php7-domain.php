@@ -120,6 +120,27 @@ final class MuchoPhp70Lowering extends PhpParser\NodeVisitorAbstract
                         new Stmt\Expression(new Expr\Assign(clone $param->var, $value))]]));
             }
         }
+        if($this->relativeFile==='src/Core/Environment.php' && $node instanceof Stmt\ClassMethod && $node->name->name==='get'){
+            $native=new Expr\Variable('__mcNativeEnvironment');
+            array_unshift($node->stmts,new Stmt\If_(new Expr\BinaryOp\NotIdentical(
+                new Expr\Assign($native,new Expr\FuncCall(new Node\Name\FullyQualified('mucho7_domain_environment'),[new Node\Arg(new Expr\Variable('key'))])),
+                new Expr\ConstFetch(new Node\Name('null'))),['stmts'=>[new Stmt\Return_(clone $native)]]));
+        }
+        if($this->relativeFile==='src/Account/RecoveryController.php' && $node instanceof Stmt\ClassMethod && $node->name->name==='baseUrl'){
+            $node->stmts=[new Stmt\Return_(new Expr\FuncCall(new Node\Name\FullyQualified('mucho7_domain_recovery_url')))];
+        }
+        if($this->relativeFile==='src/Database/Database.php' && $node instanceof Stmt\ClassMethod && $node->name->name==='__construct'){
+            $native=new Expr\Variable('__mcNativeConnection');
+            array_unshift($node->stmts,new Stmt\If_(new Expr\Instanceof_(new Expr\Assign($native,new Expr\FuncCall(new Node\Name\FullyQualified('mucho7_domain_connection'))),new Node\Name\FullyQualified('PDO')),['stmts'=>[
+                new Stmt\Expression(new Expr\Assign(new Expr\PropertyFetch(new Expr\Variable('this'),'pdo'),clone $native)),new Stmt\Return_()]]));
+        }
+        if($this->relativeFile==='src/Level/LevelDownloadTracker.php' && $node instanceof Stmt\ClassMethod && $node->name->name==='record'){
+            array_unshift($node->stmts,new Stmt\If_(new Expr\FuncCall(new Node\Name\FullyQualified('mucho7_domain_read_only')),['stmts'=>[new Stmt\Return_(new Expr\ConstFetch(new Node\Name('false')))]]));
+        }
+        if($node instanceof Stmt\If_ && (($this->relativeFile==='src/Social/MessageRepository.php' && str_contains((new PhpParser\PrettyPrinter\Standard())->prettyPrintExpr($node->cond),'is_read'))
+            || ($this->relativeFile==='src/Social/RelationshipRepository.php' && str_contains((new PhpParser\PrettyPrinter\Standard())->prettyPrintExpr($node->cond),'$type === 0')))){
+            $node->cond=new Expr\BinaryOp\BooleanAnd(new Expr\BooleanNot(new Expr\FuncCall(new Node\Name\FullyQualified('mucho7_domain_read_only'))),$node->cond);
+        }
         if ($node instanceof Stmt\Catch_ && $node->var === null) $node->var = new Expr\Variable('__mcCaught');
     }
 
@@ -238,6 +259,7 @@ final class MuchoPhp70Lowering extends PhpParser\NodeVisitorAbstract
             && $node->name instanceof Node\Name && in_array(strtolower($node->name->toString()),['openssl_encrypt','openssl_decrypt'],true)) {
             $node->name = new Node\Name\FullyQualified('mucho7_'.$node->name->toString());
         }
+        if(str_starts_with($this->relativeFile,'public/admin/') && $node instanceof Expr\FuncCall && $node->name instanceof Node\Name && strtolower($node->name->toString())==='header')$node->name=new Node\Name\FullyQualified('mucho7_admin_header');
         if ($node instanceof Expr\Include_) {
             $node->expr = new Expr\FuncCall(new Node\Name\FullyQualified('mucho7_compiled_include'), [new Node\Arg($node->expr)]);
         }
@@ -261,6 +283,10 @@ foreach (['src','database/migrations'] as $sourceDirectory) {
     }
 }
 sort($files);
+$files[]=$root.'/config/mucho_v71.php';
+foreach(['clans','contentpacks','plugins','muchoprofiles','intelligence'] as $page)$files[]=$root.'/public/admin/pages/'.$page.'.php';
+foreach(['clans','contentpacks','profiles','social'] as $action)$files[]=$root.'/public/admin/actions/'.$action.'.php';
+foreach(['client-features-module','security-monitoring-module'] as $module)$files[]=$root.'/public/admin/'.$module.'.php';
 $integrationTests=['admin-clans-integration','clan-client-integration','gd2209-gameplay-schema-integration',
     'gd2209-social-integration','gd2209-thread-integration','gd2209-level-integration',
     'gd2209-moderation-queue-integration','gd2209-report-queue-integration','gd2209-case-actions-integration',
@@ -293,6 +319,12 @@ foreach ($files as $file) {
         }
         $traverser = new PhpParser\NodeTraverser(new MuchoPhp70Lowering($relative, $signatures));
         $tree = $traverser->traverse($tree);
+        if(str_starts_with($relative,'public/admin/actions/')){
+            $tree=array_values(array_filter($tree,static function($statement){
+                return !($statement instanceof Stmt\Expression && ($statement->expr instanceof Expr\Exit_
+                    || ($statement->expr instanceof Expr\FuncCall && $statement->expr->name instanceof Node\Name && in_array(strtolower($statement->expr->name->toString()),['header','mucho7_admin_header'],true))));
+            }));
+        }
         if(str_starts_with($relative,'tests/')){
             $bootstrap=new Stmt\Expression(new Expr\Include_(new Expr\BinaryOp\Concat(
                 new Expr\FuncCall(new Node\Name('dirname'),[new Node\Arg(new Node\Scalar\MagicConst\Dir()),new Node\Arg(new Node\Scalar\Int_(count(explode('/',$relative))))]),
@@ -311,5 +343,5 @@ foreach ($files as $file) {
 }
 if ($failures) { fwrite(STDERR, implode("\n", $failures)."\n"); exit(1); }
 file_put_contents($destination.'/sources.json', json_encode($manifest, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)."\n");
-file_put_contents($destination.'/autoload.php', "<?php\nrequire_once dirname(__DIR__).'/domain.php';\nreturn true;\n");
+file_put_contents($destination.'/autoload.php', "<?php\nrequire_once MUCHO7_PROJECT_ROOT.'/compat/php7/domain.php';\nreturn true;\n");
 echo 'PHP7_DOMAIN_COMPILED '.count($manifest)." original sources\n";

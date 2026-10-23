@@ -1,3 +1,3 @@
 <?php
-require_once dirname(__DIR__).'/domain.php';
+require_once MUCHO7_PROJECT_ROOT.'/compat/php7/domain.php';
 return true;

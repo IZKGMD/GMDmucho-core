@@ -44,7 +44,18 @@ if(adminIsPlain())require __DIR__.'/admin-ui/plain-shell.php';else{
     require __DIR__.'/admin-ui/styled-shell.php';
 }
 if($schemaReady && canAdminPage($page)){
-    if($page==='dashboard'){require_once __DIR__.'/admin-ui/dashboard.php';renderAdminDashboard($db);}
+    if($page==='system')mucho7_core_render($db,$root);
+    if(in_array($page,array('clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','securitycenter','monitoring'),true)){
+        if(!is_file($root.'/config/php7-complete.on')){echo '<p>Сначала заверши перенос полного ядра в разделе «Сервер».</p>';}
+        else{require_once $root.'/compat/php7/domain.php';mucho7_domain_configure($settings,$root,$db);
+            if(in_array($page,array('social','analytics','database','endpoints'),true))require __DIR__.'/admin-ui/'.$page.'.php';
+            elseif($page==='intelligence'){require mucho7_compiled_include($root.'/public/admin/pages/intelligence.php');renderIntelligenceScalePage($db);}
+            elseif($page==='clientfeatures'){require mucho7_compiled_include($root.'/public/admin/client-features-module.php');renderClientFeaturesPage($db);}
+            elseif($page==='securitycenter'||$page==='monitoring'){require mucho7_compiled_include($root.'/public/admin/security-monitoring-module.php');renderSecurityMonitoringPage($db);}
+            else{require mucho7_compiled_include($root.'/public/admin/pages/'.$page.'.php');if($page==='plugins')renderCustomPluginsPage($db);}
+        }
+    }
+    elseif($page==='dashboard'){require_once __DIR__.'/admin-ui/dashboard.php';renderAdminDashboard($db);}
     elseif($page==='players')require __DIR__.'/admin-ui/players.php';
     elseif($page==='levels'||$page==='moderation')require __DIR__.'/admin-ui/levels-moderation.php';
     elseif($page==='rating')require __DIR__.'/admin-ui/rating.php';

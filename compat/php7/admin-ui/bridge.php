@@ -7,7 +7,7 @@ function admin(){return $GLOBALS['user'];}
 function adminIsPlain(){return (isset($_GET['ui']) && $_GET['ui']==='plain') || (isset($_POST['ui']) && $_POST['ui']==='plain');}
 function canAdminPage($page){
     $user=admin();if(!$user)return false;
-    $pages=array('dashboard','players','levels','comments','messages','rating','moderation','songs','news','settings','system','audit','dbbackups','admins','roles');
+    $pages=array('dashboard','players','levels','comments','messages','rating','moderation','songs','news','settings','system','audit','dbbackups','admins','roles','clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','securitycenter','monitoring');
     if(!in_array($page,$pages,true))return false;
     if(isset($GLOBALS['pdo']) && $GLOBALS['pdo'] instanceof PDO && mucho7_admin_registry_ready($GLOBALS['pdo'])){
         if($page==='news')return $user['role']==='owner';
@@ -36,14 +36,14 @@ function requireRank($rank){
 }
 function requirePermission($permission){if(!canPermission($permission))throw new RuntimeException('Insufficient permissions.');}
 function mucho7_admin_supported_permissions(){
-    $keys=array('dashboard.view','players.view','players.manage','players.password_reset','levels.view','levels.manage','levels.rate','moderation.manage','comments.manage','messages.manage','music.manage','backups.view','backups.download','settings.manage','system.manage','admins.manage','roles.manage','audit.view','self.security');
+    $keys=array('dashboard.view','players.view','players.manage','players.password_reset','levels.view','levels.manage','levels.rate','moderation.manage','comments.manage','messages.manage','music.manage','backups.view','backups.download','settings.manage','system.manage','admins.manage','roles.manage','audit.view','self.security','social.manage','contentpacks.manage','plugins.view','analytics.view','database.view','tools.endpoint_test','monitoring.view','client.manage','security.view');
     $all=\MuchoCore\Admin\AdminRbac::permissions();$result=array();foreach($keys as $key)$result[$key]=$all[$key];
     $result['moderation.manage']='View moderation queue';$result['system.manage']='View host diagnostics';$result['backups.download']='Create and download database backups';
     return $result;
 }
 function mucho7_admin_utf8_length($value,$encoding='UTF-8'){return function_exists('mb_strlen')?mb_strlen($value,$encoding):preg_match_all('/./us',$value,$unused);}
 function tableExists(PDO $db,$table){if($db->getAttribute(PDO::ATTR_DRIVER_NAME)==='sqlite'){$q=$db->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?");$q->execute(array($table));return (bool)$q->fetchColumn();}$q=$db->prepare('SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name=?');$q->execute(array($table));return (bool)$q->fetchColumn();}
-function countTable(PDO $db,$table){if(!in_array($table,array('accounts','levels','songs'),true))return 0;return (int)$db->query('SELECT COUNT(*) FROM '.$table)->fetchColumn();}
+function countTable(PDO $db,$table){if(!preg_match('/^[A-Za-z0-9_]+$/D',$table)||!tableExists($db,$table))return 0;return (int)$db->query('SELECT COUNT(*) FROM '.$table)->fetchColumn();}
 function mucho7_admin_difficulty($row){
     if(!empty($row['auto_level']))return 'auto';
     $value=(int)$row['difficulty'];if($value>=10)$value=(int)($value/10);
@@ -117,3 +117,10 @@ function mucho7_ui_trimwidth($value,$start,$width,$marker='',$encoding='UTF-8'){
     return implode('',array_slice($chars,$start,$width)).(count($chars)>$start+$width?$marker:'');
 }
 require_once __DIR__.'/../admin-registry.php';
+
+function audit(PDO $db,$action,$target='',$details=array()){mucho7_admin_audit($db,(int)admin()['account_id'],$action,(int)$target,json_encode($details));}
+function flash($text,$type='ok'){$_SESSION['notice']=(string)$text;if(in_array($type,array('err','error'),true))throw new RuntimeException((string)$text);}
+
+function checkCsrf(){if(!isset($_POST['csrf'])||!is_string($_POST['csrf'])||!hash_equals(csrf(),$_POST['csrf']))throw new RuntimeException('Форма устарела.');}
+function rank($role){$ranks=array('owner'=>40,'admin'=>30,'elder_moderator'=>20,'moderator'=>10,'viewer'=>0);return isset($ranks[$role])?$ranks[$role]:0;}
+function mucho7_admin_header($value){if(stripos($value,'Location:')===0)$value='Location: '.mucho7_admin_ui_url(trim(substr($value,9)));header($value);}
