@@ -49,6 +49,11 @@ try {
     if($user){$_SESSION['last_seen']=time();}
     if($user && $page==='admins')mucho7_admin_security_install($pdo);
     if($user && $user['role']==='owner' && $page==='news')mucho7_news_install($pdo,$root);
+    // A rejected form must render the same editor, not the upgrade fallback.
+    if($user) {
+        $tables=$pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
+        $schemaReady=count(array_diff(mucho7_admin_tables(),$tables))===0;
+    }
     if($method==='POST') {
         $postLimit=isset($_POST['action']) && $_POST['action']==='music-upload'?22*1024*1024:131072;
         if(isset($_POST['action']) && $_POST['action']==='news-save')$postLimit=37*1024*1024;
@@ -90,10 +95,6 @@ try {
         if($page==='rating' && isset($_POST['id']))$return['id']=(int)$_POST['id'];
         if(isset($_GET['ui']) && $_GET['ui']==='plain')$return['ui']='plain';
         header('Location: ?'.http_build_query($return),true,303);exit;
-    }
-    if($user) {
-        $tables=$pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
-        $schemaReady=count(array_diff(mucho7_admin_tables(),$tables))===0;
     }
 } catch(PDOException $e){
     $error='Не удалось выполнить запрос к базе. Проверь подключение и обнови схему базы в панели.';

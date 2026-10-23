@@ -114,9 +114,41 @@ try {
  mucho7_admin_security_action($pdo,1,'2fa-disable',array('current_password'=>'FixturePassword1!','otp'=>$newCodes[0]),$settings);
  nsCheck(mucho7_admin_factor_login($pdo,1,'')===2 && (int)$_SESSION['auth_version']===2,'factor disable/session invalidation');
  nsCheck(countUnusedAdminRecoveryCodes($pdo,1)===0,'disable retained recovery codes');
+ if($mysql){
+    // Execute the real front controller in a separate PHP process, using only
+    // this disposable database/session fixture. No production login is used.
+    mkdir($stage.'/public',0700);mkdir($stage.'/sessions',0700);
+    symlink($root.'/compat',$stage.'/compat');
+    copy($root.'/public/php7-admin.php',$stage.'/public/php7-admin.php');
+    $fixtureSettings=array('host'=>getenv('TEST_DB_HOST')?:'127.0.0.1','port'=>(int)(getenv('TEST_DB_PORT')?:3306),
+        'database'=>$database,'username'=>'root','password'=>$password,'site_url'=>'https://example.invalid','auth_pepper'=>str_repeat('p',64));
+    file_put_contents($stage.'/config/php7-local.php','<?php return '.var_export($fixtureSettings,true).';');
+    $fixtureCsrf=bin2hex(random_bytes(24));
+    $fixtureSession=array('aid'=>1,'signed_in'=>time(),'last_seen'=>time(),'auth_version'=>2,'csrf'=>$fixtureCsrf,
+        'instance'=>hash_hmac('sha256',$stage.'|'.$fixtureSettings['host'].'|'.$database,$password));
+    $fixturePost=array('csrf'=>$fixtureCsrf,'action'=>'news-save','id'=>'0','news_version'=>$news->nativeVersion(),
+        'title'=>'Keep this editor draft','body'=>'Not published','youtube_url'=>'https://youtube.com.evil.invalid/watch?v=NgHLQeYr-qk');
+    $wrapper="<?php\nini_set('session.save_path',__DIR__.'/sessions');session_name('muchocore7_admin_'.substr(hash('sha256',__DIR__),0,12));session_id('fixture".bin2hex(random_bytes(12))."');session_start();\n";
+    $wrapper.='$_SESSION='.var_export($fixtureSession,true).";session_write_close();\n";
+    $wrapper.="\$_SERVER['HTTPS']='on';\$_SERVER['SCRIPT_NAME']='/public/php7-admin.php';\$_SERVER['REQUEST_METHOD']='POST';\$_SERVER['REMOTE_ADDR']='127.0.0.1';\$_GET=array('page'=>'news');\$_FILES=array();\n";
+    $wrapper.='$_POST='.var_export($fixturePost,true).";require __DIR__.'/public/php7-admin.php';\n";
+    file_put_contents($stage.'/request.php',$wrapper);
+    $process=proc_open(escapeshellarg(PHP_BINARY).' '.escapeshellarg($stage.'/request.php'),array(1=>array('pipe','w'),2=>array('pipe','w')),$pipes);
+    if(!is_resource($process))throw new RuntimeException('Unable to launch controller fixture');
+    $response=stream_get_contents($pipes[1]);$stderr=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$exit=proc_close($process);
+    nsCheck($exit===0,'Front controller fixture failed: '.$stderr);
+    nsCheck(strpos($response,'Use a YouTube watch, Shorts, live or youtu.be video link.')!==false,'missing form validation error');
+    nsCheck(strpos($response,'mucho-news-layout')!==false && strpos($response,'Keep this editor draft')!==false,'validation lost original editor/draft');
+    nsCheck(strpos($response,'Доступно обновление базы')===false,'validation incorrectly offered a schema upgrade');
+    nsCheck(count($news->allForOwner())===1,'rejected front-controller POST created news');
+    echo "NATIVE_ADMIN_REJECTED_POST_PRESERVES_EDITOR_OK\n";
+ }
  echo 'NATIVE_TOTP_RECOVERY_REPLAY_REAUTH_SESSION_OK '.($mysql?'MYSQL':'SQLITE')."\n";
 }finally{
  if($server)$server->exec('DROP DATABASE IF EXISTS '.$database);
  foreach(glob($stage.'/config/*') as $file)unlink($file);
+ foreach(array('public','sessions') as $directory){if(is_dir($stage.'/'.$directory)){foreach(glob($stage.'/'.$directory.'/*') as $file)unlink($file);rmdir($stage.'/'.$directory);}}
+ if(is_link($stage.'/compat'))unlink($stage.'/compat');
+ if(is_file($stage.'/request.php'))unlink($stage.'/request.php');
  rmdir($stage.'/config');rmdir($stage);
 }
