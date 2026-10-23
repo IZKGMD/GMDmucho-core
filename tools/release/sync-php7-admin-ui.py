@@ -32,6 +32,9 @@ for name in ['dashboard.php','players.php','levels-moderation.php','songs.php','
         source=re.sub(r"return match \(\(int\)\(\$row\['difficulty'\] \?\? 0\)\) \{.*?\};", "return mucho7_admin_difficulty($row);", source, flags=re.S)
     if name=='songs.php':
         source=source.replace('<details class="card"><summary>Upload Music</summary>', '<details class="card"><summary>Upload Music</summary>')
+    if name=='dashboard.php':
+        source=source.replace('<a class="btn gray" href="/dashboard" target="_blank" rel="noopener">Open Player Portal ↗</a>', '')
+        source=source.replace('Create or restore a verified backup','Download a consistent SQL backup')
     if name=='rating.php':
         source=re.sub(r'\$difficultyProfileForRow = static function.*?\n};', '$difficultyProfileForRow = static function (array $row): string { return adminDifficultyProfile($row); };', source, flags=re.S)
     if name=='news.php':

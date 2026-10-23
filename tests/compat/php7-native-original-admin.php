@@ -29,7 +29,15 @@ foreach(array('dashboard','players','levels','rating','songs','comments','messag
 
  echo 'ORIGINAL_ADMIN_RENDER_OK '.$page."\n";
 }
-$page='players';$_GET=array('ui'=>'plain');ob_start();require $root.'/compat/php7/admin-view.php';$plain=ob_get_clean();if(substr_count(strtolower($plain),'<!doctype')!==1||strpos($plain,'rel="stylesheet"')!==false)throw new RuntimeException('Plain document regression');echo "ORIGINAL_PLAIN_RENDER_OK\n";
+$page='players';$_GET=array('ui'=>'plain','q'=>'Owner');ob_start();require $root.'/compat/php7/admin-view.php';$plain=ob_get_clean();if(substr_count(strtolower($plain),'<!doctype')!==1||strpos($plain,'rel="stylesheet"')!==false)throw new RuntimeException('Plain document regression');
+preg_match_all('~<a\\b[^>]*>~',$plain,$links);
+foreach($links[0] as $link){
+ if(strpos($link,'data-styled-admin')!==false){if(strpos($link,'ui=plain')!==false)throw new RuntimeException('Styled switch retained Plain mode');continue;}
+ if(strpos($link,'/mc/admin.php?')!==false && strpos($link,'ui=plain')===false)throw new RuntimeException('Plain navigation lost mode: '.$link);
+}
+if(strpos($plain,'page=players&amp;ui=plain')===false)throw new RuntimeException('Plain reset link absent');
+if(!preg_match('~<body[^>]+data-csrf="[^"]+"[^>]+data-admin-path="/mc/admin.php"~',$plain))throw new RuntimeException('Plain logout is missing mounted CSRF context');
+echo "ORIGINAL_PLAIN_RENDER_AND_NAVIGATION_OK\n";
 $user=null;$page='dashboard';$_GET=array();ob_start();require $root.'/compat/php7/admin-view.php';$login=ob_get_clean();if(strpos($login,'admin-auth-card')===false||strpos($login,'Administrator sign in')===false)throw new RuntimeException('Original login absent');echo "ORIGINAL_LOGIN_RENDER_OK\n";
 
 require $root.'/compat/php7/admin-ui/actions.php';

@@ -93,7 +93,7 @@ function renderAdminDashboard(PDO $db)
     } catch (Throwable $error) {
     }
 
-    echo '<div class="admin-overview-heading"><h2>Server overview</h2><a class="btn gray" href="/dashboard" target="_blank" rel="noopener">Open Player Portal ↗</a></div>';
+    echo '<div class="admin-overview-heading"><h2>Server overview</h2></div>';
 
     // The most common operator tasks belong one click away. These are links,
     // not side-effecting actions, and never bypass normal admin permissions.
@@ -101,7 +101,7 @@ function renderAdminDashboard(PDO $db)
         ['rating', 'Review levels', 'Rate and moderate submitted levels'],
         ['news', 'Publish news', 'Create an in-game announcement'],
         ['clientpatcher', 'Patch clients', 'Prepare GDPS Windows and Android clients'],
-        ['dbbackups', 'Back up database', 'Create or restore a verified backup'],
+        ['dbbackups', 'Back up database', 'Download a consistent SQL backup'],
         ['settings', 'Server settings', 'Configure the GDPS'],
     ];
     $visibleActions = array_values(array_filter(

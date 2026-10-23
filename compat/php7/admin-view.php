@@ -59,5 +59,5 @@ adminFooter($branding);
 ?></main><?php if(!adminIsPlain()):?></div><script src="/admin/admin-i18n.js?v=102"></script><?php endif ?><script src="/assets/php7-admin-host.js" defer></script></body></html>
 <?php endif;
 $html=ob_get_clean();
-$html=str_replace('<body class="mc-admin"','<body data-csrf="'.h(csrf()).'" data-admin-path="'.h($script).'" class="mc-admin"',$html);
+if($user)$html=preg_replace('~<body\b~','<body data-csrf="'.h(csrf()).'" data-admin-path="'.h($script).'"',$html,1);
 echo mucho7_admin_ui_html($html);

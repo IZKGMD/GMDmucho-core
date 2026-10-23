@@ -4,7 +4,7 @@ declare(strict_types=1);
 function h($value){return htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8');}
 function csrf(){return $_SESSION['csrf'];}
 function admin(){return $GLOBALS['user'];}
-function adminIsPlain(){return isset($_GET['ui']) && $_GET['ui']==='plain';}
+function adminIsPlain(){return (isset($_GET['ui']) && $_GET['ui']==='plain') || (isset($_POST['ui']) && $_POST['ui']==='plain');}
 function canAdminPage($page){
     $user=admin();if(!$user)return false;
     $pages=array('dashboard','players','levels','comments','messages','rating','moderation','songs','news','settings','system','audit','dbbackups','admins');
@@ -60,6 +60,18 @@ function mucho7_admin_ui_html($html){
     $html=preg_replace('~<(script|style)(?![^>]*\bnonce=)([^>]*)>~','<$1 nonce="'.h($nonce).'"$2>',$html);
     if($styles)$html=str_replace('</head>','<style nonce="'.h($nonce).'">'.implode("\n",$styles).'</style></head>',$html);
     if($plain){
+        // Upstream list/reset/edit links use /admin/. Keep the chosen native
+        // mode while leaving the explicit Styled switch free to change it.
+        $html=preg_replace_callback('~<a\b[^>]*>~s',function($tag){
+            if(strpos($tag[0],'data-styled-admin')!==false)return $tag[0];
+            return preg_replace_callback('~\bhref=(["\'])(.*?)\1~s',function($attribute){
+                $url=html_entity_decode($attribute[2],ENT_QUOTES,'UTF-8');
+                if(strpos($url,$GLOBALS['script'].'?')!==0 && strpos($url,'?')!==0)return $attribute[0];
+                $parts=explode('#',$url,2);
+                if(!preg_match('~(?:[?&])ui=~',$parts[0]))$parts[0].='&ui=plain';
+                return 'href='.$attribute[1].h(implode('#',$parts)).$attribute[1];
+            },$tag[0]);
+        },$html);
         $html=preg_replace('~<style\b[^>]*>.*?</style>~s','',$html);
         $html=preg_replace('~<link\b[^>]*rel="stylesheet"[^>]*>~','',$html);
         $html=str_replace('<table','<table border="1" cellpadding="6"',$html);
