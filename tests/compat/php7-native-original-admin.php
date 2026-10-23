@@ -61,7 +61,8 @@ if(!password_verify('TestOnlyPassword1!',$hashes['password_hash'])||!password_ve
 echo "ORIGINAL_ADMIN_FORM_RBAC_ROLLBACK_PASSWORD_OK\n";
 
 mucho7_admin_ui_action($pdo,1,'level-rate-save',array('id'=>'1','stars'=>'8','difficulty_profile'=>'harder','feature'=>'3'),$root,$settings);
-$level=$pdo->query('SELECT stars,difficulty,featured,epic,coins_verified FROM levels WHERE level_id=1')->fetch(PDO::FETCH_ASSOC);
+$level=$pdo->query('SELECT stars,difficulty,featured,epic,coins_verified,requested_stars FROM levels WHERE level_id=1')->fetch(PDO::FETCH_ASSOC);
 if((int)$level['stars']!==8||(int)$level['difficulty']!==40||(int)$level['epic']!==2||(int)$level['coins_verified']!==1)throw new RuntimeException('Original Rating Studio adapter damaged rating/coins');
+if((int)$level['requested_stars']!==0)throw new RuntimeException('Published rating remained in the moderation queue');
 foreach(json_decode(file_get_contents($root.'/compat/php7/admin-ui/upstream-sources.json'),true) as $file=>$hash){if(!hash_equals($hash,hash_file('sha256',$root.'/'.$file)))throw new RuntimeException('Original admin source drift: '.$file);}
 echo "ORIGINAL_RATING_AND_SOURCE_PROVENANCE_OK\n";

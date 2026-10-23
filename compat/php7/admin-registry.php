@@ -175,6 +175,9 @@ function mucho7_admin_registry_action(PDO $db,$aid,$action,$data,$settings) {
             mucho7_admin_audit($db,$aid,$action,$id);$db->commit();return;
         }catch(Exception $e){if($db->inTransaction())$db->rollBack();throw $e;}
     }
+    // DDL must finish before the transaction: even CREATE IF NOT EXISTS
+    // implicitly commits an active MySQL transaction.
+    mucho7_admin_security_install($db);
     $db->beginTransaction();
     try {
         // Serialize creation, assignment, activation and role deletion against
@@ -209,7 +212,6 @@ function mucho7_admin_registry_action(PDO $db,$aid,$action,$data,$settings) {
                 if($count<=1)throw new RuntimeException('At least one active owner must remain.');
             }
             $db->prepare('UPDATE php7_admin_users SET role=?,is_active=? WHERE id=?')->execute(array($role,$active,$id));
-            mucho7_admin_security_install($db);
             $db->prepare('INSERT IGNORE INTO php7_admin_security(account_id) VALUES(?)')->execute(array($id));
             $db->prepare('UPDATE php7_admin_security SET auth_version=auth_version+1 WHERE account_id=?')->execute(array($id));
         }

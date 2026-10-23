@@ -57,7 +57,7 @@ if($schemaReady && canAdminPage($page)){
     else{$titles=$pages;$oldPage=$page;if($page==='system')$page='diagnostics';require __DIR__.'/admin-ui/native-pages.php';$page=$oldPage;}
 }else{$titles=$pages;require __DIR__.'/admin-ui/native-pages.php';}
 adminFooter($branding);
-?></main><?php if(!adminIsPlain()):?></div><script src="/admin/admin-i18n.js?v=102"></script><?php endif ?><script src="/assets/php7-admin-host.js" defer></script></body></html>
+?></main><?php if(!adminIsPlain()):?></div><script src="/admin/admin-i18n.js?v=102"></script><?php else:?><script src="/admin/admin-simple.js?v=3" defer></script><?php endif ?><script src="/assets/php7-admin-host.js" defer></script></body></html>
 <?php endif;
 $html=ob_get_clean();
 if($user)$html=preg_replace('~<body\b~','<body data-csrf="'.h(csrf()).'" data-admin-path="'.h($script).'"',$html,1);

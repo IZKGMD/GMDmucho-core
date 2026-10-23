@@ -245,7 +245,7 @@ function mucho7_admin_action(PDO $pdo, $aid, $action, $data, $root, $settings)
                 if(!empty($data['original_rating_ui']))$coins=(int)$levelState['coins_verified'];
                 if($demon && $auto){throw new RuntimeException('Auto и Demon нельзя включить одновременно.');}
                 $pdo->prepare('UPDATE levels SET difficulty=?,stars=?,featured=?,epic=?,demon=?,auto_level=?,coins_verified=?,
-                    demon_difficulty=?,updated_at=CURRENT_TIMESTAMP WHERE level_id=?')
+                    demon_difficulty=?,requested_stars=0,updated_at=CURRENT_TIMESTAMP WHERE level_id=?')
                     ->execute(array($difficulty,$stars,$featured,$epic,$demon,$auto,$coins,
                         $demon?mucho7_number(isset($data['demon_difficulty'])?$data['demon_difficulty']:0,0,6):0,$id));
             } elseif($action==='level_details'){

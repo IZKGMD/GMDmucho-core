@@ -67,6 +67,12 @@ try {
  arReject(function()use($pdo,$id,$settings){mucho7_admin_registry_action($pdo,$id,'admin-role',array('id'=>$id,'role'=>'owner'),$settings);},'custom self escalation');
  arReject(function()use($pdo,$roleId,$settings){mucho7_admin_registry_action($pdo,1,'role-delete',array('id'=>$roleId),$settings);},'assigned role deletion');
  $pdo->prepare('INSERT INTO php7_admin_security(account_id) VALUES(?)')->execute(array($id));
+ if($mysql)$pdo->exec("CREATE TRIGGER reject_registry_audit BEFORE INSERT ON php7_admin_audit FOR EACH ROW BEGIN IF NEW.action='admin-role' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='fixture audit failure'; END IF; END");
+ else $pdo->exec("CREATE TRIGGER reject_registry_audit BEFORE INSERT ON php7_admin_audit WHEN NEW.action='admin-role' BEGIN SELECT RAISE(ABORT,'fixture audit failure'); END");
+ try{
+    arReject(function()use($pdo,$id,$settings){mucho7_admin_registry_action($pdo,1,'admin-role',array('id'=>$id,'role'=>'viewer'),$settings);},'audit failure must reject role assignment');
+    arCheck(mucho7_admin_user($pdo,$id)['role']==='curator' && (int)mucho7_admin_security_row($pdo,$id)['auth_version']===0,'failed audit partially committed role/revision');
+ }finally{$pdo->exec('DROP TRIGGER reject_registry_audit');}
  mucho7_admin_registry_action($pdo,1,'admin-role',array('id'=>$id,'role'=>'viewer'),$settings);
  arCheck((int)mucho7_admin_security_row($pdo,$id)['auth_version']===1,'role change retained old sessions');
  arCheck(!mucho7_admin_can($pdo,mucho7_admin_user($pdo,$id),'levels.rate'),'stale role permission cache');
