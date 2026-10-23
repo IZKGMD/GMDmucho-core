@@ -6,6 +6,9 @@ require __DIR__ . '/../../compat/php7/news.php';
 function newsCheck($condition,$reason) {
     if (!$condition) { throw new RuntimeException($reason); }
 }
+$newsMigrations=require __DIR__.'/../../compat/php7/news/schema.php';
+newsCheck(count($newsMigrations)===4,'PHP7 must parse four separate News SQL statements');
+foreach($newsMigrations as $statement)newsCheck(strpos($statement,"<<<'SQL'")===false,'PHP7 heredoc terminator swallowed a migration');
 $posts = array(array(
     'id'=>7,'title'=>'Test news','body'=>'Hello GDPS!',
     'url'=>'https://muchogdps.space/',

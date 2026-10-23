@@ -129,7 +129,7 @@ for name in ['20261016_001_news_board.php','20261016_002_native_news_state.php',
     path='database/migrations/'+name
     manifest[path]=hashlib.sha256((ROOT/path).read_bytes()).hexdigest()
     statements+=re.findall(r"<<<'SQL'\n(.*?)\nSQL",(ROOT/path).read_text(),re.S)
-(news_dest/'schema.php').write_text("<?php\n/** Original additive News migrations, generated for PHP7. */\nreturn array(\n"+",\n".join("<<<'SQL'\n"+s+"\nSQL" for s in statements)+"\n);\n")
+(news_dest/'schema.php').write_text("<?php\n/** Original additive News migrations, generated for PHP7. */\nreturn array(\n"+"\n,\n".join("<<<'SQL'\n"+s+"\nSQL" for s in statements)+"\n);\n")
 source=(ROOT/'public/admin/actions/news.php').read_text()
 source=re.sub(r"if \(\(string\)\(admin\(\)\['role'\].*?requireRank\(40\);",'',source,flags=re.S)
 source=source.replace('new NewsService($db)', "new NewsService($db,$data['news_version'] ?? '')")

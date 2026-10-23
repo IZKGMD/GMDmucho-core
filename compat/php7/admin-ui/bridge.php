@@ -20,7 +20,7 @@ function canPermission($permission){
     return $user['role']==='owner';
 }
 function requireRank($rank){$user=admin();$ranks=array('moderator'=>10,'elder_moderator'=>20,'owner'=>30);if(!$user||$ranks[$user['role']]<$rank)throw new RuntimeException('Нет доступа.');}
-function tableExists(PDO $db,$table){if($db->getAttribute(PDO::ATTR_DRIVER_NAME)==='sqlite'){$q=$db->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?");$q->execute(array($table));return (bool)$q->fetchColumn();}$q=$db->prepare('SHOW TABLES LIKE ?');$q->execute(array($table));return (bool)$q->fetchColumn();}
+function tableExists(PDO $db,$table){if($db->getAttribute(PDO::ATTR_DRIVER_NAME)==='sqlite'){$q=$db->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?");$q->execute(array($table));return (bool)$q->fetchColumn();}$q=$db->prepare('SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name=?');$q->execute(array($table));return (bool)$q->fetchColumn();}
 function countTable(PDO $db,$table){if(!in_array($table,array('accounts','levels','songs'),true))return 0;return (int)$db->query('SELECT COUNT(*) FROM '.$table)->fetchColumn();}
 function mucho7_admin_difficulty($row){
     if(!empty($row['auto_level']))return 'auto';
