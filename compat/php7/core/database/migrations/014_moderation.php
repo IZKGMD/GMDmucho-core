@@ -8,9 +8,9 @@ return new class implements Migration
     {
         $checkCol = $pdo->query("SHOW COLUMNS FROM accounts LIKE 'role'")->fetch();
         if (!$checkCol) {
-            $pdo->exec("ALTER TABLE accounts ADD COLUMN role VARCHAR(32) NOT NULL DEFAULT 'user' AFTER email");
+            \mucho7_domain_schema_exec($pdo, "ALTER TABLE accounts ADD COLUMN role VARCHAR(32) NOT NULL DEFAULT 'user' AFTER email");
         }
-        $pdo->exec('
+        \mucho7_domain_schema_exec($pdo, '
             CREATE TABLE IF NOT EXISTS moderation_suggestions (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 level_id BIGINT UNSIGNED NOT NULL,
@@ -23,7 +23,7 @@ return new class implements Migration
                 INDEX idx_account_id (account_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ');
-        $pdo->exec('
+        \mucho7_domain_schema_exec($pdo, '
             CREATE TABLE IF NOT EXISTS moderation_logs (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 moderator_account_id BIGINT UNSIGNED NOT NULL,
@@ -37,7 +37,7 @@ return new class implements Migration
     }
     public function down(PDO $pdo)
     {
-        $pdo->exec('DROP TABLE IF EXISTS moderation_logs;');
-        $pdo->exec('DROP TABLE IF EXISTS moderation_suggestions;');
+        \mucho7_domain_schema_exec($pdo, 'DROP TABLE IF EXISTS moderation_logs;');
+        \mucho7_domain_schema_exec($pdo, 'DROP TABLE IF EXISTS moderation_suggestions;');
     }
 };

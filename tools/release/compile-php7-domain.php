@@ -135,6 +135,11 @@ final class MuchoPhp70Lowering extends PhpParser\NodeVisitorAbstract
     {
         array_pop($this->parents);
         $parent = $this->parents ? $this->parents[array_key_last($this->parents)] : null;
+        if ($node instanceof Expr\StaticCall && $node->class instanceof Node\Name
+            && strtolower(ltrim($node->class->toString(),'\\'))==='closure' && $node->name instanceof Node\Identifier
+            && strtolower($node->name->name)==='fromcallable') {
+            return new Expr\FuncCall(new Node\Name\FullyQualified('mucho7_callable_closure'),$node->args);
+        }
         if ($node instanceof Expr\ClassConstFetch && $node->name instanceof Node\Identifier
             && strtolower($node->name->name)==='class' && $node->class instanceof Expr) {
             return new Expr\FuncCall(new Node\Name\FullyQualified('get_class'), [new Node\Arg($node->class)]);
@@ -229,8 +234,17 @@ final class MuchoPhp70Lowering extends PhpParser\NodeVisitorAbstract
         if ($node instanceof Expr\FuncCall && $node->name instanceof Node\Name && strtolower($node->name->toString())==='proc_open') {
             $node->name = new Node\Name\FullyQualified('mucho7_proc_open');
         }
+        if ($this->relativeFile==='src/CloudSave/CloudSaveRepository.php' && $node instanceof Expr\FuncCall
+            && $node->name instanceof Node\Name && in_array(strtolower($node->name->toString()),['openssl_encrypt','openssl_decrypt'],true)) {
+            $node->name = new Node\Name\FullyQualified('mucho7_'.$node->name->toString());
+        }
         if ($node instanceof Expr\Include_) {
             $node->expr = new Expr\FuncCall(new Node\Name\FullyQualified('mucho7_compiled_include'), [new Node\Arg($node->expr)]);
+        }
+        if (str_starts_with($this->relativeFile,'database/migrations/') && $node instanceof Expr\MethodCall
+            && $node->name instanceof Node\Identifier && strtolower($node->name->name)==='exec') {
+            return new Expr\FuncCall(new Node\Name\FullyQualified('mucho7_domain_schema_exec'),
+                array_merge([new Node\Arg($node->var)],$node->args));
         }
         return null;
     }

@@ -2,7 +2,7 @@
 
 declare (strict_types=1);
 return static function (PDO $db) {
-    $db->exec('CREATE TABLE IF NOT EXISTS admin_roles (
+    \mucho7_domain_schema_exec($db, 'CREATE TABLE IF NOT EXISTS admin_roles (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             code VARCHAR(32) NOT NULL UNIQUE,
             name VARCHAR(64) NOT NULL,
@@ -11,7 +11,7 @@ return static function (PDO $db) {
             updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
-    $db->exec('CREATE TABLE IF NOT EXISTS admin_role_permissions (
+    \mucho7_domain_schema_exec($db, 'CREATE TABLE IF NOT EXISTS admin_role_permissions (
             role_id BIGINT UNSIGNED NOT NULL,
             permission VARCHAR(128) NOT NULL,
             PRIMARY KEY (role_id, permission),

@@ -13,7 +13,7 @@ return static function (PDO $db) {
     if ($exists === 0) {
         return;
     }
-    $db->exec("UPDATE likes\n         SET ip = ''\n         WHERE account_id > 0");
+    \mucho7_domain_schema_exec($db, "UPDATE likes\n         SET ip = ''\n         WHERE account_id > 0");
     $indexes = $db->query('SHOW INDEX FROM likes')->fetchAll(PDO::FETCH_ASSOC);
     $legacy = false;
     $current = false;
@@ -31,14 +31,14 @@ return static function (PDO $db) {
         return;
     }
     if ($legacy) {
-        $db->exec('ALTER TABLE likes DROP INDEX uq_like_item_user');
+        \mucho7_domain_schema_exec($db, 'ALTER TABLE likes DROP INDEX uq_like_item_user');
     }
     /*
      * Older installations can contain duplicate anonymous/authenticated
      * rows from before the actor key was enforced. Keep the newest row for
      * each logical actor before adding the unique constraint.
      */
-    $db->exec(<<<'SQL'
+    \mucho7_domain_schema_exec($db, <<<'SQL'
 DELETE old_like
 FROM likes old_like
 INNER JOIN likes keep_like
@@ -49,7 +49,7 @@ INNER JOIN likes keep_like
    AND keep_like.id > old_like.id
 SQL
 );
-    $db->exec('ALTER TABLE likes
+    \mucho7_domain_schema_exec($db, 'ALTER TABLE likes
          ADD UNIQUE KEY uq_like_item_actor
          (item_id, type, account_id, ip)');
 };

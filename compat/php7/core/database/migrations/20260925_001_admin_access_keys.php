@@ -26,9 +26,9 @@ return static function (PDO $db) {
         }
     }
     if (!$hasHash) {
-        $db->exec("ALTER TABLE admin_users\n             ADD COLUMN access_key_hash VARCHAR(255) NULL AFTER totp_secret");
+        \mucho7_domain_schema_exec($db, "ALTER TABLE admin_users\n             ADD COLUMN access_key_hash VARCHAR(255) NULL AFTER totp_secret");
     }
     if (!$hasCreated) {
-        $db->exec("ALTER TABLE admin_users\n             ADD COLUMN access_key_created_at TIMESTAMP NULL\n             AFTER access_key_hash");
+        \mucho7_domain_schema_exec($db, "ALTER TABLE admin_users\n             ADD COLUMN access_key_created_at TIMESTAMP NULL\n             AFTER access_key_hash");
     }
 };

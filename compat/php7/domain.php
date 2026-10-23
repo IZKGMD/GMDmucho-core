@@ -4,6 +4,7 @@ declare(strict_types=1);
 if (!defined('MUCHO7_PROJECT_ROOT')) define('MUCHO7_PROJECT_ROOT',dirname(__DIR__,2));
 if (!defined('MUCHO7_COMPILED_ROOT')) define('MUCHO7_COMPILED_ROOT',__DIR__.'/core');
 require_once __DIR__.'/domain-polyfills.php';
+require_once __DIR__.'/domain-schema.php';
 function mucho7_compiled_include($file)
 {
     $parts=array();foreach(explode('/',str_replace('\\','/',(string)$file)) as $part){if($part===''||$part==='.')continue;if($part==='..'){array_pop($parts);continue;}$parts[]=$part;}
@@ -18,6 +19,12 @@ function mucho7_compiled_include($file)
     return $file;
 }
 spl_autoload_register(function($class){
+    foreach(array('phpseclib3\\'=>__DIR__.'/vendor/phpseclib/','ParagonIE\\ConstantTime\\'=>__DIR__.'/vendor/constant-time-encoding/') as $vendorPrefix=>$directory){
+        if(strpos($class,$vendorPrefix)===0){
+            $relative=substr($class,strlen($vendorPrefix));if(!preg_match('/^[A-Za-z0-9_\\\\]+$/D',$relative))return;
+            $file=$directory.str_replace('\\','/',$relative).'.php';if(is_file($file))require_once $file;return;
+        }
+    }
     $prefix='MuchoCore\\';
     if(strncmp($class,$prefix,strlen($prefix))!==0)return;
     $relative=substr($class,strlen($prefix));
@@ -25,3 +32,4 @@ spl_autoload_register(function($class){
     $file=__DIR__.'/core/src/'.str_replace('\\','/',$relative).'.php';
     if(is_file($file))require_once $file;
 });
+require_once __DIR__.'/vendor/phpseclib/bootstrap.php';

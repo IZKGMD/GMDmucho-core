@@ -7,7 +7,7 @@ return new class implements Migration
 {
     public function up(PDO $pdo)
     {
-        $pdo->exec('
+        \mucho7_domain_schema_exec($pdo, '
             CREATE TABLE IF NOT EXISTS admin_recovery_codes (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 admin_user_id BIGINT UNSIGNED NOT NULL,
@@ -27,6 +27,6 @@ return new class implements Migration
     }
     public function down(PDO $pdo)
     {
-        $pdo->exec('DROP TABLE IF EXISTS admin_recovery_codes;');
+        \mucho7_domain_schema_exec($pdo, 'DROP TABLE IF EXISTS admin_recovery_codes;');
     }
 };

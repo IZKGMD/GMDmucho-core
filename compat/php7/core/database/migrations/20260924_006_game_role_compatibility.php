@@ -28,7 +28,7 @@ return static function (PDO $db) {
         $stmt->execute(['code' => $code, 'name' => $name, 'priority' => $priority]);
     }
     if ($indexOrTableExists($db, 'accounts') && $columnExists($db, 'accounts', 'role')) {
-        $db->exec(<<<'SQL'
+        \mucho7_domain_schema_exec($db, <<<'SQL'
 UPDATE accounts a
 INNER JOIN roles r
     ON r.code = CASE LOWER(TRIM(COALESCE(a.role, '')))
@@ -68,7 +68,7 @@ SQL
          * Keep the legacy column internally consistent for older tools that
          * still read it, without replacing the canonical role_id relation.
          */
-        $db->exec(<<<'SQL'
+        \mucho7_domain_schema_exec($db, <<<'SQL'
 UPDATE accounts a
 INNER JOIN roles r
     ON r.id = a.role_id
@@ -90,7 +90,7 @@ SQL
     /*
      * Normalize accounts that still point at obsolete role rows.
      */
-    $db->exec(<<<'SQL'
+    \mucho7_domain_schema_exec($db, <<<'SQL'
 UPDATE accounts a
 INNER JOIN roles old_role
     ON old_role.id = a.role_id

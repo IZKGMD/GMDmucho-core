@@ -25,8 +25,11 @@ bounded compatibility helpers. Generated code retains a source hash manifest.
 Passing syntax/loading checks does not certify deployment or complete parity.
 PHP extension API differences, schema/data upgrades, native configuration,
 administrator adapters and real-client acceptance require separate tests.
-In particular, PHP7.0's OpenSSL API cannot directly use PHP7.1's AEAD arguments;
-the existing encrypted cloud-save service needs a tested compatibility path.
+PHP7.0's OpenSSL API cannot directly use PHP7.1's AEAD arguments. The compiled
+cloud-save repository uses a phpseclib AES-GCM compatibility path with the same
+ciphertext/nonce/tag format. NIST vectors, native OpenSSL interoperability and
+tampering rejection are tested on both runtimes; vendor provenance and the
+scoped fallback authentication fix are documented in `compat/php7/vendor`.
 
 The native PHP7 integration workflow executes compiled original fixtures on
 PHP7.0 and PHP8.3 with disposable MariaDB databases. Its tests include actual

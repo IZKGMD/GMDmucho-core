@@ -11,7 +11,7 @@ declare (strict_types=1);
  */
 return static function (PDO $db) {
     $existingPool = (int) $db->query("SELECT COUNT(*) FROM information_schema.tables\n         WHERE table_schema = DATABASE()\n           AND table_name = 'mucho_challenge_pool'")->fetchColumn() > 0;
-    $db->exec(<<<'SQL'
+    \mucho7_domain_schema_exec($db, <<<'SQL'
 CREATE TABLE IF NOT EXISTS mucho_daily_rotation (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     kind VARCHAR(12) NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS mucho_daily_rotation (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL
 );
-    $db->exec(<<<'SQL'
+    \mucho7_domain_schema_exec($db, <<<'SQL'
 CREATE TABLE IF NOT EXISTS mucho_challenge_pool (
     challenge_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     type TINYINT UNSIGNED NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS mucho_challenge_pool (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL
 );
-    $db->exec(<<<'SQL'
+    \mucho7_domain_schema_exec($db, <<<'SQL'
 CREATE TABLE IF NOT EXISTS mucho_reward_state (
     account_id BIGINT UNSIGNED NOT NULL,
     small_last_at BIGINT UNSIGNED NOT NULL DEFAULT 0,
@@ -58,7 +58,7 @@ SQL
         // Genuine GD quest codes: 1=Orbs, 2=Coins, 3=Stars.
         // Start with one independent starter quest per type. No fake player
         // rewards or completions are inserted.
-        $db->exec(<<<'SQL'
+        \mucho7_domain_schema_exec($db, <<<'SQL'
 INSERT INTO mucho_challenge_pool (type, amount, reward, name, active)
 VALUES
     (1, 200, 10, 'Orb Finder', 1),

@@ -17,12 +17,12 @@ return static function (PDO $db) {
     };
     if (!$hasIndex($db, 'uq_like_item_user_ip')) {
         try {
-            $db->exec('ALTER TABLE likes
+            \mucho7_domain_schema_exec($db, 'ALTER TABLE likes
                  DROP INDEX uq_like_item_user');
         } catch (Throwable $__mcCaught) {
             // Older installations may already have the corrected index.
         }
-        $db->exec('ALTER TABLE likes
+        \mucho7_domain_schema_exec($db, 'ALTER TABLE likes
              ADD UNIQUE KEY uq_like_item_user_ip
              (item_id, type, account_id, ip)');
     }

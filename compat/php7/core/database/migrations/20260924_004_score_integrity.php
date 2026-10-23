@@ -21,7 +21,7 @@ return static function (PDO $db) {
         return (int) $q->fetchColumn() > 0;
     };
     if ($hasTable($db, 'mucho_level_scores') && !$hasUnique($db, 'mucho_level_scores', 'uq_mucho_level_score_account_level_daily')) {
-        $db->exec(<<<'SQL'
+        \mucho7_domain_schema_exec($db, <<<'SQL'
 DELETE old_score
 FROM mucho_level_scores old_score
 JOIN mucho_level_scores keep_score
@@ -42,12 +42,12 @@ JOIN mucho_level_scores keep_score
  )
 SQL
 );
-        $db->exec('ALTER TABLE mucho_level_scores
+        \mucho7_domain_schema_exec($db, 'ALTER TABLE mucho_level_scores
              ADD UNIQUE KEY uq_mucho_level_score_account_level_daily
              (account_id, level_id, is_daily)');
     }
     if ($hasTable($db, 'mucho_platformer_scores') && !$hasUnique($db, 'mucho_platformer_scores', 'uq_mucho_platformer_score_account_level')) {
-        $db->exec(<<<'SQL'
+        \mucho7_domain_schema_exec($db, <<<'SQL'
 CREATE TEMPORARY TABLE mucho_platformer_score_keep AS
 SELECT account_id,
        level_id,
@@ -59,7 +59,7 @@ FROM mucho_platformer_scores
 GROUP BY account_id, level_id
 SQL
 );
-        $db->exec(<<<'SQL'
+        \mucho7_domain_schema_exec($db, <<<'SQL'
 DELETE FROM mucho_platformer_scores
 WHERE (account_id, level_id) IN (
     SELECT account_id, level_id
@@ -67,7 +67,7 @@ WHERE (account_id, level_id) IN (
 )
 SQL
 );
-        $db->exec(<<<'SQL'
+        \mucho7_domain_schema_exec($db, <<<'SQL'
 INSERT INTO mucho_platformer_scores
     (account_id, level_id, time_ms, points, created_at, updated_at)
 SELECT account_id,
@@ -79,8 +79,8 @@ SELECT account_id,
 FROM mucho_platformer_score_keep
 SQL
 );
-        $db->exec('DROP TEMPORARY TABLE mucho_platformer_score_keep');
-        $db->exec('ALTER TABLE mucho_platformer_scores
+        \mucho7_domain_schema_exec($db, 'DROP TEMPORARY TABLE mucho_platformer_score_keep');
+        \mucho7_domain_schema_exec($db, 'ALTER TABLE mucho_platformer_scores
              ADD UNIQUE KEY uq_mucho_platformer_score_account_level
              (account_id, level_id)');
     }

@@ -2,7 +2,7 @@
 
 declare (strict_types=1);
 return static function (PDO $db) {
-    $db->exec(<<<'SQL'
+    \mucho7_domain_schema_exec($db, <<<'SQL'
 CREATE TABLE IF NOT EXISTS mucho_level_downloads (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     level_id BIGINT NOT NULL,

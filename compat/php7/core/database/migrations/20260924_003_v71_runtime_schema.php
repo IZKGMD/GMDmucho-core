@@ -9,7 +9,7 @@ declare (strict_types=1);
  * optional V7.1 migration helper.
  */
 return static function (PDO $db) {
-    $db->exec(<<<'SQL'
+    \mucho7_domain_schema_exec($db, <<<'SQL'
 CREATE TABLE IF NOT EXISTS mucho_level_lists (
     list_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     account_id BIGINT UNSIGNED NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS mucho_level_lists (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL
 );
-    $db->exec(<<<'SQL'
+    \mucho7_domain_schema_exec($db, <<<'SQL'
 CREATE TABLE IF NOT EXISTS mucho_level_scores (
     score_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     account_id BIGINT UNSIGNED NOT NULL,
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS mucho_level_scores (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL
 );
-    $db->exec(<<<'SQL'
+    \mucho7_domain_schema_exec($db, <<<'SQL'
 CREATE TABLE IF NOT EXISTS mucho_platformer_scores (
     score_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     account_id BIGINT UNSIGNED NOT NULL,

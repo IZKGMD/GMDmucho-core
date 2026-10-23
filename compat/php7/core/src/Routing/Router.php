@@ -17,7 +17,7 @@ final class Router
             throw new InvalidArgumentException(sprintf('Invalid route handler for %s %s', $method, $path));
         }
         $key = $this->routeKey($method, $path);
-        $this->routes[$key] = Closure::fromCallable($handler);
+        $this->routes[$key] = \mucho7_callable_closure($handler);
     }
     /**
      * Register a third-party plugin route without allowing it to shadow
@@ -47,7 +47,7 @@ final class Router
                 }
             }
         }
-        $this->routes[$key] = Closure::fromCallable($handler);
+        $this->routes[$key] = \mucho7_callable_closure($handler);
     }
     public function dispatch(Request $request): Response
     {

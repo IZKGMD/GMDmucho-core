@@ -18,6 +18,6 @@ return static function (PDO $db) {
         }
     }
     if ($drop) {
-        $db->exec('ALTER TABLE admin_users ' . implode(', ', $drop));
+        \mucho7_domain_schema_exec($db, 'ALTER TABLE admin_users ' . implode(', ', $drop));
     }
 };

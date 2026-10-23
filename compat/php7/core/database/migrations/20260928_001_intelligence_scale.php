@@ -7,7 +7,7 @@ return new class implements Migration
 {
     public function up(PDO $pdo)
     {
-        $pdo->exec(<<<'SQL'
+        \mucho7_domain_schema_exec($pdo, <<<'SQL'
 CREATE TABLE IF NOT EXISTS mucho_level_search_index (
     level_id BIGINT UNSIGNED NOT NULL,
     account_id BIGINT UNSIGNED NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS mucho_level_search_index (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL
 );
-        $pdo->exec(<<<'SQL'
+        \mucho7_domain_schema_exec($pdo, <<<'SQL'
 CREATE TABLE IF NOT EXISTS mucho_level_revisions (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     level_id BIGINT UNSIGNED NOT NULL,
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS mucho_level_revisions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL
 );
-        $pdo->exec(<<<'SQL'
+        \mucho7_domain_schema_exec($pdo, <<<'SQL'
 CREATE TABLE IF NOT EXISTS mucho_jobs (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     job_type VARCHAR(96) NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS mucho_jobs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL
 );
-        $pdo->exec(<<<'SQL'
+        \mucho7_domain_schema_exec($pdo, <<<'SQL'
 CREATE TABLE IF NOT EXISTS mucho_cache (
     cache_key VARCHAR(191) NOT NULL,
     cache_value LONGTEXT NOT NULL,
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS mucho_cache (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL
 );
-        $pdo->exec(<<<'SQL'
+        \mucho7_domain_schema_exec($pdo, <<<'SQL'
 CREATE TABLE IF NOT EXISTS mucho_backup_verifications (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     file_name VARCHAR(255) NOT NULL,
@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS mucho_backup_verifications (
 SQL
 );
         try {
-            $pdo->exec(<<<'SQL'
+            \mucho7_domain_schema_exec($pdo, <<<'SQL'
 INSERT INTO mucho_level_search_index
     (
         level_id,
@@ -134,10 +134,10 @@ SQL
     }
     public function down(PDO $pdo)
     {
-        $pdo->exec('DROP TABLE IF EXISTS mucho_backup_verifications');
-        $pdo->exec('DROP TABLE IF EXISTS mucho_cache');
-        $pdo->exec('DROP TABLE IF EXISTS mucho_jobs');
-        $pdo->exec('DROP TABLE IF EXISTS mucho_level_revisions');
-        $pdo->exec('DROP TABLE IF EXISTS mucho_level_search_index');
+        \mucho7_domain_schema_exec($pdo, 'DROP TABLE IF EXISTS mucho_backup_verifications');
+        \mucho7_domain_schema_exec($pdo, 'DROP TABLE IF EXISTS mucho_cache');
+        \mucho7_domain_schema_exec($pdo, 'DROP TABLE IF EXISTS mucho_jobs');
+        \mucho7_domain_schema_exec($pdo, 'DROP TABLE IF EXISTS mucho_level_revisions');
+        \mucho7_domain_schema_exec($pdo, 'DROP TABLE IF EXISTS mucho_level_search_index');
     }
 };

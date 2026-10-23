@@ -3,6 +3,7 @@
 declare(strict_types=1);
 if (!defined('JSON_THROW_ON_ERROR')) define('JSON_THROW_ON_ERROR', 4194304);
 if (!defined('JSON_INVALID_UTF8_SUBSTITUTE')) define('JSON_INVALID_UTF8_SUBSTITUTE', 2097152);
+if (!defined('OPENSSL_RAW_DATA')) define('OPENSSL_RAW_DATA', 1);
 if (!class_exists('JsonException', false)) { class JsonException extends Exception {} }
 if (!class_exists('UnhandledMatchError', false)) { class UnhandledMatchError extends Error {} }
 if (!function_exists('str_contains')) {
@@ -72,4 +73,34 @@ function mucho7_proc_open($command,$descriptors,&$pipes,$directory=null,$environ
         $command=implode(' ',$arguments);
     }
     return proc_open($command,$descriptors,$pipes,$directory,$environment,$options);
+}
+function mucho7_callable_closure($callable)
+{
+    if($callable instanceof Closure)return $callable;
+    if(!is_callable($callable))throw new InvalidArgumentException('Invalid callable.');
+    if(PHP_VERSION_ID>=70100)return Closure::fromCallable($callable);
+    return function(...$arguments)use($callable){return call_user_func_array($callable,$arguments);};
+}
+/** Keep the original AES-GCM record format on PHP7.0's pre-AEAD OpenSSL API. */
+function mucho7_openssl_encrypt($plain,$method,$key,$options=0,$nonce='',&$tag=null,$aad='',$tagLength=16,$forceFallback=false)
+{
+    if(!$forceFallback && PHP_VERSION_ID>=70100)return openssl_encrypt($plain,$method,$key,$options,$nonce,$tag,$aad,$tagLength);
+    if(!preg_match('/^aes-(128|192|256)-gcm$/i',$method,$match))return openssl_encrypt($plain,$method,$key,$options,$nonce);
+    if(strlen($key)!==(int)$match[1]/8 || strlen($nonce)!==12 || $tagLength!==16)throw new InvalidArgumentException('Invalid AES-GCM parameters.');
+    $cipher=new \phpseclib3\Crypt\AES('gcm');$cipher->setPreferredEngine('OpenSSL');
+    $cipher->setKeyLength((int)$match[1]);$cipher->setKey($key);$cipher->setNonce($nonce);$cipher->setAAD($aad);
+    $encrypted=$cipher->encrypt($plain);$tag=$cipher->getTag(16);
+    return ($options & OPENSSL_RAW_DATA)?$encrypted:base64_encode($encrypted);
+}
+function mucho7_openssl_decrypt($encrypted,$method,$key,$options=0,$nonce='',$tag='',$aad='',$forceFallback=false)
+{
+    if(!$forceFallback && PHP_VERSION_ID>=70100)return openssl_decrypt($encrypted,$method,$key,$options,$nonce,$tag,$aad);
+    if(!preg_match('/^aes-(128|192|256)-gcm$/i',$method,$match))return openssl_decrypt($encrypted,$method,$key,$options,$nonce);
+    if(strlen($key)!==(int)$match[1]/8 || strlen($nonce)!==12 || strlen($tag)!==16)return false;
+    if(!($options & OPENSSL_RAW_DATA)){$encrypted=base64_decode($encrypted,true);if($encrypted===false)return false;}
+    try{
+        $cipher=new \phpseclib3\Crypt\AES('gcm');$cipher->setPreferredEngine('OpenSSL');
+        $cipher->setKeyLength((int)$match[1]);$cipher->setKey($key);$cipher->setNonce($nonce);$cipher->setAAD($aad);$cipher->setTag($tag);
+        return $cipher->decrypt($encrypted);
+    }catch(\phpseclib3\Exception\BadDecryptionException $error){return false;}
 }

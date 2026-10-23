@@ -7,7 +7,7 @@ return new class implements Migration
 {
     public function up(PDO $pdo)
     {
-        $pdo->exec('
+        \mucho7_domain_schema_exec($pdo, '
             CREATE TABLE IF NOT EXISTS mucho_score_integrity_events (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 score_type VARCHAR(32) NOT NULL,
@@ -32,6 +32,6 @@ return new class implements Migration
     }
     public function down(PDO $pdo)
     {
-        $pdo->exec('DROP TABLE IF EXISTS mucho_score_integrity_events;');
+        \mucho7_domain_schema_exec($pdo, 'DROP TABLE IF EXISTS mucho_score_integrity_events;');
     }
 };

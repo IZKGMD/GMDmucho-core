@@ -6,7 +6,7 @@ return new class implements Migration
 {
     public function up(PDO $pdo)
     {
-        $pdo->exec('
+        \mucho7_domain_schema_exec($pdo, '
             CREATE TABLE IF NOT EXISTS songs (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(128) NOT NULL,
@@ -23,6 +23,6 @@ return new class implements Migration
     }
     public function down(PDO $pdo)
     {
-        $pdo->exec('DROP TABLE IF EXISTS songs;');
+        \mucho7_domain_schema_exec($pdo, 'DROP TABLE IF EXISTS songs;');
     }
 };

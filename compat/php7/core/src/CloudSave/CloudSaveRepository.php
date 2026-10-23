@@ -98,7 +98,7 @@ final class CloudSaveRepository
         $key = $this->key();
         $nonce = random_bytes(12);
         $tag = '';
-        $ciphertext = openssl_encrypt($plain, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $nonce, $tag, '', 16);
+        $ciphertext = \mucho7_openssl_encrypt($plain, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $nonce, $tag, '', 16);
         if ($ciphertext === false || strlen($tag) !== 16) {
             throw new RuntimeException('Cloud save encryption failed.');
         }
@@ -109,7 +109,7 @@ final class CloudSaveRepository
         if (strlen($nonce) !== 12 || strlen($tag) !== 16) {
             throw new RuntimeException('Invalid cloud save cryptographic metadata.');
         }
-        $plain = openssl_decrypt($ciphertext, 'aes-256-gcm', $this->key(), OPENSSL_RAW_DATA, $nonce, $tag);
+        $plain = \mucho7_openssl_decrypt($ciphertext, 'aes-256-gcm', $this->key(), OPENSSL_RAW_DATA, $nonce, $tag);
         if ($plain === false) {
             throw new RuntimeException('Cloud save decryption failed.');
         }

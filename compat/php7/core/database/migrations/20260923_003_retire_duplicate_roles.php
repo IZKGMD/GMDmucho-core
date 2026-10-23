@@ -19,6 +19,6 @@ return static function (PDO $db) {
     }
     $archiveExists = (int) $db->query("SELECT COUNT(*)\n         FROM information_schema.tables\n         WHERE table_schema = DATABASE()\n           AND table_name = '" . $archive . "'")->fetchColumn();
     if ($archiveExists === 0) {
-        $db->exec('RENAME TABLE `' . $legacy . '` TO `' . $archive . '`');
+        \mucho7_domain_schema_exec($db, 'RENAME TABLE `' . $legacy . '` TO `' . $archive . '`');
     }
 };

@@ -8,5 +8,5 @@ declare (strict_types=1);
  * Copyright (C) 2026 IZK
  */
 return static function (PDO $db) {
-    $db->exec("ALTER TABLE mucho_map_packs\n         MODIFY COLUMN levels TEXT NOT NULL");
+    \mucho7_domain_schema_exec($db, "ALTER TABLE mucho_map_packs\n         MODIFY COLUMN levels TEXT NOT NULL");
 };
