@@ -1,0 +1,84 @@
+<?php
+
+declare (strict_types=1);
+namespace MuchoCore\Cache;
+
+use Redis;
+use RuntimeException;
+use Throwable;
+final class RedisCache implements CacheInterface
+{
+    private $redis;
+    public function __construct(array $config)
+    {
+        if (!class_exists(Redis::class)) {
+            throw new RuntimeException('PHP Redis extension is unavailable.');
+        }
+        $this->redis = new Redis();
+        if (!$this->redis->connect((string) ($config['host'] ?? '127.0.0.1'), (int) ($config['port'] ?? 6379), (float) ($config['timeout'] ?? 1.5))) {
+            throw new RuntimeException('Redis connection failed.');
+        }
+        $password = (string) ($config['password'] ?? '');
+        if ($password !== '') {
+            $this->redis->auth($password);
+        }
+        $database = max(0, (int) ($config['database'] ?? 0));
+        if ($database > 0) {
+            $this->redis->select($database);
+        }
+    }
+    public function get(string $key)
+    {
+        try {
+            $value = $this->redis->get($key);
+            return $value === false ? null : (string) $value;
+        } catch (Throwable $__mcCaught) {
+            return null;
+        }
+    }
+    public function set(string $key, string $value, int $ttlSeconds)
+    {
+        try {
+            if ($ttlSeconds > 0) {
+                $this->redis->setex($key, $ttlSeconds, $value);
+            } else {
+                $this->redis->set($key, $value);
+            }
+        } catch (Throwable $__mcCaught) {
+        }
+    }
+    public function delete(string $key)
+    {
+        try {
+            $this->redis->del($key);
+        } catch (Throwable $__mcCaught) {
+        }
+    }
+    public function deletePrefix(string $prefix)
+    {
+        try {
+            $iterator = null;
+            $pattern = strtr($prefix, ['\\' => '\\\\', '*' => '\*', '?' => '\?', '[' => '\[', ']' => '\]']) . '*';
+            do {
+                $keys = $this->redis->scan($iterator, $pattern, 200);
+                if ($keys !== false && $keys !== []) {
+                    // Redis UNLINK removes key names immediately and reclaims
+                    // large payloads asynchronously, avoiding DEL stalls on
+                    // the request path. Older servers/extensions use DEL.
+                    $unlinked = false;
+                    if (method_exists($this->redis, 'unlink')) {
+                        try {
+                            $unlinked = $this->redis->unlink($keys) !== false;
+                        } catch (Throwable $__mcCaught) {
+                            // Redis <4.0 can reject UNLINK; try DEL instead.
+                        }
+                    }
+                    if (!$unlinked) {
+                        $this->redis->del($keys);
+                    }
+                }
+            } while ($iterator !== 0);
+        } catch (Throwable $__mcCaught) {
+        }
+    }
+}

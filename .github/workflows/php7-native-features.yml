@@ -39,6 +39,7 @@ jobs:
             php -l "$src"
           done
           php tests/compat/php7-native-features-pure.php
+          php tests/compat/php7-compiled-domain-pure.php
       - name: Check real database behavior on native and modern PHP
         env:
           TEST_DB_ROOT_PASSWORD: native-ci-only
@@ -51,3 +52,11 @@ jobs:
           NATIVE_SOCIAL_LEGACY=1 php -d memory_limit=128M tests/compat/php7-native-social-mysql.php
           php -d memory_limit=128M tests/compat/php7-native-admin-registry.php --mysql
           php -d memory_limit=128M tests/compat/php7-native-news-security.php --mysql
+      - name: Exercise compiled original core features on PHP7 and modern PHP
+        env:
+          TEST_DB_ROOT_PASSWORD: native-ci-only
+          TEST_DB_HOST: 127.0.0.1
+        run: |
+          for test in compat/php7/core/tests/application/*-integration.php; do
+            php -d memory_limit=128M "$test"
+          done
