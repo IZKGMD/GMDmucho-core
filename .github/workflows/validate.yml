@@ -205,6 +205,8 @@ jobs:
           php tests/compat/php7-native-parity.php
           php tests/compat/php7-native-download-parity.php
           php tests/compat/php7-native-auth.php
+          php tests/compat/php7-native-original-admin.php
+          php tests/compat/php7-native-news-security.php
           php tests/compat/php7-native-upload.php
           php -l tools/diagnostics/gd2209-feature-check.php
           php tools/diagnostics/gd2209-feature-check.php --help
@@ -214,6 +216,7 @@ jobs:
           php tests/compat/php7-native-users-parity.php
           php tests/compat/php7-native-features-pure.php
           php tests/compat/php7-native-comments-parity.php
+          php tests/compat/php7-native-social-parity.php
           php tests/application/shared-hosting-ftp-bootstrap-contract.php
           php tests/application/shared-hosting-ftp-deploy-contract.php
           mkdir -p /tmp/muchocore-shared-package-test
@@ -641,7 +644,9 @@ jobs:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
-        run: php tests/compat/php7-native-features-mysql.php
+        run: |
+          php tests/compat/php7-native-features-mysql.php
+          php tests/compat/php7-native-news-security.php --mysql
 
       - name: Verify queue leases and database cache races
         env:

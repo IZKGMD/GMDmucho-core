@@ -17,6 +17,16 @@ $pdo->exec("CREATE TABLE levels(
  coins INTEGER,requested_stars INTEGER,is_unlisted INTEGER,unlisted2 INTEGER,
  copy_password TEXT,ldm INTEGER,is_deleted INTEGER DEFAULT 0,
  created_at TEXT DEFAULT CURRENT_TIMESTAMP,updated_at TEXT DEFAULT CURRENT_TIMESTAMP)");
+$pdo->exec("ALTER TABLE levels ADD COLUMN extra_string TEXT");
+$pdo->exec("ALTER TABLE levels ADD COLUMN settings_string TEXT");
+$pdo->exec("ALTER TABLE levels ADD COLUMN song_ids TEXT");
+$pdo->exec("ALTER TABLE levels ADD COLUMN sfx_ids TEXT");
+$pdo->exec("ALTER TABLE levels ADD COLUMN original_level_id INTEGER DEFAULT 0");
+$pdo->exec("ALTER TABLE levels ADD COLUMN two_player INTEGER DEFAULT 0");
+$pdo->exec("ALTER TABLE levels ADD COLUMN wt INTEGER DEFAULT 0");
+$pdo->exec("ALTER TABLE levels ADD COLUMN wt2 INTEGER DEFAULT 0");
+$pdo->exec("ALTER TABLE levels ADD COLUMN ts INTEGER DEFAULT 0");
+$pdo->exec("CREATE TABLE php7_level_details(level_id INTEGER PRIMARY KEY,level_info TEXT)");
 $pw = 'TestPass1234';
 $hash = sha1($pw.'mI29fmAnxgTs');
 $stored = password_hash($pw, PASSWORD_BCRYPT, ['cost'=>4]);
@@ -53,7 +63,7 @@ checkUpload($pdo->query('SELECT name FROM levels WHERE level_id=1')->fetchColumn
 $bad=$base;$bad['levelID']='1';$bad['gjp2']='invalid';
 checkUpload(mucho7_dispatch($pdo,'/database/uploadGJLevel21.php',
  'POST',$bad,$opts)==='-1','invalid credential rejected');
-$bad=$base;$bad['levelString']=str_repeat('x',210*1024);
+$bad=$base;$bad['levelString']=str_repeat('x',8*1024*1024+1);
 checkUpload(mucho7_dispatch($pdo,'/database/uploadGJLevel21.php',
  'POST',$bad,$opts)==='-1','oversize upload rejected');
 $pdo->exec('UPDATE accounts SET is_banned=1 WHERE account_id=1');

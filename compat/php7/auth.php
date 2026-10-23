@@ -25,7 +25,7 @@ function mucho7_auth_event(PDO $pdo, $action, $username, $ip, $pepper)
     $check->execute(array(':action'=>$action, ':ip'=>$ipHash, ':name'=>$nameHash,
         ':cutoff'=>gmdate('Y-m-d H:i:s', time()-600)));
     $count = (int)$check->fetchColumn();
-    if ($count >= ($action === 'login' ? 10 : 3)) {
+    if ($count >= (in_array($action,array('login','admin-2fa'),true) ? 10 : 3)) {
         return false;
     }
     $insert = $pdo->prepare(

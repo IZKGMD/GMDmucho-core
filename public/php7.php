@@ -1,6 +1,6 @@
 <?php
 /**
- * Experimental *native*, read-only PHP 7 adapter; no forwarding to a VPS.
+ * Native PHP 7 shared runtime; no forwarding to a VPS.
  * Does NOT include modern PHP8 MuchoCore classes or Composer dependencies.
  */
 declare(strict_types=1);
@@ -27,12 +27,13 @@ if (!$https) {
 
 $method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper((string)$_SERVER['REQUEST_METHOD']) : 'GET';
 require_once $root . '/compat/php7/runtime.php';
+require_once $root . '/compat/php7/bootstrap.php';
 $uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
 $uri = mucho7_mount_uri($uri, isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '');
 // URL-encoded binary saves can expand to three times their decoded size.
-$requestLimit = preg_match('~^/backupgjaccount(?:19|20|21|22)?$~D', mucho7_path($uri))
+$requestLimit = preg_match('~^/(?:backupgjaccount|uploadgjlevel)(?:19|20|21|22)?$~D', mucho7_path($uri))
     ? 24*1024*1024+8192 : 262144;
-if (($method !== 'POST' && $method !== 'GET')
+if (($method !== 'POST' && $method !== 'GET' && $method !== 'HEAD')
     || (isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH'] > $requestLimit)) {
     http_response_code(413);
     echo '-1';
@@ -49,6 +50,7 @@ require_once $root . '/compat/php7/interactions.php';
 require_once $root . '/compat/php7/cloudsave.php';
 require_once $root . '/compat/php7/profile.php';
 require_once $root . '/compat/php7/social.php';
+require_once $root . '/compat/php7/levels.php';
 
 try {
     $settings = require $root . '/config/php7-local.php';
@@ -58,10 +60,10 @@ try {
 
     $options = array(
         'enable_accounts'=>!empty($settings['enable_accounts']),
-        'enable_registration'=>!empty($settings['enable_registration']),
-        'enable_social'=>!empty($settings['enable_social']),
+        'enable_registration'=>!empty($settings['enable_registration']) && !is_file($root.'/config/registrations-disabled.flag'),
         'enable_writes'=>!empty($settings['enable_writes']),
         'enable_cloudsave'=>!empty($settings['enable_cloudsave']),
+        'enable_social'=>!empty($settings['enable_social']),
         'enable_native_news'=>!empty($settings['enable_native_news']),
         'site_url'=>isset($settings['site_url']) ? $settings['site_url'] : '',
         'news_file'=>$root . '/config/php7-news.json',
@@ -69,15 +71,27 @@ try {
         'ip'=>isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : ''
     );
     $path = mucho7_path($uri);
+    if(is_file($root.'/config/maintenance.flag') && !in_array($path,array('/health','/checkifserveronline'),true)){
+        http_response_code(503);echo '-1';exit;
+    }
 
-    // The public News CDN and discovery endpoints read private local config
-    // and JSON only. Do NOT make them dependent on a live MySQL connection.
-    // All account, level, moderation and other endpoints still need PDO.
+    $newsSql=is_file($root.'/config/php7-news-sql.on');
+    if(preg_match('~^/(?:gd-content/)?news/(mcnews_[a-f0-9]{64}\.jpg)$~D',$path,$imageMatch)
+        || $path==='/news/image') {
+        if(!$newsSql){http_response_code(404);exit;}
+        $file=isset($imageMatch[1])?$imageMatch[1]:(isset($_GET['file']) && is_string($_GET['file'])?$_GET['file']:'');
+        \MuchoCore\News\NewsImageResponse::send(mucho7_connect($settings),$file);
+    }
+    if($method==='HEAD'){http_response_code(405);header('Allow: GET, POST');exit;}
+
+    // Legacy text news stays database-independent until the owner migrates it.
     if (in_array($path, array(
         '/getcustomcontenturl', '/getaccounturl',
         '/news/news.dat', '/news/news_version.txt',
         '/gd-content/news/news.dat', '/gd-content/news/news_version.txt'
     ), true)) {
+        if($newsSql && in_array($path,array('/news/news.dat','/news/news_version.txt','/gd-content/news/news.dat','/gd-content/news/news_version.txt'),true))
+            $options['news_pdo']=mucho7_connect($settings);
         echo mucho7_dispatch(null, $uri, $method, $_POST, $options);
         exit;
     }
@@ -108,6 +122,7 @@ try {
             PDO::ATTR_TIMEOUT => 3
         )
     );
+    $pdo->exec("SET time_zone='+00:00'");
     echo mucho7_dispatch($pdo, $uri, $method, $_POST, $options);
 } catch (Exception $exception) {
     // A public API must never disclose the DB name, password or SQL statement.

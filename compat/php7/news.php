@@ -2,11 +2,22 @@
 /**
  * Native Geometry Dash 2.209 News payload generator for experimental PHP7.
  *
- * Text + optional HTTPS link only. Images/video/media remain unsupported here;
- * the PHP8 owner-managed News Board is the complete implementation.
- * Posts live in private config/php7-news.json, never in the web root.
+ * Original News domain classes, compiled to PHP7. Legacy JSON remains readable
+ * until the owner opens News Board and completes the additive SQL migration.
  */
 declare(strict_types=1);
+
+foreach (array('NewsValidationException','NewsImage','YouTubeVideo','NewsMediaService','NewsService','NativeNewsFormat','NewsImageResponse') as $newsClass) {
+    require_once __DIR__.'/news/'.$newsClass.'.php';
+}
+require_once __DIR__.'/news-storage.php';
+
+function mucho7_news_length($value) {
+    if (function_exists('mb_strlen')) return mb_strlen($value,'UTF-8');
+    $count=preg_match_all('/./us',$value,$matches);
+    if ($count===false) throw new RuntimeException('Invalid UTF-8 news text.');
+    return $count;
+}
 
 function mucho7_news_source($filename)
 {
@@ -32,6 +43,12 @@ function mucho7_news_b64($value)
 function mucho7_news_payload($posts)
 {
     if (!is_array($posts)) { throw new InvalidArgumentException('Invalid posts'); }
+    return \MuchoCore\News\NativeNewsFormat::textPayload($posts);
+}
+
+function mucho7_news_legacy_payload($posts)
+{
+    // Kept only for validation of the old JSON contract during import.
     $rows = array();
     foreach (array_slice($posts,0,30) as $post) {
         if (!is_array($post)) { throw new RuntimeException('Invalid news post'); }
@@ -77,13 +94,15 @@ function mucho7_news_response($path,$method,$options)
         }
         return $site.'/gd-content';
     }
-    $news = mucho7_news_source(isset($options['news_file']) ? $options['news_file'] : '');
+    $sql=isset($options['news_pdo']) && $options['news_pdo'] instanceof PDO;
+    $service=$sql?new \MuchoCore\News\NewsService($options['news_pdo']):null;
+    $news = $sql?null:mucho7_news_source(isset($options['news_file']) ? $options['news_file'] : '');
     if ($path==='/news/news_version.txt' ||
         $path==='/gd-content/news/news_version.txt') {
-        return (string)$news['version'];
+        return $sql?$service->nativeVersion():(string)$news['version'];
     }
     if ($path==='/news/news.dat' || $path==='/gd-content/news/news.dat') {
-        $raw = mucho7_news_payload($news['posts']);
+        $raw = mucho7_news_payload($sql?$service->published():$news['posts']);
         $gzip = gzencode($raw,9,ZLIB_ENCODING_GZIP);
         if ($gzip===false) { return '-1'; }
         return mucho7_news_b64($gzip);

@@ -137,7 +137,8 @@ function mucho7_create_schema(PDO $pdo)
     // require empty disposable schema to avoid partial/incompatible migrations.
     $tableNames = array('roles', 'accounts', 'profiles', 'songs', 'levels',
         'php7_auth_events', 'php7_comments', 'php7_votes', 'php7_cloud_saves',
-        'php7_friend_requests', 'php7_friendships');
+        'php7_user_details','php7_friend_requests','php7_friends','php7_blocks',
+        'php7_messages','php7_admin_audit','php7_downloads','php7_level_details','php7_friendships');
     $marks = implode(',', array_fill(0, count($tableNames), '?'));
     $count = $pdo->prepare(
         'SELECT COUNT(*) FROM information_schema.tables
@@ -151,7 +152,6 @@ function mucho7_create_schema(PDO $pdo)
         $pdo->exec($sql);
     }
     mucho7_upgrade_features($pdo);
-    mucho7_upgrade_social($pdo);
     $pdo->exec(
         "INSERT INTO roles (code,name,priority) VALUES
         ('user','User',0),('moderator','Moderator',50),

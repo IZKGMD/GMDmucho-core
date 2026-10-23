@@ -2,7 +2,7 @@
 /** Disposable MariaDB contract for GD 2.209 native PHP7 friends. */
 declare(strict_types=1);
 $root = dirname(__DIR__,2);
-foreach (array('runtime','auth','schema','social') as $module) {
+foreach (array('runtime','auth','schema','social','users','profile','interactions') as $module) {
     require_once $root . '/compat/php7/' . $module . '.php';
 }
 function socialAssert($yes,$message) {
@@ -24,6 +24,12 @@ try {
     mucho7_create_schema($pdo);
     mucho7_upgrade_social($pdo);
     mucho7_upgrade_social($pdo); // additive/idempotent
+    if(getenv('NATIVE_SOCIAL_LEGACY')==='1'){
+        // Disposable fixture for main's previous native friend schema.
+        $pdo->exec('DROP TABLE php7_friend_requests');
+        mucho7_upgrade_legacy_social($pdo);
+        mucho7_upgrade_features($pdo); // Must preserve those existing columns/data.
+    }
     $plain = 'NativeSocialPass_123';
     $hash = password_hash($plain,PASSWORD_BCRYPT,array('cost'=>4));
     $gjp = sha1($plain . 'mI29fmAnxgTs');

@@ -90,8 +90,11 @@ unset($large, $largeResult);
 checkDownload(mucho7_dispatch($pdo,'/database/uploadGJLevel21.php',
     'POST',['levelID'=>'42']) === '-1','upload must fail closed');
 checkDownload(mucho7_download($pdo,['levelID'=>'-1']) === '-1','timely needs separate auth');
-checkDownload(mucho7_download($pdo,['levelID'=>'42','extras'=>'1']) === '-1',
-    'uncertified extra fields must fail');
+$pdo->exec('CREATE TABLE php7_level_details(level_id INTEGER PRIMARY KEY,level_info TEXT)');
+$pdo->exec("INSERT INTO php7_level_details VALUES(42,'test-extra-info')");
+checkDownload(mucho7_download($pdo,['levelID'=>'42','extras'=>'1']) ===
+    $modern->encode(array_merge($row,['level_info'=>'test-extra-info']),22,true,0),
+    'editor extras must match modern wire');
 $pdo->exec('UPDATE levels SET is_unlisted=1 WHERE level_id=42');
 checkDownload(mucho7_download($pdo,['levelID'=>'42']) === '-1',
     'unlisted level cannot be fetched anonymously');

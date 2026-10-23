@@ -3,9 +3,9 @@ name: Native PHP7 feature integration
 on:
   push:
     branches: [main]
-    paths: ['compat/php7/**', 'public/php7.php', 'tests/compat/php7-native-features-*', '.github/workflows/php7-native-features.yml']
+    paths: ['compat/php7/**', 'public/php7*.php', 'public/assets/php7-admin.css', 'tests/compat/php7-native-*', '.github/workflows/php7-native-features.yml']
   pull_request:
-    paths: ['compat/php7/**', 'public/php7.php', 'tests/compat/php7-native-features-*', '.github/workflows/php7-native-features.yml']
+    paths: ['compat/php7/**', 'public/php7*.php', 'public/assets/php7-admin.css', 'tests/compat/php7-native-*', '.github/workflows/php7-native-features.yml']
   workflow_dispatch:
 
 permissions:
@@ -31,16 +31,14 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo_mysql
+          extensions: pdo_mysql, gd
           coverage: none
       - name: Check native syntax and pure protocol behavior
         run: |
-          for src in compat/php7/*.php public/php7.php public/php7-setup.php; do
+          for src in $(find compat/php7 -name '*.php') public/php7*.php; do
             php -l "$src"
           done
           php tests/compat/php7-native-features-pure.php
-          php -l tools/mobile/php7-account-reset.php
-          php tests/compat/php7-local-reset.php
       - name: Check real database behavior on native and modern PHP
         env:
           TEST_DB_ROOT_PASSWORD: native-ci-only
@@ -48,4 +46,7 @@ jobs:
         run: |
           php -d memory_limit=128M tests/compat/php7-native-mysql.php
           php -d memory_limit=128M tests/compat/php7-native-features-mysql.php
+          php -d memory_limit=128M tests/compat/php7-native-social-admin-mysql.php
           php -d memory_limit=128M tests/compat/php7-native-social-mysql.php
+          NATIVE_SOCIAL_LEGACY=1 php -d memory_limit=128M tests/compat/php7-native-social-mysql.php
+          php -d memory_limit=128M tests/compat/php7-native-news-security.php --mysql
