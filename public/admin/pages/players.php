@@ -50,6 +50,7 @@ $roleOptions=$manage ? $db->query("SELECT code FROM roles WHERE code IN ('user',
 <span class="badge <?=$r['is_banned']?'bad':($r['is_active']?'green':'')?>"><?=$r['is_banned']?'Banned':($r['is_active']?'Active':'Inactive')?></span>
 <span class="record-open">Open</span></summary>
 <div class="record-body">
+<div class="record-actions"><button type="button" class="gray" data-copy-value="<?=$id?>">Copy player ID</button></div>
 <?php if($manage): ?>
 <form method="post" class="admin-edit-grid">
 <input type="hidden" name="csrf" value="<?=csrf()?>"><input type="hidden" name="action" value="account-save">

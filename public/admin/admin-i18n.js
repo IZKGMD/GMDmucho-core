@@ -4,6 +4,11 @@
 const KEY = 'mucho_admin_language';
 
 const RU = {
+'Copy level ID':'Скопировать ID уровня',
+'Copy player ID':'Скопировать ID игрока',
+'View creator':'Открыть автора',
+'Unsaved changes':'Есть несохранённые изменения',
+'Quick navigation (Ctrl+K)':'Быстрый переход (Ctrl+K)',
 'Pending requests':'Запросы оценки',
 'Rated levels':'Оценённые уровни',
 'No stars':'Без звёзд',

@@ -68,6 +68,7 @@
 
 
 <?php adminInterfaceSwitch($_GET); ?>
+<button type="button" class="command-launcher" id="commandLauncher" aria-haspopup="dialog" title="Quick navigation (Ctrl+K)"><span>Quick navigation</span><kbd>Ctrl K</kbd></button>
 <div class="mc-theme-slot"></div>
 <div class="user-pill">
 <div class="avatar">

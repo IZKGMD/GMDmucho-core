@@ -39,6 +39,12 @@
             catch{const range=document.createRange();range.selectNodeContents(target);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);toast(label('Команда выделена. Нажми Ctrl+C или удерживай текст для копирования.','Command selected. Press Ctrl+C or long-press to copy.'));}
         });
     });
+    document.querySelectorAll('[data-copy-value]').forEach(button=>{
+        button.addEventListener('click',async()=>{
+            try{await navigator.clipboard.writeText(button.dataset.copyValue);toast(label('ID скопирован','ID copied'));}
+            catch{toast(label('ID для копирования: ','ID to copy: ')+button.dataset.copyValue);}
+        });
+    });
     const menu=document.getElementById('productNavigation');
     const menuButton=document.querySelector('.mc-nav-toggle');
     if(menu && menuButton){

@@ -45,6 +45,10 @@ $rate=canPermission('levels.rate');
 <?php if($r['requested_stars']>0): ?><span class="badge"><?=h($r['requested_stars'])?> ★</span><?php endif ?>
 <span class="record-open">Open</span></summary>
 <div class="record-body">
+<div class="record-actions">
+<button type="button" class="gray" data-copy-value="<?=$id?>">Copy level ID</button>
+<?php if(canAdminPage('players')): ?><a class="btn gray" href="/admin/?page=players&amp;q=<?=rawurlencode($r['creator_name'])?>">View creator</a><?php endif ?>
+</div>
 <div class="record-metrics"><span><?=adminGdIcon('downloads')?><?=number_format((int)$r['downloads'])?></span><span><?=adminGdIcon('likes')?><?=number_format((int)$r['likes'])?></span><span><?=h(ucwords(str_replace('-',' ',$profile)))?></span></div>
 <?php if($rate): ?><a class="btn" href="/admin/?page=rating&amp;id=<?=$id?>&amp;q=<?=rawurlencode($q)?>">Publish rating</a><?php endif ?>
 <?php if($manage): ?>

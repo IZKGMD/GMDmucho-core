@@ -143,7 +143,7 @@ if(isset($_GET['news_feed'])){
 }
 if(isset($_GET['audit_feed'])){
     header('Content-Type: application/json; charset=utf-8');
-    if(!$user || $user['role']!=='owner'){http_response_code(403);echo '{"ok":false}';exit;}
+    if(!mucho7_admin_can($pdo,$user,'audit.view')){http_response_code(403);echo '{"ok":false}';exit;}
     $events=$pdo->query(mucho7_admin_audit_rows_sql($pdo).' LIMIT 20')->fetchAll(PDO::FETCH_ASSOC);
     echo json_encode(array('ok'=>true,'events'=>$events));exit;
 }

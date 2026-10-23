@@ -7,7 +7,7 @@
             catch{input.select();document.execCommand('copy');button.textContent='Copied';}
         });
     });
-    document.querySelectorAll('form[data-confirm]').forEach(form=>{
+    if(!document.querySelector('script[src*="admin-simple.js"]'))document.querySelectorAll('form[data-confirm]').forEach(form=>{
         form.addEventListener('submit',event=>{if(!confirm(form.dataset.confirm))event.preventDefault();});
     });
     const link=document.querySelector('.admin-nav a.logout');

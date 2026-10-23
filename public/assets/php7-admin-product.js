@@ -5,9 +5,9 @@
     const adminRoute = (href, origin) => {
         try {
             const url = new URL(href,origin);
-            if (url.origin !== origin || ![ '/admin/', document.body.dataset.adminPath ].includes(url.pathname) || !/^[a-z]+$/.test(url.searchParams.get('page') || '')) return null;
+            if (url.origin !== origin || ![ '/admin/', typeof document!=='undefined'?document.body.dataset.adminPath:null ].includes(url.pathname) || !/^[a-z]+$/.test(url.searchParams.get('page') || '')) return null;
             if ([...url.searchParams.keys()].some(key => key !== 'page') || url.hash) return null;
-            return (document.body.dataset.adminPath || '/admin/')+'?page='+url.searchParams.get('page');
+            return ((typeof document!=='undefined' && document.body.dataset.adminPath) || '/admin/')+'?page='+url.searchParams.get('page');
         } catch { return null; }
     };
     const rules = Object.freeze({normalize,matches,adminRoute});
@@ -37,6 +37,12 @@
             if(!target)return;
             try{await navigator.clipboard.writeText(target.textContent.trim());toast(label('Команда скопирована','Command copied'));}
             catch{const range=document.createRange();range.selectNodeContents(target);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);toast(label('Команда выделена. Нажми Ctrl+C или удерживай текст для копирования.','Command selected. Press Ctrl+C or long-press to copy.'));}
+        });
+    });
+    document.querySelectorAll('[data-copy-value]').forEach(button=>{
+        button.addEventListener('click',async()=>{
+            try{await navigator.clipboard.writeText(button.dataset.copyValue);toast(label('ID скопирован','ID copied'));}
+            catch{toast(label('ID для копирования: ','ID to copy: ')+button.dataset.copyValue);}
         });
     });
     const menu=document.getElementById('productNavigation');

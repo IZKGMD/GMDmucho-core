@@ -30,14 +30,14 @@ function mucho7_admin_registry_install(PDO $db) {
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
         code VARCHAR(32) NOT NULL UNIQUE,name VARCHAR(64) NOT NULL,
         is_system TINYINT NOT NULL DEFAULT 0
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     $db->exec("CREATE TABLE IF NOT EXISTS php7_admin_role_permissions (
         role_id BIGINT UNSIGNED NOT NULL,permission VARCHAR(128) NOT NULL,
         PRIMARY KEY(role_id,permission)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     $db->exec("CREATE TABLE IF NOT EXISTS php7_admin_registry_state (
         id INT NOT NULL PRIMARY KEY,version INT NOT NULL DEFAULT 0
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     $db->exec('INSERT IGNORE INTO php7_admin_registry_state(id,version) VALUES(1,0)');
     $db->beginTransaction();
     try {

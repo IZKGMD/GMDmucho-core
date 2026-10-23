@@ -103,8 +103,7 @@ idle/old sessions. Owner changes cannot remove one's own owner access.
 from the original source; `admin-ui/upstream-sources.json` records their hashes.
 It preserves the original CSS and GD assets. The shared host bridge changes
 storage, mount URLs and PHP syntax. News Board and authenticator/recovery are
-original templates too. Separate administrator identities, one-time password invitations, custom roles, assignment and activation are supported. Passkey tools
-and DB Backup Center are not yet ported. CSP authorizes original inline blocks
+original templates too. Separate administrator identities, one-time password invitations, custom roles, assignment and activation are supported. Passkey tools are not yet ported. Database Backup Center uses the original shared-host page and PHP service with private compressed archives and verified downloads. CSP authorizes original inline blocks
 with per-response nonces; no `unsafe-inline` is enabled. QR images are generated
 locally, without sending authenticator secrets to an external QR service.
 

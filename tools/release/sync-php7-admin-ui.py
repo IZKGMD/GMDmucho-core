@@ -85,8 +85,8 @@ assets=['public/admin/admin-ui-v2.css','public/admin/admin-i18n.css','public/adm
 for path in assets: manifest[path]=hashlib.sha256((ROOT/path).read_bytes()).hexdigest()
 # JavaScript's original admin mount is the sole frontend portability change.
 product=(ROOT/'public/assets/product-ui.js').read_text()
-product=product.replace("url.pathname !== '/admin/'", "![ '/admin/', document.body.dataset.adminPath ].includes(url.pathname)")
-product=product.replace("return '/admin/?page='+url.searchParams.get('page');", "return (document.body.dataset.adminPath || '/admin/')+'?page='+url.searchParams.get('page');")
+product=product.replace("url.pathname !== '/admin/'", "![ '/admin/', typeof document!=='undefined'?document.body.dataset.adminPath:null ].includes(url.pathname)")
+product=product.replace("return '/admin/?page='+url.searchParams.get('page');", "return ((typeof document!=='undefined' && document.body.dataset.adminPath) || '/admin/')+'?page='+url.searchParams.get('page');")
 (ROOT/'public/assets/php7-admin-product.js').write_text(product)
 audit=(ROOT/'public/admin/product-dashboard.js').read_text().replace("fetch('/admin/?audit_feed=1'", "fetch((document.body.dataset.adminPath || '/admin/')+'?audit_feed=1'")
 (ROOT/'public/assets/php7-admin-dashboard.js').write_text(audit)
