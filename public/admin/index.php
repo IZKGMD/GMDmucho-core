@@ -4994,7 +4994,7 @@ table{
 <script src="/muchocore-theme.js?v=4" defer></script>
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
-<script src="/assets/product-ui.js?v=3" defer></script>
+<script src="/assets/product-ui.js?v=4" defer></script>
 <link rel="stylesheet" href="/admin/admin-simple.css?v=2">
 <script src="/admin/admin-simple.js?v=3" defer></script>
 <link rel="stylesheet" href="/admin/admin-polish.css?v=4">
@@ -6408,7 +6408,7 @@ echo '</table></div>';
 </main>
 <?php if (!adminIsPlain()): ?>
 </div>
-<script src="/admin/admin-i18n.js?v=103"></script>
+<script src="/admin/admin-i18n.js?v=104"></script>
 <?php endif ?>
 
 

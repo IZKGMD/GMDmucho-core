@@ -91,7 +91,7 @@
         const groupNode=category?.querySelector(':scope > summary') || fallbackGroup;
         entries.push({node,href,groupNode});
     });
-    const groupFor=entry=>entry.groupNode?.childNodes[0]?.textContent?.trim() || label('Основное','Main');
+    const groupFor=entry=>entry.groupNode?.childNodes[0]?.textContent?.trim() || label('Главное','Main');
     const dialog=document.createElement('dialog');dialog.className='mc-dialog';dialog.setAttribute('aria-labelledby','commandTitle');
     const head=document.createElement('div');head.className='mc-dialog-head';
     const title=document.createElement('h2');title.id='commandTitle';
