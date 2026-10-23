@@ -123,7 +123,9 @@ try {
     copy($root.'/public/php7-admin.php',$stage.'/public/php7-admin.php');
     $fixtureSettings=array('host'=>getenv('TEST_DB_HOST')?:'127.0.0.1','port'=>(int)(getenv('TEST_DB_PORT')?:3306),
         'database'=>$database,'username'=>'root','password'=>$password,'site_url'=>'https://example.invalid','auth_pepper'=>str_repeat('p',64));
-    file_put_contents($stage.'/config/php7-local.php','<?php return '.var_export($fixtureSettings,true).';');
+    // Real shared-host configuration may contain leading whitespace. It must
+    // never become part of a gzip download or break redirect headers.
+    file_put_contents($stage.'/config/php7-local.php',"\n<?php return ".var_export($fixtureSettings,true).';');
     $fixtureCsrf=bin2hex(random_bytes(24));
     $fixtureSession=array('aid'=>1,'signed_in'=>time(),'last_seen'=>time(),'auth_version'=>2,'csrf'=>$fixtureCsrf,
         'instance'=>hash_hmac('sha256',$stage.'|'.$fixtureSettings['host'].'|'.$database,$password));
@@ -144,6 +146,25 @@ try {
     nsCheck(strpos($response,'Доступно обновление базы')===false,'validation incorrectly offered a schema upgrade');
     nsCheck(count($news->allForOwner())===1,'rejected front-controller POST created news');
     echo "NATIVE_ADMIN_REJECTED_POST_PRESERVES_EDITOR_OK\n";
+    require_once $root.'/compat/php7/admin-backups.php';
+    mucho7_admin_registry_install($pdo);
+    $fixtureRoot=$root;$root=$stage;
+    try {
+        mucho7_admin_backup_action($pdo,1,'dbbackup-create',array());
+        $archives=glob(muchoDbBackupDir().'/*.sql.gz');nsCheck(count($archives)===1,'controller backup fixture missing');
+        $downloadPost=array('csrf'=>$fixtureCsrf,'action'=>'dbbackup-download','file'=>basename($archives[0]));
+        file_put_contents($stage.'/request.php',str_replace(var_export($fixturePost,true),var_export($downloadPost,true),$wrapper));
+        $process=proc_open(escapeshellarg(PHP_BINARY).' '.escapeshellarg($stage.'/request.php'),array(1=>array('pipe','w'),2=>array('pipe','w')),$pipes);
+        if(!is_resource($process))throw new RuntimeException('Unable to launch download controller fixture');
+        $download=stream_get_contents($pipes[1]);$stderr=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$exit=proc_close($process);
+        nsCheck($exit===0 && hash_equals(hash_file('sha256',$archives[0]),hash('sha256',$download)),'front controller changed gzip bytes: '.$stderr);
+        nsCheck(is_string(gzdecode($download)),'front controller returned invalid gzip');
+        echo "NATIVE_ADMIN_CONTROLLER_DOWNLOAD_CLEAN_BYTES_OK\n";
+    } finally {
+        foreach(glob(muchoDbBackupDir().'/*') as $file)unlink($file);
+        if(is_file(muchoDbBackupDir().'/.backup.lock'))unlink(muchoDbBackupDir().'/.backup.lock');
+        if(is_dir(muchoDbBackupDir()))rmdir(muchoDbBackupDir());$root=$fixtureRoot;
+    }
  }
  echo 'NATIVE_TOTP_RECOVERY_REPLAY_REAUTH_SESSION_OK '.($mysql?'MYSQL':'SQLITE')."\n";
 }finally{

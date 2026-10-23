@@ -1,6 +1,15 @@
 <?php
 /** Browser administration for the native shared runtime. PHP 7.0+. */
 declare(strict_types=1);
+// Keep incidental output from host configuration/includes away from headers.
+// Downloads and machine-readable responses discard it at their response boundary.
+ob_start();
+function mucho7_admin_clean_response()
+{
+    while (ob_get_level()>0) {
+        if (!ob_end_clean()) { throw new RuntimeException('Unable to prepare a clean response.'); }
+    }
+}
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: no-store, private');
 header('X-Content-Type-Options: nosniff');header('X-Frame-Options: DENY');
@@ -106,9 +115,10 @@ try {
         if($action==='logout') {
             $_SESSION=array();session_regenerate_id(true);header('Location: ?',true,303);exit;
         }
-        if($action==='backup'){mucho7_admin_backup($pdo,(int)$user['account_id']);exit;}
+        if($action==='backup'){mucho7_admin_clean_response();mucho7_admin_backup($pdo,(int)$user['account_id']);exit;}
         if($action==='dbbackup-download'){
             require_once $root.'/compat/php7/admin-backups.php';
+            mucho7_admin_clean_response();
             mucho7_admin_backup_action($pdo,(int)$user['account_id'],$action,$_POST);exit;
         }
         mucho7_admin_ui_action($pdo,(int)$user['account_id'],$action,$_POST,$root,$settings);
@@ -132,9 +142,11 @@ if(!empty($setupMode)){
 }
 if(isset($_GET['news_image'])){
     if(!$user || $user['role']!=='owner'){http_response_code(403);exit;}
+    mucho7_admin_clean_response();
     \MuchoCore\News\NewsImageResponse::send($pdo,is_string($_GET['news_image'])?$_GET['news_image']:'',true);
 }
 if(isset($_GET['news_feed'])){
+    mucho7_admin_clean_response();
     header('Content-Type: application/json; charset=utf-8');
     if(!$pdo || !is_file($root.'/config/php7-news-sql.on')){http_response_code(503);echo '{"posts":[]}';exit;}
     try{echo json_encode(array('posts'=>(new \MuchoCore\News\NewsService($pdo))->published()));}
@@ -142,6 +154,7 @@ if(isset($_GET['news_feed'])){
     exit;
 }
 if(isset($_GET['audit_feed'])){
+    mucho7_admin_clean_response();
     header('Content-Type: application/json; charset=utf-8');
     if(!mucho7_admin_can($pdo,$user,'audit.view')){http_response_code(403);echo '{"ok":false}';exit;}
     $events=$pdo->query(mucho7_admin_audit_rows_sql($pdo).' LIMIT 20')->fetchAll(PDO::FETCH_ASSOC);
