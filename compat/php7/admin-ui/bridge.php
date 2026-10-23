@@ -62,7 +62,11 @@ function mucho7_admin_ui_url($url){
 function mucho7_admin_ui_html($html){
     $plain=adminIsPlain();$nonce=$GLOBALS['adminNonce'];$styles=array();
     $html=preg_replace_callback('~\s+onsubmit="return confirm\(\x27([^\x27]*)\x27\)"~',function($match){return ' data-confirm="'.h($match[1]).'"';},$html);
-    $html=preg_replace_callback('~\b(href|src|action|data-face-url)=(["\'])(.*?)\2~s',function($match){return $match[1].'='.$match[2].h(mucho7_admin_ui_url(html_entity_decode($match[3],ENT_QUOTES,'UTF-8'))).$match[2];},$html);
+    $html=preg_replace_callback('~\b(href|src|action|data-face-url)=(["\'])(.*?)\2~s',function($match){
+        $url=mucho7_admin_ui_url(html_entity_decode($match[3],ENT_QUOTES,'UTF-8'));
+        if(preg_match('~\.(?:css|js)(?:\?|$)~',$url) && strpos($url,$GLOBALS['publicBase'].'/')===0)$url.=(strpos($url,'?')===false?'?':'&').'mcui=20261023-roles2';
+        return $match[1].'='.$match[2].h($url).$match[2];
+    },$html);
     // Keep the upstream inline layout exactly, but authorize it with a nonce.
     $html=preg_replace_callback('~<([A-Za-z][^<>]*?)\sstyle=(["\'])(.*?)\2([^<>]*?)>~s',function($match)use(&$styles){
         $id='mucho7-layout-'.count($styles);$styles[]='#'.$id.'{'.str_replace('</','<\\/',html_entity_decode($match[3],ENT_QUOTES,'UTF-8')).'}';

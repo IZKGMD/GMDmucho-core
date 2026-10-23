@@ -91,7 +91,16 @@ try {
  $rows=$pdo->query(mucho7_admin_audit_rows_sql($pdo))->fetchAll(PDO::FETCH_ASSOC);
  arCheck(in_array('PanelOnly',array_column($rows,'username'),true),'panel audit identity was lost');
  $user=mucho7_admin_user($pdo,1);$schemaReady=true;$hasOwner=true;$freshInstall=false;$error='';$notice='';$adminNonce='fixtureNonce123';
- foreach(array('admins','roles') as $page){$_GET=array('page'=>$page);ob_start();require $root.'/compat/php7/admin-view.php';$html=ob_get_clean();arCheck(strpos($html,$page==='admins'?'Add administrator':'Create custom role')!==false,'original management markup absent');arCheck(!preg_match('~<[^>]+\\sonclick=~',$html),'CSP inline management handler');}
+ foreach(array('admins','roles') as $page){
+    $_GET=array('page'=>$page);ob_start();require $root.'/compat/php7/admin-view.php';$html=ob_get_clean();
+    arCheck(strpos($html,$page==='admins'?'Add administrator':'Create custom role')!==false,'original management markup absent');
+    arCheck(!preg_match('~<[^>]+\\sonclick=~',$html),'CSP inline management handler');
+    arCheck(strpos($html,'mcui=20261023-roles2')!==false,'changed admin assets have no cache revision');
+    if($page==='admins'&&class_exists('DOMDocument')){
+        $document=new DOMDocument();$previous=libxml_use_internal_errors(true);$document->loadHTML($html,LIBXML_NONET);libxml_clear_errors();libxml_use_internal_errors($previous);
+        arCheck((new DOMXPath($document))->query('//main//table')->length===1,'administrator table escaped the main layout');
+    }
+ }
  if($mysql){
     require_once $root.'/compat/php7/admin-backups.php';
     $pdo->exec('CREATE TABLE backup_binary_fixture(id INT PRIMARY KEY,payload LONGBLOB)');

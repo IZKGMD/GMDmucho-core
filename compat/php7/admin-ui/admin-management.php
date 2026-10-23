@@ -40,8 +40,6 @@ unset($_SESSION['admin_setup_invite']);
 </div>
 
 <?php endif ?>
-
-</div>
 <?php
 
 $admins=$db->query(
