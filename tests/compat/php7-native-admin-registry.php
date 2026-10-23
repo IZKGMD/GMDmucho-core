@@ -112,6 +112,10 @@ try {
         mucho7_admin_backup_action($pdo,1,'dbbackup-create',array());
         $files=glob(muchoDbBackupDir().'/*.sql.gz');arCheck(count($files)===1,'stored compressed backup absent');
         $path=mucho7_admin_backup_file(basename($files[0]));$sql=gzdecode(file_get_contents($path));
+        ob_start();renderDbBackupCenter($pdo);$backupHtml=ob_get_clean();
+        arCheck(strpos($backupHtml,'dbbackup-download')!==false && strpos($backupHtml,'dbbackup-delete')===false && strpos($backupHtml,'dbbackup-restore')===false,'shared Backup Center exposes unavailable actions');
+        ob_start();mucho7_admin_backup_action($pdo,1,'dbbackup-download',array('file'=>basename($path)));$download=ob_get_clean();
+        arCheck(hash_equals(hash_file('sha256',$path),hash('sha256',$download)),'verified download changed archive bytes');
         arCheck(is_string($sql)&&strpos($sql,'php7_admin_users')!==false&&strpos($sql,'backup_view_fixture')!==false,'backup omitted identity tables or views');
         $restoreName=$database.'_restore';$server->exec('CREATE DATABASE '.$restoreName.' CHARACTER SET utf8mb4');
         try{

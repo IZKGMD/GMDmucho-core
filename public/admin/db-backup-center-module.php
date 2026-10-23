@@ -793,7 +793,7 @@ function renderDbBackupCenter(
 <div class="db-backup-actions">
 
 
-<?php if($canManage): ?>
+<?php if($canManage && $file['valid']): ?>
 
 <form method="post">
 
@@ -827,7 +827,7 @@ function renderDbBackupCenter(
 <?php endif ?>
 
 
-<?php if($isOwner): ?>
+<?php if($isOwner && !$sharedHosting): ?>
 
 <form
     method="post"

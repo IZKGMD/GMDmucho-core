@@ -7,6 +7,11 @@ function mucho7_admin_contains($haystack,$needle){return $needle===''||strpos($h
 function muchodbSharedHosting(){return true;}
 function muchoDbBackupDir(){return $GLOBALS['root'].'/config/php7-db-backups';}
 function muchoDbBackupValidName($name){return is_string($name)&&preg_match('/^[A-Za-z0-9_.-]+\.sql\.gz$/D',$name)===1;}
+function mucho7_admin_backup_size($bytes){
+    if($bytes>=1048576)return number_format($bytes/1048576,1).' MiB';
+    if($bytes>=1024)return number_format($bytes/1024,1).' KiB';
+    return (int)$bytes.' B';
+}
 function mucho7_admin_backup_file($name){
     if(!muchoDbBackupValidName($name))throw new RuntimeException('Invalid backup filename.');
     $path=muchoDbBackupDir().'/'.$name;

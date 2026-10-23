@@ -35,5 +35,5 @@
   "public/admin/assets/qrcode.min.js": "c541ef06327885a8415bca8df6071e14189b4855336def4f36db54bde8484f36",
   "src/Admin/AdminRbac.php": "69fce495608f83a02fdd9df10f46117b0c008db7b70d18bf29478c494d35ecd6",
   "src/Backup/DatabaseBackupService.php": "8626d00ef6f893e8a578463176dbd35a3e77377d30aca95262b07edfa68613ca",
-  "public/admin/db-backup-center-module.php": "84c9718a001d7093b4ad02401daabf001cfd3c2f07fc4469c98b56e582094397"
+  "public/admin/db-backup-center-module.php": "37de0bcc01eddc5152595c26135a78faadda75447b5bc32d5378a32838a9b014"
 }

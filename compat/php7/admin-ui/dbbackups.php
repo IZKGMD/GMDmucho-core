@@ -235,13 +235,8 @@ function renderDbBackupCenter(
 
         <div class="db-backup-value">
             <?=h(
-                number_format(
-                    $totalSize /
-                    1024 /
-                    1024,
-                    1
-                )
-            )?> MB
+                mucho7_admin_backup_size($totalSize)
+            )?>
         </div>
 
     </div>
@@ -343,13 +338,8 @@ function renderDbBackupCenter(
 
 <td>
     <?=h(
-        number_format(
-            $file['size'] /
-            1024 /
-            1024,
-            2
-        )
-    )?> MB
+        mucho7_admin_backup_size($file['size'])
+    )?>
 </td>
 
 
@@ -393,7 +383,7 @@ function renderDbBackupCenter(
 <div class="db-backup-actions">
 
 
-<?php if($canManage): ?>
+<?php if($canManage && $file['valid']): ?>
 
 <form method="post">
 
@@ -427,7 +417,7 @@ function renderDbBackupCenter(
 <?php endif ?>
 
 
-<?php if($isOwner): ?>
+<?php if($isOwner && !$sharedHosting): ?>
 
 <form
     method="post"

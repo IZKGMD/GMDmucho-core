@@ -250,6 +250,9 @@ source=re.sub(r"\$isOwner=\s*admin\(\) &&\s*rank\(\s*\(string\)admin\(\)\['role'
 source=source.replace('static fn($a,$b)=>\n            $b[\'mtime\'] <=>\n            $a[\'mtime\']', "static function($a,$b){return $b['mtime'] <=> $a['mtime'];}")
 source=source.replace('3 automatic backups/day ·\n            14-day retention ·', 'Manual backups ·')
 source=source.replace('14 days', 'Manual')
+source=re.sub(r"number_format\(\s*(\$totalSize|\$file\['size'\])\s*/\s*1024\s*/\s*1024,\s*[12]\s*\)",r'mucho7_admin_backup_size(\1)',source)
+source=source.replace('?> MB','?>')
+
 record('public/admin/db-backup-center-module.php','dbbackups.php','<?php\n'+lower(source))
 (DEST/'upstream-sources.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print('Original admin mirrored:',len(manifest),'upstream sources')
