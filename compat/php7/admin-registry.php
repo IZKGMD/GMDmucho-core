@@ -145,7 +145,7 @@ function mucho7_admin_registry_action(PDO $db,$aid,$action,$data,$settings) {
     $rbac='\\MuchoCore\\Admin\\AdminRbac';
     if(strpos($action,'role-')===0){
         $permissions=isset($data['permissions'])&&is_array($data['permissions'])?$data['permissions']:array();
-        foreach($permissions as $p)if(!is_string($p)||!$rbac::isKnownPermission($p))throw new RuntimeException('Unknown permission.');
+        foreach($permissions as $p)if(!is_string($p)||!isset(mucho7_admin_supported_permissions()[$p]))throw new RuntimeException('Unknown or unavailable permission.');
         if(!$rbac::canManagePermissionSet($db,$actor,$permissions))throw new RuntimeException('A role cannot grant permissions you do not have.');
         $name=isset($data['name'])&&is_string($data['name'])?trim($data['name']):'';
         $code=isset($data['code'])&&is_string($data['code'])?strtolower(trim($data['code'])):'';

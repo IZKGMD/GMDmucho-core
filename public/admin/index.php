@@ -6303,14 +6303,14 @@ unset($_SESSION['admin_setup_invite']);
 <input type="hidden" name="action" value="admin-create">
 <input type="hidden" name="return" value="admins">
 
-<p><input name="username" placeholder="Username" autocomplete="off" required></p>
+<p><label>Username<input name="username" placeholder="Username" autocomplete="off" maxlength="32" required></label></p>
 <p style="font-size:11px;color:#7f8ba0;line-height:1.5">The administrator will create their own password using a one-time setup link after you create the account.</p>
 
-<select name="role">
+<label>Role<select name="role">
 <?php foreach(AdminRbac::roles($db) as $roleCode=>$roleName): ?>
-<option value="<?=h($roleCode)?>"><?=h($roleName)?></option>
+<option value="<?=h($roleCode)?>" <?=$roleCode==='viewer'?'selected':''?>><?=h($roleName)?></option>
 <?php endforeach; ?>
-</select>
+</select></label>
 
 <button>Create</button>
 </form>

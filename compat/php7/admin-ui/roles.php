@@ -33,7 +33,7 @@ $rolePermissionStmt=$db->prepare(
 </div>
 
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:15px">
-<?php foreach(AdminRbac::permissions() as $permission=>$label): ?>
+<?php foreach(mucho7_admin_supported_permissions() as $permission=>$label): ?>
 <label style="display:flex;gap:9px;align-items:flex-start;padding:10px;border:1px solid #273448;border-radius:10px;background:#0c1119;cursor:pointer">
 <input type="checkbox" name="permissions[]" value="<?=h($permission)?>" style="margin-top:2px">
 <span><b><?=h($label)?></b><small style="display:block;margin-top:2px;color:#6f7c91"><?=h($permission)?></small></span>
@@ -76,7 +76,7 @@ $rolePermissions=array_fill_keys(
 <input name="name" maxlength="64" value="<?=h($roleRow['name'])?>" required style="width:min(520px,100%)">
 
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:13px">
-<?php foreach(AdminRbac::permissions() as $permission=>$label): ?>
+<?php foreach(mucho7_admin_supported_permissions() as $permission=>$label): ?>
 <label style="display:flex;gap:9px;align-items:flex-start;padding:10px;border:1px solid #273448;border-radius:10px;background:#0c1119;cursor:pointer">
 <input type="checkbox" name="permissions[]" value="<?=h($permission)?>" <?=isset($rolePermissions[$permission])?'checked':''?> style="margin-top:2px">
 <span><b><?=h($label)?></b><small style="display:block;margin-top:2px;color:#6f7c91"><?=h($permission)?></small></span>

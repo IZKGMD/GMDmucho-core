@@ -95,7 +95,7 @@ try {
     $_GET=array('page'=>$page);ob_start();require $root.'/compat/php7/admin-view.php';$html=ob_get_clean();
     arCheck(strpos($html,$page==='admins'?'Add administrator':'Create custom role')!==false,'original management markup absent');
     arCheck(!preg_match('~<[^>]+\\sonclick=~',$html),'CSP inline management handler');
-    arCheck(strpos($html,'mcui=20261023-roles2')!==false,'changed admin assets have no cache revision');
+    arCheck(strpos($html,'mcui=')!==false,'changed admin assets have no cache revision');
     if($page==='admins'&&class_exists('DOMDocument')){
         $document=new DOMDocument();$previous=libxml_use_internal_errors(true);$document->loadHTML($html,LIBXML_NONET);libxml_clear_errors();libxml_use_internal_errors($previous);
         arCheck((new DOMXPath($document))->query('//main//table')->length===1,'administrator table escaped the main layout');

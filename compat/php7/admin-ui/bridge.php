@@ -20,6 +20,7 @@ function canAdminPage($page){
 }
 function canPermission($permission){
     $user=admin();if(!$user)return false;
+    if(!isset(mucho7_admin_supported_permissions()[$permission]))return false;
     if(isset($GLOBALS['pdo']) && $GLOBALS['pdo'] instanceof PDO && mucho7_admin_registry_ready($GLOBALS['pdo']))return mucho7_admin_can($GLOBALS['pdo'],$user,$permission);
     if($permission==='players.delete')return false;
     if(in_array($permission,array('levels.manage','levels.rate'),true))return in_array($user['role'],array('owner','elder_moderator'),true);
@@ -34,6 +35,12 @@ function requireRank($rank){
     $ranks=array('moderator'=>10,'elder_moderator'=>20,'owner'=>40,'admin'=>30,'viewer'=>10);if(!$user||!isset($ranks[$user['role']])||$ranks[$user['role']]<$rank)throw new RuntimeException('Нет доступа.');
 }
 function requirePermission($permission){if(!canPermission($permission))throw new RuntimeException('Insufficient permissions.');}
+function mucho7_admin_supported_permissions(){
+    $keys=array('dashboard.view','players.view','players.manage','players.password_reset','levels.view','levels.manage','levels.rate','moderation.manage','comments.manage','messages.manage','music.manage','backups.view','backups.download','settings.manage','system.manage','admins.manage','roles.manage','audit.view','self.security');
+    $all=\MuchoCore\Admin\AdminRbac::permissions();$result=array();foreach($keys as $key)$result[$key]=$all[$key];
+    $result['moderation.manage']='View moderation queue';$result['system.manage']='View host diagnostics';$result['backups.download']='Create and download database backups';
+    return $result;
+}
 function mucho7_admin_utf8_length($value,$encoding='UTF-8'){return function_exists('mb_strlen')?mb_strlen($value,$encoding):preg_match_all('/./us',$value,$unused);}
 function tableExists(PDO $db,$table){if($db->getAttribute(PDO::ATTR_DRIVER_NAME)==='sqlite'){$q=$db->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?");$q->execute(array($table));return (bool)$q->fetchColumn();}$q=$db->prepare('SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name=?');$q->execute(array($table));return (bool)$q->fetchColumn();}
 function countTable(PDO $db,$table){if(!in_array($table,array('accounts','levels','songs'),true))return 0;return (int)$db->query('SELECT COUNT(*) FROM '.$table)->fetchColumn();}
@@ -64,7 +71,7 @@ function mucho7_admin_ui_html($html){
     $html=preg_replace_callback('~\s+onsubmit="return confirm\(\x27([^\x27]*)\x27\)"~',function($match){return ' data-confirm="'.h($match[1]).'"';},$html);
     $html=preg_replace_callback('~\b(href|src|action|data-face-url)=(["\'])(.*?)\2~s',function($match){
         $url=mucho7_admin_ui_url(html_entity_decode($match[3],ENT_QUOTES,'UTF-8'));
-        if(preg_match('~\.(?:css|js)(?:\?|$)~',$url) && strpos($url,$GLOBALS['publicBase'].'/')===0)$url.=(strpos($url,'?')===false?'?':'&').'mcui=20261023-roles2';
+        if(preg_match('~\.(?:css|js)(?:\?|$)~',$url) && strpos($url,$GLOBALS['publicBase'].'/')===0)$url.=(strpos($url,'?')===false?'?':'&').'mcui=20261023-roles3';
         return $match[1].'='.$match[2].h($url).$match[2];
     },$html);
     // Keep the upstream inline layout exactly, but authorize it with a nonce.

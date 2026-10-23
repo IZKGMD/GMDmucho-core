@@ -100,10 +100,11 @@ try {
  $secret=$_SESSION['pending_totp']['secret'];
  $page='admins';$_GET=array();ob_start();require $root.'/compat/php7/admin-view.php';$html=ob_get_clean();
  nsCheck(strpos($html,'Google Authenticator')!==false && strpos($html,'otpauth')!==false && strpos(str_replace('\\/','/',$html),'/mc/public/admin/assets/qrcode.min.js')!==false,'original authenticator/QR mount');
- mucho7_admin_security_action($pdo,1,'2fa-enable',array('otp'=>totp($secret)),$settings);
+ $enabledCode=totp($secret);
+ mucho7_admin_security_action($pdo,1,'2fa-enable',array('otp'=>$enabledCode),$settings);
  nsCheck((int)$_SESSION['auth_version']===1 && count($_SESSION['new_recovery_codes'])===10,'factor activation/session revision/recovery');
  $codes=$_SESSION['new_recovery_codes'];
- nsReject(function()use($pdo,$secret){mucho7_admin_factor_login($pdo,1,totp($secret));},'replayed TOTP');
+ nsReject(function()use($pdo,$enabledCode){mucho7_admin_factor_login($pdo,1,$enabledCode);},'replayed TOTP');
  nsReject(function()use($pdo){mucho7_admin_factor_login($pdo,1,'');},'missing second factor');
  nsCheck(mucho7_admin_factor_login($pdo,1,$codes[0])===1,'recovery sign-in');
  nsReject(function()use($pdo,$codes){mucho7_admin_factor_login($pdo,1,$codes[0]);},'replayed recovery');
