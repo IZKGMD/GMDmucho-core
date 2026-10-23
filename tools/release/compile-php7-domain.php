@@ -285,6 +285,12 @@ foreach ($files as $file) {
     $relative = substr($file, strlen($root)+1);
     try {
         $tree = $parser->parse(file_get_contents($file));
+        if(str_starts_with($relative,'database/migrations/')){
+            $tree=array_values(array_filter($tree,static function($statement){
+                return !($statement instanceof Stmt\Use_ && count($statement->uses)===1
+                    && strpos($statement->uses[0]->name->toString(),'\\')===false && $statement->uses[0]->alias===null);
+            }));
+        }
         $traverser = new PhpParser\NodeTraverser(new MuchoPhp70Lowering($relative, $signatures));
         $tree = $traverser->traverse($tree);
         if(str_starts_with($relative,'tests/')){

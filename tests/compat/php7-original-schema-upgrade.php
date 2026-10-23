@@ -3,6 +3,7 @@
 declare(strict_types=1);
 $root=dirname(__DIR__,2);
 foreach(array('bootstrap','runtime','schema','auth','news','admin') as $module)require_once $root.'/compat/php7/'.$module.'.php';
+require_once $root.'/compat/php7/admin-registry.php';
 require_once $root.'/compat/php7/domain.php';
 function upgradeCheck($ok,$why){if(!$ok)throw new RuntimeException($why);}
 $host=getenv('TEST_DB_HOST');$password=getenv('TEST_DB_ROOT_PASSWORD');$port=getenv('TEST_DB_PORT')?:3306;

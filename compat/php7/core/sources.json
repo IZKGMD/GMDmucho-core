@@ -19,6 +19,7 @@
     "database/migrations/018_profile_protocol_state.php": "5d7916047f4504964e98c8343cec9b2eafdc68a2d6375f8205cc9661ce12df8c",
     "database/migrations/019_level_list_suggestions.php": "5e49c6a425527953c223c483ac5e60a199260237c572ce22a5435605b5f95d14",
     "database/migrations/020_clans.php": "ae83551954cff2d7473db33c3883cf44e142ac2fbaa88573cc2873e0ba040683",
+    "database/migrations/021_social_base.php": "e4119ffc2b6c5513ceb89220309033bc080f455c0f89445d3178d2f693950ba7",
     "database/migrations/20260820_001_hardening.php": "12e39b130306109ce9f4ca6087c3025196faba3f7f7a3210c361e36d1cfefa06",
     "database/migrations/20260922_001_endpoint_hardening.php": "bcc2104ae2699ee392d532d1769fa24803cf21a0d45713fb4ffc57337225e71e",
     "database/migrations/20260923_001_cloud_save.php": "9cfe609d7e6253613114f1f514d315bb3c475063711e39cbe05e0509c2d4a0f8",

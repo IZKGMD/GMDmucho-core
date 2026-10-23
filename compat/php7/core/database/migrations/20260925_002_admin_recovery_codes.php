@@ -2,7 +2,6 @@
 
 declare (strict_types=1);
 use MuchoCore\Database\Migration;
-use PDO;
 return new class implements Migration
 {
     public function up(PDO $pdo)
