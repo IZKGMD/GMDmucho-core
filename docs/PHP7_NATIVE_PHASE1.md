@@ -174,17 +174,58 @@ Images are decoded/re-encoded to bounded JPEGs, never stored as uploaded names.
 For six 5 MiB images plus a preview, configure `upload_max_filesize >= 5M`,
 `post_max_size >= 37M`, `max_file_uploads >= 7` and sufficient PHP memory.
 The host can enforce lower request limits before the application receives files.
-Music/SFX CDN parity is still pending.
+Other official Music/SFX assets use the fixed-origin streaming proxy once the root rewrite rule is installed.
 
-## Still pending in the PHP7 port
+## Full-core upgrade
 
-Cloud-save migration/encryption/recovery parity, password recovery,
-daily quests/rewards, clans, level lists,
-2.209 threads/following and sanctions, plugin/migration parity,
-advanced private searches and remaining modern core modules.
-Passkey/WebAuthn is still pending; only working controls are exposed on the shared panel. Administrator identities and roles are now ported, while game roles remain separate. Database Backup Center creates and verifies private .sql.gz files; restore uses the hosting database tool. Automatic scheduling/retention and VPS operations are not available.
-Unknown routes return `-1`; unsupported/private features are not simulated.
-Track the overall port in issue #148.
+The package now includes all 196 original domain classes, 72 tracked migrations,
+and compiled original admin modules. `tools/release/compile-php7-domain.php`
+produces the PHP 7.0 mirror using pinned PHP-Parser; original source hashes are
+recorded in `compat/php7/core/sources.json`. No compiler or Composer runs on the
+shared host.
+
+On an existing native installation, open **Server → Complete migration** as
+owner. The updater pauses game requests, drains in-flight requests, creates a
+private verified database backup, applies bounded schema batches and imports
+native presentation, privacy, level metadata, comments, votes, both friendship
+schemas, messages and cloud saves. Cursors commit with data; retry resumes after
+interruption. The complete API marker is written only after import finishes.
+Historical native tables remain available for recovery; after activation they
+are no longer the live API storage. Do not manually turn off the complete marker
+and resume old writes after new game data has been created.
+
+Cloud saves retain their raw bytes and SHA-256, encrypted in the original
+AES-GCM format with a private persistent key. PHP 7.0 uses the pinned phpseclib
+compatibility implementation; NIST, tamper, and cross-runtime tests cover it.
+Never delete or regenerate `config/cloudsave.key` for an installation containing
+encrypted saves. Back up that private key separately along with database backups.
+The shared request adapter retains an 8 MiB decoded save limit; provider POST,
+execution-time and memory limits also apply.
+
+For FTP updates, `tools/release/build-php7-core-pack.php` builds a code-only pack
+and SHA-256 metadata. Upload both to private `config/`, then use the owner-only
+installation action. The installer checks every path and file hash and switches
+an immutable build pointer only after all files are written. Test fixtures and
+private installation configuration are excluded. Existing panel identities,
+roles and TOTP/recovery state stay in the native principal registry.
+
+The port includes clans, threads/following, level lists, quests/rewards,
+sanctions and the other implemented original routes. Its parity is with the
+repository's implemented behavior; any original experimental client behavior
+still needs real GD client acceptance. Recovery renders the original form and
+uses provider PHP mail; delivery requires working hosting mail configuration.
+The fixed official CDN proxy supports GET/HEAD and single byte ranges, with a
+64 MiB response limit. Apply the supplied root rewrite rules for root-relative
+client URLs. GD image features require the PHP GD extension.
+
+The admin exposes original clans, collections, profile customization, social
+moderation, analytics, database browser, local API tester, client feature flags,
+plugin diagnostics, intelligence and security-monitoring pages. Plugin PHP code
+must itself support the installed PHP version. VPS process control, Java-based
+APK signing, automatic jobs/backup scheduling and the original self-updater are
+not activated on PHP7 shared hosting. Passkey/WebAuthn is pending; the current
+working password, TOTP and recovery-code authentication remains in use.
+Track remaining platform/client acceptance work in issue #148.
 
 ## Verification
 
@@ -192,9 +233,10 @@ The native source and pure routing/encoding tests run on **PHP 7.0.33**.
 Disposable MariaDB tests cover registration/login, native level protocol,
 public users, comments/history, duplicate and reversed votes, owner checks,
 private-level visibility, client scores and cloud-save integrity/isolation.
-PHP8 tests compare existing encoders byte-for-byte. Provider FTP deployment,
-Apache configuration and actual GD 2.209 client acceptance must still be
-verified on the target host.
+PHP8 tests compare existing encoders byte-for-byte. Actual GD 2.209 client acceptance must also be verified on the target host.
+The full-core suite additionally runs the original 12 feature integrations on
+PHP 7.0 and 8.3, plus populated native-schema upgrade and encrypted-save import
+fixtures for both historical social schemas.
 
 ```sh
 php tests/compat/php7-native-features-pure.php

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a PHP-7.0-native GDPS subset, never mislabel the modern PHP8 core.
+# Build the PHP7 shared runtime, compiled original domains and native owner UI.
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -31,9 +31,11 @@ done
 mkdir -p "$STAGE/mc/compat" "$STAGE/mc/public" \
   "$STAGE/mc/config" "$STAGE/mc/docs"
 cp -a "$ROOT/compat/php7" "$STAGE/mc/compat/"
+rm -rf "$STAGE/mc/compat/php7/core/tests"
 cp "$ROOT/public/php7.php" "$ROOT/public/php7-setup.php" "$STAGE/mc/public/"
 cp "$ROOT/public/php7-admin.php" "$STAGE/mc/public/"
-mkdir -p "$STAGE/mc/public/assets"
+mkdir -p "$STAGE/mc/public/assets" "$STAGE/mc/public/recovery"
+cp "$ROOT/public/recovery/recovery.css" "$STAGE/mc/public/recovery/"
 cp "$ROOT/public/assets/muchocore-icon.png" "$ROOT/public/assets/muchocore-favicon-v4.png" "$STAGE/mc/public/assets/"
 # Original VPS admin CSS, scripts and GD assets are copied byte-for-byte.
 mkdir -p "$STAGE/mc/public/admin/assets"
@@ -51,12 +53,12 @@ cp "$ROOT/docs/PHP7_NATIVE_PHASE1.md" "$STAGE/mc/docs/"
 cp "$ROOT/patchers/shared-hosting/README.md" \
    "$STAGE/mc/docs/5V_APACHE_ROUTES.md"
 
-# Port-specific root guard: no PHP8 classes, Composer, or unrelated routes.
+# Private compiled code and runtime data must never be served directly.
 cat > "$STAGE/mc/.htaccess" <<'APACHE'
 Options -Indexes
 DirectoryIndex admin.php
 RewriteEngine On
-RewriteRule ^(?:config|compat|docs)(?:/|$) - [F,L,NC]
+RewriteRule ^(?:config|compat|docs|storage|plugins)(?:/|$) - [F,L,NC]
 RewriteRule ^public/php7-mode\.on$ - [F,L,NC]
 RewriteRule ^(?:\.env|\.git)(?:/|$) - [F,L,NC]
 RewriteRule ^admin/?$ public/php7-admin.php [QSA,L]
@@ -89,6 +91,9 @@ APACHE
 cat > "$STAGE/5V_ROOT_REWRITE_RULES.txt" <<'APACHE'
 # Add BELOW an existing RewriteEngine On and BEFORE catch-all rules
 # in the main public WEBSITE ROOT .htaccess. Do not overwrite other rules.
+RewriteRule ^gd-content/ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^api/api/accounts/lostusername\.php$ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^(?:api|a)/(?:api/)?(?:profile|clans|muchocore)/ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^(?:a|database|accounts|api)/(?:accounts/)?[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^(?:getAccountURL|getCustomContentURL|checkIfServerOnline)\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^gd-content/news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]
@@ -104,7 +109,8 @@ MUCHOCORE SHARED — PHP 7.0+ / 5v.pl
 ===================================
 
 Весь код этого архива работает на самом shared-хостинге: без VPS и Composer.
-Это развивающийся native-порт. Полный список возможностей и ограничений:
+Архив включает исходные домены ядра, скомпилированные для PHP 7.0. После
+установки войди в панель → Сервер → Завершить перенос. Возможности и ограничения:
 mc/docs/PHP7_NATIVE_PHASE1.md. Не заменяй этим архивом PHP8-установку на VPS.
 
 НОВАЯ УСТАНОВКА — БЕЗ РУЧНЫХ ТОКЕНОВ

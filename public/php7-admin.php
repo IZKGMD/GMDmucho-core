@@ -149,6 +149,7 @@ try {
     $error='Не удалось выполнить запрос к базе. Проверь подключение и обнови схему базы в панели.';
     error_log('[MuchoCore Shared admin] Database operation failed');
 } catch(Exception $e){unset($_SESSION['core_upgrade_continue']);$error=$e->getMessage();}
+catch(Error $e){unset($_SESSION['core_upgrade_continue']);$error='Не удалось выполнить действие. Подробности сохранены в журнале сервера.';error_log('[MuchoCore Shared admin] '.get_class($e));}
 if(!empty($setupMode)){
     $script=isset($_SERVER['SCRIPT_NAME'])?(string)$_SERVER['SCRIPT_NAME']:'/mc/admin.php';$publicBase='';
     $row=$pdo&&!$setupSuccess?mucho7_admin_setup_row($pdo,$setupToken):null;
