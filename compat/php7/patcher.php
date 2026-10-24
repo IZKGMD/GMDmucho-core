@@ -52,8 +52,14 @@ function mucho7_patcher_download($db,$user,$root)
         if($first>$last||$first>=$size){http_response_code(416);header('Content-Range: bytes */'.$size);fclose($handle);exit;}
         http_response_code(206);
     }
-    session_write_close();mucho7_admin_clean_response();header('Content-Type: application/octet-stream');header('Content-Length: '.($last-$first+1));header('Content-Disposition: attachment; filename="GeometryDash-MuchoCore.'.$s['kind'].'"');header('Cache-Control: no-store, private');header('X-Content-Type-Options: nosniff');header('Accept-Ranges: bytes');header('ETag: '.$etag);
+    session_write_close();
+    // Use the normal stream output path without optional per-chunk flush or
+    // connection-status functions, which shared PHP settings may disable.
+    // Compression must not change the byte counts used by range responses.
+    @ini_set('zlib.output_compression','0');mucho7_admin_clean_response();header('Content-Type: '.($s['kind']==='apk'?'application/vnd.android.package-archive':'application/octet-stream'));header('Content-Length: '.($last-$first+1));header('Content-Disposition: attachment; filename="GeometryDash-MuchoCore.'.$s['kind'].'"');header('Cache-Control: no-store, private, no-transform');header('X-Content-Type-Options: nosniff');header('Accept-Ranges: bytes');header('ETag: '.$etag);
     if(http_response_code()===206)header('Content-Range: bytes '.$first.'-'.$last.'/'.$size);
     if(isset($_SERVER['REQUEST_METHOD'])&&$_SERVER['REQUEST_METHOD']==='HEAD'){fclose($handle);exit;}
-    fseek($handle,$first);$remaining=$last-$first+1;while($remaining>0&&!connection_aborted()){$chunk=fread($handle,min(1048576,$remaining));if($chunk===false||$chunk==='')break;echo $chunk;$remaining-=strlen($chunk);flush();}fclose($handle);exit;
+    fseek($handle,$first);
+    if($last===$size-1){fpassthru($handle);}else{$remaining=$last-$first+1;while($remaining>0){$chunk=fread($handle,min(1048576,$remaining));if($chunk===false||$chunk==='')break;echo $chunk;$remaining-=strlen($chunk);}}
+    fclose($handle);exit;
 }
