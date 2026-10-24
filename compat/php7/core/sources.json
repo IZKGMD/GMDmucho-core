@@ -172,7 +172,7 @@
     "src/Interaction/RewardsController.php": "a46e23cbefd5c0d0b667ac758395a3dcbbdaa28c5a39ec6cbaf1e6daa30c7edd",
     "src/Interaction/RewardsRepository.php": "8b1e7f0b52d4570281c1d830262c0190aef691688ca30067c63ad686264ce32b",
     "src/Interaction/RewardsService.php": "c1d3d8244f9ffe810281e032779b4a2f6f22a96d40b882ccbffb38b0dd221f17",
-    "src/Job/JobQueue.php": "059246b3cd0b7186fe7329b4e112c8a50650696ec1277065367487628cdef873",
+    "src/Job/JobQueue.php": "f81a8c63977c6aed45cdd21376da5c35298aab9dbf8ca2fadb4945ab378d012a",
     "src/Level/LevelController.php": "0bd2e979e25f35f9fb18b0b86933d357d128fa1bdd080b34aac3e7ebb815ad4b",
     "src/Level/LevelDownloadTracker.php": "1961be29bdc2d131f03973b6f0577acff86d4efcba96d44a4aaa59a4a9b8c84a",
     "src/Level/LevelRepository.php": "0ec98c93fa1ae30feecc926c6400288064fb8cc5e4f8fac25dc0e6ac08b348ff",

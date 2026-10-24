@@ -2,6 +2,14 @@
 /** Bind the original admin form contracts to native shared transactions. */
 declare(strict_types=1);
 function mucho7_admin_ui_action(PDO $pdo,$aid,$action,$data,$root,$settings){
+    if($action==='shared-worker-run'){
+        $actor=mucho7_admin_user($pdo,$aid);
+        if(!$actor||$actor['role']!=='owner'||!mucho7_admin_can($pdo,$actor,'system.manage'))throw new RuntimeException('Только владелец может выполнять очередь.');
+        require_once __DIR__.'/../shared-worker.php';
+        $result=mucho7_shared_worker($pdo,$root,$settings);
+        mucho7_admin_audit($pdo,$aid,$action,0,json_encode($result));
+        $_SESSION['shared_worker_result']=$result;return;
+    }
     if(in_array($action,array('clan-save','clan-role','clan-kick','clan-transfer','clan-delete','gauntlet-save','gauntlet-delete','mappack-save','mappack-delete','muchoprofile-save','muchoprofile-token','relation-delete'),true)){
         if(!is_file($root.'/config/php7-complete.on'))throw new RuntimeException('Сначала заверши перенос ядра.');
         require_once $root.'/compat/php7/domain.php';mucho7_domain_configure($settings,$root,$pdo);

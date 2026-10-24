@@ -44,7 +44,7 @@ if(adminIsPlain())require __DIR__.'/admin-ui/plain-shell.php';else{
     require __DIR__.'/admin-ui/styled-shell.php';
 }
 if($schemaReady && canAdminPage($page)){
-    if($page==='system')mucho7_core_render($db,$root);
+    if($page==='system'){mucho7_core_render($db,$root);if($isOwner&&is_file($root.'/config/php7-complete.on'))require __DIR__.'/admin-ui/shared-worker.php';}
     if(in_array($page,array('clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','securitycenter','monitoring'),true)){
         if(!is_file($root.'/config/php7-complete.on')){echo '<p>Сначала заверши перенос полного ядра в разделе «Сервер».</p>';}
         else{require_once $root.'/compat/php7/domain.php';mucho7_domain_configure($settings,$root,$db);

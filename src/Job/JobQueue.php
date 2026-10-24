@@ -40,7 +40,7 @@ final readonly class JobQueue
         return (int)$this->pdo->lastInsertId();
     }
 
-    public function reserve(string $workerId): ?array
+    public function reserve(string $workerId, array $jobTypes = []): ?array
     {
         if ($this->pdo->inTransaction()) {
             throw new \LogicException('Job reservation requires its own transaction.');
@@ -49,10 +49,18 @@ final readonly class JobQueue
         if ($workerId === '') {
             throw new \InvalidArgumentException('Worker ID cannot be empty.');
         }
-        return $this->withDeadlockRetry(fn(): ?array => $this->reserveOnce($workerId));
+        $types = [];
+        foreach ($jobTypes as $type) {
+            if (!is_string($type) || !preg_match('/^[a-z][a-z0-9_.-]{0,95}$/D', $type)) {
+                throw new \InvalidArgumentException('Invalid job type filter.');
+            }
+            $types[] = $this->pdo->quote($type);
+        }
+        $filter = $types ? ' AND job_type IN (' . implode(',', $types) . ')' : '';
+        return $this->withDeadlockRetry(fn(): ?array => $this->reserveOnce($workerId, $filter));
     }
 
-    private function reserveOnce(string $workerId): ?array
+    private function reserveOnce(string $workerId, string $filter): ?array
     {
         try {
             $this->pdo->beginTransaction();
@@ -63,7 +71,7 @@ final readonly class JobQueue
             $selection = "SELECT *
                  FROM mucho_jobs
                  WHERE status='queued'
-                   AND available_at<=UTC_TIMESTAMP()
+                   AND available_at<=UTC_TIMESTAMP()" . $filter . "
                  ORDER BY available_at ASC,id ASC
                  LIMIT 1
                  FOR UPDATE";

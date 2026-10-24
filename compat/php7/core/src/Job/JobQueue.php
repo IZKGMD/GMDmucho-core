@@ -22,7 +22,7 @@ final class JobQueue
         $stmt->execute(['job_type' => substr($jobType, 0, 96), 'payload' => \mucho7_json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), 'delay' => max(0, $delaySeconds)]);
         return (int) $this->pdo->lastInsertId();
     }
-    public function reserve(string $workerId)
+    public function reserve(string $workerId, array $jobTypes = [])
     {
         if ($this->pdo->inTransaction()) {
             throw new \LogicException('Job reservation requires its own transaction.');
@@ -31,18 +31,26 @@ final class JobQueue
         if ($workerId === '') {
             throw new \InvalidArgumentException('Worker ID cannot be empty.');
         }
-        return $this->withDeadlockRetry(function () use ($workerId) {
-            return $this->reserveOnce($workerId);
+        $types = [];
+        foreach ($jobTypes as $type) {
+            if (!is_string($type) || !preg_match('/^[a-z][a-z0-9_.-]{0,95}$/D', $type)) {
+                throw new \InvalidArgumentException('Invalid job type filter.');
+            }
+            $types[] = $this->pdo->quote($type);
+        }
+        $filter = $types ? ' AND job_type IN (' . implode(',', $types) . ')' : '';
+        return $this->withDeadlockRetry(function () use ($workerId, $filter) {
+            return $this->reserveOnce($workerId, $filter);
         });
     }
-    private function reserveOnce(string $workerId)
+    private function reserveOnce(string $workerId, string $filter)
     {
         try {
             $this->pdo->beginTransaction();
             // SKIP LOCKED lets concurrent workers reserve different jobs
             // instead of serializing on the oldest locked queue entry.
             // MariaDB <10.6 / older shared-hosting engines fall back safely.
-            $selection = "SELECT *\n                 FROM mucho_jobs\n                 WHERE status='queued'\n                   AND available_at<=UTC_TIMESTAMP()\n                 ORDER BY available_at ASC,id ASC\n                 LIMIT 1\n                 FOR UPDATE";
+            $selection = "SELECT *\n                 FROM mucho_jobs\n                 WHERE status='queued'\n                   AND available_at<=UTC_TIMESTAMP()" . $filter . "\n                 ORDER BY available_at ASC,id ASC\n                 LIMIT 1\n                 FOR UPDATE";
             try {
                 $stmt = $this->pdo->query($selection . ' SKIP LOCKED');
             } catch (PDOException $e) {

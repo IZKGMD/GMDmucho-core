@@ -1,0 +1,32 @@
+<?php
+/** Runs inside the disposable, upgraded original-schema fixture. */
+require_once $root.'/compat/php7/shared-worker.php';
+$db->exec('DELETE FROM mucho_jobs');
+$queue=new \MuchoCore\Job\JobQueue($db);
+$external=$queue->enqueue('webhook.dispatch',array('event'=>'fixture'));
+$first=$queue->enqueue('level.index',array('level_id'=>1));
+$second=$queue->enqueue('level.index',array('level_id'=>1));
+$result=mucho7_shared_worker($db,$stage,$settings,1);
+upgradeCheck($result['done']===1&&$result['failed']===0,'Worker did not respect its batch limit');
+upgradeCheck($db->query('SELECT status FROM mucho_jobs WHERE id='.$external)->fetchColumn()==='queued','Local worker consumed external delivery');
+upgradeCheck((int)$db->query('SELECT attempts FROM mucho_jobs WHERE id='.$second)->fetchColumn()===0,'Worker processed a second job');
+upgradeCheck($db->query('SELECT normalized_name FROM mucho_level_search_index WHERE level_id=1')->fetchColumn()==='keep level','Shared worker did not build the real index');
+$lease=fopen($stage.'/config/php7-worker.lock','c');flock($lease,LOCK_EX);
+upgradeCheck(mucho7_shared_worker($db,$stage,$settings)['busy'],'Concurrent worker did not honor file lock');
+flock($lease,LOCK_UN);fclose($lease);
+$db->exec("UPDATE mucho_jobs SET status='running',worker_id='old',locked_at=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 20 MINUTE),attempts=1 WHERE id=".$second);
+$result=mucho7_shared_worker($db,$stage,$settings);
+upgradeCheck($result['done']===1&&(int)$db->query('SELECT attempts FROM mucho_jobs WHERE id='.$second)->fetchColumn()===2,'Abandoned lease was not recovered');
+$invalid=$queue->enqueue('level.index',array('level_id'=>-1));
+$result=mucho7_shared_worker($db,$stage,$settings);
+upgradeCheck($result['failed']===1&&$result['done']===0,'Invalid job was not retried safely');
+upgradeCheck($db->query('SELECT status FROM mucho_jobs WHERE id='.$invalid)->fetchColumn()==='queued','Failed job lost retry state');
+for($i=0;$i<505;$i++)$db->exec("INSERT INTO mucho_cache(cache_key,cache_value,expires_at) VALUES('expired-".$i."','value',1)");
+$db->exec("INSERT INTO mucho_cache(cache_key,cache_value,expires_at) VALUES('keep','value',UNIX_TIMESTAMP()+3600)");
+$queue->enqueue('maintenance.cleanup');$result=mucho7_shared_worker($db,$stage,$settings);
+upgradeCheck($result['done']===1,'Shared maintenance failed');
+upgradeCheck((int)$db->query("SELECT COUNT(*) FROM mucho_cache WHERE cache_key LIKE 'expired-%'")->fetchColumn()===5,'Cleanup was not bounded to 500 rows');
+upgradeCheck($db->query("SELECT cache_value FROM mucho_cache WHERE cache_key='keep'")->fetchColumn()==='value','Cleanup removed active cache data');
+$badFilter=false;try{$queue->reserve('fixture',array("level.index') OR 1=1 --"));}catch(InvalidArgumentException $e){$badFilter=true;}
+upgradeCheck($badFilter,'Invalid queue filter was accepted');
+echo "PHP7_SHARED_LOCAL_WORKER_INDEX_CLEANUP_LEASE_RETRY_OK\n";

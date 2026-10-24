@@ -227,6 +227,24 @@ not activated on PHP7 shared hosting. Passkey/WebAuthn is pending; the current
 working password, TOTP and recovery-code authentication remains in use.
 Track remaining platform/client acceptance work in issue #148.
 
+### Local queue execution on shared hosting
+
+After installing the current code-only core pack, **Server → Queue tasks**
+lets the owner process up to four local jobs per authenticated, CSRF-protected
+request (up to four seconds between jobs). It runs original `level.index`
+logic and bounded maintenance without a daemon or shell. A nonblocking private
+file lock prevents overlapping runs; the original queue's worker/attempt lease
+fencing, delayed retries and abandoned-lease recovery are retained. Cleanup
+deletes at most 500 expired cache/job rows and 128 download dedupe rows per job.
+
+This is an operator-triggered runner, not unattended scheduling. It does not
+reserve or deliver `webhook.dispatch` jobs. External delivery, automatic backup
+scheduling, passkeys, and device acceptance remain separate unfinished work.
+Full transfer does not mean those capabilities have already been validated.
+The original queue's optional job-type filter defaults to all types, preserving
+the existing VPS worker behavior. A pinned older snapshot fails closed with an
+instruction to install the uploaded build before using the shared runner.
+
 ## Fully shared client patcher
 
 **Clients & extensions → Web Client Patcher** accepts an original APK (up to

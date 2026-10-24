@@ -91,5 +91,6 @@ try{
     upgradeCheck(strpos($result->body,'binary-level-data')!==false,'Read-only level download unavailable');
     upgradeCheck((int)$db->query('SELECT downloads FROM levels WHERE level_id=1')->fetchColumn()===$before,'Read-only request updated counters');
     $result=mucho7_domain_handle($db,'/uploadGJLevel21','POST',array(),$readSettings,$stage);upgradeCheck($result->body==='-1','Read-only writes allowed');
+    require __DIR__.'/php7-shared-worker.php';
     echo 'PHP7_ORIGINAL_SCHEMA_UPGRADE_PRESERVES_NATIVE_DATA_OK '.($legacy?'LEGACY':'CURRENT')."\n";
 }finally{$server->exec('DROP DATABASE IF EXISTS '.$database);$remove=function($path)use(&$remove){if(is_dir($path)){foreach(new DirectoryIterator($path) as $item)if(!$item->isDot())$remove($item->getPathname());rmdir($path);}else unlink($path);};$remove($stage);}
