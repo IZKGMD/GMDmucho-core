@@ -11,5 +11,6 @@ foreach($files as $file)foreach(token_get_all(file_get_contents($file)) as $toke
     if(is_array($token)&&in_array($token[0],array(T_CONSTANT_ENCAPSED_STRING,T_ENCAPSED_AND_WHITESPACE,T_INLINE_HTML),true)&&preg_match('/[\x{0400}-\x{04ff}]/u',$token[1]))throw new RuntimeException('Untranslated shared message: '.$file.':'.$token[2]);
 }
 foreach(glob($root.'/public/assets/php7*.js') as $file)if(preg_match('/[\x{0400}-\x{04ff}]/u',file_get_contents($file)))throw new RuntimeException('Untranslated shared script: '.$file);
+if(preg_match('/[\x{0400}-\x{04ff}]/u',file_get_contents($root.'/tools/release/build-php7-native.sh')))throw new RuntimeException('Untranslated shared archive instructions.');
 if(strpos(file_get_contents($root.'/compat/php7/admin-view.php'),'lang="en"')===false)throw new RuntimeException('Shared document language must be English.');
 echo "PHP7_SHARED_ENGLISH_MESSAGES_OK\n";

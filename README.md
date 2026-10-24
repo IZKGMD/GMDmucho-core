@@ -138,7 +138,7 @@ Installing the server **does not patch the game**.
 
 For the PHP7 shared build, open **Admin → Client Patcher**. Windows patching and resumable Android APK rebuilding/signing run on the shared host without shell tools. Preserve the original client and verify the output on your device. Browser/provider download restrictions and actual game connection still need acceptance on the target host.
 
-[Windows & Android patching tutorial](docs/CLIENT_SETUP.md) · [Version profiles](docs/VERSIONS.md) · [Real-client verification status](docs/CLIENT_COMPATIBILITY.md)
+[Windows & Android patching tutorial](docs/CLIENT_SETUP.md) · [Patcher downloads and tools](patchers/README.md) · [Version profiles](docs/VERSIONS.md) · [Real-client verification status](docs/CLIENT_COMPATIBILITY.md)
 
 ## Features and limitations
 

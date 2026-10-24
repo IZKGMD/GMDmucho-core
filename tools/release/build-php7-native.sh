@@ -107,76 +107,81 @@ RewriteRule ^(?:gd-content/)?news/mcnews_[a-f0-9]{64}\.jpg$ mc/public/php7.php [
 RewriteRule ^news/image\.php$ mc/public/php7.php [QSA,L,NC]
 APACHE
 
-cat > "$STAGE/НАЧНИ_ЗДЕСЬ_5V.txt" <<'README'
+cat > "$STAGE/START_HERE_SHARED.txt" <<'README'
 MUCHOCORE SHARED — PHP 7.0+ / 5v.pl
 ===================================
 
-Весь код этого архива работает на самом shared-хостинге: без VPS и Composer.
-Архив включает исходные домены ядра, скомпилированные для PHP 7.0. После
-установки войди в панель → Сервер → Завершить перенос. Возможности и ограничения:
-mc/docs/PHP7_NATIVE_PHASE1.md. Не заменяй этим архивом PHP8-установку на VPS.
+This archive runs entirely on shared hosting without a VPS or Composer.
+It includes the original core services compiled for PHP 7.0 and an English
+administration interface. Coverage and acceptance status:
+mc/docs/PHP7_NATIVE_PHASE1.md.
 
-НОВАЯ УСТАНОВКА — БЕЗ РУЧНЫХ ТОКЕНОВ
------------------------------------
-1. Загрузи папку mc/ на хостинг через FileZilla.
-2. Скопируй mc/compat/php7/config.example.php в mc/config/php7-local.php.
-   Укажи host, port, database, username, password своей ПУСТОЙ MySQL-базы.
-   Не публикуй этот файл и не отправляй его другим людям.
-3. Открой https://ТВОЙ-ДОМЕН/mc/admin.php.
-   Подтверди пароль базы из конфига. Задай логин, email и пароль владельца,
-   а также HTTPS-домен сервера без /mc. По выбранному флажку панель включит
-   регистрацию, запись, сохранения и социальные функции.
-   База и секреты создадутся автоматически. Первый игрок не становится админом.
-4. В .htaccess КОРНЯ ДОМЕНА добавь строки из 5V_ROOT_REWRITE_RULES.txt
-   сразу после RewriteEngine On, перед общими правилами. Существующий файл
-   не заменяй целиком. Это нужно для адресов /a/ и /accounts/ в клиенте.
-5. Открой «Диагностика» в панели, затем проверь реальный клиент GD 2.209:
-   регистрация/вход, загрузка и скачивание уровня, комментарии, друзья и save/sync.
+NEW INSTALLATION
+----------------
+1. Upload mc/ through FileZilla or your hosting file manager.
+2. Copy mc/compat/php7/config.example.php to mc/config/php7-local.php.
+   Enter the connection details for your EMPTY MySQL database. Keep this file
+   private; it contains the database password.
+3. Open https://YOUR-DOMAIN/mc/admin.php. Confirm the configured database
+   password, choose the owner username/email/password and enter the HTTPS
+   server origin without /mc. The feature checkbox enables game accounts,
+   registration, writes, saves and social operations. The first player never
+   automatically receives administrator access.
+4. Add 5V_ROOT_REWRITE_RULES.txt below RewriteEngine On and before catch-all
+   rules in the DOMAIN ROOT .htaccess. Preserve existing rules.
+5. Open Server and complete the core migration. Check health, then test the
+   actual game: registration/login, level upload/download, comments, friends
+   and Cloud Save.
 
-ОБНОВЛЕНИЕ УЖЕ УСТАНОВЛЕННОГО NATIVE PHP7
----------------------------------------
-1. Сделай резервную копию текущего /mc и базы.
-2. Загрузи файлы из архива поверх /mc. СОХРАНИ свой mc/config/php7-local.php,
-   mc/config/php7-news.json и public/php7-mode.on. В архиве их нет.
-3. Открой /mc/admin.php. Если владельца ещё нет, подтверди пароль БД
-   и укажи свой существующий игровой аккаунт с его текущим паролем.
-4. Если панель предлагает «Обновить базу», нажми эту кнопку.
-   Обновление только добавляет таблицы. Аккаунты, уровни и сохранения
-   не очищаются. Повторный запуск php7-setup.php не нужен.
-   Альтернатива: импортировать mc/compat/php7/features.sql через phpMyAdmin.
-5. В «Настройках» проверь домен и переключатели функций.
-6. Если полный обработчик уже был включён раньше, открой «Сервер» →
-   «Установить загруженную сборку» и дождись завершения обновления.
-   Скопированные PHP-файлы сами не меняют закреплённую версию ядра.
+UPDATE AN EXISTING NATIVE INSTALLATION
+-------------------------------------
+1. Back up the current mc/ directory and database.
+2. Upload the archive's mc/ files over the existing installation. Preserve
+   config/php7-local.php, config/php7-news.json, public/php7-mode.on, private
+   keys, backups and all existing data. This archive contains no live secrets.
+3. Sign in with the existing owner account. If no owner was established yet,
+   confirm the configured database password and your existing game account.
+4. Use Update database if offered. The native schema upgrade preserves
+   accounts, levels and saves. Do not rerun first-time setup on existing data.
+5. Open Server, select Install uploaded build and wait for verification and
+   installation. Use Complete migration if offered. Copying PHP files alone
+   does not change an installation's pinned core snapshot.
+6. Check the domain and feature switches in Settings and verify game routes.
 
-ЧТО ЕСТЬ В ЭТОЙ СБОРКЕ
----------------------
-* Русская мобильная админка: игроки, роли/баны, оценка и восстановление уровней,
-  комментарии, песни, новости, настройки, диагностика, журнал и SQL-бэкап.
-* Аккаунты, публичные профили/поиск/топ, статистика и внешний вид персонажа.
-* Уровни до 8 МиБ с сохранением metadata, songIDs, sfxIDs и editor extras.
-* Комментарии уровня, посты профиля, история, лайки и дизлайки.
-* Друзья, заявки, блокировки, ЛС и настройки приватности.
-* Сохранения до 8 МиБ в локальной БД с проверкой целостности.
-* Исходный News Board: черновики, закрепление, изображения и YouTube для GD 2.209.
-* Исходные карточки 2FA: локальный QR, одноразовые резервные коды.
-* Без проксирования игровых запросов на внешний сервер.
-
-ЛИМИТЫ ХОСТИНГА
+SHARED FEATURES
 ---------------
-Для 8 МиБ уровней/сохранений: post_max_size не меньше 26M,
-memory_limit не меньше 128M. Ограничения HTTP-сервера/провайдера тоже действуют.
-PHP 7.0 больше не получает исправления безопасности; тесты кода не заменяют
-проверку настроек конкретного хостинга и реального клиента.
+* Original Styled and Plain admin, ratings, moderation, native administrator
+  identities, roles, audit, private SQL backups and restore verification.
+* Accounts, profiles, character settings, levels, search, scores, comments,
+  votes, social privacy, friends, blocks, messages and local Cloud Save.
+* Original application modules, clans, collections, quests, threads, following,
+  plugin diagnostics, Control v4, security and monitoring pages.
+* News Board with drafts, pinned posts, images and YouTube previews.
+* Authenticator/recovery codes and device passkeys. Passkey enrollment/revocation
+  requires the current password and enabled 2FA. Private keys stay on the device.
+* Resumable EXE/APK patcher with PHP-only JAR/v1 and APK-v2 signing, without
+  Java, shell commands or an external patching server.
+* Bounded local queue work, optional signed HTTPS webhooks, resumable search
+  rebuilding and CLI cron with verified daily backups.
+* Cvolton account/profile/level/score preview and import with a verified target
+  backup. Other detected datasets are reported explicitly.
 
-После «Завершить перенос» доступны исходные модули ядра, включая кланы,
-наборы уровней, threads/following и диагностику плагинов. В разделе клиентов
-есть shared-патчер EXE/APK с PHP-подписью v1/v2, без Java и внешнего сервера.
-Для обновлений APK сохрани config/php7-apk-signer.json; в архиве этого
-приватного, создаваемого на установке ключа нет.
-Не включены: Passkeys, управление процессами VPS и автоматические фоновые
-задания. Полный перечень ограничений: mc/docs/PHP7_NATIVE_PHASE1.md.
-Импорт произвольных чужих схем PHP8/Cvolton требует отдельного мигратора.
+HOST CONFIGURATION AND ACCEPTANCE
+---------------------------------
+For 8 MiB levels/saves, use post_max_size >= 26M and memory_limit >= 128M.
+The hosting provider's HTTP and storage limits also apply. OpenSSL and
+mbstring are required for passkeys; HTTPS cURL is required for webhooks.
+Configure the cron command shown on Server in the provider's scheduler if
+unattended work is wanted. The ZIP does not create a provider cron job.
+
+Preserve config/php7-apk-signer.json to sign future APK updates with the same
+installation identity. This private key is generated on the host and is not
+included in the archive or SQL backups.
+
+PHP 7.0 is obsolete. Automated protocol/database/signature tests do not certify
+real-device game operation or provider download behavior. Third-party plugins
+need their own runtime compatibility review. See the coverage document for
+current limits. Keep the original game files and test patched output separately.
 
 README
 
@@ -185,7 +190,7 @@ README
 mkdir -p "$(dirname "$OUTPUT")"
 rm -f "$OUTPUT"
 (cd "$STAGE" && zip -qr "$OUTPUT" mc \
- "5V_ROOT_REWRITE_RULES.txt" "НАЧНИ_ЗДЕСЬ_5V.txt")
+ "5V_ROOT_REWRITE_RULES.txt" "START_HERE_SHARED.txt")
 
 unzip -t "$OUTPUT" >/dev/null
 LIST="$STAGE/zip-list.txt"
@@ -197,7 +202,7 @@ for item in mc/admin.php mc/public/php7-admin.php mc/public/assets/php7-admin-ba
   mc/compat/php7/features.sql mc/compat/php7/interactions.php \
   mc/compat/php7/cloudsave.php mc/compat/php7/profile.php \
   mc/.htaccess mc/public/.htaccess \
-  5V_ROOT_REWRITE_RULES.txt; do
+  5V_ROOT_REWRITE_RULES.txt START_HERE_SHARED.txt; do
   grep -Fxq "$item" "$LIST" || {
     echo "Package incomplete: $item" >&2
     exit 1
