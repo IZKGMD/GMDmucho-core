@@ -4,11 +4,11 @@ declare(strict_types=1);
 require_once __DIR__.'/domain.php';
 function mucho7_shared_worker(PDO $db,$root,$settings,$limit=4)
 {
-    if(!is_file($root.'/config/php7-complete.on')||is_file($root.'/config/php7-core-transition.json'))throw new RuntimeException('Сначала заверши перенос ядра.');
+    if(!is_file($root.'/config/php7-complete.on')||is_file($root.'/config/php7-core-transition.json'))throw new RuntimeException('Complete the core migration first.');
     mucho7_domain_configure($settings,$root,$db);
-    if((new ReflectionMethod('MuchoCore\\Job\\JobQueue','reserve'))->getNumberOfParameters()<2)throw new RuntimeException('Установи загруженную сборку в разделе «Сервер» для запуска очереди.');
+    if((new ReflectionMethod('MuchoCore\\Job\\JobQueue','reserve'))->getNumberOfParameters()<2)throw new RuntimeException('Install the uploaded build on the Server page to run the queue.');
     $lock=fopen($root.'/config/php7-worker.lock','c');
-    if(!$lock)throw new RuntimeException('Не удалось открыть блокировку очереди.');
+    if(!$lock)throw new RuntimeException('Unable to open the queue lock.');
     if(!flock($lock,LOCK_EX|LOCK_NB)){fclose($lock);return array('done'=>0,'failed'=>0,'busy'=>true);}
     $result=array('done'=>0,'failed'=>0,'busy'=>false);$deadline=microtime(true)+4;
     try{

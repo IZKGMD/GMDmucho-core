@@ -32,7 +32,7 @@ function requireRank($rank){
         $permission=\MuchoCore\Admin\AdminRbac::permissionForContext(isset($_POST['action'])&&is_string($_POST['action'])?$_POST['action']:null,isset($GLOBALS['page'])?$GLOBALS['page']:null,$rank);
         if(!mucho7_admin_can($GLOBALS['pdo'],$user,$permission))throw new RuntimeException('Insufficient permissions.');return;
     }
-    $ranks=array('moderator'=>10,'elder_moderator'=>20,'owner'=>40,'admin'=>30,'viewer'=>10);if(!$user||!isset($ranks[$user['role']])||$ranks[$user['role']]<$rank)throw new RuntimeException('Нет доступа.');
+    $ranks=array('moderator'=>10,'elder_moderator'=>20,'owner'=>40,'admin'=>30,'viewer'=>10);if(!$user||!isset($ranks[$user['role']])||$ranks[$user['role']]<$rank)throw new RuntimeException('No access.');
 }
 function requirePermission($permission){if(!canPermission($permission))throw new RuntimeException('Insufficient permissions.');}
 function mucho7_admin_supported_permissions(){
@@ -71,7 +71,7 @@ function mucho7_admin_ui_html($html){
     $html=preg_replace_callback('~\s+onsubmit="return confirm\(\x27([^\x27]*)\x27\)"~',function($match){return ' data-confirm="'.h($match[1]).'"';},$html);
     $html=preg_replace_callback('~\b(href|src|action|data-face-url)=(["\'])(.*?)\2~s',function($match){
         $url=mucho7_admin_ui_url(html_entity_decode($match[3],ENT_QUOTES,'UTF-8'));
-        if(preg_match('~\.(?:css|js)(?:\?|$)~',$url) && strpos($url,$GLOBALS['publicBase'].'/')===0)$url.=(strpos($url,'?')===false?'?':'&').'mcui=20261023-roles4';
+        if(preg_match('~\.(?:css|js)(?:\?|$)~',$url) && strpos($url,$GLOBALS['publicBase'].'/')===0)$url.=(strpos($url,'?')===false?'?':'&').'mcui=20261024-english1';
         return $match[1].'='.$match[2].h($url).$match[2];
     },$html);
     // Keep the upstream inline layout exactly, but authorize it with a nonce.
@@ -121,6 +121,6 @@ require_once __DIR__.'/../admin-registry.php';
 function audit(PDO $db,$action,$target='',$details=array()){mucho7_admin_audit($db,(int)admin()['account_id'],$action,(int)$target,json_encode($details));}
 function flash($text,$type='ok'){$_SESSION['notice']=(string)$text;if(in_array($type,array('err','error'),true))throw new RuntimeException((string)$text);}
 
-function checkCsrf(){if(!isset($_POST['csrf'])||!is_string($_POST['csrf'])||!hash_equals(csrf(),$_POST['csrf']))throw new RuntimeException('Форма устарела.');}
+function checkCsrf(){if(!isset($_POST['csrf'])||!is_string($_POST['csrf'])||!hash_equals(csrf(),$_POST['csrf']))throw new RuntimeException('The form expired.');}
 function rank($role){$ranks=array('owner'=>40,'admin'=>30,'elder_moderator'=>20,'moderator'=>10,'viewer'=>0);return isset($ranks[$role])?$ranks[$role]:0;}
 function mucho7_admin_header($value){if(stripos($value,'Location:')===0)$value='Location: '.mucho7_admin_ui_url(trim(substr($value,9)));header($value);}

@@ -58,28 +58,28 @@ function mucho7_admin_factor_login(PDO $db,$aid,$code) {
     try {
         $row=mucho7_admin_security_row($db,$aid,true);
         if(!empty($row['totp_secret']) && !mucho7_admin_factor_consume($db,$aid,$row,$code))
-            throw new RuntimeException('Проверь логин, пароль и код 2FA.');
+            throw new RuntimeException('Check the username, password, and 2FA code.');
         $db->commit();return (int)$row['auth_version'];
     }catch(Exception $error){if($db->inTransaction())$db->rollBack();throw $error;}
 }
 
 function mucho7_admin_security_action(PDO $db,$aid,$action,$data,$settings) {
     $actor=mucho7_admin_user($db,$aid);
-    if(!$actor || (function_exists('mucho7_admin_can') && !mucho7_admin_can($db,$actor,'self.security')))throw new RuntimeException('Нет доступа.');
+    if(!$actor || (function_exists('mucho7_admin_can') && !mucho7_admin_can($db,$actor,'self.security')))throw new RuntimeException('No access.');
     if($action==='2fa-cancel'){unset($_SESSION['pending_totp']);return;}
     mucho7_admin_security_install($db);
     $db->prepare('INSERT IGNORE INTO php7_admin_security(account_id) VALUES(?)')->execute(array($aid));
     if(function_exists('mucho7_admin_registry_ready') && mucho7_admin_registry_ready($db))$account=mucho7_admin_identity($db,$aid);
     else{$account=$db->prepare('SELECT username,password_hash FROM accounts WHERE account_id=?');$account->execute(array($aid));$account=$account->fetch(PDO::FETCH_ASSOC);}
     $ip=isset($_SERVER['REMOTE_ADDR'])?(string)$_SERVER['REMOTE_ADDR']:'';
-    if(!mucho7_auth_event($db,'admin-2fa',$account['username'],$ip,(string)$settings['auth_pepper']))throw new RuntimeException('Слишком много попыток. Повтори через 10 минут.');
+    if(!mucho7_auth_event($db,'admin-2fa',$account['username'],$ip,(string)$settings['auth_pepper']))throw new RuntimeException('Too many attempts. Try again in 10 minutes.');
     if($action!=='2fa-enable' && (!isset($data['current_password']) || !is_string($data['current_password']) || !password_verify($data['current_password'],$account['password_hash'])))
-        throw new RuntimeException('Проверь текущий пароль.');
+        throw new RuntimeException('Check your current password.');
     $db->beginTransaction();
     try {
         $row=mucho7_admin_security_row($db,$aid,true);
         if($action==='2fa-generate') {
-            if(!empty($row['totp_secret']))throw new RuntimeException('2FA уже включена.');
+            if(!empty($row['totp_secret']))throw new RuntimeException('2FA is already enabled.');
             $_SESSION['pending_totp']=array('secret'=>newTotpSecret(),'created_at'=>time(),'aid'=>$aid);
         }elseif($action==='2fa-enable') {
             $pending=isset($_SESSION['pending_totp'])?$_SESSION['pending_totp']:array();
@@ -92,7 +92,7 @@ function mucho7_admin_security_action(PDO $db,$aid,$action,$data,$settings) {
             $codes=generateAdminRecoveryCodes($db,$aid);
         }elseif(in_array($action,array('2fa-disable','recovery-generate'),true)) {
             $code=isset($data['otp']) && is_string($data['otp'])?trim($data['otp']):'';
-            if(!mucho7_admin_factor_consume($db,$aid,$row,$code))throw new RuntimeException('Проверь код 2FA или резервный код.');
+            if(!mucho7_admin_factor_consume($db,$aid,$row,$code))throw new RuntimeException('Check your 2FA or recovery code.');
             if($action==='2fa-disable') {
                 $db->prepare('UPDATE php7_admin_security SET totp_secret=NULL,last_step=-1,auth_version=auth_version+1 WHERE account_id=?')->execute(array($aid));
                 $db->prepare('DELETE FROM php7_admin_recovery_codes WHERE account_id=?')->execute(array($aid));

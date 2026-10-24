@@ -98,13 +98,13 @@ function mucho7_admin_can(PDO $db,$user,$permission) {
 function mucho7_admin_password_login(PDO $db,$data,$ip,$settings) {
     $name=isset($data['userName'])&&is_string($data['userName'])?trim($data['userName']):'';
     $password=isset($data['password'])&&is_string($data['password'])?$data['password']:'';
-    if(!mucho7_auth_event($db,'admin-login',$name,$ip,(string)$settings['auth_pepper']))throw new RuntimeException('Слишком много попыток. Повтори через 10 минут.');
+    if(!mucho7_auth_event($db,'admin-login',$name,$ip,(string)$settings['auth_pepper']))throw new RuntimeException('Too many attempts. Try again in 10 minutes.');
     $q=$db->prepare('SELECT id FROM php7_admin_users WHERE (account_id IS NULL AND username=?) OR account_id=(SELECT account_id FROM accounts WHERE username=? LIMIT 1)');
     $q->execute(array($name,$name));$ids=$q->fetchAll(PDO::FETCH_COLUMN);
     // Reject ambiguous names after a linked game account was renamed.
     $user=count($ids)===1?mucho7_admin_identity($db,(int)$ids[0]):null;
     $dummy='$2y$04$abcdefghijklmnopqrstuuQ1Oxt8SAsyZI9jY8e6mJ3Yxv2PqVu';
-    if(!password_verify($password,$user?$user['password_hash']:$dummy)||!$user)throw new RuntimeException('Проверь логин, пароль и роль администратора.');
+    if(!password_verify($password,$user?$user['password_hash']:$dummy)||!$user)throw new RuntimeException('Check the username, password, and administrator role.');
     return (int)$user['id'];
 }
 
@@ -122,15 +122,15 @@ function mucho7_admin_setup_row(PDO $db,$token,$lock=false) {
 
 function mucho7_admin_setup_password(PDO $db,$data,$settings) {
     $ip=isset($_SERVER['REMOTE_ADDR'])?(string)$_SERVER['REMOTE_ADDR']:'';
-    if(!mucho7_auth_event($db,'admin-setup','setup',$ip,(string)$settings['auth_pepper']))throw new RuntimeException('Слишком много попыток. Повтори через 10 минут.');
+    if(!mucho7_auth_event($db,'admin-setup','setup',$ip,(string)$settings['auth_pepper']))throw new RuntimeException('Too many attempts. Try again in 10 minutes.');
     $pass=isset($data['password'])&&is_string($data['password'])?$data['password']:'';
     $confirm=isset($data['password_confirm'])&&is_string($data['password_confirm'])?$data['password_confirm']:'';
-    if(strlen($pass)<10||strlen($pass)>72||!hash_equals($pass,$confirm))throw new RuntimeException('Пароль: 10–72 байта; подтверждение должно совпадать.');
+    if(strlen($pass)<10||strlen($pass)>72||!hash_equals($pass,$confirm))throw new RuntimeException('Password: 10–72 bytes; the confirmation must match.');
     $hash=password_hash($pass,PASSWORD_BCRYPT,array('cost'=>12));
     $db->beginTransaction();
     try {
         $row=mucho7_admin_setup_row($db,isset($data['setup'])?$data['setup']:'',true);
-        if(!$row)throw new RuntimeException('Ссылка недействительна или уже использована.');
+        if(!$row)throw new RuntimeException('The link is invalid or has already been used.');
         $db->prepare('UPDATE php7_admin_users SET password_hash=?,password_must_set=0,password_setup_token_hash=NULL,password_setup_expires_at=NULL WHERE id=?')->execute(array($hash,$row['id']));
         mucho7_admin_audit($db,(int)$row['id'],'admin.password_setup',(int)$row['id']);
         $db->commit();

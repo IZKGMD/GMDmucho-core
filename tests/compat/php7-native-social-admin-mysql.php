@@ -19,7 +19,7 @@ try {
     $bootstrap=array('db_password'=>'wrong','userName'=>'Owner','password'=>'NativePass123!',
         'email'=>'owner@example.invalid','site_url'=>'https://example.invalid','enable_features'=>'1');
     try {mucho7_admin_initialize($pdo,$settings,$bootstrap,$stage);throw new RuntimeException('bad bootstrap accepted');}
-    catch(RuntimeException $e){sharedCheck($e->getMessage()==='Неверный пароль базы данных.','bootstrap requires existing DB secret');}
+    catch(RuntimeException $e){sharedCheck($e->getMessage()==='Incorrect database password.','bootstrap requires existing DB secret');}
     sharedCheck(count($pdo->query('SHOW TABLES')->fetchAll())===0,'bad bootstrap must not touch schema');
     $bootstrap['db_password']=$settings['password'];$owner=mucho7_admin_initialize($pdo,$settings,$bootstrap,$stage);
     sharedCheck($owner===1 && mucho7_admin_has_owner($pdo),'first owner setup');
@@ -27,7 +27,7 @@ try {
     sharedCheck(!empty($saved['enable_accounts']) && !empty($saved['enable_social']) && strlen($saved['auth_pepper'])===64,'setup enables selected functions and generates secrets');
     sharedCheck(is_file($stage.'/public/php7-mode.on'),'setup activates native routes');
     try {mucho7_admin_bootstrap($pdo,$settings,$bootstrap);throw new RuntimeException('second owner bootstrap accepted');}
-    catch(RuntimeException $e){sharedCheck(strpos($e->getMessage(),'уже назначен')!==false,'bootstrap closes after owner exists');}
+    catch(RuntimeException $e){sharedCheck(strpos($e->getMessage(),'owner already exists')!==false,'bootstrap closes after owner exists');}
     $gjp=sha1('NativePass123!mI29fmAnxgTs');$hash=password_hash('NativePass123!',PASSWORD_BCRYPT,array('cost'=>4));$gjpHash=password_hash($gjp,PASSWORD_BCRYPT,array('cost'=>4));
     $insert=$pdo->prepare('INSERT INTO accounts(account_id,username,email,password_hash,gjp2_hash,role_id) VALUES(?,?,?,?,?,?)');
     foreach(array(2=>'Peer',3=>'Outsider',4=>'Mod') as $id=>$name){
@@ -92,13 +92,13 @@ try {
     sharedCheck($call(1,'getGJMessages20',array(),array('enable_accounts'=>true))==='-1','social module opt-in');
     sharedCheck($call(1,'getGJMessages20',array('gjp2'=>'wrong'))==='-1','private reads require real credential');
     try{mucho7_admin_action($pdo,2,'player',array('id'=>'3','role'=>'owner'),$stage,$settings);throw new RuntimeException('user admin accepted');}
-    catch(RuntimeException $e){sharedCheck($e->getMessage()==='Нет доступа к панели.','ordinary account denied admin actions');}
+    catch(RuntimeException $e){sharedCheck($e->getMessage()==='No admin access.','ordinary account denied admin actions');}
     try{mucho7_admin_action($pdo,4,'rate_level',array('id'=>'1'),$stage,$settings);throw new RuntimeException('moderator rating accepted');}
-    catch(RuntimeException $e){sharedCheck($e->getMessage()==='Нет прав на это действие.','regular moderator cannot directly rate');}
+    catch(RuntimeException $e){sharedCheck($e->getMessage()==='No permission for this action.','regular moderator cannot directly rate');}
     mucho7_admin_action($pdo,1,'rate_level',array('id'=>'1','stars'=>'5','difficulty'=>'30','featured'=>'1','epic'=>'2'),$stage,$settings);
     sharedCheck((int)$pdo->query('SELECT creator_points FROM profiles WHERE account_id=2')->fetchColumn()===4,'rating recalculates creator points');
     try{mucho7_admin_action($pdo,1,'player',array('id'=>'1','role'=>'user'),$stage,$settings);throw new RuntimeException('self demotion accepted');}
-    catch(RuntimeException $e){sharedCheck(strpos($e->getMessage(),'собственный доступ')!==false,'self owner lockout prevented');}
+    catch(RuntimeException $e){sharedCheck(strpos($e->getMessage(),'your own')!==false,'self owner lockout prevented');}
     mucho7_admin_action($pdo,1,'delete_level',array('id'=>'1'),$stage,$settings);
     sharedCheck((int)$pdo->query('SELECT is_deleted FROM levels')->fetchColumn()===1,'admin soft delete');
     mucho7_admin_action($pdo,1,'restore_level',array('id'=>'1'),$stage,$settings);
@@ -106,7 +106,7 @@ try {
     mucho7_admin_action($pdo,1,'save_news',array('title'=>'Shared news','body'=>'Native admin works','url'=>'https://example.invalid/post','news_version'=>'1000000'),$stage,$settings);
     sharedCheck(mucho7_news_source($stage.'/config/php7-news.json')['version']===1000001,'news version increments');
     try{mucho7_admin_action($pdo,1,'save_news',array('title'=>'Stale','body'=>'Stale edit','news_version'=>'1000000'),$stage,$settings);throw new RuntimeException('stale news accepted');}
-    catch(RuntimeException $e){sharedCheck(strpos($e->getMessage(),'уже изменены')!==false,'concurrent news edit protected');}
+    catch(RuntimeException $e){sharedCheck(strpos($e->getMessage(),'have already changed')!==false,'concurrent news edit protected');}
     mucho7_admin_action($pdo,1,'settings',array('site_url'=>'https://shared.example.invalid','enable_accounts'=>'1','enable_social'=>'1','enable_writes'=>'1'),$stage,$settings);
     $saved=require $stage.'/config/php7-local.php';sharedCheck($saved['password']===$settings['password'] && $saved['site_url']==='https://shared.example.invalid','settings preserve DB credentials');
     $upload=array('levelName'=>'Large native','levelString'=>str_repeat('a',300*1024),

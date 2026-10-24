@@ -8,24 +8,24 @@ function mucho7_patcher_json($payload,$status=200)
 }
 function mucho7_patcher_action($db,$user,$action,$root,$data)
 {
-    if(!mucho7_admin_can($db,$user,'client.manage')){http_response_code(403);throw new RuntimeException('Нет прав на патчер клиентов.');}
-    if(!is_file($root.'/config/php7-complete.on'))throw new RuntimeException('Сначала заверши перенос ядра.');
+    if(!mucho7_admin_can($db,$user,'client.manage')){http_response_code(403);throw new RuntimeException('No permission to manage client patching.');}
+    if(!is_file($root.'/config/php7-complete.on'))throw new RuntimeException('Complete the core migration first.');
     require_once $root.'/compat/php7/domain.php';$owner=(int)$user['account_id'];
-    if(!method_exists('MuchoCore\\Client\\AndroidClientPatcher','patchEntryBytes'))throw new RuntimeException('Установи загруженную сборку в разделе «Сервер», чтобы включить shared-патчер.');
+    if(!method_exists('MuchoCore\\Client\\AndroidClientPatcher','patchEntryBytes'))throw new RuntimeException('Install the uploaded build on the Server page to enable the shared patcher.');
     $id=isset($_SESSION['shared_patcher_id'])?$_SESSION['shared_patcher_id']:'';
     if($action==='shared-patcher-start'){
-        if($id!=='')throw new RuntimeException('Сначала сбрось предыдущую задачу патчера.');
+        if($id!=='')throw new RuntimeException('Reset the previous patcher job first.');
         $size=isset($data['size'])&&is_string($data['size'])&&preg_match('/^[0-9]{1,10}$/D',$data['size'])?(int)$data['size']:0;
         $r=MuchoSharedPatcherJob::start($root,$owner,isset($data['filename'])&&is_string($data['filename'])?$data['filename']:'',$size,isset($data['server_url'])&&is_string($data['server_url'])?$data['server_url']:'',isset($data['alongside'])&&$data['alongside']==='1',isset($data['fingerprint'])&&is_string($data['fingerprint'])?$data['fingerprint']:'');
         $_SESSION['shared_patcher_id']=$r['id'];mucho7_admin_audit($db,$owner,'shared-patcher-start',0);return $r;
     }
-    if($id===''){if($action==='shared-patcher-status')return array('ok'=>true,'phase'=>'idle');throw new RuntimeException('Задача патчера не найдена.');}
+    if($id===''){if($action==='shared-patcher-status')return array('ok'=>true,'phase'=>'idle');throw new RuntimeException('Patcher job not found.');}
     $dir=MuchoSharedPatcherJob::directory($root,$id);$s=MuchoSharedPatcherJob::load($dir,$action==='shared-patcher-reset');MuchoSharedPatcherJob::owned($s,$owner);
     if($action==='shared-patcher-reset'){MuchoSharedPatcherJob::remove($dir);unset($_SESSION['shared_patcher_id']);return array('ok'=>true,'phase'=>'idle');}
     if($action==='shared-patcher-status')return MuchoSharedPatcherJob::status($s);
     if($action==='shared-patcher-chunk'){
         $f=isset($_FILES['chunk'])?$_FILES['chunk']:null;
-        if(!is_array($f)||$f['error']!==UPLOAD_ERR_OK||$f['size']>2097152||!is_uploaded_file($f['tmp_name']))throw new RuntimeException('Хостинг отклонил часть файла. Проверь лимит POST.');
+        if(!is_array($f)||$f['error']!==UPLOAD_ERR_OK||$f['size']>2097152||!is_uploaded_file($f['tmp_name']))throw new RuntimeException('The host rejected a file chunk. Check the POST limit.');
         $offset=isset($data['offset'])&&is_string($data['offset'])&&preg_match('/^[0-9]{1,10}$/D',$data['offset'])?(int)$data['offset']:-1;
         return MuchoSharedPatcherJob::chunk($root,$owner,$id,$offset,(string)file_get_contents($f['tmp_name']),isset($data['sha256'])&&is_string($data['sha256'])?$data['sha256']:'');
     }
@@ -33,7 +33,7 @@ function mucho7_patcher_action($db,$user,$action,$root,$data)
         $r=MuchoSharedPatcherJob::step($root,$owner,$id);
         if($r['phase']==='done'&&$s['phase']!=='done')mucho7_admin_audit($db,$owner,'shared-patcher-complete',0,$r['report']['output_sha256']);return $r;
     }
-    throw new RuntimeException('Неизвестное действие патчера.');
+    throw new RuntimeException('Unknown patcher action.');
 }
 function mucho7_patcher_download($db,$user,$root)
 {

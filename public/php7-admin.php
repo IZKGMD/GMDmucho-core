@@ -22,7 +22,7 @@ $publicBase=rtrim(str_replace('\\','/',dirname($script)),'/.');
 if(substr($script,-10)==='/admin.php')$publicBase.='/public';
 define('ROOT_DIR',$root);define('CONTROL_DIR',$root.'/config');
 require_once $root.'/compat/php7/bootstrap.php';
-if(!mucho7_https()) {http_response_code(403);echo 'Открой панель по HTTPS.';exit;}
+if(!mucho7_https()) {http_response_code(403);echo 'Open the panel over HTTPS.';exit;}
 foreach(array('runtime','schema','auth','news','admin') as $module){require_once $root.'/compat/php7/'.$module.'.php';}
 require_once $root.'/compat/php7/admin-ui/actions.php';
 require_once $root.'/compat/php7/admin-ui/bridge.php';
@@ -43,7 +43,7 @@ if($page==='diagnostics')$page='system';
 if(!in_array($page,array('overview','dashboard','players','levels','rating','moderation','comments','messages','songs','news','settings','system','audit','dbbackups','admins','roles','clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','clientpatcher','securitycenter','monitoring'),true)){$page='dashboard';}
 $method=isset($_SERVER['REQUEST_METHOD'])?strtoupper((string)$_SERVER['REQUEST_METHOD']):'GET';
 try {
-    if(!is_file($root.'/config/php7-local.php')){throw new RuntimeException('Сначала настрой подключение в config/php7-local.php или выполни php7-setup.php.');}
+    if(!is_file($root.'/config/php7-local.php')){throw new RuntimeException('Configure the connection in config/php7-local.php or run php7-setup.php first.');}
     $settings=require $root.'/config/php7-local.php'; $pdo=mucho7_connect($settings);
     // Shared hosts may serve several installations from one PHP session store.
     // A valid session for another installation must never grant this one's ID.
@@ -85,7 +85,7 @@ try {
         if(isset($_POST['action']) && $_POST['action']==='news-save')$postLimit=37*1024*1024;
         if((isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH']>$postLimit)
             || !isset($_POST['csrf']) || !is_string($_POST['csrf']) || !hash_equals($_SESSION['csrf'],$_POST['csrf'])) {
-            http_response_code(403);throw new RuntimeException('Форма устарела. Обнови страницу и повтори действие.');
+            http_response_code(403);throw new RuntimeException('The form expired. Refresh the page and try again.');
         }
         $action=isset($_POST['action']) && is_string($_POST['action'])?$_POST['action']:'';
         if($action==='admin-password-setup'){
@@ -107,18 +107,18 @@ try {
                 $aid=mucho7_admin_password_login($pdo,$_POST,$ip,$settings);
             }
             $loginUser=$aid>0?mucho7_admin_user($pdo,$aid):null;
-            if(!$loginUser){throw new RuntimeException('Проверь логин, пароль и роль администратора.');}
+            if(!$loginUser){throw new RuntimeException('Check the username, password, and administrator role.');}
             $factorVersion=mucho7_admin_factor_login($pdo,$aid,isset($_POST['otp']) && is_string($_POST['otp'])?trim($_POST['otp']):'');
             $user=$loginUser;
             session_regenerate_id(true);$_SESSION=array();$_SESSION['aid']=$aid;$_SESSION['signed_in']=time();$_SESSION['last_seen']=time();
             $_SESSION['auth_version']=$factorVersion;
             $_SESSION['admin_registry']=1;
             $_SESSION['instance']=$instance;
-            $_SESSION['csrf']=bin2hex(random_bytes(24));$_SESSION['notice']='Вход выполнен.';
+            $_SESSION['csrf']=bin2hex(random_bytes(24));$_SESSION['notice']='Signed in.';
             header('Set-Cookie: '.session_name().'='.rawurlencode(session_id()).'; Path=/; Secure; HttpOnly; SameSite=Strict',false);
             header('Location: ?page=overview',true,303);exit;
         }
-        if(!$user){http_response_code(403);throw new RuntimeException('Сначала войди в панель.');}
+        if(!$user){http_response_code(403);throw new RuntimeException('Sign in to the panel first.');}
         if($action==='logout') {
             $_SESSION=array();session_regenerate_id(true);header('Location: ?',true,303);exit;
         }
@@ -129,7 +129,7 @@ try {
             header('Location: ?page=system',true,303);exit;
         }
         $runtimeLock=mucho7_core_lock($root,false);
-        if(is_file($root.'/config/php7-core-transition.json'))throw new RuntimeException('Идёт перенос ядра. Изменения доступны после его завершения.');
+        if(is_file($root.'/config/php7-core-transition.json'))throw new RuntimeException('Core migration is in progress. Changes will be available after it finishes.');
         if(strpos($action,'shared-patcher-')===0)mucho7_patcher_json(mucho7_patcher_action($pdo,$user,$action,$root,$_POST));
         if($action==='backup'){mucho7_admin_clean_response();mucho7_admin_backup($pdo,(int)$user['account_id']);exit;}
         if($action==='dbbackup-download'){
@@ -138,7 +138,7 @@ try {
             mucho7_admin_backup_action($pdo,(int)$user['account_id'],$action,$_POST);exit;
         }
         mucho7_admin_ui_action($pdo,(int)$user['account_id'],$action,$_POST,$root,$settings);
-        $_SESSION['notice']=$action==='upgrade'?'База обновлена. Данные сохранены.':'Изменения сохранены.';
+        $_SESSION['notice']=$action==='upgrade'?'Database updated. Existing data was preserved.':'Changes saved.';
         $return=array('page'=>$page);
         if($action==='endpoint-test')$return['page']='endpoints';
         foreach(array('q','filter','p') as $key){if(isset($_POST['return_'.$key]) && is_string($_POST['return_'.$key]))$return[$key]=substr($_POST['return_'.$key],0,128);}
@@ -149,11 +149,11 @@ try {
     }
 } catch(PDOException $e){
     unset($_SESSION['core_upgrade_continue']);
-    $error='Не удалось выполнить запрос к базе. Проверь подключение и обнови схему базы в панели.';
+    $error='Database operation failed. Check the connection and update the database schema in the panel.';
     error_log('[MuchoCore Shared admin] Database operation failed');
 } catch(Exception $e){unset($_SESSION['core_upgrade_continue']);$error=$e->getMessage();}
-catch(Error $e){unset($_SESSION['core_upgrade_continue']);$error='Не удалось выполнить действие. Подробности сохранены в журнале сервера.';error_log('[MuchoCore Shared admin] '.get_class($e));}
-if($method==='POST'&&isset($_POST['action'])&&is_string($_POST['action'])&&strpos($_POST['action'],'shared-patcher-')===0)mucho7_patcher_json(array('ok'=>false,'error'=>$error!==''?$error:'Не удалось выполнить запрос.'),http_response_code()>=400?http_response_code():400);
+catch(Error $e){unset($_SESSION['core_upgrade_continue']);$error='The action failed. Details were recorded in the server log.';error_log('[MuchoCore Shared admin] '.get_class($e));}
+if($method==='POST'&&isset($_POST['action'])&&is_string($_POST['action'])&&strpos($_POST['action'],'shared-patcher-')===0)mucho7_patcher_json(array('ok'=>false,'error'=>$error!==''?$error:'The request failed.'),http_response_code()>=400?http_response_code():400);
 if(isset($_GET['shared_patcher_download'])){
     try{mucho7_patcher_download($pdo,$user,$root);}catch(Exception $e){http_response_code(404);exit('Client download is unavailable.');}
 }

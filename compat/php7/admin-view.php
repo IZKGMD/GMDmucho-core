@@ -15,7 +15,7 @@ $flash=$error!==''?array('type'=>'err','text'=>$error):($notice!==''?array('type
 $db=$pdo;
 ob_start();
 if(!$user || !adminIsPlain()):
-?><!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=h($branding['server_name'])?> Control</title>
+?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=h($branding['server_name'])?> Control</title>
 <link rel="icon" href="/assets/muchocore-icon.png">
 <link rel="stylesheet" href="/assets/php7-admin-<?=$user?'base':'login'?>.css">
 <link rel="stylesheet" href="/admin/admin-i18n.css?v=2">
@@ -27,16 +27,16 @@ if(!$user || !adminIsPlain()):
 </head>
 <?php endif;if(!$user):?>
 <body class="admin-login mc-workspace" data-page=""><main class="admin-auth-card"><header><?php adminBrand($branding['server_name']);adminInterfaceSwitch();?></header>
-<h1><?=$hasOwner?'Administrator sign in':'Первый владелец'?></h1>
+<h1><?=$hasOwner?'Administrator sign in':'First owner'?></h1>
 <?php if($error!==''):?><p class="err" role="alert"><?=h($error)?></p><?php endif ?>
 <?php if($pdo):?><form method="post" id="adminLoginForm"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="action" value="<?=$hasOwner?'login':'bootstrap'?>">
-<?php if(!$hasOwner):?><p class="admin-auth-field"><label for="dbpass">Пароль базы данных</label><input id="dbpass" type="password" name="db_password" required autocomplete="off"></p><?php endif ?>
+<?php if(!$hasOwner):?><p class="admin-auth-field"><label for="dbpass">Password database</label><input id="dbpass" type="password" name="db_password" required autocomplete="off"></p><?php endif ?>
 <div id="passwordLoginFields"><p class="admin-auth-field"><label for="adminUsername">Username</label><br><input id="adminUsername" name="userName" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32" required></p>
 <p class="admin-auth-field"><label for="adminPassword">Password</label><br><input id="adminPassword" type="password" name="password" autocomplete="<?=$hasOwner?'current-password':'new-password'?>" required></p></div>
 <?php if(!$hasOwner):?><p class="admin-auth-field"><label for="email">Email</label><input id="email" type="email" name="email" required maxlength="254"></p><?php endif ?>
 <?php if($hasOwner):?><p id="otpLoginField" class="admin-auth-field"><label for="adminOtp">2FA or recovery code</label><br><input id="adminOtp" name="otp" autocomplete="one-time-code" autocapitalize="none" spellcheck="false" maxlength="32" aria-describedby="adminOtpHelp"><br><small id="adminOtpHelp">Leave empty if two-factor authentication is disabled.</small></p><?php endif ?>
-<?php if($freshInstall):?><p class="admin-auth-field"><label for="setup-domain">HTTPS-домен сервера</label><input id="setup-domain" name="site_url" type="url" required value="<?=h(isset($settings['site_url'])?$settings['site_url']:'')?>"></p><p><label><input type="checkbox" name="enable_features" value="1" checked> Включить игровые функции</label></p><?php endif ?>
-<button id="normalSignInButton" type="submit"><?=$hasOwner?'Sign in':'Назначить владельца'?></button></form><?php endif ?>
+<?php if($freshInstall):?><p class="admin-auth-field"><label for="setup-domain">HTTPS-server domain</label><input id="setup-domain" name="site_url" type="url" required value="<?=h(isset($settings['site_url'])?$settings['site_url']:'')?>"></p><p><label><input type="checkbox" name="enable_features" value="1" checked> Enable game features</label></p><?php endif ?>
+<button id="normalSignInButton" type="submit"><?=$hasOwner?'Sign in':'Create owner'?></button></form><?php endif ?>
 <?php adminFooter($branding);?></main></body></html>
 <?php else:
 if(adminIsPlain())require __DIR__.'/admin-ui/plain-shell.php';else{
@@ -46,7 +46,7 @@ if(adminIsPlain())require __DIR__.'/admin-ui/plain-shell.php';else{
 if($schemaReady && canAdminPage($page)){
     if($page==='system'){mucho7_core_render($db,$root);if($isOwner&&is_file($root.'/config/php7-complete.on'))require __DIR__.'/admin-ui/shared-worker.php';}
     if(in_array($page,array('clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','securitycenter','monitoring'),true)){
-        if(!is_file($root.'/config/php7-complete.on')){echo '<p>Сначала заверши перенос полного ядра в разделе «Сервер».</p>';}
+        if(!is_file($root.'/config/php7-complete.on')){echo '<p>Complete the full core migration on the Server page first.</p>';}
         else{require_once $root.'/compat/php7/domain.php';mucho7_domain_configure($settings,$root,$db);
             if(in_array($page,array('social','analytics','database','endpoints'),true))require __DIR__.'/admin-ui/'.$page.'.php';
             elseif($page==='intelligence'){require mucho7_compiled_include($root.'/public/admin/pages/intelligence.php');renderIntelligenceScalePage($db);}
@@ -69,8 +69,9 @@ if($schemaReady && canAdminPage($page)){
     else{$titles=$pages;$oldPage=$page;if($page==='system')$page='diagnostics';require __DIR__.'/admin-ui/native-pages.php';$page=$oldPage;}
 }else{$titles=$pages;require __DIR__.'/admin-ui/native-pages.php';}
 adminFooter($branding);
-?></main><?php if(!adminIsPlain()):?></div><script src="/admin/admin-i18n.js?v=104"></script><?php else:?><script src="/assets/php7-admin-product.js" defer></script><?php endif ?><script src="/assets/php7-admin-host.js" defer></script></body></html>
+?></main><?php if(!adminIsPlain()):?></div><script src="/admin/admin-i18n.js?v=105"></script><?php else:?><script src="/assets/php7-admin-product.js" defer></script><?php endif ?><script src="/assets/php7-admin-host.js" defer></script></body></html>
 <?php endif;
 $html=ob_get_clean();
+$html=preg_replace('~<body\b~','<body data-admin-language="en"',$html,1);
 if($user)$html=preg_replace('~<body\b~','<body data-csrf="'.h(csrf()).'" data-admin-path="'.h($script).'"',$html,1);
 echo mucho7_admin_ui_html($html);

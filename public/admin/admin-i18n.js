@@ -264,6 +264,7 @@ const RU = {
 };
 
 function getLang() {
+    if (document.body?.dataset.adminLanguage === 'en') return 'en';
     try { return localStorage.getItem(KEY) === 'ru' ? 'ru' : 'en'; }
     catch { return document.cookie.includes('mucho_admin_language=ru') ? 'ru' : 'en'; }
 }
@@ -327,6 +328,10 @@ function bindFlags() {
 
     buttons.forEach(btn => {
         const lang = btn.dataset.lang;
+        if (document.body?.dataset.adminLanguage === 'en' && lang !== 'en') {
+            btn.hidden = true;
+            return;
+        }
 
         btn.onclick = ev => {
             ev.preventDefault();

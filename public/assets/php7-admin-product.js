@@ -35,14 +35,14 @@
         button.addEventListener('click',async()=>{
             const target=document.getElementById(button.dataset.copyTarget);
             if(!target)return;
-            try{await navigator.clipboard.writeText(target.textContent.trim());toast(label('Команда скопирована','Command copied'));}
-            catch{const range=document.createRange();range.selectNodeContents(target);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);toast(label('Команда выделена. Нажми Ctrl+C или удерживай текст для копирования.','Command selected. Press Ctrl+C or long-press to copy.'));}
+            try{await navigator.clipboard.writeText(target.textContent.trim());toast(label('Command copied','Command copied'));}
+            catch{const range=document.createRange();range.selectNodeContents(target);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);toast(label('Command selected. Press Ctrl+C or hold the text to copy.','Command selected. Press Ctrl+C or long-press to copy.'));}
         });
     });
     document.querySelectorAll('[data-copy-value]').forEach(button=>{
         button.addEventListener('click',async()=>{
-            try{await navigator.clipboard.writeText(button.dataset.copyValue);toast(label('ID скопирован','ID copied'));}
-            catch{toast(label('ID для копирования: ','ID to copy: ')+button.dataset.copyValue);}
+            try{await navigator.clipboard.writeText(button.dataset.copyValue);toast(label('ID copied','ID copied'));}
+            catch{toast(label('ID to copy: ','ID to copy: ')+button.dataset.copyValue);}
         });
     });
     const menu=document.getElementById('productNavigation');
@@ -75,7 +75,7 @@
     if(storage.get('mucho.control.collapsed',false)===true)body.classList.add('sidebar-collapsed');
     const syncCollapse=()=>{
         collapse?.setAttribute('aria-expanded',String(!body.classList.contains('sidebar-collapsed')));
-        if(collapse){collapse.textContent=desktop.matches?'☰':'×';collapse.setAttribute('aria-label',desktop.matches?label('Свернуть меню','Collapse menu'):label('Закрыть меню','Close menu'));}
+        if(collapse){collapse.textContent=desktop.matches?'☰':'×';collapse.setAttribute('aria-label',desktop.matches?label('Collapse menu','Collapse menu'):label('Close menu','Close menu'));}
     };
     syncCollapse();
     collapse?.addEventListener('click',()=>{if(!desktop.matches){closeMobile();mobile?.focus();return;}body.classList.toggle('sidebar-collapsed');storage.set('mucho.control.collapsed',body.classList.contains('sidebar-collapsed'));syncCollapse();});
@@ -91,7 +91,7 @@
         const groupNode=category?.querySelector(':scope > summary') || fallbackGroup;
         entries.push({node,href,groupNode});
     });
-    const groupFor=entry=>entry.groupNode?.childNodes[0]?.textContent?.trim() || label('Главное','Main');
+    const groupFor=entry=>entry.groupNode?.childNodes[0]?.textContent?.trim() || label('Main','Main');
     const dialog=document.createElement('dialog');dialog.className='mc-dialog';dialog.setAttribute('aria-labelledby','commandTitle');
     const head=document.createElement('div');head.className='mc-dialog-head';
     const title=document.createElement('h2');title.id='commandTitle';
@@ -113,10 +113,10 @@
             const meta=document.createElement('small');meta.textContent=groupFor(entry);
             a.append(name,meta);a.addEventListener('click',()=>{storage.set('mucho.control.recent',[entry.href,...recent.filter(v=>v!==entry.href)].slice(0,5));});commands.append(a);
         });
-        if(!results.length){const empty=document.createElement('div');empty.className='mc-command-empty';empty.textContent=label('Разделы не найдены','No matching sections');commands.append(empty);}
+        if(!results.length){const empty=document.createElement('div');empty.className='mc-command-empty';empty.textContent=label('No sections found','No matching sections');commands.append(empty);}
     }
     const openCommands=()=>{
-        previousFocus=document.activeElement;title.textContent=label('Быстрый переход','Quick navigation');input.placeholder=label('Найти раздел…','Find a section…');input.setAttribute('aria-label',input.placeholder);dismiss.setAttribute('aria-label',label('Закрыть','Close'));input.value='';renderCommands();dialog.showModal();input.focus();
+        previousFocus=document.activeElement;title.textContent=label('Quick navigation','Quick navigation');input.placeholder=label('Find a section…','Find a section…');input.setAttribute('aria-label',input.placeholder);dismiss.setAttribute('aria-label',label('Close','Close'));input.value='';renderCommands();dialog.showModal();input.focus();
     };
     document.getElementById('commandLauncher')?.addEventListener('click',openCommands);
     dismiss.addEventListener('click',()=>dialog.close());
@@ -137,11 +137,11 @@
         const rows=[...table.tBodies].flatMap(section=>[...section.rows]).filter(row=>[...row.cells].some(cell=>cell.tagName==='TD'));
         if(rows.length<8||!table.querySelector('th'))return;
         const tools=document.createElement('div');tools.className='mc-table-tools';
-        const labelNode=document.createElement('label');labelNode.textContent=label('Фильтр на этой странице','Filter this page');
-        const field=document.createElement('input');field.type='search';field.id='tableFilter'+index;field.placeholder=label('Текст в строках…','Text in rows…');field.autocomplete='off';
+        const labelNode=document.createElement('label');labelNode.textContent=label('Filter this page','Filter this page');
+        const field=document.createElement('input');field.type='search';field.id='tableFilter'+index;field.placeholder=label('Text in rows…','Text in rows…');field.autocomplete='off';
         labelNode.append(field);const counter=document.createElement('span');counter.setAttribute('role','status');
         tools.append(labelNode,counter);wrapper.prepend(tools);
-        const empty=document.createElement('div');empty.className='mc-table-no-results';empty.textContent=label('Совпадений на этой странице нет','No matches on this page');empty.hidden=true;wrapper.append(empty);
+        const empty=document.createElement('div');empty.className='mc-table-no-results';empty.textContent=label('No matches on this page','No matches on this page');empty.hidden=true;wrapper.append(empty);
         const update=()=>{let visible=0;rows.forEach(row=>{row.hidden=!matches(row.textContent,field.value);if(!row.hidden)visible++;});counter.textContent=visible+' / '+rows.length;empty.hidden=visible>0;};
         field.addEventListener('input',update);update();
     });

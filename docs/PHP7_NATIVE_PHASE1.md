@@ -221,9 +221,9 @@ client URLs. GD image features require the PHP GD extension.
 The admin exposes original clans, collections, profile customization, social
 moderation, analytics, database browser, local API tester, client feature flags,
 plugin diagnostics, intelligence and security-monitoring pages. Plugin PHP code
-must itself support the installed PHP version. VPS process control,
-automatic jobs/backup scheduling and the original self-updater are
-not activated on PHP7 shared hosting. Passkey/WebAuthn is pending; the current
+must itself support the installed PHP version. VPS process control and
+the original self-updater are not activated on PHP7 shared hosting.
+Provider cron can run the shared scheduler described below. Passkey/WebAuthn is pending; the current
 working password, TOTP and recovery-code authentication remains in use.
 Track remaining platform/client acceptance work in issue #148.
 
@@ -244,6 +244,27 @@ Full transfer does not mean those capabilities have already been validated.
 The original queue's optional job-type filter defaults to all types, preserving
 the existing VPS worker behavior. A pinned older snapshot fails closed with an
 instruction to install the uploaded build before using the shared runner.
+
+### Provider cron and daily backups
+
+The private `compat/php7/cron.php` entry point is CLI-only. Configure the hosting
+provider's cron scheduler to run `php /absolute/path/to/mc/compat/php7/cron.php
+--backup` every minute, using the provider's CLI PHP binary. The command is
+shown to the owner on the Server page. It uses the existing private database
+configuration and a shared runtime lock. No public trigger, token, VPS or open
+browser is needed. Web requests to the entry point fail closed.
+
+Each invocation runs a bounded local queue batch. An hourly checkpoint enqueues
+maintenance; `--backup` additionally creates one verified compressed database
+backup per 24 hours. Separate scheduler and backup locks prevent overlap. Backup
+time is recorded only after gzip and SHA-256 verification succeeds, allowing a
+failed backup to retry. Existing backup files are preserved. Monitor disk quota;
+private encryption and signing keys still need a separate private backup.
+
+The archive provides the scheduler, but does not configure a provider's control
+panel automatically. A host with no CLI/cron capability can still use the owner
+queue and backup buttons. Shared UI, installer messages, errors and patcher
+progress use English, including the Plain interface and pages without JavaScript.
 
 ## Fully shared client patcher
 

@@ -30,3 +30,13 @@ upgradeCheck($db->query("SELECT cache_value FROM mucho_cache WHERE cache_key='ke
 $badFilter=false;try{$queue->reserve('fixture',array("level.index') OR 1=1 --"));}catch(InvalidArgumentException $e){$badFilter=true;}
 upgradeCheck($badFilter,'Invalid queue filter was accepted');
 echo "PHP7_SHARED_LOCAL_WORKER_INDEX_CLEANUP_LEASE_RETRY_OK\n";
+require_once $root.'/compat/php7/scheduler.php';
+$scheduled=mucho7_shared_schedule($db,$stage,$settings,true);
+upgradeCheck($scheduled['backup']==='verified','Scheduled backup was not verified');
+$checkpoint=json_decode(file_get_contents($stage.'/config/php7-scheduler.json'),true);
+$archive=$stage.'/config/php7-db-backups/'.$checkpoint['backup_file'];
+upgradeCheck(is_file($archive)&&hash_equals(hash_file('sha256',$archive),explode(' ',trim(file_get_contents($archive.'.sha256')))[0]),'Scheduled backup checksum mismatch');
+$again=mucho7_shared_schedule($db,$stage,$settings,true);
+upgradeCheck($again['backup']==='not_due','Repeated scheduler created a duplicate daily backup');
+upgradeCheck(count(glob($stage.'/config/php7-db-backups/scheduled_*.sql.gz'))===1,'Scheduler created multiple backups');
+echo "PHP7_SHARED_SCHEDULER_DAILY_BACKUP_CHECKPOINT_OK\n";

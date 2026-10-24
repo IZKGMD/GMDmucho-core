@@ -9,7 +9,7 @@
 <!-- MUCHO_LANG_FLAGS -->
 <div id="muchoLangSwitcher" class="mucho-lang-switcher">
     <button type="button" data-lang="en" title="English">EN</button>
-    <button type="button" data-lang="ru" title="Русский">RU</button>
+    <button type="button" data-lang="ru" title="Russian">RU</button>
 </div>
 <!-- /MUCHO_LANG_FLAGS -->
 

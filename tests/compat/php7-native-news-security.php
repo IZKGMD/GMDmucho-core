@@ -143,7 +143,7 @@ try {
     preg_match('~<(?:p|div)[^>]*class="[^"]*(?:err|flash)[^"]*"[^>]*>(.*?)</(?:p|div)>~s',$response,$failureMessage);
     nsCheck(strpos($response,'Use a YouTube watch, Shorts, live or youtu.be video link.')!==false,'missing form validation error: '.(isset($failureMessage[1])?strip_tags($failureMessage[1]):substr(strip_tags($response),-900)).' stderr: '.$stderr);
     nsCheck(strpos($response,'mucho-news-layout')!==false && strpos($response,'Keep this editor draft')!==false,'validation lost original editor/draft');
-    nsCheck(strpos($response,'Доступно обновление базы')===false,'validation incorrectly offered a schema upgrade');
+    nsCheck(strpos($response,'Database update available')===false,'validation incorrectly offered a schema upgrade');
     nsCheck(count($news->allForOwner())===1,'rejected front-controller POST created news');
     echo "NATIVE_ADMIN_REJECTED_POST_PRESERVES_EDITOR_OK\n";
     require_once $root.'/compat/php7/admin-backups.php';

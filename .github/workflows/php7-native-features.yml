@@ -39,6 +39,7 @@ jobs:
             php -l "$src"
           done
           php tests/compat/php7-native-features-pure.php
+          php tests/compat/php7-native-english.php
           php tests/compat/php7-compiled-domain-pure.php
           php tests/compat/php7-aead-compat.php
           php tests/compat/php7-core-pack.php
