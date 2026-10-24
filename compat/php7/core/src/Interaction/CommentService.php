@@ -38,7 +38,7 @@ final class CommentService
         if ($decodedContent === '') {
             throw new \RuntimeException('Comment cannot be empty.');
         }
-        if (!$this->levelExists($levelId)) {
+        if (!$this->canReadLevel($levelId, $accountId, $gjp)) {
             throw new \RuntimeException('Level not found.');
         }
         /*
@@ -325,9 +325,9 @@ final class CommentService
         $update = $pdo->prepare("UPDATE profiles\n             SET creator_points = :cp\n             WHERE account_id = :account");
         $update->execute([":cp" => (int) $cp->fetchColumn(), ":account" => $accountId]);
     }
-    public function getLevelComments(int $levelId, int $page, int $gameVersion = 22, int $binaryVersion = 0, int $count = 10, int $mode = 0): string
+    public function getLevelComments(int $levelId, int $page, int $gameVersion = 22, int $binaryVersion = 0, int $count = 10, int $mode = 0, int $viewerAccountId = 0, string $viewerCredential = ''): string
     {
-        if (!$this->levelExists($levelId)) {
+        if (!$this->canReadLevel($levelId, $viewerAccountId, $viewerCredential)) {
             return '-2';
         }
         $limit = min(100, max(1, $count));
@@ -485,6 +485,14 @@ final class CommentService
             throw new \RuntimeException('Comment is too long.');
         }
         return $content;
+    }
+    private function canReadLevel(int $levelId, int $viewer = 0, string $credential = ''): bool
+    {
+        $db = $this->getPdo();
+        $query = $db->prepare('SELECT account_id,is_deleted,unlisted2 FROM levels WHERE level_id=:id LIMIT 1');
+        $query->execute(['id' => $levelId]);
+        $level = $query->fetch(PDO::FETCH_ASSOC);
+        return $level && \MuchoCore\Level\LevelAccess::canRead($db, $level, $this->auth, $viewer, $credential);
     }
     private function levelExists(int $levelId): bool
     {

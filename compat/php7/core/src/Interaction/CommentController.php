@@ -57,7 +57,7 @@ final class CommentController
             if ($levelId <= 0 && $userId > 0) {
                 return Response::text($this->service->getUserComments($userId, $page, $count, $mode, $version->effectiveGameVersion(), $version->binaryVersion));
             }
-            return Response::text($this->service->getLevelComments($levelId, $page, $version->effectiveGameVersion(), $version->binaryVersion, $count, $mode));
+            return Response::text($this->service->getLevelComments($levelId, $page, $version->effectiveGameVersion(), $version->binaryVersion, $count, $mode, $request->postInt('accountID'), $request->gdCredential()));
         } catch (Throwable $e) {
             error_log(sprintf('[MuchoCore CommentRead] request_id=%s route=level-comments level_id=%d user_id=%d page=%d count=%d mode=%d version=%d binary=%d exception=%s message=%s', (string) ($_SERVER['MUCHO_REQUEST_ID'] ?? '-'), $levelId, $userId, $page, $count, $mode, $version->effectiveGameVersion(), $version->binaryVersion, \get_class($e), $e->getMessage()));
             // -1 denotes failure. "#0:0:10" is a malformed success page and

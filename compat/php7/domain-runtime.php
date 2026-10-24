@@ -25,6 +25,9 @@ function mucho7_domain_configure($settings,$root,$db=null)
         'MUCHO_WEBHOOK_EVENTS'=>isset($settings['webhook_events'])?(string)$settings['webhook_events']:'*',
         'MUCHO_NATIVE_NEWS'=>!empty($settings['enable_native_news'])?'1':'0',
         'MUCHO_CLOUDSAVE_KEY_FILE'=>$root.'/config/cloudsave.key',
+        // Keep download deduplication stable across independent PHP requests.
+        // Publish only a domain-separated derivation, never the private secret.
+        'MUCHO_DOWNLOAD_HMAC_KEY'=>!empty($settings['auth_pepper'])?hash('sha256','muchocore-shared-download|'.$settings['auth_pepper']):(!empty($settings['password'])?hash('sha256','muchocore-shared-download|'.$settings['password']):''),
         'MUCHO_CACHE_DRIVER'=>'file','MUCHO_FILE_CACHE_DIR'=>$root.'/config/php7-core-cache',
         'MUCHO_PROTECT_STORAGE'=>'database','MUCHO_PROTECT_FAIL_OPEN'=>'0',
         'MUCHO_PROTECT_PENALTY_DIR'=>$root.'/config/php7-core-penalties',

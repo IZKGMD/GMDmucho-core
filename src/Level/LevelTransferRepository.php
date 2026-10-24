@@ -32,6 +32,9 @@ final readonly class LevelTransferRepository
         'extra_string',
         'level_data',
         'level_info',
+        'settings_string',
+        'song_ids',
+        'sfx_ids',
         'ldm',
         'ts',
     ];
@@ -161,9 +164,8 @@ final readonly class LevelTransferRepository
         $stmt->execute($data);
 
         /*
-         * rowCount() может быть 0, если клиент загрузил
-         * абсолютно те же данные, поэтому ownership
-         * дополнительно проверяем SELECT-ом.
+         * Unchanged uploads can report zero affected rows. Recheck ownership
+         * before treating that result as a successful idempotent update.
          */
         if ($stmt->rowCount() === 0) {
             $check = $this->pdo->prepare(

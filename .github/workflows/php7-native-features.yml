@@ -3,9 +3,9 @@ name: Native PHP7 feature integration
 on:
   push:
     branches: [main]
-    paths: ['compat/php7/**', 'public/php7*.php', 'public/assets/php7-*.js', 'public/assets/php7-admin.css', 'tests/compat/php7-native-*', 'tests/compat/php7-shared-*', 'tests/compat/shared-patcher-*', '.github/workflows/php7-native-features.yml']
+    paths: ['compat/php7/**', 'public/php7*.php', 'public/assets/php7-*.js', 'public/assets/php7-admin.css', 'tests/compat/php7-native-*', 'tests/compat/php7-shared-*', 'tests/compat/shared-*.py', '.github/workflows/php7-native-features.yml']
   pull_request:
-    paths: ['compat/php7/**', 'public/php7*.php', 'public/assets/php7-*.js', 'public/assets/php7-admin.css', 'tests/compat/php7-native-*', 'tests/compat/php7-shared-*', 'tests/compat/shared-patcher-*', '.github/workflows/php7-native-features.yml']
+    paths: ['compat/php7/**', 'public/php7*.php', 'public/assets/php7-*.js', 'public/assets/php7-admin.css', 'tests/compat/php7-native-*', 'tests/compat/php7-shared-*', 'tests/compat/shared-*.py', '.github/workflows/php7-native-features.yml']
   workflow_dispatch:
 
 permissions:
@@ -87,3 +87,16 @@ jobs:
           for test in compat/php7/core/tests/application/*-integration.php; do
             php -d memory_limit=128M "$test"
           done
+      - name: Verify real shared HTTP P0 workflows and concurrent download counters
+        env:
+          TEST_DB_ROOT_PASSWORD: native-ci-only
+          TEST_DB_HOST: 127.0.0.1
+        run: |
+          python3 tests/compat/shared-p0-http.py --php "$(command -v php)" \
+            --report "$RUNNER_TEMP/shared-p0-http-${{ matrix.php }}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shared-p0-http-php-${{ matrix.php }}
+          path: ${{ runner.temp }}/shared-p0-http-${{ matrix.php }}.json
+          if-no-files-found: error
+          retention-days: 14

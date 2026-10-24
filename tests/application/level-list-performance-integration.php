@@ -76,6 +76,7 @@ try {
         song_id BIGINT NOT NULL DEFAULT 0,
         is_deleted INT NOT NULL DEFAULT 0,
         is_unlisted INT NOT NULL DEFAULT 0,
+        unlisted2 INT NOT NULL DEFAULT 0,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )');

@@ -20,6 +20,37 @@ the different client source currently on main.
 
 ## Current stable-release blocker
 
+### Shared runtime stabilization (2026-10-24)
+
+The shared HTTP regression runner now boots a disposable populated MariaDB
+installation through the actual `public/php7.php` entry point. It exercises
+password/GJP2 login and account/user ID separation, banned/inactive rejection,
+level upload/search/download with exact editor metadata, comments and history,
+leaderboard visibility, owner/friend authorization and revocation, read-only
+mode, simultaneous login/update/download requests, and synthetic protocol
+boundaries from 1.0 through 2.209. PHP process-launch functions are disabled in
+the three independent HTTP workers. The business/protocol fixture explicitly
+disables MuchoProtect burst limiting; its dedicated security tests remain separate.
+
+This regression work fixed discarded `settingsString`/`songIDs`/`sfxIDs`,
+unstable shared download-deduplication keys, native-PDO friendship queries,
+and friend-only level/comment exposure through public reads and history.
+
+Run against an **isolated local test database only**:
+
+```sh
+TEST_DB_HOST=127.0.0.1 TEST_DB_ROOT_PASSWORD=YOUR_TEST_PASSWORD \
+  python3 tests/compat/shared-p0-http.py --php "$(command -v php)" \
+  --report /tmp/shared-p0-http.json
+```
+
+Native integration CI runs it on PHP 7.0 and 8.3 and retains the sanitized
+diagnostic report. Its optional timing observations are local HTTP round-trip
+measurements on a tiny synthetic fixture. They are not reference-dataset p95
+certification, production performance claims or native-client evidence.
+The endpoint inventory links this automated evidence while retaining incomplete
+certification statuses and the stable-release block.
+
 Run the authoritative checks from the repository root:
 
 ```sh

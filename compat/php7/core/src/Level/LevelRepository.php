@@ -14,7 +14,7 @@ final class LevelRepository
     }
     public function search(int $type, string $search, int $gameVersion, int $offset, int $limit, int $demonFilter = 0, array $input = []): array
     {
-        $where = ["l.is_deleted = 0", "l.is_unlisted = 0"];
+        $where = ["l.is_deleted = 0", "l.is_unlisted = 0", "l.unlisted2 = 0"];
         $params = [];
         $historyJoin = '';
         $fixedOrder = null;

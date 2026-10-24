@@ -7,7 +7,7 @@ use PDO;
 use RuntimeException;
 final class LevelTransferRepository
 {
-    const WRITABLE_FIELDS = ['account_id', 'name', 'description', 'level_version', 'game_version', 'binary_version', 'length', 'audio_track', 'song_id', 'copy_password', 'original_level_id', 'two_player', 'object_count', 'coins', 'requested_stars', 'is_unlisted', 'unlisted2', 'wt', 'wt2', 'extra_string', 'level_data', 'level_info', 'ldm', 'ts'];
+    const WRITABLE_FIELDS = ['account_id', 'name', 'description', 'level_version', 'game_version', 'binary_version', 'length', 'audio_track', 'song_id', 'copy_password', 'original_level_id', 'two_player', 'object_count', 'coins', 'requested_stars', 'is_unlisted', 'unlisted2', 'wt', 'wt2', 'extra_string', 'level_data', 'level_info', 'settings_string', 'song_ids', 'sfx_ids', 'ldm', 'ts'];
     public function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
@@ -87,9 +87,8 @@ final class LevelTransferRepository
                AND is_deleted = 0');
         $stmt->execute($data);
         /*
-         * rowCount() может быть 0, если клиент загрузил
-         * абсолютно те же данные, поэтому ownership
-         * дополнительно проверяем SELECT-ом.
+         * Unchanged uploads can report zero affected rows. Recheck ownership
+         * before treating that result as a successful idempotent update.
          */
         if ($stmt->rowCount() === 0) {
             $check = $this->pdo->prepare('SELECT 1
