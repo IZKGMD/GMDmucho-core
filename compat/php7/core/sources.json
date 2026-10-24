@@ -290,7 +290,7 @@
     "tests/application/gd2209-case-actions-integration.php": "977bdf9897c4116b23c1e8c6ee9e7d07d91c841ed22ef00281fa8bff041d3583",
     "tests/application/gd2209-gameplay-schema-integration.php": "671db33bd79e20b9f8ecc3b540c7a45f835ed539f3cafd939f3c44a6bf4c9663",
     "tests/application/gd2209-level-integration.php": "27f06b5713506409b7e712223c5e45ea28fc9a7958a1ca4f4499aebd77fe345a",
-    "tests/application/gd2209-moderation-queue-integration.php": "6dc4497e2a36f345db3c0ecec3460d5d17c9d963852220b456ce03eba0116da0",
+    "tests/application/gd2209-moderation-queue-integration.php": "c3a5b4f24d11d8a4dab921a73568022162eea333bb45ddbe8bd6498a7426aab6",
     "tests/application/gd2209-report-queue-integration.php": "26083f5bffa4a9b817a3b1fc376c244c6db2df475c61792a534e36c822665120",
     "tests/application/gd2209-sanctions-utilities-integration.php": "3e95c66db69aaf47253a7e0cf4100fd54fdcfc9c76315dc0f4e88f46de6cbcd7",
     "tests/application/gd2209-social-integration.php": "603ae7aa0af70f14a71c111cc735a42aedc9574c5aec9b87c575bad66a6a4186",

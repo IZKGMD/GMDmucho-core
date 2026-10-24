@@ -110,6 +110,7 @@ try {
         name VARCHAR(128) NOT NULL,
         is_deleted TINYINT NOT NULL DEFAULT 0,
         is_unlisted TINYINT NOT NULL DEFAULT 0,
+        unlisted2 TINYINT NOT NULL DEFAULT 0,
         stars TINYINT NOT NULL DEFAULT 0,
         requested_stars TINYINT NOT NULL DEFAULT 0,
         game_version INT NOT NULL DEFAULT 22,
