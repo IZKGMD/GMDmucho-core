@@ -119,9 +119,11 @@ assertV106(
 );
 
 assertV106(
-    str_contains($readme, '## 📦 MuchoCore v1.0.8') &&
+    str_contains($readme, '[VERSION](VERSION)') &&
+    str_contains($readme, 'A source version is not proof of a published stable release.') &&
+    str_contains($readme, 'https://github.com/IZKGMD/GMDmucho-core/releases') &&
     !str_contains($readme, '**v1.0.6** is the current stable release'),
-    'README release state matches v1.0.8'
+    'README distinguishes the source version from published stable releases'
 );
 
 echo "MUCHOCORE_V106_HARDENING_OK\n";
