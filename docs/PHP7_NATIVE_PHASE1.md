@@ -103,7 +103,7 @@ idle/old sessions. Owner changes cannot remove one's own owner access.
 from the original source; `admin-ui/upstream-sources.json` records their hashes.
 It preserves the original CSS and GD assets. The shared host bridge changes
 storage, mount URLs and PHP syntax. News Board and authenticator/recovery are
-original templates too. Separate administrator identities, one-time password invitations, custom roles, assignment and activation are supported. Passkey tools are not yet ported. Database Backup Center uses the original shared-host page and PHP service with private compressed archives and verified downloads. CSP authorizes original inline blocks
+original templates too. Separate administrator identities, one-time password invitations, custom roles, assignment and activation are supported. Native passkeys use the pinned original verifier and the same administrator principal registry; password reauthentication and enabled TOTP remain required for enrollment. Database Backup Center uses the original shared-host page and PHP service with private compressed archives and verified downloads. CSP authorizes original inline blocks
 with per-response nonces; no `unsafe-inline` is enabled. QR images are generated
 locally, without sending authenticator secrets to an external QR service.
 
@@ -221,10 +221,12 @@ client URLs. GD image features require the PHP GD extension.
 The admin exposes original clans, collections, profile customization, social
 moderation, analytics, database browser, local API tester, client feature flags,
 plugin diagnostics, intelligence and security-monitoring pages. Plugin PHP code
-must itself support the installed PHP version. VPS process control and
-the original self-updater are not activated on PHP7 shared hosting.
-Provider cron can run the shared scheduler described below. Passkey/WebAuthn is pending; the current
-working password, TOTP and recovery-code authentication remains in use.
+must itself support the installed PHP version. VPS process control is replaced
+by provider operations; shared code updates use verified immutable code-only
+packs from the Server page. Provider cron can run the shared scheduler below.
+Password, TOTP, recovery-code and passkey authentication use the native principal
+registry. Passkeys require PHP OpenSSL and mbstring, HTTPS, and a compatible
+browser/device; private credential keys never leave the user's authenticator.
 Track remaining platform/client acceptance work in issue #148.
 
 ### Local queue execution on shared hosting
@@ -237,10 +239,10 @@ file lock prevents overlapping runs; the original queue's worker/attempt lease
 fencing, delayed retries and abandoned-lease recovery are retained. Cleanup
 deletes at most 500 expired cache/job rows and 128 download dedupe rows per job.
 
-This is an operator-triggered runner, not unattended scheduling. It does not
-reserve or deliver `webhook.dispatch` jobs. External delivery, automatic backup
-scheduling, passkeys, and device acceptance remain separate unfinished work.
-Full transfer does not mean those capabilities have already been validated.
+The panel button runs an operator-triggered batch. Provider cron enables
+unattended execution. By default the worker reserves only local jobs; external
+delivery is opt-in through the owner's External notifications settings. Device
+acceptance and a host's actual cron configuration are separate from code tests.
 The original queue's optional job-type filter defaults to all types, preserving
 the existing VPS worker behavior. A pinned older snapshot fails closed with an
 instruction to install the uploaded build before using the shared runner.
@@ -265,6 +267,42 @@ The archive provides the scheduler, but does not configure a provider's control
 panel automatically. A host with no CLI/cron capability can still use the owner
 queue and backup buttons. Shared UI, installer messages, errors and patcher
 progress use English, including the Plain interface and pages without JavaScript.
+
+### Passkeys, notifications and remaining operator pages
+
+Passkeys use `report-uri/passkeys-php` v2.0.1 at commit
+`f8cddbfe00f9ecff1eebeb6bcae18b111f6bc468`, with original MIT sources, file hashes
+and a PHP7-generated mirror. WebAuthn retains RP/origin, user presence and
+verification, single-use five-minute challenges, user-handle binding and
+signature-counter checks. Credentials are stored in `php7_admin_passkeys`,
+bound to panel IDs rather than game account IDs. A linked banned/deactivated
+game account cannot use a passkey to regain panel access. Enabled TOTP remains
+required after a valid passkey assertion. Enrollment/revocation also requires
+the administrator's current password and enabled factor.
+
+External notifications retain the original event JSON and optional HMAC-SHA256
+signature. The owner explicitly chooses a public HTTPS endpoint and events;
+secrets stay in private hosting configuration and are not returned in forms or
+audit details. cURL pins a validated public IPv4 resolution, verifies TLS,
+does not follow redirects, bounds response bytes and times out after five
+seconds. Disabled delivery leaves queued external jobs untouched. Queue leases,
+retry delay and attempt limits also apply to deliveries.
+
+Control v4 uses the original bulk/search/history/settings modules. Shared bulk
+controls are owner-only and reject changes that would bypass the native panel
+protections for linked administrator accounts. Manage those accounts individually.
+Migration Center uses the original source detector, adapter registry and Cvolton
+importer. Preview performs source reads only. Confirmed import takes the runtime
+lock, creates a verified target backup and commits supported records in one
+transaction; the source is never written. Import support is the same as the
+original adapter: accounts, profiles, levels and scores; detected-only datasets
+are reported rather than claimed as imported. Provider time/memory and remote
+MySQL connectivity limits still apply.
+
+Search index rebuild runs in resumable batches from Server, with a private
+cursor advanced after each successful upsert. Cron continues pending rebuilds.
+Core Updates, Backups and Client Downloads link to the corresponding shared
+Server, Backup Center and Client Patcher functionality instead of VPS commands.
 
 ## Fully shared client patcher
 

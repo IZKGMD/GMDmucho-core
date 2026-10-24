@@ -2,6 +2,7 @@
 /** Shared-host cron work with private checkpoints and no external worker. */
 declare(strict_types=1);
 require_once __DIR__.'/shared-worker.php';
+require_once __DIR__.'/shared-index.php';
 function mucho7_shared_schedule(PDO $db,$root,$settings,$backup=false)
 {
     if(!is_file($root.'/config/php7-complete.on')||is_file($root.'/config/php7-core-transition.json'))throw new RuntimeException('Complete the core migration first.');
@@ -18,7 +19,7 @@ function mucho7_shared_schedule(PDO $db,$root,$settings,$backup=false)
             (new \MuchoCore\Job\JobQueue($db))->enqueue('maintenance.cleanup');
             $state['maintenance_at']=$now;mucho7_private_write($path,json_encode($state));
         }
-        $result=mucho7_shared_worker($db,$root,$settings);$result['backup']='not_requested';
+        $result=mucho7_shared_worker($db,$root,$settings);$result['index']=mucho7_shared_index($db,$root,$settings);$result['backup']='not_requested';
         if($backup){
             $result['backup']='not_due';
             if(!isset($state['backup_at'])||$now-(int)$state['backup_at']>=86400){

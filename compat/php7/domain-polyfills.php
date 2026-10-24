@@ -6,6 +6,19 @@ if (!defined('JSON_INVALID_UTF8_SUBSTITUTE')) define('JSON_INVALID_UTF8_SUBSTITU
 if (!defined('OPENSSL_RAW_DATA')) define('OPENSSL_RAW_DATA', 1);
 if (!class_exists('JsonException', false)) { class JsonException extends Exception {} }
 if (!class_exists('UnhandledMatchError', false)) { class UnhandledMatchError extends Error {} }
+/** PHP 7.0 can import/verify EC keys but has no openssl_get_curve_names(). */
+function mucho7_passkey_curves()
+{
+    if(function_exists('openssl_get_curve_names'))return openssl_get_curve_names();
+    static $curves=null;if($curves!==null)return $curves;$curves=array();
+    if(!function_exists('openssl_pkey_get_public')||!defined('OPENSSL_KEYTYPE_EC'))return $curves;
+    // Public-only P-256 capability probe. No private key is embedded or used.
+    $pem="-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEgvv5MUZsd0rca+fmYn4wtrKhm9Hq\n2cCx9SnBMACUC4EGFHCWff4pZ9zhwy7DkQZli7gCjwwAO67zWzPdtbeBHw==\n-----END PUBLIC KEY-----\n";
+    $key=@openssl_pkey_get_public($pem);if($key===false)return $curves;
+    $details=openssl_pkey_get_details($key);
+    if(is_array($details)&&$details['type']===OPENSSL_KEYTYPE_EC&&isset($details['ec']['curve_name'])&&$details['ec']['curve_name']==='prime256v1')$curves[]='prime256v1';
+    return $curves;
+}
 if (!function_exists('str_contains')) {
     function str_contains($value, $needle) { return $needle==='' || strpos($value,$needle)!==false; }
 }

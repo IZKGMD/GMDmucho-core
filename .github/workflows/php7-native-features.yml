@@ -31,7 +31,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo_mysql, gd
+          extensions: pdo_mysql, gd, mbstring
           coverage: none
       - name: Check native syntax and pure protocol behavior
         run: |
@@ -64,9 +64,12 @@ jobs:
           fi
       - name: Check real database behavior on native and modern PHP
         env:
+          SHARED_PASSKEY_REQUIRE_OPENSSL: '1'
           TEST_DB_ROOT_PASSWORD: native-ci-only
           TEST_DB_HOST: 127.0.0.1
         run: |
+          openssl ecparam -name prime256v1 -genkey -noout -out "$RUNNER_TEMP/shared-passkey-test-key.pem"
+          export SHARED_PASSKEY_TEST_KEY="$RUNNER_TEMP/shared-passkey-test-key.pem"
           php -d memory_limit=128M tests/compat/php7-native-mysql.php
           php -d memory_limit=128M tests/compat/php7-native-features-mysql.php
           php -d memory_limit=128M tests/compat/php7-native-social-admin-mysql.php
@@ -74,8 +77,8 @@ jobs:
           NATIVE_SOCIAL_LEGACY=1 php -d memory_limit=128M tests/compat/php7-native-social-mysql.php
           php -d memory_limit=128M tests/compat/php7-native-admin-registry.php --mysql
           php -d memory_limit=128M tests/compat/php7-native-news-security.php --mysql
-          php -d memory_limit=128M tests/compat/php7-original-schema-upgrade.php
-          php -d memory_limit=128M tests/compat/php7-original-schema-upgrade.php --legacy
+          php -d memory_limit=128M -d disable_functions=exec,shell_exec,system,passthru,proc_open,popen tests/compat/php7-original-schema-upgrade.php
+          php -d memory_limit=128M -d disable_functions=exec,shell_exec,system,passthru,proc_open,popen tests/compat/php7-original-schema-upgrade.php --legacy
       - name: Exercise compiled original core features on PHP7 and modern PHP
         env:
           TEST_DB_ROOT_PASSWORD: native-ci-only

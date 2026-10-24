@@ -6,9 +6,11 @@ function csrf(){return $_SESSION['csrf'];}
 function admin(){return $GLOBALS['user'];}
 function adminIsPlain(){return (isset($_GET['ui']) && $_GET['ui']==='plain') || (isset($_POST['ui']) && $_POST['ui']==='plain');}
 function canAdminPage($page){
+    $aliases=array('updates'=>'system','clients'=>'clientpatcher','backups'=>'dbbackups');if(isset($aliases[$page]))$page=$aliases[$page];
     $user=admin();if(!$user)return false;
-    $pages=array('dashboard','players','levels','comments','messages','rating','moderation','songs','news','settings','system','audit','dbbackups','admins','roles','clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','clientpatcher','securitycenter','monitoring');
+    $pages=array('dashboard','players','levels','comments','messages','rating','moderation','songs','news','settings','system','audit','dbbackups','admins','roles','clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','clientpatcher','securitycenter','monitoring','advanced','migration');
     if(!in_array($page,$pages,true))return false;
+    if($page==='advanced'||$page==='migration')return $user['role']==='owner';
     if(isset($GLOBALS['pdo']) && $GLOBALS['pdo'] instanceof PDO && mucho7_admin_registry_ready($GLOBALS['pdo'])){
         if($page==='news')return $user['role']==='owner';
         if($page==='admins')return mucho7_admin_can($GLOBALS['pdo'],$user,'self.security')||mucho7_admin_can($GLOBALS['pdo'],$user,'admins.manage');
@@ -69,7 +71,7 @@ function mucho7_admin_ui_url($url){
 function mucho7_admin_ui_html($html){
     $plain=adminIsPlain();$nonce=$GLOBALS['adminNonce'];$styles=array();
     $html=preg_replace_callback('~\s+onsubmit="return confirm\(\x27([^\x27]*)\x27\)"~',function($match){return ' data-confirm="'.h($match[1]).'"';},$html);
-    $html=preg_replace_callback('~\b(href|src|action|data-face-url)=(["\'])(.*?)\2~s',function($match){
+    $html=preg_replace_callback('~\b(href|src|action|formaction|data-face-url)=(["\'])(.*?)\2~s',function($match){
         $url=mucho7_admin_ui_url(html_entity_decode($match[3],ENT_QUOTES,'UTF-8'));
         if(preg_match('~\.(?:css|js)(?:\?|$)~',$url) && strpos($url,$GLOBALS['publicBase'].'/')===0)$url.=(strpos($url,'?')===false?'?':'&').'mcui=20261024-english1';
         return $match[1].'='.$match[2].h($url).$match[2];

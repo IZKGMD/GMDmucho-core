@@ -54,6 +54,7 @@ PHP
         unlink($stage . '/public/php7.php');
         unlink($stage . '/public/php7-mode.on');
         unlink($stage . '/config/php7-local.php');
+        if(is_file($stage . '/config/php7-runtime.lock'))unlink($stage . '/config/php7-runtime.lock');
         unlink($stage . '/compat/php7');
         rmdir($stage . '/public'); rmdir($stage . '/config');
         rmdir($stage . '/compat'); rmdir($stage);

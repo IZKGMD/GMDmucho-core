@@ -28,6 +28,7 @@ require_once $root.'/compat/php7/admin-ui/actions.php';
 require_once $root.'/compat/php7/admin-ui/bridge.php';
 require_once $root.'/compat/php7/core-update.php';
 require_once $root.'/compat/php7/patcher.php';
+require_once $root.'/compat/php7/passkeys.php';
 session_name('muchocore7_admin_'.substr(hash('sha256',$root),0,12));
 ini_set('session.cookie_httponly','1');ini_set('session.cookie_secure','1');
 ini_set('session.use_strict_mode','1');ini_set('session.cookie_samesite','Strict');
@@ -40,7 +41,8 @@ $error='';$notice=isset($_SESSION['notice'])?$_SESSION['notice']:'';unset($_SESS
 $user=null;$pdo=null;$settings=array();$hasOwner=true;$schemaReady=false;$freshInstall=false;
 $page=isset($_GET['page']) && is_string($_GET['page'])?$_GET['page']:'overview';
 if($page==='diagnostics')$page='system';
-if(!in_array($page,array('overview','dashboard','players','levels','rating','moderation','comments','messages','songs','news','settings','system','audit','dbbackups','admins','roles','clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','clientpatcher','securitycenter','monitoring'),true)){$page='dashboard';}
+$pageAliases=array('updates'=>'system','clients'=>'clientpatcher','backups'=>'dbbackups');if(isset($pageAliases[$page]))$page=$pageAliases[$page];
+if(!in_array($page,array('overview','dashboard','players','levels','rating','moderation','comments','messages','songs','news','settings','system','audit','dbbackups','admins','roles','clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','clientpatcher','securitycenter','monitoring','advanced','migration'),true)){$page='dashboard';}
 $method=isset($_SERVER['REQUEST_METHOD'])?strtoupper((string)$_SERVER['REQUEST_METHOD']):'GET';
 try {
     if(!is_file($root.'/config/php7-local.php')){throw new RuntimeException('Configure the connection in config/php7-local.php or run php7-setup.php first.');}
@@ -69,7 +71,7 @@ try {
         if(!$user){unset($_SESSION['aid']);session_regenerate_id(true);$_SESSION['csrf']=bin2hex(random_bytes(24));}
     }
     if($user){$_SESSION['last_seen']=time();}
-    if($user && $page==='admins')mucho7_admin_security_install($pdo);
+    if($user && $page==='admins'){mucho7_admin_security_install($pdo);mucho7_passkeys_install($pdo);}
     if($user && $user['role']==='owner' && $page==='news')mucho7_news_install($pdo,$root);
     // A rejected form must render the same editor, not the upgrade fallback.
     if($user) {
@@ -88,6 +90,7 @@ try {
             http_response_code(403);throw new RuntimeException('The form expired. Refresh the page and try again.');
         }
         $action=isset($_POST['action']) && is_string($_POST['action'])?$_POST['action']:'';
+        if(strpos($action,'shared-passkey-')===0)mucho7_passkey_json(mucho7_passkey_action($pdo,$user,$action,$root,$settings,$instance,$_POST));
         if($action==='admin-password-setup'){
             mucho7_admin_setup_password($pdo,$_POST,$settings);$setupSuccess=true;
         }else{
@@ -110,12 +113,7 @@ try {
             if(!$loginUser){throw new RuntimeException('Check the username, password, and administrator role.');}
             $factorVersion=mucho7_admin_factor_login($pdo,$aid,isset($_POST['otp']) && is_string($_POST['otp'])?trim($_POST['otp']):'');
             $user=$loginUser;
-            session_regenerate_id(true);$_SESSION=array();$_SESSION['aid']=$aid;$_SESSION['signed_in']=time();$_SESSION['last_seen']=time();
-            $_SESSION['auth_version']=$factorVersion;
-            $_SESSION['admin_registry']=1;
-            $_SESSION['instance']=$instance;
-            $_SESSION['csrf']=bin2hex(random_bytes(24));$_SESSION['notice']='Signed in.';
-            header('Set-Cookie: '.session_name().'='.rawurlencode(session_id()).'; Path=/; Secure; HttpOnly; SameSite=Strict',false);
+            mucho7_admin_establish_session($aid,$factorVersion,$instance);$_SESSION['notice']='Signed in.';
             header('Location: ?page=overview',true,303);exit;
         }
         if(!$user){http_response_code(403);throw new RuntimeException('Sign in to the panel first.');}
@@ -142,6 +140,7 @@ try {
         $return=array('page'=>$page);
         if($action==='endpoint-test')$return['page']='endpoints';
         foreach(array('q','filter','p') as $key){if(isset($_POST['return_'.$key]) && is_string($_POST['return_'.$key]))$return[$key]=substr($_POST['return_'.$key],0,128);}
+        if($page==='advanced'&&isset($_POST['tab'])&&is_string($_POST['tab']))$return['tab']=substr($_POST['tab'],0,32);
         if($page==='rating' && isset($_POST['id']))$return['id']=(int)$_POST['id'];
         if(isset($_GET['ui']) && $_GET['ui']==='plain')$return['ui']='plain';
         header('Location: ?'.http_build_query($return),true,303);exit;
@@ -154,6 +153,7 @@ try {
 } catch(Exception $e){unset($_SESSION['core_upgrade_continue']);$error=$e->getMessage();}
 catch(Error $e){unset($_SESSION['core_upgrade_continue']);$error='The action failed. Details were recorded in the server log.';error_log('[MuchoCore Shared admin] '.get_class($e));}
 if($method==='POST'&&isset($_POST['action'])&&is_string($_POST['action'])&&strpos($_POST['action'],'shared-patcher-')===0)mucho7_patcher_json(array('ok'=>false,'error'=>$error!==''?$error:'The request failed.'),http_response_code()>=400?http_response_code():400);
+if($method==='POST'&&isset($_POST['action'])&&is_string($_POST['action'])&&strpos($_POST['action'],'shared-passkey-')===0)mucho7_passkey_json(array('ok'=>false,'error'=>$error!==''?$error:'The request failed.'),http_response_code()>=400?http_response_code():400);
 if(isset($_GET['shared_patcher_download'])){
     try{mucho7_patcher_download($pdo,$user,$root);}catch(Exception $e){http_response_code(404);exit('Client download is unavailable.');}
 }

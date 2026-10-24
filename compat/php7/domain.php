@@ -33,7 +33,7 @@ function mucho7_compiled_include($file)
     return $file;
 }
 spl_autoload_register(function($class){
-    foreach(array('phpseclib3\\'=>MUCHO7_VENDOR_ROOT.'/phpseclib/','ParagonIE\\ConstantTime\\'=>MUCHO7_VENDOR_ROOT.'/constant-time-encoding/') as $vendorPrefix=>$directory){
+    foreach(array('ReportUri\\Passkeys\\'=>MUCHO7_VENDOR_ROOT.'/passkeys/','phpseclib3\\'=>MUCHO7_VENDOR_ROOT.'/phpseclib/','ParagonIE\\ConstantTime\\'=>MUCHO7_VENDOR_ROOT.'/constant-time-encoding/') as $vendorPrefix=>$directory){
         if(strpos($class,$vendorPrefix)===0){
             $relative=substr($class,strlen($vendorPrefix));if(!preg_match('/^[A-Za-z0-9_\\\\]+$/D',$relative))return;
             $file=$directory.str_replace('\\','/',$relative).'.php';if(is_file($file))require_once $file;return;

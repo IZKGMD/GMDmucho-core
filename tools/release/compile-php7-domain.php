@@ -242,7 +242,8 @@ final class MuchoPhp70Lowering extends PhpParser\NodeVisitorAbstract
         if ($node instanceof Node\Arg && $node->name !== null) {
             throw new RuntimeException('Named argument '.$node->name.' in '.$this->relativeFile);
         }
-        if ($node instanceof Node\Scalar\MagicConst\Dir || $node instanceof Node\Scalar\MagicConst\File) {
+        if (($node instanceof Node\Scalar\MagicConst\Dir || $node instanceof Node\Scalar\MagicConst\File)
+            && !str_starts_with($this->relativeFile,'tools/compat/passkeys-source/')) {
             $path = $node instanceof Node\Scalar\MagicConst\Dir ? dirname($this->relativeFile) : $this->relativeFile;
             $constant=$node instanceof Node\Scalar\MagicConst\File && str_starts_with($this->relativeFile,'tests/') ? 'MUCHO7_COMPILED_ROOT' : 'MUCHO7_PROJECT_ROOT';
             return new Expr\BinaryOp\Concat(new Expr\ConstFetch(new Node\Name\FullyQualified($constant)),
@@ -252,6 +253,7 @@ final class MuchoPhp70Lowering extends PhpParser\NodeVisitorAbstract
             && in_array(strtolower($node->name->toString()), ['json_encode','json_decode'], true)) {
             $node->name = new Node\Name\FullyQualified('mucho7_'.$node->name->toString());
         }
+        if(str_starts_with($this->relativeFile,'tools/compat/passkeys-source/')&&$node instanceof Expr\FuncCall&&$node->name instanceof Node\Name&&strtolower($node->name->toString())==='openssl_get_curve_names')$node->name=new Node\Name\FullyQualified('mucho7_passkey_curves');
         if ($node instanceof Expr\FuncCall && $node->name instanceof Node\Name && strtolower($node->name->toString())==='proc_open') {
             $node->name = new Node\Name\FullyQualified('mucho7_proc_open');
         }
@@ -260,7 +262,7 @@ final class MuchoPhp70Lowering extends PhpParser\NodeVisitorAbstract
             $node->name = new Node\Name\FullyQualified('mucho7_'.$node->name->toString());
         }
         if(str_starts_with($this->relativeFile,'public/admin/') && $node instanceof Expr\FuncCall && $node->name instanceof Node\Name && strtolower($node->name->toString())==='header')$node->name=new Node\Name\FullyQualified('mucho7_admin_header');
-        if ($node instanceof Expr\Include_) {
+        if ($node instanceof Expr\Include_ && !str_starts_with($this->relativeFile,'tools/compat/passkeys-source/')) {
             $node->expr = new Expr\FuncCall(new Node\Name\FullyQualified('mucho7_compiled_include'), [new Node\Arg($node->expr)]);
         }
         if (str_starts_with($this->relativeFile,'database/migrations/') && $node instanceof Expr\MethodCall
@@ -277,14 +279,15 @@ $destination = $argv[1] ?? $root.'/compat/php7/core';
 $parser = (new PhpParser\ParserFactory())->createForNewestSupportedVersion();
 $printer = new PhpParser\PrettyPrinter\Standard(['phpVersion'=>PhpParser\PhpVersion::fromString('7.0')]);
 $files = [];
-foreach (['src','database/migrations'] as $sourceDirectory) {
+foreach (['src','database/migrations','tools/compat/passkeys-source/src'] as $sourceDirectory) {
     foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/'.$sourceDirectory, FilesystemIterator::SKIP_DOTS)) as $file) {
         if ($file->getExtension()==='php') $files[] = $file->getPathname();
     }
 }
 sort($files);
 $files[]=$root.'/config/mucho_v71.php';
-foreach(['clans','contentpacks','plugins','muchoprofiles','intelligence'] as $page)$files[]=$root.'/public/admin/pages/'.$page.'.php';
+foreach(['clans','contentpacks','plugins','muchoprofiles','intelligence','migration'] as $page)$files[]=$root.'/public/admin/pages/'.$page.'.php';
+foreach(['advanced-module','advanced-actions','advanced-lib'] as $module)$files[]=$root.'/public/admin/'.$module.'.php';
 foreach(['clans','contentpacks','profiles','social'] as $action)$files[]=$root.'/public/admin/actions/'.$action.'.php';
 foreach(['client-features-module','security-monitoring-module'] as $module)$files[]=$root.'/public/admin/'.$module.'.php';
 $integrationTests=['admin-clans-integration','clan-client-integration','gd2209-gameplay-schema-integration',
@@ -319,7 +322,7 @@ foreach ($files as $file) {
         }
         $traverser = new PhpParser\NodeTraverser(new MuchoPhp70Lowering($relative, $signatures));
         $tree = $traverser->traverse($tree);
-        if(str_starts_with($relative,'public/admin/actions/')){
+        if(str_starts_with($relative,'public/admin/actions/')||$relative==='public/admin/advanced-actions.php'){
             $tree=array_values(array_filter($tree,static function($statement){
                 return !($statement instanceof Stmt\Expression && ($statement->expr instanceof Expr\Exit_
                     || ($statement->expr instanceof Expr\FuncCall && $statement->expr->name instanceof Node\Name && in_array(strtolower($statement->expr->name->toString()),['header','mucho7_admin_header'],true))));
@@ -333,7 +336,9 @@ foreach ($files as $file) {
             array_splice($tree,$position,0,[$bootstrap]);
         }
         $output = $printer->prettyPrintFile($tree)."\n";
-        $target = $destination.'/'.$relative;
+        $target = str_starts_with($relative,'tools/compat/passkeys-source/src/')
+            ? dirname($destination).'/vendor/passkeys/'.substr($relative,strlen('tools/compat/passkeys-source/src/'))
+            : $destination.'/'.$relative;
         if (!is_dir(dirname($target))) mkdir(dirname($target), 0755, true);
         file_put_contents($target, $output);
         $manifest[$relative] = hash_file('sha256', $file);
@@ -342,6 +347,13 @@ foreach ($files as $file) {
     }
 }
 if ($failures) { fwrite(STDERR, implode("\n", $failures)."\n"); exit(1); }
+$passkeys=file_get_contents($destination.'/src/Admin/AdminPasskeyService.php');
+$passkeys=str_replace(['final class AdminPasskeyService','admin_passkeys','admin_users','a.totp_secret'],
+    ['final class SharedPasskeyService','php7_admin_passkeys','php7_admin_users',
+     '(SELECT s.totp_secret FROM php7_admin_security s WHERE s.account_id=a.id) AS totp_secret'],$passkeys);
+$passkeys=str_replace('$configured = (string) (',"\$configured = (string) (\\mucho7_domain_environment('MUCHO_ADMIN_PASSKEY_RP_ID') ?: ",$passkeys);
+file_put_contents(dirname($destination).'/admin-ui/SharedPasskeyService.php',$passkeys);
+copy($root.'/tools/compat/passkeys-source/LICENSE',dirname($destination).'/vendor/passkeys/LICENSE');
 file_put_contents($destination.'/sources.json', json_encode($manifest, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)."\n");
 file_put_contents($destination.'/autoload.php', "<?php\nrequire_once MUCHO7_PROJECT_ROOT.'/compat/php7/domain.php';\nreturn true;\n");
 echo 'PHP7_DOMAIN_COMPILED '.count($manifest)." original sources\n";

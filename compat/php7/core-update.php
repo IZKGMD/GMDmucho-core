@@ -18,7 +18,7 @@ function mucho7_core_lock($root, $exclusive)
 function mucho7_core_pack_path($path)
 {
     if(!is_string($path)||strlen($path)>240||strpos($path,'..')!==false||strpos($path,'\\')!==false)return false;
-    return (bool)preg_match('~^(?:domain-(?:polyfills|schema|data|runtime)\.php|core/(?:autoload\.php|sources\.json|config/mucho_v71\.php|(?:src|database/migrations|public/admin/(?:pages|actions))/[A-Za-z0-9_/-]+\.php|public/admin/(?:client-features-module|security-monitoring-module)\.php)|vendor/[A-Za-z0-9_/.-]+\.(?:php|json|md|txt)|vendor/(?:phpseclib|constant-time-encoding)/LICENSE)$~D',$path);
+    return (bool)preg_match('~^(?:domain-(?:polyfills|schema|data|runtime)\.php|core/(?:autoload\.php|sources\.json|config/mucho_v71\.php|(?:src|database/migrations|public/admin/(?:pages|actions))/[A-Za-z0-9_/-]+\.php|public/admin/(?:client-features-module|security-monitoring-module|advanced-module|advanced-actions|advanced-lib)\.php)|vendor/[A-Za-z0-9_/.-]+\.(?:php|json|md|txt)|vendor/(?:phpseclib|constant-time-encoding|passkeys)/LICENSE)$~D',$path);
 }
 
 function mucho7_core_install_pack($root)

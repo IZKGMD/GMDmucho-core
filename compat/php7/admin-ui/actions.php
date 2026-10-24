@@ -2,6 +2,54 @@
 /** Bind the original admin form contracts to native shared transactions. */
 declare(strict_types=1);
 function mucho7_admin_ui_action(PDO $pdo,$aid,$action,$data,$root,$settings){
+    if($action==='migration-preview'||$action==='migration-apply'){
+        $actor=mucho7_admin_user($pdo,$aid);if(!$actor||$actor['role']!=='owner')throw new RuntimeException('Only the owner can import another database.');
+        if($action==='migration-apply'&&(!isset($data['migration_confirm'])||$data['migration_confirm']!=='MIGRATE'))throw new RuntimeException('Type MIGRATE to confirm the import.');
+        require_once __DIR__.'/../migration.php';
+        $_SESSION['migration_form']=array();foreach(array('source_host','source_port','source_db','source_user') as $field)$_SESSION['migration_form'][$field]=isset($data[$field])&&is_string($data[$field])?$data[$field]:'';
+        try{
+            $source=\MuchoCore\Migration\SharedMigrationService::connectSource($_SESSION['migration_form']['source_host'],(int)$_SESSION['migration_form']['source_port'],$_SESSION['migration_form']['source_db'],$_SESSION['migration_form']['source_user'],isset($data['source_pass'])&&is_string($data['source_pass'])?$data['source_pass']:'');
+            if($action==='migration-apply'&&isset($GLOBALS['runtimeLock'])&&is_resource($GLOBALS['runtimeLock'])){flock($GLOBALS['runtimeLock'],LOCK_UN);fclose($GLOBALS['runtimeLock']);}
+            $result=mucho7_shared_migrate($pdo,$source,$root,$action==='migration-apply');
+            $_SESSION['migration_output']=json_encode($result,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES);$_SESSION['migration_status']=$action==='migration-apply'?'Supported data imported. The old database was not modified.':'Read-only source check completed.';
+            mucho7_admin_audit($pdo,$aid,$action,0);return;
+        }catch(Throwable $e){$_SESSION['migration_status']='Migration could not finish. Check the source credentials, schema and hosting limits. The old database was not modified.';$_SESSION['migration_status_type']='error';error_log('[MuchoCore Shared import] '.get_class($e));throw new RuntimeException($_SESSION['migration_status']);}
+    }
+    if(strpos($action,'v4-')===0){
+        $actor=mucho7_admin_user($pdo,$aid);if(!$actor||$actor['role']!=='owner')throw new RuntimeException('Only the owner can use bulk controls.');
+        if(!is_file($root.'/config/php7-complete.on'))throw new RuntimeException('Complete the core migration first.');
+        require_once $root.'/compat/php7/domain.php';mucho7_domain_configure($settings,$root,$pdo);$db=$pdo;
+        if(!is_file(MUCHO7_COMPILED_ROOT.'/public/admin/advanced-lib.php'))throw new RuntimeException('Install the uploaded build on the Server page to enable Control v4.');
+        require_once mucho7_compiled_include(MUCHO7_PROJECT_ROOT.'/public/admin/advanced-lib.php');
+        if($action==='v4-bulk-players'&&isset($data['operation'])&&in_array($data['operation'],array('ban','deactivate','role','delete'),true)){
+            $ids=v4Ids(isset($data['ids'])?(string)$data['ids']:'');
+            $guard=$pdo->prepare('SELECT COUNT(*) FROM php7_admin_users WHERE account_id IN ('.implode(',',array_fill(0,count($ids),'?')).')');$guard->execute($ids);
+            if((int)$guard->fetchColumn()>0)throw new RuntimeException('Manage linked administrator accounts individually on the Players and Administrators pages.');
+        }
+        $previous=$_POST;$_POST=$data;
+        try{require mucho7_compiled_include(MUCHO7_PROJECT_ROOT.'/public/admin/advanced-actions.php');}finally{$_POST=$previous;}return;
+    }
+    if($action==='shared-index-start'||$action==='shared-index-step'){
+        $actor=mucho7_admin_user($pdo,$aid);if(!$actor||$actor['role']!=='owner')throw new RuntimeException('Only the owner can rebuild the search index.');
+        require_once __DIR__.'/../shared-index.php';mucho7_shared_index($pdo,$root,$settings,$action==='shared-index-start');mucho7_admin_audit($pdo,$aid,$action,0);return;
+    }
+    if($action==='webhook-settings'){
+        $actor=mucho7_admin_user($pdo,$aid);if(!$actor||$actor['role']!=='owner')throw new RuntimeException('Only the owner can configure external notifications.');
+        require_once __DIR__.'/../webhooks.php';
+        $url=isset($data['webhook_url'])&&is_string($data['webhook_url'])?trim($data['webhook_url']):'';
+        $enabled=isset($data['enable_webhooks'])&&$data['enable_webhooks']==='1';
+        if($url!==''||$enabled)$url=mucho7_webhook_url($url);
+        $events=isset($data['webhook_events'])&&is_string($data['webhook_events'])?trim($data['webhook_events']):'*';
+        if(!preg_match('/^(?:\*|[A-Za-z0-9_.-]+(?:\s*,\s*[A-Za-z0-9_.-]+)*)$/D',$events)||strlen($events)>1024)throw new RuntimeException('Use * or comma-separated event names.');
+        $secret=isset($data['webhook_secret'])&&is_string($data['webhook_secret'])?$data['webhook_secret']:'';
+        if(strlen($secret)>512)throw new RuntimeException('Webhook secret is too long.');
+        $lock=fopen($root.'/config/php7-settings.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Unable to lock settings.');
+        try{$current=require $root.'/config/php7-local.php';$current['enable_webhooks']=$enabled;$current['webhook_url']=$url;$current['webhook_events']=$events;
+            if($secret!==''||isset($data['clear_webhook_secret']))$current['webhook_secret']=$secret;
+            mucho7_private_write($root.'/config/php7-local.php',"<?php\nreturn ".var_export($current,true).";\n");
+        }finally{flock($lock,LOCK_UN);fclose($lock);}
+        mucho7_admin_audit($pdo,$aid,$action,0);return;
+    }
     if($action==='shared-worker-run'){
         $actor=mucho7_admin_user($pdo,$aid);
         if(!$actor||$actor['role']!=='owner'||!mucho7_admin_can($pdo,$actor,'system.manage'))throw new RuntimeException('Only the owner can run the queue.');

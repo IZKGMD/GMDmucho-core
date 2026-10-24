@@ -19,6 +19,10 @@ function mucho7_domain_configure($settings,$root,$db=null)
     $GLOBALS['mucho7_domain_mount']=$mount;
     $GLOBALS['mucho7_domain_environment']=array(
         'MUCHO_SHARED_HOSTING'=>'1','MUCHO_ACCOUNT_URL'=>$site,
+        'MUCHO_ADMIN_PASSKEY_RP_ID'=>(string)parse_url($site,PHP_URL_HOST),
+        'MUCHO_WEBHOOK_URL'=>!empty($settings['enable_webhooks'])&&isset($settings['webhook_url'])?(string)$settings['webhook_url']:'',
+        'MUCHO_WEBHOOK_SECRET'=>isset($settings['webhook_secret'])?(string)$settings['webhook_secret']:'',
+        'MUCHO_WEBHOOK_EVENTS'=>isset($settings['webhook_events'])?(string)$settings['webhook_events']:'*',
         'MUCHO_NATIVE_NEWS'=>!empty($settings['enable_native_news'])?'1':'0',
         'MUCHO_CLOUDSAVE_KEY_FILE'=>$root.'/config/cloudsave.key',
         'MUCHO_CACHE_DRIVER'=>'file','MUCHO_FILE_CACHE_DIR'=>$root.'/config/php7-core-cache',

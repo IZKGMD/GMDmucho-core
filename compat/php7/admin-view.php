@@ -10,6 +10,7 @@ $branding=array('server_name'=>!empty($settings['server_name'])?$settings['serve
 $brandInitial=strtoupper(substr($branding['server_name'],0,1));
 $pages=require $root.'/compat/php7/admin-ui/pages.php';
 if($page==='overview')$page='dashboard';
+$pageAliases=array('updates'=>'system','clients'=>'clientpatcher','backups'=>'dbbackups');if(isset($pageAliases[$page]))$page=$pageAliases[$page];
 $isOwner=$user && $user['role']==='owner';$isElder=$user && in_array($user['role'],array('owner','elder_moderator'),true);
 $flash=$error!==''?array('type'=>'err','text'=>$error):($notice!==''?array('type'=>'ok','text'=>$notice):null);
 $db=$pdo;
@@ -37,6 +38,7 @@ if(!$user || !adminIsPlain()):
 <?php if($hasOwner):?><p id="otpLoginField" class="admin-auth-field"><label for="adminOtp">2FA or recovery code</label><br><input id="adminOtp" name="otp" autocomplete="one-time-code" autocapitalize="none" spellcheck="false" maxlength="32" aria-describedby="adminOtpHelp"><br><small id="adminOtpHelp">Leave empty if two-factor authentication is disabled.</small></p><?php endif ?>
 <?php if($freshInstall):?><p class="admin-auth-field"><label for="setup-domain">HTTPS-server domain</label><input id="setup-domain" name="site_url" type="url" required value="<?=h(isset($settings['site_url'])?$settings['site_url']:'')?>"></p><p><label><input type="checkbox" name="enable_features" value="1" checked> Enable game features</label></p><?php endif ?>
 <button id="normalSignInButton" type="submit"><?=$hasOwner?'Sign in':'Create owner'?></button></form><?php endif ?>
+<?php if($hasOwner&&$pdo&&tableExists($pdo,'php7_admin_passkeys'))require __DIR__.'/admin-ui/passkeys.php'; ?>
 <?php adminFooter($branding);?></main></body></html>
 <?php else:
 if(adminIsPlain())require __DIR__.'/admin-ui/plain-shell.php';else{
@@ -45,11 +47,13 @@ if(adminIsPlain())require __DIR__.'/admin-ui/plain-shell.php';else{
 }
 if($schemaReady && canAdminPage($page)){
     if($page==='system'){mucho7_core_render($db,$root);if($isOwner&&is_file($root.'/config/php7-complete.on'))require __DIR__.'/admin-ui/shared-worker.php';}
-    if(in_array($page,array('clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','securitycenter','monitoring'),true)){
+    if(in_array($page,array('clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','securitycenter','monitoring','advanced','migration'),true)){
         if(!is_file($root.'/config/php7-complete.on')){echo '<p>Complete the full core migration on the Server page first.</p>';}
         else{require_once $root.'/compat/php7/domain.php';mucho7_domain_configure($settings,$root,$db);
             if(in_array($page,array('social','analytics','database','endpoints'),true))require __DIR__.'/admin-ui/'.$page.'.php';
-            elseif($page==='intelligence'){require mucho7_compiled_include($root.'/public/admin/pages/intelligence.php');renderIntelligenceScalePage($db);}
+            elseif($page==='intelligence'){require mucho7_compiled_include($root.'/public/admin/pages/intelligence.php');ob_start();renderIntelligenceScalePage($db);$intelligence=ob_get_clean();$intelligence=preg_replace('~<pre>sudo .*?</pre>~s','<p>Use Server for the task queue, search index rebuild, provider cron and verified backups.</p>',$intelligence);echo str_replace('Run the rebuild command from the operator CLI.','Use Server → Search index rebuild.',$intelligence);}
+            elseif($page==='advanced'){if(is_file(MUCHO7_COMPILED_ROOT.'/public/admin/advanced-module.php'))require mucho7_compiled_include($root.'/public/admin/advanced-module.php');else echo '<p>Install the uploaded build on the Server page to enable Control v4.</p>';}
+            elseif($page==='migration'){if(is_file(MUCHO7_COMPILED_ROOT.'/public/admin/pages/migration.php'))require __DIR__.'/migration.php';else echo '<p>Install the uploaded build on the Server page to enable Migration Center.</p>';}
             elseif($page==='clientfeatures'){require mucho7_compiled_include($root.'/public/admin/client-features-module.php');renderClientFeaturesPage($db);}
             elseif($page==='securitycenter'||$page==='monitoring'){require mucho7_compiled_include($root.'/public/admin/security-monitoring-module.php');renderSecurityMonitoringPage($db);}
             else{require mucho7_compiled_include($root.'/public/admin/pages/'.$page.'.php');if($page==='plugins')renderCustomPluginsPage($db);}
@@ -62,8 +66,8 @@ if($schemaReady && canAdminPage($page)){
     elseif($page==='rating')require __DIR__.'/admin-ui/rating.php';
     elseif(in_array($page,array('songs','comments','messages','audit','settings','news','admins','roles'),true)){
         if($page!=='admins'||canPermission('self.security'))require __DIR__.'/admin-ui/'.$page.'.php';
-        if($page==='admins')require __DIR__.'/admin-ui/admin-management.php';
-        if($page==='settings'){$titles=$pages;require __DIR__.'/admin-ui/native-pages.php';}
+        if($page==='admins'){require __DIR__.'/admin-ui/admin-management.php';require __DIR__.'/admin-ui/passkeys.php';}
+        if($page==='settings'){$titles=$pages;require __DIR__.'/admin-ui/native-pages.php';require __DIR__.'/admin-ui/webhooks.php';}
     }
     elseif($page==='dbbackups'){require_once __DIR__.'/admin-backups.php';renderDbBackupCenter($db);}
     else{$titles=$pages;$oldPage=$page;if($page==='system')$page='diagnostics';require __DIR__.'/admin-ui/native-pages.php';$page=$oldPage;}
