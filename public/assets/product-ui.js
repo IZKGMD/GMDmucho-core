@@ -39,6 +39,12 @@
             catch{const range=document.createRange();range.selectNodeContents(target);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);toast(label('Команда выделена. Нажми Ctrl+C или удерживай текст для копирования.','Command selected. Press Ctrl+C or long-press to copy.'));}
         });
     });
+    document.querySelectorAll('[data-copy-value]').forEach(button=>{
+        button.addEventListener('click',async()=>{
+            try{await navigator.clipboard.writeText(button.dataset.copyValue);toast(label('ID скопирован','ID copied'));}
+            catch{toast(label('ID для копирования: ','ID to copy: ')+button.dataset.copyValue);}
+        });
+    });
     const menu=document.getElementById('productNavigation');
     const menuButton=document.querySelector('.mc-nav-toggle');
     if(menu && menuButton){
@@ -76,16 +82,16 @@
     desktop.addEventListener('change',()=>{closeMobile();syncCollapse();});
     syncNavigation();
     // Build commands from the server-rendered, RBAC-filtered navigation only.
-    const entries=[];let fallbackGroup='';
+    const entries=[];let fallbackGroup=null;
     sidebar?.querySelectorAll('.nav-title,a').forEach(node=>{
-        if(node.classList.contains('nav-title')){fallbackGroup=node.textContent.trim();return;}
+        if(node.classList.contains('nav-title')){fallbackGroup=node;return;}
         const href=adminRoute(node.getAttribute('href'),location.origin);
         if(!href)return;
         const category=node.closest('.admin-nav-group');
-        const title=category?.querySelector(':scope > summary')?.childNodes[0]?.textContent?.trim();
-        const group=title || fallbackGroup || label('Основное','Main');
-        entries.push({node,href,group});
+        const groupNode=category?.querySelector(':scope > summary') || fallbackGroup;
+        entries.push({node,href,groupNode});
     });
+    const groupFor=entry=>entry.groupNode?.childNodes[0]?.textContent?.trim() || label('Главное','Main');
     const dialog=document.createElement('dialog');dialog.className='mc-dialog';dialog.setAttribute('aria-labelledby','commandTitle');
     const head=document.createElement('div');head.className='mc-dialog-head';
     const title=document.createElement('h2');title.id='commandTitle';
@@ -99,12 +105,12 @@
         commands.replaceChildren();
         const stored=storage.get('mucho.control.recent',[]);
         const recent=Array.isArray(stored)?stored.filter(href=>entries.some(e=>e.href===href)).slice(0,5):[];
-        const results=entries.filter(e=>matches(e.node.textContent+' '+e.group+' '+e.href,input.value));
+        const results=entries.filter(e=>matches(e.node.textContent+' '+groupFor(e)+' '+e.href,input.value));
         if(!input.value.trim())results.sort((a,b)=>{const x=recent.indexOf(a.href),y=recent.indexOf(b.href);return (x<0?999:x)-(y<0?999:y);});
         results.forEach(entry=>{
             const a=document.createElement('a');a.href=entry.href;
             const name=document.createElement('span');name.textContent=entry.node.textContent.trim();
-            const meta=document.createElement('small');meta.textContent=entry.group;
+            const meta=document.createElement('small');meta.textContent=groupFor(entry);
             a.append(name,meta);a.addEventListener('click',()=>{storage.set('mucho.control.recent',[entry.href,...recent.filter(v=>v!==entry.href)].slice(0,5));});commands.append(a);
         });
         if(!results.length){const empty=document.createElement('div');empty.className='mc-command-empty';empty.textContent=label('Разделы не найдены','No matching sections');commands.append(empty);}

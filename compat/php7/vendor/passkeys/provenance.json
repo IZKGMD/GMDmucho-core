@@ -1,0 +1,37 @@
+{
+  "package": "report-uri/passkeys-php",
+  "version": "v2.0.1",
+  "commit": "f8cddbfe00f9ecff1eebeb6bcae18b111f6bc468",
+  "license": "MIT",
+  "source": "https://github.com/report-uri/passkeys-php",
+  "files": {
+    "LICENSE": {
+      "sha256": "09ca0951c42a90df77a5c5a1e5ad4d672223da3f6e8f4eca8c7f65d8b7241747",
+      "git_blob_sha1": "679df8e931350f54aa7462cafa76225319ca6707"
+    },
+    "src/Attestation/AttestationObject.php": {
+      "sha256": "ea2ffd37f5fb1ca7e979758f5ff16d160f4bbde640d4b17bfce084fb109f2781",
+      "git_blob_sha1": "37664b295ad4119822f6f081624a2d058480d8b5"
+    },
+    "src/Attestation/AuthenticatorData.php": {
+      "sha256": "7a8247cb3ce00425df7044e2b6440e984521bf624a68856e781ba78b2ed33263",
+      "git_blob_sha1": "93ddf8ee474355f4adef2080270025893d9fd59f"
+    },
+    "src/Binary/ByteBuffer.php": {
+      "sha256": "0ed3e628906103d01ef236055c3ac4d9b38d750475585f4b804187cee1935538",
+      "git_blob_sha1": "de96571003a170616c21104bb65a6c559bd2221b"
+    },
+    "src/CBOR/CborDecoder.php": {
+      "sha256": "38420a22ad68586e3447c9e8364e0ea5b468a5e613fe41897577f7a3e38c96e6",
+      "git_blob_sha1": "4e780a3f1aaf0d1b987f4c7364d4a09654ff974f"
+    },
+    "src/WebAuthn.php": {
+      "sha256": "e9345041e9cb37139f079efe993a12f932c4f05c3be09269bd905bf0e03fc26d",
+      "git_blob_sha1": "2f1cc992ca0d1952056936da5024ebabbd0578f4"
+    },
+    "src/WebAuthnException.php": {
+      "sha256": "a0896861cd7673e93b22c3cd376c2ec60d5bee02a1f70758f8432e45380f03c1",
+      "git_blob_sha1": "82a1acc1125874d60db765d9a8357a5434df289b"
+    }
+  }
+}

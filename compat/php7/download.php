@@ -36,7 +36,7 @@ function mucho7_copy_password($password)
     return base64_encode($out);
 }
 
-function mucho7_encode_download($level, $gameVersion, $binaryVersion)
+function mucho7_encode_download($level, $gameVersion, $binaryVersion, $extras = false)
 {
     $data = (string)$level['level_data'];
     if ($gameVersion > 18 && substr($data, 0, 3) === 'kS1') {
@@ -106,6 +106,7 @@ function mucho7_encode_download($level, $gameVersion, $binaryVersion)
         $fields[] = 63;
         $fields[] = mucho7_epoch($level['updated_at']);
     }
+    if($extras){$fields[]=26;$fields[]=isset($level['level_info'])?$level['level_info']:'';}
 
     $metadata = implode(',', array(
         (string)$level['user_id'], (string)$level['stars'],
@@ -118,7 +119,7 @@ function mucho7_encode_download($level, $gameVersion, $binaryVersion)
         . '#' . sha1($metadata . 'xI25fpAapCQg');
 }
 
-function mucho7_download(PDO $pdo, $input)
+function mucho7_download(PDO $pdo, $input, $options = array())
 {
     $rawId = isset($input['levelID']) ? (string)$input['levelID'] : '';
     if (!preg_match('/^[1-9][0-9]{0,13}$/D', $rawId)) {
@@ -136,10 +137,7 @@ function mucho7_download(PDO $pdo, $input)
         isset($input['binaryVersion']) ? $input['binaryVersion'] : 0,
         0, 1000
     );
-    if (isset($input['extras']) && (string)$input['extras'] === '1') {
-        // Extra-only fields are not yet implemented.
-        return '-1';
-    }
+    $extras=isset($input['extras']) && (string)$input['extras']==='1';
     $query = $pdo->prepare(
         'SELECT l.*,COALESCE(p.user_id,l.account_id) AS user_id
          FROM levels l LEFT JOIN profiles p ON p.account_id=l.account_id
@@ -149,8 +147,31 @@ function mucho7_download(PDO $pdo, $input)
     );
     $query->execute(array(':id' => (int)$rawId));
     $level = $query->fetch(PDO::FETCH_ASSOC);
+    if(!$level && !empty($options['enable_accounts']) && function_exists('mucho7_identity')) {
+        $viewer=mucho7_identity($pdo,$input);
+        if($viewer>0) {
+            $condition='l.account_id=:owner';$params=array(':id'=>(int)$rawId,':owner'=>$viewer);
+            if(!empty($options['enable_social'])) {
+                $condition.=' OR (EXISTS(SELECT 1 FROM php7_friends f WHERE f.account_id=:friend AND f.friend_account_id=l.account_id)
+                    AND NOT EXISTS(SELECT 1 FROM php7_blocks b WHERE (b.account_id=:blocker AND b.blocked_account_id=l.account_id)
+                    OR (b.account_id=l.account_id AND b.blocked_account_id=:blocked)))';
+                $params[':friend']=$viewer;$params[':blocker']=$viewer;$params[':blocked']=$viewer;
+            }
+            $query=$pdo->prepare('SELECT l.*,COALESCE(p.user_id,l.account_id) AS user_id FROM levels l
+                LEFT JOIN profiles p ON p.account_id=l.account_id WHERE l.level_id=:id AND l.is_deleted=0
+                AND length(l.level_data)<=8388608 AND ('.$condition.') LIMIT 1');
+            $query->execute($params);$level=$query->fetch(PDO::FETCH_ASSOC);
+        }
+    }
     if (!$level) {
         return '-1';
     }
-    return mucho7_encode_download($level, $gameVersion, $binaryVersion);
+    if($extras){
+        $query=$pdo->prepare('SELECT level_info FROM php7_level_details WHERE level_id=?');$query->execute(array((int)$rawId));
+        $info=$query->fetchColumn();$level['level_info']=$info!==false?$info:'';
+    }
+    if(!empty($options['enable_writes']) && function_exists('mucho7_record_download')) {
+        mucho7_record_download($pdo,(int)$rawId,$options);
+    }
+    return mucho7_encode_download($level, $gameVersion, $binaryVersion, $extras);
 }

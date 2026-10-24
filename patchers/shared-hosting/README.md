@@ -28,6 +28,8 @@ RewriteRule ^gd-content/news/news\.dat$ mc/public/php7.php [QSA,L,NC]
 # Optional direct diagnostic aliases for the same news payload
 RewriteRule ^news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^news/news\.dat$ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^(?:gd-content/)?news/mcnews_[a-f0-9]{64}\.jpg$ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^news/image\.php$ mc/public/php7.php [QSA,L,NC]
 ```
 
 Why: Windows GD 2.209's fixed-length URL slots may force `/a/` or a
@@ -153,14 +155,16 @@ curl -sS -w '\nHTTP %{http_code}\n' -X POST https://linasgdpsprivatese.5v.pl/a/g
 
 ## Native friend requests (isolated test installs)
 
-For an existing native database, import `mc/compat/php7/social.sql` into the
-same database after backing it up. The migration adds two independent tables
-and does not replace player records. Upload updated `social.php`,
-`runtime.php`, `php7.php` and preserve the private config.
+Use the panel's additive database upgrade for current native installations,
+or import `features.sql`. Preserve the private config and existing social data.
+Earlier `main` installations using `sender_id`/`receiver_id` and
+`php7_friendships` retain their original friend adapter and data. Its independent
+schema is documented in `social.sql`; do not use it to convert a current schema.
 Opt in with `'enable_social' => true` along with
 `enable_accounts` (and `enable_writes` for modifications).
-This supports requests, accept/ignore/cancel, friends list and removal;
-blocking, user-level privacy settings and direct messages remain unsupported.
+Both schemas support requests, accept/ignore/cancel, friends list and removal.
+The current native schema additionally supports blocking, privacy and messages;
+the earlier compatibility schema retains its original feature set.
 Use only on isolated test installs while PHP 7.0 is unsupported.
 
 ## Termux offline test account recovery

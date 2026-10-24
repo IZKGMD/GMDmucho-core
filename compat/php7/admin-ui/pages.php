@@ -1,0 +1,54 @@
+<?php
+declare(strict_types=1);
+
+/*
+ * MuchoCore Admin Pages
+ * Copyright (C) 2026 IZK
+ */
+
+return [
+
+    'dashboard'=>'Dashboard',
+
+    'players'=>'Players',
+    'clans'=>'Clans',
+    'muchoprofiles'=>'Mucho Profiles',
+
+    'levels'=>'Levels',
+    'contentpacks'=>'Gauntlet & Map Pack Maker',
+    'news'=>'News Board',
+    'moderation'=>'Moderation',
+    'rating'=>'Rating Studio',
+
+    'comments'=>'Comments',
+    'messages'=>'Messages',
+    'social'=>'Social',
+    'songs'=>'Music',
+
+    'analytics'=>'Analytics',
+    'monitoring'=>'Monitoring',
+    'intelligence'=>'Intelligence & Scale',
+
+    'securitycenter'=>'Security & Monitoring',
+    'dbbackups'=>'DB Backup Center',
+    'migration'=>'Migration Center',
+
+    'advanced'=>'Control v4',
+
+    'database'=>'Database',
+    'endpoints'=>'API Tester',
+
+    'clientfeatures'=>'Client & Features',
+    'clientpatcher'=>'Web Client Patcher',
+    'clients'=>'Client Downloads',
+    'updates'=>'Core Updates',
+    'plugins'=>'Custom Plugins',
+
+    'backups'=>'Backups',
+    'settings'=>'Settings',
+    'system'=>'Server',
+
+    'admins'=>'Administrators',
+    'roles'=>'Roles & Permissions',
+    'audit'=>'Audit Log'
+];

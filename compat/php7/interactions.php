@@ -50,7 +50,7 @@ function mucho7_comment_wire($row, $gameVersion, $binaryVersion, $history = fals
     return implode('~', $fields);
 }
 
-function mucho7_comments_read(PDO $pdo, $data, $kind, $history = false)
+function mucho7_comments_read(PDO $pdo, $data, $kind, $history = false, $options = array())
 {
     $id = mucho7_number(isset($data[$kind === 1 ? 'levelID' : 'accountID'])
         ? $data[$kind === 1 ? 'levelID' : 'accountID'] : 0, 0, 2147483647);
@@ -61,6 +61,18 @@ function mucho7_comments_read(PDO $pdo, $data, $kind, $history = false)
     }
     if ($history) {
         $id = mucho7_number(isset($data['userID']) ? $data['userID'] : 0, 0, 2147483647);
+        if(function_exists('mucho7_details')) {
+            $target=$pdo->prepare('SELECT account_id FROM profiles WHERE user_id=?');
+            $target->execute(array($id)); $targetId=(int)$target->fetchColumn();
+            $details=mucho7_details($pdo,$targetId);
+            $state=isset($details['comment_history_state'])?(int)$details['comment_history_state']:0;
+            if($state>0) {
+                $viewer=!empty($options['enable_accounts'])?mucho7_identity($pdo,$data):0;
+                if($viewer!==$targetId && ($viewer<=0 || $state===2 || empty($options['enable_social'])
+                    || !mucho7_social_friend($pdo,$viewer,$targetId)
+                    || mucho7_social_blocked($pdo,$viewer,$targetId))){return '-1';}
+            }
+        }
         $where .= ' AND p.user_id=:id';
     } else {
         $where .= $kind === 1 ? ' AND c.level_id=:id' : ' AND c.account_id=:id';
@@ -83,6 +95,7 @@ function mucho7_comments_read(PDO $pdo, $data, $kind, $history = false)
         . ' ORDER BY ' . $order . ' LIMIT ' . $limit . ' OFFSET ' . $offset);
     $query->execute($params);
     $rows = $query->fetchAll(PDO::FETCH_ASSOC);
+    if(function_exists('mucho7_enrich_users')){$rows=mucho7_enrich_users($pdo,$rows);}
     if (!$rows) { return '-2'; }
     $gv = mucho7_number(isset($data['gameVersion']) ? $data['gameVersion'] : 22, 22, 22);
     $bv = mucho7_number(isset($data['binaryVersion']) ? $data['binaryVersion'] : 0, 0, 1000);

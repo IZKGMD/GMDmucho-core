@@ -7,6 +7,8 @@ on:
       - 'compat/php7/**'
       - 'public/php7.php'
       - 'public/php7-setup.php'
+      - 'public/php7-admin.php'
+      - 'public/assets/php7-admin.css'
       - 'tools/release/build-php7-native.sh'
       - 'tools/release/build-shared-hosting.sh'
       - '.github/workflows/php7-preview-archives.yml'
@@ -15,6 +17,8 @@ on:
       - 'compat/php7/**'
       - 'public/php7.php'
       - 'public/php7-setup.php'
+      - 'public/php7-admin.php'
+      - 'public/assets/php7-admin.css'
       - 'tools/release/build-php7-native.sh'
       - 'tools/release/build-shared-hosting.sh'
       - '.github/workflows/php7-preview-archives.yml'
@@ -51,6 +55,7 @@ jobs:
             '
           php tests/compat/php7-native-users-parity.php
           php tests/compat/php7-native-comments-parity.php
+          php tests/compat/php7-native-social-parity.php
 
       - name: Build and inspect native PHP7 5v.pl FTP package
         run: |

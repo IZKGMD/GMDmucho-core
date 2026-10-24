@@ -125,7 +125,7 @@ final readonly class RelationshipRepository
                    ON a.account_id=fr.account_id
                  JOIN profiles p
                    ON p.account_id=fr.account_id
-                 WHERE fr.to_account_id=:id
+                 WHERE fr.to_account_id=:id AND fr.is_read<>2
                  ORDER BY fr.id DESC
                  LIMIT 10 OFFSET {$offset}";
         }
@@ -142,7 +142,7 @@ final readonly class RelationshipRepository
         $q = $this->pdo->prepare(
             "SELECT COUNT(*)
              FROM friend_requests
-             WHERE $column=:id"
+             WHERE $column=:id" . ($sent ? '' : ' AND is_read<>2')
         );
         $q->execute(['id'=>$accountId]);
         return (int)$q->fetchColumn();

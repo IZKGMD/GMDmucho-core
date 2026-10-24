@@ -22,6 +22,11 @@ function mucho7_user_name($user)
     return mucho7_username(isset($user['username']) ? $user['username'] : 'Player');
 }
 
+function mucho7_user_value($user, $key, $default)
+{
+    return isset($user[$key])?$user[$key]:$default;
+}
+
 function mucho7_user_profile_wire($user)
 {
     $id = (int)$user['account_id'];
@@ -33,22 +38,36 @@ function mucho7_user_profile_wire($user)
         '17' => (int)$user['user_coins'],
         '10' => (int)$user['color1'],
         '11' => (int)$user['color2'],
-        '51' => 0,
+        '51' => (int)mucho7_user_value($user,'color3',0),
         '3' => (int)$user['stars'],
         '46' => (int)$user['diamonds'],
         '52' => (int)$user['moons'],
         '4' => (int)$user['demons'],
         '8' => (int)$user['creator_points'],
-        '18' => 0, '19' => 0, '50' => 0,
-        '20' => '', '21' => (int)$user['icon_id'],
-        '22' => 1, '23' => 1, '24' => 1, '25' => 1,
-        '26' => 1, '28' => (int)$user['glow'],
-        '43' => 1, '48' => 1, '53' => 1, '54' => 1,
-        '30' => 0, '16' => $id, '31' => 0,
-        '44' => '', '45' => '', '49' => 0,
-        '55' => '', '56' => '', '57' => '', '58' => '',
-        '59' => '', '60' => '', '61' => '', '29' => 1,
+        '18' => (int)mucho7_user_value($user,'message_state',0),
+        '19' => (int)mucho7_user_value($user,'friend_request_state',0),
+        '50' => (int)mucho7_user_value($user,'comment_history_state',0),
+        '20' => mucho7_user_value($user,'youtube',''), '21' => (int)$user['icon_id'],
+        '22' => (int)mucho7_user_value($user,'ship',1), '23' => (int)mucho7_user_value($user,'ball',1),
+        '24' => (int)mucho7_user_value($user,'ufo',1), '25' => (int)mucho7_user_value($user,'wave',1),
+        '26' => (int)mucho7_user_value($user,'robot',1), '28' => (int)$user['glow'],
+        '43' => (int)mucho7_user_value($user,'spider',1), '48' => (int)mucho7_user_value($user,'explosion',1),
+        '53' => (int)mucho7_user_value($user,'swing',1), '54' => (int)mucho7_user_value($user,'jetpack',1),
+        '30' => (int)mucho7_user_value($user,'rank',0), '16' => $id,
+        '31' => (int)mucho7_user_value($user,'friend_state',0),
+        '44' => mucho7_user_value($user,'twitter',''), '45' => mucho7_user_value($user,'twitch',''),
+        '49' => in_array(mucho7_user_value($user,'role_code','user'),array('owner','elder_moderator'),true)?2:
+            (mucho7_user_value($user,'role_code','user')==='moderator'?1:0),
+        '55' => mucho7_user_value($user,'demon_info',''), '56' => mucho7_user_value($user,'star_info',''),
+        '57' => mucho7_user_value($user,'platformer_info',''), '58' => mucho7_user_value($user,'discord',''),
+        '59' => mucho7_user_value($user,'instagram',''), '60' => mucho7_user_value($user,'tiktok',''),
+        '61' => mucho7_user_value($user,'custom_link',''),
     );
+    foreach(array('request_id'=>32,'request_comment'=>35,'request_date'=>37,
+        'messages_count'=>38,'friend_requests_count'=>39,'friends_count'=>40) as $field=>$key) {
+        if(isset($user[$field])){$data[$key]=$user[$field];}
+    }
+    $data['29']=1;
     $fields = array();
     foreach ($data as $key => $value) {
         $fields[] = $key . ':' . $value;
@@ -67,14 +86,14 @@ function mucho7_user_list_entry($user, $leaderboard)
         '17' => (int)$user['user_coins'],
     );
     if ($leaderboard) {
-        $data['6'] = 0;  // Rank is not persisted by the portable PHP7 schema.
+        $data['6'] = (int)mucho7_user_value($user,'rank',0);
     }
     $data['9'] = (int)$user['icon_id'];
     $data['10'] = (int)$user['color1'];
     $data['11'] = (int)$user['color2'];
-    $data['51'] = 0;
+    $data['51'] = (int)mucho7_user_value($user,'color3',0);
     $data['14'] = (int)$user['icon_type'];
-    $data['15'] = 0;
+    $data['15'] = (int)mucho7_user_value($user,'special',0);
     $data['16'] = $id;
     $data['3'] = (int)$user['stars'];
     $data['8'] = (int)$user['creator_points'];
@@ -91,7 +110,7 @@ function mucho7_user_list_entry($user, $leaderboard)
     return implode(':', $fields);
 }
 
-function mucho7_public_profile(PDO $pdo, $post)
+function mucho7_public_profile(PDO $pdo, $post, $verifiedViewer = 0, $social = false)
 {
     $aid = mucho7_number(isset($post['targetAccountID']) ?
         $post['targetAccountID'] : (isset($post['accountID']) ?
@@ -118,11 +137,40 @@ function mucho7_public_profile(PDO $pdo, $post)
     $stmt->bindValue(':id', $byAccount ? $aid : $uid, PDO::PARAM_INT);
     $stmt->execute();
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if($row && function_exists('mucho7_enrich_users')) {
+        $rows=mucho7_enrich_users($pdo,array($row)); $row=$rows[0];
+        $aid=(int)$row['account_id'];
+        if($social && $verifiedViewer>0) {
+            if($verifiedViewer===$aid) {
+                $stats=$pdo->prepare('SELECT
+                    (SELECT COUNT(*) FROM php7_messages WHERE to_account_id=? AND is_receiver_deleted=0 AND is_read=0) AS messages_count,
+                    (SELECT COUNT(*) FROM php7_friend_requests WHERE to_account_id=? AND is_read=0) AS friend_requests_count,
+                    (SELECT COUNT(*) FROM php7_friends WHERE account_id=? AND is_new=1) AS friends_count');
+                $stats->execute(array($aid,$aid,$aid)); $row=array_merge($row,$stats->fetch(PDO::FETCH_ASSOC));
+            } else {
+                $row['friend_state']=mucho7_social_friend($pdo,$verifiedViewer,(int)$row['account_id'])?1:0;
+                if(!$row['friend_state']) {
+                    $request=$pdo->prepare('SELECT * FROM php7_friend_requests WHERE
+                        (account_id=? AND to_account_id=?) OR (account_id=? AND to_account_id=?) LIMIT 1');
+                    $request->execute(array($verifiedViewer,$row['account_id'],$row['account_id'],$verifiedViewer));
+                    $pending=$request->fetch(PDO::FETCH_ASSOC);
+                    if($pending) {
+                        $row['friend_state']=(int)$pending['account_id']===$verifiedViewer?4:3;
+                        if($row['friend_state']===3){
+                            $row['request_id']=(int)$pending['id']; $row['request_comment']=$pending['comment'];
+                            $row['request_date']=gmdate('d/m/Y G.i',mucho7_epoch($pending['created_at']));
+                        }
+                    }
+                }
+            }
+        }
+    }
     return $row ? mucho7_user_profile_wire($row) : '-1';
 }
 
 function mucho7_public_user_search(PDO $pdo, $post)
 {
+    if(!isset($post['str'])){$post['str']=isset($post['search'])?$post['search']:(isset($post['query'])?$post['query']:'');}
     $query = isset($post['str']) && is_string($post['str']) ?
         trim($post['str']) : '';
     if ($query === '' || strlen($query) > 100) {
@@ -154,6 +202,7 @@ function mucho7_public_user_search(PDO $pdo, $post)
     }
     $total = (int)$count->fetchColumn();
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if(function_exists('mucho7_enrich_users')){$users=mucho7_enrich_users($pdo,$users);}
     if (!$users) {
         return '-1';
     }
@@ -190,11 +239,13 @@ function mucho7_public_leaderboard(PDO $pdo, $post)
          WHERE a.is_active=1 AND a.is_banned=0
          ORDER BY ' . $order . ' LIMIT ' . $count);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if(function_exists('mucho7_enrich_users')){$rows=mucho7_enrich_users($pdo,$rows);}
     if (!$rows) {
         return '-1';
     }
     $entries = array();
-    foreach ($rows as $row) {
+    foreach ($rows as $index=>$row) {
+        $row['rank']=$index+1;
         $entries[] = mucho7_user_list_entry($row, true);
     }
     return implode('|', $entries);

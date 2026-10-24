@@ -4,6 +4,11 @@
 const KEY = 'mucho_admin_language';
 
 const RU = {
+'Copy level ID':'Скопировать ID уровня',
+'Copy player ID':'Скопировать ID игрока',
+'View creator':'Открыть автора',
+'Unsaved changes':'Есть несохранённые изменения',
+'Quick navigation (Ctrl+K)':'Быстрый переход (Ctrl+K)',
 'Pending requests':'Запросы оценки',
 'Rated levels':'Оценённые уровни',
 'No stars':'Без звёзд',
@@ -21,6 +26,18 @@ const RU = {
 'Actions':'Действия',
 
 'More tools':'Дополнительно',
+'Other tools':'Другие инструменты',
+'Community':'Сообщество',
+'Content & moderation':'Контент и модерация',
+'Clients & extensions':'Клиенты и расширения',
+'Operations & security':'Сервер и безопасность',
+'Administration':'Администрирование',
+'Roles & Permissions':'Роли и права',
+'DB Backup Center':'Резервные копии БД',
+'Server':'Сервер',
+'Styled admin':'С оформлением',
+'Plain admin (no CSS)':'Без оформления',
+'Interface:':'Интерфейс:',
 'Server overview':'Сервер',
 'All players':'Все игроки',
 'All levels':'Все уровни',
@@ -247,6 +264,7 @@ const RU = {
 };
 
 function getLang() {
+    if (document.body?.dataset.adminLanguage === 'en') return 'en';
     try { return localStorage.getItem(KEY) === 'ru' ? 'ru' : 'en'; }
     catch { return document.cookie.includes('mucho_admin_language=ru') ? 'ru' : 'en'; }
 }
@@ -310,6 +328,10 @@ function bindFlags() {
 
     buttons.forEach(btn => {
         const lang = btn.dataset.lang;
+        if (document.body?.dataset.adminLanguage === 'en' && lang !== 'en') {
+            btn.hidden = true;
+            return;
+        }
 
         btn.onclick = ev => {
             ev.preventDefault();

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a PHP-7.0-native GDPS subset, never mislabel the modern PHP8 core.
+# Build the PHP7 shared runtime, compiled original domains and native owner UI.
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -17,8 +17,10 @@ for path in compat/php7/runtime.php compat/php7/download.php \
   compat/php7/upload.php compat/php7/auth.php compat/php7/news.php \
   compat/php7/schema.php compat/php7/users.php compat/php7/config.example.php \
   compat/php7/features.php compat/php7/features.sql \
-  compat/php7/social.php compat/php7/social.sql \
   compat/php7/interactions.php compat/php7/cloudsave.php compat/php7/profile.php \
+  compat/php7/admin.php compat/php7/admin-view.php compat/php7/bootstrap.php \
+  compat/php7/social.php compat/php7/levels.php public/php7-admin.php \
+  public/assets/php7-admin-base.css public/assets/php7-admin-host.js public/assets/muchocore-icon.png \
   public/php7.php public/php7-setup.php docs/PHP7_NATIVE_PHASE1.md; do
   if [[ ! -f "$ROOT/$path" ]]; then
     echo "Missing PHP7-native source: $path" >&2
@@ -29,19 +31,40 @@ done
 mkdir -p "$STAGE/mc/compat" "$STAGE/mc/public" \
   "$STAGE/mc/config" "$STAGE/mc/docs"
 cp -a "$ROOT/compat/php7" "$STAGE/mc/compat/"
+rm -rf "$STAGE/mc/compat/php7/core/tests"
 cp "$ROOT/public/php7.php" "$ROOT/public/php7-setup.php" "$STAGE/mc/public/"
+cp "$ROOT/public/php7-admin.php" "$STAGE/mc/public/"
+mkdir -p "$STAGE/mc/public/assets" "$STAGE/mc/public/recovery"
+cp "$ROOT/public/recovery/recovery.css" "$STAGE/mc/public/recovery/"
+cp "$ROOT/public/assets/muchocore-icon.png" "$ROOT/public/assets/muchocore-favicon-v4.png" "$STAGE/mc/public/assets/"
+# Original VPS admin CSS, scripts and GD assets are copied byte-for-byte.
+mkdir -p "$STAGE/mc/public/admin/assets"
+for asset in admin-ui-v2.css admin-i18n.css admin-i18n.js admin-simple.css admin-simple.js admin-polish.css product-admin.css; do
+  cp "$ROOT/public/admin/$asset" "$STAGE/mc/public/admin/"
+done
+cp -a "$ROOT/public/admin/assets/gd" "$STAGE/mc/public/admin/assets/"
+cp "$ROOT/public/admin/assets/qrcode.min.js" "$STAGE/mc/public/admin/assets/"
+cp "$ROOT/public/muchocore-theme.css" "$ROOT/public/muchocore-theme.js" "$STAGE/mc/public/"
+for asset in product-ui.css php7-admin-base.css php7-admin-login.css php7-admin-product.js php7-admin-dashboard.js php7-admin-host.js php7-shared-patcher.js php7-passkeys.js; do
+  cp "$ROOT/public/assets/$asset" "$STAGE/mc/public/assets/"
+done
+printf '%s\n' '<?php require __DIR__ . "/public/php7-admin.php";' > "$STAGE/mc/admin.php"
+# Existing installations pin an immutable core snapshot. Ship the reviewed
+# code-only update alongside the mirrors so the owner can advance that pointer.
+"${PHP_BIN:-php}" "$ROOT/tools/release/build-php7-core-pack.php" "$STAGE/mc/config"
 cp "$ROOT/docs/PHP7_NATIVE_PHASE1.md" "$STAGE/mc/docs/"
 cp "$ROOT/patchers/shared-hosting/README.md" \
    "$STAGE/mc/docs/5V_APACHE_ROUTES.md"
 
-# Port-specific root guard: no PHP8 classes, Composer, or unrelated routes.
+# Private compiled code and runtime data must never be served directly.
 cat > "$STAGE/mc/.htaccess" <<'APACHE'
 Options -Indexes
-DirectoryIndex public/php7.php
+DirectoryIndex admin.php
 RewriteEngine On
-RewriteRule ^(?:config|compat|docs)(?:/|$) - [F,L,NC]
+RewriteRule ^(?:config|compat|docs|storage|plugins)(?:/|$) - [F,L,NC]
 RewriteRule ^public/php7-mode\.on$ - [F,L,NC]
 RewriteRule ^(?:\.env|\.git)(?:/|$) - [F,L,NC]
+RewriteRule ^admin/?$ public/php7-admin.php [QSA,L]
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
@@ -50,7 +73,7 @@ APACHE
 
 cat > "$STAGE/mc/public/.htaccess" <<'APACHE'
 Options -Indexes
-DirectoryIndex php7.php
+DirectoryIndex php7-admin.php
 RewriteEngine On
 RewriteRule ^php7-mode\.on$ - [F,L,NC]
 RewriteCond %{REQUEST_FILENAME} -f [OR]
@@ -71,73 +94,95 @@ APACHE
 cat > "$STAGE/5V_ROOT_REWRITE_RULES.txt" <<'APACHE'
 # Add BELOW an existing RewriteEngine On and BEFORE catch-all rules
 # in the main public WEBSITE ROOT .htaccess. Do not overwrite other rules.
+RewriteRule ^gd-content/ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^api/api/accounts/lostusername\.php$ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^(?:api|a)/(?:api/)?(?:profile|clans|muchocore)/ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^(?:a|database|accounts|api)/(?:accounts/)?[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^(?:getAccountURL|getCustomContentURL|checkIfServerOnline)\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^gd-content/news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^gd-content/news/news\.dat$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^news/news\.dat$ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^(?:gd-content/)?news/mcnews_[a-f0-9]{64}\.jpg$ mc/public/php7.php [QSA,L,NC]
+RewriteRule ^news/image\.php$ mc/public/php7.php [QSA,L,NC]
 APACHE
 
-cat > "$STAGE/НАЧНИ_ЗДЕСЬ_5V.txt" <<'README'
-MuchoCore PHP 7.0 native preview for 5v.pl (experimental)
-===========================================================
+cat > "$STAGE/START_HERE_SHARED.txt" <<'README'
+MUCHOCORE SHARED — PHP 7.0+ / 5v.pl
+===================================
 
-THIS ZIP IS NOT THE FULL PHP 8.2+ MUCHOCORE SERVER.
-It contains the independently ported PHP 7.0-compatible subset.
-Do not put production player account credentials on obsolete PHP 7.
+This archive runs entirely on shared hosting without a VPS or Composer.
+It includes the original core services compiled for PHP 7.0 and an English
+administration interface. Coverage and acceptance status:
+mc/docs/PHP7_NATIVE_PHASE1.md.
 
-What is included:
-* Local MySQL public level list/search and public level downloads.
-* Public GD 2.209 user profile, search and top/creator leaderboards.
-* GD 2.209 text-only Native News (requires opt-in).
-* Public server checks and account URL discovery.
-* Native level/profile comments, comment history and authenticated likes.
-* Optional friend requests and friend list (enable_social switch), with separate
-  php7_friend_requests/php7_friendships tables.
-* Authenticated score/appearance updates and logged-in public browsing.
-* Local database cloud saves up to 8 MiB (separate enable_cloudsave switch).
-* Experimental accounts and level uploads are present but DISABLED by
-  default and NOT certified for live/public use.
-* Strict opt-in native installer for an EMPTY, THROWAWAY test MySQL DB.
-* No admin panel, full modern migrations, clans, blocking, private messages
-  or complete 2.209 private-social feature parity. Those still need a supported PHP runtime.
+NEW INSTALLATION
+----------------
+1. Upload mc/ through FileZilla or your hosting file manager.
+2. Copy mc/compat/php7/config.example.php to mc/config/php7-local.php.
+   Enter the connection details for your EMPTY MySQL database. Keep this file
+   private; it contains the database password.
+3. Open https://YOUR-DOMAIN/mc/admin.php. Confirm the configured database
+   password, choose the owner username/email/password and enter the HTTPS
+   server origin without /mc. The feature checkbox enables game accounts,
+   registration, writes, saves and social operations. The first player never
+   automatically receives administrator access.
+4. Add 5V_ROOT_REWRITE_RULES.txt below RewriteEngine On and before catch-all
+   rules in the DOMAIN ROOT .htaccess. Preserve existing rules.
+5. Open Server and complete the core migration. Check health, then test the
+   actual game: registration/login, level upload/download, comments, friends
+   and Cloud Save.
 
-INSTALLATION FOR AN ISOLATED TEST GDPS ONLY
-------------------------------------------
-1. Preserve your current working /mc directory and database first.
-2. Upload the directory "mc/" from this ZIP to your domain via FTP.
-3. In the WEBSITE ROOT .htaccess, append the contents of
-   5V_ROOT_REWRITE_RULES.txt just after RewriteEngine On and before any
-   catch-all rule. Do not overwrite other existing rules.
-4. If you have already installed the experimental native adapter, keep
-   existing PRIVATE /mc/config/php7-local.php and data as-is; never overwrite.
-   Its "site_url" setting must be the HTTPS base origin of YOUR test host.
-   Import mc/compat/php7/features.sql AND social.sql using phpMyAdmin into that SAME native
-   database. This adds native feature/social tables without altering player data;
-   it does not import or migrate PHP8/Cvolton comments or cloud saves.
-   No installer reset or database cleanup is required for this upgrade.
-   Experimental writes still require enable_accounts and enable_writes=true;
-   registration needs enable_registration=true, saves need enable_cloudsave=true,
-   friends need enable_social=true.
-   For saves set the host's post_max_size to at least 26M and memory_limit
-   to at least 128M. The cloud-save limit itself remains 8 MiB.
-5. For a new EMPTY and DISPOSABLE TEST database only, read
-   mc/docs/PHP7_NATIVE_PHASE1.md before starting php7-setup.php.
-   It requires a locally-created setup key and secure HTTPS. Never run this
-   installer against your live database. Remove php7-setup.php afterwards.
-6. After configuration, enable php7 routing by creating the empty
-   /mc/public/php7-mode.on file (NOT included in this archive).
-7. For News in a private test, copy the example JSON into the private
-   /mc/config/php7-news.json and explicitly configure enable_native_news.
-8. Confirm an actual native GD 2.209 client works; local tests only verify
-   code and wire protocol, not 5v.pl provider behavior or complete support.
+UPDATE AN EXISTING NATIVE INSTALLATION
+-------------------------------------
+1. Back up the current mc/ directory and database.
+2. Upload the archive's mc/ files over the existing installation. Preserve
+   config/php7-local.php, config/php7-news.json, public/php7-mode.on, private
+   keys, backups and all existing data. This archive contains no live secrets.
+3. Sign in with the existing owner account. If no owner was established yet,
+   confirm the configured database password and your existing game account.
+4. Use Update database if offered. The native schema upgrade preserves
+   accounts, levels and saves. Do not rerun first-time setup on existing data.
+5. Open Server, select Install uploaded build and wait for verification and
+   installation. Use Complete migration if offered. Copying PHP files alone
+   does not change an installation's pinned core snapshot.
+6. Check the domain and feature switches in Settings and verify game routes.
 
-Never commit or share php7-local.php, mysql passwords, auth peppers,
-php7-setup-key.txt, user cloud saves or any other production secrets.
+SHARED FEATURES
+---------------
+* Original Styled and Plain admin, ratings, moderation, native administrator
+  identities, roles, audit, private SQL backups and restore verification.
+* Accounts, profiles, character settings, levels, search, scores, comments,
+  votes, social privacy, friends, blocks, messages and local Cloud Save.
+* Original application modules, clans, collections, quests, threads, following,
+  plugin diagnostics, Control v4, security and monitoring pages.
+* News Board with drafts, pinned posts, images and YouTube previews.
+* Authenticator/recovery codes and device passkeys. Passkey enrollment/revocation
+  requires the current password and enabled 2FA. Private keys stay on the device.
+* Resumable EXE/APK patcher with PHP-only JAR/v1 and APK-v2 signing, without
+  Java, shell commands or an external patching server.
+* Bounded local queue work, optional signed HTTPS webhooks, resumable search
+  rebuilding and CLI cron with verified daily backups.
+* Cvolton account/profile/level/score preview and import with a verified target
+  backup. Other detected datasets are reported explicitly.
 
-The COMPLETE PHP 8.2+ MuchoCore is packaged separately as
-MuchoCore-full-PHP82-shared-hosting.zip and cannot run on 5v.pl's PHP 7.0.
+HOST CONFIGURATION AND ACCEPTANCE
+---------------------------------
+For 8 MiB levels/saves, use post_max_size >= 26M and memory_limit >= 128M.
+The hosting provider's HTTP and storage limits also apply. OpenSSL and
+mbstring are required for passkeys; HTTPS cURL is required for webhooks.
+Configure the cron command shown on Server in the provider's scheduler if
+unattended work is wanted. The ZIP does not create a provider cron job.
+
+Preserve config/php7-apk-signer.json to sign future APK updates with the same
+installation identity. This private key is generated on the host and is not
+included in the archive or SQL backups.
+
+PHP 7.0 is obsolete. Automated protocol/database/signature tests do not certify
+real-device game operation or provider download behavior. Third-party plugins
+need their own runtime compatibility review. See the coverage document for
+current limits. Keep the original game files and test patched output separately.
+
 README
 
 # Prohibit secrets in distributed ZIP; installer-generated keys/configs
@@ -145,19 +190,19 @@ README
 mkdir -p "$(dirname "$OUTPUT")"
 rm -f "$OUTPUT"
 (cd "$STAGE" && zip -qr "$OUTPUT" mc \
- "5V_ROOT_REWRITE_RULES.txt" "НАЧНИ_ЗДЕСЬ_5V.txt")
+ "5V_ROOT_REWRITE_RULES.txt" "START_HERE_SHARED.txt")
 
 unzip -t "$OUTPUT" >/dev/null
 LIST="$STAGE/zip-list.txt"
 unzip -Z1 "$OUTPUT" > "$LIST"
-for item in mc/public/php7.php mc/public/php7-setup.php \
+for item in mc/admin.php mc/public/php7-admin.php mc/public/assets/php7-admin-base.css mc/public/assets/php7-admin-host.js \
+  mc/public/php7.php mc/public/php7-setup.php \
   mc/compat/php7/users.php mc/compat/php7/runtime.php \
   mc/compat/php7/news.php mc/compat/php7/schema.php \
   mc/compat/php7/features.sql mc/compat/php7/interactions.php \
-  mc/compat/php7/social.php mc/compat/php7/social.sql \
   mc/compat/php7/cloudsave.php mc/compat/php7/profile.php \
   mc/.htaccess mc/public/.htaccess \
-  5V_ROOT_REWRITE_RULES.txt; do
+  5V_ROOT_REWRITE_RULES.txt START_HERE_SHARED.txt; do
   grep -Fxq "$item" "$LIST" || {
     echo "Package incomplete: $item" >&2
     exit 1

@@ -27,6 +27,7 @@ final readonly class LevelRepository
         $where = [
             "l.is_deleted = 0",
             "l.is_unlisted = 0",
+            "l.unlisted2 = 0",
         ];
 
         $params = [];

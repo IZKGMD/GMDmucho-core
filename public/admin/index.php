@@ -2451,7 +2451,7 @@ max-width:100%
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
 <link rel="stylesheet" href="/admin/admin-polish.css?v=4">
-<script src="/admin/admin-simple.js?v=2" defer></script>
+<script src="/admin/admin-simple.js?v=3" defer></script>
 </head>
 <body class="admin-login mc-workspace" data-page="">
 <main class="admin-auth-card">
@@ -4994,9 +4994,9 @@ table{
 <script src="/muchocore-theme.js?v=4" defer></script>
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
-<script src="/assets/product-ui.js?v=2" defer></script>
-<link rel="stylesheet" href="/admin/admin-simple.css?v=1">
-<script src="/admin/admin-simple.js?v=2" defer></script>
+<script src="/assets/product-ui.js?v=4" defer></script>
+<link rel="stylesheet" href="/admin/admin-simple.css?v=2">
+<script src="/admin/admin-simple.js?v=3" defer></script>
 <link rel="stylesheet" href="/admin/admin-polish.css?v=4">
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
@@ -5072,6 +5072,7 @@ table{
 
 
 <?php adminInterfaceSwitch($_GET); ?>
+<button type="button" class="command-launcher" id="commandLauncher" aria-haspopup="dialog" title="Quick navigation (Ctrl+K)"><span>Quick navigation</span><kbd>Ctrl K</kbd></button>
 <div class="mc-theme-slot"></div>
 <div class="user-pill">
 <div class="avatar">
@@ -6302,22 +6303,20 @@ unset($_SESSION['admin_setup_invite']);
 <input type="hidden" name="action" value="admin-create">
 <input type="hidden" name="return" value="admins">
 
-<p><input name="username" placeholder="Username" autocomplete="off" required></p>
+<p><label>Username<input name="username" placeholder="Username" autocomplete="off" maxlength="32" required></label></p>
 <p style="font-size:11px;color:#7f8ba0;line-height:1.5">The administrator will create their own password using a one-time setup link after you create the account.</p>
 
-<select name="role">
+<label>Role<select name="role">
 <?php foreach(AdminRbac::roles($db) as $roleCode=>$roleName): ?>
-<option value="<?=h($roleCode)?>"><?=h($roleName)?></option>
+<option value="<?=h($roleCode)?>" <?=$roleCode==='viewer'?'selected':''?>><?=h($roleName)?></option>
 <?php endforeach; ?>
-</select>
+</select></label>
 
 <button>Create</button>
 </form>
 </div>
 
 <?php endif ?>
-
-</div>
 <?php
 $newRecoveryCodes=$_SESSION['new_recovery_codes'] ?? [];
 unset($_SESSION['new_recovery_codes']);
@@ -6409,7 +6408,7 @@ echo '</table></div>';
 </main>
 <?php if (!adminIsPlain()): ?>
 </div>
-<script src="/admin/admin-i18n.js?v=102"></script>
+<script src="/admin/admin-i18n.js?v=104"></script>
 <?php endif ?>
 
 

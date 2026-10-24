@@ -58,6 +58,9 @@ final class CommentHistoryRepository
             if ($this->schema->columnExists('levels', 'is_unlisted')) {
                 $levelWhere .= ' AND COALESCE(l.is_unlisted, 0) = 0 ';
             }
+            if ($this->schema->columnExists('levels', 'unlisted2')) {
+                $levelWhere .= ' AND COALESCE(l.unlisted2, 0) = 0 ';
+            }
         }
 
         $countStmt = $this->db->prepare(

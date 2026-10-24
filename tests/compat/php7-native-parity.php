@@ -42,6 +42,7 @@ $pdo->exec("INSERT INTO levels VALUES
  0,22,0,0,2,1,0,0,3,'2026-10-20 00:00:00','2026-10-20 00:00:00',0,0),
  (43,4,'SecretLevel','Private',1,22,2,3,0,1,0,0,0,0,3,0,
  0,10,0,0,0,0,0,0,0,'2026-10-20 00:00:00','2026-10-20 00:00:00',0,1)");
+$pdo->exec('ALTER TABLE levels ADD COLUMN unlisted2 INTEGER DEFAULT 0');
 $rows = $pdo->query("
 SELECT l.*,a.username,p.user_id,
  s.id AS song_protocol_id,s.name AS song_name,
@@ -80,8 +81,13 @@ verifyNative7(mucho7_search($pdo,['type'=>5]) === '-1',
     'Private account search type must fail closed');
 verifyNative7(mucho7_search($pdo,['type'=>8]) === '-1',
     'Moderator queue must fail closed');
-verifyNative7(mucho7_search($pdo,['type'=>0,'len'=>'2']) === '-1',
-    'Unsupported filters must fail closed');
+verifyNative7(mucho7_search($pdo,['type'=>0,'len'=>'3']) === '-2',
+    'Length filter excludes nonmatching levels');
+verifyNative7(strpos(mucho7_search($pdo,['type'=>0,'len'=>'1,2']),'SampleLevel')!==false,
+    'Multiple length filters include matching levels');
+$pdo->exec('UPDATE levels SET unlisted2=1 WHERE level_id=42');
+verifyNative7(mucho7_search($pdo,['type'=>0,'str'=>'42'])==='-2','Friend-only level must not appear in public search');
+$pdo->exec('UPDATE levels SET unlisted2=0 WHERE level_id=42');
 verifyNative7(mucho7_search($pdo,['type'=>0,'str'=>str_repeat('a',101)]) === '-1',
     'Oversized level search must fail closed');
 verifyNative7(mucho7_search($pdo,['type'=>0,'gameVersion'=>17]) === '-1',

@@ -87,6 +87,7 @@ final class CommentRepository
                  ON l.level_id = c.level_id
              WHERE COALESCE(p.user_id, a.account_id) = :user_id
                AND l.is_unlisted = 0
+               AND l.unlisted2 = 0
                AND l.is_deleted = 0"
         );
         $stmt->execute(['user_id' => $userId]);
@@ -127,6 +128,7 @@ final class CommentRepository
                  ON l.level_id = c.level_id
              WHERE COALESCE(p.user_id, a.account_id) = :user_id
                AND l.is_unlisted = 0
+               AND l.unlisted2 = 0
                AND l.is_deleted = 0
              ORDER BY {$order}
              LIMIT :limit OFFSET :offset"

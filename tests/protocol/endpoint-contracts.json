@@ -48,7 +48,8 @@
       "request_contract": {
         "status": "partial",
         "evidence": [
-          "tests/client-fixtures/2.2/endpoints.json"
+          "tests/client-fixtures/2.2/endpoints.json",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "wire_contract": {
@@ -57,19 +58,22 @@
           "tests/protocol/protocol-19-wire.php",
           "tests/protocol/protocol-20-wire.php",
           "tests/protocol/protocol-21-wire.php",
-          "tests/protocol/protocol-22-surface.php"
+          "tests/protocol/protocol-22-surface.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "auth_contract": {
         "status": "partial",
         "evidence": [
-          "tests/protocol/compatibility-profile.php"
+          "tests/protocol/compatibility-profile.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "negative_cases": {
         "status": "partial",
         "evidence": [
-          "tests/integration/regression.sh"
+          "tests/integration/regression.sh",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "db_integrity": {
@@ -117,7 +121,8 @@
       "request_contract": {
         "status": "partial",
         "evidence": [
-          "tests/client-fixtures/2.2/endpoints.json"
+          "tests/client-fixtures/2.2/endpoints.json",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "wire_contract": {
@@ -125,19 +130,22 @@
         "evidence": [
           "tests/protocol/protocol-20-wire.php",
           "tests/protocol/protocol-21-wire.php",
-          "tests/protocol/protocol-22-surface.php"
+          "tests/protocol/protocol-22-surface.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "auth_contract": {
         "status": "partial",
         "evidence": [
-          "tests/protocol/compatibility-profile.php"
+          "tests/protocol/compatibility-profile.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "negative_cases": {
         "status": "partial",
         "evidence": [
-          "tests/integration/regression.sh"
+          "tests/integration/regression.sh",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "db_integrity": {
@@ -188,13 +196,15 @@
       "request_contract": {
         "status": "partial",
         "evidence": [
-          "tests/protocol/protocol-matrix.php"
+          "tests/protocol/protocol-matrix.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "wire_contract": {
         "status": "partial",
         "evidence": [
-          "tests/protocol/protocol-matrix.php"
+          "tests/protocol/protocol-matrix.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "auth_contract": {
@@ -202,24 +212,29 @@
         "evidence": [
           "tests/protocol/compatibility-profile.php",
           "tests/application/legacy-19-session.php",
-          "tests/application/auth-session-isolation.php"
+          "tests/application/auth-session-isolation.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "negative_cases": {
         "status": "partial",
         "evidence": [
-          "tests/application/auth-session-isolation.php"
+          "tests/application/auth-session-isolation.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "db_integrity": {
         "status": "partial",
         "evidence": [
-          "tests/application/security-regressions.php"
+          "tests/application/security-regressions.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "concurrency": {
-        "status": "pending",
-        "evidence": []
+        "status": "partial",
+        "evidence": [
+          "tests/compat/shared-p0-http.py"
+        ]
       },
       "performance_budget": {
         "status": "pending",
@@ -261,7 +276,8 @@
       "request_contract": {
         "status": "partial",
         "evidence": [
-          "tests/protocol/level-protocol-guards.php"
+          "tests/protocol/level-protocol-guards.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "wire_contract": {
@@ -269,30 +285,36 @@
         "evidence": [
           "tests/protocol/protocol-19-wire.php",
           "tests/protocol/protocol-20-wire.php",
-          "tests/protocol/protocol-21-wire.php"
+          "tests/protocol/protocol-21-wire.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "auth_contract": {
         "status": "partial",
         "evidence": [
-          "tests/application/legacy-19-session.php"
+          "tests/application/legacy-19-session.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "negative_cases": {
         "status": "partial",
         "evidence": [
-          "tests/integration/regression.sh"
+          "tests/integration/regression.sh",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "db_integrity": {
         "status": "partial",
         "evidence": [
-          "tests/protocol/level-protocol-guards.php"
+          "tests/protocol/level-protocol-guards.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "concurrency": {
-        "status": "pending",
-        "evidence": []
+        "status": "partial",
+        "evidence": [
+          "tests/compat/shared-p0-http.py"
+        ]
       },
       "performance_budget": {
         "status": "pending",
@@ -334,7 +356,8 @@
       "request_contract": {
         "status": "partial",
         "evidence": [
-          "tests/protocol/level-protocol-guards.php"
+          "tests/protocol/level-protocol-guards.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "wire_contract": {
@@ -343,19 +366,22 @@
           "tests/protocol/protocol-19-wire.php",
           "tests/protocol/protocol-20-wire.php",
           "tests/protocol/protocol-21-wire.php",
-          "tests/protocol/protocol-22-hashes.php"
+          "tests/protocol/protocol-22-hashes.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "auth_contract": {
         "status": "partial",
         "evidence": [
-          "tests/protocol/compatibility-profile.php"
+          "tests/protocol/compatibility-profile.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "negative_cases": {
         "status": "partial",
         "evidence": [
-          "tests/integration/regression.sh"
+          "tests/integration/regression.sh",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "db_integrity": {
@@ -404,7 +430,8 @@
       "request_contract": {
         "status": "partial",
         "evidence": [
-          "tests/application/comment-contract.php"
+          "tests/application/comment-contract.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "wire_contract": {
@@ -412,19 +439,22 @@
         "evidence": [
           "tests/protocol/protocol-19-wire.php",
           "tests/protocol/protocol-20-wire.php",
-          "tests/protocol/protocol-21-wire.php"
+          "tests/protocol/protocol-21-wire.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "auth_contract": {
         "status": "partial",
         "evidence": [
-          "tests/application/comment-contract.php"
+          "tests/application/comment-contract.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "negative_cases": {
         "status": "partial",
         "evidence": [
-          "tests/application/comment-contract.php"
+          "tests/application/comment-contract.php",
+          "tests/compat/shared-p0-http.py"
         ]
       },
       "db_integrity": {

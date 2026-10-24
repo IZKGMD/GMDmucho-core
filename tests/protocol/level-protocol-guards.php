@@ -150,11 +150,11 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Level/LevelTransferService.php',
-        'if ((int)($level[\'unlisted2\'] ?? 0) !== 0)',
+        'LevelAccess::canRead($this->pdo, $level, $this->auth, $viewerAccountId, $viewerCredential)',
         'restricted download guard',
     ],
     [
-        __DIR__ . '/../../src/Level/LevelTransferService.php',
+        __DIR__ . '/../../src/Level/LevelAccess.php',
         'friend_account_id=:owner',
         'owner/friend authorization',
     ],

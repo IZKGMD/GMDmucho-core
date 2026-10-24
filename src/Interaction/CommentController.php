@@ -142,7 +142,9 @@ final readonly class CommentController
                     $version->effectiveGameVersion(),
                     $version->binaryVersion,
                     $count,
-                    $mode
+                    $mode,
+                    $request->postInt('accountID'),
+                    $request->gdCredential()
                 )
             );
         } catch (Throwable $e) {

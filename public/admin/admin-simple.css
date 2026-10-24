@@ -29,7 +29,9 @@ body.mc-admin.sidebar-collapsed .shell>main{margin-left:80px!important;width:cal
 body.mc-admin.sidebar-collapsed .admin-nav a{justify-content:center}
 body.mc-admin.sidebar-collapsed .admin-nav a>span,body.mc-admin.sidebar-collapsed .admin-nav-extra{display:none}
 body.mc-admin .global-search{flex:0 1 360px}
-body.mc-admin .head .command-launcher{display:none}
+body.mc-admin .head .command-launcher{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+body.mc-admin .record-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+body.mc-admin .mc-form-dirty{grid-column:1/-1;color:var(--mc-accent);font-size:12px;margin:6px 0 0}
 body.mc-admin :is(.card,.table,.admin-kpi){border-radius:10px;box-shadow:none}
 body.mc-admin .card{padding:18px}
 body.mc-admin :is(button,.btn){min-height:40px;font-size:13px;border:1px solid #81ab60;background:linear-gradient(#4a8245,#2b572d);color:#fff;text-shadow:0 1px 1px #0008;box-shadow:inset 0 1px #ffffff18;border-radius:7px}
