@@ -39,12 +39,19 @@ if(!preg_match('/^mc_p0_http_[a-f0-9]{12}$/D',$name))throw new RuntimeException(
 if($mode==='drop'){$server->exec('DROP DATABASE IF EXISTS '.$name);exit;}
 $db=new PDO($dsn.';dbname='.$name,'root',$password,$options);
 if($mode==='inspect'){
+    $business=hash_init('sha256');
+    foreach(array('accounts','profiles','levels','comments','account_comments','friends','messages','likes') as $table){
+        $rows=$db->query('SELECT * FROM '.$table)->fetchAll();
+        $encoded=array();foreach($rows as $row)$encoded[]=json_encode($row);
+        sort($encoded,SORT_STRING);hash_update($business,$table.'|'.implode('|',$encoded));
+    }
     echo json_encode(array(
         'levels'=>$db->query('SELECT level_id,account_id,name,level_version,level_data,level_info,settings_string,song_ids,sfx_ids,downloads,stars,is_deleted FROM levels ORDER BY level_id')->fetchAll(),
         'accounts'=>(int)$db->query('SELECT COUNT(*) FROM accounts')->fetchColumn(),
         'comments'=>(int)$db->query('SELECT COUNT(*) FROM comments')->fetchColumn(),
         'profiles'=>(int)$db->query('SELECT COUNT(*) FROM profiles')->fetchColumn(),
-        'download_slots'=>(int)$db->query('SELECT COUNT(*) FROM mucho_level_downloads')->fetchColumn()
+        'download_slots'=>(int)$db->query('SELECT COUNT(*) FROM mucho_level_downloads')->fetchColumn(),
+        'business_sha256'=>hash_final($business)
     ));exit;
 }
 if($mode==='read-only'||$mode==='writable'){

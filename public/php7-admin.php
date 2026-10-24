@@ -46,7 +46,7 @@ if(!in_array($page,array('overview','dashboard','players','levels','rating','mod
 $method=isset($_SERVER['REQUEST_METHOD'])?strtoupper((string)$_SERVER['REQUEST_METHOD']):'GET';
 try {
     if(!is_file($root.'/config/php7-local.php')){throw new RuntimeException('Configure the connection in config/php7-local.php or run php7-setup.php first.');}
-    $settings=require $root.'/config/php7-local.php'; $pdo=mucho7_connect($settings);
+    $settings=mucho7_load_settings($root.'/config/php7-local.php'); $pdo=mucho7_connect($settings);
     // Shared hosts may serve several installations from one PHP session store.
     // A valid session for another installation must never grant this one's ID.
     $instance=hash_hmac('sha256',$root.'|'.(string)$settings['host'].'|'.(string)$settings['database'],(string)$settings['password']);

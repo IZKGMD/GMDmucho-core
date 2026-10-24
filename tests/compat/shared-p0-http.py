@@ -59,6 +59,7 @@ def run(php, report):
         # No request header can choose this behavior in the deployed runtime.
         router.write_text("<?php $_SERVER['HTTPS']='on';"
                           "$_SERVER['SCRIPT_NAME']='/mc/public/php7.php';"
+                          "header('X-P0-OPcache: '.(function_exists('opcache_get_status')&&opcache_get_status(false)!==false?'enabled':'missing'));"
                           "require __DIR__.'/public/php7.php';")
         servers, logs, ports = [], [], []
         timings = {name: [] for name in ("account.login", "levels.search", "levels.upload",
@@ -74,7 +75,7 @@ def run(php, report):
                     probe.bind(("127.0.0.1", 0))
                     port = probe.getsockname()[1]
                 log = (root / ("server-%d.log" % index)).open("wb")
-                server = subprocess.Popen([php, "-d", "memory_limit=128M", "-d",
+                server = subprocess.Popen([php, "-d", "memory_limit=128M", "-d", "opcache.enable_cli=1", "-d", "opcache.validate_timestamps=0", "-d", "opcache.file_update_protection=0", "-d",
                     "disable_functions=exec,shell_exec,system,passthru,proc_open,popen",
                     "-S", "127.0.0.1:%d" % port, str(router)], env=env, stdout=log, stderr=log)
                 servers.append(server); logs.append(log); ports.append(port)
@@ -88,7 +89,7 @@ def run(php, report):
                 else:
                     raise RuntimeError("HTTP fixture startup timed out")
 
-            def post(path, data, endpoint=None, worker=0):
+            def post(path, data, endpoint=None, worker=0, allowed_status=(200,)):
                 body = urllib.parse.urlencode(data).encode()
                 request = urllib.request.Request("http://127.0.0.1:%d%s" % (ports[worker], path),
                                                  data=body, method="POST")
@@ -99,8 +100,9 @@ def run(php, report):
                     response = error
                 with response:
                     text = response.read().decode()
-                    require(response.status == 200, "Unexpected HTTP status: %s %s" % (path, response.status))
+                    require(response.status in allowed_status, "Unexpected HTTP status: %s %s" % (path, response.status))
                     require(response.headers.get("X-Content-Type-Options") == "nosniff", "Missing response hardening")
+                    require(response.headers.get("X-P0-OPcache") == "enabled", "OPcache-enabled regression fixture is required")
                     require(text == text.strip() and not text.startswith("<"), "Contaminated game response")
                 if endpoint:
                     timings[endpoint].append((time.monotonic() - start) * 1000)
@@ -240,6 +242,22 @@ def run(php, report):
                             "Modern compressed level payload")
                 require(("62" in data) == (game >= 22 and binary >= 51), "2.209 timestamp version boundary")
             checks.append("synthetic-http-wire-matrix-1.0/1.1/1.5/1.9/2.0/2.1/2.2/2.209")
+
+            inventory = json.loads((REPO / "tests/protocol/endpoint-contracts.json").read_text())["contracts"]
+            baseline = fixture("inspect")["business_sha256"]
+            for contract in inventory:
+                for malformed in (False, True):
+                    data = dict(VERSION)
+                    if malformed:
+                        data.update({key + "[]": "invalid" for key in
+                                     ("accountID", "gjp", "gjp2", "userName", "password", "levelID", "type", "page")})
+                    response = post(contract["canonical_path"], data, allowed_status=(200, 400, 401, 403, 404, 405, 422))
+                    require(not any(secret in response for secret in
+                                    ("SQLSTATE", "PDOException", "Fatal error", "Warning:", "Stack trace")),
+                            "Public diagnostic leak: " + contract["id"])
+            require(fixture("inspect")["business_sha256"] == baseline,
+                    "Unauthenticated/malformed route sweep mutated core business data")
+            checks.append("all-%d-routes/missing-credentials/array-inputs/no-public-diagnostics/no-business-mutation" % len(inventory))
 
             # Local wall-clock observations only, deliberately excluded from the
             # native-client evidence directory and release certification registry.

@@ -60,7 +60,7 @@ require_once $root . '/compat/php7/social.php';
 require_once $root . '/compat/php7/levels.php';
 
 try {
-    $settings = require $root . '/config/php7-local.php';
+    $settings = mucho7_load_settings($root . '/config/php7-local.php');
     if(ob_get_length()>0)ob_clean();
     if (!is_array($settings)) {
         throw new RuntimeException('No configuration');

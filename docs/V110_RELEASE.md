@@ -31,10 +31,17 @@ mode, simultaneous login/update/download requests, and synthetic protocol
 boundaries from 1.0 through 2.209. PHP process-launch functions are disabled in
 the three independent HTTP workers. The business/protocol fixture explicitly
 disables MuchoProtect burst limiting; its dedicated security tests remain separate.
+It also checks every inventoried route with missing credentials and array-shaped
+inputs for public diagnostic leaks, HTTP server errors and core business-data
+mutation. This is negative-path coverage, not successful-use certification of
+all 160 routes.
 
 This regression work fixed discarded `settingsString`/`songIDs`/`sfxIDs`,
 unstable shared download-deduplication keys, native-PDO friendship queries,
 and friend-only level/comment exposure through public reads and history.
+Settings loaders explicitly invalidate the small private PHP config in OPcache.
+The HTTP runner enables OPcache with timestamp validation disabled and verifies
+that switching to read-only mode immediately prevents writes in every worker.
 
 Run against an **isolated local test database only**:
 

@@ -31,7 +31,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo_mysql, gd, mbstring
+          extensions: pdo_mysql, gd, mbstring, opcache
           coverage: none
       - name: Check native syntax and pure protocol behavior
         run: |

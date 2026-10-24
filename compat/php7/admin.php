@@ -168,7 +168,7 @@ function mucho7_admin_action(PDO $pdo, $aid, $action, $data, $root, $settings)
         $lock=fopen($root.'/config/php7-settings.lock','c');
         if(!$lock || !flock($lock,LOCK_EX)){throw new RuntimeException('Unable to lock settings.');}
         try {
-            $current=require $root.'/config/php7-local.php';
+            $current=mucho7_load_settings($root.'/config/php7-local.php');
             $site=isset($data['site_url']) && is_string($data['site_url'])?rtrim(trim($data['site_url']),'/'):'';
             if(!preg_match('~^https://[A-Za-z0-9.-]+$~D',$site)){throw new RuntimeException('Enter an HTTPS origin without /mc.');}
             $current['site_url']=$site;

@@ -8,7 +8,7 @@ require_once __DIR__.'/core-update.php';
 require_once __DIR__.'/scheduler.php';
 try{
     if(!is_file($root.'/config/php7-local.php'))throw new RuntimeException('Private hosting configuration is missing.');
-    $settings=require $root.'/config/php7-local.php';
+    $settings=mucho7_load_settings($root.'/config/php7-local.php');
     $runtimeLock=mucho7_core_lock($root,false);
     try{$result=mucho7_shared_schedule(mucho7_connect($settings),$root,$settings,in_array('--backup',$argv,true));}
     finally{flock($runtimeLock,LOCK_UN);fclose($runtimeLock);}

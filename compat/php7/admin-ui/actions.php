@@ -44,7 +44,7 @@ function mucho7_admin_ui_action(PDO $pdo,$aid,$action,$data,$root,$settings){
         $secret=isset($data['webhook_secret'])&&is_string($data['webhook_secret'])?$data['webhook_secret']:'';
         if(strlen($secret)>512)throw new RuntimeException('Webhook secret is too long.');
         $lock=fopen($root.'/config/php7-settings.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Unable to lock settings.');
-        try{$current=require $root.'/config/php7-local.php';$current['enable_webhooks']=$enabled;$current['webhook_url']=$url;$current['webhook_events']=$events;
+        try{$current=mucho7_load_settings($root.'/config/php7-local.php');$current['enable_webhooks']=$enabled;$current['webhook_url']=$url;$current['webhook_events']=$events;
             if($secret!==''||isset($data['clear_webhook_secret']))$current['webhook_secret']=$secret;
             mucho7_private_write($root.'/config/php7-local.php',"<?php\nreturn ".var_export($current,true).";\n");
         }finally{flock($lock,LOCK_UN);fclose($lock);}
@@ -114,7 +114,7 @@ function mucho7_admin_ui_action(PDO $pdo,$aid,$action,$data,$root,$settings){
         if($name===''||strlen($name)>64||strlen($by)>64||strlen($url)>512||($url!==''&&(stripos($url,'https://')!==0||!filter_var($url,FILTER_VALIDATE_URL))))throw new RuntimeException('Check the name, byline, and HTTPS URL.');
         $lock=fopen($root.'/config/php7-settings.lock','c');if(!$lock||!flock($lock,LOCK_EX))throw new RuntimeException('Unable to lock settings.');
         try{
-            $current=require $root.'/config/php7-local.php';$current['server_name']=$name;$current['server_by_name']=$by;$current['social_url']=$url;
+            $current=mucho7_load_settings($root.'/config/php7-local.php');$current['server_name']=$name;$current['server_by_name']=$by;$current['social_url']=$url;
             foreach(array('maintenance'=>'maintenance.flag','registrations_disabled'=>'registrations-disabled.flag') as $field=>$filename){
                 $path=$root.'/config/'.$filename;
                 if(isset($data[$field]))mucho7_private_write($path,'1');

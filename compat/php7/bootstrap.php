@@ -2,6 +2,14 @@
 /** Shared native configuration, connection and private atomic writes. PHP 7.0. */
 declare(strict_types=1);
 
+/** Settings changes must take effect even with long OPcache revalidation intervals. */
+function mucho7_load_settings($path)
+{
+    clearstatcache(true,$path);
+    if(function_exists('opcache_invalidate'))@opcache_invalidate($path,true);
+    return require $path;
+}
+
 function mucho7_connect($settings)
 {
     if (!extension_loaded('pdo_mysql') || !is_array($settings)) {
@@ -63,6 +71,7 @@ function mucho7_private_write($path, $contents)
         fclose($handle); $handle = null;
         if (!rename($temporary,$path)) { throw new RuntimeException('Private rename failed'); }
         @chmod($path,0600);
+        if(substr($path,-4)==='.php'&&function_exists('opcache_invalidate'))@opcache_invalidate($path,true);
     } finally {
         if (is_resource($handle)) { fclose($handle); }
         if (is_file($temporary)) { unlink($temporary); }
