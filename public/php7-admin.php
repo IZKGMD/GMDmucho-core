@@ -27,6 +27,7 @@ foreach(array('runtime','schema','auth','news','admin') as $module){require_once
 require_once $root.'/compat/php7/admin-ui/actions.php';
 require_once $root.'/compat/php7/admin-ui/bridge.php';
 require_once $root.'/compat/php7/core-update.php';
+require_once $root.'/compat/php7/patcher.php';
 session_name('muchocore7_admin_'.substr(hash('sha256',$root),0,12));
 ini_set('session.cookie_httponly','1');ini_set('session.cookie_secure','1');
 ini_set('session.use_strict_mode','1');ini_set('session.cookie_samesite','Strict');
@@ -39,7 +40,7 @@ $error='';$notice=isset($_SESSION['notice'])?$_SESSION['notice']:'';unset($_SESS
 $user=null;$pdo=null;$settings=array();$hasOwner=true;$schemaReady=false;$freshInstall=false;
 $page=isset($_GET['page']) && is_string($_GET['page'])?$_GET['page']:'overview';
 if($page==='diagnostics')$page='system';
-if(!in_array($page,array('overview','dashboard','players','levels','rating','moderation','comments','messages','songs','news','settings','system','audit','dbbackups','admins','roles','clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','securitycenter','monitoring'),true)){$page='dashboard';}
+if(!in_array($page,array('overview','dashboard','players','levels','rating','moderation','comments','messages','songs','news','settings','system','audit','dbbackups','admins','roles','clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','clientpatcher','securitycenter','monitoring'),true)){$page='dashboard';}
 $method=isset($_SERVER['REQUEST_METHOD'])?strtoupper((string)$_SERVER['REQUEST_METHOD']):'GET';
 try {
     if(!is_file($root.'/config/php7-local.php')){throw new RuntimeException('Сначала настрой подключение в config/php7-local.php или выполни php7-setup.php.');}
@@ -80,6 +81,7 @@ try {
     $setupSuccess=false;
     if($method==='POST') {
         $postLimit=isset($_POST['action']) && $_POST['action']==='music-upload'?22*1024*1024:131072;
+        if(isset($_POST['action'])&&is_string($_POST['action'])&&strpos($_POST['action'],'shared-patcher-')===0)$postLimit=2097152+65536;
         if(isset($_POST['action']) && $_POST['action']==='news-save')$postLimit=37*1024*1024;
         if((isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH']>$postLimit)
             || !isset($_POST['csrf']) || !is_string($_POST['csrf']) || !hash_equals($_SESSION['csrf'],$_POST['csrf'])) {
@@ -128,6 +130,7 @@ try {
         }
         $runtimeLock=mucho7_core_lock($root,false);
         if(is_file($root.'/config/php7-core-transition.json'))throw new RuntimeException('Идёт перенос ядра. Изменения доступны после его завершения.');
+        if(strpos($action,'shared-patcher-')===0)mucho7_patcher_json(mucho7_patcher_action($pdo,$user,$action,$root,$_POST));
         if($action==='backup'){mucho7_admin_clean_response();mucho7_admin_backup($pdo,(int)$user['account_id']);exit;}
         if($action==='dbbackup-download'){
             require_once $root.'/compat/php7/admin-backups.php';
@@ -150,6 +153,10 @@ try {
     error_log('[MuchoCore Shared admin] Database operation failed');
 } catch(Exception $e){unset($_SESSION['core_upgrade_continue']);$error=$e->getMessage();}
 catch(Error $e){unset($_SESSION['core_upgrade_continue']);$error='Не удалось выполнить действие. Подробности сохранены в журнале сервера.';error_log('[MuchoCore Shared admin] '.get_class($e));}
+if($method==='POST'&&isset($_POST['action'])&&is_string($_POST['action'])&&strpos($_POST['action'],'shared-patcher-')===0)mucho7_patcher_json(array('ok'=>false,'error'=>$error!==''?$error:'Не удалось выполнить запрос.'),http_response_code()>=400?http_response_code():400);
+if(isset($_GET['shared_patcher_download'])){
+    try{mucho7_patcher_download($pdo,$user,$root);}catch(Exception $e){http_response_code(404);exit('Client download is unavailable.');}
+}
 if(!empty($setupMode)){
     $script=isset($_SERVER['SCRIPT_NAME'])?(string)$_SERVER['SCRIPT_NAME']:'/mc/admin.php';$publicBase='';
     $row=$pdo&&!$setupSuccess?mucho7_admin_setup_row($pdo,$setupToken):null;

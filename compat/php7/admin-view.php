@@ -56,6 +56,7 @@ if($schemaReady && canAdminPage($page)){
         }
     }
     elseif($page==='dashboard'){require_once __DIR__.'/admin-ui/dashboard.php';renderAdminDashboard($db);}
+    elseif($page==='clientpatcher')require __DIR__.'/admin-ui/clientpatcher.php';
     elseif($page==='players')require __DIR__.'/admin-ui/players.php';
     elseif($page==='levels'||$page==='moderation')require __DIR__.'/admin-ui/levels-moderation.php';
     elseif($page==='rating')require __DIR__.'/admin-ui/rating.php';

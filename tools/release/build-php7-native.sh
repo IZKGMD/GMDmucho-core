@@ -45,7 +45,7 @@ done
 cp -a "$ROOT/public/admin/assets/gd" "$STAGE/mc/public/admin/assets/"
 cp "$ROOT/public/admin/assets/qrcode.min.js" "$STAGE/mc/public/admin/assets/"
 cp "$ROOT/public/muchocore-theme.css" "$ROOT/public/muchocore-theme.js" "$STAGE/mc/public/"
-for asset in product-ui.css php7-admin-base.css php7-admin-login.css php7-admin-product.js php7-admin-dashboard.js php7-admin-host.js; do
+for asset in product-ui.css php7-admin-base.css php7-admin-login.css php7-admin-product.js php7-admin-dashboard.js php7-admin-host.js php7-shared-patcher.js; do
   cp "$ROOT/public/assets/$asset" "$STAGE/mc/public/assets/"
 done
 printf '%s\n' '<?php require __DIR__ . "/public/php7-admin.php";' > "$STAGE/mc/admin.php"
@@ -163,10 +163,14 @@ memory_limit не меньше 128M. Ограничения HTTP-сервера/
 PHP 7.0 больше не получает исправления безопасности; тесты кода не заменяют
 проверку настроек конкретного хостинга и реального клиента.
 
-Пока не перенесены: кланы, ежедневные награды/квесты, пакеты/списки уровней,
-новые 2.209 threads/following, полноценный мигратор чужих ядер, клиентский
-патчер и вся система PHP8-плагинов. Не выдавай их за поддерживаемые функции.
-Этот архив не импортирует старые PHP8/Cvolton comments, ЛС и saves автоматически.
+После «Завершить перенос» доступны исходные модули ядра, включая кланы,
+наборы уровней, threads/following и диагностику плагинов. В разделе клиентов
+есть shared-патчер EXE/APK с PHP-подписью v1/v2, без Java и внешнего сервера.
+Для обновлений APK сохрани config/php7-apk-signer.json; в архиве этого
+приватного, создаваемого на установке ключа нет.
+Не включены: Passkeys, управление процессами VPS и автоматические фоновые
+задания. Полный перечень ограничений: mc/docs/PHP7_NATIVE_PHASE1.md.
+Импорт произвольных чужих схем PHP8/Cvolton требует отдельного мигратора.
 
 README
 

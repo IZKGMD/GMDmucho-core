@@ -7,7 +7,7 @@ function admin(){return $GLOBALS['user'];}
 function adminIsPlain(){return (isset($_GET['ui']) && $_GET['ui']==='plain') || (isset($_POST['ui']) && $_POST['ui']==='plain');}
 function canAdminPage($page){
     $user=admin();if(!$user)return false;
-    $pages=array('dashboard','players','levels','comments','messages','rating','moderation','songs','news','settings','system','audit','dbbackups','admins','roles','clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','securitycenter','monitoring');
+    $pages=array('dashboard','players','levels','comments','messages','rating','moderation','songs','news','settings','system','audit','dbbackups','admins','roles','clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','clientpatcher','securitycenter','monitoring');
     if(!in_array($page,$pages,true))return false;
     if(isset($GLOBALS['pdo']) && $GLOBALS['pdo'] instanceof PDO && mucho7_admin_registry_ready($GLOBALS['pdo'])){
         if($page==='news')return $user['role']==='owner';

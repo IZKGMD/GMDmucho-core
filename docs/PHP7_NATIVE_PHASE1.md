@@ -221,11 +221,47 @@ client URLs. GD image features require the PHP GD extension.
 The admin exposes original clans, collections, profile customization, social
 moderation, analytics, database browser, local API tester, client feature flags,
 plugin diagnostics, intelligence and security-monitoring pages. Plugin PHP code
-must itself support the installed PHP version. VPS process control, Java-based
-APK signing, automatic jobs/backup scheduling and the original self-updater are
+must itself support the installed PHP version. VPS process control,
+automatic jobs/backup scheduling and the original self-updater are
 not activated on PHP7 shared hosting. Passkey/WebAuthn is pending; the current
 working password, TOTP and recovery-code authentication remains in use.
 Track remaining platform/client acceptance work in issue #148.
+
+## Fully shared client patcher
+
+**Clients & extensions → Web Client Patcher** accepts an original APK (up to
+512 MiB) or Windows EXE (up to 64 MiB) and a server origin. Uploads use 2 MiB
+SHA-256-checked parts with an authoritative resume offset. Re-selecting the
+same file resumes a lost upload; a first/last-block fingerprint prevents
+accidentally combining different clients. No external processing service is used.
+
+APK work uses a bounded ZIP32 reader/writer implemented in PHP, not ZipArchive.
+It preserves untouched compressed entry data, drops stale signatures, validates
+entry CRCs and sizes, rejects overlapping/duplicate/encrypted/ZIP64 archives,
+and aligns stored native libraries to 16 KiB (other stored files to 4 bytes).
+PHP OpenSSL produces both JAR/v1 and APK-v2 signatures. Each HTTP step copies or
+hashes a bounded amount of data; no Java, shell, exec, queue daemon or VPS is
+required. APK processing needs 64-bit PHP, zlib, OpenSSL and sufficient writable
+disk/memory; individual decoded entries are limited to 96 MiB.
+
+Known GD 2.209 native builds retain exact SHA-256 checks and URL counts.
+Unknown modern or already patched builds are refused. The verified ARM64 APK
+can use the existing side-by-side package relocation; legacy APKs must disable
+that option. This changes API addresses, not licensing or executable code.
+
+The installation creates a private persistent RSA signing identity at
+`config/php7-apk-signer.json`. Back it up separately from SQL backups. Losing or
+replacing it changes the Android update identity; APKs previously signed on a
+VPS with another key cannot update in place with the newly generated key.
+Inputs/results are private, permission-checked and bound to the administrator's
+session; completed results last four hours. Reset deletes that temporary job.
+Expired jobs are cleaned on subsequent starts; there is no cron dependency.
+
+CI patches a compiler-generated APK with all process-launch functions disabled,
+then independently verifies v1/v2 signatures using Android `apksigner`, checks
+alignment using `zipalign`, and confirms a changed byte fails verification.
+Those verification tools run only in CI, never on the shared server. This does
+not substitute for installation/launch on the user's Android device.
 
 ## Verification
 

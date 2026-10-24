@@ -3,9 +3,9 @@ name: Native PHP7 feature integration
 on:
   push:
     branches: [main]
-    paths: ['compat/php7/**', 'public/php7*.php', 'public/assets/php7-admin.css', 'tests/compat/php7-native-*', '.github/workflows/php7-native-features.yml']
+    paths: ['compat/php7/**', 'public/php7*.php', 'public/assets/php7-*.js', 'public/assets/php7-admin.css', 'tests/compat/php7-native-*', 'tests/compat/php7-shared-*', 'tests/compat/shared-patcher-*', '.github/workflows/php7-native-features.yml']
   pull_request:
-    paths: ['compat/php7/**', 'public/php7*.php', 'public/assets/php7-admin.css', 'tests/compat/php7-native-*', '.github/workflows/php7-native-features.yml']
+    paths: ['compat/php7/**', 'public/php7*.php', 'public/assets/php7-*.js', 'public/assets/php7-admin.css', 'tests/compat/php7-native-*', 'tests/compat/php7-shared-*', 'tests/compat/shared-patcher-*', '.github/workflows/php7-native-features.yml']
   workflow_dispatch:
 
 permissions:
@@ -43,6 +43,23 @@ jobs:
           php tests/compat/php7-aead-compat.php
           php tests/compat/php7-core-pack.php
           php tests/compat/php7-content-proxy.php
+      - name: Install independent Android verification tools
+        run: sudo apt-get update -qq && sudo apt-get install -y apksigner zipalign aapt
+      - name: Verify shared-only APK signing with process functions disabled
+        run: |
+          python3 tests/compat/shared-patcher-fixture.py "$RUNNER_TEMP/shared-fixture.apk"
+          SHARED_PATCHER_APK_FIXTURE="$RUNNER_TEMP/shared-fixture.apk" \
+          SHARED_PATCHER_TEST_ROOT="$RUNNER_TEMP/shared-patcher-${{ matrix.php }}" \
+          php -d memory_limit=256M -d disable_functions=exec,shell_exec,system,passthru,proc_open,popen \
+            tests/compat/php7-shared-patcher.php
+          apksigner verify --min-sdk-version 21 --verbose "$RUNNER_TEMP/shared-patcher-${{ matrix.php }}/signed.apk" | tee "$RUNNER_TEMP/signature.txt"
+          grep -q 'Verified using v1 scheme (JAR signing): true' "$RUNNER_TEMP/signature.txt"
+          grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true' "$RUNNER_TEMP/signature.txt"
+          zipalign -c -p 4 "$RUNNER_TEMP/shared-patcher-${{ matrix.php }}/signed.apk"
+          if apksigner verify --min-sdk-version 21 "$RUNNER_TEMP/shared-patcher-${{ matrix.php }}/tampered.apk"; then
+            echo 'Tampered APK passed independent verification' >&2
+            exit 1
+          fi
       - name: Check real database behavior on native and modern PHP
         env:
           TEST_DB_ROOT_PASSWORD: native-ci-only

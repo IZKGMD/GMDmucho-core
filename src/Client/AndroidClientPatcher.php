@@ -31,6 +31,31 @@ final class AndroidClientPatcher
         'gdpsapi.page.gd',
     ];
 
+    /** Shared-host adapter: patch one decoded entry without ZIP or shell tools. */
+    public static function patchEntryBytes(string $name, string $data, string $serverUrl): array
+    {
+        $server = WindowsClientPatcher::validateServerUrl($serverUrl);
+        if (!self::shouldPatchEntry($name)) return [$data, 0, false];
+        // Do not run URL replacement passes over images, audio or compressed
+        // binary assets. Shared requests must have a bounded useful workload.
+        if (!str_starts_with(strtolower($name), 'lib/') &&
+            !preg_match('~(?:^|/)classes[0-9]*\\.dex$|\\.(?:json|xml|txt|ini|cfg|dat)$~i', $name)) {
+            return [$data, 0, false];
+        }
+        if (AndroidGd2209Binary::supports($data)) {
+            [$bytes, $count] = AndroidGd2209Binary::patchBytes($data, $server, AndroidGd2209Binary::ENDPOINTS);
+            return [$bytes, $count, true];
+        }
+        if (AndroidGd2209Binary::resembles2209($data)) {
+            throw new RuntimeException('Unknown or already patched Android GD 2.209 build. Choose the original, unmodified APK.');
+        }
+        $count = 0;
+        $bytes = self::replaceBuffer($data, self::buildReplacements($server), $count);
+        $hostCount = 0;
+        $bytes = self::replaceKnownHosts($bytes, $server, $hostCount);
+        return [$bytes, $count + $hostCount, false];
+    }
+
     public static function patchFile(
         string $inputPath,
         string $outputPath,

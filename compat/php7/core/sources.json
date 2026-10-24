@@ -116,7 +116,7 @@
     "src/Clan/ClanQuestRepository.php": "47544bb9cfffc0978f7d861501a8b2ea40ef8810f07bba1931c4c1943857281c",
     "src/Clan/ClanRepository.php": "f9ac4d721954d6a3a75f142290c4bd5d5a326e7a4fc07f735ad00b4c38b4dd36",
     "src/Clan/ClanService.php": "522248240e0ee7a29cc00d1ba4754870913cccc98df1a4601ad570ef72c4f510",
-    "src/Client/AndroidClientPatcher.php": "d65235bb66b0837ac0ab9a13a6152d7840ef9b0bed6c5d60709b66a2c0531723",
+    "src/Client/AndroidClientPatcher.php": "84112e36ed4677642a1e7f89b4f2d81b2411ac448d1495611a70e45f0c038d88",
     "src/Client/AndroidGd2209Binary.php": "77a187aa4f05b8610e79f45b46aa0c1d36d5300bd2f135a019e9aa560122cbb8",
     "src/Client/AndroidPackageRelocator.php": "348cdb99a69ea45b3a6a69d36948b2a3d647dab8a513b8045cf271e1ca31247b",
     "src/Client/ClientBridgeController.php": "25c9c1c5a09e62b31abb8c8bd8a2518eb271e6d7363a3e7d4a574d3405b2e2c1",
