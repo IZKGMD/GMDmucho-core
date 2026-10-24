@@ -234,6 +234,10 @@ Track remaining platform/client acceptance work in issue #148.
 SHA-256-checked parts with an authoritative resume offset. Re-selecting the
 same file resumes a lost upload; a first/last-block fingerprint prevents
 accidentally combining different clients. No external processing service is used.
+When updating an already activated installation, upload the ZIP's code-only
+`config/php7-core-update.pack` and `.json` too, then choose **Server → Install
+uploaded build**. Updating file mirrors alone does not advance a pinned core
+snapshot; the patcher checks that the required core method is actually loaded.
 
 APK work uses a bounded ZIP32 reader/writer implemented in PHP, not ZipArchive.
 It preserves untouched compressed entry data, drops stale signatures, validates

@@ -11,6 +11,7 @@ function mucho7_patcher_action($db,$user,$action,$root,$data)
     if(!mucho7_admin_can($db,$user,'client.manage')){http_response_code(403);throw new RuntimeException('Нет прав на патчер клиентов.');}
     if(!is_file($root.'/config/php7-complete.on'))throw new RuntimeException('Сначала заверши перенос ядра.');
     require_once $root.'/compat/php7/domain.php';$owner=(int)$user['account_id'];
+    if(!method_exists('MuchoCore\\Client\\AndroidClientPatcher','patchEntryBytes'))throw new RuntimeException('Установи загруженную сборку в разделе «Сервер», чтобы включить shared-патчер.');
     $id=isset($_SESSION['shared_patcher_id'])?$_SESSION['shared_patcher_id']:'';
     if($action==='shared-patcher-start'){
         if($id!=='')throw new RuntimeException('Сначала сбрось предыдущую задачу патчера.');

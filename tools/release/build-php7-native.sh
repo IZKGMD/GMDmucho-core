@@ -49,6 +49,9 @@ for asset in product-ui.css php7-admin-base.css php7-admin-login.css php7-admin-
   cp "$ROOT/public/assets/$asset" "$STAGE/mc/public/assets/"
 done
 printf '%s\n' '<?php require __DIR__ . "/public/php7-admin.php";' > "$STAGE/mc/admin.php"
+# Existing installations pin an immutable core snapshot. Ship the reviewed
+# code-only update alongside the mirrors so the owner can advance that pointer.
+"${PHP_BIN:-php}" "$ROOT/tools/release/build-php7-core-pack.php" "$STAGE/mc/config"
 cp "$ROOT/docs/PHP7_NATIVE_PHASE1.md" "$STAGE/mc/docs/"
 cp "$ROOT/patchers/shared-hosting/README.md" \
    "$STAGE/mc/docs/5V_APACHE_ROUTES.md"
@@ -142,6 +145,9 @@ mc/docs/PHP7_NATIVE_PHASE1.md. Не заменяй этим архивом PHP8-
    не очищаются. Повторный запуск php7-setup.php не нужен.
    Альтернатива: импортировать mc/compat/php7/features.sql через phpMyAdmin.
 5. В «Настройках» проверь домен и переключатели функций.
+6. Если полный обработчик уже был включён раньше, открой «Сервер» →
+   «Установить загруженную сборку» и дождись завершения обновления.
+   Скопированные PHP-файлы сами не меняют закреплённую версию ядра.
 
 ЧТО ЕСТЬ В ЭТОЙ СБОРКЕ
 ---------------------
