@@ -1,7 +1,7 @@
 <?php declare(strict_types=1);
 $passkeyUser=isset($user)&&$user&&canPermission('self.security');
 if($user&&!$passkeyUser)return;
-if($db->getAttribute(PDO::ATTR_DRIVER_NAME)!=='mysql')return;
+if($db->getAttribute(PDO::ATTR_DRIVER_NAME)!=='mysql'||!tableExists($db,'php7_admin_users'))return;
 require_once __DIR__.'/../passkeys.php';
 if($passkeyUser)mucho7_passkeys_install($db);
 ?>

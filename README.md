@@ -1,782 +1,199 @@
-# MuchoCore — Geometry Dash Private Server Core (GDPS)
+# MuchoCore — Geometry Dash Private Server (GDPS)
 
-**MuchoCore** is an open-source **PHP 8.2+ Geometry Dash Private Server (GDPS) core** for hosting, migrating, securing, and operating self-hosted Geometry Dash private servers with MariaDB, Docker/Caddy on VPS, a no-Docker shared-hosting installer, an integrated Admin Panel, client patching tools, and version-aware Geometry Dash protocol compatibility.
+**Open-source PHP server core for Geometry Dash.** Accounts, levels, comments, scores, social features, moderation, Cloud Save, admin tools, migration and client patching. One codebase with version-aware protocol handling.
 
-The canonical source repository is **IZKGMD/GMDmucho-core**. **MuchoCore** and **GMDmucho-core** refer to the same software project.
+[Website](https://muchogdps.space/muchocore/) · [Stable releases](https://github.com/IZKGMD/GMDmucho-core/releases) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/IZKGMD/GMDmucho-core/issues)
 
-<p align="center">
-  <strong>One Geometry Dash server core • version-aware compatibility • built-in security • migration tooling • administration • production operations</strong>
-</p>
+> **Choose the correct package first.** The standard MuchoCore runtime requires **PHP 8.2+** (8.3+ recommended). The separate **5v.pl / PHP 7.0** build contains a native runtime, the compiled original application services and the original administration interface. It remains a development preview: complete real-client acceptance is **not certified**. See [native port coverage](docs/PHP7_NATIVE_PHASE1.md) and [release readiness](docs/V110_RELEASE.md).
 
-<p align="center">
-  <a href="https://muchogdps.space/muchocore/">🌐 Official MuchoCore product page</a> ·
-  <a href="https://github.com/IZKGMD/GMDmucho-core/releases">📦 Stable releases</a>
-</p>
+## Choose your installation
 
-<p align="center">
-  <a href="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml">
-    <img src="https://github.com/IZKGMD/GMDmucho-core/actions/workflows/validate.yml/badge.svg" alt="MuchoCore CI">
-  </a>
-  <img src="https://img.shields.io/github/v/release/IZKGMD/GMDmucho-core" alt="Latest published MuchoCore release">
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
-  <img src="https://img.shields.io/badge/PHP-8.2-777BB4" alt="PHP 8.2+">
-  <img src="https://img.shields.io/badge/Geometry%20Dash-1.0%20%E2%80%93%202.2-success" alt="Geometry Dash 1.0 through 2.2 compatibility">
-  <img src="https://img.shields.io/badge/MariaDB-supported-blue" alt="MariaDB">
-  <img src="https://img.shields.io/badge/Docker-ready-2496ED" alt="Docker">
-</p>
+| Hosting | Package / entry point | What you get |
+| --- | --- | --- |
+| **VPS (Linux)** | [One-command installer](#3-linux-vps--full-core) | Full PHP 8+ MuchoCore, Docker, MariaDB, Caddy, admin and worker |
+| **Shared with PHP 8.2+** | [Shared installer / ZIP](#1-shared-hosting-php-82--full-core) | Full core and web admin; no Docker or SSH needed |
+| **5v.pl / PHP 7.0** | [PHP7 preview artifact](#2-5vpl--php-70-experimental) | Native runtime, original admin, shared worker, browser client patcher and compiled services |
 
-<p align="center">
-  <a href="docs/GETTING_STARTED.md">⚡ Getting Started</a> ·
-  <a href="docs/MIGRATION_KIT.md">🔄 Migration Kit</a> ·
-  <a href="docs/SETUP.md">🚀 Setup</a> ·
-  <a href="docs/CLIENT_SETUP.md">🎮 Client Setup</a> ·
-  <a href="docs/VERSIONS.md">📚 Version Profiles</a> ·
-  <a href="docs/CLIENT_COMPATIBILITY.md">🧩 Client Compatibility</a> ·
-  <a href="docs/CUSTOM_PLUGINS.md">🧩 Custom Plugins</a> ·
-  <a href="docs/MUCHOCLIENT.md">🎮 MuchoClient (Geode companion)</a> ·
-  <a href="docs/V108_INTELLIGENCE.md">⚡ Intelligence & Scale</a>
-</p>
+**Before installing:** Have a working HTTPS domain and database ready. Your hosting provider must allow requests from the Geometry Dash client; a working browser page alone is not proof that the game can connect.
 
-> **MuchoCore is a Geometry Dash private server core, GDPS backend, and PHP server framework for running a self-hosted Geometry Dash private server.** It provides accounts, levels, scores, comments, social features, ratings, cloud save, clans, moderation, JSON API v2, Cvolton-style migration tooling, MuchoProtect security, client patchers, Admin RBAC, Docker deployment, MariaDB storage, and multi-version protocol compatibility.
+## 1. Shared hosting (PHP 8.2+) — full core
 
-## 🔎 What is MuchoCore?
+**Requires:** PHP 8.2+ (8.3+ recommended), MySQL 8.0.29+ / MariaDB 10.4+, PDO MySQL, HTTPS, a database user, FTP or File Manager. For automatic bootstrap, PHP ZIP and outbound HTTPS to GitHub are also required.
 
-MuchoCore is a **self-hosted Geometry Dash Private Server core**, commonly described as a **GDPS server core** or **Geometry Dash server backend**. It is built for GDPS owners, developers, server operators, and moderators who need one maintainable backend instead of assembling unrelated services.
+### Option A — automatic FTP installation
 
-### Canonical project facts
+1. Open **[MuchoCore Shared Installer](https://muchogdps.space/install/shared/)**.
+2. Enter your FTP/FTPS host and credentials, public HTTPS domain, and MySQL credentials.
+3. Let the installer detect the FTP mode, port and website root, or override them if your host requires it.
+4. Finish the on-site database/admin wizard.
+5. Verify `https://YOUR-DOMAIN/health` returns `1` and sign in at `https://YOUR-DOMAIN/admin/`.
 
-| Property | Value |
-| --- | --- |
-| Project | **MuchoCore** |
-| Repository | **IZKGMD/GMDmucho-core** |
-| Type | **Open-source Geometry Dash Private Server (GDPS) core** |
-| Primary language | **PHP** |
-| Runtime | **PHP 8.2+** (8.3+ recommended) |
-| Database | **MariaDB / MySQL-compatible SQL** |
-| Deployment | **Docker Compose, Caddy, Linux/VPS** |
-| Protocol scope | **Geometry Dash client generations 1.0–2.2** |
-| Security | **MuchoProtect** |
-| Source version | **v1.1.0** ([release readiness](docs/V110_RELEASE.md)) |
-| Published stable release | [GitHub Releases](https://github.com/IZKGMD/GMDmucho-core/releases/latest) |
-| Official project page | **https://muchogdps.space/muchocore/** |
+The installer uses a published shared-hosting release. It does **not** make PHP 7 compatible.
 
-### Who uses it?
+### Option B — manual ZIP + FileZilla
 
-- GDPS owners running a self-hosted Geometry Dash private server.
-- PHP developers building or extending Geometry Dash server infrastructure.
-- Operators migrating a legacy Cvolton/GMDprivateServer-style database.
-- Administrators managing accounts, levels, moderation, security, backups, and server operations.
+1. Open [GitHub Releases](https://github.com/IZKGMD/GMDmucho-core/releases) and download **`MuchoCore-vX.Y.Z-shared-hosting.zip`** from a **published** release. Do **not** use GitHub's source-code ZIP; it may omit `vendor/`.
+2. Create a **new empty database** and database user in your hosting panel.
+3. Extract the archive locally. Upload the **contents of `muchocore/`**, not the outer folder, to the website's document root.
+4. Check that FileZilla transferred hidden **`.htaccess`** and the `public/`, `src/`, `vendor/`, `database/` and `config/` directories.
+5. Open **`https://YOUR-DOMAIN/install.php`** (not `/public/install.php`). Enter database details and choose the administrator password.
+6. Verify `/health` returns `1`; open `/admin/` (initial user: `admin`).
+7. Remove `public/install.php` and `public/shared-install.php` after setup. Back up the database, `.env` and the existing `config/cloudsave.key` securely.
 
-### Relevant search intents
+**Updating an existing site?** Back up files and SQL first. **Do not** run first-time setup on a populated database or overwrite the existing `.env`, Cloud Save key or private settings. Follow the [full shared-hosting guide](docs/SHARED_HOSTING.md) for upgrades and provider-specific document roots.
 
-Common natural-language searches that describe this project include:
+[Detailed shared-hosting guide](docs/SHARED_HOSTING.md) · [Russian ZIP installation guide](docs/SHARED_INSTALL_RU.txt)
 
-- Geometry Dash private server
-- Geometry Dash private server core
-- GDPS server core
-- Geometry Dash server backend
-- PHP Geometry Dash server
-- Geometry Dash 2.2 private server
-- Geometry Dash 1.9 private server backend
-- Cvolton GDPS migration
-- Geometry Dash Admin Panel
-- Geometry Dash server security
-- MuchoCore
-- GMDmucho-core
+## 2. 5v.pl / PHP 7.0 (experimental)
 
-This section describes the project's subject and common search intent; it does not guarantee placement in Google Search or Gemini.
+This build runs entirely on shared hosting with its own MySQL connection, compiled PHP 7-compatible application services and English administration pages. It requires no VPS proxy, Composer installation or process-launch functions on the host. PHP 7 is obsolete; provider and real-device acceptance remain separate from the automated integration checks.
 
-### Canonical links
+### Download the correct archive
 
-- Repository: **https://github.com/IZKGMD/GMDmucho-core**
-- Stable releases: **https://github.com/IZKGMD/GMDmucho-core/releases**
-- Official MuchoCore product page: **https://muchogdps.space/muchocore/**
-- What is MuchoCore? **https://muchogdps.space/muchocore/about/**
-- Geometry Dash compatibility and GD 2.209 status: **https://muchogdps.space/muchocore/compatibility/**
-- Crawling, indexing and AI search guidance: [AI_SEARCH_INDEXING.md](docs/AI_SEARCH_INDEXING.md)
-- Machine-readable project summary: **https://github.com/IZKGMD/GMDmucho-core/blob/main/llms.txt**
+1. Open **[PHP7 Native Preview — GitHub Actions](https://github.com/IZKGMD/GMDmucho-core/actions/workflows/php7-preview-archives.yml)**.
+2. Select the latest **successful** run on `main`. Sign in to GitHub if artifact download requires it.
+3. Under **Artifacts**, download **`MuchoCore-PHP7-5v-native-preview`** and extract the downloaded artifact ZIP.
+4. Inside is **`MuchoCore-PHP7-5v-native-preview.zip`**. Extract this ZIP too; it contains `mc/`, `5V_ROOT_REWRITE_RULES.txt` and setup instructions.
 
-The names **MuchoCore** and **GMDmucho-core** identify the same project.
+**Do not choose** `MuchoCore-full-PHP82-shared-hosting` for a PHP 7 host. Workflow artifacts are temporary development builds, not stable releases.
 
----
+### Update an existing 5v.pl test installation (keep all data)
 
-## ✨ What you get
+1. **Back up** the existing `/mc/` directory and export its MySQL database via phpMyAdmin.
+2. Upload the new archive's `mc/` files to the **same `/mc/` directory**. Preserve the live `/mc/config/php7-local.php`, `/mc/config/php7-news.json` (if used), `/mc/public/php7-mode.on` and all existing private data.
+3. Sign in as the existing owner and open **Server**. Use **Install uploaded build**, then **Complete migration** if offered. The update verifies the uploaded core pack, creates a database backup and applies additive changes while preserving accounts and levels. Use **Update database** for older native schemas. Do not import a legacy database dump over this installation.
+4. In the **domain root** `.htaccess` (not `/mc/.htaccess`), add the rules from `5V_ROOT_REWRITE_RULES.txt` just below `RewriteEngine On` and **before** catch-all rules. Keep your other rules. Your host must support these Apache rewrites.
+5. Keep `site_url` in `/mc/config/php7-local.php` set to the HTTPS origin **without `/mc`**.
+6. Test `https://YOUR-DOMAIN/mc/health`, then the game endpoints below. **Do not rerun `php7-setup.php` against the existing database.**
 
-| Area | Included |
-| --- | --- |
-| 🎮 **Geometry Dash backend** | Accounts, profiles, levels, comments, social features, scores, ratings, rewards, cloud save, music and legacy-compatible endpoints |
-| 🧩 **One version-aware core** | Shared application logic with client-generation-specific compatibility handling |
-| 🛡️ **MuchoProtect** | Endpoint rate limits, burst protection, account/IP isolation and privacy-aware security audit events |
-| 🧠 **Score Integrity** | Defensive score heuristics, risk events and optional leaderboard quarantine without automatic bans |
-| 🔌 **Plugin SDK** | Persistent custom PHP plugins with lifecycle events, custom routes and optional database access |
-| 🖥️ **Admin Control** | Dashboard, players, levels, moderation, analytics, monitoring, backups, API tools and server settings |
-| ⭐ **Rating Studio** | Search levels by ID/name/creator, review pending requests, publish 0–10 star ratings, choose difficulty faces, feature tiers and audit the change |
-| 🔐 **Admin security** | Separate administrator accounts, password login, native WebAuthn/FIDO2 passkeys, Google Authenticator TOTP, one-time recovery codes, self-service password setup for invited admins, customizable RBAC permissions, rate limiting and audit logging |
-| 🔄 **Cvolton migration** | Read-only source DB preflight, verified target backup + checksum, conflict-safe account mapping, persistent ID mapping and transactional rollback |
-| 🏰 **Clans** | Player-dashboard clan directory, clan names/tags, owner/officer/member roles, membership, invitations and server-side in-game clan-tag display |
-| 🧰 **Client patchers** | Windows desktop patcher, browser-based Windows patcher and Android APK patcher |\n| 📦 **Client distribution** | Automatic deployment builds a verified Client Pack ZIP containing Windows, Android and a checksum manifest; the same pack is stored in tenant Admin → Clients |
-| 🐳 **Deployment** | Docker Compose, MariaDB, PHP 8.3, Caddy, automatic migrations, one-command manual updates and release detection |
-| 🔄 **Operator onboarding** | Getting Started guide plus a Migration Kit with read-only preflight, verified target backup, transactional import, healthcheck and migration reports |
-| ⚡ **Intelligence & Scale** | Level validation, indexed search, short response cache, level revisions, background jobs, signed webhooks, trace analysis and backup verification |
-| 🧪 **Validation** | PHP, shell, protocol, wire-format, security, patcher, Docker, Caddy and migration-tool checks in GitHub Actions |
+For a **brand-new disposable test database**, read the [PHP7 first-time setup](docs/PHP7_NATIVE_PHASE1.md): it uses `public/php7-setup.php`, a private setup key, HTTPS and an **empty** MySQL database. Delete the setup script after use and enable `public/php7-mode.on` only once setup succeeds.
 
----
+### Feature switches (test systems only)
 
-## 🚀 Quick start
+In your existing private `/mc/config/php7-local.php`, the relevant options are:
 
-### Shared hosting installation
-
-For compatible shared hosting, use the automatic FTP deployment page:
-
-~~~text
-https://muchogdps.space/install/shared/
+~~~php
+'enable_accounts' => true,
+'enable_registration' => true,
+'enable_writes' => true,
+'enable_social' => true,
+'enable_cloudsave' => true,
 ~~~
 
-Enter the hosting FTP/FTPS connection, the site's HTTPS address, and the database credentials. FTP mode, port, and the remote web root default to automatic detection. MuchoGDPS downloads and verifies the published shared-hosting release on the control plane, uploads it through FTP/FTPS, drives the shared installer over HTTPS, and verifies `/health`.
+These switches do **not** install missing features. Account and write functions are disabled in distributed defaults because PHP 7 is end-of-life. Do not post real DB passwords or `auth_pepper` online.
 
-Shared hosting does **not** require a dedicated public IPv4. Provider-specific free-tier restrictions may still prevent Geometry Dash clients from reaching the API even when PHP and MySQL checks pass.
+### Test routing and registration without creating an account
 
-### New VPS installation
+From Termux/Linux (replace the domain with yours):
 
-MuchoCore is designed so a new GDPS owner does not need to assemble PHP, MariaDB, Docker and a reverse proxy manually.
+~~~bash
+curl -i -X POST \
+  'https://YOUR-DOMAIN/a/accounts/registerGJAccount22.php' \
+  --data-urlencode 'userName=bad!'
+~~~
 
-For the normal stable-release VPS install, run:
+On the **current PHP7 handler**, a routed registration endpoint with enabled accounts and a working database returns **`-4`** for this deliberately invalid username. `-1` means the request was rejected; check the deployed `auth.php` / `runtime.php`, flags, PHP logs, MySQL schema and routing. HTTP `404` means the path was not found; HTTP `503` indicates a runtime/configuration/database failure. HTTP 200 alone does **not** prove registration works.
 
-```bash
+**Native coverage:** accounts, profiles, levels, scores, comments, votes, Cloud Save, private messages, friends and blocks; original admin pages, ratings, moderation, clans, quests, plugins, News media, backups and security tools. Shared hosting also has bounded queue processing, optional HTTPS webhooks, resumable search rebuilding, cron backups, passkeys and Cvolton account/profile/level/score import. See the coverage document for tested behavior and remaining acceptance work. PHP 8-only third-party plugins still need their own compatibility review.
+
+[PHP7 installation and upgrade details](docs/PHP7_NATIVE_PHASE1.md) · [5v.pl rewrite/troubleshooting guide](patchers/shared-hosting/README.md)
+
+## 3. Linux VPS — full core
+
+**Requires:** Linux VPS, sudo/root, a domain with a DNS `A` record pointing to its public IPv4, and inbound TCP 80/443 for normal direct hosting. No manual PHP, database or Caddy installation needed.
+
+1. Point `gdps.example.com` to the VPS IPv4 in your DNS panel.
+2. Run the stable-release installer:
+
+~~~bash
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo -E bash
-```
+~~~
 
-The normal deployment path is **direct VPS HTTPS** and requires a **dedicated public IPv4** on the VPS. Cloudflare is not required.
+3. Enter your domain and initial admin password when prompted. The installer sets up Docker, PHP, MariaDB, Caddy, workers, migrations and configuration.
+4. Open `https://YOUR-DOMAIN/health` (expected `1`) and `https://YOUR-DOMAIN/admin/` (initial user: `admin`).
+5. Patch a Windows/Android game client to point to the **domain root**.
 
-On a normal public VPS, the installer needs only:
+Direct VPS HTTPS remains the default. No Cloudflare API token, Global API Key, Cloudflare Tunnel or Cloudflare Proxy is required for this path. The installer configures an already-active UFW to permit inbound TCP 80 and 443. For an optional tunnel, the API token needs **Cloudflare Tunnel -> Edit**; see [advanced networking](docs/ADVANCED.md).
 
-1. A **dedicated public IPv4 address** assigned to the VPS.
-2. An `A` record for the GDPS hostname pointing to that dedicated IPv4 address.
-3. Inbound TCP **80** and **443** permitted by the VPS provider/network.
-4. Your initial Admin Panel password.
+**Maintain an existing VPS:**
 
-The installer automatically:
+~~~bash
+sudo mucho logs
+sudo /opt/mucho-core/bin/mucho-db-backup.sh
+sudo /opt/mucho-core/update.sh
+~~~
 
-- detects the VPS public IPv4;
-- checks the domain and expected network layout;
-- installs Docker and required host packages;
-- creates the MuchoCore environment and protected secrets;
-- starts MariaDB, PHP, worker and Caddy;
-- runs database migrations and the internal MuchoCore healthcheck;
-- configures Caddy for legacy HTTP on port 80 and managed HTTPS on port 443;
-- automatically allows TCP 80/443 through an **already-active UFW** firewall without enabling or replacing the host firewall;
-- verifies the public health endpoint before declaring the installation complete.
+Take a verified backup before updating. The normal updater selects published stable releases, not arbitrary commits on `main`. For NAT/CGNAT or blocked 80/443, read about [Cloudflare Tunnel](docs/ADVANCED.md).
 
-The expected direct traffic path is:
+[VPS walkthrough](docs/GETTING_STARTED.md) · [Setup and backups](docs/SETUP.md)
 
-```text
-GDPS domain
-    |
-    v
-DNS A record -> VPS public IPv4
-    |
-    +---- TCP 80 ----> Caddy ----> MuchoCore
-    |
-    +---- TCP 443 ---> Caddy ----> MuchoCore
-                         |
-                         +---- Let's Encrypt
-```
+## Connect Geometry Dash (after installation)
 
-No Cloudflare API token, Global API Key, Cloudflare Tunnel or Cloudflare Proxy is required for this path.
+Installing the server **does not patch the game**.
 
-After installation, verify:
+1. For the **full PHP8 core**, open `https://YOUR-DOMAIN/admin/?page=clientpatcher` to patch a Windows executable, or follow [Client Setup](docs/CLIENT_SETUP.md) for the local `tools/client/client-patch.bat` method.
+2. Enter only `https://YOUR-DOMAIN` as the server address — **not** `/database` or `/mc`. Some GD 2.209 builds require short compatible URL aliases because their executable URL slots have fixed lengths.
+3. Keep the original executable/APK; test the newly patched client separately. Android APKs must be signed appropriately before distribution.
+4. Check **login → level search → level download → test upload → comments → Cloud Save**. A patched file or healthy `/health` endpoint is not proof of real-client compatibility.
 
-```text
-https://YOUR-DOMAIN/health
-```
+For the PHP7 shared build, open **Admin → Client Patcher**. Windows patching and resumable Android APK rebuilding/signing run on the shared host without shell tools. Preserve the original client and verify the output on your device. Browser/provider download restrictions and actual game connection still need acceptance on the target host.
 
-Expected:
+[Windows & Android patching tutorial](docs/CLIENT_SETUP.md) · [Version profiles](docs/VERSIONS.md) · [Real-client verification status](docs/CLIENT_COMPATIBILITY.md)
 
-```text
-1
-```
+## Features and limitations
 
-Then open:
+| Capability | Full PHP8 core | 5v.pl PHP7 preview |
+| --- | --- | --- |
+| Accounts, profiles, levels, scores, comments | Included | Native handlers and compiled services |
+| Search, uploads, downloads, votes, local Cloud Save | Included | Native handlers; resumable search rebuild |
+| Admin Panel, Rating Studio, RBAC, moderation | Included | Original templates with native identities and permissions |
+| MuchoProtect, audit and operator tools | Included | Compiled services and shared-host operator pages |
+| Clans, quests, plugins, migration tools | Included | Compiled services; bounded worker; verified Cvolton import |
+| News and client patching | Included | News media and shared Windows/APK patcher |
+| GD 2.209 | In development; **not fully certified** | Automated contracts pass; real-client acceptance pending |
 
-```text
-https://YOUR-DOMAIN/admin/
-```
+The source tree's version is in [VERSION](VERSION). **A source version is not proof of a published stable release.** Download stable production builds only from [GitHub Releases](https://github.com/IZKGMD/GMDmucho-core/releases); the latest release can lag behind `main`. See [1.1.0 release gates](docs/V110_RELEASE.md).
 
-### Direct HTTPS troubleshooting
+## Migrate an existing GDPS
 
-If MuchoCore reports that the public hostname is unhealthy, the installer distinguishes between the **application/origin** and the **public network path**.
+For the **full PHP8 core**, install MuchoCore into a **fresh target database**, then open **Admin → Tools → Migration Center**. Use a read-only connection to the legacy Cvolton/GMDprivateServer database, review the dry-run, create/verify a target backup, and only then apply migration. Never import a legacy SQL dump directly over an initialized MuchoCore database.
 
-A healthy direct origin means Caddy and MuchoCore are working locally. If the domain also resolves to the detected VPS IPv4 but public TCP 80/443 still cannot reach the server, the remaining failure is outside the application stack, such as a provider-side firewall, security ACL or port policy.
+[Migration Kit](docs/MIGRATION_KIT.md) · [Migration Center](docs/MIGRATION_CENTER.md)
 
-For a direct installation, the required DNS layout is:
+## Troubleshooting
 
-```text
-A     gdps.example.com      -> YOUR_VPS_IPV4
-A     www.gdps.example.com  -> YOUR_VPS_IPV4
-```
+| Symptom | Check first |
+| --- | --- |
+| `/health` does not return `1` | PHP/runtime, database connectivity, application logs |
+| HTTP `404` on `/a/...php` | Domain-root `.htaccess` / web-server rewrite configuration |
+| HTTP `503`, body `-1` | Missing PHP7 marker/config, PDO MySQL, database/schema or PHP error log |
+| HTTP `200`, body `-1` | Endpoint rejected request; inspect exact route, flags and expected parameters |
+| GD says **“Something went wrong”** | Check the actual registration/login endpoint, not only the health page |
+| Levels appear but will not open | Test `downloadGJLevel22.php` independently of `getGJLevels21.php` |
+| 5v.pl installer rejects PHP version | You used the **full PHP8 ZIP** on PHP7; use the separate test preview or upgrade hosting |
+| Cloud Save fails after migration | Preserve the original encryption key; check POST body limits and database |
 
-There should not be a conflicting `CNAME` or `AAAA` record for the same hostname unless you intentionally support that additional address/path.
+**Do not reset the database to fix a single endpoint.** Protect `.env`, `storage/`, `config/cloudsave.key`, `php7-local.php`, database credentials and signing keys. Never commit or share them.
 
-When Cloudflare is used only as the DNS provider, use **DNS only** for the direct-origin record. Cloudflare does not need to proxy the HTTP/HTTPS traffic.
+## More documentation
 
-### VPS plans where ports 80/443 are not reachable
+- **[Quick start](START_HERE.md)** — installation overview
+- **[Shared hosting](docs/SHARED_HOSTING.md)** — full PHP8 shared hosting, FileZilla, installer, requirements
+- **[PHP7 native test port](docs/PHP7_NATIVE_PHASE1.md)** — 5v.pl setup, updates, feature switches
+- **[VPS setup](docs/SETUP.md)** — DNS, installer, logging, backups and updates
+- **[Client setup](docs/CLIENT_SETUP.md)** — patching Windows/Android clients
+- **[GD version compatibility](docs/VERSIONS.md)** · **[client tests](docs/CLIENT_TESTING.md)**
+- **[Migration](docs/MIGRATION_KIT.md)** · **[custom plugins](docs/CUSTOM_PLUGINS.md)**
+- **[API specification](openapi.yaml)** · **[Changelog](CHANGELOG.md)**
 
-Some VPS/NAT providers do not pass inbound HTTP/HTTPS traffic to the machine. This is common on NAT/CGNAT plans or VPS products where only RDP/SSH is exposed.
+## Development and contribution
 
-In that case, MuchoCore supports an explicit **Cloudflare Tunnel** transport:
-
-```text
-Internet
-  |
-  v
-Cloudflare
-  |
-  v
-Cloudflare Tunnel
-  |
-  v
-http://caddy:80
-  |
-  v
-MuchoCore
-```
-
-Direct VPS HTTPS remains the default. Tunnel mode is a fallback for infrastructure where the VPS cannot accept inbound 80/443.
-
-To explicitly use Tunnel mode, provide a runtime connector token:
-
-```bash
-export MUCHO_TRANSPORT_MODE=tunnel
-export MUCHO_TUNNEL_TOKEN='YOUR_TUNNEL_CONNECTOR_TOKEN'
-curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo -E bash
-```
-
-For the advanced automatic Cloudflare provisioning path, use `MUCHO_TRANSPORT_MODE=auto`. In that mode MuchoCore tries direct access first and can ask for Cloudflare credentials only when it needs to change DNS or provision/reuse a Tunnel.
-
-For automatic Cloudflare provisioning, create one API token with only the permissions needed for the setup:
-
-```text
-Account
-  Cloudflare Tunnel -> Edit
-
-Zone
-  DNS -> Edit
-  Zone -> Read
-```
-
-See the [Cloudflare API token permissions documentation](https://developers.cloudflare.com/fundamentals/api/reference/permissions/) for the current permission groups.
-
-The installer can create or reuse the remotely managed Tunnel, configure the public hostname, obtain the connector token and route traffic to the internal Caddy service. The Cloudflare API credential is used for provisioning and is not persisted; only the Tunnel runtime token required by `cloudflared` is kept on the server.
-
-For more detail, see **[docs/ADVANCED.md](docs/ADVANCED.md)**.
-### Existing GDPS migration
-
-Already running a Cvolton/GMDprivateServer-style GDPS? Open **Admin → Tools → Migration Center** for the guided workflow. The [Migration Kit](docs/MIGRATION_KIT.md) and [Migration Center](docs/MIGRATION_CENTER.md) documents cover the VPS/CLI fallback for advanced use.
-
-The default migration command is a **dry-run**. It checks the target, validates the source schema, reports row counts and changes nothing until you explicitly use `--apply --confirm=COVOLTON`. Apply mode creates and verifies a target database backup before any destination write; if the backup fails, the import does not start.
-
-### Development and explicit source checkout
-
-For development, testing, or installing a specific branch/tag:
-
-```bash
+~~~bash
 git clone https://github.com/IZKGMD/GMDmucho-core.git
 cd GMDmucho-core
-sudo ./install
-```
-
-For a specific installer ref, use:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/REF/install.sh | sudo bash -s -- --ref=REF
-```
-
-The stable one-line installer intentionally uses a published release; explicit branch/tag deployment is for testing and development.
-
-For the full VPS workflow, see **[docs/SETUP.md](docs/SETUP.md)**.
-
-## 🎯 Geometry Dash compatibility
-
-MuchoCore keeps **one server core** and selects version-specific behavior at the protocol boundary.
-
-Supported runtime generations:
-
-| Generation | Runtime profile | Notes |
-| --- | --- | --- |
-| **GD 1.0** | `1` | Dedicated legacy identity compatibility layer |
-| **GD 1.1** | `11` | Legacy endpoint-family compatibility |
-| **GD 1.5** | `15` | Legacy protocol compatibility; real build 13 smoke-tested |
-| **GD 1.6** | Legacy 1.x | Legacy protocol compatibility; real build 16 verified |
-| **GD 1.9** | `19` | Legacy protocol and response handling |
-| **GD 2.0** | `20` | 2.x protocol compatibility |
-| **GD 2.1** | `21` | Version-aware modern protocol handling |
-| **GD 2.2** | `22` | Modern protocol path with GJP2-aware authentication |
-| **Custom** | e.g. `10,19,22` | Accept any selected combination |
-| **All supported** | `all` | All supported generations |
-
-The installer presents the supported 1.0, 1.1, 1.5, 1.9, 2.0, 2.1 and 2.2 deployment profiles. The same server core handles all generations through the compatibility boundary. See **[docs/VERSIONS.md](docs/VERSIONS.md)** for the exact profile behavior.
-
-### Verification scope
-
-Real-client verification status:
-
-| Client | Status |
-| --- | --- |
-| GD 1.0 | ✅ Verified |
-| GD 1.1 | ✅ Verified |
-| GD 1.2 | ✅ Verified |
-| GD 1.3 | ✅ Verified |
-| GD 1.4 | ✅ Verified |
-| GD 1.5 build 13 | ✅ Verified |
-| GD 1.6 build 16 | ✅ Verified |
-| GD 1.7 build 17 | ✅ Verified |
-| GD 1.8 build 20 | ✅ Verified |
-| GD 1.9 | ✅ Verified |
-
-The release validation is deliberately conservative:
-
-- **GD 1.5 build 13** has passed a real-client smoke test covering level search, level upload, level update handling, comments, and the legacy UDID-based `updateGJUserScore` path.
-- **GD 1.6 build 16** has passed a real-client end-to-end smoke test with the patched MuchoCore client.
-- **GD 1.8 build 20** has passed a real-client smoke test on the shared early legacy 1.x compatibility path.
-- **GD 1.9** has passed real-client verification.
-- **GD 2.2** has a committed real-client contract fixture used by the release gate.
-- **GD 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.9, 2.0 and 2.1** have dedicated protocol/regression coverage in the repository.
-- Additional real-client release gates activate automatically when matching real-client fixtures are committed.
-
-This means the README does not treat a synthetic contract as equivalent to a captured real-client trace.
-
-See **[docs/CLIENT_COMPATIBILITY.md](docs/CLIENT_COMPATIBILITY.md)** and **[docs/PROTOCOL_MATRIX.md](docs/PROTOCOL_MATRIX.md)** for more detail.
-
----
-
-## ⭐ Admin Rating Studio
-
-MuchoCore includes a dedicated **Rating Studio** in the Admin Panel:
-
-```text
-/admin/?page=rating
-```
-
-It is designed for moderator/admin workflows instead of command-line rating.
-
-### Rating workflow
-
-```text
-Find level
-   ↓
-Review pending request / current state
-   ↓
-Choose stars
-   ↓
-Choose one difficulty profile
-   ↓
-Choose feature tier
-   ↓
-Publish
-   ↓
-Creator Points + audit log updated
-```
-
-Available star values:
-
-```text
-0 → 10 stars
-```
-
-Available difficulty profiles:
-
-```text
-Unrated
-Auto
-Easy
-Normal
-Hard
-Harder
-Insane
-Easy Demon
-Medium Demon
-Hard Demon
-Insane Demon
-Extreme Demon
-```
-
-Available feature tiers:
-
-```text
-None
-Featured
-Epic
-Legendary
-Mythic
-```
-
-The save operation canonicalizes the selected difficulty profile into the legacy Geometry Dash fields, clears the pending star request and recalculates creator points inside a transaction.
-
----
-
-## 🔐 Admin authentication and security
-
-The Admin Panel includes multiple security layers.
-
-### Google Authenticator / TOTP
-
-Administrators can enable Google Authenticator from the administrator settings.
-
-The setup flow includes:
-
-- a locally rendered QR code;
-- manual setup secret fallback;
-- server-side TOTP verification;
-- a 10-minute pending setup expiry;
-- enable/disable audit events.
-
-The QR renderer is bundled with the project, so the secret is not sent to an external QR generation service.
-
-### Administrator accounts
-
-Each administrator uses a separate account. The first administrator created during installation is the `owner` account.
-
-When the owner creates another administrator, they do not set the new administrator's password. MuchoCore creates a one-time password setup link instead:
-
-    Owner
-      ↓
-    Administrators → Add administrator
-      ↓
-    Username + Role
-      ↓
-    One-time setup link
-      ↓
-    New administrator creates their own password
-      ↓
-    Normal Admin Panel sign-in
-
-The setup link:
-
-- is generated from a cryptographically random token;
-- is stored only as a SHA-256 hash;
-- expires after 24 hours;
-- becomes unusable immediately after the password is created;
-- is shown to the owner once so it can be delivered to the new administrator.
-
-The initial built-in administrator roles are:
-
-    owner
-    admin
-    moderator
-    viewer
-
-The `owner` account is the bootstrap-level administrator and has access to administrator management.
-
-### Passkeys / WebAuthn
-
-Administrators can register a native passkey for passwordless Admin Panel sign-in.
-
-The browser/OS handles the credential picker and user verification (for example a device PIN, Windows Hello, Touch ID or Face ID). MuchoCore never receives or stores the private key. Login uses a discoverable credential flow, so the administrator does not need to type a username before the passkey is selected.
-
-The registration flow requires a resident/discoverable credential and user verification. Challenges are short-lived and single-use, credentials are bound to the configured relying-party domain, and the authenticator signature counter is tracked. When TOTP is enabled on the administrator account, the passkey completes the primary credential step and the existing TOTP/recovery-code second factor remains required.
-
-### MuchoProtect
-
-MuchoProtect sits before the request router:
-
-```text
-Request
-  ↓
-MuchoProtect
-  ↓
-Identity + IP + Endpoint
-  ↓
-Rate / Burst Analysis
-  ↓
-ALLOW / BLOCK
-  ↓
-Geometry Dash-compatible response
-```
-
-Protection includes:
-
-Registration anti-spam uses two independent signals:
-
-- **IP throttling** limits registration bursts and short-window attempts from one source address;
-- **device throttling** uses the Geometry Dash `udid` field when the client supplies it, limiting the same device identifier to two registration requests per 24 hours.
-
-The `udid` value is not treated as a true hardware fingerprint or a tamper-proof identity. Clients can spoof or rotate it, so device throttling is an additional layer alongside IP and network limits.
-
-| Protection | Purpose |
-| --- | --- |
-| 🚦 Endpoint limits | Different limits for authentication, uploads, comments, messages, scores, ratings and other sensitive actions |
-| 💥 Burst protection | Detects short high-frequency request spikes |
-| 👤 Account isolation | Avoids treating a public account ID as a sufficient identity signal |
-| 🌐 IP controls | Contains request floods while using privacy-aware audit metadata |
-| 📋 Security audit | Records blocked-event metadata without exposing raw IPs in audit events; v2 keeps DB-backed telemetry |
-| 🎮 Protocol-safe blocking | Legacy endpoints use `-1`; API v2 keeps JSON `429` responses and Retry-After headers |
-
----
-
-## 🧰 Client patching
-
-**Start here: [📁 patchers/ — simple Windows / Android / GD 2.209 instructions](patchers/README.md).**\nOn Windows, double-click **\`patchers/START-PATCHER.cmd\`** to select a patcher.
-The folder has Windows launchers and shared-hosting guidance; the tested patching
-engines stay in `src/Client/` and `tools/client/`. No client binaries are shipped.
-
-MuchoCore includes both local and web-based client patching workflows.
-
-### Windows desktop patcher
-
-Use:
-
-```text
-tools/client/client-patch.bat
-```
-
-The patcher:
-
-1. checks the executable;
-2. detects known Geometry Dash server URL formats;
-3. performs compatible replacement;
-4. writes a separate output executable;
-5. never overwrites the original client.
-
-Typical output:
-
-```text
-GeometryDash-MuchoCore.exe
-```
-
-The Windows batch/GUI workflow **requires Python 3**. For a no-Python option, use the authenticated admin web patcher on PHP 8.2+.
-
-### Web Client Patcher
-
-The Admin Panel includes:
-
-```text
-/admin/?page=clientpatcher
-```
-
-The web patcher supports Windows EXE uploads and performs the patch in a streaming/chunked PHP workflow.
-
-It is designed for environments where you do not have shell access to a native patching binary.
-
-### Android APK Patcher
-
-The same Admin Panel tooling includes an Android APK patcher.
-
-It can:
-
-- upload the APK in small chunks;
-- patch supported server URL layouts;
-- process common native Geometry Dash libraries;
-- remove invalid old signature metadata before rebuilding;
-- produce a new APK archive.
-
-The admin APK workflow **aligns, signs and verifies** its generated APK using a separate MuchoCore signing key. Keep that key private; test that the generated client installs correctly before distribution.
-
-### Client paths
-
-Patched distributable builds can be kept under:
-
-```text
-patched/apk/
-patched/exe/
-```
-
-Do not place signing keys, credentials or temporary files there.
-
-See **[docs/CLIENT_SETUP.md](docs/CLIENT_SETUP.md)** for the complete client workflow.
-
----
-
-## ☁️ Cloud save
-
-MuchoCore includes Cloud Save support with protected server-side key handling.
-
-Keep your Cloud Save secret outside the repository:
-
-```text
-.secrets/cloudsave_key
-```
-
-The deployment tooling preserves the configured secret across updates and container rebuilds.
-
-Before major maintenance, create a database backup:
-
-```bash
-sudo /opt/mucho-core/bin/mucho-db-backup.sh
-```
-
----
-
-## 🔄 Updating an existing installation
-
-For an installed server:
-
-```bash
-sudo /opt/mucho-core/update.sh
-```
-
-The updater:
-
-- protects local tracked changes instead of silently overwriting them;
-- resolves the latest published stable GitHub Release;
-- fetches the exact release tag and never deploys directly from `main`;
-- rebuilds Docker services;
-- installs production PHP dependencies;
-- runs database migrations;
-- synchronizes administrator credentials;
-- preserves the selected Geometry Dash compatibility profile;
-- preserves Cloudflare Tunnel mode when configured.
-
-After the update, verify:
-
-```text
-https://YOUR-DOMAIN/health
-```
-
-and:
-
-```bash
-cd /opt/mucho-core
-sudo docker compose ps
-```
-
----
-
-## 🧪 Validation
-
-Every push and pull request runs GitHub Actions validation.
-
-Current validation includes:
-
-| Area | Coverage |
-| --- | --- |
-| PHP | Syntax, application contracts and source checks |
-| Protocol | Version matrix, legacy wire behavior and modern protocol guards |
-| Security | MuchoProtect, authentication, TOTP and passkey contracts |
-| Client tools | Windows patcher, Android patcher and Python self-tests |
-| Routing | Caddy, Apache/shared-hosting compatibility and liveness routes |
-| Docker | Compose validation and deployment configuration checks |
-| Release | Version gate plus real-client 2.2 contract verification |
-
-Run the main local test suite with:
-
-```bash
 composer test
-```
+~~~
 
-Or the smoke/regression helpers:
+Code lives in `src/`, public endpoints in `public/`, migrations in `database/`, validation in `tests/`, and patchers/build tooling in `tools/`. Contributions and reproducible bug reports are welcome. Do not post passwords, private client data or active exploit details in public issues.
 
-```bash
-composer smoke
-composer regression
-```
-
----
-
-## 🏗️ Project structure
-
-```text
-src/                       server logic
-public/                    HTTP entry points, GD endpoints and Admin Panel
-database/                  database migrations
-tests/                     automated validation and compatibility fixtures
-tools/                     client patchers, migration tools and development utilities
-docs/                      setup, compatibility and deployment documentation
-docker/                    Dockerfile and Caddy configuration
-patched/apk/               patched Android builds
-patched/exe/               patched Windows builds
-assets/                    project branding
-custom/plugins/            persistent GDPS-specific plugins
-```
-
----
-
-## 🔒 Production security basics
-
-Never commit or publish:
-
-```text
-.env
-.secrets/
-storage/
-config/cloudsave.key
-```
-
-Keep these outside version control:
-
-- database passwords;
-- Cloud Save secrets;
-- administrator bootstrap credentials;
-- Android signing keys;
-- temporary client uploads;
-- patched binaries containing private test data.
-
-Before large changes, back up the database and verify that your Cloud Save secret is preserved.
-
----
-
-## 📚 Documentation
-
-| Document | Purpose |
-| --- | --- |
-| [Getting Started](docs/GETTING_STARTED.md) | Shortest path from VPS to a working GDPS |
-| [Migration Kit](docs/MIGRATION_KIT.md) | Safe Cvolton/GMDprivateServer-style migration workflow |
-| [Cvolton Migration](docs/CVOLTON_MIGRATION.md) | Low-level source schema and field mapping details |
-| [Setup](docs/SETUP.md) | VPS installation, updates and backups |
-| [Client Setup](docs/CLIENT_SETUP.md) | Windows, Android and client patching |
-| [Version Profiles](docs/VERSIONS.md) | Geometry Dash generation handling |
-| [Client Compatibility](docs/CLIENT_COMPATIBILITY.md) | Client contract and compatibility details |
-| [Protocol Matrix](docs/PROTOCOL_MATRIX.md) | Protocol and wire-level coverage |
-| [Client Testing](docs/CLIENT_TESTING.md) | Real-client testing workflow |
-| [Advanced Deployment](docs/ADVANCED.md) | Tunnel, NAT/CGNAT and advanced deployment |
-| [Shared Hosting](docs/SHARED_HOSTING.md) | Shared-hosting deployment constraints |
-| [Account Recovery](docs/ACCOUNT_RECOVERY.md) | Account recovery behavior |
-| [Showcase](docs/SHOWCASE.md) | Community GDPS projects |
-
----
-
-## 📦 MuchoCore v1.0.8
-
-**v1.0.8** is the current stable release of MuchoCore.
-
-This is a major **Intelligence & Scale** release built on the v1.0.6/v1.0.7 integrity, compatibility and operational foundation.
-
-### Included
-
-- Level Integrity & Validation Engine with structural limits, UTF-8 checks, payload fingerprints and non-fatal diagnostics;
-- derived MuchoSearch indexing for normalized level and creator search, with legacy SQL fallback when the index is unavailable;
-- short-lived public level response caching with database default, optional Redis and explicit disable mode;
-- level revision history with compressed payload snapshots, SHA-256 fingerprints and transactional restore;
-- database-backed background jobs with safe claiming, retry handling, stale-job recovery and a dedicated Docker worker;
-- signed operator webhooks for account and level lifecycle events plus system alerts;
-- enriched safe client traces with request IDs, response fingerprints, response size and latency, plus trace inspection/diff tooling;
-- read-only operator E2E smoke testing and local backup integrity verification with verification history;
-- new Admin **Intelligence & Scale** dashboard showing index coverage, revisions, jobs, cache records and backup verification state;
-- interactive sudo mucho commands for search rebuilds, level diagnostics, workers, traces, backup verification, cache configuration and operator webhooks.
-
-The existing MuchoProtect security layer, Admin RBAC, passkeys/TOTP, Cvolton migration safety, Cloud Save, Clans, client patchers and multi-generation protocol compatibility remain part of the release.
-
-See **[v1.0.8 Intelligence & Scale](docs/V108_INTELLIGENCE.md)** and **[CHANGELOG.md](CHANGELOG.md)** for the complete release details.
-
-## 🤝 Contributing
-
-Bug reports, compatibility fixes, protocol tests, security hardening, documentation updates and deployment improvements are welcome.
-
-For security-sensitive issues, avoid posting private exploit details publicly.
-
----
-
-## 🌍 Built something with MuchoCore?
-
-Public and private GDPS projects are welcome in the **[MuchoCore Showcase](docs/SHOWCASE.md)**.
-
-You can use:
-
-> Powered by [MuchoCore](https://github.com/IZKGMD/GMDmucho-core) 🛡️
-
-in your website, credits or project documentation.
-
----
-
-## 📄 License
-
-MIT — see [LICENSE](LICENSE).
+**License:** [MIT](LICENSE).
