@@ -54,7 +54,7 @@ class PatchersHubTest(unittest.TestCase):
         self.assertIn("GD2209_SHA256_OCT19", python)
         self.assertIn("GD2209_BUILDS", python)
         self.assertNotIn("linasgdpsprivatese", hub)
-        self.assertIn("Unknown GD 2.209 build", python)
+        self.assertIn("Unsupported or modified GD 2.209 EXE", python)
 
 
 if __name__ == "__main__":
