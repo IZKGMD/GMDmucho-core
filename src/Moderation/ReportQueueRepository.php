@@ -31,8 +31,13 @@ final readonly class ReportQueueRepository
         // Reports without a verified target account cannot join the queue.
         $count = $this->pdo->query(
             "SELECT COUNT(DISTINCT target_account_id)
-             FROM mucho_content_reports
-             WHERE status='pending' AND target_account_id IS NOT NULL"
+             FROM mucho_content_reports r
+             WHERE status='pending' AND target_account_id IS NOT NULL
+               AND NOT EXISTS (
+                 SELECT 1 FROM mucho_gd2209_restrictions q
+                 WHERE q.account_id=r.target_account_id AND q.kind='queue'
+                   AND (q.expires_at IS NULL OR q.expires_at > UTC_TIMESTAMP())
+               )"
         );
         $total = (int)$count->fetchColumn();
 
@@ -55,6 +60,11 @@ final readonly class ReportQueueRepository
                 FROM mucho_content_reports r
                 INNER JOIN accounts a ON a.account_id=r.target_account_id
                 WHERE r.status='pending' AND r.target_account_id IS NOT NULL
+                  AND NOT EXISTS (
+                    SELECT 1 FROM mucho_gd2209_restrictions q
+                    WHERE q.account_id=r.target_account_id AND q.kind='queue'
+                      AND (q.expires_at IS NULL OR q.expires_at > UTC_TIMESTAMP())
+                  )
                 GROUP BY r.target_account_id, a.username
                 ORDER BY {$order}
                 LIMIT 20 OFFSET {$offset}";

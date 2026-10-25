@@ -115,6 +115,20 @@ def run(php, report):
                 require(post("/a/accounts/loginGJAccount22.php", dict(VERSION, userName=name, password=secret)) == "-1", "Rejected login became valid")
             checks.append("password/gjp2/identity/banned/inactive/wrong-password")
 
+            recovery_before = fixture("inspect")
+            for path in ("/a/accounts/lostpassword.php", "/database/accounts/lostusername.php"):
+                request = urllib.request.Request("http://127.0.0.1:%d%s" % (ports[0], path))
+                with urllib.request.urlopen(request, timeout=15) as response:
+                    html = response.read().decode()
+                    require(response.status == 200 and "text/html" in response.headers.get("Content-Type", ""),
+                            "Native account recovery page failed")
+                    require('<html lang="en">' in html and 'name="csrf"' in html
+                            and 'name="identity"' in html and 'Send recovery link' in html,
+                            "Native recovery page language/form/CSRF")
+                    require('/mc/public/recovery/recovery.css' in html, "Recovery assets lost installation mount")
+            require(fixture("inspect") == recovery_before, "Opening recovery changed account data")
+            checks.append("native-lost-password-and-username/english-html/csrf/mounted-assets/no-mutation")
+
             upload = dict(VERSION, accountID=1, gjp2=GJP2, levelName="P0RoundTrip",
                           levelString=PAYLOAD, levelDesc=base64.b64encode(b"P0 description").decode(),
                           levelInfo="editor-info", settingsString="1,2,3,4", songIDs="123,456",
@@ -206,6 +220,8 @@ def run(php, report):
             fixture("clear-friendships")
             require(post("/a/downloadGJLevel22.php", friend_request) == "-1", "Revoked friend retained download access")
             require(post("/a/getGJComments21.php", dict(VERSION, levelID=level, accountID=2, gjp2=other)) == "-2", "Revoked friend retained comment access")
+            require(post("/a/getLevelRateInfo.php", dict(VERSION, levelID=level, accountID=2, gjp2=other)) == "-1",
+                    "Revoked friend retained rating information access")
             before_private = fixture("inspect")
             require(post("/a/uploadGJComment21.php", dict(VERSION, accountID=2, gjp2=other, levelID=level, comment=comment)) == "-1", "Nonfriend posted on private level")
             require(fixture("inspect") == before_private, "Rejected private comment changed data")
@@ -369,6 +385,84 @@ def run(php, report):
                     "Non-demon rate retained a demon subtype")
             fixture("user-role")
             checks.append("client-demon-rates/all-five-subtypes/warm-cache/star-refresh/permissions")
+
+            # Native RateInfoPopup consumes two colon sections and comma counts,
+            # not the level-list key/value format or a generic success marker.
+            info_auth = dict(VERSION, accountID=1, gjp2=GJP2, levelID=level)
+            zero_info = ",".join(["0"] * 10) + ":" + ",".join(["0"] * 5)
+            require(post("/database/getLevelRateInfo.php", info_auth) == zero_info,
+                    "Empty native rating histogram framing")
+            fixture("advisor-role")
+            for stars, tier in ((7, 1), (10, 4)):
+                require(post("/a/suggestGJStars20.php", dict(info_auth, stars=stars, feature=tier)) == "1",
+                        "Advisor suggestion fixture rejected")
+            expected_info = ",".join(["0"] * 9 + ["1"]) + ":0,0,0,1,0"
+            require(post("/a/getLevelRateInfo.php", info_auth) == expected_info,
+                    "Rating histogram must use the latest real suggestion per advisor")
+            info_before = fixture("inspect")["business_sha256"]
+            for invalid in (dict(info_auth, gjp2="wrong"), dict(info_auth, levelID=99999999),
+                            dict(info_auth, levelID="9" * 100),
+                            dict(info_auth, **{"levelID[]": "1"})):
+                require(post("/a/getLevelRateInfo.php", invalid) == "-1", "Invalid rating info accepted")
+            fixture("read-only")
+            require(post("/a/getLevelRateInfo.php", info_auth) == expected_info,
+                    "Read-only server blocked rating information")
+            fixture("writable")
+            require(fixture("inspect")["business_sha256"] == info_before, "Rating info mutated level data")
+            checks.append("native-rate-info/two-histograms/latest-advisor-vote/auth/read-only/no-mutation")
+
+            fixture("read-only")
+            refresh_before = fixture("inspect")
+            saved_refresh = post("/database/getSaveData.php", dict(VERSION, secret="Wmfd2893gb7"))
+            require(len(saved_refresh) > 40 and zlib.decompress(base64.urlsafe_b64decode(
+                    saved_refresh[20:-20])).decode() == level + ",9", "Native saved-level rating refresh framing/data")
+            require(post("/a/getSaveData.php", dict(VERSION, secret="wrong")) == "-1", "Bad rating refresh secret accepted")
+            require(fixture("inspect") == refresh_before, "Read-only rating refresh changed data")
+            fixture("writable")
+            require(post("/a/uploadGJLevel21.php", dict(upload, levelID=level, unlisted2=1)) == level,
+                    "Rated private level fixture rejected")
+            private_refresh = post("/a/getSaveData.php", dict(VERSION, secret="Wmfd2893gb7"))
+            require(zlib.decompress(base64.urlsafe_b64decode(private_refresh[20:-20])) == b"",
+                    "Saved-level refresh leaked rated friend-only level")
+            require(post("/a/uploadGJLevel21.php", dict(upload, levelID=level, unlisted2=0)) == level,
+                    "Rated public level restore rejected")
+            checks.append("native-saved-level-ratings/zlib-base64-20-byte-padding/read-only/private/no-account-save-leak")
+
+            # Queue mute is a moderation-queue filter. It must retain reports,
+            # player access and comments rather than banning the target.
+            queue_level = post("/a/uploadGJLevel21.php", dict(upload, accountID=2, gjp2=other,
+                               levelName="QueueFixture"))
+            require(queue_level.isdigit(), "Queue level fixture rejected")
+            require(post("/a/reportGJContent.php", dict(VERSION, accountID=1, gjp2=GJP2,
+                         type=1, targetID=queue_level, special=0, reasons="0")) == "1", "Queue report fixture rejected")
+            queue_auth = dict(VERSION, accountID=1, gjp2=GJP2, targetAccountID=2)
+            require(post("/a/adminQueueMute.php", queue_auth) == "-1", "Advisor queue mute accepted")
+            fixture("owner-role")
+            require(post("/a/adminGetReportQueue.php", queue_auth).startswith("1:0:20#2:"),
+                    "Reported account missing from queue")
+            before_mute = fixture("inspect")
+            for invalid in (dict(queue_auth, gjp2="wrong"), dict(queue_auth, targetAccountID=1),
+                            dict(queue_auth, targetAccountID=999999), dict(queue_auth, durationMinutes="invalid"),
+                            dict(queue_auth, **{"targetAccountID[]": "2"})):
+                require(post("/a/adminQueueMute.php", invalid) == "-1", "Invalid queue mute accepted")
+            require(fixture("inspect") == before_mute, "Rejected queue mute changed database")
+            fixture("read-only")
+            require(post("/a/adminQueueMute.php", queue_auth) == "-1", "Read-only queue mutation accepted")
+            fixture("writable")
+            require(post("/database/adminQueueMute.php", queue_auth) == "1", "Native queue mute failed")
+            require(post("/a/adminGetReportQueue.php", queue_auth) == "0:0:20#", "Muted account remained in queue")
+            after_mute = fixture("inspect")
+            require(after_mute["business_sha256"] == before_mute["business_sha256"]
+                    and after_mute["pending_reports"] == before_mute["pending_reports"]
+                    and after_mute["queue_mutes"] == 1, "Queue mute changed player data or erased reports")
+            require(post("/a/accounts/loginGJAccount22.php", dict(VERSION, userName="P0Other",
+                         password="P0Fixture-2!")) == "2,102", "Queue mute disabled player account")
+            require(post("/a/adminQueueUnmute.php", queue_auth) == "1", "Native queue unmute failed")
+            require(post("/a/adminGetReportQueue.php", queue_auth).startswith("1:0:20#2:"), "Unmute did not restore queue entry")
+            require(fixture("inspect")["queue_audit"] == ["QUEUE_MUTE", "QUEUE_UNMUTE"], "Queue audit missing")
+            require(post("/a/adminQueueUnmute.php", queue_auth) == "-1", "Absent mute reported as removed")
+            fixture("user-role")
+            checks.append("native-queue-mute/permissions/validation/read-only/filter/retain-reports/player-login/audit/unmute")
 
             # Local wall-clock observations only, deliberately excluded from the
             # native-client evidence directory and release certification registry.

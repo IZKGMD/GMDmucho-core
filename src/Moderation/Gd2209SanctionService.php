@@ -11,7 +11,7 @@ use Throwable;
 
 final readonly class Gd2209SanctionService
 {
-    private const KINDS = ['comment','upload','message','freeze','trending','name'];
+    private const KINDS = ['comment','upload','message','freeze','trending','name','queue'];
 
     public function __construct(
         private PDO $db,
@@ -112,7 +112,9 @@ final readonly class Gd2209SanctionService
             );
             $q->execute([
                 'actor'=>$actor, 'target'=>$target,
-                'action'=>strtoupper($kind) . ($enabled ? '_BAN' : '_UNBAN'),
+                'action'=>$kind === 'queue'
+                    ? ($enabled ? 'QUEUE_MUTE' : 'QUEUE_UNMUTE')
+                    : strtoupper($kind) . ($enabled ? '_BAN' : '_UNBAN'),
                 'detail'=>$durationMinutes,
             ]);
             $this->db->commit();

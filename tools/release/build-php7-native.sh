@@ -53,6 +53,7 @@ printf '%s\n' '<?php require __DIR__ . "/public/php7-admin.php";' > "$STAGE/mc/a
 # code-only update alongside the mirrors so the owner can advance that pointer.
 "${PHP_BIN:-php}" "$ROOT/tools/release/build-php7-core-pack.php" "$STAGE/mc/config"
 cp "$ROOT/docs/PHP7_NATIVE_PHASE1.md" "$STAGE/mc/docs/"
+cp "$ROOT/docs/GD_2209_NATIVE_ENDPOINT_AUDIT.md" "$STAGE/mc/docs/"
 cp "$ROOT/patchers/shared-hosting/README.md" \
    "$STAGE/mc/docs/5V_APACHE_ROUTES.md"
 

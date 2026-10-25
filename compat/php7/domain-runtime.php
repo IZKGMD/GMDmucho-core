@@ -52,14 +52,14 @@ function mucho7_domain_handle(PDO $db,$uri,$method,$post,$settings,$root)
     $plain=preg_replace('/(?:19|20|21|211|22)$/','',$path);
     $public=array('/health','/checkifserveronline','/getaccounturl','/getcustomcontenturl','/getgjlevels','/downloadgjlevel',
         '/getgjusers','/getgjusersearch','/getgjuserinfo','/getgjscores','/getgjsonginfo','/getgjcomments','/getgjaccountcomments',
-        '/getgjcommenthistory','/getgjdailylevel','/getgjgauntlets','/getgjmappacks','/getgjcreators','/getgjtopartists','/getgjlevellists','/getgjsongusage');
+        '/getgjcommenthistory','/getgjdailylevel','/getgjgauntlets','/getgjmappacks','/getgjcreators','/getgjtopartists','/getgjlevellists','/getgjsongusage','/getsavedata');
     if(empty($settings['enable_accounts'])&&!in_array($plain,$public,true))return \MuchoCore\Http\Response::text('-1');
     if($plain==='/backupgjaccount'&&isset($post['saveData'])&&(!is_string($post['saveData'])||strlen($post['saveData'])>8*1024*1024))return \MuchoCore\Http\Response::text('-1');
     if($plain==='/registergjaccount'&&(empty($settings['enable_registration'])||is_file($root.'/config/registrations-disabled.flag')))return \MuchoCore\Http\Response::text('-1');
     $read=in_array($plain,$public,true)||in_array($plain,array('/logingjaccount','/syncgjaccount','/getgjmessages','/downloadgjmessage',
         '/getgjfriendrequests','/getgjuserlist','/getgjthreads','/getgjthreadmessages','/getgjthreadmembers','/getgjthreadinvites',
         '/searchgjthreadmessages','/getgjfollowing','/syncgjfollowing','/getgjnotifications','/getgjeditorsounds','/downloadgjeditorsound',
-        '/getgjdeathdata','/getgjlevelcontrols'),true);
+        '/getgjdeathdata','/getgjlevelcontrols','/getlevelrateinfo'),true);
     if(empty($settings['enable_writes'])&&!$read)return \MuchoCore\Http\Response::text('-1');
     if(in_array($plain,array('/backupgjaccount','/syncgjaccount'),true)&&empty($settings['enable_cloudsave']))return \MuchoCore\Http\Response::text('-1');
     if(empty($settings['enable_social'])&&(preg_match('/(?:friend|message|thread|following|followgj|mutegj|notification)/',$plain)||strpos($path,'/clans/')===0))return \MuchoCore\Http\Response::text('-1');

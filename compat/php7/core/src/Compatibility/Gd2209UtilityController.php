@@ -45,5 +45,23 @@ final class Gd2209UtilityController
             return $this->service->openedRegister($r->postString('secret'));
         });
     }
+    public function levelRateInfo(Request $r): Response
+    {
+        foreach (['accountID', 'levelID'] as $key) {
+            $value = $r->post[$key] ?? null;
+            if (!is_string($value) && !is_int($value) || preg_match('/^[0-9]{1,18}$/D', (string) $value) !== 1 || (int) $value <= 0) {
+                return Response::text('-1');
+            }
+        }
+        return $this->run($r, function () use ($r): string {
+            return $this->service->levelRateInfo($r->postInt('accountID'), $r->gdCredential(), $r->postInt('levelID'));
+        });
+    }
+    public function savedLevelRatings(Request $r): Response
+    {
+        return $this->run($r, function () use ($r): string {
+            return $this->service->savedLevelRatings($r->postString('secret'));
+        });
+    }
     private $service;
 }
