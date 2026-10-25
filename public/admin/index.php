@@ -2451,7 +2451,7 @@ max-width:100%
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
 <link rel="stylesheet" href="/admin/admin-simple.css?v=3">
-<link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=2">
+<link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=3">
 <script src="/admin/admin-simple.js?v=3" defer></script>
 </head>
 <body class="admin-login mc-workspace" data-page="">
@@ -4998,7 +4998,7 @@ table{
 <script src="/assets/product-ui.js?v=4" defer></script>
 <link rel="stylesheet" href="/admin/admin-simple.css?v=3">
 <script src="/admin/admin-simple.js?v=3" defer></script>
-<link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=2">
+<link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=3">
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>
