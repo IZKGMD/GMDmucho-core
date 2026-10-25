@@ -25,6 +25,22 @@
         }
     }
 
+    let currentTransition;
+    function switchTheme(next){
+        const update=()=>{
+            try { localStorage.setItem(KEY,next); } catch { /* Optional preference. */ }
+            applyTheme(next);
+        };
+        if (!document.body.classList.contains('mc-admin') || !document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) { update(); return; }
+        currentTransition?.skipTransition();
+        document.documentElement.classList.add('mc-theme-changing');
+        const transition=document.startViewTransition(update);
+        currentTransition=transition;
+        transition.finished.finally(()=>{
+            if(currentTransition===transition){document.documentElement.classList.remove('mc-theme-changing');currentTransition=null;}
+        });
+    }
+
     function init(){
         applyTheme(preferredTheme());
 
@@ -34,8 +50,7 @@
             button.className = 'mucho-theme-toggle';
             button.addEventListener('click', () => {
                 const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-                try { localStorage.setItem(KEY, next); } catch { /* Private browsing. */ }
-                applyTheme(next);
+                switchTheme(next);
             });
             let slot = document.querySelector('.mc-theme-slot');
             if (!slot && document.body.classList.contains('mc-workspace')) {

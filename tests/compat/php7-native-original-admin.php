@@ -31,6 +31,7 @@ foreach(array('dashboard','players','levels','rating','songs','comments','messag
  }
  if($page==='players'&&strpos($html,'admin-record')===false)throw new RuntimeException('Original player record absent');
  if($page==='levels'&&strpos($html,'&lt;script&gt;alert(1)&lt;/script&gt;')===false)throw new RuntimeException('Level XSS escaping failed');
+ if(in_array($page,array('levels','rating'),true)&&strpos($html,'/mc/public/admin/assets/gd/')===false)throw new RuntimeException('Native difficulty faces absent: '.$page);
  if($page==='rating'&&strpos($html,'difficultyFacePreview')===false)throw new RuntimeException('Original rating editor absent');
 
  echo 'ORIGINAL_ADMIN_RENDER_OK '.$page."\n";

@@ -11,7 +11,7 @@ $extra=array_values(array_filter(
 $navLink=static function(string $key) use ($page,$pages): void {
     if (!canAdminPage($key)) return;
     $icon=in_array($key,['dashboard','players','levels','rating','songs','news','settings','plugins','admins'],true) ? $key : 'plugins';
-    if ($key==='clients') $icon='downloads';
+    if ($key==='clients' || $key==='clientpatcher') $icon='downloads';
     echo '<li><a href="/admin/?page='.h($key).'" title="'.h($pages[$key]).'" aria-current="'.($page===$key?'page':'false').'" class="'.($page===$key?'on':'').'">';
     echo (adminIsPlain()?'':adminGdIcon($icon)).'<span>'.h($pages[$key]).'</span></a></li>';
 };
@@ -30,6 +30,7 @@ $other=array_values(array_diff($extra,$listed));
 if ($other) $groups['Other tools']=$other;
 ?>
 <nav class="admin-nav" aria-label="Main">
+<?php if(!adminIsPlain()): ?><span class="mc-nav-caption">Workspace</span><?php endif; ?>
 <ul><?php foreach($primary as $key) $navLink($key); ?></ul>
 <?php if($groups): ?>
 <details class="admin-nav-extra" <?=in_array($page,$extra,true)?'open':''?>>
