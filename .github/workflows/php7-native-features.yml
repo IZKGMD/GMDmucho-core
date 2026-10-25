@@ -3,9 +3,9 @@ name: Native PHP7 feature integration
 on:
   push:
     branches: [main]
-    paths: ['compat/php7/**', 'public/php7*.php', 'public/assets/php7-*.js', 'public/assets/php7-admin.css', 'tests/compat/php7-native-*', 'tests/compat/php7-shared-*', 'tests/compat/shared-*.py', '.github/workflows/php7-native-features.yml']
+    paths: ['compat/php7/**', 'src/**', 'database/**', 'public/php7*.php', 'public/assets/php7-*.js', 'public/assets/php7-admin.css', 'tests/compat/php7-native-*', 'tests/compat/php7-shared-*', 'tests/compat/shared-*.py', 'tools/release/**', '.release/v*.ready', '.github/workflows/release-stable.yml', '.github/workflows/php7-native-features.yml']
   pull_request:
-    paths: ['compat/php7/**', 'public/php7*.php', 'public/assets/php7-*.js', 'public/assets/php7-admin.css', 'tests/compat/php7-native-*', 'tests/compat/php7-shared-*', 'tests/compat/shared-*.py', '.github/workflows/php7-native-features.yml']
+    paths: ['compat/php7/**', 'src/**', 'database/**', 'public/php7*.php', 'public/assets/php7-*.js', 'public/assets/php7-admin.css', 'tests/compat/php7-native-*', 'tests/compat/php7-shared-*', 'tests/compat/shared-*.py', 'tools/release/**', '.release/v*.ready', '.github/workflows/release-stable.yml', '.github/workflows/php7-native-features.yml']
   workflow_dispatch:
 
 permissions:

@@ -24,7 +24,11 @@ names = list(steps)
 assert names.index('Check release marker') < names.index('Verify release token')
 assert names.index('Build shared-hosting package') < names.index('Prepare validated release draft')
 assert names.index('Build source archive') < names.index('Prepare validated release draft')
-assert names.index('Upload source archive') < names.index('Publish complete validated release')
+assert names.index('Build native PHP7 shared-hosting package') < names.index('Prepare validated release draft')
+assert names.index('Checksum release distributions') < names.index('Prepare validated release draft')
+assert names.index('Require native PHP7 and PHP8 integration at the release commit') < names.index('Build native PHP7 shared-hosting package')
+for upload in ('Upload source archive', 'Upload native PHP7 shared-hosting package', 'Upload release checksums'):
+    assert names.index(upload) < names.index('Publish complete validated release')
 
 def run(args, cwd, env, good=True):
     result = subprocess.run(args, cwd=cwd, env=env, text=True, capture_output=True)
@@ -46,6 +50,7 @@ with tempfile.TemporaryDirectory(prefix='mc-release-publish-') as temporary:
                GH_FIXTURE_STATE=str(state), GITHUB_OUTPUT=str(base/'outputs'),
                GH_TOKEN='fixture', TAG='v1.0.1', VERSION='1.0.1',
                OUTPUT='MuchoCore-v1.0.1-shared-hosting.zip', ARCHIVE_ONLY='false',
+               OUTPUT_PATH='MuchoCore-v1.0.1-PHP7-shared-hosting.zip',
                GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull)
     # This double fails uploads on demand, records uploaded files, and only
     # exposes a stable release after the workflow explicitly publishes it.
@@ -64,7 +69,9 @@ if a[:2]==['release','upload']:
  assert Path(a[3]).is_file()
  if a[3] not in d['assets']: d['assets'].append(a[3])
 elif a[:2]==['release','edit']:
- assert '--draft=false' in a and '--latest' in a and len(d['assets'])==2
+ assert '--draft=false' in a and '--latest' in a
+ assert set(d['assets'])=={'MuchoCore-v1.0.1.zip','MuchoCore-v1.0.1-shared-hosting.zip',
+                         'MuchoCore-v1.0.1-PHP7-shared-hosting.zip','checksums.sha256'}
  d['draft']=False
 else: raise RuntimeError(a)
 p.write_text(json.dumps(d))
@@ -95,8 +102,20 @@ p.write_text(json.dumps(d))
     run(['git','add','.'],repo,env)
     run(['git','commit','-qm','old release'],repo,env)
     run(['git','tag','v1.0.0'],repo,env)
+    # Historical tag predates the native builder. New releases must build it;
+    # use a small version-sensitive archive double for the workflow shell test.
+    (repo/'tools/release/build-php7-native.sh').write_text('''#!/bin/bash
+set -euo pipefail
+if [[ "${FAIL_NATIVE_BUILD:-}" == 1 ]]; then exit 23; fi
+python3 - <<'PY'
+import os,zipfile
+from pathlib import Path
+with zipfile.ZipFile(os.environ['OUTPUT_PATH'],'w') as archive:
+ archive.writestr('mc/VERSION',Path('VERSION').read_bytes())
+PY
+''')
     (repo/'VERSION').write_text('1.0.1\n')
-    run(['git','add','VERSION'],repo,env)
+    run(['git','add','VERSION','tools/release/build-php7-native.sh'],repo,env)
     run(['git','commit','-qm','validated release'],repo,env)
     sha=run(['git','rev-parse','HEAD'],repo,env).stdout.strip()
     env['RELEASE_SHA']=sha
@@ -110,33 +129,60 @@ p.write_text(json.dumps(d))
 
     step('Build shared-hosting package',repo,env)
     step('Build source archive',repo,env)
+    failed=step('Build native PHP7 shared-hosting package',repo,dict(env,FAIL_NATIVE_BUILD='1'),good=False)
+    assert failed.returncode != 0 and not state.exists()
+    assert not run(['git','tag','-l','v1.0.1'],repo,env).stdout.strip()
+    failed=step('Checksum release distributions',repo,env,good=False)
+    assert failed.returncode != 0 and not state.exists()
+    print('PASS failed or absent native build stops before release draft/tag creation')
+    step('Build native PHP7 shared-hosting package',repo,env)
+    step('Checksum release distributions',repo,env)
+    with zipfile.ZipFile(repo/env['OUTPUT_PATH']) as archive:
+        assert archive.read('mc/VERSION')==b'1.0.1\n'
     step('Prepare validated release draft',repo,env)
     assert json.loads(state.read_text())['draft'] is True
     step('Upload shared-hosting package',repo,env)
     failed=step('Upload source archive',repo,dict(env,FAIL_UPLOAD='v1.0.1.zip'),good=False)
     assert failed.returncode != 0 and json.loads(state.read_text())['draft'] is True
     print('PASS failed upload leaves the new release unpublished')
+    failed=step('Upload native PHP7 shared-hosting package',repo,dict(env,FAIL_UPLOAD='PHP7-shared-hosting.zip'),good=False)
+    assert failed.returncode != 0 and json.loads(state.read_text())['draft'] is True
+    failed=step('Upload release checksums',repo,dict(env,FAIL_UPLOAD='checksums.sha256'),good=False)
+    assert failed.returncode != 0 and json.loads(state.read_text())['draft'] is True
+    original=(repo/env['OUTPUT_PATH']).read_bytes()
+    (repo/env['OUTPUT_PATH']).write_bytes(original+b'corrupt')
+    failed=step('Upload release checksums',repo,env,good=False)
+    assert failed.returncode != 0 and json.loads(state.read_text())['draft'] is True
+    (repo/env['OUTPUT_PATH']).write_bytes(original)
+    print('PASS native/checksum upload failures and checksum mismatch prevent publication')
     step('Prepare validated release draft',repo,env)
     step('Upload shared-hosting package',repo,env)
     step('Upload source archive',repo,env)
+    step('Upload native PHP7 shared-hosting package',repo,env)
+    step('Upload release checksums',repo,env)
     step('Publish complete validated release',repo,env)
     assert json.loads(state.read_text())['draft'] is False
     remote_sha=run(['git','ls-remote','origin','refs/tags/v1.0.1'],repo,env).stdout.split()[0]
     assert remote_sha==sha
-    print('PASS retry publishes both archives at the validated commit')
+    print('PASS retry publishes all three archives and their checksums at the validated commit')
     wrong=step('Prepare validated release draft',repo,dict(env,RELEASE_SHA='f'*40),good=False)
     assert wrong.returncode != 0 and 'refusing to move' in wrong.stderr
     print('PASS an existing stable tag cannot be moved')
 
     archive_env=dict(env,ARCHIVE_ONLY='true',TAG='v1.0.0',VERSION='1.0.0',
-                     OUTPUT='MuchoCore-v1.0.0-shared-hosting.zip')
+                     OUTPUT='MuchoCore-v1.0.0-shared-hosting.zip',
+                     OUTPUT_PATH='MuchoCore-v1.0.0-PHP7-shared-hosting.zip')
     step('Prepare shared-hosting dependencies',repo,archive_env)
     step('Build shared-hosting package',repo,archive_env)
     step('Build source archive',repo,archive_env)
+    step('Build native PHP7 shared-hosting package',repo,archive_env)
+    step('Checksum release distributions',repo,archive_env)
+    assert not (repo/archive_env['OUTPUT_PATH']).exists()
+    assert len((repo/'checksums.sha256').read_text().splitlines())==2
     with zipfile.ZipFile(repo/'MuchoCore-v1.0.0-shared-hosting.zip') as archive:
         assert archive.read('muchocore/VERSION')==b'1.0.0\n'
     with zipfile.ZipFile(repo/'MuchoCore-v1.0.0.zip') as archive:
         assert archive.read('MuchoCore-v1.0.0/VERSION')==b'1.0.0\n'
-    print('PASS archive repair builds both distributions from the requested tag')
+    print('PASS historical archive repair uses its requested tag without inventing a PHP7 package')
 
 print('MUCHOCORE_RELEASE_PUBLICATION_OK')
