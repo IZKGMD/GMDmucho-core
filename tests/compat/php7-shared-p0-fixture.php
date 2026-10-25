@@ -46,7 +46,7 @@ if($mode==='inspect'){
         sort($encoded,SORT_STRING);hash_update($business,$table.'|'.implode('|',$encoded));
     }
     echo json_encode(array(
-        'levels'=>$db->query('SELECT level_id,account_id,name,level_version,level_data,level_info,settings_string,song_ids,sfx_ids,downloads,stars,is_deleted,wt2,auto_level FROM levels ORDER BY level_id')->fetchAll(),
+        'levels'=>$db->query('SELECT level_id,account_id,name,level_version,level_data,level_info,settings_string,song_ids,sfx_ids,downloads,stars,is_deleted,wt2,auto_level,demon,demon_difficulty,custom_difficulty FROM levels ORDER BY level_id')->fetchAll(),
         'accounts'=>(int)$db->query('SELECT COUNT(*) FROM accounts')->fetchColumn(),
         'comments'=>(int)$db->query('SELECT COUNT(*) FROM comments')->fetchColumn(),
         'profiles'=>(int)$db->query('SELECT COUNT(*) FROM profiles')->fetchColumn(),
@@ -62,4 +62,12 @@ if($mode==='friendships'){
     $db->exec('INSERT IGNORE INTO friends(account_id,friend_account_id) VALUES(1,2)');exit;
 }
 if($mode==='clear-friendships'){$db->exec('DELETE FROM friends');exit;}
+if($mode==='owner-role'||$mode==='user-role'){
+    $role=$mode==='owner-role'?'owner':'user';
+    $db->prepare('UPDATE accounts SET role_id=(SELECT id FROM roles WHERE code=?) WHERE account_id=1')->execute(array($role));exit;
+}
+if($mode==='repeat-rating-schema'){
+    $migration=require $root.'/compat/php7/core/database/migrations/20261025_001_shared_level_rating_state.php';
+    $migration($db);exit;
+}
 throw new RuntimeException('Unknown fixture operation.');

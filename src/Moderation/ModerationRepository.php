@@ -114,6 +114,10 @@ final readonly class ModerationRepository
         $q=$this->pdo->prepare(
             'UPDATE levels
              SET
+                demon_difficulty=CASE
+                    WHEN :keep_demon=1 AND demon=1 AND custom_difficulty=0
+                    THEN demon_difficulty ELSE 0 END,
+                custom_difficulty=0,
                 stars=:stars,
                 difficulty=:difficulty,
                 auto_level=:auto,
@@ -126,6 +130,7 @@ final readonly class ModerationRepository
         );
 
         $q->execute([
+            'keep_demon'=>$demon,
             'stars'=>$stars,
             'difficulty'=>$difficulty,
             'auto'=>$auto,
@@ -157,17 +162,20 @@ final readonly class ModerationRepository
         $q=$this->pdo->prepare(
             'UPDATE levels
              SET
+                demon_difficulty=CASE
+                    WHEN :keep_demon=1 AND demon=1 AND custom_difficulty=0
+                    THEN demon_difficulty ELSE 0 END,
+                custom_difficulty=0,
                 stars=:stars,
                 difficulty=:difficulty,
                 auto_level=:auto,
-                demon=:demon,
-                demon_difficulty=0,
-                custom_difficulty=0
+                demon=:demon
              WHERE level_id=:id
                AND is_deleted=0'
         );
 
         $q->execute([
+            'keep_demon'=>$demon,
             'stars'=>$stars,
             'difficulty'=>$difficulty,
             'auto'=>$auto,

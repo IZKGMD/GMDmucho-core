@@ -170,7 +170,7 @@ final class Application
         $songRepo = new SongRepository($this->pdo);
         $songController = new SongController(new SongService($songRepo, new GdSongEncoder()));
         $songUsageController = new SongUsageController(new SongUsageService($this->pdo));
-        $modController = new ModerationController(new ModerationService($auth, $modRepo));
+        $modController = new ModerationController(new ModerationService($auth, $modRepo, $cache));
         $reportQueueController = new ReportQueueController(new ReportQueueService($auth, $modRepo, new ReportQueueRepository($this->pdo)));
         $gd2209Cases = new Gd2209CaseController(new Gd2209CaseService($this->pdo, $auth, $modRepo, new ReportQueueRepository($this->pdo)));
         $gd2209ContentActions = new Gd2209ContentActionController(new Gd2209ContentActionService($this->pdo, $auth, $modRepo));

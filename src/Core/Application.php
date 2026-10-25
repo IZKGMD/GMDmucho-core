@@ -261,7 +261,7 @@ final readonly class Application
         $songUsageController = new SongUsageController(new SongUsageService($this->pdo));
 
         $modController = new ModerationController(
-            new ModerationService($auth, $modRepo)
+            new ModerationService($auth, $modRepo, $cache)
         );
         $reportQueueController = new ReportQueueController(
             new ReportQueueService($auth, $modRepo,

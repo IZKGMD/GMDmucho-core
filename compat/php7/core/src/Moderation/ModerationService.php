@@ -8,15 +8,17 @@ declare (strict_types=1);
 namespace MuchoCore\Moderation;
 
 use MuchoCore\Account\AccountAuthenticator;
+use MuchoCore\Cache\CacheInterface;
 use RuntimeException;
 final class ModerationService
 {
     const MODERATOR_ROLES = ['moderator', 'elder_moderator', 'owner'];
     const DIRECT_RATE_ROLES = ['elder_moderator', 'owner'];
-    public function __construct(AccountAuthenticator $auth, ModerationRepository $repository)
+    public function __construct(AccountAuthenticator $auth, ModerationRepository $repository, CacheInterface $cache)
     {
         $this->auth = $auth;
         $this->repository = $repository;
+        $this->cache = $cache;
     }
     public function suggestStars(int $accountId, string $gjp, int $levelId, int $stars, int $featureTier, int $coinsVerified)
     {
@@ -38,6 +40,7 @@ final class ModerationService
             if ($author === null) {
                 throw new RuntimeException('Level not found');
             }
+            $this->cache->deletePrefix('mucho:levels:');
             $this->repository->logAction($accountId, $levelId, 'RATE_APPLIED', ['stars' => $stars, 'feature_tier' => $featureTier, 'coins_verified' => $coinsVerified, 'author_account_id' => $author]);
             return;
         }
@@ -56,6 +59,7 @@ final class ModerationService
         if ($author === null) {
             throw new RuntimeException('Level not found');
         }
+        $this->cache->deletePrefix('mucho:levels:');
         $this->repository->logAction($accountId, $levelId, 'STAR_RATE_APPLIED', ['stars' => $stars, 'author_account_id' => $author]);
     }
     public function rateDemon(int $accountId, string $gjp, int $levelId, int $rating)
@@ -71,6 +75,7 @@ final class ModerationService
         if (!$this->repository->applyDemonDifficulty($levelId, $rating)) {
             throw new RuntimeException('Level not found');
         }
+        $this->cache->deletePrefix('mucho:levels:');
         $this->repository->logAction($accountId, $levelId, 'DEMON_DIFFICULTY_APPLIED', ['rating' => $rating]);
     }
     public function reportLevel(int $levelId, string $reporterHash): int
@@ -88,4 +93,5 @@ final class ModerationService
     }
     private $auth;
     private $repository;
+    private $cache;
 }

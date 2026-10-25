@@ -80,6 +80,10 @@ final class ModerationRepository
         })();
         $q = $this->pdo->prepare('UPDATE levels
              SET
+                demon_difficulty=CASE
+                    WHEN :keep_demon=1 AND demon=1 AND custom_difficulty=0
+                    THEN demon_difficulty ELSE 0 END,
+                custom_difficulty=0,
                 stars=:stars,
                 difficulty=:difficulty,
                 auto_level=:auto,
@@ -89,7 +93,7 @@ final class ModerationRepository
                 coins_verified=:coins
              WHERE level_id=:id
                AND is_deleted=0');
-        $q->execute(['stars' => $stars, 'difficulty' => $difficulty, 'auto' => $auto, 'demon' => $demon, 'featured' => $featured, 'epic' => $epic, 'coins' => $coinsVerified, 'id' => $levelId]);
+        $q->execute(['keep_demon' => $demon, 'stars' => $stars, 'difficulty' => $difficulty, 'auto' => $auto, 'demon' => $demon, 'featured' => $featured, 'epic' => $epic, 'coins' => $coinsVerified, 'id' => $levelId]);
         $this->recalculateCreatorPoints($author);
         return $author;
     }
@@ -102,15 +106,17 @@ final class ModerationRepository
         list($difficulty, $auto, $demon) = $this->starState($stars);
         $q = $this->pdo->prepare('UPDATE levels
              SET
+                demon_difficulty=CASE
+                    WHEN :keep_demon=1 AND demon=1 AND custom_difficulty=0
+                    THEN demon_difficulty ELSE 0 END,
+                custom_difficulty=0,
                 stars=:stars,
                 difficulty=:difficulty,
                 auto_level=:auto,
-                demon=:demon,
-                demon_difficulty=0,
-                custom_difficulty=0
+                demon=:demon
              WHERE level_id=:id
                AND is_deleted=0');
-        $q->execute(['stars' => $stars, 'difficulty' => $difficulty, 'auto' => $auto, 'demon' => $demon, 'id' => $levelId]);
+        $q->execute(['keep_demon' => $demon, 'stars' => $stars, 'difficulty' => $difficulty, 'auto' => $auto, 'demon' => $demon, 'id' => $levelId]);
         $this->recalculateCreatorPoints($author);
         return $author;
     }
