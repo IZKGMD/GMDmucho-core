@@ -39,7 +39,7 @@ function adminExtraGroups(): array
 function adminInterfaceUrl(bool $plain, array $query): string
 {
     $safe=[];
-    foreach (['page','q','filter','p','id','table','tab','edit'] as $key) {
+    foreach (['page','q','filter','p','id','table','table_q','tab','edit'] as $key) {
         if (isset($query[$key]) && is_scalar($query[$key])) $safe[$key]=(string)$query[$key];
     }
     return ($plain?'/admin/plain/':'/admin/').($safe?'?'.http_build_query($safe):'');

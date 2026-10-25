@@ -2451,7 +2451,7 @@ max-width:100%
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
 <link rel="stylesheet" href="/admin/admin-simple.css?v=3">
-<link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=1">
+<link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=2">
 <script src="/admin/admin-simple.js?v=3" defer></script>
 </head>
 <body class="admin-login mc-workspace" data-page="">
@@ -4998,7 +4998,7 @@ table{
 <script src="/assets/product-ui.js?v=4" defer></script>
 <link rel="stylesheet" href="/admin/admin-simple.css?v=3">
 <script src="/admin/admin-simple.js?v=3" defer></script>
-<link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=1">
+<link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=2">
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>
@@ -5075,7 +5075,7 @@ table{
 
 <div class="mc-header-actions">
 <details class="mc-view-menu"><summary aria-label="Interface options">View <span aria-hidden="true">⌄</span></summary><div class="mc-view-popover"><?php adminInterfaceSwitch($_GET); ?></div></details>
-<button type="button" class="command-launcher" id="commandLauncher" aria-haspopup="dialog" title="Quick navigation (Ctrl+K)"><span>Quick navigation</span><kbd>Ctrl K</kbd></button>
+<button type="button" class="command-launcher" id="commandLauncher" aria-haspopup="dialog" title="Quick navigation (Ctrl+K)"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="12" y="3" width="5" height="5" rx="1"/><rect x="3" y="12" width="5" height="5" rx="1"/><rect x="12" y="12" width="5" height="5" rx="1"/></svg><span class="sr-only">Quick navigation</span><kbd>Ctrl K</kbd></button>
 <div class="mc-theme-slot"></div>
 <div class="user-pill">
 <div class="avatar">
