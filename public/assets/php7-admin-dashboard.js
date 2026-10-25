@@ -27,8 +27,8 @@
             if(!data.events.length){const empty=document.createElement('div');empty.className='empty-state';empty.textContent=ru()?'No administrator events yet.':'No administrator events yet.';root.append(empty);}
             state.textContent='LIVE';state.classList.add('green');
         }catch{
-            state.textContent=ru()?'No relationships':'Unavailable';state.classList.remove('green');
-            if(!root.querySelector('.admin-live-audit-row'))root.textContent=ru()?'Unable to load the audit log. Retrying automatically.':'Could not load the audit feed. Retrying automatically.';
+            state.textContent=ru()?'Unavailable':'Unavailable';state.classList.remove('green');
+            if(!root.querySelector('.admin-live-audit-row'))root.textContent=ru()?'Could not load the audit feed. Retrying automatically.':'Could not load the audit feed. Retrying automatically.';
         }finally{clearTimeout(timer);active=false;}
     }
     details?.addEventListener('toggle',()=>{if(details.open)refresh();});

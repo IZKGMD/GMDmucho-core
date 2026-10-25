@@ -52,4 +52,3 @@ foreach(
 
     echo '</table></div>';
 }
-

@@ -5,7 +5,7 @@ class AdminUiTestPDO extends PDO {
     #[\ReturnTypeWillChange]
     public function prepare($query,$options=array()){return parent::prepare(str_replace(' FOR UPDATE','',$query),$options);}
     #[\ReturnTypeWillChange]
-    public function query($query,...$args){return parent::query(str_replace(' FOR UPDATE','',$query),...$args);}
+    public function query($query,...$args){if($query==='SHOW TABLES')$query="SELECT name FROM sqlite_master WHERE type='table' ORDER BY name";return parent::query(str_replace(' FOR UPDATE','',$query),...$args);}
 }
 $pdo=new AdminUiTestPDO('sqlite::memory:');$pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
 $pdo->exec("CREATE TABLE roles(id INTEGER PRIMARY KEY,code TEXT,priority INTEGER); INSERT INTO roles VALUES(4,'owner',30);
@@ -19,17 +19,33 @@ CREATE TABLE songs(id INTEGER,name TEXT,author_name TEXT,size REAL,is_verified I
 $_SESSION=array('csrf'=>str_repeat('a',48));$_SERVER['SCRIPT_NAME']='/mc/admin.php';$adminNonce='testNonce123';
 $settings=array('site_url'=>'https://example.invalid');$hasOwner=true;$schemaReady=true;$freshInstall=false;$error='';$notice='';
 $user=array('account_id'=>1,'username'=>'Owner','role'=>'owner');
-foreach(array('dashboard','players','levels','rating','songs','comments','messages','audit','settings') as $page){
+foreach(array('dashboard','players','levels','rating','songs','comments','messages','audit','settings','clientpatcher') as $page){
  $_GET=array('page'=>$page,'id'=>1);ob_start();require $root.'/compat/php7/admin-view.php';$html=ob_get_clean();
  if(strpos($html,'GDPS Administration')===false||strpos($html,'/mc/public/admin/admin-simple.css')===false||strpos($html,'/mc/public/admin/assets/gd/')===false)throw new RuntimeException('Original shell/assets absent: '.$page);
  if(preg_match('~<[^>]+\sstyle=~',$html))throw new RuntimeException('Unnonced layout attribute: '.$page);
  foreach(array('admin-simple.js','php7-admin-product.js') as $asset){if(substr_count($html,$asset)!==1)throw new RuntimeException('Duplicate or missing behavior script: '.$page.' '.$asset);}
+ if(substr_count($html,'admin-workspace.css')!==1)throw new RuntimeException('Missing workspace composition: '.$page);
+ if($page==='clientpatcher'){
+  $dom=new DOMDocument();@$dom->loadHTML($html);$xp=new DOMXPath($dom);
+  foreach(array('sharedPatcherFile','sharedPatcherServer','sharedPatcherAlongside','sharedPatcherStart','sharedPatcherReset','sharedPatcherProgress','sharedPatcherStatus','sharedPatcherDownload','sharedPatcherReport') as $id)if($xp->query('//*[@id="sharedPatcher"]//*[@id="'.$id.'"]')->length!==1)throw new RuntimeException('Patcher control moved outside its form: '.$id);
+ }
  if($page==='players'&&strpos($html,'admin-record')===false)throw new RuntimeException('Original player record absent');
  if($page==='levels'&&strpos($html,'&lt;script&gt;alert(1)&lt;/script&gt;')===false)throw new RuntimeException('Level XSS escaping failed');
  if($page==='rating'&&strpos($html,'difficultyFacePreview')===false)throw new RuntimeException('Original rating editor absent');
 
  echo 'ORIGINAL_ADMIN_RENDER_OK '.$page."\n";
 }
+// Render the newly composed tools independently of the compiled core bootstrap.
+$page='endpoints';$_SESSION['endpoint_result']='<script>response</script>';ob_start();require $root.'/compat/php7/admin-ui/endpoints.php';$endpointHtml=ob_get_clean();
+if(isset($_SESSION['endpoint_result'])||strpos($endpointHtml,'&lt;script&gt;response&lt;/script&gt;')===false)throw new RuntimeException('Endpoint response escaping/consumption changed');
+$dom=new DOMDocument();@$dom->loadHTML($endpointHtml);$xp=new DOMXPath($dom);
+if($xp->query('//form[input[@name="csrf"] and input[@name="action" and @value="endpoint-test"]]//textarea[@name="payload"]')->length!==1)throw new RuntimeException('Endpoint request controls lost their form');
+$page='database';$_GET=array('table'=>'profiles','table_q'=>'PROF');ob_start();require $root.'/compat/php7/admin-ui/database.php';$databaseHtml=ob_get_clean();
+$dom=new DOMDocument();@$dom->loadHTML($databaseHtml);$xp=new DOMXPath($dom);
+if($xp->query('//nav[@aria-label="Table selection"]/a')->length!==1||$xp->query('//a[@aria-current="page"]')->length!==1||strpos($databaseHtml,'<td>100</td>')===false)throw new RuntimeException('Database filter or selected table preview failed');
+$_GET=array('table'=>array('accounts'),'table_q'=>array('accounts'));ob_start();require $root.'/compat/php7/admin-ui/database.php';$databaseHtml=ob_get_clean();
+if(strpos($databaseHtml,'Select a table')===false)throw new RuntimeException('Database invalid filter handling failed');
+echo "ORIGINAL_ADMIN_TOOLS_RENDER_OK\n";
 $page='players';$_GET=array('ui'=>'plain','q'=>'Owner');ob_start();require $root.'/compat/php7/admin-view.php';$plain=ob_get_clean();if(substr_count(strtolower($plain),'<!doctype')!==1||strpos($plain,'rel="stylesheet"')!==false)throw new RuntimeException('Plain document regression');
 foreach(array('admin-simple.js','php7-admin-product.js') as $asset){if(substr_count($plain,$asset)!==1)throw new RuntimeException('Duplicate or missing Plain behavior script: '.$asset);}
 preg_match_all('~<a\\b[^>]*>~',$plain,$links);

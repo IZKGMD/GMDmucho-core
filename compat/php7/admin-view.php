@@ -23,8 +23,8 @@ if(!$user || !adminIsPlain()):
 <?php if($user):?><link rel="stylesheet" href="/admin/admin-ui-v2.css?v=4"><?php endif ?>
 <link rel="stylesheet" href="/muchocore-theme.css?v=3"><script src="/muchocore-theme.js?v=4" defer></script>
 <link rel="stylesheet" href="/assets/product-ui.css?v=2"><link rel="stylesheet" href="/admin/product-admin.css?v=1">
-<?php if($user):?><script src="/assets/php7-admin-product.js" defer></script><link rel="stylesheet" href="/admin/admin-simple.css?v=1"><?php endif ?>
-<script src="/admin/admin-simple.js?v=2" defer></script><link rel="stylesheet" href="/admin/admin-polish.css?v=4">
+<?php if($user):?><script src="/assets/php7-admin-product.js" defer></script><?php endif ?><link rel="stylesheet" href="/admin/admin-simple.css?v=3">
+<script src="/admin/admin-simple.js?v=2" defer></script><link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=1">
 </head>
 <?php endif;if(!$user):?>
 <body class="admin-login mc-workspace" data-page=""><main class="admin-auth-card"><header><?php adminBrand($branding['server_name']);adminInterfaceSwitch();?></header>
