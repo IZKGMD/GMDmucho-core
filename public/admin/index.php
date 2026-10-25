@@ -2450,7 +2450,8 @@ max-width:100%
 
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
-<link rel="stylesheet" href="/admin/admin-polish.css?v=4">
+<link rel="stylesheet" href="/admin/admin-simple.css?v=3">
+<link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=4">
 <script src="/admin/admin-simple.js?v=3" defer></script>
 </head>
 <body class="admin-login mc-workspace" data-page="">
@@ -4995,9 +4996,9 @@ table{
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
 <script src="/assets/product-ui.js?v=4" defer></script>
-<link rel="stylesheet" href="/admin/admin-simple.css?v=2">
+<link rel="stylesheet" href="/admin/admin-simple.css?v=3">
 <script src="/admin/admin-simple.js?v=3" defer></script>
-<link rel="stylesheet" href="/admin/admin-polish.css?v=4">
+<link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=4">
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>
@@ -5046,6 +5047,7 @@ table{
 >☰</button>
 
 <div class="head-title">
+<span class="mc-section-caption">SERVER WORKSPACE</span>
 <h1><?=h($pages[$page])?></h1>
 <small><?=h((string)((Environment::get('MUCHO_ACCOUNT_URL', '') ?: $branding['server_name'])))?></small>
 </div>
@@ -5071,8 +5073,9 @@ table{
 <?php endif; ?>
 
 
-<?php adminInterfaceSwitch($_GET); ?>
-<button type="button" class="command-launcher" id="commandLauncher" aria-haspopup="dialog" title="Quick navigation (Ctrl+K)"><span>Quick navigation</span><kbd>Ctrl K</kbd></button>
+<div class="mc-header-actions">
+<details class="mc-view-menu"><summary aria-label="Interface options">View <span aria-hidden="true">⌄</span></summary><div class="mc-view-popover"><?php adminInterfaceSwitch($_GET); ?></div></details>
+<button type="button" class="command-launcher" id="commandLauncher" aria-haspopup="dialog" title="Quick navigation (Ctrl+K)"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="12" y="3" width="5" height="5" rx="1"/><rect x="3" y="12" width="5" height="5" rx="1"/><rect x="12" y="12" width="5" height="5" rx="1"/></svg><span class="sr-only">Quick navigation</span><kbd>Ctrl K</kbd></button>
 <div class="mc-theme-slot"></div>
 <div class="user-pill">
 <div class="avatar">
@@ -5082,6 +5085,7 @@ table{
 <div class="user-text">
 <b><?=h(admin()['username'])?></b><br>
 <small><?=h(admin()['role'])?></small>
+</div>
 </div>
 </div>
 
@@ -5366,63 +5370,55 @@ elseif($page==='intelligence') {
 elseif($page==='database') {
 
 requireRank(40);
-
-$tables=$db->query('SHOW TABLES')
-    ->fetchAll(PDO::FETCH_COLUMN);
-
-$selected=(string)($_GET['table'] ?? '');
-
-echo '<div class="row">';
-
-foreach($tables as $t) {
-    echo '<a class="btn gray" href="/admin/?page=database&table='.
-        rawurlencode($t).
-        '">'.h($t).'</a>';
-}
-
-echo '</div>';
-
-if (
-    $selected!=='' &&
-    in_array($selected,$tables,true)
-) {
-    echo '<h2>'.h($selected).'</h2>';
-
-    $rows=$db->query(
-        "SELECT * FROM `$selected`
-         LIMIT 100"
-    )->fetchAll(PDO::FETCH_ASSOC);
-
-    echo '<div class="table"><table>';
-
-    if($rows) {
-        echo '<tr>';
-
-        foreach(array_keys($rows[0]) as $k) {
-            echo '<th>'.h($k).'</th>';
-        }
-
-        echo '</tr>';
-
-        foreach($rows as $r) {
-            echo '<tr>';
-
-            foreach($r as $v) {
-                $v=(string)$v;
-
-                if(strlen($v)>150) {
-                    $v=substr($v,0,150).'…';
-                }
-
-                echo '<td>'.h($v).'</td>';
-            }
-
-            echo '</tr>';
-        }
-    }
-
-    echo '</table></div>';
-}
+$tables=$db->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
+$selected=is_string($_GET['table'] ?? null)?$_GET['table']:'';
+$tableQuery=is_string($_GET['table_q'] ?? null)?substr(trim($_GET['table_q']),0,100):'';
+?>
+<p class="mc-page-lead">Browse your server tables. This view shows up to 100 rows per table.</p>
+<div class="mc-database-layout">
+<section class="card mc-database-catalog" aria-label="Database tables">
+<h2>Tables <small>(<?=count($tables)?>)</small></h2>
+<form method="get">
+<input type="hidden" name="page" value="database">
+<?php if($selected!==''): ?><input type="hidden" name="table" value="<?=h($selected)?>"><?php endif; ?>
+<label for="databaseTableSearch" class="sr-only">Filter table names</label>
+<input id="databaseTableSearch" name="table_q" value="<?=h($tableQuery)?>" placeholder="Find a table…" type="search">
+<button type="submit" class="gray">Filter tables</button>
+</form>
+<nav class="mc-database-list" aria-label="Table selection">
+<?php $visibleTables=0; foreach($tables as $t):
+    if($tableQuery!=='' && stripos($t,$tableQuery)===false) continue;
+    $visibleTables++;
+?>
+<a href="/admin/?page=database&amp;table=<?=rawurlencode($t)?>&amp;table_q=<?=rawurlencode($tableQuery)?>" <?=$selected===$t?'aria-current="page"':''?>><?=h($t)?></a>
+<?php endforeach; ?>
+<?php if(!$visibleTables): ?><p>No matching tables.</p><?php endif; ?>
+</nav>
+</section>
+<section class="card mc-database-data">
+<?php if($selected!=='' && in_array($selected,$tables,true)):
+    $quotedTable=str_replace('`','``',$selected);
+    $rows=$db->query("SELECT * FROM `$quotedTable` LIMIT 100")->fetchAll(PDO::FETCH_ASSOC);
+?>
+<div class="mc-section-label">Table preview</div>
+<h2><?=h($selected)?></h2>
+<p class="mc-page-lead"><?=count($rows)?> rows shown · Long values are shortened for display.</p>
+<?php if($rows): ?>
+<div class="table"><table>
+<thead><tr><?php foreach(array_keys($rows[0]) as $k): ?><th scope="col"><?=h($k)?></th><?php endforeach; ?></tr></thead>
+<tbody>
+<?php foreach($rows as $r): ?><tr><?php foreach($r as $v):
+    $v=(string)$v;
+    if(strlen($v)>150) $v=substr($v,0,150).'…';
+?><td><?=h($v)?></td><?php endforeach; ?></tr><?php endforeach; ?>
+</tbody></table></div>
+<?php else: ?><div class="mc-empty-panel"><strong>This table is empty</strong><p>There are no rows to display.</p></div><?php endif; ?>
+<?php else: ?>
+<div class="mc-empty-panel"><strong>Select a table</strong><p>Choose a table from the list to preview its rows.</p></div>
+<?php endif; ?>
+</section>
+</div>
+<?php
 }
 
 /* =========================================================
@@ -5430,39 +5426,41 @@ if (
 ========================================================= */
 
 elseif($page==='endpoints') {
-
 $result=$_SESSION['endpoint_result'] ?? null;
 unset($_SESSION['endpoint_result']);
-
 ?>
-<div class="card">
+<p class="mc-page-lead">Send a request through the local endpoint handler and inspect its response.</p>
+<div class="mc-two-panel">
+<section class="card">
+<div class="mc-section-label">Request</div>
+<h2>Endpoint tester</h2>
 <form method="post">
-
 <input type="hidden" name="csrf" value="<?=csrf()?>">
 <input type="hidden" name="action" value="endpoint-test">
 <input type="hidden" name="return" value="endpoints">
-
-<div>
-<small>Endpoint</small><br>
-<input
- style="width:100%;margin-top:5px"
- name="endpoint"
- value="/getGJLevels21.php"
->
+<div class="mc-form-field">
+<label for="endpointPath">Endpoint path</label>
+<input id="endpointPath" name="endpoint" value="/getGJLevels21.php" required spellcheck="false" autocomplete="off">
+<small>Enter an endpoint path, for example /getGJLevels21.php.</small>
 </div>
-
-<div style="margin-top:12px">
-<small>POST payload</small>
-<textarea name="payload" placeholder="type=0&page=0"></textarea>
+<div class="mc-form-field">
+<label for="endpointPayload">POST payload</label>
+<textarea id="endpointPayload" class="mc-api-payload" name="payload" placeholder="type=0&amp;page=0" spellcheck="false"></textarea>
+<small>Use form data: key=value pairs separated by &amp;.</small>
 </div>
-
-<button>Send locally</button>
+<div class="mc-form-actions"><button type="submit">Send locally</button></div>
 </form>
-
+</section>
+<section class="card mc-api-response" aria-live="polite">
+<div class="mc-section-label">Output</div>
 <?php if($result!==null): ?>
 <h2>Response</h2>
 <pre><?=h($result)?></pre>
-<?php endif ?>
+<?php else: ?>
+<h2>Response</h2>
+<div class="mc-empty-panel"><strong>Ready for a request</strong><p>The handler response will appear here.</p></div>
+<?php endif; ?>
+</section>
 </div>
 <?php
 }

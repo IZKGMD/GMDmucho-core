@@ -39,7 +39,7 @@ cp "$ROOT/public/recovery/recovery.css" "$STAGE/mc/public/recovery/"
 cp "$ROOT/public/assets/muchocore-icon.png" "$ROOT/public/assets/muchocore-favicon-v4.png" "$STAGE/mc/public/assets/"
 # Original VPS admin CSS, scripts and GD assets are copied byte-for-byte.
 mkdir -p "$STAGE/mc/public/admin/assets"
-for asset in admin-ui-v2.css admin-i18n.css admin-i18n.js admin-simple.css admin-simple.js admin-polish.css product-admin.css; do
+for asset in admin-ui-v2.css admin-i18n.css admin-i18n.js admin-simple.css admin-simple.js admin-polish.css product-admin.css admin-workspace.css; do
   cp "$ROOT/public/admin/$asset" "$STAGE/mc/public/admin/"
 done
 cp -a "$ROOT/public/admin/assets/gd" "$STAGE/mc/public/admin/assets/"

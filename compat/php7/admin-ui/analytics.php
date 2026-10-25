@@ -11,7 +11,7 @@ try {
          GROUP BY DATE(created_at)
          ORDER BY d"
     )->fetchAll(PDO::FETCH_ASSOC);
-} catch(Throwable $error) {}
+} catch (Throwable $error) {}
 
 try {
     $charts['Levels — last 14 days']=$db->query(
@@ -21,7 +21,7 @@ try {
          GROUP BY DATE(created_at)
          ORDER BY d"
     )->fetchAll(PDO::FETCH_ASSOC);
-} catch(Throwable $error) {}
+} catch (Throwable $error) {}
 
 foreach($charts as $title=>$data) {
     echo '<div class="card" style="margin-bottom:14px">';
@@ -49,4 +49,3 @@ foreach($charts as $title=>$data) {
 
     echo '</div>';
 }
-

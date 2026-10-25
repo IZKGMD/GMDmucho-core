@@ -52,7 +52,6 @@ foreach($rows as $r):
 }else{
 
 
-
 if (!tableExists($db,'php7_messages')) {
     echo '<div class="card">';
     echo '<h2 style="margin-top:0">Messages</h2>';

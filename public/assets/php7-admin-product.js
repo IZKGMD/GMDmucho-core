@@ -36,7 +36,7 @@
             const target=document.getElementById(button.dataset.copyTarget);
             if(!target)return;
             try{await navigator.clipboard.writeText(target.textContent.trim());toast(label('Command copied','Command copied'));}
-            catch{const range=document.createRange();range.selectNodeContents(target);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);toast(label('Command selected. Press Ctrl+C or hold the text to copy.','Command selected. Press Ctrl+C or long-press to copy.'));}
+            catch{const range=document.createRange();range.selectNodeContents(target);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);toast(label('Command selected. Press Ctrl+C or long-press to copy.','Command selected. Press Ctrl+C or long-press to copy.'));}
         });
     });
     document.querySelectorAll('[data-copy-value]').forEach(button=>{
@@ -113,7 +113,7 @@
             const meta=document.createElement('small');meta.textContent=groupFor(entry);
             a.append(name,meta);a.addEventListener('click',()=>{storage.set('mucho.control.recent',[entry.href,...recent.filter(v=>v!==entry.href)].slice(0,5));});commands.append(a);
         });
-        if(!results.length){const empty=document.createElement('div');empty.className='mc-command-empty';empty.textContent=label('No sections found','No matching sections');commands.append(empty);}
+        if(!results.length){const empty=document.createElement('div');empty.className='mc-command-empty';empty.textContent=label('No matching sections','No matching sections');commands.append(empty);}
     }
     const openCommands=()=>{
         previousFocus=document.activeElement;title.textContent=label('Quick navigation','Quick navigation');input.placeholder=label('Find a section…','Find a section…');input.setAttribute('aria-label',input.placeholder);dismiss.setAttribute('aria-label',label('Close','Close'));input.value='';renderCommands();dialog.showModal();input.focus();

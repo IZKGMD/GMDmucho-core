@@ -9,7 +9,6 @@
 <!-- MUCHO_LANG_FLAGS -->
 <div id="muchoLangSwitcher" class="mucho-lang-switcher">
     <button type="button" data-lang="en" title="English">EN</button>
-    <button type="button" data-lang="ru" title="Russian">RU</button>
 </div>
 <!-- /MUCHO_LANG_FLAGS -->
 
@@ -42,6 +41,7 @@
 >☰</button>
 
 <div class="head-title">
+<span class="mc-section-caption">SERVER WORKSPACE</span>
 <h1><?=h($pages[$page])?></h1>
 <small><?=h((string)(!empty($settings['site_url'])?$settings['site_url']:$branding['server_name']))?></small>
 </div>
@@ -67,8 +67,9 @@
 <?php endif; ?>
 
 
-<?php adminInterfaceSwitch($_GET); ?>
-<button type="button" class="command-launcher" id="commandLauncher" aria-haspopup="dialog" title="Quick navigation (Ctrl+K)"><span>Quick navigation</span><kbd>Ctrl K</kbd></button>
+<div class="mc-header-actions">
+<details class="mc-view-menu"><summary aria-label="Interface options">View <span aria-hidden="true">⌄</span></summary><div class="mc-view-popover"><?php adminInterfaceSwitch($_GET); ?></div></details>
+<button type="button" class="command-launcher" id="commandLauncher" aria-haspopup="dialog" title="Quick navigation (Ctrl+K)"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="12" y="3" width="5" height="5" rx="1"/><rect x="3" y="12" width="5" height="5" rx="1"/><rect x="12" y="12" width="5" height="5" rx="1"/></svg><span class="sr-only">Quick navigation</span><kbd>Ctrl K</kbd></button>
 <div class="mc-theme-slot"></div>
 <div class="user-pill">
 <div class="avatar">
@@ -78,6 +79,7 @@
 <div class="user-text">
 <b><?=h(admin()['username'])?></b><br>
 <small><?=h(admin()['role'])?></small>
+</div>
 </div>
 </div>
 

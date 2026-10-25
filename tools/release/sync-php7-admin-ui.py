@@ -87,17 +87,20 @@ shell=index[start:end]
 shell=shell[:shell.rfind('<?php')]
 shell=shell.replace("require __DIR__.'/core/navigation.php';", "require __DIR__.'/navigation.php';")
 shell=shell.replace("(string)((Environment::get('MUCHO_ACCOUNT_URL', '') ?: $branding['server_name']))", "(string)(!empty($settings['site_url'])?$settings['site_url']:$branding['server_name'])")
+shell=re.sub(r'(?m)^ *<button[^>]*data-lang="ru"[^>]*>.*?</button>\n', '', shell)
 record('public/admin/index.php','styled-shell.php',shell)
 record('public/admin/core/AdminUi.php','list-ui.php',lower((ROOT/'public/admin/core/AdminUi.php').read_text().split('function adminDifficultyProfile')[0]))
 # Keep the real public asset paths. Their bytes are not recombined or restyled.
-assets=['public/admin/admin-ui-v2.css','public/admin/admin-i18n.css','public/admin/admin-i18n.js','public/admin/admin-simple.css','public/admin/admin-simple.js','public/admin/admin-polish.css','public/admin/product-admin.css','public/assets/product-ui.css','public/muchocore-theme.css','public/muchocore-theme.js']
+assets=['public/admin/admin-ui-v2.css','public/admin/admin-i18n.css','public/admin/admin-i18n.js','public/admin/admin-simple.css','public/admin/admin-simple.js','public/admin/admin-polish.css','public/admin/admin-workspace.css','public/admin/product-admin.css','public/assets/product-ui.css','public/muchocore-theme.css','public/muchocore-theme.js']
 for path in assets: manifest[path]=hashlib.sha256((ROOT/path).read_bytes()).hexdigest()
 # JavaScript's original admin mount is the sole frontend portability change.
 product=(ROOT/'public/assets/product-ui.js').read_text()
 product=product.replace("url.pathname !== '/admin/'", "![ '/admin/', typeof document!=='undefined'?document.body.dataset.adminPath:null ].includes(url.pathname)")
 product=product.replace("return '/admin/?page='+url.searchParams.get('page');", "return ((typeof document!=='undefined' && document.body.dataset.adminPath) || '/admin/')+'?page='+url.searchParams.get('page');")
+product=re.sub(r"label\('(?:[^'\\]|\\.)*','((?:[^'\\]|\\.)*)'\)",lambda m:"label('"+m[1]+"','"+m[1]+"')",product)
 (ROOT/'public/assets/php7-admin-product.js').write_text(product)
 audit=(ROOT/'public/admin/product-dashboard.js').read_text().replace("fetch('/admin/?audit_feed=1'", "fetch((document.body.dataset.adminPath || '/admin/')+'?audit_feed=1'")
+audit=re.sub(r"ru\(\)\?'(?:[^'\\]|\\.)*':'((?:[^'\\]|\\.)*)'",lambda m:"ru()?'"+m[1]+"':'"+m[1]+"'",audit)
 (ROOT/'public/assets/php7-admin-dashboard.js').write_text(audit)
 record('public/admin/config/pages.php','pages.php')
 # Mirror the same News domain code, lowering only syntax unsupported by PHP 7.0.
