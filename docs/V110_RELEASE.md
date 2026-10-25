@@ -36,6 +36,14 @@ inputs for public diagnostic leaks, HTTP server errors and core business-data
 mutation. This is negative-path coverage, not successful-use certification of
 all 160 routes.
 
+Authenticated editor-input regression also rejects array-shaped flags,
+non-boolean flag values and integer overflow without changing stored levels.
+Valid optional empty flags and leading-zero decimal values retain compatibility.
+The Auto flag now survives upload/update storage. All 35 canonical and alias
+paths declared by the six P0 contracts are exercised with successful requests;
+login/upload aliases additionally reject wrong credentials, and legacy GJP
+updates are checked alongside GJP2.
+
 This regression work fixed discarded `settingsString`/`songIDs`/`sfxIDs`,
 unstable shared download-deduplication keys, native-PDO friendship queries,
 and friend-only level/comment exposure through public reads and history.
