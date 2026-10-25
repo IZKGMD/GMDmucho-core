@@ -247,6 +247,7 @@ jobs:
       - name: Check product interface scripts
         run: |
           node --check public/admin/admin-simple.js
+          node --check public/admin/admin-motion.js
           node --check public/assets/product-ui.js
           node --check public/assets/product-home.js
           node --check public/admin/product-dashboard.js

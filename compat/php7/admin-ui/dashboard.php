@@ -132,7 +132,7 @@ function renderAdminDashboard(PDO $db)
     foreach ($kpis as list($label, $value, $meta, $tone, $section)) {
         if (!canAdminPage($section)) continue;
         echo '<a class="admin-kpi ' . h((string)$tone) . '" href="/admin/?page='.h($section).($label==='Pending Music'?'&amp;filter=pending':'').'">';
-        echo adminGdIcon($section);
+        echo adminNavIcon($section);
         echo '<div class="admin-kpi-label">' . h((string)$label) . '</div>';
         echo '<div class="admin-kpi-value">' . ($value === null ? '—' : number_format((int)$value)) . '</div>';
         echo '<div class="admin-kpi-meta">' . h((string)$meta) . '</div>';

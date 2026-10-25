@@ -22,7 +22,9 @@ def lower(source):
     source=source.replace('/admin/product-dashboard.js?v=2','/assets/php7-admin-dashboard.js?v=2')
     return source
 for name in ['AdminChrome.php','navigation.php','plain-shell.php']:
-    record('public/admin/core/'+name,name,lower((ROOT/'public/admin/core'/name).read_text()))
+    source=lower((ROOT/'public/admin/core'/name).read_text())
+    if name=='AdminChrome.php': source=source.replace("'news','clients','settings'","'news','clientpatcher','settings'")
+    record('public/admin/core/'+name,name,source)
 for name in ['dashboard.php','players.php','levels-moderation.php','songs.php','rating.php','news.php']:
     source=lower((ROOT/'public/admin/pages'/name).read_text())
     source=source.replace("require_once __DIR__.'/../core/AdminUi.php';", "require_once __DIR__.'/bridge.php';")
@@ -91,7 +93,7 @@ shell=re.sub(r'(?m)^ *<button[^>]*data-lang="ru"[^>]*>.*?</button>\n', '', shell
 record('public/admin/index.php','styled-shell.php',shell)
 record('public/admin/core/AdminUi.php','list-ui.php',lower((ROOT/'public/admin/core/AdminUi.php').read_text().split('function adminDifficultyProfile')[0]))
 # Keep the real public asset paths. Their bytes are not recombined or restyled.
-assets=['public/admin/admin-ui-v2.css','public/admin/admin-i18n.css','public/admin/admin-i18n.js','public/admin/admin-simple.css','public/admin/admin-simple.js','public/admin/admin-polish.css','public/admin/admin-workspace.css','public/admin/product-admin.css','public/assets/product-ui.css','public/muchocore-theme.css','public/muchocore-theme.js']
+assets=['public/admin/admin-ui-v2.css','public/admin/admin-i18n.css','public/admin/admin-i18n.js','public/admin/admin-simple.css','public/admin/admin-simple.js','public/admin/admin-polish.css','public/admin/admin-workspace.css','public/admin/admin-motion.css','public/admin/admin-motion.js','public/admin/product-admin.css','public/assets/product-ui.css','public/muchocore-theme.css','public/muchocore-theme.js']
 for path in assets: manifest[path]=hashlib.sha256((ROOT/path).read_bytes()).hexdigest()
 # JavaScript's original admin mount is the sole frontend portability change.
 product=(ROOT/'public/assets/product-ui.js').read_text()

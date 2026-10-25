@@ -1,7 +1,7 @@
 /* Unified workspace foundation; shared and VPS use the same components. */
 body.mc-admin,body.admin-login.mc-workspace{
- --mc-bg:#0c111b;--mc-surface:#131c29;--mc-raised:#1b2737;--mc-line:#2b394c;
- --mc-text:#edf3fa;--mc-muted:#9eafc3;--mc-accent:#83ded4;--mc-action:#83ded4;--mc-success:#88d5ae;
+ --mc-bg:#090d17;--mc-surface:#121a2a;--mc-raised:#1d2940;--mc-line:#29364f;
+ --mc-text:#edf1ff;--mc-muted:#9baac5;--mc-accent:#a5b4ff;--mc-action:#8c9dff;--mc-success:#88d5ae;
  --ui-bg:var(--mc-bg);--ui-card:var(--mc-surface);--ui-border:var(--mc-line);--ui-text:var(--mc-text);--ui-muted:var(--mc-muted);
  --bg:var(--mc-bg);--side:var(--mc-surface);--card:var(--mc-surface);--card2:var(--mc-raised);--border:var(--mc-line);--text:var(--mc-text);--muted:var(--mc-muted);--accent:var(--mc-action);
  background:var(--mc-bg);color:var(--mc-text);font:14px/1.6 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;color-scheme:dark;
@@ -24,7 +24,7 @@ body.mc-admin .admin-nav-group>summary{font-size:12px!important;font-weight:500}
 body.mc-admin .admin-nav-extra a{font-size:12px!important;min-height:38px}
 body.mc-admin .admin-nav-extra .gd-icon{width:18px;height:18px;opacity:.7}
 body.mc-admin .admin-nav a.logout{color:var(--mc-muted)!important;margin-top:24px!important}
-body.mc-admin :is(button,.btn,.button){display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:9px 15px;border:1px solid transparent;border-radius:8px;background:var(--mc-action);color:#102f32;font-size:13px;font-weight:650;line-height:1.4;box-shadow:none;text-shadow:none;letter-spacing:0;cursor:pointer;transition:background .15s,border-color .15s}
+body.mc-admin :is(button,.btn,.button){display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:9px 15px;border:1px solid transparent;border-radius:8px;background:var(--mc-action);color:#111c48;font-size:13px;font-weight:650;line-height:1.4;box-shadow:none;text-shadow:none;letter-spacing:0;cursor:pointer;transition:background .15s,border-color .15s}
 html[data-theme="light"] body.mc-admin :is(button,.btn,.button){color:#fff}
 body.mc-admin :is(button,.btn,.button):hover{filter:brightness(1.07);transform:none;box-shadow:none}
 body.mc-admin :is(button,.btn,.button):is(.gray,.secondary){background:var(--mc-raised)!important;border-color:var(--mc-line);color:var(--mc-text)!important}

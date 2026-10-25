@@ -13,7 +13,7 @@ function adminBrand(string $name)
 
 function adminPrimaryPages(): array
 {
-    return ['dashboard','players','levels','rating','clans','songs','news','clients','settings'];
+    return ['dashboard','players','levels','rating','clans','songs','news','clientpatcher','settings'];
 }
 
 /** Group secondary tools by actual operator workflow, not database order.
