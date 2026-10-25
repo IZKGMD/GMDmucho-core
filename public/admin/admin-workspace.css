@@ -115,3 +115,7 @@ body.mc-admin .pagination{display:flex;justify-content:center;align-items:center
 @media(max-width:980px){body.mc-admin .head .mobile-menu-btn{display:grid}}
 
 @media(max-width:980px){body.mc-admin .head .global-search select{width:96px!important;min-width:96px!important;max-width:96px!important;flex:0 0 96px}body.mc-admin.sidebar-collapsed .admin-nav a>span{display:inline}}
+html[data-theme=light] body.mc-admin :is(.sidebar-toggle,.command-launcher,.mucho-theme-toggle,.mobile-menu-btn){color:var(--mc-muted)}
+html[data-theme=light] body.mc-admin .mc-dialog-head button{color:var(--mc-text)}
+html[data-theme=light] body.mc-admin .rating-stars-pick button{color:var(--mc-muted)}
+html[data-theme=light] body.mc-admin .rating-stars-pick button.on{color:#fff}
