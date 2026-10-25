@@ -324,6 +324,52 @@ def run(php, report):
                     alias_count += 1
             checks.append("p0-%d-canonical-and-alias-success-paths/credential-rejection/legacy-gjp" % alias_count)
 
+            # The native client's star rating and demon subtype are separate
+            # requests. Warm the exact search result before changing subtype.
+            fixture("owner-role")
+            rating_auth = dict(VERSION, accountID=1, gjp2=GJP2, levelID=level)
+            require(post("/a/rateGJStars211.php", dict(rating_auth, stars=10)) == "1", "Client star rate rejected")
+            rating_search = dict(VERSION, str=level, type=0)
+            require(fields(post("/a/getGJLevels21.php", rating_search).split("#")[0])["43"] == "0",
+                    "Initial hard-demon response")
+            require(post("/a/rateGJDemon21.php", dict(rating_auth, rating=5)) == level, "Extreme demon rate rejected")
+            require(int(fixture("inspect")["levels"][0]["demon_difficulty"]) == 6, "Extreme demon storage mapping")
+            require(fields(post("/a/downloadGJLevel22.php", download_request).split("#")[0])["43"] == "6",
+                    "Extreme demon download wire mapping")
+            require(fields(post("/a/getGJLevels21.php", rating_search).split("#")[0])["43"] == "6",
+                    "Client demon rate left hard demon in warm search cache")
+            for rating, wire in ((1, "3"), (2, "4"), (3, "0"), (4, "5"), (5, "6")):
+                require(post("/a/rateGJDemon21.php", dict(rating_auth, rating=rating)) == level, "Client demon subtype rate")
+                require(post("/a/rateGJStars211.php", dict(rating_auth, stars=10)) == "1", "Repeat 10-star rate")
+                stored = fixture("inspect")["levels"][0]
+                require(str(stored["demon_difficulty"]) == wire, "10-star refresh erased demon subtype")
+                require(fields(post("/a/getGJLevels21.php", rating_search).split("#")[0])["43"] == wire,
+                        "Rated demon list wire mapping")
+                require(fields(post("/a/downloadGJLevel22.php", download_request).split("#")[0])["43"] == wire,
+                        "Rated demon download wire mapping")
+            require(post("/database/rateGJDemon21.php", dict(rating_auth, rating=5, gameVersion=21,
+                         binaryVersion=35, gjp2="", gjp=xor_password)) == level, "Legacy GJP demon rate rejected")
+            require(post("/database/rateGJStars20.php", dict(rating_auth, stars=10)) == "1", "Old star-rate alias rejected")
+            require(str(fixture("inspect")["levels"][0]["demon_difficulty"]) == "6", "Old star alias erased extreme demon")
+            migration_before = fixture("inspect")["business_sha256"]
+            fixture("repeat-rating-schema")
+            require(fixture("inspect")["business_sha256"] == migration_before,
+                    "Repeated rating schema repair changed existing data")
+            rejected_before = fixture("inspect")["business_sha256"]
+            for invalid in (dict(rating_auth, rating=0), dict(rating_auth, rating=9),
+                            dict(rating_auth, rating=5, gjp2="wrong"),
+                            dict(rating_auth, rating=5, accountID=2, gjp2=other)):
+                require(post("/a/rateGJDemon21.php", invalid) == "-1", "Invalid/unauthorized demon rate accepted")
+            require(fixture("inspect")["business_sha256"] == rejected_before, "Rejected demon rate mutated data")
+            require(post("/a/suggestGJStars20.php", dict(rating_auth, stars=10, feature=2)) == "1", "Demon quality rate")
+            require(str(fixture("inspect")["levels"][0]["demon_difficulty"]) == "6", "Quality rate erased extreme demon")
+            require(post("/a/suggestGJStars20.php", dict(rating_auth, stars=9, feature=0)) == "1", "Non-demon quality rate")
+            cleared = fixture("inspect")["levels"][0]
+            require(int(cleared["demon"]) == 0 and int(cleared["demon_difficulty"]) == 0,
+                    "Non-demon rate retained a demon subtype")
+            fixture("user-role")
+            checks.append("client-demon-rates/all-five-subtypes/warm-cache/star-refresh/permissions")
+
             # Local wall-clock observations only, deliberately excluded from the
             # native-client evidence directory and release certification registry.
             for unused in range(30):

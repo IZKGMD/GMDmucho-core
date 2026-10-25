@@ -178,7 +178,7 @@ Other official Music/SFX assets use the fixed-origin streaming proxy once the ro
 
 ## Full-core upgrade
 
-The package now includes all 197 application classes, 72 tracked migrations,
+The package now includes all 197 application classes, 73 tracked migrations,
 and compiled original admin modules. `tools/release/compile-php7-domain.php`
 produces the PHP 7.0 mirror using pinned PHP-Parser; original source hashes are
 recorded in `compat/php7/core/sources.json`. No compiler or Composer runs on the

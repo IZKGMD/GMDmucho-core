@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace MuchoCore\Moderation;
 
 use MuchoCore\Account\AccountAuthenticator;
+use MuchoCore\Cache\CacheInterface;
 use RuntimeException;
 
 final readonly class ModerationService
@@ -27,7 +28,8 @@ final readonly class ModerationService
 
     public function __construct(
         private AccountAuthenticator $auth,
-        private ModerationRepository $repository
+        private ModerationRepository $repository,
+        private CacheInterface $cache
     ) {}
 
     public function suggestStars(
@@ -99,6 +101,8 @@ final readonly class ModerationService
                     'Level not found'
                 );
             }
+
+            $this->cache->deletePrefix('mucho:levels:');
 
             $this->repository->logAction(
                 $accountId,
@@ -175,6 +179,8 @@ final readonly class ModerationService
             );
         }
 
+        $this->cache->deletePrefix('mucho:levels:');
+
         $this->repository->logAction(
             $accountId,
             $levelId,
@@ -229,6 +235,8 @@ final readonly class ModerationService
                 'Level not found'
             );
         }
+
+        $this->cache->deletePrefix('mucho:levels:');
 
         $this->repository->logAction(
             $accountId,
