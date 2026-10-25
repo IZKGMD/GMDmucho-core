@@ -92,6 +92,23 @@ foreach ($normalRoutes as $route) {
 }
 must(str_contains($normal, 'https://muchogdps.space/database/getGJLevels21.php'),
     'Direct database route missing');
+must(Gd2209Binary::restoreApiUrls($normal) === $pe,
+    'URL-only patch did not restore the exact original slots');
+must(Gd2209Binary::restoreApiUrls($patched) === $pe,
+    'Short and root aliases did not restore the original health typo');
+$changedCode = substr_replace($normal, 'X', 0x40, 1);
+must(Gd2209Binary::restoreApiUrls($changedCode) !== $pe,
+    'Recovery erased an unauthorized header change');
+$badPadding = substr_replace($normal, 'X', 0x400 + strlen('https://www.boomlings.com/database/getGJLevels21.php') - 1, 1);
+rejected(static fn () => Gd2209Binary::restoreApiUrls($badPadding), 'original fixed slot');
+$unknown = tempnam(sys_get_temp_dir(), 'mucho-unknown-');
+try {
+    file_put_contents($unknown, str_pad($normal, 13178880, "\0"));
+    must(Gd2209Binary::identifyBuild($unknown) === null,
+        'Restorable URLs alone certified an unknown executable');
+} finally {
+    unlink($unknown);
+}
 
 rejected(static fn () => Gd2209Binary::patchBytes($pe, str_repeat('x', 47) . '.com'),
     'too long');

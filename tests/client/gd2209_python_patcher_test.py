@@ -216,13 +216,49 @@ class GD2209PatcherTest(unittest.TestCase):
         source[:2] = b"MZ"
         source[100:122] = b"getGJNotifications.php"
         source[200:222] = b"getGJThreadInvites.php"
-        with self.assertRaisesRegex(ValueError, "Unknown GD 2.209 build"):
+        with self.assertRaisesRegex(ValueError, "Unsupported or modified GD 2.209 EXE"):
             module.patch_client(bytes(source), "https://gdps.example.com")
 
     def test_exact_sha_ensures_custom_builds_use_legacy_route(self):
         self.assertNotEqual(
             hashlib.sha256(fixture()).hexdigest(), module.GD2209_SHA256
         )
+
+    def test_retarget_restores_original_slot_capacity_and_health_typo(self):
+        source = fixture()
+        old, _ = module.patch_gd2209_exact(source, "https://muchogdps.space")
+        self.assertEqual(module.restore_gd2209_urls(old), source)
+        short, _ = module.patch_gd2209_exact(source, "https://linasgdpsprivatese.5v.pl")
+        self.assertEqual(module.restore_gd2209_urls(short), source)
+        # Acceptance still requires the complete original hash, not URL strings.
+        digest = module.sha256(source)
+        builds = {digest: ("test fixture", len(source), 2)}
+        with mock.patch.dict(module.GD2209_BUILDS, builds, clear=True):
+            actual, stats = module.patch_client(old, "https://linasgdpsprivatese.5v.pl")
+            self.assertEqual(actual, short)
+            module.validate_result(old, actual, "https://linasgdpsprivatese.5v.pl", stats)
+            back, _ = module.patch_client(actual, "https://muchogdps.space")
+            self.assertEqual(back, old)
+
+    def test_retarget_never_accepts_non_url_edits(self):
+        source = fixture()
+        old, _ = module.patch_gd2209_exact(source, "https://muchogdps.space")
+        builds = {module.sha256(source): ("test fixture", len(source), 2)}
+        with mock.patch.dict(module.GD2209_BUILDS, builds, clear=True):
+            for position in (0x40, 0x700, 0x1500):
+                damaged = bytearray(old)
+                damaged[position] ^= 1
+                # A generic legacy fallback is not allowed for a known-size
+                # candidate whose restored original fails verification.
+                with self.assertRaises(ValueError):
+                    module.patch_client(bytes(damaged), "https://linasgdpsprivatese.5v.pl")
+
+    def test_retarget_refuses_consuming_adjacent_nonzero_bytes(self):
+        old, _ = module.patch_gd2209_exact(fixture(), "https://muchogdps.space")
+        damaged = bytearray(old)
+        damaged[0x480 + len(OLD_URLS[0]) - 1] = 1
+        with self.assertRaisesRegex(ValueError, "original fixed slot"):
+            module.restore_gd2209_urls(bytes(damaged))
 
 
 if __name__ == "__main__":

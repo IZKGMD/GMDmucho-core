@@ -64,7 +64,7 @@ final class WindowsClientPatcher
             return Gd2209Binary::patchFile($inputPath, $outputPath, $server);
         }
         if (Gd2209Binary::resembles2209($inputPath)) {
-            throw new RuntimeException('Unknown GD 2.209 client build; upgrade the patcher before attempting this file.');
+            throw new RuntimeException('Unsupported or modified GD 2.209 EXE. Use an original supported build or a verified URL-only patch. Input SHA-256: ' . hash_file('sha256', $inputPath));
         }
         $replacements = self::buildReplacements($server);
         if ($replacements === []) {
