@@ -21,7 +21,7 @@ $settings=array('site_url'=>'https://example.invalid');$hasOwner=true;$schemaRea
 $user=array('account_id'=>1,'username'=>'Owner','role'=>'owner');
 foreach(array('dashboard','players','levels','rating','songs','comments','messages','audit','settings','clientpatcher') as $page){
  $_GET=array('page'=>$page,'id'=>1);ob_start();require $root.'/compat/php7/admin-view.php';$html=ob_get_clean();
- if(strpos($html,'GDPS Administration')===false||strpos($html,'/mc/public/admin/admin-simple.css')===false||strpos($html,'class="mc-nav-icon"')===false)throw new RuntimeException('Original shell/assets absent: '.$page);
+ if(strpos($html,'GDPS Administration')===false||strpos($html,'/mc/public/admin/admin-simple.css')===false||strpos($html,'/mc/public/admin/assets/gd/')===false)throw new RuntimeException('Original shell/assets absent: '.$page);
  if(preg_match('~<[^>]+\sstyle=~',$html))throw new RuntimeException('Unnonced layout attribute: '.$page);
  foreach(array('admin-simple.js','php7-admin-product.js') as $asset){if(substr_count($html,$asset)!==1)throw new RuntimeException('Duplicate or missing behavior script: '.$page.' '.$asset);}
  if(substr_count($html,'admin-workspace.css')!==1)throw new RuntimeException('Missing workspace composition: '.$page);

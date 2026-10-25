@@ -18,7 +18,7 @@ body.mc-admin .shell>main{transition:margin-left 340ms var(--mc-ease),width 340m
 body.mc-admin :is(button,.btn,.button,.admin-nav a,.admin-quick-action,.admin-player-row,.admin-song-row,.rating-row,.mc-database-list a){transition:transform var(--mc-time) var(--mc-ease),background-color 200ms,border-color 200ms,color 200ms,box-shadow var(--mc-time) var(--mc-ease),opacity 200ms}
 body.mc-admin :is(.card,.admin-kpi,.table,.mc-file-picker,.rating-section){transition:background-color 300ms,border-color var(--mc-time),box-shadow var(--mc-time)}
 body.mc-admin :is(input,select,textarea){transition:border-color 220ms,box-shadow 220ms,background-color 300ms,color 250ms}
-body.mc-admin :is(summary,.record-open,.mc-nav-icon){transition:color 200ms,opacity 200ms,transform var(--mc-time) var(--mc-ease)}
+body.mc-admin :is(summary,.record-open,.gd-icon){transition:color 200ms,opacity 200ms,transform var(--mc-time) var(--mc-ease)}
 body.mc-admin .admin-nav-extra>summary::before,body.mc-admin .admin-nav-group>summary::before{transition:transform 280ms var(--mc-ease)}
 body.mc-admin .mc-view-menu>summary>span{display:inline-block;transition:transform var(--mc-time) var(--mc-ease)}
 body.mc-admin .mc-view-menu[open]>summary>span{transform:rotate(180deg)}
@@ -34,7 +34,7 @@ body.admin-login.mc-workspace :is(input,button){transition:background-color 250m
 @media(hover:hover){
  body.mc-admin :is(.btn,button,.button):not(:disabled):hover{transform:translateY(-2px);box-shadow:0 7px 18px #0002}
  body.mc-admin :is(.admin-quick-action,.admin-kpi):hover{transform:translateY(-4px);border-color:color-mix(in srgb,var(--mc-accent) 50%,var(--mc-line));box-shadow:0 12px 30px #0002}
- body.mc-admin .admin-nav a:hover .mc-nav-icon{transform:translateX(2px);opacity:1}
+ body.mc-admin .admin-nav a:hover .gd-icon{transform:translateX(2px);opacity:1}
  body.mc-admin .admin-nav a:hover,body.mc-admin .mc-database-list a:hover{transform:translateX(2px)}
  body.mc-admin .admin-record>summary:hover{background:color-mix(in srgb,var(--mc-raised) 50%,transparent)}
 }
