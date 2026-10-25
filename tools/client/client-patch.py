@@ -338,6 +338,15 @@ def scan_urls(data: bytes) -> list[str]:
 def patch_client(data: bytes, server: str) -> tuple[bytes, list[PatchStat]]:
     server = validate_server(server)
     digest = sha256(data)
+    if digest not in GD2209_BUILDS and len(data) in {v[1] for v in GD2209_BUILDS.values()}:
+        try:
+            restored = restore_gd2209_urls(data)
+        except ValueError:
+            restored = data
+        if sha256(restored) not in GD2209_BUILDS:
+            raise ValueError("Unsupported or modified GD 2.209 EXE. Input SHA-256: " + digest)
+        data = restored
+        digest = sha256(data)
     if digest in GD2209_BUILDS:
         label, expected_size, expected_urls = GD2209_BUILDS[digest]
         if len(data) != expected_size:
@@ -357,8 +366,8 @@ def patch_client(data: bytes, server: str) -> tuple[bytes, list[PatchStat]]:
         and b"getGJThreadInvites.php" in data
     ):
         raise ValueError(
-            "Unknown GD 2.209 build: SHA-256 is not recognized. "
-            "Use an original supported GeometryDash.exe."
+            "Unsupported or modified GD 2.209 EXE. Use an original supported "
+            "build or a verified URL-only patch. Input SHA-256: " + digest
         )
     stats: list[PatchStat] = []
 
@@ -473,28 +482,7 @@ def patch_gd2209_exact(data: bytes, server: str) -> tuple[bytes, list[PatchStat]
     host = parsed.hostname or ""
     if not re.fullmatch(r"[A-Za-z0-9.-]+", host):
         raise ValueError("invalid GD 2.209 destination hostname")
-    if not is_pe_file(data):
-        raise ValueError("GD 2.209 source is not a valid PE executable")
-    pe = int.from_bytes(data[0x3C:0x40], "little")
-    if int.from_bytes(data[pe + 4:pe + 6], "little") != 0x8664:
-        raise ValueError("GD 2.209 patcher requires a 64-bit PE")
-    count = int.from_bytes(data[pe + 6:pe + 8], "little")
-    optional_size = int.from_bytes(data[pe + 20:pe + 22], "little")
-    sections_offset = pe + 24 + optional_size
-    rdata = None
-    for idx in range(count):
-        offset = sections_offset + 40 * idx
-        if data[offset:offset + 8] != b".rdata\x00\x00":
-            continue
-        raw_size = int.from_bytes(data[offset + 16:offset + 20], "little")
-        raw_offset = int.from_bytes(data[offset + 20:offset + 24], "little")
-        if raw_size < 100 or raw_offset + raw_size > len(data):
-            raise ValueError("invalid GD 2.209 .rdata section")
-        rdata = (raw_offset, raw_size)
-        break
-    if rdata is None:
-        raise ValueError("GD 2.209 .rdata section is missing")
-    start, size = rdata
+    start, size = gd2209_rdata_range(data)
     original = data[start:start + size]
     patched = bytearray(original)
     changes = 0
@@ -508,12 +496,8 @@ def patch_gd2209_exact(data: bytes, server: str) -> tuple[bytes, list[PatchStat]
             path = b"/database/" + path[len(b"/databas/"):]
         new = b"https://" + host.encode("ascii") + path
         if len(new) > len(url) and path.startswith(b"/database/"):
-            # Long shared-hosting domains use the equivalent short /a/
-            # GD API alias; replacing the whole URL avoids embedded NULs.
             new = b"https://" + host.encode("ascii") + b"/a/" + path[len(b"/database/"):]
         if len(new) > len(url) and path.startswith(b"/database/"):
-            # Final safe fallback: root GD API alias, handled by both PHP7
-            # and PHP8 routers. No PE resizing, offsets or partial strings.
             new = b"https://" + host.encode("ascii") + b"/" + path[len(b"/database/"):]
         if len(new) > len(url):
             raise ValueError("GD 2.209 domain too long for safe in-place URL patch. Use a shorter hostname or domain alias.")
@@ -526,18 +510,78 @@ def patch_gd2209_exact(data: bytes, server: str) -> tuple[bytes, list[PatchStat]
     return bytes(output), [PatchStat("GD 2.209 complete server URLs (.rdata)", changes, server)]
 
 
+def restore_gd2209_urls(data: bytes) -> bytes:
+    """Undo API URL edits only. Caller must verify the entire original SHA-256."""
+    start, size = gd2209_rdata_range(data)
+    section = data[start:start + size]
+    output = bytearray(data)
+    cursor = 0
+    pattern = rb"https://[A-Za-z0-9.-]+(/[A-Za-z0-9._/-]+\.php)(?=\x00)"
+    for match in re.finditer(pattern, section):
+        at = match.start()
+        if at and section[at - 1] not in b'\x00\n\r "\x27':
+            continue
+        path = match.group(1)
+        if path.startswith(b"/a/"):
+            path = b"/database/" + path[3:]
+        elif not path.startswith((b"/database/", b"/databas/")):
+            path = b"/database" + path
+        if path == b"/database/checkIfServerOnline.php":
+            path = b"/databas/checkIfServerOnline.php"
+        host = b"www.geometrydash.com" if path == b"/database/uploadMPComment.php" else b"www.boomlings.com"
+        original = b"https://" + host + path
+        length = len(original)
+        if (at < cursor or len(match.group()) > length or at + length >= size or
+                section[match.end():at + length + 1] != b"\x00" * (length - len(match.group()) + 1)):
+            raise ValueError("modified API URL exceeds its original fixed slot")
+        output[start + at:start + at + length] = original
+        cursor = at + length
+    return bytes(output)
+
+
+def gd2209_rdata_range(data: bytes) -> tuple[int, int]:
+    if not is_pe_file(data):
+        raise ValueError("GD 2.209 source is not a valid PE executable")
+    pe = int.from_bytes(data[0x3C:0x40], "little")
+    if int.from_bytes(data[pe + 4:pe + 6], "little") != 0x8664:
+        raise ValueError("GD 2.209 patcher requires a 64-bit PE")
+    count = int.from_bytes(data[pe + 6:pe + 8], "little")
+    optional_size = int.from_bytes(data[pe + 20:pe + 22], "little")
+    sections_offset = pe + 24 + optional_size
+    if count < 1 or count > 96 or sections_offset + count * 40 > len(data):
+        raise ValueError("invalid GD 2.209 PE section table")
+    rdata = None
+    for idx in range(count):
+        offset = sections_offset + 40 * idx
+        if data[offset:offset + 8] != b".rdata\x00\x00":
+            continue
+        raw_size = int.from_bytes(data[offset + 16:offset + 20], "little")
+        raw_offset = int.from_bytes(data[offset + 20:offset + 24], "little")
+        if raw_size < 100 or raw_offset + raw_size > len(data):
+            raise ValueError("invalid GD 2.209 .rdata section")
+        rdata = (raw_offset, raw_size)
+        break
+    if rdata is None:
+        raise ValueError("GD 2.209 .rdata section is missing")
+    return rdata
+
+
 def validate_result(original: bytes, patched: bytes, server: str, stats: list[PatchStat]) -> None:
     if not is_pe_file(original):
         raise ValueError("input is not a Windows PE executable (MZ/PE signature missing)")
     if not is_pe_file(patched):
         raise ValueError("patched output is not a valid Windows PE executable")
-    if patched == original:
-        raise ValueError("patch produced no binary changes")
-
     # The exact GD 2.209 patch updates only API URLs in .rdata. Legitimate
     # external informational links (e.g. Boomlings FAQ) remain unchanged.
     # The old generic URL validator incorrectly treated those as failures.
-    if sha256(original) in GD2209_BUILDS:
+    verified_2209 = sha256(original) in GD2209_BUILDS
+    if not verified_2209 and len(original) in {v[1] for v in GD2209_BUILDS.values()}:
+        verified_2209 = sha256(restore_gd2209_urls(original)) in GD2209_BUILDS
+    if verified_2209:
+        canonical = original if sha256(original) in GD2209_BUILDS else restore_gd2209_urls(original)
+        expected, _ = patch_gd2209_exact(canonical, server)
+        if patched != expected:
+            raise ValueError("GD 2.209 output differs from the verified URL-only patch")
         if len(patched) != len(original):
             raise ValueError("GD 2.209 executable size changed")
         if not any(s.count > 0 for s in stats):
@@ -545,6 +589,9 @@ def validate_result(original: bytes, patched: bytes, server: str, stats: list[Pa
         if validate_server(server).split("://", 1)[1].encode("ascii") not in patched:
             raise ValueError("GD 2.209 target host is absent")
         return
+
+    if patched == original:
+        raise ValueError("patch produced no binary changes")
 
     old_remaining = [
         host.encode("ascii")

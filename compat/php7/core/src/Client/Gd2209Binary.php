@@ -20,6 +20,12 @@ final class Gd2209Binary
     /** @return array{label:string,size:int,url_count:int,sha256:string}|null */
     public static function identifyBuild(string $path)
     {
+        $source = self::verifiedSource($path);
+        return $source === null ? null : $source['build'];
+    }
+    /** Restore URL-only edits, then require the full original SHA-256. */
+    private static function verifiedSource(string $path)
+    {
         if (!is_file($path) || !is_readable($path)) {
             return null;
         }
@@ -27,11 +33,24 @@ final class Gd2209Binary
         if ($size !== 13158400 && $size !== 13178880) {
             return null;
         }
-        $hash = hash_file('sha256', $path);
-        if ($hash === false || !isset(self::BUILDS[$hash])) {
+        $binary = file_get_contents($path);
+        if ($binary === false) {
             return null;
         }
-        return ['sha256' => $hash] + self::BUILDS[$hash];
+        $inputHash = hash('sha256', $binary);
+        $original = $binary;
+        if (!isset(self::BUILDS[$inputHash])) {
+            try {
+                $original = self::restoreApiUrls($binary);
+            } catch (RuntimeException $__mcCaught) {
+                return null;
+            }
+        }
+        $hash = hash('sha256', $original);
+        if (!isset(self::BUILDS[$hash]) || strlen($original) !== self::BUILDS[$hash]['size']) {
+            return null;
+        }
+        return ['binary' => $original, 'input_sha256' => $inputHash, 'input_state' => $inputHash === $hash ? 'original' : 'verified-url-patch', 'build' => ['sha256' => $hash] + self::BUILDS[$hash]];
     }
     public static function supports(string $path): bool
     {
@@ -145,14 +164,12 @@ final class Gd2209Binary
         if (($parts['scheme'] ?? '') !== 'https' || isset($parts['port'])) {
             throw new RuntimeException('GD 2.209 requires an HTTPS origin without a port.');
         }
-        $build = self::identifyBuild($inputPath);
-        if ($build === null) {
-            throw new RuntimeException('Unsupported GD 2.209 EXE. Use an original known build (SHA-256 must match).');
+        $source = self::verifiedSource($inputPath);
+        if ($source === null) {
+            throw new RuntimeException('Unsupported or modified GD 2.209 EXE. An original supported build or a verified URL-only patch is required.');
         }
-        $binary = @file_get_contents($inputPath);
-        if ($binary === false) {
-            throw new RuntimeException('Unable to read the original client.');
-        }
+        $build = $source['build'];
+        $binary = $source['binary'];
         list($data, $count, $paths, $routes) = self::patchBytes($binary, (string) $parts['host']);
         if ($count !== $build['url_count']) {
             throw new RuntimeException('GD 2.209 endpoint count mismatch: expected ' . $build['url_count'] . ', found ' . $count . '. No output was written.');
@@ -161,7 +178,7 @@ final class Gd2209Binary
         foreach ($routes as $route) {
             ++$modes[$route['mode']];
         }
-        return [$data, ['server_url' => $server, 'input_size' => strlen($binary), 'output_size' => strlen($data), 'replacements' => ['GD 2.209 server URLs' => $count], 'replacement_count' => $count, 'input_sha256' => $build['sha256'], 'source_build' => $build['label'], 'output_sha256' => hash('sha256', $data), 'endpoint_paths' => $paths, 'routes' => $routes, 'route_modes' => $modes, 'requires_short_alias' => $modes['short_alias'] > 0, 'requires_root_alias' => $modes['root_alias'] > 0, 'patch_engine' => 'gd2209-exact-rdata-v2', 'verified' => 'static-binary-only']];
+        return [$data, ['server_url' => $server, 'input_size' => strlen($binary), 'output_size' => strlen($data), 'replacements' => ['GD 2.209 server URLs' => $count], 'replacement_count' => $count, 'input_sha256' => $source['input_sha256'], 'input_state' => $source['input_state'], 'source_original_sha256' => $build['sha256'], 'source_build' => $build['label'], 'output_sha256' => hash('sha256', $data), 'endpoint_paths' => $paths, 'routes' => $routes, 'route_modes' => $modes, 'requires_short_alias' => $modes['short_alias'] > 0, 'requires_root_alias' => $modes['root_alias'] > 0, 'patch_engine' => 'gd2209-exact-rdata-v3', 'verified' => 'static-binary-only']];
     }
     /**
      * Portable core for regression testing with a synthetic PE64 fixture.
@@ -174,6 +191,86 @@ final class Gd2209Binary
         if (!preg_match('/^[A-Za-z0-9.-]+$/D', $targetHost)) {
             throw new RuntimeException('Invalid target hostname.');
         }
+        list($rdataOffset, $rdataSize) = self::rdataRange($input);
+        $section = substr($input, $rdataOffset, $rdataSize);
+        $regex = '~https?://(?:www\.boomlings\.com|boomlings\.com|www\.geometrydash\.com)/(?:database|databas)/[A-Za-z0-9._/-]+\.php(?=\x00)~';
+        $matches = [];
+        preg_match_all($regex, $section, $matches, PREG_OFFSET_CAPTURE);
+        $count = 0;
+        $paths = [];
+        $routes = [];
+        foreach ($matches[0] as list($url, $position)) {
+            if ($position > 0 && !in_array($section[$position - 1], ["\x00", "\n", "\r", ' ', '"', "'"], true)) {
+                continue;
+            }
+            $oldPath = substr($url, strpos($url, '/', strpos($url, '://') + 3));
+            if (str_starts_with($oldPath, '/databas/')) {
+                $oldPath = '/database/' . substr($oldPath, strlen('/databas/'));
+            }
+            $patched = 'https://' . $targetHost . $oldPath;
+            $mode = 'database';
+            $oldLength = strlen($url);
+            if (strlen($patched) > $oldLength && str_starts_with($oldPath, '/database/')) {
+                $patched = 'https://' . $targetHost . '/a/' . substr($oldPath, strlen('/database/'));
+                $mode = 'short_alias';
+            }
+            if (strlen($patched) > $oldLength && str_starts_with($oldPath, '/database/')) {
+                $patched = 'https://' . $targetHost . '/' . substr($oldPath, strlen('/database/'));
+                $mode = 'root_alias';
+            }
+            if (strlen($patched) > $oldLength) {
+                throw new RuntimeException('GD 2.209 hostname too long for in-place patch; use a shorter HTTPS domain or alias.');
+            }
+            $section = substr_replace($section, $patched . str_repeat("\x00", $oldLength - strlen($patched)), $position, $oldLength);
+            $count++;
+            $paths[] = $oldPath;
+            $routes[] = ['source_path' => $oldPath, 'target_path' => substr($patched, strlen('https://' . $targetHost)), 'mode' => $mode];
+        }
+        if ($count === 0) {
+            throw new RuntimeException('No supported GD server endpoints found in PE .rdata.');
+        }
+        $patchedBinary = substr_replace($input, $section, $rdataOffset, $rdataSize);
+        if (strlen($patchedBinary) !== strlen($input)) {
+            throw new RuntimeException('PE image size mismatch after patch.');
+        }
+        return [$patchedBinary, $count, array_values(array_unique($paths)), $routes];
+    }
+    /** Pure recovery helper; this alone does NOT certify a supported build. */
+    public static function restoreApiUrls(string $input): string
+    {
+        list($offset, $size) = self::rdataRange($input);
+        $section = substr($input, $offset, $size);
+        preg_match_all('~https://[A-Za-z0-9.-]+(/[A-Za-z0-9._/-]+\.php)(?=\x00)~', $section, $matches, PREG_OFFSET_CAPTURE);
+        $parts = [];
+        $cursor = 0;
+        foreach ($matches[0] as $index => list($url, $at)) {
+            if ($at > 0 && !in_array($section[$at - 1], ["\x00", "\n", "\r", ' ', '"', "'"], true)) {
+                continue;
+            }
+            $path = $matches[1][$index][0];
+            if (str_starts_with($path, '/a/')) {
+                $path = '/database/' . substr($path, 3);
+            } elseif (!str_starts_with($path, '/database/') && !str_starts_with($path, '/databas/')) {
+                $path = '/database' . $path;
+            }
+            if ($path === '/database/checkIfServerOnline.php') {
+                $path = '/databas/checkIfServerOnline.php';
+            }
+            $original = 'https://' . ($path === '/database/uploadMPComment.php' ? 'www.geometrydash.com' : 'www.boomlings.com') . $path;
+            $length = strlen($original);
+            if ($at < $cursor || strlen($url) > $length || $at + $length >= $size || substr($section, $at + strlen($url), $length - strlen($url) + 1) !== str_repeat("\x00", $length - strlen($url) + 1)) {
+                throw new RuntimeException('Modified API URL exceeds its original fixed slot.');
+            }
+            $parts[] = substr($section, $cursor, $at - $cursor);
+            $parts[] = $original;
+            $cursor = $at + $length;
+        }
+        $parts[] = substr($section, $cursor);
+        return substr_replace($input, implode('', $parts), $offset, $size);
+    }
+    /** @return array{int,int} */
+    private static function rdataRange(string $input): array
+    {
         if (substr($input, 0, 2) !== 'MZ' || strlen($input) < 0x100) {
             throw new RuntimeException('Not a PE executable.');
         }
@@ -205,52 +302,6 @@ final class Gd2209Binary
         if ($rdataOffset < 0 || $rdataSize < 100 || $rdataOffset + $rdataSize > strlen($input)) {
             throw new RuntimeException('Invalid or missing PE .rdata section.');
         }
-        $section = substr($input, $rdataOffset, $rdataSize);
-        $regex = '~https?://(?:www\.boomlings\.com|boomlings\.com|www\.geometrydash\.com)/(?:database|databas)/[A-Za-z0-9._/-]+\.php(?=\x00)~';
-        $matches = [];
-        preg_match_all($regex, $section, $matches, PREG_OFFSET_CAPTURE);
-        $count = 0;
-        $paths = [];
-        $routes = [];
-        foreach ($matches[0] as list($url, $position)) {
-            if ($position > 0 && !in_array($section[$position - 1], ["\x00", "\n", "\r", ' ', '"', "'"], true)) {
-                continue;
-            }
-            $oldPath = substr($url, strpos($url, '/', strpos($url, '://') + 3));
-            if (str_starts_with($oldPath, '/databas/')) {
-                $oldPath = '/database/' . substr($oldPath, strlen('/databas/'));
-            }
-            $patched = 'https://' . $targetHost . $oldPath;
-            $mode = 'database';
-            $oldLength = strlen($url);
-            if (strlen($patched) > $oldLength && str_starts_with($oldPath, '/database/')) {
-                // GD 2.209 reserves only its original URL bytes. The /a/
-                // shared-hosting alias saves enough space for long subdomains.
-                $patched = 'https://' . $targetHost . '/a/' . substr($oldPath, strlen('/database/'));
-                $mode = 'short_alias';
-            }
-            if (strlen($patched) > $oldLength && str_starts_with($oldPath, '/database/')) {
-                // The root GD API alias also works through public/index.php
-                // and the PHP7 native router, saving nine path bytes.
-                $patched = 'https://' . $targetHost . '/' . substr($oldPath, strlen('/database/'));
-                $mode = 'root_alias';
-            }
-            if (strlen($patched) > $oldLength) {
-                throw new RuntimeException("GD 2.209 hostname too long for in-place patch; use a shorter HTTPS domain or alias.");
-            }
-            $section = substr_replace($section, $patched . str_repeat("\x00", $oldLength - strlen($patched)), $position, $oldLength);
-            $count++;
-            $paths[] = $oldPath;
-            $routes[] = ['source_path' => $oldPath, 'target_path' => substr($patched, strlen('https://' . $targetHost)), 'mode' => $mode];
-        }
-        if ($count === 0) {
-            throw new RuntimeException('No supported GD server endpoints found in PE .rdata.');
-        }
-        // The original bytes outside .rdata are left untouched.
-        $patchedBinary = substr_replace($input, $section, $rdataOffset, $rdataSize);
-        if (strlen($patchedBinary) !== strlen($input)) {
-            throw new RuntimeException('PE image size mismatch after patch.');
-        }
-        return [$patchedBinary, $count, array_values(array_unique($paths)), $routes];
+        return [$rdataOffset, $rdataSize];
     }
 }

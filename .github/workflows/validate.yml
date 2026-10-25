@@ -548,12 +548,17 @@ jobs:
         run: |
           $tokens = $null
           $errors = $null
-          [void][System.Management.Automation.Language.Parser]::ParseFile("patchers/windows/LAUNCH-DOCTOR.ps1", [ref]$tokens, [ref]$errors)
-          if ($errors.Count -gt 0) {
-            $errors | ForEach-Object { Write-Host $_ }
-            throw "Windows launch doctor PowerShell syntax is invalid."
+          foreach ($script in @("patchers/windows/LAUNCH-DOCTOR.ps1", "tools/client/Start-MuchoCore.ps1")) {
+            [void][System.Management.Automation.Language.Parser]::ParseFile($script, [ref]$tokens, [ref]$errors)
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Host $_ }
+              throw "Windows launcher PowerShell syntax is invalid: $script"
+            }
           }
           Write-Host "WINDOWS_LAUNCH_DOCTOR_SYNTAX_OK"
+      - name: Verify launch preflight without executing a game
+        shell: powershell
+        run: powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/client/windows-start-preflight.ps1
 
   migration-integration:
     strategy:
