@@ -293,6 +293,14 @@ final class Application
         $route('/reportGJLevel', [$modController, 'report']);
         // GD 2.209 moderator abuse report queue. Native reply framing TBD.
         $route('/adminGetReportQueue', [$reportQueueController, 'queue']);
+        $route('/adminQueueMute', function (Request $r) use ($gd2209Sanctions): Response {
+            return $gd2209Sanctions->apply($r, 'queue', true);
+        });
+        $route('/adminQueueUnmute', function (Request $r) use ($gd2209Sanctions): Response {
+            return $gd2209Sanctions->apply($r, 'queue', false);
+        });
+        $route('/getLevelRateInfo', [$gd2209Utilities, 'levelRateInfo']);
+        $route('/getSaveData', [$gd2209Utilities, 'savedLevelRatings']);
         // GD 2.209 staged account-abuse service: authenticated and persisted;
         // wire formats other than queue remain provisional until native captures.
         $route('/reportGJContent', [$gd2209Cases, 'reportContent']);

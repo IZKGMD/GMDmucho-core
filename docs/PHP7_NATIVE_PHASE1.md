@@ -214,6 +214,11 @@ sanctions and the other implemented original routes. Its parity is with the
 repository's implemented behavior; any original experimental client behavior
 still needs real GD client acceptance. Recovery renders the original form and
 uses provider PHP mail; delivery requires working hosting mail configuration.
+The native `lostpassword.php` and `lostusername.php` links open the same English
+recovery form with CSRF protection. Native rating information, saved-level
+rating refresh and moderation queue mute/unmute are covered by the shared HTTP
+regression. See [the exact EXE audit](GD_2209_NATIVE_ENDPOINT_AUDIT.md) for static
+parser evidence and remaining native operations.
 The fixed official CDN proxy supports GET/HEAD and single byte ranges, with a
 64 MiB response limit. Apply the supplied root rewrite rules for root-relative
 client URLs. GD image features require the PHP GD extension.

@@ -6,6 +6,7 @@ namespace MuchoCore\Compatibility;
 
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Moderation\Gd2209Restrictions;
+use MuchoCore\Level\LevelAccess;
 use PDO;
 use RuntimeException;
 
@@ -94,6 +95,79 @@ final readonly class Gd2209UtilityService
         // Provisional positional status flags, derived from actual persisted state.
         return '1:' . (int)$account['account_id'] . ':2:' . $comment
             . ':3:' . $upload . ':4:' . $message;
+    }
+
+    /**
+     * Native RateInfoPopup parser (19 Oct EXE, SHA256 4eee06d5...):
+     * 0x14041a490 splits two colon sections, then comma-separated counts.
+     * The first section labels slots 1..10; the second F/E/L/M/R.
+     * The requested star value is already carried in the downloaded level.
+     * These are real advisor suggestions, one latest vote per account.
+     */
+    public function levelRateInfo(int $actor, string $credential, int $levelId): string
+    {
+        $this->auth->authenticate($actor, $credential);
+        if ($levelId <= 0) {
+            throw new RuntimeException('Invalid level');
+        }
+        $q = $this->db->prepare('SELECT account_id,is_deleted,unlisted2
+            FROM levels WHERE level_id=:id LIMIT 1');
+        $q->execute(['id'=>$levelId]);
+        $level = $q->fetch(PDO::FETCH_ASSOC);
+        if (!$level || !LevelAccess::canRead(
+            $this->db, $level, $this->auth, $actor, $credential
+        )) {
+            throw new RuntimeException('Level unavailable');
+        }
+        $q = $this->db->prepare('SELECT s.stars,s.feature_tier
+            FROM moderation_suggestions s
+            WHERE s.level_id=:level AND NOT EXISTS (
+                SELECT 1 FROM moderation_suggestions newer
+                WHERE newer.level_id=s.level_id
+                  AND newer.account_id=s.account_id AND newer.id>s.id
+            )');
+        $q->execute(['level'=>$levelId]);
+        $stars = array_fill(0, 10, 0);
+        $quality = array_fill(0, 5, 0);
+        while ($row = $q->fetch(PDO::FETCH_ASSOC)) {
+            $star = (int)$row['stars'];
+            $tier = (int)$row['feature_tier'];
+            if ($star >= 1 && $star <= 10) {
+                ++$stars[$star - 1];
+            }
+            if ($tier >= 1 && $tier <= 4) {
+                ++$quality[$tier - 1];
+            }
+        }
+        return implode(',', $stars) . ':' . implode(',', $quality);
+    }
+
+    /** Native saved-level rating refresh, not an account Cloud Save download. */
+    public function savedLevelRatings(string $secret): string
+    {
+        if (!hash_equals('Wmfd2893gb7', $secret)) {
+            throw new RuntimeException('Invalid game secret');
+        }
+        $q = $this->db->query('SELECT level_id,stars FROM levels
+            WHERE is_deleted=0 AND is_unlisted=0 AND unlisted2=0
+              AND stars BETWEEN 1 AND 10 ORDER BY level_id LIMIT 100001');
+        $pairs = [];
+        while ($row = $q->fetch(PDO::FETCH_ASSOC)) {
+            if (count($pairs) >= 100000) {
+                throw new RuntimeException('Rating refresh exceeds response limit');
+            }
+            $pairs[] = (int)$row['level_id'] . ',' . (int)$row['stars'];
+        }
+        // EXE 0x14022c290 strips 20 chars at both ends before ZipUtils.
+        // The historical native response independently decodes to a zlib
+        // stream containing comma-separated ID/star pairs (gd-docs getSaveData).
+        $compressed = gzcompress(implode(',', $pairs), 9);
+        if ($compressed === false) {
+            throw new RuntimeException('Rating refresh compression failed');
+        }
+        return bin2hex(random_bytes(10))
+            . strtr(base64_encode($compressed), '+/', '-_')
+            . bin2hex(random_bytes(10));
     }
 
     /**

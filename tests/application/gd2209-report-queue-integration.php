@@ -85,6 +85,10 @@ try {
     foreach ($accountMigration as $sql) {
         $db->exec($sql);
     }
+    foreach (require dirname(__DIR__, 2)
+        . '/database/migrations/20261018_002_gd2209_restrictions.php' as $sql) {
+        $db->exec($sql);
+    }
     $assert((int)$db->query('SELECT target_account_id
         FROM mucho_content_reports WHERE reporter_account_id=3')->fetchColumn() === 5,
         'pre-migration level report must resolve target account');

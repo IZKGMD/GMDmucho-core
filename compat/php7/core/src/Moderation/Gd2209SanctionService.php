@@ -9,7 +9,7 @@ use RuntimeException;
 use Throwable;
 final class Gd2209SanctionService
 {
-    const KINDS = ['comment', 'upload', 'message', 'freeze', 'trending', 'name'];
+    const KINDS = ['comment', 'upload', 'message', 'freeze', 'trending', 'name', 'queue'];
     public function __construct(PDO $db, AccountAuthenticator $auth, ModerationRepository $roles)
     {
         $this->db = $db;
@@ -76,7 +76,7 @@ final class Gd2209SanctionService
             $q = $this->db->prepare('INSERT INTO mucho_gd2209_case_actions
                  (actor_account_id,target_account_id,action,detail)
                  VALUES (:actor,:target,:action,:detail)');
-            $q->execute(['actor' => $actor, 'target' => $target, 'action' => strtoupper($kind) . ($enabled ? '_BAN' : '_UNBAN'), 'detail' => $durationMinutes]);
+            $q->execute(['actor' => $actor, 'target' => $target, 'action' => $kind === 'queue' ? $enabled ? 'QUEUE_MUTE' : 'QUEUE_UNMUTE' : strtoupper($kind) . ($enabled ? '_BAN' : '_UNBAN'), 'detail' => $durationMinutes]);
             $this->db->commit();
             return true;
         } catch (Throwable $e) {

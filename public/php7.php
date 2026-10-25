@@ -138,7 +138,7 @@ try {
     if(is_file($root.'/config/php7-complete.on')){
         require_once $root.'/compat/php7/domain.php';
         if(!mucho7_domain_complete($pdo))throw new RuntimeException('Core data upgrade incomplete.');
-        if($path==='/lostusername'){
+        if(in_array($path,array('/lostusername','/lostpassword'),true)){
             if(empty($settings['enable_accounts'])||empty($settings['enable_writes'])){http_response_code(503);echo '-1';exit;}
             header('Content-Type: text/html; charset=utf-8');echo mucho7_domain_recovery($pdo,$settings,$root);exit;
         }

@@ -16,6 +16,9 @@ final readonly class Gd2209SanctionController
     public function apply(Request $r, string $kind, bool $enabled): Response
     {
         if (strtoupper($r->method) !== 'POST'
+            || !$this->integerField($r, 'accountID')
+            || !$this->integerField($r, 'targetAccountID')
+            || !$this->integerField($r, 'durationMinutes', true)
             || $r->postInt('accountID') < 1
             || $r->gdCredential() === '') {
             return Response::text('-1');
@@ -30,5 +33,19 @@ final readonly class Gd2209SanctionController
             error_log('[MuchoCore 2.209 sanctions] ' . $e::class);
             return Response::text('-1');
         }
+    }
+
+    private function integerField(Request $r, string $key, bool $optional = false): bool
+    {
+        if (!array_key_exists($key, $r->post)) {
+            return $optional;
+        }
+        $value = $r->post[$key];
+        if (!is_int($value) && !is_string($value)) {
+            return false;
+        }
+        $value = (string)$value;
+        return preg_match('/^[0-9]{1,18}$/D', $value) === 1
+            && (int)$value >= 0;
     }
 }

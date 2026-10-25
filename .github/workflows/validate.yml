@@ -263,6 +263,7 @@ jobs:
           python3 tools/client/client-patch.py --self-test
           python3 tests/client/client-patcher-fixture.py
           python3 tests/client/gd2209_python_patcher_test.py
+          python3 tests/client/native_exe_inventory_test.py
           python3 tests/client/patchers-hub.test.py
           python3 tests/diagnostics/gd2209_shared_probe_test.py
           python3 tests/hosting/edge5v_test.py

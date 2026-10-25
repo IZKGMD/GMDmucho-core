@@ -35,7 +35,7 @@ final class RecoveryController
     private function handlePost()
     {
         if (!hash_equals($this->csrfToken(), (string) ($_POST['csrf'] ?? ''))) {
-            $this->renderMessage('Срок действия страницы истёк.', 'Обновите страницу и попробуйте снова.');
+            $this->renderMessage('This page has expired.', 'Refresh the page and try again.');
             return;
         }
         $action = (string) ($_POST['action'] ?? '');
@@ -44,13 +44,13 @@ final class RecoveryController
                 $token = (string) ($_POST['cf-turnstile-response'] ?? '');
                 $expectedHostname = parse_url((string) (getenv('MUCHO_ACCOUNT_URL') ?: ''), PHP_URL_HOST);
                 if (!Turnstile::verify($token, 'recovery', is_string($expectedHostname) ? $expectedHostname : null)) {
-                    $this->renderRequest('Пройдите проверку безопасности и попробуйте снова.');
+                    $this->renderRequest('Complete the security check and try again.');
                     return;
                 }
             }
             $identity = (string) ($_POST['identity'] ?? '');
             $this->service->requestReset($identity, $this->clientIp(), $this->baseUrl());
-            $this->renderMessage('Проверьте почту', 'Если аккаунт существует и к нему привязана почта, мы отправили туда ссылку для восстановления.');
+            $this->renderMessage('Check your email', 'If an eligible account matches, a recovery link has been sent to its email address.');
             return;
         }
         if ($action === 'reset') {
@@ -58,13 +58,13 @@ final class RecoveryController
             $password = (string) ($_POST['password'] ?? '');
             $confirmation = (string) ($_POST['password_confirmation'] ?? '');
             if (!$this->service->resetPassword($token, $password, $confirmation, $this->clientIp())) {
-                $this->renderReset($token, false, 'Ссылка недействительна или срок её действия истёк.');
+                $this->renderReset($token, false, 'This link is invalid or has expired.');
                 return;
             }
-            $this->renderMessage('Пароль изменён', 'Новый пароль сохранён. Теперь можно вернуться в Geometry Dash и войти в аккаунт.');
+            $this->renderMessage('Password changed', 'Your new password has been saved. Return to Geometry Dash and sign in.');
             return;
         }
-        $this->renderMessage('Некорректный запрос', 'Вернитесь назад и откройте страницу восстановления заново.');
+        $this->renderMessage('Invalid request', 'Go back and open the recovery page again.');
     }
     private function renderRequest(string $error = '')
     {
@@ -74,33 +74,33 @@ final class RecoveryController
         }
         $content = '
             <div class="eyebrow">ACCOUNT RECOVERY</div>
-            <h1>Восстановление аккаунта</h1>
+            <h1>Account recovery</h1>
             <p class="lead">
-                Введите username или email, привязанный к аккаунту.
+                Enter the username or email address associated with your account.
             </p>
             ' . $this->flash($error, 'error') . '
             <form method="post" autocomplete="off">
                 <input type="hidden" name="csrf" value="' . $this->e($this->csrfToken()) . '">
                 <input type="hidden" name="action" value="request">
 
-                <label for="identity">Username или email</label>
+                <label for="identity">Username or email</label>
                 <input
                     id="identity"
                     name="identity"
                     type="text"
                     maxlength="254"
-                    placeholder="Например: Player123"
+                    placeholder="For example: Player123"
                     autocomplete="username"
                     required
                 >
 
                 ' . $turnstile . '
 
-                <button type="submit">Отправить ссылку</button>
+                <button type="submit">Send recovery link</button>
             </form>
 
             <div class="hint">
-                Ссылка для восстановления одноразовая и действует 30 минут.
+                Recovery links can be used once and expire after 30 minutes.
             </div>
         ';
         $this->page($content);
@@ -110,12 +110,12 @@ final class RecoveryController
         if (!$valid) {
             $content = '
                 <div class="eyebrow">ACCOUNT RECOVERY</div>
-                <h1>Ссылка недействительна</h1>
+                <h1>Invalid link</h1>
                 <p class="lead">
-                    Возможно, она уже использована или срок её действия истёк.
+                    This link may have already been used or expired.
                 </p>
                 <a class="button secondary" href="/api/api/accounts/lostusername.php">
-                    Запросить новую ссылку
+                    Request a new link
                 </a>
             ';
             $this->page($content);
@@ -123,9 +123,9 @@ final class RecoveryController
         }
         $content = '
             <div class="eyebrow">ACCOUNT RECOVERY</div>
-            <h1>Новый пароль</h1>
+            <h1>New password</h1>
             <p class="lead">
-                Придумайте новый пароль для своего аккаунта.
+                Choose a new password for your account.
             </p>
             ' . $this->flash($error, 'error') . '
             <form method="post" autocomplete="off">
@@ -133,7 +133,7 @@ final class RecoveryController
                 <input type="hidden" name="action" value="reset">
                 <input type="hidden" name="token" value="' . $this->e($token) . '">
 
-                <label for="password">Новый пароль</label>
+                <label for="password">New password</label>
                 <input
                     id="password"
                     name="password"
@@ -144,7 +144,7 @@ final class RecoveryController
                     required
                 >
 
-                <label for="password_confirmation">Повторите пароль</label>
+                <label for="password_confirmation">Confirm password</label>
                 <input
                     id="password_confirmation"
                     name="password_confirmation"
@@ -155,11 +155,11 @@ final class RecoveryController
                     required
                 >
 
-                <button type="submit">Сохранить новый пароль</button>
+                <button type="submit">Save new password</button>
             </form>
 
             <div class="hint">
-                Минимальная длина пароля — 8 символов.
+                Passwords must contain at least 8 characters.
             </div>
         ';
         $this->page($content);
@@ -171,7 +171,7 @@ final class RecoveryController
             <h1>' . $this->e($title) . '</h1>
             <p class="lead">' . $this->e($message) . '</p>
             <a class="button secondary" href="/api/api/accounts/lostusername.php">
-                Вернуться к восстановлению
+                Back to account recovery
             </a>
         ';
         $this->page($content);
@@ -183,13 +183,13 @@ final class RecoveryController
             $serverCredit = ' · Server by <a href="' . $this->e((string) $this->branding['social_url']) . '" target="_blank" rel="noopener noreferrer">' . $this->e((string) $this->branding['server_by_name']) . '</a>';
         }
         echo '<!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/assets/muchocore-favicon-v4.png" type="image/png" sizes="64x64">
-<title>MuchoCore — восстановление аккаунта</title>
+<title>MuchoCore — account recovery</title>
 <link rel="stylesheet" href="/recovery/recovery.css">
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">

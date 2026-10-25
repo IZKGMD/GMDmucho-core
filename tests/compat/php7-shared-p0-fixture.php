@@ -51,6 +51,9 @@ if($mode==='inspect'){
         'comments'=>(int)$db->query('SELECT COUNT(*) FROM comments')->fetchColumn(),
         'profiles'=>(int)$db->query('SELECT COUNT(*) FROM profiles')->fetchColumn(),
         'download_slots'=>(int)$db->query('SELECT COUNT(*) FROM mucho_level_downloads')->fetchColumn(),
+        'queue_mutes'=>(int)$db->query("SELECT COUNT(*) FROM mucho_gd2209_restrictions WHERE kind='queue'")->fetchColumn(),
+        'queue_audit'=>$db->query("SELECT action FROM mucho_gd2209_case_actions WHERE action IN ('QUEUE_MUTE','QUEUE_UNMUTE') ORDER BY id")->fetchAll(PDO::FETCH_COLUMN),
+        'pending_reports'=>(int)$db->query("SELECT COUNT(*) FROM mucho_content_reports WHERE status='pending'")->fetchColumn(),
         'business_sha256'=>hash_final($business)
     ));exit;
 }
@@ -62,8 +65,8 @@ if($mode==='friendships'){
     $db->exec('INSERT IGNORE INTO friends(account_id,friend_account_id) VALUES(1,2)');exit;
 }
 if($mode==='clear-friendships'){$db->exec('DELETE FROM friends');exit;}
-if($mode==='owner-role'||$mode==='user-role'){
-    $role=$mode==='owner-role'?'owner':'user';
+if($mode==='owner-role'||$mode==='user-role'||$mode==='advisor-role'){
+    $role=$mode==='owner-role'?'owner':($mode==='advisor-role'?'moderator':'user');
     $db->prepare('UPDATE accounts SET role_id=(SELECT id FROM roles WHERE code=?) WHERE account_id=1')->execute(array($role));exit;
 }
 if($mode==='repeat-rating-schema'){

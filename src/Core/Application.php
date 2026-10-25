@@ -531,6 +531,12 @@ final readonly class Application
             [$modController,'report']);
         // GD 2.209 moderator abuse report queue. Native reply framing TBD.
         $route('/adminGetReportQueue', [$reportQueueController, 'queue']);
+        $route('/adminQueueMute', fn(Request $r): Response =>
+            $gd2209Sanctions->apply($r, 'queue', true));
+        $route('/adminQueueUnmute', fn(Request $r): Response =>
+            $gd2209Sanctions->apply($r, 'queue', false));
+        $route('/getLevelRateInfo', [$gd2209Utilities, 'levelRateInfo']);
+        $route('/getSaveData', [$gd2209Utilities, 'savedLevelRatings']);
         // GD 2.209 staged account-abuse service: authenticated and persisted;
         // wire formats other than queue remain provisional until native captures.
         $route('/reportGJContent', [$gd2209Cases, 'reportContent']);

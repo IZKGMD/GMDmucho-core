@@ -51,6 +51,9 @@ try {
     foreach ($accountMigration as $sql) {
         $db->exec($sql);
     }
+    foreach (require \mucho7_compiled_include(dirname(\MUCHO7_PROJECT_ROOT . '/tests/application', 2) . '/database/migrations/20261018_002_gd2209_restrictions.php') as $sql) {
+        $db->exec($sql);
+    }
     $assert((int) $db->query('SELECT target_account_id
         FROM mucho_content_reports WHERE reporter_account_id=3')->fetchColumn() === 5, 'pre-migration level report must resolve target account');
     $db->exec("UPDATE mucho_content_reports SET status='closed' WHERE reporter_account_id=3");

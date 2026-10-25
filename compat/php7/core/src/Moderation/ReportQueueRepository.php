@@ -28,7 +28,7 @@ final class ReportQueueRepository
         $offset = $page * 20;
         // Do not classify the same user's different levels as separate cases.
         // Reports without a verified target account cannot join the queue.
-        $count = $this->pdo->query("SELECT COUNT(DISTINCT target_account_id)\n             FROM mucho_content_reports\n             WHERE status='pending' AND target_account_id IS NOT NULL");
+        $count = $this->pdo->query("SELECT COUNT(DISTINCT target_account_id)\n             FROM mucho_content_reports r\n             WHERE status='pending' AND target_account_id IS NOT NULL\n               AND NOT EXISTS (\n                 SELECT 1 FROM mucho_gd2209_restrictions q\n                 WHERE q.account_id=r.target_account_id AND q.kind='queue'\n                   AND (q.expires_at IS NULL OR q.expires_at > UTC_TIMESTAMP())\n               )");
         $total = (int) $count->fetchColumn();
         $order = (function () use (&$sort) {
             $__mcMatch1 = $sort;
@@ -40,7 +40,7 @@ final class ReportQueueRepository
             }
             return 'last_report_id DESC';
         })();
-        $sql = "SELECT\n                  r.target_account_id,\n                  a.username,\n                  MIN(r.id) AS first_report_id,\n                  MAX(r.id) AS last_report_id,\n                  COUNT(*) AS report_count,\n                  COUNT(DISTINCT r.content_type, r.content_id) AS reported_items,\n                  COUNT(DISTINCT r.reporter_account_id) AS reporter_count,\n                  COUNT(*) * 3 AS report_points,\n                  MAX(r.created_at) AS last_report_at\n                FROM mucho_content_reports r\n                INNER JOIN accounts a ON a.account_id=r.target_account_id\n                WHERE r.status='pending' AND r.target_account_id IS NOT NULL\n                GROUP BY r.target_account_id, a.username\n                ORDER BY {$order}\n                LIMIT 20 OFFSET {$offset}";
+        $sql = "SELECT\n                  r.target_account_id,\n                  a.username,\n                  MIN(r.id) AS first_report_id,\n                  MAX(r.id) AS last_report_id,\n                  COUNT(*) AS report_count,\n                  COUNT(DISTINCT r.content_type, r.content_id) AS reported_items,\n                  COUNT(DISTINCT r.reporter_account_id) AS reporter_count,\n                  COUNT(*) * 3 AS report_points,\n                  MAX(r.created_at) AS last_report_at\n                FROM mucho_content_reports r\n                INNER JOIN accounts a ON a.account_id=r.target_account_id\n                WHERE r.status='pending' AND r.target_account_id IS NOT NULL\n                  AND NOT EXISTS (\n                    SELECT 1 FROM mucho_gd2209_restrictions q\n                    WHERE q.account_id=r.target_account_id AND q.kind='queue'\n                      AND (q.expires_at IS NULL OR q.expires_at > UTC_TIMESTAMP())\n                  )\n                GROUP BY r.target_account_id, a.username\n                ORDER BY {$order}\n                LIMIT 20 OFFSET {$offset}";
         $rows = $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         return ['total' => $total, 'rows' => $rows];
     }
