@@ -942,7 +942,21 @@ final readonly class LevelTransferService
             );
         }
 
-        $number = (int)$value;
+        // Check the decimal representation before casting. PHP saturates an
+        // oversized integer string to PHP_INT_MAX/MIN instead of rejecting it.
+        $text = (string)$value;
+        $negative = $text[0] === '-';
+        $digits = ltrim($negative ? substr($text, 1) : $text, '0');
+        $digits = $digits === '' ? '0' : $digits;
+        $limit = $negative ? substr((string)PHP_INT_MIN, 1) : (string)PHP_INT_MAX;
+        if (
+            strlen($digits) > strlen($limit) ||
+            (strlen($digits) === strlen($limit) && strcmp($digits, $limit) > 0)
+        ) {
+            throw new RuntimeException('Integer out of range: ' . $key);
+        }
+
+        $number = (int)$text;
 
         if ($number < $min || $number > $max) {
             throw new RuntimeException(
@@ -961,6 +975,11 @@ final readonly class LevelTransferService
             return 0;
         }
 
-        return ((string)$data[$key] === '1') ? 1 : 0;
+        $value = $data[$key];
+        if (!is_scalar($value) || !in_array((string)$value, ['', '0', '1'], true)) {
+            throw new RuntimeException('Invalid boolean: ' . $key);
+        }
+
+        return (string)$value === '1' ? 1 : 0;
     }
 }

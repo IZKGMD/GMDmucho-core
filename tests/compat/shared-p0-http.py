@@ -136,6 +136,32 @@ def run(php, report):
             require(int(saved["stars"]) == 0 and int(fixture("inspect")["levels"][0]["stars"]) == 0, "Client self-rated a level")
             checks.append("upload/metadata/ownership/invalid-payload/self-rating/database-integrity")
 
+            # Valid credentials must not let malformed editor fields reach a
+            # successful update. The unauthenticated inventory sweep cannot
+            # exercise these checks because authentication fails first.
+            malformed_uploads = [
+                {key + "[]": "1"} for key in ("auto", "twoPlayer", "ldm", "unlisted", "unlisted1", "unlisted2")
+            ] + [
+                {"auto": "2"}, {"unlisted2": "invalid"},
+                {"wt2": str(2 ** 100)}, {"original": "9" * 100},
+                {"songID": "0" * 10 + str(2 ** 100)},
+                {"settingsString[]": "invalid"}, {"songIDs[]": "invalid"}, {"sfxIDs[]": "invalid"},
+            ]
+            for malformed in malformed_uploads:
+                invalid = dict(upload, levelID=level, levelName="RejectMalformed")
+                invalid.update(malformed)
+                require(post("/a/uploadGJLevel21.php", invalid) == "-1",
+                        "Authenticated malformed upload accepted: " + ",".join(malformed))
+                require(fixture("inspect") == before, "Malformed authenticated upload changed database")
+            checks.append("authenticated-editor-array/boolean/integer-overflow-rejection/no-mutation")
+            require(post("/a/uploadGJLevel21.php", dict(upload, levelID=level, wt2="00042", auto=1)) == level,
+                    "Valid numeric/boolean metadata rejected")
+            accepted = fixture("inspect")["levels"][0]
+            require(int(accepted["wt2"]) == 42 and int(accepted["auto_level"]) == 1,
+                    "Valid numeric/boolean metadata changed")
+            require(post("/a/uploadGJLevel21.php", dict(upload, levelID=level, auto="")) == level,
+                    "Empty optional boolean compatibility rejected")
+
             download_request = dict(VERSION, levelID=level, extras=1, inc=0)
             downloaded = fields(post("/a/downloadGJLevel22.php", download_request, "levels.download").split("#")[0])
             compressed = downloaded["4"]
@@ -258,6 +284,45 @@ def run(php, report):
             require(fixture("inspect")["business_sha256"] == baseline,
                     "Unauthenticated/malformed route sweep mutated core business data")
             checks.append("all-%d-routes/missing-credentials/array-inputs/no-public-diagnostics/no-business-mutation" % len(inventory))
+
+            xor_password = base64.urlsafe_b64encode(bytes(
+                value ^ b"37526"[index % 5] for index, value in enumerate(PASSWORD.encode())
+            )).decode()
+            require(post("/a/uploadGJLevel21.php", dict(upload, levelID=level, gjp2="", gjp=xor_password,
+                         gameVersion=21, binaryVersion=35)) == level, "Legacy GJP owner update rejected")
+            require(post("/a/uploadGJLevel21.php", dict(upload, levelID=level)) == level,
+                    "Restore modern level version")
+            alias_count = 0
+            for contract in inventory:
+                endpoint = contract["id"]
+                if endpoint not in timings:
+                    continue
+                for alias in dict.fromkeys([contract["canonical_path"]] + contract["aliases"]):
+                    if endpoint == "account.login":
+                        require(post(alias, login) == "1,101", "Login alias: " + alias)
+                        require(post(alias, dict(login, password="wrong")) == "-1", "Bad login alias: " + alias)
+                    elif endpoint == "levels.upload":
+                        require(post(alias, dict(upload, levelID=level)) == level, "Upload alias: " + alias)
+                        state_before = fixture("inspect")["business_sha256"]
+                        require(post(alias, dict(upload, levelID=level, gjp2="wrong")) == "-1",
+                                "Bad upload credential alias: " + alias)
+                        require(fixture("inspect")["business_sha256"] == state_before,
+                                "Rejected upload alias changed data: " + alias)
+                    elif endpoint == "levels.search":
+                        value = post(alias, dict(VERSION, str="P0RoundTrip", type=0))
+                        require(fields(value.split("#")[0])["1"] == level, "Search alias: " + alias)
+                    elif endpoint == "levels.download":
+                        value = post(alias, download_request)
+                        require(fields(value.split("#")[0])["1"] == level, "Download alias: " + alias)
+                    elif endpoint == "users.leaderboard":
+                        value = post(alias, dict(VERSION, type="top", count=10))
+                        require([fields(row)["1"] for row in value.split("|")] == ["P0Other", "P0Owner"],
+                                "Leaderboard alias: " + alias)
+                    else:
+                        value = post(alias, dict(VERSION, levelID=level, count=10))
+                        require("2~" + comment in value and value.endswith("#1:0:10"), "Comments alias: " + alias)
+                    alias_count += 1
+            checks.append("p0-%d-canonical-and-alias-success-paths/credential-rejection/legacy-gjp" % alias_count)
 
             # Local wall-clock observations only, deliberately excluded from the
             # native-client evidence directory and release certification registry.

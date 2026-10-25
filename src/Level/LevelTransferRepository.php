@@ -19,6 +19,7 @@ final readonly class LevelTransferRepository
         'length',
         'audio_track',
         'song_id',
+        'auto_level',
         'copy_password',
         'original_level_id',
         'two_player',

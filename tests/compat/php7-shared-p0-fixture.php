@@ -46,7 +46,7 @@ if($mode==='inspect'){
         sort($encoded,SORT_STRING);hash_update($business,$table.'|'.implode('|',$encoded));
     }
     echo json_encode(array(
-        'levels'=>$db->query('SELECT level_id,account_id,name,level_version,level_data,level_info,settings_string,song_ids,sfx_ids,downloads,stars,is_deleted FROM levels ORDER BY level_id')->fetchAll(),
+        'levels'=>$db->query('SELECT level_id,account_id,name,level_version,level_data,level_info,settings_string,song_ids,sfx_ids,downloads,stars,is_deleted,wt2,auto_level FROM levels ORDER BY level_id')->fetchAll(),
         'accounts'=>(int)$db->query('SELECT COUNT(*) FROM accounts')->fetchColumn(),
         'comments'=>(int)$db->query('SELECT COUNT(*) FROM comments')->fetchColumn(),
         'profiles'=>(int)$db->query('SELECT COUNT(*) FROM profiles')->fetchColumn(),

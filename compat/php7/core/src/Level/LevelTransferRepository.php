@@ -7,7 +7,7 @@ use PDO;
 use RuntimeException;
 final class LevelTransferRepository
 {
-    const WRITABLE_FIELDS = ['account_id', 'name', 'description', 'level_version', 'game_version', 'binary_version', 'length', 'audio_track', 'song_id', 'copy_password', 'original_level_id', 'two_player', 'object_count', 'coins', 'requested_stars', 'is_unlisted', 'unlisted2', 'wt', 'wt2', 'extra_string', 'level_data', 'level_info', 'settings_string', 'song_ids', 'sfx_ids', 'ldm', 'ts'];
+    const WRITABLE_FIELDS = ['account_id', 'name', 'description', 'level_version', 'game_version', 'binary_version', 'length', 'audio_track', 'song_id', 'auto_level', 'copy_password', 'original_level_id', 'two_player', 'object_count', 'coins', 'requested_stars', 'is_unlisted', 'unlisted2', 'wt', 'wt2', 'extra_string', 'level_data', 'level_info', 'settings_string', 'song_ids', 'sfx_ids', 'ldm', 'ts'];
     public function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
