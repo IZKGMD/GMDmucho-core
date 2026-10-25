@@ -112,10 +112,23 @@ Do not add `.release/v1.1.0.ready` until the required certification passes. Vali
 rejects that marker if the endpoint gate still fails. The stable workflow repeats
 the gate and pins its source to the successful validated commit.
 
-Both distributions are built before creating a GitHub release draft. Failed
-uploads leave the new release as a draft; only successful uploads of both archives
-allow publication as the latest stable release. Existing stable tags cannot be
-moved. Archive-repair builds use the requested tag for both distributions.
+Stable publication also requires the native integration workflow at the exact
+validated main commit. Both PHP 7.0 and 8.3 matrix jobs must succeed in its latest
+attempt; a different commit, skipped job, failed run or pull-request run cannot
+authorize publication. A release-marker push triggers this integration even when
+no runtime file changes. The publisher waits up to 15 minutes for concurrent CI.
+
+Three distributions are built before creating a GitHub release draft:
+
+- `MuchoCore-v1.1.0.zip`: source archive.
+- `MuchoCore-v1.1.0-shared-hosting.zip`: PHP 8.2+ package with Composer dependencies.
+- `MuchoCore-v1.1.0-PHP7-shared-hosting.zip`: standalone PHP7 shared package.
+
+`checksums.sha256` covers all three archives. Failed builds, checksum mismatches
+and upload failures prevent new publication. Only successful uploads of all
+archives and checksums allow publication as the latest stable release. Existing
+stable tags cannot be moved. Archive repair builds from its requested tag and
+omits the native package only when that historical tag predates its builder.
 
 For an existing VPS, the normal stable update remains:
 
