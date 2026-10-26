@@ -98,6 +98,11 @@ function mucho7_cloudsave(PDO $pdo, $data, $backup)
     $aid = mucho7_identity($pdo, $data, true);
     if ($aid <= 0) return '-1';
     $root = dirname(__DIR__, 2);
+    // Isolated integration fixtures must not create private keys in the
+    // checked-out source tree. This override is ignored outside CLI tests.
+    if (PHP_SAPI === 'cli' && getenv('MUCHO7_TEST_CLOUDSAVE_ROOT')) {
+        $root = (string)getenv('MUCHO7_TEST_CLOUDSAVE_ROOT');
+    }
     if ($backup) {
         $save = isset($data['saveData']) ? $data['saveData'] : null;
         if (!is_string($save) || $save === '' || strlen($save) > 8*1024*1024) return '-1';
