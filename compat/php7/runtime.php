@@ -286,12 +286,6 @@ function mucho7_search(PDO $pdo, $data, $viewer = 0)
         $where[]='l.demon=1 AND l.demon_difficulty='.$mapping[(int)$demon];
     }
     $condition = implode(' AND ', $where);
-    $counter = $pdo->prepare('SELECT COUNT(*) FROM levels l WHERE ' . $condition);
-    $counter->execute($params);
-    $total = (int)$counter->fetchColumn();
-    if ($total === 0) {
-        return '-2';
-    }
     $sql = 'SELECT l.level_id,l.account_id,l.name,l.description,l.level_version,
            l.game_version,l.length,l.difficulty,l.downloads,l.likes,
            l.audio_track,l.demon,l.demon_difficulty,l.auto_level,l.stars,
@@ -316,9 +310,18 @@ function mucho7_search(PDO $pdo, $data, $viewer = 0)
            ' LIMIT 10 OFFSET ' . $offset;
     $query = $pdo->prepare($sql);
     $query->execute($params);
-    return mucho7_encode_levels(
-        $query->fetchAll(PDO::FETCH_ASSOC), $total, $offset, $gameVersion, $binary
-    );
+    $rows=$query->fetchAll(PDO::FETCH_ASSOC);
+    // A short first page is the complete result set. Do not run an extra
+    // COUNT(*) on the most common empty and small-result searches.
+    if($offset===0 && count($rows)<10){
+        $total=count($rows);
+    }else{
+        $counter=$pdo->prepare('SELECT COUNT(*) FROM levels l WHERE '.$condition);
+        $counter->execute($params);
+        $total=(int)$counter->fetchColumn();
+    }
+    if($total===0)return '-2';
+    return mucho7_encode_levels($rows,$total,$offset,$gameVersion,$binary);
 }
 
 function mucho7_dispatch($pdo, $uri, $method, $post, $options = array())

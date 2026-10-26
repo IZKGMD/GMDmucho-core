@@ -2,6 +2,11 @@
 /** Disposable local MariaDB integration; PHP 7.0 syntax throughout. */
 declare(strict_types=1);
 $root = dirname(__DIR__,2);
+// Never write integration-test encryption keys into the checked-out project.
+$saveFixtureRoot=sys_get_temp_dir().'/mucho7-saves-'.bin2hex(random_bytes(8));
+if(!mkdir($saveFixtureRoot.'/config',0700,true))throw new RuntimeException('Unable to create save fixture');
+putenv('MUCHO7_TEST_CLOUDSAVE_ROOT='.$saveFixtureRoot);
+require_once $root . '/compat/php7/bootstrap.php';
 foreach (array('runtime','schema','auth','download','upload','users','interactions','cloudsave','profile') as $module) {
     require_once $root . '/compat/php7/' . $module . '.php';
 }
@@ -76,6 +81,10 @@ try {
     $backup = array_merge($auth,array('saveData'=>" binary\0data\n "));
     nativeFeatureAssert($call('backupGJAccount20',$backup,array('enable_accounts'=>true,'enable_writes'=>true))==='-1','cloudsave independent opt-in');
     nativeFeatureAssert($call('backupGJAccount20',$backup)==='1','save to local database');
+    $rawSave=$pdo->query('SELECT save_data,sha256 FROM php7_cloud_saves WHERE account_id=1')->fetch(PDO::FETCH_ASSOC);
+    nativeFeatureAssert(substr($rawSave['save_data'],0,8)==='MC7ENC1:' && $rawSave['save_data']!==$backup['saveData'],'native Cloud Save must be encrypted at rest');
+    nativeFeatureAssert($rawSave['sha256']===hash('sha256',$backup['saveData']),'save plaintext checksum retained for migration');
+    nativeFeatureAssert(is_file($saveFixtureRoot.'/config/cloudsave.key'),'native Cloud Save private key missing');
     nativeFeatureAssert($call('syncGJAccount20',$auth)===$backup['saveData'].';21;30;a;a','sync preserves every byte');
     nativeFeatureAssert($call('syncGJAccount20',array_merge($auth,array('accountID'=>'2')))==='-1','other account cannot read save');
     nativeFeatureAssert($call('backupGJAccount20',array_merge($backup,array('gjp2'=>'bad')))==='-1','bad credential cannot overwrite save');
@@ -100,4 +109,9 @@ try {
     echo "PHP7_NATIVE_REAL_MARIADB_COMMENTS_VOTES_STATS_CLOUDSAVE_OK\n";
 } finally {
     $admin->exec('DROP DATABASE IF EXISTS mucho_php7_features_ci');
+    putenv('MUCHO7_TEST_CLOUDSAVE_ROOT');
+    foreach(array('cloudsave.key','php7-cloudsave-key.lock') as $item) {
+        if(is_file($saveFixtureRoot.'/config/'.$item))unlink($saveFixtureRoot.'/config/'.$item);
+    }
+    rmdir($saveFixtureRoot.'/config');rmdir($saveFixtureRoot);
 }

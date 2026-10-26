@@ -33,7 +33,16 @@ try{
     $db->exec('INSERT INTO php7_blocks(account_id,blocked_account_id) VALUES(3,2)');
     $db->exec("INSERT INTO php7_messages(id,account_id,to_account_id,subject,body,is_read,is_receiver_deleted) VALUES(5,1,2,'c3ViamVjdA==','Ym9keQ==',1,1)");
     $plain="Cloud\0save\xff;21;30;a;a";
-    $db->prepare('INSERT INTO php7_cloud_saves(account_id,save_data,sha256) VALUES(1,?,?)')->execute(array($plain,hash('sha256',$plain)));
+    $stored=$plain;
+    if(!$legacy){
+        // New native installations encrypt immediately; preserve the same
+        // private key while importing into the canonical AES-GCM repository.
+        require_once $root.'/compat/php7/cloudsave.php';
+        $saveKey=random_bytes(32);
+        mucho7_private_write($stage.'/config/cloudsave.key',base64_encode($saveKey)."\n");
+        $stored=mucho7_cloudsave_seal($plain,$saveKey);
+    }
+    $db->prepare('INSERT INTO php7_cloud_saves(account_id,save_data,sha256) VALUES(1,?,?)')->execute(array($stored,hash('sha256',$plain)));
     mucho7_admin_registry_install($db);
     $principal=mucho7_admin_user($db,1);
     $db->exec('INSERT INTO php7_admin_security(account_id,last_step,auth_version) VALUES(1,42,3) ON DUPLICATE KEY UPDATE last_step=42,auth_version=3');
