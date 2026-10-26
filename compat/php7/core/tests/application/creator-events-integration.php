@@ -81,6 +81,17 @@ try {
     $reject(function () use ($s, $event) {
         return $s->submit($event, 1, 10);
     }, 'draft submission');
+    $cap = $s->create('Jury capacity', 'Rules', $future, 1);
+    foreach (range(8, 28) as $extra) {
+        $db->prepare('INSERT INTO accounts(account_id,username,password_hash,gjp2_hash) VALUES(?,?,?,?)')->execute([$extra, 'Jury' . $extra, 'not-a-login-hash', '']);
+        if ($extra < 28) {
+            $s->addJudge($cap, $extra);
+        }
+    }
+    $reject(function () use ($s, $cap) {
+        return $s->addJudge($cap, 28);
+    }, 'jury capacity');
+    $check(count($s->judges($cap)) === 20, 'bounded jury');
     $s->transition($event, 'open');
     $reject(function () use ($s, $event, $future) {
         return $s->edit($event, 'Changed', 'Rules', $future, 1);

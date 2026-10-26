@@ -145,6 +145,12 @@ final class CreatorEventsService
             if ($event['state'] !== 'draft') {
                 throw new RuntimeException('Assign the jury before opening submissions.');
             }
+            $jury = $this->judges($id);
+            if (count($jury) >= 20 && !in_array($account, array_map(static function (array $row): int {
+                return (int) $row['account_id'];
+            }, $jury), true)) {
+                throw new RuntimeException('A jury can contain at most 20 judges.');
+            }
             $s = $this->db->prepare('SELECT account_id FROM accounts WHERE account_id=? AND is_active=1 AND is_banned=0');
             $s->execute([$account]);
             if (!$s->fetchColumn()) {

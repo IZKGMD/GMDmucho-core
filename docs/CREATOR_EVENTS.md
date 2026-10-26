@@ -7,7 +7,7 @@ No remote PHP package is downloaded or executed. Custom Plugins' external catalo
 remains a discovery preview.
 
 Create a draft with a title, plain-text rules, a future UTC deadline and 1–20
-required reviews. Assign active player accounts to the jury, then open submissions.
+required reviews. Assign up to 20 active player accounts to the jury, then open submissions.
 Rules, deadline and jury membership lock when submissions open. A contest accepts
 up to 200 entries. The admin list shows the latest 100 contests.
 

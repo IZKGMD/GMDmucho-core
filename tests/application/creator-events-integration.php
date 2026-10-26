@@ -31,6 +31,9 @@ try{
  $check($s->events()===[],'draft must be private');
  $reject(fn()=>$s->transition($event,'open'),'not enough judges');$s->addJudge($event,3);$s->addJudge($event,4);$s->removeJudge($event,4);$s->addJudge($event,4);
  $reject(fn()=>$s->addJudge($event,7),'banned judge');$reject(fn()=>$s->submit($event,1,10),'draft submission');
+ $cap=$s->create('Jury capacity','Rules',$future,1);
+ foreach(range(8,28) as $extra){$db->prepare('INSERT INTO accounts(account_id,username,password_hash,gjp2_hash) VALUES(?,?,?,?)')->execute([$extra,'Jury'.$extra,'not-a-login-hash','']);if($extra<28)$s->addJudge($cap,$extra);}
+ $reject(fn()=>$s->addJudge($cap,28),'jury capacity');$check(count($s->judges($cap))===20,'bounded jury');
  $s->transition($event,'open');$reject(fn()=>$s->edit($event,'Changed','Rules',$future,1),'locked rules');
  $reject(fn()=>$s->addJudge($event,6),'locked jury');$reject(fn()=>$s->submit($event,1,20),'stolen level');
  $db->exec('UPDATE levels SET unlisted2=1 WHERE level_id=10');$reject(fn()=>$s->submit($event,1,10),'private level');$db->exec('UPDATE levels SET unlisted2=0 WHERE level_id=10');
