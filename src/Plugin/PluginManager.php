@@ -45,6 +45,11 @@ final class PluginManager
 
     public function load(): void
     {
+        if ($this->enabled() && (new \MuchoCore\CreatorEvents\CreatorEventsService($this->db))->enabled()) {
+            $context = new PluginContext($this->db, $this->router, $this->events, ['routes','database'], 'Creator Events', $this->clientFeatures);
+            (new \MuchoCore\CreatorEvents\CreatorEventsPlugin())->register($context);
+            $this->loaded['creator-events']=['id'=>'creator-events','name'=>'Creator Events','version'=>'1.0.0','directory'=>'bundled','permissions'=>['routes','database'],'api'=>1];
+        }
         if (!$this->enabled() || !is_dir($this->rootDirectory)) {
             return;
         }
@@ -93,11 +98,12 @@ final class PluginManager
      */
     public function diagnostics(): array
     {
-        if (!is_dir($this->rootDirectory)) {
-            return [];
-        }
-
         $result = [];
+        $creator = new \MuchoCore\CreatorEvents\CreatorEventsService($this->db);
+        if ($creator->installed()) $result[] = ['id'=>'creator-events','name'=>'Creator Events','version'=>'1.0.0','api'=>1,'directory'=>'bundled/creator-events','permissions'=>['routes','database'],'status'=>$creator->enabled()?'ready':'disabled','reason'=>'Managed in the official Creator Events card.','min_core_version'=>null,'max_core_version'=>null];
+        if (!is_dir($this->rootDirectory)) {
+            return $result;
+        }
 
         foreach ($this->directories() as $directory) {
             $result[] = $this->diagnoseOne($directory);

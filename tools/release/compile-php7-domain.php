@@ -290,7 +290,7 @@ foreach(['clans','contentpacks','plugins','muchoprofiles','intelligence','migrat
 foreach(['advanced-module','advanced-actions','advanced-lib'] as $module)$files[]=$root.'/public/admin/'.$module.'.php';
 foreach(['clans','contentpacks','profiles','social'] as $action)$files[]=$root.'/public/admin/actions/'.$action.'.php';
 foreach(['client-features-module','security-monitoring-module'] as $module)$files[]=$root.'/public/admin/'.$module.'.php';
-$integrationTests=['admin-clans-integration','clan-client-integration','gd2209-gameplay-schema-integration',
+$integrationTests=['creator-events-integration','admin-clans-integration','clan-client-integration','gd2209-gameplay-schema-integration',
     'gd2209-social-integration','gd2209-thread-integration','gd2209-level-integration',
     'gd2209-moderation-queue-integration','gd2209-report-queue-integration','gd2209-case-actions-integration',
     'gd2209-sanctions-utilities-integration','gd2209-song-usage-integration','gd2209-audio-integration'];

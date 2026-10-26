@@ -19,6 +19,7 @@ function mucho7_domain_configure($settings,$root,$db=null)
     $GLOBALS['mucho7_domain_mount']=$mount;
     $GLOBALS['mucho7_domain_environment']=array(
         'MUCHO_SHARED_HOSTING'=>'1','MUCHO_ACCOUNT_URL'=>$site,
+        'MUCHO_CREATOR_WRITES'=>!empty($settings['enable_writes'])?'1':'0',
         'MUCHO_PUBLIC_ASSET_BASE'=>$mount.'/public',
         'MUCHO_ACCOUNT_RECOVERY_PATH'=>$mount.'/accounts/lostpassword.php',
         'MUCHO_ACCOUNT_RATE_DIR'=>$root.'/config/php7-account-rate',
@@ -59,7 +60,7 @@ function mucho7_domain_handle(PDO $db,$uri,$method,$post,$settings,$root)
     if(empty($settings['enable_accounts'])&&!in_array($plain,$public,true))return \MuchoCore\Http\Response::text('-1');
     if($plain==='/backupgjaccount'&&isset($post['saveData'])&&(!is_string($post['saveData'])||strlen($post['saveData'])>8*1024*1024))return \MuchoCore\Http\Response::text('-1');
     if($plain==='/registergjaccount'&&(empty($settings['enable_registration'])||is_file($root.'/config/registrations-disabled.flag')))return \MuchoCore\Http\Response::text('-1');
-    $read=in_array($plain,$public,true)||in_array($plain,array('/logingjaccount','/syncgjaccount','/getgjmessages','/downloadgjmessage',
+    $read=($path==='/extensions/creator-events'&&strtoupper($method)==='GET')||in_array($plain,$public,true)||in_array($plain,array('/logingjaccount','/syncgjaccount','/getgjmessages','/downloadgjmessage',
         '/getgjfriendrequests','/getgjuserlist','/getgjthreads','/getgjthreadmessages','/getgjthreadmembers','/getgjthreadinvites',
         '/searchgjthreadmessages','/getgjfollowing','/syncgjfollowing','/getgjnotifications','/getgjeditorsounds','/downloadgjeditorsound',
         '/getgjdeathdata','/getgjlevelcontrols','/getlevelrateinfo'),true);
