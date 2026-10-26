@@ -25,9 +25,11 @@ function adminListUrl(string $page, array $state, int $number): string
 
 function adminListPager(string $page, array $state, bool $hasMore): void
 {
+    // A single page has no navigation. Do not display an orphaned "1".
+    if ((int)$state['p'] === 1 && !$hasMore) return;
     echo '<nav class="admin-pagination" aria-label="Pagination">';
     if ($state['p'] > 1) echo '<a class="btn gray" href="'.h(adminListUrl($page,$state,$state['p']-1)).'">Previous</a>';
-    echo '<span class="muted">'.h((string)$state['p']).'</span>';
+    echo '<span class="muted" aria-current="page">Page '.h((string)$state['p']).'</span>';
     if ($hasMore) echo '<a class="btn gray" href="'.h(adminListUrl($page,$state,$state['p']+1)).'">Next</a>';
     echo '</nav>';
 }

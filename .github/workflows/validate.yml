@@ -128,6 +128,7 @@ jobs:
           php tests/application/admin-simple-integration.php
           php tests/application/admin-plain-integration.php
           php tests/application/admin-chrome-integration.php
+          php tests/application/admin-pager-modern.php
           php tests/application/admin-navigation-workflows.php
           php tests/application/admin-client-patcher-upload-limit.php
           php tests/application/vps-safe-sync-permissions.php
@@ -207,6 +208,7 @@ jobs:
           php tests/compat/php7-native-download-parity.php
           php tests/compat/php7-native-auth.php
           php tests/compat/php7-native-original-admin.php
+          php tests/compat/admin-pager-php7.php
           php tests/compat/php7-native-news-security.php
           php tests/compat/php7-native-upload.php
           php -l tools/diagnostics/gd2209-feature-check.php
