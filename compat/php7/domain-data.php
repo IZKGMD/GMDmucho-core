@@ -119,7 +119,15 @@ function mucho7_domain_import_step(PDO $db,$root,$batch=100)
                 $stored=$row['save_data'];
                 if(!is_string($stored))throw new RuntimeException('Invalid native cloud-save data.');
                 $key=mucho7_domain_save_key($db,$root);
-                if(!function_exists('mucho7_cloudsave_unseal'))require_once $root.'/compat/php7/cloudsave.php';
+                if(!function_exists('mucho7_cloudsave_unseal')){
+                    // In the source tree this module is adjacent to domain-data.
+                    // A reviewed compiled build keeps domain-data under
+                    // builds/<sha>/; the native adapter is two levels above.
+                    $reader=__DIR__.'/cloudsave.php';
+                    if(!is_file($reader))$reader=dirname(__DIR__,2).'/cloudsave.php';
+                    if(!is_file($reader))throw new RuntimeException('Native cloud-save adapter is missing.');
+                    require_once $reader;
+                }
                 $plain=mucho7_cloudsave_unseal($stored,$key);
                 if(!hash_equals((string)$row['sha256'],hash('sha256',$plain)))throw new RuntimeException('Native cloud-save checksum does not match.');
                 $nonce=random_bytes(12);$tag='';
