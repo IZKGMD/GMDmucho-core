@@ -53,7 +53,7 @@ def run(php, report):
         def fixture(operation):
             result = subprocess.run([php, str(helper), operation, str(root)], check=True,
                                     capture_output=True, text=True)
-            return json.loads(result.stdout) if operation == "inspect" else result.stdout
+            return json.loads(result.stdout) if operation in ("inspect", "account-change-inspect") else result.stdout
 
         router = root / "router.php"
         # Only the loopback test server treats its own HTTP connection as HTTPS.
