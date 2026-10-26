@@ -8015,7 +8015,8 @@
       "real_client": {
         "status": "pending",
         "evidence": []
-      }
+      },
+      "response_kind": "html"
     }
   ]
 }

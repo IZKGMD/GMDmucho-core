@@ -90,7 +90,7 @@ def run(php, report):
                 else:
                     raise RuntimeError("HTTP fixture startup timed out")
 
-            def post(path, data, endpoint=None, worker=0, allowed_status=(200,)):
+            def post(path, data, endpoint=None, worker=0, allowed_status=(200,), html=False):
                 body = urllib.parse.urlencode(data).encode()
                 request = urllib.request.Request("http://127.0.0.1:%d%s" % (ports[worker], path),
                                                  data=body, method="POST")
@@ -104,7 +104,11 @@ def run(php, report):
                     require(response.status in allowed_status, "Unexpected HTTP status: %s %s" % (path, response.status))
                     require(response.headers.get("X-Content-Type-Options") == "nosniff", "Missing response hardening")
                     require(response.headers.get("X-P0-OPcache") == "enabled", "OPcache-enabled regression fixture is required")
-                    require(text == text.strip() and not text.startswith("<"), "Contaminated game response")
+                    if html:
+                        require(text.startswith("<!doctype html>") and response.headers.get_content_type() == "text/html",
+                                "Browser route did not return an HTML page")
+                    else:
+                        require(text == text.strip() and not text.startswith("<"), "Contaminated game response")
                 if endpoint:
                     timings[endpoint].append((time.monotonic() - start) * 1000)
                 return text
@@ -294,7 +298,8 @@ def run(php, report):
                     if malformed:
                         data.update({key + "[]": "invalid" for key in
                                      ("accountID", "gjp", "gjp2", "userName", "password", "levelID", "type", "page")})
-                    response = post(contract["canonical_path"], data, allowed_status=(200, 400, 401, 403, 404, 405, 422))
+                    response = post(contract["canonical_path"], data, allowed_status=(200, 400, 401, 403, 404, 405, 422),
+                                    html=contract.get("response_kind") == "html")
                     require(not any(secret in response for secret in
                                     ("SQLSTATE", "PDOException", "Fatal error", "Warning:", "Stack trace")),
                             "Public diagnostic leak: " + contract["id"])
