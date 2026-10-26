@@ -5,6 +5,7 @@ namespace MuchoCore\Account;
 
 use MuchoCore\Branding\BrandingService;
 use MuchoCore\Database\Database;
+use MuchoCore\Core\Environment;
 use MuchoCore\Security\RateLimiter;
 use MuchoCore\Security\Turnstile;
 final class RecoveryController
@@ -15,7 +16,7 @@ final class RecoveryController
     {
         $db = (new Database())->connection();
         $this->branding = (new BrandingService($db))->get();
-        $this->service = new RecoveryService(new RecoveryRepository($db), new RateLimiter());
+        $this->service = new RecoveryService(new RecoveryRepository($db), new RateLimiter(Environment::get('MUCHO_ACCOUNT_RATE_DIR')));
     }
     public function handle()
     {
@@ -34,31 +35,32 @@ final class RecoveryController
     }
     private function handlePost()
     {
-        if (!hash_equals($this->csrfToken(), (string) ($_POST['csrf'] ?? ''))) {
+        if (!hash_equals($this->csrfToken(), $this->postString('csrf'))) {
             $this->renderMessage('This page has expired.', 'Refresh the page and try again.');
             return;
         }
-        $action = (string) ($_POST['action'] ?? '');
+        $action = $this->postString('action');
         if ($action === 'request') {
             if (Turnstile::enabled()) {
-                $token = (string) ($_POST['cf-turnstile-response'] ?? '');
+                $token = $this->postString('cf-turnstile-response');
                 $expectedHostname = parse_url((string) (getenv('MUCHO_ACCOUNT_URL') ?: ''), PHP_URL_HOST);
                 if (!Turnstile::verify($token, 'recovery', is_string($expectedHostname) ? $expectedHostname : null)) {
                     $this->renderRequest('Complete the security check and try again.');
                     return;
                 }
             }
-            $identity = (string) ($_POST['identity'] ?? '');
+            $identity = $this->postString('identity');
             $this->service->requestReset($identity, $this->clientIp(), $this->baseUrl());
             $this->renderMessage('Check your email', 'If an eligible account matches, a recovery link has been sent to its email address.');
             return;
         }
         if ($action === 'reset') {
-            $token = (string) ($_POST['token'] ?? '');
-            $password = (string) ($_POST['password'] ?? '');
-            $confirmation = (string) ($_POST['password_confirmation'] ?? '');
+            $token = $this->postString('token');
+            $password = $this->postString('password');
+            $confirmation = $this->postString('password_confirmation');
             if (!$this->service->resetPassword($token, $password, $confirmation, $this->clientIp())) {
-                $this->renderReset($token, false, 'This link is invalid or has expired.');
+                $valid = $this->service->tokenIsValid($token);
+                $this->renderReset($token, $valid, $valid ? 'Check that your passwords match and meet the length limit, or try again later.' : 'This link is invalid or has expired.');
                 return;
             }
             $this->renderMessage('Password changed', 'Your new password has been saved. Return to Geometry Dash and sign in.');
@@ -76,7 +78,7 @@ final class RecoveryController
             <div class="eyebrow">ACCOUNT RECOVERY</div>
             <h1>Account recovery</h1>
             <p class="lead">
-                Enter the username or email address associated with your account.
+                Enter your username or the email address you used when registering your account.
             </p>
             ' . $this->flash($error, 'error') . '
             <form method="post" autocomplete="off">
@@ -139,7 +141,7 @@ final class RecoveryController
                     name="password"
                     type="password"
                     minlength="8"
-                    maxlength="256"
+                    maxlength="72"
                     autocomplete="new-password"
                     required
                 >
@@ -150,7 +152,7 @@ final class RecoveryController
                     name="password_confirmation"
                     type="password"
                     minlength="8"
-                    maxlength="256"
+                    maxlength="72"
                     autocomplete="new-password"
                     required
                 >
@@ -223,8 +225,16 @@ final class RecoveryController
     }
     private function token(): string
     {
-        $token = (string) ($_GET['token'] ?? '');
+        $token = $_GET['token'] ?? '';
+        if (!is_string($token)) {
+            return '';
+        }
         return preg_match('/^[a-f0-9]{64}$/i', $token) === 1 ? $token : '';
+    }
+    private function postString(string $key): string
+    {
+        $value = $_POST[$key] ?? '';
+        return is_string($value) ? $value : '';
     }
     private function csrfToken(): string
     {

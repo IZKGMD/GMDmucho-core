@@ -20,6 +20,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import zlib
+from shared_account_email import check_email_recovery
 
 REPO = Path(__file__).resolve().parents[2]
 PASSWORD = "P0Fixture-1!"
@@ -53,12 +54,16 @@ def run(php, report):
         def fixture(operation):
             result = subprocess.run([php, str(helper), operation, str(root)], check=True,
                                     capture_output=True, text=True)
-            return json.loads(result.stdout) if operation in ("inspect", "account-change-inspect") else result.stdout
+            return json.loads(result.stdout) if operation in ("inspect", "account-change-inspect", "email-recovery-inspect") else result.stdout
 
         router = root / "router.php"
+        # Intercept only the account namespace in this local test process.
+        # Production mail transport is unchanged; no email leaves the fixture.
+        (root / "mail-sink.php").write_text("<?php namespace MuchoCore\\Account; function mail($to,$subject,$body,$headers){"
+            "return file_put_contents(__DIR__.'/config/mail-outbox.jsonl',json_encode(array('to'=>$to,'body'=>$body)).\"\\n\",FILE_APPEND|LOCK_EX)!==false;}")
         # Only the loopback test server treats its own HTTP connection as HTTPS.
         # No request header can choose this behavior in the deployed runtime.
-        router.write_text("<?php $_SERVER['HTTPS']='on';"
+        router.write_text("<?php require __DIR__.'/mail-sink.php'; $_SERVER['HTTPS']='on';"
                           "$_SERVER['SCRIPT_NAME']='/mc/public/php7.php';"
                           "header('X-P0-OPcache: '.(function_exists('opcache_get_status')&&opcache_get_status(false)!==false?'enabled':'missing'));"
                           "require __DIR__.'/public/php7.php';")
@@ -569,9 +574,10 @@ def run(php, report):
             require("Unable to change the password" in page and fixture("inspect")["business_sha256"] == before_limited,
                     "Account rate limit failed closed")
             checks.append("native-account-management/mount/cookie/csrf/current-password/no-gjp2/banned/read-only/revocation/audit/rollback/rate-limit")
+            checks.append(check_email_recovery(post, fixture, root, ports[0], require))
             result = dict(kind="synthetic-local-http", native_client_certified=False,
                           php=Path(php).name, game_version=22, binary_version=51,
-                          fixture_accounts=4, checks=checks, timings={})
+                          fixture_accounts=fixture("inspect")["accounts"], checks=checks, timings={})
             for endpoint, values in timings.items():
                 ordered = sorted(values)
                 result["timings"][endpoint] = dict(samples=len(ordered), round_trip_p95_ms=round(ordered[(95 * len(ordered) + 99)//100 - 1], 3))
