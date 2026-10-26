@@ -11,8 +11,16 @@ function mucho7_domain_import_stages()
 }
 function mucho7_domain_complete(PDO $db)
 {
-    if(!mucho7_domain_table($db,'php7_core_import_state'))return false;
-    return (int)$db->query('SELECT stage FROM php7_core_import_state WHERE id=1')->fetchColumn()>=count(mucho7_domain_import_stages());
+    // One query on the hot request path instead of information_schema + SELECT.
+    // Treat only a missing table as incomplete; never hide other database errors.
+    try {
+        $state=$db->query('SELECT stage FROM php7_core_import_state WHERE id=1')->fetchColumn();
+        return $state!==false && (int)$state>=count(mucho7_domain_import_stages());
+    }catch(PDOException $error){
+        $details=$error->errorInfo;
+        if($error->getCode()==='42S02' || (is_array($details) && isset($details[1]) && (int)$details[1]===1146))return false;
+        throw $error;
+    }
 }
 function mucho7_domain_import_insert(PDO $db,$table,$values)
 {
@@ -108,8 +116,13 @@ function mucho7_domain_import_step(PDO $db,$root,$batch=100)
                 $values=array();foreach(array('id','account_id','to_account_id','subject','body','is_read','is_sender_deleted','is_receiver_deleted','created_at') as $field)$values[$field]=$row[$field];
                 mucho7_domain_import_insert($db,'messages',$values);
             }elseif($stage==='cloud_saves'){
-                $plain=$row['save_data'];if(!is_string($plain)||!hash_equals($row['sha256'],hash('sha256',$plain)))throw new RuntimeException('Native cloud-save checksum does not match.');
-                $key=mucho7_domain_save_key($db,$root);$nonce=random_bytes(12);$tag='';
+                $stored=$row['save_data'];
+                if(!is_string($stored))throw new RuntimeException('Invalid native cloud-save data.');
+                $key=mucho7_domain_save_key($db,$root);
+                if(!function_exists('mucho7_cloudsave_unseal'))require_once $root.'/compat/php7/cloudsave.php';
+                $plain=mucho7_cloudsave_unseal($stored,$key);
+                if(!hash_equals((string)$row['sha256'],hash('sha256',$plain)))throw new RuntimeException('Native cloud-save checksum does not match.');
+                $nonce=random_bytes(12);$tag='';
                 $encrypted=mucho7_openssl_encrypt($plain,'aes-256-gcm',$key,OPENSSL_RAW_DATA,$nonce,$tag,'',16);
                 mucho7_domain_import_insert($db,'mucho_cloud_saves',array('account_id'=>$row['account_id'],'ciphertext'=>$encrypted,'nonce'=>$nonce,'auth_tag'=>$tag,
                     'sha256'=>$row['sha256'],'size_bytes'=>strlen($plain),'revision'=>1,'backed_up_at'=>$row['updated_at']));
