@@ -32,11 +32,12 @@ class NativeInventoryTest(unittest.TestCase):
             "%s/database/accounts/backupGJAccountNew.php",
             "https://www.boomlings.com/databas/checkIfServerOnline.php",
             "https://www.boomlings.com/database/accounts/lostusername.php",
+            "https://www.boomlings.com/database/accounts/accountManagement.php",
             "https://www.boomlings.com/database/unknownFutureOperation.php",
             "https://www.boomlings.com/FAQ",  # External webpage, not an API.
         ])
         report = inventory.inspect(image)
-        self.assertEqual(report["direct_urls"], 4)
+        self.assertEqual(report["direct_urls"], 5)
         self.assertEqual(report["url_templates"], 1)
         self.assertEqual(report["unimplemented_paths"], ["/unknownfutureoperation"])
         rows = report["endpoints"]
@@ -45,6 +46,7 @@ class NativeInventoryTest(unittest.TestCase):
         self.assertTrue(rows[2]["path_repair_required"])
         self.assertEqual(rows[2]["service"], "router-health")
         self.assertEqual(rows[3]["service"], "shared-recovery")
+        self.assertEqual(rows[4]["service"], "application")
         self.assertFalse(report["native_client_certified"])
 
     def test_urls_outside_rdata_cannot_claim_coverage(self):
