@@ -34,7 +34,7 @@ def check_email_recovery(post, fixture, root, port, require):
     cookies = ""
     recovery_path = "/mc/accounts/lostpassword.php"
 
-    def browser(data=None, path=recovery_path):
+    def browser(data=None, path=recovery_path, allowed_status=(200,)):
         nonlocal cookies
         request = urllib.request.Request("http://127.0.0.1:%d%s" % (port, path),
             data=None if data is None else urllib.parse.urlencode(data).encode(),
@@ -45,7 +45,7 @@ def check_email_recovery(post, fixture, root, port, require):
             response = error
         with response:
             page = response.read().decode()
-            require(response.status == 200, "Recovery HTTP request failed")
+            require(response.status in allowed_status, "Recovery HTTP request failed")
             for cookie in response.headers.get_all("Set-Cookie", []):
                 if cookie.startswith("MUCHO_RECOVERY="):
                     require("HttpOnly" in cookie and "secure" in cookie.lower(), "Recovery session cookie is not secure")
@@ -108,7 +108,7 @@ def check_email_recovery(post, fixture, root, port, require):
         require('name="password_confirmation"' in page and 'name="token"' in page and "Invalid link" not in page,
                 "Invalid new password discarded a valid recovery form")
     fixture("read-only")
-    require(browser(reset, second_path) == "-1", "Read-only server allowed password recovery")
+    require(browser(reset, second_path, allowed_status=(503,)) == "-1", "Read-only server allowed password recovery")
     fixture("writable")
     require("Password changed" in browser(reset, second_path), "Email recovery did not change the password")
     require(fixture("email-recovery-inspect")["sessions"] == 0, "Recovery did not revoke legacy upload sessions")
