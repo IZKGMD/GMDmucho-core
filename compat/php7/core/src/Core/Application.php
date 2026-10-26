@@ -5,6 +5,8 @@ namespace MuchoCore\Core;
 
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Account\AccountController;
+use MuchoCore\Account\AccountManagementController;
+use MuchoCore\Account\AccountManagementService;
 use MuchoCore\Account\AccountRepository;
 use MuchoCore\Account\AccountService;
 use MuchoCore\Cache\CacheManager;
@@ -91,6 +93,7 @@ use MuchoCore\News\NativeNewsFormat;
 use MuchoCore\Score\LevelScoreController;
 use MuchoCore\Score\PlatformerScoreController;
 use MuchoCore\Security\MuchoProtect;
+use MuchoCore\Security\RateLimiter;
 use MuchoCore\Social\MessageController;
 use MuchoCore\Social\MessageRepository;
 use MuchoCore\Social\MessageService;
@@ -267,6 +270,7 @@ final class Application
         });
         $route('/loginGJAccount', [$accountController, 'login']);
         $route('/registerGJAccount', [$accountController, 'register']);
+        $route('/accountManagement', [new AccountManagementController(new AccountManagementService($this->pdo, new RateLimiter(Environment::get('MUCHO_ACCOUNT_RATE_DIR', dirname(\MUCHO7_PROJECT_ROOT . '/src/Core', 2) . '/storage/control/account-rate')))), 'handle']);
         /*
          * MuchoCore Secure Cloud Save v7
          * Copyright (C) 2026 IZK

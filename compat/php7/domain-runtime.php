@@ -19,6 +19,9 @@ function mucho7_domain_configure($settings,$root,$db=null)
     $GLOBALS['mucho7_domain_mount']=$mount;
     $GLOBALS['mucho7_domain_environment']=array(
         'MUCHO_SHARED_HOSTING'=>'1','MUCHO_ACCOUNT_URL'=>$site,
+        'MUCHO_PUBLIC_ASSET_BASE'=>$mount.'/public',
+        'MUCHO_ACCOUNT_RECOVERY_PATH'=>$mount.'/accounts/lostpassword.php',
+        'MUCHO_ACCOUNT_RATE_DIR'=>$root.'/config/php7-account-rate',
         'MUCHO_ADMIN_PASSKEY_RP_ID'=>(string)parse_url($site,PHP_URL_HOST),
         'MUCHO_WEBHOOK_URL'=>!empty($settings['enable_webhooks'])&&isset($settings['webhook_url'])?(string)$settings['webhook_url']:'',
         'MUCHO_WEBHOOK_SECRET'=>isset($settings['webhook_secret'])?(string)$settings['webhook_secret']:'',

@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import socket
@@ -52,7 +53,7 @@ def run(php, report):
         def fixture(operation):
             result = subprocess.run([php, str(helper), operation, str(root)], check=True,
                                     capture_output=True, text=True)
-            return json.loads(result.stdout) if operation == "inspect" else result.stdout
+            return json.loads(result.stdout) if operation in ("inspect", "account-change-inspect") else result.stdout
 
         router = root / "router.php"
         # Only the loopback test server treats its own HTTP connection as HTTPS.
@@ -89,7 +90,7 @@ def run(php, report):
                 else:
                     raise RuntimeError("HTTP fixture startup timed out")
 
-            def post(path, data, endpoint=None, worker=0, allowed_status=(200,)):
+            def post(path, data, endpoint=None, worker=0, allowed_status=(200,), html=False):
                 body = urllib.parse.urlencode(data).encode()
                 request = urllib.request.Request("http://127.0.0.1:%d%s" % (ports[worker], path),
                                                  data=body, method="POST")
@@ -103,7 +104,11 @@ def run(php, report):
                     require(response.status in allowed_status, "Unexpected HTTP status: %s %s" % (path, response.status))
                     require(response.headers.get("X-Content-Type-Options") == "nosniff", "Missing response hardening")
                     require(response.headers.get("X-P0-OPcache") == "enabled", "OPcache-enabled regression fixture is required")
-                    require(text == text.strip() and not text.startswith("<"), "Contaminated game response")
+                    if html:
+                        require(text.startswith("<!doctype html>") and response.headers.get_content_type() == "text/html",
+                                "Browser route did not return an HTML page")
+                    else:
+                        require(text == text.strip() and not text.startswith("<"), "Contaminated game response")
                 if endpoint:
                     timings[endpoint].append((time.monotonic() - start) * 1000)
                 return text
@@ -293,7 +298,8 @@ def run(php, report):
                     if malformed:
                         data.update({key + "[]": "invalid" for key in
                                      ("accountID", "gjp", "gjp2", "userName", "password", "levelID", "type", "page")})
-                    response = post(contract["canonical_path"], data, allowed_status=(200, 400, 401, 403, 404, 405, 422))
+                    response = post(contract["canonical_path"], data, allowed_status=(200, 400, 401, 403, 404, 405, 422),
+                                    html=contract.get("response_kind") == "html")
                     require(not any(secret in response for secret in
                                     ("SQLSTATE", "PDOException", "Fatal error", "Warning:", "Stack trace")),
                             "Public diagnostic leak: " + contract["id"])
@@ -471,6 +477,98 @@ def run(php, report):
                 post("/a/downloadGJLevel22.php", download_request, "levels.download")
                 post("/a/getGJScores20.php", dict(VERSION, type="top"), "users.leaderboard")
                 post("/a/getGJComments21.php", dict(VERSION, levelID=level), "comments.read")
+
+            # Exercise the browser endpoint through the same shared entry point,
+            # with cookies and CSRF. Never accept an accountID/GJP2 as a browser
+            # password or let one player's submitted ID select another account.
+            cookies = ""
+
+            def account_page(path="/database/accounts/accountManagement.php", data=None):
+                nonlocal cookies
+                request = urllib.request.Request("http://127.0.0.1:%d%s" % (ports[0], path),
+                    data=None if data is None else urllib.parse.urlencode(data).encode(),
+                    headers={"Cookie": cookies})
+                try:
+                    response = urllib.request.urlopen(request, timeout=15)
+                except urllib.error.HTTPError as error:
+                    response = error
+                with response:
+                    page = response.read().decode()
+                    for cookie in response.headers.get_all("Set-Cookie", []):
+                        if cookie.startswith("MUCHO_ACCOUNT="):
+                            require("HttpOnly" in cookie and "secure" in cookie.lower(), "Insecure player CSRF cookie")
+                            cookies = cookie.split(";", 1)[0]
+                    if page.startswith("<!doctype"):
+                        require(response.headers.get_content_type() == "text/html", "Account page MIME type")
+                        require(response.headers.get("Referrer-Policy") == "no-referrer", "Account referrer policy")
+                        require("form-action 'self'" in response.headers.get("Content-Security-Policy", ""), "Account CSP")
+                        require("no-store" in response.headers.get("Cache-Control", ""), "Account page cached")
+                    return response.status, page
+
+            status, page = account_page()
+            require(status == 200 and '<html lang="en">' in page and "Account management" in page, "Native browser account page missing")
+            require('/mc/public/recovery/recovery.css' in page and '/mc/accounts/lostpassword.php' in page,
+                    "Shared account links escaped the mount")
+            token = re.search(r'name="csrf" value="([a-f0-9]{64})"', page).group(1)
+            change = dict(csrf=token, username="P0Other", current_password="P0Fixture-2!",
+                          password="ChangedFixture-2!", password_confirmation="ChangedFixture-2!", accountID=1)
+            before_change = fixture("inspect")["business_sha256"]
+            status, page = account_page(data=dict(change, csrf="wrong"))
+            require(status == 403 and "page has expired" in page, "Invalid account CSRF accepted")
+            for invalid in (dict(change, current_password="incorrect"),
+                            dict(change, current_password=other),
+                            dict(change, password_confirmation="different"),
+                            dict(change, password="x" * 73, password_confirmation="x" * 73),
+                            dict(change, password="nul\0password", password_confirmation="nul\0password"),
+                            dict(change, username="P0Banned", current_password="P0Fixture-3!"),
+                            dict(change, username="P0Inactive", current_password="P0Fixture-4!"),
+                            dict(change, username="")):
+                status, page = account_page(data=invalid)
+                require(status == 200 and "Unable to change the password" in page, "Invalid browser password change accepted")
+                require(invalid["current_password"] not in page and change["password"] not in page,
+                        "Account form reflected a password")
+            require(fixture("inspect")["business_sha256"] == before_change, "Rejected account change modified player data")
+            fixture("read-only")
+            require(account_page(data=change)[1] == "-1", "Read-only account change accepted")
+            fixture("writable")
+            fixture("account-change-seed")
+            fixture("account-change-fail-audit")
+            status, page = account_page(data=change)
+            require(status == 503 and "temporarily unavailable" in page and "Fixture audit failure" not in page,
+                    "Failed password transaction leaked an error or reported success")
+            require(fixture("inspect")["business_sha256"] == before_change
+                    and fixture("account-change-inspect") == dict(sessions=1, recovery=1, audit=0),
+                    "Failed password change did not roll back hashes and revocations")
+            fixture("account-change-restore-audit")
+            status, page = account_page(data=change)
+            require(status == 200 and "Password changed." in page, "Browser password change failed")
+            after_change = fixture("account-change-inspect")
+            require(after_change == dict(sessions=0, recovery=0, audit=1), "Password change did not atomically revoke/audit")
+            require(post("/a/accounts/loginGJAccount22.php", dict(VERSION, userName="P0Other", password="P0Fixture-2!")) == "-1", "Old password still authenticates")
+            require(post("/a/accounts/loginGJAccount22.php", dict(VERSION, userName="P0Other", gjp2=other)) == "-1", "Old GJP2 still authenticates")
+            require(post("/a/accounts/loginGJAccount22.php", dict(VERSION, userName="P0Other", password=change["password"])) == "2,102", "New password does not authenticate")
+            new_gjp2 = hashlib.sha1((change["password"] + "mI29fmAnxgTs").encode()).hexdigest()
+            require(post("/a/accounts/loginGJAccount22.php", dict(VERSION, userName="P0Other", gjp2=new_gjp2)) == "2,102", "New GJP2 does not authenticate")
+            require(post("/a/accounts/loginGJAccount22.php", dict(VERSION, userName="P0Owner", password=PASSWORD)) == "1,101", "Submitted accountID changed another player")
+            require(account_page(data=change)[0] == 403, "Used successful form CSRF token remained valid")
+            status, page = account_page("/mc/accounts/accountManagement.php")
+            token = re.search(r'name="csrf" value="([a-f0-9]{64})"', page).group(1)
+            # This account has four credential checks so far. The sixth must
+            # fail its identity budget while the IP is still below ten.
+            account_page(data=dict(change, csrf=token, current_password="wrong"))
+            before_limited = fixture("inspect")["business_sha256"]
+            status, page = account_page(data=dict(change, csrf=token, current_password=change["password"],
+                password="AnotherFixture-2!", password_confirmation="AnotherFixture-2!"))
+            require("Unable to change the password" in page and fixture("inspect")["business_sha256"] == before_limited,
+                    "Account identity rate limit accepted valid credentials")
+            # Exhaust the independent IP budget using another account.
+            for unused in range(5):
+                account_page(data=dict(change, csrf=token, username="P0Owner", current_password="wrong"))
+            before_limited = fixture("inspect")["business_sha256"]
+            status, page = account_page(data=dict(change, csrf=token, username="P0Owner", current_password=PASSWORD))
+            require("Unable to change the password" in page and fixture("inspect")["business_sha256"] == before_limited,
+                    "Account rate limit failed closed")
+            checks.append("native-account-management/mount/cookie/csrf/current-password/no-gjp2/banned/read-only/revocation/audit/rollback/rate-limit")
             result = dict(kind="synthetic-local-http", native_client_certified=False,
                           php=Path(php).name, game_version=22, binary_version=51,
                           fixture_accounts=4, checks=checks, timings={})

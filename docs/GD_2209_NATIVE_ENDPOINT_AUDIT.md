@@ -22,6 +22,7 @@ No original EXE, account credential or player data is checked into this audit.
 | `adminQueueUnmute` | Request in the same admin popup, action ID 123; `adminQueueUnmute_%i` | Remove the existing queue restriction and audit `QUEUE_UNMUTE`; retained reports reappear |
 | `getLevelRateInfo` | Request `0x1402538d0`, response dispatcher `0x140253c10`, delegate `0x14041b780`, RateInfoPopup parser `0x14041a490` | Two colon-separated histograms: ten comma-separated star counts and five quality counts (F/E/L/M/R); count the latest persisted advisor suggestion per account |
 | `getSaveData` | Request `0x14022bfa0`, response parser `0x14022c290` strips a 20-byte prefix/suffix and decompresses the middle before reading ID/star pairs | Public rated-level refresh from real stored levels; URL-safe Base64 of a zlib stream with 20-character padding at each end; exclude deleted, unlisted and friend-only levels |
+| `accountManagement` | Browser-facing account URL embedded in the EXE | English player password-change form, current-password verification, session CSRF and strict rate limits; atomically replace password/GJP2 hashes, revoke recovery links and legacy upload sessions, and audit the change |
 
 Rating information authenticates the caller and uses the same friend-only
 level access check as downloads/comments. It remains available in read-only
@@ -55,7 +56,8 @@ The source inventory still distinguishes these from implemented routes:
 * `lostpassword` and `accountManagement`: browser-facing account pages. The
   shared `lostpassword` and `lostusername` paths now invoke the English
   RecoveryController, including CSRF protection and mount-aware assets.
-  `accountManagement` still needs a dedicated self-service account page.
+  `accountManagement` now provides a dedicated self-service password page;
+  username/email changes and account deletion are not exposed by that form.
   Absence from Application's game route list does not make a shared recovery
   handler absent.
 

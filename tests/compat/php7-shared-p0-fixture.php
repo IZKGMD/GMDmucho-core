@@ -38,6 +38,19 @@ $settings=require $settingsPath;$name=$settings['database'];
 if(!preg_match('/^mc_p0_http_[a-f0-9]{12}$/D',$name))throw new RuntimeException('Invalid disposable database name.');
 if($mode==='drop'){$server->exec('DROP DATABASE IF EXISTS '.$name);exit;}
 $db=new PDO($dsn.';dbname='.$name,'root',$password,$options);
+if($mode==='account-change-seed'){
+    $db->prepare('INSERT INTO mucho_legacy_19_sessions(account_id,udid_hash,ip_address,expires_at) VALUES(2,?,?,DATE_ADD(NOW(),INTERVAL 1 HOUR))')->execute(array(password_hash('fixture-device',PASSWORD_BCRYPT,array('cost'=>4)),'127.0.0.1'));
+    $db->prepare('INSERT INTO account_recovery_tokens(account_id,token_hash,expires_at,created_ip_hash) VALUES(2,?,DATE_ADD(NOW(),INTERVAL 1 HOUR),?)')->execute(array(hash('sha256','fixture-token'),hash('sha256','127.0.0.1')));exit;
+}
+if($mode==='account-change-inspect'){
+    echo json_encode(array('sessions'=>(int)$db->query('SELECT COUNT(*) FROM mucho_legacy_19_sessions WHERE account_id=2')->fetchColumn(),
+        'recovery'=>(int)$db->query('SELECT COUNT(*) FROM account_recovery_tokens WHERE account_id=2')->fetchColumn(),
+        'audit'=>(int)$db->query("SELECT COUNT(*) FROM audit_logs WHERE account_id=2 AND action='account.password.changed'")->fetchColumn()));exit;
+}
+if($mode==='account-change-fail-audit'){
+    $db->exec("CREATE TRIGGER fixture_account_audit_failure BEFORE INSERT ON audit_logs FOR EACH ROW BEGIN IF NEW.action='account.password.changed' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Fixture audit failure'; END IF; END");exit;
+}
+if($mode==='account-change-restore-audit'){$db->exec('DROP TRIGGER fixture_account_audit_failure');exit;}
 if($mode==='inspect'){
     $business=hash_init('sha256');
     foreach(array('accounts','profiles','levels','comments','account_comments','friends','messages','likes') as $table){

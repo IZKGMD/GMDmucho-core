@@ -75,6 +75,9 @@ foreach ($contracts as $index => $contract) {
     $ids[$id] = true;
 
     $inventoryOnly = ($contract['inventory_only'] ?? false) === true;
+    if (!in_array($contract['response_kind'] ?? 'text', ['text', 'html'], true)) {
+        endpointGateFail("{$id}: invalid response_kind");
+    }
     if (
         !in_array($method, ['POST', 'ANY'], true) ||
         ($method === 'ANY' && !$inventoryOnly)
@@ -225,7 +228,7 @@ foreach ($contractCanonicals as $canonical => $_) {
 }
 
 endpointGatePass(
-    count($declaredCanonical) . ' canonical application game routes inventoried'
+    count($declaredCanonical) . ' canonical application routes inventoried'
 );
 
 $fixtureFiles = glob($root . '/tests/client-fixtures/*/endpoints.json') ?: [];
