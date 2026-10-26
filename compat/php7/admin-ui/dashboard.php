@@ -93,33 +93,9 @@ function renderAdminDashboard(PDO $db)
     } catch (Throwable $error) {
     }
 
-    echo '<div class="admin-overview-heading"><h2>Server overview</h2></div>';
+    echo '<div class="admin-overview-heading"><h2>Server at a glance</h2></div>';
 
-    // The most common operator tasks belong one click away. These are links,
-    // not side-effecting actions, and never bypass normal admin permissions.
-    $quickActions = [
-        ['rating', 'Review levels', 'Rate and moderate submitted levels'],
-        ['news', 'Publish news', 'Create an in-game announcement'],
-        ['clientpatcher', 'Patch clients', 'Prepare GDPS Windows and Android clients'],
-        ['dbbackups', 'Back up database', 'Download a consistent SQL backup'],
-        ['settings', 'Server settings', 'Configure the GDPS'],
-    ];
-    $visibleActions = array_values(array_filter(
-        $quickActions,
-        static function(array $action): bool { return canAdminPage($action[0]); }
-    ));
-    if ($visibleActions) {
-        echo '<section class="admin-quick-section" aria-labelledby="adminQuickHeading">';
-        echo '<div class="section-heading"><div><h2 id="adminQuickHeading">Quick actions</h2><small>Jump to a task without searching through menus</small></div></div>';
-        echo '<div class="admin-quick-actions">';
-        foreach ($visibleActions as list($section, $label, $description)) {
-            echo '<a class="admin-quick-action" href="/admin/?page='.h($section).'">';
-            echo '<strong>'.h($label).'</strong><small>'.h($description).'</small>';
-            echo '</a>';
-        }
-        echo '</div></section>';
-    }
-
+    // First show real server data, then the actions it helps prioritize.
     echo '<div class="admin-kpi-grid">';
 
     $kpis = [
@@ -140,6 +116,31 @@ function renderAdminDashboard(PDO $db)
     }
 
     echo '</div>';
+
+    // The most common operator tasks belong one click away. These are links,
+    // not side-effecting actions, and never bypass normal admin permissions.
+    $quickActions = [
+        ['rating', 'Review levels', 'Rate and moderate submitted levels'],
+        ['news', 'Publish news', 'Create an in-game announcement'],
+        ['clientpatcher', 'Patch clients', 'Prepare GDPS Windows and Android clients'],
+        ['dbbackups', 'Back up database', 'Download a consistent SQL backup'],
+        ['settings', 'Server settings', 'Configure the GDPS'],
+    ];
+    $visibleActions = array_values(array_filter(
+        $quickActions,
+        static function(array $action): bool { return canAdminPage($action[0]); }
+    ));
+    if ($visibleActions) {
+        echo '<section class="admin-quick-section" aria-labelledby="adminQuickHeading">';
+        echo '<div class="section-heading"><div><h2 id="adminQuickHeading">Quick actions</h2><small>Common tasks, one click away</small></div></div>';
+        echo '<div class="admin-quick-actions">';
+        foreach ($visibleActions as list($section, $label, $description)) {
+            echo '<a class="admin-quick-action" href="/admin/?page='.h($section).'">';
+            echo '<strong>'.h($label).'</strong><small>'.h($description).'</small>';
+            echo '</a>';
+        }
+        echo '</div></section>';
+    }
 
     echo '<div class="admin-dashboard-columns">';
 
@@ -167,7 +168,7 @@ function renderAdminDashboard(PDO $db)
 
             echo '</div>';
         } else {
-            echo '<div class="empty-state">No player data available.</div>';
+            echo '<div class="empty-state">No recent registrations to show. Open Players for the full list.</div>';
         }
 
         echo '</section>';
@@ -194,7 +195,7 @@ function renderAdminDashboard(PDO $db)
 
             echo '</div>';
         } else {
-            echo '<div class="empty-state">No songs uploaded yet.</div>';
+            echo '<div class="empty-state">No recent music uploads. Open Music to manage tracks.</div>';
         }
 
         echo '</section>';
