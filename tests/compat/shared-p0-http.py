@@ -546,9 +546,17 @@ def run(php, report):
             require(post("/a/accounts/loginGJAccount22.php", dict(VERSION, userName="P0Other", gjp2=new_gjp2)) == "2,102", "New GJP2 does not authenticate")
             require(post("/a/accounts/loginGJAccount22.php", dict(VERSION, userName="P0Owner", password=PASSWORD)) == "1,101", "Submitted accountID changed another player")
             require(account_page(data=change)[0] == 403, "Used successful form CSRF token remained valid")
-            # A second account exhausts its identity budget before the IP budget.
             status, page = account_page("/mc/accounts/accountManagement.php")
             token = re.search(r'name="csrf" value="([a-f0-9]{64})"', page).group(1)
+            # This account has four credential checks so far. The sixth must
+            # fail its identity budget while the IP is still below ten.
+            account_page(data=dict(change, csrf=token, current_password="wrong"))
+            before_limited = fixture("inspect")["business_sha256"]
+            status, page = account_page(data=dict(change, csrf=token, current_password=change["password"],
+                password="AnotherFixture-2!", password_confirmation="AnotherFixture-2!"))
+            require("Unable to change the password" in page and fixture("inspect")["business_sha256"] == before_limited,
+                    "Account identity rate limit accepted valid credentials")
+            # Exhaust the independent IP budget using another account.
             for unused in range(5):
                 account_page(data=dict(change, csrf=token, username="P0Owner", current_password="wrong"))
             before_limited = fixture("inspect")["business_sha256"]
