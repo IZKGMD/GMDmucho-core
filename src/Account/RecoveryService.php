@@ -116,7 +116,8 @@ final readonly class RecoveryService
         if (
             !preg_match('/^[a-f0-9]{64}$/i', $token) ||
             strlen($password) < 8 ||
-            strlen($password) > 256 ||
+            strlen($password) > 72 ||
+            strpos($password, "\0") !== false ||
             !hash_equals($password, $confirmation)
         ) {
             return false;

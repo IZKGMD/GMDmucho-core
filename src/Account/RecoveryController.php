@@ -6,6 +6,7 @@ namespace MuchoCore\Account;
 
 use MuchoCore\Branding\BrandingService;
 use MuchoCore\Database\Database;
+use MuchoCore\Core\Environment;
 use MuchoCore\Security\RateLimiter;
 use MuchoCore\Security\Turnstile;
 
@@ -22,7 +23,7 @@ final class RecoveryController
 
         $this->service = new RecoveryService(
             new RecoveryRepository($db),
-            new RateLimiter()
+            new RateLimiter(Environment::get('MUCHO_ACCOUNT_RATE_DIR'))
         );
     }
 
@@ -53,7 +54,7 @@ final class RecoveryController
     {
         if (!hash_equals(
             $this->csrfToken(),
-            (string)($_POST['csrf'] ?? '')
+            $this->postString('csrf')
         )) {
             $this->renderMessage(
                 'This page has expired.',
@@ -62,11 +63,11 @@ final class RecoveryController
             return;
         }
 
-        $action = (string)($_POST['action'] ?? '');
+        $action = $this->postString('action');
 
         if ($action === 'request') {
             if (Turnstile::enabled()) {
-                $token = (string)($_POST['cf-turnstile-response'] ?? '');
+                $token = $this->postString('cf-turnstile-response');
                 $expectedHostname = parse_url(
                     (string)(getenv('MUCHO_ACCOUNT_URL') ?: ''),
                     PHP_URL_HOST
@@ -82,7 +83,7 @@ final class RecoveryController
                 }
             }
 
-            $identity = (string)($_POST['identity'] ?? '');
+            $identity = $this->postString('identity');
 
             $this->service->requestReset(
                 $identity,
@@ -98,9 +99,9 @@ final class RecoveryController
         }
 
         if ($action === 'reset') {
-            $token = (string)($_POST['token'] ?? '');
-            $password = (string)($_POST['password'] ?? '');
-            $confirmation = (string)($_POST['password_confirmation'] ?? '');
+            $token = $this->postString('token');
+            $password = $this->postString('password');
+            $confirmation = $this->postString('password_confirmation');
 
             if (!$this->service->resetPassword(
                 $token,
@@ -108,10 +109,12 @@ final class RecoveryController
                 $confirmation,
                 $this->clientIp()
             )) {
+                $valid = $this->service->tokenIsValid($token);
                 $this->renderReset(
                     $token,
-                    false,
-                    'This link is invalid or has expired.'
+                    $valid,
+                    $valid ? 'Check that your passwords match and meet the length limit, or try again later.'
+                        : 'This link is invalid or has expired.'
                 );
                 return;
             }
@@ -147,7 +150,7 @@ final class RecoveryController
             <div class="eyebrow">ACCOUNT RECOVERY</div>
             <h1>Account recovery</h1>
             <p class="lead">
-                Enter the username or email address associated with your account.
+                Enter your username or the email address you used when registering your account.
             </p>
             ' . $this->flash($error, 'error') . '
             <form method="post" autocomplete="off">
@@ -217,7 +220,7 @@ final class RecoveryController
                     name="password"
                     type="password"
                     minlength="8"
-                    maxlength="256"
+                    maxlength="72"
                     autocomplete="new-password"
                     required
                 >
@@ -228,7 +231,7 @@ final class RecoveryController
                     name="password_confirmation"
                     type="password"
                     minlength="8"
-                    maxlength="256"
+                    maxlength="72"
                     autocomplete="new-password"
                     required
                 >
@@ -331,12 +334,19 @@ final class RecoveryController
 
     private function token(): string
     {
-        $token = (string)($_GET['token'] ?? '');
+        $token = $_GET['token'] ?? '';
+        if (!is_string($token)) return '';
 
         return preg_match(
             '/^[a-f0-9]{64}$/i',
             $token
         ) === 1 ? $token : '';
+    }
+
+    private function postString(string $key): string
+    {
+        $value = $_POST[$key] ?? '';
+        return is_string($value) ? $value : '';
     }
 
     private function csrfToken(): string

@@ -38,6 +38,17 @@ $settings=require $settingsPath;$name=$settings['database'];
 if(!preg_match('/^mc_p0_http_[a-f0-9]{12}$/D',$name))throw new RuntimeException('Invalid disposable database name.');
 if($mode==='drop'){$server->exec('DROP DATABASE IF EXISTS '.$name);exit;}
 $db=new PDO($dsn.';dbname='.$name,'root',$password,$options);
+if($mode==='email-recovery-inspect'){
+    $id=(int)$db->query("SELECT account_id FROM accounts WHERE username='P0MailUser'")->fetchColumn();
+    $tokens=$db->prepare('SELECT token_hash FROM account_recovery_tokens WHERE account_id=? AND used_at IS NULL ORDER BY id');$tokens->execute(array($id));
+    $ttl=$db->prepare('SELECT COALESCE(MAX(TIMESTAMPDIFF(SECOND,NOW(),expires_at)),0) FROM account_recovery_tokens WHERE account_id=? AND used_at IS NULL');$ttl->execute(array($id));
+    $sessions=$db->prepare('SELECT COUNT(*) FROM mucho_legacy_19_sessions WHERE account_id=?');$sessions->execute(array($id));
+    echo json_encode(array('email'=>$db->query("SELECT email FROM accounts WHERE username='P0MailUser'")->fetchColumn(),
+        'token_hashes'=>$tokens->fetchAll(PDO::FETCH_COLUMN),'ttl_seconds'=>(int)$ttl->fetchColumn(),'sessions'=>(int)$sessions->fetchColumn()));exit;
+}
+if($mode==='email-recovery-expire'){
+    $db->exec("UPDATE account_recovery_tokens SET expires_at=DATE_SUB(NOW(),INTERVAL 1 SECOND) WHERE account_id=(SELECT account_id FROM accounts WHERE username='P0MailUser')");exit;
+}
 if($mode==='account-change-seed'){
     $db->prepare('INSERT INTO mucho_legacy_19_sessions(account_id,udid_hash,ip_address,expires_at) VALUES(2,?,?,DATE_ADD(NOW(),INTERVAL 1 HOUR))')->execute(array(password_hash('fixture-device',PASSWORD_BCRYPT,array('cost'=>4)),'127.0.0.1'));
     $db->prepare('INSERT INTO account_recovery_tokens(account_id,token_hash,expires_at,created_ip_hash) VALUES(2,?,DATE_ADD(NOW(),INTERVAL 1 HOUR),?)')->execute(array(hash('sha256','fixture-token'),hash('sha256','127.0.0.1')));exit;

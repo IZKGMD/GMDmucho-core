@@ -219,6 +219,14 @@ recovery form with CSRF protection. Native rating information, saved-level
 rating refresh and moderation queue mute/unmute are covered by the shared HTTP
 regression. See [the exact EXE audit](GD_2209_NATIVE_ENDPOINT_AUDIT.md) for static
 parser evidence and remaining native operations.
+Registration requires a valid, unique `email`; that same address receives
+password-recovery links. Players can open **Forgot your password?** in account
+management and enter their username or registration email. Reset links expire
+after 30 minutes, work once, and are replaced by a new request. A password reset
+updates both password and GJP2 credentials and revokes legacy upload sessions.
+The shared HTTP regression captures mail in a disposable test outbox and checks
+registration, reset links and sign-in; delivery to real mailboxes still depends
+on the provider's PHP mail configuration.
 The fixed official CDN proxy supports GET/HEAD and single byte ranges, with a
 64 MiB response limit. Apply the supplied root rewrite rules for root-relative
 client URLs. GD image features require the PHP GD extension.

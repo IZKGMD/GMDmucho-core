@@ -55,7 +55,7 @@ final class RecoveryService
     public function resetPassword(string $token, string $password, string $confirmation, string $ip): bool
     {
         $token = trim($token);
-        if (!preg_match('/^[a-f0-9]{64}$/i', $token) || strlen($password) < 8 || strlen($password) > 256 || !hash_equals($password, $confirmation)) {
+        if (!preg_match('/^[a-f0-9]{64}$/i', $token) || strlen($password) < 8 || strlen($password) > 72 || strpos($password, "\x00") !== false || !hash_equals($password, $confirmation)) {
             return false;
         }
         if (!$this->rateLimiter->allowStrict('recovery-reset-ip|' . $ip, 10, 900)) {
