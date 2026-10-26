@@ -1,47 +1,55 @@
 # MuchoCore PHP runtime compatibility
 
-MuchoCore is one shared game-server core. The Geometry Dash protocol version
-and the hosting PHP interpreter version are **different** compatibility axes.
+Geometry Dash **client protocol versions** and server-side **PHP versions**
+are separate compatibility dimensions. A GD 2.209 route is not certified by
+compiling successfully on PHP 7.0.
 
-| PHP runtime | Deployment | Notes |
+| PHP runtime | Correct deployment | Acceptance status |
 | --- | --- | --- |
-| 8.5 / 8.4 / 8.3 | Native (shared host or VPS) | Recommended. The official Docker image remains on PHP 8.3. |
-| 8.2 | Native shared hosting | Composer, installer, parser, security and GD protocol tests run under PHP 8.2 CI. Prefer upgrading to 8.3+ before 8.2 reaches its security-support end. |
-| 8.1 / 8.0 | Not officially supported | Out of security support. Do not bypass the version gate. |
-| 7.x, including 5v.pl's advertised 7.0.19 | **Not a native MuchoCore runtime** | Old language syntax, no supported passkeys PHP dependency, unsupported security runtime. |
+| 8.3–8.5 | Main MuchoCore on VPS or compatible shared hosting | Supported; genuine client/provider acceptance remains a separate gate |
+| 8.2 | Main MuchoCore on shared/VPS hosting | Supported in CI; upgrade to a security-supported runtime when possible |
+| 8.0–8.1 | None | Unsupported |
+| 7.0 (5v.pl) | **Separate PHP7 Native preview** in `compat/php7/` | Experimental. PHP 7.0 is end-of-life; not certified production-safe |
 
-## Shared-hosting users
+## 5v.pl / PHP 7.0: use the actual Native distribution
 
-Use the current shared-hosting ZIP build with **PHP 8.2 or newer**,
-`pdo_mysql`, `openssl`, `mbstring`, sessions, writable storage, and a
-supported MySQL/MariaDB. The PHP/DB checks in the browser bootstrap must
-succeed before installation. PHP 8.3+ is preferable for longer-term support.
+The current repository has a native PHP 7 port, not just the older edge proxy.
+It runs without Composer or a VPS on the shared host and uses its own PDO/MySQL
+connection. Its separate archive includes compiled-compatible application
+services and the original admin UI. It is **not yet completely feature-parity
+or real-client certified**. Read [PHP7 native installation](PHP7_NATIVE_PHASE1.md)
+and the [README](../README.md) for the download, update and live validation steps.
 
-The CI version matrix covers Composer lock validation, source parsing, core
-protocol and security smoke tests on PHP 8.2 through 8.5. Separate MariaDB
-integration jobs verify real migrations and GD 2.209 server data flows on PHP
-8.2 and 8.3. This is not a guarantee of every individual shared host's disabled
-functions, request limits or native client behavior; check the host first.
+Do not install the normal `MuchoCore-vX.Y.Z-shared-hosting.zip` on a PHP 7
+host: it requires PHP 8.2+. Do not modify `composer.json` to bypass the
+version check.
 
-## Special case: 5v.pl
+The earlier `tools/hosting/5v-edge.php` relay is a **legacy alternative**
+that uses a separately operated modern server. The archival
+[edge documentation](HOSTING_5V_EDGE.md) describes that different deployment;
+it is NOT the PHP7 Native installation guide.
 
-5v.pl currently advertises PHP 7.0.19. The normal MuchoCore package cannot
-execute there, even after changing `composer.json`. A native PHP7 rewrite
-would need a completely separate core and authentication/security review, and
-would still run on a runtime without ongoing security fixes. We will **not**
-pretend that such a rewrite is safe or complete.
+## Cloud Save and backups on PHP7 Native
 
-An opt-in PHP 7 compatible **HTTP edge/relay** is provided at
-`tools/hosting/5v-edge.php`. It can relay a limited set of GD POST/GET paths
-to a different server you operate with PHP 8.2+ and a database. It does not
-move the server's business logic or DB to 5v, and live 5v network behavior
-and permissions still must be verified.
+New pre-migration Cloud Save writes are encrypted and authenticated using a
+PHP 7.0-compatible AES-256-CBC encrypt-then-HMAC format. Older plaintext rows
+remain readable to permit safe upgrades; completing the migration re-encrypts
+them into canonical AES-256-GCM records. **Until all old rows are migrated,
+some legacy records can remain plaintext at rest.**
 
-See [5v experimental hosting](HOSTING_5V_EDGE.md) and
-[Shared Hosting](SHARED_HOSTING.md).
+Back up both the database **and** `config/cloudsave.key`. Never replace the key
+on upgrade or after corruption: previous encrypted records would become
+unreadable. Treat private credentials, recovery material and hosting
+limitations as a security issue regardless of a green syntax check.
 
-## Release policy
+## Verification and release policy
 
-Changing a Composer minimum and passing CI does not certify GD 2.209 native
-client acceptance. The MuchoCore 1.1.0 stable release remains subject to
-its endpoint and real-client release gates.
+- The PHP 7.0 native CI matrix executes syntax, isolated integration and
+  synthetic HTTP/database tests. They are **not** a production acceptance test.
+- Verify the provider's HTTPS, Apache rewrites, DB limits, real client login,
+  level upload/download, comments and saves on the installed 5v.pl site.
+- 1.1.0 stable publication additionally requires the dedicated endpoint gate,
+  real-client observations and p95 budgets; general Validate success is not
+  release certification.
+
+[Readiness details](V110_RELEASE.md) · [Real-client verification](CLIENT_COMPATIBILITY.md)
