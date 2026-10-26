@@ -207,6 +207,8 @@ jobs:
           php tests/compat/php7-native-parity.php
           php tests/compat/php7-native-download-parity.php
           php tests/compat/php7-native-auth.php
+          php tests/compat/php7-cloudsave-crypto.php
+          php tests/compat/php7-domain-complete-query.php
           php tests/compat/php7-native-original-admin.php
           php tests/compat/admin-pager-php7.php
           php tests/compat/php7-native-news-security.php
@@ -803,6 +805,8 @@ jobs:
               php -l compat/php7/config.example.php
               php -l public/php7.php
               php tests/compat/php7-native-pure.php
+              php tests/compat/php7-cloudsave-crypto.php
+              php tests/compat/php7-domain-complete-query.php
               php tests/compat/php7-native-news.php
               php tests/compat/php7-native-news-front.php
               php tests/compat/php7-native-users.php
