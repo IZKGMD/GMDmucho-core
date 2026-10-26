@@ -8,18 +8,20 @@ class OneQueryPdo extends PDO {
     public $throwMissing=false;
     public $throwOther=false;
     public function __construct() {}
-    public function query(string $query, ?int $fetchMode = null, ...$fetchModeArgs): PDOStatement|false {
+    #[\ReturnTypeWillChange]
+    public function query($query, $fetchMode = null, ...$fetchModeArgs) {
         $this->count++;
         if(strpos($query,'information_schema')!==false)throw new RuntimeException('Expensive schema introspection on request path');
-        if($this->throwMissing){$exception=new PDOException('table missing','42S02');$exception->errorInfo=array('42S02',1146,'missing');throw $exception;}
-        if($this->throwOther){$exception=new PDOException('connection lost','HY000');$exception->errorInfo=array('HY000',2006,'gone away');throw $exception;}
+        if($this->throwMissing){$exception=new PDOException('table missing');$exception->errorInfo=array('42S02',1146,'missing');throw $exception;}
+        if($this->throwOther){$exception=new PDOException('connection lost');$exception->errorInfo=array('HY000',2006,'gone away');throw $exception;}
         return new OneQueryStatement($this->stage);
     }
 }
 class OneQueryStatement extends PDOStatement {
     private $value;
     public function __construct($value){$this->value=$value;}
-    public function fetchColumn(int $column=0): mixed {return $this->value;}
+    #[\ReturnTypeWillChange]
+    public function fetchColumn($column=0) {return $this->value;}
 }
 $pdo=new OneQueryPdo();
 $pdo->stage=count(mucho7_domain_import_stages());
@@ -30,6 +32,6 @@ $pdo->throwMissing=true;
 if(mucho7_domain_complete($pdo))throw new RuntimeException('Missing state table returned true');
 $pdo->throwMissing=false;
 $pdo->throwOther=true;
-$rejected=false;try{mucho7_domain_complete($pdo);}catch(PDOException $error){$rejected=$error->getCode()==='HY000';}
+$rejected=false;try{mucho7_domain_complete($pdo);}catch(PDOException $error){$rejected=isset($error->errorInfo[1]) && (int)$error->errorInfo[1]===2006;}
 if(!$rejected)throw new RuntimeException('Unrelated SQL errors must fail closed');
 echo "PHP7_SINGLE_QUERY_SCHEMA_STATUS_OK\n";
