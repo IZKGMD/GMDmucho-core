@@ -2,6 +2,13 @@
 /** Bind the original admin form contracts to native shared transactions. */
 declare(strict_types=1);
 function mucho7_admin_ui_action(PDO $pdo,$aid,$action,$data,$root,$settings){
+    if($action==='creator-events'){
+        $actor=admin();if(!$actor||$actor['role']!=='owner')throw new RuntimeException('Only the owner can manage Creator Events.');
+        if(!is_file($root.'/config/php7-complete.on'))throw new RuntimeException('Complete the core migration first.');
+        require_once $root.'/compat/php7/domain.php';mucho7_domain_configure($settings,$root,$pdo);
+        \MuchoCore\CreatorEvents\CreatorEventsAdmin::action($pdo,$data);
+        mucho7_admin_audit($pdo,$aid,$action,0,isset($data['operation'])&&is_string($data['operation'])?$data['operation']:'');return;
+    }
     if($action==='migration-preview'||$action==='migration-apply'){
         $actor=mucho7_admin_user($pdo,$aid);if(!$actor||$actor['role']!=='owner')throw new RuntimeException('Only the owner can import another database.');
         if($action==='migration-apply'&&(!isset($data['migration_confirm'])||$data['migration_confirm']!=='MIGRATE'))throw new RuntimeException('Type MIGRATE to confirm the import.');

@@ -1,0 +1,200 @@
+<?php
+
+declare (strict_types=1);
+require_once dirname(__DIR__, 3) . '/domain.php';
+require \mucho7_compiled_include(dirname(\MUCHO7_PROJECT_ROOT . '/tests/application', 2) . '/vendor/autoload.php');
+use MuchoCore\CreatorEvents\CreatorEventsService;
+use MuchoCore\CreatorEvents\CreatorEventsController;
+use MuchoCore\CreatorEvents\CreatorEventsAdmin;
+use MuchoCore\Plugin\PluginManager;
+use MuchoCore\Http\Request;
+use MuchoCore\Routing\Router;
+if (getenv('TEST_DB_HOST') !== '127.0.0.1' || !getenv('TEST_DB_ROOT_PASSWORD')) {
+    throw new RuntimeException('Isolated database required.');
+}
+$dsn = 'mysql:host=127.0.0.1;port=' . (getenv('TEST_DB_PORT') ?: 3306) . ';charset=utf8mb4';
+$options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_EMULATE_PREPARES => false, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC];
+$server = new PDO($dsn, 'root', getenv('TEST_DB_ROOT_PASSWORD'), $options);
+$name = 'mc_creator_' . bin2hex(random_bytes(6));
+$check = static function (bool $ok, string $why) {
+    if (!$ok) {
+        throw new RuntimeException($why);
+    }
+};
+$reject = static function (callable $fn, string $why) use ($check) {
+    $failed = false;
+    try {
+        $fn();
+    } catch (RuntimeException $__mcCaught) {
+        $failed = true;
+    }
+    $check($failed, $why);
+};
+function admin()
+{
+    return ['role' => 'owner'];
+}
+function csrf()
+{
+    return 'fixture-csrf';
+}
+try {
+    $server->exec('CREATE DATABASE ' . $name . ' CHARACTER SET utf8mb4');
+    $db = new PDO($dsn . ';dbname=' . $name, 'root', getenv('TEST_DB_ROOT_PASSWORD'), $options);
+    $db->exec('CREATE TABLE accounts(account_id BIGINT UNSIGNED PRIMARY KEY,username VARCHAR(20),password_hash VARCHAR(255),gjp2_hash VARCHAR(255),is_active INT DEFAULT 1,is_banned INT DEFAULT 0) ENGINE=InnoDB');
+    $db->exec('CREATE TABLE profiles(user_id INT AUTO_INCREMENT PRIMARY KEY,account_id BIGINT UNSIGNED UNIQUE) ENGINE=InnoDB');
+    $db->exec('CREATE TABLE levels(level_id BIGINT UNSIGNED PRIMARY KEY,account_id BIGINT UNSIGNED,name VARCHAR(255),level_data TEXT,is_deleted INT DEFAULT 0,unlisted INT DEFAULT 0,unlisted2 INT DEFAULT 0) ENGINE=InnoDB');
+    foreach (range(1, 7) as $id) {
+        $db->prepare('INSERT INTO accounts(account_id,username,password_hash,gjp2_hash) VALUES(?,?,?,?)')->execute([$id, 'Creator' . $id, password_hash('Creator-fixture-' . $id, PASSWORD_DEFAULT), '']);
+        $db->prepare('INSERT INTO profiles(account_id) VALUES(?)')->execute([$id]);
+    }
+    $db->exec('UPDATE accounts SET is_banned=1 WHERE account_id=7');
+    foreach ([1, 2, 5] as $id) {
+        $db->prepare('INSERT INTO levels(level_id,account_id,name,level_data) VALUES(?,?,?,?)')->execute([$id * 10, $id, 'Level ' . $id, 'content-' . $id]);
+    }
+    $s = new CreatorEventsService($db);
+    $check(!$s->installed(), 'fresh plugin must be absent');
+    $s->install();
+    $s->install();
+    $check($s->enabled(), 'idempotent install');
+    $s->toggle(false);
+    $s->install();
+    $check(!$s->enabled(), 'reinstall must preserve disabled state');
+    $s->toggle(true);
+    $future = gmdate('Y-m-d\TH:i', time() + 3600);
+    $reject(function () use ($s) {
+        return $s->create('Title', 'Rules', '2026-02-31T12:00', 1);
+    }, 'invalid date');
+    $event = $s->create('<script>Winter</script>', 'Build an original level.', $future, 2);
+    $s->edit($event, 'Winter contest', '<script>Rules</script>', $future, 2);
+    $check($s->events() === [], 'draft must be private');
+    $reject(function () use ($s, $event) {
+        return $s->transition($event, 'open');
+    }, 'not enough judges');
+    $s->addJudge($event, 3);
+    $s->addJudge($event, 4);
+    $s->removeJudge($event, 4);
+    $s->addJudge($event, 4);
+    $reject(function () use ($s, $event) {
+        return $s->addJudge($event, 7);
+    }, 'banned judge');
+    $reject(function () use ($s, $event) {
+        return $s->submit($event, 1, 10);
+    }, 'draft submission');
+    $s->transition($event, 'open');
+    $reject(function () use ($s, $event, $future) {
+        return $s->edit($event, 'Changed', 'Rules', $future, 1);
+    }, 'locked rules');
+    $reject(function () use ($s, $event) {
+        return $s->addJudge($event, 6);
+    }, 'locked jury');
+    $reject(function () use ($s, $event) {
+        return $s->submit($event, 1, 20);
+    }, 'stolen level');
+    $db->exec('UPDATE levels SET unlisted2=1 WHERE level_id=10');
+    $reject(function () use ($s, $event) {
+        return $s->submit($event, 1, 10);
+    }, 'private level');
+    $db->exec('UPDATE levels SET unlisted2=0 WHERE level_id=10');
+    $s->submit($event, 1, 10);
+    $s->submit($event, 1, 10);
+    $check(count($s->entries($event)) === 1, 'resubmit must retain one entry');
+    $s->withdraw($event, 2);
+    $check(count($s->entries($event)) === 1, 'withdraw another player');
+    $s->withdraw($event, 1);
+    $check(count($s->entries($event)) === 0, 'withdraw own');
+    $s->submit($event, 1, 10);
+    $s->submit($event, 2, 20);
+    $s->submit($event, 5, 50);
+    $db->exec("INSERT INTO levels(level_id,account_id,name,level_data) VALUES(30,3,'Judge','judge-data')");
+    $reject(function () use ($s, $event) {
+        return $s->submit($event, 3, 30);
+    }, 'judge entering contest');
+    $reject(function () use ($s, $event) {
+        return $s->transition($event, 'judging');
+    }, 'early judging');
+    $db->exec('UPDATE mucho_creator_events SET deadline=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 SECOND)');
+    $reject(function () use ($s, $event) {
+        return $s->submit($event, 1, 10);
+    }, 'late submit');
+    $s->transition($event, 'judging');
+    $entries = $s->entries($event);
+    $first = (int) $entries[0]['id'];
+    $second = (int) $entries[1]['id'];
+    $third = (int) $entries[2]['id'];
+    $reject(function () use ($s, $event, $first) {
+        return $s->score($event, $first, 6, 9, 9, 9, '');
+    }, 'unassigned judge');
+    $reject(function () use ($s, $event, $first) {
+        return $s->score($event, $first, 3, 11, 9, 9, '');
+    }, 'out of range');
+    $db->prepare('INSERT INTO mucho_creator_judges VALUES(?,1)')->execute([$event]);
+    $reject(function () use ($s, $event, $first) {
+        return $s->score($event, $first, 1, 9, 9, 9, '');
+    }, 'self review');
+    $db->prepare('DELETE FROM mucho_creator_judges WHERE event_id=? AND account_id=1')->execute([$event]);
+    $s->score($event, $first, 3, 8, 8, 8, 'Initial');
+    $s->score($event, $first, 3, 9, 9, 9, 'Revised');
+    $reject(function () use ($s, $event) {
+        return $s->transition($event, 'published');
+    }, 'missing reviews');
+    $s->score($event, $first, 4, 9, 9, 9, 'Reviewed');
+    foreach ([3, 4] as $judge) {
+        $s->score($event, $second, $judge, 9, 9, 9, 'Tie');
+    }
+    $db->exec("UPDATE levels SET level_data='changed' WHERE level_id=50");
+    $reject(function () use ($s, $event, $third) {
+        return $s->score($event, $third, 3, 9, 9, 9, '');
+    }, 'changed level review');
+    $reject(function () use ($s, $event) {
+        return $s->transition($event, 'published');
+    }, 'changed level publication');
+    $s->disqualify($event, $third, 'Edited after submission');
+    $s->transition($event, 'published');
+    $ranked = $s->entries($event);
+    $check((int) $ranked[0]['result_rank'] === 1 && (int) $ranked[1]['result_rank'] === 1, 'shared ties');
+    $check((float) $ranked[0]['result_score'] === 27.0, 'averaged score');
+    $check(count($s->reviews($event)) === 4, 'score edits must replace reviews');
+    $reject(function () use ($s, $event, $first) {
+        return $s->score($event, $first, 3, 0, 0, 0, '');
+    }, 'frozen scores');
+    $reject(function () use ($s, $event) {
+        return $s->transition($event, 'open');
+    }, 'no reopen');
+    $reject(function () use ($s, $event, $first) {
+        return $s->disqualify($event, $first, 'Late');
+    }, 'frozen disqualifications');
+    $controller = new CreatorEventsController($db);
+    $page = $controller->handle(new Request('GET', '/extensions/creator-events', [], [], ['HTTPS' => 'on']));
+    $check($page->status === 200 && str_contains($page->body, 'Winter contest') && !str_contains($page->body, '<script>Rules'), 'portal and escaping');
+    $bad = $controller->handle(new Request('POST', '/extensions/creator-events', [], ['csrf' => 'wrong', 'operation' => 'submit'], ['HTTPS' => 'on']));
+    $check($bad->status === 400, 'CSRF rejection');
+    $open = $s->create('Portal submission', 'Rules', $future, 1);
+    $s->addJudge($open, 3);
+    $s->transition($open, 'open');
+    $payload = ['csrf' => $_SESSION['creator_csrf'], 'operation' => 'submit', 'event' => (string) $open, 'level' => '10', 'username' => 'Creator1', 'password' => 'Creator-fixture-1'];
+    $reply = $controller->handle(new Request('POST', '/extensions/creator-events', [], $payload, ['HTTPS' => 'on', 'REMOTE_ADDR' => '127.0.0.1']));
+    $check($reply->status === 200 && count($s->entries($open)) === 1, 'authenticated portal submission');
+    $payload['csrf'] = $_SESSION['creator_csrf'];
+    $payload['password'] = 'wrong';
+    $check($controller->handle(new Request('POST', '/extensions/creator-events', [], $payload, ['HTTPS' => 'on', 'REMOTE_ADDR' => '127.0.0.1']))->status === 400, 'invalid portal password');
+    $router = new Router();
+    $manager = new PluginManager($db, $router, sys_get_temp_dir() . '/creator-missing-directory', '1.1.0');
+    $manager->load();
+    $check(isset($manager->loaded()['creator-events']), 'bundled SDK plugin loads without custom folder');
+    $check($router->dispatch(new Request('GET', '/extensions/creator-events', [], [], ['HTTPS' => 'on']))->status === 200, 'SDK route dispatch');
+    $_GET['creator_event'] = (string) $event;
+    ob_start();
+    CreatorEventsAdmin::render($db);
+    $html = ob_get_clean();
+    $check(str_contains($html, 'Jury scorecards') && str_contains($html, 'Disable') && !str_contains($html, '<script>Rules'), 'admin workspace');
+    $s->toggle(false);
+    $check(count($s->entries($event)) === 3, 'disable retains data');
+    $reject(function () use ($s, $event, $first) {
+        return $s->score($event, $first, 3, 9, 9, 9, '');
+    }, 'disabled writes');
+    $check($controller->handle(new Request('GET', '/', [], [], []))->status === 404, 'disabled portal');
+    echo "CREATOR_EVENTS_INSTALL_JURY_OWNERSHIP_DEADLINE_SCORE_SNAPSHOT_TIES_CSRF_SDK_OK\n";
+} finally {
+    $server->exec('DROP DATABASE IF EXISTS ' . $name);
+}

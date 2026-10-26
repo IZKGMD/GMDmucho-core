@@ -7,6 +7,7 @@ declare(strict_types=1);
  */
 
 return [
+    'creator-events'=>['creator-events'],
 
     'accounts'=>[
         'account-save',

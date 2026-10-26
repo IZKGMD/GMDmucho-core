@@ -38,6 +38,7 @@ $settings=require $settingsPath;$name=$settings['database'];
 if(!preg_match('/^mc_p0_http_[a-f0-9]{12}$/D',$name))throw new RuntimeException('Invalid disposable database name.');
 if($mode==='drop'){$server->exec('DROP DATABASE IF EXISTS '.$name);exit;}
 $db=new PDO($dsn.';dbname='.$name,'root',$password,$options);
+if($mode==='creator-install'){(new \MuchoCore\CreatorEvents\CreatorEventsService($db))->install();exit;}
 if($mode==='email-recovery-inspect'){
     $id=(int)$db->query("SELECT account_id FROM accounts WHERE username='P0MailUser'")->fetchColumn();
     $tokens=$db->prepare('SELECT token_hash FROM account_recovery_tokens WHERE account_id=? AND used_at IS NULL ORDER BY id');$tokens->execute(array($id));

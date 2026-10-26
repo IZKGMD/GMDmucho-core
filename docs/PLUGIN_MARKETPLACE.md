@@ -5,6 +5,11 @@ MuchoCore 1.1 introduces a developer-friendly discovery surface in
 
 ## What ships now
 
+- Creator Events: an official bundled plugin installable by the owner from
+  Custom Plugins, with persistent enable/disable state and contest management.
+  This installs reviewed code already shipped with the core, not a downloaded
+  third-party package. See [Creator Events](CREATOR_EVENTS.md).
+
 - A bundled, versioned JSON catalog at resources/plugin-catalog.json.
 - A strictly validated, read-only catalog parser.
 - Display of plugin name, version, required MuchoCore release, SDK API,

@@ -7,6 +7,7 @@ use MuchoCore\Routing\Router;
 
 function renderCustomPluginsPage(PDO $db): void
 {
+    \MuchoCore\CreatorEvents\CreatorEventsAdmin::render($db);
     $rootDir = defined('ROOT_DIR')
         ? ROOT_DIR
         : dirname(__DIR__, 3);

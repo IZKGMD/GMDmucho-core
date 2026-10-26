@@ -575,6 +575,20 @@ def run(php, report):
                     "Account rate limit failed closed")
             checks.append("native-account-management/mount/cookie/csrf/current-password/no-gjp2/banned/read-only/revocation/audit/rollback/rate-limit")
             checks.append(check_email_recovery(post, fixture, root, ports[0], require))
+            fixture("creator-install")
+            creator_url = "http://127.0.0.1:%d/mc/extensions/creator-events" % ports[0]
+            for readonly in (False, True):
+                if readonly:
+                    fixture("read-only")
+                with urllib.request.urlopen(creator_url, timeout=15) as response:
+                    creator_html = response.read().decode()
+                    require(response.status == 200 and "Creator Events" in creator_html
+                            and "/mc/public/assets/creator-events.css" in creator_html,
+                            "Shared plugin route/mount/read-only GET failed")
+            require(post("/mc/extensions/creator-events", dict(operation="submit")) == "-1",
+                    "Shared read-only plugin mutation accepted")
+            fixture("writable")
+            checks.append("creator-events/bundled-install/shared-route/mount/read-only")
             result = dict(kind="synthetic-local-http", native_client_certified=False,
                           php=Path(php).name, game_version=22, binary_version=51,
                           fixture_accounts=fixture("inspect")["accounts"], checks=checks, timings={})

@@ -6,6 +6,7 @@ use MuchoCore\Plugin\PluginCatalog;
 use MuchoCore\Routing\Router;
 function renderCustomPluginsPage(PDO $db)
 {
+    \MuchoCore\CreatorEvents\CreatorEventsAdmin::render($db);
     $rootDir = defined('ROOT_DIR') ? ROOT_DIR : dirname(\MUCHO7_PROJECT_ROOT . '/public/admin/pages', 3);
     $manager = PluginManager::fromEnvironment($db, new Router(), $rootDir);
     $rows = $manager->diagnostics();
