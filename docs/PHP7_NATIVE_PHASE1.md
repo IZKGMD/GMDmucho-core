@@ -33,6 +33,25 @@ owner-bound and kind-bound. Comments are limited to 300 UTF-8 characters and
 one post per account per ten seconds, serialized by an account row lock.
 Votes lock the target before applying the change in vote direction.
 Client score uploads cannot change roles, creator points or level ratings.
+
+### Cloud Save protection before full migration
+
+In native-only mode new Cloud Save records are encrypted with authenticated
+AES-256-CBC encrypt-then-HMAC and a persistent private
+`config/cloudsave.key`. This is compatible with PHP 7.0's OpenSSL APIs.
+Both ciphertext and authentication tag are stored in the existing
+`php7_cloud_saves.save_data` BLOB; `sha256` continues to identify the
+original plaintext for integrity and migration. Encrypted saves cannot be
+read without the original private key.
+
+Earlier native installations may contain **plaintext saves**. These remain
+readable for backward compatibility until overwritten or migrated. The
+full-core importer verifies each legacy row, decrypts it when necessary,
+then writes a new AES-256-GCM record using the **same private key**. Do not
+delete or rotate `config/cloudsave.key` during a ZIP or database upgrade.
+A backup of the database without this key cannot restore encrypted saves.
+Old plaintext rows remain in the native source table until it is securely
+retired according to the operator's database-backup retention policy.
 These score fields are client-reported, not an anti-cheat certification.
 
 ## Upgrade an existing native PHP7 installation
