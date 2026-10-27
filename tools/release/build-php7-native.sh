@@ -45,7 +45,7 @@ done
 cp -a "$ROOT/public/admin/assets/gd" "$STAGE/mc/public/admin/assets/"
 cp "$ROOT/public/admin/assets/qrcode.min.js" "$STAGE/mc/public/admin/assets/"
 cp "$ROOT/public/muchocore-theme.css" "$ROOT/public/muchocore-theme.js" "$STAGE/mc/public/"
-for asset in creator-events.css product-ui.css php7-admin-base.css php7-admin-login.css php7-admin-product.js php7-admin-dashboard.js php7-admin-host.js php7-shared-patcher.js php7-passkeys.js; do
+for asset in creator-events.css product-ui.css product-ui.js php7-admin-base.css php7-admin-login.css php7-admin-product.js php7-admin-dashboard.js php7-admin-host.js php7-shared-patcher.js php7-passkeys.js; do
   cp "$ROOT/public/assets/$asset" "$STAGE/mc/public/assets/"
 done
 printf '%s\n' '<?php require __DIR__ . "/public/php7-admin.php";' > "$STAGE/mc/admin.php"

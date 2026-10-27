@@ -43,6 +43,7 @@ jobs:
           php tests/compat/php7-compiled-domain-pure.php
           php tests/compat/php7-aead-compat.php
           php tests/compat/php7-core-pack.php
+          php tests/compat/php7-shared-player.php
           php tests/compat/php7-content-proxy.php
           python3 tests/compat/shared-patcher-download.py
       - name: Install independent Android verification tools

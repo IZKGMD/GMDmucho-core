@@ -60,6 +60,7 @@ require_once __DIR__.'/list-ui.php';
 require_once __DIR__.'/AdminChrome.php';
 function mucho7_admin_ui_url($url){
     $script=$GLOBALS['script'];$public=$GLOBALS['publicBase'];
+    if(preg_match('~^/dashboard(?:[/?#]|$)~',$url))return (substr($public,-7)==='/public'?substr($public,0,-7):'').$url;
     if(strpos($url,'/admin/assets/')===0)return $public.$url;
     if(strpos($url,'/admin/')===0 && !preg_match('~^/admin/(?:plain/)?(?:\?|$)~',$url))return $public.$url;
     if(strpos($url,'/assets/')===0)return $public.$url;
