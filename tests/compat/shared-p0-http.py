@@ -21,6 +21,7 @@ import urllib.parse
 import urllib.request
 import zlib
 from shared_account_email import check_email_recovery
+from shared_player_dashboard import check_player_dashboard
 
 REPO = Path(__file__).resolve().parents[2]
 PASSWORD = "P0Fixture-1!"
@@ -118,6 +119,8 @@ def run(php, report):
                     timings[endpoint].append((time.monotonic() - start) * 1000)
                 return text
 
+            check_player_dashboard("http://127.0.0.1:%d" % ports[0], fixture)
+            checks.append("player-dashboard/login/profile/clans/mount/csrf/read-only")
             login = dict(VERSION, userName="P0Owner", password=PASSWORD)
             require(post("/a/accounts/loginGJAccount22.php", login, "account.login") == "1,101", "Password login IDs")
             require(post("/database/loginGJAccount20.php", dict(VERSION, userName="P0Owner", gjp2=GJP2)) == "1,101", "GJP2 login")

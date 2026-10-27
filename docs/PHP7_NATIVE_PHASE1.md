@@ -109,6 +109,21 @@ new setup does not require that flow. PHP8 `/install.php` remains separate.
 Never upload or initialize over a PHP8/Cvolton database as an implicit migration.
 The native archive contains no live settings, credentials or activation marker.
 
+## Player Dashboard
+
+After the full core data upgrade, open `/mc/dashboard` (or `/dashboard` for a
+domain-root installation). The original player pages are compiled for PHP 7.0:
+player search/rankings, public profiles, avatars/covers, music uploads and the
+clan directory. CSS, scripts, forms and login/logout redirects retain the
+installation prefix. Client downloads are available at `/mc/clients` once a
+client manifest has been published.
+
+Existing installations must upload the new native package, including
+`public/php7.php`, `compat/php7/player.php`, `compat/php7/core-update.php` and
+the public assets. Install the uploaded core build in the owner panel and
+complete its data upgrade. An old pinned build now shows an explicit update
+page instead of returning the game's `-1` marker for a browser page.
+
 ## Native administration
 
 The owner manages roles/bans, settings, songs and Native News. Elder moderators

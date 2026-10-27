@@ -93,7 +93,7 @@ function renderAdminDashboard(PDO $db)
     } catch (Throwable $error) {
     }
 
-    echo '<div class="admin-overview-heading"><h2>Server at a glance</h2></div>';
+    echo '<div class="admin-overview-heading"><h2>Server at a glance</h2><a class="btn gray" href="/dashboard" target="_blank" rel="noopener">Open Player Portal ↗</a></div>';
 
     // First show real server data, then the actions it helps prioritize.
     echo '<div class="admin-kpi-grid">';

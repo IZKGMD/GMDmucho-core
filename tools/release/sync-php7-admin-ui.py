@@ -35,7 +35,6 @@ for name in ['dashboard.php','players.php','levels-moderation.php','songs.php','
     if name=='songs.php':
         source=source.replace('<details class="card"><summary>Upload Music</summary>', '<details class="card"><summary>Upload Music</summary>')
     if name=='dashboard.php':
-        source=source.replace('<a class="btn gray" href="/dashboard" target="_blank" rel="noopener">Open Player Portal ↗</a>', '')
         source=source.replace('Create or restore a verified backup','Download a consistent SQL backup')
     if name=='rating.php':
         source=re.sub(r'\$difficultyProfileForRow = static function.*?\n};', '$difficultyProfileForRow = static function (array $row): string { return adminDifficultyProfile($row); };', source, flags=re.S)

@@ -40,6 +40,7 @@ $uri = mucho7_mount_uri($uri, isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_
 $requestLimit = preg_match('~^/(?:backupgjaccount|uploadgjlevel)(?:new|19|20|21|211|22)?$~D', mucho7_path($uri))
     ? 24*1024*1024+8192 : 262144;
 if(preg_match('~^/(?:(?:api/)?profile/upload|uploadgjeditorsound)(?:19|20|21|211|22)?$~D',mucho7_path($uri)))$requestLimit=18*1024*1024;
+if(in_array(mucho7_path($uri),array('/dashboard','/dashboard/index'),true))$requestLimit=70*1024*1024;
 if (($method !== 'POST' && $method !== 'GET' && $method !== 'HEAD')
     || (isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH'] > $requestLimit)) {
     http_response_code(413);
@@ -94,7 +95,9 @@ try {
         if(empty($settings['enable_native_news'])){http_response_code(404);exit;}
         require_once $root.'/compat/php7/content-proxy.php';mucho7_content_send($uri,$method,$_SERVER);
     }
-    if($method==='HEAD'){http_response_code(405);header('Allow: GET, POST');exit;}
+    require_once $root.'/compat/php7/player.php';
+    $playerRoute=mucho7_player_route($path);
+    if($method==='HEAD' && $playerRoute===null){http_response_code(405);header('Allow: GET, POST');exit;}
 
     // Legacy text news stays database-independent until the owner migrates it.
     if (in_array($path, array(
@@ -135,6 +138,10 @@ try {
         )
     );
     $pdo->exec("SET time_zone='+00:00'");
+    if($playerRoute!==null){
+        mucho7_player_send($pdo,$path,$settings,$root,$method);
+        exit;
+    }
     if(is_file($root.'/config/php7-complete.on')){
         require_once $root.'/compat/php7/domain.php';
         if(!mucho7_domain_complete($pdo))throw new RuntimeException('Core data upgrade incomplete.');
