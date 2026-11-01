@@ -183,7 +183,7 @@ $meActiveCount = count(array_filter(
                                 <?php else: ?>
                                     <span class="me-deadline"><?= $meStatus === 'results' ? 'Final standings available' : 'Entry deadline has passed' ?></span>
                                 <?php endif; ?>
-                                <a class="me-enter-link" href="/extensions/creator-events#event-<?= $meId ?>"><?= $meStatus === 'live' ? 'Enter event' : 'View event' ?><span aria-hidden="true"> ↗</span></a>
+                                <a class="me-enter-link" href="/extensions/creator-events"><?= $meStatus === 'live' ? 'Enter event' : 'View event' ?><span aria-hidden="true"> ↗</span></a>
                             </div>
                         </div>
                     </article>
