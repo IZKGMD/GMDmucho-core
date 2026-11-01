@@ -91,3 +91,5 @@ html[data-theme="light"] .me-all-link:hover{background:#e9f2fb}
 html[data-theme="light"] .me-all-link span{color:#1675a8}
 html[data-theme="light"] .me-list-head h3{color:#20314d}
 html[data-theme="light"] .me-filter-empty{color:#dce7ff}
+
+.me-hub .me-event-card[hidden],.me-hub .me-filter-empty[hidden]{display:none!important}
