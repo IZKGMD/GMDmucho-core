@@ -1,6 +1,6 @@
 # Native route inventory
 
-Native handlers registered: **137 / 166** canonical routes from `src/Core/Application.php`.
+Native handlers registered: **154 / 166** canonical routes from `src/Core/Application.php`.
 
 This counts registered handlers, not completed features or production readiness. Aliases do not count as additional implementations. PHP differential tests cover selected scenarios; real-client acceptance remains pending.
 
@@ -68,13 +68,13 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/deletegjacccomment20` | Present | `/deleteGJAccComment20` |
 | `/deletegjcomment20` | Present | `/deleteGJComment20` |
 | `/deletegjcomments` | Present | `/deleteGJComments` |
-| `/deletegjeditorsound` | **Pending** | `/deleteGJEditorSound` |
+| `/deletegjeditorsound` | Present | `/deleteGJEditorSound` |
 | `/deletegjfriendrequests20` | Present | `/deleteGJFriendRequests20` |
-| `/deletegjlevelcontrols` | **Pending** | `/deleteGJLevelControls` |
+| `/deletegjlevelcontrols` | Present | `/deleteGJLevelControls` |
 | `/deletegjlevellist` | Present | `/deleteGJLevelList` |
 | `/deletegjleveluser20` | Present | `/deleteGJLevelUser20` |
 | `/deletegjmessages20` | Present | `/deleteGJMessages20` |
-| `/downloadgjeditorsound` | **Pending** | `/downloadGJEditorSound` |
+| `/downloadgjeditorsound` | Present | `/downloadGJEditorSound` |
 | `/downloadgjlevel21` | Present | `/downloadGJLevel21` |
 | `/downloadgjlevel22` | Present | `/downloadGJLevel22` |
 | `/downloadgjmessage20` | Present | `/downloadGJMessage20` |
@@ -92,13 +92,13 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/getgjcreators` | Present | `/getGJCreators` |
 | `/getgjcreators19` | Present | `/getGJCreators19` |
 | `/getgjdailylevel` | Present | `/getGJDailyLevel` |
-| `/getgjdeathdata` | **Pending** | `/getGJDeathData` |
-| `/getgjeditorsounds` | **Pending** | `/getGJEditorSounds` |
+| `/getgjdeathdata` | Present | `/getGJDeathData` |
+| `/getgjeditorsounds` | Present | `/getGJEditorSounds` |
 | `/getgjfollowing` | Present | `/getGJFollowing` |
 | `/getgjfriendrequests20` | Present | `/getGJFriendRequests20` |
 | `/getgjgauntlets` | Present | `/getGJGauntlets` |
 | `/getgjgauntlets21` | Present | `/getGJGauntlets21` |
-| `/getgjlevelcontrols` | **Pending** | `/getGJLevelControls` |
+| `/getgjlevelcontrols` | Present | `/getGJLevelControls` |
 | `/getgjlevellists` | Present | `/getGJLevelLists` |
 | `/getgjlevels21` | Present | `/getGJLevels21` |
 | `/getgjlevelscores` | Present | `/getGJLevelScores` |
@@ -113,10 +113,10 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/getgjsecretreward` | Present | `/getGJSecretReward` |
 | `/getgjsonginfo` | Present | `/getGJSongInfo` |
 | `/getgjsongusage` | Present | `/getGJSongUsage` |
-| `/getgjthreadinvites` | **Pending** | `/getGJThreadInvites` |
-| `/getgjthreadmembers` | **Pending** | `/getGJThreadMembers` |
-| `/getgjthreadmessages` | **Pending** | `/getGJThreadMessages` |
-| `/getgjthreads` | **Pending** | `/getGJThreads` |
+| `/getgjthreadinvites` | Present | `/getGJThreadInvites` |
+| `/getgjthreadmembers` | Present | `/getGJThreadMembers` |
+| `/getgjthreadmessages` | Present | `/getGJThreadMessages` |
+| `/getgjthreads` | Present | `/getGJThreads` |
 | `/getgjtopartists` | Present | `/getGJTopArtists` |
 | `/getgjuserinfo20` | Present | `/getGJUserInfo20` |
 | `/getgjuserlist20` | Present | `/getGJUserList20` |
@@ -148,8 +148,8 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/reportgjcontent` | Present | `/reportGJContent` |
 | `/reportgjlevel` | Present | `/reportGJLevel` |
 | `/requestuseraccess` | Present | `/requestUserAccess` |
-| `/searchgjthreadmessages` | **Pending** | `/searchGJThreadMessages` |
-| `/sendgjthreadmessage` | **Pending** | `/sendGJThreadMessage` |
+| `/searchgjthreadmessages` | Present | `/searchGJThreadMessages` |
+| `/sendgjthreadmessage` | Present | `/sendGJThreadMessage` |
 | `/suggestgjstars20` | Present | `/suggestGJStars20` |
 | `/syncgjaccount` | Present | `/syncGJAccount`, `/syncGJAccount20` |
 | `/syncgjfollowing` | Present | `/syncGJFollowing` |
@@ -158,8 +158,8 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/updategjaccsettings20` | Present | `/updateGJAccSettings20` |
 | `/updategjlevel` | Present | `/updateGJLevel` |
 | `/updategjleveldesc20` | Present | `/updateGJLevelDesc20` |
-| `/updategjsounddesc` | **Pending** | `/updateGJSoundDesc` |
-| `/updategjthread` | **Pending** | `/updateGJThread` |
+| `/updategjsounddesc` | Present | `/updateGJSoundDesc` |
+| `/updategjthread` | Present | `/updateGJThread` |
 | `/updategjusername` | Present | `/updateGJUserName` |
 | `/updategjuserscore` | Present | `/updateGJUserScore` |
 | `/updategjuserscore22` | Present | `/updateGJUserScore22` |
@@ -167,10 +167,10 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/uploadgjacccomment20` | Present | `/uploadGJAccComment20` |
 | `/uploadgjcomment20` | Present | `/uploadGJComment20` |
 | `/uploadgjcomment21` | Present | `/uploadGJComment21` |
-| `/uploadgjdeathdata` | **Pending** | `/uploadGJDeathData` |
-| `/uploadgjeditorsound` | **Pending** | `/uploadGJEditorSound` |
+| `/uploadgjdeathdata` | Present | `/uploadGJDeathData` |
+| `/uploadgjeditorsound` | Present | `/uploadGJEditorSound` |
 | `/uploadgjlevel21` | Present | `/uploadGJLevel21` |
 | `/uploadgjlevel22` | Present | `/uploadGJLevel22` |
-| `/uploadgjlevelcontrols` | **Pending** | `/uploadGJLevelControls` |
+| `/uploadgjlevelcontrols` | Present | `/uploadGJLevelControls` |
 | `/uploadgjlevellist` | Present | `/uploadGJLevelList` |
 | `/uploadgjmessage20` | Present | `/uploadGJMessage20` |

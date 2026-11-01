@@ -78,6 +78,7 @@ func TestCorePHPParity(t *testing.T) {
 	}
 	t.Run("clan capacity and quest serialization", func(t *testing.T) { testClanConcurrency(t, h) })
 	t.Run("native worker services and acknowledgements", func(t *testing.T) { testNativeWorker(t, h) })
+	t.Run("thread rate and audio quota serialization", func(t *testing.T) { testContentConcurrency(t, h) })
 	// Duplicate saves must not create history, and Go must retain PHP's
 	// original ciphertext as an independently decryptable historical revision.
 	var revision, history int

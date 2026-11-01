@@ -89,6 +89,25 @@ func New(db *sql.DB, options Options) *Handler {
 	}
 	h.options.DownloadWindow = max(30, min(604800, h.options.DownloadWindow))
 	h.routes = map[string]endpoint{
+		"/getgjeditorsounds":     h.editorSounds,
+		"/uploadgjeditorsound":   h.editorSounds,
+		"/downloadgjeditorsound": h.editorSounds,
+		"/deletegjeditorsound":   h.editorSounds,
+		"/updategjsounddesc":     h.editorSounds,
+		"/getgjdeathdata":        h.levelTelemetry,
+		"/uploadgjdeathdata":     h.levelTelemetry,
+		"/getgjlevelcontrols":    h.levelTelemetry,
+		"/uploadgjlevelcontrols": h.levelTelemetry,
+		"/deletegjlevelcontrols": h.levelTelemetry,
+
+		"/getgjthreads":           h.threads,
+		"/getgjthreadinvites":     h.threads,
+		"/getgjthreadmessages":    h.threads,
+		"/getgjthreadmembers":     h.threads,
+		"/sendgjthreadmessage":    h.threads,
+		"/searchgjthreadmessages": h.threads,
+		"/updategjthread":         h.threads,
+
 		"/admincommentban":           h.sanction,
 		"/admincommentunban":         h.sanction,
 		"/adminuploadban":            h.sanction,
@@ -214,6 +233,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		limit := int64(discovery.MaxBodyBytes)
 		if path == "/backupgjaccount" || path == "/backupgjaccount20" || path == "/uploadgjlevel21" || path == "/uploadgjlevel22" {
 			limit = 3*cloudsave.MaxSaveBytes + 1024*1024
+		}
+		if path == "/uploadgjeditorsound" {
+			limit = 3*2800000 + 65536
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, limit)
 		err := r.ParseForm()
