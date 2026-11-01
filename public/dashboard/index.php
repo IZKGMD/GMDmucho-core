@@ -1485,7 +1485,9 @@ body.dashboard-page .topbar{
 <script src="/muchocore-theme.js?v=4" defer></script>
 
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
+<link rel="stylesheet" href="/assets/dashboard-events.css?v=1">
 <script src="/assets/product-ui.js?v=1" defer></script>
+<script src="/assets/dashboard-events.js?v=1" defer></script>
 </head>
 <body class="dashboard-page mc-workspace">
 <div class="shell">
@@ -1494,6 +1496,7 @@ body.dashboard-page .topbar{
     <a class="brand" href="/dashboard" aria-label="<?=pdH($serverName)?>"><img class="mucho-brand-logo mc-brand-mark" src="/assets/muchocore-icon.png?v=3" alt="<?=pdH($serverName)?>" width="48" height="48" decoding="async"></a>
     <nav class="nav">
         <a href="/dashboard">Discover</a>
+        <a href="/dashboard#events">Events</a>
         <a href="#players">Players</a>
         <a href="/dashboard/clans.php">Clans</a>
         <a href="/clients/">Downloads</a>
@@ -1614,20 +1617,23 @@ body.dashboard-page .topbar{
 
 <section class="hero">
     <div class="panel hero-main">
-        <div class="hero-kicker">Player portal · Geometry Dash 2.2</div>
-        <h1 class="hero-title">Meet the <span><?=pdH($serverName)?></span> community.</h1>
+        <div class="hero-kicker">MuchoGDPS · REBORN · Geometry Dash 2.209</div>
+        <h1 class="hero-title">Your world. Your levels. <span>Your community.</span></h1>
         <p class="muted hero-copy">
-            Search players, explore creator activity, browse community music,
-            and manage your own uploads from one clean dashboard.
+            Join community events, discover new creators, compete with friends,
+            and make your mark on <?=pdH($serverName)?>.
         </p>
 
         <div class="hero-actions">
-            <a class="btn" href="#players">Explore players</a>
+            <a class="btn" href="#events">Explore events</a>
+            <a class="btn alt" href="#players">Explore players</a>
             <a class="btn alt" href="/dashboard/clans.php">Explore clans</a>
             <a class="btn alt" href="#music">Browse music</a>
         </div>
 
         <div class="hero-note">
+            <span>Creator contests</span>
+            <span>Live events</span>
             <span>Fast player search</span>
             <span>Public profiles</span>
             <span>Clan tags</span>
@@ -1744,6 +1750,8 @@ body.dashboard-page .topbar{
         <?php endif; ?>
     </div>
 </section>
+
+<?php require __DIR__ . '/events-panel.php'; ?>
 
 <section class="dashboard-stats" aria-label="Community statistics">
     <div class="dashboard-stat">
