@@ -33,21 +33,25 @@ func TestCorePHPParity(t *testing.T) {
 		t.Fatal(err)
 	}
 	var cases []struct {
-		Path, Form, Body string
-		Status           int
-		ContentType      string `json:"content_type"`
+		Path, Form, Body, Method string
+		Status                   int
+		ContentType              string `json:"content_type"`
 	}
 	if err = json.Unmarshal(data, &cases); err != nil {
 		t.Fatal(err)
 	}
-	if len(cases) < 40 {
+	if len(cases) < 500 {
 		t.Fatal("incomplete reference scenario")
 	}
 	h := New(db, Options{CloudKeyFile: os.Getenv("MUCHO_GO_TEST_KEY_FILE"), DisableProtect: true, Now: func() time.Time { return time.Unix(1700000000, 0) }})
 	h.accounts.Cost = 4
 	for _, tc := range cases {
 		t.Run(tc.Path+"/"+tc.Form, func(t *testing.T) {
-			r := httptest.NewRequest("POST", tc.Path, strings.NewReader(tc.Form))
+			method := tc.Method
+			if method == "" {
+				method = "POST"
+			}
+			r := httptest.NewRequest(method, tc.Path, strings.NewReader(tc.Form))
 			r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			r.RemoteAddr = "192.0.2.1:1234"
 			w := httptest.NewRecorder()
@@ -79,6 +83,7 @@ func TestCorePHPParity(t *testing.T) {
 	t.Run("clan capacity and quest serialization", func(t *testing.T) { testClanConcurrency(t, h) })
 	t.Run("native worker services and acknowledgements", func(t *testing.T) { testNativeWorker(t, h) })
 	t.Run("thread rate and audio quota serialization", func(t *testing.T) { testContentConcurrency(t, h) })
+	t.Run("player browser and profile workflows", func(t *testing.T) { testWebWorkflows(t, h) })
 	// Duplicate saves must not create history, and Go must retain PHP's
 	// original ciphertext as an independently decryptable historical revision.
 	var revision, history int

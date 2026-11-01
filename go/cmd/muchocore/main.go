@@ -1,4 +1,4 @@
-// muchocore runs the standalone Go discovery preview. It never invokes PHP.
+// muchocore runs the standalone Go edition. It never invokes PHP.
 package main
 
 import (
@@ -115,7 +115,7 @@ func run(logger *slog.Logger, options commandOptions) error {
 		n, _ := strconv.Atoi(value)
 		window = max(30, min(604800, n))
 	}
-	application := core.New(db, core.Options{Logger: logger, AccountURL: os.Getenv("MUCHO_ACCOUNT_URL"), ContentURL: os.Getenv("MUCHO_CUSTOM_CONTENT_URL"), CloudKeyFile: os.Getenv("MUCHO_CLOUDSAVE_KEY_FILE"), DownloadKey: downloadKey, DownloadWindow: window, TrustedProxies: security.ParseProxies(os.Getenv("MUCHO_TRUSTED_PROXY_CIDRS")), DisableProtect: envFalse("MUCHO_PROTECT"), QuarantineScores: envTrue("MUCHO_ANTICHEAT_QUARANTINE"), Webhooks: integration.Webhooks{URL: os.Getenv("MUCHO_WEBHOOK_URL"), Events: os.Getenv("MUCHO_WEBHOOK_EVENTS"), Secret: os.Getenv("MUCHO_WEBHOOK_SECRET")}})
+	application := core.New(db, core.Options{Logger: logger, SecureCookies: envTrue("MUCHO_GO_COOKIE_SECURE"), AssetBase: os.Getenv("MUCHO_PUBLIC_ASSET_BASE"), RecoveryPath: os.Getenv("MUCHO_ACCOUNT_RECOVERY_PATH"), AccountURL: os.Getenv("MUCHO_ACCOUNT_URL"), ContentURL: os.Getenv("MUCHO_CUSTOM_CONTENT_URL"), CloudKeyFile: os.Getenv("MUCHO_CLOUDSAVE_KEY_FILE"), DownloadKey: downloadKey, DownloadWindow: window, TrustedProxies: security.ParseProxies(os.Getenv("MUCHO_TRUSTED_PROXY_CIDRS")), DisableProtect: envFalse("MUCHO_PROTECT"), QuarantineScores: envTrue("MUCHO_ANTICHEAT_QUARANTINE"), Webhooks: integration.Webhooks{URL: os.Getenv("MUCHO_WEBHOOK_URL"), Events: os.Getenv("MUCHO_WEBHOOK_EVENTS"), Secret: os.Getenv("MUCHO_WEBHOOK_SECRET")}})
 	if options.Worker {
 		return application.RunWorker(ctx, options.Loop, options.Sleep)
 	}

@@ -6,6 +6,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 source = (ROOT / 'src/Core/Application.php').read_text()
+if (ROOT / 'VERSION').read_text().strip() != (ROOT / 'go/internal/buildinfo/VERSION').read_text().strip():
+    raise SystemExit('Refresh go/internal/buildinfo/VERSION from the root VERSION')
 php_router = (ROOT / 'src/Routing/Router.php').read_text()
 native = (ROOT / 'go/internal/core/handler.go').read_text()
 aliases = dict(re.findall(r"'(/[^']+)' => '(/[^']+)'", php_router))

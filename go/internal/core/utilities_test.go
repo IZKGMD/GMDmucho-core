@@ -1,6 +1,7 @@
 package core
 
 import (
+	"compress/gzip"
 	"compress/zlib"
 	"crypto/sha256"
 	"encoding/base64"
@@ -13,6 +14,27 @@ import (
 func utilityReference(t *testing.T, h *Handler, path, got, want string) (bool, bool) {
 	t.Helper()
 	switch path {
+	case "/news/news.dat", "/gd-content/news/news.dat":
+		decode := func(value string) string {
+			data, err := base64.URLEncoding.DecodeString(value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			reader, err := gzip.NewReader(strings.NewReader(string(data)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer reader.Close()
+			decoded, err := io.ReadAll(io.LimitReader(reader, 4*1024*1024))
+			if err != nil {
+				t.Fatal(err)
+			}
+			return string(decoded)
+		}
+		if want == "" {
+			return got == "", true
+		}
+		return decode(got) == decode(want), true
 	case "/openedRegister.php":
 		bytes, err := hex.DecodeString(got)
 		if err != nil || len(bytes) != 16 {

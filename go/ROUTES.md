@@ -1,6 +1,6 @@
 # Native route inventory
 
-Native handlers registered: **154 / 166** canonical routes from `src/Core/Application.php`.
+Native handlers registered: **166 / 166** canonical routes from `src/Core/Application.php`.
 
 This counts registered handlers, not completed features or production readiness. Aliases do not count as additional implementations. PHP differential tests cover selected scenarios; real-client acceptance remains pending.
 
@@ -9,7 +9,7 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | Canonical path | Native handler | PHP entry points |
 | --- | --- | --- |
 | `/acceptgjfriendrequest20` | Present | `/acceptGJFriendRequest20` |
-| `/accountmanagement` | **Pending** | `/accountManagement` |
+| `/accountmanagement` | Present | `/accountManagement` |
 | `/adminclearreportedcontent` | Present | `/adminClearReportedContent` |
 | `/adminclosecase` | Present | `/adminCloseCase` |
 | `/admincommentban` | Present | `/adminCommentBan` |
@@ -79,8 +79,8 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/downloadgjlevel22` | Present | `/downloadGJLevel22` |
 | `/downloadgjmessage20` | Present | `/downloadGJMessage20` |
 | `/followgjuser` | Present | `/followGJUser` |
-| `/gd-content/news/news.dat` | **Pending** | `/gd-content/news/news.dat` |
-| `/gd-content/news/news_version.txt` | **Pending** | `/gd-content/news/news_version.txt` |
+| `/gd-content/news/news.dat` | Present | `/gd-content/news/news.dat` |
+| `/gd-content/news/news_version.txt` | Present | `/gd-content/news/news_version.txt` |
 | `/getaccounturl` | Present | `/getAccountURL` |
 | `/getcustomcontenturl` | Present | `/getCustomContentURL` |
 | `/getgjaccountcomments20` | Present | `/getGJAccountComments20` |
@@ -128,17 +128,17 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/likegjitem21` | Present | `/likeGJItem21` |
 | `/likegjitem211` | Present | `/likeGJItem211` |
 | `/logingjaccount` | Present | `/loginGJAccount` |
-| `/muchoclient/manifest` | **Pending** | `/muchoclient/manifest` |
-| `/muchoclient/negotiate` | **Pending** | `/muchoclient/negotiate` |
-| `/muchocore/news` | **Pending** | `/muchocore/news` |
+| `/muchoclient/manifest` | Present | `/muchoclient/manifest` |
+| `/muchoclient/negotiate` | Present | `/muchoclient/negotiate` |
+| `/muchocore/news` | Present | `/muchocore/news` |
 | `/mutegjuser` | Present | `/muteGJUser` |
-| `/news/news.dat` | **Pending** | `/news/news.dat` |
-| `/news/news_version.txt` | **Pending** | `/news/news_version.txt` |
+| `/news/news.dat` | Present | `/news/news.dat` |
+| `/news/news_version.txt` | Present | `/news/news_version.txt` |
 | `/openedregister` | Present | `/openedRegister`, `/accounts/openedRegister` |
-| `/profile/get` | **Pending** | `/api/profile/get` |
-| `/profile/image` | **Pending** | `/api/profile/image` |
-| `/profile/remove` | **Pending** | `/api/profile/remove` |
-| `/profile/upload` | **Pending** | `/api/profile/upload` |
+| `/profile/get` | Present | `/api/profile/get` |
+| `/profile/image` | Present | `/api/profile/image` |
+| `/profile/remove` | Present | `/api/profile/remove` |
+| `/profile/upload` | Present | `/api/profile/upload` |
 | `/rategjdemon21` | Present | `/rateGJDemon21` |
 | `/rategjstars20` | Present | `/rateGJStars20` |
 | `/rategjstars211` | Present | `/rateGJStars211` |

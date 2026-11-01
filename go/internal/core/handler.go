@@ -22,6 +22,7 @@ import (
 	"github.com/IZKGMD/GMDmucho-core/go/internal/integration"
 	"github.com/IZKGMD/GMDmucho-core/go/internal/protocol"
 	"github.com/IZKGMD/GMDmucho-core/go/internal/security"
+	"github.com/IZKGMD/GMDmucho-core/go/internal/webassets"
 )
 
 type Options struct {
@@ -34,6 +35,8 @@ type Options struct {
 	QuarantineScores                     bool
 	Webhooks                             integration.Webhooks
 	DownloadWindow                       int
+	SecureCookies                        bool
+	AssetBase, RecoveryPath              string
 }
 type Handler struct {
 	db          *sql.DB
@@ -174,6 +177,15 @@ func New(db *sql.DB, options Options) *Handler {
 		"/getgjrewards": h.rewards, "/getgjchallenges": h.challenges, "/getgjsecretreward": h.secretReward,
 	}
 	h.webRoutes = map[string]webEndpoint{
+		"/accountmanagement": h.accountManagement, "/profile/get": h.profileMedia, "/profile/upload": h.profileMedia, "/profile/remove": h.profileMedia, "/profile/image": h.profileMedia,
+
+		"/muchocore/news":                   h.news,
+		"/gd-content/news/news.dat":         h.news,
+		"/gd-content/news/news_version.txt": h.news,
+		"/news/news.dat":                    h.news,
+		"/news/news_version.txt":            h.news,
+		"/news/image":                       h.newsImage, "/muchoclient/manifest": h.clientBridge, "/muchoclient/negotiate": h.clientBridge,
+
 		"/appearance/batch": h.appearance, "/appearance/my": h.appearance, "/appearance/save": h.appearance,
 
 		"/clans/create":               h.clans,
@@ -211,6 +223,9 @@ func New(db *sql.DB, options Options) *Handler {
 	return h
 }
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if webassets.Serve(w, r) {
+		return
+	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	defer func() {
 		if recover() != nil {
@@ -236,6 +251,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		if path == "/uploadgjeditorsound" {
 			limit = 3*2800000 + 65536
+		}
+		if path == "/profile/upload" {
+			limit = 3*5592412 + 65536
 		}
 		r.Body = http.MaxBytesReader(w, r.Body, limit)
 		err := r.ParseForm()
@@ -271,7 +289,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if fn, ok := h.webRoutes[path]; ok {
+	web, found := h.webRoutes[path]
+	if !found && newsImagePath.MatchString(path) {
+		web, found = h.newsImage, true
+	}
+	if found {
+		fn := web
 		response := fn(req)
 		for key, values := range response.Headers {
 			for _, value := range values {

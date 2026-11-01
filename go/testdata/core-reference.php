@@ -24,6 +24,12 @@ $cloudRepo->save(1," \ninitial-save;data; \n");
 $db->exec("INSERT INTO mucho_secret_rewards(reward_key,chest_type,rewards,uses,expires_at,active) VALUES('native-test-reward',1,'100,2,1,1',3,1700000300,1)");
 
 $db->exec("INSERT INTO songs(id,name,author_name,size,download_url) VALUES(11,'Native Song','Artist One',1.5,'https://example.com/native.ogg'),(12,'SC Song','Sound Artist',0.25,'https://api.soundcloud.com/test'),(13,'Hidden','Unknown',0,'https://example.com/unknown')");
+$db->exec("INSERT INTO mucho_news_posts(title,body,external_url,is_published,is_pinned,published_at) VALUES('Native News','Published news text','https://example.com/read',1,1,'2023-11-14 22:13:20'),('Media News','',NULL,1,0,'2023-11-14 22:13:20'),('Draft','Hidden',NULL,0,0,NULL)");
+$newsJpeg=file_get_contents(__DIR__.'/../../public/assets/muchocore-logo.jpg');
+[$newsWidth,$newsHeight]=getimagesizefromstring($newsJpeg);
+$mediaInsert=$db->prepare('INSERT INTO mucho_news_media(post_id,kind,filename,width,height,target_url,image_data) VALUES(?,?,?,?,?,?,?)');
+$mediaInsert->execute([2,'image','mcnews_'.hash('sha256',$newsJpeg).'.jpg',$newsWidth,$newsHeight,null,$newsJpeg]);
+$db->exec('UPDATE mucho_news_state SET version=17 WHERE id=1');
 // Clone all migration defaults and seeded records. This copies only a newly
 // generated test schema, never the developer's or operator's installation.
 $db->exec('CREATE DATABASE IF NOT EXISTS muchocore_go_reference CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
@@ -80,6 +86,9 @@ $reportQueue=new MuchoCore\Moderation\ReportQueueController(new MuchoCore\Modera
 $threads=new MuchoCore\Social\ThreadController(new MuchoCore\Social\ThreadService($db,$auth),new MuchoCore\Protocol\GdRelationshipEncoder(),new MuchoCore\Social\Gd2209NativeThreadOperations($db,$auth,$relationships),new MuchoCore\Social\Gd2209ThreadActionService($db,$auth));
 $editorSounds=new MuchoCore\Music\EditorSoundController(new MuchoCore\Music\EditorSoundService($db,$auth));
 $telemetry=new MuchoCore\Level\LevelTelemetryController(new MuchoCore\Level\LevelTelemetryService($db,$auth));
+$news=new MuchoCore\News\NewsService($db);
+$bridge=new MuchoCore\Client\ClientBridgeController(new MuchoCore\Client\ClientFeatureRegistry(),trim(file_get_contents(__DIR__.'/../../VERSION')));
+$profileMedia=new MuchoCore\Appearance\ProfileMediaController(new MuchoCore\Appearance\ProfileMediaService($db,$auth));
 $router=new Router();
 foreach([
     '/registerGJAccount'=>[$account,'register'],'/loginGJAccount'=>[$account,'login'],
@@ -191,6 +200,13 @@ foreach([
     '/getGJLevelControls'=>[$telemetry,'getControls'],
     '/uploadGJLevelControls'=>[$telemetry,'uploadControls'],
     '/deleteGJLevelControls'=>[$telemetry,'deleteControls'],
+    '/muchoclient/manifest'=>[$bridge,'manifest'],'/muchoclient/negotiate'=>[$bridge,'negotiate'],
+    '/profile/get'=>[$profileMedia,'profile'],'/profile/upload'=>[$profileMedia,'upload'],'/profile/remove'=>[$profileMedia,'remove'],'/profile/image'=>[$profileMedia,'image'],
+    '/muchocore/news'=>static fn(Request $r):Response=>$r->method==='GET'?Response::json(['version'=>1,'posts'=>$news->published()]):Response::json(['error'=>'Method not allowed'],405),
+    '/news/news.dat'=>static fn(Request $r):Response=>$r->method==='GET'?Response::text(MuchoCore\News\NativeNewsFormat::encode($news->published(30))):Response::text('',405),
+    '/news/news_version.txt'=>static fn(Request $r):Response=>$r->method==='GET'?Response::text($news->nativeVersion()):Response::text('',405),
+    '/gd-content/news/news.dat'=>static fn(Request $r):Response=>$r->method==='GET'?Response::text(MuchoCore\News\NativeNewsFormat::encode($news->published(30))):Response::text('',405),
+    '/gd-content/news/news_version.txt'=>static fn(Request $r):Response=>$r->method==='GET'?Response::text($news->nativeVersion()):Response::text('',405),
 ] as $path=>$handler){$router->add('ANY',$path,$handler);}
 $a=['accountID'=>1,'gjp2'=>sha1('test-password'.MuchoCore\Account\AccountService::GJP2_SALT),'gameVersion'=>22,'binaryVersion'=>51];
 $b=$a;$b['accountID']=2;
@@ -726,11 +742,41 @@ $cases=array_merge($cases,[
     ['/deleteGJLevelControls.php',$a+['levelID'=>6]],
     ['/getGJLevelControls.php',['levelID'=>6]],
 ]);
+$cases=array_merge($cases,[
+    ['/muchoclient/manifest',[],'GET'],
+    ['/muchoclient/manifest',[]],
+    ['/muchoclient/negotiate',['client_version'=>'0.1.0','protocol'=>1]],
+    ['/muchoclient/negotiate',['client_version'=>'0.0.99','protocol'=>1]],
+    ['/muchoclient/negotiate',['client_version'=>'1.0.0','protocol'=>2]],
+    ['/muchoclient/negotiate',['client_version'=>'invalid','protocol'=>1]],
+    ['/muchocore/news',[],'GET'],
+    ['/muchocore/news',[]],
+    ['/news/news.dat',[],'GET'],
+    ['/gd-content/news/news.dat',[],'GET'],
+    ['/news/news_version.txt',[],'GET'],
+    ['/gd-content/news/news_version.txt',[],'GET'],
+    ['/news/news.dat',[]],
+    ['/api/profile/get',['accountID'=>1]],
+    ['/api/profile/get',['accountID'=>3]],
+    ['/api/profile/get',['accountID'=>999]],
+    ['/api/profile/get',['accountID'=>0]],
+    ['/api/profile/upload',$a+['kind'=>'other','imageData'=>'x']],
+    ['/api/profile/upload',$a+['kind'=>'avatar','imageData'=>'x','zoom'=>99]],
+    ['/api/profile/upload',$a+['kind'=>'avatar','imageData'=>'x','cropX'=>'-1']],
+    ['/api/profile/upload',$a+['kind'=>'avatar','imageData'=>'x','rotation'=>45]],
+    ['/api/profile/upload',$a+['kind'=>'avatar','imageData'=>'x']],
+    ['/api/profile/remove',$a+['kind'=>'avatar']],
+    ['/api/profile/remove',$a+['kind'=>'other']],
+    ['/api/profile/image',['accountID'=>1,'kind'=>'avatar','version'=>str_repeat('a',64)]],
+    ['/api/profile/image',['accountID'=>1,'kind'=>'avatar','version'=>'invalid']],
+    ['/api/profile/image',['accountID'=>1,'kind'=>'other','version'=>str_repeat('a',64)]],
+]);
 $result=[];
-foreach($cases as [$path,$form]){
-    $_POST=$form;
-    $response=$router->dispatch(new Request('POST',$path,[],$form,['REMOTE_ADDR'=>'192.0.2.1']));
-    $result[]=['path'=>$path,'form'=>http_build_query($form),'body'=>$response->body,'status'=>$response->status,'content_type'=>$response->contentType];
+foreach($cases as $case){
+    [$path,$form]=$case; $method=$case[2]??'POST';
+    $_POST=$method==='POST'?$form:[];
+    $response=$router->dispatch(new Request($method,$path,[],$form,['REMOTE_ADDR'=>'192.0.2.1']));
+    $result[]=['method'=>$method,'path'=>$path,'form'=>http_build_query($form),'body'=>$response->body,'status'=>$response->status,'content_type'=>$response->contentType];
 }
 if(file_put_contents(getenv('MUCHO_GO_CORE_FIXTURES')?:'/tmp/muchocore-go-core.json',json_encode($result,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR))===false)throw new RuntimeException('Cannot write core reference');
 echo 'CORE_REFERENCE_OK '.count($result)."\n";

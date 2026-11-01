@@ -7,14 +7,15 @@ notifications, rewards/challenges, Cloud Save, discovery, background jobs, clans
 clan quests, appearance colors, level lists, comment history, legacy renaming,
 level ratings/suggestions/reports, song statistics, GD 2.209 utilities, persisted
 account restrictions, abuse cases, bounded content moderation, native DM/group
-threads and invitations, editor sound storage, death telemetry and level controls.
+threads and invitations, editor sound storage, death telemetry, level controls,
+news feeds/images, profile image cropping and browser password changes.
 It accesses the existing MuchoCore database directly and never invokes PHP.
 
 **This is not yet the complete core.** See [the route inventory](ROUTES.md) for
-registered handlers and the remaining Application routes. Browser administration,
-API v2, recovery/passkeys, plugins, profile/news media and remaining
-2.209 operations and deployment/upgrade tooling still require ports or
-acceptance. Real game-client acceptance and comparative load benchmarks remain
+registered handlers: all 166 canonical Application routes now have native
+handlers. This denominator excludes standalone scripts and browser admin. API v2,
+recovery/passkeys, plugins, browser administration and deployment/upgrade tooling
+still require ports or acceptance. Real game-client acceptance and comparative load benchmarks remain
 pending. The PHP edition remains the complete runtime.
 
 All Go runtime code, tests, the database snapshot and this documentation live in
@@ -44,6 +45,9 @@ or `.env`. Startup connects to the database but never runs DDL.
 | --- | --- |
 | `MUCHO_GO_DSN` | Required MySQL driver DSN; supports driver TLS settings |
 | `MUCHO_GO_ADDR` | HTTP address; defaults to `127.0.0.1:8081` |
+| `MUCHO_GO_COOKIE_SECURE` | Set to `1` behind an HTTPS reverse proxy to require secure browser cookies |
+| `MUCHO_PUBLIC_ASSET_BASE` | Optional base URL for player account page assets; bundled assets work without PHP |
+| `MUCHO_ACCOUNT_RECOVERY_PATH` | Recovery page link; its PHP default still requires a recovery service while that port is pending |
 | `MUCHO_ACCOUNT_URL` | Account service URL returned to game clients |
 | `MUCHO_CUSTOM_CONTENT_URL` | Custom content URL returned to game clients |
 | `MUCHO_CLOUDSAVE_KEY_FILE` | Absolute path to the existing base64-encoded 32-byte Cloud Save key; default `/var/lib/muchocore/cloudsave.key` |
@@ -105,10 +109,12 @@ go test -race ./...
 go vet ./...
 ```
 
-Protocol reference vectors are committed. Regenerate them from the repo root:
+Protocol and image reference vectors are committed. Regenerate them from the repo root
+(the image generator requires PHP GD with JPEG/PNG support):
 
 ```sh
 php go/testdata/protocol-fixtures.php > go/testdata/protocol.json
+php go/testdata/profile-image-fixtures.php > go/testdata/profile-images.json
 python3 go/tools/route-coverage.py --check
 ```
 
@@ -134,7 +140,11 @@ PHP-encrypted save, clones the baseline and records PHP controller responses.
 Go replays the same stateful scenario on the untouched baseline. Use fresh test
 schemas for each run. The tests also cover tampered saves, concurrent rate
 limits, clan capacity and quest score serialization, worker services and lease ownership/recovery and complete native schema structure
-against the current PHP schema. GitHub Actions requires these DB tests.
+against the current PHP schema. The native browser test checks CSRF, password
+changes, recovery/session revocation and bundled assets. GD image references
+compare decoded pixels and crop geometry; Go and PHP JPEG bytes can differ.
+Stored PHP JPEGs remain readable without changes. GitHub Actions requires these
+DB tests and regenerates image references using its installed GD library.
 
 To refresh the initial schema snapshot, set `MUCHO_GO_EXPORT_SCHEMA` to the
 absolute path of `go/internal/schema/schema.json` while bootstrapping a fresh

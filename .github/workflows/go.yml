@@ -31,11 +31,12 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_mysql
+          extensions: pdo_mysql, gd, mbstring
       - name: Verify PHP protocol reference vectors
         run: |
           php go/testdata/protocol-fixtures.php > go/testdata/protocol.json
           git diff --exit-code -- go/testdata/protocol.json
+          php go/testdata/profile-image-fixtures.php > "${{ runner.temp }}/profile-images.json"
           python3 go/tools/route-coverage.py --check
       - name: Seed disposable DB and obtain PHP reference responses
         env:
@@ -60,6 +61,7 @@ jobs:
           MUCHO_GO_CORE_DSN: 'root@tcp(127.0.0.1:3306)/muchocore_go_core_test?charset=utf8mb4&timestamp=1700000000'
           MUCHO_GO_CORE_FIXTURES: '${{ runner.temp }}/core-reference.json'
           MUCHO_GO_TEST_KEY_FILE: '${{ runner.temp }}/cloudsave-test.key'
+          MUCHO_GO_IMAGE_FIXTURES: '${{ runner.temp }}/profile-images.json'
         run: |
           test -z "$(gofmt -l cmd internal)"
           go vet ./...
