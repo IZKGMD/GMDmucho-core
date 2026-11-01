@@ -105,7 +105,11 @@ $meActiveCount = count(array_filter(
             <h2 id="me-title">Where legends <em>begin.</em></h2>
             <p>Discover competitions, join creator events and follow the latest results.</p>
         </div>
-        <a class="me-all-link" href="/extensions/creator-events">Open Creator Events <span aria-hidden="true">↗</span></a>
+        <?php if ($mePluginEnabled && !$meUnavailable): ?>
+            <a class="me-all-link" href="/extensions/creator-events">Open Creator Events <span aria-hidden="true">↗</span></a>
+        <?php else: ?>
+            <span class="me-all-link me-coming-soon">Events coming soon</span>
+        <?php endif; ?>
     </div>
 
     <div class="me-overview">
