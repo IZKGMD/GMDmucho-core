@@ -8,3 +8,5 @@ namespace MuchoCore\Interaction {
 namespace MuchoCore\Score {
     function time(): int { return 1700000000; }
 }
+
+namespace MuchoCore\LevelList { function time(): int { return 1700000000; } }

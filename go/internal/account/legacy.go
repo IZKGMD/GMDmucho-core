@@ -14,6 +14,30 @@ import (
 
 var legacyName = regexp.MustCompile(`[^A-Za-z0-9 _.-]`)
 
+func (s Service) UpdateLegacyUsername(ctx context.Context, udid, name string) error {
+	udid = trim(udid)
+	if udid == "" || name == "" || len(udid) > 256 {
+		return ErrUnauthorized
+	}
+	for _, c := range udid {
+		if c < 32 || c == 127 {
+			return ErrUnauthorized
+		}
+	}
+	hash := sha256.Sum256([]byte("MUCHO_GD10_UDID|" + udid))
+	key := hex.EncodeToString(hash[:])
+	var id int64
+	err := s.DB.QueryRowContext(ctx, `SELECT account_id FROM legacy_device_identities WHERE udid_hash=? LIMIT 1`, key).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		_, err = s.LegacyIdentity(ctx, udid, name, "")
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	return s.renameLegacy(ctx, id, key, name)
+}
+
 func (s Service) LegacyIdentity(ctx context.Context, udid, name, ip string) (int64, error) {
 	udid = trim(udid)
 	if udid == "" || len(udid) > 256 {

@@ -89,6 +89,18 @@ func New(db *sql.DB, options Options) *Handler {
 	}
 	h.options.DownloadWindow = max(30, min(604800, h.options.DownloadWindow))
 	h.routes = map[string]endpoint{
+		"/getgjlevellists": h.getLevelLists, "/uploadgjlevellist": h.uploadLevelList, "/deletegjlevellist": h.deleteLevelList, "/getgjcommenthistory": h.commentHistory,
+		"/updategjusername": func(r request) (string, error) {
+			return "1", h.accounts.UpdateLegacyUsername(r.ctx, r.str("udid"), r.str("userName"))
+		},
+
+		"/getgjaudiofilesize": h.utility,
+		"/getgjcontentstatus": h.utility,
+		"/getlevelrateinfo":   h.utility,
+		"/getsavedata":        h.utility,
+		"/openedregister":     h.utility,
+		"/getgjsongusage":     h.songUsage, "/getgjtopartists": h.topArtists,
+
 		"/rategjstars20": h.moderateLevel, "/rategjstars211": h.moderateLevel, "/rategjdemon21": h.moderateLevel, "/suggestgjstars20": h.moderateLevel, "/reportgjlevel": h.reportLevel,
 		"/registergjaccount": h.register, "/logingjaccount": h.login,
 		"/backupgjaccount": h.backup, "/backupgjaccount20": h.backup,
@@ -119,6 +131,8 @@ func New(db *sql.DB, options Options) *Handler {
 		"/getgjrewards": h.rewards, "/getgjchallenges": h.challenges, "/getgjsecretreward": h.secretReward,
 	}
 	h.webRoutes = map[string]webEndpoint{
+		"/appearance/batch": h.appearance, "/appearance/my": h.appearance, "/appearance/save": h.appearance,
+
 		"/clans/create":               h.clans,
 		"/clans/my":                   h.clans,
 		"/clans/get":                  h.clans,

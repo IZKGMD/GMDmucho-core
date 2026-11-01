@@ -1,6 +1,6 @@
 # Native route inventory
 
-Native handlers registered: **97 / 166** canonical routes from `src/Core/Application.php`.
+Native handlers registered: **112 / 166** canonical routes from `src/Core/Application.php`.
 
 This counts registered handlers, not completed features or production readiness. Aliases do not count as additional implementations. PHP differential tests cover selected scenarios; real-client acceptance remains pending.
 
@@ -33,9 +33,9 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/adminunfreezeaccount` | **Pending** | `/adminUnfreezeAccount` |
 | `/adminuploadban` | **Pending** | `/adminUploadBan` |
 | `/adminuploadunban` | **Pending** | `/adminUploadUnban` |
-| `/appearance/batch` | **Pending** | `/api/appearance/batch` |
-| `/appearance/my` | **Pending** | `/api/appearance/my` |
-| `/appearance/save` | **Pending** | `/api/appearance/save` |
+| `/appearance/batch` | Present | `/api/appearance/batch` |
+| `/appearance/my` | Present | `/api/appearance/my` |
+| `/appearance/save` | Present | `/api/appearance/save` |
 | `/backupgjaccount` | Present | `/backupGJAccount`, `/backupGJAccount20` |
 | `/blockgjuser20` | Present | `/blockGJUser20` |
 | `/claimgjnotificationreward` | Present | `/claimGJNotificationReward` |
@@ -71,7 +71,7 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/deletegjeditorsound` | **Pending** | `/deleteGJEditorSound` |
 | `/deletegjfriendrequests20` | Present | `/deleteGJFriendRequests20` |
 | `/deletegjlevelcontrols` | **Pending** | `/deleteGJLevelControls` |
-| `/deletegjlevellist` | **Pending** | `/deleteGJLevelList` |
+| `/deletegjlevellist` | Present | `/deleteGJLevelList` |
 | `/deletegjleveluser20` | Present | `/deleteGJLevelUser20` |
 | `/deletegjmessages20` | Present | `/deleteGJMessages20` |
 | `/downloadgjeditorsound` | **Pending** | `/downloadGJEditorSound` |
@@ -84,11 +84,11 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/getaccounturl` | Present | `/getAccountURL` |
 | `/getcustomcontenturl` | Present | `/getCustomContentURL` |
 | `/getgjaccountcomments20` | Present | `/getGJAccountComments20` |
-| `/getgjaudiofilesize` | **Pending** | `/getGJAudioFilesize` |
+| `/getgjaudiofilesize` | Present | `/getGJAudioFilesize` |
 | `/getgjchallenges` | Present | `/getGJChallenges` |
-| `/getgjcommenthistory` | **Pending** | `/getGJCommentHistory` |
+| `/getgjcommenthistory` | Present | `/getGJCommentHistory` |
 | `/getgjcomments21` | Present | `/getGJComments21` |
-| `/getgjcontentstatus` | **Pending** | `/getGJContentStatus` |
+| `/getgjcontentstatus` | Present | `/getGJContentStatus` |
 | `/getgjcreators` | Present | `/getGJCreators` |
 | `/getgjcreators19` | Present | `/getGJCreators19` |
 | `/getgjdailylevel` | Present | `/getGJDailyLevel` |
@@ -99,7 +99,7 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/getgjgauntlets` | Present | `/getGJGauntlets` |
 | `/getgjgauntlets21` | Present | `/getGJGauntlets21` |
 | `/getgjlevelcontrols` | **Pending** | `/getGJLevelControls` |
-| `/getgjlevellists` | **Pending** | `/getGJLevelLists` |
+| `/getgjlevellists` | Present | `/getGJLevelLists` |
 | `/getgjlevels21` | Present | `/getGJLevels21` |
 | `/getgjlevelscores` | Present | `/getGJLevelScores` |
 | `/getgjlevelscores211` | Present | `/getGJLevelScores211` |
@@ -112,18 +112,18 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/getgjscores20` | Present | `/getGJScores20` |
 | `/getgjsecretreward` | Present | `/getGJSecretReward` |
 | `/getgjsonginfo` | Present | `/getGJSongInfo` |
-| `/getgjsongusage` | **Pending** | `/getGJSongUsage` |
+| `/getgjsongusage` | Present | `/getGJSongUsage` |
 | `/getgjthreadinvites` | **Pending** | `/getGJThreadInvites` |
 | `/getgjthreadmembers` | **Pending** | `/getGJThreadMembers` |
 | `/getgjthreadmessages` | **Pending** | `/getGJThreadMessages` |
 | `/getgjthreads` | **Pending** | `/getGJThreads` |
-| `/getgjtopartists` | **Pending** | `/getGJTopArtists` |
+| `/getgjtopartists` | Present | `/getGJTopArtists` |
 | `/getgjuserinfo20` | Present | `/getGJUserInfo20` |
 | `/getgjuserlist20` | Present | `/getGJUserList20` |
 | `/getgjusers20` | Present | `/getGJUsers20` |
 | `/getgjusersearch` | Present | `/getGJUserSearch` |
-| `/getlevelrateinfo` | **Pending** | `/getLevelRateInfo` |
-| `/getsavedata` | **Pending** | `/getSaveData` |
+| `/getlevelrateinfo` | Present | `/getLevelRateInfo` |
+| `/getsavedata` | Present | `/getSaveData` |
 | `/health` | Present | `/health` |
 | `/likegjitem21` | Present | `/likeGJItem21` |
 | `/likegjitem211` | Present | `/likeGJItem211` |
@@ -134,7 +134,7 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/mutegjuser` | Present | `/muteGJUser` |
 | `/news/news.dat` | **Pending** | `/news/news.dat` |
 | `/news/news_version.txt` | **Pending** | `/news/news_version.txt` |
-| `/openedregister` | **Pending** | `/openedRegister`, `/accounts/openedRegister` |
+| `/openedregister` | Present | `/openedRegister`, `/accounts/openedRegister` |
 | `/profile/get` | **Pending** | `/api/profile/get` |
 | `/profile/image` | **Pending** | `/api/profile/image` |
 | `/profile/remove` | **Pending** | `/api/profile/remove` |
@@ -160,7 +160,7 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/updategjleveldesc20` | Present | `/updateGJLevelDesc20` |
 | `/updategjsounddesc` | **Pending** | `/updateGJSoundDesc` |
 | `/updategjthread` | **Pending** | `/updateGJThread` |
-| `/updategjusername` | **Pending** | `/updateGJUserName` |
+| `/updategjusername` | Present | `/updateGJUserName` |
 | `/updategjuserscore` | Present | `/updateGJUserScore` |
 | `/updategjuserscore22` | Present | `/updateGJUserScore22` |
 | `/uploadfriendrequest20` | Present | `/uploadFriendRequest20` |
@@ -172,5 +172,5 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/uploadgjlevel21` | Present | `/uploadGJLevel21` |
 | `/uploadgjlevel22` | Present | `/uploadGJLevel22` |
 | `/uploadgjlevelcontrols` | **Pending** | `/uploadGJLevelControls` |
-| `/uploadgjlevellist` | **Pending** | `/uploadGJLevelList` |
+| `/uploadgjlevellist` | Present | `/uploadGJLevelList` |
 | `/uploadgjmessage20` | Present | `/uploadGJMessage20` |

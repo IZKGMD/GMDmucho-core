@@ -7,8 +7,10 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/IZKGMD/GMDmucho-core/go/internal/schema"
+	"github.com/go-sql-driver/mysql"
 )
 
 func TestConcurrentLeasesAndFencing(t *testing.T) {
@@ -21,6 +23,27 @@ func TestConcurrentLeasesAndFencing(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
+	// Packages run concurrently under go test ./...; worker lease fixtures
+	// must not enter the HTTP runtime's queue or consume its jobs.
+	cfg, err := mysql.ParseDSN(dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := fmt.Sprintf("muchocore_go_jobs_test_%d", time.Now().UnixNano())
+	if _, err = db.Exec("CREATE DATABASE `" + name + "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"); err != nil {
+		t.Fatal(err)
+	}
+	defer db.Exec("DROP DATABASE `" + name + "`")
+	cfg.DBName = name
+	isolated, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer isolated.Close()
+	if err = schema.Init(context.Background(), isolated); err != nil {
+		t.Fatal(err)
+	}
+	db = isolated
 	q := Queue{DB: db}
 	ctx := context.Background()
 	for i := 0; i < 20; i++ {

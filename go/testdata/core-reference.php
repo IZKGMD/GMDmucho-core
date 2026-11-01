@@ -23,6 +23,7 @@ $cloudRepo=new MuchoCore\CloudSave\CloudSaveRepository($db);
 $cloudRepo->save(1," \ninitial-save;data; \n");
 $db->exec("INSERT INTO mucho_secret_rewards(reward_key,chest_type,rewards,uses,expires_at,active) VALUES('native-test-reward',1,'100,2,1,1',3,1700000300,1)");
 
+$db->exec("INSERT INTO songs(id,name,author_name,size,download_url) VALUES(11,'Native Song','Artist One',1.5,'https://example.com/native.ogg'),(12,'SC Song','Sound Artist',0.25,'https://api.soundcloud.com/test'),(13,'Hidden','Unknown',0,'https://example.com/unknown')");
 // Clone all migration defaults and seeded records. This copies only a newly
 // generated test schema, never the developer's or operator's installation.
 $db->exec('CREATE DATABASE IF NOT EXISTS muchocore_go_reference CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
@@ -63,6 +64,13 @@ $rewards=new MuchoCore\Interaction\RewardsController(new MuchoCore\Interaction\R
 $clans=new MuchoCore\Clan\ClanController(new MuchoCore\Clan\ClanService($db,$auth,new MuchoCore\Clan\ClanRepository($db)));
 $clanQuests=new MuchoCore\Clan\ClanQuestController($db,$auth,new MuchoCore\Clan\ClanQuestRepository($db));
 $moderation=new MuchoCore\Moderation\ModerationController(new MuchoCore\Moderation\ModerationService($auth,new MuchoCore\Moderation\ModerationRepository($db),$cache));
+$utilities=new MuchoCore\Compatibility\Gd2209UtilityController(new MuchoCore\Compatibility\Gd2209UtilityService($db,$auth));
+$appearance=new MuchoCore\Appearance\AppearanceController(new MuchoCore\Appearance\AppearanceService($db,$auth));
+$songUsage=new MuchoCore\Music\SongUsageController(new MuchoCore\Music\SongUsageService($db));
+$topArtists=new MuchoCore\Artist\TopArtistController(new MuchoCore\Artist\TopArtistService(new MuchoCore\Artist\TopArtistRepository($db)));
+$levelLists=new MuchoCore\LevelList\LevelListController(new MuchoCore\LevelList\LevelListService(new MuchoCore\LevelList\LevelListRepository($db),new MuchoCore\V71\AuthService($db)));
+$commentHistory=new MuchoCore\Comment\CommentHistoryController(new MuchoCore\Comment\CommentHistoryService(new MuchoCore\Comment\CommentHistoryRepository($db)));
+$legacyIdentity=new MuchoCore\Compatibility\Legacy10IdentityController(new MuchoCore\Compatibility\Legacy10IdentityService($db));
 $router=new Router();
 foreach([
     '/registerGJAccount'=>[$account,'register'],'/loginGJAccount'=>[$account,'login'],
@@ -117,6 +125,21 @@ foreach([
     '/clans/quests/contributions'=>[$clanQuests,'contributions'],
     '/clans/activity'=>[$clanQuests,'activity'],
     '/rateGJStars20'=>[$moderation,'rateStars'],'/rateGJStars211'=>[$moderation,'rateStars'],'/rateGJDemon21'=>[$moderation,'rateDemon'],'/suggestGJStars20'=>[$moderation,'suggest'],'/reportGJLevel'=>[$moderation,'report'],
+    '/getGJAudioFilesize'=>[$utilities,'audioSize'],
+    '/getGJContentStatus'=>[$utilities,'contentStatus'],
+    '/getLevelRateInfo'=>[$utilities,'levelRateInfo'],
+    '/getSaveData'=>[$utilities,'savedLevelRatings'],
+    '/openedRegister'=>[$utilities,'openedRegister'],
+    '/appearance/batch'=>[$appearance,'batch'],
+    '/appearance/my'=>[$appearance,'mine'],
+    '/appearance/save'=>[$appearance,'save'],
+    '/getGJSongUsage'=>[$songUsage,'get'],
+    '/getGJTopArtists'=>static fn(Request $r):Response=>Response::text($topArtists->get()),
+    '/updateGJUserName'=>[$legacyIdentity,'updateUsername'],
+    '/getGJLevelLists'=>static fn(Request $r):Response=>Response::text($levelLists->get()),
+    '/uploadGJLevelList'=>static fn(Request $r):Response=>Response::text($levelLists->upload()),
+    '/deleteGJLevelList'=>static fn(Request $r):Response=>Response::text($levelLists->delete()),
+    '/getGJCommentHistory'=>static fn(Request $r):Response=>Response::text($commentHistory->get()),
 ] as $path=>$handler){$router->add('ANY',$path,$handler);}
 $a=['accountID'=>1,'gjp2'=>sha1('test-password'.MuchoCore\Account\AccountService::GJP2_SALT),'gameVersion'=>22,'binaryVersion'=>51];
 $b=$a;$b['accountID']=2;
@@ -401,6 +424,75 @@ $cases=array_merge($cases,[
     ['/rateGJDemon21.php',$owner+['levelID'=>6,'rating'=>3]],
     ['/suggestGJStars20.php',$owner+['levelID'=>6,'stars'=>10,'feature'=>1]],
     ['/getGJLevels21.php',['type'=>0,'str'=>'6','gameVersion'=>22,'binaryVersion'=>51]],
+]);
+$list=$a+['secret'=>'Wmfd2893gb7','listName'=>'Native : List','listDesc'=>'Native description','listLevels'=>'1,2,6,2','difficulty'=>3];
+$cases=array_merge($cases,[
+    ['/getGJAudioFilesize.php',['songIDs'=>'11,11,12']],
+    ['/getGJAudioFilesize.php',['songIDs'=>'999']],
+    ['/getGJAudioFilesize.php',['songIDs'=>'1, 2']],
+    ['/getGJAudioFilesize.php',['songIDs'=>'11','sfxIDs'=>'999']],
+    ['/getGJContentStatus.php',$a],
+    ['/getGJContentStatus.php',$a+['special'=>2]],
+    ['/getLevelRateInfo.php',$a+['levelID'=>6]],
+    ['/getLevelRateInfo.php',$a+['levelID'=>2]],
+    ['/getLevelRateInfo.php',$b+['levelID'=>2]],
+    ['/getSaveData.php',['secret'=>'wrong']],
+    ['/getSaveData.php',['secret'=>'Wmfd2893gb7']],
+    ['/openedRegister.php',['secret'=>'wrong']],
+    ['/openedRegister.php',['secret'=>'Wmfv3899gc9']],
+    ['/openedRegister.php',['secret'=>'Wmfv3899gc9']],
+    ['/getGJTopArtists.php',[]],
+    ['/getGJTopArtists.php',['page'=>1]],
+    ['/getGJSongUsage.php',['songID'=>11]],
+    ['/uploadGJLevel21.php',array_merge($upload,['levelName'=>'Song Usage','songID'=>11])],
+    ['/suggestGJStars20.php',$elder+['levelID'=>7,'stars'=>5,'feature'=>3]],
+    ['/getGJSongUsage.php',['songID'=>11]],
+    ['/api/appearance/batch',['accountIDs'=>'2,1,2,3,999']],
+    ['/api/appearance/batch',['accountIDs'=>'0']],
+    ['/api/appearance/my',$a],
+    ['/api/appearance/save',$a+['nicknameColor'=>'#66ccff']],
+    ['/api/appearance/save',$a+['nicknameColor'=>'invalid']],
+    ['/api/appearance/save',$a+['nicknameColor'=>'default']],
+    ['/api/appearance/save',$a+['nicknameColor'=>'ffffff','prefixColor'=>'123456']],
+    ['/api/clans/create',$a+['clanName'=>'Appearance Clan','clanTag'=>'CLR']],
+    ['/api/clans/join',$b+['clanID'=>2]],
+    ['/api/appearance/save',$a+['nicknameColor'=>'#ff66cc','prefixColor'=>'#66ffcc']],
+    ['/api/appearance/save',$b+['nicknameColor'=>'000000','prefixColor'=>'ffffff']],
+    ['/api/appearance/batch',['accountIDs'=>'1,2']],
+    ['/api/clans/my',$a],
+    ['/api/clans/transfer',$a+['targetAccountID'=>2]],
+    ['/api/appearance/save',$a+['nicknameColor'=>'123456','prefixColor'=>'654321']],
+    ['/api/appearance/save',$b+['nicknameColor'=>'123456','prefixColor'=>'654321']],
+    ['/api/clans/disband',$b],
+    ['/getGJLevelLists.php',[]],
+    ['/uploadGJLevelList.php',array_merge($list,['secret'=>'wrong'])],
+    ['/uploadGJLevelList.php',array_merge($list,['listLevels'=>'4,999'])],
+    ['/uploadGJLevelList.php',$list],
+    ['/getGJLevelLists.php',['str'=>'Native']],
+    ['/getGJLevelLists.php',['str'=>'1']],
+    ['/getGJLevelLists.php',['str'=>'1']],
+    ['/getGJLevelLists.php',['type'=>1]],
+    ['/getGJLevelLists.php',['type'=>5,'str'=>'1']],
+    ['/getGJLevelLists.php',['type'=>12,'followed'=>'1,2']],
+    ['/getGJLevelLists.php',['diff'=>'2']],
+    ['/getGJLevelLists.php',['diff'=>'3']],
+    ['/uploadGJLevelList.php',array_merge($list,['listID'=>1,'listName'=>'Updated','accountID'=>2])],
+    ['/uploadGJLevelList.php',array_merge($list,['listID'=>1,'listName'=>'Updated'])],
+    ['/uploadGJLevelList.php',array_merge($list,['listID'=>1,'listName'=>'Updated'])],
+    ['/getGJLevelLists.php',['str'=>'Updated']],
+    ['/deleteGJLevelList.php',$b+['secret'=>'Wmfd2893gb7','listID'=>1]],
+    ['/deleteGJLevelList.php',$a+['secret'=>'Wmfd2893gb7','listID'=>1]],
+    ['/getGJLevelLists.php',[]],
+    ['/getGJCommentHistory.php',['userID'=>1]],
+    ['/uploadGJComment21.php',$a+['levelID'=>6,'comment'=>base64_encode('History native'),'percent'=>75]],
+    ['/getGJCommentHistory.php',$a+['userID'=>1]],
+    ['/getGJCommentHistory.php',['userID'=>1,'binaryVersion'=>30]],
+    ['/getGJCommentHistory.php',['userID'=>999]],
+    ['/getGJCommentHistory.php',['userID'=>1,'page'=>1]],
+    ['/updateGJUserName.php',['udid'=>'native-legacy-device','userName'=>'Native Legacy']],
+    ['/updateGJUserName.php',['udid'=>'native-legacy-device','userName'=>'Renamed Legacy']],
+    ['/updateGJUserName.php',['udid'=>'native-legacy-device','userName'=>'Alice']],
+    ['/getGJUsers20.php',['str'=>'Alice']],
 ]);
 $result=[];
 foreach($cases as [$path,$form]){

@@ -53,6 +53,11 @@ func TestCorePHPParity(t *testing.T) {
 			w := httptest.NewRecorder()
 			h.ServeHTTP(w, r)
 			equal := w.Body.String() == tc.Body
+			if tc.Body != "-1" {
+				if same, handled := utilityReference(t, h, tc.Path, w.Body.String(), tc.Body); handled {
+					equal = same
+				}
+			}
 			if strings.HasPrefix(tc.ContentType, "application/json") {
 				var actual, expected any
 				if err := json.Unmarshal(w.Body.Bytes(), &actual); err != nil {
@@ -72,6 +77,7 @@ func TestCorePHPParity(t *testing.T) {
 		})
 	}
 	t.Run("clan capacity and quest serialization", func(t *testing.T) { testClanConcurrency(t, h) })
+	t.Run("native worker services and acknowledgements", func(t *testing.T) { testNativeWorker(t, h) })
 	// Duplicate saves must not create history, and Go must retain PHP's
 	// original ciphertext as an independently decryptable historical revision.
 	var revision, history int

@@ -4,13 +4,14 @@ The goal is a complete standalone Go edition. The native runtime now includes
 accounts, level transfer and search, profiles, leaderboards, comments and
 moderator comment commands, likes, messages, friends/blocks, follows/mutes,
 notifications, rewards/challenges, Cloud Save, discovery, background jobs, clans,
-clan quests and level ratings/suggestions/reports.
+clan quests, appearance colors, level lists, comment history, legacy renaming,
+level ratings/suggestions/reports, song statistics and GD 2.209 utility requests.
 It accesses the existing MuchoCore database directly and never invokes PHP.
 
 **This is not yet the complete core.** See [the route inventory](ROUTES.md) for
 registered handlers and the remaining Application routes. Browser administration,
 API v2, recovery/passkeys, plugins, media, thread operations, remaining
-moderation/2.209 utilities and deployment/upgrade tooling still require ports or
+moderation/2.209 operations and deployment/upgrade tooling still require ports or
 acceptance. Real game-client acceptance and comparative load benchmarks remain
 pending. The PHP edition remains the complete runtime.
 
@@ -130,7 +131,7 @@ The generator applies every real PHP migration, seeds synthetic accounts and a
 PHP-encrypted save, clones the baseline and records PHP controller responses.
 Go replays the same stateful scenario on the untouched baseline. Use fresh test
 schemas for each run. The tests also cover tampered saves, concurrent rate
-limits, worker lease ownership/recovery and complete native schema structure
+limits, clan capacity and quest score serialization, worker services and lease ownership/recovery and complete native schema structure
 against the current PHP schema. GitHub Actions requires these DB tests.
 
 To refresh the initial schema snapshot, set `MUCHO_GO_EXPORT_SCHEMA` to the
