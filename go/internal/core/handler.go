@@ -89,6 +89,30 @@ func New(db *sql.DB, options Options) *Handler {
 	}
 	h.options.DownloadWindow = max(30, min(604800, h.options.DownloadWindow))
 	h.routes = map[string]endpoint{
+		"/admincommentban":           h.sanction,
+		"/admincommentunban":         h.sanction,
+		"/adminuploadban":            h.sanction,
+		"/adminuploadunban":          h.sanction,
+		"/adminmessageban":           h.sanction,
+		"/adminmessageunban":         h.sanction,
+		"/adminfreezeaccount":        h.sanction,
+		"/adminunfreezeaccount":      h.sanction,
+		"/admintrendingban":          h.sanction,
+		"/admintrendingunban":        h.sanction,
+		"/adminnamelock":             h.sanction,
+		"/adminnameunlock":           h.sanction,
+		"/adminqueuemute":            h.sanction,
+		"/adminqueueunmute":          h.sanction,
+		"/reportgjcontent":           h.moderationCase,
+		"/admingetreportqueue":       h.moderationCase,
+		"/admingetuserhistory":       h.moderationCase,
+		"/admingetreportedcontent":   h.moderationCase,
+		"/admingetabuseinfo":         h.moderationCase,
+		"/admingetaccountreview":     h.moderationCase,
+		"/adminclearreportedcontent": h.moderationCase,
+		"/adminclosecase":            h.moderationCase,
+		"/deletegjcomments":          h.moderateContent, "/admindeleteusercomments": h.moderateContent, "/adminthreadaction": h.moderateContent,
+
 		"/getgjlevellists": h.getLevelLists, "/uploadgjlevellist": h.uploadLevelList, "/deletegjlevellist": h.deleteLevelList, "/getgjcommenthistory": h.commentHistory,
 		"/updategjusername": func(r request) (string, error) {
 			return "1", h.accounts.UpdateLegacyUsername(r.ctx, r.str("udid"), r.str("userName"))

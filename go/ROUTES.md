@@ -1,6 +1,6 @@
 # Native route inventory
 
-Native handlers registered: **112 / 166** canonical routes from `src/Core/Application.php`.
+Native handlers registered: **137 / 166** canonical routes from `src/Core/Application.php`.
 
 This counts registered handlers, not completed features or production readiness. Aliases do not count as additional implementations. PHP differential tests cover selected scenarios; real-client acceptance remains pending.
 
@@ -10,29 +10,29 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | --- | --- | --- |
 | `/acceptgjfriendrequest20` | Present | `/acceptGJFriendRequest20` |
 | `/accountmanagement` | **Pending** | `/accountManagement` |
-| `/adminclearreportedcontent` | **Pending** | `/adminClearReportedContent` |
-| `/adminclosecase` | **Pending** | `/adminCloseCase` |
-| `/admincommentban` | **Pending** | `/adminCommentBan` |
-| `/admincommentunban` | **Pending** | `/adminCommentUnban` |
-| `/admindeleteusercomments` | **Pending** | `/adminDeleteUserComments` |
-| `/adminfreezeaccount` | **Pending** | `/adminFreezeAccount` |
-| `/admingetabuseinfo` | **Pending** | `/adminGetAbuseInfo` |
-| `/admingetaccountreview` | **Pending** | `/adminGetAccountReview` |
-| `/admingetreportedcontent` | **Pending** | `/adminGetReportedContent` |
-| `/admingetreportqueue` | **Pending** | `/adminGetReportQueue` |
-| `/admingetuserhistory` | **Pending** | `/adminGetUserHistory` |
-| `/adminmessageban` | **Pending** | `/adminMessageBan` |
-| `/adminmessageunban` | **Pending** | `/adminMessageUnban` |
-| `/adminnamelock` | **Pending** | `/adminNameLock` |
-| `/adminnameunlock` | **Pending** | `/adminNameUnlock` |
-| `/adminqueuemute` | **Pending** | `/adminQueueMute` |
-| `/adminqueueunmute` | **Pending** | `/adminQueueUnmute` |
-| `/adminthreadaction` | **Pending** | `/adminThreadAction` |
-| `/admintrendingban` | **Pending** | `/adminTrendingBan` |
-| `/admintrendingunban` | **Pending** | `/adminTrendingUnban` |
-| `/adminunfreezeaccount` | **Pending** | `/adminUnfreezeAccount` |
-| `/adminuploadban` | **Pending** | `/adminUploadBan` |
-| `/adminuploadunban` | **Pending** | `/adminUploadUnban` |
+| `/adminclearreportedcontent` | Present | `/adminClearReportedContent` |
+| `/adminclosecase` | Present | `/adminCloseCase` |
+| `/admincommentban` | Present | `/adminCommentBan` |
+| `/admincommentunban` | Present | `/adminCommentUnban` |
+| `/admindeleteusercomments` | Present | `/adminDeleteUserComments` |
+| `/adminfreezeaccount` | Present | `/adminFreezeAccount` |
+| `/admingetabuseinfo` | Present | `/adminGetAbuseInfo` |
+| `/admingetaccountreview` | Present | `/adminGetAccountReview` |
+| `/admingetreportedcontent` | Present | `/adminGetReportedContent` |
+| `/admingetreportqueue` | Present | `/adminGetReportQueue` |
+| `/admingetuserhistory` | Present | `/adminGetUserHistory` |
+| `/adminmessageban` | Present | `/adminMessageBan` |
+| `/adminmessageunban` | Present | `/adminMessageUnban` |
+| `/adminnamelock` | Present | `/adminNameLock` |
+| `/adminnameunlock` | Present | `/adminNameUnlock` |
+| `/adminqueuemute` | Present | `/adminQueueMute` |
+| `/adminqueueunmute` | Present | `/adminQueueUnmute` |
+| `/adminthreadaction` | Present | `/adminThreadAction` |
+| `/admintrendingban` | Present | `/adminTrendingBan` |
+| `/admintrendingunban` | Present | `/adminTrendingUnban` |
+| `/adminunfreezeaccount` | Present | `/adminUnfreezeAccount` |
+| `/adminuploadban` | Present | `/adminUploadBan` |
+| `/adminuploadunban` | Present | `/adminUploadUnban` |
 | `/appearance/batch` | Present | `/api/appearance/batch` |
 | `/appearance/my` | Present | `/api/appearance/my` |
 | `/appearance/save` | Present | `/api/appearance/save` |
@@ -67,7 +67,7 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/clans/unban` | Present | `/api/clans/unban` |
 | `/deletegjacccomment20` | Present | `/deleteGJAccComment20` |
 | `/deletegjcomment20` | Present | `/deleteGJComment20` |
-| `/deletegjcomments` | **Pending** | `/deleteGJComments` |
+| `/deletegjcomments` | Present | `/deleteGJComments` |
 | `/deletegjeditorsound` | **Pending** | `/deleteGJEditorSound` |
 | `/deletegjfriendrequests20` | Present | `/deleteGJFriendRequests20` |
 | `/deletegjlevelcontrols` | **Pending** | `/deleteGJLevelControls` |
@@ -145,7 +145,7 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/readgjfriendrequest20` | Present | `/readGJFriendRequest20` |
 | `/registergjaccount` | Present | `/registerGJAccount` |
 | `/removegjfriend20` | Present | `/removeGJFriend20` |
-| `/reportgjcontent` | **Pending** | `/reportGJContent` |
+| `/reportgjcontent` | Present | `/reportGJContent` |
 | `/reportgjlevel` | Present | `/reportGJLevel` |
 | `/requestuseraccess` | Present | `/requestUserAccess` |
 | `/searchgjthreadmessages` | **Pending** | `/searchGJThreadMessages` |

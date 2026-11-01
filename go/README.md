@@ -5,13 +5,14 @@ accounts, level transfer and search, profiles, leaderboards, comments and
 moderator comment commands, likes, messages, friends/blocks, follows/mutes,
 notifications, rewards/challenges, Cloud Save, discovery, background jobs, clans,
 clan quests, appearance colors, level lists, comment history, legacy renaming,
-level ratings/suggestions/reports, song statistics and GD 2.209 utility requests.
+level ratings/suggestions/reports, song statistics, GD 2.209 utilities, persisted
+account restrictions, abuse cases and bounded content moderation.
 It accesses the existing MuchoCore database directly and never invokes PHP.
 
 **This is not yet the complete core.** See [the route inventory](ROUTES.md) for
 registered handlers and the remaining Application routes. Browser administration,
 API v2, recovery/passkeys, plugins, media, thread operations, remaining
-moderation/2.209 operations and deployment/upgrade tooling still require ports or
+2.209 operations and deployment/upgrade tooling still require ports or
 acceptance. Real game-client acceptance and comparative load benchmarks remain
 pending. The PHP edition remains the complete runtime.
 
