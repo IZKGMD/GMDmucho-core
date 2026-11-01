@@ -50,6 +50,12 @@ $db->exec('CREATE TABLE mucho_news_posts (
     published_at TEXT
 )');
 
+$db->exec('CREATE TABLE mucho_news_media (
+    id INTEGER PRIMARY KEY, post_id INTEGER NOT NULL, kind TEXT NOT NULL,
+    filename TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL,
+    target_url TEXT
+)');
+
 $db->exec('INSERT INTO mucho_creator_plugin(id, enabled) VALUES(1, 0)');
 $off = captureEvents($db, null);
 checkEvents(str_contains($off, "Events haven't opened yet."), 'Disabled state missing');
