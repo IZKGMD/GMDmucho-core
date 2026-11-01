@@ -89,7 +89,7 @@ checkEvents(str_contains($html, 'data-me-state="results"'), 'Published contest s
 checkEvents(str_contains($html, 'data-me-state="closed"'), 'Expired open contest must be closed');
 checkEvents(str_contains($html, 'Your entry: My Level'), 'Signed-in user entry missing');
 checkEvents(str_contains($html, 'Rank #1'), 'Published result rank missing');
-checkEvents(str_contains($html, '/extensions/creator-events#event-10'), 'Contest anchor missing');
+checkEvents(str_contains($html, 'href="/extensions/creator-events"'), 'Contest link missing');
 checkEvents(str_contains($html, 'Closes in') || str_contains($html, 'data-me-deadline='), 'Live deadline missing');
 
 $guest = captureEvents($db, null);
