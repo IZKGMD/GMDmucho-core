@@ -115,7 +115,12 @@ func run(logger *slog.Logger, options commandOptions) error {
 		n, _ := strconv.Atoi(value)
 		window = max(30, min(604800, n))
 	}
-	application := core.New(db, core.Options{Logger: logger, SecureCookies: envTrue("MUCHO_GO_COOKIE_SECURE"), AssetBase: os.Getenv("MUCHO_PUBLIC_ASSET_BASE"), RecoveryPath: os.Getenv("MUCHO_ACCOUNT_RECOVERY_PATH"), AccountURL: os.Getenv("MUCHO_ACCOUNT_URL"), ContentURL: os.Getenv("MUCHO_CUSTOM_CONTENT_URL"), CloudKeyFile: os.Getenv("MUCHO_CLOUDSAVE_KEY_FILE"), DownloadKey: downloadKey, DownloadWindow: window, TrustedProxies: security.ParseProxies(os.Getenv("MUCHO_TRUSTED_PROXY_CIDRS")), DisableProtect: envFalse("MUCHO_PROTECT"), QuarantineScores: envTrue("MUCHO_ANTICHEAT_QUARANTINE"), Webhooks: integration.Webhooks{URL: os.Getenv("MUCHO_WEBHOOK_URL"), Events: os.Getenv("MUCHO_WEBHOOK_EVENTS"), Secret: os.Getenv("MUCHO_WEBHOOK_SECRET")}})
+	smtpPort, _ := strconv.Atoi(os.Getenv("MUCHO_SMTP_PORT"))
+	smtpFrom := os.Getenv("MUCHO_SMTP_FROM")
+	if smtpFrom == "" {
+		smtpFrom = os.Getenv("MUCHO_RECOVERY_FROM")
+	}
+	application := core.New(db, core.Options{Logger: logger, PublicURL: os.Getenv("MUCHO_PUBLIC_URL"), Turnstile: security.Turnstile{SiteKey: os.Getenv("TURNSTILE_SITEKEY"), Secret: os.Getenv("TURNSTILE_SECRET")}, RecoveryMailer: integration.SMTP{Host: os.Getenv("MUCHO_SMTP_HOST"), Port: smtpPort, From: smtpFrom, Username: os.Getenv("MUCHO_SMTP_USER"), Password: os.Getenv("MUCHO_SMTP_PASSWORD"), ImplicitTLS: smtpPort == 465 || envTrue("MUCHO_SMTP_TLS")}, SecureCookies: envTrue("MUCHO_GO_COOKIE_SECURE"), AssetBase: os.Getenv("MUCHO_PUBLIC_ASSET_BASE"), RecoveryPath: os.Getenv("MUCHO_ACCOUNT_RECOVERY_PATH"), AccountURL: os.Getenv("MUCHO_ACCOUNT_URL"), ContentURL: os.Getenv("MUCHO_CUSTOM_CONTENT_URL"), CloudKeyFile: os.Getenv("MUCHO_CLOUDSAVE_KEY_FILE"), DownloadKey: downloadKey, DownloadWindow: window, TrustedProxies: security.ParseProxies(os.Getenv("MUCHO_TRUSTED_PROXY_CIDRS")), DisableProtect: envFalse("MUCHO_PROTECT"), QuarantineScores: envTrue("MUCHO_ANTICHEAT_QUARANTINE"), Webhooks: integration.Webhooks{URL: os.Getenv("MUCHO_WEBHOOK_URL"), Events: os.Getenv("MUCHO_WEBHOOK_EVENTS"), Secret: os.Getenv("MUCHO_WEBHOOK_SECRET")}})
 	if options.Worker {
 		return application.RunWorker(ctx, options.Loop, options.Sleep)
 	}

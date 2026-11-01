@@ -13,7 +13,10 @@ import (
 )
 
 func (h *Handler) accountCSRF(r request) (string, bool) {
-	cookie, err := r.raw.Cookie("MUCHO_GO_ACCOUNT")
+	return h.browserCSRF(r, "MUCHO_GO_ACCOUNT", "account-management")
+}
+func (h *Handler) browserCSRF(r request, name, purpose string) (string, bool) {
+	cookie, err := r.raw.Cookie(name)
 	if err != nil {
 		return "", false
 	}
@@ -34,15 +37,18 @@ func (h *Handler) accountCSRF(r request) (string, bool) {
 		return "", false
 	}
 	mac := hmac.New(sha256.New, h.downloadKey)
-	mac.Write([]byte("account-management|" + parts[0] + "." + parts[1]))
+	mac.Write([]byte(purpose + "|" + parts[0] + "." + parts[1]))
 	return parts[0], hmac.Equal(signature, mac.Sum(nil))
 }
 func (h *Handler) accountCookie(r request, token string) *http.Cookie {
+	return h.browserCookie(r, token, "MUCHO_GO_ACCOUNT", "account-management")
+}
+func (h *Handler) browserCookie(r request, token, name, purpose string) *http.Cookie {
 	value := token + "." + strconv.FormatInt(h.now().Unix()+7200, 10)
 	mac := hmac.New(sha256.New, h.downloadKey)
-	mac.Write([]byte("account-management|" + value))
+	mac.Write([]byte(purpose + "|" + value))
 	value += "." + hex.EncodeToString(mac.Sum(nil))
-	return &http.Cookie{Name: "MUCHO_GO_ACCOUNT", Value: value, Path: "/", HttpOnly: true, Secure: h.options.SecureCookies || r.raw.TLS != nil, SameSite: http.SameSiteLaxMode}
+	return &http.Cookie{Name: name, Value: value, Path: "/", HttpOnly: true, Secure: h.options.SecureCookies || r.raw.TLS != nil, SameSite: http.SameSiteLaxMode}
 }
 func (h *Handler) accountManagement(r request) reply {
 	headers := http.Header{"Cache-Control": {"no-store, private"}, "X-Content-Type-Options": {"nosniff"}, "X-Frame-Options": {"DENY"}, "Referrer-Policy": {"no-referrer"}, "Content-Security-Policy": {"default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"}}

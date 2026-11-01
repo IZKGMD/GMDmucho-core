@@ -37,6 +37,9 @@ type Options struct {
 	DownloadWindow                       int
 	SecureCookies                        bool
 	AssetBase, RecoveryPath              string
+	PublicURL                            string
+	RecoveryMailer                       integration.RecoveryMailer
+	Turnstile                            security.Turnstile
 }
 type Handler struct {
 	db          *sql.DB
@@ -177,6 +180,8 @@ func New(db *sql.DB, options Options) *Handler {
 		"/getgjrewards": h.rewards, "/getgjchallenges": h.challenges, "/getgjsecretreward": h.secretReward,
 	}
 	h.webRoutes = map[string]webEndpoint{
+		"/lostusername": h.recovery,
+
 		"/accountmanagement": h.accountManagement, "/profile/get": h.profileMedia, "/profile/upload": h.profileMedia, "/profile/remove": h.profileMedia, "/profile/image": h.profileMedia,
 
 		"/muchocore/news":                   h.news,

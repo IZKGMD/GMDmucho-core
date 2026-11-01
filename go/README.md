@@ -8,13 +8,14 @@ clan quests, appearance colors, level lists, comment history, legacy renaming,
 level ratings/suggestions/reports, song statistics, GD 2.209 utilities, persisted
 account restrictions, abuse cases, bounded content moderation, native DM/group
 threads and invitations, editor sound storage, death telemetry, level controls,
-news feeds/images, profile image cropping and browser password changes.
+news feeds/images, profile image cropping, browser password changes and one-time
+account recovery with optional Turnstile and native SMTP delivery.
 It accesses the existing MuchoCore database directly and never invokes PHP.
 
 **This is not yet the complete core.** See [the route inventory](ROUTES.md) for
 registered handlers: all 166 canonical Application routes now have native
 handlers. This denominator excludes standalone scripts and browser admin. API v2,
-recovery/passkeys, plugins, browser administration and deployment/upgrade tooling
+administrator passkeys, plugins, browser administration and deployment/upgrade tooling
 still require ports or acceptance. Real game-client acceptance and comparative load benchmarks remain
 pending. The PHP edition remains the complete runtime.
 
@@ -47,7 +48,13 @@ or `.env`. Startup connects to the database but never runs DDL.
 | `MUCHO_GO_ADDR` | HTTP address; defaults to `127.0.0.1:8081` |
 | `MUCHO_GO_COOKIE_SECURE` | Set to `1` behind an HTTPS reverse proxy to require secure browser cookies |
 | `MUCHO_PUBLIC_ASSET_BASE` | Optional base URL for player account page assets; bundled assets work without PHP |
-| `MUCHO_ACCOUNT_RECOVERY_PATH` | Recovery page link; its PHP default still requires a recovery service while that port is pending |
+| `MUCHO_ACCOUNT_RECOVERY_PATH` | Optional recovery link for account management; defaults to the native `/api/api/accounts/lostusername.php` route |
+| `MUCHO_PUBLIC_URL` | Trusted HTTPS origin used for recovery links; falls back to `MUCHO_ACCOUNT_URL`, then `https://localhost`; never taken from the Host header |
+| `MUCHO_SMTP_HOST`, `MUCHO_SMTP_PORT` | Recovery SMTP server; port defaults to 587 |
+| `MUCHO_SMTP_FROM` | Sender address; falls back to `MUCHO_RECOVERY_FROM` |
+| `MUCHO_SMTP_USER`, `MUCHO_SMTP_PASSWORD` | Optional SMTP authentication |
+| `MUCHO_SMTP_TLS` | Enable implicit TLS; automatically enabled on port 465; other remote servers must support STARTTLS |
+| `TURNSTILE_SITEKEY`, `TURNSTILE_SECRET` | Enable the recovery security challenge when both are configured |
 | `MUCHO_ACCOUNT_URL` | Account service URL returned to game clients |
 | `MUCHO_CUSTOM_CONTENT_URL` | Custom content URL returned to game clients |
 | `MUCHO_CLOUDSAVE_KEY_FILE` | Absolute path to the existing base64-encoded 32-byte Cloud Save key; default `/var/lib/muchocore/cloudsave.key` |
@@ -145,6 +152,11 @@ changes, recovery/session revocation and bundled assets. GD image references
 compare decoded pixels and crop geometry; Go and PHP JPEG bytes can differ.
 Stored PHP JPEGs remain readable without changes. GitHub Actions requires these
 DB tests and regenerates image references using its installed GD library.
+Recovery tests use a local SMTP test receiver and a fake mail adapter; no external
+email is sent. They cover single-use concurrent resets, expiry, stored token
+hashes, Host-header isolation, CSRF and legacy session revocation. Actual SMTP
+delivery requires operator configuration. Without SMTP, recovery requests retain
+the generic response and log an unavailable-delivery message.
 
 To refresh the initial schema snapshot, set `MUCHO_GO_EXPORT_SCHEMA` to the
 absolute path of `go/internal/schema/schema.json` while bootstrapping a fresh
