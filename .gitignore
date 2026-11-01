@@ -11,6 +11,8 @@
 
 # Dependencies / runtime state
 /vendor/
+/go/bin/
+/work/
 /storage/
 /var/log/*
 /var/cache/*

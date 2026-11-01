@@ -2,6 +2,8 @@
 
 **Open-source PHP server core for Geometry Dash.** Accounts, levels, comments, scores, social features, moderation, Cloud Save, admin tools, migration and client patching. One codebase with version-aware protocol handling.
 
+**Go edition in development:** The [native Go discovery preview](go/README.md) implements songs, gauntlets, map packs and daily/weekly/event discovery against the existing database. It runs without PHP, but is not yet a complete replacement for the PHP core.
+
 [Website](https://muchogdps.space/muchocore/) · [Stable releases](https://github.com/IZKGMD/GMDmucho-core/releases) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/IZKGMD/GMDmucho-core/issues)
 
 > **Choose the correct package first.** The standard MuchoCore runtime requires **PHP 8.2+** (8.3+ recommended). The separate **5v.pl / PHP 7.0** build contains a native runtime, the compiled original application services and the original administration interface. It remains a development preview: complete real-client acceptance is **not certified**. See [native port coverage](docs/PHP7_NATIVE_PHASE1.md) and [release readiness](docs/V110_RELEASE.md).

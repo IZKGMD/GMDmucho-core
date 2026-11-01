@@ -1,0 +1,54 @@
+name: Go native port
+
+on:
+  push:
+    paths: ['go/**', 'go/testdata/**', 'src/**', 'database/migrations/**', '.github/workflows/go.yml']
+  pull_request:
+    paths: ['go/**', 'go/testdata/**', 'src/**', 'database/migrations/**', '.github/workflows/go.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
+          MARIADB_DATABASE: muchocore_go_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=2s --health-timeout=5s --health-retries=40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.x'
+          cache-dependency-path: go/go.sum
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql
+      - name: Verify PHP protocol reference vectors
+        run: |
+          php go/testdata/protocol-fixtures.php > go/testdata/protocol.json
+          git diff --exit-code -- go/testdata/protocol.json
+      - name: Seed disposable DB and obtain PHP reference responses
+        env:
+          MUCHO_GO_PHP_TEST_DSN: 'mysql:host=127.0.0.1;dbname=muchocore_go_test;charset=utf8mb4'
+        run: |
+          mkdir -p work
+          php go/testdata/discovery-fixtures.php > work/discovery.json
+      - name: Check format, vet, race tests and database compatibility
+        working-directory: go
+        env:
+          MUCHO_GO_TEST_DSN: 'root@tcp(127.0.0.1:3306)/muchocore_go_test?charset=utf8mb4'
+          MUCHO_GO_TEST_FIXTURES: '${{ github.workspace }}/work/discovery.json'
+        run: |
+          test -z "$(gofmt -l cmd internal)"
+          go vet ./...
+          go test -race ./...
+          go build -o bin/muchocore ./cmd/muchocore
