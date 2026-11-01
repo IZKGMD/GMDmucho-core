@@ -1,68 +1,99 @@
-# MuchoCore Go port — native discovery preview
+# MuchoCore Go edition — migration in progress
 
-The goal is a complete standalone Go edition of MuchoCore. This first increment
-implements four read-only endpoint families against the existing PHP core's
-MySQL/MariaDB schema. It does not run PHP, proxy requests to PHP, migrate data,
-or execute schema changes on startup.
+The goal is a complete standalone Go edition. The native runtime now includes
+accounts, level transfer and search, profiles, leaderboards, comments and
+moderator comment commands, likes, messages, friends/blocks, follows/mutes,
+notifications, rewards/challenges, Cloud Save, discovery and background jobs.
+It accesses the existing MuchoCore database directly and never invokes PHP.
 
-The PHP edition remains the complete runtime. This preview cannot yet replace a
-GDPS: accounts, levels, scores, comments, social features, Cloud Save, moderation,
-admin, plugins, MuchoProtect, installers and background jobs still need ports.
-Real game-client acceptance and performance comparisons have not been completed.
+**This is not yet the complete core.** See [the route inventory](ROUTES.md) for
+registered handlers and the remaining Application routes. Browser administration,
+API v2, recovery/passkeys, plugins, clans, media, thread operations, remaining
+moderation/2.209 utilities and deployment/upgrade tooling still require ports or
+acceptance. Real game-client acceptance and comparative load benchmarks remain
+pending. The PHP edition remains the complete runtime.
 
-## Implemented endpoints
+All Go runtime code, tests, the database snapshot and this documentation live in
+`go/`. PHP files in `testdata/` are development-only reference generators; they
+are not included in the executable and are not used at runtime.
 
-| Endpoint | Behavior |
-| --- | --- |
-| `getGJSongInfo.php` | Verified songs, canonical song fields and sanitization |
-| `getGJGauntlets.php`, `getGJGauntlets19/20/21.php` | Enabled complete gauntlets, stable order, GD hash |
-| `getGJMapPacks.php`, `getGJMapPacks19/20/21.php` | Ten packs per page, bounded page, totals and GD hash |
-| `getGJDailyLevel.php` | Active daily, weekly or event rotation, correct index offsets |
-| `/health`, `checkIfServerOnline.php` | Liveness, plain `1` |
-| `/ready` | DB connection probe; `503` and `-1` when unavailable |
+## Build and run
 
-The router accepts case differences, `.php`, trailing and repeated slashes,
-and repeated `/a/`, `/api/`, `/accounts/`, `/database/` prefixes without POST
-redirects. All aliases from the PHP router are carried forward, but an alias
-does **not** imply that its handler has been ported. Unsupported routes return
-the usual `-1`; there is no fallback runtime.
-
-GD parameters come from POST form fields, not query strings. Scalar URL-encoded
-and multipart forms are supported. Invalid encodings and oversized bodies are
-rejected with `400` and `413`. The preview caps request bodies at 1 MiB.
-Game lookup errors and missing records return plain `-1` with HTTP 200, keeping
-database details out of responses and logs. Requests have a three-second DB
-deadline; the connection pool is bounded, and SIGINT/SIGTERM drain the server.
-
-## Run
-
-Requires Go 1.26+ and an already initialized MuchoCore database (including song,
-content-pack and rotation migrations). The Go module lives in `go/` to avoid
-conflicting with Composer's root `vendor/` directory.
+Requires Go 1.26+ and an initialized current MuchoCore MySQL/MariaDB database.
+The Go module is separate from Composer's root `vendor/` directory.
 
 ```sh
 cd go
 go mod download
 go build -o bin/muchocore ./cmd/muchocore
-
-export MUCHO_GO_DSN='muchocore_reader:YOUR_PASSWORD@tcp(127.0.0.1:3306)/muchocore?charset=utf8mb4'
+export MUCHO_GO_DSN='muchocore:YOUR_PASSWORD@tcp(127.0.0.1:3306)/muchocore?charset=utf8mb4'
 export MUCHO_GO_ADDR='127.0.0.1:8081'
 ./bin/muchocore
 ```
 
-Use a database account with SELECT access to the four discovery tables. The
-server reads these two environment variables directly; it does not load `.env`.
-`MUCHO_GO_DSN` is required. The default address is `127.0.0.1:8081`. Configure
-MySQL TLS through the driver's DSN settings when the database requires it.
+The application database account needs SELECT, INSERT, UPDATE and DELETE rights
+for the implemented modules, including the shared security and job tables. The
+runtime reads environment variables directly and does not load PHP configuration
+or `.env`. Startup connects to the database but never runs DDL.
+
+| Variable | Meaning |
+| --- | --- |
+| `MUCHO_GO_DSN` | Required MySQL driver DSN; supports driver TLS settings |
+| `MUCHO_GO_ADDR` | HTTP address; defaults to `127.0.0.1:8081` |
+| `MUCHO_ACCOUNT_URL` | Account service URL returned to game clients |
+| `MUCHO_CUSTOM_CONTENT_URL` | Custom content URL returned to game clients |
+| `MUCHO_CLOUDSAVE_KEY_FILE` | Absolute path to the existing base64-encoded 32-byte Cloud Save key; default `/var/lib/muchocore/cloudsave.key` |
+| `MUCHO_TRUSTED_PROXY_CIDRS` | Explicit trusted proxy IPs/CIDRs, separated by spaces or commas; follows the PHP trust rules |
+| `MUCHO_PROTECT` | Protection enabled by default; `0`, `false`, `off`, `no` disable it |
+| `MUCHO_ANTICHEAT_QUARANTINE` | Opt-in filtering of suspicious score records |
+| `MUCHO_DOWNLOAD_HMAC_KEY` | Stable download deduplication secret; otherwise derived from the DB password, or random per process |
+| `MUCHO_DOWNLOAD_DEDUP_SECONDS` | Deduplication window; default 300, bounded to 30–604800 seconds |
+| `MUCHO_WEBHOOK_URL` | Optional webhook destination |
+| `MUCHO_WEBHOOK_EVENTS` | Comma-separated events, or `*` |
+| `MUCHO_WEBHOOK_SECRET` | Optional HMAC-SHA256 webhook signing secret |
+
+Preserve the existing Cloud Save key. The server never generates or replaces a
+key implicitly. PHP bcrypt hashes, GJP/GJP2 and bounded Argon2i/Argon2id hashes
+are supported. Standard authentication never grants access on account ID and IP
+alone; credential-less legacy 1.9 sessions also require the device UDID.
 
 ```sh
 curl -fsS http://127.0.0.1:8081/health
 curl -fsS http://127.0.0.1:8081/ready
 curl -fsS -X POST http://127.0.0.1:8081/a/database/getGJSongInfo.php -d 'songID=1'
-curl -fsS -X POST http://127.0.0.1:8081/database/getGJDailyLevel.php -d 'type=1'
 ```
 
-## Verify
+`/health` and `checkIfServerOnline.php` return liveness `1`. `/ready` checks the
+DB and returns HTTP 503 with `-1` on failure. Legacy URL aliases and prefixes are
+accepted without POST redirects. Unsupported game routes return `-1`. Requests
+have bounded body sizes, database deadlines and a bounded connection pool.
+
+## New database and worker
+
+For a **new empty database only**, use a separate account with DDL privileges:
+
+```sh
+./bin/muchocore --init-db
+```
+
+The embedded snapshot contains all 96 tables and migration defaults generated
+from the existing PHP migrations. Initialization acquires the shared migration
+lock and refuses any non-empty database. It is not an existing-installation
+upgrade command and does not create a browser administrator account.
+
+The native worker supports indexing, signed webhooks and maintenance cleanup:
+
+```sh
+./bin/muchocore --worker
+./bin/muchocore --worker --loop --sleep=2
+```
+
+One-shot mode processes at most one job. Leases are fenced by worker ID and
+attempt number; expired leases are recovered and failures retry up to five
+attempts. SIGINT/SIGTERM stop polling and allow acknowledgements to finish.
+Webhook delivery requires a direct HTTP 2xx response; redirects are not followed.
+
+## Validation
 
 ```sh
 cd go
@@ -70,50 +101,37 @@ go test -race ./...
 go vet ./...
 ```
 
-The protocol tests consume committed reference vectors produced by the current
-PHP router, hash, XOR, song and text encoders. To regenerate from the repo root:
+Protocol reference vectors are committed. Regenerate them from the repo root:
 
 ```sh
 php go/testdata/protocol-fixtures.php > go/testdata/protocol.json
-git diff --exit-code -- go/testdata/protocol.json
+python3 go/tools/route-coverage.py --check
 ```
 
-For integration, create an **empty disposable** database named exactly
-`muchocore_go_test` on a local MariaDB test instance, with passwordless root as
-used by CI. Never point the fixture generator at an installation's database.
-The generator rejects any other database name and any non-empty database.
+The core differential test requires a **fresh disposable** MariaDB instance with
+passwordless root and empty `muchocore_go_core_test` and
+`muchocore_go_reference` schemas. The reference schema is created by the script;
+never reuse an installation database. From the repo root:
 
 ```sh
 mkdir -p work
-MUCHO_GO_PHP_TEST_DSN='mysql:host=127.0.0.1;dbname=muchocore_go_test;charset=utf8mb4' \
-  php go/testdata/discovery-fixtures.php > work/discovery.json
+export MUCHO_GO_PHP_TEST_DSN='mysql:host=127.0.0.1;dbname=muchocore_go_core_test;charset=utf8mb4'
+export MUCHO_GO_TEST_KEY_FILE="$PWD/work/cloudsave-test.key"
+export MUCHO_GO_CORE_FIXTURES="$PWD/work/core-reference.json"
+php go/testdata/core-reference.php > work/core-reference.log
 
 cd go
-MUCHO_GO_TEST_DSN='root@tcp(127.0.0.1:3306)/muchocore_go_test?charset=utf8mb4' \
-MUCHO_GO_TEST_FIXTURES="$PWD/../work/discovery.json" \
+MUCHO_GO_CORE_DSN='root@tcp(127.0.0.1:3306)/muchocore_go_core_test?charset=utf8mb4&timestamp=1700000000' \
   go test -race ./...
 ```
 
-This applies the repository's real PHP migrations and seeds verified/hidden
-songs, ordering/filtering cases, multiple pack pages, and expired, disabled,
-future and overlapping rotations. It obtains expected responses by invoking
-the existing PHP controllers against that database. Go then compares every
-response body and HTTP status using the same fixed database clock. CI requires
-this integration test; locally it skips when `MUCHO_GO_TEST_DSN` is absent.
+The generator applies every real PHP migration, seeds synthetic accounts and a
+PHP-encrypted save, clones the baseline and records PHP controller responses.
+Go replays the same stateful scenario on the untouched baseline. Use fresh test
+schemas for each run. The tests also cover tampered saves, concurrent rate
+limits, worker lease ownership/recovery and complete native schema structure
+against the current PHP schema. GitHub Actions requires these DB tests.
 
-## Remaining migration sequence
-
-1. Port client version inference, authentication/password compatibility and
-   accounts, with PHP comparison vectors and account abuse protections.
-2. Port level listing, transfer, search and score validation; verify real
-   clients across the supported GD generations.
-3. Port comments, social, messages, rewards, Cloud Save and moderation with
-   transaction and concurrency tests.
-4. Port admin, jobs, plugins and extension lifecycle, security controls,
-   deployment/install/backup workflows and upgrade tooling.
-5. Require complete route coverage, data-preserving migration acceptance,
-   real-client acceptance, and reproducible latency/memory/load comparisons
-   before declaring the Go edition ready to replace PHP.
-
-The Go service can be evaluated alongside PHP on a separate port now. Production
-routing and the existing installation are not changed by this preview.
+To refresh the initial schema snapshot, set `MUCHO_GO_EXPORT_SCHEMA` to the
+absolute path of `go/internal/schema/schema.json` while bootstrapping a fresh
+test schema. No installation data is included in that snapshot.

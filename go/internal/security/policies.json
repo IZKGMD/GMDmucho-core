@@ -1,0 +1,650 @@
+{
+  "/logingjaccount": {
+    "limit": 12,
+    "window": 60,
+    "burst": 5,
+    "burstWindow": 10
+  },
+  "/registergjaccount": {
+    "limit": 6,
+    "window": 300,
+    "burst": 2,
+    "burstWindow": 30,
+    "deviceLimit": 2,
+    "deviceWindow": 86400
+  },
+  "/backupgjaccount": {
+    "limit": 12,
+    "window": 60,
+    "burst": 4,
+    "burstWindow": 10
+  },
+  "/backupgjaccount20": {
+    "limit": 12,
+    "window": 60,
+    "burst": 4,
+    "burstWindow": 10
+  },
+  "/syncgjaccount": {
+    "limit": 12,
+    "window": 60,
+    "burst": 4,
+    "burstWindow": 10
+  },
+  "/syncgjaccount20": {
+    "limit": 12,
+    "window": 60,
+    "burst": 4,
+    "burstWindow": 10
+  },
+  "/uploadgjlevel21": {
+    "limit": 8,
+    "window": 60,
+    "burst": 3,
+    "burstWindow": 15
+  },
+  "/uploadgjlevel22": {
+    "limit": 8,
+    "window": 60,
+    "burst": 3,
+    "burstWindow": 15
+  },
+  "/deletegjleveluser20": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/updategjleveldesc20": {
+    "limit": 30,
+    "window": 60,
+    "burst": 8,
+    "burstWindow": 10
+  },
+  "/uploadgjlevellist": {
+    "limit": 5,
+    "window": 60,
+    "burst": 2,
+    "burstWindow": 15
+  },
+  "/deletegjlevellist": {
+    "limit": 10,
+    "window": 60,
+    "burst": 3,
+    "burstWindow": 15
+  },
+  "/updategjusername": {
+    "limit": 20,
+    "window": 60,
+    "burst": 5,
+    "burstWindow": 10
+  },
+  "/clans/create": {
+    "limit": 4,
+    "window": 300,
+    "burst": 2,
+    "burstWindow": 30
+  },
+  "/clans/my": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/clans/get": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/clans/search": {
+    "limit": 60,
+    "window": 60,
+    "burst": 15,
+    "burstWindow": 10
+  },
+  "/clans/join": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/clans/leave": {
+    "limit": 10,
+    "window": 60,
+    "burst": 3,
+    "burstWindow": 10
+  },
+  "/clans/invite": {
+    "limit": 30,
+    "window": 60,
+    "burst": 8,
+    "burstWindow": 10
+  },
+  "/clans/invite/accept": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/clans/invite/decline": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/clans/kick": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/clans/role": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/clans/invites": {
+    "limit": 60,
+    "window": 60,
+    "burst": 15,
+    "burstWindow": 10
+  },
+  "/clans/settings": {
+    "limit": 10,
+    "window": 60,
+    "burst": 3,
+    "burstWindow": 10
+  },
+  "/clans/transfer": {
+    "limit": 4,
+    "window": 300,
+    "burst": 2,
+    "burstWindow": 30
+  },
+  "/clans/disband": {
+    "limit": 4,
+    "window": 300,
+    "burst": 2,
+    "burstWindow": 30
+  },
+  "/clans/invite/revoke": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/clans/ban": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/clans/unban": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/clans/bans": {
+    "limit": 30,
+    "window": 60,
+    "burst": 8,
+    "burstWindow": 10
+  },
+  "/appearance/batch": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/clans/quests": {
+    "limit": 60,
+    "window": 60,
+    "burst": 15,
+    "burstWindow": 10
+  },
+  "/clans/quests/create": {
+    "limit": 10,
+    "window": 60,
+    "burst": 3,
+    "burstWindow": 10
+  },
+  "/clans/quests/cancel": {
+    "limit": 10,
+    "window": 60,
+    "burst": 3,
+    "burstWindow": 10
+  },
+  "/clans/quests/contributions": {
+    "limit": 60,
+    "window": 60,
+    "burst": 15,
+    "burstWindow": 10
+  },
+  "/clans/activity": {
+    "limit": 60,
+    "window": 60,
+    "burst": 15,
+    "burstWindow": 10
+  },
+  "/appearance/my": {
+    "limit": 60,
+    "window": 60,
+    "burst": 15,
+    "burstWindow": 10
+  },
+  "/appearance/save": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/profile/get": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/profile/image": {
+    "limit": 240,
+    "window": 60,
+    "burst": 60,
+    "burstWindow": 10
+  },
+  "/profile/upload": {
+    "limit": 10,
+    "window": 60,
+    "burst": 3,
+    "burstWindow": 10,
+    "identityLimit": 10,
+    "identityWindow": 60
+  },
+  "/profile/remove": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/v2": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/v2/health": {
+    "limit": 60,
+    "window": 60,
+    "burst": 10,
+    "burstWindow": 10
+  },
+  "/v2/profile": {
+    "limit": 180,
+    "window": 60,
+    "burst": 40,
+    "burstWindow": 10
+  },
+  "/v2/client-config": {
+    "limit": 180,
+    "window": 60,
+    "burst": 40,
+    "burstWindow": 10
+  },
+  "/v2/heartbeat": {
+    "limit": 120,
+    "window": 60,
+    "burst": 20,
+    "burstWindow": 10
+  },
+  "/v2/music": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/v2/music-upload": {
+    "limit": 20,
+    "window": 60,
+    "burst": 4,
+    "burstWindow": 10,
+    "identityLimit": 5,
+    "identityWindow": 900
+  },
+  "/getgjcommenthistory": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjlevellists": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjtopartists": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjlevels21": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/downloadgjlevel21": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/downloadgjlevel22": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjsonginfo": {
+    "limit": 180,
+    "window": 60,
+    "burst": 40,
+    "burstWindow": 10
+  },
+  "/getgjuserinfo20": {
+    "limit": 180,
+    "window": 60,
+    "burst": 40,
+    "burstWindow": 10
+  },
+  "/getgjusers20": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjscores20": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjcomments21": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjaccountcomments20": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjmessages20": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/downloadgjmessage20": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjfriendrequests20": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjuserlist20": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjcreators": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjcreators19": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjdailylevel": {
+    "limit": 60,
+    "window": 60,
+    "burst": 20,
+    "burstWindow": 10
+  },
+  "/getgjgauntlets": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjgauntlets21": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjmappacks": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjmappacks20": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjmappacks21": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjlevelscores": {
+    "limit": 90,
+    "window": 60,
+    "burst": 20,
+    "burstWindow": 10
+  },
+  "/getgjlevelscores211": {
+    "limit": 90,
+    "window": 60,
+    "burst": 20,
+    "burstWindow": 10
+  },
+  "/getgjlevelscoresplat": {
+    "limit": 90,
+    "window": 60,
+    "burst": 20,
+    "burstWindow": 10
+  },
+  "/getgjrewards": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/getgjsecretreward": {
+    "limit": 60,
+    "window": 60,
+    "burst": 20,
+    "burstWindow": 10
+  },
+  "/getgjchallenges": {
+    "limit": 120,
+    "window": 60,
+    "burst": 30,
+    "burstWindow": 10
+  },
+  "/uploadgjcomment20": {
+    "limit": 30,
+    "window": 60,
+    "burst": 8,
+    "burstWindow": 10
+  },
+  "/uploadgjcomment21": {
+    "limit": 30,
+    "window": 60,
+    "burst": 8,
+    "burstWindow": 10
+  },
+  "/uploadgjacccomment20": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/deletegjcomment20": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/deletegjaccountcomment20": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/deletegjacccomment20": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/uploadgjmessage20": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/deletegjmessages20": {
+    "limit": 20,
+    "window": 60,
+    "burst": 6,
+    "burstWindow": 10
+  },
+  "/uploadfriendrequest20": {
+    "limit": 30,
+    "window": 60,
+    "burst": 10,
+    "burstWindow": 10
+  },
+  "/acceptgjfriendrequest20": {
+    "limit": 30,
+    "window": 60,
+    "burst": 10,
+    "burstWindow": 10
+  },
+  "/blockgjuser20": {
+    "limit": 30,
+    "window": 60,
+    "burst": 10,
+    "burstWindow": 10
+  },
+  "/unblockgjuser20": {
+    "limit": 30,
+    "window": 60,
+    "burst": 10,
+    "burstWindow": 10
+  },
+  "/removegjfriend20": {
+    "limit": 30,
+    "window": 60,
+    "burst": 10,
+    "burstWindow": 10
+  },
+  "/deletegjfriendrequests20": {
+    "limit": 30,
+    "window": 60,
+    "burst": 10,
+    "burstWindow": 10
+  },
+  "/readgjfriendrequest20": {
+    "limit": 60,
+    "window": 60,
+    "burst": 15,
+    "burstWindow": 10
+  },
+  "/updategjuserscore": {
+    "limit": 60,
+    "window": 60,
+    "burst": 15,
+    "burstWindow": 10
+  },
+  "/updategjuserscore22": {
+    "limit": 60,
+    "window": 60,
+    "burst": 15,
+    "burstWindow": 10
+  },
+  "/updategjaccsettings20": {
+    "limit": 10,
+    "window": 60,
+    "burst": 3,
+    "burstWindow": 15
+  },
+  "/requestuseraccess": {
+    "limit": 6,
+    "window": 300,
+    "burst": 2,
+    "burstWindow": 30
+  },
+  "/rategjstars20": {
+    "limit": 40,
+    "window": 60,
+    "burst": 12,
+    "burstWindow": 10
+  },
+  "/rategjstars211": {
+    "limit": 40,
+    "window": 60,
+    "burst": 12,
+    "burstWindow": 10
+  },
+  "/rategjdemon21": {
+    "limit": 40,
+    "window": 60,
+    "burst": 12,
+    "burstWindow": 10
+  },
+  "/suggestgjstars20": {
+    "limit": 40,
+    "window": 60,
+    "burst": 12,
+    "burstWindow": 10
+  },
+  "/reportgjlevel": {
+    "limit": 30,
+    "window": 60,
+    "burst": 8,
+    "burstWindow": 10
+  },
+  "/likegjitem21": {
+    "limit": 60,
+    "window": 60,
+    "burst": 15,
+    "burstWindow": 10
+  },
+  "/likegjitem211": {
+    "limit": 60,
+    "window": 60,
+    "burst": 15,
+    "burstWindow": 10
+  }
+}
