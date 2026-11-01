@@ -45,7 +45,7 @@ final readonly class CreatorEventsController
         $body='<h1>Creator Events</h1><p>Build, submit and compete. Deadlines are shown in UTC. Each author may submit one public level per contest; resubmitting replaces it before the deadline.</p>';
         if($message!=='')$body.='<p role="status">'.self::h($message).'</p>';
         foreach($service->events() as $event){
-            $id=(int)$event['id'];$body.='<section class="card"><h2>'.self::h($event['title']).'</h2><p>'.nl2br(self::h($event['rules'])).'</p><p>'.self::h($event['state']).' · Deadline: '.self::h($event['deadline']).' UTC · Required reviews: '.(int)$event['min_judges'].'</p><table><tr><th>Entry</th><th>Author</th><th>Level</th><th>Result</th></tr>';
+            $id=(int)$event['id'];$body.='<section class="card" id="event-'.$id.'"><h2>'.self::h($event['title']).'</h2><p>'.nl2br(self::h($event['rules'])).'</p><p>'.self::h($event['state']).' · Deadline: '.self::h($event['deadline']).' UTC · Required reviews: '.(int)$event['min_judges'].'</p><table><tr><th>Entry</th><th>Author</th><th>Level</th><th>Result</th></tr>';
             foreach($service->entries($id) as $entry)$body.='<tr><td>#'.(int)$entry['id'].'</td><td>'.self::h($entry['username']).'</td><td>'.self::h($entry['level_name']).' #'.(int)$entry['level_id'].'</td><td>'.((int)$entry['disqualified']?'Disqualified: '.self::h($entry['disqualification_note']):($event['state']==='published'?'#'.(int)$entry['result_rank'].' · '.self::h($entry['result_score']).'/30':'Pending')).'</td></tr>';
             $body.='</table>';
             if(in_array($event['state'],['open','judging'],true)){
