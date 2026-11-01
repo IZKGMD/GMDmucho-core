@@ -89,6 +89,7 @@ func New(db *sql.DB, options Options) *Handler {
 	}
 	h.options.DownloadWindow = max(30, min(604800, h.options.DownloadWindow))
 	h.routes = map[string]endpoint{
+		"/rategjstars20": h.moderateLevel, "/rategjstars211": h.moderateLevel, "/rategjdemon21": h.moderateLevel, "/suggestgjstars20": h.moderateLevel, "/reportgjlevel": h.reportLevel,
 		"/registergjaccount": h.register, "/logingjaccount": h.login,
 		"/backupgjaccount": h.backup, "/backupgjaccount20": h.backup,
 		"/syncgjaccount": h.sync, "/syncgjaccount20": h.sync,
@@ -117,7 +118,34 @@ func New(db *sql.DB, options Options) *Handler {
 		"/getgjlevelscores": h.regularScores, "/getgjlevelscores211": h.regularScores, "/getgjlevelscoresplat": h.platformerScores,
 		"/getgjrewards": h.rewards, "/getgjchallenges": h.challenges, "/getgjsecretreward": h.secretReward,
 	}
-	h.webRoutes = map[string]webEndpoint{}
+	h.webRoutes = map[string]webEndpoint{
+		"/clans/create":               h.clans,
+		"/clans/my":                   h.clans,
+		"/clans/get":                  h.clans,
+		"/clans/search":               h.clans,
+		"/clans/leaderboard":          h.clans,
+		"/clans/join":                 h.clans,
+		"/clans/leave":                h.clans,
+		"/clans/invite":               h.clans,
+		"/clans/invite/accept":        h.clans,
+		"/clans/invite/decline":       h.clans,
+		"/clans/kick":                 h.clans,
+		"/clans/role":                 h.clans,
+		"/clans/invites":              h.clans,
+		"/clans/invites/sent":         h.clans,
+		"/clans/settings":             h.clans,
+		"/clans/transfer":             h.clans,
+		"/clans/disband":              h.clans,
+		"/clans/invite/revoke":        h.clans,
+		"/clans/ban":                  h.clans,
+		"/clans/unban":                h.clans,
+		"/clans/bans":                 h.clans,
+		"/clans/quests":               h.clanQuests,
+		"/clans/quests/create":        h.clanQuests,
+		"/clans/quests/cancel":        h.clanQuests,
+		"/clans/quests/contributions": h.clanQuests,
+		"/clans/activity":             h.clanQuests,
+	}
 	h.downloadKey = []byte(options.DownloadKey)
 	if len(h.downloadKey) == 0 {
 		h.downloadKey = make([]byte, 32)

@@ -1,6 +1,6 @@
 # Native route inventory
 
-Native handlers registered: **66 / 166** canonical routes from `src/Core/Application.php`.
+Native handlers registered: **97 / 166** canonical routes from `src/Core/Application.php`.
 
 This counts registered handlers, not completed features or production readiness. Aliases do not count as additional implementations. PHP differential tests cover selected scenarios; real-client acceptance remains pending.
 
@@ -39,32 +39,32 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/backupgjaccount` | Present | `/backupGJAccount`, `/backupGJAccount20` |
 | `/blockgjuser20` | Present | `/blockGJUser20` |
 | `/claimgjnotificationreward` | Present | `/claimGJNotificationReward` |
-| `/clans/activity` | **Pending** | `/api/clans/activity` |
-| `/clans/ban` | **Pending** | `/api/clans/ban` |
-| `/clans/bans` | **Pending** | `/api/clans/bans` |
-| `/clans/create` | **Pending** | `/api/clans/create` |
-| `/clans/disband` | **Pending** | `/api/clans/disband` |
-| `/clans/get` | **Pending** | `/api/clans/get` |
-| `/clans/invite` | **Pending** | `/api/clans/invite` |
-| `/clans/invite/accept` | **Pending** | `/api/clans/invite/accept` |
-| `/clans/invite/decline` | **Pending** | `/api/clans/invite/decline` |
-| `/clans/invite/revoke` | **Pending** | `/api/clans/invite/revoke` |
-| `/clans/invites` | **Pending** | `/api/clans/invites` |
-| `/clans/invites/sent` | **Pending** | `/api/clans/invites/sent` |
-| `/clans/join` | **Pending** | `/api/clans/join` |
-| `/clans/kick` | **Pending** | `/api/clans/kick` |
-| `/clans/leaderboard` | **Pending** | `/api/clans/leaderboard` |
-| `/clans/leave` | **Pending** | `/api/clans/leave` |
-| `/clans/my` | **Pending** | `/api/clans/my` |
-| `/clans/quests` | **Pending** | `/api/clans/quests` |
-| `/clans/quests/cancel` | **Pending** | `/api/clans/quests/cancel` |
-| `/clans/quests/contributions` | **Pending** | `/api/clans/quests/contributions` |
-| `/clans/quests/create` | **Pending** | `/api/clans/quests/create` |
-| `/clans/role` | **Pending** | `/api/clans/role` |
-| `/clans/search` | **Pending** | `/api/clans/search` |
-| `/clans/settings` | **Pending** | `/api/clans/settings` |
-| `/clans/transfer` | **Pending** | `/api/clans/transfer` |
-| `/clans/unban` | **Pending** | `/api/clans/unban` |
+| `/clans/activity` | Present | `/api/clans/activity` |
+| `/clans/ban` | Present | `/api/clans/ban` |
+| `/clans/bans` | Present | `/api/clans/bans` |
+| `/clans/create` | Present | `/api/clans/create` |
+| `/clans/disband` | Present | `/api/clans/disband` |
+| `/clans/get` | Present | `/api/clans/get` |
+| `/clans/invite` | Present | `/api/clans/invite` |
+| `/clans/invite/accept` | Present | `/api/clans/invite/accept` |
+| `/clans/invite/decline` | Present | `/api/clans/invite/decline` |
+| `/clans/invite/revoke` | Present | `/api/clans/invite/revoke` |
+| `/clans/invites` | Present | `/api/clans/invites` |
+| `/clans/invites/sent` | Present | `/api/clans/invites/sent` |
+| `/clans/join` | Present | `/api/clans/join` |
+| `/clans/kick` | Present | `/api/clans/kick` |
+| `/clans/leaderboard` | Present | `/api/clans/leaderboard` |
+| `/clans/leave` | Present | `/api/clans/leave` |
+| `/clans/my` | Present | `/api/clans/my` |
+| `/clans/quests` | Present | `/api/clans/quests` |
+| `/clans/quests/cancel` | Present | `/api/clans/quests/cancel` |
+| `/clans/quests/contributions` | Present | `/api/clans/quests/contributions` |
+| `/clans/quests/create` | Present | `/api/clans/quests/create` |
+| `/clans/role` | Present | `/api/clans/role` |
+| `/clans/search` | Present | `/api/clans/search` |
+| `/clans/settings` | Present | `/api/clans/settings` |
+| `/clans/transfer` | Present | `/api/clans/transfer` |
+| `/clans/unban` | Present | `/api/clans/unban` |
 | `/deletegjacccomment20` | Present | `/deleteGJAccComment20` |
 | `/deletegjcomment20` | Present | `/deleteGJComment20` |
 | `/deletegjcomments` | **Pending** | `/deleteGJComments` |
@@ -139,18 +139,18 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/profile/image` | **Pending** | `/api/profile/image` |
 | `/profile/remove` | **Pending** | `/api/profile/remove` |
 | `/profile/upload` | **Pending** | `/api/profile/upload` |
-| `/rategjdemon21` | **Pending** | `/rateGJDemon21` |
-| `/rategjstars20` | **Pending** | `/rateGJStars20` |
-| `/rategjstars211` | **Pending** | `/rateGJStars211` |
+| `/rategjdemon21` | Present | `/rateGJDemon21` |
+| `/rategjstars20` | Present | `/rateGJStars20` |
+| `/rategjstars211` | Present | `/rateGJStars211` |
 | `/readgjfriendrequest20` | Present | `/readGJFriendRequest20` |
 | `/registergjaccount` | Present | `/registerGJAccount` |
 | `/removegjfriend20` | Present | `/removeGJFriend20` |
 | `/reportgjcontent` | **Pending** | `/reportGJContent` |
-| `/reportgjlevel` | **Pending** | `/reportGJLevel` |
+| `/reportgjlevel` | Present | `/reportGJLevel` |
 | `/requestuseraccess` | Present | `/requestUserAccess` |
 | `/searchgjthreadmessages` | **Pending** | `/searchGJThreadMessages` |
 | `/sendgjthreadmessage` | **Pending** | `/sendGJThreadMessage` |
-| `/suggestgjstars20` | **Pending** | `/suggestGJStars20` |
+| `/suggestgjstars20` | Present | `/suggestGJStars20` |
 | `/syncgjaccount` | Present | `/syncGJAccount`, `/syncGJAccount20` |
 | `/syncgjfollowing` | Present | `/syncGJFollowing` |
 | `/unblockgjuser20` | Present | `/unblockGJUser20` |

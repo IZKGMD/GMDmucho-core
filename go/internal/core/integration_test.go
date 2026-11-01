@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -34,6 +35,7 @@ func TestCorePHPParity(t *testing.T) {
 	var cases []struct {
 		Path, Form, Body string
 		Status           int
+		ContentType      string `json:"content_type"`
 	}
 	if err = json.Unmarshal(data, &cases); err != nil {
 		t.Fatal(err)
@@ -50,11 +52,26 @@ func TestCorePHPParity(t *testing.T) {
 			r.RemoteAddr = "192.0.2.1:1234"
 			w := httptest.NewRecorder()
 			h.ServeHTTP(w, r)
-			if w.Code != tc.Status || w.Body.String() != tc.Body {
+			equal := w.Body.String() == tc.Body
+			if strings.HasPrefix(tc.ContentType, "application/json") {
+				var actual, expected any
+				if err := json.Unmarshal(w.Body.Bytes(), &actual); err != nil {
+					t.Fatal(err)
+				}
+				if err := json.Unmarshal([]byte(tc.Body), &expected); err != nil {
+					t.Fatal(err)
+				}
+				equal = reflect.DeepEqual(actual, expected)
+			}
+			if tc.ContentType != "" && w.Header().Get("Content-Type") != tc.ContentType {
+				t.Errorf("Content-Type Go %q; PHP %q", w.Header().Get("Content-Type"), tc.ContentType)
+			}
+			if w.Code != tc.Status || !equal {
 				t.Fatalf("Go %d %q; PHP %d %q", w.Code, w.Body.String(), tc.Status, tc.Body)
 			}
 		})
 	}
+	t.Run("clan capacity and quest serialization", func(t *testing.T) { testClanConcurrency(t, h) })
 	// Duplicate saves must not create history, and Go must retain PHP's
 	// original ciphertext as an independently decryptable historical revision.
 	var revision, history int

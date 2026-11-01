@@ -28,10 +28,16 @@ $db->exec("INSERT INTO mucho_secret_rewards(reward_key,chest_type,rewards,uses,e
 $db->exec('CREATE DATABASE IF NOT EXISTS muchocore_go_reference CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
 if((int)$db->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='muchocore_go_reference'")->fetchColumn()!==0)throw new RuntimeException('Empty PHP reference database required');
 $db->exec('SET FOREIGN_KEY_CHECKS=0');
-foreach($db->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN) as $table){
+$sourceDatabase=(string)$db->query('SELECT DATABASE()')->fetchColumn();
+$tables=$db->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
+$db->exec('USE muchocore_go_reference');
+foreach($tables as $table){
     if(!preg_match('/^[A-Za-z0-9_]+$/D',$table))throw new RuntimeException('Invalid table name');
-    $db->exec("CREATE TABLE muchocore_go_reference.`$table` LIKE `$table`");
-    $db->exec("INSERT INTO muchocore_go_reference.`$table` SELECT * FROM `$table`");
+    // CREATE LIKE drops foreign keys. Preserve the real schema so cascading
+    // deletes and integrity failures are exercised on both runtimes.
+    $create=$db->query("SHOW CREATE TABLE `$sourceDatabase`.`$table`")->fetch(PDO::FETCH_NUM)[1];
+    $db->exec($create);
+    $db->exec("INSERT INTO `$table` SELECT * FROM `$sourceDatabase`.`$table`");
 }
 $db->exec('SET FOREIGN_KEY_CHECKS=1');
 $db->exec('USE muchocore_go_reference');
@@ -54,6 +60,9 @@ $likes=new MuchoCore\Interaction\LikeController(new MuchoCore\Interaction\LikeSe
 $regularScores=new MuchoCore\Score\LevelScoreController($db,$auth);
 $platformerScores=new MuchoCore\Score\PlatformerScoreController($db,$auth);
 $rewards=new MuchoCore\Interaction\RewardsController(new MuchoCore\Interaction\RewardsService(new MuchoCore\Interaction\RewardsRepository($db),$auth));
+$clans=new MuchoCore\Clan\ClanController(new MuchoCore\Clan\ClanService($db,$auth,new MuchoCore\Clan\ClanRepository($db)));
+$clanQuests=new MuchoCore\Clan\ClanQuestController($db,$auth,new MuchoCore\Clan\ClanQuestRepository($db));
+$moderation=new MuchoCore\Moderation\ModerationController(new MuchoCore\Moderation\ModerationService($auth,new MuchoCore\Moderation\ModerationRepository($db),$cache));
 $router=new Router();
 foreach([
     '/registerGJAccount'=>[$account,'register'],'/loginGJAccount'=>[$account,'login'],
@@ -81,6 +90,33 @@ foreach([
     '/getGJLevelScores'=>[$regularScores,'regular'],'/getGJLevelScores211'=>[$regularScores,'regular'],
     '/getGJLevelScoresPlat'=>[$platformerScores,'handle'],
     '/getGJRewards'=>[$rewards,'getRewards'],'/getGJChallenges'=>[$rewards,'getChallenges'],'/getGJSecretReward'=>[$rewards,'getSecretReward'],
+    '/clans/create'=>[$clans,'create'],
+    '/clans/my'=>[$clans,'myClan'],
+    '/clans/get'=>[$clans,'get'],
+    '/clans/search'=>[$clans,'search'],
+    '/clans/leaderboard'=>[$clans,'leaderboard'],
+    '/clans/join'=>[$clans,'join'],
+    '/clans/leave'=>[$clans,'leave'],
+    '/clans/invite'=>[$clans,'invite'],
+    '/clans/invite/accept'=>[$clans,'acceptInvite'],
+    '/clans/invite/decline'=>[$clans,'declineInvite'],
+    '/clans/kick'=>[$clans,'kick'],
+    '/clans/role'=>[$clans,'setRole'],
+    '/clans/invites'=>[$clans,'invites'],
+    '/clans/invites/sent'=>[$clans,'sentInvites'],
+    '/clans/settings'=>[$clans,'updateSettings'],
+    '/clans/transfer'=>[$clans,'transferOwnership'],
+    '/clans/disband'=>[$clans,'disband'],
+    '/clans/invite/revoke'=>[$clans,'revokeInvite'],
+    '/clans/ban'=>[$clans,'ban'],
+    '/clans/unban'=>[$clans,'unban'],
+    '/clans/bans'=>[$clans,'bans'],
+    '/clans/quests'=>[$clanQuests,'quests'],
+    '/clans/quests/create'=>[$clanQuests,'create'],
+    '/clans/quests/cancel'=>[$clanQuests,'cancel'],
+    '/clans/quests/contributions'=>[$clanQuests,'contributions'],
+    '/clans/activity'=>[$clanQuests,'activity'],
+    '/rateGJStars20'=>[$moderation,'rateStars'],'/rateGJStars211'=>[$moderation,'rateStars'],'/rateGJDemon21'=>[$moderation,'rateDemon'],'/suggestGJStars20'=>[$moderation,'suggest'],'/reportGJLevel'=>[$moderation,'report'],
 ] as $path=>$handler){$router->add('ANY',$path,$handler);}
 $a=['accountID'=>1,'gjp2'=>sha1('test-password'.MuchoCore\Account\AccountService::GJP2_SALT),'gameVersion'=>22,'binaryVersion'=>51];
 $b=$a;$b['accountID']=2;
@@ -269,11 +305,108 @@ $cases=array_merge($cases,[
     ['/registerGJAccount.php',['userName'=>'AfterGameplay','password'=>'password','email'=>'after@example.com']],
     ['/loginGJAccount.php',['userName'=>'AfterGameplay','password'=>'password']],
 ]);
+// Stateful clan lifecycle: permissions, capacity, quest score baselines,
+// invitation ownership, transfer, removal and cascaded disbanding.
+$clan=['clanName'=>'Native Clan','clanTag'=>'go','clanDescription'=>"  Native   test  ",'clanMaxMembers'=>2];
+$cases=array_merge($cases,[
+    ['/api/clans/my',$a],
+    ['/api/clans/my',['accountID'=>1,'gjp2'=>'wrong']],
+    ['/api/clans/create',$a+['clanName'=>'!','clanTag'=>'A']],
+    ['/api/clans/create',$a+$clan],
+    ['/api/clans/create',$a+$clan],
+    ['/api/clans/my',$a],
+    ['/api/clans/get',$b+['clanID'=>1]],
+    ['/api/clans/search',$a+['query'=>'Native','limit'=>1]],
+    ['/api/clans/leaderboard',['accountID'=>1,'limit'=>1]],
+    ['/api/clans/leaderboard',['metric'=>'invalid']],
+    ['/api/clans/join',$b+['clanID'=>999]],
+    ['/api/clans/join',$b+['clanID'=>1]],
+    ['/api/clans/join',$elder+['clanID'=>1]],
+    ['/api/clans/leave',$a],
+    ['/api/clans/quests/create',$b+['metric'=>'stars','target'=>100]],
+    ['/api/clans/quests/create',$a+['metric'=>'stars','target'=>99]],
+    ['/api/clans/quests/create',$a+['metric'=>'stars','target'=>100]],
+    ['/api/clans/quests/create',$a+['metric'=>'stars','target'=>100]],
+    ['/api/clans/quests/create',$a+['metric'=>'demons','target'=>5]],
+    ['/api/clans/quests',$b],
+    ['/updateGJUserScore.php',$b+['stars'=>250,'demons'=>22]],
+    ['/api/clans/quests/contributions',$a+['questID'=>1,'limit'=>1]],
+    ['/api/clans/quests',$a],
+    ['/api/clans/leave',$b],
+    ['/updateGJUserScore.php',$b+['stars'=>1000,'demons'=>100]],
+    ['/api/clans/join',$b+['clanID'=>1]],
+    ['/api/clans/quests/contributions',$a+['questID'=>1]],
+    ['/updateGJUserScore.php',$b+['stars'=>1050,'demons'=>103]],
+    ['/api/clans/quests',$a],
+    ['/api/clans/quests/contributions',$a+['questID'=>1]],
+    ['/api/clans/quests/cancel',$a+['questID'=>1]],
+    ['/api/clans/quests/create',$a+['metric'=>'stars','target'=>200]],
+    ['/api/clans/quests/cancel',$a+['questID'=>3]],
+    ['/api/clans/quests/cancel',$a+['questID'=>3]],
+    ['/api/clans/settings',$b+['clanID'=>1]+$clan],
+    ['/api/clans/role',$a+['targetAccountID'=>2,'role'=>'invalid']],
+    ['/api/clans/role',$a+['targetAccountID'=>2,'role'=>'officer']],
+    ['/api/clans/role',$a+['targetAccountID'=>2,'role'=>'officer']],
+    ['/api/clans/kick',$b+['targetAccountID'=>1]],
+    ['/api/clans/ban',$b+['targetAccountID'=>1]],
+    ['/api/clans/settings',$a+['clanID'=>1,'clanName'=>'Native Updated','clanTag'=>'UP','clanOpen'=>0,'clanMaxMembers'=>4]],
+    ['/api/clans/get',$a+['clanID'=>1]],
+    ['/api/clans/join',$elder+['clanID'=>1]],
+    ['/api/clans/invite',$b+['targetAccountID'=>5]],
+    ['/api/clans/invites',$elder],
+    ['/api/clans/invites/sent',$a],
+    ['/api/clans/invite/accept',$moderator+['inviteID'=>1]],
+    ['/api/clans/invite/decline',$moderator+['inviteID'=>1]],
+    ['/api/clans/invite/accept',$elder+['inviteID'=>1]],
+    ['/api/clans/kick',$b+['targetAccountID'=>5]],
+    ['/api/clans/ban',$a+['targetAccountID'=>5,'reason'=>'  test   reason  ']],
+    ['/api/clans/bans',$a],
+    ['/api/clans/invite',$a+['targetAccountID'=>5]],
+    ['/api/clans/unban',$a+['targetAccountID'=>5]],
+    ['/api/clans/unban',$a+['targetAccountID'=>5]],
+    ['/api/clans/invite',$a+['targetAccountID'=>5]],
+    ['/api/clans/invite/revoke',$elder+['inviteID'=>2]],
+    ['/api/clans/invite/revoke',$a+['inviteID'=>2]],
+    ['/api/clans/invite',$a+['targetAccountID'=>5]],
+    ['/api/clans/invite/decline',$elder+['inviteID'=>3]],
+    ['/api/clans/transfer',$a+['targetAccountID'=>2]],
+    ['/api/clans/disband',$a],
+    ['/api/clans/activity',$b+['limit'=>3]],
+    ['/api/clans/activity',$b+['offset'=>3,'limit'=>3]],
+    ['/api/clans/leaderboard',['accountID'=>2,'metric'=>'demons','offset'=>100]],
+    ['/api/clans/disband',$b],
+    ['/api/clans/my',$a],
+    ['/api/clans/quests',$a],
+    ['/api/clans/leave',$a],
+    ['/api/clans/get',$a+['clanID'=>1]],
+]);
+$cases=array_merge($cases,[
+    ['/uploadGJLevel21.php',array_merge($upload,['levelName'=>'Rating Test'])],
+    ['/rateGJStars20.php',$a+['levelID'=>6,'stars'=>5]],
+    ['/rateGJStars20.php',$moderator+['levelID'=>6,'stars'=>5]],
+    ['/rateGJStars20.php',$elder+['levelID'=>6,'stars'=>11]],
+    ['/rateGJStars20.php',$elder+['levelID'=>6,'stars'=>10]],
+    ['/rateGJDemon21.php',$moderator+['levelID'=>6,'rating'=>8]],
+    ['/getGJLevels21.php',['type'=>0,'str'=>'6','gameVersion'=>22,'binaryVersion'=>51]],
+    ['/rateGJStars211.php',$elder+['levelID'=>6,'stars'=>10]],
+    ['/getGJLevels21.php',['type'=>0,'str'=>'6','gameVersion'=>22,'binaryVersion'=>51]],
+    ['/suggestGJStars20.php',$a+['levelID'=>6,'stars'=>5]],
+    ['/suggestGJStars20.php',$moderator+['levelID'=>6,'stars'=>5,'feature'=>4,'coins'=>1]],
+    ['/suggestGJStars20.php',$elder+['levelID'=>6,'stars'=>5,'feature'=>4,'coins'=>1]],
+    ['/getGJLevels21.php',['type'=>0,'str'=>'6','gameVersion'=>22,'binaryVersion'=>51]],
+    ['/getGJUserInfo20.php',['targetAccountID'=>1]],
+    ['/reportGJLevel.php',['levelID'=>6]],
+    ['/reportGJLevel.php',['levelID'=>6]],
+    ['/reportGJLevel.php',['levelID'=>999]],
+    ['/rateGJDemon21.php',$owner+['levelID'=>6,'rating'=>3]],
+    ['/suggestGJStars20.php',$owner+['levelID'=>6,'stars'=>10,'feature'=>1]],
+    ['/getGJLevels21.php',['type'=>0,'str'=>'6','gameVersion'=>22,'binaryVersion'=>51]],
+]);
 $result=[];
 foreach($cases as [$path,$form]){
     $_POST=$form;
     $response=$router->dispatch(new Request('POST',$path,[],$form,['REMOTE_ADDR'=>'192.0.2.1']));
-    $result[]=['path'=>$path,'form'=>http_build_query($form),'body'=>$response->body,'status'=>$response->status];
+    $result[]=['path'=>$path,'form'=>http_build_query($form),'body'=>$response->body,'status'=>$response->status,'content_type'=>$response->contentType];
 }
 if(file_put_contents(getenv('MUCHO_GO_CORE_FIXTURES')?:'/tmp/muchocore-go-core.json',json_encode($result,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR))===false)throw new RuntimeException('Cannot write core reference');
 echo 'CORE_REFERENCE_OK '.count($result)."\n";
