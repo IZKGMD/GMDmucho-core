@@ -1,0 +1,574 @@
+{
+    "paths": [
+        {
+            "input": "/",
+            "output": "/"
+        },
+        {
+            "input": "",
+            "output": "/"
+        },
+        {
+            "input": "/a/database/getGJLevels20.php",
+            "output": "/getgjlevels21"
+        },
+        {
+            "input": "/api/getGJLevels20.php/",
+            "output": "/getgjlevels21"
+        },
+        {
+            "input": "/accounts/loginGJAccount22.php",
+            "output": "/logingjaccount"
+        },
+        {
+            "input": "/A/loginGJAccount.php?ignored=1",
+            "output": "/logingjaccount"
+        },
+        {
+            "input": "/a//API/accounts/DATABASE/getGJMapPacks19.PHP/",
+            "output": "/getgjmappacks21"
+        },
+        {
+            "input": "/checkIfServerOnline.php",
+            "output": "/checkifserveronline"
+        },
+        {
+            "input": "/database",
+            "output": "/"
+        },
+        {
+            "input": "/api/",
+            "output": "/"
+        },
+        {
+            "input": "/.php",
+            "output": "/"
+        },
+        {
+            "input": "/x/../health",
+            "output": "/x/../health"
+        },
+        {
+            "input": "/api/getGJSongInfo.php",
+            "output": "/getgjsonginfo"
+        },
+        {
+            "input": "/database/getGJDailyLevel.php",
+            "output": "/getgjdailylevel"
+        },
+        {
+            "input": "/database/getGJGauntlets20.php",
+            "output": "/getgjgauntlets21"
+        },
+        {
+            "input": "/logingjaccount19",
+            "output": "/logingjaccount"
+        },
+        {
+            "input": "/logingjaccount20",
+            "output": "/logingjaccount"
+        },
+        {
+            "input": "/logingjaccount21",
+            "output": "/logingjaccount"
+        },
+        {
+            "input": "/logingjaccount22",
+            "output": "/logingjaccount"
+        },
+        {
+            "input": "/registergjaccount19",
+            "output": "/registergjaccount"
+        },
+        {
+            "input": "/registergjaccount20",
+            "output": "/registergjaccount"
+        },
+        {
+            "input": "/registergjaccount21",
+            "output": "/registergjaccount"
+        },
+        {
+            "input": "/registergjaccount22",
+            "output": "/registergjaccount"
+        },
+        {
+            "input": "/backupgjaccountnew",
+            "output": "/backupgjaccount"
+        },
+        {
+            "input": "/backupgjaccount19",
+            "output": "/backupgjaccount"
+        },
+        {
+            "input": "/backupgjaccount20",
+            "output": "/backupgjaccount"
+        },
+        {
+            "input": "/syncgjaccountnew",
+            "output": "/syncgjaccount"
+        },
+        {
+            "input": "/syncgjaccount19",
+            "output": "/syncgjaccount"
+        },
+        {
+            "input": "/syncgjaccount20",
+            "output": "/syncgjaccount"
+        },
+        {
+            "input": "/getgjlevels",
+            "output": "/getgjlevels21"
+        },
+        {
+            "input": "/getgjlevels19",
+            "output": "/getgjlevels21"
+        },
+        {
+            "input": "/getgjlevels20",
+            "output": "/getgjlevels21"
+        },
+        {
+            "input": "/getgjlevels22",
+            "output": "/getgjlevels21"
+        },
+        {
+            "input": "/uploadgjlevel",
+            "output": "/uploadgjlevel21"
+        },
+        {
+            "input": "/uploadgjlevel19",
+            "output": "/uploadgjlevel21"
+        },
+        {
+            "input": "/uploadgjlevel20",
+            "output": "/uploadgjlevel21"
+        },
+        {
+            "input": "/updategjlevel",
+            "output": "/updategjlevel"
+        },
+        {
+            "input": "/updategjlevel19",
+            "output": "/updategjlevel"
+        },
+        {
+            "input": "/updategjlevel20",
+            "output": "/updategjlevel"
+        },
+        {
+            "input": "/downloadgjlevel",
+            "output": "/downloadgjlevel21"
+        },
+        {
+            "input": "/downloadgjlevel19",
+            "output": "/downloadgjlevel21"
+        },
+        {
+            "input": "/downloadgjlevel20",
+            "output": "/downloadgjlevel21"
+        },
+        {
+            "input": "/deletegjleveluser",
+            "output": "/deletegjleveluser20"
+        },
+        {
+            "input": "/deletegjleveluser19",
+            "output": "/deletegjleveluser20"
+        },
+        {
+            "input": "/updatedesc",
+            "output": "/updategjleveldesc20"
+        },
+        {
+            "input": "/updategjdesc",
+            "output": "/updategjleveldesc20"
+        },
+        {
+            "input": "/updategjdesc20",
+            "output": "/updategjleveldesc20"
+        },
+        {
+            "input": "/getgjlevelscores19",
+            "output": "/getgjlevelscores"
+        },
+        {
+            "input": "/getgjlevelscores20",
+            "output": "/getgjlevelscores"
+        },
+        {
+            "input": "/getgjlevelscores21",
+            "output": "/getgjlevelscores211"
+        },
+        {
+            "input": "/getgjlevelscores22",
+            "output": "/getgjlevelscores"
+        },
+        {
+            "input": "/getgjmappacks19",
+            "output": "/getgjmappacks21"
+        },
+        {
+            "input": "/getgjmappacks20",
+            "output": "/getgjmappacks21"
+        },
+        {
+            "input": "/getgjgauntlets19",
+            "output": "/getgjgauntlets21"
+        },
+        {
+            "input": "/getgjgauntlets20",
+            "output": "/getgjgauntlets21"
+        },
+        {
+            "input": "/getgjcomments",
+            "output": "/getgjcomments21"
+        },
+        {
+            "input": "/getgjcomments15",
+            "output": "/getgjcomments21"
+        },
+        {
+            "input": "/getgjcomments19",
+            "output": "/getgjcomments21"
+        },
+        {
+            "input": "/getgjcomments20",
+            "output": "/getgjcomments21"
+        },
+        {
+            "input": "/uploadgjcomment",
+            "output": "/uploadgjcomment20"
+        },
+        {
+            "input": "/uploadgjcomment15",
+            "output": "/uploadgjcomment20"
+        },
+        {
+            "input": "/uploadgjcomment19",
+            "output": "/uploadgjcomment20"
+        },
+        {
+            "input": "/deletegjcomment19",
+            "output": "/deletegjcomment20"
+        },
+        {
+            "input": "/deletegjcomment15",
+            "output": "/deletegjcomment20"
+        },
+        {
+            "input": "/deletegjcomment",
+            "output": "/deletegjcomment20"
+        },
+        {
+            "input": "/getgjaccountcomments",
+            "output": "/getgjaccountcomments20"
+        },
+        {
+            "input": "/uploadgjacccomment",
+            "output": "/uploadgjacccomment20"
+        },
+        {
+            "input": "/deletegjacccomment",
+            "output": "/deletegjacccomment20"
+        },
+        {
+            "input": "/getgjuserinfo",
+            "output": "/getgjuserinfo20"
+        },
+        {
+            "input": "/getgjuserinfo19",
+            "output": "/getgjuserinfo20"
+        },
+        {
+            "input": "/getgjuserinfo21",
+            "output": "/getgjuserinfo20"
+        },
+        {
+            "input": "/getgjuserinfo22",
+            "output": "/getgjuserinfo20"
+        },
+        {
+            "input": "/getgjusers",
+            "output": "/getgjusers20"
+        },
+        {
+            "input": "/getgjusers19",
+            "output": "/getgjusers20"
+        },
+        {
+            "input": "/getgjusers21",
+            "output": "/getgjusers20"
+        },
+        {
+            "input": "/getgjusers22",
+            "output": "/getgjusers20"
+        },
+        {
+            "input": "/getgjscores",
+            "output": "/getgjscores20"
+        },
+        {
+            "input": "/getgjscores19",
+            "output": "/getgjscores20"
+        },
+        {
+            "input": "/getgjscores21",
+            "output": "/getgjscores20"
+        },
+        {
+            "input": "/getgjscores22",
+            "output": "/getgjscores20"
+        },
+        {
+            "input": "/updategjaccsettings19",
+            "output": "/updategjaccsettings20"
+        },
+        {
+            "input": "/updategjaccsettings21",
+            "output": "/updategjaccsettings20"
+        },
+        {
+            "input": "/updategjaccsettings22",
+            "output": "/updategjaccsettings20"
+        },
+        {
+            "input": "/updategjuserscore19",
+            "output": "/updategjuserscore"
+        },
+        {
+            "input": "/updategjuserscore20",
+            "output": "/updategjuserscore"
+        },
+        {
+            "input": "/updategjuserscore21",
+            "output": "/updategjuserscore"
+        },
+        {
+            "input": "/getgjuserlist",
+            "output": "/getgjuserlist20"
+        },
+        {
+            "input": "/getgjmessages",
+            "output": "/getgjmessages20"
+        },
+        {
+            "input": "/downloadgjmessage",
+            "output": "/downloadgjmessage20"
+        },
+        {
+            "input": "/uploadgjmessage",
+            "output": "/uploadgjmessage20"
+        },
+        {
+            "input": "/deletegjmessages",
+            "output": "/deletegjmessages20"
+        },
+        {
+            "input": "/uploadfriendrequest",
+            "output": "/uploadfriendrequest20"
+        },
+        {
+            "input": "/getgjfriendrequests",
+            "output": "/getgjfriendrequests20"
+        },
+        {
+            "input": "/readgjfriendrequest",
+            "output": "/readgjfriendrequest20"
+        },
+        {
+            "input": "/acceptgjfriendrequest",
+            "output": "/acceptgjfriendrequest20"
+        },
+        {
+            "input": "/deletegjfriendrequests",
+            "output": "/deletegjfriendrequests20"
+        },
+        {
+            "input": "/removegjfriend",
+            "output": "/removegjfriend20"
+        },
+        {
+            "input": "/blockgjuser",
+            "output": "/blockgjuser20"
+        },
+        {
+            "input": "/unblockgjuser",
+            "output": "/unblockgjuser20"
+        },
+        {
+            "input": "/likegjitem",
+            "output": "/likegjitem21"
+        },
+        {
+            "input": "/likegjitem19",
+            "output": "/likegjitem21"
+        },
+        {
+            "input": "/likegjitem20",
+            "output": "/likegjitem21"
+        },
+        {
+            "input": "/likegjlevel",
+            "output": "/likegjitem21"
+        },
+        {
+            "input": "/suggestgjstars",
+            "output": "/suggestgjstars20"
+        },
+        {
+            "input": "/rategjstars",
+            "output": "/rategjstars20"
+        },
+        {
+            "input": "/rategjdemon",
+            "output": "/rategjdemon21"
+        }
+    ],
+    "hashes": [
+        {
+            "input": "",
+            "level": "f5da5823d94bbe7208dd83a30ff427c7d88fdb99",
+            "metadata": "f5da5823d94bbe7208dd83a30ff427c7d88fdb99",
+            "rewards": "2f79bc1d50debe86cee9502583747c8438cb4bd2"
+        },
+        {
+            "input": "YWJj",
+            "level": "61353676b92a74ba73096ad981f4fb923addffc6",
+            "metadata": "61353676b92a74ba73096ad981f4fb923addffc6",
+            "rewards": "b7b725758837b715ed01d8ef2a79b080391e34e1"
+        },
+        {
+            "input": "eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eA==",
+            "level": "1f07f7f195463cfccc7b8316b4d3b8b47f571d85",
+            "metadata": "1f07f7f195463cfccc7b8316b4d3b8b47f571d85",
+            "rewards": "cb4d4b0f931b8e2381b807894e60b56794f83b16"
+        },
+        {
+            "input": "eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXk=",
+            "level": "7e7d1143c0895d1ce5176068b51f0202eddbde69",
+            "metadata": "9b7b0152f256af7849c0e9234ec8f519d5c174c7",
+            "rewards": "51f46e386ed00398fadbe75edeffa9a5a58135c5"
+        },
+        {
+            "input": "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OQ==",
+            "level": "bb56a2f09cc2abf401c4c75dd058560d291df357",
+            "metadata": "76433d3ec59ec3195366a02a68d528ec1db22d87",
+            "rewards": "b4b6f4e465818c28be1c7974d4890aaa039aeb3e"
+        },
+        {
+            "input": "AP9hYmM=",
+            "level": "dc5f10e0bcb273aae848fdb2563508a42af0cd31",
+            "metadata": "dc5f10e0bcb273aae848fdb2563508a42af0cd31",
+            "rewards": "b297cc317042a2f91541d380e5f7c03280a614a7"
+        },
+        {
+            "input": "TGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSBMZXZlbCBkYXRhIExldmVsIGRhdGEgTGV2ZWwgZGF0YSA=",
+            "level": "e7c718f04be159d865c60c58d5aa86e60174d144",
+            "metadata": "2ac7e87e2b7431f1faaba40d854f36afc8bcb31e",
+            "rewards": "13e671872b5e86f51e75eed7292366e2a1ad538d"
+        }
+    ],
+    "usernames": [
+        {
+            "input": "",
+            "output": "UGxheWVy"
+        },
+        {
+            "input": "IAlQbGF5ZXINCg==",
+            "output": "UGxheWVy"
+        },
+        {
+            "input": "YWJjOnwjfmRlZg==",
+            "output": "YWJjZGVm"
+        },
+        {
+            "input": "AX9hYmM=",
+            "output": "YWJj"
+        },
+        {
+            "input": "MTIzNDU2Nzg5MDEyMzQ1Njc4OdCW0JY=",
+            "output": "MTIzNDU2Nzg5MDEyMzQ1Njc4OdA="
+        },
+        {
+            "input": "DGhlbGxvDA==",
+            "output": "aGVsbG8="
+        }
+    ],
+    "passwords": [
+        {
+            "input": "",
+            "output": "0"
+        },
+        {
+            "input": "MA==",
+            "output": "0"
+        },
+        {
+            "input": "MQ==",
+            "output": "Aw=="
+        },
+        {
+            "input": "MTIzNDU2",
+            "output": "AwQAAgEE"
+        },
+        {
+            "input": "OTk5OTk5",
+            "output": "Cw8KDw0L"
+        },
+        {
+            "input": "AP9hYmM=",
+            "output": "MslSVFc="
+        }
+    ],
+    "songs": [
+        {
+            "size": 0,
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~0~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+        },
+        {
+            "size": -0,
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~-0~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+        },
+        {
+            "size": -0.001,
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~-0~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+        },
+        {
+            "size": 1,
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~1~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+        },
+        {
+            "size": 1.005,
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~1.01~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+        },
+        {
+            "size": 1.234,
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~1.23~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+        },
+        {
+            "size": 1.235,
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~1.24~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+        },
+        {
+            "size": 2.675,
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~2.68~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+        },
+        {
+            "size": 16.225,
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~16.23~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+        },
+        {
+            "size": 0.145,
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~0.15~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+        },
+        {
+            "size": -1.235,
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~-1.24~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+        },
+        {
+            "size": 999.999,
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~1000~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+        }
+    ]
+}
