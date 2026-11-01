@@ -43,6 +43,33 @@ try {
     if (is_file($output)) {
         throw new RuntimeException('Rejected APK must not produce an output.');
     }
+    // An older or otherwise unsupported APK must not be silently relocated.
+    // The user-facing message should point to the safe flag/configuration choice.
+    $otherInput = $dir . '/other-build.apk';
+    $otherZip = new ZipArchive();
+    if ($otherZip->open($otherInput, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true ||
+        !$otherZip->addFromString('AndroidManifest.xml', 'OTHER_BUILD') ||
+        !$otherZip->addFromString('assets/padding.bin', random_bytes(2048)) ||
+        !$otherZip->close()) {
+        throw new RuntimeException('Unable to construct unsupported APK test.');
+    }
+    try {
+        AndroidClientPatcher::patchFile(
+            $otherInput, $output, 'https://muchogdps.space', null, true
+        );
+        throw new RuntimeException('Non-verified APK was relocated.');
+    } catch (RuntimeException $e) {
+        if (!str_contains($e->getMessage(), 'exact verified GD 2.209 ARM64 APK') ||
+            !str_contains($e->getMessage(), 'turn OFF') ||
+            !str_contains($e->getMessage(), 'No APK was patched')) {
+            throw new RuntimeException('Unhelpful side-by-side diagnostics: ' .
+                $e->getMessage());
+        }
+    }
+    if (is_file($output)) {
+        throw new RuntimeException('Unsupported APK must not generate an output.');
+    }
+    @unlink($otherInput);
     echo "ANDROID_2209_UNKNOWN_BUILD_HINT_OK\n";
 } finally {
     @unlink($input);
