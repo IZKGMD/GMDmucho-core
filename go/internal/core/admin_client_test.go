@@ -114,6 +114,10 @@ func testAdminClient(t *testing.T, h *Handler) {
 	if w.Code != 403 {
 		t.Fatal("protected game owner ban")
 	}
+	w, _ = call(manager, ip, map[string]any{"action": "players.set_role", "account_id": 6, "role": "user"})
+	if w.Code != 403 {
+		t.Fatal("custom role demoted a game owner")
+	}
 	w, _ = call(manager, ip, map[string]any{"action": "players.set_role", "account_id": 4, "role": "owner"})
 	if w.Code != 403 {
 		t.Fatal("custom role assigned game owner")

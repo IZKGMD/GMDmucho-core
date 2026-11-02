@@ -192,4 +192,4 @@ API v2: **10 / 10** endpoint scripts have native handlers. This excludes its boo
 | `/api/v2/music.php` | Present |
 | `/api/v2/profile.php` | Present |
 
-Account recovery (`/api/api/accounts/lostusername.php`) has a native browser/service implementation. Browser administration, administrator passkeys, plugins and deployment/update/backup tools require separate migration and acceptance.
+Account recovery (`/api/api/accounts/lostusername.php`) has a native browser/service implementation. Native browser administration at `/admin/` covers overview, players, levels, role delegation, administrator invitations, password/TOTP/recovery-code security, sessions and audit history. The remaining admin modules, administrator passkeys, plugins and deployment/update/backup tools require separate migration and acceptance.

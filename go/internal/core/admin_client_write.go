@@ -52,7 +52,7 @@ func (h *Handler) adminPlayersWrite(r request, input map[string]any, action stri
 	if err != nil {
 		return v2Result{}, err
 	}
-	if (action == "players.set_ban" && strings.EqualFold(before["role"], "owner")) || role == "owner" {
+	if strings.EqualFold(before["role"], "owner") || role == "owner" {
 		allowed, err := admin.Can(r.ctx, tx, identity, "settings.manage")
 		if err != nil {
 			return v2Result{}, err

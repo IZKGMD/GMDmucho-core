@@ -37,8 +37,17 @@ func (e *Error) Error() string                       { return e.Code }
 func failure(code, message string, status int) error { return &Error{code, message, status} }
 
 type Service struct {
-	DB  *sql.DB
-	Now func() time.Time
+	DB   *sql.DB
+	Now  func() time.Time
+	Cost int // zero selects bcrypt cost 12; tests may lower this explicitly
+}
+
+func (s Service) passwordHash(password string) (string, error) {
+	cost := s.Cost
+	if cost == 0 {
+		cost = 12
+	}
+	return account.Hash(password, cost)
 }
 
 var bearerPattern = regexp.MustCompile(`^Bearer\s+([A-Za-z0-9_-]{32,128})$`)
@@ -116,7 +125,7 @@ func (s Service) Authorize(ctx context.Context, authorization, permission string
 	if len(match) != 2 {
 		return identity, failure("unauthorized", "Bearer token required.", 401)
 	}
-	row, err := dbutil.One(ctx, s.DB, `SELECT a.id,a.username,a.role,t.id AS token_id FROM mucho_admin_client_tokens t JOIN admin_users a ON a.id=t.admin_user_id WHERE t.token_hash=? AND t.revoked_at IS NULL AND t.expires_at>NOW() AND a.is_active=1 LIMIT 1`, hash(match[1]))
+	row, err := dbutil.One(ctx, s.DB, `SELECT a.id,a.username,a.role,t.id AS token_id FROM mucho_admin_client_tokens t JOIN admin_users a ON a.id=t.admin_user_id WHERE t.token_hash=? AND t.revoked_at IS NULL AND t.expires_at>NOW() AND a.is_active=1 AND a.password_must_set=0 LIMIT 1`, hash(match[1]))
 	if errors.Is(err, sql.ErrNoRows) {
 		return identity, failure("unauthorized", "Session expired or invalid.", 401)
 	}
@@ -137,7 +146,15 @@ func (s Service) Authorize(ctx context.Context, authorization, permission string
 	return identity, nil
 }
 func (s Service) Login(ctx context.Context, username, password, otp, clientVersion, ip string) (Identity, string, error) {
+	return s.login(ctx, username, password, otp, clientVersion, ip, false)
+}
+func (s Service) LoginBrowser(ctx context.Context, username, password, otp, ip string) (Identity, string, error) {
+	return s.login(ctx, username, password, otp, "go-browser", ip, true)
+}
+func (s Service) login(ctx context.Context, username, password, otp, clientVersion, ip string, allowRecovery bool) (Identity, string, error) {
 	var identity Identity
+	recoveryCandidate := recoveryCode(otp)
+	var recoveryID int64
 	username = strings.Trim(username, " \t\r\n\x00\x0b")
 	if len(username) > 64 {
 		username = username[:64]
@@ -157,7 +174,7 @@ func (s Service) Login(ctx context.Context, username, password, otp, clientVersi
 	if failed >= 8 {
 		return identity, "", failure("rate_limited", "Too many login attempts. Try again later.", 429)
 	}
-	row, err := dbutil.One(ctx, s.DB, `SELECT id,username,password_hash,role,totp_secret,is_active FROM admin_users WHERE username=? LIMIT 1`, username)
+	row, err := dbutil.One(ctx, s.DB, `SELECT id,username,password_hash,role,totp_secret,is_active,password_must_set FROM admin_users WHERE username=? LIMIT 1`, username)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return identity, "", err
 	}
@@ -167,7 +184,7 @@ func (s Service) Login(ctx context.Context, username, password, otp, clientVersi
 	}
 	passwordOK := account.Verify(password, stored)
 	denial := failure("invalid_credentials", "Invalid username or password.", 401)
-	if passwordOK && row != nil && row.Int("is_active") == 1 {
+	if passwordOK && row != nil && row.Int("is_active") == 1 && row.Int("password_must_set") == 0 {
 		identity = Identity{ID: row.Int("id"), Username: row["username"], Role: row["role"]}
 		allowed, err := Can(ctx, s.DB, identity, "dashboard.view")
 		if err != nil {
@@ -184,6 +201,19 @@ func (s Service) Login(ctx context.Context, username, password, otp, clientVersi
 				denial = failure("invalid_totp", "Invalid two-factor authentication code.", 401)
 			default:
 				denial = nil
+			}
+			if denial != nil && allowRecovery && secret != "" && recoveryCandidate != "" {
+				codes, err := dbutil.Query(ctx, s.DB, `SELECT id,code_hash FROM admin_recovery_codes WHERE admin_user_id=? AND used_at IS NULL ORDER BY id LIMIT 20`, identity.ID)
+				if err != nil {
+					return Identity{}, "", err
+				}
+				for _, code := range codes {
+					if account.Verify(recoveryCandidate, code["code_hash"]) {
+						recoveryID = code.Int("id")
+						denial = nil
+						break
+					}
+				}
 			}
 		}
 	}
@@ -204,11 +234,11 @@ func (s Service) Login(ctx context.Context, username, password, otp, clientVersi
 		return Identity{}, "", failure("rate_limited", "Too many login attempts. Try again later.", 429)
 	}
 	if denial == nil {
-		latest, err := dbutil.One(ctx, tx, `SELECT password_hash,totp_secret,is_active,role FROM admin_users WHERE id=? FOR UPDATE`, identity.ID)
+		latest, err := dbutil.One(ctx, tx, `SELECT password_hash,totp_secret,is_active,role,password_must_set FROM admin_users WHERE id=? FOR UPDATE`, identity.ID)
 		if err != nil {
 			return Identity{}, "", err
 		}
-		if latest.Int("is_active") != 1 || latest["password_hash"] != row["password_hash"] || latest["totp_secret"] != row["totp_secret"] || latest["role"] != row["role"] {
+		if latest.Int("is_active") != 1 || latest.Int("password_must_set") != 0 || latest["password_hash"] != row["password_hash"] || latest["totp_secret"] != row["totp_secret"] || latest["role"] != row["role"] {
 			denial = failure("invalid_credentials", "Invalid username or password.", 401)
 		} else {
 			allowed, err := Can(ctx, tx, identity, "dashboard.view")
@@ -218,6 +248,19 @@ func (s Service) Login(ctx context.Context, username, password, otp, clientVersi
 			if !allowed {
 				denial = failure("invalid_credentials", "Invalid administrator account.", 401)
 			}
+		}
+	}
+	if denial == nil && recoveryID > 0 {
+		result, err := tx.ExecContext(ctx, `UPDATE admin_recovery_codes SET used_at=NOW() WHERE id=? AND admin_user_id=? AND used_at IS NULL`, recoveryID, identity.ID)
+		if err != nil {
+			return Identity{}, "", err
+		}
+		affected, err := result.RowsAffected()
+		if err != nil {
+			return Identity{}, "", err
+		}
+		if affected != 1 {
+			denial = failure("invalid_totp", "This recovery code has already been used.", 401)
 		}
 	}
 	success := 0
@@ -249,7 +292,11 @@ func (s Service) Login(ctx context.Context, username, password, otp, clientVersi
 	if err != nil {
 		return Identity{}, "", err
 	}
-	if err = Audit(ctx, tx, identity, ip, "auth.login", "", "", nil); err != nil {
+	action := "auth.login"
+	if recoveryID > 0 {
+		action = "auth.login.recovery_code"
+	}
+	if err = Audit(ctx, tx, identity, ip, action, "", "", nil); err != nil {
 		return Identity{}, "", err
 	}
 	if err = tx.Commit(); err != nil {

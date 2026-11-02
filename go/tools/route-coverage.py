@@ -55,7 +55,8 @@ for path in v2:
     state = 'Present' if normalize('/api/v2/' + path.name) in implemented else '**Pending**'
     lines.append(f'| `/api/v2/{path.name}` | {state} |')
 lines += ['', 'Account recovery (`/api/api/accounts/lostusername.php`) has a native browser/service implementation. '
-          'Browser administration, administrator passkeys, plugins and deployment/update/backup tools require separate migration and acceptance.']
+          'Native browser administration at `/admin/` covers overview, players, levels, role delegation, administrator invitations, password/TOTP/recovery-code security, sessions and audit history. '
+          'The remaining admin modules, administrator passkeys, plugins and deployment/update/backup tools require separate migration and acceptance.']
 content = '\n'.join(lines) + '\n'
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--check', action='store_true')

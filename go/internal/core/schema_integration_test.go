@@ -70,4 +70,5 @@ func TestNativeSchemaInitialization(t *testing.T) {
 	if err = schema.Init(context.Background(), db); err == nil {
 		t.Fatal("reinitialized a non-empty database")
 	}
+	t.Run("native administrator bootstrap and browser workflows", func(t *testing.T) { testNativeAdministration(t, db) })
 }

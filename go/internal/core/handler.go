@@ -182,6 +182,7 @@ func New(db *sql.DB, options Options) *Handler {
 		"/getgjrewards": h.rewards, "/getgjchallenges": h.challenges, "/getgjsecretreward": h.secretReward,
 	}
 	h.webRoutes = map[string]webEndpoint{
+		"/admin": h.adminBrowser, "/admin/index": h.adminBrowser,
 		"/v2/admin-client": h.adminClient,
 
 		"/v2/music-upload": h.v2,
@@ -282,6 +283,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if path == "/v2/music-upload" {
 			limit = maxMusicBytes + 1024*1024
 		}
+		if path == "/admin" || path == "/admin/index" {
+			limit = 65536
+		}
 		r.Body = http.MaxBytesReader(w, r.Body, limit)
 		err := r.ParseForm()
 		if err == nil && strings.HasPrefix(strings.ToLower(r.Header.Get("Content-Type")), "multipart/form-data") {
@@ -306,6 +310,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		form = r.PostForm
 		for key, values := range form {
+			if (path == "/admin" || path == "/admin/index") && key == "permissions[]" {
+				continue
+			}
 			if len(values) > 1 {
 				form[key] = values[len(values)-1:]
 			}
@@ -313,7 +320,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	ip := security.ClientIP(r, h.options.TrustedProxies)
 	req := request{ctx: ctx, form: form, path: path, ip: ip, version: protocol.VersionFrom(r.URL.EscapedPath(), form), raw: r}
-	if !h.options.DisableProtect && path != "/v2" && !strings.HasPrefix(path, "/v2/") {
+	if !h.options.DisableProtect && path != "/v2" && !strings.HasPrefix(path, "/v2/") && path != "/admin" && path != "/admin/index" {
 		ok, err := h.protect.Inspect(ctx, path, ip, form, req.version)
 		if err != nil || !ok {
 			_, _ = fmt.Fprint(w, "-1")

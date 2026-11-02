@@ -11,14 +11,15 @@ threads and invitations, editor sound storage, death telemetry, level controls,
 news feeds/images, profile image cropping, browser password changes and one-time
 account recovery with optional Turnstile and native SMTP delivery, public API v2
 profiles/presence/dashboard/client configuration/branding/music, MP3 uploads and
-the administrator client API with TOTP, token revocation, RBAC and audited writes.
+the administrator client API with TOTP, token revocation, RBAC and audited writes,
+and a native browser administration workspace.
 It accesses the existing MuchoCore database directly and never invokes PHP.
 
 **This is not yet the complete core.** See [the route inventory](ROUTES.md) for
 registered handlers: all 166 canonical Application routes now have native
 handlers. This denominator excludes standalone scripts and browser admin. All 10
 standalone API v2 endpoints also have native handlers. Administrator passkeys,
-plugins, browser administration and deployment/upgrade tooling
+plugins, the remaining administration modules and deployment/upgrade tooling
 still require ports or acceptance. Real game-client acceptance and comparative load benchmarks remain
 pending. The PHP edition remains the complete runtime.
 
@@ -99,7 +100,20 @@ For a **new empty database only**, use a separate account with DDL privileges:
 The embedded snapshot contains all 96 tables and migration defaults generated
 from the existing PHP migrations. Initialization acquires the shared migration
 lock and refuses any non-empty database. It is not an existing-installation
-upgrade command and does not create a browser administrator account.
+upgrade command. Then create the first administrator explicitly:
+
+```sh
+# Read a 12–72 byte password from a private file (one line).
+./bin/muchocore --create-admin --admin-user=Owner --admin-password-file=/run/secrets/mucho-admin-password
+# Alternatively pipe the password through standard input; terminal echo is refused.
+# The password is never accepted as a command-line argument.
+```
+
+Bootstrap refuses the database if any administrator already exists. Concurrent
+bootstrap attempts cannot create multiple first owners. It neither changes
+existing credentials nor imports PHP bootstrap secrets. Open `/admin/` after
+starting the HTTP server. Existing PHP administrator password hashes and TOTP
+secrets work without conversion.
 
 The native worker supports indexing, signed webhooks and maintenance cleanup:
 
@@ -174,4 +188,33 @@ Game role changes update both role representations to prevent legacy moderator
 privileges surviving demotion. Level edits also recalculate creator points and
 refresh the search index. Tests cover custom permission roles, immediate permission
 revocation, strict JSON fields, concurrent login failure limits and rollback when
-audit storage fails. The browser administration interface is still pending.
+audit storage fails.
+The native `/admin/` workspace supports overview counters, player search,
+ban/unban, game-role and profile edits, level search and rating/deletion edits,
+custom permission roles, administrator invitations/status/role changes, combined
+legacy and API audit history, password changes, TOTP enrollment and one-time
+recovery codes. Forms work without JavaScript. Player/level searches return up to
+50 recent matches; administrator and activity lists are bounded to 200 and 100.
+Invitation links expire after 24 hours and store only SHA-256 token hashes.
+Recipients select their own passwords, and setup tokens cannot be used to log in.
+Role delegation cannot grant permissions the acting administrator lacks; built-in
+roles are protected. Disabling or reassigning an administrator revokes their
+existing tokens. Last-owner protection and self-disable checks prevent lockout.
+
+Browser sessions use HttpOnly SameSite=Strict cookies, an eight-hour absolute
+expiry and a 30-minute idle timeout. CSRF tokens are signed and bound to the
+session. Pending authenticator secrets are encrypted in a session-bound cookie
+that expires after 10 minutes. Password/security changes require the current
+password and, when enabled, a current authenticator code; other sessions are
+revoked. Recovery codes use PHP-compatible bcrypt hashes, appear once, and are
+consumed atomically during browser login. The administrator client API continues
+to require TOTP when enabled. Default administrator password hashing uses bcrypt
+cost 12. Set `MUCHO_GO_COOKIE_SECURE=1` behind HTTPS and keep
+`MUCHO_DOWNLOAD_HMAC_KEY` stable across restarts/replicas for signed browser forms.
+
+This workspace does not yet cover every PHP admin page. Passkeys, news/media
+authoring, branding/settings editors, content-pack management, clan administration,
+music moderation, database/backup/upgrade tools, analytics and other operational
+modules remain to be migrated and accepted. Existing PHP passkeys are retained
+in the database but are not accepted by the native login yet. This is a migration
+checkpoint, not a complete replacement of the PHP administration panel.

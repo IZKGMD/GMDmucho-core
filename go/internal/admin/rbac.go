@@ -59,3 +59,22 @@ func Permissions() map[string]string {
 	}
 	return result
 }
+
+func EffectivePermissions(ctx context.Context, q dbutil.Querier, identity Identity) (map[string]bool, error) {
+	result := map[string]bool{}
+	if identity.ID <= 0 {
+		return result, nil
+	}
+	identity.Role = strings.ToLower(strings.TrimSpace(identity.Role))
+	if identity.Role == "owner" {
+		for p := range permissionLabels {
+			result[p] = true
+		}
+		return result, nil
+	}
+	permissions, err := RolePermissions(ctx, q, identity.Role)
+	for _, p := range permissions {
+		result[p] = true
+	}
+	return result, err
+}
