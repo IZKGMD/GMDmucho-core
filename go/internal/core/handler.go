@@ -182,6 +182,8 @@ func New(db *sql.DB, options Options) *Handler {
 		"/getgjrewards": h.rewards, "/getgjchallenges": h.challenges, "/getgjsecretreward": h.secretReward,
 	}
 	h.webRoutes = map[string]webEndpoint{
+		"/v2/admin-client": h.adminClient,
+
 		"/v2/music-upload": h.v2,
 
 		"/v2":               h.v2,

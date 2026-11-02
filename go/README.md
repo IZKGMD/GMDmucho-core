@@ -10,13 +10,15 @@ account restrictions, abuse cases, bounded content moderation, native DM/group
 threads and invitations, editor sound storage, death telemetry, level controls,
 news feeds/images, profile image cropping, browser password changes and one-time
 account recovery with optional Turnstile and native SMTP delivery, public API v2
-profiles/presence/dashboard/client configuration/branding/music, and MP3 uploads.
+profiles/presence/dashboard/client configuration/branding/music, MP3 uploads and
+the administrator client API with TOTP, token revocation, RBAC and audited writes.
 It accesses the existing MuchoCore database directly and never invokes PHP.
 
 **This is not yet the complete core.** See [the route inventory](ROUTES.md) for
 registered handlers: all 166 canonical Application routes now have native
-handlers. This denominator excludes standalone scripts and browser admin. The API v2
-administrator client, administrator passkeys, plugins, browser administration and deployment/upgrade tooling
+handlers. This denominator excludes standalone scripts and browser admin. All 10
+standalone API v2 endpoints also have native handlers. Administrator passkeys,
+plugins, browser administration and deployment/upgrade tooling
 still require ports or acceptance. Real game-client acceptance and comparative load benchmarks remain
 pending. The PHP edition remains the complete runtime.
 
@@ -166,3 +168,10 @@ the generic response and log an unavailable-delivery message.
 To refresh the initial schema snapshot, set `MUCHO_GO_EXPORT_SCHEMA` to the
 absolute path of `go/internal/schema/schema.json` while bootstrapping a fresh
 test schema. No installation data is included in that snapshot.
+
+Administrator client writes and their audit records commit in one transaction.
+Game role changes update both role representations to prevent legacy moderator
+privileges surviving demotion. Level edits also recalculate creator points and
+refresh the search index. Tests cover custom permission roles, immediate permission
+revocation, strict JSON fields, concurrent login failure limits and rollback when
+audit storage fails. The browser administration interface is still pending.

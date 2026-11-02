@@ -177,11 +177,11 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 
 ## Standalone services
 
-API v2: **9 / 10** endpoint scripts have native handlers. This excludes its bootstrap/security include files, whose protection and metrics run as middleware.
+API v2: **10 / 10** endpoint scripts have native handlers. This excludes its bootstrap/security include files, whose protection and metrics run as middleware.
 
 | PHP endpoint | Native handler |
 | --- | --- |
-| `/api/v2/admin-client.php` | **Pending** |
+| `/api/v2/admin-client.php` | Present |
 | `/api/v2/branding.php` | Present |
 | `/api/v2/client-config.php` | Present |
 | `/api/v2/dashboard.php` | Present |
