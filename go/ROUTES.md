@@ -174,3 +174,22 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/uploadgjlevelcontrols` | Present | `/uploadGJLevelControls` |
 | `/uploadgjlevellist` | Present | `/uploadGJLevelList` |
 | `/uploadgjmessage20` | Present | `/uploadGJMessage20` |
+
+## Standalone services
+
+API v2: **9 / 10** endpoint scripts have native handlers. This excludes its bootstrap/security include files, whose protection and metrics run as middleware.
+
+| PHP endpoint | Native handler |
+| --- | --- |
+| `/api/v2/admin-client.php` | **Pending** |
+| `/api/v2/branding.php` | Present |
+| `/api/v2/client-config.php` | Present |
+| `/api/v2/dashboard.php` | Present |
+| `/api/v2/health.php` | Present |
+| `/api/v2/heartbeat.php` | Present |
+| `/api/v2/index.php` | Present |
+| `/api/v2/music-upload.php` | Present |
+| `/api/v2/music.php` | Present |
+| `/api/v2/profile.php` | Present |
+
+Account recovery (`/api/api/accounts/lostusername.php`) has a native browser/service implementation. Browser administration, administrator passkeys, plugins and deployment/update/backup tools require separate migration and acceptance.

@@ -122,9 +122,13 @@ func network(ip string) string {
 }
 
 func (p Protect) Inspect(ctx context.Context, path, ip string, form url.Values, version protocol.Version) (bool, error) {
+	allowed, _, err := p.InspectReason(ctx, path, ip, form, version)
+	return allowed, err
+}
+func (p Protect) InspectReason(ctx context.Context, path, ip string, form url.Values, version protocol.Version) (bool, string, error) {
 	for _, exempt := range []string{"/health", "/ready", "/checkifserveronline", "/getaccounturl", "/getcustomcontenturl"} {
 		if path == exempt {
-			return true, nil
+			return true, "", nil
 		}
 	}
 	identities := map[string]string{}
@@ -163,7 +167,14 @@ func (p Protect) Inspect(ctx context.Context, path, ip string, form url.Values, 
 	for _, key := range keys {
 		blocked, err := p.penalty(ctx, key)
 		if err != nil || blocked {
-			return false, err
+			reason := "temporary_penalty"
+			for _, kind := range []string{"network", "account", "username", "email", "device"} {
+				if strings.HasPrefix(key, kind+":") {
+					reason = kind + "_penalty"
+					break
+				}
+			}
+			return false, reason, err
 		}
 	}
 	check := func(key string, limit, window int, penaltyKey string) (bool, error) {
@@ -182,26 +193,31 @@ func (p Protect) Inspect(ctx context.Context, path, ip string, form url.Values, 
 		limit, window int
 	}{{global, 900, 60}, {global + ":burst", 180, 10}} {
 		if ok, err := check(b.key, b.limit, b.window, global); err != nil || !ok {
-			return false, err
+			return false, func() string {
+				if b.window == 10 {
+					return "global_burst_limit"
+				}
+				return "global_rate_limit"
+			}(), err
 		}
 	}
 	policy, ok := p.Policies[path]
 	if !ok {
-		return true, nil
+		return true, "", nil
 	}
 	if networkKey != "" {
 		if ok, err := check(networkKey, max(policy.Limit+1, policy.Limit*3), policy.Window, networkKey); err != nil || !ok {
-			return false, err
+			return false, "network_rate_limit", err
 		}
 		if ok, err := check(networkKey+":burst", max(policy.Burst+1, policy.Burst*3), policy.BurstWindow, networkKey); err != nil || !ok {
-			return false, err
+			return false, "network_burst_limit", err
 		}
 	}
 	if ok, err := check(ipKey, policy.Limit, policy.Window, ipKey); err != nil || !ok {
-		return false, err
+		return false, "ip_rate_limit", err
 	}
 	if ok, err := check(ipKey+":burst", policy.Burst, policy.BurstWindow, ipKey); err != nil || !ok {
-		return false, err
+		return false, "burst_limit", err
 	}
 	for kind, id := range identities {
 		limit, window := policy.IdentityLimit, policy.IdentityWindow
@@ -218,8 +234,8 @@ func (p Protect) Inspect(ctx context.Context, path, ip string, form url.Values, 
 		}
 		key := kind + ":" + id + ":endpoint:" + path
 		if ok, err := check(key, limit, window, key); err != nil || !ok {
-			return false, err
+			return false, kind + "_rate_limit", err
 		}
 	}
-	return true, nil
+	return true, "", nil
 }

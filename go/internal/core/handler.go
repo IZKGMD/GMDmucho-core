@@ -38,6 +38,8 @@ type Options struct {
 	SecureCookies                        bool
 	AssetBase, RecoveryPath              string
 	PublicURL                            string
+	ServerName                           string
+	MusicDir                             string
 	RecoveryMailer                       integration.RecoveryMailer
 	Turnstile                            security.Turnstile
 }
@@ -180,6 +182,18 @@ func New(db *sql.DB, options Options) *Handler {
 		"/getgjrewards": h.rewards, "/getgjchallenges": h.challenges, "/getgjsecretreward": h.secretReward,
 	}
 	h.webRoutes = map[string]webEndpoint{
+		"/v2/music-upload": h.v2,
+
+		"/v2":               h.v2,
+		"/v2/index":         h.v2,
+		"/v2/health":        h.v2,
+		"/v2/profile":       h.v2,
+		"/v2/heartbeat":     h.v2,
+		"/v2/dashboard":     h.v2,
+		"/v2/branding":      h.v2,
+		"/v2/client-config": h.v2,
+		"/v2/music":         h.v2,
+
 		"/lostusername": h.recovery,
 
 		"/accountmanagement": h.accountManagement, "/profile/get": h.profileMedia, "/profile/upload": h.profileMedia, "/profile/remove": h.profileMedia, "/profile/image": h.profileMedia,
@@ -228,6 +242,9 @@ func New(db *sql.DB, options Options) *Handler {
 	return h
 }
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if h.serveMusic(w, r) {
+		return
+	}
 	if webassets.Serve(w, r) {
 		return
 	}
@@ -260,6 +277,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if path == "/profile/upload" {
 			limit = 3*5592412 + 65536
 		}
+		if path == "/v2/music-upload" {
+			limit = maxMusicBytes + 1024*1024
+		}
 		r.Body = http.MaxBytesReader(w, r.Body, limit)
 		err := r.ParseForm()
 		if err == nil && strings.HasPrefix(strings.ToLower(r.Header.Get("Content-Type")), "multipart/form-data") {
@@ -269,12 +289,16 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			defer r.MultipartForm.RemoveAll()
 		}
 		if err != nil {
+			status := 400
 			var size *http.MaxBytesError
 			if errors.As(err, &size) {
-				w.WriteHeader(413)
-			} else {
-				w.WriteHeader(400)
+				status = 413
 			}
+			if path == "/v2" || strings.HasPrefix(path, "/v2/") {
+				v2TransportError(w, r, status)
+				return
+			}
+			w.WriteHeader(status)
 			_, _ = fmt.Fprint(w, "-1")
 			return
 		}
@@ -287,7 +311,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	ip := security.ClientIP(r, h.options.TrustedProxies)
 	req := request{ctx: ctx, form: form, path: path, ip: ip, version: protocol.VersionFrom(r.URL.EscapedPath(), form), raw: r}
-	if !h.options.DisableProtect {
+	if !h.options.DisableProtect && path != "/v2" && !strings.HasPrefix(path, "/v2/") {
 		ok, err := h.protect.Inspect(ctx, path, ip, form, req.version)
 		if err != nil || !ok {
 			_, _ = fmt.Fprint(w, "-1")

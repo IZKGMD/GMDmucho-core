@@ -85,6 +85,8 @@ func TestCorePHPParity(t *testing.T) {
 	t.Run("thread rate and audio quota serialization", func(t *testing.T) { testContentConcurrency(t, h) })
 	t.Run("player browser and profile workflows", func(t *testing.T) { testWebWorkflows(t, h) })
 	t.Run("native one-time recovery", func(t *testing.T) { testRecoveryWorkflow(t, h) })
+	t.Run("API v2 public services", func(t *testing.T) { testV2Public(t, h) })
+	t.Run("API v2 music storage and cooldown", func(t *testing.T) { testV2MusicUpload(t, h) })
 	// Duplicate saves must not create history, and Go must retain PHP's
 	// original ciphertext as an independently decryptable historical revision.
 	var revision, history int

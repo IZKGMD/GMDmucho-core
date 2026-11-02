@@ -37,6 +37,8 @@ jobs:
           php go/testdata/protocol-fixtures.php > go/testdata/protocol.json
           git diff --exit-code -- go/testdata/protocol.json
           php go/testdata/profile-image-fixtures.php > "${{ runner.temp }}/profile-images.json"
+          php go/testdata/v2-version-fixtures.php > go/testdata/v2-versions.json
+          git diff --exit-code -- go/testdata/v2-versions.json
           python3 go/tools/route-coverage.py --check
       - name: Seed disposable DB and obtain PHP reference responses
         env:

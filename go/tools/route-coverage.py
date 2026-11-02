@@ -44,6 +44,18 @@ lines = [
 for path, names in sorted(routes.items()):
     state = 'Present' if path in implemented else '**Pending**'
     lines.append(f'| `{path}` | {state} | ' + ', '.join(f'`{name}`' for name in names) + ' |')
+v2 = sorted(path for path in (ROOT / 'public/api/v2').glob('*.php')
+            if path.name not in {'bootstrap.php', 'security.php'})
+v2_count = sum(normalize('/api/v2/' + path.name) in implemented for path in v2)
+lines += ['', '## Standalone services', '',
+          f'API v2: **{v2_count} / {len(v2)}** endpoint scripts have native handlers. '
+          'This excludes its bootstrap/security include files, whose protection and metrics run as middleware.', '',
+          '| PHP endpoint | Native handler |', '| --- | --- |']
+for path in v2:
+    state = 'Present' if normalize('/api/v2/' + path.name) in implemented else '**Pending**'
+    lines.append(f'| `/api/v2/{path.name}` | {state} |')
+lines += ['', 'Account recovery (`/api/api/accounts/lostusername.php`) has a native browser/service implementation. '
+          'Browser administration, administrator passkeys, plugins and deployment/update/backup tools require separate migration and acceptance.']
 content = '\n'.join(lines) + '\n'
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--check', action='store_true')

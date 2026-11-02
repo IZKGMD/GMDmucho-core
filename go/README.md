@@ -9,13 +9,14 @@ level ratings/suggestions/reports, song statistics, GD 2.209 utilities, persiste
 account restrictions, abuse cases, bounded content moderation, native DM/group
 threads and invitations, editor sound storage, death telemetry, level controls,
 news feeds/images, profile image cropping, browser password changes and one-time
-account recovery with optional Turnstile and native SMTP delivery.
+account recovery with optional Turnstile and native SMTP delivery, public API v2
+profiles/presence/dashboard/client configuration/branding/music, and MP3 uploads.
 It accesses the existing MuchoCore database directly and never invokes PHP.
 
 **This is not yet the complete core.** See [the route inventory](ROUTES.md) for
 registered handlers: all 166 canonical Application routes now have native
-handlers. This denominator excludes standalone scripts and browser admin. API v2,
-administrator passkeys, plugins, browser administration and deployment/upgrade tooling
+handlers. This denominator excludes standalone scripts and browser admin. The API v2
+administrator client, administrator passkeys, plugins, browser administration and deployment/upgrade tooling
 still require ports or acceptance. Real game-client acceptance and comparative load benchmarks remain
 pending. The PHP edition remains the complete runtime.
 
@@ -46,6 +47,8 @@ or `.env`. Startup connects to the database but never runs DDL.
 | --- | --- |
 | `MUCHO_GO_DSN` | Required MySQL driver DSN; supports driver TLS settings |
 | `MUCHO_GO_ADDR` | HTTP address; defaults to `127.0.0.1:8081` |
+| `MUCHO_MUSIC_DIR` | Music upload/download directory; defaults to the PHP-compatible `/var/www/mucho-core/storage/music-public`; must be writable by the server user |
+| `MUCHO_SERVER_NAME` | Fallback public server name when branding data is unavailable |
 | `MUCHO_GO_COOKIE_SECURE` | Set to `1` behind an HTTPS reverse proxy to require secure browser cookies |
 | `MUCHO_PUBLIC_ASSET_BASE` | Optional base URL for player account page assets; bundled assets work without PHP |
 | `MUCHO_ACCOUNT_RECOVERY_PATH` | Optional recovery link for account management; defaults to the native `/api/api/accounts/lostusername.php` route |
@@ -154,8 +157,10 @@ Stored PHP JPEGs remain readable without changes. GitHub Actions requires these
 DB tests and regenerates image references using its installed GD library.
 Recovery tests use a local SMTP test receiver and a fake mail adapter; no external
 email is sent. They cover single-use concurrent resets, expiry, stored token
-hashes, Host-header isolation, CSRF and legacy session revocation. Actual SMTP
-delivery requires operator configuration. Without SMTP, recovery requests retain
+hashes, Host-header isolation, CSRF and legacy session revocation. API v2 tests cover presence privacy, token authentication, concurrent heartbeat
+limits, security responses/metrics, MP3 approval state, upload cooldowns, file
+rollback on SQL failure and byte-range downloads. PHP version comparisons have
+400 reference cases. Actual SMTP delivery requires operator configuration. Without SMTP, recovery requests retain
 the generic response and log an unavailable-delivery message.
 
 To refresh the initial schema snapshot, set `MUCHO_GO_EXPORT_SCHEMA` to the
