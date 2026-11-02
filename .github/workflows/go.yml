@@ -31,22 +31,39 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_mysql
+          extensions: pdo_mysql, gd, mbstring
       - name: Verify PHP protocol reference vectors
         run: |
           php go/testdata/protocol-fixtures.php > go/testdata/protocol.json
           git diff --exit-code -- go/testdata/protocol.json
+          php go/testdata/profile-image-fixtures.php > "${{ runner.temp }}/profile-images.json"
+          php go/testdata/v2-version-fixtures.php > go/testdata/v2-versions.json
+          git diff --exit-code -- go/testdata/v2-versions.json
+          python3 go/tools/route-coverage.py --check
       - name: Seed disposable DB and obtain PHP reference responses
         env:
           MUCHO_GO_PHP_TEST_DSN: 'mysql:host=127.0.0.1;dbname=muchocore_go_test;charset=utf8mb4'
         run: |
           mkdir -p work
           php go/testdata/discovery-fixtures.php > work/discovery.json
+      - name: Apply full PHP schema and generate core reference scenario
+        env:
+          MUCHO_GO_PHP_TEST_DSN: 'mysql:host=127.0.0.1;dbname=muchocore_go_core_test;charset=utf8mb4'
+          MUCHO_GO_TEST_KEY_FILE: '${{ runner.temp }}/cloudsave-test.key'
+          MUCHO_GO_CORE_FIXTURES: '${{ runner.temp }}/core-reference.json'
+        run: |
+          php -r '(new PDO("mysql:host=127.0.0.1", "root", ""))->exec("CREATE DATABASE muchocore_go_core_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");'
+          php go/testdata/password-fixtures.php > go/testdata/passwords.json
+          php go/testdata/core-reference.php > work/core-reference.log
       - name: Check format, vet, race tests and database compatibility
         working-directory: go
         env:
           MUCHO_GO_TEST_DSN: 'root@tcp(127.0.0.1:3306)/muchocore_go_test?charset=utf8mb4'
           MUCHO_GO_TEST_FIXTURES: '${{ github.workspace }}/work/discovery.json'
+          MUCHO_GO_CORE_DSN: 'root@tcp(127.0.0.1:3306)/muchocore_go_core_test?charset=utf8mb4&timestamp=1700000000'
+          MUCHO_GO_CORE_FIXTURES: '${{ runner.temp }}/core-reference.json'
+          MUCHO_GO_TEST_KEY_FILE: '${{ runner.temp }}/cloudsave-test.key'
+          MUCHO_GO_IMAGE_FIXTURES: '${{ runner.temp }}/profile-images.json'
         run: |
           test -z "$(gofmt -l cmd internal)"
           go vet ./...

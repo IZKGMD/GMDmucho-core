@@ -487,8 +487,8 @@ final readonly class UserRepository
 
         $sql = "WITH RankedProfiles AS (
             SELECT p.*, a.username,
-                   COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=p.account_id LIMIT 1), \'\') AS clan_tag,
-                   COALESCE(ar.code, \'user\') AS role_code,
+                   COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=p.account_id LIMIT 1), '') AS clan_tag,
+                   COALESCE(ar.code, 'user') AS role_code,
                    ROW_NUMBER() OVER (ORDER BY p.stars DESC, p.account_id ASC) AS `rank`
             FROM profiles p
             INNER JOIN accounts a ON a.account_id = p.account_id
