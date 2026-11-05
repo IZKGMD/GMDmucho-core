@@ -255,6 +255,8 @@ $cases=[
     ['/followGJUser.php',$a+['targetAccountID'=>2]],
     ['/followGJUser.php',$a+['targetAccountID'=>2]],
     ['/getGJFollowing.php',$a],
+    ['/getGJUserList20.php',$a+['type'=>3]],
+    ['/getGJUserList20.php',array_replace($a,['type'=>3,'binaryVersion'=>47])],
     ['/getGJFollowing.php',$b+['getFollowers'=>1]],
     ['/syncGJFollowing.php',$a],
     ['/getGJNotifications.php',$b],

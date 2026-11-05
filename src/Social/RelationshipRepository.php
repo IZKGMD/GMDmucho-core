@@ -342,7 +342,8 @@ final readonly class RelationshipRepository
                         p.creator_points,p.secret_coins,p.user_coins,
                         COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag,
                         f.friend_account_id AS account_id,
-                        f.is_new
+                        f.is_new,
+                        UNIX_TIMESTAMP(f.created_at) AS relationship_since
                  FROM friends f
                  JOIN accounts a
                    ON a.account_id=f.friend_account_id
@@ -376,7 +377,8 @@ final readonly class RelationshipRepository
                         p.creator_points,p.secret_coins,p.user_coins,
                         '' AS clan_tag,
                         f.followed_account_id AS account_id,
-                        0 AS is_new
+                        0 AS is_new,
+                        UNIX_TIMESTAMP(f.created_at) AS relationship_since
                  FROM mucho_follows f
                  JOIN accounts a ON a.account_id=f.followed_account_id
                  JOIN profiles p ON p.account_id=f.followed_account_id

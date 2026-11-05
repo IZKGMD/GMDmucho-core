@@ -11,8 +11,8 @@ that the unmodified 2.209 game accepts every server response.
 | Level list moderator types 8/27 | Credential-gated visibility and suggestion ownership | Client native 2.209 UI still to be tested |
 | GD 2.209 comment timestamps | Level and account comments emit Unix timestamp key 15 only with gameVersion>=22 and binaryVersion>=51; 2.2081 unchanged | Not yet checked with unmodified 2.209 client |
 | GD 2.209 level dates | Level list and download keys 62/63 gated on binaryVersion>=51 | Song/SFX aggregate-size key 54 is pending |
-| GD 2.209 profiles | Keys 66 (self unread), 67 (followers), 68 (self following count), 69 (viewer follows) from persisted DB; credentials required for viewer identity; legacy 2.2081 response unchanged | Invite privacy key 62, friendship timestamp 64 and unknown keys pending |
-| GD 2.209 social lists | List types 3/4 plus player stats for binaryVersion>=51; legacy format unchanged | Full native client format to verify |
+| GD 2.209 profiles | Keys 66 (self unread), 67 (followers), 68 (self following count), 69 (viewer follows) from persisted DB; credentials required for viewer identity; legacy 2.2081 response unchanged | Invite privacy key 62 and unknown keys pending; key 64 belongs to user lists, not profiles |
+| GD 2.209 social lists | List types 3/4 plus player stats for binaryVersion>=51; key 64 contains persisted friendship/follow timestamps for types 0/3; legacy format unchanged | [Documented contract and SQL tests](GD_2209_SOCIAL_USER_LIST.md); actual native UI acceptance remains pending |
 | Song usage | Documented tier/difficulty aggregation with DB-backed test | Native 2.209 acceptance pending |
 | New admin report queue | New route, separate table, authenticated owner/elder-moderator access and safe reporting aggregation | Header-first `total:offset:20#entries` and 9-field positional parser **verified from native EXE**; remaining entry field meanings, threshold and filter integration provisional |
 | Diagnostics | Privately classified response status, route request key names and numeric selectors only; no credentials/payloads logged | Must be deliberately enabled, disabled after use |
@@ -33,7 +33,8 @@ Request key names are known, **no successful native response has been captured**
   admin endpoints; do not synthesize successful mutations or bypass RBAC.
 - Other undocumented endpoint request formats (for example
   `openedRegister`/`rsession`, `getGJContentStatus` and editor audio totals).
-- 2.209 user fields 62/64, song+SFX total-size level field 54, and the
+- 2.209 profile field 62, native rendering of user-list relationship date 64,
+  song+SFX total-size level field 54, and the
   downloadGJLevel death-data suffix.
 - Real executable integration with Windows and Android plus game UI smoke tests,
   including registration, notifications, threads, uploads and moderation.

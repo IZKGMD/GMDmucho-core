@@ -8,6 +8,8 @@ use MuchoCore\Protocol\GdRelationshipEncoder;
 use MuchoCore\Social\FollowingService;
 use MuchoCore\Social\RelationshipRepository;
 use MuchoCore\Social\RelationshipService;
+use MuchoCore\Social\RelationshipController;
+use MuchoCore\Http\Request;
 use MuchoCore\Social\NotificationService;
 use MuchoCore\User\UserRepository;
 use MuchoCore\Protocol\GdUserEncoder;
@@ -59,7 +61,7 @@ try {
         blocked_account_id BIGINT UNSIGNED NOT NULL,
         PRIMARY KEY(account_id,blocked_account_id)
     ) ENGINE=InnoDB');
-    foreach (['20261016_003_gd2209_social.php', '20261016_004_gd2209_notifications.php'] as $file) {
+    foreach (['020_clans.php', '021_social_base.php', '20261016_003_gd2209_social.php', '20261016_004_gd2209_notifications.php'] as $file) {
         $sql = require \mucho7_compiled_include(dirname(\MUCHO7_PROJECT_ROOT . '/tests/application', 2) . '/database/migrations/' . $file);
         foreach ($sql as $query) {
             $db->exec($query);
@@ -86,10 +88,23 @@ try {
     $check(str_contains($following->encodedList(1, 'pass-1', 0, false), 'Beta'), 'following wire payload contains target username');
     $check(str_contains($relationship->userList(1, 'pass-1', 3), '1:Beta:'), '2.209 getGJUserList20 type 3 returns followed accounts');
     $db->exec('UPDATE profiles SET stars=99, demons=7, diamonds=1000 WHERE account_id=2');
+    $db->exec('UPDATE mucho_follows SET created_at=FROM_UNIXTIME(1700000100) WHERE follower_account_id=1 AND followed_account_id=2');
     $newList = $relationship->userList(1, 'pass-1', 3, true);
     $oldList = $relationship->userList(1, 'pass-1', 3, false);
     $check(str_contains($newList, ':3:99:4:7:8:0:13:0:17:0:46:1000'), '2.209 list emits in-game user statistics');
     $check(!str_contains($oldList, ':3:99:4:7'), '2.2081 list response remains unchanged');
+    $check(str_contains($newList, ':64:1700000100'), '2.209 following list exposes the persisted subscription timestamp in key 64');
+    $check(!str_contains($oldList, ':64:'), 'older clients do not receive the 2.209 relationship timestamp');
+    $check($following->follow(1, 'pass-1', 2) && str_contains($relationship->userList(1, 'pass-1', 3, true), ':64:1700000100'), 'repeating a follow preserves its original timestamp');
+    $db->exec('INSERT INTO friends(account_id,friend_account_id,is_new,created_at) VALUES(1,2,1,FROM_UNIXTIME(1700000200)),(2,1,1,FROM_UNIXTIME(1700000200))');
+    $friendWire = $relationship->userList(1, 'pass-1', 0, true);
+    $check(str_contains($friendWire, ':64:1700000200') && str_contains($friendWire, ':41:1'), 'friendship date is distinct from subscription date and preserves unread state');
+    $check(str_contains($relationship->userList(1, 'pass-1', 0, true), ':64:1700000200') && (int) $db->query('SELECT is_new FROM friends WHERE account_id=1 AND friend_account_id=2')->fetchColumn() === 0, 'reading friends clears the unread flag without changing the friendship date');
+    $controller = new RelationshipController($relationship);
+    foreach ([47 => false, 50 => false, 51 => true] as $binary => $expected) {
+        $reply = $controller->userList(new Request('POST', '/getGJUserList20.php', [], ['accountID' => '1', 'gjp2' => 'pass-1', 'gameVersion' => '22', 'binaryVersion' => (string) $binary, 'type' => '3'], []));
+        $check(str_contains($reply->body, ':64:1700000100') === $expected, 'controller gates relationship dates at binary version 51');
+    }
     $check($relationship->userList(2, 'pass-2', 3) === '-2', 'followed list is viewer-private, not follower list');
     $check($following->encodedList(1, 'pass-1', 1001, false) === '-2', 'out-of-range pagination returns no results');
     $check(str_contains($notifications->list(2, 'pass-2', 0), 'Alpha'), 'notification delivered only to target');
@@ -114,6 +129,7 @@ try {
     $check($following->mute(1, 'pass-1', 2, true) && $following->mute(1, 'pass-1', 2, true), 'mute is idempotent');
     $check((int) $db->query('SELECT COUNT(*) FROM mucho_muted_users')->fetchColumn() === 1, 'mute stores one row');
     $check(str_contains($relationship->userList(1, 'pass-1', 4), '1:Beta:'), '2.209 getGJUserList20 type 4 returns muted accounts');
+    $check(!str_contains($relationship->userList(1, 'pass-1', 4, true), ':64:'), 'mute dates are not mislabeled as friendship or follow dates');
     $check($relationship->userList(2, 'pass-2', 4) === '-2', 'muted accounts remain private to owner');
     try {
         $relationship->userList(1, 'pass-2', 4);
@@ -127,6 +143,7 @@ try {
     $check($following->unfollow(1, 'pass-1', 2), 'duplicate unfollow succeeds');
     $check((int) $db->query('SELECT COUNT(*) FROM mucho_follows')->fetchColumn() === 0, 'unfollow removes relation');
     $db->exec('INSERT INTO blocks(account_id,blocked_account_id) VALUES (2,1)');
+    $check(!str_contains($relationship->userList(2, 'pass-2', 1, true), ':64:'), 'block lists do not invent friendship timestamps');
     $check(!$following->follow(1, 'pass-1', 2), 'block denies follow');
     $check(!$following->mute(1, 'pass-1', 2, true), 'block denies mute');
     $db->exec('DELETE FROM blocks');
