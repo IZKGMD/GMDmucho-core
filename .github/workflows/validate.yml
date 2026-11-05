@@ -695,6 +695,15 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/news-board-integration.php
 
+      - name: Verify game role revocation and atomic administrator mutations
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: |
+          php tests/application/game-role-revocation-integration.php
+          MUCHO_TEST_COMPILED_DOMAIN=1 php tests/application/game-role-revocation-integration.php
+
       - name: Verify News image privacy and native YouTube cards
         env:
           TEST_DB_HOST: 127.0.0.1

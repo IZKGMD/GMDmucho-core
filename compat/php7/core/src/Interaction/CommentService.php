@@ -140,12 +140,14 @@ final class CommentService
             try {
                 $candidate = GameRole::normalize($candidate);
             } catch (\InvalidArgumentException $__mcCaught) {
-                continue;
-            }
-            if (in_array($candidate, [GameRole::OWNER, GameRole::ELDER_MODERATOR, GameRole::MODERATOR], true)) {
-                $role = $candidate;
+                // A present but unknown canonical role must fail closed.
                 break;
             }
+            // A valid canonical user role is authoritative too. Only accounts
+            // without a canonical role may use the legacy compatibility field;
+            // otherwise a stale legacy role would undo a moderator demotion.
+            $role = $candidate;
+            break;
         }
         if (!in_array($role, [GameRole::OWNER, GameRole::ELDER_MODERATOR, GameRole::MODERATOR], true)) {
             return null;
