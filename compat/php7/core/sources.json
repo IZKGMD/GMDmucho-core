@@ -177,7 +177,7 @@
     "src/Integration/WebhookDispatcher.php": "b7a8d8ed573e3806c3f7345bcaa07bede9b94ce240dd4408fe31d3f36f666eea",
     "src/Interaction/CommentController.php": "58389536fd1ce473e6d4b93348f64572078ff8222d25b26ca4cd9a0174ad521d",
     "src/Interaction/CommentRepository.php": "a25cb11dad29762b54fcdac7e89d9db671b375a4d13e31c2f05ff26497be3b78",
-    "src/Interaction/CommentService.php": "378aae8ada6ee41344ef48fc3e0e645814eef6a1312fb7df5ee950ecc13d9844",
+    "src/Interaction/CommentService.php": "8bb9e6adaa18f28e8dca6ee7265fd3fe7760655b1c63b60505731ac5607d90d7",
     "src/Interaction/InteractionController.php": "75385ede267db7de3dbe35245315ad378bfa70a93f18da251d9ccb5b639c36ec",
     "src/Interaction/LikeController.php": "d2a34d363e8b56d01139d05b54acefd6e8d8a29cd69f442a2ea11f4e787c0128",
     "src/Interaction/LikeRepository.php": "1bfd6c7a51e9280428e1920abc14d45ce2a4d1978847e57eb82e92edc60e8a30",

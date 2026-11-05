@@ -443,19 +443,22 @@ try {
         $accountId = intInput($input, 'account_id', 1, PHP_INT_MAX);
         $banned = boolInput($input, 'banned');
 
+        $db->beginTransaction();
         $query = $db->prepare('SELECT a.account_id, a.username, COALESCE(r.code, \'user\') AS role, a.is_banned
              FROM accounts a
              LEFT JOIN roles r ON r.id = a.role_id
-             WHERE a.account_id = :id LIMIT 1');
+             WHERE a.account_id = :id LIMIT 1 FOR UPDATE');
         $query->execute(['id' => $accountId]);
         $target = $query->fetch();
         if (!$target) {
+            $db->rollBack();
             fail('not_found', 'Player not found.', 404);
         }
         if (
             strtolower((string)$target['role']) === 'owner' &&
             !AdminRbac::can($db, $admin, 'settings.manage')
         ) {
+            $db->rollBack();
             fail('forbidden', 'Only an owner can moderate an owner account.', 403);
         }
 
@@ -466,6 +469,7 @@ try {
             'previous' => (bool)$target['is_banned'],
             'current' => $banned,
         ]);
+        $db->commit();
         respond(['ok' => true, 'account_id' => $accountId, 'is_banned' => $banned]);
     }
 
@@ -484,19 +488,28 @@ try {
         if ($role === 'owner' && !AdminRbac::can($db, $admin, 'settings.manage')) {
             fail('forbidden', 'Only an owner can assign the owner game role.', 403);
         }
+        $db->beginTransaction();
         $query = $db->prepare('SELECT a.username, COALESCE(r.code, \'user\') AS role
              FROM accounts a
              LEFT JOIN roles r ON r.id = a.role_id
-             WHERE a.account_id = :id LIMIT 1');
+             WHERE a.account_id = :id LIMIT 1 FOR UPDATE');
         $query->execute(['id' => $accountId]);
         $target = $query->fetch();
         if (!$target) {
+            $db->rollBack();
             fail('not_found', 'Player not found.', 404);
+        }
+        if (
+            strtolower((string)$target['role']) === 'owner' &&
+            !AdminRbac::can($db, $admin, 'settings.manage')
+        ) {
+            $db->rollBack();
+            fail('forbidden', 'Only an owner can moderate an owner account.', 403);
         }
         $db->prepare(
             'UPDATE accounts a
              JOIN roles r ON r.code = :role
-             SET a.role_id = r.id
+             SET a.role_id = r.id, a.role = r.code
              WHERE a.account_id = :id'
         )->execute(['role' => $role, 'id' => $accountId]);
         auditClient($db, $admin, 'player.role', 'account', (string)$accountId, [
@@ -504,6 +517,7 @@ try {
             'previous' => (string)$target['role'],
             'current' => $role,
         ]);
+        $db->commit();
         respond(['ok' => true, 'account_id' => $accountId, 'role' => $role]);
     }
 
@@ -685,6 +699,9 @@ try {
 
     fail('unknown_action', 'Unknown API action.', 404);
 } catch (Throwable $error) {
+    if (isset($db) && $db instanceof PDO && $db->inTransaction()) {
+        $db->rollBack();
+    }
     error_log('[MuchoAdminClient '.$requestId.'] '.$error->getMessage());
     fail('server_error', 'Internal server error.', 500);
 }

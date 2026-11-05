@@ -28,6 +28,8 @@ MuchoCore 1.1.0 is a major update focused on making a Geometry Dash private serv
 - A unified client pack includes checksums so downloaded files can be checked for integrity.
 
 ### More dependable day-to-day operations
+- Revoking a game role also revokes comment-command privileges: a canonical player/moderator role cannot inherit stronger permissions from an outdated legacy role field.
+- The administrator client API protects existing game owners from unauthorized demotion and commits role/ban changes together with their audit records. Concurrent owner promotion is checked against the locked, current account state.
 - Safer database backup, restore and migration flows, including a migration-adapter foundation.
 - Improved update recovery and retry handling for interrupted deployments.
 - Better worker-queue, cache and background-job concurrency protections.
