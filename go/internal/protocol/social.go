@@ -62,6 +62,9 @@ func RelationshipUsers(rows []dbutil.Row, stats bool) string {
 		item := Pairs(1, DisplayName(r.Value("username", "Player"), r["clan_tag"]), 2, uid, 9, icon, 10, r.Value("color1", "0"), 11, r.Value("color2", "3"), 14, r.Int("icon_type"), 15, r.Int("special"), 16, r.Int("account_id"), 18, 0, 41, r.Int("is_new"))
 		if stats {
 			item += Pairs("", 3, r.Int("stars"), 4, r.Int("demons"), 8, int64(r.Float("creator_points")), 13, r.Int("secret_coins"), 17, r.Int("user_coins"), 46, r.Int("diamonds"), 52, r.Int("moons"))
+			if _, exists := r["relationship_since"]; exists {
+				item += Pairs("", 64, max(0, r.Int("relationship_since")))
+			}
 		}
 		items = append(items, item)
 	}

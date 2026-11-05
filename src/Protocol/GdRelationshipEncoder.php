@@ -90,6 +90,13 @@ final class GdRelationshipEncoder
                     46, (int)($r['diamonds'] ?? 0),
                     52, (int)($r['moons'] ?? 0),
                 ]);
+                // GD 2.209 key 64 belongs to getGJUserList20, not profiles.
+                // Repositories supply it only for friends/followed accounts;
+                // blocked and muted lists have no such relationship date.
+                if (array_key_exists('relationship_since', $r)) {
+                    $fields[] = 64;
+                    $fields[] = max(0, (int)$r['relationship_since']);
+                }
             }
             $out[] = implode(':', $fields);
         }

@@ -56,6 +56,11 @@ assertSameValue(
 );
 
 $relationship = new GdRelationshipEncoder();
+$datedUser = ['account_id' => 30, 'username' => 'Friend', 'relationship_since' => 1700000000];
+assertSameValue(true, str_contains($relationship->users([$datedUser], true), ':64:1700000000'), '2.209 relationship date uses an integer UNIX timestamp');
+assertSameValue(false, str_contains($relationship->users([$datedUser], false), ':64:'), 'legacy relationship wire excludes the new timestamp');
+assertSameValue(false, str_contains($relationship->users([['account_id' => 30]], true), ':64:'), 'missing relationship dates are not fabricated');
+assertSameValue(true, str_contains($relationship->users([array_replace($datedUser, ['relationship_since' => -1])], true), ':64:0'), 'invalid negative relationship date is bounded');
 $users = $relationship->users([[
     'account_id' => 30,
     'user_id' => 20,

@@ -301,12 +301,16 @@ func (h *Handler) userList(r request) (string, error) {
 		return "-2", nil
 	}
 	filter := ""
+	relationshipDate := ""
+	if typ == 0 || typ == 3 {
+		relationshipDate = ",UNIX_TIMESTAMP(f.created_at) AS relationship_since"
+	}
 	tag := clanTagSQL
 	if typ == 3 || typ == 4 {
 		filter = " AND a.is_active=1 AND a.is_banned=0"
 		tag = "'' AS clan_tag"
 	}
-	rows, err := dbutil.Query(r.ctx, h.db, `SELECT a.username,p.user_id,p.cube,p.color1,p.color2,p.special,p.stars,p.demons,p.diamonds,p.moons,p.creator_points,p.secret_coins,p.user_coins,a.account_id,`+newValue+` AS is_new,`+tag+` FROM `+table+` f JOIN accounts a ON a.account_id=f.`+peer+` JOIN profiles p ON p.account_id=a.account_id WHERE f.`+owner+`=?`+filter+` ORDER BY a.username ASC`, me.ID)
+	rows, err := dbutil.Query(r.ctx, h.db, `SELECT a.username,p.user_id,p.cube,p.color1,p.color2,p.special,p.stars,p.demons,p.diamonds,p.moons,p.creator_points,p.secret_coins,p.user_coins,a.account_id,`+newValue+` AS is_new,`+tag+relationshipDate+` FROM `+table+` f JOIN accounts a ON a.account_id=f.`+peer+` JOIN profiles p ON p.account_id=a.account_id WHERE f.`+owner+`=?`+filter+` ORDER BY a.username ASC`, me.ID)
 	if err != nil {
 		return "", err
 	}

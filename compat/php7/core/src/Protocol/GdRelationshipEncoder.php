@@ -38,6 +38,13 @@ final class GdRelationshipEncoder
             $fields = [1, $this->displayUsername($r), 2, (int) ($r['user_id'] ?? $accountId), 9, (int) ($r['icon_id'] ?? $r['cube'] ?? 1), 10, (int) ($r['color1'] ?? 0), 11, (int) ($r['color2'] ?? 3), 14, (int) ($r['icon_type'] ?? 0), 15, (int) ($r['special'] ?? 0), 16, $accountId, 18, 0, 41, (int) ($r['is_new'] ?? 0)];
             if ($include209Stats) {
                 $fields = array_merge($fields, [3, (int) ($r['stars'] ?? 0), 4, (int) ($r['demons'] ?? 0), 8, (int) ($r['creator_points'] ?? 0), 13, (int) ($r['secret_coins'] ?? 0), 17, (int) ($r['user_coins'] ?? 0), 46, (int) ($r['diamonds'] ?? 0), 52, (int) ($r['moons'] ?? 0)]);
+                // GD 2.209 key 64 belongs to getGJUserList20, not profiles.
+                // Repositories supply it only for friends/followed accounts;
+                // blocked and muted lists have no such relationship date.
+                if (array_key_exists('relationship_since', $r)) {
+                    $fields[] = 64;
+                    $fields[] = max(0, (int) $r['relationship_since']);
+                }
             }
             $out[] = implode(':', $fields);
         }
