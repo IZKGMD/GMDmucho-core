@@ -54,6 +54,50 @@
         document.addEventListener('keydown',event=>{if(event.key==='Escape'&&menu.classList.contains('is-open')){close();menuButton.focus();}});
         document.addEventListener('click',event=>{if(!menu.contains(event.target)&&!menuButton.contains(event.target))close();});
     }
+    // Mount the optional REBORN hub without changing PHP7's pinned compiled dashboard.
+    // The original player portal remains fully functional when this endpoint is absent.
+    const eventHero = document.querySelector('body.dashboard-page section.hero');
+    if (eventHero && typeof fetch === 'function') {
+        const match = location.pathname.match(/^(.*)\/dashboard(?:\/(?:index(?:\.php)?)?)?\/?$/);
+        const mount = match ? match[1] : '';
+        const fragment = mount + '/dashboard/events-fragment.php';
+        fetch(fragment, { credentials: 'same-origin', headers: { 'Accept': 'text/html' } })
+            .then(response => response.ok ? response.text() : null)
+            .then(html => {
+                if (!html || !html.includes('class="me-hub"')) return;
+                const template = document.createElement('template');
+                template.innerHTML = html;
+                const hub = template.content.querySelector('section.me-hub');
+                if (!hub) return;
+                const assets = mount ? mount + '/public/assets' : '/assets';
+                const style = document.createElement('link');
+                style.rel = 'stylesheet';
+                style.href = assets + '/dashboard-events.css?v=1';
+                document.head.append(style);
+                eventHero.after(hub);
+                const discover = document.querySelector('.topbar .nav a[href="/dashboard"]');
+                if (discover && !document.querySelector('.topbar .nav a[href$="#events"]')) {
+                    const entry = document.createElement('a');
+                    entry.href = (mount || '') + '/dashboard#events';
+                    entry.textContent = 'Events';
+                    discover.after(entry);
+                }
+                const heroAction = eventHero.querySelector('.hero-actions a');
+                if (heroAction) {
+                    const action = document.createElement('a');
+                    action.className = 'btn alt';
+                    action.href = '#events';
+                    action.textContent = 'Explore events';
+                    heroAction.after(action);
+                }
+                const script = document.createElement('script');
+                script.src = assets + '/dashboard-events.js?v=1';
+                script.defer = true;
+                document.body.append(script);
+                if (location.hash === '#events') hub.scrollIntoView({ block: 'start' });
+            })
+            .catch(() => { /* Older/experimental hosts may not provide the fragment. */ });
+    }
     if(!document.body.classList.contains('mc-admin'))return;
     const body=document.body;
     const mobile=document.getElementById('mobileMenuButton');
