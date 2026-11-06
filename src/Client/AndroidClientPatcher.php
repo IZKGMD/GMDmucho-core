@@ -136,12 +136,7 @@ final class AndroidClientPatcher
         if ($installAlongside) {
             $source->close();
             throw new RuntimeException(
-                'Install alongside requires the exact verified GD 2.209 ARM64 APK. ' .
-                'The uploaded APK did not match that build. For an older supported GD ' .
-                'version, turn OFF "Install alongside the original Geometry Dash" and ' .
-                'retry with its original unmodified APK. For GD 2.209, do not disable ' .
-                'build verification: use the original verified ARM64 APK, or have this ' .
-                'different build checked for support. No APK was patched.'
+                'Side-by-side package relocation is currently supported for the verified GD 2.209 ARM64 build.'
             );
         }
 
