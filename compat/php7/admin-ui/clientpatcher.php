@@ -15,7 +15,8 @@
 <input id="sharedPatcherServer" type="url" required value="<?=h(isset($settings['site_url'])?$settings['site_url']:'')?>" placeholder="https://gdps.example.com" aria-describedby="sharedPatcherServerHelp">
 <small id="sharedPatcherServerHelp">Use your domain without /mc. The client connects to routes at the domain root.</small>
 </div>
-<label class="mc-check-line"><input id="sharedPatcherAlongside" type="checkbox" checked><span>Install the APK alongside the original game <small>(GD 2.209 ARM64)</small></span></label>
+<label class="mc-check-line"><input id="sharedPatcherAlongside" type="checkbox" checked aria-describedby="sharedPatcherAlongsideHelp"><span>Install the APK alongside the original game <small>(verified GD 2.209 ARM64 build only)</small></span></label>
+<p id="sharedPatcherAlongsideHelp" class="mc-page-lead">Side-by-side installation is available only for the exact verified, original GD 2.209 ARM64 APK (package version 2.2.145; 174,568,364 bytes). Other 2.209 builds must be verified separately. If you're patching an older supported APK, uncheck this option to try URL-only patching. Without a separate package ID, an APK signed by MuchoCore may not install over your existing game. Keep the original app and data safe.</p>
 <div class="mc-form-actions"><button id="sharedPatcherStart" type="submit">Prepare client</button><button id="sharedPatcherReset" type="button" class="gray">Reset job</button></div>
 <progress id="sharedPatcherProgress" max="100" value="0" aria-label="Client preparation"></progress>
 <p id="sharedPatcherStatus" role="status" aria-live="polite">Choose a file to begin.</p>
