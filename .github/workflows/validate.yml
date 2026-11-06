@@ -28,6 +28,7 @@ jobs:
           bash tests/release/install-sh.sh
           bash tests/release/deployment-contract.sh
           bash tests/release/installer-dx.sh
+          php tests/release/php-runtime-security-contract.php
           bash tests/release/release-deployment-tools.sh
           bash -n install
           bash -n update.sh
