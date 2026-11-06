@@ -78,6 +78,13 @@ try {
         !str_contains($module, 'not interchangeable')) {
         throw new RuntimeException('Missing actionable side-by-side help in admin UI.');
     }
+    $sharedUi = file_get_contents(dirname(__DIR__, 2) .
+        '/compat/php7/admin-ui/clientpatcher.php');
+    if (!is_string($sharedUi) ||
+        !str_contains($sharedUi, 'sharedPatcherAlongsideHelp') ||
+        !str_contains($sharedUi, 'Other 2.209 builds must be verified separately')) {
+        throw new RuntimeException('Missing shared-host side-by-side help.');
+    }
     echo "ANDROID_2209_UNKNOWN_BUILD_HINT_OK\n";
 } finally {
     @unlink($input);
