@@ -109,6 +109,46 @@ The password is created during installation.
 
 After `/health` works, follow `CLIENT_SETUP.md` for the client patching/connection flow.
 
+## PHP runtime security baseline (21 October 2026)
+
+PHP fixed two critical runtime vulnerabilities (CVE-2026-109618 and
+CVE-2026-109619) in **PHP 8.3.36** (also 8.2.35, 8.4.27 and 8.5.12).
+MuchoProtect is application-level protection and **cannot** patch PHP itself.
+
+Check the running versions of **both** production containers:
+
+~~~bash
+cd /opt/mucho-core
+sudo docker compose exec -T app php -v
+sudo docker compose exec -T worker php -v
+~~~
+
+On a standard PHP 8.3 deployment, any version **older than 8.3.36** must be
+updated promptly. Back up the database first, then pull and rebuild a patched
+base image and recreate the containers:
+
+~~~bash
+sudo /opt/mucho-core/bin/mucho-db-backup.sh
+cd /opt/mucho-core
+sudo docker compose build --pull app worker
+sudo docker compose up -d --force-recreate app worker
+sudo docker compose exec -T app php -v
+sudo docker compose exec -T worker php -v
+curl -fsS https://YOUR-DOMAIN/health
+~~~
+
+The Dockerfile now rejects a PHP image below the 21 October 2026 baseline
+at **build time**, and `sudo mucho doctor` checks the currently running app
+and worker versions after the change reaches your installation. A rebuilt image
+can still contain other vulnerabilities; continue following PHP security
+releases and apply ordinary image/OS updates.
+
+The experimental 5v.pl PHP **7** native preview cannot be made safe against
+these PHP-engine CVEs by updating MuchoCore or configuring MuchoProtect. PHP 7
+is end-of-life; use a host with a supported, patched PHP release for production.
+
+Official PHP announcement: https://www.php.net/archive/2026.php
+
 ## Updating
 
 Use the built-in operator command:

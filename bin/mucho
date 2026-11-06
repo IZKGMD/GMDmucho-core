@@ -367,6 +367,20 @@ doctor() {
         [[ "$running" == "true" ]] && echo "✓ service $service" || { echo "✗ service $service"; ok=1; }
     done
 
+    # The application firewall cannot patch vulnerabilities inside PHP itself.
+    # Check BOTH PHP runtimes (web app and background worker) against the
+    # 2026-10-21 official fixed-release baseline.
+    local runtime_check
+    for service in app worker; do
+        if runtime_check="$(compose exec -T "$service" php bin/php-runtime-security.php 2>&1)"; then
+            echo "✓ $service runtime: $runtime_check"
+        else
+            echo "✗ $service runtime: $runtime_check"
+            echo "  Rebuild patched images: docker compose build --pull app worker"
+            ok=1
+        fi
+    done
+
     local domain health public_health
     domain="$(env_get DOMAIN)"
     if [[ "$tunnel_mode" == 1 ]]; then
