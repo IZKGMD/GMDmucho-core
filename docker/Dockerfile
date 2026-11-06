@@ -1,5 +1,11 @@
 FROM php:8.3-fpm-bookworm
 
+# The floating minor tag can be cached from before the critical 2026-10-21
+# PHP fixes. Refuse to build a vulnerable image rather than silently ship it.
+# When this fails, rebuild with: docker compose build --pull app worker
+COPY bin/php-runtime-security.php /usr/local/bin/mucho-php-runtime-security.php
+RUN php /usr/local/bin/mucho-php-runtime-security.php
+
 # Redis is optional. The default MuchoCore cache driver uses MariaDB;
 # never make a fresh/production app image depend on PECL availability.
 # Set MUCHO_WITH_REDIS=1 only in the explicit Redis-cache Compose overlay.
