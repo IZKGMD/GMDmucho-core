@@ -14,6 +14,14 @@ grep -Fq -- '--domain=HOST' install.sh
 grep -Fq -- '--gd-versions=PROFILE' install.sh
 grep -Fq -- '--migrate' install.sh
 grep -Fq 'curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash' install.sh
+# The branding PHP -r payload must parse exactly as PHP, not as escaped JS/JSON.
+# In particular, namespace separators inside the shell's single quotes are
+# single backslashes rather than the \\ pairs used in encoded strings.
+[[ "$(grep -c "app php -r '" install.sh)" -eq 1 ]]
+branding_php="$(grep "app php -r '" install.sh | sed -E "s/^.*app php -r '(.*)'$/\\1/")"
+[[ "$branding_php" == require* ]]
+printf '<?php\n%s\n' "$branding_php" | php -l >/dev/null
+
 grep -Fq 'check_domain_preflight' install.sh
 grep -Fq 'MUCHO_TRANSPORT_MODE' install.sh
 grep -Fq 'TRANSPORT_MODE="${MUCHO_TRANSPORT_MODE:-direct}"' install.sh

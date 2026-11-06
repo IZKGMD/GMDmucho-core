@@ -774,7 +774,7 @@ run_compose exec -T app php bin/migrate.php migrate
 
 INSTALL_STEP="applying GDPS branding"
 log "Applying GDPS name: $SERVER_NAME"
-run_compose exec -T -e "MUCHO_INSTALL_SERVER_NAME=$SERVER_NAME" app php -r 'require "vendor/autoload.php"; $pdo=(new MuchoCore\\Database\\Database())->connection(); (new MuchoCore\\Branding\\BrandingService($pdo))->saveServerName((string)(getenv("MUCHO_INSTALL_SERVER_NAME") ?: "Mucho GDPS"));'
+run_compose exec -T -e "MUCHO_INSTALL_SERVER_NAME=$SERVER_NAME" app php -r 'require "vendor/autoload.php"; $pdo=(new \MuchoCore\Database\Database())->connection(); (new \MuchoCore\Branding\BrandingService($pdo))->saveServerName((string)(getenv("MUCHO_INSTALL_SERVER_NAME") ?: "Mucho GDPS"));'
 
 INSTALL_STEP="running the internal healthcheck"
 log "Running internal MuchoCore healthcheck..."
