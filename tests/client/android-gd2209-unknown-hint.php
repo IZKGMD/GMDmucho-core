@@ -43,6 +43,48 @@ try {
     if (is_file($output)) {
         throw new RuntimeException('Rejected APK must not produce an output.');
     }
+    // An older or otherwise unsupported APK must not be silently relocated.
+    // The user-facing message should point to the safe flag/configuration choice.
+    $otherInput = $dir . '/other-build.apk';
+    $otherZip = new ZipArchive();
+    if ($otherZip->open($otherInput, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true ||
+        !$otherZip->addFromString('AndroidManifest.xml', 'OTHER_BUILD') ||
+        !$otherZip->addFromString('assets/padding.bin', random_bytes(2048)) ||
+        !$otherZip->close()) {
+        throw new RuntimeException('Unable to construct unsupported APK test.');
+    }
+    try {
+        AndroidClientPatcher::patchFile(
+            $otherInput, $output, 'https://muchogdps.space', null, true
+        );
+        throw new RuntimeException('Non-verified APK was relocated.');
+    } catch (RuntimeException $e) {
+        if (!str_contains($e->getMessage(), 'Side-by-side package relocation is currently supported') ||
+            !str_contains($e->getMessage(), 'verified GD 2.209 ARM64 build')) {
+            throw new RuntimeException('Unhelpful side-by-side diagnostics: ' .
+                $e->getMessage());
+        }
+    }
+    if (is_file($output)) {
+        throw new RuntimeException('Unsupported APK must not generate an output.');
+    }
+    @unlink($otherInput);
+    // Keep explanatory UI in the modern admin without altering the
+    // SHA-pinned runtime source consumed by the PHP7 compiled port.
+    $module = file_get_contents(dirname(__DIR__, 2) .
+        '/public/admin/android-client-patcher-module.php');
+    if (!is_string($module) ||
+        !str_contains($module, 'mcAndroidPatcherAlongsideHelp') ||
+        !str_contains($module, 'not interchangeable')) {
+        throw new RuntimeException('Missing actionable side-by-side help in admin UI.');
+    }
+    $sharedUi = file_get_contents(dirname(__DIR__, 2) .
+        '/compat/php7/admin-ui/clientpatcher.php');
+    if (!is_string($sharedUi) ||
+        !str_contains($sharedUi, 'sharedPatcherAlongsideHelp') ||
+        !str_contains($sharedUi, 'Other 2.209 builds must be verified separately')) {
+        throw new RuntimeException('Missing shared-host side-by-side help.');
+    }
     echo "ANDROID_2209_UNKNOWN_BUILD_HINT_OK\n";
 } finally {
     @unlink($input);
