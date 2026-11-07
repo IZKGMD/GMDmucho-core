@@ -25,6 +25,10 @@ esac
   { echo "Stress directory missing or symlinked." >&2; exit 66; }
 [[ -f "$COMPOSE" && ! -L "$COMPOSE" ]] ||
   { echo "Stress compose file missing or symlinked." >&2; exit 66; }
+[[ ! -e "$DIR/.env" ]] ||
+  { echo "Production-like .env found in stress checkout; refusing." >&2; exit 77; }
+[[ -d "$DIR/.stress-secrets" && ! -L "$DIR/.stress-secrets" ]] ||
+  { echo "Synthetic stress secrets directory missing." >&2; exit 66; }
 [[ "$(stat -c %u "$DIR")" == "0" && "$(stat -c %u "$COMPOSE")" == "0" ]] ||
   { echo "Stress configuration must be root-owned." >&2; exit 77; }
 mode_dir="$(stat -c %a "$DIR")"
