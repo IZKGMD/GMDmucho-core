@@ -33,11 +33,71 @@ giving ChatGPT a private key or direct SSH session.
 - Server installer: `tools/bridge/install-vps-bridge.sh`
 - Forced command: `tools/bridge/vps-bridge-remote.sh`
 
-**This is a deliberately limited first stage, not unrestricted VPS management.**
+**By default this is a deliberately limited bridge.** Optional root mode,
+explained below, deliberately removes that limit on a disposable VPS.
 It does not deploy source changes, obtain Docker/root privileges, inspect
 application secrets, modify the production database, or execute arbitrary shell
 from an issue comment. To expand it, change and review the allowlist in GitHub
 and install the reviewed server-side command update.
+
+## Optional: unrestricted root mode for a disposable VPS
+
+**Use this only when the VPS has no production workloads or secrets that must
+remain private.** The repository owner can grant full root command execution
+through the GitHub issue control channel with a single local opt-in.
+
+From a **root** shell on the VPS, run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/tools/bridge/enable-root-bridge.sh -o /root/mucho-bridge-enable-root.sh && bash /root/mucho-bridge-enable-root.sh
+```
+
+This installs a root-owned helper plus a separate sudoers entry. It does not
+replace or reveal the bridge's existing private SSH key and does not require
+another GitHub login. The permission is **not enabled until this local command
+has successfully completed**.
+
+When enabled, the repository owner (GitHub user ID `112145870`) can issue
+the following comment on control issue
+[MuchoCore VPS bridge #205](https://github.com/IZKGMD/GMDmucho-core/issues/205):
+
+```text
+/vps root id -u
+```
+
+The result should be `0`. Other examples:
+
+```text
+/vps root cd /opt/mucho-stress && docker compose -f docker-compose.stress.yml ps
+/vps root free -h
+```
+
+The GitHub workflow base64url-encodes the command for SSH transport to avoid
+shell quoting/injection in the GitHub Actions runner. The forced SSH command
+passes it to the root-owned executor. The executor decodes the command and
+runs `/bin/bash -c` **as root**, with a 90-second execution time limit.
+
+**Serious risks — even with a disposable VPS:**
+- The command text in issue comments and the truncated output in bot replies
+  are **PUBLIC**. Base64 is transport encoding, **not encryption**. Do not run
+  commands that print secrets, tokens, private keys or database credentials.
+- A GitHub account/workflow compromise may become full VPS compromise.
+- Incorrect commands can erase any files on this VPS, not just MuchoCore.
+- Networked credentials, backup mounts and connected services on the VPS
+  may have value even if the VPS itself is disposable.
+- A 90-second timeout does not make filesystem modifications transactional.
+  No automatic rollback is provided.
+
+To turn off root mode **immediately** without disabling existing diagnostics:
+
+```bash
+rm -f /etc/sudoers.d/91-muchocore-bridge-root
+visudo -c
+```
+
+The `muchobridge` user still has no interactive SSH shell and is not a member
+of the Docker/sudo groups, but the root helper intentionally makes the
+GitHub-authorized command channel root-equivalent while enabled.
 
 ## Optional: privileged **stress-only** automation
 
@@ -74,6 +134,7 @@ these stress-only actions. A compromised source repository or published stress
 image remains a serious supply-chain risk. Never turn the bridge into an
 unrestricted sudo/shell gateway via publicly visible issue comments.
 Root-capable actions are deliberately opt-in and require one local installation.
+The separate unrestricted root mode is covered above and is more dangerous.
 
 If the command says root configuration is not owned by root, inspect the
 installation instead of bypassing the checks. To disable privileged operations
