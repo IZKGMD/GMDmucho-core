@@ -12,7 +12,6 @@ from xml.etree import ElementTree
 ROOT = Path(__file__).resolve().parents[2]
 BASE = "https://muchogdps.space"
 EXPECTED = {
-    f"{BASE}/": "public/index.html",
     f"{BASE}/muchocore/": "public/muchocore/index.html",
     f"{BASE}/muchocore/about/": "public/muchocore/about/index.html",
     f"{BASE}/muchocore/compatibility/": "public/muchocore/compatibility/index.html",
@@ -115,7 +114,9 @@ def main() -> None:
             "Missing compatibility article")
     for target in ["/muchocore/about/", "/muchocore/compatibility/"]:
         require(target in product.links, f"Missing product-to-page link: {target}")
-    require("/muchocore/" in pages[BASE + "/"].links, "Community homepage does not link to product")
+    # The old community homepage is now a 308 redirect; the canonical root
+    # no longer appears as a separate document in the sitemap.
+    require(BASE + "/" not in pages, "Old root homepage must not be indexed")
 
     robots = (ROOT / "public/robots.txt").read_text(encoding="utf-8")
     require("Sitemap: " + BASE + "/sitemap.xml" in robots, "No sitemap discovery")
@@ -130,6 +131,10 @@ def main() -> None:
     caddy = (ROOT / "docker/Caddyfile").read_text()
     require("uri strip_prefix /muchocore" in caddy and "file_server" in caddy,
             "Caddy must serve the knowledge pages as static HTML")
+    require("redir @muchocore_canonical_landing /muchocore/ 308" in caddy,
+            "Root redirect must be permanent and host-scoped")
+    require("path / /index /index/ /index.html /muchogdps-index.html" in caddy,
+            "Legacy homepage aliases must redirect to the MuchoCore product")
     print("MUCHOCORE_AI_DISCOVERY_OK: sitemap, canonicals, structured data, links, crawler access, llms.txt")
 
 
