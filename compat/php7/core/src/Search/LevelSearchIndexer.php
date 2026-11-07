@@ -4,6 +4,7 @@ declare (strict_types=1);
 namespace MuchoCore\Search;
 
 use PDO;
+use PDOStatement;
 use Throwable;
 final class LevelSearchIndexer
 {
@@ -33,11 +34,18 @@ final class LevelSearchIndexer
      * Share the same normalization and upsert contract for a single update
      * and for rows already fetched by the batched rebuild.
      */
-    private function writeIndexedLevel(array $level): bool
+    private function writeIndexedLevel(array $level, $prepared = null): bool
     {
         $name = self::normalize((string) $level['name']);
         $creator = self::normalize((string) $level['username']);
-        $write = $this->pdo->prepare('INSERT INTO mucho_level_search_index
+        $write = $prepared ?? $this->prepareIndexUpsert();
+        $write->execute(['level_id' => (int) $level['level_id'], 'account_id' => (int) $level['account_id'], 'username' => substr((string) $level['username'], 0, 20), 'name' => substr($name, 0, 128), 'creator' => substr($creator, 0, 64), 'search_text' => substr(trim($name . ' ' . $creator), 0, 255), 'game_version' => (int) $level['game_version'], 'is_deleted' => (int) $level['is_deleted'], 'is_unlisted' => (int) $level['is_unlisted']]);
+        return true;
+    }
+    /** Prepare one statement for all rows of an indexed rebuild. */
+    private function prepareIndexUpsert(): PDOStatement
+    {
+        return $this->pdo->prepare('INSERT INTO mucho_level_search_index
                 (level_id,account_id,username,normalized_name,
                  normalized_creator,search_text,game_version,
                  is_deleted,is_unlisted)
@@ -54,8 +62,6 @@ final class LevelSearchIndexer
                 is_deleted=VALUES(is_deleted),
                 is_unlisted=VALUES(is_unlisted),
                 updated_at=CURRENT_TIMESTAMP');
-        $write->execute(['level_id' => (int) $level['level_id'], 'account_id' => (int) $level['account_id'], 'username' => substr((string) $level['username'], 0, 20), 'name' => substr($name, 0, 128), 'creator' => substr($creator, 0, 64), 'search_text' => substr(trim($name . ' ' . $creator), 0, 255), 'game_version' => (int) $level['game_version'], 'is_deleted' => (int) $level['is_deleted'], 'is_unlisted' => (int) $level['is_unlisted']]);
-        return true;
     }
     public function rebuildAccount(int $accountId): int
     {
@@ -103,6 +109,7 @@ final class LevelSearchIndexer
         $scan = $this->pdo->prepare("SELECT l.level_id,l.account_id,l.name,l.game_version,\n                    l.is_deleted,l.is_unlisted,\n                    COALESCE(a.username,'') AS username\n             FROM levels l\n             LEFT JOIN accounts a ON a.account_id=l.account_id\n             WHERE l.level_id > :cursor AND l.level_id <= :ceiling" . ($accountId !== null ? ' AND l.account_id=:account_id' : '') . ' ORDER BY l.level_id ASC LIMIT :batch');
         $cursor = 0;
         $indexed = 0;
+        $write = $this->prepareIndexUpsert();
         while ($remaining > 0) {
             $batch = min(256, $remaining);
             $scan->bindValue(':cursor', $cursor, PDO::PARAM_INT);
@@ -120,7 +127,7 @@ final class LevelSearchIndexer
             foreach ($rows as $level) {
                 $cursor = (int) $level['level_id'];
                 try {
-                    if ($this->writeIndexedLevel($level)) {
+                    if ($this->writeIndexedLevel($level, $write)) {
                         $indexed++;
                     }
                 } catch (Throwable $__mcCaught) {

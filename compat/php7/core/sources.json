@@ -261,7 +261,7 @@
     "src/Score/LevelScoreController.php": "25d95f0be51334afdf2a70ae07b5c32f310211d1e46dbaa1c9320f9e3f4dfe56",
     "src/Score/PlatformerScoreController.php": "5a3eb53c1d5675d8da44e4b466080061e7d97f852bba8e49258a9ba47eca5db8",
     "src/Score/ScoreIntegrity.php": "c0428f50011a8be057b406f8a91ec69fca3209295e4b7d11d55fc8968c825117",
-    "src/Search/LevelSearchIndexer.php": "e57c53c7dd64781bdd26e9bbaaffa68d29be93a6a5522a82dbc0e212298e503d",
+    "src/Search/LevelSearchIndexer.php": "aab165013ea69de857ead246bba52f44c924dc86125316f294466db82d5b83ab",
     "src/Security/AbusePenaltyStore.php": "a75dcccdbb97eb4a5da7ff5c3c43de523b6e0760c940cb99b2dc8b532b3c1920",
     "src/Security/DatabasePenaltyStore.php": "c581e05777cc0bf719b282dada02229756b83d2fdc68131521514229c189568e",
     "src/Security/DatabaseRateLimiter.php": "f7cda86294ab3d5ebb6aed24a3aaee9c8b80b7cfd8b9bd40c6485c2bf7d19ac6",
