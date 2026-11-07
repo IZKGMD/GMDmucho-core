@@ -11,7 +11,7 @@ import statistics
 import sys
 import time
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.request import ProxyHandler, Request, build_opener
 
 URL = "http://127.0.0.1:18080/health"
 REQUESTS = 40
@@ -20,13 +20,13 @@ TIMEOUT_SECONDS = 3
 
 
 def main() -> int:
-    latencies_ms: list[float] = []
+    # Never inherit HTTP_PROXY/HTTPS_PROXY from the account environment.\n    opener = build_opener(ProxyHandler({}))\n    latencies_ms: list[float] = []
     failures: list[str] = []
     for number in range(1, REQUESTS + 1):
         started = time.perf_counter()
         try:
             request = Request(URL, headers={"User-Agent": "MuchoCore-Bridge/1"})
-            with urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+            with opener.open(request, timeout=TIMEOUT_SECONDS) as response:
                 body = response.read(32)
                 if response.status != 200 or body.strip() != b"1":
                     failures.append(f"request {number}: unexpected HTTP/body")
