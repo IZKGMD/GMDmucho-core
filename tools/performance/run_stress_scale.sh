@@ -14,7 +14,7 @@ if ! docker compose version >/dev/null 2>&1; then
   echo "Docker Compose v2 is required." >&2
   exit 1
 fi
-mode="$(printf '%s' "$1" 2>/dev/null || true)"
+mode="${1:-}"
 case "$mode" in
   ""|all) levels="1000 10000" ;;
   --only-1000) levels="1000" ;;
