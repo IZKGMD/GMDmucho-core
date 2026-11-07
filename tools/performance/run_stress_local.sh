@@ -32,9 +32,9 @@ for name in db_password db_root_password; do
 done
 compose config -q
 
-echo "[MuchoCore] Building local, isolated stress stack..."
-compose build --pull app
-compose up -d db app caddy
+echo "[MuchoCore] Pulling prebuilt image and isolated stress dependencies..."
+compose pull app db caddy
+compose up -d --no-build db app caddy
 
 healthy=0
 for attempt in $(seq 1 80); do
