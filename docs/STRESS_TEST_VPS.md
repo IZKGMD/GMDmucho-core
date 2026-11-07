@@ -122,13 +122,14 @@ For each fixture size (1,000, then 10,000), it:
 2. Rebuilds the canonical level search index and verifies its row count.
 3. Lets the short-lived response cache expire.
 4. Measures 90 seconds of paced GD 2.209 *read* traffic: level list, lookup
-   by ID, download with inc=0, and public user profile. Each route must
+   by ID, text search, download with inc=0, and public user profile. Each route must
    return a genuine matching synthetic response, not an empty response or -1.
 5. Samples container memory/CPU every 5 seconds **during** the workload
    and records post-test OOM/restart information.
 
-The request start interval is deliberately 350 ms, with four routes cycled.
-Each protected route gets roughly 43 requests per minute, below default
+The request start interval is deliberately 450 ms, with five scenarios
+cycled (three share the level-search endpoint). Level-search receives about
+80 requests/minute and download/profile about 27/minute, below default
 per-IP request limits. The reported throughput is **client-pacing-limited**;
 it is neither maximum PHP throughput nor a simulation of 10,000 concurrent
 players. No source-IP spoofing, uploads, admin mutations or score writes.
