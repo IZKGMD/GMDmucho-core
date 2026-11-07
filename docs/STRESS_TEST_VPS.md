@@ -92,6 +92,15 @@ load.sh for this test: it sends synthetic client IP headers, so results do
 not reflect MuchoProtect's real client rate limits.
 
 
+## Verified VPS measurements
+
+A real 1k→10k mixed GD 2.209 read workload, combined with a separately tested
+visible-level index, was run on 2026-11-07. See
+[measured p95 timings, query plans, PHP8/PHP7 reindex refactor and caveats](PERFORMANCE_VPS_1K_10K_20261107.md).
+
+The staging index improved text search and latest-list p95 in a single 10k
+fixture run; it is **not** enabled automatically on existing installations.
+
 ## Phase 2: 1,000 versus 10,000 levels
 
 After phase 1 has passed and its containers are still up, update the test
