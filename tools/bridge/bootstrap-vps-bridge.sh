@@ -23,7 +23,8 @@ step 'Downloading bridge helpers from the MuchoCore main branch.'
 for name in install-vps-bridge.sh vps-bridge-remote.sh vps-bridge-bench.py; do
   curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/$name" -o "$DIR/$name"
 done
-bash -n "$DIR/install-vps-bridge.sh" "$DIR/vps-bridge-remote.sh"
+bash -n "$DIR/install-vps-bridge.sh"
+bash -n "$DIR/vps-bridge-remote.sh"
 python3 -m py_compile "$DIR/vps-bridge-bench.py"
 
 if [[ ! -e "$KEY" && ! -e "$KEY.pub" ]]; then
@@ -40,7 +41,7 @@ step 'Creating the unprivileged, forced-command SSH account.'
 bash "$DIR/install-vps-bridge.sh" "$KEY.pub"
 
 step 'Detecting SSH address and verifying the host key.'
-host="\${MUCHO_BRIDGE_HOST:-}"
+host="${MUCHO_BRIDGE_HOST:-}"
 if [[ -z "$host" ]]; then
   host="$(curl -fsSL --noproxy '*' --connect-timeout 5 --max-time 10 https://api.ipify.org)" ||
     fail 'Public IPv4 detection failed. Set MUCHO_BRIDGE_HOST and retry.'
@@ -54,10 +55,10 @@ except ValueError:
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.-]{0,251}[A-Za-z0-9]", s):
         raise SystemExit(1)
 PY
-port="\${MUCHO_BRIDGE_PORT:-}"
+port="${MUCHO_BRIDGE_PORT:-}"
 if [[ -z "$port" ]]; then
   port="$(sshd -T 2>/dev/null | awk '$1=="port" {print $2; exit}' || true)"
-  port="\${port:-22}"
+  port="${port:-22}"
 fi
 if ! [[ "$port" =~ ^[0-9]{1,5}$ ]] || (( 10#$port < 1 || 10#$port > 65535 )); then
   fail 'Invalid SSH port.'
