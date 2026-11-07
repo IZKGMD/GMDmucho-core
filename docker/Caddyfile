@@ -26,24 +26,15 @@
         respond 404
     }
 
-    # Main MuchoGDPS landing page. Only the canonical project host
-    # serves the marketing homepage; tenant GDPS hosts keep the API front controller.
-    @muchogdps_home {
+    # MuchoCore is the only canonical landing page on the project host.
+    # Retire the separate MuchoGDPS root homepage, but keep all game API,
+    # player dashboard, admin, download and installation routes unchanged.
+    # The redirect is host-scoped so GDPS tenants remain unaffected.
+    @muchocore_canonical_landing {
         host {$MUCHOCORE_SITE_HOST}
-        path /
+        path / /index /index/ /index.html /muchogdps-index.html
     }
-    handle @muchogdps_home {
-        rewrite * /index.html
-        file_server
-    }
-
-    # Canonical homepage: / is the only public landing-page URL.
-    # Redirect legacy /index and /index/ requests to the root.
-    @muchogdps_index {
-        host {$MUCHOCORE_SITE_HOST}
-        path /index /index/
-    }
-    redir @muchogdps_index / 308
+    redir @muchocore_canonical_landing /muchocore/ 308
 
     # Dedicated installation pages must be matched before the general /install/* selector.
     # Legacy shared-hosting aliases always land on the canonical automatic installer.
