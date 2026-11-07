@@ -47,6 +47,10 @@ jobs:
           bash -n tools/performance/run_stress_local.sh
           python3 -m py_compile tools/performance/stress_local.py
           php -l tools/performance/seed_stress_fixture.php
+          bash -n tools/performance/run_stress_scale.sh
+          python3 -m py_compile tools/performance/stress_scale.py
+          python3 tests/performance/stress_scale_contract_test.py
+          php -l tools/performance/seed_stress_scale.php
           bash -n bin/mucho
           while IFS= read -r -d "" script; do
             echo "Checking shell syntax: $script"

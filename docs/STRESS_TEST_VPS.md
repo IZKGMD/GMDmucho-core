@@ -90,3 +90,74 @@ A peak capacity test needs realistic data, a separate authorization-safe load
 profile and careful CPU/SQL measurement. Do not use the old integration
 load.sh for this test: it sends synthetic client IP headers, so results do
 not reflect MuchoProtect's real client rate limits.
+
+
+## Phase 2: 1,000 versus 10,000 levels
+
+After phase 1 has passed and its containers are still up, update the test
+checkout to the new main branch. Do not reset or delete its existing
+synthetic Docker volumes:
+
+~~~bash
+cd /opt/mucho-stress
+git pull --ff-only
+bash tools/performance/run_stress_scale.sh
+~~~
+
+Run it in tmux on low-memory servers so an SSH disconnect does not end it:
+
+~~~bash
+tmux new-session -d -s mucho-scale \
+  'cd /opt/mucho-stress && bash tools/performance/run_stress_scale.sh > /root/mucho-scale.log 2>&1; echo "EXIT_CODE=$?" >> /root/mucho-scale.log'
+tail -f /root/mucho-scale.log
+~~~
+
+This phase uses the **running, localhost-only test stack**. It does not
+build or pull images, reset data, disable MuchoProtect or restart PHP/MariaDB.
+For each fixture size (1,000, then 10,000), it:
+
+1. Seeds deterministic level IDs in the existing **mucho_stress** database
+   using small transactions. The script refuses non-stress databases and any
+   unexpected pre-existing player/level fixtures.
+2. Rebuilds the canonical level search index and verifies its row count.
+3. Lets the short-lived response cache expire.
+4. Measures 90 seconds of paced GD 2.209 *read* traffic: level list, lookup
+   by ID, text search, download with inc=0, and public user profile. Each route must
+   return a genuine matching synthetic response, not an empty response or -1.
+5. Samples container memory/CPU every 5 seconds **during** the workload
+   and records post-test OOM/restart information.
+
+The request start interval is deliberately 450 ms, with five scenarios
+cycled (three share the level-search endpoint). Level-search receives about
+80 requests/minute and download/profile about 27/minute, below default
+per-IP request limits. The reported throughput is **client-pacing-limited**;
+it is neither maximum PHP throughput nor a simulation of 10,000 concurrent
+players. No source-IP spoofing, uploads, admin mutations or score writes.
+
+The reports are under:
+
+~~~text
+storage/stress-reports/scale-*-1000/report.json
+storage/stress-reports/scale-*-1000/resources.log
+storage/stress-reports/scale-*-10000/report.json
+storage/stress-reports/scale-*-10000/resources.log
+~~~
+
+For a repeat of only the larger fixture, which preserves the already seeded
+10,000 levels:
+
+~~~bash
+bash tools/performance/run_stress_scale.sh --only-10000
+~~~
+
+Once 10,000 levels are seeded, **do not** rerun the 1,000-level scenario on
+the same volume and compare it as if the dataset shrank; the seeder refuses
+that downgrade rather than deleting rows. Separate clean stress volumes are
+needed for a fresh 1k/10k comparison.
+
+Compare p50/p95/p99 for matching routes, failures, peak memory, swap,
+OOM/restarts and resource-sampling CPU across the two fixture sizes. On a
+1-vCPU, 1-GiB server, synthetic data can remain small while PHP and MariaDB
+compete for one CPU. A valid capacity study requires additional
+representative data, genuine concurrent client identities and careful
+rate-limit-aware testing on a non-public staging tenant.
