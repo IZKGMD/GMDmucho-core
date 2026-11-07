@@ -75,7 +75,7 @@ $unrelated = array(
     'install.php',
     'wp-login.php',
     'dashboard/index.php',
-    'api/status.php',
+    'tools/status.php',
     'mc/config/php7-local.php',
     'mc/admin.php'
 );
