@@ -22,7 +22,8 @@ jobs:
       github.event.issue.pull_request == null &&
       github.event.comment.user.id == 112145870 &&
       github.event.comment.user.login == 'IZKGMD' &&
-      contains(fromJSON('["/vps status","/vps smoke","/vps bench","/vps gd2209","/vps stress status","/vps stress restart","/vps stress update"]'), github.event.comment.body)
+      (contains(fromJSON('["/vps status","/vps smoke","/vps bench","/vps gd2209","/vps stress status","/vps stress restart","/vps stress update"]'), github.event.comment.body) ||
+       startsWith(github.event.comment.body, '/vps root '))
     runs-on: ubuntu-latest
     timeout-minutes: 4
     steps:
@@ -51,6 +52,21 @@ jobs:
             "/vps stress status") command_name="stress-status" ;;
             "/vps stress restart") command_name="stress-restart" ;;
             "/vps stress update") command_name="stress-update" ;;
+            "/vps root "*)
+              root_cmd="${BRIDGE_REQUEST#"/vps root "}"
+              if [[ -z "$root_cmd" || "${#root_cmd}" -gt 3000 ]]; then
+                echo "Root command missing or exceeds 3000 characters." > "$report"
+                echo "result=failed" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              root_b64="$(printf '%s' "$root_cmd" | base64 -w0 | tr '+/' '-_' | tr -d '=')"
+              if [[ "${#root_b64}" -gt 4096 ]]; then
+                echo "Encoded root command exceeds transport limit." > "$report"
+                echo "result=failed" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              command_name="root:$root_b64"
+              ;;
             *) echo "Command not allowed" > "$report"; echo "result=failed" >> "$GITHUB_OUTPUT"; exit 0 ;;
           esac
 
@@ -108,8 +124,15 @@ jobs:
           report="$RUNNER_TEMP/vps-bridge-output.txt"
           body="$RUNNER_TEMP/vps-bridge-comment.md"
           {
-            printf 'VPS bridge request `%s`: **%s**\n\n' "$BRIDGE_REQUEST" "${BRIDGE_RESULT:-failed}"
-            printf 'Bridge is limited to the isolated /opt/mucho-stress stack; some commands may restart or update its app container.\n\n'
+            if [[ "$BRIDGE_REQUEST" == "/vps root "* ]]; then
+              printf 'VPS bridge **root command**: **%s**\n\n' "${BRIDGE_RESULT:-failed}"
+              printf 'Root execution is enabled only by local opt-in. Command and output are PUBLIC in this issue.\n\n'
+            else
+              printf 'VPS bridge request `%s`: **%s**\n\n' "$BRIDGE_REQUEST" "${BRIDGE_RESULT:-failed}"
+            fi
+            if [[ "$BRIDGE_REQUEST" != "/vps root "* ]]; then
+              printf 'Restricted commands target the isolated /opt/mucho-stress stack.\n\n'
+            fi
             printf '<details><summary>Result</summary>\n\n```text\n'
             if [[ -f "$report" ]]; then
               head -c 5500 "$report" |
