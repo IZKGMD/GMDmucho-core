@@ -20,7 +20,9 @@ TIMEOUT_SECONDS = 3
 
 
 def main() -> int:
-    # Never inherit HTTP_PROXY/HTTPS_PROXY from the account environment.\n    opener = build_opener(ProxyHandler({}))\n    latencies_ms: list[float] = []
+    # Never inherit HTTP_PROXY/HTTPS_PROXY from the account environment.
+    opener = build_opener(ProxyHandler({}))
+    latencies_ms: list[float] = []
     failures: list[str] = []
     for number in range(1, REQUESTS + 1):
         started = time.perf_counter()
