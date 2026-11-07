@@ -14,6 +14,13 @@ readonly REQUEST="${SSH_ORIGINAL_COMMAND:-}"
 # Reject direct SSH logins and *all* commands not explicitly supported.
 case "$REQUEST" in
   status|smoke|bench|gd2209|stress-status|stress-restart|stress-update) ;;
+  root:*)
+    encoded="${REQUEST#root:}"
+    if [[ ${#encoded} -gt 4096 || ! "$encoded" =~ ^[A-Za-z0-9_-]+$ ]]; then
+      echo 'REJECTED: malformed root transport payload' >&2
+      exit 64
+    fi
+    ;;
   *) printf 'REJECTED: unsupported bridge command\n' >&2; exit 64 ;;
 esac
 
@@ -77,7 +84,12 @@ case "$REQUEST" in
     exec python3 /usr/local/libexec/mucho-vps-bridge-gd2209
     ;;
   stress-status|stress-restart|stress-update)
-    # Only three explicit sudoers commands are available to muchobridge.
     exec sudo -n -- /usr/local/libexec/mucho-vps-admin "$REQUEST"
+    ;;
+  root:*)
+    # Deliberately unrestricted root-mode command *after* separate one-time
+    # sudoers authorization on the disposable VPS. The transport remains
+    # forced-command SSH; no password or private key is exposed in chat.
+    exec sudo -n -- /usr/local/libexec/mucho-vps-root-exec "${REQUEST#root:}"
     ;;
 esac
