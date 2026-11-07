@@ -32,14 +32,14 @@ if [[ "$key_type" != "ssh-ed25519" ||
 fi
 
 src_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-for file in vps-bridge-remote.sh vps-bridge-bench.py; do
+for file in vps-bridge-remote.sh vps-bridge-bench.py vps-bridge-gd2209.py; do
   [[ -f "$src_dir/$file" ]] || {
     echo "Missing $src_dir/$file" >&2
     exit 5
   }
 done
 bash -n "$src_dir/vps-bridge-remote.sh"
-python3 -m py_compile "$src_dir/vps-bridge-bench.py"
+python3 -m py_compile "$src_dir/vps-bridge-bench.py" "$src_dir/vps-bridge-gd2209.py"
 
 bridge_user='muchobridge'
 bridge_home='/var/lib/mucho-bridge'
@@ -83,8 +83,10 @@ install -o root -g root -m 755 \
   "$src_dir/vps-bridge-remote.sh" /usr/local/libexec/mucho-vps-bridge
 install -o root -g root -m 755 \
   "$src_dir/vps-bridge-bench.py" /usr/local/libexec/mucho-vps-bridge-bench
+install -o root -g root -m 755 \
+  "$src_dir/vps-bridge-gd2209.py" /usr/local/libexec/mucho-vps-bridge-gd2209
 
 echo "MuchoCore restricted bridge installed."
 echo "SSH account: muchobridge (no sudo, no docker group)"
-echo "Forced commands: status, smoke, bench (localhost:18080 only)"
+echo "Forced commands: status, smoke, bench, gd2209 (localhost:18080 only)"
 echo "Configure GitHub repository secrets as documented in docs/VPS_BRIDGE.md."
