@@ -821,6 +821,7 @@ jobs:
               php -l public/php7-setup.php
               php -l compat/php7/config.example.php
               php -l public/php7.php
+              php tests/compat/php7-5v-root-routing-contract.php
               php tests/compat/php7-native-pure.php
               php tests/compat/php7-cloudsave-crypto.php
               php tests/compat/php7-domain-complete-query.php
