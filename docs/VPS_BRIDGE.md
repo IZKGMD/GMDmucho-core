@@ -39,6 +39,47 @@ application secrets, modify the production database, or execute arbitrary shell
 from an issue comment. To expand it, change and review the allowlist in GitHub
 and install the reviewed server-side command update.
 
+## Optional: privileged **stress-only** automation
+
+The initial bridge is read-only. To let GitHub Actions manage the **isolated**
+MuchoCore stress app, run **one command** from an SSH root shell on the VPS:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/tools/bridge/upgrade-privileged-bridge.sh -o /root/mucho-bridge-upgrade.sh && bash /root/mucho-bridge-upgrade.sh
+```
+
+This does not repeat GitHub authorization, regenerate keys, modify GitHub
+Secrets, or grant arbitrary root access. The code is executed as root, so
+inspect the downloaded script beforehand if the GitHub branch is untrusted.
+
+Once installed, the repository owner can comment exactly:
+
+- `/vps stress status`: list running services for the isolated stress stack
+- `/vps stress restart`: restart **only** the `app` container in that stack
+- `/vps stress update`: pull its current image tag and recreate **only** its
+  `app` container. This operation changes the test deployment and may
+  briefly interrupt synthetic tests.
+
+The server-side root helper is owned by root at
+`/usr/local/libexec/mucho-vps-admin` and the restricted sudoers policy lists
+**only those three exact argument strings**. It verifies that
+`/opt/mucho-stress` and `docker-compose.stress.yml` are root-owned,
+non-symlinked, and not writable by other users. Root operations are
+not available for any other path, service, image reference, environment
+variable or arbitrary command. The production `/opt/mucho-core`
+installation is explicitly outside the supported scope.
+
+**Security model:** a compromised repository owner GitHub session can issue
+these stress-only actions. A compromised source repository or published stress
+image remains a serious supply-chain risk. Never turn the bridge into an
+unrestricted sudo/shell gateway via publicly visible issue comments.
+Root-capable actions are deliberately opt-in and require one local installation.
+
+If the command says root configuration is not owned by root, inspect the
+installation instead of bypassing the checks. To disable privileged operations
+without disabling ordinary diagnostics, remove
+`/etc/sudoers.d/90-muchocore-bridge` and validate with `sudo visudo -c`.
+
 ## Prerequisites
 
 - Ubuntu VPS with an SSH server reachable **from GitHub-hosted runners** on a
