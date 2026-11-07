@@ -20,12 +20,12 @@ command -v python3 >/dev/null || fail 'Python 3 is required.'
 install -d -o root -g root -m 700 "$DIR"
 
 step 'Downloading bridge helpers from the MuchoCore main branch.'
-for name in install-vps-bridge.sh vps-bridge-remote.sh vps-bridge-bench.py; do
+for name in install-vps-bridge.sh vps-bridge-remote.sh vps-bridge-bench.py vps-bridge-gd2209.py; do
   curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/$name" -o "$DIR/$name"
 done
 bash -n "$DIR/install-vps-bridge.sh"
 bash -n "$DIR/vps-bridge-remote.sh"
-python3 -m py_compile "$DIR/vps-bridge-bench.py"
+python3 -m py_compile "$DIR/vps-bridge-bench.py" "$DIR/vps-bridge-gd2209.py"
 
 if [[ ! -e "$KEY" && ! -e "$KEY.pub" ]]; then
   step 'Creating a restricted, dedicated SSH key.'
