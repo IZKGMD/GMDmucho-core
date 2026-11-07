@@ -21,7 +21,7 @@ def encoded(command: str) -> str:
 
 class RootBridgeTransportTest(unittest.TestCase):
     def test_decodes_bash_with_unicode_and_newline(self):
-        command = "printf 'Готово\\n'\\nid -u"
+        command = "printf 'Готово\\n'" + "\n" + "id -u"
         self.assertEqual(bridge.decode_command(encoded(command)), command)
 
     def test_rejects_invalid_payload(self):
@@ -46,7 +46,6 @@ class RootBridgeTransportTest(unittest.TestCase):
         ) as proc:
             self.assertEqual(bridge.main(["root-exec", encoded("id -u")]), 0)
         args, kwargs = proc.call_args
-        self.assertEqual(args[0][-4:], ["--norc", "-c", "id -u"][-4:]) if False else None
         self.assertEqual(args[0][-3:], ["--norc", "-c", "id -u"])
         self.assertEqual(args[0][0], "/usr/bin/timeout")
         self.assertEqual(args[0][-4], "--noprofile")
