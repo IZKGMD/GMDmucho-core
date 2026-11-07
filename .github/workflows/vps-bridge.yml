@@ -1,0 +1,122 @@
+name: VPS bridge (owner-only)
+
+# GitHub issue #205 is the control channel. The workflow only runs on the
+# default branch and only for exact commands written by the repository owner.
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: muchocore-restricted-vps-bridge
+  cancel-in-progress: false
+
+jobs:
+  bridge:
+    if: >-
+      github.repository == 'IZKGMD/GMDmucho-core' &&
+      github.event.issue.number == 205 &&
+      github.event.issue.pull_request == null &&
+      github.event.comment.user.id == 112145870 &&
+      github.event.comment.user.login == 'IZKGMD' &&
+      contains(fromJSON('["/vps status","/vps smoke","/vps bench"]'), github.event.comment.body)
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run one restricted SSH command
+        id: remote
+        shell: bash
+        env:
+          BRIDGE_REQUEST: ${{ github.event.comment.body }}
+          BRIDGE_HOST: ${{ secrets.VPS_BRIDGE_HOST }}
+          BRIDGE_PORT: ${{ secrets.VPS_BRIDGE_PORT }}
+          BRIDGE_USER: ${{ secrets.VPS_BRIDGE_USER }}
+          BRIDGE_PRIVATE_KEY: ${{ secrets.VPS_BRIDGE_PRIVATE_KEY }}
+          BRIDGE_KNOWN_HOSTS: ${{ secrets.VPS_BRIDGE_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+          report="$RUNNER_TEMP/vps-bridge-output.txt"
+          : > "$report"
+
+          case "$BRIDGE_REQUEST" in
+            "/vps status") command_name="status" ;;
+            "/vps smoke") command_name="smoke" ;;
+            "/vps bench") command_name="bench" ;;
+            *) echo "Command not allowed" > "$report"; echo "result=failed" >> "$GITHUB_OUTPUT"; exit 0 ;;
+          esac
+
+          if [[ -z "$BRIDGE_HOST" || -z "$BRIDGE_USER" ||
+                -z "$BRIDGE_PRIVATE_KEY" || -z "$BRIDGE_KNOWN_HOSTS" ]]; then
+            echo "Bridge not configured. Add the four required VPS_BRIDGE_* repository secrets." > "$report"
+            echo "result=failed" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          port="${BRIDGE_PORT:-22}"
+          if ! [[ "$port" =~ ^[0-9]{1,5}$ ]] || (( 10#$port < 1 || 10#$port > 65535 )); then
+            echo "Invalid VPS_BRIDGE_PORT" > "$report"
+            echo "result=failed" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          mkdir -p "$RUNNER_TEMP/vps-bridge-ssh"
+          chmod 700 "$RUNNER_TEMP/vps-bridge-ssh"
+          key="$RUNNER_TEMP/vps-bridge-ssh/key"
+          known_hosts="$RUNNER_TEMP/vps-bridge-ssh/known_hosts"
+          printf '%s\n' "$BRIDGE_PRIVATE_KEY" > "$key"
+          printf '%s\n' "$BRIDGE_KNOWN_HOSTS" > "$known_hosts"
+          chmod 600 "$key" "$known_hosts"
+
+          if timeout 100s ssh -F /dev/null \
+            -i "$key" -p "$port" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$known_hosts" \
+            -o ConnectTimeout=12 \
+            -o ServerAliveInterval=10 \
+            -o ServerAliveCountMax=2 \
+            "$BRIDGE_USER@$BRIDGE_HOST" "$command_name" > "$report" 2>&1; then
+            echo "result=success" >> "$GITHUB_OUTPUT"
+          else
+            code=$?
+            printf '\nBridge SSH exit status: %s\n' "$code" >> "$report"
+            echo "result=failed" >> "$GITHUB_OUTPUT"
+          fi
+          rm -f "$key"
+
+      - name: Post sanitized result to the control issue
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRIDGE_REQUEST: ${{ github.event.comment.body }}
+          BRIDGE_RESULT: ${{ steps.remote.outputs.result }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ACTIONS_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -Eeuo pipefail
+          report="$RUNNER_TEMP/vps-bridge-output.txt"
+          body="$RUNNER_TEMP/vps-bridge-comment.md"
+          {
+            printf 'VPS bridge request `%s`: **%s**\n\n' "$BRIDGE_REQUEST" "${BRIDGE_RESULT:-failed}"
+            printf 'Remote checks use only the isolated localhost stress port (18080).\n\n'
+            printf '<details><summary>Result</summary>\n\n```text\n'
+            if [[ -f "$report" ]]; then
+              head -c 5500 "$report" |
+                sed -e 's/```/` ` `/g' -e 's/@/@[at]/g'
+            else
+              printf 'No diagnostic output'
+            fi
+            printf '\n```\n</details>\n\n[Actions run](%s)\n' "$ACTIONS_URL"
+          } > "$body"
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$body"
+
+      - name: Mark failed diagnostics
+        if: steps.remote.outputs.result != 'success'
+        run: exit 1
