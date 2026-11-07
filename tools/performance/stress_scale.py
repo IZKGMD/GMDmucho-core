@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Sustained, single-client, loopback-only GD 2.209 read benchmark.
 
-The four routes are rotated at a global 350ms request-start interval.
-Each protected GD route receives fewer than 45 starts/minute, safely under
+The five scenarios are rotated at a global 450ms request-start interval.
+Level searches collectively receive roughly 80 starts/minute, safely under
 MuchoProtect per-IP limits. This is NOT a maximum-RPS or simulated-player test.
 """
 import argparse
@@ -19,7 +19,7 @@ PATH_SEARCH = "/database/getGJLevels21.php"
 PATH_DOWNLOAD = "/database/downloadGJLevel22.php"
 PATH_PROFILE = "/database/getGJUserInfo20.php"
 MAX_BODY = 1024 * 1024
-INTERVAL_SECONDS = 0.35
+INTERVAL_SECONDS = 0.45
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *_):
@@ -42,6 +42,7 @@ def scenarios(levels, seq):
     return [
         ("gd_latest", PATH_SEARCH, dict(base, type="0", page="0"), b"Synthetic Stress Level"),
         ("gd_id", PATH_SEARCH, dict(base, type="0", str=str(fixture_id), page="0"), expected),
+        ("gd_text", PATH_SEARCH, dict(base, type="0", str="Synthetic Stress Level", page="0"), b"Synthetic Stress Level"),
         ("gd_download", PATH_DOWNLOAD,
          dict(base, levelID=str(fixture_id), extras="1", inc="0"), expected),
         ("gd_profile", PATH_PROFILE, dict(base, targetAccountID="1"), b"StressRobot"),
@@ -88,7 +89,7 @@ def main():
     results = {name: {"samples": [], "errors": {}, "bytes": 0}
                for name, *_ in scenarios(args.levels, 0)}
 
-    print(f"Scale benchmark: {args.levels} levels; {args.duration}s; 4 protected routes;",
+    print(f"Scale benchmark: {args.levels} levels; {args.duration}s; 5 scenarios (3 searches);",
           "no spoofed IPs, no uploads, no counter increments", flush=True)
     # Validate every route before collecting performance statistics.
     for name, path, params, required in scenarios(args.levels, 0):
@@ -96,7 +97,7 @@ def main():
         if error:
             print(f"PREFLIGHT_FAILED {name}: {error}", flush=True)
             return 1
-    print("PREFLIGHT_OK: list, ID lookup, download, profile", flush=True)
+    print("PREFLIGHT_OK: list, ID lookup, text search, download, profile", flush=True)
 
     began = time.perf_counter()
     next_start = began
@@ -108,7 +109,7 @@ def main():
             break
         if next_start > now:
             time.sleep(next_start - now)
-        current = scenarios(args.levels, attempts // 4)[attempts % 4]
+        current = scenarios(args.levels, attempts // 5)[attempts % 5]
         name, path, params, required = current
         latency, error, size = probe(path, params, required)
         row = results[name]
