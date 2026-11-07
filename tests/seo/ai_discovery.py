@@ -117,8 +117,6 @@ def main() -> None:
     # The old community homepage is now a 308 redirect; the canonical root
     # no longer appears as a separate document in the sitemap.
     require(BASE + "/" not in pages, "Old root homepage must not be indexed")
-    require("path / /index /index/ /index.html /muchogdps-index.html" in caddy,
-            "Legacy homepage aliases must redirect to the MuchoCore product")
 
     robots = (ROOT / "public/robots.txt").read_text(encoding="utf-8")
     require("Sitemap: " + BASE + "/sitemap.xml" in robots, "No sitemap discovery")
@@ -135,6 +133,8 @@ def main() -> None:
             "Caddy must serve the knowledge pages as static HTML")
     require("redir @muchocore_canonical_landing /muchocore/ 308" in caddy,
             "Root redirect must be permanent and host-scoped")
+    require("path / /index /index/ /index.html /muchogdps-index.html" in caddy,
+            "Legacy homepage aliases must redirect to the MuchoCore product")
     print("MUCHOCORE_AI_DISCOVERY_OK: sitemap, canonicals, structured data, links, crawler access, llms.txt")
 
 
