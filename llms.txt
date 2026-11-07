@@ -15,7 +15,7 @@ This file is an optional plain-text project guide for agents and crawlers. It is
 - Canonical source: https://github.com/IZKGMD/GMDmucho-core
 - Published releases (current version): https://github.com/IZKGMD/GMDmucho-core/releases/latest
 - Project license: https://github.com/IZKGMD/GMDmucho-core/blob/main/LICENSE (MIT)
-- MuchoGDPS: the separate live Geometry Dash private-server community at https://muchogdps.space/
+- Domain homepage: https://muchogdps.space/ permanently redirects to the MuchoCore product at /muchocore/. The game API, player portal and admin interfaces remain on the same host.
 - Affiliation: independent project, not affiliated with or endorsed by RobTop Games
 
 ## Technology and features
