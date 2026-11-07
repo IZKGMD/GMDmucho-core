@@ -34,7 +34,6 @@ def request(name: str, path: str, fields: dict[str, str]) -> bool:
         with opener.open(req, timeout=TIMEOUT) as resp:
             body = resp.read(8192)
             status = resp.status
-            content_type = resp.headers.get("Content-Type", "")
     except (urllib.error.URLError, OSError, TimeoutError) as exc:
         print(f"FAIL {name}: {type(exc).__name__}")
         return False
@@ -46,10 +45,11 @@ def request(name: str, path: str, fields: dict[str, str]) -> bool:
         and len(body) > 0
         and len(body) < 8192
         and b"<html" not in body.lower()
+        and b"<!doctype html" not in body.lower()
+        and not body.lstrip().startswith((b"{", b"["))
         and b"warning:" not in body.lower()
         and b"fatal error" not in body.lower()
         and b"stack trace" not in body.lower()
-        and not content_type.lower().startswith("text/html")
     )
     preview = body[:90].decode("ascii", errors="replace").replace("\n", " ")
     print(f"{'PASS' if valid else 'FAIL'} {name}: HTTP {status}; bytes={len(body)}; response={preview!r}")
