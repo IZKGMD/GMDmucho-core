@@ -99,7 +99,9 @@ RewriteRule ^gd-content/ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^api/api/accounts/lostusername\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^(?:api|a)/(?:api/)?(?:profile|clans|muchocore)/ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^(?:a|database|accounts|api)/(?:accounts/)?[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
-RewriteRule ^(?:getAccountURL|getCustomContentURL|checkIfServerOnline)\.php$ mc/public/php7.php [QSA,L,NC]
+# Cvolton-style root wrappers (e.g. /getGJLevels21.php) and short GD URL slots.
+# Do not rewrite arbitrary root PHP files such as /index.php or /install.php.
+RewriteRule ^(?:[A-Za-z][A-Za-z0-9_-]*GJ[A-Za-z0-9_-]*|getAccountURL|getCustomContentURL|checkIfServerOnline)\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^gd-content/news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^gd-content/news/news\.dat$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]
