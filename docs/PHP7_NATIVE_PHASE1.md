@@ -170,7 +170,8 @@ The native ZIP includes them as `5V_ROOT_REWRITE_RULES.txt`.
 
 ```apache
 RewriteRule ^(?:a|database|accounts|api)/(?:accounts/)?[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
-RewriteRule ^(?:getAccountURL|getCustomContentURL|checkIfServerOnline)\.php$ mc/public/php7.php [QSA,L,NC]
+# Cvolton-style /getGJLevels21.php wrappers and legacy short URL slots.
+RewriteRule ^(?:[A-Za-z][A-Za-z0-9_-]*GJ[A-Za-z0-9_-]*|getAccountURL|getCustomContentURL|checkIfServerOnline)\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^gd-content/news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^gd-content/news/news\.dat$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]
