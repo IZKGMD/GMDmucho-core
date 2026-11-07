@@ -28,6 +28,8 @@ jobs:
           bash -n tools/bridge/bootstrap-vps-bridge.sh
           bash -n tools/bridge/install-vps-bridge.sh
           bash -n tools/bridge/vps-bridge-remote.sh
+          bash -n tools/bridge/vps-bridge-admin.sh
+          bash -n tools/bridge/upgrade-privileged-bridge.sh
           python3 -m py_compile tools/bridge/vps-bridge-bench.py tools/bridge/vps-bridge-gd2209.py
           python3 -m unittest discover -s tests/bridge -p "*_test.py"
 
@@ -35,7 +37,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for bad in '' 'id' 'bash' '/bin/sh' '/vps status' 'status extra' 'status;id' 'smoke && id' 'bench --url=http://example.com'; do
+          for bad in '' 'id' 'bash' '/bin/sh' '/vps status' 'status extra' 'status;id' 'smoke && id' 'bench --url=http://example.com' 'stress-restart --force' 'stress-update;id' 'stress-update /opt/mucho-core'; do
             set +e
             SSH_ORIGINAL_COMMAND="$bad" bash tools/bridge/vps-bridge-remote.sh > /tmp/rejected-bridge.txt 2>&1
             code=$?
@@ -44,7 +46,7 @@ jobs:
               printf 'Expected refusal (64), got %s for %q\n' "$code" "$bad" >&2
               exit 1
             fi
-            grep -Fq 'REJECTED: only status, smoke, bench, gd2209' /tmp/rejected-bridge.txt
+            grep -Fq 'REJECTED: unsupported bridge command' /tmp/rejected-bridge.txt
           done
 
       - name: Require fixed localhost target and no privileged execution
@@ -55,7 +57,24 @@ jobs:
           grep -Fq "127.0.0.1:18080/health" tools/bridge/vps-bridge-bench.py
           grep -Fq "127.0.0.1:18080" tools/bridge/vps-bridge-gd2209.py
           grep -Fq 'ProxyHandler({})' tools/bridge/vps-bridge-gd2209.py
-          if grep -nE '(^|[[:space:]])(sudo|docker|eval)[[:space:]]' tools/bridge/vps-bridge-remote.sh; then
-            echo 'Remote bridge may not execute sudo, docker or eval.' >&2
+          # sudo is permitted ONLY to the exact installed root-owned helper.
+          grep -Fq 'exec sudo -n -- /usr/local/libexec/mucho-vps-admin "$REQUEST"' tools/bridge/vps-bridge-remote.sh
+          grep -Fq "readonly DIR='/opt/mucho-stress'" tools/bridge/vps-bridge-admin.sh
+          grep -Fq "readonly COMPOSE='/opt/mucho-stress/docker-compose.stress.yml'" tools/bridge/vps-bridge-admin.sh
+          grep -Fq '[[ "$#" -eq 1 ]]' tools/bridge/vps-bridge-admin.sh
+          grep -Fq 'stress-status|stress-restart|stress-update)' tools/bridge/vps-bridge-admin.sh
+          grep -Fq 'compose up -d --no-deps app' tools/bridge/vps-bridge-admin.sh
+          grep -Fq 'visudo -cf' tools/bridge/upgrade-privileged-bridge.sh
+          if grep -nE '(^|[[:space:]])(docker|eval|bash)[[:space:]]' tools/bridge/vps-bridge-remote.sh; then
+            echo 'Remote bridge must never execute docker, eval or shell.' >&2
             exit 1
           fi
+          # Unsupported privileged commands must return refusal before Docker.
+          for bad in '' 'bash' 'root' 'stress-update;id' 'stress-update /opt/mucho-core' 'restart'; do
+            set +e
+            bash tools/bridge/vps-bridge-admin.sh "$bad" >/tmp/rejected-admin.txt 2>&1
+            code=$?
+            set -e
+            # On CI this script is not root and must fail shut in all cases.
+            [[ "$code" -ne 0 ]]
+          done
