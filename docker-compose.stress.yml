@@ -1,0 +1,85 @@
+name: muchocore-stress
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: mucho_stress
+      MARIADB_USER: mucho_stress
+      MARIADB_PASSWORD_FILE: /run/secrets/stress_db_password
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/stress_db_root_password
+    secrets: [stress_db_password, stress_db_root_password]
+    volumes: [stress_db_data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -u root -p\"$$(cat /run/secrets/stress_db_root_password)\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    environment: &app_env
+      DB_HOST: db
+      DB_PORT: '3306'
+      DB_NAME: mucho_stress
+      DB_USER: mucho_stress
+      MUCHO_DB_PASSWORD_FILE: /run/secrets/stress_db_password
+      MUCHO_SKIP_ADMIN_BOOTSTRAP: '1'
+      MUCHO_ACCOUNT_URL: http://127.0.0.1:18080
+      MUCHO_SERVER_NAME: MuchoCore Synthetic Stress
+      MUCHO_CUSTOM_CONTENT_URL: https://geometrydashfiles.b-cdn.net
+      MUCHO_GD_VERSIONS: '22'
+      MUCHO_CACHE_DRIVER: database
+      MUCHO_PROTECT_STORAGE: file
+      MUCHO_CLIENT_TRACE: '0'
+    secrets: [stress_db_password]
+    volumes:
+      - ./:/var/www/mucho-core
+      - stress_runtime:/var/lib/muchocore
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    command: ["php", "/var/www/mucho-core/bin/mucho-worker.php", "--loop", "--sleep=2"]
+    environment: *app_env
+    secrets: [stress_db_password]
+    volumes:
+      - ./:/var/www/mucho-core
+      - stress_runtime:/var/lib/muchocore
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: [worker]
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      CADDY_ADDRESS: ':80'
+      DOMAIN: localhost
+      MUCHOCORE_SITE_HOST: disabled.invalid
+    ports:
+      - '127.0.0.1:18080:80'
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./:/var/www/mucho-core:ro
+    depends_on: [app]
+
+secrets:
+  stress_db_password:
+    file: ./.stress-secrets/db_password
+  stress_db_root_password:
+    file: ./.stress-secrets/db_root_password
+
+volumes:
+  stress_db_data:
+  stress_runtime:
