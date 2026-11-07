@@ -89,10 +89,26 @@ try {
         }
         return (int)$row[1];
     };
+    // Native PDO prepares are expensive on large rebuilds. A 300-row
+    // rebuild should reuse one prepared INSERT instead of preparing it
+    // separately for each row.
+    $prepareCount = static function () use ($db): int {
+        $row = $db->query("SHOW SESSION STATUS LIKE 'Com_stmt_prepare'")->fetch(PDO::FETCH_NUM);
+        if (!is_array($row) || !isset($row[1])) {
+            throw new RuntimeException('Com_stmt_prepare counter unavailable');
+        }
+        return (int)$row[1];
+    };
+    $beforePrepares = $prepareCount();
     $beforeSelects = $selectCount();
     $assert(
         $indexer->rebuild(300) === 300 && $count() === 300,
         'limited rebuild spans multiple bounded batches'
+    );
+    $prepares = $prepareCount() - $beforePrepares;
+    $assert(
+        $prepares < 25,
+        '300-level rebuild reuses prepared SQL upsert (' . $prepares . ' prepares)'
     );
     $reads = $selectCount() - $beforeSelects;
     $assert(
