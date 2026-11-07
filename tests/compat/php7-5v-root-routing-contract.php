@@ -92,6 +92,18 @@ foreach ($unrelated as $path) {
     }
 }
 
+// All legacy wrapper URLs must normalize to the same native dispatcher route.
+require_once $root . '/compat/php7/runtime.php';
+foreach (array('getGJLevels21.php', 'downloadGJLevel22.php', 'getGJLevelScores211.php') as $endpoint) {
+    $direct = mucho7_path('/' . $endpoint);
+    $database = mucho7_path('/database/' . $endpoint);
+    $short = mucho7_path('/a/' . $endpoint);
+    if ($direct !== $database || $direct !== $short) {
+        fwrite(STDERR, "Native dispatcher routes differ for " . $endpoint . "\n");
+        exit(1);
+    }
+}
+
 $docs = file_get_contents($root . '/docs/PHP7_NATIVE_PHASE1.md');
 $rootAlias = 'RewriteRule ^(?:[A-Za-z][A-Za-z0-9_-]*GJ[A-Za-z0-9_-]*|getAccountURL|getCustomContentURL|checkIfServerOnline)\\.php$ mc/public/php7.php [QSA,L,NC]';
 if (strpos($builder, $rootAlias) === false || strpos($docs, $rootAlias) === false) {
