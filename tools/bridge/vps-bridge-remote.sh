@@ -2,7 +2,8 @@
 # Installed root-owned at /usr/local/libexec/mucho-vps-bridge.
 # Invoked only via an OpenSSH authorized_keys forced command, as unprivileged
 # 'muchobridge'. Nothing here invokes Docker, sudo, a shell from input, or
-# code from the Git checkout.
+# code from the Git checkout. Only three stress commands invoke a separate
+# root-owned helper via sudoers entries matching exact command arguments.
 set -Eeuo pipefail
 export PATH=/usr/sbin:/usr/bin:/bin
 umask 077
@@ -12,8 +13,8 @@ readonly REQUEST="${SSH_ORIGINAL_COMMAND:-}"
 
 # Reject direct SSH logins and *all* commands not explicitly supported.
 case "$REQUEST" in
-  status|smoke|bench|gd2209) ;;
-  *) printf 'REJECTED: only status, smoke, bench, gd2209 are supported\n' >&2; exit 64 ;;
+  status|smoke|bench|gd2209|stress-status|stress-restart|stress-update) ;;
+  *) printf 'REJECTED: unsupported bridge command\n' >&2; exit 64 ;;
 esac
 
 if [[ -n "${SSH_TTY:-}" ]]; then
@@ -74,5 +75,9 @@ case "$REQUEST" in
   gd2209)
     printf 'Geometry Dash 2.209 synthetic read-only protocol probe\n'
     exec python3 /usr/local/libexec/mucho-vps-bridge-gd2209
+    ;;
+  stress-status|stress-restart|stress-update)
+    # Only three explicit sudoers commands are available to muchobridge.
+    exec sudo -n -- /usr/local/libexec/mucho-vps-admin "$REQUEST"
     ;;
 esac
