@@ -8,6 +8,12 @@
     root * /var/www/mucho-core/public
     encode gzip zstd
 
+    # The canonical MuchoGDPS marketing/control-plane host uses the apex.
+    # Redirect its www alias instead of serving the tenant API fallback (-2).
+    # Other tenant GDPS hosts are not affected.
+    @muchocore_canonical_www host www.{$MUCHOCORE_SITE_HOST}
+    redir @muchocore_canonical_www https://{$MUCHOCORE_SITE_HOST}{uri} 308
+
     # The public MuchoCore product/AI discovery pages belong only to the
     # explicitly configured canonical project host. Other GDPS tenants use
     # the same application source but must never expose this marketing/docs
