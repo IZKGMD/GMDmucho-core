@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 /.secrets/
+/.stress-secrets/
 /config/cloudsave.key
 /config/*.key
 
