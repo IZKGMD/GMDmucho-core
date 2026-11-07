@@ -22,7 +22,7 @@ jobs:
       github.event.issue.pull_request == null &&
       github.event.comment.user.id == 112145870 &&
       github.event.comment.user.login == 'IZKGMD' &&
-      contains(fromJSON('["/vps status","/vps smoke","/vps bench"]'), github.event.comment.body)
+      contains(fromJSON('["/vps status","/vps smoke","/vps bench","/vps gd2209"]'), github.event.comment.body)
     runs-on: ubuntu-latest
     timeout-minutes: 4
     steps:
@@ -47,6 +47,7 @@ jobs:
             "/vps status") command_name="status" ;;
             "/vps smoke") command_name="smoke" ;;
             "/vps bench") command_name="bench" ;;
+            "/vps gd2209") command_name="gd2209" ;;
             *) echo "Command not allowed" > "$report"; echo "result=failed" >> "$GITHUB_OUTPUT"; exit 0 ;;
           esac
 

@@ -1,5 +1,29 @@
 # MuchoCore VPS bridge (restricted GitHub Actions → SSH)
 
+## Fast setup: one VPS command
+
+On an Ubuntu VPS, connect over SSH and run the **single line** below as root.
+It creates a dedicated SSH identity and restricted user, installs GitHub CLI if
+needed, detects host/port and adds all encrypted GitHub Actions secrets.
+**You must still approve one official GitHub device login** in your browser;
+there is no way to grant repository access without this authorization.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/tools/bridge/bootstrap-vps-bridge.sh -o /root/mucho-bridge-bootstrap.sh && bash /root/mucho-bridge-bootstrap.sh
+```
+
+The download is open-source code from the project repository, executed as
+root. Inspect the bootstrap before running it if you do not trust the current
+`main` branch. To override external SSH address/port detection, set
+`MUCHO_BRIDGE_HOST` and `MUCHO_BRIDGE_PORT` in the environment before running.
+No VPS application containers, production SQL or firewall rules are modified.
+
+**After setup:** ask ChatGPT to post `/vps status` on issue #205 and check
+that it returns the isolated test server status. Then `/vps gd2209` can
+exercise two read-only synthetic Geometry Dash 2.209 POST requests.
+
+The rest of this guide covers manual setup and security details.
+
 The bridge lets the repository owner, including via the connected GitHub
 integration, request narrowly scoped diagnostic operations on a VPS **without**
 giving ChatGPT a private key or direct SSH session.
@@ -67,7 +91,7 @@ restrict,command="/usr/local/libexec/mucho-vps-bridge" ssh-ed25519 AAAA...
 
 The SSH account has no Docker group or sudo and cannot open a normal shell,
 allocate a TTY, forward ports, change arbitrary files, or run commands outside
-`status`, `smoke`, `bench`. The installed executable is owned by root.
+`status`, `smoke`, `bench`, `gd2209`. The installed executable is owned by root.
 The script does not alter `/opt/mucho-core`, SSH configuration or the firewall.
 
 ## 3. Add five GitHub Actions repository secrets
@@ -110,6 +134,9 @@ a new comment on control issue **#205** with exactly one of:
 - `/vps smoke`: `/health`, online check and a read-only GD level-search route
 - `/vps bench`: 40 **sequential** localhost `/health` requests, max 3 s each,
   150 ms spacing, reporting p50/p95 successful-request latency
+- `/vps gd2209`: **read-only synthetic** Geometry Dash 2.209 POST search
+  requests (`gameVersion=22`, `binaryVersion=51`) to the isolated localhost
+  stress server; it does not log in, mutate data or certify a real game client
 
 Only comments from GitHub user ID `112145870` (IZKGMD) are executed.
 There are no parameters or arbitrary command execution. GitHub Actions posts
@@ -148,7 +175,8 @@ To remove fully on VPS:
 sudo userdel muchobridge
 sudo rm -rf /var/lib/mucho-bridge
 sudo rm -f /usr/local/libexec/mucho-vps-bridge \
-  /usr/local/libexec/mucho-vps-bridge-bench
+  /usr/local/libexec/mucho-vps-bridge-bench \
+  /usr/local/libexec/mucho-vps-bridge-gd2209
 ```
 
 Verify the paths before removal; none are the MuchoCore production path.

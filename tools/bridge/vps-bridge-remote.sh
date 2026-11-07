@@ -12,8 +12,8 @@ readonly REQUEST="${SSH_ORIGINAL_COMMAND:-}"
 
 # Reject direct SSH logins and *all* commands not explicitly supported.
 case "$REQUEST" in
-  status|smoke|bench) ;;
-  *) printf 'REJECTED: only status, smoke, bench are supported\n' >&2; exit 64 ;;
+  status|smoke|bench|gd2209) ;;
+  *) printf 'REJECTED: only status, smoke, bench, gd2209 are supported\n' >&2; exit 64 ;;
 esac
 
 if [[ -n "${SSH_TTY:-}" ]]; then
@@ -70,5 +70,9 @@ case "$REQUEST" in
   bench)
     printf 'Bounded health-only localhost benchmark (40 requests, sequential)\n'
     exec python3 /usr/local/libexec/mucho-vps-bridge-bench
+    ;;
+  gd2209)
+    printf 'Geometry Dash 2.209 synthetic read-only protocol probe\n'
+    exec python3 /usr/local/libexec/mucho-vps-bridge-gd2209
     ;;
 esac

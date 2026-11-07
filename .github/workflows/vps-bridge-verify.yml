@@ -6,6 +6,7 @@ on:
       - '.github/workflows/vps-bridge*.yml'
       - 'tools/bridge/**'
       - 'docs/VPS_BRIDGE.md'
+      - 'tests/bridge/**'
   push:
     branches: [main]
     paths:
@@ -24,9 +25,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check scripts compile
         run: |
+          bash -n tools/bridge/bootstrap-vps-bridge.sh
           bash -n tools/bridge/install-vps-bridge.sh
           bash -n tools/bridge/vps-bridge-remote.sh
-          python3 -m py_compile tools/bridge/vps-bridge-bench.py
+          python3 -m py_compile tools/bridge/vps-bridge-bench.py tools/bridge/vps-bridge-gd2209.py
+          python3 -m unittest discover -s tests/bridge -p "*_test.py"
 
       - name: Rejected SSH command never executes shell
         shell: bash
@@ -41,7 +44,7 @@ jobs:
               printf 'Expected refusal (64), got %s for %q\n' "$code" "$bad" >&2
               exit 1
             fi
-            grep -Fq 'REJECTED: only status, smoke, bench' /tmp/rejected-bridge.txt
+            grep -Fq 'REJECTED: only status, smoke, bench, gd2209' /tmp/rejected-bridge.txt
           done
 
       - name: Require fixed localhost target and no privileged execution
@@ -50,6 +53,8 @@ jobs:
           set -euo pipefail
           grep -Fq "127.0.0.1:18080" tools/bridge/vps-bridge-remote.sh
           grep -Fq "127.0.0.1:18080/health" tools/bridge/vps-bridge-bench.py
+          grep -Fq "127.0.0.1:18080" tools/bridge/vps-bridge-gd2209.py
+          grep -Fq 'ProxyHandler({})' tools/bridge/vps-bridge-gd2209.py
           if grep -nE '(^|[[:space:]])(sudo|docker|eval)[[:space:]]' tools/bridge/vps-bridge-remote.sh; then
             echo 'Remote bridge may not execute sudo, docker or eval.' >&2
             exit 1
