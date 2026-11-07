@@ -21,15 +21,16 @@ class ScaleStressContract(unittest.TestCase):
         for levels in (1000, 10000):
             cases = stress.scenarios(levels, 0)
             self.assertEqual([name for name, *_ in cases],
-                             ["gd_latest", "gd_id", "gd_download", "gd_profile"])
+                             ["gd_latest", "gd_id", "gd_text", "gd_download", "gd_profile"])
             _, _, ids, expected = cases[1]
             self.assertEqual(ids["str"], str(levels))
             self.assertIn(f"{levels:05d}".encode(), expected)
-            _, _, download, expected = cases[2]
+            self.assertEqual(cases[2][2]["str"], "Synthetic Stress Level")
+            _, _, download, expected = cases[3]
             self.assertEqual(download["levelID"], str(levels))
             self.assertEqual(download["inc"], "0")
             self.assertEqual(download["extras"], "1")
-            self.assertEqual(cases[3][2]["targetAccountID"], "1")
+            self.assertEqual(cases[4][2]["targetAccountID"], "1")
             for _, _, payload, _ in cases:
                 self.assertEqual(payload["gameVersion"], "22")
                 self.assertEqual(payload["binaryVersion"], "51")
