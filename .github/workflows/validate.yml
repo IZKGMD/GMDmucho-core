@@ -722,6 +722,13 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/news-media-integration.php
 
+      - name: Verify PHP 8 like and dislike integrity against isolated MariaDB
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/like-integrity-integration.php
+
       - name: Verify GD 2.209 social relationship and notification flows
         env:
           TEST_DB_HOST: 127.0.0.1
