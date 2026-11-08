@@ -27,6 +27,12 @@ func TestGD22MessageWireCodec(t *testing.T) {
 	subjectWire := protocol.EncodeMessageSubject(subject)
 	bodyWire := protocol.EncodeMessageBody(body)
 
+	if subjectWire != "TXVjaG9Db3JlOiBTdWJqZWN0ICN8fiDQn9GA0LjQstC10YI=" {
+		t.Fatalf("subject wire vector mismatch: %q", subjectWire)
+	}
+	if bodyWire != "fEFRXV5yW0BQCxF2XVFIERdOSxEcABLlruC04o3hg-SH5LMRxK2tsQ==" {
+		t.Fatalf("body wire vector mismatch: %q", bodyWire)
+	}
 	if got, ok := protocol.DecodeMessageSubject(subjectWire); !ok || got != subject {
 		t.Fatalf("subject round trip: got %q, ok=%v", got, ok)
 	}
