@@ -67,6 +67,7 @@ function mucho7_feature_schema()
             to_account_id BIGINT UNSIGNED NOT NULL,
             subject VARCHAR(255) NOT NULL,
             body TEXT NOT NULL,
+            content_format TINYINT UNSIGNED NOT NULL DEFAULT 0,
             is_read TINYINT NOT NULL DEFAULT 0,
             is_sender_deleted TINYINT NOT NULL DEFAULT 0,
             is_receiver_deleted TINYINT NOT NULL DEFAULT 0,
@@ -103,5 +104,15 @@ function mucho7_upgrade_features(PDO $pdo)
     // Run explicitly during installation/upgrade, never on an API request.
     foreach (mucho7_feature_schema() as $sql) {
         $pdo->exec($sql);
+    }
+
+    // Existing shared-hosting installations retain their old wire-encoded
+    // message rows (content_format=0); new rows use normalized UTF-8 text.
+    $column = $pdo->query("SHOW COLUMNS FROM php7_messages LIKE 'content_format'");
+    if (!$column->fetch(PDO::FETCH_ASSOC)) {
+        $pdo->exec(
+            'ALTER TABLE php7_messages
+             ADD COLUMN content_format TINYINT UNSIGNED NOT NULL DEFAULT 0 AFTER body'
+        );
     }
 }
