@@ -34,7 +34,14 @@ The installer keeps first-run interaction deliberately small:
 ~~~text
 1. GDPS domain
 2. Admin password
+3. Confirm admin password
 ~~~
+
+The initial admin password must contain at least 10 characters and is stored
+only in the VPS's protected `.secrets/admin_password` file. When the installer
+is run again and that secret already exists, it explicitly asks whether to
+keep the existing password or enter and confirm a new one. For unattended
+installs, pass `MUCHO_ADMIN_PASSWORD` through the environment.
 
 Everything else uses production-safe defaults. The default compatibility profile is **all supported generations** and can be changed later with:
 
