@@ -1123,6 +1123,14 @@ if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
     )"
     expect_eq "Delete received message copy" "$MD" "1"
 
+    MR_DELETED_RECEIVER="$(
+        post downloadGJMessage20 \
+            -d "accountID=$AID2" \
+            -d "gjp2=$P2" \
+            -d "messageID=$MID"
+    )"
+    expect_eq "Deleted receiver copy cannot be downloaded" "$MR_DELETED_RECEIVER" "-1"
+
     MSENT="$(
         post getGJMessages20 \
             -d "accountID=$AID1" \
@@ -1140,6 +1148,14 @@ if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
             -d 'isSender=1'
     )"
     expect_eq "Delete sender outbox copy" "$MDS" "1"
+    MR_DELETED_SENDER="$(
+        post downloadGJMessage20 \
+            -d "accountID=$AID1" \
+            -d "gjp2=$P1" \
+            -d "messageID=$MID" \
+            -d 'isSender=1'
+    )"
+    expect_eq "Deleted sender copy cannot be downloaded" "$MR_DELETED_SENDER" "-1"
 else
     fail "Resolve message ID"
 fi
