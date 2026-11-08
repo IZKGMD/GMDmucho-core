@@ -33,8 +33,13 @@ final readonly class LikeController
             $accountId = $r->postInt('accountID', 0);
             $gjp = $r->gdCredential();
 
-            if ($accountId > 0 && $gjp !== '') {
-                $this->service->likeItem(
+            if ($accountId > 0) {
+                // A request declaring an account must authenticate as that
+                // account, not silently downgrade to an anonymous IP vote.
+                if ($gjp === '') {
+                    return Response::text('-1');
+                }
+                $success = $this->service->likeItem(
                     $itemId,
                     $type,
                     $accountId,
@@ -42,7 +47,7 @@ final readonly class LikeController
                     $r->postInt('like', 1) === 1
                 );
             } else {
-                $this->service->likeAnonymous(
+                $success = $this->service->likeAnonymous(
                     $itemId,
                     $type,
                     $r->clientIp(),
@@ -50,7 +55,7 @@ final readonly class LikeController
                 );
             }
 
-            return Response::text('1');
+            return Response::text($success ? '1' : '-1');
         } catch (Throwable) {
             return Response::text('-1');
         }
