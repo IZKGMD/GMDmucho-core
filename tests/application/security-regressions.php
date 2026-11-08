@@ -379,4 +379,57 @@ assertSecurityRegression(
     'database browser requires owner-level admin access'
 );
 
+
+$likeRepository = (string)file_get_contents(
+    __DIR__ . '/../../src/Interaction/LikeRepository.php'
+);
+$likeRepositoryPhp7 = (string)file_get_contents(
+    __DIR__ . '/../../compat/php7/core/src/Interaction/LikeRepository.php'
+);
+$likeService = (string)file_get_contents(
+    __DIR__ . '/../../src/Interaction/LikeService.php'
+);
+$likeController = (string)file_get_contents(
+    __DIR__ . '/../../src/Interaction/LikeController.php'
+);
+$likeServicePhp7 = (string)file_get_contents(
+    __DIR__ . '/../../compat/php7/core/src/Interaction/LikeService.php'
+);
+$likeControllerPhp7 = (string)file_get_contents(
+    __DIR__ . '/../../compat/php7/core/src/Interaction/LikeController.php'
+);
+$goComments = (string)file_get_contents(
+    __DIR__ . '/../../go/internal/core/comments.go'
+);
+
+assertSecurityRegression(
+    str_contains($likeRepository, '$delta = $isLike ? 1 : -1;') &&
+    str_contains($likeRepository, 'SET likes = likes + :amount') &&
+    !str_contains($likeRepository, 'GREATEST(0, likes + :amount)'),
+    'PHP 8 stores dislikes as negative net score, including below zero'
+);
+
+assertSecurityRegression(
+    str_contains($likeRepositoryPhp7, '$delta = $isLike ? 1 : -1;') &&
+    str_contains($likeRepositoryPhp7, 'SET likes = likes + :amount') &&
+    !str_contains($likeRepositoryPhp7, 'GREATEST(0, likes + :amount)'),
+    'PHP 7 native stores dislikes as negative net score, including below zero'
+);
+
+assertSecurityRegression(
+    str_contains($likeService, 'bool $isLike = true') &&
+    str_contains($likeController, '$r->postInt(\'like\', 1) === 1') &&
+    str_contains($likeServicePhp7, 'bool $isLike = true') &&
+    str_contains($likeControllerPhp7, '$r->postInt(\'like\', 1) === 1'),
+    'authenticated and anonymous PHP vote paths preserve dislike direction'
+);
+
+assertSecurityRegression(
+    str_contains($goComments, 'delta := int64(1)') &&
+    str_contains($goComments, 'delta = -1') &&
+    str_contains($goComments, 'SET likes=likes+?') &&
+    !str_contains($goComments, 'GREATEST(0,likes+?)'),
+    'Go stores dislikes as negative net score without zero clamping'
+);
+
 echo "MUCHOCORE_SECURITY_REGRESSIONS_OK\n";

@@ -78,10 +78,10 @@ final class LikeRepository
                      (item_id,type,account_id,ip,is_like)
                      VALUES (:item,:type,:account,:ip,:like)');
                 $q->execute(['item' => $itemId, 'type' => $type, 'account' => $accountId, 'ip' => $accountId > 0 ? '' : $ip, 'like' => $isLike ? 1 : 0]);
-                $delta = $isLike ? 1 : 0;
+                $delta = $isLike ? 1 : -1;
             }
             $q = $this->db->prepare('UPDATE `' . $table . '`
-                 SET likes = GREATEST(0, likes + :amount)
+                 SET likes = likes + :amount
                  WHERE `' . $pk . '` = :id');
             $q->execute(['amount' => $delta, 'id' => $itemId]);
             if ($q->rowCount() !== 1) {

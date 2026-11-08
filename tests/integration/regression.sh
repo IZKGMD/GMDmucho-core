@@ -874,6 +874,31 @@ PY
     fi
 
     if [ "$CID" -gt 0 ]; then
+        DISLIKE="$(
+            post likeGJItem211 \
+                -d "accountID=$AID2" \
+                -d "gjp2=$P2" \
+                -d "itemID=$CID" \
+                -d 'type=2' \
+                -d 'like=0'
+        )"
+        expect_eq "Dislike level comment" "$DISLIKE" "1"
+
+        DISLIKE_STATE="$(CID="$CID" AID="$AID2" php -r 'require "vendor/autoload.php"; $db=\MuchoCore\V71\DatabaseBridge::pdo(); $q=$db->prepare("SELECT c.likes, l.is_like FROM comments c INNER JOIN likes l ON l.item_id=c.id AND l.type=2 WHERE c.id=? AND l.account_id=?"); $q->execute([(int)getenv("CID"),(int)getenv("AID")]); $r=$q->fetch(PDO::FETCH_ASSOC); if(!$r){exit(2);} echo (int)$r["likes"].":".(int)$r["is_like"];')"
+        expect_eq "First dislike decrements net score" "$DISLIKE_STATE" "-1:0"
+
+        DISLIKE_REPEAT="$(
+            post likeGJItem211 \
+                -d "accountID=$AID2" \
+                -d "gjp2=$P2" \
+                -d "itemID=$CID" \
+                -d 'type=2' \
+                -d 'like=0'
+        )"
+        expect_eq "Repeated dislike response" "$DISLIKE_REPEAT" "1"
+        DISLIKE_REPEAT_STATE="$(CID="$CID" AID="$AID2" php -r 'require "vendor/autoload.php"; $db=\MuchoCore\V71\DatabaseBridge::pdo(); $q=$db->prepare("SELECT c.likes, l.is_like FROM comments c INNER JOIN likes l ON l.item_id=c.id AND l.type=2 WHERE c.id=? AND l.account_id=?"); $q->execute([(int)getenv("CID"),(int)getenv("AID")]); $r=$q->fetch(PDO::FETCH_ASSOC); if(!$r){exit(2);} echo (int)$r["likes"].":".(int)$r["is_like"];')"
+        expect_eq "Repeated dislike is idempotent" "$DISLIKE_REPEAT_STATE" "-1:0"
+
         LIKE="$(
             post likeGJItem211 \
                 -d "accountID=$AID2" \
@@ -882,8 +907,21 @@ PY
                 -d 'type=2' \
                 -d 'like=1'
         )"
+        expect_eq "Switch dislike to like" "$LIKE" "1"
+        LIKE_STATE="$(CID="$CID" AID="$AID2" php -r 'require "vendor/autoload.php"; $db=\MuchoCore\V71\DatabaseBridge::pdo(); $q=$db->prepare("SELECT c.likes, l.is_like FROM comments c INNER JOIN likes l ON l.item_id=c.id AND l.type=2 WHERE c.id=? AND l.account_id=?"); $q->execute([(int)getenv("CID"),(int)getenv("AID")]); $r=$q->fetch(PDO::FETCH_ASSOC); if(!$r){exit(2);} echo (int)$r["likes"].":".(int)$r["is_like"];')"
+        expect_eq "Switching back to like restores net score" "$LIKE_STATE" "0:1"
 
-        expect_eq "Like level comment" "$LIKE" "1"
+        LIKE_REPEAT="$(
+            post likeGJItem211 \
+                -d "accountID=$AID2" \
+                -d "gjp2=$P2" \
+                -d "itemID=$CID" \
+                -d 'type=2' \
+                -d 'like=1'
+        )"
+        expect_eq "Repeated like response" "$LIKE_REPEAT" "1"
+        LIKE_REPEAT_STATE="$(CID="$CID" AID="$AID2" php -r 'require "vendor/autoload.php"; $db=\MuchoCore\V71\DatabaseBridge::pdo(); $q=$db->prepare("SELECT c.likes, l.is_like FROM comments c INNER JOIN likes l ON l.item_id=c.id AND l.type=2 WHERE c.id=? AND l.account_id=?"); $q->execute([(int)getenv("CID"),(int)getenv("AID")]); $r=$q->fetch(PDO::FETCH_ASSOC); if(!$r){exit(2);} echo (int)$r["likes"].":".(int)$r["is_like"];')"
+        expect_eq "Repeated like is idempotent" "$LIKE_REPEAT_STATE" "0:1"
 
         DELC="$(
             post deleteGJComment20 \

@@ -33,13 +33,14 @@ final class LikeService
     public function likeAnonymous(
         int $itemId,
         int $type,
-        string $ip
+        string $ip,
+        bool $isLike = true
     ): void {
         $this->repository->addLike(
             $itemId,
             $type,
             0,
-            true,
+            $isLike,
             $ip
         );
     }
