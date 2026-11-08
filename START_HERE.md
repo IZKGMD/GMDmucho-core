@@ -12,7 +12,7 @@ Use the shortest VPS installation path:
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
 ~~~
 
-The installer asks only for your GDPS domain and initial admin password. All other production defaults are safe to change later from:
+The installer asks for your GDPS domain and initial admin password (with confirmation). On an interactive reinstall, it asks whether to keep or replace the existing admin password. All other production defaults are safe to change later from:
 
 ~~~bash
 sudo mucho
