@@ -70,7 +70,6 @@ def main():
         if url.startswith("#"):
             assert url[1:] in page.ids, f"Missing anchor target {url}"
     assert "GD 2.209" in markup and "100% compatibility" in markup
-    assert "screen" not in css.lower() or True  # CSS media screen is allowed
     assert "fake metrics" not in markup.lower()
     print("MUCHOCORE_EDITORIAL_LANDING_OK: routes, a11y, locales, responsive CSS, copy")
 
