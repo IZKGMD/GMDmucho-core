@@ -542,7 +542,10 @@ expect_not "Update user score" "$US" "-1"
 UI="$(
 post getGJUserInfo20 \
     -d "targetAccountID=$AID1" \
-    -d "accountID=$AID1"
+    -d "accountID=$AID1" \
+    -d "gjp2=$P1" \
+    -d 'gameVersion=22' \
+    -d 'binaryVersion=51'
 )"
 
 expect_contains "Get user info" "$UI" "$U1"
@@ -813,7 +816,9 @@ if [ "$LEVEL_ID" -gt 0 ]; then
             -d "gjp2=$P1" \
             -d "levelID=$LEVEL_ID" \
             --data-urlencode "comment=$COMMENT" \
-            -d 'percent=77'
+            -d 'percent=77' \
+            -d 'gameVersion=22' \
+            -d 'binaryVersion=51'
     )"
 
     if [[ "$CID" =~ ^[0-9]+$ ]] && [ "$CID" -gt 0 ]; then
@@ -949,7 +954,9 @@ PHP
         post uploadGJAccComment20 \
             -d "accountID=$AID1" \
             -d "gjp2=$P1" \
-            --data-urlencode "comment=$ACC_COMMENT"
+            --data-urlencode "comment=$ACC_COMMENT" \
+            -d 'gameVersion=22' \
+            -d 'binaryVersion=51'
     )"
 
     if [[ "$ACID" =~ ^[0-9]+$ ]] && [ "$ACID" -gt 0 ]; then
@@ -1235,7 +1242,9 @@ echo "===== PUBLIC LEVEL REPORT ====="
 if [ "$LEVEL_ID" -gt 0 ]; then
     REPORT1="$(
         post reportGJLevel \
-            -d "levelID=$LEVEL_ID"
+            -d "levelID=$LEVEL_ID" \
+            -d 'gameVersion=22' \
+            -d 'binaryVersion=51'
     )"
 
     if [[ "$REPORT1" =~ ^[0-9]+$ ]] && [ "$REPORT1" -gt 0 ]; then
