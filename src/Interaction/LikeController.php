@@ -45,7 +45,8 @@ final readonly class LikeController
                 $this->service->likeAnonymous(
                     $itemId,
                     $type,
-                    $r->clientIp()
+                    $r->clientIp(),
+                    $r->postInt('like', 1) === 1
                 );
             }
 
