@@ -14,19 +14,17 @@ final readonly class LikeController
     public function like(Request $r): Response
     {
         $itemId = $r->postInt('itemID', 0);
+        $type = $r->postInt('type', 1);
 
+        // A levelID can be context metadata for a comment reaction.
+        // Only use it as an item fallback if no itemID was supplied.
         if ($itemId <= 0) {
             $itemId = $r->postInt('levelID', 0);
+            $type = 1;
         }
 
         if ($itemId <= 0) {
             return Response::text('-1');
-        }
-
-        $type = $r->postInt('type', 1);
-
-        if ($r->postInt('levelID', 0) > 0) {
-            $type = 1;
         }
 
         try {
