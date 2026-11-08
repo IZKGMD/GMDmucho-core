@@ -10,9 +10,11 @@ final class GdSongEncoder
     {
         $data = [
             1, (int)$song['id'],
-            2, ProtocolText::username((string)($song['name'] ?? '')),
+            // Song titles and artist names have their own protocol sizes;
+            // the username formatter wrongly truncated both to 20 bytes.
+            2, ProtocolText::field((string)($song['name'] ?? ''), 128),
             3, (int)($song['author_id'] ?? 0),
-            4, ProtocolText::username((string)($song['author_name'] ?? '')),
+            4, ProtocolText::field((string)($song['author_name'] ?? ''), 128),
             5, round((float)($song['size'] ?? 0), 2),
             6, (string)($song['youtube_video_id'] ?? ''),
             10, (string)($song['download_url'] ?? ''),
