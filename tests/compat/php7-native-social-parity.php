@@ -13,8 +13,16 @@ $relations=new MuchoCore\Protocol\GdRelationshipEncoder();
 $expected=explode('#',$relations->requests(array($row),1,0,true))[0];
 if(mucho7_relationship_wire($row,true)!==$expected){throw new RuntimeException('Native friend request wire mismatch');}
 if(mucho7_relationship_wire($row,false,true)!==$relations->users(array($row),true)){throw new RuntimeException('Native 2.209 friend stats wire mismatch');}
-$row['subject']=base64_encode('Subject');$row['body']=base64_encode('Opaque body');
+$row['subject']='Subject';$row['body']='Opaque body';
 $row['to_username']='Peer';$row['to_user_id']=20;
+if(mucho7_message_decode_subject('U3ViamVjdA==')!=='Subject'
+    || mucho7_message_decode_body('')!==false
+    || mucho7_message_encode_subject('Subject')!==base64_encode('Subject')) {
+    throw new RuntimeException('Native private message codec mismatch');
+}
+if(mucho7_message_encode_body('Opaque body')!==strtr(base64_encode(mucho7_message_xor('Opaque body')),'+/','-_')) {
+    throw new RuntimeException('Native private message body codec mismatch');
+}
 $messages=new MuchoCore\Protocol\GdMessageEncoder();
 if(mucho7_message_wire($row,true,true)!==$messages->encodeMessage($row,true)){throw new RuntimeException('Native private message wire mismatch');}
 $profile=array_merge($row,array('role_code'=>'owner','ship'=>17,'ball'=>8,'friend_state'=>3,
