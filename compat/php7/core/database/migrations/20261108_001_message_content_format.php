@@ -6,8 +6,5 @@ declare(strict_types=1);
 // New rows are stored as normalized UTF-8 text (1), and serializers select
 // the matching encoder. This avoids rewriting or risking existing inboxes.
 return [
-    <<<'SQL'
-ALTER TABLE messages
-    ADD COLUMN content_format TINYINT UNSIGNED NOT NULL DEFAULT 0 AFTER body
-SQL,
+    'ALTER TABLE messages ADD COLUMN content_format TINYINT UNSIGNED NOT NULL DEFAULT 0 AFTER body',
 ];
