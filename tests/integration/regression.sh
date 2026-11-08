@@ -1044,16 +1044,33 @@ expect_not "Friend user list" "$UL" "-1"
 echo
 echo "===== MESSAGES ====="
 
+MESSAGE_SUBJECT='MuchoCore: Subject #|~ Привет'
+MESSAGE_BODY='MuchoCore: Body #|~ -4 Привет 😀'
+MESSAGE_SUBJECT_WIRE="$(
+    MESSAGE_SUBJECT="$MESSAGE_SUBJECT" php -r '
+        require "vendor/autoload.php";
+        echo (new \\MuchoCore\\Protocol\\GdMessageEncoder())
+            ->encodeSubject((string)getenv("MESSAGE_SUBJECT"));
+    '
+)"
+MESSAGE_BODY_WIRE="$(
+    MESSAGE_BODY="$MESSAGE_BODY" php -r '
+        require "vendor/autoload.php";
+        echo (new \\MuchoCore\\Protocol\\GdMessageEncoder())
+            ->encodeBody((string)getenv("MESSAGE_BODY"));
+    '
+)"
+
 MS="$(
 post uploadGJMessage20 \
     -d "accountID=$AID1" \
     -d "gjp2=$P1" \
     -d "toAccountID=$AID2" \
-    -d 'subject=VjgwIFN1YmplY3Q=' \
-    -d 'body=VjgwIE1lc3NhZ2UgQm9keQ=='
+    -d "subject=$MESSAGE_SUBJECT_WIRE" \
+    -d "body=$MESSAGE_BODY_WIRE"
 )"
 
-expect_eq "Send message" "$MS" "1"
+expect_eq "Send GD 2.2 encoded message" "$MS" "1"
 
 ML="$(
 post getGJMessages20 \
@@ -1064,11 +1081,26 @@ post getGJMessages20 \
 )"
 
 expect_not "Get messages" "$ML" "-1"
+expect_contains "Message list serializes Base64 subject" "$ML" ":4:$MESSAGE_SUBJECT_WIRE:"
 
 MID="$(latest_pk messages "$AID1" "$AID2")"
 
 if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
     pass "Resolve message ID"
+
+    STORED_MESSAGE="$(
+        MID="$MID" MESSAGE_SUBJECT="$MESSAGE_SUBJECT" MESSAGE_BODY="$MESSAGE_BODY" php -r '
+            require "vendor/autoload.php";
+            $db=\\MuchoCore\\V71\\DatabaseBridge::pdo();
+            $q=$db->prepare("SELECT subject,body FROM messages WHERE id=? LIMIT 1");
+            $q->execute([(int)getenv("MID")]);
+            $row=$q->fetch(PDO::FETCH_ASSOC);
+            echo $row
+                && $row["subject"]===getenv("MESSAGE_SUBJECT")
+                && $row["body"]===getenv("MESSAGE_BODY") ? "1" : "0";
+        '
+    )"
+    expect_eq "Database stores decoded plaintext message" "$STORED_MESSAGE" "1"
 
     MR="$(
         post downloadGJMessage20 \
@@ -1078,6 +1110,9 @@ if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
     )"
 
     expect_not "Download/read message" "$MR" "-1"
+    expect_contains "Download serializes Base64 subject" "$MR" ":4:$MESSAGE_SUBJECT_WIRE:"
+    expect_contains "Download serializes XOR/Base64 body" "$MR" ":5:$MESSAGE_BODY_WIRE:"
+    expect_contains "Download marks message read" "$MR" ":8:1:"
 
     MD="$(
         post deleteGJMessages20 \
@@ -1086,8 +1121,25 @@ if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
             -d "messageID=$MID" \
             -d 'isSender=0'
     )"
+    expect_eq "Delete received message copy" "$MD" "1"
 
-    expect_eq "Delete received message" "$MD" "1"
+    MSENT="$(
+        post getGJMessages20 \
+            -d "accountID=$AID1" \
+            -d "gjp2=$P1" \
+            -d 'page=0' \
+            -d 'getSent=1'
+    )"
+    expect_contains "Recipient deletion preserves sender outbox" "$MSENT" "1:$MID:"
+
+    MDS="$(
+        post deleteGJMessages20 \
+            -d "accountID=$AID1" \
+            -d "gjp2=$P1" \
+            -d "messageID=$MID" \
+            -d 'isSender=1'
+    )"
+    expect_eq "Delete sender outbox copy" "$MDS" "1"
 else
     fail "Resolve message ID"
 fi
