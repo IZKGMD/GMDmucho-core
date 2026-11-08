@@ -77,7 +77,14 @@ func (h *Handler) sendMessage(r request) (string, error) {
 		return "", err
 	}
 	target := r.int("toAccountID")
-	subject, body := r.str("subject"), r.str("body")
+	subject, ok := protocol.DecodeMessageSubject(r.str("subject"))
+	if !ok {
+		return "-1", nil
+	}
+	body, ok := protocol.DecodeMessageBody(r.str("body"))
+	if !ok {
+		return "-1", nil
+	}
 	if target <= 0 || target == me.ID || subject == "" || body == "" || len(subject) > 255 || len(body) > 65535 {
 		return "-1", nil
 	}
