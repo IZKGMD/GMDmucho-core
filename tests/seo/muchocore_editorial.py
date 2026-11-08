@@ -48,7 +48,7 @@ def main():
     assert len(page.ids) == len(set(page.ids)), "Duplicate element IDs"
     assert len(page.headings) == 1, "One clear primary heading is required"
     assert page.language_markers >= 30, "Main content should be available in RU and EN"
-    assert "/assets/muchocore-landing.css?v=1" in page.assets
+    assert "/assets/muchocore-landing.css?v=2" in page.assets
     assert "/assets/muchocore-landing.js?v=1" in page.assets
     assert "/assets/muchocore-icon.png?v=3" in markup
     # Product default is dark, with the core brand's purple accent. The prior
