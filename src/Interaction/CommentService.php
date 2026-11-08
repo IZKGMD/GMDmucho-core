@@ -1090,7 +1090,7 @@ final class CommentService
             $content !== '' &&
             mb_strlen($content, 'UTF-8') > 4096
         ) {
-            throw new \\RuntimeException(
+            throw new \RuntimeException(
                 'Comment is too long.'
             );
         }
