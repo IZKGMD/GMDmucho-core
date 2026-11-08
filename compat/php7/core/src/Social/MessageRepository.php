@@ -54,8 +54,8 @@ final class MessageRepository
              JOIN accounts at ON at.account_id=m.to_account_id
              WHERE m.id=:mid
                AND (
-                    m.account_id=:sender_aid
-                    OR m.to_account_id=:receiver_aid
+                    (m.account_id=:sender_aid AND m.is_sender_deleted=0)
+                    OR (m.to_account_id=:receiver_aid AND m.is_receiver_deleted=0)
                )
              LIMIT 1');
         $q->execute(['mid' => $messageId, 'sender_aid' => $accountId, 'receiver_aid' => $accountId]);
