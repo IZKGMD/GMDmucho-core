@@ -874,15 +874,29 @@ PY
     fi
 
     if [ "$CID" -gt 0 ]; then
+        SELF_LIKE="$(
+            post likeGJItem211 \
+                -d "accountID=$AID1" \
+                -d "gjp2=$P1" \
+                -d "itemID=$CID" \
+                -d 'type=2' \
+                -d 'like=1'
+        )"
+        expect_eq "Reject own comment reaction" "$SELF_LIKE" "-1"
+
+        SELF_SCORE="$(CID="$CID" php -r 'require "vendor/autoload.php"; $db=\MuchoCore\V71\DatabaseBridge::pdo(); $q=$db->prepare("SELECT likes FROM comments WHERE id=?"); $q->execute([(int)getenv("CID")]); echo (int)$q->fetchColumn();')"
+        expect_eq "Own reaction does not change net score" "$SELF_SCORE" "0"
+
         DISLIKE="$(
             post likeGJItem211 \
                 -d "accountID=$AID2" \
                 -d "gjp2=$P2" \
                 -d "itemID=$CID" \
+                -d "levelID=$LEVEL_ID" \
                 -d 'type=2' \
                 -d 'like=0'
         )"
-        expect_eq "Dislike level comment" "$DISLIKE" "1"
+        expect_eq "Dislike comment with levelID context" "$DISLIKE" "1"
 
         DISLIKE_STATE="$(CID="$CID" AID="$AID2" php -r 'require "vendor/autoload.php"; $db=\MuchoCore\V71\DatabaseBridge::pdo(); $q=$db->prepare("SELECT c.likes, l.is_like FROM comments c INNER JOIN likes l ON l.item_id=c.id AND l.type=2 WHERE c.id=? AND l.account_id=?"); $q->execute([(int)getenv("CID"),(int)getenv("AID")]); $r=$q->fetch(PDO::FETCH_ASSOC); if(!$r){exit(2);} echo (int)$r["likes"].":".(int)$r["is_like"];')"
         expect_eq "First dislike decrements net score" "$DISLIKE_STATE" "-1:0"
@@ -909,7 +923,7 @@ PY
         )"
         expect_eq "Switch dislike to like" "$LIKE" "1"
         LIKE_STATE="$(CID="$CID" AID="$AID2" php -r 'require "vendor/autoload.php"; $db=\MuchoCore\V71\DatabaseBridge::pdo(); $q=$db->prepare("SELECT c.likes, l.is_like FROM comments c INNER JOIN likes l ON l.item_id=c.id AND l.type=2 WHERE c.id=? AND l.account_id=?"); $q->execute([(int)getenv("CID"),(int)getenv("AID")]); $r=$q->fetch(PDO::FETCH_ASSOC); if(!$r){exit(2);} echo (int)$r["likes"].":".(int)$r["is_like"];')"
-        expect_eq "Switching back to like restores net score" "$LIKE_STATE" "0:1"
+        expect_eq "Switching dislike to like changes score by 2" "$LIKE_STATE" "1:1"
 
         LIKE_REPEAT="$(
             post likeGJItem211 \
@@ -921,7 +935,19 @@ PY
         )"
         expect_eq "Repeated like response" "$LIKE_REPEAT" "1"
         LIKE_REPEAT_STATE="$(CID="$CID" AID="$AID2" php -r 'require "vendor/autoload.php"; $db=\MuchoCore\V71\DatabaseBridge::pdo(); $q=$db->prepare("SELECT c.likes, l.is_like FROM comments c INNER JOIN likes l ON l.item_id=c.id AND l.type=2 WHERE c.id=? AND l.account_id=?"); $q->execute([(int)getenv("CID"),(int)getenv("AID")]); $r=$q->fetch(PDO::FETCH_ASSOC); if(!$r){exit(2);} echo (int)$r["likes"].":".(int)$r["is_like"];')"
-        expect_eq "Repeated like is idempotent" "$LIKE_REPEAT_STATE" "0:1"
+        expect_eq "Repeated like is idempotent" "$LIKE_REPEAT_STATE" "1:1"
+
+        DISLIKE_AGAIN="$(
+            post likeGJItem211 \
+                -d "accountID=$AID2" \
+                -d "gjp2=$P2" \
+                -d "itemID=$CID" \
+                -d 'type=2' \
+                -d 'like=0'
+        )"
+        expect_eq "Switch like back to dislike" "$DISLIKE_AGAIN" "1"
+        REVERSED_SCORE="$(CID="$CID" AID="$AID2" php -r 'require "vendor/autoload.php"; $db=\MuchoCore\V71\DatabaseBridge::pdo(); $q=$db->prepare("SELECT c.likes,l.is_like FROM comments c JOIN likes l ON l.item_id=c.id AND l.type=2 WHERE c.id=? AND l.account_id=?"); $q->execute([(int)getenv("CID"),(int)getenv("AID")]); $r=$q->fetch(PDO::FETCH_ASSOC); echo (int)$r["likes"].":".(int)$r["is_like"];')"
+        expect_eq "Switching like to dislike changes score by -2" "$REVERSED_SCORE" "-1:0"
 
         DELC="$(
             post deleteGJComment20 \
@@ -1044,16 +1070,33 @@ expect_not "Friend user list" "$UL" "-1"
 echo
 echo "===== MESSAGES ====="
 
+MESSAGE_SUBJECT='MuchoCore: Subject #|~ Привет'
+MESSAGE_BODY='MuchoCore: Body #|~ -4 Привет 😀'
+MESSAGE_SUBJECT_WIRE="$(
+    MESSAGE_SUBJECT="$MESSAGE_SUBJECT" php -r '
+        require "vendor/autoload.php";
+        echo (new \MuchoCore\Protocol\GdMessageEncoder())
+            ->encodeSubject((string)getenv("MESSAGE_SUBJECT"));
+    '
+)"
+MESSAGE_BODY_WIRE="$(
+    MESSAGE_BODY="$MESSAGE_BODY" php -r '
+        require "vendor/autoload.php";
+        echo (new \MuchoCore\Protocol\GdMessageEncoder())
+            ->encodeBody((string)getenv("MESSAGE_BODY"));
+    '
+)"
+
 MS="$(
 post uploadGJMessage20 \
     -d "accountID=$AID1" \
     -d "gjp2=$P1" \
     -d "toAccountID=$AID2" \
-    -d 'subject=VjgwIFN1YmplY3Q=' \
-    -d 'body=VjgwIE1lc3NhZ2UgQm9keQ=='
+    -d "subject=$MESSAGE_SUBJECT_WIRE" \
+    -d "body=$MESSAGE_BODY_WIRE"
 )"
 
-expect_eq "Send message" "$MS" "1"
+expect_eq "Send GD 2.2 encoded message" "$MS" "1"
 
 ML="$(
 post getGJMessages20 \
@@ -1064,11 +1107,27 @@ post getGJMessages20 \
 )"
 
 expect_not "Get messages" "$ML" "-1"
+expect_contains "Message list serializes Base64 subject" "$ML" ":4:$MESSAGE_SUBJECT_WIRE:"
 
 MID="$(latest_pk messages "$AID1" "$AID2")"
 
 if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
     pass "Resolve message ID"
+
+    STORED_MESSAGE="$(
+        MID="$MID" MESSAGE_SUBJECT="$MESSAGE_SUBJECT" MESSAGE_BODY="$MESSAGE_BODY" php -r '
+            require "vendor/autoload.php";
+            $db=\MuchoCore\V71\DatabaseBridge::pdo();
+            $q=$db->prepare("SELECT subject,body,content_format FROM messages WHERE id=? LIMIT 1");
+            $q->execute([(int)getenv("MID")]);
+            $row=$q->fetch(PDO::FETCH_ASSOC);
+            echo $row
+                && $row["subject"]===getenv("MESSAGE_SUBJECT")
+                && $row["body"]===getenv("MESSAGE_BODY")
+                && (int)$row["content_format"]===1 ? "1" : "0";
+        '
+    )"
+    expect_eq "Database stores decoded plaintext message" "$STORED_MESSAGE" "1"
 
     MR="$(
         post downloadGJMessage20 \
@@ -1078,6 +1137,9 @@ if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
     )"
 
     expect_not "Download/read message" "$MR" "-1"
+    expect_contains "Download serializes Base64 subject" "$MR" ":4:$MESSAGE_SUBJECT_WIRE:"
+    expect_contains "Download serializes XOR/Base64 body" "$MR" ":5:$MESSAGE_BODY_WIRE:"
+    expect_contains "Download marks message read" "$MR" ":8:1:"
 
     MD="$(
         post deleteGJMessages20 \
@@ -1086,8 +1148,41 @@ if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
             -d "messageID=$MID" \
             -d 'isSender=0'
     )"
+    expect_eq "Delete received message copy" "$MD" "1"
 
-    expect_eq "Delete received message" "$MD" "1"
+    MR_DELETED_RECEIVER="$(
+        post downloadGJMessage20 \
+            -d "accountID=$AID2" \
+            -d "gjp2=$P2" \
+            -d "messageID=$MID"
+    )"
+    expect_eq "Deleted receiver copy cannot be downloaded" "$MR_DELETED_RECEIVER" "-1"
+
+    MSENT="$(
+        post getGJMessages20 \
+            -d "accountID=$AID1" \
+            -d "gjp2=$P1" \
+            -d 'page=0' \
+            -d 'getSent=1'
+    )"
+    expect_contains "Recipient deletion preserves sender outbox" "$MSENT" "1:$MID:"
+
+    MDS="$(
+        post deleteGJMessages20 \
+            -d "accountID=$AID1" \
+            -d "gjp2=$P1" \
+            -d "messageID=$MID" \
+            -d 'isSender=1'
+    )"
+    expect_eq "Delete sender outbox copy" "$MDS" "1"
+    MR_DELETED_SENDER="$(
+        post downloadGJMessage20 \
+            -d "accountID=$AID1" \
+            -d "gjp2=$P1" \
+            -d "messageID=$MID" \
+            -d 'isSender=1'
+    )"
+    expect_eq "Deleted sender copy cannot be downloaded" "$MR_DELETED_SENDER" "-1"
 else
     fail "Resolve message ID"
 fi

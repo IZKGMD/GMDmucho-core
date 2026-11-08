@@ -14,27 +14,30 @@ final readonly class LikeController
     public function like(Request $r): Response
     {
         $itemId = $r->postInt('itemID', 0);
+        $type = $r->postInt('type', 1);
 
+        // A levelID can be context metadata for a comment reaction.
+        // Only use it as an item fallback if no itemID was supplied.
         if ($itemId <= 0) {
             $itemId = $r->postInt('levelID', 0);
+            $type = 1;
         }
 
         if ($itemId <= 0) {
             return Response::text('-1');
         }
 
-        $type = $r->postInt('type', 1);
-
-        if ($r->postInt('levelID', 0) > 0) {
-            $type = 1;
-        }
-
         try {
             $accountId = $r->postInt('accountID', 0);
             $gjp = $r->gdCredential();
 
-            if ($accountId > 0 && $gjp !== '') {
-                $this->service->likeItem(
+            if ($accountId > 0) {
+                // A request declaring an account must authenticate as that
+                // account, not silently downgrade to an anonymous IP vote.
+                if ($gjp === '') {
+                    return Response::text('-1');
+                }
+                $success = $this->service->likeItem(
                     $itemId,
                     $type,
                     $accountId,
@@ -42,7 +45,7 @@ final readonly class LikeController
                     $r->postInt('like', 1) === 1
                 );
             } else {
-                $this->service->likeAnonymous(
+                $success = $this->service->likeAnonymous(
                     $itemId,
                     $type,
                     $r->clientIp(),
@@ -50,7 +53,7 @@ final readonly class LikeController
                 );
             }
 
-            return Response::text('1');
+            return Response::text($success ? '1' : '-1');
         } catch (Throwable) {
             return Response::text('-1');
         }

@@ -39,6 +39,17 @@ final readonly class CloudSaveRepository
 
         try {
 
+            // The cloud-save row does not exist on a first backup.
+            // Lock its existing parent account so two concurrent first saves
+            // cannot both choose revision 1 and silently overwrite each other.
+            $owner=$this->db->prepare(
+                'SELECT account_id FROM accounts WHERE account_id=:account FOR UPDATE'
+            );
+            $owner->execute(['account'=>$accountId]);
+            if ($owner->fetchColumn() === false) {
+                throw new RuntimeException('Cloud save account not found.');
+            }
+
             $q=$this->db->prepare("
                 SELECT
                     account_id,
@@ -226,55 +237,34 @@ final readonly class CloudSaveRepository
 
 
             /*
-             * Keep last five previous revisions.
+             * Keep precisely five previous revisions, including after
+             * migrating unusually long legacy histories. Only the revision
+             * numbers of the newest five rows need to be read.
              */
             $history=$this->db->prepare("
-                SELECT history_id
-
+                SELECT revision
                 FROM mucho_cloud_save_revisions
-
                 WHERE account_id=:account
-
                 ORDER BY revision DESC
-
-                LIMIT 100
+                LIMIT 5
             ");
-
-            $history->execute([
-                'account'=>$accountId
-            ]);
-
-            $ids=array_map(
+            $history->execute(['account'=>$accountId]);
+            $revisions=array_map(
                 'intval',
                 $history->fetchAll(PDO::FETCH_COLUMN)
             );
 
-
-            if(count($ids)>self::HISTORY_LIMIT){
-
-                foreach(
-                    array_slice(
-                        $ids,
-                        self::HISTORY_LIMIT
-                    )
-                    as $historyId
-                ){
-
-                    $delete=$this->db->prepare("
-                        DELETE FROM
-                        mucho_cloud_save_revisions
-
-                        WHERE history_id=:id
-                          AND account_id=:account
-                    ");
-
-                    $delete->execute([
-                        'id'=>$historyId,
-                        'account'=>$accountId,
-                    ]);
-                }
+            if (count($revisions) === self::HISTORY_LIMIT) {
+                $delete=$this->db->prepare("
+                    DELETE FROM mucho_cloud_save_revisions
+                    WHERE account_id=:account
+                      AND revision<:oldest
+                ");
+                $delete->execute([
+                    'account'=>$accountId,
+                    'oldest'=>min($revisions),
+                ]);
             }
-
 
             $this->db->commit();
 

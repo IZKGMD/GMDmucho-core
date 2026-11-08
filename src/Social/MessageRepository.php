@@ -26,8 +26,8 @@ final readonly class MessageRepository
     ): bool {
         $q = $this->pdo->prepare(
             'INSERT INTO messages
-             (account_id,to_account_id,subject,body)
-             VALUES (:f,:t,:s,:b)'
+             (account_id,to_account_id,subject,body,content_format)
+             VALUES (:f,:t,:s,:b,1)'
         );
 
         return $q->execute([
@@ -48,15 +48,15 @@ final readonly class MessageRepository
         if ($sent) {
             $sql =
                 "SELECT m.id,m.account_id,m.to_account_id,
-                        m.subject,m.is_read,m.created_at,
-                        p.user_id AS to_user_id,
+                        m.subject,m.content_format,m.is_read,m.created_at,
+                        COALESCE(p.user_id,a.account_id) AS to_user_id,
                         a.username AS to_username,
                         COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS to_clan_tag
                  FROM messages m
-                 JOIN profiles p
-                   ON p.account_id=m.to_account_id
                  JOIN accounts a
                    ON a.account_id=m.to_account_id
+                 LEFT JOIN profiles p
+                   ON p.account_id=a.account_id
                  WHERE m.account_id=:id
                    AND m.is_sender_deleted=0
                  ORDER BY m.id DESC
@@ -64,14 +64,14 @@ final readonly class MessageRepository
         } else {
             $sql =
                 "SELECT m.id,m.account_id,m.to_account_id,
-                        m.subject,m.is_read,m.created_at,
-                        p.user_id,a.username,
+                        m.subject,m.content_format,m.is_read,m.created_at,
+                        COALESCE(p.user_id,a.account_id) AS user_id,a.username,
                         COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag
                  FROM messages m
-                 JOIN profiles p
-                   ON p.account_id=m.account_id
                  JOIN accounts a
                    ON a.account_id=m.account_id
+                 LEFT JOIN profiles p
+                   ON p.account_id=a.account_id
                  WHERE m.to_account_id=:id
                    AND m.is_receiver_deleted=0
                  ORDER BY m.id DESC
@@ -100,18 +100,18 @@ final readonly class MessageRepository
     {
         $q = $this->pdo->prepare(
             'SELECT m.*,
-                    pf.user_id,af.username,
-                    pt.user_id AS to_user_id,
+                    COALESCE(pf.user_id,af.account_id) AS user_id,af.username,
+                    COALESCE(pt.user_id,at.account_id) AS to_user_id,
                     at.username AS to_username
              FROM messages m
-             JOIN profiles pf ON pf.account_id=m.account_id
              JOIN accounts af ON af.account_id=m.account_id
-             JOIN profiles pt ON pt.account_id=m.to_account_id
+             LEFT JOIN profiles pf ON pf.account_id=af.account_id
              JOIN accounts at ON at.account_id=m.to_account_id
+             LEFT JOIN profiles pt ON pt.account_id=at.account_id
              WHERE m.id=:mid
                AND (
-                    m.account_id=:sender_aid
-                    OR m.to_account_id=:receiver_aid
+                    (m.account_id=:sender_aid AND m.is_sender_deleted=0)
+                    OR (m.to_account_id=:receiver_aid AND m.is_receiver_deleted=0)
                )
              LIMIT 1'
         );

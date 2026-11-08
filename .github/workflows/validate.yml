@@ -678,6 +678,13 @@ jobs:
           php tests/compat/php7-native-features-mysql.php
           php tests/compat/php7-native-news-security.php --mysql
 
+      - name: Verify PHP 8 cloud save consistency and legacy history cleanup
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/cloudsave-consistency-integration.php
+
       - name: Verify queue leases and database cache races
         env:
           TEST_DB_HOST: 127.0.0.1
@@ -729,12 +736,26 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/news-media-integration.php
 
+      - name: Verify PHP 8 like and dislike integrity against isolated MariaDB
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/like-integrity-integration.php
+
       - name: Verify GD 2.209 social relationship and notification flows
         env:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/gd2209-social-integration.php
+
+      - name: Verify PHP 8 private message migration, encoding and access controls
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/gd2209-private-messages-integration.php
 
       - name: Verify GD 2.209 thread invite and message access isolation
         env:
@@ -749,6 +770,13 @@ jobs:
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/gd2209-gameplay-schema-integration.php
+
+      - name: Verify PHP 8 level upload/download reliability and ownership
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/level-transfer-reliability-integration.php
 
       - name: Verify GD 2.209 level telemetry permissions and aggregation
         env:

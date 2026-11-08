@@ -19,9 +19,9 @@ final class LikeService
         int $accountId,
         string $gjp,
         bool $isLike
-    ): void {
+    ): bool {
         $this->auth->authenticate($accountId, $gjp);
-        $this->repository->addLike(
+        return $this->repository->addLike(
             $itemId,
             $type,
             $accountId,
@@ -35,8 +35,8 @@ final class LikeService
         int $type,
         string $ip,
         bool $isLike = true
-    ): void {
-        $this->repository->addLike(
+    ): bool {
+        return $this->repository->addLike(
             $itemId,
             $type,
             0,
