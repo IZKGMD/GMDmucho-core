@@ -179,7 +179,7 @@
     "src/Interaction/CommentRepository.php": "a25cb11dad29762b54fcdac7e89d9db671b375a4d13e31c2f05ff26497be3b78",
     "src/Interaction/CommentService.php": "02c89ddacf1f6095ab7c9c64fe51ab0d0121d6ae9f1b3002b9f05411e6e24cf3",
     "src/Interaction/InteractionController.php": "75385ede267db7de3dbe35245315ad378bfa70a93f18da251d9ccb5b639c36ec",
-    "src/Interaction/LikeController.php": "b0f9df9c110796165102316830850f86804c07bf40913e03d9036cd04648da02",
+    "src/Interaction/LikeController.php": "6d18fe7a318ed36b44884fb2150cd95bd510de822c6de0c9478bc2f7a65c68a7",
     "src/Interaction/LikeRepository.php": "5f706363bdfd6555847187c0e3d3689f614daef73ee6903f1ca405eba4fc42fb",
     "src/Interaction/LikeService.php": "a00332b96f92ddff9c9719889df7147a9d52f14dcdb0328d5ef97821bccde3af",
     "src/Interaction/RatingRepository.php": "afc3d88fe536e8ce38217c7fc90bdfe269ed1aa3506e3260bc474b1995437462",
