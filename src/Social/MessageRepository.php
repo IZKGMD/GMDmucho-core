@@ -26,8 +26,8 @@ final readonly class MessageRepository
     ): bool {
         $q = $this->pdo->prepare(
             'INSERT INTO messages
-             (account_id,to_account_id,subject,body)
-             VALUES (:f,:t,:s,:b)'
+             (account_id,to_account_id,subject,body,content_format)
+             VALUES (:f,:t,:s,:b,1)'
         );
 
         return $q->execute([
@@ -48,7 +48,7 @@ final readonly class MessageRepository
         if ($sent) {
             $sql =
                 "SELECT m.id,m.account_id,m.to_account_id,
-                        m.subject,m.is_read,m.created_at,
+                        m.subject,m.content_format,m.is_read,m.created_at,
                         p.user_id AS to_user_id,
                         a.username AS to_username,
                         COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS to_clan_tag
@@ -64,7 +64,7 @@ final readonly class MessageRepository
         } else {
             $sql =
                 "SELECT m.id,m.account_id,m.to_account_id,
-                        m.subject,m.is_read,m.created_at,
+                        m.subject,m.content_format,m.is_read,m.created_at,
                         p.user_id,a.username,
                         COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag
                  FROM messages m
