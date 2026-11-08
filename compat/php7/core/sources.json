@@ -248,7 +248,7 @@
     "src/Protocol/GdLegacyText.php": "aec6be52bbda792ce0d3f95e15a6ac90da1bab991b48c9a22ae5aa3a6ef3a4a8",
     "src/Protocol/GdLevelDownloadEncoder.php": "9b83a6dcd7250edd357e26a67319dcf08713ba7a202e1fa55a02610875cc3952",
     "src/Protocol/GdLevelListEncoder.php": "38079e157a157e36a1d8fd7b71a1bb9ecbc915eda9d079d0cd583b2cc182b04b",
-    "src/Protocol/GdMessageEncoder.php": "1419dd5052a102f84bba90522336331028072fe4224b73cf0a5e2c274c598663",
+    "src/Protocol/GdMessageEncoder.php": "fd4c99e6f8dfd03a9bb5fb4d5bd0dd0ae0b7fadbf1cfc03b4f3ed41b4895d6fd",
     "src/Protocol/GdRelationshipEncoder.php": "6388016e425df3b6b37f2128151bba27281cdab544557ce6e58d9573020bc99f",
     "src/Protocol/GdSongEncoder.php": "393ac01c2ea328a998fb27b57c7d2d15900d16ec4e8487e3c861e013e82103c8",
     "src/Protocol/GdUserEncoder.php": "ac1a79d9b53af7e763cd284fce89d674a91f0e9c241b7b8984a7d50209a9c3eb",
