@@ -9,6 +9,12 @@ test -f install
 
 bash -n install.sh
 bash -n install
+bash -n bin/mucho-admin-setup.sh
+grep -Fq 'New admin password (at least 10 characters):' bin/mucho-admin-setup.sh
+grep -Fq 'Confirm admin password:' bin/mucho-admin-setup.sh
+grep -Fq 'docker compose "${compose[@]}" up -d --no-deps --no-build --force-recreate app' bin/mucho-admin-setup.sh
+grep -Fq 'php bin/mucho-sync-admin.php' bin/mucho-admin-setup.sh
+! grep -Fq 'echo "$first"' bin/mucho-admin-setup.sh
 bash -n tools/release/build-shared-hosting.sh
 test -f public/shared-install.php
 grep -Fq '20260925_000_admin_users.php' < <(git ls-files database/migrations/20260925_000_admin_users.php)
