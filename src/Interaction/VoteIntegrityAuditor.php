@@ -39,6 +39,13 @@ final readonly class VoteIntegrityAuditor
             throw new RuntimeException('Missing likes table.');
         }
 
+        if ($this->db->inTransaction()) {
+            throw new RuntimeException('Audit requires its own consistent snapshot.');
+        }
+        $this->db->exec('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+        $this->db->beginTransaction();
+
+        try {
         $summary = [
             'read_only' => true,
             'targets' => [],
@@ -183,7 +190,14 @@ final readonly class VoteIntegrityAuditor
             }
         } while ($summary['votes']['scanned'] < $maxVotes);
 
+        $this->db->commit();
         return $summary;
+        } catch (\Throwable $error) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $error;
+        }
     }
 
     private function tableExists(string $table): bool
