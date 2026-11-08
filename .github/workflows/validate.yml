@@ -114,6 +114,7 @@ jobs:
           php tests/protocol/social-wire.php
           php tests/protocol/level-protocol-guards.php
           php tests/protocol/protocol-22-hashes.php
+          php tests/protocol/gd-song-info.php
           php tests/protocol/protocol-22-surface.php
           php tests/protocol/backup-verifier-legacy.php
           php tests/protocol/gd2209-comment-timestamps.php
