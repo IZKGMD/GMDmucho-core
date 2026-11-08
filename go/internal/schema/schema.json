@@ -259,6 +259,7 @@
     "INSERT INTO `schema_migrations` (`version`) VALUES ('20261018_004_gd2209_native_threads')",
     "INSERT INTO `schema_migrations` (`version`) VALUES ('20261020_001_gameplay_rotations_rewards')",
     "INSERT INTO `schema_migrations` (`version`) VALUES ('20261025_001_shared_level_rating_state')",
+    "INSERT INTO `schema_migrations` (`version`) VALUES ('20261108_001_message_content_format')",
     "INSERT INTO `server_settings` (`setting_key`,`setting_value`) VALUES ('levels.upload.enabled','1')",
     "INSERT INTO `server_settings` (`setting_key`,`setting_value`) VALUES ('maintenance.enabled','0')",
     "INSERT INTO `server_settings` (`setting_key`,`setting_value`) VALUES ('registration.enabled','1')",
