@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS php7_messages (
             to_account_id BIGINT UNSIGNED NOT NULL,
             subject VARCHAR(255) NOT NULL,
             body TEXT NOT NULL,
+            content_format TINYINT UNSIGNED NOT NULL DEFAULT 0,
             is_read TINYINT NOT NULL DEFAULT 0,
             is_sender_deleted TINYINT NOT NULL DEFAULT 0,
             is_receiver_deleted TINYINT NOT NULL DEFAULT 0,
