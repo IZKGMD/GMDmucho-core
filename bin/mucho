@@ -248,6 +248,10 @@ set_admin_password() {
         echo "Passwords are empty or do not match."
         return 1
     }
+    [[ "${#first}" -ge 10 ]] || {
+        echo "Admin password must contain at least 10 characters."
+        return 1
+    }
 
     printf '%s' "$first" > "$SECRETS/admin_password"
     chmod 600 "$SECRETS/admin_password"
