@@ -103,12 +103,12 @@ final readonly class LikeRepository
                     'ip' => $accountId > 0 ? '' : $ip,
                     'like' => $isLike ? 1 : 0,
                 ]);
-                $delta = $isLike ? 1 : 0;
+                $delta = $isLike ? 1 : -1;
             }
 
             $q = $this->db->prepare(
                 'UPDATE `'.$table.'`
-                 SET likes = GREATEST(0, likes + :amount)
+                 SET likes = likes + :amount
                  WHERE `'.$pk.'` = :id'
             );
             $q->execute([
