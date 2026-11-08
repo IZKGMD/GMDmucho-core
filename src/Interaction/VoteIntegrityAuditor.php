@@ -87,16 +87,16 @@ final readonly class VoteIntegrityAuditor
             do {
                 $take = min($batchSize, $maxTargetsPerType - $item['scanned']);
                 $q = $this->db->prepare(
-                    "SELECT t.\`$pk\` AS item_id, t.likes AS stored_score,
+                    "SELECT t.`$pk` AS item_id, t.likes AS stored_score,
                             COALESCE(SUM(CASE
                                 WHEN v.is_like=1 THEN 1
                                 WHEN v.is_like=0 THEN -1
                                 ELSE 0 END),0) AS expected_score
-                     FROM \`$table\` t
-                     LEFT JOIN likes v ON v.item_id=t.\`$pk\` AND v.type=:type
-                     WHERE t.\`$pk\`>:cursor
-                     GROUP BY t.\`$pk\`,t.likes
-                     ORDER BY t.\`$pk\` ASC
+                     FROM `$table` t
+                     LEFT JOIN likes v ON v.item_id=t.`$pk` AND v.type=:type
+                     WHERE t.`$pk`>:cursor
+                     GROUP BY t.`$pk`,t.likes
+                     ORDER BY t.`$pk` ASC
                      LIMIT :take"
                 );
                 $q->bindValue(':type', $type, PDO::PARAM_INT);
@@ -157,8 +157,8 @@ final readonly class VoteIntegrityAuditor
                 $idList = array_keys($ids);
                 $placeholders = implode(',', array_fill(0, count($idList), '?'));
                 $ownerStmt = $this->db->prepare(
-                    "SELECT \`$pk\` AS item_id,account_id
-                     FROM \`$table\` WHERE \`$pk\` IN ($placeholders)"
+                    "SELECT `$pk` AS item_id,account_id
+                     FROM `$table` WHERE `$pk` IN ($placeholders)"
                 );
                 $ownerStmt->execute($idList);
                 foreach ($ownerStmt->fetchAll(PDO::FETCH_ASSOC) as $owner) {
