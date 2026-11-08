@@ -415,19 +415,19 @@ echo
 echo "===== HEALTH ====="
 
 H="$(
-api_get /api/v2/health
+api_get /health
 )"
 
-expect_contains "Local health" "$H" '"ok": true'
+expect_eq "Local health" "$H" "1"
 
 PH="$(
 curl -sS \
     --connect-timeout 5 \
     --max-time 20 \
-    "$PUBLIC/api/v2/health"
+    "$PUBLIC/health"
 )"
 
-expect_contains "Public health" "$PH" '"ok": true'
+expect_eq "Public health" "$PH" "1"
 
 echo
 echo "===== ACCOUNT REGISTER ====="
@@ -681,18 +681,15 @@ if [ "$LEVEL_ID" -gt 0 ]; then
     echo "===== GD 1.9 PROTOCOL ====="
 
     legacy_gjp() {
-        python3 - "$1" <<'PY'
-import base64
-import sys
-
-password = sys.argv[1].encode("utf-8")
-key = b"37526"
-payload = bytes(
-    value ^ key[index % len(key)]
-    for index, value in enumerate(password)
-)
-print(base64.urlsafe_b64encode(payload).decode().rstrip("="))
-PY
+        php -r '
+            $password=(string)$argv[1];
+            $key="37526";
+            $result="";
+            for($i=0,$n=strlen($password);$i<$n;$i++){
+                $result.=$password[$i] ^ $key[$i % strlen($key)];
+            }
+            echo rtrim(strtr(base64_encode($result),"+/","-_"),"=");
+        ' "$1"
     }
 
     GJP19="$(legacy_gjp "$P1")"
@@ -1375,8 +1372,8 @@ fi
 echo
 echo "===== FINAL HEALTH ====="
 
-FH="$(api_get /api/v2/health)"
-expect_contains "Final health" "$FH" '"ok": true'
+FH="$(api_get /health)"
+expect_eq "Final health" "$FH" "1"
 
 echo
 echo "========================================"
