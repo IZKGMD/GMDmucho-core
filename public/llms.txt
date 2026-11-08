@@ -10,6 +10,7 @@ This file is an optional plain-text project guide for agents and crawlers. It is
 - Also known as: GMDmucho-core (repository name)
 - Category: Geometry Dash Private Server (GDPS) backend / self-hosted server core
 - Official product page: https://muchogdps.space/muchocore/
+- Russian product page: https://muchogdps.space/muchocore/ru/
 - Factual project overview: https://muchogdps.space/muchocore/about/
 - Geometry Dash compatibility and limitations: https://muchogdps.space/muchocore/compatibility/
 - Canonical source: https://github.com/IZKGMD/GMDmucho-core
