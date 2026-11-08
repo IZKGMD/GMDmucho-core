@@ -418,9 +418,9 @@ assertSecurityRegression(
 
 assertSecurityRegression(
     str_contains($likeService, 'bool $isLike = true') &&
-    str_contains($likeController, "$r->postInt('like', 1) === 1") &&
+    str_contains($likeController, '$r->postInt(\'like\', 1) === 1') &&
     str_contains($likeServicePhp7, 'bool $isLike = true') &&
-    str_contains($likeControllerPhp7, "$r->postInt('like', 1) === 1"),
+    str_contains($likeControllerPhp7, '$r->postInt(\'like\', 1) === 1'),
     'authenticated and anonymous PHP vote paths preserve dislike direction'
 );
 
