@@ -31,7 +31,7 @@ final class LikeController
             if ($accountId > 0 && $gjp !== '') {
                 $this->service->likeItem($itemId, $type, $accountId, $gjp, $r->postInt('like', 1) === 1);
             } else {
-                $this->service->likeAnonymous($itemId, $type, $r->clientIp());
+                $this->service->likeAnonymous($itemId, $type, $r->clientIp(), $r->postInt('like', 1) === 1);
             }
             return Response::text('1');
         } catch (Throwable $__mcCaught) {
