@@ -3,8 +3,14 @@
 declare(strict_types=1);
 
 require dirname(__DIR__, 2) . '/src/Account/AccountAuthenticator.php';
+require dirname(__DIR__, 2) . '/src/Level/LevelAccess.php';
+require dirname(__DIR__, 2) . '/src/CloudSave/CloudSaveRepository.php';
+require dirname(__DIR__, 2) . '/src/CloudSave/CloudSaveService.php';
 
 use MuchoCore\Account\AccountAuthenticator;
+use MuchoCore\CloudSave\CloudSaveRepository;
+use MuchoCore\CloudSave\CloudSaveService;
+use MuchoCore\Level\LevelAccess;
 
 function assertAuthIsolation(bool $condition, string $name): void
 {
@@ -124,6 +130,77 @@ assertAuthIsolation(
     (int)($account['account_id'] ?? 0) === 1 &&
     (int)($account['user_id'] ?? 0) === 101,
     'valid credential authenticates the intended account on the shared IP'
+);
+
+
+// Registering a password with boundary spaces is allowed by AccountService.
+// Authentication and all authenticated GD endpoints must use those exact
+// bytes rather than silently changing the stored credential.
+$spacedPassword = '  exact GD password  ';
+$insertSpaced = $pdo->prepare(
+    'INSERT INTO accounts
+        (account_id,username,password_hash,gjp2_hash,is_active,is_banned)
+     VALUES (2,:username,:hash,"",1,0)'
+);
+$insertSpaced->execute([
+    'username' => 'space-protected',
+    'hash' => password_hash($spacedPassword, PASSWORD_DEFAULT),
+]);
+$pdo->exec('INSERT INTO profiles(user_id,account_id) VALUES (202,2)');
+
+assertAuthIsolation(
+    (int)$authenticator->authenticate(2, $spacedPassword)['account_id'] === 2,
+    'password with boundary spaces is authenticated without mutation'
+);
+
+$trimmedRejected = false;
+try {
+    $authenticator->authenticate(2, trim($spacedPassword));
+} catch (RuntimeException $error) {
+    $trimmedRejected = $error->getMessage() === 'Unauthorized.';
+}
+assertAuthIsolation(
+    $trimmedRejected,
+    'stripping password spaces changes secret and is rejected'
+);
+
+assertAuthIsolation(
+    LevelAccess::canRead(
+        $pdo,
+        ['account_id'=>2,'is_deleted'=>0,'unlisted2'=>1],
+        $authenticator,
+        2,
+        $spacedPassword
+    ),
+    'private level access honors the exact credential'
+);
+
+$cloudService = new CloudSaveService(
+    $pdo,
+    $authenticator,
+    new CloudSaveRepository($pdo)
+);
+$cloudAuth = new ReflectionMethod($cloudService, 'authenticate');
+assertAuthIsolation(
+    $cloudAuth->invoke($cloudService, [
+        'accountID' => 2,
+        'password' => $spacedPassword,
+    ]) === 2,
+    'Cloud Save uses exact password bytes'
+);
+
+$cloudTrimmedRejected = false;
+try {
+    $cloudAuth->invoke($cloudService, [
+        'accountID' => 2,
+        'password' => trim($spacedPassword),
+    ]);
+} catch (RuntimeException $error) {
+    $cloudTrimmedRejected = $error->getMessage() === 'Unauthorized.';
+}
+assertAuthIsolation(
+    $cloudTrimmedRejected,
+    'Cloud Save cannot authenticate with modified password bytes'
 );
 
 echo "MUCHOCORE_AUTH_SESSION_ISOLATION_OK\n";

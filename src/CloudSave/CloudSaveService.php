@@ -85,7 +85,9 @@ final readonly class CloudSaveService
                 continue;
             }
 
-            $candidate = trim((string)$candidate);
+            // Keep credential bytes exactly as supplied. A password
+            // containing leading/trailing spaces is a valid secret.
+            $candidate = (string)$candidate;
 
             if ($candidate !== '') {
                 $credential = $candidate;

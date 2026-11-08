@@ -33,8 +33,8 @@ final readonly class AccountAuthenticator
         string $credential,
         string $ip = ''
     ): array {
-        $credential = trim($credential);
-
+        // Passwords are opaque credentials: stripping boundary spaces
+        // changes the secret and breaks GD endpoints after a valid login.
         if (
             $accountId <= 0 ||
             $credential === '' ||
