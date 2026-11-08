@@ -57,7 +57,7 @@ final class CommentService
             $content,
             $gameVersion
         );
-        $decodedContent = $this->normalizeCommentText($decodedContent);
+        $decodedContent = $this->normalizeCommentText($decodedContent, $gameVersion);
 
         if ($decodedContent === '') {
             throw new \RuntimeException('Comment cannot be empty.');
@@ -986,7 +986,7 @@ final class CommentService
             $content,
             $gameVersion
         );
-        $decodedContent = $this->normalizeCommentText($decodedContent);
+        $decodedContent = $this->normalizeCommentText($decodedContent, $gameVersion);
 
         if ($decodedContent === '') {
             throw new \RuntimeException('Comment cannot be empty.');
@@ -1067,13 +1067,16 @@ final class CommentService
         );
     }
 
-    private function normalizeCommentText(string $content): string
+    private function normalizeCommentText(string $content, int $gameVersion): string
     {
-        $content = str_replace(
-            ["\\0", "~", "|", "#", ":"],
-            "",
-            $content
-        );
+        // GD 2.x sends comment text as URL-safe Base64, so protocol separators
+        // are ordinary content after decoding. Preserve 2.209 emoji shortcodes
+        // such as :fire: and keep legacy 1.x wire sanitization unchanged.
+        $content = str_replace("\0", "", $content);
+
+        if ($gameVersion < 20) {
+            $content = str_replace(["~", "|", "#", ":"], "", $content);
+        }
 
         $content = preg_replace(
             '/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/',
@@ -1094,7 +1097,6 @@ final class CommentService
 
         return $content;
     }
-
     private function canReadLevel(int $levelId, int $viewer = 0, string $credential = ''): bool
     {
         $db = $this->getPdo();

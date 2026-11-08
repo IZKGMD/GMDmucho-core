@@ -33,7 +33,10 @@ func normalizeComment(value string, game int) (string, error) {
 	if game >= 20 {
 		value = protocol.WireDecode(value)
 	}
-	value = strings.NewReplacer("\\0", "", "~", "", "|", "", "#", "", ":", "").Replace(value)
+	value = strings.NewReplacer("\\0", "", "\x00", "").Replace(value)
+	if game < 20 {
+		value = strings.NewReplacer("~", "", "|", "", "#", "", ":", "").Replace(value)
+	}
 	var clean strings.Builder
 	for i := 0; i < len(value); i++ {
 		c := value[i]

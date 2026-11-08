@@ -5,6 +5,7 @@ declare(strict_types=1);
 require dirname(__DIR__, 2) . '/src/Protocol/GdLegacyText.php';
 require dirname(__DIR__, 2) . '/src/Protocol/ProtocolText.php';
 require dirname(__DIR__, 2) . '/src/Protocol/GdCommentEncoder.php';
+require dirname(__DIR__, 2) . '/src/Interaction/CommentService.php';
 
 use MuchoCore\Protocol\GdLegacyText;
 use MuchoCore\Protocol\GdCommentEncoder;
@@ -72,5 +73,27 @@ $assert(str_starts_with($accountWire, '2~' . $wire . '~3~'),
     'account comment key 2 is not Base64');
 $assert(str_contains($levelWire, '~15~1792540800'),
     '2.209 epoch field removed');
+
+
+$serviceReflection = new ReflectionClass('MuchoCore\\Interaction\\CommentService');
+$service = $serviceReflection->newInstanceWithoutConstructor();
+$normalize = $serviceReflection->getMethod('normalizeCommentText');
+$normalize->setAccessible(true);
+
+$shortcodes = ':fire: :skull: :eyes:';
+$assert(
+    $normalize->invoke($service, $shortcodes, 22) === $shortcodes,
+    'GD 2.209 emoji shortcodes survive comment normalization'
+);
+$assert(
+    $normalize->invoke($service, 'keep:colon|pipe#hash~tilde', 22)
+        === 'keep:colon|pipe#hash~tilde',
+    'modern Base64 comments preserve protocol-looking content'
+);
+$assert(
+    $normalize->invoke($service, 'legacy:comment|with~delimiters#', 19)
+        === 'legacycommentwithdelimiters',
+    'legacy comment delimiter sanitization remains unchanged'
+);
 
 echo "MUCHOCORE_GD_2209_COMMENT_BASE64_OK\n";
