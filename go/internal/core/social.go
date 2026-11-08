@@ -34,7 +34,7 @@ func (h *Handler) messages(r request) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	rows, err := dbutil.Query(r.ctx, h.db, `SELECT m.id,m.account_id,m.to_account_id,m.subject,m.is_read,m.created_at,p.user_id,a.username,`+clanTagSQL+` FROM messages m JOIN profiles p ON p.account_id=m.`+peer+` JOIN accounts a ON a.account_id=m.`+peer+` WHERE m.`+owner+`=? AND m.`+deleted+`=0 ORDER BY m.id DESC LIMIT 10 OFFSET ?`, me.ID, r.page()*10)
+	rows, err := dbutil.Query(r.ctx, h.db, `SELECT m.id,m.account_id,m.to_account_id,m.subject,m.content_format,m.is_read,m.created_at,p.user_id,a.username,`+clanTagSQL+` FROM messages m JOIN profiles p ON p.account_id=m.`+peer+` JOIN accounts a ON a.account_id=m.`+peer+` WHERE m.`+owner+`=? AND m.`+deleted+`=0 ORDER BY m.id DESC LIMIT 10 OFFSET ?`, me.ID, r.page()*10)
 	if err != nil {
 		return "", err
 	}
@@ -111,7 +111,7 @@ func (h *Handler) sendMessage(r request) (string, error) {
 			return "-1", err
 		}
 	}
-	_, err = h.db.ExecContext(r.ctx, `INSERT INTO messages(account_id,to_account_id,subject,body) VALUES(?,?,?,?)`, me.ID, target, subject, body)
+	_, err = h.db.ExecContext(r.ctx, `INSERT INTO messages(account_id,to_account_id,subject,body,content_format) VALUES(?,?,?,?,1)`, me.ID, target, subject, body)
 	return "1", err
 }
 func (h *Handler) deleteMessage(r request) (string, error) {
