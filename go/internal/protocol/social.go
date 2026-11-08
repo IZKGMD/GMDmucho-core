@@ -92,9 +92,17 @@ func Message(r dbutil.Row, sent bool) string {
 		name, uid, aid, tag = r["to_username"], r.Int("to_user_id"), r.Int("to_account_id"), r["to_clan_tag"]
 		sender = 1
 	}
-	result := Pairs(6, DisplayName(name, tag), 3, uid, 2, aid, 1, r.Int("id"), 4, EncodeMessageSubject(r["subject"]), 8, r.Int("is_read"), 9, sender)
+	isPlainText := r.Int("content_format") == 1
+	subject := r["subject"]
+	if isPlainText {
+		subject = EncodeMessageSubject(subject)
+	}
+	result := Pairs(6, DisplayName(name, tag), 3, uid, 2, aid, 1, r.Int("id"), 4, subject, 8, r.Int("is_read"), 9, sender)
 	if body, ok := r["body"]; ok {
-		result += Pairs("", 5, EncodeMessageBody(body))
+		if isPlainText {
+			body = EncodeMessageBody(body)
+		}
+		result += Pairs("", 5, body)
 	}
 	return result + Pairs("", 7, Date(r["created_at"]))
 }
