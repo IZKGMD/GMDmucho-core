@@ -13,7 +13,7 @@ $relations=new MuchoCore\Protocol\GdRelationshipEncoder();
 $expected=explode('#',$relations->requests(array($row),1,0,true))[0];
 if(mucho7_relationship_wire($row,true)!==$expected){throw new RuntimeException('Native friend request wire mismatch');}
 if(mucho7_relationship_wire($row,false,true)!==$relations->users(array($row),true)){throw new RuntimeException('Native 2.209 friend stats wire mismatch');}
-$row['subject']='Subject';$row['body']='Opaque body';
+$row['subject']='Subject';$row['body']='Opaque body';$row['content_format']=1;
 $row['to_username']='Peer';$row['to_user_id']=20;
 $referenceSubject='MuchoCore: Subject #|~ Привет';
 $referenceBody='MuchoCore: Body #|~ -4 Привет 😀';
@@ -33,6 +33,14 @@ if(mucho7_message_encode_body('Opaque body')!==strtr(base64_encode(mucho7_messag
 }
 $messages=new MuchoCore\Protocol\GdMessageEncoder();
 if(mucho7_message_wire($row,true,true)!==$messages->encodeMessage($row,true)){throw new RuntimeException('Native private message wire mismatch');}
+$legacyRow=$row;
+$legacyRow['subject']='U3ViamVjdA==';
+$legacyRow['body']=mucho7_message_encode_body('Legacy body');
+$legacyRow['content_format']=0;
+$legacyExpected=new MuchoCore\\Protocol\\GdMessageEncoder();
+if(mucho7_message_wire($legacyRow,true,true)!==$legacyExpected->encodeMessage($legacyRow,true)){
+    throw new RuntimeException('Legacy wire-format messages were double-encoded');
+}
 $profile=array_merge($row,array('role_code'=>'owner','ship'=>17,'ball'=>8,'friend_state'=>3,
     'message_state'=>1,'friend_request_state'=>1,'comment_history_state'=>2,
     'request_id'=>9,'request_comment'=>base64_encode('Friend request'),'request_date'=>'22/10/2026 12.00',
