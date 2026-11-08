@@ -6,6 +6,7 @@ namespace MuchoCore\Account;
 
 use MuchoCore\Job\JobQueue;
 use PDO;
+use PDOException;
 use Throwable;
 
 final readonly class AccountService
@@ -99,6 +100,25 @@ final readonly class AccountService
         } catch (Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
+            }
+
+            // Pre-checks are only advisory: two registrations can pass the
+            // username/email lookups before either INSERT commits. Preserve
+            // the GD client contract even when the unique index wins the race.
+            if (
+                $e instanceof PDOException &&
+                (int)($e->errorInfo[1] ?? 0) === 1062
+            ) {
+                if ($this->accounts->usernameExists($username)) {
+                    return '-2';
+                }
+                if ($this->accounts->emailExists($email)) {
+                    return '-3';
+                }
+
+                // A different uniqueness constraint collided. Never leak
+                // raw SQL errors to the game or mistake it for a success.
+                return '-1';
             }
 
             throw $e;
