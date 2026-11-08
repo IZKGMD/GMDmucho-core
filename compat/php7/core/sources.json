@@ -193,7 +193,7 @@
     "src/Level/LevelDownloadTracker.php": "1961be29bdc2d131f03973b6f0577acff86d4efcba96d44a4aaa59a4a9b8c84a",
     "src/Level/LevelRepository.php": "81ff13c6305cdf49d67858baf3eb54fcf1fd51792d4a349fcd64b9899c551a83",
     "src/Level/LevelRevisionService.php": "a35ad2bfca5254149650d4eb59db6253d9cd7194b0eac6fb5ae2efdcfcfab5a1",
-    "src/Level/LevelService.php": "ba5271573714c41f4443d2cea05733420966b50748655c6fd69abbd6b0c72762",
+    "src/Level/LevelService.php": "73b4d4e9d2dcde81aeed0b67c461358ef4c549b132a83b6d0be978409d923753",
     "src/Level/LevelTelemetryController.php": "07f3afbcf0f157de6242409681b7ee13dc0f08e17c99119e107b70e551f84a69",
     "src/Level/LevelTelemetryService.php": "e8aebd01ce802eb620b76d64c7628f30fb545d6c14503328afcbac3ad86813e6",
     "src/Level/LevelTransferController.php": "c3930a4bd17f33c938cd6233f59f52b55f4d69c94295b92e073845d529b8adaa",
