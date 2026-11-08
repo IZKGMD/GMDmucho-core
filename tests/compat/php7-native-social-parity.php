@@ -37,7 +37,7 @@ $legacyRow=$row;
 $legacyRow['subject']='U3ViamVjdA==';
 $legacyRow['body']=mucho7_message_encode_body('Legacy body');
 $legacyRow['content_format']=0;
-$legacyExpected=new MuchoCore\\Protocol\\GdMessageEncoder();
+$legacyExpected=new MuchoCore\Protocol\GdMessageEncoder();
 if(mucho7_message_wire($legacyRow,true,true)!==$legacyExpected->encodeMessage($legacyRow,true)){
     throw new RuntimeException('Legacy wire-format messages were double-encoded');
 }
