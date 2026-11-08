@@ -58,7 +58,10 @@ function mucho7_domain_save_key(PDO $db,$root)
         mucho7_private_write($path,base64_encode(random_bytes(32))."\n");
     }
     if(is_link($path))throw new RuntimeException('The cloud-save key must be a private regular file.');
-    $key=base64_decode(trim((string)file_get_contents($path)),true);
+    $encoded=trim((string)file_get_contents($path));
+    // Preserve old encrypted saves when a legacy installer stored the
+    // original 32-byte key as 64 hexadecimal characters.
+    $key=preg_match('/\\A[a-f0-9]{64}\\z/i',$encoded)===1?hex2bin($encoded):base64_decode($encoded,true);
     if(!is_string($key)||strlen($key)!==32)throw new RuntimeException('The cloud-save key is invalid.');
     return $key;
 }
