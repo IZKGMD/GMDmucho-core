@@ -43,6 +43,30 @@ is run again and that secret already exists, it explicitly asks whether to
 keep the existing password or enter and confirm a new one. For unattended
 installs, pass `MUCHO_ADMIN_PASSWORD` through the environment.
 
+### Initial admin password on manually deployed Docker installations
+
+The normal installer already **requires** you to enter and confirm an administrator
+password; it never silently generates an unknown admin password. If you installed
+MuchoCore manually with Docker Compose instead of running the installer, use
+the same interactive flow **before starting the app**:
+
+~~~bash
+cd /opt/mucho-core
+sudo bash bin/mucho-admin-setup.sh
+~~~
+
+The prompt hides both password entries, validates a minimum of 10 characters
+and writes the secret to `.secrets/admin_password` with mode `0600`.
+If the PHP app is already running, the helper recreates **only** the app,
+synchronizes the `admin_users` password hash and reloads Caddy. It preserves
+the database, game accounts, levels and cloud-save key. It also detects the
+`compose.public.yaml` override used by test/polygon deployments, avoiding
+an accidental Docker image build when changing the password.
+
+Never pass the password in a GitHub issue comment, shell command argument
+or repository configuration. The login is at
+`https://YOUR-DOMAIN/admin/` (default username `admin`).
+
 Everything else uses production-safe defaults. The default compatibility profile is **all supported generations** and can be changed later with:
 
 ~~~bash
