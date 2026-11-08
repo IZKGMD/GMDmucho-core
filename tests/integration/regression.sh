@@ -563,7 +563,9 @@ expect_contains "2.2 user info demon state" "$UI" ':55:1,2,3,4,5'
 expect_contains "2.2 user info star state" "$UI" ':56:6,7,8,9,10,11'
 expect_contains "2.2 user info platformer state" "$UI" ':57:12,13,14,15'
 expect_contains "2.2 user info color3" "$UI" ':51:4'
-expect_contains "2.2 user info special" "$UI" ':15:1'
+# The key-15 special icon flag belongs to the *search/leaderboard*
+# user record. getGJUserInfo20 does not emit key 15 (also true in MegaSa1nt).
+expect_contains "2.2 user search special" "$SEARCH_USER" ':15:1'
 expect_contains "2.2 user info glow" "$UI" ':28:7'
 
 echo
