@@ -35,18 +35,19 @@
     });
   }
 
-  const translatable = [...document.querySelectorAll('[data-ru]')];
-  translatable.forEach(node => {
-    // Preserve original English HTML where possible. Text-only replacement
-    // applies to translated nodes; it never parses user-provided HTML.
-    node.dataset.enDefault = node.textContent;
-  });
+  const translatable = [...document.querySelectorAll('[data-ru]')].map(node => ({
+    node,
+    // Cloned trusted source nodes restore original editorial line breaks
+    // without parsing arbitrary HTML when switching back to English.
+    english: [...node.childNodes].map(child => child.cloneNode(true))
+  }));
 
   function setLanguage(lang) {
     const isRussian = lang === 'ru';
     document.documentElement.lang = isRussian ? 'ru' : 'en';
-    translatable.forEach(node => {
-      node.textContent = isRussian ? node.dataset.ru : node.dataset.enDefault;
+    translatable.forEach(({node, english}) => {
+      if (isRussian) node.textContent = node.dataset.ru;
+      else node.replaceChildren(...english.map(child => child.cloneNode(true)));
     });
     if (langButton) {
       langButton.textContent = isRussian ? 'EN' : 'RU';
