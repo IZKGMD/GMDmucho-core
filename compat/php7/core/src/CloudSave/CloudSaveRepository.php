@@ -140,8 +140,13 @@ final class CloudSaveRepository
         if ($raw === false) {
             throw new RuntimeException('Cloud save key unavailable.');
         }
-        $key = base64_decode(trim($raw), true);
-        if ($key === false || strlen($key) !== 32) {
+        $encoded = trim($raw);
+        // Accept Base64 and legacy 64-character HEX representations of the
+        // same 32-byte key. Never rotate or replace an existing key here.
+        $key = preg_match('/\\A[a-f0-9]{64}\\z/i', $encoded) === 1
+            ? hex2bin($encoded)
+            : base64_decode($encoded, true);
+        if (!is_string($key) || strlen($key) !== 32) {
             throw new RuntimeException('Invalid cloud save key.');
         }
         return $key;
