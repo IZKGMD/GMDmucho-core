@@ -85,6 +85,11 @@ try {
     nativeFeatureAssert(substr($rawSave['save_data'],0,8)==='MC7ENC1:' && $rawSave['save_data']!==$backup['saveData'],'native Cloud Save must be encrypted at rest');
     nativeFeatureAssert($rawSave['sha256']===hash('sha256',$backup['saveData']),'save plaintext checksum retained for migration');
     nativeFeatureAssert(is_file($saveFixtureRoot.'/config/cloudsave.key'),'native Cloud Save private key missing');
+    $nativeKeyPath=$saveFixtureRoot.'/config/cloudsave.key';
+    $nativeKey=base64_decode(trim((string)file_get_contents($nativeKeyPath)),true);
+    nativeFeatureAssert(is_string($nativeKey)&&strlen($nativeKey)===32,'native Cloud Save base64 key is valid');
+    file_put_contents($nativeKeyPath,bin2hex($nativeKey)."\\n");
+    nativeFeatureAssert($call('syncGJAccount20',$auth)===$backup['saveData'].';21;30;a;a','legacy HEX key reads existing encrypted save without rotation');
     nativeFeatureAssert($call('syncGJAccount20',$auth)===$backup['saveData'].';21;30;a;a','sync preserves every byte');
     nativeFeatureAssert($call('syncGJAccount20',array_merge($auth,array('accountID'=>'2')))==='-1','other account cannot read save');
     nativeFeatureAssert($call('backupGJAccount20',array_merge($backup,array('gjp2'=>'bad')))==='-1','bad credential cannot overwrite save');
