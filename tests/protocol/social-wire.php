@@ -22,6 +22,45 @@ function assertSameValue(mixed $expected, mixed $actual, string $name): void
 
 $messageEncoder = new GdMessageEncoder();
 
+$messageSubject = 'MuchoCore: Subject #|~ Привет';
+$messageBody = 'MuchoCore: Body #|~ -4 Привет 😀';
+$messageSubjectWire = $messageEncoder->encodeSubject($messageSubject);
+$messageBodyWire = $messageEncoder->encodeBody($messageBody);
+
+assertSameValue(
+    $messageSubject,
+    $messageEncoder->decodeSubject($messageSubjectWire),
+    'GD 2.2 subject Base64 round trip with Unicode and protocol delimiters'
+);
+assertSameValue(
+    $messageBody,
+    $messageEncoder->decodeBody($messageBodyWire),
+    'GD 2.2 body XOR/Base64 round trip with Unicode and protocol delimiters'
+);
+assertSameValue(null, $messageEncoder->decodeSubject('%%%'), 'reject malformed subject Base64');
+assertSameValue(null, $messageEncoder->decodeBody('%%%'), 'reject malformed body Base64');
+
+$encodedMessage = $messageEncoder->encodeMessage([
+    'id' => 12,
+    'user_id' => 22,
+    'account_id' => 32,
+    'username' => 'Sender',
+    'subject' => $messageSubject,
+    'is_read' => 0,
+    'created_at' => '2026-01-01 12:00:00',
+    'body' => $messageBody,
+]);
+assertSameValue(
+    true,
+    str_contains($encodedMessage, ':4:' . $messageSubjectWire . ':8:'),
+    'message wire encodes subject before joining protocol fields'
+);
+assertSameValue(
+    true,
+    str_contains($encodedMessage, ':5:' . $messageBodyWire . ':7:'),
+    'message wire XOR-encodes body before joining protocol fields'
+);
+
 $unread = $messageEncoder->encodeMessage([
     'id' => 10,
     'user_id' => 20,
