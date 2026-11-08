@@ -14,11 +14,14 @@ use MuchoCore\Cache\CacheInterface;
 use MuchoCore\Compatibility\Legacy10IdentityService;
 use MuchoCore\Job\JobQueue;
 use MuchoCore\Level\LevelDownloadTracker;
+use MuchoCore\Level\LevelRepository;
+use MuchoCore\Level\LevelService;
 use MuchoCore\Level\LevelRevisionService;
 use MuchoCore\Level\LevelTransferRepository;
 use MuchoCore\Level\LevelTransferService;
 use MuchoCore\Level\LevelValidator;
 use MuchoCore\Protocol\GdLevelDownloadEncoder;
+use MuchoCore\Protocol\GdLevelListEncoder;
 use MuchoCore\Search\LevelSearchIndexer;
 
 $host = getenv('TEST_DB_HOST');
@@ -114,6 +117,21 @@ CREATE TABLE levels (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 SQL);
 
+    // Search SQL always joins songs, even when the level uses a built-in song.
+    $db->exec(<<<'SQL'
+CREATE TABLE songs (
+    id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+    name VARCHAR(128) NOT NULL,
+    author_id BIGINT NOT NULL DEFAULT 0,
+    author_name VARCHAR(128) NOT NULL DEFAULT '',
+    size DECIMAL(10,2) NOT NULL DEFAULT 0,
+    download_url TEXT NOT NULL,
+    youtube_video_id VARCHAR(64) NOT NULL DEFAULT '',
+    youtube_channel_id VARCHAR(64) NOT NULL DEFAULT '',
+    is_verified TINYINT NOT NULL DEFAULT 1
+) ENGINE=InnoDB
+SQL);
+
     foreach ([1 => 'Owner', 2 => 'Other'] as $id => $user) {
         $stmt = $db->prepare(
             'INSERT INTO accounts(account_id,username,password_hash,gjp2_hash)
@@ -128,8 +146,12 @@ SQL);
 
     // Deliberately unavailable cache backend: DB writes must still succeed.
     $failingCache = new class implements CacheInterface {
-        public function get(string $key): ?string { return null; }
-        public function set(string $key, string $value, int $ttlSeconds): void {}
+        public function get(string $key): ?string {
+            throw new RuntimeException('Simulated public list cache read outage.');
+        }
+        public function set(string $key, string $value, int $ttlSeconds): void {
+            throw new RuntimeException('Simulated public list cache write outage.');
+        }
         public function delete(string $key): void {}
         public function deletePrefix(string $prefix): void {
             throw new RuntimeException('Simulated optional cache outage.');
@@ -164,6 +186,23 @@ SQL);
     $level = $db->query('SELECT level_data FROM levels WHERE level_id=' . $id)->fetchColumn();
     $check($level === $data['levelString'], 'upload persists unmodified level data');
     $check($service->checkUpdate($id, 1) === '1', 'new version check is available');
+
+    $search = new LevelService(
+        new LevelRepository($db),
+        new GdLevelListEncoder(),
+        $failingCache
+    );
+    $listInput = [
+        'type' => '0',
+        'page' => '0',
+        'gameVersion' => '22',
+        'binaryVersion' => '51',
+    ];
+    $listing = $search->getLevels($listInput);
+    $check(str_contains($listing, '1:' . $id . ':'),
+        'public search serves GD 2.209 levels despite cache read and write outages');
+    $check(str_contains($listing, ':62:') && str_contains($listing, ':63:'),
+        'search fallback preserves GD 2.209 timestamp fields');
 
     $rejected = false;
     try {
@@ -237,6 +276,8 @@ SQL);
     $check($service->download($id, 22, 51, false, true, 0, '', '192.0.2.15') === '-1',
         'deleted levels cannot be downloaded');
     $check($downloads() === 3, 'deleted level cannot inflate downloads');
+    $check($search->getLevels($listInput) === '-2',
+        'search fallback excludes deleted levels without stale cache data');
 
     echo "MUCHOCORE_PHP8_LEVEL_TRANSFER_RELIABILITY_OK\n";
 } finally {
