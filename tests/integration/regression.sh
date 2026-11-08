@@ -700,6 +700,29 @@ if [ "$LEVEL_ID" -gt 0 ]; then
     }
 
     GJP19="$(legacy_gjp "$P1")"
+
+    # Distinguish a malformed 1.9 credential from HTTP routing or request
+    # decoding regressions without ever printing password or GJP material.
+    LEGACY_GJP_AUTH="$(
+        AID="$AID1" ENCODED_GJP="$GJP19" php <<'PHP'
+<?php
+require 'vendor/autoload.php';
+try {
+    $auth = new \MuchoCore\Account\AccountAuthenticator(
+        \MuchoCore\V71\DatabaseBridge::pdo()
+    );
+    $auth->authenticate(
+        (int)getenv('AID'),
+        (string)getenv('ENCODED_GJP')
+    );
+    echo '1';
+} catch (Throwable) {
+    echo '-1';
+}
+PHP
+    )"
+    expect_eq "GD 1.9 generated GJP authenticates against acceptance DB" "$LEGACY_GJP_AUTH" "1"
+
     LEGACY_DESC="Legacy Mucho 1.9 description"
     LEGACY_DESC_B64="$(
         printf '%s' "$LEGACY_DESC" |
@@ -987,7 +1010,13 @@ PHP
                 -d 'page=0'
         )"
 
-        expect_contains "Get account comments" "$GA" "$ACID"
+        # Keep the precise HTTP response in the isolated acceptance log on
+        # failure. This is a synthetic comment belonging to a test-only user.
+        if [[ "$GA" == *"$ACID"* ]]; then
+            pass "Get account comments"
+        else
+            fail "Get account comments :: missing=[$ACID] response=[$(${GA:+printf '%s' "$GA" | head -c 240})]"
+        fi
 
         DAC="$(
             post deleteGJAccComment20 \
