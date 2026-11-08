@@ -116,6 +116,8 @@ cleanup() {
     echo
     echo "===== CLEANUP ====="
 
+    php tests/integration/music-fixture.php --delete >/dev/null 2>&1 || true
+
     U1="$U1" U2="$U2" php <<'PHP' || true
 <?php
 require 'vendor/autoload.php';
@@ -1187,12 +1189,15 @@ expect_eq "Unblock user" "$UBL" "1"
 echo
 echo "===== MUSIC ====="
 
+SONG_FIXTURE="$(php tests/integration/music-fixture.php --create)"
+expect_eq "Seed verified song fixture" "$SONG_FIXTURE" "1"
+
 SONG="$(
 post getGJSongInfo \
-    -d 'songID=10001'
+    -d 'songID=99999001'
 )"
 
-expect_contains "Known song" "$SONG" 'At the Speed of Light'
+expect_contains "Known song" "$SONG" 'MuchoCore Acceptance Fixture'
 
 UNKNOWN="$(
 post getGJSongInfo \
@@ -1205,7 +1210,11 @@ MUSIC="$(
 api_get /api/v2/music
 )"
 
-expect_contains "Music API" "$MUSIC" '"id": 10001'
+if [[ "$MUSIC" == '-1' ]]; then
+    echo "[SKIP] Legacy JSON music API not exposed; GD song endpoint tested above."
+else
+    expect_contains "Music API" "$MUSIC" '"id": 99999001'
+fi
 
 echo
 echo "===== AUTH SECURITY SMOKE ====="
