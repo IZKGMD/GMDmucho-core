@@ -63,7 +63,7 @@ or `.env`. Startup connects to the database but never runs DDL.
 | `TURNSTILE_SITEKEY`, `TURNSTILE_SECRET` | Enable the recovery security challenge when both are configured |
 | `MUCHO_ACCOUNT_URL` | Account service URL returned to game clients |
 | `MUCHO_CUSTOM_CONTENT_URL` | Custom content URL returned to game clients |
-| `MUCHO_CLOUDSAVE_KEY_FILE` | Absolute path to the existing base64-encoded 32-byte Cloud Save key; default `/var/lib/muchocore/cloudsave.key` |
+| `MUCHO_CLOUDSAVE_KEY_FILE` | Absolute path to the existing 32-byte Cloud Save key (Base64 or legacy 64-character HEX); default `/var/lib/muchocore/cloudsave.key` |
 | `MUCHO_TRUSTED_PROXY_CIDRS` | Explicit trusted proxy IPs/CIDRs, separated by spaces or commas; follows the PHP trust rules |
 | `MUCHO_PROTECT` | Protection enabled by default; `0`, `false`, `off`, `no` disable it |
 | `MUCHO_ANTICHEAT_QUARANTINE` | Opt-in filtering of suspicious score records |

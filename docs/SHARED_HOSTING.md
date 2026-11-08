@@ -18,7 +18,9 @@ InfinityFree Free currently advertises PHP 8.4 and MySQL 8.0 / MariaDB 11.4, but
 The shared-hosting installer writes the encrypted-save key to
 `config/cloudsave.key` (private, mode 0600). The Cloud Save backend reads
 that same key when `MUCHO_SHARED_HOSTING=1`, rather than trying to access
-Docker's `/var/lib/muchocore/cloudsave.key` path.
+Docker's `/var/lib/muchocore/cloudsave.key` path. Key readers accept both the
+canonical Base64 encoding and the legacy 64-character HEX encoding of the
+same 32 random bytes; changing the text encoding never rotates the key.
 
 **Back up this key securely together with database backups.** Database
 backups alone cannot decrypt existing game saves. Never regenerate or delete

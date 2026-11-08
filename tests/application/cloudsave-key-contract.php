@@ -53,6 +53,17 @@ try {
         'encrypted save round-trips byte-for-byte'
     );
 
+    file_put_contents($keyFile, bin2hex($originalKey) . PHP_EOL);
+    cloudKeyCheck(
+        $decrypt->invoke(
+            $repo,
+            $envelope['ciphertext'],
+            $envelope['nonce'],
+            $envelope['tag']
+        ) === $payload,
+        'legacy HEX key reads existing encrypted save without rotation'
+    );
+
     file_put_contents($keyFile, base64_encode(random_bytes(32)) . PHP_EOL);
     $rejected = false;
     try {

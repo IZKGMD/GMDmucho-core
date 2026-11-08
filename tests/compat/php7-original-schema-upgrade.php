@@ -69,6 +69,14 @@ try{
     upgradeCheck((new \MuchoCore\Social\RelationshipRepository($db))->requestCount(2,false)===($legacy?1:0),'Hidden friend request became visible');
     putenv('MUCHO_SHARED_HOSTING=1');putenv('MUCHO_CLOUDSAVE_KEY_FILE='.$stage.'/config/cloudsave.key');
     $saves=new \MuchoCore\CloudSave\CloudSaveRepository($db);upgradeCheck($saves->load(1)===$plain,'Encrypted native save changed bytes');
+    if(!$legacy){
+        $keyText=trim((string)file_get_contents($stage.'/config/cloudsave.key'));
+        $keyBytes=base64_decode($keyText,true);
+        upgradeCheck(is_string($keyBytes)&&strlen($keyBytes)===32,'Original cloud-save key is valid');
+        file_put_contents($stage.'/config/cloudsave.key',bin2hex($keyBytes)."\n");
+        upgradeCheck(mucho7_domain_save_key($db,$stage)===$keyBytes,'PHP7 importer accepts legacy HEX key without rotation');
+        upgradeCheck($saves->load(1)===$plain,'Full-core repository reads existing save with legacy HEX key');
+    }
     upgradeCheck(mucho7_domain_import_step($db,$stage)['done'],'Repeated import was not idempotent');
     $request=new \MuchoCore\Http\Request('POST','/getGJChallenges',array(),array(),array('REMOTE_ADDR'=>'127.0.0.1'));
     $app=new \MuchoCore\Core\Application($db,$request);
