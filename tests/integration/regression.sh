@@ -835,7 +835,11 @@ if [ "$LEVEL_ID" -gt 0 ]; then
     GC="$(
         post getGJComments21 \
             -d "levelID=$LEVEL_ID" \
-            -d 'page=0'
+            -d 'page=0' \
+            -d 'gameVersion=22' \
+            -d 'binaryVersion=51' \
+            -d "accountID=$AID1" \
+            -d "gjp2=$P1"
     )"
 
     if [ "$CID" -gt 0 ]; then
@@ -965,6 +969,17 @@ PHP
 
     if [[ "$ACID" =~ ^[0-9]+$ ]] && [ "$ACID" -gt 0 ]; then
         pass "Upload account comment"
+
+        # GD upload replies with status 1, not the newly assigned comment ID.
+        # Resolve the inserted row for this test-owned account before reading
+        # and deleting it; otherwise later runs delete comment ID 1 by mistake.
+        ACID="$(latest_pk account_comments "$AID1" "$AID1")"
+        if ! [[ "$ACID" =~ ^[0-9]+$ ]] || [ "$ACID" -le 0 ]; then
+            fail "Resolve account comment ID"
+            ACID=0
+        else
+            pass "Resolve account comment ID"
+        fi
 
         GA="$(
             post getGJAccountComments20 \
