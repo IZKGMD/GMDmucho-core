@@ -1015,7 +1015,7 @@ PHP
         if [[ "$GA" == *"$ACID"* ]]; then
             pass "Get account comments"
         else
-            fail "Get account comments :: missing=[$ACID] response=[$(${GA:+printf '%s' "$GA" | head -c 240})]"
+            fail "Get account comments :: missing=[$ACID] response=[$(printf '%s' "$GA" | head -c 240)]"
         fi
 
         DAC="$(
