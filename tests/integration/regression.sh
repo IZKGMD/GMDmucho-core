@@ -1007,7 +1007,9 @@ PHP
         GA="$(
             post getGJAccountComments20 \
                 -d "accountID=$AID1" \
-                -d 'page=0'
+                -d 'page=0' \
+                -d 'gameVersion=22' \
+                -d 'binaryVersion=51'
         )"
 
         # Keep the precise HTTP response in the isolated acceptance log on
