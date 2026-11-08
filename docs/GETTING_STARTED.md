@@ -28,7 +28,13 @@ curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-r
 The installer asks for only:
 
 - your GDPS domain;
-- the initial Admin Panel password.
+- the initial Admin Panel password;
+- password confirmation.
+
+The password must contain at least 10 characters and is stored in the VPS's
+protected `.secrets/admin_password` file. On an interactive reinstall, the
+installer asks whether to keep the saved password or replace it. An unattended
+installation can provide `MUCHO_ADMIN_PASSWORD` in its environment.
 
 It installs Docker when needed, deploys the latest **published stable release**, creates the database and Cloud Save secrets, configures Caddy, enables release-based updates, runs migrations, and verifies the production health endpoint.
 

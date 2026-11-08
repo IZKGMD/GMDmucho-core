@@ -29,6 +29,13 @@ grep -Fq 'value="${value#https://}"' install.sh
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/db_password" ]]; then' install.sh
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/db_root_password" ]]; then' install.sh
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then' install.sh
+grep -Fq 'prompt_admin_password()' install.sh
+grep -Fq 'Admin password (minimum 10 characters):' install.sh
+grep -Fq 'Confirm admin password:' install.sh
+grep -Fq 'Keep the existing password? [Y/n]' install.sh
+grep -Fq 'MUCHO_ADMIN_PASSWORD for an unattended install.' install.sh
+grep -Fq 'Admin password must contain at least 10 characters.' install.sh
+grep -Fq 'Admin password must contain at least 10 characters.' bin/mucho
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/cloudsave_key" ]]; then' install.sh
 grep -Fq 'Required secret file is missing or empty' install.sh
 

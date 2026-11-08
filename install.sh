@@ -557,15 +557,67 @@ else
   MUCHO_DB_ROOT_PASSWORD="$(openssl rand -hex 32)"
 fi
 
+prompt_admin_password() {
+  local first second attempt
+  [[ -r /dev/tty && -w /dev/tty && ( -t 1 || -t 2 ) ]] ||
+    fail "An interactive terminal is required to create an admin password. Set MUCHO_ADMIN_PASSWORD for an unattended install."
+
+  for attempt in 1 2 3; do
+    read -r -s -p "  Admin password (minimum 10 characters): " first < /dev/tty
+    printf '\n'
+    read -r -s -p "  Confirm admin password: " second < /dev/tty
+    printf '\n'
+
+    if [[ "${#first}" -lt 10 ]]; then
+      warn "Admin password must contain at least 10 characters."
+      continue
+    fi
+    if [[ "$first" != "$second" ]]; then
+      warn "Admin passwords do not match."
+      continue
+    fi
+    local newline=$'\n' carriage_return=$'\r'
+    if [[ "$first" == *"$newline"* || "$first" == *"$carriage_return"* ]]; then
+      warn "Admin password cannot contain line breaks."
+      continue
+    fi
+
+    MUCHO_ADMIN_PASSWORD="$first"
+    return 0
+  done
+
+  fail "Could not set a valid admin password after 3 attempts."
+}
+
 if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then
-  MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
+  if [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
+    MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
+    if [[ -r /dev/tty && -w /dev/tty && ( -t 1 || -t 2 ) ]]; then
+      printf "  Existing admin password found for %s.\n" "$ADMIN_USER"
+      read -r -p "  Keep the existing password? [Y/n] " keep_admin_password < /dev/tty
+      case "$keep_admin_password" in
+        n|N|no|NO)
+          log "Choose a new admin password."
+          prompt_admin_password
+          ;;
+        *)
+          info "Keeping the existing admin password."
+          ;;
+      esac
+    fi
+  fi
 elif [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
   log "Admin panel username: $ADMIN_USER"
   printf "  Create the initial admin password. It is stored locally as a protected secret.\n"
-  read -r -s -p "  Admin password: " MUCHO_ADMIN_PASSWORD < /dev/tty
-  printf '\n'
+  prompt_admin_password
 fi
+
 [[ -n "$MUCHO_ADMIN_PASSWORD" ]] || fail "Admin password cannot be empty."
+[[ "${#MUCHO_ADMIN_PASSWORD}" -ge 10 ]] || fail "Admin password must contain at least 10 characters."
+local_newline=$'\n'
+local_carriage_return=$'\r'
+[[ "$MUCHO_ADMIN_PASSWORD" != *"$local_newline"* && "$MUCHO_ADMIN_PASSWORD" != *"$local_carriage_return"* ]] ||
+  fail "Admin password cannot contain line breaks."
 
 printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
 printf '%s' "$MUCHO_DB_ROOT_PASSWORD" > "$INSTALL_DIR/.secrets/db_root_password"
