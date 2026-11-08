@@ -35,9 +35,7 @@ final class GdMessageEncoder
         $value .= str_repeat('=', (4 - strlen($value) % 4) % 4);
         $decoded = base64_decode($value, true);
 
-        return is_string($decoded) && preg_match('//u', $decoded) === 1
-            ? $decoded
-            : null;
+        return is_string($decoded) ? $decoded : null;
     }
 
     private function xorMessage(string $value): string
@@ -55,7 +53,11 @@ final class GdMessageEncoder
 
     public function decodeSubject(string $value): ?string
     {
-        return $this->decodeBase64($value);
+        $decoded = $this->decodeBase64($value);
+
+        return $decoded !== null && preg_match('//u', $decoded) === 1
+            ? $decoded
+            : null;
     }
 
     public function decodeBody(string $value): ?string
