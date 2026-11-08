@@ -15,8 +15,16 @@ if(mucho7_relationship_wire($row,true)!==$expected){throw new RuntimeException('
 if(mucho7_relationship_wire($row,false,true)!==$relations->users(array($row),true)){throw new RuntimeException('Native 2.209 friend stats wire mismatch');}
 $row['subject']='Subject';$row['body']='Opaque body';
 $row['to_username']='Peer';$row['to_user_id']=20;
+$referenceSubject='MuchoCore: Subject #|~ Привет';
+$referenceBody='MuchoCore: Body #|~ -4 Привет 😀';
+if(mucho7_message_encode_subject($referenceSubject)!=='TXVjaG9Db3JlOiBTdWJqZWN0ICN8fiDQn9GA0LjQstC10YI='
+    || mucho7_message_encode_body($referenceBody)!=='fEFRXV5yW0BQCxF2XVFIERdOSxEcABLlruC04o3hg-SH5LMRxK2tsQ=='
+    || mucho7_message_decode_subject('TXVjaG9Db3JlOiBTdWJqZWN0ICN8fiDQn9GA0LjQstC10YI=')!==$referenceSubject
+    || mucho7_message_decode_body('fEFRXV5yW0BQCxF2XVFIERdOSxEcABLlruC04o3hg-SH5LMRxK2tsQ==')!==$referenceBody) {
+    throw new RuntimeException('Native private message codec differs from GDFormat vectors');
+}
 if(mucho7_message_decode_subject('U3ViamVjdA==')!=='Subject'
-    || mucho7_message_decode_body('')!==false
+    || mucho7_message_decode_body('%%%')!==false
     || mucho7_message_encode_subject('Subject')!==base64_encode('Subject')) {
     throw new RuntimeException('Native private message codec mismatch');
 }
