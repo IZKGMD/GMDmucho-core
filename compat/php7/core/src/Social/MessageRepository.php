@@ -18,17 +18,17 @@ final class MessageRepository
     public function send(int $from, int $to, string $subject, string $body): bool
     {
         $q = $this->pdo->prepare('INSERT INTO messages
-             (account_id,to_account_id,subject,body)
-             VALUES (:f,:t,:s,:b)');
+             (account_id,to_account_id,subject,body,content_format)
+             VALUES (:f,:t,:s,:b,1)');
         return $q->execute(['f' => $from, 't' => $to, 's' => $subject, 'b' => $body]);
     }
     public function list(int $accountId, bool $sent, int $page): array
     {
         $offset = max(0, $page) * self::PAGE_SIZE;
         if ($sent) {
-            $sql = "SELECT m.id,m.account_id,m.to_account_id,\n                        m.subject,m.is_read,m.created_at,\n                        p.user_id AS to_user_id,\n                        a.username AS to_username,\n                        COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS to_clan_tag\n                 FROM messages m\n                 JOIN profiles p\n                   ON p.account_id=m.to_account_id\n                 JOIN accounts a\n                   ON a.account_id=m.to_account_id\n                 WHERE m.account_id=:id\n                   AND m.is_sender_deleted=0\n                 ORDER BY m.id DESC\n                 LIMIT 10 OFFSET {$offset}";
+            $sql = "SELECT m.id,m.account_id,m.to_account_id,\n                        m.subject,m.content_format,m.is_read,m.created_at,\n                        p.user_id AS to_user_id,\n                        a.username AS to_username,\n                        COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS to_clan_tag\n                 FROM messages m\n                 JOIN profiles p\n                   ON p.account_id=m.to_account_id\n                 JOIN accounts a\n                   ON a.account_id=m.to_account_id\n                 WHERE m.account_id=:id\n                   AND m.is_sender_deleted=0\n                 ORDER BY m.id DESC\n                 LIMIT 10 OFFSET {$offset}";
         } else {
-            $sql = "SELECT m.id,m.account_id,m.to_account_id,\n                        m.subject,m.is_read,m.created_at,\n                        p.user_id,a.username,\n                        COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag\n                 FROM messages m\n                 JOIN profiles p\n                   ON p.account_id=m.account_id\n                 JOIN accounts a\n                   ON a.account_id=m.account_id\n                 WHERE m.to_account_id=:id\n                   AND m.is_receiver_deleted=0\n                 ORDER BY m.id DESC\n                 LIMIT 10 OFFSET {$offset}";
+            $sql = "SELECT m.id,m.account_id,m.to_account_id,\n                        m.subject,m.content_format,m.is_read,m.created_at,\n                        p.user_id,a.username,\n                        COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=a.account_id LIMIT 1), '') AS clan_tag\n                 FROM messages m\n                 JOIN profiles p\n                   ON p.account_id=m.account_id\n                 JOIN accounts a\n                   ON a.account_id=m.account_id\n                 WHERE m.to_account_id=:id\n                   AND m.is_receiver_deleted=0\n                 ORDER BY m.id DESC\n                 LIMIT 10 OFFSET {$offset}";
         }
         $q = $this->pdo->prepare($sql);
         $q->execute(['id' => $accountId]);
