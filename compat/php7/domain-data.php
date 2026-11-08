@@ -116,7 +116,7 @@ function mucho7_domain_import_step(PDO $db,$root,$batch=100)
                     'comment'=>$row['comment'],'is_read'=>$legacy?((int)$row['is_new']===1?0:1):$row['is_read'],'created_at'=>$row['created_at']));
             }elseif($stage==='blocks')mucho7_domain_import_insert($db,'blocks',array('account_id'=>$row['account_id'],'blocked_account_id'=>$row['blocked_account_id']));
             elseif($stage==='messages'){
-                $values=array();foreach(array('id','account_id','to_account_id','subject','body','is_read','is_sender_deleted','is_receiver_deleted','created_at') as $field)$values[$field]=$row[$field];
+                $values=array();foreach(array('id','account_id','to_account_id','subject','body','content_format','is_read','is_sender_deleted','is_receiver_deleted','created_at') as $field)$values[$field]=isset($row[$field])?$row[$field]:0;
                 mucho7_domain_import_insert($db,'messages',$values);
             }elseif($stage==='cloud_saves'){
                 $stored=$row['save_data'];
