@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/IZKGMD/GMDmucho-core/go/internal/discovery"
 	"github.com/IZKGMD/GMDmucho-core/go/internal/dbutil"
+	"github.com/IZKGMD/GMDmucho-core/go/internal/discovery"
 	"github.com/IZKGMD/GMDmucho-core/go/internal/protocol"
 )
 
