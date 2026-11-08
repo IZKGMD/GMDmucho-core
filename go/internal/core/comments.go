@@ -254,6 +254,9 @@ func (h *Handler) like(r request) (string, error) {
 	id := int64(0)
 	ip := r.ip
 	isLike := int64(1)
+	if _, ok := r.form["like"]; ok && r.int("like") != 1 {
+		isLike = 0
+	}
 	if r.int("accountID") > 0 && r.credential() != "" {
 		me, err := h.auth(r)
 		if err != nil {
@@ -261,9 +264,6 @@ func (h *Handler) like(r request) (string, error) {
 		}
 		id = me.ID
 		ip = ""
-		if _, ok := r.form["like"]; ok && r.int("like") != 1 {
-			isLike = 0
-		}
 	} else {
 		if _, err := netip.ParseAddr(ip); err != nil {
 			return "1", nil
