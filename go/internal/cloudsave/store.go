@@ -10,6 +10,7 @@ import (
 	"crypto/subtle"
 	"database/sql"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -26,6 +27,20 @@ var ErrIntegrity = errors.New("cloud save integrity failure")
 type Store struct {
 	DB      *sql.DB
 	KeyFile string
+}
+
+// decodeKey accepts the canonical Base64 representation and the legacy
+// 64-character HEX representation of the same 32-byte AES key.
+func decodeKey(raw []byte) ([]byte, error) {
+	encoded := strings.TrimSpace(string(raw))
+	if key, err := hex.DecodeString(encoded); err == nil && len(key) == 32 {
+		return key, nil
+	}
+	key, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil || len(key) != 32 {
+		return nil, errors.New("invalid cloud save key")
+	}
+	return key, nil
 }
 
 func (s Store) aead() (cipher.AEAD, error) {
@@ -46,9 +61,9 @@ func (s Store) aead() (cipher.AEAD, error) {
 	if err != nil {
 		return nil, errors.New("cloud save key unavailable")
 	}
-	key, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(raw)))
-	if err != nil || len(key) != 32 {
-		return nil, errors.New("invalid cloud save key")
+	key, err := decodeKey(raw)
+	if err != nil {
+		return nil, err
 	}
 	block, err := aes.NewCipher(key)
 	if err != nil {
