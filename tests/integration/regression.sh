@@ -5,6 +5,19 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT" || exit 1
 
+# This script writes fixtures and deletes test-owned rows across many tables.
+# Require explicit opt-in plus a disposable DB name; never target production.
+if [ "$(printenv MUCHO_TEST_ALLOW_WRITES || true)" != "1" ]; then
+    echo "[BLOCKED] Set MUCHO_TEST_ALLOW_WRITES=1 only for disposable acceptance DB."
+    exit 2
+fi
+ACCEPTANCE_DB="$(php -r 'require "vendor/autoload.php"; echo (new \MuchoCore\Database\Database())->connection()->query("SELECT DATABASE()")->fetchColumn();' 2>/dev/null)" || exit 2
+case "$ACCEPTANCE_DB" in
+    mucho_acceptance_*|mc_acceptance_*|testgdps) ;;
+    *) echo "[BLOCKED] Refusing destructive regression against non-acceptance DB."; exit 2 ;;
+esac
+
+
 DOMAIN="${MUCHO_TEST_BASE_URL:-http://127.0.0.1}"
 PUBLIC="${MUCHO_PUBLIC_BASE_URL:-$DOMAIN}"
 HOST="${MUCHO_TEST_HOST:-localhost}"
