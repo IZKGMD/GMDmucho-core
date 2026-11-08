@@ -1,10 +1,12 @@
 package protocol
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/IZKGMD/GMDmucho-core/go/internal/dbutil"
 )
@@ -37,6 +39,51 @@ func Date(value string) string {
 	}
 	return t.Format("02/01/2006 ") + strconv.Itoa(t.Hour()) + t.Format(".04")
 }
+
+const messageKey = "14251"
+
+func xorMessage(value []byte) []byte {
+	key := []byte(messageKey)
+	output := make([]byte, len(value))
+	for i, b := range value {
+		output[i] = b ^ key[i%len(key)]
+	}
+	return output
+}
+
+func decodeMessageText(value string, xor bool) (string, bool) {
+	decoded, err := base64.URLEncoding.DecodeString(value)
+	if err != nil {
+		decoded, err = base64.RawURLEncoding.DecodeString(value)
+	}
+	if err != nil {
+		return "", false
+	}
+	if xor {
+		decoded = xorMessage(decoded)
+	}
+	if !utf8.Valid(decoded) {
+		return "", false
+	}
+	return string(decoded), true
+}
+
+func DecodeMessageSubject(value string) (string, bool) {
+	return decodeMessageText(value, false)
+}
+
+func DecodeMessageBody(value string) (string, bool) {
+	return decodeMessageText(value, true)
+}
+
+func EncodeMessageSubject(value string) string {
+	return base64.URLEncoding.EncodeToString([]byte(value))
+}
+
+func EncodeMessageBody(value string) string {
+	return base64.URLEncoding.EncodeToString(xorMessage([]byte(value)))
+}
+
 func Message(r dbutil.Row, sent bool) string {
 	name, uid, aid := r["username"], r.Int("user_id"), r.Int("account_id")
 	tag := r["clan_tag"]
@@ -45,9 +92,9 @@ func Message(r dbutil.Row, sent bool) string {
 		name, uid, aid, tag = r["to_username"], r.Int("to_user_id"), r.Int("to_account_id"), r["to_clan_tag"]
 		sender = 1
 	}
-	result := Pairs(6, DisplayName(name, tag), 3, uid, 2, aid, 1, r.Int("id"), 4, r["subject"], 8, r.Int("is_read"), 9, sender)
+	result := Pairs(6, DisplayName(name, tag), 3, uid, 2, aid, 1, r.Int("id"), 4, EncodeMessageSubject(r["subject"]), 8, r.Int("is_read"), 9, sender)
 	if body, ok := r["body"]; ok {
-		result += Pairs("", 5, body)
+		result += Pairs("", 5, EncodeMessageBody(body))
 	}
 	return result + Pairs("", 7, Date(r["created_at"]))
 }
