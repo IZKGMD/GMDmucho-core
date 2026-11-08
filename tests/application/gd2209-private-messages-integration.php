@@ -183,6 +183,21 @@ try {
     $db->exec('INSERT INTO friends (account_id,friend_account_id) VALUES (1,2)');
     $check($messages->sendMessage(1, 'test-1', 2, $subjectWire, $bodyWire),
         'friends-only messages accept friends');
+    $newId = (int)$db->lastInsertId();
+
+    // Old account imports may be missing a profile row for the peer.
+    // The authenticated viewer must still see the message and correct count.
+    $db->exec('DELETE FROM profiles WHERE account_id=2');
+    $check(str_contains($messages->getMessages(1, 'test-1', 0, true), ':1:' . $newId . ':'),
+        'sender outbox survives missing recipient profile');
+    $db->exec('INSERT INTO profiles(account_id) VALUES (2)');
+    $db->exec('DELETE FROM profiles WHERE account_id=1');
+    $check(str_contains($messages->getMessages(2, 'test-2', 0, false), ':1:' . $newId . ':'),
+        'recipient inbox survives missing sender profile');
+    $check(str_contains($messages->readMessage(2, 'test-2', $newId), ':5:' . $bodyWire . ':7:'),
+        'recipient can read message without sender profile');
+    $db->exec('INSERT INTO profiles(account_id) VALUES (1)');
+
     $db->exec('INSERT INTO blocks(account_id,blocked_account_id) VALUES (2,1)');
     $check(!$messages->sendMessage(1, 'test-1', 2, $subjectWire, $bodyWire),
         'recipient block refuses private messages');
