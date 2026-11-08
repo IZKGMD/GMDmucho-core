@@ -9,6 +9,7 @@ use MuchoCore\Http\Request;
 use MuchoCore\Interaction\LikeController;
 use MuchoCore\Interaction\LikeRepository;
 use MuchoCore\Interaction\LikeService;
+use MuchoCore\Interaction\VoteIntegrityAuditor;
 
 $host = getenv('TEST_DB_HOST');
 $password = getenv('TEST_DB_ROOT_PASSWORD');
@@ -155,6 +156,25 @@ try {
         'type' => '2',
         'like' => '0',
     ]))->body === '-1', 'missing credential cannot fall back to anonymous');
+
+    // Audit pre-existing counters without silently rewriting history.
+    $auditor = new VoteIntegrityAuditor($db);
+    $clean = $auditor->scan(100, 100, 20);
+    $check($clean['targets'][2]['mismatches'] === 0, 'normal votes match stored net score');
+    $check($clean['votes']['complete'], 'complete vote scan in the fixture');
+    $check($clean['votes']['orphaned'] === 0, 'normal votes have existing targets');
+
+    // Seed historical corruption; the diagnostic must report it, not fix it.
+    $db->exec('UPDATE comments SET likes=likes+2 WHERE id=1');
+    $db->exec("INSERT INTO likes(item_id,type,account_id,ip,is_like)
+               VALUES (999,2,2,'',1), (3,3,1,'',1), (4,4,0,'127.0.0.8',7)");
+    $bad = $auditor->scan(100, 100, 20);
+    $check($bad['targets'][2]['mismatches'] === 1, 'miscounted comment is detected');
+    $check($bad['targets'][3]['mismatches'] === 1, 'self-vote score drift is detected');
+    $check($bad['votes']['orphaned'] === 1, 'vote against missing comment is detected');
+    $check($bad['votes']['self_votes'] === 1, 'historical self-vote is detected');
+    $check($bad['votes']['invalid_values'] === 1, 'invalid vote value is detected');
+    $check($score('comments', 'id', 1) === 3, 'auditor never edits historical scores');
 
     echo "MUCHOCORE_LIKE_INTEGRITY_OK\n";
 } finally {
