@@ -58,7 +58,7 @@ func (h *Handler) readMessage(r request) (string, error) {
 	m, err := dbutil.One(r.ctx, h.db, `SELECT m.*,pf.user_id,af.username,pt.user_id AS to_user_id,at.username AS to_username
 		FROM messages m JOIN profiles pf ON pf.account_id=m.account_id JOIN accounts af ON af.account_id=m.account_id
 		JOIN profiles pt ON pt.account_id=m.to_account_id JOIN accounts at ON at.account_id=m.to_account_id
-		WHERE m.id=? AND (m.account_id=? OR m.to_account_id=?) LIMIT 1`, r.int("messageID"), me.ID, me.ID)
+		WHERE m.id=? AND ((m.account_id=? AND m.is_sender_deleted=0) OR (m.to_account_id=? AND m.is_receiver_deleted=0)) LIMIT 1`, r.int("messageID"), me.ID, me.ID)
 	if err != nil {
 		return "", err
 	}
