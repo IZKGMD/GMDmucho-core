@@ -28,6 +28,27 @@ $messageSubjectWire = $messageEncoder->encodeSubject($messageSubject);
 $messageBodyWire = $messageEncoder->encodeBody($messageBody);
 
 assertSameValue(
+    'TXVjaG9Db3JlOiBTdWJqZWN0ICN8fiDQn9GA0LjQstC10YI=',
+    $messageSubjectWire,
+    'GDFormat reference subject encoding'
+);
+assertSameValue(
+    'fEFRXV5yW0BQCxF2XVFIERdOSxEcABLlruC04o3hg-SH5LMRxK2tsQ==',
+    $messageBodyWire,
+    'GDFormat reference XOR message-body encoding'
+);
+assertSameValue(
+    'MuchoCore: Subject #|~ Привет',
+    $messageEncoder->decodeSubject('TXVjaG9Db3JlOiBTdWJqZWN0ICN8fiDQn9GA0LjQstC10YI='),
+    'decode GDFormat reference subject vector'
+);
+assertSameValue(
+    'MuchoCore: Body #|~ -4 Привет 😀',
+    $messageEncoder->decodeBody('fEFRXV5yW0BQCxF2XVFIERdOSxEcABLlruC04o3hg-SH5LMRxK2tsQ=='),
+    'decode GDFormat reference body vector'
+);
+
+assertSameValue(
     $messageSubject,
     $messageEncoder->decodeSubject($messageSubjectWire),
     'GD 2.2 subject Base64 round trip with Unicode and protocol delimiters'
