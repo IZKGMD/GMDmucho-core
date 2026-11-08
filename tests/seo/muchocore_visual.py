@@ -68,6 +68,19 @@ def main():
                             print(f"PREVIEW {language} {width}: screenshot={file.name} bytes={file.stat().st_size}")
                             if os.environ.get("MUCHO_PREVIEW_B64") == "1":
                                 print(f"MUCHO_IMAGE_{language.upper()}=" + base64.b64encode(file.read_bytes()).decode("ascii"))
+                        if width == 390:
+                            # The real menu must open and close on mobile.
+                            page.locator("#menu-toggle").click()
+                            assert page.locator("#main-navigation").is_visible(), f"Mobile menu not visible: {language}"
+                            page.locator("#menu-toggle").click()
+                            assert not page.locator("#main-navigation").is_visible(), f"Mobile menu won't close: {language}"
+                            if language == "ru":
+                                # Verify the attributed quote isn't clipped below the hero.
+                                page.locator(".quote-section").scroll_into_view_if_needed()
+                                quote_file = SHOTS / "muchocore-ru-quote.jpg"
+                                page.screenshot(path=str(quote_file), type="jpeg", quality=65)
+                                if os.environ.get("MUCHO_PREVIEW_B64") == "1":
+                                    print("MUCHO_IMAGE_QUOTE=" + base64.b64encode(quote_file.read_bytes()).decode("ascii"))
                         print(f"VISUAL_OK {language} {width} scroll={dims['document']} viewport={dims['width']}")
                         page.close()
                 # Verify the actual anchor switches the server-side rendered language.
