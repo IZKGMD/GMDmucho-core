@@ -48,6 +48,9 @@ final readonly class VoteIntegrityAuditor
         try {
         $summary = [
             'read_only' => true,
+            'schema' => [
+                'actor_unique_index' => $this->hasActorUniqueIndex(),
+            ],
             'targets' => [],
             'votes' => [
                 'scanned' => 0,
@@ -198,6 +201,31 @@ final readonly class VoteIntegrityAuditor
             }
             throw $error;
         }
+    }
+
+    private function hasActorUniqueIndex(): bool
+    {
+        $q = $this->db->prepare(
+            "SELECT column_name,non_unique
+             FROM information_schema.statistics
+             WHERE table_schema=DATABASE()
+               AND table_name='likes'
+               AND index_name='uq_like_item_actor'
+             ORDER BY seq_in_index"
+        );
+        $q->execute();
+        $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+        if (array_column($rows, 'column_name') !== [
+            'item_id', 'type', 'account_id', 'ip'
+        ]) {
+            return false;
+        }
+        foreach ($rows as $row) {
+            if ((int)$row['non_unique'] !== 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private function tableExists(string $table): bool
