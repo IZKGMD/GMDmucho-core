@@ -13,7 +13,7 @@
 <link rel="alternate" hreflang="x-default" href="https://muchogdps.space/muchocore/">
 <link rel="icon" href="/assets/muchocore-favicon-v4.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="/assets/muchocore-icon.png?v=3">
-<link rel="stylesheet" href="/assets/muchocore-landing.css?v=3">
+<link rel="stylesheet" href="/assets/muchocore-landing.css?v=4">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="MuchoCore">
 <meta property="og:title" content="MuchoCore — Open-source Geometry Dash private server core">
@@ -89,7 +89,7 @@
    </div>
   </div>
  </section>
- <div class="facts"><div class="wrap fact-grid"><div class="fact"><strong>PHP + MariaDB</strong><span>Backend stack</span></div><div class="fact"><strong>GD 1.0–2.2</strong><span>Documented protocol profiles</span></div><div class="fact"><strong>VPS / Shared</strong><span>Deployment options</span></div><div class="fact"><strong>MIT</strong><span>Open-source license</span></div></div></div>
+ <div class="facts"><div class="wrap fact-grid"><div class="fact"><strong>PHP + MariaDB</strong><span>Backend stack</span></div><div class="fact"><strong>GD 1.0–2.2</strong><span>Documented protocol profiles</span></div><div class="fact"><strong>5v.pl / VPS</strong><span>Free / self-managed options</span></div><div class="fact"><strong>MIT</strong><span>Open-source license</span></div></div></div>
  <section class="quote-section" aria-label="The MuchoCore principle"><div class="wrap quote-grid"><div class="quote-mark" aria-hidden="true">“</div><div><blockquote>Everything for people — and most importantly, free.</blockquote><div class="quote-info"><strong>IZK <span>·</span> 2026</strong><span>The MuchoCore principle</span></div></div><p class="quote-note">The core is free to use. Servers and hosting can have their own costs.</p></div></section>
  <section class="section" id="features"><div class="wrap">
   <div class="section-heading"><div class="eyebrow">01 / THE PRODUCT</div><div><h2>Everything for your GDPS.</h2><p>Keep the essentials in one codebase. Build your own experience on top, instead of maintaining unrelated endpoint scripts.</p></div></div>
@@ -108,7 +108,22 @@
   <div><div class="eyebrow">03 / COMPATIBILITY</div><h2>Know what is supported.</h2><p class="section-intro">MuchoCore documents runtime profiles for GD 1.0–2.2. Feature coverage varies by client generation. GD 2.209 validation is ongoing — full compatibility is not yet independently confirmed.</p><a class="text-link" href="/muchocore/compatibility/">Compatibility details <span aria-hidden="true">↗</span></a></div>
   <div class="compat-data"><div><span>Documented profiles</span><strong>1.0 — 2.2</strong></div><div><span>GD 2.209</span><strong>Ongoing verification</strong></div><small>GD 2.209 · NOT VERIFIED 100%</small></div>
  </div></section>
- <section class="section install" id="install"><div class="wrap install-grid">
+ <section class="free-hosting" id="free-hosting" aria-labelledby="free-hosting-heading">
+ <div class="wrap free-hosting-grid">
+  <div>
+   <div class="eyebrow">FREE HOSTING / 5V.PL</div>
+   <h2 id="free-hosting-heading">A GDPS without VPS bills.</h2>
+   <p>Start on <strong>5v.pl</strong> with its free PHP and MySQL hosting, FTP access and SSL. Use the dedicated <strong>MuchoCore PHP 7 Native preview</strong> — not the regular PHP 8.2+ shared-hosting package.</p>
+   <p class="free-hosting-note">Experimental build. PHP 7 is end-of-life; full real-client compatibility and production safety are not certified. The provider may impose resource and usage restrictions.</p>
+  </div>
+  <div class="free-hosting-actions">
+   <div class="free-hosting-price"><strong>Free</strong><span>5v.pl basic hosting plan</span></div>
+   <a class="button button-primary" href="https://github.com/IZKGMD/GMDmucho-core#2-5vpl--php-70-experimental" target="_blank" rel="noopener noreferrer">5v.pl installation guide <span aria-hidden="true">↗</span></a>
+   <a class="text-link" href="https://5v.pl/" target="_blank" rel="noopener noreferrer">Create a free 5v.pl account <span aria-hidden="true">↗</span></a>
+  </div>
+ </div>
+</section>
+<section class="section install" id="install"><div class="wrap install-grid">
   <div><div class="eyebrow">04 / GET STARTED</div><h2>Run it on your server.</h2><p class="section-intro">Start with a Linux VPS or choose the separate shared-hosting setup. Review the installer before running it with administrator permissions.</p><a class="button button-primary" href="/install/">Choose an installation method <span aria-hidden="true">↗</span></a><p class="install-foot">No account or subscription is required to download MuchoCore.</p></div>
   <div class="code-card"><div class="code-title"><span>LINUX VPS / QUICK START</span><button id="copy-install" type="button" data-copied="Copied" data-error="Select commands to copy">Copy</button></div><pre id="install-commands"><code><span class="comment"># Clone the official repository</span>
 <span class="prompt">$</span> git clone https://github.com/IZKGMD/GMDmucho-core.git
@@ -116,7 +131,7 @@
 <span class="comment"># Review the installer, then run it</span>
 <span class="prompt">$</span> sudo ./install</code></pre></div>
  </div></section>
- <section class="section faq" id="faq"><div class="wrap faq-grid"><div><div class="eyebrow">05 / GOOD TO KNOW</div><h2>A few straight answers.</h2></div><div class="faq-list"><details><summary>Is MuchoCore actually free?</summary><p>Yes. The source code is available under the MIT license. Your VPS, domain or other hosting services may still cost money.</p></details>
+ <section class="section faq" id="faq"><div class="wrap faq-grid"><div><div class="eyebrow">05 / GOOD TO KNOW</div><h2>A few straight answers.</h2></div><div class="faq-list"><details><summary>Is MuchoCore actually free?</summary><p>Yes. The source code is available under the MIT license. You can also try the experimental PHP 7 Native build on 5v.pl's free hosting plan. A VPS, custom domain or other hosting services may cost money.</p></details>
 <details><summary>Is GD 2.209 fully supported?</summary><p>Compatibility work is active, but some endpoints still need real-client testing. Check the compatibility page and repository release notes before migrating.</p></details>
 <details><summary>Can I migrate a Cvolton server?</summary><p>MuchoCore includes a Cvolton-oriented migration kit. Make a backup and test the import on a database copy before switching your live server.</p></details>
 <details><summary>Can I write my own plugins?</summary><p>Yes. Custom plugin routes and lifecycle hooks are documented. Review third-party plugin source before installing it on your server.</p></details></div></div></section>
