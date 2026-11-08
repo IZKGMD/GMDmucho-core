@@ -105,8 +105,17 @@ try {
         (int)$db->query('SELECT likes FROM ' . $table . ' WHERE ' . $column .
             '=' . $itemId)->fetchColumn();
 
-    $check(!$repo->addLike(1, 2, 1, true), 'cannot vote on own comment');
-    $check($score('comments', 'id', 1) === 0, 'rejected self-vote leaves score at zero');
+    foreach ([
+        [1, 20, 'levels', 'level_id'],
+        [2, 1, 'comments', 'id'],
+        [3, 3, 'account_comments', 'id'],
+        [4, 4, 'mucho_level_lists', 'list_id'],
+    ] as [$type, $itemId, $table, $pk]) {
+        $check(!$repo->addLike($itemId, $type, 1, true),
+            'author cannot vote on own content type ' . $type);
+        $check($score($table, $pk, $itemId) === 0,
+            'rejected self-vote preserves score type ' . $type);
+    }
     $check(!$repo->addLike(999, 2, 2, true), 'cannot vote on deleted/missing comment');
     $check($repo->addLike(1, 2, 2, false), 'first dislike succeeds');
     $check($score('comments', 'id', 1) === -1, 'first dislike is -1');
