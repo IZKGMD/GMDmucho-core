@@ -48,9 +48,18 @@ def main():
     assert len(page.ids) == len(set(page.ids)), "Duplicate element IDs"
     assert len(page.headings) == 1, "One clear primary heading is required"
     assert page.language_markers >= 30, "Main content should be available in RU and EN"
-    assert "/assets/muchocore-landing.css?v=1" in page.assets
+    assert "/assets/muchocore-landing.css?v=2" in page.assets
     assert "/assets/muchocore-landing.js?v=1" in page.assets
     assert "/assets/muchocore-icon.png?v=3" in markup
+    # Product default is dark, with the core brand's purple accent. The prior
+    # oversized white/orange variant failed mobile readability checks.
+    assert "color-scheme: dark" in css
+    assert "--paper:#0b0d14" in css
+    assert "--accent:#af9cff" in css
+    assert "max-width:660px" in css
+    assert "min-height:570px" in css
+    assert "Основа для" in markup and "твоего GDPS." in markup
+    assert "ТВОИ ПРАВИЛА." not in markup
     assert "prefers-reduced-motion:reduce" in css
     assert "@media(max-width:660px)" in css
     assert ":focus-visible" in css
