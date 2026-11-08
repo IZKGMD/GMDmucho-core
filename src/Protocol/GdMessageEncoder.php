@@ -23,11 +23,18 @@ final class GdMessageEncoder
     }
 
     private const MESSAGE_KEY = '14251';
+    private const MAX_SUBJECT_WIRE_LENGTH = 340; // Base64 of 255 UTF-8 bytes.
+    private const MAX_BODY_WIRE_LENGTH = 87380; // Base64 of 65535 UTF-8 bytes.
 
     private function decodeBase64(string $value): ?string
     {
         $value = strtr($value, '-_', '+/');
 
+        // GD requests carry URL-safe Base64. Permit legacy standard Base64
+        // too, but reject whitespace, stray delimiters and misplaced padding.
+        if (preg_match('~\A[A-Za-z0-9+/]*={0,2}\z~D', $value) !== 1) {
+            return null;
+        }
         if (strlen($value) % 4 === 1) {
             return null;
         }
@@ -53,6 +60,9 @@ final class GdMessageEncoder
 
     public function decodeSubject(string $value): ?string
     {
+        if (strlen($value) > self::MAX_SUBJECT_WIRE_LENGTH) {
+            return null;
+        }
         $decoded = $this->decodeBase64($value);
 
         return $decoded !== null && preg_match('//u', $decoded) === 1
@@ -62,6 +72,9 @@ final class GdMessageEncoder
 
     public function decodeBody(string $value): ?string
     {
+        if (strlen($value) > self::MAX_BODY_WIRE_LENGTH) {
+            return null;
+        }
         $decoded = $this->decodeBase64($value);
 
         if ($decoded === null) {
