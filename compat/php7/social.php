@@ -113,10 +113,15 @@ function mucho7_message_encode_body($value)
 
 function mucho7_message_wire($row, $sent, $withBody)
 {
+    $isPlainText = isset($row['content_format']) && (int)$row['content_format'] === 1;
+    $subject = $isPlainText ? mucho7_message_encode_subject($row['subject']) : $row['subject'];
     $fields = array(6,mucho7_username($row['username']),3,(int)$row['user_id'],
-        2,(int)$row['peer_id'],1,(int)$row['id'],4,mucho7_message_encode_subject($row['subject']),
+        2,(int)$row['peer_id'],1,(int)$row['id'],4,$subject,
         8,(int)$row['is_read'],9,$sent?1:0);
-    if ($withBody) { $fields[]=5; $fields[]=mucho7_message_encode_body($row['body']); }
+    if ($withBody) {
+        $fields[]=5;
+        $fields[]=$isPlainText ? mucho7_message_encode_body($row['body']) : $row['body'];
+    }
     $fields[]=7; $fields[]=gmdate('d/m/Y G.i',mucho7_epoch($row['created_at']));
     return implode(':',$fields);
 }
@@ -274,7 +279,7 @@ function mucho7_social_write(PDO $pdo, $aid, $path, $data)
             $query=$pdo->prepare('SELECT COUNT(*) FROM php7_messages WHERE account_id=? AND created_at>?');
             $query->execute(array($aid,gmdate('Y-m-d H:i:s',time()-60)));
             if((int)$query->fetchColumn()>=30){ $pdo->rollBack(); return '-1'; }
-            $pdo->prepare('INSERT INTO php7_messages(account_id,to_account_id,subject,body) VALUES(?,?,?,?)')
+            $pdo->prepare('INSERT INTO php7_messages(account_id,to_account_id,subject,body,content_format) VALUES(?,?,?,?,1)')
                 ->execute(array($aid,$target,$subject,$body));
         } else { $pdo->rollBack(); return '-1'; }
         $pdo->commit(); return '1';
