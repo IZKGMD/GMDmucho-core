@@ -472,16 +472,16 @@ final readonly class CloudSaveRepository
         }
 
 
-        $key=base64_decode(
-            trim($raw),
-            true
-        );
+        $encoded = trim($raw);
 
+        // Accept both canonical Base64 keys and legacy 64-character HEX
+        // keys. Some early VPS bootstrap flows generated HEX; decoding it
+        // as Base64 yields 48 bytes and breaks every Cloud Save operation.
+        $key = preg_match('/\\A[a-f0-9]{64}\\z/i', $encoded) === 1
+            ? hex2bin($encoded)
+            : base64_decode($encoded, true);
 
-        if(
-            $key===false ||
-            strlen($key)!==32
-        ){
+        if (!is_string($key) || strlen($key) !== 32) {
             throw new RuntimeException(
                 'Invalid cloud save key.'
             );
