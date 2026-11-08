@@ -16,9 +16,9 @@ final class LikeService
         $this->auth->authenticate($accountId, $gjp);
         $this->repository->addLike($itemId, $type, $accountId, $isLike, '');
     }
-    public function likeAnonymous(int $itemId, int $type, string $ip)
+    public function likeAnonymous(int $itemId, int $type, string $ip, bool $isLike = true)
     {
-        $this->repository->addLike($itemId, $type, 0, true, $ip);
+        $this->repository->addLike($itemId, $type, 0, $isLike, $ip);
     }
     private $repository;
     private $auth;
