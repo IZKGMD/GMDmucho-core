@@ -88,6 +88,7 @@ $unread = $messageEncoder->encodeMessage([
     'account_id' => 30,
     'username' => 'Sender',
     'subject' => 'Hello',
+    'content_format' => 1,
     'is_read' => 0,
     'created_at' => '2026-01-01 12:00:00',
     'body' => 'Body',
@@ -105,6 +106,7 @@ $read = $messageEncoder->encodeMessage([
     'account_id' => 31,
     'username' => 'Sender',
     'subject' => 'Read',
+    'content_format' => 1,
     'is_read' => 1,
     'created_at' => '2026-01-01 12:00:00',
 ]);
@@ -113,6 +115,31 @@ assertSameValue(
     true,
     str_contains($read, ':8:1:'),
     'read message maps to isNew=0'
+);
+
+
+$legacySubjectWire = $messageEncoder->encodeSubject('Legacy subject');
+$legacyBodyWire = $messageEncoder->encodeBody('Legacy body');
+$legacyMessage = $messageEncoder->encodeMessage([
+    'id' => 13,
+    'user_id' => 23,
+    'account_id' => 33,
+    'username' => 'Sender',
+    'subject' => $legacySubjectWire,
+    'content_format' => 0,
+    'is_read' => 0,
+    'created_at' => '2026-01-01 12:00:00',
+    'body' => $legacyBodyWire,
+]);
+assertSameValue(
+    true,
+    str_contains($legacyMessage, ':4:' . $legacySubjectWire . ':8:'),
+    'legacy wire-format subject is passed through without double encoding'
+);
+assertSameValue(
+    true,
+    str_contains($legacyMessage, ':5:' . $legacyBodyWire . ':7:'),
+    'legacy wire-format body is passed through without double encoding'
 );
 
 $relationship = new GdRelationshipEncoder();
