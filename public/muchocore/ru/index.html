@@ -13,7 +13,7 @@
 <link rel="alternate" hreflang="x-default" href="https://muchogdps.space/muchocore/">
 <link rel="icon" href="/assets/muchocore-favicon-v4.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="/assets/muchocore-icon.png?v=3">
-<link rel="stylesheet" href="/assets/muchocore-landing.css?v=3">
+<link rel="stylesheet" href="/assets/muchocore-landing.css?v=4">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="MuchoCore">
 <meta property="og:title" content="MuchoCore — открытое ядро для Geometry Dash Private Server">
@@ -89,7 +89,7 @@
    </div>
   </div>
  </section>
- <div class="facts"><div class="wrap fact-grid"><div class="fact"><strong>PHP + MariaDB</strong><span>Серверная часть</span></div><div class="fact"><strong>GD 1.0–2.2</strong><span>Профили протокола</span></div><div class="fact"><strong>VPS / Shared</strong><span>Варианты установки</span></div><div class="fact"><strong>MIT</strong><span>Свободная лицензия</span></div></div></div>
+ <div class="facts"><div class="wrap fact-grid"><div class="fact"><strong>PHP + MariaDB</strong><span>Серверная часть</span></div><div class="fact"><strong>GD 1.0–2.2</strong><span>Профили протокола</span></div><div class="fact"><strong>5v.pl / VPS</strong><span>Бесплатный / отдельный сервер</span></div><div class="fact"><strong>MIT</strong><span>Свободная лицензия</span></div></div></div>
  <section class="quote-section" aria-label="Принцип MuchoCore"><div class="wrap quote-grid"><div class="quote-mark" aria-hidden="true">“</div><div><blockquote>Всё для людей и главное — бесплатно.</blockquote><div class="quote-info"><strong>IZK <span>·</span> 2026</strong><span>Принцип MuchoCore</span></div></div><p class="quote-note">Само ядро бесплатное. Аренда сервера и другие услуги могут стоить денег.</p></div></section>
  <section class="section" id="features"><div class="wrap">
   <div class="section-heading"><div class="eyebrow">01 / О ПРОЕКТЕ</div><div><h2>Всё для своего GDPS.</h2><p>Основные функции в единой системе. Развивай свой сервер, а не поддерживай россыпь несовместимых PHP-скриптов.</p></div></div>
@@ -108,7 +108,22 @@
   <div><div class="eyebrow">03 / СОВМЕСТИМОСТЬ</div><h2>Без обещаний наугад.</h2><p class="section-intro">Для GD 1.0–2.2 описаны профили работы. Возможности зависят от поколения клиента. Совместимость с GD 2.209 ещё проверяется — стопроцентная поддержка пока не подтверждена.</p><a class="text-link" href="/muchocore/compatibility/">Подробности совместимости <span aria-hidden="true">↗</span></a></div>
   <div class="compat-data"><div><span>Профили версий</span><strong>1.0 — 2.2</strong></div><div><span>GD 2.209</span><strong>Продолжается проверка</strong></div><small>GD 2.209 · NOT VERIFIED 100%</small></div>
  </div></section>
- <section class="section install" id="install"><div class="wrap install-grid">
+ <section class="free-hosting" id="free-hosting" aria-labelledby="free-hosting-heading">
+ <div class="wrap free-hosting-grid">
+  <div>
+   <div class="eyebrow">БЕСПЛАТНЫЙ ХОСТИНГ / 5V.PL</div>
+   <h2 id="free-hosting-heading">Свой GDPS без оплаты VPS.</h2>
+   <p>На <strong>5v.pl</strong> есть бесплатный тариф с PHP, MySQL, FTP и SSL. Для него предназначена отдельная <strong>экспериментальная сборка MuchoCore PHP 7 Native</strong>, а не обычный пакет для PHP 8.2+.</p>
+   <p class="free-hosting-note">Это тестовая сборка. PHP 7 устарел; полная совместимость с клиентом Geometry Dash и безопасность для продакшена не подтверждены. У хостинга могут быть ограничения по ресурсам.</p>
+  </div>
+  <div class="free-hosting-actions">
+   <div class="free-hosting-price"><strong>Бесплатно</strong><span>Базовый тариф 5v.pl</span></div>
+   <a class="button button-primary" href="https://github.com/IZKGMD/GMDmucho-core#2-5vpl--php-70-experimental" target="_blank" rel="noopener noreferrer">Инструкция для 5v.pl <span aria-hidden="true">↗</span></a>
+   <a class="text-link" href="https://5v.pl/" target="_blank" rel="noopener noreferrer">Создать бесплатный сайт на 5v.pl <span aria-hidden="true">↗</span></a>
+  </div>
+ </div>
+</section>
+<section class="section install" id="install"><div class="wrap install-grid">
   <div><div class="eyebrow">04 / ЗАПУСК</div><h2>Установи на свой сервер.</h2><p class="section-intro">Начни с Linux VPS или воспользуйся отдельной установкой для совместимого shared-хостинга. Перед запуском скрипта с правами администратора проверь его содержимое.</p><a class="button button-primary" href="/install/">Выбрать способ установки <span aria-hidden="true">↗</span></a><p class="install-foot">Чтобы скачать MuchoCore, не нужна подписка или регистрация.</p></div>
   <div class="code-card"><div class="code-title"><span>LINUX VPS / БЫСТРЫЙ СТАРТ</span><button id="copy-install" type="button" data-copied="Скопировано" data-error="Выдели команды">Копировать</button></div><pre id="install-commands"><code><span class="comment"># Клонируй официальный репозиторий</span>
 <span class="prompt">$</span> git clone https://github.com/IZKGMD/GMDmucho-core.git
@@ -116,7 +131,7 @@
 <span class="comment"># Проверь установщик перед запуском</span>
 <span class="prompt">$</span> sudo ./install</code></pre></div>
  </div></section>
- <section class="section faq" id="faq"><div class="wrap faq-grid"><div><div class="eyebrow">05 / КОРОТКО О ГЛАВНОМ</div><h2>Частые вопросы.</h2></div><div class="faq-list"><details><summary>MuchoCore действительно бесплатный?</summary><p>Да. Исходники доступны по лицензии MIT. Но VPS, домен и другие услуги хостинга могут быть платными.</p></details>
+ <section class="section faq" id="faq"><div class="wrap faq-grid"><div><div class="eyebrow">05 / КОРОТКО О ГЛАВНОМ</div><h2>Частые вопросы.</h2></div><div class="faq-list"><details><summary>MuchoCore действительно бесплатный?</summary><p>Да. Исходники доступны по лицензии MIT. Для пробного сервера можно использовать бесплатный 5v.pl с отдельной экспериментальной PHP 7 Native сборкой. VPS, собственный домен и другие услуги могут быть платными.</p></details>
 <details><summary>GD 2.209 полностью поддерживается?</summary><p>Совместимость развивается, но отдельные эндпоинты ещё требуют проверки на настоящем клиенте. Перед переносом посмотри страницу совместимости и примечания к релизу.</p></details>
 <details><summary>Можно перенести сервер с Cvolton?</summary><p>Для этого есть Migration Kit. Сначала сохрани резервную копию и проверь перенос на копии базы данных.</p></details>
 <details><summary>Можно делать свои плагины?</summary><p>Да. Документированы маршруты и события расширений. Перед установкой сторонних плагинов проверяй их исходный код.</p></details></div></div></section>
