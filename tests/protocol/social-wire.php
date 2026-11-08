@@ -61,6 +61,28 @@ assertSameValue(
 assertSameValue(null, $messageEncoder->decodeSubject('%%%'), 'reject malformed subject Base64');
 assertSameValue(null, $messageEncoder->decodeBody('%%%'), 'reject malformed body Base64');
 
+foreach (['QU JD', 'QQ===', 'QQ=Q', "QQ\n", 'QQ#'] as $invalidWire) {
+    assertSameValue(null, $messageEncoder->decodeSubject($invalidWire),
+        'reject invalid Base64 subject syntax');
+    assertSameValue(null, $messageEncoder->decodeBody($invalidWire),
+        'reject invalid Base64 body syntax');
+}
+assertSameValue(null, $messageEncoder->decodeSubject(base64_encode("\xff")),
+    'reject decoded subject with invalid UTF-8');
+assertSameValue(null, $messageEncoder->decodeBody($messageEncoder->encodeBody("\xff")),
+    'reject decoded XOR body with invalid UTF-8');
+
+$maxSubject = str_repeat('S', 255);
+$maxBody = str_repeat('B', 65535);
+assertSameValue($maxSubject, $messageEncoder->decodeSubject($messageEncoder->encodeSubject($maxSubject)),
+    'allow exact 255-byte subject boundary');
+assertSameValue($maxBody, $messageEncoder->decodeBody($messageEncoder->encodeBody($maxBody)),
+    'allow exact 65535-byte body boundary');
+assertSameValue(null, $messageEncoder->decodeSubject(str_repeat('A', 341)),
+    'reject oversized subject before Base64 decoding');
+assertSameValue(null, $messageEncoder->decodeBody(str_repeat('A', 87381)),
+    'reject oversized body before XOR decoding');
+
 $encodedMessage = $messageEncoder->encodeMessage([
     'id' => 12,
     'user_id' => 22,
