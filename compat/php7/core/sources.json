@@ -250,7 +250,7 @@
     "src/Protocol/GdLevelListEncoder.php": "38079e157a157e36a1d8fd7b71a1bb9ecbc915eda9d079d0cd583b2cc182b04b",
     "src/Protocol/GdMessageEncoder.php": "4bf67ef77822dfa1c3ebeb042492d75e8784cd91afc9346fad75fc94c6b95282",
     "src/Protocol/GdRelationshipEncoder.php": "6388016e425df3b6b37f2128151bba27281cdab544557ce6e58d9573020bc99f",
-    "src/Protocol/GdSongEncoder.php": "393ac01c2ea328a998fb27b57c7d2d15900d16ec4e8487e3c861e013e82103c8",
+    "src/Protocol/GdSongEncoder.php": "e6045a5c08bb192c4664e42e7c08ad8816aa5e57625e1f993363fb64b0762558",
     "src/Protocol/GdUserEncoder.php": "ac1a79d9b53af7e763cd284fce89d674a91f0e9c241b7b8984a7d50209a9c3eb",
     "src/Protocol/GdXor.php": "aa1e94b4301ae57edcffab0023a384ccbf6666b947fd69ff0aad0cd1927a6cdc",
     "src/Protocol/ProtocolText.php": "76159a74eeb4a7d3e36ded248b437890714cf05001005777374fb7b20f49e123",
@@ -314,5 +314,6 @@
     "tools/compat/passkeys-source/src/CBOR/CborDecoder.php": "38420a22ad68586e3447c9e8364e0ea5b468a5e613fe41897577f7a3e38c96e6",
     "tools/compat/passkeys-source/src/WebAuthn.php": "e9345041e9cb37139f079efe993a12f932c4f05c3be09269bd905bf0e03fc26d",
     "tools/compat/passkeys-source/src/WebAuthnException.php": "a0896861cd7673e93b22c3cd376c2ec60d5bee02a1f70758f8432e45380f03c1",
-    "database/migrations/20261108_001_message_content_format.php": "1647f249859dc4837871c4d823c3d5b66f2872734ed2e2b51b6028ff1084af86"
+    "database/migrations/20261108_001_message_content_format.php": "1647f249859dc4837871c4d823c3d5b66f2872734ed2e2b51b6028ff1084af86",
+    "database/migrations/20261108_002_level_reports.php": "631fffb9c46f86a00f0246751143ab4f33304b9c31b4b6e9d3be1421ddf9a411"
 }
