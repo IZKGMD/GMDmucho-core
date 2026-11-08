@@ -771,6 +771,13 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/gd2209-gameplay-schema-integration.php
 
+      - name: Verify PHP 8 level reports exist and reject duplicates
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/level-report-integrity-integration.php
+
       - name: Verify PHP 8 level upload/download reliability and ownership
         env:
           TEST_DB_HOST: 127.0.0.1
