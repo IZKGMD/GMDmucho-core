@@ -382,65 +382,15 @@ do
 done
 
 ROUTE_RESULT="$(
-python3 <<'PY'
-from pathlib import Path
-import re
-
-s=Path("src/Core/Application.php").read_text().lower()
-
-routes=set(
-    x.lower()
-    for x in re.findall(
-        r"\$route\(\s*'([^']+)'",
-        s
-    )
-)
-
-required={
-"/registergjaccount",
-"/logingjaccount",
-"/backupgjaccount20",
-"/syncgjaccount20",
-"/getgjlevels21",
-"/uploadgjlevel22",
-"/downloadgjlevel22",
-"/deletegjleveluser20",
-"/updategjleveldesc20",
-"/getgjsonginfo",
-"/getgjcomments21",
-"/uploadgjcomment21",
-"/deletegjcomment20",
-"/getgjaccountcomments20",
-"/uploadgjacccomment20",
-"/deletegjacccomment20",
-"/likegjitem211",
-"/uploadfriendrequest20",
-"/getgjfriendrequests20",
-"/acceptgjfriendrequest20",
-"/removegjfriend20",
-"/blockgjuser20",
-"/unblockgjuser20",
-"/getgjmessages20",
-"/downloadgjmessage20",
-"/uploadgjmessage20",
-"/deletegjmessages20",
-"/suggestgjstars20",
-"/rategjstars211",
-"/rategjdemon21",
-"/reportgjlevel",
-"/getgjdailyLevel".lower(),
-"/getgjgauntlets21",
-"/getgjmappacks21",
-"/getgjlevelscores211",
-"/getgjlevelscoresplat",
-"/getgjrewards",
-"/getgjchallenges",
-}
-
-missing=sorted(required-routes)
-
-print("OK" if not missing else "MISSING:"+",".join(missing))
-PY
+php <<'PHP'
+<?php
+$source=(string)file_get_contents('src/Core/Application.php');
+preg_match_all('~\\$route\\(\\s*\\x27([^\\x27]+)\\x27~', $source, $found);
+$routes=array_map('strtolower', $found[1]);
+$required=['/registergjaccount','/logingjaccount','/backupgjaccount20','/syncgjaccount20','/getgjlevels21','/uploadgjlevel22','/downloadgjlevel22','/deletegjleveluser20','/updategjleveldesc20','/getgjsonginfo','/getgjcomments21','/uploadgjcomment21','/deletegjcomment20','/getgjaccountcomments20','/uploadgjacccomment20','/deletegjacccomment20','/likegjitem211','/uploadfriendrequest20','/getgjfriendrequests20','/acceptgjfriendrequest20','/removegjfriend20','/blockgjuser20','/unblockgjuser20','/getgjmessages20','/downloadgjmessage20','/uploadgjmessage20','/deletegjmessages20','/suggestgjstars20','/rategjstars211','/rategjdemon21','/reportgjlevel','/getgjdailylevel','/getgjgauntlets21','/getgjmappacks21','/getgjlevelscores211','/getgjlevelscoresplat','/getgjrewards','/getgjchallenges'];
+$missing=array_values(array_diff($required, $routes));
+echo $missing === [] ? 'OK' : 'MISSING:'.implode(',', $missing);
+PHP
 )"
 
 expect_eq "Required Application routes" "$ROUTE_RESULT" "OK"
