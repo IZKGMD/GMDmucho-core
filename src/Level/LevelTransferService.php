@@ -337,7 +337,7 @@ final readonly class LevelTransferService
                 $existing === null ? 'upload' : 'update'
             );
             $this->searchIndexer->upsert($savedId);
-            $this->cache->deletePrefix('mucho:levels:');
+            $this->invalidateLevelCache();
 
             try {
                 $this->jobs->enqueue(
@@ -432,13 +432,8 @@ final readonly class LevelTransferService
             return '-1';
         }
 
-        if ($incrementDownloads) {
-            $this->downloadTracker->record(
-                $levelId,
-                $clientIp
-            );
-        }
-
+        // A download is counted only after the entire client response has
+        // been encoded. A codec failure must never inflate download metrics.
         $response=$this->downloadEncoder->encode(
             $level,
             $gameVersion,
@@ -456,6 +451,21 @@ final readonly class LevelTransferService
                 $gameVersion,
                 $level
             );
+        }
+
+        if ($incrementDownloads && $response !== '-1') {
+            try {
+                // Download telemetry is best-effort. Its storage must not turn
+                // a correctly encoded level into a client-visible -1.
+                $this->downloadTracker->record($levelId, $clientIp);
+            } catch (Throwable $error) {
+                error_log(sprintf(
+                    '[MuchoCore] request_id=%s level_download_tracking_failed level_id=%d exception=%s',
+                    (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
+                    $levelId,
+                    $error::class
+                ));
+            }
         }
 
         return $response;
@@ -836,7 +846,7 @@ final readonly class LevelTransferService
 
         if ($updated) {
             $this->searchIndexer->upsert($levelId);
-            $this->cache->deletePrefix('mucho:levels:');
+            $this->invalidateLevelCache();
         }
 
         return $updated;
@@ -873,7 +883,7 @@ final readonly class LevelTransferService
 
         if ($deleted) {
             $this->searchIndexer->delete($levelId);
-            $this->cache->deletePrefix('mucho:levels:');
+            $this->invalidateLevelCache();
             try {
                 $this->jobs->enqueue(
                     'webhook.dispatch',
@@ -891,6 +901,24 @@ final readonly class LevelTransferService
         }
 
         return $deleted;
+    }
+
+    /**
+     * A successful database write must not be reported as failed merely
+     * because the optional cache backend cannot invalidate an entry.
+     * Public level-list caches have a short TTL and will expire naturally.
+     */
+    private function invalidateLevelCache(): void
+    {
+        try {
+            $this->cache->deletePrefix('mucho:levels:');
+        } catch (Throwable $error) {
+            error_log(sprintf(
+                '[MuchoCore] request_id=%s level_cache_invalidation_failed exception=%s',
+                (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
+                $error::class
+            ));
+        }
     }
 
     private function stringField(
