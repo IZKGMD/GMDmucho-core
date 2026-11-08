@@ -25,286 +25,7 @@
 
 <title>MuchoCore — Geometry Dash Private Server Core</title>
 
-<style>
-:root{
-  --bg:#07090d;
-  --bg2:#0b0f16;
-  --panel:#0e141d;
-  --panel2:#111925;
-  --panel3:#151e2b;
-  --line:#222d3c;
-  --text:#f5f7fc;
-  --muted:#8d99ac;
-  --muted2:#657287;
-  --accent:#7c6cff;
-  --accent2:#47d9cf;
-  --good:#48daa0;
-  --warn:#f3c76a;
-  --radius:18px;
-  --shadow:0 24px 80px rgba(0,0,0,.26);
-  --max:1180px;
-}
-
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{
-  margin:0;
-  color:var(--text);
-  background:
-    radial-gradient(circle at 76% -5%,rgba(71,217,207,.10),transparent 25%),
-    radial-gradient(circle at 18% -10%,rgba(124,108,255,.16),transparent 31%),
-    linear-gradient(180deg,#07090d 0%,#090c12 54%,#07090d 100%);
-  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  line-height:1.5;
-  -webkit-font-smoothing:antialiased;
-}
-a{color:inherit;text-decoration:none}
-img{max-width:100%}
-button{font:inherit}
-.container{width:min(var(--max),calc(100% - 36px));margin:0 auto}
-
-.top{
-  position:sticky;top:0;z-index:100;
-  background:rgba(7,9,13,.78);
-  border-bottom:1px solid rgba(34,45,60,.72);
-  backdrop-filter:blur(18px);
-}
-.navbar{
-  min-height:70px;
-  display:flex;align-items:center;justify-content:space-between;gap:18px;
-}
-.brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:-.5px}
-.brand img{width:34px;height:34px;border-radius:9px;border:1px solid #2c3645}
-.brand small{display:block;color:var(--muted2);font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-top:1px}
-.navlinks{display:flex;align-items:center;gap:5px}
-.navlinks a{
-  padding:9px 11px;border-radius:9px;color:#aeb8c9;font-size:11px;font-weight:750;
-}
-.navlinks a:hover{background:#101722;color:#fff}
-.nav-cta{
-  padding:10px 14px!important;
-  background:var(--accent)!important;
-  color:#fff!important;
-  border:1px solid #8b7eff;
-  box-shadow:0 8px 28px rgba(124,108,255,.24);
-}
-.menu{
-  display:none;width:40px;height:40px;border:1px solid var(--line);background:#0e141d;color:#fff;border-radius:10px;cursor:pointer;
-}
-
-.hero{padding:92px 0 54px}
-.hero-grid{display:grid;grid-template-columns:1.18fr .82fr;gap:28px;align-items:stretch}
-.eyebrow{
-  display:inline-flex;align-items:center;gap:8px;
-  padding:7px 10px;border:1px solid rgba(124,108,255,.22);border-radius:999px;
-  background:rgba(124,108,255,.07);color:#b6aeff;
-  font-size:10px;font-weight:850;letter-spacing:.10em;text-transform:uppercase;
-}
-.eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--good);box-shadow:0 0 13px rgba(72,218,160,.75)}
-h1{
-  margin:20px 0 18px;
-  max-width:760px;
-  font-size:clamp(48px,7vw,82px);
-  line-height:.96;
-  letter-spacing:-4.7px;
-}
-h1 span{background:linear-gradient(90deg,#fff 10%,#a59aff 55%,#63e7df 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero-copy{max-width:690px;color:#a5b0c2;font-size:16px;line-height:1.72}
-.hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
-.btn{
-  display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 17px;border-radius:11px;
-  background:var(--accent);border:1px solid #8c80ff;color:#fff;font-size:12px;font-weight:850;
-  box-shadow:0 10px 34px rgba(124,108,255,.2);transition:.18s;
-}
-.btn:hover{transform:translateY(-2px);filter:brightness(1.07)}
-.btn.alt{background:#131b27;border-color:#2a3647;color:#d9dfeb;box-shadow:none}
-.btn.alt:hover{background:#17212e}
-
-.hero-card{
-  position:relative;overflow:hidden;
-  padding:22px;
-  border:1px solid var(--line);border-radius:24px;
-  background:linear-gradient(145deg,rgba(124,108,255,.11),rgba(71,217,207,.05) 52%,rgba(255,255,255,.012)),var(--panel);
-  box-shadow:var(--shadow);
-}
-.hero-card:before{
-  content:"";
-  position:absolute;width:260px;height:260px;right:-90px;top:-90px;border-radius:50%;
-  background:rgba(71,217,207,.16);filter:blur(55px);
-}
-.hero-card h2{position:relative;margin:0 0 15px;font-size:13px}
-.fact-list{display:grid;gap:1px}
-.fact{
-  position:relative;display:grid;grid-template-columns:112px 1fr;gap:12px;padding:12px 0;
-  border-top:1px solid rgba(34,45,60,.78);
-}
-.fact:first-child{border-top:0}
-.fact span{color:var(--muted2);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
-.fact strong{font-size:12px;line-height:1.45}
-
-.section{padding:34px 0}
-.section-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:16px}
-.kicker{color:#9e96ff;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.1em}
-.section h2{margin:5px 0 0;font-size:27px;line-height:1.12;letter-spacing:-1.2px}
-.section-intro{max-width:700px;margin:7px 0 0;color:var(--muted);font-size:13px;line-height:1.65}
-
-.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
-.metric{
-  padding:18px 19px;background:linear-gradient(180deg,#101722,#0d131c);border:1px solid var(--line);border-radius:15px;
-}
-.metric b{display:block;font-size:24px;letter-spacing:-.8px}
-.metric span{display:block;margin-top:6px;color:var(--muted2);font-size:10px;font-weight:750}
-
-.features{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
-.card{
-  padding:21px;background:linear-gradient(180deg,#101722,#0d131c);border:1px solid var(--line);border-radius:16px;
-  transition:.18s;
-}
-.card:hover{transform:translateY(-2px);border-color:#334052;background:#111925}
-.icon{
-  width:39px;height:39px;display:grid;place-items:center;margin-bottom:17px;border-radius:11px;
-  background:rgba(124,108,255,.10);border:1px solid rgba(124,108,255,.18);color:#aaa1ff;font-size:16px;
-}
-.card h3{margin:0 0 7px;font-size:13px;letter-spacing:-.15px}
-.card p{margin:0;color:var(--muted);font-size:11px;line-height:1.64}
-
-.compat{display:grid;grid-template-columns:1.2fr .8fr;gap:12px}
-.panel{padding:22px;background:#0e141d;border:1px solid var(--line);border-radius:17px}
-.panel h3{margin:0 0 16px;font-size:14px}
-.versions{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.v{
-  padding:12px 11px;background:#111925;border:1px solid #263143;border-radius:11px;
-}
-.v strong{display:block;font-size:13px}
-.v small{display:block;margin-top:4px;color:var(--muted2);font-size:9px;line-height:1.45}
-.v.ok{border-color:rgba(72,218,160,.18);background:rgba(72,218,160,.05)}
-.v.ok strong{color:#7fe7b8}
-.note{margin-top:13px;color:var(--muted);font-size:10px;line-height:1.65}
-.matrix{display:grid;gap:8px}
-.row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid #1d2633;font-size:11px}
-.row:first-child{border-top:0}
-.pill{padding:4px 7px;border-radius:999px;border:1px solid rgba(72,218,160,.18);background:rgba(72,218,160,.07);color:#7fe7b8;font-size:9px;font-weight:850}
-.pill.gray{border-color:#293548;background:#121a25;color:#a1acbc}
-
-.arch-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:12px}
-.code{
-  overflow:auto;padding:18px;border:1px solid #202b3a;border-radius:13px;background:#090e15;color:#d7deea;
-  font:11px/1.7 ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
-}
-.code .dim{color:#6f7c90}.code .key{color:#a89fff}.code .ok{color:#66dfad}.code .cyan{color:#68ddd5}
-
-.steps{display:grid;gap:10px}
-.step{display:grid;grid-template-columns:34px 1fr;gap:12px;padding:12px 0;border-top:1px solid #1d2633}
-.step:first-child{border-top:0;padding-top:0}
-.step-num{
-  width:30px;height:30px;display:grid;place-items:center;border-radius:9px;background:#151d2a;border:1px solid #293548;color:#b7b0ff;font-size:10px;font-weight:900;
-}
-.step h4{margin:0 0 4px;font-size:12px}
-.step p{margin:0;color:var(--muted);font-size:10px;line-height:1.6}
-
-.twocol{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.checks{display:grid;gap:9px}
-.check{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start}
-.check b{
-  width:22px;height:22px;display:grid;place-items:center;border-radius:7px;background:rgba(72,218,160,.08);border:1px solid rgba(72,218,160,.16);color:#73e1b2;font-size:10px;
-}
-.check strong{font-size:11px}.check p{margin:3px 0 0;color:var(--muted);font-size:10px;line-height:1.55}
-
-.faq{display:grid;gap:8px}
-details{background:#0e141d;border:1px solid var(--line);border-radius:13px;padding:0 16px}
-summary{cursor:pointer;padding:15px 2px;font-size:12px;font-weight:800}
-details p{margin:0 2px 16px;color:var(--muted);font-size:10.5px;line-height:1.65}
-
-.final{
-  position:relative;overflow:hidden;margin:30px 0 55px;padding:34px;border-radius:21px;
-  border:1px solid rgba(124,108,255,.23);
-  background:
-    radial-gradient(circle at 85% 20%,rgba(71,217,207,.10),transparent 25%),
-    radial-gradient(circle at 20% 100%,rgba(124,108,255,.13),transparent 36%),
-    #0f151f;
-}
-.final h2{margin:0;font-size:28px;letter-spacing:-1.2px}
-.final p{max-width:700px;margin:8px 0 20px;color:var(--muted);font-size:12px;line-height:1.65}
-
-.footer{padding:0 0 48px;color:#5e6a7e;font-size:10px;text-align:center}
-.footer a{color:#818da1}.footer a:hover{color:#b1bbcb;text-decoration:underline}
-
-@media(max-width:960px){
-  .hero-grid,.compat,.arch-grid{grid-template-columns:1fr}
-  .features{grid-template-columns:repeat(2,1fr)}
-  .metrics{grid-template-columns:repeat(2,1fr)}
-  .versions{grid-template-columns:repeat(4,1fr)}
-}
-@media(max-width:760px){
-  .navlinks{display:none;position:absolute;left:18px;right:18px;top:66px;padding:8px;background:#0b1018;border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);flex-direction:column;align-items:stretch}
-  .navlinks.open{display:flex}
-  .navlinks a{padding:11px 12px}
-  .menu{display:block}
-  .hero{padding-top:60px}
-  h1{letter-spacing:-3.2px}
-  .features,.twocol{grid-template-columns:1fr}
-  .versions{grid-template-columns:repeat(3,1fr)}
-}
-@media(max-width:500px){
-  .container{width:min(var(--max),calc(100% - 24px))}
-  .metrics{grid-template-columns:1fr}
-  .versions{grid-template-columns:1fr 1fr}
-  .fact{grid-template-columns:95px 1fr}
-  h1{font-size:49px}
-}
-
-
-.skip-link{
-  position:fixed;left:14px;top:12px;z-index:300;
-  padding:10px 13px;border-radius:10px;background:#fff;color:#090c12;
-  font-size:11px;font-weight:900;transform:translateY(-160%);
-}
-.skip-link:focus{transform:none}
-#reading-progress{
-  position:fixed;left:0;top:0;z-index:250;width:100%;height:2px;
-  transform-origin:left;transform:scaleX(0);
-  background:linear-gradient(90deg,var(--accent),var(--accent2));
-}
-.navlinks a[aria-current="true"]{background:#111824;color:#fff}
-.hero-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
-.hero-badge{
-  display:inline-flex;align-items:center;gap:7px;padding:6px 9px;border:1px solid #222d3c;border-radius:999px;
-  background:rgba(14,20,29,.72);color:#9eabbe;font-size:9px;font-weight:820
-}
-.hero-badge strong{color:#dde5ef}
-.install-box{
-  margin-top:17px;padding:13px;border:1px solid #202b3a;border-radius:13px;background:#0a1017
-}
-.install-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
-.install-head span{color:#748196;font-size:8.5px;font-weight:850;text-transform:uppercase;letter-spacing:.08em}
-.install-command{
-  overflow:auto;color:#dce3ee;font:10px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
-  white-space:pre-wrap;word-break:break-word
-}
-.install-command .prompt{color:#6f7d92}
-.copy-btn{
-  flex:0 0 auto;min-height:28px;padding:0 8px;border:1px solid #2a3547;border-radius:8px;
-  background:#121a25;color:#cbd4e1;cursor:pointer;font-size:8.5px;font-weight:850
-}
-.copy-btn:hover{background:#17212f}
-.copy-ok{margin-left:6px;color:#7fe7b8;font-size:8px;font-weight:850;opacity:0;transition:opacity .15s}
-.copy-ok.show{opacity:1}
-.trust-strip{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:12px
-}
-.trust-item{
-  display:flex;align-items:center;gap:9px;padding:12px 13px;border:1px solid var(--line);border-radius:12px;
-  background:rgba(13,19,28,.72)
-}
-.trust-dot{width:7px;height:7px;flex:0 0 auto;border-radius:50%;background:var(--good);box-shadow:0 0 12px rgba(85,223,170,.65)}
-.trust-item strong{display:block;font-size:9.5px}
-.trust-item span{display:block;margin-top:2px;color:var(--muted2);font-size:8px}
-:focus-visible{outline:2px solid #a69dff;outline-offset:3px}
-@media(max-width:760px){.trust-strip{grid-template-columns:1fr 1fr}}
-@media(max-width:520px){.trust-strip{grid-template-columns:1fr}.install-command{font-size:9px}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn,.card{transition:none!important}}
-
-</style>
+<link rel="stylesheet" href="/assets/muchocore-landing.css?v=1">
 
 <script type="application/ld+json">
 {
@@ -370,422 +91,241 @@ details p{margin:0 2px 16px;color:var(--muted);font-size:10.5px;line-height:1.65
 }
 </script>
 
-<link rel="stylesheet" href="/assets/product-ui.css?v=2">
-<script src="/assets/product-ui.js?v=1" defer></script>
-<script src="/muchocore-theme.js?v=4" defer></script>
+
+
+
 </head>
 
-<body class="mc-workspace">
-<a class="skip-link" href="#main-content">Skip to content</a>
-<div id="reading-progress" aria-hidden="true"></div>
-<header class="top">
-  <div class="container navbar">
-    <a class="brand" href="/muchocore/" aria-label="MuchoCore home">
-      <img class="mc-brand-mark" src="/assets/muchocore-icon.png?v=3" alt="" width="34" height="34" decoding="async">
-      <span>MuchoCore<small>Geometry Dash Private Server Core</small></span>
+<body>
+<a class="skip" href="#content">Skip to main content</a>
+<header class="masthead">
+  <div class="wrap navbar">
+    <a href="/muchocore/" class="brand" aria-label="MuchoCore home">
+      <img class="mc-brand-mark" src="/assets/muchocore-icon.png?v=3" width="39" height="39" alt="">
+      <span><span class="brand-text">Mucho<span>Core</span></span><small>GDPS SERVER SOFTWARE</small></span>
     </a>
-    <nav class="navlinks" id="navLinks" aria-label="Primary">
-      <a href="#features">Features</a>
-      <a href="/muchocore/about/">About</a>
-      <a href="#compatibility">Compatibility</a>
-      <a href="#architecture">Architecture</a>
-      <a href="#migration">Migration</a>
-      <a href="#plugins">Plugins</a>
-      <a href="#faq">FAQ</a>
-      <a class="nav-cta" href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+    <nav class="navigation" id="main-navigation" aria-label="Main navigation">
+      <a href="#features" data-ru="Возможности">Features</a>
+      <a href="#compatibility" data-ru="Совместимость">Compatibility</a>
+      <a href="#architecture" data-ru="Архитектура">Architecture</a>
+      <a href="#migration" data-ru="Миграция">Migration</a>
+      <a href="#faq" data-ru="Вопросы">FAQ</a>
+      <a href="/muchocore/about/" data-ru="О проекте">About</a>
     </nav>
-    <button class="menu" id="menu" aria-label="Open menu" aria-expanded="false">☰</button>
+    <div class="nav-actions">
+      <button id="language-switch" class="language" type="button" aria-label="Switch to Russian">RU</button>
+      <a class="nav-github" href="https://github.com/IZKGMD/GMDmucho-core" rel="noopener noreferrer" target="_blank">GitHub <span aria-hidden="true">↗</span></a>
+      <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="main-navigation">☰</button>
+    </div>
   </div>
 </header>
 
-<main id="main-content">
-  <section class="hero">
-    <div class="container hero-grid">
+<main id="content">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <div class="eyebrow hero-label"><span class="dot"></span><span data-ru="ОТКРЫТОЕ ЯДРО ДЛЯ GEOMETRY DASH">OPEN-SOURCE GEOMETRY DASH BACKEND</span></div>
+        <h1 id="hero-title"><span data-ru="ТВОЙ">YOUR</span><br><span data-ru="СЕРВЕР.">SERVER.</span><br><em data-ru="ТВОИ ПРАВИЛА.">YOUR RULES.</em></h1>
+        <p class="hero-intro" data-ru="MuchoCore — серверное ядро для собственного Geometry Dash Private Server. Аккаунты, уровни, управление, плагины и инструменты запуска. Всё на твоём сервере, под твоим контролем.">MuchoCore is the backend for your own Geometry Dash private server. Accounts, levels, moderation, plugins and deployment tools. Your machine, your data, your rules.</p>
+        <div class="actions">
+          <a class="button button-accent" href="/install/"><span data-ru="Начать установку">Get started</span><span class="button-arrow" aria-hidden="true">↗</span></a>
+          <a class="button button-light" href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer"><span data-ru="Исходный код">View the source</span><span class="button-arrow" aria-hidden="true">↗</span></a>
+        </div>
+        <p class="hero-footnote" data-ru="Открытый исходный код · MIT · Для VPS и совместимых shared-хостингов">Open source · MIT licensed · VPS and compatible shared hosting</p>
+      </div>
+      <div class="arch-preview" aria-label="Geometry Dash request flow">
+        <div class="preview-window">
+          <div class="window-head"><span><span class="id">MC /</span> REQUEST FLOW</span><span class="state">BACKEND ARCHITECTURE</span></div>
+          <div class="window-body">
+            <div class="request-label">01 — CLIENT REQUEST</div>
+            <p class="request-code"><strong>POST</strong> /database/getGJLevels21.php</p>
+            <div class="flowline">
+              <div class="flow-node"><strong>Geometry Dash client</strong><span>HTTP / GD protocol</span></div>
+              <div class="flow-connector"></div>
+              <div class="flow-node main"><strong>MuchoCore</strong><span>Version-aware routing</span></div>
+              <div class="flow-connector"></div>
+              <div class="flow-fork">
+                <div class="flow-node"><strong>MariaDB</strong><span>Persistent data</span></div>
+                <div class="flow-node"><strong>Plugin SDK</strong><span>Custom logic</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="window-bottom"><span>PHP · OPEN SOURCE · SELF-HOSTED</span><b>YOUR INFRASTRUCTURE</b></div>
+        </div>
+        <div class="hero-side-caption"><span data-ru="СХЕМА СИСТЕМЫ / НЕ СКРИНШОТ АДМИНКИ">SYSTEM DIAGRAM / NOT A UI MOCKUP</span><span>FIG. 01 / MUCHOCORE</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ticker" aria-label="Technology and license">
+    <div class="wrap ticker-inner">
+      <div class="ticker-item"><strong>PHP 8</strong><span data-ru="Серверная логика">APPLICATION LAYER</span></div>
+      <div class="ticker-item"><strong>MariaDB</strong><span data-ru="Хранение данных">PERSISTENT STORAGE</span></div>
+      <div class="ticker-item"><strong>Docker</strong><span data-ru="Развёртывание VPS">VPS DEPLOYMENT</span></div>
+      <div class="ticker-item"><strong>MIT</strong><span data-ru="Открытая лицензия">OPEN-SOURCE LICENSE</span></div>
+    </div>
+  </div>
+
+  <section class="section" id="features" aria-labelledby="features-heading">
+    <div class="wrap">
+      <div class="section-heading">
+        <div class="eyebrow"><span class="dot"></span><span>01 / <span data-ru="ПО СУТИ">THE POINT</span></span></div>
+        <div>
+          <h2 id="features-heading" data-ru="Меньше сборки из костылей. Больше своего сервера.">Less glue code.<br>More actual server.</h2>
+          <p data-ru="Не коллекция разрозненных PHP-скриптов, а единая система для работы с игроками, контентом и управлением GDPS.">Not another pile of disconnected PHP endpoints. One maintainable system for player data, content and the people running your GDPS.</p>
+        </div>
+      </div>
+      <div class="feature-list">
+        <article class="feature">
+          <span class="feature-index">01 / PROTOCOL</span>
+          <h3 data-ru="Совместимость без семи разных ядер">One backend. Multiple GD versions.</h3>
+          <p data-ru="Различия поколений клиентов обрабатываются на уровне протокола. Логика аккаунтов, уровней и других функций остаётся общей.">Handle client-generation differences at the protocol boundary, while accounts, levels and other application logic stay together.</p>
+        </article>
+        <article class="feature">
+          <span class="feature-index">02 / OPERATIONS</span>
+          <h3 data-ru="Панель для тех, кто управляет">Built for the owner, not only the player.</h3>
+          <p data-ru="Модерация, управление игроками и ролями, Rating Studio, резервные копии, аналитика и диагностика — в одном рабочем процессе.">Manage accounts, roles, moderation, Rating Studio, backups and diagnostics without stitching together separate tools.</p>
+        </article>
+        <article class="feature">
+          <span class="feature-index">03 / EXTENSIONS</span>
+          <h3 data-ru="Твои функции не исчезнут при обновлении">Extend it without a fork.</h3>
+          <p data-ru="Добавляй маршруты и события через Plugin SDK. Свои плагины живут отдельно от файлов ядра и не мешают обычным обновлениям.">Add routes and lifecycle hooks through the Plugin SDK. Your custom plugins live outside tracked core files.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="dark-section" id="compatibility" aria-labelledby="compat-heading">
+    <div class="wrap">
+      <div class="compat-header">
+        <div>
+          <span class="eyebrow"><span class="dot"></span>02 / <span data-ru="СОВМЕСТИМОСТЬ">COMPATIBILITY</span></span>
+          <h2 id="compat-heading" data-ru="Одно ядро для разных поколений Geometry Dash.">Different generations.<br>One foundation.</h2>
+        </div>
+        <p data-ru="Профили запуска позволяют выбрать нужные поколения клиента. Но наличие профиля ещё не означает, что каждая функция версии проверена на настоящем клиенте.">Choose the client generations your server needs. A documented runtime profile is not the same thing as every endpoint being verified with a real game client.</p>
+      </div>
+      <div class="version-strip" aria-label="Documented runtime profiles">
+        <div class="version"><strong>1.0</strong><span>GD</span></div><div class="version"><strong>1.1</strong><span>GD</span></div>
+        <div class="version"><strong>1.5</strong><span>GD</span></div><div class="version"><strong>1.9</strong><span>GD</span></div>
+        <div class="version"><strong>2.0</strong><span>GD</span></div><div class="version"><strong>2.1</strong><span>GD</span></div>
+        <div class="version"><strong>2.2</strong><span>GD</span></div>
+      </div>
+      <div class="compat-note">
+        <p data-ru="GD 2.209: совместимость продолжает проверяться. Мы не называем её стопроцентной до полного тестирования функций на реальном клиенте.">GD 2.209 is still being validated. We don't claim 100% compatibility without complete real-client verification.</p>
+        <a href="/muchocore/compatibility/" data-ru="Статус совместимости ↗">Compatibility details ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section arch-section" id="architecture" aria-labelledby="architecture-heading">
+    <div class="wrap arch-layout">
+      <div class="arch-copy">
+        <div class="eyebrow"><span class="dot"></span>03 / <span data-ru="КАК УСТРОЕНО">UNDER THE HOOD</span></div>
+        <h2 id="architecture-heading" data-ru="Нормальная архитектура вместо магии.">No mystery.<br>Just a real stack.</h2>
+        <p data-ru="Версионный протокол, общая логика, база данных и расширения — отдельные слои. Это упрощает поддержку старых клиентов и развитие новых возможностей.">Version-aware request handling, shared application logic, persistent storage and extensions have separate responsibilities. That's easier to evolve and debug.</p>
+        <a class="section-link" href="/muchocore/about/" data-ru="Узнать больше о MuchoCore ↗">Explore the architecture ↗</a>
+      </div>
+      <div class="layers">
+        <div class="layer"><span class="layer-index">A /</span><div><h3 data-ru="Клиент и протокол">Client &amp; protocol</h3><p data-ru="Встроенные маршруты Geometry Dash, обработчики разных поколений и формат ответа, ожидаемый клиентом.">Geometry Dash endpoint routes, version-specific handlers and client-facing wire formats.</p></div></div>
+        <div class="layer"><span class="layer-index">B /</span><div><h3 data-ru="Общая логика">Application services</h3><p data-ru="Аккаунты, профили, уровни, комментарии, рейтинги, модерация и социальные функции.">Accounts, profiles, levels, comments, scores, moderation and social features.</p></div></div>
+        <div class="layer"><span class="layer-index">C /</span><div><h3 data-ru="Хранение и миграции">Data &amp; migrations</h3><p data-ru="MariaDB, версионируемые миграции схемы, резервное копирование и инструменты переноса данных.">MariaDB, versioned database migrations, backup tools and import workflows.</p></div></div>
+        <div class="layer"><span class="layer-index">D /</span><div><h3 data-ru="Защита и расширения">Security &amp; extensions</h3><p data-ru="MuchoProtect, управление доступом и плагины, изолированные от отслеживаемого кода ядра.">MuchoProtect, access controls and custom plugins separated from tracked core code.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section editorial-section" aria-label="Migration and plugins">
+    <div class="wrap editorial-grid">
+      <article id="migration">
+        <div class="tagline">04 / <span data-ru="ПЕРЕНОС">MIGRATION</span></div>
+        <h3 data-ru="Свой GDPS уже есть? Не начинай с нуля.">Already running a GDPS? Keep your history.</h3>
+        <p data-ru="Для существующих баз Cvolton предусмотрены предварительная проверка, сопоставление ID и контролируемый перенос аккаунтов, уровней, профилей и результатов. Сначала — проверка на копии базы.">For Cvolton-based databases, MuchoCore provides preflight checks, persistent ID mapping and a controlled migration path for accounts, levels, profiles and scores. Test on a copy first.</p>
+        <a class="section-link" href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/MIGRATION_KIT.md" target="_blank" rel="noopener noreferrer" data-ru="Открыть Migration Kit ↗">Read the Migration Kit ↗</a>
+      </article>
+      <article id="plugins">
+        <div class="tagline">05 / <span data-ru="РАСШИРЕНИЯ">PLUGINS</span></div>
+        <h3 data-ru="Расширяй сервер. Не переписывай ядро.">Your features. A stable place to live.</h3>
+        <p data-ru="Пользовательские плагины могут регистрировать маршруты, подписываться на события и работать с API ядра. Всё это — отдельно от отслеживаемых файлов MuchoCore.">Custom plugins register routes, subscribe to lifecycle events and use documented core APIs without living inside the tracked source tree.</p>
+        <ul class="technical-list">
+          <li><span>custom/plugins/</span><span data-ru="Свои дополнения">EXTENSIONS</span></li>
+          <li><span>PluginInterface</span><span data-ru="Контракт">CONTRACT</span></li>
+          <li><span>PluginContext</span><span data-ru="API и события">API + EVENTS</span></li>
+        </ul>
+        <a class="section-link" href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/CUSTOM_PLUGINS.md" target="_blank" rel="noopener noreferrer" data-ru="Документация Plugin SDK ↗">Read the Plugin SDK ↗</a>
+      </article>
+    </div>
+  </section>
+
+  <section class="install-section" id="installation" aria-labelledby="install-heading">
+    <div class="wrap install-grid">
       <div>
-        <div class="eyebrow"><i></i> Geometry Dash Private Server Core</div>
-        <h1>Build a GDPS on <span>one serious core.</span></h1>
-        <p class="hero-copy">
-          MuchoCore is an open-source Geometry Dash Private Server foundation built around one version-aware backend.
-          It combines client compatibility, deployment, migrations, security, administration, extensions and operational tooling
-          instead of making every GDPS owner assemble those pieces separately.
-        </p>
-        <div class="hero-actions">
-          <a class="btn" href="https://github.com/IZKGMD/GMDmucho-core/releases/latest" target="_blank" rel="noopener noreferrer">Download stable release ↗</a>
-          <a class="btn alt" href="/install/">Get started</a>
-          <a class="btn alt" href="/muchocore/about/">What is MuchoCore?</a>
-          <a class="btn alt" href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/MIGRATION_KIT.md" target="_blank" rel="noopener noreferrer">Migrate an existing GDPS</a>
-          <a class="btn alt" href="https://discord.gg/8yRyH2Tngp" target="_blank" rel="noopener noreferrer">Join Discord</a>
-        </div>
-        <div class="hero-badges" aria-label="Project highlights">
-          <span class="hero-badge"><strong>Published</strong> releases</span>
-          <span class="hero-badge"><strong>1.0 → 2.2</strong> runtime profiles</span>
-          <span class="hero-badge"><strong>Docker</strong> ready</span>
-          <span class="hero-badge"><strong>CI</strong> validated</span>
-        </div>
-        <div class="install-box">
-          <div class="install-head">
-            <span>Start on a VPS</span>
-            <button class="copy-btn" type="button" data-copy="git clone https://github.com/IZKGMD/GMDmucho-core.git\ncd GMDmucho-core\nsudo ./install" aria-label="Copy installation commands">Copy <span class="copy-ok" aria-live="polite">Copied</span></button>
-          </div>
-          <div class="install-command"><span class="prompt">$ </span>git clone https://github.com/IZKGMD/GMDmucho-core.git
-<span class="prompt">$ </span>cd GMDmucho-core
-<span class="prompt">$ </span><strong>sudo ./install</strong></div>
-        </div>
+        <div class="eyebrow"><span class="dot"></span>06 / <span data-ru="БЫСТРЫЙ СТАРТ">GETTING STARTED</span></div>
+        <h2 id="install-heading" data-ru="Готов поднять свой сервер?">Your server starts here.</h2>
+        <p data-ru="Нужен VPS с Linux и домен. В репозитории есть установщик, который проведёт через настройку окружения и выбранного профиля Geometry Dash.">Get a Linux VPS and a domain. The repository includes a guided setup for the database, web server and your chosen Geometry Dash version profile.</p>
+        <a class="button" href="/install/"><span data-ru="Выбрать способ установки">Choose installation method</span><span class="button-arrow" aria-hidden="true">↗</span></a>
+        <p class="install-after" data-ru="Также есть отдельный сценарий для совместимых shared-хостингов.">Compatible shared hosting has its own guided installation path.</p>
       </div>
-
-      <aside class="hero-card" aria-label="MuchoCore quick facts">
-        <h2>MuchoCore at a glance</h2>
-        <div class="fact-list">
-          <div class="fact"><span>Current line</span><strong>Published stable releases</strong></div>
-          <div class="fact"><span>Client families</span><strong>GD 1.0, 1.1, 1.5, 1.9, 2.0, 2.1 and 2.2</strong></div>
-          <div class="fact"><span>Backend</span><strong>PHP 8.3 + MariaDB</strong></div>
-          <div class="fact"><span>Deployment</span><strong>Docker Compose + Caddy</strong></div>
-          <div class="fact"><span>Extensions</span><strong>Persistent PHP Plugin SDK</strong></div>
-          <div class="fact"><span>Administration</span><strong>Admin Panel, moderation and Rating Studio</strong></div>
-          <div class="fact"><span>Protection</span><strong>MuchoProtect + security audit events</strong></div>
-          <div class="fact"><span>License</span><strong>MIT</strong></div>
+      <div>
+        <div class="install-card">
+          <div class="install-card-head"><span>TERMINAL / LINUX VPS</span><button class="copy" id="copy-install" type="button" aria-label="Copy installation commands" data-ru="Копировать">Copy</button></div>
+          <pre class="code-display" id="install-commands"><code><span class="comment"># Clone the official repository</span>
+<span class="dollar">$</span> git clone https://github.com/IZKGMD/GMDmucho-core.git
+<span class="dollar">$</span> cd GMDmucho-core
+<span class="dollar">$</span> sudo ./install</code></pre>
         </div>
-      </aside>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="trust-strip" aria-label="Why the project is easy to evaluate">
-        <div class="trust-item"><span class="trust-dot"></span><div><strong>Open source</strong><span>Public repository & MIT license</span></div></div>
-        <div class="trust-item"><span class="trust-dot"></span><div><strong>Version aware</strong><span>Protocol differences stay explicit</span></div></div>
-        <div class="trust-item"><span class="trust-dot"></span><div><strong>Operator focused</strong><span>Backups, updates & diagnostics</span></div></div>
-        <div class="trust-item"><span class="trust-dot"></span><div><strong>AI-readable</strong><span>Canonical docs, sitemap & llms.txt</span></div></div>
-      </div>
-      <div class="metrics" aria-label="Core facts">
-        <div class="metric"><b>1.0–2.2</b><span>Documented client generation profiles</span></div>
-        <div class="metric"><b>1 core</b><span>Shared domain logic across versions</span></div>
-        <div class="metric"><b>PHP 8.3</b><span>Current application runtime</span></div>
-        <div class="metric"><b>MIT</b><span>Open-source license</span></div>
-      </div>
-      <p class="note" style="margin:12px 2px 0">Published stable releases are available from the project repository. Product discovery is host-isolated so a GDPS using MuchoCore does not automatically expose the MuchoCore marketing surface on its own domain.</p>
-    </div>
-  </section>
-
-  <section class="section" id="features">
-    <div class="container">
-      <div class="section-head">
-        <div>
-          <div class="kicker">What you get</div>
-          <h2>A GDPS core, not just a pile of endpoints.</h2>
-          <p class="section-intro">The goal is to keep the core maintainable while giving server owners the operational pieces they normally have to bolt on themselves.</p>
-        </div>
-      </div>
-      <div class="features">
-        <article class="card"><div class="icon">◎</div><h3>Version-aware backend</h3><p>Shared application logic with client-generation-specific protocol handling at the compatibility boundary, rather than maintaining a separate backend for every Geometry Dash version.</p></article>
-        <article class="card"><div class="icon">↔</div><h3>Migration tooling</h3><p>Preflight an existing source database, build persistent ID mappings, then apply account, profile, level and score migrations transactionally.</p></article>
-        <article class="card"><div class="icon">⌘</div><h3>Admin Control</h3><p>Administration, player management, level moderation, analytics, monitoring, backups, server settings and protocol-oriented tools are available from one panel.</p></article>
-        <article class="card"><div class="icon">★</div><h3>Rating Studio</h3><p>Search levels, review requests, choose stars and difficulty, publish feature tiers, and keep creator-point changes inside an audited transaction.</p></article>
-        <article class="card"><div class="icon">◈</div><h3>MuchoProtect</h3><p>Endpoint-aware rate limits, burst protection, account/IP controls, protocol-safe blocking and privacy-aware security audit events sit before application routing.</p></article>
-        <article class="card"><div class="icon">◆</div><h3>Modern admin authentication</h3><p>Separate administrator accounts, RBAC, TOTP, recovery codes and WebAuthn/FIDO2 passkeys are designed for real server-owner workflows.</p></article>
-        <article class="card"><div class="icon">⌁</div><h3>Persistent plugins</h3><p>Keep GDPS-specific functionality outside the tracked core under <code>custom/plugins/</code> so the stable updater does not overwrite your extensions.</p></article>
-        <article class="card"><div class="icon">♜</div><h3>Clans</h3><p>First-class GDPS-local clans with names, tags, roles, invitations, membership limits, bans, ownership transfer and in-game name decoration.</p></article>
-        <article class="card"><div class="icon">⬢</div><h3>Client patching</h3><p>Included Windows and Android patching workflows are designed to reduce the friction between installing a server and connecting an actual client.</p></article>
+        <p class="install-after" data-ru="Перед запуском установщика проверь содержимое скрипта и подготовь резервные копии.">Review the installer before running it with sudo; back up existing data first.</p>
       </div>
     </div>
   </section>
 
-  <section class="section" id="compatibility">
-    <div class="container">
-      <div class="section-head">
-        <div>
-          <div class="kicker">Compatibility</div>
-          <h2>One runtime profile, multiple Geometry Dash generations.</h2>
-          <p class="section-intro">MuchoCore keeps version differences at the protocol boundary. You can accept all documented families or select a restricted/custom combination during deployment.</p>
-        </div>
+  <section class="section faq-section" id="faq" aria-labelledby="faq-heading">
+    <div class="wrap">
+      <div class="section-heading">
+        <div class="eyebrow"><span class="dot"></span>07 / FAQ</div>
+        <div><h2 id="faq-heading" data-ru="Самое важное — без маркетинговой воды.">Questions worth answering.</h2></div>
       </div>
-
-      <div class="compat">
-        <div class="panel">
-          <h3>Documented runtime families</h3>
-          <div class="versions">
-            <div class="v ok"><strong>GD 1.0</strong><small>Legacy identity compatibility</small></div>
-            <div class="v ok"><strong>GD 1.1</strong><small>Legacy endpoint family</small></div>
-            <div class="v ok"><strong>GD 1.5</strong><small>Legacy GJP path</small></div>
-            <div class="v ok"><strong>GD 1.9</strong><small>Legacy protocol surface</small></div>
-            <div class="v ok"><strong>GD 2.0</strong><small>2.x protocol family</small></div>
-            <div class="v ok"><strong>GD 2.1</strong><small>Version-aware 2.1 fields</small></div>
-            <div class="v ok"><strong>GD 2.2</strong><small>Modern GJP2-aware path</small></div>
-            <div class="v"><strong>Custom</strong><small>For example 1,19,22</small></div>
-          </div>
-          <p class="note">The repository documents real-client verification for GD 1.0–1.9 across the listed early generations, plus a committed GD 2.2 client contract fixture. Other compatibility coverage is backed by protocol and regression tests where a separate real-client gate is not claimed.</p>
-          <p class="note">GD 2.209 compatibility work is ongoing; do not assume every new 2.209 API is verified. <a href="/muchocore/compatibility/">Read the client compatibility status and validation limits</a>.</p>
-        </div>
-
-        <div class="panel">
-          <h3>Client-side details</h3>
-          <div class="matrix">
-            <div class="row"><span>Legacy 1.x endpoint names</span><span class="pill">Normalized</span></div>
-            <div class="row"><span>2.1 authentication</span><span class="pill">GJP</span></div>
-            <div class="row"><span>2.2 authentication</span><span class="pill">GJP2</span></div>
-            <div class="row"><span>Shared database/service layer</span><span class="pill">Yes</span></div>
-            <div class="row"><span>Separate PHP backend per version</span><span class="pill gray">No</span></div>
-          </div>
-        </div>
+      <div class="faq-list">
+        <details><summary data-ru="Что такое MuchoCore?">What exactly is MuchoCore?</summary><p data-ru="Открытое серверное ядро для Geometry Dash Private Server. Оно обрабатывает запросы игры и предоставляет инструменты для управления сервером, игроками и контентом.">An open-source server-side backend for Geometry Dash private servers. It handles game requests and provides tools to operate player accounts, content and server administration.</p></details>
+        <details><summary data-ru="Какие версии Geometry Dash поддерживаются?">Which Geometry Dash versions are supported?</summary><p data-ru="Задокументированы профили для GD 1.0, 1.1, 1.5, 1.9, 2.0, 2.1 и 2.2. Поддержка отдельных функций GD 2.209 всё ещё проходит проверку на реальном клиенте.">Documented runtime profiles cover GD 1.0, 1.1, 1.5, 1.9, 2.0, 2.1 and 2.2. Individual GD 2.209 features still require real-client verification.</p></details>
+        <details><summary data-ru="Можно перенести сервер с Cvolton?">Can I migrate an existing Cvolton GDPS?</summary><p data-ru="Да, есть инструменты предварительной проверки исходной базы, сопоставления ID и миграции. Перенос следует сначала протестировать на копии БД.">There are preflight checks, ID mapping and migration tools for Cvolton-based databases. Always test the migration on a database copy first.</p></details>
+        <details><summary data-ru="Поддерживаются ли пользовательские плагины?">Can I build custom plugins?</summary><p data-ru="Да. Плагины хранятся в custom/plugins/ и могут добавлять маршруты, обработчики событий и собственную логику. Сторонний PHP-плагин — это исполняемый код, проверяй источник перед установкой.">Yes. Custom plugins live in custom/plugins/ and can register routes and lifecycle hooks. Third-party PHP plugins are executable server-side code, so inspect them before installation.</p></details>
+        <details><summary data-ru="Как установить MuchoCore?">How do I deploy MuchoCore?</summary><p data-ru="Рекомендуемый путь для VPS использует Docker Compose, PHP, MariaDB и Caddy. Существуют отдельные инструкции по установке на совместимый shared-хостинг.">The recommended VPS setup uses Docker Compose, PHP, MariaDB and Caddy. Compatible shared hosting has a separate installation workflow.</p></details>
       </div>
     </div>
   </section>
 
-  <section class="section" id="architecture">
-    <div class="container">
-      <div class="section-head">
-        <div>
-          <div class="kicker">Architecture</div>
-          <h2>Keep compatibility at the edge.</h2>
-          <p class="section-intro">The central design idea is simple: clients may speak different protocol dialects, but the server should not have seven copies of the same business logic.</p>
-        </div>
-      </div>
-
-      <div class="arch-grid">
-        <div class="panel">
-          <h3>Request flow</h3>
-          <div class="code">
-<span class="dim">Client request</span>
-   ↓
-<span class="key">ClientVersion</span>
-   ↓
-<span class="key">CompatibilityProfile</span>
-   ↓
-<span class="cyan">MuchoProtect</span>
-   ↓
-<span class="cyan">Shared Router</span>
-   ↓
-<span class="ok">Shared Services</span>
-   ↓
-<span class="ok">MariaDB</span>
-          </div>
-          <p class="note">Version-specific response framing and authentication choices stay near the protocol boundary. Shared application services remain reusable across generations.</p>
-        </div>
-
-        <div class="panel">
-          <h3>Why this matters for owners</h3>
-          <div class="steps">
-            <div class="step"><div class="step-num">01</div><div><h4>Fewer moving parts</h4><p>One repository, one application, one database model and one operational workflow are easier to back up and update.</p></div></div>
-            <div class="step"><div class="step-num">02</div><div><h4>Version-specific behavior stays explicit</h4><p>Compatibility rules are documented instead of being scattered through duplicated endpoint implementations.</p></div></div>
-            <div class="step"><div class="step-num">03</div><div><h4>Extensions do not need core forks</h4><p>Use the plugin SDK for GDPS-specific routes, events and optional database access.</p></div></div>
-            <div class="step"><div class="step-num">04</div><div><h4>Updates remain reproducible</h4><p>Published stable releases are deployed by tag, migrations run as part of the update path, and custom plugins stay outside the tracked core.</p></div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" id="migration">
-    <div class="container">
-      <div class="section-head">
-        <div>
-          <div class="kicker">Migration</div>
-          <h2>Moving an existing GDPS should not mean starting over.</h2>
-          <p class="section-intro">MuchoCore includes a Cvolton-oriented migration path for owners who already have accounts, levels and scores in a legacy source database.</p>
-        </div>
-      </div>
-
-      <div class="twocol">
-        <div class="panel">
-          <h3>Migration model</h3>
-          <div class="checks">
-            <div class="check"><b>1</b><div><strong>Read-only preflight</strong><p>Inspect the source database without modifying it and identify migration blockers before applying anything.</p></div></div>
-            <div class="check"><b>2</b><div><strong>Persistent ID mapping</strong><p>Keep source-to-target identifiers stable so migrated references remain understandable and recoverable.</p></div></div>
-            <div class="check"><b>3</b><div><strong>Transactional apply</strong><p>Apply the migration as a transaction rather than leaving a half-migrated database behind on the first error.</p></div></div>
-            <div class="check"><b>4</b><div><strong>Post-migration operation</strong><p>Continue using the normal MuchoCore database and update workflow after the migration is complete.</p></div></div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h3>What can move</h3>
-          <div class="matrix">
-            <div class="row"><span>Accounts</span><span class="pill">Supported</span></div>
-            <div class="row"><span>Profiles</span><span class="pill">Supported</span></div>
-            <div class="row"><span>Levels</span><span class="pill">Supported</span></div>
-            <div class="row"><span>Scores</span><span class="pill">Supported</span></div>
-            <div class="row"><span>Source database preflight</span><span class="pill">Read-only</span></div>
-          </div>
-          <p class="note">Always back up the source database first. Migration tooling should be tested against a copy before production cutover.</p>
-          <div class="hero-actions" style="margin-top:16px">
-            <a class="btn" href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/MIGRATION_KIT.md" target="_blank" rel="noopener noreferrer">Read the Migration Kit ↗</a>
-            <a class="btn alt" href="/install/">New installation guide ↗</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" id="plugins">
-    <div class="container">
-      <div class="section-head">
-        <div>
-          <div class="kicker">Plugin SDK</div>
-          <h2>Customize the GDPS without forking the core.</h2>
-          <p class="section-intro">Custom server logic belongs under <code>custom/plugins/</code>. Stable core updates are intended to leave that directory untouched.</p>
-        </div>
-      </div>
-      <div class="twocol">
-        <div class="panel">
-          <h3>Example</h3>
-          <div class="code"><span class="dim">custom/plugins/welcome/</span>
-├── manifest.json
-└── plugin.php
-
-<span class="key">plugin.php</span>
-  ↓
-PluginInterface
-  ↓
-PluginContext
-  ├── route()
-  ├── on()
-  └── database access
-</div>
-        </div>
-        <div class="panel">
-          <h3>Capabilities</h3>
-          <div class="matrix">
-            <div class="row"><span><code>events</code></span><span class="pill">Lifecycle events</span></div>
-            <div class="row"><span><code>routes</code></span><span class="pill">GET / POST / ANY</span></div>
-            <div class="row"><span><code>database</code></span><span class="pill">PDO access</span></div>
-            <div class="row"><span>Compatibility guards</span><span class="pill">Supported</span></div>
-            <div class="row"><span>Admin diagnostics</span><span class="pill gray">Read-only</span></div>
-          </div>
-          <p class="note">The SDK is an API boundary, not a process sandbox. Review third-party plugins as executable server-side code before installation.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="container">
-      <div class="twocol">
-        <div class="panel">
-          <div class="kicker">Deployment</div>
-          <h3 style="margin-top:6px">From an empty VPS to a working GDPS.</h3>
-          <div class="steps">
-            <div class="step"><div class="step-num">01</div><div><h4>Point a domain</h4><p>Use a domain that resolves to the VPS and accepts normal inbound HTTP/HTTPS traffic.</p></div></div>
-            <div class="step"><div class="step-num">02</div><div><h4>Run the installer</h4><p><code>sudo ./install</code> prepares MariaDB, PHP 8.3, Caddy, secrets, the admin account and the chosen version profile.</p></div></div>
-            <div class="step"><div class="step-num">03</div><div><h4>Verify liveness</h4><p>Open <code>/health</code> and expect the Geometry Dash-compatible body <code>1</code>.</p></div></div>
-            <div class="step"><div class="step-num">04</div><div><h4>Patch the client</h4><p>Use the included Windows or Android patching workflow and connect the patched client to your domain.</p></div></div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="kicker">Operations</div>
-          <h3 style="margin-top:6px">Run it like a server, not a one-off script.</h3>
-          <div class="checks">
-            <div class="check"><b>✓</b><div><strong>Backups</strong><p>Use the built-in database backup helper before major maintenance.</p></div></div>
-            <div class="check"><b>✓</b><div><strong>Stable release updates</strong><p>Published GitHub Releases are deployed by exact tag; ordinary main-branch commits are not treated as stable releases.</p></div></div>
-            <div class="check"><b>✓</b><div><strong>Secrets outside git</strong><p>Database credentials, Cloud Save keys and admin bootstrap secrets are kept outside tracked source files.</p></div></div>
-            <div class="check"><b>✓</b><div><strong>Validation in CI</strong><p>Protocol, security, patcher, Docker and routing checks run in GitHub Actions.</p></div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" id="faq">
-    <div class="container">
-      <div class="section-head">
-        <div>
-          <div class="kicker">FAQ</div>
-          <h2>Exact answers to the questions GDPS owners ask.</h2>
-          <p class="section-intro">This section is deliberately explicit so both humans and machine readers can understand what MuchoCore is and what it currently documents.</p>
-        </div>
-      </div>
-
-      <div class="faq">
-        <details><summary>What is MuchoCore?</summary><p>MuchoCore is an open-source Geometry Dash Private Server core. Its architecture keeps shared server logic in one application while handling client-generation differences at the protocol compatibility boundary.</p></details>
-        <details><summary>Which Geometry Dash versions are documented?</summary><p>The documented runtime profiles are GD 1.0, 1.1, 1.5, 1.9, 2.0, 2.1 and 2.2. A custom profile can accept any supported combination. The repository also documents real-client verification for early 1.x generations and a captured 2.2 client contract fixture.</p></details>
-        <details><summary>Can I migrate from Cvolton?</summary><p>Yes. The project includes a Cvolton migration path with read-only source database preflight, persistent ID mapping, and transactional migration of accounts, profiles, levels and scores. Start with the <a href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/MIGRATION_KIT.md" target="_blank" rel="noopener noreferrer">Migration Kit guide</a>.</p></details>
-        <details><summary>Can I add my own server features?</summary><p>Yes. Persistent custom plugins live under <code>custom/plugins/</code>. Plugins can register routes, subscribe to documented lifecycle events and optionally use the MuchoCore database connection.</p></details>
-        <details><summary>Does it include an admin panel?</summary><p>Yes. The repository documents administration, player and level workflows, moderation, analytics, backups, server settings, Rating Studio and authentication with RBAC, TOTP and WebAuthn/FIDO2 passkeys.</p></details>
-        <details><summary>How is it installed?</summary><p>The supported VPS workflow is centered on <code>sudo ./install</code>. The installer prepares PHP 8.3, MariaDB, Caddy, the database, secrets, administrator account and the selected Geometry Dash compatibility profile.</p></details>
-        <details><summary>Where is the source code?</summary><p>The public source repository is <a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">github.com/IZKGMD/GMDmucho-core</a>.</p></details>
-      </div>
-    </div>
-  </section>
-
-  <section class="container">
-    <div class="final">
-      <div class="kicker">Start here</div>
-      <h2>Make MuchoCore the foundation of your GDPS.</h2>
-      <p>Read the setup guide, inspect the architecture, or clone the repository. The project is designed for owners who want a maintainable server core rather than a collection of disconnected fixes.</p>
-      <div class="hero-actions">
-        <a class="btn" href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">View source</a>
-        <a class="btn alt" href="https://github.com/IZKGMD/GMDmucho-core/releases" target="_blank" rel="noopener noreferrer">Releases</a>
-        <a class="btn alt" href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/SETUP.md" target="_blank" rel="noopener noreferrer">VPS setup</a>
-      </div>
+  <section class="final-cta" aria-label="Open source call to action">
+    <div class="wrap final-inner">
+      <div><div class="eyebrow"><span class="dot"></span>OPEN SOURCE / MIT LICENSE</div><h2><span data-ru="СВОЙ КОД.">OWN THE CODE.</span><br><span data-ru="СВОЙ СЕРВЕР.">OWN THE SERVER.</span></h2></div>
+      <a class="button" href="https://github.com/IZKGMD/GMDmucho-core/releases/latest" rel="noopener noreferrer" target="_blank"><span data-ru="Последний релиз">Latest release</span><span class="button-arrow" aria-hidden="true">↗</span></a>
     </div>
   </section>
 </main>
 
 <footer class="footer">
-  <div class="container">
-    MuchoCore — Geometry Dash Private Server Core · MIT License ·
-    <a href="/muchocore/about/">About MuchoCore</a> ·
-    <a href="/muchocore/compatibility/">Version compatibility</a> ·
-    <a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">GitHub</a> ·
-    <a href="https://github.com/IZKGMD/GMDmucho-core/releases/latest" target="_blank" rel="noopener noreferrer">Releases</a> ·
-    <a href="https://discord.gg/8yRyH2Tngp" target="_blank" rel="noopener noreferrer">Discord</a>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <a href="/muchocore/" class="brand" aria-label="MuchoCore home"><img class="mc-brand-mark" src="/assets/muchocore-icon.png?v=3" width="39" height="39" alt=""><span><span class="brand-text">Mucho<span>Core</span></span><small>GDPS SERVER SOFTWARE</small></span></a>
+        <p class="footer-about" data-ru="Независимое открытое серверное ядро для сообществ Geometry Dash. Не связано с RobTop Games.">Independent open-source server software for Geometry Dash communities. Not affiliated with RobTop Games.</p>
+      </div>
+      <nav class="footer-col" aria-label="Product resources">
+        <h3 data-ru="ПРОДУКТ">PRODUCT</h3>
+        <a href="/muchocore/about/" data-ru="О MuchoCore">About MuchoCore</a>
+        <a href="/muchocore/compatibility/" data-ru="Совместимость">Compatibility</a>
+        <a href="/install/" data-ru="Установка">Installation</a>
+        <a href="https://github.com/IZKGMD/GMDmucho-core/releases" target="_blank" rel="noopener noreferrer" data-ru="Релизы">Releases</a>
+      </nav>
+      <nav class="footer-col" aria-label="Community resources">
+        <h3 data-ru="СООБЩЕСТВО">COMMUNITY</h3>
+        <a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://github.com/IZKGMD/GMDmucho-core/tree/main/docs" target="_blank" rel="noopener noreferrer" data-ru="Документация">Documentation</a>
+        <a href="https://discord.gg/8yRyH2Tngp" target="_blank" rel="noopener noreferrer">Discord</a>
+      </nav>
+    </div>
+    <div class="footer-bottom"><span>© 2026 MuchoCore · IZKGMD · MIT</span><span data-ru="Независимый проект, не одобренный RobTop Games.">An independent project. Not endorsed by RobTop Games.</span></div>
   </div>
 </footer>
-
-<script>
-const menu=document.getElementById('menu');
-const nav=document.getElementById('navLinks');
-if(menu&&nav){
-  menu.addEventListener('click',()=>{
-    const open=nav.classList.toggle('open');
-    menu.setAttribute('aria-expanded',String(open));
-  });
-  nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>nav.classList.remove('open')));
-}
-
-const progress=document.getElementById('reading-progress');
-const updateProgress=()=>{
-  const max=document.documentElement.scrollHeight-window.innerHeight;
-  if(progress) progress.style.transform=max>0?'scaleX('+Math.min(1,window.scrollY/max)+')':'scaleX(1)';
-};
-window.addEventListener('scroll',updateProgress,{passive:true});
-window.addEventListener('resize',updateProgress);
-updateProgress();
-
-document.querySelectorAll('[data-copy]').forEach(button=>{
-  button.addEventListener('click',async()=>{
-    const value=button.getAttribute('data-copy')||'';
-    let ok=false;
-    try{
-      if(navigator.clipboard&&window.isSecureContext){
-        await navigator.clipboard.writeText(value);
-        ok=true;
-      }else{
-        const area=document.createElement('textarea');
-        area.value=value; area.setAttribute('readonly','');
-        area.style.position='fixed'; area.style.opacity='0';
-        document.body.appendChild(area); area.select();
-        ok=document.execCommand('copy'); area.remove();
-      }
-    }catch(_){ ok=false; }
-    const state=button.querySelector('.copy-ok');
-    if(state){
-      state.textContent=ok?'Copied':'Copy failed';
-      state.classList.add('show');
-      window.setTimeout(()=>state.classList.remove('show'),1300);
-    }
-  });
-});
-
-const sections=[...document.querySelectorAll('main section[id]')];
-const sectionLinks=[...document.querySelectorAll('.navlinks a[href^="#"]')];
-const markActive=()=>{
-  const y=window.scrollY+140;
-  let active='';
-  for(const section of sections) if(section.offsetTop<=y) active=section.id;
-  sectionLinks.forEach(link=>link.setAttribute('aria-current',link.getAttribute('href')==='#'+active?'true':'false'));
-};
-window.addEventListener('scroll',markActive,{passive:true});
-markActive();
-</script>
+<script src="/assets/muchocore-landing.js?v=1" defer></script>
 </body>
 </html>
