@@ -289,22 +289,22 @@ func (h *Handler) like(r request) (string, error) {
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return "", err
 	}
-	delta := isLike
+	delta := int64(1)
+	if isLike == 0 {
+		delta = -1
+	}
 	if existing != nil {
 		if existing.Int("is_like") == isLike {
 			return "1", nil
 		}
 		_, err = tx.ExecContext(r.ctx, `UPDATE likes SET is_like=? WHERE id=?`, isLike, existing.Int("id"))
-		if isLike == 0 {
-			delta = -1
-		}
 	} else {
 		_, err = tx.ExecContext(r.ctx, `INSERT INTO likes(item_id,type,account_id,ip,is_like) VALUES(?,?,?,?,?)`, itemID, typ, id, ip, isLike)
 	}
 	if err != nil {
 		return "", err
 	}
-	result, err := tx.ExecContext(r.ctx, `UPDATE `+target[0]+` SET likes=GREATEST(0,likes+?) WHERE `+target[1]+`=?`, delta, itemID)
+	result, err := tx.ExecContext(r.ctx, `UPDATE `+target[0]+` SET likes=likes+? WHERE `+target[1]+`=?`, delta, itemID)
 	if err != nil {
 		return "", err
 	}
