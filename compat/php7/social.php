@@ -61,12 +61,62 @@ function mucho7_relationship_wire($row, $request, $includeStats = false)
     return implode(':',$fields);
 }
 
+function mucho7_message_base64_decode($value)
+{
+    if (!is_string($value) || !preg_match('/^[A-Za-z0-9+\/_-]*={0,2}$/D', $value)) {
+        return false;
+    }
+    $value = strtr($value, '-_', '+/');
+    if (strlen($value) % 4 === 1) {
+        return false;
+    }
+    $value .= str_repeat('=', (4 - strlen($value) % 4) % 4);
+    $decoded = base64_decode($value, true);
+    return is_string($decoded) ? $decoded : false;
+}
+
+function mucho7_message_xor($value)
+{
+    $key = '14251';
+    $output = '';
+    for ($i = 0, $length = strlen($value); $i < $length; $i++) {
+        $output .= $value[$i] ^ $key[$i % strlen($key)];
+    }
+    return $output;
+}
+
+function mucho7_message_decode_subject($value)
+{
+    $decoded = mucho7_message_base64_decode($value);
+    return $decoded !== false && preg_match('//u', $decoded) === 1 ? $decoded : false;
+}
+
+function mucho7_message_decode_body($value)
+{
+    $decoded = mucho7_message_base64_decode($value);
+    if ($decoded === false) {
+        return false;
+    }
+    $plain = mucho7_message_xor($decoded);
+    return preg_match('//u', $plain) === 1 ? $plain : false;
+}
+
+function mucho7_message_encode_subject($value)
+{
+    return strtr(base64_encode($value), '+/', '-_');
+}
+
+function mucho7_message_encode_body($value)
+{
+    return strtr(base64_encode(mucho7_message_xor($value)), '+/', '-_');
+}
+
 function mucho7_message_wire($row, $sent, $withBody)
 {
     $fields = array(6,mucho7_username($row['username']),3,(int)$row['user_id'],
-        2,(int)$row['peer_id'],1,(int)$row['id'],4,$row['subject'],
+        2,(int)$row['peer_id'],1,(int)$row['id'],4,mucho7_message_encode_subject($row['subject']),
         8,(int)$row['is_read'],9,$sent?1:0);
-    if ($withBody) { $fields[]=5; $fields[]=$row['body']; }
+    if ($withBody) { $fields[]=5; $fields[]=mucho7_message_encode_body($row['body']); }
     $fields[]=7; $fields[]=gmdate('d/m/Y G.i',mucho7_epoch($row['created_at']));
     return implode(':',$fields);
 }
@@ -210,11 +260,15 @@ function mucho7_social_write(PDO $pdo, $aid, $path, $data)
         } elseif ($path==='/unblockgjuser') {
             $pdo->prepare('DELETE FROM php7_blocks WHERE account_id=? AND blocked_account_id=?')->execute(array($aid,$target));
         } elseif ($path==='/uploadgjmessage') {
-            $subject=isset($data['subject'])?$data['subject']:''; $body=isset($data['body'])?$data['body']:'';
+            $subjectWire=isset($data['subject'])?$data['subject']:'';
+            $bodyWire=isset($data['body'])?$data['body']:'';
+            $subject=mucho7_message_decode_subject($subjectWire);
+            $body=mucho7_message_decode_body($bodyWire);
             $preferences=mucho7_details($pdo,$target);
             $state=isset($preferences['message_state'])?(int)$preferences['message_state']:0;
             if($blocked || $state===2 || ($state===1 && !mucho7_social_friend($pdo,$aid,$target))
-                || !mucho7_social_wire($subject,255) || !mucho7_social_wire($body,65535)) {
+                || $subject===false || $body===false || $subject==='' || $body===''
+                || strlen($subject)>255 || strlen($body)>65535) {
                 $pdo->rollBack(); return '-1';
             }
             $query=$pdo->prepare('SELECT COUNT(*) FROM php7_messages WHERE account_id=? AND created_at>?');
