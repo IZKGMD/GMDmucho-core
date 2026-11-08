@@ -557,15 +557,2192 @@ else
   MUCHO_DB_ROOT_PASSWORD="$(openssl rand -hex 32)"
 fi
 
+prompt_admin_password() {
+  local first second attempt
+  [[ -r /dev/tty && -w /dev/tty && ( -t 1 || -t 2 ) ]] ||
+    fail "An interactive terminal is required to create an admin password. Set MUCHO_ADMIN_PASSWORD for an unattended install."
+
+  for attempt in 1 2 3; do
+    read -r -s -p "  Admin password (minimum 10 characters): " first < /dev/tty
+    printf '\\n'
+    read -r -s -p "  Confirm admin password: " second < /dev/tty
+    printf '\\n'
+
+    if [[ "${#first}" -lt 10 ]]; then
+      warn "Admin password must contain at least 10 characters."
+      continue
+    fi
+    if [[ "$first" != "$second" ]]; then
+      warn "Admin passwords do not match."
+      continue
+    fi
+    if [[ "$first" == *
+
+printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
+printf '%s' "$MUCHO_DB_ROOT_PASSWORD" > "$INSTALL_DIR/.secrets/db_root_password"
+printf '%s' "$MUCHO_ADMIN_PASSWORD" > "$INSTALL_DIR/.secrets/admin_password"
+if [[ ! -f "$INSTALL_DIR/.secrets/cloudsave_key" && -f "$INSTALL_DIR/config/cloudsave.key" ]]; then
+  cp "$INSTALL_DIR/config/cloudsave.key" "$INSTALL_DIR/.secrets/cloudsave_key"
+  chmod 600 "$INSTALL_DIR/.secrets/cloudsave_key"
+fi
+
+if [[ -s "$INSTALL_DIR/.secrets/cloudsave_key" ]]; then
+  MUCHO_CLOUDSAVE_KEY="$(cat "$INSTALL_DIR/.secrets/cloudsave_key")"
+else
+  MUCHO_CLOUDSAVE_KEY="$(openssl rand -base64 32)"
+fi
+printf '%s\n' "$MUCHO_CLOUDSAVE_KEY" > "$INSTALL_DIR/.secrets/cloudsave_key"
+chmod 600 "$INSTALL_DIR/.secrets/"*
+
+for secret in \
+  "$INSTALL_DIR/.secrets/db_password" \
+  "$INSTALL_DIR/.secrets/db_root_password" \
+  "$INSTALL_DIR/.secrets/admin_password" \
+  "$INSTALL_DIR/.secrets/cloudsave_key"; do
+  [[ -s "$secret" ]] || fail "Required secret file is missing or empty: $secret"
+done
+
+if [[ -f "$INSTALL_DIR/.env" ]]; then
+  backup_file="$INSTALL_DIR/.env.backup.$(date +%Y%m%d-%H%M%S)"
+  cp "$INSTALL_DIR/.env" "$backup_file"
+  chmod 600 "$backup_file"
+  info "Backed up existing .env to $(basename "$backup_file")"
+fi
+
+normalize_caddy_address() {
+  if [[ "$USE_TUNNEL" -eq 1 ]]; then
+    printf ':80'
+    return
+  fi
+
+  local host="$DOMAIN"
+  host="${host#http://}"
+  host="${host#https://}"
+  host="${host%%/*}"
+
+  local root="$host"
+  if [[ "$host" == www.* ]]; then
+    root="${host#www.}"
+  fi
+
+  # Explicitly declare HTTP and HTTPS listeners in direct mode.
+  # The HTTP site keeps legacy Geometry Dash clients working on port 80 while
+  # the HTTPS site provides managed Let's Encrypt certificates on port 443.
+  printf 'http://%s http://www.%s %s www.%s' "$root" "$root" "$root" "$root"
+  if [[ -n "${CADDY_EXTRA_HOSTS:-}" ]]; then
+    for extra_host in $CADDY_EXTRA_HOSTS; do
+      printf ' http://%s %s' "$extra_host" "$extra_host"
+    done
+  fi
+}
+
+CADDY_ADDRESS_VALUE="$(normalize_caddy_address)"
+
+cat > "$INSTALL_DIR/.env" <<EOFENV
+DOMAIN=$DOMAIN
+CADDY_ADDRESS_VALUE="$CADDY_ADDRESS_VALUE"
+CADDY_ADDRESS="$CADDY_ADDRESS_VALUE"
+DB_NAME=$DB_NAME
+DB_USER=$DB_USER
+ADMIN_USER=$ADMIN_USER
+MUCHO_ACCOUNT_URL=https://$DOMAIN
+MUCHO_SERVER_NAME="$SERVER_NAME_ENV"
+MUCHO_CUSTOM_CONTENT_URL=$CUSTOM_CONTENT_URL
+TURNSTILE_SITEKEY=$TURNSTILE_SITEKEY
+TURNSTILE_SECRET=$TURNSTILE_SECRET
+MUCHO_ADMIN_BOOTSTRAP=/etc/muchocore-admin.php
+MUCHO_CONTROL_DIR=/var/lib/muchocore-control
+MUCHO_BACKUP_DIR=/var/lib/muchocore-backups
+TZ=UTC
+MUCHO_GD_VERSIONS=$GD_VERSIONS
+MUCHO_TRANSPORT_MODE=$TRANSPORT_MODE
+MUCHO_PUBLIC_IP=$PUBLIC_IP
+CADDY_EXTRA_HOSTS=$CADDY_EXTRA_HOSTS
+MUCHOCORE_SITE_HOST=disabled.invalid
+MUCHO_PROTECT_STORAGE=file
+MUCHO_TRUSTED_PROXY_CIDRS=
+MUCHO_AUTO_UPDATE=1
+MUCHO_AUTO_UPDATE_INTERVAL=15min
+EOFENV
+if [[ "$USE_TUNNEL" -eq 1 && -n "$TUNNEL_TOKEN" ]]; then
+  printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
+  printf '%s\n' "$TUNNEL_TOKEN" > "$INSTALL_DIR/.secrets/tunnel_token"
+  chmod 400 "$INSTALL_DIR/.secrets/tunnel_token"
+fi
+chmod 600 "$INSTALL_DIR/.env"
+
+if [[ -f "$INSTALL_DIR/bin/mucho-install-auto-update.sh" ]]; then
+  INSTALL_STEP="configuring automatic updates"
+  log "Configuring release-based automatic updates..."
+  bash "$INSTALL_DIR/bin/mucho-install-auto-update.sh"
+fi
+
+install -d -m 700 "$INSTALL_DIR/.muchocore"
+cat > "$INSTALL_DIR/.muchocore/profile.env" <<EOFPROFILE
+MUCHO_GD_VERSIONS=$GD_VERSIONS
+EOFPROFILE
+chmod 600 "$INSTALL_DIR/.muchocore/profile.env"
+
+[[ -f "$INSTALL_DIR/docker-compose.yml" && -r "$INSTALL_DIR/docker-compose.yml" ]] ||
+  fail "MuchoCore repository is missing a readable docker-compose.yml."
+[[ -f "$INSTALL_DIR/docker/Dockerfile" && -r "$INSTALL_DIR/docker/Dockerfile" ]] ||
+  fail "MuchoCore repository is missing a readable docker/Dockerfile."
+[[ -f "$INSTALL_DIR/docker/Caddyfile" && -r "$INSTALL_DIR/docker/Caddyfile" ]] ||
+  fail "MuchoCore repository is missing a readable docker/Caddyfile."
+info "Compose files verified: $INSTALL_DIR/docker-compose.yml";
+
+run_compose() {
+  # Always run Compose from the installation directory with explicit files.
+  # Avoid relying on inherited working directories or mutable shell arrays.
+  if [[ "$USE_TUNNEL" -eq 1 ]]; then
+    (
+      cd "$INSTALL_DIR"
+      MUCHO_TUNNEL_TOKEN="$TUNNEL_TOKEN" \
+        docker compose -f docker-compose.yml -f docker-compose.tunnel.yml "$@"
+    )
+  else
+    (
+      cd "$INSTALL_DIR"
+      docker compose -f docker-compose.yml "$@"
+    )
+  fi
+}
+
+
+if [[ "$USE_TUNNEL" -eq 0 && "$TRANSPORT_MODE" != "tunnel" && -n "$CLOUDFLARE_API_TOKEN" && -n "$PUBLIC_IP" ]]; then
+  INSTALL_STEP="configuring direct Cloudflare DNS"
+  log "Configuring Cloudflare DNS for direct origin $PUBLIC_IP..."
+  if ! MUCHO_CLOUDFLARE_API_TOKEN="$CLOUDFLARE_API_TOKEN" \
+      MUCHO_DOMAIN="$DOMAIN" \
+      MUCHO_PUBLIC_IP="$PUBLIC_IP" \
+      MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+      bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct; then
+    warn "Automatic direct DNS configuration failed. Continuing with the existing DNS configuration."
+  fi
+fi
+INSTALL_STEP="validating Docker Compose"
+log "Validating Docker Compose..."
+run_compose config -q
+
+if [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
+  if [[ -s "$INSTALL_DIR/.secrets/tunnel_token" && -z "$TUNNEL_TOKEN" ]]; then
+    TUNNEL_TOKEN="$(cat "$INSTALL_DIR/.secrets/tunnel_token")"
+  fi
+  if [[ -n "$TUNNEL_TOKEN" ]]; then
+    USE_TUNNEL=1
+    sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
+    sed -i 's/^CADDY_ADDRESS_VALUE=.*/CADDY_ADDRESS_VALUE=":80"/' "$INSTALL_DIR/.env"
+    sed -i 's/^CADDY_ADDRESS=.*/CADDY_ADDRESS=":80"/' "$INSTALL_DIR/.env"
+    if ! grep -q '^MUCHO_TUNNEL_TOKEN=' "$INSTALL_DIR/.env"; then
+      printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
+    fi
+  else
+    fail "MUCHO_TRANSPORT_MODE=tunnel requires an existing Tunnel runtime token. Use MUCHO_TRANSPORT_MODE=auto for automatic fallback."
+  fi
+fi
+INSTALL_STEP="starting production services"
+log "Starting MuchoCore..."
+if [[ "$USE_TUNNEL" -eq 1 ]]; then
+  log "Tunnel mode: no inbound ports will be opened; Cloudflare Tunnel provides ingress."
+fi
+run_compose up -d --build --remove-orphans
+
+log "Verifying running containers..."
+expected_services=(db app worker caddy)
+if [[ "$USE_TUNNEL" -eq 1 ]]; then
+  expected_services+=(cloudflared)
+fi
+for service in "${expected_services[@]}"; do
+  container_id="$(run_compose ps -q "$service" 2>/dev/null || true)"
+  [[ -n "$container_id" ]] || fail "Service '$service' was not created."
+  running="$(docker inspect -f '{{.State.Running}}' "$container_id" 2>/dev/null || true)"
+  [[ "$running" == "true" ]] || {
+    run_compose ps || true
+    run_compose logs --tail=80 "$service" || true
+    fail "Service '$service' is not running."
+  }
+done
+
+INSTALL_STEP="waiting for application dependencies"
+log "Waiting for Composer dependencies..."
+autoload_ready=0
+for _ in {1..60}; do
+  if run_compose exec -T app test -f vendor/autoload.php >/dev/null 2>&1; then
+    autoload_ready=1
+    break
+  fi
+  sleep 2
+done
+
+[[ "$autoload_ready" -eq 1 ]] || {
+  run_compose logs --tail=80 app || true
+  fail "Application dependencies were not ready after 120 seconds. Check: sudo mucho doctor"
+}
+
+INSTALL_STEP="running database migrations"
+log "Running database migrations..."
+run_compose exec -T app php bin/migrate.php migrate
+
+INSTALL_STEP="applying GDPS branding"
+log "Applying GDPS name: $SERVER_NAME"
+run_compose exec -T -e "MUCHO_INSTALL_SERVER_NAME=$SERVER_NAME" app php -r 'require "vendor/autoload.php"; $pdo=(new \MuchoCore\Database\Database())->connection(); (new \MuchoCore\Branding\BrandingService($pdo))->saveServerName((string)(getenv("MUCHO_INSTALL_SERVER_NAME") ?: "Mucho GDPS"));'
+
+INSTALL_STEP="running the internal healthcheck"
+log "Running internal MuchoCore healthcheck..."
+run_compose exec -T app php bin/mucho-healthcheck.php
+
+
+INSTALL_STEP="checking public health"
+log "Checking server health..."
+
+# The internal PHP healthcheck above is the authoritative origin-health test.
+# Do not probe Caddy locally here: in direct mode Caddy may still be waiting
+# for an ACME certificate, which can fail independently of the application.
+healthy=1
+public_code=""
+
+provision_cloudflare_tunnel() {
+  local api_token="$CLOUDFLARE_API_TOKEN"
+  local auth_mode="$CLOUDFLARE_AUTH_MODE"
+
+  [[ -n "$api_token" || -n "$CLOUDFLARE_GLOBAL_API_KEY" ]] || return 1
+
+  INSTALL_STEP="configuring Cloudflare automatically"
+  log "Configuring Cloudflare automatically..."
+  if ! MUCHO_CLOUDFLARE_AUTH_MODE="$auth_mode" \
+      MUCHO_CLOUDFLARE_API_TOKEN="$api_token" \
+      MUCHO_CLOUDFLARE_EMAIL="$CLOUDFLARE_EMAIL" \
+      MUCHO_CLOUDFLARE_GLOBAL_API_KEY="$CLOUDFLARE_GLOBAL_API_KEY" \
+      MUCHO_DOMAIN="$DOMAIN" \
+      MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+      bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh"; then
+    warn "Automatic Cloudflare setup failed."
+    return 1
+  fi
+
+  TUNNEL_TOKEN="$(cat "$INSTALL_DIR/.secrets/tunnel_token")"
+  [[ -n "$TUNNEL_TOKEN" ]] || {
+    warn "Cloudflare setup completed without a Tunnel runtime token."
+    return 1
+  }
+
+  USE_TUNNEL=1
+  sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
+  sed -i 's/^CADDY_ADDRESS_VALUE=.*/CADDY_ADDRESS_VALUE=":80"/' "$INSTALL_DIR/.env"
+  sed -i 's/^CADDY_ADDRESS=.*/CADDY_ADDRESS=":80"/' "$INSTALL_DIR/.env"
+  if [[ " ${expected_services[*]} " != *" cloudflared "* ]]; then
+    expected_services+=(cloudflared)
+  fi
+
+  INSTALL_STEP="starting Cloudflare Tunnel"
+  log "Starting Cloudflare Tunnel..."
+  run_compose up -d --remove-orphans
+
+  local tunnel_healthy=0
+  for _ in {1..20}; do
+    if curl -4fsS --connect-timeout 2 --max-time 3 "http://127.0.0.1/health" 2>/dev/null | grep -qx "1"; then
+      tunnel_healthy=1
+      break
+    fi
+    sleep 2
+  done
+  [[ "$tunnel_healthy" -eq 1 ]] || {
+    warn "MuchoCore is not healthy locally after enabling Cloudflare Tunnel."
+    return 1
+  }
+
+  log "Cloudflare Tunnel local health check passed."
+  return 0
+}
+
+if [[ "$healthy" -eq 1 ]]; then
+  log "Internal health check passed."
+
+  public_ok=0
+  public_probe_file="$(mktemp /tmp/mucho-public-health.XXXXXX)"
+
+  for _ in {1..3}; do
+    public_code="$(curl -4ksS --connect-timeout 3 --max-time 6 \
+      -o "$public_probe_file" \
+      -w '%{http_code}' \
+      "https://$DOMAIN/health" 2>/dev/null || true)"
+    public_body="$(cat "$public_probe_file" 2>/dev/null || true)"
+
+    if [[ "$public_body" == "1" ]]; then
+      public_ok=1
+      break
+    fi
+
+    sleep 2
+  done
+
+  rm -f "$public_probe_file"
+
+  if [[ "$public_ok" -eq 1 ]]; then
+    if [[ "$USE_TUNNEL" -eq 1 ]]; then
+      sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
+      log "Public health check passed through Cloudflare Tunnel."
+    else
+      sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=direct/' "$INSTALL_DIR/.env"
+      log "Public health check passed in direct mode."
+    fi
+  elif [[ "$TRANSPORT_MODE" == "auto" && "$USE_TUNNEL" -eq 0 ]]; then
+    info "Public HTTPS is unavailable (HTTP $public_code)."
+
+    # Automatic transport recovery is deterministic:
+    # 1) try the direct VPS origin (including fixing Cloudflare DNS when a
+    #    token is available), then
+    # 2) fall back to a Cloudflare Tunnel if Direct still cannot serve HTTPS.
+    if [[ -z "$CLOUDFLARE_API_TOKEN" && -z "$CLOUDFLARE_GLOBAL_API_KEY" && -e /dev/tty ]]; then
+      printf "\n${BOLD}  Cloudflare credentials (optional)${RESET}\n"
+      printf "  Needed only if MuchoCore must change Cloudflare DNS or create the NAT fallback Tunnel.\n"
+      printf "  Recommended: 1) API Token — safer and limited to this GDPS zone.\n"
+      printf "  Create API Token: https://dash.cloudflare.com/profile/api-tokens\n"
+      printf "  Official guide: https://developers.cloudflare.com/fundamentals/api/get-started/create-token/\n\n"
+      printf "  API Token — exact clicks for beginners:\n"
+      printf "    1. Open the Create API Token link above and sign in.\n"
+      printf "    2. Click Create Token.\n"
+      printf "    3. Choose Custom Token.\n"
+      printf "    4. Name it: MuchoCore Installer.\n"
+      printf "    5. Permissions: Account → Cloudflare Tunnel → Edit.\n"
+      printf "    6. Permissions: Zone → DNS → Edit.\n"
+      printf "    7. Permissions: Zone → Zone → Read.\n"
+      printf "    8. Account Resources: select only the account that owns this domain.\n"
+      printf "    9. Zone Resources: Include → Specific zone → the zone containing $DOMAIN.\n"
+      printf "   10. Click Continue to summary → Create Token.\n"
+      printf "   11. Copy the token shown on the next screen. It is shown only once.\n\n"
+      printf "  Legacy option: Global API Key (less secure, full user access).\n"
+      printf "  Official guide: https://developers.cloudflare.com/fundamentals/api/get-started/keys/\n"
+      printf "  Global Key steps: Cloudflare Dashboard → My Profile → API Tokens → API Keys →\n"
+      printf "    Global API Key → View. Also provide the email of that Cloudflare account.\n\n"
+      printf "  1) API Token (recommended)\n"
+      printf "  2) Global API Key (legacy)\n"
+      printf "  3) Skip\n\n"
+      cf_choice=""
+      read -r -p "  Select [1]: " cf_choice < /dev/tty || cf_choice=1
+      cf_choice="${cf_choice:-1}"
+      case "$cf_choice" in
+        1)
+          CLOUDFLARE_AUTH_MODE="token"
+          read -r -s -p "  Cloudflare API token: " CLOUDFLARE_API_TOKEN < /dev/tty
+          printf "\n"
+          ;;
+        2)
+          CLOUDFLARE_AUTH_MODE="global-key"
+          read -r -p "  Cloudflare account email: " CLOUDFLARE_EMAIL < /dev/tty
+          read -r -s -p "  Cloudflare Global API Key: " CLOUDFLARE_GLOBAL_API_KEY < /dev/tty
+          printf "\n"
+          ;;
+        3)
+          CLOUDFLARE_AUTH_MODE=""
+          ;;
+        *)
+          warn "Invalid Cloudflare credential selection; skipping Cloudflare API access."
+          CLOUDFLARE_AUTH_MODE=""
+          ;;
+      esac
+    fi
+
+    if [[ -n "$CLOUDFLARE_API_TOKEN" || -n "$CLOUDFLARE_GLOBAL_API_KEY" ]]; then
+      if MUCHO_CLOUDFLARE_AUTH_MODE="$CLOUDFLARE_AUTH_MODE" \
+          MUCHO_CLOUDFLARE_API_TOKEN="$CLOUDFLARE_API_TOKEN" \
+          MUCHO_CLOUDFLARE_EMAIL="$CLOUDFLARE_EMAIL" \
+          MUCHO_CLOUDFLARE_GLOBAL_API_KEY="$CLOUDFLARE_GLOBAL_API_KEY" \
+          MUCHO_DOMAIN="$DOMAIN" \
+          MUCHO_PUBLIC_IP="$PUBLIC_IP" \
+          MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+          bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct; then
+        log "Cloudflare DNS switched to the direct VPS origin."
+        info "Restarting Caddy after DNS change so HTTPS can be provisioned cleanly..."
+        run_compose restart caddy >/dev/null 2>&1 || true
+        info "Waiting for the public hostname to reach the VPS..."
+
+        public_ok=0
+        for _ in {1..45}; do
+          if curl -4ksSf --connect-timeout 3 --max-time 6 \
+            "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+            public_ok=1
+            break
+          fi
+          sleep 2
+        done
+      fi
+    fi
+
+    if [[ "$public_ok" -eq 1 ]]; then
+      sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=direct/' "$INSTALL_DIR/.env"
+      log "Public health check passed in direct mode."
+    elif [[ -n "$CLOUDFLARE_API_TOKEN" || -n "$CLOUDFLARE_GLOBAL_API_KEY" ]]; then
+      info "Direct origin is still unavailable. Falling back to Cloudflare Tunnel..."
+      if provision_cloudflare_tunnel; then
+        public_ok=0
+        for _ in {1..45}; do
+          if curl -4ksSf --connect-timeout 3 --max-time 6 \
+            "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+            public_ok=1
+            break
+          fi
+          sleep 2
+        done
+        [[ "$public_ok" -eq 1 ]] ||
+          fail "Cloudflare Tunnel was provisioned, but public HTTPS is still unhealthy. Run: sudo mucho doctor"
+        log "Public health check passed through Cloudflare Tunnel."
+      else
+        fail "Automatic transport setup failed: neither direct origin nor Cloudflare Tunnel became healthy. Run: sudo mucho doctor"
+      fi
+    else
+      fail "Public HTTPS is unavailable. For the default direct mode, point an A record for $DOMAIN to $PUBLIC_IP and allow inbound TCP 80/443, then run the installer again. Cloudflare Tunnel is optional: set MUCHO_TRANSPORT_MODE=tunnel only if direct inbound access is impossible."
+    fi
+  elif [[ "$TRANSPORT_MODE" == "direct" ]]; then
+    direct_origin_ok=0
+    if [[ -n "$PUBLIC_IP" ]] && curl -4ksSf --connect-timeout 3 --max-time 6 \
+      --resolve "$DOMAIN:443:$PUBLIC_IP" \
+      "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+      direct_origin_ok=1
+    fi
+
+    if [[ "$direct_origin_ok" -eq 1 ]]; then
+      fail "Direct VPS origin is healthy at $PUBLIC_IP:443, but $DOMAIN is not reaching that origin yet. DNS is still not converged. Ensure A $DOMAIN -> $PUBLIC_IP, remove conflicting AAAA/CNAME records, keep the DNS record DNS-only if using Cloudflare, then re-run the installer."
+    fi
+
+    fail "Direct transport was requested, but the public hostname is not healthy. Verify DNS and inbound 80/443 reach the VPS."
+  elif [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
+    fail "Cloudflare Tunnel transport was requested, but the public hostname is not healthy. Run: sudo mucho doctor"
+  fi
+else
+  warn "The internal MuchoCore healthcheck did not pass."
+  warn "Run: sudo mucho doctor"
+fi
+
+offer_database_migration() {
+  local choice=${MUCHO_MIGRATION_ON_INSTALL:-}
+
+  if [[ -z "$choice" ]]; then
+    if [[ ! -t 0 || ! -t 1 ]]; then
+      info "Migration prompt skipped because the installer is non-interactive."
+      info "You can run the Migration Center later from the admin panel or with: sudo ${INSTALL_DIR}/bin/mucho"
+      return 0
+    fi
+
+    printf '\n'
+    printf "${BOLD}  Do you want to migrate an existing GDPS database now?${RESET}\n"
+    printf "  ${CYAN}MuchoCore will run a read-only preflight and, before any import,\n"
+    printf "  create and verify a fresh backup of the new MuchoCore database.${RESET}\n\n"
+    printf "  ${CYAN}1${RESET}) No — finish installation\n"
+    printf "  ${CYAN}2${RESET}) Yes — open Migration Center\n\n"
+
+    read -r -p "  Select [1]: " choice < /dev/tty || choice="1"
+    choice="${choice:-1}"
+  fi
+
+  case "${choice,,}" in
+    1|no|n|false|0)
+      info "Database migration skipped. You can start it later from MuchoCore Admin → Tools → Migration Center."
+      return 0
+      ;;
+    2|yes|y|true)
+      [[ -f "$INSTALL_DIR/bin/mucho-migrate.php" ]] || {
+        warn "Migration Center is not included in this MuchoCore release."
+        warn "Finish installation first, then update MuchoCore to a release containing Migration Center."
+        return 0
+      }
+
+      printf '\n'
+      log "Opening MuchoCore Migration Center..."
+      info "The old database stays read-only."
+      info "Before import, MuchoCore will create and verify a fresh target backup."
+      info "If the backup cannot be verified, migration stops before any target write."
+
+      local confirm_args=()
+      if [[ -n "${MUCHO_MIGRATION_ON_INSTALL:-}" ]]; then
+        confirm_args+=(--confirm=MIGRATE)
+      fi
+
+      if ! run_compose exec app php bin/mucho-migrate.php --apply "${confirm_args[@]}"; then
+        warn "Database migration was not completed. MuchoCore itself is installed; the old database was not modified."
+        return 0
+      fi
+      ;;
+    *)
+      fail "Invalid migration choice. Use 1 (No) or 2 (Yes)."
+      ;;
+  esac
+}
+
+if [[ -n "$MUCHO_MIGRATION_ON_INSTALL" ]]; then
+  offer_database_migration
+else
+  info "Migration skipped. To import an existing GDPS later, use Admin → Tools → Migration Center or: sudo mucho migration"
+fi
+
+INSTALL_STEP="completed"
+cat <<EOFOUT
+
+MuchoCore is installed.
+
+Transport:  $(sed -n 's/^MUCHO_TRANSPORT_MODE=//p' "$INSTALL_DIR/.env" | head -n1)
+
+Compatibility profile:
+  GD_VERSIONS=$GD_VERSIONS
+
+GDPS:   https://$DOMAIN
+Admin:  https://$DOMAIN/admin/
+Health: https://$DOMAIN/health
+Path:   $INSTALL_DIR
+
+Admin username: $ADMIN_USER
+
+Update:
+  sudo $INSTALL_DIR/update.sh
+
+Operator:
+  sudo mucho
+  sudo mucho status
+  sudo mucho logs
+  sudo mucho doctor
+
+Logs:
+  sudo mucho logs --follow
+
+Migration:
+  sudo mucho migration
+
+EOFOUT
+\\n'* || "$first" == *
+
+printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
+printf '%s' "$MUCHO_DB_ROOT_PASSWORD" > "$INSTALL_DIR/.secrets/db_root_password"
+printf '%s' "$MUCHO_ADMIN_PASSWORD" > "$INSTALL_DIR/.secrets/admin_password"
+if [[ ! -f "$INSTALL_DIR/.secrets/cloudsave_key" && -f "$INSTALL_DIR/config/cloudsave.key" ]]; then
+  cp "$INSTALL_DIR/config/cloudsave.key" "$INSTALL_DIR/.secrets/cloudsave_key"
+  chmod 600 "$INSTALL_DIR/.secrets/cloudsave_key"
+fi
+
+if [[ -s "$INSTALL_DIR/.secrets/cloudsave_key" ]]; then
+  MUCHO_CLOUDSAVE_KEY="$(cat "$INSTALL_DIR/.secrets/cloudsave_key")"
+else
+  MUCHO_CLOUDSAVE_KEY="$(openssl rand -base64 32)"
+fi
+printf '%s\n' "$MUCHO_CLOUDSAVE_KEY" > "$INSTALL_DIR/.secrets/cloudsave_key"
+chmod 600 "$INSTALL_DIR/.secrets/"*
+
+for secret in \
+  "$INSTALL_DIR/.secrets/db_password" \
+  "$INSTALL_DIR/.secrets/db_root_password" \
+  "$INSTALL_DIR/.secrets/admin_password" \
+  "$INSTALL_DIR/.secrets/cloudsave_key"; do
+  [[ -s "$secret" ]] || fail "Required secret file is missing or empty: $secret"
+done
+
+if [[ -f "$INSTALL_DIR/.env" ]]; then
+  backup_file="$INSTALL_DIR/.env.backup.$(date +%Y%m%d-%H%M%S)"
+  cp "$INSTALL_DIR/.env" "$backup_file"
+  chmod 600 "$backup_file"
+  info "Backed up existing .env to $(basename "$backup_file")"
+fi
+
+normalize_caddy_address() {
+  if [[ "$USE_TUNNEL" -eq 1 ]]; then
+    printf ':80'
+    return
+  fi
+
+  local host="$DOMAIN"
+  host="${host#http://}"
+  host="${host#https://}"
+  host="${host%%/*}"
+
+  local root="$host"
+  if [[ "$host" == www.* ]]; then
+    root="${host#www.}"
+  fi
+
+  # Explicitly declare HTTP and HTTPS listeners in direct mode.
+  # The HTTP site keeps legacy Geometry Dash clients working on port 80 while
+  # the HTTPS site provides managed Let's Encrypt certificates on port 443.
+  printf 'http://%s http://www.%s %s www.%s' "$root" "$root" "$root" "$root"
+  if [[ -n "${CADDY_EXTRA_HOSTS:-}" ]]; then
+    for extra_host in $CADDY_EXTRA_HOSTS; do
+      printf ' http://%s %s' "$extra_host" "$extra_host"
+    done
+  fi
+}
+
+CADDY_ADDRESS_VALUE="$(normalize_caddy_address)"
+
+cat > "$INSTALL_DIR/.env" <<EOFENV
+DOMAIN=$DOMAIN
+CADDY_ADDRESS_VALUE="$CADDY_ADDRESS_VALUE"
+CADDY_ADDRESS="$CADDY_ADDRESS_VALUE"
+DB_NAME=$DB_NAME
+DB_USER=$DB_USER
+ADMIN_USER=$ADMIN_USER
+MUCHO_ACCOUNT_URL=https://$DOMAIN
+MUCHO_SERVER_NAME="$SERVER_NAME_ENV"
+MUCHO_CUSTOM_CONTENT_URL=$CUSTOM_CONTENT_URL
+TURNSTILE_SITEKEY=$TURNSTILE_SITEKEY
+TURNSTILE_SECRET=$TURNSTILE_SECRET
+MUCHO_ADMIN_BOOTSTRAP=/etc/muchocore-admin.php
+MUCHO_CONTROL_DIR=/var/lib/muchocore-control
+MUCHO_BACKUP_DIR=/var/lib/muchocore-backups
+TZ=UTC
+MUCHO_GD_VERSIONS=$GD_VERSIONS
+MUCHO_TRANSPORT_MODE=$TRANSPORT_MODE
+MUCHO_PUBLIC_IP=$PUBLIC_IP
+CADDY_EXTRA_HOSTS=$CADDY_EXTRA_HOSTS
+MUCHOCORE_SITE_HOST=disabled.invalid
+MUCHO_PROTECT_STORAGE=file
+MUCHO_TRUSTED_PROXY_CIDRS=
+MUCHO_AUTO_UPDATE=1
+MUCHO_AUTO_UPDATE_INTERVAL=15min
+EOFENV
+if [[ "$USE_TUNNEL" -eq 1 && -n "$TUNNEL_TOKEN" ]]; then
+  printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
+  printf '%s\n' "$TUNNEL_TOKEN" > "$INSTALL_DIR/.secrets/tunnel_token"
+  chmod 400 "$INSTALL_DIR/.secrets/tunnel_token"
+fi
+chmod 600 "$INSTALL_DIR/.env"
+
+if [[ -f "$INSTALL_DIR/bin/mucho-install-auto-update.sh" ]]; then
+  INSTALL_STEP="configuring automatic updates"
+  log "Configuring release-based automatic updates..."
+  bash "$INSTALL_DIR/bin/mucho-install-auto-update.sh"
+fi
+
+install -d -m 700 "$INSTALL_DIR/.muchocore"
+cat > "$INSTALL_DIR/.muchocore/profile.env" <<EOFPROFILE
+MUCHO_GD_VERSIONS=$GD_VERSIONS
+EOFPROFILE
+chmod 600 "$INSTALL_DIR/.muchocore/profile.env"
+
+[[ -f "$INSTALL_DIR/docker-compose.yml" && -r "$INSTALL_DIR/docker-compose.yml" ]] ||
+  fail "MuchoCore repository is missing a readable docker-compose.yml."
+[[ -f "$INSTALL_DIR/docker/Dockerfile" && -r "$INSTALL_DIR/docker/Dockerfile" ]] ||
+  fail "MuchoCore repository is missing a readable docker/Dockerfile."
+[[ -f "$INSTALL_DIR/docker/Caddyfile" && -r "$INSTALL_DIR/docker/Caddyfile" ]] ||
+  fail "MuchoCore repository is missing a readable docker/Caddyfile."
+info "Compose files verified: $INSTALL_DIR/docker-compose.yml";
+
+run_compose() {
+  # Always run Compose from the installation directory with explicit files.
+  # Avoid relying on inherited working directories or mutable shell arrays.
+  if [[ "$USE_TUNNEL" -eq 1 ]]; then
+    (
+      cd "$INSTALL_DIR"
+      MUCHO_TUNNEL_TOKEN="$TUNNEL_TOKEN" \
+        docker compose -f docker-compose.yml -f docker-compose.tunnel.yml "$@"
+    )
+  else
+    (
+      cd "$INSTALL_DIR"
+      docker compose -f docker-compose.yml "$@"
+    )
+  fi
+}
+
+
+if [[ "$USE_TUNNEL" -eq 0 && "$TRANSPORT_MODE" != "tunnel" && -n "$CLOUDFLARE_API_TOKEN" && -n "$PUBLIC_IP" ]]; then
+  INSTALL_STEP="configuring direct Cloudflare DNS"
+  log "Configuring Cloudflare DNS for direct origin $PUBLIC_IP..."
+  if ! MUCHO_CLOUDFLARE_API_TOKEN="$CLOUDFLARE_API_TOKEN" \
+      MUCHO_DOMAIN="$DOMAIN" \
+      MUCHO_PUBLIC_IP="$PUBLIC_IP" \
+      MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+      bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct; then
+    warn "Automatic direct DNS configuration failed. Continuing with the existing DNS configuration."
+  fi
+fi
+INSTALL_STEP="validating Docker Compose"
+log "Validating Docker Compose..."
+run_compose config -q
+
+if [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
+  if [[ -s "$INSTALL_DIR/.secrets/tunnel_token" && -z "$TUNNEL_TOKEN" ]]; then
+    TUNNEL_TOKEN="$(cat "$INSTALL_DIR/.secrets/tunnel_token")"
+  fi
+  if [[ -n "$TUNNEL_TOKEN" ]]; then
+    USE_TUNNEL=1
+    sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
+    sed -i 's/^CADDY_ADDRESS_VALUE=.*/CADDY_ADDRESS_VALUE=":80"/' "$INSTALL_DIR/.env"
+    sed -i 's/^CADDY_ADDRESS=.*/CADDY_ADDRESS=":80"/' "$INSTALL_DIR/.env"
+    if ! grep -q '^MUCHO_TUNNEL_TOKEN=' "$INSTALL_DIR/.env"; then
+      printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
+    fi
+  else
+    fail "MUCHO_TRANSPORT_MODE=tunnel requires an existing Tunnel runtime token. Use MUCHO_TRANSPORT_MODE=auto for automatic fallback."
+  fi
+fi
+INSTALL_STEP="starting production services"
+log "Starting MuchoCore..."
+if [[ "$USE_TUNNEL" -eq 1 ]]; then
+  log "Tunnel mode: no inbound ports will be opened; Cloudflare Tunnel provides ingress."
+fi
+run_compose up -d --build --remove-orphans
+
+log "Verifying running containers..."
+expected_services=(db app worker caddy)
+if [[ "$USE_TUNNEL" -eq 1 ]]; then
+  expected_services+=(cloudflared)
+fi
+for service in "${expected_services[@]}"; do
+  container_id="$(run_compose ps -q "$service" 2>/dev/null || true)"
+  [[ -n "$container_id" ]] || fail "Service '$service' was not created."
+  running="$(docker inspect -f '{{.State.Running}}' "$container_id" 2>/dev/null || true)"
+  [[ "$running" == "true" ]] || {
+    run_compose ps || true
+    run_compose logs --tail=80 "$service" || true
+    fail "Service '$service' is not running."
+  }
+done
+
+INSTALL_STEP="waiting for application dependencies"
+log "Waiting for Composer dependencies..."
+autoload_ready=0
+for _ in {1..60}; do
+  if run_compose exec -T app test -f vendor/autoload.php >/dev/null 2>&1; then
+    autoload_ready=1
+    break
+  fi
+  sleep 2
+done
+
+[[ "$autoload_ready" -eq 1 ]] || {
+  run_compose logs --tail=80 app || true
+  fail "Application dependencies were not ready after 120 seconds. Check: sudo mucho doctor"
+}
+
+INSTALL_STEP="running database migrations"
+log "Running database migrations..."
+run_compose exec -T app php bin/migrate.php migrate
+
+INSTALL_STEP="applying GDPS branding"
+log "Applying GDPS name: $SERVER_NAME"
+run_compose exec -T -e "MUCHO_INSTALL_SERVER_NAME=$SERVER_NAME" app php -r 'require "vendor/autoload.php"; $pdo=(new \MuchoCore\Database\Database())->connection(); (new \MuchoCore\Branding\BrandingService($pdo))->saveServerName((string)(getenv("MUCHO_INSTALL_SERVER_NAME") ?: "Mucho GDPS"));'
+
+INSTALL_STEP="running the internal healthcheck"
+log "Running internal MuchoCore healthcheck..."
+run_compose exec -T app php bin/mucho-healthcheck.php
+
+
+INSTALL_STEP="checking public health"
+log "Checking server health..."
+
+# The internal PHP healthcheck above is the authoritative origin-health test.
+# Do not probe Caddy locally here: in direct mode Caddy may still be waiting
+# for an ACME certificate, which can fail independently of the application.
+healthy=1
+public_code=""
+
+provision_cloudflare_tunnel() {
+  local api_token="$CLOUDFLARE_API_TOKEN"
+  local auth_mode="$CLOUDFLARE_AUTH_MODE"
+
+  [[ -n "$api_token" || -n "$CLOUDFLARE_GLOBAL_API_KEY" ]] || return 1
+
+  INSTALL_STEP="configuring Cloudflare automatically"
+  log "Configuring Cloudflare automatically..."
+  if ! MUCHO_CLOUDFLARE_AUTH_MODE="$auth_mode" \
+      MUCHO_CLOUDFLARE_API_TOKEN="$api_token" \
+      MUCHO_CLOUDFLARE_EMAIL="$CLOUDFLARE_EMAIL" \
+      MUCHO_CLOUDFLARE_GLOBAL_API_KEY="$CLOUDFLARE_GLOBAL_API_KEY" \
+      MUCHO_DOMAIN="$DOMAIN" \
+      MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+      bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh"; then
+    warn "Automatic Cloudflare setup failed."
+    return 1
+  fi
+
+  TUNNEL_TOKEN="$(cat "$INSTALL_DIR/.secrets/tunnel_token")"
+  [[ -n "$TUNNEL_TOKEN" ]] || {
+    warn "Cloudflare setup completed without a Tunnel runtime token."
+    return 1
+  }
+
+  USE_TUNNEL=1
+  sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
+  sed -i 's/^CADDY_ADDRESS_VALUE=.*/CADDY_ADDRESS_VALUE=":80"/' "$INSTALL_DIR/.env"
+  sed -i 's/^CADDY_ADDRESS=.*/CADDY_ADDRESS=":80"/' "$INSTALL_DIR/.env"
+  if [[ " ${expected_services[*]} " != *" cloudflared "* ]]; then
+    expected_services+=(cloudflared)
+  fi
+
+  INSTALL_STEP="starting Cloudflare Tunnel"
+  log "Starting Cloudflare Tunnel..."
+  run_compose up -d --remove-orphans
+
+  local tunnel_healthy=0
+  for _ in {1..20}; do
+    if curl -4fsS --connect-timeout 2 --max-time 3 "http://127.0.0.1/health" 2>/dev/null | grep -qx "1"; then
+      tunnel_healthy=1
+      break
+    fi
+    sleep 2
+  done
+  [[ "$tunnel_healthy" -eq 1 ]] || {
+    warn "MuchoCore is not healthy locally after enabling Cloudflare Tunnel."
+    return 1
+  }
+
+  log "Cloudflare Tunnel local health check passed."
+  return 0
+}
+
+if [[ "$healthy" -eq 1 ]]; then
+  log "Internal health check passed."
+
+  public_ok=0
+  public_probe_file="$(mktemp /tmp/mucho-public-health.XXXXXX)"
+
+  for _ in {1..3}; do
+    public_code="$(curl -4ksS --connect-timeout 3 --max-time 6 \
+      -o "$public_probe_file" \
+      -w '%{http_code}' \
+      "https://$DOMAIN/health" 2>/dev/null || true)"
+    public_body="$(cat "$public_probe_file" 2>/dev/null || true)"
+
+    if [[ "$public_body" == "1" ]]; then
+      public_ok=1
+      break
+    fi
+
+    sleep 2
+  done
+
+  rm -f "$public_probe_file"
+
+  if [[ "$public_ok" -eq 1 ]]; then
+    if [[ "$USE_TUNNEL" -eq 1 ]]; then
+      sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
+      log "Public health check passed through Cloudflare Tunnel."
+    else
+      sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=direct/' "$INSTALL_DIR/.env"
+      log "Public health check passed in direct mode."
+    fi
+  elif [[ "$TRANSPORT_MODE" == "auto" && "$USE_TUNNEL" -eq 0 ]]; then
+    info "Public HTTPS is unavailable (HTTP $public_code)."
+
+    # Automatic transport recovery is deterministic:
+    # 1) try the direct VPS origin (including fixing Cloudflare DNS when a
+    #    token is available), then
+    # 2) fall back to a Cloudflare Tunnel if Direct still cannot serve HTTPS.
+    if [[ -z "$CLOUDFLARE_API_TOKEN" && -z "$CLOUDFLARE_GLOBAL_API_KEY" && -e /dev/tty ]]; then
+      printf "\n${BOLD}  Cloudflare credentials (optional)${RESET}\n"
+      printf "  Needed only if MuchoCore must change Cloudflare DNS or create the NAT fallback Tunnel.\n"
+      printf "  Recommended: 1) API Token — safer and limited to this GDPS zone.\n"
+      printf "  Create API Token: https://dash.cloudflare.com/profile/api-tokens\n"
+      printf "  Official guide: https://developers.cloudflare.com/fundamentals/api/get-started/create-token/\n\n"
+      printf "  API Token — exact clicks for beginners:\n"
+      printf "    1. Open the Create API Token link above and sign in.\n"
+      printf "    2. Click Create Token.\n"
+      printf "    3. Choose Custom Token.\n"
+      printf "    4. Name it: MuchoCore Installer.\n"
+      printf "    5. Permissions: Account → Cloudflare Tunnel → Edit.\n"
+      printf "    6. Permissions: Zone → DNS → Edit.\n"
+      printf "    7. Permissions: Zone → Zone → Read.\n"
+      printf "    8. Account Resources: select only the account that owns this domain.\n"
+      printf "    9. Zone Resources: Include → Specific zone → the zone containing $DOMAIN.\n"
+      printf "   10. Click Continue to summary → Create Token.\n"
+      printf "   11. Copy the token shown on the next screen. It is shown only once.\n\n"
+      printf "  Legacy option: Global API Key (less secure, full user access).\n"
+      printf "  Official guide: https://developers.cloudflare.com/fundamentals/api/get-started/keys/\n"
+      printf "  Global Key steps: Cloudflare Dashboard → My Profile → API Tokens → API Keys →\n"
+      printf "    Global API Key → View. Also provide the email of that Cloudflare account.\n\n"
+      printf "  1) API Token (recommended)\n"
+      printf "  2) Global API Key (legacy)\n"
+      printf "  3) Skip\n\n"
+      cf_choice=""
+      read -r -p "  Select [1]: " cf_choice < /dev/tty || cf_choice=1
+      cf_choice="${cf_choice:-1}"
+      case "$cf_choice" in
+        1)
+          CLOUDFLARE_AUTH_MODE="token"
+          read -r -s -p "  Cloudflare API token: " CLOUDFLARE_API_TOKEN < /dev/tty
+          printf "\n"
+          ;;
+        2)
+          CLOUDFLARE_AUTH_MODE="global-key"
+          read -r -p "  Cloudflare account email: " CLOUDFLARE_EMAIL < /dev/tty
+          read -r -s -p "  Cloudflare Global API Key: " CLOUDFLARE_GLOBAL_API_KEY < /dev/tty
+          printf "\n"
+          ;;
+        3)
+          CLOUDFLARE_AUTH_MODE=""
+          ;;
+        *)
+          warn "Invalid Cloudflare credential selection; skipping Cloudflare API access."
+          CLOUDFLARE_AUTH_MODE=""
+          ;;
+      esac
+    fi
+
+    if [[ -n "$CLOUDFLARE_API_TOKEN" || -n "$CLOUDFLARE_GLOBAL_API_KEY" ]]; then
+      if MUCHO_CLOUDFLARE_AUTH_MODE="$CLOUDFLARE_AUTH_MODE" \
+          MUCHO_CLOUDFLARE_API_TOKEN="$CLOUDFLARE_API_TOKEN" \
+          MUCHO_CLOUDFLARE_EMAIL="$CLOUDFLARE_EMAIL" \
+          MUCHO_CLOUDFLARE_GLOBAL_API_KEY="$CLOUDFLARE_GLOBAL_API_KEY" \
+          MUCHO_DOMAIN="$DOMAIN" \
+          MUCHO_PUBLIC_IP="$PUBLIC_IP" \
+          MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+          bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct; then
+        log "Cloudflare DNS switched to the direct VPS origin."
+        info "Restarting Caddy after DNS change so HTTPS can be provisioned cleanly..."
+        run_compose restart caddy >/dev/null 2>&1 || true
+        info "Waiting for the public hostname to reach the VPS..."
+
+        public_ok=0
+        for _ in {1..45}; do
+          if curl -4ksSf --connect-timeout 3 --max-time 6 \
+            "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+            public_ok=1
+            break
+          fi
+          sleep 2
+        done
+      fi
+    fi
+
+    if [[ "$public_ok" -eq 1 ]]; then
+      sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=direct/' "$INSTALL_DIR/.env"
+      log "Public health check passed in direct mode."
+    elif [[ -n "$CLOUDFLARE_API_TOKEN" || -n "$CLOUDFLARE_GLOBAL_API_KEY" ]]; then
+      info "Direct origin is still unavailable. Falling back to Cloudflare Tunnel..."
+      if provision_cloudflare_tunnel; then
+        public_ok=0
+        for _ in {1..45}; do
+          if curl -4ksSf --connect-timeout 3 --max-time 6 \
+            "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+            public_ok=1
+            break
+          fi
+          sleep 2
+        done
+        [[ "$public_ok" -eq 1 ]] ||
+          fail "Cloudflare Tunnel was provisioned, but public HTTPS is still unhealthy. Run: sudo mucho doctor"
+        log "Public health check passed through Cloudflare Tunnel."
+      else
+        fail "Automatic transport setup failed: neither direct origin nor Cloudflare Tunnel became healthy. Run: sudo mucho doctor"
+      fi
+    else
+      fail "Public HTTPS is unavailable. For the default direct mode, point an A record for $DOMAIN to $PUBLIC_IP and allow inbound TCP 80/443, then run the installer again. Cloudflare Tunnel is optional: set MUCHO_TRANSPORT_MODE=tunnel only if direct inbound access is impossible."
+    fi
+  elif [[ "$TRANSPORT_MODE" == "direct" ]]; then
+    direct_origin_ok=0
+    if [[ -n "$PUBLIC_IP" ]] && curl -4ksSf --connect-timeout 3 --max-time 6 \
+      --resolve "$DOMAIN:443:$PUBLIC_IP" \
+      "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+      direct_origin_ok=1
+    fi
+
+    if [[ "$direct_origin_ok" -eq 1 ]]; then
+      fail "Direct VPS origin is healthy at $PUBLIC_IP:443, but $DOMAIN is not reaching that origin yet. DNS is still not converged. Ensure A $DOMAIN -> $PUBLIC_IP, remove conflicting AAAA/CNAME records, keep the DNS record DNS-only if using Cloudflare, then re-run the installer."
+    fi
+
+    fail "Direct transport was requested, but the public hostname is not healthy. Verify DNS and inbound 80/443 reach the VPS."
+  elif [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
+    fail "Cloudflare Tunnel transport was requested, but the public hostname is not healthy. Run: sudo mucho doctor"
+  fi
+else
+  warn "The internal MuchoCore healthcheck did not pass."
+  warn "Run: sudo mucho doctor"
+fi
+
+offer_database_migration() {
+  local choice=${MUCHO_MIGRATION_ON_INSTALL:-}
+
+  if [[ -z "$choice" ]]; then
+    if [[ ! -t 0 || ! -t 1 ]]; then
+      info "Migration prompt skipped because the installer is non-interactive."
+      info "You can run the Migration Center later from the admin panel or with: sudo ${INSTALL_DIR}/bin/mucho"
+      return 0
+    fi
+
+    printf '\n'
+    printf "${BOLD}  Do you want to migrate an existing GDPS database now?${RESET}\n"
+    printf "  ${CYAN}MuchoCore will run a read-only preflight and, before any import,\n"
+    printf "  create and verify a fresh backup of the new MuchoCore database.${RESET}\n\n"
+    printf "  ${CYAN}1${RESET}) No — finish installation\n"
+    printf "  ${CYAN}2${RESET}) Yes — open Migration Center\n\n"
+
+    read -r -p "  Select [1]: " choice < /dev/tty || choice="1"
+    choice="${choice:-1}"
+  fi
+
+  case "${choice,,}" in
+    1|no|n|false|0)
+      info "Database migration skipped. You can start it later from MuchoCore Admin → Tools → Migration Center."
+      return 0
+      ;;
+    2|yes|y|true)
+      [[ -f "$INSTALL_DIR/bin/mucho-migrate.php" ]] || {
+        warn "Migration Center is not included in this MuchoCore release."
+        warn "Finish installation first, then update MuchoCore to a release containing Migration Center."
+        return 0
+      }
+
+      printf '\n'
+      log "Opening MuchoCore Migration Center..."
+      info "The old database stays read-only."
+      info "Before import, MuchoCore will create and verify a fresh target backup."
+      info "If the backup cannot be verified, migration stops before any target write."
+
+      local confirm_args=()
+      if [[ -n "${MUCHO_MIGRATION_ON_INSTALL:-}" ]]; then
+        confirm_args+=(--confirm=MIGRATE)
+      fi
+
+      if ! run_compose exec app php bin/mucho-migrate.php --apply "${confirm_args[@]}"; then
+        warn "Database migration was not completed. MuchoCore itself is installed; the old database was not modified."
+        return 0
+      fi
+      ;;
+    *)
+      fail "Invalid migration choice. Use 1 (No) or 2 (Yes)."
+      ;;
+  esac
+}
+
+if [[ -n "$MUCHO_MIGRATION_ON_INSTALL" ]]; then
+  offer_database_migration
+else
+  info "Migration skipped. To import an existing GDPS later, use Admin → Tools → Migration Center or: sudo mucho migration"
+fi
+
+INSTALL_STEP="completed"
+cat <<EOFOUT
+
+MuchoCore is installed.
+
+Transport:  $(sed -n 's/^MUCHO_TRANSPORT_MODE=//p' "$INSTALL_DIR/.env" | head -n1)
+
+Compatibility profile:
+  GD_VERSIONS=$GD_VERSIONS
+
+GDPS:   https://$DOMAIN
+Admin:  https://$DOMAIN/admin/
+Health: https://$DOMAIN/health
+Path:   $INSTALL_DIR
+
+Admin username: $ADMIN_USER
+
+Update:
+  sudo $INSTALL_DIR/update.sh
+
+Operator:
+  sudo mucho
+  sudo mucho status
+  sudo mucho logs
+  sudo mucho doctor
+
+Logs:
+  sudo mucho logs --follow
+
+Migration:
+  sudo mucho migration
+
+EOFOUT
+\\r'* ]]; then
+      warn "Admin password cannot contain line breaks."
+      continue
+    fi
+
+    MUCHO_ADMIN_PASSWORD="$first"
+    return 0
+  done
+
+  fail "Could not set a valid admin password after 3 attempts."
+}
+
 if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then
-  MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
+  if [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
+    MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
+    if [[ -r /dev/tty && -w /dev/tty && ( -t 1 || -t 2 ) ]]; then
+      printf "  Existing admin password found for %s.\\n" "$ADMIN_USER"
+      read -r -p "  Keep the existing password? [Y/n] " keep_admin_password < /dev/tty
+      case "$keep_admin_password" in
+        n|N|no|NO)
+          log "Choose a new admin password."
+          prompt_admin_password
+          ;;
+        *)
+          info "Keeping the existing admin password."
+          ;;
+      esac
+    fi
+  fi
 elif [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
   log "Admin panel username: $ADMIN_USER"
-  printf "  Create the initial admin password. It is stored locally as a protected secret.\n"
-  read -r -s -p "  Admin password: " MUCHO_ADMIN_PASSWORD < /dev/tty
-  printf '\n'
+  printf "  Create the initial admin password. It is stored locally as a protected secret.\\n"
+  prompt_admin_password
 fi
+
 [[ -n "$MUCHO_ADMIN_PASSWORD" ]] || fail "Admin password cannot be empty."
+[[ "${#MUCHO_ADMIN_PASSWORD}" -ge 10 ]] || fail "Admin password must contain at least 10 characters."
+[[ "$MUCHO_ADMIN_PASSWORD" != *
+
+printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
+printf '%s' "$MUCHO_DB_ROOT_PASSWORD" > "$INSTALL_DIR/.secrets/db_root_password"
+printf '%s' "$MUCHO_ADMIN_PASSWORD" > "$INSTALL_DIR/.secrets/admin_password"
+if [[ ! -f "$INSTALL_DIR/.secrets/cloudsave_key" && -f "$INSTALL_DIR/config/cloudsave.key" ]]; then
+  cp "$INSTALL_DIR/config/cloudsave.key" "$INSTALL_DIR/.secrets/cloudsave_key"
+  chmod 600 "$INSTALL_DIR/.secrets/cloudsave_key"
+fi
+
+if [[ -s "$INSTALL_DIR/.secrets/cloudsave_key" ]]; then
+  MUCHO_CLOUDSAVE_KEY="$(cat "$INSTALL_DIR/.secrets/cloudsave_key")"
+else
+  MUCHO_CLOUDSAVE_KEY="$(openssl rand -base64 32)"
+fi
+printf '%s\n' "$MUCHO_CLOUDSAVE_KEY" > "$INSTALL_DIR/.secrets/cloudsave_key"
+chmod 600 "$INSTALL_DIR/.secrets/"*
+
+for secret in \
+  "$INSTALL_DIR/.secrets/db_password" \
+  "$INSTALL_DIR/.secrets/db_root_password" \
+  "$INSTALL_DIR/.secrets/admin_password" \
+  "$INSTALL_DIR/.secrets/cloudsave_key"; do
+  [[ -s "$secret" ]] || fail "Required secret file is missing or empty: $secret"
+done
+
+if [[ -f "$INSTALL_DIR/.env" ]]; then
+  backup_file="$INSTALL_DIR/.env.backup.$(date +%Y%m%d-%H%M%S)"
+  cp "$INSTALL_DIR/.env" "$backup_file"
+  chmod 600 "$backup_file"
+  info "Backed up existing .env to $(basename "$backup_file")"
+fi
+
+normalize_caddy_address() {
+  if [[ "$USE_TUNNEL" -eq 1 ]]; then
+    printf ':80'
+    return
+  fi
+
+  local host="$DOMAIN"
+  host="${host#http://}"
+  host="${host#https://}"
+  host="${host%%/*}"
+
+  local root="$host"
+  if [[ "$host" == www.* ]]; then
+    root="${host#www.}"
+  fi
+
+  # Explicitly declare HTTP and HTTPS listeners in direct mode.
+  # The HTTP site keeps legacy Geometry Dash clients working on port 80 while
+  # the HTTPS site provides managed Let's Encrypt certificates on port 443.
+  printf 'http://%s http://www.%s %s www.%s' "$root" "$root" "$root" "$root"
+  if [[ -n "${CADDY_EXTRA_HOSTS:-}" ]]; then
+    for extra_host in $CADDY_EXTRA_HOSTS; do
+      printf ' http://%s %s' "$extra_host" "$extra_host"
+    done
+  fi
+}
+
+CADDY_ADDRESS_VALUE="$(normalize_caddy_address)"
+
+cat > "$INSTALL_DIR/.env" <<EOFENV
+DOMAIN=$DOMAIN
+CADDY_ADDRESS_VALUE="$CADDY_ADDRESS_VALUE"
+CADDY_ADDRESS="$CADDY_ADDRESS_VALUE"
+DB_NAME=$DB_NAME
+DB_USER=$DB_USER
+ADMIN_USER=$ADMIN_USER
+MUCHO_ACCOUNT_URL=https://$DOMAIN
+MUCHO_SERVER_NAME="$SERVER_NAME_ENV"
+MUCHO_CUSTOM_CONTENT_URL=$CUSTOM_CONTENT_URL
+TURNSTILE_SITEKEY=$TURNSTILE_SITEKEY
+TURNSTILE_SECRET=$TURNSTILE_SECRET
+MUCHO_ADMIN_BOOTSTRAP=/etc/muchocore-admin.php
+MUCHO_CONTROL_DIR=/var/lib/muchocore-control
+MUCHO_BACKUP_DIR=/var/lib/muchocore-backups
+TZ=UTC
+MUCHO_GD_VERSIONS=$GD_VERSIONS
+MUCHO_TRANSPORT_MODE=$TRANSPORT_MODE
+MUCHO_PUBLIC_IP=$PUBLIC_IP
+CADDY_EXTRA_HOSTS=$CADDY_EXTRA_HOSTS
+MUCHOCORE_SITE_HOST=disabled.invalid
+MUCHO_PROTECT_STORAGE=file
+MUCHO_TRUSTED_PROXY_CIDRS=
+MUCHO_AUTO_UPDATE=1
+MUCHO_AUTO_UPDATE_INTERVAL=15min
+EOFENV
+if [[ "$USE_TUNNEL" -eq 1 && -n "$TUNNEL_TOKEN" ]]; then
+  printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
+  printf '%s\n' "$TUNNEL_TOKEN" > "$INSTALL_DIR/.secrets/tunnel_token"
+  chmod 400 "$INSTALL_DIR/.secrets/tunnel_token"
+fi
+chmod 600 "$INSTALL_DIR/.env"
+
+if [[ -f "$INSTALL_DIR/bin/mucho-install-auto-update.sh" ]]; then
+  INSTALL_STEP="configuring automatic updates"
+  log "Configuring release-based automatic updates..."
+  bash "$INSTALL_DIR/bin/mucho-install-auto-update.sh"
+fi
+
+install -d -m 700 "$INSTALL_DIR/.muchocore"
+cat > "$INSTALL_DIR/.muchocore/profile.env" <<EOFPROFILE
+MUCHO_GD_VERSIONS=$GD_VERSIONS
+EOFPROFILE
+chmod 600 "$INSTALL_DIR/.muchocore/profile.env"
+
+[[ -f "$INSTALL_DIR/docker-compose.yml" && -r "$INSTALL_DIR/docker-compose.yml" ]] ||
+  fail "MuchoCore repository is missing a readable docker-compose.yml."
+[[ -f "$INSTALL_DIR/docker/Dockerfile" && -r "$INSTALL_DIR/docker/Dockerfile" ]] ||
+  fail "MuchoCore repository is missing a readable docker/Dockerfile."
+[[ -f "$INSTALL_DIR/docker/Caddyfile" && -r "$INSTALL_DIR/docker/Caddyfile" ]] ||
+  fail "MuchoCore repository is missing a readable docker/Caddyfile."
+info "Compose files verified: $INSTALL_DIR/docker-compose.yml";
+
+run_compose() {
+  # Always run Compose from the installation directory with explicit files.
+  # Avoid relying on inherited working directories or mutable shell arrays.
+  if [[ "$USE_TUNNEL" -eq 1 ]]; then
+    (
+      cd "$INSTALL_DIR"
+      MUCHO_TUNNEL_TOKEN="$TUNNEL_TOKEN" \
+        docker compose -f docker-compose.yml -f docker-compose.tunnel.yml "$@"
+    )
+  else
+    (
+      cd "$INSTALL_DIR"
+      docker compose -f docker-compose.yml "$@"
+    )
+  fi
+}
+
+
+if [[ "$USE_TUNNEL" -eq 0 && "$TRANSPORT_MODE" != "tunnel" && -n "$CLOUDFLARE_API_TOKEN" && -n "$PUBLIC_IP" ]]; then
+  INSTALL_STEP="configuring direct Cloudflare DNS"
+  log "Configuring Cloudflare DNS for direct origin $PUBLIC_IP..."
+  if ! MUCHO_CLOUDFLARE_API_TOKEN="$CLOUDFLARE_API_TOKEN" \
+      MUCHO_DOMAIN="$DOMAIN" \
+      MUCHO_PUBLIC_IP="$PUBLIC_IP" \
+      MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+      bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct; then
+    warn "Automatic direct DNS configuration failed. Continuing with the existing DNS configuration."
+  fi
+fi
+INSTALL_STEP="validating Docker Compose"
+log "Validating Docker Compose..."
+run_compose config -q
+
+if [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
+  if [[ -s "$INSTALL_DIR/.secrets/tunnel_token" && -z "$TUNNEL_TOKEN" ]]; then
+    TUNNEL_TOKEN="$(cat "$INSTALL_DIR/.secrets/tunnel_token")"
+  fi
+  if [[ -n "$TUNNEL_TOKEN" ]]; then
+    USE_TUNNEL=1
+    sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
+    sed -i 's/^CADDY_ADDRESS_VALUE=.*/CADDY_ADDRESS_VALUE=":80"/' "$INSTALL_DIR/.env"
+    sed -i 's/^CADDY_ADDRESS=.*/CADDY_ADDRESS=":80"/' "$INSTALL_DIR/.env"
+    if ! grep -q '^MUCHO_TUNNEL_TOKEN=' "$INSTALL_DIR/.env"; then
+      printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
+    fi
+  else
+    fail "MUCHO_TRANSPORT_MODE=tunnel requires an existing Tunnel runtime token. Use MUCHO_TRANSPORT_MODE=auto for automatic fallback."
+  fi
+fi
+INSTALL_STEP="starting production services"
+log "Starting MuchoCore..."
+if [[ "$USE_TUNNEL" -eq 1 ]]; then
+  log "Tunnel mode: no inbound ports will be opened; Cloudflare Tunnel provides ingress."
+fi
+run_compose up -d --build --remove-orphans
+
+log "Verifying running containers..."
+expected_services=(db app worker caddy)
+if [[ "$USE_TUNNEL" -eq 1 ]]; then
+  expected_services+=(cloudflared)
+fi
+for service in "${expected_services[@]}"; do
+  container_id="$(run_compose ps -q "$service" 2>/dev/null || true)"
+  [[ -n "$container_id" ]] || fail "Service '$service' was not created."
+  running="$(docker inspect -f '{{.State.Running}}' "$container_id" 2>/dev/null || true)"
+  [[ "$running" == "true" ]] || {
+    run_compose ps || true
+    run_compose logs --tail=80 "$service" || true
+    fail "Service '$service' is not running."
+  }
+done
+
+INSTALL_STEP="waiting for application dependencies"
+log "Waiting for Composer dependencies..."
+autoload_ready=0
+for _ in {1..60}; do
+  if run_compose exec -T app test -f vendor/autoload.php >/dev/null 2>&1; then
+    autoload_ready=1
+    break
+  fi
+  sleep 2
+done
+
+[[ "$autoload_ready" -eq 1 ]] || {
+  run_compose logs --tail=80 app || true
+  fail "Application dependencies were not ready after 120 seconds. Check: sudo mucho doctor"
+}
+
+INSTALL_STEP="running database migrations"
+log "Running database migrations..."
+run_compose exec -T app php bin/migrate.php migrate
+
+INSTALL_STEP="applying GDPS branding"
+log "Applying GDPS name: $SERVER_NAME"
+run_compose exec -T -e "MUCHO_INSTALL_SERVER_NAME=$SERVER_NAME" app php -r 'require "vendor/autoload.php"; $pdo=(new \MuchoCore\Database\Database())->connection(); (new \MuchoCore\Branding\BrandingService($pdo))->saveServerName((string)(getenv("MUCHO_INSTALL_SERVER_NAME") ?: "Mucho GDPS"));'
+
+INSTALL_STEP="running the internal healthcheck"
+log "Running internal MuchoCore healthcheck..."
+run_compose exec -T app php bin/mucho-healthcheck.php
+
+
+INSTALL_STEP="checking public health"
+log "Checking server health..."
+
+# The internal PHP healthcheck above is the authoritative origin-health test.
+# Do not probe Caddy locally here: in direct mode Caddy may still be waiting
+# for an ACME certificate, which can fail independently of the application.
+healthy=1
+public_code=""
+
+provision_cloudflare_tunnel() {
+  local api_token="$CLOUDFLARE_API_TOKEN"
+  local auth_mode="$CLOUDFLARE_AUTH_MODE"
+
+  [[ -n "$api_token" || -n "$CLOUDFLARE_GLOBAL_API_KEY" ]] || return 1
+
+  INSTALL_STEP="configuring Cloudflare automatically"
+  log "Configuring Cloudflare automatically..."
+  if ! MUCHO_CLOUDFLARE_AUTH_MODE="$auth_mode" \
+      MUCHO_CLOUDFLARE_API_TOKEN="$api_token" \
+      MUCHO_CLOUDFLARE_EMAIL="$CLOUDFLARE_EMAIL" \
+      MUCHO_CLOUDFLARE_GLOBAL_API_KEY="$CLOUDFLARE_GLOBAL_API_KEY" \
+      MUCHO_DOMAIN="$DOMAIN" \
+      MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+      bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh"; then
+    warn "Automatic Cloudflare setup failed."
+    return 1
+  fi
+
+  TUNNEL_TOKEN="$(cat "$INSTALL_DIR/.secrets/tunnel_token")"
+  [[ -n "$TUNNEL_TOKEN" ]] || {
+    warn "Cloudflare setup completed without a Tunnel runtime token."
+    return 1
+  }
+
+  USE_TUNNEL=1
+  sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
+  sed -i 's/^CADDY_ADDRESS_VALUE=.*/CADDY_ADDRESS_VALUE=":80"/' "$INSTALL_DIR/.env"
+  sed -i 's/^CADDY_ADDRESS=.*/CADDY_ADDRESS=":80"/' "$INSTALL_DIR/.env"
+  if [[ " ${expected_services[*]} " != *" cloudflared "* ]]; then
+    expected_services+=(cloudflared)
+  fi
+
+  INSTALL_STEP="starting Cloudflare Tunnel"
+  log "Starting Cloudflare Tunnel..."
+  run_compose up -d --remove-orphans
+
+  local tunnel_healthy=0
+  for _ in {1..20}; do
+    if curl -4fsS --connect-timeout 2 --max-time 3 "http://127.0.0.1/health" 2>/dev/null | grep -qx "1"; then
+      tunnel_healthy=1
+      break
+    fi
+    sleep 2
+  done
+  [[ "$tunnel_healthy" -eq 1 ]] || {
+    warn "MuchoCore is not healthy locally after enabling Cloudflare Tunnel."
+    return 1
+  }
+
+  log "Cloudflare Tunnel local health check passed."
+  return 0
+}
+
+if [[ "$healthy" -eq 1 ]]; then
+  log "Internal health check passed."
+
+  public_ok=0
+  public_probe_file="$(mktemp /tmp/mucho-public-health.XXXXXX)"
+
+  for _ in {1..3}; do
+    public_code="$(curl -4ksS --connect-timeout 3 --max-time 6 \
+      -o "$public_probe_file" \
+      -w '%{http_code}' \
+      "https://$DOMAIN/health" 2>/dev/null || true)"
+    public_body="$(cat "$public_probe_file" 2>/dev/null || true)"
+
+    if [[ "$public_body" == "1" ]]; then
+      public_ok=1
+      break
+    fi
+
+    sleep 2
+  done
+
+  rm -f "$public_probe_file"
+
+  if [[ "$public_ok" -eq 1 ]]; then
+    if [[ "$USE_TUNNEL" -eq 1 ]]; then
+      sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
+      log "Public health check passed through Cloudflare Tunnel."
+    else
+      sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=direct/' "$INSTALL_DIR/.env"
+      log "Public health check passed in direct mode."
+    fi
+  elif [[ "$TRANSPORT_MODE" == "auto" && "$USE_TUNNEL" -eq 0 ]]; then
+    info "Public HTTPS is unavailable (HTTP $public_code)."
+
+    # Automatic transport recovery is deterministic:
+    # 1) try the direct VPS origin (including fixing Cloudflare DNS when a
+    #    token is available), then
+    # 2) fall back to a Cloudflare Tunnel if Direct still cannot serve HTTPS.
+    if [[ -z "$CLOUDFLARE_API_TOKEN" && -z "$CLOUDFLARE_GLOBAL_API_KEY" && -e /dev/tty ]]; then
+      printf "\n${BOLD}  Cloudflare credentials (optional)${RESET}\n"
+      printf "  Needed only if MuchoCore must change Cloudflare DNS or create the NAT fallback Tunnel.\n"
+      printf "  Recommended: 1) API Token — safer and limited to this GDPS zone.\n"
+      printf "  Create API Token: https://dash.cloudflare.com/profile/api-tokens\n"
+      printf "  Official guide: https://developers.cloudflare.com/fundamentals/api/get-started/create-token/\n\n"
+      printf "  API Token — exact clicks for beginners:\n"
+      printf "    1. Open the Create API Token link above and sign in.\n"
+      printf "    2. Click Create Token.\n"
+      printf "    3. Choose Custom Token.\n"
+      printf "    4. Name it: MuchoCore Installer.\n"
+      printf "    5. Permissions: Account → Cloudflare Tunnel → Edit.\n"
+      printf "    6. Permissions: Zone → DNS → Edit.\n"
+      printf "    7. Permissions: Zone → Zone → Read.\n"
+      printf "    8. Account Resources: select only the account that owns this domain.\n"
+      printf "    9. Zone Resources: Include → Specific zone → the zone containing $DOMAIN.\n"
+      printf "   10. Click Continue to summary → Create Token.\n"
+      printf "   11. Copy the token shown on the next screen. It is shown only once.\n\n"
+      printf "  Legacy option: Global API Key (less secure, full user access).\n"
+      printf "  Official guide: https://developers.cloudflare.com/fundamentals/api/get-started/keys/\n"
+      printf "  Global Key steps: Cloudflare Dashboard → My Profile → API Tokens → API Keys →\n"
+      printf "    Global API Key → View. Also provide the email of that Cloudflare account.\n\n"
+      printf "  1) API Token (recommended)\n"
+      printf "  2) Global API Key (legacy)\n"
+      printf "  3) Skip\n\n"
+      cf_choice=""
+      read -r -p "  Select [1]: " cf_choice < /dev/tty || cf_choice=1
+      cf_choice="${cf_choice:-1}"
+      case "$cf_choice" in
+        1)
+          CLOUDFLARE_AUTH_MODE="token"
+          read -r -s -p "  Cloudflare API token: " CLOUDFLARE_API_TOKEN < /dev/tty
+          printf "\n"
+          ;;
+        2)
+          CLOUDFLARE_AUTH_MODE="global-key"
+          read -r -p "  Cloudflare account email: " CLOUDFLARE_EMAIL < /dev/tty
+          read -r -s -p "  Cloudflare Global API Key: " CLOUDFLARE_GLOBAL_API_KEY < /dev/tty
+          printf "\n"
+          ;;
+        3)
+          CLOUDFLARE_AUTH_MODE=""
+          ;;
+        *)
+          warn "Invalid Cloudflare credential selection; skipping Cloudflare API access."
+          CLOUDFLARE_AUTH_MODE=""
+          ;;
+      esac
+    fi
+
+    if [[ -n "$CLOUDFLARE_API_TOKEN" || -n "$CLOUDFLARE_GLOBAL_API_KEY" ]]; then
+      if MUCHO_CLOUDFLARE_AUTH_MODE="$CLOUDFLARE_AUTH_MODE" \
+          MUCHO_CLOUDFLARE_API_TOKEN="$CLOUDFLARE_API_TOKEN" \
+          MUCHO_CLOUDFLARE_EMAIL="$CLOUDFLARE_EMAIL" \
+          MUCHO_CLOUDFLARE_GLOBAL_API_KEY="$CLOUDFLARE_GLOBAL_API_KEY" \
+          MUCHO_DOMAIN="$DOMAIN" \
+          MUCHO_PUBLIC_IP="$PUBLIC_IP" \
+          MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+          bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct; then
+        log "Cloudflare DNS switched to the direct VPS origin."
+        info "Restarting Caddy after DNS change so HTTPS can be provisioned cleanly..."
+        run_compose restart caddy >/dev/null 2>&1 || true
+        info "Waiting for the public hostname to reach the VPS..."
+
+        public_ok=0
+        for _ in {1..45}; do
+          if curl -4ksSf --connect-timeout 3 --max-time 6 \
+            "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+            public_ok=1
+            break
+          fi
+          sleep 2
+        done
+      fi
+    fi
+
+    if [[ "$public_ok" -eq 1 ]]; then
+      sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=direct/' "$INSTALL_DIR/.env"
+      log "Public health check passed in direct mode."
+    elif [[ -n "$CLOUDFLARE_API_TOKEN" || -n "$CLOUDFLARE_GLOBAL_API_KEY" ]]; then
+      info "Direct origin is still unavailable. Falling back to Cloudflare Tunnel..."
+      if provision_cloudflare_tunnel; then
+        public_ok=0
+        for _ in {1..45}; do
+          if curl -4ksSf --connect-timeout 3 --max-time 6 \
+            "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+            public_ok=1
+            break
+          fi
+          sleep 2
+        done
+        [[ "$public_ok" -eq 1 ]] ||
+          fail "Cloudflare Tunnel was provisioned, but public HTTPS is still unhealthy. Run: sudo mucho doctor"
+        log "Public health check passed through Cloudflare Tunnel."
+      else
+        fail "Automatic transport setup failed: neither direct origin nor Cloudflare Tunnel became healthy. Run: sudo mucho doctor"
+      fi
+    else
+      fail "Public HTTPS is unavailable. For the default direct mode, point an A record for $DOMAIN to $PUBLIC_IP and allow inbound TCP 80/443, then run the installer again. Cloudflare Tunnel is optional: set MUCHO_TRANSPORT_MODE=tunnel only if direct inbound access is impossible."
+    fi
+  elif [[ "$TRANSPORT_MODE" == "direct" ]]; then
+    direct_origin_ok=0
+    if [[ -n "$PUBLIC_IP" ]] && curl -4ksSf --connect-timeout 3 --max-time 6 \
+      --resolve "$DOMAIN:443:$PUBLIC_IP" \
+      "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+      direct_origin_ok=1
+    fi
+
+    if [[ "$direct_origin_ok" -eq 1 ]]; then
+      fail "Direct VPS origin is healthy at $PUBLIC_IP:443, but $DOMAIN is not reaching that origin yet. DNS is still not converged. Ensure A $DOMAIN -> $PUBLIC_IP, remove conflicting AAAA/CNAME records, keep the DNS record DNS-only if using Cloudflare, then re-run the installer."
+    fi
+
+    fail "Direct transport was requested, but the public hostname is not healthy. Verify DNS and inbound 80/443 reach the VPS."
+  elif [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
+    fail "Cloudflare Tunnel transport was requested, but the public hostname is not healthy. Run: sudo mucho doctor"
+  fi
+else
+  warn "The internal MuchoCore healthcheck did not pass."
+  warn "Run: sudo mucho doctor"
+fi
+
+offer_database_migration() {
+  local choice=${MUCHO_MIGRATION_ON_INSTALL:-}
+
+  if [[ -z "$choice" ]]; then
+    if [[ ! -t 0 || ! -t 1 ]]; then
+      info "Migration prompt skipped because the installer is non-interactive."
+      info "You can run the Migration Center later from the admin panel or with: sudo ${INSTALL_DIR}/bin/mucho"
+      return 0
+    fi
+
+    printf '\n'
+    printf "${BOLD}  Do you want to migrate an existing GDPS database now?${RESET}\n"
+    printf "  ${CYAN}MuchoCore will run a read-only preflight and, before any import,\n"
+    printf "  create and verify a fresh backup of the new MuchoCore database.${RESET}\n\n"
+    printf "  ${CYAN}1${RESET}) No — finish installation\n"
+    printf "  ${CYAN}2${RESET}) Yes — open Migration Center\n\n"
+
+    read -r -p "  Select [1]: " choice < /dev/tty || choice="1"
+    choice="${choice:-1}"
+  fi
+
+  case "${choice,,}" in
+    1|no|n|false|0)
+      info "Database migration skipped. You can start it later from MuchoCore Admin → Tools → Migration Center."
+      return 0
+      ;;
+    2|yes|y|true)
+      [[ -f "$INSTALL_DIR/bin/mucho-migrate.php" ]] || {
+        warn "Migration Center is not included in this MuchoCore release."
+        warn "Finish installation first, then update MuchoCore to a release containing Migration Center."
+        return 0
+      }
+
+      printf '\n'
+      log "Opening MuchoCore Migration Center..."
+      info "The old database stays read-only."
+      info "Before import, MuchoCore will create and verify a fresh target backup."
+      info "If the backup cannot be verified, migration stops before any target write."
+
+      local confirm_args=()
+      if [[ -n "${MUCHO_MIGRATION_ON_INSTALL:-}" ]]; then
+        confirm_args+=(--confirm=MIGRATE)
+      fi
+
+      if ! run_compose exec app php bin/mucho-migrate.php --apply "${confirm_args[@]}"; then
+        warn "Database migration was not completed. MuchoCore itself is installed; the old database was not modified."
+        return 0
+      fi
+      ;;
+    *)
+      fail "Invalid migration choice. Use 1 (No) or 2 (Yes)."
+      ;;
+  esac
+}
+
+if [[ -n "$MUCHO_MIGRATION_ON_INSTALL" ]]; then
+  offer_database_migration
+else
+  info "Migration skipped. To import an existing GDPS later, use Admin → Tools → Migration Center or: sudo mucho migration"
+fi
+
+INSTALL_STEP="completed"
+cat <<EOFOUT
+
+MuchoCore is installed.
+
+Transport:  $(sed -n 's/^MUCHO_TRANSPORT_MODE=//p' "$INSTALL_DIR/.env" | head -n1)
+
+Compatibility profile:
+  GD_VERSIONS=$GD_VERSIONS
+
+GDPS:   https://$DOMAIN
+Admin:  https://$DOMAIN/admin/
+Health: https://$DOMAIN/health
+Path:   $INSTALL_DIR
+
+Admin username: $ADMIN_USER
+
+Update:
+  sudo $INSTALL_DIR/update.sh
+
+Operator:
+  sudo mucho
+  sudo mucho status
+  sudo mucho logs
+  sudo mucho doctor
+
+Logs:
+  sudo mucho logs --follow
+
+Migration:
+  sudo mucho migration
+
+EOFOUT
+\\n'* && "$MUCHO_ADMIN_PASSWORD" != *
+
+printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
+printf '%s' "$MUCHO_DB_ROOT_PASSWORD" > "$INSTALL_DIR/.secrets/db_root_password"
+printf '%s' "$MUCHO_ADMIN_PASSWORD" > "$INSTALL_DIR/.secrets/admin_password"
+if [[ ! -f "$INSTALL_DIR/.secrets/cloudsave_key" && -f "$INSTALL_DIR/config/cloudsave.key" ]]; then
+  cp "$INSTALL_DIR/config/cloudsave.key" "$INSTALL_DIR/.secrets/cloudsave_key"
+  chmod 600 "$INSTALL_DIR/.secrets/cloudsave_key"
+fi
+
+if [[ -s "$INSTALL_DIR/.secrets/cloudsave_key" ]]; then
+  MUCHO_CLOUDSAVE_KEY="$(cat "$INSTALL_DIR/.secrets/cloudsave_key")"
+else
+  MUCHO_CLOUDSAVE_KEY="$(openssl rand -base64 32)"
+fi
+printf '%s\n' "$MUCHO_CLOUDSAVE_KEY" > "$INSTALL_DIR/.secrets/cloudsave_key"
+chmod 600 "$INSTALL_DIR/.secrets/"*
+
+for secret in \
+  "$INSTALL_DIR/.secrets/db_password" \
+  "$INSTALL_DIR/.secrets/db_root_password" \
+  "$INSTALL_DIR/.secrets/admin_password" \
+  "$INSTALL_DIR/.secrets/cloudsave_key"; do
+  [[ -s "$secret" ]] || fail "Required secret file is missing or empty: $secret"
+done
+
+if [[ -f "$INSTALL_DIR/.env" ]]; then
+  backup_file="$INSTALL_DIR/.env.backup.$(date +%Y%m%d-%H%M%S)"
+  cp "$INSTALL_DIR/.env" "$backup_file"
+  chmod 600 "$backup_file"
+  info "Backed up existing .env to $(basename "$backup_file")"
+fi
+
+normalize_caddy_address() {
+  if [[ "$USE_TUNNEL" -eq 1 ]]; then
+    printf ':80'
+    return
+  fi
+
+  local host="$DOMAIN"
+  host="${host#http://}"
+  host="${host#https://}"
+  host="${host%%/*}"
+
+  local root="$host"
+  if [[ "$host" == www.* ]]; then
+    root="${host#www.}"
+  fi
+
+  # Explicitly declare HTTP and HTTPS listeners in direct mode.
+  # The HTTP site keeps legacy Geometry Dash clients working on port 80 while
+  # the HTTPS site provides managed Let's Encrypt certificates on port 443.
+  printf 'http://%s http://www.%s %s www.%s' "$root" "$root" "$root" "$root"
+  if [[ -n "${CADDY_EXTRA_HOSTS:-}" ]]; then
+    for extra_host in $CADDY_EXTRA_HOSTS; do
+      printf ' http://%s %s' "$extra_host" "$extra_host"
+    done
+  fi
+}
+
+CADDY_ADDRESS_VALUE="$(normalize_caddy_address)"
+
+cat > "$INSTALL_DIR/.env" <<EOFENV
+DOMAIN=$DOMAIN
+CADDY_ADDRESS_VALUE="$CADDY_ADDRESS_VALUE"
+CADDY_ADDRESS="$CADDY_ADDRESS_VALUE"
+DB_NAME=$DB_NAME
+DB_USER=$DB_USER
+ADMIN_USER=$ADMIN_USER
+MUCHO_ACCOUNT_URL=https://$DOMAIN
+MUCHO_SERVER_NAME="$SERVER_NAME_ENV"
+MUCHO_CUSTOM_CONTENT_URL=$CUSTOM_CONTENT_URL
+TURNSTILE_SITEKEY=$TURNSTILE_SITEKEY
+TURNSTILE_SECRET=$TURNSTILE_SECRET
+MUCHO_ADMIN_BOOTSTRAP=/etc/muchocore-admin.php
+MUCHO_CONTROL_DIR=/var/lib/muchocore-control
+MUCHO_BACKUP_DIR=/var/lib/muchocore-backups
+TZ=UTC
+MUCHO_GD_VERSIONS=$GD_VERSIONS
+MUCHO_TRANSPORT_MODE=$TRANSPORT_MODE
+MUCHO_PUBLIC_IP=$PUBLIC_IP
+CADDY_EXTRA_HOSTS=$CADDY_EXTRA_HOSTS
+MUCHOCORE_SITE_HOST=disabled.invalid
+MUCHO_PROTECT_STORAGE=file
+MUCHO_TRUSTED_PROXY_CIDRS=
+MUCHO_AUTO_UPDATE=1
+MUCHO_AUTO_UPDATE_INTERVAL=15min
+EOFENV
+if [[ "$USE_TUNNEL" -eq 1 && -n "$TUNNEL_TOKEN" ]]; then
+  printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
+  printf '%s\n' "$TUNNEL_TOKEN" > "$INSTALL_DIR/.secrets/tunnel_token"
+  chmod 400 "$INSTALL_DIR/.secrets/tunnel_token"
+fi
+chmod 600 "$INSTALL_DIR/.env"
+
+if [[ -f "$INSTALL_DIR/bin/mucho-install-auto-update.sh" ]]; then
+  INSTALL_STEP="configuring automatic updates"
+  log "Configuring release-based automatic updates..."
+  bash "$INSTALL_DIR/bin/mucho-install-auto-update.sh"
+fi
+
+install -d -m 700 "$INSTALL_DIR/.muchocore"
+cat > "$INSTALL_DIR/.muchocore/profile.env" <<EOFPROFILE
+MUCHO_GD_VERSIONS=$GD_VERSIONS
+EOFPROFILE
+chmod 600 "$INSTALL_DIR/.muchocore/profile.env"
+
+[[ -f "$INSTALL_DIR/docker-compose.yml" && -r "$INSTALL_DIR/docker-compose.yml" ]] ||
+  fail "MuchoCore repository is missing a readable docker-compose.yml."
+[[ -f "$INSTALL_DIR/docker/Dockerfile" && -r "$INSTALL_DIR/docker/Dockerfile" ]] ||
+  fail "MuchoCore repository is missing a readable docker/Dockerfile."
+[[ -f "$INSTALL_DIR/docker/Caddyfile" && -r "$INSTALL_DIR/docker/Caddyfile" ]] ||
+  fail "MuchoCore repository is missing a readable docker/Caddyfile."
+info "Compose files verified: $INSTALL_DIR/docker-compose.yml";
+
+run_compose() {
+  # Always run Compose from the installation directory with explicit files.
+  # Avoid relying on inherited working directories or mutable shell arrays.
+  if [[ "$USE_TUNNEL" -eq 1 ]]; then
+    (
+      cd "$INSTALL_DIR"
+      MUCHO_TUNNEL_TOKEN="$TUNNEL_TOKEN" \
+        docker compose -f docker-compose.yml -f docker-compose.tunnel.yml "$@"
+    )
+  else
+    (
+      cd "$INSTALL_DIR"
+      docker compose -f docker-compose.yml "$@"
+    )
+  fi
+}
+
+
+if [[ "$USE_TUNNEL" -eq 0 && "$TRANSPORT_MODE" != "tunnel" && -n "$CLOUDFLARE_API_TOKEN" && -n "$PUBLIC_IP" ]]; then
+  INSTALL_STEP="configuring direct Cloudflare DNS"
+  log "Configuring Cloudflare DNS for direct origin $PUBLIC_IP..."
+  if ! MUCHO_CLOUDFLARE_API_TOKEN="$CLOUDFLARE_API_TOKEN" \
+      MUCHO_DOMAIN="$DOMAIN" \
+      MUCHO_PUBLIC_IP="$PUBLIC_IP" \
+      MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+      bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct; then
+    warn "Automatic direct DNS configuration failed. Continuing with the existing DNS configuration."
+  fi
+fi
+INSTALL_STEP="validating Docker Compose"
+log "Validating Docker Compose..."
+run_compose config -q
+
+if [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
+  if [[ -s "$INSTALL_DIR/.secrets/tunnel_token" && -z "$TUNNEL_TOKEN" ]]; then
+    TUNNEL_TOKEN="$(cat "$INSTALL_DIR/.secrets/tunnel_token")"
+  fi
+  if [[ -n "$TUNNEL_TOKEN" ]]; then
+    USE_TUNNEL=1
+    sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
+    sed -i 's/^CADDY_ADDRESS_VALUE=.*/CADDY_ADDRESS_VALUE=":80"/' "$INSTALL_DIR/.env"
+    sed -i 's/^CADDY_ADDRESS=.*/CADDY_ADDRESS=":80"/' "$INSTALL_DIR/.env"
+    if ! grep -q '^MUCHO_TUNNEL_TOKEN=' "$INSTALL_DIR/.env"; then
+      printf 'MUCHO_TUNNEL_TOKEN=%s\n' "$TUNNEL_TOKEN" >> "$INSTALL_DIR/.env"
+    fi
+  else
+    fail "MUCHO_TRANSPORT_MODE=tunnel requires an existing Tunnel runtime token. Use MUCHO_TRANSPORT_MODE=auto for automatic fallback."
+  fi
+fi
+INSTALL_STEP="starting production services"
+log "Starting MuchoCore..."
+if [[ "$USE_TUNNEL" -eq 1 ]]; then
+  log "Tunnel mode: no inbound ports will be opened; Cloudflare Tunnel provides ingress."
+fi
+run_compose up -d --build --remove-orphans
+
+log "Verifying running containers..."
+expected_services=(db app worker caddy)
+if [[ "$USE_TUNNEL" -eq 1 ]]; then
+  expected_services+=(cloudflared)
+fi
+for service in "${expected_services[@]}"; do
+  container_id="$(run_compose ps -q "$service" 2>/dev/null || true)"
+  [[ -n "$container_id" ]] || fail "Service '$service' was not created."
+  running="$(docker inspect -f '{{.State.Running}}' "$container_id" 2>/dev/null || true)"
+  [[ "$running" == "true" ]] || {
+    run_compose ps || true
+    run_compose logs --tail=80 "$service" || true
+    fail "Service '$service' is not running."
+  }
+done
+
+INSTALL_STEP="waiting for application dependencies"
+log "Waiting for Composer dependencies..."
+autoload_ready=0
+for _ in {1..60}; do
+  if run_compose exec -T app test -f vendor/autoload.php >/dev/null 2>&1; then
+    autoload_ready=1
+    break
+  fi
+  sleep 2
+done
+
+[[ "$autoload_ready" -eq 1 ]] || {
+  run_compose logs --tail=80 app || true
+  fail "Application dependencies were not ready after 120 seconds. Check: sudo mucho doctor"
+}
+
+INSTALL_STEP="running database migrations"
+log "Running database migrations..."
+run_compose exec -T app php bin/migrate.php migrate
+
+INSTALL_STEP="applying GDPS branding"
+log "Applying GDPS name: $SERVER_NAME"
+run_compose exec -T -e "MUCHO_INSTALL_SERVER_NAME=$SERVER_NAME" app php -r 'require "vendor/autoload.php"; $pdo=(new \MuchoCore\Database\Database())->connection(); (new \MuchoCore\Branding\BrandingService($pdo))->saveServerName((string)(getenv("MUCHO_INSTALL_SERVER_NAME") ?: "Mucho GDPS"));'
+
+INSTALL_STEP="running the internal healthcheck"
+log "Running internal MuchoCore healthcheck..."
+run_compose exec -T app php bin/mucho-healthcheck.php
+
+
+INSTALL_STEP="checking public health"
+log "Checking server health..."
+
+# The internal PHP healthcheck above is the authoritative origin-health test.
+# Do not probe Caddy locally here: in direct mode Caddy may still be waiting
+# for an ACME certificate, which can fail independently of the application.
+healthy=1
+public_code=""
+
+provision_cloudflare_tunnel() {
+  local api_token="$CLOUDFLARE_API_TOKEN"
+  local auth_mode="$CLOUDFLARE_AUTH_MODE"
+
+  [[ -n "$api_token" || -n "$CLOUDFLARE_GLOBAL_API_KEY" ]] || return 1
+
+  INSTALL_STEP="configuring Cloudflare automatically"
+  log "Configuring Cloudflare automatically..."
+  if ! MUCHO_CLOUDFLARE_AUTH_MODE="$auth_mode" \
+      MUCHO_CLOUDFLARE_API_TOKEN="$api_token" \
+      MUCHO_CLOUDFLARE_EMAIL="$CLOUDFLARE_EMAIL" \
+      MUCHO_CLOUDFLARE_GLOBAL_API_KEY="$CLOUDFLARE_GLOBAL_API_KEY" \
+      MUCHO_DOMAIN="$DOMAIN" \
+      MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+      bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh"; then
+    warn "Automatic Cloudflare setup failed."
+    return 1
+  fi
+
+  TUNNEL_TOKEN="$(cat "$INSTALL_DIR/.secrets/tunnel_token")"
+  [[ -n "$TUNNEL_TOKEN" ]] || {
+    warn "Cloudflare setup completed without a Tunnel runtime token."
+    return 1
+  }
+
+  USE_TUNNEL=1
+  sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
+  sed -i 's/^CADDY_ADDRESS_VALUE=.*/CADDY_ADDRESS_VALUE=":80"/' "$INSTALL_DIR/.env"
+  sed -i 's/^CADDY_ADDRESS=.*/CADDY_ADDRESS=":80"/' "$INSTALL_DIR/.env"
+  if [[ " ${expected_services[*]} " != *" cloudflared "* ]]; then
+    expected_services+=(cloudflared)
+  fi
+
+  INSTALL_STEP="starting Cloudflare Tunnel"
+  log "Starting Cloudflare Tunnel..."
+  run_compose up -d --remove-orphans
+
+  local tunnel_healthy=0
+  for _ in {1..20}; do
+    if curl -4fsS --connect-timeout 2 --max-time 3 "http://127.0.0.1/health" 2>/dev/null | grep -qx "1"; then
+      tunnel_healthy=1
+      break
+    fi
+    sleep 2
+  done
+  [[ "$tunnel_healthy" -eq 1 ]] || {
+    warn "MuchoCore is not healthy locally after enabling Cloudflare Tunnel."
+    return 1
+  }
+
+  log "Cloudflare Tunnel local health check passed."
+  return 0
+}
+
+if [[ "$healthy" -eq 1 ]]; then
+  log "Internal health check passed."
+
+  public_ok=0
+  public_probe_file="$(mktemp /tmp/mucho-public-health.XXXXXX)"
+
+  for _ in {1..3}; do
+    public_code="$(curl -4ksS --connect-timeout 3 --max-time 6 \
+      -o "$public_probe_file" \
+      -w '%{http_code}' \
+      "https://$DOMAIN/health" 2>/dev/null || true)"
+    public_body="$(cat "$public_probe_file" 2>/dev/null || true)"
+
+    if [[ "$public_body" == "1" ]]; then
+      public_ok=1
+      break
+    fi
+
+    sleep 2
+  done
+
+  rm -f "$public_probe_file"
+
+  if [[ "$public_ok" -eq 1 ]]; then
+    if [[ "$USE_TUNNEL" -eq 1 ]]; then
+      sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=tunnel/' "$INSTALL_DIR/.env"
+      log "Public health check passed through Cloudflare Tunnel."
+    else
+      sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=direct/' "$INSTALL_DIR/.env"
+      log "Public health check passed in direct mode."
+    fi
+  elif [[ "$TRANSPORT_MODE" == "auto" && "$USE_TUNNEL" -eq 0 ]]; then
+    info "Public HTTPS is unavailable (HTTP $public_code)."
+
+    # Automatic transport recovery is deterministic:
+    # 1) try the direct VPS origin (including fixing Cloudflare DNS when a
+    #    token is available), then
+    # 2) fall back to a Cloudflare Tunnel if Direct still cannot serve HTTPS.
+    if [[ -z "$CLOUDFLARE_API_TOKEN" && -z "$CLOUDFLARE_GLOBAL_API_KEY" && -e /dev/tty ]]; then
+      printf "\n${BOLD}  Cloudflare credentials (optional)${RESET}\n"
+      printf "  Needed only if MuchoCore must change Cloudflare DNS or create the NAT fallback Tunnel.\n"
+      printf "  Recommended: 1) API Token — safer and limited to this GDPS zone.\n"
+      printf "  Create API Token: https://dash.cloudflare.com/profile/api-tokens\n"
+      printf "  Official guide: https://developers.cloudflare.com/fundamentals/api/get-started/create-token/\n\n"
+      printf "  API Token — exact clicks for beginners:\n"
+      printf "    1. Open the Create API Token link above and sign in.\n"
+      printf "    2. Click Create Token.\n"
+      printf "    3. Choose Custom Token.\n"
+      printf "    4. Name it: MuchoCore Installer.\n"
+      printf "    5. Permissions: Account → Cloudflare Tunnel → Edit.\n"
+      printf "    6. Permissions: Zone → DNS → Edit.\n"
+      printf "    7. Permissions: Zone → Zone → Read.\n"
+      printf "    8. Account Resources: select only the account that owns this domain.\n"
+      printf "    9. Zone Resources: Include → Specific zone → the zone containing $DOMAIN.\n"
+      printf "   10. Click Continue to summary → Create Token.\n"
+      printf "   11. Copy the token shown on the next screen. It is shown only once.\n\n"
+      printf "  Legacy option: Global API Key (less secure, full user access).\n"
+      printf "  Official guide: https://developers.cloudflare.com/fundamentals/api/get-started/keys/\n"
+      printf "  Global Key steps: Cloudflare Dashboard → My Profile → API Tokens → API Keys →\n"
+      printf "    Global API Key → View. Also provide the email of that Cloudflare account.\n\n"
+      printf "  1) API Token (recommended)\n"
+      printf "  2) Global API Key (legacy)\n"
+      printf "  3) Skip\n\n"
+      cf_choice=""
+      read -r -p "  Select [1]: " cf_choice < /dev/tty || cf_choice=1
+      cf_choice="${cf_choice:-1}"
+      case "$cf_choice" in
+        1)
+          CLOUDFLARE_AUTH_MODE="token"
+          read -r -s -p "  Cloudflare API token: " CLOUDFLARE_API_TOKEN < /dev/tty
+          printf "\n"
+          ;;
+        2)
+          CLOUDFLARE_AUTH_MODE="global-key"
+          read -r -p "  Cloudflare account email: " CLOUDFLARE_EMAIL < /dev/tty
+          read -r -s -p "  Cloudflare Global API Key: " CLOUDFLARE_GLOBAL_API_KEY < /dev/tty
+          printf "\n"
+          ;;
+        3)
+          CLOUDFLARE_AUTH_MODE=""
+          ;;
+        *)
+          warn "Invalid Cloudflare credential selection; skipping Cloudflare API access."
+          CLOUDFLARE_AUTH_MODE=""
+          ;;
+      esac
+    fi
+
+    if [[ -n "$CLOUDFLARE_API_TOKEN" || -n "$CLOUDFLARE_GLOBAL_API_KEY" ]]; then
+      if MUCHO_CLOUDFLARE_AUTH_MODE="$CLOUDFLARE_AUTH_MODE" \
+          MUCHO_CLOUDFLARE_API_TOKEN="$CLOUDFLARE_API_TOKEN" \
+          MUCHO_CLOUDFLARE_EMAIL="$CLOUDFLARE_EMAIL" \
+          MUCHO_CLOUDFLARE_GLOBAL_API_KEY="$CLOUDFLARE_GLOBAL_API_KEY" \
+          MUCHO_DOMAIN="$DOMAIN" \
+          MUCHO_PUBLIC_IP="$PUBLIC_IP" \
+          MUCHO_INSTALL_DIR="$INSTALL_DIR" \
+          bash "$INSTALL_DIR/bin/mucho-cloudflare-tunnel.sh" direct; then
+        log "Cloudflare DNS switched to the direct VPS origin."
+        info "Restarting Caddy after DNS change so HTTPS can be provisioned cleanly..."
+        run_compose restart caddy >/dev/null 2>&1 || true
+        info "Waiting for the public hostname to reach the VPS..."
+
+        public_ok=0
+        for _ in {1..45}; do
+          if curl -4ksSf --connect-timeout 3 --max-time 6 \
+            "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+            public_ok=1
+            break
+          fi
+          sleep 2
+        done
+      fi
+    fi
+
+    if [[ "$public_ok" -eq 1 ]]; then
+      sed -i 's/^MUCHO_TRANSPORT_MODE=.*/MUCHO_TRANSPORT_MODE=direct/' "$INSTALL_DIR/.env"
+      log "Public health check passed in direct mode."
+    elif [[ -n "$CLOUDFLARE_API_TOKEN" || -n "$CLOUDFLARE_GLOBAL_API_KEY" ]]; then
+      info "Direct origin is still unavailable. Falling back to Cloudflare Tunnel..."
+      if provision_cloudflare_tunnel; then
+        public_ok=0
+        for _ in {1..45}; do
+          if curl -4ksSf --connect-timeout 3 --max-time 6 \
+            "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+            public_ok=1
+            break
+          fi
+          sleep 2
+        done
+        [[ "$public_ok" -eq 1 ]] ||
+          fail "Cloudflare Tunnel was provisioned, but public HTTPS is still unhealthy. Run: sudo mucho doctor"
+        log "Public health check passed through Cloudflare Tunnel."
+      else
+        fail "Automatic transport setup failed: neither direct origin nor Cloudflare Tunnel became healthy. Run: sudo mucho doctor"
+      fi
+    else
+      fail "Public HTTPS is unavailable. For the default direct mode, point an A record for $DOMAIN to $PUBLIC_IP and allow inbound TCP 80/443, then run the installer again. Cloudflare Tunnel is optional: set MUCHO_TRANSPORT_MODE=tunnel only if direct inbound access is impossible."
+    fi
+  elif [[ "$TRANSPORT_MODE" == "direct" ]]; then
+    direct_origin_ok=0
+    if [[ -n "$PUBLIC_IP" ]] && curl -4ksSf --connect-timeout 3 --max-time 6 \
+      --resolve "$DOMAIN:443:$PUBLIC_IP" \
+      "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
+      direct_origin_ok=1
+    fi
+
+    if [[ "$direct_origin_ok" -eq 1 ]]; then
+      fail "Direct VPS origin is healthy at $PUBLIC_IP:443, but $DOMAIN is not reaching that origin yet. DNS is still not converged. Ensure A $DOMAIN -> $PUBLIC_IP, remove conflicting AAAA/CNAME records, keep the DNS record DNS-only if using Cloudflare, then re-run the installer."
+    fi
+
+    fail "Direct transport was requested, but the public hostname is not healthy. Verify DNS and inbound 80/443 reach the VPS."
+  elif [[ "$TRANSPORT_MODE" == "tunnel" ]]; then
+    fail "Cloudflare Tunnel transport was requested, but the public hostname is not healthy. Run: sudo mucho doctor"
+  fi
+else
+  warn "The internal MuchoCore healthcheck did not pass."
+  warn "Run: sudo mucho doctor"
+fi
+
+offer_database_migration() {
+  local choice=${MUCHO_MIGRATION_ON_INSTALL:-}
+
+  if [[ -z "$choice" ]]; then
+    if [[ ! -t 0 || ! -t 1 ]]; then
+      info "Migration prompt skipped because the installer is non-interactive."
+      info "You can run the Migration Center later from the admin panel or with: sudo ${INSTALL_DIR}/bin/mucho"
+      return 0
+    fi
+
+    printf '\n'
+    printf "${BOLD}  Do you want to migrate an existing GDPS database now?${RESET}\n"
+    printf "  ${CYAN}MuchoCore will run a read-only preflight and, before any import,\n"
+    printf "  create and verify a fresh backup of the new MuchoCore database.${RESET}\n\n"
+    printf "  ${CYAN}1${RESET}) No — finish installation\n"
+    printf "  ${CYAN}2${RESET}) Yes — open Migration Center\n\n"
+
+    read -r -p "  Select [1]: " choice < /dev/tty || choice="1"
+    choice="${choice:-1}"
+  fi
+
+  case "${choice,,}" in
+    1|no|n|false|0)
+      info "Database migration skipped. You can start it later from MuchoCore Admin → Tools → Migration Center."
+      return 0
+      ;;
+    2|yes|y|true)
+      [[ -f "$INSTALL_DIR/bin/mucho-migrate.php" ]] || {
+        warn "Migration Center is not included in this MuchoCore release."
+        warn "Finish installation first, then update MuchoCore to a release containing Migration Center."
+        return 0
+      }
+
+      printf '\n'
+      log "Opening MuchoCore Migration Center..."
+      info "The old database stays read-only."
+      info "Before import, MuchoCore will create and verify a fresh target backup."
+      info "If the backup cannot be verified, migration stops before any target write."
+
+      local confirm_args=()
+      if [[ -n "${MUCHO_MIGRATION_ON_INSTALL:-}" ]]; then
+        confirm_args+=(--confirm=MIGRATE)
+      fi
+
+      if ! run_compose exec app php bin/mucho-migrate.php --apply "${confirm_args[@]}"; then
+        warn "Database migration was not completed. MuchoCore itself is installed; the old database was not modified."
+        return 0
+      fi
+      ;;
+    *)
+      fail "Invalid migration choice. Use 1 (No) or 2 (Yes)."
+      ;;
+  esac
+}
+
+if [[ -n "$MUCHO_MIGRATION_ON_INSTALL" ]]; then
+  offer_database_migration
+else
+  info "Migration skipped. To import an existing GDPS later, use Admin → Tools → Migration Center or: sudo mucho migration"
+fi
+
+INSTALL_STEP="completed"
+cat <<EOFOUT
+
+MuchoCore is installed.
+
+Transport:  $(sed -n 's/^MUCHO_TRANSPORT_MODE=//p' "$INSTALL_DIR/.env" | head -n1)
+
+Compatibility profile:
+  GD_VERSIONS=$GD_VERSIONS
+
+GDPS:   https://$DOMAIN
+Admin:  https://$DOMAIN/admin/
+Health: https://$DOMAIN/health
+Path:   $INSTALL_DIR
+
+Admin username: $ADMIN_USER
+
+Update:
+  sudo $INSTALL_DIR/update.sh
+
+Operator:
+  sudo mucho
+  sudo mucho status
+  sudo mucho logs
+  sudo mucho doctor
+
+Logs:
+  sudo mucho logs --follow
+
+Migration:
+  sudo mucho migration
+
+EOFOUT
+\\r'* ]] ||
+  fail "Admin password cannot contain line breaks."
 
 printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
 printf '%s' "$MUCHO_DB_ROOT_PASSWORD" > "$INSTALL_DIR/.secrets/db_root_password"
