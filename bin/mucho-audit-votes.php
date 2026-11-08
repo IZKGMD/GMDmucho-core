@@ -70,6 +70,7 @@ try {
             $summary['votes']['self_votes'] > 0 ||
             $summary['votes']['invalid_values'] > 0 ||
             $summary['votes']['unknown_types'] > 0 ||
+            !$summary['schema']['actor_unique_index'] ||
             !$schemaComplete,
     ];
     echo json_encode($summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) .
