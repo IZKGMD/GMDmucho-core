@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 BASE = "https://muchogdps.space"
 EXPECTED = {
     f"{BASE}/muchocore/": "public/muchocore/index.html",
+    f"{BASE}/muchocore/ru/": "public/muchocore/ru/index.html",
     f"{BASE}/muchocore/about/": "public/muchocore/about/index.html",
     f"{BASE}/muchocore/compatibility/": "public/muchocore/compatibility/index.html",
 }
@@ -105,6 +106,20 @@ def main() -> None:
     require("SoftwareApplication" in schema and "WebSite" in schema, "Product graph incomplete")
     require(schema["SoftwareApplication"]["@id"] == BASE + "/muchocore/#software",
             "Inconsistent product ID")
+    russian = pages[BASE + "/muchocore/ru/"]
+    require(any(x.get("@type") == "SoftwareApplication" for x in russian.ldjson),
+            "Russian version needs product structured data")
+    for locale, path in (("en", "public/muchocore/index.html"),
+                         ("ru", "public/muchocore/ru/index.html")):
+        html = (ROOT / path).read_text(encoding="utf-8")
+        require(f'<html lang="{locale}">' in html, f"Wrong HTML language: {path}")
+        for alternate, target in (("en", "/muchocore/"), ("ru", "/muchocore/ru/")):
+            require(f'hreflang="{alternate}" href="{BASE}{target}"' in html,
+                    f"Missing reciprocal hreflang for {path}")
+        require('<link rel="alternate" hreflang="x-default"' in html,
+                f"Missing x-default for {path}")
+    require("/muchocore/ru/" in product.links, "English page must link to Russian")
+    require("/muchocore/" in russian.links, "Russian page must link to English")
     require("softwareVersion" not in schema["SoftwareApplication"],
             "Hardcoded version will become stale; link GitHub releases instead")
     require(any(x.get("@type") == "AboutPage" for x in pages[BASE + "/muchocore/about/"].ldjson),
