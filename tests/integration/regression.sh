@@ -892,10 +892,11 @@ PY
                 -d "accountID=$AID2" \
                 -d "gjp2=$P2" \
                 -d "itemID=$CID" \
+                -d "levelID=$LEVEL_ID" \
                 -d 'type=2' \
                 -d 'like=0'
         )"
-        expect_eq "Dislike level comment" "$DISLIKE" "1"
+        expect_eq "Dislike comment with levelID context" "$DISLIKE" "1"
 
         DISLIKE_STATE="$(CID="$CID" AID="$AID2" php -r 'require "vendor/autoload.php"; $db=\MuchoCore\V71\DatabaseBridge::pdo(); $q=$db->prepare("SELECT c.likes, l.is_like FROM comments c INNER JOIN likes l ON l.item_id=c.id AND l.type=2 WHERE c.id=? AND l.account_id=?"); $q->execute([(int)getenv("CID"),(int)getenv("AID")]); $r=$q->fetch(PDO::FETCH_ASSOC); if(!$r){exit(2);} echo (int)$r["likes"].":".(int)$r["is_like"];')"
         expect_eq "First dislike decrements net score" "$DISLIKE_STATE" "-1:0"
