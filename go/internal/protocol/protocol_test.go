@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/IZKGMD/GMDmucho-core/go/internal/discovery"
+	"github.com/IZKGMD/GMDmucho-core/go/internal/dbutil"
 	"github.com/IZKGMD/GMDmucho-core/go/internal/protocol"
 )
 
@@ -49,6 +50,33 @@ func TestGD22MessageWireCodec(t *testing.T) {
 		if strings.ContainsAny(wire, ":|#~") {
 			t.Fatalf("wire text contains a protocol delimiter: %q", wire)
 		}
+	}
+}
+
+func TestMessageSerializerPreservesLegacyWireRows(t *testing.T) {
+	subject := "Legacy subject"
+	body := "Legacy body"
+	subjectWire := protocol.EncodeMessageSubject(subject)
+	bodyWire := protocol.EncodeMessageBody(body)
+
+	legacy := dbutil.Row{
+		"id": "13", "user_id": "23", "account_id": "33", "username": "Sender",
+		"subject": subjectWire, "body": bodyWire, "content_format": "0",
+		"is_read": "0", "created_at": "2026-01-01 12:00:00",
+	}
+	legacyWire := protocol.Message(legacy, false)
+	if !strings.Contains(legacyWire, ":4:"+subjectWire+":8:") || !strings.Contains(legacyWire, ":5:"+bodyWire+":7:") {
+		t.Fatalf("legacy wire payload was unexpectedly transformed: %s", legacyWire)
+	}
+
+	plain := dbutil.Row{
+		"id": "14", "user_id": "24", "account_id": "34", "username": "Sender",
+		"subject": subject, "body": body, "content_format": "1",
+		"is_read": "0", "created_at": "2026-01-01 12:00:00",
+	}
+	plainWire := protocol.Message(plain, false)
+	if !strings.Contains(plainWire, ":4:"+subjectWire+":8:") || !strings.Contains(plainWire, ":5:"+bodyWire+":7:") {
+		t.Fatalf("normalized message payload was not encoded: %s", plainWire)
 	}
 }
 
