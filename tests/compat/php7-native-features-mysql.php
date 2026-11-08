@@ -88,7 +88,7 @@ try {
     $nativeKeyPath=$saveFixtureRoot.'/config/cloudsave.key';
     $nativeKey=base64_decode(trim((string)file_get_contents($nativeKeyPath)),true);
     nativeFeatureAssert(is_string($nativeKey)&&strlen($nativeKey)===32,'native Cloud Save base64 key is valid');
-    file_put_contents($nativeKeyPath,bin2hex($nativeKey)."\\n");
+    file_put_contents($nativeKeyPath,bin2hex($nativeKey)."\n");
     nativeFeatureAssert($call('syncGJAccount20',$auth)===$backup['saveData'].';21;30;a;a','legacy HEX key reads existing encrypted save without rotation');
     nativeFeatureAssert($call('syncGJAccount20',$auth)===$backup['saveData'].';21;30;a;a','sync preserves every byte');
     nativeFeatureAssert($call('syncGJAccount20',array_merge($auth,array('accountID'=>'2')))==='-1','other account cannot read save');
