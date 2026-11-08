@@ -8,7 +8,7 @@ require __DIR__ . '/../../src/Protocol/GdLegacyText.php';
 require __DIR__ . '/../../src/Protocol/GdCommentEncoder.php';
 require __DIR__ . '/../../compat/php7/core/src/Interaction/CommentService.php';
 
-$compiledReflection = new ReflectionClass(\\MuchoCore\\Interaction\\CommentService::class);
+$compiledReflection = new ReflectionClass('MuchoCore\\\\Interaction\\\\CommentService');
 $compiledService = $compiledReflection->newInstanceWithoutConstructor();
 $normalize = $compiledReflection->getMethod('normalizeCommentText');
 $normalize->setAccessible(true);
