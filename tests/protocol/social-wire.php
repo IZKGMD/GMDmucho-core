@@ -67,6 +67,7 @@ $encodedMessage = $messageEncoder->encodeMessage([
     'account_id' => 32,
     'username' => 'Sender',
     'subject' => $messageSubject,
+    'content_format' => 1,
     'is_read' => 0,
     'created_at' => '2026-01-01 12:00:00',
     'body' => $messageBody,
