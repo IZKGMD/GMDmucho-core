@@ -60,10 +60,13 @@ final class GdMessageEncoder
     public function encodeMessage(array $message, bool $isSender = false): string
     {
         $username = ProtocolText::username($isSender ? $this->displayUsername((string) ($message['to_username'] ?? 'Player'), (string) ($message['to_clan_tag'] ?? '')) : $this->displayUsername((string) ($message['username'] ?? 'Player'), (string) ($message['clan_tag'] ?? '')));
-        $data = [6, $username, 3, $isSender ? $message['to_user_id'] : $message['user_id'], 2, $isSender ? $message['to_account_id'] : $message['account_id'], 1, $message['id'], 4, $this->encodeSubject((string) $message['subject']), 8, (int) ($message['is_read'] ?? 0), 9, $isSender ? 1 : 0];
+        $isPlainText = (int) ($message['content_format'] ?? 0) === 1;
+        $subject = (string) $message['subject'];
+        $data = [6, $username, 3, $isSender ? $message['to_user_id'] : $message['user_id'], 2, $isSender ? $message['to_account_id'] : $message['account_id'], 1, $message['id'], 4, $isPlainText ? $this->encodeSubject($subject) : $subject, 8, (int) ($message['is_read'] ?? 0), 9, $isSender ? 1 : 0];
         if (isset($message['body'])) {
             $data[] = 5;
-            $data[] = $this->encodeBody((string) $message['body']);
+            $body = (string) $message['body'];
+            $data[] = $isPlainText ? $this->encodeBody($body) : $body;
         }
         $data[] = 7;
         $data[] = $this->formatDate((string) $message['created_at']);
