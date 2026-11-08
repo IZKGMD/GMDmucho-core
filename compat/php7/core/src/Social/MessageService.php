@@ -32,6 +32,13 @@ final class MessageService
     public function sendMessage(int $id, string $gjp, int $to, string $subject, string $body): bool
     {
         $this->auth->authenticate($id, $gjp);
+        $decodedSubject = $this->encoder->decodeSubject($subject);
+        $decodedBody = $this->encoder->decodeBody($body);
+        if ($decodedSubject === false || $decodedBody === false) {
+            return false;
+        }
+        $subject = $decodedSubject;
+        $body = $decodedBody;
         if ($this->repository->isMessageBanned($id)) {
             return false;
         }
