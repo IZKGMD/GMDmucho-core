@@ -1092,12 +1092,13 @@ if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
         MID="$MID" MESSAGE_SUBJECT="$MESSAGE_SUBJECT" MESSAGE_BODY="$MESSAGE_BODY" php -r '
             require "vendor/autoload.php";
             $db=\MuchoCore\V71\DatabaseBridge::pdo();
-            $q=$db->prepare("SELECT subject,body FROM messages WHERE id=? LIMIT 1");
+            $q=$db->prepare("SELECT subject,body,content_format FROM messages WHERE id=? LIMIT 1");
             $q->execute([(int)getenv("MID")]);
             $row=$q->fetch(PDO::FETCH_ASSOC);
             echo $row
                 && $row["subject"]===getenv("MESSAGE_SUBJECT")
-                && $row["body"]===getenv("MESSAGE_BODY") ? "1" : "0";
+                && $row["body"]===getenv("MESSAGE_BODY")
+                && (int)$row["content_format"]===1 ? "1" : "0";
         '
     )"
     expect_eq "Database stores decoded plaintext message" "$STORED_MESSAGE" "1"
