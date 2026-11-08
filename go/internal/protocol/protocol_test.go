@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/IZKGMD/GMDmucho-core/go/internal/discovery"
@@ -17,6 +18,32 @@ func decode(t *testing.T, value string) string {
 		t.Fatal(err)
 	}
 	return string(b)
+}
+
+func TestGD22MessageWireCodec(t *testing.T) {
+	subject := "MuchoCore: Subject #|~ Привет"
+	body := "MuchoCore: Body #|~ -4 Привет 😀"
+
+	subjectWire := protocol.EncodeMessageSubject(subject)
+	bodyWire := protocol.EncodeMessageBody(body)
+
+	if got, ok := protocol.DecodeMessageSubject(subjectWire); !ok || got != subject {
+		t.Fatalf("subject round trip: got %q, ok=%v", got, ok)
+	}
+	if got, ok := protocol.DecodeMessageBody(bodyWire); !ok || got != body {
+		t.Fatalf("body round trip: got %q, ok=%v", got, ok)
+	}
+	if _, ok := protocol.DecodeMessageSubject("%%%"); ok {
+		t.Fatal("malformed subject Base64 was accepted")
+	}
+	if _, ok := protocol.DecodeMessageBody("%%%"); ok {
+		t.Fatal("malformed body Base64 was accepted")
+	}
+	for _, wire := range []string{subjectWire, bodyWire} {
+		if strings.ContainsAny(wire, ":|#~") {
+			t.Fatalf("wire text contains a protocol delimiter: %q", wire)
+		}
+	}
 }
 
 func TestPHPParity(t *testing.T) {
