@@ -1049,14 +1049,14 @@ MESSAGE_BODY='MuchoCore: Body #|~ -4 Привет 😀'
 MESSAGE_SUBJECT_WIRE="$(
     MESSAGE_SUBJECT="$MESSAGE_SUBJECT" php -r '
         require "vendor/autoload.php";
-        echo (new \\MuchoCore\\Protocol\\GdMessageEncoder())
+        echo (new \MuchoCore\Protocol\GdMessageEncoder())
             ->encodeSubject((string)getenv("MESSAGE_SUBJECT"));
     '
 )"
 MESSAGE_BODY_WIRE="$(
     MESSAGE_BODY="$MESSAGE_BODY" php -r '
         require "vendor/autoload.php";
-        echo (new \\MuchoCore\\Protocol\\GdMessageEncoder())
+        echo (new \MuchoCore\Protocol\GdMessageEncoder())
             ->encodeBody((string)getenv("MESSAGE_BODY"));
     '
 )"
@@ -1091,7 +1091,7 @@ if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
     STORED_MESSAGE="$(
         MID="$MID" MESSAGE_SUBJECT="$MESSAGE_SUBJECT" MESSAGE_BODY="$MESSAGE_BODY" php -r '
             require "vendor/autoload.php";
-            $db=\\MuchoCore\\V71\\DatabaseBridge::pdo();
+            $db=\MuchoCore\V71\DatabaseBridge::pdo();
             $q=$db->prepare("SELECT subject,body FROM messages WHERE id=? LIMIT 1");
             $q->execute([(int)getenv("MID")]);
             $row=$q->fetch(PDO::FETCH_ASSOC);
