@@ -9,6 +9,7 @@ declare(strict_types=1);
  */
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
+use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Account\AccountRepository;
 use MuchoCore\Account\AccountService;
 use MuchoCore\Job\JobQueue;
@@ -136,6 +137,27 @@ try {
     $db->exec("UPDATE accounts SET is_banned=0,is_active=0 WHERE username='Alpha'");
     $check($service->login('Alpha', 'secure pass 1', '', '192.0.2.9') === '-1',
         'inactive account cannot log in');
+
+    $exactPassword = '  secure GD password  ';
+    $check($service->register(
+        'Spaced', $exactPassword, 'spaced@example.test', '192.0.2.10'
+    ) === '1', 'register a password containing boundary spaces');
+    $check($service->login('Spaced', $exactPassword, '', '192.0.2.10') !== '-1',
+        'login preserves boundary spaces after registration');
+    $spacedId = (int)$db->query(
+        "SELECT account_id FROM accounts WHERE username='Spaced'"
+    )->fetchColumn();
+    $auth = new AccountAuthenticator($db);
+    $check((int)$auth->authenticate($spacedId, $exactPassword)['account_id'] === $spacedId,
+        'authenticated GD endpoints accept the original password bytes');
+    $strippedRejected = false;
+    try {
+        $auth->authenticate($spacedId, trim($exactPassword));
+    } catch (RuntimeException $error) {
+        $strippedRejected = $error->getMessage() === 'Unauthorized.';
+    }
+    $check($strippedRejected,
+        'authenticated GD endpoints reject altered password bytes');
 
     $check($service->register('bad username', 'pw', 'unique@example.test', '192.0.2.9') === '-4',
         'username validation preserves GD response -4');
