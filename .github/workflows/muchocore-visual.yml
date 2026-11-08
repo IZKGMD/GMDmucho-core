@@ -1,0 +1,38 @@
+name: MuchoCore visual QA
+
+on:
+  pull_request:
+    paths:
+      - "public/muchocore/**"
+      - "public/assets/muchocore-landing.css"
+      - "public/assets/muchocore-landing.js"
+      - "tests/seo/muchocore_visual.py"
+      - ".github/workflows/muchocore-visual.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  responsive:
+    name: Mobile and desktop visual QA
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Playwright Python driver
+        run: python3 -m pip install --quiet playwright
+      - name: Inspect available Chrome
+        run: command -v google-chrome || command -v chromium
+      - name: Render English and Russian layouts
+        env:
+          MUCHO_PREVIEW_B64: "1"
+        run: python3 tests/seo/muchocore_visual.py
+      - name: Keep preview screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: muchocore-mobile-ui-review
+          path: /tmp/muchocore-ui-preview/*.jpg
+          if-no-files-found: ignore
+          retention-days: 7
