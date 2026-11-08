@@ -75,7 +75,7 @@ $assert(str_contains($levelWire, '~15~1792540800'),
     '2.209 epoch field removed');
 
 
-$serviceReflection = new ReflectionClass('MuchoCore\\\\Interaction\\\\CommentService');
+$serviceReflection = new ReflectionClass('MuchoCore\\Interaction\\CommentService');
 $service = $serviceReflection->newInstanceWithoutConstructor();
 $normalize = $serviceReflection->getMethod('normalizeCommentText');
 $normalize->setAccessible(true);
