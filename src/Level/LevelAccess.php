@@ -18,7 +18,7 @@ final class LevelAccess
         if ((int)($level['unlisted2'] ?? 0) === 0) {
             return true;
         }
-        if ($viewer <= 0 || trim($credential) === '') {
+        if ($viewer <= 0 || $credential === '') {
             return false;
         }
         try {
