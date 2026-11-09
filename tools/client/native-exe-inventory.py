@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
 URL = re.compile(rb"(?:https?://(?:www\.)?(?:boomlings|geometrydash)\.com|%s)"
-                 rb"/(?:database|databas)/[A-Za-z0-9._/-]+\.php\x00")
+                 rb"/(?:database|databas|a)/[A-Za-z0-9._/-]+\.php\x00")
 
 
 def _url_pattern(patched_hosts):
@@ -31,7 +31,7 @@ def _url_pattern(patched_hosts):
     return re.compile(
         rb"(?:https?://(?:(?:www\.)?(?:boomlings|geometrydash)\.com|"
         + b"|".join(hosts)
-        + rb")|%s)/(?:database|databas)/[A-Za-z0-9._/-]+\.php\x00",
+        + rb")|%s)/(?:database|databas|a)/[A-Za-z0-9._/-]+\.php\x00",
         re.IGNORECASE,
     )
 
