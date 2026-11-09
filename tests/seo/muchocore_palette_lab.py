@@ -27,7 +27,7 @@ def main():
     try:
         root = f"http://127.0.0.1:{server.server_port}"
         with sync_playwright() as p:
-            executable = next((p for name in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser") if (p := shutil.which(name))), None)
+            executable = next((chrome_path for name in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser") if (chrome_path := shutil.which(name))), None)
             assert executable, "system Chromium/Chrome missing"
             browser = p.chromium.launch(executable_path=executable,headless=True,args=["--no-sandbox"])
             try:
