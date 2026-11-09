@@ -11,6 +11,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 import shutil
 import threading
+import re
 
 PUBLIC=Path(__file__).resolve().parents[2]/"public"
 OUTPUT=Path("/tmp/muchocore-ui-preview")
@@ -20,9 +21,23 @@ class Quiet(SimpleHTTPRequestHandler):
     def log_message(self,*args):
         pass
 
+def php_inline_css(filename, block):
+    source=(PUBLIC/filename).read_text(encoding="utf-8")
+    styles=re.findall(r"<style[^>]*>(.*?)</style>", source, re.IGNORECASE|re.DOTALL)
+    assert len(styles)>block,(filename,len(styles),block)
+    assert "<?" not in styles[block], "CSS must not contain PHP expressions"
+    return styles[block]
+
 def admin(base):
+    live_style=php_inline_css("admin/index.php",3)
     return f"""<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>*,*::before,*::after{{box-sizing:border-box}}</style>
+<style>{live_style}</style><style>*,*::before,*::after{{box-sizing:border-box}}</style>
+<link rel="stylesheet" href="{base}/assets/product-ui.css?v=2">
+<link rel="stylesheet" href="{base}/admin/product-admin.css?v=1">
+<link rel="stylesheet" href="{base}/admin/admin-simple.css?v=4">
+<link rel="stylesheet" href="{base}/admin/admin-polish.css?v=5">
+<link rel="stylesheet" href="{base}/admin/admin-workspace.css?v=7">
+<link rel="stylesheet" href="{base}/admin/admin-motion.css?v=2">
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
 <link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=2"></head>
 <body class="mc-admin"><div class="shell">
@@ -41,9 +56,11 @@ def admin(base):
 <aside class="mc-ops-actions"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">SHORTCUTS</p><h3>Operator tools</h3></div></div><nav><a href="#"><span><strong>Review levels</strong><small>Ratings and moderation</small></span><span>↗</span></a><a href="#"><span><strong>Publish news</strong><small>In-game announcements</small></span><span>↗</span></a><a href="#"><span><strong>Backups</strong><small>Database snapshots</small></span><span>↗</span></a></nav></aside></div></div></main></div></body></html>"""
 
 def portal(base):
+    live_style=php_inline_css("dashboard/index.php",0)
     return f"""<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>*,*::before,*::after{{box-sizing:border-box}}</style>
+<style>{live_style}</style><style>*,*::before,*::after{{box-sizing:border-box}}</style>
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
+<link rel="stylesheet" href="{base}/muchocore-theme.css?v=3">
 <link rel="stylesheet" href="{base}/assets/mucho-portal-v3.css?v=2"></head>
 <body class="dashboard-page"><div class="shell"><header class="topbar"><a class="brand" href="#"><img class="mc-brand-mark" src="{base}/assets/muchocore-icon.png?v=3" alt=""><span class="mc-portal-brand-copy"><strong>MuchoCore</strong><small>PLAYER PORTAL</small></span></a><nav class="nav"><a href="#">Players</a><a href="#">Music</a><a href="#">Clans</a><a class="btn" href="#">Login</a></nav></header>
 <section class="mc-community-home"><div class="mc-community-discovery"><div class="mc-community-overline"><span>PLAYER PORTAL</span><span>MuchoCore</span></div>
