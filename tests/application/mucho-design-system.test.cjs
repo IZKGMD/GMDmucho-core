@@ -5,7 +5,7 @@ const path = require('node:path');
 
 const root = path.join(__dirname, '../..');
 const read = (p) => fs.readFileSync(path.join(root,p),'utf8');
-const style = '/assets/mucho-design-system.css?v=1';
+const style = '/assets/mucho-design-system.css?v=2';
 
 test('unified design layer is loaded in all PHP8/public web surfaces',()=>{
   for (const path of ['public/index.html','public/muchocore/index.html','public/muchocore/ru/index.html','public/muchocore/about/index.html','public/muchocore/compatibility/index.html','public/dashboard/index.php','public/dashboard/clans.php','public/install/index.html','public/admin/index.php']) {

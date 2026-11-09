@@ -24,7 +24,7 @@ The MuchoCore result is original CSS, no npm/framework imports, copied component
 
 ## Entrypoints
 
-The shared stylesheet `public/assets/mucho-design-system.css` is loaded last by the public site, MuchoCore EN/RU, admin, portal, clans, installer and documentation pages. Existing runtime CSS provides page structure; this layer harmonizes presentation without changing server logic.
+The cache-busted stylesheet `/assets/mucho-design-system.css?v=2` is loaded last by the public site, MuchoCore EN/RU, admin, portal, clans, installer and documentation pages. Existing runtime CSS provides page structure; this layer harmonizes presentation without changing server logic.
 
 ## Acceptance
 
