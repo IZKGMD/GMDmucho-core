@@ -213,6 +213,9 @@ jobs:
           php -l public/shared-install.php
           php -l public/ftp-install.php
           php -l bin/mucho-shared-deploy-worker.php
+          bash -n tools/release/build-php7-native.sh
+          python3 -m py_compile tools/release/5v-installer/mucho5v.py tools/release/5v-installer/INSTALL_5V.py tools/release/5v-installer/RECOVER_ADMIN_5V.py
+          python3 tests/release/test_5v_archive_installer.py
           php tests/application/php82-shared-host-compatibility.php
           php tests/application/shared-hosting-installer-contract.php
           php tests/application/shared-one-archive-installer-contract.php
