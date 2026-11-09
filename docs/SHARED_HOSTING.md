@@ -45,6 +45,53 @@ A shared-hosting account needs:
 - FTP or the hosting file manager;
 - a database and database user.
 
+## Archive-based automatic installer — 5V.PL ONLY
+
+New operators can install the **native PHP 7 preview directly from the release
+ZIP**, without uploading files manually or using VPS/SSH. The build
+`MuchoCore-PHP7-5v-native-preview.zip` includes:
+
+- `START_INSTALL_WINDOWS.cmd` / `START_INSTALL_LINUX.sh` — runs the local
+  Python 3.10+ installer (`INSTALL_5V.py`); no Python is required on 5v.pl.
+- `START_RECOVERY_WINDOWS.cmd` / `START_RECOVERY_LINUX.sh` — FTP-verified
+  **recovery of an EXISTING owner** (`RECOVER_ADMIN_5V.py`), even when the
+  previous password or second factor has been lost. When exactly one owner
+  exists, the operator may leave the owner username empty.
+- `README_RU.txt` — plain-language first-run and recovery instructions.
+
+The operator creates a site and an **empty MySQL database** at 5v.pl first,
+extracts the whole archive and provides: site HTTPS URL, FTP access,
+MySQL credentials, owner username/email/password. Those inputs are used
+locally; the control-plane VPS never receives them. FTPS is the secure
+default; opting into unencrypted FTP requires explicit acknowledgement.
+
+The script verifies the website document root with a temporary random HTTPS
+marker, **refuses any existing `mc/` directory**, uploads the native package,
+checks that private `mc/config/` files are denied over HTTP **before**
+uploading the MySQL password, safely backs up existing root `.htaccess`,
+sets up the private PHP config, submits the real first-owner bootstrap
+through HTTPS and advances the owner's original resumable database migration
+without bypassing its locks. Installation is marked complete only after
+the private migration completion marker is observed.
+
+**Recovering the owner:** verify FTP control of the same `*.5v.pl` site,
+enter a new owner password and invoke the bundled recovery launcher.
+It creates a temporary server-side PHP 7 handler containing a hash of
+a random 256-bit authorization token, sends the token and new password
+over HTTPS, resets only the selected existing active owner credential,
+revokes old sessions, passkeys and MFA credentials, and deletes the
+handler. No accounts, levels, data, privileges or Cloud Save keys
+are deleted. Recovery works only while the user retains or recovers
+their FTP account access. When multiple active owners exist, the
+existing owner username is mandatory to avoid ambiguity.
+
+**Limitations:** this is a new-install tool; it intentionally will not
+overwrite an existing site/owner. Test on a fresh 5v.pl account before
+calling native GD 2.209 compatibility certified. The target host may
+not support FTPS; ordinary FTP does not encrypt passwords or upload
+data. PHP 7 is obsolete, and the operator remains responsible for
+keeping a separate MySQL backup and private Cloud Save key.
+
 ## Online installer: ONLY 5V.PL (PHP 7 native preview)
 
 The dedicated entry point at [https://muchogdps.space/install/shared/](https://muchogdps.space/install/shared/)
