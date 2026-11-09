@@ -382,3 +382,7 @@ html[data-theme="light"] body.mc-admin,html[data-theme="light"] body.admin-login
 html[data-theme="light"] body.mc-admin .mc-ops-kicker,html[data-theme="light"] body.mc-admin .mc-section-caption{color:#7353a6}
 html[data-theme="light"] body.mc-admin .mc-ops-attention{border-left-color:#7353a6;background:#f2edf8;border-color:#ddd2eb}
 html[data-theme="light"] body.mc-admin .mc-ops-attention-go,html[data-theme="light"] body.mc-admin .mc-ops-attention-copy small{color:#7353a6}
+
+/* Prevent legacy flex sizing from narrowing the rebuilt operator overview. */
+body.mc-admin .mc-ops{width:100%;min-width:0}
+body.mc-admin .mc-ops-content{width:100%;min-width:0}

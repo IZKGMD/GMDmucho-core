@@ -70,7 +70,7 @@ def portal(base):
 <section class="dashboard-stats mc-community-statistics"><div class="dashboard-stat"><span class="dashboard-stat-label">Players</span><div class="dashboard-stat-value">—</div><small class="dashboard-stat-detail">Live total</small></div>
 <div class="dashboard-stat"><span class="dashboard-stat-label">Levels</span><div class="dashboard-stat-value">—</div><small class="dashboard-stat-detail">Published</small></div><div class="dashboard-stat"><span class="dashboard-stat-label">Songs</span><div class="dashboard-stat-value">—</div><small class="dashboard-stat-detail">Community music</small></div>
 <div class="dashboard-stat"><span class="dashboard-stat-label">Clans</span><div class="dashboard-stat-value">—</div><small class="dashboard-stat-detail">Active groups</small></div></section></div>
-<aside class="panel portal-panel mc-community-access"><div class="portal-head"><span class="portal-eyebrow">PLAYER ACCOUNT</span><h2 class="portal-title">Sign in</h2><p class="portal-description">Use your GDPS credentials to manage uploads and your profile.</p></div><div class="field"><label for="loginUser">Username</label><input id="loginUser" placeholder="Username"></div><div class="field"><label for="loginPass">Password</label><input id="loginPass" type="password" placeholder="Password"></div><button class="btn" type="button">Sign in</button></aside></section>
+<aside class="panel portal-panel mc-community-access"><div><div class="portal-head"><div class="portal-head-copy"><div class="portal-eyebrow">ACCOUNT ACCESS</div><h2 class="portal-title">Sign in to upload</h2><p class="portal-description">Use your GDPS account to manage uploads and your profile.</p></div><div class="portal-mark">♪</div></div><div class="form-divider"></div></div><form><div class="field"><label for="loginUser">Username</label><input id="loginUser" placeholder="Username"></div><div class="field"><label for="loginPass">Password</label><input id="loginPass" type="password" placeholder="Password"></div><button class="btn" type="button">Sign in to upload</button></form></aside></section>
 <section class="mc-community-spotlight"><div class="mc-community-spotlight-top"><div><span class="mc-community-label">FROM THE SERVER</span><h2>Community spotlight</h2></div><a href="#">View leaderboard ↗</a></div><div class="mc-community-featured mc-community-none"><span><small>TOP PLAYER</small><strong>Server data is not loaded in this preview</strong><span>Live player stats are shown on the running server.</span></span></div></section></div></body></html>"""
 
 def main():
@@ -96,9 +96,17 @@ def main():
                         assert over<=1,(name,width,"horizontal overflow",over, page.evaluate("""() => [...document.querySelectorAll('body *')].filter(el => el.getBoundingClientRect().right > innerWidth + 1).slice(0, 8).map(el => [el.tagName, el.className, Math.round(el.getBoundingClientRect().right)])"""))
                         assert not errors,(name,width,errors)
                         if name=="admin":
+                            widths=page.evaluate("""() => ({
+                                main:document.querySelector('.shell>main').getBoundingClientRect().width,
+                                ops:document.querySelector('.mc-ops').getBoundingClientRect().width
+                            })""")
+                            assert widths["ops"] >= widths["main"]-100,(name,width,widths)
                             sidebar=page.locator(".shell>aside").evaluate("(e)=>getComputedStyle(e).backgroundColor")
                             assert sidebar=="rgb(20, 19, 28)",sidebar
                         else:
+                            label=page.locator(".mc-community-search>label").bounding_box()
+                            search_row=page.locator(".mc-community-search-row").bounding_box()
+                            assert label and search_row and search_row["y"] >= label["y"]+label["height"],(name,width,label,search_row)
                             panel=page.locator(".mc-community-access").evaluate("(e)=>getComputedStyle(e).backgroundColor")
                             assert panel=="rgb(33, 25, 46)",panel
                         file=OUTPUT/f"muchocore-hybrid-{name}-fixture-{width}.jpg"

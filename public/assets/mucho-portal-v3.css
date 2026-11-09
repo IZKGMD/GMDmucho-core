@@ -430,3 +430,17 @@ html[data-theme="light"] body.dashboard-page,html[data-theme="light"] body.mc-cl
  --mc-accent:#7353a6;--mc-action:#7353a6;
 }
 @media(prefers-reduced-motion:reduce){html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page *,html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page *{transition:none!important;animation:none!important}}
+
+/* The search form owns one column even when older portal .search uses two. */
+body.dashboard-page .mc-community-search{
+ grid-template-columns:minmax(0,1fr);
+ width:100%;
+}
+body.dashboard-page .mc-community-search>label,
+body.dashboard-page .mc-community-search-row{grid-column:1;min-width:0;width:100%}
+body.dashboard-page .mc-community-search-row input{min-width:0}
+body.dashboard-page .mc-community-access .portal-head{display:flex;align-items:start;justify-content:space-between;gap:15px}
+body.dashboard-page .mc-community-access .portal-head-copy{min-width:0;flex:1}
+body.dashboard-page .mc-community-none>span{display:grid;gap:5px;align-content:center}
+body.dashboard-page .mc-community-none>span>strong{display:block;color:var(--text)}
+body.dashboard-page .mc-community-none>span>span{display:block;color:var(--muted);font-size:12px}
