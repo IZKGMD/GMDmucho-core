@@ -175,6 +175,53 @@ class ClientFunctions(unittest.TestCase):
         self.assertIsNone(apk)
         self.assertEqual(exe, Path("/owned.exe"))
 
+    def test_android_job_refuses_unsigned_or_unverified_report(self):
+        with tempfile.TemporaryDirectory() as folder:
+            apk = Path(folder) / "GeometryDash.apk"
+            apk.write_bytes(b"PK" + b"z" * 2048)
+            csrf = "b" * 48
+            class FakeAdmin:
+                origin = "https://mine.5v.pl"
+                def request(self, path, form=None):
+                    return 200, ('<form id="sharedPatcher" data-csrf="' +
+                                 csrf + '">').encode()
+            status = [
+                {"ok": True, "phase": "idle"},
+                {"ok": True, "phase": "upload", "offset": 0, "id": "e" * 32},
+                {"ok": True, "phase": "done", "id": "e" * 32, "report": {
+                    "signed": False, "signature_schemes": ["v1"],
+                    "output_sha256": "a" * 64, "output_size": 2700,
+                    "server_url": FakeAdmin.origin, "replacement_count": 1,
+                }},
+            ]
+            with patch.object(clients, "_urlencoded", side_effect=status), \
+                 patch.object(clients, "_chunk_request", return_value={
+                     "ok": True, "phase": "upload", "offset": apk.stat().st_size
+                 }):
+                with self.assertRaises(InstallError):
+                    clients.patch_android(FakeAdmin(), apk, FakeAdmin.origin,
+                                          progress=lambda _: None)
+
+    def test_download_index_preserves_old_clients_and_custom_page(self):
+        ftp = FakeFtp()
+        site = FakeSite()
+        old = site.origin + clients.PUBLIC_PREFIX + \
+            "GeometryDash-MuchoCore-" + "a" * 12 + ".exe"
+        new = site.origin + clients.PUBLIC_PREFIX + \
+            "GeometryDash-MuchoCore-" + "b" * 12 + ".apk"
+        clients.publish_index(ftp, site, {"exe": {"url": old, "sha256": "a" * 64}})
+        clients.publish_index(ftp, site, {"apk": {"url": new, "sha256": "b" * 64}})
+        published = ftp.conn.files["mc/public/clients/index.html"][1]
+        self.assertIn(old.encode(), published)
+        self.assertIn(new.encode(), published)
+        self.assertIn(b"MUCHOCORE_CLIENTS_INDEX_V1", published)
+
+        ftp.conn.files["mc/public/clients/index.html"] = (16, b"User own homepage")
+        with self.assertRaises(InstallError):
+            clients.publish_index(ftp, site, {"apk": {"url": new, "sha256": "b" * 64}})
+        self.assertEqual(ftp.conn.files["mc/public/clients/index.html"][1],
+                         b"User own homepage")
+
     def test_static_download_landing_does_not_disclose_secrets(self):
         ftp = FakeFtp()
         clients.publish_index(ftp, FakeSite(), {
