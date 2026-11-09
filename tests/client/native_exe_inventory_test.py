@@ -49,6 +49,43 @@ class NativeInventoryTest(unittest.TestCase):
         self.assertEqual(rows[4]["service"], "application")
         self.assertFalse(report["native_client_certified"])
 
+    def test_explicit_patched_host_and_real_missing_operations(self):
+        image = fixture([
+            "https://muchogdps.space/database/getGJNotifications.php",
+            "https://muchogdps.space/database/accounts/loginGJAccount.php",
+            "https://muchogdps.space/database/submitGJUserInfo.php",
+            "https://muchogdps.space/database/uploadMPComment.php",
+            "%s/database/accounts/syncGJAccountNew.php",
+            "https://example.com/database/notAnAcceptedHost.php",
+        ])
+        unconfigured = inventory.inspect(image)
+        self.assertEqual(unconfigured["direct_urls"], 0)
+        self.assertEqual(unconfigured["url_templates"], 1)
+        report = inventory.inspect(image, patched_hosts=["muchogdps.space"])
+        self.assertEqual(report["direct_urls"], 4)
+        self.assertEqual(report["url_templates"], 1)
+        self.assertEqual(report["source_hosts"], {"muchogdps.space": 4})
+        self.assertEqual(report["unimplemented_paths"], [
+            "/submitgjuserinfo", "/uploadmpcomment",
+        ])
+        self.assertEqual(report["endpoints"][0]["service"], "application")
+        self.assertEqual(report["endpoints"][1]["canonical_path"], "/logingjaccount")
+        self.assertFalse(report["native_client_certified"])
+
+    def test_custom_host_is_opt_in_and_strict(self):
+        image = fixture([
+            "https://private.example.net/a/getGJLevels21.php",
+            "https://private.example.net/database/getGJLevels21.php",
+        ])
+        self.assertEqual(inventory.inspect(image)["direct_urls"], 0)
+        report = inventory.inspect(image, patched_hosts=["private.example.net"])
+        self.assertEqual(report["direct_urls"], 1)
+        self.assertEqual(report["unimplemented_paths"], [])
+        for host in ("https://private.example.net", "private.example.net:443",
+                     "private.example.net/other", "localhost", ""):
+            with self.subTest(host=host), self.assertRaises(ValueError):
+                inventory.inspect(image, patched_hosts=[host])
+
     def test_urls_outside_rdata_cannot_claim_coverage(self):
         image = fixture(["https://www.boomlings.com/database/getGJLevels21.php"])
         image += b"https://www.boomlings.com/database/notAnRdataEndpoint.php\x00"
