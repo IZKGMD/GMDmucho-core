@@ -7,6 +7,9 @@ on:
       - "public/assets/mucho-design-system.css"
       - "public/assets/mucho-product-v3.css"
       - "public/assets/mucho-product-v3.js"
+      - "public/assets/mucho-palette-lab.css"
+      - "public/assets/mucho-palette-lab.js"
+      - "tests/seo/muchocore_palette_lab.py"
       - "public/install/index.html"
       - "public/assets/mucho-install-v3.css"
       - "public/muchocore/discovery.css"
@@ -34,6 +37,8 @@ jobs:
         env:
           MUCHO_PREVIEW_B64: "0"
         run: python3 tests/seo/muchocore_visual.py
+      - name: Compare logo-based palettes in Chromium
+        run: python3 tests/seo/muchocore_palette_lab.py
       - name: Keep preview screenshots
         if: always()
         uses: actions/upload-artifact@v4
