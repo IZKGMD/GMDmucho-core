@@ -1,0 +1,249 @@
+/*
+ * MuchoCore logo palette lab — experimental branch only.
+ *
+ * The MuchoCore logo is lavender/violet with a cool metallic rim.
+ * This design test retains the v3 layout and changes only surface,
+ * accent, border and text colors. It is intentionally not a final theme.
+ *
+ * Activate with ?palette=amethyst|titanium|midnight
+ */
+html[data-mc-palette="amethyst"] {
+  --mc-paper:#F5F3F9;
+  --mc-paper-hi:#FFFFFF;
+  --mc-ink:#292433;
+  --mc-copy:#595365;
+  --mc-dim:#797181;
+  --mc-rule:#DFDBE6;
+  --mc-brand:#7855A7;
+  --mc-deep:#272036;
+  --mc-deep-text:#F6F1FC;
+  --mc-deep-rule:#554963;
+  --mc-alt:#ECE8F3;
+  --mc-footer:#EEEAF5;
+  --mc-muted-panel:#E7E0EF;
+  --mc-strong-border:#A9A0B6;
+  --mc-btn-ink:#FFFFFF;
+  --mc-demo-copy:#CAC0D3;
+  --mc-demo-muted:#B6A9C4;
+  --mc-logo-tint:#DED2F0;
+  --mc-logo-ink:#312444;
+  --mc-success-line:#B99CCB;
+  color-scheme:light;
+}
+html[data-mc-palette="titanium"] {
+  --mc-paper:#ECEFF3;
+  --mc-paper-hi:#FBFCFF;
+  --mc-ink:#242733;
+  --mc-copy:#565D6C;
+  --mc-dim:#798293;
+  --mc-rule:#D4DAE4;
+  --mc-brand:#6A57A8;
+  --mc-deep:#1F2330;
+  --mc-deep-text:#F4F2FC;
+  --mc-deep-rule:#414759;
+  --mc-alt:#E2E7ED;
+  --mc-footer:#E4E8EE;
+  --mc-muted-panel:#D9DEEA;
+  --mc-strong-border:#A0ABBA;
+  --mc-btn-ink:#FFFFFF;
+  --mc-demo-copy:#BFC6D6;
+  --mc-demo-muted:#A5ADC4;
+  --mc-logo-tint:#D5CDEB;
+  --mc-logo-ink:#2C2444;
+  --mc-success-line:#B4A2DA;
+  color-scheme:light;
+}
+html[data-mc-palette="midnight"] {
+  --mc-paper:#14131C;
+  --mc-paper-hi:#211D2C;
+  --mc-ink:#F3F0F8;
+  --mc-copy:#C2BBCE;
+  --mc-dim:#9990A8;
+  --mc-rule:#3C354A;
+  --mc-brand:#BA9CEE;
+  --mc-deep:#201B2B;
+  --mc-deep-text:#F5F1FB;
+  --mc-deep-rule:#4D405F;
+  --mc-alt:#1B1725;
+  --mc-footer:#181520;
+  --mc-muted-panel:#302A3C;
+  --mc-strong-border:#655776;
+  --mc-btn-ink:#1A1425;
+  --mc-demo-copy:#C8C0D5;
+  --mc-demo-muted:#A9A0BE;
+  --mc-logo-tint:#D9CBF1;
+  --mc-logo-ink:#322442;
+  --mc-success-line:#8069AD;
+  color-scheme:dark;
+}
+html[data-mc-palette] body.mc-editorial {
+  background:var(--mc-paper);
+  color:var(--mc-ink);
+}
+html[data-mc-palette] .mc-site-header {
+  background:var(--mc-paper);
+  border-bottom-color:var(--mc-rule);
+}
+html[data-mc-palette] .mc-site-brand strong,
+html[data-mc-palette] .mc-site-nav a:hover,
+html[data-mc-palette] .mc-site-lang a[aria-current=page],
+html[data-mc-palette] .mc-install-notes strong {
+  color:var(--mc-ink);
+}
+html[data-mc-palette] .mc-site-brand small,
+html[data-mc-palette] .mc-site-nav a,
+html[data-mc-palette] .mc-site-lang a {
+  color:var(--mc-dim);
+}
+html[data-mc-palette] .mc-site-lang,
+html[data-mc-palette] .mc-menu-toggle {
+  border-color:var(--mc-rule);
+}
+html[data-mc-palette] .mc-site-lang a[aria-current=page] {
+  background:var(--mc-muted-panel);
+}
+html[data-mc-palette] .mc-site-source {
+  color:var(--mc-ink);
+  border-color:var(--mc-ink);
+}
+html[data-mc-palette] .mc-site-source:hover {
+  background:var(--mc-ink);
+  color:var(--mc-paper);
+}
+html[data-mc-palette] .mc-menu-toggle {
+  color:var(--mc-ink);
+}
+html[data-mc-palette] .mc-hero-topline,
+html[data-mc-palette] .mc-cap-strip,
+html[data-mc-palette] .mc-structured-section,
+html[data-mc-palette] .mc-feature-row,
+html[data-mc-palette] .mc-flow-steps li,
+html[data-mc-palette] .mc-closer,
+html[data-mc-palette] .mc-faq-list details {
+  border-color:var(--mc-rule);
+}
+html[data-mc-palette] .mc-button-solid {
+  background:var(--mc-brand);
+  border-color:var(--mc-brand);
+  color:var(--mc-btn-ink)!important;
+}
+html[data-mc-palette] .mc-button-solid:hover {
+  background:var(--mc-brand);
+  border-color:var(--mc-brand);
+  filter:brightness(.92);
+}
+html[data-mc-palette] .mc-button-ghost {
+  background:transparent;
+  border-color:var(--mc-strong-border);
+  color:var(--mc-ink);
+}
+html[data-mc-palette] .mc-button-ghost:hover {
+  background:var(--mc-alt);
+  border-color:var(--mc-brand);
+}
+html[data-mc-palette] .mc-demo-window,
+html[data-mc-palette] .mc-compat-section,
+html[data-mc-palette] .mc-cli {
+  background:var(--mc-deep);
+  color:var(--mc-deep-text);
+}
+html[data-mc-palette] .mc-demo-window {
+  border-color:var(--mc-deep-rule);
+}
+html[data-mc-palette] .mc-demo-chrome,
+html[data-mc-palette] .mc-demo-tabs,
+html[data-mc-palette] .mc-demo-rows,
+html[data-mc-palette] .mc-demo-rows>div,
+html[data-mc-palette] .mc-compat-links,
+html[data-mc-palette] .mc-cli-top {
+  border-color:var(--mc-deep-rule);
+}
+html[data-mc-palette] .mc-demo-window-mark {
+  background:var(--mc-logo-tint);
+  color:var(--mc-logo-ink);
+}
+html[data-mc-palette] .mc-demo-chrome small,
+html[data-mc-palette] .mc-demo-edition,
+html[data-mc-palette] .mc-demo-tabs button,
+html[data-mc-palette] .mc-demo-rows dt,
+html[data-mc-palette] .mc-demo-caption,
+html[data-mc-palette] .mc-compat-layout>div:last-child>p,
+html[data-mc-palette] .mc-cli-top {
+  color:var(--mc-demo-muted);
+}
+html[data-mc-palette] .mc-demo-intro p {
+  color:var(--mc-demo-copy);
+}
+html[data-mc-palette] .mc-demo-tabs button[aria-selected=true] {
+  color:var(--mc-deep-text);
+  border-bottom-color:var(--mc-brand);
+}
+html[data-mc-palette] .mc-demo-pill,
+html[data-mc-palette] .mc-compat-layout .mc-section-kicker,
+html[data-mc-palette] .mc-compat-links span {
+  color:var(--mc-brand);
+}
+html[data-mc-palette] .mc-demo-rows dd,
+html[data-mc-palette] .mc-demo-intro h3 {
+  color:var(--mc-deep-text);
+}
+html[data-mc-palette] .mc-cap-strip,
+html[data-mc-palette] .mc-flow-section,
+html[data-mc-palette] .mc-closer {
+  background:var(--mc-alt);
+}
+html[data-mc-palette] .mc-cap-strip .mc-container>div {
+  border-color:var(--mc-rule);
+}
+html[data-mc-palette] .mc-flow-steps li>span {
+  border-color:var(--mc-strong-border);
+  color:var(--mc-copy);
+}
+html[data-mc-palette] .mc-install-option {
+  background:var(--mc-paper-hi);
+  border-color:var(--mc-rule);
+}
+html[data-mc-palette] .mc-install-option:hover {
+  border-color:var(--mc-brand);
+}
+html[data-mc-palette] .mc-faq-list summary,
+html[data-mc-palette] .mc-closer blockquote {
+  color:var(--mc-ink);
+}
+html[data-mc-palette] .mc-site-footer {
+  background:var(--mc-footer);
+  border-color:var(--mc-rule);
+}
+html[data-mc-palette] .mc-footer-bottom {
+  border-color:var(--mc-rule);
+}
+html[data-mc-palette] .mc-site-footer a {
+  color:var(--mc-ink);
+}
+html[data-mc-palette].mc-js .mc-site-nav {
+  background:var(--mc-paper);
+}
+html[data-mc-palette="midnight"] .mc-site-nav a:hover,
+html[data-mc-palette="midnight"] .mc-footer-top nav a:hover {
+  color:var(--mc-brand);
+}
+html[data-mc-palette="midnight"] .mc-install-option>strong,
+html[data-mc-palette="midnight"] .mc-feature-glyph,
+html[data-mc-palette="midnight"] .mc-section-kicker,
+html[data-mc-palette="midnight"] .mc-hero-topline span:first-child,
+html[data-mc-palette="midnight"] .mc-hero-message h1 em,
+html[data-mc-palette="midnight"] .mc-compat-links a {
+  color:var(--mc-brand);
+}
+html[data-mc-palette="midnight"] .mc-cli button {
+  color:var(--mc-deep-text);
+}
+@media(max-width:820px) {
+  html[data-mc-palette] .mc-site-nav {
+    background:var(--mc-paper-hi);
+    border-color:var(--mc-rule);
+  }
+  html[data-mc-palette] .mc-site-nav a {
+    border-color:var(--mc-rule);
+  }
+}
