@@ -72,35 +72,7 @@ jobs:
           for item in mc/compat/php7/users.php INSTALL_5V.py PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py START_CLIENTS_WINDOWS.cmd; do
             unzip -Z1 MuchoCore-PHP7-5v-native-preview.zip | grep -Fx "$item"
           done
-          if unzip -Z1 MuchoCore-PHP7-5v-native-preview.zip | grep -Ei '\\.(exe|apk)
-
-      - name: Prepare complete PHP8.2+ core archive
-        run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
-
-      - name: Build and inspect complete PHP8.2+ shared-hosting package
-        env:
-          OUTPUT: MuchoCore-full-PHP82-shared-hosting.zip
-        run: |
-          bash tools/release/build-shared-hosting.sh
-          unzip -t "$OUTPUT"
-          test -s "$OUTPUT"
-
-      - name: Upload standalone PHP7 preview ZIP
-        uses: actions/upload-artifact@v4
-        with:
-          name: MuchoCore-PHP7-5v-native-preview
-          path: MuchoCore-PHP7-5v-native-preview.zip
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Upload complete PHP8 shared-hosting ZIP
-        uses: actions/upload-artifact@v4
-        with:
-          name: MuchoCore-full-PHP82-shared-hosting
-          path: MuchoCore-full-PHP82-shared-hosting.zip
-          if-no-files-found: error
-          retention-days: 30
-; then
+          if unzip -Z1 MuchoCore-PHP7-5v-native-preview.zip | grep -Ei '\.(exe|apk)$'; then
             echo "Do not bundle original copyrighted game binaries" >&2
             exit 1
           fi
