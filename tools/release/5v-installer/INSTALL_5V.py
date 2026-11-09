@@ -167,7 +167,17 @@ def perform_install(cfg):
             if code != 200:
                 raise InstallError("Веб-админка не прошла заключительную проверку.")
             report["status"] = "admin_and_migration_ok"
-            print("\nУстановка завершена. Админка:", cfg["site"] + "/mc/admin.php")
+            print("\nУстановка ядра завершена. Админка:", cfg["site"] + "/mc/admin.php")
+            print("\nТеперь можно автоматически подготовить EXE и APK:")
+            try:
+                from PUBLISH_CLIENTS_5V import publish_interactive
+                report["client_links"] = publish_interactive(site, ftp)
+                report["clients_status"] = "published" if report["client_links"] else "skipped"
+            except (InstallError, OSError, ValueError) as client_error:
+                report["clients_status"] = "needs_attention"
+                print("Клиентам нужна отдельная проверка:", client_error)
+                print("Само ядро и админка УЖЕ установлены и не затрагиваются.")
+                print("Можно повторить только публикацию: START_CLIENTS_WINDOWS.cmd")
             print("Сохрани FTP-учётные данные в надёжном месте!")
             print("Если забудешь пароль/2FA: START_RECOVERY_WINDOWS.cmd")
             print("Совместимость ВСЕХ операций Geometry Dash 2.209 проверяется отдельно.")
