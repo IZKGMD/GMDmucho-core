@@ -5,6 +5,11 @@ on:
     paths:
       - "public/muchocore/**"
       - "public/assets/mucho-design-system.css"
+      - "public/assets/mucho-product-v3.css"
+      - "public/assets/mucho-product-v3.js"
+      - "public/install/index.html"
+      - "public/assets/mucho-install-v3.css"
+      - "public/muchocore/discovery.css"
       - "public/assets/muchocore-landing.css"
       - "public/assets/muchocore-landing.js"
       - "tests/seo/muchocore_visual.py"

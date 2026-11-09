@@ -1487,12 +1487,13 @@ body.dashboard-page .topbar{
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <script src="/assets/product-ui.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
+<link rel="stylesheet" href="/assets/mucho-portal-v3.css?v=1">
 </head>
 <body class="dashboard-page mc-workspace">
 <div class="shell">
 
 <header class="topbar">
-    <a class="brand" href="/dashboard" aria-label="<?=pdH($serverName)?>"><img class="mucho-brand-logo mc-brand-mark" src="/assets/muchocore-icon.png?v=3" alt="<?=pdH($serverName)?>" width="48" height="48" decoding="async"></a>
+    <a class="brand" href="/dashboard" aria-label="<?=pdH($serverName)?>"><img class="mucho-brand-logo mc-brand-mark" src="/assets/muchocore-icon.png?v=3" alt="" width="40" height="40" decoding="async"><span class="mc-portal-brand-copy"><strong><?=pdH($serverName)?></strong><small>PLAYER PORTAL</small></span></a>
     <nav class="nav">
         <a href="/dashboard">Discover</a>
         <a href="#players">Players</a>
@@ -1613,42 +1614,59 @@ body.dashboard-page .topbar{
 
 <?php else: ?>
 
-<section class="hero">
-    <div class="panel hero-main">
-        <div class="hero-kicker">Player portal · Geometry Dash 2.2</div>
-        <h1 class="hero-title">Meet the <span><?=pdH($serverName)?></span> community.</h1>
-        <p class="muted hero-copy">
-            Search players, explore creator activity, browse community music,
-            and manage your own uploads from one clean dashboard.
-        </p>
-
-        <div class="hero-actions">
-            <a class="btn" href="#players">Explore players</a>
-            <a class="btn alt" href="/dashboard/clans.php">Explore clans</a>
-            <a class="btn alt" href="#music">Browse music</a>
+<section class="mc-community-home" id="overview">
+  <div class="mc-community-discovery">
+    <div class="mc-community-overline"><span>PLAYER PORTAL</span><span><?=pdH($serverName)?></span></div>
+    <h1>Explore your<br><span>community.</span></h1>
+    <p>Search real player profiles, follow the leaderboard and discover music uploaded by the community.</p>
+    <form class="search mc-community-search" method="get" action="/dashboard" role="search">
+      <label for="mcPlayerSearch">Find a player</label>
+      <div class="mc-community-search-row">
+        <input id="mcPlayerSearch" type="search" name="search" maxlength="20" value="<?=pdH($search)?>" placeholder="Search username..." autocomplete="off">
+        <button class="btn" type="submit">Search ↗</button>
+      </div>
+    </form>
+    <nav class="mc-community-shortcuts" aria-label="Discover the community">
+      <a href="#players">Leaderboard ↗</a>
+      <a href="/dashboard/clans.php">Clans ↗</a>
+      <a href="#music">Music ↗</a>
+    </nav>
+    <section class="dashboard-stats mc-community-statistics" aria-label="Community statistics">
+    <div class="dashboard-stat">
+        <div class="dashboard-stat-top">
+            <span class="dashboard-stat-label">Players</span>
+            <span class="dashboard-stat-icon">◈</span>
         </div>
-
-        <div class="hero-note">
-            <span>Fast player search</span>
-            <span>Public profiles</span>
-            <span>Clan tags</span>
-            <span>1 upload / 3 min</span>
-        </div>
-
-        <form class="search" method="get" action="/dashboard">
-            <input
-                type="text"
-                name="search"
-                maxlength="20"
-                value="<?=pdH($search)?>"
-                placeholder="Search a player username..."
-                autocomplete="off"
-            >
-            <button class="btn" type="submit">Search players</button>
-        </form>
+        <div class="dashboard-stat-value"><?=pdFormatNumber($dashboardStats['players'])?></div>
+        <div class="dashboard-stat-detail">Active community accounts</div>
     </div>
-
-    <div class="panel portal-panel" id="upload">
+    <div class="dashboard-stat">
+        <div class="dashboard-stat-top">
+            <span class="dashboard-stat-label">Levels</span>
+            <span class="dashboard-stat-icon">◆</span>
+        </div>
+        <div class="dashboard-stat-value"><?=pdFormatNumber($dashboardStats['levels'])?></div>
+        <div class="dashboard-stat-detail">Published levels available</div>
+    </div>
+    <div class="dashboard-stat">
+        <div class="dashboard-stat-top">
+            <span class="dashboard-stat-label">Music</span>
+            <span class="dashboard-stat-icon">♫</span>
+        </div>
+        <div class="dashboard-stat-value"><?=pdFormatNumber($dashboardStats['songs'])?></div>
+        <div class="dashboard-stat-detail">Verified community tracks</div>
+    </div>
+    <div class="dashboard-stat">
+        <div class="dashboard-stat-top">
+            <span class="dashboard-stat-label">Upload rate</span>
+            <span class="dashboard-stat-icon">3m</span>
+        </div>
+        <div class="dashboard-stat-value">1 / 3m</div>
+        <div class="dashboard-stat-detail">Per signed-in player</div>
+    </div>
+</section>
+  </div>
+    <div class="panel portal-panel mc-community-access" id="upload">
         <div>
             <div class="portal-head">
                 <div class="portal-head-copy">
@@ -1746,68 +1764,20 @@ body.dashboard-page .topbar{
     </div>
 </section>
 
-<section class="dashboard-stats" aria-label="Community statistics">
-    <div class="dashboard-stat">
-        <div class="dashboard-stat-top">
-            <span class="dashboard-stat-label">Players</span>
-            <span class="dashboard-stat-icon">◈</span>
-        </div>
-        <div class="dashboard-stat-value"><?=pdFormatNumber($dashboardStats['players'])?></div>
-        <div class="dashboard-stat-detail">Active community accounts</div>
-    </div>
-    <div class="dashboard-stat">
-        <div class="dashboard-stat-top">
-            <span class="dashboard-stat-label">Levels</span>
-            <span class="dashboard-stat-icon">◆</span>
-        </div>
-        <div class="dashboard-stat-value"><?=pdFormatNumber($dashboardStats['levels'])?></div>
-        <div class="dashboard-stat-detail">Published levels available</div>
-    </div>
-    <div class="dashboard-stat">
-        <div class="dashboard-stat-top">
-            <span class="dashboard-stat-label">Music</span>
-            <span class="dashboard-stat-icon">♫</span>
-        </div>
-        <div class="dashboard-stat-value"><?=pdFormatNumber($dashboardStats['songs'])?></div>
-        <div class="dashboard-stat-detail">Verified community tracks</div>
-    </div>
-    <div class="dashboard-stat">
-        <div class="dashboard-stat-top">
-            <span class="dashboard-stat-label">Upload rate</span>
-            <span class="dashboard-stat-icon">3m</span>
-        </div>
-        <div class="dashboard-stat-value">1 / 3m</div>
-        <div class="dashboard-stat-detail">Per signed-in player</div>
-    </div>
-</section>
-
-<section class="section">
-    <div class="section-divider">Community snapshot</div>
-    <div class="featured-row">
-        <?php if (!empty($topPlayers[0])): ?>
-            <a class="featured-card" href="/dashboard?u=<?=rawurlencode((string)$topPlayers[0]['username'])?>">
-                <img src="<?=pdH(pdIconUrl($topPlayers[0], 90))?>" alt="" loading="lazy" referrerpolicy="no-referrer">
-                <div class="featured-meta">
-                    <div class="featured-label">Current top player</div>
-                    <div class="featured-name"><?=pdH($topPlayers[0]['username'])?></div>
-                    <div class="featured-sub"><?=pdFormatNumber($topPlayers[0]['stars'])?> Stars · <?=pdFormatNumber($topPlayers[0]['demons'])?> Demons · <?=pdFormatNumber($topPlayers[0]['creator_points'])?> Creator</div>
-                </div>
-            </a>
-        <?php else: ?>
-            <div class="featured-card">
-                <div class="featured-meta">
-                    <div class="featured-label">Community</div>
-                    <div class="featured-name">No player data yet</div>
-                    <div class="featured-sub">Create a GD account to appear here.</div>
-                </div>
-            </div>
-        <?php endif; ?>
-        <div class="link-panel">
-            <b>Build your profile</b>
-            <p>Open any player card to inspect stats, creator activity, published levels and music history.</p>
-            <a class="btn alt" href="#players">View leaderboard</a>
-        </div>
-    </div>
+<section class="mc-community-spotlight" aria-labelledby="mcSpotlightTitle">
+  <div class="mc-community-spotlight-top">
+    <div><span class="mc-community-label">FROM THE SERVER</span><h2 id="mcSpotlightTitle">Community spotlight</h2></div>
+    <a href="#players">View leaderboard ↗</a>
+  </div>
+  <?php if (!empty($topPlayers[0])): ?>
+    <a class="mc-community-featured" href="/dashboard?u=<?=rawurlencode((string)$topPlayers[0]['username'])?>">
+      <img src="<?=pdH(pdIconUrl($topPlayers[0], 90))?>" alt="" loading="lazy" referrerpolicy="no-referrer">
+      <span class="mc-community-featured-main"><small>TOP PLAYER / STARS</small><strong><?=pdH($topPlayers[0]['username'])?></strong><span><?=pdFormatNumber($topPlayers[0]['stars'])?> stars · <?=pdFormatNumber($topPlayers[0]['demons'])?> demons · <?=pdFormatNumber($topPlayers[0]['creator_points'])?> creator points</span></span>
+      <span class="mc-community-featured-arrow" aria-hidden="true">↗</span>
+    </a>
+  <?php else: ?>
+    <div class="mc-community-featured mc-community-none"><span><small>TOP PLAYER</small><strong>No ranking data yet</strong><span>Published player stats will appear here.</span></span></div>
+  <?php endif; ?>
 </section>
 
 <?php if ($search !== ''): ?>

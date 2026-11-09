@@ -2435,6 +2435,7 @@ max-width:100%
 <link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=7">
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
+<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=1">
 <script src="/admin/admin-simple.js?v=3" defer></script>
 </head>
 <body class="admin-login mc-workspace" data-page="">
@@ -2442,6 +2443,7 @@ max-width:100%
 <header>
 <?php adminBrand($branding['server_name']); adminInterfaceSwitch(); ?>
 </header>
+<span class="mc-auth-eyebrow">MUCHOCORE / CONTROL PANEL</span>
 <h1>Administrator sign in</h1>
 <?php if (!empty($loginError)): ?><p class="err" role="alert"><?=h($loginError)?></p><?php endif ?>
 <form method="post" id="adminLoginForm">
@@ -4984,6 +4986,7 @@ table{
 <link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=6">
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
+<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=1">
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>
@@ -5015,6 +5018,12 @@ table{
 >☰</button>
 </div>
 
+<section class="mc-instance" aria-label="Active server">
+  <span>ACTIVE INSTANCE</span>
+  <strong><?=h($branding['server_name'])?></strong>
+  <a href="/dashboard" target="_blank" rel="noopener noreferrer">Player portal <span aria-hidden="true">↗</span></a>
+</section>
+
 <?php require __DIR__.'/core/navigation.php'; ?>
 </aside>
 
@@ -5032,7 +5041,7 @@ table{
 >☰</button>
 
 <div class="head-title">
-<span class="mc-section-caption">SERVER WORKSPACE</span>
+<span class="mc-section-caption">CONTROL / <?=h(strtoupper($page))?></span>
 <h1><?=h($pages[$page])?></h1>
 <small><?=h((string)((Environment::get('MUCHO_ACCOUNT_URL', '') ?: $branding['server_name'])))?></small>
 </div>
@@ -5059,6 +5068,7 @@ table{
 
 
 <div class="mc-header-actions">
+<a class="mc-header-portal" href="/dashboard" target="_blank" rel="noopener noreferrer">Player portal ↗</a>
 <details class="mc-view-menu"><summary aria-label="Interface options">View <span aria-hidden="true">⌄</span></summary><div class="mc-view-popover"><?php adminInterfaceSwitch($_GET); ?></div></details>
 <button type="button" class="command-launcher" id="commandLauncher" aria-haspopup="dialog" aria-label="Quick navigation" title="Quick navigation (Ctrl+K)"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="12" y="3" width="5" height="5" rx="1"/><rect x="3" y="12" width="5" height="5" rx="1"/><rect x="12" y="12" width="5" height="5" rx="1"/></svg><span class="sr-only">Quick navigation</span><kbd>Ctrl K</kbd></button>
 <div class="mc-theme-slot"></div>

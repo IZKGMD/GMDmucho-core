@@ -31,14 +31,14 @@ check($db->queries === [] && $countedTables === [], 'viewer does not query unaut
 check(!str_contains($html, 'page=players') && !str_contains($html, 'page=songs'), 'viewer receives no unauthorized management links');
 check(!str_contains($html, 'auditLiveState') && !str_contains($html, 'admin-server-card'), 'viewer receives no audit feed or server operation');
 check(str_contains($html, 'href="/dashboard"'), 'viewer can open the public player portal');
-check(!str_contains($html, 'admin-quick-section'), 'unprivileged viewers do not see restricted quick tasks');
+check(!str_contains($html, 'mc-ops-actions'), 'unprivileged viewers do not see restricted quick tasks');
 
 $allowedPages = ['songs'];
 $html = renderDashboard($db);
 check($countedTables === ['songs'], 'music manager only counts authorized music data');
-check(str_contains($html, 'Music activity') && !str_contains($html, 'Latest players'), 'music manager sees the correct dashboard feed');
+check(str_contains($html, 'Latest music') && !str_contains($html, 'New players'), 'music manager sees the correct dashboard feed');
 check(!str_contains($html, 'page=players') && str_contains($html, 'page=songs'), 'music manager links respect page permissions');
-check(str_contains($html, '—') && str_contains($html, 'Summary unavailable'), 'database failure remains visible instead of becoming a zero count');
+check(str_contains($html, '—') && str_contains($html, 'Verification unavailable'), 'database failure remains visible instead of becoming a zero count');
 
 $allowedPages = ['news', 'rating', 'dbbackups'];
 $html = renderDashboard($db);
@@ -46,7 +46,7 @@ check(str_contains($html, 'page=news') && str_contains($html, 'page=rating') && 
     'quick actions link directly to authorized day-to-day operations');
 check(!str_contains($html, 'page=clientpatcher') && !str_contains($html, 'page=settings'),
     'quick actions do not reveal any unauthorized tool links');
-check(str_contains($html, 'admin-quick-section'), 'operator actions have a visible, accessible dashboard section');
+check(str_contains($html, 'mc-ops-actions'), 'operator actions have a visible, accessible dashboard section');
 
 $allowedPages = [];
 $allowedPermissions = ['audit.view'];

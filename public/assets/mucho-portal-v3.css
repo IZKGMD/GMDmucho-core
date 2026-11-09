@@ -1,0 +1,330 @@
+
+/*
+ * MuchoCore Player Portal / v3
+ * Search-first community workspace: real stats, leaderboards, profiles and uploads.
+ * Shares the editorial MuchoCore identity without copying a UI framework.
+ */
+body.dashboard-page,body.mc-clans-page{
+ --bg:#f5f4f0;--bg2:#f5f4f0;--panel:#fffefa;--panel-soft:#eeeee8;
+ --line:#d8d9d1;--line-soft:#e2e3dd;--text:#242820;
+ --muted:#656b64;--muted-2:#767b75;--accent:#c05239;--accent-2:#bf6047;
+ --green:#44744f;--danger:#b9402d;--shadow:none;
+ --mc-bg:#f5f4f0;--mc-surface:#fffefa;--mc-raised:#eeeee8;
+ --mc-line:#d8d9d1;--mc-text:#242820;--mc-muted:#656b64;
+ --mc-accent:#c05239;--mc-action:#242820;
+ background:var(--bg)!important;background-image:none!important;
+ color:var(--text);font:400 13px/1.6 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+body.dashboard-page::before,body.dashboard-page::after,
+body.mc-clans-page::before,body.mc-clans-page::after{display:none!important}
+body.dashboard-page .shell,body.mc-clans-page .shell{
+ width:min(1150px,calc(100% - 52px));margin:0 auto;padding:0 0 65px;
+}
+body.dashboard-page .topbar,body.mc-clans-page .topbar{
+ position:sticky;top:0;z-index:40;display:flex;align-items:center;
+ min-height:74px;gap:26px;padding:10px 0;margin:0 0 32px;
+ background:var(--bg);border:0;border-bottom:1px solid var(--line);
+ border-radius:0;box-shadow:none;backdrop-filter:none;
+}
+body.dashboard-page .topbar .brand,body.mc-clans-page .topbar .brand{
+ display:flex;align-items:center;justify-content:start;gap:9px;flex:0 0 auto;
+ width:auto;min-width:0;height:auto;min-height:38px;border-radius:0;
+}
+body.dashboard-page .topbar .brand img.mc-brand-mark,
+body.mc-clans-page .topbar .brand img.mc-brand-mark{
+ height:38px!important;width:38px!important;max-width:38px!important;max-height:38px!important;
+ flex:0 0 38px;border-radius:0;filter:none;transform:none;
+}
+body.dashboard-page .mc-portal-brand-copy,body.mc-clans-page .topbar .brand span{
+ display:grid;gap:2px;min-width:0;
+}
+body.dashboard-page .mc-portal-brand-copy strong,body.mc-clans-page .topbar .brand b{
+ font-size:16px;letter-spacing:-.045em;font-weight:720;line-height:1.1;color:var(--text);
+}
+body.dashboard-page .mc-portal-brand-copy small,body.mc-clans-page .topbar .brand small{
+ font:600 9px/1.2 ui-monospace,Menlo,Consolas,monospace;color:var(--muted);letter-spacing:.06em;
+}
+body.dashboard-page .nav,body.mc-clans-page .nav{
+ display:flex;align-items:center;gap:3px;margin-left:auto;min-width:0;
+ justify-content:flex-end;flex-wrap:wrap;
+}
+body.dashboard-page .nav :is(a,button),body.mc-clans-page .nav :is(a,button){
+ border:1px solid transparent;background:transparent;color:var(--muted);
+ border-radius:4px;box-shadow:none;padding:7px 10px;font-size:12px;
+ font-weight:550;line-height:1.4;transform:none;
+}
+body.dashboard-page .nav :is(a,button):hover,body.mc-clans-page .nav :is(a,button):hover{
+ border-color:var(--line);background:var(--panel-soft);color:var(--text);transform:none;
+}
+body.dashboard-page .nav a.btn,body.mc-clans-page .nav a.btn{
+ border:1px solid var(--text);background:var(--text);color:#fff;
+}
+body.dashboard-page .nav a.btn:hover,body.mc-clans-page .nav a.btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+body.dashboard-page :is(.btn,button.btn),body.mc-clans-page :is(.btn,button.btn){
+ min-height:37px;border-radius:4px;background:var(--text);
+ border:1px solid var(--text);color:#fff;padding:9px 13px;
+ box-shadow:none;font-size:12px;font-weight:640;filter:none;transform:none;
+}
+body.dashboard-page :is(.btn,button.btn):hover,body.mc-clans-page :is(.btn,button.btn):hover{
+ background:var(--accent);border-color:var(--accent);filter:none;transform:none;
+}
+body.dashboard-page .btn.alt,body.mc-clans-page .btn.alt{
+ background:transparent;color:var(--text);border-color:var(--line);box-shadow:none;
+}
+body.dashboard-page .btn.alt:hover,body.mc-clans-page .btn.alt:hover{border-color:var(--text);background:var(--panel-soft)}
+body.dashboard-page :is(.panel,.featured-card,.link-panel,.player-card,.profile,.list-item,.portal-card,.dashboard-stat),
+body.mc-clans-page :is(.panel,.card,.member,.empty,.notice){
+ border:1px solid var(--line);background:var(--panel);
+ box-shadow:none;border-radius:5px;transform:none;
+}
+body.dashboard-page :is(.featured-card,.player-card):hover,body.mc-clans-page .card:hover{
+ transform:none;border-color:#aeb1a8;box-shadow:none;
+}
+
+/* The new first screen: search + authenticated actions, not a hero illustration. */
+body.dashboard-page .mc-community-home{
+ display:grid;grid-template-columns:minmax(0,1.32fr) minmax(280px,.68fr);
+ gap:19px;align-items:stretch;
+}
+body.dashboard-page .mc-community-discovery{
+ display:flex;flex-direction:column;min-width:0;background:transparent;
+}
+body.dashboard-page .mc-community-overline{
+ display:flex;justify-content:space-between;gap:12px;padding-top:8px;
+ font:600 10px/1.4 ui-monospace,Menlo,Consolas,monospace;
+ letter-spacing:.035em;color:var(--muted);
+}
+body.dashboard-page .mc-community-overline span:first-child{color:var(--accent)}
+body.dashboard-page .mc-community-discovery h1{
+ max-width:680px;margin:25px 0 15px;font-size:clamp(39px,4.8vw,66px);
+ letter-spacing:-.072em;line-height:1.055;font-weight:675;
+}
+body.dashboard-page .mc-community-discovery h1 span{font:italic 400 .98em Georgia,"Times New Roman",serif;color:var(--accent);letter-spacing:-.048em}
+body.dashboard-page .mc-community-discovery>p{
+ margin:0 0 24px;color:var(--muted);font-size:14px;
+ line-height:1.72;max-width:470px;
+}
+body.dashboard-page .mc-community-search{display:grid;gap:8px;margin:0;max-width:590px}
+body.dashboard-page .mc-community-search>label{font-size:12px;font-weight:640;color:var(--text)}
+body.dashboard-page .mc-community-search-row{
+ display:flex;align-items:stretch;gap:7px;background:var(--panel);
+ border:1px solid var(--line);padding:5px;border-radius:5px;
+}
+body.dashboard-page .mc-community-search-row input{
+ width:100%;flex:1;min-width:0;background:transparent;color:var(--text);
+ padding:10px 11px;border:0;border-radius:3px;box-shadow:none;font-size:13px;min-height:38px;
+}
+body.dashboard-page .mc-community-search-row input:focus{border:0;box-shadow:none;outline:2px solid var(--accent);outline-offset:-2px}
+body.dashboard-page .mc-community-search-row button{white-space:nowrap;min-height:38px}
+body.dashboard-page .mc-community-shortcuts{
+ display:flex;flex-wrap:wrap;gap:23px;padding:16px 0 27px;border-bottom:1px solid var(--line);
+}
+body.dashboard-page .mc-community-shortcuts a{font-size:12px;font-weight:620;color:var(--text)}
+body.dashboard-page .mc-community-shortcuts a:hover{color:var(--accent)}
+body.dashboard-page .mc-community-statistics{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:0;margin-top:auto;padding-top:24px;border:0;
+}
+body.dashboard-page .mc-community-statistics .dashboard-stat{
+ display:block;padding:5px 15px 5px 0;border:0;border-right:1px solid var(--line);
+ border-radius:0;background:transparent;min-width:0;
+}
+body.dashboard-page .mc-community-statistics .dashboard-stat:not(:first-child){padding-left:15px}
+body.dashboard-page .mc-community-statistics .dashboard-stat:last-child{border:0}
+body.dashboard-page .mc-community-statistics .dashboard-stat::after{display:none}
+body.dashboard-page .mc-community-statistics .dashboard-stat-top{display:block}
+body.dashboard-page .mc-community-statistics .dashboard-stat-label{font-size:10px;color:var(--muted);font-weight:550}
+body.dashboard-page .mc-community-statistics .dashboard-stat-icon{display:none}
+body.dashboard-page .mc-community-statistics .dashboard-stat-value{
+ margin:7px 0 3px;font-size:clamp(19px,2.3vw,30px);font-weight:690;
+ line-height:1.1;letter-spacing:-.055em;color:var(--text);overflow-wrap:anywhere;
+}
+body.dashboard-page .mc-community-statistics .dashboard-stat-detail{
+ font-size:9px;line-height:1.45;color:var(--muted);
+}
+body.dashboard-page .mc-community-access{
+ min-width:0;background:#252c27;color:#eff3eb;border:1px solid #252c27;
+ border-radius:5px;padding:24px;box-shadow:none;
+}
+body.dashboard-page .mc-community-access .portal-head{margin-bottom:17px}
+body.dashboard-page .mc-community-access .portal-eyebrow{
+ color:#e5a08a;font:600 10px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.06em;
+}
+body.dashboard-page .mc-community-access .portal-title{
+ color:#f7f8f2;font-size:22px;font-weight:650;letter-spacing:-.045em;margin:8px 0 4px;
+}
+body.dashboard-page .mc-community-access .portal-description{
+ font-size:11px;line-height:1.65;color:#bdc7bd;
+}
+body.dashboard-page .mc-community-access .portal-mark{
+ height:31px;width:31px;min-width:31px;border:1px solid #536455;
+ border-radius:3px;background:transparent;color:#d4e0d2;box-shadow:none;font-size:14px;
+}
+body.dashboard-page .mc-community-access .form-divider{background:#4b584d;margin:17px 0}
+body.dashboard-page .mc-community-access :is(.field label,.muted,.small){color:#c5d0c4}
+body.dashboard-page .mc-community-access :is(input:not([type=hidden]),textarea,select){
+ background:#343c35;color:#fff;border:1px solid #5a675b;border-radius:3px;
+ box-shadow:none;min-height:38px;font-size:12px;
+}
+body.dashboard-page .mc-community-access input::placeholder{color:#b8c5b7}
+body.dashboard-page .mc-community-access input:focus{outline:2px solid #e0a18d;outline-offset:1px;border-color:#e0a18d}
+body.dashboard-page .mc-community-access .btn{
+ background:#ebece4;border-color:#ebece4;color:#242b25;
+ width:100%;font-weight:670;
+}
+body.dashboard-page .mc-community-access .btn:hover{background:#dcb49e;border-color:#dcb49e}
+body.dashboard-page .mc-community-access .upload-summary{gap:5px}
+body.dashboard-page .mc-community-access .upload-summary span{
+ background:#343e37;color:#c5d2c4;border:1px solid #536155;border-radius:3px;font-size:9px;
+}
+body.dashboard-page .mc-community-access .upload-summary b{color:white;font-size:10px}
+body.dashboard-page .mc-community-access .cooldown{color:#d5e0d5;font-size:11px}
+
+/* Community spotlight: one actual player row, not an empty marketing card. */
+body.dashboard-page .mc-community-spotlight{margin:50px 0 8px;border-top:1px solid var(--line)}
+body.dashboard-page .mc-community-spotlight-top{
+ display:flex;align-items:center;justify-content:space-between;gap:16px;padding:19px 0 16px;
+}
+body.dashboard-page .mc-community-label{
+ display:block;margin-bottom:5px;color:var(--accent);
+ font:600 10px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.04em;
+}
+body.dashboard-page .mc-community-spotlight-top h2{font-size:21px;font-weight:640;letter-spacing:-.045em;margin:0}
+body.dashboard-page .mc-community-spotlight-top>a{font-size:12px;color:var(--text);font-weight:610}
+body.dashboard-page .mc-community-featured{
+ display:flex;align-items:center;gap:19px;background:var(--panel);
+ border:1px solid var(--line);border-radius:4px;padding:19px 21px;
+ color:var(--text);min-height:115px;
+}
+body.dashboard-page a.mc-community-featured:hover{border-color:var(--accent)}
+body.dashboard-page .mc-community-featured img{
+ width:61px;height:61px;min-width:61px;border-radius:5px;border:1px solid var(--line);
+ object-fit:cover;filter:none;box-shadow:none;
+}
+body.dashboard-page .mc-community-featured-main{display:grid;gap:5px;min-width:0}
+body.dashboard-page .mc-community-featured small{font:600 9px ui-monospace,Menlo,Consolas,monospace;color:var(--accent)}
+body.dashboard-page .mc-community-featured strong{font-size:20px;font-weight:650;letter-spacing:-.035em}
+body.dashboard-page .mc-community-featured-main>span{font-size:11px;color:var(--muted)}
+body.dashboard-page .mc-community-featured-arrow{margin-left:auto;font-size:20px;color:var(--accent)}
+body.dashboard-page .mc-community-none strong{font-size:17px}
+
+/* Discovery lists, search results, profile and music remain real server data. */
+body.dashboard-page .section{margin-top:35px;padding:0 0 25px}
+body.dashboard-page .section-head{display:flex;align-items:baseline;justify-content:space-between;gap:15px;margin-bottom:19px}
+body.dashboard-page .section-head h2{
+ font-size:22px;font-weight:640;line-height:1.2;letter-spacing:-.045em;
+}
+body.dashboard-page .section-divider{
+ border-top:1px solid var(--line);padding:20px 0 0;
+ color:var(--muted);font:600 10px ui-monospace,Menlo,Consolas,monospace;
+ letter-spacing:.04em;
+}
+body.dashboard-page .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+body.dashboard-page .player-card{
+ min-width:0;display:grid;gap:10px;padding:17px;border:1px solid var(--line);
+ border-radius:4px;background:var(--panel);box-shadow:none;
+}
+body.dashboard-page .player-card:hover{background:var(--panel-soft);transform:none}
+body.dashboard-page .player-card-head{gap:12px;align-items:center}
+body.dashboard-page .player-card-head img{width:45px;height:45px;border-radius:4px;box-shadow:none;filter:none}
+body.dashboard-page .player-card .player-meta b{font-weight:650;font-size:13px}
+body.dashboard-page .player-card .rank{color:var(--muted);font-size:10px}
+body.dashboard-page :is(.chips,.profile-stats){gap:5px}
+body.dashboard-page .chip,body.dashboard-page .role,body.dashboard-page .badge{
+ border:1px solid var(--line);background:var(--panel-soft);color:var(--muted);
+ border-radius:3px;box-shadow:none;font-size:10px;
+}
+body.dashboard-page .badge.ok{background:#e4eee3;color:#3b7147;border-color:#c5d7c3}
+body.dashboard-page .panel{padding:21px;border-radius:4px;box-shadow:none}
+body.dashboard-page .list-item{
+ background:transparent;border:0;border-bottom:1px solid var(--line);
+ border-radius:0;padding:15px 0;box-shadow:none;
+}
+body.dashboard-page .list-item:last-child{border-bottom:0}
+body.dashboard-page .list-item b{font-size:12px;font-weight:620;color:var(--text)}
+body.dashboard-page .list-item small{color:var(--muted);font-size:10px}
+body.dashboard-page .music-disc{background:var(--panel-soft);border:1px solid var(--line);color:var(--accent);border-radius:4px;box-shadow:none}
+body.dashboard-page :is(.search input,.field input,.field select,.field textarea){
+ color:var(--text);background:var(--panel);border:1px solid var(--line);
+ border-radius:4px;box-shadow:none;
+}
+body.dashboard-page :is(.search input,.field input):focus{border-color:var(--accent);box-shadow:none}
+body.dashboard-page .profile{gap:13px}
+body.dashboard-page .profile-summary{background:var(--panel)}
+body.dashboard-page .profile-avatar{border-radius:5px;border:1px solid var(--line);box-shadow:none}
+body.dashboard-page .profile-title{letter-spacing:-.05em;font-weight:650}
+body.dashboard-page .profile-stat{border:1px solid var(--line);border-radius:4px;background:var(--panel-soft)}
+body.dashboard-page .profile-stat b{color:var(--text)}
+body.dashboard-page .mc-profile-cover{border-radius:4px}
+body.dashboard-page .notice{background:var(--panel);border-color:var(--line);border-radius:4px}
+body.dashboard-page .footer{color:var(--muted);border-top:1px solid var(--line);padding-top:20px}
+body.dashboard-page a:focus-visible,body.mc-clans-page a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+/* Clan directory shares the navigation and data surface, not the generic hero. */
+body.mc-clans-page .hero.mc-clan-workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(290px,.9fr);gap:14px;margin:10px 0 20px}
+body.mc-clans-page .mc-clan-intro{
+ display:flex;flex-direction:column;align-items:start;justify-content:center;
+ border:0;border-bottom:1px solid var(--line);border-radius:0;
+ background:transparent;padding:24px 15px 24px 0;box-shadow:none;
+}
+body.mc-clans-page .mc-clan-action{padding:22px;border-radius:4px;background:var(--panel)}
+body.mc-clans-page .hero h1{font-size:clamp(34px,4.5vw,58px);font-weight:660;letter-spacing:-.065em;line-height:1.08}
+body.mc-clans-page .hero h1 span{color:var(--accent);background:none;-webkit-text-fill-color:currentColor}
+body.mc-clans-page .eyebrow{color:var(--accent);font:600 10px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.04em}
+body.mc-clans-page .copy,body.mc-clans-page .sub{font-size:12px;color:var(--muted);line-height:1.7}
+body.mc-clans-page :is(.card,.panel,.member){border:1px solid var(--line);background:var(--panel);border-radius:4px;box-shadow:none}
+body.mc-clans-page .card:hover{background:var(--panel-soft);border-color:var(--line)}
+body.mc-clans-page .name{color:var(--text)}
+body.mc-clans-page .tag{color:var(--accent)}
+body.mc-clans-page .chip{border:1px solid var(--line);background:var(--panel-soft);border-radius:3px;color:var(--muted)}
+body.mc-clans-page :is(.search input,.form input,.form textarea,.form select){
+ background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:4px;
+}
+body.mc-clans-page .footer{border-top:1px solid var(--line);color:var(--muted)}
+@media(max-width:1000px){
+ body.dashboard-page .mc-community-home{grid-template-columns:minmax(0,1.12fr) minmax(255px,.88fr)}
+ body.dashboard-page .mc-community-statistics{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ body.dashboard-page .mc-community-statistics .dashboard-stat{border:1px solid var(--line)!important;padding:12px!important;background:var(--panel);border-radius:4px}
+}
+@media(max-width:760px){
+ body.dashboard-page .shell,body.mc-clans-page .shell{width:calc(100% - 30px)}
+ body.dashboard-page .mc-community-home{grid-template-columns:1fr;gap:24px}
+ body.dashboard-page .mc-community-discovery h1{font-size:clamp(39px,8vw,60px);margin:15px 0}
+ body.dashboard-page .mc-community-statistics{padding-top:10px}
+ body.dashboard-page .mc-community-access{max-width:none}
+ body.dashboard-page .topbar,body.mc-clans-page .topbar{position:relative;flex-wrap:wrap;gap:10px;padding:12px 0;margin-bottom:18px}
+ body.dashboard-page .nav,body.mc-clans-page .nav{width:100%;justify-content:flex-start;gap:2px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:3px}
+ body.dashboard-page .nav :is(a,button),body.mc-clans-page .nav :is(a,button){flex:0 0 auto}
+ body.dashboard-page .mc-community-spotlight{margin-top:31px}
+ body.mc-clans-page .hero.mc-clan-workspace{grid-template-columns:1fr}
+ body.mc-clans-page .mc-clan-intro{padding:17px 0}
+}
+@media(max-width:530px){
+ body.dashboard-page .mc-community-discovery h1{font-size:clamp(38px,9.5vw,49px)}
+ body.dashboard-page .mc-community-overline{font-size:9px}
+ body.dashboard-page .mc-community-overline span:last-child{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ body.dashboard-page .mc-community-shortcuts{gap:15px}
+ body.dashboard-page .mc-community-statistics .dashboard-stat-value{font-size:23px}
+ body.dashboard-page .mc-community-featured{gap:11px;padding:14px}
+ body.dashboard-page .mc-community-featured img{width:49px;height:49px;min-width:49px}
+ body.dashboard-page .mc-community-featured strong{font-size:16px}
+ body.dashboard-page .grid{grid-template-columns:1fr}
+ body.dashboard-page .section-head{align-items:start}
+ body.dashboard-page .section-head h2{font-size:20px}
+ body.dashboard-page .mc-community-spotlight-top{align-items:start}
+ body.dashboard-page .mc-community-spotlight-top>a{font-size:11px}
+}
+html[data-theme="dark"] body.dashboard-page,html[data-theme="dark"] body.mc-clans-page{
+ --bg:#181e1a;--bg2:#181e1a;--panel:#252e27;--panel-soft:#303a33;
+ --line:#3f4c41;--line-soft:#4a564b;--text:#eff2e9;
+ --muted:#aab8aa;--muted-2:#9baa9d;--accent:#e49a81;--accent-2:#e49a81;
+ --green:#a8d2ac;--shadow:none;
+ --mc-bg:#181e1a;--mc-surface:#252e27;--mc-raised:#303a33;--mc-line:#3f4c41;--mc-text:#eff2e9;--mc-muted:#aab8aa;--mc-accent:#e49a81;
+ background:var(--bg)!important;
+}
+html[data-theme="dark"] body.dashboard-page .mc-community-discovery h1 span{color:#e49a81}
+html[data-theme="dark"] body.dashboard-page .mc-community-access{background:#303b32;border-color:#46584a}
+html[data-theme="dark"] body.dashboard-page .mc-community-access :is(input:not([type=hidden]),textarea,select){background:#252e27;border-color:#566456}
+html[data-theme="dark"] body.dashboard-page .mc-community-search-row{background:var(--panel)}
+html[data-theme="dark"] body.dashboard-page .badge.ok{background:#2c4332;color:#b4e2b5;border-color:#46644b}
+@media(prefers-reduced-motion:reduce){body.dashboard-page *,body.mc-clans-page *{transition:none!important;animation:none!important}}

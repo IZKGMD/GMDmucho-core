@@ -465,6 +465,7 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <script src="/assets/product-ui.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
+<link rel="stylesheet" href="/assets/mucho-portal-v3.css?v=1">
 </head>
 <body class="mc-workspace mc-clans-page">
 <div class="shell">
@@ -495,9 +496,9 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
 <div class="notice <?=pcH($flash['type'])?>"><?=pcH($flash['message'])?></div>
 <?php endif; ?>
 
-<section class="hero" id="clans">
-    <div class="panel">
-        <div class="eyebrow">Community · Clans</div>
+<section class="hero mc-clan-workspace" id="clans">
+    <div class="panel mc-clan-intro">
+        <div class="eyebrow">Community / Clans</div>
         <h1>Build your <span>clan</span>.</h1>
         <p class="copy">
             Every MuchoCore GDPS gets its own clan directory. Players can browse clans,
@@ -513,7 +514,7 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
         </div>
     </div>
 
-    <div class="panel" id="create">
+    <div class="panel mc-clan-action" id="create">
         <?php if (!$account): ?>
             <div class="eyebrow">Account access</div>
             <h2>Sign in from the dashboard</h2>
