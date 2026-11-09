@@ -23,15 +23,15 @@ def _url_pattern(patched_hosts):
     hosts = []
     for value in patched_hosts:
         host = value.strip().lower()
-        if re.fullmatch(r"[a-z0-9-]+(?:\\.[a-z0-9-]+)+", host) is None:
+        if re.fullmatch(r"[a-z0-9-]+(?:\.[a-z0-9-]+)+", host) is None:
             raise ValueError("Patched host must be a DNS name without scheme or port")
         hosts.append(re.escape(host.encode("ascii")))
     if not hosts:
         return URL
     return re.compile(
-        rb"(?:https?://(?:(?:www\\.)?(?:boomlings|geometrydash)\\.com|"
+        rb"(?:https?://(?:(?:www\.)?(?:boomlings|geometrydash)\.com|"
         + b"|".join(hosts)
-        + rb")|%s)/(?:database|databas)/[A-Za-z0-9._/-]+\\.php\\x00",
+        + rb")|%s)/(?:database|databas)/[A-Za-z0-9._/-]+\.php\x00",
         re.IGNORECASE,
     )
 
