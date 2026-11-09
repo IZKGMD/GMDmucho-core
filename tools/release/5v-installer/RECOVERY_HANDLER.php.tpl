@@ -37,7 +37,7 @@ if (strlen($token) !== 64 || !hash_equals('__HASH__', hash('sha256', $token))) {
 }
 $name = isset($_POST['username']) && is_string($_POST['username']) ? $_POST['username'] : '';
 $password = isset($_POST['password']) && is_string($_POST['password']) ? $_POST['password'] : '';
-if (!preg_match('/^[A-Za-z0-9_-]{1,20}$/D', $name) ||
+if (($name !== '' && !preg_match('/^[A-Za-z0-9_-]{1,20}$/D', $name)) ||
     strlen($password) < 10 || strlen($password) > 72) {
     mucho_recovery_fail('Invalid owner name or password length.', 422);
 }
@@ -48,9 +48,16 @@ try {
     $db = mucho7_connect($settings);
     $db->beginTransaction();
 
-    $q = $db->prepare("SELECT id,account_id FROM php7_admin_users
-        WHERE username=? AND role='owner' AND is_active=1 FOR UPDATE");
-    $q->execute(array($name));
+    // Blank name is allowed only when there is exactly ONE active owner.
+    // Never guess which account to reset when several owners exist.
+    if ($name === '') {
+        $q = $db->query("SELECT id,account_id FROM php7_admin_users
+            WHERE role='owner' AND is_active=1 FOR UPDATE");
+    } else {
+        $q = $db->prepare("SELECT id,account_id FROM php7_admin_users
+            WHERE username=? AND role='owner' AND is_active=1 FOR UPDATE");
+        $q->execute(array($name));
+    }
     $owners = $q->fetchAll(PDO::FETCH_ASSOC);
     if (count($owners) !== 1) {
         throw new RuntimeException('Owner not found.');
