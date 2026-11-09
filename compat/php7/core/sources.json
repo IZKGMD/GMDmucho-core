@@ -172,7 +172,7 @@
     "src/Diagnostics/ClientTrace.php": "440c9750a1109b9e44633f54282102c0e9c3ee22029205e15d494b135db5d55c",
     "src/Diagnostics/RequestProfiler.php": "454731b559fe706c1cf4f46837e31caa46fa024c5a2a36f38033e2328076513a",
     "src/Http/ClientIp.php": "4103adb25a3a7f53950fba5a945f965364be8fd3f96b3a38af55a41fd33d76b3",
-    "src/Http/Request.php": "04589264644bd8d6c3a4b4f6597c9f022fd9776101efbc6ed7a5b98778cfc5c5",
+    "src/Http/Request.php": "b24fc3f63058599b1b51a532b1d39bac4f75e99250eaca4ed00d7399b86d8102",
     "src/Http/Response.php": "11ab70ad0b8ed09f42d40f4c585b8e6206d77ca288705eccfbe5b0850e8dac9f",
     "src/Integration/WebhookDispatcher.php": "b7a8d8ed573e3806c3f7345bcaa07bede9b94ce240dd4408fe31d3f36f666eea",
     "src/Interaction/CommentController.php": "58389536fd1ce473e6d4b93348f64572078ff8222d25b26ca4cd9a0174ad521d",
