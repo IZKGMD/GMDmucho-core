@@ -614,6 +614,12 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
     $deploymentType = strtolower(trim((string)($data['type'] ?? 'vps')));
 
     if ($deploymentType === 'shared') {
+        // The public shared installer is an explicit 5v.pl native PHP 7 preview.
+        // Reject generic/shared PHP 8 submissions before accepting FTP credentials.
+        $provider = strtolower(trim((string)($data['provider'] ?? '')));
+        if ($provider !== '5v.pl') {
+            json_response(['ok' => false, 'error' => 'This installer works ONLY on 5V.PL.'], 422);
+        }
         $gdpsName = trim((string)($data['gdps_name'] ?? ''));
         $ftpHost = trim((string)($data['ftp_host'] ?? ''));
         $ftpPort = (int)($data['ftp_port'] ?? 21);
@@ -658,29 +664,17 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         if (!is_array($parts) || strtolower((string)($parts['scheme'] ?? '')) !== 'https' || $accountHost === '' || !preg_match('/^(?=.{1,253}$)(?!-)(?:[A-Za-z0-9-]{1,63}\\.)+[A-Za-z0-9-]{2,63}$/', $accountHost) || !empty($parts['user']) || !empty($parts['pass']) || !empty($parts['path']) || !empty($parts['query']) || !empty($parts['fragment'])) {
             json_response(['ok' => false, 'error' => 'GDPS address must be a public HTTPS hostname such as https://gdps.example.com.'], 422);
         }
-        if ($dbHost === '' || strlen($dbHost) > 253 || preg_match('/[\\x00-\\x1F\\x7F]/', $dbHost) === 1) {
-            json_response(['ok' => false, 'error' => 'Invalid database host.'], 422);
+        if (!preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.5v\\.pl$/D', $accountHost)) {
+            json_response(['ok' => false, 'error' => '5V.PL only: use https://yourname.5v.pl (no custom domain).'], 422);
         }
-        if ($dbPort < 1 || $dbPort > 65535 || $dbName === '' || strlen($dbName) > 128 || preg_match('/[\\x00-\\x1F\\x7F]/', $dbName) === 1 || $dbUser === '' || strlen($dbUser) > 128 || preg_match('/[\\x00-\\x1F\\x7F]/', $dbUser) === 1) {
-            json_response(['ok' => false, 'error' => 'Invalid database connection values.'], 422);
-        }
-        if ($dbPassword === '') {
-            json_response(['ok' => false, 'error' => 'Enter the database password.'], 422);
-        }
-        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_-]{0,31}$/', $adminUser)) {
-            json_response(['ok' => false, 'error' => 'Invalid MuchoCore admin username. Use 1–32 letters, numbers, underscores or hyphens, starting with a letter or underscore.'], 422);
-        }
-
+        $dbHost = '';
+        $dbPort = 3306;
+        $dbName = '';
+        $dbUser = '';
+        $dbPassword = '';
+        $adminUser = '';
+        $adminPassword = '';
         $generatedAdminPassword = false;
-        if ($adminPassword === '') {
-            $adminPassword = rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=');
-            $generatedAdminPassword = true;
-        } elseif (!hash_equals($adminPassword, $adminPasswordConfirm)) {
-            json_response(['ok' => false, 'error' => 'Admin passwords do not match.'], 422);
-        }
-        if (strlen($adminPassword) < 12 || strlen($adminPassword) > 200) {
-            json_response(['ok' => false, 'error' => 'MuchoCore admin password must be 12–200 characters.'], 422);
-        }
 
         $id = job_id();
         $dir = job_dir($id);
@@ -692,6 +686,9 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         $status = [
             'id' => $id,
             'type' => 'shared',
+            'provider' => '5v.pl',
+            'manual_setup_required' => true,
+            'setup_url' => $accountUrl . '/mc/admin.php',
             'status' => $queueFull ? 'queued' : 'starting',
             'state' => $queueFull ? 'Waiting for deployment slot' : 'Starting deployment worker',
             'created_at' => gmdate('c'),
@@ -717,6 +714,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
             'ftp_username' => $ftpUsername,
             'ftp_security' => $ftpSecurity,
             'ftp_path' => $ftpPath,
+            'provider' => '5v.pl',
             'account_url' => $accountUrl,
             'db_host' => $dbHost,
             'db_port' => $dbPort,
@@ -725,10 +723,8 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
             'admin_user' => $adminUser,
         ];
         write_json($dir . '/shared_config', $config);
-        file_put_contents($dir . '/shared_db_password', $dbPassword, LOCK_EX);
-        @chmod($dir . '/shared_db_password', 0600);
-        file_put_contents($dir . '/admin_password', $adminPassword, LOCK_EX);
-        @chmod($dir . '/admin_password', 0600);
+        // PHP 7 browser setup collects database/owner credentials directly
+        // on the tenant's HTTPS origin; no central copy is persisted.
         file_put_contents($dir . '/log.txt',
             "[MuchoGDPS] Shared-hosting deployment job {$id}\n"
             . "[MuchoGDPS] FTP target: {$ftpHost}:" . ($ftpPort > 0 ? $ftpPort : 0) . " ({$ftpSecurity})\n"
@@ -1042,6 +1038,8 @@ if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/s
             'timed_out' => (bool)($status['timed_out'] ?? false),
             'log' => $log,
             'exit_code' => $status['exit_code'] ?? null,
+            'manual_setup_required' => (bool)($status['manual_setup_required'] ?? false),
+            'setup_url' => $status['setup_url'] ?? null,
             'browser_finalization_url' => ($status['status'] ?? '') === 'awaiting_browser'
                 ? ($status['browser_finalization_url'] ?? null)
                 : null,
@@ -1059,6 +1057,8 @@ if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/s
         'exit_code' => $status['exit_code'] ?? null,
         'finished_at' => $status['finished_at'] ?? null,
         'domain' => $status['domain'] ?? null,
+        'manual_setup_required' => (bool)($status['manual_setup_required'] ?? false),
+        'setup_url' => $status['setup_url'] ?? null,
         'admin_user' => $status['admin_user'] ?? null,
         'client_pack_token' => ($status['status'] ?? '') === 'completed'
             ? (function () use ($dir): ?string {
