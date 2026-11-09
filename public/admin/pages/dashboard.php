@@ -93,146 +93,134 @@ function renderAdminDashboard(PDO $db): void
     } catch (Throwable) {
     }
 
-    echo '<div class="admin-overview-heading"><h2>Server at a glance</h2><a class="btn gray" href="/dashboard" target="_blank" rel="noopener">Open Player Portal ↗</a></div>';
-
-    // First show real server data, then the actions it helps prioritize.
-    echo '<div class="admin-kpi-grid">';
-
     $kpis = [
-        ['Players', $accounts, ($todayAccounts === null ? 'Daily data unavailable' : 'Today +' . $todayAccounts), 'violet', 'players'],
-        ['Levels', $levels, 'Published content', 'blue', 'levels'],
-        ['Music', $songs, ($verifiedSongs === null ? 'Summary unavailable' : $verifiedSongs . ' verified'), 'green', 'songs'],
-        ['Pending Music', $pendingSongs, ($todaySongs === null ? 'Daily data unavailable' : $todaySongs . ' uploaded today'), $pendingSongs > 0 ? 'amber' : 'green', 'songs'],
+        ['Players', $accounts, ($todayAccounts === null ? 'Today unavailable' : '+' . $todayAccounts . ' today'), 'players'],
+        ['Levels', $levels, 'Published levels', 'levels'],
+        ['Songs', $songs, ($verifiedSongs === null ? 'Verification unavailable' : $verifiedSongs . ' verified'), 'songs'],
     ];
-
-    foreach ($kpis as [$label, $value, $meta, $tone, $section]) {
-        if (!canAdminPage($section)) continue;
-        echo '<a class="admin-kpi ' . h((string)$tone) . '" href="/admin/?page='.h($section).($label==='Pending Music'?'&amp;filter=pending':'').'">';
-        echo adminGdIcon($section);
-        echo '<div class="admin-kpi-label">' . h((string)$label) . '</div>';
-        echo '<div class="admin-kpi-value">' . ($value === null ? '—' : number_format((int)$value)) . '</div>';
-        echo '<div class="admin-kpi-meta">' . h((string)$meta) . '</div>';
-        echo '</a>';
-    }
-
-    echo '</div>';
-
-    // The most common operator tasks belong one click away. These are links,
-    // not side-effecting actions, and never bypass normal admin permissions.
-    $quickActions = [
-        ['rating', 'Review levels', 'Rate and moderate submitted levels'],
-        ['news', 'Publish news', 'Create an in-game announcement'],
-        ['clientpatcher', 'Patch clients', 'Prepare GDPS Windows and Android clients'],
-        ['dbbackups', 'Back up database', 'Create or restore a verified backup'],
-        ['settings', 'Server settings', 'Configure the GDPS'],
+    $actions = [
+        ['rating', 'Review levels', 'Ratings and moderation'],
+        ['news', 'Publish news', 'In-game announcements'],
+        ['clientpatcher', 'Patch a client', 'Windows and Android'],
+        ['dbbackups', 'Backups', 'Database snapshots'],
+        ['settings', 'Server settings', 'Configuration and branding'],
     ];
-    $visibleActions = array_values(array_filter(
-        $quickActions,
-        static fn(array $action): bool => canAdminPage($action[0])
-    ));
-    if ($visibleActions) {
-        echo '<section class="admin-quick-section" aria-labelledby="adminQuickHeading">';
-        echo '<div class="section-heading"><div><h2 id="adminQuickHeading">Quick actions</h2><small>Common tasks, one click away</small></div></div>';
-        echo '<div class="admin-quick-actions">';
-        foreach ($visibleActions as [$section, $label, $description]) {
-            echo '<a class="admin-quick-action" href="/admin/?page='.h($section).'">';
-            echo '<strong>'.h($label).'</strong><small>'.h($description).'</small>';
-            echo '</a>';
-        }
-        echo '</div></section>';
-    }
-
-    echo '<div class="admin-dashboard-columns">';
-
-    if (canAdminPage('players')) {
-        echo '<section class="card admin-feed-card">';
-        echo '<div class="section-heading"><div><h2>Latest players</h2><small>Newest account registrations</small></div><a href="/admin/?page=players">View all →</a></div>';
-
-        if ($recentPlayers) {
-            echo '<div class="admin-player-feed">';
-
-            foreach ($recentPlayers as $player) {
-                $role = str_replace('_', ' ', (string)($player['role_code'] ?? 'user'));
-                echo '<a class="admin-player-row" href="/admin/?page=players&q=' . rawurlencode((string)$player['username']) . '">';
-                echo '<div class="admin-player-avatar">' . h(mb_strtoupper(mb_substr((string)($player['username'] ?? '?'), 0, 1, 'UTF-8'), 'UTF-8')) . '</div>';
-                echo '<div class="admin-player-main">';
-                echo '<b>' . h($player['username'] ?? '') . '</b>';
-                echo '<small>#' . h($player['account_id'] ?? '') . ' · ' . h(ucfirst($role)) . '</small>';
-                echo '</div>';
-                echo '<div class="admin-player-stats">';
-                echo '<span>' . number_format((int)($player['stars'] ?? 0)) . ' ★</span>';
-                echo '<span>' . number_format((int)($player['moons'] ?? 0)) . ' ◇</span>';
-                echo '</div>';
-                echo '</a>';
-            }
-
-            echo '</div>';
-        } else {
-            echo '<div class="empty-state">No recent registrations to show. Open Players for the full list.</div>';
-        }
-
-        echo '</section>';
-
-    }
-    if (canAdminPage('songs')) {
-        echo '<section class="card admin-feed-card">';
-        echo '<div class="section-heading"><div><h2>Music activity</h2><small>Latest uploads from players</small></div><a href="/admin/?page=songs">Open queue →</a></div>';
-
-        if ($recentSongs) {
-            echo '<div class="admin-song-feed">';
-
-            foreach ($recentSongs as $song) {
-                $verified = (int)($song['is_verified'] ?? 0) === 1;
-                echo '<div class="admin-song-row">';
-                echo '<div class="song-wave"><span></span><span></span><span></span><span></span></div>';
-                echo '<div class="admin-song-main">';
-                echo '<b>' . h($song['name'] ?? '') . '</b>';
-                echo '<small>' . h($song['author_name'] ?? '') . ' · #' . h($song['id'] ?? '') . ' · ' . h($song['size'] ?? '0') . ' MB</small>';
-                echo '</div>';
-                echo '<span class="badge ' . ($verified ? 'green' : '') . '">' . ($verified ? 'Verified' : 'Pending') . '</span>';
-                echo '</div>';
-            }
-
-            echo '</div>';
-        } else {
-            echo '<div class="empty-state">No recent music uploads. Open Music to manage tracks.</div>';
-        }
-
-        echo '</section>';
-
-    }
-    echo '</div>';
-
-    if (canPermission('audit.view')) {
-        $liveAuditHtml = <<<'HTML'
-<details class="card admin-live-audit-card" id="auditDetails"><summary>Audit Log</summary>
-        <div class="section-heading">
+    $visibleActions = array_values(array_filter($actions, static fn (array $action): bool => canAdminPage($action[0])));
+    ob_start();
+    ?>
+    <div class="mc-ops">
+        <header class="mc-ops-intro">
             <div>
-                <h2>Live audit feed</h2>
-                <small>Latest administrator events · refreshes every 15 seconds</small>
+                <p class="mc-ops-kicker">OPERATIONS / DASHBOARD</p>
+                <h2>Server overview</h2>
+                <p>Live data and the work that needs your attention.</p>
             </div>
-            <span class="badge" id="auditLiveState" role="status">Loading…</span>
-        </div>
-        <div id="muchoLiveAudit" class="admin-live-audit-list">
-            <div class="empty-state">Loading audit events…</div>
-        </div>
-</details>
-<style>
-    .admin-live-audit-list{display:grid;gap:8px}
-    .admin-live-audit-row{display:grid;grid-template-columns:150px 110px 1fr auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #202a39;background:#0b1018;border-radius:9px}
-    .admin-live-audit-row b{font-size:12px}
-    .admin-live-audit-row small{font-size:10px;color:#7f8ca0}
-    .admin-live-audit-action{font:700 11px ui-monospace,SFMono-Regular,Menlo,monospace;color:#b9c4d6}
-    .admin-live-audit-target{font-size:11px;color:#dbe2ef;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        @media(max-width:760px){
-            .admin-live-audit-row{grid-template-columns:1fr auto}
-            .admin-live-audit-action,.admin-live-audit-target{grid-column:1 / -1}
-    }
-</style>
-<script src="/admin/product-dashboard.js?v=2" defer></script>
-HTML;
+            <a class="mc-ops-secondary" href="/dashboard" target="_blank" rel="noopener noreferrer">Player portal <span aria-hidden="true">↗</span></a>
+        </header>
 
-        echo $liveAuditHtml;
-    }
+        <?php if (canAdminPage('songs')): ?>
+        <a class="mc-ops-attention" href="/admin/?page=songs&amp;filter=pending" aria-label="Review pending music">
+            <span class="mc-ops-attention-mark" aria-hidden="true">♪</span>
+            <span class="mc-ops-attention-copy">
+                <small>MUSIC MODERATION</small>
+                <strong><?= $pendingSongs === null ? 'Queue unavailable' : ($pendingSongs === 0 ? 'No tracks waiting for review' : number_format($pendingSongs) . ' tracks waiting for review') ?></strong>
+                <span><?= $todaySongs === null ? 'Daily upload data unavailable' : h((string)$todaySongs) . ' uploaded today' ?></span>
+            </span>
+            <span class="mc-ops-attention-go">Open queue ↗</span>
+        </a>
+        <?php endif; ?>
 
+        <section class="mc-ops-summary" aria-label="Current server totals">
+            <?php foreach ($kpis as [$label, $value, $note, $section]): ?>
+                <?php if (!canAdminPage($section)) continue; ?>
+                <a class="mc-ops-summary-item" href="/admin/?page=<?=h($section)?>">
+                    <span class="mc-ops-summary-top"><?=h($label)?><span aria-hidden="true">↗</span></span>
+                    <strong><?= $value === null ? '—' : number_format((int)$value) ?></strong>
+                    <small><?=h((string)$note)?></small>
+                </a>
+            <?php endforeach; ?>
+        </section>
+
+        <div class="mc-ops-content">
+            <div class="mc-ops-feeds">
+                <?php if (canAdminPage('players')): ?>
+                <section class="mc-ops-panel" aria-labelledby="mcRecentPlayers">
+                    <div class="mc-ops-section-head">
+                        <div><p class="mc-ops-kicker">COMMUNITY</p><h3 id="mcRecentPlayers">New players</h3></div>
+                        <a href="/admin/?page=players">All players ↗</a>
+                    </div>
+                    <?php if ($recentPlayers): ?>
+                    <div class="mc-ops-table-scroll">
+                        <table class="mc-ops-table">
+                            <thead><tr><th>Player</th><th>Role</th><th class="mc-ops-num">Stars</th><th class="mc-ops-num">Moons</th></tr></thead>
+                            <tbody>
+                            <?php foreach ($recentPlayers as $player): ?>
+                            <tr>
+                                <td>
+                                    <a class="mc-ops-player" href="/admin/?page=players&amp;q=<?=rawurlencode((string)$player['username'])?>">
+                                        <span class="mc-ops-initial" aria-hidden="true"><?=h(mb_strtoupper(mb_substr((string)($player['username'] ?? '?'),0,1,'UTF-8'),'UTF-8'))?></span>
+                                        <span><strong><?=h($player['username'] ?? '')?></strong><small>Account #<?=h($player['account_id'] ?? '')?></small></span>
+                                    </a>
+                                </td>
+                                <td><span class="mc-ops-role"><?=h(str_replace('_',' ',(string)($player['role_code'] ?? 'user')))?></span></td>
+                                <td class="mc-ops-num"><?=number_format((int)($player['stars'] ?? 0))?></td>
+                                <td class="mc-ops-num"><?=number_format((int)($player['moons'] ?? 0))?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <?php else: ?><p class="mc-ops-empty">No registrations yet. New players will appear here.</p><?php endif; ?>
+                </section>
+                <?php endif; ?>
+
+                <?php if (canAdminPage('songs')): ?>
+                <section class="mc-ops-panel" aria-labelledby="mcMusicActivity">
+                    <div class="mc-ops-section-head">
+                        <div><p class="mc-ops-kicker">CONTENT</p><h3 id="mcMusicActivity">Latest music</h3></div>
+                        <a href="/admin/?page=songs">Manage music ↗</a>
+                    </div>
+                    <?php if ($recentSongs): ?>
+                    <div class="mc-ops-table-scroll">
+                        <table class="mc-ops-table">
+                            <thead><tr><th>Track</th><th>Artist</th><th>Status</th></tr></thead>
+                            <tbody>
+                            <?php foreach ($recentSongs as $song): ?>
+                            <tr>
+                                <td><strong><?=h($song['name'] ?? '')?></strong><small>#<?=h($song['id'] ?? '')?> · <?=h($song['size'] ?? '')?> MB</small></td>
+                                <td><?=h($song['author_name'] ?? '')?></td>
+                                <td><span class="mc-ops-status <?=((int)($song['is_verified'] ?? 0) === 1) ? 'verified' : 'pending'?>"><?=((int)($song['is_verified'] ?? 0) === 1) ? 'Verified' : 'Pending'?></span></td>
+                            </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <?php else: ?><p class="mc-ops-empty">No music has been uploaded yet.</p><?php endif; ?>
+                </section>
+                <?php endif; ?>
+            </div>
+
+            <?php if ($visibleActions): ?>
+            <aside class="mc-ops-actions" aria-labelledby="mcOperatorActions">
+                <div class="mc-ops-section-head"><div><p class="mc-ops-kicker">SHORTCUTS</p><h3 id="mcOperatorActions">Operator tools</h3></div></div>
+                <nav aria-label="Operator shortcuts">
+                    <?php foreach ($visibleActions as [$section,$label,$description]): ?>
+                    <a href="/admin/?page=<?=h($section)?>"><span><strong><?=h($label)?></strong><small><?=h($description)?></small></span><span aria-hidden="true">↗</span></a>
+                    <?php endforeach; ?>
+                </nav>
+                <p class="mc-ops-side-note">Only tools your administrator role can access are shown.</p>
+            </aside>
+            <?php endif; ?>
+        </div>
+
+        <?php if (canPermission('audit.view')): ?>
+        <details class="mc-ops-audit" id="auditDetails">
+            <summary><span><strong>Audit log</strong><small>Recent administrator activity · refreshes every 15 seconds</small></span><span id="auditLiveState" role="status">Loading…</span></summary>
+            <div id="muchoLiveAudit" class="admin-live-audit-list"><div class="mc-ops-empty">Loading audit events…</div></div>
+        </details>
+        <script src="/admin/product-dashboard.js?v=2" defer></script>
+        <?php endif; ?>
+    </div>
+    <?php
+    echo ob_get_clean();
 }
