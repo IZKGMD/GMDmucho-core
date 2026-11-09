@@ -101,6 +101,10 @@ def main():
                                 ops:document.querySelector('.mc-ops').getBoundingClientRect().width
                             })""")
                             assert widths["ops"] >= widths["main"]-100,(name,width,widths)
+                            actions=page.locator('.mc-ops-actions').bounding_box()
+                            assert actions is not None,(name,width,'operator tools missing')
+                            assert actions["x"] >= page.locator('.mc-ops-feeds').bounding_box()["x"],(name,width,'tools rendered under fixed sidebar',actions)
+                            assert actions["width"] >= 200,(name,width,'operator tools collapsed',actions)
                             sidebar=page.locator(".shell>aside").evaluate("(e)=>getComputedStyle(e).backgroundColor")
                             assert sidebar=="rgb(20, 19, 28)",sidebar
                         else:

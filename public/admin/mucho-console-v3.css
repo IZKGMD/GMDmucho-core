@@ -386,3 +386,13 @@ html[data-theme="light"] body.mc-admin .mc-ops-attention-go,html[data-theme="lig
 /* Prevent legacy flex sizing from narrowing the rebuilt operator overview. */
 body.mc-admin .mc-ops{width:100%;min-width:0}
 body.mc-admin .mc-ops-content{width:100%;min-width:0}
+
+/* The operator shortcut pane is an aside, but not the fixed shell sidebar. */
+body.mc-admin .shell>main .mc-ops-actions{
+ position:static!important;inset:auto!important;
+ width:auto!important;max-width:none!important;min-width:0!important;
+ height:auto!important;max-height:none!important;
+ transform:none!important;overflow:visible;
+ display:block!important;z-index:auto;
+}
+body.mc-admin .shell>main .mc-ops-actions nav{position:static;display:grid}
