@@ -38,7 +38,7 @@ grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then' install.sh
 grep -Fq 'prompt_admin_password()' install.sh
 grep -Fq 'Admin setup secret (minimum 10 characters):' install.sh
 grep -Fq 'Confirm admin setup secret:' install.sh
-grep -Fq 'Keep the existing password? [Y/n]' install.sh
+grep -Fq 'Keep the existing setup secret? [Y/n]' install.sh
 grep -Fq 'MUCHO_ADMIN_PASSWORD for an unattended install.' install.sh
 grep -Fq 'Admin setup secret must contain at least 10 characters.' install.sh
 grep -Fq 'Admin password must contain at least 10 characters.' bin/mucho
