@@ -59,15 +59,44 @@ if (str_contains($installer, 'HTTP_X_FORWARDED_PROTO')) {
 }
 
 $verifyPosition = strpos($installer, 'verifyInstalledSchema($pdo)');
-$adminCreatePosition = strpos($installer, '$adminStmt->execute([');
+$bootstrapWritePosition = strpos($installer, 'atomicWrite($bootstrapPath, $bootstrap, 0600)');
 if (
     $verifyPosition === false ||
-    $adminCreatePosition === false ||
-    $verifyPosition < $adminCreatePosition
+    $bootstrapWritePosition === false ||
+    $verifyPosition < $bootstrapWritePosition ||
+    str_contains($installer, '$adminStmt->execute([')
 ) {
     throw new RuntimeException(
-        'Final schema verification must run after administrator bootstrap.'
+        'Shared installation must persist setup-secret hash, verify the schema, and defer owner creation until /admin/.'
     );
+}
+
+$admin = file_get_contents($root . '/public/admin/index.php');
+$wizard = file_get_contents($root . '/public/admin/first-run.php');
+$firstRun = file_get_contents($root . '/src/Admin/FirstRunSetup.php');
+$adminSync = file_get_contents($root . '/bin/mucho-sync-admin.php');
+foreach ([
+    'index' => $admin,
+    'wizard' => $wizard,
+    'first-run service' => $firstRun,
+    'admin sync' => $adminSync,
+] as $name => $source) {
+    if (!is_string($source) || $source === '') {
+        throw new RuntimeException('First-run code missing: ' . $name);
+    }
+}
+foreach ([
+    'secret checked with password_verify' => str_contains($wizard, 'password_verify($setupKey, $hash)'),
+    'CSRF check before enrollment' => str_contains($wizard, 'hash_equals($csrf, $providedCsrf)'),
+    'race-safe database lock' => str_contains($firstRun, 'GET_LOCK(:name, 5)'),
+    'one-time completion marker' => str_contains($firstRun, 'admin_initialization'),
+    'admin panel calls owner onboarding' => str_contains($admin, 'muchoAdminFirstRun('),
+    'routine sync preserves existing credentials' => str_contains($adminSync, 'if (!$resetRequested)'),
+    'CLI reset requires explicit flag' => str_contains($adminSync, "'--reset-password'"),
+] as $name => $ok) {
+    if (!$ok) {
+        throw new RuntimeException('First-run safety contract broken: ' . $name);
+    }
 }
 
 $backupContracts = [

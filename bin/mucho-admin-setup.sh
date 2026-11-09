@@ -63,7 +63,7 @@ if [[ -f .env ]] && command -v docker >/dev/null 2>&1; then
   if [[ -n "$(docker compose "${compose[@]}" ps -q app 2>/dev/null || true)" ]]; then
     echo "Applying the new password to the running PHP application..."
     docker compose "${compose[@]}" up -d --no-deps --no-build --force-recreate app
-    docker compose "${compose[@]}" exec -T app php bin/mucho-sync-admin.php
+    docker compose "${compose[@]}" exec -T app php bin/mucho-sync-admin.php --reset-password
     if [[ -n "$(docker compose "${compose[@]}" ps -q caddy 2>/dev/null || true)" ]]; then
       docker compose "${compose[@]}" exec -T caddy \
         caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
