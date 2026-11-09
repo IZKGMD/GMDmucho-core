@@ -5,6 +5,8 @@ on:
     paths:
       - "public/muchocore/**"
       - "public/assets/mucho-design-system.css"
+      - "public/assets/mucho-product-v3.css"
+      - "public/assets/mucho-product-v3.js"
       - "public/assets/muchocore-landing.css"
       - "public/assets/muchocore-landing.js"
       - "tests/seo/muchocore_visual.py"
@@ -27,7 +29,7 @@ jobs:
         run: command -v google-chrome || command -v chromium
       - name: Render English and Russian layouts
         env:
-          MUCHO_PREVIEW_B64: "0"
+          MUCHO_PREVIEW_B64: "1"
         run: python3 tests/seo/muchocore_visual.py
       - name: Keep preview screenshots
         if: always()

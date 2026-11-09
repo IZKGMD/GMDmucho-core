@@ -24,8 +24,9 @@ test('design avoids generic gradient/glass decoration and motion', () => {
   assert.match(css,/\.system-panel\s*\{/);
 });
 
-test('all operational pages keep loading the same stylesheet last', () => {
-  for (const p of ['public/index.html','public/muchocore/index.html','public/muchocore/ru/index.html','public/admin/index.php','public/dashboard/index.php','public/dashboard/clans.php','public/install/index.html','public/muchocore/about/index.html','public/muchocore/compatibility/index.html']) {
+test('v3 product and operations assets are used in their corresponding surfaces', () => {
+  for (const p of ['public/muchocore/index.html','public/muchocore/ru/index.html'])
+    assert.ok(read(p).includes('/assets/mucho-product-v3.css?v=1'),p);
+  for (const p of ['public/admin/index.php','public/dashboard/index.php','public/dashboard/clans.php','public/install/index.html','public/muchocore/about/index.html','public/muchocore/compatibility/index.html'])
     assert.ok(read(p).includes('/assets/mucho-design-system.css?v=2'),p);
-  }
 });

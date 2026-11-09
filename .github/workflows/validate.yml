@@ -271,6 +271,7 @@ jobs:
           node --test tests/application/product-ui.test.cjs
           node --test tests/application/mucho-design-system.test.cjs
           node --test tests/application/mucho-minimal-design.test.cjs
+          node --test tests/application/mucho-structure-v3.test.cjs
           node --test tests/application/client-upload-speed.test.cjs
           node --test tests/application/apk-parallel-upload.test.cjs
           node --test tests/application/android-prepatched-apk-ui.test.cjs
