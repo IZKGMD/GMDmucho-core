@@ -127,6 +127,7 @@ jobs:
           php tests/protocol/protocol-21-surface.php
           php tests/protocol/protocol-21-wire.php
           php tests/protocol/router-compatibility.php
+          php tests/protocol/php8-request-int-bounds.php
           php tests/application/game-roles.php
           php tests/application/admin-rating-contract.php
           php tests/application/admin-2fa-contract.php
