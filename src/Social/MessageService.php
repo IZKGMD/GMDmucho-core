@@ -61,6 +61,14 @@ final readonly class MessageService
     ): bool {
         $this->auth->authenticate($id, $gjp);
 
+        $decodedSubject = $this->encoder->decodeSubject($subject);
+        $decodedBody = $this->encoder->decodeBody($body);
+        if ($decodedSubject === null || $decodedBody === null) {
+            return false;
+        }
+        $subject = $decodedSubject;
+        $body = $decodedBody;
+
         if ($this->repository->isMessageBanned($id)) {
             return false;
         }

@@ -33,6 +33,20 @@ final readonly class LikeRepository
         $this->db->beginTransaction();
 
         try {
+            // Lock the target before checking or changing votes. This makes
+            // concurrent votes for the same item serialize even when a voter
+            // has no existing row yet, and blocks votes on deleted targets.
+            $target = $this->db->prepare(
+                "SELECT account_id FROM `{$table}`
+                 WHERE `{$pk}`=:id FOR UPDATE"
+            );
+            $target->execute(['id' => $itemId]);
+            $owner = $target->fetchColumn();
+            if ($owner === false || ($accountId > 0 && (int)$owner === $accountId)) {
+                $this->db->rollBack();
+                return false;
+            }
+
             if ($accountId > 0) {
                 // Authenticated votes are keyed by account, not source IP.
                 $q = $this->db->prepare(
@@ -79,7 +93,7 @@ final readonly class LikeRepository
                 $oldLike = (int)$existing['is_like'] === 1;
                 if ($oldLike === $isLike) {
                     $this->db->rollBack();
-                    return false;
+                    return true; // A duplicate request is an idempotent success.
                 }
 
                 $q = $this->db->prepare(
@@ -89,7 +103,8 @@ final readonly class LikeRepository
                     'is_like' => $isLike ? 1 : 0,
                     'id' => (int)$existing['id'],
                 ]);
-                $delta = $isLike ? 1 : -1;
+                // Switching -1 -> +1 (or the reverse) changes net score by 2.
+                $delta = ($isLike ? 1 : -1) - ($oldLike ? 1 : -1);
             } else {
                 $q = $this->db->prepare(
                     'INSERT INTO likes

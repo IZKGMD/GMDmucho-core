@@ -7,6 +7,7 @@ namespace MuchoCore\Level;
 use MuchoCore\Cache\CacheInterface;
 use MuchoCore\Diagnostics\RequestProfiler;
 use MuchoCore\Protocol\GdLevelListEncoder;
+use Throwable;
 
 final readonly class LevelService
 {
@@ -93,7 +94,17 @@ final readonly class LevelService
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE)
             );
             $cacheStartedAt = RequestProfiler::clock();
-            $cached = $this->cache->get($cacheKey);
+            $cached = null;
+            try {
+                $cached = $this->cache->get($cacheKey);
+            } catch (Throwable $error) {
+                // A cache outage must never hide valid public levels.
+                error_log(sprintf(
+                    '[MuchoCore] request_id=%s level_cache_read_failed exception=%s',
+                    (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
+                    $error::class
+                ));
+            }
             RequestProfiler::observe('cache_read', $cacheStartedAt);
             RequestProfiler::cacheHit($cached !== null);
             if ($cached !== null) {
@@ -132,7 +143,16 @@ final readonly class LevelService
         if ($cacheable && $cacheKey !== '') {
             $ttl = max(1, min(300, (int)(getenv('MUCHO_LEVEL_CACHE_TTL') ?: 15)));
             $writeStartedAt = RequestProfiler::clock();
-            $this->cache->set($cacheKey, $encoded, $ttl);
+            try {
+                $this->cache->set($cacheKey, $encoded, $ttl);
+            } catch (Throwable $error) {
+                // The database result is authoritative; keep serving it.
+                error_log(sprintf(
+                    '[MuchoCore] request_id=%s level_cache_write_failed exception=%s',
+                    (string)($_SERVER['MUCHO_REQUEST_ID'] ?? '-'),
+                    $error::class
+                ));
+            }
             RequestProfiler::observe('cache_write', $writeStartedAt);
         }
 
