@@ -22,3 +22,5 @@
 .mc-install-v3 .mc-install-notes strong{color:var(--mc-ink)}
 @media(max-width:1000px){.mc-install-v3 .mc-install-method{grid-template-columns:80px minmax(0,1fr);gap:20px}.mc-install-v3 .mc-install-method>.mc-button{grid-column:2;justify-self:start;margin:0}.mc-install-v3 .mc-install-intro-grid{gap:50px}}
 @media(max-width:650px){.mc-install-v3 .mc-install-intro-grid{grid-template-columns:1fr;gap:22px;padding-top:44px}.mc-install-v3 .mc-install-intro{padding-bottom:38px}.mc-install-v3 h1{font-size:clamp(47px,12vw,67px)}.mc-install-v3 .mc-install-method{grid-template-columns:1fr;gap:10px;padding:28px 0}.mc-install-v3 .mc-install-method>.mc-button{grid-column:1}.mc-install-v3 .mc-install-method h2{font-size:25px}.mc-install-v3 .mc-install-method ul{grid-template-columns:1fr}.mc-install-v3 .mc-install-notes{grid-template-columns:1fr;gap:5px}}
+
+@media(prefers-reduced-motion:reduce){.mc-install-v3 *{transition:none!important;animation:none!important}}
