@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+"""Visual regression fixtures for CSS used by dynamic PHP admin and player portal.
+
+These pages contain no invented server data: placeholders are deliberately blank.
+They verify the actual committed styles independently from authentication and DB.
+"""
+from __future__ import annotations
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from playwright.sync_api import sync_playwright
+import shutil
+import threading
+
+PUBLIC=Path(__file__).resolve().parents[2]/"public"
+OUTPUT=Path("/tmp/muchocore-ui-preview")
+OUTPUT.mkdir(exist_ok=True,parents=True)
+
+class Quiet(SimpleHTTPRequestHandler):
+    def log_message(self,*args):
+        pass
+
+def admin(base):
+    return f"""<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
+<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=2"></head>
+<body class="mc-admin"><div class="shell">
+<aside><div class="brandrow"><a class="logo" href="#"><img src="{base}/assets/muchocore-icon.png?v=3" alt="" width="32" height="32">MuchoCore</a></div>
+<section class="mc-instance"><span>ACTIVE INSTANCE</span><strong>MuchoCore</strong><a href="#">Player portal ↗</a></section>
+<nav class="admin-nav"><p class="nav-title">WORKSPACE</p>
+<a class="on" href="#">Overview</a><a href="#">Players</a><a href="#">Levels</a><a href="#">Music</a><a href="#">Moderation</a>
+<p class="nav-title">SYSTEM</p><a href="#">Settings</a><a href="#">Backup</a></nav></aside>
+<main><header class="head"><div class="head-title"><span class="mc-section-caption">MUCHOCORE ADMIN</span><h1>Dashboard</h1></div>
+<form class="global-search"><select aria-label="Search type"><option>Players</option></select><input placeholder="Search..." aria-label="Search"><button type="button">Search</button></form><div class="mc-header-actions"><a class="mc-header-portal" href="#">Player portal ↗</a></div></header>
+<div class="mc-ops"><header class="mc-ops-intro"><div><p class="mc-ops-kicker">MUCHOCORE CONSOLE</p><h2>Server overview</h2><p>Live data and the work that needs your attention.</p></div><a class="mc-ops-secondary" href="#">Player portal ↗</a></header>
+<div class="mc-ops-attention"><span class="mc-ops-attention-mark">♪</span><span class="mc-ops-attention-copy"><small>MUSIC MODERATION</small><strong>Review incoming tracks</strong><span>Queue data appears after sign-in</span></span><span class="mc-ops-attention-go">Open queue ↗</span></div>
+<section class="mc-ops-summary"><div class="mc-ops-summary-item"><span class="mc-ops-summary-top">Players<span>↗</span></span><strong>—</strong><small>Live server figure</small></div><div class="mc-ops-summary-item"><span class="mc-ops-summary-top">Levels<span>↗</span></span><strong>—</strong><small>Published levels</small></div><div class="mc-ops-summary-item"><span class="mc-ops-summary-top">Songs<span>↗</span></span><strong>—</strong><small>Community tracks</small></div></section>
+<div class="mc-ops-content"><div class="mc-ops-feeds"><section class="mc-ops-panel"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">COMMUNITY</p><h3>New players</h3></div><a href="#">All players ↗</a></div><div class="mc-ops-table-scroll"><table class="mc-ops-table"><thead><tr><th>Player</th><th>Role</th><th class="mc-ops-num">Stars</th></tr></thead></table></div><p class="mc-ops-empty">No example player records shown in this visual test.</p></section>
+<section class="mc-ops-panel"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">CONTENT</p><h3>Latest music</h3></div><a href="#">Manage music ↗</a></div><p class="mc-ops-empty">Actual tracks appear from the server database.</p></section></div>
+<aside class="mc-ops-actions"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">SHORTCUTS</p><h3>Operator tools</h3></div></div><nav><a href="#"><span><strong>Review levels</strong><small>Ratings and moderation</small></span><span>↗</span></a><a href="#"><span><strong>Publish news</strong><small>In-game announcements</small></span><span>↗</span></a><a href="#"><span><strong>Backups</strong><small>Database snapshots</small></span><span>↗</span></a></nav></aside></div></div></main></div></body></html>"""
+
+def portal(base):
+    return f"""<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
+<link rel="stylesheet" href="{base}/assets/mucho-portal-v3.css?v=2"></head>
+<body class="dashboard-page"><div class="shell"><header class="topbar"><a class="brand" href="#"><img class="mc-brand-mark" src="{base}/assets/muchocore-icon.png?v=3" alt=""><span class="mc-portal-brand-copy"><strong>MuchoCore</strong><small>PLAYER PORTAL</small></span></a><nav class="nav"><a href="#">Players</a><a href="#">Music</a><a href="#">Clans</a><a class="btn" href="#">Login</a></nav></header>
+<section class="mc-community-home"><div class="mc-community-discovery"><div class="mc-community-overline"><span>PLAYER PORTAL</span><span>MuchoCore</span></div>
+<h1>Explore your<br><span>community.</span></h1><p>Search player profiles, follow the leaderboard and discover music uploaded by your community.</p>
+<form class="search mc-community-search"><label for="testSearch">Find a player</label><div class="mc-community-search-row"><input id="testSearch" placeholder="Search username..." type="search"><button class="btn" type="button">Search ↗</button></div></form>
+<nav class="mc-community-shortcuts"><a href="#">Leaderboard ↗</a><a href="#">Clans ↗</a><a href="#">Music ↗</a></nav>
+<section class="dashboard-stats mc-community-statistics"><div class="dashboard-stat"><span class="dashboard-stat-label">Players</span><div class="dashboard-stat-value">—</div><small class="dashboard-stat-detail">Live total</small></div>
+<div class="dashboard-stat"><span class="dashboard-stat-label">Levels</span><div class="dashboard-stat-value">—</div><small class="dashboard-stat-detail">Published</small></div><div class="dashboard-stat"><span class="dashboard-stat-label">Songs</span><div class="dashboard-stat-value">—</div><small class="dashboard-stat-detail">Community music</small></div>
+<div class="dashboard-stat"><span class="dashboard-stat-label">Clans</span><div class="dashboard-stat-value">—</div><small class="dashboard-stat-detail">Active groups</small></div></section></div>
+<aside class="panel portal-panel mc-community-access"><div class="portal-head"><span class="portal-eyebrow">PLAYER ACCOUNT</span><h2 class="portal-title">Sign in</h2><p class="portal-description">Use your GDPS credentials to manage uploads and your profile.</p></div><div class="field"><label for="loginUser">Username</label><input id="loginUser" placeholder="Username"></div><div class="field"><label for="loginPass">Password</label><input id="loginPass" type="password" placeholder="Password"></div><button class="btn" type="button">Sign in</button></aside></section>
+<section class="mc-community-spotlight"><div class="mc-community-spotlight-top"><div><span class="mc-community-label">FROM THE SERVER</span><h2>Community spotlight</h2></div><a href="#">View leaderboard ↗</a></div><div class="mc-community-featured mc-community-none"><span><small>TOP PLAYER</small><strong>Server data is not loaded in this preview</strong><span>Live player stats are shown on the running server.</span></span></div></section></div></body></html>"""
+
+def main():
+    browser_path=next((val for cmd in ("google-chrome","chromium","chromium-browser","google-chrome-stable") if (val:=shutil.which(cmd))),None)
+    assert browser_path,"Chromium not available"
+    server=ThreadingHTTPServer(("127.0.0.1",0),partial(Quiet,directory=str(PUBLIC)))
+    threading.Thread(target=server.serve_forever,daemon=True).start()
+    try:
+        base=f"http://127.0.0.1:{server.server_port}"
+        with sync_playwright() as p:
+            browser=p.chromium.launch(executable_path=browser_path,headless=True,args=["--no-sandbox"])
+            try:
+                for name,build in (("admin",admin),("portal",portal)):
+                    for width,height in ((1440,900),(390,844)):
+                        page=browser.new_page(viewport={"width":width,"height":height},device_scale_factor=1)
+                        errors=[]
+                        page.on("pageerror",lambda error:errors.append(str(error)))
+                        page.set_content(build(base),wait_until="networkidle")
+                        page.locator("body").wait_for()
+                        body_color=page.locator("body").evaluate("(e)=>getComputedStyle(e).backgroundColor")
+                        assert body_color=="rgb(16, 16, 23)",(name,width,body_color)
+                        over=page.evaluate("document.documentElement.scrollWidth-innerWidth")
+                        assert over<=1,(name,width,"horizontal overflow",over)
+                        assert not errors,(name,width,errors)
+                        if name=="admin":
+                            sidebar=page.locator(".shell>aside").evaluate("(e)=>getComputedStyle(e).backgroundColor")
+                            assert sidebar=="rgb(20, 19, 28)",sidebar
+                        else:
+                            panel=page.locator(".mc-community-access").evaluate("(e)=>getComputedStyle(e).backgroundColor")
+                            assert panel=="rgb(33, 25, 46)",panel
+                        file=OUTPUT/f"muchocore-hybrid-{name}-fixture-{width}.jpg"
+                        page.screenshot(path=str(file),type="jpeg",quality=80)
+                        print(f"WORKSPACE_VISUAL_OK {name} {width}: {file.name} {file.stat().st_size} bytes")
+                        page.close()
+            finally:
+                browser.close()
+    finally:
+        server.shutdown()
+        server.server_close()
+
+if __name__=="__main__":
+    main()
