@@ -50,3 +50,18 @@ The resulting MuchoCore visual language is its own: warm off-white editorial pag
 - Browser checks inspect mobile (360/390/430/768) and desktop (1440), EN/RU, menu, tab interactions, hover-independent access, viewport overflow and JS errors.
 - Node structure tests and PHP7/8 CI must be green before merge.
 - No direct VPS rollout: PR review and merge come first.
+
+## Final identity direction: Hybrid Ink
+Selected from the 24-background comparative study after feedback favoring Deep Violet, Midnight and Ink.
+
+* Canvas: `#101017` (Ink)
+* Section separation: `#14131C` (Midnight)
+* Controls, cards and preview window: `#21192E` (Deep Violet)
+* Foreground: `#F3F0F8` (soft cool white)
+* Brand accent: `#BA9CEE` (Lavender matched to the real purple metallic logo)
+* Borders: `#3C354A` (quiet, not glowing)
+* Links, buttons and hover states must maintain readable contrast.
+
+No radial gradients, decorative glows, glassmorphism, oversized border radii, motion for its own sake, or decorative slash-separated uppercase labels. Numbered feature labels are plain words. Genuine URLs, protocol paths, rates and MIME types retain their functional slashes.
+
+The site's HTML remains independently structured. The existing operator and player CSS now contain theme-specific dark declarations that preserve backend behavior and the user's explicit light-mode preference. All static documents adopt the same palette. This is a product-wide design system, not an installable UI kit.

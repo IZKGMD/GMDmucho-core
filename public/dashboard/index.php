@@ -1487,7 +1487,7 @@ body.dashboard-page .topbar{
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <script src="/assets/product-ui.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="/assets/mucho-portal-v3.css?v=1">
+<link rel="stylesheet" href="/assets/mucho-portal-v3.css?v=2">
 </head>
 <body class="dashboard-page mc-workspace">
 <div class="shell">
@@ -1772,7 +1772,7 @@ body.dashboard-page .topbar{
   <?php if (!empty($topPlayers[0])): ?>
     <a class="mc-community-featured" href="/dashboard?u=<?=rawurlencode((string)$topPlayers[0]['username'])?>">
       <img src="<?=pdH(pdIconUrl($topPlayers[0], 90))?>" alt="" loading="lazy" referrerpolicy="no-referrer">
-      <span class="mc-community-featured-main"><small>TOP PLAYER / STARS</small><strong><?=pdH($topPlayers[0]['username'])?></strong><span><?=pdFormatNumber($topPlayers[0]['stars'])?> stars · <?=pdFormatNumber($topPlayers[0]['demons'])?> demons · <?=pdFormatNumber($topPlayers[0]['creator_points'])?> creator points</span></span>
+      <span class="mc-community-featured-main"><small>TOP PLAYER</small><strong><?=pdH($topPlayers[0]['username'])?></strong><span><?=pdFormatNumber($topPlayers[0]['stars'])?> stars · <?=pdFormatNumber($topPlayers[0]['demons'])?> demons · <?=pdFormatNumber($topPlayers[0]['creator_points'])?> creator points</span></span>
       <span class="mc-community-featured-arrow" aria-hidden="true">↗</span>
     </a>
   <?php else: ?>

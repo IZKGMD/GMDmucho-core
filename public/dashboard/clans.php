@@ -465,7 +465,7 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <script src="/assets/product-ui.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="/assets/mucho-portal-v3.css?v=1">
+<link rel="stylesheet" href="/assets/mucho-portal-v3.css?v=2">
 </head>
 <body class="mc-workspace mc-clans-page">
 <div class="shell">
@@ -498,7 +498,7 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
 
 <section class="hero mc-clan-workspace" id="clans">
     <div class="panel mc-clan-intro">
-        <div class="eyebrow">Community / Clans</div>
+        <div class="eyebrow">Community clans</div>
         <h1>Build your <span>clan</span>.</h1>
         <p class="copy">
             Every MuchoCore GDPS gets its own clan directory. Players can browse clans,

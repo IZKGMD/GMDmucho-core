@@ -15,7 +15,7 @@
 .mc-install-v3 .mc-install-method li{font-size:12px;color:var(--mc-copy)}
 .mc-install-v3 .mc-install-method li:before{content:"— ";color:var(--mc-brand)}
 .mc-install-v3 .mc-install-method>.mc-button{margin-top:12px;white-space:nowrap;align-self:start}
-.mc-install-v3 .mc-install-code{max-width:540px;overflow-x:auto;margin:18px 0 0;background:var(--mc-deep);color:#f1f5ec;padding:13px 16px;border-radius:4px;font:10px/1.9 var(--mc-mono)}
+.mc-install-v3 .mc-install-code{max-width:540px;overflow-x:auto;margin:18px 0 0;background:var(--mc-deep);color:#f3f0f8;padding:13px 16px;border-radius:4px;font:10px/1.9 var(--mc-mono)}
 .mc-install-v3 .mc-install-code code{white-space:pre-wrap;overflow-wrap:anywhere}
 .mc-install-v3 .mc-install-notes{display:grid;grid-template-columns:1fr 1fr;gap:40px;padding:32px 0 0}
 .mc-install-v3 .mc-install-notes p{font-size:12px;line-height:1.74;color:var(--mc-copy)}
@@ -24,3 +24,6 @@
 @media(max-width:650px){.mc-install-v3 .mc-install-intro-grid{grid-template-columns:1fr;gap:22px;padding-top:44px}.mc-install-v3 .mc-install-intro{padding-bottom:38px}.mc-install-v3 h1{font-size:clamp(47px,12vw,67px)}.mc-install-v3 .mc-install-method{grid-template-columns:1fr;gap:10px;padding:28px 0}.mc-install-v3 .mc-install-method>.mc-button{grid-column:1}.mc-install-v3 .mc-install-method h2{font-size:25px}.mc-install-v3 .mc-install-method ul{grid-template-columns:1fr}.mc-install-v3 .mc-install-notes{grid-template-columns:1fr;gap:5px}}
 
 @media(prefers-reduced-motion:reduce){.mc-install-v3 *{transition:none!important;animation:none!important}}
+
+.mc-install-v3 .mc-install-code{border:1px solid #483c59;background:#21192e;color:#f3f0f8}
+.mc-install-v3 .mc-install-method h2{color:#f3f0f8}

@@ -34,7 +34,7 @@
     }
     const edition = document.querySelector('.mc-demo-edition');
     const index = tabs.indexOf(target);
-    if (edition && index >= 0) edition.textContent = '0' + (index + 1) + ' / 03';
+    if (edition && index >= 0) edition.textContent = (index + 1) + (document.documentElement.lang === 'ru' ? ' из 3' : ' of 3');
   };
   tabs.forEach((tab, index) => {
     tab.addEventListener('click', () => activate(tab));

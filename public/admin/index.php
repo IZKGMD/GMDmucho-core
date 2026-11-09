@@ -801,7 +801,7 @@ function establishAdminSession(array $row): void
 
 
 /* =========================================================
-   PASSKEY / WEBAUTHN
+   Passkey authentication
 ========================================================= */
 
 $passkeyAction=(string)($_GET['passkey'] ?? '');
@@ -2435,7 +2435,7 @@ max-width:100%
 <link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=7">
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=1">
+<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=2">
 <script src="/admin/admin-simple.js?v=3" defer></script>
 </head>
 <body class="admin-login mc-workspace" data-page="">
@@ -2443,7 +2443,7 @@ max-width:100%
 <header>
 <?php adminBrand($branding['server_name']); adminInterfaceSwitch(); ?>
 </header>
-<span class="mc-auth-eyebrow">MUCHOCORE / CONTROL PANEL</span>
+<span class="mc-auth-eyebrow">MuchoCore Admin</span>
 <h1>Administrator sign in</h1>
 <?php if (!empty($loginError)): ?><p class="err" role="alert"><?=h($loginError)?></p><?php endif ?>
 <form method="post" id="adminLoginForm">
@@ -4986,7 +4986,7 @@ table{
 <link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=6">
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=1">
+<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=2">
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>
@@ -5041,7 +5041,7 @@ table{
 >☰</button>
 
 <div class="head-title">
-<span class="mc-section-caption">CONTROL / <?=h(strtoupper($page))?></span>
+<span class="mc-section-caption">MUCHOCORE ADMIN</span>
 <h1><?=h($pages[$page])?></h1>
 <small><?=h((string)((Environment::get('MUCHO_ACCOUNT_URL', '') ?: $branding['server_name'])))?></small>
 </div>

@@ -328,3 +328,119 @@ html[data-theme="dark"] body.dashboard-page .mc-community-access :is(input:not([
 html[data-theme="dark"] body.dashboard-page .mc-community-search-row{background:var(--panel)}
 html[data-theme="dark"] body.dashboard-page .badge.ok{background:#2c4332;color:#b4e2b5;border-color:#46644b}
 @media(prefers-reduced-motion:reduce){body.dashboard-page *,body.mc-clans-page *{transition:none!important;animation:none!important}}
+
+/* Hybrid Ink portal defaults. Existing light preference remains supported. */
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page,html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page{
+ --bg:#101017;--bg2:#101017;--panel:#21192e;--panel-soft:#2d243a;
+ --line:#41384f;--line-soft:#4d415c;--text:#f3f0f8;
+ --muted:#beb4cb;--muted-2:#a99fba;--accent:#ba9cee;--accent-2:#d3baf8;
+ --green:#a1d4b3;--danger:#e0a4bc;
+ --mc-bg:#101017;--mc-surface:#21192e;--mc-raised:#2d243a;
+ --mc-line:#41384f;--mc-text:#f3f0f8;--mc-muted:#beb4cb;
+ --mc-accent:#ba9cee;--mc-action:#ba9cee;
+ background:#101017!important;color:#f3f0f8;color-scheme:dark;
+}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .topbar,html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .topbar{background:#101017;border-bottom-color:#41384f}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .nav :is(a,button),html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .nav :is(a,button){color:#c8c0d3}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .nav :is(a,button):hover,html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .nav :is(a,button):hover{background:#2d243a;border-color:#514362;color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .nav a.btn,html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .nav a.btn{background:#ba9cee;border-color:#ba9cee;color:#17121f}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .nav a.btn:hover,html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .nav a.btn:hover{background:#d3baf8;border-color:#d3baf8;color:#17121f}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page :is(.btn,button.btn),html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page :is(.btn,button.btn){background:#ba9cee;border-color:#ba9cee;color:#17121f}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page :is(.btn,button.btn):hover,html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page :is(.btn,button.btn):hover{background:#d3baf8;border-color:#d3baf8;color:#17121f}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .btn.alt,html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .btn.alt{background:#2d243a;border-color:#514362;color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .btn.alt:hover,html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .btn.alt:hover{background:#352b45;color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page :is(.panel,.featured-card,.link-panel,.player-card,.profile,.list-item,.portal-card,.dashboard-stat),
+html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page :is(.panel,.card,.member,.empty,.notice){background:#21192e;border-color:#41384f;color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page :is(.featured-card,.player-card):hover,html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .card:hover{background:#292136;border-color:#615273}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-overline{color:#998da8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-overline span:first-child{color:#ba9cee}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-discovery h1{color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-discovery h1 span{color:#ba9cee}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-discovery>p{color:#bfb5ce}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-search>label{color:#eee8f4}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-search-row{background:#21192e;border-color:#514362}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-search-row input{color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-search-row button{background:#ba9cee;color:#17121f;border-color:#ba9cee}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-search-row button:hover{background:#d3baf8;border-color:#d3baf8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-shortcuts{border-color:#41384f}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-shortcuts a{color:#ded5e9}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-shortcuts a:hover{color:#ba9cee}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-statistics .dashboard-stat{border-color:#41384f!important}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-statistics .dashboard-stat-value{color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-statistics :is(.dashboard-stat-detail,.dashboard-stat-label){color:#aca2bb}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-access{background:#21192e;border-color:#514362;color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-access .portal-eyebrow{color:#ba9cee}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-access .portal-title{color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-access .portal-description{color:#c5bad1}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-access .portal-mark{background:#2d243a;border-color:#514362;color:#ba9cee}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-access .form-divider{background:#41384f}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-access :is(.field label,.muted,.small){color:#c5bad1}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-access :is(input:not([type=hidden]),textarea,select){background:#191621;border-color:#514362;color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-access input::placeholder{color:#a99fba}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-access input:focus{outline-color:#ba9cee;border-color:#ba9cee}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-access .btn{background:#ba9cee;border-color:#ba9cee;color:#17121f}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-access .btn:hover{background:#d3baf8;border-color:#d3baf8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-access .upload-summary span{background:#2d243a;border-color:#514362;color:#c7bcd4}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-access .upload-summary b{color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-access .cooldown{color:#c5bad1}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-spotlight{border-color:#41384f}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-spotlight-top h2{color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-spotlight-top>a{color:#ba9cee}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-featured{background:#21192e;border-color:#41384f;color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page a.mc-community-featured:hover{border-color:#ba9cee;background:#292136}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-featured img{border-color:#514362}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-featured :is(small,.mc-community-featured-arrow){color:#ba9cee}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mc-community-featured-main>span{color:#c5bad1}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .section-head h2{color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .section-divider{border-color:#41384f;color:#aca1b9}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .player-card{background:#21192e;border-color:#41384f}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .player-card:hover{background:#292136;border-color:#514362}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .player-card .player-meta b{color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .player-card .rank{color:#aca1b9}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page :is(.chip,.role,.badge){background:#2d243a;border-color:#514362;color:#c5bad1}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .badge.ok{background:#20392f;border-color:#396649;color:#a1d4b3}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .list-item{border-color:#41384f}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .list-item b{color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .list-item small{color:#aca1b9}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .music-disc{background:#2d243a;border-color:#514362;color:#ba9cee}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page :is(.search input,.field input,.field select,.field textarea){background:#191621;border-color:#514362;color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page :is(.search input,.field input):focus{border-color:#ba9cee}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .profile-stat{background:#2d243a;border-color:#514362}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .profile-stat b{color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .notice{background:#21192e;border-color:#41384f}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .footer{border-top-color:#41384f;color:#a99fba}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .hero h1{color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .hero h1 span{color:#ba9cee}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .eyebrow{color:#ba9cee}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page :is(.copy,.sub){color:#c2bbce}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page :is(.card,.panel,.member){background:#21192e;border-color:#41384f}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .card:hover{background:#292136;border-color:#514362}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .name{color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .tag{color:#ba9cee}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .chip{background:#2d243a;border-color:#514362;color:#c2bbce}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page :is(.search input,.form input,.form textarea,.form select){background:#191621;border-color:#514362;color:#f3f0f8}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .footer{border-top-color:#41384f;color:#a99fba}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mucho-theme-toggle,html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .mucho-theme-toggle{
+ background:#21192e;border:1px solid #514362;border-radius:5px;color:#e3d7f0;
+ box-shadow:none;backdrop-filter:none;
+}
+html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page .mucho-theme-toggle:hover,html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page .mucho-theme-toggle:hover{transform:none;border-color:#ba9cee}
+html[data-theme="light"] body.dashboard-page,html[data-theme="light"] body.mc-clans-page{
+ --accent:#7353a6;--accent-2:#8e72b8;
+ --mc-accent:#7353a6;--mc-action:#7353a6;
+}
+@media(prefers-reduced-motion:reduce){html:is([data-theme="dark"],:not([data-theme])) body.dashboard-page *,html:is([data-theme="dark"],:not([data-theme])) body.mc-clans-page *{transition:none!important;animation:none!important}}
+
+/* The search form owns one column even when older portal .search uses two. */
+body.dashboard-page .mc-community-search{
+ grid-template-columns:minmax(0,1fr);
+ width:100%;
+}
+body.dashboard-page .mc-community-search>label,
+body.dashboard-page .mc-community-search-row{grid-column:1;min-width:0;width:100%}
+body.dashboard-page .mc-community-search-row input{min-width:0}
+body.dashboard-page .mc-community-access .portal-head{display:flex;align-items:start;justify-content:space-between;gap:15px}
+body.dashboard-page .mc-community-access .portal-head-copy{min-width:0;flex:1}
+body.dashboard-page .mc-community-none>span{display:grid;gap:5px;align-content:center}
+body.dashboard-page .mc-community-none>span>strong{display:block;color:var(--text)}
+body.dashboard-page .mc-community-none>span>span{display:block;color:var(--muted);font-size:12px}

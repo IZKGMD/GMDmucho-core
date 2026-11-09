@@ -8,16 +8,16 @@
 
 /* A quiet, functional identity shared by every surface. */
 :root {
-  --mc-bg:#101113;
-  --mc-surface:#191a1d;
-  --mc-raised:#222427;
-  --mc-line:#36383c;
-  --mc-text:#f2f1eb;
-  --mc-muted:#a2a4a5;
-  --mc-subtle:#7f8385;
-  --mc-accent:#d2e58a;
-  --mc-action:#d2e58a;
-  --mc-success:#9fceaa;
+  --mc-bg:#101017;
+  --mc-surface:#21192e;
+  --mc-raised:#292136;
+  --mc-line:#3c354a;
+  --mc-text:#f3f0f8;
+  --mc-muted:#c2bbce;
+  --mc-subtle:#9990a8;
+  --mc-accent:#ba9cee;
+  --mc-action:#ba9cee;
+  --mc-success:#9fc6aa;
   --mc-radius:7px;
   --mcd-font:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   --mcd-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -31,8 +31,8 @@ html[data-theme="light"] {
   --mc-text:#1b1e1b;
   --mc-muted:#646b65;
   --mc-subtle:#747b76;
-  --mc-accent:#426315;
-  --mc-action:#3c571b;
+  --mc-accent:#7353a6;
+  --mc-action:#7353a6;
   --mc-success:#386849;
   color-scheme:light;
 }
@@ -96,7 +96,7 @@ body.mc-home .mc-button {
   border-radius:6px;min-height:41px;
   padding:9px 15px;font-size:13px;font-weight:650;
   background:var(--mc-action);border:1px solid var(--mc-action);
-  color:#171a11!important;box-shadow:none;
+  color:#17121f!important;box-shadow:none;
 }
 html[data-theme="light"] body.mc-home .mc-button { color:#fff!important; }
 body.mc-home .mc-button:hover { transform:none;filter:none;opacity:.88;box-shadow:none; }
@@ -229,9 +229,9 @@ body.mc-home .mc-footer { background:var(--mc-bg); }
 
 /* MuchoCore product site: editorial text + one honest API example. */
 body.mc-core-site {
-  --bg:#0c0d12;--surface:#18191c;--surface-up:#222427;
-  --line:#34363a;--text:#f2f1eb;--sub:#c0c2c0;
-  --muted:#a2a4a5;--accent:#d2e58a;
+  --bg:#0c0d12;--surface:#18191c;--surface-up:#292136;
+  --line:#34363a;--text:#f3f0f8;--sub:#c0c2c0;
+  --muted:#c2bbce;--accent:#ba9cee;
   --accent-text:#141810;--font:var(--mcd-font);
   background:var(--bg);background-image:none;color:var(--text);
 }
@@ -275,7 +275,7 @@ body.mc-core-site .button {
   box-shadow:none;
 }
 body.mc-core-site .button-primary {
-  color:#141810;background:var(--accent);border-color:var(--accent);
+  color:#17121f;background:var(--accent);border-color:var(--accent);
 }
 body.mc-core-site .button-primary:hover { background:#e0f4a1;border-color:#e0f4a1;transform:none; }
 body.mc-core-site .button-outline { color:var(--text);border-color:var(--line);background:transparent; }
@@ -360,10 +360,10 @@ body.mc-core-site .footer { background:var(--bg);border-color:var(--line); }
 
 /* Player portal: compact, calm and driven by actual server data. */
 body.dashboard-page {
-  --bg:#101113;--bg2:#101113;--panel:#191a1d;
-  --panel-soft:#222427;--line:#36383c;--line-soft:#303236;
-  --text:#f2f1eb;--muted:#a2a4a5;--muted-2:#85888a;
-  --accent:#d2e58a;--accent-2:#b2c48a;
+  --bg:#101017;--bg2:#101017;--panel:#21192e;
+  --panel-soft:#292136;--line:#3c354a;--line-soft:#303236;
+  --text:#f3f0f8;--muted:#c2bbce;--muted-2:#85888a;
+  --accent:#ba9cee;--accent-2:#b2c48a;
   --green:#9fceaa;--shadow:none;
   background:var(--bg);background-image:none;color:var(--text);
 }
@@ -464,11 +464,11 @@ body.dashboard-page .section-head h2 { letter-spacing:-.035em; }
 
 /* Administrative workspace: information density over decoration. */
 body.mc-admin {
-  --ui-bg:#101113;--ui-sidebar:#17181a;--ui-card:#191a1d;
-  --ui-card-hover:#222427;--ui-input:#101113;
-  --ui-border:#36383c;--ui-border-strong:#56595c;
-  --ui-text:#f2f1eb;--ui-muted:#a2a4a5;
-  --ui-accent:#d2e58a;--ui-accent-hover:#e1f2a1;
+  --ui-bg:#101017;--ui-sidebar:#17181a;--ui-card:#21192e;
+  --ui-card-hover:#292136;--ui-input:#101017;
+  --ui-border:#3c354a;--ui-border-strong:#56595c;
+  --ui-text:#f3f0f8;--ui-muted:#c2bbce;
+  --ui-accent:#ba9cee;--ui-accent-hover:#e1f2a1;
   background:var(--mc-bg);background-image:none;color:var(--mc-text);
 }
 body.mc-admin::before,body.mc-admin::after,

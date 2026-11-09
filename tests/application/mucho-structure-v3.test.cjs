@@ -7,8 +7,8 @@ const read=p=>fs.readFileSync(path.join(__dirname,'../..',p),'utf8');
 test('product site is independently rebuilt, not another CSS overlay',()=>{
   for (const p of ['public/muchocore/index.html','public/muchocore/ru/index.html']) {
     const html=read(p);
-    assert.match(html,/\/assets\/mucho-product-v3\.css\?v=1/);
-    assert.match(html,/\/assets\/mucho-product-v3\.js\?v=1/);
+    assert.match(html,/\/assets\/mucho-product-v3\.css\?v=2/);
+    assert.match(html,/\/assets\/mucho-product-v3\.js\?v=2/);
     assert.doesNotMatch(html,/muchocore-landing\.css|mucho-design-system\.css/);
     for (const id of ['mc-demo-panel-0','mc-demo-panel-1','mc-demo-panel-2','mc-demo-tab-0','mc-demo-tab-1','mc-demo-tab-2'])
       assert.ok(html.includes(id),p+':'+id);
@@ -23,10 +23,10 @@ test('new work surfaces contain genuine structural markup and separate styles',(
   const portal=read('public/dashboard/index.php');
   const clans=read('public/dashboard/clans.php');
   assert.ok(admin.includes('mc-instance'));
-  assert.ok(admin.includes('/admin/mucho-console-v3.css?v=1'));
+  assert.ok(admin.includes('/admin/mucho-console-v3.css?v=2'));
   for (const marker of ['mc-ops-attention','mc-ops-summary','mc-ops-table','mc-ops-actions','canAdminPage']) assert.ok(overview.includes(marker),marker);
   for (const marker of ['mc-community-home','mc-community-search','mc-community-statistics','mc-community-spotlight']) assert.ok(portal.includes(marker),marker);
-  for (const p of [portal,clans]) assert.ok(p.includes('/assets/mucho-portal-v3.css?v=1'));
+  for (const p of [portal,clans]) assert.ok(p.includes('/assets/mucho-portal-v3.css?v=2'));
   assert.ok(clans.includes('mc-clan-workspace'));
   assert.ok(read('public/install/index.html').includes('mc-install-method-list'));
   assert.ok(read('public/install/index.html').includes('/deploy/'));

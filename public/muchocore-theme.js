@@ -11,7 +11,7 @@
     function applyTheme(theme){
         document.documentElement.dataset.theme = theme;
         const meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute('content', theme === 'light' ? '#f3f5f9' : '#090b10');
+        if (meta) meta.setAttribute('content', theme === 'light' ? '#eceff3' : '#101017');
 
         const button = document.querySelector('.mucho-theme-toggle');
         if (button) {
