@@ -664,7 +664,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         if (!is_array($parts) || strtolower((string)($parts['scheme'] ?? '')) !== 'https' || $accountHost === '' || !preg_match('/^(?=.{1,253}$)(?!-)(?:[A-Za-z0-9-]{1,63}\\.)+[A-Za-z0-9-]{2,63}$/', $accountHost) || !empty($parts['user']) || !empty($parts['pass']) || !empty($parts['path']) || !empty($parts['query']) || !empty($parts['fragment'])) {
             json_response(['ok' => false, 'error' => 'GDPS address must be a public HTTPS hostname such as https://gdps.example.com.'], 422);
         }
-        if (!preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.5v\\.pl$/D', $accountHost)) {
+        if (!preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.5v\.pl$/D', $accountHost)) {
             json_response(['ok' => false, 'error' => '5V.PL only: use https://yourname.5v.pl (no custom domain).'], 422);
         }
         $dbHost = '';
