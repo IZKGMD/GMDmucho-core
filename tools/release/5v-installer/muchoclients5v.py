@@ -228,6 +228,25 @@ def patch_android(site: HttpsSite, apk: Path, origin: str, *,
     return report
 
 
+def cleanup_published_job(site: HttpsSite, job_id: str) -> bool:
+    """Free private APK upload/scratch space once the PUBLIC copy is verified.
+
+    The original server-side patcher retains the persistent APK signing key,
+    independent of its temporary job. Never touch another job or an active job.
+    """
+    if not re.fullmatch(r"[a-f0-9]{32}", str(job_id)):
+        raise InstallError("Неверный идентификатор временного задания.")
+    code, html = site.request("/mc/admin.php?page=clientpatcher")
+    if code != 200:
+        raise InstallError("Невозможно открыть админку для очистки временных файлов.")
+    csrf = patcher_csrf(html)
+    status = _urlencoded(site, csrf, "status")
+    if status.get("id") != job_id or status.get("phase") != "done":
+        return False
+    result = _urlencoded(site, csrf, "reset")
+    return result.get("phase") == "idle"
+
+
 def _ftp_size(ftp: FtpSite, rel: str) -> int | None:
     ftp.cd(ftp.root)
     ftp.conn.voidcmd("TYPE I")
