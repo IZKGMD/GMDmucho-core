@@ -18,7 +18,27 @@ URL = re.compile(rb"(?:https?://(?:www\.)?(?:boomlings|geometrydash)\.com|%s)"
                  rb"/(?:database|databas)/[A-Za-z0-9._/-]+\.php\x00")
 
 
-def inspect(binary, root=ROOT):
+def _url_pattern(patched_hosts):
+    """Accept explicit GDPS hosts without treating arbitrary EXE URLs as game API."""
+    hosts = []
+    for value in patched_hosts:
+        host = value.strip().lower()
+        if re.fullmatch(r"[a-z0-9-]+(?:\\.[a-z0-9-]+)+", host) is None:
+            raise ValueError("Patched host must be a DNS name without scheme or port")
+        hosts.append(re.escape(host.encode("ascii")))
+    if not hosts:
+        return URL
+    return re.compile(
+        rb"(?:https?://(?:(?:www\\.)?(?:boomlings|geometrydash)\\.com|"
+        + b"|".join(hosts)
+        + rb")|%s)/(?:database|databas)/[A-Za-z0-9._/-]+\\.php\\x00",
+        re.IGNORECASE,
+    )
+
+
+def inspect(binary, root=ROOT, patched_hosts=()):
+    pattern = _url_pattern(patched_hosts)
+
     if len(binary) < 64 or binary[:2] != b"MZ":
         raise ValueError("Not a Windows PE executable")
     pe = struct.unpack_from("<I", binary, 60)[0]
@@ -53,10 +73,16 @@ def inspect(binary, root=ROOT):
     source = (root / "src/Core/Application.php").read_text()
     routes = {normalize(p) for p in re.findall(r"\$route\(\s*'([^']+)'", source)}
     rows = []
+    source_hosts = {}
     offset, data = rdata[0]
-    for match in URL.finditer(data):
+    for match in pattern.finditer(data):
         url = match.group()[:-1].decode("ascii")
-        path = urlsplit(url).path if not url.startswith("%s") else url[2:]
+        is_template = url.startswith("%s")
+        parsed = urlsplit(url) if not is_template else None
+        host = parsed.hostname if parsed is not None else None
+        if host is not None:
+            source_hosts[host] = source_hosts.get(host, 0) + 1
+        path = parsed.path if parsed is not None else url[2:]
         repaired = path.replace("/databas/checkIfServerOnline.php",
                                 "/database/checkIfServerOnline.php")
         canonical = normalize(repaired)
@@ -68,11 +94,12 @@ def inspect(binary, root=ROOT):
         elif canonical in {"/lostusername", "/lostpassword"}:
             service = "shared-recovery"
         rows.append(dict(offset=offset + match.start(), url=url,
-                         template=url.startswith("%s"), canonical_path=canonical,
+                         template=is_template, source_host=host, canonical_path=canonical,
                          path_repair_required=path != repaired, service=service))
     return dict(kind="static-binary-only", native_client_certified=False,
                 sha256=hashlib.sha256(binary).hexdigest(), size=len(binary),
-                pe_machine=hex(machine), direct_urls=sum(not r["template"] for r in rows),
+                pe_machine=hex(machine), source_hosts=source_hosts,
+                direct_urls=sum(not r["template"] for r in rows),
                 url_templates=sum(r["template"] for r in rows),
                 unimplemented_paths=sorted({r["canonical_path"] for r in rows
                                             if r["service"] == "unimplemented"}),
@@ -82,9 +109,11 @@ def inspect(binary, root=ROOT):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("exe", type=Path)
+    parser.add_argument("--patched-host", action="append", default=[],
+                        help="Explicit GDPS DNS host embedded by the Windows client patcher")
     args = parser.parse_args()
     try:
-        result = inspect(args.exe.read_bytes())
+        result = inspect(args.exe.read_bytes(), patched_hosts=args.patched_host)
     except (OSError, ValueError, struct.error) as error:
         parser.exit(2, str(error) + "\n")
     print(json.dumps(result, indent=2))
