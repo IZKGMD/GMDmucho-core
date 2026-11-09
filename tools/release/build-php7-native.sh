@@ -189,14 +189,19 @@ README
 # Bundle the local one-click installer and FTP-verified emergency owner recovery.
 # They run on the operator's computer (Python 3.10+), NEVER on shared PHP7.
 for item in INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py \
+  PUBLISH_CLIENTS_5V.py muchoclients5v.py \
   RECOVERY_HANDLER.php.tpl START_INSTALL_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
-  START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh README_RU.txt; do
+  START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \
+  START_CLIENTS_WINDOWS.cmd START_CLIENTS_LINUX.sh README_RU.txt; do
   test -f "$ROOT/tools/release/5v-installer/$item" || {
     echo "Missing 5v.pl easy-installer source: $item" >&2
     exit 1
   }
   cp "$ROOT/tools/release/5v-installer/$item" "$STAGE/$item"
 done
+# Use the same reviewed SHA-pinned Windows patcher as the PHP8/CI pipeline.
+# Never include the copyrighted original game executable or Android package.
+cp "$ROOT/tools/client/client-patch.py" "$STAGE/gd_windows_patcher.py"
 
 # Prohibit secrets in distributed ZIP; installer-generated keys/configs
 # are never copied into this stage.
@@ -205,8 +210,10 @@ rm -f "$OUTPUT"
 (cd "$STAGE" && zip -qr "$OUTPUT" mc \
  "5V_ROOT_REWRITE_RULES.txt" "START_HERE_SHARED.txt" \
  INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl \
+ PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py \
  START_INSTALL_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
- START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh README_RU.txt)
+ START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \
+ START_CLIENTS_WINDOWS.cmd START_CLIENTS_LINUX.sh README_RU.txt)
 
 unzip -t "$OUTPUT" >/dev/null
 LIST="$STAGE/zip-list.txt"
@@ -220,8 +227,10 @@ for item in mc/admin.php mc/public/php7-admin.php mc/public/assets/php7-admin-ba
   mc/.htaccess mc/public/.htaccess \
   5V_ROOT_REWRITE_RULES.txt START_HERE_SHARED.txt \
   INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl \
+  PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py \
   START_INSTALL_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
-  START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh README_RU.txt; do
+  START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \
+  START_CLIENTS_WINDOWS.cmd START_CLIENTS_LINUX.sh README_RU.txt; do
   grep -Fxq "$item" "$LIST" || {
     echo "Package incomplete: $item" >&2
     exit 1
