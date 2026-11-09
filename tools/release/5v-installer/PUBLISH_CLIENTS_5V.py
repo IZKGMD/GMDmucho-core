@@ -14,7 +14,7 @@ import sys
 from mucho5v import FtpSite, HttpsSite, InstallError, site_origin, valid_ftp_host
 from muchoclients5v import (
     patch_windows, patch_android, publish_windows, publish_android,
-    publish_index, read_source, save_links,
+    publish_index, read_source, save_links, cleanup_published_job,
 )
 from INSTALL_5V import csrf_from
 
@@ -113,6 +113,11 @@ def publish_interactive(site: HttpsSite, ftp: FtpSite) -> dict:
             links["apk"] = {"url": url, "sha256": report["output_sha256"],
                             "size": report["output_size"],
                             "certificate_sha256": report.get("certificate_sha256")}
+            try:
+                if cleanup_published_job(site, report["job_id"]):
+                    print("Временные файлы APK удалены, ключ подписи сохранён.")
+            except InstallError:
+                print("Временная задача патчера осталась. Позже очисти её в админке.")
             print("СОХРАНИ mc/config/php7-apk-signer.json в безопасной резервной копии!")
         except (InstallError, OSError) as exc:
             print("APK: не опубликован:", str(exc))
