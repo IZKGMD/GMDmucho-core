@@ -5,6 +5,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import threading
+import shutil
 from playwright.sync_api import sync_playwright
 
 PUBLIC = Path(__file__).resolve().parents[2] / "public"
@@ -26,7 +27,9 @@ def main():
     try:
         root = f"http://127.0.0.1:{server.server_port}"
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True,args=["--no-sandbox"])
+            executable = next((p for name in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser") if (p := shutil.which(name))), None)
+            assert executable, "system Chromium/Chrome missing"
+            browser = p.chromium.launch(executable_path=executable,headless=True,args=["--no-sandbox"])
             try:
                 for mode,(background,accent) in COLOR.items():
                     for size,(width,height) in {
