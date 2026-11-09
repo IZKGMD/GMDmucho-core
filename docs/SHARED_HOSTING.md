@@ -74,6 +74,37 @@ through HTTPS and advances the owner's original resumable database migration
 without bypassing its locks. Installation is marked complete only after
 the private migration completion marker is observed.
 
+**Automatic client publishing (after the database/owner migration):**
+the local installer looks for user-supplied `GeometryDash.exe` and
+`GeometryDash.apk` in the extracted ZIP directory or `original_clients/`,
+and can prompt for other local paths. The ZIP contains no copyrighted game
+binaries. The **canonical SHA-pinned Python Windows patcher** retargets a
+supported GD 2.209 EXE locally; the already-implemented native PHP7 patcher
+accepts APK chunks over authenticated HTTPS, signs the patched APK with
+v1+v2 using the **persistent private site key**
+`mc/config/php7-apk-signer.json`, and reports SHA-256, package name and
+certificate ID. Keep a secure backup of this key so APK updates retain their
+signing identity.
+
+**Only when the operator confirms they have redistribution permission**,
+the publisher uploads the resulting files through the site owner's verified
+FTP connection into `mc/public/clients/`. Client filenames include a
+12-character SHA-256 prefix and are never overwritten; the installer checks
+the FTP file size and public HTTPS availability, prints the direct EXE/APK
+URLs, and creates a simple downloads index. The APK is moved from the
+authenticated private patcher job into the public directory by FTP when
+possible, avoiding a second full-sized copy on low-storage 5v.pl; otherwise
+it is downloaded through the authenticated session and re-uploaded with
+SHA-256 verification. This requires enough free space on the target.
+
+If this stage fails, **the already installed admin, owner, database,
+private keys and levels stay intact**. Re-run only
+`START_CLIENTS_WINDOWS.cmd` / `START_CLIENTS_LINUX.sh`, log in with
+the existing owner, and retry. The EXE requires the matching installed
+game DLL/Resources; it is not a standalone game installer. No user is
+authorized to publicly redistribute proprietary game files merely by
+owning a personal copy.
+
 **Recovering the owner:** verify FTP control of the same `*.5v.pl` site,
 enter a new owner password and invoke the bundled recovery launcher.
 It creates a temporary server-side PHP 7 handler containing a hash of
