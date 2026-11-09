@@ -79,8 +79,9 @@ class NativeInventoryTest(unittest.TestCase):
         ])
         self.assertEqual(inventory.inspect(image)["direct_urls"], 0)
         report = inventory.inspect(image, patched_hosts=["private.example.net"])
-        self.assertEqual(report["direct_urls"], 1)
+        self.assertEqual(report["direct_urls"], 2)
         self.assertEqual(report["unimplemented_paths"], [])
+        self.assertEqual(report["endpoints"][0]["canonical_path"], "/getgjlevels21")
         for host in ("https://private.example.net", "private.example.net:443",
                      "private.example.net/other", "localhost", ""):
             with self.subTest(host=host), self.assertRaises(ValueError):
