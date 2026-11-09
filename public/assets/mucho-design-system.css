@@ -262,7 +262,7 @@ body.mc-core-site .hero { background:var(--bg);border-color:var(--line); }
 body.mc-core-site .hero-layout { padding-block:clamp(64px,8vw,101px);gap:clamp(35px,5vw,72px); }
 body.mc-core-site .hero h1 {
   font-weight:670;letter-spacing:-.064em;line-height:1.07;
-  font-size:clamp(46px,5.6vw,73px);margin:18px 0 21px;
+  font-size:clamp(45px,4.6vw,66px);margin:18px 0 21px;
 }
 body.mc-core-site .hero h1 span {
   color:var(--text);background:none;-webkit-text-fill-color:currentColor;
