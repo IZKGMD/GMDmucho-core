@@ -258,7 +258,7 @@ set_admin_password() {
 
     cd "$ROOT"
     compose up -d --force-recreate app >/dev/null
-    compose exec -T app php bin/mucho-sync-admin.php
+    compose exec -T app php bin/mucho-sync-admin.php --reset-password
     echo "Admin password updated."
 }
 
