@@ -30,7 +30,7 @@ def recover(site_url: str, ftp_host: str, ftp_username: str, ftp_password: str,
             owner: str, new_password: str, *, ftps=True, root_hint=""):
     origin = site_origin(site_url)
     ftp_host = valid_ftp_host(ftp_host)
-    if not re.fullmatch(r"[A-Za-z0-9_-]{1,20}", owner):
+    if owner and not re.fullmatch(r"[A-Za-z0-9_-]{1,20}", owner):
         raise InstallError("Укажи существующее имя владельца, не нового администратора.")
     if not 10 <= len(new_password.encode("utf-8")) <= 72:
         raise InstallError("Новый пароль владельца: 10–72 байта.")
@@ -98,7 +98,7 @@ def main():
     if mode == "FTP" and prompt("FTP не шифруется. Напиши СОГЛАСЕН") != "СОГЛАСЕН":
         raise InstallError("Незащищённый FTP не подтверждён.")
     root = prompt("Папка сайта на FTP (Enter = авто)")
-    owner = prompt("СУЩЕСТВУЮЩИЙ логин владельца админки")
+    owner = prompt("Логин владельца (Enter = найти единственного владельца автоматически)")
     new = getpass.getpass("Новый пароль админки (10-72 байта): ")
     confirmation = getpass.getpass("Повтори новый пароль: ")
     if not secrets.compare_digest(new, confirmation):
