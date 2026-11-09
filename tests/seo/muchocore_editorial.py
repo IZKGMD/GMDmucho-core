@@ -41,6 +41,7 @@ def main():
     assert "@media(max-width:650px)" in css
     assert "prefers-reduced-motion" in css and ":focus-visible" in css
     assert "radial-gradient" not in css and "linear-gradient" not in css
+    assert "background:rgba(16,16,23,.97)" in css
     assert "aria-selected" in js and "ArrowRight" in js and "ArrowLeft" in js
     assert "navigator.clipboard" in js and "document.execCommand('copy')" in js
     assert "aria-expanded" in js and "setLanguage" not in js
@@ -51,8 +52,8 @@ def main():
         assert f'<html lang="{lang}">' in html
         assert doc.h1 == 1, (lang, doc.h1)
         assert len(doc.ids) == len(set(doc.ids)), (lang, "duplicate IDs")
-        assert "/assets/mucho-product-v3.css?v=1" in html
-        assert "/assets/mucho-product-v3.js?v=1" in html
+        assert "/assets/mucho-product-v3.css?v=2" in html
+        assert "/assets/mucho-product-v3.js?v=2" in html
         assert "/assets/muchocore-icon.png?v=3" in doc.images
         assert len(doc.tabs) == 3
         for i, tab in enumerate(doc.tabs):

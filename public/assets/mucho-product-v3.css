@@ -245,3 +245,8 @@ body.mc-editorial{margin:0;background:var(--mc-paper);color:var(--mc-ink);font:4
 .mc-editorial .mc-cli button:hover{background:#392c49}
 .mc-editorial .mc-footer-top nav a:hover{color:var(--mc-brand)}
 @media(max-width:820px){.mc-js .mc-site-nav{background:#21192e;border-color:#3c354a}}
+
+.mc-editorial .mc-demo-window-mark{display:grid;place-items:center;background:transparent;border:0;width:33px;height:33px}
+.mc-editorial .mc-demo-window-mark img{width:28px;height:28px;object-fit:contain}
+.mc-editorial .mc-demo-tabs button[aria-selected=true]{border-bottom-color:#ba9cee}
+.mc-editorial .mc-button-ghost:focus-visible,.mc-editorial .mc-button-solid:focus-visible{outline-offset:4px}

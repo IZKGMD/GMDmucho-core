@@ -26,7 +26,7 @@ test('design avoids generic gradient/glass decoration and motion', () => {
 
 test('v3 product and operations assets are used in their corresponding surfaces', () => {
   for (const p of ['public/muchocore/index.html','public/muchocore/ru/index.html'])
-    assert.ok(read(p).includes('/assets/mucho-product-v3.css?v=1'),p);
+    assert.ok(read(p).includes('/assets/mucho-product-v3.css?v=2'),p);
   for (const p of ['public/admin/index.php','public/dashboard/index.php','public/dashboard/clans.php'])
     assert.ok(read(p).includes('/assets/mucho-design-system.css?v=2'),p);
 });
@@ -34,7 +34,7 @@ test('v3 product and operations assets are used in their corresponding surfaces'
 test('installer and knowledge pages use the new editorial styles, not the previous overlay', () => {
  assert.ok(read('public/install/index.html').includes('/assets/mucho-install-v3.css?v=1'));
  for (const p of ['public/muchocore/about/index.html','public/muchocore/compatibility/index.html']) {
-   assert.ok(read(p).includes('/muchocore/discovery.css?v=3'));
+   assert.ok(read(p).includes('/muchocore/discovery.css?v=4'));
    assert.ok(!read(p).includes('/assets/mucho-design-system.css?v=2'));
  }
 });

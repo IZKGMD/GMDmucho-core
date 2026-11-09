@@ -43,6 +43,7 @@ def main():
                         assert page.locator("blockquote").count() == 1
                         assert page.locator("#install-commands").count() == 1
                         assert page.locator("body").evaluate("(b) => getComputedStyle(b).backgroundColor") == "rgb(16, 16, 23)"
+                        assert page.locator(".mc-demo-window").evaluate("(e) => getComputedStyle(e).backgroundColor") == "rgb(33, 25, 46)"
                         dims = page.evaluate("""() => ({
                           viewport: innerWidth,
                           root: document.documentElement.scrollWidth,
@@ -64,10 +65,14 @@ def main():
                         assert tabs.nth(2).get_attribute("aria-selected") == "true"
                         assert page.locator("#mc-demo-panel-2").is_visible()
                         assert '/' not in page.locator('.mc-demo-edition').inner_text()
+                        assert '/' not in page.locator('.mc-hero-topline span').first.inner_text()
                         tabs.nth(0).click()
                         if width in (390, 1440):
                             file = SHOTS / f"muchocore-v3-{lang}-{width}.jpg"
                             page.screenshot(path=str(file), type="jpeg", quality=74)
+                            full = SHOTS / f"muchocore-hybrid-{lang}-{width}-full.jpg"
+                            page.screenshot(path=str(full), type="jpeg", quality=76, full_page=True)
+                            print(f"PREVIEW_FULL {lang}/{width}: {full.name} {full.stat().st_size} bytes")
                             print(f"PREVIEW {lang}/{width}: {file.name} {file.stat().st_size} bytes")
                             if os.environ.get("MUCHO_PREVIEW_B64") == "1":
                                 print(f"MUCHO_IMAGE_{lang.upper()}_{width}=" + base64.b64encode(file.read_bytes()).decode("ascii"))
