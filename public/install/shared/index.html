@@ -1,227 +1,74 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#070912">
-<meta name="description" content="Automatic MuchoCore deployment to shared hosting through FTP or FTPS.">
+<meta name="theme-color" content="#0d0b12">
+<meta name="description" content="5V.PL ONLY. Automatic MuchoCore deployment to shared hosting through FTP or FTPS. PHP 7 native preview; first-owner setup stays on 5v.pl.">
 <link rel="canonical" href="https://muchogdps.space/install/shared/">
 <link rel="icon" href="/assets/muchocore-favicon-v4.png" type="image/png" sizes="64x64">
-<title>Automatic Shared Hosting Deployment — MuchoGDPS</title>
+<title>Установка MuchoCore на 5V.PL — Только 5V.PL</title>
 <style>
-:root{--bg:#060811;--panel:#0b101a;--panel2:#080d15;--line:rgba(255,255,255,.09);--text:#f4f7ff;--muted:#98a4b8;--dim:#65738a;--violet:#8c7dff;--green:#69e2a8;--red:#ff8197}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(900px 520px at 80% -10%,rgba(85,232,223,.08),transparent 65%),radial-gradient(800px 540px at 8% 0,rgba(140,125,255,.14),transparent 66%),var(--bg);line-height:1.5}
-a{text-decoration:none;color:inherit}.wrap{width:min(1100px,calc(100% - 28px));margin:auto}.top{height:70px;border-bottom:1px solid var(--line);display:flex;align-items:center;background:rgba(6,8,17,.74);backdrop-filter:blur(18px)}.top>.wrap{display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:10px;font-weight:950}.brand img{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);object-fit:cover}.brand small{display:block;color:var(--dim);font-size:7px;letter-spacing:.14em;text-transform:uppercase}.back{color:#9ba7bb;font-size:10px;font-weight:800;padding:8px 10px;border:1px solid var(--line);border-radius:9px}.back:hover{color:#fff}
-main{padding:54px 0 75px}.eyebrow{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;background:rgba(105,226,168,.07);border:1px solid rgba(105,226,168,.16);color:#b9eed3;font-size:8px;font-weight:950;text-transform:uppercase;letter-spacing:.11em}.dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 10px rgba(105,226,168,.7)}h1{margin:16px 0 10px;font-size:clamp(40px,6vw,64px);letter-spacing:-3px;line-height:.98}.lead{margin:0;max-width:820px;color:var(--muted);font-size:14px;line-height:1.75}
-.providers{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:25px}.provider{padding:15px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,#0d1320,#090e17)}.provider b{display:block;font-size:12px}.provider span{display:block;margin-top:4px;color:var(--dim);font-size:9px;line-height:1.5}.provider.active{border-color:rgba(140,125,255,.32);background:linear-gradient(145deg,rgba(140,125,255,.09),#090e17)}
-.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.72fr);gap:14px;margin-top:16px}.panel{padding:21px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,#0d1320,#090e17)}.panel h2{margin:0 0 14px;font-size:14px}.section-note{margin:-7px 0 16px;color:#6e7b90;font-size:9px;line-height:1.6}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{color:#7c899e;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.1em}.field input,.field select{width:100%;border:1px solid #1e2939;border-radius:10px;background:#090e17;color:#eff3fc;padding:11px 12px;outline:0;font:10px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}.field input:focus,.field select:focus{border-color:#5148a7;box-shadow:0 0 0 3px rgba(140,125,255,.08)}.help{color:#68758a;font-size:8px;line-height:1.55}.check{display:flex;align-items:flex-start;gap:9px;margin-top:14px;color:#8793a7;font-size:9px;line-height:1.55}.check input{accent-color:#8c7dff;margin-top:2px}.advanced{margin-top:14px;border:1px solid #182332;border-radius:12px;background:#080d15;overflow:hidden}.advanced summary{cursor:pointer;padding:11px 12px;color:#9ca8bb;font-size:9px;font-weight:900;list-style:none}.advanced summary::-webkit-details-marker{display:none}.advanced summary:after{content:'+';float:right;color:#68758a}.advanced[open] summary:after{content:'−'}.advanced-body{padding:0 12px 12px}.advanced-body>.grid{margin-top:2px}.preset{margin-top:10px;padding:10px 11px;border:1px solid rgba(140,125,255,.18);border-radius:10px;background:rgba(140,125,255,.045);color:#8490a4;font-size:8px;line-height:1.55}.preset button{border:1px solid #303b50;border-radius:8px;background:#0b111a;color:#c8d2e2;padding:6px 9px;font:800 8px ui-sans-serif;cursor:pointer;margin-right:6px}.preset button:hover{border-color:#5148a7;color:#fff}.actions{display:flex;gap:8px;margin-top:17px}.btn{border:1px solid rgba(176,167,255,.48);border-radius:10px;height:44px;padding:0 15px;background:linear-gradient(135deg,#8e80ff,#7567f1);color:#fff;font-size:10px;font-weight:900;cursor:pointer}.btn.alt{background:#0c121d;border-color:#273348;color:#a9b4c8}.btn:disabled{opacity:.55;cursor:not-allowed}
-.side{display:grid;gap:12px;align-content:start}.info{padding:17px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#0d1320,#090e17)}.info h3{margin:0 0 8px;font-size:11px}.info p{margin:0;color:#8290a4;font-size:9px;line-height:1.65}.flow{display:grid;gap:9px}.flow div{display:flex;gap:9px;align-items:flex-start;padding:10px 11px;border:1px solid #182332;border-radius:10px;background:#080d14}.flow i{width:20px;height:20px;display:grid;place-items:center;border-radius:6px;background:rgba(140,125,255,.1);color:#c6c1ff;font:8px ui-monospace}.flow b{display:block;font-size:9px}.flow span{display:block;color:#68758a;font-size:8px;line-height:1.45}.secure{border-color:rgba(105,226,168,.16)}.secure b{color:#bdeed5}.warning{border-color:rgba(255,129,151,.16)}.warning p{color:#96858d}
-@media(max-width:850px){.layout{grid-template-columns:1fr}.providers{grid-template-columns:1fr 1fr}}@media(max-width:600px){.providers{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.top{height:64px}.back{display:none}.actions{flex-direction:column}.btn{width:100%}}
+:root{color-scheme:dark;--bg:#0d0b12;--surface:#15121b;--field:#100e17;--edge:#302837;--text:#f5f0f7;--sub:#ada4b6;--dim:#81788b;--accent:#c5a3ed;--green:#a8d5af;--warn:#e1c294}
+*{box-sizing:border-box}body{background:var(--bg);color:var(--text);margin:0;font:14px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:1040px;margin:0 auto;padding:0 26px}.top{border-bottom:1px solid var(--edge);height:74px;display:flex;align-items:center}.topin{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%}.brand{display:flex;align-items:center;gap:12px;font-weight:750;color:var(--text)}.brand img{width:34px;height:34px;border-radius:9px}.brand small{display:block;font-size:11px;font-weight:500;color:var(--sub)}.back{color:var(--sub);font-size:12px}.main{padding-top:60px;padding-bottom:90px}.kicker{color:var(--accent);font:750 11px/1.4 ui-monospace,monospace;letter-spacing:.1em}.header{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:30px;align-items:end;margin-bottom:38px}h1{font-weight:780;letter-spacing:-.052em;font-size:clamp(36px,6vw,62px);line-height:1.06;margin:15px 0 18px}h1 em{font-style:normal;color:var(--accent)}.lead{max-width:620px;font-size:15px;color:var(--sub);margin:0}.stamp{border:1px solid #684a7e;background:#1c1526;color:#e2c9ff;padding:20px;border-radius:14px;font-weight:830;font-size:18px;text-align:center;letter-spacing:.04em}.stamp small{font-weight:500;font-size:12px;display:block;letter-spacing:0;color:#b69ac5;margin-top:4px}.layout{display:grid;grid-template-columns:minmax(0,1.23fr) minmax(250px,.77fr);gap:18px}.panel{border:1px solid var(--edge);background:var(--surface);border-radius:16px;padding:26px;margin-bottom:16px}.panel h2{font-size:18px;line-height:1.3;margin:0 0 8px;font-weight:720;letter-spacing:-.02em}.intro{color:var(--sub);font-size:12px;margin:0 0 20px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:15px}.field{display:flex;flex-direction:column;gap:7px}.field.full{grid-column:1/-1}.field label{font-size:12px;font-weight:650;color:#d2c7d7}.field input,.field select{background:var(--field);border:1px solid #42354a;border-radius:9px;color:var(--text);width:100%;padding:12px 13px;font-size:13px;outline:none}.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px #c5a3ed18}.hint{font-size:11px;color:var(--dim)}details{margin-top:18px;border-top:1px solid var(--edge);padding-top:14px}summary{color:var(--accent);cursor:pointer;font-size:12px;font-weight:650}details .fields{margin-top:15px}.side{align-self:start}.side .panel{background:#110f17}.side h2{font-size:15px}.steps{list-style:none;padding:0;margin:17px 0 0}.steps li{display:grid;grid-template-columns:24px 1fr;gap:12px;margin:0 0 18px;color:var(--sub);font-size:12px}.steps strong{color:var(--text);display:block;font-size:12px}.number{width:24px;height:24px;border-radius:7px;border:1px solid #504057;color:var(--accent);display:grid;place-items:center;font:700 11px/1 ui-monospace,monospace}.alert{border-left:2px solid var(--warn);padding:0 0 0 13px;color:#bcadb0;font-size:12px;margin:16px 0}.alert strong{color:var(--warn)}.confirmation{display:flex;align-items:flex-start;gap:11px;margin-top:20px;color:var(--sub);font-size:12px}.confirmation input{margin-top:5px;accent-color:#b697dc}.btn{appearance:none;border:1px solid #b89ad6;border-radius:10px;background:#c5a3ed;color:#1b1125;padding:13px 20px;font-size:13px;font-weight:800;cursor:pointer}.btn:disabled{opacity:.55;cursor:wait}.btnline{margin-top:19px;display:flex;align-items:center;gap:16px}.result{margin-top:14px;color:var(--warn);font-size:12px;min-height:1.5em}.fine{font-size:11px;color:var(--dim)}code{font-family:ui-monospace,monospace;color:#d4bde8}@media(max-width:820px){.header{grid-template-columns:1fr}.stamp{max-width:230px}.layout{grid-template-columns:1fr}}@media(max-width:520px){.wrap{padding:0 16px}.main{padding-top:34px}.panel{padding:20px}.fields{grid-template-columns:1fr}.field.full{grid-column:auto}.stamp{max-width:none}.back{display:none}}
 </style>
-
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <script src="/assets/product-ui.js?v=1" defer></script>
 <script src="/muchocore-theme.js?v=4" defer></script>
 </head>
 <body class="mc-workspace">
-<a class="mc-skip" href="#main">Skip to content</a>
-<header class="top"><div class="wrap"><a class="brand" href="/" aria-label="MuchoGDPS home"><img class="mc-brand-mark" src="/assets/muchocore-icon.png?v=3" alt=""><span>MuchoGDPS<small>Automatic shared hosting</small></span></a><a class="back" href="/install/">← Installation methods</a></div></header>
-
-<main id="main" tabindex="-1"><div class="wrap">
-<span class="eyebrow"><i class="dot"></i> Automatic Shared Hosting Deployment</span>
-<h1>Deploy MuchoCore without a VPS.</h1>
-<p class="lead">Start by naming your GDPS. MuchoGDPS will use that name for the installed server branding, then deploy MuchoCore to your shared hosting account.</p>
-
-<section class="panel" style="margin-top:20px">
-<h2>1. Name your GDPS</h2>
-<p class="section-note">This name becomes the server name shown by MuchoCore throughout the installed GDPS. Use up to 64 characters.</p>
-<div class="grid">
-<div class="field full"><label for="gdpsName">GDPS name</label><input id="gdpsName" placeholder="My Awesome GDPS" maxlength="64" autocomplete="off"></div>
-</div>
-</section>
-
-<section class="providers" aria-label="Supported shared hosting examples">
-<div class="provider active"><b>InfinityFree</b><span>Shared hosting · FTP/FTPS path</span></div>
-<div class="provider active"><b>Beget</b><span>Shared hosting · FTP path</span></div>
-<div class="provider"><b>Other hosting</b><span>Use the same universal FTP/FTPS form</span></div>
-</section>
-
+<a class="mc-skip" href="#main">К содержимому</a>
+<header class="top"><div class="wrap topin"><a class="brand" href="/"><img class="mc-brand-mark" src="/assets/muchocore-icon.png?v=3" alt=""><span>MuchoCore<small>5V.PL native setup</small></span></a><a class="back" href="/install/">Другие способы установки</a></div></header>
+<main id="main" class="main"><div class="wrap">
+<section class="header"><div><div class="kicker">MUCHOCORE / SHARED / 5V.PL</div><h1>Установить MuchoCore<br><em>на 5V.PL</em></h1><p class="lead">Отдельный установщик для бесплатного 5v.pl. Он загружает PHP 7-совместимую сборку по FTP; базу данных и владельца ты настроишь непосредственно на своём сайте.</p></div><div class="stamp">ТОЛЬКО 5V.PL<small>Другие хостинги отклоняются</small></div></section>
 <div class="layout">
-<section class="panel">
-<h2>2. Hosting connection</h2>
-<p class="section-note">Create the site/domain and database first. MuchoGDPS will automatically detect the FTP mode, port and website root whenever the provider exposes enough information to do so.</p>
-<div class="grid">
-<div class="field full"><label for="ftpHost">FTP hostname</label><input id="ftpHost" placeholder="ftp.example.com" autocomplete="off"></div>
-<div class="field full"><label for="ftpUser">FTP username</label><input id="ftpUser" autocomplete="username"></div>
-<div class="field full"><label for="ftpPassword">FTP password</label><input id="ftpPassword" type="password" autocomplete="off"></div>
-</div>
-
-<div class="preset">
-  <button type="button" id="infinityPreset">Use InfinityFree defaults</button>
-  Security, FTP port and web root stay on Auto Detect. Admin password is optional and generated securely when left blank.
-</div>
-
-<details class="advanced">
-<summary>Advanced connection settings</summary>
-<div class="advanced-body">
-  <div class="grid">
-    <div class="field"><label for="ftpSecurity">Security</label><select id="ftpSecurity"><option value="auto">Auto Detect (recommended)</option><option value="ftp">FTP</option><option value="ftps">FTPS / TLS</option></select></div>
-    <div class="field"><label for="ftpPort">FTP port</label><input id="ftpPort" value="" placeholder="Auto detect" inputmode="numeric"></div>
-    <div class="field full"><label for="ftpPath">Remote web root</label><input id="ftpPath" value="auto" placeholder="auto"><span class="help"><b>Auto detect:</b> MuchoGDPS detects provider-specific roots when known, then probes common web-root locations with a temporary marker and removes the marker immediately.</span></div>
-  </div>
-</div>
-</details>
-
-<h2 style="margin-top:24px">Database</h2>
-<div class="grid">
-<div class="field full"><label for="dbHost">Database host</label><input id="dbHost" value="localhost"></div>
-<div class="field"><label for="dbName">Database name</label><input id="dbName" autocomplete="off"></div>
-<div class="field full"><label for="dbUser">Database username</label><input id="dbUser" autocomplete="username"></div>
-<div class="field full"><label for="dbPassword">Database password</label><input id="dbPassword" type="password" autocomplete="off"></div>
-</div>
-
-<details class="advanced">
-<summary>Advanced database settings</summary>
-<div class="advanced-body">
-  <div class="grid">
-    <div class="field"><label for="dbPort">Database port</label><input id="dbPort" value="3306" inputmode="numeric"></div>
-  </div>
-</div>
-</details>
-
-<h2 style="margin-top:24px">4. GDPS</h2>
-<div class="grid">
-<div class="field full"><label for="accountUrl">Public HTTPS address</label><input id="accountUrl" placeholder="https://gdps.example.com" inputmode="url"></div>
-</div>
-
-<details class="advanced">
-<summary>Admin account settings</summary>
-<div class="advanced-body">
-  <div class="grid">
-    <div class="field full"><label for="adminUser">Admin username</label><input id="adminUser" value="admin" maxlength="32" autocomplete="username" placeholder="admin"></div>
-    <div class="field full"><label for="adminPassword">Admin password</label><input id="adminPassword" type="password" autocomplete="new-password" placeholder="Blank = securely generate one"></div>
-    <div class="field full"><label for="adminPasswordConfirm">Confirm admin password</label><input id="adminPasswordConfirm" type="password" autocomplete="new-password" placeholder="Re-enter the admin password"></div>
-  </div>
-  <div class="help" id="adminPasswordHelp">Choose the username you will use at <code>/admin/</code>. Leave the password blank to securely generate one automatically.</div>
-</div>
-</details>
-
-<div class="check"><input id="confirm" type="checkbox" aria-labelledby="confirmLabel"><span id="confirmLabel">I confirm that I own or have permission to administer this shared-hosting account and database.</span></div>
-<div class="actions"><button class="btn" id="start">Start automatic deployment →</button><a class="btn alt" href="/install/">Back</a></div>
-<div class="help" style="margin-top:10px">After the job starts you will be moved to <code>/install/shared/go/</code>, where the live Linux-style installation log is shown.</div>
+<div>
+<section class="panel"><h2>01. Твой GDPS</h2><p class="intro">Сначала создай сайт на <a href="https://5v.pl/" target="_blank" rel="noopener">5v.pl</a> и получи доступ к FTP. Адрес должен оканчиваться строго на <code>.5v.pl</code>.</p>
+<div class="fields"><div class="field full"><label for="gdpsName">Название сервера</label><input id="gdpsName" maxlength="64" placeholder="My GDPS" required></div><div class="field full"><label for="accountUrl">Адрес сайта 5V.PL</label><input id="accountUrl" type="url" inputmode="url" placeholder="https://mygdps.5v.pl" required><span class="hint">Только HTTPS и домен вида name.5v.pl, без /mc, /database и путей.</span></div></div></section>
+<section class="panel"><h2>02. FTP-подключение</h2><p class="intro">Адрес FTP, логин и пароль 5v.pl присылает на почту при регистрации. Вводи данные только здесь, по HTTPS.</p>
+<div class="fields"><div class="field full"><label for="ftpHost">FTP сервер из письма 5V.PL</label><input id="ftpHost" placeholder="Адрес FTP из письма 5v.pl" autocomplete="off" required></div><div class="field full"><label for="ftpUser">FTP логин</label><input id="ftpUser" autocomplete="username" required></div><div class="field full"><label for="ftpPassword">FTP пароль</label><input id="ftpPassword" type="password" autocomplete="off" required></div></div>
+<details><summary>Дополнительные настройки FTP</summary><div class="fields"><div class="field"><label for="ftpSecurity">Протокол</label><select id="ftpSecurity"><option value="auto">Автоопределение</option><option value="ftps">FTPS / TLS</option><option value="ftp">FTP (без шифрования)</option></select></div><div class="field"><label for="ftpPort">Порт</label><input id="ftpPort" inputmode="numeric" placeholder="Автоматически"></div><div class="field full"><label for="ftpPath">Remote web root</label><input id="ftpPath" value="auto" placeholder="auto"><span class="hint">Автоопределение через временный маркер; для нестандартного FTP-каталога можно указать путь вручную.</span></div></div></details>
+<div class="confirmation"><input type="checkbox" id="confirm"><label for="confirm">Я владею этим сайтом 5v.pl или имею право его настраивать. Понимаю, что автоматическая загрузка работает только для новой установки без существующей папки <code>mc/</code>.</label></div>
+<div class="btnline"><button class="btn" id="start">Загрузить MuchoCore на 5V.PL</button><span class="fine">Далее откроется консоль загрузки</span></div><p id="error" class="result" role="alert" aria-live="polite"></p>
 </section>
-
-<aside class="side">
-<section class="info">
-<h3>What happens automatically</h3>
-<div class="flow">
-<div><i>01</i><span><b>Verify release</b>Download the latest stable shared-hosting package and verify SHA-256.</span></div>
-<div><i>02</i><span><b>Auto-detect connection</b>Try FTP/FTPS and common ports, then authenticate and enable passive mode.</span></div>
-<div><i>03</i><span><b>Auto-detect web root</b>Find the public directory and verify it over HTTPS.</span></div>
-<div><i>04</i><span><b>Upload</b>Transfer the verified MuchoCore package into the shared host.</span></div>
-<div><i>05</i><span><b>Install</b>Run the remote shared installer with your database settings.</span></div>
-<div><i>06</i><span><b>Verify</b>Check <code>/health</code> and finish the deployment job.</span></div>
 </div>
-</section>
-<section class="info secure"><h3>Credential handling</h3><p>FTP, database and admin credentials are sent over HTTPS to MuchoGDPS, kept only in the temporary deployment job, never printed in the installation log, and removed after the job exits.</p></section>
-<section class="info warning"><h3>Provider compatibility</h3><p>The automatic flow is universal, but the hosting provider must allow FTP/FTPS, PHP execution and the database setup required by MuchoCore. Provider-specific free-tier traffic restrictions can still prevent a working GDPS client connection after installation.</p></section>
-</aside>
-</div>
-</div></main>
-
+<aside class="side"><section class="panel"><h2>Как пройдёт установка</h2><ol class="steps"><li><span class="number">1</span><div><strong>Проверка 5V.PL</strong>Сервер отклонит адрес любого другого хостинга.</div></li><li><span class="number">2</span><div><strong>PHP 7 native</strong>Соберём отдельную PHP 7-совместимую версию, а не PHP 8-архив.</div></li><li><span class="number">3</span><div><strong>Загрузка по FTP</strong>Файлы попадут в <code>mc/</code>. Существующая установка не перезаписывается.</div></li><li><span class="number">4</span><div><strong>Завершение в браузере</strong>Создай пустую MySQL-базу и первого владельца на <code>/mc/admin.php</code>.</div></li><li><span class="number">5</span><div><strong>Правила и тест</strong>Добавь правила из <code>5V_ROOT_REWRITE_RULES.txt</code> в корневой <code>.htaccess</code>, проверь клиент GD.</div></li></ol></section>
+<section class="panel"><h2>Ограничения 5V.PL</h2><div class="alert"><strong>Это PHP 7 preview, не PHP 8.</strong> PHP 7 устарел и не получает обычных исправлений безопасности. Совместимость всех функций Geometry Dash 2.209 на реальном клиенте пока не подтверждена.</div><p class="fine">База и пароль администратора вводятся только на твоём сайте 5v.pl. Мы не перезаписываем существующий <code>.htaccess</code> и не объявляем загрузку полноценной установкой до ручной настройки.</p></section></aside>
+</div></div></main>
 <script>
-const $=id=>document.getElementById(id),start=$('start');
-
-const infinityPreset=$('infinityPreset');
-infinityPreset?.addEventListener('click',()=>{
-  $('ftpHost').value='ftpupload.net';
-  $('ftpSecurity').value='auto';
-  $('ftpPort').value='';
-  $('ftpPath').value='auto';
-  saveDraft();
-});
-const AUTOSAVE_KEY='muchogdps_shared_install_draft_v1';
-const autosaveFields=['gdpsName','ftpHost','ftpSecurity','ftpPort','ftpUser','ftpPath','dbHost','dbPort','dbName','dbUser','accountUrl'];
-function saveDraft(){
-  const data={};
-  for(const id of autosaveFields){const el=$(id);if(el)data[id]=el.value}
-  localStorage.setItem(AUTOSAVE_KEY,JSON.stringify(data));
+'use strict';
+const field=id=>document.getElementById(id);
+const start=field('start'), error=field('error');
+const AUTOSAVE_KEY='muchogdps_5v_install_draft_v1';
+const draftFields=['gdpsName','ftpHost','ftpUser','ftpSecurity','ftpPort','ftpPath','accountUrl'];
+function saveDraft(){try{const data={};for(const id of draftFields)data[id]=field(id).value;localStorage.setItem(AUTOSAVE_KEY,JSON.stringify(data));}catch(_){}}
+try{const data=JSON.parse(localStorage.getItem(AUTOSAVE_KEY)||'{}');for(const id of draftFields)if(typeof data[id]==='string')field(id).value=data[id];}catch(_){}
+for(const id of draftFields)field(id).addEventListener('input',saveDraft);
+function validFiveVUrl(value){
+  try{const url=new URL(value);return url.protocol==='https:' && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.5v\.pl$/i.test(url.hostname) && !url.username && !url.password && url.pathname==='/' && !url.search && !url.hash && !url.port;}catch(_){return false;}
 }
-function restoreDraft(){
-  try{
-    const data=JSON.parse(localStorage.getItem(AUTOSAVE_KEY)||'{}');
-    for(const id of autosaveFields){if($(id)&&typeof data[id]==='string')$(id).value=data[id]}
-
-  }catch(_){}
-}
-function clearDraft(){
-  localStorage.removeItem(AUTOSAVE_KEY);
-
-}
-autosaveFields.forEach(id=>$(id)?.addEventListener('input',saveDraft));
-restoreDraft();
-const adminPassword=$('adminPassword'),adminPasswordConfirm=$('adminPasswordConfirm'),adminPasswordHelp=$('adminPasswordHelp');
-const validateAdminPassword=()=>{
-  const hasPassword=adminPassword.value!=='';
-  adminPasswordConfirm.required=hasPassword;
-  adminPasswordConfirm.disabled=!hasPassword;
-  adminPasswordConfirm.setCustomValidity(
-    hasPassword && adminPasswordConfirm.value!==adminPassword.value
-      ? 'Passwords do not match.'
-      : ''
-  );
-  if(adminPasswordHelp){
-    adminPasswordHelp.textContent=hasPassword
-      ? 'Re-enter the same password to confirm it before deployment.'
-      : 'Leave the password blank to securely generate one automatically. Confirmation is required only when you choose your own password.';
-  }
-};
-adminPassword?.addEventListener('input',validateAdminPassword);
-adminPasswordConfirm?.addEventListener('input',validateAdminPassword);
-validateAdminPassword();
-
 start.onclick=async()=>{
- if(!$('confirm').checked){alert('Confirm that you have permission to administer this shared-hosting account.');return}
- if(location.protocol!=='https:'){alert('Use the HTTPS version of muchogdps.space before entering credentials.');return}
- validateAdminPassword();
- if(!adminPasswordConfirm.checkValidity()){adminPasswordConfirm.reportValidity();return}
- await fetch('/api/deploy/session',{cache:'no-store'});start.disabled=true;start.textContent='Creating deployment job…';
- const body={
-  type:'shared',
-  gdps_name:$('gdpsName').value.trim(),
-  ftp_host:$('ftpHost').value.trim(),
-  ftp_security:$('ftpSecurity').value,
-  ftp_port:Number($('ftpPort').value||0),
-  ftp_username:$('ftpUser').value.trim(),
-  ftp_password:$('ftpPassword').value,
-  ftp_path:$('ftpPath').value.trim(),
-  account_url:$('accountUrl').value.trim(),
-  db_host:$('dbHost').value.trim(),
-  db_port:Number($('dbPort').value||3306),
-  db_name:$('dbName').value.trim(),
-  db_user:$('dbUser').value.trim(),
-  db_password:$('dbPassword').value,
-  admin_user:$('adminUser').value.trim(),
-  admin_password:$('adminPassword').value,
-  admin_password_confirm:$('adminPasswordConfirm').value
- };
- try{
-  const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),20000);
-  let r;
+  error.textContent='';
+  if(location.protocol!=='https:'){error.textContent='Открой установщик через HTTPS.';return;}
+  if(!field('confirm').checked){error.textContent='Подтверди, что имеешь право управлять сайтом.';return;}
+  const site=field('accountUrl').value.trim().replace(/\/$/,'');
+  if(!validFiveVUrl(site)){error.textContent='Установщик работает ТОЛЬКО НА 5V.PL: введи https://name.5v.pl';return;}
+  if(!field('gdpsName').value.trim()||!field('ftpHost').value.trim()||!field('ftpUser').value.trim()||!field('ftpPassword').value){error.textContent='Заполни название GDPS и поля FTP.';return;}
+  const portRaw=field('ftpPort').value.trim(), port=portRaw?Number(portRaw):0;
+  if(!Number.isInteger(port)||port<0||port>65535){error.textContent='Неверный порт FTP.';return;}
+  start.disabled=true;start.textContent='Подключение...';
+  const body={type:'shared',provider:'5v.pl',gdps_name:field('gdpsName').value.trim(),ftp_host:field('ftpHost').value.trim(),ftp_username:field('ftpUser').value.trim(),ftp_password:field('ftpPassword').value,ftp_security:field('ftpSecurity').value,ftp_port:port,ftp_path:field('ftpPath').value.trim()||'auto',account_url:site};
   try{
-    r=await fetch('/api/deploy/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal});
-  }catch(e){
-    if(e?.name==='AbortError') throw new Error('Deployment start timed out. Please try again.');
-    throw new Error('Could not reach the deployment service.');
-  }finally{
-    clearTimeout(timeout);
-  }
-  const d=await r.json().catch(()=>({ok:false,error:'Invalid deployment service response.'}));
-  if(!r.ok||!d.ok)throw new Error(d.error||'Could not start deployment');
-  if(d.admin_password){sessionStorage.setItem('muchodeployadminpassword',d.admin_password);sessionStorage.setItem('muchodeployadminuser',d.admin_user||'admin')}else{sessionStorage.removeItem('muchodeployadminpassword');sessionStorage.setItem('muchodeployadminuser',d.admin_user||'admin')}
-  clearDraft();window.location.assign('/install/shared/go/?job='+encodeURIComponent(d.job_id));
- }catch(e){start.disabled=false;start.textContent='Start automatic deployment →';alert(e.message)}
+    await fetch('/api/deploy/session',{cache:'no-store',credentials:'same-origin'});
+    const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),20000);
+    let response;
+    try{response=await fetch('/api/deploy/start',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(body),signal:controller.signal});}
+    finally{clearTimeout(timeout);}
+    const data=await response.json().catch(()=>({ok:false,error:'Неверный ответ сервера.'}));
+    if(!response.ok||!data.ok)throw new Error(data.error||'Не удалось начать установку.');
+    try{localStorage.removeItem(AUTOSAVE_KEY);}catch(_){}
+    window.location.assign('/install/shared/go/?job='+encodeURIComponent(data.job_id));
+  }catch(e){error.textContent=e&&e.name==='AbortError'?'Сервер не ответил за 20 секунд.':String(e.message||e);start.disabled=false;start.textContent='Загрузить MuchoCore на 5V.PL';}
 };
 </script>
 </body>
