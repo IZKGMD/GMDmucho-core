@@ -22,6 +22,7 @@ class Quiet(SimpleHTTPRequestHandler):
 
 def admin(base):
     return f"""<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>*,*::before,*::after{box-sizing:border-box}</style>
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
 <link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=2"></head>
 <body class="mc-admin"><div class="shell">
@@ -41,6 +42,7 @@ def admin(base):
 
 def portal(base):
     return f"""<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>*,*::before,*::after{box-sizing:border-box}</style>
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
 <link rel="stylesheet" href="{base}/assets/mucho-portal-v3.css?v=2"></head>
 <body class="dashboard-page"><div class="shell"><header class="topbar"><a class="brand" href="#"><img class="mc-brand-mark" src="{base}/assets/muchocore-icon.png?v=3" alt=""><span class="mc-portal-brand-copy"><strong>MuchoCore</strong><small>PLAYER PORTAL</small></span></a><nav class="nav"><a href="#">Players</a><a href="#">Music</a><a href="#">Clans</a><a class="btn" href="#">Login</a></nav></header>
@@ -74,7 +76,7 @@ def main():
                         body_color=page.locator("body").evaluate("(e)=>getComputedStyle(e).backgroundColor")
                         assert body_color=="rgb(16, 16, 23)",(name,width,body_color)
                         over=page.evaluate("document.documentElement.scrollWidth-innerWidth")
-                        assert over<=1,(name,width,"horizontal overflow",over)
+                        assert over<=1,(name,width,"horizontal overflow",over, page.evaluate("""() => [...document.querySelectorAll('body *')].filter(el => el.getBoundingClientRect().right > innerWidth + 1).slice(0, 8).map(el => [el.tagName, el.className, Math.round(el.getBoundingClientRect().right)])"""))
                         assert not errors,(name,width,errors)
                         if name=="admin":
                             sidebar=page.locator(".shell>aside").evaluate("(e)=>getComputedStyle(e).backgroundColor")
