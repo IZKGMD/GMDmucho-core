@@ -5,7 +5,7 @@ This is the original, dependency-free visual layer shared by the public MuchoGDP
 ## Design approach
 
 - **One identity:** ink-blue surfaces, restrained violet interaction, cyan status accents, readable body text.
-- **Reference research:** [shadcn-admin](https://github.com/satnaing/shadcn-admin) for information hierarchy, [Tabler](https://github.com/tabler/tabler) for dense data layouts and responsive admin conventions, and [Aceternity UI](https://github.com/aceternity/aceternity-ui) for the *idea* of ambient grids and light effects.
+- **Reference research:** [shadcn-admin](https://github.com/satnaing/shadcn-admin) for information hierarchy, [Tabler](https://github.com/tabler/tabler) for dense data layouts and responsive admin conventions, and [Magic UI](https://github.com/magicuidesign/magicui) for the *idea* of ambient grids and light effects.
 - **Independent implementation:** no third-party CSS, HTML, JS, or visual assets were copied.
 - **No changes to server logic:** statistics remain live, permission checks remain server-side, forms keep their original routes and CSRF handling.
 - **Performance:** no web fonts, icon CDN, build step, or JavaScript needed for the design.

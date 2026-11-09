@@ -2,7 +2,7 @@
  * Mucho Design System / 2026
  * Original presentation for the MuchoCore ecosystem.
  * Reference principles: shadcn-admin (information hierarchy), Tabler
- * (legible data surfaces), Aceternity (subtle ambient treatment).
+ * (legible data surfaces), Magic UI (ambient grid treatment).
  * No template source code, third-party scripts or framework dependencies.
  */
 
@@ -521,6 +521,65 @@ html[data-theme="light"] body.mc-admin .shell > aside { background:linear-gradie
 html[data-theme="light"] body.mc-admin :is(.card,.table,.admin-kpi,.admin-quick-action,.rating-stat,.rating-section) { background:#fff;border-color:var(--mc-line); }
 html[data-theme="light"] body.mc-admin aside nav a.on { background:#ece8ff;color:#382d77;border-color:#cac1ee; }
 html[data-theme="light"] body.mc-admin .admin-kpi-value {color:var(--mc-text);}
+
+
+/* 05b. Administrator entry screen */
+body.admin-login.mc-workspace {
+  min-height:100dvh;
+  background: radial-gradient(ellipse at 13% 4%,#5c48d633,transparent 39%),
+              radial-gradient(ellipse at 88% 88%,#1690a721,transparent 33%),var(--mc-bg);
+  color:var(--mc-text);
+}
+body.admin-login.mc-workspace .admin-auth-card {
+  width:min(480px,calc(100% - 24px));
+  padding:clamp(28px,4vw,42px);
+  background:linear-gradient(145deg,var(--mc-surface),var(--mc-bg));
+  border:1px solid rgba(153,140,237,.42);
+  border-radius:24px;
+  box-shadow:0 35px 100px rgba(0,0,0,.3), inset 0 1px rgba(255,255,255,.045);
+}
+body.admin-login.mc-workspace .admin-auth-card h1 {
+  font-size:clamp(24px,4vw,32px);
+  font-weight:790;
+  letter-spacing:-.055em;
+  line-height:1.18;
+}
+body.admin-login.mc-workspace .admin-auth-card header {
+  padding-bottom:18px; margin-bottom:25px;
+  border-bottom:1px solid var(--mc-line);
+}
+body.admin-login.mc-workspace .admin-auth-field label {
+  display:inline-block;
+  margin-bottom:9px;
+  color:var(--mc-muted);
+  font-size:12px;
+  font-weight:650;
+}
+body.admin-login.mc-workspace .admin-auth-field :is(input,select) {
+  min-height:45px;
+  border:1px solid var(--mc-line);
+  border-radius:11px;
+  background:var(--mc-bg);
+  color:var(--mc-text);
+}
+body.admin-login.mc-workspace #normalSignInButton {
+  width:100%; min-height:46px;
+  border-radius:11px;
+  border:1px solid #a08cf2;
+  background:linear-gradient(125deg,#8b73f6,#6853d8);
+  color:#fff;
+  font-weight:750;
+  box-shadow:0 12px 26px rgba(100,74,226,.2);
+}
+body.admin-login.mc-workspace #normalSignInButton:hover {
+  transform:translateY(-2px);
+  box-shadow:0 15px 28px rgba(100,74,226,.28);
+}
+html[data-theme="light"] body.admin-login.mc-workspace .admin-auth-card {
+  background:linear-gradient(150deg,#fff,#f7f7ff);
+  border-color:#d8d2f4;
+  box-shadow:0 25px 60px rgba(60,50,115,.08);
+}
 
 /* 06. Responsive layouts and motion preferences */
 @media (max-width: 1000px) {
