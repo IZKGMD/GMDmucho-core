@@ -213,6 +213,20 @@ CREATE TABLE IF NOT EXISTS admin_users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 ");
 
+// Invalidate previous sessions after a password reset or account suspension.
+if (isset($_SESSION['admin']) && is_array($_SESSION['admin'])) {
+    $sessionId = (int) ($_SESSION['admin']['id'] ?? 0);
+    $sessionQuery = $db->prepare('SELECT password_hash,is_active FROM admin_users WHERE id=:id LIMIT 1');
+    $sessionQuery->execute(['id' => $sessionId]);
+    $sessionRow = $sessionQuery->fetch(PDO::FETCH_ASSOC);
+    $fingerprint = (string) ($_SESSION['admin_password_fingerprint'] ?? '');
+    if (!$sessionRow || (int) $sessionRow['is_active'] !== 1 || $fingerprint === '' ||
+        !hash_equals(hash('sha256', (string) $sessionRow['password_hash']), $fingerprint)) {
+        unset($_SESSION['admin'], $_SESSION['admin_password_fingerprint'],
+              $_SESSION['admin_login_at'], $_SESSION['admin_last_activity']);
+    }
+}
+
 $db->exec("
 CREATE TABLE IF NOT EXISTS admin_audit_logs (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -786,7 +800,15 @@ function muchPasskeyRateFailure(string $rate,array $state): void
 
 function establishAdminSession(array $row): void
 {
+    global $db;
+    $query = $db->prepare('SELECT password_hash FROM admin_users WHERE id=:id AND is_active=1 LIMIT 1');
+    $query->execute(['id' => (int) $row['id']]);
+    $passwordHash = $query->fetchColumn();
+    if (!is_string($passwordHash) || $passwordHash === '') {
+        throw new RuntimeException('Administrator is no longer active.');
+    }
     session_regenerate_id(true);
+    $_SESSION['admin_password_fingerprint'] = hash('sha256', $passwordHash);
 
     $_SESSION['admin']=[
         'id'=>(int)$row['id'],
@@ -1221,6 +1243,9 @@ if (
     muchAdminRenderPasswordSetup($db,$setupToken);
 }
 
+require_once __DIR__.'/email-recovery.php';
+muchoAdminEmailRoute($db);
+
 /* =========================================================
    LOGIN
 ========================================================= */
@@ -1308,6 +1333,7 @@ if (isset($_POST['login'])) {
 
             $_SESSION['admin_login_at']=time();
             $_SESSION['admin_last_activity']=time();
+            $_SESSION['admin_password_fingerprint']=hash('sha256',(string)$row['password_hash']);
 
             $_SESSION['csrf']=bin2hex(random_bytes(32));
 
@@ -2471,6 +2497,7 @@ max-width:100%
 <button type="button" id="passkeyTotpButton">Complete passkey sign-in</button>
 </div>
 <button id="normalSignInButton" name="login" value="1">Sign in</button>
+<p style="text-align:center;margin:13px 0 0"><a href="/admin/?email_recovery=1" style="color:#ba9cee;font-size:13px">Forgot your password?</a></p>
 <noscript><p>Password sign-in works without JavaScript. Passkeys require JavaScript.</p></noscript>
 <script>
 (() => {
@@ -6284,6 +6311,33 @@ unset($_SESSION['admin_setup_invite']);
 </div>
 </div>
 <?php endif; ?>
+
+<?php
+$myRecovery = \MuchoCore\Admin\AdminEmailRecovery::status($db, (int) admin()['id']);
+$verifiedRecoveryEmail = (string) ($myRecovery['verified_email'] ?? '');
+$pendingRecoveryEmail = (string) ($myRecovery['pending_email'] ?? '');
+?>
+<div class="card" style="margin-bottom:15px">
+<h2>Recovery email</h2>
+<p style="color:#b8adc7;line-height:1.5">Use a verified email address to reset your administrator password without server-console access. Two-factor authentication stays enabled.</p>
+<?php if($verifiedRecoveryEmail!==''): ?>
+<p><b>Verified:</b> <?=h($verifiedRecoveryEmail)?></p>
+<?php else: ?>
+<p>No recovery email verified yet.</p>
+<?php endif; ?>
+<?php if($pendingRecoveryEmail!==''): ?><p>Awaiting verification: <?=h($pendingRecoveryEmail)?></p><?php endif; ?>
+<?php if(!\MuchoCore\Admin\AdminSmtp::configured()): ?>
+<p style="color:#dabf88">Email delivery is not configured on this server. The owner must set the SMTP environment variables first.</p>
+<?php endif; ?>
+<form method="post" action="/admin/">
+<input type="hidden" name="csrf" value="<?=h(csrf())?>">
+<input type="hidden" name="action" value="admin-email-bind">
+<label>Recovery email<input type="email" name="email" autocomplete="email" maxlength="254" required placeholder="you@example.com"></label>
+<label>Current admin password<input type="password" name="current_password" autocomplete="current-password" required></label>
+<?php if(!empty($me['totp_secret'])): ?><label>Authenticator or recovery code<input name="otp" autocomplete="one-time-code" required></label><?php endif; ?>
+<button>Send confirmation email</button>
+</form>
+</div>
 
 <?php if(canPermission('admins.manage')): ?>
 

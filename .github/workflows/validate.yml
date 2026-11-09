@@ -132,6 +132,7 @@ jobs:
           php tests/application/admin-access-key-contract.php
           php tests/application/admin-passkey-contract.php
           php tests/application/admin-password-setup-contract.php
+          php tests/application/admin-email-recovery-contract.php
           php tests/application/admin-rbac-contract.php
           php tests/application/news-board-contract.php
           php tests/application/native-news-contract.php
@@ -636,6 +637,13 @@ jobs:
             sleep 2
           done
           exit 1
+
+      - name: Verify admin email recovery with isolated MariaDB
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/admin-email-recovery-integration.php
 
       - name: Run end-to-end Cvolton migration test
         env:
