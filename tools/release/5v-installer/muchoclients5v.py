@@ -371,28 +371,55 @@ def publish_android(ftp: FtpSite, site: HttpsSite, report: dict,
         with tempfile.TemporaryDirectory(prefix="mucho-apk-", dir=outdir) as temp:
             temp_file = Path(temp) / "verified.apk"
             _download_authenticated(site, job, size, digest, temp_file)
-            return _publish_stream(ftp, temp_file, site.origin, "apk", digest, size)
+            url = _publish_stream(ftp, temp_file, site.origin, "apk", digest, size)
+            _probe_public(site, url, size)
+            return url
     url = _public_url(site.origin, name)
     _probe_public(site, url, size)
     return url
 
 
 def publish_index(ftp: FtpSite, site: HttpsSite, links: dict) -> str:
-    """Minimal static download page; doesn't alter PHP admin/owner data."""
+    """Keep old client links and preserve unrelated custom index pages."""
     _ftp_prepare(ftp)
-    rows = []
+    previous = ftp.get(ftp.root, CLIENT_DIR + "/index.html", optional=True)
+    if previous is not None and b"MUCHOCORE_CLIENTS_INDEX_V1" not in previous:
+        raise InstallError("В папке clients уже есть своя index.html. "
+                           "Не перезаписываем чужую страницу; прямые ссылки сохранены.")
+    entries = {}
+    if previous is not None:
+        for found in re.findall(rb'href="([^"]+)"', previous):
+            try:
+                url = html.unescape(found.decode("ascii"))
+                if not url.startswith(site.origin + PUBLIC_PREFIX):
+                    continue
+                filename = url[len(site.origin + PUBLIC_PREFIX):]
+                if not re.fullmatch(
+                    r"GeometryDash-MuchoCore-[a-f0-9]{12}\.(?:exe|apk)",
+                    filename,
+                ):
+                    continue
+                entries[url] = (filename.endswith(".apk"), "")
+            except (ValueError, UnicodeDecodeError):
+                continue
+
     for kind in ("exe", "apk"):
         entry = links.get(kind)
         if not entry:
             continue
         url = entry["url"]
-        if not url.startswith(site.origin + PUBLIC_PREFIX):
+        if url != _public_url(site.origin, url.rsplit("/", 1)[-1]):
             raise InstallError("Ссылка на клиент должна принадлежать этому сайту.")
+        entries[url] = (kind == "apk", entry["sha256"])
+
+    rows = []
+    for url, (android, sha) in entries.items():
+        name = "Android APK" if android else "Windows EXE"
+        extra = " · SHA-256: <code>" + html.escape(sha, quote=True) + "</code>" if sha else ""
         rows.append('<li><a href="' + html.escape(url, quote=True) +
-                    '">' + ("Windows EXE" if kind == "exe" else "Android APK") +
-                    '</a> · SHA-256: <code>' +
-                    html.escape(entry["sha256"], quote=True) + '</code></li>')
-    markup = ('<!doctype html><html lang="ru"><head><meta charset="utf-8">'
+                    '">' + name + '</a>' + extra + '</li>')
+    markup = ('<!doctype html><!-- MUCHOCORE_CLIENTS_INDEX_V1 -->'
+        '<html lang="ru"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         '<title>MuchoCore — клиенты</title><style>body{background:#15121d;color:#f1ecfa;'
         'font:16px system-ui;max-width:720px;margin:10vh auto;padding:20px}'
@@ -400,14 +427,13 @@ def publish_index(ftp: FtpSite, site: HttpsSite, links: dict) -> str:
         '<body><h1>Клиенты MuchoCore</h1><p>Сервер: <strong>' +
         html.escape(site.origin, quote=True) + '</strong></p><ul>' +
         ''.join(rows) + '</ul><p>Windows: для запуска нужны DLL и Resources '
-        'из вашей установленной копии игры. APK подписан ключом именно этого '
-        'GDPS; сохраняйте оригинальные данные и ключ подписи.</p></body></html>')
+        'из установленной копии игры. Для Android сохраняйте закрытый '
+        'ключ подписи в config/php7-apk-signer.json для будущих обновлений.'
+        '</p></body></html>')
     tmp = CLIENT_DIR + "/.index-" + secrets.token_hex(8) + ".tmp"
     try:
         ftp.put(ftp.root, tmp, markup.encode("utf-8"))
-        # A new site has no index; on updates preserve the old page to avoid loss.
-        old = _ftp_size(ftp, CLIENT_DIR + "/index.html")
-        if old is not None:
+        if previous is not None:
             backup = CLIENT_DIR + "/index-before-" + secrets.token_hex(6) + ".html"
             ftp.rename(ftp.root, CLIENT_DIR + "/index.html", backup)
             try:
