@@ -1,31 +1,52 @@
-# MuchoCore Studio UI · v2
+# MuchoCore / Structure-First Redesign (v3)
 
-The first design pass used glow, gradients, rounded floating cards and colored typography. That made the project look like a generic generated dashboard. This revision **replaces** the design stylesheet rather than stacking more effects on top of it.
+This design is a real rewrite of the page *structure*, not a layer of styling over the same boxes.
 
-## Source review / design decisions
+## Verified design references
 
-- [Midday](https://github.com/midday-ai/midday) — information-first workspace density and composed surfaces. Take the *layout discipline*, not source code.
-- [OpenStatus](https://github.com/openstatusHQ/openstatus) — hierarchy for live data and clear system status. Keep readable labels and nondecorative data.
-- [shadcn/ui](https://github.com/shadcn-ui/ui) — coherent control geometry, accessibility and consistent focus feedback. Use one 6–7px radius scale.
-- [Tabler](https://github.com/tabler/tabler) — predictable administrative navigation and tight, legible tables.
+The work reviewed original GitHub sources and principles, not CSS copied from templates:
 
-The MuchoCore result is original CSS, no npm/framework imports, copied components or assets.
+- [Midday](https://github.com/midday-ai/midday): workspace prioritization, information density, clear operator actions.
+- [OpenStatus](https://github.com/openstatusHQ/openstatus): text-led operational status, scrollable high-signal data tables.
+- [shadcn/ui](https://github.com/shadcn-ui/ui): accessible states, tabbed keyboard interactions and consistent control spacing.
+- [Tabler](https://github.com/tabler/tabler): compact menus, readable administrative data and table affordances.
 
-## Rules
+The resulting MuchoCore visual language is its own: warm off-white editorial pages, dense charcoal preview and functional panels, terracotta accents and thin dividers. No decorative gradients, ambient glows, floating cards, expensive external fonts or copied third-party components.
 
-1. Dark graphite (#101113) with warm white ink; single pale green action accent (#d2e58a), never a purple-to-cyan gradient.
-2. No glow, glassmorphism, radial gradients, animated illustrations, inflated cards or hover lift.
-3. Hero typography is plain and substantial; technical diagrams look like data panels.
-4. Where cards serve only as section separators, use hairline borders instead.
-5. Admin/data pages are compact; actions and states are more important than decoration.
-6. Preserve the original PHP forms, endpoints, semantics, translations, accessibility and live data.
-7. The product landing background remains #0c0d12 to keep the verified desktop/mobile contrast stable.
-8. Support narrow screens, keyboard focus, light theme and reduced motion.
+## Actual structural changes
 
-## Entrypoints
+### MuchoCore site, EN and RU
 
-The cache-busted stylesheet `/assets/mucho-design-system.css?v=2` is loaded last by the public site, MuchoCore EN/RU, admin, portal, clans, installer and documentation pages. Existing runtime CSS provides page structure; this layer harmonizes presentation without changing server logic.
+- Rebuilt entire HTML body for **both locales**, preserving SEO canonical/hreflang/schema, project facts and exact user-authored quote.
+- Independently styled **first-party** `mucho-product-v3.css`; the old two stylesheet overlays are no longer loaded.
+- Accessible three-tab specimen explains protocol request routing, operator tools and deployment *without fake live statistics*.
+- A numbered feature list, request pipeline, qualified compatibility section, two real installation entry points, inline source CLI and FAQ.
+- Mobile navigation, keyboard-switchable tabs, copy source command with fallback.
 
-## Acceptance
+### PHP 8 admin
 
-Run `node --test tests/application/mucho-design-system.test.cjs`, `python3 tests/seo/muchocore_visual.py`, PHP 7/8 tests, and manual views of login, admin lists, portal profile and narrow navigation. No deploy until the PR is merged.
+- New active-instance context and player portal shortcut in the shell.
+- New overview renders a **real pending-music review queue**, live account/level/music statistics, actual latest players and songs as tables, and permission-gated operator action list.
+- Audit feed identifiers and polling script are retained. All actions continue through existing controller code and CSRF/roles.
+- New `mucho-console-v3.css` is loaded last; old admin modules retain fallback structural styles.
+- Existing first-admin and login actions remain intact. No PHP7 implementation rewritten.
+
+### Player portal
+
+- Replaced the marketing hero with a **search-first discovery screen**; relocated real server figures under the search and preserved the existing account login/upload form as a useful right-side panel.
+- Rebuilt spotlight around the actual current top player or honest empty state; real leaderboard, profiles, clans and music still use the existing query logic.
+- New `mucho-portal-v3.css` adjusts portal and clan layouts, light/dark themes and mobile states.
+
+### Installation and knowledge pages
+
+- Installation chooser rebuilt as three *action-oriented rows*, not cards, retaining original VPS, manual and shared hosting routes.
+- About/compatibility now share a stand-alone editorial documentation stylesheet instead of the old glowing layer.
+
+## Architecture, caching and testing
+
+- Original PHP service functions, endpoint registration, database tables, server secrets, login/CSRF and permissions are unchanged.
+- PHP7 provenance SHA-256 manifests updated for changed PHP UI sources.
+- Assets are versioned to avoid stale browser caches.
+- Browser checks inspect mobile (360/390/430/768) and desktop (1440), EN/RU, menu, tab interactions, hover-independent access, viewport overflow and JS errors.
+- Node structure tests and PHP7/8 CI must be green before merge.
+- No direct VPS rollout: PR review and merge come first.

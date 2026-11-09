@@ -14,15 +14,20 @@ test('bilingual product uses its standalone v3 layout, no legacy CSS overlay',()
 });
 
 test('operator and player workspaces keep shared foundation and dedicated rebuilt surfaces',()=>{
- for(const p of ['public/index.html','public/muchocore/about/index.html','public/muchocore/compatibility/index.html','public/dashboard/index.php','public/dashboard/clans.php','public/install/index.html','public/admin/index.php'])
+ for(const p of ['public/index.html','public/dashboard/index.php','public/dashboard/clans.php','public/admin/index.php'])
    assert.ok(read(p).includes('/assets/mucho-design-system.css?v=2'),p);
  assert.ok(read('public/admin/index.php').includes('/admin/mucho-console-v3.css?v=1'));
+ assert.ok(read('public/install/index.html').includes('/assets/mucho-install-v3.css?v=1'));
+ for(const p of ['public/muchocore/about/index.html','public/muchocore/compatibility/index.html']) {
+   assert.ok(read(p).includes('/muchocore/discovery.css?v=3'));
+   assert.ok(!read(p).includes('/assets/mucho-design-system.css'));
+ }
  for(const p of ['public/dashboard/index.php','public/dashboard/clans.php'])
    assert.ok(read(p).includes('/assets/mucho-portal-v3.css?v=1'),p);
 });
 
 test('new and legacy surfaces support reduced motion, keyboard focus and independent tokens',()=>{
- for(const p of ['public/assets/mucho-design-system.css','public/assets/mucho-product-v3.css','public/admin/mucho-console-v3.css','public/assets/mucho-portal-v3.css']) {
+ for(const p of ['public/assets/mucho-design-system.css','public/assets/mucho-product-v3.css','public/admin/mucho-console-v3.css','public/assets/mucho-portal-v3.css','public/assets/mucho-install-v3.css','public/muchocore/discovery.css']) {
    const css=read(p);
    assert.ok(css.includes('prefers-reduced-motion'),p);
    assert.ok(!css.includes('@import'),p);
