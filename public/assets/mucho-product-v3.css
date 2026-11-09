@@ -39,7 +39,7 @@ body.mc-editorial{margin:0;background:var(--mc-paper);color:var(--mc-ink);font:4
 .mc-hero-topline span:first-child{color:var(--mc-brand)}
 .mc-hero-columns{display:grid;grid-template-columns:minmax(0,1.03fr) minmax(0,.97fr);gap:clamp(35px,5.4vw,86px);align-items:center;padding-top:clamp(63px,7vw,95px)}
 .mc-hero-message{min-width:0}
-.mc-hero-message h1{font-size:clamp(50px,5.2vw,79px);line-height:1.035;letter-spacing:-.077em;font-weight:715;margin:0 0 26px;max-width:650px;text-wrap:balance}
+.mc-hero-message h1{font-size:clamp(50px,4.65vw,72px);line-height:1.035;letter-spacing:-.077em;font-weight:715;margin:0 0 26px;max-width:650px;text-wrap:balance}
 .mc-hero-message h1 em{font:italic 400 1.025em/1 Georgia,"Times New Roman",serif;letter-spacing:-.057em;color:var(--mc-brand)}
 .mc-hero-message>p{max-width:515px;margin:0;color:var(--mc-copy);font-size:16px;line-height:1.74}
 .mc-hero-cta{display:flex;flex-wrap:wrap;gap:10px;margin:30px 0 16px}
