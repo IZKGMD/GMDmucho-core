@@ -42,7 +42,7 @@ final readonly class Request
             return $value;
         }
 
-        if (is_string($value) && preg_match('/\A-?[0-9]+\z/', $value) === 1) {
+        if (is_string($value) && preg_match('/^-?[0-9]+$/', $value) === 1) {
             // PHP clamps out-of-range decimal strings to PHP_INT_MAX/MIN.
             // Reject overflow instead of silently changing a GD identifier.
             $negative = $value[0] === '-';
