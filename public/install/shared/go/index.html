@@ -190,7 +190,7 @@ async function finish(ok,status,timedOut=false,details={}){
     if(details.manual_setup_required){
       setState('Файлы загружены, нужна настройка','wait');
       resultTitle.textContent='5V.PL: PHP 7 файлы загружены.';
-      resultText.textContent='Это ещё не готовый GDPS. Открой мастер на своём сайте, настрой пустую MySQL-базу и первого владельца. Затем добавь правила из 5V_ROOT_REWRITE_RULES.txt в корневой .htaccess и проверь реальный клиент.';
+      resultText.textContent='Это ещё не готовый GDPS. Создай пустую MySQL-базу, скопируй mc/compat/php7/config.example.php в приватный mc/config/php7-local.php и укажи данные БД. Затем создай первого владельца на /mc/admin.php. Добавь правила из 5V_ROOT_REWRITE_RULES.txt в корневой .htaccess и проверь реальный клиент.';
       let setup=null;
       try{
         setup=new URL(String(details.setup_url||''),location.origin);
