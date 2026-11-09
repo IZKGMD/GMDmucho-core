@@ -244,14 +244,12 @@ for forbidden in mc/config/php7-local.php mc/config/php7-news.json \
     exit 1
   fi
 done
-# Distribution safety: the installer source matches the canonical CI patcher,
-# but no proprietary GD game EXE/APK may enter the release archive.
+# Only reviewed patcher code belongs in the ZIP. Do not include EXE/APK binaries.
 if ! diff -q "$ROOT/tools/client/client-patch.py" <(unzip -p "$OUTPUT" gd_windows_patcher.py) >/dev/null; then
   echo "The bundled Windows patcher differs from the reviewed source." >&2
   exit 1
 fi
-if unzip -Z1 "$OUTPUT" | grep -Ei '\\.(exe|apk)
- >/dev/null; then
+if unzip -Z1 "$OUTPUT" | grep -Ei '\.(exe|apk)$' >/dev/null; then
   echo "Do not distribute proprietary Geometry Dash client binaries." >&2
   exit 1
 fi
