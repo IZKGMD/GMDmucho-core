@@ -1,6 +1,6 @@
 # Mucho Design System
 
-This is the original, dependency-free visual layer shared by the public MuchoGDPS site, the MuchoCore landing pages (EN and RU), the player portal and the PHP 8 administrator workspace.
+This is the original, dependency-free visual layer shared by the public MuchoGDPS site, the MuchoCore landing pages (EN and RU), the player portal (including clans), installation selector, discovery pages and the PHP 8 administrator workspace.
 
 ## Design approach
 
@@ -19,7 +19,8 @@ All four surfaces load `/assets/mucho-design-system.css` **last**:
 1. `public/index.html`: public MuchoGDPS site (`mc-home`)
 2. `public/muchocore/index.html` and `public/muchocore/ru/index.html`: MuchoCore product pages (`mc-core-site`)
 3. `public/dashboard/index.php`: player portal (`dashboard-page`)
-4. `public/admin/index.php`: main/admin sign-in (`mc-admin` and `admin-login`)
+4. `public/dashboard/clans.php`, `public/muchocore/about/index.html`, `public/muchocore/compatibility/index.html` and `public/install/index.html`: related public routes
+5. `public/admin/index.php`: main/admin sign-in (`mc-admin` and `admin-login`)
 
 ## QA checklist
 
@@ -28,5 +29,7 @@ All four surfaces load `/assets/mucho-design-system.css` **last**:
 3. Test admin dashboard, Rating Studio, plugins, patcher and all restricted-role views.
 4. Test dark/light toggle where available, keyboard-only navigation and reduced-motion mode.
 5. Verify that real counts load; design layer never uses placeholder values.
+
+The PHP 7 upstream provenance digest for `public/admin/index.php` was updated solely because the PHP 8 source now loads the additional CSS; no mirrored PHP 7 runtime files were modified.
 
 This is a visual foundation; it intentionally avoids changing markup and business workflows.

@@ -227,7 +227,7 @@ html[data-theme="light"] body.mc-home .mc-cta-banner { background:linear-gradien
 
 /* 03. MuchoCore documentation/product landing (English + Russian) */
 body.mc-core-site {
-  --bg: #090d18; --surface: #12192a; --surface-up: #1c2539;
+  --bg: #0c0d12; --surface: #12192a; --surface-up: #1c2539;
   --line: #2e3950; --text: #f5f7ff; --sub: #c5cee1; --muted: #a9b5ce;
   --accent: #b2a2ff; --accent-text: #16152c;
   color: var(--text);
@@ -615,4 +615,101 @@ html[data-theme="light"] body.admin-login.mc-workspace .admin-auth-card {
   :where(.mc-home,.mc-core-site,.dashboard-page,.mc-admin) :is(a,button,.card,.admin-kpi,.mc-feature,.feature,.player-card,.featured-card) {
     transition:none!important;transform:none!important;
   }
+}
+
+/* 07. Clan directory follows the player portal identity without changing actions */
+body.mc-clans-page {
+  background:radial-gradient(ellipse at 12% 0%,rgba(94,76,216,.17),transparent 38%),var(--mc-bg);
+  color:var(--mc-text);
+}
+body.mc-clans-page .topbar {
+  position:sticky;top:10px;z-index:40;
+  background:var(--mcd-glass);
+  border-color:var(--mc-line);
+  border-radius:17px;
+  backdrop-filter:blur(18px);
+}
+body.mc-clans-page .nav a,body.mc-clans-page .nav button {
+  background:transparent;border-color:transparent;
+  color:var(--mc-muted);font-size:12px;font-weight:650;
+}
+body.mc-clans-page .nav a:hover,body.mc-clans-page .nav button:hover {
+  background:var(--mc-raised);border-color:var(--mc-line);color:var(--mc-text);
+}
+body.mc-clans-page .hero .panel:first-child {
+  background:radial-gradient(ellipse at 90% 9%,rgba(123,99,255,.19),transparent 50%),var(--mc-surface);
+  border-color:rgba(154,138,240,.48);
+}
+body.mc-clans-page .hero h1 {font-weight:810;letter-spacing:-.065em;line-height:1.08}
+body.mc-clans-page .hero h1 span {
+  background:linear-gradient(100deg,#b5a5ff,#80c8fa,#73e4d3);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+body.mc-clans-page .eyebrow {color:var(--mcd-cyan);letter-spacing:.16em}
+body.mc-clans-page .copy,body.mc-clans-page .sub {color:var(--mc-muted)}
+body.mc-clans-page :is(.panel,.card,.member,.notice,.empty) {
+  background:var(--mc-surface);
+  border-color:var(--mc-line);
+  border-radius:17px;
+}
+body.mc-clans-page .card:hover {transform:translateY(-3px);border-color:var(--mc-accent)}
+body.mc-clans-page .name {color:var(--mc-text)}
+body.mc-clans-page .tag {color:var(--mc-accent)}
+body.mc-clans-page .chip {background:var(--mc-raised);border-color:var(--mc-line);color:var(--mc-muted)}
+body.mc-clans-page .btn {background:linear-gradient(125deg,#8a73f5,#6856d8);border-radius:11px}
+body.mc-clans-page .btn.alt {background:var(--mc-raised);color:var(--mc-text);border-color:var(--mc-line)}
+body.mc-clans-page :is(.search input,.form input,.form textarea,.form select) {
+  background:var(--mc-bg);color:var(--mc-text);border-color:var(--mc-line);border-radius:11px;
+}
+html[data-theme="light"] body.mc-clans-page .hero h1 span {
+  background:linear-gradient(110deg,#5e4bbf,#267e95);
+  background-clip:text;-webkit-background-clip:text;color:transparent;
+}
+
+/* 08. Product knowledge pages (accessible and search-engine-readable) */
+body.mc-discovery-page {
+  --bg:#090d18;--panel:#12192a;--ink:#f5f7ff;--muted:#a9b5ce;
+  --line:#2e3950;--accent:#b2a2ff;
+  color:var(--ink);
+  background:radial-gradient(ellipse at 80% 0%,rgba(116,100,235,.17),transparent 42%),var(--bg);
+}
+body.mc-discovery-page .site-header {
+  position:sticky;top:0;z-index:30;background:var(--mcd-glass);
+  border-color:var(--line);backdrop-filter:blur(18px);
+}
+body.mc-discovery-page .site-nav a {font-weight:630}
+body.mc-discovery-page .site-nav a:hover {color:var(--ink)}
+body.mc-discovery-page .hero {padding-top:clamp(50px,7vw,85px)}
+body.mc-discovery-page .hero h1 {font-size:clamp(40px,6vw,62px);font-weight:800;letter-spacing:-.06em}
+body.mc-discovery-page .kicker {color:var(--mcd-cyan)}
+body.mc-discovery-page .card {background:var(--panel);border-color:var(--line);border-radius:18px}
+body.mc-discovery-page table {display:block;overflow-x:auto;max-width:100%}
+body.mc-discovery-page th,body.mc-discovery-page td {border-color:var(--line)}
+body.mc-discovery-page .callout {background:var(--panel);border-left-color:var(--accent)}
+body.mc-discovery-page .site-footer {border-color:var(--line)}
+
+/* 09. Installation selector — shared brand, unchanged installation flows */
+body.mc-install-page {
+  --bg:#090d18;--text:#f5f7ff;--muted:#a9b5ce;
+  --line:#2e3950;--violet:#ad9fff;--green:#76e7bc;
+  background:radial-gradient(ellipse at 9% 0%,rgba(112,95,232,.18),transparent 36%),var(--bg);
+}
+body.mc-install-page .nav {background:var(--mcd-glass);border-color:var(--mc-line)}
+body.mc-install-page .eyebrow {color:var(--mcd-cyan);border-color:var(--mc-line)}
+body.mc-install-page h1 {font-weight:810;letter-spacing:-.065em;line-height:1.06}
+body.mc-install-page .card {
+  border:1px solid var(--mc-line);border-radius:20px;
+  background:var(--mc-surface);box-shadow:0 18px 46px rgba(0,0,0,.10);
+}
+body.mc-install-page .card.primary {
+  background:linear-gradient(145deg,rgba(122,99,244,.16),transparent 70%),var(--mc-surface);
+  border-color:rgba(170,155,255,.45);
+}
+body.mc-install-page .card:hover {border-color:var(--mc-accent);transform:translateY(-4px)}
+body.mc-install-page .cta {background:linear-gradient(125deg,#8b73f5,#6856d9)}
+body.mc-install-page .cta.alt {background:var(--mc-raised);border-color:var(--mc-line);color:var(--mc-text)}
+body.mc-install-page .callout {background:var(--mc-surface);border-color:var(--mc-line)}
+@media(max-width:600px){
+  body.mc-clans-page .topbar {position:relative;top:0}
+  body.mc-install-page main {padding-block:49px}
 }
