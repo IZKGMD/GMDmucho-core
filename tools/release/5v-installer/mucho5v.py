@@ -30,11 +30,16 @@ class InstallError(RuntimeError):
 
 
 def site_origin(value: str) -> str:
-    parsed = urllib.parse.urlsplit(value.strip())
-    host = parsed.hostname or ""
-    if (parsed.scheme != "https" or not SITE_RE.fullmatch(host)
-            or parsed.username or parsed.password or parsed.port is not None
-            or parsed.path not in ("", "/") or parsed.query or parsed.fragment):
+    try:
+        parsed = urllib.parse.urlsplit(value.strip())
+        host = parsed.hostname or ""
+        valid = (parsed.scheme == "https" and SITE_RE.fullmatch(host)
+                 and not parsed.username and not parsed.password
+                 and parsed.port is None and parsed.path in ("", "/")
+                 and not parsed.query and not parsed.fragment)
+    except ValueError:
+        valid = False
+    if not valid:
         raise InstallError("Поддерживается ТОЛЬКО https://имя.5v.pl без пути и порта.")
     return "https://" + host.lower()
 
@@ -185,7 +190,7 @@ class FtpSite:
                 self.conn.prot_p()
             self.conn.set_pasv(True)
             return self
-        except (OSError, ftplib.all_errors) as exc:
+        except ftplib.all_errors as exc:
             self.close()
             raise InstallError("Не удалось войти на FTP 5v.pl. Проверь сервер, логин, пароль и FTPS.") from exc
     def __exit__(self, *_):
@@ -310,10 +315,20 @@ class FtpSite:
             self.put(self.root, "mc/config/htaccess-before-muchocore.txt", old)
         tmp = ".htaccess.mucho-" + secrets.token_hex(8)
         self.put(self.root, tmp, new)
+        backup = ".htaccess.mucho-backup-" + secrets.token_hex(6) if old is not None else ""
+        moved = False
         try:
-            if old is not None:
-                self.rename(self.root, ".htaccess", ".htaccess.mucho-backup-" + secrets.token_hex(6))
-            self.rename(self.root, tmp, ".htaccess")
+            if backup:
+                self.rename(self.root, ".htaccess", backup)
+                moved = True
+            try:
+                self.rename(self.root, tmp, ".htaccess")
+            except Exception:
+                if moved:
+                    self.rename(self.root, backup, ".htaccess")
+                raise
+            if moved:
+                self.delete(self.root, backup)
         finally:
             self.delete(self.root, tmp)
         return old is not None
