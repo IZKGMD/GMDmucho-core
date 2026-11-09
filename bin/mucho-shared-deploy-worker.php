@@ -1298,6 +1298,14 @@ function deploy_native_5v(array $config, string $password, string $jobDir, strin
                 throw new RuntimeException('Selected 5v.pl web-root directory is unavailable.');
             }
             $root = @ftp_pwd($ftp);
+            $ips = public_ipv4s($host);
+            if (!is_string($root) || $root === '' || $ips === []) {
+                throw new RuntimeException('Cannot validate the configured 5v.pl web root.');
+            }
+            $verified = detect_web_root($ftp, $root, $url, $ips[0], $jobDir, $logPath);
+            if (rtrim($verified, '/') !== rtrim($root, '/')) {
+                throw new RuntimeException('Configured FTP directory is not the 5v.pl HTTPS web root.');
+            }
         } else {
             $ips = public_ipv4s($host);
             if ($ips === []) {
