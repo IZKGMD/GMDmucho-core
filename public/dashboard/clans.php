@@ -464,8 +464,9 @@ body{margin:0;background:#07090f;color:#f4f7ff;font-family:Inter,ui-sans-serif,s
 
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <script src="/assets/product-ui.js?v=1" defer></script>
+<link rel="stylesheet" href="/assets/mucho-design-system.css?v=1">
 </head>
-<body class="mc-workspace">
+<body class="mc-workspace mc-clans-page">
 <div class="shell">
 <header class="topbar">
     <a class="brand" href="/dashboard">
