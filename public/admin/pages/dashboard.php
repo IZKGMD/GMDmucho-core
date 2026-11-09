@@ -111,7 +111,7 @@ function renderAdminDashboard(PDO $db): void
     <div class="mc-ops">
         <header class="mc-ops-intro">
             <div>
-                <p class="mc-ops-kicker">OPERATIONS / DASHBOARD</p>
+                <p class="mc-ops-kicker">MUCHOCORE CONSOLE</p>
                 <h2>Server overview</h2>
                 <p>Live data and the work that needs your attention.</p>
             </div>

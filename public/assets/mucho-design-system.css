@@ -31,8 +31,8 @@ html[data-theme="light"] {
   --mc-text:#1b1e1b;
   --mc-muted:#646b65;
   --mc-subtle:#747b76;
-  --mc-accent:#426315;
-  --mc-action:#3c571b;
+  --mc-accent:#7353a6;
+  --mc-action:#7353a6;
   --mc-success:#386849;
   color-scheme:light;
 }
@@ -96,7 +96,7 @@ body.mc-home .mc-button {
   border-radius:6px;min-height:41px;
   padding:9px 15px;font-size:13px;font-weight:650;
   background:var(--mc-action);border:1px solid var(--mc-action);
-  color:#171a11!important;box-shadow:none;
+  color:#17121f!important;box-shadow:none;
 }
 html[data-theme="light"] body.mc-home .mc-button { color:#fff!important; }
 body.mc-home .mc-button:hover { transform:none;filter:none;opacity:.88;box-shadow:none; }
@@ -275,7 +275,7 @@ body.mc-core-site .button {
   box-shadow:none;
 }
 body.mc-core-site .button-primary {
-  color:#141810;background:var(--accent);border-color:var(--accent);
+  color:#17121f;background:var(--accent);border-color:var(--accent);
 }
 body.mc-core-site .button-primary:hover { background:#e0f4a1;border-color:#e0f4a1;transform:none; }
 body.mc-core-site .button-outline { color:var(--text);border-color:var(--line);background:transparent; }
