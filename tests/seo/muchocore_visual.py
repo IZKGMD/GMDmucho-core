@@ -42,7 +42,7 @@ def main():
                         assert page.locator("h1").count() == 1
                         assert page.locator("blockquote").count() == 1
                         assert page.locator("#install-commands").count() == 1
-                        assert page.locator("body").evaluate("(b) => getComputedStyle(b).backgroundColor") == "rgb(245, 244, 240)"
+                        assert page.locator("body").evaluate("(b) => getComputedStyle(b).backgroundColor") == "rgb(16, 16, 23)"
                         dims = page.evaluate("""() => ({
                           viewport: innerWidth,
                           root: document.documentElement.scrollWidth,
@@ -63,6 +63,7 @@ def main():
                         tabs.nth(1).press("ArrowRight")
                         assert tabs.nth(2).get_attribute("aria-selected") == "true"
                         assert page.locator("#mc-demo-panel-2").is_visible()
+                        assert '/' not in page.locator('.mc-demo-edition').inner_text()
                         tabs.nth(0).click()
                         if width in (390, 1440):
                             file = SHOTS / f"muchocore-v3-{lang}-{width}.jpg"

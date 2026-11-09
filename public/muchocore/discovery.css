@@ -1,10 +1,10 @@
 /* MuchoCore knowledge pages / 2026. Accessible factual reference, same editorial identity. */
-:root{--bg:#f5f4f0;--panel:#fffefa;--ink:#242820;--muted:#626960;--line:#d8d9d1;--accent:#b84830;color-scheme:light}
+:root{--bg:#101017;--panel:#21192e;--ink:#f3f0f8;--muted:#c2bbce;--line:#3c354a;--accent:#ba9cee;color-scheme:dark}
 *,*:before,*:after{box-sizing:border-box}
 html{scroll-behavior:smooth;scroll-padding-top:80px}
 body.mc-discovery-page{margin:0;background:var(--bg);color:var(--ink);font:400 14px/1.76 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
 .mc-discovery-page a{color:var(--accent);text-underline-offset:4px}
-.mc-discovery-page a:hover{color:#822d1d}
+.mc-discovery-page a:hover{color:#d3baf8}
 .mc-discovery-page :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .mc-discovery-page .skip{position:fixed;top:-100px;left:16px;z-index:100;background:var(--ink);color:white;padding:10px 14px}
 .mc-discovery-page .skip:focus{top:12px}
@@ -19,7 +19,7 @@ body.mc-discovery-page{margin:0;background:var(--bg);color:var(--ink);font:400 1
 .mc-discovery-page .hero{padding:67px 0 22px;border-bottom:1px solid var(--line);background:none}
 .mc-discovery-page .kicker{font:600 10px ui-monospace,Menlo,Consolas,monospace;color:var(--accent);letter-spacing:.07em;text-transform:uppercase}
 .mc-discovery-page h1{max-width:850px;font-size:clamp(39px,5.3vw,65px);font-weight:670;line-height:1.1;letter-spacing:-.061em;margin:15px 0 22px}
-.mc-discovery-page .lead{font-size:18px;line-height:1.7;color:#454b44;max-width:800px}
+.mc-discovery-page .lead{font-size:18px;line-height:1.7;color:#c2bbce;max-width:800px}
 .mc-discovery-page .hero>p:last-child{margin-bottom:30px}
 .mc-discovery-page h2{font-size:26px;font-weight:650;letter-spacing:-.045em;line-height:1.3;margin:41px 0 17px}
 .mc-discovery-page h3{font-size:17px;font-weight:660;letter-spacing:-.025em}
@@ -38,10 +38,20 @@ body.mc-discovery-page{margin:0;background:var(--bg);color:var(--ink);font:400 1
 .mc-discovery-page dd{font-size:13px}
 .mc-discovery-page table{width:100%;border-collapse:collapse}
 .mc-discovery-page th,.mc-discovery-page td{text-align:left;padding:14px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:12px}
-.mc-discovery-page th{font-weight:650;background:#ecece6;color:var(--ink)}
+.mc-discovery-page th{font-weight:650;background:#14131c;color:var(--ink)}
 .mc-discovery-page td{color:var(--muted)}
-.mc-discovery-page .callout{background:#ecece6;border:0;border-left:3px solid var(--accent);border-radius:0;padding:19px 22px;font-size:13px;line-height:1.72}
-.mc-discovery-page .site-footer{background:#eaeae4;border-top:1px solid var(--line);padding:23px 0;color:var(--muted);font-size:11px}
+.mc-discovery-page .callout{background:#14131c;border:0;border-left:3px solid var(--accent);border-radius:0;padding:19px 22px;font-size:13px;line-height:1.72}
+.mc-discovery-page .site-footer{background:#17141e;border-top:1px solid var(--line);padding:23px 0;color:var(--muted);font-size:11px}
 .mc-discovery-page .site-footer .wrap{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
 @media(max-width:700px){.mc-discovery-page .site-header .wrap{padding:14px 0;align-items:flex-start;flex-direction:column;gap:8px}.mc-discovery-page .site-nav{gap:16px}.mc-discovery-page .wrap{width:calc(100% - 32px)}.mc-discovery-page .hero{padding:42px 0 18px}.mc-discovery-page .cards{grid-template-columns:1fr}.mc-discovery-page dl{grid-template-columns:1fr}.mc-discovery-page dt{border:0;padding-bottom:0}.mc-discovery-page dd{padding-top:1px}.mc-discovery-page h1{font-size:clamp(37px,9vw,51px)}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+.mc-discovery-page .hero,.mc-discovery-page section{background:transparent}
+.mc-discovery-page .site-header{background:#101017}
+.mc-discovery-page .lead{color:#cbc3d8}
+.mc-discovery-page th{background:#292035;color:#eee7f7}
+.mc-discovery-page .cards{border-color:#3c354a}
+.mc-discovery-page .card{background:#21192e}
+.mc-discovery-page .callout{background:#21192e;color:#cbc3d8;border-left-color:#ba9cee}
+.mc-discovery-page .site-footer{background:#17141e}
+.mc-discovery-page :is(a,summary,button):focus-visible{outline-color:#ba9cee}

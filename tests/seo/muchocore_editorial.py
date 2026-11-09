@@ -36,8 +36,8 @@ class Page(HTMLParser):
 def main():
     css = CSS.read_text(encoding="utf-8")
     js = JS.read_text(encoding="utf-8")
-    assert "--mc-paper:#f5f4f0" in css
-    assert "--mc-brand:#d54f34" in css
+    assert "--mc-paper:#101017" in css
+    assert "--mc-brand:#ba9cee" in css
     assert "@media(max-width:650px)" in css
     assert "prefers-reduced-motion" in css and ":focus-visible" in css
     assert "radial-gradient" not in css and "linear-gradient" not in css
