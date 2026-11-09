@@ -593,15 +593,15 @@ if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then
   if [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
     MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
     if [[ -r /dev/tty && -w /dev/tty && ( -t 1 || -t 2 ) ]]; then
-      printf "  Existing admin password found for %s.\n" "$ADMIN_USER"
-      read -r -p "  Keep the existing password? [Y/n] " keep_admin_password < /dev/tty
+      printf "  Existing admin setup secret found for %s.\n" "$ADMIN_USER"
+      read -r -p "  Keep the existing setup secret? [Y/n] " keep_admin_password < /dev/tty
       case "$keep_admin_password" in
         n|N|no|NO)
-          log "Choose a new admin password."
+          log "Choose a new setup secret (does not reset an existing admin account)."
           prompt_admin_password
           ;;
         *)
-          info "Keeping the existing admin password."
+          info "Keeping the existing admin setup secret. Existing login credentials are unchanged."
           ;;
       esac
     fi
@@ -612,12 +612,12 @@ elif [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
   prompt_admin_password
 fi
 
-[[ -n "$MUCHO_ADMIN_PASSWORD" ]] || fail "Admin password cannot be empty."
-[[ "${#MUCHO_ADMIN_PASSWORD}" -ge 10 ]] || fail "Admin password must contain at least 10 characters."
+[[ -n "$MUCHO_ADMIN_PASSWORD" ]] || fail "Admin setup secret cannot be empty."
+[[ "${#MUCHO_ADMIN_PASSWORD}" -ge 10 ]] || fail "Admin setup secret must contain at least 10 characters."
 local_newline=$'\n'
 local_carriage_return=$'\r'
 [[ "$MUCHO_ADMIN_PASSWORD" != *"$local_newline"* && "$MUCHO_ADMIN_PASSWORD" != *"$local_carriage_return"* ]] ||
-  fail "Admin password cannot contain line breaks."
+  fail "Admin setup secret cannot contain line breaks."
 
 printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
 printf '%s' "$MUCHO_DB_ROOT_PASSWORD" > "$INSTALL_DIR/.secrets/db_root_password"
@@ -1131,7 +1131,7 @@ Admin:  https://$DOMAIN/admin/
 Health: https://$DOMAIN/health
 Path:   $INSTALL_DIR
 
-Suggested owner username: $ADMIN_USER\nFirst visit: open the Admin URL, enter the setup secret, and create your owner login.
+Suggested owner username: $ADMIN_USER\nFirst visit (if no owner exists): enter the setup secret to create the owner login.\nExisting installs: admin credentials are preserved; use sudo mucho for password resets.
 
 Update:
   sudo $INSTALL_DIR/update.sh
