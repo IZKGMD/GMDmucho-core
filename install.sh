@@ -66,7 +66,7 @@ warn() { printf "\n${YELLOW}[warning]${RESET} %s\n" "$*" >&2; }
 fail() { printf "\n${RED}[error]${RESET} %s\n" "$*" >&2; exit 1; }
 
 # The installer is intentionally interactive for the deployment-specific
-# public domain, GDPS name, and initial admin password.
+# public domain, GDPS name, and first-run admin setup secret.
 # password. Everything else has safe production defaults and can be changed
 # later through "sudo mucho".
 QUICK_MODE=1
@@ -560,25 +560,25 @@ fi
 prompt_admin_password() {
   local first second attempt
   [[ -r /dev/tty && -w /dev/tty && ( -t 1 || -t 2 ) ]] ||
-    fail "An interactive terminal is required to create an admin password. Set MUCHO_ADMIN_PASSWORD for an unattended install."
+    fail "An interactive terminal is required to create an admin setup secret. Set MUCHO_ADMIN_PASSWORD for an unattended install."
 
   for attempt in 1 2 3; do
-    read -r -s -p "  Admin password (minimum 10 characters): " first < /dev/tty
+    read -r -s -p "  Admin setup secret (minimum 10 characters): " first < /dev/tty
     printf '\n'
-    read -r -s -p "  Confirm admin password: " second < /dev/tty
+    read -r -s -p "  Confirm admin setup secret: " second < /dev/tty
     printf '\n'
 
     if [[ "${#first}" -lt 10 ]]; then
-      warn "Admin password must contain at least 10 characters."
+      warn "Admin setup secret must contain at least 10 characters."
       continue
     fi
     if [[ "$first" != "$second" ]]; then
-      warn "Admin passwords do not match."
+      warn "Admin setup secrets do not match."
       continue
     fi
     local newline=$'\n' carriage_return=$'\r'
     if [[ "$first" == *"$newline"* || "$first" == *"$carriage_return"* ]]; then
-      warn "Admin password cannot contain line breaks."
+      warn "Admin setup secret cannot contain line breaks."
       continue
     fi
 
@@ -586,7 +586,7 @@ prompt_admin_password() {
     return 0
   done
 
-  fail "Could not set a valid admin password after 3 attempts."
+  fail "Could not set a valid admin setup secret after 3 attempts."
 }
 
 if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then
@@ -608,7 +608,7 @@ if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then
   fi
 elif [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
   log "Admin panel username: $ADMIN_USER"
-  printf "  Create the initial admin password. It is stored locally as a protected secret.\n"
+  printf "  Choose a one-time setup secret for browser registration at /admin/. It is stored locally.\n"
   prompt_admin_password
 fi
 
@@ -1131,7 +1131,7 @@ Admin:  https://$DOMAIN/admin/
 Health: https://$DOMAIN/health
 Path:   $INSTALL_DIR
 
-Admin username: $ADMIN_USER
+Suggested owner username: $ADMIN_USER\nFirst visit: open the Admin URL, enter the setup secret, and create your owner login.
 
 Update:
   sudo $INSTALL_DIR/update.sh
