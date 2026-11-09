@@ -27,7 +27,7 @@ jobs:
         run: command -v google-chrome || command -v chromium
       - name: Render English and Russian layouts
         env:
-          MUCHO_PREVIEW_B64: "1"
+          MUCHO_PREVIEW_B64: "0"
         run: python3 tests/seo/muchocore_visual.py
       - name: Keep preview screenshots
         if: always()
