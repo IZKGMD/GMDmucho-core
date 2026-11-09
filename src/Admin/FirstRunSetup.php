@@ -25,15 +25,19 @@ final class FirstRunSetup
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
 
-        // Upgraded installations with administrators must never become
-        // publicly claimable if an operator later removes every account.
-        if ($existingAdmins > 0) {
-            $db->exec('INSERT IGNORE INTO admin_initialization (id) VALUES (1)');
-        }
-
-        return (bool)$db->query(
+        $sealed = (bool)$db->query(
             'SELECT 1 FROM admin_initialization WHERE id=1 LIMIT 1'
         )->fetchColumn();
+
+        // Upgraded installations with administrators must never become
+        // publicly claimable if an operator later removes every account.
+        // Avoid a redundant write on every authenticated admin page load.
+        if (!$sealed && $existingAdmins > 0) {
+            $db->exec('INSERT IGNORE INTO admin_initialization (id) VALUES (1)');
+            return true;
+        }
+
+        return $sealed;
     }
 
     /**
