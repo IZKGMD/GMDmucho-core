@@ -22,7 +22,7 @@ class Quiet(SimpleHTTPRequestHandler):
 
 def admin(base):
     return f"""<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>*,*::before,*::after{box-sizing:border-box}</style>
+<style>*,*::before,*::after{{box-sizing:border-box}}</style>
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
 <link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=2"></head>
 <body class="mc-admin"><div class="shell">
@@ -42,7 +42,7 @@ def admin(base):
 
 def portal(base):
     return f"""<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>*,*::before,*::after{box-sizing:border-box}</style>
+<style>*,*::before,*::after{{box-sizing:border-box}}</style>
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
 <link rel="stylesheet" href="{base}/assets/mucho-portal-v3.css?v=2"></head>
 <body class="dashboard-page"><div class="shell"><header class="topbar"><a class="brand" href="#"><img class="mc-brand-mark" src="{base}/assets/muchocore-icon.png?v=3" alt=""><span class="mc-portal-brand-copy"><strong>MuchoCore</strong><small>PLAYER PORTAL</small></span></a><nav class="nav"><a href="#">Players</a><a href="#">Music</a><a href="#">Clans</a><a class="btn" href="#">Login</a></nav></header>
