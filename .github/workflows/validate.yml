@@ -269,6 +269,7 @@ jobs:
           node --check public/muchocore-theme.js
           node --check public/admin/admin-i18n.js
           node --test tests/application/product-ui.test.cjs
+          node --test tests/application/mucho-design-system.test.cjs
           node --test tests/application/client-upload-speed.test.cjs
           node --test tests/application/apk-parallel-upload.test.cjs
           node --test tests/application/android-prepatched-apk-ui.test.cjs
