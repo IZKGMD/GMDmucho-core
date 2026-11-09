@@ -1,35 +1,31 @@
-# Mucho Design System
+# MuchoCore Studio UI · v2
 
-This is the original, dependency-free visual layer shared by the public MuchoGDPS site, the MuchoCore landing pages (EN and RU), the player portal (including clans), installation selector, discovery pages and the PHP 8 administrator workspace.
+The first design pass used glow, gradients, rounded floating cards and colored typography. That made the project look like a generic generated dashboard. This revision **replaces** the design stylesheet rather than stacking more effects on top of it.
 
-## Design approach
+## Source review / design decisions
 
-- **One identity:** ink-blue surfaces, restrained violet interaction, cyan status accents, readable body text.
-- **Reference research:** [shadcn-admin](https://github.com/satnaing/shadcn-admin) for information hierarchy, [Tabler](https://github.com/tabler/tabler) for dense data layouts and responsive admin conventions, and [Magic UI](https://github.com/magicuidesign/magicui) for the *idea* of ambient grids and light effects.
-- **Independent implementation:** no third-party CSS, HTML, JS, or visual assets were copied.
-- **No changes to server logic:** statistics remain live, permission checks remain server-side, forms keep their original routes and CSRF handling.
-- **Performance:** no web fonts, icon CDN, build step, or JavaScript needed for the design.
-- **Access:** reduced-motion support, keyboard-visible focus, contrast-aware palette, responsive layouts.
-- **PHP 7:** native shared-hosting admin styles are not modified by this pass.
+- [Midday](https://github.com/midday-ai/midday) — information-first workspace density and composed surfaces. Take the *layout discipline*, not source code.
+- [OpenStatus](https://github.com/openstatusHQ/openstatus) — hierarchy for live data and clear system status. Keep readable labels and nondecorative data.
+- [shadcn/ui](https://github.com/shadcn-ui/ui) — coherent control geometry, accessibility and consistent focus feedback. Use one 6–7px radius scale.
+- [Tabler](https://github.com/tabler/tabler) — predictable administrative navigation and tight, legible tables.
 
-## Entry points
+The MuchoCore result is original CSS, no npm/framework imports, copied components or assets.
 
-All four surfaces load `/assets/mucho-design-system.css` **last**:
+## Rules
 
-1. `public/index.html`: public MuchoGDPS site (`mc-home`)
-2. `public/muchocore/index.html` and `public/muchocore/ru/index.html`: MuchoCore product pages (`mc-core-site`)
-3. `public/dashboard/index.php`: player portal (`dashboard-page`)
-4. `public/dashboard/clans.php`, `public/muchocore/about/index.html`, `public/muchocore/compatibility/index.html` and `public/install/index.html`: related public routes
-5. `public/admin/index.php`: main/admin sign-in (`mc-admin` and `admin-login`)
+1. Dark graphite (#101113) with warm white ink; single pale green action accent (#d2e58a), never a purple-to-cyan gradient.
+2. No glow, glassmorphism, radial gradients, animated illustrations, inflated cards or hover lift.
+3. Hero typography is plain and substantial; technical diagrams look like data panels.
+4. Where cards serve only as section separators, use hairline borders instead.
+5. Admin/data pages are compact; actions and states are more important than decoration.
+6. Preserve the original PHP forms, endpoints, semantics, translations, accessibility and live data.
+7. The product landing background remains #0c0d12 to keep the verified desktop/mobile contrast stable.
+8. Support narrow screens, keyboard focus, light theme and reduced motion.
 
-## QA checklist
+## Entrypoints
 
-1. Check site at 360px, 768px and desktop widths; verify menu and language switch.
-2. Test player search, sign-in/out, music upload and profile browsing.
-3. Test admin dashboard, Rating Studio, plugins, patcher and all restricted-role views.
-4. Test dark/light toggle where available, keyboard-only navigation and reduced-motion mode.
-5. Verify that real counts load; design layer never uses placeholder values.
+The shared stylesheet `public/assets/mucho-design-system.css` is loaded last by the public site, MuchoCore EN/RU, admin, portal, clans, installer and documentation pages. Existing runtime CSS provides page structure; this layer harmonizes presentation without changing server logic.
 
-The PHP 7 compiled-domain source manifest digests for the player dashboard and clans page, and the upstream provenance digest for `public/admin/index.php` was updated solely because the PHP 8 source now loads the additional CSS; no mirrored PHP 7 runtime files were modified.
+## Acceptance
 
-This is a visual foundation; it intentionally avoids changing markup and business workflows.
+Run `node --test tests/application/mucho-design-system.test.cjs`, `python3 tests/seo/muchocore_visual.py`, PHP 7/8 tests, and manual views of login, admin lists, portal profile and narrow navigation. No deploy until the PR is merged.
