@@ -73,9 +73,18 @@ final class AdminEmailRecovery
         ]);
 
         $link = AdminSmtp::origin() . '/admin/?email_verify=' . rawurlencode($token);
-        return AdminSmtp::send($email, 'MuchoCore admin email verification',
+        $sent = AdminSmtp::send($email, 'MuchoCore admin email verification',
             "Confirm your administrator recovery email:\n\n" . $link .
             "\n\nExpires in 30 minutes. If you did not request this, ignore the message.");
+        if (!$sent) {
+            // Never leave a live verification token for a message that SMTP
+            // did not accept. A concurrent newer request must not be cleared.
+            $clear = $db->prepare('UPDATE admin_email_recovery SET
+                pending_email=NULL,verify_token_hash=NULL,verify_expires_at=NULL
+                WHERE admin_user_id=:id AND verify_token_hash=:hash');
+            $clear->execute(['id' => $adminId, 'hash' => $hash]);
+        }
+        return $sent;
     }
 
     public static function confirmEmail(PDO $db, string $token): bool
