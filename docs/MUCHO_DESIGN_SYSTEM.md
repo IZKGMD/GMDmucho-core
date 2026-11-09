@@ -30,6 +30,6 @@ All four surfaces load `/assets/mucho-design-system.css` **last**:
 4. Test dark/light toggle where available, keyboard-only navigation and reduced-motion mode.
 5. Verify that real counts load; design layer never uses placeholder values.
 
-The PHP 7 upstream provenance digest for `public/admin/index.php` was updated solely because the PHP 8 source now loads the additional CSS; no mirrored PHP 7 runtime files were modified.
+The PHP 7 compiled-domain source manifest digests for the player dashboard and clans page, and the upstream provenance digest for `public/admin/index.php` was updated solely because the PHP 8 source now loads the additional CSS; no mirrored PHP 7 runtime files were modified.
 
 This is a visual foundation; it intentionally avoids changing markup and business workflows.
