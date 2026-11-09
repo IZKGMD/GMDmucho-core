@@ -80,6 +80,30 @@ def main():
                             assert toggle.get_attribute("aria-expanded") == "false"
                         page.close()
                         print(f"VISUAL_OK {lang}/{width}")
+                # Static child pages must follow the same visual system and never overflow.
+                for route, label in (("/install/", "install"), ("/muchocore/about/", "about"),
+                                     ("/muchocore/compatibility/", "compatibility")):
+                    for width in (390, 1440):
+                        child = browser.new_page(viewport={"width":width,"height":900}, device_scale_factor=1)
+                        response = child.goto(root + route, wait_until="networkidle")
+                        assert response and response.status == 200, (label, response.status if response else None)
+                        dims = child.evaluate("""() => ({
+                            viewport: innerWidth, root: document.documentElement.scrollWidth,
+                            content: document.body.scrollWidth
+                        })""")
+                        assert dims["root"] <= width + 1, (label, width, dims)
+                        assert child.locator("h1").count() == 1, (label, "missing H1")
+                        if label == "install":
+                            assert child.locator(".mc-install-method").count() == 3
+                        if label == "install" and width == 390:
+                            child.locator("#menu-toggle").click()
+                            assert child.locator("#main-navigation").is_visible()
+                        if label == "install":
+                            file = SHOTS / f"muchocore-v3-{label}-{width}.jpg"
+                            child.screenshot(path=str(file), type="jpeg", quality=74)
+                            print(f"PREVIEW {label}/{width}: {file.name} {file.stat().st_size} bytes")
+                        child.close()
+                        print(f"VISUAL_OK {label}/{width}")
                 page = browser.new_page()
                 page.goto(root + "/muchocore/", wait_until="domcontentloaded")
                 page.locator('.mc-site-lang a[hreflang="ru"]').click()
