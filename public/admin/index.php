@@ -228,35 +228,16 @@ CREATE TABLE IF NOT EXISTS admin_audit_logs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 ");
 
-/* Bootstrap first admin */
+/* First visit: let the server owner create administrator credentials in-browser.
+ * Existing deployments are sealed permanently and retain their current accounts. */
 $count=(int)$db->query(
     'SELECT COUNT(*) FROM admin_users'
 )->fetchColumn();
+$firstRunCompleted=\MuchoCore\Admin\FirstRunSetup::prepare($db,$count);
 
 if ($count===0) {
-    $bootstrapPath=(string)(
-        Environment::get('MUCHO_ADMIN_BOOTSTRAP', $rootDir.'/storage/admin-bootstrap.php')
-        ?? $rootDir.'/storage/admin-bootstrap.php'
-    );
-
-    if (!is_file($bootstrapPath)) {
-        throw new RuntimeException(
-            'Admin bootstrap file is missing: '.$bootstrapPath
-        );
-    }
-
-    $cfg=require $bootstrapPath;
-
-    $q=$db->prepare(
-        'INSERT INTO admin_users
-         (username,password_hash,role)
-         VALUES (:u,:p,"owner")'
-    );
-
-    $q->execute([
-        'u'=>$cfg['username'],
-        'p'=>$cfg['password_hash']
-    ]);
+    require_once __DIR__.'/first-run.php';
+    muchoAdminFirstRun($db,$rootDir,$__muchoIsHttps,$firstRunCompleted);
 }
 
 /* =========================================================
