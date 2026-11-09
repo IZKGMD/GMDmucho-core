@@ -132,6 +132,7 @@ jobs:
           php tests/application/admin-access-key-contract.php
           php tests/application/admin-passkey-contract.php
           php tests/application/admin-password-setup-contract.php
+          php tests/application/admin-email-recovery-contract.php
           php tests/application/admin-rbac-contract.php
           php tests/application/news-board-contract.php
           php tests/application/native-news-contract.php
