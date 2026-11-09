@@ -62,12 +62,12 @@ def main():
                         assert dims["title"]["width"] > 200 and dims["title"]["x"] >= 0
                         assert all(b["right"] <= dims["width"] + 1 for b in dims["buttons"]), f"CTA overflow: {dims}"
                         assert not errors, f"Runtime error in {language}/{width}: {errors}"
-                        if width == 390:
-                            file = SHOTS / f"muchocore-{language}-390.jpg"
+                        if width in (390, 1440):
+                            file = SHOTS / f"muchocore-{language}-{width}.jpg"
                             page.screenshot(path=str(file), type="jpeg", quality=65)
                             print(f"PREVIEW {language} {width}: screenshot={file.name} bytes={file.stat().st_size}")
                             if os.environ.get("MUCHO_PREVIEW_B64") == "1":
-                                print(f"MUCHO_IMAGE_{language.upper()}=" + base64.b64encode(file.read_bytes()).decode("ascii"))
+                                print(f"MUCHO_IMAGE_{language.upper()}_{width}=" + base64.b64encode(file.read_bytes()).decode("ascii"))
                         if width == 390:
                             # The real menu must open and close on mobile.
                             page.locator("#menu-toggle").click()

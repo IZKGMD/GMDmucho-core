@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "public/muchocore/**"
+      - "public/assets/mucho-design-system.css"
       - "public/assets/muchocore-landing.css"
       - "public/assets/muchocore-landing.js"
       - "tests/seo/muchocore_visual.py"

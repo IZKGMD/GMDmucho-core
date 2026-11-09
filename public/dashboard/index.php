@@ -1486,7 +1486,7 @@ body.dashboard-page .topbar{
 
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <script src="/assets/product-ui.js?v=1" defer></script>
-<link rel="stylesheet" href="/assets/mucho-design-system.css?v=1">
+<link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
 </head>
 <body class="dashboard-page mc-workspace">
 <div class="shell">
