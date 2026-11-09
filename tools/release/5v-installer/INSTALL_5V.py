@@ -64,6 +64,8 @@ def get_credentials():
         raise InstallError("Укажи действующий e-mail владельца.")
     adminpassword = secret("Придумай пароль администратора (10-72 символа)", 10, 72)
     confirm = secret("Повтори пароль администратора", 10, 72)
+    if not 10 <= len(adminpassword.encode("utf-8")) <= 72:
+        raise InstallError("Пароль администратора должен иметь длину 10–72 байта в UTF-8.")
     if not secrets.compare_digest(adminpassword, confirm):
         raise InstallError("Пароли администратора не совпадают.")
     print("\nБудет установлен НОВЫЙ GDPS:", site)
