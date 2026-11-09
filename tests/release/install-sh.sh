@@ -13,7 +13,7 @@ bash -n bin/mucho-admin-setup.sh
 grep -Fq 'New admin password (at least 10 characters):' bin/mucho-admin-setup.sh
 grep -Fq 'Confirm admin password:' bin/mucho-admin-setup.sh
 grep -Fq 'docker compose "${compose[@]}" up -d --no-deps --no-build --force-recreate app' bin/mucho-admin-setup.sh
-grep -Fq 'php bin/mucho-sync-admin.php' bin/mucho-admin-setup.sh
+grep -Fq 'php bin/mucho-sync-admin.php --reset-password' bin/mucho-admin-setup.sh
 ! grep -Fq 'echo "$first"' bin/mucho-admin-setup.sh
 bash -n tools/release/build-shared-hosting.sh
 test -f public/shared-install.php
@@ -36,11 +36,11 @@ grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/db_password" ]]; then' install.sh
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/db_root_password" ]]; then' install.sh
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then' install.sh
 grep -Fq 'prompt_admin_password()' install.sh
-grep -Fq 'Admin password (minimum 10 characters):' install.sh
-grep -Fq 'Confirm admin password:' install.sh
+grep -Fq 'Admin setup secret (minimum 10 characters):' install.sh
+grep -Fq 'Confirm admin setup secret:' install.sh
 grep -Fq 'Keep the existing password? [Y/n]' install.sh
 grep -Fq 'MUCHO_ADMIN_PASSWORD for an unattended install.' install.sh
-grep -Fq 'Admin password must contain at least 10 characters.' install.sh
+grep -Fq 'Admin setup secret must contain at least 10 characters.' install.sh
 grep -Fq 'Admin password must contain at least 10 characters.' bin/mucho
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/cloudsave_key" ]]; then' install.sh
 grep -Fq 'Required secret file is missing or empty' install.sh
