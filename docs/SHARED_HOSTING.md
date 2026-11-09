@@ -45,19 +45,43 @@ A shared-hosting account needs:
 - FTP or the hosting file manager;
 - a database and database user.
 
-## Automatic installation from MuchoGDPS
+## Online installer: ONLY 5V.PL (PHP 7 native preview)
 
-The official MuchoGDPS installer page can also connect to a shared-hosting account directly:
+The dedicated entry point at [https://muchogdps.space/install/shared/](https://muchogdps.space/install/shared/)
+is now **5V.PL ONLY**. It is not the generic PHP 8.2+ shared-hosting
+installer and rejects requests for websites outside `https://name.5v.pl`.
 
-~~~text
-https://muchogdps.space/install/shared/
-~~~
+5v.pl publicly advertises PHP 7.0.19, MySQL, FTP and `.htaccess`. The
+normal PHP 8.2+ shared package **cannot** run there. The online installer:
 
-Enter the FTP/FTPS host, username, password, public HTTPS URL, and database credentials. FTP mode, port, and the remote web root default to **Auto Detect**; you only need to override them when your provider requires a specific value. MuchoGDPS then downloads the latest published stable shared-hosting package on the control-plane server, verifies its SHA-256 digest, uploads the package through FTP/FTPS, starts the existing shared-hosting installer through the target site's HTTPS endpoint, and verifies the /health endpoint.
+1. Requires an HTTPS `*.5v.pl` website and the hosting account's FTP data.
+   The control plane verifies the selected remote web root via a temporary
+   HTTPS marker, including when the user enters an explicit FTP path.
+2. Builds the existing PHP 7 native preview archive using
+   `tools/release/build-php7-native.sh`, verifies its contents, and rejects
+   PHP 8-only files. This is a separate runtime with incomplete parity.
+3. Uploads to a **fresh `mc/` directory only**. It refuses to overwrite
+   existing `mc/` installations and does not modify an existing website
+   `.htaccess`.
+4. Shows an **incomplete** state after FTP upload. The owner must still create
+   an empty MySQL database, configure `mc/config/php7-local.php` from
+   `mc/compat/php7/config.example.php`, and open
+   `https://name.5v.pl/mc/admin.php` to initialize the native owner/database.
+5. Requires adding the exact routing rules from
+   `5V_ROOT_REWRITE_RULES.txt` to the WEBSITE ROOT `.htaccess`, then testing
+   `/health`, authentication and the actual Geometry Dash 2.209 client.
 
-FTP and database passwords are stored only in the temporary deployment job on the MuchoGDPS control plane. They are not written to the deployment log and are deleted when the job finishes.
+**Credentials:** the central installer collects an FTP password, *not*
+MySQL or administrator credentials. The latter are entered directly on the
+tenant's HTTPS origin during browser setup. Job secrets are temporary and
+never printed in logs. FTPS should be preferred where the provider supports
+it; plain FTP is unencrypted. 5v.pl does not advertise SFTP support.
 
-The target web root must already exist and the domain must already serve valid HTTPS. The shared hosting must permit normal PHP application/API traffic after installation.
+**Limitations:** PHP 7 is end-of-life. The native preview has not been
+certified for every GD 2.209 action or actual game UI. Upload success must
+not be advertised as a complete game-server installation. A PHP 8.2+
+hosting provider should use the **manual generic shared-hosting package**
+below, not the 5v.pl-only entry point.
 
 ## Fastest path: FTP bootstrap
 
