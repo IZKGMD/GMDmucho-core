@@ -43,7 +43,7 @@ def main():
                           const root = getComputedStyle(document.documentElement);
                           return {
                             background: getComputedStyle(document.body).backgroundColor,
-                            accent: root.getPropertyValue('--mc-brand').trim(),
+                            accent: getComputedStyle(document.querySelector('.mc-hero-message h1 em')).color,
                             overflow: document.documentElement.scrollWidth - innerWidth
                           };
                         }""")
