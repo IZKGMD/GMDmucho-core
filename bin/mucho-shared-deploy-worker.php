@@ -1339,7 +1339,7 @@ function deploy_native_5v(array $config, string $password, string $jobDir, strin
     $status['finished_at'] = gmdate('c');
     write_status($statusPath, $status);
     log_line($logPath, "[MuchoGDPS] FILE UPLOAD ONLY; the GDPS is NOT yet installed or client-certified.\n");
-    log_line($logPath, "[MuchoGDPS] Configure your EMPTY database at " . $url . "/mc/admin.php\n");
+    log_line($logPath, "[MuchoGDPS] Copy mc/compat/php7/config.example.php to mc/config/php7-local.php, configure an EMPTY MySQL database, then open " . $url . "/mc/admin.php\n");
     log_line($logPath, "[MuchoGDPS] Merge 5V_ROOT_REWRITE_RULES.txt into the website-root .htaccess manually.\n");
     log_line($logPath, "[MuchoGDPS] PHP 7 is end-of-life; GD 2.209 real-client verification is pending.\n");
 }
