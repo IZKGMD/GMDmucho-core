@@ -61,6 +61,30 @@ runtime is experimental and PHP 7 is end-of-life.
 
 This build runs entirely on shared hosting with its own MySQL connection, compiled PHP 7-compatible application services and English administration pages. It requires no VPS proxy, Composer installation or process-launch functions on the host. PHP 7 is obsolete; provider and real-device acceptance remain separate from the automated integration checks.
 
+### Автоматическая установка и восстановление владельца на 5v.pl
+
+Релизный `MuchoCore-PHP7-5v-native-preview.zip` уже содержит
+**`START_INSTALL_WINDOWS.cmd`** (или `START_INSTALL_LINUX.sh`) и
+**`START_RECOVERY_WINDOWS.cmd`** (или `START_RECOVERY_LINUX.sh`).
+
+1. Создай свой сайт `name.5v.pl` и **пустую MySQL-базу** на 5v.pl.
+2. Распакуй релизный ZIP целиком. На Windows открой
+   `START_INSTALL_WINDOWS.cmd` (Python 3.10+ должен быть установлен).
+3. Введи FTP и MySQL-данные, логин/e-mail/пароль будущего владельца.
+   Программа загрузит `mc/`, проверит закрытие приватных файлов,
+   безопасно добавит маршруты к `.htaccess`, создаст первого владельца
+   и запустит миграцию через оригинальный серверный мастер.
+4. При потере пароля или 2FA запусти **`START_RECOVERY_WINDOWS.cmd`**
+   (достаточно доступа к FTP своего сайта). Старого владельца и
+   остальные данные программа не удаляет. При единственном владельце
+   его логин можно не помнить.
+
+**Защита от потери админки:** если на сервере уже есть `mc/`, новая
+установка не выполняется. Используй восстановление, а не переустановку.
+Утилита сброса отзовёт старые 2FA/сессии, но не изменит роль владельца.
+Сохрани FTP-доступ в менеджере паролей: без доступа к FTP этот метод
+восстановления недоступен.
+
 ### Download the correct archive
 
 1. Open **[PHP7 Native Preview — GitHub Actions](https://github.com/IZKGMD/GMDmucho-core/actions/workflows/php7-preview-archives.yml)**.
