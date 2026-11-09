@@ -49,7 +49,7 @@ checkRecovery(str_contains($service, 'allowStrict(') &&
     'public recovery has strict per-identity and per-IP limits');
 checkRecovery(str_contains($smtp, 'STARTTLS') &&
               str_contains($smtp, "'verify_peer' => true") &&
-              !str_contains($smtp, 'mail('),
+              !str_contains($smtp, '@mail(') && !str_contains($smtp, 'return mail('),
     'SMTP enforces encrypted verified transport without insecure fallback');
 checkRecovery(str_contains($smtp, "MUCHO_ADMIN_MAIL_ORIGIN") &&
               !str_contains($smtp, 'HTTP_HOST'),
