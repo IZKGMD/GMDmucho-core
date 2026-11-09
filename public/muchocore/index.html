@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0c0d12">
+<meta name="theme-color" content="#f5f4f0">
 <meta name="robots" content="index,follow,max-image-preview:large">
 <title>MuchoCore — Open-source Geometry Dash private server core</title>
 <meta name="description" content="MuchoCore is a free, open-source Geometry Dash private server backend with level and account APIs, moderation, plugins, migrations, and VPS deployment.">
@@ -13,8 +13,8 @@
 <link rel="alternate" hreflang="x-default" href="https://muchogdps.space/muchocore/">
 <link rel="icon" href="/assets/muchocore-favicon-v4.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="/assets/muchocore-icon.png?v=3">
-<link rel="stylesheet" href="/assets/muchocore-landing.css?v=3">
-<link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
+<link rel="stylesheet" href="/assets/mucho-product-v3.css?v=1">
+
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="MuchoCore">
 <meta property="og:title" content="MuchoCore — Open-source Geometry Dash private server core">
@@ -52,82 +52,51 @@
   ]
 }
 </script>
-<script src="/assets/muchocore-landing.js?v=3" defer></script>
+<script src="/assets/mucho-product-v3.js?v=1" defer></script>
 </head>
-<body class="mc-core-site">
-<a class="skip" href="#content">Skip to content</a>
-<header class="header">
- <div class="wrap head-inner">
-  <a class="brand" href="/muchocore/" aria-label="MuchoCore"><img src="/assets/muchocore-icon.png?v=3" alt="" width="34" height="34"><span><b>Mucho<span>Core</span></b><small>GDPS BACKEND</small></span></a>
-  <nav class="navigation" id="main-navigation" aria-label="Main navigation"><a href="#overview">Overview</a><a href="#features">Features</a><a href="#compatibility">Compatibility</a><a href="#install">Install</a></nav>
-  <div class="head-actions">
-   <div class="languages" aria-label="Choose language"><a href="/muchocore/" hreflang="en" lang="en" aria-current="page">EN</a><span aria-hidden="true">/</span><a href="/muchocore/ru/" hreflang="ru" lang="ru" >RU</a></div>
-   <a class="head-github" href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>
-   <button class="menu-toggle" id="menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="main-navigation" type="button"><span></span><span></span><span></span></button>
-  </div>
- </div>
-</header>
+<body class="mc-core-site mc-editorial">
+<a class="mc-skip" href="#content">Skip to content</a>
+<header class="mc-site-header"><div class="mc-container mc-site-header-inner">
+<a class="mc-site-brand" href="/muchocore/" aria-label="MuchoCore"><img src="/assets/muchocore-icon.png?v=3" width="34" height="34" alt=""><span><strong>MuchoCore</strong><small>GDPS SOFTWARE</small></span></a>
+<nav class="mc-site-nav" id="main-navigation" aria-label="Main navigation"><a href="#features">What it does</a><a href="#architecture">How it works</a><a href="#compatibility">Compatibility</a><a href="#install">Install</a></nav>
+<div class="mc-site-tools"><div class="mc-site-lang" aria-label="Language"><a href="/muchocore/" hreflang="en" lang="en" aria-current="page">EN</a><a href="/muchocore/ru/" hreflang="ru" lang="ru" >RU</a></div><a class="mc-site-source" href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">Source <span aria-hidden="true">↗</span></a><button class="mc-menu-toggle" id="menu-toggle" type="button" aria-controls="main-navigation" aria-expanded="false" aria-label="Open navigation"><span></span><span></span></button></div>
+</div></header>
 <main id="content">
- <section class="hero" id="overview" aria-labelledby="hero-title">
-  <div class="wrap hero-layout">
-   <div class="hero-copy">
-    <div class="kicker"><i></i>OPEN SOURCE / SELF-HOSTED / GDPS</div>
-    <h1 id="hero-title">The backend for<br><span>your GDPS.</span></h1>
-    <p class="lead">Run a Geometry Dash private server on your own infrastructure. MuchoCore brings game endpoints, player accounts, levels, moderation, and extensions into one maintainable PHP backend.</p>
-    <div class="cta"><a class="button button-primary" href="/install/">Install MuchoCore <span aria-hidden="true">↗</span></a><a class="button button-outline" href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">View on GitHub <span aria-hidden="true">↗</span></a></div>
-    <p class="hero-disclaimer">Free software under the MIT license · Hosting costs are separate.</p>
-   </div>
-   <div class="system-panel">
-    <div class="panel-top"><span><i></i>MUCHOCORE / REQUEST LIFECYCLE</span><span>01 — 04</span></div>
-    <div class="panel-request"><span>POST</span><code>/database/getGJLevels21.php</code></div>
-    <div class="panel-steps">
-     <div class="panel-step"><b>01</b><span>GAME CLIENT</span><em>HTTP</em></div>
-     <div class="panel-step"><b>02</b><span>VERSION-AWARE ROUTER</span><em>GD 1.x–2.x</em></div>
-     <div class="panel-step panel-core"><b>03</b><span>MUCHOCORE</span><em>PHP</em></div>
-     <div class="panel-step"><b>04</b><span>MARIADB DATABASE</span><em>SQL</em></div>
-    </div>
-    <div class="panel-bottom"><span>▣ OPTIONAL PLUGINS</span><span>Geometry Dash protocol example</span></div>
-   </div>
-  </div>
+<section class="mc-site-hero" id="overview"><div class="mc-container">
+ <div class="mc-hero-topline"><span>MUCHOCORE / OPEN-SOURCE SERVER SOFTWARE</span><span>EST. 2026 · IZK</span></div>
+ <div class="mc-hero-columns">
+ <div class="mc-hero-message"><h1>The backend for<br><em>your own GDPS.</em></h1><p>A private Geometry Dash server should feel like yours. Keep player accounts, levels, moderation and the game protocol in one backend you can actually maintain.</p><div class="mc-hero-cta"><a class="mc-button mc-button-solid" href="/install/">Get MuchoCore <span aria-hidden="true">↗</span></a><a class="mc-button mc-button-ghost" href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">Browse the source <span aria-hidden="true">↗</span></a></div><small class="mc-hero-footnote">Free under the MIT license. Your server, your data, your rules.</small></div>
+ <div class="mc-demo-window" aria-label="Inside the core"><div class="mc-demo-chrome"><span class="mc-demo-window-mark" aria-hidden="true">M</span><div><strong>Inside the core</strong><small>A closer look / MuchoCore</small></div><span class="mc-demo-edition">01 / 03</span></div>
+ <div class="mc-demo-tabs" role="tablist" aria-label="The same system from three practical points of view."><button id="mc-demo-tab-0" data-demo-target="mc-demo-panel-0" role="tab" aria-selected="true" aria-controls="mc-demo-panel-0" tabindex="0" type="button">Game protocol</button><button id="mc-demo-tab-1" data-demo-target="mc-demo-panel-1" role="tab" aria-selected="false" aria-controls="mc-demo-panel-1" tabindex="-1" type="button">Administration</button><button id="mc-demo-tab-2" data-demo-target="mc-demo-panel-2" role="tab" aria-selected="false" aria-controls="mc-demo-panel-2" tabindex="-1" type="button">Hosting</button></div>
+ <section class="mc-demo-body" id="mc-demo-panel-0" role="tabpanel" aria-labelledby="mc-demo-tab-0" >
+ <div class="mc-demo-intro"><span class="mc-demo-pill">IN-GAME</span><h3>Native game requests</h3><p>Geometry Dash clients talk to version-aware PHP endpoints. The application handles the actual work.</p></div>
+ <dl class="mc-demo-rows"><div><dt>Example request</dt><dd>POST /database/getGJLevels21.php</dd></div><div><dt>Inside</dt><dd>Router → application services → MariaDB</dd></div><div><dt>What it covers</dt><dd>Accounts, levels, scores, social features</dd></div></dl><p class="mc-demo-caption">An illustrative request path, not a live endpoint tester.</p>
+ </section><section class="mc-demo-body" id="mc-demo-panel-1" role="tabpanel" aria-labelledby="mc-demo-tab-1" hidden>
+ <div class="mc-demo-intro"><span class="mc-demo-pill">OPERATIONS</span><h3>One place to run the server</h3><p>Moderate content, configure roles and manage releases without hopping between scripts.</p></div>
+ <dl class="mc-demo-rows"><div><dt>Moderation</dt><dd>Level rating and reports</dd></div><div><dt>Management</dt><dd>Accounts, roles and songs</dd></div><div><dt>Maintenance</dt><dd>Backups, updates and diagnostics</dd></div></dl><p class="mc-demo-caption">Permissions are enforced by the server.</p>
+ </section><section class="mc-demo-body" id="mc-demo-panel-2" role="tabpanel" aria-labelledby="mc-demo-tab-2" hidden>
+ <div class="mc-demo-intro"><span class="mc-demo-pill">SELF-HOSTED</span><h3>Deploy on your infrastructure</h3><p>Use a Linux VPS or a compatible shared host. The database and server stay under your control.</p></div>
+ <dl class="mc-demo-rows"><div><dt>Runtime</dt><dd>PHP 8.3+ and MariaDB</dd></div><div><dt>VPS</dt><dd>Docker Compose with Caddy</dd></div><div><dt>Other route</dt><dd>Separate shared-hosting installer</dd></div></dl><p class="mc-demo-caption">Hosting requirements vary by provider.</p>
  </section>
- <div class="facts"><div class="wrap fact-grid"><div class="fact"><strong>PHP + MariaDB</strong><span>Backend stack</span></div><div class="fact"><strong>GD 1.0–2.2</strong><span>Documented protocol profiles</span></div><div class="fact"><strong>VPS / Shared</strong><span>Deployment options</span></div><div class="fact"><strong>MIT</strong><span>Open-source license</span></div></div></div>
- <section class="quote-section" aria-label="The MuchoCore principle"><div class="wrap quote-grid"><div class="quote-mark" aria-hidden="true">“</div><div><blockquote>Everything for people — and most importantly, free.</blockquote><div class="quote-info"><strong>IZK <span>·</span> 2026</strong><span>The MuchoCore principle</span></div></div><p class="quote-note">The core is free to use. Servers and hosting can have their own costs.</p></div></section>
- <section class="section" id="features"><div class="wrap">
-  <div class="section-heading"><div class="eyebrow">01 / THE PRODUCT</div><div><h2>Everything for your GDPS.</h2><p>Keep the essentials in one codebase. Build your own experience on top, instead of maintaining unrelated endpoint scripts.</p></div></div>
-  <div class="feature-grid"><article class="feature"><span class="index">01 / GAME PROTOCOL</span><h3>Your game, your server</h3><p>Accounts, profiles, level search, downloads, scores, comments and version-aware GD endpoints in one core.</p></article>
-<article class="feature"><span class="index">02 / ADMINISTRATION</span><h3>Control without the clutter</h3><p>Moderation, permissions, Rating Studio, diagnostics and backup tooling for the people maintaining the server.</p></article>
-<article class="feature"><span class="index">03 / EXTENSIONS</span><h3>Change what matters</h3><p>Add features through documented plugin hooks and routes, while keeping your custom code separate from core updates.</p></article></div>
+ </div>
+ </div>
  </div></section>
- <section class="section architecture" id="architecture"><div class="wrap arch-grid">
-  <div><div class="eyebrow">02 / UNDER THE HOOD</div><h2>A real backend.<br>Not a collection of patches.</h2><p class="section-intro">Client-facing routes handle the Geometry Dash protocol. Application services take care of business logic, while MariaDB stores the data.</p><a class="text-link" href="/muchocore/about/">Read the architecture notes <span aria-hidden="true">↗</span></a></div>
-  <ol class="layers"><li><span class="layer-index">01</span><div><strong>Protocol</strong><small>Client-specific request and response formats</small></div></li>
-<li><span class="layer-index">02</span><div><strong>Application</strong><small>Accounts, levels, social and moderation logic</small></div></li>
-<li><span class="layer-index">03</span><div><strong>Storage</strong><small>MariaDB schema and migration tools</small></div></li>
-<li><span class="layer-index">04</span><div><strong>Extensions</strong><small>Optional plugin hooks and custom routes</small></div></li></ol>
- </div></section>
- <section class="section compat" id="compatibility"><div class="wrap compat-grid">
-  <div><div class="eyebrow">03 / COMPATIBILITY</div><h2>Know what is supported.</h2><p class="section-intro">MuchoCore documents runtime profiles for GD 1.0–2.2. Feature coverage varies by client generation. GD 2.209 validation is ongoing — full compatibility is not yet independently confirmed.</p><a class="text-link" href="/muchocore/compatibility/">Compatibility details <span aria-hidden="true">↗</span></a></div>
-  <div class="compat-data"><div><span>Documented profiles</span><strong>1.0 — 2.2</strong></div><div><span>GD 2.209</span><strong>Ongoing verification</strong></div><small>GD 2.209 · NOT VERIFIED 100%</small></div>
- </div></section>
- <section class="section install" id="install"><div class="wrap install-grid">
-  <div><div class="eyebrow">04 / GET STARTED</div><h2>Run it on your server.</h2><p class="section-intro">Start with a Linux VPS or choose the separate shared-hosting setup. Review the installer before running it with administrator permissions.</p><a class="button button-primary" href="/install/">Choose an installation method <span aria-hidden="true">↗</span></a><p class="install-foot">No account or subscription is required to download MuchoCore.</p></div>
-  <div class="code-card"><div class="code-title"><span>LINUX VPS / QUICK START</span><button id="copy-install" type="button" data-copied="Copied" data-error="Select commands to copy">Copy</button></div><pre id="install-commands"><code><span class="comment"># Clone the official repository</span>
-<span class="prompt">$</span> git clone https://github.com/IZKGMD/GMDmucho-core.git
-<span class="prompt">$</span> cd GMDmucho-core
-<span class="comment"># Review the installer, then run it</span>
-<span class="prompt">$</span> sudo ./install</code></pre></div>
- </div></section>
- <section class="section faq" id="faq"><div class="wrap faq-grid"><div><div class="eyebrow">05 / GOOD TO KNOW</div><h2>A few straight answers.</h2></div><div class="faq-list"><details><summary>Is MuchoCore actually free?</summary><p>Yes. The source code is available under the MIT license. Your VPS, domain or other hosting services may still cost money.</p></details>
-<details><summary>Is GD 2.209 fully supported?</summary><p>Compatibility work is active, but some endpoints still need real-client testing. Check the compatibility page and repository release notes before migrating.</p></details>
-<details><summary>Can I migrate a Cvolton server?</summary><p>MuchoCore includes a Cvolton-oriented migration kit. Make a backup and test the import on a database copy before switching your live server.</p></details>
-<details><summary>Can I write my own plugins?</summary><p>Yes. Custom plugin routes and lifecycle hooks are documented. Review third-party plugin source before installing it on your server.</p></details></div></div></section>
- <section class="final"><div class="wrap final-grid"><div><div class="eyebrow">MUCHOCORE / MIT LICENSE</div><h2>Open source.<br>Built to be useful.</h2></div><a class="button button-primary" href="https://github.com/IZKGMD/GMDmucho-core/releases/latest" target="_blank" rel="noopener noreferrer">Get the latest release ↗</a></div></section>
+<div class="mc-cap-strip"><div class="mc-container"><div><span>01 / PROTOCOL</span><strong>Game-aware endpoints</strong></div><div><span>02 / CONTROL</span><strong>A usable operator workspace</strong></div><div><span>03 / OWNERSHIP</span><strong>Runs on your infrastructure</strong></div></div></div>
+<section class="mc-structured-section" id="features"><div class="mc-container mc-split"><div class="mc-section-intro"><span class="mc-section-kicker">01 / A CORE, NOT A COLLECTION OF SCRIPTS</span><h2>The essentials, organized.</h2><p>An actual backend for players, creators and operators. No invented features or decorative dashboards.</p></div><ol class="mc-feature-list"><li class="mc-feature-row"><span class="mc-count">01</span><div><h3>Accounts &amp; players</h3><p>Registration, profiles, public stats and social interactions live behind one account system.</p></div><span class="mc-feature-glyph" aria-hidden="true">↗</span></li><li class="mc-feature-row"><span class="mc-count">02</span><div><h3>Levels &amp; moderation</h3><p>Handle level search, downloads, comments and rating workflows from the same service.</p></div><span class="mc-feature-glyph" aria-hidden="true">↗</span></li><li class="mc-feature-row"><span class="mc-count">03</span><div><h3>Music &amp; extensions</h3><p>Manage community tracks and extend features using documented plugin routes and hooks.</p></div><span class="mc-feature-glyph" aria-hidden="true">↗</span></li></ol></div></section>
+<section class="mc-structured-section mc-flow-section" id="architecture"><div class="mc-container mc-split"><div class="mc-section-intro"><span class="mc-section-kicker">02 / REQUEST FLOW</span><h2>From the game to your database.</h2><p>Client requests are parsed by version-aware routes; application services apply the rules; MariaDB stores persistent state. Keep the layers distinct so updates do not turn into patches.</p><a class="mc-text-link" href="/muchocore/about/">Read the architecture notes ↗</a></div><ol class="mc-flow-steps"><li><span>01</span><div><strong>Game client</strong><small>Makes a protocol request</small></div></li><li><span>02</span><div><strong>Endpoint router</strong><small>Understands the client version</small></div></li><li><span>03</span><div><strong>Application</strong><small>Authenticates and processes</small></div></li><li><span>04</span><div><strong>Storage</strong><small>Persists the result</small></div></li></ol></div></section>
+<section class="mc-compat-section" id="compatibility"><div class="mc-container mc-compat-layout"><div><span class="mc-section-kicker">03 / REAL COMPATIBILITY</span><h2>Version support is measured, not guessed.</h2></div><div><p>MuchoCore documents Geometry Dash 1.0–2.2 protocol profiles. Individual features depend on the client generation. Work on GD 2.209 continues; complete real-client coverage has not been independently verified.</p><div class="mc-compat-links"><span>2.209 / verification ongoing</span><a href="/muchocore/compatibility/">See compatibility details ↗</a></div></div></div></section>
+<section class="mc-structured-section mc-install-section" id="install"><div class="mc-container">
+<div class="mc-install-top"><div><span class="mc-section-kicker">04 / START HERE</span><h2>Make it your server.</h2></div><p>Choose the setup that matches your hosting. The core is free; you pay only for infrastructure you choose.</p></div>
+<div class="mc-install-options"><a class="mc-install-option" href="/install/"><span class="mc-install-num">01 / For full control</span><h3>VPS</h3><p>Run MuchoCore with PHP, MariaDB, Docker Compose and Caddy.</p><strong>Open VPS installer <span aria-hidden="true">↗</span></strong></a><a class="mc-install-option" href="/install/shared/"><span class="mc-install-num">02 / For supported providers</span><h3>Shared hosting</h3><p>Use the separate FTP-based installer when your hosting allows it.</p><strong>Explore shared hosting <span aria-hidden="true">↗</span></strong></a></div>
+<div class="mc-cli"><div class="mc-cli-top"><span>Linux VPS / source installation</span><button id="copy-install" data-copied="Copied" data-error="Select and copy the commands" type="button">Copy</button></div><pre id="install-commands"><code><span class="mc-cli-comment"># Review the project source before installation</span>
+git clone https://github.com/IZKGMD/GMDmucho-core.git
+cd GMDmucho-core
+sudo ./install</code></pre></div>
+</div></section>
+<section class="mc-structured-section mc-faq-section" id="faq"><div class="mc-container mc-split"><div class="mc-section-intro"><span class="mc-section-kicker">05 / QUESTIONS</span><h2>Before you start.</h2></div><div class="mc-faq-list"><details><summary>Is MuchoCore free?</summary><p>Yes. The code is published under the MIT license. Hosting, domains and other services can still cost money.</p></details><details><summary>Is Geometry Dash 2.209 fully supported?</summary><p>Not yet independently verified end to end. Read the feature-by-feature compatibility notes before migrating a server.</p></details><details><summary>Can I migrate an existing GDPS?</summary><p>The repository includes migration documentation, including a Cvolton-oriented path. Back up your database and test a copy first.</p></details></div></div></section>
+<section class="mc-closer"><div class="mc-container"><blockquote>Everything for people — and most importantly, free.</blockquote><p>IZK · The MuchoCore principle, 2026</p></div></section>
+<section class="mc-finish"><div class="mc-container"><div><span class="mc-section-kicker">MUCHOCORE / OPEN SOURCE</span><h2>Build something worth playing.</h2><p>The source is open. The decisions are yours.</p></div><a class="mc-button mc-button-solid" href="https://github.com/IZKGMD/GMDmucho-core/releases/latest" target="_blank" rel="noopener noreferrer">Latest release ↗</a></div></section>
 </main>
-<footer class="footer"><div class="wrap footer-grid">
- <div><a class="footer-brand" href="/muchocore/">MuchoCore<span>.</span></a><p>Independent Geometry Dash private-server software. Not affiliated with or endorsed by RobTop Games.</p></div>
- <nav aria-label="Product"><b>Product</b><a href="/muchocore/about/">About MuchoCore</a><a href="/muchocore/compatibility/">Compatibility</a><a href="/install/">Installation</a></nav>
- <nav aria-label="Resources"><b>Resources</b><a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">Source code</a><a href="https://github.com/IZKGMD/GMDmucho-core/tree/main/docs" target="_blank" rel="noopener noreferrer">Documentation</a><a href="https://github.com/IZKGMD/GMDmucho-core/releases" target="_blank" rel="noopener noreferrer">Releases</a></nav>
- <div class="footer-bottom"><span>© IZK 2026 · MuchoCore · MIT</span><span>Built for the community. Free by design.</span></div>
-</div></footer>
+<footer class="mc-site-footer"><div class="mc-container mc-footer-top"><div><a class="mc-site-brand" href="/muchocore/"><img src="/assets/muchocore-icon.png?v=3" width="32" height="32" alt=""><span><strong>MuchoCore</strong><small>GDPS SOFTWARE</small></span></a><p>Independent community project. Not affiliated with or endorsed by RobTop Games.</p></div><nav aria-label="Footer"><a href="/muchocore/about/">About</a><a href="/muchocore/compatibility/">Compatibility</a><a href="https://github.com/IZKGMD/GMDmucho-core/tree/main/docs" target="_blank" rel="noopener noreferrer">Documentation</a><a href="https://github.com/IZKGMD/GMDmucho-core/releases" target="_blank" rel="noopener noreferrer">Releases</a></nav></div><div class="mc-container mc-footer-bottom">MuchoCore · MIT · 2026<a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></footer>
 </body>
 </html>
