@@ -29,7 +29,7 @@ checkPostInt((string) PHP_INT_MIN, PHP_INT_MIN, 'negative numeric boundary');
 checkPostInt(substr((string) PHP_INT_MIN, 1), 77, 'overflow positive by one');
 checkPostInt((string) PHP_INT_MIN . '0', 77, 'overflow negative');
 checkPostInt(str_repeat('9', 300), 77, 'very long decimal value');
-checkPostInt('12' . "\n", 77, 'trailing newline is not numeric');
+checkPostInt('12' . "\n", 12, 'preserve legacy end-line numeric semantics');
 checkPostInt(' 12', 77, 'leading whitespace is not numeric');
 checkPostInt('+12', 77, 'plus sign is not supported');
 checkPostInt('1.0', 77, 'floating-point syntax is not integer');
