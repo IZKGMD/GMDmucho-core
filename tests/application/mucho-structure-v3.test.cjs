@@ -7,8 +7,8 @@ const read=p=>fs.readFileSync(path.join(__dirname,'../..',p),'utf8');
 test('product site is independently rebuilt, not another CSS overlay',()=>{
   for (const p of ['public/muchocore/index.html','public/muchocore/ru/index.html']) {
     const html=read(p);
-    assert.match(html,/\/assets\/mucho-product-v3\.css\?v=1/);
-    assert.match(html,/\/assets\/mucho-product-v3\.js\?v=1/);
+    assert.match(html,/\/assets\/mucho-product-v3\.css\?v=2/);
+    assert.match(html,/\/assets\/mucho-product-v3\.js\?v=2/);
     assert.doesNotMatch(html,/muchocore-landing\.css|mucho-design-system\.css/);
     for (const id of ['mc-demo-panel-0','mc-demo-panel-1','mc-demo-panel-2','mc-demo-tab-0','mc-demo-tab-1','mc-demo-tab-2'])
       assert.ok(html.includes(id),p+':'+id);
