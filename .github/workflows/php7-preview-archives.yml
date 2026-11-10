@@ -172,9 +172,13 @@ jobs:
       - name: Smoke-test the frozen executable without network access
         shell: pwsh
         run: |
-          & .\dist\MuchoCore-Setup.exe --self-test
-          if ($LASTEXITCODE -ne 0) {
-            throw "Frozen installer self-test failed with exit code $LASTEXITCODE"
+          # PowerShell may not wait for windowed (GUI subsystem) executables
+          # invoked with &, leaving $LASTEXITCODE unset. Wait explicitly and
+          # check the actual frozen process exit code instead.
+          $exe = (Resolve-Path 'dist\MuchoCore-Setup.exe').Path
+          $process = Start-Process -FilePath $exe -ArgumentList '--self-test' -Wait -PassThru
+          if ($null -eq $process.ExitCode -or $process.ExitCode -ne 0) {
+            throw "Frozen installer self-test failed with exit code $($process.ExitCode)"
           }
 
       - name: Upload standalone Windows installer
