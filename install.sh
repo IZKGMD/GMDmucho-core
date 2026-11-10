@@ -826,7 +826,8 @@ run_compose exec -T app php bin/migrate.php migrate
 INSTALL_STEP="initializing first administrator"
 if [[ -s "$OWNER_PENDING" ]]; then
   run_compose exec -T app php bin/mucho-initialize-owner.php --initialize
-  rm -f "$OWNER_PENDING"
+  # Keep the pending marker until bootstrap rotation completes, so an
+  # interrupted installation can finish removing the plaintext credential.
   # Never leave the newly chosen login password stored as a reusable Docker
   # bootstrap credential. Login uses the database password_hash from now on.
   new_secret_file="$(mktemp "$INSTALL_DIR/.secrets/admin_password.XXXXXX")"
@@ -834,6 +835,7 @@ if [[ -s "$OWNER_PENDING" ]]; then
   openssl rand -hex 32 > "$new_secret_file"
   mv -f "$new_secret_file" "$INSTALL_DIR/.secrets/admin_password"
   unset MUCHO_ADMIN_PASSWORD
+  rm -f "$OWNER_PENDING"
   info "First owner created. Login password retained only as a database hash."
 fi
 
