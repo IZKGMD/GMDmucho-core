@@ -59,11 +59,18 @@ The source inventory still distinguishes these from operations certified by a re
   [MegaSa1nt's reference implementation](https://github.com/MegaSa1nt/GMDprivateServer/blob/master/incl/misc/submitGJUserInfo.php).
   Native-client acceptance still requires a real 2.209 request/response test.
 * `uploadMPComment`: multiplayer lobby comment request `0x140391240` uses
-  `accountID`, `gjp2`, `gameID`, `comment`, `extra` and `chk`.
-  [Published protocol notes](https://boomlings.dev/endpoints/multiplayer/uploadMPComment)
-  explicitly warn that the endpoint description is based on leaks and guesses;
-  its response is unknown and the exact checksum contract is not established.
-  It remains unimplemented rather than being incorrectly aliased to level comments.
+  `accountID`, `gjp2`, `gameID`, URL-safe Base64 `comment`, `extra`,
+  `secret` and `chk`. A third-party client helper
+  [GDServerTools/GDReq.py](https://github.com/ryder7223/GDServerTools/blob/main/GDReq.py)
+  suggests `chk = Base64Url(XOR(SHA1(accountID + rawComment + gameID + extra +
+  "xI25fpAapCQg"), "52832"))`, but this is only a candidate formula, not a
+  verified server contract. The [published endpoint notes](https://boomlings.dev/endpoints/multiplayer/uploadMPComment)
+  explicitly warn that their description is based on leaks, unused code and
+  guesses; the response remains unknown. No server implementation was found
+  in the two primary reference kernels. The current client patch redirects
+  this URL, but the corresponding lobby join/read flow has not been verified.
+  Keep it unimplemented until a real GD 2.209 request/response trace confirms
+  the checksum, response and visibility semantics; do not alias it to level comments.
 * `lostpassword` and `accountManagement`: browser-facing account pages. The
   shared `lostpassword` and `lostusername` paths now invoke the English
   RecoveryController, including CSRF protection and mount-aware assets.
