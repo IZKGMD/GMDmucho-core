@@ -95,15 +95,17 @@ try {
     $add(1, 'SpaceUser', $spacedPassword);
 
     $legacyPassword = 'legacy-password';
-    $legacyGjp2 = sha1($legacyPassword . AccountService::LEGACY_GJP2_SALT);
+    // Fixed protocol vector: keep this independent from AccountService constants.
+    $legacyGjp2 = '8083523cd70c670176dc042b189128b424822278';
     $add(2, 'LegacyUser', 'not-the-login-password', password_hash($legacyGjp2, PASSWORD_DEFAULT));
 
     $modernPassword = 'modern-gjp2-password';
-    $modernGjp2 = sha1($modernPassword . AccountService::GJP2_SALT);
+    // Cvolton and MegaSa1nt use SHA1(password + "mI29fmAnxgTs").
+    $modernGjp2 = '1a1f6a7cbec30838efba53807ddbaa098b41018d';
     $add(3, 'Gjp2User', 'not-the-login-password', password_hash($modernGjp2, PASSWORD_DEFAULT));
 
     $precomputedPassword = 'precomputed-password';
-    $precomputedGjp2 = sha1($precomputedPassword . AccountService::GJP2_SALT);
+    $precomputedGjp2 = '05ac8cbc6cb3e11b69432adca3a8268b1c70753c';
     $add(4, 'PrecomputedUser', 'not-the-login-password', password_hash($precomputedGjp2, PASSWORD_DEFAULT));
 
     $add(5, 'BannedUser', 'banned-password', '', 1, 1);
