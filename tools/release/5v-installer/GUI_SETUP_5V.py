@@ -205,6 +205,7 @@ def main() -> int:
             self.root = root
             self.events = queue.Queue()
             self.worker = None
+            self.recovery_active = False
             self.advanced = False
             self.root.title("MuchoCore Setup · Только 5v.pl")
             self.root.geometry("790x850")
@@ -470,6 +471,7 @@ def main() -> int:
                 ):
                     return
                 run_button.configure(state="disabled")
+                self.recovery_active = True
                 status.set("Восстановление выполняется…")
                 log("Проверка FTP-доступа и временного обработчика…")
 
@@ -495,11 +497,13 @@ def main() -> int:
                         if kind == "log":
                             log(value)
                         elif kind == "error":
+                            self.recovery_active = False
                             status.set("Восстановление остановлено")
                             log("ОШИБКА: " + str(value))
                             run_button.configure(state="normal")
                             messagebox.showerror("Не удалось восстановить", str(value), parent=window)
                         elif kind == "done":
+                            self.recovery_active = False
                             status.set("Доступ восстановлен")
                             run_button.configure(state="normal")
                             for key in ("ftp_password", "new_password", "confirm"):
@@ -551,6 +555,13 @@ def main() -> int:
             self.log.see("end")
 
         def on_close(self):
+            if self.recovery_active:
+                messagebox.showwarning(
+                    "Восстановление выполняется",
+                    "Не закрывай мастер до завершения восстановления доступа.",
+                    parent=self.root,
+                )
+                return
             if self.worker and self.worker.is_alive():
                 messagebox.showwarning(
                     "Установка выполняется",
