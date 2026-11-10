@@ -67,6 +67,8 @@ command -v openssl >/dev/null
 echo "BACKUPS_VERIFIED"
 
 # Keep the old Compose projects and their volumes intact for rollback.
+# Prevent the older published-release updater from changing the new main checkout.
+systemctl disable --now muchocore-auto-update.timer >/dev/null 2>&1 || true
 affected=1
 (cd "$ROOT"; docker compose -f docker-compose.yml -f compose.public.yaml down --remove-orphans)
 (cd "$CLEAN"; docker compose -f compose.clean.yml down --remove-orphans)
