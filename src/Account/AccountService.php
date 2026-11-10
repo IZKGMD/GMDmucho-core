@@ -211,11 +211,23 @@ final readonly class AccountService
         // login. Keep imported accounts usable by later GD requests that send
         // only GJP2, and never overwrite a credential that is already present.
         if ($plainPasswordValid && $storedGjp2 === '') {
-            $derivedGjp2 = sha1($password . self::GJP2_SALT);
-            $this->accounts->assignGjp2HashIfMissing(
-                $accountId,
-                password_hash($derivedGjp2, PASSWORD_DEFAULT)
-            );
+            try {
+                $derivedGjp2 = sha1($password . self::GJP2_SALT);
+                $this->accounts->assignGjp2HashIfMissing(
+                    $accountId,
+                    password_hash($derivedGjp2, PASSWORD_DEFAULT)
+                );
+            } catch (Throwable $e) {
+                // Credential backfill is compatibility bookkeeping, not the
+                // primary password check. Never turn a valid login into -1
+                // solely because this optional write failed.
+                error_log(sprintf(
+                    '[MuchoCore Login] GJP2 backfill failed for account %d: %s: %s',
+                    $accountId,
+                    $e::class,
+                    $e->getMessage()
+                ));
+            }
         }
 
         $userId = $this->accounts->ensureProfile($accountId);
