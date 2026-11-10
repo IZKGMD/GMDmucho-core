@@ -389,7 +389,7 @@ php <<'PHP'
 $source=(string)file_get_contents('src/Core/Application.php');
 preg_match_all('~\\$route\\(\\s*\\x27([^\\x27]+)\\x27~', $source, $found);
 $routes=array_map('strtolower', $found[1]);
-$required=['/registergjaccount','/logingjaccount','/backupgjaccount20','/syncgjaccount20','/getgjlevels21','/uploadgjlevel22','/downloadgjlevel22','/deletegjleveluser20','/updategjleveldesc20','/getgjsonginfo','/getgjcomments21','/uploadgjcomment21','/deletegjcomment20','/getgjaccountcomments20','/uploadgjacccomment20','/deletegjacccomment20','/likegjitem211','/uploadfriendrequest20','/getgjfriendrequests20','/acceptgjfriendrequest20','/removegjfriend20','/blockgjuser20','/unblockgjuser20','/getgjmessages20','/downloadgjmessage20','/uploadgjmessage20','/deletegjmessages20','/suggestgjstars20','/rategjstars211','/rategjdemon21','/reportgjlevel','/getgjdailylevel','/getgjgauntlets21','/getgjmappacks21','/getgjlevelscores211','/getgjlevelscoresplat','/getgjrewards','/getgjchallenges'];
+$required=['/registergjaccount','/logingjaccount','/backupgjaccount20','/syncgjaccount20','/submitgjuserinfo','/getgjlevels21','/uploadgjlevel22','/downloadgjlevel22','/deletegjleveluser20','/updategjleveldesc20','/getgjsonginfo','/getgjcomments21','/uploadgjcomment21','/deletegjcomment20','/getgjaccountcomments20','/uploadgjacccomment20','/deletegjacccomment20','/likegjitem211','/uploadfriendrequest20','/getgjfriendrequests20','/acceptgjfriendrequest20','/removegjfriend20','/blockgjuser20','/unblockgjuser20','/getgjmessages20','/downloadgjmessage20','/uploadgjmessage20','/deletegjmessages20','/suggestgjstars20','/rategjstars211','/rategjdemon21','/reportgjlevel','/getgjdailylevel','/getgjgauntlets21','/getgjmappacks21','/getgjlevelscores211','/getgjlevelscoresplat','/getgjrewards','/getgjchallenges'];
 $missing=array_values(array_diff($required, $routes));
 echo $missing === [] ? 'OK' : 'MISSING:'.implode(',', $missing);
 PHP
@@ -1434,6 +1434,80 @@ if [ "$LEVEL_ID" -gt 0 ]; then
 
     expect_eq "Deleted level unavailable" "$AFTER" "-1"
 fi
+
+echo
+echo "===== GD 2.209 USER INFO ====="
+
+USER_INFO_GJP2="$(
+    PASSWORD="$P1" php -r 'echo sha1((string)getenv("PASSWORD") . "mI29fmAnxgTs");'
+)"
+USER_INFO_PAYLOAD='12,87,1|33,100,2|91,45,1'
+
+USER_INFO_RESULT="$(
+    post submitGJUserInfo \
+        -d "accountID=$AID1" \
+        -d "gjp2=$USER_INFO_GJP2" \
+        -d "levelsInfo=$USER_INFO_PAYLOAD" \
+        -d 'secret=Wmfv3899gc9' \
+        -d 'gameVersion=22' \
+        -d 'binaryVersion=51' \
+        -d 'udid=v80-user-info-device'
+)"
+expect_eq "Authenticated submitGJUserInfo" "$USER_INFO_RESULT" "1"
+
+USER_INFO_STORED="$(
+    USER_INFO_ACCOUNT_ID="$AID1" USER_INFO_EXPECTED="$USER_INFO_PAYLOAD" php <<'PHP'
+<?php
+require 'vendor/autoload.php';
+$db = \MuchoCore\V71\DatabaseBridge::pdo();
+$stmt = $db->prepare(
+    'SELECT levels_info FROM mucho_account_user_info WHERE account_id=:account_id'
+);
+$stmt->execute(['account_id'=>(int)getenv('USER_INFO_ACCOUNT_ID')]);
+$stored = $stmt->fetchColumn();
+echo is_string($stored) && hash_equals((string)getenv('USER_INFO_EXPECTED'), $stored)
+    ? 'OK'
+    : 'BAD';
+PHP
+)"
+expect_eq "User-info payload persisted through HTTP" "$USER_INFO_STORED" "OK"
+
+BAD_USER_INFO="$(
+    post submitGJUserInfo \
+        -d "accountID=$AID1" \
+        -d 'gjp2=INVALID_V80' \
+        -d 'levelsInfo=must-not-overwrite' \
+        -d 'gameVersion=22' \
+        -d 'binaryVersion=51'
+)"
+expect_eq "Reject invalid GJP2 on submitGJUserInfo" "$BAD_USER_INFO" "-1"
+
+EMPTY_USER_INFO="$(
+    post submitGJUserInfo \
+        -d "accountID=$AID1" \
+        -d "gjp2=$USER_INFO_GJP2" \
+        -d 'levelsInfo=' \
+        -d 'gameVersion=22' \
+        -d 'binaryVersion=51'
+)"
+expect_eq "Empty submitGJUserInfo payload uses -2" "$EMPTY_USER_INFO" "-2"
+
+USER_INFO_AFTER_REJECT="$(
+    USER_INFO_ACCOUNT_ID="$AID1" USER_INFO_EXPECTED="$USER_INFO_PAYLOAD" php <<'PHP'
+<?php
+require 'vendor/autoload.php';
+$db = \MuchoCore\V71\DatabaseBridge::pdo();
+$stmt = $db->prepare(
+    'SELECT levels_info FROM mucho_account_user_info WHERE account_id=:account_id'
+);
+$stmt->execute(['account_id'=>(int)getenv('USER_INFO_ACCOUNT_ID')]);
+$stored = $stmt->fetchColumn();
+echo is_string($stored) && hash_equals((string)getenv('USER_INFO_EXPECTED'), $stored)
+    ? 'OK'
+    : 'BAD';
+PHP
+)"
+expect_eq "Rejected user-info submission preserves stored data" "$USER_INFO_AFTER_REJECT" "OK"
 
 echo
 echo "===== FINAL HEALTH ====="
