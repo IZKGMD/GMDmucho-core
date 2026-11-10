@@ -109,12 +109,15 @@ def main():
         found = next((str(p) for p in paths if p.is_file()), None)
         if found:
             allowed_apps[app_name] = found
+    backup_root = Path.home() / "Documents" / "MuchoCoreRemoteBridge" / "FTPBackups"
+    backup_root.mkdir(parents=True, exist_ok=True)
     config = {
         "base_url": base_url,
         "agent_id": agent_id,
         "credential_key": credential_key,
         "name": name,
         "allowed_roots": roots,
+        "backup_root": str(backup_root.resolve()),
         "allowed_apps": allowed_apps,
     }
     CONFIG.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
