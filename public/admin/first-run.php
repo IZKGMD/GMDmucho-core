@@ -5,12 +5,95 @@ use MuchoCore\Admin\FirstRunSetup;
 use MuchoCore\Core\Environment;
 use MuchoCore\Http\ClientIp;
 
+
+/** Keep first-run language consistent with the existing admin preference. */
+function muchoAdminFirstRunLanguage(array $query, array $cookies): string
+{
+    $requested = $query['lang'] ?? null;
+    if ($requested === 'en' || $requested === 'ru') {
+        return $requested;
+    }
+
+    return ($cookies['mucho_admin_language'] ?? null) === 'ru' ? 'ru' : 'en';
+}
+
+/** Both languages are rendered on the server, including validation errors. */
+function muchoAdminFirstRunCopy(string $language): array
+{
+    $english = [
+        'completed' => 'Initial setup has already been completed. Use the server console to recover access.',
+        'not_installed' => 'Server installation is not complete. Run the MuchoCore installer first.',
+        'requires_https' => 'Administrator registration is available only over HTTPS.',
+        'expired' => 'This page has expired. Refresh it and try again.',
+        'rate_limited' => 'Too many attempts. Please try again later.',
+        'username_invalid' => 'Username: 1–32 characters, using Latin letters, digits, _ or -.',
+        'password_invalid' => 'Password must contain 12–256 characters without control characters.',
+        'password_mismatch' => 'Passwords do not match.',
+        'secret_invalid' => 'Invalid setup secret.',
+        'heading' => 'Create first administrator',
+        'unavailable' => 'Setup unavailable',
+        'title' => 'MuchoCore — First-time setup',
+        'language' => 'Language',
+        'introduction' => 'Welcome to the control panel. Choose the GDPS owner username and password. This registration page will be locked after setup.',
+        'username' => 'Administrator username',
+        'password' => 'New password',
+        'confirm' => 'Confirm password',
+        'setup_key' => 'Setup secret',
+        'setup_hint' => 'Enter the secret chosen during VPS or shared-hosting installation. It prevents unauthorized visitors from creating the owner account.',
+        'submit' => 'Create owner account',
+        'footer_prefix' => 'After setup:',
+        'footer_link' => 'sign in to admin',
+    ];
+
+    if ($language !== 'ru') {
+        return $english;
+    }
+
+    return [
+        'completed' => 'Первоначальная настройка уже была завершена. Для восстановления доступа используйте серверную консоль.',
+        'not_installed' => 'Установка сервера ещё не завершена. Сначала запустите установщик MuchoCore.',
+        'requires_https' => 'Создание администратора доступно только по HTTPS.',
+        'expired' => 'Страница устарела. Обновите её и попробуйте снова.',
+        'rate_limited' => 'Слишком много попыток. Повторите позже.',
+        'username_invalid' => 'Логин: 1–32 символа, латинские буквы, цифры, _ или -.',
+        'password_invalid' => 'Пароль должен содержать 12–256 символов без управляющих знаков.',
+        'password_mismatch' => 'Пароли не совпадают.',
+        'secret_invalid' => 'Неверный установочный секрет.',
+        'heading' => 'Создать первого администратора',
+        'unavailable' => 'Настройка недоступна',
+        'title' => 'MuchoCore — первая настройка',
+        'language' => 'Язык',
+        'introduction' => 'Первый запуск панели управления. Выберите логин и пароль владельца GDPS. Позже эта страница регистрации станет недоступна.',
+        'username' => 'Логин администратора',
+        'password' => 'Новый пароль',
+        'confirm' => 'Повторите пароль',
+        'setup_key' => 'Установочный секрет',
+        'setup_hint' => 'Введите секрет, который был задан во время установки VPS или shared-хостинга. Это защита от создания владельца посторонним посетителем.',
+        'submit' => 'Создать аккаунт владельца',
+        'footer_prefix' => 'После настройки:',
+        'footer_link' => 'вход в админку',
+    ];
+}
+
 /**
  * First-run administrator onboarding, reached only when admin_users is empty.
  * Requiring the installer-provisioned secret prevents first-visitor takeover.
  */
 function muchoAdminFirstRun(PDO $db, string $rootDir, bool $https, bool $alreadyCompleted): never
 {
+    $language = muchoAdminFirstRunLanguage($_GET, $_COOKIE);
+    $copy = muchoAdminFirstRunCopy($language);
+    $requestedLanguage = $_GET['lang'] ?? null;
+    if ($requestedLanguage === 'en' || $requestedLanguage === 'ru') {
+        setcookie('mucho_admin_language', $language, [
+            'expires' => time() + 31536000,
+            'path' => '/admin',
+            'secure' => $https,
+            'httponly' => false,
+            'samesite' => 'Lax',
+        ]);
+    }
+
     if (adminIsPlain()) {
         adminPlainStartOutput();
     }
@@ -41,13 +124,13 @@ function muchoAdminFirstRun(PDO $db, string $rootDir, bool $https, bool $already
 
     if ($alreadyCompleted) {
         http_response_code(423);
-        $notice = 'Первоначальная настройка уже была завершена. Для восстановления доступа используйте серверную консоль.';
+        $notice = $copy['completed'];
     } elseif (!$validBootstrap) {
         http_response_code(503);
-        $notice = 'Установка сервера ещё не завершена. Сначала запустите установщик MuchoCore.';
+        $notice = $copy['not_installed'];
     } elseif (!$https && !$local) {
         http_response_code(403);
-        $notice = 'Создание администратора доступно только по HTTPS.';
+        $notice = $copy['requires_https'];
     }
 
     $csrf = (string)($_SESSION['mucho_first_owner_csrf'] ?? '');
@@ -63,7 +146,7 @@ function muchoAdminFirstRun(PDO $db, string $rootDir, bool $https, bool $already
         $providedCsrf = (string)($_POST['csrf'] ?? '');
         if (!hash_equals($csrf, $providedCsrf)) {
             http_response_code(403);
-            $error = 'Страница устарела. Обновите её и попробуйте снова.';
+            $error = $copy['expired'];
         } else {
             $username = trim((string)($_POST['username'] ?? ''));
             $password = (string)($_POST['password'] ?? '');
@@ -85,18 +168,18 @@ function muchoAdminFirstRun(PDO $db, string $rootDir, bool $https, bool $already
 
             if ((int)$state['tries'] >= 8) {
                 http_response_code(429);
-                $error = 'Слишком много попыток. Повторите позже.';
+                $error = $copy['rate_limited'];
             } elseif (!preg_match('/^[A-Za-z_][A-Za-z0-9_-]{0,31}$/D', $username)) {
-                $error = 'Логин: 1–32 символа, латинские буквы, цифры, _ или -.';
+                $error = $copy['username_invalid'];
             } elseif (strlen($password) < 12 || strlen($password) > 256 ||
                       preg_match('/[\x00-\x1F\x7F]/', $password)) {
-                $error = 'Пароль должен содержать 12–256 символов без управляющих знаков.';
+                $error = $copy['password_invalid'];
             } elseif ($password !== $confirm) {
-                $error = 'Пароли не совпадают.';
+                $error = $copy['password_mismatch'];
             } elseif ($setupKey === '' || !password_verify($setupKey, $hash)) {
                 $state['tries'] = (int)$state['tries'] + 1;
                 @file_put_contents($ratePath, json_encode($state), LOCK_EX);
-                $error = 'Неверный установочный секрет.';
+                $error = $copy['secret_invalid'];
             } else {
                 $created = FirstRunSetup::createOwner($db, $username, $password);
                 if ($created !== null) {
@@ -114,15 +197,15 @@ function muchoAdminFirstRun(PDO $db, string $rootDir, bool $https, bool $already
         }
     }
 
-    $heading = $allowed ? 'Создать первого администратора' : 'Настройка недоступна';
+    $heading = $allowed ? $copy['heading'] : $copy['unavailable'];
     ?>
 <!doctype html>
-<html lang="ru">
+<html lang="<?= $escape($language) ?>">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>MuchoCore — первая настройка</title>
+<title><?= $escape($copy['title']) ?></title>
 <style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
 *{box-sizing:border-box}
@@ -139,33 +222,48 @@ button{margin-top:23px;width:100%;padding:13px;border:0;border-radius:12px;backg
 small{color:#7e8da6;font-size:12px;line-height:1.5}
 footer{margin-top:23px;padding-top:16px;border-top:1px solid #293348;color:#77849b;font-size:12px}
 a{color:#b1baff}
+.language-switcher{display:flex;justify-content:flex-end;gap:6px;margin-bottom:17px}
+.language-switcher a{display:inline-block;padding:6px 10px;border:1px solid #35415b;border-radius:8px;color:#aebbd3;text-decoration:none;font-size:12px;font-weight:700}
+.language-switcher a[aria-current="page"]{border-color:#8578ff;background:#252d52;color:#fff}
+.language-switcher a:focus-visible{outline:2px solid #b1baff;outline-offset:2px}
 </style>
 </head>
 <body>
 <main>
+<nav class="language-switcher" aria-label="<?= $escape($copy['language']) ?>">
+<a href="/admin/?lang=en" hreflang="en" lang="en" data-lang="en" <?= $language === 'en' ? 'aria-current="page"' : '' ?>>EN</a>
+<a href="/admin/?lang=ru" hreflang="ru" lang="ru" data-lang="ru" <?= $language === 'ru' ? 'aria-current="page"' : '' ?>>RU</a>
+</nav>
 <mark>MUCHOCORE / FIRST RUN</mark>
 <h1><?= $escape($heading) ?></h1>
 <?php if ($notice !== ''): ?>
 <p class="alert" role="alert"><?= $escape($notice) ?></p>
 <?php else: ?>
-<p>Первый запуск панели управления. Выберите логин и пароль владельца GDPS. Позже эта страница регистрации станет недоступна.</p>
+<p><?= $escape($copy['introduction']) ?></p>
 <?php if ($error !== ''): ?><p class="alert" role="alert"><?= $escape($error) ?></p><?php endif; ?>
-<form method="post" action="/admin/" autocomplete="off">
+<form method="post" action="/admin/?lang=<?= $escape($language) ?>" autocomplete="off">
 <input type="hidden" name="csrf" value="<?= $escape($csrf) ?>">
-<label for="username">Логин администратора</label>
+<label for="username"><?= $escape($copy['username']) ?></label>
 <input id="username" name="username" maxlength="32" pattern="[A-Za-z_][A-Za-z0-9_-]{0,31}" value="<?= $escape($username) ?>" autocomplete="username" required>
-<label for="password">Новый пароль</label>
+<label for="password"><?= $escape($copy['password']) ?></label>
 <input id="password" name="password" type="password" minlength="12" maxlength="256" autocomplete="new-password" required>
-<label for="password_confirm">Повторите пароль</label>
+<label for="password_confirm"><?= $escape($copy['confirm']) ?></label>
 <input id="password_confirm" name="password_confirm" type="password" minlength="12" maxlength="256" autocomplete="new-password" required>
-<label for="setup_key">Установочный секрет</label>
+<label for="setup_key"><?= $escape($copy['setup_key']) ?></label>
 <input id="setup_key" name="setup_key" type="password" autocomplete="off" required>
-<p><small>Введите секрет, который был задан во время установки VPS или shared-хостинга. Это защита от создания владельца посторонним посетителем.</small></p>
-<button type="submit">Создать аккаунт владельца</button>
+<p><small><?= $escape($copy['setup_hint']) ?></small></p>
+<button type="submit"><?= $escape($copy['submit']) ?></button>
 </form>
 <?php endif; ?>
-<footer>После настройки: <a href="/admin/">вход в админку</a> · MuchoCore</footer>
+<footer><?= $escape($copy['footer_prefix']) ?> <a href="/admin/"><?= $escape($copy['footer_link']) ?></a> · MuchoCore</footer>
 </main>
+<script>
+document.querySelectorAll('.language-switcher [data-lang]').forEach(function (link) {
+    link.addEventListener('click', function () {
+        try { localStorage.setItem('mucho_admin_language', link.dataset.lang); } catch (_) {}
+    });
+});
+</script>
 </body>
 </html>
 <?php

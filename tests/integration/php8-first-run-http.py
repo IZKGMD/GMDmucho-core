@@ -189,8 +189,11 @@ def main():
     browser = Browser()
 
     code, page, headers = browser.get()
-    check(code == 200 and "Создать первого администратора" in page,
-          "fresh container exposes the first-owner form")
+    check(code == 200 and "Create first administrator" in page
+          and '<html lang="en">' in page,
+          "fresh container exposes the English first-owner form by default")
+    check('data-lang="en"' in page and 'data-lang="ru"' in page,
+          "first-owner form provides an EN / RU language switcher")
     check("no-store" in headers.get("Cache-Control", ""),
           "bootstrap page is not cacheable")
     check(secret not in page, "setup secret is not exposed in HTML")
@@ -210,14 +213,33 @@ def main():
           "invalid CSRF cannot create an administrator")
 
     code, page, _ = browser.post(dict(form, setup_key="incorrect-fixture-setup-key"))
-    check(code == 200 and "Неверный установочный секрет" in page
+    check(code == 200 and "Invalid setup secret." in page
           and db_state(password)["count"] == 0,
           "wrong setup secret cannot create an administrator")
 
     code, page, _ = browser.post(dict(form, password_confirm="mismatch"))
-    check(code == 200 and "Пароли не совпадают" in page
+    check(code == 200 and "Passwords do not match." in page
           and db_state(password)["count"] == 0,
           "mismatched passwords cannot create an administrator")
+
+    code, page, _ = browser.get("/admin/?lang=ru")
+    check(code == 200 and "Создать первого администратора" in page
+          and '<html lang="ru">' in page,
+          "Russian first-owner translation is available")
+    code, page, _ = browser.get()
+    check(code == 200 and "Создать первого администратора" in page,
+          "Russian selection persists across requests")
+    code, page, _ = browser.post(dict(form, setup_key="incorrect-fixture-setup-key"))
+    check(code == 200 and "Неверный установочный секрет." in page
+          and db_state(password)["count"] == 0,
+          "Russian first-owner validation errors are localized")
+    code, page, _ = browser.get("/admin/?lang=en")
+    check(code == 200 and "Create first administrator" in page
+          and '<html lang="en">' in page,
+          "English can be selected after Russian")
+    code, page, _ = browser.get()
+    check(code == 200 and "Create first administrator" in page,
+          "English selection persists across requests")
 
     code, _, headers = browser.post(form)
     check(code == 303 and headers.get("Location") == "/admin/",
@@ -231,12 +253,14 @@ def main():
 
     code, page, _ = browser.get()
     check(code == 200 and "Administrator sign in" not in page
+          and "Create first administrator" not in page
           and "Создать первого администратора" not in page,
           "new owner is signed into the administrator dashboard")
 
     anonymous = Browser()
     code, page, _ = anonymous.get()
     check(code == 200 and "Administrator sign in" in page
+          and "Create first administrator" not in page
           and "Создать первого администратора" not in page,
           "later visitors get login, not a second-owner registration")
 
