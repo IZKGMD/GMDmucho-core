@@ -62,13 +62,21 @@ def _self_test() -> int:
 class QueueWriter:
     def __init__(self, events):
         self.events = events
+        self.buffer = ""
 
     def write(self, value):
-        if value:
-            self.events.put(("log", value))
+        if not value:
+            return
+        self.buffer += value
+        while "\n" in self.buffer:
+            line, self.buffer = self.buffer.split("\n", 1)
+            if line.strip():
+                self.events.put(("log", line))
 
     def flush(self):
-        pass
+        if self.buffer.strip():
+            self.events.put(("log", self.buffer))
+        self.buffer = ""
 
 
 def detect_client(extension: str, chosen: str = "") -> Path | None:
@@ -354,7 +362,8 @@ def main() -> int:
                 command=self.start,
             )
             self.start_button.pack(side="left")
-            ttk.Button(bottom, text="Закрыть", command=self.root.destroy).pack(side="right")
+            ttk.Button(bottom, text="Закрыть", command=self.on_close).pack(side="right")
+            self.root.protocol("WM_DELETE_WINDOW", self.on_close)
             self.root.after(120, self.pump)
             self.write_log("Перед началом создай сайт и пустую базу в кабинете 5v.pl.")
             self.write_log("Пароли не сохраняются и не отправляются на muchogdps.space.")
@@ -383,6 +392,17 @@ def main() -> int:
         def write_log(self, message):
             self.log.insert("end", message.rstrip() + "\n")
             self.log.see("end")
+
+        def on_close(self):
+            if self.worker and self.worker.is_alive():
+                messagebox.showwarning(
+                    "Установка выполняется",
+                    "Не закрывай мастер во время FTP-загрузки или миграции. "
+                    "Дождись завершения, чтобы не прервать установку.",
+                    parent=self.root,
+                )
+                return
+            self.root.destroy()
 
         def build_config(self):
             site = site_origin(self.vars["site"].get())
