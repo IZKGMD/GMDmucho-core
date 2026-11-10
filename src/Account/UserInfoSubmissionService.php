@@ -26,7 +26,7 @@ final readonly class UserInfoSubmissionService
         string $levelsInfo
     ): void {
         if (
-            $levelsInfo === '' ||
+            ($levelsInfo === '' || $levelsInfo === '0') ||
             strlen($levelsInfo) > self::MAX_PAYLOAD_BYTES
         ) {
             throw new RuntimeException('Invalid user-info payload.');
