@@ -29,7 +29,9 @@ function muchoAdminFirstRunCopy(string $language): array
         'username_invalid' => 'Username: 1–32 characters, using Latin letters, digits, _ or -.',
         'password_invalid' => 'Password must contain 12–256 characters without control characters.',
         'password_mismatch' => 'Passwords do not match.',
-        'secret_invalid' => 'Invalid setup secret.',
+        'secret_invalid' => 'This activation link is invalid. Generate a new owner link on the server.',
+        'activation_required' => 'To register the first owner, open the private activation link provided by the installer. Do not share it with anyone.',
+        'activate_wait' => 'Verifying your installation link…',
         'heading' => 'Create first administrator',
         'unavailable' => 'Setup unavailable',
         'title' => 'MuchoCore — First-time setup',
@@ -38,8 +40,6 @@ function muchoAdminFirstRunCopy(string $language): array
         'username' => 'Administrator username',
         'password' => 'New password',
         'confirm' => 'Confirm password',
-        'setup_key' => 'Setup secret',
-        'setup_hint' => 'Enter the secret chosen during VPS or shared-hosting installation. It prevents unauthorized visitors from creating the owner account.',
         'submit' => 'Create owner account',
         'footer_prefix' => 'After setup:',
         'footer_link' => 'sign in to admin',
@@ -58,7 +58,9 @@ function muchoAdminFirstRunCopy(string $language): array
         'username_invalid' => 'Логин: 1–32 символа, латинские буквы, цифры, _ или -.',
         'password_invalid' => 'Пароль должен содержать 12–256 символов без управляющих знаков.',
         'password_mismatch' => 'Пароли не совпадают.',
-        'secret_invalid' => 'Неверный установочный секрет.',
+        'secret_invalid' => 'Ссылка активации недействительна. Создайте новую ссылку владельца на сервере.',
+        'activation_required' => 'Для создания первого администратора откройте приватную ссылку активации из установщика. Никому её не передавайте.',
+        'activate_wait' => 'Проверяем ссылку установки…',
         'heading' => 'Создать первого администратора',
         'unavailable' => 'Настройка недоступна',
         'title' => 'MuchoCore — первая настройка',
@@ -67,8 +69,6 @@ function muchoAdminFirstRunCopy(string $language): array
         'username' => 'Логин администратора',
         'password' => 'Новый пароль',
         'confirm' => 'Повторите пароль',
-        'setup_key' => 'Установочный секрет',
-        'setup_hint' => 'Введите секрет, который был задан во время установки VPS или shared-хостинга. Это защита от создания владельца посторонним посетителем.',
         'submit' => 'Создать аккаунт владельца',
         'footer_prefix' => 'После настройки:',
         'footer_link' => 'вход в админку',
@@ -77,7 +77,8 @@ function muchoAdminFirstRunCopy(string $language): array
 
 /**
  * First-run administrator onboarding, reached only when admin_users is empty.
- * Requiring the installer-provisioned secret prevents first-visitor takeover.
+ * A one-time browser activation link authorizes the session before owner creation.
+ * An anonymous first visitor cannot register an owner.
  */
 function muchoAdminFirstRun(PDO $db, string $rootDir, bool $https, bool $alreadyCompleted): never
 {
@@ -120,6 +121,7 @@ function muchoAdminFirstRun(PDO $db, string $rootDir, bool $https, bool $already
     $hostname = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
     $local = in_array($hostname, ['localhost', '127.0.0.1', 'localhost:8080', 'localhost:8081'], true);
     $allowed = !$alreadyCompleted && $validBootstrap && ($https || $local);
+    $authorized = $allowed && (int)($_SESSION['mucho_first_owner_authorized_until'] ?? 0) >= time();
     $notice = '';
 
     if ($alreadyCompleted) {
@@ -148,11 +150,7 @@ function muchoAdminFirstRun(PDO $db, string $rootDir, bool $https, bool $already
             http_response_code(403);
             $error = $copy['expired'];
         } else {
-            $username = trim((string)($_POST['username'] ?? ''));
-            $password = (string)($_POST['password'] ?? '');
-            $confirm = (string)($_POST['password_confirm'] ?? '');
-            $setupKey = (string)($_POST['setup_key'] ?? '');
-
+            $action = (string)($_POST['action'] ?? '');
             $ratePath = sys_get_temp_dir() . '/muchocore-first-owner-' .
                 hash('sha256', ClientIp::resolve($_SERVER));
             $state = ['start' => time(), 'tries' => 0];
@@ -166,38 +164,62 @@ function muchoAdminFirstRun(PDO $db, string $rootDir, bool $https, bool $already
                 $state = ['start' => time(), 'tries' => 0];
             }
 
-            if ((int)$state['tries'] >= 8) {
-                http_response_code(429);
-                $error = $copy['rate_limited'];
-            } elseif (!preg_match('/^[A-Za-z_][A-Za-z0-9_-]{0,31}$/D', $username)) {
-                $error = $copy['username_invalid'];
-            } elseif (strlen($password) < 12 || strlen($password) > 256 ||
-                      preg_match('/[\x00-\x1F\x7F]/', $password)) {
-                $error = $copy['password_invalid'];
-            } elseif ($password !== $confirm) {
-                $error = $copy['password_mismatch'];
-            } elseif ($setupKey === '' || !password_verify($setupKey, $hash)) {
-                $state['tries'] = (int)$state['tries'] + 1;
-                @file_put_contents($ratePath, json_encode($state), LOCK_EX);
-                $error = $copy['secret_invalid'];
-            } else {
-                $created = FirstRunSetup::createOwner($db, $username, $password);
-                if ($created !== null) {
+            if ($action === 'activate') {
+                $setupKey = (string)($_POST['setup_key'] ?? '');
+                if ((int)$state['tries'] >= 8) {
+                    http_response_code(429);
+                    $error = $copy['rate_limited'];
+                } elseif ($setupKey === '' || !password_verify($setupKey, $hash)) {
+                    $state['tries'] = (int)$state['tries'] + 1;
+                    @file_put_contents($ratePath, json_encode($state), LOCK_EX);
+                    $error = $copy['secret_invalid'];
+                } else {
                     @unlink($ratePath);
-                    unset($_SESSION['mucho_first_owner_csrf']);
-                    establishAdminSession($created);
+                    session_regenerate_id(true);
+                    $_SESSION['mucho_first_owner_authorized_until'] = time() + 900;
+                    $_SESSION['mucho_first_owner_csrf'] = bin2hex(random_bytes(32));
+                    header('Location: /admin/?lang='.$language, true, 303);
+                    exit;
+                }
+            } elseif (!$authorized) {
+                http_response_code(403);
+                $error = $copy['activation_required'];
+            } else {
+                $username = trim((string)($_POST['username'] ?? ''));
+                $password = (string)($_POST['password'] ?? '');
+                $confirm = (string)($_POST['password_confirm'] ?? '');
+
+                if (!preg_match('/^[A-Za-z_][A-Za-z0-9_-]{0,31}$/D', $username)) {
+                    $error = $copy['username_invalid'];
+                } elseif (strlen($password) < 12 || strlen($password) > 256 ||
+                          preg_match('/[\x00-\x1F\x7F]/', $password)) {
+                    $error = $copy['password_invalid'];
+                } elseif ($password !== $confirm) {
+                    $error = $copy['password_mismatch'];
+                } else {
+                    $created = FirstRunSetup::createOwner($db, $username, $password);
+                    if ($created !== null) {
+                        unset(
+                            $_SESSION['mucho_first_owner_authorized_until'],
+                            $_SESSION['mucho_first_owner_csrf']
+                        );
+                        establishAdminSession($created);
+                        header('Location: /admin/', true, 303);
+                        exit;
+                    }
+
                     header('Location: /admin/', true, 303);
                     exit;
                 }
-
-                // A parallel request finished setup before this request.
-                header('Location: /admin/', true, 303);
-                exit;
             }
         }
     }
 
-    $heading = $allowed ? $copy['heading'] : $copy['unavailable'];
+    if ($allowed && !$authorized) {
+        $notice = $copy['activation_required'];
+    }
+
+    $heading = $allowed && $authorized ? $copy['heading'] : $copy['unavailable'];
     ?>
 <!doctype html>
 <html lang="<?= $escape($language) ?>">
@@ -236,8 +258,10 @@ a{color:#b1baff}
 </nav>
 <mark>MUCHOCORE / FIRST RUN</mark>
 <h1><?= $escape($heading) ?></h1>
+<input type="hidden" id="mucho-first-run-csrf" name="csrf" value="<?= $escape($csrf) ?>">
 <?php if ($notice !== ''): ?>
 <p class="alert" role="alert"><?= $escape($notice) ?></p>
+<?php if ($error !== ''): ?><p class="alert" role="alert"><?= $escape($error) ?></p><?php endif; ?>
 <?php else: ?>
 <p><?= $escape($copy['introduction']) ?></p>
 <?php if ($error !== ''): ?><p class="alert" role="alert"><?= $escape($error) ?></p><?php endif; ?>
@@ -249,15 +273,37 @@ a{color:#b1baff}
 <input id="password" name="password" type="password" minlength="12" maxlength="256" autocomplete="new-password" required>
 <label for="password_confirm"><?= $escape($copy['confirm']) ?></label>
 <input id="password_confirm" name="password_confirm" type="password" minlength="12" maxlength="256" autocomplete="new-password" required>
-<label for="setup_key"><?= $escape($copy['setup_key']) ?></label>
-<input id="setup_key" name="setup_key" type="password" autocomplete="off" required>
-<p><small><?= $escape($copy['setup_hint']) ?></small></p>
 <button type="submit"><?= $escape($copy['submit']) ?></button>
 </form>
 <?php endif; ?>
 <footer><?= $escape($copy['footer_prefix']) ?> <a href="/admin/"><?= $escape($copy['footer_link']) ?></a> · MuchoCore</footer>
 </main>
 <script>
+(function () {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const secret = params.get('setup');
+    if (secret === null) return;
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    if (secret.length < 10 || secret.length > 512) return;
+
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = window.location.pathname + window.location.search;
+    const values = {
+        action: 'activate',
+        csrf: document.getElementById('mucho-first-run-csrf').value,
+        setup_key: secret
+    };
+    for (const [name, value] of Object.entries(values)) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+    }
+    document.body.appendChild(form);
+    form.submit();
+})();
 document.querySelectorAll('.language-switcher [data-lang]').forEach(function (link) {
     link.addEventListener('click', function () {
         try { localStorage.setItem('mucho_admin_language', link.dataset.lang); } catch (_) {}

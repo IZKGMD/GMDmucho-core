@@ -29,40 +29,19 @@ The recommended path is:
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
 ~~~
 
-The installer prompts for the public GDPS domain, the GDPS name, and an
-**administrator setup secret** (with confirmation). This secret authorizes the
-browser's one-time first-owner registration; it is **not** the final admin
-login password. The setup secret must contain at least 10 characters and
-is stored in the VPS's protected `.secrets/admin_password` file.
+The installer asks for the public GDPS domain and GDPS name. It generates the private first-owner activation credential automatically. You never enter a separate Setup Secret on the admin registration page.
 
-When the installer is run again, it offers to keep the existing setup
-secret or replace it. Neither routine updates nor changing that secret
-silently reset an already-created administrator password. Unattended installs
-can provide `MUCHO_ADMIN_PASSWORD` privately via the environment.
+At the end of an interactive installation, open the private activation link printed in your SSH terminal. The browser verifies that link, then lets you create your own owner username and password (12–256 characters). Anonymous visits to `/admin/` cannot claim ownership.
 
-### Manual Docker installation and console recovery
-
-If you installed MuchoCore manually, run the local helper **before starting**
-the app to create the required setup secret:
+If you missed the link or installed without an interactive terminal, retrieve it privately:
 
 ~~~bash
 cd /opt/mucho-core
-sudo bash bin/mucho-admin-setup.sh
+sudo docker compose exec -T app php bin/mucho-owner-link.php
 ~~~
 
-The helper writes `.secrets/admin_password` with mode `0600`, without printing
-the secret. **When the app is already running, the same helper deliberately
-resets/creates the administrator account via the server console.** Do not run
-it against a configured server unless a password reset is intended.
+The link is private and must never be posted in a GitHub issue, copied into public logs or sent to another person. Once an owner exists it cannot be generated again. Existing administrator passwords remain unchanged by upgrades; use `sudo mucho` for explicit recovery. See [First-run registration](ADMIN_FIRST_RUN.md).
 
-After a fresh installation, open `https://YOUR-DOMAIN/admin/` and use
-**Create first administrator**. Choose an admin username and final password
-(12–256 characters), confirm it, and supply the setup secret. The first owner
-is created only then. There is no publicly claimable setup after the first
-owner has been registered. See [First-run registration](ADMIN_FIRST_RUN.md).
-
-Never put setup secrets or administrator passwords in GitHub issues, shell
-arguments, deployment logs, or repository configuration.
 Everything else uses production-safe defaults. The default compatibility profile is **all supported generations** and can be changed later with:
 
 ~~~bash
@@ -82,7 +61,7 @@ The installer prepares:
 - Caddy;
 - the MuchoCore database;
 - Cloud Save keys;
-- the one-time administrator setup secret (the account is created in the browser);
+- a private first-owner activation link (the owner chooses credentials in the browser);
 - the selected Geometry Dash compatibility profile;
 - release-based automatic updates.
 

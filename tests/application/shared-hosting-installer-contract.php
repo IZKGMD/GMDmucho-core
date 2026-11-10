@@ -75,6 +75,8 @@ $admin = file_get_contents($root . '/public/admin/index.php');
 $wizard = file_get_contents($root . '/public/admin/first-run.php');
 $firstRun = file_get_contents($root . '/src/Admin/FirstRunSetup.php');
 $adminSync = file_get_contents($root . '/bin/mucho-sync-admin.php');
+$ownerLink = file_get_contents($root . '/bin/mucho-owner-link.php');
+$vpsInstaller = file_get_contents($root . '/install.sh');
 foreach ([
     'index' => $admin,
     'wizard' => $wizard,
@@ -105,7 +107,7 @@ foreach ([
     'all first-run messages have Russian translations' =>
         array_keys(muchoAdminFirstRunCopy('en')) === array_keys(muchoAdminFirstRunCopy('ru')),
     'English error translations exist' =>
-        muchoAdminFirstRunCopy('en')['secret_invalid'] === 'Invalid setup secret.',
+        str_contains(muchoAdminFirstRunCopy('en')['secret_invalid'], 'activation link'),
     'language selector rendered on the first-run page' =>
         str_contains($wizard, 'class="language-switcher"'),
     'selected language persists via admin cookie' =>
@@ -120,6 +122,14 @@ foreach ([
 
 foreach ([
     'secret checked with password_verify' => str_contains($wizard, 'password_verify($setupKey, $hash)'),
+    'owner activation session required' => str_contains($wizard, 'mucho_first_owner_authorized_until'),
+    'registration rejects unverified visitors' => str_contains($wizard, 'elseif (!$authorized)'),
+    'activation strips fragment from history' => str_contains($wizard, 'history.replaceState'),
+    'activation only via POST' => str_contains($wizard, "\$action === 'activate'"),
+    'no visible setup-key field' => !str_contains($wizard, '<input id="setup_key"'),
+    'shared installer provides a private activation link' =>
+        str_contains($installer, '/admin/#setup='),
+
     'CSRF check before enrollment' => str_contains($wizard, 'hash_equals($csrf, $providedCsrf)'),
     'race-safe database lock' => str_contains($firstRun, 'GET_LOCK(:name, 5)'),
     'one-time completion marker' => str_contains($firstRun, 'admin_initialization'),
@@ -130,6 +140,17 @@ foreach ([
     if (!$ok) {
         throw new RuntimeException('First-run safety contract broken: ' . $name);
     }
+}
+
+if (!is_string($ownerLink) || !str_contains($ownerLink, "PHP_SAPI !== 'cli'")
+    || !str_contains($ownerLink, "FirstRunSetup::prepare")
+    || !str_contains($ownerLink, 'password_verify($secret, $hash)')
+    || !str_contains($ownerLink, '/admin/#setup=')
+    || !is_string($vpsInstaller)
+    || !str_contains($vpsInstaller, 'MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"')
+    || str_contains($vpsInstaller, 'prompt_admin_password()')
+) {
+    throw new RuntimeException('Private owner activation link / installer contract broken.');
 }
 
 $backupContracts = [

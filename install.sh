@@ -65,10 +65,8 @@ info() { printf "  ${CYAN}→${RESET} %s\n" "$*"; }
 warn() { printf "\n${YELLOW}[warning]${RESET} %s\n" "$*" >&2; }
 fail() { printf "\n${RED}[error]${RESET} %s\n" "$*" >&2; exit 1; }
 
-# The installer is intentionally interactive for the deployment-specific
-# public domain, GDPS name, and first-run admin setup secret.
-# password. Everything else has safe production defaults and can be changed
-# later through "sudo mucho".
+# Installation prompts cover the public domain and GDPS name.
+# First-owner activation material is generated automatically without an extra prompt.
 QUICK_MODE=1
 INSTALL_STEP="starting"
 MUCHO_MIGRATION_ON_INSTALL="${MUCHO_MIGRATION_ON_INSTALL:-}"
@@ -557,67 +555,21 @@ else
   MUCHO_DB_ROOT_PASSWORD="$(openssl rand -hex 32)"
 fi
 
-prompt_admin_password() {
-  local first second attempt
-  [[ -r /dev/tty && -w /dev/tty && ( -t 1 || -t 2 ) ]] ||
-    fail "An interactive terminal is required to create an admin setup secret. Set MUCHO_ADMIN_PASSWORD for an unattended install."
+log "Admin panel username: $ADMIN_USER"
 
-  for attempt in 1 2 3; do
-    read -r -s -p "  Admin setup secret (minimum 10 characters): " first < /dev/tty
-    printf '\n'
-    read -r -s -p "  Confirm admin setup secret: " second < /dev/tty
-    printf '\n'
-
-    if [[ "${#first}" -lt 10 ]]; then
-      warn "Admin setup secret must contain at least 10 characters."
-      continue
-    fi
-    if [[ "$first" != "$second" ]]; then
-      warn "Admin setup secrets do not match."
-      continue
-    fi
-    local newline=$'\n' carriage_return=$'\r'
-    if [[ "$first" == *"$newline"* || "$first" == *"$carriage_return"* ]]; then
-      warn "Admin setup secret cannot contain line breaks."
-      continue
-    fi
-
-    MUCHO_ADMIN_PASSWORD="$first"
-    return 0
-  done
-
-  fail "Could not set a valid admin setup secret after 3 attempts."
-}
-
-if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then
-  if [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
-    MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
-    if [[ -r /dev/tty && -w /dev/tty && ( -t 1 || -t 2 ) ]]; then
-      printf "  Existing admin setup secret found for %s.\n" "$ADMIN_USER"
-      read -r -p "  Keep the existing setup secret? [Y/n] " keep_admin_password < /dev/tty
-      case "$keep_admin_password" in
-        n|N|no|NO)
-          log "Choose a new setup secret (does not reset an existing admin account)."
-          prompt_admin_password
-          ;;
-        *)
-          info "Keeping the existing admin setup secret. Existing login credentials are unchanged."
-          ;;
-      esac
-    fi
-  fi
+# Fresh installs receive a private random activation credential automatically.
+# Existing installs preserve it, without a second password prompt.
+if [[ -s "$INSTALL_DIR/.secrets/admin_password" && -z "$MUCHO_ADMIN_PASSWORD" ]]; then
+  MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
+  info "Keeping existing private owner activation credential."
 elif [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
-  log "Admin panel username: $ADMIN_USER"
-  printf "  Choose a one-time setup secret for browser registration at /admin/. It is stored locally.\n"
-  prompt_admin_password
+  MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"
+  info "Generated private owner activation credential automatically."
 fi
 
-[[ -n "$MUCHO_ADMIN_PASSWORD" ]] || fail "Admin setup secret cannot be empty."
-[[ "${#MUCHO_ADMIN_PASSWORD}" -ge 10 ]] || fail "Admin setup secret must contain at least 10 characters."
-local_newline=$'\n'
-local_carriage_return=$'\r'
-[[ "$MUCHO_ADMIN_PASSWORD" != *"$local_newline"* && "$MUCHO_ADMIN_PASSWORD" != *"$local_carriage_return"* ]] ||
-  fail "Admin setup secret cannot contain line breaks."
+[[ "${#MUCHO_ADMIN_PASSWORD}" -ge 10 ]] || fail "Owner activation credential is too short."
+[[ "$MUCHO_ADMIN_PASSWORD" != *$'\n'* && "$MUCHO_ADMIN_PASSWORD" != *$'\r'* ]] ||
+  fail "Owner activation credential cannot contain line breaks."
 
 printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
 printf '%s' "$MUCHO_DB_ROOT_PASSWORD" > "$INSTALL_DIR/.secrets/db_root_password"
@@ -1131,7 +1083,7 @@ Admin:  https://$DOMAIN/admin/
 Health: https://$DOMAIN/health
 Path:   $INSTALL_DIR
 
-Suggested owner username: $ADMIN_USER\nFirst visit (if no owner exists): enter the setup secret to create the owner login.\nExisting installs: admin credentials are preserved; use sudo mucho for password resets.
+Suggested owner username: $ADMIN_USER\nFirst visit: create the owner username and password from a private activation link.\nExisting installs: admin credentials are preserved; use sudo mucho for password resets.
 
 Update:
   sudo $INSTALL_DIR/update.sh
@@ -1149,3 +1101,14 @@ Migration:
   sudo mucho migration
 
 EOFOUT
+
+# Display the owner link only at the operator's interactive terminal.
+# Never put activation credentials in unattended deployment logs.
+if [[ -t 1 || -t 2 ]]; then
+  if ! run_compose exec -T app php bin/mucho-owner-link.php; then
+    info "The owner already exists, or the activation link is unavailable."
+  fi
+else
+  info "Retrieve the owner activation link in a private SSH terminal:"
+  info "  cd $INSTALL_DIR && sudo docker compose exec -T app php bin/mucho-owner-link.php"
+fi
