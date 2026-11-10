@@ -525,7 +525,36 @@ def heartbeat_loop(base: str, token: str, stop: threading.Event):
             print("[HEARTBEAT]", type(exc).__name__, str(exc)[:180])
 
 
+def self_test():
+    from ftp_client import FTPBridgeError, safe_remote_path
+    assert safe_remote_path("mc/index.php", allow_root=False) == "mc/index.php"
+    for unsafe in ("../outside", "/windows/system.ini", r"mc\..\config.php", "mc//file"):
+        try:
+            safe_remote_path(unsafe)
+        except FTPBridgeError:
+            continue
+        raise AssertionError("Unsafe FTPS path was accepted: " + unsafe)
+    assert DANGEROUS.search("Remove-Item -Recurse test")
+    assert SENSITIVE_READ.search("Get-Content .env")
+    assert "REDACTED" in redact_output("password=example-secret")
+    import tempfile
+    with tempfile.TemporaryDirectory() as root:
+        cfg = {"allowed_roots": [root]}
+        assert safe_path(cfg, 0, "notes.txt").parent == Path(root).resolve()
+        try:
+            safe_path(cfg, 0, "../outside")
+        except AgentError:
+            pass
+        else:
+            raise AssertionError("Workspace traversal was accepted")
+    return True
+
+
 def main():
+    if '--self-test' in sys.argv:
+        self_test()
+        print('MuchoCore Remote Agent self-test: PASS')
+        return 0
     cfg = load_config()
     token = get_token(cfg)
     base = cfg["base_url"].rstrip("/")
