@@ -29,44 +29,40 @@ The recommended path is:
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
 ~~~
 
-The installer keeps first-run interaction deliberately small:
+The installer prompts for the public GDPS domain, the GDPS name, and an
+**administrator setup secret** (with confirmation). This secret authorizes the
+browser's one-time first-owner registration; it is **not** the final admin
+login password. The setup secret must contain at least 10 characters and
+is stored in the VPS's protected `.secrets/admin_password` file.
 
-~~~text
-1. GDPS domain
-2. Admin password
-3. Confirm admin password
-~~~
+When the installer is run again, it offers to keep the existing setup
+secret or replace it. Neither routine updates nor changing that secret
+silently reset an already-created administrator password. Unattended installs
+can provide `MUCHO_ADMIN_PASSWORD` privately via the environment.
 
-The initial admin password must contain at least 10 characters and is stored
-only in the VPS's protected `.secrets/admin_password` file. When the installer
-is run again and that secret already exists, it explicitly asks whether to
-keep the existing password or enter and confirm a new one. For unattended
-installs, pass `MUCHO_ADMIN_PASSWORD` through the environment.
+### Manual Docker installation and console recovery
 
-### Initial admin password on manually deployed Docker installations
-
-The normal installer already **requires** you to enter and confirm an administrator
-password; it never silently generates an unknown admin password. If you installed
-MuchoCore manually with Docker Compose instead of running the installer, use
-the same interactive flow **before starting the app**:
+If you installed MuchoCore manually, run the local helper **before starting**
+the app to create the required setup secret:
 
 ~~~bash
 cd /opt/mucho-core
 sudo bash bin/mucho-admin-setup.sh
 ~~~
 
-The prompt hides both password entries, validates a minimum of 10 characters
-and writes the secret to `.secrets/admin_password` with mode `0600`.
-If the PHP app is already running, the helper recreates **only** the app,
-synchronizes the `admin_users` password hash and reloads Caddy. It preserves
-the database, game accounts, levels and cloud-save key. It also detects the
-`compose.public.yaml` override used by test/polygon deployments, avoiding
-an accidental Docker image build when changing the password.
+The helper writes `.secrets/admin_password` with mode `0600`, without printing
+the secret. **When the app is already running, the same helper deliberately
+resets/creates the administrator account via the server console.** Do not run
+it against a configured server unless a password reset is intended.
 
-Never pass the password in a GitHub issue comment, shell command argument
-or repository configuration. The login is at
-`https://YOUR-DOMAIN/admin/` (default username `admin`).
+After a fresh installation, open `https://YOUR-DOMAIN/admin/` and use
+**Create first administrator**. Choose an admin username and final password
+(12–256 characters), confirm it, and supply the setup secret. The first owner
+is created only then. There is no publicly claimable setup after the first
+owner has been registered. See [First-run registration](ADMIN_FIRST_RUN.md).
 
+Never put setup secrets or administrator passwords in GitHub issues, shell
+arguments, deployment logs, or repository configuration.
 Everything else uses production-safe defaults. The default compatibility profile is **all supported generations** and can be changed later with:
 
 ~~~bash
@@ -86,7 +82,7 @@ The installer prepares:
 - Caddy;
 - the MuchoCore database;
 - Cloud Save keys;
-- the administrator account;
+- the one-time administrator setup secret (the account is created in the browser);
 - the selected Geometry Dash compatibility profile;
 - release-based automatic updates.
 
@@ -128,13 +124,9 @@ Then open:
 https://YOUR-DOMAIN/admin/
 ~~~
 
-The default administrator username is:
-
-~~~text
-admin
-~~~
-
-The password is created during installation.
+On the first visit, complete the owner-registration wizard using the secret
+chosen at installation. On later visits, sign in with your chosen username
+and password. Normal upgrades do not overwrite those credentials.
 
 ## 4. Connect Geometry Dash
 
