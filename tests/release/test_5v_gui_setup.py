@@ -40,7 +40,8 @@ class GuiSetupContract(unittest.TestCase):
         self.assertIn("patch_windows(exe_source", source)
         self.assertIn("if redistribution_rights:", source)
         self.assertIn("Публичная загрузка EXE отключена", source)
-        self.assertIn("APK пропущен: публичная публикация требует подтверждения прав", source)
+        self.assertIn("download_android_private(site, report, OUTDIR)", source)
+        self.assertIn("Публичная загрузка APK отключена", source)
 
     def test_installer_has_frozen_resource_and_output_paths(self):
         source = INSTALL.read_text(encoding="utf-8")
