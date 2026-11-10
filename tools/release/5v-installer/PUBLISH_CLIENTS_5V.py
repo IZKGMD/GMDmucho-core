@@ -27,46 +27,56 @@ def ask(message: str, default: str = "") -> str:
     return value or default
 
 
-def find_original(extension: str) -> Path | None:
+def find_original(extension: str, *, ask_for_missing: bool = False) -> Path | None:
+    """Use a provided local game file without asking for a path in quick mode."""
     allowed = [HERE, HERE / "original_clients"]
+    if extension == ".exe" and sys.platform == "win32":
+        # Standard Steam installations only. Do not scan the user's disk.
+        import os
+        for env_key in ("PROGRAMFILES(X86)", "PROGRAMFILES"):
+            base = os.environ.get(env_key)
+            if base:
+                allowed.append(Path(base) / "Steam" / "steamapps" /
+                               "common" / "Geometry Dash")
     matches = []
     for folder in allowed:
-        if folder.exists():
+        if folder.is_dir():
             matches.extend(file for file in folder.glob("GeometryDash*")
-                           if file.is_file() and file.suffix.lower() == extension)
+                           if file.is_file() and file.suffix.lower() == extension
+                           and "MuchoCore" not in file.name)
     matches = sorted(set(matches))
     if len(matches) == 1:
-        print("Найден исходный", extension, ":", matches[0].name)
+        print("Исходный", extension, "найден:", matches[0])
         return matches[0]
     if len(matches) > 1:
-        print("Найдено несколько", extension, ":")
-        for file in matches:
-            print(" •", file)
-    value = ask("Путь к оригинальному " + extension +
-                " (Enter = пропустить; можно перенести файл в папку рядом со скриптом)")
-    if not value:
+        print("Найдено несколько исходников", extension)
+        for candidate in matches:
+            print("  ", candidate)
+    if not ask_for_missing and not matches:
+        print("Исходный", extension, "не найден — пропускаю без вопросов.")
         return None
-    return read_source(value.strip('"'), extension)
+    path = ask("Путь к оригинальному " + extension + " (Enter = пропустить)")
+    if not path:
+        return None
+    return read_source(path.strip('"'), extension)
 
 
-def ask_clients() -> tuple[Path | None, Path | None, bool]:
-    print("\nПодготовка клиентов GD 2.209 — необязательный этап.")
-    print("Положи законно полученный GeometryDash.exe / GeometryDash.apk")
-    print("рядом с установщиком или укажи путь. В архиве нет игровых файлов.")
-    exe = find_original(".exe")
-    apk = find_original(".apk")
+def ask_clients(*, ask_for_missing: bool = False) -> tuple[Path | None, Path | None, bool]:
+    print("\nКлиенты GD 2.209: поиск исходников на компьютере...")
+    exe = find_original(".exe", ask_for_missing=ask_for_missing)
+    apk = find_original(".apk", ask_for_missing=ask_for_missing)
     if not exe and not apk:
-        print("Исходники не выбраны. Клиенты можно подготовить позднее.")
+        print("Клиентов нет; ядро и админка готовы. Позже открой START_CLIENTS_WINDOWS.cmd.")
         return None, None, False
-    print("\nПубликация EXE/APK для скачивания требует разрешения")
-    print("правообладателя. Покупка игры сама по себе не разрешает")
-    print("публичную раздачу целых игровых файлов.")
-    permission = ask("Есть право на распространение этих бинарников? Напиши РАЗРЕШЕНО")
-    return exe, apk, permission == "РАЗРЕШЕНО"
+    print("\nДля размещения полных EXE/APK на публичном сайте необходимо")
+    print("разрешение правообладателя; личная покупка игры его не даёт.")
+    permission = ask("Есть право на публичное распространение? [да/Нет]", "Нет")
+    return exe, apk, permission.casefold() in ("да", "y", "yes")
 
 
-def publish_interactive(site: HttpsSite, ftp: FtpSite) -> dict:
-    exe, apk, permission = ask_clients()
+
+def publish_interactive(site: HttpsSite, ftp: FtpSite, *, advanced: bool = False) -> dict:
+    exe, apk, permission = ask_clients(ask_for_missing=advanced)
     if not exe and not apk:
         return {}
     links = {}
@@ -100,7 +110,8 @@ def publish_interactive(site: HttpsSite, ftp: FtpSite) -> dict:
             apk = read_source(apk, ".apk")
             is_expected_2209 = apk.stat().st_size == 174_568_364
             default = "ДА" if is_expected_2209 else "НЕТ"
-            alongside = ask("Установить APK рядом с оригиналом? (ДА/НЕТ)", default).upper()
+            alongside = (ask("Установить APK рядом с оригиналом? (ДА/НЕТ)", default).upper()
+                         if advanced else default)
             if alongside not in ("ДА", "НЕТ"):
                 raise InstallError("Нужно выбрать ДА или НЕТ.")
             if alongside == "НЕТ":
@@ -180,7 +191,7 @@ def main() -> int:
             raise InstallError("Этот сайт пока не содержит MuchoCore.")
         print("Проверка входа владельца...")
         login_owner(site, user, password, otp)
-        publish_interactive(site, ftp)
+        publish_interactive(site, ftp, advanced=True)
     return 0
 
 
