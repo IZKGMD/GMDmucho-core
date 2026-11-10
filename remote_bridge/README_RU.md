@@ -51,12 +51,15 @@ FTPS actions доступны в веб-панели: ftp.status, ftp.list, ftp.
 
 ## Windows Agent
 
-1. Распаковать папку remote_bridge на Windows.
-2. Установить Python 3.11+.
-3. Запустить START_SETUP.cmd.
-4. Ввести одноразовый pairing token непосредственно в локальном окне.
-5. Выбрать только те папки, к которым разрешён доступ.
-6. Запустить START_AGENT.cmd.
+После успешной сборки GitHub Actions скачай артефакт MuchoCoreRemoteBridge-Windows-x64.zip и распакуй его в отдельную папку.
+
+1. Запусти MuchoCoreRemoteSetup.exe.
+2. Введи одноразовый pairing token непосредственно в локальном окне.
+3. Выбери только те папки, к которым разрешён доступ.
+4. Запусти MuchoCoreRemoteAgent.exe. Оставь его видимую консоль открытой.
+5. Для FTPS запусти MuchoCoreRemoteFTPSSetup.exe и введи данные из кабинета 5v.pl локально.
+
+Исходный вариант без EXE тоже доступен: Python 3.11+, START_SETUP.cmd, START_AGENT.cmd и START_FTP_SETUP.cmd.
 
 Agent token сохраняется в Windows Credential Manager. Агент работает в видимой консоли. Закрытие окна или Ctrl+C прекращает соединение.
 
