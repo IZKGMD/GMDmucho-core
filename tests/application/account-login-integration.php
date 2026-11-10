@@ -191,8 +191,8 @@ SQL);
         'wrong password is rejected with the protocol failure sentinel');
     $check($login('MissingUser', 'some-password')->body === '-1',
         'unknown username uses the same protocol failure sentinel');
-    $check($login('BannedUser', 'banned-password')->body === '-1',
-        'banned account is rejected');
+    $check($login('BannedUser', 'banned-password')->body === '-12',
+        'banned account uses the upstream Geometry Dash ban sentinel');
     $check($login('InactiveUser', 'inactive-password')->body === '-1',
         'inactive account is rejected');
     $check($login('SpaceUser')->body === '-1',
