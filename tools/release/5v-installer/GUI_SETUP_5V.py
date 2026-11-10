@@ -15,6 +15,9 @@ import threading
 import traceback
 import webbrowser
 
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+
 BUNDLE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 APP_DIR = (Path(sys.executable).resolve().parent
            if getattr(sys, "frozen", False)
@@ -92,10 +95,8 @@ def detect_client(extension: str, chosen: str = "") -> Path | None:
     if len(matches) == 1:
         return read_source(matches[0], extension)
     if len(matches) > 1:
-        raise InstallError(
-            "Найдено несколько исходных файлов %s. Выбери нужный вручную в окне установщика."
-            % extension
-        )
+        # Ambiguous optional client files must never block the core installation.
+        return None
     return None
 
 
@@ -186,9 +187,6 @@ def prepare_clients(cfg: dict, exe_source: Path | None,
 def main() -> int:
     if "--self-test" in sys.argv:
         return _self_test()
-
-    import tkinter as tk
-    from tkinter import filedialog, messagebox, ttk
 
     class InstallerWindow:
         def __init__(self, root):
@@ -434,11 +432,19 @@ def main() -> int:
                 return
             try:
                 cfg = self.build_config()
-                exe = detect_client(".exe", self.exe_var.get().strip())
-                apk = detect_client(".apk", self.apk_var.get().strip())
             except (InstallError, OSError, ValueError) as exc:
                 messagebox.showerror("Проверь данные", str(exc), parent=self.root)
                 return
+            try:
+                exe = detect_client(".exe", self.exe_var.get().strip())
+            except (InstallError, OSError, ValueError) as exc:
+                exe = None
+                self.write_log("EXE пропущен: " + str(exc))
+            try:
+                apk = detect_client(".apk", self.apk_var.get().strip())
+            except (InstallError, OSError, ValueError) as exc:
+                apk = None
+                self.write_log("APK пропущен: " + str(exc))
             summary = (
                 "Будет установлен новый MuchoCore на:\n" + cfg["site"] +
                 "\n\nСуществующая папка mc/ не будет перезаписана."
