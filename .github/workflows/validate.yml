@@ -669,6 +669,13 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/registration-integrity-integration.php
 
+      - name: Verify GD 2.209 authenticated user-info submission
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/user-info-submission-integration.php
+
       - name: Verify backup and restore on isolated MariaDB
         env:
           TEST_DB_HOST: 127.0.0.1
