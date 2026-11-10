@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace MuchoCore\Protocol;
 
+// Some standalone legacy protocol tests load this encoder without Composer.
+require_once __DIR__ . '/GdSongEncoder.php';
+
 final class GdLevelListEncoder
 {
     private const HASH_SALT = 'xI25fpAapCQg';
