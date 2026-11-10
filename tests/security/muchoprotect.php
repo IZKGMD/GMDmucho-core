@@ -536,6 +536,93 @@ if (
 }
 
 /*
+ * GD 2.209 user-info snapshots are bounded per source IP and per
+ * account+credential identity because each request may carry a large payload.
+ */
+$userInfoDir = $dir . '-user-info';
+$userInfoProtect = new MuchoProtect(
+    new RateLimiter($userInfoDir),
+    new \\MuchoCore\\Security\\AbusePenaltyStore($userInfoDir . '-penalty')
+);
+$userInfoPath = '/submitGJUserInfo.php';
+
+for ($i = 0; $i < 4; $i++) {
+    $result = $userInfoProtect->inspect(
+        new Request(
+            'POST',
+            $userInfoPath,
+            [],
+            [
+                'accountID' => '991',
+                'gameVersion' => '22',
+                'binaryVersion' => '51',
+                'gjp2' => 'userinfo-credential',
+                'levelsInfo' => 'snapshot',
+            ],
+            ['REMOTE_ADDR' => '198.51.' . (100 + $i) . '.10']
+        ),
+        $userInfoPath
+    );
+
+    if ($result['decision'] !== 'allow') {
+        fwrite(STDERR, "MuchoProtect user-info setup failed at request {$i}\\n");
+        exit(1);
+    }
+}
+
+$userInfoBlocked = $userInfoProtect->inspect(
+    new Request(
+        'POST',
+        $userInfoPath,
+        [],
+        [
+            'accountID' => '991',
+            'gameVersion' => '22',
+            'binaryVersion' => '51',
+            'gjp2' => 'userinfo-credential',
+            'levelsInfo' => 'snapshot',
+        ],
+        ['REMOTE_ADDR' => '198.51.104.10']
+    ),
+    $userInfoPath
+);
+
+if (
+    $userInfoBlocked['decision'] !== 'block' ||
+    $userInfoBlocked['reason'] !== 'account_rate_limit'
+) {
+    fwrite(
+        STDERR,
+        "MuchoProtect user-info account limit failed: "
+        . json_encode($userInfoBlocked, JSON_UNESCAPED_SLASHES)
+        . "\\n"
+    );
+    exit(1);
+}
+
+$userInfoDifferentCredential = $userInfoProtect->inspect(
+    new Request(
+        'POST',
+        $userInfoPath,
+        [],
+        [
+            'accountID' => '991',
+            'gameVersion' => '22',
+            'binaryVersion' => '51',
+            'gjp2' => 'different-userinfo-credential',
+            'levelsInfo' => 'snapshot',
+        ],
+        ['REMOTE_ADDR' => '198.51.105.10']
+    ),
+    $userInfoPath
+);
+
+if ($userInfoDifferentCredential['decision'] !== 'allow') {
+    fwrite(STDERR, "MuchoProtect user-info credential isolation failed\\n");
+    exit(1);
+}
+
+/*
  * Clan routes now have explicit limits instead of falling back to global
  * protection only.
  */
