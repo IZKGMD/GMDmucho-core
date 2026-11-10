@@ -124,8 +124,13 @@ def run(php, report):
             login = dict(VERSION, userName="P0Owner", password=PASSWORD)
             require(post("/a/accounts/loginGJAccount22.php", login, "account.login") == "1,101", "Password login IDs")
             require(post("/database/loginGJAccount20.php", dict(VERSION, userName="P0Owner", gjp2=GJP2)) == "1,101", "GJP2 login")
-            for name, secret in (("P0Owner", "wrong"), ("P0Banned", "P0Fixture-3!"), ("P0Inactive", "P0Fixture-4!")):
-                require(post("/a/accounts/loginGJAccount22.php", dict(VERSION, userName=name, password=secret)) == "-1", "Rejected login became valid")
+            for name, secret, expected in (
+                ("P0Owner", "wrong", "-1"),
+                ("P0Banned", "P0Fixture-3!", "-12"),
+                ("P0Inactive", "P0Fixture-4!", "-1"),
+            ):
+                actual = post("/a/accounts/loginGJAccount22.php", dict(VERSION, userName=name, password=secret))
+                require(actual == expected, "Unexpected login result for %s: %s" % (name, actual))
             checks.append("password/gjp2/identity/banned/inactive/wrong-password")
 
             recovery_before = fixture("inspect")
