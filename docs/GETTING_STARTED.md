@@ -25,7 +25,7 @@ For the normal interactive VPS install, use the stable-release bootstrap:
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
 ```
 
-The installer asks for the GDPS domain and server name and automatically creates a private owner-activation credential. You do **not** need to remember or enter a separate Setup Secret. The interactive installer prints a private one-time activation link to open in your browser. Do not share this link; it can authorize the first owner before registration.
+The installer asks for the GDPS domain and server name, then prompts for the first administrator username and a password (with confirmation) in your SSH console. It creates the owner before the install finishes. **There is no Setup Secret or extra browser-registration step.** On existing installations, the administrator password is preserved.
 
 It installs Docker when needed, deploys the latest **published stable release**, creates the database and Cloud Save secrets, configures Caddy, enables release-based updates, runs migrations, and verifies the production health endpoint.
 
@@ -61,18 +61,7 @@ Expected:
 1
 \`\`\`
 
-Open the **private activation link** printed by the installer. If you missed it, generate it in your own private SSH terminal:
-
-```bash
-cd /opt/mucho-core
-sudo docker compose exec -T app php bin/mucho-owner-link.php
-```
-
-After opening the private link, choose your administrator username and password (12–256 characters) and confirm the password. There is **no Setup Secret field**. The site protects against first-visitor takeovers, and the onboarding link stops working once the first owner is registered.
-
-On subsequent visits, log in with the credentials chosen in the browser.
-If you lose them, use verified-email recovery (if configured) or explicit
-server-console recovery. See [First-run setup](ADMIN_FIRST_RUN.md).
+Open `https://YOUR-DOMAIN/admin/` and sign in with the username and password created in the SSH installer. The first owner already exists. Verified-email recovery (if configured) or explicit server-console recovery can restore access later. See [First-run setup](ADMIN_FIRST_RUN.md).
 
 ## 4. Patch the client
 
