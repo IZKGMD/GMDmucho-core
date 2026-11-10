@@ -140,6 +140,31 @@ class ClientFunctions(unittest.TestCase):
                       + digest[:12] + ".apk", ftp.conn.files)
         probe.assert_called_once()
 
+    def test_private_apk_download_is_hash_verified_without_public_ftp(self):
+        blob = b"PK" + b"private-apk" * 200
+        digest = hashlib.sha256(blob).hexdigest()
+        report = {
+            "output_sha256": digest, "output_size": len(blob),
+            "job_id": "f" * 32, "server_url": FakeSite.origin,
+        }
+        with tempfile.TemporaryDirectory() as folder, \
+             patch.object(clients, "_download_authenticated",
+                          side_effect=lambda site, job, size, sha, local: local.write_bytes(blob)) as download:
+            output = clients.download_android_private(FakeSite(), report, Path(folder))
+            self.assertEqual(output.read_bytes(), blob)
+            self.assertEqual(clients.sha256_file(output), digest)
+            download.assert_called_once()
+            self.assertFalse(any("mc/public/clients" in value for value in []))
+
+    def test_private_apk_download_rejects_site_or_hash_mismatch(self):
+        report = {
+            "output_sha256": "a" * 64, "output_size": 2048,
+            "job_id": "f" * 32, "server_url": "https://other.5v.pl",
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaises(InstallError):
+                clients.download_android_private(FakeSite(), report, Path(folder))
+
     def test_apk_rejects_invalid_job_metadata(self):
         with self.assertRaises(InstallError):
             clients.publish_android(FakeFtp(), FakeSite(),
