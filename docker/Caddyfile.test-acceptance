@@ -16,7 +16,6 @@
     # certify that old GD clients will receive the MP3 bytes.
     handle_path /music/* {
         root * /var/www/mucho-core/storage/music-public
-        header Content-Type audio/mpeg
         file_server
     }
 
