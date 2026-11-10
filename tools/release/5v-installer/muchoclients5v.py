@@ -372,7 +372,10 @@ def download_android_private(site: HttpsSite, report: dict,
     if (not re.fullmatch(r"[a-f0-9]{64}", digest)
             or not re.fullmatch(r"[a-f0-9]{32}", job)
             or not 1024 <= size <= MAX_APK
-            or report.get("server_url") != site.origin):
+            or report.get("server_url") != site.origin
+            or report.get("signed") is not True
+            or set(report.get("signature_schemes", [])) != {"v1", "v2"}
+            or int(report.get("replacement_count", 0)) < 1):
         raise InstallError("Подписанный APK содержит неправильные метаданные.")
     outdir.mkdir(parents=True, exist_ok=True)
     output = outdir / ("GeometryDash-MuchoCore-" + digest[:12] + ".apk")
