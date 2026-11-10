@@ -60,8 +60,7 @@ def main():
             os.environ.get("MUCHO_TEST_BASE_URL") == BASE):
         raise RuntimeError("Refusing music acceptance outside isolated CI")
 
-    base = "mc" + secrets.token_hex(19)  # exactly 40 lowercase hex characters
-    # Keep the 40-hex convention used by MuchoCore upload/delete actions.
+    # Keep the 40-hex naming convention used by MuchoCore upload/delete.
     base = secrets.token_hex(20)
     filename = base + ".mp3"
     local = ROOT / "storage" / "music-public" / filename
