@@ -85,6 +85,39 @@ foreach ([
         throw new RuntimeException('First-run code missing: ' . $name);
     }
 }
+require_once $root . '/public/admin/first-run.php';
+foreach ([
+    'new browser defaults to English' => muchoAdminFirstRunLanguage([], []) === 'en',
+    'previously chosen Russian remains selected' =>
+        muchoAdminFirstRunLanguage([], ['mucho_admin_language' => 'ru']) === 'ru',
+    'query English overrides Russian cookie' =>
+        muchoAdminFirstRunLanguage(['lang' => 'en'], ['mucho_admin_language' => 'ru']) === 'en',
+    'query Russian overrides English cookie' =>
+        muchoAdminFirstRunLanguage(['lang' => 'ru'], ['mucho_admin_language' => 'en']) === 'ru',
+    'unknown locale falls back to English' =>
+        muchoAdminFirstRunLanguage(['lang' => 'de'], []) === 'en',
+    'array query input cannot select a locale' =>
+        muchoAdminFirstRunLanguage(['lang' => ['ru']], []) === 'en',
+    'English first-run heading' =>
+        muchoAdminFirstRunCopy('en')['heading'] === 'Create first administrator',
+    'Russian first-run heading' =>
+        muchoAdminFirstRunCopy('ru')['heading'] === 'Создать первого администратора',
+    'all first-run messages have Russian translations' =>
+        array_keys(muchoAdminFirstRunCopy('en')) === array_keys(muchoAdminFirstRunCopy('ru')),
+    'English error translations exist' =>
+        muchoAdminFirstRunCopy('en')['secret_invalid'] === 'Invalid setup secret.',
+    'language selector rendered on the first-run page' =>
+        str_contains($wizard, 'class="language-switcher"'),
+    'selected language persists via admin cookie' =>
+        str_contains($wizard, "setcookie('mucho_admin_language'"),
+    'selected language persists after form validation' =>
+        str_contains($wizard, 'action="/admin/?lang='),
+] as $name => $ok) {
+    if (!$ok) {
+        throw new RuntimeException('First-run language contract broken: ' . $name);
+    }
+}
+
 foreach ([
     'secret checked with password_verify' => str_contains($wizard, 'password_verify($setupKey, $hash)'),
     'CSRF check before enrollment' => str_contains($wizard, 'hash_equals($csrf, $providedCsrf)'),
