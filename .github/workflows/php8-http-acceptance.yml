@@ -20,6 +20,7 @@ on:
   pull_request:
     paths:
       - "src/**"
+      - "bin/**"
       - "public/**"
       - "database/**"
       - "docker/**"
