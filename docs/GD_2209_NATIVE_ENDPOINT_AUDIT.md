@@ -48,9 +48,9 @@ That document marks the official endpoint as historical/nonfunctional since
 
 The source inventory still distinguishes these from operations certified by a real client:
 
-* `submitGJUserInfo`: request `0x140260b20` submits `udid`, `accountID`,
-  `levelsInfo` and the account secret. PHP 8 now requires account credential
-  authentication and stores the opaque payload in the private
+* `submitGJUserInfo`: request `0x140260b20` carries `udid`, `accountID`,
+  `levelsInfo` and the public game `secret`; the account credential is checked
+  through GJP/GJP2. PHP 8 stores the opaque payload in the private
   `mucho_account_user_info` table (8 MiB limit), with per-IP and
   account+credential throttling. It never treats this client-supplied data as
   trusted progress or changes profile statistics.
