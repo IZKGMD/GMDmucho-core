@@ -13,7 +13,7 @@ use RuntimeException;
  */
 final readonly class UserInfoSubmissionService
 {
-    public const MAX_PAYLOAD_BYTES = 1_048_576;
+    public const MAX_PAYLOAD_BYTES = 8_388_608;
 
     public function __construct(
         private PDO $db,
@@ -26,7 +26,8 @@ final readonly class UserInfoSubmissionService
         string $levelsInfo
     ): void {
         if (
-            ($levelsInfo === '' || $levelsInfo === '0') ||
+            $levelsInfo === '' ||
+            $levelsInfo === '0' ||
             strlen($levelsInfo) > self::MAX_PAYLOAD_BYTES
         ) {
             throw new RuntimeException('Invalid user-info payload.');
