@@ -79,8 +79,8 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/downloadgjlevel22` | Present | `/downloadGJLevel22` |
 | `/downloadgjmessage20` | Present | `/downloadGJMessage20` |
 | `/followgjuser` | Present | `/followGJUser` |
-| `/gd-content/news/news_version.txt` | Present | `/gd-content/news/news_version.txt` |
 | `/gd-content/news/news.dat` | Present | `/gd-content/news/news.dat` |
+| `/gd-content/news/news_version.txt` | Present | `/gd-content/news/news_version.txt` |
 | `/getaccounturl` | Present | `/getAccountURL` |
 | `/getcustomcontenturl` | Present | `/getCustomContentURL` |
 | `/getgjaccountcomments20` | Present | `/getGJAccountComments20` |
@@ -132,8 +132,8 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/muchoclient/negotiate` | Present | `/muchoclient/negotiate` |
 | `/muchocore/news` | Present | `/muchocore/news` |
 | `/mutegjuser` | Present | `/muteGJUser` |
-| `/news/news_version.txt` | Present | `/news/news_version.txt` |
 | `/news/news.dat` | Present | `/news/news.dat` |
+| `/news/news_version.txt` | Present | `/news/news_version.txt` |
 | `/openedregister` | Present | `/openedRegister`, `/accounts/openedRegister` |
 | `/profile/get` | Present | `/api/profile/get` |
 | `/profile/image` | Present | `/api/profile/image` |
