@@ -1,0 +1,23 @@
+services:
+  testgdps-db:
+    ports:
+      - "127.0.0.1:13307:3306"
+
+  testgdps-app:
+    environment:
+      MUCHO_ACCOUNT_URL: http://127.0.0.1:18080
+      MUCHO_PROTECT: "0"
+      MUCHO_CONTROL_DIR: /var/lib/muchocore-control
+      MUCHO_BACKUP_DIR: /var/lib/muchocore-backups
+
+  testgdps-caddy:
+    image: caddy:2.10-alpine
+    restart: "no"
+    ports:
+      - "127.0.0.1:18080:80"
+    volumes:
+      - ./docker/Caddyfile.test-acceptance:/etc/caddy/Caddyfile:ro
+      - ./:/var/www/mucho-core:ro
+    depends_on:
+      testgdps-app:
+        condition: service_started

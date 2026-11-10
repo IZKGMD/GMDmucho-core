@@ -1,0 +1,17 @@
+:80 {
+    root * /var/www/mucho-core/public
+    encode gzip zstd
+
+    request_body {
+        max_size 75MB
+    }
+
+    header {
+        -Server
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+    }
+
+    php_fastcgi testgdps-app:9000
+    file_server
+}

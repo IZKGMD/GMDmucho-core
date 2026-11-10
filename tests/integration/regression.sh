@@ -506,6 +506,43 @@ post loginGJAccount \
 expect_not "Login A" "$L1" "-1"
 expect_not "Login B" "$L2" "-1"
 
+# Pin the native GD GJP2 wire contract independently of AccountService constants.
+GJP2_A="$(
+    PASSWORD="$P1" php -r 'echo sha1((string)getenv("PASSWORD") . "mI29fmAnxgTs");'
+)"
+GJP2_B="$(
+    PASSWORD="$P2" php -r 'echo sha1((string)getenv("PASSWORD") . "mI29fmAnxgTs");'
+)"
+L1_GJP2="$(
+curl -sS \
+    --connect-timeout 5 \
+    --max-time 20 \
+    -H "Host: $HOST" \
+    -H "CF-Connecting-IP: $TEST_IP" \
+    -X POST \
+    "$DOMAIN/a/accounts/loginGJAccount22.php" \
+    -d "userName=$U1" \
+    -d "gjp2=$GJP2_A" \
+    -d 'gameVersion=22' \
+    -d 'binaryVersion=51'
+)"
+expect_eq "GD 2.209 GJP2 login via /a/accounts HTTP route" "$L1_GJP2" "$AID1,$UID1"
+
+BAD_GJP2_LOGIN="$(
+    curl -sS \
+        --connect-timeout 5 \
+        --max-time 20 \
+        -H "Host: $HOST" \
+        -H "CF-Connecting-IP: $TEST_IP" \
+        -X POST \
+        "$DOMAIN/a/accounts/loginGJAccount22.php" \
+        -d "userName=$U1" \
+        -d 'gjp2=0000000000000000000000000000000000000000' \
+        -d 'gameVersion=22' \
+        -d 'binaryVersion=51'
+)"
+expect_eq "Reject invalid GD 2.209 GJP2 login" "$BAD_GJP2_LOGIN" "-1"
+
 BAD_LOGIN="$(
 post loginGJAccount \
     -d "userName=$U1" \
@@ -520,7 +557,7 @@ echo "===== USER CORE ====="
 US="$(
 post updateGJUserScore22 \
     -d "accountID=$AID1" \
-    -d "gjp2=$P1" \
+    -d "gjp2=$GJP2_A" \
     -d "userName=$U1" \
     -d 'stars=123' \
     -d 'demons=4' \
@@ -545,7 +582,7 @@ UI="$(
 post getGJUserInfo20 \
     -d "targetAccountID=$AID1" \
     -d "accountID=$AID1" \
-    -d "gjp2=$P1" \
+    -d "gjp2=$GJP2_A" \
     -d 'gameVersion=22' \
     -d 'binaryVersion=51'
 )"
@@ -574,7 +611,7 @@ echo "===== 2.2 PLATFORMER SCORES ====="
 PLATFORMER_LEVEL="$(
     post uploadGJLevel22 \
         -d "accountID=$AID1" \
-        -d "gjp2=$P1" \
+        -d "gjp2=$GJP2_A" \
         -d 'levelName=Mucho 2.2 Platformer Regression' \
         --data-urlencode "levelDesc=Mucho 2.2 platformer description" \
         -d 'levelString=MUCHO_22_PLATFORMER_LEVEL' \
@@ -596,7 +633,7 @@ if [ "$PLATFORMER_LEVEL" -gt 0 ]; then
     PS="$(
         post getGJLevelScoresPlat \
             -d "accountID=$AID1" \
-            -d "gjp2=$P1" \
+            -d "gjp2=$GJP2_A" \
             -d "levelID=$PLATFORMER_LEVEL" \
             -d 'time=12345' \
             -d 'points=987' \
@@ -624,7 +661,7 @@ base64 -w0
 LEVEL_ID="$(
 post uploadGJLevel22 \
     -d "accountID=$AID1" \
-    -d "gjp2=$P1" \
+    -d "gjp2=$GJP2_A" \
     -d 'levelName=Mucho V80 Regression' \
     --data-urlencode "levelDesc=$DESC1" \
     -d 'levelString=MUCHO_V80_LEVEL_DATA_A' \
@@ -667,7 +704,7 @@ if [ "$LEVEL_ID" -gt 0 ]; then
     DU="$(
         post updateGJLevelDesc20 \
             -d "accountID=$AID1" \
-            -d "gjp2=$P1" \
+            -d "gjp2=$GJP2_A" \
             -d "levelID=$LEVEL_ID" \
             --data-urlencode "levelDesc=$DESC2"
     )"
@@ -677,7 +714,7 @@ if [ "$LEVEL_ID" -gt 0 ]; then
     WRONG="$(
         post updateGJLevelDesc20 \
             -d "accountID=$AID2" \
-            -d "gjp2=$P2" \
+            -d "gjp2=$GJP2_B" \
             -d "levelID=$LEVEL_ID" \
             --data-urlencode "levelDesc=$DESC1"
     )"
@@ -840,7 +877,7 @@ PHP
     CID="$(
         post uploadGJComment21 \
             -d "accountID=$AID1" \
-            -d "gjp2=$P1" \
+            -d "gjp2=$GJP2_A" \
             -d "levelID=$LEVEL_ID" \
             --data-urlencode "comment=$COMMENT" \
             -d 'percent=77' \
@@ -862,7 +899,7 @@ PHP
             -d 'gameVersion=22' \
             -d 'binaryVersion=51' \
             -d "accountID=$AID1" \
-            -d "gjp2=$P1"
+            -d "gjp2=$GJP2_A"
     )"
 
     if [ "$CID" -gt 0 ]; then
@@ -873,7 +910,7 @@ PHP
         SELF_LIKE="$(
             post likeGJItem211 \
                 -d "accountID=$AID1" \
-                -d "gjp2=$P1" \
+                -d "gjp2=$GJP2_A" \
                 -d "itemID=$CID" \
                 -d 'type=2' \
                 -d 'like=1'
@@ -886,7 +923,7 @@ PHP
         DISLIKE="$(
             post likeGJItem211 \
                 -d "accountID=$AID2" \
-                -d "gjp2=$P2" \
+                -d "gjp2=$GJP2_B" \
                 -d "itemID=$CID" \
                 -d "levelID=$LEVEL_ID" \
                 -d 'type=2' \
@@ -900,7 +937,7 @@ PHP
         DISLIKE_REPEAT="$(
             post likeGJItem211 \
                 -d "accountID=$AID2" \
-                -d "gjp2=$P2" \
+                -d "gjp2=$GJP2_B" \
                 -d "itemID=$CID" \
                 -d 'type=2' \
                 -d 'like=0'
@@ -912,7 +949,7 @@ PHP
         LIKE="$(
             post likeGJItem211 \
                 -d "accountID=$AID2" \
-                -d "gjp2=$P2" \
+                -d "gjp2=$GJP2_B" \
                 -d "itemID=$CID" \
                 -d 'type=2' \
                 -d 'like=1'
@@ -924,7 +961,7 @@ PHP
         LIKE_REPEAT="$(
             post likeGJItem211 \
                 -d "accountID=$AID2" \
-                -d "gjp2=$P2" \
+                -d "gjp2=$GJP2_B" \
                 -d "itemID=$CID" \
                 -d 'type=2' \
                 -d 'like=1'
@@ -936,7 +973,7 @@ PHP
         DISLIKE_AGAIN="$(
             post likeGJItem211 \
                 -d "accountID=$AID2" \
-                -d "gjp2=$P2" \
+                -d "gjp2=$GJP2_B" \
                 -d "itemID=$CID" \
                 -d 'type=2' \
                 -d 'like=0'
@@ -948,7 +985,7 @@ PHP
         DELC="$(
             post deleteGJComment20 \
                 -d "accountID=$AID1" \
-                -d "gjp2=$P1" \
+                -d "gjp2=$GJP2_A" \
                 -d "commentID=$CID"
         )"
 
@@ -984,7 +1021,7 @@ PHP
     ACID="$(
         post uploadGJAccComment20 \
             -d "accountID=$AID1" \
-            -d "gjp2=$P1" \
+            -d "gjp2=$GJP2_A" \
             --data-urlencode "comment=$ACC_COMMENT" \
             -d 'gameVersion=22' \
             -d 'binaryVersion=51'
@@ -1023,7 +1060,7 @@ PHP
         DAC="$(
             post deleteGJAccComment20 \
                 -d "accountID=$AID1" \
-                -d "gjp2=$P1" \
+                -d "gjp2=$GJP2_A" \
                 -d "commentID=$ACID"
         )"
 
@@ -1039,7 +1076,7 @@ echo "===== SOCIAL ====="
 FR="$(
 post uploadFriendRequest20 \
     -d "accountID=$AID1" \
-    -d "gjp2=$P1" \
+    -d "gjp2=$GJP2_A" \
     -d "toAccountID=$AID2" \
     -d 'comment=VjgwIEZSSUVORA=='
 )"
@@ -1058,7 +1095,7 @@ fi
 FGET="$(
 post getGJFriendRequests20 \
     -d "accountID=$AID2" \
-    -d "gjp2=$P2" \
+    -d "gjp2=$GJP2_B" \
     -d 'page=0'
 )"
 
@@ -1068,7 +1105,7 @@ if [ "$FRID" -gt 0 ]; then
     FA="$(
         post acceptGJFriendRequest20 \
             -d "accountID=$AID2" \
-            -d "gjp2=$P2" \
+            -d "gjp2=$GJP2_B" \
             -d "requestID=$FRID"
     )"
 
@@ -1078,7 +1115,7 @@ fi
 UL="$(
 post getGJUserList20 \
     -d "accountID=$AID1" \
-    -d "gjp2=$P1" \
+    -d "gjp2=$GJP2_A" \
     -d 'type=0'
 )"
 
@@ -1107,7 +1144,7 @@ MESSAGE_BODY_WIRE="$(
 MS="$(
 post uploadGJMessage20 \
     -d "accountID=$AID1" \
-    -d "gjp2=$P1" \
+    -d "gjp2=$GJP2_A" \
     -d "toAccountID=$AID2" \
     -d "subject=$MESSAGE_SUBJECT_WIRE" \
     -d "body=$MESSAGE_BODY_WIRE"
@@ -1118,7 +1155,7 @@ expect_eq "Send GD 2.2 encoded message" "$MS" "1"
 ML="$(
 post getGJMessages20 \
     -d "accountID=$AID2" \
-    -d "gjp2=$P2" \
+    -d "gjp2=$GJP2_B" \
     -d 'page=0' \
     -d 'getSent=0'
 )"
@@ -1149,7 +1186,7 @@ if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
     MR="$(
         post downloadGJMessage20 \
             -d "accountID=$AID2" \
-            -d "gjp2=$P2" \
+            -d "gjp2=$GJP2_B" \
             -d "messageID=$MID"
     )"
 
@@ -1161,7 +1198,7 @@ if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
     MD="$(
         post deleteGJMessages20 \
             -d "accountID=$AID2" \
-            -d "gjp2=$P2" \
+            -d "gjp2=$GJP2_B" \
             -d "messageID=$MID" \
             -d 'isSender=0'
     )"
@@ -1170,7 +1207,7 @@ if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
     MR_DELETED_RECEIVER="$(
         post downloadGJMessage20 \
             -d "accountID=$AID2" \
-            -d "gjp2=$P2" \
+            -d "gjp2=$GJP2_B" \
             -d "messageID=$MID"
     )"
     expect_eq "Deleted receiver copy cannot be downloaded" "$MR_DELETED_RECEIVER" "-1"
@@ -1178,7 +1215,7 @@ if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
     MSENT="$(
         post getGJMessages20 \
             -d "accountID=$AID1" \
-            -d "gjp2=$P1" \
+            -d "gjp2=$GJP2_A" \
             -d 'page=0' \
             -d 'getSent=1'
     )"
@@ -1187,7 +1224,7 @@ if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
     MDS="$(
         post deleteGJMessages20 \
             -d "accountID=$AID1" \
-            -d "gjp2=$P1" \
+            -d "gjp2=$GJP2_A" \
             -d "messageID=$MID" \
             -d 'isSender=1'
     )"
@@ -1195,7 +1232,7 @@ if [[ "$MID" =~ ^[0-9]+$ ]] && [ "$MID" -gt 0 ]; then
     MR_DELETED_SENDER="$(
         post downloadGJMessage20 \
             -d "accountID=$AID1" \
-            -d "gjp2=$P1" \
+            -d "gjp2=$GJP2_A" \
             -d "messageID=$MID" \
             -d 'isSender=1'
     )"
@@ -1210,7 +1247,7 @@ echo "===== FRIEND REMOVE / BLOCK ====="
 RF="$(
 post removeGJFriend20 \
     -d "accountID=$AID1" \
-    -d "gjp2=$P1" \
+    -d "gjp2=$GJP2_A" \
     -d "targetAccountID=$AID2"
 )"
 
@@ -1219,7 +1256,7 @@ expect_eq "Remove friend" "$RF" "1"
 BL="$(
 post blockGJUser20 \
     -d "accountID=$AID1" \
-    -d "gjp2=$P1" \
+    -d "gjp2=$GJP2_A" \
     -d "targetAccountID=$AID2"
 )"
 
@@ -1228,7 +1265,7 @@ expect_eq "Block user" "$BL" "1"
 UBL="$(
 post unblockGJUser20 \
     -d "accountID=$AID1" \
-    -d "gjp2=$P1" \
+    -d "gjp2=$GJP2_A" \
     -d "targetAccountID=$AID2"
 )"
 
@@ -1411,7 +1448,7 @@ if [ "$LEVEL_ID" -gt 0 ]; then
     FOREIGN_DELETE="$(
         post deleteGJLevelUser20 \
             -d "accountID=$AID2" \
-            -d "gjp2=$P2" \
+            -d "gjp2=$GJP2_B" \
             -d "levelID=$LEVEL_ID"
     )"
 
@@ -1420,7 +1457,7 @@ if [ "$LEVEL_ID" -gt 0 ]; then
     LD="$(
         post deleteGJLevelUser20 \
             -d "accountID=$AID1" \
-            -d "gjp2=$P1" \
+            -d "gjp2=$GJP2_A" \
             -d "levelID=$LEVEL_ID"
     )"
 
