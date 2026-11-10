@@ -18,7 +18,9 @@ from muchoclients5v import (
 )
 from INSTALL_5V import csrf_from
 
-HERE = Path(__file__).resolve().parent
+HERE = (Path(sys.executable).resolve().parent
+        if getattr(sys, "frozen", False)
+        else Path(__file__).resolve().parent)
 OUTDIR = HERE / "patched_clients"
 
 
