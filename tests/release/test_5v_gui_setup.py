@@ -20,6 +20,8 @@ class GuiSetupContract(unittest.TestCase):
         self.assertIn("tkinter", source)
         self.assertIn("messagebox.askyesno", source)
         self.assertIn("threading.Thread", source)
+        self.assertIn("def on_close(self):", source)
+        self.assertIn("if len(matches) > 1:", source)
         self.assertNotIn("pip install", source.lower())
         self.assertNotIn("subprocess.run", source)
 
@@ -68,6 +70,9 @@ class GuiSetupContract(unittest.TestCase):
         self.assertIn("--add-data", source)
         self.assertIn("MuchoCore-Setup.exe --self-test", source)
         self.assertIn("MuchoCore-5V-Setup-Windows-x64", source)
+        self.assertIn("release:", source)
+        self.assertIn("softprops/action-gh-release@v2", source)
+        self.assertIn("files: dist/MuchoCore-Setup.exe", source)
 
 
 if __name__ == "__main__":
