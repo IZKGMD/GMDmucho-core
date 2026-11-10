@@ -135,7 +135,7 @@ jobs:
           $archive = Get-ChildItem payload -Filter '*.zip' | Select-Object -First 1
           if (-not $archive) { throw "PHP7 payload ZIP was not downloaded" }
           Expand-Archive -LiteralPath $archive.FullName -DestinationPath payload\extracted -Force
-          foreach ($item in @('mc\admin.php','5V_ROOT_REWRITE_RULES.txt','INSTALL_5V.py','mucho5v.py','PUBLISH_CLIENTS_5V.py','muchoclients5v.py','gd_windows_patcher.py')) {
+          foreach ($item in @('mc\admin.php','5V_ROOT_REWRITE_RULES.txt','RECOVERY_HANDLER.php.tpl','INSTALL_5V.py','RECOVER_ADMIN_5V.py','mucho5v.py','PUBLISH_CLIENTS_5V.py','muchoclients5v.py','gd_windows_patcher.py')) {
             if (-not (Test-Path (Join-Path payload\extracted $item))) {
               throw "Missing bundled setup resource: $item"
             }
@@ -146,7 +146,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install "pyinstaller>=6.10,<7"
-          pyinstaller --noconfirm --clean --onefile --windowed --name MuchoCore-Setup --distpath dist --workpath build\pyinstaller --specpath build\spec --paths payload\extracted --hidden-import gd_windows_patcher --hidden-import INSTALL_5V --hidden-import mucho5v --hidden-import PUBLISH_CLIENTS_5V --hidden-import muchoclients5v --add-data "payload\extracted\mc;mc" --add-data "payload\extracted\5V_ROOT_REWRITE_RULES.txt;." tools\release\5v-installer\GUI_SETUP_5V.py
+          pyinstaller --noconfirm --clean --onefile --windowed --name MuchoCore-Setup --distpath dist --workpath build\pyinstaller --specpath build\spec --paths payload\extracted --hidden-import gd_windows_patcher --hidden-import INSTALL_5V --hidden-import RECOVER_ADMIN_5V --hidden-import mucho5v --hidden-import PUBLISH_CLIENTS_5V --hidden-import muchoclients5v --add-data "payload\extracted\mc;mc" --add-data "payload\extracted\5V_ROOT_REWRITE_RULES.txt;." --add-data "payload\extracted\RECOVERY_HANDLER.php.tpl;." tools\release\5v-installer\GUI_SETUP_5V.py
           if (-not (Test-Path dist\MuchoCore-Setup.exe)) {
             throw "PyInstaller did not create MuchoCore-Setup.exe"
           }
