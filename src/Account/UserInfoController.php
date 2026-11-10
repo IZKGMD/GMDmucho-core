@@ -21,18 +21,14 @@ final readonly class UserInfoController
     {
         $levelsInfo = $request->postString('levelsInfo');
 
-        if ($levelsInfo === '' || $levelsInfo === '0') {
-            return Response::text('-2');
-        }
-
         try {
-            $this->service->submit(
+            $accepted = $this->service->submit(
                 $request->postInt('accountID'),
                 $request->gdCredential(),
                 $levelsInfo
             );
 
-            return Response::text('1');
+            return Response::text($accepted ? '1' : '-2');
         } catch (Throwable) {
             return Response::text('-1');
         }

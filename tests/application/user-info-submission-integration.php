@@ -190,7 +190,13 @@ try {
 
     $empty = $validFields;
     $empty['levelsInfo'] = '';
-    $check($send($empty)->body === '-2', 'empty payload uses the native missing-data sentinel');
+    $check($send($empty)->body === '-2', 'authenticated empty payload uses the native missing-data sentinel');
+
+    $emptyUnauthenticated = $validFields;
+    $emptyUnauthenticated['gjp2'] = str_repeat('0', 40);
+    $emptyUnauthenticated['levelsInfo'] = '';
+    $check($send($emptyUnauthenticated)->body === '-1',
+        'invalid credentials are rejected before the missing-payload sentinel');
 
     $zero = $validFields;
     $zero['levelsInfo'] = '0';

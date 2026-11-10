@@ -24,19 +24,19 @@ final readonly class UserInfoSubmissionService
         int $accountId,
         string $credential,
         string $levelsInfo
-    ): void {
-        if (
-            $levelsInfo === '' ||
-            $levelsInfo === '0' ||
-            strlen($levelsInfo) > self::MAX_PAYLOAD_BYTES
-        ) {
-            throw new RuntimeException('Invalid user-info payload.');
+    ): bool {
+        // Upstream validates account credentials before checking levelsInfo.
+        // Keep invalid/unauthenticated requests at -1 even when the payload is
+        // missing; only an authenticated client receives the native -2.
+        $this->auth->authenticate($accountId, $credential);
+
+        if ($levelsInfo === '' || $levelsInfo === '0') {
+            return false;
         }
 
-        // A public account ID or device UDID is not an authentication proof.
-        // Match the established GDPS behavior: only an authenticated account
-        // may replace its private user-info snapshot.
-        $this->auth->authenticate($accountId, $credential);
+        if (strlen($levelsInfo) > self::MAX_PAYLOAD_BYTES) {
+            throw new RuntimeException('Invalid user-info payload.');
+        }
 
         $stmt = $this->db->prepare(
             'INSERT INTO mucho_account_user_info
@@ -54,5 +54,7 @@ final readonly class UserInfoSubmissionService
             'levels_info' => $levelsInfo,
             'payload_sha256' => hash('sha256', $levelsInfo),
         ]);
+
+        return true;
     }
 }
