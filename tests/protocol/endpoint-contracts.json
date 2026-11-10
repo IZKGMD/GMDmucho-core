@@ -8017,6 +8017,54 @@
         "evidence": []
       },
       "response_kind": "html"
+    },
+    {
+      "id": "route.submitgjuserinfo",
+      "priority": "untriaged",
+      "method": "ANY",
+      "canonical_path": "/submitgjuserinfo",
+      "aliases": [
+        "/submitGJUserInfo",
+        "/database/submitGJUserInfo.php"
+      ],
+      "families": [
+        "unverified"
+      ],
+      "release_gate": false,
+      "inventory_only": true,
+      "request_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "wire_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "auth_contract": {
+        "status": "pending",
+        "evidence": []
+      },
+      "negative_cases": {
+        "status": "pending",
+        "evidence": []
+      },
+      "db_integrity": {
+        "status": "pending",
+        "evidence": []
+      },
+      "concurrency": {
+        "status": "pending",
+        "evidence": []
+      },
+      "performance_budget": {
+        "status": "pending",
+        "p95_ms": null,
+        "evidence": []
+      },
+      "real_client": {
+        "status": "pending",
+        "evidence": []
+      }
     }
   ]
 }
