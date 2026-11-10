@@ -256,8 +256,9 @@ def main():
             "-days", "1", "-keyout", str(private_key), "-out", str(certificate),
             "-subj", "/CN=127.0.0.1", "-addext", "subjectAltName=IP:127.0.0.1",
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=25)
-        # PHP runs as www-data, matching the file limiter ownership of FPM.
-        # Allow only the test certificate to be read, never the private key.
+        # PHP CLI accesses the Docker-generated vendor tree via sudo in
+        # this disposable runner. The test driver restricts all DB writes to
+        # its generated testgdps admin identity. Never expose the private key.
         os.chmod(directory, 0o755)
         os.chmod(certificate, 0o644)
         os.chmod(private_key, 0o600)
@@ -270,7 +271,7 @@ def main():
 
             def php(action):
                 return run([
-                    "sudo", "-E", "-u", "www-data", "php", "-d",
+                    "sudo", "-E", "php", "-d",
                     "openssl.cafile=" + str(certificate), DRIVER, action,
                 ], env)
 
