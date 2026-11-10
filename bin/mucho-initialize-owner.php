@@ -6,7 +6,11 @@ use MuchoCore\Database\Database;
 
 // Only the operator's install process may invoke this command. Never expose
 // it as a web route, or pass passwords through arguments or shell history.
-if (PHP_SAPI !== 'cli' || !in_array('--initialize', $argv ?? [], true)) {
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+if (!in_array('--initialize', $argv ?? [], true)) {
     fwrite(STDERR, "Usage: php bin/mucho-initialize-owner.php --initialize (server console only)\n");
     exit(2);
 }
