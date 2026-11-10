@@ -43,8 +43,8 @@ DANGEROUS = re.compile(
     r"rm\s+-rf|mkfs|\bdd\s+if=)"
 )
 SENSITIVE_READ = re.compile(
-    r"(?i)(\\.env\\b|\\.secrets\\b|id_rsa|id_ed25519|"
-    r"php7-apk-signer|credentials\\.json|private[_-]?key)"
+    r"(?i)(\.env\b|\.secrets\b|id_rsa|id_ed25519|"
+    r"php7-apk-signer|credentials\.json|private[_-]?key)"
 )
 
 
@@ -254,7 +254,7 @@ def redact_output(value: str) -> str:
         (re.compile(r"(?i)gh[pousr]_[A-Za-z0-9_]{20,}"), "[REDACTED_GITHUB_TOKEN]"),
         (re.compile(r"(?i)sk-[A-Za-z0-9_-]{20,}"), "[REDACTED_API_KEY]"),
         (re.compile(r"AKIA[0-9A-Z]{16}"), "[REDACTED_AWS_KEY]"),
-        (re.compile(r"(?i)(https?://[^:/\\s]+:)[^@/\\s]+@"), r"\\1[REDACTED]@"),
+        (re.compile(r"(?i)(https?://[^:/\s]+:)[^@/\s]+@"), r"\1[REDACTED]@"),
     ]
     for pattern, replacement in patterns:
         value = pattern.sub(replacement, value)
