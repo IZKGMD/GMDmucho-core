@@ -2,6 +2,10 @@
 
 The first visit to `https://your-gdps.example/admin/` now displays **Create first administrator** instead of silently creating an owner account.
 
+## Language
+
+The first-run administrator registration opens in **English** by default. Use the **EN / RU** switcher at the top of the form to select English or Russian. This choice persists through validation errors, page reloads and the first sign-in; it uses the same `mucho_admin_language` preference as the main administration panel. Error messages, security notices and field labels are translated on the server. Existing installations keep their registered owners.
+
 ## New VPS installation
 
 1. Install MuchoCore as usual. At the terminal, choose the **admin setup secret**. This is an authorization code for the browser wizard, *not* the final admin login password.
