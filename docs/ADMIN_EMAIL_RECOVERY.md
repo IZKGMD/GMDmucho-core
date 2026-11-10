@@ -40,6 +40,19 @@ After reset, old authenticated sessions are invalidated on their next request.
 TOTP remains enabled and is still required on password sign-in.
 Existing admin sessions from before this update require a fresh login.
 
+## Automated acceptance (PHP 8)
+
+The `PHP 8 HTTP acceptance` workflow spins up a disposable MariaDB/PHP-FPM/Caddy
+stack and an **in-process loopback SMTP server** using a disposable TLS test
+certificate. The test covers authenticated STARTTLS, accepted messages,
+trusted-origin links, verification/expiry/replay, reset cooldown, one-time
+password reset, prior-session invalidation, 2FA retention and expired reset
+links. No test messages are sent to external domains.
+
+It uses only the explicitly disposable `testgdps` CI database, creates an
+isolated administrator fixture, and removes that account and its recovery data
+at the end. A green CI test is not proof of real mail-provider delivery.
+
 ## Verification before claiming email delivery
 
 Check GET /admin/?email_recovery=1, request a message to a test mailbox,
