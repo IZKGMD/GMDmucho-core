@@ -146,7 +146,22 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install "pyinstaller>=6.10,<7"
-          python -m PyInstaller --noconfirm --clean --onefile --windowed --name MuchoCore-Setup --distpath dist --workpath build\pyinstaller --specpath build\spec --paths payload\extracted --hidden-import gd_windows_patcher --hidden-import INSTALL_5V --hidden-import RECOVER_ADMIN_5V --hidden-import mucho5v --hidden-import PUBLISH_CLIENTS_5V --hidden-import muchoclients5v --add-data "payload\extracted\mc;mc" --add-data "payload\extracted\5V_ROOT_REWRITE_RULES.txt;." --add-data "payload\extracted\RECOVERY_HANDLER.php.tpl;." tools\release\5v-installer\GUI_SETUP_5V.py
+          $workspace = (Get-Location).Path
+          $payloadRoot = (Resolve-Path 'payload\extracted').Path
+          $installerScript = (Resolve-Path 'tools\release\5v-installer\GUI_SETUP_5V.py').Path
+          $distPath = Join-Path $workspace 'dist'
+          $workPath = Join-Path $workspace 'build\pyinstaller'
+          $specPath = Join-Path $workspace 'build\spec'
+          New-Item -ItemType Directory -Force -Path $distPath, $workPath, $specPath | Out-Null
+
+          # PyInstaller resolves relative datas from the generated .spec location,
+          # not reliably from the workflow working directory. Use absolute source
+          # paths so the spec remains reproducible when stored under build\spec.
+          $dataMc = "$payloadRoot\mc;mc"
+          $dataRules = "$payloadRoot\5V_ROOT_REWRITE_RULES.txt;."
+          $dataRecovery = "$payloadRoot\RECOVERY_HANDLER.php.tpl;."
+
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name MuchoCore-Setup --distpath $distPath --workpath $workPath --specpath $specPath --paths $payloadRoot --hidden-import gd_windows_patcher --hidden-import INSTALL_5V --hidden-import RECOVER_ADMIN_5V --hidden-import mucho5v --hidden-import PUBLISH_CLIENTS_5V --hidden-import muchoclients5v --add-data $dataMc --add-data $dataRules --add-data $dataRecovery $installerScript
           if (-not (Test-Path dist\MuchoCore-Setup.exe)) {
             throw "PyInstaller did not create MuchoCore-Setup.exe"
           }
