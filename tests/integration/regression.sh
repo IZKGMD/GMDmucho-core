@@ -511,13 +511,19 @@ GJP2_A="$(
     PASSWORD="$P1" php -r 'echo sha1((string)getenv("PASSWORD") . "mI29fmAnxgTs");'
 )"
 L1_GJP2="$(
-post loginGJAccount22 \
+curl -sS \
+    --connect-timeout 5 \
+    --max-time 20 \
+    -H "Host: $HOST" \
+    -H "CF-Connecting-IP: $TEST_IP" \
+    -X POST \
+    "$DOMAIN/a/accounts/loginGJAccount22.php" \
     -d "userName=$U1" \
     -d "gjp2=$GJP2_A" \
     -d 'gameVersion=22' \
     -d 'binaryVersion=51'
 )"
-expect_eq "GD 2.209 GJP2 login via versioned HTTP route" "$L1_GJP2" "$AID1,$UID1"
+expect_eq "GD 2.209 GJP2 login via /a/accounts HTTP route" "$L1_GJP2" "$AID1,$UID1"
 
 BAD_LOGIN="$(
 post loginGJAccount \
