@@ -7,6 +7,8 @@ services:
     environment:
       MUCHO_ACCOUNT_URL: http://127.0.0.1:18080
       MUCHO_PROTECT: "0"
+      MUCHO_CONTROL_DIR: /var/lib/muchocore-control
+      MUCHO_BACKUP_DIR: /var/lib/muchocore-backups
 
   testgdps-caddy:
     image: caddy:2.10-alpine
