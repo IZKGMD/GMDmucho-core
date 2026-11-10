@@ -25,14 +25,7 @@ For the normal interactive VPS install, use the stable-release bootstrap:
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
 ```
 
-The installer asks for your GDPS domain, server name, and an **administrator
-setup secret** (with confirmation). The secret is *not* your final admin
-login password. It authorizes the one-time registration form.
-
-The setup secret must contain at least 10 characters and is stored in the
-protected `.secrets/admin_password` file. On a reinstall you can keep it;
-changing it does **not** silently change an existing admin login. An unattended
-installation can supply `MUCHO_ADMIN_PASSWORD` privately through the environment.
+The installer asks for the GDPS domain and server name and automatically creates a private owner-activation credential. You do **not** need to remember or enter a separate Setup Secret. The interactive installer prints a private one-time activation link to open in your browser. Do not share this link; it can authorize the first owner before registration.
 
 It installs Docker when needed, deploys the latest **published stable release**, creates the database and Cloud Save secrets, configures Caddy, enables release-based updates, runs migrations, and verifies the production health endpoint.
 
@@ -68,16 +61,14 @@ Expected:
 1
 \`\`\`
 
-Open the Admin Panel:
+Open the **private activation link** printed by the installer. If you missed it, generate it in your own private SSH terminal:
 
-\`\`\`text
-https://YOUR-DOMAIN/admin/
-\`\`\`
+```bash
+cd /opt/mucho-core
+sudo docker compose exec -T app php bin/mucho-owner-link.php
+```
 
-On the **first** visit, select **Create first administrator**. Choose your
-administrator username and a new login password (12–256 characters), confirm
-it, and enter the setup secret from the VPS installer. The owner is then
-created and signed in. There is no public sign-up after the first owner.
+After opening the private link, choose your administrator username and password (12–256 characters) and confirm the password. There is **no Setup Secret field**. The site protects against first-visitor takeovers, and the onboarding link stops working once the first owner is registered.
 
 On subsequent visits, log in with the credentials chosen in the browser.
 If you lose them, use verified-email recovery (if configured) or explicit
