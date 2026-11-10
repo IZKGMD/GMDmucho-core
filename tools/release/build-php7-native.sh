@@ -187,7 +187,7 @@ current limits. Keep the original game files and test patched output separately.
 README
 
 # Bundle the local one-click installer and FTP-verified emergency owner recovery.
-# They run on the operator's computer (Python 3.10+), NEVER on shared PHP7.
+# The GUI EXE is self-contained; source launchers use Python 3.10+ on the operator's PC.
 for item in INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py \
   PUBLISH_CLIENTS_5V.py muchoclients5v.py GUI_SETUP_5V.py \
   RECOVERY_HANDLER.php.tpl START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
