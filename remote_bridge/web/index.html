@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MuchoCore Remote</title>
+<style>
+:root{color-scheme:dark;--bg:#0c0d12;--panel:#151821;--line:#282d3a;--muted:#9299aa;--text:#edf0f7;--accent:#9b83ff;--good:#54d6a0}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0,#292044 0,transparent 42%),var(--bg);color:var(--text);font:14px/1.5 Inter,Segoe UI,Arial,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:28px 20px 60px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}
+.brand{display:flex;align-items:center;gap:12px}.mark{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,#8c6dff,#d0a4ff);display:grid;place-items:center;color:#100d1d;font-weight:900;font-size:20px}
+h1{font-size:21px;margin:0;letter-spacing:-.4px}small,.muted{color:var(--muted)}.pill{border:1px solid var(--line);border-radius:999px;padding:5px 10px;color:var(--muted);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}.card{background:linear-gradient(160deg,#191d29,#13161e);border:1px solid var(--line);border-radius:16px;padding:17px;min-width:0}.span4{grid-column:span 4}.span6{grid-column:span 6}.span8{grid-column:span 8}.span12{grid-column:span 12}
+h2{font-size:14px;margin:0 0 12px;color:#d9d5ed}.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.spacer{flex:1}
+button,select,input,textarea{font:inherit;color:var(--text);background:#0e1118;border:1px solid #343a4b;border-radius:9px;padding:9px 11px}
+button{cursor:pointer;background:#252039;border-color:#51457c}button:hover{background:#32294f}button.secondary{background:#171b25;border-color:#333a4b}button:disabled{opacity:.45;cursor:not-allowed}
+input,select{min-width:0}textarea{width:100%;min-height:110px;resize:vertical;font:12px/1.45 Consolas,monospace}
+.stat{font-size:23px;font-weight:700;letter-spacing:-.5px}.status{font-size:12px;color:var(--muted)}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6b7280;margin-right:6px}.dot.online{background:var(--good);box-shadow:0 0 10px #54d6a066}
+.list{display:grid;gap:8px}.item{border:1px solid var(--line);border-radius:10px;padding:10px;background:#11141c}.item strong{font-size:13px}.item small{display:block;overflow-wrap:anywhere}
+#login{max-width:410px;margin:12vh auto}.hidden{display:none!important}.field{display:grid;gap:5px;margin:10px 0}.field label{color:var(--muted);font-size:12px}
+#screen{max-width:100%;border-radius:10px;border:1px solid var(--line);display:block;margin-top:10px}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0b0d12;border:1px solid var(--line);padding:12px;border-radius:10px;max-height:320px;overflow:auto;font:12px/1.5 Consolas,monospace}
+.notice{color:#e4d9ff;background:#241d38;border:1px solid #40345d;padding:10px 12px;border-radius:10px;font-size:12px}
+@media(max-width:760px){.span4,.span6,.span8{grid-column:span 12}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<main>
+<section id="login" class="card">
+  <div class="brand"><div class="mark">M</div><div><h1>MuchoCore Remote</h1><small>Защищённый доступ к Windows Agent</small></div></div>
+  <div class="field"><label>Пароль панели</label><input id="password" type="password" autocomplete="current-password" placeholder="Введи пароль прямо здесь"></div>
+  <button id="loginBtn">Войти</button><p id="loginError" class="status"></p>
+</section>
+<section id="app" class="hidden">
+  <header class="top">
+    <div class="brand"><div class="mark">M</div><div><h1>MuchoCore Remote</h1><small>Control plane · Windows Agent</small></div></div>
+    <div class="row"><span class="pill">HTTPS · local approval</span><button class="secondary" id="logoutBtn">Выйти</button></div>
+  </header>
+  <div class="notice">Удалённые команды терминала, управление мышью/клавиатурой, запуск приложений, запись и удаление файлов требуют подтверждения непосредственно на Windows-ПК. Агент работает видимо, без скрытого доступа.</div>
+  <div class="grid" style="margin-top:14px">
+    <section class="card span4"><h2>Подключение</h2><div class="stat" id="agentCount">—</div><div class="status">онлайн-агентов</div><div id="agents" class="list" style="margin-top:12px"></div></section>
+    <section class="card span8"><h2>Команды</h2>
+      <div class="row"><select id="action">
+        <option value="pc.status">Статус ПК</option><option value="pc.screenshot">Скриншот рабочего стола</option>
+        <option value="pc.files.list">Список файлов</option><option value="pc.files.read">Прочитать файл</option>
+        <option value="pc.files.write">Записать файл</option><option value="pc.app.launch">Запустить приложение</option>
+        <option value="pc.terminal.run">Команда PowerShell</option><option value="pc.desktop.click">Клик мышью</option>
+        <option value="pc.desktop.type">Ввести текст</option><option value="pc.desktop.hotkey">Комбинация клавиш</option>
+        <option value="pc.desktop.scroll">Прокрутка</option>
+      </select><select id="agentSelect"></select><button id="sendBtn">Отправить</button></div>
+      <div class="field"><label>Параметры JSON</label><textarea id="payload">{}</textarea></div>
+      <small>Примеры: статус/скриншот — {}; список файлов — {"root_index":0,"path":""}; терминал — {"root_index":0,"cwd":"","command":"git status"}</small>
+    </section>
+    <section class="card span6"><h2>Последние задания</h2><div id="jobs" class="list"></div></section>
+    <section class="card span6"><h2>Результат</h2><div id="result" class="status">Выбери задание, чтобы увидеть результат.</div><img id="screen" class="hidden" alt="Скриншот рабочего стола"><pre id="output" class="hidden"></pre></section>
+    <section class="card span12"><div class="row"><h2 style="margin:0">Журнал аудита</h2><button class="secondary spacer" id="refreshBtn">Обновить</button></div><div id="audit" class="list" style="margin-top:12px"></div></section>
+  </div>
+</section>
+</main>
+<script>
+let csrf="",refreshTimer=null;
+const $=id=>document.getElementById(id);
+async function api(path,opts={}){const headers={"Content-Type":"application/json",...(opts.headers||{})};if(csrf&&opts.method&&opts.method!=="GET")headers["X-CSRF-Token"]=csrf;const r=await fetch("api/v1/"+path,{...opts,headers,credentials:"same-origin"});if(r.status===204)return null;const data=await r.json().catch(()=>({detail:"Invalid response"}));if(r.status===401){showLogin();throw new Error(data.detail||"Session expired")}if(!r.ok)throw new Error(data.detail||"Request failed");return data}
+function showLogin(){$("login").classList.remove("hidden");$("app").classList.add("hidden");if(refreshTimer)clearInterval(refreshTimer)}
+function showApp(){$("login").classList.add("hidden");$("app").classList.remove("hidden");loadAll();if(refreshTimer)clearInterval(refreshTimer);refreshTimer=setInterval(loadAll,4000)}
+function err(e){$("loginError").textContent=e.message}
+async function login(){try{const data=await api("auth/login",{method:"POST",body:JSON.stringify({password:$("password").value})});csrf=data.csrf_token;$("password").value="";showApp()}catch(e){err(e)}}
+async function bootstrap(){try{const data=await api("auth/me");csrf=data.csrf_token;showApp()}catch(e){showLogin()}}
+function fmt(ts){return ts?new Date(ts*1000).toLocaleString():"—"}
+async function loadAll(){try{const values=await Promise.all([api("admin/agents"),api("admin/jobs?limit=20"),api("admin/audit?limit=20")]);renderAgents(values[0]);renderJobs(values[1]);renderAudit(values[2])}catch(e){$("result").textContent=e.message}}
+function renderAgents(items){const online=items.filter(x=>x.status==="online"&&!x.revoked);$("agentCount").textContent=online.length;$("agents").innerHTML="";$("agentSelect").innerHTML="";for(const a of items){const opt=document.createElement("option");opt.value=a.id;opt.textContent=a.name+" · "+a.status+(a.revoked?" · revoked":"");$("agentSelect").append(opt);const d=document.createElement("div");d.className="item";d.innerHTML='<strong><span class="dot '+(a.status==="online"&&!a.revoked?"online":"")+'"></span>'+esc(a.name)+'</strong><small>'+esc(a.id)+' · '+a.status+' · last seen '+fmt(a.last_seen)+'</small>';$("agents").append(d)}if(!items.length)$("agents").textContent="Агент ещё не подключён"}
+function renderJobs(items){$("jobs").innerHTML="";for(const j of items){const d=document.createElement("div");d.className="item";d.innerHTML='<div class="row"><strong>'+esc(j.action)+'</strong><span class="spacer"></span><span class="pill">'+esc(j.status)+'</span></div><small>'+esc(j.id)+' · '+fmt(j.created_at)+'</small>';d.onclick=()=>showJob(j.id);d.style.cursor="pointer";$("jobs").append(d)}if(!items.length)$("jobs").textContent="Заданий пока нет"}
+function renderAudit(items){$("audit").innerHTML="";for(const a of items){const d=document.createElement("div");d.className="item";d.innerHTML='<strong>'+esc(a.action)+'</strong><small>'+fmt(a.created_at)+' · '+esc(a.actor)+' · '+esc(a.target||"")+'</small>';$("audit").append(d)}}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function send(){try{const payload=JSON.parse($("payload").value||"{}");const agent_id=$("agentSelect").value;if(!agent_id)throw new Error("Нет подключённого агента");const data=await api("admin/jobs",{method:"POST",body:JSON.stringify({agent_id,action:$("action").value,payload})});$("result").textContent="Задание поставлено в очередь: "+data.job_id;loadAll()}catch(e){$("result").textContent=e.message}}
+async function showJob(id){try{const j=await api("admin/jobs/"+id);$("result").textContent=j.action+" · "+j.status+" · "+id;$("screen").classList.add("hidden");$("output").classList.remove("hidden");let value=JSON.stringify(j,null,2);if(j.result&&j.result.screenshot_base64){$("screen").src="data:image/jpeg;base64,"+j.result.screenshot_base64;$("screen").classList.remove("hidden");delete j.result.screenshot_base64;value=JSON.stringify(j,null,2)+"\n\nScreenshot rendered above."}if(j.result&&j.result.output)value=j.result.output+"\n\n"+JSON.stringify({...j,result:{...j.result,output:"[shown above]"}},null,2);$("output").textContent=value}catch(e){$("result").textContent=e.message}}
+async function logout(){try{await api("auth/logout",{method:"POST",body:"{}"})}catch(e){}csrf="";showLogin()}
+$("loginBtn").onclick=login;$("password").addEventListener("keydown",e=>{if(e.key==="Enter")login()});$("sendBtn").onclick=send;$("logoutBtn").onclick=logout;$("refreshBtn").onclick=loadAll;bootstrap();
+</script>
+</body></html>
