@@ -210,7 +210,7 @@ rm -f "$OUTPUT"
 (cd "$STAGE" && zip -qr "$OUTPUT" mc \
  "5V_ROOT_REWRITE_RULES.txt" "START_HERE_SHARED.txt" \
  INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl \
- PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py \
+ PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py GUI_SETUP_5V.py \
  START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
  START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \
  START_CLIENTS_WINDOWS.cmd START_CLIENTS_LINUX.sh README_RU.txt)
@@ -227,7 +227,7 @@ for item in mc/admin.php mc/public/php7-admin.php mc/public/assets/php7-admin-ba
   mc/.htaccess mc/public/.htaccess \
   5V_ROOT_REWRITE_RULES.txt START_HERE_SHARED.txt \
   INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl \
-  PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py \
+  PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py GUI_SETUP_5V.py \
   START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
   START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \
   START_CLIENTS_WINDOWS.cmd START_CLIENTS_LINUX.sh README_RU.txt; do
