@@ -32,6 +32,7 @@ $required = [
     '/deleteGJLevelUser20.php',
     '/updateGJDesc20.php',
     '/getGJUserInfo20.php',
+    '/submitGJUserInfo.php',
     '/getGJUsers20.php',
     '/getGJScores20.php',
     '/updateGJUserScore22.php',
