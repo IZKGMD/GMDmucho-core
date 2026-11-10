@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
+use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Account\AccountController;
 use MuchoCore\Account\AccountRepository;
 use MuchoCore\Account\AccountService;
@@ -145,6 +146,17 @@ try {
     $profileId = (int)substr($plain->body, 2);
     $check((int)$db->query('SELECT COUNT(*) FROM profiles WHERE account_id=1')->fetchColumn() === 1,
         'login creates exactly one missing profile');
+
+    // Fixed GJP2 vector for the exact password above, including its boundary spaces.
+    $expectedSpaceGjp2 = '68b2b4dc0e64b4ad799c619044a1668fcffb54f4';
+    $storedSpaceGjp2 = (string)$db->query(
+        'SELECT gjp2_hash FROM accounts WHERE account_id=1'
+    )->fetchColumn();
+    $check($storedSpaceGjp2 !== '' && password_verify($expectedSpaceGjp2, $storedSpaceGjp2),
+        'plain-password login backfills the native GJP2 credential');
+    $authenticated = (new AccountAuthenticator($db))->authenticate(1, $expectedSpaceGjp2);
+    $check((int)$authenticated['account_id'] === 1,
+        'backfilled GJP2 authenticates subsequent GD requests');
     $check((int)$db->query('SELECT COUNT(*) FROM audit_logs WHERE account_id=1 AND action=\'account.login\'')->fetchColumn() === 1,
         'successful login audit is recorded');
 
