@@ -30,7 +30,7 @@ PASSWORDS = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=2)
 
 ALLOWED_ACTIONS = {
     "pc.status", "pc.screenshot", "pc.files.list", "pc.files.read",
-    "pc.files.write", "pc.app.launch", "pc.terminal.run",
+    "pc.files.write", "pc.files.delete", "pc.app.launch", "pc.terminal.run",
     "pc.desktop.click", "pc.desktop.type", "pc.desktop.hotkey",
     "pc.desktop.scroll",
 }
@@ -227,6 +227,10 @@ def _validate_job(action: str, payload: dict[str, Any]) -> None:
         content = payload.get("content")
         if not isinstance(content, str) or len(content.encode("utf-8")) > 256 * 1024:
             raise HTTPException(400, "File content must be UTF-8 text under 256 KiB")
+    if action == "pc.files.delete":
+        path = payload.get("path")
+        if not isinstance(path, str) or not path.strip() or len(path) > 1000:
+            raise HTTPException(400, "A relative file path is required")
 
 
 @app.middleware("http")
