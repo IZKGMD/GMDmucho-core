@@ -219,6 +219,8 @@ def _validate_job(action: str, payload: dict[str, Any]) -> None:
         command = payload.get("command")
         if not isinstance(command, str) or not command.strip() or len(command) > 6000:
             raise HTTPException(400, "Terminal command must be 1–6000 characters")
+        if __import__("re").search(r"(?i)(password|passwd|secret|token|api[_-]?key)\s*[:=]\s*\S+", command):
+            raise HTTPException(400, "Do not place passwords, tokens or API keys in terminal commands")
     if action == "pc.desktop.type":
         text = payload.get("text")
         if not isinstance(text, str) or len(text) > 2000:
