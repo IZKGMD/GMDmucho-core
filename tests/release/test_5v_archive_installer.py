@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "tools/release/5v-installer"
@@ -35,6 +36,65 @@ class DomainTests(unittest.TestCase):
                         "ftp.5v.pl/path", "ftp.5v.pl\nx", ""):
             with self.subTest(host=invalid), self.assertRaises(InstallError):
                 valid_ftp_host(invalid)
+
+
+class EasyInstallerTests(unittest.TestCase):
+    def test_quick_mode_skips_hosting_advanced_questions(self):
+        prompts = []
+        answers = {
+            "Адрес сайта, например https://mygdps.5v.pl": "https://mine.5v.pl",
+            "FTP сервер из кабинета 5v.pl": "ftp.5v.pl",
+            "FTP логин": "u123",
+            "Имя ПУСТОЙ базы MySQL": "database1",
+            "Логин базы MySQL": "dbuser1",
+            "E-mail владельца (для уведомлений и подтверждений)": "owner@example.com",
+        }
+
+        def provide(label, default=""):
+            prompts.append(label)
+            return answers.get(label, default or "Д")
+
+        with patch.object(INSTALL_5V, "ask", side_effect=provide), \
+             patch.object(INSTALL_5V, "secret",
+                          side_effect=["ftp-pass", "database-pass11",
+                                       "admin-password11", "admin-password11"]):
+            config = INSTALL_5V.get_credentials()
+
+        self.assertEqual(config["root"], "")
+        self.assertEqual(config["mode"] if "mode" in config else config["secure"], True)
+        self.assertEqual(config["mysqlhost"], "localhost")
+        self.assertEqual(config["mysqlport"], 3306)
+        self.assertEqual(config["admin"], "admin")
+        self.assertFalse(any("Порт" in label or "Корневая папка" in label
+                             or "Соединение" in label or "MySQL сервер" in label
+                             for label in prompts))
+
+    def test_advanced_mode_still_supports_nonstandard_hosting(self):
+        prompts = []
+        answers = {
+            "Адрес сайта, например https://mygdps.5v.pl": "https://mine.5v.pl",
+            "FTP сервер из кабинета 5v.pl": "ftp.5v.pl",
+            "FTP логин": "u123",
+            "Соединение [FTPS/FTP]": "FTPS",
+            "Корневая папка сайта на FTP (Enter = авто)": "www",
+            "MySQL сервер из кабинета 5v.pl": "mysql.5v.pl",
+            "Порт MySQL": "3307",
+            "Имя ПУСТОЙ базы MySQL": "database1",
+            "Логин базы MySQL": "dbuser1",
+            "E-mail владельца (для уведомлений и подтверждений)": "owner@example.com",
+        }
+        def provide(label, default=""):
+            prompts.append(label)
+            return answers.get(label, default or "Д")
+        with patch.object(INSTALL_5V, "ask", side_effect=provide), \
+             patch.object(INSTALL_5V, "secret",
+                          side_effect=["ftp-pass", "database-pass11",
+                                       "admin-password11", "admin-password11"]):
+            config = INSTALL_5V.get_credentials(advanced=True)
+        self.assertEqual(config["root"], "www")
+        self.assertEqual(config["mysqlhost"], "mysql.5v.pl")
+        self.assertEqual(config["mysqlport"], 3307)
+        self.assertIn("Соединение [FTPS/FTP]", prompts)
 
 
 class PhpConfigTests(unittest.TestCase):
