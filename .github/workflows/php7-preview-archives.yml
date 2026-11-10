@@ -67,9 +67,10 @@ jobs:
           python3 -m py_compile tools/release/5v-installer/*.py
           python3 tests/release/test_5v_archive_installer.py
           python3 tests/release/test_5v_client_publisher.py
+          python3 tests/release/test_5v_gui_setup.py
           bash tools/release/build-php7-native.sh
           unzip -t MuchoCore-PHP7-5v-native-preview.zip
-          for item in mc/compat/php7/users.php INSTALL_5V.py PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py START_CLIENTS_WINDOWS.cmd; do
+          for item in mc/compat/php7/users.php INSTALL_5V.py PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py GUI_SETUP_5V.py START_GUI_WINDOWS.cmd START_CLIENTS_WINDOWS.cmd; do
             unzip -Z1 MuchoCore-PHP7-5v-native-preview.zip | grep -Fx "$item"
           done
           if unzip -Z1 MuchoCore-PHP7-5v-native-preview.zip | grep -Ei '\.(exe|apk)$'; then
@@ -104,3 +105,62 @@ jobs:
           path: MuchoCore-full-PHP82-shared-hosting.zip
           if-no-files-found: error
           retention-days: 30
+
+  windows-setup:
+    name: Build standalone Windows GUI installer
+    needs: package
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Download the exact PHP7 payload built by the package job
+        uses: actions/download-artifact@v4
+        with:
+          name: MuchoCore-PHP7-5v-native-preview
+          path: payload
+
+      - name: Extract the verified shared-hosting payload
+        shell: pwsh
+        run: |
+          $archive = Get-ChildItem payload -Filter '*.zip' | Select-Object -First 1
+          if (-not $archive) { throw "PHP7 payload ZIP was not downloaded" }
+          Expand-Archive -LiteralPath $archive.FullName -DestinationPath payload\extracted -Force
+          foreach ($item in @('mc\admin.php','5V_ROOT_REWRITE_RULES.txt','INSTALL_5V.py','mucho5v.py','PUBLISH_CLIENTS_5V.py','muchoclients5v.py','gd_windows_patcher.py')) {
+            if (-not (Test-Path (Join-Path payload\extracted $item))) {
+              throw "Missing bundled setup resource: $item"
+            }
+          }
+
+      - name: Build one-file windowed installer
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "pyinstaller>=6.10,<7"
+          pyinstaller --noconfirm --clean --onefile --windowed --name MuchoCore-Setup --distpath dist --workpath build\pyinstaller --specpath build\spec --paths payload\extracted --hidden-import gd_windows_patcher --hidden-import INSTALL_5V --hidden-import mucho5v --hidden-import PUBLISH_CLIENTS_5V --hidden-import muchoclients5v --add-data "payload\extracted\mc;mc" --add-data "payload\extracted\5V_ROOT_REWRITE_RULES.txt;." tools\release\5v-installer\GUI_SETUP_5V.py
+          if (-not (Test-Path dist\MuchoCore-Setup.exe)) {
+            throw "PyInstaller did not create MuchoCore-Setup.exe"
+          }
+          if ((Get-Item dist\MuchoCore-Setup.exe).Length -lt 10000000) {
+            throw "Standalone installer is unexpectedly small; bundled payload may be missing"
+          }
+
+      - name: Smoke-test the frozen executable without network access
+        shell: pwsh
+        run: |
+          & .\dist\MuchoCore-Setup.exe --self-test
+          if ($LASTEXITCODE -ne 0) {
+            throw "Frozen installer self-test failed with exit code $LASTEXITCODE"
+          }
+
+      - name: Upload standalone Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: MuchoCore-5V-Setup-Windows-x64
+          path: dist/MuchoCore-Setup.exe
+          if-no-files-found: error
+          retention-days: 30
+
