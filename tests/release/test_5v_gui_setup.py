@@ -15,6 +15,9 @@ class GuiSetupContract(unittest.TestCase):
     def test_gui_is_windows_onefile_entrypoint_with_offline_self_test(self):
         source = GUI.read_text(encoding="utf-8")
         self.assertIn("def _self_test()", source)
+        self.assertIn("import RECOVER_ADMIN_5V", source)
+        self.assertIn("self.open_recovery", source)
+        self.assertIn("RECOVER_ADMIN_5V.recover(", source)
         self.assertIn('if "--self-test" in sys.argv', source)
         self.assertIn('getattr(sys, "_MEIPASS"', source)
         self.assertIn("tkinter", source)
@@ -69,6 +72,8 @@ class GuiSetupContract(unittest.TestCase):
         self.assertIn("--windowed", source)
         self.assertIn("--add-data", source)
         self.assertIn("MuchoCore-Setup.exe --self-test", source)
+        self.assertIn("--hidden-import RECOVER_ADMIN_5V", source)
+        self.assertIn("RECOVERY_HANDLER.php.tpl;.", source)
         self.assertIn("MuchoCore-5V-Setup-Windows-x64", source)
         self.assertIn("release:", source)
         self.assertIn("softprops/action-gh-release@v2", source)
