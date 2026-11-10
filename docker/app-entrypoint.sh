@@ -133,7 +133,8 @@ chown root:www-data /var/lib/muchocore/runtime.env
 chmod 640 /var/lib/muchocore/runtime.env
 
 if [[ "$ADMIN_BOOTSTRAP_ENABLED" == "1" ]]; then
-  php -r 'echo password_hash($argv[1], PASSWORD_DEFAULT);' "$ADMIN_PASS" > /var/lib/muchocore/admin-password.hash
+  # Never expose the administrator credential in /proc/*/cmdline or process logs.
+  printf '%s' "$ADMIN_PASS" | php -r '$value = stream_get_contents(STDIN); if (!is_string($value)) { exit(1); } echo password_hash($value, PASSWORD_DEFAULT);' > /var/lib/muchocore/admin-password.hash
   chown root:www-data /var/lib/muchocore/admin-password.hash
   chmod 640 /var/lib/muchocore/admin-password.hash
 

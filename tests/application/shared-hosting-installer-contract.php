@@ -147,8 +147,10 @@ if (!is_string($ownerLink) || !str_contains($ownerLink, "PHP_SAPI !== 'cli'")
     || !str_contains($ownerLink, 'password_verify($secret, $hash)')
     || !str_contains($ownerLink, '/admin/#setup=')
     || !is_string($vpsInstaller)
-    || !str_contains($vpsInstaller, 'MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"')
-    || str_contains($vpsInstaller, 'prompt_admin_password()')
+    || !str_contains($vpsInstaller, 'owner-initialize-pending')
+    || !str_contains($vpsInstaller, 'New administrator password (12–256 characters):')
+    || !str_contains($vpsInstaller, 'php bin/mucho-initialize-owner.php --initialize')
+    || str_contains($vpsInstaller, 'MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"')
 ) {
     throw new RuntimeException('Private owner activation link / installer contract broken.');
 }

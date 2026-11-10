@@ -1,6 +1,6 @@
 # First-run administrator registration
 
-The first owner chooses a username and password in the browser. **There is no separate Setup Secret field.** A private activation link confirms control of the new server before the registration form becomes available, protecting against first-visitor account takeover.
+On a new VPS installation, the first owner is created in the private SSH installer before the admin website opens. No Setup Secret or activation link is needed. Older unfinished installations and the PHP 8 direct shared-hosting installer still support the protected browser activation flow.
 
 ## Language
 
@@ -8,21 +8,12 @@ English is the default. Use the **EN / RU** switcher to change languages. All fo
 
 ## New VPS installation
 
-1. Install MuchoCore normally. The installer generates a private activation credential automatically; it does **not** ask you to invent a second setup password.
-2. The interactive installer prints a private activation link at the end, such as `https://gdps.example.com/admin/#setup=...`. Open that link in your browser. The browser uses the credential to authorize the session, then removes it from the URL bar.
-3. Enter the owner username, choose a password (12–256 characters), confirm it, and submit. There is no extra secret field.
-4. Your owner account is created and signed in. Afterward the one-time enrollment is permanently sealed.
+1. During the interactive SSH installation, enter an administrator username (default `admin`).
+2. Enter your administrator password (12–256 characters) and confirm it. Input is hidden in the terminal and never placed on the command line or in GitHub logs.
+3. After database migrations, the installer registers exactly one owner and seals the one-time setup.
+4. Open `https://your-gdps.example/admin/` and **sign in immediately** with those credentials. No browser registration or separate activation link is necessary.
 
-If you missed the link, run this command in a **private SSH session** on the VPS:
-
-```bash
-cd /opt/mucho-core
-sudo docker compose exec -T app php bin/mucho-owner-link.php
-```
-
-Do **not** put the command's output (the link) into a public issue, shared console log, chat message or screenshot. The URL fragment is kept out of HTTP request URLs; it is nevertheless a bearer credential until registration is completed.
-
-Unattended deployments do not print the activation link. The operator retrieves it later through the same private SSH command.
+For unattended fresh deployments, supply `MUCHO_ADMIN_USER` and `MUCHO_ADMIN_PASSWORD` through a **private environment**, not through command-line arguments or public automation logs. If the installer is restarted before completing initial owner registration, it resumes the pending enrollment without changing the selected credentials. Updates and reinstallations never overwrite existing owners.
 
 ## New shared-hosting installation
 
@@ -36,7 +27,8 @@ If you lose access, use configured verified-email recovery or an explicit local 
 
 ## Security boundaries
 
-- Anonymous visitors cannot register an owner merely by reaching `/admin/`.
+- A VPS install creates the first owner through a CLI-only, one-time database operation. Anonymous HTTP requests cannot claim that owner.
+- Existing browser-activation flows also reject anonymous registration without their private activation credential.
 - The private activation credential is validated against a server-side password hash by a CSRF-protected POST, not by a URL query parameter.
 - The credential arrives as a browser-only URL fragment and is removed from history before submission. The registration form uses an authenticated, short-lived session (15 minutes) instead of another password field.
 - HTTPS is required except localhost development.

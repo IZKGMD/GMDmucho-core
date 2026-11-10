@@ -29,18 +29,15 @@ The recommended path is:
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
 ~~~
 
-The installer asks for the public GDPS domain and GDPS name. It generates the private first-owner activation credential automatically. You never enter a separate Setup Secret on the admin registration page.
+The installer asks for the public GDPS domain and GDPS name. On a **fresh VPS**, it also prompts in the private SSH console for:
 
-At the end of an interactive installation, open the private activation link printed in your SSH terminal. The browser verifies that link, then lets you create your own owner username and password (12–256 characters). Anonymous visits to `/admin/` cannot claim ownership.
+- Administrator username (default `admin`)
+- Password (12–256 characters)
+- Confirmation of that password
 
-If you missed the link or installed without an interactive terminal, retrieve it privately:
+After migrations it creates the first owner directly in the database, using a secure password hash and one-time setup seal. Then open `https://YOUR-DOMAIN/admin/` and **sign in**. No browser activation link or Setup Secret is required for new VPS installations.
 
-~~~bash
-cd /opt/mucho-core
-sudo docker compose exec -T app php bin/mucho-owner-link.php
-~~~
-
-The link is private and must never be posted in a GitHub issue, copied into public logs or sent to another person. Once an owner exists it cannot be generated again. Existing administrator passwords remain unchanged by upgrades; use `sudo mucho` for explicit recovery. See [First-run registration](ADMIN_FIRST_RUN.md).
+Unattended fresh installs must provide `MUCHO_ADMIN_PASSWORD` privately through the environment, and can set `MUCHO_ADMIN_USER`; the installer never generates a login password to print in public logs. Re-running the installer preserves credentials and completes an interrupted first-owner registration only when a protected pending-install marker exists. Existing administrator accounts are never reset by installation or routine updates. For intentional recovery, use `sudo mucho`. See [First-run registration](ADMIN_FIRST_RUN.md).
 
 Everything else uses production-safe defaults. The default compatibility profile is **all supported generations** and can be changed later with:
 
@@ -61,7 +58,7 @@ The installer prepares:
 - Caddy;
 - the MuchoCore database;
 - Cloud Save keys;
-- a private first-owner activation link (the owner chooses credentials in the browser);
+- a first administrator created from privately entered console credentials;
 - the selected Geometry Dash compatibility profile;
 - release-based automatic updates.
 
@@ -103,9 +100,9 @@ Then open:
 https://YOUR-DOMAIN/admin/
 ~~~
 
-On the first visit, complete the owner-registration wizard using the secret
-chosen at installation. On later visits, sign in with your chosen username
-and password. Normal upgrades do not overwrite those credentials.
+On the first visit, sign in with the credentials already set in your SSH
+installation. No additional Setup Secret is needed. Normal upgrades do not
+overwrite those credentials.
 
 ## 4. Connect Geometry Dash
 

@@ -555,25 +555,72 @@ else
   MUCHO_DB_ROOT_PASSWORD="$(openssl rand -hex 32)"
 fi
 
-log "Admin panel username: $ADMIN_USER"
-
-# Fresh installs receive a private random activation credential automatically.
-# Existing installs preserve it, without a second password prompt.
-if [[ -s "$INSTALL_DIR/.secrets/admin_password" && -z "$MUCHO_ADMIN_PASSWORD" ]]; then
-  MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
-  info "Keeping existing private owner activation credential."
-elif [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
-  MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"
-  info "Generated private owner activation credential automatically."
+# Fresh VPS installations create the owner right here in the SSH console.
+# Existing installations retain their private credential and administrator.
+OWNER_PENDING="$INSTALL_DIR/.secrets/owner-initialize-pending"
+OWNER_FRESH=0
+if [[ -s "$OWNER_PENDING" ]]; then
+  ADMIN_USER="$(cat "$OWNER_PENDING")"
 fi
 
-[[ "${#MUCHO_ADMIN_PASSWORD}" -ge 10 ]] || fail "Owner activation credential is too short."
-[[ "$MUCHO_ADMIN_PASSWORD" != *$'\n'* && "$MUCHO_ADMIN_PASSWORD" != *$'\r'* ]] ||
-  fail "Owner activation credential cannot contain line breaks."
+if [[ ! -s "$INSTALL_DIR/.secrets/admin_password" ]]; then
+  OWNER_FRESH=1
+  if [[ -r /dev/tty && -w /dev/tty && ( -t 1 || -t 2 ) ]]; then
+    printf '\n  First administrator account\n'
+    read -r -p "  Administrator username [$ADMIN_USER]: " typed_owner < /dev/tty || fail "Could not read administrator username."
+    ADMIN_USER="${typed_owner:-$ADMIN_USER}"
+    unset typed_owner
+  fi
+  [[ "$ADMIN_USER" =~ ^[A-Za-z_][A-Za-z0-9_-]{0,31}$ ]] ||
+    fail "Administrator username must start with a Latin letter or underscore, followed by up to 31 letters, digits, underscores or hyphens."
+  if [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
+    [[ -r /dev/tty && -w /dev/tty && ( -t 1 || -t 2 ) ]] ||
+      fail "Unattended installation requires MUCHO_ADMIN_PASSWORD in a private environment. Never pass it as a command argument."
+    password_ok=0
+    for attempt in 1 2 3; do
+      read -r -s -p "  New administrator password (12–256 characters): " first < /dev/tty || fail "Could not read password."
+      printf '\n'
+      read -r -s -p "  Confirm administrator password: " second < /dev/tty || fail "Could not read password confirmation."
+      printf '\n'
+      first_bytes="$(printf '%s' "$first" | wc -c)"
+      if [[ "$first_bytes" -lt 12 || "$first_bytes" -gt 256 || "$first" == *[[:cntrl:]]* ]]; then
+        warn "Password must contain 12–256 characters without control characters."
+      elif [[ "$first" != "$second" ]]; then
+        warn "Passwords do not match."
+      else
+        MUCHO_ADMIN_PASSWORD="$first"
+        password_ok=1
+        break
+      fi
+    done
+    unset first second
+    [[ "$password_ok" -eq 1 ]] || fail "Could not choose a valid administrator password."
+  fi
+  info "First administrator will be created securely after database migrations."
+else
+  MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
+  info "Existing administrator secret kept; no password change requested."
+fi
+
+[[ "$ADMIN_USER" =~ ^[A-Za-z_][A-Za-z0-9_-]{0,31}$ ]] || fail "Invalid administrator username."
+# Preserve legacy credentials on existing installations without revalidating
+# the old setup-secret policy; fresh credentials use the new stricter policy.
+if [[ "$OWNER_FRESH" -eq 1 ]]; then
+  admin_password_bytes="$(printf '%s' "$MUCHO_ADMIN_PASSWORD" | wc -c)"
+  [[ "$admin_password_bytes" -ge 12 && "$admin_password_bytes" -le 256 ]] ||
+    fail "Administrator password must contain 12–256 characters."
+  [[ "$MUCHO_ADMIN_PASSWORD" != *[[:cntrl:]]* ]] ||
+    fail "Administrator password must not contain control characters."
+fi
+log "Admin panel username: $ADMIN_USER"
 
 printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
 printf '%s' "$MUCHO_DB_ROOT_PASSWORD" > "$INSTALL_DIR/.secrets/db_root_password"
 printf '%s' "$MUCHO_ADMIN_PASSWORD" > "$INSTALL_DIR/.secrets/admin_password"
+if [[ "$OWNER_FRESH" -eq 1 ]]; then
+  printf '%s\n' "$ADMIN_USER" > "$OWNER_PENDING"
+  chmod 600 "$OWNER_PENDING"
+fi
 if [[ ! -f "$INSTALL_DIR/.secrets/cloudsave_key" && -f "$INSTALL_DIR/config/cloudsave.key" ]]; then
   cp "$INSTALL_DIR/config/cloudsave.key" "$INSTALL_DIR/.secrets/cloudsave_key"
   chmod 600 "$INSTALL_DIR/.secrets/cloudsave_key"
@@ -775,6 +822,22 @@ done
 INSTALL_STEP="running database migrations"
 log "Running database migrations..."
 run_compose exec -T app php bin/migrate.php migrate
+
+INSTALL_STEP="initializing first administrator"
+if [[ -s "$OWNER_PENDING" ]]; then
+  run_compose exec -T app php bin/mucho-initialize-owner.php --initialize
+  # Keep the pending marker until bootstrap rotation completes, so an
+  # interrupted installation can finish removing the plaintext credential.
+  # Never leave the newly chosen login password stored as a reusable Docker
+  # bootstrap credential. Login uses the database password_hash from now on.
+  new_secret_file="$(mktemp "$INSTALL_DIR/.secrets/admin_password.XXXXXX")"
+  chmod 600 "$new_secret_file"
+  openssl rand -hex 32 > "$new_secret_file"
+  mv -f "$new_secret_file" "$INSTALL_DIR/.secrets/admin_password"
+  unset MUCHO_ADMIN_PASSWORD
+  rm -f "$OWNER_PENDING"
+  info "First owner created. Login password retained only as a database hash."
+fi
 
 INSTALL_STEP="applying GDPS branding"
 log "Applying GDPS name: $SERVER_NAME"
@@ -1083,7 +1146,9 @@ Admin:  https://$DOMAIN/admin/
 Health: https://$DOMAIN/health
 Path:   $INSTALL_DIR
 
-Suggested owner username: $ADMIN_USER\nFirst visit: create the owner username and password from a private activation link.\nExisting installs: admin credentials are preserved; use sudo mucho for password resets.
+Administrator username: $ADMIN_USER
+Login: use the username and password set in this installer.
+Existing installs: admin credentials are preserved; use sudo mucho for password resets.
 
 Update:
   sudo $INSTALL_DIR/update.sh
@@ -1102,13 +1167,5 @@ Migration:
 
 EOFOUT
 
-# Display the owner link only at the operator's interactive terminal.
-# Never put activation credentials in unattended deployment logs.
-if [[ -t 1 || -t 2 ]]; then
-  if ! run_compose exec -T app php bin/mucho-owner-link.php; then
-    info "The owner already exists, or the activation link is unavailable."
-  fi
-else
-  info "Retrieve the owner activation link in a private SSH terminal:"
-  info "  cd $INSTALL_DIR && sudo docker compose exec -T app php bin/mucho-owner-link.php"
-fi
+# Older installations without an owner retain their previous private
+# activation mechanism. Normal new VPS installs finish with a login-ready owner.
