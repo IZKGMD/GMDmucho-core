@@ -32,3 +32,9 @@ def test_agent_is_not_installed_as_a_hidden_service():
     assert "Ctrl+C stops remote access immediately" in agent
     assert "shell=False" in agent
     assert "powershell.exe" in agent
+    assert "ALLOW DESKTOP 5M" in agent
+    assert "I UNDERSTAND THE RISK" in agent
+    assert "ftp_clear_root" in agent
+    assert "MuchoCoreFTPBackups" in (ROOT / "remote_bridge" / "ftp_client.py").read_text(encoding="utf-8")
+    assert "sock.bind" not in agent
+    assert "socket.bind" not in agent
