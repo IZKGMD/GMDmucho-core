@@ -53,6 +53,7 @@ def main():
         base_url = "https://muchogdps.space/remote"
     parsed = urlparse(base_url)
     if (parsed.scheme != "https" or parsed.hostname not in ALLOWED_HOSTS
+            or parsed.username or parsed.password or parsed.port not in (None, 443)
             or parsed.path.rstrip("/") != "/remote" or parsed.query or parsed.fragment):
         raise SystemExit("Only https://muchogdps.space/remote is accepted in this build.")
     base_url = base_url.rstrip("/")
@@ -70,6 +71,7 @@ def main():
         json={"pairing_token": pairing, "name": name},
         timeout=15,
         verify=True,
+        allow_redirects=False,
     )
     if response.status_code != 200:
         raise SystemExit("Pairing failed: HTTP " + str(response.status_code) + " " + response.text[:300])
@@ -81,18 +83,39 @@ def main():
     if keyring.get_password(SERVICE, credential_key) != token:
         raise SystemExit("Windows Credential Manager verification failed.")
     APP_DIR.mkdir(parents=True, exist_ok=True)
+    allowed_apps = {
+        "notepad": shutil.which("notepad.exe") or "notepad.exe",
+        "explorer": shutil.which("explorer.exe") or "explorer.exe",
+        "powershell": shutil.which("powershell.exe") or "powershell.exe",
+        "cmd": shutil.which("cmd.exe") or "cmd.exe",
+    }
+    program_files = Path(os.environ.get("PROGRAMFILES", r"C:\Program Files"))
+    program_files_x86 = Path(os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)"))
+    local_app_data = Path(os.environ.get("LOCALAPPDATA", str(Path.home() / "AppData/Local")))
+    candidates = {
+        "chrome": [
+            program_files / "Google/Chrome/Application/chrome.exe",
+            program_files_x86 / "Google/Chrome/Application/chrome.exe",
+        ],
+        "vscode": [Path(shutil.which("code.exe") or "C:/__missing__/code.exe")],
+        "flstudio": [
+            program_files / "Image-Line/FL Studio 2025/FL64.exe",
+            program_files / "Image-Line/FL Studio 2024/FL64.exe",
+            program_files / "Image-Line/FL Studio 21/FL64.exe",
+        ],
+        "capcut": [local_app_data / "CapCut/Apps/CapCut.exe"],
+    }
+    for app_name, paths in candidates.items():
+        found = next((str(p) for p in paths if p.is_file()), None)
+        if found:
+            allowed_apps[app_name] = found
     config = {
         "base_url": base_url,
         "agent_id": agent_id,
         "credential_key": credential_key,
         "name": name,
         "allowed_roots": roots,
-        "allowed_apps": {
-            "notepad": shutil.which("notepad.exe") or "notepad.exe",
-            "explorer": shutil.which("explorer.exe") or "explorer.exe",
-            "powershell": shutil.which("powershell.exe") or "powershell.exe",
-            "cmd": shutil.which("cmd.exe") or "cmd.exe",
-        },
+        "allowed_apps": allowed_apps,
     }
     CONFIG.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
     try:
