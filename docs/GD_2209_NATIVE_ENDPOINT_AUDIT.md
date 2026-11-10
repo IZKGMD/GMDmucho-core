@@ -51,8 +51,9 @@ The source inventory still distinguishes these from implemented routes:
 * `submitGJUserInfo`: request `0x140260b20` submits `udid`, `accountID`,
   `levelsInfo` and the account secret. PHP 8 now requires account credential
   authentication and stores the opaque payload in the private
-  `mucho_account_user_info` table (8 MiB limit). It never treats this
-  client-supplied data as trusted progress or changes profile statistics.
+  `mucho_account_user_info` table (8 MiB limit), with per-IP and
+  account+credential throttling. It never treats this client-supplied data as
+  trusted progress or changes profile statistics.
   UDID-only/unregistered submissions remain disabled. This follows the
   authenticated opaque-storage behavior in
   [MegaSa1nt's reference implementation](https://github.com/MegaSa1nt/GMDprivateServer/blob/master/incl/misc/submitGJUserInfo.php).
