@@ -196,11 +196,19 @@ final readonly class AccountService
         }
 
         if (!$valid) {
-            $this->accounts->audit(
-                (int)$account['account_id'],
-                'account.login_failed',
-                $ip
-            );
+            try {
+                $this->accounts->audit(
+                    (int)$account['account_id'],
+                    'account.login_failed',
+                    $ip
+                );
+            } catch (Throwable $e) {
+                error_log(sprintf(
+                    '[MuchoCore Login] failed-login audit unavailable: %s: %s',
+                    $e::class,
+                    $e->getMessage()
+                ));
+            }
 
             return '-1';
         }
