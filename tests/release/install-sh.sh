@@ -35,14 +35,23 @@ grep -Fq 'value="${value#https://}"' install.sh
 
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/db_password" ]]; then' install.sh
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/db_root_password" ]]; then' install.sh
-# The installer must securely create activation material without prompting
-# operators for a second password or altering existing credentials.
-grep -Fq '[[ -s "$INSTALL_DIR/.secrets/admin_password" && -z "$MUCHO_ADMIN_PASSWORD" ]]' install.sh
-grep -Fq 'MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"' install.sh
-grep -Fq 'Keeping existing private owner activation credential.' install.sh
-grep -Fq 'php bin/mucho-owner-link.php' install.sh
-! grep -Fq 'prompt_admin_password()' install.sh
-! grep -Fq 'Admin setup secret (minimum 10 characters):' install.sh
+# Fresh VPS installs prompt for the owner username and password privately.
+# Reinstalls keep the secret and never trigger an automatic password reset.
+grep -Fq 'Administrator username [$ADMIN_USER]:' install.sh
+grep -Fq 'New administrator password (12–256 characters):' install.sh
+grep -Fq 'Confirm administrator password:' install.sh
+grep -Fq 'Unattended installation requires MUCHO_ADMIN_PASSWORD' install.sh
+grep -Fq 'owner-initialize-pending' install.sh
+grep -Fq 'if [[ -s "$OWNER_PENDING" ]]; then' install.sh
+grep -Fq 'php bin/mucho-initialize-owner.php --initialize' install.sh
+grep -Fq 'Existing administrator secret kept; no password change requested.' install.sh
+! grep -Fq 'MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"' install.sh
+test -f bin/mucho-initialize-owner.php
+php -l bin/mucho-initialize-owner.php >/dev/null
+grep -Fq 'FirstRunSetup::createOwner' bin/mucho-initialize-owner.php
+grep -Fq "'--initialize'" bin/mucho-initialize-owner.php
+grep -Fq 'Owner already initialized; existing administrator credentials preserved.' bin/mucho-initialize-owner.php
+
 grep -Fq 'Admin password must contain at least 10 characters.' bin/mucho
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/cloudsave_key" ]]; then' install.sh
 grep -Fq 'Required secret file is missing or empty' install.sh
