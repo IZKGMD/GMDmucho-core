@@ -167,6 +167,16 @@ class ClientFunctions(unittest.TestCase):
         self.assertNotIn('cp "$ROOT/GeometryDash.exe"', builder)
         self.assertNotIn('cp "$ROOT/GeometryDash.apk"', builder)
 
+    def test_quick_install_does_not_prompt_for_missing_games(self):
+        with patch.object(launcher, "find_original", return_value=None) as detect, \
+             patch.object(launcher, "ask",
+                          side_effect=AssertionError("Unexpected user prompt")):
+            exe, apk, rights = launcher.ask_clients()
+        self.assertEqual((exe, apk, rights), (None, None, False))
+        self.assertEqual(detect.call_count, 2)
+        self.assertTrue(all(call.kwargs.get("ask_for_missing") is False
+                            for call in detect.call_args_list))
+
     def test_no_auto_publication_without_redistribution_rights(self):
         with patch.object(launcher, "find_original", side_effect=[Path("/owned.exe"), None]), \
              patch.object(launcher, "ask", return_value="НЕТ"):
