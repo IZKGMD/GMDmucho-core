@@ -42,7 +42,21 @@ final readonly class Request
             return $value;
         }
 
-        if (is_string($value) && preg_match('/^-?\d+$/', $value)) {
+        if (is_string($value) && preg_match('/^-?[0-9]+$/', $value) === 1) {
+            // PHP clamps out-of-range decimal strings to PHP_INT_MAX/MIN.
+            // Reject overflow instead of silently changing a GD identifier.
+            $negative = $value[0] === '-';
+            $digits = ltrim($negative ? substr($value, 1) : $value, '0');
+            if ($digits === '') {
+                return 0;
+            }
+            $limit = $negative ? substr((string) PHP_INT_MIN, 1) : (string) PHP_INT_MAX;
+            if (
+                strlen($digits) > strlen($limit) ||
+                (strlen($digits) === strlen($limit) && strcmp($digits, $limit) > 0)
+            ) {
+                return $default;
+            }
             return (int)$value;
         }
 
