@@ -31,7 +31,7 @@ def main():
     if not username or len(username) > 255:
         raise SystemExit("Invalid FTP username.")
     remote_root = input("Exact remote root (example: mc; empty only for read-only discovery): ").strip()
-    if "\\" in remote_root or "\x00" in remote_root or any(x == ".." for x in remote_root.split("/")):
+    if remote_root in {"/", ".", "./"} or "\\" in remote_root or "\x00" in remote_root or any(x == ".." for x in remote_root.split("/")):
         raise SystemExit("Invalid remote root.")
     password = getpass.getpass("FTP password (hidden): ")
     if not password:
