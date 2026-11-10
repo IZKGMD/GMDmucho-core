@@ -33,6 +33,7 @@ final class MuchoProtect
         '/syncgjaccount20' => ['limit' => 12, 'window' => 60, 'burst' => 4, 'burstWindow' => 10],
         '/uploadgjlevel21' => ['limit' => 8, 'window' => 60, 'burst' => 3, 'burstWindow' => 15],
         '/uploadgjlevel22' => ['limit' => 8, 'window' => 60, 'burst' => 3, 'burstWindow' => 15],
+        '/submitgjuserinfo' => ['limit' => 4, 'window' => 60, 'burst' => 2, 'burstWindow' => 15, 'identityLimit' => 4, 'identityWindow' => 60],
         '/deletegjleveluser20' => ['limit' => 20, 'window' => 60, 'burst' => 6, 'burstWindow' => 10],
         '/updategjleveldesc20' => ['limit' => 30, 'window' => 60, 'burst' => 8, 'burstWindow' => 10],
         '/uploadgjlevellist' => ['limit' => 5, 'window' => 60, 'burst' => 2, 'burstWindow' => 15],

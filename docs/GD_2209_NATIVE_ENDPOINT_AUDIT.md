@@ -46,13 +46,31 @@ That document marks the official endpoint as historical/nonfunctional since
 
 ## Remaining embedded operations
 
-The source inventory still distinguishes these from implemented routes:
+The source inventory still distinguishes these from operations certified by a real client:
 
-* `submitGJUserInfo`: request `0x140260b20` submits `udid`, `accountID`,
-  `levelsInfo` and the game secret. These fields alone do not authorize changes
-  to trusted account progress. A genuine operation remains unimplemented.
-* `uploadMPComment`: multiplayer comment request `0x140391240` uses `gameID`,
-  `extra` and a checksum. It must not be aliased to level comments.
+* `submitGJUserInfo`: request `0x140260b20` carries `udid`, `accountID`,
+  `levelsInfo` and the public game `secret`; the account credential is checked
+  through GJP/GJP2. PHP 8 stores the opaque payload in the private
+  `mucho_account_user_info` table (8 MiB limit), with per-IP and
+  account+credential throttling. It never treats this client-supplied data as
+  trusted progress or changes profile statistics.
+  UDID-only/unregistered submissions remain disabled. This follows the
+  authenticated opaque-storage behavior in
+  [MegaSa1nt's reference implementation](https://github.com/MegaSa1nt/GMDprivateServer/blob/master/incl/misc/submitGJUserInfo.php).
+  Native-client acceptance still requires a real 2.209 request/response test.
+* `uploadMPComment`: multiplayer lobby comment request `0x140391240` uses
+  `accountID`, `gjp2`, `gameID`, URL-safe Base64 `comment`, `extra`,
+  `secret` and `chk`. A third-party client helper
+  [GDServerTools/GDReq.py](https://github.com/ryder7223/GDServerTools/blob/main/GDReq.py)
+  suggests `chk = Base64Url(XOR(SHA1(accountID + rawComment + gameID + extra +
+  "xI25fpAapCQg"), "52832"))`, but this is only a candidate formula, not a
+  verified server contract. The [published endpoint notes](https://boomlings.dev/endpoints/multiplayer/uploadMPComment)
+  explicitly warn that their description is based on leaks, unused code and
+  guesses; the response remains unknown. No server implementation was found
+  in the two primary reference kernels. The current client patch redirects
+  this URL, but the corresponding lobby join/read flow has not been verified.
+  Keep it unimplemented until a real GD 2.209 request/response trace confirms
+  the checksum, response and visibility semantics; do not alias it to level comments.
 * `lostpassword` and `accountManagement`: browser-facing account pages. The
   shared `lostpassword` and `lostusername` paths now invoke the English
   RecoveryController, including CSRF protection and mount-aware assets.

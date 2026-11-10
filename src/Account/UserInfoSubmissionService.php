@@ -1,0 +1,60 @@
+<?php
+
+declare(strict_types=1);
+
+namespace MuchoCore\Account;
+
+use PDO;
+use RuntimeException;
+
+/**
+ * Stores the client's opaque GD user-info snapshot without treating it as
+ * authoritative account progress.
+ */
+final readonly class UserInfoSubmissionService
+{
+    public const MAX_PAYLOAD_BYTES = 8_388_608;
+
+    public function __construct(
+        private PDO $db,
+        private AccountAuthenticator $auth,
+    ) {}
+
+    public function submit(
+        int $accountId,
+        string $credential,
+        string $levelsInfo
+    ): bool {
+        // Upstream validates account credentials before checking levelsInfo.
+        // Keep invalid/unauthenticated requests at -1 even when the payload is
+        // missing; only an authenticated client receives the native -2.
+        $this->auth->authenticate($accountId, $credential);
+
+        if ($levelsInfo === '' || $levelsInfo === '0') {
+            return false;
+        }
+
+        if (strlen($levelsInfo) > self::MAX_PAYLOAD_BYTES) {
+            throw new RuntimeException('Invalid user-info payload.');
+        }
+
+        $stmt = $this->db->prepare(
+            'INSERT INTO mucho_account_user_info
+                (account_id, levels_info, payload_sha256)
+             VALUES
+                (:account_id, :levels_info, :payload_sha256)
+             ON DUPLICATE KEY UPDATE
+                levels_info = VALUES(levels_info),
+                payload_sha256 = VALUES(payload_sha256),
+                updated_at = CURRENT_TIMESTAMP'
+        );
+
+        $stmt->execute([
+            'account_id' => $accountId,
+            'levels_info' => $levelsInfo,
+            'payload_sha256' => hash('sha256', $levelsInfo),
+        ]);
+
+        return true;
+    }
+}

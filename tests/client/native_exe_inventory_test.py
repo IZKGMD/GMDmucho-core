@@ -66,7 +66,7 @@ class NativeInventoryTest(unittest.TestCase):
         self.assertEqual(report["url_templates"], 1)
         self.assertEqual(report["source_hosts"], {"muchogdps.space": 4})
         self.assertEqual(report["unimplemented_paths"], [
-            "/submitgjuserinfo", "/uploadmpcomment",
+            "/uploadmpcomment",
         ])
         self.assertEqual(report["endpoints"][0]["service"], "application")
         self.assertEqual(report["endpoints"][1]["canonical_path"], "/logingjaccount")
