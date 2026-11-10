@@ -87,7 +87,10 @@ def main():
             check(any(s.get("codec_name") == "mp3" for s in media.get("streams", []))
                   and float(media["format"]["duration"]) > 0.5,
                   "fixture is decodable MP3 rather than fabricated header bytes")
-            run(["sudo", "install", "-m", "0644", str(tone), str(local)])
+            # Match PHP-FPM's production upload ownership and 0640 mode;
+            # 0644 would hide a real Caddy-vs-PHP permissions regression.
+            run(["sudo", "install", "-o", "www-data", "-g", "www-data",
+                 "-m", "0640", str(tone), str(local)])
             installed = True
 
             def fixture(command):
