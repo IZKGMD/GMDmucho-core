@@ -24,6 +24,7 @@ COOKIE_SECURE = os.environ.get("BRIDGE_COOKIE_SECURE", "1") != "0"
 SESSION_TTL = 12 * 60 * 60
 PAIR_TTL = 15 * 60
 JOB_TTL = 5 * 60
+RUNNING_JOB_TTL = 60 * 60
 MAX_RESULT_BYTES = 6 * 1024 * 1024
 MAX_PENDING_PER_AGENT = 12
 PASSWORDS = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=2)
@@ -382,7 +383,7 @@ def agent_poll(authorization: str | None = Header(default=None)):
         db.execute(
             "UPDATE jobs SET status='failed',finished_at=?,error='Agent result timed out' "
             "WHERE agent_id=? AND status='running' AND claimed_at<?",
-            (now, agent["id"], now - 600),
+            (now, agent["id"], now - RUNNING_JOB_TTL),
         )
         db.execute("BEGIN IMMEDIATE")
         row = db.execute(
