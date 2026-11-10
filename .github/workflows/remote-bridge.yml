@@ -61,6 +61,8 @@ jobs:
           Copy-Item dist/MuchoCoreRemoteSetup.exe dist/package/
           Copy-Item dist/MuchoCoreRemoteFTPSSetup.exe dist/package/
           Copy-Item remote_bridge/README_RU.md dist/package/
+          & dist/MuchoCoreRemoteAgent.exe --self-test
+          if ($LASTEXITCODE -ne 0) { throw "Frozen Windows agent self-test failed" }
           Compress-Archive -Path dist/package/* -DestinationPath dist/MuchoCoreRemoteBridge-Windows-x64.zip -Force
       - name: Upload Windows package
         uses: actions/upload-artifact@v4
