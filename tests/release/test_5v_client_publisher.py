@@ -146,6 +146,8 @@ class ClientFunctions(unittest.TestCase):
         report = {
             "output_sha256": digest, "output_size": len(blob),
             "job_id": "f" * 32, "server_url": FakeSite.origin,
+            "signed": True, "signature_schemes": ["v1", "v2"],
+            "replacement_count": 4,
         }
         with tempfile.TemporaryDirectory() as folder, \
              patch.object(clients, "_download_authenticated",
