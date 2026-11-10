@@ -1,6 +1,6 @@
 # Native route inventory
 
-Native handlers registered: **166 / 166** canonical routes from `src/Core/Application.php`.
+Native handlers registered: **166 / 167** canonical routes from `src/Core/Application.php`.
 
 This counts registered handlers, not completed features or production readiness. Aliases do not count as additional implementations. PHP differential tests cover selected scenarios; real-client acceptance remains pending.
 
@@ -150,6 +150,7 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/requestuseraccess` | Present | `/requestUserAccess` |
 | `/searchgjthreadmessages` | Present | `/searchGJThreadMessages` |
 | `/sendgjthreadmessage` | Present | `/sendGJThreadMessage` |
+| `/submitgjuserinfo` | **Pending** | `/submitGJUserInfo` |
 | `/suggestgjstars20` | Present | `/suggestGJStars20` |
 | `/syncgjaccount` | Present | `/syncGJAccount`, `/syncGJAccount20` |
 | `/syncgjfollowing` | Present | `/syncGJFollowing` |
