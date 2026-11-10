@@ -49,10 +49,20 @@ That document marks the official endpoint as historical/nonfunctional since
 The source inventory still distinguishes these from implemented routes:
 
 * `submitGJUserInfo`: request `0x140260b20` submits `udid`, `accountID`,
-  `levelsInfo` and the game secret. These fields alone do not authorize changes
-  to trusted account progress. A genuine operation remains unimplemented.
-* `uploadMPComment`: multiplayer comment request `0x140391240` uses `gameID`,
-  `extra` and a checksum. It must not be aliased to level comments.
+  `levelsInfo` and the account secret. PHP 8 now requires account credential
+  authentication and stores the opaque payload in the private
+  `mucho_account_user_info` table (1 MiB limit). It never treats this
+  client-supplied data as trusted progress or changes profile statistics.
+  UDID-only/unregistered submissions remain disabled. This follows the
+  authenticated opaque-storage behavior in
+  [MegaSa1nt's reference implementation](https://github.com/MegaSa1nt/GMDprivateServer/blob/master/incl/misc/submitGJUserInfo.php).
+  Native-client acceptance still requires a real 2.209 request/response test.
+* `uploadMPComment`: multiplayer lobby comment request `0x140391240` uses
+  `accountID`, `gjp2`, `gameID`, `comment`, `extra` and `chk`.
+  [Published protocol notes](https://boomlings.dev/endpoints/multiplayer/uploadMPComment)
+  explicitly warn that the endpoint description is based on leaks and guesses;
+  its response is unknown and the exact checksum contract is not established.
+  It remains unimplemented rather than being incorrectly aliased to level comments.
 * `lostpassword` and `accountManagement`: browser-facing account pages. The
   shared `lostpassword` and `lostusername` paths now invoke the English
   RecoveryController, including CSRF protection and mount-aware assets.
