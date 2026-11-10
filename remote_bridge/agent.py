@@ -118,6 +118,24 @@ def approval(action: str, payload: dict[str, Any], *, dangerous: bool = False) -
     print("Local approval granted.")
 
 
+_DESKTOP_LEASE_UNTIL = 0.0
+
+
+def desktop_approval(action: str, payload: dict[str, Any]) -> None:
+    global _DESKTOP_LEASE_UNTIL
+    print("\n[DESKTOP ACTION]", action)
+    print(json.dumps(payload, ensure_ascii=False, indent=2)[:2500])
+    if time.monotonic() < _DESKTOP_LEASE_UNTIL:
+        print("Covered by the locally approved five-minute desktop-control session.")
+        return
+    print("This grants mouse/keyboard control for five minutes. Ctrl+C stops the agent.")
+    answer = input("Type exactly ALLOW DESKTOP 5M: ").strip()
+    if answer != "ALLOW DESKTOP 5M":
+        raise PermissionError("Desktop-control session was not approved locally.")
+    _DESKTOP_LEASE_UNTIL = time.monotonic() + 300
+    print("Desktop-control session approved for five minutes.")
+
+
 def system_status():
     vm = psutil.virtual_memory()
     return {
@@ -296,7 +314,7 @@ def desktop_click(payload):
     button = payload.get("button", "left")
     if button not in {"left", "right", "middle"}:
         raise AgentError("Unsupported mouse button.")
-    approval("pc.desktop.click", {"x": x, "y": y, "button": button})
+    desktop_approval("pc.desktop.click", {"x": x, "y": y, "button": button})
     pyautogui.click(x=x, y=y, button=button)
     return {"clicked": True, "x": x, "y": y, "screen": [width, height]}
 
@@ -305,7 +323,7 @@ def desktop_type(payload):
     text = payload.get("text")
     if not isinstance(text, str) or len(text) > 2000:
         raise AgentError("Text must be at most 2000 characters.")
-    approval("pc.desktop.type", {"text": text})
+    desktop_approval("pc.desktop.type", {"text": text})
     previous_clipboard = pyperclip.paste()
     try:
         pyperclip.copy(text)
@@ -320,7 +338,7 @@ def desktop_hotkey(payload):
     if (not isinstance(keys, list) or not 1 <= len(keys) <= 5
             or any(not isinstance(k, str) or k not in pyautogui.KEYBOARD_KEYS for k in keys)):
         raise AgentError("Invalid keyboard shortcut.")
-    approval("pc.desktop.hotkey", {"keys": keys})
+    desktop_approval("pc.desktop.hotkey", {"keys": keys})
     pyautogui.hotkey(*keys)
     return {"pressed": keys}
 
@@ -329,7 +347,7 @@ def desktop_scroll(payload):
     amount = payload.get("amount")
     if not isinstance(amount, int) or not -20 <= amount <= 20:
         raise AgentError("Scroll amount must be between -20 and 20.")
-    approval("pc.desktop.scroll", {"amount": amount})
+    desktop_approval("pc.desktop.scroll", {"amount": amount})
     pyautogui.scroll(amount)
     return {"scrolled": amount}
 
