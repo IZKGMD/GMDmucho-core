@@ -555,6 +555,8 @@ else
   MUCHO_DB_ROOT_PASSWORD="$(openssl rand -hex 32)"
 fi
 
+log "Admin panel username: $ADMIN_USER"
+
 # Fresh installs receive a private random activation credential automatically.
 # Existing installs preserve it, without a second password prompt.
 if [[ -s "$INSTALL_DIR/.secrets/admin_password" && -z "$MUCHO_ADMIN_PASSWORD" ]]; then
