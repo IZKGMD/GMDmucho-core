@@ -825,7 +825,14 @@ INSTALL_STEP="initializing first administrator"
 if [[ -s "$OWNER_PENDING" ]]; then
   run_compose exec -T app php bin/mucho-initialize-owner.php --initialize
   rm -f "$OWNER_PENDING"
-  info "First owner created. Future upgrades preserve the login and password."
+  # Never leave the newly chosen login password stored as a reusable Docker
+  # bootstrap credential. Login uses the database password_hash from now on.
+  new_secret_file="$(mktemp "$INSTALL_DIR/.secrets/admin_password.XXXXXX")"
+  chmod 600 "$new_secret_file"
+  openssl rand -hex 32 > "$new_secret_file"
+  mv -f "$new_secret_file" "$INSTALL_DIR/.secrets/admin_password"
+  unset MUCHO_ADMIN_PASSWORD
+  info "First owner created. Login password retained only as a database hash."
 fi
 
 INSTALL_STEP="applying GDPS branding"
