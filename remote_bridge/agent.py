@@ -209,6 +209,24 @@ def files_write(cfg, payload):
             "backup": str(backup) if backup else None}
 
 
+def files_delete(cfg, payload):
+    path = safe_path(cfg, payload.get("root_index", 0), payload.get("path", ""))
+    if is_sensitive_path(path):
+        raise AgentError("Deleting credential or private-key files is blocked.")
+    if not path.is_file() or path.is_symlink():
+        raise AgentError("Only one regular file can be deleted; folders and links are blocked.")
+    approval("pc.files.delete", {"path": str(path)}, dangerous=True)
+    phrase = input("This is recoverable: type DELETE FILE to move it into a local backup: ").strip()
+    if phrase != "DELETE FILE":
+        raise PermissionError("File deletion was not confirmed.")
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup = path.with_name(path.name + ".deleted-" + stamp + ".bak")
+    if backup.exists():
+        raise AgentError("Backup filename collision; refusing to overwrite.")
+    os.replace(path, backup)
+    return {"moved_to_recovery_backup": str(backup), "original_path": str(path)}
+
+
 def launch_app(cfg, payload):
     app_name = payload.get("name")
     apps = cfg.get("allowed_apps", {})
@@ -218,6 +236,18 @@ def launch_app(cfg, payload):
     approval("pc.app.launch", {"name": app_name, "executable": executable})
     proc = subprocess.Popen([executable], shell=False)
     return {"launched": app_name, "pid": proc.pid}
+
+
+def redact_output(value: str) -> str:
+    patterns = [
+        (re.compile(r"(?i)(password|passwd|token|secret|api[_-]?key|access[_-]?key|authorization)(\\s*[:=]\\s*)([^\\s,;]+)"), r"\\1\\2[REDACTED]"),
+        (re.compile(r"(?i)gh[pousr]_[A-Za-z0-9_]{20,}"), "[REDACTED_GITHUB_TOKEN]"),
+        (re.compile(r"(?i)sk-[A-Za-z0-9_-]{20,}"), "[REDACTED_API_KEY]"),
+        (re.compile(r"AKIA[0-9A-Z]{16}"), "[REDACTED_AWS_KEY]"),
+    ]
+    for pattern, replacement in patterns:
+        value = pattern.sub(replacement, value)
+    return value
 
 
 def run_terminal(cfg, payload):
@@ -239,7 +269,7 @@ def run_terminal(cfg, payload):
         timeout=120, check=False, shell=False,
     )
     return {"returncode": completed.returncode,
-            "output": completed.stdout[-MAX_OUTPUT:],
+            "output": redact_output(completed.stdout[-MAX_OUTPUT:]),
             "truncated": len(completed.stdout) > MAX_OUTPUT,
             "cwd": str(cwd)}
 
@@ -298,6 +328,7 @@ def dispatch(cfg, job):
         "pc.files.list": lambda: files_list(cfg, payload),
         "pc.files.read": lambda: files_read(cfg, payload),
         "pc.files.write": lambda: files_write(cfg, payload),
+        "pc.files.delete": lambda: files_delete(cfg, payload),
         "pc.app.launch": lambda: launch_app(cfg, payload),
         "pc.terminal.run": lambda: run_terminal(cfg, payload),
         "pc.desktop.click": lambda: desktop_click(payload),
@@ -315,6 +346,8 @@ def main():
     token = get_token(cfg)
     base = cfg["base_url"].rstrip("/")
     session = requests.Session()
+    session.trust_env = False
+    session.max_redirects = 0
     session.headers.update({"Authorization": "Bearer " + token})
     print("=" * 68)
     print("MuchoCore Remote Bridge Agent", VERSION)
