@@ -26,6 +26,8 @@ on:
       - 'tools/client/client-patch.py'
       - 'tools/release/build-shared-hosting.sh'
       - '.github/workflows/php7-preview-archives.yml'
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -109,6 +111,8 @@ jobs:
   windows-setup:
     name: Build standalone Windows GUI installer
     needs: package
+    permissions:
+      contents: write
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
@@ -163,4 +167,15 @@ jobs:
           path: dist/MuchoCore-Setup.exe
           if-no-files-found: error
           retention-days: 30
+      - name: Attach standalone installer to the published GitHub release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: \${{ github.event.release.tag_name }}
+          files: dist/MuchoCore-Setup.exe
+          overwrite_files: true
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+
 
