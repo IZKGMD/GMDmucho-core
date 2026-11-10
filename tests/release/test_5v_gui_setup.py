@@ -16,7 +16,7 @@ class GuiSetupContract(unittest.TestCase):
         source = GUI.read_text(encoding="utf-8")
         self.assertIn("def _self_test()", source)
         self.assertIn('if "--self-test" in sys.argv', source)
-        self.assertIn("sys._MEIPASS", source)
+        self.assertIn('getattr(sys, "_MEIPASS"', source)
         self.assertIn("tkinter", source)
         self.assertIn("messagebox.askyesno", source)
         self.assertIn("threading.Thread", source)
