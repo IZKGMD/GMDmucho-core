@@ -181,12 +181,32 @@ async function prepareClients(){
       '</div>';
   }
 }
-async function finish(ok,status,timedOut=false){
+async function finish(ok,status,timedOut=false,details={}){
   if(timer){clearInterval(timer);timer=null}
   setState(ok?'Completed':(timedOut?'Timed out':'Failed'),ok?'done':(timedOut?'failed':'failed'));
   result.style.display='block';
   const seconds=Math.max(1,Math.round((Date.now()-started)/1000));
   if(ok){
+    if(details.manual_setup_required){
+      setState('Файлы загружены, нужна настройка','wait');
+      resultTitle.textContent='5V.PL: PHP 7 файлы загружены.';
+      resultText.textContent='Это ещё не готовый GDPS. Создай пустую MySQL-базу, скопируй mc/compat/php7/config.example.php в приватный mc/config/php7-local.php и укажи данные БД. Затем создай первого владельца на /mc/admin.php. Добавь правила из 5V_ROOT_REWRITE_RULES.txt в корневой .htaccess и проверь реальный клиент.';
+      let setup=null;
+      try{
+        setup=new URL(String(details.setup_url||''),location.origin);
+        if(setup.protocol!=='https:'||!(/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.5v\.pl$/i.test(setup.hostname))||setup.pathname!=='/mc/admin.php')setup=null;
+      }catch(_){setup=null;}
+      if(setup){
+        const link=document.createElement('a');
+        link.className='btn primary';
+        link.href=setup.href;
+        link.target='_blank';
+        link.rel='noopener noreferrer';
+        link.textContent='Завершить настройку на 5V.PL';
+        result.appendChild(link);
+      }
+      return;
+    }
     resultTitle.textContent='MuchoCore installation completed.';
     resultText.textContent='The FTP upload and browser finalization completed successfully in '+seconds+'s.';
     const adminUser=sessionStorage.getItem('muchodeployadminuser')||'admin';
@@ -216,7 +236,7 @@ async function poll(){
     const d=await r.json();
     if(!r.ok||!d.ok)throw new Error(d.error||'Could not read deployment logs.');
     if(d.log!==lastLog){lastLog=d.log;showLog(lastLog);appendCursor()}
-    if(d.status==='completed'){await finish(true,d.status);return}
+    if(d.status==='completed'){await finish(true,d.status,false,d);return}
     if(d.timed_out===true){finish(false,d.status,true);return}
     if(d.status==='failed'){finish(false,d.status);return}
     const liveState=String(d.state||'');

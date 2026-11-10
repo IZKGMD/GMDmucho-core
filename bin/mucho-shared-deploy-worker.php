@@ -1206,6 +1206,144 @@ function run_remote_installer(array $config, string $dbPassword, string $adminPa
     log_line($logFile, "[MuchoGDPS] Remote /health check returned 1.\n");
 }
 
+
+/**
+ * The 5v.pl target has PHP 7, not the generic PHP 8.2+ shared runtime.
+ * Deploy only the native preview and require owner setup on the target site.
+ */
+function deploy_native_5v(array $config, string $password, string $jobDir, string $statusPath, string $logPath): void {
+    $url = rtrim((string)($config['account_url'] ?? ''), '/');
+    $host = strtolower((string)(parse_url($url, PHP_URL_HOST) ?: ''));
+    if (($config['provider'] ?? '') !== '5v.pl' ||
+        !preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.5v\.pl$/D', $host)) {
+        throw new RuntimeException('This shared installer works ONLY on 5V.PL.');
+    }
+    $builder = dirname(__DIR__) . '/tools/release/build-php7-native.sh';
+    if (!is_file($builder)) {
+        throw new RuntimeException('The 5v.pl PHP 7 native builder is unavailable.');
+    }
+
+    $archive = $jobDir . '/shared_archive';
+    $temporary = $archive . '.build-' . bin2hex(random_bytes(8)) . '.zip';
+    worker_state($statusPath, $logPath, 'Building the PHP 7 native preview for 5v.pl');
+    $cmd = 'OUTPUT_PATH=' . escapeshellarg($temporary) . ' bash ' . escapeshellarg($builder);
+    $process = @proc_open($cmd, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+    if (!is_resource($process)) {
+        throw new RuntimeException('Unable to start the PHP 7 native builder.');
+    }
+    fclose($pipes[0]);
+    $stdout = stream_get_contents($pipes[1]);
+    $stderr = stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    $exit = proc_close($process);
+    if ($exit !== 0 || !is_file($temporary) || (int)@filesize($temporary) < 1024) {
+        @unlink($temporary);
+        throw new RuntimeException('PHP 7 native archive build failed: ' . trim((string)$stderr));
+    }
+    if (!@rename($temporary, $archive)) {
+        @unlink($temporary);
+        throw new RuntimeException('Unable to finalize the 5v.pl archive.');
+    }
+    $zip = new ZipArchive();
+    if ($zip->open($archive) !== true) {
+        throw new RuntimeException('Unable to read the native 5v.pl archive.');
+    }
+    try {
+        $found = [];
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = str_replace('\\', '/', (string)$zip->getNameIndex($i));
+            if ($name === '' || str_starts_with($name, '/') ||
+                str_contains($name, "\0") || preg_match('#(^|/)\.\.?(/|$)#', $name) === 1 ||
+                !(str_starts_with($name, 'mc/') ||
+                  in_array($name, ['5V_ROOT_REWRITE_RULES.txt', 'START_HERE_SHARED.txt'], true))) {
+                throw new RuntimeException('The native 5v.pl archive has an unsafe path.');
+            }
+            $found[$name] = true;
+        }
+        foreach (['mc/admin.php', 'mc/public/php7.php', 'mc/public/php7-admin.php',
+                  'mc/compat/php7/runtime.php', 'mc/compat/php7/core/sources.json',
+                  'mc/.htaccess', '5V_ROOT_REWRITE_RULES.txt'] as $required) {
+            if (!isset($found[$required])) {
+                throw new RuntimeException('The native 5v.pl archive is incomplete: ' . $required);
+            }
+        }
+        foreach (['mc/vendor/autoload.php', 'mc/src/Core/Application.php'] as $php8Only) {
+            if (isset($found[$php8Only])) {
+                throw new RuntimeException('Refusing PHP 8-only files on 5v.pl.');
+            }
+        }
+        $stage = $jobDir . '/extracted';
+        if (!@mkdir($stage, 0700, true) && !is_dir($stage)) {
+            throw new RuntimeException('Unable to create a private staging directory.');
+        }
+        if (!$zip->extractTo($stage)) {
+            throw new RuntimeException('Unable to extract the native package.');
+        }
+    } finally {
+        $zip->close();
+    }
+    log_line($logPath, "[MuchoGDPS] Native 5v.pl package SHA256 " . hash_file('sha256', $archive) . "\n");
+
+    worker_state($statusPath, $logPath, 'Connecting to 5v.pl FTP');
+    [$ftp, $security, $port] = ftp_open_authenticated($config, $password, $logPath);
+    try {
+        $original = @ftp_pwd($ftp);
+        if (!is_string($original) || $original === '') {
+            throw new RuntimeException('FTP did not return a base directory.');
+        }
+        $requested = trim((string)($config['ftp_path'] ?? 'auto'));
+        if ($requested !== '' && $requested !== '.' && strtolower($requested) !== 'auto') {
+            if (!@ftp_chdir($ftp, $requested)) {
+                throw new RuntimeException('Selected 5v.pl web-root directory is unavailable.');
+            }
+            $root = @ftp_pwd($ftp);
+            $ips = public_ipv4s($host);
+            if (!is_string($root) || $root === '' || $ips === []) {
+                throw new RuntimeException('Cannot validate the configured 5v.pl web root.');
+            }
+            $verified = detect_web_root($ftp, $root, $url, $ips[0], $jobDir, $logPath);
+            if (rtrim($verified, '/') !== rtrim($root, '/')) {
+                throw new RuntimeException('Configured FTP directory is not the 5v.pl HTTPS web root.');
+            }
+        } else {
+            $ips = public_ipv4s($host);
+            if ($ips === []) {
+                throw new RuntimeException('The 5v.pl domain has no public IPv4 address.');
+            }
+            $root = detect_web_root($ftp, $original, $url, $ips[0], $jobDir, $logPath);
+        }
+        if (!is_string($root) || $root === '' || !@ftp_chdir($ftp, $root)) {
+            throw new RuntimeException('Unable to verify the target 5v.pl web root.');
+        }
+        // New-install-only: no implicit overwrite of existing core or private data.
+        if (@ftp_chdir($ftp, 'mc')) {
+            throw new RuntimeException('An mc/ installation already exists. Back it up and update manually.');
+        }
+        @ftp_chdir($ftp, $root);
+        worker_state($statusPath, $logPath, 'Uploading native 5v.pl files');
+        $count = upload_tree($ftp, $stage, $root, $logPath);
+        log_line($logPath, "[MuchoGDPS] Uploaded {$count} PHP 7 native files over " . strtoupper($security) . " port {$port}.\n");
+    } finally {
+        @ftp_close($ftp);
+    }
+
+    // Web-root .htaccess is NEVER overwritten. Native database/owner setup is
+    // performed in the user's own browser and is not marked as completed here.
+    $status = read_json_file($statusPath);
+    $status['status'] = 'completed';
+    $status['manual_setup_required'] = true;
+    $status['setup_url'] = $url . '/mc/admin.php';
+    $status['state'] = 'PHP 7 uploaded; finish first-owner setup on 5v.pl';
+    $status['exit_code'] = 0;
+    $status['finished_at'] = gmdate('c');
+    write_status($statusPath, $status);
+    log_line($logPath, "[MuchoGDPS] FILE UPLOAD ONLY; the GDPS is NOT yet installed or client-certified.\n");
+    log_line($logPath, "[MuchoGDPS] Copy mc/compat/php7/config.example.php to mc/config/php7-local.php, configure an EMPTY MySQL database, then open " . $url . "/mc/admin.php\n");
+    log_line($logPath, "[MuchoGDPS] Merge 5V_ROOT_REWRITE_RULES.txt into the website-root .htaccess manually.\n");
+    log_line($logPath, "[MuchoGDPS] PHP 7 is end-of-life; GD 2.209 real-client verification is pending.\n");
+}
+
 if ($dispatchOnly) {
     dispatch_queued_jobs(dirname(__DIR__));
     exit(0);
@@ -1218,7 +1356,8 @@ $dbPassword = (string)@file_get_contents($dir . '/shared_db_password');
 $adminPassword = (string)@file_get_contents($dir . '/admin_password');
 
 try {
-    if ($ftpPassword === '' || $dbPassword === '' || $adminPassword === '' || $config === []) {
+    if ($ftpPassword === '' || $config === [] ||
+        (($config['provider'] ?? '') !== '5v.pl' && ($dbPassword === '' || $adminPassword === ''))) {
         throw new RuntimeException('Shared deployment job secrets or configuration are missing.');
     }
 
@@ -1237,6 +1376,14 @@ try {
     write_status($statusFile, $status);
 
     log_line($logFile, "[MuchoGDPS] Worker started. Watchdog: 60s without heartbeat.\n");
+    if (($config['provider'] ?? '') === '5v.pl') {
+        deploy_native_5v($config, $ftpPassword, $dir, $statusFile, $logFile);
+        cleanup_secrets($dir);
+        remove_tree($dir . '/extracted');
+        @unlink($dir . '/shared_archive');
+        dispatch_queued_jobs(dirname(__DIR__));
+        exit(0);
+    }
     $archive = $dir . '/shared_archive';
     $sourceMode = strtolower(trim((string)(getenv('MUCHO_SHARED_DEPLOY_SOURCE') ?: 'stable')));
 

@@ -119,25 +119,30 @@ if (!str_contains($dockerCompose, 'MUCHO_SHARED_DEPLOY_SOURCE: ${MUCHO_SHARED_DE
 }
 
 foreach ([
-    'Automatic MuchoCore deployment to shared hosting through FTP or FTPS.',
-    'ftp_host',
-    'ftp_password',
-    'db_password',
-    '/api/deploy/start',
-    'type:\'shared\'',
-    'Start automatic deployment',
-    'Auto Detect (recommended)',
-    'Remote web root',
+    'ТОЛЬКО 5V.PL',
+    'PHP 7 native',
+    'ftpHost',
+    'ftpPassword',
+    'ftpUser',
+    'ftpSecurity',
+    'ftpPort',
+    'ftpPath',
     'value="auto"',
-    'Auto detect:',
+    'accountUrl',
+    '.5v\\.pl',
+    "provider:'5v.pl'",
+    "type:'shared'",
+    '/api/deploy/start',
     '/install/shared/go/',
     'AUTOSAVE_KEY',
-    'restoreDraft',
-    'sessionStorage',
- ] as $needle) {
+    'saveDraft',
+] as $needle) {
     if (!str_contains($page, $needle)) {
-        throw new RuntimeException('Shared FTP UI contract missing: ' . $needle);
+        throw new RuntimeException('5V.PL-only FTP UI contract missing: ' . $needle);
     }
+}
+if (str_contains($page, 'adminPasswordConfirm') || str_contains($page, 'dbPassword')) {
+    throw new RuntimeException('5V.PL wizard must collect MySQL and owner secrets only on the tenant site.');
 }
 
 foreach ([
@@ -177,7 +182,7 @@ if (!str_contains($deploy, 'function deployment_session_start') || !str_contains
     throw new RuntimeException('Browser deployment session bootstrap contract missing.');
 }
 
-if (!str_contains($page, "window.location.assign('/install/shared/go/?job='+encodeURIComponent(d.job_id))")) {
+if (!str_contains($page, "window.location.assign('/install/shared/go/?job='+encodeURIComponent(data.job_id))")) {
     throw new RuntimeException('Shared FTP UI must redirect to the live installation console after creating a job.');
 }
 

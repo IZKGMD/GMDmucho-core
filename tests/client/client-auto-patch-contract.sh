@@ -62,12 +62,13 @@ fi
 
 echo "Auto Patch 2.0 contract passed"
 
-grep -Fq 'id="adminPasswordConfirm"' "$ROOT/public/install/shared/index.html"
-grep -Fq 'admin_password_confirm' "$ROOT/public/install/shared/index.html"
+# The 5v.pl-only wizard defers administrator setup to the target site.
+grep -Fq "provider:'5v.pl'" "$ROOT/public/install/shared/index.html"
 grep -Fq 'admin_password_confirm' "$ROOT/public/deploy.php"
-grep -Fq 'Admin passwords do not match.' "$ROOT/public/deploy.php"
+! grep -Fq 'id="adminPasswordConfirm"' "$ROOT/public/install/shared/index.html"
+! grep -Fq 'id="dbPassword"' "$ROOT/public/install/shared/index.html"
 
 grep -Fq 'LOCK_EX | LOCK_NB' "$ROOT/public/deploy.php"
-grep -Fq "Deployment start timed out." "$ROOT/public/install/shared/index.html"
+grep -Fq "AbortError" "$ROOT/public/install/shared/index.html"
 
 grep -Fq 'is_readable($builder)' "$ROOT/bin/mucho-shared-deploy-worker.php"

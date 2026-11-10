@@ -186,12 +186,34 @@ current limits. Keep the original game files and test patched output separately.
 
 README
 
+# Bundle the local one-click installer and FTP-verified emergency owner recovery.
+# The GUI EXE is self-contained; source launchers use Python 3.10+ on the operator's PC.
+for item in INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py \
+  PUBLISH_CLIENTS_5V.py muchoclients5v.py GUI_SETUP_5V.py \
+  RECOVERY_HANDLER.php.tpl START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
+  START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \
+  START_CLIENTS_WINDOWS.cmd START_CLIENTS_LINUX.sh README_RU.txt; do
+  test -f "$ROOT/tools/release/5v-installer/$item" || {
+    echo "Missing 5v.pl easy-installer source: $item" >&2
+    exit 1
+  }
+  cp "$ROOT/tools/release/5v-installer/$item" "$STAGE/$item"
+done
+# Use the same reviewed SHA-pinned Windows patcher as the PHP8/CI pipeline.
+# Never include the copyrighted original game executable or Android package.
+cp "$ROOT/tools/client/client-patch.py" "$STAGE/gd_windows_patcher.py"
+
 # Prohibit secrets in distributed ZIP; installer-generated keys/configs
 # are never copied into this stage.
 mkdir -p "$(dirname "$OUTPUT")"
 rm -f "$OUTPUT"
 (cd "$STAGE" && zip -qr "$OUTPUT" mc \
- "5V_ROOT_REWRITE_RULES.txt" "START_HERE_SHARED.txt")
+ "5V_ROOT_REWRITE_RULES.txt" "START_HERE_SHARED.txt" \
+ INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl \
+ PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py GUI_SETUP_5V.py \
+ START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
+ START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \
+ START_CLIENTS_WINDOWS.cmd START_CLIENTS_LINUX.sh README_RU.txt)
 
 unzip -t "$OUTPUT" >/dev/null
 LIST="$STAGE/zip-list.txt"
@@ -203,7 +225,12 @@ for item in mc/admin.php mc/public/php7-admin.php mc/public/assets/php7-admin-ba
   mc/compat/php7/features.sql mc/compat/php7/interactions.php \
   mc/compat/php7/cloudsave.php mc/compat/php7/profile.php \
   mc/.htaccess mc/public/.htaccess \
-  5V_ROOT_REWRITE_RULES.txt START_HERE_SHARED.txt; do
+  5V_ROOT_REWRITE_RULES.txt START_HERE_SHARED.txt \
+  INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl \
+  PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py GUI_SETUP_5V.py \
+  START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
+  START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \
+  START_CLIENTS_WINDOWS.cmd START_CLIENTS_LINUX.sh README_RU.txt; do
   grep -Fxq "$item" "$LIST" || {
     echo "Package incomplete: $item" >&2
     exit 1
@@ -217,5 +244,15 @@ for forbidden in mc/config/php7-local.php mc/config/php7-news.json \
     exit 1
   fi
 done
+# Only reviewed patcher code belongs in the ZIP. Do not include EXE/APK binaries.
+if ! diff -q "$ROOT/tools/client/client-patch.py" <(unzip -p "$OUTPUT" gd_windows_patcher.py) >/dev/null; then
+  echo "The bundled Windows patcher differs from the reviewed source." >&2
+  exit 1
+fi
+if unzip -Z1 "$OUTPUT" | grep -Ei '\.(exe|apk)$' >/dev/null; then
+  echo "Do not distribute proprietary Geometry Dash client binaries." >&2
+  exit 1
+fi
+echo "MUCHOCORE_5V_CLIENT_PUBLISHER_BUNDLE_OK"
 echo "PHP7_NATIVE_5V_ZIP_OK"
 echo "OUTPUT=$OUTPUT"

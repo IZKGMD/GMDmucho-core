@@ -45,19 +45,121 @@ A shared-hosting account needs:
 - FTP or the hosting file manager;
 - a database and database user.
 
-## Automatic installation from MuchoGDPS
+## Archive-based automatic installer — 5V.PL ONLY
 
-The official MuchoGDPS installer page can also connect to a shared-hosting account directly:
+New operators can install the **native PHP 7 preview directly from the release
+ZIP**, without uploading files manually or using VPS/SSH. The build
+`MuchoCore-PHP7-5v-native-preview.zip` includes:
 
-~~~text
-https://muchogdps.space/install/shared/
-~~~
+- `START_INSTALL_WINDOWS.cmd` / `START_INSTALL_LINUX.sh` — runs the local
+  Python 3.10+ installer (`INSTALL_5V.py`); no Python is required on 5v.pl.
+- `START_RECOVERY_WINDOWS.cmd` / `START_RECOVERY_LINUX.sh` — FTP-verified
+  **recovery of an EXISTING owner** (`RECOVER_ADMIN_5V.py`), even when the
+  previous password or second factor has been lost. When exactly one owner
+  exists, the operator may leave the owner username empty.
+- `README_RU.txt` — plain-language first-run and recovery instructions.
 
-Enter the FTP/FTPS host, username, password, public HTTPS URL, and database credentials. FTP mode, port, and the remote web root default to **Auto Detect**; you only need to override them when your provider requires a specific value. MuchoGDPS then downloads the latest published stable shared-hosting package on the control-plane server, verifies its SHA-256 digest, uploads the package through FTP/FTPS, starts the existing shared-hosting installer through the target site's HTTPS endpoint, and verifies the /health endpoint.
+The operator creates a site and an **empty MySQL database** at 5v.pl first,
+extracts the whole archive and provides: site HTTPS URL, FTP access,
+MySQL credentials, owner username/email/password. Those inputs are used
+locally; the control-plane VPS never receives them. FTPS is the secure
+default; opting into unencrypted FTP requires explicit acknowledgement.
 
-FTP and database passwords are stored only in the temporary deployment job on the MuchoGDPS control plane. They are not written to the deployment log and are deleted when the job finishes.
+The script verifies the website document root with a temporary random HTTPS
+marker, **refuses any existing `mc/` directory**, uploads the native package,
+checks that private `mc/config/` files are denied over HTTP **before**
+uploading the MySQL password, safely backs up existing root `.htaccess`,
+sets up the private PHP config, submits the real first-owner bootstrap
+through HTTPS and advances the owner's original resumable database migration
+without bypassing its locks. Installation is marked complete only after
+the private migration completion marker is observed.
 
-The target web root must already exist and the domain must already serve valid HTTPS. The shared hosting must permit normal PHP application/API traffic after installation.
+**Automatic client publishing (after the database/owner migration):**
+the local installer looks for user-supplied `GeometryDash.exe` and
+`GeometryDash.apk` in the extracted ZIP directory or `original_clients/`,
+and can prompt for other local paths. The ZIP contains no copyrighted game
+binaries. The **canonical SHA-pinned Python Windows patcher** retargets a
+supported GD 2.209 EXE locally; the already-implemented native PHP7 patcher
+accepts APK chunks over authenticated HTTPS, signs the patched APK with
+v1+v2 using the **persistent private site key**
+`mc/config/php7-apk-signer.json`, and reports SHA-256, package name and
+certificate ID. Keep a secure backup of this key so APK updates retain their
+signing identity.
+
+**Only when the operator confirms they have redistribution permission**,
+the publisher uploads the resulting files through the site owner's verified
+FTP connection into `mc/public/clients/`. Client filenames include a
+12-character SHA-256 prefix and are never overwritten; the installer checks
+the FTP file size and public HTTPS availability, prints the direct EXE/APK
+URLs, and creates a simple downloads index. The APK is moved from the
+authenticated private patcher job into the public directory by FTP when
+possible, avoiding a second full-sized copy on low-storage 5v.pl; otherwise
+it is downloaded through the authenticated session and re-uploaded with
+SHA-256 verification. This requires enough free space on the target.
+
+If this stage fails, **the already installed admin, owner, database,
+private keys and levels stay intact**. Re-run only
+`START_CLIENTS_WINDOWS.cmd` / `START_CLIENTS_LINUX.sh`, log in with
+the existing owner, and retry. The EXE requires the matching installed
+game DLL/Resources; it is not a standalone game installer. No user is
+authorized to publicly redistribute proprietary game files merely by
+owning a personal copy.
+
+**Recovering the owner:** verify FTP control of the same `*.5v.pl` site,
+enter a new owner password and invoke the bundled recovery launcher.
+It creates a temporary server-side PHP 7 handler containing a hash of
+a random 256-bit authorization token, sends the token and new password
+over HTTPS, resets only the selected existing active owner credential,
+revokes old sessions, passkeys and MFA credentials, and deletes the
+handler. No accounts, levels, data, privileges or Cloud Save keys
+are deleted. Recovery works only while the user retains or recovers
+their FTP account access. When multiple active owners exist, the
+existing owner username is mandatory to avoid ambiguity.
+
+**Limitations:** this is a new-install tool; it intentionally will not
+overwrite an existing site/owner. Test on a fresh 5v.pl account before
+calling native GD 2.209 compatibility certified. The target host may
+not support FTPS; ordinary FTP does not encrypt passwords or upload
+data. PHP 7 is obsolete, and the operator remains responsible for
+keeping a separate MySQL backup and private Cloud Save key.
+
+## Online installer: ONLY 5V.PL (PHP 7 native preview)
+
+The dedicated entry point at [https://muchogdps.space/install/shared/](https://muchogdps.space/install/shared/)
+is now **5V.PL ONLY**. It is not the generic PHP 8.2+ shared-hosting
+installer and rejects requests for websites outside `https://name.5v.pl`.
+
+5v.pl publicly advertises PHP 7.0.19, MySQL, FTP and `.htaccess`. The
+normal PHP 8.2+ shared package **cannot** run there. The online installer:
+
+1. Requires an HTTPS `*.5v.pl` website and the hosting account's FTP data.
+   The control plane verifies the selected remote web root via a temporary
+   HTTPS marker, including when the user enters an explicit FTP path.
+2. Builds the existing PHP 7 native preview archive using
+   `tools/release/build-php7-native.sh`, verifies its contents, and rejects
+   PHP 8-only files. This is a separate runtime with incomplete parity.
+3. Uploads to a **fresh `mc/` directory only**. It refuses to overwrite
+   existing `mc/` installations and does not modify an existing website
+   `.htaccess`.
+4. Shows an **incomplete** state after FTP upload. The owner must still create
+   an empty MySQL database, configure `mc/config/php7-local.php` from
+   `mc/compat/php7/config.example.php`, and open
+   `https://name.5v.pl/mc/admin.php` to initialize the native owner/database.
+5. Requires adding the exact routing rules from
+   `5V_ROOT_REWRITE_RULES.txt` to the WEBSITE ROOT `.htaccess`, then testing
+   `/health`, authentication and the actual Geometry Dash 2.209 client.
+
+**Credentials:** the central installer collects an FTP password, *not*
+MySQL or administrator credentials. The latter are entered directly on the
+tenant's HTTPS origin during browser setup. Job secrets are temporary and
+never printed in logs. FTPS should be preferred where the provider supports
+it; plain FTP is unencrypted. 5v.pl does not advertise SFTP support.
+
+**Limitations:** PHP 7 is end-of-life. The native preview has not been
+certified for every GD 2.209 action or actual game UI. Upload success must
+not be advertised as a complete game-server installation. A PHP 8.2+
+hosting provider should use the **manual generic shared-hosting package**
+below, not the 5v.pl-only entry point.
 
 ## Fastest path: FTP bootstrap
 

@@ -13,7 +13,7 @@
 | Hosting | Package / entry point | What you get |
 | --- | --- | --- |
 | **VPS (Linux)** | [One-command installer](#3-linux-vps--full-core) | Full PHP 8+ MuchoCore, Docker, MariaDB, Caddy, admin and worker |
-| **Shared with PHP 8.2+** | [Shared installer / ZIP](#1-shared-hosting-php-82--full-core) | Full core and web admin; no Docker or SSH needed |
+| **Shared with PHP 8.2+** | [Manual shared ZIP](#1-shared-hosting-php-82--full-core) | Full core and web admin; no Docker or SSH needed |
 | **5v.pl / PHP 7.0** | [PHP7 preview artifact](#2-5vpl--php-70-experimental) | Native runtime, original admin, shared worker, browser client patcher and compiled services |
 
 **Before installing:** Have a working HTTPS domain and database ready. Your hosting provider must allow requests from the Geometry Dash client; a working browser page alone is not proof that the game can connect.
@@ -22,15 +22,26 @@
 
 **Requires:** PHP 8.2+ (8.3+ recommended), MySQL 8.0.29+ / MariaDB 10.4+, PDO MySQL, HTTPS, a database user, FTP or File Manager. For automatic bootstrap, PHP ZIP and outbound HTTPS to GitHub are also required.
 
-### Option A — automatic FTP installation
+### Option A — online native PHP 7 uploader (ONLY 5V.PL)
 
-1. Open **[MuchoCore Shared Installer](https://muchogdps.space/install/shared/)**.
-2. Enter your FTP/FTPS host and credentials, public HTTPS domain, and MySQL credentials.
-3. Let the installer detect the FTP mode, port and website root, or override them if your host requires it.
-4. Finish the on-site database/admin wizard.
-5. Verify `https://YOUR-DOMAIN/health` returns `1` and sign in at `https://YOUR-DOMAIN/admin/`.
+[The official MuchoCore shared installer](https://muchogdps.space/install/shared/)
+works **only for HTTPS `*.5v.pl` subdomains**. 5v.pl advertises PHP 7,
+so the PHP 8.2+ full-core shared release cannot run there.
 
-The installer uses a published shared-hosting release. It does **not** make PHP 7 compatible.
+1. Create a new `name.5v.pl` site. Retrieve the FTP host/username/password
+   from the 5v.pl welcome email.
+2. Enter only the site domain and FTP credentials at the MuchoCore online wizard.
+   The server rejects any other hosting provider; it builds and uploads the
+   **PHP 7 native preview**, not the PHP 8 core.
+3. Open `https://name.5v.pl/mc/admin.php`. Configure a new **empty MySQL
+   database** and choose the first owner directly on the target website.
+4. Merge `5V_ROOT_REWRITE_RULES.txt` into your domain-root `.htaccess`
+   without overwriting existing rules.
+5. Verify `/health` and test Geometry Dash in the real client. The uploader
+   marks the job as **files uploaded / setup required**, not fully installed.
+
+This does not provide guaranteed PHP 8 feature parity. The native PHP 7
+runtime is experimental and PHP 7 is end-of-life.
 
 ### Option B — manual ZIP + FileZilla
 
@@ -49,6 +60,41 @@ The installer uses a published shared-hosting release. It does **not** make PHP 
 ## 2. 5v.pl / PHP 7.0 (experimental)
 
 This build runs entirely on shared hosting with its own MySQL connection, compiled PHP 7-compatible application services and English administration pages. It requires no VPS proxy, Composer installation or process-launch functions on the host. PHP 7 is obsolete; provider and real-device acceptance remain separate from the automated integration checks.
+
+### Автоматическая установка и восстановление владельца на 5v.pl
+
+Релизный `MuchoCore-PHP7-5v-native-preview.zip` уже содержит
+**`START_INSTALL_WINDOWS.cmd`** (или `START_INSTALL_LINUX.sh`) и
+**`START_RECOVERY_WINDOWS.cmd`** (или `START_RECOVERY_LINUX.sh`).
+
+1. Создай свой сайт `name.5v.pl` и **пустую MySQL-базу** на 5v.pl.
+2. Распакуй релизный ZIP целиком. На Windows открой
+   `START_INSTALL_WINDOWS.cmd` (Python 3.10+ должен быть установлен).
+3. Введи FTP и MySQL-данные, логин/e-mail/пароль будущего владельца.
+   Программа загрузит `mc/`, проверит закрытие приватных файлов,
+   безопасно добавит маршруты к `.htaccess`, создаст первого владельца
+   и запустит миграцию через оригинальный серверный мастер.
+4. При потере пароля или 2FA запусти **`START_RECOVERY_WINDOWS.cmd`**
+   (достаточно доступа к FTP своего сайта). Старого владельца и
+   остальные данные программа не удаляет. При единственном владельце
+   его логин можно не помнить.
+
+**Клиенты GD 2.209:** после установки программа предлагает
+исходные EXE и APK, патчит их без повторной установки ядра и, при наличии
+прав на публичное распространение, публикует проверенные файлы в
+`https://name.5v.pl/mc/public/clients/`. Windows патчится
+штатным Python-движком, Android — оригинальным PHP7-патчером с
+подписью APK v1/v2. Ключ `mc/config/php7-apk-signer.json`
+обязательно сохранить для будущих обновлений. Клиенты можно позже
+пересобрать отдельно кнопкой **`START_CLIENTS_WINDOWS.cmd`**.
+Игра и её платные файлы **не включены** в релизный архив; владелец
+личной копии игры не получает автоматически право публичной раздачи.
+
+**Защита от потери админки:** если на сервере уже есть `mc/`, новая
+установка не выполняется. Используй восстановление, а не переустановку.
+Утилита сброса отзовёт старые 2FA/сессии, но не изменит роль владельца.
+Сохрани FTP-доступ в менеджере паролей: без доступа к FTP этот метод
+восстановления недоступен.
 
 ### Download the correct archive
 
