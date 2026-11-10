@@ -21,6 +21,12 @@ import pyperclip
 import requests
 from PIL import Image
 
+from ftp_client import (
+    FTPBridgeError, ftp_backup_tree, ftp_clear_root, ftp_download,
+    ftp_list, ftp_preview_clear_root, ftp_read_text, ftp_status,
+    ftp_upload,
+)
+
 SERVICE = "MuchoCoreRemoteBridge"
 FTP_SERVICE = "MuchoCoreRemoteBridgeFTP"
 APP_DIR = Path(os.environ.get("APPDATA", str(Path.home()))) / "MuchoCoreRemoteBridge"
@@ -320,6 +326,119 @@ def desktop_scroll(payload):
     return {"scrolled": amount}
 
 
+def ftp_config(cfg):
+    value = cfg.get("ftp")
+    if not isinstance(value, dict):
+        raise AgentError("5v.pl FTPS is not configured. Run START_FTP_SETUP.cmd first.")
+    return value
+
+
+def ftp_list_action(cfg, payload):
+    return {"entries": ftp_list(ftp_config(cfg), payload.get("path", ""))}
+
+
+def ftp_read_action(cfg, payload):
+    return ftp_read_text(ftp_config(cfg), payload.get("path", ""))
+
+
+def ftp_upload_action(cfg, payload):
+    local = safe_path(cfg, payload.get("root_index", 0), payload.get("local_path", ""))
+    if is_sensitive_path(local):
+        raise AgentError("Uploading credential or private-key files is blocked.")
+    remote = payload.get("remote_path", "")
+    overwrite = bool(payload.get("overwrite", False))
+    if overwrite and payload.get("confirmation") != "OVERWRITE " + remote:
+        raise AgentError("Remote overwrite confirmation phrase does not match.")
+    approval("ftp.upload_file", {
+        "local_path": str(local), "remote_path": remote, "overwrite": overwrite,
+    })
+    return ftp_upload(ftp_config(cfg), local, remote, overwrite)
+
+
+def ftp_download_action(cfg, payload):
+    remote = payload.get("remote_path", "")
+    from ftp_client import blocked_remote_secret, safe_remote_path
+    remote = safe_remote_path(remote, allow_root=False)
+    if blocked_remote_secret(remote):
+        raise AgentError("Downloading credential or signing-key paths is blocked.")
+    local = safe_path(cfg, payload.get("root_index", 0), payload.get("local_path", ""))
+    if is_sensitive_path(local):
+        raise AgentError("Writing credential or private-key paths is blocked.")
+    overwrite = bool(payload.get("overwrite", False))
+    if overwrite and payload.get("confirmation") != "OVERWRITE " + str(local):
+        raise AgentError("Local overwrite confirmation phrase does not match.")
+    approval("ftp.download_file", {
+        "remote_path": remote, "local_path": str(local), "overwrite": overwrite,
+    })
+    ftp_cfg = dict(ftp_config(cfg))
+    ftp_cfg["local_root"] = str(Path(cfg["allowed_roots"][payload.get("root_index", 0)]).resolve())
+    return ftp_download(ftp_cfg, remote, local, overwrite)
+
+
+def ftp_mkdir_action(cfg, payload):
+    from ftp_client import FTPSession, safe_remote_path
+    remote = safe_remote_path(payload.get("path", ""), allow_root=False)
+    approval("ftp.mkdir", {"remote_path": remote})
+    with FTPSession(ftp_config(cfg)) as session:
+        session.mkdir(remote)
+    return {"created": remote}
+
+
+def ftp_rename_action(cfg, payload):
+    from ftp_client import FTPSession, safe_remote_path
+    source = safe_remote_path(payload.get("source", ""), allow_root=False)
+    destination = safe_remote_path(payload.get("destination", ""), allow_root=False)
+    approval("ftp.rename", {"source": source, "destination": destination})
+    with FTPSession(ftp_config(cfg)) as session:
+        session.rename(source, destination)
+    return {"renamed": source, "to": destination}
+
+
+def ftp_delete_action(cfg, payload):
+    from ftp_client import FTPSession, safe_remote_path
+    remote = safe_remote_path(payload.get("path", ""), allow_root=False)
+    approval("ftp.delete_file", {"remote_path": remote}, dangerous=True)
+    phrase = input("This is recoverable. Type MOVE REMOTE FILE to rename it into a backup: ").strip()
+    if phrase != "MOVE REMOTE FILE":
+        raise PermissionError("Remote file move was not confirmed.")
+    with FTPSession(ftp_config(cfg)) as session:
+        backup = session.move_to_backup(remote)
+    return {"original_path": remote, "moved_to_recovery_name": backup}
+
+
+def ftp_backup_action(cfg, payload):
+    root_index = payload.get("root_index", 0)
+    local_root = safe_path(cfg, root_index, "")
+    approval("ftp.backup_tree", {"remote_root": ftp_config(cfg).get("root", ""),
+                                 "local_backup_root": str(local_root)})
+    return ftp_backup_tree(ftp_config(cfg), local_root)
+
+
+def ftp_preview_clear_action(cfg, payload):
+    root_index = payload.get("root_index", 0)
+    local_root = safe_path(cfg, root_index, "")
+    return ftp_preview_clear_root(ftp_config(cfg), local_root, payload.get("backup_id", ""))
+
+
+def ftp_clear_action(cfg, payload):
+    root_index = payload.get("root_index", 0)
+    local_root = safe_path(cfg, root_index, "")
+    backup_id = payload.get("backup_id", "")
+    confirmation = payload.get("confirmation", "")
+    expected = "CLEAR 5V " + backup_id
+    if confirmation != expected:
+        raise AgentError("The server-side confirmation phrase must match the fresh backup ID.")
+    approval("ftp.clear_root", {
+        "remote_root": ftp_config(cfg).get("root", ""),
+        "backup_id": backup_id,
+        "files_and_directories_will_be_removed": True,
+    }, dangerous=True)
+    phrase = input("FULL RESET. Type exactly " + expected + " to continue: ").strip()
+    if phrase != expected:
+        raise PermissionError("FTPS root clear was not confirmed.")
+    return ftp_clear_root(ftp_config(cfg), local_root, backup_id, confirmation)
+
+
 def dispatch(cfg, job):
     action, payload = job["action"], job["payload"]
     handlers = {
@@ -335,6 +454,17 @@ def dispatch(cfg, job):
         "pc.desktop.type": lambda: desktop_type(payload),
         "pc.desktop.hotkey": lambda: desktop_hotkey(payload),
         "pc.desktop.scroll": lambda: desktop_scroll(payload),
+        "ftp.status": lambda: ftp_status(ftp_config(cfg)),
+        "ftp.list": lambda: ftp_list_action(cfg, payload),
+        "ftp.read_text": lambda: ftp_read_action(cfg, payload),
+        "ftp.upload_file": lambda: ftp_upload_action(cfg, payload),
+        "ftp.download_file": lambda: ftp_download_action(cfg, payload),
+        "ftp.mkdir": lambda: ftp_mkdir_action(cfg, payload),
+        "ftp.rename": lambda: ftp_rename_action(cfg, payload),
+        "ftp.delete_file": lambda: ftp_delete_action(cfg, payload),
+        "ftp.backup_tree": lambda: ftp_backup_action(cfg, payload),
+        "ftp.preview_clear_root": lambda: ftp_preview_clear_action(cfg, payload),
+        "ftp.clear_root": lambda: ftp_clear_action(cfg, payload),
     }
     if action not in handlers:
         raise AgentError("Unsupported action.")
