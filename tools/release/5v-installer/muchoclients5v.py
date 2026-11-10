@@ -363,6 +363,30 @@ def _download_authenticated(site: HttpsSite, job_id: str, expected: int,
         raise InstallError("Подписанный APK не прошёл SHA-256 после HTTPS.")
 
 
+def download_android_private(site: HttpsSite, report: dict,
+                            outdir: Path) -> Path:
+    """Download the signed APK to the operator's PC without public hosting."""
+    digest = str(report.get("output_sha256", ""))
+    size = int(report.get("output_size", 0))
+    job = str(report.get("job_id", ""))
+    if (not re.fullmatch(r"[a-f0-9]{64}", digest)
+            or not re.fullmatch(r"[a-f0-9]{32}", job)
+            or not 1024 <= size <= MAX_APK
+            or report.get("server_url") != site.origin):
+        raise InstallError("Подписанный APK содержит неправильные метаданные.")
+    outdir.mkdir(parents=True, exist_ok=True)
+    output = outdir / ("GeometryDash-MuchoCore-" + digest[:12] + ".apk")
+    if output.exists():
+        if output.stat().st_size == size and sha256_file(output) == digest:
+            return output
+        raise InstallError("Локальный APK с таким именем уже существует и не совпадает по SHA-256.")
+    with tempfile.TemporaryDirectory(prefix="mucho-apk-", dir=outdir) as temp:
+        temporary = Path(temp) / "verified.apk"
+        _download_authenticated(site, job, size, digest, temporary)
+        temporary.replace(output)
+    return output
+
+
 def publish_android(ftp: FtpSite, site: HttpsSite, report: dict,
                     outdir: Path) -> str:
     """Try in-place FTP rename; use authenticated HTTPS streaming as fallback."""
