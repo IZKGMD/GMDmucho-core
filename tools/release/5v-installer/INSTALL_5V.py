@@ -12,9 +12,14 @@ import time
 from mucho5v import (FtpSite, HttpsSite, FormFields, InstallError, merge_rules,
                      private_config, site_origin, valid_ftp_host, verify_private_folder)
 
-RELEASE_DIR = Path(__file__).resolve().parent
-RULE_FILE = RELEASE_DIR / "5V_ROOT_REWRITE_RULES.txt"
-CORE_DIR = RELEASE_DIR / "mc"
+# PyInstaller one-file builds extract read-only payload files to _MEIPASS.
+# Reports and patched clients belong beside the executable, never in that temp dir.
+BUNDLE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+RELEASE_DIR = (Path(sys.executable).resolve().parent
+               if getattr(sys, "frozen", False)
+               else Path(__file__).resolve().parent)
+RULE_FILE = BUNDLE_DIR / "5V_ROOT_REWRITE_RULES.txt"
+CORE_DIR = BUNDLE_DIR / "mc"
 
 
 def ask(label: str, default: str = "") -> str:
@@ -137,7 +142,7 @@ def perform_migration(site: HttpsSite, ftp: FtpSite):
     raise InstallError("Миграция не завершилась автоматически. Данные сохранены. Продолжи в /mc/admin.php?page=system.")
 
 
-def perform_install(cfg):
+def perform_install(cfg, *, prepare_clients: bool = True):
     if not CORE_DIR.is_dir() or not RULE_FILE.is_file():
         raise InstallError("Распакуй весь релизный ZIP. Папка mc/ и правила 5V отсутствуют.")
     site = HttpsSite(cfg["site"])
@@ -148,6 +153,7 @@ def perform_install(cfg):
                      secure=cfg["secure"]) as ftp:
             print("Проверка владения сайтом через FTP + HTTPS...")
             root = ftp.find_root(cfg["site"], cfg["root"])
+            cfg["_resolved_root"] = root
             print("Подтверждена папка сайта:", root)
             if ftp.exists_dir(root, "mc"):
                 raise InstallError(
@@ -173,16 +179,20 @@ def perform_install(cfg):
                 raise InstallError("Веб-админка не прошла заключительную проверку.")
             report["status"] = "admin_and_migration_ok"
             print("\nУстановка ядра завершена. Админка:", cfg["site"] + "/mc/admin.php")
-            print("\nТеперь можно автоматически подготовить EXE и APK:")
-            try:
-                from PUBLISH_CLIENTS_5V import publish_interactive
-                report["client_links"] = publish_interactive(site, ftp)
-                report["clients_status"] = "published" if report["client_links"] else "skipped"
-            except (InstallError, OSError, ValueError) as client_error:
-                report["clients_status"] = "needs_attention"
-                print("Клиентам нужна отдельная проверка:", client_error)
-                print("Само ядро и админка УЖЕ установлены и не затрагиваются.")
-                print("Можно повторить только публикацию: START_CLIENTS_WINDOWS.cmd")
+            if prepare_clients:
+                print("\nТеперь можно автоматически подготовить EXE и APK:")
+                try:
+                    from PUBLISH_CLIENTS_5V import publish_interactive
+                    report["client_links"] = publish_interactive(site, ftp)
+                    report["clients_status"] = "published" if report["client_links"] else "skipped"
+                except (InstallError, OSError, ValueError) as client_error:
+                    report["clients_status"] = "needs_attention"
+                    print("Клиентам нужна отдельная проверка:", client_error)
+                    print("Само ядро и админка УЖЕ установлены и не затрагиваются.")
+                    print("Можно повторить только публикацию: START_CLIENTS_WINDOWS.cmd")
+            else:
+                report["clients_status"] = "deferred"
+                print("Подготовка клиентов будет выполнена отдельным шагом мастера.")
             print("Сохрани FTP-учётные данные в надёжном месте!")
             print("Если забудешь пароль/2FA: START_RECOVERY_WINDOWS.cmd")
             print("Совместимость ВСЕХ операций Geometry Dash 2.209 проверяется отдельно.")
@@ -197,6 +207,7 @@ def perform_install(cfg):
                 json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         except OSError:
             pass
+    return report
 
 
 def main():
