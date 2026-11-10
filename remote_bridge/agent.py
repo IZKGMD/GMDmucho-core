@@ -432,23 +432,26 @@ def ftp_delete_action(cfg, payload):
     return {"original_path": remote, "moved_to_recovery_name": backup}
 
 
+def ftp_backup_root(cfg) -> Path:
+    root = Path(cfg.get("backup_root", str(Path.home() / "Documents" / "MuchoCoreRemoteBridge" / "FTPBackups"))).resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
 def ftp_backup_action(cfg, payload):
-    root_index = payload.get("root_index", 0)
-    local_root = safe_path(cfg, root_index, "")
+    local_root = ftp_backup_root(cfg)
     approval("ftp.backup_tree", {"remote_root": ftp_config(cfg).get("root", ""),
                                  "local_backup_root": str(local_root)})
     return ftp_backup_tree(ftp_config(cfg), local_root)
 
 
 def ftp_preview_clear_action(cfg, payload):
-    root_index = payload.get("root_index", 0)
-    local_root = safe_path(cfg, root_index, "")
+    local_root = ftp_backup_root(cfg)
     return ftp_preview_clear_root(ftp_config(cfg), local_root, payload.get("backup_id", ""))
 
 
 def ftp_clear_action(cfg, payload):
-    root_index = payload.get("root_index", 0)
-    local_root = safe_path(cfg, root_index, "")
+    local_root = ftp_backup_root(cfg)
     backup_id = payload.get("backup_id", "")
     confirmation = payload.get("confirmation", "")
     expected = "CLEAR 5V " + backup_id
