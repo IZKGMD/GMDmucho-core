@@ -44,6 +44,7 @@ def safe_run(args, extra_env=None, timeout=90):
         raise RuntimeError(
             "First-run check command failed (exit %s): %s" %
             (result.returncode, " ".join(args[:5]))
+            + "; command output: " + (result.stderr.strip() or result.stdout.strip())[:900]
         )
     return result.stdout.strip()
 
