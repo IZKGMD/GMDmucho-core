@@ -114,6 +114,12 @@ jobs:
           export DB_PASS="$(cat .secrets/testgdps_db_password)"
           python3 tests/integration/admin-email-recovery-e2e.py
 
+      - name: Install MP3 test utilities
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
       - name: Verify cross-version song metadata and real MP3 HTTP/range delivery
         shell: bash
         env:
