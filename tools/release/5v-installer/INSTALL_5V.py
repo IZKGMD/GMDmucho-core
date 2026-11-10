@@ -30,7 +30,7 @@ def secret(label: str, minimum: int = 1, maximum: int = 256) -> str:
     return value
 
 
-def get_credentials():
+def get_credentials(*, advanced: bool = False):
     print("\n" + "=" * 58)
     print(" MUCHOCORE · ПОЛНАЯ УСТАНОВКА · ТОЛЬКО 5V.PL")
     print("=" * 58)
@@ -43,20 +43,25 @@ def get_credentials():
     if not user or len(user) > 128:
         raise InstallError("Введи FTP-логин из кабинета 5v.pl.")
     password = secret("FTP пароль")
-    mode = ask("Соединение [FTPS/FTP], FTPS безопаснее", "FTPS").upper()
+    # Safe quick mode: never downgrade FTPS automatically to plaintext FTP.
+    mode = (ask("Соединение [FTPS/FTP]", "FTPS").upper()
+            if advanced else "FTPS")
     if mode not in ("FTPS", "FTP"):
         raise InstallError("Выбери FTPS или FTP.")
     if mode == "FTP":
         ack = ask("FTP НЕ шифрует пароли и файлы! Напиши 'СОГЛАСЕН' для продолжения")
         if ack != "СОГЛАСЕН":
             raise InstallError("Незащищённый FTP не подтверждён.")
-    root = ask("Корневая папка сайта на FTP (Enter = определить автоматически)")
-    mysqlhost = ask("MySQL сервер из кабинета 5v.pl", "localhost")
-    mysqlport = int(ask("Порт MySQL", "3306"))
+    # The common case needs no FTP root, MySQL hostname or port questions.
+    # Operators with nonstandard settings can use --advanced.
+    root = ask("Корневая папка сайта на FTP (Enter = авто)") if advanced else ""
+    mysqlhost = (ask("MySQL сервер из кабинета 5v.pl", "localhost")
+                 if advanced else "localhost")
+    mysqlport = int(ask("Порт MySQL", "3306")) if advanced else 3306
     dbname = ask("Имя ПУСТОЙ базы MySQL")
     dbuser = ask("Логин базы MySQL")
     dbpassword = secret("Пароль базы MySQL", 8)
-    username = ask("Имя первого администратора (латиница, 1-20 символов)")
+    username = ask("Логин владельца (по умолчанию admin)", "admin")
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,20}", username):
         raise InstallError("Имя администратора: 1-20 латинских букв, цифр, _ или -.")
     email = ask("E-mail владельца (для уведомлений и подтверждений)")
@@ -70,7 +75,7 @@ def get_credentials():
         raise InstallError("Пароли администратора не совпадают.")
     print("\nБудет установлен НОВЫЙ GDPS:", site)
     print("PHP 7 native; существующая папка mc/ НЕ перезаписывается.")
-    if ask("Напиши УСТАНОВИТЬ для старта") != "УСТАНОВИТЬ":
+    if ask("Начать установку? [Д/н]", "Д").casefold() not in ("д", "да", "y", "yes"):
         raise InstallError("Установка отменена.")
     return dict(site=site, host=host, user=user, password=password,
                 secure=mode=="FTPS", root=root, mysqlhost=mysqlhost,
@@ -196,7 +201,7 @@ def perform_install(cfg):
 
 def main():
     try:
-        cfg = get_credentials()
+        cfg = get_credentials(advanced="--advanced" in sys.argv[1:])
         perform_install(cfg)
     except (InstallError, OSError, ValueError) as exc:
         print("\nУстановка остановлена:", str(exc))
