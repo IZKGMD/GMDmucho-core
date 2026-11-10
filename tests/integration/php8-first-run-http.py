@@ -189,14 +189,17 @@ def main():
     browser = Browser()
 
     code, page, headers = browser.get()
-    check(code == 200 and "Create first administrator" in page
+    check(code == 200 and "open the private activation link" in page
           and '<html lang="en">' in page,
-          "fresh container exposes the English first-owner form by default")
+          "anonymous first visitor must activate ownership before registration")
+    check("Create first administrator" not in page,
+          "anonymous first visitor does not see a usable registration form")
     check('data-lang="en"' in page and 'data-lang="ru"' in page,
-          "first-owner form provides an EN / RU language switcher")
+          "first-owner page provides EN / RU language switcher")
     check("no-store" in headers.get("Cache-Control", ""),
           "bootstrap page is not cacheable")
-    check(secret not in page, "setup secret is not exposed in HTML")
+    check(secret not in page and 'name="setup_key"' not in page,
+          "activation credential never appears in a visible input or HTML")
     csrf = csrf_from(page)
     check(db_state(password)["count"] == 0,
           "startup did not silently create an administrator")
@@ -206,16 +209,47 @@ def main():
         "username": owner,
         "password": password,
         "password_confirm": password,
-        "setup_key": secret,
     }
+    code, _, _ = browser.post(form)
+    check(code == 403 and db_state(password)["count"] == 0,
+          "anonymous first visitor cannot register an owner")
+
+    code, page, _ = browser.post({
+        "action": "activate",
+        "csrf": csrf,
+        "setup_key": "incorrect-fixture-setup-key",
+    })
+    check(code == 200 and "activation link is invalid" in page
+          and db_state(password)["count"] == 0,
+          "invalid activation credential cannot unlock registration")
+
+    code, _, headers = browser.post({
+        "action": "activate",
+        "csrf": "not-a-valid-csrf",
+        "setup_key": secret,
+    })
+    check(code == 403 and db_state(password)["count"] == 0,
+          "invalid activation CSRF cannot unlock registration")
+
+    code, _, headers = browser.post({
+        "action": "activate",
+        "csrf": csrf,
+        "setup_key": secret,
+    })
+    check(code == 303 and headers.get("Location") == "/admin/?lang=en",
+          "private activation verifies the credential and binds the browser session")
+
+    code, page, _ = browser.get()
+    check(code == 200 and "Create first administrator" in page
+          and '<html lang="en">' in page
+          and 'name="setup_key"' not in page,
+          "activated owner sees English registration without setup-secret field")
+    csrf = csrf_from(page)
+    form["csrf"] = csrf
+
     code, _, _ = browser.post(dict(form, csrf="not-a-valid-csrf"))
     check(code == 403 and db_state(password)["count"] == 0,
-          "invalid CSRF cannot create an administrator")
-
-    code, page, _ = browser.post(dict(form, setup_key="incorrect-fixture-setup-key"))
-    check(code == 200 and "Invalid setup secret." in page
-          and db_state(password)["count"] == 0,
-          "wrong setup secret cannot create an administrator")
+          "invalid registration CSRF cannot create an administrator")
 
     code, page, _ = browser.post(dict(form, password_confirm="mismatch"))
     check(code == 200 and "Passwords do not match." in page
@@ -229,8 +263,8 @@ def main():
     code, page, _ = browser.get()
     check(code == 200 and "Создать первого администратора" in page,
           "Russian selection persists across requests")
-    code, page, _ = browser.post(dict(form, setup_key="incorrect-fixture-setup-key"))
-    check(code == 200 and "Неверный установочный секрет." in page
+    code, page, _ = browser.post(dict(form, password_confirm="mismatch"))
+    check(code == 200 and "Пароли не совпадают." in page
           and db_state(password)["count"] == 0,
           "Russian first-owner validation errors are localized")
     code, page, _ = browser.get("/admin/?lang=en")
