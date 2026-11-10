@@ -111,6 +111,19 @@ try {
 
     $add(5, 'BannedUser', 'banned-password', '', 1, 1);
     $add(6, 'InactiveUser', 'inactive-password', '', 0, 0);
+    $add(7, 'BackfillFailureUser', 'backfill-failure-password');
+
+    $db->exec(<<<'SQL'
+CREATE TRIGGER fail_gjp2_backfill
+BEFORE UPDATE ON accounts
+FOR EACH ROW
+BEGIN
+    IF NEW.account_id = 7 AND NEW.gjp2_hash <> OLD.gjp2_hash THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'simulated GJP2 backfill failure';
+    END IF;
+END
+SQL);
 
     $controller = new AccountController(new AccountService(
         $db,
@@ -184,6 +197,14 @@ try {
         'inactive account is rejected');
     $check($login('SpaceUser')->body === '-1',
         'empty credentials are rejected');
+
+    $backfillFailure = $login('BackfillFailureUser', 'backfill-failure-password');
+    $check(preg_match('/^7,[1-9][0-9]*$/D', $backfillFailure->body) === 1,
+        'valid password login survives an unavailable GJP2 backfill write');
+    $check((string)$db->query(
+        'SELECT gjp2_hash FROM accounts WHERE account_id=7'
+    )->fetchColumn() === '',
+        'failed GJP2 backfill leaves the existing empty credential unchanged');
 
     // Post-authentication bookkeeping is best-effort. Removing these optional
     // stores must not turn a valid credential into a client-visible login error.
