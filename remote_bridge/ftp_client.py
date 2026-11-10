@@ -441,8 +441,8 @@ def load_backup_manifest(local_root: Path, backup_id: str) -> tuple[Path, dict[s
 
 
 def ftp_preview_clear_root(cfg: dict[str, Any], local_root: Path, backup_id: str):
-    if not cfg.get("root", "").strip():
-        raise FTPBridgeError("Full-root clearing is disabled until a specific remote root is configured.")
+    if cfg.get("root", "").strip() in {"", "/", ".", "./"}:
+        raise FTPBridgeError("Full-root clearing is disabled until a specific subdirectory is configured.")
     _, manifest = load_backup_manifest(local_root, backup_id)
     if (manifest.get("host") != cfg["host"] or manifest.get("username") != cfg["username"]
             or manifest.get("root") != cfg["root"]):
