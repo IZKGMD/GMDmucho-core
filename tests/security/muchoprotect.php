@@ -449,7 +449,7 @@ if (
         STDERR,
         "MuchoProtect v2 central policy failed: "
         . json_encode($v2Blocked, JSON_UNESCAPED_SLASHES)
-        . "\n"
+        . "\\n"
     );
     exit(1);
 }
@@ -595,7 +595,7 @@ if (
         STDERR,
         "MuchoProtect user-info account limit failed: "
         . json_encode($userInfoBlocked, JSON_UNESCAPED_SLASHES)
-        . "\\n"
+        . "\n"
     );
     exit(1);
 }
