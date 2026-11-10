@@ -582,7 +582,8 @@ if [[ ! -s "$INSTALL_DIR/.secrets/admin_password" ]]; then
       printf '\n'
       read -r -s -p "  Confirm administrator password: " second < /dev/tty || fail "Could not read password confirmation."
       printf '\n'
-      if [[ "${#first}" -lt 12 || "${#first}" -gt 256 || "$first" == *[[:cntrl:]]* ]]; then
+      first_bytes="$(printf '%s' "$first" | wc -c)"
+      if [[ "$first_bytes" -lt 12 || "$first_bytes" -gt 256 || "$first" == *[[:cntrl:]]* ]]; then
         warn "Password must contain 12–256 characters without control characters."
       elif [[ "$first" != "$second" ]]; then
         warn "Passwords do not match."
@@ -605,7 +606,8 @@ fi
 # Preserve legacy credentials on existing installations without revalidating
 # the old setup-secret policy; fresh credentials use the new stricter policy.
 if [[ "$OWNER_FRESH" -eq 1 ]]; then
-  [[ "${#MUCHO_ADMIN_PASSWORD}" -ge 12 && "${#MUCHO_ADMIN_PASSWORD}" -le 256 ]] ||
+  admin_password_bytes="$(printf '%s' "$MUCHO_ADMIN_PASSWORD" | wc -c)"
+  [[ "$admin_password_bytes" -ge 12 && "$admin_password_bytes" -le 256 ]] ||
     fail "Administrator password must contain 12–256 characters."
   [[ "$MUCHO_ADMIN_PASSWORD" != *[[:cntrl:]]* ]] ||
     fail "Administrator password must not contain control characters."
