@@ -1,0 +1,112 @@
+name: PHP 8 HTTP acceptance
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "database/**"
+      - "docker/**"
+      - "docker-compose.test.yml"
+      - "docker-compose.test-acceptance.yml"
+      - "composer.json"
+      - "composer.lock"
+      - "tests/integration/**"
+      - ".github/workflows/php8-http-acceptance.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "public/**"
+      - "database/**"
+      - "docker/**"
+      - "docker-compose.test.yml"
+      - "docker-compose.test-acceptance.yml"
+      - "composer.json"
+      - "composer.lock"
+      - "tests/integration/**"
+      - ".github/workflows/php8-http-acceptance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php8-http-acceptance:
+    name: PHP 8.3 + MariaDB + Caddy HTTP acceptance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up PHP 8.3 and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_mysql, zip, gd, ftp
+          tools: composer
+
+      - name: Install test-runner dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Create isolated test secrets
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 .secrets
+          umask 077
+          openssl rand -hex 32 > .secrets/testgdps_db_password
+          openssl rand -hex 32 > .secrets/testgdps_db_root_password
+          openssl rand -hex 32 > .secrets/testgdps_admin_password
+
+      - name: Start isolated PHP-FPM, MariaDB and Caddy stack
+        run: |
+          docker compose \
+            -f docker-compose.test.yml \
+            -f docker-compose.test-acceptance.yml \
+            up -d --build testgdps-db testgdps-app testgdps-caddy
+
+      - name: Wait for PHP-FPM application through Caddy
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for attempt in {1..90}; do
+            if curl --fail --silent --show-error http://127.0.0.1:18080/health 2>/dev/null | grep -qx '1'; then
+              echo "PHP 8.3 application is healthy through Caddy."
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose -f docker-compose.test.yml -f docker-compose.test-acceptance.yml logs --tail=150 testgdps-db testgdps-app testgdps-caddy
+          exit 1
+
+      - name: Run full PHP 8 HTTP acceptance regression
+        shell: bash
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: "13307"
+          DB_NAME: testgdps
+          DB_USER: testgdps
+          MUCHO_TEST_ALLOW_WRITES: "1"
+          MUCHO_TEST_BASE_URL: http://127.0.0.1:18080
+          MUCHO_PUBLIC_BASE_URL: http://127.0.0.1:18080
+          MUCHO_TEST_HOST: localhost
+          MUCHO_ACCOUNT_URL: http://127.0.0.1:18080
+          MUCHO_PROTECT: "0"
+          MUCHO_GD_VERSIONS: all
+          MUCHO_CLIENT_TRACE: "0"
+        run: |
+          set -Eeuo pipefail
+          export DB_PASS="$(cat .secrets/testgdps_db_password)"
+          bash tests/integration/regression.sh
+
+      - name: Collect application logs on failure
+        if: failure()
+        run: |
+          docker compose -f docker-compose.test.yml -f docker-compose.test-acceptance.yml logs --no-color --tail=300 testgdps-db testgdps-app testgdps-caddy || true
+
+      - name: Tear down isolated acceptance stack
+        if: always()
+        run: |
+          docker compose -f docker-compose.test.yml -f docker-compose.test-acceptance.yml down -v --remove-orphans || true
+          rm -f .secrets/testgdps_db_password .secrets/testgdps_db_root_password .secrets/testgdps_admin_password
