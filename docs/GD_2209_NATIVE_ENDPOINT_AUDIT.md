@@ -46,7 +46,7 @@ That document marks the official endpoint as historical/nonfunctional since
 
 ## Remaining embedded operations
 
-The source inventory still distinguishes these from implemented routes:
+The source inventory still distinguishes these from operations certified by a real client:
 
 * `submitGJUserInfo`: request `0x140260b20` submits `udid`, `accountID`,
   `levelsInfo` and the account secret. PHP 8 now requires account credential
