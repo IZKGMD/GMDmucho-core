@@ -1,45 +1,45 @@
 # First-run administrator registration
 
-The first visit to `https://your-gdps.example/admin/` now displays **Create first administrator** instead of silently creating an owner account.
+The first owner chooses a username and password in the browser. **There is no separate Setup Secret field.** A private activation link confirms control of the new server before the registration form becomes available, protecting against first-visitor account takeover.
 
 ## Language
 
-The first-run administrator registration opens in **English** by default. Use the **EN / RU** switcher at the top of the form to select English or Russian. This choice persists through validation errors, page reloads and the first sign-in; it uses the same `mucho_admin_language` preference as the main administration panel. Error messages, security notices and field labels are translated on the server. Existing installations keep their registered owners.
+English is the default. Use the **EN / RU** switcher to change languages. All form fields, errors and activation notices are localized. The preference remains selected on reload.
 
 ## New VPS installation
 
-1. Install MuchoCore as usual. At the terminal, choose the **admin setup secret**. This is an authorization code for the browser wizard, *not* the final admin login password.
-2. Open `https://your-gdps.example/admin/`.
-3. Choose your administrator username and a new password (12–256 characters), confirm it, and enter the installer secret.
-4. Submit. The new owner account is stored using PHP `password_hash`; you are signed in and redirected to the dashboard.
-5. Subsequent visits show the usual sign-in page. Creating a second first owner is disabled.
+1. Install MuchoCore normally. The installer generates a private activation credential automatically; it does **not** ask you to invent a second setup password.
+2. The interactive installer prints a private activation link at the end, such as `https://gdps.example.com/admin/#setup=...`. Open that link in your browser. The browser uses the credential to authorize the session, then removes it from the URL bar.
+3. Enter the owner username, choose a password (12–256 characters), confirm it, and submit. There is no extra secret field.
+4. Your owner account is created and signed in. Afterward the one-time enrollment is permanently sealed.
 
-The installer secret remains in `.secrets/admin_password`, readable only locally by the operator, and its hash is exposed to the admin process as `/etc/muchocore-admin.php`. The browser does not display the secret or put it in the URL.
+If you missed the link, run this command in a **private SSH session** on the VPS:
+
+```bash
+cd /opt/mucho-core
+sudo docker compose exec -T app php bin/mucho-owner-link.php
+```
+
+Do **not** put the command's output (the link) into a public issue, shared console log, chat message or screenshot. The URL fragment is kept out of HTTP request URLs; it is nevertheless a bearer credential until registration is completed.
+
+Unattended deployments do not print the activation link. The operator retrieves it later through the same private SSH command.
 
 ## New shared-hosting installation
 
-The shared installer asks for a **setup secret**. It stores a hash in the private `storage/admin-bootstrap.php` file but does **not** pre-create the administrator account.
-
-After installation, open `/admin/` and register your first owner using the setup secret. Do not delete `storage/admin-bootstrap.php`.
+The direct shared-hosting installer displays a **private first-owner activation link** on the successful installation page. Follow it and choose the owner username/password; no Setup Secret field is shown on the registration form. Keep `storage/admin-bootstrap.php` private. Automated shared-hosting flows must deliver an equivalent private activation handoff to the installer operator.
 
 ## Upgrades and recovery
 
-Existing `admin_users` records are preserved. If an admin already exists, the one-time wizard is never shown. A persisted database marker (`admin_initialization`) keeps this restriction even if all admin accounts are subsequently deleted.
+Existing administrators and login passwords are preserved. A database seal (`admin_initialization`) prevents reopening enrollment if accounts are later deleted. Routine deployment never resets the owner password.
 
-Routine installs, updates and deploys no longer reset admin passwords from the Docker secret. If you must deliberately reset the Docker-installed owner from the local server console, run:
-
-```sh
-cd /opt/mucho-core
-sudo bin/mucho-admin-setup.sh
-```
-
-That utility asks for a new password and invokes `bin/mucho-sync-admin.php --reset-password`. An operator can also run `sudo mucho` and choose its password reset command. This **explicit** console recovery seals the wizard as completed.
+If you lose access, use configured verified-email recovery or an explicit local server-console reset. The `bin/mucho-admin-setup.sh` helper is a reset tool on a running installation; it should not be invoked casually.
 
 ## Security boundaries
 
-- Creating the first owner requires the secret supplied to the installer and a CSRF-protected form.
-- The wizard is available over HTTPS (localhost is permitted for local development).
-- A database advisory lock guarantees only one owner can be claimed during concurrent setup attempts.
-- The setup secret is checked with `password_verify` and unsuccessful guesses are rate-limited.
-- No registration route is available after first setup. A subsequent loss of all admins needs server-console recovery, not public sign-up.
-- Do not share your setup secret or use this procedure to add normal GDPS player accounts.
+- Anonymous visitors cannot register an owner merely by reaching `/admin/`.
+- The private activation credential is validated against a server-side password hash by a CSRF-protected POST, not by a URL query parameter.
+- The credential arrives as a browser-only URL fragment and is removed from history before submission. The registration form uses an authenticated, short-lived session (15 minutes) instead of another password field.
+- HTTPS is required except localhost development.
+- Invalid activation attempts are rate-limited.
+- A database advisory lock plus permanent completion marker prevent concurrent or repeat first-owner enrollment.
+- Never share the private activation URL. It stops working after a successful first-owner registration.
