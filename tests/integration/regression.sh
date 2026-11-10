@@ -506,6 +506,19 @@ post loginGJAccount \
 expect_not "Login A" "$L1" "-1"
 expect_not "Login B" "$L2" "-1"
 
+# Pin the native GD GJP2 wire contract independently of AccountService constants.
+GJP2_A="$(
+    PASSWORD="$P1" php -r 'echo sha1((string)getenv("PASSWORD") . "mI29fmAnxgTs");'
+)"
+L1_GJP2="$(
+post loginGJAccount22 \
+    -d "userName=$U1" \
+    -d "gjp2=$GJP2_A" \
+    -d 'gameVersion=22' \
+    -d 'binaryVersion=51'
+)"
+expect_eq "GD 2.209 GJP2 login via versioned HTTP route" "$L1_GJP2" "$AID1,$UID1"
+
 BAD_LOGIN="$(
 post loginGJAccount \
     -d "userName=$U1" \
