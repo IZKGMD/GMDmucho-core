@@ -36,8 +36,11 @@ final class GdSongEncoder
             return '';
         }
 
-        // Existing songs may already store an encoded Newgrounds/CDN link.
-        return $url === $candidate ? rawurlencode($url) : $candidate;
+        // Keep already-encoded full URLs, but encode raw URLs even when
+        // a path segment or query includes percent escapes.
+        return preg_match('~^https?%3A%2F%2F~iD', $candidate) === 1
+            ? $candidate
+            : rawurlencode($candidate);
     }
 
     public function encode(array $song): string
