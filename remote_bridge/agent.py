@@ -42,6 +42,10 @@ DANGEROUS = re.compile(
     r"docker\s+compose\s+down\s+-v|drop\s+database|truncate\s+table|"
     r"rm\s+-rf|mkfs|\bdd\s+if=)"
 )
+SENSITIVE_READ = re.compile(
+    r"(?i)(\\.env\\b|\\.secrets\\b|id_rsa|id_ed25519|"
+    r"php7-apk-signer|credentials\\.json|private[_-]?key)"
+)
 
 
 class AgentError(RuntimeError):
@@ -250,6 +254,7 @@ def redact_output(value: str) -> str:
         (re.compile(r"(?i)gh[pousr]_[A-Za-z0-9_]{20,}"), "[REDACTED_GITHUB_TOKEN]"),
         (re.compile(r"(?i)sk-[A-Za-z0-9_-]{20,}"), "[REDACTED_API_KEY]"),
         (re.compile(r"AKIA[0-9A-Z]{16}"), "[REDACTED_AWS_KEY]"),
+        (re.compile(r"(?i)(https?://[^:/\\s]+:)[^@/\\s]+@"), r"\\1[REDACTED]@"),
     ]
     for pattern, replacement in patterns:
         value = pattern.sub(replacement, value)
@@ -264,6 +269,8 @@ def run_terminal(cfg, payload):
     command = payload.get("command")
     if not isinstance(command, str) or not command.strip() or len(command) > 6000:
         raise AgentError("Invalid PowerShell command.")
+    if SENSITIVE_READ.search(command):
+        raise AgentError("Commands that directly read known credential or private-key files are blocked.")
     dangerous = bool(DANGEROUS.search(command))
     approval("pc.terminal.run", {"cwd": str(cwd), "command": command,
                                  "timeout_seconds": 120}, dangerous=dangerous)
