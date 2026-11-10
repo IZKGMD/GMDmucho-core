@@ -868,6 +868,13 @@ jobs:
           TEST_REDIS_PORT: 6379
         run: php tests/application/redis-cache-integration.php
 
+      - name: Verify GD 2.209 authenticated user-info submission
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/user-info-submission-integration.php
+
 
   php70-native-compat:
     runs-on: ubuntu-latest
