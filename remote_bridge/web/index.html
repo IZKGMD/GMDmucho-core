@@ -47,9 +47,15 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0b0d12;border:1px so
         <option value="pc.terminal.run">Команда PowerShell</option><option value="pc.desktop.click">Клик мышью</option>
         <option value="pc.desktop.type">Ввести текст</option><option value="pc.desktop.hotkey">Комбинация клавиш</option>
         <option value="pc.desktop.scroll">Прокрутка</option>
+        <option value="ftp.status">FTPS: статус 5v.pl</option><option value="ftp.list">FTPS: список файлов</option>
+        <option value="ftp.read_text">FTPS: прочитать текст</option><option value="ftp.upload_file">FTPS: загрузить файл</option>
+        <option value="ftp.download_file">FTPS: скачать файл</option><option value="ftp.mkdir">FTPS: создать каталог</option>
+        <option value="ftp.rename">FTPS: переименовать</option><option value="ftp.delete_file">FTPS: переместить файл в backup</option>
+        <option value="ftp.backup_tree">FTPS: резервная копия</option><option value="ftp.preview_clear_root">FTPS: проверить сброс</option>
+        <option value="ftp.clear_root">FTPS: очистить каталог (опасно)</option>
       </select><select id="agentSelect"></select><button id="sendBtn">Отправить</button></div>
       <div class="field"><label>Параметры JSON</label><textarea id="payload">{}</textarea></div>
-      <small>Примеры: статус/скриншот — {}; список файлов — {"root_index":0,"path":""}; терминал — {"root_index":0,"cwd":"","command":"git status"}</small>
+      <small>ПК: статус/скриншот — {}; список workspace — {"root_index":0,"path":""}; терминал — {"root_index":0,"cwd":"","command":"git status"}. FTPS: список — {"path":""}; текст — {"path":"mc/index.php"}; backup — {"root_index":0}; preview — {"root_index":0,"backup_id":"..."}; clear — {"root_index":0,"backup_id":"...","confirmation":"CLEAR 5V ..."}</small>
     </section>
     <section class="card span6"><h2>Последние задания</h2><div id="jobs" class="list"></div></section>
     <section class="card span6"><h2>Результат</h2><div id="result" class="status">Выбери задание, чтобы увидеть результат.</div><img id="screen" class="hidden" alt="Скриншот рабочего стола"><pre id="output" class="hidden"></pre></section>
