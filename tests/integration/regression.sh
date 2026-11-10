@@ -539,7 +539,7 @@ echo "===== USER CORE ====="
 US="$(
 post updateGJUserScore22 \
     -d "accountID=$AID1" \
-    -d "gjp2=$P1" \
+    -d "gjp2=$GJP2_A" \
     -d "userName=$U1" \
     -d 'stars=123' \
     -d 'demons=4' \
@@ -564,7 +564,7 @@ UI="$(
 post getGJUserInfo20 \
     -d "targetAccountID=$AID1" \
     -d "accountID=$AID1" \
-    -d "gjp2=$P1" \
+    -d "gjp2=$GJP2_A" \
     -d 'gameVersion=22' \
     -d 'binaryVersion=51'
 )"
