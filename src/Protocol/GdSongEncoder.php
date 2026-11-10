@@ -14,6 +14,35 @@ final class GdSongEncoder
         return $label !== '' ? $label : 'Player';
     }
 
+    /**
+     * Geometry Dash song objects carry a URL-encoded absolute MP3 link.
+     * Accept either historical DB representation without double-encoding.
+     * Reject controls, unsupported schemes and invalid URL values rather
+     * than putting protocol delimiters into a client-facing response.
+     */
+    public static function encodeDownloadUrl(mixed $value): string
+    {
+        $candidate = trim((string) $value);
+        if ($candidate === '' || strlen($candidate) > 2048 ||
+            preg_match('/[\\x00-\\x20\\x7F]/', $candidate)) {
+            return '';
+        }
+
+        $url = rawurldecode($candidate);
+        $parts = parse_url($url);
+        if (!is_array($parts) || !in_array(strtolower((string) ($parts['scheme'] ?? '')), ['https', 'http'], true)
+            || empty($parts['host']) || isset($parts['user']) || isset($parts['pass'])
+            || preg_match('/[\\r\\n#~|]/', $url)) {
+            return '';
+        }
+
+        // Keep already-encoded full URLs, but encode raw URLs even when
+        // a path segment or query includes percent escapes.
+        return preg_match('~^https?%3A%2F%2F~iD', $candidate) === 1
+            ? $candidate
+            : rawurlencode($candidate);
+    }
+
     public function encode(array $song): string
     {
         $data = [
@@ -25,7 +54,7 @@ final class GdSongEncoder
             4, self::songLabel($song['author_name'] ?? ''),
             5, round((float)($song['size'] ?? 0), 2),
             6, (string)($song['youtube_video_id'] ?? ''),
-            10, (string)($song['download_url'] ?? ''),
+            10, self::encodeDownloadUrl($song['download_url'] ?? ''),
             7, (string)($song['youtube_channel_id'] ?? ''),
             // GD field 8 is "disabled", not "verified".
             8, (int)($song['is_disabled'] ?? 0),

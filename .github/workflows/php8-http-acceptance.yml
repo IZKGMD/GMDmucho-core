@@ -114,6 +114,26 @@ jobs:
           export DB_PASS="$(cat .secrets/testgdps_db_password)"
           python3 tests/integration/admin-email-recovery-e2e.py
 
+      - name: Install MP3 test utilities
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - name: Verify cross-version song metadata and real MP3 HTTP/range delivery
+        shell: bash
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: "13307"
+          DB_NAME: testgdps
+          DB_USER: testgdps
+          MUCHO_TEST_ALLOW_WRITES: "1"
+          MUCHO_TEST_BASE_URL: http://127.0.0.1:18080
+        run: |
+          set -Eeuo pipefail
+          export DB_PASS="$(cat .secrets/testgdps_db_password)"
+          python3 tests/integration/song-delivery-http.py
+
       - name: Run full PHP 8 HTTP acceptance regression
         shell: bash
         env:

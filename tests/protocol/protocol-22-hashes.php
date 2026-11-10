@@ -76,7 +76,7 @@ $song = (new GdSongEncoder())->encode([
 ]);
 
 assertSameValue(
-    '1~|~123~|~2~|~Test Song~|~3~|~7~|~4~|~Composer~|~5~|~4.25~|~6~|~~|~10~|~https://cdn.example/song.mp3~|~7~|~~|~8~|~0',
+    '1~|~123~|~2~|~Test Song~|~3~|~7~|~4~|~Composer~|~5~|~4.25~|~6~|~~|~10~|~https%3A%2F%2Fcdn.example%2Fsong.mp3~|~7~|~~|~8~|~0',
     $song,
     'custom song wire format'
 );

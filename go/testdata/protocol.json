@@ -524,51 +524,51 @@
     "songs": [
         {
             "size": 0,
-            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~0~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~0~|~6~|~abc~|~10~|~https%3A%2F%2Fexample.com%2Fsong.mp3~|~7~|~channel~|~8~|~0"
         },
         {
             "size": -0,
-            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~-0~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~-0~|~6~|~abc~|~10~|~https%3A%2F%2Fexample.com%2Fsong.mp3~|~7~|~channel~|~8~|~0"
         },
         {
             "size": -0.001,
-            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~-0~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~-0~|~6~|~abc~|~10~|~https%3A%2F%2Fexample.com%2Fsong.mp3~|~7~|~channel~|~8~|~0"
         },
         {
             "size": 1,
-            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~1~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~1~|~6~|~abc~|~10~|~https%3A%2F%2Fexample.com%2Fsong.mp3~|~7~|~channel~|~8~|~0"
         },
         {
             "size": 1.005,
-            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~1.01~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~1.01~|~6~|~abc~|~10~|~https%3A%2F%2Fexample.com%2Fsong.mp3~|~7~|~channel~|~8~|~0"
         },
         {
             "size": 1.234,
-            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~1.23~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~1.23~|~6~|~abc~|~10~|~https%3A%2F%2Fexample.com%2Fsong.mp3~|~7~|~channel~|~8~|~0"
         },
         {
             "size": 1.235,
-            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~1.24~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~1.24~|~6~|~abc~|~10~|~https%3A%2F%2Fexample.com%2Fsong.mp3~|~7~|~channel~|~8~|~0"
         },
         {
             "size": 2.675,
-            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~2.68~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~2.68~|~6~|~abc~|~10~|~https%3A%2F%2Fexample.com%2Fsong.mp3~|~7~|~channel~|~8~|~0"
         },
         {
             "size": 16.225,
-            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~16.23~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~16.23~|~6~|~abc~|~10~|~https%3A%2F%2Fexample.com%2Fsong.mp3~|~7~|~channel~|~8~|~0"
         },
         {
             "size": 0.145,
-            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~0.15~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~0.15~|~6~|~abc~|~10~|~https%3A%2F%2Fexample.com%2Fsong.mp3~|~7~|~channel~|~8~|~0"
         },
         {
             "size": -1.235,
-            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~-1.24~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~-1.24~|~6~|~abc~|~10~|~https%3A%2F%2Fexample.com%2Fsong.mp3~|~7~|~channel~|~8~|~0"
         },
         {
             "size": 999.999,
-            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~1000~|~6~|~abc~|~10~|~https://example.com/song.mp3~|~7~|~channel~|~8~|~0"
+            "output": "1~|~42~|~2~|~TestSong~|~3~|~7~|~4~|~Player~|~5~|~1000~|~6~|~abc~|~10~|~https%3A%2F%2Fexample.com%2Fsong.mp3~|~7~|~channel~|~8~|~0"
         }
     ]
 }

@@ -79,6 +79,35 @@ function mucho7_epoch($value)
     }
 }
 
+/**
+ * Keep the standalone PHP 7.0 search output in parity with PHP 8's GD song
+ * metadata without pulling in Composer or the PHP 8-only application classes.
+ */
+function mucho7_song_label($value)
+{
+    $label = mucho7_field(trim((string)$value), 128);
+    return $label !== '' ? $label : 'Player';
+}
+
+function mucho7_song_download_url($value)
+{
+    $candidate = trim((string)$value);
+    if ($candidate === '' || strlen($candidate) > 2048 ||
+        preg_match('/[\\x00-\\x20\\x7F]/', $candidate)) {
+        return '';
+    }
+    $url = rawurldecode($candidate);
+    $parts = parse_url($url);
+    if (!is_array($parts) ||
+        !in_array(strtolower(isset($parts['scheme']) ? (string)$parts['scheme'] : ''), array('https', 'http'), true) ||
+        empty($parts['host']) || isset($parts['user']) || isset($parts['pass']) ||
+        preg_match('/[\\r\\n#~|]/', $url)) {
+        return '';
+    }
+    return preg_match('~^https?%3A%2F%2F~iD', $candidate) === 1
+        ? $candidate : rawurlencode($candidate);
+}
+
 /** Adapted byte-for-byte field order from GdLevelListEncoder for GD 2.2/2.209. */
 function mucho7_encode_levels($levels, $total, $offset, $gameVersion, $binaryVersion)
 {
@@ -139,13 +168,13 @@ function mucho7_encode_levels($levels, $total, $offset, $gameVersion, $binaryVer
         if ($gameVersion > 18 && $songId > 0 && !isset($songsSeen[$songId])) {
             $songsSeen[$songId] = true;
             $songs[] = implode('~|~', array(
-                1, $songId, 2, mucho7_field($level['song_name'], 65535),
+                1, $songId, 2, mucho7_song_label($level['song_name']),
                 3, (int)$level['song_author_id'],
-                4, mucho7_field($level['song_author_name'], 65535),
+                4, mucho7_song_label($level['song_author_name']),
                 5, round((float)$level['song_size'], 2),
                 6, (string)$level['song_youtube_video_id'],
-                10, (string)$level['song_download_url'],
-                7, (string)$level['song_youtube_channel_id'], 8, 1
+                10, mucho7_song_download_url($level['song_download_url']),
+                7, (string)$level['song_youtube_channel_id'], 8, 0
             ));
         }
         $hashData .= $id[0] . $id[strlen($id) - 1]

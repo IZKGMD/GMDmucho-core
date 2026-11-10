@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -74,12 +75,53 @@ type Song struct {
 	Disabled                        int
 }
 
+func songLabel(value string) string {
+	value = strings.TrimSpace(value)
+	value = strings.NewReplacer("\x00", "", "\r", "", "\n", "",
+		":", "", "|", "", "#", "", "~", "").Replace(value)
+	if len(value) > 128 {
+		value = value[:128]
+	}
+	if value == "" {
+		return "Player"
+	}
+	return value
+}
+
+// Match the PHP 8 GD song wire's percent-encoded absolute MP3 URL.
+func songDownloadURL(value string) string {
+	candidate := strings.TrimSpace(value)
+	if candidate == "" || len(candidate) > 2048 {
+		return ""
+	}
+	for _, c := range candidate {
+		if c < 0x20 || c == 0x7f || c == ' ' {
+			return ""
+		}
+	}
+	decoded, err := url.PathUnescape(candidate)
+	if err != nil {
+		return ""
+	}
+	parsed, err := url.Parse(decoded)
+	if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") ||
+		parsed.Hostname() == "" || parsed.User != nil ||
+		strings.ContainsAny(decoded, "\r\n#~|") {
+		return ""
+	}
+	if strings.HasPrefix(strings.ToLower(candidate), "https%3a%2f%2f") ||
+		strings.HasPrefix(strings.ToLower(candidate), "http%3a%2f%2f") {
+		return candidate
+	}
+	return strings.ReplaceAll(url.QueryEscape(candidate), "+", "%20")
+}
+
 func EncodeSong(s Song) string {
 	return strings.Join([]string{
-		"1", strconv.FormatInt(s.ID, 10), "2", Username(s.Name),
-		"3", strconv.FormatInt(s.AuthorID, 10), "4", Username(s.AuthorName),
+		"1", strconv.FormatInt(s.ID, 10), "2", songLabel(s.Name),
+		"3", strconv.FormatInt(s.AuthorID, 10), "4", songLabel(s.AuthorName),
 		"5", roundedSize(s.Size),
-		"6", s.VideoID, "10", s.DownloadURL, "7", s.ChannelID,
+		"6", s.VideoID, "10", songDownloadURL(s.DownloadURL), "7", s.ChannelID,
 		"8", strconv.Itoa(s.Disabled),
 	}, "~|~")
 }
