@@ -213,6 +213,9 @@ SQL);
     $afterBookkeepingFailure = $login('SpaceUser', $spacedPassword);
     $check($afterBookkeepingFailure->body === $plain->body,
         'login remains successful when optional post-login bookkeeping fails');
+    $failedAfterAuditFailure = $login('SpaceUser', 'wrong-password');
+    $check($failedAfterAuditFailure->body === '-1',
+        'wrong credentials keep the protocol failure sentinel when audit storage is unavailable');
     $gjp2AfterRepeat = (string)$db->query(
         'SELECT gjp2_hash FROM accounts WHERE account_id=1'
     )->fetchColumn();
