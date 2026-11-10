@@ -66,6 +66,11 @@ foreach ([47,51] as $binary) {
     $expected = $modern->encode($rows, 1, 0, 10, 22, $binary);
     verifyNative7($actual === $expected,
         'PHP7 native GD search must match current PHP8 wire for binaryVersion ' . $binary);
+    $songParts = explode('#', $actual);
+    verifyNative7(count($songParts) === 5 &&
+        strpos($songParts[2], '10~|~https%3A%2F%2Fexample.invalid%2Fsong.mp3~|~7') !== false &&
+        substr($songParts[2], -5) === '8~|~0',
+        'Standalone PHP7 song metadata must use encoded URL and enabled flag');
     if ($binary === 51) {
         verifyNative7(strpos($actual, ':62:1792454400:63:1792454400') !== false,
             '2.209 UTC wire timestamp fields must be preserved');
