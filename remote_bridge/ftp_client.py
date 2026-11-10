@@ -136,6 +136,22 @@ class FTPSession:
         self.cwd(parent)
         return parent, name
 
+    def remote_exists(self, name: str) -> bool:
+        ftp = self._ftp()
+        try:
+            ftp.sendcmd("MLST " + name)
+            return True
+        except Exception as mlst_error:
+            code = str(mlst_error)[:3]
+            if code not in {"500", "502", "504", "550"}:
+                raise FTPBridgeError("Could not safely determine whether the remote destination exists.")
+            try:
+                return bool(ftp.nlst(name))
+            except Exception as nlst_error:
+                if str(nlst_error).startswith("550"):
+                    return False
+                raise FTPBridgeError("Server cannot safely check remote destination existence.") from nlst_error
+
     def list_dir(self, relative: str = "") -> list[dict[str, Any]]:
         rel = safe_remote_path(relative)
         self.cwd(rel)
@@ -159,10 +175,15 @@ class FTPSession:
     def size(self, relative: str) -> int:
         parent, name = self.parent(relative)
         try:
-            value = self._ftp().size(name)
-            return int(value or 0)
+            try:
+                value = self._ftp().size(name)
+                if value is not None:
+                    return int(value)
+            except Exception:
+                pass
         finally:
             self.cwd("")
+        return len(self.read_bytes(relative, MAX_FILE))
 
     def read_bytes(self, relative: str, limit: int = MAX_FILE) -> bytes:
         parent, name = self.parent(relative)
@@ -183,12 +204,7 @@ class FTPSession:
     def upload_bytes(self, relative: str, data: bytes, overwrite: bool = False):
         parent, name = self.parent(relative)
         ftp = self._ftp()
-        exists = False
-        try:
-            ftp.sendcmd("MLST " + name)
-            exists = True
-        except Exception:
-            exists = False
+        exists = self.remote_exists(name)
         if exists and not overwrite:
             raise FTPBridgeError("Remote destination already exists.")
         temp = ".mc-upload-" + secrets.token_hex(8) + ".tmp"
@@ -222,17 +238,13 @@ class FTPSession:
         self.cwd("")
 
     def rename(self, source: str, destination: str):
-        src_parent, src_name = self.parent(source)
-        dst_parent, dst_name = self.parent(destination)
+        src = safe_remote_path(source, allow_root=False)
+        dst = safe_remote_path(destination, allow_root=False)
         ftp = self._ftp()
-        try:
-            ftp.sendcmd("MLST " + dst_name)
+        self.cwd("")
+        if self.remote_exists(dst):
             raise FTPBridgeError("Remote destination already exists.")
-        except FTPBridgeError:
-            raise
-        except Exception:
-            pass
-        ftp.rename(src_name, dst_name)
+        ftp.rename(src, dst)
         self.cwd("")
 
     def move_to_backup(self, relative: str, marker: str = ".deleted-"):
