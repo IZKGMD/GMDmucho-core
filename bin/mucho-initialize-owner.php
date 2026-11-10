@@ -32,6 +32,14 @@ if (!is_file($passwordPath) || !is_readable($passwordPath)) {
 }
 
 $password = file_get_contents($passwordPath);
+// The installer writes without a newline; generated Docker test secrets may
+// include exactly one trailing line ending. Never trim other password bytes.
+if (is_string($password) && str_ends_with($password, "\n")) {
+    $password = substr($password, 0, -1);
+    if (str_ends_with($password, "\r")) {
+        $password = substr($password, 0, -1);
+    }
+}
 if (!is_string($password) || strlen($password) < 12 || strlen($password) > 256
     || preg_match('/[\x00-\x1F\x7F]/', $password)) {
     fwrite(STDERR, "Invalid owner password: use 12–256 characters, without control characters.\n");
