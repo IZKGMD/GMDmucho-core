@@ -1492,6 +1492,16 @@ EMPTY_USER_INFO="$(
 )"
 expect_eq "Empty submitGJUserInfo payload uses -2" "$EMPTY_USER_INFO" "-2"
 
+ZERO_USER_INFO="$(
+    post submitGJUserInfo \
+        -d "accountID=$AID1" \
+        -d "gjp2=$USER_INFO_GJP2" \
+        -d 'levelsInfo=0' \
+        -d 'gameVersion=22' \
+        -d 'binaryVersion=51'
+)"
+expect_eq "Zero submitGJUserInfo payload uses -2" "$ZERO_USER_INFO" "-2"
+
 USER_INFO_AFTER_REJECT="$(
     USER_INFO_ACCOUNT_ID="$AID1" USER_INFO_EXPECTED="$USER_INFO_PAYLOAD" php <<'PHP'
 <?php
