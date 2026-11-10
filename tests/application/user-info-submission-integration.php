@@ -145,15 +145,6 @@ try {
     ), 'stored payload digest matches the exact submitted bytes');
 
     $updatedPayload = '12,91,1|33,100,3';
-    $updated = $send($validFields + ['levelsInfo' => $updatedPayload]);
-    $check($updated->body === '1', 'repeat submission updates the account snapshot');
-
-    $storedAfterUpdate = (string)$db->query(
-        'SELECT levels_info FROM mucho_account_user_info WHERE account_id=1'
-    )->fetchColumn();
-    $check($storedAfterUpdate === $payload,
-        'existing payload is not changed by PHP array-union test fixture');
-
     $updatedFields = $validFields;
     $updatedFields['levelsInfo'] = $updatedPayload;
     $updated = $send($updatedFields);
