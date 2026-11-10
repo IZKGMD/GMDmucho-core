@@ -143,6 +143,31 @@ def db_state(password):
     return json.loads(output)
 
 
+CONSOLE_OWNER_FIXTURE_RESET_PHP = r"""
+require 'vendor/autoload.php';
+$db = (new \MuchoCore\Database\Database())->connection();
+if ((string)$db->query('SELECT DATABASE()')->fetchColumn() !== 'testgdps') {
+    throw new RuntimeException('Refusing non-test database');
+}
+$row = $db->query('SELECT username,role FROM admin_users')->fetchAll(PDO::FETCH_ASSOC);
+if (count($row) !== 1 || $row[0]['username'] !== 'testowner'
+    || $row[0]['role'] !== 'owner'
+    || (int)$db->query('SELECT COUNT(*) FROM admin_initialization WHERE id=1')->fetchColumn() !== 1) {
+    throw new RuntimeException('Unexpected owner fixture; refusing fixture reset');
+}
+$db->beginTransaction();
+try {
+    $db->exec("DELETE FROM admin_users WHERE username='testowner' AND role='owner'");
+    $db->exec('DELETE FROM admin_initialization WHERE id=1');
+    $db->commit();
+} catch (Throwable $e) {
+    $db->rollBack();
+    throw $e;
+}
+echo 'TEST_ONLY_OWNER_FIXTURE_RESET_OK';
+"""
+
+
 def cloud_key_fingerprint():
     output = safe_run(
         COMPOSE + ["exec", "-T", "testgdps-app", "sha256sum",
@@ -187,6 +212,36 @@ def main():
     password = secrets.token_urlsafe(25) + "!8a"
     before_key = cloud_key_fingerprint()
     browser = Browser()
+
+    # The CLI initializer must create a real owner on the isolated testgdps DB.
+    # Reset only the precisely verified disposable fixture so the rest of this
+    # test can still exercise the browser activation flow independently.
+    check(db_state(password)["count"] == 0,
+          "isolated console owner fixture starts empty")
+    console_result = safe_run(
+        COMPOSE + ["exec", "-T", "testgdps-app", "php",
+                   "bin/mucho-initialize-owner.php", "--initialize"],
+        timeout=30,
+    )
+    check("First administrator created: testowner." in console_result,
+          "console installer creates the first owner")
+    console_password = bootstrap_file.read_text(encoding="utf-8").strip()
+    console_state = db_state(console_password)
+    check(console_state["count"] == 1 and console_state["sealed"] == 1
+          and console_state["username"] == "testowner"
+          and console_state["role"] == "owner"
+          and console_state["password_ok"],
+          "console owner is password-hashed and setup is sealed")
+
+    code, page, _ = browser.get()
+    check(code == 200 and "Administrator sign in" in page
+          and "Create first administrator" not in page,
+          "after console install, browser goes straight to sign-in")
+
+    reset_result = safe_run(["php", "-r", CONSOLE_OWNER_FIXTURE_RESET_PHP], timeout=20)
+    check(reset_result == "TEST_ONLY_OWNER_FIXTURE_RESET_OK"
+          and db_state(password)["count"] == 0,
+          "isolated console fixture reset preserves browser onboarding test")
 
     code, page, headers = browser.get()
     check(code == 200 and "open the private activation link" in page
