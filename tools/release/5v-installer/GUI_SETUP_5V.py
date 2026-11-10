@@ -30,8 +30,9 @@ import RECOVER_ADMIN_5V
 from mucho5v import FtpSite, HttpsSite, InstallError, private_config, site_origin, valid_ftp_host
 from PUBLISH_CLIENTS_5V import login_owner
 from muchoclients5v import (
-    patch_windows, patch_android, publish_windows, publish_android,
-    publish_index, read_source, save_links, cleanup_published_job,
+    patch_windows, patch_android, download_android_private,
+    publish_windows, publish_android, publish_index, read_source,
+    save_links, cleanup_published_job,
 )
 
 RULE_FILE = BUNDLE_DIR / "5V_ROOT_REWRITE_RULES.txt"
@@ -151,18 +152,15 @@ def prepare_clients(cfg: dict, exe_source: Path | None,
                 log("EXE: " + str(exc))
 
         if apk_source:
-            if not redistribution_rights:
-                log("APK пропущен: публичная публикация требует подтверждения прав.")
-                log("Для личного использования доступен Client Patcher в админке.")
-            else:
-                try:
-                    log("Вход владельца для защищённой обработки APK...")
-                    login_owner(site, cfg["admin"], cfg["adminpassword"])
-                    report = patch_android(
-                        site, apk_source, cfg["site"],
-                        alongside=apk_source.stat().st_size == 174_568_364,
-                        progress=log,
-                    )
+            try:
+                log("Вход владельца для защищённой обработки APK...")
+                login_owner(site, cfg["admin"], cfg["adminpassword"])
+                report = patch_android(
+                    site, apk_source, cfg["site"],
+                    alongside=apk_source.stat().st_size == 174_568_364,
+                    progress=log,
+                )
+                if redistribution_rights:
                     url = publish_android(ftp, site, report, OUTDIR)
                     links["apk"] = {
                         "url": url, "sha256": report["output_sha256"],
@@ -170,14 +168,19 @@ def prepare_clients(cfg: dict, exe_source: Path | None,
                         "certificate_sha256": report.get("certificate_sha256"),
                     }
                     log("Ссылка Android: " + url)
-                    try:
-                        if cleanup_published_job(site, report["job_id"]):
-                            log("Временные файлы APK очищены; ключ подписи сохранён.")
-                    except InstallError as exc:
-                        log("Предупреждение: временные файлы APK остались: " + str(exc))
-                    log("Сохрани закрытый mc/config/php7-apk-signer.json в резервной копии.")
-                except (InstallError, OSError, ValueError) as exc:
-                    log("APK: " + str(exc))
+                else:
+                    local_apk = download_android_private(site, report, OUTDIR)
+                    log("Android APK пропатчен, подписан и сохранён локально: "
+                        + str(local_apk))
+                    log("Публичная загрузка APK отключена: права на распространение не подтверждены.")
+                try:
+                    if cleanup_published_job(site, report["job_id"]):
+                        log("Временные файлы APK очищены; ключ подписи сохранён.")
+                except InstallError as exc:
+                    log("Предупреждение: временные файлы APK остались: " + str(exc))
+                log("Сохрани закрытый mc/config/php7-apk-signer.json в резервной копии.")
+            except (InstallError, OSError, ValueError) as exc:
+                log("APK: " + str(exc))
 
         if links:
             try:
