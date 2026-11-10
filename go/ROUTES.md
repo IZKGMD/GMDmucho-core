@@ -1,6 +1,6 @@
 # Native route inventory
 
-Native handlers registered: **166 / 166** canonical routes from `src/Core/Application.php`.
+Native handlers registered: **166 / 167** canonical routes from `src/Core/Application.php`.
 
 This counts registered handlers, not completed features or production readiness. Aliases do not count as additional implementations. PHP differential tests cover selected scenarios; real-client acceptance remains pending.
 
@@ -79,8 +79,8 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/downloadgjlevel22` | Present | `/downloadGJLevel22` |
 | `/downloadgjmessage20` | Present | `/downloadGJMessage20` |
 | `/followgjuser` | Present | `/followGJUser` |
-| `/gd-content/news/news.dat` | Present | `/gd-content/news/news.dat` |
 | `/gd-content/news/news_version.txt` | Present | `/gd-content/news/news_version.txt` |
+| `/gd-content/news/news.dat` | Present | `/gd-content/news/news.dat` |
 | `/getaccounturl` | Present | `/getAccountURL` |
 | `/getcustomcontenturl` | Present | `/getCustomContentURL` |
 | `/getgjaccountcomments20` | Present | `/getGJAccountComments20` |
@@ -132,8 +132,8 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/muchoclient/negotiate` | Present | `/muchoclient/negotiate` |
 | `/muchocore/news` | Present | `/muchocore/news` |
 | `/mutegjuser` | Present | `/muteGJUser` |
-| `/news/news.dat` | Present | `/news/news.dat` |
 | `/news/news_version.txt` | Present | `/news/news_version.txt` |
+| `/news/news.dat` | Present | `/news/news.dat` |
 | `/openedregister` | Present | `/openedRegister`, `/accounts/openedRegister` |
 | `/profile/get` | Present | `/api/profile/get` |
 | `/profile/image` | Present | `/api/profile/image` |
@@ -150,6 +150,7 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 | `/requestuseraccess` | Present | `/requestUserAccess` |
 | `/searchgjthreadmessages` | Present | `/searchGJThreadMessages` |
 | `/sendgjthreadmessage` | Present | `/sendGJThreadMessage` |
+| `/submitgjuserinfo` | **Pending** | `/submitGJUserInfo` |
 | `/suggestgjstars20` | Present | `/suggestGJStars20` |
 | `/syncgjaccount` | Present | `/syncGJAccount`, `/syncGJAccount20` |
 | `/syncgjfollowing` | Present | `/syncGJFollowing` |
