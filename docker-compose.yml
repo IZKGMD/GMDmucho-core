@@ -108,6 +108,27 @@ services:
       db:
         condition: service_healthy
 
+  remote-bridge:
+    build:
+      context: .
+      dockerfile: remote_bridge/Dockerfile
+    restart: unless-stopped
+    environment:
+      BRIDGE_DB_PATH: /data/bridge.sqlite3
+      BRIDGE_COOKIE_PATH: /remote/
+      BRIDGE_COOKIE_SECURE: "1"
+    volumes:
+      - remote_bridge_data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    mem_limit: 256m
+
   caddy:
     image: caddy:2.10-alpine
     restart: unless-stopped
@@ -130,6 +151,7 @@ services:
       - caddy_config:/config
     depends_on:
       - app
+      - remote-bridge
 
 secrets:
   db_password:
@@ -146,3 +168,4 @@ volumes:
   caddy_data:
   caddy_config:
   muchocore_runtime:
+  remote_bridge_data:
