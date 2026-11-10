@@ -14,6 +14,23 @@
     @muchocore_canonical_www host www.{$MUCHOCORE_SITE_HOST}
     redir @muchocore_canonical_www https://{$MUCHOCORE_SITE_HOST}{uri} 308
 
+    # Remote control plane is available only on the canonical MuchoCore host.
+    # The upstream is an internal Docker service and has no published host port.
+    @muchocore_remote_root {
+        host {$MUCHOCORE_SITE_HOST}
+        path /remote
+    }
+    redir @muchocore_remote_root /remote/ 308
+
+    @muchocore_remote {
+        host {$MUCHOCORE_SITE_HOST}
+        path /remote/*
+    }
+    handle_path @muchocore_remote {
+        header Cache-Control "no-store, no-cache, must-revalidate"
+        reverse_proxy remote-bridge:8777
+    }
+
     # The public MuchoCore product/AI discovery pages belong only to the
     # explicitly configured canonical project host. Other GDPS tenants use
     # the same application source but must never expose this marketing/docs
