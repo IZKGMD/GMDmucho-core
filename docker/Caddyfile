@@ -17,13 +17,13 @@
     # Remote control plane is available only on the canonical MuchoCore host.
     # The upstream is an internal Docker service and has no published host port.
     @muchocore_remote_root {
-        host {$MUCHOCORE_SITE_HOST}
+        host {$MUCHOCORE_REMOTE_HOST}
         path /remote
     }
     redir @muchocore_remote_root /remote/ 308
 
     @muchocore_remote {
-        host {$MUCHOCORE_SITE_HOST}
+        host {$MUCHOCORE_REMOTE_HOST}
         path /remote/*
     }
     handle_path @muchocore_remote {
