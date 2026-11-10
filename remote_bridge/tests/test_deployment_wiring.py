@@ -15,11 +15,12 @@ def test_remote_bridge_is_private_unprivileged_compose_service():
     assert "ALL" in service["cap_drop"]
     assert service["mem_limit"] == "256m"
     assert "remote-bridge" in compose["services"]["caddy"]["depends_on"]
+    assert "MUCHOCORE_REMOTE_HOST" in compose["services"]["caddy"]["environment"]
 
 
 def test_caddy_exposes_bridge_only_on_canonical_host():
     caddy = (ROOT / "docker" / "Caddyfile").read_text(encoding="utf-8")
-    assert "host {$MUCHOCORE_SITE_HOST}" in caddy
+    assert "host {$MUCHOCORE_REMOTE_HOST}" in caddy
     assert "path /remote/*" in caddy
     assert "handle_path @muchocore_remote" in caddy
     assert "reverse_proxy remote-bridge:8777" in caddy
