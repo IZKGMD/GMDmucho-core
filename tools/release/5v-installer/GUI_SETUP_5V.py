@@ -483,8 +483,6 @@ def main() -> int:
                         events.put(("done", origin))
                     except Exception as exc:
                         events.put(("error", str(exc)))
-                    finally:
-                        variables["ftp_password"].set("")
 
                 threading.Thread(target=worker, daemon=True).start()
 
@@ -503,6 +501,7 @@ def main() -> int:
                             messagebox.showerror("Не удалось восстановить", str(value), parent=window)
                         elif kind == "done":
                             status.set("Доступ восстановлен")
+                            run_button.configure(state="normal")
                             for key in ("ftp_password", "new_password", "confirm"):
                                 variables[key].set("")
                             messagebox.showinfo(
