@@ -35,6 +35,14 @@ jobs:
         run: python -m compileall -q remote_bridge
       - name: Run API and deployment tests
         run: pytest -q remote_bridge/tests
+      - name: Validate Caddy route syntax
+        run: |
+          docker run --rm \
+            -e CADDY_ADDRESS=':80' \
+            -e MUCHOCORE_SITE_HOST='disabled.invalid' \
+            -e MUCHOCORE_REMOTE_HOST='muchogdps.space' \
+            -v "${{ github.workspace }}/docker/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2.10-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
       - name: Build isolated bridge image
         run: docker build --tag muchocore-remote-bridge:test -f remote_bridge/Dockerfile .
 
