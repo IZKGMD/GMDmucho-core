@@ -258,7 +258,7 @@ a{color:#b1baff}
 </nav>
 <mark>MUCHOCORE / FIRST RUN</mark>
 <h1><?= $escape($heading) ?></h1>
-<input type="hidden" id="mucho-first-run-csrf" value="<?= $escape($csrf) ?>">
+<input type="hidden" id="mucho-first-run-csrf" name="csrf" value="<?= $escape($csrf) ?>">
 <?php if ($notice !== ''): ?>
 <p class="alert" role="alert"><?= $escape($notice) ?></p>
 <?php if ($error !== ''): ?><p class="alert" role="alert"><?= $escape($error) ?></p><?php endif; ?>
