@@ -184,6 +184,10 @@ try {
     $empty['levelsInfo'] = '';
     $check($send($empty)->body === '-2', 'empty payload uses the native missing-data sentinel');
 
+    $zero = $validFields;
+    $zero['levelsInfo'] = '0';
+    $check($send($zero)->body === '-2', 'string zero matches the native empty-data sentinel');
+
     $oversized = $validFields;
     $oversized['levelsInfo'] = str_repeat(
         'x',
