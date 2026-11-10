@@ -35,13 +35,14 @@ grep -Fq 'value="${value#https://}"' install.sh
 
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/db_password" ]]; then' install.sh
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/db_root_password" ]]; then' install.sh
-grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/admin_password" ]]; then' install.sh
-grep -Fq 'prompt_admin_password()' install.sh
-grep -Fq 'Admin setup secret (minimum 10 characters):' install.sh
-grep -Fq 'Confirm admin setup secret:' install.sh
-grep -Fq 'Keep the existing setup secret? [Y/n]' install.sh
-grep -Fq 'MUCHO_ADMIN_PASSWORD for an unattended install.' install.sh
-grep -Fq 'Admin setup secret must contain at least 10 characters.' install.sh
+# The installer must securely create activation material without prompting
+# operators for a second password or altering existing credentials.
+grep -Fq '[[ -s "$INSTALL_DIR/.secrets/admin_password" && -z "$MUCHO_ADMIN_PASSWORD" ]]' install.sh
+grep -Fq 'MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"' install.sh
+grep -Fq 'Keeping existing private owner activation credential.' install.sh
+grep -Fq 'php bin/mucho-owner-link.php' install.sh
+! grep -Fq 'prompt_admin_password()' install.sh
+! grep -Fq 'Admin setup secret (minimum 10 characters):' install.sh
 grep -Fq 'Admin password must contain at least 10 characters.' bin/mucho
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/cloudsave_key" ]]; then' install.sh
 grep -Fq 'Required secret file is missing or empty' install.sh
