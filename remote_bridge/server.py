@@ -33,6 +33,9 @@ ALLOWED_ACTIONS = {
     "pc.files.write", "pc.files.delete", "pc.app.launch", "pc.terminal.run",
     "pc.desktop.click", "pc.desktop.type", "pc.desktop.hotkey",
     "pc.desktop.scroll",
+    "ftp.status", "ftp.list", "ftp.read_text", "ftp.upload_file",
+    "ftp.download_file", "ftp.mkdir", "ftp.rename", "ftp.delete_file",
+    "ftp.backup_tree", "ftp.preview_clear_root", "ftp.clear_root",
 }
 
 app = FastAPI(title="MuchoCore Remote Bridge", version="0.1.0",
@@ -231,6 +234,17 @@ def _validate_job(action: str, payload: dict[str, Any]) -> None:
         path = payload.get("path")
         if not isinstance(path, str) or not path.strip() or len(path) > 1000:
             raise HTTPException(400, "A relative file path is required")
+    if action.startswith("ftp."):
+        for key in ("path", "remote_path", "source", "destination", "local_path", "backup_id", "confirmation"):
+            value = payload.get(key)
+            if value is not None and (not isinstance(value, str) or len(value) > 2000):
+                raise HTTPException(400, "Invalid FTPS path or confirmation field")
+        if action == "ftp.upload_file" and not payload.get("remote_path"):
+            raise HTTPException(400, "Remote destination path is required")
+        if action == "ftp.download_file" and not payload.get("local_path"):
+            raise HTTPException(400, "Local destination path is required")
+        if action == "ftp.clear_root" and not payload.get("backup_id"):
+            raise HTTPException(400, "Verified backup ID is required")
 
 
 @app.middleware("http")
