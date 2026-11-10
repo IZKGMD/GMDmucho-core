@@ -164,6 +164,27 @@ try {
     $check($storedAfterUpdate === $updatedPayload,
         'new payload atomically replaces the previous snapshot');
 
+    // GD 1.9 clients send a URL-safe Base64 + XOR-wrapped GJP credential.
+    $legacyPassword = 'user-info-password';
+    $legacyKey = '37526';
+    $legacyCipher = '';
+    for ($i = 0; $i < strlen($legacyPassword); $i++) {
+        $legacyCipher .= $legacyPassword[$i] ^ $legacyKey[$i % strlen($legacyKey)];
+    }
+    $legacyGjp = rtrim(strtr(base64_encode($legacyCipher), '+/', '-_'), '=');
+    $legacyFields = $validFields;
+    unset($legacyFields['gjp2']);
+    $legacyFields['gjp'] = $legacyGjp;
+    $legacyFields['gameVersion'] = '19';
+    $legacyFields['binaryVersion'] = '28';
+    $legacyFields['levelsInfo'] = 'legacy-gjp-user-info';
+    $check($send($legacyFields)->body === '1',
+        'legacy URL-safe XOR GJP credential is accepted');
+    $check((string)$db->query(
+        'SELECT levels_info FROM mucho_account_user_info WHERE account_id=1'
+    )->fetchColumn() === 'legacy-gjp-user-info',
+        'legacy GJP submission is persisted for the authenticated account');
+
     $wrongCredential = $validFields;
     $wrongCredential['gjp2'] = str_repeat('0', 40);
     $wrongCredential['levelsInfo'] = 'attacker-controlled';
