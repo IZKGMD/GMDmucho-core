@@ -82,7 +82,9 @@ class FTPSession:
             ftp.prot_p()
             ftp.set_pasv(True)
             root = self.cfg["root"].strip()
-            if "\\" in root or "\x00" in root or any(part == ".." for part in root.split("/")):
+            if ("\\" in root or "\x00" in root
+                    or any(part == ".." for part in root.split("/"))
+                    or any(ord(ch) < 32 for ch in root)):
                 raise FTPBridgeError("Invalid configured FTPS root.")
             if root:
                 ftp.cwd(root)
@@ -189,7 +191,10 @@ class FTPSession:
         parent, name = self.parent(relative)
         data = bytearray()
         try:
-            size = self._ftp().size(name)
+            try:
+                size = self._ftp().size(name)
+            except Exception:
+                size = None
             if size is not None and int(size) > limit:
                 raise FTPBridgeError("Remote file exceeds the configured download limit.")
             def receive(chunk: bytes):
@@ -214,7 +219,7 @@ class FTPSession:
             ftp.storbinary("STOR " + temp, io.BytesIO(data))
             if exists:
                 stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-                backup = name + ".before-remote-" + stamp
+                backup = name + ".before-remote-" + stamp + "-" + secrets.token_hex(3)
                 ftp.rename(name, backup)
             try:
                 ftp.rename(temp, name)
@@ -369,7 +374,7 @@ def ftp_download(cfg: dict[str, Any], remote_path: str, local_path: Path, overwr
     backup = None
     if local_path.exists():
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        backup = local_path.with_name(local_path.name + ".before-ftp-" + stamp + ".bak")
+        backup = local_path.with_name(local_path.name + ".before-ftp-" + stamp + "-" + secrets.token_hex(3) + ".bak")
         backup.write_bytes(local_path.read_bytes())
     temp = local_path.with_name(".mc-ftp-" + secrets.token_hex(6) + ".tmp")
     try:
@@ -389,6 +394,10 @@ def ftp_backup_tree(cfg: dict[str, Any], local_root: Path):
     target.mkdir(parents=True, exist_ok=False)
     with FTPSession(cfg) as session:
         files, directories = session.walk()
+        expected_bytes = sum(int(item["size"] or 0) for item in files)
+        import shutil
+        if shutil.disk_usage(local_root).free < expected_bytes + 64 * 1024 * 1024:
+            raise FTPBridgeError("Not enough free disk space for a verified full backup.")
         for directory in directories:
             (target / directory).mkdir(parents=True, exist_ok=True)
         saved = []
@@ -424,6 +433,8 @@ def load_backup_manifest(local_root: Path, backup_id: str) -> tuple[Path, dict[s
         raise FTPBridgeError("Invalid backup ID.")
     folder = local_root / "MuchoCoreFTPBackups" / backup_id
     manifest_path = folder / "manifest.json"
+    if not _within(folder, local_root) or folder.is_symlink():
+        raise FTPBridgeError("Local backup directory is unsafe.")
     if not manifest_path.is_file() or manifest_path.is_symlink():
         raise FTPBridgeError("Local backup manifest was not found.")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
