@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
@@ -16,10 +17,12 @@ from typing import Any
 import keyring
 import psutil
 import pyautogui
+import pyperclip
 import requests
 from PIL import Image
 
 SERVICE = "MuchoCoreRemoteBridge"
+FTP_SERVICE = "MuchoCoreRemoteBridgeFTP"
 APP_DIR = Path(os.environ.get("APPDATA", str(Path.home()))) / "MuchoCoreRemoteBridge"
 CONFIG_FILE = APP_DIR / "agent.json"
 VERSION = "0.1.0"
@@ -43,6 +46,10 @@ def load_config():
     if not CONFIG_FILE.is_file():
         raise AgentError("Agent is not paired. Run START_SETUP.cmd first.")
     data = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+    from urllib.parse import urlparse
+    parsed = urlparse(data.get("base_url", ""))
+    if parsed.scheme != "https" or parsed.hostname != "muchogdps.space" or parsed.path.rstrip("/") != "/remote":
+        raise AgentError("Agent config has an untrusted bridge URL; re-run START_SETUP.cmd.")
     if not data.get("allowed_roots"):
         raise AgentError("No approved workspace folders configured.")
     return data
@@ -143,8 +150,16 @@ def files_list(cfg, payload):
     return {"path": str(folder), "entries": rows}
 
 
+def is_sensitive_path(path: Path) -> bool:
+    names = {part.lower() for part in path.parts}
+    blocked = {".env", ".secrets", "secrets", "credentials.json", "config.php", "config.json", "id_rsa", "id_ed25519", "php7-apk-signer.json"}
+    return bool(names & blocked) or path.suffix.lower() in {".pem", ".key", ".p12", ".pfx", ".ppk"}
+
+
 def files_read(cfg, payload):
     path = safe_path(cfg, payload.get("root_index", 0), payload.get("path", ""))
+    if is_sensitive_path(path):
+        raise AgentError("Reading credential or private-key files is blocked.")
     if not path.is_file() or path.is_symlink():
         raise AgentError("File not found or unsupported.")
     if path.stat().st_size > MAX_READ:
@@ -158,6 +173,8 @@ def files_read(cfg, payload):
 
 def files_write(cfg, payload):
     path = safe_path(cfg, payload.get("root_index", 0), payload.get("path", ""))
+    if is_sensitive_path(path):
+        raise AgentError("Writing credential or private-key files is blocked.")
     content = payload.get("content")
     if not isinstance(content, str) or len(content.encode("utf-8")) > MAX_WRITE:
         raise AgentError("File content must be UTF-8 text under 256 KiB.")
@@ -174,9 +191,20 @@ def files_write(cfg, payload):
         if backup.exists():
             raise AgentError("Backup filename collision; refusing overwrite.")
         backup.write_bytes(path.read_bytes())
-    temp = path.with_name(path.name + ".remote-tmp")
-    temp.write_text(content, encoding="utf-8", newline="")
-    os.replace(temp, path)
+    temp_name = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", newline="", dir=path.parent,
+            prefix=".mc-remote-", suffix=".tmp", delete=False,
+        ) as temp:
+            temp_name = temp.name
+            temp.write(content)
+            temp.flush()
+            os.fsync(temp.fileno())
+        os.replace(temp_name, path)
+    finally:
+        if temp_name and os.path.exists(temp_name):
+            os.unlink(temp_name)
     return {"written": str(path), "bytes": path.stat().st_size,
             "backup": str(backup) if backup else None}
 
@@ -234,7 +262,12 @@ def desktop_type(payload):
     if not isinstance(text, str) or len(text) > 2000:
         raise AgentError("Text must be at most 2000 characters.")
     approval("pc.desktop.type", {"text": text})
-    pyautogui.write(text, interval=0.015)
+    previous_clipboard = pyperclip.paste()
+    try:
+        pyperclip.copy(text)
+        pyautogui.hotkey("ctrl", "v")
+    finally:
+        pyperclip.copy(previous_clipboard)
     return {"typed_characters": len(text)}
 
 
