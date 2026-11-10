@@ -204,7 +204,7 @@ def received(mailbox, position, subject, key):
     check(len(items) > position, "mail was accepted by the local SMTP server")
     item = items[position]
     check(item["tls"], "mail was delivered only after STARTTLS")
-    check(item["recipient"] == "<" + os.environ["MC_RECOVERY_TEST_EMAIL"] + ">",
+    check(item["recipient"] == "<" + mailbox.expected_recipient + ">",
           "SMTP recipient matches the test mailbox")
     parsed = email.message_from_bytes(item["raw"], policy=policy.default)
     check(parsed["Subject"] == subject and parsed["Auto-Submitted"] == "auto-generated",
@@ -265,6 +265,7 @@ def main():
 
         with Mailbox(certificate, private_key, env["MUCHO_ADMIN_SMTP_USER"],
                      env["MUCHO_ADMIN_SMTP_PASSWORD"]) as mailbox:
+            mailbox.expected_recipient = env["MC_RECOVERY_TEST_EMAIL"]
             env["MUCHO_ADMIN_SMTP_PORT"] = str(mailbox.server_address[1])
             server_thread = threading.Thread(target=mailbox.serve_forever, daemon=True)
             server_thread.start()
