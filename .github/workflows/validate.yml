@@ -684,6 +684,15 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/backup-restore-integration.php
 
+      - name: Verify full PHP 8 schema and Cloud Save disaster recovery
+        env:
+          GITHUB_ACTIONS: "true"
+          MUCHO_TEST_ALLOW_WRITES: "1"
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/disaster-recovery-integration.php
+
       - name: Verify lightweight level search and client wire compatibility
         env:
           TEST_DB_HOST: 127.0.0.1
