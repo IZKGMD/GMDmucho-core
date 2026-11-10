@@ -284,6 +284,14 @@ def main():
           and state["role"] == "owner" and state["password_ok"]
           and state["sealed"] == 1,
           "exactly one owner is registered, hashed and permanently sealed")
+    console_result = safe_run(
+        COMPOSE + ["exec", "-T", "testgdps-app", "php",
+                   "bin/mucho-initialize-owner.php", "--initialize"],
+        timeout=30,
+    )
+    check("existing administrator credentials preserved" in console_result.lower()
+          and db_state(password) == state,
+          "VPS console installer cannot overwrite an existing owner")
 
     code, page, _ = browser.get()
     check(code == 200 and "Administrator sign in" not in page
