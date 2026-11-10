@@ -528,6 +528,21 @@ curl -sS \
 )"
 expect_eq "GD 2.209 GJP2 login via /a/accounts HTTP route" "$L1_GJP2" "$AID1,$UID1"
 
+BAD_GJP2_LOGIN="$(
+    curl -sS \
+        --connect-timeout 5 \
+        --max-time 20 \
+        -H "Host: $HOST" \
+        -H "CF-Connecting-IP: $TEST_IP" \
+        -X POST \
+        "$DOMAIN/a/accounts/loginGJAccount22.php" \
+        -d "userName=$U1" \
+        -d 'gjp2=0000000000000000000000000000000000000000' \
+        -d 'gameVersion=22' \
+        -d 'binaryVersion=51'
+)"
+expect_eq "Reject invalid GD 2.209 GJP2 login" "$BAD_GJP2_LOGIN" "-1"
+
 BAD_LOGIN="$(
 post loginGJAccount \
     -d "userName=$U1" \
