@@ -132,6 +132,14 @@ try {
     $check($first->status === 200 && $first->body === '1',
         'authenticated GD 2.209 submission returns protocol success');
 
+    // Some legacy/proxied clients omit version metadata. A GJP2-only request
+    // must still select the credential correctly when gjp is absent.
+    $versionlessFields = $validFields;
+    unset($versionlessFields['gameVersion'], $versionlessFields['binaryVersion']);
+    $versionless = $send($versionlessFields);
+    $check($versionless->body === '1',
+        'GJP2-only submission remains valid without optional version fields');
+
     $stored = $db->query(
         'SELECT levels_info,payload_sha256
          FROM mucho_account_user_info WHERE account_id=1'
