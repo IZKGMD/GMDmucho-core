@@ -25,6 +25,7 @@ final class GdLevelListEncoder
         $songStrings = [];
         $uniqueUsers = [];
         $uniqueSongs = [];
+        $songEncoder = new GdSongEncoder();
         $hashData = '';
 
         foreach ($levels as $level) {
@@ -105,16 +106,18 @@ final class GdLevelListEncoder
             ) {
                 $uniqueSongs[$songId] = true;
 
-                $songStrings[] = implode('~|~', [
-                    1, $songId,
-                    2, ProtocolText::field((string)($level['song_name'] ?? '')),
-                    3, (int)($level['song_author_id'] ?? 0),
-                    4, ProtocolText::field((string)($level['song_author_name'] ?? '')),
-                    5, round((float)($level['song_size'] ?? 0), 2),
-                    6, (string)($level['song_youtube_video_id'] ?? ''),
-                    10, (string)($level['song_download_url'] ?? ''),
-                    7, (string)($level['song_youtube_channel_id'] ?? ''),
-                    8, 1,
+                // A song embedded in a level list must have the same
+                // download URL and client flags as getGJSongInfo.
+                $songStrings[] = $songEncoder->encode([
+                    'id' => $songId,
+                    'name' => $level['song_name'] ?? '',
+                    'author_id' => $level['song_author_id'] ?? 0,
+                    'author_name' => $level['song_author_name'] ?? '',
+                    'size' => $level['song_size'] ?? 0,
+                    'youtube_video_id' => $level['song_youtube_video_id'] ?? '',
+                    'download_url' => $level['song_download_url'] ?? '',
+                    'youtube_channel_id' => $level['song_youtube_channel_id'] ?? '',
+                    'is_disabled' => 0,
                 ]);
             }
 
