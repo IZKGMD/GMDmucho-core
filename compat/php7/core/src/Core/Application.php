@@ -9,6 +9,8 @@ use MuchoCore\Account\AccountManagementController;
 use MuchoCore\Account\AccountManagementService;
 use MuchoCore\Account\AccountRepository;
 use MuchoCore\Account\AccountService;
+use MuchoCore\Account\UserInfoController;
+use MuchoCore\Account\UserInfoSubmissionService;
 use MuchoCore\Cache\CacheManager;
 use MuchoCore\Client\ClientBridgeController;
 use MuchoCore\Artist\TopArtistController;
@@ -153,6 +155,7 @@ final class Application
         $accountService = new AccountService($this->pdo, $accountRepo, $jobs);
         $accountController = new AccountController($accountService);
         $auth = new AccountAuthenticator($this->pdo);
+        $userInfoController = new UserInfoController(new UserInfoSubmissionService($this->pdo, $auth));
         $v71Auth = new AuthService($this->pdo);
         $topArtistController = new TopArtistController(new TopArtistService(new TopArtistRepository($this->pdo)));
         $levelListController = new LevelListController(new LevelListService(new LevelListRepository($this->pdo), $v71Auth));
@@ -362,6 +365,7 @@ final class Application
         $route('/accounts/openedRegister', [$gd2209Utilities, 'openedRegister']);
         $route('/requestUserAccess', [$userController, 'requestAccess']);
         $route('/getGJUserInfo20', [$userController, 'profile']);
+        $route('/submitGJUserInfo', [$userInfoController, 'submit']);
         $route('/getGJUsers20', [$userController, 'search']);
         // GD 2.209: provisional alias to the existing read-only user search.
         $route('/getGJUserSearch', [$userController, 'search209']);
