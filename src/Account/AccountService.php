@@ -160,10 +160,12 @@ final readonly class AccountService
         $storedGjp2 = (string)($account['gjp2_hash'] ?? '');
 
         $valid = false;
+        $plainPasswordValid = false;
 
         if ($password !== '') {
             // Обычный пароль.
-            $valid = password_verify($password, $storedPass);
+            $plainPasswordValid = password_verify($password, $storedPass);
+            $valid = $plainPasswordValid;
 
             // Совместимость с хранимым GJP2.
             if (!$valid && $storedGjp2 !== '') {
@@ -204,6 +206,18 @@ final readonly class AccountService
         }
 
         $accountId = (int)$account['account_id'];
+
+        // Cvolton/MegaSa1nt backfill GJP2 on the first successful plain-password
+        // login. Keep imported accounts usable by later GD requests that send
+        // only GJP2, and never overwrite a credential that is already present.
+        if ($plainPasswordValid && $storedGjp2 === '') {
+            $derivedGjp2 = sha1($password . self::GJP2_SALT);
+            $this->accounts->assignGjp2HashIfMissing(
+                $accountId,
+                password_hash($derivedGjp2, PASSWORD_DEFAULT)
+            );
+        }
+
         $userId = $this->accounts->ensureProfile($accountId);
 
         /*
