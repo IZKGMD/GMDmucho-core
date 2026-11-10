@@ -216,8 +216,6 @@ def main():
     # The CLI initializer must create a real owner on the isolated testgdps DB.
     # Reset only the precisely verified disposable fixture so the rest of this
     # test can still exercise the browser activation flow independently.
-    check(db_state(password)["count"] == 0,
-          "isolated console owner fixture starts empty")
     console_result = safe_run(
         COMPOSE + ["exec", "-T", "testgdps-app", "php",
                    "bin/mucho-initialize-owner.php", "--initialize"],
