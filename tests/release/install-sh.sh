@@ -10,7 +10,8 @@ test -f install
 bash -n install.sh
 bash -n install
 bash -n bin/mucho-admin-setup.sh
-grep -Fq 'New admin password (at least 10 characters):' bin/mucho-admin-setup.sh
+grep -Fq 'Setup secret / explicit reset password (at least 10 characters):' bin/mucho-admin-setup.sh
+grep -Fq 'First-time MuchoCore setup. Choose a setup secret for the /admin/ browser wizard.' bin/mucho-admin-setup.sh
 grep -Fq 'Confirm admin password:' bin/mucho-admin-setup.sh
 grep -Fq 'docker compose "${compose[@]}" up -d --no-deps --no-build --force-recreate app' bin/mucho-admin-setup.sh
 grep -Fq 'php bin/mucho-sync-admin.php --reset-password' bin/mucho-admin-setup.sh

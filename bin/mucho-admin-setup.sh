@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local, interactive administrator-password setup for manual VPS installs.
+# Local bootstrap secret for new installs; explicit CLI password reset for running installs.
 # No secret is passed as a command-line argument, printed or sent to GitHub.
 set -Eeuo pipefail
 
@@ -21,14 +21,14 @@ install -d -m 700 .secrets
 if [[ -s .secrets/admin_password ]]; then
   echo "The admin secret already exists. This will replace it, not reset the GDPS database."
 else
-  echo "First-time MuchoCore admin setup. Choose a password before starting the app."
+  echo "First-time MuchoCore setup. Choose a setup secret for the /admin/ browser wizard."
 fi
 
 first=""
 second=""
 valid=0
 for attempt in 1 2 3; do
-  read -r -s -p "New admin password (at least 10 characters): " first < /dev/tty || exit 1
+  read -r -s -p "Setup secret / explicit reset password (at least 10 characters): " first < /dev/tty || exit 1
   printf '\n'
   read -r -s -p "Confirm admin password: " second < /dev/tty || exit 1
   printf '\n'
@@ -77,4 +77,4 @@ else
 fi
 
 echo "Administrator username: admin (unless ADMIN_USER was customized in .env)"
-echo "Use the password entered above on your site's /admin/ page."
+echo "Fresh install: open HTTPS /admin/ and choose your FINAL owner login password using the setup secret above."

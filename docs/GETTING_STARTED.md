@@ -25,16 +25,14 @@ For the normal interactive VPS install, use the stable-release bootstrap:
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
 ```
 
-The installer asks for only:
+The installer asks for your GDPS domain, server name, and an **administrator
+setup secret** (with confirmation). The secret is *not* your final admin
+login password. It authorizes the one-time registration form.
 
-- your GDPS domain;
-- the initial Admin Panel password;
-- password confirmation.
-
-The password must contain at least 10 characters and is stored in the VPS's
-protected `.secrets/admin_password` file. On an interactive reinstall, the
-installer asks whether to keep the saved password or replace it. An unattended
-installation can provide `MUCHO_ADMIN_PASSWORD` in its environment.
+The setup secret must contain at least 10 characters and is stored in the
+protected `.secrets/admin_password` file. On a reinstall you can keep it;
+changing it does **not** silently change an existing admin login. An unattended
+installation can supply `MUCHO_ADMIN_PASSWORD` privately through the environment.
 
 It installs Docker when needed, deploys the latest **published stable release**, creates the database and Cloud Save secrets, configures Caddy, enables release-based updates, runs migrations, and verifies the production health endpoint.
 
@@ -76,13 +74,14 @@ Open the Admin Panel:
 https://YOUR-DOMAIN/admin/
 \`\`\`
 
-The default administrator username is:
+On the **first** visit, select **Create first administrator**. Choose your
+administrator username and a new login password (12–256 characters), confirm
+it, and enter the setup secret from the VPS installer. The owner is then
+created and signed in. There is no public sign-up after the first owner.
 
-\`\`\`text
-admin
-\`\`\`
-
-The password is created during installation.
+On subsequent visits, log in with the credentials chosen in the browser.
+If you lose them, use verified-email recovery (if configured) or explicit
+server-console recovery. See [First-run setup](ADMIN_FIRST_RUN.md).
 
 ## 4. Patch the client
 
