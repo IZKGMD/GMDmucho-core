@@ -470,14 +470,21 @@ def main() -> int:
                         self.events.put(("log", "Исходники игры не найдены — этап клиентов пропущен."))
                     else:
                         self.events.put(("status", "Подготовка игровых клиентов…"))
-                        links = prepare_clients(
-                            cfg, exe, apk, cfg["_redistribution_rights"],
-                            log=lambda value: self.events.put(("log", str(value))),
-                        )
-                        if links:
-                            self.events.put(("log", "Публичные ссылки созданы."))
-                        elif not cfg["_redistribution_rights"]:
-                            self.events.put(("log", "Клиенты не опубликованы: нет подтверждения прав."))
+                        try:
+                            links = prepare_clients(
+                                cfg, exe, apk, cfg["_redistribution_rights"],
+                                log=lambda value: self.events.put(("log", str(value))),
+                            )
+                            if links:
+                                self.events.put(("log", "Публичные ссылки созданы."))
+                            elif not cfg["_redistribution_rights"]:
+                                self.events.put(("log", "Клиенты не опубликованы: нет подтверждения прав."))
+                        except Exception as client_error:
+                            self.events.put(("log", "Ядро и админка уже установлены. "
+                                                      "Проблема только на этапе клиентов: "
+                                                      + str(client_error)))
+                            self.events.put(("log", "Клиенты можно подготовить позже через админку "
+                                                      "или отдельный запуск мастера."))
                     self.events.put(("done", cfg["site"]))
             except Exception as exc:
                 self.events.put(("error", str(exc)))
