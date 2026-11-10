@@ -669,6 +669,13 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/registration-integrity-integration.php
 
+      - name: Verify PHP 8 account login wire, GJP2 compatibility and failure isolation
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/account-login-integration.php
+
       - name: Verify backup and restore on isolated MariaDB
         env:
           TEST_DB_HOST: 127.0.0.1

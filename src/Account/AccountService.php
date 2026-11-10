@@ -13,6 +13,7 @@ final readonly class AccountService
 {
     public const GJP2_SALT = 'mI29fmAnxgTs';
     public const LEGACY_GJP2_SALT = 'mPtFakeGJKeyPair';
+    private const DUMMY_PASSWORD_HASH = '$2y$12$1/MaE58zhdgQZQpBkgNBhuqdaaih/yUIuXVGBWgthDWALLCBtilDC';
 
     public function __construct(
         private PDO $pdo,
@@ -146,13 +147,17 @@ final readonly class AccountService
         $account = $this->accounts->findByUsername($username);
 
         if ($account === null) {
+            $this->verifyDummyLoginCredential($password, $gjp2);
             return '-1';
         }
 
-        if (
-            (int)($account['is_banned'] ?? 0) === 1 ||
-            (int)($account['is_active'] ?? 0) !== 1
-        ) {
+        if ((int)($account['is_banned'] ?? 0) === 1) {
+            $this->verifyDummyLoginCredential($password, $gjp2);
+            return '-12';
+        }
+
+        if ((int)($account['is_active'] ?? 0) !== 1) {
+            $this->verifyDummyLoginCredential($password, $gjp2);
             return '-1';
         }
 
@@ -160,10 +165,12 @@ final readonly class AccountService
         $storedGjp2 = (string)($account['gjp2_hash'] ?? '');
 
         $valid = false;
+        $plainPasswordValid = false;
 
         if ($password !== '') {
             // Обычный пароль.
-            $valid = password_verify($password, $storedPass);
+            $plainPasswordValid = password_verify($password, $storedPass);
+            $valid = $plainPasswordValid;
 
             // Совместимость с хранимым GJP2.
             if (!$valid && $storedGjp2 !== '') {
@@ -194,16 +201,48 @@ final readonly class AccountService
         }
 
         if (!$valid) {
-            $this->accounts->audit(
-                (int)$account['account_id'],
-                'account.login_failed',
-                $ip
-            );
+            try {
+                $this->accounts->audit(
+                    (int)$account['account_id'],
+                    'account.login_failed',
+                    $ip
+                );
+            } catch (Throwable $e) {
+                error_log(sprintf(
+                    '[MuchoCore Login] failed-login audit unavailable: %s: %s',
+                    $e::class,
+                    $e->getMessage()
+                ));
+            }
 
             return '-1';
         }
 
         $accountId = (int)$account['account_id'];
+
+        // Cvolton/MegaSa1nt backfill GJP2 on the first successful plain-password
+        // login. Keep imported accounts usable by later GD requests that send
+        // only GJP2, and never overwrite a credential that is already present.
+        if ($plainPasswordValid && $storedGjp2 === '') {
+            try {
+                $derivedGjp2 = sha1($password . self::GJP2_SALT);
+                $this->accounts->assignGjp2HashIfMissing(
+                    $accountId,
+                    password_hash($derivedGjp2, PASSWORD_DEFAULT)
+                );
+            } catch (Throwable $e) {
+                // Credential backfill is compatibility bookkeeping, not the
+                // primary password check. Never turn a valid login into -1
+                // solely because this optional write failed.
+                error_log(sprintf(
+                    '[MuchoCore Login] GJP2 backfill failed for account %d: %s: %s',
+                    $accountId,
+                    $e::class,
+                    $e->getMessage()
+                ));
+            }
+        }
+
         $userId = $this->accounts->ensureProfile($accountId);
 
         /*
@@ -266,6 +305,21 @@ final readonly class AccountService
          * never allow auxiliary post-login persistence to replace it.
          */
         return $accountId . ',' . $userId;
+    }
+
+    /**
+     * Keep missing, banned and inactive account lookups from returning
+     * immediately before a password hash verification would normally occur.
+     */
+    private function verifyDummyLoginCredential(
+        string $password,
+        string $gjp2
+    ): void {
+        $credential = $password !== '' ? $password : $gjp2;
+
+        if ($credential !== '') {
+            password_verify($credential, self::DUMMY_PASSWORD_HASH);
+        }
     }
 
     private function rememberLegacy19UploadSession(

@@ -10,6 +10,7 @@ final class AccountService
 {
     const GJP2_SALT = 'mI29fmAnxgTs';
     const LEGACY_GJP2_SALT = 'mPtFakeGJKeyPair';
+    const DUMMY_PASSWORD_HASH = '$2y$12$1/MaE58zhdgQZQpBkgNBhuqdaaih/yUIuXVGBWgthDWALLCBtilDC';
     public function __construct(PDO $pdo, AccountRepository $accounts, JobQueue $jobs)
     {
         $this->pdo = $pdo;
@@ -67,17 +68,25 @@ final class AccountService
         }
         $account = $this->accounts->findByUsername($username);
         if ($account === null) {
+            $this->verifyDummyLoginCredential($password, $gjp2);
             return '-1';
         }
-        if ((int) ($account['is_banned'] ?? 0) === 1 || (int) ($account['is_active'] ?? 0) !== 1) {
+        if ((int) ($account['is_banned'] ?? 0) === 1) {
+            $this->verifyDummyLoginCredential($password, $gjp2);
+            return '-12';
+        }
+        if ((int) ($account['is_active'] ?? 0) !== 1) {
+            $this->verifyDummyLoginCredential($password, $gjp2);
             return '-1';
         }
         $storedPass = (string) ($account['password_hash'] ?? '');
         $storedGjp2 = (string) ($account['gjp2_hash'] ?? '');
         $valid = false;
+        $plainPasswordValid = false;
         if ($password !== '') {
             // Обычный пароль.
-            $valid = password_verify($password, $storedPass);
+            $plainPasswordValid = password_verify($password, $storedPass);
+            $valid = $plainPasswordValid;
             // Совместимость с хранимым GJP2.
             if (!$valid && $storedGjp2 !== '') {
                 $derived = sha1($password . self::GJP2_SALT);
@@ -93,10 +102,25 @@ final class AccountService
             $valid = password_verify($gjp2, $storedGjp2);
         }
         if (!$valid) {
-            $this->accounts->audit((int) $account['account_id'], 'account.login_failed', $ip);
+            try {
+                $this->accounts->audit((int) $account['account_id'], 'account.login_failed', $ip);
+            } catch (Throwable $e) {
+                error_log(sprintf('[MuchoCore Login] failed-login audit unavailable: %s: %s',
+                    \get_class($e), $e->getMessage()));
+            }
             return '-1';
         }
         $accountId = (int) $account['account_id'];
+        if ($plainPasswordValid && $storedGjp2 === '') {
+            try {
+                $derivedGjp2 = sha1($password . self::GJP2_SALT);
+                $this->accounts->assignGjp2HashIfMissing($accountId,
+                    password_hash($derivedGjp2, PASSWORD_DEFAULT));
+            } catch (Throwable $e) {
+                error_log(sprintf('[MuchoCore Login] GJP2 backfill failed for account %d: %s: %s',
+                    $accountId, \get_class($e), $e->getMessage()));
+            }
+        }
         $userId = $this->accounts->ensureProfile($accountId);
         /*
          * Everything below this point is post-login bookkeeping.
@@ -135,6 +159,13 @@ final class AccountService
          * never allow auxiliary post-login persistence to replace it.
          */
         return $accountId . ',' . $userId;
+    }
+    private function verifyDummyLoginCredential(string $password, string $gjp2)
+    {
+        $credential = $password !== '' ? $password : $gjp2;
+        if ($credential !== '') {
+            password_verify($credential, self::DUMMY_PASSWORD_HASH);
+        }
     }
     private function rememberLegacy19UploadSession(int $accountId, string $udid, string $ip)
     {

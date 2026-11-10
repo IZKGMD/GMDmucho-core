@@ -41,6 +41,23 @@ final readonly class AccountRepository
         return $row === false ? null : $row;
     }
 
+    public function assignGjp2HashIfMissing(
+        int $accountId,
+        string $gjp2Hash
+    ): void {
+        $stmt = $this->pdo->prepare(
+            "UPDATE accounts
+             SET gjp2_hash = :gjp2_hash
+             WHERE account_id = :account_id
+               AND (gjp2_hash IS NULL OR gjp2_hash = '')"
+        );
+
+        $stmt->execute([
+            'account_id' => $accountId,
+            'gjp2_hash' => $gjp2Hash,
+        ]);
+    }
+
     public function usernameExists(string $username): bool
     {
         $stmt = $this->pdo->prepare(

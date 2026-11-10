@@ -169,7 +169,10 @@ func (s Service) Login(ctx context.Context, username, password, gjp2, ip, udid s
 	if err != nil {
 		return "", err
 	}
-	if r.Int("is_active") != 1 || r.Int("is_banned") == 1 {
+	if r.Int("is_banned") == 1 {
+		return "-12", nil
+	}
+	if r.Int("is_active") != 1 {
 		return "-1", nil
 	}
 	valid := false
