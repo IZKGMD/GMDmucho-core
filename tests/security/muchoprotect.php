@@ -542,7 +542,7 @@ if (
 $userInfoDir = $dir . '-user-info';
 $userInfoProtect = new MuchoProtect(
     new RateLimiter($userInfoDir),
-    new \\MuchoCore\\Security\\AbusePenaltyStore($userInfoDir . '-penalty')
+    new \MuchoCore\Security\AbusePenaltyStore($userInfoDir . '-penalty')
 );
 $userInfoPath = '/submitGJUserInfo.php';
 
@@ -565,7 +565,7 @@ for ($i = 0; $i < 4; $i++) {
     );
 
     if ($result['decision'] !== 'allow') {
-        fwrite(STDERR, "MuchoProtect user-info setup failed at request {$i}\\n");
+        fwrite(STDERR, "MuchoProtect user-info setup failed at request {$i}\n");
         exit(1);
     }
 }
@@ -618,7 +618,7 @@ $userInfoDifferentCredential = $userInfoProtect->inspect(
 );
 
 if ($userInfoDifferentCredential['decision'] !== 'allow') {
-    fwrite(STDERR, "MuchoProtect user-info credential isolation failed\\n");
+    fwrite(STDERR, "MuchoProtect user-info credential isolation failed\n");
     exit(1);
 }
 
