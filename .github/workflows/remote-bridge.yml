@@ -1,0 +1,39 @@
+name: MuchoCore Remote Bridge
+
+on:
+  pull_request:
+    paths:
+      - 'remote_bridge/**'
+      - 'docker-compose.yml'
+      - 'docker/Caddyfile'
+      - '.github/workflows/remote-bridge.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'remote_bridge/**'
+      - 'docker-compose.yml'
+      - 'docker/Caddyfile'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r remote_bridge/requirements.txt -r remote_bridge/test_requirements.txt
+      - name: Compile Python sources
+        run: python -m compileall -q remote_bridge
+      - name: Run API and deployment tests
+        run: pytest -q remote_bridge/tests
+      - name: Build isolated bridge image
+        run: docker build --tag muchocore-remote-bridge:test -f remote_bridge/Dockerfile .
