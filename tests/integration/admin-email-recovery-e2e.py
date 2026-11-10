@@ -330,8 +330,9 @@ def main():
                                          "email_verify")
                 check(verification2 != verification1, "new verification has a distinct token")
                 code, page, _ = public.request("/admin/?email_verify=" + verification2)
+                csrf_verify = csrf(page)
                 code, page, _ = public.request(fields={
-                    "csrf": csrf(page), "action": "admin-email-verify", "token": verification2,
+                    "csrf": csrf_verify, "action": "admin-email-verify", "token": verification2,
                 })
                 check(code == 200 and "Email confirmed" in page, "email confirmation succeeded")
                 state = json.loads(php("state"))
@@ -339,7 +340,7 @@ def main():
                       state["verify_token_hash"] is None and state["pending_email"] is None,
                       "verified email is stored without a reusable verification token")
                 code, page, _ = public.request(fields={
-                    "csrf": csrf(page), "action": "admin-email-verify", "token": verification2,
+                    "csrf": csrf_verify, "action": "admin-email-verify", "token": verification2,
                 })
                 check(code == 200 and "Link unavailable" in page,
                       "verification token cannot be replayed")
