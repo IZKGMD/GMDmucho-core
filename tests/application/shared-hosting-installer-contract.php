@@ -125,7 +125,7 @@ foreach ([
     'owner activation session required' => str_contains($wizard, 'mucho_first_owner_authorized_until'),
     'registration rejects unverified visitors' => str_contains($wizard, 'elseif (!$authorized)'),
     'activation strips fragment from history' => str_contains($wizard, 'history.replaceState'),
-    'activation only via POST' => str_contains($wizard, "if ($action === 'activate')"),
+    'activation only via POST' => str_contains($wizard, "\$action === 'activate'"),
     'no visible setup-key field' => !str_contains($wizard, '<input id="setup_key"'),
     'shared installer provides a private activation link' =>
         str_contains($installer, '/admin/#setup='),
