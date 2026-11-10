@@ -40,7 +40,6 @@ $originalEnv = getenv('MUCHO_CLOUDSAVE_KEY_FILE');
 $originalArray = $_ENV['MUCHO_CLOUDSAVE_KEY_FILE'] ?? null;
 $keyPath = $dir . '/cloudsave.key';
 $recoveredKeyPath = $dir . '/recovered-cloudsave.key';
-$wrongKeyPath = $dir . '/wrong-cloudsave.key';
 $keyBytes = random_bytes(32);
 file_put_contents($keyPath, base64_encode($keyBytes) . PHP_EOL);
 chmod($keyPath, 0600);
@@ -225,10 +224,17 @@ try {
         'restored account and admin retain their login credentials');
     $check((int)$target->query('SELECT COUNT(*) FROM schema_migrations')->fetchColumn()
         === $migrations, 'all migration versions survive database recovery');
+    $check((int)$target->query('SELECT is_banned FROM accounts WHERE account_id=62011')
+        ->fetchColumn() === 0,
+        'restored snapshot predates later account bans and level edits');
 
-    $setKey($wrongKeyPath);
-    file_put_contents($wrongKeyPath, base64_encode(random_bytes(32)) . PHP_EOL);
-    chmod($wrongKeyPath, 0600);
+    // Environment::get intentionally caches its *path* for one PHP
+    // request. A wrong-key test must change the actual disposable key file
+    // (or run a separate process), not just putenv() in the same request.
+    // Model a new installation with a regenerated key, then recover the
+    // separately held original copy without ever touching the VPS.
+    file_put_contents($keyPath, base64_encode(random_bytes(32)) . PHP_EOL);
+    chmod($keyPath, 0600);
     $wrongRejected = false;
     try {
         (new CloudSaveRepository($target))->load(62011);
@@ -236,7 +242,9 @@ try {
         $wrongRejected = true;
     }
     $check($wrongRejected, 'restore refuses an incorrect Cloud Save key');
-    $setKey($recoveredKeyPath);
+    $check(copy($recoveredKeyPath, $keyPath),
+        'original backup key can be restored to configured filesystem path');
+    chmod($keyPath, 0600);
     $check((new CloudSaveRepository($target))->load(62011) === $cloudData,
         'restored encrypted Cloud Save decrypts with the original retained key');
 
@@ -265,7 +273,11 @@ try {
     } else {
         $_ENV['MUCHO_CLOUDSAVE_KEY_FILE'] = $originalArray;
     }
-    foreach (glob($dir . '/*') ?: [] as $file) {
+    foreach (scandir($dir) ?: [] as $entry) {
+        if ($entry === '.' || $entry === '..') {
+            continue;
+        }
+        $file = $dir . '/' . $entry;
         if (is_file($file)) {
             unlink($file);
         }
