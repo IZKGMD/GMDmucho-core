@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import secrets
 import sqlite3
 import time
@@ -219,7 +220,7 @@ def _validate_job(action: str, payload: dict[str, Any]) -> None:
         command = payload.get("command")
         if not isinstance(command, str) or not command.strip() or len(command) > 6000:
             raise HTTPException(400, "Terminal command must be 1–6000 characters")
-        if __import__("re").search(r"(?i)(password|passwd|secret|token|api[_-]?key)\s*[:=]\s*\S+", command):
+        if re.search(r"(?i)(password|passwd|secret|token|api[_-]?key)\s*[:=]\s*\S+", command):
             raise HTTPException(400, "Do not place passwords, tokens or API keys in terminal commands")
     if action == "pc.desktop.type":
         text = payload.get("text")
