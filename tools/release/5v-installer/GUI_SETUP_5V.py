@@ -26,6 +26,7 @@ if str(BUNDLE_DIR) not in sys.path:
     sys.path.insert(0, str(BUNDLE_DIR))
 
 import INSTALL_5V
+import RECOVER_ADMIN_5V
 from mucho5v import FtpSite, HttpsSite, InstallError, private_config, site_origin, valid_ftp_host
 from PUBLISH_CLIENTS_5V import login_owner
 from muchoclients5v import (
@@ -45,10 +46,13 @@ def _self_test() -> int:
         CORE_DIR / "public" / "php7.php",
         CORE_DIR / "compat" / "php7" / "runtime.php",
         RULE_FILE,
+        BUNDLE_DIR / "RECOVERY_HANDLER.php.tpl",
     )
     if not all(item.is_file() for item in required):
         return 2
-    if not callable(INSTALL_5V.perform_install) or not callable(patch_windows):
+    if (not callable(INSTALL_5V.perform_install)
+            or not callable(RECOVER_ADMIN_5V.recover)
+            or not callable(patch_windows)):
         return 3
     try:
         import gd_windows_patcher
@@ -245,6 +249,8 @@ def main() -> int:
                        command=lambda: webbrowser.open(
                            "https://5v.pl/pomoc,pytanie,serwer-ftp-zapomnialem-nazwy-hosta-lub-moj-unikalny-login.html"
                        )).pack(side="left", padx=7)
+            ttk.Button(top, text="Восстановить админку",
+                       command=self.open_recovery).pack(side="right")
 
             self.vars = {}
             self.entries = {}
@@ -367,6 +373,158 @@ def main() -> int:
             self.root.after(120, self.pump)
             self.write_log("Перед началом создай сайт и пустую базу в кабинете 5v.pl.")
             self.write_log("Пароли не сохраняются и не отправляются на muchogdps.space.")
+
+        def open_recovery(self):
+            window = tk.Toplevel(self.root)
+            window.title("MuchoCore · Восстановление админки")
+            window.geometry("590x590")
+            window.transient(self.root)
+            window.grab_set()
+            frame = ttk.Frame(window, padding=16)
+            frame.pack(fill="both", expand=True)
+            ttk.Label(frame, text="Восстановление существующего владельца",
+                      style="Title.TLabel").pack(anchor="w")
+            ttk.Label(
+                frame,
+                text="База, игроки и уровни не удаляются. Нужен FTP-доступ к своему сайту.",
+                style="Sub.TLabel", wraplength=540,
+            ).pack(anchor="w", pady=(4, 12))
+            values = {
+                "site": self.vars["site"].get(),
+                "host": self.vars["ftp_host"].get(),
+                "user": self.vars["ftp_user"].get(),
+                "ftp_password": self.vars["ftp_password"].get(),
+                "owner": "",
+                "new_password": "",
+                "confirm": "",
+            }
+            variables = {key: tk.StringVar(value=value) for key, value in values.items()}
+            labels = (
+                ("site", "Адрес сайта"),
+                ("host", "FTP-сервер"),
+                ("user", "FTP-логин"),
+                ("ftp_password", "FTP-пароль"),
+                ("owner", "Логин владельца (пусто = авто, если владелец один)"),
+                ("new_password", "Новый пароль (10–72 символа)"),
+                ("confirm", "Повтори новый пароль"),
+            )
+            entries = {}
+            for key, label in labels:
+                line = ttk.Frame(frame)
+                line.pack(fill="x", pady=4)
+                ttk.Label(line, text=label, width=42).pack(side="left")
+                entry = ttk.Entry(
+                    line, textvariable=variables[key],
+                    show="*" if "password" in key or key == "confirm" else "",
+                )
+                entry.pack(side="left", fill="x", expand=True)
+                entries[key] = entry
+            ttk.Label(
+                frame,
+                text="Используется FTPS. Временный обработчик автоматически удаляется после операции.",
+                style="Sub.TLabel", wraplength=540,
+            ).pack(anchor="w", pady=(6, 8))
+            status = tk.StringVar(value="Готово")
+            ttk.Label(frame, textvariable=status, style="Sub.TLabel").pack(anchor="w")
+            output = tk.Text(
+                frame, height=8, wrap="word", bg="#0d0c12", fg="#e8e2f0",
+                relief="flat", font=("Consolas", 9), padx=8, pady=7,
+            )
+            output.pack(fill="both", expand=True, pady=(6, 8))
+            events = queue.Queue()
+            run_button = ttk.Button(frame, text="ВОССТАНОВИТЬ ДОСТУП")
+            run_button.pack(anchor="w")
+
+            def log(message):
+                output.insert("end", str(message).rstrip() + "\n")
+                output.see("end")
+
+            def start_recovery():
+                if run_button["state"] == "disabled":
+                    return
+                try:
+                    origin = site_origin(variables["site"].get())
+                    host = valid_ftp_host(variables["host"].get())
+                    ftp_user = variables["user"].get().strip()
+                    ftp_password = variables["ftp_password"].get()
+                    owner = variables["owner"].get().strip()
+                    new_password = variables["new_password"].get()
+                    confirmation = variables["confirm"].get()
+                    if not ftp_user or not ftp_password:
+                        raise InstallError("Заполни FTP-логин и пароль.")
+                    if owner and not re.fullmatch(r"[A-Za-z0-9_-]{1,20}", owner):
+                        raise InstallError("Проверь логин существующего владельца.")
+                    if not 10 <= len(new_password.encode("utf-8")) <= 72:
+                        raise InstallError("Новый пароль должен быть длиной 10–72 байта.")
+                    if new_password != confirmation:
+                        raise InstallError("Пароли не совпадают.")
+                except (InstallError, ValueError) as exc:
+                    messagebox.showerror("Проверь данные", str(exc), parent=window)
+                    return
+                if not messagebox.askyesno(
+                    "Подтвердить восстановление",
+                    "Изменить пароль существующего владельца на " + origin +
+                    "?\n\nВсе старые сессии, 2FA и passkeys будут отозваны. "
+                    "Игровые данные сохраняются.",
+                    parent=window,
+                ):
+                    return
+                run_button.configure(state="disabled")
+                status.set("Восстановление выполняется…")
+                log("Проверка FTP-доступа и временного обработчика…")
+
+                def worker():
+                    try:
+                        with contextlib.redirect_stdout(QueueWriter(events)):
+                            RECOVER_ADMIN_5V.recover(
+                                origin, host, ftp_user, ftp_password,
+                                owner, new_password, ftps=True, root_hint="",
+                            )
+                        events.put(("done", origin))
+                    except Exception as exc:
+                        events.put(("error", str(exc)))
+                    finally:
+                        variables["ftp_password"].set("")
+
+                threading.Thread(target=worker, daemon=True).start()
+
+            run_button.configure(command=start_recovery)
+
+            def pump_recovery():
+                try:
+                    while True:
+                        kind, value = events.get_nowait()
+                        if kind == "log":
+                            log(value)
+                        elif kind == "error":
+                            status.set("Восстановление остановлено")
+                            log("ОШИБКА: " + str(value))
+                            run_button.configure(state="normal")
+                            messagebox.showerror("Не удалось восстановить", str(value), parent=window)
+                        elif kind == "done":
+                            status.set("Доступ восстановлен")
+                            for key in ("ftp_password", "new_password", "confirm"):
+                                variables[key].set("")
+                            messagebox.showinfo(
+                                "Готово",
+                                "Пароль существующего владельца изменён. "
+                                "Войди в " + str(value) + "/mc/admin.php и включи 2FA заново.",
+                                parent=window,
+                            )
+                except queue.Empty:
+                    pass
+                if window.winfo_exists():
+                    window.after(120, pump_recovery)
+
+            window.protocol(
+                "WM_DELETE_WINDOW",
+                lambda: messagebox.showwarning(
+                    "Восстановление выполняется",
+                    "Не закрывай это окно до завершения операции.",
+                    parent=window,
+                ) if run_button["state"] == "disabled" else window.destroy(),
+            )
+            window.after(120, pump_recovery)
 
         def file_field(self, parent, row, label, variable, extension):
             ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", padx=(0, 8), pady=3)
