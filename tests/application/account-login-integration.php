@@ -192,6 +192,11 @@ try {
     $afterBookkeepingFailure = $login('SpaceUser', $spacedPassword);
     $check($afterBookkeepingFailure->body === $plain->body,
         'login remains successful when optional post-login bookkeeping fails');
+    $gjp2AfterRepeat = (string)$db->query(
+        'SELECT gjp2_hash FROM accounts WHERE account_id=1'
+    )->fetchColumn();
+    $check(hash_equals($storedSpaceGjp2, $gjp2AfterRepeat),
+        'subsequent password login preserves the existing GJP2 hash');
 
     $check((int)$db->query('SELECT COUNT(*) FROM profiles WHERE account_id=1')->fetchColumn() === 1,
         'repeated login does not duplicate the account profile');
