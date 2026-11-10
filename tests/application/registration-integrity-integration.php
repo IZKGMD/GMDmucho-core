@@ -132,8 +132,8 @@ try {
     $check($service->login('Alpha', '', $gjp2, '192.0.2.9') !== '-1',
         'GD-compatible GJP2 logs in');
     $db->exec("UPDATE accounts SET is_banned=1 WHERE username='Alpha'");
-    $check($service->login('Alpha', 'secure pass 1', '', '192.0.2.9') === '-1',
-        'banned account cannot log in');
+    $check($service->login('Alpha', 'secure pass 1', '', '192.0.2.9') === '-12',
+        'banned account uses Geometry Dash ban response -12');
     $db->exec("UPDATE accounts SET is_banned=0,is_active=0 WHERE username='Alpha'");
     $check($service->login('Alpha', 'secure pass 1', '', '192.0.2.9') === '-1',
         'inactive account cannot log in');
