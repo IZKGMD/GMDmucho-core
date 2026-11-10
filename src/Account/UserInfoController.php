@@ -21,7 +21,7 @@ final readonly class UserInfoController
     {
         $levelsInfo = $request->postString('levelsInfo');
 
-        if ($levelsInfo === '') {
+        if ($levelsInfo === '' || $levelsInfo === '0') {
             return Response::text('-2');
         }
 
