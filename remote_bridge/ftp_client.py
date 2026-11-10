@@ -268,16 +268,28 @@ class FTPSession:
             raise FTPBridgeError("Remote tree exceeds the 1 GiB backup limit.")
         return files, sorted(directories, key=lambda item: (item.count("/"), item))
 
-    def clear_tree(self, manifest: dict[str, Any]):
+    def verify_tree(self, manifest: dict[str, Any]):
         current_files, current_dirs = self.walk()
         expected_files = sorted(
             [{"path": item["path"], "size": int(item["size"])} for item in manifest["files"]],
             key=lambda item: item["path"],
         )
         if expected_files != sorted(current_files, key=lambda item: item["path"]):
-            raise FTPBridgeError("Remote files changed since backup; nothing was deleted.")
+            raise FTPBridgeError("Remote file list or sizes changed since backup.")
         if sorted(manifest["directories"]) != current_dirs:
-            raise FTPBridgeError("Remote directories changed since backup; nothing was deleted.")
+            raise FTPBridgeError("Remote directories changed since backup.")
+        for item in manifest["files"]:
+            data = self.read_bytes(item["path"], MAX_FILE)
+            digest = hashlib.sha256(data).hexdigest()
+            if digest != item.get("sha256") or len(data) != int(item["size"]):
+                raise FTPBridgeError("Remote file content changed since backup: " + item["path"])
+        return True
+
+    def clear_tree(self, manifest: dict[str, Any]):
+        # Re-hash every remote file immediately before deletion. A size-only
+        # comparison is not sufficient for a destructive reset.
+        self.verify_tree(manifest)
+        current_files, current_dirs = self.walk()
         for item in sorted(current_files, key=lambda value: value["path"].count("/"), reverse=True):
             parent, name = self.parent(item["path"])
             self._ftp().delete(name)
@@ -403,6 +415,16 @@ def load_backup_manifest(local_root: Path, backup_id: str) -> tuple[Path, dict[s
     if not manifest_path.is_file() or manifest_path.is_symlink():
         raise FTPBridgeError("Local backup manifest was not found.")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("backup_id") != backup_id:
+        raise FTPBridgeError("Backup manifest ID mismatch.")
+    for item in manifest.get("files", []):
+        rel = safe_remote_path(item.get("path", ""), allow_root=False)
+        local = folder.joinpath(*rel.split("/"))
+        if not _within(local, folder) or local.is_symlink() or not local.is_file():
+            raise FTPBridgeError("A local backup file is missing or unsafe: " + rel)
+        data = local.read_bytes()
+        if len(data) != int(item.get("size", -1)) or hashlib.sha256(data).hexdigest() != item.get("sha256"):
+            raise FTPBridgeError("A local backup file failed SHA-256 verification: " + rel)
     return folder, manifest
 
 
@@ -416,16 +438,9 @@ def ftp_preview_clear_root(cfg: dict[str, Any], local_root: Path, backup_id: str
     with FTPSession(cfg) as session:
         if manifest.get("remote_root_pwd") != session.root_pwd:
             raise FTPBridgeError("Backup root does not match the current remote root.")
-        current_files, current_dirs = session.walk()
-    expected = sorted(manifest["files"], key=lambda item: item["path"])
-    actual = sorted(current_files, key=lambda item: item["path"])
-    unchanged = (
-        [{"path": x["path"], "size": int(x["size"])} for x in expected]
-        == [{"path": x["path"], "size": int(x["size"])} for x in actual]
-        and sorted(manifest["directories"]) == current_dirs
-    )
+        session.verify_tree(manifest)
     return {
-        "backup_id": backup_id, "unchanged_since_backup": unchanged,
+        "backup_id": backup_id, "unchanged_since_backup": True,
         "files_to_delete": len(manifest["files"]),
         "directories_to_remove": len(manifest["directories"]),
         "configured_root_preserved": True,
