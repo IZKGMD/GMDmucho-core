@@ -270,7 +270,7 @@
     "src/Security/AbusePenaltyStore.php": "a75dcccdbb97eb4a5da7ff5c3c43de523b6e0760c940cb99b2dc8b532b3c1920",
     "src/Security/DatabasePenaltyStore.php": "c581e05777cc0bf719b282dada02229756b83d2fdc68131521514229c189568e",
     "src/Security/DatabaseRateLimiter.php": "f7cda86294ab3d5ebb6aed24a3aaee9c8b80b7cfd8b9bd40c6485c2bf7d19ac6",
-    "src/Security/MuchoProtect.php": "330615af6def5457b337c4c0ad2eb650d452d603f8f6349de896677a0aedbeeb",
+    "src/Security/MuchoProtect.php": "7f7c6dc41f4fa8555e3e4652f777b2e8f990dcad95183c2cdd7cca17a288e7b5",
     "src/Security/PenaltyStoreBackend.php": "b5388b5493aa0db9a7d4ee536a99a0c630e95f7712fa7f633916c10740b346af",
     "src/Security/RateLimitBackend.php": "b9d4021f82e61c1bd87b15242299ee47495680e11fd19c2c6631cd33d3b546b1",
     "src/Security/RateLimiter.php": "2db119adee113fedcdafc59b492ac8a31de2d7d182d1275d7671465a9d4723df",
