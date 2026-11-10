@@ -449,7 +449,7 @@ if (
         STDERR,
         "MuchoProtect v2 central policy failed: "
         . json_encode($v2Blocked, JSON_UNESCAPED_SLASHES)
-        . "\\n"
+        . "\n"
     );
     exit(1);
 }
