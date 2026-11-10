@@ -118,6 +118,15 @@ def main():
                 check(response.endswith("8~|~0"),
                       "GD version " + str(gv) + " sees enabled song flags")
 
+            code, size_data, _ = request("/database/getGJAudioFileSize.php", {
+                "songIDs": str(SONG_ID), "sfxIDs": "",
+                "gameVersion": "22", "binaryVersion": "51",
+            })
+            size_text = size_data.decode("ascii", "strict")
+            check(code == 200 and size_text.startswith(str(SONG_ID) + ":")
+                  and int(size_text.split(":", 1)[1].split("#", 1)[0]) > 0,
+                  "GD 2.209 reports nonzero custom-song audio size")
+
             code, body, headers = request("/music/" + filename)
             check(code == 200 and body == source_bytes,
                   "Caddy serves exact original MP3 bytes via GD download URL")
