@@ -253,6 +253,33 @@ Keep the Cloud Save secret safe:
 It is mounted into the app as a Docker secret and is required to preserve
 existing cloud save data across container rebuilds and updates.
 
+### Disaster recovery requires more than the SQL dump
+
+**A SQL backup alone is not a complete GDPS restore.** Preserve three
+separate items in a restricted, preferably encrypted off-server backup:
+
+1. The verified database archive **and its SHA-256 sidecar**.
+2. The exact Cloud Save key at `/opt/mucho-core/.secrets/cloudsave_key`
+   (or the configured `MUCHO_CLOUDSAVE_KEY_FILE`). Never generate a new key
+   when restoring an existing server; old encrypted saves require the original.
+3. Uploaded MP3 files in `storage/music-public/` and any other user-uploaded
+   filesystem assets that are not stored directly in MariaDB.
+
+**Do not commit, publish, attach or send this material in chat or GitHub.**
+Restrict file ownership and permissions; keep at least one separately held
+offline/off-server copy. Protect files and the key using an established backup
+system with encryption and tested access controls.
+
+The PHP 8 CI disaster-recovery test now restores the *actual migrated schema*
+to a separately created disposable database and verifies game accounts,
+profiles, levels, song **metadata**, administrator password hashes and
+encrypted Cloud Save recovery with the original key. It also verifies that
+the wrong key fails and that schema migrations remain idempotent.
+
+This proves SQL/key compatibility, **not** recovery of uploaded MP3 bytes,
+your external backup storage, DNS/TLS settings, or a real VPS. Validate those
+separately before treating the production installation as recoverable.
+
 ## Removal
 
 `uninstall.sh` removes the installation and its Docker database volume.
