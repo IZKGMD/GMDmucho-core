@@ -101,9 +101,16 @@ final class AdminSmtp
             $content = implode("\r\n", $headers) . "\r\n\r\n" .
                 preg_replace('/(?<!\r)\n/', "\r\n", str_replace("\r\n", "\n", $message));
             $content = preg_replace('/(?m)^\./', '..', $content);
-            fwrite($socket, rtrim($content, "\r\n") . "\r\n.\r\n");
+            self::writeAll($socket, rtrim($content, "\r\n") . "\r\n.\r\n");
             self::expect($socket, [250]);
-            self::command($socket, "QUIT\r\n", [221]);
+
+            // A 250 response to DATA commits acceptance. QUIT may fail even
+            // though the message has already been accepted by the relay.
+            try {
+                self::command($socket, "QUIT\r\n", [221]);
+            } catch (\Throwable $e) {
+                // Do not invalidate an already accepted password-reset link.
+            }
             return true;
         } catch (\Throwable $e) {
             error_log('[MuchoCore Admin] SMTP delivery failed: ' . get_class($e));
@@ -115,26 +122,44 @@ final class AdminSmtp
 
     private static function command($socket, string $line, array $expected): void
     {
-        if (fwrite($socket, $line) !== strlen($line)) {
-            throw new RuntimeException('SMTP write failed');
-        }
+        self::writeAll($socket, $line);
         self::expect($socket, $expected);
+    }
+
+    private static function writeAll($socket, string $payload): void
+    {
+        $length = strlen($payload);
+        $offset = 0;
+        while ($offset < $length) {
+            $written = @fwrite($socket, substr($payload, $offset));
+            if (!is_int($written) || $written <= 0) {
+                throw new RuntimeException('SMTP write failed');
+            }
+            $offset += $written;
+        }
     }
 
     private static function expect($socket, array $expected): void
     {
+        $responseCode = null;
         for ($i = 0; $i < 32; $i++) {
             $line = fgets($socket, 2048);
-            if (!is_string($line) || !preg_match('/^([0-9]{3})([ -])/', $line, $match)) {
+            if (!is_string($line) || !str_ends_with($line, "\n") ||
+                !preg_match('/^([0-9]{3})([ -])/', $line, $match)) {
                 throw new RuntimeException('SMTP response unavailable');
             }
-            if ($match[2] === '-') {
-                continue;
+            $code = (int) $match[1];
+            if ($responseCode === null) {
+                if (!in_array($code, $expected, true)) {
+                    throw new RuntimeException('SMTP rejected request');
+                }
+                $responseCode = $code;
+            } elseif ($code !== $responseCode) {
+                throw new RuntimeException('SMTP inconsistent multiline response');
             }
-            if (!in_array((int) $match[1], $expected, true)) {
-                throw new RuntimeException('SMTP rejected request');
+            if ($match[2] === ' ') {
+                return;
             }
-            return;
         }
         throw new RuntimeException('SMTP response too long');
     }
