@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -478,6 +479,34 @@ def dispatch(cfg, job):
     return handlers[action]()
 
 
+def heartbeat_loop(base: str, token: str, stop: threading.Event):
+    session = requests.Session()
+    session.trust_env = False
+    session.max_redirects = 0
+    session.headers.update({"Authorization": "Bearer " + token})
+    while not stop.wait(15):
+        try:
+            response = session.post(
+                base + "/api/v1/agent/heartbeat",
+                json={"version": VERSION,
+                      "capabilities": ["status", "screenshot", "files", "terminal",
+                                       "desktop", "apps", "ftps"]},
+                timeout=12,
+                allow_redirects=False,
+            )
+            if response.status_code == 401:
+                print("Agent token revoked or invalid. Stop and re-pair this PC.")
+                stop.set()
+                return
+            if 300 <= response.status_code < 400:
+                print("[NETWORK] Unexpected redirect refused.")
+                stop.set()
+                return
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            print("[HEARTBEAT]", type(exc).__name__, str(exc)[:180])
+
+
 def main():
     cfg = load_config()
     token = get_token(cfg)
@@ -486,6 +515,11 @@ def main():
     session.trust_env = False
     session.max_redirects = 0
     session.headers.update({"Authorization": "Bearer " + token})
+    stop = threading.Event()
+    heartbeat = threading.Thread(
+        target=heartbeat_loop, args=(base, token, stop), daemon=True,
+    )
+    heartbeat.start()
     print("=" * 68)
     print("MuchoCore Remote Bridge Agent", VERSION)
     print("Connected target:", base)
@@ -495,20 +529,14 @@ def main():
         print(" ", index, root)
     print("Visible foreground agent. Ctrl+C stops remote access immediately.")
     print("=" * 68)
-    last_heartbeat = 0
-    while True:
+    while not stop.is_set():
         try:
-            if time.time() - last_heartbeat > 15:
-                session.post(base + "/api/v1/agent/heartbeat",
-                             json={"version": VERSION,
-                                   "capabilities": ["status", "screenshot", "files",
-                                                    "terminal", "desktop", "apps"]},
-                             timeout=12).raise_for_status()
-                last_heartbeat = time.time()
-            response = session.post(base + "/api/v1/agent/poll", timeout=20)
+            response = session.post(base + "/api/v1/agent/poll", timeout=20, allow_redirects=False)
             if response.status_code == 204:
                 time.sleep(1.5)
                 continue
+            if 300 <= response.status_code < 400:
+                raise AgentError("Unexpected redirect refused; check the configured HTTPS bridge URL.")
             response.raise_for_status()
             job = response.json()
             print("\n[REMOTE JOB]", job["job_id"], job["action"])
@@ -532,6 +560,7 @@ def main():
                 print("[JOB FAILED]", type(exc).__name__, str(exc)[:300])
         except KeyboardInterrupt:
             print("\nAgent stopped by local user.")
+            stop.set()
             break
         except requests.HTTPError as exc:
             if exc.response is not None and exc.response.status_code == 401:
@@ -545,6 +574,8 @@ def main():
         except Exception as exc:
             print("[ERROR]", type(exc).__name__, str(exc)[:300])
             time.sleep(3)
+    stop.set()
+    heartbeat.join(timeout=2)
     return 0
 
 
