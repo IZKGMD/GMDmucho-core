@@ -154,7 +154,6 @@ class ClientFunctions(unittest.TestCase):
             self.assertEqual(output.read_bytes(), blob)
             self.assertEqual(clients.sha256_file(output), digest)
             download.assert_called_once()
-            self.assertFalse(any("mc/public/clients" in value for value in []))
 
     def test_private_apk_download_rejects_site_or_hash_mismatch(self):
         report = {
