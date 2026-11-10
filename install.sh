@@ -602,10 +602,14 @@ else
 fi
 
 [[ "$ADMIN_USER" =~ ^[A-Za-z_][A-Za-z0-9_-]{0,31}$ ]] || fail "Invalid administrator username."
-[[ "${#MUCHO_ADMIN_PASSWORD}" -ge 12 && "${#MUCHO_ADMIN_PASSWORD}" -le 256 ]] ||
-  fail "Administrator password must contain 12–256 characters."
-[[ "$MUCHO_ADMIN_PASSWORD" != *[[:cntrl:]]* ]] ||
-  fail "Administrator password must not contain control characters."
+# Preserve legacy credentials on existing installations without revalidating
+# the old setup-secret policy; fresh credentials use the new stricter policy.
+if [[ "$OWNER_FRESH" -eq 1 ]]; then
+  [[ "${#MUCHO_ADMIN_PASSWORD}" -ge 12 && "${#MUCHO_ADMIN_PASSWORD}" -le 256 ]] ||
+    fail "Administrator password must contain 12–256 characters."
+  [[ "$MUCHO_ADMIN_PASSWORD" != *[[:cntrl:]]* ]] ||
+    fail "Administrator password must not contain control characters."
+fi
 log "Admin panel username: $ADMIN_USER"
 
 printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
