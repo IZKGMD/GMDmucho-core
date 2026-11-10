@@ -30,11 +30,11 @@ MAX_READ = 256 * 1024
 MAX_WRITE = 256 * 1024
 MAX_OUTPUT = 24000
 DANGEROUS = re.compile(
-    r"(?i)(remove-item|\\bdel\\b|\\berase\\b|\\brmdir\\b|\\brd\\s+/s|"
+    r"(?i)(remove-item|\bdel\b|\berase\b|\brmdir\b|\brd\s+/s|"
     r"format(-volume)?|diskpart|shutdown|restart-computer|stop-computer|"
-    r"reg\\s+delete|bcdedit|git\\s+clean|git\\s+reset\\s+--hard|"
-    r"docker\\s+compose\\s+down\\s+-v|drop\\s+database|truncate\\s+table|"
-    r"rm\\s+-rf|mkfs|\\bdd\\s+if=)"
+    r"reg\s+delete|bcdedit|git\s+clean|git\s+reset\s+--hard|"
+    r"docker\s+compose\s+down\s+-v|drop\s+database|truncate\s+table|"
+    r"rm\s+-rf|mkfs|\bdd\s+if=)"
 )
 
 
@@ -240,7 +240,7 @@ def launch_app(cfg, payload):
 
 def redact_output(value: str) -> str:
     patterns = [
-        (re.compile(r"(?i)(password|passwd|token|secret|api[_-]?key|access[_-]?key|authorization)(\\s*[:=]\\s*)([^\\s,;]+)"), r"\\1\\2[REDACTED]"),
+        (re.compile(r"(?i)(password|passwd|token|secret|api[_-]?key|access[_-]?key|authorization)(\s*[:=]\s*)([^\s,;]+)"), r"\1\2[REDACTED]"),
         (re.compile(r"(?i)gh[pousr]_[A-Za-z0-9_]{20,}"), "[REDACTED_GITHUB_TOKEN]"),
         (re.compile(r"(?i)sk-[A-Za-z0-9_-]{20,}"), "[REDACTED_API_KEY]"),
         (re.compile(r"AKIA[0-9A-Z]{16}"), "[REDACTED_AWS_KEY]"),
