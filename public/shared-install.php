@@ -828,12 +828,12 @@ if ($success) {
     <div class="box">
         <h1>MuchoCore is installed 🎉</h1>
         <div class="ok">
-            The database is connected and migrations finished. Open the admin panel to create your first administrator.
+            The database is connected and migrations finished. Use the private link below to choose your owner username and password without entering another setup secret.
         </div>
 
         <h2>Next</h2>
         <p><a href="/">Open the GDPS</a></p>
-        <p><a href="/admin/">Open the admin panel</a></p>
+        <p><a href="/admin/#setup=<?= e(rawurlencode((string)$adminPass)) ?>">Create first administrator (private activation link)</a></p>
         <p><a href="/health">Open the health check</a></p>
         <p><a href="/admin/?page=migration">Migrate an existing GDPS database</a></p>
         <p><a href="/clients/">Player client downloads</a></p>
