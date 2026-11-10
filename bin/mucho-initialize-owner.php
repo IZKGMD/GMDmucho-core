@@ -15,7 +15,8 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 $db = (new Database())->connection();
 $existing = (int)$db->query('SELECT COUNT(*) FROM admin_users')->fetchColumn();
-if ($existing !== 0 || FirstRunSetup::prepare($db, $existing)) {
+$alreadyInitialized = FirstRunSetup::prepare($db, $existing);
+if ($existing !== 0 || $alreadyInitialized) {
     echo "Owner already initialized; existing administrator credentials preserved.\n";
     exit(0);
 }
