@@ -786,6 +786,8 @@ foreach ([
     $penaltyCleanupDir,
     $v2Dir,
     $v2Dir . '-penalty',
+    $userInfoDir,
+    $userInfoDir . '-penalty',
     $dir . '-global',
     $directPenaltyDir,
 ] as $cleanupDir) {
