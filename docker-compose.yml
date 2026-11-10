@@ -141,6 +141,7 @@ services:
       CADDY_ADDRESS: ${CADDY_ADDRESS}
       # Canonical public MuchoCore product host. Tenant GDPS domains must not expose it.
       MUCHOCORE_SITE_HOST: ${MUCHOCORE_SITE_HOST:-disabled.invalid}
+      MUCHOCORE_REMOTE_HOST: ${MUCHOCORE_REMOTE_HOST:-muchogdps.space}
     ports:
       - "80:80"
       - "443:443"
