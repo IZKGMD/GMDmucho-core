@@ -112,7 +112,7 @@ def main():
             browser=p.chromium.launch(executable_path=browser_path,headless=True,args=["--no-sandbox"])
             try:
                 for name,build in (("admin",admin),("portal",portal),("login",login)):
-                    for width,height in ((1440,900),(390,844)):
+                    for width,height in ((1440,900),(768,1024),(390,844),(320,740)):
                         page=browser.new_page(viewport={"width":width,"height":height},device_scale_factor=1)
                         errors=[]
                         page.on("pageerror",lambda error:errors.append(str(error)))
