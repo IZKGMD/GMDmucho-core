@@ -167,11 +167,25 @@ elseif($action==='v4-bulk-levels'){
             min(10,(int)($_POST['stars'] ?? 0))
         );
 
+        $difficulty=match($stars) {
+            0 => 0, 1,8,9,10 => 50,
+            2 => 10, 3 => 20, 4,5 => 30, 6,7 => 40
+        };
+        $demon=$stars===10 ? 1 : 0;
+        $auto=$stars===1 ? 1 : 0;
         $db->exec(
             "UPDATE levels
              SET stars=$stars,
-                 requested_stars=0
-             WHERE level_id IN ($in)"
+                 difficulty=$difficulty,
+                 demon_difficulty=CASE
+                    WHEN $demon=1 AND demon=1 AND custom_difficulty=0
+                    THEN demon_difficulty ELSE 0 END,
+                 demon=$demon,
+                 auto_level=$auto,
+                 custom_difficulty=0,
+                 requested_stars=0,
+                 updated_at=NOW()
+             WHERE level_id IN ($in) AND is_deleted=0"
         );
     }
     elseif($operation==='feature'){
@@ -218,6 +232,26 @@ elseif($action==='v4-bulk-levels'){
     }
     else{
         throw new RuntimeException('Unknown operation.');
+    }
+
+    // Bulk rating and quality changes affect public search and creator stats.
+    $owners=$db->query("SELECT DISTINCT account_id FROM levels WHERE level_id IN ($in)")
+        ->fetchAll(PDO::FETCH_COLUMN);
+    $cpQuery=$db->prepare('SELECT COALESCE(SUM(
+        CASE WHEN stars>0 THEN 1 ELSE 0 END
+        + CASE WHEN featured>0 THEN 1 ELSE 0 END
+        + epic),0) FROM levels WHERE account_id=:author AND is_deleted=0');
+    $cpSync=$db->prepare('UPDATE profiles SET creator_points=:points WHERE account_id=:author');
+    foreach($owners as $ownerId) {
+        $ownerId=(int)$ownerId;
+        if($ownerId<=0)continue;
+        $cpQuery->execute(['author'=>$ownerId]);
+        $cpSync->execute(['points'=>(int)$cpQuery->fetchColumn(),'author'=>$ownerId]);
+    }
+    try {
+        \MuchoCore\Cache\CacheManager::fromEnvironment($db)->deletePrefix('mucho:levels:');
+    } catch(Throwable $error) {
+        error_log('[MuchoCore] bulk rating cache invalidation failed: '.$error->getMessage());
     }
 
     audit(
