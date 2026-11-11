@@ -385,27 +385,87 @@ doctor() {
         fi
     done
 
-    local domain health public_health
+    local domain health public_health admin_state
     domain="$(env_get DOMAIN)"
-    if [[ "$tunnel_mode" == 1 ]]; then
-        health="$(curl -4fsSf --connect-timeout 3 --max-time 5 http://127.0.0.1/health 2>/dev/null || true)"
-        [[ "$health" == "1" ]] && echo "✓ /health (tunnel origin)" || { echo "✗ /health (tunnel origin)"; ok=1; }
-
-        if [[ -n "$domain" ]]; then
-            public_health="$(curl -4ksSf --connect-timeout 5 --max-time 8 "https://$domain/health" 2>/dev/null || true)"
-            [[ "$public_health" == "1" ]] && echo "✓ /health (public tunnel)" || echo "! /health (public tunnel not reachable yet)"
+    if [[ -z "$domain" ]] || ! validate_domain "$domain"; then
+        echo "✗ Domain missing or invalid; run: sudo mucho config"
+        ok=1
+    elif [[ "$tunnel_mode" == 1 ]]; then
+        health="$(curl -4fsS --connect-timeout 3 --max-time 5 http://127.0.0.1/health 2>/dev/null || true)"
+        if [[ "$health" == "1" ]]; then
+            echo "✓ /health (local tunnel origin)"
+        else
+            echo "✗ /health (local tunnel origin): inspect Caddy and app containers"
+            ok=1
         fi
-    elif [[ -n "$domain" ]]; then
-        health="$(curl -4ksSf --connect-timeout 3 --max-time 5             --resolve "$domain:443:127.0.0.1" "https://$domain/health" 2>/dev/null || true)"
-        [[ "$health" == "1" ]] && echo "✓ /health (local HTTPS)" || echo "! /health (local HTTPS certificate/origin unavailable)"
-
-        public_health="$(curl -4ksSf --connect-timeout 5 --max-time 8 "https://$domain/health" 2>/dev/null || true)"
-        [[ "$public_health" == "1" ]] && echo "✓ /health (public)" || echo "! /health (public) not reachable"
     else
-        echo "✗ domain"; ok=1
+        health="$(curl -4ksS --connect-timeout 3 --max-time 5 \
+            --resolve "$domain:443:127.0.0.1" "https://$domain/health" 2>/dev/null || true)"
+        if [[ "$health" == "1" ]]; then
+            echo "✓ /health (local HTTPS origin, TLS bypassed for loopback check)"
+        else
+            echo "✗ /health (local HTTPS origin): inspect Caddy, PHP-FPM and MariaDB"
+            ok=1
+        fi
     fi
 
-    compose exec -T app php bin/migrate.php status >/tmp/muchocore-migrations.txt 2>&1         && echo "✓ migrations"         || { echo "✗ migrations"; ok=1; }
+    # Never use -k for the public HTTPS check: an invalid certificate breaks
+    # browsers and some game clients even when the origin itself responds.
+    if [[ -n "$domain" ]] && validate_domain "$domain"; then
+        public_health="$(curl -4fsS --connect-timeout 5 --max-time 8 "https://$domain/health" 2>/dev/null || true)"
+        if [[ "$public_health" == "1" ]]; then
+            echo "✓ /health (public HTTPS, TLS verified)"
+        else
+            echo "✗ /health (public HTTPS): server is not ready for players"
+            if ! getent ahostsv4 "$domain" >/dev/null 2>&1; then
+                echo "  DNS: public IPv4 record cannot be resolved from this VPS"
+                echo "  Check the domain A record and authoritative nameservers."
+            else
+                echo "  DNS resolves. Check TCP 443, TLS certificate, reverse proxy and domain routing."
+                if [[ "$tunnel_mode" == 1 ]]; then
+                    echo "  Tunnel mode: check cloudflared service and tunnel hostname routing."
+                fi
+            fi
+            ok=1
+        fi
+    fi
+
+    if compose exec -T app php bin/migrate.php status >/dev/null 2>&1; then
+        echo "✓ database migration status"
+    else
+        echo "✗ database migrations unavailable; check MariaDB/app logs"
+        ok=1
+    fi
+
+    if admin_state="$(compose exec -T app php bin/mucho-admin-readiness.php 2>/dev/null)"; then
+        case "$admin_state" in
+            *MUCHO_ADMIN_STATE=ready*)
+                echo "✓ active administrator owner"
+                ;;
+            *MUCHO_ADMIN_STATE=pending*)
+                echo "✗ administrator not registered yet"
+                echo "  In a private VPS terminal, run: sudo mucho admin"
+                ok=1
+                ;;
+            *MUCHO_ADMIN_STATE=sealed_no_owner*)
+                echo "✗ previous administrator was removed; enrollment is permanently sealed"
+                echo "  Use a verified recovery method or explicit server-console reset."
+                ok=1
+                ;;
+            *MUCHO_ADMIN_STATE=owner_missing*)
+                echo "✗ no active owner; recover administrator access from the server console"
+                ok=1
+                ;;
+            *)
+                echo "✗ unknown administrator setup state"
+                ok=1
+                ;;
+        esac
+    else
+        echo "✗ cannot inspect administrator state (application/database unavailable)"
+        ok=1
+    fi
+
     echo
     if [[ "$ok" == 0 ]]; then
         echo "No problems found."
@@ -413,6 +473,45 @@ doctor() {
         echo "Some checks failed. See the lines above."
     fi
     return "$ok"
+}
+
+
+admin_cli() {
+    cd "$ROOT"
+    local state domain
+    domain="$(env_get DOMAIN)"
+    if ! state="$(compose exec -T app php bin/mucho-admin-readiness.php 2>/dev/null)"; then
+        echo "Cannot inspect admin setup. Run: sudo mucho doctor" >&2
+        return 1
+    fi
+
+    case "$state" in
+        *MUCHO_ADMIN_STATE=ready*)
+            echo "Administrator account already exists."
+            if [[ -n "$domain" ]] && validate_domain "$domain"; then
+                echo "Open: https://$domain/admin/"
+            fi
+            echo "Lost password? Use verified email recovery or sudo mucho owner-recovery-link where permitted."
+            ;;
+        *MUCHO_ADMIN_STATE=pending*)
+            if [[ -t 0 && -t 1 ]]; then
+                echo "Create the first administrator in your browser:"
+                compose exec -T app php bin/mucho-owner-link.php
+            else
+                echo "For security, the private setup link is shown only in an interactive terminal."
+                echo "Run: sudo mucho admin"
+            fi
+            ;;
+        *MUCHO_ADMIN_STATE=sealed_no_owner*|*MUCHO_ADMIN_STATE=owner_missing*)
+            echo "Owner recovery is required. Existing installation will not be reset automatically." >&2
+            echo "Use a verified recovery method or server-console reset after checking your backup." >&2
+            return 1
+            ;;
+        *)
+            echo "Unknown administrator setup state. Run: sudo mucho doctor" >&2
+            return 1
+            ;;
+    esac
 }
 
 main_menu() {
@@ -523,7 +622,8 @@ Usage:
   sudo mucho status              Show production status
   sudo mucho logs [--follow]     Show production logs
   sudo mucho restart             Restart production services
-  sudo mucho doctor              Run diagnostics
+  sudo mucho doctor              Check runtime, public reachability and owner state
+  sudo mucho admin               Open simplified owner setup or show admin URL
   sudo mucho repair              Restart, migrate and health-check
   sudo mucho update              Apply the latest stable release
   sudo mucho backup              Create a database backup
@@ -615,6 +715,10 @@ case "${1:-}" in
     doctor)
         require_root
         doctor
+        ;;
+    admin)
+        require_root
+        admin_cli
         ;;
     repair)
         require_root
