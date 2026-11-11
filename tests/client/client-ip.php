@@ -55,12 +55,12 @@ assertSameValue(
 );
 
 assertSameValue(
-    '198.51.100.25',
+    '172.20.0.1',
     ClientIp::resolve([
         'REMOTE_ADDR' => '172.20.0.2',
         'HTTP_X_FORWARDED_FOR' => '198.51.100.25, 172.20.0.1',
     ]),
-    'private proxy falls back to forwarded client IP'
+    'private proxy trusts only nearest forwarded hop without explicit CIDRs'
 );
 
 assertSameValue(
