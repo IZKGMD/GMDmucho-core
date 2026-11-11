@@ -77,6 +77,21 @@ if (
     );
 }
 
+$php7Setup = file_get_contents($root . '/public/php7-setup.php');
+$php7View = file_get_contents($root . '/compat/php7/admin-view.php');
+$php7Admin = file_get_contents($root . '/compat/php7/admin.php');
+if (!is_string($php7Setup) || !is_string($php7View) || !is_string($php7Admin)
+    || !str_contains($php7Setup, 'mucho7_admin_bootstrap($pdo, $options')
+    || !str_contains($php7Setup, 'admin_password_confirm')
+    || !str_contains($php7Setup, 'Sign in to your admin panel')
+    || !str_contains($php7View, 'name="password_confirm"')
+    || !str_contains($php7View, 'name="db_password"')
+    || !str_contains($php7Admin, "array_key_exists('password_confirm',\$data)")
+    || !str_contains($php7Admin, 'if (!$verifiedInstaller)')
+) {
+    throw new RuntimeException('The native PHP7 first-owner wizard must collect the login once and preserve ownership verification.');
+}
+
 $admin = file_get_contents($root . '/public/admin/index.php');
 $wizard = file_get_contents($root . '/public/admin/first-run.php');
 $firstRun = file_get_contents($root . '/src/Admin/FirstRunSetup.php');
