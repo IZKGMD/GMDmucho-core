@@ -242,6 +242,14 @@
         rewrite * /api/api/accounts/lostusername.php
     }
 
+    # GD 2.209 embeds both account-recovery URLs under /database/accounts/.
+    # Route them to the recovery page instead of the game API fallback (-1).
+    @client_recovery path /database/accounts/lostusername.php /database/accounts/lostpassword.php
+    handle @client_recovery {
+        rewrite * /api/api/accounts/lostusername.php
+        php_fastcgi app:9000
+    }
+
     # The game API remains available over HTTP for legacy clients,
     # but the administrator session must always use HTTPS.
     @admin_http {
