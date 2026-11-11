@@ -1358,6 +1358,19 @@ function deploy_native_5v(array $config, string $password, string $jobDir, strin
         } finally {
             @unlink($localTokenFile);
         }
+        // Confirm the installed Apache deny rule actually protects config.
+        // Do not hand the link to the operator if the private key is web-
+        // readable or the host's TLS setup is malfunctioning.
+        $probeCookie = $jobDir . '/native-setup-probe.cookie';
+        try {
+            $probe = http_request($url . '/mc/config/php7-setup-key.txt', $ips[0], $probeCookie);
+            if (!in_array((int)$probe['status'], [403, 404], true)) {
+                @ftp_delete($ftp, 'mc/config/php7-setup-key.txt');
+                throw new RuntimeException('The hosting server did not protect private setup files over HTTPS.');
+            }
+        } finally {
+            @unlink($probeCookie);
+        }
         // Private per-job file: only the original deployment session can read
         // the value through the authenticated /api/deploy/log endpoint.
         if (file_put_contents($jobDir . '/setup_token', $setupToken, LOCK_EX) !== 64) {
