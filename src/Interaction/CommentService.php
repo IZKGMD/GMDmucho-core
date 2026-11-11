@@ -543,6 +543,9 @@ final class CommentService
                         break;
                     }
 
+                    // !demon uses ordinal 1..5, GD field 43 uses 3,4,0,5,6.
+                    $wireDemonDifficulty = [1=>3,2=>4,3=>0,4=>5,5=>6][$demonDifficulty];
+
                     $update = $pdo->prepare(
                         "UPDATE levels
                          SET stars = 10,
@@ -552,18 +555,19 @@ final class CommentService
                                  :demon_difficulty,
                              auto_level = 0,
                              custom_difficulty = 0,
+                             requested_stars = 0,
                              updated_at = NOW()
                          WHERE level_id = :id
                            AND is_deleted = 0"
                     );
 
                     $update->execute([
-                        ':demon_difficulty' => $demonDifficulty,
+                        ':demon_difficulty' => $wireDemonDifficulty,
                         ':id' => $levelId,
                     ]);
 
-                    $details['demon_difficulty'] =
-                        $demonDifficulty;
+                    $details['demon_rating'] = $demonDifficulty;
+                    $details['demon_difficulty'] = $wireDemonDifficulty;
                     $result = true;
                     break;
 
