@@ -124,7 +124,9 @@ final readonly class ModerationRepository
                 demon=:demon,
                 featured=:featured,
                 epic=:epic,
-                coins_verified=:coins
+                coins_verified=:coins,
+                requested_stars=0,
+                updated_at=NOW()
              WHERE level_id=:id
                AND is_deleted=0'
         );
@@ -169,7 +171,9 @@ final readonly class ModerationRepository
                 stars=:stars,
                 difficulty=:difficulty,
                 auto_level=:auto,
-                demon=:demon
+                demon=:demon,
+                requested_stars=0,
+                updated_at=NOW()
              WHERE level_id=:id
                AND is_deleted=0'
         );
@@ -222,6 +226,9 @@ final readonly class ModerationRepository
             default => 10
         };
 
+        $author=$this->author($levelId);
+        if ($author === null) return false;
+
         $q=$this->pdo->prepare(
             'UPDATE levels
              SET
@@ -230,7 +237,9 @@ final readonly class ModerationRepository
                 difficulty=50,
                 auto_level=0,
                 demon_difficulty=:difficulty,
-                custom_difficulty=:custom_difficulty
+                custom_difficulty=:custom_difficulty,
+                requested_stars=0,
+                updated_at=NOW()
              WHERE level_id=:id
                AND is_deleted=0'
         );
@@ -241,6 +250,8 @@ final readonly class ModerationRepository
             'custom_difficulty'=>$customDifficulty,
             'id'=>$levelId
         ]);
+
+        $this->recalculateCreatorPoints($author);
 
         return $q->rowCount() === 1
             || $this->levelExists($levelId);
