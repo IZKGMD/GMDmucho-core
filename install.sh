@@ -1154,9 +1154,9 @@ if [[ "$OWNER_BROWSER" -eq 1 ]]; then
   if owner_link="$(run_compose exec -T app php bin/mucho-owner-link.php 2>&1)"; then
     if [[ -t 1 || -t 2 ]]; then
       printf '\n%s\n' "$owner_link"
-      printf 'If you lose this link before setup, run: sudo mucho owner-link\n'
+      printf 'If you lose this link before setup, run: sudo mucho admin\n'
     else
-      info "Private administrator setup link is ready. Run sudo mucho owner-link in a server terminal."
+      info "Private administrator setup link is ready. Run sudo mucho admin in a server terminal."
     fi
   else
     # A rerun after successful browser registration must not reopen setup.
