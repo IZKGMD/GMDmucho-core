@@ -89,7 +89,7 @@ final readonly class RateLimiter implements RateLimitBackend
             }
 
             return $count <= $limit;
-        } catch (Throwable) {
+        } catch (\Throwable) {
             return false;
         } finally {
             @flock($fp, LOCK_UN);
@@ -217,14 +217,22 @@ final readonly class RateLimiter implements RateLimitBackend
             $count++;
 
             rewind($fp);
-            ftruncate($fp, 0);
-            fwrite($fp, json_encode([
+            if (!ftruncate($fp, 0)) {
+                return true;
+            }
+            $payload = json_encode([
                 'start' => $start,
                 'count' => $count,
-            ], JSON_THROW_ON_ERROR));
-            fflush($fp);
+            ], JSON_THROW_ON_ERROR);
+            if (fwrite($fp, $payload) !== strlen($payload) || !fflush($fp)) {
+                return true;
+            }
 
             return $count <= $limit;
+        } catch (\Throwable) {
+            // Legacy game traffic may proceed when local storage fails,
+            // but a broken bucket must never cause an uncaught HTTP 500.
+            return true;
         } finally {
             @flock($fp, LOCK_UN);
             fclose($fp);

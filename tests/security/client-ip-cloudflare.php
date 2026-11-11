@@ -38,6 +38,24 @@ assertClientIpHardening(
     'untrusted public peer cannot spoof CF-Connecting-IP'
 );
 
+// A Cloudflare edge without CF-Connecting-IP must not trust a spoofable XFF
+// prefix. Use the verified peer instead until configuration is repaired.
+assertClientIpHardening(
+    ClientIp::resolve([
+        'REMOTE_ADDR' => $cloudflarePeer,
+        'HTTP_X_FORWARDED_FOR' => '192.0.2.250, ' . $realClient,
+    ]) === $cloudflarePeer,
+    'Cloudflare missing canonical header never trusts spoofable XFF'
+);
+assertClientIpHardening(
+    ClientIp::resolve([
+        'REMOTE_ADDR' => $cloudflarePeer,
+        'HTTP_CF_CONNECTING_IP' => 'not-an-ip',
+        'HTTP_X_FORWARDED_FOR' => '192.0.2.250, ' . $realClient,
+    ]) === $cloudflarePeer,
+    'Cloudflare malformed canonical header fails closed'
+);
+
 putenv('MUCHO_TRUSTED_PROXY_CIDRS=10.10.0.0/16');
 $_ENV['MUCHO_TRUSTED_PROXY_CIDRS'] = '10.10.0.0/16';
 

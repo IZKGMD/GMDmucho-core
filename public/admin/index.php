@@ -25,6 +25,9 @@ require dirname(__DIR__,2).'/vendor/autoload.php';
 
 if (!headers_sent()) {
     header('X-Frame-Options: DENY');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: no-referrer');
+    header('Cache-Control: private, no-store, max-age=0');
     header("Content-Security-Policy: frame-ancestors 'none'");
 }
 
@@ -2461,7 +2464,7 @@ max-width:100%
 <link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=7">
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=2">
+<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=4">
 <script src="/admin/admin-simple.js?v=3" defer></script>
 </head>
 <body class="admin-login mc-workspace" data-page="">
@@ -5034,7 +5037,7 @@ table{
 <link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=6">
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=2">
+<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=4">
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>

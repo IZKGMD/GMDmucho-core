@@ -39,21 +39,49 @@ def admin(base):
 <link rel="stylesheet" href="{base}/admin/admin-workspace.css?v=7">
 <link rel="stylesheet" href="{base}/admin/admin-motion.css?v=2">
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=2"></head>
-<body class="mc-admin"><div class="shell">
-<aside><div class="brandrow"><a class="logo" href="#"><img src="{base}/assets/muchocore-icon.png?v=3" alt="" width="32" height="32">MuchoCore</a></div>
+<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=4"></head>
+<body class="mc-admin"><div class="mobile-overlay" id="mobileOverlay"></div><div class="shell">
+<aside id="adminNavigation" aria-label="Admin navigation"><div class="brandrow"><a class="logo" href="#"><img src="{base}/assets/muchocore-icon.png?v=3" alt="" width="32" height="32">MuchoCore</a></div>
 <section class="mc-instance"><span>ACTIVE INSTANCE</span><strong>MuchoCore</strong><a href="#">Player portal ↗</a></section>
 <nav class="admin-nav"><p class="nav-title">WORKSPACE</p>
 <a class="on" href="#">Overview</a><a href="#">Players</a><a href="#">Levels</a><a href="#">Music</a><a href="#">Moderation</a>
 <p class="nav-title">SYSTEM</p><a href="#">Settings</a><a href="#">Backup</a></nav></aside>
-<main><header class="head"><div class="head-title"><span class="mc-section-caption">MUCHOCORE ADMIN</span><h1>Dashboard</h1></div>
+<main id="main" tabindex="-1"><header class="head"><button type="button" class="mobile-menu-btn" id="mobileMenuButton" aria-label="Open menu" aria-expanded="false" aria-controls="adminNavigation">☰</button><div class="head-title"><span class="mc-section-caption">MUCHOCORE ADMIN</span><h1>Dashboard</h1></div>
 <form class="global-search"><select aria-label="Search type"><option>Players</option></select><input placeholder="Search..." aria-label="Search"><button type="button">Search</button></form><div class="mc-header-actions"><a class="mc-header-portal" href="#">Player portal ↗</a></div></header>
 <div class="mc-ops"><header class="mc-ops-intro"><div><p class="mc-ops-kicker">MUCHOCORE CONSOLE</p><h2>Server overview</h2><p>Live data and the work that needs your attention.</p></div><a class="mc-ops-secondary" href="#">Player portal ↗</a></header>
 <div class="mc-ops-attention"><span class="mc-ops-attention-mark">♪</span><span class="mc-ops-attention-copy"><small>MUSIC MODERATION</small><strong>Review incoming tracks</strong><span>Queue data appears after sign-in</span></span><span class="mc-ops-attention-go">Open queue ↗</span></div>
 <section class="mc-ops-summary"><div class="mc-ops-summary-item"><span class="mc-ops-summary-top">Players<span>↗</span></span><strong>—</strong><small>Live server figure</small></div><div class="mc-ops-summary-item"><span class="mc-ops-summary-top">Levels<span>↗</span></span><strong>—</strong><small>Published levels</small></div><div class="mc-ops-summary-item"><span class="mc-ops-summary-top">Songs<span>↗</span></span><strong>—</strong><small>Community tracks</small></div></section>
 <div class="mc-ops-content"><div class="mc-ops-feeds"><section class="mc-ops-panel"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">COMMUNITY</p><h3>New players</h3></div><a href="#">All players ↗</a></div><div class="mc-ops-table-scroll"><table class="mc-ops-table"><thead><tr><th>Player</th><th>Role</th><th class="mc-ops-num">Stars</th></tr></thead></table></div><p class="mc-ops-empty">No example player records shown in this visual test.</p></section>
 <section class="mc-ops-panel"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">CONTENT</p><h3>Latest music</h3></div><a href="#">Manage music ↗</a></div><p class="mc-ops-empty">Actual tracks appear from the server database.</p></section></div>
-<aside class="mc-ops-actions"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">SHORTCUTS</p><h3>Operator tools</h3></div></div><nav><a href="#"><span><strong>Review levels</strong><small>Ratings and moderation</small></span><span>↗</span></a><a href="#"><span><strong>Publish news</strong><small>In-game announcements</small></span><span>↗</span></a><a href="#"><span><strong>Backups</strong><small>Database snapshots</small></span><span>↗</span></a></nav></aside></div></div></main></div></body></html>"""
+<aside class="mc-ops-actions"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">SHORTCUTS</p><h3>Operator tools</h3></div></div><nav><a href="#"><span><strong>Review levels</strong><small>Ratings and moderation</small></span><span>↗</span></a><a href="#"><span><strong>Publish news</strong><small>In-game announcements</small></span><span>↗</span></a><a href="#"><span><strong>Backups</strong><small>Database snapshots</small></span><span>↗</span></a></nav></aside></div></div></main></div><script src="{base}/assets/product-ui.js"></script></body></html>"""
+
+
+def login(base):
+    """Non-authenticated login layout fixture: real CSS, no credentials or DB."""
+    return f"""<!doctype html><html lang="en" data-theme="dark"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="{base}/assets/product-ui.css">
+<link rel="stylesheet" href="{base}/admin/product-admin.css">
+<link rel="stylesheet" href="{base}/admin/admin-simple.css">
+<link rel="stylesheet" href="{base}/admin/admin-polish.css">
+<link rel="stylesheet" href="{base}/admin/admin-workspace.css">
+<link rel="stylesheet" href="{base}/admin/admin-motion.css">
+<link rel="stylesheet" href="{base}/assets/mucho-design-system.css">
+<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css"></head>
+<body class="admin-login mc-workspace">
+<main class="admin-auth-card">
+<header><a href="#" class="logo">MuchoCore</a></header>
+<span class="mc-auth-eyebrow">MuchoCore Admin</span>
+<h1>Administrator sign in</h1>
+<form id="adminLoginForm" method="post">
+<div id="passwordLoginFields">
+<p class="admin-auth-field"><label for="adminUsername">Username</label><input id="adminUsername" name="username" autocomplete="username" placeholder="Administrator" required></p>
+<p class="admin-auth-field"><label for="adminPassword">Password</label><input id="adminPassword" name="password" type="password" autocomplete="current-password" placeholder="Password" required></p>
+</div>
+<button id="normalSignInButton" type="button">Sign in</button>
+</form>
+<p><a href="#">Recover administrator access</a></p>
+</main></body></html>"""
 
 def portal(base):
     live_style=php_inline_css("dashboard/index.php",0)
@@ -83,8 +111,8 @@ def main():
         with sync_playwright() as p:
             browser=p.chromium.launch(executable_path=browser_path,headless=True,args=["--no-sandbox"])
             try:
-                for name,build in (("admin",admin),("portal",portal)):
-                    for width,height in ((1440,900),(390,844)):
+                for name,build in (("admin",admin),("portal",portal),("login",login)):
+                    for width,height in ((1440,900),(768,1024),(390,844),(320,740)):
                         page=browser.new_page(viewport={"width":width,"height":height},device_scale_factor=1)
                         errors=[]
                         page.on("pageerror",lambda error:errors.append(str(error)))
@@ -107,6 +135,60 @@ def main():
                             assert actions["width"] >= 200,(name,width,'operator tools collapsed',actions)
                             sidebar=page.locator(".shell>aside").evaluate("(e)=>getComputedStyle(e).backgroundColor")
                             assert sidebar=="rgb(20, 19, 28)",sidebar
+                            menu=page.locator("#mobileMenuButton")
+                            nav=page.locator("#adminNavigation")
+                            if width<=980:
+                                assert menu.is_visible(),("mobile menu trigger hidden",width)
+                                trigger=menu.bounding_box()
+                                assert trigger and 0<=trigger["x"] and trigger["x"]+trigger["width"]<=width,("menu trigger clipped",width,trigger)
+                                assert nav.evaluate("(e)=>e.inert"),("closed mobile menu remains keyboard accessible",width)
+                                menu.click()
+                                assert page.locator("body").evaluate("(e)=>e.classList.contains('mobile-menu-open')"),("drawer failed to open",width)
+                                assert menu.get_attribute("aria-expanded")=="true",("drawer aria-expanded incorrect",width)
+                                assert not nav.evaluate("(e)=>e.inert"),("open drawer is inert",width)
+                                assert page.locator("#main").evaluate("(e)=>e.inert"),("main should be inert while drawer open",width)
+                                # The drawer animates for 150ms: await its settled position,
+                                # otherwise an immediate bounding box reports an in-flight frame.
+                                page.wait_for_function("""() => {
+                                    const nav=document.getElementById('adminNavigation');
+                                    return nav && Math.abs(nav.getBoundingClientRect().x) <= 1;
+                                }""",timeout=2500)
+                                drawer=nav.bounding_box()
+                                assert drawer and drawer["x"]>=-1 and drawer["x"]<width,("drawer off-screen when open",width,drawer)
+                                open_file=OUTPUT/f"muchocore-hybrid-admin-menu-open-{width}.jpg"
+                                page.screenshot(path=str(open_file),type="jpeg",quality=80)
+                                page.keyboard.press("Escape")
+                                assert menu.get_attribute("aria-expanded")=="false",("escape failed to close mobile drawer",width)
+                                assert nav.evaluate("(e)=>e.inert"),("closed drawer stayed focusable",width)
+                                assert not page.locator("#main").evaluate("(e)=>e.inert"),("main stayed inert after closing",width)
+                                menu.click()
+                                overlay=page.locator("#mobileOverlay")
+                                overlay.wait_for(state="visible")
+                                # Verify that the backdrop is genuinely clickable after the
+                                # open transition, rather than forcing a click through it.
+                                page.wait_for_function("""() => {
+                                    const overlay=document.getElementById('mobileOverlay');
+                                    return overlay && document.elementFromPoint(innerWidth-12,25)===overlay;
+                                }""",timeout=2500)
+                                overlay.click(position={"x":width-12,"y":25})
+                                assert menu.get_attribute("aria-expanded")=="false",("overlay failed to close drawer",width)
+                                # Capture the resting closed state, not the fading backdrop.
+                                page.wait_for_function("""() => {
+                                    const overlay=document.getElementById('mobileOverlay');
+                                    if(!overlay)return false;
+                                    const style=getComputedStyle(overlay);
+                                    return style.opacity==='0' && style.visibility==='hidden';
+                                }""",timeout=2500)
+                            else:
+                                assert not menu.is_visible(),("desktop hamburger unexpectedly visible",width)
+                                assert not nav.evaluate("(e)=>e.inert"),("desktop sidebar should remain interactive",width)
+                        elif name=="login":
+                            card=page.locator(".admin-auth-card").bounding_box()
+                            assert card and card["x"]>=-1 and card["x"]+card["width"]<=width+1,(name,width,"auth card clipped",card)
+                            for selector in ("#adminUsername","#adminPassword","#normalSignInButton"):
+                                control=page.locator(selector).bounding_box()
+                                assert control and control["x"]>=-1 and control["x"]+control["width"]<=width+1,(name,width,"auth field clipped",selector,control)
+                            assert page.locator("#normalSignInButton").is_visible(),(name,width,"sign-in action missing")
                         else:
                             label=page.locator(".mc-community-search>label").bounding_box()
                             search_row=page.locator(".mc-community-search-row").bounding_box()
