@@ -161,18 +161,24 @@ function rateLevel(PDO $pdo, int $levelId, int $stars, int $featured, int $epic,
 
     $featured = $featured > 0 ? 1 : 0;
     $epic = max(0, min(3, $epic));
-    $demon = max(0, min(6, $demon));
+    if ($demon < 0 || $demon > 5) {
+        throw new InvalidArgumentException('Demon subtype must be 0-5 (0 defaults to Hard).');
+    }
+    if ($demon > 0 && $stars !== 10) {
+        throw new InvalidArgumentException('Demon subtype requires ten stars.');
+    }
 
     $difficulty = match ($stars) {
-        1, 2 => 10,
+        1 => 50,
+        2 => 10,
         3 => 20,
         4, 5 => 30,
         6, 7 => 40,
         8, 9, 10 => 50,
     };
 
-    $isDemon = $demon > 0 ? 1 : 0;
-    $demonDifficulty = $isDemon ? $demon : 0;
+    $isDemon = $stars === 10 ? 1 : 0;
+    $demonDifficulty = $isDemon ? [0=>0,1=>3,2=>4,3=>0,4=>5,5=>6][$demon] : 0;
     $autoLevel = $stars === 1 ? 1 : 0;
 
     $stmt = $pdo->prepare(
@@ -183,6 +189,9 @@ function rateLevel(PDO $pdo, int $levelId, int $stars, int $featured, int $epic,
              epic=:epic,
              demon=:demon,
              demon_difficulty=:demon_difficulty,
+             custom_difficulty=0,
+             requested_stars=0,
+             updated_at=NOW(),
              auto_level=:auto_level
          WHERE level_id=:level_id'
     );
@@ -243,6 +252,12 @@ function rateLevel(PDO $pdo, int $levelId, int $stars, int $featured, int $epic,
             'creator_points' => (int)$cp->fetchColumn(),
             'account_id' => $accountId,
         ]);
+    }
+
+    try {
+        \MuchoCore\Cache\CacheManager::fromEnvironment($pdo)->deletePrefix('mucho:levels:');
+    } catch (Throwable $e) {
+        error_log('[MuchoCore] admin CLI rating cache invalidation failed: '.$e->getMessage());
     }
 
     echo "Level #{$levelId} rated: {$stars} stars.\n";
@@ -311,7 +326,7 @@ try {
             echo "Commands:\n";
             echo "  mucho-admin set-role <username> <user|moderator|elder_moderator|owner>\n";
             echo "  mucho-admin set-password <username> <new_password>\n";
-            echo "  mucho-admin rate-level <level_id> <stars> [featured:0/1] [epic:0-3] [demon:1-6]\n";
+            echo "  mucho-admin rate-level <level_id> <stars> [featured:0/1] [epic:0-3] [demon:1-5 (Easy/Medium/Hard/Insane/Extreme)]\n";
             echo "  mucho-admin list-levels\n";
             exit(1);
     }
