@@ -29,15 +29,27 @@ The recommended path is:
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
 ~~~
 
-The installer asks for the public GDPS domain and GDPS name. On a **fresh VPS**, it also prompts in the private SSH console for:
+For a **brand-new interactive VPS installation**, the very first step
+asks for the **administrator username, password and password confirmation**
+in your private terminal. Next you choose a GDPS name and domain. MuchoCore
+generates database and Cloud Save secrets internally, runs migrations and
+creates the owner automatically; there is **no setup key, registration link,
+or extra activation page** to manage. Once the installer finishes, open
+`https://YOUR-DOMAIN/admin/` and sign in with the password you chose.
 
-- Administrator username (default `admin`)
-- Password (12–256 characters)
-- Confirmation of that password
+For an **existing installation**, the installer preserves the owner and never
+asks you to create a second account or overwrite its password. If an older
+installation was interrupted before browser activation, its existing protected
+recovery flow is preserved. Check the owner state using `sudo mucho admin`.
 
-After migrations it creates the first owner directly in the database, using a secure password hash and one-time setup seal. Then open `https://YOUR-DOMAIN/admin/` and **sign in**. No browser activation link or Setup Secret is required for new VPS installations.
+**Unattended installations** must supply a private `MUCHO_ADMIN_PASSWORD`
+(and optionally `MUCHO_ADMIN_USER`) environment variable. Avoid command-line
+arguments or public build logs containing passwords. Ordinary updates cannot
+reopen enrollment. For intentional recovery, use verified-email recovery or
+an explicit console reset after checking backups. See
+[First-run registration](ADMIN_FIRST_RUN.md).
 
-Interactive fresh installs print a private link for choosing the first administrator username and password in the browser. If the link is lost, run `sudo mucho owner-link` before setup is completed. Unattended fresh installs must provide `MUCHO_ADMIN_PASSWORD` privately through the environment, and can set `MUCHO_ADMIN_USER`; the installer never generates a login password to print in public logs. Re-running the installer preserves credentials and completes an interrupted first-owner registration only when a protected pending-install marker exists. Existing administrator accounts are never reset by installation or routine updates. For intentional recovery, use `sudo mucho owner-recovery-link` or `sudo mucho config`. See [First-run registration](ADMIN_FIRST_RUN.md).
+If the GDPS does not start or the admin page cannot be reached, use `sudo mucho doctor`. It checks container state, local and public HTTPS health, DNS resolution, migration availability, and whether an active owner exists. **A failed public health check now fails the diagnosis instead of printing “No problems found.”** It does not erase your database.
 
 Everything else uses production-safe defaults. The default compatibility profile is **all supported generations** and can be changed later with:
 

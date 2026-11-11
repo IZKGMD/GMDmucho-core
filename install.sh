@@ -65,8 +65,8 @@ info() { printf "  ${CYAN}→${RESET} %s\n" "$*"; }
 warn() { printf "\n${YELLOW}[warning]${RESET} %s\n" "$*" >&2; }
 fail() { printf "\n${RED}[error]${RESET} %s\n" "$*" >&2; exit 1; }
 
-# Installation prompts cover the public domain and GDPS name.
-# First-owner activation material is generated automatically without an extra prompt.
+# A fresh interactive install collects the first administrator credentials first.
+# No separate setup secret or activation link is required.
 QUICK_MODE=1
 INSTALL_STEP="starting"
 MUCHO_MIGRATION_ON_INSTALL="${MUCHO_MIGRATION_ON_INSTALL:-}"
@@ -133,11 +133,11 @@ print_banner() {
 }
 print_installer_intro() {
   printf "\n${BOLD}Installation overview${RESET}\n"
-  printf "  1. Check the VPS and Docker\n"
-  printf "  2. Install MuchoCore and initialize the database\n"
-  printf "  3. Serve HTTPS directly from the VPS on ports 80/443\n"
-  printf "  4. Verify public https://<domain>/health before declaring success\n"
-  printf "  5. Cloudflare is optional and is used only when explicitly selected for NAT/CGNAT\n"
+  printf "  1. Choose the first administrator login and password (fresh installation only)\n"
+  printf "  2. Choose your GDPS name and domain\n"
+  printf "  3. Install PHP, database and HTTPS automatically\n"
+  printf "  4. Sign in at https://<domain>/admin/ (no activation link)\n"
+  printf "  5. Verify public https://<domain>/health before declaring success\n"
   printf "\n"
   printf "${CYAN}For a normal VPS, MuchoCore needs only a domain pointing to this VPS and inbound TCP 80/443.${RESET}\n"
   printf "${CYAN}Cloudflare credentials are not required for the normal installation path.${RESET}\n"
@@ -302,6 +302,66 @@ trap 'fail "Installation failed during: $INSTALL_STEP (line $LINENO). Check the 
 
 [[ $EUID -eq 0 ]] || fail "Run the installer as root: sudo bash install.sh"
 
+print_banner
+print_installer_intro
+
+collect_first_owner_credentials() {
+  # Only on a genuinely fresh instance. Never prompt on upgrades, recovery,
+  # or interrupted old browser-based first-owner enrollment.
+  if [[ -f "$INSTALL_DIR/.env" ||
+        -s "$INSTALL_DIR/.secrets/admin_password" ||
+        -f "$INSTALL_DIR/.secrets/owner-browser-pending" ||
+        -s "$INSTALL_DIR/.secrets/owner-initialize-pending" ]]; then
+    return 0
+  fi
+
+  # Browser deployment / unattended CI provides credentials via its private
+  # environment. Never request the password as a shell argument.
+  if [[ -n "$MUCHO_ADMIN_PASSWORD" ]]; then
+    return 0
+  fi
+
+  [[ -r /dev/tty && -w /dev/tty && ( -t 1 || -t 2 ) ]] ||
+    fail "For unattended installs, pass MUCHO_ADMIN_USER and MUCHO_ADMIN_PASSWORD through a private environment. No public signup is enabled."
+
+  printf "\n${BOLD}Step 1 — Create your first administrator${RESET}\n"
+  printf "  You only need a login and password. No setup keys or links.\n"
+  local chosen_user first confirm bytes
+  while true; do
+    read -r -p "  Admin login [admin]: " chosen_user < /dev/tty ||
+      fail "Cannot read the administrator login."
+    chosen_user="${chosen_user:-admin}"
+    if [[ "$chosen_user" =~ ^[A-Za-z_][A-Za-z0-9_-]{0,31}$ ]]; then
+      break
+    fi
+    warn "Use 1–32 Latin letters, digits, underscores or hyphens; start with a letter or underscore."
+  done
+
+  while true; do
+    IFS= read -r -s -p "  Password (12–256 characters): " first < /dev/tty ||
+      fail "Cannot read the administrator password."
+    printf "\n"
+    IFS= read -r -s -p "  Confirm password: " confirm < /dev/tty ||
+      fail "Cannot read password confirmation."
+    printf "\n"
+    bytes="$(printf '%s' "$first" | wc -c)"
+    if [[ "$bytes" -lt 12 || "$bytes" -gt 256 || "$first" == *[[:cntrl:]]* ]]; then
+      warn "Password must contain 12–256 bytes without control characters."
+    elif [[ "$first" != "$confirm" ]]; then
+      warn "Passwords did not match. Try again."
+    else
+      ADMIN_USER="$chosen_user"
+      MUCHO_ADMIN_PASSWORD="$first"
+      unset first confirm
+      info "Administrator login selected. The account will be created automatically after database setup."
+      return 0
+    fi
+    unset first confirm
+  done
+}
+
+collect_first_owner_credentials
+
 if [[ -z "$SERVER_NAME" && -e /dev/tty ]]; then
   printf "\n${BOLD}Choose a name for your GDPS${RESET}\n"
   read -r -p "  GDPS name [Mucho GDPS]: " SERVER_NAME < /dev/tty || SERVER_NAME="Mucho GDPS"
@@ -316,9 +376,6 @@ dotenv_escape() {
   printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/\$/\\$/g'
 }
 SERVER_NAME_ENV="$(dotenv_escape "$SERVER_NAME")"
-
-print_banner
-print_installer_intro
 
 if [[ -f "$INSTALL_DIR/.env" ]]; then
   if [[ -z "$CLOUDFLARE_API_TOKEN" && -s "$INSTALL_DIR/.secrets/cloudflare_api_token" ]]; then
@@ -571,16 +628,12 @@ fi
 if [[ ! -s "$INSTALL_DIR/.secrets/admin_password" ]]; then
   OWNER_FRESH=1
   if [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
-    [[ -r /dev/tty && -w /dev/tty && ( -t 1 || -t 2 ) ]] ||
-      fail "Unattended installation requires MUCHO_ADMIN_PASSWORD in a private environment. Never pass it as a command argument."
-    MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"
-    OWNER_BROWSER=1
-    touch "$OWNER_BROWSER_PENDING"
-    chmod 600 "$OWNER_BROWSER_PENDING"
-    info "After installation, open the private link shown below and choose the administrator login and password in your browser."
-  else
-    info "First administrator will be created securely after database migrations."
+    # A fresh interactive install must already have collected credentials
+    # in Step 1. Missing material is never replaced by an exposed public
+    # registration path or an automatically printed activation token.
+    fail "No first administrator credentials supplied. Restart the installer in an interactive terminal, or provide private MUCHO_ADMIN_PASSWORD for unattended installs."
   fi
+  info "First administrator will be created securely after database migrations."
 else
   MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
   info "Existing administrator secret kept; no password change requested."
@@ -1154,9 +1207,9 @@ if [[ "$OWNER_BROWSER" -eq 1 ]]; then
   if owner_link="$(run_compose exec -T app php bin/mucho-owner-link.php 2>&1)"; then
     if [[ -t 1 || -t 2 ]]; then
       printf '\n%s\n' "$owner_link"
-      printf 'If you lose this link before setup, run: sudo mucho owner-link\n'
+      printf 'If you lose this link before setup, run: sudo mucho admin\n'
     else
-      info "Private administrator setup link is ready. Run sudo mucho owner-link in a server terminal."
+      info "Private administrator setup link is ready. Run sudo mucho admin in a server terminal."
     fi
   else
     # A rerun after successful browser registration must not reopen setup.

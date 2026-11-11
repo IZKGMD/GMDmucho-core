@@ -1,19 +1,43 @@
 # First-run administrator registration
 
-On a new interactive VPS installation, the installer prints a private one-time link. Open it and choose the owner username and password in the browser. The page closes permanently after the owner is created. Shared hosting and unattended VPS installs continue to create the owner during installation.
+On a **fresh interactive VPS installation**, the first screen collects
+the owner login and password (plus confirmation) in the private server terminal.
+After installation, sign in normally at `https://YOUR-DOMAIN/admin/`.
+There is no extra setup key or browser activation link to copy.
+
+A private bootstrap password is used internally only during initial deployment
+and is rotated after the owner is securely created. Existing administrators
+and interrupted legacy browser setup flows remain protected.
 
 ## Language
 
-English is the default. Use the **EN / RU** switcher to change languages. All form fields, errors and activation notices are localized. The preference remains selected on reload.
+The admin panel supports English and Russian. The original first-run
+browser activation UI remains available only to already-pending legacy
+installations, not as the default fresh VPS flow.
 
 ## New VPS installation
 
-1. Run the installer and wait for `MuchoCore is installed`.
-2. Open the **private setup link** printed at the end. The link contains a secret in its browser fragment, which is removed from the address bar before the form opens. Do not share it.
-3. Enter the administrator username, a password of 12–256 characters, and confirmation. You are signed into `/admin/` immediately.
-4. If you close the terminal before registering, run `sudo mucho owner-link` on the server to show the link again. After registration, the command stops working.
+1. Start the MuchoCore installer in your VPS terminal.
+2. **Step 1:** enter the administrator username, password (12–256 bytes),
+   and confirm the password. No extra key is requested.
+3. Enter the GDPS name and domain. The installer configures Docker, MariaDB,
+   HTTPS, applies migrations and creates the first owner automatically.
+4. Open `https://YOUR-DOMAIN/admin/` and sign in. No second registration.
 
-For unattended fresh deployments, supply `MUCHO_ADMIN_USER` and `MUCHO_ADMIN_PASSWORD` through a **private environment**, not through command-line arguments or public automation logs. The installer creates this owner after migrations and does not print a setup link. If the installer is restarted before completing initial owner registration, it resumes the pending enrollment without changing the selected credentials. Updates and reinstallations never overwrite existing owners.
+The first owner is created by the server-side CLI after migrations, not by an
+anonymous first web visitor. Existing installations do not offer a second
+first-owner flow, and repeat installs preserve the chosen login/password.
+
+For unattended installs use `MUCHO_ADMIN_USER` and `MUCHO_ADMIN_PASSWORD`
+through a **private environment** (not public logs, command arguments or
+query strings). If an old installation was interrupted before the browser
+setup was completed, `sudo mucho admin` can inspect the state and provide
+the **legacy** private setup link in a private terminal. New installations do
+not need that link.
+
+Use `sudo mucho doctor` to check container health, DNS, public HTTPS,
+database migrations and whether an active owner exists. Do not post
+administrator passwords or private recovery links to public GitHub issues.
 
 ## New shared-hosting installation (PHP 8.2+)
 
@@ -39,7 +63,7 @@ If you lose access, use configured verified-email recovery. For a single active 
 
 ## Security boundaries
 
-- An interactive VPS install generates a cryptographically random activation secret. Only possession of its private link authorizes the first-owner form; anonymous HTTP requests cannot claim the owner.
+- A **new interactive VPS install** collects the owner credentials in a private terminal and creates the owner through the CLI after database migrations; anonymous HTTP requests cannot claim the owner.
 - Unattended VPS installs create the first owner through a CLI-only, one-time database operation.
 - Existing browser-activation flows also reject anonymous registration without their private activation credential.
 - The private activation credential is validated against a server-side password hash by a CSRF-protected POST, not by a URL query parameter.
