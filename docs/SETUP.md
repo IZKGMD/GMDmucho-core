@@ -256,6 +256,47 @@ This proves SQL/key compatibility, **not** recovery of uploaded MP3 bytes,
 your external backup storage, DNS/TLS settings, or a real VPS. Validate those
 separately before treating the production installation as recoverable.
 
+### PHP 8: verified uploaded-MP3 snapshot (separate from SQL)
+
+For a consistent disaster-recovery set, pause music uploads/deletions while
+capturing **both** the SQL dump and music-file snapshot. SQL rows contain song
+metadata and URLs; uploaded MP3 bytes are stored in `storage/music-public/`.
+The snapshot tool copies only the expected random-name MP3 files, records
+SHA-256 and byte counts, rejects symbolic links/unexpected entries, verifies
+the new snapshot, and never overwrites an existing destination.
+
+On the **VPS host** (not inside the container), after making a SQL backup:
+
+~~~bash
+sudo install -d -m 700 /var/backups/muchocore-assets
+sudo php /opt/mucho-core/bin/mucho-music-snapshot.php create \
+  /opt/mucho-core/storage/music-public \
+  /var/backups/muchocore-assets/music-YYYYMMDD
+sudo php /opt/mucho-core/bin/mucho-music-snapshot.php verify \
+  /var/backups/muchocore-assets/music-YYYYMMDD
+~~~
+
+Choose a fresh date or unique suffix for each snapshot. Keep this directory
+together with the **matching** verified SQL backup and the **separately
+protected original** Cloud Save key in encrypted, access-controlled off-server
+storage. A SHA-256 manifest detects accidental changes but is not a digital
+signature or a replacement for trusted backup storage.
+
+For a recovery drill, restore **only to a new, absent directory**:
+
+~~~bash
+sudo php /opt/mucho-core/bin/mucho-music-snapshot.php restore \
+  /var/backups/muchocore-assets/music-YYYYMMDD \
+  /opt/mucho-core/storage/music-recovery-review
+~~~
+
+Compare this directory with the restored `songs` metadata, then restore
+required owner/group/modes and switch paths in a planned maintenance window.
+The script never replaces the live `music-public` directory, updates database
+rows, manages Cloud Save keys, or claims that a native client can play the files.
+Do not declare disaster recovery complete until the actual restored GDPS
+serves the uploaded song bytes and real clients can play them.
+
 ## Removal
 
 `uninstall.sh` removes the installation and its Docker database volume.
