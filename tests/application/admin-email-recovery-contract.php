@@ -25,6 +25,10 @@ $admin = file_get_contents($root . '/public/admin/index.php');
 $route = file_get_contents($root . '/public/admin/email-recovery.php');
 $service = file_get_contents($root . '/src/Admin/AdminEmailRecovery.php');
 $smtp = file_get_contents($root . '/src/Admin/AdminSmtp.php');
+checkRecovery(str_contains($admin, "header('Referrer-Policy: no-referrer')") &&
+              str_contains($admin, "header('Cache-Control: private, no-store, max-age=0')") &&
+              str_contains($admin, "header('X-Content-Type-Options: nosniff')"),
+    'administrator reset and setup links stay private on shared hosting');
 checkRecovery(str_contains($admin, "muchoAdminEmailRoute(\$db)"),
     'email recovery is routed before login');
 checkRecovery(str_contains($admin, 'admin_password_fingerprint') &&
