@@ -156,7 +156,7 @@ function mucho7_h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8')
 <p>Создай <strong>пустую базу MySQL</strong> в панели 5v.pl. Затем заполни данные ниже и придумай пароль для входа в админку.</p>
 <?php if ($done): ?>
 <p>База и администратор созданы! <a href="php7-admin.php">Войти в админку</a> с только что заданными логином и паролем.</p>
-<p>Для защиты удали файл <code>public/php7-setup.php</code> после установки. Игровые функции в PHP 7 остаются экспериментальными.</p>
+<p>Мастер автоматически заблокирован после установки — удалять файлы вручную не нужно. Игровые функции PHP 7 остаются экспериментальными.</p>
 <?php else: ?>
 <?php if ($error !== ''): ?><p><strong><?php echo mucho7_h($error); ?></strong></p><?php endif; ?>
 <form method="post" autocomplete="off">
