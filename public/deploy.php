@@ -688,7 +688,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
             'type' => 'shared',
             'provider' => '5v.pl',
             'manual_setup_required' => true,
-            'setup_url' => $accountUrl . '/mc/admin.php',
+            'setup_url' => $accountUrl . '/mc/public/php7-setup.php',
             'status' => $queueFull ? 'queued' : 'starting',
             'state' => $queueFull ? 'Waiting for deployment slot' : 'Starting deployment worker',
             'created_at' => gmdate('c'),
