@@ -106,13 +106,13 @@ def bootstrap_owner(site: HttpsSite, cfg):
     code, html = site.request("/mc/admin.php")
     if code != 200:
         raise InstallError("Админка недоступна по HTTPS (HTTP %d)." % code)
-    if b'First owner' not in html or b'name="db_password"' not in html:
+    if (b'First owner' not in html and b'Create your administrator' not in html) or b'name="db_password"' not in html:
         raise InstallError("Админка не показала настройку первого владельца; существующие данные не меняем.")
     csrf = csrf_from(html, "bootstrap")
     code, page = site.request("/mc/admin.php", {
         "csrf": csrf, "action": "bootstrap", "db_password": cfg["dbpassword"],
         "userName": cfg["admin"], "email": cfg["email"],
-        "password": cfg["adminpassword"], "site_url": cfg["site"],
+        "password": cfg["adminpassword"], "password_confirm": cfg["adminpassword"], "site_url": cfg["site"],
         "enable_features": "1",
     })
     if code not in (200, 303) or b'First owner' in page or b'class="admin-login' in page:
