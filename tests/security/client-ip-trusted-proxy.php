@@ -18,6 +18,27 @@ if(ClientIp::resolve(['REMOTE_ADDR'=>'10.11.2.3','HTTP_X_FORWARDED_FOR'=>'203.0.
 if(ClientIp::resolve(['REMOTE_ADDR'=>'198.51.100.20','HTTP_X_FORWARDED_FOR'=>'203.0.113.79'])!=='198.51.100.20'){
     throw new RuntimeException('public peer supplied XFF');
 }
+
+// X-Forwarded-For may contain a spoofed prefix supplied by the client.
+// Trust the nearest untrusted hop, not the leftmost claimed address.
+if (ClientIp::resolve([
+    'REMOTE_ADDR' => '10.10.2.3',
+    'HTTP_X_FORWARDED_FOR' => '192.0.2.250, 203.0.113.77',
+]) !== '203.0.113.77') {
+    throw new RuntimeException('spoofed XFF prefix bypassed trusted proxy boundary');
+}
+if (ClientIp::resolve([
+    'REMOTE_ADDR' => '10.10.2.3',
+    'HTTP_X_FORWARDED_FOR' => '192.0.2.250, 203.0.113.77, 10.10.2.4',
+]) !== '203.0.113.77') {
+    throw new RuntimeException('multi-hop trusted proxy chain incorrectly resolved');
+}
+if (ClientIp::resolve([
+    'REMOTE_ADDR' => '10.10.2.3',
+    'HTTP_X_FORWARDED_FOR' => '192.0.2.250, invalid-ip',
+]) !== '10.10.2.3') {
+    throw new RuntimeException('malformed nearest XFF hop must not be trusted');
+}
 putenv('MUCHO_TRUSTED_PROXY_CIDRS');
 unset($_ENV['MUCHO_TRUSTED_PROXY_CIDRS']);
 echo "client-ip-trusted-proxy: OK\n";
