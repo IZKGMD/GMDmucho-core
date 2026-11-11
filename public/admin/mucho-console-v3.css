@@ -468,3 +468,17 @@ body.mc-admin .shell>main .mc-ops-actions nav{position:static;display:grid}
  body.mc-admin .mobile-overlay,
  body.mc-admin .shell>aside{transition:none!important}
 }
+
+/* The sign-in form must fit a 320–390 px viewport, including padding. */
+body.admin-login.mc-workspace,
+body.admin-login.mc-workspace *,
+body.admin-login.mc-workspace *::before,
+body.admin-login.mc-workspace *::after{box-sizing:border-box}
+body.admin-login.mc-workspace .admin-auth-card{
+ width:min(445px,100%);min-width:0;max-width:100%;overflow-wrap:anywhere;
+}
+body.admin-login.mc-workspace .admin-auth-card :is(input,select,button){max-width:100%;min-width:0}
+@media(max-width:480px){
+ body.admin-login.mc-workspace .admin-auth-card{padding:24px 18px}
+ body.admin-login.mc-workspace .admin-auth-card form{min-width:0}
+}
