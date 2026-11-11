@@ -35,13 +35,21 @@ grep -Fq 'value="${value#https://}"' install.sh
 
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/db_password" ]]; then' install.sh
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/db_root_password" ]]; then' install.sh
-# Interactive installs print a private browser setup link. Unattended installs
-# retain CLI owner creation with a password supplied through a private environment.
+# New interactive installs collect the first owner before the GDPS name/domain.
+# Legacy interrupted browser setup remains recoverable, but there is no new
+# automatically generated browser activation key.
+grep -Fq 'collect_first_owner_credentials()' install.sh
+grep -Fq 'collect_first_owner_credentials' install.sh
+grep -Fq 'Step 1 — Create your first administrator' install.sh
+grep -Fq 'Admin login [admin]:' install.sh
+grep -Fq 'Password (12–256 characters):' install.sh
+grep -Fq 'Confirm password:' install.sh
+grep -Fq 'if [[ "$first" != "$confirm" ]]' install.sh
 grep -Fq 'OWNER_BROWSER_PENDING=' install.sh
-grep -Fq 'MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"' install.sh
-grep -Fq 'php bin/mucho-owner-link.php' install.sh
 grep -Fq 'sudo mucho admin' install.sh
-grep -Fq 'Unattended installation requires MUCHO_ADMIN_PASSWORD' install.sh
+grep -Fq 'private MUCHO_ADMIN_PASSWORD for unattended installs' install.sh
+! grep -Fq 'MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"' install.sh
+! grep -Fq 'touch "$OWNER_BROWSER_PENDING"' install.sh
 grep -Fq 'owner-initialize-pending' install.sh
 grep -Fq 'if [[ -s "$OWNER_PENDING" ]]; then' install.sh
 grep -Fq 'php bin/mucho-initialize-owner.php --initialize' install.sh
