@@ -6,7 +6,15 @@ foreach(new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/com
     $path=$file->getPathname();
     if($file->getExtension()==='php'&&!preg_match('~/compat/php7/(core|vendor|builds)/~',$path))$files[]=$path;
 }
-$files=array_merge($files,glob($root.'/public/php7*.php'));
+// The 5v.pl first-install wizard is intentionally localized for beginners.
+// The native runtime, regular admin shell and API messages remain English.
+$files=array_merge($files,array_filter(glob($root.'/public/php7*.php'),function($path){
+    return basename($path)!=='php7-setup.php';
+}));
+$setup=(string)file_get_contents($root.'/public/php7-setup.php');
+if(strpos($setup,'<html lang="ru">')===false || strpos($setup,'Открыть')!==false && strpos($setup,'Завершить настройку')===false){
+    throw new RuntimeException('Localized 5v.pl first-install wizard is missing its Russian UI.');
+}
 foreach($files as $file)foreach(token_get_all(file_get_contents($file)) as $token){
     if(is_array($token)&&in_array($token[0],array(T_CONSTANT_ENCAPSED_STRING,T_ENCAPSED_AND_WHITESPACE,T_INLINE_HTML),true)&&preg_match('/[\x{0400}-\x{04ff}]/u',$token[1]))throw new RuntimeException('Untranslated shared message: '.$file.':'.$token[2]);
 }
