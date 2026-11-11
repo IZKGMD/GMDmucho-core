@@ -27,7 +27,7 @@ func (h *Handler) commentHistory(r request) (string, error) {
 	}
 	from := ` FROM comments c INNER JOIN accounts a ON a.account_id=c.account_id LEFT JOIN profiles p ON p.account_id=c.account_id INNER JOIN levels l ON l.level_id=c.level_id WHERE ` + identityColumn + `=? AND COALESCE(l.is_deleted,0)=0 AND COALESCE(l.is_unlisted,0)=0 AND COALESCE(l.unlisted2,0)=0`
 	var total int64
-	if err := h.db.QueryRowContext(r.ctx, `SELECT COUNT(*)`+from, id).Scan(&total); err != nil {
+	if err := h.db.QueryRowContext(r.ctx, `SELECT COUNT(*)` + from, id).Scan(&total); err != nil {
 		return "", err
 	}
 	if total == 0 {
@@ -37,7 +37,7 @@ func (h *Handler) commentHistory(r request) (string, error) {
 	if r.v71Int("mode", 0) != 0 {
 		order = "c.likes DESC,c.id DESC"
 	}
-	rows, err := dbutil.Query(r.ctx, h.db, `SELECT c.*,UNIX_TIMESTAMP(c.created_at) AS timestamp,COALESCE(a.username,'Unknown') AS username,COALESCE(p.user_id,c.account_id) AS user_id,COALESCE(p.cube,1) AS icon,COALESCE(p.color1,0) AS color1,COALESCE(p.color2,3) AS color2,COALESCE(p.icon_type,0) AS icon_type,COALESCE(p.special,0) AS special`+from+` ORDER BY `+order+` LIMIT ? OFFSET ?`, id, count, offset)
+	rows, err := dbutil.Query(r.ctx, h.db, `SELECT c.*,UNIX_TIMESTAMP(c.created_at) AS timestamp,COALESCE(a.username,'Unknown') AS username,COALESCE(p.user_id,c.account_id) AS user_id,COALESCE(p.cube,1) AS icon,COALESCE(p.color1,0) AS color1,COALESCE(p.color2,3) AS color2,COALESCE(p.icon_type,0) AS icon_type,COALESCE(p.special,0) AS special` + from + ` ORDER BY ` + order + ` LIMIT ? OFFSET ?`, id, count, offset)
 	if err != nil {
 		return "", err
 	}
@@ -60,7 +60,7 @@ func (h *Handler) commentHistory(r request) (string, error) {
 				base += "~11~0:1~" + name + "~7~1~9~" + row["icon"] + "~10~" + row["color1"] + "~11~" + row["color2"] + "~14~" + row["icon_type"] + "~15~" + row["special"] + "~16~" + row["account_id"]
 			} else if !seen[row["user_id"]] {
 				seen[row["user_id"]] = true
-				users = append(users, row["user_id"]+":"+name+":"+row["account_id"])
+				users = append(users, row["user_id"] + ":" + name + ":" + row["account_id"])
 			}
 		}
 		comments = append(comments, base)
