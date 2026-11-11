@@ -84,26 +84,38 @@ final class ClientIp
             ) {
                 return $cloudflareClient;
             }
+
+            // A Cloudflare peer without a valid canonical client address must
+            // not fall back to X-Forwarded-For: its leftmost entries may have
+            // originated with the requester.
+            return $remote;
         }
 
         /*
-         * For explicitly configured proxies, X-Forwarded-For is trusted only
-         * after the direct peer was matched against the operator's allow-list.
-         * Cloudflare requests prefer CF-Connecting-IP above because it is the
-         * canonical single-hop client address exposed by the CDN.
+         * Walk X-Forwarded-For from the nearest hop backwards. The leftmost
+         * address is attacker-controlled when a proxy appends to an incoming
+         * XFF header instead of replacing it. Stop at the first untrusted hop.
+         *
+         * Private-peer fallback trusts only the immediate peer, not arbitrary
+         * private addresses listed in XFF. Additional trusted hops require an
+         * explicit MUCHO_TRUSTED_PROXY_CIDRS allow-list.
          */
         $forwarded = trim((string)($server['HTTP_X_FORWARDED_FOR'] ?? ''));
-
         if ($forwarded !== '') {
-            foreach (explode(',', $forwarded) as $candidate) {
-                $candidate = trim($candidate);
+            $chain = explode(',', $forwarded);
+            for ($i = count($chain) - 1; $i >= 0; $i--) {
+                $candidate = trim($chain[$i]);
 
-                if (
-                    $candidate !== '' &&
-                    filter_var($candidate, FILTER_VALIDATE_IP) !== false
-                ) {
-                    return $candidate;
+                // A malformed nearest hop makes the chain untrustworthy.
+                if (filter_var($candidate, FILTER_VALIDATE_IP) === false) {
+                    return $remote;
                 }
+
+                if ($explicitTrustedProxy && self::ipInAnyCidr($candidate, $trustedProxyCidrs)) {
+                    continue;
+                }
+
+                return $candidate;
             }
         }
 
