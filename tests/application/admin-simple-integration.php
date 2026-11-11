@@ -42,7 +42,7 @@ for($i=1;$i<=27;$i++) {
     $insert->execute(['id'=>$i,'name'=>'Player'.$i,'email'=>'person'.$i.'@example.test','banned'=>$i===2?1:0]);
     $db->exec('INSERT INTO profiles(account_id,stars) VALUES('.$i.',10)');
 }
-$db->exec("INSERT INTO levels VALUES(1,1,'Rated level',10,6,1,5,0,1,3,4,250,90,0),(2,1,'Unrated',0,0,0,0,0,0,0,6,12,4,0)");
+$db->exec("INSERT INTO levels VALUES(1,1,'Rated level',10,50,1,6,0,1,3,4,250,90,0),(2,1,'Unrated',0,0,0,0,0,0,0,6,12,4,0)");
 $html=renderPage($db,'players');$xpath=document($html);
 check($xpath->query('//details[contains(@class,"admin-record")]')->length===25,'players list has a bounded first page');
 check(str_contains($html,'p=2') && !str_contains($html,'player-2"'),'first page offers the next page without duplicated records');

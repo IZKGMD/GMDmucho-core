@@ -27,11 +27,11 @@ $difficultyProfiles = [
     'hard'=>['label'=>'Hard','difficulty'=>4,'demon'=>0,'demon_difficulty'=>0,'auto_level'=>0,'icon'=>'Hard.png'],
     'harder'=>['label'=>'Harder','difficulty'=>5,'demon'=>0,'demon_difficulty'=>0,'auto_level'=>0,'icon'=>'Harder.png'],
     'insane'=>['label'=>'Insane','difficulty'=>6,'demon'=>0,'demon_difficulty'=>0,'auto_level'=>0,'icon'=>'Insane.png'],
-    'easy-demon'=>['label'=>'Easy Demon','difficulty'=>6,'demon'=>1,'demon_difficulty'=>1,'auto_level'=>0,'icon'=>'EasyDemon.png'],
-    'medium-demon'=>['label'=>'Medium Demon','difficulty'=>6,'demon'=>1,'demon_difficulty'=>2,'auto_level'=>0,'icon'=>'MediumDemon.png'],
-    'hard-demon'=>['label'=>'Hard Demon','difficulty'=>6,'demon'=>1,'demon_difficulty'=>3,'auto_level'=>0,'icon'=>'Demon.png'],
-    'insane-demon'=>['label'=>'Insane Demon','difficulty'=>6,'demon'=>1,'demon_difficulty'=>4,'auto_level'=>0,'icon'=>'InsaneDemon.png'],
-    'extreme-demon'=>['label'=>'Extreme Demon','difficulty'=>6,'demon'=>1,'demon_difficulty'=>5,'auto_level'=>0,'icon'=>'ExtremeDemon.png'],
+    'easy-demon'=>['label'=>'Easy Demon','difficulty'=>6,'demon'=>1,'demon_difficulty'=>3,'auto_level'=>0,'icon'=>'EasyDemon.png'],
+    'medium-demon'=>['label'=>'Medium Demon','difficulty'=>6,'demon'=>1,'demon_difficulty'=>4,'auto_level'=>0,'icon'=>'MediumDemon.png'],
+    'hard-demon'=>['label'=>'Hard Demon','difficulty'=>6,'demon'=>1,'demon_difficulty'=>0,'auto_level'=>0,'icon'=>'Demon.png'],
+    'insane-demon'=>['label'=>'Insane Demon','difficulty'=>6,'demon'=>1,'demon_difficulty'=>5,'auto_level'=>0,'icon'=>'InsaneDemon.png'],
+    'extreme-demon'=>['label'=>'Extreme Demon','difficulty'=>6,'demon'=>1,'demon_difficulty'=>6,'auto_level'=>0,'icon'=>'ExtremeDemon.png'],
 ];
 
 $selected = null;
@@ -137,12 +137,13 @@ $difficultyProfileForRow = static function (array $row) use ($difficultyProfiles
     if ((int)($row['auto_level'] ?? 0) === 1) return 'auto';
     if ((int)($row['demon'] ?? 0) === 1) {
         return match ((int)($row['demon_difficulty'] ?? 0)) {
-            1=>'easy-demon', 2=>'medium-demon', 3=>'hard-demon',
-            4=>'insane-demon', 5=>'extreme-demon', default=>'hard-demon',
+            3=>'easy-demon', 4=>'medium-demon', 0=>'hard-demon',
+            5=>'insane-demon', 6=>'extreme-demon', default=>'hard-demon',
         };
     }
     return match ((int)($row['difficulty'] ?? 0)) {
-        1=>'auto', 2=>'easy', 3=>'normal', 4=>'hard', 5=>'harder', 6=>'insane',
+        1=>'auto', 2=>'easy', 10=>'easy', 3=>'normal', 20=>'normal',
+        4=>'hard', 30=>'hard', 5=>'harder', 40=>'harder', 6=>'insane', 50=>'insane',
         default=>'unrated',
     };
 };
@@ -481,7 +482,16 @@ echo '<script>
         btn.addEventListener("click", () => setStars(btn.dataset.stars));
     });
 
-    profile?.addEventListener("change", syncDifficultyFace);
+    profile?.addEventListener("change", () => {
+        const selected = profile.value;
+        if (selected.endsWith("-demon")) setStars(10);
+        else if (selected === "auto") setStars(1);
+        else if (selected === "unrated") {
+            setStars(0);
+            if (feature) feature.value = "0";
+        }
+        syncDifficultyFace();
+    });
 
     document.querySelectorAll("[data-preset]").forEach(btn => {
         btn.addEventListener("click", () => {

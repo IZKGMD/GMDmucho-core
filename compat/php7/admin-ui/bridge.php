@@ -53,7 +53,7 @@ function mucho7_admin_difficulty($row){
 }
 function adminDifficultyProfile($row){
     if(!empty($row['auto_level']))return 'auto';
-    if(!empty($row['demon'])){switch((int)$row['demon_difficulty']){case 1:case 3:return 'easy-demon';case 2:case 4:return 'medium-demon';case 5:return 'insane-demon';case 6:return 'extreme-demon';default:return 'hard-demon';}}
+    if(!empty($row['demon'])){switch((int)$row['demon_difficulty']){case 3:return 'easy-demon';case 4:return 'medium-demon';case 5:return 'insane-demon';case 6:return 'extreme-demon';default:return 'hard-demon';}}
     return mucho7_admin_difficulty($row);
 }
 require_once __DIR__.'/list-ui.php';

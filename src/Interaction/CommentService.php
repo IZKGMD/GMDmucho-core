@@ -394,18 +394,15 @@ final class CommentService
                         $demon
                     ] = $difficultyMap[$difficultyName];
 
-                    if (
-                        $difficultyName === 'demon' &&
-                        $stars === 0
-                    ) {
-                        $stars = 10;
-                    }
-
-                    if (
-                        $difficultyName === 'auto' &&
-                        $stars === 0
-                    ) {
-                        $stars = 1;
+                    if ($demon===1) {
+                        $stars=10;
+                    } elseif ($auto===1) {
+                        $stars=1;
+                    } elseif ($difficultyName==='na' || $difficultyName==='none') {
+                        $stars=0;
+                    } elseif ($stars===10) {
+                        // Non-Demon with 10 stars would send contradictory GD fields.
+                        break;
                     }
 
                     $updateSql = "
@@ -416,9 +413,13 @@ final class CommentService
                             demon_difficulty =
                                 CASE
                                     WHEN :demon_state = 1
+                                         AND demon = 1
+                                         AND custom_difficulty = 0
                                     THEN demon_difficulty
                                     ELSE 0
                                 END,
+                            custom_difficulty = 0,
+                            requested_stars = 0,
                             auto_level = :auto,
                             updated_at = NOW()";
 
@@ -543,6 +544,9 @@ final class CommentService
                         break;
                     }
 
+                    // !demon uses ordinal 1..5, GD field 43 uses 3,4,0,5,6.
+                    $wireDemonDifficulty = [1=>3,2=>4,3=>0,4=>5,5=>6][$demonDifficulty];
+
                     $update = $pdo->prepare(
                         "UPDATE levels
                          SET stars = 10,
@@ -552,18 +556,19 @@ final class CommentService
                                  :demon_difficulty,
                              auto_level = 0,
                              custom_difficulty = 0,
+                             requested_stars = 0,
                              updated_at = NOW()
                          WHERE level_id = :id
                            AND is_deleted = 0"
                     );
 
                     $update->execute([
-                        ':demon_difficulty' => $demonDifficulty,
+                        ':demon_difficulty' => $wireDemonDifficulty,
                         ':id' => $levelId,
                     ]);
 
-                    $details['demon_difficulty'] =
-                        $demonDifficulty;
+                    $details['demon_rating'] = $demonDifficulty;
+                    $details['demon_difficulty'] = $wireDemonDifficulty;
                     $result = true;
                     break;
 

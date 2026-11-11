@@ -18,8 +18,16 @@ $stars = (int)$argv[2];
 $featureType = (int)($argv[3] ?? ($stars > 0 ? 1 : 0));
 $demonDiff = (int)($argv[4] ?? 0);
 $manualDiff = (int)($argv[5] ?? 0);
-$isDemon = ($stars >= 10 || $manualDiff === 70) ? 1 : 0;
-$isAuto = ($stars === 1 || $manualDiff === 10) ? 1 : 0;
+$isDemon = ($stars === 10 || $manualDiff === 70) ? 1 : 0;
+if ($isDemon) $stars=10;
+$isAuto = !$isDemon && ($stars === 1 || $manualDiff === 10) ? 1 : 0;
+if ($isAuto) $stars=1;
+if ($demonDiff > 0 && !$isDemon) {
+    fwrite(STDERR, "Demon subtype requires a 10-star Demon rating.\n");
+    exit(1);
+}
+// CLI input is ordinal 1..5; GD protocol field 43 is 3,4,0,5,6.
+$demonWire = $isDemon ? [0=>0,1=>3,2=>4,3=>0,4=>5,5=>6][$demonDiff] : 0;
 
 if ($manualDiff > 0) {
     $difficulty = match ($manualDiff) {
@@ -44,8 +52,8 @@ if ($featureType < 0 || $featureType > 4) {
     exit(1);
 }
 
-if ($demonDiff < 0 || $demonDiff > 8) {
-    echo "Invalid demon difficulty. Use 0-8.
+if ($demonDiff < 0 || $demonDiff > 5) {
+    echo "Invalid demon difficulty. Use 0-5 (0=Hard default, 1=Easy, 2=Medium, 3=Hard, 4=Insane, 5=Extreme).
 ";
     exit(1);
 }
@@ -70,13 +78,14 @@ $stmt = $pdo->prepare("
     UPDATE levels SET
         stars = :stars, difficulty = :difficulty, demon = :demon,
         demon_difficulty = :demon_diff, auto_level = :auto_level,
+        custom_difficulty=0, requested_stars=0,
         featured = :featured, epic = :epic, updated_at = NOW()
     WHERE level_id = :id
 ");
 
 $stmt->execute([
     ":stars" => $stars, ":difficulty" => $difficulty, ":demon" => $isDemon,
-":demon_diff" => $demonDiff, ":auto_level" => $isAuto,
+":demon_diff" => $demonWire, ":auto_level" => $isAuto,
     ":featured" => ($featureType > 0 ? 1 : 0), ":epic" => $epic,
     ":id" => $levelId
 ]);
@@ -106,6 +115,12 @@ $sync->execute([
     ":cp" => $creatorPoints,
     ":acc_id" => (int)$level["account_id"],
 ]);
+
+try {
+    \MuchoCore\Cache\CacheManager::fromEnvironment($pdo)->deletePrefix('mucho:levels:');
+} catch (Throwable $e) {
+    error_log('[MuchoCore] CLI rating cache invalidation failed: '.$e->getMessage());
+}
 
 echo "Level \"{$level["name"]}\" (ID: {$levelId}) rated successfully.\n";
 echo "Stars: {$stars} | Difficulty: {$difficulty} | Feature tier: {$featureType} | Creator CP: {$creatorPoints}\n";
