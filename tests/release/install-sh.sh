@@ -35,22 +35,25 @@ grep -Fq 'value="${value#https://}"' install.sh
 
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/db_password" ]]; then' install.sh
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/db_root_password" ]]; then' install.sh
-# Fresh VPS installs prompt for the owner username and password privately.
-# Reinstalls keep the secret and never trigger an automatic password reset.
-grep -Fq 'Administrator username [$ADMIN_USER]:' install.sh
-grep -Fq 'New administrator password (12–256 characters):' install.sh
-grep -Fq 'Confirm administrator password:' install.sh
+# Interactive installs print a private browser setup link. Unattended installs
+# retain CLI owner creation with a password supplied through a private environment.
+grep -Fq 'OWNER_BROWSER_PENDING=' install.sh
+grep -Fq 'MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"' install.sh
+grep -Fq 'php bin/mucho-owner-link.php' install.sh
+grep -Fq 'sudo mucho owner-link' install.sh
 grep -Fq 'Unattended installation requires MUCHO_ADMIN_PASSWORD' install.sh
 grep -Fq 'owner-initialize-pending' install.sh
 grep -Fq 'if [[ -s "$OWNER_PENDING" ]]; then' install.sh
 grep -Fq 'php bin/mucho-initialize-owner.php --initialize' install.sh
 grep -Fq 'Existing administrator secret kept; no password change requested.' install.sh
-! grep -Fq 'MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"' install.sh
 test -f bin/mucho-initialize-owner.php
 php -l bin/mucho-initialize-owner.php >/dev/null
 grep -Fq 'FirstRunSetup::createOwner' bin/mucho-initialize-owner.php
 grep -Fq "'--initialize'" bin/mucho-initialize-owner.php
 grep -Fq 'Owner already initialized; existing administrator credentials preserved.' bin/mucho-initialize-owner.php
+test -f bin/mucho-owner-recovery-link.php
+php -l bin/mucho-owner-recovery-link.php >/dev/null
+grep -Fq "password_setup_expires_at=DATE_ADD(UTC_TIMESTAMP(), INTERVAL 24 HOUR)" bin/mucho-owner-recovery-link.php
 
 grep -Fq 'Admin password must contain at least 10 characters.' bin/mucho
 grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/cloudsave_key" ]]; then' install.sh

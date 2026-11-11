@@ -1,6 +1,6 @@
 # First-run administrator registration
 
-On new installations, the first administrator is created **during setup**, not on a second visit. No separate Setup Secret or activation link is needed on VPS, PHP 8 shared hosting or the manual PHP 7 installer. Existing unfinished installations retain their protected recovery/activation routes.
+On a new interactive VPS installation, the installer prints a private one-time link. Open it and choose the owner username and password in the browser. The page closes permanently after the owner is created. Shared hosting and unattended VPS installs continue to create the owner during installation.
 
 ## Language
 
@@ -8,12 +8,12 @@ English is the default. Use the **EN / RU** switcher to change languages. All fo
 
 ## New VPS installation
 
-1. During the interactive SSH installation, enter an administrator username (default `admin`).
-2. Enter your administrator password (12–256 characters) and confirm it. Input is hidden in the terminal and never placed on the command line or in GitHub logs.
-3. After database migrations, the installer registers exactly one owner and seals the one-time setup.
-4. Open `https://your-gdps.example/admin/` and **sign in immediately** with those credentials. No browser registration or separate activation link is necessary.
+1. Run the installer and wait for `MuchoCore is installed`.
+2. Open the **private setup link** printed at the end. The link contains a secret in its browser fragment, which is removed from the address bar before the form opens. Do not share it.
+3. Enter the administrator username, a password of 12–256 characters, and confirmation. You are signed into `/admin/` immediately.
+4. If you close the terminal before registering, run `sudo mucho owner-link` on the server to show the link again. After registration, the command stops working.
 
-For unattended fresh deployments, supply `MUCHO_ADMIN_USER` and `MUCHO_ADMIN_PASSWORD` through a **private environment**, not through command-line arguments or public automation logs. If the installer is restarted before completing initial owner registration, it resumes the pending enrollment without changing the selected credentials. Updates and reinstallations never overwrite existing owners.
+For unattended fresh deployments, supply `MUCHO_ADMIN_USER` and `MUCHO_ADMIN_PASSWORD` through a **private environment**, not through command-line arguments or public automation logs. The installer creates this owner after migrations and does not print a setup link. If the installer is restarted before completing initial owner registration, it resumes the pending enrollment without changing the selected credentials. Updates and reinstallations never overwrite existing owners.
 
 ## New shared-hosting installation (PHP 8.2+)
 
@@ -35,11 +35,12 @@ The PHP 7 runtime is a preview and does **not** have full PHP 8 feature parity.
 
 Existing administrators and login passwords are preserved. A database seal (`admin_initialization`) prevents reopening enrollment if accounts are later deleted. Routine deployment never resets the owner password.
 
-If you lose access, use configured verified-email recovery or an explicit local server-console reset. The `bin/mucho-admin-setup.sh` helper is a reset tool on a running installation; it should not be invoked casually.
+If you lose access, use configured verified-email recovery. For a single active owner without two-factor authentication, `sudo mucho owner-recovery-link` issues a private, one-time password setup link valid for 24 hours. This immediately invalidates the old password and sessions. The `bin/mucho-admin-setup.sh` helper remains available for an explicit local server-console reset.
 
 ## Security boundaries
 
-- A VPS install creates the first owner through a CLI-only, one-time database operation. Anonymous HTTP requests cannot claim that owner.
+- An interactive VPS install generates a cryptographically random activation secret. Only possession of its private link authorizes the first-owner form; anonymous HTTP requests cannot claim the owner.
+- Unattended VPS installs create the first owner through a CLI-only, one-time database operation.
 - Existing browser-activation flows also reject anonymous registration without their private activation credential.
 - The private activation credential is validated against a server-side password hash by a CSRF-protected POST, not by a URL query parameter.
 - The credential arrives as a browser-only URL fragment and is removed from history before submission. The registration form uses an authenticated, short-lived session (15 minutes) instead of another password field.

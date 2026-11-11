@@ -532,6 +532,8 @@ Usage:
   sudo mucho migrate             Apply pending database migrations
   sudo mucho migration [args]    Open the Migration Center
   sudo mucho config              Open configuration
+  sudo mucho owner-link         Show the private first administrator setup link
+  sudo mucho owner-recovery-link  Create a one-time owner password setup link
   sudo mucho test-stack [args]   Manage the optional integration test stack
   sudo mucho install [args]      Re-run the installer
   sudo mucho test                Run the production E2E smoke test
@@ -645,6 +647,14 @@ case "${1:-}" in
     config)
         require_root
         configuration_menu
+        ;;
+    owner-link)
+        require_root
+        compose exec -T app php bin/mucho-owner-link.php
+        ;;
+    owner-recovery-link)
+        require_root
+        compose exec -T app php bin/mucho-owner-recovery-link.php --issue
         ;;
     test-stack)
         test_stack_cli "${@:2}"
