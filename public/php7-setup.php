@@ -12,7 +12,8 @@ header('Cache-Control: no-store, private');
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
 header('Referrer-Policy: no-referrer');
-header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
+$setupNonce = base64_encode(random_bytes(18));
+header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-".$setupNonce."'; form-action 'self'; frame-ancestors 'none'");
 $root = dirname(__DIR__);
 $cfg = $root . '/config/php7-local.php';
 $lock = $root . '/config/php7-installed.lock';
@@ -147,35 +148,51 @@ if ((isset($_SERVER['REQUEST_METHOD']) ? strtoupper($_SERVER['REQUEST_METHOD']) 
 }
 function mucho7_h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 ?><!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MuchoCore Shared — PHP7 Experimental Install</title>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Настройка MuchoCore на 5v.pl</title>
 <style>body{background:#101426;color:#e8ecff;font:16px system-ui,sans-serif;margin:auto;max-width:740px;padding:30px}main{background:#1d2440;border-radius:16px;padding:28px}input{width:100%;background:#0d1223;border:1px solid #546081;border-radius:8px;padding:12px;color:white;margin:6px 0 18px}button{padding:12px 20px;border:0;border-radius:8px;cursor:pointer}p{line-height:1.55}strong{color:#ffd6a1}small{color:#b7c2e2}</style></head><body><main>
-<h1>MuchoCore PHP7 — Experimental Setup</h1>
-<p><strong>Unsupported PHP runtime. For isolated testing only.</strong>
-This prepares native database tables on this host, not a complete MuchoCore server.
-No VPS required; player accounts, admin and other capabilities are not certified.</p>
+<h1>Настройка MuchoCore на 5v.pl</h1>
+<p><strong>Это тестовая версия для PHP 7.</strong> Поддержка всех функций Geometry Dash ещё не подтверждена. Для установки не нужен VPS.</p>
+<p>Создай <strong>пустую базу MySQL</strong> в панели 5v.pl. Затем заполни данные ниже и придумай пароль для входа в админку.</p>
 <?php if ($done): ?>
-<p>The database and first administrator are ready. <a href="php7-admin.php">Sign in to your admin panel</a> with the username and password you just set.</p>
-<p>Delete <code>public/php7-setup.php</code> after installation. The experimental PHP 7 player runtime remains disabled until explicitly enabled.</p>
+<p>База и администратор созданы! <a href="php7-admin.php">Войти в админку</a> с только что заданными логином и паролем.</p>
+<p>Для защиты удали файл <code>public/php7-setup.php</code> после установки. Игровые функции в PHP 7 остаются экспериментальными.</p>
 <?php else: ?>
 <?php if ($error !== ''): ?><p><strong><?php echo mucho7_h($error); ?></strong></p><?php endif; ?>
 <form method="post" autocomplete="off">
 <input type="hidden" name="csrf" value="<?php echo mucho7_h($_SESSION['mucho7_csrf']); ?>">
-<label>One-time secret from private config/php7-setup-key.txt</label>
+<div id="manualSetupKey"><label>Ключ установки (при ручной установке)</label>
 <input type="password" name="setup_key" required autocomplete="off" maxlength="256">
-<label>MySQL hostname</label><input name="host" value="localhost" required maxlength="120">
-<label>MySQL port</label><input name="port" type="number" value="3306" min="1" max="65535">
-<label>Empty database name</label><input name="database" required maxlength="64">
-<label>Database username</label><input name="username" required maxlength="128">
-<label>Database password</label><input type="password" name="password" autocomplete="off">
-<h2>Create administrator</h2>
-<p>Set the login you'll use every time. You won't have to register again or enter the database password in the admin panel.</p>
-<label>Administrator username</label><input name="admin_username" value="admin" required maxlength="20" autocomplete="username">
-<label>Administrator email</label><input name="admin_email" type="email" required maxlength="254" autocomplete="email">
-<label>Administrator password</label><input name="admin_password" type="password" required minlength="8" maxlength="72" autocomplete="new-password">
-<label>Confirm administrator password</label><input name="admin_password_confirm" type="password" required minlength="8" maxlength="72" autocomplete="new-password">
-<button type="submit">Install MuchoCore and create administrator</button>
+<small>Если ты пришёл из установщика MuchoCore, ключ подставится автоматически.</small></div>
+<label>Сервер MySQL (из панели 5v.pl)</label><input name="host" value="localhost" required maxlength="120">
+<label>Порт MySQL</label><input name="port" type="number" value="3306" min="1" max="65535">
+<label>Имя пустой базы</label><input name="database" required maxlength="64">
+<label>Логин базы MySQL</label><input name="username" required maxlength="128">
+<label>Пароль базы MySQL</label><input type="password" name="password" autocomplete="off">
+<h2>Создай администратора</h2>
+<p>Это твой логин для панели. После установки входи с ним, ничего повторно регистрировать не нужно.</p>
+<label>Логин администратора</label><input name="admin_username" value="admin" required maxlength="20" autocomplete="username">
+<label>Почта администратора</label><input name="admin_email" type="email" required maxlength="254" autocomplete="email">
+<label>Пароль администратора</label><input name="admin_password" type="password" required minlength="8" maxlength="72" autocomplete="new-password">
+<label>Повтори пароль администратора</label><input name="admin_password_confirm" type="password" required minlength="8" maxlength="72" autocomplete="new-password">
+<button type="submit">Завершить настройку</button>
 </form>
 <?php endif; ?>
-<small>The installer refuses any existing MuchoCore tables and writes no secrets to the response.</small>
+<script nonce="<?php echo mucho7_h($setupNonce); ?>">
+(function(){
+  var fragment=window.location.hash;
+  if(fragment.slice(0,7)!=='#setup=')return;
+  var secret=fragment.slice(7);
+  if(!/^[a-f0-9]{64}$/.test(secret))return;
+  var input=document.querySelector('input[name="setup_key"]');
+  if(!input)return;
+  input.value=secret;
+  var manual=document.getElementById('manualSetupKey');
+  if(manual)manual.style.display='none';
+  if(window.history && history.replaceState){
+    history.replaceState(null,document.title,window.location.pathname+window.location.search);
+  }
+})();
+</script>
+<small>Установщик работает только с пустой базой. Существующие аккаунты он не изменяет.</small>
 </main></body></html>
