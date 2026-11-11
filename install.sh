@@ -1160,8 +1160,8 @@ if [[ "$OWNER_BROWSER" -eq 1 ]]; then
     fi
   else
     # A rerun after successful browser registration must not reopen setup.
-    owner_count="$(run_compose exec -T app php -r 'require "vendor/autoload.php"; echo (new \MuchoCore\Database\Database())->connection()->query("SELECT COUNT(*) FROM admin_users")->fetchColumn();')"
-    if [[ "$owner_count" == "0" ]]; then
+    owner_status="$(run_compose exec -T app php bin/mucho-sync-admin.php)"
+    if [[ "$owner_status" != *"Administrator credentials preserved"* ]]; then
       fail "Administrator setup link is unavailable: $owner_link"
     fi
     rm -f "$OWNER_BROWSER_PENDING"
