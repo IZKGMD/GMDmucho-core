@@ -781,6 +781,13 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/like-integrity-integration.php
 
+      - name: Verify PHP 8 comment history identities and friends lists
+        env:
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: php tests/application/history-lists-integration.php
+
       - name: Verify GD 2.209 social relationship and notification flows
         env:
           TEST_DB_HOST: 127.0.0.1
