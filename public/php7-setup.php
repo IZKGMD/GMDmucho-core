@@ -180,18 +180,25 @@ function mucho7_h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8')
 <?php endif; ?>
 <script nonce="<?php echo mucho7_h($setupNonce); ?>">
 (function(){
-  var fragment=window.location.hash;
-  if(fragment.slice(0,7)!=='#setup=')return;
-  var secret=fragment.slice(7);
-  if(!/^[a-f0-9]{64}$/.test(secret))return;
   var input=document.querySelector('input[name="setup_key"]');
-  if(!input)return;
+  if(!input){
+    try{sessionStorage.removeItem('muchocore7InstallerKey');}catch(_){}
+    return;
+  }
+  var fragment=window.location.hash;
+  var secret=fragment.slice(0,7)==='#setup='?fragment.slice(7):'';
+  if(/^[a-f0-9]{64}$/.test(secret)){
+    try{sessionStorage.setItem('muchocore7InstallerKey',secret);}catch(_){}
+    if(window.history && history.replaceState){
+      history.replaceState(null,document.title,window.location.pathname+window.location.search);
+    }
+  }else{
+    try{secret=sessionStorage.getItem('muchocore7InstallerKey')||'';}catch(_){}
+  }
+  if(!/^[a-f0-9]{64}$/.test(secret))return;
   input.value=secret;
   var manual=document.getElementById('manualSetupKey');
   if(manual)manual.style.display='none';
-  if(window.history && history.replaceState){
-    history.replaceState(null,document.title,window.location.pathname+window.location.search);
-  }
 })();
 </script>
 <small>Установщик работает только с пустой базой. Существующие аккаунты он не изменяет.</small>
