@@ -64,7 +64,16 @@ if ((isset($_SERVER['REQUEST_METHOD']) ? strtoupper($_SERVER['REQUEST_METHOD']) 
         $user = isset($_POST['username']) ? (string)$_POST['username'] : '';
         $password = isset($_POST['password']) ? (string)$_POST['password'] : '';
         $port = isset($_POST['port']) ? (int)$_POST['port'] : 3306;
-        if (!preg_match('/^[A-Za-z0-9._-]{1,120}$/D', $host)
+        $ownerName = isset($_POST['admin_username']) ? trim((string)$_POST['admin_username']) : 'admin';
+        $ownerPassword = isset($_POST['admin_password']) ? (string)$_POST['admin_password'] : '';
+        $ownerConfirm = isset($_POST['admin_password_confirm']) ? (string)$_POST['admin_password_confirm'] : '';
+        $ownerEmail = isset($_POST['admin_email']) ? trim((string)$_POST['admin_email']) : '';
+        if (!preg_match('/^[A-Za-z0-9_-]{1,20}$/D', $ownerName)
+            || strlen($ownerPassword) < 8 || strlen($ownerPassword) > 72
+            || $ownerPassword !== $ownerConfirm
+            || strlen($ownerEmail) > 254 || !filter_var($ownerEmail, FILTER_VALIDATE_EMAIL)) {
+            $error = 'Check the administrator username, email and matching passwords (8–72 bytes).';
+        } elseif (!preg_match('/^[A-Za-z0-9._-]{1,120}$/D', $host)
             || !preg_match('/^[A-Za-z0-9_]{1,64}$/D', $db)
             || !preg_match('/^[^\x00-\x1f\x7f]{1,128}$/D', $user)
             || strlen($password) > 256 || $port < 1 || $port > 65535) {
@@ -100,6 +109,16 @@ if ((isset($_SERVER['REQUEST_METHOD']) ? strtoupper($_SERVER['REQUEST_METHOD']) 
                         'enable_writes'=>false,
                         'enable_cloudsave'=>false
                     );
+                    require_once $root . '/compat/php7/admin.php';
+                    // The private setup-key + database credentials already
+                    // establish installation authority. Enroll the first
+                    // owner now; don't ask for the same password again.
+                    mucho7_admin_bootstrap($pdo, $options, array(
+                        'db_password'=>$password,
+                        'userName'=>$ownerName,
+                        'password'=>$ownerPassword,
+                        'email'=>$ownerEmail
+                    ));
                     $tmp = $cfg . '.tmp.' . bin2hex(random_bytes(8));
                     $serialized = "<?php\nreturn " . var_export($options, true) . ";\n";
                     if (file_put_contents($tmp, $serialized, LOCK_EX) === false) {
@@ -136,8 +155,8 @@ function mucho7_h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8')
 This prepares native database tables on this host, not a complete MuchoCore server.
 No VPS required; player accounts, admin and other capabilities are not certified.</p>
 <?php if ($done): ?>
-<p>Schema and private config created. Delete <code>public/php7-setup.php</code>.
-The runtime remains disabled until explicitly enabled. Do not put public player credentials on PHP7.</p>
+<p>The database and first administrator are ready. <a href="php7-admin.php">Sign in to your admin panel</a> with the username and password you just set.</p>
+<p>Delete <code>public/php7-setup.php</code> after installation. The experimental PHP 7 player runtime remains disabled until explicitly enabled.</p>
 <?php else: ?>
 <?php if ($error !== ''): ?><p><strong><?php echo mucho7_h($error); ?></strong></p><?php endif; ?>
 <form method="post" autocomplete="off">
@@ -149,7 +168,13 @@ The runtime remains disabled until explicitly enabled. Do not put public player 
 <label>Empty database name</label><input name="database" required maxlength="64">
 <label>Database username</label><input name="username" required maxlength="128">
 <label>Database password</label><input type="password" name="password" autocomplete="off">
-<button type="submit">Initialize disposable database</button>
+<h2>Create administrator</h2>
+<p>Set the login you'll use every time. You won't have to register again or enter the database password in the admin panel.</p>
+<label>Administrator username</label><input name="admin_username" value="admin" required maxlength="20" autocomplete="username">
+<label>Administrator email</label><input name="admin_email" type="email" required maxlength="254" autocomplete="email">
+<label>Administrator password</label><input name="admin_password" type="password" required minlength="8" maxlength="72" autocomplete="new-password">
+<label>Confirm administrator password</label><input name="admin_password_confirm" type="password" required minlength="8" maxlength="72" autocomplete="new-password">
+<button type="submit">Install MuchoCore and create administrator</button>
 </form>
 <?php endif; ?>
 <small>The installer refuses any existing MuchoCore tables and writes no secrets to the response.</small>
