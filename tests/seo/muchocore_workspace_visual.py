@@ -172,6 +172,13 @@ def main():
                                 }""",timeout=2500)
                                 overlay.click(position={"x":width-12,"y":25})
                                 assert menu.get_attribute("aria-expanded")=="false",("overlay failed to close drawer",width)
+                                # Capture the resting closed state, not the fading backdrop.
+                                page.wait_for_function("""() => {
+                                    const overlay=document.getElementById('mobileOverlay');
+                                    if(!overlay)return false;
+                                    const style=getComputedStyle(overlay);
+                                    return style.opacity==='0' && style.visibility==='hidden';
+                                }""",timeout=2500)
                             else:
                                 assert not menu.is_visible(),("desktop hamburger unexpectedly visible",width)
                                 assert not nav.evaluate("(e)=>e.inert"),("desktop sidebar should remain interactive",width)
