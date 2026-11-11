@@ -51,6 +51,7 @@ function adminDifficultyProfile(array $row): string
         };
     }
     return match ((int)($row['difficulty'] ?? 0)) {
-        1=>'auto', 2=>'easy', 3=>'normal', 4=>'hard', 5=>'harder', 6=>'insane', default=>'unrated',
+        1=>'auto', 2=>'easy', 10=>'easy', 3=>'normal', 20=>'normal',
+        4=>'hard', 30=>'hard', 5=>'harder', 40=>'harder', 6=>'insane', 50=>'insane', default=>'unrated',
     };
 }
