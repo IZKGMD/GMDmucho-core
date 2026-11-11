@@ -118,7 +118,7 @@ if ((isset($_SERVER['REQUEST_METHOD']) ? strtoupper($_SERVER['REQUEST_METHOD']) 
                         'userName'=>$ownerName,
                         'password'=>$ownerPassword,
                         'email'=>$ownerEmail
-                    ));
+                    ), true);
                     $tmp = $cfg . '.tmp.' . bin2hex(random_bytes(8));
                     $serialized = "<?php\nreturn " . var_export($options, true) . ";\n";
                     if (file_put_contents($tmp, $serialized, LOCK_EX) === false) {
