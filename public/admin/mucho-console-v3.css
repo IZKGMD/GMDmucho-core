@@ -396,3 +396,75 @@ body.mc-admin .shell>main .mc-ops-actions{
  display:block!important;z-index:auto;
 }
 body.mc-admin .shell>main .mc-ops-actions nav{position:static;display:grid}
+
+/* Mobile navigation: one dependable off-canvas layer above the workspace.
+   These rules intentionally override the older inline V4/V5 mobile shell. */
+@media (max-width:980px){
+ body.mc-admin .shell>aside{
+  visibility:hidden;pointer-events:none;
+  z-index:1001;
+ }
+ body.mc-admin.mobile-menu-open .shell>aside{
+  visibility:visible;pointer-events:auto;
+  transform:translateX(0);
+ }
+ body.mc-admin .mobile-overlay{
+  display:block;position:fixed;inset:0;z-index:1000;
+  background:rgba(8,7,14,.72);
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .18s ease,visibility .18s ease;
+ }
+ body.mc-admin.mobile-menu-open .mobile-overlay{
+  opacity:1;visibility:visible;pointer-events:auto;
+ }
+ body.mc-admin .head{
+  display:grid!important;
+  grid-template-columns:42px minmax(0,1fr) auto!important;
+  align-items:center;
+  gap:10px;
+ }
+ body.mc-admin .head .mobile-menu-btn{
+  display:grid!important;place-items:center;
+  grid-column:1;grid-row:1;
+  width:42px;min-width:42px;height:42px;
+  padding:0;
+  color:var(--mc-text);
+  background:var(--mc-surface);
+  border:1px solid var(--mc-line);
+  border-radius:6px;
+  cursor:pointer;
+ }
+ body.mc-admin .head .head-title{
+  grid-column:2;grid-row:1;min-width:0;overflow:hidden;
+ }
+ body.mc-admin .head .head-title h1,
+ body.mc-admin .head .head-title small{
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ }
+ body.mc-admin .head .mc-header-actions{
+  grid-column:3;grid-row:1;min-width:0;
+ }
+ body.mc-admin .head .global-search{
+  grid-column:1/-1;grid-row:2;
+  width:100%;min-width:0;max-width:100%;
+ }
+ body.mc-admin .head .global-search input{
+  min-width:0;flex:1 1 0;
+ }
+ body.mc-admin .shell>main{min-width:0}
+ body.mc-admin :is(.mc-ops,.mc-ops-content,.mc-ops-feeds,.mc-ops-panel){min-width:0}
+ body.mc-admin :is(.mc-ops-table-scroll,.table){max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+ body.mc-admin .head .mobile-menu-btn:focus-visible,
+ body.mc-admin .shell>aside a:focus-visible{outline:2px solid var(--mc-accent);outline-offset:3px}
+}
+@media (max-width:390px){
+ body.mc-admin .head{gap:8px}
+ body.mc-admin .head .mc-header-actions{gap:4px}
+ body.mc-admin .head .global-search{flex-wrap:nowrap}
+ body.mc-admin .head .global-search button{flex:0 0 auto}
+ body.mc-admin .mc-ops-intro h2{overflow-wrap:anywhere}
+}
+@media (prefers-reduced-motion:reduce){
+ body.mc-admin .mobile-overlay,
+ body.mc-admin .shell>aside{transition:none!important}
+}
