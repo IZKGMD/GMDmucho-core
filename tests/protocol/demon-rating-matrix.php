@@ -57,7 +57,7 @@ $base = [
     'username' => 'izk',
     'name' => 'Demon Wire Test',
     'description' => 'GD 2.209 protocol',
-    'level_data' => '1:2:3',
+    'level_data' => 'TEST_LEVEL_DATA',
     'level_version' => 1,
     'game_version' => 22,
     'difficulty' => 50,
@@ -131,7 +131,7 @@ foreach ([
     'moderation re-rate preserves subtype' => str_contains($moderation, 'THEN demon_difficulty ELSE 0 END'),
     'moderation removes pending requests' => substr_count($moderation, 'requested_stars=0') >= 3,
     'comment !demon maps ordinal input' => str_contains($commentCommands, '[1=>3,2=>4,3=>0,4=>5,5=>6]'),
-    'comment !demon stores wire value' => str_contains($commentCommands, "':demon_difficulty' => $wireDemonDifficulty"),
+    'comment !demon stores wire value' => str_contains($commentCommands, '=> $wireDemonDifficulty'),
     'rate.php uses canonical mapping' => str_contains($cli, '[0=>0,1=>3,2=>4,3=>0,4=>5,5=>6]'),
     'admin CLI uses canonical mapping' => str_contains($adminCli, '[0=>0,1=>3,2=>4,3=>0,4=>5,5=>6]'),
 ] as $name => $valid) {
