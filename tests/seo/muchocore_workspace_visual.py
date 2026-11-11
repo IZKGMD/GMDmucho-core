@@ -147,6 +147,12 @@ def main():
                                 assert menu.get_attribute("aria-expanded")=="true",("drawer aria-expanded incorrect",width)
                                 assert not nav.evaluate("(e)=>e.inert"),("open drawer is inert",width)
                                 assert page.locator("#main").evaluate("(e)=>e.inert"),("main should be inert while drawer open",width)
+                                # The drawer animates for 150ms: await its settled position,
+                                # otherwise an immediate bounding box reports an in-flight frame.
+                                page.wait_for_function("""() => {
+                                    const nav=document.getElementById('adminNavigation');
+                                    return nav && Math.abs(nav.getBoundingClientRect().x) <= 1;
+                                }""",timeout=2500)
                                 drawer=nav.bounding_box()
                                 assert drawer and drawer["x"]>=-1 and drawer["x"]<width,("drawer off-screen when open",width,drawer)
                                 open_file=OUTPUT/f"muchocore-hybrid-admin-menu-open-{width}.jpg"
