@@ -55,6 +55,34 @@ def admin(base):
 <section class="mc-ops-panel"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">CONTENT</p><h3>Latest music</h3></div><a href="#">Manage music ↗</a></div><p class="mc-ops-empty">Actual tracks appear from the server database.</p></section></div>
 <aside class="mc-ops-actions"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">SHORTCUTS</p><h3>Operator tools</h3></div></div><nav><a href="#"><span><strong>Review levels</strong><small>Ratings and moderation</small></span><span>↗</span></a><a href="#"><span><strong>Publish news</strong><small>In-game announcements</small></span><span>↗</span></a><a href="#"><span><strong>Backups</strong><small>Database snapshots</small></span><span>↗</span></a></nav></aside></div></div></main></div><script src="{base}/assets/product-ui.js"></script></body></html>"""
 
+
+def login(base):
+    """Non-authenticated login layout fixture: real CSS, no credentials or DB."""
+    return f"""<!doctype html><html lang="en" data-theme="dark"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="{base}/assets/product-ui.css">
+<link rel="stylesheet" href="{base}/admin/product-admin.css">
+<link rel="stylesheet" href="{base}/admin/admin-simple.css">
+<link rel="stylesheet" href="{base}/admin/admin-polish.css">
+<link rel="stylesheet" href="{base}/admin/admin-workspace.css">
+<link rel="stylesheet" href="{base}/admin/admin-motion.css">
+<link rel="stylesheet" href="{base}/assets/mucho-design-system.css">
+<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css"></head>
+<body class="admin-login mc-workspace">
+<main class="admin-auth-card">
+<header><a href="#" class="logo">MuchoCore</a></header>
+<span class="mc-auth-eyebrow">MuchoCore Admin</span>
+<h1>Administrator sign in</h1>
+<form id="adminLoginForm" method="post">
+<div id="passwordLoginFields">
+<p class="admin-auth-field"><label for="adminUsername">Username</label><input id="adminUsername" name="username" autocomplete="username" placeholder="Administrator" required></p>
+<p class="admin-auth-field"><label for="adminPassword">Password</label><input id="adminPassword" name="password" type="password" autocomplete="current-password" placeholder="Password" required></p>
+</div>
+<button id="normalSignInButton" type="button">Sign in</button>
+</form>
+<p><a href="#">Recover administrator access</a></p>
+</main></body></html>"""
+
 def portal(base):
     live_style=php_inline_css("dashboard/index.php",0)
     return f"""<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -83,7 +111,7 @@ def main():
         with sync_playwright() as p:
             browser=p.chromium.launch(executable_path=browser_path,headless=True,args=["--no-sandbox"])
             try:
-                for name,build in (("admin",admin),("portal",portal)):
+                for name,build in (("admin",admin),("portal",portal),("login",login)):
                     for width,height in ((1440,900),(390,844)):
                         page=browser.new_page(viewport={"width":width,"height":height},device_scale_factor=1)
                         errors=[]
@@ -133,6 +161,13 @@ def main():
                             else:
                                 assert not menu.is_visible(),("desktop hamburger unexpectedly visible",width)
                                 assert not nav.evaluate("(e)=>e.inert"),("desktop sidebar should remain interactive",width)
+                        elif name=="login":
+                            card=page.locator(".admin-auth-card").bounding_box()
+                            assert card and card["x"]>=-1 and card["x"]+card["width"]<=width+1,(name,width,"auth card clipped",card)
+                            for selector in ("#adminUsername","#adminPassword","#normalSignInButton"):
+                                control=page.locator(selector).bounding_box()
+                                assert control and control["x"]>=-1 and control["x"]+control["width"]<=width+1,(name,width,"auth field clipped",selector,control)
+                            assert page.locator("#normalSignInButton").is_visible(),(name,width,"sign-in action missing")
                         else:
                             label=page.locator(".mc-community-search>label").bounding_box()
                             search_row=page.locator(".mc-community-search-row").bounding_box()
