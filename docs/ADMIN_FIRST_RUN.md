@@ -11,7 +11,9 @@ English is the default. Use the **EN / RU** switcher to change languages. All fo
 1. Run the installer and wait for `MuchoCore is installed`.
 2. Open the **private setup link** printed at the end. The link contains a secret in its browser fragment, which is removed from the address bar before the form opens. Do not share it.
 3. Enter the administrator username, a password of 12–256 characters, and confirmation. You are signed into `/admin/` immediately.
-4. If you close the terminal before registering, run `sudo mucho owner-link` on the server to show the link again. After registration, the command stops working.
+4. If you close the terminal before registering, run **`sudo mucho admin`** from a private interactive SSH session. It shows the same protected setup link when registration is still pending. After registration it displays the ordinary admin URL instead.
+
+To diagnose a broken GDPS before attempting any reinstall, run `sudo mucho doctor`. This read-only diagnostic reports container failures, DNS/public HTTPS, migration state, and whether the owner exists. It never prints the private setup link or changes an account. Do not paste the private link or credentials into support chats.
 
 For unattended fresh deployments, supply `MUCHO_ADMIN_USER` and `MUCHO_ADMIN_PASSWORD` through a **private environment**, not through command-line arguments or public automation logs. The installer creates this owner after migrations and does not print a setup link. If the installer is restarted before completing initial owner registration, it resumes the pending enrollment without changing the selected credentials. Updates and reinstallations never overwrite existing owners.
 
