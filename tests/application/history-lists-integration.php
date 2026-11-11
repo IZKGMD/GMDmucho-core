@@ -83,7 +83,7 @@ try {
         'an account ID is not silently treated as a different player ID');
     $byAccount = $repo->byAccountId(501, 0, 10, false);
     historyCheck($byAccount['total'] === 1 && (int)$byAccount['rows'][0]['userID'] === 901,
-        'explicit account history keeps its own player's ID');
+        'explicit account history retains its own player ID');
     $page = $repo->byUserId(501, 1, 1, true);
     historyCheck($page['total'] === 3 && $page['visible'] === 1 &&
         (int)$page['rows'][0]['commentID'] === 101,
