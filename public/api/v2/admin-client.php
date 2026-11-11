@@ -639,6 +639,27 @@ try {
         $epic = intInput($input, 'epic', 0, 3);
         $deleted = boolInput($input, 'is_deleted');
 
+        // This API accepts raw GD protocol values, not an ordinal picker.
+        // Reject values 1/2 that would produce the wrong Demon face.
+        if ($demon && !in_array($demonDifficulty, [0,3,4,5,6], true)) {
+            fail('invalid_demon_difficulty', 'Expected GD Demon code 0, 3, 4, 5 or 6.', 422);
+        }
+        if (!$demon && $demonDifficulty !== 0) {
+            fail('invalid_rating', 'Non-Demon levels cannot carry a Demon subtype.', 422);
+        }
+        if (!$demon && $stars === 10) {
+            fail('invalid_rating', 'Ten-star ratings must be Demons.', 422);
+        }
+        if ($demon) {
+            $stars = 10;
+            $difficulty = 50;
+        } elseif ($stars === 1) {
+            $difficulty = 50;
+        } elseif ($stars === 0) {
+            $difficulty = 0;
+        }
+        if ($epic > 0) $featured = true;
+
         $query = $db->prepare(
             'SELECT level_id, name, stars, difficulty, demon, demon_difficulty, featured, epic, is_deleted
              FROM levels WHERE level_id = :id LIMIT 1'
@@ -651,8 +672,10 @@ try {
 
         $update = $db->prepare(
             'UPDATE levels SET stars = :stars, difficulty = :difficulty, demon = :demon,
-                    demon_difficulty = :demon_difficulty, featured = :featured,
-                    epic = :epic, is_deleted = :is_deleted
+                    demon_difficulty = :demon_difficulty, custom_difficulty=0,
+                    auto_level = :auto_level, requested_stars=0,
+                    featured = :featured, epic = :epic, is_deleted = :is_deleted,
+                    updated_at=NOW()
              WHERE level_id = :id'
         );
         $update->execute([
@@ -660,11 +683,31 @@ try {
             'difficulty' => $difficulty,
             'demon' => $demon ? 1 : 0,
             'demon_difficulty' => $demonDifficulty,
+            'auto_level' => $stars === 1 ? 1 : 0,
             'featured' => $featured ? 1 : 0,
             'epic' => $epic,
             'is_deleted' => $deleted ? 1 : 0,
             'id' => $levelId,
         ]);
+
+        $creator=$db->prepare('SELECT account_id FROM levels WHERE level_id=:id');
+        $creator->execute(['id'=>$levelId]);
+        $creatorId=(int)($creator->fetchColumn() ?: 0);
+        if ($creatorId>0) {
+            $cp=$db->prepare('SELECT COALESCE(SUM(
+                CASE WHEN stars>0 THEN 1 ELSE 0 END
+                + CASE WHEN featured>0 THEN 1 ELSE 0 END
+                + epic),0)
+                FROM levels WHERE account_id=:author AND is_deleted=0');
+            $cp->execute(['author'=>$creatorId]);
+            $sync=$db->prepare('UPDATE profiles SET creator_points=:points WHERE account_id=:author');
+            $sync->execute(['points'=>(int)$cp->fetchColumn(),'author'=>$creatorId]);
+        }
+        try {
+            \MuchoCore\Cache\CacheManager::fromEnvironment($db)->deletePrefix('mucho:levels:');
+        } catch (Throwable $cacheError) {
+            error_log('[MuchoAdminClient] rating cache invalidation failed: '.$cacheError->getMessage());
+        }
 
         auditClient($db, $admin, 'level.update', 'level', (string)$levelId, [
             'name' => (string)$before['name'],
