@@ -21,6 +21,7 @@ function muchoAdminFirstRunLanguage(array $query, array $cookies): string
 function muchoAdminFirstRunCopy(string $language): array
 {
     $english = [
+        'awaiting' => 'Finish administrator setup',
         'completed' => 'Initial setup has already been completed. Use the server console to recover access.',
         'not_installed' => 'Server installation is not complete. Run the MuchoCore installer first.',
         'requires_https' => 'Administrator registration is available only over HTTPS.',
@@ -33,7 +34,6 @@ function muchoAdminFirstRunCopy(string $language): array
         'activation_required' => 'The server is ready for its first administrator. Open the private setup link shown by the installer. If you lost it, run sudo mucho owner-link on the server.',
         'activate_wait' => 'Verifying your installation link…',
         'heading' => 'Create first administrator',
-        'awaiting' => 'Finish administrator setup',
         'unavailable' => 'Setup unavailable',
         'title' => 'MuchoCore — First-time setup',
         'language' => 'Language',
