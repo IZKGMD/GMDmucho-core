@@ -30,15 +30,18 @@ if(!$user || !adminIsPlain()):
 </head>
 <?php endif;if(!$user):?>
 <body class="admin-login mc-workspace" data-page=""><main class="admin-auth-card"><header><?php adminBrand($branding['server_name']);adminInterfaceSwitch();?></header>
-<h1><?=$hasOwner?'Administrator sign in':'First owner'?></h1>
+<h1><?=$hasOwner?'Administrator sign in':'Create your administrator'?></h1>
+<?php if(!$hasOwner):?><p>Set up your login once. After this, just sign in with the same username and password.</p><?php endif ?>
 <?php if($error!==''):?><p class="err" role="alert"><?=h($error)?></p><?php endif ?>
 <?php if($pdo):?><form method="post" id="adminLoginForm"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="action" value="<?=$hasOwner?'login':'bootstrap'?>">
-<?php if(!$hasOwner):?><p class="admin-auth-field"><label for="dbpass">Password database</label><input id="dbpass" type="password" name="db_password" required autocomplete="off"></p><?php endif ?>
-<div id="passwordLoginFields"><p class="admin-auth-field"><label for="adminUsername">Username</label><br><input id="adminUsername" name="userName" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32" required></p>
-<p class="admin-auth-field"><label for="adminPassword">Password</label><br><input id="adminPassword" type="password" name="password" autocomplete="<?=$hasOwner?'current-password':'new-password'?>" required></p></div>
+
+<div id="passwordLoginFields"><p class="admin-auth-field"><label for="adminUsername">Username</label><br><input id="adminUsername" name="userName" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32" <?=$hasOwner?'':'value="admin"'?> required></p>
+<p class="admin-auth-field"><label for="adminPassword"><?=$hasOwner?'Password':'Administrator password'?></label><br><input id="adminPassword" type="password" name="password" autocomplete="<?=$hasOwner?'current-password':'new-password'?>" <?=$hasOwner?'':'minlength="8" maxlength="72"'?> required></p>
+<?php if(!$hasOwner):?><p class="admin-auth-field"><label for="adminPasswordConfirm">Confirm administrator password</label><input id="adminPasswordConfirm" type="password" name="password_confirm" autocomplete="new-password" minlength="8" maxlength="72" required></p><?php endif ?></div>
 <?php if(!$hasOwner):?><p class="admin-auth-field"><label for="email">Email</label><input id="email" type="email" name="email" required maxlength="254"></p><?php endif ?>
+<?php if(!$hasOwner):?><p class="admin-auth-field"><label for="dbpass">Confirm ownership with your MySQL password</label><input id="dbpass" type="password" name="db_password" required autocomplete="off"><small>Use the database password you already entered in your hosting settings. No separate Setup Secret is needed.</small></p><?php endif ?>
 <?php if($hasOwner):?><p id="otpLoginField" class="admin-auth-field"><label for="adminOtp">2FA or recovery code</label><br><input id="adminOtp" name="otp" autocomplete="one-time-code" autocapitalize="none" spellcheck="false" maxlength="32" aria-describedby="adminOtpHelp"><br><small id="adminOtpHelp">Leave empty if two-factor authentication is disabled.</small></p><?php endif ?>
-<?php if($freshInstall):?><p class="admin-auth-field"><label for="setup-domain">HTTPS-server domain</label><input id="setup-domain" name="site_url" type="url" required value="<?=h(isset($settings['site_url'])?$settings['site_url']:'')?>"></p><p><label><input type="checkbox" name="enable_features" value="1" checked> Enable game features</label></p><?php endif ?>
+<?php if($freshInstall):?><input type="hidden" name="enable_features" value="1"><p class="admin-auth-field"><label for="setup-domain">GDPS website address</label><input id="setup-domain" name="site_url" type="url" required value="<?=h(isset($settings['site_url']) && (string)$settings['site_url']!=='' ? $settings['site_url'] : 'https://'.(isset($_SERVER['HTTP_HOST'])?preg_replace('/[^A-Za-z0-9.:-]/','',(string)$_SERVER['HTTP_HOST']):''))?>"><small>Already filled in from your website address.</small></p><?php endif ?>
 <button id="normalSignInButton" type="submit"><?=$hasOwner?'Sign in':'Create owner'?></button></form><?php endif ?>
 <?php if($hasOwner&&$pdo&&tableExists($pdo,'php7_admin_passkeys'))require __DIR__.'/admin-ui/passkeys.php'; ?>
 <?php adminFooter($branding);?></main></body></html>
