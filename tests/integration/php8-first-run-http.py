@@ -243,7 +243,7 @@ def main():
           "isolated console fixture reset preserves browser onboarding test")
 
     code, page, headers = browser.get()
-    check(code == 200 and "open the private activation link" in page
+    check(code == 200 and "Open the private setup link" in page
           and '<html lang="en">' in page,
           "anonymous first visitor must activate ownership before registration")
     check("Create first administrator" not in page,
