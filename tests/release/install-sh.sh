@@ -40,7 +40,7 @@ grep -Fq 'if [[ -s "$INSTALL_DIR/.secrets/db_root_password" ]]; then' install.sh
 grep -Fq 'OWNER_BROWSER_PENDING=' install.sh
 grep -Fq 'MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"' install.sh
 grep -Fq 'php bin/mucho-owner-link.php' install.sh
-grep -Fq 'sudo mucho owner-link' install.sh
+grep -Fq 'sudo mucho admin' install.sh
 grep -Fq 'Unattended installation requires MUCHO_ADMIN_PASSWORD' install.sh
 grep -Fq 'owner-initialize-pending' install.sh
 grep -Fq 'if [[ -s "$OWNER_PENDING" ]]; then' install.sh
