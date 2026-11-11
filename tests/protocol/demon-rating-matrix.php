@@ -41,6 +41,8 @@ $commentCommands = (string)file_get_contents($root . '/src/Interaction/CommentSe
 $moderation = (string)file_get_contents($root . '/src/Moderation/ModerationRepository.php');
 $cli = (string)file_get_contents($root . '/bin/rate.php');
 $adminCli = (string)file_get_contents($root . '/bin/mucho-admin');
+$advanced = (string)file_get_contents($root . '/public/admin/advanced-actions.php');
+$adminApi = (string)file_get_contents($root . '/public/api/v2/admin-client.php');
 
 $profiles = [
     'easy-demon' => 3,
@@ -122,6 +124,25 @@ foreach ($profiles as $profile => $expected) {
         $profile . ' Rating Studio selection');
     ratingAssert(preg_match($pattern, $rateAction) === 1,
         $profile . ' PHP8 persisted state');
+}
+
+ratingAssert(
+    adminDifficultyProfile(['auto_level'=>0,'demon'=>0,'difficulty'=>50]) === 'insane',
+    'modern in-game 50 difficulty displays Insane icon'
+);
+ratingAssert(
+    adminDifficultyProfile(['auto_level'=>1,'demon'=>0,'difficulty'=>50]) === 'auto',
+    'Auto flag overrides shared 50 difficulty code'
+);
+
+foreach ([
+    'legacy moderation presets preserve GD Demon codes' => str_contains($advanced, "'demon-extreme'=>6"),
+    'legacy moderator updates difficulty 50' => str_contains($advanced, 'difficulty=50,'),
+    'legacy moderator clears custom subtype' => str_contains($advanced, 'custom_difficulty=0,'),
+    'admin API forbids 1 and 2 Demon field codes' => str_contains($adminApi, 'if ($demon && !in_array($demonDifficulty, [0,3,4,5,6], true))'),
+    'admin API clears stale request state' => str_contains($adminApi, 'requested_stars=0'),
+] as $name => $valid) {
+    ratingAssert($valid, $name);
 }
 
 foreach ([
