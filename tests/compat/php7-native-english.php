@@ -12,7 +12,9 @@ $files=array_merge($files,array_filter(glob($root.'/public/php7*.php'),function(
     return basename($path)!=='php7-setup.php';
 }));
 $setup=(string)file_get_contents($root.'/public/php7-setup.php');
-if(strpos($setup,'<html lang="ru">')===false || strpos($setup,'Открыть')!==false && strpos($setup,'Завершить настройку')===false){
+if(strpos($setup,'<html lang="ru">')===false
+    || strpos($setup,'Завершить настройку')===false
+    || strpos($setup,'name="setup_key"')===false){
     throw new RuntimeException('Localized 5v.pl first-install wizard is missing its Russian UI.');
 }
 foreach($files as $file)foreach(token_get_all(file_get_contents($file)) as $token){
