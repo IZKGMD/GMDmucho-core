@@ -3872,33 +3872,33 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     'auto_level'=>0,
                 ],
                 'easy-demon'=>[
-                    'difficulty'=>6,
-                    'demon'=>1,
-                    'demon_difficulty'=>1,
-                    'auto_level'=>0,
-                ],
-                'medium-demon'=>[
-                    'difficulty'=>6,
-                    'demon'=>1,
-                    'demon_difficulty'=>2,
-                    'auto_level'=>0,
-                ],
-                'hard-demon'=>[
-                    'difficulty'=>6,
+                    'difficulty'=>50,
                     'demon'=>1,
                     'demon_difficulty'=>3,
                     'auto_level'=>0,
                 ],
-                'insane-demon'=>[
-                    'difficulty'=>6,
+                'medium-demon'=>[
+                    'difficulty'=>50,
                     'demon'=>1,
                     'demon_difficulty'=>4,
                     'auto_level'=>0,
                 ],
-                'extreme-demon'=>[
-                    'difficulty'=>6,
+                'hard-demon'=>[
+                    'difficulty'=>50,
+                    'demon'=>1,
+                    'demon_difficulty'=>0,
+                    'auto_level'=>0,
+                ],
+                'insane-demon'=>[
+                    'difficulty'=>50,
                     'demon'=>1,
                     'demon_difficulty'=>5,
+                    'auto_level'=>0,
+                ],
+                'extreme-demon'=>[
+                    'difficulty'=>50,
+                    'demon'=>1,
+                    'demon_difficulty'=>6,
                     'auto_level'=>0,
                 ],
             ];
@@ -3914,6 +3914,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 $demon=(int)$difficultyProfiles[$difficultyProfile]['demon'];
                 $demonDifficulty=(int)$difficultyProfiles[$difficultyProfile]['demon_difficulty'];
                 $autoLevel=(int)$difficultyProfiles[$difficultyProfile]['auto_level'];
+                if ($demon===1) $stars=10;
+                elseif ($autoLevel===1) $stars=1;
+                elseif ($difficultyProfile==='unrated') {
+                    $stars=0;
+                    $feature=0;
+                } elseif ($stars===10) {
+                    throw new RuntimeException('Choose a Demon profile for a 10-star rating.');
+                }
             } else {
                 /* Backward-compatible fallback for older admin forms. */
                 $difficulty=max(0,min(6,(int)($_POST['difficulty'] ?? 0)));
@@ -3930,11 +3938,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     $demon=0;
                     $demonDifficulty=0;
                 } elseif ($demon) {
-                    $difficulty=6;
-                    if ($demonDifficulty<1) {
-                        throw new RuntimeException('Select a demon difficulty.');
+                    $difficulty=50;
+                    $stars=10;
+                    if (!in_array($demonDifficulty,[0,3,4,5,6,8,9,10],true)) {
+                        throw new RuntimeException('Invalid GD Demon subtype.');
                     }
                 } else {
+                    if ($stars===10) {
+                        throw new RuntimeException('Choose a Demon profile for a 10-star rating.');
+                    }
                     $demonDifficulty=0;
                 }
             }
@@ -3971,6 +3983,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                         difficulty=:difficulty,
                         demon=:demon,
                         demon_difficulty=:demon_difficulty,
+                        custom_difficulty=0,
                         auto_level=:auto_level,
                         featured=:featured,
                         epic=:epic,
@@ -4019,6 +4032,14 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 ]);
 
                 $db->commit();
+
+                // Rating Studio changes must be visible on warm GD search pages.
+                try {
+                    \MuchoCore\Cache\CacheManager::fromEnvironment($db)
+                        ->deletePrefix('mucho:levels:');
+                } catch (Throwable $cacheError) {
+                    error_log('[MuchoCore] rating cache invalidation failed: '.$cacheError->getMessage());
+                }
 
                 $featureBefore=match(true) {
                     (int)$before['epic']>=3 => 4,
