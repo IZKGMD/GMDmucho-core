@@ -30,9 +30,10 @@ function muchoAdminFirstRunCopy(string $language): array
         'password_invalid' => 'Password must contain 12–256 characters without control characters.',
         'password_mismatch' => 'Passwords do not match.',
         'secret_invalid' => 'This activation link is invalid. Generate a new owner link on the server.',
-        'activation_required' => 'To register the first owner, open the private activation link provided by the installer. Do not share it with anyone.',
+        'activation_required' => 'The server is ready for its first administrator. Open the private setup link shown by the installer. If you lost it, run sudo mucho owner-link on the server.',
         'activate_wait' => 'Verifying your installation link…',
         'heading' => 'Create first administrator',
+        'awaiting' => 'Finish administrator setup',
         'unavailable' => 'Setup unavailable',
         'title' => 'MuchoCore — First-time setup',
         'language' => 'Language',
@@ -50,6 +51,7 @@ function muchoAdminFirstRunCopy(string $language): array
     }
 
     return [
+        'awaiting' => 'Завершите настройку администратора',
         'completed' => 'Первоначальная настройка уже была завершена. Для восстановления доступа используйте серверную консоль.',
         'not_installed' => 'Установка сервера ещё не завершена. Сначала запустите установщик MuchoCore.',
         'requires_https' => 'Создание администратора доступно только по HTTPS.',
@@ -219,7 +221,9 @@ function muchoAdminFirstRun(PDO $db, string $rootDir, bool $https, bool $already
         $notice = $copy['activation_required'];
     }
 
-    $heading = $allowed && $authorized ? $copy['heading'] : $copy['unavailable'];
+    $heading = $allowed
+        ? ($authorized ? $copy['heading'] : ($copy['awaiting'] ?? $copy['heading']))
+        : $copy['unavailable'];
     ?>
 <!doctype html>
 <html lang="<?= $escape($language) ?>">
