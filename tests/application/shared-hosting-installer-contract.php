@@ -174,9 +174,11 @@ if (!is_string($ownerLink) || !str_contains($ownerLink, "PHP_SAPI !== 'cli'")
     || !str_contains($vpsInstaller, 'owner-browser-pending')
     || !str_contains($vpsInstaller, 'php bin/mucho-owner-link.php')
     || !str_contains($vpsInstaller, 'php bin/mucho-initialize-owner.php --initialize')
-    || !str_contains($vpsInstaller, 'MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"')
+    || str_contains($vpsInstaller, 'MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"')
+    || !str_contains($vpsInstaller, 'collect_first_owner_credentials()')
+    || !str_contains($vpsInstaller, 'Step 1 — Create your first administrator')
 ) {
-    throw new RuntimeException('Private owner activation link / installer contract broken.');
+    throw new RuntimeException('Owner installation and legacy activation safety contract broken.');
 }
 
 $backupContracts = [
