@@ -46,8 +46,8 @@ function adminDifficultyProfile(array $row): string
     if ((int)($row['auto_level'] ?? 0) === 1) return 'auto';
     if ((int)($row['demon'] ?? 0) === 1) {
         return match ((int)($row['demon_difficulty'] ?? 0)) {
-            1=>'easy-demon', 2=>'medium-demon', 4=>'insane-demon',
-            5=>'extreme-demon', default=>'hard-demon',
+            3=>'easy-demon', 4=>'medium-demon', 0=>'hard-demon',
+            5=>'insane-demon', 6=>'extreme-demon', default=>'hard-demon',
         };
     }
     return match ((int)($row['difficulty'] ?? 0)) {
