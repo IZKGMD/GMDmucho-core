@@ -162,7 +162,15 @@ def main():
                                 assert nav.evaluate("(e)=>e.inert"),("closed drawer stayed focusable",width)
                                 assert not page.locator("#main").evaluate("(e)=>e.inert"),("main stayed inert after closing",width)
                                 menu.click()
-                                page.locator("#mobileOverlay").click(position={"x":width-12,"y":25},force=True)
+                                overlay=page.locator("#mobileOverlay")
+                                overlay.wait_for(state="visible")
+                                # Verify that the backdrop is genuinely clickable after the
+                                # open transition, rather than forcing a click through it.
+                                page.wait_for_function("""() => {
+                                    const overlay=document.getElementById('mobileOverlay');
+                                    return overlay && document.elementFromPoint(innerWidth-12,25)===overlay;
+                                }""",timeout=2500)
+                                overlay.click(position={"x":width-12,"y":25})
                                 assert menu.get_attribute("aria-expanded")=="false",("overlay failed to close drawer",width)
                             else:
                                 assert not menu.is_visible(),("desktop hamburger unexpectedly visible",width)
