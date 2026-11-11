@@ -59,16 +59,37 @@ if (str_contains($installer, 'HTTP_X_FORWARDED_PROTO')) {
 }
 
 $verifyPosition = strpos($installer, 'verifyInstalledSchema($pdo)');
+$ownerPosition = strpos($installer, 'FirstRunSetup::createOwner($pdo, $adminUser, $adminPass)');
 $bootstrapWritePosition = strpos($installer, 'atomicWrite($bootstrapPath, $bootstrap, 0600)');
 if (
     $verifyPosition === false ||
+    $ownerPosition === false ||
     $bootstrapWritePosition === false ||
     $verifyPosition < $bootstrapWritePosition ||
-    str_contains($installer, '$adminStmt->execute([')
+    $ownerPosition <= $verifyPosition ||
+    !str_contains($installer, 'if ($tableCount === 0)') ||
+    !str_contains($installer, '<a href="/admin/">Sign in to the admin panel</a>') ||
+    str_contains($installer, 'Create first administrator (private activation link)') ||
+    str_contains($installer, 'One-time admin setup secret')
 ) {
     throw new RuntimeException(
-        'Shared installation must persist setup-secret hash, verify the schema, and defer owner creation until /admin/.'
+        'Shared installation must create the first owner only on fresh databases and lead directly to sign-in.'
     );
+}
+
+$php7Setup = file_get_contents($root . '/public/php7-setup.php');
+$php7View = file_get_contents($root . '/compat/php7/admin-view.php');
+$php7Admin = file_get_contents($root . '/compat/php7/admin.php');
+if (!is_string($php7Setup) || !is_string($php7View) || !is_string($php7Admin)
+    || !str_contains($php7Setup, 'mucho7_admin_bootstrap($pdo, $options')
+    || !str_contains($php7Setup, 'admin_password_confirm')
+    || !str_contains($php7Setup, 'Sign in to your admin panel')
+    || !str_contains($php7View, 'name="password_confirm"')
+    || !str_contains($php7View, 'name="db_password"')
+    || !str_contains($php7Admin, "array_key_exists('password_confirm',\$data)")
+    || !str_contains($php7Admin, 'if (!$verifiedInstaller)')
+) {
+    throw new RuntimeException('The native PHP7 first-owner wizard must collect the login once and preserve ownership verification.');
 }
 
 $admin = file_get_contents($root . '/public/admin/index.php');
@@ -127,8 +148,10 @@ foreach ([
     'activation strips fragment from history' => str_contains($wizard, 'history.replaceState'),
     'activation only via POST' => str_contains($wizard, "\$action === 'activate'"),
     'no visible setup-key field' => !str_contains($wizard, '<input id="setup_key"'),
-    'shared installer provides a private activation link' =>
-        str_contains($installer, '/admin/#setup='),
+    'shared installer creates fresh owner once' =>
+        str_contains($installer, 'FirstRunSetup::createOwner($pdo, $adminUser, $adminPass)')
+        && str_contains($installer, 'if ($tableCount === 0)')
+        && !str_contains($installer, '/admin/#setup='),
 
     'CSRF check before enrollment' => str_contains($wizard, 'hash_equals($csrf, $providedCsrf)'),
     'race-safe database lock' => str_contains($firstRun, 'GET_LOCK(:name, 5)'),

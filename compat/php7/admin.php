@@ -78,16 +78,25 @@ function mucho7_admin_initialize(PDO $pdo, $settings, $data, $root)
     } finally {flock($lock,LOCK_UN);fclose($lock);}
 }
 
-function mucho7_admin_bootstrap(PDO $pdo, $settings, $data)
+function mucho7_admin_bootstrap(PDO $pdo, $settings, $data, $verifiedInstaller = false)
 {
-    // The operator proves knowledge of the existing PRIVATE database password.
-    // No manually created setup token, public default password or first-user admin.
-    $submitted=isset($data['db_password']) && is_string($data['db_password'])?$data['db_password']:'';
-    $stored=isset($settings['password']) && is_string($settings['password'])?$settings['password']:'';
-    if(strlen($stored)<8 || !hash_equals($stored,$submitted)) { throw new RuntimeException('Incorrect database password.'); }
+    // Existing first-owner screens require the PRIVATE database password.
+    // The separate native installer already verifies a strong private setup
+    // key and successfully connects to the empty DB before calling here.
+    if (!$verifiedInstaller) {
+        $submitted=isset($data['db_password']) && is_string($data['db_password'])?$data['db_password']:'';
+        $stored=isset($settings['password']) && is_string($settings['password'])?$settings['password']:'';
+        if(strlen($stored)<8 || !hash_equals($stored,$submitted)) { throw new RuntimeException('Incorrect database password.'); }
+    }
     $name=isset($data['userName']) && is_string($data['userName'])?trim($data['userName']):'';
     $password=isset($data['password']) && is_string($data['password'])?$data['password']:'';
     $email=isset($data['email']) && is_string($data['email'])?trim($data['email']):'';
+    // The browser asks for confirmation. Programmatic installers that have
+    // already validated the password continue to use the existing API.
+    if(array_key_exists('password_confirm',$data)
+        && (!is_string($data['password_confirm']) || !hash_equals($password,$data['password_confirm']))) {
+        throw new RuntimeException('Administrator passwords do not match.');
+    }
     if(!preg_match('/^[A-Za-z0-9_-]{1,20}$/D',$name) || strlen($password)<8 || strlen($password)>72
         || strlen($email)>254 || !filter_var($email,FILTER_VALIDATE_EMAIL)) {
         throw new RuntimeException('Check the account username, email, and password (8–72 bytes).');

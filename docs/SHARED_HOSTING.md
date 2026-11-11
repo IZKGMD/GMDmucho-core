@@ -45,6 +45,14 @@ A shared-hosting account needs:
 - FTP or the hosting file manager;
 - a database and database user.
 
+## First administrator: one setup, one login
+
+- **5v.pl (native PHP 7):** use the official 5v.pl installer, then open `https://YOUR-SITE.5v.pl/mc/admin.php`. On a fresh server, enter MySQL details, choose the admin username, email and password **once**. Future visits are ordinary sign-ins. If you use the optional key-based `/mc/public/php7-setup.php` wizard, it now creates the administrator at the same time as the database rather than sending you through another registration page.
+- **Shared PHP 8.2+:** `/shared-install.php` asks for MySQL and final admin credentials together. On an empty database it creates the first owner directly. Then open `/admin/` and sign in — no Setup Secret or activation link.
+- **VPS:** enter the username/password in the private SSH installer, then open `/admin/` to sign in.
+
+Do not try to register a second first owner on an existing installation. The installer preserves existing credentials; use official recovery tools if you have lost them.
+
 ## Archive-based automatic installer — 5V.PL ONLY
 
 New operators can install the **native PHP 7 preview directly from the release
