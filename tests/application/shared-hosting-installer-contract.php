@@ -59,15 +59,21 @@ if (str_contains($installer, 'HTTP_X_FORWARDED_PROTO')) {
 }
 
 $verifyPosition = strpos($installer, 'verifyInstalledSchema($pdo)');
+$ownerPosition = strpos($installer, 'FirstRunSetup::createOwner($pdo, $adminUser, $adminPass)');
 $bootstrapWritePosition = strpos($installer, 'atomicWrite($bootstrapPath, $bootstrap, 0600)');
 if (
     $verifyPosition === false ||
+    $ownerPosition === false ||
     $bootstrapWritePosition === false ||
     $verifyPosition < $bootstrapWritePosition ||
-    str_contains($installer, '$adminStmt->execute([')
+    $ownerPosition <= $verifyPosition ||
+    !str_contains($installer, 'if ($tableCount === 0)') ||
+    !str_contains($installer, '<a href="/admin/">Sign in to the admin panel</a>') ||
+    str_contains($installer, 'Create first administrator (private activation link)') ||
+    str_contains($installer, 'One-time admin setup secret')
 ) {
     throw new RuntimeException(
-        'Shared installation must persist setup-secret hash, verify the schema, and defer owner creation until /admin/.'
+        'Shared installation must create the first owner only on fresh databases and lead directly to sign-in.'
     );
 }
 
