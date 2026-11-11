@@ -98,10 +98,10 @@ try {
     historyCheck(str_contains($service->get(), '#501:Alice:1#3:0:10'),
         'older clients retain their separate user section');
     $_POST = ['accountID'=>'501', 'gameVersion'=>'22'];
-    historyCheck(str_contains($service->get(), 'Bob only') && str_contains($service->get(), '~3~901~'),
+    historyCheck(str_contains($service->get(), base64_encode('Bob only')) && str_contains($service->get(), '~3~901~'),
         'explicit accountID fallback resolves that account only');
     $_POST = ['userID'=>'501', 'accountID'=>'501', 'gameVersion'=>'22'];
-    historyCheck(!str_contains($service->get(), 'Bob only'), 'userID takes precedence over accountID');
+    historyCheck(!str_contains($service->get(), base64_encode('Bob only')), 'userID takes precedence over accountID');
     $_POST = ['userID'=>['501']];
     historyCheck($service->get() === '-1', 'malformed identities produce the protocol failure sentinel');
     $_POST = ['userID'=>'777'];
