@@ -252,15 +252,32 @@ elseif($action==='v4-mod-preset'){
             min(10,(int)($_POST['stars'] ?? 1))
         );
 
+        $newDifficulty=match($stars) {
+            1,8,9,10 => 50,
+            2 => 10, 3 => 20, 4,5 => 30, 6,7 => 40
+        };
+        $isDemon=$stars===10 ? 1 : 0;
+        $isAuto=$stars===1 ? 1 : 0;
         $q=$db->prepare(
-            'UPDATE levels
-             SET stars=:stars,
-                 requested_stars=0
-             WHERE level_id=:id'
+            'UPDATE levels SET
+                stars=:stars,
+                difficulty=:difficulty,
+                demon_difficulty=CASE
+                    WHEN :keep_demon=1 AND demon=1 AND custom_difficulty=0
+                    THEN demon_difficulty ELSE 0 END,
+                demon=:demon,
+                auto_level=:auto,
+                custom_difficulty=0,
+                requested_stars=0,
+                updated_at=NOW()
+             WHERE level_id=:id AND is_deleted=0'
         );
-
         $q->execute([
             'stars'=>$stars,
+            'difficulty'=>$newDifficulty,
+            'keep_demon'=>$isDemon,
+            'demon'=>$isDemon,
+            'auto'=>$isAuto,
             'id'=>$id
         ]);
     }
@@ -300,9 +317,13 @@ elseif($action==='v4-mod-preset'){
             'UPDATE levels
              SET demon=1,
                  stars=10,
+                 difficulty=50,
+                 auto_level=0,
+                 custom_difficulty=0,
                  demon_difficulty=:diff,
-                 requested_stars=0
-             WHERE level_id=:id'
+                 requested_stars=0,
+                 updated_at=NOW()
+             WHERE level_id=:id AND is_deleted=0'
         );
 
         $q->execute([
@@ -314,16 +335,41 @@ elseif($action==='v4-mod-preset'){
         $q=$db->prepare(
             'UPDATE levels
              SET stars=0,
+                 difficulty=0,
+                 auto_level=0,
                  featured=0,
                  epic=0,
-                 demon=0
-             WHERE level_id=:id'
+                 demon=0,
+                 demon_difficulty=0,
+                 custom_difficulty=0,
+                 requested_stars=0,
+                 updated_at=NOW()
+             WHERE level_id=:id AND is_deleted=0'
         );
 
         $q->execute(['id'=>$id]);
     }
     else{
         throw new RuntimeException('Unknown preset');
+    }
+
+    // Every rating/feature preset changes Creator Points and cached lists.
+    $creator=$db->prepare('SELECT account_id FROM levels WHERE level_id=:id AND is_deleted=0');
+    $creator->execute(['id'=>$id]);
+    $authorId=(int)($creator->fetchColumn() ?: 0);
+    if($authorId>0){
+        $cp=$db->prepare('SELECT COALESCE(SUM(
+            CASE WHEN stars>0 THEN 1 ELSE 0 END
+            + CASE WHEN featured>0 THEN 1 ELSE 0 END
+            + epic),0) FROM levels WHERE account_id=:author AND is_deleted=0');
+        $cp->execute(['author'=>$authorId]);
+        $sync=$db->prepare('UPDATE profiles SET creator_points=:cp WHERE account_id=:author');
+        $sync->execute(['cp'=>(int)$cp->fetchColumn(),'author'=>$authorId]);
+    }
+    try{
+        \MuchoCore\Cache\CacheManager::fromEnvironment($db)->deletePrefix('mucho:levels:');
+    }catch(Throwable $cacheError){
+        error_log('[MuchoCore] moderation preset cache invalidation failed: '.$cacheError->getMessage());
     }
 
     audit(
