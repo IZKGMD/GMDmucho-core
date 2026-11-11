@@ -341,7 +341,7 @@ $recoveryService = (string)file_get_contents(
 assertSecurityRegression(
     str_contains($installer, 'Admin panel username: $ADMIN_USER') &&
     str_contains($installer, 'Admin access: https://$DOMAIN/admin/') &&
-    str_contains($installer, 'sudo mucho owner-link'),
+    str_contains($installer, 'sudo mucho admin'),
     'installer reports admin access and private browser setup link'
 );
 
