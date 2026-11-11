@@ -5,6 +5,7 @@ declare(strict_types=1);
 use MuchoCore\Backup\DatabaseBackupService;
 use MuchoCore\Database\Migrator;
 use MuchoCore\Branding\BrandingService;
+use MuchoCore\Admin\FirstRunSetup;
 
 $root = dirname(__DIR__);
 $storage = $root . '/storage';
@@ -748,11 +749,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' || $autoConfig !== null) {
             (new Migrator($pdo,$root . '/database/migrations'))->migrate();
             (new BrandingService($pdo))->saveServerName($gdpsName);
             $pdo->exec('CREATE TABLE IF NOT EXISTS admin_users (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, username VARCHAR(64) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, role VARCHAR(32) NOT NULL DEFAULT \'admin\', totp_secret VARCHAR(64) NULL, access_key_hash VARCHAR(255) NULL, access_key_created_at TIMESTAMP NULL, is_active TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
-            // Leave admin_users empty on a fresh install. The setup secret is
-            // kept only as a password hash in the private bootstrap file;
-            // the first browser visit to /admin/ completes owner registration.
-            // Re-installs preserve any existing administrator accounts.
             verifyInstalledSchema($pdo);
+            // The installer has already verified the operator's hosting and DB
+            // credentials. Create the owner once, instead of asking for those
+            // same credentials again on /admin/.
+            // Never reset or claim an account when reinstalling an existing DB.
+            if ($tableCount === 0) {
+                $createdOwner = FirstRunSetup::createOwner($pdo, $adminUser, $adminPass);
+                if ($createdOwner === null) {
+                    throw new RuntimeException('First administrator setup was already completed. Existing credentials were preserved.');
+                }
+            }
             atomicWrite($installedMarker, 'MuchoCore shared-hosting installation completed: ' . gmdate('c') . PHP_EOL . 'Database server: ' . $version . PHP_EOL . 'Target database: ' . $dbName . PHP_EOL, 0600);
             $_SESSION['mucho_install_csrf'] = bin2hex(random_bytes(32));
             $success = true;
@@ -828,12 +835,12 @@ if ($success) {
     <div class="box">
         <h1>MuchoCore is installed 🎉</h1>
         <div class="ok">
-            The database is connected and migrations finished. Use the private link below to choose your owner username and password without entering another setup secret.
+            Installation finished. The administrator username and password you entered are ready to use. No setup secret or second registration is required.
         </div>
 
         <h2>Next</h2>
         <p><a href="/">Open the GDPS</a></p>
-        <p><a href="/admin/#setup=<?= e(rawurlencode((string)$adminPass)) ?>">Create first administrator (private activation link)</a></p>
+        <p><a href="/admin/">Sign in to the admin panel</a></p>
         <p><a href="/health">Open the health check</a></p>
         <p><a href="/admin/?page=migration">Migrate an existing GDPS database</a></p>
         <p><a href="/clients/">Player client downloads</a></p>
@@ -974,19 +981,19 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
                     <small>1–32 characters. This is the username used at <code>/admin/</code>.</small>
                 </div>
                 <div>
-                    <label for="admin_pass">One-time admin setup secret</label>
+                    <label for="admin_pass">Administrator password</label>
                     <input id="admin_pass" type="password" name="admin_pass" minlength="12" required>
-                    <small>At least 12 characters. Keep it until you finish registration at /admin/.</small>
+                    <small>Use 12 or more characters. This will be your login password.</small>
                 </div>
 
                 <div>
-                    <label for="admin_pass2">Repeat setup secret</label>
+                    <label for="admin_pass2">Confirm administrator password</label>
                     <input id="admin_pass2" type="password" name="admin_pass2" minlength="8" required>
                 </div>
             </div>
 
             <div class="tip">
-                <strong>First visit:</strong> this password is the setup secret, not your final login password. After installation open <code>/admin/</code> and choose your administrator username and new password. The setup secret prevents another visitor from registering first.
+                <strong>One-time setup:</strong> your administrator will be created automatically. After installation, open <code>/admin/</code> and sign in.
             </div>
 
             <button class="button" type="submit" <?= $canInstall ? '' : 'disabled' ?>>
