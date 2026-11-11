@@ -394,18 +394,15 @@ final class CommentService
                         $demon
                     ] = $difficultyMap[$difficultyName];
 
-                    if (
-                        $difficultyName === 'demon' &&
-                        $stars === 0
-                    ) {
-                        $stars = 10;
-                    }
-
-                    if (
-                        $difficultyName === 'auto' &&
-                        $stars === 0
-                    ) {
-                        $stars = 1;
+                    if ($demon===1) {
+                        $stars=10;
+                    } elseif ($auto===1) {
+                        $stars=1;
+                    } elseif ($difficultyName==='na' || $difficultyName==='none') {
+                        $stars=0;
+                    } elseif ($stars===10) {
+                        // Non-Demon with 10 stars would send contradictory GD fields.
+                        break;
                     }
 
                     $updateSql = "
@@ -416,9 +413,13 @@ final class CommentService
                             demon_difficulty =
                                 CASE
                                     WHEN :demon_state = 1
+                                         AND demon = 1
+                                         AND custom_difficulty = 0
                                     THEN demon_difficulty
                                     ELSE 0
                                 END,
+                            custom_difficulty = 0,
+                            requested_stars = 0,
                             auto_level = :auto,
                             updated_at = NOW()";
 
