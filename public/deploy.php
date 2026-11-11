@@ -1040,6 +1040,13 @@ if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/s
             'exit_code' => $status['exit_code'] ?? null,
             'manual_setup_required' => (bool)($status['manual_setup_required'] ?? false),
             'setup_url' => $status['setup_url'] ?? null,
+            'setup_token' => ($status['status'] ?? '') === 'completed'
+                && ($status['provider'] ?? '') === '5v.pl'
+                ? (function () use ($dir): ?string {
+                    $token = trim((string)@file_get_contents($dir . '/setup_token'));
+                    return preg_match('/^[a-f0-9]{64}$/D', $token) === 1 ? $token : null;
+                })()
+                : null,
             'browser_finalization_url' => ($status['status'] ?? '') === 'awaiting_browser'
                 ? ($status['browser_finalization_url'] ?? null)
                 : null,
