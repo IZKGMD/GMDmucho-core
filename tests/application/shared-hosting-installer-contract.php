@@ -148,8 +148,10 @@ foreach ([
     'activation strips fragment from history' => str_contains($wizard, 'history.replaceState'),
     'activation only via POST' => str_contains($wizard, "\$action === 'activate'"),
     'no visible setup-key field' => !str_contains($wizard, '<input id="setup_key"'),
-    'shared installer provides a private activation link' =>
-        str_contains($installer, '/admin/#setup='),
+    'shared installer creates fresh owner once' =>
+        str_contains($installer, 'FirstRunSetup::createOwner($pdo, $adminUser, $adminPass)')
+        && str_contains($installer, 'if ($tableCount === 0)')
+        && !str_contains($installer, '/admin/#setup='),
 
     'CSRF check before enrollment' => str_contains($wizard, 'hash_equals($csrf, $providedCsrf)'),
     'race-safe database lock' => str_contains($firstRun, 'GET_LOCK(:name, 5)'),
