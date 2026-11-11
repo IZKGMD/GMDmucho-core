@@ -88,6 +88,12 @@ function mucho7_admin_bootstrap(PDO $pdo, $settings, $data)
     $name=isset($data['userName']) && is_string($data['userName'])?trim($data['userName']):'';
     $password=isset($data['password']) && is_string($data['password'])?$data['password']:'';
     $email=isset($data['email']) && is_string($data['email'])?trim($data['email']):'';
+    // The browser asks for confirmation. Programmatic installers that have
+    // already validated the password continue to use the existing API.
+    if(array_key_exists('password_confirm',$data)
+        && (!is_string($data['password_confirm']) || !hash_equals($password,$data['password_confirm']))) {
+        throw new RuntimeException('Administrator passwords do not match.');
+    }
     if(!preg_match('/^[A-Za-z0-9_-]{1,20}$/D',$name) || strlen($password)<8 || strlen($password)>72
         || strlen($email)>254 || !filter_var($email,FILTER_VALIDATE_EMAIL)) {
         throw new RuntimeException('Check the account username, email, and password (8–72 bytes).');
