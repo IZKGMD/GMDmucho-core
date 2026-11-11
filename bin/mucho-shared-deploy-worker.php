@@ -1339,8 +1339,21 @@ function deploy_native_5v(array $config, string $password, string $jobDir, strin
                 throw new RuntimeException('Cannot restore verified 5v.pl root for setup authorization.');
             }
             ftp_put_with_heartbeat($ftp, 'mc/config/php7-setup-key.txt', $localTokenFile, $logPath, 'private setup key');
-            if (@ftp_size($ftp, 'mc/config/php7-setup-key.txt') !== 64) {
-                throw new RuntimeException('Could not verify private setup authorization upload.');
+            $remoteSize = @ftp_size($ftp, 'mc/config/php7-setup-key.txt');
+            if ($remoteSize >= 0 && $remoteSize !== 64) {
+                throw new RuntimeException('Private setup authorization upload has the wrong size.');
+            }
+            // FTP SIZE is optional. Always verify the contents without
+            // logging the token, so a truncated upload cannot create a
+            // broken "setup" button for a first-time user.
+            $readback = $jobDir . '/native-setup-key.readback';
+            try {
+                if (!@ftp_get($ftp, $readback, 'mc/config/php7-setup-key.txt', FTP_BINARY)
+                    || !hash_equals($setupToken, (string)@file_get_contents($readback))) {
+                    throw new RuntimeException('Could not verify one-time admin setup authorization.');
+                }
+            } finally {
+                @unlink($readback);
             }
         } finally {
             @unlink($localTokenFile);
