@@ -186,6 +186,7 @@ body.mc-admin .admin-live-audit-action{font:11px ui-monospace,Menlo,Consolas,mon
 body.mc-admin .admin-live-audit-target{font-size:11px;color:var(--mc-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Login / first-admin card uses the same tone as the workspace. */
+body.admin-login.mc-workspace,body.admin-login.mc-workspace *,body.admin-login.mc-workspace *::before,body.admin-login.mc-workspace *::after{box-sizing:border-box}
 body.admin-login.mc-workspace{
  --mc-bg:#f4f3ef;--mc-surface:#fffefa;--mc-raised:#ebece6;--mc-line:#d9d9d2;
  --mc-text:#222620;--mc-muted:#646a63;--mc-accent:#b9402d;--mc-action:#222620;
@@ -193,7 +194,7 @@ body.admin-login.mc-workspace{
 }
 body.admin-login.mc-workspace::before,body.admin-login.mc-workspace::after{display:none}
 body.admin-login.mc-workspace .admin-auth-card{
- width:min(445px,calc(100% - 28px));padding:32px;border:1px solid var(--mc-line);
+ width:min(445px,100%);min-width:0;padding:32px;border:1px solid var(--mc-line);
  background:var(--mc-surface);border-radius:5px;box-shadow:none;
 }
 body.admin-login.mc-workspace .mc-auth-eyebrow{font:600 10px ui-monospace,Menlo,Consolas,monospace;color:var(--mc-accent);letter-spacing:.055em}
