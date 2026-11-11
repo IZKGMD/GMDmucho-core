@@ -555,48 +555,32 @@ else
   MUCHO_DB_ROOT_PASSWORD="$(openssl rand -hex 32)"
 fi
 
-# Fresh VPS installations create the owner right here in the SSH console.
-# Existing installations retain their private credential and administrator.
+# Interactive fresh installs let the owner choose credentials in the browser.
+# Unattended installs with a private password keep the CLI initialization path.
 OWNER_PENDING="$INSTALL_DIR/.secrets/owner-initialize-pending"
+OWNER_BROWSER_PENDING="$INSTALL_DIR/.secrets/owner-browser-pending"
 OWNER_FRESH=0
+OWNER_BROWSER=0
 if [[ -s "$OWNER_PENDING" ]]; then
   ADMIN_USER="$(cat "$OWNER_PENDING")"
+fi
+if [[ -f "$OWNER_BROWSER_PENDING" ]]; then
+  OWNER_BROWSER=1
 fi
 
 if [[ ! -s "$INSTALL_DIR/.secrets/admin_password" ]]; then
   OWNER_FRESH=1
-  if [[ -r /dev/tty && -w /dev/tty && ( -t 1 || -t 2 ) ]]; then
-    printf '\n  First administrator account\n'
-    read -r -p "  Administrator username [$ADMIN_USER]: " typed_owner < /dev/tty || fail "Could not read administrator username."
-    ADMIN_USER="${typed_owner:-$ADMIN_USER}"
-    unset typed_owner
-  fi
-  [[ "$ADMIN_USER" =~ ^[A-Za-z_][A-Za-z0-9_-]{0,31}$ ]] ||
-    fail "Administrator username must start with a Latin letter or underscore, followed by up to 31 letters, digits, underscores or hyphens."
   if [[ -z "$MUCHO_ADMIN_PASSWORD" ]]; then
     [[ -r /dev/tty && -w /dev/tty && ( -t 1 || -t 2 ) ]] ||
       fail "Unattended installation requires MUCHO_ADMIN_PASSWORD in a private environment. Never pass it as a command argument."
-    password_ok=0
-    for attempt in 1 2 3; do
-      read -r -s -p "  New administrator password (12–256 characters): " first < /dev/tty || fail "Could not read password."
-      printf '\n'
-      read -r -s -p "  Confirm administrator password: " second < /dev/tty || fail "Could not read password confirmation."
-      printf '\n'
-      first_bytes="$(printf '%s' "$first" | wc -c)"
-      if [[ "$first_bytes" -lt 12 || "$first_bytes" -gt 256 || "$first" == *[[:cntrl:]]* ]]; then
-        warn "Password must contain 12–256 characters without control characters."
-      elif [[ "$first" != "$second" ]]; then
-        warn "Passwords do not match."
-      else
-        MUCHO_ADMIN_PASSWORD="$first"
-        password_ok=1
-        break
-      fi
-    done
-    unset first second
-    [[ "$password_ok" -eq 1 ]] || fail "Could not choose a valid administrator password."
+    MUCHO_ADMIN_PASSWORD="$(openssl rand -hex 32)"
+    OWNER_BROWSER=1
+    touch "$OWNER_BROWSER_PENDING"
+    chmod 600 "$OWNER_BROWSER_PENDING"
+    info "After installation, open the private link shown below and choose the administrator login and password in your browser."
+  else
+    info "First administrator will be created securely after database migrations."
   fi
-  info "First administrator will be created securely after database migrations."
 else
   MUCHO_ADMIN_PASSWORD="$(cat "$INSTALL_DIR/.secrets/admin_password")"
   info "Existing administrator secret kept; no password change requested."
@@ -605,7 +589,7 @@ fi
 [[ "$ADMIN_USER" =~ ^[A-Za-z_][A-Za-z0-9_-]{0,31}$ ]] || fail "Invalid administrator username."
 # Preserve legacy credentials on existing installations without revalidating
 # the old setup-secret policy; fresh credentials use the new stricter policy.
-if [[ "$OWNER_FRESH" -eq 1 ]]; then
+if [[ "$OWNER_FRESH" -eq 1 && "$OWNER_BROWSER" -eq 0 ]]; then
   admin_password_bytes="$(printf '%s' "$MUCHO_ADMIN_PASSWORD" | wc -c)"
   [[ "$admin_password_bytes" -ge 12 && "$admin_password_bytes" -le 256 ]] ||
     fail "Administrator password must contain 12–256 characters."
@@ -617,7 +601,7 @@ log "Admin panel username: $ADMIN_USER"
 printf '%s' "$MUCHO_DB_PASSWORD" > "$INSTALL_DIR/.secrets/db_password"
 printf '%s' "$MUCHO_DB_ROOT_PASSWORD" > "$INSTALL_DIR/.secrets/db_root_password"
 printf '%s' "$MUCHO_ADMIN_PASSWORD" > "$INSTALL_DIR/.secrets/admin_password"
-if [[ "$OWNER_FRESH" -eq 1 ]]; then
+if [[ "$OWNER_FRESH" -eq 1 && "$OWNER_BROWSER" -eq 0 ]]; then
   printf '%s\n' "$ADMIN_USER" > "$OWNER_PENDING"
   chmod 600 "$OWNER_PENDING"
 fi
@@ -1146,8 +1130,7 @@ Admin:  https://$DOMAIN/admin/
 Health: https://$DOMAIN/health
 Path:   $INSTALL_DIR
 
-Administrator username: $ADMIN_USER
-Login: use the username and password set in this installer.
+Admin access: https://$DOMAIN/admin/
 Existing installs: admin credentials are preserved; use sudo mucho for password resets.
 
 Update:
@@ -1167,5 +1150,17 @@ Migration:
 
 EOFOUT
 
-# Older installations without an owner retain their previous private
-# activation mechanism. Normal new VPS installs finish with a login-ready owner.
+if [[ "$OWNER_BROWSER" -eq 1 ]]; then
+  if owner_link="$(run_compose exec -T app php bin/mucho-owner-link.php 2>&1)"; then
+    printf '\n%s\n' "$owner_link"
+    printf 'If you lose this link before setup, run: sudo mucho owner-link\n'
+  else
+    # A rerun after successful browser registration must not reopen setup.
+    owner_count="$(run_compose exec -T app php -r 'require "vendor/autoload.php"; echo (new \MuchoCore\Database\Database())->connection()->query("SELECT COUNT(*) FROM admin_users")->fetchColumn();')"
+    if [[ "$owner_count" == "0" ]]; then
+      fail "Administrator setup link is unavailable: $owner_link"
+    fi
+    rm -f "$OWNER_BROWSER_PENDING"
+    info "Administrator setup was already completed. Sign in at https://$DOMAIN/admin/."
+  fi
+fi
