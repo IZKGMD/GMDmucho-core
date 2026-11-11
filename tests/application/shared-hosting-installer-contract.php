@@ -83,7 +83,7 @@ $php7Admin = file_get_contents($root . '/compat/php7/admin.php');
 if (!is_string($php7Setup) || !is_string($php7View) || !is_string($php7Admin)
     || !str_contains($php7Setup, 'mucho7_admin_bootstrap($pdo, $options')
     || !str_contains($php7Setup, 'admin_password_confirm')
-    || !str_contains($php7Setup, 'Sign in to your admin panel')
+    || !str_contains($php7Setup, 'href="php7-admin.php"')
     || !str_contains($php7View, 'name="password_confirm"')
     || !str_contains($php7View, 'name="db_password"')
     || !str_contains($php7Admin, "array_key_exists('password_confirm',\$data)")
