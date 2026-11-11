@@ -131,6 +131,7 @@ jobs:
           php tests/protocol/php8-request-int-bounds.php
           php tests/application/game-roles.php
           php tests/application/admin-rating-contract.php
+          php tests/protocol/demon-rating-matrix.php
           php tests/application/admin-2fa-contract.php
           php tests/application/admin-access-key-contract.php
           php tests/application/admin-passkey-contract.php
