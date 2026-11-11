@@ -688,7 +688,7 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
             'type' => 'shared',
             'provider' => '5v.pl',
             'manual_setup_required' => true,
-            'setup_url' => $accountUrl . '/mc/admin.php',
+            'setup_url' => $accountUrl . '/mc/public/php7-setup.php',
             'status' => $queueFull ? 'queued' : 'starting',
             'state' => $queueFull ? 'Waiting for deployment slot' : 'Starting deployment worker',
             'created_at' => gmdate('c'),
@@ -1040,6 +1040,13 @@ if (($method === 'GET' || $method === 'POST') && in_array($path, ['/api/deploy/s
             'exit_code' => $status['exit_code'] ?? null,
             'manual_setup_required' => (bool)($status['manual_setup_required'] ?? false),
             'setup_url' => $status['setup_url'] ?? null,
+            'setup_token' => ($status['status'] ?? '') === 'completed'
+                && ($status['provider'] ?? '') === '5v.pl'
+                ? (function () use ($dir): ?string {
+                    $token = trim((string)@file_get_contents($dir . '/setup_token'));
+                    return preg_match('/^[a-f0-9]{64}$/D', $token) === 1 ? $token : null;
+                })()
+                : null,
             'browser_finalization_url' => ($status['status'] ?? '') === 'awaiting_browser'
                 ? ($status['browser_finalization_url'] ?? null)
                 : null,

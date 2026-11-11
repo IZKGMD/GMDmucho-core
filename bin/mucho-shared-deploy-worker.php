@@ -1324,22 +1324,76 @@ function deploy_native_5v(array $config, string $password, string $jobDir, strin
         worker_state($statusPath, $logPath, 'Uploading native 5v.pl files');
         $count = upload_tree($ftp, $stage, $root, $logPath);
         log_line($logPath, "[MuchoGDPS] Uploaded {$count} PHP 7 native files over " . strtoupper($security) . " port {$port}.\n");
+
+        // Upload a private one-time capability only after the target web root
+        // and fresh mc/ package have been verified. The tenant's .htaccess
+        // denies all HTTP access to mc/config/; never put this in logs/status.
+        $setupToken = bin2hex(random_bytes(32));
+        $localTokenFile = $jobDir . '/native-setup-key.tmp';
+        if (file_put_contents($localTokenFile, $setupToken, LOCK_EX) !== 64) {
+            throw new RuntimeException('Could not prepare private native setup authorization.');
+        }
+        @chmod($localTokenFile, 0600);
+        try {
+            if (!@ftp_chdir($ftp, $root)) {
+                throw new RuntimeException('Cannot restore verified 5v.pl root for setup authorization.');
+            }
+            ftp_put_with_heartbeat($ftp, 'mc/config/php7-setup-key.txt', $localTokenFile, $logPath, 'private setup key');
+            $remoteSize = @ftp_size($ftp, 'mc/config/php7-setup-key.txt');
+            if ($remoteSize >= 0 && $remoteSize !== 64) {
+                throw new RuntimeException('Private setup authorization upload has the wrong size.');
+            }
+            // FTP SIZE is optional. Always verify the contents without
+            // logging the token, so a truncated upload cannot create a
+            // broken "setup" button for a first-time user.
+            $readback = $jobDir . '/native-setup-key.readback';
+            try {
+                if (!@ftp_get($ftp, $readback, 'mc/config/php7-setup-key.txt', FTP_BINARY)
+                    || !hash_equals($setupToken, (string)@file_get_contents($readback))) {
+                    throw new RuntimeException('Could not verify one-time admin setup authorization.');
+                }
+            } finally {
+                @unlink($readback);
+            }
+        } finally {
+            @unlink($localTokenFile);
+        }
+        // Confirm the installed Apache deny rule actually protects config.
+        // Do not hand the link to the operator if the private key is web-
+        // readable or the host's TLS setup is malfunctioning.
+        $probeCookie = $jobDir . '/native-setup-probe.cookie';
+        try {
+            $probe = http_request($url . '/mc/config/php7-setup-key.txt', $ips[0], $probeCookie);
+            if (!in_array((int)$probe['status'], [403, 404], true)) {
+                @ftp_delete($ftp, 'mc/config/php7-setup-key.txt');
+                throw new RuntimeException('The hosting server did not protect private setup files over HTTPS.');
+            }
+        } finally {
+            @unlink($probeCookie);
+        }
+        // Private per-job file: only the original deployment session can read
+        // the value through the authenticated /api/deploy/log endpoint.
+        if (file_put_contents($jobDir . '/setup_token', $setupToken, LOCK_EX) !== 64) {
+            throw new RuntimeException('Could not retain the one-time setup link for the operator.');
+        }
+        @chmod($jobDir . '/setup_token', 0600);
+        unset($setupToken);
     } finally {
         @ftp_close($ftp);
     }
 
-    // Web-root .htaccess is NEVER overwritten. Native database/owner setup is
-    // performed in the user's own browser and is not marked as completed here.
+    // Web-root .htaccess is NEVER overwritten. Database/owner setup is
+    // completed on 5v.pl through the protected one-click browser wizard.
     $status = read_json_file($statusPath);
     $status['status'] = 'completed';
     $status['manual_setup_required'] = true;
-    $status['setup_url'] = $url . '/mc/admin.php';
+    $status['setup_url'] = $url . '/mc/public/php7-setup.php';
     $status['state'] = 'PHP 7 uploaded; finish first-owner setup on 5v.pl';
     $status['exit_code'] = 0;
     $status['finished_at'] = gmdate('c');
     write_status($statusPath, $status);
     log_line($logPath, "[MuchoGDPS] FILE UPLOAD ONLY; the GDPS is NOT yet installed or client-certified.\n");
-    log_line($logPath, "[MuchoGDPS] Copy mc/compat/php7/config.example.php to mc/config/php7-local.php, configure an EMPTY MySQL database, then open " . $url . "/mc/admin.php\n");
+    log_line($logPath, "[MuchoGDPS] Next: create an EMPTY MySQL database in 5v.pl, then click the private setup button to enter MySQL details and create the owner in one form.\n");
     log_line($logPath, "[MuchoGDPS] Merge 5V_ROOT_REWRITE_RULES.txt into the website-root .htaccess manually.\n");
     log_line($logPath, "[MuchoGDPS] PHP 7 is end-of-life; GD 2.209 real-client verification is pending.\n");
 }

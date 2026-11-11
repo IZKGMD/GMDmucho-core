@@ -190,20 +190,26 @@ async function finish(ok,status,timedOut=false,details={}){
     if(details.manual_setup_required){
       setState('Файлы загружены, нужна настройка','wait');
       resultTitle.textContent='5V.PL: PHP 7 файлы загружены.';
-      resultText.textContent='Это ещё не готовый GDPS. Создай пустую MySQL-базу, скопируй mc/compat/php7/config.example.php в приватный mc/config/php7-local.php и укажи данные БД. Затем создай первого владельца на /mc/admin.php. Добавь правила из 5V_ROOT_REWRITE_RULES.txt в корневой .htaccess и проверь реальный клиент.';
+      resultText.textContent='1. Создай пустую MySQL-базу в панели 5v.pl (раздел MySQL). 2. Нажми кнопку ниже. 3. В открывшейся форме укажи данные базы и придумай логин, почту и пароль администратора. Готово — больше ничего вручную копировать не нужно. Позже проверь правила GD и совместимость клиента.';
       let setup=null;
       try{
         setup=new URL(String(details.setup_url||''),location.origin);
-        if(setup.protocol!=='https:'||!(/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.5v\.pl$/i.test(setup.hostname))||setup.pathname!=='/mc/admin.php')setup=null;
+        if(setup.protocol!=='https:'||!(/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.5v\.pl$/i.test(setup.hostname))||setup.pathname!=='/mc/public/php7-setup.php')setup=null;
       }catch(_){setup=null;}
-      if(setup){
+      const secret=String(details.setup_token||'');
+      if(setup && /^[a-f0-9]{64}$/.test(secret)){
+        setup.hash='setup='+secret;
         const link=document.createElement('a');
         link.className='btn primary';
         link.href=setup.href;
         link.target='_blank';
         link.rel='noopener noreferrer';
-        link.textContent='Завершить настройку на 5V.PL';
+        link.textContent='Открыть мастер настройки админки';
         result.appendChild(link);
+      }else{
+        const note=document.createElement('p');
+        note.textContent='Защищённая ссылка недоступна. Открой страницу установки в том же браузере и проверь, не истёк ли сеанс.';
+        result.appendChild(note);
       }
       return;
     }

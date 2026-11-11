@@ -149,10 +149,7 @@ normal PHP 8.2+ shared package **cannot** run there. The online installer:
 3. Uploads to a **fresh `mc/` directory only**. It refuses to overwrite
    existing `mc/` installations and does not modify an existing website
    `.htaccess`.
-4. Shows an **incomplete** state after FTP upload. The owner must still create
-   an empty MySQL database, configure `mc/config/php7-local.php` from
-   `mc/compat/php7/config.example.php`, and open
-   `https://name.5v.pl/mc/admin.php` to initialize the native owner/database.
+4. After FTP upload, the page shows **Open admin setup wizard**. Create an empty MySQL database in your 5v.pl control panel, then click the button. The setup key is passed privately through the URL fragment, filled automatically, and removed from the address bar. Enter MySQL details and the final administrator username, email, and password once. No PHP config file editing or SSH is required. The job remains **files uploaded / setup required** until the owner completes this step.
 5. Requires adding the exact routing rules from
    `5V_ROOT_REWRITE_RULES.txt` to the WEBSITE ROOT `.htaccess`, then testing
    `/health`, authentication and the actual Geometry Dash 2.209 client.

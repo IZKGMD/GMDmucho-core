@@ -10,6 +10,8 @@ $dockerCompose = file_get_contents($root . '/docker-compose.yml');
 $page = file_get_contents($root . '/public/install/shared/index.html');
 $goPage = file_get_contents($root . '/public/install/shared/go/index.html');
 $sharedInstall = file_get_contents($root . '/public/shared-install.php');
+$php7Wizard = file_get_contents($root . '/public/php7-setup.php');
+$nativeBuilder = file_get_contents($root . '/tools/release/build-php7-native.sh');
 
 foreach ([
     'public/deploy.php' => $deploy,
@@ -90,6 +92,43 @@ foreach ([
 
 if (str_contains($worker, 'ftpPassword]') || str_contains($worker, 'dbPassword]') || str_contains($worker, 'adminPassword]')) {
     throw new RuntimeException('Shared FTP worker must not log raw secret values by variable name.');
+}
+
+foreach ([
+    'public/php7-setup.php' => $php7Wizard,
+    'tools/release/build-php7-native.sh' => $nativeBuilder,
+] as $path => $source) {
+    if (!is_string($source) || $source === '') {
+        throw new RuntimeException('Native installer source missing: ' . $path);
+    }
+}
+
+foreach ([
+    "bin2hex(random_bytes(32))",
+    "mc/config/php7-setup-key.txt",
+    "ftp_get(\$ftp, \$readback",
+    "hash_equals(\$setupToken",
+    "'/mc/public/php7-setup.php'",
+    "'setup_token'",
+] as $needle) {
+    if (!str_contains($worker . $deploy, $needle)) {
+        throw new RuntimeException('Private 5v.pl one-click setup flow missing: ' . $needle);
+    }
+}
+// This endpoint is session-bound; the one-time capability is never included in
+// status metadata, public logs, release archives or GET request query strings.
+if (!str_contains($deploy, 'deployment_session_job_ok($id)')
+    || !str_contains($deploy, "'setup_token' => (\$status['status'] ?? '') === 'completed'")
+    || !str_contains($goPage, "setup.hash='setup='+secret")
+    || !str_contains($goPage, "Открыть мастер настройки админки")
+    || !str_contains($php7Wizard, "window.location.hash")
+    || !str_contains($php7Wizard, "history.replaceState")
+    || !str_contains($php7Wizard, "hash_equals(\$key, \$submittedKey)")
+    || !str_contains($php7Wizard, "@unlink(\$keyFile)")
+    || !str_contains($nativeBuilder, "mc/config/php7-setup-key.txt")
+    || !str_contains($nativeBuilder, "Require all denied")
+    || str_contains($goPage, "config.example.php и укажи данные БД")) {
+    throw new RuntimeException('5v.pl owner setup must be one-click, private and single-use.');
 }
 
 foreach ([

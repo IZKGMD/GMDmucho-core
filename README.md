@@ -33,8 +33,7 @@ so the PHP 8.2+ full-core shared release cannot run there.
 2. Enter only the site domain and FTP credentials at the MuchoCore online wizard.
    The server rejects any other hosting provider; it builds and uploads the
    **PHP 7 native preview**, not the PHP 8 core.
-3. Open `https://name.5v.pl/mc/admin.php`. Configure a new **empty MySQL
-   database** and choose the first owner directly on the target website.
+3. After FTP upload, click **Open admin setup wizard** in the MuchoCore installer. Create a new **empty MySQL database** in your 5v.pl hosting panel, then enter its credentials, your owner username, email, and password in the wizard. The installer automatically supplies the private one-time setup key; do not edit PHP files or register again. After successful setup, open `https://name.5v.pl/mc/admin.php` to sign in.
 4. Merge `5V_ROOT_REWRITE_RULES.txt` into your domain-root `.htaccess`
    without overwriting existing rules.
 5. Verify `/health` and test Geometry Dash in the real client. The uploader
