@@ -96,7 +96,7 @@ func (h *Handler) uploadLevelList(r request) (string, error) {
 		parts[i] = strconv.FormatInt(id, 10)
 	}
 	var count int
-	if err = h.db.QueryRowContext(r.ctx, `SELECT COUNT(DISTINCT level_id) FROM levels WHERE level_id IN (`+strings.TrimRight(strings.Repeat("?,", len(ids)), ",")+`)`, args...).Scan(&count); err != nil {
+	if err = h.db.QueryRowContext(r.ctx, `SELECT COUNT(DISTINCT level_id) FROM levels WHERE level_id IN (`+strings.TrimRight(strings.Repeat("?,", len(ids)), ",")+`) AND COALESCE(is_deleted,0)=0`, args...).Scan(&count); err != nil {
 		return "", err
 	}
 	if count != len(ids) {
