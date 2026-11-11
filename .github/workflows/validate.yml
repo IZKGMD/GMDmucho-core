@@ -693,6 +693,9 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/disaster-recovery-integration.php
 
+      - name: Verify PHP 8 uploaded MP3 snapshot and safe restore
+        run: php tests/application/music-snapshot-test.php
+
       - name: Verify lightweight level search and client wire compatibility
         env:
           TEST_DB_HOST: 127.0.0.1
