@@ -25,6 +25,9 @@ require dirname(__DIR__,2).'/vendor/autoload.php';
 
 if (!headers_sent()) {
     header('X-Frame-Options: DENY');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: no-referrer');
+    header('Cache-Control: private, no-store, max-age=0');
     header("Content-Security-Policy: frame-ancestors 'none'");
 }
 
