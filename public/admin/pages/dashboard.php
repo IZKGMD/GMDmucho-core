@@ -139,7 +139,7 @@ function renderAdminDashboard(PDO $db): void
                 <p>Players, levels and content at a glance.</p>
             </div>
             <div class="mc-ops-intro-aside">
-                <span class="mc-ops-snapshot" title="Database figures are refreshed when the page loads">Snapshot · <?=h(date('H:i'))?> server time</span>
+                <span class="mc-ops-snapshot" title="Database figures are refreshed when the page loads"><span>Snapshot</span> · <?=h(date('H:i'))?> <span>server time</span></span>
                 <a class="mc-ops-secondary" href="/dashboard" target="_blank" rel="noopener noreferrer">Player portal <span aria-hidden="true">↗</span></a>
             </div>
         </header>
