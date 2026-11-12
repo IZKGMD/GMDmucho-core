@@ -16,7 +16,7 @@
 | **Shared with PHP 8.2+** | [Manual shared ZIP](#1-shared-hosting-php-82--full-core) | Full core and web admin; no Docker or SSH needed |
 | **5v.pl / PHP 7.0** | [PHP7 preview artifact](#2-5vpl--php-70-experimental) | Native runtime, original admin, shared worker, browser client patcher and compiled services |
 
-**Before installing:** Have a working HTTPS domain and database ready. Your hosting provider must allow requests from the Geometry Dash client; a working browser page alone is not proof that the game can connect.
+**VPS quick start (RU):** [One-command PHP 8 setup, updates and safety checks](docs/VPS_INSTALL_QUICK_RU.md).\n\n**Before installing:** Have a working HTTPS domain and database ready. Your hosting provider must allow requests from the Geometry Dash client; a working browser page alone is not proof that the game can connect.
 
 ## 1. Shared hosting (PHP 8.2+) — full core
 

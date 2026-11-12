@@ -2465,7 +2465,7 @@ max-width:100%
 <link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=7">
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=7">
+<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=8">
 <link rel="stylesheet" href="/admin/admin-unified.css?v=2">
 <link rel="stylesheet" href="/admin/admin-light.css?v=2">
 <script src="/admin/admin-simple.js?v=3" defer></script>
@@ -5041,7 +5041,7 @@ table{
 <link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=6">
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=7">
+<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=8">
 <link rel="stylesheet" href="/admin/admin-unified.css?v=2">
 <link rel="stylesheet" href="/admin/admin-light.css?v=2">
 <?php if ($page==='admins'): ?>
