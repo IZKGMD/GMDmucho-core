@@ -39,7 +39,7 @@ def admin(base):
 <link rel="stylesheet" href="{base}/admin/admin-workspace.css?v=7">
 <link rel="stylesheet" href="{base}/admin/admin-motion.css?v=2">
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=6"></head>
+<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=7"></head>
 <body class="mc-admin"><div class="mobile-overlay" id="mobileOverlay"></div><div class="shell">
 <aside id="adminNavigation" aria-label="Admin navigation"><div class="brandrow"><a class="logo" href="#"><img src="{base}/assets/muchocore-icon.png?v=3" alt="" width="32" height="32">MuchoCore</a></div>
 <section class="mc-instance"><span>ACTIVE INSTANCE</span><strong>MuchoCore</strong><a href="#">Player portal ↗</a></section>
@@ -47,7 +47,7 @@ def admin(base):
 <a class="on" href="#">Overview</a><a href="#">Players</a><a href="#">Levels</a><a href="#">Music</a><a href="#">Moderation</a>
 <p class="nav-title">SYSTEM</p><a href="#">Settings</a><a href="#">Backup</a></nav></aside>
 <main id="main" tabindex="-1"><header class="head"><button type="button" class="mobile-menu-btn" id="mobileMenuButton" aria-label="Open menu" aria-expanded="false" aria-controls="adminNavigation">☰</button><div class="head-title"><span class="mc-section-caption">MUCHOCORE ADMIN</span><h1>Dashboard</h1></div>
-<form class="global-search"><select aria-label="Search type"><option>Players</option></select><input placeholder="Search..." aria-label="Search"><button type="button">Search</button></form><div class="mc-header-actions"><details class="mc-view-menu"><summary aria-label="Interface options">View</summary><div class="mc-view-popover"></div></details><a class="mc-header-portal" href="#">Player portal ↗</a></div></header>
+<form class="global-search"><select aria-label="Search type"><option>Players</option></select><input placeholder="Search..." aria-label="Search"><button type="button">Search</button></form><div class="mc-header-actions"><details class="mc-view-menu"><summary aria-label="Interface options">View</summary><div class="mc-view-popover"></div></details></div></header>
 <div class="mc-ops"><header class="mc-ops-intro"><div><p class="mc-ops-kicker">MUCHOCORE / WORKSPACE</p><h2>Server overview</h2><p>Players, levels and content at a glance.</p></div><div class="mc-ops-intro-aside"><span class="mc-ops-snapshot">Snapshot · preview server time</span><a class="mc-ops-secondary" href="#">Player portal ↗</a></div></header>
 
 <section class="mc-ops-summary"><div class="mc-ops-summary-item"><span class="mc-ops-summary-top">Players<span>↗</span></span><strong>—</strong><small>Live server figure</small></div><div class="mc-ops-summary-item"><span class="mc-ops-summary-top">Levels<span>↗</span></span><strong>—</strong><small>Stored levels</small></div><div class="mc-ops-summary-item"><span class="mc-ops-summary-top">Songs<span>↗</span></span><strong>—</strong><small>Community tracks</small></div></section>
