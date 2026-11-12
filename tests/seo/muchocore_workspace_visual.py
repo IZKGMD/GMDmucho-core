@@ -125,7 +125,7 @@ def main():
                         page.set_content(build(base),wait_until="networkidle")
                         page.locator("body").wait_for()
                         body_color=page.locator("body").evaluate("(e)=>getComputedStyle(e).backgroundColor")
-                        assert body_color==("rgb(16, 18, 24)" if name=="admin" else "rgb(16, 16, 23)"),(name,width,body_color)
+                        assert body_color==("rgb(16, 18, 24)" if name in ("admin","login") else "rgb(16, 16, 23)"),(name,width,body_color)
                         over=page.evaluate("document.documentElement.scrollWidth-innerWidth")
                         assert over<=1,(name,width,"horizontal overflow",over, page.evaluate("""() => [...document.querySelectorAll('body *')].filter(el => el.getBoundingClientRect().right > innerWidth + 1).slice(0, 8).map(el => [el.tagName, el.className, Math.round(el.getBoundingClientRect().right)])"""))
                         assert not errors,(name,width,errors)
