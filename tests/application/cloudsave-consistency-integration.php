@@ -9,6 +9,8 @@ declare(strict_types=1);
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 use MuchoCore\CloudSave\CloudSaveRepository;
+use MuchoCore\CloudSave\CloudSaveService;
+use MuchoCore\Account\AccountAuthenticator;
 
 $host = getenv('TEST_DB_HOST');
 $password = getenv('TEST_DB_ROOT_PASSWORD');
@@ -56,9 +58,27 @@ try {
     $server->exec('CREATE DATABASE ' . $name . ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
     $db = $connect($name);
     $db->exec('CREATE TABLE accounts (
-        account_id BIGINT UNSIGNED NOT NULL PRIMARY KEY
+        account_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+        username VARCHAR(64) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        gjp2_hash VARCHAR(255) NOT NULL DEFAULT \'\',
+        is_active TINYINT NOT NULL DEFAULT 1,
+        is_banned TINYINT NOT NULL DEFAULT 0,
+        UNIQUE KEY uq_username (username)
     ) ENGINE=InnoDB');
-    $db->exec('INSERT INTO accounts(account_id) VALUES (1),(2)');
+    $firstPassword = ' cloud test 1 ';
+    $secondPassword = 'cloud test 2';
+    $gjp2 = str_repeat('a', 40);
+    $insertAccount = $db->prepare('INSERT INTO accounts
+        (account_id,username,password_hash,gjp2_hash)
+        VALUES (?,?,?,?)');
+    $insertAccount->execute([1, 'alpha', password_hash($firstPassword, PASSWORD_BCRYPT), password_hash($gjp2, PASSWORD_BCRYPT)]);
+    $insertAccount->execute([2, 'beta', password_hash($secondPassword, PASSWORD_BCRYPT), '']);
+    $db->exec('CREATE TABLE profiles (
+        user_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        account_id BIGINT UNSIGNED NOT NULL UNIQUE
+    ) ENGINE=InnoDB');
+    $db->exec('INSERT INTO profiles(account_id) VALUES (1),(2)');
     foreach (require dirname(__DIR__, 2) . '/database/migrations/20260923_001_cloud_save.php' as $sql) {
         $db->exec($sql);
     }
@@ -145,6 +165,70 @@ try {
     }
     $check($missingRejected && $repository->load(999) === null,
         'missing account cannot create orphan save');
+
+    // HTTP/controller business logic uses the same authenticated service.
+    // This covers both data integrity and malformed account identifiers that
+    // would previously be silently truncated by PHP's integer cast.
+    $service = new CloudSaveService(
+        $db,
+        new AccountAuthenticator($db),
+        $repository
+    );
+    $wireSave = 'authenticated-save;21;30;a;a';
+    $valid = [
+        'accountID' => '0001',
+        'password' => $firstPassword,
+        'saveData' => $wireSave,
+    ];
+    $check($service->backup($valid) === '1', 'cloud save accepts leading-zero decimal ID and valid password');
+    $check($repository->load(1) === $wireSave &&
+        $service->sync(['accountID' => '1', 'password' => $firstPassword]) === $wireSave,
+        'authenticated backup and sync round-trip exactly');
+
+    $rejected = static function (array $payload, string $reason) use ($service, $repository, $check): void {
+        $before = $repository->load(1);
+        $blocked = false;
+        try {
+            $service->backup($payload);
+        } catch (RuntimeException) {
+            $blocked = true;
+        }
+        $check($blocked && $repository->load(1) === $before, $reason);
+    };
+
+    foreach (['1junk', '1.0', '1e0', '-1', ' 1', '9223372036854775808'] as $malformed) {
+        $rejected(array_replace($valid, ['accountID' => $malformed, 'saveData' => 'corruption']),
+            'malformed account ID fails closed: ' . $malformed);
+    }
+    $rejected(array_replace($valid, ['accountID' => ['1']]),
+        'array account ID fails closed');
+    $rejected(array_replace($valid, ['userName' => ['alpha']]),
+        'array username fails closed');
+    $rejected(array_replace($valid, ['password' => $secondPassword]),
+        'another user password cannot overwrite cloud save');
+    $rejected(array_replace($valid, ['password' => '']),
+        'missing credential cannot overwrite cloud save');
+
+    $syncRejected = false;
+    try {
+        $service->sync(['accountID' => 1, 'password' => $secondPassword]);
+    } catch (RuntimeException) {
+        $syncRejected = true;
+    }
+    $check($syncRejected, 'another user password cannot read cloud save');
+    $check($service->sync(['accountID' => '1', 'gjp2' => $gjp2]) === $wireSave,
+        'GD 2.209 GJP2 credential can read cloud save');
+    $check($service->sync(['userName' => 'alpha', 'password' => $firstPassword]) === $wireSave,
+        'legacy username-only authentication remains available');
+    $check($service->sync(['accountID' => '0', 'userName' => 'alpha', 'password' => $firstPassword]) === $wireSave,
+        'explicit zero account ID still falls back to authenticated username');
+
+    $db->exec('UPDATE accounts SET is_banned=1 WHERE account_id=1');
+    $rejected($valid, 'banned account cannot overwrite save');
+    $db->exec('UPDATE accounts SET is_banned=0, is_active=0 WHERE account_id=1');
+    $rejected($valid, 'inactive account cannot overwrite save');
+    $db->exec('UPDATE accounts SET is_active=1 WHERE account_id=1');
+    $check($repository->load(1) === $wireSave, 'blocked attempts preserve encrypted cloud save');
 
     echo "MUCHOCORE_CLOUDSAVE_CONSISTENCY_OK\n";
 } finally {
