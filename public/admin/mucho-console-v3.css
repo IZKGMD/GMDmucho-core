@@ -619,7 +619,7 @@ html[data-theme="light"] body.mc-admin .admin-nav a.on{
  box-shadow:inset 2px 0 var(--mc-accent);border-color:var(--mc-line);
 }
 body.mc-admin .mc-view-popover .mc-density-toggle{
- margin-top:6px;min-height:43px;padding:9px 10px;border:1px solid var(--mc-line);
+ margin-top:6px;min-height:44px;padding:9px 10px;border:1px solid var(--mc-line);
  border-radius:7px;transition:background-color .12s ease,border-color .12s ease;
 }
 body.mc-admin .mc-view-popover .mc-density-toggle[aria-pressed="true"]{
