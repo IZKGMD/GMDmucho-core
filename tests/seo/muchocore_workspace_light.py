@@ -88,8 +88,10 @@ def main():
                         errors = []
                         page.on("pageerror", lambda e: errors.append(str(e)))
                         page.goto(origin + "/index.html", wait_until="domcontentloaded")
+                        page.evaluate("localStorage.setItem(\'mucho.theme\', \'light\')")
                         markup = build(origin).replace('data-theme="dark"', 'data-theme="light"')
                         page.set_content(markup, wait_until="networkidle")
+                        assert page.evaluate("document.documentElement.dataset.theme") == "light", (name, width, "saved light theme was not bootstrapped")
                         inspect_colors(page, width, name)
                         assert not errors, (name, width, errors)
                         overflow = page.evaluate("document.documentElement.scrollWidth - innerWidth")
