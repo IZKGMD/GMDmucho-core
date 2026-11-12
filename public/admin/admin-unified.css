@@ -406,3 +406,63 @@ body.mc-admin[data-page="migration"] .card{
  body.mc-admin .mc-plugins-head{align-items:flex-start}
  body.mc-admin .mc-page-description{display:none!important}
 }
+/* Settings and role manager use the same form and permission language. */
+body.mc-admin .mc-settings-card{max-width:1050px}
+body.mc-admin .mc-settings-card form>p:first-child{margin:0 0 5px}
+body.mc-admin .mc-settings-card form>p:first-child strong{font-size:15px}
+body.mc-admin .mc-field-label{display:block;font-size:12px;font-weight:600;margin:0 0 7px}
+body.mc-admin .mc-settings-fields{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:12px;margin:14px 0 18px;
+}
+body.mc-admin .mc-settings-preview{
+ display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
+ margin:14px 0 18px;padding:16px 18px;
+ border:1px solid var(--mc-work-outline);
+ border-radius:7px;background:var(--mc-raised);
+}
+body.mc-admin .mc-settings-preview-label{
+ width:100%;color:var(--mc-muted);font-size:10px;
+ font-weight:650;letter-spacing:.06em;text-transform:uppercase;
+}
+body.mc-admin .mc-settings-preview strong{
+ color:var(--mc-text);font-size:22px;font-weight:720;
+ letter-spacing:-.035em;overflow-wrap:anywhere;
+}
+body.mc-admin .mc-settings-preview-suffix{
+ color:var(--mc-accent);font-size:18px;font-weight:660;
+ letter-spacing:-.02em;
+}
+body.mc-admin .mc-role-basics{
+ display:grid;grid-template-columns:minmax(145px,.6fr) minmax(0,1.4fr);
+ gap:10px;max-width:720px;
+}
+body.mc-admin .mc-role-permissions{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));
+ gap:9px;margin-top:13px;
+}
+body.mc-admin .mc-role-permission{
+ display:flex;align-items:flex-start;gap:9px;
+ padding:11px 12px;min-width:0;
+ border:1px solid var(--mc-work-outline);
+ border-radius:6px;background:var(--mc-work-panel);
+ cursor:pointer;
+}
+body.mc-admin .mc-role-permission:hover{
+ border-color:color-mix(in srgb,var(--mc-accent) 50%,var(--mc-work-outline));
+ background:var(--mc-raised);
+}
+body.mc-admin .mc-role-permission:focus-within{
+ outline:2px solid var(--mc-accent);outline-offset:2px;
+}
+body.mc-admin .mc-role-permission input{flex:0 0 16px;margin:2px 0 0}
+body.mc-admin .mc-role-permission span{min-width:0;overflow-wrap:anywhere}
+body.mc-admin .mc-role-permission b{font-size:12px;font-weight:640}
+body.mc-admin .mc-role-permission small{display:block;margin-top:3px;color:var(--mc-muted);font-size:10px}
+body.mc-admin.mc-compact .mc-settings-preview{padding:11px 13px}
+body.mc-admin.mc-compact .mc-role-permission{padding:8px 9px}
+@media(max-width:650px){
+ body.mc-admin .mc-settings-fields,
+ body.mc-admin .mc-role-basics{grid-template-columns:1fr}
+ body.mc-admin .mc-role-permission{min-height:44px}
+}
