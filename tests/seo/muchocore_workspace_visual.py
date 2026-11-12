@@ -71,7 +71,8 @@ def login(base):
 <link rel="stylesheet" href="{base}/admin/admin-workspace.css">
 <link rel="stylesheet" href="{base}/admin/admin-motion.css">
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css">
-<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css"></head>
+<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css">
+<link rel="stylesheet" href="{base}/admin/admin-light.css?v=1"></head>
 <body class="admin-login mc-workspace">
 <main class="admin-auth-card">
 <header><a href="#" class="logo">MuchoCore</a></header>
