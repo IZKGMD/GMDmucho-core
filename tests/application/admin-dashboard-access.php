@@ -34,6 +34,7 @@ check(str_contains($html, 'href="/dashboard"'), 'viewer can open the public play
 check(!str_contains($html, 'mc-ops-actions'), 'unprivileged viewers do not see restricted quick tasks');
 check(!str_contains($html, 'mc-ops-queue') && !str_contains($html, 'Latest uploads'),
     'unprivileged viewer sees no review queues or uploaded levels');
+check(!str_contains($html, 'mc-ops-rail'), 'viewer does not receive an empty privileged operator rail');
 
 
 $allowedPages = ['songs'];
@@ -46,6 +47,8 @@ check(str_contains($html, 'Music feed unavailable.') && !str_contains($html, 'No
     'unavailable music feed is never mislabeled as an empty database');
 check(!str_contains($html, 'LEVEL MODERATION') && str_contains($html, 'MUSIC MODERATION'),
     'music-only reviewer never sees level moderation queue');
+check(str_contains($html, 'mc-ops-review') && str_contains($html, 'Needs attention'),
+    'music reviewer gets a compact, permission-scoped review rail');
 
 $allowedPages = ['levels'];
 $html = renderDashboard($db);
@@ -53,6 +56,8 @@ check(str_contains($html, 'Latest uploads') && !str_contains($html, 'Latest musi
     'level manager sees fresh uploads without unauthorized music data');
 check(!str_contains($html, 'LEVEL MODERATION'),
     'level viewing alone does not reveal rating permissions');
+check(!str_contains($html, 'mc-ops-rail'),
+    'ordinary level browsing does not expose privileged operator shortcuts');
 
 $allowedPages = ['rating'];
 $html = renderDashboard($db);
