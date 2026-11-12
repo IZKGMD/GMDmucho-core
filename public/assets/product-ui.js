@@ -61,6 +61,30 @@
     const sidebar=document.getElementById('adminNavigation');
     const main=document.getElementById('main');
     const desktop=window.matchMedia('(min-width: 981px)');
+
+    // A single optional density preference for data-heavy admin pages.
+    // The control lives in the existing View menu, not another toolbar.
+    const viewOptions=document.querySelector('.mc-view-popover');
+    if(viewOptions){
+        const density=document.createElement('button');
+        density.type='button';
+        density.className='mc-density-toggle';
+        const toggleText=document.createElement('span');
+        toggleText.textContent=label('Компактные строки','Compact rows');
+        const indicator=document.createElement('span');
+        indicator.className='mc-density-state';
+        indicator.setAttribute('aria-hidden','true');
+        density.append(toggleText,indicator);
+        const applyDensity=compact=>{
+            body.classList.toggle('mc-compact',compact);
+            density.setAttribute('aria-pressed',String(compact));
+            indicator.textContent=compact?label('Вкл','On'):label('Выкл','Off');
+            storage.set('mucho.control.compact',compact);
+        };
+        viewOptions.append(density);
+        applyDensity(storage.get('mucho.control.compact',false)===true);
+        density.addEventListener('click',()=>applyDensity(!body.classList.contains('mc-compact')));
+    }
     const syncNavigation=()=>{
         const open=body.classList.contains('mobile-menu-open')&&!desktop.matches;
         if(sidebar)sidebar.inert=!desktop.matches&&!open;
