@@ -39,7 +39,8 @@ def admin(base):
 <link rel="stylesheet" href="{base}/admin/admin-workspace.css?v=7">
 <link rel="stylesheet" href="{base}/admin/admin-motion.css?v=2">
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=7"></head>
+<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=7">
+<link rel="stylesheet" href="{base}/admin/admin-unified.css?v=1"></head>
 <body class="mc-admin"><div class="mobile-overlay" id="mobileOverlay"></div><div class="shell">
 <aside id="adminNavigation" aria-label="Admin navigation"><div class="brandrow"><a class="logo" href="#"><img src="{base}/assets/muchocore-icon.png?v=3" alt="" width="32" height="32">MuchoCore</a></div>
 <section class="mc-instance"><span>ACTIVE INSTANCE</span><strong>MuchoCore</strong><a href="#">Player portal ↗</a></section>
@@ -102,6 +103,27 @@ def portal(base):
 <div class="dashboard-stat"><span class="dashboard-stat-label">Clans</span><div class="dashboard-stat-value">—</div><small class="dashboard-stat-detail">Active groups</small></div></section></div>
 <aside class="panel portal-panel mc-community-access"><div><div class="portal-head"><div class="portal-head-copy"><div class="portal-eyebrow">ACCOUNT ACCESS</div><h2 class="portal-title">Sign in to upload</h2><p class="portal-description">Use your GDPS account to manage uploads and your profile.</p></div><div class="portal-mark">♪</div></div><div class="form-divider"></div></div><form><div class="field"><label for="loginUser">Username</label><input id="loginUser" placeholder="Username"></div><div class="field"><label for="loginPass">Password</label><input id="loginPass" type="password" placeholder="Password"></div><button class="btn" type="button">Sign in to upload</button></form></aside></section>
 <section class="mc-community-spotlight"><div class="mc-community-spotlight-top"><div><span class="mc-community-label">FROM THE SERVER</span><h2>Community spotlight</h2></div><a href="#">View leaderboard ↗</a></div><div class="mc-community-featured mc-community-none"><span><small>TOP PLAYER</small><strong>Server data is not loaded in this preview</strong><span>Live player stats are shown on the running server.</span></span></div></section></div></body></html>"""
+
+def admin_module_fixtures():
+    """Data-free representations of real admin module markup, no fake accounts."""
+    return {
+      "players": """<section class="mc-work-filter"><form class="search admin-list-search" role="search"><input type="search" aria-label="Search players" placeholder="Username / email / ID"><select aria-label="Status"><option>All players</option></select><button type="button">Search</button></form></section>
+<div class="mc-work-toolbar"><h2>Player accounts</h2><span class="mc-work-count"><strong>0</strong> shown on this page</span></div>
+<div class="admin-records"><details open class="card admin-record"><summary><span class="record-name"><b>Account details</b><small>Unpopulated layout fixture</small></span><span class="badge">No status loaded</span><span class="record-open">Details</span></summary><div class="record-body"><div class="record-actions"><button type="button" class="gray">Copy ID</button></div><form class="admin-edit-grid"><label>Username<input placeholder="Username"></label><label>Email<input type="email" placeholder="Email"></label><label>Role<select><option>Role</option></select></label><div class="record-checks"><label><input type="checkbox"> Active</label></div><button type="button">Save changes</button></form><details class="record-extra"><summary>Statistics</summary></details></div></details></div>""",
+      "levels": """<section class="mc-work-filter"><form class="search admin-list-search" role="search"><input type="search" aria-label="Search levels" placeholder="Level name / ID / creator"><select><option>All levels</option></select><button type="button">Search</button></form></section>
+<div class="mc-work-toolbar"><h2>Level records</h2><span class="mc-work-count"><strong>0</strong> shown on this page</span></div>
+<div class="admin-records"><details open class="card admin-record"><summary><span class="record-name"><b>Level details</b><small>Unpopulated layout fixture</small></span><span class="badge">No rating loaded</span></summary><div class="record-body"><div class="record-actions"><button type="button" class="gray">Copy ID</button></div><div class="record-metrics"><span>Downloads —</span><span>Likes —</span></div><form class="admin-edit-grid record-extra"><label>Level name<input placeholder="Name"></label><label class="record-checks"><input type="checkbox"> Deleted</label><button type="button">Save changes</button></form></div></details></div>""",
+      "songs": """<section class="mc-work-filter"><form class="search admin-list-search" role="search"><input type="search" placeholder="Song / artist / ID"><select><option>All music</option></select><button type="button">Search</button></form></section>
+<div class="mc-work-toolbar"><h2>Music library</h2><span class="mc-work-count"><strong>0</strong> shown on this page</span></div>
+<details open class="card mc-upload-panel"><summary>Upload Music</summary><p class="muted">MP3 only, maximum 20 MB.</p><form class="admin-edit-grid"><label>Title<input></label><label>Artist<input></label><label>File<input type="file"></label><button type="button">Upload</button></form></details>
+<div class="table"><table><thead><tr><th>ID</th><th>Name</th><th>Author</th><th>Size</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr><td colspan="6">No records loaded in visual preview</td></tr></tbody></table></div>""",
+      "rating": """<div class="rating-hero"><h2>Rating Studio</h2><p>Classification controls preview, no level loaded.</p></div>
+<div class="rating-layout"><section class="rating-list"><div class="card rating-list-card"><div class="rating-empty">Choose a level from the actual server</div></div></section><section class="rating-editor"><div class="card rating-editor-card"><div class="rating-preview"><span>No rating loaded</span></div><form class="rating-form"><div class="rating-section"><div class="rating-section-title"><b>Star rating</b><span>0–10 stars</span></div><div class="rating-stars-pick"><button data-stars="0" type="button">0</button><button data-stars="10" type="button">10</button></div><label>Stars<input type="number" value="0"></label></div><div class="rating-section"><div class="rating-section-title"><b>Classification</b></div><div class="rating-grid"><div class="rating-field"><label>Difficulty<select><option>Unrated</option></select></label></div><div class="rating-field"><label>Feature tier<select><option>None</option></select></label></div></div></div><div class="rating-savebar"><small>Preview only</small><button type="button">Publish rating</button></div></form></div></section></div>""",
+      "settings": """<div class="mc-two-panel"><section class="card"><h2>Server settings</h2><p>Configuration fields, no live values.</p><form class="admin-edit-grid"><label>Server name<input placeholder="Server name"></label><label>Visibility<select><option>Server setting</option></select></label><label class="record-checks"><input type="checkbox"> Public</label><button type="button">Save settings</button></form></section><section class="card"><h2>Branding</h2><p>Public-facing server appearance.</p><label>Site title<input></label><label>Description<textarea></textarea></label></section></div>""",
+      "plugins": """<section class="card mc-plugins-overview"><div class="mc-plugins-head"><div><div class="mc-plugins-eyebrow">CUSTOM PLUGINS</div><h2>Persistent extension layer</h2><p class="muted">Plugin diagnostics (no data loaded)</p></div><a class="btn gray" href="#">Plugin docs</a></div><div class="grid mc-plugin-stats"><div class="card"><small>Installed</small><div class="value">—</div></div><div class="card"><small>Ready</small><div class="value">—</div></div></div><div class="card mc-plugins-subtle"><small>Plugin directory</small><code>custom/plugins/</code></div></section>""",
+      "news": """<div class="section-actions mc-news-status"><span class="muted">Owner-only editor</span><span class="badge">Native news status unavailable</span></div><div class="mucho-news-layout mc-news-workspace"><section class="card"><h2>Write a news post</h2><form><label class="mucho-news-field"><b>Headline</b><input placeholder="Title"></label><label class="mucho-news-field"><b>Content</b><textarea placeholder="Write announcement"></textarea></label><div class="mucho-news-flags"><label><input type="checkbox"> Published</label></div><button type="button">Save news</button></form></section><section class="card"><h2>Your news</h2><div class="mucho-news-item"><h3>No posts loaded</h3><p>Posts on the running server appear here.</p></div></section></div>""",
+      "contentpacks": """<section class="card"><h2>Gauntlets &amp; Map Packs</h2><p>Responsive collection editor preview, no data loaded.</p><div class="mc-contentpack-fields"><label>Name<input placeholder="Name"></label><button type="button">Create</button></div><div class="mc-contentpack-slots"><label>Level 1<input></label><label>Level 2<input></label><label>Level 3<input></label><label>Level 4<input></label><label>Level 5<input></label></div></section><section class="card"><h2>Existing content</h2><div class="mc-contentpack-edit-row mc-contentpack-edit-row-wide"><label>Name<input></label><label>Stars<input type="number"></label><label>Coins<input type="number"></label><label>Color<input></label></div></section>""",
+    }
 
 def main():
     browser_path=next((val for cmd in ("google-chrome","chromium","chromium-browser","google-chrome-stable") if (val:=shutil.which(cmd))),None)
@@ -254,6 +276,34 @@ def main():
                         file=OUTPUT/f"muchocore-hybrid-{name}-fixture-{width}.jpg"
                         page.screenshot(path=str(file),type="jpeg",quality=80)
                         print(f"WORKSPACE_VISUAL_OK {name} {width}: {file.name} {file.stat().st_size} bytes")
+                        if name=="admin" and width in (1440,390):
+                            for module,markup in admin_module_fixtures().items():
+                                page.evaluate("""([module,html]) => {
+                                    document.body.dataset.page=module;
+                                    document.querySelector(".mc-ops").innerHTML=html;
+                                    document.body.classList.remove("mc-compact");
+                                }""",[module,markup])
+                                assert page.locator(".mc-ops").is_visible(),(module,width,"module not shown")
+                                overflow=page.evaluate("document.documentElement.scrollWidth-innerWidth")
+                                assert overflow<=1,(module,width,"horizontal overflow",overflow)
+                                if module in ("players","levels","songs"):
+                                    assert page.locator(".mc-work-filter").count()==1,(module,width,"filter shell absent")
+                                    assert page.locator(".mc-work-toolbar").count()==1,(module,width,"results toolbar absent")
+                                if module in ("players","levels"):
+                                    row=page.locator(".admin-record>summary")
+                                    normal=row.bounding_box()["height"]
+                                    page.locator("body").evaluate("(e)=>e.classList.add('mc-compact')")
+                                    compact=row.bounding_box()["height"]
+                                    assert compact<=normal-2,(module,width,"compact record spacing unchanged",normal,compact)
+                                elif module=="rating":
+                                    assert page.locator(".rating-stars-pick button").count()==2
+                                    assert page.locator(".rating-savebar").is_visible()
+                                if width==390:
+                                    controls=page.locator(".mc-ops input:not([type=checkbox]):not([type=radio])")
+                                    for control in controls.all()[:4]:
+                                        bounds=control.bounding_box()
+                                        assert bounds and bounds["x"]>=-1 and bounds["x"]+bounds["width"]<=width+1,(module,width,"input clipped",bounds)
+                                page.screenshot(path=str(OUTPUT/f"muchocore-admin-{module}-{width}.jpg"),type="jpeg",quality=80)
                         page.close()
             finally:
                 browser.close()

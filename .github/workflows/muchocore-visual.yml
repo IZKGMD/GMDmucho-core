@@ -15,6 +15,9 @@ on:
       - "tests/seo/muchocore_visual.py"
       - "tests/seo/muchocore_workspace_visual.py"
       - "public/admin/mucho-console-v3.css"
+      - "public/admin/admin-unified.css"
+      - "public/admin/index.php"
+      - "public/admin/pages/**"
       - "public/assets/mucho-portal-v3.css"
       - ".github/workflows/muchocore-visual.yml"
   workflow_dispatch:

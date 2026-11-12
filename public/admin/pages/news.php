@@ -34,28 +34,8 @@ if (is_array($draft) && (int)($draft['id'] ?? -1)===$editId) {
 }
 $isEditing=$editId>0;
 ?>
-<style>
-.mucho-news-layout{display:grid;grid-template-columns:minmax(300px,1.1fr) minmax(290px,1fr);gap:16px;align-items:start}
-.mucho-news-layout .card{margin-bottom:14px}
-.mucho-news-field{display:block;margin-top:14px}
-.mucho-news-field b{display:block;margin-bottom:6px;font-size:12px;color:#a9b6d0}
-.mucho-news-field input,.mucho-news-field textarea{display:block;width:100%;box-sizing:border-box}
-.mucho-news-field textarea{min-height:210px;resize:vertical;line-height:1.6}
-.mucho-news-flags{display:flex;flex-wrap:wrap;gap:16px;margin:15px 0}
-.mucho-news-flags label{display:flex;align-items:center;gap:8px;font-size:13px}
-.mucho-news-item{border:1px solid #283348;border-radius:11px;padding:14px;margin-top:10px;background:#0d131d}
-.mucho-news-meta{font-size:11px;color:#9daac0;margin:7px 0 10px}
-.mucho-news-item h3{margin:0;font-size:15px;overflow-wrap:anywhere}
-.mucho-news-item p{white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0;color:#c2ccde;font-size:12px;line-height:1.55}
-.mucho-news-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
-.mucho-news-actions form{margin:0}
-.mucho-news-media{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}
-.mucho-news-media figure{margin:0;max-width:280px}
-.mucho-news-media img{display:block;width:100%;height:auto;border-radius:7px}
-.mucho-news-media figcaption{font-size:12px;margin-top:6px;overflow-wrap:anywhere}
-@media(max-width:960px){.mucho-news-layout{grid-template-columns:minmax(0,1fr)}}
-</style>
-<div class="section-actions" style="margin-bottom:14px">
+
+<div class="section-actions mc-news-status">
     <span class="muted">Owner-only editor. Drafts are private. Published posts appear in the public feed.</span>
     <?php if ($nativeNewsFlag): ?>
     <span class="badge green">Native GD News: enabled</span>
@@ -64,7 +44,7 @@ $isEditing=$editId>0;
     <?php endif; ?>
     <a class="btn gray" href="/api/muchocore/news" target="_blank" rel="noopener">View public JSON ↗</a>
 </div>
-<div class="mucho-news-layout">
+<div class="mucho-news-layout mc-news-workspace">
     <section class="card">
         <h2 style="margin-top:0"><?= $isEditing ? 'Edit news #'.$editId : 'Write a news post' ?></h2>
         <form method="post" enctype="multipart/form-data">

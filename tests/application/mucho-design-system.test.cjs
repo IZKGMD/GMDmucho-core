@@ -17,6 +17,8 @@ test('operator and player workspaces keep shared foundation and dedicated rebuil
  for(const p of ['public/index.html','public/dashboard/index.php','public/dashboard/clans.php','public/admin/index.php'])
    assert.ok(read(p).includes('/assets/mucho-design-system.css?v=2'),p);
  assert.ok(read('public/admin/index.php').includes('/admin/mucho-console-v3.css?v=7'));
+ assert.ok(read('public/admin/index.php').includes('/admin/admin-unified.css?v=1'));
+
  assert.ok(read('public/install/index.html').includes('/assets/mucho-install-v3.css?v=1'));
  for(const p of ['public/muchocore/about/index.html','public/muchocore/compatibility/index.html']) {
    assert.ok(read(p).includes('/muchocore/discovery.css?v=4'));
@@ -44,4 +46,33 @@ test('MuchoCore product keeps its logo palette while admin uses neutral graphite
    assert.ok(admin.includes(token),token);
  assert.ok(read('public/assets/mucho-portal-v3.css').includes('#ba9cee'));
  assert.ok(read('public/muchocore/discovery.css').includes('color-scheme:dark'));
+});
+
+test('all key admin modules use the same accessible controls and compact surface layer',()=>{
+ const unified=read('public/admin/admin-unified.css');
+ for(const selector of [
+  '.mc-work-filter','.admin-record>summary','.admin-stats-grid',
+  '.rating-layout','.rating-savebar','.mc-plugins-overview',
+  '.mc-news-workspace','.mc-settings-preview','.mc-role-permission',
+  '.mc-contentpack-slots','.admin-pagination','.mc-table-tools',
+  'body.mc-admin.mc-compact','@media(max-width:650px)','prefers-reduced-motion'
+ ]) assert.ok(unified.includes(selector),selector);
+ const modules=[
+  'public/admin/pages/players.php',
+  'public/admin/pages/levels-moderation.php',
+  'public/admin/pages/songs.php'
+ ];
+ for(const p of modules){
+  const page=read(p);
+  assert.ok(page.includes('mc-work-filter'),p);
+  assert.ok(page.includes('mc-work-toolbar'),p);
+  assert.ok(page.includes('adminListPager('),p);
+ }
+ assert.ok(read('public/admin/pages/news.php').includes('mc-news-workspace'));
+ assert.ok(!read('public/admin/pages/news.php').includes('<style>'));
+ assert.ok(read('public/admin/pages/plugins.php').includes('mc-plugins-overview'));
+ assert.ok(read('public/admin/pages/contentpacks.php').includes('mc-contentpack-slots'));
+ assert.ok(read('public/admin/index.php').includes('mc-role-permission'));
+ assert.ok(read('public/admin/index.php').includes('mc-page-description'));
+ assert.ok(read('public/admin/pages/songs.php').includes('data-confirm='));
 });

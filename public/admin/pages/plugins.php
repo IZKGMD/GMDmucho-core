@@ -35,17 +35,17 @@ function renderCustomPluginsPage(PDO $db): void
         }
     }
 
-    echo '<section class="card" style="border-color:#293448">';
-    echo '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap">';
+    echo '<section class="card mc-plugins-overview">';
+    echo '<div class="mc-plugins-head">';
     echo '<div>';
-    echo '<div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:#8c7dff">CUSTOM PLUGINS</div>';
-    echo '<h2 style="margin:7px 0 4px">Persistent extension layer</h2>';
+    echo '<div class="mc-plugins-eyebrow">CUSTOM PLUGINS</div>';
+    echo '<h2>Persistent extension layer</h2>';
     echo '<p class="muted" style="margin:0;line-height:1.55">These plugins live outside the tracked core source and are preserved across stable MuchoCore updates.</p>';
     echo '</div>';
     echo '<a class="btn gray" href="https://github.com/IZKGMD/GMDmucho-core/blob/main/docs/CUSTOM_PLUGINS.md" target="_blank" rel="noopener noreferrer">Plugin docs ↗</a>';
     echo '</div>';
 
-    echo '<div class="grid" style="margin-top:16px">';
+    echo '<div class="grid mc-plugin-stats">';
     $summary = [
         ['Installed', count($rows), ''],
         ['Ready', $counts['ready'], 'green'],
@@ -62,8 +62,8 @@ function renderCustomPluginsPage(PDO $db): void
     }
     echo '</div>';
 
-    echo '<div class="card" style="margin-top:13px;background:#0b1018">';
-    echo '<div class="muted" style="font-size:11px">Plugin directory</div>';
+    echo '<div class="card mc-plugins-subtle">';
+    echo '<div class="muted mc-plugins-meta">Plugin directory</div>';
     echo '<code style="display:block;margin-top:6px;word-break:break-all">' .
         h($manager->rootDirectory()) .
         '</code>';
@@ -169,7 +169,7 @@ function renderMuchoPluginMarketplacePreview(string $rootDir): void
 
     foreach ($entries as $entry) {
         $available = $entry['compatible'];
-        echo '<div class="card" style="margin:10px 0;background:#0b1018">';
+        echo '<div class="card mc-plugins-subtle">';
         echo '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">';
         echo '<div><b>' . h($entry['name']) . '</b>';
         echo ' <small class="muted">v' . h($entry['version']) . '</small></div>';

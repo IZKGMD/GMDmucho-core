@@ -2465,6 +2465,7 @@ max-width:100%
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
 <link rel="stylesheet" href="/admin/mucho-console-v3.css?v=7">
+<link rel="stylesheet" href="/admin/admin-unified.css?v=1">
 <script src="/admin/admin-simple.js?v=3" defer></script>
 </head>
 <body class="admin-login mc-workspace" data-page="">
@@ -5038,6 +5039,7 @@ table{
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
 <link rel="stylesheet" href="/admin/mucho-console-v3.css?v=7">
+<link rel="stylesheet" href="/admin/admin-unified.css?v=1">
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>
@@ -5091,10 +5093,45 @@ table{
  aria-controls="adminNavigation"
 >☰</button>
 
+<?php
+$adminPageDescriptions = [
+ 'dashboard'=>'Server activity and moderation at a glance',
+ 'players'=>'Search accounts and manage player profiles',
+ 'levels'=>'Review level metadata and publication status',
+ 'moderation'=>'Review pending requests and reported content',
+ 'rating'=>'Classify and publish level ratings',
+ 'songs'=>'Review, upload and manage community music',
+ 'news'=>'Publish and maintain in-game announcements',
+ 'plugins'=>'Installed extensions and plugin diagnostics',
+ 'settings'=>'Server configuration and branding',
+ 'system'=>'Infrastructure, status and maintenance',
+ 'backups'=>'Create and review server backups',
+ 'dbbackups'=>'Database snapshots and restoration',
+ 'admins'=>'Administrator access and account recovery',
+ 'roles'=>'Administrator permissions and roles',
+ 'audit'=>'Review privileged actions',
+ 'analytics'=>'Explore server activity and trends',
+ 'advanced'=>'Advanced server tools',
+ 'monitoring'=>'Service monitoring and diagnostics',
+ 'database'=>'Inspect database records',
+ 'endpoints'=>'API endpoints and protocol checks',
+ 'social'=>'Manage social features and relationships',
+ 'messages'=>'Inspect messages and reports',
+ 'comments'=>'Moderate comments',
+ 'clans'=>'Manage player clans',
+ 'contentpacks'=>'Manage downloadable content',
+ 'muchoprofiles'=>'Manage extended player profiles',
+ 'migration'=>'Migration and import tools',
+ 'intelligence'=>'Server insights and diagnostics',
+ 'release'=>'Release and update information',
+ 'clientpatcher'=>'Patch a game client for your server',
+ 'clients'=>'Manage client downloads',
+];
+?>
 <div class="head-title">
 <span class="mc-section-caption">MUCHOCORE ADMIN</span>
 <h1><?=h($pages[$page])?></h1>
-<small><?=h((string)((Environment::get('MUCHO_ACCOUNT_URL', '') ?: $branding['server_name'])))?></small>
+<small class="mc-page-description"><?=h($adminPageDescriptions[$page] ?? 'Manage this server workspace')?></small>
 </div>
 
 <?php if (canAdminPage('players') || canAdminPage('levels')): ?>
@@ -5580,7 +5617,7 @@ $regDisabled=is_file(
 );
 
 ?>
-<div class="card">
+<div class="card mc-settings-card">
 <form method="post">
 
 <p>
@@ -5591,9 +5628,10 @@ $regDisabled=is_file(
 This name replaces the visible server logo on the public pages and player music dashboard. MuchoCore attribution stays in the footer.
 </p>
 
-<label style="display:block;margin-bottom:7px">Server name</label>
+<label for="mcServerName" class="mc-field-label">Server name</label>
 <input
  type="text"
+ id="mcServerName"
  name="server_name"
  maxlength="64"
  value="<?=h($branding['server_name'])?>"
@@ -5601,11 +5639,12 @@ This name replaces the visible server logo on the public pages and player music 
  style="width:min(520px,100%)"
 >
 
-<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0 18px">
+<div class="mc-settings-fields">
  <div>
-  <label style="display:block;margin-bottom:7px">Server by</label>
+  <label for="mcServerBy" class="mc-field-label">Server by</label>
   <input
    type="text"
+   id="mcServerBy"
    name="server_by_name"
    maxlength="64"
    value="<?=h($branding['server_by_name'] ?? '')?>"
@@ -5614,9 +5653,10 @@ This name replaces the visible server logo on the public pages and player music 
   >
  </div>
  <div>
-  <label style="display:block;margin-bottom:7px">Social/profile URL</label>
+  <label for="mcSocialUrl" class="mc-field-label">Social/profile URL</label>
   <input
    type="url"
+   id="mcSocialUrl"
    name="social_url"
    maxlength="512"
    value="<?=h($branding['social_url'] ?? '')?>"
@@ -5630,14 +5670,11 @@ This name replaces the visible server logo on the public pages and player music 
 Shown in the public footer as <b>Server by</b>. Leave both fields empty to hide the credit.
 </div>
 
-<div style="margin:12px 0 18px;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:linear-gradient(135deg,#111724,#0d1119)">
- <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em">Preview</div>
- <div style="margin-top:6px;font-size:24px;font-weight:900;letter-spacing:-.8px">
-  <span style="background:linear-gradient(90deg,#fff,#9687ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent"><?=h($branding['server_name'])?></span>
-  <span style="color:#9687ff"> Control</span>
- </div>
+<div class="mc-settings-preview" role="group" aria-label="Branding preview">
+ <span class="mc-settings-preview-label">Preview</span>
+ <strong><?=h($branding['server_name'])?></strong>
+ <span class="mc-settings-preview-suffix">Control</span>
 </div>
-
 <input type="hidden" name="csrf" value="<?=csrf()?>">
 <input type="hidden" name="action" value="settings-save">
 <input type="hidden" name="return" value="settings">
@@ -5754,14 +5791,14 @@ $rolePermissionStmt=$db->prepare(
 <input type="hidden" name="action" value="role-create">
 <input type="hidden" name="return" value="roles">
 
-<div style="display:grid;grid-template-columns:180px 1fr;gap:10px;max-width:720px">
+<div class="mc-role-basics">
 <input name="code" maxlength="32" placeholder="level-moderator" pattern="[a-z][a-z0-9_-]{1,31}" required>
 <input name="name" maxlength="64" placeholder="Level Moderator" required>
 </div>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:15px">
+<div class="mc-role-permissions">
 <?php foreach(AdminRbac::permissions() as $permission=>$label): ?>
-<label style="display:flex;gap:9px;align-items:flex-start;padding:10px;border:1px solid #273448;border-radius:10px;background:#0c1119;cursor:pointer">
+<label class="mc-role-permission">
 <input type="checkbox" name="permissions[]" value="<?=h($permission)?>" style="margin-top:2px">
 <span><b><?=h($label)?></b><small style="display:block;margin-top:2px;color:#6f7c91"><?=h($permission)?></small></span>
 </label>
@@ -5802,9 +5839,9 @@ $rolePermissions=array_fill_keys(
 
 <input name="name" maxlength="64" value="<?=h($roleRow['name'])?>" required style="width:min(520px,100%)">
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:13px">
+<div class="mc-role-permissions">
 <?php foreach(AdminRbac::permissions() as $permission=>$label): ?>
-<label style="display:flex;gap:9px;align-items:flex-start;padding:10px;border:1px solid #273448;border-radius:10px;background:#0c1119;cursor:pointer">
+<label class="mc-role-permission">
 <input type="checkbox" name="permissions[]" value="<?=h($permission)?>" <?=isset($rolePermissions[$permission])?'checked':''?> style="margin-top:2px">
 <span><b><?=h($label)?></b><small style="display:block;margin-top:2px;color:#6f7c91"><?=h($permission)?></small></span>
 </label>
@@ -6479,7 +6516,7 @@ echo '</table></div>';
 </main>
 <?php if (!adminIsPlain()): ?>
 </div>
-<script src="/admin/admin-i18n.js?v=107"></script>
+<script src="/admin/admin-i18n.js?v=108"></script>
 <?php endif ?>
 
 

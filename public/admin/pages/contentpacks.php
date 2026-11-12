@@ -49,7 +49,7 @@ function renderContentPackLevelInput(
     $ids = array_values($ids);
     $names = contentPackLevelsForEditor($db, $ids);
 
-    echo '<div style="display:grid;grid-template-columns:repeat('.$expected.',minmax(100px,1fr));gap:8px;margin-top:8px">';
+    echo '<div class="mc-contentpack-slots">';
 
     foreach (range(0, $expected - 1) as $index) {
         $id = (int)($ids[$index] ?? 0);
@@ -92,7 +92,7 @@ echo '<input type="hidden" name="csrf" value="'.csrf().'">';
 echo '<input type="hidden" name="action" value="gauntlet-save">';
 echo '<input type="hidden" name="return" value="contentpacks">';
 echo '<input name="name" maxlength="96" placeholder="Gauntlet name" required>';
-echo '<div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px">';
+echo '<div class="mc-contentpack-fields">';
 echo '<label>Order<input type="number" name="sort_order" value="0"></label>';
 echo '<label style="display:flex;gap:6px;align-items:end">Enabled <input type="checkbox" name="enabled" checked></label>';
 echo '</div>';
@@ -138,7 +138,7 @@ if ($gauntlets === []) {
         echo '<input type="hidden" name="csrf" value="'.csrf().'">';
         echo '<input type="hidden" name="action" value="gauntlet-save">';
         echo '<input type="hidden" name="id" value="'.h($g['id']).'">';
-        echo '<div style="display:grid;grid-template-columns:minmax(180px,2fr) minmax(90px,1fr) auto;gap:8px;align-items:end">';
+        echo '<div class="mc-contentpack-edit-row">';
         echo '<label>Name<input name="name" maxlength="96" value="'.h($g['name']).'" required></label>';
         echo '<label>Order<input type="number" name="sort_order" value="'.h($g['sort_order']).'"></label>';
         echo '<label style="display:flex;gap:6px;align-items:center">Enabled <input type="checkbox" name="enabled" '.((int)$g['enabled'] ? 'checked' : '').'></label>';
@@ -172,7 +172,7 @@ if ($mapPacks === []) {
         echo '<input type="hidden" name="csrf" value="'.csrf().'">';
         echo '<input type="hidden" name="action" value="mappack-save">';
         echo '<input type="hidden" name="id" value="'.h($m['id']).'">';
-        echo '<div style="display:grid;grid-template-columns:minmax(180px,2fr) repeat(3,minmax(90px,1fr));gap:8px;align-items:end">';
+        echo '<div class="mc-contentpack-edit-row mc-contentpack-edit-row-wide">';
         echo '<label>Name<input name="name" maxlength="64" value="'.h($m['name']).'" required></label>';
         echo '<label>Stars<input type="number" name="stars" min="0" max="255" value="'.h($m['stars']).'"></label>';
         echo '<label>Coins<input type="number" name="coins" min="0" max="255" value="'.h($m['coins']).'"></label>';
