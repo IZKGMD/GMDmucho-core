@@ -143,7 +143,7 @@
   "src/Client/WindowsClientPatcher.php": "f5602033335ef41cdc65d2ca844c10ff5f1bac66bab45b75509ba851a2687651",
   "src/CloudSave/CloudSaveController.php": "d09577d3fcfc4d9d5b9c7657ba70a92922db5fa740c35f1b7939e75b7c4510e5",
   "src/CloudSave/CloudSaveRepository.php": "d81a68e1c7f62b80b8550c6b73af85e23919c6a2f84b9ebca6d0b100e89588fd",
-  "src/CloudSave/CloudSaveService.php": "32ae5c613cefe457e82a4575146fcd879ba1d61013b42f3a53fffcfe6fab4436",
+  "src/CloudSave/CloudSaveService.php": "a85c03bc15d9905abc1f4b0c0b01b34b68be78d534a5714f96e8be37b6497830",
   "src/Comment/CommentHistoryController.php": "4051c1f5e108f264caf6813e70c848551e59def46c08e87c1274925a707490c8",
   "src/Comment/CommentHistoryRepository.php": "774b2ad809f85d61f34c77550f998fcf327f40464ea1e73cc9dbeeb5ecbf75fa",
   "src/Comment/CommentHistoryService.php": "75948c204a3d19422a346ad13205fb129aaf65b0669517eaf5cb9f4045af1b93",
