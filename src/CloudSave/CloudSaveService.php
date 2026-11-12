@@ -59,8 +59,39 @@ final readonly class CloudSaveService
 
     private function authenticate(array $data): int
     {
-        $accountId = (int)($data['accountID'] ?? 0);
-        $username = trim((string)($data['userName'] ?? $data['username'] ?? ''));
+        // Do not coerce malformed IDs such as "1junk", "1.5" or arrays
+        // into another player's real account number. A missing/zero ID is
+        // still supported for the legacy username-based Cloud Save route.
+        $accountId = 0;
+        $rawAccountId = $data['accountID'] ?? null;
+        if ($rawAccountId !== null && $rawAccountId !== '') {
+            if (!is_int($rawAccountId) && !is_string($rawAccountId)) {
+                throw new RuntimeException('Invalid cloud save account ID.');
+            }
+
+            $digits = (string)$rawAccountId;
+            if (preg_match('/\\A[0-9]{1,32}\\z/', $digits) !== 1) {
+                throw new RuntimeException('Invalid cloud save account ID.');
+            }
+
+            $normalized = ltrim($digits, '0');
+            $maximum = (string)PHP_INT_MAX;
+            if (
+                strlen($normalized) > strlen($maximum) ||
+                (strlen($normalized) === strlen($maximum) &&
+                    strcmp($normalized, $maximum) > 0)
+            ) {
+                throw new RuntimeException('Invalid cloud save account ID.');
+            }
+
+            $accountId = (int)$digits;
+        }
+
+        $rawUsername = $data['userName'] ?? $data['username'] ?? '';
+        if (!is_string($rawUsername)) {
+            throw new RuntimeException('Invalid cloud save username.');
+        }
+        $username = trim($rawUsername);
 
         if ($accountId <= 0 && $username !== '') {
             $q = $this->db->prepare("
