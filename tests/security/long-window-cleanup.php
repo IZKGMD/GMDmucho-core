@@ -56,6 +56,24 @@ try {
         throw new RuntimeException('Default cleanup deleted an active daily quota.');
     }
 
+    // Ordinary short-lived IP buckets must still be collectible after an
+    // hour, rather than retaining every gameplay request for a full day.
+    $shortKey = 'short-lived-ip-budget';
+    $shortFile = $directory . '/' . hash('sha256', $shortKey) . '.json';
+    if (!$limiter->allowStrict($shortKey, 1, 60)) {
+        throw new RuntimeException('Short-window bucket setup failed.');
+    }
+    $shortState = ['start' => $oldTimestamp, 'count' => 1, 'window' => 60];
+    file_put_contents($shortFile, json_encode($shortState, JSON_THROW_ON_ERROR));
+    touch($shortFile, $oldTimestamp);
+
+    $limiter->cleanup();
+    clearstatcache();
+
+    if (is_file($shortFile)) {
+        throw new RuntimeException('Short-window bucket was retained unnecessarily.');
+    }
+
     // Expired buckets are still collected; the fix must not disable GC.
     $expiredKey = 'expired-device-budget';
     $expiredFile = $directory . '/' . hash('sha256', $expiredKey) . '.json';
