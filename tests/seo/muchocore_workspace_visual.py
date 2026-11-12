@@ -42,7 +42,7 @@ def admin(base):
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
 <link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=7">
 <link rel="stylesheet" href="{base}/admin/admin-unified.css?v=2">
-<link rel="stylesheet" href="{base}/admin/admin-light.css?v=1"></head>
+<link rel="stylesheet" href="{base}/admin/admin-light.css?v=2"></head>
 <body class="mc-admin"><div class="mobile-overlay" id="mobileOverlay"></div><div class="shell">
 <aside id="adminNavigation" aria-label="Admin navigation"><div class="brandrow"><a class="logo" href="#"><img src="{base}/assets/muchocore-icon.png?v=3" alt="" width="32" height="32">MuchoCore</a></div>
 <section class="mc-instance"><span>ACTIVE INSTANCE</span><strong>MuchoCore</strong><a href="#">Player portal ↗</a></section>
@@ -74,7 +74,7 @@ def login(base):
 <link rel="stylesheet" href="{base}/admin/admin-motion.css">
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css">
 <link rel="stylesheet" href="{base}/admin/mucho-console-v3.css">
-<link rel="stylesheet" href="{base}/admin/admin-light.css?v=1"></head>
+<link rel="stylesheet" href="{base}/admin/admin-light.css?v=2"></head>
 <body class="admin-login mc-workspace">
 <main class="admin-auth-card">
 <header><a href="#" class="logo">MuchoCore</a></header>
