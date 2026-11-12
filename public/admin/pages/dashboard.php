@@ -134,7 +134,6 @@ function renderAdminDashboard(PDO $db): void
     <div class="mc-ops">
         <header class="mc-ops-intro">
             <div>
-                <p class="mc-ops-kicker">MUCHOCORE / WORKSPACE</p>
                 <h2>Server overview</h2>
                 <p>Players, levels and content at a glance.</p>
             </div>
