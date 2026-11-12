@@ -8,6 +8,8 @@ use PDO;
 use Throwable;
 final class DatabaseRateLimiter implements RateLimitBackend
 {
+    // Match the 24-hour registration device quota in MuchoProtect.
+    const MIN_BUCKET_RETENTION = 86400;
     public function __construct(PDO $db)
     {
         $this->db = $db;
@@ -63,12 +65,12 @@ final class DatabaseRateLimiter implements RateLimitBackend
         }
         return $this->allowStrict($key, $limit, $windowSeconds);
     }
-    public function cleanup(int $staleAfterSeconds = 3600, int $maxEntries = 64): int
+    public function cleanup(int $staleAfterSeconds = self::MIN_BUCKET_RETENTION, int $maxEntries = 64): int
     {
         if ($staleAfterSeconds < 1 || $maxEntries < 1) {
             return 0;
         }
-        $cutoff = time() - $staleAfterSeconds;
+        $cutoff = time() - max($staleAfterSeconds, self::MIN_BUCKET_RETENTION);
         $maxEntries = max(1, min(1000, $maxEntries));
         try {
             $stmt = $this->db->prepare("DELETE FROM mucho_security_rate_limits\n                 WHERE updated_at < FROM_UNIXTIME(:cutoff)\n                 ORDER BY updated_at ASC LIMIT {$maxEntries}");
