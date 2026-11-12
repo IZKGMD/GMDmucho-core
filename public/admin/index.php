@@ -6479,7 +6479,7 @@ echo '</table></div>';
 </main>
 <?php if (!adminIsPlain()): ?>
 </div>
-<script src="/admin/admin-i18n.js?v=106"></script>
+<script src="/admin/admin-i18n.js?v=107"></script>
 <?php endif ?>
 
 
