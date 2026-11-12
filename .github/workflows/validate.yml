@@ -192,6 +192,7 @@ jobs:
           php tests/security/client-ip-trusted-proxy.php
           php tests/security/security-storage-contract.php
           php tests/security/rate-limiter-failure-policy.php
+          php tests/security/long-window-cleanup.php
           php tests/client/client-trace.php
           php tests/client/gd-2209-trace.php
           php tests/security/muchoprotect.php
