@@ -27,14 +27,20 @@ $rows=array_slice($rows,0,25);
 $manage=canPermission('levels.manage');
 $rate=canPermission('levels.rate');
 ?>
-<form class="search admin-list-search" method="get">
+<div class="mc-work-filter">
+<form class="search admin-list-search" method="get" role="search" aria-label="Filter levels">
 <input type="hidden" name="page" value="<?=h($page)?>">
 <input type="search" name="q" value="<?=h($q)?>" placeholder="Level name / ID / creator" aria-label="Search levels">
 <?php if($page!=='moderation'): ?><select name="filter" aria-label="Status">
 <?php foreach([''=>'All levels','pending'=>'Requested Stars','rated'=>'Rated','deleted'=>'Deleted'] as $value=>$label): ?>
 <option value="<?=h($value)?>" <?=$filter===$value?'selected':''?>><?=h($label)?></option>
 <?php endforeach ?></select><?php endif ?>
-<button>Search</button><a class="btn gray" href="/admin/?page=<?=h($page)?>">Reset</a></form>
+<button>Search</button><?php if($q!==''||$filter!==''): ?><a class="btn gray" href="/admin/?page=<?=h($page)?>">Reset</a><?php endif ?></form>
+</div>
+<div class="mc-work-toolbar" aria-live="polite">
+  <h2><?= $page==='moderation' ? 'Requested ratings' : 'Level records' ?></h2>
+  <span class="mc-work-count"><strong><?=count($rows)?></strong> shown on this page</span>
+</div>
 <?php if(!$rows): ?><div class="card empty-state">No levels found. Change the search or filters.</div><?php endif ?>
 <div class="admin-records">
 <?php foreach($rows as $r): $id=(int)$r['level_id']; $profile=adminDifficultyProfile($r); ?>
@@ -43,7 +49,7 @@ $rate=canPermission('levels.rate');
 <span class="record-name"><b><?=h($r['name'])?></b><small>#<?=$id?> · <?=h($r['creator_name'])?></small></span>
 <span class="record-stat"><?=adminGdIcon('stars')?><?=(int)$r['stars']?></span>
 <?php if($r['requested_stars']>0): ?><span class="badge"><?=h($r['requested_stars'])?> ★</span><?php endif ?>
-<span class="record-open">Open</span></summary>
+<span class="record-open"><?=($manage||$rate)?'Manage':'Details'?></span></summary>
 <div class="record-body">
 <div class="record-actions">
 <button type="button" class="gray" data-copy-value="<?=$id?>">Copy level ID</button>
