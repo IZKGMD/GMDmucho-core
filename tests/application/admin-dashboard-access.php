@@ -42,6 +42,8 @@ check($countedTables === ['songs'], 'music manager only counts authorized music 
 check(str_contains($html, 'Latest music') && !str_contains($html, 'New players'), 'music manager sees the correct dashboard feed');
 check(!str_contains($html, 'page=players') && str_contains($html, 'page=songs'), 'music manager links respect page permissions');
 check(str_contains($html, '—') && str_contains($html, 'Verification unavailable'), 'database failure remains visible instead of becoming a zero count');
+check(str_contains($html, 'Music feed unavailable.') && !str_contains($html, 'No music has been uploaded yet.'),
+    'unavailable music feed is never mislabeled as an empty database');
 check(!str_contains($html, 'LEVEL MODERATION') && str_contains($html, 'MUSIC MODERATION'),
     'music-only reviewer never sees level moderation queue');
 
