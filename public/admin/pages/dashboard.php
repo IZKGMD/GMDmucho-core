@@ -149,7 +149,7 @@ function renderAdminDashboard(PDO $db): void
                 <span class="mc-ops-attention-mark" aria-hidden="true">★</span>
                 <span class="mc-ops-attention-copy">
                     <small>LEVEL MODERATION</small>
-                    <strong><?= $pendingLevels === null ? 'Queue unavailable' : ($pendingLevels === 0 ? 'Level queue is clear' : number_format($pendingLevels) . ' rating requests') ?></strong>
+                    <strong><?php if ($pendingLevels === null): ?>Queue unavailable<?php elseif ($pendingLevels === 0): ?>Level queue is clear<?php else: ?><?=number_format($pendingLevels)?> <span>rating requests</span><?php endif; ?></strong>
                     <span>Review requested ratings</span>
                 </span>
                 <span class="mc-ops-attention-go" aria-hidden="true">↗</span>
@@ -161,8 +161,8 @@ function renderAdminDashboard(PDO $db): void
                 <span class="mc-ops-attention-mark" aria-hidden="true">♪</span>
                 <span class="mc-ops-attention-copy">
                     <small>MUSIC MODERATION</small>
-                    <strong><?= $pendingSongs === null ? 'Queue unavailable' : ($pendingSongs === 0 ? 'Music queue is clear' : number_format($pendingSongs) . ' tracks to review') ?></strong>
-                    <span><?= $todaySongs === null ? 'Daily uploads unavailable' : h((string)$todaySongs) . ' uploads today' ?></span>
+                    <strong><?php if ($pendingSongs === null): ?>Queue unavailable<?php elseif ($pendingSongs === 0): ?>Music queue is clear<?php else: ?><?=number_format($pendingSongs)?> <span>tracks to review</span><?php endif; ?></strong>
+                    <span><?php if ($todaySongs === null): ?>Daily uploads unavailable<?php else: ?><?=h((string)$todaySongs)?> <span>uploads today</span><?php endif; ?></span>
                 </span>
                 <span class="mc-ops-attention-go" aria-hidden="true">↗</span>
             </a>
