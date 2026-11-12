@@ -116,6 +116,10 @@ def main():
                         page=browser.new_page(viewport={"width":width,"height":height},device_scale_factor=1)
                         errors=[]
                         page.on("pageerror",lambda error:errors.append(str(error)))
+                        if name=="admin":
+                            # Give the fixture a normal same-origin document so saved
+                            # density settings can be checked across HTML reloads.
+                            page.goto(base+"/index.html",wait_until="domcontentloaded")
                         page.set_content(build(base),wait_until="networkidle")
                         page.locator("body").wait_for()
                         body_color=page.locator("body").evaluate("(e)=>getComputedStyle(e).backgroundColor")
@@ -182,20 +186,49 @@ def main():
                             else:
                                 assert not menu.is_visible(),("desktop hamburger unexpectedly visible",width)
                                 assert not nav.evaluate("(e)=>e.inert"),("desktop sidebar should remain interactive",width)
-                            # The compact switch is part of the actual admin UI; it must
-                            # update the DOM and accessibility state without reloading.
+                            # Use the production styles on a temporary data-free record,
+                            # not fabricated player data or a mock settings handler.
+                            page.evaluate("""() => {
+                                const host=document.createElement('div');
+                                host.id='densityProbe';
+                                host.className='admin-records';
+                                host.innerHTML='<details class="card admin-record"><summary>Record fixture</summary><div class="record-body"><button type="button">Save</button></div></details>';
+                                document.querySelector('.mc-ops').append(host);
+                            }""")
+                            kpi=page.locator(".mc-ops-summary-item").first
+                            record=page.locator("#densityProbe .admin-record > summary")
+                            regular_kpi=kpi.bounding_box()["height"]
+                            regular_record=record.bounding_box()["height"]
                             view=page.locator(".mc-view-menu > summary")
-                            if view.is_visible():
+                            assert view.is_visible(),("compact View control not available",width)
+                            view.click()
+                            density=page.locator(".mc-density-toggle")
+                            assert density.is_visible(),("density preference missing",width)
+                            assert density.get_attribute("aria-pressed")=="false"
+                            density.click()
+                            assert density.get_attribute("aria-pressed")=="true",("density toggle did not activate",width)
+                            assert page.locator("body").evaluate("(e)=>e.classList.contains('mc-compact')"),("compact class missing",width)
+                            assert kpi.bounding_box()["height"]<=regular_kpi-4,("KPI density unchanged",width,regular_kpi,kpi.bounding_box())
+                            assert record.bounding_box()["height"]<=regular_record-4,("record density unchanged",width,regular_record,record.bounding_box())
+                            if width<=980:
+                                assert page.locator(".admin-nav a").first.bounding_box()["height"]>=43,("compact touch target too small",width)
+                            if width in (1440,390):
+                                view.click()
+                                compact_file=OUTPUT/f"muchocore-admin-compact-{width}.jpg"
+                                page.screenshot(path=str(compact_file),type="jpeg",quality=80)
+                                view.click()
+                            if width==390:
+                                assert page.evaluate("localStorage.getItem('mucho.control.compact')")=="true",("compact preference not saved",width)
+                                page.set_content(build(base),wait_until="networkidle")
+                                assert page.locator("body").evaluate("(e)=>e.classList.contains('mc-compact')"),("saved compact preference not restored",width)
+                                view=page.locator(".mc-view-menu > summary")
                                 view.click()
                                 density=page.locator(".mc-density-toggle")
-                                assert density.is_visible(),("density preference missing",width)
-                                assert density.get_attribute("aria-pressed")=="false"
-                                density.click()
-                                assert density.get_attribute("aria-pressed")=="true",("density toggle did not activate",width)
-                                assert page.locator("body").evaluate("(e)=>e.classList.contains('mc-compact')"),("compact class missing",width)
-                                density.click()
-                                assert density.get_attribute("aria-pressed")=="false",("density toggle did not reset",width)
-                                view.click()
+                            density.click()
+                            assert density.get_attribute("aria-pressed")=="false",("density toggle did not reset",width)
+                            assert not page.locator("body").evaluate("(e)=>e.classList.contains('mc-compact')")
+                            view.click()
+                            page.locator("#densityProbe").evaluate("(e)=>e.remove()") if width!=390 else None
                         elif name=="login":
                             card=page.locator(".admin-auth-card").bounding_box()
                             assert card and card["x"]>=-1 and card["x"]+card["width"]<=width+1,(name,width,"auth card clipped",card)
