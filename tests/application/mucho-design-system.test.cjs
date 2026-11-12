@@ -76,3 +76,23 @@ test('all key admin modules use the same accessible controls and compact surface
  assert.ok(read('public/admin/index.php').includes('mc-page-description'));
  assert.ok(read('public/admin/pages/songs.php').includes('data-confirm='));
 });
+
+test('admin light scheme is a deliberate single palette with prepaint preference',()=>{
+ const admin=read('public/admin/index.php');
+ const light=read('public/admin/admin-light.css');
+ const init=read('public/admin/admin-theme-bootstrap.js');
+ assert.equal(admin.split('/admin/admin-light.css?v=1').length-1,2,'login + operator shell should load light theme');
+ assert.equal(admin.split('/admin/admin-theme-bootstrap.js?v=1').length-1,2,'login + operator shell should bootstrap before paint');
+ assert.ok(admin.indexOf('/admin/admin-theme-bootstrap.js?v=1')<admin.indexOf('/admin/admin-light.css?v=1'));
+ for(const color of ['#f5f6f9','#ffffff','#181c27','#202637','#64449b','#e0e4ec'])
+   assert.ok(light.includes(color),color);
+ for(const component of [
+   '.shell>aside','.shell>main','.admin-nav a.on','.head .global-search',
+   '.mc-ops-summary-item','.mc-ops-review .mc-ops-attention',
+   '.table th','.admin-record>summary','.rating-row.on',
+   '.rating-stars-pick button.on','.mc-role-permission','.admin-auth-card'
+ ]) assert.ok(light.includes(component),component);
+ assert.ok(init.includes("localStorage.getItem('mucho.theme')"));
+ assert.ok(light.includes('html[data-theme="light"]'));
+ assert.ok(!light.includes('linear-gradient('),'light surfaces must stay calm and untextured');
+});
