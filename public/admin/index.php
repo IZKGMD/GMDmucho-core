@@ -5675,12 +5675,6 @@ Shown in the public footer as <b>Server by</b>. Leave both fields empty to hide 
  <strong><?=h($branding['server_name'])?></strong>
  <span class="mc-settings-preview-suffix">Control</span>
 </div>
- <div style="margin-top:6px;font-size:24px;font-weight:900;letter-spacing:-.8px">
-  <span style="background:linear-gradient(90deg,#fff,#9687ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent"><?=h($branding['server_name'])?></span>
-  <span style="color:#9687ff"> Control</span>
- </div>
-</div>
-
 <input type="hidden" name="csrf" value="<?=csrf()?>">
 <input type="hidden" name="action" value="settings-save">
 <input type="hidden" name="return" value="settings">
