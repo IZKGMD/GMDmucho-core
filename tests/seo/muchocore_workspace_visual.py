@@ -213,6 +213,7 @@ def main():
                             if width<=980:
                                 assert page.locator(".admin-nav a").first.bounding_box()["height"]>=43,("compact touch target too small",width)
                             if width in (1440,390):
+                                page.locator("#densityProbe").evaluate("(e)=>e.remove()")
                                 view.click()
                                 compact_file=OUTPUT/f"muchocore-admin-compact-{width}.jpg"
                                 page.screenshot(path=str(compact_file),type="jpeg",quality=80)
@@ -228,7 +229,8 @@ def main():
                             assert density.get_attribute("aria-pressed")=="false",("density toggle did not reset",width)
                             assert not page.locator("body").evaluate("(e)=>e.classList.contains('mc-compact')")
                             view.click()
-                            page.locator("#densityProbe").evaluate("(e)=>e.remove()") if width!=390 else None
+                            if width not in (1440,390):
+                                page.locator("#densityProbe").evaluate("(e)=>e.remove()")
                         elif name=="login":
                             card=page.locator(".admin-auth-card").bounding_box()
                             assert card and card["x"]>=-1 and card["x"]+card["width"]<=width+1,(name,width,"auth card clipped",card)
