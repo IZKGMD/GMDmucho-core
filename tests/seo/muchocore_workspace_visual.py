@@ -31,6 +31,7 @@ def php_inline_css(filename, block):
 def admin(base):
     live_style=php_inline_css("admin/index.php",3)
     return f"""<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="{base}/admin/admin-theme-bootstrap.js?v=1"></script>
 <style>{live_style}</style><style>*,*::before,*::after{{box-sizing:border-box}}</style>
 <link rel="stylesheet" href="{base}/assets/product-ui.css?v=2">
 <link rel="stylesheet" href="{base}/admin/product-admin.css?v=1">
@@ -40,7 +41,8 @@ def admin(base):
 <link rel="stylesheet" href="{base}/admin/admin-motion.css?v=2">
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
 <link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=7">
-<link rel="stylesheet" href="{base}/admin/admin-unified.css?v=1"></head>
+<link rel="stylesheet" href="{base}/admin/admin-unified.css?v=2">
+<link rel="stylesheet" href="{base}/admin/admin-light.css?v=1"></head>
 <body class="mc-admin"><div class="mobile-overlay" id="mobileOverlay"></div><div class="shell">
 <aside id="adminNavigation" aria-label="Admin navigation"><div class="brandrow"><a class="logo" href="#"><img src="{base}/assets/muchocore-icon.png?v=3" alt="" width="32" height="32">MuchoCore</a></div>
 <section class="mc-instance"><span>ACTIVE INSTANCE</span><strong>MuchoCore</strong><a href="#">Player portal ↗</a></section>
@@ -63,6 +65,7 @@ def login(base):
     """Non-authenticated login layout fixture: real CSS, no credentials or DB."""
     return f"""<!doctype html><html lang="en" data-theme="dark"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="{base}/admin/admin-theme-bootstrap.js?v=1"></script>
 <link rel="stylesheet" href="{base}/assets/product-ui.css">
 <link rel="stylesheet" href="{base}/admin/product-admin.css">
 <link rel="stylesheet" href="{base}/admin/admin-simple.css">
@@ -70,7 +73,8 @@ def login(base):
 <link rel="stylesheet" href="{base}/admin/admin-workspace.css">
 <link rel="stylesheet" href="{base}/admin/admin-motion.css">
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css">
-<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css"></head>
+<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css">
+<link rel="stylesheet" href="{base}/admin/admin-light.css?v=1"></head>
 <body class="admin-login mc-workspace">
 <main class="admin-auth-card">
 <header><a href="#" class="logo">MuchoCore</a></header>

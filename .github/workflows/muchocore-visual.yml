@@ -16,6 +16,8 @@ on:
       - "tests/seo/muchocore_workspace_visual.py"
       - "public/admin/mucho-console-v3.css"
       - "public/admin/admin-unified.css"
+      - "public/admin/admin-light.css"
+      - "tests/seo/muchocore_workspace_light.py"
       - "public/admin/index.php"
       - "public/admin/pages/**"
       - "public/assets/mucho-portal-v3.css"
@@ -42,6 +44,8 @@ jobs:
         run: python3 tests/seo/muchocore_visual.py
       - name: Check actual workspace styles in dark-mode preview fixtures
         run: python3 tests/seo/muchocore_workspace_visual.py
+      - name: Check professional light theme across operator modules
+        run: python3 tests/seo/muchocore_workspace_light.py
       - name: Keep preview screenshots
         if: always()
         uses: actions/upload-artifact@v4
