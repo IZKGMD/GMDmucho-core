@@ -157,7 +157,7 @@ function renderAdminDashboard(PDO $db): void
 
         <div class="mc-ops-content">
             <?php if (canAdminPage('rating') || canAdminPage('songs') || $visibleActions): ?>
-            <aside class="mc-ops-rail" aria-label="Operator workspace">
+            <div class="mc-ops-rail" role="complementary" aria-label="Operator workspace">
                 <?php if (canAdminPage('rating') || canAdminPage('songs')): ?>
                 <section class="mc-ops-review" aria-labelledby="mcReviewTitle">
                     <div class="mc-ops-section-head">
@@ -204,7 +204,7 @@ function renderAdminDashboard(PDO $db): void
             </section>
             <?php endif; ?>
 
-            </aside>
+            </div>
             <?php endif; ?>
             <div class="mc-ops-feeds">
                 <?php if (canAdminPage('levels')): ?>
