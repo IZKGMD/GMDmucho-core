@@ -316,3 +316,93 @@ body.mc-admin.mc-compact .rating-savebar{padding:9px}
     transition:none!important;
   }
 }
+/* Feature modules share the same panels instead of retaining inline themes. */
+body.mc-admin .mc-plugins-head{
+ display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;
+}
+body.mc-admin .mc-plugins-head h2{margin:7px 0 4px}
+body.mc-admin .mc-plugin-stats{margin-top:14px}
+body.mc-admin .mc-plugins-subtle{
+ background:var(--mc-raised);border-color:var(--mc-work-outline);
+ margin-top:13px;
+}
+body.mc-admin .mc-plugins-meta{font-size:11px}
+body.mc-admin .mc-news-status{margin-bottom:14px;gap:9px}
+body.mc-admin .mc-news-workspace{
+ display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);
+ gap:14px;align-items:start;
+}
+body.mc-admin .mc-news-workspace .card{margin-bottom:14px}
+body.mc-admin .mucho-news-field{display:block;margin-top:13px;min-width:0}
+body.mc-admin .mucho-news-field b{
+ display:block;margin-bottom:6px;font-size:12px;color:var(--mc-muted);
+}
+body.mc-admin .mucho-news-field :is(input,textarea){
+ display:block;width:100%;box-sizing:border-box;
+}
+body.mc-admin .mucho-news-field textarea{
+ min-height:180px;resize:vertical;line-height:1.6;
+}
+body.mc-admin .mucho-news-flags{display:flex;flex-wrap:wrap;gap:14px;margin:14px 0}
+body.mc-admin .mucho-news-flags label{display:flex;align-items:center;gap:8px;font-size:12px}
+body.mc-admin .mucho-news-item{
+ border:1px solid var(--mc-work-outline);border-radius:7px;
+ padding:13px;margin-top:9px;background:var(--mc-work-panel);
+}
+body.mc-admin .mucho-news-item h3{margin:0;font-size:14px;overflow-wrap:anywhere}
+body.mc-admin .mucho-news-item p{
+ white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0;
+ color:var(--mc-text);font-size:12px;line-height:1.55;
+}
+body.mc-admin .mucho-news-meta{margin:7px 0 10px;color:var(--mc-muted);font-size:11px}
+body.mc-admin .mucho-news-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+body.mc-admin .mucho-news-actions form{margin:0}
+body.mc-admin .mucho-news-media{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}
+body.mc-admin .mucho-news-media figure{margin:0;max-width:280px}
+body.mc-admin .mucho-news-media img{display:block;width:100%;height:auto;border-radius:7px}
+body.mc-admin .mucho-news-media figcaption{font-size:12px;margin-top:6px;overflow-wrap:anywhere}
+body.mc-admin .mc-contentpack-slots{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr));
+ gap:9px;margin-top:8px;
+}
+body.mc-admin .mc-contentpack-fields{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;margin-top:8px;
+}
+body.mc-admin .mc-contentpack-edit-row{
+ display:grid;grid-template-columns:minmax(0,2fr) minmax(100px,1fr) auto;
+ gap:9px;align-items:end;
+}
+body.mc-admin .mc-contentpack-edit-row-wide{
+ grid-template-columns:minmax(0,2fr) repeat(3,minmax(100px,1fr));
+}
+body.mc-admin .mc-contentpack-edit-row>*{min-width:0;max-width:100%}
+body.mc-admin[data-page="migration"] .card[style*="background"]{
+ background:var(--mc-raised)!important;
+ border-color:var(--mc-work-outline)!important;
+}
+body.mc-admin[data-page="plugins"] .card[style*="background"]{
+ background:var(--mc-raised)!important;
+ border-color:var(--mc-work-outline)!important;
+}
+body.mc-admin[data-page="contentpacks"] .grid{
+ grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));
+}
+body.mc-admin[data-page="release"] .card,
+body.mc-admin[data-page="migration"] .card{
+ max-width:100%;
+}
+@media(max-width:1100px){
+ body.mc-admin .mc-news-workspace{grid-template-columns:minmax(0,1fr)}
+ body.mc-admin .mc-contentpack-edit-row,
+ body.mc-admin .mc-contentpack-edit-row-wide{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+}
+@media(max-width:650px){
+ body.mc-admin .mc-contentpack-fields,
+ body.mc-admin .mc-contentpack-edit-row,
+ body.mc-admin .mc-contentpack-edit-row-wide{grid-template-columns:minmax(0,1fr)}
+ body.mc-admin .mc-news-workspace{gap:10px}
+ body.mc-admin .mc-plugins-head{align-items:flex-start}
+ body.mc-admin .mc-page-description{display:none!important}
+}
