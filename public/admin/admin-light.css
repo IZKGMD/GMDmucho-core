@@ -20,6 +20,9 @@ html[data-theme="light"] :is(body.mc-admin,body.admin-login.mc-workspace){
  --mc-light-focus:#61517e33;
  color-scheme:light;background:#f8f9fb!important;color:#222733;
 }
+html[data-theme="light"] body.mc-admin{
+ font-size:14px;line-height:1.5;
+}
 /* The navigation belongs to the same surface as the content. */
 html[data-theme="light"] body.mc-admin .shell>aside{
  background:#f5f6f8!important;color:#293141!important;
