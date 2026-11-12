@@ -196,7 +196,7 @@ function renderAdminDashboard(PDO $db): void
                             <tbody>
                             <?php foreach ($recentLevels as $level): ?>
                             <tr>
-                                <td><a class="mc-ops-level-link" href="/admin/?page=<?= canAdminPage('rating') ? 'rating&amp;id=' : 'levels&amp;q=' ?><?= (int)$level['level_id'] ?>"><?=h($level['name'] ?? '')?></a><small>#<?= (int)$level['level_id'] ?></small></td>
+                                <td><a class="mc-ops-level-link" href="/admin/?page=<?= canAdminPage('rating') ? 'rating&amp;id=' : 'levels&amp;q=' ?><?= (int)$level['level_id'] ?>"><?=h($level['name'] ?? '')?></a><small>#<?= (int)$level['level_id'] ?> · <?=h($level['creator_name'] ?? '')?></small></td>
                                 <td><?=h($level['creator_name'] ?? '')?></td>
                                 <td>
                                     <?php if ((int)$level['requested_stars'] > 0): ?>
