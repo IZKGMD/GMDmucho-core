@@ -44,7 +44,7 @@ def computed(page, selector, property_name):
 
 def inspect_colors(page, width, name):
     background = rgb(computed(page, "body", "background-color"))
-    assert background == (245, 246, 249), (name, width, "wrong canvas", background)
+    assert background == (248, 249, 251), (name, width, "wrong canvas", background)
     if name == "login":
         card = rgb(computed(page, ".admin-auth-card", "background-color"))
         assert card == (255, 255, 255), (name, width, "login card is not white", card)
@@ -53,7 +53,7 @@ def inspect_colors(page, width, name):
         button = "#normalSignInButton"
     else:
         sidebar = rgb(computed(page, ".shell>aside", "background-color"))
-        assert sidebar == (24, 28, 39), (name, width, "sidebar not neutral ink", sidebar)
+        assert sidebar == (245, 246, 248), (name, width, "sidebar must match light workspace", sidebar)
         canvas = rgb(computed(page, ".shell>main", "background-color"))
         assert canvas == background, (name, width, "mixed canvas", canvas)
         title = rgb(computed(page, ".head-title h1", "color"))
