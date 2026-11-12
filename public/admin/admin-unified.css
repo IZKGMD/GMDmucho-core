@@ -218,8 +218,12 @@ body.mc-admin .mc-upload-panel>summary{
   padding:16px 18px;font-size:13px;font-weight:650;cursor:pointer;
 }
 body.mc-admin .mc-upload-panel[open]>summary{border-bottom:1px solid var(--mc-work-outline)}
-body.mc-admin .mc-upload-panel>form,
-body.mc-admin .mc-upload-panel>p{margin:15px 18px}
+body.mc-admin .mc-upload-panel>form{
+ width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+ margin:0;padding:16px 18px 18px;
+}
+body.mc-admin .mc-upload-panel>p{margin:12px 18px}
+body.mc-admin .mc-upload-panel input[type=file]{width:100%;min-width:0}
 body.mc-admin .mc-plugins-overview{
   border-color:var(--mc-work-outline)!important;
 }
