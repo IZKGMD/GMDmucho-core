@@ -48,7 +48,7 @@ def admin(base):
 <p class="nav-title">SYSTEM</p><a href="#">Settings</a><a href="#">Backup</a></nav></aside>
 <main id="main" tabindex="-1"><header class="head"><button type="button" class="mobile-menu-btn" id="mobileMenuButton" aria-label="Open menu" aria-expanded="false" aria-controls="adminNavigation">☰</button><div class="head-title"><span class="mc-section-caption">MUCHOCORE ADMIN</span><h1>Dashboard</h1></div>
 <form class="global-search"><select aria-label="Search type"><option>Players</option></select><input placeholder="Search..." aria-label="Search"><button type="button">Search</button></form><div class="mc-header-actions"><details class="mc-view-menu"><summary aria-label="Interface options">View</summary><div class="mc-view-popover"></div></details></div></header>
-<div class="mc-ops"><header class="mc-ops-intro"><div><p class="mc-ops-kicker">MUCHOCORE / WORKSPACE</p><h2>Server overview</h2><p>Players, levels and content at a glance.</p></div><div class="mc-ops-intro-aside"><span class="mc-ops-snapshot">Snapshot · preview server time</span><a class="mc-ops-secondary" href="#">Player portal ↗</a></div></header>
+<div class="mc-ops"><header class="mc-ops-intro"><div><h2>Server overview</h2><p>Players, levels and content at a glance.</p></div><div class="mc-ops-intro-aside"><span class="mc-ops-snapshot">Snapshot · preview server time</span><a class="mc-ops-secondary" href="#">Player portal ↗</a></div></header>
 
 <section class="mc-ops-summary"><div class="mc-ops-summary-item"><span class="mc-ops-summary-top">Players<span>↗</span></span><strong>—</strong><small>Live server figure</small></div><div class="mc-ops-summary-item"><span class="mc-ops-summary-top">Levels<span>↗</span></span><strong>—</strong><small>Stored levels</small></div><div class="mc-ops-summary-item"><span class="mc-ops-summary-top">Songs<span>↗</span></span><strong>—</strong><small>Community tracks</small></div></section>
 <div class="mc-ops-content"><div class="mc-ops-rail" role="complementary" aria-label="Operator workspace">
@@ -141,6 +141,9 @@ def main():
                             assert actions is not None,(name,width,'operator tools missing')
                             assert actions["x"] >= page.locator('.mc-ops-feeds').bounding_box()["x"],(name,width,'tools rendered under fixed sidebar',actions)
                             assert actions["width"] >= 200,(name,width,'operator tools collapsed',actions)
+                            if width<=650:
+                                feeds=page.locator(".mc-ops-feeds").bounding_box()
+                                assert feeds and actions["y"] >= feeds["y"]+feeds["height"]-1,(name,width,"secondary tools precede activity",actions,feeds)
                             sidebar=page.locator(".shell>aside").evaluate("(e)=>getComputedStyle(e).backgroundColor")
                             assert sidebar=="rgb(21, 24, 33)",sidebar
                             menu=page.locator("#mobileMenuButton")
