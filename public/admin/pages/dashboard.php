@@ -23,6 +23,16 @@ function renderAdminDashboard(PDO $db): void
     $songs = canAdminPage('songs') ? $count($db, 'songs') : null;
     $verifiedSongs = null;
     $pendingSongs = null;
+    $pendingLevels = null;
+
+    // Queue counts follow the same page permissions as their destinations.
+    if (canAdminPage('rating')) try {
+        $pendingLevels = (int)$db->query(
+            'SELECT COUNT(*) FROM levels WHERE requested_stars > 0 AND is_deleted = 0'
+        )->fetchColumn();
+    } catch (Throwable) {
+        // Unknown is not the same as an empty queue.
+    }
 
     if (canAdminPage('songs')) try {
         $q = $db->query(
@@ -57,7 +67,7 @@ function renderAdminDashboard(PDO $db): void
     } catch (Throwable) {
     }
 
-    $recentPlayers = [];
+    $recentPlayers = null;
     if (canAdminPage('players')) try {
         $recentPlayers = $db->query(
             'SELECT
@@ -76,7 +86,7 @@ function renderAdminDashboard(PDO $db): void
     } catch (Throwable) {
     }
 
-    $recentSongs = [];
+    $recentSongs = null;
     if (canAdminPage('songs')) try {
         $recentSongs = $db->query(
             'SELECT
@@ -93,9 +103,22 @@ function renderAdminDashboard(PDO $db): void
     } catch (Throwable) {
     }
 
+    $recentLevels = null;
+    if (canAdminPage('levels')) try {
+        $recentLevels = $db->query(
+            'SELECT l.level_id,l.name,l.stars,l.requested_stars,
+                    COALESCE(a.username, \'Unknown\') AS creator_name
+             FROM levels l
+             LEFT JOIN accounts a ON a.account_id=l.account_id
+             WHERE l.is_deleted=0
+             ORDER BY l.level_id DESC LIMIT 5'
+        )->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable) {
+    }
+
     $kpis = [
         ['Players', $accounts, ($todayAccounts === null ? 'Today unavailable' : '+' . $todayAccounts . ' today'), 'players'],
-        ['Levels', $levels, 'Published levels', 'levels'],
+        ['Levels', $levels, 'Stored levels', 'levels'],
         ['Songs', $songs, ($verifiedSongs === null ? 'Verification unavailable' : $verifiedSongs . ' verified'), 'songs'],
     ];
     $actions = [
@@ -113,21 +136,38 @@ function renderAdminDashboard(PDO $db): void
             <div>
                 <p class="mc-ops-kicker">MUCHOCORE CONSOLE</p>
                 <h2>Server overview</h2>
-                <p>Live data and the work that needs your attention.</p>
+                <p>Current database snapshot. Refresh for updated figures.</p>
             </div>
             <a class="mc-ops-secondary" href="/dashboard" target="_blank" rel="noopener noreferrer">Player portal <span aria-hidden="true">↗</span></a>
         </header>
 
-        <?php if (canAdminPage('songs')): ?>
-        <a class="mc-ops-attention" href="/admin/?page=songs&amp;filter=pending" aria-label="Review pending music">
-            <span class="mc-ops-attention-mark" aria-hidden="true">♪</span>
-            <span class="mc-ops-attention-copy">
-                <small>MUSIC MODERATION</small>
-                <strong><?= $pendingSongs === null ? 'Queue unavailable' : ($pendingSongs === 0 ? 'No tracks waiting for review' : number_format($pendingSongs) . ' tracks waiting for review') ?></strong>
-                <span><?= $todaySongs === null ? 'Daily upload data unavailable' : h((string)$todaySongs) . ' uploaded today' ?></span>
-            </span>
-            <span class="mc-ops-attention-go">Open queue ↗</span>
-        </a>
+        <?php if (canAdminPage('rating') || canAdminPage('songs')): ?>
+        <nav class="mc-ops-queue" aria-label="Review queues">
+            <?php if (canAdminPage('rating')): ?>
+            <a class="mc-ops-attention <?= $pendingLevels === 0 ? 'is-clear' : '' ?>"
+               href="/admin/?page=rating" aria-label="Open level rating requests">
+                <span class="mc-ops-attention-mark" aria-hidden="true">★</span>
+                <span class="mc-ops-attention-copy">
+                    <small>LEVEL MODERATION</small>
+                    <strong><?php if ($pendingLevels === null): ?>Queue unavailable<?php elseif ($pendingLevels === 0): ?>Level queue is clear<?php else: ?><?=number_format($pendingLevels)?> <span>rating requests</span><?php endif; ?></strong>
+                    <span>Review requested ratings</span>
+                </span>
+                <span class="mc-ops-attention-go" aria-hidden="true">↗</span>
+            </a>
+            <?php endif; ?>
+            <?php if (canAdminPage('songs')): ?>
+            <a class="mc-ops-attention <?= $pendingSongs === 0 ? 'is-clear' : '' ?>"
+               href="/admin/?page=songs&amp;filter=pending" aria-label="Review pending music">
+                <span class="mc-ops-attention-mark" aria-hidden="true">♪</span>
+                <span class="mc-ops-attention-copy">
+                    <small>MUSIC MODERATION</small>
+                    <strong><?php if ($pendingSongs === null): ?>Queue unavailable<?php elseif ($pendingSongs === 0): ?>Music queue is clear<?php else: ?><?=number_format($pendingSongs)?> <span>tracks to review</span><?php endif; ?></strong>
+                    <span><?php if ($todaySongs === null): ?>Daily uploads unavailable<?php else: ?><?=h((string)$todaySongs)?> <span>uploads today</span><?php endif; ?></span>
+                </span>
+                <span class="mc-ops-attention-go" aria-hidden="true">↗</span>
+            </a>
+            <?php endif; ?>
+        </nav>
         <?php endif; ?>
 
         <section class="mc-ops-summary" aria-label="Current server totals">
@@ -143,13 +183,50 @@ function renderAdminDashboard(PDO $db): void
 
         <div class="mc-ops-content">
             <div class="mc-ops-feeds">
+                <?php if (canAdminPage('levels')): ?>
+                <section class="mc-ops-panel" aria-labelledby="mcRecentLevels">
+                    <div class="mc-ops-section-head">
+                        <div><p class="mc-ops-kicker">LEVELS</p><h3 id="mcRecentLevels">Latest uploads</h3></div>
+                        <a href="/admin/?page=levels">All levels ↗</a>
+                    </div>
+                    <?php if ($recentLevels === null): ?>
+                    <p class="mc-ops-empty">Level feed unavailable.</p>
+                    <?php elseif ($recentLevels): ?>
+                    <div class="mc-ops-table-scroll">
+                        <table class="mc-ops-table">
+                            <thead><tr><th>Level</th><th>Creator</th><th>Status</th></tr></thead>
+                            <tbody>
+                            <?php foreach ($recentLevels as $level): ?>
+                            <tr>
+                                <td><a class="mc-ops-level-link" href="/admin/?page=<?= canAdminPage('rating') ? 'rating&amp;id=' : 'levels&amp;q=' ?><?= (int)$level['level_id'] ?>"><?=h($level['name'] ?? '')?></a><small>#<?= (int)$level['level_id'] ?> · <?=h($level['creator_name'] ?? '')?></small></td>
+                                <td><?=h($level['creator_name'] ?? '')?></td>
+                                <td>
+                                    <?php if ((int)$level['requested_stars'] > 0): ?>
+                                    <span class="mc-ops-status">Requested</span>
+                                    <?php elseif ((int)$level['stars'] > 0): ?>
+                                    <span class="mc-ops-status verified">Rated</span>
+                                    <?php else: ?>
+                                    <span class="mc-ops-neutral">Unrated</span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <?php else: ?><p class="mc-ops-empty">No published levels to show yet.</p><?php endif; ?>
+                </section>
+                <?php endif; ?>
+
                 <?php if (canAdminPage('players')): ?>
                 <section class="mc-ops-panel" aria-labelledby="mcRecentPlayers">
                     <div class="mc-ops-section-head">
                         <div><p class="mc-ops-kicker">COMMUNITY</p><h3 id="mcRecentPlayers">New players</h3></div>
                         <a href="/admin/?page=players">All players ↗</a>
                     </div>
-                    <?php if ($recentPlayers): ?>
+                    <?php if ($recentPlayers === null): ?>
+                    <p class="mc-ops-empty">Player feed unavailable.</p>
+                    <?php elseif ($recentPlayers): ?>
                     <div class="mc-ops-table-scroll">
                         <table class="mc-ops-table">
                             <thead><tr><th>Player</th><th>Role</th><th class="mc-ops-num">Stars</th><th class="mc-ops-num">Moons</th></tr></thead>
@@ -180,7 +257,9 @@ function renderAdminDashboard(PDO $db): void
                         <div><p class="mc-ops-kicker">CONTENT</p><h3 id="mcMusicActivity">Latest music</h3></div>
                         <a href="/admin/?page=songs">Manage music ↗</a>
                     </div>
-                    <?php if ($recentSongs): ?>
+                    <?php if ($recentSongs === null): ?>
+                    <p class="mc-ops-empty">Music feed unavailable.</p>
+                    <?php elseif ($recentSongs): ?>
                     <div class="mc-ops-table-scroll">
                         <table class="mc-ops-table">
                             <thead><tr><th>Track</th><th>Artist</th><th>Status</th></tr></thead>

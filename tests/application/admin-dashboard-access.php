@@ -32,6 +32,9 @@ check(!str_contains($html, 'page=players') && !str_contains($html, 'page=songs')
 check(!str_contains($html, 'auditLiveState') && !str_contains($html, 'admin-server-card'), 'viewer receives no audit feed or server operation');
 check(str_contains($html, 'href="/dashboard"'), 'viewer can open the public player portal');
 check(!str_contains($html, 'mc-ops-actions'), 'unprivileged viewers do not see restricted quick tasks');
+check(!str_contains($html, 'mc-ops-queue') && !str_contains($html, 'Latest uploads'),
+    'unprivileged viewer sees no review queues or uploaded levels');
+
 
 $allowedPages = ['songs'];
 $html = renderDashboard($db);
@@ -39,6 +42,25 @@ check($countedTables === ['songs'], 'music manager only counts authorized music 
 check(str_contains($html, 'Latest music') && !str_contains($html, 'New players'), 'music manager sees the correct dashboard feed');
 check(!str_contains($html, 'page=players') && str_contains($html, 'page=songs'), 'music manager links respect page permissions');
 check(str_contains($html, '—') && str_contains($html, 'Verification unavailable'), 'database failure remains visible instead of becoming a zero count');
+check(str_contains($html, 'Music feed unavailable.') && !str_contains($html, 'No music has been uploaded yet.'),
+    'unavailable music feed is never mislabeled as an empty database');
+check(!str_contains($html, 'LEVEL MODERATION') && str_contains($html, 'MUSIC MODERATION'),
+    'music-only reviewer never sees level moderation queue');
+
+$allowedPages = ['levels'];
+$html = renderDashboard($db);
+check(str_contains($html, 'Latest uploads') && !str_contains($html, 'Latest music'),
+    'level manager sees fresh uploads without unauthorized music data');
+check(!str_contains($html, 'LEVEL MODERATION'),
+    'level viewing alone does not reveal rating permissions');
+
+$allowedPages = ['rating'];
+$html = renderDashboard($db);
+check(str_contains($html, 'LEVEL MODERATION') && str_contains($html, 'Queue unavailable'),
+    'rating staff can open the queue and a database error never looks like zero requests');
+check(!str_contains($html, 'MUSIC MODERATION') && !str_contains($html, 'Latest uploads'),
+    'rating-only staff do not inherit level browsing or music access');
+
 
 $allowedPages = ['news', 'rating', 'dbbackups'];
 $html = renderDashboard($db);

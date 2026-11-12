@@ -2464,7 +2464,7 @@ max-width:100%
 <link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=7">
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=4">
+<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=5">
 <script src="/admin/admin-simple.js?v=3" defer></script>
 </head>
 <body class="admin-login mc-workspace" data-page="">
@@ -5031,13 +5031,13 @@ table{
 <script src="/muchocore-theme.js?v=5" defer></script>
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
 <link rel="stylesheet" href="/admin/product-admin.css?v=1">
-<script src="/assets/product-ui.js?v=4" defer></script>
+<script src="/assets/product-ui.js?v=5" defer></script>
 <link rel="stylesheet" href="/admin/admin-simple.css?v=4">
 <script src="/admin/admin-simple.js?v=3" defer></script>
 <link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=6">
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=4">
+<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=5">
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>
@@ -6479,7 +6479,7 @@ echo '</table></div>';
 </main>
 <?php if (!adminIsPlain()): ?>
 </div>
-<script src="/admin/admin-i18n.js?v=104"></script>
+<script src="/admin/admin-i18n.js?v=105"></script>
 <?php endif ?>
 
 
