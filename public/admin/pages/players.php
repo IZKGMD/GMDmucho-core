@@ -31,7 +31,8 @@ $reset=canPermission('players.password_reset');
 $delete=canPermission('players.delete');
 $roleOptions=$manage ? $db->query("SELECT code FROM roles WHERE code IN ('user','moderator','elder_moderator','owner') ORDER BY priority DESC,id ASC")->fetchAll(PDO::FETCH_COLUMN) : [];
 ?>
-<form class="search admin-list-search" method="get">
+<div class="mc-work-filter">
+<form class="search admin-list-search" method="get" role="search" aria-label="Filter players">
 <input type="hidden" name="page" value="players">
 <input type="search" name="q" value="<?=h($q)?>" placeholder="Username / email / Account ID" aria-label="Search players">
 <select name="filter" aria-label="Status">
@@ -40,6 +41,11 @@ $roleOptions=$manage ? $db->query("SELECT code FROM roles WHERE code IN ('user',
 <?php endforeach ?></select><button>Search</button>
 <?php if($q!=='' || $filter!==''): ?><a class="btn gray" href="/admin/?page=players">Reset</a><?php endif ?>
 </form>
+</div>
+<div class="mc-work-toolbar" aria-live="polite">
+  <h2>Player accounts</h2>
+  <span class="mc-work-count"><strong><?=count($rows)?></strong> shown on this page</span>
+</div>
 <?php if(!$rows): ?><div class="card empty-state">No players found. Change the search or filters.</div><?php endif ?>
 <div class="admin-records">
 <?php foreach($rows as $r): $id=(int)$r['account_id']; ?>
@@ -48,7 +54,7 @@ $roleOptions=$manage ? $db->query("SELECT code FROM roles WHERE code IN ('user',
 <span class="record-name"><b><?=h($r['username'])?></b><small>#<?=$id?> · <?=h($r['role'])?></small></span>
 <span class="record-stat"><?=adminGdIcon('stars')?><?=number_format((int)($r['stars'] ?? 0))?></span>
 <span class="badge <?=$r['is_banned']?'bad':($r['is_active']?'green':'')?>"><?=$r['is_banned']?'Banned':($r['is_active']?'Active':'Inactive')?></span>
-<span class="record-open">Open</span></summary>
+<span class="record-open"><?=($manage||$reset||$delete)?'Manage':'Details'?></span></summary>
 <div class="record-body">
 <div class="record-actions"><button type="button" class="gray" data-copy-value="<?=$id?>">Copy player ID</button></div>
 <?php if($manage): ?>
