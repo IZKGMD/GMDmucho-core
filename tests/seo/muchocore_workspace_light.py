@@ -44,7 +44,7 @@ def computed(page, selector, property_name):
 
 def inspect_colors(page, width, name):
     background = rgb(computed(page, "body", "background-color"))
-    assert background == (245, 246, 249), (name, width, "wrong canvas", background)
+    assert background == (248, 249, 251), (name, width, "wrong canvas", background)
     if name == "login":
         card = rgb(computed(page, ".admin-auth-card", "background-color"))
         assert card == (255, 255, 255), (name, width, "login card is not white", card)
@@ -53,11 +53,25 @@ def inspect_colors(page, width, name):
         button = "#normalSignInButton"
     else:
         sidebar = rgb(computed(page, ".shell>aside", "background-color"))
-        assert sidebar == (24, 28, 39), (name, width, "sidebar not neutral ink", sidebar)
+        assert sidebar == (245, 246, 248), (name, width, "sidebar must match light workspace", sidebar)
         canvas = rgb(computed(page, ".shell>main", "background-color"))
         assert canvas == background, (name, width, "mixed canvas", canvas)
         title = rgb(computed(page, ".head-title h1", "color"))
         assert contrast(title, canvas) >= 7, (name, width, "low page title contrast")
+        if width >= 981:
+            sidebar_box = page.locator(".shell>aside").bounding_box()
+            assert sidebar_box and sidebar_box["x"] <= 1 and sidebar_box["y"] <= 1, (
+                name, width, "floating sidebar returned", sidebar_box
+            )
+            radius = computed(page, ".shell>aside", "border-top-left-radius").strip()
+            assert radius in ("0px", "0"), (name, width, "detached rounded sidebar", radius)
+        heading_size = float(computed(page, ".head-title h1", "font-size").replace("px", ""))
+        assert heading_size >= 20, (name, width, "tiny title", heading_size)
+        if page.locator(".mc-ops-summary-item").count():
+            first_metric = page.locator(".mc-ops-summary-item").first.bounding_box()
+            assert first_metric and first_metric["height"] <= 115, (
+                name, width, "oversized dashboard metric", first_metric
+            )
         nav_fg = rgb(computed(page, ".admin-nav a.on", "color"))
         nav_bg = rgb(computed(page, ".admin-nav a.on", "background-color"))
         assert contrast(nav_fg, nav_bg) >= 6, (name, width, "selected nav lacks contrast")
@@ -127,6 +141,10 @@ def main():
                                 if module == "rating":
                                     stars = page.locator(".rating-stars-pick button")
                                     assert stars.count() == 2
+                                    picker = page.locator(".rating-stars-pick")
+                                    picker.evaluate("(el) => el.hidden = true")
+                                    assert not picker.is_visible(), (module, width, "hidden rating picker remains exposed")
+                                    picker.evaluate("(el) => el.hidden = false")
                                     for button in stars.all():
                                         color = rgb(button.evaluate("(el) => getComputedStyle(el).backgroundColor"))
                                         assert color == (255, 255, 255), (

@@ -81,10 +81,10 @@ test('admin light scheme is a deliberate single palette with prepaint preference
  const admin=read('public/admin/index.php');
  const light=read('public/admin/admin-light.css');
  const init=read('public/admin/admin-theme-bootstrap.js');
- assert.equal(admin.split('/admin/admin-light.css?v=1').length-1,2,'login + operator shell should load light theme');
+ assert.equal(admin.split('/admin/admin-light.css?v=2').length-1,2,'login + operator shell should load light theme');
  assert.equal(admin.split('/admin/admin-theme-bootstrap.js?v=1').length-1,2,'login + operator shell should bootstrap before paint');
- assert.ok(admin.indexOf('/admin/admin-theme-bootstrap.js?v=1')<admin.indexOf('/admin/admin-light.css?v=1'));
- for(const color of ['#f5f6f9','#ffffff','#181c27','#202637','#64449b','#e0e4ec'])
+ assert.ok(admin.indexOf('/admin/admin-theme-bootstrap.js?v=1')<admin.indexOf('/admin/admin-light.css?v=2'));
+ for(const color of ['#f8f9fb','#ffffff','#f5f6f8','#222733','#61517e','#e3e6eb'])
    assert.ok(light.includes(color),color);
  for(const component of [
    '.shell>aside','.shell>main','.admin-nav a.on','.head .global-search',
