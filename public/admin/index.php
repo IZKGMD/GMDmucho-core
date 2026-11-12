@@ -2465,6 +2465,7 @@ max-width:100%
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
 <link rel="stylesheet" href="/admin/mucho-console-v3.css?v=7">
+<link rel="stylesheet" href="/admin/admin-unified.css?v=1">
 <script src="/admin/admin-simple.js?v=3" defer></script>
 </head>
 <body class="admin-login mc-workspace" data-page="">
@@ -5038,6 +5039,7 @@ table{
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
 <link rel="stylesheet" href="/admin/mucho-console-v3.css?v=7">
+<link rel="stylesheet" href="/admin/admin-unified.css?v=1">
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>
@@ -5091,10 +5093,45 @@ table{
  aria-controls="adminNavigation"
 >☰</button>
 
+<?php
+$adminPageDescriptions = [
+ 'dashboard'=>'Server activity and moderation at a glance',
+ 'players'=>'Search accounts and manage player profiles',
+ 'levels'=>'Review level metadata and publication status',
+ 'moderation'=>'Review pending requests and reported content',
+ 'rating'=>'Classify and publish level ratings',
+ 'songs'=>'Review, upload and manage community music',
+ 'news'=>'Publish and maintain in-game announcements',
+ 'plugins'=>'Installed extensions and plugin diagnostics',
+ 'settings'=>'Server configuration and branding',
+ 'system'=>'Infrastructure, status and maintenance',
+ 'backups'=>'Create and review server backups',
+ 'dbbackups'=>'Database snapshots and restoration',
+ 'admins'=>'Administrator access and account recovery',
+ 'roles'=>'Administrator permissions and roles',
+ 'audit'=>'Review privileged actions',
+ 'analytics'=>'Explore server activity and trends',
+ 'advanced'=>'Advanced server tools',
+ 'monitoring'=>'Service monitoring and diagnostics',
+ 'database'=>'Inspect database records',
+ 'endpoints'=>'API endpoints and protocol checks',
+ 'social'=>'Manage social features and relationships',
+ 'messages'=>'Inspect messages and reports',
+ 'comments'=>'Moderate comments',
+ 'clans'=>'Manage player clans',
+ 'contentpacks'=>'Manage downloadable content',
+ 'muchoprofiles'=>'Manage extended player profiles',
+ 'migration'=>'Migration and import tools',
+ 'intelligence'=>'Server insights and diagnostics',
+ 'release'=>'Release and update information',
+ 'clientpatcher'=>'Patch a game client for your server',
+ 'clients'=>'Manage client downloads',
+];
+?>
 <div class="head-title">
 <span class="mc-section-caption">MUCHOCORE ADMIN</span>
 <h1><?=h($pages[$page])?></h1>
-<small><?=h((string)((Environment::get('MUCHO_ACCOUNT_URL', '') ?: $branding['server_name'])))?></small>
+<small class="mc-page-description"><?=h($adminPageDescriptions[$page] ?? 'Manage this server workspace')?></small>
 </div>
 
 <?php if (canAdminPage('players') || canAdminPage('levels')): ?>
