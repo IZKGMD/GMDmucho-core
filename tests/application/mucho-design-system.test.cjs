@@ -36,10 +36,12 @@ test('new and legacy surfaces support reduced motion, keyboard focus and indepen
  assert.ok(read('public/assets/mucho-design-system.css').includes('html[data-theme="light"]'));
 });
 
-test('hybrid MuchoCore theme uses one logo-matched dark palette',()=>{
+test('MuchoCore product keeps its logo palette while admin uses neutral graphite surfaces',()=>{
  const css=read('public/assets/mucho-product-v3.css');
  for(const token of ['--mc-paper:#101017','--mc-deep:#21192e','--mc-brand:#ba9cee','color-scheme:dark']) assert.ok(css.includes(token),token);
- assert.ok(read('public/admin/mucho-console-v3.css').includes('#ba9cee'));
+ const admin=read('public/admin/mucho-console-v3.css');
+ for(const token of ['--mc-bg:#101218','--mc-surface:#191c26','--mc-accent:#b4a2e8'])
+   assert.ok(admin.includes(token),token);
  assert.ok(read('public/assets/mucho-portal-v3.css').includes('#ba9cee'));
  assert.ok(read('public/muchocore/discovery.css').includes('color-scheme:dark'));
 });
