@@ -58,6 +58,20 @@ def inspect_colors(page, width, name):
         assert canvas == background, (name, width, "mixed canvas", canvas)
         title = rgb(computed(page, ".head-title h1", "color"))
         assert contrast(title, canvas) >= 7, (name, width, "low page title contrast")
+        if width >= 981:
+            sidebar_box = page.locator(".shell>aside").bounding_box()
+            assert sidebar_box and sidebar_box["x"] <= 1 and sidebar_box["y"] <= 1, (
+                name, width, "floating sidebar returned", sidebar_box
+            )
+            radius = computed(page, ".shell>aside", "border-top-left-radius").strip()
+            assert radius in ("0px", "0"), (name, width, "detached rounded sidebar", radius)
+        heading_size = float(computed(page, ".head-title h1", "font-size").replace("px", ""))
+        assert heading_size >= 20, (name, width, "tiny title", heading_size)
+        if page.locator(".mc-ops-summary-item").count():
+            first_metric = page.locator(".mc-ops-summary-item").first.bounding_box()
+            assert first_metric and first_metric["height"] <= 115, (
+                name, width, "oversized dashboard metric", first_metric
+            )
         nav_fg = rgb(computed(page, ".admin-nav a.on", "color"))
         nav_bg = rgb(computed(page, ".admin-nav a.on", "background-color"))
         assert contrast(nav_fg, nav_bg) >= 6, (name, width, "selected nav lacks contrast")
