@@ -37,7 +37,7 @@ def contrast(a: tuple[int, int, int], b: tuple[int, int, int]) -> float:
 
 def computed(page, selector, property_name):
     return page.locator(selector).first.evaluate(
-        "([el,prop]) => getComputedStyle(el).getPropertyValue(prop)",
+        "(el,prop) => getComputedStyle(el).getPropertyValue(prop)",
         property_name
     )
 
