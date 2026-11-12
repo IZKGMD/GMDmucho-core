@@ -7,6 +7,9 @@ final class RateLimiter implements RateLimitBackend
 {
     const AUTO_CLEANUP_INTERVAL = 128;
     const DEFAULT_STALE_AFTER = 3600;
+    // Buckets written before the per-window metadata upgrade must retain the
+    // longest existing security budget (24-hour registration device quota).
+    const LEGACY_BUCKET_WINDOW = 86400;
     const DEFAULT_MAX_ENTRIES = 64;
     const MAX_CLEANUP_SCAN = 512;
     private $directory;
@@ -47,7 +50,7 @@ final class RateLimiter implements RateLimitBackend
             if (!ftruncate($fp, 0)) {
                 return false;
             }
-            $payload = \mucho7_json_encode(['start' => $start, 'count' => $count], JSON_THROW_ON_ERROR);
+            $payload = \mucho7_json_encode(['start' => $start, 'count' => $count, 'window' => $windowSeconds], JSON_THROW_ON_ERROR);
             $written = fwrite($fp, $payload);
             if ($written !== strlen($payload)) {
                 return false;
@@ -84,18 +87,45 @@ final class RateLimiter implements RateLimitBackend
                 if (++$scanned > self::MAX_CLEANUP_SCAN) {
                     break;
                 }
-                if (!$file->isFile() || $file->getExtension() !== 'json') {
+                if (!$file->isFile() || $file->isLink() || $file->getExtension() !== 'json') {
                     continue;
                 }
-                $mtime = $file->getMTime();
-                if ($mtime >= $cutoff) {
+                if ($file->getMTime() >= $cutoff) {
                     continue;
                 }
-                if (@unlink($file->getPathname())) {
-                    $removed++;
-                    if ($removed >= $maxEntries) {
-                        break;
+                $path = $file->getPathname();
+                $fp = @fopen($path, 'r');
+                if ($fp === false) {
+                    continue;
+                }
+                try {
+                    // Do not unlink a bucket while its writer holds the lock.
+                    // Recheck mtime under lock: the bucket may have been
+                    // refreshed since the directory iterator inspected it.
+                    if (!@flock($fp, LOCK_EX | LOCK_NB)) {
+                        continue;
                     }
+                    $stat = fstat($fp);
+                    if (!is_array($stat) || (int) ($stat['mtime'] ?? 0) >= $cutoff) {
+                        continue;
+                    }
+                    $state = \mucho7_json_decode((string) stream_get_contents($fp), true);
+                    $start = is_array($state) ? (int) ($state['start'] ?? 0) : 0;
+                    $window = is_array($state) && isset($state['window']) && is_int($state['window']) && $state['window'] > 0 ? $state['window'] : self::LEGACY_BUCKET_WINDOW;
+                    // Stale mtime does not mean the security window expired.
+                    // A 24-hour UDID bucket must survive one-hour file GC.
+                    if ($start > 0 && $start + $window > time()) {
+                        continue;
+                    }
+                    if (@unlink($path)) {
+                        $removed++;
+                        if ($removed >= $maxEntries) {
+                            break;
+                        }
+                    }
+                } finally {
+                    @flock($fp, LOCK_UN);
+                    fclose($fp);
                 }
             }
         } catch (\Throwable $__mcCaught) {
@@ -144,7 +174,7 @@ final class RateLimiter implements RateLimitBackend
             $count++;
             rewind($fp);
             ftruncate($fp, 0);
-            fwrite($fp, \mucho7_json_encode(['start' => $start, 'count' => $count], JSON_THROW_ON_ERROR));
+            fwrite($fp, \mucho7_json_encode(['start' => $start, 'count' => $count, 'window' => $windowSeconds], JSON_THROW_ON_ERROR));
             fflush($fp);
             return $count <= $limit;
         } finally {
