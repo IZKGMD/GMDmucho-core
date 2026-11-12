@@ -7,7 +7,10 @@ namespace MuchoCore\Security;
 final readonly class RateLimiter implements RateLimitBackend
 {
     private const AUTO_CLEANUP_INTERVAL = 128;
-    private const DEFAULT_STALE_AFTER = 3600;
+    // Registration UDID quotas remain active for 24 hours. Never garbage-collect
+    // a bucket earlier, even when a caller requests an aggressive cleanup.
+    private const MIN_BUCKET_RETENTION = 86400;
+    private const DEFAULT_STALE_AFTER = self::MIN_BUCKET_RETENTION;
     private const DEFAULT_MAX_ENTRIES = 64;
     private const MAX_CLEANUP_SCAN = 512;
 
@@ -112,6 +115,7 @@ final readonly class RateLimiter implements RateLimitBackend
             return 0;
         }
 
+        $staleAfterSeconds = max($staleAfterSeconds, self::MIN_BUCKET_RETENTION);
         $removed = 0;
         $cutoff = time() - $staleAfterSeconds;
         $scanned = 0;
