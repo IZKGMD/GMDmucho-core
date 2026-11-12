@@ -2464,7 +2464,7 @@ max-width:100%
 <link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=7">
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=6">
+<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=7">
 <script src="/admin/admin-simple.js?v=3" defer></script>
 </head>
 <body class="admin-login mc-workspace" data-page="">
@@ -5037,7 +5037,7 @@ table{
 <link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=6">
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=6">
+<link rel="stylesheet" href="/admin/mucho-console-v3.css?v=7">
 <?php if ($page==='admins'): ?>
 <script src="/admin/assets/qrcode.min.js?v=20260925" id="muchoQrRenderer"></script>
 <?php endif; ?>
@@ -5119,7 +5119,7 @@ table{
 
 
 <div class="mc-header-actions">
-<a class="mc-header-portal" href="/dashboard" target="_blank" rel="noopener noreferrer">Player portal ↗</a>
+
 <details class="mc-view-menu"><summary aria-label="Interface options">View <span aria-hidden="true">⌄</span></summary><div class="mc-view-popover"><?php adminInterfaceSwitch($_GET); ?></div></details>
 <button type="button" class="command-launcher" id="commandLauncher" aria-haspopup="dialog" aria-label="Quick navigation" title="Quick navigation (Ctrl+K)"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="12" y="3" width="5" height="5" rx="1"/><rect x="3" y="12" width="5" height="5" rx="1"/><rect x="12" y="12" width="5" height="5" rx="1"/></svg><span class="sr-only">Quick navigation</span><kbd>Ctrl K</kbd></button>
 <div class="mc-theme-slot"></div>
@@ -6479,7 +6479,7 @@ echo '</table></div>';
 </main>
 <?php if (!adminIsPlain()): ?>
 </div>
-<script src="/admin/admin-i18n.js?v=106"></script>
+<script src="/admin/admin-i18n.js?v=107"></script>
 <?php endif ?>
 
 

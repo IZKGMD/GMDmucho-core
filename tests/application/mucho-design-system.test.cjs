@@ -16,7 +16,7 @@ test('bilingual product uses its standalone v3 layout, no legacy CSS overlay',()
 test('operator and player workspaces keep shared foundation and dedicated rebuilt surfaces',()=>{
  for(const p of ['public/index.html','public/dashboard/index.php','public/dashboard/clans.php','public/admin/index.php'])
    assert.ok(read(p).includes('/assets/mucho-design-system.css?v=2'),p);
- assert.ok(read('public/admin/index.php').includes('/admin/mucho-console-v3.css?v=6'));
+ assert.ok(read('public/admin/index.php').includes('/admin/mucho-console-v3.css?v=7'));
  assert.ok(read('public/install/index.html').includes('/assets/mucho-install-v3.css?v=1'));
  for(const p of ['public/muchocore/about/index.html','public/muchocore/compatibility/index.html']) {
    assert.ok(read(p).includes('/muchocore/discovery.css?v=4'));
@@ -36,10 +36,12 @@ test('new and legacy surfaces support reduced motion, keyboard focus and indepen
  assert.ok(read('public/assets/mucho-design-system.css').includes('html[data-theme="light"]'));
 });
 
-test('hybrid MuchoCore theme uses one logo-matched dark palette',()=>{
+test('MuchoCore product keeps its logo palette while admin uses neutral graphite surfaces',()=>{
  const css=read('public/assets/mucho-product-v3.css');
  for(const token of ['--mc-paper:#101017','--mc-deep:#21192e','--mc-brand:#ba9cee','color-scheme:dark']) assert.ok(css.includes(token),token);
- assert.ok(read('public/admin/mucho-console-v3.css').includes('#ba9cee'));
+ const admin=read('public/admin/mucho-console-v3.css');
+ for(const token of ['--mc-bg:#101218','--mc-surface:#191c26','--mc-accent:#b4a2e8'])
+   assert.ok(admin.includes(token),token);
  assert.ok(read('public/assets/mucho-portal-v3.css').includes('#ba9cee'));
  assert.ok(read('public/muchocore/discovery.css').includes('color-scheme:dark'));
 });

@@ -39,7 +39,7 @@ def admin(base):
 <link rel="stylesheet" href="{base}/admin/admin-workspace.css?v=7">
 <link rel="stylesheet" href="{base}/admin/admin-motion.css?v=2">
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=6"></head>
+<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=7"></head>
 <body class="mc-admin"><div class="mobile-overlay" id="mobileOverlay"></div><div class="shell">
 <aside id="adminNavigation" aria-label="Admin navigation"><div class="brandrow"><a class="logo" href="#"><img src="{base}/assets/muchocore-icon.png?v=3" alt="" width="32" height="32">MuchoCore</a></div>
 <section class="mc-instance"><span>ACTIVE INSTANCE</span><strong>MuchoCore</strong><a href="#">Player portal ↗</a></section>
@@ -47,13 +47,15 @@ def admin(base):
 <a class="on" href="#">Overview</a><a href="#">Players</a><a href="#">Levels</a><a href="#">Music</a><a href="#">Moderation</a>
 <p class="nav-title">SYSTEM</p><a href="#">Settings</a><a href="#">Backup</a></nav></aside>
 <main id="main" tabindex="-1"><header class="head"><button type="button" class="mobile-menu-btn" id="mobileMenuButton" aria-label="Open menu" aria-expanded="false" aria-controls="adminNavigation">☰</button><div class="head-title"><span class="mc-section-caption">MUCHOCORE ADMIN</span><h1>Dashboard</h1></div>
-<form class="global-search"><select aria-label="Search type"><option>Players</option></select><input placeholder="Search..." aria-label="Search"><button type="button">Search</button></form><div class="mc-header-actions"><details class="mc-view-menu"><summary aria-label="Interface options">View</summary><div class="mc-view-popover"></div></details><a class="mc-header-portal" href="#">Player portal ↗</a></div></header>
-<div class="mc-ops"><header class="mc-ops-intro"><div><p class="mc-ops-kicker">MUCHOCORE CONSOLE</p><h2>Server overview</h2><p>Current database snapshot. Refresh for updated figures.</p></div><a class="mc-ops-secondary" href="#">Player portal ↗</a></header>
-<nav class="mc-ops-queue" aria-label="Review queues"><a class="mc-ops-attention" href="#"><span class="mc-ops-attention-mark">★</span><span class="mc-ops-attention-copy"><small>LEVEL MODERATION</small><strong>Queue unavailable</strong><span>Review requested ratings</span></span><span class="mc-ops-attention-go">↗</span></a><a class="mc-ops-attention is-clear" href="#"><span class="mc-ops-attention-mark">♪</span><span class="mc-ops-attention-copy"><small>MUSIC MODERATION</small><strong>Music queue is clear</strong><span>Daily uploads unavailable</span></span><span class="mc-ops-attention-go">↗</span></a></nav>
+<form class="global-search"><select aria-label="Search type"><option>Players</option></select><input placeholder="Search..." aria-label="Search"><button type="button">Search</button></form><div class="mc-header-actions"><details class="mc-view-menu"><summary aria-label="Interface options">View</summary><div class="mc-view-popover"></div></details></div></header>
+<div class="mc-ops"><header class="mc-ops-intro"><div><h2>Server overview</h2><p>Players, levels and content at a glance.</p></div><div class="mc-ops-intro-aside"><span class="mc-ops-snapshot">Snapshot · preview server time</span><a class="mc-ops-secondary" href="#">Player portal ↗</a></div></header>
+
 <section class="mc-ops-summary"><div class="mc-ops-summary-item"><span class="mc-ops-summary-top">Players<span>↗</span></span><strong>—</strong><small>Live server figure</small></div><div class="mc-ops-summary-item"><span class="mc-ops-summary-top">Levels<span>↗</span></span><strong>—</strong><small>Stored levels</small></div><div class="mc-ops-summary-item"><span class="mc-ops-summary-top">Songs<span>↗</span></span><strong>—</strong><small>Community tracks</small></div></section>
-<div class="mc-ops-content"><div class="mc-ops-feeds"><section class="mc-ops-panel"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">LEVELS</p><h3>Latest uploads</h3></div><a href="#">All levels ↗</a></div><p class="mc-ops-empty">No published levels to show yet.</p></section><section class="mc-ops-panel"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">COMMUNITY</p><h3>New players</h3></div><a href="#">All players ↗</a></div><div class="mc-ops-table-scroll"><table class="mc-ops-table"><thead><tr><th>Player</th><th>Role</th><th class="mc-ops-num">Stars</th></tr></thead></table></div><p class="mc-ops-empty">No example player records shown in this visual test.</p></section>
+<div class="mc-ops-content"><div class="mc-ops-rail" role="complementary" aria-label="Operator workspace">
+<section class="mc-ops-review"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">MODERATION</p><h3>Needs attention</h3></div></div>
+<nav class="mc-ops-queue" aria-label="Review queues"><a class="mc-ops-attention" href="#"><span class="mc-ops-attention-mark">★</span><span class="mc-ops-attention-copy"><small>LEVEL MODERATION</small><strong>Queue unavailable</strong><span>Review requested ratings</span></span><span class="mc-ops-attention-go">↗</span></a><a class="mc-ops-attention is-clear" href="#"><span class="mc-ops-attention-mark">♪</span><span class="mc-ops-attention-copy"><small>MUSIC MODERATION</small><strong>Music queue is clear</strong><span>Daily uploads unavailable</span></span><span class="mc-ops-attention-go">↗</span></a></nav></section><section class="mc-ops-actions"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">SHORTCUTS</p><h3>Operator tools</h3></div></div><nav><a href="#"><span><strong>Review levels</strong><small>Ratings and moderation</small></span><span>↗</span></a><a href="#"><span><strong>Publish news</strong><small>In-game announcements</small></span><span>↗</span></a><a href="#"><span><strong>Backups</strong><small>Database snapshots</small></span><span>↗</span></a></nav></section></div><div class="mc-ops-feeds"><section class="mc-ops-panel"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">LEVELS</p><h3>Latest uploads</h3></div><a href="#">All levels ↗</a></div><p class="mc-ops-empty">No published levels to show yet.</p></section><section class="mc-ops-panel"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">COMMUNITY</p><h3>New players</h3></div><a href="#">All players ↗</a></div><div class="mc-ops-table-scroll"><table class="mc-ops-table"><thead><tr><th>Player</th><th>Role</th><th class="mc-ops-num">Stars</th></tr></thead></table></div><p class="mc-ops-empty">No example player records shown in this visual test.</p></section>
 <section class="mc-ops-panel"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">CONTENT</p><h3>Latest music</h3></div><a href="#">Manage music ↗</a></div><p class="mc-ops-empty">Actual tracks appear from the server database.</p></section></div>
-<aside class="mc-ops-actions"><div class="mc-ops-section-head"><div><p class="mc-ops-kicker">SHORTCUTS</p><h3>Operator tools</h3></div></div><nav><a href="#"><span><strong>Review levels</strong><small>Ratings and moderation</small></span><span>↗</span></a><a href="#"><span><strong>Publish news</strong><small>In-game announcements</small></span><span>↗</span></a><a href="#"><span><strong>Backups</strong><small>Database snapshots</small></span><span>↗</span></a></nav></aside></div></div></main></div><script src="{base}/assets/product-ui.js"></script></body></html>"""
+</div></div></main></div><script src="{base}/assets/product-ui.js"></script></body></html>"""
 
 
 def login(base):
@@ -123,7 +125,7 @@ def main():
                         page.set_content(build(base),wait_until="networkidle")
                         page.locator("body").wait_for()
                         body_color=page.locator("body").evaluate("(e)=>getComputedStyle(e).backgroundColor")
-                        assert body_color=="rgb(16, 16, 23)",(name,width,body_color)
+                        assert body_color==("rgb(16, 18, 24)" if name in ("admin","login") else "rgb(16, 16, 23)"),(name,width,body_color)
                         over=page.evaluate("document.documentElement.scrollWidth-innerWidth")
                         assert over<=1,(name,width,"horizontal overflow",over, page.evaluate("""() => [...document.querySelectorAll('body *')].filter(el => el.getBoundingClientRect().right > innerWidth + 1).slice(0, 8).map(el => [el.tagName, el.className, Math.round(el.getBoundingClientRect().right)])"""))
                         assert not errors,(name,width,errors)
@@ -133,12 +135,17 @@ def main():
                                 ops:document.querySelector('.mc-ops').getBoundingClientRect().width
                             })""")
                             assert widths["ops"] >= widths["main"]-100,(name,width,widths)
+                            assert page.locator(".mc-ops-review").count()==1,("review rail missing",width)
+                            assert page.locator(".mc-ops-rail").count()==1,("work rail missing",width)
                             actions=page.locator('.mc-ops-actions').bounding_box()
                             assert actions is not None,(name,width,'operator tools missing')
                             assert actions["x"] >= page.locator('.mc-ops-feeds').bounding_box()["x"],(name,width,'tools rendered under fixed sidebar',actions)
                             assert actions["width"] >= 200,(name,width,'operator tools collapsed',actions)
+                            if width<=650:
+                                feeds=page.locator(".mc-ops-feeds").bounding_box()
+                                assert feeds and actions["y"] >= feeds["y"]+feeds["height"]-1,(name,width,"secondary tools precede activity",actions,feeds)
                             sidebar=page.locator(".shell>aside").evaluate("(e)=>getComputedStyle(e).backgroundColor")
-                            assert sidebar=="rgb(20, 19, 28)",sidebar
+                            assert sidebar=="rgb(21, 24, 33)",sidebar
                             menu=page.locator("#mobileMenuButton")
                             nav=page.locator("#adminNavigation")
                             if width<=980:
