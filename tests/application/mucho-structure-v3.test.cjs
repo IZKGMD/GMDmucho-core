@@ -23,7 +23,7 @@ test('new work surfaces contain genuine structural markup and separate styles',(
   const portal=read('public/dashboard/index.php');
   const clans=read('public/dashboard/clans.php');
   assert.ok(admin.includes('mc-instance'));
-  assert.ok(admin.includes('/admin/mucho-console-v3.css?v=7'));
+  assert.ok(admin.includes('/admin/mucho-console-v3.css?v=8'));
   for (const marker of ['mc-ops-attention','mc-ops-summary','mc-ops-table','mc-ops-actions','canAdminPage']) assert.ok(overview.includes(marker),marker);
   for (const marker of ['mc-community-home','mc-community-search','mc-community-statistics','mc-community-spotlight']) assert.ok(portal.includes(marker),marker);
   for (const p of [portal,clans]) assert.ok(p.includes('/assets/mucho-portal-v3.css?v=2'));
