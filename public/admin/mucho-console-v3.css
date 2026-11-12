@@ -890,3 +890,54 @@ body.mc-admin.mc-compact .mc-ops-empty{padding:12px 13px 15px}
  body.mc-admin.mc-compact .mc-ops-summary-item{min-height:75px}
  body.mc-admin.mc-compact .mc-ops-review .mc-ops-attention{min-height:51px}
 }
+/* Apply the rail treatment above legacy dark-mode specificity. */
+html:is([data-theme="dark"],:not([data-theme])) body.mc-admin .mc-ops-review .mc-ops-attention{
+ background:transparent;border:1px solid transparent;box-shadow:none;
+}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-admin .mc-ops-review .mc-ops-attention:hover{
+ background:var(--mc-raised);border-color:var(--mc-line);
+}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-admin .mc-ops-review .mc-ops-attention+.mc-ops-attention{
+ border-top:1px solid var(--mc-line);
+}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-admin .mc-ops-review .mc-ops-attention-mark{
+ background:var(--mc-raised);border-color:var(--mc-line);color:var(--mc-accent);
+}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-admin .mc-ops-review .mc-ops-attention.is-clear .mc-ops-attention-mark{
+ background:transparent;border-color:var(--mc-line);color:var(--mc-muted);
+}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-admin .mc-ops-review .mc-ops-attention-copy small,
+html:is([data-theme="dark"],:not([data-theme])) body.mc-admin .mc-ops-review .mc-ops-attention-copy>span,
+html:is([data-theme="dark"],:not([data-theme])) body.mc-admin .mc-ops-review .mc-ops-attention-go{
+ color:var(--mc-muted);
+}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-admin .mc-ops-review .mc-ops-attention-copy strong{
+ color:var(--mc-text);
+}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-admin .mc-ops-panel,
+html:is([data-theme="dark"],:not([data-theme])) body.mc-admin .mc-ops-review,
+html:is([data-theme="dark"],:not([data-theme])) body.mc-admin .mc-ops-actions{
+ background:var(--mc-surface);border-color:var(--mc-line);
+}
+html[data-theme="light"] body.mc-admin{
+ --mc-bg:#f6f7fa;--mc-surface:#ffffff;--mc-raised:#f0f2f6;
+ --mc-line:#dfe3ea;--mc-text:#222936;--mc-muted:#667287;
+ --mc-accent:#7656b3;--mc-action:#28293a;
+ --ui-bg:#f6f7fa;--ui-card:#ffffff;--ui-card-hover:#f0f2f6;
+ --ui-border:#dfe3ea;--ui-text:#222936;--ui-muted:#667287;
+}
+html[data-theme="light"] body.mc-admin .shell>aside{
+ background:#151821;border-right-color:#2b303e;
+}
+html[data-theme="light"] body.mc-admin .head,
+html[data-theme="light"] body.mc-admin .shell>main{
+ background:var(--mc-bg);
+}
+html[data-theme="light"] body.mc-admin .mc-instance{background:transparent;border-color:var(--mc-accent)}
+html[data-theme="light"] body.mc-admin .mc-ops-review .mc-ops-attention{background:transparent}
+html[data-theme="light"] body.mc-admin .mc-ops-review .mc-ops-attention:hover{background:var(--mc-raised)}
+html[data-theme="light"] body.mc-admin .mc-ops-panel,
+html[data-theme="light"] body.mc-admin .mc-ops-review,
+html[data-theme="light"] body.mc-admin .mc-ops-actions{
+ background:var(--mc-surface);border-color:var(--mc-line);
+}
