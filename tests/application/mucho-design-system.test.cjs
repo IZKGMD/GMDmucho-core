@@ -16,7 +16,7 @@ test('bilingual product uses its standalone v3 layout, no legacy CSS overlay',()
 test('operator and player workspaces keep shared foundation and dedicated rebuilt surfaces',()=>{
  for(const p of ['public/index.html','public/dashboard/index.php','public/dashboard/clans.php','public/admin/index.php'])
    assert.ok(read(p).includes('/assets/mucho-design-system.css?v=2'),p);
- assert.ok(read('public/admin/index.php').includes('/admin/mucho-console-v3.css?v=7'));
+ assert.ok(read('public/admin/index.php').includes('/admin/mucho-console-v3.css?v=8'));
  assert.ok(read('public/admin/index.php').includes('/admin/admin-unified.css?v=2'));
 
  assert.ok(read('public/install/index.html').includes('/assets/mucho-install-v3.css?v=1'));
@@ -96,3 +96,10 @@ test('admin light scheme is a deliberate single palette with prepaint preference
  assert.ok(light.includes('html[data-theme="light"]'));
  assert.ok(!light.includes('linear-gradient('),'light surfaces must stay calm and untextured');
 });
+
+test('mobile login box sizing is shared with the application stylesheet', () => {
+  const css = fs.readFileSync(path.join(root, 'public/admin/mucho-console-v3.css'), 'utf8');
+  assert.ok(css.includes('body.admin-login.mc-workspace *::after{box-sizing:border-box}'));
+  assert.ok(css.includes('width:min(445px,100%);min-width:0'));
+});
+
