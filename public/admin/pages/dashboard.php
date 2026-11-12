@@ -67,7 +67,7 @@ function renderAdminDashboard(PDO $db): void
     } catch (Throwable) {
     }
 
-    $recentPlayers = [];
+    $recentPlayers = null;
     if (canAdminPage('players')) try {
         $recentPlayers = $db->query(
             'SELECT
@@ -86,7 +86,7 @@ function renderAdminDashboard(PDO $db): void
     } catch (Throwable) {
     }
 
-    $recentSongs = [];
+    $recentSongs = null;
     if (canAdminPage('songs')) try {
         $recentSongs = $db->query(
             'SELECT
@@ -103,7 +103,7 @@ function renderAdminDashboard(PDO $db): void
     } catch (Throwable) {
     }
 
-    $recentLevels = [];
+    $recentLevels = null;
     if (canAdminPage('levels')) try {
         $recentLevels = $db->query(
             'SELECT l.level_id,l.name,l.stars,l.requested_stars,
@@ -189,7 +189,9 @@ function renderAdminDashboard(PDO $db): void
                         <div><p class="mc-ops-kicker">LEVELS</p><h3 id="mcRecentLevels">Latest uploads</h3></div>
                         <a href="/admin/?page=levels">All levels ↗</a>
                     </div>
-                    <?php if ($recentLevels): ?>
+                    <?php if ($recentLevels === null): ?>
+                    <p class="mc-ops-empty">Level feed unavailable.</p>
+                    <?php elseif ($recentLevels): ?>
                     <div class="mc-ops-table-scroll">
                         <table class="mc-ops-table">
                             <thead><tr><th>Level</th><th>Creator</th><th>Status</th></tr></thead>
@@ -222,7 +224,9 @@ function renderAdminDashboard(PDO $db): void
                         <div><p class="mc-ops-kicker">COMMUNITY</p><h3 id="mcRecentPlayers">New players</h3></div>
                         <a href="/admin/?page=players">All players ↗</a>
                     </div>
-                    <?php if ($recentPlayers): ?>
+                    <?php if ($recentPlayers === null): ?>
+                    <p class="mc-ops-empty">Player feed unavailable.</p>
+                    <?php elseif ($recentPlayers): ?>
                     <div class="mc-ops-table-scroll">
                         <table class="mc-ops-table">
                             <thead><tr><th>Player</th><th>Role</th><th class="mc-ops-num">Stars</th><th class="mc-ops-num">Moons</th></tr></thead>
@@ -253,7 +257,9 @@ function renderAdminDashboard(PDO $db): void
                         <div><p class="mc-ops-kicker">CONTENT</p><h3 id="mcMusicActivity">Latest music</h3></div>
                         <a href="/admin/?page=songs">Manage music ↗</a>
                     </div>
-                    <?php if ($recentSongs): ?>
+                    <?php if ($recentSongs === null): ?>
+                    <p class="mc-ops-empty">Music feed unavailable.</p>
+                    <?php elseif ($recentSongs): ?>
                     <div class="mc-ops-table-scroll">
                         <table class="mc-ops-table">
                             <thead><tr><th>Track</th><th>Artist</th><th>Status</th></tr></thead>
