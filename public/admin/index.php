@@ -2455,6 +2455,7 @@ max-width:100%
 }
 
 </style>
+<script src="/admin/admin-theme-bootstrap.js?v=1"></script>
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
 <script src="/muchocore-theme.js?v=5" defer></script>
 
@@ -5029,6 +5030,7 @@ table{
 </style>
 <link rel="stylesheet" href="/admin/admin-i18n.css?v=2">
 <link rel="stylesheet" href="/admin/admin-ui-v2.css?v=4">
+<script src="/admin/admin-theme-bootstrap.js?v=1"></script>
 <link rel="stylesheet" href="/muchocore-theme.css?v=3">
 <script src="/muchocore-theme.js?v=5" defer></script>
 <link rel="stylesheet" href="/assets/product-ui.css?v=2">
