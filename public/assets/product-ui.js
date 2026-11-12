@@ -62,15 +62,15 @@
     const main=document.getElementById('main');
     const desktop=window.matchMedia('(min-width: 981px)');
 
-    // A single optional density preference for data-heavy admin pages.
-    // The control lives in the existing View menu, not another toolbar.
+    // Keep display preferences in one menu and apply them on every admin page.
     const viewOptions=document.querySelector('.mc-view-popover');
+    const viewMenu=viewOptions?.closest('.mc-view-menu');
     if(viewOptions){
         const density=document.createElement('button');
         density.type='button';
         density.className='mc-density-toggle';
         const toggleText=document.createElement('span');
-        toggleText.textContent=label('Компактные строки','Compact rows');
+        toggleText.textContent=label('Компактный вид','Compact layout');
         const indicator=document.createElement('span');
         indicator.className='mc-density-state';
         indicator.setAttribute('aria-hidden','true');
@@ -85,6 +85,17 @@
         applyDensity(storage.get('mucho.control.compact',false)===true);
         density.addEventListener('click',()=>applyDensity(!body.classList.contains('mc-compact')));
     }
+    // Details already supports keyboard focus; close its popover when dismissed.
+    document.addEventListener('pointerdown',event=>{
+        if(viewMenu?.open&&!viewMenu.contains(event.target))viewMenu.open=false;
+    });
+    viewMenu?.addEventListener('keydown',event=>{
+        if(event.key!=='Escape'||!viewMenu.open)return;
+        event.preventDefault();
+        event.stopPropagation();
+        viewMenu.open=false;
+        viewMenu.querySelector('summary')?.focus();
+    });
     const syncNavigation=()=>{
         const open=body.classList.contains('mobile-menu-open')&&!desktop.matches;
         if(sidebar)sidebar.inert=!desktop.matches&&!open;

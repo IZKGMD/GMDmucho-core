@@ -539,18 +539,6 @@ body.mc-admin .mc-density-state{
 body.mc-admin .mc-density-toggle[aria-pressed="true"] .mc-density-state{
  color:var(--mc-accent);font-weight:650;
 }
-@media(min-width:981px){
- body.mc-admin.mc-compact .mc-ops{gap:14px}
- body.mc-admin.mc-compact .mc-ops-content,
- body.mc-admin.mc-compact .mc-ops-feeds{gap:12px}
- body.mc-admin.mc-compact .mc-ops-summary-item{min-height:92px;padding:13px 17px;gap:5px}
- body.mc-admin.mc-compact .mc-ops-summary-item>strong{font-size:29px}
- body.mc-admin.mc-compact .mc-ops-section-head{padding:13px 16px 10px}
- body.mc-admin.mc-compact .mc-ops-actions nav a{min-height:45px;padding:7px 10px}
- body.mc-admin.mc-compact :is(.mc-ops-table,.table) :is(th,td){padding-block:7px}
- body.mc-admin.mc-compact .admin-record>summary{padding-block:9px}
- body.mc-admin.mc-compact .admin-records{gap:7px}
-}
 @media(max-width:620px){
  body.mc-admin .mc-ops-queue{gap:9px}
  body.mc-admin .mc-ops-queue .mc-ops-attention{min-height:76px}
@@ -583,4 +571,134 @@ body.mc-admin .mc-ops-queue .mc-ops-attention-go::after{content:none}
  body.mc-admin .mc-ops-summary-item:last-child:nth-child(odd)>small{
   grid-column:1/-1;grid-row:2;
  }
+}
+
+/* Workspace polish: restrained surfaces, aligned typography, consistent rhythm. */
+body.mc-admin{
+ --mc-section-space:16px;
+ --mc-table-y:12px;
+}
+body.mc-admin :is(.card,.table,.quick-link,.rating-stat,.rating-section,.rating-hero-main){
+ border-radius:8px;background-image:none;box-shadow:none;
+}
+body.mc-admin .card{padding:20px;margin-bottom:16px}
+body.mc-admin .admin-record{padding:0}
+body.mc-admin .card h2{font-size:17px;letter-spacing:-.025em}
+body.mc-admin .mc-ops{gap:var(--mc-section-space)}
+body.mc-admin .mc-ops-content,
+body.mc-admin .mc-ops-feeds{gap:var(--mc-section-space)}
+body.mc-admin .mc-ops-intro h2{font-size:clamp(24px,2.3vw,29px);letter-spacing:-.045em}
+body.mc-admin .mc-ops-intro p:last-child{font-size:12px}
+body.mc-admin .mc-ops-section-head{padding:16px 18px 12px}
+body.mc-admin .mc-ops-section-head h3{font-size:16px;letter-spacing:-.025em}
+body.mc-admin :is(.mc-ops-panel,.mc-ops-actions,.mc-ops-audit,.mc-ops-summary){
+ border-radius:8px;box-shadow:none;
+}
+body.mc-admin .mc-ops-actions nav a{min-height:52px}
+body.mc-admin .mc-ops-summary-item{min-height:108px;padding:16px 18px;gap:7px}
+body.mc-admin .mc-ops-summary-item>strong{font-size:clamp(25px,2.7vw,34px);font-variant-numeric:tabular-nums}
+body.mc-admin .mc-ops-table :is(th,td){padding:var(--mc-table-y) 16px}
+body.mc-admin .mc-ops-queue .mc-ops-attention{border-radius:8px}
+body.mc-admin .mc-ops-queue .mc-ops-attention.is-clear{border-left:1px solid var(--mc-line)}
+body.mc-admin .mc-ops-queue .mc-ops-attention.is-clear .mc-ops-attention-mark{font-weight:600}
+body.mc-admin .mc-ops-level-link{text-decoration-thickness:1px;text-underline-offset:3px}
+body.mc-admin .mc-ops-status{border-radius:5px}
+body.mc-admin .head .global-search{border-radius:8px}
+body.mc-admin .admin-record>summary{min-height:64px;padding:14px 18px}
+body.mc-admin .record-body{padding:18px}
+body.mc-admin :is(.admin-list-search,.search){margin-bottom:16px}
+body.mc-admin .table :is(th,td){padding:var(--mc-table-y) 15px}
+body.mc-admin .record-actions{margin-bottom:14px}
+body.mc-admin :is(button,.btn,.button){box-shadow:none}
+html:is([data-theme="dark"],:not([data-theme])) body.mc-admin .admin-nav a.on{
+ background:color-mix(in srgb,var(--mc-accent) 12%,#14131c);
+ box-shadow:inset 2px 0 var(--mc-accent);border-color:var(--mc-line);
+}
+html[data-theme="light"] body.mc-admin .admin-nav a.on{
+ background:color-mix(in srgb,var(--mc-accent) 9%,var(--mc-surface));
+ box-shadow:inset 2px 0 var(--mc-accent);border-color:var(--mc-line);
+}
+body.mc-admin .mc-view-popover .mc-density-toggle{
+ margin-top:6px;min-height:44px;padding:9px 10px;border:1px solid var(--mc-line);
+ border-radius:7px;transition:background-color .12s ease,border-color .12s ease;
+}
+body.mc-admin .mc-view-popover .mc-density-toggle[aria-pressed="true"]{
+ border-color:color-mix(in srgb,var(--mc-accent) 44%,var(--mc-line));
+ background:color-mix(in srgb,var(--mc-accent) 8%,var(--mc-surface));
+}
+body.mc-admin .mc-density-state{font-variant-numeric:tabular-nums}
+body.mc-admin .mc-view-popover .mc-density-toggle:focus-visible{
+ outline:2px solid var(--mc-accent);outline-offset:2px;
+}
+
+/* Density is a workspace-wide preference, not a dashboard-only desktop trick.
+   Lists and tables become denser; interactive targets stay usable on touch. */
+body.mc-admin.mc-compact{
+ --mc-section-space:10px;
+ --mc-table-y:7px;
+}
+body.mc-admin.mc-compact .head{min-height:64px;padding-top:10px;padding-bottom:12px;margin-bottom:16px}
+body.mc-admin.mc-compact .head-title h1{font-size:19px}
+body.mc-admin.mc-compact .mc-ops-intro h2{font-size:24px}
+body.mc-admin.mc-compact .mc-ops-summary-item{min-height:82px;padding:10px 14px;gap:4px}
+body.mc-admin.mc-compact .mc-ops-summary-item>strong{font-size:clamp(23px,2.4vw,29px)}
+body.mc-admin.mc-compact .mc-ops-queue .mc-ops-attention{
+ min-height:62px;padding:10px 12px;gap:10px;
+}
+body.mc-admin.mc-compact .mc-ops-queue .mc-ops-attention-mark{width:28px;min-width:28px;height:28px;font-size:16px}
+body.mc-admin.mc-compact .mc-ops-queue .mc-ops-attention-copy strong{font-size:13px}
+body.mc-admin.mc-compact .mc-ops-section-head{padding:11px 14px 8px}
+body.mc-admin.mc-compact .mc-ops-section-head h3{font-size:15px}
+body.mc-admin.mc-compact .mc-ops-table :is(th,td){padding:7px 12px}
+body.mc-admin.mc-compact .mc-ops-table td small{margin-top:1px}
+body.mc-admin.mc-compact .mc-ops-actions nav{padding:0 7px}
+body.mc-admin.mc-compact .mc-ops-actions nav a{min-height:44px;padding:7px 10px}
+body.mc-admin.mc-compact .mc-ops-actions nav small{font-size:10px}
+body.mc-admin.mc-compact .mc-ops-audit>summary{padding:11px 14px}
+body.mc-admin.mc-compact .admin-live-audit-row{padding:7px 0}
+body.mc-admin.mc-compact .mc-ops-empty{padding:12px 14px}
+body.mc-admin.mc-compact .card{padding:14px;margin-bottom:10px}
+body.mc-admin.mc-compact .admin-record{padding:0}
+body.mc-admin.mc-compact .admin-records{gap:7px}
+body.mc-admin.mc-compact .admin-record>summary{min-height:50px;padding:10px 13px;gap:10px}
+body.mc-admin.mc-compact .record-body{padding:13px}
+body.mc-admin.mc-compact .record-actions{gap:6px;margin-bottom:10px}
+body.mc-admin.mc-compact :is(.admin-list-search,.search){margin-bottom:11px;gap:7px}
+body.mc-admin.mc-compact :is(.admin-edit-grid,.admin-stats-grid){gap:11px}
+body.mc-admin.mc-compact :is(.admin-edit-grid,.admin-list-search,.record-actions) :is(button,.btn,.button){
+ min-height:36px;padding:7px 11px;
+}
+body.mc-admin.mc-compact :is(.rating-list-card,.rating-editor-card,.rating-section){padding:14px}
+body.mc-admin.mc-compact .rating-row{padding-block:8px}
+body.mc-admin.mc-compact .rating-savebar{padding:12px}
+body.mc-admin.mc-compact .mc-table-tools{padding-block:9px}
+@media(min-width:981px){
+ body.mc-admin.mc-compact .admin-nav a{
+  min-height:36px;padding:7px 10px!important;gap:9px;
+ }
+ body.mc-admin.mc-compact .mc-instance{padding-block:10px}
+}
+@media(max-width:980px){
+ body.mc-admin .mc-ops-summary-item{min-height:91px}
+ body.mc-admin.mc-compact .mc-ops-summary-item{min-height:79px}
+ body.mc-admin.mc-compact .head{min-height:70px;padding-top:10px;padding-bottom:10px}
+ body.mc-admin.mc-compact .admin-nav a{min-height:44px}
+ body.mc-admin.mc-compact .mc-ops-actions nav a{min-height:44px}
+ body.mc-admin.mc-compact :is(.admin-edit-grid,.admin-list-search,.record-actions) :is(button,.btn,.button){
+  min-height:44px;padding:9px 12px;
+ }
+ body.mc-admin.mc-compact .admin-record>summary{min-height:48px}
+}
+@media(max-width:620px){
+ body.mc-admin .mc-ops-summary-item{padding:12px 14px}
+ body.mc-admin.mc-compact .mc-ops-summary-item{padding:9px 12px}
+ body.mc-admin.mc-compact .mc-ops-summary-item:last-child:nth-child(odd){min-height:58px}
+ body.mc-admin.mc-compact .mc-ops-queue .mc-ops-attention{min-height:62px}
+ body.mc-admin.mc-compact .card{padding:13px}
+ body.mc-admin.mc-compact .admin-record{padding:0}
+ body.mc-admin.mc-compact .mc-ops-section-head{padding:11px 12px 8px}
+ body.mc-admin.mc-compact .mc-ops-table :is(th,td){padding:8px 10px}
+}
+@media(prefers-reduced-motion:reduce){
+ body.mc-admin .mc-view-popover .mc-density-toggle{transition:none}
 }

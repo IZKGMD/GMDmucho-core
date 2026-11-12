@@ -59,7 +59,7 @@ const RU = {
 'Music feed unavailable.':'Не удалось загрузить список музыки.',
 'Open level rating requests':'Открыть запросы оценки уровней',
 'Review pending music':'Проверить музыку',
-'Compact rows':'Компактные строки',
+'Compact layout':'Компактный вид',
 'Unrated':'Без оценки',
 'Requested':'Запрошено',
 'All players':'Все игроки',
