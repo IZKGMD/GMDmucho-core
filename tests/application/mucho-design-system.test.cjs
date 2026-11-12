@@ -16,7 +16,7 @@ test('bilingual product uses its standalone v3 layout, no legacy CSS overlay',()
 test('operator and player workspaces keep shared foundation and dedicated rebuilt surfaces',()=>{
  for(const p of ['public/index.html','public/dashboard/index.php','public/dashboard/clans.php','public/admin/index.php'])
    assert.ok(read(p).includes('/assets/mucho-design-system.css?v=2'),p);
- assert.ok(read('public/admin/index.php').includes('/admin/mucho-console-v3.css?v=6'));
+ assert.ok(read('public/admin/index.php').includes('/admin/mucho-console-v3.css?v=7'));
  assert.ok(read('public/install/index.html').includes('/assets/mucho-install-v3.css?v=1'));
  for(const p of ['public/muchocore/about/index.html','public/muchocore/compatibility/index.html']) {
    assert.ok(read(p).includes('/muchocore/discovery.css?v=4'));
