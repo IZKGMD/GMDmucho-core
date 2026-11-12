@@ -141,6 +141,10 @@ def main():
                                 if module == "rating":
                                     stars = page.locator(".rating-stars-pick button")
                                     assert stars.count() == 2
+                                    picker = page.locator(".rating-stars-pick")
+                                    picker.evaluate("(el) => el.hidden = true")
+                                    assert not picker.is_visible(), (module, width, "hidden rating picker remains exposed")
+                                    picker.evaluate("(el) => el.hidden = false")
                                     for button in stars.all():
                                         color = rgb(button.evaluate("(el) => getComputedStyle(el).backgroundColor"))
                                         assert color == (255, 255, 255), (
