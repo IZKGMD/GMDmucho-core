@@ -941,3 +941,11 @@ html[data-theme="light"] body.mc-admin .mc-ops-review,
 html[data-theme="light"] body.mc-admin .mc-ops-actions{
  background:var(--mc-surface);border-color:var(--mc-line);
 }
+/* Mobile flow: moderation first, real data second, secondary tools last. */
+@media(max-width:650px){
+ body.mc-admin .mc-ops-content{display:flex;flex-direction:column;gap:10px;align-items:stretch}
+ body.mc-admin .mc-ops-rail{display:contents}
+ body.mc-admin .mc-ops-review{order:0;width:100%}
+ body.mc-admin .mc-ops-feeds{order:1;width:100%}
+ body.mc-admin .mc-ops-actions{order:2;width:100%}
+}
