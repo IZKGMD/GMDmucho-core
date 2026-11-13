@@ -110,10 +110,15 @@ permissions 0600, of this shape:
 ```
 
 These are **placeholders**, not valid credentials or a working GD message
-encoder. Include multiple distinct legitimate synthetic accounts if you want
-to study multi-user contention. Do not commit or paste secrets into logs.
-For account-comment uploads, use `/database/uploadGJAccComment20.php`
-and `"expected": "one"`.
+encoder. Every job must have a unique (endpoint, accountID, comment) payload:
+the runner rejects duplicates so it never mistakes a duplicate-comment
+rejection for write throughput. For `--mode write` and `--mode all`, provide
+at least as many unique jobs as `--attempts` (16 by default). For
+`--mode mixed`, provide at least `ceil(attempts/4)` unique jobs; the runner
+interleaves three reads for each distinct write. Include multiple distinct
+legitimate synthetic accounts if you want to study multi-user contention.
+Do not commit or paste secrets into logs. For account-comment uploads, use
+`/database/uploadGJAccComment20.php` and `"expected": "one"`.
 
 Then deliberately opt in to mutations:
 
