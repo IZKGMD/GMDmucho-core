@@ -117,6 +117,7 @@ def load_write_fixture(path):
     jobs = data.get("jobs")
     if not isinstance(jobs, list) or not 1 <= len(jobs) <= 64:
         raise ValueError("Provide 1..64 synthetic write jobs")
+    unique_payloads = set()
     for job in jobs:
         if not isinstance(job, dict) or job.get("path") not in ALLOWED_WRITES:
             raise ValueError("Only synthetic comment-write endpoints are permitted")
@@ -131,6 +132,10 @@ def load_write_fixture(path):
             raise ValueError("Each write needs synthetic accountID, comment, GJP2/GJP")
         if job.get("expected") not in ("positive_id", "one"):
             raise ValueError("Write expected must be positive_id or one")
+        payload_key = (job["path"], form["accountID"], form["comment"])
+        if payload_key in unique_payloads:
+            raise ValueError("Write fixtures must use unique synthetic comment payloads")
+        unique_payloads.add(payload_key)
     return jobs
 
 
@@ -240,6 +245,17 @@ def main():
     elif args.write_fixture or args.allow_synthetic_writes:
         parser.error("Write flags are only valid in write/mixed/all modes")
 
+    required_write_jobs = (
+        args.attempts if args.mode in ("write", "all")
+        else math.ceil(args.attempts / 4) if args.mode == "mixed"
+        else 0
+    )
+    if len(write_jobs) < required_write_jobs:
+        parser.error(
+            f"This mode needs at least {required_write_jobs} unique synthetic write jobs "
+            "so requests do not repeat identical comments."
+        )
+
     try:
         isolated_stack_guard()
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired,
@@ -251,11 +267,13 @@ def main():
         if perform(job)[1] is not None:
             parser.error("Synthetic preflight failed: " + job["name"])
 
+    mixed_jobs = []
+    for write_job in write_jobs:
+        mixed_jobs.extend([READ_JOBS[0], READ_JOBS[1], READ_JOBS[2], write_job])
     workloads = {
         "read": READ_JOBS,
         "write": write_jobs,
-        "mixed": [READ_JOBS[0], READ_JOBS[1], READ_JOBS[2],
-                  write_jobs[0]] if write_jobs else [],
+        "mixed": mixed_jobs,
     }
     selected = (["read", "write", "mixed"] if args.mode == "all"
                 else [args.mode])
