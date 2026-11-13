@@ -224,6 +224,9 @@ try {
         new Request('POST', '/database/' . $route . '.php', [], $post,
             ['REMOTE_ADDR' => '127.0.0.1']);
     $controller = new MessageController($messages);
+    $countBeforeNative = (int)$db->query('SELECT COUNT(*) FROM messages
+        WHERE account_id=1 AND to_account_id=2 AND content_format=1')
+            ->fetchColumn();
     $nativeResponse = $controller->sendMessage(
         $nativeRequest('uploadGJMessage20', $decodedNativePost)
     );
@@ -251,7 +254,7 @@ try {
         'GD 2.209 HTTP-form controller rejects invalid credentials');
     $check((int)$db->query('SELECT COUNT(*) FROM messages
         WHERE account_id=1 AND to_account_id=2 AND content_format=1')
-            ->fetchColumn() === 2,
+            ->fetchColumn() === $countBeforeNative + 1,
         'invalid GD 2.209 request creates no extra row');
 
     echo "MUCHOCORE_PRIVATE_MESSAGE_INTEGRATION_OK\n";
