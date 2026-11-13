@@ -39,9 +39,8 @@ final class GdMessageEncoder
     }
     private function formatDate(string $date): string
     {
-        try {
-            $timestamp = (new \DateTimeImmutable($date, new \DateTimeZone('UTC')))->getTimestamp();
-        } catch (\Throwable $error) {
+        $timestamp = strtotime($date);
+        if ($timestamp === false) {
             return '0 seconds';
         }
         $elapsed = max(0, time() - $timestamp);
