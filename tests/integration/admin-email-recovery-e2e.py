@@ -444,6 +444,30 @@ def main():
                 check(code in (302, 303) and headers.get("Location", "").startswith("/admin/"),
                       "new password still requires and accepts configured TOTP")
 
+                api_login = {
+                    "action": "auth.login",
+                    "username": env["MC_RECOVERY_TEST_USERNAME"],
+                    "password": env["MC_RECOVERY_TEST_NEW_PASSWORD"],
+                    "totp": totp("JBSWY3DPEHPK3PXP"),
+                }
+                api_status, api_response = admin_api(api_login)
+                check(api_status == 200 and api_response.get("ok"),
+                      "new password and TOTP can issue a new admin API session")
+                new_bearer = api_response["token"]
+                check(php("require-password-setup") == "UPDATED",
+                      "test-only setup requirement applied to disposable admin")
+                api_status, api_response = admin_api({"action": "auth.me"}, new_bearer)
+                check(api_status == 401 and api_response.get("error") == "unauthorized",
+                      "existing bearer token is refused when initial password setup is required")
+                api_status, api_response = admin_api(api_login)
+                check(api_status == 401 and api_response.get("error") == "invalid_credentials",
+                      "API cannot bypass mandatory first-password setup even with valid credentials")
+                check(php("complete-password-setup") == "UPDATED",
+                      "test-only setup requirement safely cleared")
+                api_status, api_response = admin_api(api_login)
+                check(api_status == 200 and api_response.get("ok"),
+                      "completed setup permits authenticated API login again")
+
                 php("request-reset")
                 reset2 = received(mailbox, 3, "MuchoCore admin password reset", "email_reset")
                 php("expire-reset")
