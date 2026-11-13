@@ -18,7 +18,7 @@ if [[ "$(curl -fsS --max-time 5 http://127.0.0.1:18080/health || true)" != 1 ]];
   exit 1
 fi
 
-report_root="storage/stress-reports/ci-four-scale"
+report_root="$RUNNER_TEMP/ci-four-scale"
 mkdir -p "$report_root"
 sampler_pid=""
 cleanup_sampler() {
