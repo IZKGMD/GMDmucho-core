@@ -41,11 +41,17 @@ func Date(value string) string {
 // MessageAge returns field 7 as human-readable elapsed time without "ago".
 // Geometry Dash adds that suffix to private-message timestamps itself.
 func MessageAge(value string) string {
+	return MessageAgeAt(value, time.Now())
+}
+
+// MessageAgeAt accepts an explicit clock so differential PHP/Go fixtures
+// use the same time as the server runtime instead of the runner wall clock.
+func MessageAgeAt(value string, now time.Time) string {
 	t, err := time.ParseInLocation("2006-01-02 15:04:05", value, time.UTC)
 	if err != nil {
 		return "0 seconds"
 	}
-	elapsed := time.Now().Unix() - t.Unix()
+	elapsed := now.Unix() - t.Unix()
 	if elapsed < 0 {
 		elapsed = 0
 	}
@@ -75,6 +81,11 @@ func MessageAge(value string) string {
 }
 
 func Message(r dbutil.Row, sent bool) string {
+	return MessageAt(r, sent, time.Now())
+}
+
+// MessageAt renders private-message wire format with the handler's clock.
+func MessageAt(r dbutil.Row, sent bool, now time.Time) string {
 	name, uid, aid := r["username"], r.Int("user_id"), r.Int("account_id")
 	tag := r["clan_tag"]
 	sender := 0
@@ -86,7 +97,7 @@ func Message(r dbutil.Row, sent bool) string {
 	if body, ok := r["body"]; ok {
 		result += Pairs("", 5, body)
 	}
-	return result + Pairs("", 7, MessageAge(r["created_at"]))
+	return result + Pairs("", 7, MessageAgeAt(r["created_at"], now))
 }
 func RelationshipUsers(rows []dbutil.Row, stats bool) string {
 	if len(rows) == 0 {
