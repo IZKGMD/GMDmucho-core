@@ -116,6 +116,7 @@ jobs:
           name: MuchoCore-PHP8-dev-${{ github.sha }}
           path: |
             ${{ steps.version.outputs.archive }}
+            vendor-muchocore-php83.zip
             checksums.sha256
           if-no-files-found: error
           retention-days: 30
