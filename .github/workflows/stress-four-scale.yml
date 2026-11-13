@@ -87,7 +87,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: php8-synthetic-four-scale
-          path: storage/stress-reports/ci-four-scale/
+          path: ${{ runner.temp }}/ci-four-scale/
           if-no-files-found: warn
           retention-days: 7
 
