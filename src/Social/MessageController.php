@@ -49,17 +49,21 @@ final readonly class MessageController
 
     public function sendMessage(Request $r): Response
     {
+        MessageTrace::emit('controller', 'called');
         try {
-            return Response::text(
-                $this->service->sendMessage(
-                    $r->postInt('accountID'),
-                    $this->gjp($r),
-                    $r->postInt('toAccountID'),
-                    $r->postString('subject'),
-                    $r->postString('body')
-                ) ? '1' : '-1'
+            $saved = $this->service->sendMessage(
+                $r->postInt('accountID'),
+                $this->gjp($r),
+                $r->postInt('toAccountID'),
+                $r->postString('subject'),
+                $r->postString('body')
             );
+            MessageTrace::emit('controller', $saved ? 'allowed' : 'rejected');
+            return Response::text($saved ? '1' : '-1');
         } catch (Throwable) {
+            // Keep the native protocol response and do not expose sensitive
+            // exception messages or raw POST data to the diagnostic log.
+            MessageTrace::emit('controller', 'exception');
             return Response::text('-1');
         }
     }
