@@ -4,6 +4,7 @@ declare(strict_types=1);
 use MuchoCore\Database\Database;
 
 require dirname(__DIR__,2).'/vendor/autoload.php';
+require_once __DIR__.'/core/MonitoringSession.php';
 
 $__muchoIsHttps =
     (($_SERVER['HTTPS'] ?? '') === 'on') ||
@@ -56,7 +57,7 @@ if($currentAdminId<=0){
 }
 
 $adminQuery=$db->prepare(
-    'SELECT id,username,role,is_active
+    'SELECT id,username,role,is_active,password_hash
      FROM admin_users
      WHERE id=:id
      LIMIT 1'
@@ -64,7 +65,7 @@ $adminQuery=$db->prepare(
 $adminQuery->execute(['id'=>$currentAdminId]);
 $currentAdmin=$adminQuery->fetch(PDO::FETCH_ASSOC);
 
-if(!$currentAdmin || (int)$currentAdmin['is_active']!==1){
+if(!$currentAdmin || !muchoV5SessionValid($_SESSION,$currentAdmin,time())){
     $_SESSION=[];
     session_destroy();
     http_response_code(403);
@@ -74,6 +75,7 @@ if(!$currentAdmin || (int)$currentAdmin['is_active']!==1){
 
 $_SESSION['admin']['username']=(string)$currentAdmin['username'];
 $_SESSION['admin']['role']=(string)$currentAdmin['role'];
+$_SESSION['admin_last_activity']=time();
 
 $currentAdminRank=legacyAdminRank((string)$currentAdmin['role']);
 
@@ -253,6 +255,11 @@ if($kind==='logs'){
 }
 
 if($kind==='abuse'){
+    // IP addresses are moderation data, not viewer dashboard data.
+    if ($currentAdminRank < 20) {
+        http_response_code(403);
+        output(['error'=>'Forbidden']);
+    }
 
     $rows=$db->query("
         SELECT
@@ -283,6 +290,10 @@ if($kind==='abuse'){
 }
 
 if($kind==='notifications'){
+    if ($currentAdminRank < 20) {
+        http_response_code(403);
+        output(['error'=>'Forbidden']);
+    }
 
     $rows=$db->query("
         SELECT *
