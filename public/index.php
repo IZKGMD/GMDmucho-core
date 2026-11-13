@@ -158,6 +158,12 @@ try {
 
     $router = new Router();
     $path = strtolower($router->normalizePath($request->path));
+    // Staging-only metadata for the native private-message upload path.
+    // This runs before rate-limit inspection, so a pre-handler denial can
+    // be distinguished from an unreceived or misrouted client request.
+    if ($path === '/uploadgjmessage20') {
+        \MuchoCore\Social\MessageTrace::emit('entry', 'seen');
+    }
 
     // No work or logging on other routes; explicit opt-in for level search only.
     RequestProfiler::begin($path, $__muchoEntryStartedAt);
@@ -169,6 +175,12 @@ try {
         $path
     );
     RequestProfiler::phase('protection');
+    if ($path === '/uploadgjmessage20') {
+        \MuchoCore\Social\MessageTrace::emit(
+            'protection',
+            $protection['decision'] === 'block' ? 'blocked' : 'allowed'
+        );
+    }
 
     if ($protection['decision'] === 'block') {
         $_SERVER['MUCHO_PROTECT_PRECHECKED'] = '1';
