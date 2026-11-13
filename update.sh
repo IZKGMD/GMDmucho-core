@@ -352,6 +352,12 @@ if [[ "$CURRENT_HEAD" != "$TARGET_SHA" ]]; then
         echo '[MuchoCore] ERROR: database backup digest mismatch; update refused.' >&2
         exit 1
     fi
+    expected_sidecar="$(printf '%s  %s' "$backup_expected_sha" "$(basename "$backup_host_path")")"
+    if [[ "$(cat "$backup_host_path.sha256")" != "$expected_sidecar" ]] ||
+       ! gzip -t -- "$backup_host_path"; then
+        echo '[MuchoCore] ERROR: backup sidecar or gzip integrity check failed; update refused.' >&2
+        exit 1
+    fi
     if ! (
         cd "$(dirname "$backup_host_path")"
         sha256sum -c "$(basename "$backup_host_path.sha256")" >/dev/null
