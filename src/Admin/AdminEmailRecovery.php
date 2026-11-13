@@ -204,6 +204,14 @@ final class AdminEmailRecovery
                 $db->rollBack();
                 return false;
             }
+            // Web sessions validate the password fingerprint on each request;
+            // API bearer tokens must also be revoked in the same transaction.
+            // Otherwise a pre-reset token remains authorized for up to 8 hours.
+            $db->prepare('UPDATE mucho_admin_client_tokens
+                SET revoked_at=UTC_TIMESTAMP()
+                WHERE admin_user_id=:id AND revoked_at IS NULL')
+                ->execute(['id' => (int)$id]);
+
             $cleanup = $db->prepare('UPDATE admin_email_recovery SET
                 reset_token_hash=NULL,reset_expires_at=NULL,reset_sent_at=NULL
                 WHERE admin_user_id=:id AND reset_token_hash=:hash');
