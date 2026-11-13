@@ -253,7 +253,7 @@
   "src/Protocol/GdLegacyText.php": "aec6be52bbda792ce0d3f95e15a6ac90da1bab991b48c9a22ae5aa3a6ef3a4a8",
   "src/Protocol/GdLevelDownloadEncoder.php": "9b83a6dcd7250edd357e26a67319dcf08713ba7a202e1fa55a02610875cc3952",
   "src/Protocol/GdLevelListEncoder.php": "358c216f41037d9c872af161460ae76317662dc848ca7943829b5174e4b33795",
-  "src/Protocol/GdMessageEncoder.php": "4bf67ef77822dfa1c3ebeb042492d75e8784cd91afc9346fad75fc94c6b95282",
+  "src/Protocol/GdMessageEncoder.php": "e37f1df716cac2352c7111abfb1cd7dae7f3b047d030b13e331ff157dfeb61cd",
   "src/Protocol/GdRelationshipEncoder.php": "6388016e425df3b6b37f2128151bba27281cdab544557ce6e58d9573020bc99f",
   "src/Protocol/GdSongEncoder.php": "1be2879c0f98cb531b83b733527776beadab2af800dea3f241e746cff07faf74",
   "src/Protocol/GdUserEncoder.php": "ac1a79d9b53af7e763cd284fce89d674a91f0e9c241b7b8984a7d50209a9c3eb",
