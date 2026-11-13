@@ -384,6 +384,12 @@ function adminRequireGameAccountPrivilege(
         (int)$target['game_priority'],
         $requestedRolePriority
     )) {
+        // A custom admin role can carry players.manage while rank() returns
+        // zero. requireRank(40) maps custom roles to the current action's
+        // permission, so it is not sufficient to enforce owner-only access.
+        if ((string)(admin()['role'] ?? '') !== 'owner') {
+            throw new RuntimeException('Only the owner can manage a privileged game account.');
+        }
         requireRank(40);
     }
 }
