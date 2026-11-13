@@ -257,8 +257,11 @@ fi
 # ------------------------------------------------------------
 
 STAMP="$(date -u +%Y%m%d_%H%M%S)"
+# Seconds alone collide on rapid consecutive backups, silently replacing
+# the older verified archive and its checksum. Give every run a new name.
+SUFFIX="$(php -r 'echo bin2hex(random_bytes(8));')"
 
-FINAL="$BACKUP_DIR/${SAFE_DB}_${STAMP}.sql.gz"
+FINAL="$BACKUP_DIR/${SAFE_DB}_${STAMP}_${SUFFIX}.sql.gz"
 TMP="$FINAL.tmp"
 
 
