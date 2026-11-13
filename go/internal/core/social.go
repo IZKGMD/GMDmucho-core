@@ -46,7 +46,7 @@ func (h *Handler) messages(r request) (string, error) {
 		if sent {
 			row["to_username"], row["to_user_id"], row["to_clan_tag"] = row["username"], row["user_id"], row["clan_tag"]
 		}
-		items[i] = protocol.Message(row, sent)
+		items[i] = protocol.MessageAt(row, sent, h.now())
 	}
 	return fmt.Sprintf("%s#%d:%d:10", strings.Join(items, "|"), total, r.page()*10), nil
 }
@@ -69,7 +69,7 @@ func (h *Handler) readMessage(r request) (string, error) {
 		}
 		m["is_read"] = "1"
 	}
-	return protocol.Message(m, m.Int("account_id") == me.ID), nil
+	return protocol.MessageAt(m, m.Int("account_id") == me.ID, h.now()), nil
 }
 func (h *Handler) sendMessage(r request) (string, error) {
 	me, err := h.auth(r)
