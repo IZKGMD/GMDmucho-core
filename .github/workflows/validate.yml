@@ -705,6 +705,26 @@ jobs:
           TEST_DB_ROOT_PASSWORD: ci-migration-root
         run: php tests/application/disaster-recovery-integration.php
 
+      - name: Verify historical PHP 8 schema upgrade preserves game data
+        env:
+          GITHUB_ACTIONS: "true"
+          MUCHO_TEST_ALLOW_WRITES: "1"
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_ROOT_PASSWORD: ci-migration-root
+        run: |
+          set -Eeuo pipefail
+          # Pinned merged main commit from 2026-11-10, before the
+          # GD 2.209 user-info schema migration. No production database.
+          baseline=fb30f588249b658b85d57d89aa7c3cfc2261a194
+          history_dir="$(mktemp -d)"
+          trap 'rm -rf "$history_dir"' EXIT
+          git fetch --no-tags --depth=1 origin "$baseline"
+          git archive "$baseline" database/migrations | tar -x -C "$history_dir"
+          php -l tests/application/upgrade-history-integration.php
+          MUCHO_OLD_MIGRATIONS="$history_dir/database/migrations" \
+            php tests/application/upgrade-history-integration.php
+
       - name: Verify PHP 8 uploaded MP3 snapshot and safe restore
         run: php tests/application/music-snapshot-test.php
 
