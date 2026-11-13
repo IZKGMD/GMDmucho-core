@@ -18,12 +18,11 @@ experimental likes index and 66.78 ms after it in a single uncontrolled A/B.
 This alone cannot prove a universal improvement.
 
 The new file `tools/performance/optional_text_search_index_staging.sql`
-proposes a *covering* secondary index on
-`(is_deleted,is_unlisted,unlisted2,name,game_version)`. InnoDB also stores the primary
+proposes a *covering, likes-ordered* secondary index on
+`(is_deleted,is_unlisted,unlisted2,likes,level_id,game_version,name)`. InnoDB also stores the primary
 key in secondary leaves. For substring searches the leading wildcard still
 prevents direct B-tree seeking, but the exact `COUNT(*)` may scan a smaller
-index without fetching `levels` rows containing LONGTEXT. The game version column is required for the real GD 2.209 COUNT query; without it MariaDB chose a full scan. The optimizer
-may choose an entirely different plan, and writes acquire index overhead.
+index without fetching `levels` rows containing LONGTEXT. The game version column is required for the real GD 2.209 COUNT query; without it MariaDB chose a full scan. The optimizer may choose an entirely different plan, and writes acquire index overhead. The earlier name-first covering-index experiment improved rare COUNT but regressed common page lookup (18.49 ms to 44.65 ms p50), so it is not proposed for deployment.
 
 Use a clean isolated **mucho_stress** checkout with the stress stack
 already running, representative synthetic data seeded and a verified backup.
@@ -56,7 +55,7 @@ CPU, RSS, DB locks, disk use, and container restart/OOM counters.
 Rollback on **the same staging database only**:
 
 ```sql
-ALTER TABLE levels DROP INDEX idx_mc_text_visible_name;
+ALTER TABLE levels DROP INDEX idx_mc_text_visible_ranked;
 ```
 
 No schema change is shipped to existing installations by default.
