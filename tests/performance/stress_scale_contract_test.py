@@ -45,6 +45,20 @@ class ScaleStressContract(unittest.TestCase):
                 self.assertTrue(levels - 20 <= target <= levels)
                 self.assertIn(str(target).encode(), case[3])
 
+    def test_four_stage_account_and_level_profiles(self):
+        for size in (1000, 2000, 5000, 10000):
+            for seq in (0, 4, 19):
+                cases = stress.scenarios(size, seq, size)
+                profile = cases[4]
+                account_id = size - seq
+                self.assertEqual(profile[2]["targetAccountID"], str(account_id))
+                self.assertEqual(profile[3], f"StressUser{account_id:05d}".encode())
+                self.assertEqual(cases[1][2]["str"], str(size - seq))
+                self.assertEqual(cases[3][2]["levelID"], str(size - seq))
+                for _, _, params, _ in cases:
+                    self.assertEqual(params["gameVersion"], "22")
+                    self.assertEqual(params["binaryVersion"], "51")
+
     def test_percentiles(self):
         self.assertIsNone(stress.quantile([], .95))
         self.assertEqual(stress.quantile([20, 10, 40, 30], .5), 20)

@@ -35,17 +35,19 @@ def quantile(samples, fraction):
     return round(vals[max(0, math.ceil(len(vals) * fraction) - 1)], 2)
 
 
-def scenarios(levels, seq):
+def scenarios(levels, seq, accounts=1):
     base = {"gameVersion": "22", "binaryVersion": "51"}
     fixture_id = levels - (seq % 20)
     expected = f"Synthetic Stress Level {fixture_id:05d}".encode("ascii")
+    account_id = accounts - (seq % 20) if accounts > 1 else 1
+    username = (f"StressUser{account_id:05d}" if accounts > 1 else "StressRobot").encode("ascii")
     return [
         ("gd_latest", PATH_SEARCH, dict(base, type="0", page="0"), b"Synthetic Stress Level"),
         ("gd_id", PATH_SEARCH, dict(base, type="0", str=str(fixture_id), page="0"), expected),
         ("gd_text", PATH_SEARCH, dict(base, type="0", str="Synthetic Stress Level", page="0"), b"Synthetic Stress Level"),
         ("gd_download", PATH_DOWNLOAD,
          dict(base, levelID=str(fixture_id), extras="1", inc="0"), expected),
-        ("gd_profile", PATH_PROFILE, dict(base, targetAccountID="1"), b"StressRobot"),
+        ("gd_profile", PATH_PROFILE, dict(base, targetAccountID=str(account_id)), username),
     ]
 
 
@@ -79,20 +81,23 @@ def probe(path, params, required):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--levels", type=int, choices=(1000, 10000), required=True)
+    parser.add_argument("--levels", type=int, choices=(1000, 2000, 5000, 10000), required=True)
+    parser.add_argument("--accounts", type=int, choices=(1, 1000, 2000, 5000, 10000), default=1)
     parser.add_argument("--duration", type=int, default=90,
                         help="Duration in seconds (20..180), default 90")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
     if not 20 <= args.duration <= 180:
         parser.error("Duration must be 20..180 seconds")
+    if args.accounts not in (1, args.levels):
+        parser.error("--accounts must be 1 (legacy) or match --levels")
     results = {name: {"samples": [], "errors": {}, "bytes": 0}
-               for name, *_ in scenarios(args.levels, 0)}
+               for name, *_ in scenarios(args.levels, 0, args.accounts)}
 
-    print(f"Scale benchmark: {args.levels} levels; {args.duration}s; 5 scenarios (3 searches);",
+    print(f"Scale benchmark: {args.levels} levels, {args.accounts} accounts; {args.duration}s; 5 scenarios (3 searches);",
           "no spoofed IPs, no uploads, no counter increments", flush=True)
     # Validate every route before collecting performance statistics.
-    for name, path, params, required in scenarios(args.levels, 0):
+    for name, path, params, required in scenarios(args.levels, 0, args.accounts):
         _, error, _ = probe(path, params, required)
         if error:
             print(f"PREFLIGHT_FAILED {name}: {error}", flush=True)
@@ -109,7 +114,7 @@ def main():
             break
         if next_start > now:
             time.sleep(next_start - now)
-        current = scenarios(args.levels, attempts // 5)[attempts % 5]
+        current = scenarios(args.levels, attempts // 5, args.accounts)[attempts % 5]
         name, path, params, required = current
         latency, error, size = probe(path, params, required)
         row = results[name]
@@ -147,6 +152,7 @@ def main():
     report = {
         "target": BASE,
         "fixture_levels": args.levels,
+        "fixture_accounts": args.accounts,
         "duration_s": round(elapsed, 2),
         "requests": attempts,
         "pacing_limited_requests_per_s": round(attempts / elapsed, 2),
