@@ -172,6 +172,23 @@ class Browser:
             return result.status, result.read().decode("utf-8", "replace"), dict(result.headers)
 
 
+def admin_api(payload, token=None):
+    """Exercise the real PHP8 admin Bearer endpoint on isolated localhost."""
+    headers = {"Host": "localhost", "Content-Type": "application/json"}
+    if token is not None:
+        headers["Authorization"] = "Bearer " + token
+    request = urllib.request.Request(
+        BASE + "/api/v2/admin-client.php",
+        data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST",
+    )
+    try:
+        response = urllib.request.urlopen(request, timeout=25)
+    except urllib.error.HTTPError as error:
+        response = error
+    with response:
+        return response.status, json.loads(response.read().decode("utf-8"))
+
+
 class Csrf(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -358,6 +375,20 @@ def main():
                       "reset resend cooldown prevents immediate duplicate mail")
 
                 php("set-totp")
+                api_status, api_response = admin_api({
+                    "action": "auth.login",
+                    "username": env["MC_RECOVERY_TEST_USERNAME"],
+                    "password": env["MC_RECOVERY_TEST_PASSWORD"],
+                    "totp": totp("JBSWY3DPEHPK3PXP"),
+                })
+                check(api_status == 200 and api_response.get("ok") and
+                      isinstance(api_response.get("token"), str),
+                      "real admin API bearer session is issued before recovery")
+                old_bearer = api_response["token"]
+                api_status, api_response = admin_api({"action": "auth.me"}, old_bearer)
+                check(api_status == 200 and api_response.get("ok"),
+                      "pre-reset bearer token authenticates against the real API")
+
                 code, page, _ = public.request("/admin/?email_reset=" + reset1)
                 check(code == 200 and "Set a new password" in page,
                       "public reset link opens a CSRF-protected password form")
@@ -382,6 +413,10 @@ def main():
                       state["reset_token_hash"] is None and
                       state["totp_secret"] == "JBSWY3DPEHPK3PXP",
                       "password hash rotates, reset token clears and 2FA stays enabled")
+                api_status, api_response = admin_api({"action": "auth.me"}, old_bearer)
+                check(api_status == 401 and api_response.get("error") == "unauthorized",
+                      "real admin API rejects all bearer sessions after password reset")
+
                 code, page, _ = public.request(fields={
                     "csrf": csrf_reset, "action": "admin-email-reset", "token": reset1,
                     "password": env["MC_RECOVERY_TEST_PASSWORD"],
@@ -408,6 +443,30 @@ def main():
                 })
                 check(code in (302, 303) and headers.get("Location", "").startswith("/admin/"),
                       "new password still requires and accepts configured TOTP")
+
+                api_login = {
+                    "action": "auth.login",
+                    "username": env["MC_RECOVERY_TEST_USERNAME"],
+                    "password": env["MC_RECOVERY_TEST_NEW_PASSWORD"],
+                    "totp": totp("JBSWY3DPEHPK3PXP"),
+                }
+                api_status, api_response = admin_api(api_login)
+                check(api_status == 200 and api_response.get("ok"),
+                      "new password and TOTP can issue a new admin API session")
+                new_bearer = api_response["token"]
+                check(php("require-password-setup") == "UPDATED",
+                      "test-only setup requirement applied to disposable admin")
+                api_status, api_response = admin_api({"action": "auth.me"}, new_bearer)
+                check(api_status == 401 and api_response.get("error") == "unauthorized",
+                      "existing bearer token is refused when initial password setup is required")
+                api_status, api_response = admin_api(api_login)
+                check(api_status == 401 and api_response.get("error") == "invalid_credentials",
+                      "API cannot bypass mandatory first-password setup even with valid credentials")
+                check(php("complete-password-setup") == "UPDATED",
+                      "test-only setup requirement safely cleared")
+                api_status, api_response = admin_api(api_login)
+                check(api_status == 200 and api_response.get("ok"),
+                      "completed setup permits authenticated API login again")
 
                 php("request-reset")
                 reset2 = received(mailbox, 3, "MuchoCore admin password reset", "email_reset")

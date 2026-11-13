@@ -51,12 +51,40 @@ try {
         ip VARCHAR(45) NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+    // Bearer tokens must be revoked atomically with the reset. A second
+    // administrator's token must not be affected by another admin's recovery.
+    $db->exec("CREATE TABLE mucho_admin_client_tokens (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        admin_user_id BIGINT UNSIGNED NOT NULL,
+        token_hash CHAR(64) NOT NULL UNIQUE,
+        revoked_at DATETIME NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
     $oldPassword = 'previous-admin-password-123';
     $admin = $db->prepare('INSERT INTO admin_users
         (username,password_hash,totp_secret,is_active) VALUES (:u,:h,:t,:a)');
     $admin->execute(['u' => 'admin', 'h' => password_hash($oldPassword, PASSWORD_DEFAULT),
         't' => 'TEST_TOTP_PRESERVED', 'a' => 1]);
     $id = (int) $db->lastInsertId();
+
+    $second = $db->prepare('INSERT INTO admin_users
+        (username,password_hash,is_active) VALUES (:u,:h,1)');
+    $second->execute(['u' => 'other-admin',
+        'h' => password_hash('different-admin-password', PASSWORD_DEFAULT)]);
+    $otherId = (int) $db->lastInsertId();
+    $insertBearer = $db->prepare('INSERT INTO mucho_admin_client_tokens
+        (admin_user_id,token_hash) VALUES (:id,:hash)');
+    $insertBearer->execute(['id' => $id, 'hash' => hash('sha256', 'first-live-token')]);
+    $insertBearer->execute(['id' => $id, 'hash' => hash('sha256', 'second-live-token')]);
+    $insertBearer->execute(['id' => $otherId, 'hash' => hash('sha256', 'other-live-token')]);
+    $countRevoked = static function (int $adminId) use ($db): int {
+        $q = $db->prepare('SELECT COUNT(*) FROM mucho_admin_client_tokens
+            WHERE admin_user_id=:id AND revoked_at IS NOT NULL');
+        $q->execute(['id' => $adminId]);
+        return (int) $q->fetchColumn();
+    };
+    recoveryAssert($countRevoked($id) === 0 && $countRevoked($otherId) === 0,
+        'existing bearer tokens are active before recovery');
 
     AdminEmailRecovery::ensureSchema($db);
     AdminEmailRecovery::ensureSchema($db);
@@ -95,12 +123,18 @@ try {
         WHERE admin_user_id=:id')->execute(['hash' => hash('sha256', $resetToken), 'id' => $id]);
     recoveryAssert(!AdminEmailRecovery::resetPassword($db, $resetToken, 'too-short', 'too-short', '127.0.0.1'),
         'weak password is rejected');
+    recoveryAssert($countRevoked($id) === 0,
+        'invalid recovery does not invalidate existing sessions');
     recoveryAssert(!AdminEmailRecovery::resetPassword($db, $resetToken,
         'new-password-is-long-enough', 'mismatch', '127.0.0.1'),
         'confirmation mismatch is rejected');
     recoveryAssert(AdminEmailRecovery::resetPassword($db, $resetToken,
         'new-password-is-long-enough', 'new-password-is-long-enough', '127.0.0.1'),
         'valid password reset succeeds');
+    recoveryAssert($countRevoked($id) === 2,
+        'successful password recovery revokes every previous bearer token');
+    recoveryAssert($countRevoked($otherId) === 0,
+        'password recovery preserves other administrators bearer sessions');
     recoveryAssert(!AdminEmailRecovery::resetPassword($db, $resetToken,
         'another-long-password', 'another-long-password', '127.0.0.1'),
         'reset link is single-use');

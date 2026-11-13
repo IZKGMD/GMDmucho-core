@@ -92,6 +92,20 @@ switch ($action) {
         echo "ENABLED\n";
         break;
 
+    case 'require-password-setup':
+    case 'complete-password-setup':
+        $stmt = $db->prepare('UPDATE admin_users SET password_must_set=:required
+            WHERE id=:id AND username=:name');
+        $stmt->execute([
+            'required' => $action === 'require-password-setup' ? 1 : 0,
+            'id' => $id, 'name' => $username,
+        ]);
+        if ($stmt->rowCount() !== 1) {
+            throw new RuntimeException('Disposable setup state update failed.');
+        }
+        echo "UPDATED\n";
+        break;
+
     case 'state':
         $stmt = $db->prepare('SELECT a.password_hash,a.totp_secret,
             r.verified_email,r.pending_email,r.verify_token_hash,r.reset_token_hash,
@@ -118,6 +132,14 @@ switch ($action) {
     case 'cleanup':
         $db->beginTransaction();
         try {
+            // API bearer sessions and audit/log attempts created by the
+            // acceptance run must never remain in the shared test schema.
+            $db->prepare('DELETE FROM mucho_admin_client_tokens WHERE admin_user_id=:id')
+                ->execute(['id' => $id]);
+            $db->prepare('DELETE FROM mucho_admin_client_audit WHERE admin_user_id=:id')
+                ->execute(['id' => $id]);
+            $db->prepare('DELETE FROM mucho_admin_client_login_attempts WHERE username=:name')
+                ->execute(['name' => $username]);
             $stmt = $db->prepare('DELETE FROM admin_email_recovery WHERE admin_user_id=:id');
             $stmt->execute(['id' => $id]);
             $stmt = $db->prepare('DELETE FROM admin_audit_logs WHERE admin_user_id=:id');
