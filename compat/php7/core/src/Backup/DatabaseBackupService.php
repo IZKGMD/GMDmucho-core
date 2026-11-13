@@ -21,7 +21,7 @@ final class DatabaseBackupService
         if (function_exists('set_time_limit')) {
             @set_time_limit(0);
         }
-        if (!is_dir($this->directory) && !mkdir($this->directory, 0750, true) && !is_dir($this->directory)) {
+        if (!is_dir($this->directory) && !mkdir($this->directory, 0700, true) && !is_dir($this->directory)) {
             throw new RuntimeException('Unable to create backup directory.');
         }
         if (!is_writable($this->directory)) {
@@ -54,9 +54,19 @@ final class DatabaseBackupService
                 $this->pdo->beginTransaction();
                 $startedTransaction = true;
             }
-            $gzip = gzopen($temporary, 'wb9');
+            // SQL dumps include password hashes and sensitive server metadata.
+            $previousUmask = umask(0077);
+            try {
+                $gzip = gzopen($temporary, 'wb9');
+            } finally {
+                umask($previousUmask);
+            }
             if ($gzip === false) {
                 throw new RuntimeException('Unable to create compressed backup file.');
+            }
+            if (!@chmod($temporary, 0600)) {
+                gzclose($gzip);
+                throw new RuntimeException('Unable to protect database backup file.');
             }
             try {
                 $this->write($gzip, "-- MuchoCore database backup\n");
@@ -83,14 +93,23 @@ final class DatabaseBackupService
             if (!rename($temporary, $final)) {
                 throw new RuntimeException('Unable to publish the verified database backup.');
             }
+            if (!@chmod($final, 0600)) {
+                throw new RuntimeException('Unable to protect published database backup.');
+            }
             $sha256 = hash_file('sha256', $final);
             if ($sha256 === false || !preg_match('/^[a-f0-9]{64}$/', $sha256)) {
                 @unlink($final);
                 throw new RuntimeException('Unable to calculate the database backup checksum.');
             }
-            if (file_put_contents($checksumFile, $sha256 . '  ' . basename($final) . PHP_EOL, LOCK_EX) === false) {
+            $previousUmask = umask(0077);
+            try {
+                $checksumWritten = file_put_contents($checksumFile, $sha256 . '  ' . basename($final) . PHP_EOL, LOCK_EX);
+            } finally {
+                umask($previousUmask);
+            }
+            if ($checksumWritten === false || !@chmod($checksumFile, 0600)) {
                 @unlink($final);
-                throw new RuntimeException('Unable to write database backup checksum.');
+                throw new RuntimeException('Unable to protect database backup checksum.');
             }
             $this->verifyChecksum($final, $checksumFile);
             if ($startedTransaction && $this->pdo->inTransaction()) {
