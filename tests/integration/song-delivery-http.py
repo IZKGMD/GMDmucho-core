@@ -11,6 +11,7 @@ import re
 import secrets
 import subprocess
 import tempfile
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -26,10 +27,10 @@ def check(ok, description):
     print("PASS " + description, flush=True)
 
 
-def run(args, env=None):
+def run(args, env=None, timeout=45):
     result = subprocess.run(
         args, cwd=ROOT, env=env, capture_output=True,
-        text=True, timeout=45, check=False,
+        text=True, timeout=timeout, check=False,
     )
     if result.returncode:
         raise RuntimeError("Music acceptance command failed: " +
@@ -140,6 +141,69 @@ def main():
             check(code == 206 and fragment == source_bytes[:128] and
                   headers.get("Content-Range", "").startswith("bytes 0-127/"),
                   "partial range downloads work for older GD clients")
+
+
+            # Recreate all three services, not merely restart the app. The
+            # testgdps SQL and runtime volumes, the uploaded MP3 and the
+            # original Cloud Save key must survive a deployment replacement.
+            # Unlike a cross-revision upgrade, this only tests persistence
+            # under an identical source tree and image.
+            compose = ["docker", "compose", "-f", "docker-compose.test.yml",
+                       "-f", "docker-compose.test-acceptance.yml"]
+            key_command = compose + ["exec", "-T", "testgdps-app", "sha256sum",
+                                     "/var/lib/muchocore/cloudsave.key"]
+            before_key = run(key_command).split()[0]
+            check(re.fullmatch(r"[a-f0-9]{64}", before_key) is not None,
+                  "original Cloud Save key exists before stack recreation")
+            run(compose + ["up", "-d", "--force-recreate", "--no-build",
+                           "testgdps-db", "testgdps-app", "testgdps-caddy"],
+                timeout=180)
+            for _ in range(75):
+                try:
+                    health, health_body, _ = request("/health")
+                    if health == 200 and health_body.strip() == b"1":
+                        break
+                except (OSError, TimeoutError):
+                    pass
+                time.sleep(2)
+            else:
+                raise AssertionError("Isolated PHP8 stack unhealthy after recreation")
+
+            check(run(key_command).split()[0] == before_key,
+                  "Cloud Save key survives complete three-service recreation")
+            status, metadata, _ = request("/database/getGJSongInfo.php", {
+                "songID": str(SONG_ID), "gameVersion": "22",
+                "binaryVersion": "51",
+            })
+            check(status == 200 and
+                  metadata.startswith(("1~|~" + str(SONG_ID) + "~|~").encode()),
+                  "song SQL record survives MariaDB container recreation")
+            status, recreated_bytes, _ = request("/music/" + filename)
+            check(status == 200 and recreated_bytes == source_bytes,
+                  "uploaded MP3 survives app and Caddy container recreation")
+
+            # Exercise *file* recovery separately from SQL recovery (#250).
+            # This intentionally does not claim to be a complete backup tool.
+            # Read the actual uploaded file, not a second copy of the source
+            # tone, so a missing or unreadable live file fails the backup.
+            saved_media = Path(temporary) / "saved-upload.mp3"
+            run(["sudo", "install", "-o", str(os.getuid()), "-g",
+                 str(os.getgid()), "-m", "0600", str(local), str(saved_media)])
+            check(saved_media.read_bytes() == source_bytes,
+                  "private test-only MP3 backup contains exact live upload")
+            run(["sudo", "rm", "-f", "--", str(local)])
+            status, _, _ = request("/music/" + filename)
+            check(status != 200, "missing uploaded MP3 fails HTTP delivery")
+            run(["sudo", "install", "-o", "www-data", "-g", "www-data",
+                 "-m", "0640", str(saved_media), str(local)])
+            status, restored_bytes, _ = request("/music/" + filename)
+            check(status == 200 and restored_bytes == source_bytes,
+                  "recovered MP3 downloads with its original contents")
+            status, restored_range, headers = request(
+                "/music/" + filename, headers={"Range": "bytes=0-127"})
+            check(status == 206 and restored_range == source_bytes[:128] and
+                  headers.get("Content-Range", "").startswith("bytes 0-127/"),
+                  "recovered MP3 supports HTTP Range for GD clients")
 
             check(fixture("hide") == "UPDATED", "moderation can unverify a song")
             code, data, _ = request("/database/getGJSongInfo.php",
