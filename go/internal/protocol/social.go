@@ -37,6 +37,42 @@ func Date(value string) string {
 	}
 	return t.Format("02/01/2006 ") + strconv.Itoa(t.Hour()) + t.Format(".04")
 }
+// MessageAge returns field 7 as human-readable elapsed time without "ago".
+// Geometry Dash adds that suffix to private-message timestamps itself.
+func MessageAge(value string) string {
+	t, err := time.ParseInLocation("2006-01-02 15:04:05", value, time.UTC)
+	if err != nil {
+		return "0 seconds"
+	}
+	elapsed := time.Now().Unix() - t.Unix()
+	if elapsed < 0 {
+		elapsed = 0
+	}
+	for _, unit := range []struct {
+		seconds int64
+		name string
+	}{
+		{31536000, "year"}, {2592000, "month"},
+		{604800, "week"}, {86400, "day"},
+		{3600, "hour"}, {60, "minute"},
+	} {
+		if elapsed < unit.seconds {
+			continue
+		}
+		count := elapsed / unit.seconds
+		suffix := "s"
+		if count == 1 {
+			suffix = ""
+		}
+		return fmt.Sprintf("%d %s%s", count, unit.name, suffix)
+	}
+	suffix := "s"
+	if elapsed == 1 {
+		suffix = ""
+	}
+	return fmt.Sprintf("%d second%s", elapsed, suffix)
+}
+
 func Message(r dbutil.Row, sent bool) string {
 	name, uid, aid := r["username"], r.Int("user_id"), r.Int("account_id")
 	tag := r["clan_tag"]
@@ -49,7 +85,7 @@ func Message(r dbutil.Row, sent bool) string {
 	if body, ok := r["body"]; ok {
 		result += Pairs("", 5, body)
 	}
-	return result + Pairs("", 7, Date(r["created_at"]))
+	return result + Pairs("", 7, MessageAge(r["created_at"]))
 }
 func RelationshipUsers(rows []dbutil.Row, stats bool) string {
 	if len(rows) == 0 {
