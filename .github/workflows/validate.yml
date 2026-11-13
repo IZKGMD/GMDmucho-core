@@ -250,6 +250,7 @@ jobs:
           php tests/compat/php7-native-comments-parity.php
           php tests/compat/php7-native-social-parity.php
           php tests/application/shared-hosting-ftp-bootstrap-contract.php
+          php tests/application/ftp-installer-preserves-existing.php
           php tests/application/shared-hosting-ftp-deploy-contract.php
           mkdir -p /tmp/muchocore-shared-package-test
           OUTPUT=/tmp/muchocore-shared-package-test/MuchoCore-shared-hosting.zip             bash tools/release/build-shared-hosting.sh
@@ -964,6 +965,7 @@ jobs:
           find src public tests database bin -name '*.php' -print0 | xargs -0 -n1 php -l
           php tests/application/shared-hosting-installer-contract.php
           php tests/application/shared-hosting-ftp-bootstrap-contract.php
+          php tests/application/ftp-installer-preserves-existing.php
           php tests/application/shared-hosting-ftp-deploy-contract.php
           php tests/application/input-hardening-contract.php
           php tests/application/hotpath-bootstrap-contract.php

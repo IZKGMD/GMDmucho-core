@@ -371,27 +371,60 @@ function copy_tree(string $source, string $target, array &$created): void
         $relative = substr($item->getPathname(), strlen($source) + 1);
         $destination = $target . '/' . $relative;
 
+        // The bootstrap supports only a new installation. Never follow
+        // archive links or overwrite pre-existing hosting data.
+        if ($item->isLink() || is_link($destination)) {
+            fail_install('The installation contains an unsafe symbolic link.');
+        }
+
         if ($item->isDir()) {
-            if (!is_dir($destination) && !mkdir($destination, 0755, true)) {
+            if (file_exists($destination)) {
+                if (!is_dir($destination)) {
+                    fail_install('A file already occupies an installation directory: ' . $relative);
+                }
+                // Existing directories belong to the host, not our rollback.
+                continue;
+            }
+            if (!mkdir($destination, 0755, true)) {
                 fail_install('Unable to create installation directory: ' . $relative);
             }
-            if (!in_array($destination, $created, true)) {
-                $created[] = $destination;
-            }
+            $created[] = $destination;
             continue;
         }
 
-        $parent = dirname($destination);
-        if (!is_dir($parent) && !mkdir($parent, 0755, true)) {
-            fail_install('Unable to create directory for: ' . $relative);
+        if (file_exists($destination)) {
+            fail_install('An existing hosting file conflicts with installation: ' . $relative);
         }
 
-        if (!copy($item->getPathname(), $destination)) {
-            fail_install('Unable to install file: ' . $relative);
+        $parent = dirname($destination);
+        if (!is_dir($parent) || is_link($parent)) {
+            fail_install('Installation directory is missing or unsafe: ' . $relative);
+        }
+
+        $input = @fopen($item->getPathname(), 'rb');
+        if ($input === false) {
+            fail_install('Unable to read installation file: ' . $relative);
+        }
+        // Exclusive creation also protects against a file appearing between
+        // the conflict check and write. Never use copy() over an existing file.
+        $output = @fopen($destination, 'xb');
+        if ($output === false) {
+            fclose($input);
+            fail_install('Unable to create installation file without replacing data: ' . $relative);
+        }
+        // Track partial files immediately so rollback cleans interrupted copies.
+        $created[] = $destination;
+        try {
+            $written = stream_copy_to_stream($input, $output);
+            if ($written === false || $written !== $item->getSize() || !fflush($output)) {
+                fail_install('Unable to copy the complete installation file: ' . $relative);
+            }
+        } finally {
+            fclose($input);
+            fclose($output);
         }
 
         @chmod($destination, 0644);
-        $created[] = $destination;
     }
 }
 
