@@ -179,7 +179,7 @@
   "src/Http/ClientIp.php": "1bec99e91878ce6b7ad6b3d14189bd90c066bdbab99b6220f2e0ea30bf987bd0",
   "src/Http/Request.php": "b24fc3f63058599b1b51a532b1d39bac4f75e99250eaca4ed00d7399b86d8102",
   "src/Http/Response.php": "11ab70ad0b8ed09f42d40f4c585b8e6206d77ca288705eccfbe5b0850e8dac9f",
-  "src/Integration/WebhookDispatcher.php": "b7a8d8ed573e3806c3f7345bcaa07bede9b94ce240dd4408fe31d3f36f666eea",
+  "src/Integration/WebhookDispatcher.php": "97b8a69185d62620927f4368e377e9e5b5cbaef7e09f7bc058ac846a23af050c",
   "src/Interaction/CommentController.php": "58389536fd1ce473e6d4b93348f64572078ff8222d25b26ca4cd9a0174ad521d",
   "src/Interaction/CommentRepository.php": "a25cb11dad29762b54fcdac7e89d9db671b375a4d13e31c2f05ff26497be3b78",
   "src/Interaction/CommentService.php": "48c357fb3f551ed8da65fee29ca7aa22d39da5e395136690651290e32473bb5a",
