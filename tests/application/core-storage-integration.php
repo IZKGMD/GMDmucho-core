@@ -24,8 +24,15 @@ function storageCheck(bool $ok, string $message): void
 final class CacheSnapshotStatement extends PDOStatement
 {
     public static ?Closure $afterFetch = null;
+    public static int $executeCount = 0;
 
     protected function __construct() {}
+
+    public function execute(?array $params = null): bool
+    {
+        ++self::$executeCount;
+        return parent::execute($params);
+    }
 
     public function fetchColumn(int $column = 0): mixed
     {
@@ -154,9 +161,9 @@ try {
     storageCheck($cache->get('zero') === '0', 'cached string zero is not confused with a miss');
 
     $writer->exec("UPDATE mucho_cache SET expires_at=1 WHERE cache_key='empty'");
-    $beforeExec = (int)$pdo->query("SHOW SESSION STATUS LIKE 'Com_stmt_execute'")->fetchColumn(1);
+    $beforeExec = CacheSnapshotStatement::$executeCount;
     storageCheck($cache->get('empty') === null, 'expired cache entry is invisible to the reader');
-    $afterExec = (int)$pdo->query("SHOW SESSION STATUS LIKE 'Com_stmt_execute'")->fetchColumn(1);
+    $afterExec = CacheSnapshotStatement::$executeCount;
     storageCheck($afterExec - $beforeExec === 1,
         'expired cache get executes one prepared SQL statement instead of select and delete');
 
