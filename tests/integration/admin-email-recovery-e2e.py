@@ -172,6 +172,23 @@ class Browser:
             return result.status, result.read().decode("utf-8", "replace"), dict(result.headers)
 
 
+def admin_api(payload, token=None):
+    """Exercise the real PHP8 admin Bearer endpoint on isolated localhost."""
+    headers = {"Host": "localhost", "Content-Type": "application/json"}
+    if token is not None:
+        headers["Authorization"] = "Bearer " + token
+    request = urllib.request.Request(
+        BASE + "/api/v2/admin-client.php",
+        data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST",
+    )
+    try:
+        response = urllib.request.urlopen(request, timeout=25)
+    except urllib.error.HTTPError as error:
+        response = error
+    with response:
+        return response.status, json.loads(response.read().decode("utf-8"))
+
+
 class Csrf(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -358,6 +375,20 @@ def main():
                       "reset resend cooldown prevents immediate duplicate mail")
 
                 php("set-totp")
+                api_status, api_response = admin_api({
+                    "action": "auth.login",
+                    "username": env["MC_RECOVERY_TEST_USERNAME"],
+                    "password": env["MC_RECOVERY_TEST_PASSWORD"],
+                    "totp": totp("JBSWY3DPEHPK3PXP"),
+                })
+                check(api_status == 200 and api_response.get("ok") and
+                      isinstance(api_response.get("token"), str),
+                      "real admin API bearer session is issued before recovery")
+                old_bearer = api_response["token"]
+                api_status, api_response = admin_api({"action": "auth.me"}, old_bearer)
+                check(api_status == 200 and api_response.get("ok"),
+                      "pre-reset bearer token authenticates against the real API")
+
                 code, page, _ = public.request("/admin/?email_reset=" + reset1)
                 check(code == 200 and "Set a new password" in page,
                       "public reset link opens a CSRF-protected password form")
@@ -382,6 +413,10 @@ def main():
                       state["reset_token_hash"] is None and
                       state["totp_secret"] == "JBSWY3DPEHPK3PXP",
                       "password hash rotates, reset token clears and 2FA stays enabled")
+                api_status, api_response = admin_api({"action": "auth.me"}, old_bearer)
+                check(api_status == 401 and api_response.get("error") == "unauthorized",
+                      "real admin API rejects all bearer sessions after password reset")
+
                 code, page, _ = public.request(fields={
                     "csrf": csrf_reset, "action": "admin-email-reset", "token": reset1,
                     "password": env["MC_RECOVERY_TEST_PASSWORD"],
