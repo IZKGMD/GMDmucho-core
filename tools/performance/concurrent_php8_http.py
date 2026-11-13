@@ -86,6 +86,24 @@ def isolated_stack_guard():
         raise RuntimeError("Refused: caddy is not restricted to 127.0.0.1:18080")
 
 
+def db_comment_counts():
+    """Read total synthetic comment counts from the isolated app's own PDO connection."""
+    php = (
+        r'require "/var/www/mucho-core/vendor/autoload.php";'
+        r'$db=(new \MuchoCore\Database\Database())->connection();'
+        r'echo (int)$db->query("SELECT COUNT(*) FROM comments")->fetchColumn(), ":";'
+        r'echo (int)$db->query("SELECT COUNT(*) FROM account_comments")->fetchColumn();'
+    )
+    command = ["docker", "compose", "-f", "docker-compose.stress.yml",
+               "exec", "-T", "app", "php", "-r", php]
+    process = subprocess.run(command, capture_output=True, text=True,
+                             timeout=20, check=True)
+    response = process.stdout.strip()
+    if not re.fullmatch(r"[0-9]+:[0-9]+", response):
+        raise RuntimeError("Failed to read isolated comment counts")
+    return tuple(map(int, response.split(":")))
+
+
 def load_write_fixture(path):
     source = Path(path).resolve()
     secrets_dir = (Path.cwd() / ".stress-secrets").resolve()
@@ -156,16 +174,19 @@ def perform(job):
 
 def run_stage(kind, workers, jobs, attempts, pause_ms, p95_limit):
     timings, errors = [], {}
+    accepted_writes = 0
     started = time.perf_counter()
     with ThreadPoolExecutor(max_workers=workers) as pool:
         for index in range(0, attempts, workers):
             batch = [jobs[(index + offset) % len(jobs)]
                      for offset in range(min(workers, attempts - index))]
-            for latency, error in pool.map(perform, batch):
+            for job, (latency, error) in zip(batch, pool.map(perform, batch)):
                 if error:
                     errors[error] = errors.get(error, 0) + 1
                 else:
                     timings.append(latency)
+                    if job["path"] in ALLOWED_WRITES:
+                        accepted_writes += 1
             if index + workers < attempts and pause_ms:
                 time.sleep(pause_ms / 1000.0)
     elapsed = time.perf_counter() - started
@@ -176,6 +197,7 @@ def run_stage(kind, workers, jobs, attempts, pause_ms, p95_limit):
         "concurrency": workers,
         "attempts": attempts,
         "success": len(timings),
+        "accepted_write_acks": accepted_writes,
         "errors": errors,
         "p50_ms": percentile(timings, 0.50),
         "p95_ms": p95,
@@ -253,8 +275,19 @@ def main():
         for workers in (1, 2, 4, 8):
             if workers > args.max_concurrency:
                 break
+            before = db_comment_counts() if kind != "read" else None
             stage = run_stage(kind, workers, workloads[kind], args.attempts,
                               args.pause_ms, args.p95_limit_ms)
+            if before is not None:
+                after = db_comment_counts()
+                inserted = sum(after) - sum(before)
+                stage["observed_comment_inserts"] = inserted
+                stage["write_integrity_passed"] = (
+                    inserted == stage["accepted_write_acks"]
+                )
+                if not stage["write_integrity_passed"]:
+                    stage["passed"] = False
+                    stage["errors"]["db_comment_count_mismatch"] = 1
             report["stages"].append(stage)
             print(json.dumps(stage, ensure_ascii=False), flush=True)
             if not stage["passed"]:
