@@ -8,7 +8,6 @@ declare(strict_types=1);
  * This is not HTTP end-to-end performance or a player-capacity test.
  */
 use MuchoCore\Database\Database;
-use PDO;
 
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 if (PHP_SAPI !== 'cli' || getenv('DB_NAME') !== 'mucho_stress'
@@ -22,10 +21,10 @@ if ($db->query('SELECT DATABASE()')->fetchColumn() !== 'mucho_stress') {
 $index = (int)$db->query(
     "SELECT COUNT(*) FROM information_schema.statistics
      WHERE table_schema=DATABASE() AND table_name='levels'
-       AND index_name='idx_mc_text_visible_name'"
+       AND index_name='idx_mc_text_visible_ranked'"
 )->fetchColumn();
-if ($index !== 5) {
-    throw new RuntimeException('Expected five-column candidate index absent.');
+if ($index !== 7) {
+    throw new RuntimeException('Expected seven-column candidate index absent.');
 }
 $rows = (int)$db->query('SELECT COUNT(*) FROM levels')->fetchColumn();
 if ($rows !== 10000) {
@@ -33,8 +32,8 @@ if ($rows !== 10000) {
 }
 
 $variants = [
-    'baseline' => 'IGNORE INDEX (idx_mc_text_visible_name)',
-    'candidate' => 'FORCE INDEX (idx_mc_text_visible_name)',
+    'baseline' => 'IGNORE INDEX (idx_mc_text_visible_ranked)',
+    'candidate' => 'FORCE INDEX (idx_mc_text_visible_ranked)',
     'optimizer' => '',
 ];
 $cases = [
