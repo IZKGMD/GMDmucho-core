@@ -142,7 +142,7 @@ final class AbusePenaltyStore implements PenaltyStoreBackend
                     fclose($fp);
                 }
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $__mcCaught) {
             return $removed;
         }
 
