@@ -143,6 +143,16 @@ protections to get prettier numbers. Client pacing also means the reported
 RPS is **not** an unbounded capacity ceiling. Raise concurrency carefully on
 isolated infrastructure only.
 
+To check the HTTP runner's response validation and parallel request handling
+without Docker or database access:
+
+```bash
+python3 -m unittest tests/performance/test_concurrent_php8_http.py
+```
+
+These mocked HTTP tests validate the measurement harness, **not** MariaDB
+transaction correctness or the number of real players.
+
 ## 3. Converting measured throughput to players
 
 Do **not** equate 10,000 stored levels, 8 worker threads or 100 RPS with
