@@ -39,6 +39,37 @@ if (ClientIp::resolve([
 ]) !== '10.10.2.3') {
     throw new RuntimeException('malformed nearest XFF hop must not be trusted');
 }
+
+// Player dashboard login and upload quotas must share the canonical proxy
+// trust boundary with the main GD API, never raw client-supplied headers.
+$publicPeer = [
+    'REMOTE_ADDR' => '198.51.100.20',
+    'HTTP_CF_CONNECTING_IP' => '203.0.113.88',
+];
+if (ClientIp::resolve($publicPeer) !== '198.51.100.20') {
+    throw new RuntimeException('spoofed Cloudflare header bypasses rate limits for direct peers');
+}
+$cloudflarePeer = [
+    'REMOTE_ADDR' => '173.245.48.20',
+    'HTTP_CF_CONNECTING_IP' => '203.0.113.88',
+];
+if (ClientIp::resolve($cloudflarePeer) !== '203.0.113.88') {
+    throw new RuntimeException('trusted Cloudflare edge lost the real client IP');
+}
+foreach ([
+    'public/dashboard/index.php',
+    'compat/php7/core/public/dashboard/index.php',
+] as $path) {
+    $portal = (string)file_get_contents(dirname(__DIR__, 2) . '/' . $path);
+    $start = strpos($portal, 'function pdIp(): string');
+    $next = $start === false ? false : strpos($portal, 'function pdRedirect(', $start);
+    $function = $start === false || $next === false ? '' : substr($portal, $start, $next - $start);
+    if (!str_contains($function, '\\MuchoCore\\Http\\ClientIp::resolve($_SERVER)')
+        || str_contains($function, 'HTTP_CF_CONNECTING_IP')) {
+        throw new RuntimeException('player portal trusts unvalidated forwarded IP headers: ' . $path);
+    }
+}
+
 putenv('MUCHO_TRUSTED_PROXY_CIDRS');
 unset($_ENV['MUCHO_TRUSTED_PROXY_CIDRS']);
 echo "client-ip-trusted-proxy: OK\n";
