@@ -181,6 +181,7 @@ jobs:
           php tests/application/file-cache-contract.php
           php tests/application/security-regressions.php
           php tests/application/admin-game-account-privilege.php
+          php tests/application/admin-browser-session-policy.php
           bash tests/release/release-update-detection.sh
           python3 tests/release/release-publication.py
           python3 tests/release/native-ci-gate.py
