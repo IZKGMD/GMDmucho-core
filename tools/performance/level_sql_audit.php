@@ -41,7 +41,7 @@ $queries = [
     'visible_count' => 'SELECT COUNT(*) FROM levels l
         WHERE l.is_deleted=0 AND l.is_unlisted=0',
     'text_search_count' => "SELECT COUNT(*) FROM levels l
-        WHERE l.is_deleted=0 AND l.is_unlisted=0 AND l.unlisted2=0
+        WHERE l.is_deleted=0 AND l.is_unlisted=0 AND l.unlisted2=0 AND l.game_version<=22
           AND l.name LIKE '%Synthetic Stress Level%'",
     'text_search_page' => "SELECT l.level_id FROM levels l
         WHERE l.is_deleted=0 AND l.is_unlisted=0 AND l.unlisted2=0
