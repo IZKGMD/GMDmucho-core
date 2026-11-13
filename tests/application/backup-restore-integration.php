@@ -90,13 +90,37 @@ SQL);
     for ($id=1;$id<=6;$id++) $mediaInsert->execute([$id,$mediaBytes]);
 
     $service = new DatabaseBackupService($source, $dir);
-    $backup = $service->create('roundtrip');
+    // Simulate a shared host running with an unsafe default umask.
+    $originalUmask = umask(0022);
+    try {
+        $backup = $service->create('roundtrip');
+    } finally {
+        umask($originalUmask);
+    }
+    clearstatcache();
+    backupCheck(
+        (fileperms($backup['file']) & 0777) === 0600 &&
+        (fileperms($backup['file'] . '.sha256') & 0777) === 0600,
+        'SQL archive and checksum remain private under default shared-host umask'
+    );
+    backupCheck(umask() === $originalUmask, 'backup restores process umask');
     backupCheck(
         preg_match('/^roundtrip_[0-9]{8}_[0-9]{6}_[a-f0-9]{16}\\.sql\\.gz$/D',
             basename($backup['file'])) === 1,
         'PHP 8 backup name includes a collision-resistant per-run suffix'
     );
-    $repeat = $service->create('roundtrip');
+    $originalUmask = umask(0022);
+    try {
+        $repeat = $service->create('roundtrip');
+    } finally {
+        umask($originalUmask);
+    }
+    clearstatcache();
+    backupCheck(
+        (fileperms($repeat['file']) & 0777) === 0600 &&
+        (fileperms($repeat['file'] . '.sha256') & 0777) === 0600,
+        'repeated SQL export also protects new archive and checksum'
+    );
     backupCheck(
         $repeat['file'] !== $backup['file'] &&
         is_file($backup['file']) &&
