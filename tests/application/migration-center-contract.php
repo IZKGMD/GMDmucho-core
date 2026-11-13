@@ -80,6 +80,14 @@ if (strpos($control, 'compose exec -T app bash /var/www/mucho-core/bin/mucho-db-
     throw new RuntimeException('Control Center backup must run inside the app container.');
 }
 
+if (
+    !str_contains($phpBackup, 'bin2hex(random_bytes(8))') ||
+    !str_contains($backupScript, 'SUFFIX="$(php -r') ||
+    !str_contains($backupScript, '${STAMP}_${SUFFIX}.sql.gz')
+) {
+    throw new RuntimeException('Backup names must include a unique random suffix to prevent archive replacement.');
+}
+
 foreach ([
     'DatabaseBackupService',
     'gzopen(',

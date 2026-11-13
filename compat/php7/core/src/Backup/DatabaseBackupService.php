@@ -36,7 +36,7 @@ final class DatabaseBackupService
             throw new RuntimeException('Another database backup is already running.');
         }
         $safeLabel = preg_replace('/[^A-Za-z0-9_.-]/', '_', $label) ?: 'muchocore';
-        $final = rtrim($this->directory, '/\\') . '/' . $safeLabel . '_' . gmdate('Ymd_His') . '.sql.gz';
+        $final = rtrim($this->directory, '/\\') . '/' . $safeLabel . '_' . gmdate('Ymd_His') . '_' . bin2hex(random_bytes(8)) . '.sql.gz';
         $temporary = $final . '.tmp';
         $checksumFile = $final . '.sha256';
         $estimatedBytes = $this->databaseSizeBytes();

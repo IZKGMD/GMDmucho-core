@@ -46,7 +46,8 @@ final class DatabaseBackupService
 
         $safeLabel = preg_replace('/[^A-Za-z0-9_.-]/', '_', $label) ?: 'muchocore';
         $final = rtrim($this->directory, '/\\') . '/'
-            . $safeLabel . '_' . gmdate('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.sql.gz';
+            . $safeLabel . '_' . gmdate('Ymd_His') . '_'
+            . bin2hex(random_bytes(8)) . '.sql.gz';
         $temporary = $final . '.tmp';
         $checksumFile = $final . '.sha256';
 

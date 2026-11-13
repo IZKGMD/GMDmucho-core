@@ -89,8 +89,23 @@ SQL);
     $mediaInsert=$source->prepare('INSERT INTO restore_media (id,payload) VALUES (?,?)');
     for ($id=1;$id<=6;$id++) $mediaInsert->execute([$id,$mediaBytes]);
 
-    $backup = (new DatabaseBackupService($source, $dir))
-        ->create('roundtrip');
+    $service = new DatabaseBackupService($source, $dir);
+    $backup = $service->create('roundtrip');
+    backupCheck(
+        preg_match('/^roundtrip_[0-9]{8}_[0-9]{6}_[a-f0-9]{16}\\.sql\\.gz$/D',
+            basename($backup['file'])) === 1,
+        'PHP 8 backup name includes a collision-resistant per-run suffix'
+    );
+    $repeat = $service->create('roundtrip');
+    backupCheck(
+        $repeat['file'] !== $backup['file'] &&
+        is_file($backup['file']) &&
+        is_file($repeat['file']) &&
+        hash_equals($backup['sha256'], (string)hash_file('sha256', $backup['file'])) &&
+        hash_equals($repeat['sha256'],
+            DatabaseBackupVerifier::verify($repeat['file'])['sha256']),
+        'rapid consecutive backups preserve both independent verified archives'
+    );
     $backupSql=file_get_contents('compress.zlib://'.$backup['file']);
     backupCheck(is_string($backupSql) && substr_count($backupSql,'INSERT INTO `restore_media`')>=2,
         'large profile-sized blobs use bounded restore statements');

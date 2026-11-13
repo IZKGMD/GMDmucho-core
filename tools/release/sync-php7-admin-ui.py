@@ -246,7 +246,6 @@ source=source.replace('fn(string $column): string => $this->quoteIdentifier($col
 source=re.sub(r'catch\s*\(Throwable\)',r'catch (Throwable $error)',source)
 source=source.replace('mixed $value','$value')
 source=source.replace('str_contains(', '\\mucho7_admin_contains(')
-source=source.replace("gmdate('Ymd_His') . '.sql.gz'", "gmdate('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.sql.gz'")
 source=source.replace('mkdir($this->directory, 0750, true)','mkdir($this->directory, 0700, true)')
 source=source.replace("$gzip = gzopen($temporary, 'wb9');", "$gzip = gzopen($temporary, 'wb6');\n            @chmod($temporary,0600);")
 source=source.replace('$this->pdo->beginTransaction();', "$this->pdo->exec('START TRANSACTION WITH CONSISTENT SNAPSHOT');")

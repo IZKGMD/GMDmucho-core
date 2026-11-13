@@ -118,7 +118,7 @@
   "src/Artist/TopArtistController.php": "6bcab5b03787d88921511e5561e8d0042c241b472277e8dcf4501d4973596081",
   "src/Artist/TopArtistRepository.php": "c37c309b4cb62b023a9b62993791b68ff98dc224250c8ad3a8c6735a060e0279",
   "src/Artist/TopArtistService.php": "23a22f7b13094fc0c03899c460b38c97ade77f5b969ec4d9334d062b5bfce90e",
-  "src/Backup/DatabaseBackupService.php": "8626d00ef6f893e8a578463176dbd35a3e77377d30aca95262b07edfa68613ca",
+  "src/Backup/DatabaseBackupService.php": "3b750af0202036e6764489cd2eb9efdac31245956f9b9787d3d533f60be2e301",
   "src/Backup/DatabaseBackupVerifier.php": "75d7f3f49a738865cad2cd052d3d5ebcff07765d403f5c41113c2c41e1611199",
   "src/Branding/BrandingService.php": "ac88a5ee9d1c6f4be8e7ca0c7c96e1bd8bc5701e824409a985090ba984da8f82",
   "src/Cache/CacheInterface.php": "9bc3a1a6400c83c883f70056eacacfe78a13dffe988b38586d2a9d0afb0bf9cc",
