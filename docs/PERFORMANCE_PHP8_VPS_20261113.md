@@ -101,7 +101,7 @@ Evidence: [real-query predicate check](https://github.com/IZKGMD/GMDmucho-core/a
 
 A new guarded synthetic fixture generator issued a genuine GJP2 credential
 to the existing `StressRobot` account *within the isolated stress DB only*.
-The credential was hashed at rest and never printed. GD 2.209 comment
+The database stores its password and GJP2 as password hashes; the raw synthetic GJP2 exists only in a local 0600 stress fixture and was never printed. GD 2.209 comment
 payloads were Base64-url encoded and passed the actual app authentication
 path. Insert acknowledgments were compared to database row-count deltas.
 
