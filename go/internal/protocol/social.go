@@ -50,7 +50,7 @@ func MessageAge(value string) string {
 	}
 	for _, unit := range []struct {
 		seconds int64
-		name string
+		name    string
 	}{
 		{31536000, "year"}, {2592000, "month"},
 		{604800, "week"}, {86400, "day"},
