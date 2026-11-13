@@ -3,12 +3,14 @@ declare(strict_types=1);
 
 use MuchoCore\Admin\AdminPasskeyService;
 use MuchoCore\Admin\AdminRbac;
+use MuchoCore\Admin\GameAccountPrivilegePolicy;
 use MuchoCore\Branding\BrandingService;
 use MuchoCore\Core\Environment;
 use MuchoCore\Database\Database;
 
 require_once __DIR__.'/core/PlainAdmin.php';
 require_once __DIR__.'/core/AdminChrome.php';
+require_once __DIR__.'/core/GameAccountPrivilegePolicy.php';
 if (adminIsPlain()) {
     header_register_callback(static function (): void {
         foreach (headers_list() as $header) {
@@ -346,6 +348,43 @@ function requireRank(int $rank): void
 
     if ($permission === null || !AdminRbac::can($db,$a,$permission)) {
         throw new RuntimeException('Insufficient permissions.');
+    }
+}
+
+/**
+ * The main admin form dispatcher must enforce the same game-role boundary as
+ * the extracted accounts module. Game owner/elder roles must not be mutable
+ * through a lower-ranked administrator account.
+ */
+function adminRequireGameAccountPrivilege(
+    PDO $db,
+    int $accountId,
+    ?int $requestedRolePriority = null
+): void {
+    if ($accountId <= 0) {
+        throw new RuntimeException('Invalid account.');
+    }
+
+    $stmt = $db->prepare(
+        'SELECT COALESCE(r.code,\'user\') AS game_role,
+                COALESCE(r.priority,0) AS game_priority
+         FROM accounts a LEFT JOIN roles r ON r.id=a.role_id
+         WHERE a.account_id=:id LIMIT 1'
+    );
+    $stmt->execute(['id' => $accountId]);
+    $target = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$target) {
+        throw new RuntimeException('Account not found.');
+    }
+
+    $actorRank = rank((string)(admin()['role'] ?? ''));
+    if (GameAccountPrivilegePolicy::ownerRequired(
+        $actorRank,
+        (string)$target['game_role'],
+        (int)$target['game_priority'],
+        $requestedRolePriority
+    )) {
+        requireRank(40);
     }
 }
 
@@ -2741,7 +2780,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         if ($action==='account-save') {
             requireRank(30);
 
-            $id=(int)$_POST['id'];
+            $id=(int)($_POST['id'] ?? 0);
 
             $oldAccount=$db->prepare(
                 'SELECT username FROM accounts WHERE account_id=:id LIMIT 1'
@@ -2752,7 +2791,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $role=trim((string)$_POST['role']);
 
             $roleQuery=$db->prepare(
-                'SELECT id
+                'SELECT id, COALESCE(priority,0) AS priority
                  FROM roles
                  WHERE code=:role
                  LIMIT 1'
@@ -2762,11 +2801,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 'role'=>$role
             ]);
 
-            $roleId=$roleQuery->fetchColumn();
+            $roleRow=$roleQuery->fetch(PDO::FETCH_ASSOC);
 
-            if($roleId===false) {
+            if(!$roleRow) {
                 throw new RuntimeException('Bad role');
             }
+
+            adminRequireGameAccountPrivilege($db, $id, (int)$roleRow['priority']);
 
             $q=$db->prepare(
                 'UPDATE accounts SET
@@ -2791,7 +2832,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     0,
                     254
                 ),
-                'role_id'=>(int)$roleId,
+                'role_id'=>(int)$roleRow['id'],
                 'active'=>isset($_POST['active'])?1:0,
                 'banned'=>isset($_POST['banned'])?1:0,
                 'id'=>$id
@@ -3396,8 +3437,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         elseif ($action==='password-reset') {
             requireRank(30);
 
-            $id=(int)$_POST['id'];
-            $password=(string)$_POST['new_password'];
+            $id=(int)($_POST['id'] ?? 0);
+            adminRequireGameAccountPrivilege($db, $id);
+            $password=(string)($_POST['new_password'] ?? '');
             $passwordConfirm=(string)($_POST['new_password_confirm'] ?? '');
 
             if (strlen($password)<8) {
@@ -3423,17 +3465,32 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                  WHERE account_id=:id'
             );
 
-            $q->execute([
-                'p'=>password_hash(
-                    $password,
-                    PASSWORD_DEFAULT
-                ),
-                'g'=>password_hash(
-                    $gjp2,
-                    PASSWORD_DEFAULT
-                ),
-                'id'=>$id
-            ]);
+            $db->beginTransaction();
+            try {
+                $q->execute([
+                    'p'=>password_hash(
+                        $password,
+                        PASSWORD_DEFAULT
+                    ),
+                    'g'=>password_hash(
+                        $gjp2,
+                        PASSWORD_DEFAULT
+                    ),
+                    'id'=>$id
+                ]);
+
+                // Invalidates legacy 1.9 upload sessions with the credential
+                // update. Failure rolls the whole password change back.
+                $db->prepare(
+                    'DELETE FROM mucho_legacy_19_sessions WHERE account_id=:id'
+                )->execute(['id'=>$id]);
+                $db->commit();
+            } catch (Throwable $error) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+                throw $error;
+            }
 
             audit($db,'account.password.reset',(string)$id);
             flash('Password changed.');
