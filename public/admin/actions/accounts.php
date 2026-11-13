@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__.'/../core/DeletedAccountSnapshot.php';
+
 /*
  * MuchoCore Admin Actions — Accounts
  *
@@ -238,11 +240,11 @@ try {
 
             $snapshot=json_encode(
                 [
-                    'account'=>$account,
+                    'account'=>\MuchoCore\Admin\DeletedAccountSnapshot::sanitizeAccount($account),
                     'profile'=>$profile
                 ],
                 JSON_UNESCAPED_UNICODE |
-                JSON_UNESCAPED_SLASHES
+                JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
             );
 
             $db->beginTransaction();

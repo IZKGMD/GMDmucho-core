@@ -103,7 +103,9 @@ final class DatabaseBackupService
 
                 $this->write($gzip, "SET FOREIGN_KEY_CHECKS=1;\n");
             } finally {
-                gzclose($gzip);
+                if (gzclose($gzip) !== true) {
+                    throw new RuntimeException('Database backup compression did not finish successfully.');
+                }
             }
 
             $size = filesize($temporary);
@@ -389,14 +391,34 @@ final class DatabaseBackupService
             throw new RuntimeException('Generated database backup cannot be opened.');
         }
 
+        $prefix = '';
+        $tail = '';
+        $sqlBytes = 0;
         try {
-            $sample = gzread($gzip, 4096);
+            // Reading only the first 4 KiB accepted a truncated but valid
+            // gzip containing the backup banner and partial SQL statements.
+            while (!gzeof($gzip)) {
+                $chunk = @gzread($gzip, 65536);
+                if (!is_string($chunk) || ($chunk === '' && !gzeof($gzip))) {
+                    throw new RuntimeException('Generated database backup gzip stream is incomplete.');
+                }
+
+                if (strlen($prefix) < 1024) {
+                    $prefix .= substr($chunk, 0, 1024 - strlen($prefix));
+                }
+                $tail = substr($tail . $chunk, -256);
+                $sqlBytes += strlen($chunk);
+            }
         } finally {
             gzclose($gzip);
         }
 
-        if (!is_string($sample) || !str_contains($sample, 'MuchoCore database backup')) {
-            throw new RuntimeException('Generated database backup failed integrity verification.');
+        $ending = 'SET FOREIGN_KEY_CHECKS=1;';
+        $tail = rtrim($tail, " \t\r\n");
+        if ($sqlBytes < self::MIN_BACKUP_BYTES ||
+            strncmp($prefix, '-- MuchoCore database backup', strlen('-- MuchoCore database backup')) !== 0 ||
+            substr($tail, -strlen($ending)) !== $ending) {
+            throw new RuntimeException('Generated database backup is incomplete or missing its SQL terminator.');
         }
     }
 

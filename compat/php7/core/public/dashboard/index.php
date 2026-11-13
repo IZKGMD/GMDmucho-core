@@ -64,7 +64,7 @@ function pdFlash($message = null, string $type = 'ok')
 }
 function pdIp(): string
 {
-    return trim((string) ($_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+    return \MuchoCore\Http\ClientIp::resolve($_SERVER);
 }
 function pdRedirect(string $url = '/dashboard')
 {

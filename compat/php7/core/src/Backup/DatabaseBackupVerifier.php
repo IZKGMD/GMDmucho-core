@@ -45,6 +45,7 @@ final class DatabaseBackupVerifier
         }
         $sqlBytes = 0;
         $prefix = '';
+        $tail = '';
         try {
             while (!gzeof($gzip)) {
                 $chunk = gzread($gzip, 65536);
@@ -54,6 +55,7 @@ final class DatabaseBackupVerifier
                 if (strlen($prefix) < 1024) {
                     $prefix .= substr($chunk, 0, 1024 - strlen($prefix));
                 }
+                $tail = substr($tail . $chunk, -256);
                 $sqlBytes += strlen($chunk);
             }
         } finally {
@@ -73,6 +75,15 @@ final class DatabaseBackupVerifier
         $validSqlHeader = str_starts_with($header, '-- MuchoCore database backup') || preg_match('/^-- (?:MariaDB|MySQL) dump\b/', $header) === 1;
         if ($sqlBytes === 0 || !$validSqlHeader) {
             throw new RuntimeException('Backup SQL header is missing.');
+        }
+        // Portable PHP SQL archives must contain their own completion marker.
+        // Native MariaDB dumps use a different footer and remain supported.
+        $portableHeader = "-- MuchoCore database backup\n-- Generated: ";
+        if (strncmp($prefix, $portableHeader, strlen($portableHeader)) === 0) {
+            $ending = 'SET FOREIGN_KEY_CHECKS=1;';
+            if (substr(rtrim($tail, " \t\r\n"), -strlen($ending)) !== $ending) {
+                throw new RuntimeException('Portable SQL backup is missing its completion marker.');
+            }
         }
         return ['file' => $path, 'sha256' => $expected, 'compressed_bytes' => (int) $compressedBytes, 'sql_bytes' => $sqlBytes];
     }

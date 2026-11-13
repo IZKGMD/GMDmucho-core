@@ -26,6 +26,8 @@ $checks = [
     [$admin, "enctype=\"multipart/form-data\"", 'admin multipart form'],
     [$admin, "action\" value=\"music-upload", 'admin music action'],
     [$api, "mkdir(MUSIC_DIR", 'api creates music storage'],
+    [$api, "const MUSIC_DIR = MUCHO_V2_ROOT . '/storage/music-public';", 'api music storage resolves from installed root'],
+    [!str_contains($api, "'/var/www/mucho-core/storage/music-public'") ? 'portable' : '', 'portable', 'api never hardcodes Docker-only upload directory'],
     [$api, "MUSIC_MAX = 20 * 1024 * 1024", 'api music size limit'],
     [$docker, 'upload_max_filesize=64M', 'php upload_max_filesize'],
     [$docker, 'post_max_size=70M', 'php post_max_size'],
