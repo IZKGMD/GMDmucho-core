@@ -108,6 +108,7 @@
   "src/Account/UserInfoSubmissionService.php": "b00d429b34f792fc0eb88f44a83d7147dee52bf731653a5591225df29acb2925",
   "src/Admin/AdminPasskeyService.php": "9dd40a0b9959ead3b0a2677f5082b4dfef47c3725d175fafd8c9f1846a82b5b4",
   "src/Admin/AdminRbac.php": "69fce495608f83a02fdd9df10f46117b0c008db7b70d18bf29478c494d35ecd6",
+  "src/Admin/AdminSessionGuard.php": "a4106cc9bfe1f109c730f3924eaca50ca07480aaaf4d439d6bf0780da5fbb591",
   "src/Admin/ClanAdminService.php": "d29a66254ac365cb0fb18fb2443a8b367917b6995fffb7567b810eaf8f7d4fd5",
   "src/Admin/LevelAdminService.php": "8345933bdf099dd7b629f6be8e200bd8d7e83a2cbb972182a489c7f69bea4a68",
   "src/Appearance/AppearanceController.php": "57e1afe1df4a3c3dd0669dc33bb2c1e35e5699b0d7cbfafda29fde587395a7e1",
