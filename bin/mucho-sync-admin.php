@@ -37,19 +37,35 @@ if (!preg_match('/^[A-Za-z_][A-Za-z0-9_-]{0,31}$/D', $username)) {
 }
 
 $hash = password_hash($password, PASSWORD_DEFAULT);
-$stmt = $db->prepare(
-    "INSERT INTO admin_users (username,password_hash,role,is_active)
-     VALUES (:u,:p1,'owner',1)
-     ON DUPLICATE KEY UPDATE
-         password_hash=:p2,
-         role='owner',
-         is_active=1"
-);
-$stmt->execute([
-    'u' => $username,
-    'p1' => $hash,
-    'p2' => $hash,
-]);
+$db->beginTransaction();
+try {
+    $stmt = $db->prepare(
+        "INSERT INTO admin_users (username,password_hash,role,is_active,password_must_set)
+         VALUES (:u,:p1,'owner',1,0)
+         ON DUPLICATE KEY UPDATE
+             password_hash=:p2,
+             password_must_set=0,
+             password_setup_token_hash=NULL,
+             password_setup_expires_at=NULL,
+             role='owner',
+             is_active=1"
+    );
+    $stmt->execute([
+        'u' => $username,
+        'p1' => $hash,
+        'p2' => $hash,
+    ]);
+
+    // Explicit console resets invalidate any compromised/stale API tokens.
+    $db->prepare('UPDATE mucho_admin_client_tokens
+        SET revoked_at=UTC_TIMESTAMP()
+        WHERE admin_user_id=(SELECT id FROM admin_users WHERE username=:username)
+          AND revoked_at IS NULL')->execute(['username' => $username]);
+    $db->commit();
+} catch (Throwable $e) {
+    if ($db->inTransaction()) $db->rollBack();
+    throw $e;
+}
 
 // Explicit console resets also complete the first-run gate. An attacker
 // must never be allowed to claim a second owner after CLI recovery.
