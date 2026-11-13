@@ -2,6 +2,8 @@
 
 **Open-source PHP server core for Geometry Dash.** Accounts, levels, comments, scores, social features, moderation, Cloud Save, admin tools, migration and client patching. One codebase with version-aware protocol handling.
 
+**Project authorship:** MuchoCore and its original MuchoProtect subsystem are developed by **IZK (© 2026)**, with third-party code and contributor rights respected. The published core is licensed under [MIT](LICENSE); its permissions to use, modify, and redistribute the code remain in effect. [Website terms of use](https://muchogdps.space/legal/terms/) govern the website/services where applicable and do **not** override the source-code license. The game and its assets belong to their respective owners.
+
 **Go edition in development:** The [native Go edition](go/README.md) now includes accounts, levels, profiles, social features, comments, scores, rewards, Cloud Save and discovery against the existing database. It also includes clans/quests, threads, news, media, account recovery, API v2 and the first browser administration modules. It runs without PHP; the [route inventory](go/ROUTES.md) tracks handler coverage and the Go README lists the remaining migration work. It is not yet a complete replacement for the PHP edition.
 
 [Website](https://muchogdps.space/muchocore/) · [Stable releases](https://github.com/IZKGMD/GMDmucho-core/releases) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/IZKGMD/GMDmucho-core/issues)

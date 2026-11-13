@@ -16,6 +16,7 @@ EXPECTED = {
     f"{BASE}/muchocore/ru/": "public/muchocore/ru/index.html",
     f"{BASE}/muchocore/about/": "public/muchocore/about/index.html",
     f"{BASE}/muchocore/compatibility/": "public/muchocore/compatibility/index.html",
+    f"{BASE}/legal/terms/": "public/legal/terms/index.html",
 }
 
 

@@ -1924,7 +1924,8 @@ body.dashboard-page .topbar{
     <?php if ($serverByName !== '' && $socialUrl !== ''): ?>
     · Server by <a href="<?=pdH($socialUrl)?>" target="_blank" rel="noopener noreferrer"><?=pdH($serverByName)?></a>
     <?php endif; ?>
-    · Powered by MuchoCore ·
+    · MuchoCore &amp; MuchoProtect · © 2026 IZK ·
+    <a href="/legal/terms/#en">Terms of Use</a> ·
     <a href="https://github.com/IZKGMD" target="_blank" rel="noopener noreferrer">GitHub</a>
 </footer>
 

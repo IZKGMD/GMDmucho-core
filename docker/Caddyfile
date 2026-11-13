@@ -20,7 +20,7 @@
     # surface.
     @muchocore_private_noncanonical {
         not host {$MUCHOCORE_SITE_HOST}
-        path /muchocore /muchocore/* /llms.txt /sitemap.xml /robots.txt
+        path /muchocore /muchocore/* /legal /legal/* /llms.txt /sitemap.xml /robots.txt
     }
     handle @muchocore_private_noncanonical {
         respond 404
@@ -158,6 +158,24 @@
     handle @muchocore_page {
         uri strip_prefix /muchocore
         root * /var/www/mucho-core/public/muchocore
+        file_server
+    }
+
+    # The legal notice belongs to the canonical MuchoGDPS project website.
+    # Serve static HTML directly: a PHP API fallback may return the GD wire error -1.
+    @muchocore_terms_root {
+        host {$MUCHOCORE_SITE_HOST}
+        path /legal/terms
+    }
+    redir @muchocore_terms_root /legal/terms/ 308
+
+    @muchocore_legal_page {
+        host {$MUCHOCORE_SITE_HOST}
+        path /legal/*
+    }
+    handle @muchocore_legal_page {
+        uri strip_prefix /legal
+        root * /var/www/mucho-core/public/legal
         file_server
     }
 

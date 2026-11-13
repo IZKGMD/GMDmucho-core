@@ -10,6 +10,10 @@
 # Local profile / machine state
 /.muchocore/
 
+# Owner-only future builder work: never publish to this repository
+/.owner-private-builder/
+/private-build/
+
 # Dependencies / runtime state
 /vendor/
 /go/bin/
