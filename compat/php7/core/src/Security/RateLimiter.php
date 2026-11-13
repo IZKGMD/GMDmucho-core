@@ -27,6 +27,9 @@ final class RateLimiter implements RateLimitBackend
             return false;
         }
         $file = $this->directory . '/' . hash('sha256', $key) . '.json';
+        if (is_link($file)) {
+            return false;
+        }
         $fp = @fopen($file, 'c+');
         if ($fp === false) {
             return false;
@@ -38,9 +41,25 @@ final class RateLimiter implements RateLimitBackend
             rewind($fp);
             $raw = stream_get_contents($fp);
             $state = is_string($raw) && $raw !== '' ? \mucho7_json_decode($raw, true) : null;
+            // Corrupted persistent state cannot silently reset a quota.
+            if ($raw === false || ($raw !== '' && (
+                !is_array($state) ||
+                !isset($state['start'], $state['count']) ||
+                !is_int($state['start']) ||
+                !is_int($state['count']) ||
+                $state['start'] < 0 ||
+                $state['count'] < 0 ||
+                $state['count'] === PHP_INT_MAX
+            ))) {
+                return false;
+            }
             $now = time();
-            $start = is_array($state) ? (int) ($state['start'] ?? 0) : 0;
-            $count = is_array($state) ? (int) ($state['count'] ?? 0) : 0;
+            $start = is_array($state) ? $state['start'] : 0;
+            $count = is_array($state) ? $state['count'] : 0;
+            if ($start > $now + $windowSeconds) {
+                return false;
+            }
+            $start = min($start, $now);
             if ($start <= 0 || $now - $start >= $windowSeconds) {
                 $start = $now;
                 $count = 0;
@@ -115,6 +134,13 @@ final class RateLimiter implements RateLimitBackend
                     // Stale mtime does not mean the security window expired.
                     // A 24-hour UDID bucket must survive one-hour file GC.
                     if ($start > 0 && $start + $window > time()) {
+                        continue;
+                    }
+                    // Never unlink a concurrently replaced fresh bucket.
+                    $onDisk = @lstat($path);
+                    if (!is_array($onDisk)
+                        || (int)($onDisk['ino'] ?? -1) !== (int)($stat['ino'] ?? -2)
+                        || (int)($onDisk['dev'] ?? -1) !== (int)($stat['dev'] ?? -2)) {
                         continue;
                     }
                     if (@unlink($path)) {
