@@ -15,4 +15,4 @@
 -- ALTER TABLE levels DROP INDEX idx_mc_text_visible_name;
 
 ALTER TABLE levels
-  ADD INDEX idx_mc_text_visible_name (is_deleted, is_unlisted, unlisted2, name);
+  ADD INDEX idx_mc_text_visible_name (is_deleted, is_unlisted, unlisted2, name, game_version);
