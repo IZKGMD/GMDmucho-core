@@ -11,6 +11,10 @@ use PDO;
 
 final readonly class MuchoProtect
 {
+    // Keep abuse telemetry bounded even during a sustained flood.
+    private const MAX_AUDIT_BYTES = 8 * 1024 * 1024;
+    private const RETAIN_AUDIT_BYTES = 1024 * 1024;
+
     private const GLOBAL_LIMIT = 900;
     private const GLOBAL_WINDOW = 60;
     private const GLOBAL_BURST = 180;
@@ -524,11 +528,20 @@ final readonly class MuchoProtect
         $path = parse_url($endpoint, PHP_URL_PATH);
         $endpoint = is_string($path) ? $path : '/';
         $endpoint = preg_replace('#/+#', '/', $endpoint) ?? '/';
-        $endpoint = preg_replace(
-            '#^/(?:database|accounts|api|a)(?:/|$)#i',
-            '/',
-            $endpoint
-        ) ?? $endpoint;
+        // A few supported installations expose nested legacy prefixes
+        // (/api/database/...). Strip all known aliases before policy lookup.
+        // Otherwise a nested alias may receive only the global IP budget.
+        for ($i = 0; $i < 8; $i++) {
+            $normalized = preg_replace(
+                '#^/(?:database|accounts|api|a)(?:/|$)#i',
+                '/',
+                $endpoint
+            ) ?? $endpoint;
+            if ($normalized === $endpoint) {
+                break;
+            }
+            $endpoint = $normalized;
+        }
         $endpoint = preg_replace('#\.php$#i', '', $endpoint) ?? $endpoint;
 
         if ($endpoint !== '/') {
@@ -671,11 +684,51 @@ final readonly class MuchoProtect
                 'strikes' => $strikes,
             ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL;
 
-            @file_put_contents(
-                $directory . '/events.ndjson',
-                $entry,
-                FILE_APPEND | LOCK_EX
-            );
+            // Bounded, in-place rotation under the same inode lock:
+            // independent workers cannot race a rename into an unbounded
+            // second file or accidentally erase an active writer's log.
+            $path = $directory . '/events.ndjson';
+            if (is_link($path)) {
+                return;
+            }
+            $fp = @fopen($path, 'c+');
+            if ($fp === false) {
+                return;
+            }
+            try {
+                if (!@flock($fp, LOCK_EX)) {
+                    return;
+                }
+                @chmod($path, 0600);
+                $stat = fstat($fp);
+                $size = is_array($stat) ? (int)($stat['size'] ?? 0) : 0;
+                if ($size + strlen($entry) > self::MAX_AUDIT_BYTES) {
+                    $retain = min(self::RETAIN_AUDIT_BYTES, $size);
+                    if (fseek($fp, -$retain, SEEK_END) !== 0) {
+                        return;
+                    }
+                    // Avoid keeping the tail of a partially cut JSON line.
+                    if ($size > $retain) {
+                        fgets($fp);
+                    }
+                    $tail = stream_get_contents($fp, self::RETAIN_AUDIT_BYTES);
+                    if (!is_string($tail) || !rewind($fp) || !ftruncate($fp, 0)) {
+                        return;
+                    }
+                    if ($tail !== '' && fwrite($fp, $tail) !== strlen($tail)) {
+                        return;
+                    }
+                }
+                if (fseek($fp, 0, SEEK_END) === 0) {
+                    $written = fwrite($fp, $entry);
+                    if ($written === strlen($entry)) {
+                        fflush($fp);
+                    }
+                }
+            } finally {
+                @flock($fp, LOCK_UN);
+                fclose($fp);
+            }
         } catch (\Throwable) {
             // Security telemetry must never break the game protocol.
         }

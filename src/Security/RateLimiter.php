@@ -43,6 +43,9 @@ final readonly class RateLimiter implements RateLimitBackend
         }
 
         $file = $this->directory . '/' . hash('sha256', $key) . '.json';
+        if (is_link($file)) {
+            return false;
+        }
         $fp = @fopen($file, 'c+');
 
         if ($fp === false) {
@@ -61,9 +64,28 @@ final readonly class RateLimiter implements RateLimitBackend
                 ? json_decode($raw, true)
                 : null;
 
+            // A torn or invalid on-disk counter must never be interpreted
+            // as a fresh budget. Only genuinely empty new buckets reset.
+            if ($raw === false || ($raw !== '' && (
+                !is_array($state) ||
+                !isset($state['start'], $state['count']) ||
+                !is_int($state['start']) ||
+                !is_int($state['count']) ||
+                $state['start'] < 0 ||
+                $state['count'] < 0 ||
+                $state['count'] === PHP_INT_MAX
+            ))) {
+                return false;
+            }
+
             $now = time();
-            $start = is_array($state) ? (int)($state['start'] ?? 0) : 0;
-            $count = is_array($state) ? (int)($state['count'] ?? 0) : 0;
+            $start = is_array($state) ? $state['start'] : 0;
+            $count = is_array($state) ? $state['count'] : 0;
+            // Allow minor wall-clock corrections without changing quota.
+            if ($start > $now + $windowSeconds) {
+                return false;
+            }
+            $start = min($start, $now);
 
             if ($start <= 0 || ($now - $start) >= $windowSeconds) {
                 $start = $now;
@@ -172,6 +194,15 @@ final readonly class RateLimiter implements RateLimitBackend
                     // Stale mtime does not mean the security window expired.
                     // A 24-hour UDID bucket must survive one-hour file GC.
                     if ($start > 0 && $start + $window > time()) {
+                        continue;
+                    }
+
+                    // A concurrent worker may have replaced the path
+                    // since it was opened. Never remove its fresh bucket.
+                    $onDisk = @lstat($path);
+                    if (!is_array($onDisk)
+                        || (int)($onDisk['ino'] ?? -1) !== (int)($stat['ino'] ?? -2)
+                        || (int)($onDisk['dev'] ?? -1) !== (int)($stat['dev'] ?? -2)) {
                         continue;
                     }
 
