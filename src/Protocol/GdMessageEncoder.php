@@ -149,12 +149,39 @@ final class GdMessageEncoder
         return implode('|', $encoded) . '#' . $total . ':' . $offset . ':' . $limit;
     }
 
+    /**
+     * GD message field 7 is the elapsed age without "ago"; the game
+     * adds that suffix itself. A calendar date produces broken UI such
+     * as "4 ago" in the native client.
+     */
     private function formatDate(string $date): string
     {
-        $timestamp = strtotime($date);
+        try {
+            // Database timestamps are persisted in UTC.
+            $timestamp = (new \DateTimeImmutable(
+                $date,
+                new \DateTimeZone('UTC')
+            ))->getTimestamp();
+        } catch (\Throwable) {
+            return '0 seconds';
+        }
 
-        return $timestamp === false
-            ? ''
-            : date('d/m/Y G.i', $timestamp);
+        $elapsed = max(0, time() - $timestamp);
+        foreach ([
+            [31536000, 'year'],
+            [2592000, 'month'],
+            [604800, 'week'],
+            [86400, 'day'],
+            [3600, 'hour'],
+            [60, 'minute'],
+        ] as [$duration, $unit]) {
+            if ($elapsed < $duration) {
+                continue;
+            }
+            $count = intdiv($elapsed, $duration);
+            return $count . ' ' . $unit . ($count === 1 ? '' : 's');
+        }
+
+        return $elapsed . ' second' . ($elapsed === 1 ? '' : 's');
     }
 }
