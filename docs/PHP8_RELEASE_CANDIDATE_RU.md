@@ -36,8 +36,10 @@ Git SHA. Результат находится в GitHub Actions → соотв�
 workflow → Artifacts:
 
 - `MuchoCore-PHP8-dev-<git-sha>` — архив исходников PHP 8 с production
-  Composer-зависимостями и `checksums.sha256`;
-- `muchocore-vendor-php83-<git-sha>` — только vendor-зависимости.
+  Composer-зависимостями, отдельный `vendor`-ZIP и `checksums.sha256`
+  в **одном** GitHub Actions artifact, чтобы SHA-256 можно было проверить сразу;
+- `muchocore-vendor-php83-<git-sha>` — дополнительное отдельное скачивание
+  только vendor-зависимостей.
 
 Внутренний ZIP называется `mucho-core-v<version>-dev-<short-sha>.zip`.
 Суффикс `dev` намеренный: этот пакет **не является** стабильным релизом.
