@@ -31,7 +31,7 @@ checks = {
         in workflow
         and "sha256sum --check checksums.sha256" in workflow,
     "self-contained checksum artifact":
-        "vendor-muchocore-php83.zip\\n            checksums.sha256" in workflow,
+        "vendor-muchocore-php83.zip\n            checksums.sha256" in workflow,
     "development label":
         'name: MuchoCore-PHP8-dev-${{ github.sha }}' in workflow,
     "not masquerading as a stable release":
