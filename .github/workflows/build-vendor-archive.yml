@@ -2,12 +2,18 @@ name: Build Composer vendor archive
 
 on:
   push:
+  pull_request:
+    paths:
+      - '.github/workflows/build-vendor-archive.yml'
+      - 'tests/release/dev-snapshot-contract.py'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -19,78 +25,105 @@ jobs:
           extensions: mbstring, pdo_mysql
           tools: composer
 
-      - name: Read release version
+      - name: Read source version and immutable commit ID
         id: version
         shell: bash
         run: |
+          set -Eeuo pipefail
           VERSION="$(tr -d '[:space:]' < VERSION)"
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Invalid VERSION: $VERSION" >&2
             exit 1
           fi
+          SHORT_SHA="${GITHUB_SHA:0:12}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "archive=mucho-core-v${VERSION}-dev-${SHORT_SHA}.zip" >> "$GITHUB_OUTPUT"
 
       - name: Install production dependencies
         run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
-      - name: Check release tree
+      - name: Check development source tree
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          test -f VERSION
+          set -Eeuo pipefail
           grep -qx "$VERSION" VERSION
-          test -f README.md
-          test -f CHANGELOG.md
-          test -f START_HERE.md
-          test -f install.sh
-          test -f update.sh
-          test -f docker-compose.yml
-          test -f docker/Dockerfile
-          test -f docker/Caddyfile
-          test -f tools/client/client-patch.bat
-          test -f tools/client/client-patch.py
-          test -f tools/client/client-patcher.ps1
-          test -d vendor
+          for file in README.md CHANGELOG.md START_HERE.md install.sh update.sh docker-compose.yml docker/Dockerfile docker/Caddyfile tools/client/client-patch.bat tools/client/client-patch.py; do
+            test -f "$file"
+          done
+          test -f vendor/autoload.php
           test ! -e .env
           test ! -e config/cloudsave.key
-          test ! -d storage
           test ! -d .secrets
 
-      - name: Create vendor archive
-        run: zip -r vendor-muchocore-php83.zip vendor
+      - name: Build dependency archive
+        run: zip -qr vendor-muchocore-php83.zip vendor
 
-      - name: Create full release archive
+      - name: Build immutable PHP 8 development snapshot
         env:
           VERSION: ${{ steps.version.outputs.version }}
+          SHORT_SHA: ${{ steps.version.outputs.short_sha }}
+          ARCHIVE: ${{ steps.version.outputs.archive }}
         run: |
-          zip -r "mucho-core-v${VERSION}.zip" . \
-            -x '.git/*' \
-            -x "mucho-core-v${VERSION}.zip" \
-            -x 'vendor-muchocore-php83.zip'
+          set -Eeuo pipefail
+          stage="$(mktemp -d)"
+          trap 'rm -rf "$stage"' EXIT
+          root="MuchoCore-v${VERSION}-dev-${SHORT_SHA}"
+          mkdir -p "$stage/$root"
 
-      - name: Validate release archive
+          # Archive only tracked, reviewed files. Never copy a working
+          # directory that might contain operator secrets or runtime data.
+          git archive --format=tar --prefix="$root/" HEAD -- . \
+            ':(exclude).release/**' \
+            ':(exclude).secrets/**' \
+            ':(exclude)storage/**' \
+            ':(exclude)config/cloudsave.key' \
+            ':(exclude).env' \
+            ':(exclude)Geometry.Dash.ver.1.40.build.11.apk' \
+            ':(exclude)assets/brand/sources/**' | tar -xf - -C "$stage"
+
+          cp -a vendor "$stage/$root/vendor"
+          (cd "$stage" && zip -qr "$GITHUB_WORKSPACE/$ARCHIVE" "$root")
+          test -s "$ARCHIVE"
+
+      - name: Verify archive layout, confidentiality and SHA-256
         env:
+          ARCHIVE: ${{ steps.version.outputs.archive }}
           VERSION: ${{ steps.version.outputs.version }}
+          SHORT_SHA: ${{ steps.version.outputs.short_sha }}
+        shell: bash
         run: |
-          unzip -t "mucho-core-v${VERSION}.zip"
-          unzip -l "mucho-core-v${VERSION}.zip" | grep -q 'tools/client/client-patch.bat'
-          unzip -l "mucho-core-v${VERSION}.zip" | grep -q 'tools/client/client-patch.py'
-          unzip -l "mucho-core-v${VERSION}.zip" | grep -q 'docker-compose.yml'
-          unzip -l "mucho-core-v${VERSION}.zip" | grep -q 'VERSION'
-          ! unzip -l "mucho-core-v${VERSION}.zip" | grep -qE '(^|/)\.env$'
-          ! unzip -l "mucho-core-v${VERSION}.zip" | grep -qE '(^|/)config/cloudsave\.key$'
-          ! unzip -l "mucho-core-v${VERSION}.zip" | grep -qE '(^|/)storage/'
+          set -Eeuo pipefail
+          unzip -t "$ARCHIVE" >/dev/null
+          root="MuchoCore-v${VERSION}-dev-${SHORT_SHA}"
+          entries="$(mktemp)"
+          trap 'rm -f "$entries"' EXIT
+          unzip -Z1 "$ARCHIVE" > "$entries"
+          for file in VERSION install.sh update.sh docker-compose.yml docker/Dockerfile vendor/autoload.php public/index.php; do
+            grep -Fxq "$root/$file" "$entries"
+          done
+          if grep -Eq '(^|/)(\.env$|\.secrets/|storage/|cloudsave\.key$|\.release/|\.git/)' "$entries"; then
+            echo "Snapshot contains sensitive or runtime-only paths" >&2
+            exit 1
+          fi
+          sha256sum "$ARCHIVE" vendor-muchocore-php83.zip > checksums.sha256
+          sha256sum --check checksums.sha256
 
-      - name: Upload release archive
+      - name: Upload development PHP 8 bundle and checksums
         uses: actions/upload-artifact@v4
         with:
-          name: mucho-core-v${{ steps.version.outputs.version }}
-          path: mucho-core-v${{ steps.version.outputs.version }}.zip
+          name: MuchoCore-PHP8-dev-${{ github.sha }}
+          path: |
+            ${{ steps.version.outputs.archive }}
+            checksums.sha256
           if-no-files-found: error
+          retention-days: 30
 
-      - name: Upload vendor archive
+      - name: Upload dependency-only archive
         uses: actions/upload-artifact@v4
         with:
-          name: muchocore-vendor-php83
+          name: muchocore-vendor-php83-${{ github.sha }}
           path: vendor-muchocore-php83.zip
           if-no-files-found: error
+          retention-days: 30
