@@ -118,6 +118,36 @@ SQL);
         'SQL archive and SHA-256 sidecar pass full-stream verification'
     );
 
+    // The previous verifier inspected only the first 4 KiB, so it
+    // accepted a syntactically valid gzip even if the SQL stopped halfway.
+    $inspectArchive = new ReflectionMethod($service, 'verifyGzip');
+    $partial = $dir . '/partial-valid-gzip.sql.gz';
+    $partialSql = "-- MuchoCore database backup\nSET NAMES utf8mb4;\n"
+        . str_repeat("INSERT INTO fixture VALUES (1);\n", 32);
+    file_put_contents($partial, gzencode($partialSql, 6));
+    $partialRejected = false;
+    try {
+        $inspectArchive->invoke($service, $partial);
+    } catch (RuntimeException) {
+        $partialRejected = true;
+    }
+    backupCheck($partialRejected,
+        'incomplete SQL with a valid gzip header cannot be published as a backup');
+
+    $truncated = $dir . '/truncated-backup.sql.gz';
+    $fullArchive = file_get_contents($backup['file']);
+    backupCheck(is_string($fullArchive) && strlen($fullArchive) > 256,
+        'test backup contains a real compressed SQL stream');
+    file_put_contents($truncated, substr($fullArchive, 0, intdiv(strlen($fullArchive), 2)));
+    $truncatedRejected = false;
+    try {
+        $inspectArchive->invoke($service, $truncated);
+    } catch (RuntimeException) {
+        $truncatedRejected = true;
+    }
+    backupCheck($truncatedRejected,
+        'physically truncated gzip cannot pass backup publication checks');
+
     $tampered = $dir . '/tampered.sql.gz';
     copy($backup['file'], $tampered);
     file_put_contents($tampered, 'x', FILE_APPEND);
