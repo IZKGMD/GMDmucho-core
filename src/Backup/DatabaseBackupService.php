@@ -27,7 +27,7 @@ final class DatabaseBackupService
         }
 
         if (!is_dir($this->directory)
-            && !mkdir($this->directory, 0750, true)
+            && !mkdir($this->directory, 0700, true)
             && !is_dir($this->directory)) {
             throw new RuntimeException('Unable to create backup directory.');
         }
@@ -79,10 +79,22 @@ final class DatabaseBackupService
                 $startedTransaction = true;
             }
 
-            $gzip = gzopen($temporary, 'wb9');
+            // The SQL dump includes account password hashes and private
+            // metadata. Create the archive with restrictive permissions
+            // before writing the first byte, even under a permissive umask.
+            $previousUmask = umask(0077);
+            try {
+                $gzip = gzopen($temporary, 'wb9');
+            } finally {
+                umask($previousUmask);
+            }
 
             if ($gzip === false) {
                 throw new RuntimeException('Unable to create compressed backup file.');
+            }
+            if (!@chmod($temporary, 0600)) {
+                gzclose($gzip);
+                throw new RuntimeException('Unable to protect database backup file.');
             }
 
             try {
@@ -118,6 +130,9 @@ final class DatabaseBackupService
             if (!rename($temporary, $final)) {
                 throw new RuntimeException('Unable to publish the verified database backup.');
             }
+            if (!@chmod($final, 0600)) {
+                throw new RuntimeException('Unable to protect published database backup.');
+            }
 
             $sha256 = hash_file('sha256', $final);
 
@@ -126,13 +141,19 @@ final class DatabaseBackupService
                 throw new RuntimeException('Unable to calculate the database backup checksum.');
             }
 
-            if (file_put_contents(
-                $checksumFile,
-                $sha256 . '  ' . basename($final) . PHP_EOL,
-                LOCK_EX
-            ) === false) {
+            $previousUmask = umask(0077);
+            try {
+                $checksumWritten = file_put_contents(
+                    $checksumFile,
+                    $sha256 . '  ' . basename($final) . PHP_EOL,
+                    LOCK_EX
+                );
+            } finally {
+                umask($previousUmask);
+            }
+            if ($checksumWritten === false || !@chmod($checksumFile, 0600)) {
                 @unlink($final);
-                throw new RuntimeException('Unable to write database backup checksum.');
+                throw new RuntimeException('Unable to protect database backup checksum.');
             }
 
             $this->verifyChecksum($final, $checksumFile);
