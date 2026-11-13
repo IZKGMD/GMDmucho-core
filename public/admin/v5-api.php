@@ -56,7 +56,7 @@ if($currentAdminId<=0){
 }
 
 $adminQuery=$db->prepare(
-    'SELECT id,username,role,is_active
+    'SELECT id,username,role,is_active,password_hash
      FROM admin_users
      WHERE id=:id
      LIMIT 1'
@@ -64,7 +64,20 @@ $adminQuery=$db->prepare(
 $adminQuery->execute(['id'=>$currentAdminId]);
 $currentAdmin=$adminQuery->fetch(PDO::FETCH_ASSOC);
 
-if(!$currentAdmin || (int)$currentAdmin['is_active']!==1){
+$now = time();
+$loginAt = (int)($_SESSION['admin_login_at'] ?? 0);
+$lastActivity = (int)($_SESSION['admin_last_activity'] ?? 0);
+$fingerprint = (string)($_SESSION['admin_password_fingerprint'] ?? '');
+
+// This API is directly reachable without loading /admin/index.php.
+// It must independently enforce password rotation, demotion, inactivity
+// and absolute session expiry rather than trusting an old PHP session.
+if (!\MuchoCore\Admin\AdminSessionGuard::matches(
+        is_array($_SESSION['admin'] ?? null) ? $_SESSION['admin'] : null,
+        $fingerprint,
+        is_array($currentAdmin) ? $currentAdmin : null
+    ) || $loginAt <= 0 || $lastActivity <= 0 ||
+    ($now - $loginAt) > 86400 || ($now - $lastActivity) > 1800) {
     $_SESSION=[];
     session_destroy();
     http_response_code(403);
@@ -72,6 +85,7 @@ if(!$currentAdmin || (int)$currentAdmin['is_active']!==1){
     exit;
 }
 
+$_SESSION['admin_last_activity'] = $now;
 $_SESSION['admin']['username']=(string)$currentAdmin['username'];
 $_SESSION['admin']['role']=(string)$currentAdmin['role'];
 
