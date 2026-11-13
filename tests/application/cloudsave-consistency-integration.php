@@ -106,6 +106,49 @@ try {
         'first backup round-trips binary data byte-for-byte');
     $check($repository->save(1, $first) === 1 && $history(1) === [],
         'duplicate backup does not create history');
+
+    // A matching SHA-256 is not sufficient when a stored GCM envelope has
+    // become unreadable. The server must never acknowledge that backup as
+    // successful without validating the existing ciphertext.
+    $stored = $db->query('SELECT auth_tag,size_bytes,ciphertext,sha256
+        FROM mucho_cloud_saves WHERE account_id=1')->fetch(PDO::FETCH_ASSOC);
+    $check(is_array($stored) && strlen((string)$stored['auth_tag']) === 16,
+        'duplicate regression fixture retains real encrypted metadata');
+    $duplicateRejected = static function (string $reason)
+        use ($repository, $first, $revision, $history, $check): void {
+        $failed = false;
+        try {
+            $repository->save(1, $first);
+        } catch (RuntimeException) {
+            $failed = true;
+        }
+        $check($failed && $revision(1) === 1 && $history(1) === [],
+            $reason);
+    };
+    $wrongTag = (string)$stored['auth_tag'];
+    $wrongTag[0] = chr(ord($wrongTag[0]) ^ 1);
+    $db->prepare('UPDATE mucho_cloud_saves SET auth_tag=? WHERE account_id=1')
+        ->execute([$wrongTag]);
+    $duplicateRejected('damaged GCM tag cannot receive a false duplicate success');
+    $db->prepare('UPDATE mucho_cloud_saves SET auth_tag=? WHERE account_id=1')
+        ->execute([$stored['auth_tag']]);
+
+    $db->exec('UPDATE mucho_cloud_saves SET size_bytes=size_bytes+1 WHERE account_id=1');
+    $duplicateRejected('incorrect stored size cannot receive a false duplicate success');
+    $db->prepare('UPDATE mucho_cloud_saves SET size_bytes=? WHERE account_id=1')
+        ->execute([$stored['size_bytes']]);
+
+    $originalKey = (string)file_get_contents($keyFile);
+    try {
+        file_put_contents($keyFile, base64_encode(random_bytes(32)) . PHP_EOL);
+        $duplicateRejected('accidental key rotation rejects an identical backup');
+    } finally {
+        file_put_contents($keyFile, $originalKey);
+    }
+    $check($repository->load(1) === $first &&
+        $repository->save(1, $first) === 1 && $history(1) === [],
+        'restored key and metadata preserve the original duplicate revision');
+
     $check($repository->save(1, $second) === 2 && $history(1) === [1],
         'replacement backup creates exactly one historical revision');
     $check($repository->load(1) === $second,
