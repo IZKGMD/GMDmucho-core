@@ -292,6 +292,34 @@ assertSecurityRegression(
     'admin security-state changes revoke API bearer tokens'
 );
 
+$adminRecovery = (string)file_get_contents(
+    __DIR__ . '/../../src/Admin/AdminEmailRecovery.php'
+);
+$adminClient = (string)file_get_contents(
+    __DIR__ . '/../../public/api/v2/admin-client.php'
+);
+$consoleSync = (string)file_get_contents(
+    __DIR__ . '/../../bin/mucho-sync-admin.php'
+);
+$ownerRecovery = (string)file_get_contents(
+    __DIR__ . '/../../bin/mucho-owner-recovery-link.php'
+);
+
+assertSecurityRegression(
+    str_contains($adminRecovery, 'UPDATE mucho_admin_client_tokens') &&
+    str_contains($adminRecovery, 'revoked_at=UTC_TIMESTAMP()') &&
+    str_contains($adminIndex, 'UPDATE mucho_admin_client_tokens') &&
+    str_contains($consoleSync, 'UPDATE mucho_admin_client_tokens') &&
+    str_contains($ownerRecovery, 'UPDATE mucho_admin_client_tokens'),
+    'every PHP8 admin password-reset route revokes previous API bearer tokens'
+);
+
+assertSecurityRegression(
+    str_contains($adminClient, 'AND a.password_must_set = 0') &&
+    str_contains($adminClient, "['password_must_set'] === 0"),
+    'API bearer and password login reject setup-pending administrator accounts'
+);
+
 assertSecurityRegression(
     str_contains($heartbeat, 'a.is_active') &&
     str_contains($heartbeat, 'a.is_banned') &&
