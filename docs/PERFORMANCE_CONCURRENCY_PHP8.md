@@ -19,10 +19,10 @@ This alone cannot prove a universal improvement.
 
 The new file `tools/performance/optional_text_search_index_staging.sql`
 proposes a *covering* secondary index on
-`(is_deleted,is_unlisted,unlisted2,name)`. InnoDB also stores the primary
+`(is_deleted,is_unlisted,unlisted2,name,game_version)`. InnoDB also stores the primary
 key in secondary leaves. For substring searches the leading wildcard still
 prevents direct B-tree seeking, but the exact `COUNT(*)` may scan a smaller
-index without fetching `levels` rows containing LONGTEXT. The optimizer
+index without fetching `levels` rows containing LONGTEXT. The game version column is required for the real GD 2.209 COUNT query; without it MariaDB chose a full scan. The optimizer
 may choose an entirely different plan, and writes acquire index overhead.
 
 Use a clean isolated **mucho_stress** checkout with the stress stack
@@ -47,7 +47,7 @@ docker compose -f docker-compose.stress.yml exec -T app \
 ```
 
 Compare `text_search_count` and `text_search_page` under
-`query_plans`. Compare **exact** result IDs, total counts and GD wire
+`query_plans`, including the `game_version <= 22` predicate. Compare **exact** result IDs, total counts and GD wire
 responses for names with spaces, mixed case, Unicode, wildcard characters,
 short terms, mid-word substrings and missing names. Repeat same-fixture
 warm/cold latency A/B measurements multiple times. Include write latency,
