@@ -91,18 +91,18 @@ $globalProtect = new MuchoProtect(
 );
 $globalRequest = new Request(
     'GET',
-    '/getGJUserInfo20.php',
+    '/muchoprotect-global-fixture',
     [],
     [],
     ['REMOTE_ADDR' => '127.0.0.91']
 );
 for ($i = 0; $i < 180; $i++) {
-    $globalProtect->inspect($globalRequest, '/getGJUserInfo20.php');
+    $globalProtect->inspect($globalRequest, '/muchoprotect-global-fixture');
 }
 $globalBlocked = false;
 for ($i = 0; $i < 2; $i++) {
-    $result = $globalProtect->inspect($globalRequest, '/getGJUserInfo20.php');
-    if ($result['decision'] === 'block') {
+    $result = $globalProtect->inspect($globalRequest, '/muchoprotect-global-fixture');
+    if ($result['decision'] === 'block' && $result['reason'] === 'global_burst_limit') {
         $globalBlocked = true;
         break;
     }
