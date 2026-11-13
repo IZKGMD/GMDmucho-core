@@ -54,6 +54,11 @@ if ($stmt->rowCount() !== 1) {
     exit(1);
 }
 
+// An older API token must not survive server-console account recovery.
+$db->prepare('UPDATE mucho_admin_client_tokens SET revoked_at=UTC_TIMESTAMP()
+    WHERE admin_user_id=:id AND revoked_at IS NULL')
+    ->execute(['id' => (int)$owners[0]['id']]);
+
 echo "Open this PRIVATE, one-time link within 24 hours to choose a new administrator password:\n";
 echo $origin . '/admin/?setup=' . rawurlencode($token) . "\n";
 echo "Username: " . $owners[0]['username'] . "\n";
