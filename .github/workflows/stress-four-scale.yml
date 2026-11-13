@@ -1,0 +1,106 @@
+name: Isolated PHP8 four-scale stress (accounts and levels)
+
+on:
+  pull_request:
+    paths:
+      - 'tools/performance/seed_stress_four_scale.php'
+      - 'tools/performance/stress_scale.py'
+      - 'tools/performance/run_four_scale_ci.sh'
+      - 'tools/performance/summarize_four_scale.py'
+      - 'tests/performance/stress_scale_contract_test.py'
+      - '.github/workflows/stress-four-scale.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: four-scale-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-php8-scale:
+    name: PHP 8.3 / MariaDB 11.4 / Caddy — 1k, 2k, 5k, 10k
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Prepare PHP 8.3 and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, pdo_sqlite, gd, zip, ftp
+          tools: composer
+
+      - name: Validate guardrails and install isolated dependencies
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test ! -f .env
+          php -l tools/performance/seed_stress_four_scale.php
+          bash -n tools/performance/run_four_scale_ci.sh
+          python3 -m py_compile tools/performance/stress_scale.py tools/performance/summarize_four_scale.py
+          python3 tests/performance/stress_scale_contract_test.py
+          composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+          docker compose version
+
+      - name: Create ephemeral stress-only secrets
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          umask 077
+          install -d -m 700 .stress-secrets
+          openssl rand -hex 32 > .stress-secrets/db_password
+          openssl rand -hex 32 > .stress-secrets/db_root_password
+
+      - name: Start private localhost-only PHP-FPM, MariaDB and Caddy
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker compose -f docker-compose.stress.yml pull app db caddy
+          docker compose -f docker-compose.stress.yml up -d --no-build db app caddy
+          for attempt in {1..90}; do
+            if [[ "$(curl -fsS --max-time 5 http://127.0.0.1:18080/health 2>/dev/null || true)" == 1 ]]; then
+              echo 'Loopback-only stress app healthy'
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose -f docker-compose.stress.yml logs --tail 100 app db caddy
+          exit 1
+
+      - name: Create one synthetic account and level in dedicated mucho_stress
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          docker compose -f docker-compose.stress.yml exec -T app php tools/performance/seed_stress_fixture.php
+
+      - name: Test 1000, 2000, 5000, 10000 accounts and levels
+        shell: bash
+        run: bash tools/performance/run_four_scale_ci.sh
+
+      - name: Save synthetic results and resource observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: php8-synthetic-four-scale
+          path: storage/stress-reports/ci-four-scale/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Show isolated container health on error
+        if: failure()
+        shell: bash
+        run: |
+          docker compose -f docker-compose.stress.yml ps || true
+          docker compose -f docker-compose.stress.yml logs --no-color --tail 80 app db caddy || true
+
+      - name: Remove only ephemeral synthetic DB and containers
+        if: always()
+        shell: bash
+        run: |
+          docker compose -f docker-compose.stress.yml down -v --remove-orphans || true
+          rm -f .stress-secrets/db_password .stress-secrets/db_root_password
