@@ -221,14 +221,25 @@ CREATE TABLE IF NOT EXISTS admin_users (
 // Invalidate previous sessions after a password reset or account suspension.
 if (isset($_SESSION['admin']) && is_array($_SESSION['admin'])) {
     $sessionId = (int) ($_SESSION['admin']['id'] ?? 0);
-    $sessionQuery = $db->prepare('SELECT password_hash,is_active FROM admin_users WHERE id=:id LIMIT 1');
+    $sessionQuery = $db->prepare('SELECT password_hash,is_active,role,username,password_must_set
+        FROM admin_users WHERE id=:id LIMIT 1');
     $sessionQuery->execute(['id' => $sessionId]);
     $sessionRow = $sessionQuery->fetch(PDO::FETCH_ASSOC);
     $fingerprint = (string) ($_SESSION['admin_password_fingerprint'] ?? '');
-    if (!$sessionRow || (int) $sessionRow['is_active'] !== 1 || $fingerprint === '' ||
-        !hash_equals(hash('sha256', (string) $sessionRow['password_hash']), $fingerprint)) {
+    // A demoted administrator must not keep the role captured at login.
+    // Expire the existing session on *any* role or identity change, so a
+    // promoted identity also has to authenticate again with current policy.
+    if (!$sessionRow || (int) $sessionRow['is_active'] !== 1 ||
+        (int)($sessionRow['password_must_set'] ?? 1) !== 0 ||
+        $fingerprint === '' ||
+        !hash_equals(hash('sha256', (string)$sessionRow['password_hash']), $fingerprint) ||
+        !hash_equals((string)($sessionRow['role'] ?? ''),
+            (string)($_SESSION['admin']['role'] ?? '')) ||
+        !hash_equals((string)($sessionRow['username'] ?? ''),
+            (string)($_SESSION['admin']['username'] ?? ''))) {
         unset($_SESSION['admin'], $_SESSION['admin_password_fingerprint'],
-              $_SESSION['admin_login_at'], $_SESSION['admin_last_activity']);
+              $_SESSION['admin_login_at'], $_SESSION['admin_last_activity'],
+              $_SESSION['csrf']);
     }
 }
 
