@@ -112,6 +112,16 @@ if (!$globalBlocked) {
     exit(1);
 }
 
+// Global penalties must remain enforced across endpoint switches, even when
+// their rate-limit counters have just rolled into another window.
+$globalPenaltyResult = $globalProtect->inspect(
+    $globalRequest, '/getGJTopArtists.php'
+);
+if ($globalPenaltyResult['decision'] !== 'block'
+    || $globalPenaltyResult['reason'] !== 'global_penalty') {
+    throw new RuntimeException('MuchoProtect did not enforce active global IP penalty');
+}
+
 $isolated = $protect->inspect(
     new Request(
         'POST',
@@ -754,6 +764,17 @@ $penaltyCleanup = new \MuchoCore\Security\AbusePenaltyStore($penaltyCleanupDir);
 if ($penaltyCleanup->cleanup(3600, 1) !== 1 || is_file($stalePenaltyFile) || !is_file($freshPenaltyFile)) {
     fwrite(STDERR, "AbusePenaltyStore stale cleanup contract failed\n");
     exit(1);
+}
+
+$activePenaltyKey = 'active-with-old-file-mtime';
+$activePenaltyFile = $penaltyCleanupDir . '/' . hash('sha256', $activePenaltyKey) . '.json';
+$penaltyCleanup->penalize($activePenaltyKey, 900, 900);
+touch($activePenaltyFile, time() - 7200);
+clearstatcache(true, $activePenaltyFile);
+if ($penaltyCleanup->cleanup(3600, 8) !== 0
+    || !is_file($activePenaltyFile)
+    || !$penaltyCleanup->status($activePenaltyKey)['active']) {
+    throw new RuntimeException('Active MuchoProtect penalty was erased by stale-file cleanup');
 }
 
 $directPenaltyDir = $dir . '-backoff';
