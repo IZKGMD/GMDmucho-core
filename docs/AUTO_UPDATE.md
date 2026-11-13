@@ -33,6 +33,27 @@ Set `MUCHO_AUTO_UPDATE=0` to disable automatic updates, then synchronize the tim
 sudo /opt/mucho-core/bin/mucho-install-auto-update.sh
 ```
 
+## Backup gate before an update
+
+When a running Docker installation changes source commits, `update.sh` first
+requests a fresh SQL dump from the **currently running** application container,
+before any Git reset, image rebuild or schema migration. If the backup fails,
+does not have the expected current-installation path, or fails the digest,
+sidecar, gzip or freshness checks, the update stops without switching code.
+
+The verified archive and `.sha256` sidecar are saved in
+`backups/database/`; `.muchocore/update.backup` is a root-only receipt with
+the source/target SHAs and the last verified archive path. Keep that archive
+safe until the new installation has passed your own acceptance checks. A
+same-source repair after a failed migration uses the original receipt; it does
+not overwrite the pre-upgrade snapshot.
+
+This protects the SQL state before an upgrade, but **is not a full-site backup**:
+retain `.secrets/cloudsave_key`, user-uploaded music, and persistent runtime
+files separately. Database migration rollback is not automatic or guaranteed.
+Never restore an older SQL dump over a live production database without a
+dedicated, reviewed recovery procedure.
+
 ## Recovery
 
 Before switching source, the updater writes `.muchocore/update.pending`. The checkpoint remains until containers, PHP dependencies, database migrations, admin synchronization and service-status checks succeed. An optional client-repatching failure is logged as a warning.

@@ -55,6 +55,24 @@ args="$*"
     echo 'Missing tunnel Compose files' >&2; exit 44;
 }
 case "$args" in
+    *' exec -T -e MUCHO_BACKUP_REQUIRED=1 app bash bin/mucho-db-backup.sh')
+        if [[ "${UPDATE_TEST_FAIL:-}" == backup ]]; then exit 66; fi
+        backup_dir="$UPDATE_TEST_ROOT/backups/database"
+        mkdir -p "$backup_dir"
+        file="$backup_dir/updater-fixture.sql.gz"
+        printf '%s\n' '-- MuchoCore database backup' 'CREATE TABLE example (id INT);' |
+            gzip -n > "$file"
+        ( cd "$backup_dir" &&
+            sha256sum "$(basename "$file")" > "$(basename "$file").sha256" )
+        hash="$(sha256sum "$file" | awk '{print $1}')"
+        if [[ "${UPDATE_TEST_FAIL:-}" == digest ]]; then
+            hash="$(printf '%064d' 0)"
+        fi
+        if [[ "${UPDATE_TEST_FAIL:-}" == sidecar ]]; then
+            printf '%064d  %s\n' 0 "$(basename "$file")" > "$file.sha256"
+        fi
+        printf 'BACKUP_OK\nFILE=/var/www/mucho-core/backups/database/updater-fixture.sql.gz\nSHA256=%s\n' "$hash"
+        ;;
     *' up -d --build --remove-orphans')
         if [[ "${UPDATE_TEST_FAIL:-}" == build ]]; then exit 45; fi
         if [[ "${UPDATE_TEST_FAIL:-}" == signal ]]; then kill -TERM "$PPID"; fi ;;
@@ -85,6 +103,17 @@ run_update() {
 check() {
     if ! "$@"; then printf 'FAIL: %s\n%s\n' "$*" "$output" >&2; exit 1; fi
 }
+
+for backup_fault in backup digest sidecar; do
+    : > "$FIXTURE/actions"
+    printf '%s\n' "$UPDATE_TEST_OLD_SHA" > "$FIXTURE/head"
+    UPDATE_TEST_FAIL="$backup_fault" run_update
+    check test "$code" -ne 0
+    check test "$(cat "$FIXTURE/head")" = "$UPDATE_TEST_OLD_SHA"
+    check test ! -f "$FIXTURE/.muchocore/update.pending"
+    check test "$(grep -c 'git reset --hard' "$FIXTURE/actions" || true)" -eq 0
+    echo "PASS rejected $backup_fault before switching code or creating a checkpoint"
+done
 
 for phase in build runtime composer signal; do
     printf '%s\n' "$UPDATE_TEST_OLD_SHA" > "$FIXTURE/head"
@@ -117,6 +146,8 @@ check test "$code" -eq 0
 check grep -Fq 'Already on the latest development source' <<< "$output"
 check test "$(grep -c '^docker ' "$FIXTURE/actions" || true)" -eq 0
 echo 'PASS completed deployment remains a fast no-op'
+check test -s "$FIXTURE/.muchocore/update.backup"
+echo 'PASS verified pre-upgrade backup receipt retained for recovery'
 
 UPDATE_TEST_REPAIR=1 run_update
 check test "$code" -eq 0

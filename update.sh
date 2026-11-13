@@ -310,6 +310,71 @@ if ! git merge-base --is-ancestor "$CURRENT_HEAD" "$TARGET_REF^{commit}"; then
     fi
 fi
 
+# Before changing tracked code, require a *new* verified SQL backup from the
+# currently running app. MariaDB DDL migrations cannot be undone by git reset.
+# A same-SHA checkpoint recovery retains the original backup receipt.
+if [[ "$CURRENT_HEAD" != "$TARGET_SHA" ]]; then
+    echo '[MuchoCore] Creating a required SQL backup before source changes...'
+    backup_started_at="$(date +%s)"
+    if ! backup_output="$(docker compose "${COMPOSE_ARGS[@]}" exec -T \
+        -e MUCHO_BACKUP_REQUIRED=1 app bash bin/mucho-db-backup.sh)"; then
+        echo '[MuchoCore] ERROR: required database backup failed; no source switch performed.' >&2
+        exit 1
+    fi
+    grep -qx 'BACKUP_OK' <<< "$backup_output" || {
+        echo '[MuchoCore] ERROR: database backup did not report BACKUP_OK; update refused.' >&2
+        exit 1
+    }
+    backup_container_path="$(sed -n 's/^FILE=//p' <<< "$backup_output" | tail -n1)"
+    case "$backup_container_path" in
+        /var/www/mucho-core/backups/database/*.sql.gz)
+            backup_host_path="$ROOT/${backup_container_path#/var/www/mucho-core/}" ;;
+        *)
+            echo '[MuchoCore] ERROR: backup reported an unexpected path; update refused.' >&2
+            exit 1 ;;
+    esac
+    if [[ -L "$ROOT/backups" || -L "$ROOT/backups/database" ||
+          -L "$backup_host_path" || -L "$backup_host_path.sha256" ||
+          ! -f "$backup_host_path" || ! -s "$backup_host_path" ||
+          ! -f "$backup_host_path.sha256" || ! -s "$backup_host_path.sha256" ]]; then
+        echo '[MuchoCore] ERROR: no verified regular backup files found; update refused.' >&2
+        exit 1
+    fi
+    backup_timestamp="$(stat -c %Y "$backup_host_path")"
+    if (( backup_timestamp + 2 < backup_started_at )); then
+        echo '[MuchoCore] ERROR: database backup is stale; update refused.' >&2
+        exit 1
+    fi
+    backup_expected_sha="$(sed -n 's/^SHA256=//p' <<< "$backup_output" | tail -n1)"
+    backup_actual_sha="$(sha256sum "$backup_host_path" | awk '{print $1}')"
+    if [[ ! "$backup_expected_sha" =~ ^[0-9a-f]{64}$ ||
+          "$backup_expected_sha" != "$backup_actual_sha" ]]; then
+        echo '[MuchoCore] ERROR: database backup digest mismatch; update refused.' >&2
+        exit 1
+    fi
+    expected_sidecar="$(printf '%s  %s' "$backup_expected_sha" "$(basename "$backup_host_path")")"
+    if [[ "$(cat "$backup_host_path.sha256")" != "$expected_sidecar" ]] ||
+       ! gzip -t -- "$backup_host_path"; then
+        echo '[MuchoCore] ERROR: backup sidecar or gzip integrity check failed; update refused.' >&2
+        exit 1
+    fi
+    if ! (
+        cd "$(dirname "$backup_host_path")"
+        sha256sum -c "$(basename "$backup_host_path.sha256")" >/dev/null
+    ); then
+        echo '[MuchoCore] ERROR: database backup sidecar checksum invalid; update refused.' >&2
+        exit 1
+    fi
+
+    install -d -m 700 "$ROOT/.muchocore"
+    printf 'BACKUP=%s\nSHA256=%s\nFROM=%s\nTO=%s\n' \
+        "$backup_host_path" "$backup_expected_sha" "$CURRENT_HEAD" "$TARGET_SHA" \
+        > "$ROOT/.muchocore/update.backup.tmp"
+    chmod 600 "$ROOT/.muchocore/update.backup.tmp"
+    mv -f "$ROOT/.muchocore/update.backup.tmp" "$ROOT/.muchocore/update.backup"
+    echo "[MuchoCore] Verified pre-upgrade SQL backup: $backup_host_path"
+fi
+
 # Keep this checkpoint through migrations/admin synchronization. A failed
 # deployment must be retried even when Git already points at the target SHA.
 install -d -m 700 "$ROOT/.muchocore"
