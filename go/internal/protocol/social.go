@@ -37,6 +37,7 @@ func Date(value string) string {
 	}
 	return t.Format("02/01/2006 ") + strconv.Itoa(t.Hour()) + t.Format(".04")
 }
+
 // MessageAge returns field 7 as human-readable elapsed time without "ago".
 // Geometry Dash adds that suffix to private-message timestamps itself.
 func MessageAge(value string) string {
