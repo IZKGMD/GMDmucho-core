@@ -186,6 +186,7 @@ jobs:
           php tests/application/webhook-security-contract.php
           bash tests/release/release-update-detection.sh
           python3 tests/release/release-publication.py
+          python3 tests/release/dev-snapshot-contract.py
           python3 tests/release/native-ci-gate.py
           bash tests/release/update-main-without-release.sh
           bash tests/release/update-recovery.sh
