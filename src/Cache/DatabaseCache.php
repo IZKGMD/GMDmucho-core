@@ -16,26 +16,18 @@ final readonly class DatabaseCache implements CacheInterface
         try {
             $key = substr($key, 0, 191);
             $now = time();
+            // Only one indexed SELECT per lookup, including expired keys.
+            // The old path selected expired payloads and then executed a
+            // second DELETE (and extra round trip) on every TTL miss.
             $stmt = $this->pdo->prepare(
-                'SELECT cache_value,expires_at FROM mucho_cache
-                 WHERE cache_key = :key LIMIT 1'
+                'SELECT cache_value FROM mucho_cache
+                 WHERE cache_key=:key
+                   AND (expires_at=0 OR expires_at>:now)
+                 LIMIT 1'
             );
-            $stmt->execute(['key' => $key]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($row === false) {
-                return null;
-            }
-            if ((int)$row['expires_at'] > 0 && (int)$row['expires_at'] <= $now) {
-                // A writer may have refreshed this key since our SELECT.
-                // Delete only a value that is still expired, never its replacement.
-                $delete = $this->pdo->prepare(
-                    'DELETE FROM mucho_cache WHERE cache_key=:key
-                     AND expires_at > 0 AND expires_at <= :now'
-                );
-                $delete->execute(['key' => $key, 'now' => $now]);
-                return null;
-            }
-            return (string)$row['cache_value'];
+            $stmt->execute(['key' => $key, 'now' => $now]);
+            $value = $stmt->fetchColumn();
+            return $value === false ? null : (string)$value;
         } catch (Throwable) {
             return null;
         }
@@ -57,7 +49,40 @@ final readonly class DatabaseCache implements CacheInterface
                 'value' => $value,
                 'expires' => $ttlSeconds > 0 ? time() + $ttlSeconds : 0,
             ]);
+
+            // The worker also handles expiration. As a backstop when it is
+            // unavailable, amortize a bounded purge over successful writes.
+            // Do not perform DELETEs on read requests or on every cache set.
+            if (mt_rand(1, 128) === 1) {
+                $this->pruneExpired();
+            }
         } catch (Throwable) {
+        }
+    }
+
+    /**
+     * Reclaim only expired cache entries, using idx_mcache_expiry.
+     * A concurrent refresh cannot be deleted because the expiry predicate
+     * is evaluated atomically by the database at DELETE time.
+     */
+    public function pruneExpired(int $maxEntries = 128): int
+    {
+        if ($maxEntries < 1) {
+            return 0;
+        }
+
+        try {
+            $maxEntries = min(1024, $maxEntries);
+            $stmt = $this->pdo->prepare(
+                'DELETE FROM mucho_cache
+                 WHERE expires_at>0 AND expires_at<=:now
+                 ORDER BY expires_at ASC
+                 LIMIT ' . $maxEntries
+            );
+            $stmt->execute(['now' => time()]);
+            return $stmt->rowCount();
+        } catch (Throwable) {
+            return 0;
         }
     }
 
