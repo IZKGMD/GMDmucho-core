@@ -1,7 +1,7 @@
 -- Optional PHP 8 text-search count accelerator for ISOLATED STAGING only.
 -- The current GD type=0/15 search uses l.name LIKE '%term%' and exact
 -- visibility predicates. The leading % prevents a B-tree SEEK; this index
--- may still reduce COUNT(*) I/O by covering the scan without reading
+-- may still reduce COUNT(*) I/O by covering the scan and supporting likes DESC ordering without reading
 -- levels.level_data (LONGTEXT) or fetching clustered level rows.
 --
 -- Do not deploy to production automatically. On 10k+ representative rows:
@@ -12,7 +12,7 @@
 -- The optimizer may decline this index; no speedup is guaranteed.
 --
 -- Rollback ON STAGING ONLY:
--- ALTER TABLE levels DROP INDEX idx_mc_text_visible_name;
+-- ALTER TABLE levels DROP INDEX idx_mc_text_visible_ranked;
 
 ALTER TABLE levels
-  ADD INDEX idx_mc_text_visible_name (is_deleted, is_unlisted, unlisted2, name, game_version);
+  ADD INDEX idx_mc_text_visible_ranked (is_deleted, is_unlisted, unlisted2, likes, level_id, game_version, name);
