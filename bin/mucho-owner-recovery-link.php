@@ -36,6 +36,7 @@ if ((string)($owners[0]['totp_secret'] ?? '') !== '') {
 
 $token = rtrim(strtr(base64_encode(random_bytes(48)), '+/', '-_'), '=');
 $invalidPassword = bin2hex(random_bytes(48));
+$db->beginTransaction();
 $stmt = $db->prepare(
     "UPDATE admin_users
      SET password_hash=:password_hash,
@@ -50,9 +51,16 @@ $stmt->execute([
     'id' => (int)$owners[0]['id'],
 ]);
 if ($stmt->rowCount() !== 1) {
+    $db->rollBack();
     fwrite(STDERR, "Owner changed during recovery. Retry after checking administrators.\n");
     exit(1);
 }
+
+// An older API token must not survive server-console account recovery.
+$db->prepare('UPDATE mucho_admin_client_tokens SET revoked_at=UTC_TIMESTAMP()
+    WHERE admin_user_id=:id AND revoked_at IS NULL')
+    ->execute(['id' => (int)$owners[0]['id']]);
+$db->commit();
 
 echo "Open this PRIVATE, one-time link within 24 hours to choose a new administrator password:\n";
 echo $origin . '/admin/?setup=' . rawurlencode($token) . "\n";
