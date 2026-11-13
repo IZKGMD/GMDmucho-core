@@ -122,8 +122,9 @@ SQL);
     // accepted a syntactically valid gzip even if the SQL stopped halfway.
     $inspectArchive = new ReflectionMethod($service, 'verifyGzip');
     $partial = $dir . '/partial-valid-gzip.sql.gz';
-    $partialSql = "-- MuchoCore database backup\nSET NAMES utf8mb4;\n"
-        . str_repeat("INSERT INTO fixture VALUES (1);\n", 32);
+    $partialSql = "-- MuchoCore database backup\n-- Generated: 2026-11-13T00:00:00+00:00\nSET NAMES utf8mb4;\n"
+        . str_repeat("INSERT INTO fixture VALUES (1);\n", 32)
+        . "INSERT INTO fixture VALUES ('" . bin2hex(random_bytes(256)) . "');\n";
     file_put_contents($partial, gzencode($partialSql, 6));
     $partialRejected = false;
     try {
@@ -133,6 +134,22 @@ SQL);
     }
     backupCheck($partialRejected,
         'incomplete SQL with a valid gzip header cannot be published as a backup');
+
+    // A recompressed, incomplete SQL can have a perfectly valid SHA-256
+    // sidecar. The restore verifier must enforce the portable SQL footer,
+    // not just CRC, the leading comment, and the checksum.
+    file_put_contents(
+        $partial . '.sha256',
+        hash_file('sha256', $partial) . '  ' . basename($partial) . PHP_EOL
+    );
+    $restoreRejected = false;
+    try {
+        DatabaseBackupVerifier::verify($partial);
+    } catch (RuntimeException) {
+        $restoreRejected = true;
+    }
+    backupCheck($restoreRejected,
+        'correctly checksummed but incomplete portable SQL cannot be restored');
 
     $truncated = $dir . '/truncated-backup.sql.gz';
     $fullArchive = file_get_contents($backup['file']);
