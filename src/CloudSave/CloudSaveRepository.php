@@ -33,8 +33,8 @@ final readonly class CloudSaveRepository
         $hash=hash('sha256',$saveData);
         $size=strlen($saveData);
 
-        $encrypted=$this->encrypt($saveData);
-
+        // Only encrypt a new revision. Duplicate backups verify the stored
+        // ciphertext first, avoiding another large payload allocation.
         $this->db->beginTransaction();
 
         try {
@@ -86,6 +86,27 @@ final readonly class CloudSaveRepository
                     $hash
                 )
             ){
+
+                // A matching checksum alone does not prove that the
+                // encrypted save is readable. Never acknowledge a duplicate
+                // when its GCM envelope, checksum or size is damaged, or
+                // when the configured encryption key has changed.
+                $storedPlain=$this->decrypt(
+                    (string)$old['ciphertext'],
+                    (string)$old['nonce'],
+                    (string)$old['auth_tag']
+                );
+
+                if (
+                    strlen($storedPlain)!==(int)$old['size_bytes'] ||
+                    strlen($storedPlain)!==$size ||
+                    !hash_equals($hash,hash('sha256',$storedPlain))
+                ) {
+                    throw new RuntimeException(
+                        'Existing cloud save revision failed integrity verification.'
+                    );
+                }
+                unset($storedPlain);
 
                 $touch=$this->db->prepare("
                     UPDATE mucho_cloud_saves
@@ -155,6 +176,8 @@ final readonly class CloudSaveRepository
                 ]);
             }
 
+
+            $encrypted=$this->encrypt($saveData);
 
             $upsert=$this->db->prepare("
                 INSERT INTO mucho_cloud_saves
