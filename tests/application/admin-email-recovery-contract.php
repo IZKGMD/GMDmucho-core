@@ -32,8 +32,12 @@ checkRecovery(str_contains($admin, "header('Referrer-Policy: no-referrer')") &&
 checkRecovery(str_contains($admin, "muchoAdminEmailRoute(\$db)"),
     'email recovery is routed before login');
 checkRecovery(str_contains($admin, 'admin_password_fingerprint') &&
-              str_contains($admin, "hash_equals(hash('sha256', (string) \$sessionRow['password_hash'])"),
-    'authenticated sessions are invalidated after credential change');
+              str_contains($admin, 'AdminBrowserSessionPolicy::isCurrent(') &&
+              str_contains(
+                  (string)file_get_contents($root . '/public/admin/core/AdminBrowserSessionPolicy.php'),
+                  "hash_equals(hash('sha256', \$passwordHash), \$passwordFingerprint)"
+              ),
+    'browser sessions are invalidated after credential or role changes');
 checkRecovery(str_contains($admin, 'Forgot your password?') &&
               str_contains($admin, 'admin-email-bind'),
     'login and self-service settings expose recovery');

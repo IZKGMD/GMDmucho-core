@@ -60,6 +60,7 @@ final class DatabaseBackupVerifier
 
         $sqlBytes = 0;
         $prefix = '';
+        $tail = '';
 
         try {
             while (!gzeof($gzip)) {
@@ -71,6 +72,7 @@ final class DatabaseBackupVerifier
                 if (strlen($prefix) < 1024) {
                     $prefix .= substr($chunk, 0, 1024 - strlen($prefix));
                 }
+                $tail = substr($tail . $chunk, -256);
                 $sqlBytes += strlen($chunk);
             }
         } finally {
@@ -93,6 +95,19 @@ final class DatabaseBackupVerifier
             preg_match('/^-- (?:MariaDB|MySQL) dump\\b/', $header) === 1;
         if ($sqlBytes === 0 || !$validSqlHeader) {
             throw new RuntimeException('Backup SQL header is missing.');
+        }
+
+        // The portable PHP exporter emits its own "Generated" line and a
+        // final FOREIGN_KEY_CHECKS reset. A complete gzip containing only
+        // the first portion of that SQL is NOT a restorable database backup,
+        // even when an attacker/operator recomputes the SHA-256 sidecar.
+        // Native MariaDB dumps have a different footer; do not reject them.
+        $portableHeader = "-- MuchoCore database backup\n-- Generated: ";
+        if (strncmp($prefix, $portableHeader, strlen($portableHeader)) === 0) {
+            $ending = 'SET FOREIGN_KEY_CHECKS=1;';
+            if (substr(rtrim($tail, " \t\r\n"), -strlen($ending)) !== $ending) {
+                throw new RuntimeException('Portable SQL backup is missing its completion marker.');
+            }
         }
 
         return [

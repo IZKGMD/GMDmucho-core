@@ -123,25 +123,55 @@ final readonly class AbusePenaltyStore implements PenaltyStoreBackend
                     break;
                 }
 
-                if (
-                    !$file->isFile() ||
-                    $file->getExtension() !== 'json'
-                ) {
+                if (!$file->isFile() || $file->isLink() || $file->getExtension() !== 'json') {
                     continue;
                 }
 
-                $mtime = $file->getMTime();
-
-                if ($mtime >= $cutoff) {
+                if ($file->getMTime() >= $cutoff) {
                     continue;
                 }
 
-                if (@unlink($file->getPathname())) {
-                    $removed++;
+                $path = $file->getPathname();
+                $fp = @fopen($path, 'r+');
+                if ($fp === false) {
+                    continue;
+                }
 
-                    if ($removed >= $maxEntries) {
-                        break;
+                try {
+                    // Never unlink a penalty while an active writer owns it.
+                    if (!@flock($fp, LOCK_EX | LOCK_NB)) {
+                        continue;
                     }
+
+                    $stat = fstat($fp);
+                    if (!is_array($stat) || (int)($stat['mtime'] ?? 0) >= $cutoff) {
+                        continue;
+                    }
+
+                    rewind($fp);
+                    $raw = stream_get_contents($fp);
+                    $state = is_string($raw) ? json_decode($raw, true) : null;
+                    if (is_array($state) && (int)($state['expires'] ?? 0) > time()) {
+                        // An old mtime alone does not mean an active ban expired.
+                        continue;
+                    }
+
+                    $onDisk = @lstat($path);
+                    if (!is_array($onDisk)
+                        || (int)($onDisk['ino'] ?? -1) !== (int)($stat['ino'] ?? -2)
+                        || (int)($onDisk['dev'] ?? -1) !== (int)($stat['dev'] ?? -2)) {
+                        continue;
+                    }
+
+                    if (@unlink($path)) {
+                        $removed++;
+                        if ($removed >= $maxEntries) {
+                            break;
+                        }
+                    }
+                } finally {
+                    @flock($fp, LOCK_UN);
+                    fclose($fp);
                 }
             }
         } catch (\Throwable) {

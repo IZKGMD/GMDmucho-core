@@ -3,12 +3,16 @@ declare(strict_types=1);
 
 use MuchoCore\Admin\AdminPasskeyService;
 use MuchoCore\Admin\AdminRbac;
+use MuchoCore\Admin\AdminBrowserSessionPolicy;
+use MuchoCore\Admin\GameAccountPrivilegePolicy;
 use MuchoCore\Branding\BrandingService;
 use MuchoCore\Core\Environment;
 use MuchoCore\Database\Database;
 
 require_once __DIR__.'/core/PlainAdmin.php';
 require_once __DIR__.'/core/AdminChrome.php';
+require_once __DIR__.'/core/GameAccountPrivilegePolicy.php';
+require_once __DIR__.'/core/AdminBrowserSessionPolicy.php';
 if (adminIsPlain()) {
     header_register_callback(static function (): void {
         foreach (headers_list() as $header) {
@@ -219,14 +223,19 @@ CREATE TABLE IF NOT EXISTS admin_users (
 // Invalidate previous sessions after a password reset or account suspension.
 if (isset($_SESSION['admin']) && is_array($_SESSION['admin'])) {
     $sessionId = (int) ($_SESSION['admin']['id'] ?? 0);
-    $sessionQuery = $db->prepare('SELECT password_hash,is_active FROM admin_users WHERE id=:id LIMIT 1');
+    $sessionQuery = $db->prepare('SELECT id,password_hash,is_active,role,username,password_must_set
+        FROM admin_users WHERE id=:id LIMIT 1');
     $sessionQuery->execute(['id' => $sessionId]);
     $sessionRow = $sessionQuery->fetch(PDO::FETCH_ASSOC);
     $fingerprint = (string) ($_SESSION['admin_password_fingerprint'] ?? '');
-    if (!$sessionRow || (int) $sessionRow['is_active'] !== 1 || $fingerprint === '' ||
-        !hash_equals(hash('sha256', (string) $sessionRow['password_hash']), $fingerprint)) {
+    if (!AdminBrowserSessionPolicy::isCurrent(
+        $_SESSION['admin'],
+        $sessionRow ?: null,
+        $fingerprint
+    )) {
         unset($_SESSION['admin'], $_SESSION['admin_password_fingerprint'],
-              $_SESSION['admin_login_at'], $_SESSION['admin_last_activity']);
+              $_SESSION['admin_login_at'], $_SESSION['admin_last_activity'],
+              $_SESSION['csrf']);
     }
 }
 
@@ -346,6 +355,49 @@ function requireRank(int $rank): void
 
     if ($permission === null || !AdminRbac::can($db,$a,$permission)) {
         throw new RuntimeException('Insufficient permissions.');
+    }
+}
+
+/**
+ * The main admin form dispatcher must enforce the same game-role boundary as
+ * the extracted accounts module. Game owner/elder roles must not be mutable
+ * through a lower-ranked administrator account.
+ */
+function adminRequireGameAccountPrivilege(
+    PDO $db,
+    int $accountId,
+    ?int $requestedRolePriority = null
+): void {
+    if ($accountId <= 0) {
+        throw new RuntimeException('Invalid account.');
+    }
+
+    $stmt = $db->prepare(
+        'SELECT COALESCE(r.code,\'user\') AS game_role,
+                COALESCE(r.priority,0) AS game_priority
+         FROM accounts a LEFT JOIN roles r ON r.id=a.role_id
+         WHERE a.account_id=:id LIMIT 1'
+    );
+    $stmt->execute(['id' => $accountId]);
+    $target = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$target) {
+        throw new RuntimeException('Account not found.');
+    }
+
+    $actorRank = rank((string)(admin()['role'] ?? ''));
+    if (GameAccountPrivilegePolicy::ownerRequired(
+        $actorRank,
+        (string)$target['game_role'],
+        (int)$target['game_priority'],
+        $requestedRolePriority
+    )) {
+        // A custom admin role can carry players.manage while rank() returns
+        // zero. requireRank(40) maps custom roles to the current action's
+        // permission, so it is not sufficient to enforce owner-only access.
+        if ((string)(admin()['role'] ?? '') !== 'owner') {
+            throw new RuntimeException('Only the owner can manage a privileged game account.');
+        }
+        requireRank(40);
     }
 }
 
@@ -1155,27 +1207,41 @@ function muchAdminRenderPasswordSetup(PDO $db,string $token): never
         } elseif ($password!==$confirm) {
             $error='Passwords do not match.';
         } else {
-            $update=$db->prepare(
-                'UPDATE admin_users
-                 SET password_hash=:hash,
-                     password_must_set=0,
-                     password_setup_token_hash=NULL,
-                     password_setup_expires_at=NULL
-                 WHERE id=:id
-                   AND password_must_set=1
-                   AND password_setup_token_hash=:token
-                   AND password_setup_expires_at>UTC_TIMESTAMP()'
-            );
-            $update->execute([
-                'hash'=>password_hash($password,PASSWORD_DEFAULT),
-                'id'=>(int)$row['id'],
-                'token'=>$tokenHash
-            ]);
+            $db->beginTransaction();
+            try {
+                $update=$db->prepare(
+                    'UPDATE admin_users
+                     SET password_hash=:hash,
+                         password_must_set=0,
+                         password_setup_token_hash=NULL,
+                         password_setup_expires_at=NULL
+                     WHERE id=:id
+                       AND password_must_set=1
+                       AND password_setup_token_hash=:token
+                       AND password_setup_expires_at>UTC_TIMESTAMP()'
+                );
+                $update->execute([
+                    'hash'=>password_hash($password,PASSWORD_DEFAULT),
+                    'id'=>(int)$row['id'],
+                    'token'=>$tokenHash
+                ]);
 
-            if ($update->rowCount()!==1) {
-                $error='This password setup link is invalid or expired.';
-            } else {
-                $success=true;
+                if ($update->rowCount()!==1) {
+                    $db->rollBack();
+                    $error='This password setup link is invalid or expired.';
+                } else {
+                    // Previous bearer sessions must not reactivate after
+                    // a recovery link finishes setting the new password.
+                    $db->prepare('UPDATE mucho_admin_client_tokens
+                        SET revoked_at=UTC_TIMESTAMP()
+                        WHERE admin_user_id=:id AND revoked_at IS NULL')
+                        ->execute(['id'=>(int)$row['id']]);
+                    $db->commit();
+                    $success=true;
+                }
+            } catch (Throwable $e) {
+                if ($db->inTransaction()) $db->rollBack();
+                throw $e;
             }
         }
     }
@@ -2741,7 +2807,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         if ($action==='account-save') {
             requireRank(30);
 
-            $id=(int)$_POST['id'];
+            $id=(int)($_POST['id'] ?? 0);
 
             $oldAccount=$db->prepare(
                 'SELECT username FROM accounts WHERE account_id=:id LIMIT 1'
@@ -2752,7 +2818,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $role=trim((string)$_POST['role']);
 
             $roleQuery=$db->prepare(
-                'SELECT id
+                'SELECT id, COALESCE(priority,0) AS priority
                  FROM roles
                  WHERE code=:role
                  LIMIT 1'
@@ -2762,11 +2828,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 'role'=>$role
             ]);
 
-            $roleId=$roleQuery->fetchColumn();
+            $roleRow=$roleQuery->fetch(PDO::FETCH_ASSOC);
 
-            if($roleId===false) {
+            if(!$roleRow) {
                 throw new RuntimeException('Bad role');
             }
+
+            adminRequireGameAccountPrivilege($db, $id, (int)$roleRow['priority']);
 
             $q=$db->prepare(
                 'UPDATE accounts SET
@@ -2791,7 +2859,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                     0,
                     254
                 ),
-                'role_id'=>(int)$roleId,
+                'role_id'=>(int)$roleRow['id'],
                 'active'=>isset($_POST['active'])?1:0,
                 'banned'=>isset($_POST['banned'])?1:0,
                 'id'=>$id
@@ -3396,8 +3464,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         elseif ($action==='password-reset') {
             requireRank(30);
 
-            $id=(int)$_POST['id'];
-            $password=(string)$_POST['new_password'];
+            $id=(int)($_POST['id'] ?? 0);
+            adminRequireGameAccountPrivilege($db, $id);
+            $password=(string)($_POST['new_password'] ?? '');
             $passwordConfirm=(string)($_POST['new_password_confirm'] ?? '');
 
             if (strlen($password)<8) {
@@ -3423,17 +3492,32 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                  WHERE account_id=:id'
             );
 
-            $q->execute([
-                'p'=>password_hash(
-                    $password,
-                    PASSWORD_DEFAULT
-                ),
-                'g'=>password_hash(
-                    $gjp2,
-                    PASSWORD_DEFAULT
-                ),
-                'id'=>$id
-            ]);
+            $db->beginTransaction();
+            try {
+                $q->execute([
+                    'p'=>password_hash(
+                        $password,
+                        PASSWORD_DEFAULT
+                    ),
+                    'g'=>password_hash(
+                        $gjp2,
+                        PASSWORD_DEFAULT
+                    ),
+                    'id'=>$id
+                ]);
+
+                // Invalidates legacy 1.9 upload sessions with the credential
+                // update. Failure rolls the whole password change back.
+                $db->prepare(
+                    'DELETE FROM mucho_legacy_19_sessions WHERE account_id=:id'
+                )->execute(['id'=>$id]);
+                $db->commit();
+            } catch (Throwable $error) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+                throw $error;
+            }
 
             audit($db,'account.password.reset',(string)$id);
             flash('Password changed.');

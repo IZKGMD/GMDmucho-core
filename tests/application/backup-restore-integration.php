@@ -90,13 +90,37 @@ SQL);
     for ($id=1;$id<=6;$id++) $mediaInsert->execute([$id,$mediaBytes]);
 
     $service = new DatabaseBackupService($source, $dir);
-    $backup = $service->create('roundtrip');
+    // Simulate a shared host running with an unsafe default umask.
+    $originalUmask = umask(0022);
+    try {
+        $backup = $service->create('roundtrip');
+    } finally {
+        umask($originalUmask);
+    }
+    clearstatcache();
+    backupCheck(
+        (fileperms($backup['file']) & 0777) === 0600 &&
+        (fileperms($backup['file'] . '.sha256') & 0777) === 0600,
+        'SQL archive and checksum remain private under default shared-host umask'
+    );
+    backupCheck(umask() === $originalUmask, 'backup restores process umask');
     backupCheck(
         preg_match('/^roundtrip_[0-9]{8}_[0-9]{6}_[a-f0-9]{16}\\.sql\\.gz$/D',
             basename($backup['file'])) === 1,
         'PHP 8 backup name includes a collision-resistant per-run suffix'
     );
-    $repeat = $service->create('roundtrip');
+    $originalUmask = umask(0022);
+    try {
+        $repeat = $service->create('roundtrip');
+    } finally {
+        umask($originalUmask);
+    }
+    clearstatcache();
+    backupCheck(
+        (fileperms($repeat['file']) & 0777) === 0600 &&
+        (fileperms($repeat['file'] . '.sha256') & 0777) === 0600,
+        'repeated SQL export also protects new archive and checksum'
+    );
     backupCheck(
         $repeat['file'] !== $backup['file'] &&
         is_file($backup['file']) &&
@@ -117,6 +141,53 @@ SQL);
         $verified['sql_bytes'] > 100,
         'SQL archive and SHA-256 sidecar pass full-stream verification'
     );
+
+    // The previous verifier inspected only the first 4 KiB, so it
+    // accepted a syntactically valid gzip even if the SQL stopped halfway.
+    $inspectArchive = new ReflectionMethod($service, 'verifyGzip');
+    $partial = $dir . '/partial-valid-gzip.sql.gz';
+    $partialSql = "-- MuchoCore database backup\n-- Generated: 2026-11-13T00:00:00+00:00\nSET NAMES utf8mb4;\n"
+        . str_repeat("INSERT INTO fixture VALUES (1);\n", 32)
+        . "INSERT INTO fixture VALUES ('" . bin2hex(random_bytes(256)) . "');\n";
+    file_put_contents($partial, gzencode($partialSql, 6));
+    $partialRejected = false;
+    try {
+        $inspectArchive->invoke($service, $partial);
+    } catch (RuntimeException) {
+        $partialRejected = true;
+    }
+    backupCheck($partialRejected,
+        'incomplete SQL with a valid gzip header cannot be published as a backup');
+
+    // A recompressed, incomplete SQL can have a perfectly valid SHA-256
+    // sidecar. The restore verifier must enforce the portable SQL footer,
+    // not just CRC, the leading comment, and the checksum.
+    file_put_contents(
+        $partial . '.sha256',
+        hash_file('sha256', $partial) . '  ' . basename($partial) . PHP_EOL
+    );
+    $restoreRejected = false;
+    try {
+        DatabaseBackupVerifier::verify($partial);
+    } catch (RuntimeException) {
+        $restoreRejected = true;
+    }
+    backupCheck($restoreRejected,
+        'correctly checksummed but incomplete portable SQL cannot be restored');
+
+    $truncated = $dir . '/truncated-backup.sql.gz';
+    $fullArchive = file_get_contents($backup['file']);
+    backupCheck(is_string($fullArchive) && strlen($fullArchive) > 256,
+        'test backup contains a real compressed SQL stream');
+    file_put_contents($truncated, substr($fullArchive, 0, intdiv(strlen($fullArchive), 2)));
+    $truncatedRejected = false;
+    try {
+        $inspectArchive->invoke($service, $truncated);
+    } catch (RuntimeException) {
+        $truncatedRejected = true;
+    }
+    backupCheck($truncatedRejected,
+        'physically truncated gzip cannot pass backup publication checks');
 
     $tampered = $dir . '/tampered.sql.gz';
     copy($backup['file'], $tampered);

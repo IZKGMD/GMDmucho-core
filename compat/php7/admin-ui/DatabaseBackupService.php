@@ -77,11 +77,20 @@ final class DatabaseBackupService
                 $startedTransaction = true;
             }
 
-            $gzip = gzopen($temporary, 'wb6');
-            @chmod($temporary,0600);
+            // The SQL dump contains password hashes and private metadata.
+            $previousUmask = umask(0077);
+            try {
+                $gzip = gzopen($temporary, 'wb6');
+            } finally {
+                umask($previousUmask);
+            }
 
             if ($gzip === false) {
                 throw new RuntimeException('Unable to create compressed backup file.');
+            }
+            if (!@chmod($temporary, 0600)) {
+                gzclose($gzip);
+                throw new RuntimeException('Unable to protect database backup file.');
             }
 
             try {
@@ -102,7 +111,9 @@ final class DatabaseBackupService
 
                 $this->write($gzip, "SET FOREIGN_KEY_CHECKS=1;\n");
             } finally {
-                gzclose($gzip);
+                if (gzclose($gzip) !== true) {
+                    throw new RuntimeException('Database backup compression did not finish successfully.');
+                }
             }
 
             $size = filesize($temporary);
@@ -117,6 +128,9 @@ final class DatabaseBackupService
             if (!rename($temporary, $final)) {
                 throw new RuntimeException('Unable to publish the verified database backup.');
             }
+            if (!@chmod($final, 0600)) {
+                throw new RuntimeException('Unable to protect published database backup.');
+            }
 
             $sha256 = hash_file('sha256', $final);
 
@@ -125,16 +139,21 @@ final class DatabaseBackupService
                 throw new RuntimeException('Unable to calculate the database backup checksum.');
             }
 
-            if (file_put_contents(
-                $checksumFile,
-                $sha256 . '  ' . basename($final) . PHP_EOL,
-                LOCK_EX
-            ) === false) {
+            $previousUmask = umask(0077);
+            try {
+                $checksumWritten = file_put_contents(
+                    $checksumFile,
+                    $sha256 . '  ' . basename($final) . PHP_EOL,
+                    LOCK_EX
+                );
+            } finally {
+                umask($previousUmask);
+            }
+            if ($checksumWritten === false || !@chmod($checksumFile, 0600)) {
                 @unlink($final);
-                throw new RuntimeException('Unable to write database backup checksum.');
+                throw new RuntimeException('Unable to protect database backup checksum.');
             }
 
-            @chmod($checksumFile,0600);
             $this->verifyChecksum($final, $checksumFile);
 
             if ($startedTransaction) {
@@ -390,14 +409,34 @@ final class DatabaseBackupService
             throw new RuntimeException('Generated database backup cannot be opened.');
         }
 
+        $prefix = '';
+        $tail = '';
+        $sqlBytes = 0;
         try {
-            $sample = gzread($gzip, 4096);
+            // Reading only the first 4 KiB accepted a truncated but valid
+            // gzip containing the backup banner and partial SQL statements.
+            while (!gzeof($gzip)) {
+                $chunk = @gzread($gzip, 65536);
+                if (!is_string($chunk) || ($chunk === '' && !gzeof($gzip))) {
+                    throw new RuntimeException('Generated database backup gzip stream is incomplete.');
+                }
+
+                if (strlen($prefix) < 1024) {
+                    $prefix .= substr($chunk, 0, 1024 - strlen($prefix));
+                }
+                $tail = substr($tail . $chunk, -256);
+                $sqlBytes += strlen($chunk);
+            }
         } finally {
             gzclose($gzip);
         }
 
-        if (!is_string($sample) || !\mucho7_admin_contains($sample, 'MuchoCore database backup')) {
-            throw new RuntimeException('Generated database backup failed integrity verification.');
+        $ending = 'SET FOREIGN_KEY_CHECKS=1;';
+        $tail = rtrim($tail, " \t\r\n");
+        if ($sqlBytes < self::MIN_BACKUP_BYTES ||
+            strncmp($prefix, '-- MuchoCore database backup', strlen('-- MuchoCore database backup')) !== 0 ||
+            substr($tail, -strlen($ending)) !== $ending) {
+            throw new RuntimeException('Generated database backup is incomplete or missing its SQL terminator.');
         }
     }
 

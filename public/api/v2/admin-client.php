@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 use MuchoCore\Admin\AdminRbac;
+use MuchoCore\Admin\AdminClientInput;
 use MuchoCore\Database\Database;
 
 require dirname(__DIR__, 3).'/vendor/autoload.php';
@@ -189,10 +190,12 @@ function requireAdmin(PDO $db, int $minimumRank = 10): array
 
 function intInput(array $input, string $key, int $minimum, int $maximum): int
 {
-    if (!array_key_exists($key, $input) || !is_int($input[$key])) {
+    try {
+        return AdminClientInput::boundedInteger($input, $key, $minimum, $maximum);
+    } catch (InvalidArgumentException) {
+        // Never silently clamp identifiers: account_id=0 must not target #1.
         fail('invalid_request', 'Invalid field: '.$key, 422);
     }
-    return max($minimum, min($maximum, $input[$key]));
 }
 
 function boolInput(array $input, string $key): bool

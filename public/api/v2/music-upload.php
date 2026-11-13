@@ -10,7 +10,7 @@ require_once __DIR__.'/bootstrap.php';
 
 muchoV2RequireMethod('POST');
 
-const MUSIC_DIR = '/var/www/mucho-core/storage/music-public';
+const MUSIC_DIR = MUCHO_V2_ROOT . '/storage/music-public';
 const MUSIC_MAX = 20 * 1024 * 1024;
 const MUSIC_COOLDOWN = 180;
 
