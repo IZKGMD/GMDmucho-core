@@ -123,7 +123,7 @@
   "src/Branding/BrandingService.php": "ac88a5ee9d1c6f4be8e7ca0c7c96e1bd8bc5701e824409a985090ba984da8f82",
   "src/Cache/CacheInterface.php": "9bc3a1a6400c83c883f70056eacacfe78a13dffe988b38586d2a9d0afb0bf9cc",
   "src/Cache/CacheManager.php": "7f8701ff330c29c16b3921913b5c0898c41eb533aa83ebc41ebd0167994ccf73",
-  "src/Cache/DatabaseCache.php": "2a52485442af1d5868c3e9f6f3bb37420aeddf3b6a528e2ba4abaa33f71feb37",
+  "src/Cache/DatabaseCache.php": "19491d380a49161247face7c8a9e5e53ed56c209471c0b42d2213879cfbb0e41",
   "src/Cache/FileCache.php": "88ecb7efbd0ceeb0569b1347bb244f86852aa4d09ec84f5888ec7426ff632e79",
   "src/Cache/NullCache.php": "690cc912bfa75ee773a4bd3be7a77fa4b7859406d91361c548cb47355fce3cf8",
   "src/Cache/RedisCache.php": "ceef1f92486b922d920ad2f40af1e49aecf1701a9baacbddac05d2cc6b189807",
