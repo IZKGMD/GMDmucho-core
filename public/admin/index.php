@@ -1155,27 +1155,41 @@ function muchAdminRenderPasswordSetup(PDO $db,string $token): never
         } elseif ($password!==$confirm) {
             $error='Passwords do not match.';
         } else {
-            $update=$db->prepare(
-                'UPDATE admin_users
-                 SET password_hash=:hash,
-                     password_must_set=0,
-                     password_setup_token_hash=NULL,
-                     password_setup_expires_at=NULL
-                 WHERE id=:id
-                   AND password_must_set=1
-                   AND password_setup_token_hash=:token
-                   AND password_setup_expires_at>UTC_TIMESTAMP()'
-            );
-            $update->execute([
-                'hash'=>password_hash($password,PASSWORD_DEFAULT),
-                'id'=>(int)$row['id'],
-                'token'=>$tokenHash
-            ]);
+            $db->beginTransaction();
+            try {
+                $update=$db->prepare(
+                    'UPDATE admin_users
+                     SET password_hash=:hash,
+                         password_must_set=0,
+                         password_setup_token_hash=NULL,
+                         password_setup_expires_at=NULL
+                     WHERE id=:id
+                       AND password_must_set=1
+                       AND password_setup_token_hash=:token
+                       AND password_setup_expires_at>UTC_TIMESTAMP()'
+                );
+                $update->execute([
+                    'hash'=>password_hash($password,PASSWORD_DEFAULT),
+                    'id'=>(int)$row['id'],
+                    'token'=>$tokenHash
+                ]);
 
-            if ($update->rowCount()!==1) {
-                $error='This password setup link is invalid or expired.';
-            } else {
-                $success=true;
+                if ($update->rowCount()!==1) {
+                    $db->rollBack();
+                    $error='This password setup link is invalid or expired.';
+                } else {
+                    // Previous bearer sessions must not reactivate after
+                    // a recovery link finishes setting the new password.
+                    $db->prepare('UPDATE mucho_admin_client_tokens
+                        SET revoked_at=UTC_TIMESTAMP()
+                        WHERE admin_user_id=:id AND revoked_at IS NULL')
+                        ->execute(['id'=>(int)$row['id']]);
+                    $db->commit();
+                    $success=true;
+                }
+            } catch (Throwable $e) {
+                if ($db->inTransaction()) $db->rollBack();
+                throw $e;
             }
         }
     }
