@@ -35,7 +35,7 @@ checkRecovery(str_contains($admin, 'admin_password_fingerprint') &&
               str_contains($admin, 'AdminBrowserSessionPolicy::isCurrent(') &&
               str_contains(
                   (string)file_get_contents($root . '/public/admin/core/AdminBrowserSessionPolicy.php'),
-                  "hash_equals(hash('sha256', $passwordHash), $passwordFingerprint)"
+                  "hash_equals(hash('sha256', \$passwordHash), \$passwordFingerprint)"
               ),
     'browser sessions are invalidated after credential or role changes');
 checkRecovery(str_contains($admin, 'Forgot your password?') &&
