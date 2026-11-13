@@ -156,13 +156,10 @@ final class GdMessageEncoder
      */
     private function formatDate(string $date): string
     {
-        try {
-            // Database timestamps are persisted in UTC.
-            $timestamp = (new \DateTimeImmutable(
-                $date,
-                new \DateTimeZone('UTC')
-            ))->getTimestamp();
-        } catch (\Throwable) {
+        // Keep PHP's established GD database timestamp parser: fixture
+        // dates may contain legacy representations accepted by strtotime().
+        $timestamp = strtotime($date);
+        if ($timestamp === false) {
             return '0 seconds';
         }
 
