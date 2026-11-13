@@ -82,13 +82,12 @@ $validateWorkflow = (string)file_get_contents(
     dirname(__DIR__, 2) . '/.github/workflows/validate.yml'
 );
 if (
-    !preg_match(
-        "/- name: Verify endpoint certification before every stable publication\\\\n" .
-        "\\s+if: steps\\.marker\\.outputs\\.ready == 'true'\\\\n" .
-        "\\s+run: php tests\\/release\\/v110-endpoint-gate\\.php/",
-        $workflow
-    ) ||
-    !str_contains($validateWorkflow, 'if [[ -f ".release/v${VERSION}.ready" ]]; then') ||
+    !str_contains(
+        $workflow,
+        "      - name: Verify endpoint certification before every stable publication\n"
+        . "        if: steps.marker.outputs.ready == 'true'\n"
+        . "        run: php tests/release/v110-endpoint-gate.php\n"
+    ) ||!str_contains($validateWorkflow, 'if [[ -f ".release/v${VERSION}.ready" ]]; then') ||
     str_contains($workflow, "steps.marker.outputs.version == '1.1.0'")
 ) {
     throw new RuntimeException('A new stable version must not bypass endpoint certification.');
