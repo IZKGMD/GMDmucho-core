@@ -416,7 +416,7 @@ final class DatabaseBackupService
         $ending = 'SET FOREIGN_KEY_CHECKS=1;';
         $tail = rtrim($tail, " \t\r\n");
         if ($sqlBytes < self::MIN_BACKUP_BYTES ||
-            !str_starts_with($prefix, '-- MuchoCore database backup') ||
+            strncmp($prefix, '-- MuchoCore database backup', strlen('-- MuchoCore database backup')) !== 0 ||
             substr($tail, -strlen($ending)) !== $ending) {
             throw new RuntimeException('Generated database backup is incomplete or missing its SQL terminator.');
         }
