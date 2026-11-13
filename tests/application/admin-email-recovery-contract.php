@@ -31,9 +31,12 @@ checkRecovery(str_contains($admin, "header('Referrer-Policy: no-referrer')") &&
     'administrator reset and setup links stay private on shared hosting');
 checkRecovery(str_contains($admin, "muchoAdminEmailRoute(\$db)"),
     'email recovery is routed before login');
+$guard = file_get_contents($root . '/src/Admin/AdminSessionGuard.php');
 checkRecovery(str_contains($admin, 'admin_password_fingerprint') &&
-              str_contains($admin, "hash_equals(hash('sha256', (string) \$sessionRow['password_hash'])"),
-    'authenticated sessions are invalidated after credential change');
+              str_contains($admin, 'AdminSessionGuard::matches(') &&
+              str_contains((string)$guard, "hash_equals(hash('sha256', \$passwordHash), \$passwordFingerprint)") &&
+              str_contains((string)$guard, 'hash_equals($currentRole, $sessionRole)'),
+    'authenticated sessions revoke both credential changes and role demotions');
 checkRecovery(str_contains($admin, 'Forgot your password?') &&
               str_contains($admin, 'admin-email-bind'),
     'login and self-service settings expose recovery');
