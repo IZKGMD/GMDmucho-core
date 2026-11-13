@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use MuchoCore\Admin\AdminPasskeyService;
 use MuchoCore\Admin\AdminRbac;
+use MuchoCore\Admin\AdminBrowserSessionPolicy;
 use MuchoCore\Admin\GameAccountPrivilegePolicy;
 use MuchoCore\Branding\BrandingService;
 use MuchoCore\Core\Environment;
@@ -11,6 +12,7 @@ use MuchoCore\Database\Database;
 require_once __DIR__.'/core/PlainAdmin.php';
 require_once __DIR__.'/core/AdminChrome.php';
 require_once __DIR__.'/core/GameAccountPrivilegePolicy.php';
+require_once __DIR__.'/core/AdminBrowserSessionPolicy.php';
 if (adminIsPlain()) {
     header_register_callback(static function (): void {
         foreach (headers_list() as $header) {
@@ -221,22 +223,16 @@ CREATE TABLE IF NOT EXISTS admin_users (
 // Invalidate previous sessions after a password reset or account suspension.
 if (isset($_SESSION['admin']) && is_array($_SESSION['admin'])) {
     $sessionId = (int) ($_SESSION['admin']['id'] ?? 0);
-    $sessionQuery = $db->prepare('SELECT password_hash,is_active,role,username,password_must_set
+    $sessionQuery = $db->prepare('SELECT id,password_hash,is_active,role,username,password_must_set
         FROM admin_users WHERE id=:id LIMIT 1');
     $sessionQuery->execute(['id' => $sessionId]);
     $sessionRow = $sessionQuery->fetch(PDO::FETCH_ASSOC);
     $fingerprint = (string) ($_SESSION['admin_password_fingerprint'] ?? '');
-    // A demoted administrator must not keep the role captured at login.
-    // Expire the existing session on *any* role or identity change, so a
-    // promoted identity also has to authenticate again with current policy.
-    if (!$sessionRow || (int) $sessionRow['is_active'] !== 1 ||
-        (int)($sessionRow['password_must_set'] ?? 1) !== 0 ||
-        $fingerprint === '' ||
-        !hash_equals(hash('sha256', (string)$sessionRow['password_hash']), $fingerprint) ||
-        !hash_equals((string)($sessionRow['role'] ?? ''),
-            (string)($_SESSION['admin']['role'] ?? '')) ||
-        !hash_equals((string)($sessionRow['username'] ?? ''),
-            (string)($_SESSION['admin']['username'] ?? ''))) {
+    if (!AdminBrowserSessionPolicy::isCurrent(
+        $_SESSION['admin'],
+        $sessionRow ?: null,
+        $fingerprint
+    )) {
         unset($_SESSION['admin'], $_SESSION['admin_password_fingerprint'],
               $_SESSION['admin_login_at'], $_SESSION['admin_last_activity'],
               $_SESSION['csrf']);
