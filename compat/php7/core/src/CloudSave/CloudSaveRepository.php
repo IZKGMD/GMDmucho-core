@@ -23,7 +23,8 @@ final class CloudSaveRepository
     {
         $hash = hash('sha256', $saveData);
         $size = strlen($saveData);
-        $encrypted = $this->encrypt($saveData);
+        // Only encrypt a new revision. Duplicate backups verify the stored
+        // ciphertext first, avoiding another large payload allocation.
         $this->db->beginTransaction();
         try {
             $q = $this->db->prepare("\n                SELECT\n                    account_id,\n                    ciphertext,\n                    nonce,\n                    auth_tag,\n                    sha256,\n                    size_bytes,\n                    revision,\n                    backed_up_at\n\n                FROM mucho_cloud_saves\n\n                WHERE account_id=:account\n\n                FOR UPDATE\n            ");
@@ -34,6 +35,15 @@ final class CloudSaveRepository
              * don't create useless history revision.
              */
             if ($old && hash_equals((string) $old['sha256'], $hash)) {
+                // A matching checksum alone does not prove that the
+                // encrypted save is readable. Never acknowledge a duplicate
+                // when its GCM envelope, checksum or size is damaged, or
+                // when the configured encryption key has changed.
+                $storedPlain = $this->decrypt((string) $old['ciphertext'], (string) $old['nonce'], (string) $old['auth_tag']);
+                if (strlen($storedPlain) !== (int) $old['size_bytes'] || strlen($storedPlain) !== $size || !hash_equals($hash, hash('sha256', $storedPlain))) {
+                    throw new RuntimeException('Existing cloud save revision failed integrity verification.');
+                }
+                unset($storedPlain);
                 $touch = $this->db->prepare("\n                    UPDATE mucho_cloud_saves\n\n                    SET backed_up_at=CURRENT_TIMESTAMP\n\n                    WHERE account_id=:account\n                ");
                 $touch->execute(['account' => $accountId]);
                 $revision = (int) $old['revision'];
@@ -46,6 +56,7 @@ final class CloudSaveRepository
                 $archive = $this->db->prepare("\n                    INSERT IGNORE INTO\n                    mucho_cloud_save_revisions\n                    (\n                        account_id,\n                        revision,\n                        ciphertext,\n                        nonce,\n                        auth_tag,\n                        sha256,\n                        size_bytes,\n                        original_backed_up_at\n                    )\n                    VALUES\n                    (\n                        :account,\n                        :revision,\n                        :ciphertext,\n                        :nonce,\n                        :tag,\n                        :sha256,\n                        :size,\n                        :backed_up\n                    )\n                ");
                 $archive->execute(['account' => $accountId, 'revision' => (int) $old['revision'], 'ciphertext' => $old['ciphertext'], 'nonce' => $old['nonce'], 'tag' => $old['auth_tag'], 'sha256' => $old['sha256'], 'size' => (int) $old['size_bytes'], 'backed_up' => $old['backed_up_at']]);
             }
+            $encrypted = $this->encrypt($saveData);
             $upsert = $this->db->prepare("\n                INSERT INTO mucho_cloud_saves\n                (\n                    account_id,\n                    ciphertext,\n                    nonce,\n                    auth_tag,\n                    sha256,\n                    size_bytes,\n                    revision,\n                    backed_up_at\n                )\n                VALUES\n                (\n                    :account,\n                    :ciphertext,\n                    :nonce,\n                    :tag,\n                    :sha256,\n                    :size,\n                    :revision,\n                    CURRENT_TIMESTAMP\n                )\n\n                ON DUPLICATE KEY UPDATE\n\n                    ciphertext=VALUES(ciphertext),\n                    nonce=VALUES(nonce),\n                    auth_tag=VALUES(auth_tag),\n                    sha256=VALUES(sha256),\n                    size_bytes=VALUES(size_bytes),\n                    revision=VALUES(revision),\n                    backed_up_at=CURRENT_TIMESTAMP\n            ");
             $upsert->bindValue(':account', $accountId, PDO::PARAM_INT);
             $upsert->bindValue(':ciphertext', $encrypted['ciphertext'], PDO::PARAM_LOB);
