@@ -55,6 +55,7 @@ foreach ($sections as $name => [$begin, $end]) {
     echo 'PASS active ' . $name . ' verifies privilege before writing' . PHP_EOL;
 }
 if (!str_contains($source, 'GameAccountPrivilegePolicy::ownerRequired(') ||
+    !str_contains($source, "admin()['role'] ?? '') !== 'owner'") ||
     !str_contains($source, 'requireRank(40);')) {
     throw new RuntimeException('Active admin handler is missing owner-rank enforcement.');
 }
