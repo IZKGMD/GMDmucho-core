@@ -48,4 +48,17 @@ $expect(str_contains($bootstrap, 'SELECT password_hash,is_active,role FROM admin
 $expect(str_contains($bootstrap, 'AdminSessionGuard::matches('),
     'admin bootstrap must use role-aware session guard');
 
+// The diagnostics endpoint is dispatched directly and does not pass through
+// the main admin bootstrap. The same role/credential revocation and session
+// expiry must apply there too.
+$diagnostics = (string)file_get_contents(dirname(__DIR__, 2) . '/public/admin/v5-api.php');
+$expect(str_contains($diagnostics, 'SELECT id,username,role,is_active,password_hash') &&
+    str_contains($diagnostics, 'AdminSessionGuard::matches('),
+    'direct admin diagnostic API rejects revoked role or password sessions');
+$expect(str_contains($diagnostics, "admin_login_at") &&
+    str_contains($diagnostics, "admin_last_activity") &&
+    str_contains($diagnostics, '($now - $loginAt) > 86400') &&
+    str_contains($diagnostics, '($now - $lastActivity) > 1800'),
+    'direct admin diagnostic API enforces idle and absolute session expiry');
+
 echo "MUCHOCORE_ADMIN_ROLE_SESSION_GUARD_OK\n";
