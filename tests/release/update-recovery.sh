@@ -111,7 +111,7 @@ for backup_fault in backup digest sidecar; do
     check test "$code" -ne 0
     check test "$(cat "$FIXTURE/head")" = "$UPDATE_TEST_OLD_SHA"
     check test ! -f "$FIXTURE/.muchocore/update.pending"
-    check ! grep -Fq 'git reset --hard' "$FIXTURE/actions"
+    check test "$(grep -c 'git reset --hard' "$FIXTURE/actions" || true)" -eq 0
     echo "PASS rejected $backup_fault before switching code or creating a checkpoint"
 done
 
