@@ -78,11 +78,20 @@ if (V110EndpointGate::issues($noSignoff) === []) {
 $workflow = (string)file_get_contents(
     dirname(__DIR__, 2) . '/.github/workflows/release-stable.yml'
 );
+$validateWorkflow = (string)file_get_contents(
+    dirname(__DIR__, 2) . '/.github/workflows/validate.yml'
+);
 if (
-    !str_contains($workflow, 'php tests/release/v110-endpoint-gate.php') ||
-    !str_contains($workflow, "steps.marker.outputs.version == '1.1.0'")
+    !preg_match(
+        "/- name: Verify endpoint certification before every stable publication\\\\n" .
+        "\\s+if: steps\\.marker\\.outputs\\.ready == 'true'\\\\n" .
+        "\\s+run: php tests\\/release\\/v110-endpoint-gate\\.php/",
+        $workflow
+    ) ||
+    !str_contains($validateWorkflow, 'if [[ -f ".release/v${VERSION}.ready" ]]; then') ||
+    str_contains($workflow, "steps.marker.outputs.version == '1.1.0'")
 ) {
-    throw new RuntimeException('Stable release workflow bypasses endpoint gate.');
+    throw new RuntimeException('A new stable version must not bypass endpoint certification.');
 }
 
 echo "MUCHOCORE_V110_ENDPOINT_GATE_CONTRACT_OK\n";
