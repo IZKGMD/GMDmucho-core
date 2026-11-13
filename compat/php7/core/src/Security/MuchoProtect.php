@@ -185,6 +185,16 @@ final class MuchoProtect
             $this->audit($request, $endpoint, 'temporary_penalty', $ipPenalty['remaining'], $ipPenalty['strikes']);
             return ['decision' => 'block', 'reason' => 'temporary_penalty'];
         }
+
+        $globalKey = 'ip:' . $ip . ':global';
+        $globalPenalty = $this->penalties->status($globalKey);
+        if ($globalPenalty['active']) {
+            $this->audit(
+                $request, $endpoint, 'global_penalty',
+                $globalPenalty['remaining'], $globalPenalty['strikes']
+            );
+            return ['decision' => 'block', 'reason' => 'global_penalty'];
+        }
         $network = $this->networkKey($ip);
         $networkPenaltyKey = $network === null ? null : 'network:' . $network . ':endpoint:' . $endpoint;
         if ($networkPenaltyKey !== null) {
@@ -202,7 +212,6 @@ final class MuchoProtect
                 return ['decision' => 'block', 'reason' => $kind . '_penalty'];
             }
         }
-        $globalKey = 'ip:' . $ip . ':global';
         if (!$this->allow($globalKey, self::GLOBAL_LIMIT, self::GLOBAL_WINDOW)) {
             $penalty = $this->penalties->penalize($globalKey);
             $this->audit($request, $endpoint, 'global_rate_limit', $penalty['seconds'], $penalty['strikes']);
