@@ -112,6 +112,7 @@ jobs:
           php tests/protocol/protocol-19-surface.php
           php tests/protocol/protocol-19-wire.php
           php tests/protocol/social-wire.php
+          php tests/protocol/gd2209-message-trace.php
           php tests/protocol/level-protocol-guards.php
           php tests/protocol/protocol-22-hashes.php
           php tests/protocol/gd-song-info.php

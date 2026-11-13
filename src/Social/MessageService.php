@@ -59,37 +59,63 @@ final readonly class MessageService
         string $subject,
         string $body
     ): bool {
-        $this->auth->authenticate($id, $gjp);
+        try {
+            $this->auth->authenticate($id, $gjp);
+        } catch (\Throwable $exception) {
+            MessageTrace::emit('authentication', 'rejected');
+            throw $exception;
+        }
 
         $decodedSubject = $this->encoder->decodeSubject($subject);
-        $decodedBody = $this->encoder->decodeBody($body);
-        if ($decodedSubject === null || $decodedBody === null) {
+        if ($decodedSubject === null) {
+            MessageTrace::emit('decoding', 'invalid_subject');
             return false;
         }
-        $subject = $decodedSubject;
-        $body = $decodedBody;
+
+        $decodedBody = $this->encoder->decodeBody($body);
+        if ($decodedBody === null) {
+            MessageTrace::emit('decoding', 'invalid_body');
+            return false;
+        }
 
         if ($this->repository->isMessageBanned($id)) {
+            MessageTrace::emit('policy', 'message_banned');
             return false;
         }
 
-        if (
-            $to <= 0 ||
-            $subject === '' ||
-            $body === '' ||
-            strlen($subject) > 255 ||
-            strlen($body) > 65535 ||
-            !$this->relationships->canMessage($id, $to)
-        ) {
+        if ($to <= 0 || $to === $id) {
+            MessageTrace::emit('policy', 'invalid_target');
+            return false;
+        }
+        if ($decodedSubject === '') {
+            MessageTrace::emit('policy', 'empty_subject');
+            return false;
+        }
+        if ($decodedBody === '') {
+            MessageTrace::emit('policy', 'empty_body');
+            return false;
+        }
+        if (strlen($decodedSubject) > 255) {
+            MessageTrace::emit('policy', 'subject_too_long');
+            return false;
+        }
+        if (strlen($decodedBody) > 65535) {
+            MessageTrace::emit('policy', 'body_too_long');
+            return false;
+        }
+        if (!$this->relationships->canMessage($id, $to)) {
+            MessageTrace::emit('policy', 'recipient_policy');
             return false;
         }
 
-        return $this->repository->send(
+        $saved = $this->repository->send(
             $id,
             $to,
-            $subject,
-            $body
+            $decodedSubject,
+            $decodedBody
         );
+        MessageTrace::emit('storage', $saved ? 'stored' : 'insert_rejected');
+        return $saved;
     }
 
     public function deleteMessage(
