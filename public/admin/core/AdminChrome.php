@@ -62,5 +62,5 @@ function adminFooter(array $branding): void
     if (!empty($branding['server_by_name']) && !empty($branding['social_url'])) {
         echo ' · Server by <a href="'.h($branding['social_url']).'" target="_blank" rel="noopener noreferrer">'.h($branding['server_by_name']).'</a>';
     }
-    echo '</p><p>Powered by MuchoCore · © '.date('Y').' IZK · <a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">GitHub</a></p></footer>';
+    echo '</p><p>MuchoCore &amp; MuchoProtect · Original project © '.date('Y').' IZK · <a href="/legal/terms/#en">Terms of Use</a> · <a href="https://github.com/IZKGMD/GMDmucho-core" target="_blank" rel="noopener noreferrer">GitHub</a></p></footer>';
 }
