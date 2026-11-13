@@ -130,11 +130,18 @@ python3 tools/performance/concurrent_php8_http.py \
 The output JSON has per-stage attempts, accepted responses, error categories,
 p50/p95/p99, client-paced accepted RPS and pass/fail. Failed/blocked stages
 stop escalation. A 200 response with GD `-1` is a failure, not a success.
-The runner does not assume an HTTP 200 necessarily commits a comment:
-compare before/after counts in `comments` and `account_comments`, inspect
-duplicate/error logs, and verify the new comments through GD endpoints.
-A nonempty success response and a matching database delta are both required
-before calling a write path correct.
+For write/mixed stages, the runner automatically reads the total rows in
+`comments` and `account_comments` from the **isolated app's PDO connection**
+before and after each stage. It fails if the total inserted-row delta differs
+from accepted write acknowledgements. Also inspect duplicate/error logs and
+read back the new content through the GD endpoints: counts alone do not prove
+content correctness. The fixture must not be shared with any other writer
+while this isolated count assertion runs.
+
+These synthetic comment uploads measure concurrent application and database
+writes. They do **not** exercise write-maintenance costs of the proposed
+`levels.name` index. Before adopting that index, separately measure genuine
+synthetic level creation, rename/update and deletion on staging.
 
 Monitor `docker stats`, MariaDB locks and PHP-FPM saturation concurrently.
 Any MuchoProtect rate-limit rejection means the single-IP source is policy
