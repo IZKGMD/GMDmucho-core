@@ -91,8 +91,8 @@ jobs:
           fi
           git checkout --detach "$RELEASE_SHA"
 
-      - name: Verify MuchoCore 1.1.0 endpoint certification
-        if: steps.marker.outputs.ready == 'true' && steps.marker.outputs.version == '1.1.0'
+      - name: Verify endpoint certification before every stable publication
+        if: steps.marker.outputs.ready == 'true'
         run: php tests/release/v110-endpoint-gate.php
 
       - name: Require native PHP7 and PHP8 integration at the release commit

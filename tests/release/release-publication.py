@@ -27,6 +27,15 @@ assert names.index('Build source archive') < names.index('Prepare validated rele
 assert names.index('Build native PHP7 shared-hosting package') < names.index('Prepare validated release draft')
 assert names.index('Checksum release distributions') < names.index('Prepare validated release draft')
 assert names.index('Require native PHP7 and PHP8 integration at the release commit') < names.index('Build native PHP7 shared-hosting package')
+assert "steps.marker.outputs.version == '1.1.0'" not in workflow
+assert (
+    "      - name: Verify endpoint certification before every stable publication\n"
+    "        if: steps.marker.outputs.ready == 'true'\n"
+    "        run: php tests/release/v110-endpoint-gate.php\n"
+) in workflow, "Stable publication must certify all versions, not just 1.1.0"
+validate_workflow = (ROOT / '.github/workflows/validate.yml').read_text()
+assert 'if [[ -f ".release/v${VERSION}.ready" ]]; then' in validate_workflow
+assert 'if [[ "$VERSION" == \'1.1.0\'' not in validate_workflow
 for upload in ('Upload source archive', 'Upload native PHP7 shared-hosting package', 'Upload release checksums'):
     assert names.index(upload) < names.index('Publish complete validated release')
 
