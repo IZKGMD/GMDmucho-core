@@ -37,6 +37,6 @@
   "public/admin/actions/news.php": "acaa0ea1ca080c34dd82d156f13526e1cd010c85310265bcc65754333520ad0c",
   "public/admin/assets/qrcode.min.js": "c541ef06327885a8415bca8df6071e14189b4855336def4f36db54bde8484f36",
   "src/Admin/AdminRbac.php": "69fce495608f83a02fdd9df10f46117b0c008db7b70d18bf29478c494d35ecd6",
-  "src/Backup/DatabaseBackupService.php": "3b750af0202036e6764489cd2eb9efdac31245956f9b9787d3d533f60be2e301",
+  "src/Backup/DatabaseBackupService.php": "175321971bddfb6d0c3e31bc3a084defdd328c51b7105ba94114bd5ffdd20f99",
   "public/admin/db-backup-center-module.php": "37de0bcc01eddc5152595c26135a78faadda75447b5bc32d5378a32838a9b014"
 }
