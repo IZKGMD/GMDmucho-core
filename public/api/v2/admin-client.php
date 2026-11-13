@@ -163,6 +163,7 @@ function requireAdmin(PDO $db, int $minimumRank = 10): array
            AND t.revoked_at IS NULL
            AND t.expires_at > NOW()
            AND a.is_active = 1
+           AND a.password_must_set = 0
          LIMIT 1'
     );
     $query->execute(['token_hash' => hash('sha256', $rawToken)]);
@@ -249,7 +250,7 @@ try {
         }
 
         $query = $db->prepare(
-            'SELECT id, username, password_hash, role, totp_secret, is_active
+            'SELECT id, username, password_hash, role, totp_secret, is_active, password_must_set
              FROM admin_users WHERE username = :username LIMIT 1'
         );
         $query->execute(['username' => $username]);
@@ -257,7 +258,7 @@ try {
 
         $dummyHash = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.';
         $passwordOk = password_verify($password, (string)($row['password_hash'] ?? $dummyHash));
-        $active = $row && (int)$row['is_active'] === 1;
+        $active = $row && (int)$row['is_active'] === 1 && (int)$row['password_must_set'] === 0;
 
         $attempt = $db->prepare(
             'INSERT INTO mucho_admin_client_login_attempts (username, ip_hash, success)
