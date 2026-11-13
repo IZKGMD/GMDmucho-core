@@ -165,6 +165,23 @@ assertSameValue(
     'legacy wire-format body is passed through without double encoding'
 );
 
+// The GD 2.209 client appends "ago" to key 7. A full calendar date
+// renders as a malformed age in the native private-message inbox.
+$ageMessage = $messageEncoder->encodeMessage([
+    'id' => 56,
+    'user_id' => 20,
+    'account_id' => 30,
+    'username' => 'Sender',
+    'subject' => 'Recent',
+    'content_format' => 1,
+    'is_read' => 0,
+    'created_at' => gmdate('Y-m-d H:i:s', time() - 125),
+]);
+assertSameValue(true, str_contains($ageMessage, ':7:2 minutes'),
+    'private message age is elapsed time, not a date');
+assertSameValue(false, preg_match('~:7:[^#|]*[/]~', $ageMessage) === 1,
+    'message timestamp never contains a slash-formatted calendar date');
+
 $relationship = new GdRelationshipEncoder();
 $users = $relationship->users([[
     'account_id' => 30,
