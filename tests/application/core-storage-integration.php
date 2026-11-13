@@ -27,15 +27,15 @@ final class CacheSnapshotStatement extends PDOStatement
 
     protected function __construct() {}
 
-    public function fetch(int $mode = PDO::FETCH_DEFAULT, int $cursorOrientation = PDO::FETCH_ORI_NEXT, int $cursorOffset = 0): mixed
+    public function fetchColumn(int $column = 0): mixed
     {
-        $row = parent::fetch($mode, $cursorOrientation, $cursorOffset);
+        $value = parent::fetchColumn($column);
         if (str_starts_with($this->queryString, 'SELECT cache_value') && self::$afterFetch !== null) {
             $callback = self::$afterFetch;
             self::$afterFetch = null;
             $callback();
         }
-        return $row;
+        return $value;
     }
 }
 
@@ -150,10 +150,26 @@ try {
         'cache miss preserves a concurrently inserted entry');
     $cache->set('empty', '', 0);
     storageCheck($cache->get('empty') === '', 'empty non-expiring cache values are valid hits');
+    $cache->set('zero', '0', 0);
+    storageCheck($cache->get('zero') === '0', 'cached string zero is not confused with a miss');
+
     $writer->exec("UPDATE mucho_cache SET expires_at=1 WHERE cache_key='empty'");
-    storageCheck($cache->get('empty') === null &&
+    $beforeExec = (int)$pdo->query("SHOW SESSION STATUS LIKE 'Com_stmt_execute'")->fetchColumn(1);
+    storageCheck($cache->get('empty') === null, 'expired cache entry is invisible to the reader');
+    $afterExec = (int)$pdo->query("SHOW SESSION STATUS LIKE 'Com_stmt_execute'")->fetchColumn(1);
+    storageCheck($afterExec - $beforeExec === 1,
+        'expired cache get executes one prepared SQL statement instead of select and delete');
+
+    // Background / opportunistic purge uses the expiry index and is bounded.
+    // Reads never delete a row that a concurrent writer may be refreshing.
+    storageCheck(
+        (int)$writer->query("SELECT COUNT(*) FROM mucho_cache WHERE cache_key='empty'")->fetchColumn() === 1 &&
+        $cache->pruneExpired(1) === 1 &&
         (int)$writer->query("SELECT COUNT(*) FROM mucho_cache WHERE cache_key='empty'")->fetchColumn() === 0,
-        'expired entries are removed');
+        'bounded off-read-path cleanup eventually removes expired entries'
+    );
+    storageCheck($cache->pruneExpired(0) === 0 && $cache->get('zero') === '0',
+        'invalid cleanup budget does not affect live entries');
     foreach (['unit%_!:one', 'unit%_!:two', 'unitAA!:other', 'unrelated'] as $key) {
         $cache->set($key, $key, 0);
     }
