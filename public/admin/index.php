@@ -219,12 +219,17 @@ CREATE TABLE IF NOT EXISTS admin_users (
 // Invalidate previous sessions after a password reset or account suspension.
 if (isset($_SESSION['admin']) && is_array($_SESSION['admin'])) {
     $sessionId = (int) ($_SESSION['admin']['id'] ?? 0);
-    $sessionQuery = $db->prepare('SELECT password_hash,is_active FROM admin_users WHERE id=:id LIMIT 1');
+    $sessionQuery = $db->prepare('SELECT password_hash,is_active,role FROM admin_users WHERE id=:id LIMIT 1');
     $sessionQuery->execute(['id' => $sessionId]);
     $sessionRow = $sessionQuery->fetch(PDO::FETCH_ASSOC);
     $fingerprint = (string) ($_SESSION['admin_password_fingerprint'] ?? '');
-    if (!$sessionRow || (int) $sessionRow['is_active'] !== 1 || $fingerprint === '' ||
-        !hash_equals(hash('sha256', (string) $sessionRow['password_hash']), $fingerprint)) {
+    // Demotion/role reassignment must invalidate open sessions immediately.
+    // Otherwise requireRank() and owner checks keep using a stale session role.
+    if (!\MuchoCore\Admin\AdminSessionGuard::matches(
+        $_SESSION['admin'],
+        $fingerprint,
+        is_array($sessionRow) ? $sessionRow : null
+    )) {
         unset($_SESSION['admin'], $_SESSION['admin_password_fingerprint'],
               $_SESSION['admin_login_at'], $_SESSION['admin_last_activity']);
     }
