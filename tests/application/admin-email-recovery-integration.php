@@ -50,6 +50,12 @@ try {
         metadata TEXT NULL,
         ip VARCHAR(45) NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $db->exec("CREATE TABLE mucho_admin_client_tokens (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        admin_user_id BIGINT UNSIGNED NOT NULL,
+        token_hash CHAR(64) NOT NULL UNIQUE,
+        revoked_at DATETIME NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
     $oldPassword = 'previous-admin-password-123';
     $admin = $db->prepare('INSERT INTO admin_users
@@ -57,6 +63,22 @@ try {
     $admin->execute(['u' => 'admin', 'h' => password_hash($oldPassword, PASSWORD_DEFAULT),
         't' => 'TEST_TOTP_PRESERVED', 'a' => 1]);
     $id = (int) $db->lastInsertId();
+
+    // Two live API credentials exist before the reset. Only the recovered
+    // admin must lose access; unrelated administrators remain signed in.
+    $admin->execute(['u' => 'other-admin', 'h' => password_hash('unrelated-admin-password', PASSWORD_DEFAULT),
+        't' => null, 'a' => 1]);
+    $otherId = (int)$db->lastInsertId();
+    $tokens = $db->prepare('INSERT INTO mucho_admin_client_tokens
+        (admin_user_id,token_hash) VALUES (:id,:token)');
+    $tokens->execute(['id' => $id, 'token' => hash('sha256', 'stale-pre-reset-token')]);
+    $tokens->execute(['id' => $otherId, 'token' => hash('sha256', 'unrelated-admin-token')]);
+    $revocationCount = static function(int $adminId) use ($db): int {
+        $q = $db->prepare('SELECT COUNT(*) FROM mucho_admin_client_tokens
+            WHERE admin_user_id=:id AND revoked_at IS NOT NULL');
+        $q->execute(['id' => $adminId]);
+        return (int)$q->fetchColumn();
+    };
 
     AdminEmailRecovery::ensureSchema($db);
     AdminEmailRecovery::ensureSchema($db);
@@ -98,9 +120,13 @@ try {
     recoveryAssert(!AdminEmailRecovery::resetPassword($db, $resetToken,
         'new-password-is-long-enough', 'mismatch', '127.0.0.1'),
         'confirmation mismatch is rejected');
+    recoveryAssert($revocationCount($id) === 0 && $revocationCount($otherId) === 0,
+        'invalid password reset attempts do not revoke valid sessions');
     recoveryAssert(AdminEmailRecovery::resetPassword($db, $resetToken,
         'new-password-is-long-enough', 'new-password-is-long-enough', '127.0.0.1'),
         'valid password reset succeeds');
+    recoveryAssert($revocationCount($id) === 1 && $revocationCount($otherId) === 0,
+        'email reset revokes only the recovered admin API bearer tokens');
     recoveryAssert(!AdminEmailRecovery::resetPassword($db, $resetToken,
         'another-long-password', 'another-long-password', '127.0.0.1'),
         'reset link is single-use');
