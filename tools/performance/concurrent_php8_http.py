@@ -260,6 +260,8 @@ def main():
             if not stage["passed"]:
                 all_passed = False
                 break
+        if not all_passed:
+            break
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
