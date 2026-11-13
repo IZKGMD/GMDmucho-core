@@ -212,6 +212,15 @@ final class AdminEmailRecovery
                 $db->rollBack();
                 return false;
             }
+            // Changing an administrator password must invalidate *all* API
+            // sessions too, not only browser sessions bound to the old hash.
+            // Keep revocation in the same transaction as the password update:
+            // a failed revocation must never leave a successful reset behind.
+            $revoke = $db->prepare('UPDATE mucho_admin_client_tokens
+                SET revoked_at=UTC_TIMESTAMP()
+                WHERE admin_user_id=:id AND revoked_at IS NULL');
+            $revoke->execute(['id' => (int) $id]);
+
             self::audit($db, (int) $id, 'admin.password.email_reset');
             $db->commit();
             return true;
