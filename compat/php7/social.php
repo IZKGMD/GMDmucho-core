@@ -61,13 +61,38 @@ function mucho7_relationship_wire($row, $request, $includeStats = false)
     return implode(':',$fields);
 }
 
+/** Private-message field 7 is elapsed age; the client renders "ago". */
+function mucho7_message_age($value)
+{
+    try {
+        $date = new DateTimeImmutable((string)$value, new DateTimeZone('UTC'));
+        $timestamp = $date->getTimestamp();
+    } catch (Throwable $exception) {
+        return '0 seconds';
+    }
+    $elapsed = max(0, time() - $timestamp);
+    $units = array(
+        array(31536000, 'year'), array(2592000, 'month'),
+        array(604800, 'week'), array(86400, 'day'),
+        array(3600, 'hour'), array(60, 'minute')
+    );
+    foreach ($units as $item) {
+        if ($elapsed < $item[0]) {
+            continue;
+        }
+        $count = intdiv($elapsed, $item[0]);
+        return $count . ' ' . $item[1] . ($count === 1 ? '' : 's');
+    }
+    return $elapsed . ' second' . ($elapsed === 1 ? '' : 's');
+}
+
 function mucho7_message_wire($row, $sent, $withBody)
 {
     $fields = array(6,mucho7_username($row['username']),3,(int)$row['user_id'],
         2,(int)$row['peer_id'],1,(int)$row['id'],4,$row['subject'],
         8,(int)$row['is_read'],9,$sent?1:0);
     if ($withBody) { $fields[]=5; $fields[]=$row['body']; }
-    $fields[]=7; $fields[]=gmdate('d/m/Y G.i',mucho7_epoch($row['created_at']));
+    $fields[]=7; $fields[]=mucho7_message_age($row['created_at']);
     return implode(':',$fields);
 }
 

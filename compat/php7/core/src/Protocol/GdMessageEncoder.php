@@ -40,6 +40,21 @@ final class GdMessageEncoder
     private function formatDate(string $date): string
     {
         $timestamp = strtotime($date);
-        return $timestamp === false ? '' : date('d/m/Y G.i', $timestamp);
+        if ($timestamp === false) {
+            return '0 seconds';
+        }
+        $elapsed = max(0, time() - $timestamp);
+        foreach (array(
+            array(31536000, 'year'), array(2592000, 'month'),
+            array(604800, 'week'), array(86400, 'day'),
+            array(3600, 'hour'), array(60, 'minute')
+        ) as $item) {
+            if ($elapsed < $item[0]) {
+                continue;
+            }
+            $count = intdiv($elapsed, $item[0]);
+            return $count . ' ' . $item[1] . ($count === 1 ? '' : 's');
+        }
+        return $elapsed . ' second' . ($elapsed === 1 ? '' : 's');
     }
 }

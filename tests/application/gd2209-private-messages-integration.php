@@ -12,6 +12,8 @@ use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Protocol\GdMessageEncoder;
 use MuchoCore\Social\MessageRepository;
 use MuchoCore\Social\MessageService;
+use MuchoCore\Social\MessageController;
+use MuchoCore\Http\Request;
 use MuchoCore\Social\RelationshipRepository;
 
 $host = getenv('TEST_DB_HOST');
@@ -207,6 +209,53 @@ try {
         VALUES (1,'message',DATE_ADD(UTC_TIMESTAMP(),INTERVAL 1 HOUR))");
     $check(!$messages->sendMessage(1, 'test-1', 2, $subjectWire, $bodyWire),
         'temporary message restriction prevents sending');
+
+    // Exercise the GD 2.209 form contract at the real controller boundary,
+    // not just the MessageService, using disposable CI accounts.
+    $db->exec("DELETE FROM mucho_gd2209_restrictions WHERE account_id=1 AND kind='message'");
+    $nativePost = [
+        'accountID' => '1', 'gjp2' => 'test-1', 'toAccountID' => '2',
+        'subject' => $subjectWire, 'body' => $bodyWire,
+        'gameVersion' => '22', 'binaryVersion' => '51',
+        'secret' => 'Wmfd2893gb7',
+    ];
+    parse_str(http_build_query($nativePost), $decodedNativePost);
+    $nativeRequest = static fn(string $route, array $post): Request =>
+        new Request('POST', '/database/' . $route . '.php', [], $post,
+            ['REMOTE_ADDR' => '127.0.0.1']);
+    $controller = new MessageController($messages);
+    $countBeforeNative = (int)$db->query('SELECT COUNT(*) FROM messages
+        WHERE account_id=1 AND to_account_id=2 AND content_format=1')
+            ->fetchColumn();
+    $nativeResponse = $controller->sendMessage(
+        $nativeRequest('uploadGJMessage20', $decodedNativePost)
+    );
+    $check($nativeResponse->body === '1',
+        'GD 2.209 HTTP-form controller accepts valid encoded message');
+    $nativeId = (int)$db->lastInsertId();
+    $nativeStored = $db->prepare('SELECT subject,body,content_format
+        FROM messages WHERE id=? AND account_id=1 AND to_account_id=2');
+    $nativeStored->execute([$nativeId]);
+    $nativeRow = $nativeStored->fetch(PDO::FETCH_ASSOC);
+    $check($nativeId > 0 && $nativeRow !== false &&
+        $nativeRow['subject'] === $subject &&
+        $nativeRow['body'] === $body &&
+        (int)$nativeRow['content_format'] === 1,
+        'GD 2.209 controller acknowledgement persists exact decoded bytes');
+    $nativeInbox = $controller->getMessages($nativeRequest('getGJMessages20',
+        ['accountID' => '2', 'gjp2' => 'test-2',
+         'gameVersion' => '22', 'binaryVersion' => '51']));
+    $check(str_contains($nativeInbox->body, ':1:' . $nativeId . ':'),
+        'GD 2.209 recipient inbox sees submitted message');
+    $invalidPost = $decodedNativePost;
+    $invalidPost['gjp2'] = 'invalid';
+    $check($controller->sendMessage($nativeRequest('uploadGJMessage20',
+        $invalidPost))->body === '-1',
+        'GD 2.209 HTTP-form controller rejects invalid credentials');
+    $check((int)$db->query('SELECT COUNT(*) FROM messages
+        WHERE account_id=1 AND to_account_id=2 AND content_format=1')
+            ->fetchColumn() === $countBeforeNative + 1,
+        'invalid GD 2.209 request creates no extra row');
 
     echo "MUCHOCORE_PRIVATE_MESSAGE_INTEGRATION_OK\n";
 } finally {
