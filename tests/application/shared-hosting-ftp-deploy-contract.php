@@ -96,6 +96,27 @@ if (!str_contains($worker, 'hash_equals($token, trim($response[\'body\']))')
     throw new RuntimeException('Shared web-root detection must validate marker content and report HTTP probe status.');
 }
 
+// Temporary testing bypass must be explicitly configured for one site
+// and must expire without disabling deployment concurrency or session checks.
+foreach ([
+    'MUCHO_DEPLOY_TEST_SITE',
+    'MUCHO_DEPLOY_RATE_LIMIT_DISABLED_UNTIL',
+    'function test_site_rate_limit_disabled(array $request): bool',
+    'function rate_limit_ok(array $request): bool',
+    '$data = request_json();',
+    'if (!rate_limit_ok($data))',
+    'hash_equals($site, $urlHost)',
+    '(int)$until <= time()',
+] as $needle) {
+    if (!str_contains($deploy, $needle)) {
+        throw new RuntimeException('Expiring site-scoped deploy testing bypass missing: ' . $needle);
+    }
+}
+if (!str_contains($dockerCompose, 'MUCHO_DEPLOY_TEST_SITE: ${MUCHO_DEPLOY_TEST_SITE:-}')
+    || !str_contains($dockerCompose, 'MUCHO_DEPLOY_RATE_LIMIT_DISABLED_UNTIL: ${MUCHO_DEPLOY_RATE_LIMIT_DISABLED_UNTIL:-0}')) {
+    throw new RuntimeException('Temporary rate limit override must use explicitly configured Docker runtime values.');
+}
+
 if (str_contains($worker, '[21, 990]') || str_contains($worker, '[$requestedPort, 21, 990]')) {
     throw new RuntimeException('Explicit FTPS cannot use implicit-TLS port 990 as an automatic fallback.');
 }

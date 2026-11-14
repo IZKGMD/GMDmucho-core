@@ -192,8 +192,32 @@ function client_ip(): string
     return (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
 }
 
-function rate_limit_ok(): bool
+/**
+ * Temporarily disable only the per-IP attempt counter for an explicitly
+ * selected 5v.pl testing site. A Unix expiry makes this revert automatically.
+ * Job concurrency, session ownership, FTP validation and deployment locks
+ * remain active.
+ */
+function test_site_rate_limit_disabled(array $request): bool
 {
+    $site = strtolower(trim((string)($_ENV['MUCHO_DEPLOY_TEST_SITE'] ?? getenv('MUCHO_DEPLOY_TEST_SITE') ?: '')));
+    $until = trim((string)($_ENV['MUCHO_DEPLOY_RATE_LIMIT_DISABLED_UNTIL'] ?? getenv('MUCHO_DEPLOY_RATE_LIMIT_DISABLED_UNTIL') ?: ''));
+    if ($site === '' || !preg_match('/^[1-9][0-9]{9}$/D', $until) || (int)$until <= time()) {
+        return false;
+    }
+    if (strtolower((string)($request['type'] ?? '')) !== 'shared'
+        || strtolower((string)($request['provider'] ?? '')) !== '5v.pl') {
+        return false;
+    }
+    $urlHost = strtolower((string)(parse_url((string)($request['account_url'] ?? ''), PHP_URL_HOST) ?: ''));
+    return $urlHost !== '' && hash_equals($site, $urlHost);
+}
+
+function rate_limit_ok(array $request): bool
+{
+    if (test_site_rate_limit_disabled($request)) {
+        return true;
+    }
     $ip = preg_replace('/[^0-9a-fA-F:._-]/', '_', client_ip()) ?: 'unknown';
     $bucket = JOB_ROOT . '/rate-' . substr(hash('sha256', $ip), 0, 24) . '.json';
     $now = time();
@@ -602,7 +626,8 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
         json_response(['ok' => false, 'error' => 'Deployment start is temporarily unavailable.'], 503);
     }
 
-    if (!rate_limit_ok()) {
+    $data = request_json();
+    if (!rate_limit_ok($data)) {
         @flock($startLock, LOCK_UN);
         @fclose($startLock);
         json_response(['ok' => false, 'error' => 'Too many deployment attempts from this client. Try again later.'], 429);
@@ -610,7 +635,6 @@ if ($method === 'POST' && $path === '/api/deploy/start') {
 
     $max = max(1, (int)($_ENV['MUCHO_DEPLOY_MAX_CONCURRENT'] ?? getenv('MUCHO_DEPLOY_MAX_CONCURRENT') ?: 2));
 
-    $data = request_json();
     $deploymentType = strtolower(trim((string)($data['type'] ?? 'vps')));
 
     if ($deploymentType === 'shared') {
