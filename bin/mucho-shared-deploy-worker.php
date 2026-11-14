@@ -900,14 +900,14 @@ function detect_web_root(
     $candidates = array_values(array_unique(array_merge($candidates, $domainCandidates)));
 
     $token = bin2hex(random_bytes(12));
-    $markerName = '.muchocore-root-probe-' . $token . '.txt';
+    $markerName = 'muchocore-root-probe-' . $token . '.txt';
     $markerLocal = $jobDir . '/' . $markerName;
     file_put_contents($markerLocal, $token, LOCK_EX);
     @chmod($markerLocal, 0600);
 
     try {
         foreach ($candidates as $candidate) {
-            if (!safe_remote_candidate($candidate)) {
+            if ($candidate !== '.' && !safe_remote_candidate($candidate)) {
                 continue;
             }
             if (!@ftp_chdir($ftp, $configuredBase)) {
@@ -931,11 +931,12 @@ function detect_web_root(
             try {
                 $probeUrl = rtrim($accountUrl, '/') . '/' . rawurlencode($markerName) . '?m=' . $token;
                 $response = http_request($probeUrl, $ip, $jobDir . '/shared_cookie', null);
-                if ($response['status'] === 200 && trim($response['body']) === $token) {
+                if ($response['status'] === 200 && hash_equals($token, trim($response['body']))) {
                     @ftp_delete($ftp, $markerName);
                     log_line($logFile, "[MuchoGDPS] Auto-detected web root: {$candidateBase}\n");
                     return $candidateBase;
                 }
+                log_line($logFile, "[MuchoGDPS] Web-root probe did not match for {$candidate} (HTTP {$response['status']}).\n");
             } finally {
                 @ftp_delete($ftp, $markerName);
             }
