@@ -114,11 +114,18 @@ try {
             $factorVersion=mucho7_admin_factor_login($pdo,$aid,isset($_POST['otp']) && is_string($_POST['otp'])?trim($_POST['otp']):'');
             $user=$loginUser;
             mucho7_admin_establish_session($aid,$factorVersion,$instance);$_SESSION['notice']='Signed in.';
-            // Owner onboarding is not complete until the full PHP7 game
-            // schema is installed. Take a new owner directly to that step.
-            $nextPage=$loginUser['role']==='owner'
-                && !is_file($root.'/config/php7-complete.on')
-                ? 'system' : 'overview';
+            // The authenticated owner login POST authorizes one automatic,
+            // resumable activation sequence. A GET never mutates the database.
+            $needsCore=$loginUser['role']==='owner'
+                && (!is_file($root.'/config/php7-complete.on')
+                    || is_file($root.'/config/php7-core-transition.json'));
+            if($needsCore){
+                $_SESSION['core_auto_start']=1;
+                $_SESSION['core_auto_flow']=1;
+            }else{
+                unset($_SESSION['core_auto_start'],$_SESSION['core_auto_flow']);
+            }
+            $nextPage=$needsCore?'system':'overview';
             header('Location: ?page='.$nextPage,true,303);exit;
         }
         if(!$user){http_response_code(403);throw new RuntimeException('Sign in to the panel first.');}
@@ -128,7 +135,16 @@ try {
         if($action==='core-upgrade'||$action==='core-install'){
             $progress=$action==='core-install'?mucho7_core_deploy($pdo,(int)$user['account_id'],$root):mucho7_core_upgrade($pdo,(int)$user['account_id'],$root,$settings);
             $_SESSION['notice']=$progress['message'];
-            if(!$progress['done'])$_SESSION['core_upgrade_continue']=$progress['delay'];
+            if(!$progress['done']){
+                $_SESSION['core_upgrade_continue']=$progress['delay'];
+            }else{
+                unset($_SESSION['core_upgrade_continue'],$_SESSION['core_auto_start']);
+                // The auto-install journey ends on the next useful action.
+                if($action==='core-upgrade'&&!empty($_SESSION['core_auto_flow'])){
+                    unset($_SESSION['core_auto_flow']);
+                    header('Location: ?page=clientpatcher',true,303);exit;
+                }
+            }
             header('Location: ?page=system',true,303);exit;
         }
         $runtimeLock=mucho7_core_lock($root,false);
@@ -152,11 +168,11 @@ try {
         }
     }
 } catch(PDOException $e){
-    unset($_SESSION['core_upgrade_continue']);
+    unset($_SESSION['core_upgrade_continue'],$_SESSION['core_auto_start'],$_SESSION['core_auto_flow']);
     $error='Database operation failed. Check the connection and update the database schema in the panel.';
     error_log('[MuchoCore Shared admin] Database operation failed');
-} catch(Exception $e){unset($_SESSION['core_upgrade_continue']);$error=$e->getMessage();}
-catch(Error $e){unset($_SESSION['core_upgrade_continue']);$error='The action failed. Details were recorded in the server log.';error_log('[MuchoCore Shared admin] '.get_class($e));}
+} catch(Exception $e){unset($_SESSION['core_upgrade_continue'],$_SESSION['core_auto_start'],$_SESSION['core_auto_flow']);$error=$e->getMessage();}
+catch(Error $e){unset($_SESSION['core_upgrade_continue'],$_SESSION['core_auto_start'],$_SESSION['core_auto_flow']);$error='The action failed. Details were recorded in the server log.';error_log('[MuchoCore Shared admin] '.get_class($e));}
 if($method==='POST'&&isset($_POST['action'])&&is_string($_POST['action'])&&strpos($_POST['action'],'shared-patcher-')===0)mucho7_patcher_json(array('ok'=>false,'error'=>$error!==''?$error:'The request failed.'),http_response_code()>=400?http_response_code():400);
 if($method==='POST'&&isset($_POST['action'])&&is_string($_POST['action'])&&strpos($_POST['action'],'shared-passkey-')===0)mucho7_passkey_json(array('ok'=>false,'error'=>$error!==''?$error:'The request failed.'),http_response_code()>=400?http_response_code():400);
 if(isset($_GET['shared_patcher_download'])){
