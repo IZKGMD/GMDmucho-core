@@ -110,7 +110,26 @@ foreach ([
     'global owner setup reminder' => str_contains($php7View, 'Setup incomplete: Step 2 of 3'),
     'client patcher preserves original renderer' =>
         str_contains($php7View, "elseif(\$page==='clientpatcher')require"),
-    'native wizard explains client tests' => str_contains($php7Setup, 'тестовых аккаунтах'),
+    'native wizard explains client tests' => str_contains($php7Setup, 'тестовыми аккаунтами'),
+    'native wizard opens authenticated admin next' =>
+        str_contains($php7Setup, "window.location.replace('php7-admin.php?page=system')"),
+    'owner login explicitly starts migration' =>
+        str_contains($nativeAdminPage, "\$_SESSION['core_auto_start']=1;")
+        && str_contains($nativeAdminPage, "\$_SESSION['core_auto_flow']=1;"),
+    'automatic activation limited to owner' =>
+        str_contains($nativeAdminPage, "\$needsCore=\$loginUser['role']==='owner'"),
+    'migration remains authenticated and CSRF-protected' =>
+        str_contains($nativeAdminPage, "if(!\$user){http_response_code(403)")
+        && str_contains($nativeAdminPage, "hash_equals(\$_SESSION['csrf'],\$_POST['csrf'])"),
+    'automatic activation consumes one-time session state' =>
+        str_contains($nativeUpgrade, "unset(\$_SESSION['core_auto_start']);"),
+    'auto continuation uses authenticated POST and CSP nonce' =>
+        str_contains($nativeUpgrade, "form.requestSubmit ? form.requestSubmit() : form.submit()")
+        && str_contains($nativeUpgrade, "nonce=\"'.h(\$nonce).'\""),
+    'automatic completion opens client patcher' =>
+        str_contains($nativeAdminPage, "header('Location: ?page=clientpatcher',true,303)"),
+    'failures stop automatic migration' =>
+        str_contains($nativeAdminPage, "unset(\$_SESSION['core_upgrade_continue'],\$_SESSION['core_auto_start'],\$_SESSION['core_auto_flow'])"),
 ] as $case => $ok) {
     if (!$ok) {
         throw new RuntimeException('PHP7 first-run onboarding broken: ' . $case);
