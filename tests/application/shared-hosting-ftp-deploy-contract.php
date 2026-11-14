@@ -47,6 +47,8 @@ foreach ([
     "extension_loaded('ftp')",
     'ftp_connect_public',
     'ftp_ssl_connect',
+    "function_exists('ftp_ssl_connect')",
+    'FTPS unavailable in deployment PHP; skipping FTPS attempts.',
     'ftp_pasv',
     'ftp_open_authenticated',
     'detect_web_root',
@@ -77,6 +79,18 @@ foreach ([
     if (!str_contains($worker, $needle)) {
         throw new RuntimeException('Shared FTP worker contract missing: ' . $needle);
     }
+}
+
+if (str_contains($worker, '[21, 990]') || str_contains($worker, '[$requestedPort, 21, 990]')) {
+    throw new RuntimeException('Explicit FTPS cannot use implicit-TLS port 990 as an automatic fallback.');
+}
+if (!str_contains($dockerfile, 'docker-php-ext-configure ftp --with-openssl-dir=/usr')
+    || !str_contains($dockerfile, 'function_exists("ftp_ssl_connect")')
+    || !str_contains($dockerfile, 'docker-php-ext-install pdo_mysql zip')
+    || !str_contains($dockerfile, 'docker-php-ext-install ftp')
+    || strpos($dockerfile, 'docker-php-ext-configure ftp --with-openssl-dir=/usr')
+        <= strpos($dockerfile, 'docker-php-ext-install pdo_mysql zip')) {
+    throw new RuntimeException('Deployment Docker image must include working FTP TLS support.');
 }
 
 foreach ([
@@ -149,7 +163,7 @@ foreach ([
     }
 }
 
-if (!str_contains($dockerfile, 'pdo_mysql zip ftp')) {
+if (!str_contains($dockerfile, 'docker-php-ext-install ftp')) {
     throw new RuntimeException('Deployment image must include PHP FTP support.');
 }
 
