@@ -117,6 +117,24 @@ if (!str_contains($dockerCompose, 'MUCHO_DEPLOY_TEST_SITE: ${MUCHO_DEPLOY_TEST_S
     throw new RuntimeException('Temporary rate limit override must use explicitly configured Docker runtime values.');
 }
 
+// A 5v.pl FTP account may expose only the site folder, or its parent.
+foreach ([
+    "'public_html/' . \$siteMatch[1]",
+    "function ftp_probe_upload(",
+    "FTP_BINARY",
+    "ftp_nlist(\$ftp, '.')",
+    "FTP_USEPASVADDRESS",
+    "Passive FTP address fallback succeeded.",
+    "ftp_probe_upload(\$ftp, \$markerName, \$markerLocal, \$candidate, \$logFile)",
+] as $needle) {
+    if (!str_contains($worker, $needle)) {
+        throw new RuntimeException('5v.pl FTP data transfer contract missing: ' . $needle);
+    }
+}
+if (str_contains($worker, 'ftp_put($ftp, $markerName, $markerLocal, FTP_ASCII)')) {
+    throw new RuntimeException('The FTP root marker must be uploaded in binary mode.');
+}
+
 if (str_contains($worker, '[21, 990]') || str_contains($worker, '[$requestedPort, 21, 990]')) {
     throw new RuntimeException('Explicit FTPS cannot use implicit-TLS port 990 as an automatic fallback.');
 }
