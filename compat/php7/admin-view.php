@@ -78,12 +78,7 @@ if($schemaReady && canAdminPage($page)){
         }
     }
     elseif($page==='dashboard'){require_once __DIR__.'/admin-ui/dashboard.php';renderAdminDashboard($db);}
-    elseif($page==='clientpatcher'){
-        if(!is_file($root.'/config/php7-complete.on')||is_file($root.'/config/php7-core-transition.json')){
-            if($isOwner)mucho7_core_render($db,$root);
-            else echo '<p>The server owner must finish core setup before patching clients.</p>';
-        }else require __DIR__.'/admin-ui/clientpatcher.php';
-    }
+    elseif($page==='clientpatcher')require __DIR__.'/admin-ui/clientpatcher.php';
     elseif($page==='players')require __DIR__.'/admin-ui/players.php';
     elseif($page==='levels'||$page==='moderation')require __DIR__.'/admin-ui/levels-moderation.php';
     elseif($page==='rating')require __DIR__.'/admin-ui/rating.php';
