@@ -392,7 +392,10 @@ def preflight(remote, https):
 def plan_root_rewrites(remote):
     current = remote.get('.htaccess', max_size=250_000)
     if current is None:
-        raise RuntimeError('Site root .htaccess is missing; inspect routing before update.')
+        updated = ('RewriteEngine On\n# MuchoCore PHP7 routes for ' + TARGET_SITE
+                   + '\n' + '\n'.join(ROOT_RULES) + '\n# End MuchoCore PHP7 routes\n')
+        say('[ROUTES] Site root .htaccess is absent; prepared a new routing file.')
+        return None, updated.encode('utf-8')
     try:
         text = current.decode('utf-8')
     except UnicodeError as ex:
@@ -442,7 +445,8 @@ def backup_files(remote, files, path, build_sha, root_old=None, root_new=None, m
             'target_site': TARGET_SITE,
             'file_count': len(old),
             'new_files': (['mc/'+name for name in items if name not in old and name not in skipped]
-                          + (['mc/public/php7-mode.on'] if mode_missing else [])),
+                          + (['mc/public/php7-mode.on'] if mode_missing else [])
+                          + (['.htaccess'] if root_old is None and root_new is not None else [])),
             'sha256': {(name if name == '.htaccess' else 'mc/'+name):sha(value) for name,value in old.items()}
         }, indent=2))
     backup_temp.rename(path)
@@ -480,7 +484,7 @@ def perform_upload(remote, files, old, unchanged, root_new=None):
                 raise RuntimeError('FTP read-back SHA-256 mismatch: ' + rel)
             if idx % 25 == 0 or idx == len(items):
                 say('[FTP] Verified '+str(idx)+'/'+str(len(items))+' files.')
-        if '.htaccess' in old:
+        if root_new is not None and ('.htaccess' in old or remote.get('.htaccess') is None):
             touched.append('.htaccess')
             remote.put('.htaccess', root_new)
             if sha(remote.get('.htaccess', required=True)) != sha(root_new):
@@ -554,7 +558,7 @@ def restore_backup(remote, backup):
             if sha(data) != digest:
                 raise RuntimeError('Backup SHA-256 mismatch: ' + rel)
         for rel in new:
-            if not isinstance(rel, str) or not rel.startswith('mc/') or '..' in rel.split('/'):
+            if not isinstance(rel, str) or (not rel.startswith('mc/') and rel != '.htaccess') or '..' in rel.split('/'):
                 raise RuntimeError('Unsafe new-file path in backup.')
         for rel in new:
             remote.delete(rel)

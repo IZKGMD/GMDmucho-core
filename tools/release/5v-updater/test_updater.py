@@ -167,6 +167,20 @@ class UpdateTests(unittest.TestCase):
         self.assertIn(b'mc/public/php7.php', new)
         self.assertEqual(u.plan_root_rewrites(MemoryRemote({'.htaccess': new}))[1], new)
 
+    def test_missing_root_htaccess_created_and_rolled_back(self):
+        remote = MemoryRemote({'mc/admin.php': b'old'})
+        root_old, root_new = u.plan_root_rewrites(remote)
+        self.assertIsNone(root_old)
+        with tempfile.TemporaryDirectory() as d:
+            backup = Path(d)/'backup.zip'
+            old, unchanged = u.backup_files(remote, {'admin.php': b'old'}, backup, 'a'*64,
+                                             root_old, root_new)
+            u.perform_upload(remote, {'admin.php': b'old'}, old, unchanged, root_new)
+            self.assertEqual(remote.get('.htaccess'), root_new)
+            u.restore_backup(remote, backup)
+            self.assertIsNone(remote.get('.htaccess'))
+            self.assertEqual(remote.get('mc/admin.php'), b'old')
+
     def test_diagnostic_log_masks_password(self):
         with tempfile.TemporaryDirectory() as d:
             u.DIAGNOSTIC_FILE = str(Path(d)/'log.txt')
