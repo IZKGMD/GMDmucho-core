@@ -112,23 +112,48 @@ function mucho7_core_render(PDO $db,$root)
 {
     $transition=is_file($root.'/config/php7-core-transition.json');
     $active=is_file($root.'/config/php7-complete.on')&&!$transition;
-    echo '<section class="card"><h2>Full core migration</h2><p>'.($active?'The server is initialized. The full MuchoCore handler is enabled.':'Final setup step: initialize the full game database before patching and inviting players. Existing accounts, IDs and admin access are preserved. The game API pauses briefly during migration.').'</p>';
-    if($active)echo '<p><a href="?page=clientpatcher">Open Client patcher</a> to prepare your GD 2.209 client.</p>';
-    if(admin()['role']==='owner'&&!$active){
-        echo '<form method="post" id="coreUpgradeForm"><input type="hidden" name="csrf" value="'.h(csrf()).'"><input type="hidden" name="action" value="core-upgrade"><button>Complete migration</button></form>';
-        if(!empty($_SESSION['core_upgrade_continue'])){
-            $delay=max(1000,min(35000,(int)$_SESSION['core_upgrade_continue']));unset($_SESSION['core_upgrade_continue']);
-            // The admin CSP requires an explicit per-request nonce for inline
-            // code. Without it the continuation never fires on shared hosting.
-            $nonce=isset($GLOBALS['adminNonce'])?(string)$GLOBALS['adminNonce']:'';
-            echo '<p role="status">Migration continues automatically. Keep this page open, or return to resume with the same button.</p>';
-            if($nonce!=='')echo '<script nonce="'.h($nonce).'">setTimeout(function(){var form=document.getElementById("coreUpgradeForm");if(form){form.requestSubmit ? form.requestSubmit() : form.submit()}},'.$delay.');</script>';
+    $isOwner=admin()['role']==='owner';
+
+    echo '<section class="card" aria-labelledby="mcCoreSetupTitle">';
+    if(!$active){
+        echo '<p><strong>Step 2 of 3 — activate game core</strong></p>';
+        echo '<h2 id="mcCoreSetupTitle">Full core migration</h2>';
+        echo '<p>Your database and owner account exist, but the GDPS is not ready yet. Complete the core migration before using game features.</p>';
+        echo '<ol><li>Click <strong>Complete migration</strong> once.</li>'
+            .'<li>MuchoCore creates and verifies a database backup before migrating game data. Game APIs pause briefly.</li>'
+            .'<li>Keep this page open until <strong>Full core enabled</strong> appears. If interrupted, return to Server and resume; do not reinstall.</li></ol>';
+        if($transition)echo '<p role="status">Migration is in progress. Continue to resume the existing checkpoint.</p>';
+        if($isOwner){
+            $button=$transition?'Continue migration':'Complete migration';
+            echo '<form method="post" id="coreUpgradeForm"><input type="hidden" name="csrf" value="'.h(csrf()).'"><input type="hidden" name="action" value="core-upgrade"><button>'.h($button).'</button></form>';
+            if(!empty($_SESSION['core_upgrade_continue'])){
+                $delay=max(1000,min(35000,(int)$_SESSION['core_upgrade_continue']));unset($_SESSION['core_upgrade_continue']);
+                $nonce=isset($GLOBALS['adminNonce'])?(string)$GLOBALS['adminNonce']:'';
+                echo '<p role="status">Migration continues automatically. Keep this tab open, or return to Server to resume.</p>';
+                if($nonce!=='')echo '<script nonce="'.h($nonce).'">setTimeout(function(){var form=document.getElementById("coreUpgradeForm");if(form){form.requestSubmit ? form.requestSubmit() : form.submit()}},'.$delay.');</script>';
+            }
+        }else{
+            echo '<p role="status">Only the server owner can finish the initial setup.</p>';
         }
+    }else{
+        echo '<p><strong>Step 3 of 3 — connect and verify a client</strong></p>';
+        echo '<h2 id="mcCoreSetupTitle">Full core enabled</h2>';
+        echo '<p>Migration is complete. Finish these checks before inviting players:</p>';
+        echo '<ol><li>Check your HTTPS domain and server configuration in <a href="?page=settings">Settings</a>.</li>'
+            .'<li>Open <a href="?page=clientpatcher">Client patcher</a>. Use your own original EXE or APK and enter the HTTPS site root, without <code>/mc</code> or <code>/database</code>.</li>'
+            .'<li>Launch the patched Geometry Dash client. Use disposable accounts to test registration, login, level search and upload, comments and private messages.</li>'
+            .'<li>Check the <a href="?page=endpoints">Endpoints</a> diagnostics and keep a verified <a href="?page=dbbackups">Database Backup</a>.</li></ol>';
+        echo '<p>PHP 7 on 5v.pl is experimental. A successful migration is not proof of complete GD 2.209 compatibility. Test in the actual client.</p>';
     }
-    if(admin()['role']==='owner'&&!$transition&&is_file($root.'/config/php7-core-update.json')){
+    // Build updates are a separate maintenance action, not an alternative
+    // to the mandatory first-run migration button.
+    if($isOwner&&$active&&!$transition&&is_file($root.'/config/php7-core-update.json')){
         $available=json_decode((string)file_get_contents($root.'/config/php7-core-update.json'),true);
         $installed=is_file($root.'/config/php7-core-build.json')?json_decode((string)file_get_contents($root.'/config/php7-core-build.json'),true):array();
-        if(isset($available['sha256'])&&(!isset($installed['sha256'])||$available['sha256']!==$installed['sha256']))echo '<form method="post"><input type="hidden" name="csrf" value="'.h(csrf()).'"><input type="hidden" name="action" value="core-install"><button>Install uploaded build</button></form>';
+        if(isset($available['sha256'])&&(!isset($installed['sha256'])||$available['sha256']!==$installed['sha256'])){
+            echo '<p><strong>Maintenance:</strong> a separate uploaded build is available. Installing it is a maintenance operation, not a first-run setup step.</p>';
+            echo '<form method="post"><input type="hidden" name="csrf" value="'.h(csrf()).'"><input type="hidden" name="action" value="core-install"><button>Install uploaded build</button></form>';
+        }
     }
     echo '</section>';
 }

@@ -47,7 +47,7 @@ A shared-hosting account needs:
 
 ## First administrator: one setup, one login
 
-- **5v.pl (native PHP 7):** use the official 5v.pl installer, then open `https://YOUR-SITE.5v.pl/mc/admin.php`. On a fresh server, enter MySQL details, choose the admin username, email and password **once**. Future visits are ordinary sign-ins. If you use the optional key-based `/mc/public/php7-setup.php` wizard, it now creates the administrator at the same time as the database rather than sending you through another registration page.
+- **5v.pl (native PHP 7):** use the official 5v.pl installer, then open `https://YOUR-SITE.5v.pl/mc/admin.php`. On a fresh server, enter MySQL details, choose the admin username, email and password **once**. Future visits are ordinary sign-ins. If you use the optional key-based `/mc/public/php7-setup.php` wizard, it creates the administrator at the same time as the database. This is **stage 1 of 3**, not a fully usable game server; complete the **Server → Complete migration** stage and the **Client patcher / real-client testing** stage in the admin panel.
 - **Shared PHP 8.2+:** `/shared-install.php` asks for MySQL and final admin credentials together. On an empty database it creates the first owner directly. Then open `/admin/` and sign in — no Setup Secret or activation link.
 - **VPS:** enter the username/password in the private SSH installer, then open `/admin/` to sign in.
 
@@ -150,7 +150,9 @@ normal PHP 8.2+ shared package **cannot** run there. The online installer:
    existing `mc/` installations and does not modify an existing website
    `.htaccess`.
 4. After FTP upload, the page shows **Open admin setup wizard**. Create an empty MySQL database in your 5v.pl control panel, then click the button. The setup key is passed privately through the URL fragment, filled automatically, and removed from the address bar. Enter MySQL details and the final administrator username, email, and password once. No PHP config file editing or SSH is required. The job remains **files uploaded / setup required** until the owner completes this step.
-5. Requires adding the exact routing rules from
+5. **Mandatory, separate step:** sign in as owner at `/mc/public/php7-admin.php?page=system`, then click **Complete migration**. Keep the page open while backup verification and schema/data migration run. If interrupted, return to Server and resume; do not reinstall or overwrite the database. Wait for **Full core enabled**.
+6. In **Client patcher**, use a licensed original GD EXE/APK and the site's HTTPS origin (without `/mc` or `/database`); test registration/login, level search/upload/download, comments and messages with disposable accounts. Check **Endpoints** and **Database Backups** before inviting players.
+7. Requires adding the exact routing rules from
    `5V_ROOT_REWRITE_RULES.txt` to the WEBSITE ROOT `.htaccess`, then testing
    `/health`, authentication and the actual Geometry Dash 2.209 client.
 

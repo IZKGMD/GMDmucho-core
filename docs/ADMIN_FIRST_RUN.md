@@ -51,7 +51,7 @@ The installer does not reset existing administrators when updating an already in
 
 The recommended 5v.pl package installer already collects the administrator credentials in its one-time setup. The native browser entry `/mc/admin.php` can also initialize a new empty database and create its first owner in one form; the database password is used only to verify installation ownership.
 
-For the optional legacy `php7-setup.php` wizard, entering the private installer key, MySQL details and admin credentials on **one page** creates both the schema and owner together. After success, sign in through `/mc/admin.php` (or `/public/php7-admin.php` in an unpacked source checkout). Never initialize against a nonempty or unrelated database.
+For the optional legacy `php7-setup.php` wizard, entering the private installer key, MySQL details and admin credentials on **one page** creates both the schema and owner together. After success, sign in through `/mc/admin.php` (or `/public/php7-admin.php` in an unpacked source checkout). First-owner creation is only stage 1 of 3: open **Server** and choose **Complete migration**; wait for the full core to activate (resume from Server if interrupted). Then use **Client patcher**, verify your HTTPS origin and test the real GD client with disposable accounts before opening the GDPS to players. Do not select **Install uploaded build** as a substitute for migration. Never initialize against a nonempty or unrelated database.
 
 The PHP 7 runtime is a preview and does **not** have full PHP 8 feature parity.
 

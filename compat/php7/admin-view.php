@@ -50,10 +50,15 @@ if(adminIsPlain())require __DIR__.'/admin-ui/plain-shell.php';else{
     // Include the original PHP shell; source mirrors are generated, not evaluated.
     require __DIR__.'/admin-ui/styled-shell.php';
 }
+// Never leave a new owner hunting for the required activation step.
+if($isOwner&&(!is_file($root.'/config/php7-complete.on')||is_file($root.'/config/php7-core-transition.json'))&&$page!=='system'){
+    echo '<section class="card" role="status"><strong>Setup incomplete: Step 2 of 3</strong>'
+        .'<p>The game core is not active yet. <a href="?page=system">Open Server and complete the core migration</a> before using game features or patching clients.</p></section>';
+}
 if($schemaReady && canAdminPage($page)){
     if($page==='system'){mucho7_core_render($db,$root);if($isOwner&&is_file($root.'/config/php7-complete.on'))require __DIR__.'/admin-ui/shared-worker.php';}
     if(in_array($page,array('clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','securitycenter','monitoring','advanced','migration'),true)){
-        if(!is_file($root.'/config/php7-complete.on')){
+        if(!is_file($root.'/config/php7-complete.on')||is_file($root.'/config/php7-core-transition.json')){
             if($isOwner){
                 echo '<p role="status">Almost done. Complete server initialization before using this feature. Your existing accounts and data are preserved.</p>';
                 // Show the real action here, instead of making the owner find it elsewhere.
