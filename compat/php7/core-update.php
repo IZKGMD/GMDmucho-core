@@ -119,17 +119,25 @@ function mucho7_core_render(PDO $db,$root)
         echo '<p><strong>Step 2 of 3 — activate game core</strong></p>';
         echo '<h2 id="mcCoreSetupTitle">Full core migration</h2>';
         echo '<p>Your database and owner account exist, but the GDPS is not ready yet. Complete the core migration before using game features.</p>';
-        echo '<ol><li>Click <strong>Complete migration</strong> once.</li>'
+        echo '<ol><li>After owner sign-in, MuchoCore starts migration automatically. The button below is a manual recovery option.</li>'
             .'<li>MuchoCore creates and verifies a database backup before migrating game data. Game APIs pause briefly.</li>'
             .'<li>Keep this page open until <strong>Full core enabled</strong> appears. If interrupted, return to Server and resume; do not reinstall.</li></ol>';
         if($transition)echo '<p role="status">Migration is in progress. Continue to resume the existing checkpoint.</p>';
         if($isOwner){
             $button=$transition?'Continue migration':'Complete migration';
             echo '<form method="post" id="coreUpgradeForm"><input type="hidden" name="csrf" value="'.h(csrf()).'"><input type="hidden" name="action" value="core-upgrade"><button>'.h($button).'</button></form>';
-            if(!empty($_SESSION['core_upgrade_continue'])){
-                $delay=max(1000,min(35000,(int)$_SESSION['core_upgrade_continue']));unset($_SESSION['core_upgrade_continue']);
+            // Consume a one-shot auto-start created by the authenticated
+            // owner's login POST. Continue future migration steps only when
+            // the preceding POST returned an explicit continuation delay.
+            $autoStart=!empty($_SESSION['core_auto_start']);
+            unset($_SESSION['core_auto_start']);
+            $pendingDelay=isset($_SESSION['core_upgrade_continue'])
+                ?(int)$_SESSION['core_upgrade_continue']:0;
+            unset($_SESSION['core_upgrade_continue']);
+            if($autoStart||$pendingDelay>0){
+                $delay=$autoStart?300:max(1000,min(35000,$pendingDelay));
                 $nonce=isset($GLOBALS['adminNonce'])?(string)$GLOBALS['adminNonce']:'';
-                echo '<p role="status">Migration continues automatically. Keep this tab open, or return to Server to resume.</p>';
+                echo '<p role="status">Preparing the game core automatically. Keep this tab open; the next database step will start on its own. If interrupted, sign in again to resume.</p>';
                 if($nonce!=='')echo '<script nonce="'.h($nonce).'">setTimeout(function(){var form=document.getElementById("coreUpgradeForm");if(form){form.requestSubmit ? form.requestSubmit() : form.submit()}},'.$delay.');</script>';
             }
         }else{
