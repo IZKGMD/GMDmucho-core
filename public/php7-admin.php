@@ -114,7 +114,12 @@ try {
             $factorVersion=mucho7_admin_factor_login($pdo,$aid,isset($_POST['otp']) && is_string($_POST['otp'])?trim($_POST['otp']):'');
             $user=$loginUser;
             mucho7_admin_establish_session($aid,$factorVersion,$instance);$_SESSION['notice']='Signed in.';
-            header('Location: ?page=overview',true,303);exit;
+            // Owner onboarding is not complete until the full PHP7 game
+            // schema is installed. Take a new owner directly to that step.
+            $nextPage=$loginUser['role']==='owner'
+                && !is_file($root.'/config/php7-complete.on')
+                ? 'system' : 'overview';
+            header('Location: ?page='.$nextPage,true,303);exit;
         }
         if(!$user){http_response_code(403);throw new RuntimeException('Sign in to the panel first.');}
         if($action==='logout') {

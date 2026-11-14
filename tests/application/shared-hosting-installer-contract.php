@@ -83,13 +83,29 @@ $php7Admin = file_get_contents($root . '/compat/php7/admin.php');
 if (!is_string($php7Setup) || !is_string($php7View) || !is_string($php7Admin)
     || !str_contains($php7Setup, 'mucho7_admin_bootstrap($pdo, $options')
     || !str_contains($php7Setup, 'admin_password_confirm')
-    || !str_contains($php7Setup, 'href="php7-admin.php"')
+    || !str_contains($php7Setup, 'href="php7-admin.php?page=system"')
     || !str_contains($php7View, 'name="password_confirm"')
     || !str_contains($php7View, 'name="db_password"')
     || !str_contains($php7Admin, "array_key_exists('password_confirm',\$data)")
     || !str_contains($php7Admin, 'if (!$verifiedInstaller)')
 ) {
     throw new RuntimeException('The native PHP7 first-owner wizard must collect the login once and preserve ownership verification.');
+}
+
+// PHP7 first-run must take the owner to setup, not strand them in a disabled page.
+$nativeAdminPage = file_get_contents($root . '/public/php7-admin.php');
+$nativeUpgrade = file_get_contents($root . '/compat/php7/core-update.php');
+foreach ([
+    'installer explains final setup' => str_contains($php7Setup, 'Шаг 2 из 2: включить игровое ядро'),
+    'new owner goes to Server' => str_contains($nativeAdminPage, "header('Location: ?page.'." ) || str_contains($nativeAdminPage, "header('Location: ?page='.\$nextPage"),
+    'requires unfinished marker' => str_contains($nativeAdminPage, "config/php7-complete.on"),
+    'blocked page shows inline migration action' => str_contains($php7View, "mucho7_core_render(\$db,\$root);"),
+    'migration continuation has CSP nonce' => str_contains($nativeUpgrade, "nonce=\"'.h(\$nonce).'\""),
+    'successful setup links to patcher' => str_contains($nativeUpgrade, 'Open Client patcher'),
+] as $case => $ok) {
+    if (!$ok) {
+        throw new RuntimeException('PHP7 first-run onboarding broken: ' . $case);
+    }
 }
 
 $admin = file_get_contents($root . '/public/admin/index.php');

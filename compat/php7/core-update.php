@@ -112,12 +112,17 @@ function mucho7_core_render(PDO $db,$root)
 {
     $transition=is_file($root.'/config/php7-core-transition.json');
     $active=is_file($root.'/config/php7-complete.on')&&!$transition;
-    echo '<section class="card"><h2>Full core migration</h2><p>'.($active?'The full MuchoCore handler is enabled on shared hosting.':'This update migrates game data to the full core schema. Existing accounts, IDs, and admin access are preserved. The game API pauses during migration.').'</p>';
+    echo '<section class="card"><h2>Full core migration</h2><p>'.($active?'The server is initialized. The full MuchoCore handler is enabled.':'Final setup step: initialize the full game database before patching and inviting players. Existing accounts, IDs and admin access are preserved. The game API pauses briefly during migration.').'</p>';
+    if($active)echo '<p><a href="?page=clientpatcher">Open Client patcher</a> to prepare your GD 2.209 client.</p>';
     if(admin()['role']==='owner'&&!$active){
         echo '<form method="post" id="coreUpgradeForm"><input type="hidden" name="csrf" value="'.h(csrf()).'"><input type="hidden" name="action" value="core-upgrade"><button>Complete migration</button></form>';
         if(!empty($_SESSION['core_upgrade_continue'])){
             $delay=max(1000,min(35000,(int)$_SESSION['core_upgrade_continue']));unset($_SESSION['core_upgrade_continue']);
-            echo '<p role="status">Migration continues automatically. You can close this page and resume later using this button.</p><script>setTimeout(function(){document.getElementById("coreUpgradeForm").requestSubmit ? document.getElementById("coreUpgradeForm").requestSubmit() : document.getElementById("coreUpgradeForm").submit()},'.$delay.');</script>';
+            // The admin CSP requires an explicit per-request nonce for inline
+            // code. Without it the continuation never fires on shared hosting.
+            $nonce=isset($GLOBALS['adminNonce'])?(string)$GLOBALS['adminNonce']:'';
+            echo '<p role="status">Migration continues automatically. Keep this page open, or return to resume with the same button.</p>';
+            if($nonce!=='')echo '<script nonce="'.h($nonce).'">setTimeout(function(){var form=document.getElementById("coreUpgradeForm");if(form){form.requestSubmit ? form.requestSubmit() : form.submit()}},'.$delay.');</script>';
         }
     }
     if(admin()['role']==='owner'&&!$transition&&is_file($root.'/config/php7-core-update.json')){
