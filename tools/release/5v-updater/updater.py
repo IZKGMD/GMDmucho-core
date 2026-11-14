@@ -63,8 +63,9 @@ def is_shipped_path(name):
                                      'public/muchocore-theme.css','public/muchocore-theme.js'}:
         return True
     if name.startswith('compat/php7/'):
-        return not (name.startswith('compat/php7/builds/') or '/config/php7-local.php' in name)
-    return name.startswith(('public/assets/', 'public/admin/', 'public/recovery/', 'docs/'))
+        return not (name.startswith(('compat/php7/builds/', 'compat/php7/core/'))
+                    or '/config/php7-local.php' in name)
+    return name.startswith(('public/assets/', 'public/admin/', 'public/recovery/'))
 
 
 def load_package(path, expected_archive_sha=None):
@@ -225,6 +226,16 @@ class Remote:
     def get(self, rel, required=False, max_size=MAX_FILE):
         def action():
             self.cd()
+            if not required and hasattr(self.ftp, 'size'):
+                try:
+                    length = self.ftp.size(rel)
+                    if length is not None and length > max_size:
+                        raise RuntimeError('Remote file is too large: ' + rel)
+                except ftplib.error_perm as ex:
+                    if str(ex).startswith('550'):
+                        return None
+                    if not str(ex).startswith(('500', '502', '504')):
+                        raise
             data = io.BytesIO()
             def collect(block):
                 if data.tell() + len(block) > max_size:
@@ -270,6 +281,7 @@ def connect_ftp(host, user, password, allow_plain):
         phase = 'encrypted data channel'
         tls.prot_p()
         tls.set_pasv(True)
+        tls.voidcmd('TYPE I')
         say('[FTP] Encrypted FTPS session established.')
         return tls
     except ftplib.all_errors as ex:
@@ -300,6 +312,7 @@ def connect_ftp(host, user, password, allow_plain):
         ftp.connect(host, 21, timeout=30)
         ftp.login(user, password)
         ftp.set_pasv(True)
+        ftp.voidcmd('TYPE I')
     except ftplib.all_errors as ex:
         try: ftp.close()
         except Exception: pass
@@ -307,6 +320,18 @@ def connect_ftp(host, user, password, allow_plain):
         detail = ''.join(ch if 32 <= ord(ch) <= 126 else '?' for ch in detail)[:170]
         raise RuntimeError('Plain FTP connection/login failed: ' + type(ex).__name__ + ': ' + detail) from ex
     return ftp
+
+
+def reconnect_ftp(host, user, password, allow_plain):
+    for attempt in range(4):
+        try:
+            return connect_ftp(host, user, password, allow_plain)
+        except RuntimeError as ex:
+            if 'Cannot reach FTP port 21' not in str(ex) or attempt == 3:
+                raise
+            delay = (10, 20, 40)[attempt]
+            say('[FTP] Server temporarily refused port 21; waiting ' + str(delay) + ' seconds.')
+            time.sleep(delay)
 
 
 def find_verified_root(ftp, https, site, root_hint):
@@ -704,10 +729,10 @@ def main():
     if not password:
         raise RuntimeError('FTP password cannot be empty.')
     https=HttpsClient(site)
-    ftp=connect_ftp(ftp_host, username, password, args.allow_plain_ftp)
+    ftp=reconnect_ftp(ftp_host, username, password, args.allow_plain_ftp)
     try:
         remote=find_verified_root(ftp,https,site,args.ftp_root)
-        remote.reconnect = lambda: connect_ftp(ftp_host, username, password, args.allow_plain_ftp)
+        remote.reconnect = lambda: reconnect_ftp(ftp_host, username, password, args.allow_plain_ftp)
         preflight(remote,https)
         if args.restore_backup:
             restore_backup(remote, backup)

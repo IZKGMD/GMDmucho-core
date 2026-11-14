@@ -50,6 +50,7 @@ class FakeFtp:
         return '230 welcome'
     def prot_p(self): pass
     def set_pasv(self, flag): pass
+    def voidcmd(self, command): return '200 ok'
     def close(self): pass
     def pwd(self): return self.path
     def cwd(self, path):
@@ -134,6 +135,12 @@ class UpdateTests(unittest.TestCase):
             self.assertEqual(remote.get('mc/admin.php'), b'complete')
         self.assertIs(remote.ftp, second)
 
+    def test_size_avoids_data_connection_for_missing_file(self):
+        ftp = FakeFtp()
+        ftp.size = lambda path: (_ for _ in ()).throw(ftplib.error_perm('550 missing'))
+        ftp.retrbinary = lambda *args: self.fail('RETR should not run for missing file')
+        self.assertIsNone(u.Remote(ftp, '/home').get('mc/absent.php'))
+
     def test_rerun_skips_unchanged(self):
         remote = MemoryRemote({'mc/admin.php': b'same'})
         with tempfile.TemporaryDirectory() as d:
@@ -158,6 +165,8 @@ class UpdateTests(unittest.TestCase):
         self.assertFalse(u.is_shipped_path('compat/php7/config/php7-local.php'))
         self.assertFalse(u.is_shipped_path('public/assets/cloudsave.key'))
         self.assertFalse(u.is_shipped_path('public/admin/php7-apk-signer.json'))
+        self.assertFalse(u.is_shipped_path('compat/php7/core/src/Core/Application.php'))
+        self.assertFalse(u.is_shipped_path('docs/PHP7_NATIVE_PHASE1.md'))
         with tempfile.TemporaryDirectory() as d:
             files, _ = u.load_package(self.package(Path(d)/'pkg.zip'))
             self.assertNotIn('config/php7-local.php', files)
