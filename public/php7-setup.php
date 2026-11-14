@@ -155,11 +155,11 @@ function mucho7_h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8')
 <p><strong>Это тестовая версия для PHP 7.</strong> Поддержка всех функций Geometry Dash ещё не подтверждена. Для установки не нужен VPS.</p>
 <p>Шаг 1 из 3: создай <strong>пустую базу MySQL</strong> в панели 5v.pl. Затем заполни данные ниже и придумай пароль администратора. Далее мастер направит тебя через миграцию ядра и настройку клиента.</p>
 <?php if ($done): ?>
-<h2>Шаг 2 из 3: включи игровое ядро</h2>
-<p>База и администратор созданы, но GDPS ещё не готов к игре. Сделай следующее:</p>
-<ol><li>Открой <a href="php7-admin.php?page=system">Server в админке</a> и войди с только что созданным логином и паролем.</li>
-<li>Нажми <strong>Complete migration</strong>. MuchoCore сохранит резервную копию и подготовит игровые таблицы. Не закрывай страницу, пока не появится <strong>Full core enabled</strong>; если процесс прервётся, открой Server и продолжи.</li>
-<li>После успешной миграции перейди в <strong>Client patcher</strong>, подготовь свой клиент Geometry Dash и проверь вход, уровни и сообщения на тестовых аккаунтах.</li></ol>
+<h2>Шаг 2 из 3: автоматическое включение ядра</h2>
+<p>База и администратор созданы. Остался один вход в админку — MuchoCore сам выполнит оставшиеся шаги миграции.</p>
+<ol><li>Открой <a href="php7-admin.php?page=system">админку MuchoCore</a> и войди под новым администратором.</li>
+<li>Миграция запустится автоматически: с резервной копией, проверкой таблиц и продолжением шагов. Оставь вкладку открытой. Если соединение оборвётся или появится ошибка, войди снова — этапы безопасно возобновятся; повторная установка не нужна.</li>
+<li>После завершения откроется <strong>Client patcher</strong>. Подготовь свой клиент Geometry Dash и проверь работу с тестовыми аккаунтами.</li></ol>
 <p>Мастер создания базы теперь закрыт. PHP 7 остаётся экспериментальной версией; FTP-загрузка и миграция не гарантируют полную совместимость клиента.</p>
 <?php else: ?>
 <?php if ($error !== ''): ?><p><strong><?php echo mucho7_h($error); ?></strong></p><?php endif; ?>
@@ -187,6 +187,11 @@ function mucho7_h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8')
   var input=document.querySelector('input[name="setup_key"]');
   if(!input){
     try{sessionStorage.removeItem('muchocore7InstallerKey');}catch(_){}
+    <?php if ($done): ?>
+    // The database and owner are ready. Continue directly to the admin
+    // sign-in; after authentication the protected migration auto-starts.
+    window.location.replace('php7-admin.php?page=system');
+    <?php endif; ?>
     return;
   }
   var fragment=window.location.hash;
