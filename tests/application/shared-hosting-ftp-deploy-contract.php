@@ -163,7 +163,7 @@ foreach ([
     }
 }
 
-if (!str_contains($dockerfile, 'pdo_mysql zip ftp')) {
+if (!str_contains($dockerfile, 'docker-php-ext-install ftp')) {
     throw new RuntimeException('Deployment image must include PHP FTP support.');
 }
 
