@@ -1226,7 +1226,7 @@ function deploy_native_5v(array $config, string $password, string $jobDir, strin
     $archive = $jobDir . '/shared_archive';
     $temporary = $archive . '.build-' . bin2hex(random_bytes(8)) . '.zip';
     worker_state($statusPath, $logPath, 'Building the PHP 7 native preview for 5v.pl');
-    $cmd = 'OUTPUT_PATH=' . escapeshellarg($temporary) . ' bash ' . escapeshellarg($builder);
+    $cmd = 'MUCHO_5V_WEB_DEPLOY=1 OUTPUT_PATH=' . escapeshellarg($temporary) . ' bash ' . escapeshellarg($builder);
     $process = @proc_open($cmd, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
     if (!is_resource($process)) {
         throw new RuntimeException('Unable to start the PHP 7 native builder.');
