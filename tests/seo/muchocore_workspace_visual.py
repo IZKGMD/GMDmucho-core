@@ -37,7 +37,7 @@ def admin(base):
 <link rel="stylesheet" href="{base}/admin/product-admin.css?v=1">
 <link rel="stylesheet" href="{base}/admin/admin-simple.css?v=4">
 <link rel="stylesheet" href="{base}/admin/admin-polish.css?v=5">
-<link rel="stylesheet" href="{base}/admin/admin-workspace.css?v=7">
+<link rel="stylesheet" href="{base}/admin/admin-workspace.css?v=8">
 <link rel="stylesheet" href="{base}/admin/admin-motion.css?v=2">
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
 <link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=7">
