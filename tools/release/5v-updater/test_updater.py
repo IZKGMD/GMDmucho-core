@@ -119,6 +119,21 @@ class UpdateTests(unittest.TestCase):
             u.perform_upload(remote, {'admin.php': b'new'}, {'admin.php': b'old'}, set())
         self.assertEqual(remote.files['mc/admin.php'], b'old')
 
+    def test_interrupted_ftp_read_reconnects_and_discards_partial_bytes(self):
+        first = FakeFtp()
+        second = FakeFtp()
+        def broken(command, callback, blocksize):
+            callback(b'partial')
+            raise EOFError('server reset')
+        def healthy(command, callback, blocksize):
+            callback(b'complete')
+        first.retrbinary = broken
+        second.retrbinary = healthy
+        remote = u.Remote(first, '/home', reconnect=lambda: second)
+        with patch.object(u.time, 'sleep'):
+            self.assertEqual(remote.get('mc/admin.php'), b'complete')
+        self.assertIs(remote.ftp, second)
+
     def test_rerun_skips_unchanged(self):
         remote = MemoryRemote({'mc/admin.php': b'same'})
         with tempfile.TemporaryDirectory() as d:

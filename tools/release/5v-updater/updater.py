@@ -187,9 +187,24 @@ def assert_admin_success(status, body, action):
 
 
 class Remote:
-    def __init__(self, ftp, base):
+    def __init__(self, ftp, base, reconnect=None):
         self.ftp = ftp
         self.base = base
+        self.reconnect = reconnect
+    def retry(self, label, operation):
+        for attempt in range(3):
+            try:
+                return operation()
+            except (OSError, EOFError, ftplib.error_temp, ftplib.error_proto) as ex:
+                if attempt == 2 or self.reconnect is None:
+                    raise RuntimeError('FTP ' + label + ' failed after ' + str(attempt+1) + ' attempts: '
+                                       + type(ex).__name__) from ex
+                say('[FTP] Connection interrupted during ' + label + '; reconnecting (attempt '
+                    + str(attempt+2) + '/3).')
+                try: self.ftp.close()
+                except Exception: pass
+                time.sleep(attempt + 1)
+                self.ftp = self.reconnect()
     def cd(self, directory=''):
         self.ftp.cwd(self.base)
         if directory:
@@ -208,31 +223,37 @@ class Remote:
                 self.ftp.mkd(part)
                 self.ftp.cwd(part)
     def get(self, rel, required=False, max_size=MAX_FILE):
-        self.cd()
-        data = io.BytesIO()
-        def collect(block):
-            if data.tell() + len(block) > max_size:
-                raise RuntimeError('Remote file is too large: ' + rel)
-            data.write(block)
-        try:
-            self.ftp.retrbinary('RETR ' + rel, collect, blocksize=65536)
-            return data.getvalue()
-        except ftplib.error_perm as ex:
-            if not required and str(ex).startswith('550'):
-                return None
-            raise
-    def put(self, rel, data):
-        directory, _, name = rel.rpartition('/')
-        self.mkdirs(directory)
-        self.ftp.storbinary('STOR ' + name, io.BytesIO(data), blocksize=65536)
-        self.cd()
-    def delete(self, rel):
-        self.cd()
-        try:
-            self.ftp.delete(rel)
-        except ftplib.error_perm as ex:
-            if not str(ex).startswith('550'):
+        def action():
+            self.cd()
+            data = io.BytesIO()
+            def collect(block):
+                if data.tell() + len(block) > max_size:
+                    raise RuntimeError('Remote file is too large: ' + rel)
+                data.write(block)
+            try:
+                self.ftp.retrbinary('RETR ' + rel, collect, blocksize=65536)
+                return data.getvalue()
+            except ftplib.error_perm as ex:
+                if not required and str(ex).startswith('550'):
+                    return None
                 raise
+        return self.retry('read ' + rel, action)
+    def put(self, rel, data):
+        def action():
+            directory, _, name = rel.rpartition('/')
+            self.mkdirs(directory)
+            self.ftp.storbinary('STOR ' + name, io.BytesIO(data), blocksize=65536)
+            self.cd()
+        return self.retry('write ' + rel, action)
+    def delete(self, rel):
+        def action():
+            self.cd()
+            try:
+                self.ftp.delete(rel)
+            except ftplib.error_perm as ex:
+                if not str(ex).startswith('550'):
+                    raise
+        return self.retry('delete ' + rel, action)
 
 
 def connect_ftp(host, user, password, allow_plain):
@@ -420,7 +441,7 @@ def backup_files(remote, files, path, build_sha, root_old=None, root_new=None, m
     backup_size = 0
     items = sorted(files)
     say('[BACKUP] Reading existing code files before any update...')
-    for rel in items:
+    for idx, rel in enumerate(items, 1):
         current = remote.get('mc/' + rel)
         if current is not None:
             if current == files[rel]:
@@ -430,6 +451,8 @@ def backup_files(remote, files, path, build_sha, root_old=None, root_new=None, m
                 backup_size += len(current)
                 if backup_size > MAX_TOTAL:
                     raise RuntimeError('Existing files exceed local backup size limit.')
+        if idx % 25 == 0 or idx == len(items):
+            say('[BACKUP] Inspected '+str(idx)+'/'+str(len(items))+' package paths.')
     if root_old is not None and root_old != root_new:
         old['.htaccess'] = root_old
     backup_temp = path.with_suffix('.partial')
@@ -682,9 +705,9 @@ def main():
         raise RuntimeError('FTP password cannot be empty.')
     https=HttpsClient(site)
     ftp=connect_ftp(ftp_host, username, password, args.allow_plain_ftp)
-    password=''
     try:
         remote=find_verified_root(ftp,https,site,args.ftp_root)
+        remote.reconnect = lambda: connect_ftp(ftp_host, username, password, args.allow_plain_ftp)
         preflight(remote,https)
         if args.restore_backup:
             restore_backup(remote, backup)
@@ -720,8 +743,10 @@ def main():
         say('[DONE] Backup retained at '+str(backup_path))
         say('[NEXT] Test actual GD 2.209 client behavior before inviting players.')
     finally:
-        try: ftp.quit()
-        except Exception: ftp.close()
+        password=''
+        active_ftp = remote.ftp if 'remote' in locals() else ftp
+        try: active_ftp.quit()
+        except Exception: active_ftp.close()
 
 
 if __name__=='__main__':
