@@ -108,9 +108,8 @@ foreach ([
     'build update separate from first run' =>
         str_contains($nativeUpgrade, '$isOwner&&$active&&!$transition&&is_file'),
     'global owner setup reminder' => str_contains($php7View, 'Setup incomplete: Step 2 of 3'),
-    'client patcher gated before migration' =>
-        str_contains($php7View, "elseif(\$page==='clientpatcher'){")
-        && str_contains($php7View, "if(\$isOwner)mucho7_core_render(\$db,\$root);"),
+    'client patcher preserves original renderer' =>
+        str_contains($php7View, "elseif(\$page==='clientpatcher')require"),
     'native wizard explains client tests' => str_contains($php7Setup, 'тестовых аккаунтах'),
 ] as $case => $ok) {
     if (!$ok) {
