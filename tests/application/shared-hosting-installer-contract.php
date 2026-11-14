@@ -96,7 +96,7 @@ if (!is_string($php7Setup) || !is_string($php7View) || !is_string($php7Admin)
 $nativeAdminPage = file_get_contents($root . '/public/php7-admin.php');
 $nativeUpgrade = file_get_contents($root . '/compat/php7/core-update.php');
 foreach ([
-    'installer explains final setup' => str_contains($php7Setup, 'Шаг 2 из 3: включи игровое ядро'),
+    'installer explains final setup' => str_contains($php7Setup, 'Шаг 2 из 3: автоматическое включение ядра'),
     'new owner goes to Server' => str_contains($nativeAdminPage, "header('Location: ?page.'." ) || str_contains($nativeAdminPage, "header('Location: ?page='.\$nextPage"),
     'requires unfinished marker' => str_contains($nativeAdminPage, "config/php7-complete.on"),
     'blocked page shows inline migration action' => str_contains($php7View, "mucho7_core_render(\$db,\$root);"),
