@@ -346,3 +346,129 @@ body.mc-admin.sidebar-collapsed .shell>main{
     body.mc-admin .head .head-title small{display:none}
     body.mc-admin .head .mc-header-actions{gap:4px}
 }
+
+
+/* Shared visual QA: stable spacing and responsive controls across admin pages. */
+body.mc-admin,body.admin-login.mc-workspace {
+    --mc-accent:#bca2ff;
+    --mc-action:#9e94fa;
+}
+html[data-theme="light"] body.mc-admin,
+html[data-theme="light"] body.admin-login.mc-workspace {
+    --mc-accent:#7153c1;
+    --mc-action:#745bd4;
+}
+body.mc-admin .head .head-title,
+body.mc-admin .head .mc-header-actions,
+body.mc-admin .shell>main,
+body.mc-admin :is(.card,.table,.admin-record,.rating-layout,.mc-two-panel) {
+    min-width:0;
+}
+body.mc-admin .head-title h1{overflow-wrap:anywhere}
+body.mc-admin .card + .card,
+body.mc-admin .card + .admin-record,
+body.mc-admin .admin-record + .card{margin-top:18px}
+body.mc-admin .card :is(h2,h3){overflow-wrap:anywhere;line-height:1.35}
+body.mc-admin .card p,
+body.mc-admin .card li,
+body.mc-admin .admin-empty,
+body.mc-admin .flash{overflow-wrap:anywhere;line-height:1.65}
+body.mc-admin .table{
+    max-width:100%;
+    overflow-x:auto;
+    overscroll-behavior-inline:contain;
+    scrollbar-width:thin;
+    scrollbar-color:var(--mc-muted) transparent;
+    -webkit-overflow-scrolling:touch;
+}
+body.mc-admin .table :is(th,td){overflow-wrap:anywhere}
+body.mc-admin .table :is(th,td):first-child{padding-left:16px}
+body.mc-admin .table :is(th,td):last-child{padding-right:16px}
+body.mc-admin :is(.mc-form-actions,.record-checks,.admin-clan-actions){gap:10px;min-width:0}
+body.mc-admin :is(.mc-form-field,form p)>:is(input,textarea,select){
+    max-width:100%;
+    box-sizing:border-box;
+}
+body.mc-admin :is(.mc-form-field,.admin-auth-field)>label{line-height:1.45}
+body.mc-admin :is(.admin-empty,.flash){border-radius:11px}
+body.mc-admin .admin-empty{background:color-mix(in srgb,var(--mc-surface) 86%,transparent)}
+body.mc-admin :is(.admin-nav a,.admin-quick-action,.mc-view-menu>summary):focus-visible{
+    outline:2px solid var(--mc-accent);
+    outline-offset:3px;
+}
+body.mc-admin .admin-nav a.on {
+    background:color-mix(in srgb,var(--mc-accent) 13%,var(--mc-surface));
+    border-color:color-mix(in srgb,var(--mc-accent) 30%,var(--mc-line));
+    color:var(--mc-text);
+}
+body.mc-admin .admin-nav a.on .gd-icon{filter:drop-shadow(0 0 5px #ac88ff50)}
+@media(max-width:650px){
+    body.mc-admin .shell>main{min-width:0}
+    body.mc-admin .card{padding:19px 17px;border-radius:13px}
+    body.mc-admin .admin-record{padding:0}
+    body.mc-admin .card + .card{margin-top:14px}
+    body.mc-admin .table{margin-top:12px;border-radius:10px}
+    body.mc-admin .table table{min-width:480px}
+    body.mc-admin .table :is(th,td){padding:12px 13px}
+    body.mc-admin .admin-quick-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+    body.mc-admin .admin-quick-action{min-width:0;min-height:96px;padding:13px 14px}
+    body.mc-admin .admin-quick-action small{overflow-wrap:anywhere}
+    body.mc-admin :is(.mc-form-actions,.record-checks)>:is(button,.btn,a){max-width:100%}
+}
+@media(max-width:540px){
+    /* A long title belongs on two lines, not behind ellipsis. */
+    body.mc-admin .head{
+        grid-template-columns:38px minmax(0,1fr)!important;
+        row-gap:12px!important;
+    }
+    body.mc-admin .head .mobile-menu-btn{grid-column:1;grid-row:1}
+    body.mc-admin .head .head-title{grid-column:2;grid-row:1}
+    body.mc-admin .head .head-title h1{
+        font-size:19px;
+        line-height:1.2;
+        max-width:none;
+        white-space:normal;
+        overflow:visible;
+        text-overflow:clip;
+    }
+    body.mc-admin .head .head-title small{
+        display:block;
+        font-size:10px;
+        line-height:1.4;
+        white-space:normal;
+        overflow-wrap:anywhere;
+    }
+    body.mc-admin .head .mc-header-actions{
+        grid-column:1/-1;
+        grid-row:2;
+        justify-content:flex-end;
+        width:100%;
+        gap:8px;
+    }
+    body.mc-admin .head .global-search{
+        grid-column:1/-1;
+        grid-row:3;
+        width:100%;
+        min-width:0;
+    }
+    body.mc-admin .head .global-search select{
+        width:88px!important;
+        min-width:88px!important;
+        max-width:88px!important;
+        flex-basis:88px;
+    }
+    body.mc-admin .head .global-search :is(input,select){min-width:0;font-size:12px}
+    body.mc-admin .head .global-search button{white-space:nowrap;padding-inline:8px}
+    body.mc-admin .mc-view-popover{right:0;max-width:calc(100vw - 32px)}
+}
+@media(max-width:360px){
+    body.mc-admin .head .global-search select{
+        width:75px!important;min-width:75px!important;max-width:75px!important;flex-basis:75px;
+    }
+    body.mc-admin .head .global-search button{font-size:10px;padding-inline:6px}
+    body.mc-admin .admin-quick-actions{grid-template-columns:minmax(0,1fr)}
+}
+@media(prefers-reduced-motion:reduce){
+    body.mc-admin :is(.admin-nav a,.admin-quick-action),
+    body.admin-login.mc-workspace :is(button,a){transition:none!important}
+}
