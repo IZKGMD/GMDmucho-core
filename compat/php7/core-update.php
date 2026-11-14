@@ -116,34 +116,34 @@ function mucho7_core_render(PDO $db,$root)
 
     echo '<section class="card" aria-labelledby="mcCoreSetupTitle">';
     if(!$active){
-        echo '<p><strong>Шаг 2 из 3 — включение игрового ядра</strong></p>';
+        echo '<p><strong>Step 2 of 3 — activate game core</strong></p>';
         echo '<h2 id="mcCoreSetupTitle">Full core migration</h2>';
-        echo '<p>База и администратор уже созданы, но установка GDPS ещё не завершена. Для работы уровней, аккаунтов и других игровых функций нужно применить миграции.</p>';
-        echo '<ol><li>Нажми <strong>Complete migration</strong> один раз.</li>'
-            .'<li>Система создаст и проверит резервную копию, затем подготовит базу. Во время миграции игровое API ненадолго приостанавливается.</li>'
-            .'<li>Оставь эту страницу открытой до сообщения <strong>Full core enabled</strong>. Если браузер закрылся, вернись в Server и продолжи — не переустанавливай ядро.</li></ol>';
-        if($transition)echo '<p role="status">Миграция уже запущена. Продолжение безопасно возобновит текущий этап.</p>';
+        echo '<p>Your database and owner account exist, but the GDPS is not ready yet. Complete the core migration before using game features.</p>';
+        echo '<ol><li>Click <strong>Complete migration</strong> once.</li>'
+            .'<li>MuchoCore creates and verifies a database backup before migrating game data. Game APIs pause briefly.</li>'
+            .'<li>Keep this page open until <strong>Full core enabled</strong> appears. If interrupted, return to Server and resume; do not reinstall.</li></ol>';
+        if($transition)echo '<p role="status">Migration is in progress. Continue to resume the existing checkpoint.</p>';
         if($isOwner){
             $button=$transition?'Continue migration':'Complete migration';
             echo '<form method="post" id="coreUpgradeForm"><input type="hidden" name="csrf" value="'.h(csrf()).'"><input type="hidden" name="action" value="core-upgrade"><button>'.h($button).'</button></form>';
             if(!empty($_SESSION['core_upgrade_continue'])){
                 $delay=max(1000,min(35000,(int)$_SESSION['core_upgrade_continue']));unset($_SESSION['core_upgrade_continue']);
                 $nonce=isset($GLOBALS['adminNonce'])?(string)$GLOBALS['adminNonce']:'';
-                echo '<p role="status">Миграция продолжается автоматически. Не закрывай эту вкладку; при необходимости вернись сюда.</p>';
+                echo '<p role="status">Migration continues automatically. Keep this tab open, or return to Server to resume.</p>';
                 if($nonce!=='')echo '<script nonce="'.h($nonce).'">setTimeout(function(){var form=document.getElementById("coreUpgradeForm");if(form){form.requestSubmit ? form.requestSubmit() : form.submit()}},'.$delay.');</script>';
             }
         }else{
-            echo '<p role="status">Только владелец сервера может завершить первоначальную настройку.</p>';
+            echo '<p role="status">Only the server owner can finish the initial setup.</p>';
         }
     }else{
-        echo '<p><strong>Шаг 3 из 3 — подготовка клиента и проверка GDPS</strong></p>';
+        echo '<p><strong>Step 3 of 3 — connect and verify a client</strong></p>';
         echo '<h2 id="mcCoreSetupTitle">Full core enabled</h2>';
-        echo '<p>Миграция завершена. Следующие действия нужны перед тем, как приглашать игроков:</p>';
-        echo '<ol><li>Проверь настройки и адрес своего HTTPS-домена в <a href="?page=settings">Settings</a>.</li>'
-            .'<li>Открой <a href="?page=clientpatcher">Client patcher</a>, загрузи собственный оригинальный EXE или APK и укажи корень своего HTTPS-сайта без <code>/mc</code> и <code>/database</code>.</li>'
-            .'<li>Запусти пропатченный Geometry Dash и проверь на тестовых аккаунтах регистрацию, вход, поиск и загрузку уровней, комментарии и сообщения.</li>'
-            .'<li>Проверь маршруты в <a href="?page=endpoints">Endpoints</a> и сохрани резервную копию через <a href="?page=dbbackups">Database Backups</a>.</li></ol>';
-        echo '<p>PHP 7 на 5v.pl — экспериментальная версия. Успешная миграция не доказывает полную совместимость GD 2.209: сначала проверь реальный клиент.</p>';
+        echo '<p>Migration is complete. Finish these checks before inviting players:</p>';
+        echo '<ol><li>Check your HTTPS domain and server configuration in <a href="?page=settings">Settings</a>.</li>'
+            .'<li>Open <a href="?page=clientpatcher">Client patcher</a>. Use your own original EXE or APK and enter the HTTPS site root, without <code>/mc</code> or <code>/database</code>.</li>'
+            .'<li>Launch the patched Geometry Dash client. Use disposable accounts to test registration, login, level search and upload, comments and private messages.</li>'
+            .'<li>Check the <a href="?page=endpoints">Endpoints</a> diagnostics and keep a verified <a href="?page=dbbackups">Database Backup</a>.</li></ol>';
+        echo '<p>PHP 7 on 5v.pl is experimental. A successful migration is not proof of complete GD 2.209 compatibility. Test in the actual client.</p>';
     }
     // Build updates are a separate maintenance action, not an alternative
     // to the mandatory first-run migration button.
@@ -151,7 +151,7 @@ function mucho7_core_render(PDO $db,$root)
         $available=json_decode((string)file_get_contents($root.'/config/php7-core-update.json'),true);
         $installed=is_file($root.'/config/php7-core-build.json')?json_decode((string)file_get_contents($root.'/config/php7-core-build.json'),true):array();
         if(isset($available['sha256'])&&(!isset($installed['sha256'])||$available['sha256']!==$installed['sha256'])){
-            echo '<p><strong>Обслуживание:</strong> есть другая загруженная сборка. Это обновление, а не шаг первичной настройки.</p>';
+            echo '<p><strong>Maintenance:</strong> a separate uploaded build is available. Installing it is a maintenance operation, not a first-run setup step.</p>';
             echo '<form method="post"><input type="hidden" name="csrf" value="'.h(csrf()).'"><input type="hidden" name="action" value="core-install"><button>Install uploaded build</button></form>';
         }
     }
