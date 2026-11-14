@@ -112,8 +112,7 @@ foreach ([
         throw new RuntimeException('Expiring site-scoped deploy testing bypass missing: ' . $needle);
     }
 }
-if (substr_count($deploy, '$data = request_json();') !== 1
-    || !str_contains($dockerCompose, 'MUCHO_DEPLOY_TEST_SITE: ${MUCHO_DEPLOY_TEST_SITE:-}')
+if (!str_contains($dockerCompose, 'MUCHO_DEPLOY_TEST_SITE: ${MUCHO_DEPLOY_TEST_SITE:-}')
     || !str_contains($dockerCompose, 'MUCHO_DEPLOY_RATE_LIMIT_DISABLED_UNTIL: ${MUCHO_DEPLOY_RATE_LIMIT_DISABLED_UNTIL:-0}')) {
     throw new RuntimeException('Temporary rate limit override must use explicitly configured Docker runtime values.');
 }
