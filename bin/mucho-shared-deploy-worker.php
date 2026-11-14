@@ -680,6 +680,9 @@ function validate_archive(ZipArchive $zip, string $version): void {
 }
 
 function ftp_connect_public(string $host, int $port, bool $secure): \FTP\Connection {
+    if ($secure && !function_exists('ftp_ssl_connect')) {
+        throw new RuntimeException('FTPS is unavailable on the deployment server (ftp_ssl_connect() is missing). Rebuild PHP with FTP TLS support.');
+    }
     $ips = public_ipv4s($host);
     if ($ips === []) {
         throw new RuntimeException('The FTP hostname does not resolve to a public IPv4 address.');
@@ -704,18 +707,29 @@ function ftp_open_authenticated(array $config, string $password, string $logFile
     $requestedSecurity = strtolower(trim((string)$config['ftp_security']));
     $requestedPort = (int)$config['ftp_port'];
 
+    $hasFtps = function_exists('ftp_ssl_connect');
     $candidates = [];
     if ($requestedSecurity === 'auto' || $requestedSecurity === '') {
+        // ftp_ssl_connect() implements explicit FTPS, typically on port 21;
+        // port 990 is implicit FTPS and is not supported by this PHP client.
         $ports = $requestedPort > 0
-            ? array_values(array_unique([$requestedPort, 21, 990]))
-            : [21, 990];
+            ? array_values(array_unique([$requestedPort, 21]))
+            : [21];
+        if (!$hasFtps) {
+            log_line($logFile, "[MuchoGDPS] FTPS unavailable in deployment PHP; skipping FTPS attempts.\n");
+        }
         foreach ($ports as $port) {
-            foreach ([false, true] as $secure) {
-                $candidates[] = [$secure, $port];
+            // Prefer encrypted credentials when the hosting provider supports FTPS.
+            if ($hasFtps) {
+                $candidates[] = [true, $port];
             }
+            $candidates[] = [false, $port];
         }
     } else {
-        $port = $requestedPort > 0 ? $requestedPort : ($requestedSecurity === 'ftps' ? 21 : 21);
+        $port = $requestedPort > 0 ? $requestedPort : 21;
+        if ($requestedSecurity === 'ftps' && !$hasFtps) {
+            throw new RuntimeException('FTPS is unavailable on the deployment server (ftp_ssl_connect() is missing). Rebuild PHP with FTP TLS support.');
+        }
         $candidates[] = [$requestedSecurity === 'ftps', $port];
     }
 
@@ -732,7 +746,7 @@ function ftp_open_authenticated(array $config, string $password, string $logFile
         try {
             $ftp = ftp_connect_public($host, $port, $secure);
             if (!@ftp_login($ftp, (string)$config['ftp_username'], $password)) {
-                throw new RuntimeException('FTP authentication failed.');
+                throw new RuntimeException('FTP authentication failed. Verify the FTP server, username and password from the 5v.pl welcome email.');
             }
             if (!@ftp_pasv($ftp, true)) {
                 throw new RuntimeException('FTP passive mode was refused.');
