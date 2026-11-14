@@ -96,12 +96,22 @@ if (!is_string($php7Setup) || !is_string($php7View) || !is_string($php7Admin)
 $nativeAdminPage = file_get_contents($root . '/public/php7-admin.php');
 $nativeUpgrade = file_get_contents($root . '/compat/php7/core-update.php');
 foreach ([
-    'installer explains final setup' => str_contains($php7Setup, 'Шаг 2 из 2: включить игровое ядро'),
+    'installer explains final setup' => str_contains($php7Setup, 'Шаг 2 из 3: включи игровое ядро'),
     'new owner goes to Server' => str_contains($nativeAdminPage, "header('Location: ?page.'." ) || str_contains($nativeAdminPage, "header('Location: ?page='.\$nextPage"),
     'requires unfinished marker' => str_contains($nativeAdminPage, "config/php7-complete.on"),
     'blocked page shows inline migration action' => str_contains($php7View, "mucho7_core_render(\$db,\$root);"),
     'migration continuation has CSP nonce' => str_contains($nativeUpgrade, "nonce=\"'.h(\$nonce).'\""),
-    'successful setup links to patcher' => str_contains($nativeUpgrade, 'Open Client patcher'),
+    'successful setup links to patcher' => str_contains($nativeUpgrade, 'href="?page=clientpatcher"'),
+    'setup explicitly shows migration stage' => str_contains($nativeUpgrade, 'Step 2 of 3'),
+    'setup explicitly shows game client stage' => str_contains($nativeUpgrade, 'Step 3 of 3'),
+    'migration is resumable in guide' => str_contains($nativeUpgrade, 'Continue migration'),
+    'build update separate from first run' =>
+        str_contains($nativeUpgrade, '$isOwner&&$active&&!$transition&&is_file'),
+    'global owner setup reminder' => str_contains($php7View, 'Setup incomplete: Step 2 of 3'),
+    'client patcher gated before migration' =>
+        str_contains($php7View, "elseif(\$page==='clientpatcher'){")
+        && str_contains($php7View, "if(\$isOwner)mucho7_core_render(\$db,\$root);"),
+    'native wizard explains client tests' => str_contains($php7Setup, 'тестовых аккаунтах'),
 ] as $case => $ok) {
     if (!$ok) {
         throw new RuntimeException('PHP7 first-run onboarding broken: ' . $case);
