@@ -1,5 +1,7 @@
 """Offline regression tests for the first-run 5v.pl archive installer."""
 import importlib.util
+import os
+import zipfile
 from pathlib import Path
 import re
 import subprocess
@@ -180,6 +182,47 @@ class ArchiveTests(unittest.TestCase):
                      "RECOVERY_HANDLER.php.tpl", "README_RU.txt"):
             self.assertIn(name,builder)
         self.assertIn('forbidden in mc/config/php7-local.php',builder)
+
+    def test_web_deploy_archive_matches_worker_strict_allowlist(self):
+        """Build the real browser-deployment ZIP; no local launchers in FTP root."""
+        with tempfile.TemporaryDirectory() as folder:
+            archive = Path(folder) / "5v-web-deploy.zip"
+            env = os.environ.copy()
+            env.update(MUCHO_5V_WEB_DEPLOY="1", OUTPUT_PATH=str(archive))
+            process = subprocess.run(
+                ["bash", str(ROOT / "tools/release/build-php7-native.sh")],
+                cwd=ROOT, env=env, capture_output=True, text=True, timeout=180,
+            )
+            self.assertEqual(process.returncode, 0, process.stderr[-3000:])
+            self.assertTrue(archive.is_file())
+            with zipfile.ZipFile(archive) as bundle:
+                names = bundle.namelist()
+                self.assertEqual(len(names), len(set(names)))
+                self.assertGreater(len(names), 20)
+                for name in names:
+                    with self.subTest(entry=name):
+                        self.assertTrue(
+                            name.startswith("mc/") or name in (
+                                "5V_ROOT_REWRITE_RULES.txt", "START_HERE_SHARED.txt"),
+                            name,
+                        )
+                        self.assertNotIn(chr(92), name)
+                        self.assertNotIn(chr(0), name)
+                        self.assertFalse(name.startswith("/"))
+                        self.assertFalse(any(p in (".", "..") for p in name.split("/")))
+                for required in (
+                    "mc/admin.php", "mc/public/php7.php", "mc/public/php7-admin.php",
+                    "mc/compat/php7/runtime.php", "mc/compat/php7/core/sources.json",
+                    "mc/.htaccess", "5V_ROOT_REWRITE_RULES.txt",
+                ):
+                    self.assertIn(required, names)
+                for local_only in (
+                    "INSTALL_5V.py", "GUI_SETUP_5V.py",
+                    "RECOVERY_HANDLER.php.tpl", "README_RU.txt",
+                    "gd_windows_patcher.py",
+                ):
+                    self.assertNotIn(local_only, names)
+
     def test_owner_bootstrap_requires_form_token(self):
         form = b'<form><input type="hidden" name="csrf" value="'+b'a'*48+\
                b'"><input type="hidden" name="action" value="bootstrap"></form>'

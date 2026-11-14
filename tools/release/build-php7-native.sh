@@ -203,10 +203,21 @@ done
 # Never include the copyrighted original game executable or Android package.
 cp "$ROOT/tools/client/client-patch.py" "$STAGE/gd_windows_patcher.py"
 
+# The web installer sends only the native PHP7 tenant and two root instructions.
+# Local .py/.cmd launchers belong to the downloadable archive, never the
+# publicly served FTP web root. Both modes retain the same safety checks.
+case "${MUCHO_5V_WEB_DEPLOY:-0}" in
+  0|1) ;;
+  *) echo "Invalid MUCHO_5V_WEB_DEPLOY profile" >&2; exit 1 ;;
+esac
+
 # Prohibit secrets in distributed ZIP; installer-generated keys/configs
 # are never copied into this stage.
 mkdir -p "$(dirname "$OUTPUT")"
 rm -f "$OUTPUT"
+if [[ "${MUCHO_5V_WEB_DEPLOY:-0}" == "1" ]]; then
+  (cd "$STAGE" && zip -qr "$OUTPUT" mc "5V_ROOT_REWRITE_RULES.txt" "START_HERE_SHARED.txt")
+else
 (cd "$STAGE" && zip -qr "$OUTPUT" mc \
  "5V_ROOT_REWRITE_RULES.txt" "START_HERE_SHARED.txt" \
  INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl \
@@ -214,6 +225,8 @@ rm -f "$OUTPUT"
  START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
  START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \
  START_CLIENTS_WINDOWS.cmd START_CLIENTS_LINUX.sh README_RU.txt)
+
+fi
 
 unzip -t "$OUTPUT" >/dev/null
 LIST="$STAGE/zip-list.txt"
@@ -231,6 +244,12 @@ for item in mc/admin.php mc/public/php7-admin.php mc/public/assets/php7-admin-ba
   START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
   START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \
   START_CLIENTS_WINDOWS.cmd START_CLIENTS_LINUX.sh README_RU.txt; do
+  if [[ "${MUCHO_5V_WEB_DEPLOY:-0}" == "1" ]]; then
+    case "$item" in
+      mc/*|5V_ROOT_REWRITE_RULES.txt|START_HERE_SHARED.txt) ;;
+      *) continue ;;
+    esac
+  fi
   grep -Fxq "$item" "$LIST" || {
     echo "Package incomplete: $item" >&2
     exit 1
@@ -245,9 +264,11 @@ for forbidden in mc/config/php7-local.php mc/config/php7-news.json \
   fi
 done
 # Only reviewed patcher code belongs in the ZIP. Do not include EXE/APK binaries.
-if ! diff -q "$ROOT/tools/client/client-patch.py" <(unzip -p "$OUTPUT" gd_windows_patcher.py) >/dev/null; then
-  echo "The bundled Windows patcher differs from the reviewed source." >&2
-  exit 1
+if [[ "${MUCHO_5V_WEB_DEPLOY:-0}" != "1" ]]; then
+  if ! diff -q "$ROOT/tools/client/client-patch.py" <(unzip -p "$OUTPUT" gd_windows_patcher.py) >/dev/null; then
+    echo "The bundled Windows patcher differs from the reviewed source." >&2
+    exit 1
+  fi
 fi
 if unzip -Z1 "$OUTPUT" | grep -Ei '\.(exe|apk)$' >/dev/null; then
   echo "Do not distribute proprietary Geometry Dash client binaries." >&2
