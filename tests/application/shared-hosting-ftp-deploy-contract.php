@@ -119,6 +119,7 @@ if (!str_contains($dockerCompose, 'MUCHO_DEPLOY_TEST_SITE: ${MUCHO_DEPLOY_TEST_S
 
 // A 5v.pl FTP account may expose only the site folder, or its parent.
 foreach ([
+    '$domainCandidates[] = $siteMatch[1];',
     "'public_html/' . \$siteMatch[1]",
     "function ftp_probe_upload(",
     "FTP_BINARY",
