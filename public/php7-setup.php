@@ -187,6 +187,11 @@ function mucho7_h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8')
   var input=document.querySelector('input[name="setup_key"]');
   if(!input){
     try{sessionStorage.removeItem('muchocore7InstallerKey');}catch(_){}
+    <?php if ($done): ?>
+    // The database and owner are ready. Continue directly to the admin
+    // sign-in; after authentication the protected migration auto-starts.
+    window.location.replace('php7-admin.php?page=system');
+    <?php endif; ?>
     return;
   }
   var fragment=window.location.hash;
