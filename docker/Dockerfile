@@ -11,12 +11,14 @@ RUN php /usr/local/bin/mucho-php-runtime-security.php
 # Set MUCHO_WITH_REDIS=1 only in the explicit Redis-cache Compose overlay.
 ARG MUCHO_WITH_REDIS=0
 
+## Configure FTPS after building the other extensions: their build cleanup resets FTP's Makefile.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git unzip zip openssl openssh-client sshpass mariadb-client libzip-dev libpng-dev libjpeg62-turbo-dev libssl-dev android-sdk-build-tools \
     && docker-php-ext-configure gd --with-jpeg \
-    && docker-php-ext-configure ftp --with-openssl-dir=/usr \
     && docker-php-ext-install gd \
-    && docker-php-ext-install pdo_mysql zip ftp \
+    && docker-php-ext-install pdo_mysql zip \
+    && docker-php-ext-configure ftp --with-openssl-dir=/usr \
+    && docker-php-ext-install ftp \
     && php -r 'if (!function_exists("ftp_ssl_connect")) { fwrite(STDERR, "FTP TLS support is missing in this Docker image.\\n"); exit(1); }' \
     && docker-php-ext-enable opcache \
     && case "$MUCHO_WITH_REDIS" in \
