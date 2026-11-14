@@ -119,13 +119,13 @@ if (!str_contains($dockerCompose, 'MUCHO_DEPLOY_TEST_SITE: ${MUCHO_DEPLOY_TEST_S
 
 // A 5v.pl FTP account may expose only the site folder, or its parent.
 foreach ([
-    "'public_html/' . $siteMatch[1]",
+    "'public_html/' . \$siteMatch[1]",
     "function ftp_probe_upload(",
     "FTP_BINARY",
-    "ftp_nlist($ftp, '.')",
+    "ftp_nlist(\$ftp, '.')",
     "FTP_USEPASVADDRESS",
     "Passive FTP address fallback succeeded.",
-    "ftp_probe_upload($ftp, $markerName, $markerLocal, $candidate, $logFile)",
+    "ftp_probe_upload(\$ftp, \$markerName, \$markerLocal, \$candidate, \$logFile)",
 ] as $needle) {
     if (!str_contains($worker, $needle)) {
         throw new RuntimeException('5v.pl FTP data transfer contract missing: ' . $needle);
