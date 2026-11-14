@@ -206,8 +206,8 @@ class ArchiveTests(unittest.TestCase):
                                 "5V_ROOT_REWRITE_RULES.txt", "START_HERE_SHARED.txt"),
                             name,
                         )
-                        self.assertNotIn("\\\\", name)
-                        self.assertNotIn("\\x00", name)
+                        self.assertNotIn(chr(92), name)
+                        self.assertNotIn(chr(0), name)
                         self.assertFalse(name.startswith("/"))
                         self.assertFalse(any(p in (".", "..") for p in name.split("/")))
                 for required in (
