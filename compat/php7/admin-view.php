@@ -53,7 +53,15 @@ if(adminIsPlain())require __DIR__.'/admin-ui/plain-shell.php';else{
 if($schemaReady && canAdminPage($page)){
     if($page==='system'){mucho7_core_render($db,$root);if($isOwner&&is_file($root.'/config/php7-complete.on'))require __DIR__.'/admin-ui/shared-worker.php';}
     if(in_array($page,array('clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','securitycenter','monitoring','advanced','migration'),true)){
-        if(!is_file($root.'/config/php7-complete.on')){echo '<p>Complete the full core migration on the Server page first.</p>';}
+        if(!is_file($root.'/config/php7-complete.on')){
+            if($isOwner){
+                echo '<p role="status">Almost done. Complete server initialization before using this feature. Your existing accounts and data are preserved.</p>';
+                // Show the real action here, instead of making the owner find it elsewhere.
+                mucho7_core_render($db,$root);
+            }else{
+                echo '<p role="status">The server owner must finish setup before this feature is available.</p>';
+            }
+        }
         else{require_once $root.'/compat/php7/domain.php';mucho7_domain_configure($settings,$root,$db);
             if(in_array($page,array('social','analytics','database','endpoints'),true))require __DIR__.'/admin-ui/'.$page.'.php';
             elseif($page==='intelligence'){require mucho7_compiled_include($root.'/public/admin/pages/intelligence.php');ob_start();renderIntelligenceScalePage($db);$intelligence=ob_get_clean();$intelligence=preg_replace('~<pre>sudo .*?</pre>~s','<p>Use Server for the task queue, search index rebuild, provider cron and verified backups.</p>',$intelligence);echo str_replace('Run the rebuild command from the operator CLI.','Use Server → Search index rebuild.',$intelligence);}
