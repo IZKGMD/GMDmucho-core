@@ -216,5 +216,37 @@ class UpdateTests(unittest.TestCase):
                 u.DIAGNOSTIC_FILE = None
                 u.SECRETS.clear()
 
+    def test_owner_login_redirect_then_server_view(self):
+        digest = 'a'*64
+        token = 'b'*48
+        class Remote:
+            installed = False
+            def get(self, path, max_size=None):
+                if path.endswith('php7-core-build.json'):
+                    return json.dumps({'sha256': digest if self.installed else 'c'*64}).encode()
+                if path.endswith('php7-complete.on'):
+                    return b'yes'
+                return None
+        remote = Remote()
+        class Https:
+            gets = 0
+            def request(self, path, form=None, **kw):
+                if form is None:
+                    self.gets += 1
+                    if self.gets == 1:
+                        return 200, ('Administrator sign in<input name="csrf" value="'+token+'"><input name="action" value="login">').encode()
+                    return 200, ('Full core enabled Install uploaded build<input name="csrf" value="'+token+'">').encode()
+                if form['action'] == 'login':
+                    return 200, b'Dashboard after redirect'
+                if form['action'] == 'core-install':
+                    remote.installed = True
+                    return 200, b'Build installed'
+                self.fail('Unexpected action')
+        https = Https()
+        with patch('builtins.input', side_effect=['owner', 'INSTALL']), \
+             patch.object(u.getpass, 'getpass', side_effect=['password', '']):
+            u.promote_core(remote, https, digest)
+        self.assertEqual(https.gets, 2)
+
 
 if __name__ == '__main__': unittest.main()

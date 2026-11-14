@@ -12,6 +12,8 @@ The 5v.pl FTP server currently rejects `AUTH TLS`. `-AllowPlainFtp` permits fall
 
 A local archive requires `-ArchivePath` and its independently verified `-ExpectedArchiveSha256`. The default path selects a successful PHP7 workflow run whose commit exactly matches current `main`, then downloads that run's artifact.
 
+If the FTP upload and PHP hash probe succeeded but owner sign-in stopped before migration, rerun with `-ActivateOnly` and the same archive/hash. This checks the deployed PHP hashes and routes before owner activation without uploading again.
+
 The updater stores changed code and the original root `.htaccess` in `MuchoCore-Backups`, with per-file SHA-256 and a list of newly added files. It leaves the database, tenant configuration, cloud saves, signing keys, clients, uploads, and existing backups alone. The server's owner-only migration creates its own database backup before schema or data changes.
 
 If file transfer fails, the updater restores touched files and checks the restored hashes. To restore a code backup later, after reviewing any migration state:

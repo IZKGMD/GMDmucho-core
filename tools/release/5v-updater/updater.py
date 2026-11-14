@@ -648,6 +648,10 @@ def promote_core(remote, https, expected_sha):
                                       'userName':owner,'password':password,'otp':otp})
     password = ''
     assert_admin_success(code, body, 'owner login')
+    # Successful login redirects to the dashboard, regardless of the POST's
+    # page query. Fetch Server explicitly with the authenticated cookie.
+    code, body = https.request(path)
+    assert_admin_success(code, body, 'Server view after login')
     if 'Full core migration' not in body.decode('utf-8', errors='replace') and 'Full core enabled' not in body.decode('utf-8', errors='replace'):
         raise RuntimeError('Signed-in Server view was not shown. Verify owner login and 2FA.')
     csrf = csrf_from(body)
@@ -703,6 +707,7 @@ def main():
     cli.add_argument('--backup-directory', required=True)
     cli.add_argument('--source-sha', default='local-archive')
     cli.add_argument('--restore-backup', default='')
+    cli.add_argument('--activate-only', action='store_true')
     cli.add_argument('--diagnostic-file', default='')
     args=cli.parse_args()
     global DIAGNOSTIC_FILE
@@ -737,14 +742,20 @@ def main():
         if args.restore_backup:
             restore_backup(remote, backup)
             return
-        backup_dir=Path(args.backup_directory).resolve()
-        backup_dir.mkdir(parents=True,exist_ok=True)
-        backup_path=backup_dir / ('MuchoCore-FTP-BACKUP-'+site+'-'+datetime.now().strftime('%Y%m%d-%H%M%S')+'.zip')
         root_old, root_new = plan_root_rewrites(remote)
         mode_missing = remote.get('mc/public/php7-mode.on', max_size=100_000) is None
-        old, unchanged=backup_files(remote,files,backup_path,pack_sha,root_old,root_new,mode_missing)
-        changed=perform_upload(remote,files,old,unchanged,root_new)
-        say('[FTP] Completed and read-back verified. Modified/new files: '+str(changed)+'.')
+        if args.activate_only:
+            if root_old != root_new:
+                raise RuntimeError('Root routes differ; run a full update first.')
+            say('[FTP] Activation-only mode: checking the already uploaded build.')
+            backup_path = None
+        else:
+            backup_dir=Path(args.backup_directory).resolve()
+            backup_dir.mkdir(parents=True,exist_ok=True)
+            backup_path=backup_dir / ('MuchoCore-FTP-BACKUP-'+site+'-'+datetime.now().strftime('%Y%m%d-%H%M%S')+'.zip')
+            old, unchanged=backup_files(remote,files,backup_path,pack_sha,root_old,root_new,mode_missing)
+            changed=perform_upload(remote,files,old,unchanged,root_new)
+            say('[FTP] Completed and read-back verified. Modified/new files: '+str(changed)+'.')
         verify_php_execution(remote,https,files)
         if args.upload_only:
             say('[NEXT] Uploaded code only. Sign in as owner and run "Install uploaded build" in Server.')
@@ -765,7 +776,8 @@ def main():
                     raise RuntimeError('Game API check failed: '+endpoint+' HTTP '+str(status))
                 say('[HTTP] '+endpoint+' returned '+str(status)+'.')
             say('[HTTP] Health and admin checks passed.')
-        say('[DONE] Backup retained at '+str(backup_path))
+        if backup_path:
+            say('[DONE] Backup retained at '+str(backup_path))
         say('[NEXT] Test actual GD 2.209 client behavior before inviting players.')
     finally:
         password=''
