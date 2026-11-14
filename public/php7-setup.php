@@ -153,12 +153,14 @@ function mucho7_h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8')
 <style>body{background:#101426;color:#e8ecff;font:16px system-ui,sans-serif;margin:auto;max-width:740px;padding:30px}main{background:#1d2440;border-radius:16px;padding:28px}input{width:100%;background:#0d1223;border:1px solid #546081;border-radius:8px;padding:12px;color:white;margin:6px 0 18px}button{padding:12px 20px;border:0;border-radius:8px;cursor:pointer}p{line-height:1.55}strong{color:#ffd6a1}small{color:#b7c2e2}</style></head><body><main>
 <h1>Настройка MuchoCore на 5v.pl</h1>
 <p><strong>Это тестовая версия для PHP 7.</strong> Поддержка всех функций Geometry Dash ещё не подтверждена. Для установки не нужен VPS.</p>
-<p>Создай <strong>пустую базу MySQL</strong> в панели 5v.pl. Затем заполни данные ниже и придумай пароль для входа в админку.</p>
+<p>Шаг 1 из 3: создай <strong>пустую базу MySQL</strong> в панели 5v.pl. Затем заполни данные ниже и придумай пароль администратора. Далее мастер направит тебя через миграцию ядра и настройку клиента.</p>
 <?php if ($done): ?>
-<h2>Шаг 2 из 2: включить игровое ядро</h2>
-<p>База и администратор созданы. Остался последний шаг: MuchoCore проверит резервную копию, подготовит игровые таблицы и включит API для клиентов.</p>
-<p><a href="php7-admin.php?page=system">Продолжить настройку в админке</a> — войди с новым логином и паролем и нажми <strong>Complete migration</strong>. Процесс продолжится автоматически; если он прервётся, вернись на страницу Server.</p>
-<p>Мастер создания базы заблокирован после установки. Игровые функции PHP 7 остаются экспериментальными до проверки в клиенте.</p>
+<h2>Шаг 2 из 3: включи игровое ядро</h2>
+<p>База и администратор созданы, но GDPS ещё не готов к игре. Сделай следующее:</p>
+<ol><li>Открой <a href="php7-admin.php?page=system">Server в админке</a> и войди с только что созданным логином и паролем.</li>
+<li>Нажми <strong>Complete migration</strong>. MuchoCore сохранит резервную копию и подготовит игровые таблицы. Не закрывай страницу, пока не появится <strong>Full core enabled</strong>; если процесс прервётся, открой Server и продолжи.</li>
+<li>После успешной миграции перейди в <strong>Client patcher</strong>, подготовь свой клиент Geometry Dash и проверь вход, уровни и сообщения на тестовых аккаунтах.</li></ol>
+<p>Мастер создания базы теперь закрыт. PHP 7 остаётся экспериментальной версией; FTP-загрузка и миграция не гарантируют полную совместимость клиента.</p>
 <?php else: ?>
 <?php if ($error !== ''): ?><p><strong><?php echo mucho7_h($error); ?></strong></p><?php endif; ?>
 <form method="post" autocomplete="off">
@@ -177,7 +179,7 @@ function mucho7_h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8')
 <label>Почта администратора</label><input name="admin_email" type="email" required maxlength="254" autocomplete="email">
 <label>Пароль администратора</label><input name="admin_password" type="password" required minlength="8" maxlength="72" autocomplete="new-password">
 <label>Повтори пароль администратора</label><input name="admin_password_confirm" type="password" required minlength="8" maxlength="72" autocomplete="new-password">
-<button type="submit">Завершить настройку</button>
+<button type="submit">Завершить настройку базы и администратора</button>
 </form>
 <?php endif; ?>
 <script nonce="<?php echo mucho7_h($setupNonce); ?>">
