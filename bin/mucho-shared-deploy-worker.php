@@ -953,6 +953,10 @@ function detect_web_root(
     // 5v.pl documents its website directory as public_html/<site-label>.
     // FTP users may start in the account home or already inside that directory.
     if (preg_match('/^([a-z0-9-]+)\.5v\.pl$/D', $host, $siteMatch) === 1) {
+        // 5v.pl FTP accounts may expose a writable directory named after
+        // the subdomain directly under their FTP login root.
+        // Only a successful HTTPS marker probe qualifies it as the web root.
+        $domainCandidates[] = $siteMatch[1];
         $domainCandidates[] = 'public_html/' . $siteMatch[1];
         $domainCandidates[] = 'www/' . $siteMatch[1];
         $domainCandidates[] = 'htdocs/' . $siteMatch[1];
