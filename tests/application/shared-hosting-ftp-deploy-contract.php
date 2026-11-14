@@ -81,6 +81,21 @@ foreach ([
     }
 }
 
+// The 5v.pl FTP login can start directly inside the live website's root.
+// The special current-directory probe must be tested, while unsafe parent
+// traversal remains forbidden for all other candidate paths.
+if (!str_contains($worker, "if (\$candidate !== '.' && !safe_remote_candidate(\$candidate))")) {
+    throw new RuntimeException('Shared web-root detection must probe the current FTP directory.');
+}
+if (!str_contains($worker, "\$markerName = 'muchocore-root-probe-'")
+    || str_contains($worker, "\$markerName = '.muchocore-root-probe-'")) {
+    throw new RuntimeException('Shared web-root marker must not be a hidden file blocked by hosting dotfile rules.');
+}
+if (!str_contains($worker, 'hash_equals($token, trim($response[\'body\']))')
+    || !str_contains($worker, 'Web-root probe did not match for')) {
+    throw new RuntimeException('Shared web-root detection must validate marker content and report HTTP probe status.');
+}
+
 if (str_contains($worker, '[21, 990]') || str_contains($worker, '[$requestedPort, 21, 990]')) {
     throw new RuntimeException('Explicit FTPS cannot use implicit-TLS port 990 as an automatic fallback.');
 }
