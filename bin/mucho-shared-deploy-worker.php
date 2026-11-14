@@ -877,6 +877,59 @@ function upload_browser_finalization_payload(
 }
 
 
+/**
+ * FTP login succeeding does not imply data transfers work. Probe in binary
+ * mode, classify failure without printing the raw FTP warning or credentials.
+ */
+function ftp_probe_upload(
+    \FTP\Connection $ftp,
+    string $remote,
+    string $local,
+    string $candidate,
+    string $logFile
+): bool {
+    $warning = '';
+    $put = static function () use ($ftp, $remote, $local, &$warning): bool {
+        $warning = '';
+        set_error_handler(static function (int $level, string $message) use (&$warning): bool {
+            $warning = $message;
+            return true;
+        });
+        try {
+            return ftp_put($ftp, $remote, $local, FTP_BINARY);
+        } finally {
+            restore_error_handler();
+        }
+    };
+
+    if ($put()) {
+        return true;
+    }
+
+    $listed = @ftp_nlist($ftp, '.') !== false;
+    $kind = $listed
+        ? 'FTP LIST works; target folder may be read-only'
+        : 'FTP LIST also failed; passive data connection may be blocked';
+    $code = '';
+    if (preg_match('/\b([45][0-9]{2})\b/', $warning, $matches) === 1) {
+        $code = ' (FTP ' . $matches[1] . ')';
+    }
+    log_line($logFile, "[MuchoGDPS] Probe upload failed for {$candidate}: {$kind}{$code}.\n");
+
+    // A server behind NAT can advertise the wrong passive-mode data IP.
+    if (!$listed && defined('FTP_USEPASVADDRESS')
+        && @ftp_set_option($ftp, FTP_USEPASVADDRESS, false)
+        && @ftp_pasv($ftp, true)) {
+        log_line($logFile, "[MuchoGDPS] Retrying marker via control connection IP in passive FTP.\n");
+        if ($put()) {
+            log_line($logFile, "[MuchoGDPS] Passive FTP address fallback succeeded.\n");
+            return true;
+        }
+        log_line($logFile, "[MuchoGDPS] Passive FTP address fallback did not succeed.\n");
+    }
+    return false;
+}
+
 function detect_web_root(
     \FTP\Connection $ftp,
     string $configuredBase,
@@ -897,6 +950,13 @@ function detect_web_root(
         'www/' . $host,
         'public_html/' . $host,
     ];
+    // 5v.pl documents its website directory as public_html/<site-label>.
+    // FTP users may start in the account home or already inside that directory.
+    if (preg_match('/^([a-z0-9-]+)\.5v\.pl$/D', $host, $siteMatch) === 1) {
+        $domainCandidates[] = 'public_html/' . $siteMatch[1];
+        $domainCandidates[] = 'www/' . $siteMatch[1];
+        $domainCandidates[] = 'htdocs/' . $siteMatch[1];
+    }
     $candidates = array_values(array_unique(array_merge($candidates, $domainCandidates)));
 
     $token = bin2hex(random_bytes(12));
@@ -923,8 +983,7 @@ function detect_web_root(
             }
 
             log_line($logFile, "[MuchoGDPS] Probing web root: {$candidate}...\n");
-            if (!@ftp_put($ftp, $markerName, $markerLocal, FTP_ASCII)) {
-                log_line($logFile, "[MuchoGDPS] Probe upload failed for {$candidate}.\n");
+            if (!ftp_probe_upload($ftp, $markerName, $markerLocal, $candidate, $logFile)) {
                 continue;
             }
 
