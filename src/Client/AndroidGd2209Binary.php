@@ -23,6 +23,46 @@ final class AndroidGd2209Binary
             hash('sha256', $native) === self::LIBRARY_SHA256;
     }
 
+    /**
+     * Accept a different GD 2.209 Android ELF only when the whole native
+     * endpoint table matches the audited 2.209 layout. A hash mismatch alone
+     * is not a reason to reject a legitimately repackaged/variant APK.
+     *
+     * This is NOT a universal APK or version detector. Unknown layouts and
+     * already-patched libraries continue to fail closed.
+     */
+    public static function isStructurallyCompatible(string $native): bool
+    {
+        if (strlen($native) < 1024 * 1024 ||
+            !str_starts_with($native, "\x7fELF") ||
+            ord($native[5]) !== 1) {
+            return false;
+        }
+
+        $elfClass = ord($native[4]);
+        $machine = unpack('v', substr($native, 18, 2))[1];
+        if (!(($elfClass === 2 && $machine === 183) ||
+              ($elfClass === 1 && $machine === 40))) {
+            return false;
+        }
+
+        $pattern = '~https?://(?:www\\.boomlings\\.com|boomlings\\.com)/(?:database|databas)/[A-Za-z0-9._/-]+\\.php(?=\\x00)~';
+        if (preg_match_all($pattern, $native, $found, PREG_OFFSET_CAPTURE) !== self::ENDPOINTS) {
+            return false;
+        }
+
+        $paths = [];
+        foreach ($found[0] as [$url, $offset]) {
+            if ($offset > 0 && $native[$offset - 1] !== "\0") {
+                return false;
+            }
+            $path = substr($url, strrpos($url, '/') + 1);
+            $paths[$path] = true;
+        }
+        return count($paths) >= 80 &&
+            isset($paths['getGJNotifications.php'], $paths['getGJThreadInvites.php']);
+    }
+
     public static function resembles2209(string $native): bool
     {
         return str_starts_with($native, "\x7fELF") &&
