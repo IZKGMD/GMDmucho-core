@@ -124,11 +124,11 @@ def wire_map(body: str) -> dict[str, str]:
 def main() -> None:
     env = environment()
     native = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    captured = {row["path"] for row in native["routes"]}
+    captured = {row["path"] for row in native["routes"]}\n    captured.update(row["path"] for row in native["url_templates"])
 
     # Do not accidentally test fabricated paths under the label "from EXE."
     used = [
-        "/database/accounts/loginGJAccount22.php",
+        "/database/accounts/loginGJAccount.php",
         "/database/accounts/backupGJAccountNew.php",
         "/database/accounts/syncGJAccountNew.php",
         "/database/submitGJUserInfo.php",
@@ -162,11 +162,11 @@ def main() -> None:
             "first real registered test account matches DB")
     require(account2 is not None and account2["username"] == username2,
             "second real registered test account matches DB")
-    require(form("/database/accounts/loginGJAccount22.php",
+    require(form("/database/accounts/loginGJAccount.php",
                  {"userName": username1, "gjp2": token1})
             == f"{aid1},{account1['user_id']}",
-            "EXE loginGJAccount22 returns exact account/user IDs")
-    require(form("/database/accounts/loginGJAccount22.php",
+            "EXE loginGJAccount returns exact account/user IDs")
+    require(form("/database/accounts/loginGJAccount.php",
                  {"userName": username1, "gjp2": token2}) == "-1",
             "EXE native login rejects another account's GJP2")
 
