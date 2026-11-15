@@ -150,10 +150,24 @@ final readonly class RelationshipRepository
 
     public function readRequest(int $accountId, int $requestId): bool
     {
+        // Only transition an unread request. In particular, a direct read
+        // must never turn a hidden request (state 2) back into an inbox item.
+        $q = $this->pdo->prepare(
+            'UPDATE friend_requests
+             SET is_read=1
+             WHERE id=:rid AND to_account_id=:aid AND is_read=0'
+        );
+        $q->execute(['rid'=>$requestId,'aid'=>$accountId]);
+
+        if ($q->rowCount() > 0) {
+            return true;
+        }
+
+        // Preserve idempotent success without rewriting hidden/unknown states.
         $exists = $this->pdo->prepare(
             'SELECT 1
              FROM friend_requests
-             WHERE id=:rid AND to_account_id=:aid
+             WHERE id=:rid AND to_account_id=:aid AND is_read=1
              LIMIT 1'
         );
         $exists->execute([
@@ -161,18 +175,7 @@ final readonly class RelationshipRepository
             'aid'=>$accountId,
         ]);
 
-        if ($exists->fetchColumn() === false) {
-            return false;
-        }
-
-        $q = $this->pdo->prepare(
-            'UPDATE friend_requests
-             SET is_read=1
-             WHERE id=:rid AND to_account_id=:aid'
-        );
-        $q->execute(['rid'=>$requestId,'aid'=>$accountId]);
-
-        return true;
+        return $exists->fetchColumn() !== false;
     }
 
     public function accept(int $accountId, int $requestId): bool
