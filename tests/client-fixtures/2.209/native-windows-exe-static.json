@@ -1281,5 +1281,17 @@
   ],
   "known_gap": [
     "/database/uploadMPComment.php"
+  ],
+  "url_templates": [
+    {
+      "template": "%s/database/accounts/backupGJAccountNew.php",
+      "path": "/database/accounts/backupGJAccountNew.php",
+      "section_offset": "0x7688b0"
+    },
+    {
+      "template": "%s/database/accounts/syncGJAccountNew.php",
+      "path": "/database/accounts/syncGJAccountNew.php",
+      "section_offset": "0x7689f0"
+    }
   ]
 }
