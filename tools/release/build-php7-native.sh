@@ -18,7 +18,7 @@ for path in compat/php7/runtime.php compat/php7/download.php \
   compat/php7/schema.php compat/php7/users.php compat/php7/config.example.php \
   compat/php7/features.php compat/php7/features.sql \
   compat/php7/interactions.php compat/php7/cloudsave.php compat/php7/profile.php \
-  compat/php7/admin.php compat/php7/admin-view.php compat/php7/bootstrap.php \
+  compat/php7/admin.php compat/php7/admin-view.php compat/php7/bootstrap.php compat/php7/readiness.php \
   compat/php7/social.php compat/php7/levels.php public/php7-admin.php \
   public/assets/php7-admin-base.css public/assets/php7-admin-host.js public/assets/muchocore-icon.png \
   public/php7.php public/php7-setup.php docs/PHP7_NATIVE_PHASE1.md; do
@@ -236,7 +236,7 @@ for item in mc/admin.php mc/public/php7-admin.php mc/public/assets/php7-admin-ba
   mc/compat/php7/users.php mc/compat/php7/runtime.php \
   mc/compat/php7/news.php mc/compat/php7/schema.php \
   mc/compat/php7/features.sql mc/compat/php7/interactions.php \
-  mc/compat/php7/cloudsave.php mc/compat/php7/profile.php \
+  mc/compat/php7/cloudsave.php mc/compat/php7/profile.php mc/compat/php7/readiness.php \
   mc/.htaccess mc/public/.htaccess \
   5V_ROOT_REWRITE_RULES.txt START_HERE_SHARED.txt \
   INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl \

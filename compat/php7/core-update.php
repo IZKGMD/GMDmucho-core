@@ -168,6 +168,12 @@ function mucho7_core_render(PDO $db,$root)
         }
     }
     echo '</section>';
+    // The preflight is deliberately owner-only and read-only. It inspects
+    // effective PHP limits, private key validity and the pinned build state.
+    if($isOwner){
+        require_once __DIR__.'/readiness.php';
+        mucho7_readiness_render($root);
+    }
 }
 
 function mucho7_core_deploy(PDO $db,$aid,$root)
