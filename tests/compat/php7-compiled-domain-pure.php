@@ -10,6 +10,12 @@ $sources=json_decode(file_get_contents($root.'/compat/php7/core/sources.json'),t
 // changes fail this guard until the snapshot is explicitly recompiled.
 // PHP 7 retains its previous, verified single-build Android patcher.
 $php8OnlyDiagnosticHashes=array(
+    // PHP 8-first native profile reporting. The PHP 7 generated snapshot is
+    // intentionally held constant until the separate PHP 7 port is scheduled.
+    // Pin exact PHP 8 source content: future edits still fail this guard.
+    'src/Moderation/Gd2209CaseService.php'=>'c57e1836b7edaf31d60e66d8daea92cf78948ba24d6bb5061560ad026a991aad',
+    'src/Moderation/ReportQueueRepository.php'=>'af4189c92ad58fbe80529cff48424ea374a184136993ab7f4a4659b302a96901',
+    'src/Moderation/ReportQueueService.php'=>'699f44e17d3c4b5c64a17e0e10525ade9460e3cb2d04347fe7b330416bac747c',
     'src/Client/AndroidGd2209Binary.php'=>'8c0dcb95a744fba6dbb7a59222c3ae12cc25f6ff7ad35ee83ed85c9b9ea601f7',
     'src/Client/AndroidClientPatcher.php'=>'5b201600cff430ba777df3403f403686a89e35e55e965943c69d7013fca72e9c',
     'src/Social/MessageController.php'=>'20146708112462034cbe140a60a553a5e344a6bdbf3d20b1430c5059c82a660b',
