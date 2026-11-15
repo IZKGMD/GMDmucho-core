@@ -67,6 +67,12 @@ function mucho7_domain_handle(PDO $db,$uri,$method,$post,$settings,$root)
     if(empty($settings['enable_writes'])&&!$read)return \MuchoCore\Http\Response::text('-1');
     if(in_array($plain,array('/backupgjaccount','/syncgjaccount'),true)&&empty($settings['enable_cloudsave']))return \MuchoCore\Http\Response::text('-1');
     if(empty($settings['enable_social'])&&(preg_match('/(?:friend|message|thread|following|followgj|mutegj|notification)/',$plain)||strpos($path,'/clans/')===0))return \MuchoCore\Http\Response::text('-1');
+    // Repair first-time backup on an already-migrated PHP7 installation.
+    // Fresh installs with no old saves previously skipped key provisioning.
+    // Never regenerate a missing key when encrypted records already exist.
+    if($plain==='/backupgjaccount'&&!is_file($root.'/config/cloudsave.key')){
+        mucho7_domain_save_key($db,$root);
+    }
     $request=new \MuchoCore\Http\Request(strtoupper($method),$uri,$_GET,$post,$_SERVER);
     return (new \MuchoCore\Core\Application($db,$request))->handle($request);
 }
