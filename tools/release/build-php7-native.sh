@@ -236,7 +236,7 @@ for item in mc/admin.php mc/public/php7-admin.php mc/public/assets/php7-admin-ba
   mc/compat/php7/users.php mc/compat/php7/runtime.php \
   mc/compat/php7/news.php mc/compat/php7/schema.php \
   mc/compat/php7/features.sql mc/compat/php7/interactions.php \
-  mc/compat/php7/cloudsave.php mc/compat/php7/profile.php \
+  mc/compat/php7/cloudsave.php mc/compat/php7/profile.php mc/compat/php7/readiness.php \
   mc/.htaccess mc/public/.htaccess \
   5V_ROOT_REWRITE_RULES.txt START_HERE_SHARED.txt \
   INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl \
