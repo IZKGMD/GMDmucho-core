@@ -54,6 +54,24 @@ Old plaintext rows remain in the native source table until it is securely
 retired according to the operator's database-backup retention policy.
 These score fields are client-reported, not an anti-cheat certification.
 
+## Owner hosting preflight on 5v.pl
+
+After signing in as the owner, open **Server**. The **5v.pl hosting preflight**
+runs local, read-only checks for:
+- HTTPS origin, PHP PDO/MySQL + OpenSSL/zlib and optional mbstring.
+- Effective `post_max_size` (26M or higher for URL-encoded 8 MiB saves)
+  and `memory_limit` (128M or higher).
+- Private `config/` writability, core migration state, pinned build versus
+  uploaded build, and encryption-key presence and encoding.
+- Separate account/write/Cloud Save and registration switches.
+
+The status intentionally **does not certify** the public Apache rewrite,
+host upload/proxy limits, SMTP, game-client behavior, or runtime security.
+Verify every deployed route using the **actual patched GD 2.209 client**.
+If Cloud Save fails, keep local `CCGameManager.dat` and
+`CCLocalLevels.dat` safe and inspect Server's key/limits result before
+attempting Load. Never replace an existing encryption key to clear a warning.
+
 ## Upgrade an existing native PHP7 installation
 
 1. Preserve the current files and database backup.
