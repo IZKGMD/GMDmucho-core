@@ -126,12 +126,13 @@ function pdAntiBotOrReject(string $scope): void
     }
 }
 
-function pdAccountFromSession(): ?array
+function pdAccountFromSession(PDO $db): ?array
 {
-    $account = $_SESSION['account'] ?? null;
-    return is_array($account) && (int)($account['id'] ?? 0) > 0
-        ? $account
-        : null;
+    $account = \MuchoCore\Account\PlayerSession::resolve($db, $_SESSION['account'] ?? null);
+    if ($account === null) {
+        unset($_SESSION['account'], $_SESSION['csrf']);
+    }
+    return $account;
 }
 
 function pdFormatNumber(mixed $value): string
@@ -412,17 +413,14 @@ if ($action === 'login') {
             throw new RuntimeException('Invalid account');
         }
 
-        (new AccountAuthenticator($db))->authenticate(
+        $authenticated = (new AccountAuthenticator($db))->authenticate(
             (int)$account['account_id'],
             $password
         );
 
         session_regenerate_id(true);
 
-        $_SESSION['account'] = [
-            'id' => (int)$account['account_id'],
-            'username' => (string)$account['username'],
-        ];
+        $_SESSION['account'] = \MuchoCore\Account\PlayerSession::create($authenticated);
         $_SESSION['csrf'] = bin2hex(random_bytes(32));
 
         pdFlash('Signed in as ' . (string)$account['username'] . '.');
@@ -444,7 +442,7 @@ if ($action === 'upload') {
     pdRequireCsrf();
     pdAntiBotOrReject('upload');
 
-    $account = pdAccountFromSession();
+    $account = pdAccountFromSession($db);
 
     if (!$account) {
         pdFlash('Sign in to upload music.', 'error');
@@ -575,7 +573,7 @@ if ($action === 'upload') {
 }
 
 $flash = pdFlash();
-$account = pdAccountFromSession();
+$account = pdAccountFromSession($db);
 $search = trim((string)($_GET['search'] ?? ''));
 $profileUsername = trim((string)($_GET['u'] ?? ''));
 
