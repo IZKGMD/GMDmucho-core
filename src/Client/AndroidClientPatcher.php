@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MuchoCore\Client;
 
 require_once __DIR__ . '/AndroidGd2209Binary.php';
+require_once __DIR__ . '/AndroidGd22144Binary.php';
 require_once __DIR__ . '/AndroidPackageRelocator.php';
 
 use RuntimeException;
@@ -42,11 +43,15 @@ final class AndroidClientPatcher
             !preg_match('~(?:^|/)classes[0-9]*\\.dex$|\\.(?:json|xml|txt|ini|cfg|dat)$~i', $name)) {
             return [$data, 0, false];
         }
+        if (AndroidGd22144Binary::supports($data)) {
+            [$bytes, $count] = AndroidGd22144Binary::patchBytes($data, $server);
+            return [$bytes, $count, true];
+        }
         if (AndroidGd2209Binary::supports($data) || AndroidGd2209Binary::isStructurallyCompatible($data)) {
             [$bytes, $count] = AndroidGd2209Binary::patchBytes($data, $server, AndroidGd2209Binary::ENDPOINTS);
             return [$bytes, $count, true];
         }
-        if (AndroidGd2209Binary::resembles2209($data)) {
+        if (AndroidGd2209Binary::resembles2209($data) || AndroidGd22144Binary::resembles22144($data)) {
             throw new RuntimeException('Unknown or already patched Android GD 2.209 build. Choose the original, unmodified APK.');
         }
         $count = 0;
@@ -105,10 +110,12 @@ final class AndroidClientPatcher
         ] as $nativePath) {
             $candidate = $source->getFromName($nativePath);
             if (!is_string($candidate)) continue;
-            if (AndroidGd2209Binary::supports($candidate) ||
+            if (AndroidGd22144Binary::supports($candidate) ||
+                AndroidGd2209Binary::supports($candidate) ||
                 AndroidGd2209Binary::isStructurallyCompatible($candidate)) {
                 $nativeLibraries[$nativePath] = $candidate;
-            } elseif (AndroidGd2209Binary::resembles2209($candidate)) {
+            } elseif (AndroidGd2209Binary::resembles2209($candidate) ||
+                AndroidGd22144Binary::resembles22144($candidate)) {
                 $unsupportedNative[$nativePath] = [
                     'sha256' => hash('sha256', $candidate),
                     'bytes' => strlen($candidate),
@@ -144,6 +151,27 @@ final class AndroidClientPatcher
             );
         }
         if ($nativeLibraries !== []) {
+            $contains22144 = false;
+            $contains2209 = false;
+            foreach ($nativeLibraries as $candidate) {
+                $contains22144 = $contains22144 || AndroidGd22144Binary::supports($candidate);
+                $contains2209 = $contains2209 ||
+                    AndroidGd2209Binary::supports($candidate) ||
+                    AndroidGd2209Binary::isStructurallyCompatible($candidate);
+            }
+            if ($contains22144 && $contains2209) {
+                $source->close();
+                throw new RuntimeException('Mixed GD 2.2.144 and GD 2.209 native libraries are unsupported.');
+            }
+            // The 2.2.144 fixture is a third-party modded APK, not a general
+            // client version contract. Require the entire uploaded file hash
+            // to match the individually audited package, including its manifest.
+            if ($contains22144 &&
+                !hash_equals(AndroidGd22144Binary::APK_SHA256, hash_file('sha256', $inputPath) ?: '')) {
+                $source->close();
+                throw new RuntimeException('This 2.2.144 ARM64 library is inside an unknown APK. ' .
+                    'The exact source APK SHA-256 must match the verified upload; refusing repackaged input.');
+            }
             $source->close();
             return self::patchGd2209Apk(
                 $inputPath, $outputPath, $server, $nativeLibraries, $heartbeat, $installAlongside
@@ -328,15 +356,20 @@ final class AndroidClientPatcher
         $paths = [];
         $patchedEntries = [];
         $allExact = count($nativeLibraries) === 1;
+        $thirdParty22144 = count($nativeLibraries) === 1;
         foreach ($nativeLibraries as $libraryPath => $native) {
+            $is22144 = AndroidGd22144Binary::supports($native);
+            $thirdParty22144 = $thirdParty22144 && $is22144;
             $allExact = $allExact && AndroidGd2209Binary::supports($native);
-            [$patched, $count, $libraryPaths] = AndroidGd2209Binary::patchBytes(
-                $native,
-                $server,
-                AndroidGd2209Binary::ENDPOINTS
-            );
+            [$patched, $count, $libraryPaths] = $is22144
+                ? AndroidGd22144Binary::patchBytes($native, $server)
+                : AndroidGd2209Binary::patchBytes(
+                    $native,
+                    $server,
+                    AndroidGd2209Binary::ENDPOINTS
+                );
             if (strlen($patched) !== strlen($native)) {
-                throw new RuntimeException('GD 2.209 ELF size changed unexpectedly.');
+                throw new RuntimeException('Geometry Dash native ELF size changed unexpectedly.');
             }
             $patchedLibraries[$libraryPath] = $patched;
             $replacements += $count;
@@ -443,17 +476,21 @@ final class AndroidClientPatcher
                 'output_size' => $bytes,
                 'replacement_count' => $replacements,
                 'patched_entries' => $patchedEntries,
-                'source_build' => $allExact
-                    ? 'GD 2.209 API / Android package 2.2.145 (verified ARM64)'
-                    : 'GD 2.209 API (structurally validated Android ARM variant)',
+                'source_build' => $thirdParty22144
+                    ? 'GD 2.2.144 third-party APK (exact static build, runtime not tested)'
+                    : ($allExact
+                        ? 'GD 2.209 API / Android package 2.2.145 (verified ARM64)'
+                        : 'GD 2.209 API (structurally validated Android ARM variant)'),
                 'package_id' => $packageId,
                 'endpoint_paths' => $paths,
                 'input_sha256' => hash_file('sha256', $inputPath),
                 'output_sha256' => hash_file('sha256', $outputPath),
                 'signed' => true,
-                'verified' => $allExact
-                    ? 'static-binary-and-APK-signature'
-                    : 'endpoint-table-layout-and-APK-signature',
+                'verified' => $thirdParty22144
+                    ? 'third-party-static-build-and-APK-signature-runtime-unverified'
+                    : ($allExact
+                        ? 'static-binary-and-APK-signature'
+                        : 'endpoint-table-layout-and-APK-signature'),
             ];
         } catch (\Throwable $e) {
             @unlink($outputPath);
