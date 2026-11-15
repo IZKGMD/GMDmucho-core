@@ -28,6 +28,9 @@ if($mode==='create'){
     $db->exec('UPDATE accounts SET is_banned=1 WHERE account_id=3');$db->exec('UPDATE accounts SET is_active=0 WHERE account_id=4');
     do{$migration=mucho7_domain_upgrade($db,8);}while($migration['remaining']>0);
     do{$import=mucho7_domain_import_step($db,$stage,32);}while(!$import['done']);
+    // Match the real owner migration: a fresh installation with zero legacy
+    // saves still needs a stable key BEFORE enabling the compiled handler.
+    mucho7_domain_save_key($db,$stage);
     // Distinct user IDs catch accountID/userID namespace regressions.
     $db->exec('UPDATE profiles SET user_id=account_id+100');
     mucho7_private_write($stage.'/config/php7-complete.on','1');
