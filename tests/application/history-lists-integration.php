@@ -52,8 +52,9 @@ try {
         cube INT, icon_id INT, color1 INT, color2 INT, icon_type INT, special INT, glow INT) ENGINE=InnoDB');
     $db->exec('INSERT INTO profiles VALUES (1,501,42,7,11,12,2,1,0),(501,901,3,3,2,3,0,0,0)');
     $db->exec('CREATE TABLE levels (level_id BIGINT PRIMARY KEY, is_deleted TINYINT,
-        is_unlisted TINYINT) ENGINE=InnoDB');
-    $db->exec('INSERT INTO levels VALUES (10,0,0),(11,0,0),(12,1,0),(13,0,1)');
+        is_unlisted TINYINT, unlisted2 TINYINT DEFAULT 0) ENGINE=InnoDB');
+    $db->exec('INSERT INTO levels (level_id,is_deleted,is_unlisted) VALUES (10,0,0),(11,0,0),(12,1,0),(13,0,1)');
+    $db->exec('INSERT INTO levels VALUES (14,0,0,1)');
     $db->exec('CREATE TABLE comments (id BIGINT PRIMARY KEY, account_id BIGINT, level_id BIGINT,
         content VARCHAR(1024), likes INT, is_spam TINYINT DEFAULT 0, percent INT DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB');
@@ -62,6 +63,7 @@ try {
         [100,1,10,'hello 😀',1], [101,1,11,'second',5], [102,1,10,'third',5],
         [103,1,12,'deleted',0], [104,1,13,'unlisted',0], [105,1,99,'missing level',0],
         [106,999,10,'missing account',0], [200,501,10,'Bob only',0], [300,2,10,'legacy',0],
+        [107,1,14,'friends-only secret',100],
     ] as $row) { $q->execute($row); }
 
     $repo = new CommentHistoryRepository($db);

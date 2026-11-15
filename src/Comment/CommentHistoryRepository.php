@@ -104,6 +104,9 @@ final class CommentHistoryRepository
             if ($this->schema->columnExists('levels', 'is_unlisted')) {
                 $levelWhere .= ' AND COALESCE(l.is_unlisted, 0) = 0 ';
             }
+            if ($this->schema->columnExists('levels', 'unlisted2')) {
+                $levelWhere .= ' AND COALESCE(l.unlisted2, 0) = 0 ';
+            }
         } else {
             // A public history must not expose comments without a live level.
             throw new RuntimeException('levels table missing');

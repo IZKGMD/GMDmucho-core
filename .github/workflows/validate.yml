@@ -170,6 +170,7 @@ jobs:
           php tests/application/comment-contract.php
           php tests/application/social-crud-contract.php
           php tests/application/friend-request-read-state.php
+          php tests/application/player-session-revocation.php
           php tests/application/v106-hardening-contract.php
           php tests/application/v108-intelligence-contract.php
           php tests/application/legacy-19-session.php

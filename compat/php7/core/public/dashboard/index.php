@@ -89,10 +89,13 @@ function pdAntiBotOrReject(string $scope)
         pdRedirect();
     }
 }
-function pdAccountFromSession()
+function pdAccountFromSession(PDO $db)
 {
-    $account = $_SESSION['account'] ?? null;
-    return is_array($account) && (int) ($account['id'] ?? 0) > 0 ? $account : null;
+    $account = \MuchoCore\Account\PlayerSession::resolve($db, $_SESSION['account'] ?? null);
+    if ($account === null) {
+        unset($_SESSION['account'], $_SESSION['csrf']);
+    }
+    return $account;
 }
 function pdFormatNumber($value): string
 {
@@ -306,9 +309,9 @@ if ($action === 'login') {
         if (!is_array($account) || (int) $account['is_active'] !== 1 || (int) $account['is_banned'] !== 0) {
             throw new RuntimeException('Invalid account');
         }
-        (new AccountAuthenticator($db))->authenticate((int) $account['account_id'], $password);
+        $authenticated = (new AccountAuthenticator($db))->authenticate((int) $account['account_id'], $password);
         session_regenerate_id(true);
-        $_SESSION['account'] = ['id' => (int) $account['account_id'], 'username' => (string) $account['username']];
+        $_SESSION['account'] = \MuchoCore\Account\PlayerSession::create($authenticated);
         $_SESSION['csrf'] = bin2hex(random_bytes(32));
         pdFlash('Signed in as ' . (string) $account['username'] . '.');
     } catch (Throwable $__mcCaught) {
@@ -325,7 +328,7 @@ if ($action === 'logout') {
 if ($action === 'upload') {
     pdRequireCsrf();
     pdAntiBotOrReject('upload');
-    $account = pdAccountFromSession();
+    $account = pdAccountFromSession($db);
     if (!$account) {
         pdFlash('Sign in to upload music.', 'error');
         pdRedirect();
@@ -401,7 +404,7 @@ if ($action === 'upload') {
     pdRedirect();
 }
 $flash = pdFlash();
-$account = pdAccountFromSession();
+$account = pdAccountFromSession($db);
 $search = trim((string) ($_GET['search'] ?? ''));
 $profileUsername = trim((string) ($_GET['u'] ?? ''));
 $profile = null;

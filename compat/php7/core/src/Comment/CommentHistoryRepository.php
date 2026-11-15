@@ -38,6 +38,9 @@ final class CommentHistoryRepository
             if ($this->schema->columnExists('levels', 'unlisted2')) {
                 $levelWhere .= ' AND COALESCE(l.unlisted2, 0) = 0 ';
             }
+            if ($this->schema->columnExists('levels', 'unlisted2')) {
+                $levelWhere .= ' AND COALESCE(l.unlisted2, 0) = 0 ';
+            }
         }
         $countStmt = $this->db->prepare("SELECT COUNT(*)\n             FROM comments c\n             {$levelJoin}\n             WHERE c.account_id = :account_id\n             {$levelWhere}");
         $countStmt->execute([':account_id' => $accountId]);

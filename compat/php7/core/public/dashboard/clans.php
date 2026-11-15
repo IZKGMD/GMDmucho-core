@@ -55,10 +55,13 @@ function pcRedirect()
     \mucho7_player_header('Location: /dashboard/clans.php');
     exit;
 }
-function pcAccount()
+function pcAccount(PDO $db)
 {
-    $account = $_SESSION['account'] ?? null;
-    return is_array($account) && (int) ($account['id'] ?? 0) > 0 ? $account : null;
+    $account = \MuchoCore\Account\PlayerSession::resolve($db, $_SESSION['account'] ?? null);
+    if ($account === null) {
+        unset($_SESSION['account'], $_SESSION['csrf']);
+    }
+    return $account;
 }
 function pcUsableAccount(PDO $db, int $accountId): bool
 {
@@ -80,7 +83,7 @@ function pcClan(PDO $db, int $clanId)
     $clan['members'] = $repo->members($clanId);
     return $clan;
 }
-$account = pcAccount();
+$account = pcAccount($db);
 if ($account && !pcUsableAccount($db, (int) $account['id'])) {
     $_SESSION = [];
     session_destroy();
