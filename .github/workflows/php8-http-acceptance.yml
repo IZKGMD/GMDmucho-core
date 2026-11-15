@@ -167,6 +167,16 @@ jobs:
           export DB_PASS="$(cat .secrets/testgdps_db_password)"
           bash tests/integration/regression.sh
 
+      - name: Smoke every PHP 8 game route with malformed anonymous requests
+        shell: bash
+        env:
+          DB_NAME: testgdps
+          MUCHO_TEST_ALLOW_WRITES: "1"
+          MUCHO_TEST_BASE_URL: http://127.0.0.1:18080
+        run: |
+          set -Eeuo pipefail
+          python3 tests/integration/php8-all-routes-negative-http.py
+
       - name: Collect application logs on failure
         if: failure()
         run: |
