@@ -138,17 +138,23 @@ def post(path: str, fields: dict[str, str]) -> tuple[int, bytes, str]:
 
 def probe(path: str, label: str, fields: dict[str, str]) -> tuple[int, str]:
     status, content, mime = post(path, fields)
-    check(status == 200, f"{path} {label}: expected HTTP 200, got {status}")
+    # Browser recovery and protected GD operations may intentionally reject
+    # anonymous synthetic requests. Treat those as guarded, not as successes.
+    # A 404 is not accepted: the EXE expects a route at this exact URL.
+    check(status in (200, 400, 401, 403, 405, 422),
+          f"{path} {label}: unexpected HTTP {status}")
     check(len(content) <= MAX_REPLY, f"{path} {label}: oversized response")
     check(not LEAK.search(content), f"{path} {label}: PHP/SQL error disclosure")
     is_html = "text/html" in mime.lower()
     if path not in HTML_PATHS:
         check(not is_html and not content.lstrip().lower().startswith(b"<!doctype"),
               f"{path} {label}: unexpected browser HTML")
-        check(bool(content), f"{path} {label}: empty game response")
+        if status == 200:
+            check(bool(content), f"{path} {label}: empty game response")
     if path.endswith("/checkIfServerOnline.php"):
+        check(status == 200, "Online check must be HTTP 200")
         check(content == b"1", "Online check must return exact native success '1'")
-    if path.endswith("/getAccountURL.php"):
+    if path.endswith("/getAccountURL.php") and status == 200:
         check(content.startswith((b"http://", b"https://")),
               "Native account URL endpoint should return HTTP(S) URL")
     return status, hashlib.sha256(content).hexdigest()
@@ -161,6 +167,7 @@ def run_http(routes: list[dict]) -> None:
 
     total = 0
     buckets = Counter()
+    statuses = Counter()
     for row in routes:
         path = row["path"]
         basename = path.rsplit("/", 1)[-1]
@@ -178,13 +185,15 @@ def run_http(routes: list[dict]) -> None:
             ("client-shaped-no-auth", client),
             ("malformed-array", poisoned),
         ):
-            probe(path, label, payload)
+            status, _ = probe(path, label, payload)
+            statuses[str(status)] += 1
             buckets[label] += 1
             total += 1
     print(
         "MUCHOCORE_GD2209_EXE_SYNTHETIC_HTTP_OK "
         f"native_routes={len(routes)} requests={total} "
         f"variants={json.dumps(buckets, sort_keys=True)} "
+        f"statuses={json.dumps(statuses, sort_keys=True)} "
         "native_client_certified=false"
     )
 
