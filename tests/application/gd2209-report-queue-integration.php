@@ -164,7 +164,7 @@ try {
 
     // Native type 0 is a direct profile report. It must appear in the
     // same target-account queue, with a real slot-8 direct report count.
-    $case = new \\MuchoCore\\Moderation\\Gd2209CaseService(
+    $case = new \MuchoCore\Moderation\Gd2209CaseService(
         $db, $auth, new ModerationRepository($db), $repo
     );
     $assert($case->reportLevel(1, 'pass-1', 0, 5, 0, '4,5'),
