@@ -1,0 +1,1285 @@
+{
+  "schema_version": 1,
+  "source": {
+    "origin": "previously user-supplied patched Geometry Dash 2.209 Windows EXE; archived offline static inventory",
+    "filename": "GeometryDash-MuchoCore-2.209.exe",
+    "sha256": "cbd4847b5991d5ef3784911f40359fdbe2bfbb2f735871ab12749debf8f2449b",
+    "original_size": 13178880,
+    "architecture": "x86_64",
+    "client_game_version": 22,
+    "client_binary_version": 51,
+    "extraction_mode": "offline_static",
+    "notes": "Nearby parameter names are only static proximity hints, NOT observed request payloads. No proprietary binary included."
+  },
+  "expected_direct_urls": 113,
+  "routes": [
+    {
+      "path": "/database/accounts/lostusername.php",
+      "section_offset": "0x715488",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/accounts/lostpassword.php",
+      "section_offset": "0x715588",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/accounts/accountManagement.php",
+      "section_offset": "0x7166e0",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/checkIfServerOnline.php",
+      "section_offset": "0x755d68",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/uploadGJDeathData.php",
+      "section_offset": "0x755ed0",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "accountID",
+        "binaryVersion",
+        "data",
+        "dvs",
+        "gameVersion",
+        "gjp2",
+        "secret",
+        "udid",
+        "uuid"
+      ]
+    },
+    {
+      "path": "/database/uploadGJLevel21.php",
+      "section_offset": "0x755fb8",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "bs",
+        "ct",
+        "extraString",
+        "levelID",
+        "levelName",
+        "levelString",
+        "lrs",
+        "seed",
+        "seed2",
+        "sfxIDs",
+        "songIDs",
+        "userName"
+      ]
+    },
+    {
+      "path": "/database/getGJDeathData.php",
+      "section_offset": "0x756170",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "active",
+        "completedLevels",
+        "customSong",
+        "diff",
+        "epic",
+        "legendary",
+        "len",
+        "local",
+        "mythic",
+        "page",
+        "song",
+        "str",
+        "total",
+        "type",
+        "uncompleted"
+      ]
+    },
+    {
+      "path": "/database/deleteGJLevelList.php",
+      "section_offset": "0x756328",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "difficulty",
+        "listDesc",
+        "listID",
+        "listLevels",
+        "listName",
+        "listVersion",
+        "notify",
+        "seed",
+        "seed2"
+      ]
+    },
+    {
+      "path": "/database/uploadGJLevelList.php",
+      "section_offset": "0x756370",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "difficulty",
+        "listDesc",
+        "listID",
+        "listLevels",
+        "listName",
+        "listVersion",
+        "notify",
+        "original",
+        "seed",
+        "seed2",
+        "unlisted"
+      ]
+    },
+    {
+      "path": "/database/getGJMapPacks21.php",
+      "section_offset": "0x756440",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "hypeSecret",
+        "inc",
+        "page",
+        "secret"
+      ]
+    },
+    {
+      "path": "/database/getSaveData.php",
+      "section_offset": "0x756490",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "hypeSecret",
+        "inc"
+      ]
+    },
+    {
+      "path": "/database/getGJLevels21.php",
+      "section_offset": "0x7564d8",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "emote",
+        "hypeSecret",
+        "inc",
+        "secret",
+        "soundDesc",
+        "soundID"
+      ]
+    },
+    {
+      "path": "/database/updateGJSoundDesc.php",
+      "section_offset": "0x756548",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "emote",
+        "secret",
+        "soundDesc",
+        "soundID"
+      ]
+    },
+    {
+      "path": "/database/deleteGJEditorSound.php",
+      "section_offset": "0x7565c8",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "secret",
+        "soundID"
+      ]
+    },
+    {
+      "path": "/database/downloadGJEditorSound.php",
+      "section_offset": "0x756618",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "count",
+        "page",
+        "secret",
+        "soundID",
+        "star",
+        "str",
+        "total",
+        "type"
+      ]
+    },
+    {
+      "path": "/database/getGJEditorSounds.php",
+      "section_offset": "0x756680",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "count",
+        "page",
+        "secret",
+        "soundData",
+        "soundDesc",
+        "soundID",
+        "soundName",
+        "star",
+        "str",
+        "total",
+        "type"
+      ]
+    },
+    {
+      "path": "/database/uploadGJEditorSound.php",
+      "section_offset": "0x756700",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "actionCount",
+        "emote",
+        "soundCount",
+        "soundData",
+        "soundDesc",
+        "soundID",
+        "soundName",
+        "unlisted"
+      ]
+    },
+    {
+      "path": "/database/getGJLevelLists.php",
+      "section_offset": "0x7567b8",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "chk",
+        "dailyID",
+        "inc",
+        "levelID",
+        "rchk",
+        "rs",
+        "secret"
+      ]
+    },
+    {
+      "path": "/database/downloadGJLevel22.php",
+      "section_offset": "0x7567f8",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "chk",
+        "dailyID",
+        "inc",
+        "levelID",
+        "rchk",
+        "rs",
+        "secret"
+      ]
+    },
+    {
+      "path": "/database/getGJContentStatus.php",
+      "section_offset": "0x756908",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "secret",
+        "special",
+        "vkey"
+      ]
+    },
+    {
+      "path": "/database/getGJGauntlets21.php",
+      "section_offset": "0x756970",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "coin",
+        "demonDiff",
+        "feature",
+        "levelID",
+        "secret",
+        "special",
+        "stars",
+        "vkey"
+      ]
+    },
+    {
+      "path": "/database/suggestGJStars20.php",
+      "section_offset": "0x7569d8",
+      "risk_hint": "unknown",
+      "parameter_name_hints": [
+        "coin",
+        "demonDiff",
+        "feature",
+        "levelID",
+        "secret",
+        "stars"
+      ]
+    },
+    {
+      "path": "/database/deleteGJLevelUser20.php",
+      "section_offset": "0x756a90",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "gameVersion",
+        "levelID",
+        "secret",
+        "stars"
+      ]
+    },
+    {
+      "path": "/database/rateGJStars211.php",
+      "section_offset": "0x756ad0",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "gameVersion",
+        "levelID",
+        "secret",
+        "sinfod",
+        "sinfoe",
+        "sinfog",
+        "stars"
+      ]
+    },
+    {
+      "path": "/database/rateGJDemon21.php",
+      "section_offset": "0x756d38",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "levelID",
+        "mode",
+        "rating",
+        "secret"
+      ]
+    },
+    {
+      "path": "/database/getGJLevelScores211.php",
+      "section_offset": "0x756d98",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "levelID",
+        "mode",
+        "percent",
+        "plat",
+        "points",
+        "s1",
+        "secret",
+        "time",
+        "type"
+      ]
+    },
+    {
+      "path": "/database/getGJLevelScoresPlat.php",
+      "section_offset": "0x756dd8",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "levelID",
+        "mode",
+        "percent",
+        "plat",
+        "points",
+        "s1",
+        "s10",
+        "s11",
+        "s2",
+        "s3",
+        "s4",
+        "s5",
+        "s6",
+        "s7",
+        "s8",
+        "s9",
+        "secret",
+        "time",
+        "type"
+      ]
+    },
+    {
+      "path": "/database/getGJScores20.php",
+      "section_offset": "0x756f10",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "count",
+        "secret",
+        "stat",
+        "type"
+      ]
+    },
+    {
+      "path": "/database/updateGJUserScore22.php",
+      "section_offset": "0x756fa0",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "isSender",
+        "messageID",
+        "secret"
+      ]
+    },
+    {
+      "path": "/database/downloadGJMessage20.php",
+      "section_offset": "0x757008",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "getSent",
+        "isSender",
+        "messageID",
+        "page",
+        "secret",
+        "total"
+      ]
+    },
+    {
+      "path": "/database/getGJMessages20.php",
+      "section_offset": "0x757070",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "getSent",
+        "notifMask",
+        "page",
+        "secret",
+        "targetAccountID",
+        "total"
+      ]
+    },
+    {
+      "path": "/database/getGJUserInfo20.php",
+      "section_offset": "0x7570d8",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "notifMask",
+        "page",
+        "secret",
+        "str",
+        "targetAccountID",
+        "total"
+      ]
+    },
+    {
+      "path": "/database/getGJUsers20.php",
+      "section_offset": "0x757150",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "page",
+        "secret",
+        "str",
+        "total"
+      ]
+    },
+    {
+      "path": "/database/getGJTopArtists.php",
+      "section_offset": "0x7571b0",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "accountID",
+        "page",
+        "secret",
+        "total"
+      ]
+    },
+    {
+      "path": "/database/getGJAccountComments20.php",
+      "section_offset": "0x757218",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "accountID",
+        "count",
+        "page",
+        "secret",
+        "total"
+      ]
+    },
+    {
+      "path": "/database/getGJComments21.php",
+      "section_offset": "0x757288",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "cType",
+        "count",
+        "mode",
+        "page",
+        "secret",
+        "total",
+        "userID"
+      ]
+    },
+    {
+      "path": "/database/getGJCommentHistory.php",
+      "section_offset": "0x7572c0",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "cType",
+        "count",
+        "messages",
+        "mode",
+        "page",
+        "secret",
+        "total",
+        "userID"
+      ]
+    },
+    {
+      "path": "/database/deleteGJMessages20.php",
+      "section_offset": "0x757368",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "comment",
+        "messageID",
+        "messages",
+        "percent",
+        "secret",
+        "userName"
+      ]
+    },
+    {
+      "path": "/database/deleteGJAccComment20.php",
+      "section_offset": "0x7574f0",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "commentID",
+        "secret",
+        "targetAccountID"
+      ]
+    },
+    {
+      "path": "/database/deleteGJComment20.php",
+      "section_offset": "0x757530",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "commentID",
+        "secret",
+        "targetAccountID"
+      ]
+    },
+    {
+      "path": "/database/uploadGJAccComment20.php",
+      "section_offset": "0x757650",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "cType"
+      ]
+    },
+    {
+      "path": "/database/uploadGJComment21.php",
+      "section_offset": "0x757690",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "cType"
+      ]
+    },
+    {
+      "path": "/database/adminUploadBan.php",
+      "section_offset": "0x7576f8",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "durationMinutes",
+        "mode"
+      ]
+    },
+    {
+      "path": "/database/adminCommentUnban.php",
+      "section_offset": "0x757748",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "categories",
+        "durationMinutes",
+        "mode",
+        "reason"
+      ]
+    },
+    {
+      "path": "/database/adminCommentBan.php",
+      "section_offset": "0x757798",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "categories",
+        "durationMinutes",
+        "mode",
+        "reason",
+        "scope"
+      ]
+    },
+    {
+      "path": "/database/adminDeleteUserComments.php",
+      "section_offset": "0x757820",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "history",
+        "items",
+        "page",
+        "scope",
+        "secret",
+        "targetAccountID"
+      ]
+    },
+    {
+      "path": "/database/deleteGJComments.php",
+      "section_offset": "0x7578a0",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "flags",
+        "history",
+        "items",
+        "mode",
+        "page",
+        "secret",
+        "sort",
+        "targetAccountID"
+      ]
+    },
+    {
+      "path": "/database/adminGetReportQueue.php",
+      "section_offset": "0x757930",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "flags",
+        "items",
+        "mode",
+        "page",
+        "secret",
+        "sort",
+        "targetAccountID"
+      ]
+    },
+    {
+      "path": "/database/adminClearReportedContent.php",
+      "section_offset": "0x7579c0",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "ctype",
+        "items",
+        "page",
+        "secret",
+        "sort",
+        "targetAccountID"
+      ]
+    },
+    {
+      "path": "/database/adminGetReportedContent.php",
+      "section_offset": "0x757a48",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "ctype",
+        "page",
+        "secret",
+        "sort",
+        "targetAccountID"
+      ]
+    },
+    {
+      "path": "/database/adminGetUserHistory.php",
+      "section_offset": "0x757ad8",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "page",
+        "secret",
+        "targetAccountID"
+      ]
+    },
+    {
+      "path": "/database/adminUploadUnban.php",
+      "section_offset": "0x757b50",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/adminFreezeAccount.php",
+      "section_offset": "0x757ba0",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/adminMessageUnban.php",
+      "section_offset": "0x757bf0",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "action",
+        "threadID"
+      ]
+    },
+    {
+      "path": "/database/adminMessageBan.php",
+      "section_offset": "0x757c48",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "action",
+        "messageID",
+        "secret",
+        "threadID"
+      ]
+    },
+    {
+      "path": "/database/adminThreadAction.php",
+      "section_offset": "0x757c90",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "action",
+        "messageID",
+        "outcome",
+        "secret",
+        "threadID"
+      ]
+    },
+    {
+      "path": "/database/adminCloseCase.php",
+      "section_offset": "0x757d18",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "outcome",
+        "secret",
+        "targetAccountID"
+      ]
+    },
+    {
+      "path": "/database/adminGetAccountReview.php",
+      "section_offset": "0x757d70",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "secret",
+        "targetAccountID",
+        "threadID"
+      ]
+    },
+    {
+      "path": "/database/adminGetAbuseInfo.php",
+      "section_offset": "0x757de0",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "secret",
+        "threadID"
+      ]
+    },
+    {
+      "path": "/database/adminQueueUnmute.php",
+      "section_offset": "0x757e48",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/adminQueueMute.php",
+      "section_offset": "0x757e98",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/adminNameUnlock.php",
+      "section_offset": "0x757ee8",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/adminNameLock.php",
+      "section_offset": "0x757f38",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/adminTrendingUnban.php",
+      "section_offset": "0x757f88",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/adminTrendingBan.php",
+      "section_offset": "0x757fe0",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "afterID",
+        "beforeID",
+        "mv",
+        "secret",
+        "threadID"
+      ]
+    },
+    {
+      "path": "/database/adminUnfreezeAccount.php",
+      "section_offset": "0x758030",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "afterID",
+        "beforeID",
+        "mv",
+        "secret",
+        "threadID",
+        "user"
+      ]
+    },
+    {
+      "path": "/database/getGJThreads.php",
+      "section_offset": "0x7580e8",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "body",
+        "emote",
+        "filter",
+        "page",
+        "removed",
+        "search",
+        "secret",
+        "token",
+        "user"
+      ]
+    },
+    {
+      "path": "/database/sendGJThreadMessage.php",
+      "section_offset": "0x758170",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "body",
+        "description",
+        "emote",
+        "isDM",
+        "mute",
+        "secret",
+        "subject",
+        "targetAccountID",
+        "targets",
+        "toAccountID",
+        "token"
+      ]
+    },
+    {
+      "path": "/database/getGJNotifications.php",
+      "section_offset": "0x758250",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "mask",
+        "page",
+        "secret",
+        "total"
+      ]
+    },
+    {
+      "path": "/database/getGJThreadInvites.php",
+      "section_offset": "0x7582e8",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "beforeID",
+        "query",
+        "secret",
+        "threadID"
+      ]
+    },
+    {
+      "path": "/database/searchGJThreadMessages.php",
+      "section_offset": "0x758338",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "aroundID",
+        "beforeID",
+        "date",
+        "query",
+        "secret",
+        "threadID"
+      ]
+    },
+    {
+      "path": "/database/getGJThreadMessages.php",
+      "section_offset": "0x7583c0",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "aroundID",
+        "date"
+      ]
+    },
+    {
+      "path": "/database/getGJThreadMembers.php",
+      "section_offset": "0x758428",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "chk",
+        "notificationID",
+        "secret"
+      ]
+    },
+    {
+      "path": "/database/claimGJNotificationReward.php",
+      "section_offset": "0x758480",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "ack",
+        "chk",
+        "follows",
+        "notificationID",
+        "secret"
+      ]
+    },
+    {
+      "path": "/database/syncGJFollowing.php",
+      "section_offset": "0x758510",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "ack",
+        "follows",
+        "secret"
+      ]
+    },
+    {
+      "path": "/database/getGJFollowing.php",
+      "section_offset": "0x758568",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "ack",
+        "secret"
+      ]
+    },
+    {
+      "path": "/database/unfollowGJUser.php",
+      "section_offset": "0x7585c8",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/followGJUser.php",
+      "section_offset": "0x758600",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "comment",
+        "secret",
+        "toAccountID"
+      ]
+    },
+    {
+      "path": "/database/muteGJUser.php",
+      "section_offset": "0x758648",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "comment",
+        "secret",
+        "toAccountID"
+      ]
+    },
+    {
+      "path": "/database/uploadFriendRequest20.php",
+      "section_offset": "0x758680",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "comment",
+        "getSent",
+        "secret",
+        "toAccountID"
+      ]
+    },
+    {
+      "path": "/database/getGJFriendRequests20.php",
+      "section_offset": "0x7586f8",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "getSent",
+        "secret",
+        "songID"
+      ]
+    },
+    {
+      "path": "/database/getGJSongUsage.php",
+      "section_offset": "0x758748",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "secret",
+        "songID",
+        "str"
+      ]
+    },
+    {
+      "path": "/database/getLevelRateInfo.php",
+      "section_offset": "0x7587a8",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "mode",
+        "secret",
+        "str",
+        "threadID",
+        "value"
+      ]
+    },
+    {
+      "path": "/database/getGJUserSearch.php",
+      "section_offset": "0x7587f0",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "mode",
+        "secret",
+        "str",
+        "threadID",
+        "value"
+      ]
+    },
+    {
+      "path": "/database/updateGJThread.php",
+      "section_offset": "0x758848",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "mode",
+        "secret",
+        "threadID",
+        "value"
+      ]
+    },
+    {
+      "path": "/database/unblockGJUser20.php",
+      "section_offset": "0x7588a8",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/blockGJUser20.php",
+      "section_offset": "0x7588f0",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "requestID",
+        "secret"
+      ]
+    },
+    {
+      "path": "/database/removeGJFriend20.php",
+      "section_offset": "0x758938",
+      "risk_hint": "unknown",
+      "parameter_name_hints": [
+        "requestID",
+        "secret"
+      ]
+    },
+    {
+      "path": "/database/readGJFriendRequest20.php",
+      "section_offset": "0x758980",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "requestID",
+        "secret",
+        "targetAccountID"
+      ]
+    },
+    {
+      "path": "/database/acceptGJFriendRequest20.php",
+      "section_offset": "0x7589f0",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "accounts",
+        "requestID",
+        "secret",
+        "targetAccountID"
+      ]
+    },
+    {
+      "path": "/database/deleteGJFriendRequests20.php",
+      "section_offset": "0x758a80",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "accounts",
+        "isSender",
+        "secret",
+        "targetAccountID"
+      ]
+    },
+    {
+      "path": "/database/getGJLevelControls.php",
+      "section_offset": "0x758b18",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "data",
+        "levelID"
+      ]
+    },
+    {
+      "path": "/database/deleteGJLevelControls.php",
+      "section_offset": "0x758b68",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "data",
+        "levelID",
+        "secret"
+      ]
+    },
+    {
+      "path": "/database/uploadGJLevelControls.php",
+      "section_offset": "0x758bb8",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "data",
+        "levelDesc",
+        "levelID",
+        "secret"
+      ]
+    },
+    {
+      "path": "/database/updateGJDesc20.php",
+      "section_offset": "0x758c28",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "levelDesc",
+        "levelID",
+        "secret",
+        "type"
+      ]
+    },
+    {
+      "path": "/database/getGJUserList20.php",
+      "section_offset": "0x758c98",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "chk",
+        "r1",
+        "r2",
+        "rewardType",
+        "secret",
+        "type"
+      ]
+    },
+    {
+      "path": "/database/getGJRewards.php",
+      "section_offset": "0x758d28",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "chk",
+        "r1",
+        "r2",
+        "rewardKey",
+        "rewardType",
+        "secret"
+      ]
+    },
+    {
+      "path": "/database/getGJSecretReward.php",
+      "section_offset": "0x758db8",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "chk",
+        "rewardKey",
+        "secret"
+      ]
+    },
+    {
+      "path": "/database/requestUserAccess.php",
+      "section_offset": "0x758e40",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "itemID",
+        "like",
+        "secret",
+        "special",
+        "type"
+      ]
+    },
+    {
+      "path": "/database/likeGJItem211.php",
+      "section_offset": "0x758e88",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "itemID",
+        "like",
+        "secret",
+        "special",
+        "type"
+      ]
+    },
+    {
+      "path": "/database/getGJDailyLevel.php",
+      "section_offset": "0x758f50",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "chk",
+        "gdl",
+        "secret",
+        "type",
+        "world"
+      ]
+    },
+    {
+      "path": "/database/getGJChallenges.php",
+      "section_offset": "0x758fe0",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "chk",
+        "gdl",
+        "messageID",
+        "secret",
+        "targetID",
+        "type",
+        "world"
+      ]
+    },
+    {
+      "path": "/database/reportGJContent.php",
+      "section_offset": "0x759070",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "accountID",
+        "gjp2",
+        "levelsInfo",
+        "messageID",
+        "reasons",
+        "secret",
+        "special",
+        "targetID",
+        "type",
+        "udid"
+      ]
+    },
+    {
+      "path": "/database/submitGJUserInfo.php",
+      "section_offset": "0x759110",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "accountID",
+        "levelsInfo",
+        "secret",
+        "udid"
+      ]
+    },
+    {
+      "path": "/database/accounts/registerGJAccount.php",
+      "section_offset": "0x768720",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "gjp2",
+        "sID",
+        "udid",
+        "userName"
+      ]
+    },
+    {
+      "path": "/database/accounts/openedRegister.php",
+      "section_offset": "0x768790",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/accounts/loginGJAccount.php",
+      "section_offset": "0x7687e0",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/getAccountURL.php",
+      "section_offset": "0x768878",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "accountID",
+        "saveData",
+        "secret",
+        "type"
+      ]
+    },
+    {
+      "path": "/database/updateGJAccSettings20.php",
+      "section_offset": "0x768aa8",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/uploadMPComment.php",
+      "section_offset": "0x7715c0",
+      "risk_hint": "mutating_or_privileged_candidate",
+      "parameter_name_hints": [
+        "comment",
+        "extra",
+        "gameID",
+        "secret",
+        "username"
+      ]
+    },
+    {
+      "path": "/database/getGJSongInfo.php",
+      "section_offset": "0x7b6838",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": []
+    },
+    {
+      "path": "/database/getCustomContentURL.php",
+      "section_offset": "0x7b69e0",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": [
+        "secret",
+        "sfxIDs",
+        "songIDs"
+      ]
+    },
+    {
+      "path": "/database/getGJAudioFilesize.php",
+      "section_offset": "0x7b6a50",
+      "risk_hint": "read_candidate",
+      "parameter_name_hints": []
+    }
+  ],
+  "known_gap": [
+    "/database/uploadMPComment.php"
+  ]
+}

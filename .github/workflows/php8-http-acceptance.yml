@@ -177,6 +177,17 @@ jobs:
           set -Eeuo pipefail
           python3 tests/integration/php8-all-routes-negative-http.py
 
+      - name: Emulate all 113 Windows GD 2.209 native endpoint forms over PHP 8 HTTP
+        shell: bash
+        env:
+          DB_NAME: testgdps
+          MUCHO_TEST_ALLOW_WRITES: "1"
+          MUCHO_TEST_BASE_URL: http://127.0.0.1:18080
+        run: |
+          set -Eeuo pipefail
+          python3 tests/integration/gd2209-exe-request-emulator.py
+          python3 tests/integration/gd2209-exe-request-emulator.py --http
+
       - name: Collect application logs on failure
         if: failure()
         run: |
