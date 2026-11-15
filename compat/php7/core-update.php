@@ -101,6 +101,10 @@ function mucho7_core_upgrade(PDO $db,$aid,$root,$settings)
         if($schema['remaining']>0)return array('message'=>'Updating schema. Migrations remaining: '.$schema['remaining'].'.','done'=>false,'delay'=>1000);
         $import=mucho7_domain_import_step($db,$root,100);
         if(!mucho7_domain_complete($db))return array('message'=>'Migrating game data. Stage: '.(isset($import['stage'])?(string)$import['stage']:'next').'.','done'=>false,'delay'=>1000);
+        // No previous saves means the importer never needed the encryption key.
+        // Ensure a stable, verified key exists BEFORE exposing the full core.
+        // Missing keys with existing encrypted data fail closed, without rotation.
+        mucho7_domain_save_key($db,$root);
         mucho7_private_write($root.'/config/php7-complete.on',gmdate('c'));
         if(!unlink($marker))throw new RuntimeException('Unable to resume the game API.');
         mucho7_admin_audit($db,$aid,'core-upgrade-complete',0);

@@ -78,12 +78,51 @@ try {
     nativeFeatureAssert(strpos($call('getGJUserInfo20',array_merge($auth,array('targetAccountID'=>'2'))),'1:Other:2:77')===0,'authenticated profile read');
     nativeFeatureAssert(strpos($call('getGJLevels21',array_merge($auth,array('type'=>'5','str'=>'42'))),'Public')!==false,'authenticated author search');
     nativeFeatureAssert($call('getGJLevels21',array_merge($auth,array('gjp2'=>'bad','type'=>'0'))) === '-1','viewer credential required');
+    // The full-core migration must provision a key even when no previous
+    // cloud-save records exist. This is separate from native PHP7's first
+    // backup key, so neither code path accidentally masks the other.
+    require_once $root.'/compat/php7/domain-data.php';
+    $fullCoreRoot=$saveFixtureRoot.'/full-core';
+    nativeFeatureAssert(mkdir($fullCoreRoot.'/config',0700,true),'full-core key fixture directory');
+    $pdo->exec('CREATE TABLE IF NOT EXISTS mucho_cloud_saves (
+        account_id BIGINT UNSIGNED PRIMARY KEY, ciphertext LONGBLOB
+    ) ENGINE=InnoDB');
+    $domainKey=mucho7_domain_save_key($pdo,$fullCoreRoot);
+    nativeFeatureAssert(is_string($domainKey)&&strlen($domainKey)===32,'empty migration provisions a 32-byte key');
+    nativeFeatureAssert(mucho7_domain_save_key($pdo,$fullCoreRoot)===$domainKey,
+        'existing domain key remains stable');
+    $domainKeyPath=$fullCoreRoot.'/config/cloudsave.key';
+    file_put_contents($domainKeyPath,bin2hex($domainKey)."\n");
+    nativeFeatureAssert(mucho7_domain_save_key($pdo,$fullCoreRoot)===$domainKey,
+        'legacy HEX key remains stable during full-core upgrade');
+
     $backup = array_merge($auth,array('saveData'=>" binary\0data\n "));
     nativeFeatureAssert($call('backupGJAccount20',$backup,array('enable_accounts'=>true,'enable_writes'=>true))==='-1','cloudsave independent opt-in');
     nativeFeatureAssert($call('backupGJAccount20',$backup)==='1','save to local database');
     $rawSave=$pdo->query('SELECT save_data,sha256 FROM php7_cloud_saves WHERE account_id=1')->fetch(PDO::FETCH_ASSOC);
     nativeFeatureAssert(substr($rawSave['save_data'],0,8)==='MC7ENC1:' && $rawSave['save_data']!==$backup['saveData'],'native Cloud Save must be encrypted at rest');
     nativeFeatureAssert($rawSave['sha256']===hash('sha256',$backup['saveData']),'save plaintext checksum retained for migration');
+    // A lost key must never be replaced on an installation with encrypted
+    // native records, even if the full-core table is still empty.
+    unlink($domainKeyPath);
+    $blockedNative=false;
+    try{mucho7_domain_save_key($pdo,$fullCoreRoot);}catch(RuntimeException $error){$blockedNative=true;}
+    nativeFeatureAssert($blockedNative&&!is_file($domainKeyPath),
+        'encrypted pre-migration saves cannot silently rotate the missing key');
+    // Protect existing full-core ciphertext even after native rows are gone.
+    $pdo->exec('DELETE FROM php7_cloud_saves WHERE account_id=1');
+    $pdo->exec("INSERT INTO mucho_cloud_saves(account_id,ciphertext) VALUES(1,'protected')");
+    $blockedCore=false;
+    try{mucho7_domain_save_key($pdo,$fullCoreRoot);}catch(RuntimeException $error){$blockedCore=true;}
+    nativeFeatureAssert($blockedCore&&!is_file($domainKeyPath),
+        'existing full-core ciphertext cannot silently rotate the missing key');
+    $pdo->exec('DELETE FROM mucho_cloud_saves WHERE account_id=1');
+    // Restore fixture rows and key: the subsequent native round-trip tests
+    // must still observe the identical original encrypted save.
+    $restore=$pdo->prepare('INSERT INTO php7_cloud_saves(account_id,save_data,sha256)
+        VALUES(?,?,?)');
+    $restore->execute(array(1,$rawSave['save_data'],$rawSave['sha256']));
+    mucho7_private_write($domainKeyPath,base64_encode($domainKey)."\n");
     nativeFeatureAssert(is_file($saveFixtureRoot.'/config/cloudsave.key'),'native Cloud Save private key missing');
     $nativeKeyPath=$saveFixtureRoot.'/config/cloudsave.key';
     $nativeKey=base64_decode(trim((string)file_get_contents($nativeKeyPath)),true);
@@ -117,6 +156,12 @@ try {
     putenv('MUCHO7_TEST_CLOUDSAVE_ROOT');
     foreach(array('cloudsave.key','php7-cloudsave-key.lock') as $item) {
         if(is_file($saveFixtureRoot.'/config/'.$item))unlink($saveFixtureRoot.'/config/'.$item);
+    }
+    if(isset($fullCoreRoot)){
+        foreach(array('cloudsave.key','php7-cloudsave-key.lock') as $item){
+            if(is_file($fullCoreRoot.'/config/'.$item))unlink($fullCoreRoot.'/config/'.$item);
+        }
+        rmdir($fullCoreRoot.'/config');rmdir($fullCoreRoot);
     }
     rmdir($saveFixtureRoot.'/config');rmdir($saveFixtureRoot);
 }
