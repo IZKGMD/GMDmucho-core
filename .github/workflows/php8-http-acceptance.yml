@@ -45,6 +45,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Compile GD 2.209 EXE authenticated replay before Docker setup
+        run: |
+          python3 -m py_compile tests/integration/gd2209-exe-authenticated-http.py
+          php -l tests/integration/gd2209-exe-auth-db.php
+
       - name: Set up PHP 8.3 and Composer
         uses: shivammathur/setup-php@v2
         with:
