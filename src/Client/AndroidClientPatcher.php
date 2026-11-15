@@ -42,7 +42,7 @@ final class AndroidClientPatcher
             !preg_match('~(?:^|/)classes[0-9]*\\.dex$|\\.(?:json|xml|txt|ini|cfg|dat)$~i', $name)) {
             return [$data, 0, false];
         }
-        if (AndroidGd2209Binary::supports($data)) {
+        if (AndroidGd2209Binary::supports($data) || AndroidGd2209Binary::isStructurallyCompatible($data)) {
             [$bytes, $count] = AndroidGd2209Binary::patchBytes($data, $server, AndroidGd2209Binary::ENDPOINTS);
             return [$bytes, $count, true];
         }
@@ -92,17 +92,30 @@ final class AndroidClientPatcher
             throw new RuntimeException('The uploaded file is not a readable APK/ZIP archive.');
         }
 
-        // This exact native 2.209 build contains 113 standalone NUL-terminated
-        // API URL strings. The generic older short-prefix patcher can corrupt
-        // these paths; use a strict native branch and a fast ZIP update instead.
-        $native = $source->getFromName('lib/arm64-v8a/libcocos2dcpp.so');
-        if (is_string($native) && AndroidGd2209Binary::supports($native)) {
-            $source->close();
-            return self::patchGd2209Apk(
-                $inputPath, $outputPath, $server, $native, $heartbeat, $installAlongside
-            );
+        // Prefer the audited GD 2.209 native endpoint layout, including
+        // binary variants and both common ARM ABIs. Repatching partially or
+        // silently leaving another ABI pointed at Boomlings is never safe.
+        $nativeLibraries = [];
+        $unsupportedNative = [];
+        foreach ([
+            'lib/arm64-v8a/libcocos2dcpp.so',
+            'lib/armeabi-v7a/libcocos2dcpp.so',
+            'lib/x86/libcocos2dcpp.so',
+            'lib/x86_64/libcocos2dcpp.so',
+        ] as $nativePath) {
+            $candidate = $source->getFromName($nativePath);
+            if (!is_string($candidate)) continue;
+            if (AndroidGd2209Binary::supports($candidate) ||
+                AndroidGd2209Binary::isStructurallyCompatible($candidate)) {
+                $nativeLibraries[$nativePath] = $candidate;
+            } elseif (AndroidGd2209Binary::resembles2209($candidate)) {
+                $unsupportedNative[$nativePath] = [
+                    'sha256' => hash('sha256', $candidate),
+                    'bytes' => strlen($candidate),
+                ];
+            }
         }
-        if (is_string($native) && AndroidGd2209Binary::resembles2209($native)) {
+        if ($unsupportedNative !== []) {
             $manifest = $source->getFromName('AndroidManifest.xml');
             $alreadyRelocated = false;
             if (is_string($manifest)) {
@@ -110,33 +123,36 @@ final class AndroidClientPatcher
                     $alreadyRelocated = AndroidPackageRelocator::manifestPackage($manifest)
                         === AndroidPackageRelocator::SIDE_BY_SIDE_ID;
                 } catch (RuntimeException) {
-                    // Unknown manifests must remain unsupported, not trusted.
+                    // Unsupported manifests must not become trusted inputs.
                 }
             }
-            $fingerprint = hash('sha256', $native);
+            $firstUnknownPath = array_key_first($unsupportedNative);
+            $fingerprint = $unsupportedNative[$firstUnknownPath];
             $source->close();
-
-            // Most often this is a re-uploaded MuchoCore APK. Never attempt
-            // to repatch its already changed URL slots using the old layout.
             if ($alreadyRelocated) {
                 throw new RuntimeException(
                     'This APK is already installed alongside Geometry Dash (MuchoCore package). ' .
-                    'Do not patch the output APK again. Choose the ORIGINAL, unmodified ' .
-                    'GeometryDash-v2.209.apk instead.'
+                    'Do not patch an output APK again. Choose the ORIGINAL, unmodified APK.'
                 );
             }
             throw new RuntimeException(
-                'Unsupported or previously modified Android GD 2.209 ARM64 APK. ' .
-                'Upload the ORIGINAL, unmodified GeometryDash-v2.209.apk, not a ' .
-                'GeometryDash-MuchoCore APK. If the original still fails, its native ' .
-                'build requires verification. ELF SHA-256: ' . $fingerprint .
-                ' (size ' . strlen($native) . ' bytes).'
+                'Unsupported or previously modified Android GD 2.209 APK. ' .
+                'Upload the ORIGINAL, unmodified Geometry Dash APK. ' .
+                'Native library ' . $firstUnknownPath .
+                ', ELF SHA-256: ' . $fingerprint['sha256'] .
+                ' (size ' . $fingerprint['bytes'] . ' bytes).'
+            );
+        }
+        if ($nativeLibraries !== []) {
+            $source->close();
+            return self::patchGd2209Apk(
+                $inputPath, $outputPath, $server, $nativeLibraries, $heartbeat, $installAlongside
             );
         }
         if ($installAlongside) {
             $source->close();
             throw new RuntimeException(
-                'Side-by-side package relocation is currently supported for the verified GD 2.209 ARM64 build.'
+                'Side-by-side package relocation requires a verified or structurally compatible GD 2.209 ARM build.'
             );
         }
 
