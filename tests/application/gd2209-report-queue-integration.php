@@ -162,6 +162,30 @@ try {
     $assert(!str_contains($queue,'spam') && !str_contains($queue,'pass-1'),
         'sensitive report text/credentials not serialized');
 
+    // Native type 0 is a direct profile report. It must appear in the
+    // same target-account queue, with a real slot-8 direct report count.
+    $case = new \\MuchoCore\\Moderation\\Gd2209CaseService(
+        $db, $auth, new ModerationRepository($db), $repo
+    );
+    $assert($case->reportLevel(1, 'pass-1', 0, 5, 0, '4,5'),
+        'real native type 0 account report is accepted');
+    $assert($case->reportLevel(1, 'pass-1', 0, 5, 0, '4,5'),
+        'duplicate native profile report remains idempotent');
+    $assert(!$case->reportLevel(1, 'pass-1', 0, 5, 0, '6'),
+        'reason 6 is only for levels and lists');
+    $withDirect = $repo->pending(0, 2);
+    $assert($withDirect['total'] === 1 && count($withDirect['rows']) === 1,
+        'direct account report joins the existing account-centric case');
+    $assert((int)$withDirect['rows'][0]['direct_report_count'] === 1
+        && (int)$withDirect['rows'][0]['report_count'] === 5
+        && (int)$withDirect['rows'][0]['report_points'] === 15,
+        'direct report is counted once with actual persisted points');
+    $nativeDirect = explode(':', explode('#', $ctrl->queue($req(3, 'pass-3'))->body, 2)[1]);
+    $assert((int)$nativeDirect[8] === 1
+        && (int)$nativeDirect[12] === 15
+        && (int)$nativeDirect[19] === 3,
+        'native 2.209 positional wire slot 8 shows genuine direct reports');
+
     $assert($ctrl->queue($req(4,'pass-4'))->body !== '-1',
         'owner can view queue');
     $assert($ctrl->queue($req(3,'pass-3','1'))->body !== '-1',
