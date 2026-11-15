@@ -1557,6 +1557,22 @@ PHP
 expect_eq "Rejected user-info submission preserves stored data" "$USER_INFO_AFTER_REJECT" "OK"
 
 echo
+echo "===== GD 2.209 EXE AUTHENTICATED HTTP / SQL REPLAY ====="
+
+if [ "$AID1" -gt 0 ] && [ "$AID2" -gt 0 ] && [ -n "$GJP2_A" ] && [ -n "$GJP2_B" ]; then
+    if MUCHO_EXE_AUTH_AID1="$AID1" MUCHO_EXE_AUTH_AID2="$AID2" \
+        MUCHO_EXE_AUTH_GJP2_A="$GJP2_A" MUCHO_EXE_AUTH_GJP2_B="$GJP2_B" \
+        MUCHO_EXE_AUTH_USERNAME_A="$U1" MUCHO_EXE_AUTH_USERNAME_B="$U2" \
+        python3 tests/integration/gd2209-exe-authenticated-http.py; then
+        pass "GD 2.209 EXE-shaped authenticated HTTP and SQL persistence"
+    else
+        fail "GD 2.209 EXE-shaped authenticated HTTP and SQL persistence"
+    fi
+else
+    fail "GD 2.209 EXE auth fixture requires both registered test accounts"
+fi
+
+echo
 echo "===== FINAL HEALTH ====="
 
 FH="$(api_get /health)"
