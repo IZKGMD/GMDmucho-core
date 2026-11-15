@@ -30,10 +30,10 @@ final readonly class Gd2209CaseService
         int $targetId, int $special, string $reasons
     ): bool {
         $this->auth->authenticate($actor, $credential);
-        // GD Docs 2.209: type 0=user; type 1=level; see
-        // https://boomlings.dev/endpoints/misc/reportGJContent
-        // Never interpret type 0 (user) as a level report.
-        if ($type !== 1 || $special !== 0 || $targetId <= 0
+        // GD Docs 2.209: the *native* type 0 targets a user account and
+        // type 1 targets a level. Stored internal types are independent:
+        // internal 0=level, internal 1=user. Never confuse their IDs.
+        if (!in_array($type, [0, 1], true) || $special !== 0 || $targetId <= 0
             || strlen($reasons) > 40
             || !preg_match('/^[0-7](?:,[0-7]){0,7}$/D', $reasons)) {
             return false;
@@ -42,15 +42,26 @@ final readonly class Gd2209CaseService
         if (count(array_unique($values)) !== count($values)) {
             return false;
         }
+        // 4 (cheating) and 5 (impersonation) refer to user profiles only.
+        // 6 (stolen/reupload) refers to levels, not profiles.
+        $allowed = $type === 0
+            ? [0, 1, 2, 3, 4, 5, 7]
+            : [0, 1, 2, 3, 6, 7];
         foreach ($values as $reason) {
-            if (!in_array($reason, [0, 1, 2, 3, 6, 7], true)) {
+            if (!in_array($reason, $allowed, true)) {
                 return false;
             }
         }
-        // Store the primary reason and preserve the rest for auditing.
-        return $this->reports->reportLevel(
-            $actor, $targetId, $values[0], implode(',', $values)
-        );
+
+        // Persist the primary reason and the validated full native reason
+        // list. The server must not create any reports for unsupported types.
+        return $type === 0
+            ? $this->reports->reportUser(
+                $actor, $targetId, $values[0], implode(',', $values)
+            )
+            : $this->reports->reportLevel(
+                $actor, $targetId, $values[0], implode(',', $values)
+            );
     }
 
     /** Only verified elder moderators and owners can access abuse cases. */

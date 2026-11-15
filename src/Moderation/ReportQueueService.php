@@ -84,7 +84,7 @@ final readonly class ReportQueueService
                 -1,                                                           // 5 no validated leading reason
                 0,                                                            // 6 reserved
                 '',                                                           // 7 reporter-related string
-                0,                                                            // 8 direct profile reports unknown
+                (int)$row['direct_report_count'],                             // 8 direct user reports
                 0,                                                            // 9
                 '',                                                           // 10
                 '',                                                           // 11

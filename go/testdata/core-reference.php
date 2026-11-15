@@ -562,7 +562,12 @@ $cases=array_merge($cases,[
     ['/getGJUsers20.php',['str'=>'Alice']],
 ]);
 $cases=array_merge($cases,[
-    ['/reportGJContent.php',$b+['type'=>0,'targetID'=>6,'reasons'=>'0']],
+    // PHP 8 now implements positive native type=0 account reports;
+    // Go's implementation is intentionally later. This differential
+    // fixture still checks the shared self-report denial without creating
+    // PHP-only moderation state. PHP8's positive case is separately gated
+    // in tests/integration/gd2209-exe-authenticated-http.py.
+    ['/reportGJContent.php',$b+['type'=>0,'targetID'=>2,'reasons'=>'0']],
     ['/reportGJContent.php',$b+['type'=>1,'targetID'=>6,'reasons'=>'4']],
     ['/reportGJContent.php',$b+['type'=>1,'targetID'=>6,'reasons'=>'1,1']],
     ['/reportGJContent.php',$a+['type'=>1,'targetID'=>6,'reasons'=>'0']],

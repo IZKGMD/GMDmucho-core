@@ -98,7 +98,7 @@ try {
     ]))->body === '1', 'authenticated native type=1 level report must be persisted');
     $assert($controller->reportContent($r(1,'pass1',[
         'type'=>'0','special'=>'0','targetID'=>'50','reasons'=>'2'
-    ]))->body === '-1', 'native type=0 means user, not level, must be denied');
+    ]))->body === '-1', 'native type=0 must not reinterpret level ID 50 as an account');
     $assert($controller->reportContent($r(1,'pass1',[
         'type'=>'1','special'=>'0','targetID'=>'50','reasons'=>'4'
     ]))->body === '-1', 'cheating reason is user-only, not valid for a level');
@@ -141,6 +141,49 @@ try {
         ->fetchColumn() === 1, 'moderation action audit persisted');
     $assert(str_starts_with($controller->userHistory($r(3,'pass3'))->body,'1:0:20#'),
         'history reads persisted case-action events');
+    // Real GD 2.209 type=0 reports an *account* (not a level).
+    // Its content ID, target account and reason metadata must match the
+    // reported user, while existing type=1 level reports stay untouched.
+    $userReport = [
+        'type'=>'0', 'special'=>'0', 'targetID'=>'5', 'reasons'=>'4,5',
+    ];
+    $assert($controller->reportContent($r(1,'pass1',$userReport))->body === '1',
+        'native type=0 accepts valid account report with user-only reasons');
+    $assert($controller->reportContent($r(1,'pass1',$userReport))->body === '1',
+        'duplicate account report is safely idempotent');
+    $stmt=$db->prepare('SELECT content_type,content_id,target_account_id,reason,details
+        FROM mucho_content_reports
+        WHERE reporter_account_id=1 AND content_type=1');
+    $stmt->execute();
+    $rows=$stmt->fetchAll(PDO::FETCH_ASSOC);
+    $assert(count($rows)===1
+        && (int)$rows[0]['content_id']===5
+        && (int)$rows[0]['target_account_id']===5
+        && (int)$rows[0]['reason']===4
+        && $rows[0]['details']==='4,5',
+        'user report persists distinct target account, reason and no duplicate');
+    $assert($controller->reportContent($r(5,'pass5',$userReport))->body === '-1',
+        'self-report cannot inflate abuse score');
+    $assert($controller->reportContent($r(1,'pass1',[
+        'type'=>'0','special'=>'0','targetID'=>'999','reasons'=>'4',
+    ]))->body === '-1', 'unknown target account cannot be reported');
+    $assert($controller->reportContent($r(1,'pass1',[
+        'type'=>'0','special'=>'0','targetID'=>'5','reasons'=>'6',
+    ]))->body === '-1', 'stolen-level reason is not valid for a user report');
+    $assert($controller->reportContent($r(1,'pass1',[
+        'type'=>'0','special'=>'1','targetID'=>'5','reasons'=>'0',
+    ]))->body === '-1', 'unexpected profile special ID is rejected');
+    $assert($controller->reportContent($r(1,'wrong',$userReport))->body === '-1',
+        'unauthorized user report cannot create a moderation case');
+    $stmt->execute();
+    $assert(count($stmt->fetchAll(PDO::FETCH_ASSOC))===1,
+        'rejected native user report requests do not mutate database');
+    $assert($controller->abuseInfo($r(3,'pass3'))->body === '1:5:2:1:3:3:4:1:5:1',
+        'moderation abuse counters include direct profile report');
+    $assert($controller->closeCase($r(3,'pass3',[
+        'outcome'=>'2',
+    ]))->body === '1', 'moderator can close account-only report case');
+
     echo "MUCHOCORE_GD2209_CASE_ACTIONS_OK\n";
 } finally {
     $admin->exec('DROP DATABASE IF EXISTS ' . $name);
