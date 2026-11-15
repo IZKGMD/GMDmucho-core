@@ -6,7 +6,7 @@ The 25 formerly missing names now route to real PHP services on this *feature br
 
 ## Implemented backend effects
 
-- reportGJContent: credential-backed level-only reports using the documented native `type=1` (type 0 denotes a user). Valid comma-separated reasons are stored in the existing report record; other content types currently reject.
+- reportGJContent: authenticated native `type=0` profile reports and `type=1` level reports, with per-type reason validation, self-report prevention, existing-target checks, and idempotent database storage. Direct account reports are counted in the real GD 2.209 account-centric moderator queue (positional field 8). Remaining content families (`type=2`–`9`) require independently verified object ownership/schema and are still rejected rather than misclassified as levels.
 - adminGetUserHistory, adminGetReportedContent, adminGetAbuseInfo, adminGetAccountReview: moderator-only reads of persisted account data, real reports and action history.
 - adminClearReportedContent, adminCloseCase: transactionally close scoped pending reports and audit the mutation. Incorrect IDs, permissions or unknown cases fail.
 - adminDeleteUserComments, deleteGJComments: permission-scoped, bounded, transactional deletion of real level comments and associated likes.
