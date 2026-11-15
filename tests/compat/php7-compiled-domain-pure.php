@@ -4,11 +4,14 @@ declare(strict_types=1);
 $root=dirname(__DIR__,2);require $root.'/compat/php7/domain.php';
 function domainCheck($ok,$why){if(!$ok)throw new RuntimeException($why);}
 $sources=json_decode(file_get_contents($root.'/compat/php7/core/sources.json'),true);
-// PHP 8-only metadata tracing is intentionally not part of the native PHP 7
-// compiled snapshot yet. Keep the existing compiled source provenance hashes
-// intact, and pin the exact PHP 8-only source deviations so other source
-// changes still fail this guard until the domain compiler is rerun.
+// PHP 8-only message diagnostics and native Android APK variant support
+// remain deliberately outside the pinned PHP 7 compiled snapshot while PHP 8
+// is the sole development priority. Pin the exact source hashes: any further
+// changes fail this guard until the snapshot is explicitly recompiled.
+// PHP 7 retains its previous, verified single-build Android patcher.
 $php8OnlyDiagnosticHashes=array(
+    'src/Client/AndroidGd2209Binary.php'=>'8c0dcb95a744fba6dbb7a59222c3ae12cc25f6ff7ad35ee83ed85c9b9ea601f7',
+    'src/Client/AndroidClientPatcher.php'=>'5b201600cff430ba777df3403f403686a89e35e55e965943c69d7013fca72e9c',
     'src/Social/MessageController.php'=>'20146708112462034cbe140a60a553a5e344a6bdbf3d20b1430c5059c82a660b',
     'src/Social/MessageService.php'=>'3d42dfed2b6cd97f3c8db974aabb8f1aee0ec59da6f95bdc4f388bd9fced4e86',
 );

@@ -42,7 +42,7 @@ final class AndroidClientPatcher
             !preg_match('~(?:^|/)classes[0-9]*\\.dex$|\\.(?:json|xml|txt|ini|cfg|dat)$~i', $name)) {
             return [$data, 0, false];
         }
-        if (AndroidGd2209Binary::supports($data)) {
+        if (AndroidGd2209Binary::supports($data) || AndroidGd2209Binary::isStructurallyCompatible($data)) {
             [$bytes, $count] = AndroidGd2209Binary::patchBytes($data, $server, AndroidGd2209Binary::ENDPOINTS);
             return [$bytes, $count, true];
         }
@@ -92,17 +92,30 @@ final class AndroidClientPatcher
             throw new RuntimeException('The uploaded file is not a readable APK/ZIP archive.');
         }
 
-        // This exact native 2.209 build contains 113 standalone NUL-terminated
-        // API URL strings. The generic older short-prefix patcher can corrupt
-        // these paths; use a strict native branch and a fast ZIP update instead.
-        $native = $source->getFromName('lib/arm64-v8a/libcocos2dcpp.so');
-        if (is_string($native) && AndroidGd2209Binary::supports($native)) {
-            $source->close();
-            return self::patchGd2209Apk(
-                $inputPath, $outputPath, $server, $native, $heartbeat, $installAlongside
-            );
+        // Prefer the audited GD 2.209 native endpoint layout, including
+        // binary variants and both common ARM ABIs. Repatching partially or
+        // silently leaving another ABI pointed at Boomlings is never safe.
+        $nativeLibraries = [];
+        $unsupportedNative = [];
+        foreach ([
+            'lib/arm64-v8a/libcocos2dcpp.so',
+            'lib/armeabi-v7a/libcocos2dcpp.so',
+            'lib/x86/libcocos2dcpp.so',
+            'lib/x86_64/libcocos2dcpp.so',
+        ] as $nativePath) {
+            $candidate = $source->getFromName($nativePath);
+            if (!is_string($candidate)) continue;
+            if (AndroidGd2209Binary::supports($candidate) ||
+                AndroidGd2209Binary::isStructurallyCompatible($candidate)) {
+                $nativeLibraries[$nativePath] = $candidate;
+            } elseif (AndroidGd2209Binary::resembles2209($candidate)) {
+                $unsupportedNative[$nativePath] = [
+                    'sha256' => hash('sha256', $candidate),
+                    'bytes' => strlen($candidate),
+                ];
+            }
         }
-        if (is_string($native) && AndroidGd2209Binary::resembles2209($native)) {
+        if ($unsupportedNative !== []) {
             $manifest = $source->getFromName('AndroidManifest.xml');
             $alreadyRelocated = false;
             if (is_string($manifest)) {
@@ -110,33 +123,36 @@ final class AndroidClientPatcher
                     $alreadyRelocated = AndroidPackageRelocator::manifestPackage($manifest)
                         === AndroidPackageRelocator::SIDE_BY_SIDE_ID;
                 } catch (RuntimeException) {
-                    // Unknown manifests must remain unsupported, not trusted.
+                    // Unsupported manifests must not become trusted inputs.
                 }
             }
-            $fingerprint = hash('sha256', $native);
+            $firstUnknownPath = array_key_first($unsupportedNative);
+            $fingerprint = $unsupportedNative[$firstUnknownPath];
             $source->close();
-
-            // Most often this is a re-uploaded MuchoCore APK. Never attempt
-            // to repatch its already changed URL slots using the old layout.
             if ($alreadyRelocated) {
                 throw new RuntimeException(
                     'This APK is already installed alongside Geometry Dash (MuchoCore package). ' .
-                    'Do not patch the output APK again. Choose the ORIGINAL, unmodified ' .
-                    'GeometryDash-v2.209.apk instead.'
+                    'Do not patch an output APK again. Choose the ORIGINAL, unmodified APK.'
                 );
             }
             throw new RuntimeException(
-                'Unsupported or previously modified Android GD 2.209 ARM64 APK. ' .
-                'Upload the ORIGINAL, unmodified GeometryDash-v2.209.apk, not a ' .
-                'GeometryDash-MuchoCore APK. If the original still fails, its native ' .
-                'build requires verification. ELF SHA-256: ' . $fingerprint .
-                ' (size ' . strlen($native) . ' bytes).'
+                'Unsupported or previously modified Android GD 2.209 APK. ' .
+                'Upload the ORIGINAL, unmodified Geometry Dash APK. ' .
+                'Native library ' . $firstUnknownPath .
+                ', ELF SHA-256: ' . $fingerprint['sha256'] .
+                ' (size ' . $fingerprint['bytes'] . ' bytes).'
+            );
+        }
+        if ($nativeLibraries !== []) {
+            $source->close();
+            return self::patchGd2209Apk(
+                $inputPath, $outputPath, $server, $nativeLibraries, $heartbeat, $installAlongside
             );
         }
         if ($installAlongside) {
             $source->close();
             throw new RuntimeException(
-                'Side-by-side package relocation is currently supported for the verified GD 2.209 ARM64 build.'
+                'Side-by-side package relocation requires a verified or structurally compatible GD 2.209 ARM build.'
             );
         }
 
@@ -289,8 +305,8 @@ final class AndroidClientPatcher
     }
 
     /**
-     * Fast path for the verified GD 2.209 ARM64 APK. Edit ONLY the native
-     * endpoint library, compiled package manifest and resource package name.
+     * Fast path for verified-layout GD 2.209 ARM APK variants. Edit ONLY the
+     * native endpoint libraries, compiled manifest and resource package name.
      * All 6,000+ untouched sound/image/asset entries keep their original ZIP
      * data instead of passing through expensive string scans and re-encoding.
      */
@@ -298,7 +314,7 @@ final class AndroidClientPatcher
         string $inputPath,
         string $outputPath,
         string $server,
-        string $native,
+        array $nativeLibraries,
         ?callable $heartbeat,
         bool $installAlongside
     ): array {
@@ -307,14 +323,27 @@ final class AndroidClientPatcher
         @unlink($rebuilt);
         @unlink($aligned);
         @unlink($outputPath);
-        [$patched, $replacements, $paths] = AndroidGd2209Binary::patchBytes(
-            $native,
-            $server,
-            AndroidGd2209Binary::ENDPOINTS
-        );
-        if (strlen($patched) !== strlen($native)) {
-            throw new RuntimeException('GD 2.209 ELF size changed unexpectedly.');
+        $patchedLibraries = [];
+        $replacements = 0;
+        $paths = [];
+        $patchedEntries = [];
+        $allExact = count($nativeLibraries) === 1;
+        foreach ($nativeLibraries as $libraryPath => $native) {
+            $allExact = $allExact && AndroidGd2209Binary::supports($native);
+            [$patched, $count, $libraryPaths] = AndroidGd2209Binary::patchBytes(
+                $native,
+                $server,
+                AndroidGd2209Binary::ENDPOINTS
+            );
+            if (strlen($patched) !== strlen($native)) {
+                throw new RuntimeException('GD 2.209 ELF size changed unexpectedly.');
+            }
+            $patchedLibraries[$libraryPath] = $patched;
+            $replacements += $count;
+            $paths = array_merge($paths, $libraryPaths);
+            $patchedEntries[] = ['name' => $libraryPath, 'replacements' => $count];
         }
+        $paths = array_values(array_unique($paths));
         $packageId = AndroidPackageRelocator::SOURCE_ID;
         if (!@copy($inputPath, $rebuilt)) {
             throw new RuntimeException('Cannot create the APK patch working copy.');
@@ -345,14 +374,12 @@ final class AndroidClientPatcher
                     }
                 }
 
-                if (!$zip->addFromString('lib/arm64-v8a/libcocos2dcpp.so', $patched)) {
-                    throw new RuntimeException('Cannot write patched GD 2.209 native library.');
+                foreach ($patchedLibraries as $libraryPath => $patched) {
+                    if (!$zip->addFromString($libraryPath, $patched)) {
+                        throw new RuntimeException('Cannot write patched GD 2.209 native library: ' . $libraryPath);
+                    }
+                    $zip->setCompressionName($libraryPath, ZipArchive::CM_STORE);
                 }
-                // This library was stored uncompressed in the verified source.
-                $zip->setCompressionName(
-                    'lib/arm64-v8a/libcocos2dcpp.so',
-                    ZipArchive::CM_STORE
-                );
 
                 if ($installAlongside) {
                     $manifest = $zip->getFromName('AndroidManifest.xml');
@@ -396,10 +423,12 @@ final class AndroidClientPatcher
                     AndroidPackageRelocator::manifestPackage($manifest) !== $packageId) {
                     throw new RuntimeException('Signed APK application ID verification failed.');
                 }
-                $resultNative = $check->getFromName('lib/arm64-v8a/libcocos2dcpp.so');
-                if (!is_string($resultNative) ||
-                    hash('sha256', $resultNative) !== hash('sha256', $patched)) {
-                    throw new RuntimeException('Signed APK native library checksum mismatch.');
+                foreach ($patchedLibraries as $libraryPath => $patched) {
+                    $resultNative = $check->getFromName($libraryPath);
+                    if (!is_string($resultNative) ||
+                        !hash_equals(hash('sha256', $patched), hash('sha256', $resultNative))) {
+                        throw new RuntimeException('Signed APK native library checksum mismatch: ' . $libraryPath);
+                    }
                 }
             } finally {
                 $check->close();
@@ -413,15 +442,18 @@ final class AndroidClientPatcher
                 'input_size' => filesize($inputPath),
                 'output_size' => $bytes,
                 'replacement_count' => $replacements,
-                'patched_entries' => [['name' => 'lib/arm64-v8a/libcocos2dcpp.so',
-                    'replacements' => $replacements]],
-                'source_build' => 'GD 2.209 API / Android package 2.2.145 (verified ARM64)',
+                'patched_entries' => $patchedEntries,
+                'source_build' => $allExact
+                    ? 'GD 2.209 API / Android package 2.2.145 (verified ARM64)'
+                    : 'GD 2.209 API (structurally validated Android ARM variant)',
                 'package_id' => $packageId,
                 'endpoint_paths' => $paths,
                 'input_sha256' => hash_file('sha256', $inputPath),
                 'output_sha256' => hash_file('sha256', $outputPath),
                 'signed' => true,
-                'verified' => 'static-binary-and-APK-signature',
+                'verified' => $allExact
+                    ? 'static-binary-and-APK-signature'
+                    : 'endpoint-table-layout-and-APK-signature',
             ];
         } catch (\Throwable $e) {
             @unlink($outputPath);

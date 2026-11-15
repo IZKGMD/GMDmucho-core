@@ -2,8 +2,10 @@
 
 ## Confirmed source build (21 Oct 2026)
 
-This implementation is constrained to the *user-supplied* ARM64 APK; a different
-2.209 APK is **not automatically compatible** and must be verified separately.
+The primary verified fixture is the *user-supplied* ARM64 APK. The patcher also
+accepts other structurally compatible ARM64/ARMv7 2.209 ELF variants; a
+hash mismatch alone does not disqualify an otherwise valid 113-endpoint
+layout. Other APKs and versions are **not automatically compatible**.
 
 - Uploaded APK SHA-256:
   `f85d71beaa23c13eb6df0f4a9a636f522a7caf309306ff831ef43f5580341e7b`
@@ -61,10 +63,22 @@ to distinguish network time from APK rebuild/signing time.
 
 ## Limits and acceptance
 
-- Only the listed native library checksum is accepted by the GD 2.209-specific
-  fast patcher. Unknown 2.209-like binaries fail closed.
+- The exact source library SHA-256 still receives the strongest verified-build
+  classification. Other original ARM64/ARMv7 GD 2.209 libraries can now be
+  patched **only** when a complete, 113-entry Boomlings native endpoint
+  table is structurally validated (ELF architecture, NUL-terminated URL slots,
+  distinct route coverage and 2.209-specific routes). If an APK contains
+  several supported ARM libraries, each must be patched and verified; an
+  unknown 2.209-like sibling fails closed instead of leaving one ABI pointed
+  at official servers. APK files with a different endpoint layout are not
+  blindly modified.
 - An additional app may behave differently if its Java/native code depends on
   the original package name for licensing, stores or external integrations.
+- **Not every APK is patchable.** Arbitrary apps, unsupported architectures,
+  splits/obfuscated/modified GD builds, alternate package identifiers and
+  unsigned/unverifiable layouts need their own fixtures and checks. A valid
+  signature and static library rewrite do not by themselves establish a
+  successful Android launch or server connectivity.
 - No real-device launch/login/online-level acceptance has yet been recorded.
   Perform installation and GDPS communication tests before declaring support
   release-certified.
