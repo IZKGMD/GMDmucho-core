@@ -52,18 +52,51 @@ function mucho7_domain_import_profile(PDO $db,$row)
 }
 function mucho7_domain_save_key(PDO $db,$root)
 {
+    // A fresh PHP7 -> full-core migration can have zero legacy cloud saves.
+    // In that case the importer never calls this function. Provision the
+    // persistent key at migration completion and, for already upgraded
+    // installations, before the first backup. Never rotate an old key.
     $path=$root.'/config/cloudsave.key';
-    if(!is_file($path)){
-        if((int)$db->query('SELECT COUNT(*) FROM mucho_cloud_saves')->fetchColumn()>0)throw new RuntimeException('Existing encrypted saves require their original private key.');
-        mucho7_private_write($path,base64_encode(random_bytes(32))."\n");
+    $lockPath=$root.'/config/php7-cloudsave-key.lock';
+    if(is_link($path)||is_link($lockPath))throw new RuntimeException('Cloud-save key or lock must not be a symlink.');
+    $lock=@fopen($lockPath,'c');
+    if(!is_resource($lock)||!flock($lock,LOCK_EX)){
+        if(is_resource($lock))fclose($lock);
+        throw new RuntimeException('Unable to lock the cloud-save key.');
     }
-    if(is_link($path))throw new RuntimeException('The cloud-save key must be a private regular file.');
-    $encoded=trim((string)file_get_contents($path));
-    // Preserve old encrypted saves when a legacy installer stored the
-    // original 32-byte key as 64 hexadecimal characters.
-    $key=preg_match('/\\A[a-f0-9]{64}\\z/i',$encoded)===1?hex2bin($encoded):base64_decode($encoded,true);
-    if(!is_string($key)||strlen($key)!==32)throw new RuntimeException('The cloud-save key is invalid.');
-    return $key;
+    try{
+        @chmod($lockPath,0600);
+        clearstatcache(true,$path);
+        if(is_link($path))throw new RuntimeException('The cloud-save key must not be a symlink.');
+        if(!is_file($path)){
+            // Fail closed if any prior cloud record exists. A missing private
+            // key must never be silently replaced: ciphertext would become
+            // permanently unreadable after a new encrypted write.
+            if($db->query('SELECT 1 FROM mucho_cloud_saves LIMIT 1')->fetchColumn()!==false)
+                throw new RuntimeException('Existing encrypted saves require their original private key.');
+            try{
+                $native=$db->query('SELECT 1 FROM php7_cloud_saves LIMIT 1')->fetchColumn();
+                if($native!==false)throw new RuntimeException('Existing native cloud saves require their original private key.');
+            }catch(PDOException $error){
+                $info=$error->errorInfo;
+                // A fresh schema may omit the pre-migration native table.
+                // Ignore only "table does not exist", not unrelated DB failures.
+                if($error->getCode()!=='42S02'&&
+                    !(is_array($info)&&isset($info[1])&&(int)$info[1]===1146))throw $error;
+            }
+            mucho7_private_write($path,base64_encode(random_bytes(32))."\n");
+        }
+        $raw=@file_get_contents($path);
+        if(!is_string($raw))throw new RuntimeException('The cloud-save key is unreadable.');
+        $encoded=trim($raw);
+        // Preserve legacy 64-character HEX keys as well as canonical Base64.
+        $key=preg_match('/\\A[a-f0-9]{64}\\z/i',$encoded)===1?hex2bin($encoded):base64_decode($encoded,true);
+        if(!is_string($key)||strlen($key)!==32)throw new RuntimeException('The cloud-save key is invalid.');
+        return $key;
+    }finally{
+        flock($lock,LOCK_UN);
+        fclose($lock);
+    }
 }
 /** Caller must quiesce API/admin writes until activation; legacy tables remain. */
 function mucho7_domain_import_step(PDO $db,$root,$batch=100)
