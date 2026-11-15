@@ -18,7 +18,7 @@ for path in compat/php7/runtime.php compat/php7/download.php \
   compat/php7/schema.php compat/php7/users.php compat/php7/config.example.php \
   compat/php7/features.php compat/php7/features.sql \
   compat/php7/interactions.php compat/php7/cloudsave.php compat/php7/profile.php \
-  compat/php7/admin.php compat/php7/admin-view.php compat/php7/bootstrap.php \
+  compat/php7/admin.php compat/php7/admin-view.php compat/php7/bootstrap.php compat/php7/readiness.php \
   compat/php7/social.php compat/php7/levels.php public/php7-admin.php \
   public/assets/php7-admin-base.css public/assets/php7-admin-host.js public/assets/muchocore-icon.png \
   public/php7.php public/php7-setup.php docs/PHP7_NATIVE_PHASE1.md; do
