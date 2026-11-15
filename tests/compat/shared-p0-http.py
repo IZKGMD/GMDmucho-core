@@ -133,6 +133,40 @@ def run(php, report):
                 require(actual == expected, "Unexpected login result for %s: %s" % (name, actual))
             checks.append("password/gjp2/identity/banned/inactive/wrong-password")
 
+            # Exact GD 2.209 Windows EXE cloud endpoints, not just version-20
+            # aliases. Real separate HTTP workers share one persisted key/DB.
+            cloud_auth = dict(VERSION, accountID=1, gjp2=GJP2)
+            cloud_data = ("P0 GD2209 save:" + "a" * (300 * 1024)) + ";21;30;a;a"
+            cloud_backup = "/a/accounts/backupGJAccountNew.php"
+            cloud_sync = "/a/accounts/syncGJAccountNew.php"
+            require(post(cloud_sync, cloud_auth, worker=0) == "-1",
+                    "Fresh account unexpectedly has cloud data")
+            require(post(cloud_backup, dict(cloud_auth, saveData=cloud_data), worker=0) == "1",
+                    "GD 2.209 New cloud backup rejected")
+            require(post(cloud_sync, cloud_auth, worker=1) == cloud_data,
+                    "Save/Load from distinct workers lost data or duplicated suffix")
+            require(post("/database/accounts/syncGJAccount20.php", cloud_auth, worker=2) == cloud_data,
+                    "Versioned cloud sync differs from New endpoint")
+            require(post("/database/accounts/backupGJAccount20.php",
+                         dict(cloud_auth, saveData=cloud_data), worker=1) == "1",
+                    "Identical save must be idempotent")
+            require(post(cloud_backup, dict(cloud_auth, gjp2="invalid",
+                         saveData="tamper"), worker=1) == "-1",
+                    "Wrong cloud credential accepted")
+            require(post(cloud_backup, dict(cloud_auth, saveData=""), worker=2) == "-1",
+                    "Empty cloud data accepted")
+            require(post(cloud_sync, dict(cloud_auth, accountID=2), worker=2) == "-1",
+                    "Another account used owner's credential")
+            require(post(cloud_sync, cloud_auth, worker=0) == cloud_data,
+                    "Rejected cloud requests overwrote stored progress")
+            fixture("read-only")
+            require(post(cloud_backup, dict(cloud_auth, saveData="tamper"),
+                         worker=1) == "-1", "Read-only mode permitted backup")
+            require(post(cloud_sync, cloud_auth, worker=1) == cloud_data,
+                    "Read-only mode must permit loading an existing save")
+            fixture("writable")
+            checks.append("GD2209-cloud-save-New/300KiB/three-PHP-workers/roundtrip/credentials/read-only/immutability")
+
             recovery_before = fixture("inspect")
             for path in ("/a/accounts/lostpassword.php", "/database/accounts/lostusername.php"):
                 request = urllib.request.Request("http://127.0.0.1:%d%s" % (ports[0], path))
