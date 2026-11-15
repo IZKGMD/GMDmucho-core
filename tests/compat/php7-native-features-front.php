@@ -47,6 +47,12 @@ PHP
         $backup = array_merge($auth,array('saveData'=>str_repeat('a',300*1024)));
         nativeFeatureAssert($call('/mc/accounts/backupGJAccount20.php',$backup,301*1024)==='1','cloudsave front exceeds old 256 KiB request limit');
         nativeFeatureAssert($call('/accounts/syncGJAccount20.php',$auth) === $backup['saveData'].';21;30;a;a','cloudsave front roundtrip');
+        // Some patched GD 2.209 clients use the New aliases; these must
+        // work even before the owner completes the full-core migration.
+        nativeFeatureAssert($call('/a/accounts/backupGJAccountNew.php',$backup,301*1024)==='1',
+            'native GD 2.209 New backup must not return -1');
+        nativeFeatureAssert($call('/a/accounts/syncGJAccountNew.php',$auth)===$backup['saveData'].';21;30;a;a',
+            'native GD 2.209 New sync must return the exact saved bytes');
         nativeFeatureAssert($call('/mc/accounts/backupGJAccount20.php',$backup,26*1024*1024)==='-1','cloudsave front rejects oversized encoded request');
         nativeFeatureAssert($call('/mc/updateGJUserScore22.php',$auth,300*1024)==='-1','large cap is restricted to cloud backup');
     } finally {

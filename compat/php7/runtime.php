@@ -408,7 +408,7 @@ function mucho7_dispatch($pdo, $uri, $method, $post, $options = array())
     }
     if ($pdo instanceof PDO && !empty($options['enable_accounts'])) {
         if (!empty($options['enable_cloudsave']) && function_exists('mucho7_cloudsave')
-            && preg_match('~^/(backup|sync)gjaccount(?:19|20|21|22)?$~D', $path, $match)) {
+            && preg_match('~^/(backup|sync)gjaccount(?:new|19|20|21|22)?$~D', $path, $match)) {
             $backup = $match[1] === 'backup';
             if ($backup && empty($options['enable_writes'])) { return '-1'; }
             return mucho7_cloudsave($pdo, $post, $backup);
