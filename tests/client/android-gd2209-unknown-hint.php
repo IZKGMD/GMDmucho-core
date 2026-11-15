@@ -59,8 +59,8 @@ try {
         );
         throw new RuntimeException('Non-verified APK was relocated.');
     } catch (RuntimeException $e) {
-        if (!str_contains($e->getMessage(), 'Side-by-side package relocation is currently supported') ||
-            !str_contains($e->getMessage(), 'verified GD 2.209 ARM64 build')) {
+        if (!str_contains($e->getMessage(), 'Side-by-side package relocation requires') ||
+            !str_contains($e->getMessage(), 'GD 2.209 ARM build')) {
             throw new RuntimeException('Unhelpful side-by-side diagnostics: ' .
                 $e->getMessage());
         }
