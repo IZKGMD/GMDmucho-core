@@ -124,7 +124,8 @@ def wire_map(body: str) -> dict[str, str]:
 def main() -> None:
     env = environment()
     native = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    captured = {row["path"] for row in native["routes"]}\n    captured.update(row["path"] for row in native["url_templates"])
+    captured = {row["path"] for row in native["routes"]}
+    captured.update(row["path"] for row in native["url_templates"])
 
     # Do not accidentally test fabricated paths under the label "from EXE."
     used = [
