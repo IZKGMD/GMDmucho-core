@@ -54,6 +54,7 @@ final readonly class ReportQueueRepository
                   MAX(r.id) AS last_report_id,
                   COUNT(*) AS report_count,
                   COUNT(DISTINCT r.content_type, r.content_id) AS reported_items,
+                  SUM(CASE WHEN r.content_type=1 THEN 1 ELSE 0 END) AS direct_report_count,
                   COUNT(DISTINCT r.reporter_account_id) AS reporter_count,
                   COUNT(*) * 3 AS report_points,
                   MAX(r.created_at) AS last_report_at
@@ -71,6 +72,42 @@ final readonly class ReportQueueRepository
 
         $rows = $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         return ['total' => $total, 'rows' => $rows];
+    }
+
+    /**
+     * Native reportGJContent type=0 identifies the reported *account*.
+     * Store it separately from type=1's level reports (internal type=0).
+     * The UNIQUE (reporter, content_type, content_id) index prevents
+     * duplicate reports from inflating a moderation case's score.
+     */
+    public function reportUser(int $reporter, int $accountId, int $reason, string $details): bool
+    {
+        if ($accountId <= 0 || $accountId === $reporter) {
+            return false;
+        }
+
+        $target = $this->pdo->prepare(
+            'SELECT 1 FROM accounts WHERE account_id=:id LIMIT 1'
+        );
+        $target->execute(['id' => $accountId]);
+        if ($target->fetchColumn() === false) {
+            return false;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO mucho_content_reports
+                (reporter_account_id,content_type,content_id,target_account_id,reason,details)
+             VALUES (:reporter,1,:content,:target,:reason,:details)
+             ON DUPLICATE KEY UPDATE id=id'
+        );
+        $stmt->execute([
+            'reporter' => $reporter,
+            'content' => $accountId,
+            'target' => $accountId,
+            'reason' => $reason,
+            'details' => $details,
+        ]);
+        return true;
     }
 
     public function reportLevel(int $reporter, int $levelId, int $reason, string $details): bool
