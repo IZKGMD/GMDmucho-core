@@ -75,7 +75,7 @@ function mucho7_domain_save_key(PDO $db,$root)
             if($db->query('SELECT 1 FROM mucho_cloud_saves LIMIT 1')->fetchColumn()!==false)
                 throw new RuntimeException('Existing encrypted saves require their original private key.');
             try{
-                $native=$db->query('SELECT 1 FROM php7_cloud_saves WHERE LEFT(save_data,8)='MC7ENC1:' LIMIT 1')->fetchColumn();
+                $native=$db->query("SELECT 1 FROM php7_cloud_saves WHERE LEFT(save_data,8)='MC7ENC1:' LIMIT 1")->fetchColumn();
                 if($native!==false)throw new RuntimeException('Existing native cloud saves require their original private key.');
             }catch(PDOException $error){
                 $info=$error->errorInfo;
