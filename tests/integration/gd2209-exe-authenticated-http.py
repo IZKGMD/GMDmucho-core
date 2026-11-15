@@ -133,6 +133,7 @@ def main() -> None:
         "/database/accounts/backupGJAccountNew.php",
         "/database/accounts/syncGJAccountNew.php",
         "/database/submitGJUserInfo.php",
+        "/database/reportGJContent.php",
         "/database/followGJUser.php",
         "/database/unfollowGJUser.php",
         "/database/getGJFollowing.php",
@@ -170,6 +171,38 @@ def main() -> None:
     require(form("/database/accounts/loginGJAccount.php",
                  {"userName": username1, "gjp2": token2}) == "-1",
             "EXE native login rejects another account's GJP2")
+
+    # Native 2.209 type=0 reports an account, not a level. Verify the
+    # public player operation and exact persisted case identity (not just 200).
+    report_path = "/database/reportGJContent.php"
+    report = {**auth1, "type": "0", "targetID": aid2, "special": "0",
+              "reasons": "4,5", "secret": "Wmfd2893gb7"}
+    empty_report = database("native_profile_report", aid1, aid2)
+    require(empty_report is not None and int(empty_report["total"]) == 0,
+            "native profile report starts absent from fresh fixture accounts")
+    require(form(report_path, report) == "1",
+            "authenticated native type=0 profile report accepted")
+    stored_report = database("native_profile_report", aid1, aid2)
+    require(stored_report is not None and int(stored_report["total"]) == 1
+            and int(stored_report["reason"]) == 4
+            and stored_report["details"] == "4,5"
+            and int(stored_report["target_account_id"]) == aid2
+            and int(stored_report["content_id"]) == aid2,
+            "direct account report creates exactly one correctly attributed SQL case")
+    require(form(report_path, report) == "1",
+            "duplicate native account report is idempotently acknowledged")
+    require(database("native_profile_report", aid1, aid2) == stored_report,
+            "duplicate account report cannot inflate case score")
+    require(form(report_path, {**report, "gjp2": token2}) == "-1",
+            "cross-account GJP2 cannot submit account report")
+    require(form(report_path, {**report, "reasons": "6"}) == "-1",
+            "level-only stolen/reupload reason is rejected for account")
+    require(form(report_path, {**report, "targetID": aid1}) == "-1",
+            "self-report is rejected")
+    require(form(report_path, {**report, "special": "1"}) == "-1",
+            "unexpected special ID rejected on native account report")
+    require(database("native_profile_report", aid1, aid2) == stored_report,
+            "invalid native account reports cannot mutate persisted case")
 
     # Native Cloud Save New aliases: ciphertext has a stored checksum and an
     # incrementing revision. Rejections must not change this persisted row.
