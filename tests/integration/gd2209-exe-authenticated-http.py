@@ -302,6 +302,21 @@ def main() -> None:
                 and int(after_reupload["account_id"]) == aid1,
                 "owned level reupload keeps ownership")
 
+        description_path = "/database/updateGJDesc20.php"
+        new_description = "GD 2.209 EXE updated description"
+        new_desc_b64 = base64.b64encode(new_description.encode()).decode()
+        before_desc = database("level", created_level)
+        require(form(description_path, {**auth2, "levelID": created_level,
+                                        "levelDesc": new_desc_b64}) == "-1",
+                "foreign authenticated user cannot change level description")
+        require(database("level", created_level) == before_desc,
+                "foreign description edit leaves SQL row unchanged")
+        require(form(description_path, {**auth1, "levelID": created_level,
+                                        "levelDesc": new_desc_b64}) == "1",
+                "owner description update accepted by native EXE URL")
+        require(database("level", created_level)["description"] == new_description,
+                "owner description update decoded and persisted into SQL")
+
         require(form(delete_path, {**auth2, "levelID": created_level}) == "-1",
                 "other authenticated player cannot delete first player's level")
         require(int(database("level", created_level)["is_deleted"]) == 0,
