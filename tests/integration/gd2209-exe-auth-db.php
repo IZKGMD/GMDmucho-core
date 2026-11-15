@@ -65,6 +65,17 @@ switch ($action) {
         $params = [$peer, $id, $id];
         break;
 
+    case 'native_profile_report':
+        $sql = 'SELECT COUNT(*) AS total,
+                       COALESCE(MAX(reason),-1) AS reason,
+                       COALESCE(MAX(details),\'\') AS details,
+                       COALESCE(MAX(target_account_id),0) AS target_account_id,
+                       COALESCE(MAX(content_id),0) AS content_id
+                FROM mucho_content_reports
+                WHERE reporter_account_id=? AND content_type=1 AND content_id=?';
+        $params = [$id, $peer];
+        break;
+
     case 'level':
         $sql = 'SELECT level_id,account_id,name,level_data,
                        description,is_deleted
