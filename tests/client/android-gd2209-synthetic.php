@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 require dirname(__DIR__, 2) . '/src/Client/AndroidGd2209Binary.php';
 require dirname(__DIR__, 2) . '/src/Client/AndroidPackageRelocator.php';
+require dirname(__DIR__, 2) . '/src/Client/WindowsClientPatcher.php';
+require dirname(__DIR__, 2) . '/src/Client/AndroidClientPatcher.php';
 
 use MuchoCore\Client\AndroidGd2209Binary;
 use MuchoCore\Client\AndroidPackageRelocator as Relocator;
@@ -81,5 +83,53 @@ $fixed = Relocator::relocateResources($arsc);
 check2209(strlen($fixed) === strlen($arsc), 'Resource table size changed');
 check2209(str_contains($fixed, $encode(Relocator::SIDE_BY_SIDE_ID) . "\0\0"),
     'Resource table package ID unchanged');
+
+// A differently hashed yet layout-compatible ARM64 or ARMv7 GD 2.209 ELF
+// can be patched without requiring the one pre-recorded APK SHA-256.
+$library = str_repeat("\0", 1024 * 1024 + 128);
+$library = substr_replace($library, "\x7fELF\x02\x01", 0, 6);
+$library = substr_replace($library, pack('v', 183), 18, 2);
+$endpointNames = ['getGJNotifications', 'getGJThreadInvites'];
+for ($i = 0; $i < 111; $i++) {
+    $endpointNames[] = 'getGJEndpoint' . $i;
+}
+$urls = array_map(
+    static fn(string $name): string =>
+        'https://www.boomlings.com/database/' . $name . '.php',
+    $endpointNames
+);
+$library .= "\0" . implode("\0", $urls) . "\0";
+check2209(!AndroidGd2209Binary::supports($library), 'Variant must not match exact SHA');
+check2209(AndroidGd2209Binary::isStructurallyCompatible($library),
+    'Valid complete alternate ARM64 endpoint layout rejected');
+[$patchedVariant, $variantCount, $usedNative] =
+    \MuchoCore\Client\AndroidClientPatcher::patchEntryBytes(
+        'lib/arm64-v8a/libcocos2dcpp.so', $library, 'https://muchogdps.space'
+    );
+check2209($usedNative && $variantCount === 113, 'Variant patcher must rewrite all 113 endpoints');
+check2209(strlen($patchedVariant) === strlen($library), 'Variant ELF must retain byte length');
+check2209(str_contains($patchedVariant,
+    "https://muchogdps.space/database/getGJThreadInvites.php\0"),
+    'Alternate ARM64 thread endpoint not redirected');
+check2209(!AndroidGd2209Binary::isStructurallyCompatible($patchedVariant),
+    'Already redirected GD binary must not be patchable twice');
+
+$armv7 = substr_replace($library, "\x01", 4, 1);
+$armv7 = substr_replace($armv7, pack('v', 40), 18, 2);
+check2209(AndroidGd2209Binary::isStructurallyCompatible($armv7),
+    'Valid ARMv7 endpoint layout rejected');
+[$armv7Patched, $armv7Count, $usedArmv7] =
+    \MuchoCore\Client\AndroidClientPatcher::patchEntryBytes(
+        'lib/armeabi-v7a/libcocos2dcpp.so', $armv7, 'https://muchogdps.space'
+    );
+check2209($usedArmv7 && $armv7Count === 113 &&
+    strlen($armv7Patched) === strlen($armv7), 'ARMv7 variant not fully patched');
+
+$incompatible = substr_replace($library, pack('v', 3), 18, 2);
+check2209(!AndroidGd2209Binary::isStructurallyCompatible($incompatible),
+    'x86 disguised as ARM must be rejected');
+$incomplete = substr_replace($library, '\x00', strpos($library, $urls[10]), strlen($urls[10]));
+check2209(!AndroidGd2209Binary::isStructurallyCompatible($incomplete),
+    'Incomplete endpoint table must be rejected');
 
 echo "android-gd2209-synthetic: OK\n";
