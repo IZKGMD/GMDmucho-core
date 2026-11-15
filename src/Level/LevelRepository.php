@@ -682,13 +682,13 @@ final readonly class LevelRepository
             $q = $this->pdo->prepare(
                 'SELECT friend_account_id
                  FROM friends
-                 WHERE account_id=:id
+                 WHERE account_id=:outgoing_id
                  UNION
                  SELECT account_id
                  FROM friends
-                 WHERE friend_account_id=:id'
+                 WHERE friend_account_id=:incoming_id'
             );
-            $q->execute(['id'=>$accountId]);
+            $q->execute(['outgoing_id'=>$accountId, 'incoming_id'=>$accountId]);
             $ids = array_map('intval', $q->fetchAll(PDO::FETCH_COLUMN));
 
             return array_values(array_unique(array_filter($ids, static fn(int $id): bool => $id > 0)));

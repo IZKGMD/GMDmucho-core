@@ -23,6 +23,7 @@ if (!preg_match('/^sesstest[a-f0-9]{8}$/D', $name)) {
     throw new RuntimeException('Invalid fixture identity');
 }
 $action = getenv('MC_PLAYER_SESSION_ACTION');
+$rateDirectory = sys_get_temp_dir().'/mc-player-session-http-'.$name;
 if ($action === 'create') {
     $db->prepare('INSERT INTO accounts(username,email,password_hash,gjp2_hash)
         VALUES (?,?,?,?)')->execute([$name,$name.'@example.invalid',
@@ -32,13 +33,19 @@ if ($action === 'create') {
 } elseif ($action === 'ban' || $action === 'unban') {
     $db->prepare('UPDATE accounts SET is_banned=? WHERE username=?')->execute([$action === 'ban' ? 1 : 0,$name]);
 } elseif ($action === 'password') {
-    $ok = (new \MuchoCore\Account\AccountManagementService($db))->changePassword(
+    // Use a private host-side rate store: the app container owns its own store.
+    $ok = (new \MuchoCore\Account\AccountManagementService($db,
+        new \MuchoCore\Security\RateLimiter($rateDirectory)))->changePassword(
         $name,getenv('MC_PLAYER_SESSION_PASSWORD'),getenv('MC_PLAYER_SESSION_NEXT'),
         getenv('MC_PLAYER_SESSION_NEXT'),'127.0.0.1');
     if (!$ok) throw new RuntimeException('Fixture password change failed');
 } elseif ($action === 'delete') {
     $db->prepare('DELETE FROM profiles WHERE account_id IN (SELECT account_id FROM accounts WHERE username=?)')->execute([$name]);
     $db->prepare('DELETE FROM accounts WHERE username=?')->execute([$name]);
+    if (is_dir($rateDirectory)) {
+        foreach (glob($rateDirectory.'/*.json') ?: [] as $file) unlink($file);
+        rmdir($rateDirectory);
+    }
 } else {
     throw new RuntimeException('Unknown fixture action');
 }

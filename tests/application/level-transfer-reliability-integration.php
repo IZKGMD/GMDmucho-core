@@ -204,6 +204,18 @@ SQL);
     $check(str_contains($listing, ':62:') && str_contains($listing, ':63:'),
         'search fallback preserves GD 2.209 timestamp fields');
 
+    $db->exec('CREATE TABLE friends (account_id BIGINT, friend_account_id BIGINT) ENGINE=InnoDB');
+    $levelRepository = new LevelRepository($db);
+    foreach ([[1, 2], [2, 1]] as [$from, $to]) {
+        $db->exec('DELETE FROM friends');
+        $db->prepare('INSERT INTO friends VALUES (?,?)')->execute([$from, $to]);
+        $friends = $levelRepository->search(13, '', 22, 0, 10, 0, ['accountID' => '2']);
+        $check($friends['total'] === 1 && (int)$friends['levels'][0]['level_id'] === $id,
+            'native PDO friends search resolves friendship direction ' . $from . ' to ' . $to);
+    }
+    $check($levelRepository->search(13, '', 22, 0, 10, 0, ['accountID' => '3'])['total'] === 0,
+        'friends search excludes unrelated authors');
+
     $rejected = false;
     try {
         $service->upload(2, 'pass-2', $data + ['levelID' => $id]);
