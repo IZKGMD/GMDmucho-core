@@ -169,6 +169,15 @@ def perform(job):
         if status != 200:
             return (None, "http_" + str(status))
         if not check_body(data, job["expected"]):
+            # A GD failure sentinel is not a successful write. Distinguishing
+            # it from malformed output helps triage without logging request
+            # credentials, comment text or arbitrary response bodies. A -1
+            # alone does NOT establish whether MuchoProtect rejected it.
+            sentinel = data.strip()
+            if sentinel in (b"-1", b"-2"):
+                return (None, "gd_rejected_" + sentinel.decode("ascii"))
+            if len(data) > MAX_BODY:
+                return (None, "oversized_gd_response")
             return (None, "invalid_gd_response")
         return (round(elapsed, 3), None)
     except urllib.error.HTTPError as error:
