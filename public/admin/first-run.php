@@ -6,18 +6,13 @@ use MuchoCore\Core\Environment;
 use MuchoCore\Http\ClientIp;
 
 
-/** Keep first-run language consistent with the existing admin preference. */
+/** The administrator interface is English-only, including first-run recovery. */
 function muchoAdminFirstRunLanguage(array $query, array $cookies): string
 {
-    $requested = $query['lang'] ?? null;
-    if ($requested === 'en' || $requested === 'ru') {
-        return $requested;
-    }
-
-    return ($cookies['mucho_admin_language'] ?? null) === 'ru' ? 'ru' : 'en';
+    return 'en';
 }
 
-/** Both languages are rendered on the server, including validation errors. */
+/** First-run copy remains deterministic regardless of browser locale. */
 function muchoAdminFirstRunCopy(string $language): array
 {
     $english = [
@@ -46,35 +41,7 @@ function muchoAdminFirstRunCopy(string $language): array
         'footer_link' => 'sign in to admin',
     ];
 
-    if ($language !== 'ru') {
-        return $english;
-    }
-
-    return [
-        'awaiting' => 'Завершите настройку администратора',
-        'completed' => 'Первоначальная настройка уже была завершена. Для восстановления доступа используйте серверную консоль.',
-        'not_installed' => 'Установка сервера ещё не завершена. Сначала запустите установщик MuchoCore.',
-        'requires_https' => 'Создание администратора доступно только по HTTPS.',
-        'expired' => 'Страница устарела. Обновите её и попробуйте снова.',
-        'rate_limited' => 'Слишком много попыток. Повторите позже.',
-        'username_invalid' => 'Логин: 1–32 символа, латинские буквы, цифры, _ или -.',
-        'password_invalid' => 'Пароль должен содержать 12–256 символов без управляющих знаков.',
-        'password_mismatch' => 'Пароли не совпадают.',
-        'secret_invalid' => 'Ссылка активации недействительна. Создайте новую ссылку владельца на сервере.',
-        'activation_required' => 'Для создания первого администратора откройте приватную ссылку активации из установщика. Никому её не передавайте.',
-        'activate_wait' => 'Проверяем ссылку установки…',
-        'heading' => 'Создать первого администратора',
-        'unavailable' => 'Настройка недоступна',
-        'title' => 'MuchoCore — первая настройка',
-        'language' => 'Язык',
-        'introduction' => 'Первый запуск панели управления. Выберите логин и пароль владельца GDPS. Позже эта страница регистрации станет недоступна.',
-        'username' => 'Логин администратора',
-        'password' => 'Новый пароль',
-        'confirm' => 'Повторите пароль',
-        'submit' => 'Создать аккаунт владельца',
-        'footer_prefix' => 'После настройки:',
-        'footer_link' => 'вход в админку',
-    ];
+    return $english;
 }
 
 /**
@@ -86,16 +53,6 @@ function muchoAdminFirstRun(PDO $db, string $rootDir, bool $https, bool $already
 {
     $language = muchoAdminFirstRunLanguage($_GET, $_COOKIE);
     $copy = muchoAdminFirstRunCopy($language);
-    $requestedLanguage = $_GET['lang'] ?? null;
-    if ($requestedLanguage === 'en' || $requestedLanguage === 'ru') {
-        setcookie('mucho_admin_language', $language, [
-            'expires' => time() + 31536000,
-            'path' => '/admin',
-            'secure' => $https,
-            'httponly' => false,
-            'samesite' => 'Lax',
-        ]);
-    }
 
     if (adminIsPlain()) {
         adminPlainStartOutput();
@@ -248,18 +205,10 @@ button{margin-top:23px;width:100%;padding:13px;border:0;border-radius:12px;backg
 small{color:#7e8da6;font-size:12px;line-height:1.5}
 footer{margin-top:23px;padding-top:16px;border-top:1px solid #293348;color:#77849b;font-size:12px}
 a{color:#b1baff}
-.language-switcher{display:flex;justify-content:flex-end;gap:6px;margin-bottom:17px}
-.language-switcher a{display:inline-block;padding:6px 10px;border:1px solid #35415b;border-radius:8px;color:#aebbd3;text-decoration:none;font-size:12px;font-weight:700}
-.language-switcher a[aria-current="page"]{border-color:#8578ff;background:#252d52;color:#fff}
-.language-switcher a:focus-visible{outline:2px solid #b1baff;outline-offset:2px}
 </style>
 </head>
 <body>
 <main>
-<nav class="language-switcher" aria-label="<?= $escape($copy['language']) ?>">
-<a href="/admin/?lang=en" hreflang="en" lang="en" data-lang="en" <?= $language === 'en' ? 'aria-current="page"' : '' ?>>EN</a>
-<a href="/admin/?lang=ru" hreflang="ru" lang="ru" data-lang="ru" <?= $language === 'ru' ? 'aria-current="page"' : '' ?>>RU</a>
-</nav>
 <mark>MUCHOCORE / FIRST RUN</mark>
 <h1><?= $escape($heading) ?></h1>
 <input type="hidden" id="mucho-first-run-csrf" name="csrf" value="<?= $escape($csrf) ?>">
@@ -308,11 +257,6 @@ a{color:#b1baff}
     document.body.appendChild(form);
     form.submit();
 })();
-document.querySelectorAll('.language-switcher [data-lang]').forEach(function (link) {
-    link.addEventListener('click', function () {
-        try { localStorage.setItem('mucho_admin_language', link.dataset.lang); } catch (_) {}
-    });
-});
 </script>
 </body>
 </html>

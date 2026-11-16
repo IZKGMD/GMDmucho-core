@@ -248,8 +248,8 @@ def main():
           "anonymous first visitor must activate ownership before registration")
     check("Create first administrator" not in page,
           "anonymous first visitor does not see a usable registration form")
-    check('data-lang="en"' in page and 'data-lang="ru"' in page,
-          "first-owner page provides EN / RU language switcher")
+    check('data-lang="ru"' not in page and 'class="language-switcher"' not in page,
+          "first-owner page shows no language switcher")
     check("no-store" in headers.get("Cache-Control", ""),
           "bootstrap page is not cacheable")
     check(secret not in page and 'name="setup_key"' not in page,
@@ -311,23 +311,18 @@ def main():
           "mismatched passwords cannot create an administrator")
 
     code, page, _ = browser.get("/admin/?lang=ru")
-    check(code == 200 and "Создать первого администратора" in page
-          and '<html lang="ru">' in page,
-          "Russian first-owner translation is available")
+    check(code == 200 and "Create first administrator" in page
+          and '<html lang="en">' in page
+          and "Создать первого администратора" not in page,
+          "old Russian URL cannot change the first-run language")
     code, page, _ = browser.get()
-    check(code == 200 and "Создать первого администратора" in page,
-          "Russian selection persists across requests")
-    code, page, _ = browser.post(dict(form, password_confirm="mismatch"))
-    check(code == 200 and "Пароли не совпадают." in page
-          and db_state(password)["count"] == 0,
-          "Russian first-owner validation errors are localized")
-    code, page, _ = browser.get("/admin/?lang=en")
     check(code == 200 and "Create first administrator" in page
           and '<html lang="en">' in page,
-          "English can be selected after Russian")
-    code, page, _ = browser.get()
-    check(code == 200 and "Create first administrator" in page,
-          "English selection persists across requests")
+          "English remains stable on subsequent first-run requests")
+    code, page, _ = browser.post(dict(form, password_confirm="mismatch"))
+    check(code == 200 and "Passwords do not match." in page
+          and db_state(password)["count"] == 0,
+          "validation errors stay English after legacy Russian query")
 
     code, _, headers = browser.post(form)
     check(code == 303 and headers.get("Location") == "/admin/",

@@ -1532,7 +1532,7 @@ if (adminIsPlain()) adminPlainStartOutput();
 else ob_start();
 ?>
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <link rel="icon" href="/assets/muchocore-favicon-v4.png" type="image/png" sizes="64x64">
 <link rel="apple-touch-icon" href="/assets/muchocore-icon.png?v=3">
@@ -4657,7 +4657,7 @@ if (adminIsPlain()) {
     ob_start();
 ?>
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -5141,12 +5141,6 @@ table{
 <div class="shell">
 
 <aside id="adminNavigation" aria-label="Admin navigation">
-<!-- MUCHO_LANG_FLAGS -->
-<div id="muchoLangSwitcher" class="mucho-lang-switcher">
-    <button type="button" data-lang="en" title="English">EN</button>
-    <button type="button" data-lang="ru" title="Русский">RU</button>
-</div>
-<!-- /MUCHO_LANG_FLAGS -->
 
 <div class="brandrow">
 <?php adminBrand($branding['server_name']); ?>
@@ -6605,7 +6599,6 @@ echo '</table></div>';
 </main>
 <?php if (!adminIsPlain()): ?>
 </div>
-<script src="/admin/admin-i18n.js?v=108"></script>
 <?php endif ?>
 
 
