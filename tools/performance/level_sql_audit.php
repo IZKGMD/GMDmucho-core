@@ -45,7 +45,7 @@ $queries = [
           AND l.name LIKE '%Synthetic Stress Level%'",
     'text_search_page' => "SELECT l.level_id FROM levels l
         WHERE l.is_deleted=0 AND l.is_unlisted=0 AND l.unlisted2=0
-          AND l.name LIKE '%Synthetic Stress Level%'
+          AND l.game_version<=22 AND l.name LIKE '%Synthetic Stress Level%'
         ORDER BY l.likes DESC,l.level_id DESC LIMIT 10",
 ];
 
