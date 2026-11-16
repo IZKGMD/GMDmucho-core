@@ -34,6 +34,8 @@ class Stub(BaseHTTPRequestHandler):
                 body = b"1"
             elif self.path.endswith("/invalid"):
                 body = b"-1"
+            elif self.path.endswith("/malformed"):
+                body = b"not-a-GD-response"
             else:
                 body = b"Synthetic Stress Level 00001"
             self.send_response(200)
@@ -81,6 +83,14 @@ class ConcurrencyRunnerTest(unittest.TestCase):
 
     def test_gd_error_body_is_not_counted_success(self):
         job = {"path": "/database/invalid", "form": {"test": "1"},
+               "expected": "positive_id"}
+        result = bench.run_stage("bad", 1, [job], 8, 0, 10000)
+        self.assertEqual(result["success"], 0)
+        self.assertEqual(result["errors"]["gd_rejected_-1"], 8)
+        self.assertFalse(result["passed"])
+
+    def test_malformed_body_is_not_a_gd_rejection(self):
+        job = {"path": "/database/malformed", "form": {"test": "1"},
                "expected": "positive_id"}
         result = bench.run_stage("bad", 1, [job], 8, 0, 10000)
         self.assertEqual(result["success"], 0)
