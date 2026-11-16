@@ -7,6 +7,7 @@ namespace MuchoCore\Security;
 use MuchoCore\Core\Environment;
 use MuchoCore\Database\Database;
 use MuchoCore\Http\Request;
+use MuchoCore\Routing\Router;
 use PDO;
 
 final readonly class MuchoProtect
@@ -525,32 +526,11 @@ final readonly class MuchoProtect
 
     private function normalizeEndpoint(string $endpoint): string
     {
-        $path = parse_url($endpoint, PHP_URL_PATH);
-        $endpoint = is_string($path) ? $path : '/';
-        $endpoint = preg_replace('#/+#', '/', $endpoint) ?? '/';
-        // A few supported installations expose nested legacy prefixes
-        // (/api/database/...). Strip all known aliases before policy lookup.
-        // Otherwise a nested alias may receive only the global IP budget.
-        for ($i = 0; $i < 8; $i++) {
-            $normalized = preg_replace(
-                '#^/(?:database|accounts|api|a)(?:/|$)#i',
-                '/',
-                $endpoint
-            ) ?? $endpoint;
-            if ($normalized === $endpoint) {
-                break;
-            }
-            $endpoint = $normalized;
-        }
-        $endpoint = preg_replace('#\.php$#i', '', $endpoint) ?? $endpoint;
-
-        if ($endpoint !== '/') {
-            $endpoint = rtrim($endpoint, '/');
-        }
-
-        $endpoint = strtolower($endpoint === '' ? '/' : $endpoint);
-
-        return substr($endpoint, 0, 256);
+        // Use the exact path that the dispatcher uses for the real endpoint.
+        // Keeping a second, partially synchronized implementation here
+        // allowed legacy aliases or deeply nested prefixes to miss their
+        // endpoint-specific abuse budgets while still reaching the handler.
+        return substr((new Router())->normalizePath($endpoint), 0, 256);
     }
 
     /**
