@@ -11,7 +11,8 @@ use PDO;
 /**
  * Notification inbox for native 2.209 events.
  *
- * Wire layout is provisional pending captured official 2.209 requests.
+ * Uses the GD 2.209 key layout published by GD Docs. Only follow
+ * notifications are emitted until other event types have verified mapping.
  * No currency is awarded by claiming: reward rules are not yet verified.
  */
 final readonly class NotificationService
@@ -27,7 +28,8 @@ final readonly class NotificationService
         $page = max(0, min(1000, $page));
         $offset = $page * 20;
         $count = $this->db->prepare(
-            'SELECT COUNT(*) FROM mucho_notifications WHERE account_id=:account'
+            "SELECT COUNT(*) FROM mucho_notifications
+             WHERE account_id=:account AND notification_type='follow'"
         );
         $count->execute(['account' => $accountId]);
         $total = (int)$count->fetchColumn();
@@ -38,7 +40,7 @@ final readonly class NotificationService
              FROM mucho_notifications n
              INNER JOIN accounts a ON a.account_id=n.actor_account_id
              LEFT JOIN profiles p ON p.account_id=n.actor_account_id
-             WHERE n.account_id=:account
+             WHERE n.account_id=:account AND n.notification_type='follow'
              ORDER BY n.id DESC
              LIMIT 20 OFFSET {$offset}"
         );
@@ -50,21 +52,75 @@ final readonly class NotificationService
 
         $items = [];
         foreach ($rows as $row) {
-            $timestamp = strtotime((string)$row['created_at']);
-            // The client response keys need golden-fixture confirmation.
-            $items[] = implode(':', [
-                1, (int)$row['id'],
-                2, ProtocolText::username((string)$row['username']),
-                3, (int)($row['user_id'] ?? 0),
-                4, (int)$row['actor_account_id'],
-                5, (string)$row['notification_type'],
-                6, (int)$row['source_id'],
-                7, (int)$row['is_read'],
-                8, (int)$row['reward_claimed'],
-                9, $timestamp === false ? 0 : $timestamp,
-            ]);
+            $items[] = self::encodeNotification($row);
         }
         return implode('|', $items) . '#' . $total . ':' . $offset . ':20';
+    }
+
+    /**
+     * Native GD 2.209 notification keys, as documented at
+     * https://boomlings.dev/resources/server/notification
+     *
+     * Only 'follow' is currently persisted by PHP 8's notification writers.
+     * Field 9 is a level ID, never a Unix timestamp or actor ID.
+     *
+     * @param array<string,mixed> $row
+     */
+    public static function encodeNotification(array $row, ?int $now = null): string
+    {
+        if ((string)($row['notification_type'] ?? '') !== 'follow') {
+            throw new \InvalidArgumentException('Unsupported notification event type.');
+        }
+
+        $username = ProtocolText::username((string)($row['username'] ?? 'Player'));
+        $created = strtotime((string)($row['created_at'] ?? ''));
+        $elapsed = $created === false ? 0 : max(0, ($now ?? time()) - $created);
+        // Sub-minute ages are shown as a stable new notification in both runtimes.
+        // Exact seconds are not actionable and cause nondeterministic parity tests.
+        if ($elapsed < 60) {
+            $elapsed = 0;
+        }
+        $age = '0 seconds';
+        foreach ([
+            [31536000, 'year'],
+            [2592000, 'month'],
+            [604800, 'week'],
+            [86400, 'day'],
+            [3600, 'hour'],
+            [60, 'minute'],
+            [1, 'second'],
+        ] as [$duration, $unit]) {
+            if ($elapsed < $duration) {
+                continue;
+            }
+            $count = intdiv($elapsed, $duration);
+            $age = $count . ' ' . $unit . ($count === 1 ? '' : 's');
+            break;
+        }
+
+        $encode = static fn(string $text): string =>
+            strtr(base64_encode($text), '+/', '-_');
+
+        // Field 2 type 13 is the documented follower notification class.
+        // The event wording needs confirmation against the actual 2.209 UI.
+        return implode(':', [
+            1, (int)$row['id'],
+            2, 13,
+            3, '',
+            4, $encode('New follower'),
+            5, $encode($username . ' started following you.'),
+            6, $age,
+            7, (int)($row['is_read'] ?? 0) === 0 ? 1 : 0,
+            8, 0,
+            9, 0,
+            10, '',
+            11, 0,
+            12, 0,
+            13, 0,
+            14, 0,
+            15, (int)$row['actor_account_id'],
+            16, $username,
+        ]);
     }
 
     /**
