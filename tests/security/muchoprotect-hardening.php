@@ -106,7 +106,7 @@ try {
         );
     }
     protectHardeningCheck(
-        (new \\MuchoCore\\Routing\\Router())->normalizePath($paths[2]) === '/registergjaccount',
+        (new \MuchoCore\Routing\Router())->normalizePath($paths[2]) === '/registergjaccount',
         'deep compatibility path resolves to registration at the router'
     );
 
