@@ -294,3 +294,57 @@ body.mc-admin .admin-pagination{
     transition:none;
   }
 }
+
+/* Match the video review: give the long navigation readable tap targets
+ * and consistent group hierarchy without replacing the existing theme. */
+body.mc-admin .admin-nav>ul a{
+  min-height:42px;
+  font-size:13px;
+  line-height:1.4;
+  align-items:center;
+}
+body.mc-admin .admin-nav :is(.admin-nav-extra,.admin-nav-group) > summary{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  line-height:1.4;
+  white-space:normal;
+}
+body.mc-admin .admin-nav-extra>summary{
+  min-height:42px;
+  font-size:12px;
+}
+body.mc-admin .admin-nav-group>summary{
+  min-height:39px;
+  font-size:12px;
+}
+body.mc-admin .admin-nav-group ul a{
+  min-height:40px;
+  font-size:12px;
+  line-height:1.4;
+}
+body.mc-admin .admin-nav a span{
+  min-width:0;
+  overflow-wrap:break-word;
+}
+body.mc-admin .admin-nav-group-count{
+  flex-shrink:0;
+}
+body.mc-admin .head .head-title{
+  line-height:1.35;
+}
+body.mc-admin .head .head-title :is(h1,small){
+  overflow-wrap:anywhere;
+}
+body.mc-admin .admin-empty{
+  min-height:98px;
+  display:grid;
+  align-content:center;
+  gap:6px;
+  line-height:1.55;
+}
+@media(max-width:980px){
+  body.mc-admin .admin-nav>ul a{
+    min-height:44px;
+  }
+}
