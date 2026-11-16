@@ -25,7 +25,7 @@ if(!$user || !adminIsPlain()):
 <link rel="stylesheet" href="/muchocore-theme.css?v=3"><script src="/muchocore-theme.js?v=5" defer></script>
 <link rel="stylesheet" href="/assets/product-ui.css?v=2"><link rel="stylesheet" href="/admin/product-admin.css?v=1">
 <?php if($user):?><script src="/assets/php7-admin-product.js" defer></script><?php endif ?><link rel="stylesheet" href="/admin/admin-simple.css?v=4">
-<script src="/admin/admin-simple.js?v=2" defer></script><link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=8">
+<script src="/admin/admin-simple.js?v=3" defer></script><link rel="stylesheet" href="/admin/admin-polish.css?v=5"><link rel="stylesheet" href="/admin/admin-workspace.css?v=8">
 <link rel="stylesheet" href="/admin/admin-motion.css?v=2"><script src="/admin/admin-motion.js?v=1" defer></script>
 </head>
 <?php endif;if(!$user):?>
@@ -91,7 +91,7 @@ if($schemaReady && canAdminPage($page)){
     else{$titles=$pages;$oldPage=$page;if($page==='system')$page='diagnostics';require __DIR__.'/admin-ui/native-pages.php';$page=$oldPage;}
 }else{$titles=$pages;require __DIR__.'/admin-ui/native-pages.php';}
 adminFooter($branding);
-?></main><?php if(!adminIsPlain()):?></div><script src="/admin/admin-i18n.js?v=105"></script><?php else:?><script src="/assets/php7-admin-product.js" defer></script><?php endif ?><script src="/assets/php7-admin-host.js" defer></script></body></html>
+?></main><?php if(!adminIsPlain()):?></div><script src="/admin/admin-i18n.js?v=106"></script><?php else:?><script src="/assets/php7-admin-product.js" defer></script><?php endif ?><script src="/assets/php7-admin-host.js" defer></script></body></html>
 <?php endif;
 $html=ob_get_clean();
 $html=preg_replace('~<body\b~','<body data-admin-language="en"',$html,1);
