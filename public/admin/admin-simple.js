@@ -1,11 +1,10 @@
 (() => {
     'use strict';
-    const ru = () => document.documentElement.lang === 'ru';
     document.querySelectorAll('[data-password-confirm]').forEach(form => {
         const password = form.elements.new_password;
         const confirm = form.elements.new_password_confirm;
         const validate = () => confirm.setCustomValidity(confirm.value && password.value !== confirm.value
-            ? (ru() ? 'Пароли не совпадают.' : 'Passwords do not match.') : '');
+            ? 'Passwords do not match.' : '');
         password.addEventListener('input', validate);
         confirm.addEventListener('input', validate);
     });
@@ -14,7 +13,7 @@
         if (!(form instanceof HTMLFormElement) || form.method.toLowerCase() !== 'post') return;
         const action = form.elements.namedItem('action')?.value || '';
         if (!form.hasAttribute('onsubmit') && (form.dataset.confirm || /(?:-delete|delete-)/.test(action))) {
-            if (!window.confirm(ru() ? 'Подтвердить удаление? Это действие нельзя отменить.' : (form.dataset.confirm || 'Confirm deletion? This cannot be undone.'))) {
+            if (!window.confirm(form.dataset.confirm || 'Confirm deletion? This cannot be undone.')) {
                 event.preventDefault();
                 return;
             }
@@ -44,14 +43,14 @@
     });
     document.querySelectorAll('form[method="post"]').forEach(form=>{
         const status=document.createElement('p');status.className='mc-form-dirty';status.setAttribute('role','status');status.hidden=true;form.append(status);
-        const update=()=>{const dirty=changed(form);if(dirty)dirtyForms.add(form);else dirtyForms.delete(form);status.textContent=ru()?'Есть несохранённые изменения':'Unsaved changes';status.hidden=!dirty;};
+        const update=()=>{const dirty=changed(form);if(dirty)dirtyForms.add(form);else dirtyForms.delete(form);status.textContent='Unsaved changes';status.hidden=!dirty;};
         form.addEventListener('input',update);form.addEventListener('change',update);
         form.addEventListener('reset',()=>{dirtyForms.delete(form);status.hidden=true;});
     });
     document.addEventListener('submit',event=>{
         if(event.defaultPrevented)return;
         if(event.target instanceof HTMLFormElement&&event.target.method.toLowerCase()==='post'){
-            if([...dirtyForms].some(form=>form!==event.target)&&!window.confirm(ru()?'В другой форме есть несохранённые изменения. Продолжить?':'Another form has unsaved changes. Continue?')){event.preventDefault();delete event.target.dataset.submitting;event.target.removeAttribute('aria-busy');return;}
+            if([...dirtyForms].some(form=>form!==event.target)&&!window.confirm('Another form has unsaved changes. Continue?')){event.preventDefault();delete event.target.dataset.submitting;event.target.removeAttribute('aria-busy');return;}
             submitting=true;
         }
     });

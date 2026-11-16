@@ -31,3 +31,32 @@ test('navigation labels are English before any JavaScript runs',()=>{
   const entry=read('public/admin/index.php');
   assert.match(entry,/require __DIR__\.'\/core\/navigation.php';/);
 });
+
+test('every PHP 8 and native PHP 7 administrator template has English-only source copy',()=>{
+  const collect=(folder)=>fs.readdirSync(path.join(root,folder),{withFileTypes:true}).flatMap(entry=>{
+    const location=path.join(folder,entry.name);
+    return entry.isDirectory()?collect(location):/\.(?:php|js)$/i.test(entry.name)?[location]:[];
+  });
+  const files=[
+    ...collect('public/admin'),
+    ...collect('compat/php7/admin-ui'),
+    'compat/php7/admin-view.php',
+    'compat/php7/admin.php',
+    'public/assets/php7-admin-product.js',
+    'public/assets/php7-admin-dashboard.js',
+  ];
+  for(const file of files){
+    assert.doesNotMatch(read(file),/[А-Яа-яЁё]/u,`Non-English administrator UI source: ${file}`);
+  }
+});
+
+test('legacy language cookies and bookmarks cannot re-enable Russian administration',()=>{
+  const shim=read('public/admin/admin-i18n.js');
+  assert.match(shim,/document\.documentElement\.lang\s*=\s*'en'/);
+  assert.doesNotMatch(shim,/mucho_admin_language|localStorage|document\.cookie|setLang\(/);
+  assert.doesNotMatch(read('public/admin/admin-simple.js'),/document\.documentElement\.lang\s*===?\s*'ru'/);
+  assert.doesNotMatch(read('public/admin/product-dashboard.js'),/document\.documentElement\.lang\s*===?\s*'ru'/);
+  const native=read('compat/php7/admin-view.php');
+  assert.match(native,/<html lang="en">/);
+  assert.match(native,/data-admin-language="en"/);
+});
