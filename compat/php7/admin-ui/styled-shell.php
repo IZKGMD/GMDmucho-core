@@ -6,11 +6,6 @@
 <div class="shell">
 
 <aside id="adminNavigation" aria-label="Admin navigation">
-<!-- MUCHO_LANG_FLAGS -->
-<div id="muchoLangSwitcher" class="mucho-lang-switcher">
-    <button type="button" data-lang="en" title="English">EN</button>
-</div>
-<!-- /MUCHO_LANG_FLAGS -->
 
 <div class="brandrow">
 <?php adminBrand($branding['server_name']); ?>
