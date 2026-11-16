@@ -285,7 +285,7 @@
   "src/Social/MessageRepository.php": "1f821da5024e70bba34a6f65e3fcaec71213d79bd8fc5bbd10131e014a582570",
   "src/Social/MessageService.php": "a5b6cb725ae8ac12a0fca8b1b0f42a9a712d18a13805a3925c5e01116da0ba9e",
   "src/Social/NotificationController.php": "97a9f9294a8a06161d6e13e7af9bb31ec5f9845816077e13cb6c5dff903ad42b",
-  "src/Social/NotificationService.php": "bfff9385c5f2c30a835dfed8b02369df81847f0b3c1cc6813fbfa81dbc52731c",
+  "src/Social/NotificationService.php": "2b93927b656726dca49fada82c5518499b33dcb623479ffda0839829056e1d7b",
   "src/Social/RelationshipController.php": "d0fad3aac6c08cb0231bebb8008caa56d094382a8e04c9de21428eebb43ab557",
   "src/Social/RelationshipRepository.php": "36834afd31241a617d48518b4883d58151a52681cc3d27125dc1168d9d073a18",
   "src/Social/RelationshipService.php": "855fc65c0fe981243068fa77a0b2f7604bea405864b2ff48d4492a66b41151d5",
