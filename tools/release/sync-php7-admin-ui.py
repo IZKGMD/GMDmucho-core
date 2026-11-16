@@ -87,6 +87,8 @@ end=index.index("} // Styled shell; page modules below",start)
 shell=index[start:end]
 shell=shell[:shell.rfind('<?php')]
 shell=shell.replace("require __DIR__.'/core/navigation.php';", "require __DIR__.'/navigation.php';")
+# PHP 8-only responsive layer is not shipped in the PHP 7 native asset bundle.
+shell=shell.replace('<link rel="stylesheet" href="/admin/admin-alignment.css?v=1">\n', '')
 shell=shell.replace("(string)((Environment::get('MUCHO_ACCOUNT_URL', '') ?: $branding['server_name']))", "(string)(!empty($settings['site_url'])?$settings['site_url']:$branding['server_name'])")
 shell=re.sub(r'(?m)^ *<button[^>]*data-lang="ru"[^>]*>.*?</button>\n', '', shell)
 record('public/admin/index.php','styled-shell.php',shell)
