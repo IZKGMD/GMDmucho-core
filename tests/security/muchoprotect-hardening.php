@@ -9,6 +9,7 @@ require_once dirname(__DIR__, 2) . '/src/Core/Environment.php';
 require_once dirname(__DIR__, 2) . '/src/Http/ClientIp.php';
 require_once dirname(__DIR__, 2) . '/src/Compatibility/ClientVersion.php';
 require_once dirname(__DIR__, 2) . '/src/Http/Request.php';
+require_once dirname(__DIR__, 2) . '/src/Routing/Router.php';
 require_once dirname(__DIR__, 2) . '/src/Security/RateLimitBackend.php';
 require_once dirname(__DIR__, 2) . '/src/Security/PenaltyStoreBackend.php';
 require_once dirname(__DIR__, 2) . '/src/Security/RateLimiter.php';
@@ -81,6 +82,33 @@ try {
         protectHardeningCheck($result['decision'] === 'allow',
             'legacy route aliases share a normal eight-request burst');
     }
+
+    // Router and MuchoProtect must agree on legacy version aliases and on
+    // arbitrarily nested compatibility prefixes. Otherwise real registration
+    // requests reach the handler without the registration-specific budget.
+    $registration = new MuchoProtect(
+        new RateLimiter($root . '/registration-limits'),
+        new AbusePenaltyStore($root . '/registration-penalties')
+    );
+    $paths = [
+        '/registerGJAccount.php',
+        '/registerGJAccount19.php',
+        '/' . str_repeat('api/', 12) . 'registerGJAccount22.php',
+    ];
+    foreach ($paths as $index => $path) {
+        $request = new Request('POST', $path, [], [],
+            ['REMOTE_ADDR' => '192.0.2.201']);
+        $decision = $registration->inspect($request, $path);
+        protectHardeningCheck(
+            $decision['decision'] === ($index < 2 ? 'allow' : 'block')
+                && ($index < 2 || $decision['reason'] === 'burst_limit'),
+            'registration aliases and nested paths retain one burst budget ' . ($index + 1)
+        );
+    }
+    protectHardeningCheck(
+        (new \\MuchoCore\\Routing\\Router())->normalizePath($paths[2]) === '/registergjaccount',
+        'deep compatibility path resolves to registration at the router'
+    );
 
     // Seed a realistic oversized audit file to exercise a single rotation.
     $auditFile = $auditDir . '/events.ndjson';
