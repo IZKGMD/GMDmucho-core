@@ -11,9 +11,12 @@ and interrupted legacy browser setup flows remain protected.
 
 ## Language
 
-The admin panel supports English and Russian. The original first-run
-browser activation UI remains available only to already-pending legacy
-installations, not as the default fresh VPS flow.
+The administrator panel and first-run screens are **English-only**. Existing
+`?lang=ru` bookmarks and `mucho_admin_language=ru` cookies are ignored;
+server-generated labels and validation messages stay in English across tabs.
+The original first-run browser activation UI remains available only to
+already-pending legacy installations, not as the default fresh VPS flow.
+This does not change languages supported on the public site or in the game.
 
 ## New VPS installation
 
