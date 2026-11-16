@@ -296,6 +296,8 @@ jobs:
           node --check public/muchocore-theme.js
           node --check public/admin/admin-i18n.js
           node --test tests/application/product-ui.test.cjs
+          node --test tests/application/admin-alignment.test.cjs
+          node --test tests/application/admin-english-only.test.cjs
           node --test tests/application/mucho-design-system.test.cjs
           node --test tests/application/mucho-minimal-design.test.cjs
           node --test tests/application/mucho-structure-v3.test.cjs
