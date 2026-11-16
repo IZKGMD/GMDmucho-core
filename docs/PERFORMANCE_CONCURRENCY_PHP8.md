@@ -46,7 +46,7 @@ docker compose -f docker-compose.stress.yml exec -T app \
 ```
 
 Compare `text_search_count` and `text_search_page` under
-`query_plans`, including the `game_version <= 22` predicate. Compare **exact** result IDs, total counts and GD wire
+`query_plans`: both must include the real GD 2.209 `game_version <= 22` predicate. Compare **exact** result IDs, total counts and GD wire
 responses for names with spaces, mixed case, Unicode, wildcard characters,
 short terms, mid-word substrings and missing names. Repeat same-fixture
 warm/cold latency A/B measurements multiple times. Include write latency,
@@ -133,7 +133,11 @@ python3 tools/performance/concurrent_php8_http.py \
 
 The output JSON has per-stage attempts, accepted responses, error categories,
 p50/p95/p99, client-paced accepted RPS and pass/fail. Failed/blocked stages
-stop escalation. A 200 response with GD `-1` is a failure, not a success.
+stop escalation. A 200 response with GD `-1` or `-2` is a failure, not a success.
+The runner reports `gd_rejected_-1` or `gd_rejected_-2` separately
+from `invalid_gd_response` and `oversized_gd_response` without logging
+message contents or credentials. A sentinel by itself does **not** identify
+MuchoProtect, authentication or moderation as its root cause.
 For write/mixed stages, the runner automatically reads the total rows in
 `comments` and `account_comments` from the **isolated app's PDO connection**
 before and after each stage. It fails if the total inserted-row delta differs
