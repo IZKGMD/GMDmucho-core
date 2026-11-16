@@ -1,0 +1,296 @@
+/*
+ * MuchoCore PHP 8 admin: alignment pass.
+ * Loaded last, after the historical admin layers and both color themes.
+ * Geometry only: no changes to permissions, forms or data operations.
+ */
+body.mc-admin{
+  --mc-align-gutter:clamp(16px,2.2vw,32px);
+}
+body.mc-admin .shell,
+body.mc-admin .shell>main{
+  min-width:0;
+  box-sizing:border-box;
+}
+body.mc-admin .shell>main{
+  padding-inline:var(--mc-align-gutter);
+}
+body.mc-admin .shell>main :is(.card,.table,.admin-record,.mc-work-filter,.mc-ops-panel,.rating-layout,.mc-database-layout){
+  min-width:0;
+  max-width:100%;
+}
+body.mc-admin .head{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) max-content;
+  column-gap:18px;
+  row-gap:10px;
+  align-items:center;
+  min-width:0;
+  min-height:76px;
+  margin:0 calc(-1 * var(--mc-align-gutter)) 22px;
+  padding:13px var(--mc-align-gutter);
+}
+body.mc-admin .head .head-title{
+  grid-column:1;
+  grid-row:1;
+  min-width:0;
+}
+body.mc-admin .head .head-title h1{
+  margin:0;
+  overflow-wrap:anywhere;
+}
+body.mc-admin .head .mc-header-actions{
+  grid-column:2;
+  grid-row:1;
+  min-width:0;
+  flex-wrap:nowrap;
+  justify-self:end;
+  gap:8px;
+}
+body.mc-admin .head .global-search{
+  grid-column:1/-1;
+  grid-row:2;
+  width:min(100%,460px);
+  min-width:0;
+  margin:0;
+}
+body.mc-admin .head .global-search :is(input,select,button){
+  min-width:0;
+  margin:0;
+}
+body.mc-admin .mc-header-actions .mc-theme-slot{
+  display:flex;
+  align-items:center;
+  min-width:0;
+}
+body.mc-admin .mc-header-actions :is(.mc-view-menu,.command-launcher,.mucho-theme-toggle){
+  flex-shrink:0;
+}
+body.mc-admin .mc-header-actions .user-pill{
+  min-width:0;
+  white-space:nowrap;
+}
+body.mc-admin .mc-ops,
+body.mc-admin .mc-ops-content,
+body.mc-admin .mc-ops-feeds,
+body.mc-admin .mc-ops-rail{
+  min-width:0;
+}
+body.mc-admin :is(.mc-ops-panel,.mc-ops-review,.mc-ops-actions,.mc-ops-audit){
+  min-width:0;
+}
+body.mc-admin .mc-work-filter,
+body.mc-admin .mc-work-toolbar,
+body.mc-admin .mc-table-tools,
+body.mc-admin :is(.record-actions,.mc-form-actions,.section-actions){
+  min-width:0;
+  gap:10px;
+}
+body.mc-admin .mc-work-filter .admin-list-search{
+  min-width:0;
+  flex:1 1 360px;
+}
+body.mc-admin .mc-work-filter .admin-list-search input[type=search]{
+  min-width:0;
+  flex:1 1 220px;
+}
+body.mc-admin :is(.admin-edit-grid,.admin-stats-grid,.mc-settings-fields) > *{
+  min-width:0;
+}
+body.mc-admin :is(.admin-edit-grid,.admin-stats-grid,.mc-settings-fields) :is(input,select,textarea){
+  max-width:100%;
+  box-sizing:border-box;
+}
+body.mc-admin :is(.table,.mc-ops-table-scroll,.mc-database-data .table){
+  max-width:100%;
+  min-width:0;
+  overflow-x:auto;
+  overscroll-behavior-x:contain;
+  -webkit-overflow-scrolling:touch;
+}
+body.mc-admin .table :is(th,td){
+  vertical-align:middle;
+}
+body.mc-admin .table td form{
+  margin:0;
+}
+body.mc-admin .table td :is(button,.btn,.button){
+  white-space:nowrap;
+}
+body.mc-admin .admin-record>summary{
+  min-width:0;
+  align-items:center;
+}
+body.mc-admin .admin-record>summary .record-name{
+  flex:1 1 auto;
+  min-width:0;
+}
+body.mc-admin .admin-pagination{
+  flex-wrap:wrap;
+  row-gap:8px;
+}
+
+/* Full-width title and centered search when desktop has space for three columns. */
+@media(min-width:1340px){
+  body.mc-admin .head:has(.global-search){
+    grid-template-columns:minmax(0,1fr) minmax(230px,340px) max-content;
+  }
+  body.mc-admin .head:has(.global-search) .global-search{
+    grid-column:2;
+    grid-row:1;
+    width:100%;
+  }
+  body.mc-admin .head:has(.global-search) .mc-header-actions{
+    grid-column:3;
+  }
+}
+@media(min-width:981px){
+  /* One collapsed width for the sidebar AND its matching content offset. */
+  body.mc-admin.sidebar-collapsed .shell>aside{
+    width:72px!important;
+  }
+  body.mc-admin.sidebar-collapsed .shell>main{
+    margin-left:72px!important;
+    width:calc(100% - 72px)!important;
+  }
+}
+@media(max-width:1190px){
+  /* Do not squeeze overview tables into a narrow column beside the tools. */
+  body.mc-admin .mc-ops-content{
+    grid-template-columns:minmax(0,1fr);
+  }
+  body.mc-admin .mc-ops-rail{
+    grid-column:1;
+    grid-row:1;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  body.mc-admin .mc-ops-feeds{
+    grid-column:1;
+    grid-row:2;
+  }
+}
+@media(max-width:980px){
+  body.mc-admin .shell>main,
+  body.mc-admin.sidebar-collapsed .shell>main{
+    margin-left:0!important;
+    width:100%!important;
+    padding:0 18px 44px!important;
+  }
+  body.mc-admin .head{
+    display:grid!important;
+    grid-template-columns:42px minmax(0,1fr) max-content!important;
+    gap:10px 12px!important;
+    min-height:70px;
+    margin:0 -18px 19px!important;
+    padding:12px 18px!important;
+  }
+  body.mc-admin .head .mobile-menu-btn{
+    grid-column:1;
+    grid-row:1;
+    margin:0;
+    width:42px;
+    height:42px;
+    display:grid;
+    place-items:center;
+  }
+  body.mc-admin .head .head-title{
+    grid-column:2;
+    grid-row:1;
+  }
+  body.mc-admin .head .mc-header-actions{
+    grid-column:3;
+    grid-row:1;
+  }
+  body.mc-admin .head .global-search{
+    grid-column:1/-1;
+    grid-row:2;
+    width:100%;
+    max-width:none;
+  }
+  body.mc-admin .mc-ops-content{
+    grid-template-columns:minmax(0,1fr);
+  }
+}
+@media(max-width:600px){
+  body.mc-admin .shell>main,
+  body.mc-admin.sidebar-collapsed .shell>main{
+    padding-inline:14px!important;
+  }
+  body.mc-admin .head{
+    grid-template-columns:40px minmax(0,1fr)!important;
+    gap:9px 10px!important;
+    margin:0 -14px 16px!important;
+    padding:11px 14px!important;
+  }
+  body.mc-admin .head .mobile-menu-btn{
+    width:40px;height:40px;
+  }
+  body.mc-admin .head .head-title{
+    grid-column:2;grid-row:1;
+  }
+  body.mc-admin .head .head-title h1{
+    font-size:clamp(18px,5vw,22px);
+  }
+  body.mc-admin .head .mc-header-actions{
+    grid-column:1/-1!important;
+    grid-row:2!important;
+    width:100%;
+    justify-self:stretch;
+    justify-content:flex-start;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  body.mc-admin .head .global-search{
+    display:grid!important;
+    grid-column:1/-1!important;
+    grid-row:3!important;
+    grid-template-columns:96px minmax(0,1fr) auto!important;
+    align-items:center;
+    gap:6px!important;
+    width:100%;
+    margin:0!important;
+  }
+  body.mc-admin .head .global-search select{
+    grid-column:1;grid-row:1;
+    width:100%!important;
+    max-width:none!important;
+    min-width:0!important;
+  }
+  body.mc-admin .head .global-search input{
+    grid-column:2;grid-row:1;
+    min-width:0!important;width:100%!important;
+  }
+  body.mc-admin .head .global-search button{
+    grid-column:3;grid-row:1;
+    margin:0!important;
+  }
+  body.mc-admin .mc-work-filter .admin-list-search{
+    flex-basis:100%;
+  }
+  body.mc-admin .mc-work-filter .admin-list-search input[type=search]{
+    flex-basis:100%;
+  }
+  body.mc-admin :is(.mc-work-toolbar,.mc-table-tools){
+    flex-wrap:wrap;
+  }
+  body.mc-admin .mc-table-tools input[type=search]{
+    max-width:100%;
+  }
+}
+@media(max-width:420px){
+  body.mc-admin .head .global-search{
+    grid-template-columns:90px minmax(0,1fr)!important;
+  }
+  body.mc-admin .head .global-search button{
+    grid-column:1/-1!important;
+    grid-row:2!important;
+    width:100%!important;
+  }
+  body.mc-admin .mc-header-actions .command-launcher kbd{
+    display:none;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  body.mc-admin .admin-record>summary{
+    transition:none;
+  }
+}

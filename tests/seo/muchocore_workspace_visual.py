@@ -40,9 +40,10 @@ def admin(base):
 <link rel="stylesheet" href="{base}/admin/admin-workspace.css?v=8">
 <link rel="stylesheet" href="{base}/admin/admin-motion.css?v=2">
 <link rel="stylesheet" href="{base}/assets/mucho-design-system.css?v=2">
-<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=7">
+<link rel="stylesheet" href="{base}/admin/mucho-console-v3.css?v=8">
 <link rel="stylesheet" href="{base}/admin/admin-unified.css?v=2">
-<link rel="stylesheet" href="{base}/admin/admin-light.css?v=2"></head>
+<link rel="stylesheet" href="{base}/admin/admin-light.css?v=2">
+<link rel="stylesheet" href="{base}/admin/admin-alignment.css?v=1"></head>
 <body class="mc-admin"><div class="mobile-overlay" id="mobileOverlay"></div><div class="shell">
 <aside id="adminNavigation" aria-label="Admin navigation"><div class="brandrow"><a class="logo" href="#"><img src="{base}/assets/muchocore-icon.png?v=3" alt="" width="32" height="32">MuchoCore</a></div>
 <section class="mc-instance"><span>ACTIVE INSTANCE</span><strong>MuchoCore</strong><a href="#">Player portal ↗</a></section>
@@ -161,6 +162,30 @@ def main():
                                 ops:document.querySelector('.mc-ops').getBoundingClientRect().width
                             })""")
                             assert widths["ops"] >= widths["main"]-100,(name,width,widths)
+                            assert page.evaluate("""() => [...document.styleSheets].some(sheet => sheet.href && sheet.href.includes('/admin/admin-alignment.css'))"""),("admin alignment stylesheet not loaded",width)
+                            geometry=page.evaluate("""() => {
+                                const bounds=selector=>{
+                                    const el=document.querySelector(selector);
+                                    const r=el.getBoundingClientRect();
+                                    return {x:r.x,y:r.y,right:r.right,bottom:r.bottom};
+                                };
+                                return {title:bounds('.head-title'),search:bounds('.head .global-search'),actions:bounds('.head .mc-header-actions')};
+                            }""")
+                            title,search,header_actions=(geometry[key] for key in ("title","search","actions"))
+                            if width>=1340:
+                                assert title["right"]<=search["x"]+1 and search["right"]<=header_actions["x"]+1,(name,width,"desktop header overlaps",geometry)
+                            elif width>600:
+                                assert search["y"]>=title["bottom"]-1,(name,width,"tablet search overlaps heading",geometry)
+                            else:
+                                assert header_actions["y"]>=title["bottom"]-1 and search["y"]>=header_actions["bottom"]-1,(name,width,"mobile header rows overlap",geometry)
+                            if width==1440:
+                                page.locator("body").evaluate("(el)=>el.classList.add('sidebar-collapsed')")
+                                collapse=page.evaluate("""() => ({
+                                    sidebar:document.querySelector('.shell>aside').getBoundingClientRect().width,
+                                    margin:parseFloat(getComputedStyle(document.querySelector('.shell>main')).marginLeft)
+                                })""")
+                                assert abs(collapse["sidebar"]-collapse["margin"])<=1,(name,width,"collapsed sidebar and main offset differ",collapse)
+                                page.locator("body").evaluate("(el)=>el.classList.remove('sidebar-collapsed')")
                             assert page.locator(".mc-ops-review").count()==1,("review rail missing",width)
                             assert page.locator(".mc-ops-rail").count()==1,("work rail missing",width)
                             actions=page.locator('.mc-ops-actions').bounding_box()
