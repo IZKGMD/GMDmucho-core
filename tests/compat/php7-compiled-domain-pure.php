@@ -10,6 +10,8 @@ $sources=json_decode(file_get_contents($root.'/compat/php7/core/sources.json'),t
 // changes fail this guard until the snapshot is explicitly recompiled.
 // PHP 7 retains its previous, verified single-build Android patcher.
 $php8OnlyDiagnosticHashes=array(
+    // PHP 8 routing-aware abuse budgets; keep the last verified PHP 7 snapshot pinned.
+    'src/Security/MuchoProtect.php'=>'2e20059ca9b82100dc4b05d153ee7badd30504fd9478ec99ffa4635d23c1e112',
     // PHP 8 admin copy is English-only; the native PHP 7 compiled snapshot remains frozen.
     'public/admin/advanced-module.php'=>'1fff523ddae413cbc47e4eb5a11b9ac8a7cc3f29b8578b405e97c49916a23eb0',
     // PHP 8-first native profile reporting. The PHP 7 generated snapshot is
