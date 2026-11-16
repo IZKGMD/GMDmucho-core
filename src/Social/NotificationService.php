@@ -75,6 +75,11 @@ final readonly class NotificationService
         $username = ProtocolText::username((string)($row['username'] ?? 'Player'));
         $created = strtotime((string)($row['created_at'] ?? ''));
         $elapsed = $created === false ? 0 : max(0, ($now ?? time()) - $created);
+        // Sub-minute ages are shown as a stable new notification in both runtimes.
+        // Exact seconds are not actionable and cause nondeterministic parity tests.
+        if ($elapsed < 60) {
+            $elapsed = 0;
+        }
         $age = '0 seconds';
         foreach ([
             [31536000, 'year'],
