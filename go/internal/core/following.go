@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/IZKGMD/GMDmucho-core/go/internal/dbutil"
 	"github.com/IZKGMD/GMDmucho-core/go/internal/protocol"
@@ -144,7 +145,7 @@ func (h *Handler) notifications(r request) (string, error) {
 	items := make([]string, len(rows))
 	for i, n := range rows {
 		username := protocol.Username(n["username"])
-		age := protocol.MessageAgeAt(n["created_at"], h.now())
+		age := protocol.MessageAgeAt(n["created_at"], time.Now())
 		if strings.Contains(age, "second") {
 			age = "0 seconds"
 		}
