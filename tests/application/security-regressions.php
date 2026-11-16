@@ -320,7 +320,11 @@ assertSecurityRegression(
 
 assertSecurityRegression(
     str_contains($iconProxy, 'allowStrict') &&
-    str_contains($iconProxy, '512000') &&
+    str_contains($iconProxy, 'CURLOPT_WRITEFUNCTION') &&
+    str_contains($iconProxy, 'CURLOPT_MAXFILESIZE => 512000') &&
+    str_contains($iconProxy, '512000 - strlen($data)') &&
+    str_contains($iconProxy, 'if (!$complete || $tooLarge)') &&
+    str_contains($iconProxy, 'rename($tempCache, $cache)') &&
     str_contains($iconProxy, 'gdicon.oat.zone'),
     'public icon proxy is rate limited and response-size bounded'
 );
