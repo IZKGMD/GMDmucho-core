@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -129,11 +130,11 @@ func (h *Handler) notifications(r request) (string, error) {
 		return "", err
 	}
 	var total int
-	err = h.db.QueryRowContext(r.ctx, `SELECT COUNT(*) FROM mucho_notifications WHERE account_id=?`, me.ID).Scan(&total)
+	err = h.db.QueryRowContext(r.ctx, `SELECT COUNT(*) FROM mucho_notifications WHERE account_id=? AND notification_type='follow'`, me.ID).Scan(&total)
 	if err != nil {
 		return "", err
 	}
-	rows, err := dbutil.Query(r.ctx, h.db, `SELECT n.*,a.username,p.user_id FROM mucho_notifications n JOIN accounts a ON a.account_id=n.actor_account_id LEFT JOIN profiles p ON p.account_id=n.actor_account_id WHERE n.account_id=? ORDER BY n.id DESC LIMIT 20 OFFSET ?`, me.ID, r.page()*20)
+	rows, err := dbutil.Query(r.ctx, h.db, `SELECT n.*,a.username,p.user_id FROM mucho_notifications n JOIN accounts a ON a.account_id=n.actor_account_id LEFT JOIN profiles p ON p.account_id=n.actor_account_id WHERE n.account_id=? AND n.notification_type='follow' ORDER BY n.id DESC LIMIT 20 OFFSET ?`, me.ID, r.page()*20)
 	if err != nil {
 		return "", err
 	}
@@ -142,7 +143,23 @@ func (h *Handler) notifications(r request) (string, error) {
 	}
 	items := make([]string, len(rows))
 	for i, n := range rows {
-		items[i] = protocol.Pairs(1, n.Int("id"), 2, protocol.Username(n["username"]), 3, n.Int("user_id"), 4, n.Int("actor_account_id"), 5, n["notification_type"], 6, n.Int("source_id"), 7, n.Int("is_read"), 8, n.Int("reward_claimed"), 9, protocol.Epoch(n["created_at"]))
+		username := protocol.Username(n["username"])
+		age := protocol.MessageAgeAt(n["created_at"], h.now())
+		if strings.Contains(age, "second") {
+			age = "0 seconds"
+		}
+		isNew := 0
+		if n.Int("is_read") == 0 {
+			isNew = 1
+		}
+		items[i] = protocol.Pairs(
+			1, n.Int("id"), 2, 13, 3, "",
+			4, base64.URLEncoding.EncodeToString([]byte("New follower")),
+			5, base64.URLEncoding.EncodeToString([]byte(username+" started following you.")),
+			6, age, 7, isNew,
+			8, 0, 9, 0, 10, "", 11, 0, 12, 0, 13, 0, 14, 0,
+			15, n.Int("actor_account_id"), 16, username,
+		)
 	}
 	return fmt.Sprintf("%s#%d:%d:20", strings.Join(items, "|"), total, r.page()*20), nil
 }
