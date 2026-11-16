@@ -31,6 +31,8 @@ $invalid = [
     'https://user:pass@hooks.example.org/events',
     'https://hooks.example.org:8443/events',
     'https://hooks.example.org/events#fragment',
+    'https://100.64.12.34/events', 'https://198.18.0.1/events',
+    'https://203.0.113.8/events', 'https://233.1.1.1/events',
     'https://[::1]/events',
     "https://hooks.example.org/\r\nX-Test: true",
 ];
@@ -38,7 +40,13 @@ foreach ($invalid as $url) {
     $check(!WebhookDispatcher::safeDestination($url), 'unsafe webhook address rejected');
 }
 $check(WebhookDispatcher::publicAddress('8.8.8.8'), 'public IP eligible for pinned HTTPS');
-foreach (['127.0.0.1', '10.20.1.1', '169.254.169.254', '::1', 'not-an-ip'] as $ip) {
+foreach ([
+    '127.0.0.1', '10.20.1.1', '169.254.169.254',
+    '100.64.0.1', '100.127.255.254', '198.18.0.1', '198.19.255.254',
+    '192.0.2.1', '198.51.100.1', '203.0.113.1',
+    '224.0.0.1', '233.1.1.1', '239.255.255.255',
+    '::1', 'not-an-ip'
+] as $ip) {
     $check(!WebhookDispatcher::publicAddress($ip), 'non-public address rejected');
 }
 $check(WebhookDispatcher::safeHeaders('level.uploaded', 'trace-123'),

@@ -11,6 +11,19 @@ final class WebhookDispatcher
 {
     private const MAX_PAYLOAD_BYTES = 65536;
     private const MAX_RESPONSE_BYTES = 65536;
+    // FILTER_FLAG_NO_RES_RANGE leaves several IANA special-purpose ranges
+    // eligible on supported PHP versions. Never pin outgoing HTTPS webhooks
+    // to carrier-grade NAT, benchmarking, documentation or multicast networks.
+    private const NON_PUBLIC_IPV4_CIDRS = [
+        '100.64.0.0/10',    // Shared carrier-grade NAT space
+        '192.0.0.0/24',    // IETF protocol assignments
+        '192.0.2.0/24',    // TEST-NET-1
+        '192.88.99.0/24',  // Deprecated 6to4 relay anycast
+        '198.18.0.0/15',   // Benchmarking / internal test networks
+        '198.51.100.0/24',// TEST-NET-2
+        '203.0.113.0/24', // TEST-NET-3
+        '224.0.0.0/4',    // Multicast
+    ];
 
     /**
      * Queued webhooks may contain player-supplied names and identifiers.
@@ -50,11 +63,39 @@ final class WebhookDispatcher
     {
         // A public IPv4 address is needed to pin the actual cURL connection.
         // Do not resolve the host a second time after this check.
-        return filter_var(
+        if (filter_var(
             $address,
             FILTER_VALIDATE_IP,
             FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
-        ) !== false;
+        ) === false) {
+            return false;
+        }
+
+        $candidate = inet_pton($address);
+        if ($candidate === false || strlen($candidate) !== 4) {
+            return false;
+        }
+        foreach (self::NON_PUBLIC_IPV4_CIDRS as $cidr) {
+            [$network, $prefix] = explode('/', $cidr, 2);
+            $packedNetwork = inet_pton($network);
+            if ($packedNetwork === false) {
+                return false;
+            }
+            $bits = (int)$prefix;
+            $wholeBytes = intdiv($bits, 8);
+            $remainingBits = $bits % 8;
+            if (substr($candidate, 0, $wholeBytes) !== substr($packedNetwork, 0, $wholeBytes)) {
+                continue;
+            }
+            if ($remainingBits === 0) {
+                return false;
+            }
+            $mask = (0xff << (8 - $remainingBits)) & 0xff;
+            if ((ord($candidate[$wholeBytes]) & $mask) === (ord($packedNetwork[$wholeBytes]) & $mask)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static function safeHeaders(string $event, string $requestId): bool
