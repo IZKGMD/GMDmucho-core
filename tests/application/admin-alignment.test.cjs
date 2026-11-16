@@ -8,7 +8,7 @@ const css=fs.readFileSync(path.join(root,'public/admin/admin-alignment.css'),'ut
 
 test('admin geometry layer is last and only applies to the operator shell',()=>{
   const theme='/admin/admin-light.css?v=2';
-  const layout='/admin/admin-alignment.css?v=1';
+  const layout='/admin/admin-alignment.css?v=2';
   assert.equal(view.split(layout).length-1,1,'alignment stylesheet should be loaded once');
   assert.equal(view.split(theme).length-1,2,'login and operator still load light theme');
   assert.ok(view.indexOf(layout)>view.lastIndexOf(theme),'operator alignment follows theme');
