@@ -32,6 +32,23 @@ returns a correct response; for example, `getGJLevelScores211` also submits
 progress and must not be classified as a harmless read-only request. This
 audit is not a behavior diff, a performance test, or a real client trace.
 
+## PHP7 simultaneous-download regression
+
+An initial PHP 7.0 MariaDB P0 CI attempt failed when one of twelve
+simultaneous downloads returned `-1`. The HTTP worker logged
+`Download counter transaction failed.`; the actual MySQL driver exception
+was not exposed by the public API. The same test passed on a subsequent
+run, which makes this a concurrency/race concern rather than a permanently
+broken endpoint. The PHP7 compiled `LevelDownloadTracker` now avoids an
+unnecessary empty-range DELETE that can generate InnoDB gap locks. It also
+retries **only** transaction deadlocks / lock wait timeouts (SQLSTATE 40001,
+MySQL error 1213 / 1205), with a small finite backoff, while preserving the
+unique-slot deduplication and ordinary errors. This is a PHP7-specific fix;
+it does not change the canonical PHP8 implementation.
+
+Acceptance still depends on clean repeatable PHP 7.0 concurrent HTTP tests,
+not just this code change. A passing test cannot eliminate all future races.
+
 ## Must-pass acceptance before PHP7 production claims
 
 | Area | Required evidence | Current conclusion |
