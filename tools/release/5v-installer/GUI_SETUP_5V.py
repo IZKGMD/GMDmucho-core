@@ -864,11 +864,11 @@ def _ui_self_test() -> int:
             if index == 2:
                 window.toggle_clients()
             root.update()
-            visible = {key for key, entry in window.entries.items() if entry.winfo_ismapped()}
+            visible = {key for key, entry in window.entries.items() if entry.winfo_viewable()}
             if visible != expected:
                 return 6
             button = window.start_button if index == 2 else window.next_button
-            if not button.winfo_ismapped() or button.winfo_rooty() + button.winfo_height() > root.winfo_rooty() + root.winfo_height():
+            if not button.winfo_viewable() or button.winfo_rooty() + button.winfo_height() > root.winfo_rooty() + root.winfo_height():
                 return 7
         return 0
     finally:
