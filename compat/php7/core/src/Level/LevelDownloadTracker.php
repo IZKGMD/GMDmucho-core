@@ -25,18 +25,25 @@ final class LevelDownloadTracker
         $clientHash = hash_hmac('sha256', $clientIp, $this->hashKey());
         $window = (int) (Environment::get('MUCHO_DOWNLOAD_DEDUP_SECONDS', '300') ?? '300');
         $window = max(30, min(604800, $window));
-        $this->pdo->beginTransaction();
-        try {
-            // The unique index starts with (level_id, client_hash). Avoid
-            // deleting every expired record for a popular level on each
-            // download: clean only the requesting client's expired slots.
-            $delete = $this->pdo->prepare('DELETE FROM mucho_level_downloads
-                 WHERE level_id=:level_id
-                   AND client_hash=:client_hash
-                   AND created_at < (
-                       CURRENT_TIMESTAMP - INTERVAL ' . $window . ' SECOND
-                   )');
-            $delete->execute(['level_id' => $levelId, 'client_hash' => $clientHash]);
+        // PHP7 shared workers can race on an empty (level_id,client_hash)
+        // range when DELETE runs before INSERT IGNORE. Test for actual
+        // expired rows first; absent rows need no gap-locking DELETE.
+        // Retry only MariaDB deadlock/lock-timeout failures, never auth,
+        // permission, SQL syntax or other unexpected errors.
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+          try {
+            $this->pdo->beginTransaction();
+            $expired = $this->pdo->prepare('SELECT slot FROM mucho_level_downloads
+                 WHERE level_id=:level_id AND client_hash=:client_hash
+                   AND created_at < (CURRENT_TIMESTAMP - INTERVAL ' . $window . ' SECOND)
+                 LIMIT 1');
+            $expired->execute(['level_id' => $levelId, 'client_hash' => $clientHash]);
+            if ($expired->fetchColumn() !== false) {
+                $delete = $this->pdo->prepare('DELETE FROM mucho_level_downloads
+                     WHERE level_id=:level_id AND client_hash=:client_hash
+                       AND created_at < (CURRENT_TIMESTAMP - INTERVAL ' . $window . ' SECOND)');
+                $delete->execute(['level_id' => $levelId, 'client_hash' => $clientHash]);
+            }
             /*
              * Keep two bounded slots for compatibility with clients that may
              * legitimately issue a paired download request. INSERT IGNORE
@@ -63,12 +70,21 @@ final class LevelDownloadTracker
             }
             $this->pdo->commit();
             return false;
-        } catch (Throwable $e) {
+          } catch (Throwable $e) {
             if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
+                try { $this->pdo->rollBack(); } catch (Throwable $rollback) { /* already rolled back by MariaDB */ }
+            }
+            $state = $e instanceof \PDOException ? (string) $e->getCode() : '';
+            $code = $e instanceof \PDOException && isset($e->errorInfo[1])
+                ? (int) $e->errorInfo[1] : 0;
+            if ($attempt < 4 && ($state === '40001' || $code === 1213 || $code === 1205)) {
+                usleep(2000 * (1 << $attempt) + random_int(0, 3000));
+                continue;
             }
             throw new RuntimeException('Download counter transaction failed.', 0, $e);
+          }
         }
+        return false;
     }
     /**
      * Bounded cleanup for the background worker, never the request path.
