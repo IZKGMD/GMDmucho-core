@@ -244,6 +244,7 @@ jobs:
           php tests/application/shared-one-archive-installer-contract.php
           php tests/compat/php7-native-pure.php
           php tests/compat/php7-native-parity.php
+          php tests/compat/php7-halogen-legacy-routes.php
           php tests/compat/php7-native-download-parity.php
           php tests/compat/php7-native-auth.php
           php tests/compat/php7-cloudsave-crypto.php
