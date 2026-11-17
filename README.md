@@ -63,7 +63,7 @@ The source version is recorded in [VERSION](VERSION). A source version is not pr
 
 ## More information
 
-[Changelog](CHANGELOG.md) · [Plugins](docs/CUSTOM_PLUGINS.md) · [Advanced networking](docs/ADVANCED.md) · [API](openapi.yaml) · [Go edition (in development)](go/README.md)
+[Changelog](CHANGELOG.md) · [Local patchers](patchers/README.md) · [Plugins](docs/CUSTOM_PLUGINS.md) · [Advanced networking](docs/ADVANCED.md) · [API](openapi.yaml) · [Go edition (in development)](go/README.md)
 
 Source code is in `src/`, HTTP entry points in `public/`, and checks in `tests/`. See [tests/README.md](tests/README.md) for development validation.
 
