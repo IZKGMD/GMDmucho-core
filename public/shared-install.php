@@ -838,12 +838,13 @@ if ($success) {
             Installation finished. The administrator username and password you entered are ready to use. No setup secret or second registration is required.
         </div>
 
-        <h2>Next</h2>
-        <p><a href="/">Open the GDPS</a></p>
+        <h2>Next: connect your game</h2>
         <p><a href="/admin/">Sign in to the admin panel</a></p>
-        <p><a href="/health">Open the health check</a></p>
-        <p><a href="/admin/?page=migration">Migrate an existing GDPS database</a></p>
-        <p><a href="/clients/">Player client downloads</a></p>
+        <p>Open <a href="/admin/?page=clientpatcher">Web Client Patcher</a> to create a client for your server. Test registration and a level upload/download in Geometry Dash before inviting players.</p>
+        <p>Your administrator login is for the website. Create a separate game account inside Geometry Dash.</p>
+        <details><summary>Moving from another GDPS?</summary>
+            <p><a href="/admin/?page=migration">Migrate an existing GDPS database</a></p>
+        </details>
 
         <h2>Important</h2>
         <p>Delete <code>public/shared-install.php</code> from your hosting account if the file still exists.</p>
@@ -897,13 +898,8 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
 <body>
 <div class="wrap">
     <div class="card">
-        <h1>MuchoCore Shared Hosting Installer</h1>
-        <p>Welcome! This page is for normal PHP hosting. You do not need Docker.</p>
-        <div class="tip">
-            <strong>Shared-hosting mode:</strong>
-            this installer does not need Docker, sudo, or a hosting Terminal when you use the self-contained shared-hosting package.
-            Composer dependencies are included in that package.
-        </div>
+        <h1>Create your GDPS</h1>
+        <p>Copy your database details from the hosting panel, then choose a server name and an admin password.</p>
         <?php if (!$isHttps): ?>
             <div class="err" style="margin-top:12px">
                 <strong>HTTPS is required.</strong>
@@ -913,8 +909,12 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
     </div>
 
     <div class="card">
-        <h2>Step 1 — Check your hosting</h2>
-        <?= $checksHtml ?>
+        <h2>1. Hosting check</h2>
+        <p><?= $canInstall ? 'Your hosting is ready. Continue below.' : 'Fix the items below before continuing.' ?></p>
+        <details <?= $canInstall ? '' : 'open' ?>>
+            <summary>Technical details</summary>
+            <?= $checksHtml ?>
+        </details>
     </div>
 
     <?php if ($errors): ?>
@@ -929,8 +929,8 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
     <?php endif; ?>
 
     <div class="card">
-        <h2>Step 2 — Database</h2>
-        <p>Use the database information from your hosting control panel.</p>
+        <h2>2. Database</h2>
+        <p>Create an empty MySQL database in your hosting panel and copy its details here.</p>
 
         <form method="post">
             <input type="hidden" name="csrf" value="<?= e((string)$_SESSION['mucho_install_csrf']) ?>">
@@ -939,11 +939,6 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
                     <label for="db_host">Database host</label>
                     <input id="db_host" name="db_host" value="<?= e((string)($_POST['db_host'] ?? $defaultHost)) ?>" required>
                     <small>Often <code>localhost</code>, but use the value your host gives you.</small>
-                </div>
-
-                <div>
-                    <label for="db_port">Database port</label>
-                    <input id="db_port" name="db_port" value="<?= e((string)($_POST['db_port'] ?? $defaultPort)) ?>" required>
                 </div>
 
                 <div>
@@ -962,7 +957,14 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
                 <input id="db_pass" type="password" name="db_pass" required>
             </div>
 
-            <h2>Step 3 — Server and admin</h2>
+            <details <?= $errors || (string)($_POST['db_port'] ?? $defaultPort) !== '3306' ? 'open' : '' ?>>
+                <summary>Custom database port</summary>
+                <p>Leave this at 3306 unless your hosting provider gives you a different port.</p>
+                <label for="db_port">Database port</label>
+                <input id="db_port" name="db_port" value="<?= e((string)($_POST['db_port'] ?? $defaultPort)) ?>" required>
+            </details>
+
+            <h2>3. Server and admin</h2>
 
             <div>
                 <label for="account_url">Your GDPS address</label>
@@ -988,7 +990,7 @@ code{background:#eef1f4;padding:2px 5px;border-radius:5px}
 
                 <div>
                     <label for="admin_pass2">Confirm administrator password</label>
-                    <input id="admin_pass2" type="password" name="admin_pass2" minlength="8" required>
+                    <input id="admin_pass2" type="password" name="admin_pass2" minlength="12" required>
                 </div>
             </div>
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import getpass
+import hashlib
+import json
 from pathlib import Path
 import re
 import secrets
@@ -20,6 +22,83 @@ RELEASE_DIR = (Path(sys.executable).resolve().parent
                else Path(__file__).resolve().parent)
 RULE_FILE = BUNDLE_DIR / "5V_ROOT_REWRITE_RULES.txt"
 CORE_DIR = BUNDLE_DIR / "mc"
+
+
+STATE_FILE = ".muchocore-install-state.php"
+STATE_PREFIX = b"<?php http_response_code(404); exit; ?>\n"
+
+
+def payload_digest() -> str:
+    digest = hashlib.sha256()
+    for path in sorted(CORE_DIR.rglob("*")):
+        if path.is_symlink():
+            raise InstallError("Архив не должен содержать символьные ссылки.")
+        if path.is_file():
+            digest.update(path.relative_to(CORE_DIR).as_posix().encode("utf-8") + b"\0")
+            digest.update(hashlib.sha256(path.read_bytes()).digest())
+    digest.update(RULE_FILE.read_bytes())
+    return digest.hexdigest()
+
+
+def install_identity(cfg) -> dict:
+    # Bind a checkpoint to the site, payload and database; never store passwords.
+    return {"site": cfg["site"], "payload": payload_digest(),
+            "database": [cfg["mysqlhost"], int(cfg["mysqlport"]), cfg["dbname"], cfg["dbuser"]],
+            "owner": cfg["admin"]}
+
+
+def read_checkpoint(ftp, identity):
+    raw = ftp.get(ftp.root, STATE_FILE, optional=True)
+    try:
+        if raw is None or not raw.startswith(STATE_PREFIX):
+            raise ValueError("missing checkpoint")
+        state = json.loads(raw[len(STATE_PREFIX):])
+        if state.get("identity") != identity or state.get("stage") not in ("upload", "configured", "owner", "complete"):
+            raise ValueError("checkpoint mismatch")
+        return state
+    except (ValueError, AttributeError, TypeError):
+        raise InstallError(
+            "На сайте уже есть mc/, но это не незавершённая установка этой сборки. "
+            "Для обновления используй обновлятор, для сброса пароля — «Восстановить админку». "
+            "Файлы и база не изменены.") from None
+
+
+def write_checkpoint(ftp, identity, stage):
+    data = STATE_PREFIX + json.dumps({"identity": identity, "stage": stage}, ensure_ascii=False).encode("utf-8")
+    temporary = STATE_FILE[:-4] + ".tmp-" + secrets.token_hex(6) + ".php"
+    ftp.put(ftp.root, temporary, data)
+    ftp.rename(ftp.root, temporary, STATE_FILE)
+
+
+def check_empty_database(ftp, site, cfg):
+    """Check credentials and emptiness before uploading the core, without SQL writes."""
+    template = BUNDLE_DIR / "DATABASE_CHECK.php.tpl"
+    if not template.is_file():
+        raise InstallError("В установщике нет проверки базы. Скачай полный архив или новый Setup EXE.")
+    token = secrets.token_hex(32)
+    host = cfg["site"].split("//", 1)[1]
+    content = (template.read_text(encoding="utf-8")
+               .replace("__DOMAIN__", host)
+               .replace("__EXPIRES__", str(int(time.time()) + 300))
+               .replace("__HASH__", hashlib.sha256(token.encode("ascii")).hexdigest()))
+    name = "muchocore-db-check-" + secrets.token_hex(12) + ".php"
+    try:
+        ftp.put(ftp.root, name, content.encode("utf-8"))
+        code, body = site.request("/" + name, {
+            "token": token, "host": cfg["mysqlhost"], "port": cfg["mysqlport"],
+            "database": cfg["dbname"], "user": cfg["dbuser"], "password": cfg["dbpassword"],
+        })
+        try:
+            result = json.loads(body)
+        except (ValueError, UnicodeError):
+            result = {}
+        if code != 200 or not isinstance(result, dict) or result.get("ok") is not True:
+            reason = result.get("error") if isinstance(result, dict) else None
+            if reason == "database_not_empty":
+                raise InstallError("База уже содержит таблицы. Создай отдельную пустую базу; существующие данные не изменены.")
+            raise InstallError("Не удалось подключиться к пустой MySQL-базе. Проверь её имя, логин и пароль в панели 5v.pl. Файлы ядра ещё не загружены.")
+    finally:
+        ftp.delete(ftp.root, name)
 
 
 def ask(label: str, default: str = "") -> str:
@@ -79,7 +158,7 @@ def get_credentials(*, advanced: bool = False):
     if not secrets.compare_digest(adminpassword, confirm):
         raise InstallError("Пароли администратора не совпадают.")
     print("\nБудет установлен НОВЫЙ GDPS:", site)
-    print("PHP 7 native; существующая папка mc/ НЕ перезаписывается.")
+    print("PHP 7 native; продолжение своей установки сохраняет настройки и владельца.")
     if ask("Начать установку? [Д/н]", "Д").casefold() not in ("д", "да", "y", "yes"):
         raise InstallError("Установка отменена.")
     return dict(site=site, host=host, user=user, password=password,
@@ -107,7 +186,12 @@ def bootstrap_owner(site: HttpsSite, cfg):
     if code != 200:
         raise InstallError("Админка недоступна по HTTPS (HTTP %d)." % code)
     if (b'First owner' not in html and b'Create your administrator' not in html) or b'name="db_password"' not in html:
-        raise InstallError("Админка не показала настройку первого владельца; существующие данные не меняем.")
+        # A previous POST can commit successfully even if its response was lost.
+        # Authenticate the same owner rather than trying to recreate the account.
+        from PUBLISH_CLIENTS_5V import login_owner
+        login_owner(site, cfg["admin"], cfg["adminpassword"])
+        print("Существующий владелец подтверждён; продолжаем установку.")
+        return
     csrf = csrf_from(html, "bootstrap")
     code, page = site.request("/mc/admin.php", {
         "csrf": csrf, "action": "bootstrap", "db_password": cfg["dbpassword"],
@@ -145,6 +229,7 @@ def perform_migration(site: HttpsSite, ftp: FtpSite):
 def perform_install(cfg, *, prepare_clients: bool = True):
     if not CORE_DIR.is_dir() or not RULE_FILE.is_file():
         raise InstallError("Распакуй весь релизный ZIP. Папка mc/ и правила 5V отсутствуют.")
+    private_config(cfg["site"], cfg["mysqlhost"], cfg["mysqlport"], cfg["dbname"], cfg["dbuser"], cfg["dbpassword"])
     site = HttpsSite(cfg["site"])
     report = {"site": cfg["site"], "date": datetime.now(timezone.utc).isoformat(),
               "status": "started", "owner_username": cfg["admin"]}
@@ -155,28 +240,52 @@ def perform_install(cfg, *, prepare_clients: bool = True):
             root = ftp.find_root(cfg["site"], cfg["root"])
             cfg["_resolved_root"] = root
             print("Подтверждена папка сайта:", root)
-            if ftp.exists_dir(root, "mc"):
-                raise InstallError(
-                    "Папка mc/ уже существует. Чтобы не потерять админку и данные, "
-                    "новая установка ОСТАНОВЛЕНА. Для сброса пароля используй RECOVER_ADMIN_5V.py.")
-            ftp.upload_tree(CORE_DIR)
-            print("Защита приватных файлов...")
-            verify_private_folder(ftp, site)
-            cfg_data = private_config(cfg["site"], cfg["mysqlhost"], cfg["mysqlport"],
-                                      cfg["dbname"], cfg["dbuser"], cfg["dbpassword"])
-            tmp = "mc/config/php7-local.php.setup-" + secrets.token_hex(6)
-            ftp.put(root, tmp, cfg_data)
-            ftp.rename(root, tmp, "mc/config/php7-local.php")
-            print("Настройка маршрутов с резервной копией .htaccess...")
-            ftp.apply_routes(RULE_FILE.read_bytes())
-            print("Создание первого владельца через HTTPS...")
-            bootstrap_owner(site, cfg)
-            print("Автоматическая миграция базы...")
-            perform_migration(site, ftp)
-
-            code, _ = site.request("/mc/admin.php?page=overview")
-            if code != 200:
+            identity = install_identity(cfg)
+            existing = ftp.exists_dir(root, "mc")
+            state = read_checkpoint(ftp, identity) if existing else {"stage": "upload"}
+            if existing:
+                print("Найдена установка этой сборки. Проверяем состояние без удаления данных.")
+            configured = ftp.get(root, "mc/config/php7-local.php", optional=True) if existing else None
+            if state["stage"] == "upload" and configured is None:
+                print("[1/5] Проверяем MySQL до загрузки ядра...")
+                check_empty_database(ftp, site, cfg)
+                # Create the checkpoint before upload so an interrupted transfer is resumable.
+                write_checkpoint(ftp, identity, "upload")
+                print("[2/5] Загружаем файлы...")
+                ftp.upload_tree(CORE_DIR)
+                print("Защита приватных файлов...")
+                verify_private_folder(ftp, site)
+                cfg_data = private_config(cfg["site"], cfg["mysqlhost"], cfg["mysqlport"],
+                                          cfg["dbname"], cfg["dbuser"], cfg["dbpassword"])
+                tmp = "mc/config/php7-local.php.setup-" + secrets.token_hex(6)
+                ftp.put(root, tmp, cfg_data)
+                ftp.rename(root, tmp, "mc/config/php7-local.php")
+            elif configured is None:
+                raise InstallError("Приватные настройки незавершённой установки отсутствуют. Ничего не перезаписываем; проверь резервную копию.")
+            else:
+                # Never regenerate auth_pepper or overwrite live DB credentials on retry.
+                verify_private_folder(ftp, site)
+            if state["stage"] == "complete":
+                from PUBLISH_CLIENTS_5V import login_owner
+                login_owner(site, cfg["admin"], cfg["adminpassword"])
+                print("MuchoCore уже установлен. Вход владельца подтверждён.")
+            else:
+                write_checkpoint(ftp, identity, "configured")
+                print("[3/5] Настраиваем маршруты...")
+                ftp.apply_routes(RULE_FILE.read_bytes(), resume=existing)
+            if state["stage"] != "complete":
+                print("[4/5] Создаём администратора...")
+                bootstrap_owner(site, cfg)
+                write_checkpoint(ftp, identity, "owner")
+                print("[5/5] Завершаем настройку базы...")
+                perform_migration(site, ftp)
+            code, health = site.request("/mc/health")
+            if code != 200 or health.strip() != b"1":
+                raise InstallError("Ядро не прошло проверку /mc/health. Настройки сохранены; повторный запуск продолжит установку.")
+            code, page = site.request("/mc/admin.php?page=overview")
+            if code != 200 or b'name="action" value="login"' in page:
                 raise InstallError("Веб-админка не прошла заключительную проверку.")
+            write_checkpoint(ftp, identity, "complete")
             report["status"] = "admin_and_migration_ok"
             print("\nУстановка ядра завершена. Админка:", cfg["site"] + "/mc/admin.php")
             if prepare_clients:
@@ -202,7 +311,6 @@ def perform_install(cfg, *, prepare_clients: bool = True):
         raise
     finally:
         try:
-            import json
             (RELEASE_DIR / "muchocore-install-report.json").write_text(
                 json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
         except OSError:

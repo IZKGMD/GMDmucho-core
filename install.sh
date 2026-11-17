@@ -109,6 +109,8 @@ for arg in "$@"; do
 done
 
 
+[[ $EUID -eq 0 ]] || fail "Run the installer as root: sudo bash install.sh"
+
 # Prevent two MuchoCore installations from changing the same host at once.
 exec 9>/run/muchocore-install.lock
 if ! flock -n 9; then
@@ -116,20 +118,7 @@ if ! flock -n 9; then
 fi
 
 print_banner() {
-  printf "\n"
-  printf "${CYAN}╔══════════════════════════════════════════════════════════════════════╗${RESET}\n"
-  printf "${CYAN}║${RESET}                                                                      ${CYAN}║${RESET}\n"
-  printf "${CYAN}║${RESET}   ${BOLD}███╗   ███╗██╗   ██╗ ██████╗██╗  ██╗ ██████╗${RESET}               ${CYAN}║${RESET}\n"
-  printf "${CYAN}║${RESET}   ${BOLD}████╗ ████║██║   ██║██╔════╝██║  ██║██╔═══██╗${RESET}               ${CYAN}║${RESET}\n"
-  printf "${CYAN}║${RESET}   ${BOLD}██╔████╔██║██║   ██║██║     ███████║██║   ██║${RESET}               ${CYAN}║${RESET}\n"
-  printf "${CYAN}║${RESET}   ${BOLD}██║╚██╔╝██║██║   ██║██║     ██╔══██║██║   ██║${RESET}               ${CYAN}║${RESET}\n"
-  printf "${CYAN}║${RESET}   ${BOLD}██║ ╚═╝ ██║╚██████╔╝╚██████╗██║  ██║╚██████╔╝${RESET}               ${CYAN}║${RESET}\n"
-  printf "${CYAN}║${RESET}   ${BOLD}╚═╝     ╚═╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝ ╚═════╝${RESET}               ${CYAN}║${RESET}\n"
-  printf "${CYAN}║${RESET}                                                                      ${CYAN}║${RESET}\n"
-  printf "${CYAN}║${RESET}                 ${BOLD}MUCHOCORE • STABLE RELEASE INSTALLER${RESET}          ${CYAN}║${RESET}\n"
-  printf "${CYAN}║${RESET}            Geometry Dash Private Server deployment                ${CYAN}║${RESET}\n"
-  printf "${CYAN}║${RESET}                                                                      ${CYAN}║${RESET}\n"
-  printf "${CYAN}╚══════════════════════════════════════════════════════════════════════╝${RESET}\n"
+  printf "\n${BOLD}MuchoCore · VPS setup${RESET}\n"
 }
 print_installer_intro() {
   printf "\n${BOLD}Installation overview${RESET}\n"
@@ -137,11 +126,9 @@ print_installer_intro() {
   printf "  2. Choose your GDPS name and domain\n"
   printf "  3. Install PHP, database and HTTPS automatically\n"
   printf "  4. Sign in at https://<domain>/admin/ (no activation link)\n"
-  printf "  5. Verify public https://<domain>/health before declaring success\n"
   printf "\n"
   printf "${CYAN}For a normal VPS, MuchoCore needs only a domain pointing to this VPS and inbound TCP 80/443.${RESET}\n"
   printf "${CYAN}Cloudflare credentials are not required for the normal installation path.${RESET}\n"
-  printf "  ${CYAN}Cloudflare Tunnel remains available as an explicit NAT/CGNAT fallback.${RESET}\n"
   printf "${CYAN}The installer will stop on a failed public health check instead of leaving a broken deployment behind.${RESET}\n"
   printf "\n"
 }
@@ -213,7 +200,7 @@ select_compatibility_profile() {
   valid_versions "$GD_VERSIONS" ||
     fail "Invalid MUCHO_GD_VERSIONS='$GD_VERSIONS'. Use all or a comma-separated set of 1,11,19,20,21,22."
 
-  if [[ ! -t 0 || ! -t 1 || "$QUICK_MODE" -eq 1 ]]; then
+  if [[ ! -r /dev/tty || ! -w /dev/tty || ! ( -t 1 || -t 2 ) || "$QUICK_MODE" -eq 1 ]]; then
     info "Compatibility profile: $(profile_label "$GD_VERSIONS")"
     return
   fi
@@ -362,6 +349,21 @@ collect_first_owner_credentials() {
 
 collect_first_owner_credentials
 
+read_saved_server_name() {
+  # Read this setting without executing a user-controlled .env file.
+  local value
+  value="$(sed -n 's/^MUCHO_SERVER_NAME=//p' "$INSTALL_DIR/.env" | head -n1)"
+  if [[ "$value" == \"*\" ]]; then
+    value="${value:1:${#value}-2}"
+    value="$(printf '%s' "$value" | sed 's/\\\([\\"$]\)/\1/g')"
+  elif [[ "$value" == \'*\' ]]; then
+    value="${value:1:${#value}-2}"
+  fi
+  printf '%s' "$value"
+}
+if [[ -z "$SERVER_NAME" && -f "$INSTALL_DIR/.env" ]]; then
+  SERVER_NAME="$(read_saved_server_name)"
+fi
 if [[ -z "$SERVER_NAME" && -e /dev/tty ]]; then
   printf "\n${BOLD}Choose a name for your GDPS${RESET}\n"
   read -r -p "  GDPS name [Mucho GDPS]: " SERVER_NAME < /dev/tty || SERVER_NAME="Mucho GDPS"
@@ -388,6 +390,10 @@ if [[ -f "$INSTALL_DIR/.env" ]]; then
     elif [[ -n "$CLOUDFLARE_GLOBAL_API_KEY" ]]; then
       CLOUDFLARE_AUTH_MODE="global-key"
     fi
+  fi
+  if [[ -z "${MUCHO_TRANSPORT_MODE+x}" ]]; then
+    saved_transport="$(sed -n 's/^MUCHO_TRANSPORT_MODE=//p' "$INSTALL_DIR/.env" | head -n1)"
+    TRANSPORT_MODE="${saved_transport:-direct}"
   fi
   if [[ -z "$GD_VERSIONS" ]]; then
     GD_VERSIONS="$(sed -n 's/^MUCHO_GD_VERSIONS=//p' "$INSTALL_DIR/.env" | head -n1)"
@@ -431,6 +437,7 @@ case "$TRANSPORT_MODE" in
   *) fail "Invalid MUCHO_TRANSPORT_MODE='$TRANSPORT_MODE'. Use auto, direct, or tunnel." ;;
 esac
 
+if [[ "$TRANSPORT_MODE" == "tunnel" ]]; then USE_TUNNEL=1; fi
 select_compatibility_profile
 
 normalize_domain_input() {
@@ -447,6 +454,17 @@ normalize_domain_input() {
   printf '%s' "$value"
 }
 
+valid_domain() {
+  local label
+  local -a labels
+  [[ ${#1} -le 253 && "$1" == *.* && "$1" != *..* && "$1" != *. ]] || return 1
+  [[ ! "$1" =~ ^[0-9.]+$ ]] || return 1
+  IFS='.' read -r -a labels <<< "$1"
+  for label in "${labels[@]}"; do
+    [[ "$label" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]] || return 1
+  done
+}
+
 if [[ -z "$DOMAIN" ]]; then
   printf "\n${BOLD}  Public GDPS domain${RESET}\n"
   printf "  Enter the hostname players will use, for example: gdps.example.com\n"
@@ -455,10 +473,7 @@ if [[ -z "$DOMAIN" ]]; then
     read -r -p "  Domain: " DOMAIN < /dev/tty || fail "Could not read the domain from the terminal."
     DOMAIN="$(normalize_domain_input "$DOMAIN")"
 
-    if [[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] &&
-       [[ "$DOMAIN" != .* ]] &&
-       [[ "$DOMAIN" != *.*. ]] &&
-       [[ "$DOMAIN" != *..* ]]; then
+    if valid_domain "$DOMAIN"; then
       break
     fi
 
@@ -468,10 +483,7 @@ else
   DOMAIN="$(normalize_domain_input "$DOMAIN")"
 fi
 
-[[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] ||
-  fail "Invalid domain: '$DOMAIN'. Example: gdps.example.com"
-[[ "$DOMAIN" != .* && "$DOMAIN" != *.*. && "$DOMAIN" != *..* ]] ||
-  fail "Invalid domain: '$DOMAIN'. Check for leading dots or repeated dots."
+valid_domain "$DOMAIN" || fail "Invalid domain: '$DOMAIN'. Use a full hostname such as gdps.example.com, without a port."
 
 if [[ -n "$CADDY_EXTRA_HOSTS" ]]; then
   for host in $CADDY_EXTRA_HOSTS; do
@@ -531,7 +543,6 @@ check_domain_preflight() {
   fi
 }
 
-check_domain_preflight
 preflight
 
 INSTALL_STEP="installing host prerequisites"
@@ -542,6 +553,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl git jq op
 INSTALL_STEP="detecting public network"
 log "Detecting public network..."
 detect_public_ip
+check_domain_preflight
 
 INSTALL_STEP="checking Docker"
 log "Checking Docker..."
@@ -588,7 +600,10 @@ if [[ -d "$INSTALL_DIR/.git" ]]; then
   git -C "$INSTALL_DIR" checkout -B mucho-installer FETCH_HEAD
   git -C "$INSTALL_DIR" reset --hard FETCH_HEAD
 else
-  rm -rf "$INSTALL_DIR"
+  # A missing .git never authorizes erasing existing files.
+  if [[ -e "$INSTALL_DIR" ]]; then
+    rmdir "$INSTALL_DIR" 2>/dev/null || fail "The installation folder contains files but is not a Git checkout: $INSTALL_DIR. Keep it intact; use the updater or restore the checkout before continuing."
+  fi
   git clone --depth=1 --branch "$LATEST_RELEASE_TAG" "$REPO_URL" "$INSTALL_DIR"
 fi
 
@@ -954,18 +969,19 @@ if [[ "$healthy" -eq 1 ]]; then
   public_ok=0
   public_probe_file="$(mktemp /tmp/mucho-public-health.XXXXXX)"
 
-  for _ in {1..3}; do
-    public_code="$(curl -4ksS --connect-timeout 3 --max-time 6 \
+  for probe in {1..15}; do
+    public_code="$(curl -4sS --connect-timeout 3 --max-time 6 \
       -o "$public_probe_file" \
       -w '%{http_code}' \
       "https://$DOMAIN/health" 2>/dev/null || true)"
     public_body="$(cat "$public_probe_file" 2>/dev/null || true)"
 
-    if [[ "$public_body" == "1" ]]; then
+    if [[ "$public_code" == "200" && "$public_body" == "1" ]]; then
       public_ok=1
       break
     fi
 
+    if (( probe % 3 == 0 )); then info "Waiting for HTTPS and its certificate ($probe/15)..."; fi
     sleep 2
   done
 
@@ -1052,7 +1068,7 @@ if [[ "$healthy" -eq 1 ]]; then
 
         public_ok=0
         for _ in {1..45}; do
-          if curl -4ksSf --connect-timeout 3 --max-time 6 \
+          if curl -4sSf --connect-timeout 3 --max-time 6 \
             "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
             public_ok=1
             break
@@ -1070,7 +1086,7 @@ if [[ "$healthy" -eq 1 ]]; then
       if provision_cloudflare_tunnel; then
         public_ok=0
         for _ in {1..45}; do
-          if curl -4ksSf --connect-timeout 3 --max-time 6 \
+          if curl -4sSf --connect-timeout 3 --max-time 6 \
             "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
             public_ok=1
             break
@@ -1088,7 +1104,7 @@ if [[ "$healthy" -eq 1 ]]; then
     fi
   elif [[ "$TRANSPORT_MODE" == "direct" ]]; then
     direct_origin_ok=0
-    if [[ -n "$PUBLIC_IP" ]] && curl -4ksSf --connect-timeout 3 --max-time 6 \
+    if [[ -n "$PUBLIC_IP" ]] && curl -4sSf --connect-timeout 3 --max-time 6 \
       --resolve "$DOMAIN:443:$PUBLIC_IP" \
       "https://$DOMAIN/health" 2>/dev/null | grep -qx "1"; then
       direct_origin_ok=1
@@ -1173,33 +1189,16 @@ cat <<EOFOUT
 
 MuchoCore is installed.
 
-Transport:  $(sed -n 's/^MUCHO_TRANSPORT_MODE=//p' "$INSTALL_DIR/.env" | head -n1)
-
-Compatibility profile:
-  GD_VERSIONS=$GD_VERSIONS
-
 GDPS:   https://$DOMAIN
 Admin:  https://$DOMAIN/admin/
-Health: https://$DOMAIN/health
-Path:   $INSTALL_DIR
+Login:  $ADMIN_USER (use your chosen password)
 
-Admin access: https://$DOMAIN/admin/
-Existing installs: admin credentials are preserved; use sudo mucho for password resets.
+Next: sign in and open More tools → Clients & extensions → Web Client Patcher.
+Create a game account in the patched client, then upload and download a test level.
+Existing installs keep their current administrator credentials.
 
-Update:
-  sudo $INSTALL_DIR/update.sh
-
-Operator:
-  sudo mucho
-  sudo mucho status
-  sudo mucho logs
-  sudo mucho doctor
-
-Logs:
-  sudo mucho logs --follow
-
-Migration:
-  sudo mucho migration
+Update: sudo mucho update
+Need help? Run: sudo mucho doctor
 
 EOFOUT
 

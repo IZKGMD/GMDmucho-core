@@ -71,9 +71,7 @@ grep -q '^#!/usr/bin/env bash$' "$tmp" || {
 }
 chmod 700 "$tmp"
 
-# Keep an explicitly selected bootstrap ref visible to the inner installer.
-if [[ -n "$INSTALL_REF" ]]; then
-  export MUCHO_INSTALL_REF="$INSTALL_REF"
-fi
+# Keep the source pinned even if another release is published during setup.
+export MUCHO_INSTALL_REF="$SOURCE_REF"
 
 exec bash "$tmp" "$@"

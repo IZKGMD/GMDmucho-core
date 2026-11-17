@@ -30,6 +30,10 @@ class InstallError(RuntimeError):
 
 
 def site_origin(value: str) -> str:
+    value = value.strip()
+    # Accept a pasted site hostname while keeping HTTPS mandatory for requests.
+    if SITE_RE.fullmatch(value.rstrip('/')):
+        value = 'https://' + value
     try:
         parsed = urllib.parse.urlsplit(value.strip())
         host = parsed.hostname or ""
@@ -89,18 +93,23 @@ def private_config(site: str, dbhost: str, dbport: int,
     return php.encode("utf-8")
 
 
-def merge_rules(original: bytes | None, rules: bytes) -> bytes:
+def merge_rules(original: bytes | None, rules: bytes, *, resume: bool = False) -> bytes:
     content = original or b""
     if len(content) > 1024 * 1024 or b"\0" in content:
         raise InstallError("Существующий .htaccess слишком велик или повреждён.")
     text = content.decode("utf-8-sig")
-    if BEGIN in text or END in text:
-        raise InstallError("Маршруты MuchoCore уже установлены. Повторная установка запрещена.")
     raw = rules.decode("utf-8-sig")
     lines = [line.strip() for line in raw.splitlines()
              if line.strip().startswith("RewriteRule ")]
     if len(lines) < 8 or any("mc/public/php7.php" not in line for line in lines):
         raise InstallError("В архиве отсутствуют проверенные правила 5v.pl.")
+    if BEGIN in text or END in text:
+        expected = BEGIN + "\n" + "\n".join(lines) + "\n" + END
+        normalized = text.replace("\r\n", "\n")
+        if (resume and normalized.count(BEGIN) == 1 and normalized.count(END) == 1
+                and expected in normalized):
+            return content
+        raise InstallError("Маршруты MuchoCore уже установлены или изменены. Файл .htaccess сохранён без изменений.")
     block = "RewriteEngine On\n" + BEGIN + "\n" + "\n".join(lines) + "\n" + END + "\n"
     return (block + "\n" + text).encode("utf-8")
 
@@ -306,11 +315,13 @@ class FtpSite:
             self.put(self.root, "mc/" + relative, file.read_bytes())
             if i % 30 == 0 or i == len(files):
                 progress("Загружено файлов: %s/%s" % (i, len(files)))
-    def apply_routes(self, rules: bytes):
+    def apply_routes(self, rules: bytes, *, resume: bool = False):
         if self.root is None:
             raise InstallError("Корень сайта не проверен.")
         old = self.get(self.root, ".htaccess", optional=True)
-        new = merge_rules(old, rules)
+        new = merge_rules(old, rules, resume=resume)
+        if new == old:
+            return old is not None
         if old is not None:
             self.put(self.root, "mc/config/htaccess-before-muchocore.txt", old)
         tmp = ".htaccess.mucho-" + secrets.token_hex(8)

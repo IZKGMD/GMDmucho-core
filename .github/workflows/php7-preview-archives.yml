@@ -72,6 +72,7 @@ jobs:
           python3 tests/release/test_5v_archive_installer.py
           python3 tests/release/test_5v_client_publisher.py
           python3 tests/release/test_5v_gui_setup.py
+          python3 tests/release/test_5v_install_resume.py
           bash tools/release/build-php7-native.sh
           unzip -t MuchoCore-PHP7-5v-native-preview.zip
           for item in mc/compat/php7/users.php INSTALL_5V.py PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py GUI_SETUP_5V.py START_GUI_WINDOWS.cmd START_CLIENTS_WINDOWS.cmd; do
@@ -135,7 +136,7 @@ jobs:
           $archive = Get-ChildItem payload -Filter '*.zip' | Select-Object -First 1
           if (-not $archive) { throw "PHP7 payload ZIP was not downloaded" }
           Expand-Archive -LiteralPath $archive.FullName -DestinationPath payload\extracted -Force
-          foreach ($item in @('mc\admin.php','5V_ROOT_REWRITE_RULES.txt','RECOVERY_HANDLER.php.tpl','INSTALL_5V.py','RECOVER_ADMIN_5V.py','mucho5v.py','PUBLISH_CLIENTS_5V.py','muchoclients5v.py','gd_windows_patcher.py')) {
+          foreach ($item in @('mc\admin.php','5V_ROOT_REWRITE_RULES.txt','RECOVERY_HANDLER.php.tpl','DATABASE_CHECK.php.tpl','INSTALL_5V.py','RECOVER_ADMIN_5V.py','mucho5v.py','PUBLISH_CLIENTS_5V.py','muchoclients5v.py','gd_windows_patcher.py')) {
             if (-not (Test-Path (Join-Path payload\extracted $item))) {
               throw "Missing bundled setup resource: $item"
             }
@@ -159,9 +160,10 @@ jobs:
           # paths so the spec remains reproducible when stored under build\spec.
           $dataMc = "$payloadRoot\mc;mc"
           $dataRules = "$payloadRoot\5V_ROOT_REWRITE_RULES.txt;."
+          $dataDatabaseCheck = "$payloadRoot\DATABASE_CHECK.php.tpl;."
           $dataRecovery = "$payloadRoot\RECOVERY_HANDLER.php.tpl;."
 
-          python -m PyInstaller --noconfirm --clean --onefile --windowed --name MuchoCore-Setup --distpath $distPath --workpath $workPath --specpath $specPath --paths $payloadRoot --hidden-import gd_windows_patcher --hidden-import INSTALL_5V --hidden-import RECOVER_ADMIN_5V --hidden-import mucho5v --hidden-import PUBLISH_CLIENTS_5V --hidden-import muchoclients5v --add-data $dataMc --add-data $dataRules --add-data $dataRecovery $installerScript
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name MuchoCore-Setup --distpath $distPath --workpath $workPath --specpath $specPath --paths $payloadRoot --hidden-import gd_windows_patcher --hidden-import INSTALL_5V --hidden-import RECOVER_ADMIN_5V --hidden-import mucho5v --hidden-import PUBLISH_CLIENTS_5V --hidden-import muchoclients5v --add-data $dataMc --add-data $dataRules --add-data $dataRecovery --add-data $dataDatabaseCheck $installerScript
           if (-not (Test-Path dist\MuchoCore-Setup.exe)) {
             throw "PyInstaller did not create MuchoCore-Setup.exe"
           }
@@ -179,6 +181,10 @@ jobs:
           $process = Start-Process -FilePath $exe -ArgumentList '--self-test' -Wait -PassThru
           if ($null -eq $process.ExitCode -or $process.ExitCode -ne 0) {
             throw "Frozen installer self-test failed with exit code $($process.ExitCode)"
+          }
+          $uiProcess = Start-Process -FilePath $exe -ArgumentList '--ui-self-test' -Wait -PassThru
+          if ($null -eq $uiProcess.ExitCode -or $uiProcess.ExitCode -ne 0) {
+            throw "Frozen installer UI self-test failed with exit code $($uiProcess.ExitCode)"
           }
 
       - name: Upload standalone Windows installer

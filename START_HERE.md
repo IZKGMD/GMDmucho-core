@@ -1,143 +1,52 @@
-# MuchoCore — Start Here
+# Как запустить свой GDPS на MuchoCore
 
-MuchoCore is a modern Geometry Dash Private Server core for owners who want a maintainable backend, version-aware compatibility and production tooling without assembling every component by hand.
+Тебе понадобятся хостинг и адрес сайта. MuchoCore — серверная часть: после установки нужно отдельно подключить к ней игру.
 
-## New to MuchoCore?
+## 1. Выбери свой хостинг
 
-For a normal **PHP 8.2+** shared host without Docker, use **[docs/SHARED_HOSTING.md](docs/SHARED_HOSTING.md)** and the complete `MuchoCore-vX.Y.Z-shared-hosting.zip` release asset (or a clearly labeled CI preview for testing). Extract its `muchocore/` folder, upload the *contents* to your website via FTP, and open **`https://YOUR-DOMAIN/install.php`**. The ZIP already includes Composer dependencies, migrations and the admin/database wizard; no SSH or VPS is required. An unsupported PHP 7 host gets an honest diagnostic, not a fake installation. Russian instructions: `docs/SHARED_INSTALL_RU.txt` inside the ZIP.
+| Что у тебя есть | Что делать |
+| --- | --- |
+| Обычный хостинг с PHP 8.2+ и MySQL | Скачай архив **shared-hosting.zip** из [релизов](https://github.com/IZKGMD/GMDmucho-core/releases). [Инструкция по загрузке](docs/SHARED_INSTALL_RU.txt) |
+| VPS с Linux | Направь домен на IP сервера и выполни команду ниже. [Подробная инструкция](docs/VPS_INSTALL_QUICK_RU.md) |
+| Сайт на 5v.pl с PHP 7 | Скачай **MuchoCore-Setup.exe** из [релизов](https://github.com/IZKGMD/GMDmucho-core/releases). Python не нужен. [Инструкция](tools/release/5v-installer/README_RU.txt) |
 
-Use the shortest VPS installation path:
+Для нового сервера выбирай PHP 8.2+. Сборка PHP 7 пока экспериментальная.
 
-~~~bash
+**На VPS** подключись по SSH и запусти:
+
+```bash
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
-~~~
+```
 
-For a **new interactive VPS installation**, Step 1 asks for the administrator login, password and confirmation, **without an activation key**. Then choose the GDPS name and domain. After installation, sign in at `/admin/`. An existing installation preserves its owner credentials and never prompts to recreate the account. Other settings can be changed later from:
+Укажи логин и пароль администратора, название GDPS и домен. Остальное установщик настроит сам. В обычной установке токены Cloudflare не нужны.
 
-~~~bash
-sudo mucho
-~~~
+**На обычном хостинге** создай пустую базу MySQL в панели хостинга, загрузи содержимое папки `muchocore/` из релизного архива и открой `https://ТВОЙ-ДОМЕН/install.php`. Введи данные базы и придумай пароль администратора. Архив «Source code» для этого не подходит.
 
-The remote bootstrap resolves the latest **published stable release** first, then downloads that release's installer so the installer and release stay in sync.
+## 2. Войди в админку
 
-For a manual/source checkout, use:
+Открой `https://ТВОЙ-ДОМЕН/admin/` и введи логин и пароль, которые выбрал при установке. Повторно регистрировать администратора не нужно.
 
-~~~bash
-git clone https://github.com/IZKGMD/GMDmucho-core.git
-cd GMDmucho-core
-sudo ./install
-~~~
+В админке можно управлять игроками, уровнями, музыкой и настройками сервера. Интерфейс пока на английском; дополнительные инструменты находятся в **More tools**.
 
-Read **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)** for the complete first-run path.
+## 3. Подключи игру
 
-## Already running a Cvolton/GMDprivateServer-style GDPS?
+1. Войди в админку.
+2. Открой **More tools → Clients & extensions → Web Client Patcher** и создай клиент для своего сервера. Сохрани оригинальный EXE или APK. [Инструкция для Windows и Android](docs/CLIENT_SETUP.md)
+3. Запусти полученный клиент. Зарегистрируй игровой аккаунт: аккаунт администратора сайта — отдельный.
+4. Загрузи тестовый уровень и попробуй скачать его. Затем проверь комментарии и сохранение аккаунта.
+5. Настрой скачивание клиента для друзей в **More tools → Clients & extensions → Client Downloads**. Публикуй только файлы, которые имеешь право распространять.
 
-Start with **[docs/MIGRATION_KIT.md](docs/MIGRATION_KIT.md)**.
+Открывающийся сайт ещё не означает, что игра подключилась. Полная проверка GD 2.209 пока не завершена: [текущий статус](docs/CLIENT_COMPATIBILITY.md).
 
-The safe migration flow is:
+## Если сервер уже установлен
 
-~~~text
-Source GDPS
-    ↓
-Read-only preflight
-    ↓
-Review source counts
-    ↓
-Verified MuchoCore backup
-    ↓
-Transactional import
-    ↓
-Post-migration healthcheck
-    ↓
-Test client
-~~~
+Для обновления VPS:
 
-Dry-run is the default. Nothing is imported until `--apply --confirm=COVOLTON` is supplied.
+```bash
+sudo mucho update
+sudo mucho doctor
+```
 
-## After installation
+Перед обновлением сохрани резервную копию. Не запускай первоначальную установку поверх работающего сервера и не удаляй базу ради исправления одной ошибки.
 
-The production deployment contains only the services needed by a live GDPS: MariaDB, the PHP application, the background worker and Caddy. The integration-test tenant is intentionally separate from production and can be started with:
-
-~~~bash
-sudo mucho test-stack up -d
-~~~
-
-It uses **[docker-compose.test.yml](docker-compose.test.yml)** and does not run during a normal install or update.
-
-
-Check:
-
-~~~text
-https://YOUR-DOMAIN/health
-~~~
-
-Expected response:
-
-~~~text
-1
-~~~
-
-Then open:
-
-~~~text
-https://YOUR-DOMAIN/admin/
-~~~
-
-Administrator username:
-
-~~~text
-admin
-~~~
-
-The password is created during installation.
-
-## Compatibility
-
-The documented runtime profiles cover:
-
-~~~text
-GD 1.0
-GD 1.1
-GD 1.5
-GD 1.9
-GD 2.0
-GD 2.1
-GD 2.2
-Custom combinations
-~~~
-
-See **[docs/VERSIONS.md](docs/VERSIONS.md)** and **[docs/CLIENT_COMPATIBILITY.md](docs/CLIENT_COMPATIBILITY.md)**.
-
-## Connect a client
-
-After the server is healthy, use **[docs/CLIENT_SETUP.md](docs/CLIENT_SETUP.md)**.
-
-Windows patching tools live under `tools/client/`; Android patching is available through the Admin Panel workflow.
-
-## Main directories
-
-~~~text
-src/       — server logic
-public/    — HTTP entry points, GD endpoints and Admin Panel
-database/  — database migrations
-config/    — local configuration and examples
-storage/   — runtime data
-tests/     — automated validation and compatibility checks
-tools/     — client and migration tools
-docs/      — setup, migration, compatibility and deployment documentation
-docker/    — Docker and Caddy files
-custom/    — persistent GDPS-specific extensions
-~~~
-
-## Security
-
-Do not publish or commit:
-
-~~~text
-.env
-.secrets/
-config/cloudsave.key
-storage/
-~~~
-
-Before major maintenance, create a database backup. Do not run `uninstall.sh` unless you understand that the database volume will be removed.
+[Обновление обычного хостинга](docs/SHARED_HOSTING.md) · [Обновление 5v.pl](docs/PHP7_NATIVE_PHASE1.md) · [Перенос с другого ядра](docs/MIGRATION_CENTER.md) · [Сообщить о проблеме](https://github.com/IZKGMD/GMDmucho-core/issues)
