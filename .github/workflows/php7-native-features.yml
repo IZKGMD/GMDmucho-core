@@ -40,6 +40,7 @@ jobs:
           done
           php tests/compat/php7-native-features-pure.php
           php tests/compat/php7-readiness-pure.php
+          php tests/compat/php7-halogen-legacy-routes.php
           php tests/compat/php7-native-english.php
           php tests/compat/php7-compiled-domain-pure.php
           php tests/compat/php7-aead-compat.php
