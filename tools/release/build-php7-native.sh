@@ -190,7 +190,7 @@ README
 # The GUI EXE is self-contained; source launchers use Python 3.10+ on the operator's PC.
 for item in INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py \
   PUBLISH_CLIENTS_5V.py muchoclients5v.py GUI_SETUP_5V.py \
-  RECOVERY_HANDLER.php.tpl START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
+  RECOVERY_HANDLER.php.tpl DATABASE_CHECK.php.tpl START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
   START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \
   START_CLIENTS_WINDOWS.cmd START_CLIENTS_LINUX.sh README_RU.txt; do
   test -f "$ROOT/tools/release/5v-installer/$item" || {
@@ -220,7 +220,7 @@ if [[ "${MUCHO_5V_WEB_DEPLOY:-0}" == "1" ]]; then
 else
 (cd "$STAGE" && zip -qr "$OUTPUT" mc \
  "5V_ROOT_REWRITE_RULES.txt" "START_HERE_SHARED.txt" \
- INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl \
+ INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl DATABASE_CHECK.php.tpl \
  PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py GUI_SETUP_5V.py \
  START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
  START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \
@@ -239,7 +239,7 @@ for item in mc/admin.php mc/public/php7-admin.php mc/public/assets/php7-admin-ba
   mc/compat/php7/cloudsave.php mc/compat/php7/profile.php mc/compat/php7/readiness.php \
   mc/.htaccess mc/public/.htaccess \
   5V_ROOT_REWRITE_RULES.txt START_HERE_SHARED.txt \
-  INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl \
+  INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl DATABASE_CHECK.php.tpl \
   PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py GUI_SETUP_5V.py \
   START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
   START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \

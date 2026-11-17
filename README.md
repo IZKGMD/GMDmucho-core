@@ -1,248 +1,70 @@
-# MuchoCore — Geometry Dash Private Server (GDPS)
+# MuchoCore
 
-**Open-source PHP server core for Geometry Dash.** Accounts, levels, comments, scores, social features, moderation, Cloud Save, admin tools, migration and client patching. One codebase with version-aware protocol handling.
+Create your own Geometry Dash private server: accounts, levels, music, Cloud Save and a web admin panel.
 
-**Project authorship:** MuchoCore and its original MuchoProtect subsystem are developed by **IZK (© 2026)**, with third-party code and contributor rights respected. The published core is licensed under [MIT](LICENSE); its permissions to use, modify, and redistribute the code remain in effect. [Website terms of use](https://muchogdps.space/legal/terms/) govern the website/services where applicable and do **not** override the source-code license. The game and its assets belong to their respective owners.
+[С чего начать — по-русски](START_HERE.md) · [Download](https://github.com/IZKGMD/GMDmucho-core/releases) · [Website](https://muchogdps.space/muchocore/) · [Report a problem](https://github.com/IZKGMD/GMDmucho-core/issues)
 
-**Go edition in development:** The [native Go edition](go/README.md) now includes accounts, levels, profiles, social features, comments, scores, rewards, Cloud Save and discovery against the existing database. It also includes clans/quests, threads, news, media, account recovery, API v2 and the first browser administration modules. It runs without PHP; the [route inventory](go/ROUTES.md) tracks handler coverage and the Go README lists the remaining migration work. It is not yet a complete replacement for the PHP edition.
+## Install
 
-[Website](https://muchogdps.space/muchocore/) · [Stable releases](https://github.com/IZKGMD/GMDmucho-core/releases) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/IZKGMD/GMDmucho-core/issues)
+Use **PHP 8.2+** for a new server. Choose the row that matches your hosting:
 
-> **Choose the correct package first.** The standard MuchoCore runtime requires **PHP 8.2+** (8.3+ recommended). The separate **5v.pl / PHP 7.0** build contains a native runtime, the compiled original application services and the original administration interface. It remains a development preview: complete real-client acceptance is **not certified**. See [native port coverage](docs/PHP7_NATIVE_PHASE1.md) and [release readiness](docs/V110_RELEASE.md).
-
-## Choose your installation
-
-| Hosting | Package / entry point | What you get |
-| --- | --- | --- |
-| **VPS (Linux)** | [One-command installer](#3-linux-vps--full-core) | Full PHP 8+ MuchoCore, Docker, MariaDB, Caddy, admin and worker |
-| **Shared with PHP 8.2+** | [Manual shared ZIP](#1-shared-hosting-php-82--full-core) | Full core and web admin; no Docker or SSH needed |
-| **5v.pl / PHP 7.0** | [PHP7 preview artifact](#2-5vpl--php-70-experimental) | Native runtime, original admin, shared worker, browser client patcher and compiled services |
-
-**VPS quick start (RU):** [One-command PHP 8 setup, updates and safety checks](docs/VPS_INSTALL_QUICK_RU.md).\n\n**Before installing:** Have a working HTTPS domain and database ready. Your hosting provider must allow requests from the Geometry Dash client; a working browser page alone is not proof that the game can connect.
-
-## 1. Shared hosting (PHP 8.2+) — full core
-
-**Requires:** PHP 8.2+ (8.3+ recommended), MySQL 8.0.29+ / MariaDB 10.4+, PDO MySQL, HTTPS, a database user, FTP or File Manager. For automatic bootstrap, PHP ZIP and outbound HTTPS to GitHub are also required.
-
-### Option A — online native PHP 7 uploader (ONLY 5V.PL)
-
-[The official MuchoCore shared installer](https://muchogdps.space/install/shared/)
-works **only for HTTPS `*.5v.pl` subdomains**. 5v.pl advertises PHP 7,
-so the PHP 8.2+ full-core shared release cannot run there.
-
-1. Create a new `name.5v.pl` site. Retrieve the FTP host/username/password
-   from the 5v.pl welcome email.
-2. Enter only the site domain and FTP credentials at the MuchoCore online wizard.
-   The server rejects any other hosting provider; it builds and uploads the
-   **PHP 7 native preview**, not the PHP 8 core.
-3. After FTP upload, click **Open admin setup wizard** in the MuchoCore installer. Create a new **empty MySQL database** in your 5v.pl hosting panel, then enter its credentials, your owner username, email, and password in the wizard. The installer automatically supplies the private one-time setup key; do not edit PHP files or register again. After successful setup, open `https://name.5v.pl/mc/admin.php` to sign in.
-4. Merge `5V_ROOT_REWRITE_RULES.txt` into your domain-root `.htaccess`
-   without overwriting existing rules.
-5. Verify `/health` and test Geometry Dash in the real client. The uploader
-   marks the job as **files uploaded / setup required**, not fully installed.
-
-This does not provide guaranteed PHP 8 feature parity. The native PHP 7
-runtime is experimental and PHP 7 is end-of-life.
-
-### Option B — manual ZIP + FileZilla
-
-1. Open [GitHub Releases](https://github.com/IZKGMD/GMDmucho-core/releases) and download **`MuchoCore-vX.Y.Z-shared-hosting.zip`** from a **published** release. Do **not** use GitHub's source-code ZIP; it may omit `vendor/`.
-2. Create a **new empty database** and database user in your hosting panel.
-3. Extract the archive locally. Upload the **contents of `muchocore/`**, not the outer folder, to the website's document root.
-4. Check that FileZilla transferred hidden **`.htaccess`** and the `public/`, `src/`, `vendor/`, `database/` and `config/` directories.
-5. Open **`https://YOUR-DOMAIN/install.php`** (not `/public/install.php`). Enter database details and choose the administrator password.
-6. Verify `/health` returns `1`; open `/admin/` (initial user: `admin`).
-7. Remove `public/install.php` and `public/shared-install.php` after setup. Back up the database, `.env` and the existing `config/cloudsave.key` securely.
-
-**Updating an existing site?** Back up files and SQL first. **Do not** run first-time setup on a populated database or overwrite the existing `.env`, Cloud Save key or private settings. Follow the [full shared-hosting guide](docs/SHARED_HOSTING.md) for upgrades and provider-specific document roots.
-
-[Detailed shared-hosting guide](docs/SHARED_HOSTING.md) · [Russian ZIP installation guide](docs/SHARED_INSTALL_RU.txt)
-
-## 2. 5v.pl / PHP 7.0 (experimental)
-
-This build runs entirely on shared hosting with its own MySQL connection, compiled PHP 7-compatible application services and English administration pages. It requires no VPS proxy, Composer installation or process-launch functions on the host. PHP 7 is obsolete; provider and real-device acceptance remain separate from the automated integration checks.
-
-### Автоматическая установка и восстановление владельца на 5v.pl
-
-Релизный `MuchoCore-PHP7-5v-native-preview.zip` уже содержит
-**`START_INSTALL_WINDOWS.cmd`** (или `START_INSTALL_LINUX.sh`) и
-**`START_RECOVERY_WINDOWS.cmd`** (или `START_RECOVERY_LINUX.sh`).
-
-1. Создай свой сайт `name.5v.pl` и **пустую MySQL-базу** на 5v.pl.
-2. Распакуй релизный ZIP целиком. На Windows открой
-   `START_INSTALL_WINDOWS.cmd` (Python 3.10+ должен быть установлен).
-3. Введи FTP и MySQL-данные, логин/e-mail/пароль будущего владельца.
-   Программа загрузит `mc/`, проверит закрытие приватных файлов,
-   безопасно добавит маршруты к `.htaccess`, создаст первого владельца
-   и запустит миграцию через оригинальный серверный мастер.
-4. При потере пароля или 2FA запусти **`START_RECOVERY_WINDOWS.cmd`**
-   (достаточно доступа к FTP своего сайта). Старого владельца и
-   остальные данные программа не удаляет. При единственном владельце
-   его логин можно не помнить.
-
-**Клиенты GD 2.209:** после установки программа предлагает
-исходные EXE и APK, патчит их без повторной установки ядра и, при наличии
-прав на публичное распространение, публикует проверенные файлы в
-`https://name.5v.pl/mc/public/clients/`. Windows патчится
-штатным Python-движком, Android — оригинальным PHP7-патчером с
-подписью APK v1/v2. Ключ `mc/config/php7-apk-signer.json`
-обязательно сохранить для будущих обновлений. Клиенты можно позже
-пересобрать отдельно кнопкой **`START_CLIENTS_WINDOWS.cmd`**.
-Игра и её платные файлы **не включены** в релизный архив; владелец
-личной копии игры не получает автоматически право публичной раздачи.
-
-**Защита от потери админки:** если на сервере уже есть `mc/`, новая
-установка не выполняется. Используй восстановление, а не переустановку.
-Утилита сброса отзовёт старые 2FA/сессии, но не изменит роль владельца.
-Сохрани FTP-доступ в менеджере паролей: без доступа к FTP этот метод
-восстановления недоступен.
-
-### Download the correct archive
-
-1. Open **[PHP7 Native Preview — GitHub Actions](https://github.com/IZKGMD/GMDmucho-core/actions/workflows/php7-preview-archives.yml)**.
-2. Select the latest **successful** run on `main`. Sign in to GitHub if artifact download requires it.
-3. Under **Artifacts**, download **`MuchoCore-PHP7-5v-native-preview`** and extract the downloaded artifact ZIP.
-4. Inside is **`MuchoCore-PHP7-5v-native-preview.zip`**. Extract this ZIP too; it contains `mc/`, `5V_ROOT_REWRITE_RULES.txt` and setup instructions.
-
-**Do not choose** `MuchoCore-full-PHP82-shared-hosting` for a PHP 7 host. Workflow artifacts are temporary development builds, not stable releases.
-
-### Update an existing 5v.pl test installation (keep all data)
-
-1. **Back up** the existing `/mc/` directory and export its MySQL database via phpMyAdmin.
-2. Upload the new archive's `mc/` files to the **same `/mc/` directory**. Preserve the live `/mc/config/php7-local.php`, `/mc/config/php7-news.json` (if used), `/mc/public/php7-mode.on` and all existing private data.
-3. Sign in as the existing owner and open **Server**. Use **Install uploaded build**, then **Complete migration** if offered. The update verifies the uploaded core pack, creates a database backup and applies additive changes while preserving accounts and levels. Use **Update database** for older native schemas. Do not import a legacy database dump over this installation.
-4. In the **domain root** `.htaccess` (not `/mc/.htaccess`), add the rules from `5V_ROOT_REWRITE_RULES.txt` just below `RewriteEngine On` and **before** catch-all rules. Keep your other rules. Your host must support these Apache rewrites.
-5. Keep `site_url` in `/mc/config/php7-local.php` set to the HTTPS origin **without `/mc`**.
-6. Test `https://YOUR-DOMAIN/mc/health`, then the game endpoints below. **Do not rerun `php7-setup.php` against the existing database.**
-
-For a **brand-new disposable test database**, read the [PHP7 first-time setup](docs/PHP7_NATIVE_PHASE1.md): it uses `public/php7-setup.php`, a private setup key, HTTPS and an **empty** MySQL database. Delete the setup script after use and enable `public/php7-mode.on` only once setup succeeds.
-
-### Feature switches (test systems only)
-
-In your existing private `/mc/config/php7-local.php`, the relevant options are:
-
-~~~php
-'enable_accounts' => true,
-'enable_registration' => true,
-'enable_writes' => true,
-'enable_social' => true,
-'enable_cloudsave' => true,
-~~~
-
-These switches do **not** install missing features. Account and write functions are disabled in distributed defaults because PHP 7 is end-of-life. Do not post real DB passwords or `auth_pepper` online.
-
-### Test routing and registration without creating an account
-
-From Termux/Linux (replace the domain with yours):
-
-~~~bash
-curl -i -X POST \
-  'https://YOUR-DOMAIN/a/accounts/registerGJAccount22.php' \
-  --data-urlencode 'userName=bad!'
-~~~
-
-On the **current PHP7 handler**, a routed registration endpoint with enabled accounts and a working database returns **`-4`** for this deliberately invalid username. `-1` means the request was rejected; check the deployed `auth.php` / `runtime.php`, flags, PHP logs, MySQL schema and routing. HTTP `404` means the path was not found; HTTP `503` indicates a runtime/configuration/database failure. HTTP 200 alone does **not** prove registration works.
-
-**Native coverage:** accounts, profiles, levels, scores, comments, votes, Cloud Save, private messages, friends and blocks; original admin pages, ratings, moderation, clans, quests, plugins, News media, backups and security tools. Shared hosting also has bounded queue processing, optional HTTPS webhooks, resumable search rebuilding, cron backups, passkeys and Cvolton account/profile/level/score import. See the coverage document for tested behavior and remaining acceptance work. PHP 8-only third-party plugins still need their own compatibility review.
-
-[PHP7 installation and upgrade details](docs/PHP7_NATIVE_PHASE1.md) · [5v.pl rewrite/troubleshooting guide](patchers/shared-hosting/README.md)
-
-## 3. Linux VPS — full core
-
-**Requires:** Linux VPS, sudo/root, a domain with a DNS `A` record pointing to its public IPv4, and inbound TCP 80/443 for normal direct hosting. No manual PHP, database or Caddy installation needed.
-
-1. Point `gdps.example.com` to the VPS IPv4 in your DNS panel.
-2. Run the stable-release installer:
-
-~~~bash
-curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo -E bash
-~~~
-
-3. Enter your domain and initial admin password when prompted. The installer sets up Docker, PHP, MariaDB, Caddy, workers, migrations and configuration.
-4. Open `https://YOUR-DOMAIN/health` (expected `1`) and `https://YOUR-DOMAIN/admin/` (initial user: `admin`).
-5. Patch a Windows/Android game client to point to the **domain root**.
-
-Direct VPS HTTPS remains the default. No Cloudflare API token, Global API Key, Cloudflare Tunnel or Cloudflare Proxy is required for this path. The installer configures an already-active UFW to permit inbound TCP 80 and 443. For an optional tunnel, the API token needs **Cloudflare Tunnel -> Edit**; see [advanced networking](docs/ADVANCED.md).
-
-**Maintain an existing VPS:**
-
-~~~bash
-sudo mucho logs
-sudo /opt/mucho-core/bin/mucho-db-backup.sh
-sudo /opt/mucho-core/update.sh
-~~~
-
-Take a verified backup before updating. The normal updater selects published stable releases, not arbitrary commits on `main`. For NAT/CGNAT or blocked 80/443, read about [Cloudflare Tunnel](docs/ADVANCED.md).
-
-[VPS walkthrough](docs/GETTING_STARTED.md) · [Setup and backups](docs/SETUP.md)
-
-## Connect Geometry Dash (after installation)
-
-Installing the server **does not patch the game**.
-
-1. For the **full PHP8 core**, open `https://YOUR-DOMAIN/admin/?page=clientpatcher` to patch a Windows executable, or follow [Client Setup](docs/CLIENT_SETUP.md) for the local `tools/client/client-patch.bat` method.
-2. Enter only `https://YOUR-DOMAIN` as the server address — **not** `/database` or `/mc`. Some GD 2.209 builds require short compatible URL aliases because their executable URL slots have fixed lengths.
-3. Keep the original executable/APK; test the newly patched client separately. Android APKs must be signed appropriately before distribution.
-4. Check **login → level search → level download → test upload → comments → Cloud Save**. A patched file or healthy `/health` endpoint is not proof of real-client compatibility.
-
-For the PHP7 shared build, open **Admin → Client Patcher**. Windows patching and resumable Android APK rebuilding/signing run on the shared host without shell tools. Preserve the original client and verify the output on your device. Browser/provider download restrictions and actual game connection still need acceptance on the target host.
-
-[Windows & Android patching tutorial](docs/CLIENT_SETUP.md) · [Patcher downloads and tools](patchers/README.md) · [Version profiles](docs/VERSIONS.md) · [Real-client verification status](docs/CLIENT_COMPATIBILITY.md)
-
-## Features and limitations
-
-| Capability | Full PHP8 core | 5v.pl PHP7 preview |
-| --- | --- | --- |
-| Accounts, profiles, levels, scores, comments | Included | Native handlers and compiled services |
-| Search, uploads, downloads, votes, local Cloud Save | Included | Native handlers; resumable search rebuild |
-| Admin Panel, Rating Studio, RBAC, moderation | Included | Original templates with native identities and permissions |
-| MuchoProtect, audit and operator tools | Included | Compiled services and shared-host operator pages |
-| Clans, quests, plugins, migration tools | Included | Compiled services; bounded worker; verified Cvolton import |
-| News and client patching | Included | News media and shared Windows/APK patcher |
-| GD 2.209 | In development; **not fully certified** | Automated contracts pass; real-client acceptance pending |
-
-The source tree's version is in [VERSION](VERSION). **A source version is not proof of a published stable release.** Download stable production builds only from [GitHub Releases](https://github.com/IZKGMD/GMDmucho-core/releases); the latest release can lag behind `main`. See [1.1.0 release gates](docs/V110_RELEASE.md).
-
-## Migrate an existing GDPS
-
-For the **full PHP8 core**, install MuchoCore into a **fresh target database**, then open **Admin → Tools → Migration Center**. Use a read-only connection to the legacy Cvolton/GMDprivateServer database, review the dry-run, create/verify a target backup, and only then apply migration. Never import a legacy SQL dump directly over an initialized MuchoCore database.
-
-[Migration Kit](docs/MIGRATION_KIT.md) · [Migration Center](docs/MIGRATION_CENTER.md)
-
-## Troubleshooting
-
-| Symptom | Check first |
+| What you have | Where to start |
 | --- | --- |
-| `/health` does not return `1` | PHP/runtime, database connectivity, application logs |
-| HTTP `404` on `/a/...php` | Domain-root `.htaccess` / web-server rewrite configuration |
-| HTTP `503`, body `-1` | Missing PHP7 marker/config, PDO MySQL, database/schema or PHP error log |
-| HTTP `200`, body `-1` | Endpoint rejected request; inspect exact route, flags and expected parameters |
-| GD says **“Something went wrong”** | Check the actual registration/login endpoint, not only the health page |
-| Levels appear but will not open | Test `downloadGJLevel22.php` independently of `getGJLevels21.php` |
-| 5v.pl installer rejects PHP version | You used the **full PHP8 ZIP** on PHP7; use the separate test preview or upgrade hosting |
-| Cloud Save fails after migration | Preserve the original encryption key; check POST body limits and database |
+| Hosting with PHP 8.2+ and MySQL | Download the **shared-hosting ZIP** from [Releases](https://github.com/IZKGMD/GMDmucho-core/releases), upload its contents and open `/install.php`. [Step-by-step guide](docs/SHARED_HOSTING.md) |
+| A Linux VPS and a domain | Point the domain to the VPS IP, then run the command below. PHP and the database are installed automatically. [VPS guide](docs/VPS_INSTALL_QUICK_RU.md) |
+| A 5v.pl site with PHP 7 | Use the separate **PHP7 native preview**. The PHP 8 archive will not run there. [5v.pl guide](docs/PHP7_NATIVE_PHASE1.md) |
 
-**Do not reset the database to fix a single endpoint.** Protect `.env`, `storage/`, `config/cloudsave.key`, `php7-local.php`, database credentials and signing keys. Never commit or share them.
+VPS installation:
 
-## More documentation
+```bash
+curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
+```
 
-- **[Quick start](START_HERE.md)** — installation overview
-- **[Shared hosting](docs/SHARED_HOSTING.md)** — full PHP8 shared hosting, FileZilla, installer, requirements
-- **[PHP7 native test port](docs/PHP7_NATIVE_PHASE1.md)** — 5v.pl setup, updates, feature switches
-- **[VPS setup](docs/SETUP.md)** — DNS, installer, logging, backups and updates
-- **[Client setup](docs/CLIENT_SETUP.md)** — patching Windows/Android clients
-- **[GD version compatibility](docs/VERSIONS.md)** · **[client tests](docs/CLIENT_TESTING.md)**
-- **[Migration](docs/MIGRATION_KIT.md)** · **[custom plugins](docs/CUSTOM_PLUGINS.md)**
-- **[API specification](openapi.yaml)** · **[Changelog](CHANGELOG.md)**
+The installer selects a published stable release. Enter your administrator login and password, server name and domain when asked. Sign in at `https://YOUR-DOMAIN/admin/` with the credentials you chose.
 
-## Development and contribution
+Direct VPS HTTPS remains the default. No Cloudflare API token, Global API Key, Cloudflare Tunnel or Cloudflare Proxy is required for this path.
 
-~~~bash
-git clone https://github.com/IZKGMD/GMDmucho-core.git
-cd GMDmucho-core
-composer test
-~~~
+For shared hosting, download `MuchoCore-vX.Y.Z-shared-hosting.zip`, **not GitHub's source-code ZIP**. The shared package includes the required dependencies. Create an empty database in your hosting panel before opening the installer.
 
-Code lives in `src/`, public endpoints in `public/`, migrations in `database/`, validation in `tests/`, and patchers/build tooling in `tools/`. Contributions and reproducible bug reports are welcome. Do not post passwords, private client data or active exploit details in public issues.
+## Start playing
 
-**License:** [MIT](LICENSE).
+1. Open the admin panel.
+2. Open **More tools → Clients & extensions → Web Client Patcher** to create a client for your server. Keep your original game file. [Windows and Android guide](docs/CLIENT_SETUP.md)
+3. Launch the patched game, create a game account, then upload and download a test level. Your website administrator login is separate from your game account.
+4. Set up player downloads under **More tools → Clients & extensions → Client Downloads** before inviting friends. Publish only files you have permission to distribute.
+
+Use the admin panel for players, levels, music and server settings. Additional technical tools are under **More tools**.
+
+## Update an existing server
+
+**Use the updater, not first-time installation.** Keep a backup of your database, settings and Cloud Save key before updating.
+
+On a VPS:
+
+```bash
+sudo mucho update
+sudo mucho doctor
+```
+
+For other hosting: [PHP 8 shared updates](docs/SHARED_HOSTING.md) · [5v.pl updates](docs/PHP7_NATIVE_PHASE1.md).
+
+## Need help?
+
+| Problem | First step |
+| --- | --- |
+| Installation cannot continue | Fix the failed hosting checks shown by the installer. |
+| The website opens, but the game cannot connect | Check the client address and hosting routing using the [client guide](docs/CLIENT_SETUP.md). A working website alone does not confirm game connectivity. |
+| Login or level downloads fail | Include the client version and failing action in an [issue](https://github.com/IZKGMD/GMDmucho-core/issues). Never include passwords. |
+| Moving an existing GDPS | Install into a fresh database, then use [Migration Center](docs/MIGRATION_CENTER.md). |
+
+GD 2.209 support is still under verification; complete real-client acceptance is **not certified**. The PHP7 build is a development preview. [Compatibility status](docs/CLIENT_COMPATIBILITY.md)
+
+The source version is recorded in [VERSION](VERSION). A source version is not proof of a published stable release. Use [Releases](https://github.com/IZKGMD/GMDmucho-core/releases) for published builds; `main` contains ongoing development.
+
+## More information
+
+[Changelog](CHANGELOG.md) · [Local patchers](patchers/README.md) · [Plugins](docs/CUSTOM_PLUGINS.md) · [Advanced networking](docs/ADVANCED.md) · [API](openapi.yaml) · [Go edition (in development)](go/README.md)
+
+Source code is in `src/`, HTTP entry points in `public/`, and checks in `tests/`. See [tests/README.md](tests/README.md) for development validation.
+
+MuchoCore and MuchoProtect are developed by **IZK © 2026**, with contributor and third-party rights respected. Source code: [MIT](LICENSE). Geometry Dash and its assets belong to their respective owners. [Website terms](https://muchogdps.space/legal/terms/) do not override the source-code license.
