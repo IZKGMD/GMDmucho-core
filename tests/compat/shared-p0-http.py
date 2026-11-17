@@ -14,6 +14,7 @@ from pathlib import Path
 import shutil
 import socket
 import subprocess
+import sys
 import tempfile
 import time
 import urllib.error
@@ -287,6 +288,8 @@ def run(php, report):
                 return post("/a/downloadGJLevel22.php", dict(download_request, inc=1), worker=index % 3)
             with ThreadPoolExecutor(max_workers=6) as pool:
                 results = list(pool.map(concurrent_download, range(12)))
+            invalid = [body[:256] for body in results if not body.startswith("1:" + level + ":")]
+            require(not invalid, "Concurrent download returned malformed responses: %r" % invalid)
             require(all(fields(body.split("#")[0])["1"] == level for body in results), "Concurrent download response")
             state = fixture("inspect")
             require(int(state["levels"][0]["downloads"]) == 2 and state["download_slots"] == 2,
@@ -647,6 +650,9 @@ def run(php, report):
                 server.wait(timeout=10)
             for log in logs:
                 log.close()
+            if sys.exc_info()[0] is not None:
+                for path in sorted(root.glob("server-*.log")):
+                    print(path.name + ":\n" + path.read_text(errors="replace")[-4000:], file=sys.stderr)
             if (root / "config/php7-local.php").exists():
                 fixture("drop")
 
