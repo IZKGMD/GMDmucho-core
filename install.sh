@@ -1190,7 +1190,7 @@ cat <<EOFOUT
 MuchoCore is installed.
 
 GDPS:   https://$DOMAIN
-Admin:  https://$DOMAIN/admin/
+Admin access: https://$DOMAIN/admin/
 Login:  $ADMIN_USER (use your chosen password)
 
 Next: sign in and open More tools → Clients & extensions → Web Client Patcher.
