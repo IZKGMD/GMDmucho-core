@@ -120,6 +120,23 @@ foreach (array('src/Core/Application.php', 'compat/php7/core/src/Core/Applicatio
     }
 }
 
+// Check actual PHP7 router dispatch (without DB or account secrets), not
+// only that the normalization method returned a familiar-looking string.
+$probe = new \MuchoCore\Routing\Router();
+foreach ($referencePaths as $original) {
+    $canonical = $router->normalizePath($original);
+    $probe->add('POST', $canonical, function ($request) use ($canonical) {
+        return \MuchoCore\Http\Response::text($canonical);
+    });
+}
+foreach ($referencePaths as $original) {
+    $canonical = $router->normalizePath($original);
+    $request = new \MuchoCore\Http\Request('POST', $original, array(), array(), array());
+    $actual = $probe->dispatch($request);
+    halogenRouteCheck($actual->body === $canonical,
+        'PHP7 router dispatch mismatch: ' . $original . ' -> ' . $canonical);
+}
+
 // Compiled PHP7 and original PHP8 aliases must evolve together. Otherwise a
 // valid-looking Halogen or GD 2.209 request can route differently on 5v.pl.
 function halogenExtractAliases($source)
