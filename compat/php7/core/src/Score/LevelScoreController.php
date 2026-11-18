@@ -21,59 +21,92 @@ final class LevelScoreController
         $this->db = $db;
         $this->auth = $auth;
     }
+    /**
+     * GD 2.209 level scoreboard:
+     * - without percent: authenticate and fetch, never submit a 0% score;
+     * - when type is absent: use the client's default friends table (0);
+     * - with percent (including explicit 0): validate then submit.
+     * Reference: boomlings.dev/endpoints/levels/getGJLevelScores211
+     */
     public function regular(Request $request): Response
     {
         $data = !empty($request->post) ? $request->post : $_POST;
         $accountId = $this->strictInt($data['accountID'] ?? null);
         $gjp = $request->gdCredential();
         $levelId = $this->strictInt($data['levelID'] ?? null);
-        $percent = $this->strictInt($data['percent'] ?? null);
-        $type = array_key_exists('type', $data) ? $this->strictInt($data['type']) : 1;
-        if ($accountId <= 0 || $levelId <= 0 || $gjp === '' || $percent < 0 || $percent > 100 || !in_array($type, [0, 1, 2], true)) {
+        $type = array_key_exists('type', $data)
+            ? $this->strictInt($data['type']) : 0;
+
+        // A missing percent means "read the leaderboard", not "submit 0".
+        // Invalid values must not silently turn into an actual 0% upload.
+        $hasPercent = array_key_exists('percent', $data);
+        $percent = 0;
+        if ($hasPercent) {
+            $raw = $data['percent'];
+            if (!is_int($raw) &&
+                (!is_string($raw) || preg_match('/^[0-9]{1,3}$/D', $raw) !== 1)) {
+                return Response::text('-1');
+            }
+            $percent = (int)$raw;
+        }
+
+        if ($accountId <= 0 || $levelId <= 0 || $gjp === ''
+            || $percent < 0 || $percent > 100
+            || !in_array($type, [0, 1, 2], true)) {
             return Response::text('-1');
         }
+
         try {
             $this->auth->authenticate($accountId, $gjp);
             if (!$this->levelExists($levelId)) {
                 return Response::text('-1');
             }
-            $attempts = $this->decodedNumber($data, 's1', 8354, 0, 1000000);
-            if ($attempts === null) {
-                return Response::text('-1');
-            }
-            $clicks = $this->decodedNumber($data, 's2', 3991, 0, 10000000);
-            if ($clicks === null) {
-                return Response::text('-1');
-            }
-            $playTime = $this->decodedNumber($data, 's3', 4085, 0, 86400);
-            if ($playTime === null) {
-                return Response::text('-1');
-            }
-            $coins = $this->decodedNumber($data, 's9', 5819, 0, 3);
-            if ($coins === null) {
-                return Response::text('-1');
-            }
+
             $dailyId = $this->strictInt($data['s10'] ?? 0);
             if ($dailyId < 0) {
                 return Response::text('-1');
             }
             $isDaily = $dailyId > 0 ? 1 : 0;
-            $progresses = $this->decodeProgresses($data['s6'] ?? '');
-            if ($progresses === null) {
-                return Response::text('-1');
+
+            if ($hasPercent) {
+                $attempts = $this->decodedNumber($data, 's1', 8354, 0, 1000000);
+                $clicks = $this->decodedNumber($data, 's2', 3991, 0, 10000000);
+                $playTime = $this->decodedNumber($data, 's3', 4085, 0, 86400);
+                $coins = $this->decodedNumber($data, 's9', 5819, 0, 3);
+                $progresses = $this->decodeProgresses($data['s6'] ?? '');
+
+                if ($attempts === null || $clicks === null ||
+                    $playTime === null || $coins === null ||
+                    $progresses === null || strlen($progresses) > 100000) {
+                    return Response::text('-1');
+                }
+
+                $scoreId = $this->saveScore(
+                    $accountId, $levelId, $percent, $coins, $attempts,
+                    $clicks, $playTime, $progresses, $dailyId, $isDaily
+                );
+                if ($scoreId !== null) {
+                    ScoreIntegrity::record(
+                        $this->db,
+                        $isDaily ? 'regular_daily' : 'regular',
+                        $scoreId,
+                        $accountId,
+                        $levelId,
+                        ScoreIntegrity::evaluateRegular(
+                            $percent, $attempts, $clicks, $playTime, $progresses
+                        )
+                    );
+                }
             }
-            if (strlen($progresses) > 100000) {
-                return Response::text('-1');
-            }
-            $scoreId = $this->saveScore($accountId, $levelId, $percent, $coins, $attempts, $clicks, $playTime, $progresses, $dailyId, $isDaily);
-            if ($scoreId !== null) {
-                ScoreIntegrity::record($this->db, $isDaily ? 'regular_daily' : 'regular', $scoreId, $accountId, $levelId, ScoreIntegrity::evaluateRegular($percent, $attempts, $clicks, $playTime, $progresses));
-            }
-            return Response::text($this->leaderboard($accountId, $levelId, $isDaily, $type));
-        } catch (Throwable $__mcCaught) {
+
+            return Response::text(
+                $this->leaderboard($accountId, $levelId, $isDaily, $type)
+            );
+        } catch (Throwable $e) {
             return Response::text('-1');
         }
     }
+
     private function levelExists(int $levelId): bool
     {
         $q = $this->db->prepare("\n            SELECT 1\n\n            FROM levels\n\n            WHERE level_id=:level\n              AND is_deleted=0\n\n            LIMIT 1\n        ");
