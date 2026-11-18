@@ -153,7 +153,7 @@
   "src/Compatibility/CompatibilityProfile.php": "50d93353e5a785fc9040798198fae97096c55315f20ab7cb5980391b5d112398",
   "src/Compatibility/DiscoveryController.php": "9b43c46edba5b1a2cc48cf81bab27a4b7cc4bbd039260fb3569999cc9ab97ce5",
   "src/Compatibility/Gd2209UtilityController.php": "8e10e6d5bf596633189c4251f962d315995558a16a87a2e9d59fdccefc8be1bc",
-  "src/Compatibility/Gd2209UtilityService.php": "ecd271d1b4639636bd48f22c2628020fab089198cb2c547d41df52d02fc5cdd7",
+  "src/Compatibility/Gd2209UtilityService.php": "7773bdae665b276fb8570af087343224ef78ff4f0d7b649e55a39dbd2293e675",
   "src/Compatibility/Legacy10IdentityController.php": "aedeebf3797de0218109eba3d552d90ed10dd853b78589d57640e9cea0204403",
   "src/Compatibility/Legacy10IdentityService.php": "f137e0565c24b5cf356d2a8ecc5f7cb52dd1ecd51cf908e0f77377045d6c8c3e",
   "src/Core/Application.php": "c2dc245c4ab801a1598772a3ab98cab0a6af6511943aa3483c76747740906c84",
