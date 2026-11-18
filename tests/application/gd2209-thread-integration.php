@@ -442,13 +442,13 @@ try {
     $check($service->search(1,'pass-1',$dm,'Private',0) === [] &&
         count($service->search(1,'pass-1',$dm,'Keep original',0)) === 1,
         'legacy search obeys clear boundary and finds post-clear content');
-    $check($service->nativeThreads(2,'pass-2',0,1)['rows'][0]['unread_count'] === 2,
+    $check((int)$service->nativeThreads(2,'pass-2',0,1)['rows'][0]['unread_count'] === 2,
         'unread count includes only the two peer messages, not own reply');
     $check($mode(2,'pass-2',0,3,(string)$dm) === '1' &&
-        $service->nativeThreads(2,'pass-2',0,1)['rows'][0]['unread_count'] === 0,
+        (int)$service->nativeThreads(2,'pass-2',0,1)['rows'][0]['unread_count'] === 0,
         'native read acknowledgement clears all peer-unread messages');
     $check($mode(1,'pass-1',$dm,1) === '1' &&
-        $service->nativeThreads(1,'pass-1',0,1)['rows'][0]['unread_count'] === 0,
+        (int)$service->nativeThreads(1,'pass-1',0,1)['rows'][0]['unread_count'] === 0,
         'clear history cannot leave unread badges on hidden messages');
 
     // Legacy/imported accounts can lack profile rows. A member and a
