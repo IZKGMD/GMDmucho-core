@@ -30,6 +30,14 @@ Date: 2026-11-18. Scope: PHP8 canonical runtime + compiled PHP7, not Go.
    recipient, non-deleted receiver copy, and unread state. Sender reads
    remain read-only.
 
+4. **Friend requests, friend/block lists, 2.209 followed/muted users.**
+   `RelationshipRepository` used `JOIN profiles` for six list queries.
+   Imported accounts without a profile row were missing from results even
+   when a matching friend/request/follow/block row existed. The request count
+   could therefore disagree with its visible page. All six now use
+   `LEFT JOIN profiles`, relying on existing encoder defaults for icons,
+   username and fallback user ID. No new profile is created on a read.
+
 ## Regression coverage
 
 - `tests/application/like-integrity-integration.php`: MariaDB vote
@@ -42,7 +50,11 @@ Date: 2026-11-18. Scope: PHP8 canonical runtime + compiled PHP7, not Go.
   marks it read, and deleted/unrelated actors remain forbidden.
 - `tests/compat/php7-social-input-parity.php`: cross-runtime guard for
   compiled PHP7 and canonical PHP8, also executed under PHP 7.0 CI.
-- `compat/php7/core/sources.json` pins the three changed PHP8 originals.
+- `tests/application/gd2209-legacy-social-profiles-sqlite.php`: real SQLite
+  query regression for missing legacy profiles in inbox/outbox requests,
+  friends, blocks, followed and muted lists. Validates wire fallback and
+  request count consistency.
+- `compat/php7/core/sources.json` pins the four changed PHP8 originals.
 
 ## Non-goals and acceptance
 
