@@ -47,7 +47,10 @@ try {
         cube INT NOT NULL DEFAULT 1,
         color1 INT NOT NULL DEFAULT 0,
         color2 INT NOT NULL DEFAULT 3,
-        special INT NOT NULL DEFAULT 0
+        special INT NOT NULL DEFAULT 0,
+        stars INT NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB');
     $insert = $db->prepare('INSERT INTO accounts
         (account_id,username,password_hash,gjp2_hash)
