@@ -24,7 +24,16 @@ final readonly class Gd2209ThreadActionService
             !preg_match('/^[1-9][0-9]*(?:,[1-9][0-9]*){0,31}$/D', $value)) {
             throw new RuntimeException('Invalid native IDs');
         }
-        $ids = array_map('intval', explode(',', $value));
+        // Reject numeric overflow instead of silently coercing to PHP_INT_MAX.
+        $ids = array_map(static function (string $part): int {
+            $id = filter_var($part, FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 1],
+            ]);
+            if ($id === false) {
+                throw new RuntimeException('Invalid or overflowing account/thread ID');
+            }
+            return $id;
+        }, explode(',', $value));
         if (count(array_unique($ids)) !== count($ids)
             || in_array(0, $ids, true)) {
             throw new RuntimeException('Duplicate or invalid ID');
