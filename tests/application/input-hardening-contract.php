@@ -62,4 +62,21 @@ assertInputHardening(
     'platformer scores enforce strict integer and bounded score inputs'
 );
 
+assertInputHardening(
+    str_contains($regular, "array_key_exists('type', \$data)") &&
+    str_contains($regular, "preg_match('/^[0-9]{1,2}$/D'") &&
+    str_contains($regular, "array_key_exists('s10', \$data)") &&
+    str_contains($regular, "preg_match('/^[0-9]{1,10}$/D'"),
+    'regular score rejects malformed selectors and timely IDs'
+);
+
+assertInputHardening(
+    str_contains($platformer, "\$this->strictInt(\$d['accountID'] ?? null)") &&
+    str_contains($platformer, "\$this->strictInt(\$d['levelID'] ?? null)") &&
+    str_contains($platformer, "\$this->strictInt(\$d['mode'] ?? 0)") &&
+    str_contains($platformer, "\$this->strictInt(\$d['type'] ?? 0)") &&
+    str_contains($platformer, "gmdate("),
+    'platformer score identifiers and selectors are strictly parsed and UTC-stable'
+);
+
 echo "MUCHOCORE_INPUT_HARDENING_OK\n";
