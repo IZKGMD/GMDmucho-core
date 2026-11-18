@@ -154,11 +154,11 @@ try{
         'exactly one new score created');
     // GD 2.209 platformer leaderboard uses the same client credentials.
     // Bad numeric identities and selectors MUST NOT be cast to valid values.
-    $plat = new \\MuchoCore\\Score\\PlatformerScoreController(
-        $db,new \\MuchoCore\\Account\\AccountAuthenticator($db)
+    $plat = new \MuchoCore\Score\PlatformerScoreController(
+        $db,new \MuchoCore\Account\AccountAuthenticator($db)
     );
     $platReq=function($extra=array()) {
-        return new \\MuchoCore\\Http\\Request('POST',
+        return new \MuchoCore\Http\Request('POST',
             '/database/getGJLevelScoresPlat.php',array(),
             array_merge(array(
                 'accountID'=>'1',
@@ -209,7 +209,7 @@ try{
     scoreReadCheck((int)$db->query('SELECT COUNT(*) FROM mucho_platformer_scores')->fetchColumn()===1,
         'platformer fetch never creates a second score');
 
-    echo "MUCHOCORE_GD2209_SCORE_READONLY_MYSQL_OK\\n";
+    echo "MUCHOCORE_GD2209_SCORE_READONLY_MYSQL_OK\n";
 }finally{
     $admin->exec('DROP DATABASE IF EXISTS '.$dbName);
 }
