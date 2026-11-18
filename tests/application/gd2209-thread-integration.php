@@ -430,6 +430,14 @@ try {
     $check(count($dmList['rows']) === 1 &&
         (int)$dmList['rows'][0]['unread_count'] === 1,
         'native unread counter excludes own sent DM messages');
+    // Earlier in this fixture we injected 52 archive rows from account 1
+    // solely to test pagination. Move those fixture records outside the
+    // minute-rate window so this real send still respects anti-spam.
+    $db->prepare(
+        'UPDATE mucho_thread_messages
+         SET created_at=DATE_SUB(UTC_TIMESTAMP(), INTERVAL 2 MINUTE)
+         WHERE thread_id=:thread AND sender_account_id=1'
+    )->execute(['thread'=>$newGroup]);
     $preserved = '  Keep original whitespace  ';
     $paddedId = $service->sendWithId(1,'pass-1',$dm,$preserved);
     $check($paddedId > 0 &&
