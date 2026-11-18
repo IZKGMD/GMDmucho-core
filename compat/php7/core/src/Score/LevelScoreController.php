@@ -6,7 +6,6 @@ namespace MuchoCore\Score;
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
-use MuchoCore\User\UserRepository;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -100,74 +99,138 @@ final class LevelScoreController
         }
         return $scoreId;
     }
-    private function leaderboard(int $accountId, int $levelId, int $isDaily, int $type): string
-    {
-        $params = ['level' => $levelId, 'daily' => $isDaily];
-        $where = "\n            level_id=:level\n            AND is_daily=:daily\n            AND EXISTS (\n                SELECT 1\n                FROM accounts a\n                WHERE a.account_id=mucho_level_scores.account_id\n                  AND a.is_active=1\n                  AND a.is_banned=0\n            )\n        ";
+    /**
+     * Render the native GD level-score list with one bounded SQL request.
+     *
+     * Previously each of up to 100 rows called getProfileByTarget(), which
+     * performed several additional SELECTs and a possible profile INSERT.
+     * This path only needs the public icon/identity fields, so joining the
+     * two indexed account tables is both sufficient and safer for read-only
+     * leaderboards. Keep bans, friend scopes and quarantine ahead of LIMIT.
+     */
+    private function leaderboard(
+        int $accountId,
+        int $levelId,
+        int $isDaily,
+        int $type
+    ): string {
+        $params = [
+            'level' => $levelId,
+            'daily' => $isDaily,
+        ];
+
+        $where = '
+            s.level_id=:level
+            AND s.is_daily=:daily
+            AND a.is_active=1
+            AND a.is_banned=0
+        ';
+
         if (ScoreIntegrity::quarantineEnabled()) {
-            $where .= "\n                AND NOT EXISTS (\n                    SELECT 1\n                    FROM mucho_score_integrity_events si\n                    WHERE si.score_type=:integrity_type\n                      AND si.score_id=mucho_level_scores.score_id\n                      AND si.status IN ('suspicious','quarantined')\n                      AND si.risk_score>=70\n                )\n            ";
-            $params['integrity_type'] = $isDaily ? 'regular_daily' : 'regular';
+            $where .= "
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM mucho_score_integrity_events si
+                    WHERE si.score_type=:integrity_type
+                      AND si.score_id=s.score_id
+                      AND si.status IN ('suspicious','quarantined')
+                      AND si.risk_score>=70
+                )
+            ";
+            $params['integrity_type'] =
+                $isDaily ? 'regular_daily' : 'regular';
         }
-        /*
-         * type 0 = friends
-         * type 1 = global
-         * type 2 = last 7 days
-         */
+
+        // type=0 friends, type=1 global, type=2 recent.
         if ($type === 0) {
             $friends = $this->friendAccountIds($accountId);
-            $holders = [];
-            foreach (array_values($friends) as $i => $id) {
-                $key = 'friend_' . $i;
-                $holders[] = ':' . $key;
-                $params[$key] = $id;
-            }
-            if (!$holders) {
+            if ($friends === []) {
                 return '';
             }
-            $where .= "\n                AND account_id IN (" . implode(',', $holders) . ")\n            ";
+
+            $placeholders = [];
+            foreach (array_values($friends) as $i => $friendId) {
+                $key = 'friend_' . $i;
+                $placeholders[] = ':' . $key;
+                $params[$key] = $friendId;
+            }
+
+            $where .= '
+                AND s.account_id IN (' .
+                    implode(',', $placeholders) . ')
+            ';
         } elseif ($type === 2) {
-            $where .= "\n                AND updated_at>:recent\n            ";
+            $where .= ' AND s.updated_at>:recent';
             $params['recent'] = time() - 604800;
         }
-        $sql = "\n            SELECT\n                account_id,\n                percent,\n                coins,\n                updated_at\n\n            FROM mucho_level_scores\n\n            WHERE " . $where . "\n\n            ORDER BY\n                percent DESC,\n                updated_at ASC\n\n            LIMIT 100\n        ";
-        $q = $this->db->prepare($sql);
-        $q->execute($params);
-        $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+
+        $sql = "
+            SELECT
+                s.account_id,
+                s.percent,
+                s.coins,
+                s.updated_at,
+                a.username,
+                COALESCE(p.user_id, s.account_id) AS user_id,
+                COALESCE(p.cube, 1) AS cube,
+                COALESCE(p.color1, 0) AS color1,
+                COALESCE(p.color2, 3) AS color2,
+                COALESCE(p.color3, 0) AS color3,
+                COALESCE(p.icon_type, 0) AS icon_type,
+                COALESCE(p.special, 0) AS special
+            FROM mucho_level_scores s
+            INNER JOIN accounts a ON a.account_id=s.account_id
+            LEFT JOIN profiles p ON p.account_id=s.account_id
+            WHERE " . $where . "
+            ORDER BY
+                s.percent DESC,
+                s.updated_at ASC
+            LIMIT 100
+        ";
+
+        $query = $this->db->prepare($sql);
+        $query->execute($params);
+        $rows = $query->fetchAll(PDO::FETCH_ASSOC);
         if (!$rows) {
             return '';
         }
-        $users = new UserRepository($this->db);
+
         $out = '';
         foreach ($rows as $score) {
-            $profile = $users->getProfileByTarget((int) $score['account_id']);
-            if (!$profile) {
-                continue;
-            }
-            if ((int) $this->value($profile, ['is_banned', 'isBanned'], 0) !== 0) {
-                continue;
-            }
-            $username = (string) $this->value($profile, ['username', 'user_name', 'userName'], '');
+            $username = (string)$score['username'];
             if ($username === '') {
                 continue;
             }
             $username = \MuchoCore\Protocol\ProtocolText::username($username);
-            $userId = (int) $this->value($profile, ['user_id', 'userID', 'id'], (int) $score['account_id']);
+
+            $id = (int)$score['account_id'];
+            $userId = (int)$score['user_id'];
             if ($userId <= 0) {
-                $userId = (int) $score['account_id'];
+                $userId = $id;
             }
-            $icon = (int) $this->value($profile, ['active_icon', 'icon', 'cube'], 1);
-            $color1 = (int) $this->value($profile, ['color1'], 0);
-            $color2 = (int) $this->value($profile, ['color2'], 3);
-            $color3 = (int) $this->value($profile, ['color3'], 0);
-            $iconType = (int) $this->value($profile, ['icon_type', 'iconType'], 0);
-            $special = (int) $this->value($profile, ['special', 'acc_special'], 0);
-            $percent = (int) $score['percent'];
+
+            $percent = (int)$score['percent'];
             $place = $percent === 100 ? 1 : ($percent > 75 ? 2 : 3);
-            $date = gmdate('d/m/Y G.i', (int) $score['updated_at']);
-            $out .= '1:' . $username . ':2:' . $userId . ':9:' . $icon . ':10:' . $color1 . ':11:' . $color2 . ':51:' . $color3 . ':14:' . $iconType . ':15:' . $special . ':16:' . (int) $score['account_id'] . ':3:' . $percent . ':6:' . $place . ':13:' . (int) $score['coins'] . ':42:' . $date . '|';
+
+            $out .= '1:' . $username
+                . ':2:' . $userId
+                . ':9:' . (int)$score['cube']
+                . ':10:' . (int)$score['color1']
+                . ':11:' . (int)$score['color2']
+                . ':51:' . (int)$score['color3']
+                . ':14:' . (int)$score['icon_type']
+                . ':15:' . (int)$score['special']
+                . ':16:' . $id
+                . ':3:' . $percent
+                . ':6:' . $place
+                . ':13:' . (int)$score['coins']
+                . ':42:' . gmdate('d/m/Y G.i', (int)$score['updated_at'])
+                . '|';
         }
+
         return rtrim($out, '|');
     }
+
     private function friendAccountIds(int $accountId): array
     {
         $ids = [$accountId => $accountId];
