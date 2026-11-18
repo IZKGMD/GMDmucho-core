@@ -17,6 +17,7 @@ foreach (array('src', 'compat/php7/core/src') as $source) {
     $like = file_get_contents($root . '/' . $source . '/Interaction/LikeController.php');
     $comment = file_get_contents($root . '/' . $source . '/Interaction/CommentController.php');
     $message = file_get_contents($root . '/' . $source . '/Social/MessageRepository.php');
+    $relationships = file_get_contents($root . '/' . $source . '/Social/RelationshipRepository.php');
     socialGuard(is_string($like) && is_string($comment) && is_string($message),
         'missing source in ' . $source);
     foreach (array(
@@ -37,6 +38,9 @@ foreach (array('src', 'compat/php7/core/src') as $source) {
         strpos($comment, '?: ($_POST') === false &&
         strpos($comment, 'return $request->postString($key);') !== false,
         'comment controller uses unsafe global fallback in ' . $source);
+    socialGuard(is_string($relationships) &&
+        substr_count($relationships, 'LEFT JOIN profiles p') >= 6,
+        'friend and request joins incorrectly drop legacy missing profiles in ' . $source);
     socialGuard(
         strpos($message, 'AND to_account_id=:recipient') !== false &&
         strpos($message, 'AND is_receiver_deleted=0') !== false &&
