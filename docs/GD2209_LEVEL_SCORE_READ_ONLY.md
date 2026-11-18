@@ -50,3 +50,28 @@ It runs under PHP8 in Validate and compiled native PHP7 under both PHP
 7.0 and 8.3 in Native PHP7 CI. Passing these tests is not a substitute
 for a real GD 2.209 client run on 5v.pl. The PHP7.0 runtime itself is
 end-of-life and cannot be security-certified.
+
+## Additional batch: malformed selectors and platformer scores
+
+The same endpoint family exposed further issues while auditing the request
+handlers together:
+
+1. A malformed explicit `type` (for example `abc`) silently became the
+   valid friends selector (0). A malformed explicit `s10` was likewise
+   converted to an ordinary score (`daily_id=0`). Both are rejected now.
+2. `getGJLevelScoresPlat` cast `accountID`, `levelID`, `mode` and `type`
+   with PHP's permissive `(int)`. A string such as `1junk` could be
+   accepted as a valid account or mode. All four values now use the
+   existing strict integer parser, preserving omitted optional defaults.
+3. The platformer leaderboard formatted its date using the server's
+   configured timezone, while normal level scores use UTC. Switching to
+   `gmdate()` eliminates host-dependent wire differences.
+
+All fixes are mirrored in the native PHP7 compiled score controllers and
+are guarded by the **same isolated MariaDB test** on PHP8 and PHP7. The
+fixture exercises invalid types, malformed timely IDs, non-numeric platformer
+identifiers, valid write/improvement/read flows, absence of side effects,
+and UTC formatting under a deliberately non-UTC server timezone.
+
+The contract tests only establish source/fixture behavior. Actual client
+acceptance and on-provider performance are still separate release gates.
