@@ -38,6 +38,13 @@ final readonly class LevelScoreController
         $accountId = $this->strictInt($data['accountID'] ?? null);
         $gjp = $request->gdCredential();
         $levelId = $this->strictInt($data['levelID'] ?? null);
+        // Explicit malformed type must not silently become "friends".
+        if (array_key_exists('type', $data)
+            && !(is_int($data['type']) ||
+                 (is_string($data['type']) &&
+                  preg_match('/^[0-9]{1,2}$/D', $data['type']) === 1))) {
+            return Response::text('-1');
+        }
         $type = array_key_exists('type', $data)
             ? $this->strictInt($data['type']) : 0;
 
@@ -66,6 +73,13 @@ final readonly class LevelScoreController
                 return Response::text('-1');
             }
 
+            // A malformed timely ID is not the ordinary leaderboard.
+            if (array_key_exists('s10', $data)
+                && !(is_int($data['s10']) ||
+                     (is_string($data['s10']) &&
+                      preg_match('/^[0-9]{1,10}$/D', $data['s10']) === 1))) {
+                return Response::text('-1');
+            }
             $dailyId = $this->strictInt($data['s10'] ?? 0);
             if ($dailyId < 0) {
                 return Response::text('-1');
