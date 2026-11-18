@@ -770,7 +770,9 @@ jobs:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
-        run: php tests/application/cloudsave-consistency-integration.php
+        run: |
+          php tests/application/cloudsave-consistency-integration.php
+          php tests/compat/php7-native-cloudsave-history-mysql.php
 
       - name: Verify queue leases and database cache races
         env:
