@@ -131,8 +131,13 @@ final readonly class MessageRepository
             (int)$m['is_read'] === 0
         ) {
             $this->pdo->prepare(
-                'UPDATE messages SET is_read=1 WHERE id=:id'
-            )->execute(['id'=>$messageId]);
+                'UPDATE messages
+                 SET is_read=1
+                 WHERE id=:id
+                   AND to_account_id=:recipient
+                   AND is_receiver_deleted=0
+                   AND is_read=0'
+            )->execute(['id'=>$messageId, 'recipient'=>$accountId]);
 
             $m['is_read'] = 1;
         }
