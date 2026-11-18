@@ -64,7 +64,12 @@ final class MessageRepository
             return null;
         }
         if (!\mucho7_domain_read_only() && ((int) $m['to_account_id'] === $accountId && (int) $m['is_read'] === 0)) {
-            $this->pdo->prepare('UPDATE messages SET is_read=1 WHERE id=:id')->execute(['id' => $messageId]);
+            $this->pdo->prepare('UPDATE messages
+                 SET is_read=1
+                 WHERE id=:id
+                   AND to_account_id=:recipient
+                   AND is_receiver_deleted=0
+                   AND is_read=0')->execute(['id' => $messageId, 'recipient' => $accountId]);
             $m['is_read'] = 1;
         }
         return $m;

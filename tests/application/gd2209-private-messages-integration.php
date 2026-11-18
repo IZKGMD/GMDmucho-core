@@ -152,6 +152,13 @@ try {
     $check(str_contains($outbox, ':4:' . $subjectWire . ':8:'),
         'sender outbox contains Base64 subject');
 
+    // Sender can review the outbox, but must not acknowledge the
+    // recipient's unread inbox copy (read state belongs to recipient).
+    $check(str_contains($messages->readMessage(1, 'test-1', $id), ':5:' . $bodyWire . ':7:'),
+        'sender can read own sent message');
+    $check((int)$db->query('SELECT is_read FROM messages WHERE id=' . $id)->fetchColumn() === 0,
+        'sender reading outbox cannot mark recipient inbox as read');
+
     $check($messages->readMessage(3, 'test-3', $id) === '-1',
         'unrelated account cannot read message');
     $check(str_contains($messages->readMessage(2, 'test-2', $id), ':5:' . $bodyWire . ':7:'),
