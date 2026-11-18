@@ -395,8 +395,8 @@ final readonly class ThreadService
         )) {
             return 0;
         }
-        $body = trim($body);
-        if ($body === '' || mb_strlen($body, 'UTF-8') > 4000 ||
+        // Reject empty/whitespace-only bodies without altering user bytes.
+        if (trim($body) === '' || mb_strlen($body, 'UTF-8') > 4000 ||
             strlen($body) > 16000) {
             return 0;
         }
@@ -542,7 +542,7 @@ final readonly class ThreadService
                     p.color2,p.special
              FROM mucho_thread_members m
              JOIN accounts a ON a.account_id=m.account_id
-             JOIN profiles p ON p.account_id=a.account_id
+             LEFT JOIN profiles p ON p.account_id=a.account_id
              WHERE m.thread_id=:thread
              ORDER BY m.joined_at ASC,m.account_id ASC LIMIT 32'
         );
@@ -554,7 +554,7 @@ final readonly class ThreadService
                     p.user_id,p.cube,p.color1,p.color2,p.special
              FROM mucho_thread_invites i
              JOIN accounts a ON a.account_id=i.invitee_account_id
-             JOIN profiles p ON p.account_id=i.invitee_account_id
+             LEFT JOIN profiles p ON p.account_id=i.invitee_account_id
              WHERE i.thread_id=:thread AND i.status='pending'
              ORDER BY i.id DESC LIMIT 32"
         );
@@ -630,7 +630,9 @@ final readonly class ThreadService
                 (SELECT COUNT(*) FROM mucho_thread_members mt
                  WHERE mt.thread_id=t.id) AS member_count,
                 (SELECT COUNT(*) FROM mucho_thread_messages un
-                 WHERE un.thread_id=t.id AND un.id>m.last_read_message_id) AS unread_count,
+                 WHERE un.thread_id=t.id
+                   AND un.id>GREATEST(m.last_read_message_id,m.last_cleared_message_id)
+                   AND un.sender_account_id<>:actor_unread) AS unread_count,
                 (SELECT lm.sender_account_id
                  FROM mucho_thread_messages lm WHERE lm.thread_id=t.id
                  ORDER BY lm.id DESC LIMIT 1) AS last_sender,
@@ -654,7 +656,7 @@ final readonly class ThreadService
             ' ORDER BY m.is_pinned DESC,t.updated_at DESC,t.id DESC LIMIT 10 OFFSET ' . $offset;
         $stmt = $this->db->prepare($sql);
         $stmt->execute(array_merge(
-            ['actor'=>$accountId,'actor_peer'=>$accountId], $extra
+            ['actor'=>$accountId,'actor_peer'=>$accountId,'actor_unread'=>$accountId], $extra
         ));
         return [
             'rows'=>$stmt->fetchAll(PDO::FETCH_ASSOC),
@@ -684,7 +686,7 @@ final readonly class ThreadService
                     p.color2,p.special
              FROM mucho_thread_members m JOIN accounts a
                  ON a.account_id=m.account_id
-             JOIN profiles p ON p.account_id=a.account_id
+             LEFT JOIN profiles p ON p.account_id=a.account_id
              WHERE m.thread_id=:thread
              ORDER BY m.joined_at ASC LIMIT 32'
         );
@@ -694,7 +696,7 @@ final readonly class ThreadService
                     p.user_id,p.cube,p.color1,p.color2,p.special
              FROM mucho_thread_invites i
              JOIN accounts a ON a.account_id=i.invitee_account_id
-             JOIN profiles p ON p.account_id=i.invitee_account_id
+             LEFT JOIN profiles p ON p.account_id=i.invitee_account_id
              WHERE i.thread_id=:thread AND i.status='pending'
              ORDER BY i.id DESC LIMIT 32"
         );
@@ -727,7 +729,8 @@ final readonly class ThreadService
     public function messages(int $accountId, string $credential, int $threadId, int $page): array
     {
         $this->authorize($accountId, $credential);
-        if (!$this->threadForMember($accountId, $threadId)) {
+        $state = $this->threadForMember($accountId, $threadId);
+        if (!$state) {
             return [];
         }
         $offset = max(0, min($page, 1000)) * 20;
@@ -735,10 +738,11 @@ final readonly class ThreadService
             "SELECT m.id,m.thread_id,m.sender_account_id,m.body,m.created_at,a.username
              FROM mucho_thread_messages m
              JOIN accounts a ON a.account_id=m.sender_account_id
-             WHERE m.thread_id=:thread
+             WHERE m.thread_id=:thread AND m.id>:cleared
              ORDER BY m.id DESC LIMIT 20 OFFSET {$offset}"
         );
-        $stmt->execute(['thread'=>$threadId]);
+        $stmt->execute(['thread'=>$threadId,
+            'cleared'=>(int)$state['last_cleared_message_id']]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -755,7 +759,7 @@ final readonly class ThreadService
             'SELECT m.account_id,a.username,p.user_id,p.cube,p.color1,p.color2,p.special
              FROM mucho_thread_members m
              JOIN accounts a ON a.account_id=m.account_id
-             JOIN profiles p ON p.account_id=a.account_id
+             LEFT JOIN profiles p ON p.account_id=a.account_id
              WHERE m.thread_id=:thread ORDER BY m.joined_at ASC,m.account_id ASC LIMIT 32'
         );
         $stmt->execute(['thread'=>$threadId]);
@@ -777,7 +781,7 @@ final readonly class ThreadService
              FROM mucho_thread_invites i
              JOIN mucho_threads t ON t.id=i.thread_id
              JOIN accounts a ON a.account_id=i.inviter_account_id
-             JOIN profiles p ON p.account_id=i.inviter_account_id
+             LEFT JOIN profiles p ON p.account_id=i.inviter_account_id
              WHERE i.invitee_account_id=:account AND i.status='pending'
                AND t.is_closed=0
              ORDER BY i.id DESC LIMIT 50"
@@ -848,7 +852,7 @@ final readonly class ThreadService
         $this->authorize($accountId, $credential);
         $term = trim($term);
         if (mb_strlen($term, 'UTF-8') < 2 || mb_strlen($term, 'UTF-8') > 120 ||
-            !$this->threadForMember($accountId, $threadId)) {
+            !($state = $this->threadForMember($accountId, $threadId))) {
             return [];
         }
         $escaped = addcslashes($term, '%_\\');
@@ -857,10 +861,14 @@ final readonly class ThreadService
             "SELECT m.id,m.thread_id,m.sender_account_id,m.body,m.created_at,a.username
              FROM mucho_thread_messages m
              JOIN accounts a ON a.account_id=m.sender_account_id
-             WHERE m.thread_id=:thread AND m.body LIKE :needle
+             WHERE m.thread_id=:thread AND m.id>:cleared AND m.body LIKE :needle
              ORDER BY m.id DESC LIMIT 20 OFFSET {$offset}"
         );
-        $stmt->execute(['thread'=>$threadId,'needle'=>'%'.$escaped.'%']);
+        $stmt->execute([
+            'thread'=>$threadId,
+            'cleared'=>(int)$state['last_cleared_message_id'],
+            'needle'=>'%'.$escaped.'%'
+        ]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

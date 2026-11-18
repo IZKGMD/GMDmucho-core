@@ -417,6 +417,76 @@ try {
         str_contains($earlierSegments[0], base64_encode('Hello group')),
         'native Show Earlier becomes zero on the actual oldest page');
 
+    // Cross-endpoint history privacy: legacy read/search must honor the
+    // member-specific clear marker already applied by native mode=1.
+    $check($service->messages(1,'pass-1',$dm,0) === [] &&
+        $service->search(1,'pass-1',$dm,'Private',0) === [],
+        'legacy message read/search cannot resurrect locally cleared DMs');
+    $check(count($service->messages(2,'pass-2',$dm,0)) === 2,
+        'other DM member retains history after peer clears their view');
+
+    // A sent message should not count as unread for its own author.
+    $dmList = $service->nativeThreads(2,'pass-2',0,1);
+    $check(count($dmList['rows']) === 1 &&
+        (int)$dmList['rows'][0]['unread_count'] === 1,
+        'native unread counter excludes own sent DM messages');
+    // Earlier in this fixture we injected 52 archive rows from account 1
+    // solely to test pagination. Move those fixture records outside the
+    // minute-rate window so this real send still respects anti-spam.
+    $db->prepare(
+        'UPDATE mucho_thread_messages
+         SET created_at=DATE_SUB(UTC_TIMESTAMP(), INTERVAL 2 MINUTE)
+         WHERE thread_id=:thread AND sender_account_id=1'
+    )->execute(['thread'=>$newGroup]);
+    $preserved = '  Keep original whitespace  ';
+    $paddedId = $service->sendWithId(1,'pass-1',$dm,$preserved);
+    $check($paddedId > 0 &&
+        $db->query('SELECT body FROM mucho_thread_messages WHERE id=' .
+            $paddedId)->fetchColumn() === $preserved,
+        'ordinary thread sends retain user body bytes like initial sends');
+    $check(count($service->messages(1,'pass-1',$dm,0)) === 1 &&
+        $service->messages(1,'pass-1',$dm,0)[0]['body'] === $preserved,
+        'cleared legacy history remains hidden, but new messages are visible');
+    $check($service->search(1,'pass-1',$dm,'Private',0) === [] &&
+        count($service->search(1,'pass-1',$dm,'Keep original',0)) === 1,
+        'legacy search obeys clear boundary and finds post-clear content');
+    $check((int)$service->nativeThreads(2,'pass-2',0,1)['rows'][0]['unread_count'] === 2,
+        'unread count includes only the two peer messages, not own reply');
+    $check($mode(2,'pass-2',0,3,(string)$dm) === '1' &&
+        (int)$service->nativeThreads(2,'pass-2',0,1)['rows'][0]['unread_count'] === 0,
+        'native read acknowledgement clears all peer-unread messages');
+    $check($mode(1,'pass-1',$dm,1) === '1' &&
+        (int)$service->nativeThreads(1,'pass-1',0,1)['rows'][0]['unread_count'] === 0,
+        'clear history cannot leave unread badges on hidden messages');
+
+    // Legacy/imported accounts can lack profile rows. A member and a
+    // pending invite must remain visible to the other participants.
+    $check($service->invite(1,'pass-1',$newGroup,3),
+        'owner can re-invite former pending recipient');
+    $db->exec('DELETE FROM profiles WHERE account_id IN (2,3)');
+    $dmSnapshot = $service->nativeSnapshot(1,'pass-1',$dm);
+    $check(count($dmSnapshot['members']) === 2 &&
+        count($service->members(1,'pass-1',$dm)) === 2 &&
+        count($service->nativeMemberView(1,'pass-1',$dm)['members']) === 2,
+        'missing legacy profile does not hide real DM membership');
+    $groupSnapshot = $service->nativeSnapshot(1,'pass-1',$newGroup);
+    $groupRoster = $service->nativeMemberView(1,'pass-1',$newGroup);
+    $check(count($groupSnapshot['invites']) === 1 &&
+        count($groupRoster['invites']) === 1 &&
+        (int)$groupSnapshot['invites'][0]['invitee_account_id'] === 3,
+        'missing profile does not erase pending native group invitation');
+    $wireRoster = $http->getMembers($req(1,'pass-1','getGJThreadMembers',[
+        'threadID'=>(string)$newGroup
+    ]))->body;
+    $check(str_contains($wireRoster, '3:3:' . base64_encode('Stranger')),
+        'native pending-invite wire uses account ID as safe user ID fallback');
+    // Preserve an active invitee profile while simulating an old owner
+    // without one; the authenticated invitee must still see the invite.
+    $db->exec('INSERT INTO profiles(account_id) VALUES(3)');
+    $db->exec('DELETE FROM profiles WHERE account_id=1');
+    $check(count($service->invites(3,'pass-3')) === 1,
+        'native inbox includes an invite when inviter profile is missing');
+
     $db->exec('DELETE FROM accounts WHERE account_id=1');
     $check(
         (int)$db->query('SELECT COUNT(*) FROM mucho_threads')->fetchColumn() === 0,

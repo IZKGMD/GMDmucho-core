@@ -858,7 +858,9 @@ jobs:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
-        run: php tests/application/gd2209-thread-integration.php
+        run: |
+          php tests/application/gd2209-thread-integration.php
+          php tests/compat/php7-native-threads-privacy-mysql.php
 
       - name: Verify GD 2.209 Daily, Weekly, Event, Quests and Rewards schema
         env:

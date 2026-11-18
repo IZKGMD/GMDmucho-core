@@ -273,8 +273,8 @@ final class ThreadService
         if (\MuchoCore\Moderation\Gd2209Restrictions::active($this->db, $accountId, 'message')) {
             return 0;
         }
-        $body = trim($body);
-        if ($body === '' || mb_strlen($body, 'UTF-8') > 4000 || strlen($body) > 16000) {
+        // Retain original message bytes; trim only for nonempty validation.
+        if (trim($body) === '' || mb_strlen($body, 'UTF-8') > 4000 || strlen($body) > 16000) {
             return 0;
         }
         $thread = $this->threadForMember($accountId, $threadId);
@@ -382,12 +382,12 @@ final class ThreadService
                     p.color2,p.special
              FROM mucho_thread_members m
              JOIN accounts a ON a.account_id=m.account_id
-             JOIN profiles p ON p.account_id=a.account_id
+             LEFT JOIN profiles p ON p.account_id=a.account_id
              WHERE m.thread_id=:thread
              ORDER BY m.joined_at ASC,m.account_id ASC LIMIT 32');
         $stmt->execute(['thread' => $threadId]);
         $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $stmt = $this->db->prepare("SELECT i.id,i.inviter_account_id,i.invitee_account_id,a.username,\n                    p.user_id,p.cube,p.color1,p.color2,p.special\n             FROM mucho_thread_invites i\n             JOIN accounts a ON a.account_id=i.invitee_account_id\n             JOIN profiles p ON p.account_id=i.invitee_account_id\n             WHERE i.thread_id=:thread AND i.status='pending'\n             ORDER BY i.id DESC LIMIT 32");
+        $stmt = $this->db->prepare("SELECT i.id,i.inviter_account_id,i.invitee_account_id,a.username,\n                    p.user_id,p.cube,p.color1,p.color2,p.special\n             FROM mucho_thread_invites i\n             JOIN accounts a ON a.account_id=i.invitee_account_id\n             LEFT JOIN profiles p ON p.account_id=i.invitee_account_id\n             WHERE i.thread_id=:thread AND i.status='pending'\n             ORDER BY i.id DESC LIMIT 32");
         $stmt->execute(['thread' => $threadId]);
         return ['thread' => $thread, 'messages' => $messages, 'members' => $members, 'invites' => $stmt->fetchAll(PDO::FETCH_ASSOC)];
     }
@@ -442,7 +442,9 @@ final class ThreadService
                 (SELECT COUNT(*) FROM mucho_thread_members mt
                  WHERE mt.thread_id=t.id) AS member_count,
                 (SELECT COUNT(*) FROM mucho_thread_messages un
-                 WHERE un.thread_id=t.id AND un.id>m.last_read_message_id) AS unread_count,
+                 WHERE un.thread_id=t.id
+                   AND un.id>GREATEST(m.last_read_message_id,m.last_cleared_message_id)
+                   AND un.sender_account_id<>:actor_unread) AS unread_count,
                 (SELECT lm.sender_account_id
                  FROM mucho_thread_messages lm WHERE lm.thread_id=t.id
                  ORDER BY lm.id DESC LIMIT 1) AS last_sender,
@@ -464,7 +466,7 @@ final class ThreadService
             LEFT JOIN profiles pp ON pp.account_id=peer.account_id
             WHERE ' . $where . ' ORDER BY m.is_pinned DESC,t.updated_at DESC,t.id DESC LIMIT 10 OFFSET ' . $offset;
         $stmt = $this->db->prepare($sql);
-        $stmt->execute(array_merge(['actor' => $accountId, 'actor_peer' => $accountId], $extra));
+        $stmt->execute(array_merge(['actor' => $accountId, 'actor_peer' => $accountId, 'actor_unread' => $accountId], $extra));
         return ['rows' => $stmt->fetchAll(PDO::FETCH_ASSOC), 'total' => $total, 'offset' => $offset, 'invites' => $inviteCount];
     }
     /** A member or an invited player may view the member roster. */
@@ -483,11 +485,11 @@ final class ThreadService
                     p.color2,p.special
              FROM mucho_thread_members m JOIN accounts a
                  ON a.account_id=m.account_id
-             JOIN profiles p ON p.account_id=a.account_id
+             LEFT JOIN profiles p ON p.account_id=a.account_id
              WHERE m.thread_id=:thread
              ORDER BY m.joined_at ASC LIMIT 32');
         $members->execute(['thread' => $threadId]);
-        $invites = $this->db->prepare("SELECT i.id,i.invitee_account_id,i.inviter_account_id,a.username,\n                    p.user_id,p.cube,p.color1,p.color2,p.special\n             FROM mucho_thread_invites i\n             JOIN accounts a ON a.account_id=i.invitee_account_id\n             JOIN profiles p ON p.account_id=i.invitee_account_id\n             WHERE i.thread_id=:thread AND i.status='pending'\n             ORDER BY i.id DESC LIMIT 32");
+        $invites = $this->db->prepare("SELECT i.id,i.invitee_account_id,i.inviter_account_id,a.username,\n                    p.user_id,p.cube,p.color1,p.color2,p.special\n             FROM mucho_thread_invites i\n             JOIN accounts a ON a.account_id=i.invitee_account_id\n             LEFT JOIN profiles p ON p.account_id=i.invitee_account_id\n             WHERE i.thread_id=:thread AND i.status='pending'\n             ORDER BY i.id DESC LIMIT 32");
         $invites->execute(['thread' => $threadId]);
         return ['members' => $members->fetchAll(PDO::FETCH_ASSOC), 'invites' => $invites->fetchAll(PDO::FETCH_ASSOC)];
     }
@@ -508,12 +510,12 @@ final class ThreadService
     public function messages(int $accountId, string $credential, int $threadId, int $page): array
     {
         $this->authorize($accountId, $credential);
-        if (!$this->threadForMember($accountId, $threadId)) {
+        if (!($state = $this->threadForMember($accountId, $threadId))) {
             return [];
         }
         $offset = max(0, min($page, 1000)) * 20;
-        $stmt = $this->db->prepare("SELECT m.id,m.thread_id,m.sender_account_id,m.body,m.created_at,a.username\n             FROM mucho_thread_messages m\n             JOIN accounts a ON a.account_id=m.sender_account_id\n             WHERE m.thread_id=:thread\n             ORDER BY m.id DESC LIMIT 20 OFFSET {$offset}");
-        $stmt->execute(['thread' => $threadId]);
+        $stmt = $this->db->prepare("SELECT m.id,m.thread_id,m.sender_account_id,m.body,m.created_at,a.username\n             FROM mucho_thread_messages m\n             JOIN accounts a ON a.account_id=m.sender_account_id\n             WHERE m.thread_id=:thread AND m.id>:cleared\n             ORDER BY m.id DESC LIMIT 20 OFFSET {$offset}");
+        $stmt->execute(['thread' => $threadId, 'cleared' => (int)$state['last_cleared_message_id']]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     /**
@@ -528,7 +530,7 @@ final class ThreadService
         $stmt = $this->db->prepare('SELECT m.account_id,a.username,p.user_id,p.cube,p.color1,p.color2,p.special
              FROM mucho_thread_members m
              JOIN accounts a ON a.account_id=m.account_id
-             JOIN profiles p ON p.account_id=a.account_id
+             LEFT JOIN profiles p ON p.account_id=a.account_id
              WHERE m.thread_id=:thread ORDER BY m.joined_at ASC,m.account_id ASC LIMIT 32');
         $stmt->execute(['thread' => $threadId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -539,7 +541,7 @@ final class ThreadService
     public function invites(int $accountId, string $credential): array
     {
         $this->authorize($accountId, $credential);
-        $stmt = $this->db->prepare("SELECT i.id,i.thread_id,i.inviter_account_id,\n                    t.title,t.description,t.emote,t.is_dm,\n                    i.created_at,a.username AS inviter_username,\n                    p.cube AS inviter_cube,p.color1 AS inviter_color1,\n                    p.color2 AS inviter_color2,p.special AS inviter_special\n             FROM mucho_thread_invites i\n             JOIN mucho_threads t ON t.id=i.thread_id\n             JOIN accounts a ON a.account_id=i.inviter_account_id\n             JOIN profiles p ON p.account_id=i.inviter_account_id\n             WHERE i.invitee_account_id=:account AND i.status='pending'\n               AND t.is_closed=0\n             ORDER BY i.id DESC LIMIT 50");
+        $stmt = $this->db->prepare("SELECT i.id,i.thread_id,i.inviter_account_id,\n                    t.title,t.description,t.emote,t.is_dm,\n                    i.created_at,a.username AS inviter_username,\n                    p.cube AS inviter_cube,p.color1 AS inviter_color1,\n                    p.color2 AS inviter_color2,p.special AS inviter_special\n             FROM mucho_thread_invites i\n             JOIN mucho_threads t ON t.id=i.thread_id\n             JOIN accounts a ON a.account_id=i.inviter_account_id\n             LEFT JOIN profiles p ON p.account_id=i.inviter_account_id\n             WHERE i.invitee_account_id=:account AND i.status='pending'\n               AND t.is_closed=0\n             ORDER BY i.id DESC LIMIT 50");
         $stmt->execute(['account' => $accountId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -585,13 +587,13 @@ final class ThreadService
     {
         $this->authorize($accountId, $credential);
         $term = trim($term);
-        if (mb_strlen($term, 'UTF-8') < 2 || mb_strlen($term, 'UTF-8') > 120 || !$this->threadForMember($accountId, $threadId)) {
+        if (mb_strlen($term, 'UTF-8') < 2 || mb_strlen($term, 'UTF-8') > 120 || !($state = $this->threadForMember($accountId, $threadId))) {
             return [];
         }
         $escaped = addcslashes($term, '%_\\');
         $offset = max(0, min($page, 1000)) * 20;
-        $stmt = $this->db->prepare("SELECT m.id,m.thread_id,m.sender_account_id,m.body,m.created_at,a.username\n             FROM mucho_thread_messages m\n             JOIN accounts a ON a.account_id=m.sender_account_id\n             WHERE m.thread_id=:thread AND m.body LIKE :needle\n             ORDER BY m.id DESC LIMIT 20 OFFSET {$offset}");
-        $stmt->execute(['thread' => $threadId, 'needle' => '%' . $escaped . '%']);
+        $stmt = $this->db->prepare("SELECT m.id,m.thread_id,m.sender_account_id,m.body,m.created_at,a.username\n             FROM mucho_thread_messages m\n             JOIN accounts a ON a.account_id=m.sender_account_id\n             WHERE m.thread_id=:thread AND m.id>:cleared AND m.body LIKE :needle\n             ORDER BY m.id DESC LIMIT 20 OFFSET {$offset}");
+        $stmt->execute(['thread' => $threadId, 'cleared' => (int)$state['last_cleared_message_id'], 'needle' => '%' . $escaped . '%']);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     private $db;
