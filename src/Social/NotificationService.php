@@ -136,7 +136,8 @@ final readonly class NotificationService
         $stmt = $this->db->prepare(
             'UPDATE mucho_notifications
              SET reward_claimed=1,is_read=1
-             WHERE id=:id AND account_id=:account AND reward_claimed=0'
+             WHERE id=:id AND account_id=:account
+               AND notification_type='follow' AND reward_claimed=0'
         );
         $stmt->execute(['id' => $notificationId, 'account' => $accountId]);
         return $stmt->rowCount() === 1;
