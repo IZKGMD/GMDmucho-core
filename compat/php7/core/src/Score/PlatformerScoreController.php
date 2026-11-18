@@ -23,11 +23,11 @@ final class PlatformerScoreController
     public function handle(Request $request): Response
     {
         $d = !empty($request->post) ? $request->post : $_POST;
-        $accountId = (int) ($d['accountID'] ?? 0);
-        $levelId = (int) ($d['levelID'] ?? 0);
+        $accountId = $this->strictInt($d['accountID'] ?? null);
+        $levelId = $this->strictInt($d['levelID'] ?? null);
         $gjp = $request->gdCredential();
-        $mode = (int) ($d['mode'] ?? 0);
-        $type = (int) ($d['type'] ?? 0);
+        $mode = $this->strictInt($d['mode'] ?? 0);
+        $type = $this->strictInt($d['type'] ?? 0);
         if ($accountId <= 0 || $levelId <= 0 || $gjp === '' || !in_array($mode, [0, 1], true) || !in_array($type, [0, 1, 2], true)) {
             return Response::text('-1');
         }
@@ -123,7 +123,7 @@ final class PlatformerScoreController
         foreach ($rows as $row) {
             $rank++;
             $score = $mode === 0 ? (int) $row['time_ms'] : (int) $row['points'];
-            $out[] = '1:' . \MuchoCore\Protocol\ProtocolText::username($row['username'] ?? 'Player') . ':2:' . (int) $row['user_id'] . ':9:' . (int) $row['cube'] . ':10:' . (int) $row['color1'] . ':11:' . (int) $row['color2'] . ':14:0' . ':15:' . (int) $row['color3'] . ':16:' . (int) $row['account_id'] . ':3:' . $score . ':6:' . $rank . ':42:' . date('d/m/Y G.i', (int) $row['updated_at']);
+            $out[] = '1:' . \MuchoCore\Protocol\ProtocolText::username($row['username'] ?? 'Player') . ':2:' . (int) $row['user_id'] . ':9:' . (int) $row['cube'] . ':10:' . (int) $row['color1'] . ':11:' . (int) $row['color2'] . ':14:0' . ':15:' . (int) $row['color3'] . ':16:' . (int) $row['account_id'] . ':3:' . $score . ':6:' . $rank . ':42:' . gmdate('d/m/Y G.i', (int) $row['updated_at']);
         }
         return implode('|', $out);
     }
