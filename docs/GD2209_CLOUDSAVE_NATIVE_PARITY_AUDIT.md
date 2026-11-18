@@ -8,9 +8,9 @@ No Go code changed.
 
 1. **First-save concurrency (native PHP7 only).** The canonical PHP8
    repository first locks the existing account row with
-   \`SELECT account_id FROM accounts WHERE account_id=:account FOR UPDATE\`
+   `SELECT account_id FROM accounts WHERE account_id=:account FOR UPDATE`
    before reading any optional save row. The compiled PHP7 repository
-   had only \`SELECT ... FROM mucho_cloud_saves ... FOR UPDATE\`.
+   had only `SELECT ... FROM mucho_cloud_saves ... FOR UPDATE`.
    When no child row exists, concurrent first backups can race when
    choosing revision 1. PHP7 now takes the same account row lock inside
    its transaction, and rejects nonexistent account rows.
@@ -22,20 +22,20 @@ No Go code changed.
    for the entire older tail, matching canonical PHP8's exact retention
    limit without N+1 deletes.
 3. **Ambient global POST fallback (PHP8 and native PHP7).** Both
-   \`CloudSaveController\` implementations used \`$_POST\` when
-   \`$request->post\` was empty. This undermined the request abstraction
+   `CloudSaveController` implementations used `$_POST` when
+   `$request->post` was empty. This undermined the request abstraction
    and could make an explicitly empty request inherit unrelated ambient
    credentials or save data. Controllers now always use the already
    parsed Request fields; legitimate HTTP requests constructed through
-   \`Request::fromGlobals()\` are unaffected.
+   `Request::fromGlobals()` are unaffected.
 4. **Log account ID coercion (PHP8 and native PHP7).** Exception logging
-   cast arbitrary \`accountID\` data to an integer; arrays or malformed
+   cast arbitrary `accountID` data to an integer; arrays or malformed
    values could produce misleading account IDs. Logging now uses the
    same strict Request integer parser as the protocol layer.
 
 ## Acceptance tests
 
-\`tests/compat/php7-native-cloudsave-history-mysql.php\` runs on isolated
+`tests/compat/php7-native-cloudsave-history-mysql.php` runs on isolated
 127.0.0.1 MariaDB under both PHP 7.0 and PHP 8.3 via native CI, and
 on PHP8 in Validate. It uses a disposable DB and a fresh private random
 key, with cleanup, and proves:
@@ -53,7 +53,7 @@ key, with cleanup, and proves:
   restores it without data loss.
 
 The existing canonical PHP8 test
-\`tests/application/cloudsave-consistency-integration.php\` remains in
+`tests/application/cloudsave-consistency-integration.php` remains in
 Validate and covers baseline behavior independently.
 
 ## Limits and release gates
