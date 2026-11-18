@@ -343,6 +343,53 @@ try {
         'owner can enable member invites');
     $check($mode(1,'pass-1',$newGroup,4,'2') === '1',
         'native group mode 4 atomically invites member 2');
+    // At 32 occupied member+pending slots, a repeated pending invite
+    // must not consume a second slot or be rejected. A NEW peer is denied.
+    $legacyAccount = $db->prepare(
+        "INSERT INTO accounts(account_id,username,password_hash,gjp2_hash)
+         VALUES (:id,:username,'unused','unused')"
+    );
+    $pendingFill = $db->prepare(
+        "INSERT INTO mucho_thread_invites
+         (thread_id,inviter_account_id,invitee_account_id,status)
+         VALUES (:thread,1,:invitee,'pending')"
+    );
+    for ($slot = 4; $slot <= 33; ++$slot) {
+        $legacyAccount->execute([
+            'id'=>$slot, 'username'=>'Slot' . $slot
+        ]);
+        if ($slot < 33) {
+            $pendingFill->execute(['thread'=>$newGroup,'invitee'=>$slot]);
+        }
+    }
+    $check($mode(1,'pass-1',$newGroup,4,'3') === '1' &&
+        $mode(1,'pass-1',$newGroup,4,'2') === '1',
+        're-inviting pending users at full group capacity is idempotent');
+    $check($mode(1,'pass-1',$newGroup,4,'33') === '-1',
+        'brand-new invite is denied at full group capacity');
+    $filled = $db->prepare(
+        "SELECT COUNT(*) FROM mucho_thread_invites
+         WHERE thread_id=:thread AND status='pending'"
+    );
+    $filled->execute(['thread'=>$newGroup]);
+    $check((int)$filled->fetchColumn() === 31,
+        'failed full-group invite did not add an extra pending user');
+    $db->exec('DELETE FROM mucho_thread_invites WHERE thread_id=' .
+        $newGroup . ' AND invitee_account_id BETWEEN 4 AND 33');
+    $db->exec('DELETE FROM accounts WHERE account_id BETWEEN 4 AND 33');
+
+    $overflow = str_repeat('9', 32);
+    $check($mode(1,'pass-1',$newGroup,4,$overflow) === '-1',
+        'overflowed native invitation ID fails closed');
+    $overflowRejected = false;
+    try {
+        Gd2209NativeThreadOperations::targetIds($overflow);
+    } catch (RuntimeException) {
+        $overflowRejected = true;
+    }
+    $check($overflowRejected,
+        'new-thread target parser rejects IDs outside host integer range');
+
     $check($mode(2,'pass-2',$newGroup,8) === '1',
         'native mode 8 accepts invitation to new group');
     $check($mode(1,'pass-1',$newGroup,7,'2') === '1',
