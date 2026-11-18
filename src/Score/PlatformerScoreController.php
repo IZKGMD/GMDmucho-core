@@ -29,13 +29,13 @@ final readonly class PlatformerScoreController
             ? $request->post
             : $_POST;
 
-        $accountId=(int)($d['accountID'] ?? 0);
-        $levelId=(int)($d['levelID'] ?? 0);
+        $accountId = $this->strictInt($d['accountID'] ?? null);
+        $levelId = $this->strictInt($d['levelID'] ?? null);
 
         $gjp = $request->gdCredential();
 
-        $mode=(int)($d['mode'] ?? 0);
-        $type=(int)($d['type'] ?? 0);
+        $mode = $this->strictInt($d['mode'] ?? 0);
+        $type = $this->strictInt($d['type'] ?? 0);
 
         if (
             $accountId<=0 ||
@@ -329,8 +329,7 @@ final readonly class PlatformerScoreController
                 ':16:'.(int)$row['account_id'].
                 ':3:'.$score.
                 ':6:'.$rank.
-                ':42:'.date(
-                    'd/m/Y G.i',
+                ':42:'.gmdate('d/m/Y G.i',
                     (int)$row['updated_at']
                 );
         }
