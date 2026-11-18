@@ -31,7 +31,16 @@ final class Gd2209NativeThreadOperations
         if (strlen($value) > 320 || preg_match('/^[1-9][0-9]*(?:,[1-9][0-9]*){0,30}$/D', $value) !== 1) {
             throw new RuntimeException('Invalid group invite target list');
         }
-        $ids = array_map('intval', explode(',', $value));
+        // Reject numeric overflow instead of silently coercing to PHP_INT_MAX.
+        $ids = array_map(static function (string $part): int {
+            $id = filter_var($part, FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 1],
+            ]);
+            if ($id === false) {
+                throw new RuntimeException('Invalid or overflowing account/thread ID');
+            }
+            return $id;
+        }, explode(',', $value));
         if (in_array(0, $ids, true) || count(array_unique($ids)) !== count($ids)) {
             throw new RuntimeException('Duplicate or zero group invite target');
         }
