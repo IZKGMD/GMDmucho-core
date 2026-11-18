@@ -95,7 +95,7 @@ final class Gd2209ThreadWire
             // fields, unlike the distinct getGJThreadInvites invite records.
             $result[] = implode(':', [
                 (int)$row['invitee_account_id'], // account ID
-                (int)($row['user_id'] ?? 0),     // user ID
+                (int)($row['user_id'] ?? $row['invitee_account_id']),     // user ID
                 base64_encode((string)$row['username']),
                 (int)$row['inviter_account_id'],
                 (int)($row['cube'] ?? 1),
