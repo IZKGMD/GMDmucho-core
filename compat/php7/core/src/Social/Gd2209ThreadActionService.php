@@ -247,7 +247,21 @@ final class Gd2209ThreadActionService
               + (SELECT COUNT(*) FROM mucho_thread_invites
                  WHERE thread_id=:i AND status="pending")');
         $count->execute(['m' => $thread, 'i' => $thread]);
-        if ((int) $count->fetchColumn() + count($ids) > 32) {
+        // Re-inviting an already pending player consumes no additional
+        // slot. Count only newly occupied slots to avoid false "full".
+        $pending = $this->db->prepare(
+            'SELECT invitee_account_id FROM mucho_thread_invites
+             WHERE thread_id=:thread AND status="pending"'
+        );
+        $pending->execute(['thread'=>$thread]);
+        $alreadyPending = array_map('intval', $pending->fetchAll(PDO::FETCH_COLUMN));
+        $newSlots = 0;
+        foreach ($ids as $target) {
+            if (!in_array($target, $alreadyPending, true)) {
+                $newSlots++;
+            }
+        }
+        if ((int)$count->fetchColumn() + $newSlots > 32) {
             return false;
         }
         foreach ($ids as $target) {
