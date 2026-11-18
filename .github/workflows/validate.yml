@@ -99,6 +99,7 @@ jobs:
           php tests/client/client-compatibility.php
           php tests/client/gd-2209-synthetic.php
           php tests/application/gd2209-audio-batch-sqlite.php
+          php tests/application/gd2209-level-score-batch-sqlite.php
           php tests/client/gd-2209-patcher-quality.php
           php tests/client/parallel-apk-upload.php
           php tests/application/client-patcher-cleanup.php
@@ -881,7 +882,9 @@ jobs:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
-        run: php tests/application/gd2209-level-integration.php
+        run: |
+          php tests/application/gd2209-level-integration.php
+          php tests/compat/php7-native-level-score-leaderboard-mysql.php
 
       - name: Verify GD 2.209 moderation queue roles, filters and sent history
         env:
