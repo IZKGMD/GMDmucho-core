@@ -39,16 +39,16 @@ assertInputHardening(
 assertInputHardening(
     str_contains($regular, 'private function decodedNumber(') &&
     str_contains($regular, '): ?int') &&
-    str_contains($regular, 'if($attempts===null)') &&
-    str_contains($regular, 'if($clicks===null)') &&
-    str_contains($regular, 'if($playTime===null)') &&
-    str_contains($regular, 'if($coins===null)'),
+    str_contains($regular, '$attempts === null || $clicks === null') &&
+    str_contains($regular, '$playTime === null || $coins === null') &&
+    str_contains($regular, 'if ($hasPercent)') &&
+    str_contains($regular, 'preg_match(\'/^[0-9]{1,3}$/D\', $raw)'),
     'regular score decoder rejects malformed or out-of-range numeric fields'
 );
 
 assertInputHardening(
-    str_contains($regular, '$progresses=$this->decodeProgresses') &&
-    str_contains($regular, 'if($progresses===null)') &&
+    str_contains($regular, '$progresses = $this->decodeProgresses') &&
+    str_contains($regular, '$progresses === null || strlen($progresses) > 100000') &&
     str_contains($regular, '$decoded=') &&
     str_contains($regular, 'if($decoded===false){') &&
     str_contains($regular, 'return null;'),
