@@ -43,8 +43,8 @@ try{
         cube INT,color1 INT,color2 INT,color3 INT,
         icon_type INT,special INT
     ) ENGINE=InnoDB');
-    $db->exec('CREATE TABLE levels(level_id INT PRIMARY KEY,is_deleted TINYINT)');
-    $db->exec('INSERT INTO levels VALUES(77,0)');
+    $db->exec('CREATE TABLE levels(level_id INT PRIMARY KEY,is_deleted TINYINT,length INT NOT NULL DEFAULT 5)');
+    $db->exec('INSERT INTO levels VALUES(77,0,5)');
     $db->exec('CREATE TABLE friends(account_id INT,friend_account_id INT)');
     $db->exec('INSERT INTO friends VALUES(1,2)');
     $db->exec('CREATE TABLE mucho_level_scores(
@@ -60,6 +60,16 @@ try{
         status VARCHAR(32),reasons TEXT,metrics TEXT,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY(score_type,score_id)
+    ) ENGINE=InnoDB');
+    $db->exec('CREATE TABLE mucho_platformer_scores (
+        score_id INT AUTO_INCREMENT PRIMARY KEY,
+        account_id INT NOT NULL,
+        level_id INT NOT NULL,
+        time_ms INT NOT NULL,
+        points INT NOT NULL,
+        created_at INT NOT NULL,
+        updated_at INT NOT NULL,
+        UNIQUE KEY uq_platformer_account_level(account_id,level_id)
     ) ENGINE=InnoDB');
     foreach(array(1=>'Alice',2=>'Bob',3=>'Cara',4=>'Zero') as $id=>$name){
         $s=$db->prepare('INSERT INTO accounts(
@@ -122,6 +132,19 @@ try{
     scoreReadCheck($controller->regular($req(4,array('gjp2'=>'wrong')))->body==='-1',
         'read-only scoreboard still requires valid authentication');
 
+    // Distinguish omitted optional parameters from malformed explicit values.
+    foreach(array(
+        array('type'=>'not-a-number'),
+        array('type'=>'-1'),
+        array('s10'=>'not-a-daily'),
+        array('s10'=>'-10'),
+    ) as $malformed){
+        scoreReadCheck($controller->regular($req(4,$malformed))->body==='-1',
+            'malformed leaderboard selector/timely ID rejected');
+    }
+    scoreReadCheck((int)$db->query('SELECT COUNT(*) FROM mucho_level_scores WHERE account_id=4')->fetchColumn()===0,
+        'malformed selector/timely ID never creates a score');
+
     $posted=$controller->regular($req(4,array('type'=>'1','percent'=>'0')))->body;
     scoreReadCheck($posted!=='' && $posted!=='-1',
         'explicit percent zero still submits and returns leaderboard');
@@ -129,7 +152,64 @@ try{
         'explicit zero persisted exactly once');
     scoreReadCheck((int)$db->query('SELECT COUNT(*) FROM mucho_level_scores')->fetchColumn()===$before+1,
         'exactly one new score created');
-    echo "MUCHOCORE_GD2209_SCORE_READONLY_MYSQL_OK\n";
+    // GD 2.209 platformer leaderboard uses the same client credentials.
+    // Bad numeric identities and selectors MUST NOT be cast to valid values.
+    $plat = new \\MuchoCore\\Score\\PlatformerScoreController(
+        $db,new \\MuchoCore\\Account\\AccountAuthenticator($db)
+    );
+    $platReq=function($extra=array()) {
+        return new \\MuchoCore\\Http\\Request('POST',
+            '/database/getGJLevelScoresPlat.php',array(),
+            array_merge(array(
+                'accountID'=>'1',
+                'gjp2'=>'pw1',
+                'levelID'=>'77',
+                'gameVersion'=>'22',
+                'binaryVersion'=>'51',
+            ),$extra),array());
+    };
+    $initial=$plat->handle($platReq(array('type'=>'1')))->body;
+    scoreReadCheck($initial==='', 'platformer read-only fetch with no scores');
+    foreach(array(
+        array('accountID'=>'1junk','time'=>'300','points'=>'5'),
+        array('levelID'=>'77junk','time'=>'300','points'=>'5'),
+        array('mode'=>'not-a-number','time'=>'300','points'=>'5'),
+        array('type'=>'not-a-number','time'=>'300','points'=>'5'),
+        array('time'=>'not-a-number','points'=>'5'),
+        array('time'=>'-5','points'=>'5'),
+        array('time'=>'300','points'=>'not-a-number'),
+        array('time'=>'300','points'=>'-5'),
+    ) as $malformed){
+        scoreReadCheck($plat->handle($platReq($malformed))->body==='-1',
+            'malformed platformer numeric request rejected');
+    }
+    scoreReadCheck((int)$db->query('SELECT COUNT(*) FROM mucho_platformer_scores')->fetchColumn()===0,
+        'invalid platformer data never writes a score');
+
+    $created=$plat->handle($platReq(array('type'=>'1','time'=>'300','points'=>'5')))->body;
+    scoreReadCheck(strpos($created,'1:Alice:')!==false && strpos($created,':3:300:')!==false,
+        'valid platformer score is stored and serialized');
+    scoreReadCheck((int)$db->query('SELECT COUNT(*) FROM mucho_platformer_scores')->fetchColumn()===1,
+        'valid platformer score creates exactly one entry');
+    $improved=$plat->handle($platReq(array('type'=>'1','time'=>'200','points'=>'8')))->body;
+    scoreReadCheck(strpos($improved,':3:200:')!==false,
+        'faster platformer completion atomically updates best time');
+
+    // Compare the actual native date field under a deliberately non-UTC TZ.
+    $db->exec('UPDATE mucho_platformer_scores SET updated_at=1700000000 WHERE account_id=1');
+    $oldTZ=date_default_timezone_get();
+    date_default_timezone_set('Pacific/Honolulu');
+    try{
+        $unchanged=$plat->handle($platReq(array('type'=>'1')))->body;
+        scoreReadCheck(strpos($unchanged,':42:14/11/2023 22.13')!==false,
+            'platformer score timestamps always use UTC');
+    }finally{
+        date_default_timezone_set($oldTZ);
+    }
+    scoreReadCheck((int)$db->query('SELECT COUNT(*) FROM mucho_platformer_scores')->fetchColumn()===1,
+        'platformer fetch never creates a second score');
+
+    echo "MUCHOCORE_GD2209_SCORE_READONLY_MYSQL_OK\\n";
 }finally{
     $admin->exec('DROP DATABASE IF EXISTS '.$dbName);
 }
