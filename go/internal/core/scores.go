@@ -40,12 +40,28 @@ func scoreProgresses(value string) (string, bool) {
 	return out, len(out) <= 100000
 }
 func (h *Handler) regularScores(r request) (string, error) {
-	id, levelID, percent := scoreValue(r.str("accountID"), 0, 0), scoreValue(r.str("levelID"), 0, 0), scoreValue(r.str("percent"), 0, 0)
-	typ := int64(1)
+	id, levelID := scoreValue(r.str("accountID"), 0, 0), scoreValue(r.str("levelID"), 0, 0)
+	_, submit := r.form["percent"]
+	percent := int64(0)
+	if submit {
+		// The native 2.209 endpoint retrieves scores when percent is absent.
+		// A malformed explicit percent must never silently submit zero.
+		raw := r.str("percent")
+		if raw == "" || len(raw) > 3 || raw[0] == '-' || !scoreInteger.MatchString(raw) {
+			return "-1", nil
+		}
+		n, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil || n < 0 || n > 100 {
+			return "-1", nil
+		}
+		percent = n
+	}
+	// 2.209 defaults to the friends table unless type is explicitly set.
+	typ := int64(0)
 	if _, ok := r.form["type"]; ok {
 		typ = scoreValue(r.str("type"), 0, 0)
 	}
-	if id <= 0 || levelID <= 0 || percent < 0 || percent > 100 || typ < 0 || typ > 2 {
+	if id <= 0 || levelID <= 0 || typ < 0 || typ > 2 {
 		return "-1", nil
 	}
 	if _, err := h.auth(r); err != nil {
@@ -53,24 +69,6 @@ func (h *Handler) regularScores(r request) (string, error) {
 	}
 	if _, err := h.findLevel(r, levelID); err != nil {
 		return "", err
-	}
-	decoded := make([]int64, 4)
-	for i, f := range []struct {
-		key         string
-		offset, max int64
-	}{{"s1", 8354, 1000000}, {"s2", 3991, 10000000}, {"s3", 4085, 86400}, {"s9", 5819, 3}} {
-		value := r.str(f.key)
-		if value == "" {
-			continue
-		}
-		if !scoreInteger.MatchString(value) {
-			return "-1", nil
-		}
-		n, err := strconv.ParseInt(value, 10, 64)
-		if err != nil || n < f.offset || n > f.offset+f.max {
-			return "-1", nil
-		}
-		decoded[i] = n - f.offset
 	}
 	dailyID := scoreValue(r.str("s10"), 0, 0)
 	if dailyID < 0 {
@@ -82,19 +80,39 @@ func (h *Handler) regularScores(r request) (string, error) {
 		daily = 1
 		scoreType = "regular_daily"
 	}
-	progress, ok := scoreProgresses(r.str("s6"))
-	if !ok {
-		return "-1", nil
-	}
 	now := h.now().Unix()
-	result, err := h.db.ExecContext(r.ctx, `INSERT INTO mucho_level_scores(account_id,level_id,is_daily,daily_id,percent,coins,attempts,clicks,play_time,progresses,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE score_id=LAST_INSERT_ID(score_id),daily_id=IF(VALUES(percent)>=percent,VALUES(daily_id),daily_id),coins=IF(VALUES(percent)>=percent,VALUES(coins),coins),attempts=IF(VALUES(percent)>=percent,VALUES(attempts),attempts),clicks=IF(VALUES(percent)>=percent,VALUES(clicks),clicks),play_time=IF(VALUES(percent)>=percent,VALUES(play_time),play_time),progresses=IF(VALUES(percent)>=percent,VALUES(progresses),progresses),updated_at=IF(VALUES(percent)>=percent,VALUES(updated_at),updated_at),percent=GREATEST(percent,VALUES(percent))`, id, levelID, daily, dailyID, percent, decoded[3], decoded[0], decoded[1], decoded[2], progress, now, now)
-	if err != nil {
-		return "", err
-	}
-	if n, e := result.RowsAffected(); e == nil && n > 0 {
-		scoreID, _ := result.LastInsertId()
-		risk, reasons := regularRisk(percent, decoded[0], decoded[1], decoded[2], progress)
-		h.scoreIntegrity(r, scoreType, scoreID, id, levelID, risk, reasons, map[string]any{"percent": percent, "attempts": decoded[0], "clicks": decoded[1], "play_time": decoded[2], "progress_bytes": len(progress)})
+	if submit {
+		decoded := make([]int64, 4)
+		for i, f := range []struct {
+			key         string
+			offset, max int64
+		}{{"s1", 8354, 1000000}, {"s2", 3991, 10000000}, {"s3", 4085, 86400}, {"s9", 5819, 3}} {
+			value := r.str(f.key)
+			if value == "" {
+				continue
+			}
+			if !scoreInteger.MatchString(value) {
+				return "-1", nil
+			}
+			n, err := strconv.ParseInt(value, 10, 64)
+			if err != nil || n < f.offset || n > f.offset+f.max {
+				return "-1", nil
+			}
+			decoded[i] = n - f.offset
+		}
+		progress, ok := scoreProgresses(r.str("s6"))
+		if !ok {
+			return "-1", nil
+		}
+		result, err := h.db.ExecContext(r.ctx, `INSERT INTO mucho_level_scores(account_id,level_id,is_daily,daily_id,percent,coins,attempts,clicks,play_time,progresses,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE score_id=LAST_INSERT_ID(score_id),daily_id=IF(VALUES(percent)>=percent,VALUES(daily_id),daily_id),coins=IF(VALUES(percent)>=percent,VALUES(coins),coins),attempts=IF(VALUES(percent)>=percent,VALUES(attempts),attempts),clicks=IF(VALUES(percent)>=percent,VALUES(clicks),clicks),play_time=IF(VALUES(percent)>=percent,VALUES(play_time),play_time),progresses=IF(VALUES(percent)>=percent,VALUES(progresses),progresses),updated_at=IF(VALUES(percent)>=percent,VALUES(updated_at),updated_at),percent=GREATEST(percent,VALUES(percent))`, id, levelID, daily, dailyID, percent, decoded[3], decoded[0], decoded[1], decoded[2], progress, now, now)
+		if err != nil {
+			return "", err
+		}
+		if n, e := result.RowsAffected(); e == nil && n > 0 {
+			scoreID, _ := result.LastInsertId()
+			risk, reasons := regularRisk(percent, decoded[0], decoded[1], decoded[2], progress)
+			h.scoreIntegrity(r, scoreType, scoreID, id, levelID, risk, reasons, map[string]any{"percent": percent, "attempts": decoded[0], "clicks": decoded[1], "play_time": decoded[2], "progress_bytes": len(progress)})
+		}
 	}
 	where := `s.level_id=? AND s.is_daily=? AND a.is_active=1 AND a.is_banned=0`
 	args := []any{levelID, daily}
