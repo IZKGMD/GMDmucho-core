@@ -108,7 +108,7 @@ final readonly class RelationshipRepository
                  FROM friend_requests fr
                  JOIN accounts a
                    ON a.account_id=fr.to_account_id
-                 JOIN profiles p
+                 LEFT JOIN profiles p
                    ON p.account_id=fr.to_account_id
                  WHERE fr.account_id=:id
                  ORDER BY fr.id DESC
@@ -123,7 +123,7 @@ final readonly class RelationshipRepository
                  FROM friend_requests fr
                  JOIN accounts a
                    ON a.account_id=fr.account_id
-                 JOIN profiles p
+                 LEFT JOIN profiles p
                    ON p.account_id=fr.account_id
                  WHERE fr.to_account_id=:id AND fr.is_read<>2
                  ORDER BY fr.id DESC
@@ -349,7 +349,7 @@ final readonly class RelationshipRepository
                  FROM friends f
                  JOIN accounts a
                    ON a.account_id=f.friend_account_id
-                 JOIN profiles p
+                 LEFT JOIN profiles p
                    ON p.account_id=f.friend_account_id
                  WHERE f.account_id=:id
                  ORDER BY a.username ASC"
@@ -366,7 +366,7 @@ final readonly class RelationshipRepository
                  FROM blocks b
                  JOIN accounts a
                    ON a.account_id=b.blocked_account_id
-                 JOIN profiles p
+                 LEFT JOIN profiles p
                    ON p.account_id=b.blocked_account_id
                  WHERE b.account_id=:id
                  ORDER BY a.username ASC"
@@ -382,7 +382,7 @@ final readonly class RelationshipRepository
                         0 AS is_new
                  FROM mucho_follows f
                  JOIN accounts a ON a.account_id=f.followed_account_id
-                 JOIN profiles p ON p.account_id=f.followed_account_id
+                 LEFT JOIN profiles p ON p.account_id=f.followed_account_id
                  WHERE f.follower_account_id=:id
                    AND a.is_active=1 AND a.is_banned=0
                  ORDER BY a.username ASC"
@@ -398,7 +398,7 @@ final readonly class RelationshipRepository
                         0 AS is_new
                  FROM mucho_muted_users m
                  JOIN accounts a ON a.account_id=m.muted_account_id
-                 JOIN profiles p ON p.account_id=m.muted_account_id
+                 LEFT JOIN profiles p ON p.account_id=m.muted_account_id
                  WHERE m.account_id=:id
                    AND a.is_active=1 AND a.is_banned=0
                  ORDER BY a.username ASC"
