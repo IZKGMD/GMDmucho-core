@@ -885,6 +885,7 @@ jobs:
         run: |
           php tests/application/gd2209-level-integration.php
           php tests/compat/php7-native-level-score-leaderboard-mysql.php
+          php tests/compat/php7-native-levelscore-readonly-mysql.php
 
       - name: Verify GD 2.209 moderation queue roles, filters and sent history
         env:
