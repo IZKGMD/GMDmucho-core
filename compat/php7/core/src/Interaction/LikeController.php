@@ -24,8 +24,10 @@ final class LikeController
 
         $hasItem = array_key_exists('itemID', $r->post);
         $itemId = $hasItem ? $r->postInt('itemID', -1) : 0;
-        $type = $r->postInt('type', 1);
-        $isLike = $r->postInt('like', 1);
+        $type = array_key_exists('type', $r->post)
+            ? $r->postInt('type', -1) : 1;
+        $isLike = array_key_exists('like', $r->post)
+            ? $r->postInt('like', -1) : 1;
 
         if ($itemId < 0 || !in_array($type, [1, 2, 3, 4], true)
             || !in_array($isLike, [0, 1], true)) {
