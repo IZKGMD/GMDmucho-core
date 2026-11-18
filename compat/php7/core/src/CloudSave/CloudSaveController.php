@@ -18,21 +18,21 @@ final class CloudSaveController
     }
     public function backup(Request $request): Response
     {
-        $data = !empty($request->post) ? $request->post : $_POST;
+        $data = $request->post;
         try {
             return Response::text($this->service->backup($data));
         } catch (Throwable $e) {
-            error_log(sprintf('[MuchoCore] request_id=%s cloud_backup_failed account_id=%d exception=%s', (string) ($_SERVER['MUCHO_REQUEST_ID'] ?? '-'), (int) ($data['accountID'] ?? 0), \get_class($e)));
+            error_log(sprintf('[MuchoCore] request_id=%s cloud_backup_failed account_id=%d exception=%s', (string) ($_SERVER['MUCHO_REQUEST_ID'] ?? '-'), $request->postInt('accountID', 0), \get_class($e)));
             return Response::text('-1');
         }
     }
     public function sync(Request $request): Response
     {
-        $data = !empty($request->post) ? $request->post : $_POST;
+        $data = $request->post;
         try {
             return Response::text($this->service->sync($data));
         } catch (Throwable $e) {
-            error_log(sprintf('[MuchoCore] request_id=%s cloud_sync_failed account_id=%d exception=%s', (string) ($_SERVER['MUCHO_REQUEST_ID'] ?? '-'), (int) ($data['accountID'] ?? 0), \get_class($e)));
+            error_log(sprintf('[MuchoCore] request_id=%s cloud_sync_failed account_id=%d exception=%s', (string) ($_SERVER['MUCHO_REQUEST_ID'] ?? '-'), $request->postInt('accountID', 0), \get_class($e)));
             return Response::text('-1');
         }
     }
