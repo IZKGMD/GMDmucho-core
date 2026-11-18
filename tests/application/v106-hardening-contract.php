@@ -80,10 +80,8 @@ assertV106(
 );
 
 assertV106(
-    str_contains(
-        $regular,
-        'a.account_id=mucho_level_scores.account_id'
-    ) &&
+    str_contains($regular, 'INNER JOIN accounts a ON a.account_id=s.account_id') &&
+    str_contains($regular, 'LEFT JOIN profiles p ON p.account_id=s.account_id') &&
     str_contains($regular, 'a.is_active=1') &&
     str_contains($regular, 'a.is_banned=0'),
     'regular score leaderboard excludes inactive and banned accounts'
