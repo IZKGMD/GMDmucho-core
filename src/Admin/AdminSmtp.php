@@ -15,8 +15,7 @@ final class AdminSmtp
     public static function configured(): bool
     {
         foreach (['MUCHO_ADMIN_SMTP_HOST', 'MUCHO_ADMIN_SMTP_USER',
-                  'MUCHO_ADMIN_SMTP_PASSWORD', 'MUCHO_ADMIN_MAIL_FROM',
-                  'MUCHO_ADMIN_MAIL_ORIGIN'] as $key) {
+                  'MUCHO_ADMIN_SMTP_PASSWORD', 'MUCHO_ADMIN_MAIL_FROM'] as $key) {
             if (trim((string) Environment::get($key, '')) === '') {
                 return false;
             }
