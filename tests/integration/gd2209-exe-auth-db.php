@@ -65,6 +65,36 @@ switch ($action) {
         $params = [$peer, $id, $id];
         break;
 
+    case 'follow_notification':
+        $sql = "SELECT id,account_id,actor_account_id,notification_type,
+                       is_read,reward_claimed
+                FROM mucho_notifications
+                WHERE account_id=? AND actor_account_id=?
+                  AND notification_type='follow'
+                ORDER BY id DESC LIMIT 1";
+        $params = [$peer, $id];
+        break;
+
+    case 'thread':
+        $sql = 'SELECT id,owner_account_id,is_dm,dm_low,dm_high
+                FROM mucho_threads WHERE id=? LIMIT 1';
+        $params = [$id];
+        break;
+
+    case 'thread_message':
+        $sql = 'SELECT id,thread_id,sender_account_id,body,is_deleted
+                FROM mucho_thread_messages WHERE id=? LIMIT 1';
+        $params = [$id];
+        break;
+
+    case 'thread_member':
+        $sql = 'SELECT account_id,thread_id,last_read_message_id,
+                       last_cleared_message_id
+                FROM mucho_thread_members
+                WHERE account_id=? AND thread_id=? LIMIT 1';
+        $params = [$id, $peer];
+        break;
+
     case 'native_profile_report':
         $sql = 'SELECT COUNT(*) AS total,
                        COALESCE(MAX(reason),-1) AS reason,
