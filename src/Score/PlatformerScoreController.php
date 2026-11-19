@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace MuchoCore\Score;
 
+// Some standalone SQL tests load this controller without Composer's autoloader.
+require_once __DIR__ . '/../Protocol/GdRelativeTime.php';
+
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
