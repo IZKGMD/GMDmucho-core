@@ -484,3 +484,39 @@ database/
 ~~~
 
 For a provider that cannot supply PHP ZIP support or outbound HTTPS access, use the manually uploaded shared-hosting package instead of the one-file bootstrap.
+
+### Automatic recovery email on 5v.pl (PHP 7 native)
+
+The official 5v.pl installer already collects the owner's email and password.
+After an authenticated first installation it now asks the native admin to queue
+a **verification** email through the hosting provider's PHP `mail()` relay;
+the user does **not** enter SMTP credentials. This is best-effort and must not
+abort an otherwise successful installation.
+
+1. Check the address supplied during installation for a MuchoCore verification
+   link (and the spam folder). It expires after 30 minutes.
+2. Confirm the link using the secure HTTPS browser form. Only then does the
+   email become usable to reset a password.
+3. When needed, open `/mc/admin.php?email_recovery=1` or choose **Forgot
+   administrator password?** on the sign-in page. Reset links expire after 20
+   minutes and work once.
+4. Owners can resend or change their recovery address in **Administrators →
+   Password recovery email**, after entering the current password and, if
+   enabled, a 2FA/recovery code.
+
+The address in an email link comes from the private configured HTTPS
+`site_url`, never the HTTP Host header. Only SHA-256 hashes of token secrets
+are stored. Requests have per-IP and per-identity rate limits, show generic
+responses for unknown addresses, and preserve the existing administrator and
+GDPS. Password resets revoke old admin sessions via `auth_version`. For a
+linked GD owner the password of both the game and administrator is updated;
+the two-factor requirement is never disabled.
+
+**Delivery limitations:** PHP `mail()` returning `true` only means that the
+hosting relay accepted the message. It is not proof of delivery or verified
+ownership. Sender `no-reply@<your-site-host>` is constructed automatically
+but may be rejected by hosting policy or receiving spam filters. If the
+verification email cannot be delivered, recovery remains unverified and the
+existing FTP-verified `START_RECOVERY_WINDOWS.cmd` flow remains available.
+This auto-mail mode is only for the native 5v.pl PHP 7 installer, not for the
+PHP 8 VPS admin's authenticated TLS SMTP transport.
