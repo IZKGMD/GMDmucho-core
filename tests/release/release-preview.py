@@ -19,7 +19,6 @@ assert 'github.event.workflow_run.conclusion == \'success\'' in preview
 assert 'github.event.workflow_run.head_sha' in preview
 assert 'MAIN_SHA' in preview and 'RELEASE_SHA' in preview
 assert 'require-php8-ci.py' in preview and '--sha "$RELEASE_SHA"' in preview
-assert 'MUCHOCORE' not in preview or 'MUCHOCORE' in preview
 assert 'MuchoCore-v1.1.1-shared-hosting.zip' in preview
 assert 'composer install --no-dev' in preview
 assert 'unzip -t' in preview and 'sha256sum -c checksums.sha256' in preview
