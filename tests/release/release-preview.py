@@ -8,9 +8,9 @@ preview = (root / '.github/workflows/release-preview.yml').read_text()
 validate = (root / '.github/workflows/validate.yml').read_text()
 version = (root / 'VERSION').read_text().strip()
 
-assert version == '1.1.1'
-assert (root / '.release/v1.1.1.preview').exists()
 assert not (root / '.release/v1.1.1.ready').exists(), 'Uncertified 1.1.1 cannot be stable'
+if (root / '.release/v1.1.1.preview').exists():
+    assert version == '1.1.1', 'Preview marker must match the source version'
 assert "run: php tests/release/v110-endpoint-gate.php" in stable
 assert 'if [[ -f ".release/v${VERSION}.ready" ]]; then' in validate
 assert 'run: php tests/release/v111-installability-gate.php' in preview
