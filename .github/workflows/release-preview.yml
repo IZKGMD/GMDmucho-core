@@ -1,0 +1,166 @@
+name: Release preview PHP 8
+
+on:
+  workflow_run:
+    workflows: ["Validate"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: php8-preview-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact validated commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Check preview marker
+        id: marker
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          VERSION="$(tr -d '[:space:]' < VERSION)"
+          if [[ "$VERSION" == "1.1.1" && -f ".release/v1.1.1.preview" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Pin release to unchanged validated main commit
+        if: steps.marker.outputs.ready == 'true'
+        env:
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -Eeuo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$(git rev-parse HEAD)" == "$RELEASE_SHA" ]]
+          MAIN_SHA="$(git ls-remote origin refs/heads/main | awk 'NR == 1 {print $1}')"
+          [[ "$MAIN_SHA" == "$RELEASE_SHA" ]] || {
+            echo "Main advanced after Validate: $RELEASE_SHA -> $MAIN_SHA" >&2
+            exit 1
+          }
+
+      - name: Verify PHP 8 deployment inputs
+        if: steps.marker.outputs.ready == 'true'
+        run: php tests/release/v111-installability-gate.php
+
+      - name: Require exact-commit PHP 8 HTTP acceptance
+        if: steps.marker.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: python3 tools/release/require-php8-ci.py --repository "$GITHUB_REPOSITORY" --sha "$RELEASE_SHA"
+
+      - name: Set up PHP 8.3
+        if: steps.marker.outputs.ready == 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_mysql, zip, gd
+          tools: composer
+
+      - name: Install production Composer dependencies
+        if: steps.marker.outputs.ready == 'true'
+        run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
+      - name: Build installable shared-hosting ZIP
+        if: steps.marker.outputs.ready == 'true'
+        env:
+          VERSION: "1.1.1"
+          OUTPUT: MuchoCore-v1.1.1-shared-hosting.zip
+        run: |
+          set -Eeuo pipefail
+          bash tools/release/build-shared-hosting.sh
+          unzip -t MuchoCore-v1.1.1-shared-hosting.zip >/dev/null
+          unzip -Z1 MuchoCore-v1.1.1-shared-hosting.zip | grep -Fx 'muchocore/vendor/autoload.php'
+          unzip -Z1 MuchoCore-v1.1.1-shared-hosting.zip | grep -Fx 'muchocore/public/install.php'
+
+      - name: Build tagged source ZIP excluding original game
+        if: steps.marker.outputs.ready == 'true'
+        run: |
+          set -Eeuo pipefail
+          git archive --format=zip --prefix="MuchoCore-v1.1.1/" -o MuchoCore-v1.1.1.zip HEAD -- \
+            . \
+            ':(exclude)GeometryDash.exe' \
+            ':(exclude)Geometry.Dash.ver.1.40.build.11.apk' \
+            ':(exclude)assets/brand/sources/**' \
+            ':(exclude).release/**'
+          unzip -t MuchoCore-v1.1.1.zip >/dev/null
+          if unzip -Z1 MuchoCore-v1.1.1.zip | grep -Eq '^MuchoCore-v1\.1\.1/GeometryDash\.exe$'; then
+            echo 'Original game binary was packaged' >&2
+            exit 1
+          fi
+
+      - name: Verify SHA-256 and release contents
+        if: steps.marker.outputs.ready == 'true'
+        run: |
+          set -Eeuo pipefail
+          sha256sum MuchoCore-v1.1.1.zip MuchoCore-v1.1.1-shared-hosting.zip > checksums.sha256
+          sha256sum -c checksums.sha256
+          test "$(wc -l < checksums.sha256)" -eq 2
+          test -s docs/RELEASE_NOTES_1.1.1.md
+
+      - name: Publish 1.1.1 as an installable prerelease
+        if: steps.marker.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -Eeuo pipefail
+          TAG=v1.1.1
+          git config user.name 'IZK'
+          git config user.email '112145870+IZKGMD@users.noreply.github.com'
+          if git ls-remote --exit-code --refs origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
+            [[ "$(git rev-parse "$TAG^{commit}")" == "$RELEASE_SHA" ]] || {
+              echo "Immutable $TAG points at another commit" >&2
+              exit 1
+            }
+          else
+            git tag "$TAG" "$RELEASE_SHA"
+            git push origin "refs/tags/$TAG:refs/tags/$TAG"
+          fi
+          if gh release view "$TAG" --json isPrerelease --jq .isPrerelease >/dev/null 2>&1; then
+            [[ "$(gh release view "$TAG" --json isPrerelease --jq .isPrerelease)" == "true" ]] || {
+              echo 'Refusing to rewrite a non-preview release' >&2
+              exit 1
+            }
+          else
+            gh release create "$TAG" --title 'MuchoCore v1.1.1 — Installable PHP 8 Preview' \
+              --notes-file docs/RELEASE_NOTES_1.1.1.md --draft --prerelease
+          fi
+          gh release upload "$TAG" MuchoCore-v1.1.1-shared-hosting.zip --clobber
+          gh release upload "$TAG" MuchoCore-v1.1.1.zip --clobber
+          sha256sum -c checksums.sha256
+          gh release upload "$TAG" checksums.sha256 --clobber
+          gh release edit "$TAG" --draft=false --prerelease
+
+      - name: Remove one-time preview marker
+        if: steps.marker.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'IZK'
+          git config user.email '112145870+IZKGMD@users.noreply.github.com'
+          git fetch origin main
+          [[ "$(git rev-parse origin/main)" == "$RELEASE_SHA" ]] || {
+            echo 'Main advanced after publication; leaving marker for inspection' >&2
+            exit 0
+          }
+          git switch -C main origin/main
+          git rm .release/v1.1.1.preview
+          git commit -m 'chore: finalize v1.1.1 PHP8 preview marker'
+          git push origin main
