@@ -7,6 +7,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/features.php';
 require_once __DIR__ . '/social.php';
+require_once __DIR__ . '/admin-mail-recovery.php';
 
 function mucho7_schema_statements()
 {
@@ -151,6 +152,8 @@ function mucho7_create_schema(PDO $pdo)
     foreach (mucho7_schema_statements() as $sql) {
         $pdo->exec($sql);
     }
+    // Fresh 5v.pl sites get email recovery storage as part of installation.
+    $pdo->exec(mucho7_admin_mail_schema());
     mucho7_upgrade_features($pdo);
     $pdo->exec(
         "INSERT INTO roles (code,name,priority) VALUES

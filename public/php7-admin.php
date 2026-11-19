@@ -54,7 +54,11 @@ try {
         unset($_SESSION['aid']);$_SESSION['csrf']=bin2hex(random_bytes(24));session_regenerate_id(true);
     }
     $freshInstall=count($pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN))===0;
-    if(!$freshInstall)mucho7_admin_registry_install($pdo);
+    if(!$freshInstall){
+        mucho7_admin_registry_install($pdo);
+        // Idempotent upgrade for existing 5v.pl installations.
+        mucho7_admin_mail_install($pdo);
+    }
     // Existing native sessions referred to game IDs. The first import retains
     // those IDs; record the explicit principal namespace before future use.
     if(!empty($_SESSION['aid']) && empty($_SESSION['admin_registry'])){
@@ -93,6 +97,26 @@ try {
         if(strpos($action,'shared-passkey-')===0)mucho7_passkey_json(mucho7_passkey_action($pdo,$user,$action,$root,$settings,$instance,$_POST));
         if($action==='admin-password-setup'){
             mucho7_admin_setup_password($pdo,$_POST,$settings);$setupSuccess=true;
+        }elseif(in_array($action,array(
+            'admin-mail-verify-confirm','admin-mail-reset-request','admin-mail-reset-apply'
+        ),true)){
+            if(!$pdo || !$hasOwner)throw new RuntimeException('Administrator recovery is unavailable.');
+            $ip=isset($_SERVER['REMOTE_ADDR'])?(string)$_SERVER['REMOTE_ADDR']:'';
+            if($action==='admin-mail-verify-confirm'){
+                $ok=mucho7_admin_mail_confirm($pdo,isset($_POST['token'])?$_POST['token']:'');
+                header('Location: ?email_status='.($ok?'verified':'invalid'),true,303);exit;
+            }
+            if($action==='admin-mail-reset-request'){
+                mucho7_admin_mail_request_reset($pdo,
+                    isset($_POST['email'])?$_POST['email']:'',$ip,$settings,$script);
+                header('Location: ?email_status=sent',true,303);exit;
+            }
+            $ok=mucho7_admin_mail_reset_password($pdo,
+                isset($_POST['token'])?$_POST['token']:'',
+                isset($_POST['password'])?$_POST['password']:'',
+                isset($_POST['confirmation'])?$_POST['confirmation']:'',
+                $ip,$settings);
+            header('Location: ?email_status='.($ok?'changed':'invalid'),true,303);exit;
         }else{
         if($action==='login' || ($action==='bootstrap' && !$hasOwner)) {
             $pepper=isset($settings['auth_pepper'])?$settings['auth_pepper']:'';
@@ -129,6 +153,19 @@ try {
             header('Location: ?page='.$nextPage,true,303);exit;
         }
         if(!$user){http_response_code(403);throw new RuntimeException('Sign in to the panel first.');}
+        if($action==='admin-mail-verify-send'){
+            mucho7_admin_mail_reauthenticate($pdo,(int)$user['account_id'],
+                isset($_POST['current_password'])?$_POST['current_password']:'',
+                isset($_POST['otp'])?$_POST['otp']:'',$settings);
+            $ok=mucho7_admin_mail_request_verify($pdo,(int)$user['account_id'],
+                isset($_POST['email'])?$_POST['email']:'',
+                isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:'',
+                $settings,$script);
+            $_SESSION['notice']=$ok
+                ? 'Verification email submitted to the mail relay. Check your inbox and spam folder.'
+                : 'Mail relay did not accept the verification message. Use FTP owner recovery until delivery is confirmed.';
+            header('Location: ?page=admins',true,303);exit;
+        }
         if($action==='logout') {
             $_SESSION=array();session_regenerate_id(true);header('Location: ?',true,303);exit;
         }
@@ -183,6 +220,17 @@ if(!empty($setupMode)){
     $row=$pdo&&!$setupSuccess?mucho7_admin_setup_row($pdo,$setupToken):null;
     $success=$setupSuccess;$token=$setupToken;
     echo mucho7_admin_ui_html((function()use($root,$row,$success,$token,$script,$error){ob_start();require $root.'/compat/php7/admin-ui/password-setup.php';return ob_get_clean();})());exit;
+}
+$mailRoute=isset($_GET['email_recovery']) || isset($_GET['email_verify'])
+    || isset($_GET['email_reset']) || isset($_GET['email_status']);
+if($mailRoute){
+    if(!$pdo || !$hasOwner){http_response_code(503);exit('Administrator recovery unavailable.');}
+    echo mucho7_admin_ui_html((function()use($root,$script,$adminNonce,$error){
+        ob_start();
+        require $root.'/compat/php7/admin-ui/email-recovery.php';
+        return ob_get_clean();
+    })());
+    exit;
 }
 if(isset($_GET['news_image'])){
     if(!$user || $user['role']!=='owner'){http_response_code(403);exit;}

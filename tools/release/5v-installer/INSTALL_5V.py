@@ -204,6 +204,32 @@ def bootstrap_owner(site: HttpsSite, cfg):
     print("Владелец создан; аккаунт не будет перезаписан повторным запуском.")
 
 
+def initiate_owner_email_recovery(site: HttpsSite, cfg: dict) -> str:
+    """Queue verification via authenticated native PHP mail(), not client SMTP.
+
+    A queued message is NOT a delivered email. The owner must confirm it.
+    Mail failure never rolls back a successfully installed GDPS.
+    """
+    try:
+        code, page = site.request("/mc/admin.php?page=admins")
+        if code != 200 or b'value="admin-mail-verify-send"' not in page:
+            return "unavailable"
+        if b"<strong>Verified:</strong>" in page:
+            return "verified"
+        if b"<strong>Awaiting confirmation:</strong>" in page:
+            return "pending"
+        csrf = csrf_from(page, "admin-mail-verify-send")
+        code, response = site.request("/mc/admin.php?page=admins", {
+            "csrf": csrf, "action": "admin-mail-verify-send",
+            "email": cfg["email"], "current_password": cfg["adminpassword"],
+        })
+        if code == 200 and b"Verification email submitted to the mail relay." in response:
+            return "verification_queued"
+    except (InstallError, OSError, ValueError, KeyError):
+        pass
+    return "unavailable"
+
+
 def perform_migration(site: HttpsSite, ftp: FtpSite):
     """Use the site's original authenticated, resumable owner-only migrations."""
     print("Подготавливаем оригинальное ядро и миграции MySQL...")
@@ -285,6 +311,20 @@ def perform_install(cfg, *, prepare_clients: bool = True):
             code, page = site.request("/mc/admin.php?page=overview")
             if code != 200 or b'name="action" value="login"' in page:
                 raise InstallError("Веб-админка не прошла заключительную проверку.")
+            # Do not make a mailbox or SMTP password another installation step.
+            # Only confirmation in the recipient's inbox activates recovery.
+            mail_status = initiate_owner_email_recovery(site, cfg)
+            report["owner_recovery_email"] = mail_status
+            if mail_status == "verification_queued":
+                print("Проверка почты: письмо поставлено в очередь 5v.pl.")
+                print("Открой входящие/спам и ПОДТВЕРДИ адрес по ссылке.")
+            elif mail_status == "pending":
+                print("Подтверждение почты ещё ожидается. Проверь входящие.")
+            elif mail_status == "verified":
+                print("Почта владельца уже подтверждена.")
+            else:
+                print("Почтовая проверка не подтверждена. Пароль можно восстановить через FTP.")
+                print("Повторить отправку: Админка → Administrators → Password recovery email.")
             write_checkpoint(ftp, identity, "complete")
             report["status"] = "admin_and_migration_ok"
             print("\nУстановка ядра завершена. Админка:", cfg["site"] + "/mc/admin.php")
