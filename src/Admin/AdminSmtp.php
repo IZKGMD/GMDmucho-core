@@ -37,7 +37,7 @@ final class AdminSmtp
         if (!is_array($parts) || ($parts['scheme'] ?? '') !== 'https' ||
             empty($parts['host']) || (isset($parts['user']) || isset($parts['pass'])) ||
             isset($parts['query']) || isset($parts['fragment']) ||
-            isset($parts['path']) || isset($parts['port']) ||
+            (isset($parts['path']) && $parts['path'] !== '/') || isset($parts['port']) ||
             !preg_match('/^[a-z0-9.-]+$/iD', (string) $parts['host'])) {
             return null;
         }
