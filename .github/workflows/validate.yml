@@ -196,6 +196,8 @@ jobs:
           python3 tests/release/release-publication.py
           python3 tests/release/dev-snapshot-contract.py
           python3 tests/release/native-ci-gate.py
+          python3 tests/release/php8-ci-gate.py
+          python3 tests/release/release-preview.py
           bash tests/release/update-main-without-release.sh
           bash tests/release/update-recovery.sh
           php tests/database/migrator-concurrency.php

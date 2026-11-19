@@ -8,9 +8,11 @@
 | --- | --- |
 | Обычный хостинг с PHP 8.2+ и MySQL | Скачай архив **shared-hosting.zip** из [релизов](https://github.com/IZKGMD/GMDmucho-core/releases). [Инструкция по загрузке](docs/SHARED_INSTALL_RU.txt) |
 | VPS с Linux | Направь домен на IP сервера и выполни команду ниже. [Подробная инструкция](docs/VPS_INSTALL_QUICK_RU.md) |
-| Сайт на 5v.pl с PHP 7 | Скачай **MuchoCore-Setup.exe** из [релизов](https://github.com/IZKGMD/GMDmucho-core/releases). Python не нужен. [Инструкция](tools/release/5v-installer/README_RU.txt) |
+| Сайт на 5v.pl с PHP 7 | Отдельная предварительная сборка, **не входит в релиз PHP 8 версии 1.1.1**. [Статус](docs/PHP7_NATIVE_PHASE1.md) |
 
 Для нового сервера выбирай PHP 8.2+. Сборка PHP 7 пока экспериментальная.
+
+**Если устанавливаешь предварительный релиз 1.1.1**, добавь `--ref=v1.1.1` к установщику VPS. [Ссылка и инструкция для 1.1.1 Preview](docs/RELEASE_NOTES_1.1.1.md). Обычная команда ниже устанавливает последнюю стабильную версию, а не Preview.
 
 **На VPS** подключись по SSH и запусти:
 

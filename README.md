@@ -1,5 +1,7 @@
 # MuchoCore
 
+**v1.1.1 Preview** is an installable **PHP 8.2+ prerelease**, not the certified stable channel. For VPS use the explicit `--ref=v1.1.1` option; the normal installer selects the last stable release. PHP7/5v.pl requires separate porting. [1.1.1 Preview instructions](docs/RELEASE_NOTES_1.1.1.md).
+
 Create your own Geometry Dash private server: accounts, levels, music, Cloud Save and a web admin panel.
 
 [С чего начать — по-русски](START_HERE.md) · [Download](https://github.com/IZKGMD/GMDmucho-core/releases) · [Website](https://muchogdps.space/muchocore/) · [Report a problem](https://github.com/IZKGMD/GMDmucho-core/issues)

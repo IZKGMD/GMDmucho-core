@@ -16,6 +16,10 @@ on:
       - "docker-compose.test-acceptance.yml"
       - "composer.json"
       - "composer.lock"
+      - "VERSION"
+      - ".release/**"
+      - ".github/workflows/release-stable.yml"
+      - "tools/release/**"
       - "tests/integration/**"
       - ".github/workflows/php8-http-acceptance.yml"
   pull_request:
@@ -30,6 +34,10 @@ on:
       - "docker-compose.test-acceptance.yml"
       - "composer.json"
       - "composer.lock"
+      - "VERSION"
+      - ".release/**"
+      - ".github/workflows/release-stable.yml"
+      - "tools/release/**"
       - "tests/integration/**"
       - ".github/workflows/php8-http-acceptance.yml"
   workflow_dispatch:
