@@ -75,3 +75,17 @@ If you lose access, use configured verified-email recovery. For a single active 
 - Invalid activation attempts are rate-limited.
 - A database advisory lock plus permanent completion marker prevent concurrent or repeat first-owner enrollment.
 - Never share the private activation URL. It stops working after a successful first-owner registration.
+
+## Inviting additional administrators (PHP 8)
+
+The owner opens **Admin → Administrators**, creates a new administrator and
+copies the one-time setup URL. This URL is based only on a configured HTTPS
+public origin; ensure `MUCHO_PUBLIC_URL` or `MUCHO_ACCOUNT_URL` points to
+the admin domain. No untrusted request Host value is used.
+
+An invited account is marked **Awaiting setup** until its owner chooses a
+password (12–72 bytes). If the 24-hour link expires or is lost, the owner can
+use **New setup link** next to that pending non-owner account. The previous
+invitation immediately becomes invalid; established administrator passwords
+cannot be reset through this option. Use verified-email recovery or the
+explicit server-console recovery procedure for established accounts.
