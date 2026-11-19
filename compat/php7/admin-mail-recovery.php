@@ -88,6 +88,11 @@ function mucho7_admin_mail_send($to, $subject, $body, $settings, $transport = nu
 
 function mucho7_admin_mail_status(PDO $db, $aid)
 {
+    // Minimal legacy fixtures or interrupted upgrades may not yet have
+    // the additive recovery table. Never make the admin panel crash.
+    if (!tableExists($db, 'php7_admin_mail_recovery')) {
+        return array('verified_email'=>null, 'pending_email'=>null);
+    }
     $q = $db->prepare('SELECT verified_email,pending_email FROM php7_admin_mail_recovery WHERE admin_id=?');
     $q->execute(array((int)$aid));
     $row = $q->fetch(PDO::FETCH_ASSOC);
