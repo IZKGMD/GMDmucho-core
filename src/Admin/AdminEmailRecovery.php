@@ -42,7 +42,7 @@ final class AdminEmailRecovery
 
     public static function status(PDO $db, int $id): array
     {
-        self::ensureSchema($db);
+        // Schema is provisioned by the installer, not by an HTTP request.
         $query = $db->prepare('SELECT verified_email,pending_email FROM admin_email_recovery WHERE admin_user_id=:id');
         $query->execute(['id' => $id]);
         return $query->fetch(PDO::FETCH_ASSOC) ?: ['verified_email' => null, 'pending_email' => null];
