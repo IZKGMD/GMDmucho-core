@@ -363,7 +363,9 @@ final readonly class LevelScoreController
                 . ':3:' . $percent
                 . ':6:' . $place
                 . ':13:' . (int)$score['coins']
-                . ':42:' . gmdate('d/m/Y G.i', (int)$score['updated_at'])
+                . ':42:' . \MuchoCore\Protocol\GdRelativeTime::fromEpoch(
+                    (int)$score['updated_at']
+                )
                 . '|';
         }
 
