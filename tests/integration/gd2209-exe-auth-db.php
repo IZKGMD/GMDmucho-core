@@ -82,7 +82,7 @@ switch ($action) {
         break;
 
     case 'thread_message':
-        $sql = 'SELECT id,thread_id,sender_account_id,body,is_deleted
+        $sql = 'SELECT id,thread_id,sender_account_id,body
                 FROM mucho_thread_messages WHERE id=? LIMIT 1';
         $params = [$id];
         break;
