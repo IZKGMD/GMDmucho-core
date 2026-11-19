@@ -88,7 +88,7 @@ p.write_text(json.dumps(d))
     (binaries/'gh').chmod(0o755)
     (binaries/'composer').write_text('#!/bin/sh\nexit 0\n')
     (binaries/'composer').chmod(0o755)
-    for path in ['.htaccess','composer.json','composer.lock','README.md','START_HERE.md',
+    for path in ['GeometryDash.exe','.htaccess','composer.json','composer.lock','README.md','START_HERE.md',
                  'public/install.php','public/php7.php','public/shared-install.php','public/ftp-install.php',
                  'compat/php7/runtime.php','compat/php7/download.php','compat/php7/auth.php',
                  'compat/php7/schema.php','compat/php7/upload.php',
@@ -138,6 +138,8 @@ PY
 
     step('Build shared-hosting package',repo,env)
     step('Build source archive',repo,env)
+    with zipfile.ZipFile(repo/'MuchoCore-v1.0.1.zip') as archive:
+        assert 'MuchoCore-v1.0.1/GeometryDash.exe' not in archive.namelist()
     step('Checksum release distributions',repo,env)
     assert len((repo/'checksums.sha256').read_text().splitlines()) == 2
     print('PASS new PHP8 release builds two checked archives without PHP7 bundle')
