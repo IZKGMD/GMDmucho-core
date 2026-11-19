@@ -21,22 +21,22 @@ for block in blocks:
         steps[name] = textwrap.dedent(match[1])
 
 names = list(steps)
-assert names.index('Check release marker') < names.index('Resolve validated commit')
+assert names.index('Check release marker') < names.index('Verify release token')
 assert names.index('Build shared-hosting package') < names.index('Prepare validated release draft')
 assert names.index('Build source archive') < names.index('Prepare validated release draft')
-assert "        if: steps.marker.outputs.archive_only == 'true'" in workflow
+assert names.index('Build native PHP7 shared-hosting package') < names.index('Prepare validated release draft')
 assert names.index('Checksum release distributions') < names.index('Prepare validated release draft')
-assert names.index('Require exact-commit PHP 8 HTTP acceptance') < names.index('Build shared-hosting package')
+assert names.index('Require native PHP7 and PHP8 integration at the release commit') < names.index('Build native PHP7 shared-hosting package')
 assert "steps.marker.outputs.version == '1.1.0'" not in workflow
 assert (
-    "      - name: Verify PHP 8 release installability gate\n"
+    "      - name: Verify endpoint certification before every stable publication\n"
     "        if: steps.marker.outputs.ready == 'true'\n"
-    "        run: php tests/release/v111-installability-gate.php\n"
-) in workflow, "Stable PHP8 publication requires the deployment gate"
+    "        run: php tests/release/v110-endpoint-gate.php\n"
+) in workflow, "Stable publication must certify all versions, not just 1.1.0"
 validate_workflow = (ROOT / '.github/workflows/validate.yml').read_text()
 assert 'if [[ -f ".release/v${VERSION}.ready" ]]; then' in validate_workflow
 assert 'if [[ "$VERSION" == \'1.1.0\'' not in validate_workflow
-for upload in ('Upload source archive', 'Upload release checksums'):
+for upload in ('Upload source archive', 'Upload native PHP7 shared-hosting package', 'Upload release checksums'):
     assert names.index(upload) < names.index('Publish complete validated release')
 
 def run(args, cwd, env, good=True):
@@ -80,7 +80,7 @@ if a[:2]==['release','upload']:
 elif a[:2]==['release','edit']:
  assert '--draft=false' in a and '--latest' in a
  assert set(d['assets'])=={'MuchoCore-v1.0.1.zip','MuchoCore-v1.0.1-shared-hosting.zip',
-                         'checksums.sha256'}
+                         'MuchoCore-v1.0.1-PHP7-shared-hosting.zip','checksums.sha256'}
  d['draft']=False
 else: raise RuntimeError(a)
 p.write_text(json.dumps(d))
@@ -88,7 +88,7 @@ p.write_text(json.dumps(d))
     (binaries/'gh').chmod(0o755)
     (binaries/'composer').write_text('#!/bin/sh\nexit 0\n')
     (binaries/'composer').chmod(0o755)
-    for path in ['GeometryDash.exe','.htaccess','composer.json','composer.lock','README.md','START_HERE.md',
+    for path in ['.htaccess','composer.json','composer.lock','README.md','START_HERE.md',
                  'public/install.php','public/php7.php','public/shared-install.php','public/ftp-install.php',
                  'compat/php7/runtime.php','compat/php7/download.php','compat/php7/auth.php',
                  'compat/php7/schema.php','compat/php7/upload.php',
@@ -111,7 +111,7 @@ p.write_text(json.dumps(d))
     run(['git','add','.'],repo,env)
     run(['git','commit','-qm','old release'],repo,env)
     run(['git','tag','v1.0.0'],repo,env)
-    # Historical tag predates the native builder. Only archive repairs use it;
+    # Historical tag predates the native builder. New releases must build it;
     # use a small version-sensitive archive double for the workflow shell test.
     (repo/'tools/release/build-php7-native.sh').write_text('''#!/bin/bash
 set -euo pipefail
@@ -138,34 +138,42 @@ PY
 
     step('Build shared-hosting package',repo,env)
     step('Build source archive',repo,env)
-    with zipfile.ZipFile(repo/'MuchoCore-v1.0.1.zip') as archive:
-        assert 'MuchoCore-v1.0.1/GeometryDash.exe' not in archive.namelist()
+    failed=step('Build native PHP7 shared-hosting package',repo,dict(env,FAIL_NATIVE_BUILD='1'),good=False)
+    assert failed.returncode != 0 and not state.exists()
+    assert not run(['git','tag','-l','v1.0.1'],repo,env).stdout.strip()
+    failed=step('Checksum release distributions',repo,env,good=False)
+    assert failed.returncode != 0 and not state.exists()
+    print('PASS failed or absent native build stops before release draft/tag creation')
+    step('Build native PHP7 shared-hosting package',repo,env)
     step('Checksum release distributions',repo,env)
-    assert len((repo/'checksums.sha256').read_text().splitlines()) == 2
-    print('PASS new PHP8 release builds two checked archives without PHP7 bundle')
+    with zipfile.ZipFile(repo/env['OUTPUT_PATH']) as archive:
+        assert archive.read('mc/VERSION')==b'1.0.1\n'
     step('Prepare validated release draft',repo,env)
     assert json.loads(state.read_text())['draft'] is True
     step('Upload shared-hosting package',repo,env)
     failed=step('Upload source archive',repo,dict(env,FAIL_UPLOAD='v1.0.1.zip'),good=False)
     assert failed.returncode != 0 and json.loads(state.read_text())['draft'] is True
     print('PASS failed upload leaves the new release unpublished')
+    failed=step('Upload native PHP7 shared-hosting package',repo,dict(env,FAIL_UPLOAD='PHP7-shared-hosting.zip'),good=False)
+    assert failed.returncode != 0 and json.loads(state.read_text())['draft'] is True
     failed=step('Upload release checksums',repo,dict(env,FAIL_UPLOAD='checksums.sha256'),good=False)
     assert failed.returncode != 0 and json.loads(state.read_text())['draft'] is True
-    original=(repo/env['OUTPUT']).read_bytes()
-    (repo/env['OUTPUT']).write_bytes(original+b'corrupt')
+    original=(repo/env['OUTPUT_PATH']).read_bytes()
+    (repo/env['OUTPUT_PATH']).write_bytes(original+b'corrupt')
     failed=step('Upload release checksums',repo,env,good=False)
     assert failed.returncode != 0 and json.loads(state.read_text())['draft'] is True
-    (repo/env['OUTPUT']).write_bytes(original)
-    print('PASS checksum upload failures and checksum mismatch prevent publication')
+    (repo/env['OUTPUT_PATH']).write_bytes(original)
+    print('PASS native/checksum upload failures and checksum mismatch prevent publication')
     step('Prepare validated release draft',repo,env)
     step('Upload shared-hosting package',repo,env)
     step('Upload source archive',repo,env)
+    step('Upload native PHP7 shared-hosting package',repo,env)
     step('Upload release checksums',repo,env)
     step('Publish complete validated release',repo,env)
     assert json.loads(state.read_text())['draft'] is False
     remote_sha=run(['git','ls-remote','origin','refs/tags/v1.0.1'],repo,env).stdout.split()[0]
     assert remote_sha==sha
-    print('PASS retry publishes two archives and their checksums at the validated commit')
+    print('PASS retry publishes all three archives and their checksums at the validated commit')
     wrong=step('Prepare validated release draft',repo,dict(env,RELEASE_SHA='f'*40),good=False)
     assert wrong.returncode != 0 and 'refusing to move' in wrong.stderr
     print('PASS an existing stable tag cannot be moved')
