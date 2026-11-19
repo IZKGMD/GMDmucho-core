@@ -1,14 +1,14 @@
-## v1.1.1 — READY TO DEPLOY (PHP 8)
+## v1.1.1 Preview — Installable PHP 8 (prerelease)
 
-**Installable PHP 8 release.** This version packages the core, administration, compatibility and deployment improvements since v1.1.0 into reproducible VPS and shared-hosting distributions.
+**Installable PHP 8 prerelease.** This version packages the core, administration, compatibility and deployment improvements since v1.1.0 into reproducible VPS and shared-hosting distributions.
 
-- Require successful PHP 8.3 / MariaDB / Caddy HTTP acceptance for the **exact release commit**, plus Validate, archive integrity and SHA-256 checks before publication.
+- Require successful PHP 8.3 / MariaDB / Caddy HTTP acceptance for the **exact release commit**, plus Validate, archive integrity and SHA-256 checks before prerelease publication.
 - Bundle Composer dependencies in the shared-hosting ZIP; ship the tagged source archive separately.
 - Check first-owner registration, browser sessions and recovery, authenticated GD 2.209 message/notification replay and endpoint-form emulation.
 - Incorporate updater, Cloud Save, database migration, administrative and compatibility improvements.
 - Make v1.1.1 a PHP8-only release target. Precisely ported PHP7 will be a separate follow-up milestone.
 
-**Scope:** The separate 166-route full endpoint certification has not passed. Deployability is not a claim that every route or real client is certified. See [release notes](docs/RELEASE_NOTES_1.1.1.md).
+**Scope:** v1.1.1 Preview is not certified stable; the separate 166-route full endpoint certification has not passed. Deployability is not a claim that every route or real client is certified. See [release notes](docs/RELEASE_NOTES_1.1.1.md).
 
 ## Unreleased — News images and native YouTube cards
 
