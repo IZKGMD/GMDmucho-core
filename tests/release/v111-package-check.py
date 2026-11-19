@@ -97,8 +97,6 @@ def check_archive(path: Path, prefix: str, required: set[str]) -> str:
                     "operator secret/state in archive: " + item)
             require(not relative.startswith(".release/"),
                     "release control metadata in archive")
-            require(not item.endswith("/.env.example") or True,
-                    "unused placeholder")
             entries.add(relative)
         for item in required:
             suffix = item.rstrip("/")
