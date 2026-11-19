@@ -83,8 +83,9 @@ jobs:
           set -Eeuo pipefail
           bash tools/release/build-shared-hosting.sh
           unzip -t MuchoCore-v1.1.1-shared-hosting.zip >/dev/null
-          unzip -Z1 MuchoCore-v1.1.1-shared-hosting.zip | grep -Fx 'muchocore/vendor/autoload.php'
-          unzip -Z1 MuchoCore-v1.1.1-shared-hosting.zip | grep -Fx 'muchocore/public/install.php'
+          unzip -Z1 MuchoCore-v1.1.1-shared-hosting.zip > package-files.txt
+          grep -Fx 'muchocore/vendor/autoload.php' package-files.txt
+          grep -Fx 'muchocore/public/install.php' package-files.txt
 
       - name: Build tagged source ZIP excluding original game
         if: steps.marker.outputs.ready == 'true'
