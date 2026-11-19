@@ -75,8 +75,8 @@ assertInputHardening(
     str_contains($platformer, "\$this->strictInt(\$d['levelID'] ?? null)") &&
     str_contains($platformer, "\$this->strictInt(\$d['mode'] ?? 0)") &&
     str_contains($platformer, "\$this->strictInt(\$d['type'] ?? 0)") &&
-    str_contains($platformer, "gmdate("),
-    'platformer score identifiers and selectors are strictly parsed and UTC-stable'
+    str_contains($platformer, "GdRelativeTime::fromEpoch("),
+    'platformer score identifiers and selectors are strictly parsed and the timestamp is timezone-independent'
 );
 
 echo "MUCHOCORE_INPUT_HARDENING_OK\n";
