@@ -4,7 +4,40 @@ $me['username']=$user['username'];
 $recoveryCodes=isset($_SESSION['new_recovery_codes'])?$_SESSION['new_recovery_codes']:array();
 unset($_SESSION['new_recovery_codes']);
 $unusedRecoveryCodes=countUnusedAdminRecoveryCodes($db,(int)$user['account_id']);
+$mailStatus=mucho7_admin_mail_status($db,(int)$user['account_id']);
+$mailAddress='';
+if(isset($user['game_account_id']) && (int)$user['game_account_id']>0){
+    $mailAddressQuery=$db->prepare('SELECT email FROM accounts WHERE account_id=?');
+    $mailAddressQuery->execute(array((int)$user['game_account_id']));
+    $mailAddress=(string)$mailAddressQuery->fetchColumn();
+}
+if(!empty($mailStatus['pending_email']))$mailAddress=(string)$mailStatus['pending_email'];
+if(!empty($mailStatus['verified_email']))$mailAddress=(string)$mailStatus['verified_email'];
 ?>
+<section class="card" style="margin-bottom:18px">
+<h2>Password recovery email</h2>
+<p>On 5v.pl MuchoCore sends a confirmation email automatically through the hosting mail relay. No SMTP login or password is needed. Recovery is enabled only after you confirm the address from your inbox.</p>
+<?php if(!empty($mailStatus['verified_email'])):?>
+<p><strong>Verified:</strong> <?=h($mailStatus['verified_email'])?></p>
+<?php elseif(!empty($mailStatus['pending_email'])):?>
+<p><strong>Awaiting confirmation:</strong> <?=h($mailStatus['pending_email'])?></p>
+<?php else:?>
+<p><strong>Not configured.</strong> Send a verification link to enable recovery.</p>
+<?php endif ?>
+<?php if(!function_exists('mail')):?>
+<p class="err">This PHP host has disabled mail(). Recovery email cannot be enabled here; keep the FTP recovery option.</p>
+<?php endif ?>
+<form method="post">
+<input type="hidden" name="csrf" value="<?=h(csrf())?>">
+<input type="hidden" name="action" value="admin-mail-verify-send">
+<input type="hidden" name="return" value="admins">
+<label>Recovery email <input name="email" type="email" maxlength="254" required autocomplete="email" value="<?=h($mailAddress)?>"></label>
+<label>Current administrator password <input type="password" name="current_password" required autocomplete="current-password"></label>
+<?php if(!empty($me['totp_secret'])):?><label>2FA or recovery code <input name="otp" autocomplete="one-time-code" required></label><?php endif ?>
+<button type="submit" <?php if(!function_exists('mail'))echo 'disabled';?>>Send confirmation email</button>
+</form>
+<p><small>A queued message is not proof of delivery. If you do not receive it, check spam and use the existing FTP-verified owner recovery.</small></p>
+</section>
 <div class="boxgrid">
 
 <div class="card admin-2fa-card">
