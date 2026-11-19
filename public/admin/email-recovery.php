@@ -34,7 +34,8 @@ function muchoAdminEmailRoute(PDO $db): void
     if (!$isRoute) {
         return;
     }
-    AdminEmailRecovery::ensureSchema($db);
+    // The recovery table is installed by the normal schema migrator.
+    // HTTP requests must not require CREATE TABLE privileges.
     $ip = ClientIp::resolve($_SERVER);
     $csrfInput = '<input type="hidden" name="csrf" value="' . h(csrf()) . '">';
 
