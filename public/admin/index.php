@@ -4412,6 +4412,11 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
         elseif ($action==='admin-setup-reissue') {
             requireRank(40);
+            // This is an invitation management operation, not a generic
+            // accounts.manage permission. Only the actual owner may reissue.
+            if ((string)(admin()['role'] ?? '')!=='owner') {
+                throw new RuntimeException('Only the owner can renew invitations.');
+            }
             $setupBase=muchAdminSetupBaseUrl();
             $targetId=(int)($_POST['id'] ?? 0);
             if ($targetId<=0 || $targetId===(int)admin()['id']) {
