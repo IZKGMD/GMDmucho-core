@@ -1,0 +1,208 @@
+name: Publish MuchoCore v1.1.1 PHP8
+
+# One-time installable PHP8 release; the full endpoint certification gate
+# remains in release-stable.yml. Never publish the PHP7 preview here.
+on:
+  workflow_run:
+    workflows: ["PHP 8 HTTP acceptance"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: muchocore-v1.1.1-php8-publication
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+      TAG: v1.1.1
+      VERSION: 1.1.1
+    steps:
+      - name: Checkout and verify exact PHP8 main commit
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check explicit PHP8 marker and source SHA
+        id: marker
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          echo "ready=false" >> "$GITHUB_OUTPUT"
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(tr -d '[:space:]' < VERSION)" = "$VERSION"
+          if [[ ! -f ".release/php8-v1.1.1.ready" ]]; then
+            echo "No 1.1.1 PHP8 marker: no publication."
+            exit 0
+          fi
+          CURRENT_MAIN="$(git ls-remote origin refs/heads/main | awk 'NR==1{print $1}')"
+          [[ "$CURRENT_MAIN" =~ ^[0-9a-f]{40}$ ]]
+          if [[ "$CURRENT_MAIN" != "$RELEASE_SHA" ]]; then
+            echo "Main advanced since validated HTTP run; refusing stale tag." >&2
+            exit 1
+          fi
+          git checkout --detach "$RELEASE_SHA"
+          test "$(cat VERSION)" = "$VERSION"
+          if gh release view "$TAG" --json isDraft --jq '.isDraft' 2>/dev/null | grep -qx false; then
+            echo "$TAG already public: never overwrite it."
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the same SHA passed Validate on main
+        if: steps.marker.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess
+          repo = os.environ["GITHUB_REPOSITORY"]
+          sha = os.environ["RELEASE_SHA"]
+          url = (f"repos/{repo}/actions/workflows/validate.yml/runs"
+                 f"?event=push&branch=main&head_sha={sha}&per_page=100")
+          data = json.loads(subprocess.check_output(
+              ["gh", "api", url], text=True, timeout=40))
+          runs = [r for r in data["workflow_runs"]
+                  if r.get("head_sha") == sha
+                  and r.get("head_branch") == "main"
+                  and r.get("event") == "push"]
+          if not any(r.get("status") == "completed"
+                     and r.get("conclusion") == "success" for r in runs):
+              raise SystemExit("No successful Validate push workflow for exact PHP8 SHA")
+          print("PHP8 HTTP plus Validate confirmed at " + sha)
+          PY
+
+      - name: Set up PHP 8.3 and production dependencies
+        if: steps.marker.outputs.ready == 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_mysql, openssl, zip, gd, ftp
+          tools: composer
+
+      - name: Audit release install scripts and lockfile
+        if: steps.marker.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 tests/release/v111-package-check.py --static
+          bash -n install.sh install-remote.sh update.sh
+          php -l public/install.php
+          php -l public/shared-install.php
+          composer validate --no-check-publish --strict
+          composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+          test -s vendor/autoload.php
+
+      - name: Build and test real installable shared-hosting ZIP
+        if: steps.marker.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export OUTPUT="MuchoCore-v1.1.1-shared-hosting.zip"
+          bash tools/release/build-shared-hosting.sh
+          python3 tests/release/v111-package-check.py --shared "$OUTPUT"
+          stage="$(mktemp -d)"
+          trap 'rm -rf "$stage"' EXIT
+          unzip -q "$OUTPUT" -d "$stage"
+          test "$(cat "$stage/muchocore/VERSION")" = "1.1.1"
+          php -l "$stage/muchocore/public/install.php"
+          php -l "$stage/muchocore/public/shared-install.php"
+          php -r 'require $argv[1]; echo "VENDOR_READY\n";' \
+            "$stage/muchocore/vendor/autoload.php" | grep -qx VENDOR_READY
+          php -r '$_SERVER["REQUEST_METHOD"]="GET"; require $argv[1];' \
+            "$stage/muchocore/public/install.php" > "$stage/preflight.html"
+          grep -Fq 'Check your hosting environment' "$stage/preflight.html"
+          test ! -e "$stage/muchocore/.env"
+          test ! -e "$stage/muchocore/config/cloudsave.key"
+
+      - name: Archive exact validated source with no runtime secrets
+        if: steps.marker.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git archive --format=zip --prefix="MuchoCore-v1.1.1/" \
+            -o "MuchoCore-v1.1.1-source.zip" "$RELEASE_SHA" -- \
+            . ':(exclude).release/**' \
+              ':(exclude).secrets/**' \
+              ':(exclude)storage/**' \
+              ':(exclude).env' \
+              ':(exclude)config/cloudsave.key' \
+              ':(exclude)Geometry.Dash.ver.1.40.build.11.apk' \
+              ':(exclude)assets/brand/sources/**'
+          python3 tests/release/v111-package-check.py --source \
+            MuchoCore-v1.1.1-source.zip
+
+      - name: Generate and self-check distribution SHA256 sums
+        if: steps.marker.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sha256sum MuchoCore-v1.1.1-shared-hosting.zip \
+                    MuchoCore-v1.1.1-source.zip > checksums.sha256
+          sha256sum --check checksums.sha256
+
+      - name: Create immutable tag and release draft as IZK
+        if: steps.marker.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name "IZK"
+          git config user.email "112145870+IZKGMD@users.noreply.github.com"
+          gh auth setup-git
+          if git ls-remote --exit-code --refs origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
+            existing="$(git rev-parse "$TAG^{commit}")"
+            [[ "$existing" == "$RELEASE_SHA" ]] || {
+              echo "Refusing to move immutable $TAG tag." >&2
+              exit 1
+            }
+          else
+            git tag -a "$TAG" "$RELEASE_SHA" -m "MuchoCore 1.1.1 PHP8 by IZK"
+            git push origin "refs/tags/$TAG"
+          fi
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --verify-tag \
+              --title "MuchoCore 1.1.1 — Your GDPS. Your Rules. 🚀" \
+              --notes-file docs/RELEASE_NOTES_1.1.1.md --draft
+          fi
+
+      - name: Upload both ZIPs and checksums to draft
+        if: steps.marker.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          gh release upload "$TAG" \
+            MuchoCore-v1.1.1-shared-hosting.zip \
+            MuchoCore-v1.1.1-source.zip \
+            checksums.sha256 --clobber
+          assets="$(gh release view "$TAG" --json assets --jq '.assets[].name')"
+          for name in MuchoCore-v1.1.1-shared-hosting.zip \
+                      MuchoCore-v1.1.1-source.zip checksums.sha256; do
+            grep -Fxq "$name" <<< "$assets" || {
+              echo "Missing official release asset: $name" >&2
+              exit 1
+            }
+          done
+
+      - name: Publish complete, verified v1.1.1
+        if: steps.marker.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sha256sum --check checksums.sha256
+          gh release edit "$TAG" --draft=false --latest
+          test "$(gh release view "$TAG" --json isDraft --jq '.isDraft')" = false
+          echo "MUCHOCORE_V111_PHP8_RELEASE_PUBLISHED"
