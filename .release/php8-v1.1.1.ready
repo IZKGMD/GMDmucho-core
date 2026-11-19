@@ -1,0 +1,9 @@
+# Explicit one-time PHP8-only MuchoCore v1.1.1 publication request
+# Publish ONLY after the exact main SHA passes Validate and full PHP8 HTTP CI.
+# Never publish the native PHP7 package from this marker.
+# This marker deliberately differs from .release/v1.1.1.ready used by the
+# all-endpoint fully certified release-stable workflow.
+version=1.1.1
+runtime=php8.2+
+product=MuchoCore
+author=IZK
