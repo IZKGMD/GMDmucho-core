@@ -1154,7 +1154,8 @@ function muchAdminSetupBaseUrl(): string
         !preg_match('/^[a-z0-9.-]+$/iD',(string)$parts['host']) ||
         isset($parts['user']) || isset($parts['pass']) ||
         isset($parts['port']) || isset($parts['query']) ||
-        isset($parts['fragment']) || isset($parts['path'])) {
+        isset($parts['fragment']) ||
+        (isset($parts['path']) && $parts['path'] !== '/')) {
         throw new RuntimeException(
             'Set MUCHO_PUBLIC_URL (or MUCHO_ACCOUNT_URL) to the public HTTPS root before inviting administrators.'
         );
