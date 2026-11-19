@@ -251,6 +251,7 @@ jobs:
           php tests/compat/php7-gd2209-client-route-inventory.php
           php tests/compat/php7-native-download-parity.php
           php tests/compat/php7-native-auth.php
+          php tests/compat/php7-admin-mail-recovery.php
           php tests/compat/php7-cloudsave-crypto.php
           php tests/compat/php7-domain-complete-query.php
           php tests/compat/php7-native-original-admin.php
@@ -973,6 +974,10 @@ jobs:
               php -l compat/php7/cloudsave.php
               php -l compat/php7/profile.php
               php -l compat/php7/schema.php
+              php -l compat/php7/admin-mail-recovery.php
+              php -l compat/php7/admin-ui/email-recovery.php
+              php -l compat/php7/admin-ui/admins.php
+              php -l public/php7-admin.php
               php -l public/php7-setup.php
               php -l compat/php7/config.example.php
               php -l public/php7.php
