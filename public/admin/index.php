@@ -4409,6 +4409,55 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             flash('Administrator created. Give them the one-time password setup link shown below.');
         }
 
+        elseif ($action==='admin-setup-reissue') {
+            requireRank(40);
+            $setupBase=muchAdminSetupBaseUrl();
+            $targetId=(int)($_POST['id'] ?? 0);
+            if ($targetId<=0 || $targetId===(int)admin()['id']) {
+                throw new RuntimeException('Invalid pending administrator.');
+            }
+
+            $q=$db->prepare(
+                "SELECT username FROM admin_users
+                 WHERE id=:id AND is_active=1 AND password_must_set=1
+                   AND role<>'owner' LIMIT 1"
+            );
+            $q->execute(['id'=>$targetId]);
+            $targetName=$q->fetchColumn();
+            if (!is_string($targetName) || $targetName==='') {
+                throw new RuntimeException(
+                    'This administrator already has a password or is inactive.'
+                );
+            }
+
+            $setupToken=rtrim(
+                strtr(base64_encode(random_bytes(48)),'+/','-_'),'='
+            );
+            $renew=$db->prepare(
+                "UPDATE admin_users
+                 SET password_setup_token_hash=:hash,
+                     password_setup_expires_at=:expires
+                 WHERE id=:id AND is_active=1 AND password_must_set=1
+                   AND role<>'owner'"
+            );
+            $renew->execute([
+                'hash'=>hash('sha256',$setupToken),
+                'expires'=>gmdate('Y-m-d H:i:s',time()+86400),
+                'id'=>$targetId
+            ]);
+            if ($renew->rowCount()!==1) {
+                throw new RuntimeException('Setup link could not be renewed.');
+            }
+
+            // The previous setup URL is invalid as soon as this update commits.
+            $_SESSION['admin_setup_invite']=[
+                'username'=>$targetName,
+                'url'=>$setupBase.'?setup='.rawurlencode($setupToken)
+            ];
+            audit($db,'admin.setup.reissue',$targetName);
+            flash('New setup link created. The previous link no longer works.');
+        }
+
         elseif ($action==='admin-toggle') {
             requireRank(40);
 
@@ -6533,14 +6582,14 @@ $unusedRecoveryCodes=countUnusedAdminRecoveryCodes(
 <?php
 
 $admins=$db->query(
-    'SELECT id,username,role,is_active,
-            totp_secret,created_at
+    'SELECT id,username,role,is_active,password_must_set,
+            password_setup_expires_at,totp_secret,created_at
      FROM admin_users
      ORDER BY id'
 )->fetchAll(PDO::FETCH_ASSOC);
 
 echo '<div class="table"><table>';
-echo '<tr><th>ID</th><th>User</th><th>Role</th><th>2FA</th><th>Active</th><th></th></tr>';
+echo '<tr><th>ID</th><th>User</th><th>Role</th><th>2FA</th><th>Active</th><th>Password</th><th></th></tr>';
 
 foreach($admins as $a) {
     echo '<tr>';
@@ -6549,6 +6598,8 @@ foreach($admins as $a) {
     echo '<td>'.h(AdminRbac::roleName($db,(string)$a['role'])).' <code style="font-size:10px;color:#6f7c91">'.h($a['role']).'</code></td>';
     echo '<td>'.(!empty($a['totp_secret'])?'YES':'NO').'</td>';
     echo '<td>'.h($a['is_active']).'</td>';
+    echo '<td>'.((int)$a['password_must_set']===1
+        ? 'Awaiting setup' : 'Set').'</td>';
 
     echo '<td>';
 
@@ -6556,6 +6607,18 @@ foreach($admins as $a) {
         canPermission('admins.manage') &&
         (int)$a['id']!==(int)admin()['id']
     ) {
+        if ((int)$a['password_must_set']===1 &&
+            (int)$a['is_active']===1 && (string)$a['role']!=='owner' &&
+            (string)(admin()['role'] ?? '')==='owner') {
+            echo '<form method="post">
+            <input type="hidden" name="csrf" value="'.h(csrf()).'">
+            <input type="hidden" name="action" value="admin-setup-reissue">
+            <input type="hidden" name="return" value="admins">
+            <input type="hidden" name="id" value="'.h($a['id']).'">
+            <button class="gray">New setup link</button>
+            </form>';
+        }
+
         echo '<form method="post">
         <input type="hidden" name="csrf" value="'.csrf().'">
         <input type="hidden" name="action" value="admin-toggle">
