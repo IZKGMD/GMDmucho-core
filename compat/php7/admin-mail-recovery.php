@@ -25,7 +25,7 @@ function mucho7_admin_mail_schema()
 
 function mucho7_admin_mail_install(PDO $db)
 {
-    if (function_exists('tableExists') && !tableExists($db, 'php7_admin_mail_recovery')) {
+    if (!tableExists($db, 'php7_admin_mail_recovery')) {
         $db->exec(mucho7_admin_mail_schema());
     }
 }
@@ -90,7 +90,15 @@ function mucho7_admin_mail_status(PDO $db, $aid)
 {
     // Minimal legacy fixtures or interrupted upgrades may not yet have
     // the additive recovery table. Never make the admin panel crash.
-    if (!tableExists($db, 'php7_admin_mail_recovery')) {
+    if ($missing = function_exists('tableExists')
+        ? !tableExists($db, 'php7_admin_mail_recovery') : false;
+    if (!function_exists('tableExists') &&
+        $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+        $probe = $db->query("SELECT name FROM sqlite_master
+            WHERE type='table' AND name='php7_admin_mail_recovery'");
+        $missing = !$probe->fetchColumn();
+    }
+    if ($missing)) {
         return array('verified_email'=>null, 'pending_email'=>null);
     }
     $q = $db->prepare('SELECT verified_email,pending_email FROM php7_admin_mail_recovery WHERE admin_id=?');
