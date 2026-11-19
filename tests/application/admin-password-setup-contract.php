@@ -39,7 +39,29 @@ $checks=[
         && str_contains($consoleRecovery, 'db->beginTransaction();')
         && str_contains($consoleRecovery, 'db->commit();'),
     'strong password requirements' =>
-        str_contains($index,'Password must be at least 10 characters.'),
+        str_contains($index,'Password must contain 12–72 bytes without control characters.')
+        && str_contains($index,'minlength="12" maxlength="72"'),
+    'canonical trusted invitation origin' =>
+        str_contains($index,"Environment::get('MUCHO_PUBLIC_URL', '')")
+        && str_contains($index,"Environment::get('MUCHO_ACCOUNT_URL', '')")
+        && str_contains($index,'function muchAdminSetupBaseUrl(): string')
+        && !str_contains(
+            substr($index,
+                strpos($index, 'function muchAdminSetupBaseUrl(): string'),
+                strpos($index, 'function muchAdminRenderPasswordSetup') -
+                    strpos($index, 'function muchAdminSetupBaseUrl(): string')
+            ),
+            "HTTP_HOST'"
+        ),
+    'password submission uses explicit POST action' =>
+        str_contains($index,'name="action" value="admin-password-setup"')
+        && str_contains($index,'name="setup" value="<?=h($token)?>"'),
+    'owner can reissue only pending administrator setup' =>
+        str_contains($index,"$" . "action==='admin-setup-reissue'")
+        && str_contains($index,"password_must_set=1")
+        && str_contains($index,"role<>'owner'")
+        && str_contains($index,"Only the owner can renew invitations.")
+        && str_contains($index,'New setup link'),
     'invite link shown once' =>
         str_contains($index,"admin_setup_invite")
         && str_contains($index,'The link expires in 24 hours and is shown only once.'),
