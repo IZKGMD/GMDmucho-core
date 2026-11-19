@@ -123,6 +123,7 @@ jobs:
           git archive --format=zip --prefix="MuchoCore-${TAG}/" -o "MuchoCore-${TAG}.zip" HEAD -- \
             . \
             ':(exclude)Geometry.Dash.ver.1.40.build.11.apk' \
+            ':(exclude)GeometryDash.exe' \
             ':(exclude)assets/brand/sources/**' \
             ':(exclude).release/**'
           test -s "MuchoCore-${TAG}.zip"
