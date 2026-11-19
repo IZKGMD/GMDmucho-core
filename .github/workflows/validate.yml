@@ -83,7 +83,11 @@ jobs:
         run: |
           VERSION="$(tr -d '[:space:]' < VERSION)"
           if [[ -f ".release/v${VERSION}.ready" ]]; then
-            php tests/release/v110-endpoint-gate.php
+            if [[ "$VERSION" == "1.1.1" ]]; then
+              php tests/release/v111-installability-gate.php
+            else
+              php tests/release/v110-endpoint-gate.php
+            fi
           fi
 
       - name: Check PHP sources
@@ -196,6 +200,7 @@ jobs:
           python3 tests/release/release-publication.py
           python3 tests/release/dev-snapshot-contract.py
           python3 tests/release/native-ci-gate.py
+          python3 tests/release/php8-ci-gate.py
           bash tests/release/update-main-without-release.sh
           bash tests/release/update-recovery.sh
           php tests/database/migrator-concurrency.php
