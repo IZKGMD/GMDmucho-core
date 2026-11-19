@@ -38,43 +38,43 @@ Use your own authorized game client when preparing a server-specific client.
 
 **For PHP 8.2+ shared hosting with MySQL/MariaDB:**
 
-**\`MuchoCore-v1.1.1-shared-hosting.zip\`**
+**`MuchoCore-v1.1.1-shared-hosting.zip`**
 
 This is the **ready-to-upload** distribution. It contains
-\`vendor/autoload.php\`, the browser installer, migrations and server code.
+`vendor/autoload.php`, the browser installer, migrations and server code.
 GitHub's automatic "Source code (zip)" archive is NOT a substitute.
 
 1. Create an empty MySQL/MariaDB database and database user in your hosting
    panel. Enable PHP 8.2+ (PHP 8.3 recommended), PDO MySQL, mbstring, OpenSSL,
    ZIP and HTTPS.
-2. Unzip the release file. Upload the **contents** of its \`muchocore/\`
-   directory to your site's web root, preserving \`.htaccess\`, \`config/\`,
-   \`public/\`, \`vendor/\` and all other files.
-3. Visit **\`https://YOUR-DOMAIN/install.php\`** and follow the host checks.
+2. Unzip the release file. Upload the **contents** of its `muchocore/`
+   directory to your site's web root, preserving `.htaccess`, `config/`,
+   `public/`, `vendor/` and all other files.
+3. Visit **`https://YOUR-DOMAIN/install.php`** and follow the host checks.
    Set database connection and first administrator credentials.
-4. Open **\`https://YOUR-DOMAIN/admin/\`** and check **\`/health\`**.
+4. Open **`https://YOUR-DOMAIN/admin/`** and check **`/health`**.
 5. In admin **More tools → Clients & extensions → Web Client Patcher**,
    point your own Geometry Dash client at the GDPS. Test registration,
    level upload/download and Cloud Save before inviting users.
 
-Details: [shared hosting](docs/SHARED_HOSTING.md) ·
-[client setup](docs/CLIENT_SETUP.md) ·
-[Russian start guide](START_HERE.md).
+Details: [shared hosting](https://github.com/IZKGMD/GMDmucho-core/blob/v1.1.1/docs/SHARED_HOSTING.md) ·
+[client setup](https://github.com/IZKGMD/GMDmucho-core/blob/v1.1.1/docs/CLIENT_SETUP.md) ·
+[Russian start guide](https://github.com/IZKGMD/GMDmucho-core/blob/v1.1.1/START_HERE.md).
 
 **For an Ubuntu Linux VPS and a domain:**
 
 The standard installer selects the latest **published stable** release and
-pins its Git tag instead of installing whatever happens to be on \`main\`:
+pins its Git tag instead of installing whatever happens to be on `main`:
 
-\`\`\`bash
+```bash
 curl -fsSL https://raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/install-remote.sh | sudo bash
-\`\`\`
+```
 
 Enter your first administrator credentials, domain and server name when
 prompted. Direct HTTPS on ports 80/443 is the default; Cloudflare credentials
 are not required.
 
-See [VPS setup](docs/VPS_INSTALL_QUICK_RU.md).
+See [VPS setup](https://github.com/IZKGMD/GMDmucho-core/blob/v1.1.1/docs/VPS_INSTALL_QUICK_RU.md).
 
 ## 🔄 Updating an existing MuchoCore installation
 
@@ -82,10 +82,10 @@ See [VPS setup](docs/VPS_INSTALL_QUICK_RU.md).
 Cloud Save encryption key first.** Never reset the key to "fix" save errors.
 For VPS upgrades run:
 
-\`\`\`bash
+```bash
 sudo mucho update
 sudo mucho doctor
-\`\`\`
+```
 
 Use the [shared-hosting update guide](docs/SHARED_HOSTING.md) for FTP hosting.
 Do not run first-install wizard over a live installation. Test schema migrations
@@ -116,12 +116,12 @@ syntax or calling a partial PHP 7 build stable.
 
 ## 🔎 Verify the download
 
-The release contains \`checksums.sha256\`. On Linux, put it beside the ZIP
+The release contains `checksums.sha256`. On Linux, put it beside the ZIP
 archives and run:
 
-\`\`\`bash
+```bash
 sha256sum -c checksums.sha256
-\`\`\`
+```
 
 **Report issues:** https://github.com/IZKGMD/GMDmucho-core/issues
 (share your host/PHP version and action attempted, **never passwords or keys**).
