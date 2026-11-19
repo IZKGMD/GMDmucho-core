@@ -329,7 +329,7 @@ final readonly class PlatformerScoreController
                 ':16:'.(int)$row['account_id'].
                 ':3:'.$score.
                 ':6:'.$rank.
-                ':42:'.gmdate('d/m/Y G.i',
+                ':42:'.\MuchoCore\Protocol\GdRelativeTime::fromEpoch(
                     (int)$row['updated_at']
                 );
         }
