@@ -1139,23 +1139,28 @@ if($passkeyAction!==''){
 
 function muchAdminSetupBaseUrl(): string
 {
-    $configured=(string)(
+    // Administrator invitations are credentials. Never build them from the
+    // user-controlled Host or X-Forwarded-* request headers.
+    $configured=trim((string)(
         Environment::get('MUCHO_PUBLIC_URL', '')
-        ?: getenv('MUCHO_ACCOUNT_URL')
+        ?: Environment::get('MUCHO_ACCOUNT_URL', '')
+        ?: Environment::get('MUCHO_ADMIN_MAIL_ORIGIN', '')
         ?: ''
-    );
-
-    if ($configured!=='') {
-        $base=rtrim($configured,'/');
-    } else {
-        $https=(($_SERVER['HTTPS'] ?? '')==='on')
-            || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')==='https');
-        $scheme=$https ? 'https' : 'http';
-        $host=(string)($_SERVER['HTTP_HOST'] ?? 'localhost');
-        $base=$scheme.'://'.$host;
+    ));
+    $parts=parse_url($configured);
+    if (!is_array($parts) ||
+        ($parts['scheme'] ?? '')!=='https' ||
+        empty($parts['host']) ||
+        !preg_match('/^[a-z0-9.-]+$/iD',(string)$parts['host']) ||
+        isset($parts['user']) || isset($parts['pass']) ||
+        isset($parts['port']) || isset($parts['query']) ||
+        isset($parts['fragment']) ||
+        (isset($parts['path']) && $parts['path'] !== '/')) {
+        throw new RuntimeException(
+            'Set MUCHO_PUBLIC_URL (or MUCHO_ACCOUNT_URL) to the public HTTPS root before inviting administrators.'
+        );
     }
-
-    return $base.'/admin/';
+    return 'https://'.strtolower((string)$parts['host']).'/admin/';
 }
 
 function muchAdminRenderPasswordSetup(PDO $db,string $token): never
@@ -1202,8 +1207,9 @@ function muchAdminRenderPasswordSetup(PDO $db,string $token): never
 
         if (!$row) {
             $error='This password setup link is invalid or expired.';
-        } elseif (strlen($password)<10) {
-            $error='Password must be at least 10 characters.';
+        } elseif (strlen($password)<12 || strlen($password)>72 ||
+                  preg_match('/[\\x00-\\x1F\\x7F]/',$password)) {
+            $error='Password must contain 12–72 bytes without control characters.';
         } elseif ($password!==$confirm) {
             $error='Passwords do not match.';
         } else {
@@ -1280,13 +1286,14 @@ button{width:100%;margin-top:15px;padding:12px;border:0;border-radius:10px;backg
 <div class="ok">Password created successfully.</div>
 <p><a href="/admin/" style="color:#a69fff">Continue to administrator login</a></p>
 <?php elseif($row): ?>
-<form method="post">
+<form method="post" action="/admin/">
 <input type="hidden" name="csrf" value="<?=csrf()?>">
+<input type="hidden" name="action" value="admin-password-setup">
 <input type="hidden" name="setup" value="<?=h($token)?>">
 <label for="password">New password</label>
-<input id="password" type="password" name="password" autocomplete="new-password" minlength="10" required>
+<input id="password" type="password" name="password" autocomplete="new-password" minlength="12" maxlength="72" required>
 <label for="password_confirm">Confirm password</label>
-<input id="password_confirm" type="password" name="password_confirm" autocomplete="new-password" minlength="10" required>
+<input id="password_confirm" type="password" name="password_confirm" autocomplete="new-password" minlength="12" maxlength="72" required>
 <button>Create password</button>
 </form>
 <p class="small">This one-time setup link expires in 24 hours.</p>
@@ -4364,6 +4371,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 throw new RuntimeException('You cannot assign this role.');
             }
 
+            // Check the canonical HTTPS origin before creating any pending
+            // account, so an invalid host cannot strand an invitation.
+            $setupBase=muchAdminSetupBaseUrl();
             $setupToken=rtrim(
                 strtr(
                     base64_encode(random_bytes(48)),
@@ -4393,11 +4403,65 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
             $_SESSION['admin_setup_invite']=[
                 'username'=>$username,
-                'url'=>muchAdminSetupBaseUrl().'?setup='.rawurlencode($setupToken)
+                'url'=>$setupBase.'?setup='.rawurlencode($setupToken)
             ];
 
             audit($db,'admin.create',$username,['role'=>$role]);
             flash('Administrator created. Give them the one-time password setup link shown below.');
+        }
+
+        elseif ($action==='admin-setup-reissue') {
+            requireRank(40);
+            // This is an invitation management operation, not a generic
+            // accounts.manage permission. Only the actual owner may reissue.
+            if ((string)(admin()['role'] ?? '')!=='owner') {
+                throw new RuntimeException('Only the owner can renew invitations.');
+            }
+            $setupBase=muchAdminSetupBaseUrl();
+            $targetId=(int)($_POST['id'] ?? 0);
+            if ($targetId<=0 || $targetId===(int)admin()['id']) {
+                throw new RuntimeException('Invalid pending administrator.');
+            }
+
+            $q=$db->prepare(
+                "SELECT username FROM admin_users
+                 WHERE id=:id AND is_active=1 AND password_must_set=1
+                   AND role<>'owner' LIMIT 1"
+            );
+            $q->execute(['id'=>$targetId]);
+            $targetName=$q->fetchColumn();
+            if (!is_string($targetName) || $targetName==='') {
+                throw new RuntimeException(
+                    'This administrator already has a password or is inactive.'
+                );
+            }
+
+            $setupToken=rtrim(
+                strtr(base64_encode(random_bytes(48)),'+/','-_'),'='
+            );
+            $renew=$db->prepare(
+                "UPDATE admin_users
+                 SET password_setup_token_hash=:hash,
+                     password_setup_expires_at=:expires
+                 WHERE id=:id AND is_active=1 AND password_must_set=1
+                   AND role<>'owner'"
+            );
+            $renew->execute([
+                'hash'=>hash('sha256',$setupToken),
+                'expires'=>gmdate('Y-m-d H:i:s',time()+86400),
+                'id'=>$targetId
+            ]);
+            if ($renew->rowCount()!==1) {
+                throw new RuntimeException('Setup link could not be renewed.');
+            }
+
+            // The previous setup URL is invalid as soon as this update commits.
+            $_SESSION['admin_setup_invite']=[
+                'username'=>$targetName,
+                'url'=>$setupBase.'?setup='.rawurlencode($setupToken)
+            ];
+            audit($db,'admin.setup.reissue',$targetName);
+            flash('New setup link created. The previous link no longer works.');
         }
 
         elseif ($action==='admin-toggle') {
@@ -6471,7 +6535,11 @@ $pendingRecoveryEmail = (string) ($myRecovery['pending_email'] ?? '');
 <?php endif; ?>
 <?php if($pendingRecoveryEmail!==''): ?><p>Awaiting verification: <?=h($pendingRecoveryEmail)?></p><?php endif; ?>
 <?php if(!\MuchoCore\Admin\AdminSmtp::configured()): ?>
-<p style="color:#dabf88">Email delivery is not configured on this server. The owner must set the SMTP environment variables first.</p>
+<p style="color:#dabf88">Password recovery is not ready: email delivery is not configured.
+The server owner must privately set MUCHO_ADMIN_SMTP_HOST, MUCHO_ADMIN_SMTP_USER,
+MUCHO_ADMIN_SMTP_PASSWORD and MUCHO_ADMIN_MAIL_FROM, plus an HTTPS public origin
+(MUCHO_ADMIN_MAIL_ORIGIN, MUCHO_PUBLIC_URL or MUCHO_ACCOUNT_URL). Do not paste SMTP
+passwords into the browser or public logs.</p>
 <?php endif; ?>
 <form method="post" action="/admin/">
 <input type="hidden" name="csrf" value="<?=h(csrf())?>">
@@ -6479,7 +6547,7 @@ $pendingRecoveryEmail = (string) ($myRecovery['pending_email'] ?? '');
 <label>Recovery email<input type="email" name="email" autocomplete="email" maxlength="254" required placeholder="you@example.com"></label>
 <label>Current admin password<input type="password" name="current_password" autocomplete="current-password" required></label>
 <?php if(!empty($me['totp_secret'])): ?><label>Authenticator or recovery code<input name="otp" autocomplete="one-time-code" required></label><?php endif; ?>
-<button>Send confirmation email</button>
+<button <?php if(!\MuchoCore\Admin\AdminSmtp::configured()) echo 'disabled title="Configure SMTP first"'; ?>>Send confirmation email</button>
 </form>
 </div>
 
@@ -6524,14 +6592,14 @@ $unusedRecoveryCodes=countUnusedAdminRecoveryCodes(
 <?php
 
 $admins=$db->query(
-    'SELECT id,username,role,is_active,
-            totp_secret,created_at
+    'SELECT id,username,role,is_active,password_must_set,
+            password_setup_expires_at,totp_secret,created_at
      FROM admin_users
      ORDER BY id'
 )->fetchAll(PDO::FETCH_ASSOC);
 
 echo '<div class="table"><table>';
-echo '<tr><th>ID</th><th>User</th><th>Role</th><th>2FA</th><th>Active</th><th></th></tr>';
+echo '<tr><th>ID</th><th>User</th><th>Role</th><th>2FA</th><th>Active</th><th>Password</th><th></th></tr>';
 
 foreach($admins as $a) {
     echo '<tr>';
@@ -6540,6 +6608,8 @@ foreach($admins as $a) {
     echo '<td>'.h(AdminRbac::roleName($db,(string)$a['role'])).' <code style="font-size:10px;color:#6f7c91">'.h($a['role']).'</code></td>';
     echo '<td>'.(!empty($a['totp_secret'])?'YES':'NO').'</td>';
     echo '<td>'.h($a['is_active']).'</td>';
+    echo '<td>'.((int)$a['password_must_set']===1
+        ? 'Awaiting setup' : 'Set').'</td>';
 
     echo '<td>';
 
@@ -6547,6 +6617,18 @@ foreach($admins as $a) {
         canPermission('admins.manage') &&
         (int)$a['id']!==(int)admin()['id']
     ) {
+        if ((int)$a['password_must_set']===1 &&
+            (int)$a['is_active']===1 && (string)$a['role']!=='owner' &&
+            (string)(admin()['role'] ?? '')==='owner') {
+            echo '<form method="post">
+            <input type="hidden" name="csrf" value="'.h(csrf()).'">
+            <input type="hidden" name="action" value="admin-setup-reissue">
+            <input type="hidden" name="return" value="admins">
+            <input type="hidden" name="id" value="'.h($a['id']).'">
+            <button class="gray">New setup link</button>
+            </form>';
+        }
+
         echo '<form method="post">
         <input type="hidden" name="csrf" value="'.csrf().'">
         <input type="hidden" name="action" value="admin-toggle">
