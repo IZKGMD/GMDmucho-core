@@ -121,6 +121,192 @@ def wire_map(body: str) -> dict[str, str]:
     return dict(zip(chunks[0::2], chunks[1::2]))
 
 
+
+def native_b64(value: str) -> str:
+    """Native client request text uses URL-safe Base64 without padding."""
+    return base64.urlsafe_b64encode(value.encode("utf-8")).decode("ascii").rstrip("=")
+
+
+def replay_native_social(
+    auth1: dict, auth2: dict, bad_auth: dict,
+    aid1: int, aid2: int, username1: str, captured: set[str],
+) -> None:
+    """Authenticated GD 2.209 client-shaped HTTP replay with persisted SQL.
+
+    Uses two disposable registered game accounts, the real Caddy router,
+    PHP-FPM and MariaDB. Every path comes from the saved EXE URL fixture.
+    This tests HTTP behavior, not an in-process controller method call.
+    """
+    native_paths = (
+        "/database/getGJNotifications.php",
+        "/database/claimGJNotificationReward.php",
+        "/database/sendGJThreadMessage.php",
+        "/database/getGJThreads.php",
+        "/database/getGJThreadMessages.php",
+        "/database/getGJThreadMembers.php",
+        "/database/getGJThreadInvites.php",
+        "/database/searchGJThreadMessages.php",
+        "/database/updateGJThread.php",
+    )
+    for path in native_paths:
+        require(path in captured, "real 2.209 EXE native URL: " + path)
+
+    # Follow in main() has already inserted exactly one notification.
+    follow_notice = database("follow_notification", aid1, aid2)
+    require(follow_notice is not None and int(follow_notice["actor_account_id"]) == aid1,
+            "follow action generated a real actor-attributed notification row")
+    notice_id = int(follow_notice["id"])
+    listing = form(native_paths[0], {**auth2, "page": 0})
+    parts = listing.split("#")
+    require(len(parts) == 2 and parts[1] == "1:0:20",
+            "2.209 notification list has exact one-event pagination")
+    slots = parts[0].split(":")
+    require(len(slots) == 32, "GD 2.209 notification has 16 key/value slots")
+    notice_fields = dict(zip(slots[0::2], slots[1::2]))
+    require(notice_fields["1"] == str(notice_id)
+            and notice_fields["2"] == "13"
+            and notice_fields["7"] == "1"
+            and notice_fields["15"] == str(aid1)
+            and notice_fields["16"] == username1,
+            "real HTTP notification wire has correct owner, actor, type and unread status")
+    require(base64.urlsafe_b64decode(notice_fields["4"] + "===") == b"New follower",
+            "native notification title uses URL-safe Base64")
+    require(form(native_paths[0], {**bad_auth, "page": 0}) == "-1",
+            "other account credential cannot retrieve notifications")
+    claim = {**auth2, "notificationID": notice_id}
+    require(form(native_paths[1], {**auth1, "notificationID": notice_id}) == "-1",
+            "other authenticated player cannot claim recipient's notification")
+    require(form(native_paths[1], claim) == "1",
+            "recipient can claim exactly one legitimate notification")
+    require(form(native_paths[1], claim) == "-1",
+            "duplicate notification claim is rejected")
+    saved = database("follow_notification", aid1, aid2)
+    require(saved is not None and int(saved["is_read"]) == 1
+            and int(saved["reward_claimed"]) == 1,
+            "notification claim changed only the authorized SQL record")
+    updated = form(native_paths[0], {**auth2, "page": 0}).split("#", 1)[0].split(":")
+    require(dict(zip(updated[0::2], updated[1::2]))["7"] == "0",
+            "notification unread flag changes in the returned native wire")
+
+    # A new native 2.209 direct message (DM) is a real thread, not a legacy
+    # message table row. Valid auth writes; wrong actor token cannot start it.
+    initial_text = "  GD2209 first message : # | — Привет  "
+    dm_payload = {
+        "threadID": 0, "isDM": 1, "toAccountID": aid2,
+        "body": native_b64(initial_text),
+    }
+    require(form(native_paths[2], {**bad_auth, **dm_payload}) == "-1",
+            "cross-account credential cannot start a private thread")
+    raw_new = form(native_paths[2], {**auth1, **dm_payload})
+    require(re.fullmatch(r"[1-9]\d*:[1-9]\d*:0", raw_new) is not None,
+            "GD 2.209 new DM responds with threadID:messageID:0")
+    thread_id, first_id, _ = [int(part) for part in raw_new.split(":")]
+    thread_row = database("thread", thread_id)
+    first_row = database("thread_message", first_id)
+    require(thread_row is not None and int(thread_row["is_dm"]) == 1
+            and {int(thread_row["dm_low"]), int(thread_row["dm_high"])} == {aid1, aid2},
+            "native DM creates one correctly scoped SQL conversation")
+    require(first_row is not None and int(first_row["thread_id"]) == thread_id
+            and int(first_row["sender_account_id"]) == aid1
+            and first_row["body"] == initial_text,
+            "native initial DM stores exactly decoded UTF-8 and punctuation")
+
+    def thread_list(auth: dict) -> list[str]:
+        wire = form(native_paths[3], {**auth, "page": 0, "filter": 1})
+        require("#" in wire, "DM list includes native pagination envelope")
+        record = wire.split("#", 1)[0].split("|")[0].split(":")
+        require(len(record) == 26 and record[0] == str(thread_id),
+                "DM list includes expected 26-position native thread")
+        return record
+
+    require(thread_list(auth1)[4] == "0", "sender's own first post is not unread")
+    require(thread_list(auth2)[4] == "1", "recipient has exactly one unread DM")
+
+    def snapshot(auth: dict) -> list[str]:
+        response = form(native_paths[4], {**auth, "threadID": thread_id})
+        sections = response.split("#")
+        require(len(sections) == 7, "native DM snapshot contains seven wire sections")
+        return sections
+
+    require(base64.b64encode(initial_text.encode()).decode() in snapshot(auth1)[0],
+            "first DM appears over HTTP in native snapshot")
+    require(base64.b64encode(initial_text.encode()).decode() in snapshot(auth2)[0],
+            "receiver can read the same native DM bytes")
+    members = form(native_paths[5], {**auth1, "threadID": thread_id})
+    require("##" in members, "native DM member-list has expected envelope")
+    require(form(native_paths[6], auth1) == "none",
+            "new DM has no pending group invitations")
+    require(form(native_paths[4], {**bad_auth, "threadID": thread_id}) == "-1",
+            "invalid credential cannot read or enumerate a DM")
+
+    read_ack = {
+        **auth2, "threadID": 0, "mode": 3, "value": native_b64(str(thread_id))
+    }
+    require(form(native_paths[8], read_ack) == "1",
+            "native update mode 3 acknowledges DM read state")
+    member = database("thread_member", aid2, thread_id)
+    require(member is not None and int(member["last_read_message_id"]) >= first_id,
+            "DM read acknowledgement persists recipient-specific cursor")
+    require(thread_list(auth2)[4] == "0",
+            "recipient's unread badge disappears after real HTTP acknowledgement")
+
+    reply_text = "Reply to GD2209 test"
+    response = form(native_paths[2], {
+        **auth2, "threadID": thread_id, "body": native_b64(reply_text)
+    })
+    require(re.fullmatch(r"[1-9]\d*:[1-9]\d*", response) is not None
+            and response.split(":", 1)[0] == str(thread_id),
+            "joined DM member can send a reply")
+    reply_id = int(response.split(":")[1])
+    reply = database("thread_message", reply_id)
+    require(reply is not None and reply["body"] == reply_text
+            and int(reply["sender_account_id"]) == aid2,
+            "reply is stored under correct sender identity")
+    require(thread_list(auth1)[4] == "1",
+            "first actor sees one unread message from peer")
+    require(thread_list(auth2)[4] == "0",
+            "reply author does not count their own reply as unread")
+
+    # Clear history must apply ONLY to the requesting member.
+    require(form(native_paths[8], {
+        **auth1, "threadID": thread_id, "mode": 1
+    }) == "1", "native update mode 1 clears only requester's DM history")
+    cleared = database("thread_member", aid1, thread_id)
+    require(cleared is not None
+            and int(cleared["last_cleared_message_id"]) >= reply_id,
+            "clear history persists per-user SQL message cursor")
+    require(snapshot(auth1)[0] == "none",
+            "cleared messages never reappear in first actor's native snapshot")
+    require(base64.b64encode(initial_text.encode()).decode() in snapshot(auth2)[0]
+            and base64.b64encode(reply_text.encode()).decode() in snapshot(auth2)[0],
+            "clearing a DM does not delete peer's personal history")
+    require(thread_list(auth1)[4] == "0",
+            "cleared private history cannot retain stale unread badge")
+    search_old = form(native_paths[7], {
+        **auth1, "threadID": thread_id, "query": native_b64("Reply to")
+    })
+    require(search_old.split("#", 1)[0] == "none",
+            "native search respects actor's cleared-message cursor")
+
+    fresh_text = "New post after clearing"
+    raw_fresh = form(native_paths[2], {
+        **auth2, "threadID": thread_id, "body": native_b64(fresh_text)
+    })
+    require(re.fullmatch(r"[1-9]\d*:[1-9]\d*", raw_fresh) is not None,
+            "new message after local clear is accepted")
+    visible = snapshot(auth1)[0]
+    require(base64.b64encode(fresh_text.encode()).decode() in visible
+            and base64.b64encode(initial_text.encode()).decode() not in visible
+            and base64.b64encode(reply_text.encode()).decode() not in visible,
+            "DM view contains post-clear message but no cleared history")
+    require(thread_list(auth1)[4] == "1",
+            "fresh peer message correctly restores one unread badge")
+    require(form(native_paths[7], {
+        **auth1, "threadID": thread_id, "query": native_b64("New post")
+    }).split("#", 1)[0] != "none",
+            "native search finds visible post-clear messages")
+
+
 def main() -> None:
     env = environment()
     native = json.loads(FIXTURE.read_text(encoding="utf-8"))
@@ -143,6 +329,15 @@ def main() -> None:
         "/database/downloadGJLevel22.php",
         "/database/updateGJDesc20.php",
         "/database/deleteGJLevelUser20.php",
+        "/database/getGJNotifications.php",
+        "/database/claimGJNotificationReward.php",
+        "/database/sendGJThreadMessage.php",
+        "/database/getGJThreads.php",
+        "/database/getGJThreadMessages.php",
+        "/database/getGJThreadMembers.php",
+        "/database/getGJThreadInvites.php",
+        "/database/searchGJThreadMessages.php",
+        "/database/updateGJThread.php",
     ]
     # The archived manifest should justify every replayed native path.
     for route in used:
@@ -285,6 +480,9 @@ def main() -> None:
     require(form(list_path, {**auth1, "page": 0}) == "-2",
             "following list returns -2 after last link removed")
 
+    # Authenticated native social lifecycle replay (HTTP + real SQL).
+    replay_native_social(auth1, auth2, bad_auth, aid1, aid2, username1, captured)
+
     # Recreate a synthetic level at the exact version-21 EXE path and check
     # native 2.209 compressed download framing (not merely route status).
     created_level = 0
@@ -370,7 +568,7 @@ def main() -> None:
     print(
         "MUCHOCORE_GD2209_EXE_AUTH_SQL_OK "
         f"assertions={checks} "
-        "families=login,cloudsave,userinfo,following,levels "
+        "families=login,cloudsave,userinfo,following,notifications,threads,levels "
         "native_client_certified=false",
         flush=True,
     )
