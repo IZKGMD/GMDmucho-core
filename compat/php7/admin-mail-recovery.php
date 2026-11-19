@@ -25,7 +25,7 @@ function mucho7_admin_mail_schema()
 
 function mucho7_admin_mail_install(PDO $db)
 {
-    if (!tableExists($db, 'php7_admin_mail_recovery')) {
+    if (function_exists('tableExists') && !tableExists($db, 'php7_admin_mail_recovery')) {
         $db->exec(mucho7_admin_mail_schema());
     }
 }
