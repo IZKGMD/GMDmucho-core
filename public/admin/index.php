@@ -1139,23 +1139,27 @@ if($passkeyAction!==''){
 
 function muchAdminSetupBaseUrl(): string
 {
-    $configured=(string)(
+    // Administrator invitations are credentials. Never build them from the
+    // user-controlled Host or X-Forwarded-* request headers.
+    $configured=trim((string)(
         Environment::get('MUCHO_PUBLIC_URL', '')
-        ?: getenv('MUCHO_ACCOUNT_URL')
+        ?: Environment::get('MUCHO_ACCOUNT_URL', '')
+        ?: Environment::get('MUCHO_ADMIN_MAIL_ORIGIN', '')
         ?: ''
-    );
-
-    if ($configured!=='') {
-        $base=rtrim($configured,'/');
-    } else {
-        $https=(($_SERVER['HTTPS'] ?? '')==='on')
-            || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')==='https');
-        $scheme=$https ? 'https' : 'http';
-        $host=(string)($_SERVER['HTTP_HOST'] ?? 'localhost');
-        $base=$scheme.'://'.$host;
+    ));
+    $parts=parse_url($configured);
+    if (!is_array($parts) ||
+        ($parts['scheme'] ?? '')!=='https' ||
+        empty($parts['host']) ||
+        !preg_match('/^[a-z0-9.-]+$/iD',(string)$parts['host']) ||
+        isset($parts['user']) || isset($parts['pass']) ||
+        isset($parts['port']) || isset($parts['query']) ||
+        isset($parts['fragment']) || isset($parts['path'])) {
+        throw new RuntimeException(
+            'Set MUCHO_PUBLIC_URL (or MUCHO_ACCOUNT_URL) to the public HTTPS root before inviting administrators.'
+        );
     }
-
-    return $base.'/admin/';
+    return 'https://'.strtolower((string)$parts['host']).'/admin/';
 }
 
 function muchAdminRenderPasswordSetup(PDO $db,string $token): never
@@ -1202,8 +1206,9 @@ function muchAdminRenderPasswordSetup(PDO $db,string $token): never
 
         if (!$row) {
             $error='This password setup link is invalid or expired.';
-        } elseif (strlen($password)<10) {
-            $error='Password must be at least 10 characters.';
+        } elseif (strlen($password)<12 || strlen($password)>72 ||
+                  preg_match('/[\\x00-\\x1F\\x7F]/',$password)) {
+            $error='Password must contain 12–72 bytes without control characters.';
         } elseif ($password!==$confirm) {
             $error='Passwords do not match.';
         } else {
@@ -1280,13 +1285,14 @@ button{width:100%;margin-top:15px;padding:12px;border:0;border-radius:10px;backg
 <div class="ok">Password created successfully.</div>
 <p><a href="/admin/" style="color:#a69fff">Continue to administrator login</a></p>
 <?php elseif($row): ?>
-<form method="post">
+<form method="post" action="/admin/">
 <input type="hidden" name="csrf" value="<?=csrf()?>">
+<input type="hidden" name="action" value="admin-password-setup">
 <input type="hidden" name="setup" value="<?=h($token)?>">
 <label for="password">New password</label>
-<input id="password" type="password" name="password" autocomplete="new-password" minlength="10" required>
+<input id="password" type="password" name="password" autocomplete="new-password" minlength="12" maxlength="72" required>
 <label for="password_confirm">Confirm password</label>
-<input id="password_confirm" type="password" name="password_confirm" autocomplete="new-password" minlength="10" required>
+<input id="password_confirm" type="password" name="password_confirm" autocomplete="new-password" minlength="12" maxlength="72" required>
 <button>Create password</button>
 </form>
 <p class="small">This one-time setup link expires in 24 hours.</p>
@@ -4364,6 +4370,9 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
                 throw new RuntimeException('You cannot assign this role.');
             }
 
+            // Check the canonical HTTPS origin before creating any pending
+            // account, so an invalid host cannot strand an invitation.
+            $setupBase=muchAdminSetupBaseUrl();
             $setupToken=rtrim(
                 strtr(
                     base64_encode(random_bytes(48)),
@@ -4393,7 +4402,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 
             $_SESSION['admin_setup_invite']=[
                 'username'=>$username,
-                'url'=>muchAdminSetupBaseUrl().'?setup='.rawurlencode($setupToken)
+                'url'=>$setupBase.'?setup='.rawurlencode($setupToken)
             ];
 
             audit($db,'admin.create',$username,['role'=>$role]);
