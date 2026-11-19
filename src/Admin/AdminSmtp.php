@@ -26,7 +26,14 @@ final class AdminSmtp
 
     public static function origin(): ?string
     {
-        $url = trim((string) Environment::get('MUCHO_ADMIN_MAIL_ORIGIN', ''));
+        // Prefer the explicit mail origin, but accept an already configured
+        // canonical public origin. Never derive reset URLs from HTTP_HOST.
+        $explicit = trim((string) Environment::get('MUCHO_ADMIN_MAIL_ORIGIN', ''));
+        $url = $explicit !== '' ? $explicit : trim((string)(
+            Environment::get('MUCHO_PUBLIC_URL', '')
+            ?: Environment::get('MUCHO_ACCOUNT_URL', '')
+            ?: ''
+        ));
         $parts = parse_url($url);
         if (!is_array($parts) || ($parts['scheme'] ?? '') !== 'https' ||
             empty($parts['host']) || (isset($parts['user']) || isset($parts['pass'])) ||
