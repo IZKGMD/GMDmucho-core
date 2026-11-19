@@ -6529,7 +6529,11 @@ $pendingRecoveryEmail = (string) ($myRecovery['pending_email'] ?? '');
 <?php endif; ?>
 <?php if($pendingRecoveryEmail!==''): ?><p>Awaiting verification: <?=h($pendingRecoveryEmail)?></p><?php endif; ?>
 <?php if(!\MuchoCore\Admin\AdminSmtp::configured()): ?>
-<p style="color:#dabf88">Email delivery is not configured on this server. The owner must set the SMTP environment variables first.</p>
+<p style="color:#dabf88">Password recovery is not ready: email delivery is not configured.
+The server owner must privately set MUCHO_ADMIN_SMTP_HOST, MUCHO_ADMIN_SMTP_USER,
+MUCHO_ADMIN_SMTP_PASSWORD and MUCHO_ADMIN_MAIL_FROM, plus an HTTPS public origin
+(MUCHO_ADMIN_MAIL_ORIGIN, MUCHO_PUBLIC_URL or MUCHO_ACCOUNT_URL). Do not paste SMTP
+passwords into the browser or public logs.</p>
 <?php endif; ?>
 <form method="post" action="/admin/">
 <input type="hidden" name="csrf" value="<?=h(csrf())?>">
@@ -6537,7 +6541,7 @@ $pendingRecoveryEmail = (string) ($myRecovery['pending_email'] ?? '');
 <label>Recovery email<input type="email" name="email" autocomplete="email" maxlength="254" required placeholder="you@example.com"></label>
 <label>Current admin password<input type="password" name="current_password" autocomplete="current-password" required></label>
 <?php if(!empty($me['totp_secret'])): ?><label>Authenticator or recovery code<input name="otp" autocomplete="one-time-code" required></label><?php endif; ?>
-<button>Send confirmation email</button>
+<button <?php if(!\MuchoCore\Admin\AdminSmtp::configured()) echo 'disabled title="Configure SMTP first"'; ?>>Send confirmation email</button>
 </form>
 </div>
 
