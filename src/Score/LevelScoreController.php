@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace MuchoCore\Score;
 
+// Some standalone SQL tests load this controller without Composer's autoloader.
+require_once __DIR__ . '/../Protocol/GdRelativeTime.php';
+
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
@@ -363,7 +366,9 @@ final readonly class LevelScoreController
                 . ':3:' . $percent
                 . ':6:' . $place
                 . ':13:' . (int)$score['coins']
-                . ':42:' . gmdate('d/m/Y G.i', (int)$score['updated_at'])
+                . ':42:' . \MuchoCore\Protocol\GdRelativeTime::fromEpoch(
+                    (int)$score['updated_at']
+                )
                 . '|';
         }
 

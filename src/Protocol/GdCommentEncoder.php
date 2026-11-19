@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace MuchoCore\Protocol;
 
+require_once __DIR__ . '/GdRelativeTime.php';
+
 final class GdCommentEncoder
 {
     private function displayUsername(array $profile): string
@@ -48,7 +50,11 @@ final class GdCommentEncoder
             '4', (string)($comment['likes'] ?? 0),
             '5', '0',
             '7', (string)($comment['is_spam'] ?? 0),
-            '9', $this->date((string)($comment['created_at'] ?? '')),
+            '9', $this->commentAge(
+                (string)($comment['created_at'] ?? ''),
+                $gameVersion,
+                $binaryVersion
+            ),
             '6', (string)$comment['id'],
             '10', (string)($comment['percent'] ?? 0),
         ];
@@ -113,7 +119,11 @@ final class GdCommentEncoder
             '4', (string)($comment['likes'] ?? 0),
             '5', '0',
             '7', (string)($comment['is_spam'] ?? 0),
-            '9', $this->date((string)($comment['created_at'] ?? '')),
+            '9', $this->commentAge(
+                (string)($comment['created_at'] ?? ''),
+                $gameVersion,
+                $binaryVersion
+            ),
             '6', (string)$comment['id'],
         ];
         if ($gameVersion >= 22 && $binaryVersion >= 51) {
@@ -134,6 +144,16 @@ final class GdCommentEncoder
         } catch (\Throwable) {
             return 0;
         }
+    }
+
+    private function commentAge(string $value, int $gameVersion, int $binaryVersion): string
+    {
+        // Preserve older wire fixtures while fixing the GD 2.209 native UI.
+        if ($gameVersion >= 22 && $binaryVersion >= 51) {
+            return GdRelativeTime::fromDate($value);
+        }
+
+        return $this->date($value);
     }
 
     private function date(string $value): string

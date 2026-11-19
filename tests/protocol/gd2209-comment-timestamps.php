@@ -28,13 +28,17 @@ $new = explode(':', $e->encode($comment, $profile, 22, 51), 2)[0];
 $assert(!str_contains($legacy, '~15~'), '2.2081 must keep its legacy wire');
 $assert(str_contains($new, '~15~1792195200'), 'exact UTC Unix timestamp absent');
 $assert(str_contains($new, '~6~71'), 'comment ID changed');
-$assert(str_contains($new, '~9~17/10/2026'), 'relative date field 9 removed');
+$assert(preg_match('/~9~[0-9]+ (?:seconds?|minutes?|hours?|days?|weeks?|months?|years?)(?:~|$)/', $new) === 1,
+    '2.209 comment key 9 must contain a relative age for the native UI');
+$assert(!str_contains($new, '~9~17/10/2026'), '2.209 comment time must not be a calendar date');
 
 // Account comment endpoint must gate timestamp on same version.
 $oldAcc = $e->encodeAccountComment($comment, 22, 47);
 $newAcc = $e->encodeAccountComment($comment, 22, 51);
 $assert(!str_contains($oldAcc, '~15~'), 'older account comment changed');
 $assert(str_contains($newAcc, '~15~1792195200'), 'account comment exact time absent');
+$assert(preg_match('/~9~[0-9]+ (?:seconds?|minutes?|hours?|days?|weeks?|months?|years?)(?:~|$)/', $newAcc) === 1,
+    '2.209 account comment key 9 must contain relative age');
 $assert(!str_contains($e->encodeAccountComment($comment, 21, 51), '~15~'),
     'GD 2.1 should remain unchanged');
 

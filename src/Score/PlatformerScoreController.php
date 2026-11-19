@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace MuchoCore\Score;
 
+// Some standalone SQL tests load this controller without Composer's autoloader.
+require_once __DIR__ . '/../Protocol/GdRelativeTime.php';
+
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
@@ -329,7 +332,7 @@ final readonly class PlatformerScoreController
                 ':16:'.(int)$row['account_id'].
                 ':3:'.$score.
                 ':6:'.$rank.
-                ':42:'.gmdate('d/m/Y G.i',
+                ':42:'.\MuchoCore\Protocol\GdRelativeTime::fromEpoch(
                     (int)$row['updated_at']
                 );
         }

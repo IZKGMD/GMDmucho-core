@@ -291,7 +291,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Score/PlatformerScoreController.php',
-        "':42:'.gmdate(",
+        "':42:'.\\MuchoCore\\Protocol\\GdRelativeTime::fromEpoch(",
         '2.2 platformer timestamp field',
     ],
     [
