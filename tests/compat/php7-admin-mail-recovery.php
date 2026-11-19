@@ -94,6 +94,9 @@ mailAssert(strlen($verify)===64 && $hash===hash('sha256',$verify),
     'only hashed verification token is stored');
 mailAssert(mucho7_admin_mail_status($db,1)['verified_email']===null,
     'relay acceptance is not email verification');
+$db->exec("UPDATE php7_admin_mail_recovery SET verify_expires_at=datetime('now','-1 hour') WHERE admin_id=1");
+mailAssert(!mucho7_admin_mail_confirm($db,$verify),'expired verification token rejected');
+$db->exec("UPDATE php7_admin_mail_recovery SET verify_expires_at=datetime('now','+30 minutes') WHERE admin_id=1");
 mailAssert(mucho7_admin_mail_confirm($db,$verify),'one-time email confirmation');
 mailAssert(!mucho7_admin_mail_confirm($db,$verify),'verification replay rejected');
 mailAssert(mucho7_admin_mail_status($db,1)['verified_email']==='owner@example.test',
@@ -107,6 +110,10 @@ $reset = isset($m[1])?$m[1]:'';
 mailAssert(strlen($reset)===64,'reset link token generated');
 mailAssert(!mucho7_admin_mail_reset_password($db,$reset,'new-valid-password',
     'mismatched','192.0.2.12',$cfg),'password mismatch rejected');
+$db->exec("UPDATE php7_admin_mail_recovery SET reset_expires_at=datetime('now','-1 hour') WHERE admin_id=1");
+mailAssert(!mucho7_admin_mail_reset_password($db,$reset,'new-valid-password',
+    'new-valid-password','192.0.2.16',$cfg),'expired password reset token rejected');
+$db->exec("UPDATE php7_admin_mail_recovery SET reset_expires_at=datetime('now','+20 minutes') WHERE admin_id=1");
 mailAssert(mucho7_admin_mail_reset_password($db,$reset,'new-valid-password',
     'new-valid-password','192.0.2.13',$cfg),'valid one-time password reset');
 mailAssert(!mucho7_admin_mail_reset_password($db,$reset,'other-valid-password',
