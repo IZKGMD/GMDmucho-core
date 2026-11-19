@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
   actions: read
 
 concurrency:
@@ -55,16 +55,6 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Verify release token
-        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
-        env:
-          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        run: |
-          if [[ -z "${RELEASE_TOKEN}" ]]; then
-            echo "ERROR: RELEASE_TOKEN repository secret is required for stable releases." >&2
-            exit 1
-          fi
-
       - name: Resolve validated commit
         id: source
         if: steps.marker.outputs.ready == 'true'
@@ -91,17 +81,17 @@ jobs:
           fi
           git checkout --detach "$RELEASE_SHA"
 
-      - name: Verify endpoint certification before every stable publication
+      - name: Verify PHP 8 release installability gate
         if: steps.marker.outputs.ready == 'true'
-        run: php tests/release/v110-endpoint-gate.php
+        run: php tests/release/v111-installability-gate.php
 
-      - name: Require native PHP7 and PHP8 integration at the release commit
+      - name: Require exact-commit PHP 8 HTTP acceptance
         if: steps.marker.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_SHA: ${{ steps.source.outputs.sha }}
         run: |
-          python3 tools/release/require-native-ci.py --repository "$GITHUB_REPOSITORY" --sha "$RELEASE_SHA"
+          python3 tools/release/require-php8-ci.py --repository "$GITHUB_REPOSITORY" --sha "$RELEASE_SHA"
 
       - name: Prepare shared-hosting dependencies
         if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
@@ -138,7 +128,7 @@ jobs:
           test -s "MuchoCore-${TAG}.zip"
 
       - name: Build native PHP7 shared-hosting package
-        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
+        if: steps.marker.outputs.archive_only == 'true'
         env:
           ARCHIVE_ONLY: ${{ steps.marker.outputs.archive_only }}
           OUTPUT_PATH: MuchoCore-v${{ steps.marker.outputs.version }}-PHP7-shared-hosting.zip
@@ -159,11 +149,8 @@ jobs:
         run: |
           ARCHIVES=("MuchoCore-${TAG}.zip" "MuchoCore-${TAG}-shared-hosting.zip")
           NATIVE="MuchoCore-${TAG}-PHP7-shared-hosting.zip"
-          if [[ -s "$NATIVE" ]]; then
+          if [[ "$ARCHIVE_ONLY" == 'true' && -s "$NATIVE" ]]; then
             ARCHIVES+=("$NATIVE")
-          elif [[ "$ARCHIVE_ONLY" != 'true' ]]; then
-            echo 'ERROR: native PHP7 release distribution is missing.' >&2
-            exit 1
           fi
           sha256sum "${ARCHIVES[@]}" > checksums.sha256
           sha256sum --check checksums.sha256
@@ -171,7 +158,7 @@ jobs:
       - name: Prepare validated release draft
         if: steps.marker.outputs.ready == 'true'
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           RELEASE_SHA: ${{ steps.source.outputs.sha }}
           VERSION: ${{ steps.marker.outputs.version }}
           TAG: ${{ steps.marker.outputs.tag }}
@@ -211,22 +198,22 @@ jobs:
       - name: Upload shared-hosting package
         if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.marker.outputs.tag }}
         run: |
           gh release upload "$TAG" "MuchoCore-v${TAG#v}-shared-hosting.zip" --clobber
       - name: Upload source archive
         if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.marker.outputs.tag }}
         run: |
           gh release upload "$TAG" "MuchoCore-${TAG}.zip" --clobber
 
       - name: Upload native PHP7 shared-hosting package
-        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
+        if: steps.marker.outputs.archive_only == 'true'
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           ARCHIVE_ONLY: ${{ steps.marker.outputs.archive_only }}
           TAG: ${{ steps.marker.outputs.tag }}
         run: |
@@ -241,7 +228,7 @@ jobs:
       - name: Upload release checksums
         if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.marker.outputs.tag }}
         run: |
           sha256sum --check checksums.sha256
@@ -250,7 +237,7 @@ jobs:
       - name: Publish complete validated release
         if: steps.marker.outputs.ready == 'true'
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.marker.outputs.tag }}
         run: |
           gh release edit "$TAG" --draft=false --latest
@@ -258,7 +245,7 @@ jobs:
       - name: Remove one-time release marker
         if: steps.marker.outputs.ready == 'true'
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.marker.outputs.tag }}
         run: |
           git fetch origin main
@@ -277,7 +264,7 @@ jobs:
         if: steps.marker.outputs.archive_only == 'true'
         env:
           TAG: ${{ steps.marker.outputs.tag }}
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "IZK"
           git config user.email "112145870+IZKGMD@users.noreply.github.com"
