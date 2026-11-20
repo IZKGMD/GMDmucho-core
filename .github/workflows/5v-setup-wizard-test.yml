@@ -1,0 +1,57 @@
+name: Validate one-click 5v.pl GitHub FTP setup
+
+on:
+  push:
+    paths:
+      - 'tools/bridge/Setup-GitHub-5V-Bridge.ps1'
+      - 'tools/bridge/START-GITHUB-5V-BRIDGE.cmd'
+      - '.github/workflows/5v-setup-wizard-test.yml'
+  pull_request:
+    paths:
+      - 'tools/bridge/Setup-GitHub-5V-Bridge.ps1'
+      - 'tools/bridge/START-GITHUB-5V-BRIDGE.cmd'
+      - '.github/workflows/5v-setup-wizard-test.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows PowerShell 5.1 wizard syntax and smoke
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse in Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $path = Join-Path (Get-Location).Path 'tools/bridge/Setup-GitHub-5V-Bridge.ps1'
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            $path, [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors -and $errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            throw 'PowerShell 5.1 wizard parse failed.'
+          }
+          Write-Host 'POWERSHELL_5_1_WIZARD_PARSE_OK'
+      - name: Non-network self-test
+        shell: powershell
+        run: |
+          & tools/bridge/Setup-GitHub-5V-Bridge.ps1 -SelfTest
+          if ($LASTEXITCODE -ne 0) { throw 'Wizard self-test failed.' }
+      - name: Check launcher target and secret handling contract
+        shell: powershell
+        run: |
+          $cmd = Get-Content 'tools/bridge/START-GITHUB-5V-BRIDGE.cmd' -Raw
+          $script = Get-Content 'tools/bridge/Setup-GitHub-5V-Bridge.ps1' -Raw
+          if (-not $cmd.Contains('raw.githubusercontent.com/IZKGMD/GMDmucho-core/main/tools/bridge/Setup-GitHub-5V-Bridge.ps1')) {
+            throw 'Launcher does not target the expected repository source.'
+          }
+          foreach ($needed in @('MUCHO_5V_FTP_USER','MUCHO_5V_FTP_PASSWORD','MUCHO_5V_BACKUP_KEY',
+              'muchocore-5v-test','main','ProtectedData','StandardInput','/5v check')) {
+            if (-not $script.Contains($needed)) { throw "Missing wizard contract: $needed" }
+          }
+          if ($script -match 'Set-Content.+FtpPassword|WriteAllText.+FtpPassword') {
+            throw 'Possible plaintext FTP password persistence.'
+          }
+          Write-Host '5V_SETUP_WIZARD_CONTRACT_OK'
