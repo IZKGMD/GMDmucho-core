@@ -10,6 +10,19 @@
  */
 declare(strict_types=1);
 
+/**
+ * PHP 7 native equivalent of the PHP 8/GD 2.209 field-9 rating encoder.
+ * Never send 60 for an Insane level with demon=0.
+ */
+function mucho7_wire_difficulty($difficulty, $demon, $auto)
+{
+    if ($auto) return 0;
+    if ($demon) return 50;
+    if ($difficulty >= 2 && $difficulty <= 6) return ($difficulty - 1) * 10;
+    if ($difficulty === 1) return 0;
+    return max(0, $difficulty);
+}
+
 function mucho7_mount_uri($uri, $scriptName)
 {
     // Apache preserves REQUEST_URI when /mc/... is rewritten to public/php7.php.
@@ -124,10 +137,9 @@ function mucho7_encode_levels($levels, $total, $offset, $gameVersion, $binaryVer
         $id = (string)$level['level_id'];
         $userId = (string)$level['user_id'];
         $accountId = (string)$level['account_id'];
-        $difficulty = (int)$level['difficulty'];
-        if ($difficulty >= 1 && $difficulty <= 6) {
-            $difficulty *= 10;
-        }
+        $difficulty = mucho7_wire_difficulty(
+            (int)$level['difficulty'], (int)$level['demon'], (int)$level['auto_level']
+        );
         $description = (string)$level['description'];
         if ($gameVersion >= 20) {
             $description = strtr(base64_encode($description), '+/', '-_');
