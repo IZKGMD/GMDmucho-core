@@ -46,10 +46,9 @@ function mucho7_encode_download($level, $gameVersion, $binaryVersion, $extras = 
         }
         $data = strtr(base64_encode($packed), '/+', '_-');
     }
-    $difficulty = (int)$level['difficulty'];
-    if ($difficulty >= 1 && $difficulty <= 6) {
-        $difficulty *= 10;
-    }
+    $difficulty = mucho7_wire_difficulty(
+        (int)$level['difficulty'], (int)$level['demon'], (int)$level['auto_level']
+    );
     $plainPassword = (string)$level['copy_password'];
     $password = $gameVersion > 19
         ? mucho7_copy_password($plainPassword) : $plainPassword;
