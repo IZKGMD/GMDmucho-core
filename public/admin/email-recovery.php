@@ -21,13 +21,27 @@ function muchoAdminEmailPage(string $title, string $content): never
     echo '<link rel="stylesheet" href="/assets/mucho-design-system.css?v=2">';
     echo '<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#101017;color:#f3f0f8;font-family:system-ui,sans-serif;padding:20px;box-sizing:border-box}main{width:min(440px,100%);padding:32px;border:1px solid #393047;border-radius:17px;background:#181520;box-sizing:border-box}h1{font-size:26px;letter-spacing:-.03em}p{color:#b8adc7;line-height:1.6}label{display:block;margin-top:18px;margin-bottom:7px;font-size:13px}input{display:block;width:100%;box-sizing:border-box;padding:12px;background:#101017;color:#fff;border:1px solid #524263;border-radius:9px;font-size:15px}button{background:#ba9cee;color:#181122;border:0;border-radius:9px;padding:13px 17px;font-weight:700;width:100%;margin-top:20px;cursor:pointer}a{color:#c5a9f2}.note{font-size:13px}.mark{font-size:12px;color:#ba9cee;letter-spacing:.1em;text-transform:uppercase;font-weight:700}</style>';
     echo '</head><body><main><div class="mark">MuchoCore Admin</div><h1>' . $title . '</h1>' . $content;
-    echo '<p class="note"><a href="/admin/">Return to sign in</a></p></main></body></html>';
+    echo '<p class="note"><a href="/admin/">Return to sign in</a> · <a href="/admin/?emergency_recovery=1">Emergency VPS recovery</a></p></main></body></html>';
     exit;
 }
 
 function muchoAdminEmailRoute(PDO $db): void
 {
     $action = (string) ($_POST['action'] ?? '');
+    if (isset($_GET['emergency_recovery'])) {
+        muchoAdminEmailPage('Emergency VPS recovery',
+            '<p>Emergency owner recovery is available only to someone with '
+            .'access to the VPS console. No public master password exists.</p>'
+            .'<p>From an authorized SSH session in the MuchoCore directory, '
+            .'run <code>docker compose exec -T app php '
+            .'bin/mucho-owner-recovery-link.php --issue</code>.</p>'
+            .'<p>The command generates a private, one-time secret in a '
+            .'short-lived HTTPS password-setup link. Open that link to set '
+            .'a new owner password. Never share it with anyone.</p>'
+            .'<p>If owner 2FA is enabled, use the local '
+            .'<code>sudo mucho admin</code> reset tool instead. '
+            .'This recovery cannot be triggered by an unauthenticated web visitor.</p>');
+    }
     $isRoute = isset($_GET['email_recovery']) || isset($_GET['email_verify']) ||
         isset($_GET['email_reset']) ||
         in_array($action, ['admin-email-bind', 'admin-email-recover', 'admin-email-verify', 'admin-email-reset'], true);
