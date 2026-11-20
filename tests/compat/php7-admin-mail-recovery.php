@@ -82,6 +82,23 @@ mailAssert(mucho7_admin_mail_origin(array('site_url'=>'https://attacker.invalid/
 mailAssert(mucho7_admin_mail_link($cfg,'/mc/admin.php','email_verify',str_repeat('a',64))
     ==='https://test.5v.pl/mc/admin.php?email_verify='.str_repeat('a',64),'secure link format');
 
+mailAssert(mucho7_admin_mail_sender($cfg, 'noreply@5v.pl')==='noreply@5v.pl',
+    'hosting-provided sender is used without hardcoding one global identity');
+mailAssert(mucho7_admin_mail_sender($cfg, "invalid\r\nBcc: bad@example.test")
+    ==='no-reply@test.5v.pl', 'invalid host sender falls back to site domain');
+$customSender = $cfg;
+$customSender['admin_mail_from'] = 'approved@mygdps.example';
+mailAssert(mucho7_admin_mail_sender($customSender,'noreply@5v.pl')
+    ==='approved@mygdps.example', 'private sender overrides host-provided sender');
+$badSender = $cfg;
+$badSender['admin_mail_from'] = "approved@example.test\r\nBcc: bad@example.test";
+mailAssert(mucho7_admin_mail_sender($badSender,'noreply@5v.pl')===null,
+    'invalid private sender fails closed, preventing header injection');
+mailAssert(!mucho7_admin_mail_send('owner@example.test','Admin verification','Test',
+    $badSender, $sender), 'invalid private sender blocks sending even with fake transport');
+mailAssert(count($emails)===0,'invalid sender does not call the transport');
+
+
 mailAssert(mucho7_admin_mail_request_verify($db,1,' Owner@Example.TEST ','192.0.2.10',
     $cfg,'/mc/admin.php',$sender),'verification relay accepted');
 mailAssert(count($emails)===1 && $emails[0][0]==='owner@example.test'

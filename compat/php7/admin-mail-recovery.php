@@ -66,6 +66,32 @@ function mucho7_admin_mail_link($settings, $script, $kind, $token)
     return $origin.$script.'?'.$kind.'='.rawurlencode($token);
 }
 
+/**
+ * Prefer an explicitly configured/host-provided sender over a fabricated
+ * mailbox at the GDPS domain. The provider may still rewrite the From header.
+ *
+ * admin_mail_from is a PRIVATE operator setting, not user form input.
+ * Only use an address approved for sending by the hosting/email provider.
+ * Supplying an invalid explicit address fails closed instead of silently
+ * falling back to another identity.
+ */
+function mucho7_admin_mail_sender($settings, $hostSender = null)
+{
+    $origin = mucho7_admin_mail_origin($settings);
+    if ($origin === null) return null;
+    if (isset($settings['admin_mail_from']) && $settings['admin_mail_from'] !== '') {
+        return mucho7_admin_mail_normal_email($settings['admin_mail_from']);
+    }
+    if ($hostSender === null) {
+        $hostSender = ini_get('sendmail_from');
+    }
+    $sender = mucho7_admin_mail_normal_email($hostSender);
+    if ($sender !== null) return $sender;
+    return mucho7_admin_mail_normal_email(
+        'no-reply@'.(string)parse_url($origin, PHP_URL_HOST)
+    );
+}
+
 /** A true mail() result means queued by the host, never delivered to the inbox. */
 function mucho7_admin_mail_send($to, $subject, $body, $settings, $transport = null)
 {
@@ -73,17 +99,21 @@ function mucho7_admin_mail_send($to, $subject, $body, $settings, $transport = nu
     $email = mucho7_admin_mail_normal_email($to);
     if ($origin === null || $email === null || !is_string($subject)
         || !preg_match('/^[A-Za-z0-9 .:-]{1,100}$/D', $subject)) return false;
-    $host = (string)parse_url($origin, PHP_URL_HOST);
-    $from = 'no-reply@'.$host;
-    if (!filter_var($from, FILTER_VALIDATE_EMAIL)) return false;
+    $from = mucho7_admin_mail_sender($settings);
+    if ($from === null) return false;
     $headers = 'From: MuchoCore <'.$from.">\r\n"
         ."MIME-Version: 1.0\r\n"
         ."Content-Type: text/plain; charset=UTF-8\r\n"
         ."Content-Transfer-Encoding: 8bit\r\n"
         ."Auto-Submitted: auto-generated\r\n";
     if ($transport !== null) return (bool)call_user_func($transport, $email, $subject, $body, $headers);
-    if (!function_exists('mail')) return false;
-    return (bool)@mail($email, $subject, $body, $headers);
+    if (!function_exists('mail')) {
+        error_log('[MuchoCore 5v] Administrator recovery mail() is unavailable.');
+        return false;
+    }
+    $queued = (bool)@mail($email, $subject, $body, $headers);
+    if (!$queued) error_log('[MuchoCore 5v] Administrator recovery mail relay rejected message.');
+    return $queued;
 }
 
 function mucho7_admin_mail_status(PDO $db, $aid)
