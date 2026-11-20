@@ -1,5 +1,38 @@
 # GitHub → 5v.pl FTP bridge (MuchoCore test site only)
 
+## Quick setup on Windows (one launcher)
+
+Download and double-click
+[`START-GITHUB-5V-BRIDGE.cmd`](https://github.com/IZKGMD/GMDmucho-core/raw/refs/heads/main/tools/bridge/START-GITHUB-5V-BRIDGE.cmd).
+
+The launcher retrieves the matching open-source
+[`Setup-GitHub-5V-Bridge.ps1`](../tools/bridge/Setup-GitHub-5V-Bridge.ps1)
+from trusted `main`. The local wizard installs GitHub CLI if necessary,
+opens browser sign-in to the GitHub owner account `IZKGMD`, and asks for
+the hosting FTP username/password in a local Windows form. It creates a
+`muchocore-5v-test` GitHub Environment restricted to `main`, pushes
+required credentials via the authenticated GitHub CLI **standard input** (not
+process command-line arguments), generates an encrypted backup key, and
+runs `/5v check` (no FTP connection).
+
+The backup encryption key is protected with Windows DPAPI and saved under
+`%LOCALAPPDATA%\MuchoCore\5v-bridge-backup-key.dpapi` for the same Windows
+user. **Back up this key separately if changing computers**; an encrypted
+backup artifact cannot be decrypted with a lost key. Never publish it.
+
+The wizard can optionally store the admin owner credentials for full
+unattended `/5v deploy INSTALL`; leave that checkbox unticked to
+enable **upload-only mode** (recommended), with owner migration approved
+from the MuchoCore administration page. A short-lived 2FA code must not
+be stored as a long-term secret.
+
+The wizard **does not perform an FTP upload**; uploading still requires
+a separate confirmed bridge command. FTPS is the default; cleartext FTP
+has an explicit separate opt-in. On Android or another non-Windows device,
+use the manual setup below.
+
+
+
 The repository's manual workflow `.github/workflows/5v-ftp-bridge.yml`
 updates **only** `muchocoretest.5v.pl`. It is not a general remote shell or
 arbitrary FTP command bridge. GitHub Actions runs the existing, tested
