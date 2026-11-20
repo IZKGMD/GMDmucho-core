@@ -58,7 +58,8 @@ CREATE TABLE php7_admin_mail_recovery(admin_id INTEGER PRIMARY KEY,
     reset_token_hash TEXT UNIQUE,reset_expires_at TEXT,reset_sent_at TEXT);
 CREATE TABLE php7_auth_events(id INTEGER PRIMARY KEY AUTOINCREMENT,action TEXT,ip_hash TEXT,
     username_hash TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE php7_admin_security(account_id INTEGER PRIMARY KEY,auth_version INTEGER DEFAULT 0);
+CREATE TABLE php7_admin_security(account_id INTEGER PRIMARY KEY,auth_version INTEGER DEFAULT 0,
+    totp_secret TEXT DEFAULT NULL,last_step INTEGER DEFAULT -1);
 CREATE TABLE php7_admin_audit(id INTEGER PRIMARY KEY AUTOINCREMENT,account_id INTEGER,
     action TEXT,target_id INTEGER,details TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 ");
