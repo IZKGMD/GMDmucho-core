@@ -149,6 +149,21 @@ UPDATE AN EXISTING NATIVE INSTALLATION
    does not change an installation's pinned core snapshot.
 6. Check the domain and feature switches in Settings and verify game routes.
 
+EMERGENCY ADMINISTRATOR RECOVERY
+--------------------------------
+If recovery email is unavailable, open
+https://YOUR-DOMAIN/mc/admin.php?emergency_recovery=1 .
+Using your hosting provider's FTP file manager, read the SECOND LINE of
+mc/config/php7-emergency-code.php (96 hex characters). The first line of
+this private file rejects direct HTTP access. Never publish this secret.
+Enter the code and a new owner password in the emergency form.
+The existing owner is recovered; game data and other users are preserved.
+Lost 2FA, passkeys, recovery codes and previous admin sessions are revoked.
+The private emergency code rotates after every successful recovery.
+Re-enable 2FA and save new recovery codes after signing in.
+Always preserve this private file in backups, but NEVER distribute it with
+a release archive or place it in the website root.
+
 SHARED FEATURES
 ---------------
 * Original Styled and Plain admin, ratings, moderation, native administrator
@@ -256,7 +271,7 @@ for item in mc/admin.php mc/public/php7-admin.php mc/public/assets/php7-admin-ba
   }
 done
 for forbidden in mc/config/php7-local.php mc/config/php7-news.json \
-  mc/config/php7-setup-key.txt mc/public/php7-mode.on \
+  mc/config/php7-setup-key.txt mc/config/php7-emergency-code.php mc/public/php7-mode.on \
   mc/vendor/autoload.php mc/src/Core/Application.php; do
   if grep -Fxq "$forbidden" "$LIST"; then
     echo "Forbidden private or PHP8-only package file: $forbidden" >&2
