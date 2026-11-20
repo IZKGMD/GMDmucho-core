@@ -1,7 +1,7 @@
 name: MuchoCore 5v.pl FTP bridge (owner-only)
 
-# Manual, fixed-target deployment. Never execute with pull_request secrets or
-# accept publicly posted commands/credentials from GitHub issues.
+# Fixed-target deployment by owner workflow_dispatch or exact owner commands
+# on issue #357. Never execute PR code or accept credentials from issue comments.
 on:
   issue_comment:
     types: [created]
