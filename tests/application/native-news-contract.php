@@ -94,4 +94,31 @@ checkNativeNews(
     'news generator failures return an explicit error, not -1'
 );
 
+if (in_array('--http', $argv, true)) {
+    $routes = [
+        'dat' => ['/news/news.dat', '/gd-content/news/news.dat', '/news/news.dat.php'],
+        'version' => ['/news/news_version.txt', '/gd-content/news/news_version.txt', '/news/version.php'],
+    ];
+    $context = stream_context_create(['http' => ['follow_location' => 0, 'timeout' => 5]]);
+    foreach ($routes as $type => $aliases) {
+        $expectedBody = null;
+        foreach ($aliases as $alias) {
+            $body = file_get_contents('http://127.0.0.1:18080' . $alias, false, $context);
+            checkNativeNews(is_string($body), $alias . ' returns the native payload');
+            $headers = strtolower(implode("\n", $http_response_header ?? []));
+            checkNativeNews(str_contains($headers, 'cache-control: no-store'), $alias . ' bypasses HTTP caches');
+            if ($type === 'version') {
+                checkNativeNews(ctype_digit($body), $alias . ' returns a decimal revision');
+            } else {
+                $gzip = base64_decode(strtr($body, '-_', '+/'), true);
+                $decoded = is_string($gzip) ? gzdecode($gzip) : false;
+                checkNativeNews(is_string($decoded) && preg_match('/^4,[0-9]+(?:\||$)/D', $decoded) === 1,
+                    $alias . ' returns a GD news feed');
+            }
+            $expectedBody ??= $body;
+            checkNativeNews($expectedBody === $body, $alias . ' matches the other route aliases');
+        }
+    }
+}
+
 echo "MUCHOCORE_GD_2209_NATIVE_NEWS_OK\n";
