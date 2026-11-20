@@ -12,6 +12,9 @@ if (is_file($root . '/.env')) {
 }
 
 header('X-Content-Type-Options: nosniff');
+// The client fetches the revision and feed separately. A cached feed can be
+// mistaken for the new revision and remain on disk until the next edit.
+header('Cache-Control: no-store');
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
     http_response_code(405);
     header('Allow: GET');
@@ -19,11 +22,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
 }
 try {
     $nativeNewsService = new NewsService((new Database())->connection());
-    $nativeNewsPosts = $nativeNewsService->published(30);
 } catch (Throwable $e) {
     error_log('[MuchoCore Native News] ' . $e::class . ': ' . $e->getMessage());
     http_response_code(503);
     header('Content-Type: text/plain; charset=utf-8');
-    header('Cache-Control: no-store');
     exit;
 }

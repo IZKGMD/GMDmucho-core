@@ -36,7 +36,13 @@ $db->exec("CREATE TABLE roles(id INTEGER PRIMARY KEY,code TEXT,priority INTEGER)
     CREATE TABLE profiles(account_id INTEGER PRIMARY KEY,stars INTEGER DEFAULT 0,moons INTEGER DEFAULT 0,diamonds INTEGER DEFAULT 0,secret_coins INTEGER DEFAULT 0,user_coins INTEGER DEFAULT 0,demons INTEGER DEFAULT 0,creator_points INTEGER DEFAULT 0);
     CREATE TABLE levels(level_id INTEGER PRIMARY KEY,account_id INTEGER,name TEXT,stars INTEGER,difficulty INTEGER,demon INTEGER,demon_difficulty INTEGER,auto_level INTEGER,featured INTEGER,epic INTEGER,requested_stars INTEGER,downloads INTEGER,likes INTEGER,is_deleted INTEGER);
     CREATE TABLE songs(id INTEGER PRIMARY KEY,name TEXT,author_name TEXT,size REAL,is_verified INTEGER);
-    INSERT INTO songs VALUES(1,'Pending song','Artist',3.5,0),(2,'Published song','Other artist',2,1)");
+    INSERT INTO songs VALUES(1,'Pending song','Artist',3.5,0),(2,'Published song','Other artist',2,1);
+    CREATE TABLE friend_requests(id INTEGER PRIMARY KEY,account_id INTEGER,to_account_id INTEGER,comment TEXT,is_read INTEGER,created_at TEXT);
+    INSERT INTO friend_requests VALUES(7,1,3,'<fixture>',2,'2026-10-01');
+    CREATE TABLE friends(account_id INTEGER,friend_account_id INTEGER,PRIMARY KEY(account_id,friend_account_id));
+    INSERT INTO friends VALUES(1,2);
+    CREATE TABLE blocks(account_id INTEGER,blocked_account_id INTEGER,PRIMARY KEY(account_id,blocked_account_id));
+    INSERT INTO blocks VALUES(2,3)");
 $insert=$db->prepare('INSERT INTO accounts VALUES(:id,:name,:email,1,1,:banned,CURRENT_TIMESTAMP)');
 for($i=1;$i<=27;$i++) {
     $insert->execute(['id'=>$i,'name'=>'Player'.$i,'email'=>'person'.$i.'@example.test','banned'=>$i===2?1:0]);
@@ -48,6 +54,11 @@ check($xpath->query('//details[contains(@class,"admin-record")]')->length===25,'
 check(str_contains($html,'p=2') && !str_contains($html,'player-2"'),'first page offers the next page without duplicated records');
 $html=renderPage($db,'players',['p'=>2]);
 check(document($html)->query('//details[contains(@class,"admin-record")]')->length===2,'second page returns remaining players');
+$html=renderPage($db,'players',['p'=>2,'id'=>'2','tab'=>'statistics']);
+$xpath=document($html);
+check($xpath->query('//details[@id="player-2" and @open]')->length===1,'player card opens on return to the filtered list');
+check($xpath->query('//details[@id="player-2"]//details[@open]/summary[text()="Statistics"]')->length===1,
+    'the edited subsection stays open in the selected card');
 $html=renderPage($db,'players',['q'=>'person2@example.test','filter'=>'banned','p'=>1]);
 check(str_contains($html,'player-2"') && !str_contains($html,'player-27"'),'email search and ban filter work together');
 check(str_contains($html,'name="return_q" value="person2@example.test"'),'player POST forms retain list search');
@@ -64,6 +75,8 @@ check(str_contains($html,'level-1"') && !str_contains($html,'level-2"'),'moderat
 check(str_contains($html,'/gd/extreme-demon.png'),'levels use original GD difficulty sprites');
 $xpath=document($html);
 check($xpath->query('//form[@method="post"][not(input[@name="id"]) or not(input[@name="csrf"])]')->length===0,'level forms keep their target and CSRF inside the form');
+$html=renderPage($db,'moderation',['q'=>'Rated level','id'=>'1']);
+check(document($html)->query('//details[@id="level-1" and @open]')->length===1,'level card opens on return to moderation');
 $before=$db->query('SELECT * FROM levels WHERE level_id=1')->fetch(PDO::FETCH_ASSOC);
 LevelAdminService::saveDetails($db,1,'Renamed',true);
 $after=$db->query('SELECT * FROM levels WHERE level_id=1')->fetch(PDO::FETCH_ASSOC);
@@ -82,5 +95,15 @@ check(str_contains($html,'Pending song') && !str_contains($html,'Published song'
 $html=renderPage($db,'songs',['q'=>'Other artist','filter'=>'verified']);
 check(str_contains($html,'Published song') && !str_contains($html,'Pending song'),'music searches artists and respects verification filter');
 check(adminListState(['p'=>-2])['p']===1,'pagination rejects negative offsets');
+check(adminListState(['q'=>['search'],'filter'=>['active'],'p'=>['2']])===['q'=>'','filter'=>'','p'=>1],
+    'array-valued list input returns the default search state');
 check(!str_contains(adminListUrl('players',adminListState(['q'=>'<&','redirect'=>'https://example.test']),2),'redirect'),'list URLs keep only known parameters');
+$html=renderPage($db,'social');
+$xpath=document($html);
+check($xpath->query('//form[input[@name="table" and @value="friend_requests"]]/input[@name="id" and @value="7"]')->length===1,
+    'pending requests submit their row ID');
+check($xpath->query('//form[input[@name="table" and @value="friends"]]/input[@name="peer_id" and @value="2"]')->length===1 &&
+    $xpath->query('//form[input[@name="table" and @value="blocks"]]/input[@name="account_id" and @value="2"]')->length===1,
+    'friendships and blocks submit their composite keys');
+check(str_contains($html,'&lt;fixture&gt;') && str_contains($html,'Hidden'),'request comments are escaped and hidden state is visible');
 echo "MUCHOCORE_ADMIN_SIMPLE_OK\n";

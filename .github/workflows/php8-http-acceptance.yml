@@ -162,6 +162,9 @@ jobs:
           set -Eeuo pipefail
           python3 tests/integration/php8-all-routes-negative-http.py
 
+      - name: Verify native news aliases and cache policy over HTTP
+        run: php tests/application/native-news-contract.php --http
+
       - name: Emulate all 113 Windows GD 2.209 native endpoint forms over PHP 8 HTTP
         shell: bash
         env:
