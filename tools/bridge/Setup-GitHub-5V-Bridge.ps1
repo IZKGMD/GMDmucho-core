@@ -57,7 +57,7 @@ function Invoke-GhCommand {
     if ($null -ne $Stdin) {
         $psi.RedirectStandardInput = $true
         if ($psi.PSObject.Properties.Name -contains 'StandardInputEncoding') {
-            $psi.StandardInputEncoding = New-Object System.Text.UTF8Encoding($false)
+            $psi.StandardInputEncoding = [System.Text.UTF8Encoding]::new($false)
         }
     }
     $process = New-Object System.Diagnostics.Process
@@ -93,22 +93,22 @@ function Set-ProtectedSecret {
 function Get-LocalBackupKey {
     Add-Type -AssemblyName 'System.Security'
     if (Test-Path -LiteralPath $BackupKeyPath -PathType Leaf) {
-        $encrypted = [Convert]::FromBase64String([IO.File]::ReadAllText($BackupKeyPath))
-        $decrypted = [Security.Cryptography.ProtectedData]::Unprotect(
-            $encrypted, $null, [Security.Cryptography.DataProtectionScope]::CurrentUser)
-        $saved = [Text.Encoding]::UTF8.GetString($decrypted)
+        $encrypted = [Convert]::FromBase64String([System.IO.File]::ReadAllText($BackupKeyPath))
+        $decrypted = [System.Security.Cryptography.ProtectedData]::Unprotect(
+            $encrypted, $null, [System.Security.Cryptography.DataProtectionScope]::CurrentUser)
+        $saved = [System.Text.Encoding]::UTF8.GetString($decrypted)
         if ($saved.Length -lt 32) { throw 'Сохранённый ключ резервных копий некорректен.' }
         return $saved
     }
     $bytes = New-Object byte[] 48
-    $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
     try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
     $key = [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+','-').Replace('/','_')
-    $sealed = [Security.Cryptography.ProtectedData]::Protect(
-        [Text.Encoding]::UTF8.GetBytes($key), $null,
-        [Security.Cryptography.DataProtectionScope]::CurrentUser)
+    $sealed = [System.Security.Cryptography.ProtectedData]::Protect(
+        [System.Text.Encoding]::UTF8.GetBytes($key), $null,
+        [System.Security.Cryptography.DataProtectionScope]::CurrentUser)
     [void](New-Item -ItemType Directory -Path (Split-Path $BackupKeyPath -Parent) -Force)
-    [IO.File]::WriteAllText($BackupKeyPath, [Convert]::ToBase64String($sealed))
+    [System.IO.File]::WriteAllText($BackupKeyPath, [Convert]::ToBase64String($sealed))
     return $key
 }
 
@@ -118,7 +118,7 @@ function Request-Credentials {
     [System.Windows.Forms.Application]::EnableVisualStyles()
     $form = New-Object System.Windows.Forms.Form
     $form.Text = 'MuchoCore 5v.pl — настройка FTP-моста'
-    $form.ClientSize = [Drawing.Size]::new(590, 390)
+    $form.ClientSize = [System.Drawing.Size]::new(590, 390)
     $form.StartPosition = 'CenterScreen'
     $form.FormBorderStyle = 'FixedDialog'
     $form.MaximizeBox = $false
@@ -126,20 +126,20 @@ function Request-Credentials {
 
     $intro = New-Object System.Windows.Forms.Label
     $intro.Text = 'Секреты будут переданы в GitHub Environment, а не в чат или Issue.'
-    $intro.Location = [Drawing.Point]::new(20, 14)
-    $intro.Size = [Drawing.Size]::new(552, 32)
+    $intro.Location = [System.Drawing.Point]::new(20, 14)
+    $intro.Size = [System.Drawing.Size]::new(552, 32)
     $form.Controls.Add($intro)
 
     function Add-Field {
         param([int]$Y,[string]$Title,[bool]$IsPassword = $false)
         $label = New-Object System.Windows.Forms.Label
         $label.Text = $Title
-        $label.Location = [Drawing.Point]::new(20,$Y)
-        $label.Size = [Drawing.Size]::new(195,25)
+        $label.Location = [System.Drawing.Point]::new(20,$Y)
+        $label.Size = [System.Drawing.Size]::new(195,25)
         $form.Controls.Add($label)
         $field = New-Object System.Windows.Forms.TextBox
-        $field.Location = [Drawing.Point]::new(220,$Y)
-        $field.Size = [Drawing.Size]::new(347,27)
+        $field.Location = [System.Drawing.Point]::new(220,$Y)
+        $field.Size = [System.Drawing.Size]::new(347,27)
         $field.UseSystemPasswordChar = $IsPassword
         $form.Controls.Add($field)
         return $field
@@ -150,8 +150,8 @@ function Request-Credentials {
     $ftpHost = Add-Field 153 'FTP хост (если отличается)'
     $autoOwner = New-Object System.Windows.Forms.CheckBox
     $autoOwner.Text = 'Разрешить и полную установку (потребуются данные админа)'
-    $autoOwner.Location = [Drawing.Point]::new(20,197)
-    $autoOwner.Size = [Drawing.Size]::new(549,30)
+    $autoOwner.Location = [System.Drawing.Point]::new(20,197)
+    $autoOwner.Size = [System.Drawing.Size]::new(549,30)
     $autoOwner.Checked = $false
     $form.Controls.Add($autoOwner)
     $ownerName = Add-Field 238 'Имя владельца админки'
@@ -164,39 +164,39 @@ function Request-Credentials {
     })
     $submit = New-Object System.Windows.Forms.Button
     $submit.Text = 'Подключить GitHub'
-    $submit.Location = [Drawing.Point]::new(390,340)
-    $submit.Size = [Drawing.Size]::new(177,35)
+    $submit.Location = [System.Drawing.Point]::new(390,340)
+    $submit.Size = [System.Drawing.Size]::new(177,35)
     $form.Controls.Add($submit)
     $cancel = New-Object System.Windows.Forms.Button
     $cancel.Text = 'Отмена'
-    $cancel.Location = [Drawing.Point]::new(270,340)
-    $cancel.Size = [Drawing.Size]::new(105,35)
-    $cancel.DialogResult = [Windows.Forms.DialogResult]::Cancel
+    $cancel.Location = [System.Drawing.Point]::new(270,340)
+    $cancel.Size = [System.Drawing.Size]::new(105,35)
+    $cancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $form.Controls.Add($cancel)
     $form.CancelButton = $cancel
     $form.AcceptButton = $submit
     $submit.Add_Click({
         if ([string]::IsNullOrWhiteSpace($ftpName.Text) -or
             [string]::IsNullOrWhiteSpace($ftpPassword.Text)) {
-            [void][Windows.Forms.MessageBox]::Show('Введите FTP логин и пароль.', 'MuchoCore')
+            [void][System.Windows.Forms.MessageBox]::Show('Введите FTP логин и пароль.', 'MuchoCore')
             return
         }
         if ($ftpHost.Text.Trim().Length -gt 0 -and
             $ftpHost.Text.Trim() -notmatch '^(?:5v\.pl|[a-z0-9][a-z0-9.-]*\.5v\.pl)$') {
-            [void][Windows.Forms.MessageBox]::Show('FTP хост должен относиться к 5v.pl.', 'MuchoCore')
+            [void][System.Windows.Forms.MessageBox]::Show('FTP хост должен относиться к 5v.pl.', 'MuchoCore')
             return
         }
         if ($autoOwner.Checked -and
             ([string]::IsNullOrWhiteSpace($ownerName.Text) -or
              [string]::IsNullOrWhiteSpace($ownerPass.Text))) {
-            [void][Windows.Forms.MessageBox]::Show('Укажи логин и пароль существующего владельца админки.', 'MuchoCore')
+            [void][System.Windows.Forms.MessageBox]::Show('Укажи логин и пароль существующего владельца админки.', 'MuchoCore')
             return
         }
-        $form.DialogResult = [Windows.Forms.DialogResult]::OK
+        $form.DialogResult = [System.Windows.Forms.DialogResult]::OK
         $form.Close()
     })
     $choice = $form.ShowDialog()
-    if ($choice -ne [Windows.Forms.DialogResult]::OK) {
+    if ($choice -ne [System.Windows.Forms.DialogResult]::OK) {
         $form.Dispose()
         throw 'Настройка отменена.'
     }
