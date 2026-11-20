@@ -25,6 +25,7 @@ require_once $root.'/compat/php7/bootstrap.php';
 if(!mucho7_https()) {http_response_code(403);echo 'Open the panel over HTTPS.';exit;}
 foreach(array('runtime','schema','auth','news','admin') as $module){require_once $root.'/compat/php7/'.$module.'.php';}
 require_once $root.'/compat/php7/admin-ui/actions.php';
+require_once $root.'/compat/php7/admin-emergency.php';
 require_once $root.'/compat/php7/admin-ui/bridge.php';
 require_once $root.'/compat/php7/core-update.php';
 require_once $root.'/compat/php7/patcher.php';
@@ -66,6 +67,10 @@ try {
         $legacyId=(int)$q->fetchColumn();if($legacyId>0){$_SESSION['aid']=$legacyId;$_SESSION['admin_registry']=1;}else unset($_SESSION['aid']);
     }
     $hasOwner=$freshInstall?false:mucho7_admin_has_owner($pdo);
+    // Existing installations also receive the FTP-readable emergency code.
+    // It remains a PHP-denied private file and is never returned over HTTP.
+    if ($hasOwner && !mucho7_emergency_ensure($root,true))
+        error_log('[MuchoCore 5v] Private emergency recovery file unavailable.');
     if(!empty($_SESSION['aid'])){
         $candidate=mucho7_admin_user($pdo,(int)$_SESSION['aid']);
         if($candidate){
@@ -97,6 +102,19 @@ try {
         if(strpos($action,'shared-passkey-')===0)mucho7_passkey_json(mucho7_passkey_action($pdo,$user,$action,$root,$settings,$instance,$_POST));
         if($action==='admin-password-setup'){
             mucho7_admin_setup_password($pdo,$_POST,$settings);$setupSuccess=true;
+        }elseif($action==='admin-emergency-reset'){
+            if(!$pdo || !$hasOwner)throw new RuntimeException('Owner recovery unavailable.');
+            $ok=mucho7_emergency_reset($pdo,$root,
+                isset($_POST['emergency_code'])?$_POST['emergency_code']:'',
+                isset($_POST['password'])?$_POST['password']:'',
+                isset($_POST['confirmation'])?$_POST['confirmation']:'',
+                isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:'',
+                $settings);
+            if(!$ok)throw new RuntimeException('Recovery code invalid or unavailable. Check the private FTP file and retry.');
+            // Prevent a previously authenticated local session from surviving.
+            $_SESSION=array();
+            session_regenerate_id(true);
+            header('Location: ?emergency_status=changed',true,303);exit;
         }elseif(in_array($action,array(
             'admin-mail-verify-confirm','admin-mail-reset-request','admin-mail-reset-apply'
         ),true)){
@@ -220,6 +238,15 @@ if(!empty($setupMode)){
     $row=$pdo&&!$setupSuccess?mucho7_admin_setup_row($pdo,$setupToken):null;
     $success=$setupSuccess;$token=$setupToken;
     echo mucho7_admin_ui_html((function()use($root,$row,$success,$token,$script,$error){ob_start();require $root.'/compat/php7/admin-ui/password-setup.php';return ob_get_clean();})());exit;
+}
+$emergencyRoute=isset($_GET['emergency_recovery']) || isset($_GET['emergency_status']);
+if($emergencyRoute){
+    if(!$pdo || !$hasOwner){http_response_code(503);exit('Owner recovery unavailable.');}
+    echo mucho7_admin_ui_html((function()use($root,$script,$adminNonce,$error){
+        ob_start();
+        require $root.'/compat/php7/admin-ui/emergency-recovery.php';
+        return ob_get_clean();
+    })());exit;
 }
 $mailRoute=isset($_GET['email_recovery']) || isset($_GET['email_verify'])
     || isset($_GET['email_reset']) || isset($_GET['email_status']);
