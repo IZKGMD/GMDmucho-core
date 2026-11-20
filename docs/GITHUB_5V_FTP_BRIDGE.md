@@ -42,6 +42,23 @@ able to decrypt a code backup.
 Open [Actions → MuchoCore 5v.pl FTP bridge](https://github.com/IZKGMD/GMDmucho-core/actions/workflows/5v-ftp-bridge.yml)
 and choose **Run workflow**, branch **main**.
 
+Alternatively, the repository owner can post **one exact line** in
+[FTP bridge control issue #357](https://github.com/IZKGMD/GMDmucho-core/issues/357):
+
+- `/5v check` — verify the exact PHP7 archive without touching FTP
+- `/5v upload` — FTPS-only code upload
+- `/5v upload plain` — upload with explicitly approved unencrypted FTP fallback
+- `/5v deploy INSTALL` — FTPS-only full owner-authenticated installation
+- `/5v deploy plain INSTALL` — full installation with explicit cleartext FTP fallback
+
+The workflow checks the **issue number**, the comment's author ID and
+login, and the *exact complete text*. It ignores bot comments,
+other issues, PRs and arbitrary commands. Only the selected operation
+and transport policy are taken from the public comment: **never paste
+credentials or private data there**. The bot replies with a link to the
+Actions run, not deployment logs. An approved GitHub Environment can
+require human confirmation even for an otherwise valid owner command.
+
 - **check**: inspect the most recent successful PHP7 archive built from
   the exact same SHA as `main`, without connecting to FTP.
 - **upload**: create a backup and upload verified code. Afterwards log in
@@ -90,9 +107,11 @@ included in any release or GitHub workflow output.
 
 ## Security boundaries
 
-- No issue-comment FTP command dispatcher, arbitrary host input, or
-  user-editable ZIP source.
-- Only `workflow_dispatch` from trusted `main` by `IZKGMD`.
+- No *arbitrary* issue-comment FTP command dispatcher, arbitrary host
+  input, or user-editable ZIP source. Only exact approved commands in
+  issue #357 are supported.
+- Only manual `workflow_dispatch` by `IZKGMD` or verified owner
+  comments on issue #357, both executing the trusted `main` code.
 - GitHub Actions can use secrets placed in its protected environment:
   anyone who can modify trusted workflow/code on `main` could potentially
   alter how those secrets are handled. Protect branch access and review PRs.
