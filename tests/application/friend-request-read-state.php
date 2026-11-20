@@ -42,4 +42,15 @@ $check(!$repo->readRequest(20, 5) && $state(5) === 255, 'unknown state is not co
 $check((int)$db->query('SELECT COUNT(*) FROM friend_requests')->fetchColumn() === 5,
     'reading preserves stored requests');
 
+$check(!$repo->deleteRequest(30, 0, false, 1), 'unrelated account cannot delete by request ID');
+$check(!$repo->deleteRequest(10, 0, false, 1), 'sender cannot delete as the recipient');
+$check(!$repo->deleteRequest(20, 30, false, 1), 'request ID and peer must point to the same record');
+$check(!$repo->deleteRequest(20, 0, false), 'an identity-free delete must leave the inbox intact');
+$check($repo->deleteRequest(20, 0, false, 1), 'recipient can decline a specific request by its ID');
+$check($state(3) === 1, 'deleting by request ID preserves other entries from that peer');
+$check($repo->deleteRequest(10, 30, true, 4), 'sender can cancel its own request by ID and peer');
+$check($repo->deleteRequest(20, 10, false), 'legacy recipient can still delete by peer ID alone');
+$check((int)$db->query('SELECT COUNT(*) FROM friend_requests')->fetchColumn() === 0,
+    'only authorized request deletions reached storage');
+
 echo "FRIEND_REQUEST_READ_STATE_OK\n";

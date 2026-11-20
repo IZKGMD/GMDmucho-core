@@ -10,6 +10,16 @@ $sources=json_decode(file_get_contents($root.'/compat/php7/core/sources.json'),t
 // changes fail this guard until the snapshot is explicitly recompiled.
 // PHP 7 retains its previous, verified single-build Android patcher.
 $php8OnlyDiagnosticHashes=array(
+    // PHP 8 endpoint review. These exact revisions are pending the PHP 7 port.
+    'src/Account/AccountService.php'=>'b3c319b89251a94957d77a228312cafe5d05098d925b7aef6d1aec80349d7e7e',
+    'src/CloudSave/CloudSaveService.php'=>'7bf9310038af5eb52b0a1ce8d5fbc6a216448f56f79f6bd3d54ceb469afc129d',
+    'src/Compatibility/DiscoveryController.php'=>'28a8bd39a57976c72153ea54bd0335b0dd3f719f3718d7ae807bc564649fe395',
+    'src/LevelList/LevelListRepository.php'=>'4dee38efcc2598f37fc7cdf4d1ee30a680c1ad8ce9d6d5887f57ec7560267370',
+    'src/LevelList/LevelListService.php'=>'aa81001b03ebbc6df3db1825b58faca828d64c7cb7068799ff65d622729d3327',
+    'src/Social/RelationshipController.php'=>'39d4ad9311e012d6ebc7588bd1ae71e2e07b2e2291bd12f2fc5a67517e8892a1',
+    'src/Social/RelationshipRepository.php'=>'b5e1fbeaa789c425727a194d34959334f7aaa138e8c022d31201e7729b1ce8ff',
+    'src/Social/RelationshipService.php'=>'3cc77f9b12097556adc5cde1e12d667f5c244d8f207efa3c6d97edaad58bba79',
+    'tests/application/gd2209-gameplay-schema-integration.php'=>'0f24048f3757f9abb8001dbb8fd50e3a652c658dd7e35d3adc014e9234510856',
     // PHP 8 webhook SSRF hardening; PHP 7 compiled runtime remains unchanged.
     'src/Integration/WebhookDispatcher.php'=>'c330659d2243e22f2f75a1dee1cf5f1cc1d97d91dfe4d3f73a06bfbe3a51b6f5',
     // PHP 8 routing-aware abuse budgets; keep the last verified PHP 7 snapshot pinned.

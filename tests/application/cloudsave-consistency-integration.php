@@ -247,6 +247,8 @@ try {
         'array account ID fails closed');
     $rejected(array_replace($valid, ['userName' => ['alpha']]),
         'array username fails closed');
+    $rejected(array_replace($valid, ['binaryVersion' => ['51']]),
+        'malformed binary version cannot create a save revision');
     $rejected(array_replace($valid, ['password' => $secondPassword]),
         'another user password cannot overwrite cloud save');
     $rejected(array_replace($valid, ['password' => '']),
@@ -272,6 +274,21 @@ try {
     $rejected($valid, 'inactive account cannot overwrite save');
     $db->exec('UPDATE accounts SET is_active=1 WHERE account_id=1');
     $check($repository->load(1) === $wireSave, 'blocked attempts preserve encrypted cloud save');
+
+    $check($service->backup(array_replace($valid, [
+        'saveData' => 'manager;levels',
+        'gameVersion' => '22',
+        'binaryVersion' => '51',
+    ])) === '1' && $service->sync($valid) === 'manager;levels;22;51;a;a',
+        'GD 2.209 save retains its upload versions and both save sections');
+    $check($service->backup(array_replace($valid, [
+        'saveData' => 'manager;levels;22;51;a;a',
+    ])) === '1' && $service->sync($valid) === 'manager;levels;22;51;a;a',
+        'a complete modern envelope round-trips without a duplicate suffix');
+    $check($service->backup(array_replace($valid, [
+        'saveData' => 'older;21;30;a;a;levels',
+    ])) === '1' && $service->sync($valid) === 'older;21;30;a;a;levels;21;30;a;a',
+        'an embedded legacy marker does not replace the response suffix');
 
     echo "MUCHOCORE_CLOUDSAVE_CONSISTENCY_OK\n";
 } finally {

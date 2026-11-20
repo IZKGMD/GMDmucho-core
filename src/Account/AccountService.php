@@ -45,6 +45,7 @@ final readonly class AccountService
 
         if (
             strlen($password) > 256 ||
+            str_contains($password, "\0") ||
             strlen($email) > 254
         ) {
             return '-1';
@@ -138,6 +139,7 @@ final readonly class AccountService
         if (
             $username === '' ||
             strlen($username) > 20 ||
+            ($password === '' && $gjp2 === '') ||
             strlen($password) > 512 ||
             strlen($gjp2) > 512
         ) {
