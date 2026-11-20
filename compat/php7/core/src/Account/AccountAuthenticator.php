@@ -24,7 +24,8 @@ final class AccountAuthenticator
     }
     public function authenticate(int $accountId, string $credential, string $ip = ''): array
     {
-        $credential = trim($credential);
+        // Passwords are opaque credentials: stripping boundary spaces
+        // changes the secret and breaks GD endpoints after a valid login.
         if ($accountId <= 0 || $credential === '' || strlen($credential) > 1024) {
             throw new RuntimeException('Unauthorized.');
         }
@@ -68,15 +69,15 @@ final class AccountAuthenticator
          * compatibility path such as authenticateLegacy19Upload(), which is
          * additionally bound to the client's UDID.
          */
-        // 1. Plain credential for current-core and older client compatibility.
-        if ($storedPass !== '') {
-            $valid = password_verify($credential, $storedPass);
-        }
-        // 2. Already-derived 40-character GJP2 hash.
-        if (!$valid && $storedGjp2 !== '' && preg_match('/^[a-f0-9]{40}$/i', $credential) === 1) {
+        // Native GJP2 requests should need only one password hash verification.
+        if ($storedGjp2 !== '' && preg_match('/^[a-f0-9]{40}$/i', $credential) === 1) {
             $valid = password_verify($credential, $storedGjp2);
         }
-        // 3. URL-safe Base64 + XOR credential supported by older MuchoCore.
+        // A password can also be 40 hexadecimal characters.
+        if (!$valid && $storedPass !== '') {
+            $valid = password_verify($credential, $storedPass);
+        }
+        // URL-safe Base64 + XOR credential supported by older MuchoCore.
         if (!$valid) {
             $decodedPassword = $this->decodeXorCredential($credential);
             if ($decodedPassword !== null) {

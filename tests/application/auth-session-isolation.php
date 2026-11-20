@@ -164,6 +164,21 @@ assertAuthIsolation(
     'stripping password spaces changes secret and is rejected'
 );
 
+$hexPassword = str_repeat('a1', 20);
+$gjp2 = sha1($hexPassword . 'mI29fmAnxgTs');
+$pdo->prepare('UPDATE accounts SET password_hash=?, gjp2_hash=? WHERE account_id=1')->execute([
+    password_hash($hexPassword, PASSWORD_DEFAULT),
+    password_hash($gjp2, PASSWORD_DEFAULT),
+]);
+assertAuthIsolation(
+    (int)$authenticator->authenticate(1, $gjp2)['account_id'] === 1,
+    'stored GJP2 works alongside the plain password'
+);
+assertAuthIsolation(
+    (int)$authenticator->authenticate(1, $hexPassword)['account_id'] === 1,
+    '40-character hexadecimal passwords still work through the plain-password fallback'
+);
+
 assertAuthIsolation(
     LevelAccess::canRead(
         $pdo,

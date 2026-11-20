@@ -97,21 +97,20 @@ final readonly class AccountAuthenticator
          * additionally bound to the client's UDID.
          */
 
-        // 1. Plain credential for current-core and older client compatibility.
-        if ($storedPass !== '') {
-            $valid = password_verify($credential, $storedPass);
-        }
-
-        // 2. Already-derived 40-character GJP2 hash.
+        // Native GJP2 requests should need only one password hash verification.
         if (
-            !$valid &&
             $storedGjp2 !== '' &&
             preg_match('/^[a-f0-9]{40}$/i', $credential) === 1
         ) {
             $valid = password_verify($credential, $storedGjp2);
         }
 
-        // 3. URL-safe Base64 + XOR credential supported by older MuchoCore.
+        // A password can also be 40 hexadecimal characters.
+        if (!$valid && $storedPass !== '') {
+            $valid = password_verify($credential, $storedPass);
+        }
+
+        // URL-safe Base64 + XOR credential supported by older MuchoCore.
         if (!$valid) {
             $decodedPassword = $this->decodeXorCredential($credential);
 

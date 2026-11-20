@@ -95,7 +95,7 @@
   "public/dashboard/clans.php": "c84e4ba12ae234cf703899484d9f487a8a33872d5b8b9d181d8dd196987723e5",
   "public/dashboard/index.php": "22b1e72090e1ccf188771c210b191926a2271276937ed964db431b6bae7f77de",
   "public/profile-image.php": "b9ef7098ab21c65732eb30a6e905419e50abdb7c67ae1689c07079168c72e5f9",
-  "src/Account/AccountAuthenticator.php": "dc0123353768f03b8d0487d48651551626d3011c784b3dea4c31c37617b9e62c",
+  "src/Account/AccountAuthenticator.php": "9b89e914cc590e1e247ec9c439506148b3d79a4795abfe2e9a2246553b64c160",
   "src/Account/AccountController.php": "3a063e2305c29167461f09712167191f02ab5a7c2af042ffbfb6651af92533eb",
   "src/Account/AccountManagementController.php": "752b6f3bd0e0f593d36256977a62b7043a3d34f1b15a681dc1b04836edb1618b",
   "src/Account/AccountManagementService.php": "2e2ea6b1958e796e8c92e73772b49079a2fdf282159f8c4dad9007be7167267a",
