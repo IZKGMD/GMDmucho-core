@@ -76,6 +76,18 @@ foreach ([47,51] as $binary) {
             '2.209 UTC wire timestamp fields must be preserved');
     }
 }
+foreach ([
+    [1,0,1,0], [2,0,0,10], [3,0,0,20], [4,0,0,30],
+    [5,0,0,40], [6,0,0,50], [6,1,0,50]
+] as $case) {
+    verifyNative7(mucho7_wire_difficulty($case[0],$case[1],$case[2]) === $case[3],
+        'PHP7 GD 2.209 rating ordinal normalization: '.json_encode($case));
+}
+$pdo->exec('UPDATE levels SET difficulty=6,demon=0,auto_level=0 WHERE level_id=42');
+$insaneWire=mucho7_search($pdo,['type'=>0,'str'=>'42','gameVersion'=>22,'binaryVersion'=>51]);
+verifyNative7(strpos($insaneWire,':9:50:')!==false && strpos($insaneWire,':17:0:')!==false,
+    'PHP7 native Insane must never be misrendered as Demon');
+$pdo->exec('UPDATE levels SET difficulty=3,demon=0,auto_level=0 WHERE level_id=42');
 verifyNative7(mucho7_search($pdo,['type'=>0,'str'=>'43','gameVersion'=>22]) === '-2',
     'Unlisted level must not be exposed');
 verifyNative7(mucho7_search($pdo,['type'=>0,'str'=>'SampleLevel','page'=>0]) !== '-2',
