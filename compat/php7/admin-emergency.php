@@ -76,7 +76,7 @@ function mucho7_emergency_reset(PDO $db, $root, $code, $password, $confirmation,
             || !hash_equals($storedCode,$code)) return false;
 
         // Security tables are ensured BEFORE opening a transaction (MySQL DDL).
-        mucho7_admin_security_install($db);
+        if (!tableExists($db,'php7_admin_security')) mucho7_admin_security_install($db);
         $db->beginTransaction();
         try {
             $query=$db->query("SELECT u.id,u.account_id FROM php7_admin_users u
