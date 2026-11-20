@@ -59,27 +59,17 @@ final readonly class DiscoveryController
      * Older clients:
      * weekly=0/1
      *
-     * Event level type=2 will be implemented
-     * separately.
+     * Event levels use type=2.
      */
     public function daily(
         Request $request
     ): Response {
 
-        if(isset($_POST['type'])){
-
-            $type=(int)$_POST['type'];
-
-        }else{
-
-            $type=
-                (int)($_POST['weekly'] ?? 0)===1
-                    ? 1
-                    : 0;
-        }
-
-
-        if(!in_array($type,[0,1,2],true)){
+        $hasType = array_key_exists('type', $request->post);
+        $field = $hasType ? 'type' : 'weekly';
+        $type = $request->postInt($field, array_key_exists($field, $request->post) ? -1 : 0);
+        $maxType = $hasType ? 2 : 1;
+        if ($type < 0 || $type > $maxType) {
             return Response::text('-1');
         }
 
@@ -253,13 +243,11 @@ final readonly class DiscoveryController
         Request $request
     ): Response {
 
-        $page=min(
-            1000,
-            max(
-                0,
-                (int)($_POST['page'] ?? 0)
-            )
-        );
+        $page = $request->postInt('page', array_key_exists('page', $request->post) ? -1 : 0);
+        if ($page < 0) {
+            return Response::text('-1');
+        }
+        $page = min(1000, $page);
 
         $limit=10;
         $offset=$page*$limit;

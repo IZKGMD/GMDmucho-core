@@ -128,6 +128,12 @@ try {
         !str_contains($wire, '2:own:') && !str_contains($wire, '2:hidden:') &&
         !str_contains($wire, '2:stranger:') && str_contains($wire, '#2:0:10#'),
         'authenticated friends list search returns public friend lists only');
+    $_POST = ['type'=>'0', 'str'=>'riend', 'page'=>'0'];
+    $wire = $listService->get();
+    historyCheck(str_contains($wire, '2:friend:') && str_contains($wire, '#1:0:10#'),
+        'native prepared name search uses the same text parameter for results and total');
+    $_POST['page'] = '1';
+    historyCheck($listService->get() === '-1', 'a page past the last matching list is empty');
     historyCheck($lists->allLevelsExist([10,11]) && !$lists->allLevelsExist([10,12]) &&
         !$lists->allLevelsExist([10,99]) && !$lists->allLevelsExist([]),
         'list validation rejects deleted, missing and empty level selections');
@@ -138,6 +144,13 @@ try {
     historyCheck($listService->upload() === '-6' &&
         (int)$db->query('SELECT COUNT(*) FROM mucho_level_lists')->fetchColumn() === $before,
         'rejected list upload leaves stored lists unchanged');
+    $_POST['listLevels'] = '10,11';
+    foreach ([['1'], '1junk', '-1'] as $invalidListId) {
+        $_POST['listID'] = $invalidListId;
+        historyCheck($listService->upload() === '-1' &&
+            (int)$db->query('SELECT COUNT(*) FROM mucho_level_lists')->fetchColumn() === $before,
+            'an invalid update ID cannot create a new list');
+    }
 
     $db->exec('ALTER TABLE profiles DROP COLUMN cube, DROP COLUMN special');
     $row = $repo->byUserId(501, 0, 1, false)['rows'][0];

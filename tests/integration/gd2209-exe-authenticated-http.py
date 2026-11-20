@@ -401,19 +401,20 @@ def main() -> None:
 
     # Native Cloud Save New aliases: ciphertext has a stored checksum and an
     # incrementing revision. Rejections must not change this persisted row.
-    save = "GD2209-auth-replay-" + secrets.token_hex(12) + ";21;30;a;a"
+    save = "GD2209-auth-replay-" + secrets.token_hex(12)
+    framed_save = save + ";22;51;a;a"
     cloud_path = "/database/accounts/backupGJAccountNew.php"
     sync_path = "/database/accounts/syncGJAccountNew.php"
     before = database("cloud", aid1)
     require(form(cloud_path, {**auth1, "saveData": save}) == "1",
             "GD 2.209 New cloud backup succeeds with real fixture GJP2")
     after = database("cloud", aid1)
-    require(after is not None and after["sha256"] == hashlib.sha256(save.encode()).hexdigest()
-            and int(after["size_bytes"]) == len(save)
+    require(after is not None and after["sha256"] == hashlib.sha256(framed_save.encode()).hexdigest()
+            and int(after["size_bytes"]) == len(framed_save)
             and int(after["revision"]) == (int(before["revision"]) + 1 if before else 1),
             "cloud backup persisted an exact new revision and checksum")
-    require(form(sync_path, auth1) == save,
-            "GD 2.209 New sync returns exact cloud payload")
+    require(form(sync_path, auth1) == framed_save,
+            "GD 2.209 New sync returns the exact save with its upload versions")
     require(form(cloud_path, {**bad_auth, "saveData": "tamper"}) == "-1",
             "cross-account cloud backup denied")
     require(form(cloud_path, {**auth1, "saveData": ""}) == "-1",
