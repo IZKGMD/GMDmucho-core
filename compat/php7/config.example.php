@@ -23,5 +23,9 @@ return array(
     // Native News is independent of the player's GDPS domain.
     // Enabling changes the custom content CDN base; check other game assets.
     'enable_native_news' => false,
-    'site_url' => 'https://YOUR-OWN-GDPS.5v.pl'
+    'site_url' => 'https://YOUR-OWN-GDPS.5v.pl',
+    // OPTIONAL: sender specifically authorized by your hosting/mail provider.
+    // Usually leave unset: MuchoCore first checks PHP's sendmail_from setting.
+    // Never copy noreply@5v.pl unless 5v.pl explicitly authorizes its use.
+    // 'admin_mail_from' => 'no-reply@your-owned-domain.example'
 );
