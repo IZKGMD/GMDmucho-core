@@ -126,6 +126,38 @@ foreach ($profiles as $profile => $expected) {
         $profile . ' PHP8 persisted state');
 }
 
+// Regression: internal MuchoCore ratings 1=Auto, 2..6=Easy..Insane.
+// GD 2.209 field 9 uses 0/10/20/30/40/50; 60 falsely draws Demon.
+foreach ([
+    'unrated' => [0, 0, 0, 0, 0],
+    'auto' => [1, 0, 1, 0, 1],
+    'easy' => [2, 0, 0, 10, 2],
+    'normal' => [3, 0, 0, 20, 3],
+    'hard' => [4, 0, 0, 30, 5],
+    'harder' => [5, 0, 0, 40, 7],
+    'insane' => [6, 0, 0, 50, 9],
+    'demon' => [6, 1, 0, 50, 10],
+] as $name => [$stored, $demon, $auto, $expected, $stars]) {
+    $row = $base;
+    $row['difficulty'] = $stored;
+    $row['demon'] = $demon;
+    $row['auto_level'] = $auto;
+    $row['stars'] = $stars;
+    $row['demon_difficulty'] = 0;
+    foreach ([[22, 51], [21, 35]] as [$gv, $bv]) {
+        $search = $listEncoder->encode([$row], 1, 0, 10, $gv, $bv);
+        $download = $downloadEncoder->encode($row, $gv, false, $bv);
+        ratingAssert(wireField($search, 9) === (string)$expected,
+            $name . ' list field 9 mismatch GD ' . $gv);
+        ratingAssert(wireField($download, 9) === (string)$expected,
+            $name . ' download field 9 mismatch GD ' . $gv);
+        ratingAssert(wireField($search, 18) === (string)$stars,
+            $name . ' stars must not change');
+        ratingAssert(wireField($search, 17) === (string)$demon,
+            $name . ' demon flag preserved');
+    }
+}
+
 ratingAssert(
     adminDifficultyProfile(['auto_level'=>0,'demon'=>0,'difficulty'=>50]) === 'insane',
     'modern in-game 50 difficulty displays Insane icon'
