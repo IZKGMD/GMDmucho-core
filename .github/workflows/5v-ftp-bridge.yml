@@ -1,0 +1,201 @@
+name: MuchoCore 5v.pl FTP bridge (owner-only)
+
+# Manual, fixed-target deployment. Never execute with pull_request secrets or
+# accept publicly posted commands/credentials from GitHub issues.
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Check archive, upload code, or upload + owner-approved migration"
+        required: true
+        type: choice
+        default: check
+        options:
+          - check
+          - upload
+          - deploy
+      ftp_policy:
+        description: "FTPS required unless you explicitly accept unencrypted FTP"
+        required: true
+        type: choice
+        default: ftps-only
+        options:
+          - ftps-only
+          - allow-plain-ftp
+      confirmation:
+        description: "For deploy ONLY: type INSTALL to permit a database migration"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: muchocore-5v-test-deployment
+  cancel-in-progress: false
+
+jobs:
+  bridge:
+    # Workflow secrets are only accessible from a run on trusted main.
+    if: ${{ github.repository == 'IZKGMD/GMDmucho-core' && github.actor == 'IZKGMD' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    environment: muchocore-5v-test
+    timeout-minutes: 50
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUNBUFFERED: "1"
+      MUCHO_5V_FTP_USER: ${{ secrets.MUCHO_5V_FTP_USER }}
+      MUCHO_5V_FTP_PASSWORD: ${{ secrets.MUCHO_5V_FTP_PASSWORD }}
+      MUCHO_5V_OWNER_USER: ${{ secrets.MUCHO_5V_OWNER_USER }}
+      MUCHO_5V_OWNER_PASSWORD: ${{ secrets.MUCHO_5V_OWNER_PASSWORD }}
+      MUCHO_5V_OWNER_OTP: ${{ secrets.MUCHO_5V_OWNER_OTP }}
+      MUCHO_5V_BACKUP_KEY: ${{ secrets.MUCHO_5V_BACKUP_KEY }}
+      FTP_HOST: ${{ vars.MUCHO_5V_FTP_HOST }}
+      FTP_ROOT: ${{ vars.MUCHO_5V_FTP_ROOT }}
+      OPERATION: ${{ inputs.operation }}
+      FTP_POLICY: ${{ inputs.ftp_policy }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+
+    steps:
+      - name: Checkout trusted main (never PR source)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check fixed target, confirmation, and required secrets
+        run: |
+          set -Eeuo pipefail
+          test "$GITHUB_REPOSITORY" = 'IZKGMD/GMDmucho-core'
+          test "$GITHUB_REF" = 'refs/heads/main'
+          case "$OPERATION" in check|upload|deploy) ;; *) exit 2 ;; esac
+          case "$FTP_POLICY" in ftps-only|allow-plain-ftp) ;; *) exit 2 ;; esac
+          if [[ "$OPERATION" == deploy && "$CONFIRMATION" != INSTALL ]]; then
+            echo "::error::Type INSTALL in confirmation to allow owner-authenticated migration."
+            exit 2
+          fi
+          if [[ "$OPERATION" == check ]]; then
+            echo "Archive inspection only: no connection to the hosting server."
+            exit 0
+          fi
+          if [[ -z "$MUCHO_5V_FTP_USER" || -z "$MUCHO_5V_FTP_PASSWORD" ]]; then
+            echo "::error::Set MUCHO_5V_FTP_USER and MUCHO_5V_FTP_PASSWORD in the protected GitHub Environment."
+            exit 2
+          fi
+          if [[ "${#MUCHO_5V_BACKUP_KEY}" -lt 32 ]]; then
+            echo "::error::Set a random backup encryption passphrase of 32+ characters in MUCHO_5V_BACKUP_KEY."
+            exit 2
+          fi
+          if [[ "$OPERATION" == deploy && ( -z "$MUCHO_5V_OWNER_USER" || -z "$MUCHO_5V_OWNER_PASSWORD" ) ]]; then
+            echo "::error::Deploy requires MUCHO_5V_OWNER_USER and MUCHO_5V_OWNER_PASSWORD."
+            exit 2
+          fi
+          if [[ "$FTP_POLICY" == allow-plain-ftp ]]; then
+            echo "::warning::Plain FTP exposes hosting credentials and transferred files on the network. Use only if the provider rejects FTPS and you explicitly accept this risk."
+          fi
+
+      - name: Test updater locally (without any network)
+        run: |
+          set -Eeuo pipefail
+          python3 tools/release/5v-updater/test_updater.py -q
+          python3 -m py_compile tools/release/5v-updater/updater.py
+
+      - name: Download PHP7 archive matching the exact main commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          head_sha="$(git rev-parse HEAD)"
+          [[ "$head_sha" == "$GITHUB_SHA" ]]
+          runs="$(gh run list -R "$GITHUB_REPOSITORY" --workflow php7-preview-archives.yml --branch main --status success --limit 100 --json databaseId,headSha,conclusion)"
+          run_id="$(jq -r --arg sha "$head_sha" '[.[] | select(.headSha == $sha and .conclusion == "success")][0].databaseId // empty' <<< "$runs")"
+          if [[ ! "$run_id" =~ ^[0-9]+$ ]]; then
+            echo "::error::No successful PHP7 package workflow is associated with the current main SHA. Run the PHP7 archive workflow first."
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/mucho5v-package"
+          gh run download "$run_id" -R "$GITHUB_REPOSITORY" --name MuchoCore-PHP7-5v-native-preview --dir "$RUNNER_TEMP/mucho5v-package"
+          archive="$RUNNER_TEMP/mucho5v-package/MuchoCore-PHP7-5v-native-preview.zip"
+          test -s "$archive"
+          unzip -t "$archive" >/dev/null
+          sha256sum "$archive" | awk '{print "Artifact SHA-256: " $1}'
+          echo "MUCHO_5V_PACKAGE=$archive" >> "$GITHUB_ENV"
+          echo "MUCHO_5V_PACKAGE_SHA=$(sha256sum "$archive" | awk '{print $1}')" >> "$GITHUB_ENV"
+
+      - name: Validate fixed-site PHP7 package and pinned internal core hash
+        run: |
+          set -Eeuo pipefail
+          python3 - "$MUCHO_5V_PACKAGE" "$MUCHO_5V_PACKAGE_SHA" <<'PY'
+          import importlib.util, pathlib, sys
+          spec=importlib.util.spec_from_file_location(
+              "mucho5vupdater", "tools/release/5v-updater/updater.py")
+          module=importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          files, expected=module.load_package(pathlib.Path(sys.argv[1]),sys.argv[2])
+          assert "public/php7-admin.php" in files
+          assert "compat/php7/admin-emergency.php" in files
+          assert "compat/php7/admin-ui/emergency-recovery.php" in files
+          assert not any(name.endswith("php7-local.php") or name.endswith("php7-emergency-code.php")
+                         for name in files)
+          print("FIXED_5V_PACKAGE_VALID",len(files),"files; core hash:",expected)
+          PY
+
+      - name: Upload over FTP/FTPS and optionally activate with existing owner
+        if: ${{ inputs.operation != 'check' }}
+        env:
+          MUCHO_5V_CONFIRM_INSTALL: ${{ inputs.confirmation }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/mucho5v-code-backups"
+          args=(
+            --non-interactive
+            --site muchocoretest.5v.pl
+            --archive "$MUCHO_5V_PACKAGE"
+            --expected-archive-sha256 "$MUCHO_5V_PACKAGE_SHA"
+            --backup-directory "$RUNNER_TEMP/mucho5v-code-backups"
+            --source-sha "$GITHUB_SHA"
+          )
+          [[ -z "$FTP_HOST" ]] || args+=(--ftp-host "$FTP_HOST")
+          [[ -z "$FTP_ROOT" ]] || args+=(--ftp-root "$FTP_ROOT")
+          [[ "$FTP_POLICY" != allow-plain-ftp ]] || args+=(--allow-plain-ftp)
+          [[ "$OPERATION" != upload ]] || args+=(--upload-only)
+          # Never print command line, environment, FTP password, or owner credentials.
+          python3 tools/release/5v-updater/updater.py "${args[@]}"
+
+      - name: Encrypt local FTP code backup (including on failed upload)
+        if: ${{ always() && inputs.operation != 'check' }}
+        run: |
+          set -Eeuo pipefail
+          shopt -s nullglob
+          backups=("$RUNNER_TEMP"/mucho5v-code-backups/*.zip)
+          if [[ "${#backups[@]}" -eq 0 ]]; then
+            echo "No code backup was generated; FTP upload did not pass the backup stage."
+            exit 0
+          fi
+          if [[ "${#MUCHO_5V_BACKUP_KEY}" -lt 32 ]]; then
+            echo "::error::Backup encryption key is not configured; refusing to upload plaintext backup."
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/mucho5v-encrypted-backup"
+          for source in "${backups[@]}"; do
+            dest="$RUNNER_TEMP/mucho5v-encrypted-backup/$(basename "$source").gpg"
+            # Symmetric AES-256 with OpenPGP integrity protection. Password
+            # enters via pipe, never appears on command line or in the log.
+            printf '%s' "$MUCHO_5V_BACKUP_KEY" |
+              gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+                --symmetric --cipher-algo AES256 --output "$dest" "$source"
+            test -s "$dest"
+            chmod 600 "$dest"
+          done
+          echo "A code-only encrypted backup is available in this run's artifact. Retain the secret key privately."
+
+      - name: Retain ONLY encrypted code backups for rollback
+        if: ${{ always() && inputs.operation != 'check' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: muchocore-5v-test-encrypted-code-backup
+          path: ${{ runner.temp }}/mucho5v-encrypted-backup/*.gpg
+          if-no-files-found: warn
+          retention-days: 30
