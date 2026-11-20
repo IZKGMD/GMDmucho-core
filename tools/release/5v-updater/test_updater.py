@@ -249,4 +249,55 @@ class UpdateTests(unittest.TestCase):
         self.assertEqual(https.gets, 2)
 
 
+    def test_noninteractive_owner_promotion_is_secret_only_and_confirmed(self):
+        digest = 'd' * 64
+        token = 'e' * 48
+        class Remote:
+            installed = False
+            def get(self, path, max_size=None):
+                if path.endswith('php7-core-build.json'):
+                    return json.dumps({'sha256': digest if self.installed else 'f'*64}).encode()
+                if path.endswith('php7-complete.on'): return b'yes'
+                return None
+        remote = Remote()
+        class Https:
+            gets = 0
+            def request(self, path, form=None, **kw):
+                if form is None:
+                    self.gets += 1
+                    if self.gets == 1:
+                        return 200, ('Login<input name="csrf" value="'+token+'">').encode()
+                    return 200, ('Full core enabled Install uploaded build<input name="csrf" value="'+token+'">').encode()
+                if form['action'] == 'login':
+                    self.login = form
+                    return 200, b'Dashboard after redirect'
+                if form['action'] == 'core-install':
+                    remote.installed = True
+                    return 200, b'Build installed'
+                raise AssertionError('Unexpected route')
+        env = {
+            'MUCHO_5V_OWNER_USER': 'owner',
+            'MUCHO_5V_OWNER_PASSWORD': 'secret-owner-password',
+            'MUCHO_5V_OWNER_OTP': '',
+        }
+        with patch.dict('os.environ', dict(env, MUCHO_5V_CONFIRM_INSTALL='NOT_CONFIRMED'), clear=True), \
+             patch('builtins.input', side_effect=AssertionError('interactive input forbidden')), \
+             patch.object(u.getpass, 'getpass', side_effect=AssertionError('getpass forbidden')):
+            with self.assertRaisesRegex(RuntimeError, 'Explicit INSTALL confirmation'):
+                u.promote_core(remote,Https(),digest,non_interactive=True)
+        https=Https()
+        with patch.dict('os.environ', dict(env, MUCHO_5V_CONFIRM_INSTALL='INSTALL'), clear=True), \
+             patch('builtins.input', side_effect=AssertionError('interactive input forbidden')), \
+             patch.object(u.getpass, 'getpass', side_effect=AssertionError('getpass forbidden')):
+            u.promote_core(remote,https,digest,non_interactive=True)
+        self.assertTrue(remote.installed)
+        self.assertEqual(https.gets,2)
+        self.assertEqual(https.login['userName'],'owner')
+
+    def test_noninteractive_credentials_require_environment_secrets(self):
+        with patch.dict('os.environ', {}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, 'MUCHO_5V_FTP_PASSWORD'):
+                u.require_automation_secret('MUCHO_5V_FTP_PASSWORD')
+
+
 if __name__ == '__main__': unittest.main()
