@@ -514,9 +514,17 @@ the two-factor requirement is never disabled.
 
 **Delivery limitations:** PHP `mail()` returning `true` only means that the
 hosting relay accepted the message. It is not proof of delivery or verified
-ownership. Sender `no-reply@<your-site-host>` is constructed automatically
-but may be rejected by hosting policy or receiving spam filters. If the
-verification email cannot be delivered, recovery remains unverified and the
+ownership. By default MuchoCore uses a valid `sendmail_from` address provided
+by the host's PHP configuration. If none exists it constructs
+`no-reply@<your-site-host>`; the provider can rewrite that header. An owner
+may set `'admin_mail_from' => 'approved@your-domain.example'` in the **private**
+`config/php7-local.php` only if the hosting/mail provider explicitly approves
+that sender. Never force `noreply@5v.pl` for all tenants: a successful inbox
+test on one instance does not grant every site permission to use it.
+If a message is rejected, check the PHP error log for the relay-rejection
+message and inspect the received message's From and authentication headers.
+A queued message must never be counted as delivered until the owner confirms
+the one-time link. If delivery fails, recovery stays unverified and the
 existing FTP-verified `START_RECOVERY_WINDOWS.cmd` flow remains available.
 This auto-mail mode is only for the native 5v.pl PHP 7 installer, not for the
 PHP 8 VPS admin's authenticated TLS SMTP transport.
