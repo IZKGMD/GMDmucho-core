@@ -3,6 +3,8 @@ name: MuchoCore 5v.pl FTP bridge (owner-only)
 # Manual, fixed-target deployment. Never execute with pull_request secrets or
 # accept publicly posted commands/credentials from GitHub issues.
 on:
+  issue_comment:
+    types: [created]
   workflow_dispatch:
     inputs:
       operation:
@@ -30,6 +32,7 @@ on:
 permissions:
   contents: read
   actions: read
+  issues: write
 
 concurrency:
   group: muchocore-5v-test-deployment
@@ -37,8 +40,20 @@ concurrency:
 
 jobs:
   bridge:
-    # Workflow secrets are only accessible from a run on trusted main.
-    if: ${{ github.repository == 'IZKGMD/GMDmucho-core' && github.actor == 'IZKGMD' && github.ref == 'refs/heads/main' }}
+    # The same fixed workflow may be triggered by exact owner comments on
+    # issue #357. All other issues, bots, PRs and untrusted refs are denied.
+    if: >-
+      github.repository == 'IZKGMD/GMDmucho-core' &&
+      github.ref == 'refs/heads/main' &&
+      (
+        (github.event_name == 'workflow_dispatch' && github.actor == 'IZKGMD') ||
+        (github.event_name == 'issue_comment' &&
+         github.event.issue.number == 357 &&
+         github.event.issue.pull_request == null &&
+         github.event.comment.user.id == 112145870 &&
+         github.event.comment.user.login == 'IZKGMD' &&
+         contains(fromJSON('["/5v check","/5v upload","/5v upload plain","/5v deploy INSTALL","/5v deploy plain INSTALL"]'), github.event.comment.body))
+      )
     runs-on: ubuntu-latest
     environment: muchocore-5v-test
     timeout-minutes: 50
@@ -58,8 +73,30 @@ jobs:
       OPERATION: ${{ inputs.operation }}
       FTP_POLICY: ${{ inputs.ftp_policy }}
       CONFIRMATION: ${{ inputs.confirmation }}
+      COMMENT_BODY: ${{ github.event.comment.body }}
+      EVENT_KIND: ${{ github.event_name }}
 
     steps:
+      - name: Normalize strictly allowlisted action or owner issue command
+        run: |
+          set -Eeuo pipefail
+          if [[ "$EVENT_KIND" == issue_comment ]]; then
+            case "$COMMENT_BODY" in
+              '/5v check') op=check; policy=ftps-only; confirm='' ;;
+              '/5v upload') op=upload; policy=ftps-only; confirm='' ;;
+              '/5v upload plain') op=upload; policy=allow-plain-ftp; confirm='' ;;
+              '/5v deploy INSTALL') op=deploy; policy=ftps-only; confirm=INSTALL ;;
+              '/5v deploy plain INSTALL') op=deploy; policy=allow-plain-ftp; confirm=INSTALL ;;
+              *) echo "::error::Unapproved FTP command"; exit 2 ;;
+            esac
+            echo "OPERATION=$op" >> "$GITHUB_ENV"
+            echo "FTP_POLICY=$policy" >> "$GITHUB_ENV"
+            echo "CONFIRMATION=$confirm" >> "$GITHUB_ENV"
+            echo "MUCHO_5V_CONFIRM_INSTALL=$confirm" >> "$GITHUB_ENV"
+          else
+            echo "MUCHO_5V_CONFIRM_INSTALL=$CONFIRMATION" >> "$GITHUB_ENV"
+          fi
+
       - name: Checkout trusted main (never PR source)
         uses: actions/checkout@v4
         with:
@@ -143,9 +180,7 @@ jobs:
           PY
 
       - name: Upload over FTP/FTPS and optionally activate with existing owner
-        if: ${{ inputs.operation != 'check' }}
-        env:
-          MUCHO_5V_CONFIRM_INSTALL: ${{ inputs.confirmation }}
+        if: ${{ env.OPERATION != 'check' }}
         run: |
           set -Eeuo pipefail
           mkdir -p "$RUNNER_TEMP/mucho5v-code-backups"
@@ -165,7 +200,7 @@ jobs:
           python3 tools/release/5v-updater/updater.py "${args[@]}"
 
       - name: Encrypt local FTP code backup (including on failed upload)
-        if: ${{ always() && inputs.operation != 'check' }}
+        if: ${{ always() && env.OPERATION != 'check' }}
         run: |
           set -Eeuo pipefail
           shopt -s nullglob
@@ -192,10 +227,27 @@ jobs:
           echo "A code-only encrypted backup is available in this run's artifact. Retain the secret key privately."
 
       - name: Retain ONLY encrypted code backups for rollback
-        if: ${{ always() && inputs.operation != 'check' }}
+        if: ${{ always() && env.OPERATION != 'check' }}
         uses: actions/upload-artifact@v4
         with:
           name: muchocore-5v-test-encrypted-code-backup
           path: ${{ runner.temp }}/mucho5v-encrypted-backup/*.gpg
           if-no-files-found: warn
           retention-days: 30
+
+      - name: Post minimal result to the protected control issue
+        if: ${{ always() && github.event_name == 'issue_comment' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          JOB_STATE: ${{ job.status }}
+        run: |
+          set -Eeuo pipefail
+          {
+            echo "5v.pl FTP bridge: **$JOB_STATE**"
+            echo
+            echo "Fixed test target: \`muchocoretest.5v.pl\`. No credentials or FTP logs are posted."
+            echo
+            echo "[GitHub Actions run](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)"
+          } > "$RUNNER_TEMP/5v-bridge-result.md"
+          gh issue comment "$ISSUE_NUMBER" -R "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/5v-bridge-result.md"
