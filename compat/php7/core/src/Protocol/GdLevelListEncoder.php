@@ -29,7 +29,11 @@ final class GdLevelListEncoder
              * Preserve custom star values (15/30/50, etc.) in the multi-level
              * hash. Cvolton's genMulti hashes the stored star value verbatim.
              */
-            $wireDifficulty = $this->wireDifficulty((int) ($level['difficulty'] ?? 0));
+            $wireDifficulty = $this->wireDifficulty(
+                (int)($level['difficulty'] ?? 0),
+                (int)($level['demon'] ?? 0),
+                (int)($level['auto_level'] ?? 0)
+            );
             $protocolStars = max(0, (int) ($level['stars'] ?? 0));
             $levelStrings[] = implode(':', \array_merge([1, $levelId, 2, ProtocolText::field((string) $level['name']), 5, (int) $level['level_version'], 6, $userId, 8, 10, 9, $wireDifficulty, 10, (int) $level['downloads'], 12, (int) $level['audio_track'], 13, (int) $level['game_version'], 14, (int) $level['likes'], 17, (int) $level['demon'], 43, (int) $level['demon_difficulty'], 25, (int) $level['auto_level'], 18, (int) $level['stars'], 19, (int) $level['featured'], 42, (int) $level['epic'], 45, (int) $level['object_count'], 3, ProtocolText::field(GdLegacyText::encodeDescriptionForResponse((string) ($level['description'] ?? ''), $gameVersion)), 15, (int) $level['length'], 30, (int) $level['original_level_id'], 31, (int) $level['two_player'], 37, (int) $level['coins'], 38, (int) $level['coins_verified'], 39, (int) $level['requested_stars'], 46, 1, 47, 2, 40, (int) $level['ldm'], 35, (int) $level['song_id']], $gameVersion >= 22 && $binaryVersion >= 51 ? [62, $this->dateEpoch($level['created_at'] ?? null), 63, $this->dateEpoch($level['updated_at'] ?? null)] : []));
             if (!isset($uniqueUsers[$userId])) {
@@ -73,13 +77,25 @@ final class GdLevelListEncoder
             return 0;
         }
     }
-    private function wireDifficulty(int $difficulty): int
+    private function wireDifficulty(int $difficulty, int $demon, int $auto): int
     {
-        /*
-         * MuchoCore stores standard difficulties internally as 1..6,
-         * while Geometry Dash expects 10..60 on the wire. Accept both
-         * representations so legacy data remains compatible.
-         */
-        return $difficulty >= 1 && $difficulty <= 6 ? $difficulty * 10 : max(0, $difficulty);
+        // Internal GDPS ratings: 1=Auto, 2=Easy, 3=Normal, 4=Hard,
+        // 5=Harder, 6=Insane or Demon (distinguished by field 17).
+        // In GD 2.209 field 9 uses 10..50, not 10..60. Sending 60
+        // with demon=0 causes the game to draw a Demon face for Insane.
+        if ($auto !== 0) {
+            return 0;
+        }
+        if ($demon !== 0) {
+            return 50;
+        }
+        if ($difficulty >= 2 && $difficulty <= 6) {
+            return ($difficulty - 1) * 10;
+        }
+        if ($difficulty === 1) {
+            return 0;
+        }
+        // Preserve existing legacy 10..50 protocol values and custom codes.
+        return max(0, $difficulty);
     }
 }
