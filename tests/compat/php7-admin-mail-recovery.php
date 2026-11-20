@@ -6,6 +6,7 @@ $root = dirname(__DIR__, 2);
 foreach (array('bootstrap','runtime','schema','auth','news','admin') as $module) {
     require_once $root.'/compat/php7/'.$module.'.php';
 }
+require_once $root.'/compat/php7/admin-emergency.php';
 
 class MailFixturePDO extends PDO
 {
@@ -57,7 +58,8 @@ CREATE TABLE php7_admin_mail_recovery(admin_id INTEGER PRIMARY KEY,
     reset_token_hash TEXT UNIQUE,reset_expires_at TEXT,reset_sent_at TEXT);
 CREATE TABLE php7_auth_events(id INTEGER PRIMARY KEY AUTOINCREMENT,action TEXT,ip_hash TEXT,
     username_hash TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE php7_admin_security(account_id INTEGER PRIMARY KEY,auth_version INTEGER DEFAULT 0);
+CREATE TABLE php7_admin_security(account_id INTEGER PRIMARY KEY,auth_version INTEGER DEFAULT 0,
+    totp_secret TEXT DEFAULT NULL,last_step INTEGER DEFAULT -1);
 CREATE TABLE php7_admin_audit(id INTEGER PRIMARY KEY AUTOINCREMENT,account_id INTEGER,
     action TEXT,target_id INTEGER,details TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 ");
@@ -148,4 +150,51 @@ mucho7_admin_mail_request_reset($db,'unknown@example.test','192.0.2.15',
     $cfg,'/mc/admin.php',$sender);
 mailAssert(count($emails)===$mailCount,'unknown email is not mailed');
 mailAssert(!mucho7_admin_mail_valid_token('bad'),'invalid tokens rejected');
+
+/* Test the FTP-owned, rotating emergency secret without a web server or mail. */
+$tempRoot=sys_get_temp_dir().'/mucho7-emergency-'.bin2hex(random_bytes(6));
+mkdir($tempRoot,0700);mkdir($tempRoot.'/config',0700);
+mailAssert(!mucho7_emergency_ensure($tempRoot,false),
+    'anonymous installer cannot issue emergency code before owner exists');
+mailAssert(mucho7_emergency_ensure($tempRoot,true),
+    'first owner creates a private FTP-readable emergency file');
+$path=mucho7_emergency_file($tempRoot);
+$raw=file_get_contents($path);
+mailAssert(strpos($raw,'<?php http_response_code(404); exit; ?>')===0,
+    'recovery code file denies direct PHP web access');
+$code=trim(substr($raw,strlen(mucho7_emergency_prefix())));
+mailAssert(preg_match('/^[a-f0-9]{96}$/D',$code)===1,'48-byte random recovery secret');
+mailAssert(mucho7_emergency_ensure($tempRoot,true)
+    && trim(substr(file_get_contents($path),strlen(mucho7_emergency_prefix())))===$code,
+    'reopening admin does not rotate an unconsumed code');
+mailAssert(!mucho7_emergency_reset($db,$tempRoot,str_repeat('0',96),
+    'emergency-new-password','emergency-new-password','192.0.2.71',$cfg),
+    'invalid FTP code cannot recover owner');
+mailAssert(!mucho7_emergency_reset($db,$tempRoot,$code,
+    'emergency-new-password','mismatch','192.0.2.72',$cfg),
+    'password confirmation is required');
+$db->exec('CREATE TABLE php7_admin_passkeys(admin_user_id INTEGER,is_active INTEGER DEFAULT 1)');
+$db->exec('INSERT INTO php7_admin_passkeys(admin_user_id,is_active) VALUES(1,1)');
+$db->exec("UPDATE php7_admin_security SET totp_secret='LOST_FACTOR',last_step=7 WHERE account_id=1");
+mailAssert(mucho7_emergency_reset($db,$tempRoot,$code,
+    'emergency-new-password','emergency-new-password','192.0.2.73',$cfg),
+    'valid private FTP code restores the existing owner');
+mailAssert(!mucho7_emergency_reset($db,$tempRoot,$code,
+    'another-valid-password','another-valid-password','192.0.2.74',$cfg),
+    'consumed emergency code cannot be reused');
+$newCode=trim(substr(file_get_contents($path),strlen(mucho7_emergency_prefix())));
+mailAssert(strlen($newCode)===96 && $newCode!==$code,'successful reset rotates emergency code');
+$owner=$db->query('SELECT password_hash,gjp2_hash FROM accounts WHERE account_id=1')
+    ->fetch(PDO::FETCH_ASSOC);
+mailAssert(password_verify('emergency-new-password',$owner['password_hash'])
+    && password_verify(sha1('emergency-new-password'.'mI29fmAnxgTs'),$owner['gjp2_hash']),
+    'host recovery synchronizes game and admin passwords');
+$security=$db->query('SELECT totp_secret,auth_version FROM php7_admin_security WHERE account_id=1')
+    ->fetch(PDO::FETCH_ASSOC);
+mailAssert($security['totp_secret']===null && (int)$security['auth_version']===6,
+    'emergency recovery clears lost 2FA and invalidates sessions');
+mailAssert((int)$db->query('SELECT is_active FROM php7_admin_passkeys WHERE admin_user_id=1')
+    ->fetchColumn()===0,'emergency recovery revokes owner passkeys');
+unlink($path);rmdir($tempRoot.'/config');rmdir($tempRoot);
+
 echo "MUCHOCORE_PHP7_ADMIN_MAIL_RECOVERY_OK\n";

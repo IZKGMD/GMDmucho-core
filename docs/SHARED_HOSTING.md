@@ -485,6 +485,31 @@ database/
 
 For a provider that cannot supply PHP ZIP support or outbound HTTPS access, use the manually uploaded shared-hosting package instead of the one-file bootstrap.
 
+### Emergency owner recovery through a private FTP code (PHP 7 on 5v.pl)
+
+After an active owner has been established, MuchoCore automatically creates
+`mc/config/php7-emergency-code.php` if missing. This contains a randomly
+generated **96-character hexadecimal code** on the second line. The first
+line is PHP that returns HTTP 404; Apache additionally denies all requests
+to `mc/config/`. The secret is never included in release archives and must
+be retrieved only through your own authenticated FTP/file manager.
+
+If you lose both your admin password and email access:
+1. Open `https://YOUR-SITE.5v.pl/mc/admin.php?emergency_recovery=1`.
+2. Read the code from the private FTP file and enter it with your **new**
+   password (10–72 bytes). Never submit the code in a GET URL or support chat.
+3. On success, the code rotates and the existing single active owner password
+   changes; old browser sessions, lost 2FA, passkeys and unused recovery codes
+   are revoked. Linked GD owner credentials change as well.
+4. Sign in, register new 2FA and safely store fresh recovery codes.
+
+The form is HTTPS-only, CSRF-protected, uses constant-time comparison and
+database-backed rate limits, and refuses ambiguous/multiple active owners.
+If the private file cannot be created due to hosting permissions, fix access
+to `mc/config/`; do not place a recovery secret in the public site root.
+For a one-time FTP-proof recovery without relying on the persistent secret,
+the bundled `START_RECOVERY_WINDOWS.cmd` remains available.
+
 ### Automatic recovery email on 5v.pl (PHP 7 native)
 
 The official 5v.pl installer already collects the owner's email and password.

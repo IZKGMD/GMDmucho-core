@@ -62,7 +62,14 @@ The PHP 7 runtime is a preview and does **not** have full PHP 8 feature parity.
 
 Existing administrators and login passwords are preserved. A database seal (`admin_initialization`) prevents reopening enrollment if accounts are later deleted. Routine deployment never resets the owner password.
 
-If you lose access, use configured verified-email recovery. For a single active owner without two-factor authentication, `sudo mucho owner-recovery-link` issues a private, one-time password setup link valid for 24 hours. This immediately invalidates the old password and sessions. The `bin/mucho-admin-setup.sh` helper remains available for an explicit local server-console reset.
+If you lose access, use configured verified-email recovery. The VPS **Forgot your password?**
+page also has an **Emergency VPS recovery** link. It explains the existing
+server-console one-time secret flow: from an authorized VPS shell, run
+`docker compose exec -T app php bin/mucho-owner-recovery-link.php --issue`
+in the MuchoCore installation directory. The command returns a secret HTTPS
+setup link; it does not publish a reusable web recovery key. If the owner
+has 2FA, use the interactive local `sudo mucho admin` reset instead.
+For a single active owner without two-factor authentication, `sudo mucho owner-recovery-link` issues a private, one-time password setup link valid for 24 hours. This immediately invalidates the old password and sessions. The `bin/mucho-admin-setup.sh` helper remains available for an explicit local server-console reset.
 
 ## Security boundaries
 
