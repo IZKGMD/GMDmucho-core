@@ -11,6 +11,20 @@ function mucho7_emergency_file($root)
     return $root.'/config/php7-emergency-code.php';
 }
 
+/** Keep standalone recovery tests independent of the HTML admin bridge. */
+function mucho7_emergency_table_exists(PDO $db, $table)
+{
+    if (function_exists('tableExists')) return tableExists($db,$table);
+    if ($db->getAttribute(PDO::ATTR_DRIVER_NAME)==='sqlite') {
+        $q=$db->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?");
+        $q->execute(array($table));
+        return (bool)$q->fetchColumn();
+    }
+    $q=$db->prepare('SELECT 1 FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name=? LIMIT 1');
+    $q->execute(array($table));
+    return (bool)$q->fetchColumn();
+}
+
 function mucho7_emergency_prefix()
 {
     return "<?php http_response_code(404); exit; ?>\n";
@@ -76,7 +90,7 @@ function mucho7_emergency_reset(PDO $db, $root, $code, $password, $confirmation,
             || !hash_equals($storedCode,$code)) return false;
 
         // Security tables are ensured BEFORE opening a transaction (MySQL DDL).
-        if (!tableExists($db,'php7_admin_security')) mucho7_admin_security_install($db);
+        if (!mucho7_emergency_table_exists($db,'php7_admin_security')) mucho7_admin_security_install($db);
         $db->beginTransaction();
         try {
             $query=$db->query("SELECT u.id,u.account_id FROM php7_admin_users u
@@ -111,15 +125,15 @@ function mucho7_emergency_reset(PDO $db, $root, $code, $password, $confirmation,
             $db->prepare('UPDATE php7_admin_security SET totp_secret=NULL,
                 last_step=-1,auth_version=auth_version+1 WHERE account_id=?')
                 ->execute(array($id));
-            if (tableExists($db,'php7_admin_recovery_codes')) {
+            if (mucho7_emergency_table_exists($db,'php7_admin_recovery_codes')) {
                 $db->prepare('DELETE FROM php7_admin_recovery_codes WHERE account_id=?')
                     ->execute(array($id));
             }
-            if (tableExists($db,'php7_admin_passkeys')) {
+            if (mucho7_emergency_table_exists($db,'php7_admin_passkeys')) {
                 $db->prepare('UPDATE php7_admin_passkeys SET is_active=0
                     WHERE admin_user_id=?')->execute(array($id));
             }
-            if (tableExists($db,'php7_admin_mail_recovery')) {
+            if (mucho7_emergency_table_exists($db,'php7_admin_mail_recovery')) {
                 $db->prepare('UPDATE php7_admin_mail_recovery SET
                     pending_email=NULL,verify_token_hash=NULL,verify_expires_at=NULL,
                     reset_token_hash=NULL,reset_expires_at=NULL WHERE admin_id=?')
