@@ -43,7 +43,7 @@ if(!$user || !adminIsPlain()):
 <?php if($hasOwner):?><p id="otpLoginField" class="admin-auth-field"><label for="adminOtp">2FA or recovery code</label><br><input id="adminOtp" name="otp" autocomplete="one-time-code" autocapitalize="none" spellcheck="false" maxlength="32" aria-describedby="adminOtpHelp"><br><small id="adminOtpHelp">Leave empty if two-factor authentication is disabled.</small></p><?php endif ?>
 <?php if($freshInstall):?><input type="hidden" name="enable_features" value="1"><p class="admin-auth-field"><label for="setup-domain">GDPS website address</label><input id="setup-domain" name="site_url" type="url" required value="<?=h(isset($settings['site_url']) && (string)$settings['site_url']!=='' ? $settings['site_url'] : 'https://'.(isset($_SERVER['HTTP_HOST'])?preg_replace('/[^A-Za-z0-9.:-]/','',(string)$_SERVER['HTTP_HOST']):''))?>"><small>Already filled in from your website address.</small></p><?php endif ?>
 <button id="normalSignInButton" type="submit"><?=$hasOwner?'Sign in':'Create owner'?></button></form>
-<?php if($hasOwner):?><p><a href="?email_recovery=1">Forgot administrator password?</a></p><?php endif ?>
+<?php if($hasOwner):?><p><a href="?email_recovery=1">Forgot administrator password?</a> · <a href="?emergency_recovery=1">Emergency recovery via FTP code</a></p><?php endif ?>
 <?php endif ?>
 <?php if($hasOwner&&$pdo&&tableExists($pdo,'php7_admin_passkeys'))require __DIR__.'/admin-ui/passkeys.php'; ?>
 <?php adminFooter($branding);?></main></body></html>
