@@ -1314,17 +1314,6 @@ if (
 
 require_once __DIR__.'/email-recovery.php';
 muchoAdminEmailRoute($db);
-if (isset($_GET['emergency_recovery'])) {
-    muchoAdminEmailPage('Emergency owner recovery',
-        '<p>The VPS owner can issue a private, one-time recovery secret from the server console. '
-        .'Nothing is reset just by opening this page.</p>'
-        .'<p>Use SSH to enter your MuchoCore installation, then run '
-        .'<code>docker compose exec -T app php bin/mucho-owner-recovery-link.php --issue</code>. '
-        .'The command returns a short-lived HTTPS setup link containing the secret. '
-        .'Keep it private and open it to choose a new administrator password.</p>'
-        .'<p>If owner 2FA is enabled, use the existing <code>sudo mucho admin</code> '
-        .'local reset tool instead. This cannot be performed anonymously over HTTP.</p>');
-}
 
 /* =========================================================
    LOGIN
@@ -2580,7 +2569,7 @@ max-width:100%
 <button type="button" id="passkeyTotpButton">Complete passkey sign-in</button>
 </div>
 <button id="normalSignInButton" name="login" value="1">Sign in</button>
-<p style="text-align:center;margin:13px 0 0"><a href="/admin/?email_recovery=1" style="color:#ba9cee;font-size:13px">Forgot your password?</a> · <a href="/admin/?emergency_recovery=1" style="color:#ba9cee;font-size:13px">Emergency VPS recovery</a></p>
+<p style="text-align:center;margin:13px 0 0"><a href="/admin/?email_recovery=1" style="color:#ba9cee;font-size:13px">Forgot your password?</a></p>
 <noscript><p>Password sign-in works without JavaScript. Passkeys require JavaScript.</p></noscript>
 <script>
 (() => {
