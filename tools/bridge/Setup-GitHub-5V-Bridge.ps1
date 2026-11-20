@@ -1,4 +1,4 @@
-# MuchoCore 5v.pl GitHub FTP Bridge — local Windows setup wizard.
+﻿# MuchoCore 5v.pl GitHub FTP Bridge — local Windows setup wizard.
 # No hosting password is passed as a command-line argument, saved as plaintext,
 # or written to GitHub issues. GitHub CLI encrypts repository secrets locally.
 # Supports Windows PowerShell 5.1. Only configures a fixed, known repository.
