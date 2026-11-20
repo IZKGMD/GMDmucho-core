@@ -68,21 +68,9 @@ func Epoch(s string) int64 {
 	}
 	return max(0, t.Unix())
 }
-func difficulty(v, demon, auto int64) int64 {
-	// GD 2.209: field 9 uses 10=Easy, 20=Normal, 30=Hard,
-	// 40=Harder and 50=Insane/Demon (field 17 distinguishes Demon).
-	// Internal MuchoCore ratings reserve 1 for Auto.
-	if auto != 0 {
-		return 0
-	}
-	if demon != 0 {
-		return 50
-	}
-	if v >= 2 && v <= 6 {
-		return (v - 1) * 10
-	}
-	if v == 1 {
-		return 0
+func difficulty(v int64) int64 {
+	if v >= 1 && v <= 6 {
+		return v * 10
 	}
 	return max(0, v)
 }
@@ -96,7 +84,7 @@ func LevelList(rows []dbutil.Row, total, offset, game, binary int) string {
 	hash := ""
 	for _, r := range rows {
 		id, uid, aid := r["level_id"], r.Value("user_id", r.Value("account_id", "1")), r.Value("account_id", "1")
-		item := Pairs(1, id, 2, Field(r["name"], 65535), 5, r.Int("level_version"), 6, uid, 8, 10, 9, difficulty(r.Int("difficulty"), r.Int("demon"), r.Int("auto_level")), 10, r.Int("downloads"), 12, r.Int("audio_track"), 13, r.Int("game_version"), 14, r.Int("likes"), 17, r.Int("demon"), 43, r.Int("demon_difficulty"), 25, r.Int("auto_level"), 18, r.Int("stars"), 19, r.Int("featured"), 42, r.Int("epic"), 45, r.Int("object_count"), 3, Field(DescriptionResponse(r["description"], game), 65535), 15, r.Int("length"), 30, r.Int("original_level_id"), 31, r.Int("two_player"), 37, r.Int("coins"), 38, r.Int("coins_verified"), 39, r.Int("requested_stars"), 46, 1, 47, 2, 40, r.Int("ldm"), 35, r.Int("song_id"))
+		item := Pairs(1, id, 2, Field(r["name"], 65535), 5, r.Int("level_version"), 6, uid, 8, 10, 9, difficulty(r.Int("difficulty")), 10, r.Int("downloads"), 12, r.Int("audio_track"), 13, r.Int("game_version"), 14, r.Int("likes"), 17, r.Int("demon"), 43, r.Int("demon_difficulty"), 25, r.Int("auto_level"), 18, r.Int("stars"), 19, r.Int("featured"), 42, r.Int("epic"), 45, r.Int("object_count"), 3, Field(DescriptionResponse(r["description"], game), 65535), 15, r.Int("length"), 30, r.Int("original_level_id"), 31, r.Int("two_player"), 37, r.Int("coins"), 38, r.Int("coins_verified"), 39, r.Int("requested_stars"), 46, 1, 47, 2, 40, r.Int("ldm"), 35, r.Int("song_id"))
 		if game >= 22 && binary >= 51 {
 			item += Pairs("", 62, Epoch(r["created_at"]), 63, Epoch(r["updated_at"]))
 		}
@@ -142,7 +130,7 @@ func LevelDownload(r dbutil.Row, game, binary int, extras bool) (string, error) 
 		}
 		return t.Format("02-01-2006 ") + strconv.Itoa(t.Hour()) + t.Format("-04")
 	}
-	item := Pairs(1, r["level_id"], 2, Field(r["name"], 64), 3, Field(desc, 8192), 4, data, 5, r.Int("level_version"), 6, r.Int("user_id"), 8, 10, 9, difficulty(r.Int("difficulty"), r.Int("demon"), r.Int("auto_level")), 10, r.Int("downloads"), 11, 1, 12, r.Int("audio_track"), 13, r.Int("game_version"), 14, r.Int("likes"), 17, r.Int("demon"), 43, r.Int("demon_difficulty"), 25, r.Int("auto_level"), 18, r.Int("stars"), 19, r.Int("featured"), 42, r.Int("epic"), 45, r.Int("object_count"), 15, r.Int("length"), 30, r.Int("original_level_id"), 31, r.Int("two_player"), 28, date(r["created_at"]), 29, date(r["updated_at"]), 35, r.Int("song_id"), 36, r["extra_string"], 37, r.Int("coins"), 38, r.Int("coins_verified"), 39, r.Int("requested_stars"), 46, r.Int("wt"), 47, r.Int("wt2"), 48, r["settings_string"], 40, r.Int("ldm"), 27, password, 52, r["song_ids"], 53, r["sfx_ids"], 57, r.Int("ts"))
+	item := Pairs(1, r["level_id"], 2, Field(r["name"], 64), 3, Field(desc, 8192), 4, data, 5, r.Int("level_version"), 6, r.Int("user_id"), 8, 10, 9, difficulty(r.Int("difficulty")), 10, r.Int("downloads"), 11, 1, 12, r.Int("audio_track"), 13, r.Int("game_version"), 14, r.Int("likes"), 17, r.Int("demon"), 43, r.Int("demon_difficulty"), 25, r.Int("auto_level"), 18, r.Int("stars"), 19, r.Int("featured"), 42, r.Int("epic"), 45, r.Int("object_count"), 15, r.Int("length"), 30, r.Int("original_level_id"), 31, r.Int("two_player"), 28, date(r["created_at"]), 29, date(r["updated_at"]), 35, r.Int("song_id"), 36, r["extra_string"], 37, r.Int("coins"), 38, r.Int("coins_verified"), 39, r.Int("requested_stars"), 46, r.Int("wt"), 47, r.Int("wt2"), 48, r["settings_string"], 40, r.Int("ldm"), 27, password, 52, r["song_ids"], 53, r["sfx_ids"], 57, r.Int("ts"))
 	if game >= 22 && binary >= 51 {
 		item += Pairs("", 62, Epoch(r["created_at"]), 63, Epoch(r["updated_at"]))
 	}
