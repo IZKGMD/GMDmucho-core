@@ -85,8 +85,8 @@ final class Router
         }
 
         foreach ([
-            $this->routeKey($method, $path),
-            $this->routeKey('ANY', $path),
+            $method . ' ' . $path,
+            'ANY ' . $path,
         ] as $key) {
             if (isset($this->routes[$key])) {
                 return ($this->routes[$key])($request);

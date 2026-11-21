@@ -352,76 +352,56 @@ final readonly class UserRepository
 
     public function leaderboardTop(int $limit = 1000, int $gameVersion = 0): array
     {
-        $sql = '
-            SELECT
-                p.*,
-                a.username,
-                COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=p.account_id LIMIT 1), \'\') AS clan_tag,
-                COALESCE(ar.code, \'user\') AS role_code,
-                ROW_NUMBER() OVER (ORDER BY p.stars DESC, p.account_id ASC) AS `rank`
-            FROM profiles p
-            INNER JOIN accounts a
-                ON a.account_id = p.account_id
-            LEFT JOIN roles ar
-                ON ar.id = a.role_id
-            WHERE p.stars > 0
-              AND a.is_active=1
-              AND a.is_banned=0
-            ORDER BY `rank`
-            LIMIT ' . (int)$limit;
-
-        if ($gameVersion >= 20) {
-            $sql = str_replace(
-                'WHERE p.stars > 0',
-                'WHERE p.stars > 0 AND COALESCE(p.game_version, 0) >= 20',
-                $sql
-            );
-        } elseif ($gameVersion > 0) {
-            $sql = str_replace(
-                'WHERE p.stars > 0',
-                'WHERE p.stars > 0 AND COALESCE(p.game_version, 0) > 0 AND COALESCE(p.game_version, 0) < 20',
-                $sql
-            );
-        }
-
-        return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        return $this->leaderboardByMetric('stars', $limit, $gameVersion);
     }
 
     public function leaderboardCreators(int $limit = 1000, int $gameVersion = 0): array
     {
-        $sql = '
+        return $this->leaderboardByMetric('creator_points', $limit, $gameVersion);
+    }
+
+    private function leaderboardByMetric(string $metric, int $limit, int $gameVersion): array
+    {
+        // Select leaders before fetching full profiles and resolving their
+        // clan tags. Filters run before LIMIT so rank stays gap-free.
+        $versionFilter = match (true) {
+            $gameVersion >= 20 => 'AND ranked.game_version >= 20',
+            $gameVersion > 0 => 'AND ranked.game_version > 0 AND ranked.game_version < 20',
+            default => '',
+        };
+        $sql = "
             SELECT
                 p.*,
                 a.username,
-                COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=p.account_id LIMIT 1), \'\') AS clan_tag,
-                COALESCE(ar.code, \'user\') AS role_code,
-                ROW_NUMBER() OVER (ORDER BY p.creator_points DESC, p.account_id ASC) AS `rank`
-            FROM profiles p
-            INNER JOIN accounts a
-                ON a.account_id = p.account_id
-            LEFT JOIN roles ar
-                ON ar.id = a.role_id
-            WHERE p.creator_points > 0
-              AND a.is_active=1
-              AND a.is_banned=0
-            ORDER BY `rank`
-            LIMIT ' . (int)$limit;
+                COALESCE((
+                    SELECT c.tag FROM mucho_clan_members cm
+                    INNER JOIN mucho_clans c ON c.clan_id = cm.clan_id
+                    WHERE cm.account_id = p.account_id LIMIT 1
+                ), '') AS clan_tag,
+                COALESCE(ar.code, 'user') AS role_code
+            FROM (
+                SELECT ranked.account_id, ranked.{$metric}
+                FROM profiles ranked
+                INNER JOIN accounts eligible ON eligible.account_id = ranked.account_id
+                WHERE ranked.{$metric} > 0
+                  AND eligible.is_active = 1
+                  AND eligible.is_banned = 0
+                  {$versionFilter}
+                ORDER BY ranked.{$metric} DESC, ranked.account_id ASC
+                LIMIT {$limit}
+            ) leaders
+            INNER JOIN profiles p ON p.account_id = leaders.account_id
+            INNER JOIN accounts a ON a.account_id = leaders.account_id
+            LEFT JOIN roles ar ON ar.id = a.role_id
+            ORDER BY leaders.{$metric} DESC, leaders.account_id ASC";
 
-        if ($gameVersion >= 20) {
-            $sql = str_replace(
-                'WHERE p.creator_points > 0',
-                'WHERE p.creator_points > 0 AND COALESCE(p.game_version, 0) >= 20',
-                $sql
-            );
-        } elseif ($gameVersion > 0) {
-            $sql = str_replace(
-                'WHERE p.creator_points > 0',
-                'WHERE p.creator_points > 0 AND COALESCE(p.game_version, 0) > 0 AND COALESCE(p.game_version, 0) < 20',
-                $sql
-            );
+        $rows = $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as $index => &$row) {
+            $row['rank'] = $index + 1;
         }
+        unset($row);
 
-        return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        return $rows;
     }
 
     public function leaderboardFriends(int $accountId, int $limit = 100, int $gameVersion = 0): array

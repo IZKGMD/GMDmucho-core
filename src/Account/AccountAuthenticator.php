@@ -102,12 +102,12 @@ final readonly class AccountAuthenticator
             $storedGjp2 !== '' &&
             preg_match('/^[a-f0-9]{40}$/i', $credential) === 1
         ) {
-            $valid = password_verify($credential, $storedGjp2);
+            $valid = VerifiedCredentialCache::verify($credential, $storedGjp2);
         }
 
         // A password can also be 40 hexadecimal characters.
         if (!$valid && $storedPass !== '') {
-            $valid = password_verify($credential, $storedPass);
+            $valid = VerifiedCredentialCache::verify($credential, $storedPass);
         }
 
         // URL-safe Base64 + XOR credential supported by older MuchoCore.

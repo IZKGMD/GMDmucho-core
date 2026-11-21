@@ -21,6 +21,7 @@ RUN apt-get update \
     && docker-php-ext-install ftp \
     && php -r 'if (!function_exists("ftp_ssl_connect")) { fwrite(STDERR, "FTP TLS support is missing in this Docker image.\\n"); exit(1); }' \
     && docker-php-ext-enable opcache \
+    && pecl install apcu-5.1.28 && docker-php-ext-enable apcu \
     && case "$MUCHO_WITH_REDIS" in \
         0) echo '[MuchoCore] Redis extension not requested; database cache remains available' ;; \
         1) pecl install redis-6.2.0 && docker-php-ext-enable redis ;; \
