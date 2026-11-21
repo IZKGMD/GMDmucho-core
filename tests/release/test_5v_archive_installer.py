@@ -2,6 +2,7 @@
 import ftplib
 import importlib.util
 import os
+import posixpath
 import zipfile
 from pathlib import Path
 import re
@@ -74,14 +75,70 @@ class FtpConnectionTests(unittest.TestCase):
         with patch("mucho5v.ftplib.FTP_TLS") as tls, patch("mucho5v.ftplib.FTP") as plain, \
                 patch("mucho5v.HttpsSite") as https:
             plain.return_value.pwd.return_value = "/"
+            https.return_value.origin = "https://example.5v.pl"
             https.return_value.request.return_value = (503, b"unavailable")
             with FtpSite("ftp.5v.pl", "test-user", "test-secret", secure=False) as ftp:
-                with self.assertRaisesRegex(InstallError, "FTP login succeeded.*HTTP 503"):
+                with self.assertRaisesRegex(InstallError, "website returned HTTP 503"):
                     ftp.find_root("https://example.5v.pl", ".")
             tls.assert_not_called()
             plain.return_value.login.assert_called_once_with("test-user", "test-secret")
             plain.return_value.set_pasv.assert_called_once_with(True)
             plain.return_value.delete.assert_called_once()
+
+
+class FtpSiteFolderTests(unittest.TestCase):
+    def test_fresh_site_root_is_found_without_a_folder_hint(self):
+        for target in ("/newgdps", "/newgdps.5v.pl", "/hosting/site-010/web"):
+            with self.subTest(target=target):
+                self.check_document_root(target)
+
+    def check_document_root(self, target):
+        cwd = "/"
+        layouts = {"/": ["hosting", "newgdps.5v.pl", "newgdps", "index.html"],
+                   "/hosting": ["site-010"], "/hosting/site-010": ["web"],
+                   "/hosting/site-010/web": ["index.html"], "/newgdps.5v.pl": [],
+                   "/newgdps": []}
+        default_page = b"<html>Welcome to your new 5v.pl website</html>"
+        files = {(target, "index.html"): default_page}
+        uploaded = []
+
+        def change_directory(path):
+            nonlocal cwd
+            destination = posixpath.normpath(posixpath.join(cwd, path))
+            if destination not in layouts:
+                raise ftplib.error_perm("550 Directory unavailable")
+            cwd = destination
+
+        def upload(command, stream, *, blocksize):
+            name = command.removeprefix("STOR ")
+            files[cwd, name] = stream.read()
+            uploaded.append(name)
+
+        def request(path):
+            name = path.removeprefix("/")
+            if (target, name) in files:
+                source = files[target, name]
+                match = re.search(rb"echo '([a-f0-9]+)' \. '([a-f0-9]+)';", source)
+                self.assertIsNotNone(match, source)
+                return 200, match[1] + match[2]
+            if ("/", name) in files:
+                return 200, files["/", name]  # Raw PHP source is not verification.
+            return 200, default_page
+
+        with patch("mucho5v.ftplib.FTP") as plain, patch("mucho5v.HttpsSite") as https:
+            socket = plain.return_value
+            socket.pwd.side_effect = lambda: cwd
+            socket.cwd.side_effect = change_directory
+            socket.nlst.side_effect = lambda: layouts[cwd]
+            socket.storbinary.side_effect = upload
+            socket.delete.side_effect = lambda name: files.pop((cwd, name))
+            https.return_value.origin = "https://newgdps.5v.pl"
+            https.return_value.request.side_effect = request
+            with FtpSite("ftp.5v.pl", "test-user", "test-secret", secure=False) as ftp:
+                self.assertEqual(ftp.find_root("https://newgdps.5v.pl"), target)
+                self.assertEqual(ftp.root, target)
+            self.assertEqual(files, {(target, "index.html"): default_page})
+            self.assertEqual(len(uploaded), len(set(uploaded)))
 
 
 class EasyInstallerTests(unittest.TestCase):
