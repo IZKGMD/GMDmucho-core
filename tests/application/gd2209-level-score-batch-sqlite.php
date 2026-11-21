@@ -10,6 +10,8 @@ declare(strict_types=1);
  */
 require_once dirname(__DIR__, 2) . '/src/Score/ScoreIntegrity.php';
 require_once dirname(__DIR__, 2) . '/src/Protocol/ProtocolText.php';
+require_once dirname(__DIR__, 2) . '/src/Core/Environment.php';
+require_once dirname(__DIR__, 2) . '/src/Account/VerifiedCredentialCache.php';
 require_once dirname(__DIR__, 2) . '/src/Account/AccountAuthenticator.php';
 require_once dirname(__DIR__, 2) . '/src/Score/LevelScoreController.php';
 
