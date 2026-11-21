@@ -88,6 +88,16 @@ class ResumeTests(unittest.TestCase):
         with redirect_stdout(io.StringIO()):
             return installer.perform_install(copy.deepcopy(self.cfg), prepare_clients=False)
 
+    def test_install_goes_straight_to_database_after_website_check(self):
+        verified = {"site": self.cfg["site"], "root": "/site"}
+        self.cfg["_verified_folder"] = verified
+        with patch.object(self.ftp, "use_verified_folder", return_value=True, create=True) as reuse, \
+                patch.object(self.ftp, "find_root", side_effect=TimeoutError("duplicate probe")) as scan:
+            self.assertEqual(self.install()["status"], "admin_and_migration_ok")
+        reuse.assert_called_once_with(self.cfg["site"], self.cfg["root"], verified)
+        scan.assert_not_called()
+        self.assertTrue(self.site.requests[0][0].startswith("/muchocore-db-check-"))
+
     def test_upload_can_resume_after_process_restart(self):
         self.ftp.fail_upload = True
         with self.assertRaises(OSError): self.install()

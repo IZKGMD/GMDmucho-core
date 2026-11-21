@@ -205,6 +205,7 @@ class InstallerWindow:
         self.root = root
         self.events = queue.Queue()
         self.worker = None
+        self.verified_folder = None
         self.recovery_active = False
         self.advanced = False
         self.root.title("MuchoCore Setup for 5v.pl")
@@ -471,6 +472,7 @@ class InstallerWindow:
             messagebox.showerror("Check your details", str(exc), parent=self.root)
 
     def start_connection_check(self, cfg):
+        self.verified_folder = None
         self.next_button.configure(state="disabled")
         self.status.set("Checking FTP and website access…")
         self.worker = threading.Thread(target=self.check_connection, args=(cfg,), daemon=True)
@@ -479,8 +481,8 @@ class InstallerWindow:
     def check_connection(self, cfg):
         try:
             with FtpSite(cfg["host"], cfg["user"], cfg["password"], secure=cfg["secure"]) as ftp:
-                ftp.find_root(cfg["site"], cfg["root"])
-            self.events.put(("connection_ok", cfg["site"]))
+                verified = ftp.verify_folder(cfg["site"], cfg["root"])
+            self.events.put(("connection_ok", verified))
         except FtpTlsUnavailable as exc:
             self.events.put(("ftps_unavailable", (cfg["host"], str(exc))))
         except Exception as exc:
@@ -759,6 +761,7 @@ class InstallerWindow:
         cfg["_exe_source"] = str(exe) if exe else ""
         cfg["_apk_source"] = str(apk) if apk else ""
         cfg["_redistribution_rights"] = bool(self.rights.get())
+        cfg["_verified_folder"] = self.verified_folder
         self.start_button.configure(state="disabled")
         self.status.set("Installing MuchoCore…")
         self.write_log("Checking settings and connecting to 5v.pl…")
@@ -808,6 +811,7 @@ class InstallerWindow:
             while True:
                 kind, value = self.events.get_nowait()
                 if kind == "connection_ok":
+                    self.verified_folder = value
                     self.next_button.configure(state="normal")
                     self.status.set("Website and FTP access verified")
                     self.steps.select(1)
