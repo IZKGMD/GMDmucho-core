@@ -51,11 +51,11 @@ def fingerprint_file(source: Path) -> str:
 def read_source(value: str | Path, suffix: str) -> Path:
     file = Path(value).expanduser().resolve()
     if file.suffix.lower() != suffix or not file.is_file():
-        raise InstallError("Выбери существующий оригинальный файл " + suffix + ".")
+        raise InstallError("Select an existing original " + suffix + ".")
     size = file.stat().st_size
     maximum = MAX_EXE if suffix == ".exe" else MAX_APK
     if not 1024 <= size <= maximum:
-        raise InstallError("Размер исходного файла выходит за поддерживаемые пределы.")
+        raise InstallError("The source file size is outside the supported range.")
     return file
 
 
@@ -69,18 +69,18 @@ def patch_windows(source: Path, site_url: str, outdir: Path) -> tuple[Path, dict
         patched, stats = patch_client(original, site_url)
         validate_result(original, patched, site_url, stats)
     except (ValueError, AssertionError) as exc:
-        raise InstallError("EXE не подходит для безопасного патча GD 2.209: " + str(exc)) from exc
+        raise InstallError("This EXE could not be patched for GD 2.209: " + str(exc)) from exc
     digest = sha256(patched)
     outdir.mkdir(parents=True, exist_ok=True)
     output = outdir / ("GeometryDash-MuchoCore-" + digest[:12] + ".exe")
     if output.exists() and sha256_file(output) != digest:
-        raise InstallError("Локальный файл клиента с тем же именем повреждён.")
+        raise InstallError("The local client with this filename is damaged.")
     if not output.exists():
         part = output.with_name(output.name + ".partial-" + secrets.token_hex(6))
         try:
             part.write_bytes(patched)
             if sha256_file(part) != digest:
-                raise InstallError("Ошибка проверки EXE после патча.")
+                raise InstallError("The patched EXE failed verification.")
             part.replace(output)
         finally:
             part.unlink(missing_ok=True)
@@ -93,7 +93,7 @@ def patcher_csrf(page: bytes) -> str:
     markup = page.decode("utf-8", "replace")
     match = re.search(r'<form\b[^>]*\bid="sharedPatcher"[^>]*\bdata-csrf="([a-f0-9]{48,64})"', markup)
     if not match:
-        raise InstallError("Админка не открыла патчер клиентов. Нужен вход владельца и завершённая миграция.")
+        raise InstallError("The Client Patcher is unavailable. Sign in as the owner and finish migration.")
     return match.group(1)
 
 
@@ -104,9 +104,9 @@ def _urlencoded(site: HttpsSite, csrf: str, action: str, **fields) -> dict:
     try:
         data = json.loads(body.decode("utf-8"))
     except (UnicodeDecodeError, ValueError):
-        raise InstallError("Патчер не вернул JSON. Проверь авторизацию владельца и работу PHP7.")
+        raise InstallError("The Client Patcher did not return JSON. Check owner sign-in and PHP 7.")
     if code != 200 or data.get("ok") is not True:
-        raise InstallError("Патчер 5v.pl: " + str(data.get("error", "HTTP " + str(code))))
+        raise InstallError("5v.pl Client Patcher: " + str(data.get("error", "HTTP " + str(code))))
     return data
 
 
@@ -141,13 +141,13 @@ def _chunk_request(site: HttpsSite, csrf: str, offset: int, chunk: bytes) -> dic
     except urllib.error.HTTPError as exc:
         code, body = exc.code, exc.read(10000)
     except (urllib.error.URLError, TimeoutError) as exc:
-        raise InstallError("HTTPS-отправка APK прервалась. Состояние можно восстановить.") from exc
+        raise InstallError("The APK upload was interrupted. Retry to resume.") from exc
     try:
         data = json.loads(body.decode("utf-8"))
     except (UnicodeDecodeError, ValueError):
-        raise InstallError("Сервер вернул некорректный ответ при загрузке APK.")
+        raise InstallError("The website returned an invalid response during APK upload.")
     if code != 200 or data.get("ok") is not True:
-        raise InstallError("Ошибка загрузки APK: " + str(data.get("error", "HTTP " + str(code))))
+        raise InstallError("APK upload failed: " + str(data.get("error", "HTTP " + str(code))))
     return data
 
 
@@ -158,7 +158,7 @@ def patch_android(site: HttpsSite, apk: Path, origin: str, *,
     origin = site_origin(origin)
     code, page = site.request("/mc/admin.php?page=clientpatcher")
     if code != 200:
-        raise InstallError("Не удалось открыть защищённую админку для патчинга APK.")
+        raise InstallError("Could not open the admin panel to patch the APK.")
     csrf = patcher_csrf(page)
     fingerprint = fingerprint_file(apk)
     status = _urlencoded(site, csrf, "status")
@@ -170,11 +170,11 @@ def patch_android(site: HttpsSite, apk: Path, origin: str, *,
         )
     elif (status.get("kind") != "apk" or status.get("fingerprint") != fingerprint
           or status.get("server_url") != origin):
-        raise InstallError("В админке уже есть ДРУГАЯ задача патчера. "
-                           "Заверши или сбрось её на странице Client Patcher.")
+        raise InstallError("A different patch job is already active. "
+                           "Finish or reset it on the Client Patcher page.")
 
     if not re.fullmatch(r"[a-f0-9]{32}", str(status.get("id", ""))):
-        raise InstallError("Сервер вернул неправильный ID задания.")
+        raise InstallError("The website returned an invalid patch job ID.")
     if status.get("phase") == "upload":
         with apk.open("rb") as stream:
             while status.get("phase") == "upload":
@@ -185,7 +185,7 @@ def patch_android(site: HttpsSite, apk: Path, origin: str, *,
                 stream.seek(offset)
                 chunk = stream.read(min(CHUNK_SIZE, apk.stat().st_size - offset))
                 if not chunk:
-                    raise InstallError("Невозможно прочитать APK для продолжения загрузки.")
+                    raise InstallError("Could not read the APK to resume upload.")
                 try:
                     status = _chunk_request(site, csrf, offset, chunk)
                 except InstallError:
@@ -197,7 +197,7 @@ def patch_android(site: HttpsSite, apk: Path, origin: str, *,
                         raise
                 if offset == 0 or status.get("offset", 0) == apk.stat().st_size or \
                         int(status.get("offset", 0)) // (16 * CHUNK_SIZE) != offset // (16 * CHUNK_SIZE):
-                    progress("APK: отправлено %s / %s МиБ" %
+                    progress("APK uploaded: %s of %s MiB" %
                              (int(status.get("offset", 0)) // CHUNK_SIZE,
                               (apk.stat().st_size + CHUNK_SIZE - 1) // CHUNK_SIZE))
 
@@ -205,7 +205,7 @@ def patch_android(site: HttpsSite, apk: Path, origin: str, *,
     steps = 0
     while status.get("phase") != "done":
         if time.monotonic() - started > 1800 or steps > 2500:
-            raise InstallError("Подпись APK не завершена. Открой Client Patcher в админке для продолжения.")
+            raise InstallError("APK signing is incomplete. Open Client Patcher in the admin panel to continue.")
         previous = status.get("phase")
         status = _urlencoded(site, csrf, "step")
         if status.get("phase") != previous:
@@ -221,7 +221,7 @@ def patch_android(site: HttpsSite, apk: Path, origin: str, *,
             or int(report.get("output_size", 0)) < 1024
             or report.get("server_url") != origin
             or int(report.get("replacement_count", 0)) < 1):
-        raise InstallError("APK не прошёл проверку подписи, URL, размера или SHA-256.")
+        raise InstallError("The APK signature, URL, size, or SHA-256 check failed.")
     report = dict(report)
     report["kind"] = "apk"
     report["job_id"] = status["id"]
@@ -235,10 +235,10 @@ def cleanup_published_job(site: HttpsSite, job_id: str) -> bool:
     independent of its temporary job. Never touch another job or an active job.
     """
     if not re.fullmatch(r"[a-f0-9]{32}", str(job_id)):
-        raise InstallError("Неверный идентификатор временного задания.")
+        raise InstallError("The temporary job ID is invalid.")
     code, html = site.request("/mc/admin.php?page=clientpatcher")
     if code != 200:
-        raise InstallError("Невозможно открыть админку для очистки временных файлов.")
+        raise InstallError("Could not open the admin panel to remove temporary files.")
     csrf = patcher_csrf(html)
     status = _urlencoded(site, csrf, "status")
     if status.get("id") != job_id or status.get("phase") != "done":
@@ -259,37 +259,37 @@ def _ftp_size(ftp: FtpSite, rel: str) -> int | None:
 
 def _ftp_prepare(ftp: FtpSite):
     if ftp.root is None or not ftp.exists_dir(ftp.root, "mc"):
-        raise InstallError("Сначала проверь установленный MuchoCore на том же 5v.pl.")
+        raise InstallError("Verify that MuchoCore is installed on this 5v.pl site first.")
     ftp.ensure_dir(ftp.root, CLIENT_DIR)
 
 
 def _public_url(origin: str, filename: str) -> str:
     if not re.fullmatch(r"GeometryDash-MuchoCore-[a-f0-9]{12}\.(?:exe|apk)", filename):
-        raise InstallError("Недопустимое имя опубликованного клиента.")
+        raise InstallError("The published client filename is invalid.")
     return site_origin(origin) + PUBLIC_PREFIX + filename
 
 
 def _probe_public(site: HttpsSite, url: str, size: int) -> None:
     if not url.startswith(site.origin + PUBLIC_PREFIX):
-        raise InstallError("Попытка проверить клиент вне подтверждённого сайта.")
+        raise InstallError("The client is outside the verified site.")
     req = urllib.request.Request(url, method="HEAD",
         headers={"User-Agent": "MuchoCore-5V-Installer/1.1", "Accept": "*/*"})
     try:
         with site.opener.open(req, timeout=25) as response:
             if response.status != 200:
-                raise InstallError("Сайт пока не выдаёт опубликованный клиент (HTTP).")
+                raise InstallError("The published client is temporarily unavailable over HTTPS.")
             content_type = response.headers.get("Content-Type", "").lower()
             if "text/html" in content_type:
-                raise InstallError("Вместо клиента сайт отдаёт HTML-заглушку.")
+                raise InstallError("The website returned an HTML page instead of the client.")
             stated = response.headers.get("Content-Length", "")
             if stated.isdigit() and int(stated) != size:
-                raise InstallError("Размер клиента по HTTPS не совпадает с проверенным размером.")
+                raise InstallError("The HTTPS download size differs from the verified client size.")
             return
     except urllib.error.HTTPError as exc:
         if exc.code != 405:
-            raise InstallError("Сайт не выдаёт файл по HTTPS (HTTP %d)." % exc.code)
+            raise InstallError("The HTTPS download failed (HTTP %d)." % exc.code)
     except urllib.error.URLError as exc:
-        raise InstallError("Невозможно проверить ссылку на клиент по HTTPS.") from exc
+        raise InstallError("Could not verify the client link over HTTPS.") from exc
 
     # Some hosts prohibit HEAD. Probe just one byte, never download an APK blindly.
     probe = urllib.request.Request(url, method="GET",
@@ -298,23 +298,23 @@ def _probe_public(site: HttpsSite, url: str, size: int) -> None:
         with site.opener.open(probe, timeout=25) as response:
             if response.status not in (200, 206) or \
                     "text/html" in response.headers.get("Content-Type", "").lower():
-                raise InstallError("Сайт не подтвердил прямое скачивание клиента.")
+                raise InstallError("Could not verify a direct download for the client.")
             response.read(1)
     except urllib.error.HTTPError as exc:
-        raise InstallError("Сайт не подтвердил скачивание (HTTP %d)." % exc.code)
+        raise InstallError("Could not verify the download (HTTP %d)." % exc.code)
 
 
 def _publish_stream(ftp: FtpSite, source: Path, origin: str, kind: str,
                     digest: str, size: int) -> str:
     if not re.fullmatch("[a-f0-9]{64}", digest):
-        raise InstallError("Неверная контрольная сумма клиента.")
+        raise InstallError("The client checksum is invalid.")
     if source.stat().st_size != size or sha256_file(source) != digest:
-        raise InstallError("Клиент не прошёл проверку целостности перед FTP.")
+        raise InstallError("The client failed its integrity check before FTP upload.")
     _ftp_prepare(ftp)
     name = "GeometryDash-MuchoCore-" + digest[:12] + "." + kind
     destination = CLIENT_DIR + "/" + name
     if _ftp_size(ftp, destination) is not None:
-        raise InstallError("Версия клиента уже опубликована. Не перезаписываем существующий файл.")
+        raise InstallError("This client version is already published. Setup kept the existing file.")
     tmp = CLIENT_DIR + "/.upload-" + secrets.token_hex(12) + ".part"
     try:
         parent, _, leaf = tmp.rpartition("/")
@@ -322,7 +322,7 @@ def _publish_stream(ftp: FtpSite, source: Path, origin: str, kind: str,
         with source.open("rb") as reader:
             ftp.conn.storbinary("STOR " + leaf, reader, blocksize=256 * 1024)
         if _ftp_size(ftp, tmp) != size:
-            raise InstallError("FTP загрузил клиент не полностью.")
+            raise InstallError("The FTP upload did not transfer the complete client.")
         ftp.rename(ftp.root, tmp, destination)
     finally:
         ftp.delete(ftp.root, tmp)
@@ -347,20 +347,20 @@ def _download_authenticated(site: HttpsSite, job_id: str, expected: int,
     try:
         with site.opener.open(request, timeout=40) as response, local.open("xb") as sink:
             if response.status != 200:
-                raise InstallError("Сайт не вернул подписанный APK.")
+                raise InstallError("The website did not return a signed APK.")
             while True:
                 part = response.read(1024 * 1024)
                 if not part:
                     break
                 count += len(part)
                 if count > MAX_APK or count > expected:
-                    raise InstallError("Подписанный APK превысил ожидаемый размер.")
+                    raise InstallError("The signed APK exceeded its expected size.")
                 digest.update(part)
                 sink.write(part)
     except urllib.error.URLError as exc:
-        raise InstallError("Не удалось забрать подписанный APK из админки.") from exc
+        raise InstallError("Could not download the signed APK from the admin panel.") from exc
     if count != expected or digest.hexdigest() != sha:
-        raise InstallError("Подписанный APK не прошёл SHA-256 после HTTPS.")
+        raise InstallError("The signed APK failed its SHA-256 check after download.")
 
 
 def download_android_private(site: HttpsSite, report: dict,
@@ -376,13 +376,13 @@ def download_android_private(site: HttpsSite, report: dict,
             or report.get("signed") is not True
             or set(report.get("signature_schemes", [])) != {"v1", "v2"}
             or int(report.get("replacement_count", 0)) < 1):
-        raise InstallError("Подписанный APK содержит неправильные метаданные.")
+        raise InstallError("The signed APK has invalid metadata.")
     outdir.mkdir(parents=True, exist_ok=True)
     output = outdir / ("GeometryDash-MuchoCore-" + digest[:12] + ".apk")
     if output.exists():
         if output.stat().st_size == size and sha256_file(output) == digest:
             return output
-        raise InstallError("Локальный APK с таким именем уже существует и не совпадает по SHA-256.")
+        raise InstallError("An APK with the same filename already exists and has a different SHA-256 hash.")
     with tempfile.TemporaryDirectory(prefix="mucho-apk-", dir=outdir) as temp:
         temporary = Path(temp) / "verified.apk"
         _download_authenticated(site, job, size, digest, temporary)
@@ -398,12 +398,12 @@ def publish_android(ftp: FtpSite, site: HttpsSite, report: dict,
     job = str(report["job_id"])
     if not re.fullmatch("[a-f0-9]{64}", digest) or \
             not re.fullmatch("[a-f0-9]{32}", job) or not 1024 <= size <= MAX_APK:
-        raise InstallError("Подписанный APK содержит неправильные метаданные.")
+        raise InstallError("The signed APK has invalid metadata.")
     _ftp_prepare(ftp)
     name = "GeometryDash-MuchoCore-" + digest[:12] + ".apk"
     destination = CLIENT_DIR + "/" + name
     if _ftp_size(ftp, destination) is not None:
-        raise InstallError("Эта версия APK уже опубликована. Старый клиент не перезаписывается.")
+        raise InstallError("This APK version is already published. Setup kept the existing file.")
     source = "mc/storage/shared-client-patcher/" + job + "/result.apk"
     moved = False
     if _ftp_size(ftp, source) == size:
@@ -430,8 +430,8 @@ def publish_index(ftp: FtpSite, site: HttpsSite, links: dict) -> str:
     _ftp_prepare(ftp)
     previous = ftp.get(ftp.root, CLIENT_DIR + "/index.html", optional=True)
     if previous is not None and b"MUCHOCORE_CLIENTS_INDEX_V1" not in previous:
-        raise InstallError("В папке clients уже есть своя index.html. "
-                           "Не перезаписываем чужую страницу; прямые ссылки сохранены.")
+        raise InstallError("The clients folder already has an index.html. "
+                           "Setup kept the existing page and direct links.")
     entries = {}
     if previous is not None:
         for found in re.findall(rb'href="([^"]+)"', previous):
@@ -455,7 +455,7 @@ def publish_index(ftp: FtpSite, site: HttpsSite, links: dict) -> str:
             continue
         url = entry["url"]
         if url != _public_url(site.origin, url.rsplit("/", 1)[-1]):
-            raise InstallError("Ссылка на клиент должна принадлежать этому сайту.")
+            raise InstallError("The client link must belong to this website.")
         entries[url] = (kind == "apk", entry["sha256"])
 
     rows = []
@@ -465,16 +465,16 @@ def publish_index(ftp: FtpSite, site: HttpsSite, links: dict) -> str:
         rows.append('<li><a href="' + html.escape(url, quote=True) +
                     '">' + name + '</a>' + extra + '</li>')
     markup = ('<!doctype html><!-- MUCHOCORE_CLIENTS_INDEX_V1 -->'
-        '<html lang="ru"><head><meta charset="utf-8">'
+        '<html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
-        '<title>MuchoCore — клиенты</title><style>body{background:#15121d;color:#f1ecfa;'
+        "<title>MuchoCore clients</title><style>body{background:#15121d;color:#f1ecfa;"
         'font:16px system-ui;max-width:720px;margin:10vh auto;padding:20px}'
         'a{color:#cfb2f5}li{margin:16px 0}code{word-break:break-all}</style></head>'
-        '<body><h1>Клиенты MuchoCore</h1><p>Сервер: <strong>' +
+        "<body><h1>MuchoCore clients</h1><p>Server: <strong>" +
         html.escape(site.origin, quote=True) + '</strong></p><ul>' +
-        ''.join(rows) + '</ul><p>Windows: для запуска нужны DLL и Resources '
-        'из установленной копии игры. Для Android сохраняйте закрытый '
-        'ключ подписи в config/php7-apk-signer.json для будущих обновлений.'
+        ''.join(rows) + "</ul><p>Windows requires DLLs and Resources "
+        "from your installed copy of the game. For Android updates, back up the private "
+        "signing key at config/php7-apk-signer.json."
         '</p></body></html>')
     tmp = CLIENT_DIR + "/.index-" + secrets.token_hex(8) + ".tmp"
     try:

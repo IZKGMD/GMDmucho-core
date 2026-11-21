@@ -151,20 +151,20 @@ def publish_interactive(site: HttpsSite, ftp: FtpSite, *, advanced: bool = False
 
 def login_owner(site: HttpsSite, username: str, password: str, otp: str = ""):
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", username):
-        raise InstallError("Неверное имя владельца.")
+        raise InstallError("Enter a valid owner username.")
     code, page = site.request("/mc/admin.php")
     if code != 200:
-        raise InstallError("Админка не отвечает по HTTPS.")
+        raise InstallError("The admin panel is unavailable over HTTPS.")
     csrf = csrf_from(page, "login")
     code, page = site.request("/mc/admin.php", {
         "csrf": csrf, "action": "login", "userName": username,
         "password": password, "otp": otp,
     })
     if code != 200:
-        raise InstallError("Не удалось войти в админку (HTTP %s)." % code)
+        raise InstallError("Could not sign in to the admin panel (HTTP %s)." % code)
     code, page = site.request("/mc/admin.php?page=clientpatcher")
     if code != 200 or b'id="sharedPatcher"' not in page:
-        raise InstallError("Вход владельца не подтверждён. Проверь пароль, 2FA и права.")
+        raise InstallError("Owner sign-in could not be verified. Check the password, two-factor code, and account permissions.")
 
 
 def main() -> int:
