@@ -18,7 +18,19 @@ Open PRs for later MuchoClient/launcher packages and other proposals are not
 automatically included in this source release. Their build results do not certify
 the different client source currently on main.
 
-## Current stable-release blocker
+## PHP 8 maintenance releases
+
+A release marker containing `php8-maintenance` selects a PHP 8 maintenance
+release only. The publisher requires Validate, endpoint inventory validation
+and a successful PHP 8 HTTP acceptance workflow at the exact release commit on
+`main`. Published assets include the source archive, the PHP 8 shared-hosting
+package and checksums. Release notes state the tested scope and known gaps.
+The full endpoint certification report continues to track native-client
+coverage and timing targets.
+
+An empty marker selects the full compatibility release described below.
+
+## Full compatibility certification
 
 ### Shared runtime stabilization (2026-10-24)
 
