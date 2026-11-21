@@ -38,6 +38,8 @@ jobs:
             TAG="$(basename "$ARCHIVE_MARKER")"
             TAG="${TAG#archive-}"
             TAG="${TAG%.ready}"
+            PROFILE="$(git show "$TAG:.release/$TAG.ready" 2>/dev/null || true)"
+            echo "php8_only=$([[ "$PROFILE" == php8-maintenance ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
             echo "archive_only=true" >> "$GITHUB_OUTPUT"
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
@@ -50,6 +52,12 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          PROFILE="$(cat ".release/${TAG}.ready")"
+          case "$PROFILE" in
+            php8-maintenance) echo "php8_only=true" >> "$GITHUB_OUTPUT" ;;
+            '') echo "php8_only=false" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unknown stable release profile: $PROFILE" >&2; exit 1 ;;
+          esac
           echo "archive_only=false" >> "$GITHUB_OUTPUT"
           echo "ready=true" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -91,12 +99,27 @@ jobs:
           fi
           git checkout --detach "$RELEASE_SHA"
 
-      - name: Verify endpoint certification before every stable publication
+      - name: Verify endpoint readiness before stable publication
         if: steps.marker.outputs.ready == 'true'
-        run: php tests/release/v110-endpoint-gate.php
+        env:
+          PHP8_ONLY: ${{ steps.marker.outputs.php8_only }}
+        run: |
+          if [[ "$PHP8_ONLY" == 'true' ]]; then
+            php tests/protocol/endpoint-perfection.php
+          else
+            php tests/release/v110-endpoint-gate.php
+          fi
+
+      - name: Require PHP 8 HTTP acceptance for the PHP 8 release commit
+        if: steps.marker.outputs.ready == 'true' && steps.marker.outputs.php8_only == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          python3 tools/release/require-native-ci.py --repository "$GITHUB_REPOSITORY" --sha "$RELEASE_SHA" --php8
 
       - name: Require native PHP7 and PHP8 integration at the release commit
-        if: steps.marker.outputs.ready == 'true'
+        if: steps.marker.outputs.ready == 'true' && steps.marker.outputs.php8_only != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_SHA: ${{ steps.source.outputs.sha }}
@@ -138,7 +161,7 @@ jobs:
           test -s "MuchoCore-${TAG}.zip"
 
       - name: Build native PHP7 shared-hosting package
-        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
+        if: steps.marker.outputs.php8_only != 'true' && (steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true')
         env:
           ARCHIVE_ONLY: ${{ steps.marker.outputs.archive_only }}
           OUTPUT_PATH: MuchoCore-v${{ steps.marker.outputs.version }}-PHP7-shared-hosting.zip
@@ -155,15 +178,18 @@ jobs:
         if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
         env:
           ARCHIVE_ONLY: ${{ steps.marker.outputs.archive_only }}
+          PHP8_ONLY: ${{ steps.marker.outputs.php8_only }}
           TAG: ${{ steps.marker.outputs.tag }}
         run: |
           ARCHIVES=("MuchoCore-${TAG}.zip" "MuchoCore-${TAG}-shared-hosting.zip")
           NATIVE="MuchoCore-${TAG}-PHP7-shared-hosting.zip"
-          if [[ -s "$NATIVE" ]]; then
-            ARCHIVES+=("$NATIVE")
-          elif [[ "$ARCHIVE_ONLY" != 'true' ]]; then
-            echo 'ERROR: native PHP7 release distribution is missing.' >&2
-            exit 1
+          if [[ "${PHP8_ONLY:-false}" != 'true' ]]; then
+            if [[ -s "$NATIVE" ]]; then
+              ARCHIVES+=("$NATIVE")
+            elif [[ "$ARCHIVE_ONLY" != 'true' ]]; then
+              echo 'ERROR: native PHP7 release distribution is missing.' >&2
+              exit 1
+            fi
           fi
           sha256sum "${ARCHIVES[@]}" > checksums.sha256
           sha256sum --check checksums.sha256
@@ -224,7 +250,7 @@ jobs:
           gh release upload "$TAG" "MuchoCore-${TAG}.zip" --clobber
 
       - name: Upload native PHP7 shared-hosting package
-        if: steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true'
+        if: steps.marker.outputs.php8_only != 'true' && (steps.marker.outputs.ready == 'true' || steps.marker.outputs.archive_only == 'true')
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           ARCHIVE_ONLY: ${{ steps.marker.outputs.archive_only }}

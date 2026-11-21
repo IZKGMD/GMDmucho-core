@@ -83,7 +83,11 @@ jobs:
         run: |
           VERSION="$(tr -d '[:space:]' < VERSION)"
           if [[ -f ".release/v${VERSION}.ready" ]]; then
-            php tests/release/v110-endpoint-gate.php
+            case "$(cat ".release/v${VERSION}.ready")" in
+              php8-maintenance) php tests/protocol/endpoint-perfection.php ;;
+              '') php tests/release/v110-endpoint-gate.php ;;
+              *) echo "Unknown stable release profile" >&2; exit 1 ;;
+            esac
           fi
 
       - name: Check PHP sources

@@ -92,15 +92,14 @@ $validateWorkflow = (string)file_get_contents(
     dirname(__DIR__, 2) . '/.github/workflows/validate.yml'
 );
 if (
-    !str_contains(
-        $workflow,
-        "      - name: Verify endpoint certification before every stable publication\n"
-        . "        if: steps.marker.outputs.ready == 'true'\n"
-        . "        run: php tests/release/v110-endpoint-gate.php\n"
-    ) ||!str_contains($validateWorkflow, 'if [[ -f ".release/v${VERSION}.ready" ]]; then') ||
-    str_contains($workflow, "steps.marker.outputs.version == '1.1.0'")
+    !str_contains($workflow, 'php tests/release/v110-endpoint-gate.php')
+    || !str_contains($workflow, 'php tests/protocol/endpoint-perfection.php')
+    || !str_contains($workflow, '--sha "$RELEASE_SHA" --php8')
+    || !str_contains($validateWorkflow, 'if [[ -f ".release/v${VERSION}.ready" ]]; then')
+    || !str_contains($validateWorkflow, "'') php tests/release/v110-endpoint-gate.php ;;")
+    || str_contains($workflow, "steps.marker.outputs.version == '1.1.0'")
 ) {
-    throw new RuntimeException('A new stable version must not bypass endpoint certification.');
+    throw new RuntimeException('Stable gates must enforce the declared release profile.');
 }
 
 echo "MUCHOCORE_V110_ENDPOINT_GATE_CONTRACT_OK\n";
