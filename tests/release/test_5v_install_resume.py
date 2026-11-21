@@ -139,7 +139,7 @@ class ResumeTests(unittest.TestCase):
 
     def test_nonempty_database_is_rejected_before_payload_upload(self):
         self.site.check_response = (409, b'{"ok":false,"error":"database_not_empty"}')
-        with self.assertRaisesRegex(InstallError, 'уже содержит таблицы'): self.install()
+        with self.assertRaisesRegex(InstallError, 'database already contains tables'): self.install()
         self.assertEqual(self.ftp.files, {})
         self.assertEqual(self.ftp.uploads, 0)
 

@@ -1,9 +1,11 @@
 """Offline regression tests for the first-run 5v.pl archive installer."""
+import ftplib
 import importlib.util
 import os
 import zipfile
 from pathlib import Path
 import re
+import ssl
 import subprocess
 import sys
 import tempfile
@@ -13,7 +15,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "tools/release/5v-installer"
 sys.path.insert(0, str(SRC))
-from mucho5v import (InstallError, site_origin, valid_ftp_host, php_quote,
+from mucho5v import (FtpSite, FtpTlsUnavailable, InstallError, site_origin, valid_ftp_host, php_quote,
                      private_config, merge_rules, safe_relative, FormFields)
 import INSTALL_5V
 import RECOVER_ADMIN_5V
@@ -38,6 +40,48 @@ class DomainTests(unittest.TestCase):
                         "ftp.5v.pl/path", "ftp.5v.pl\nx", ""):
             with self.subTest(host=invalid), self.assertRaises(InstallError):
                 valid_ftp_host(invalid)
+
+
+class FtpConnectionTests(unittest.TestCase):
+    def test_unsupported_ftps_stops_before_credentials(self):
+        with patch("mucho5v.ftplib.FTP_TLS") as tls, patch("mucho5v.ftplib.FTP") as plain:
+            tls.return_value.auth.side_effect = ftplib.error_perm("500 AUTH not understood")
+            with self.assertRaisesRegex(FtpTlsUnavailable, "FTP 500"):
+                with FtpSite("ftp.5v.pl", "test-user", "test-secret"):
+                    self.fail("FTPS unexpectedly succeeded")
+            tls.return_value.login.assert_not_called()
+            tls.return_value.close.assert_called_once()
+            plain.assert_not_called()
+
+    def test_authentication_and_tls_failures_do_not_offer_downgrade(self):
+        cases = (
+            ("auth", ssl.SSLCertVerificationError("bad certificate"), "certificate"),
+            ("login", ftplib.error_perm("530 echoed-test-secret"), "FTP login failed"),
+            ("prot_p", ftplib.error_perm("500 unsupported"), "encrypted file transfers"),
+        )
+        for phase, failure, expected in cases:
+            with self.subTest(phase=phase), patch("mucho5v.ftplib.FTP_TLS") as tls, \
+                    patch("mucho5v.ftplib.FTP") as plain:
+                getattr(tls.return_value, phase).side_effect = failure
+                with self.assertRaisesRegex(InstallError, expected) as error:
+                    with FtpSite("ftp.5v.pl", "test-user", "echoed-test-secret"):
+                        self.fail("FTPS unexpectedly succeeded")
+                self.assertNotIsInstance(error.exception, FtpTlsUnavailable)
+                self.assertNotIn("echoed-test-secret", str(error.exception))
+                plain.assert_not_called()
+
+    def test_plain_ftp_runs_only_when_requested_and_diagnoses_https_separately(self):
+        with patch("mucho5v.ftplib.FTP_TLS") as tls, patch("mucho5v.ftplib.FTP") as plain, \
+                patch("mucho5v.HttpsSite") as https:
+            plain.return_value.pwd.return_value = "/"
+            https.return_value.request.return_value = (503, b"unavailable")
+            with FtpSite("ftp.5v.pl", "test-user", "test-secret", secure=False) as ftp:
+                with self.assertRaisesRegex(InstallError, "FTP login succeeded.*HTTP 503"):
+                    ftp.find_root("https://example.5v.pl", ".")
+            tls.assert_not_called()
+            plain.return_value.login.assert_called_once_with("test-user", "test-secret")
+            plain.return_value.set_pasv.assert_called_once_with(True)
+            plain.return_value.delete.assert_called_once()
 
 
 class EasyInstallerTests(unittest.TestCase):

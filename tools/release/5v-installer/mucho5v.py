@@ -29,6 +29,10 @@ class InstallError(RuntimeError):
     """Safe, user-readable installation error."""
 
 
+class FtpTlsUnavailable(InstallError):
+    """The FTP server explicitly rejected the AUTH TLS command."""
+
+
 def site_origin(value: str) -> str:
     value = value.strip()
     # Accept a pasted site hostname while keeping HTTPS mandatory for requests.
@@ -44,33 +48,33 @@ def site_origin(value: str) -> str:
     except ValueError:
         valid = False
     if not valid:
-        raise InstallError("Поддерживается ТОЛЬКО https://имя.5v.pl без пути и порта.")
+        raise InstallError("Enter an HTTPS website at name.5v.pl without a path or port.")
     return "https://" + host.lower()
 
 
 def valid_ftp_host(value: str) -> str:
     host = value.strip().lower()
     if not FTP_RE.fullmatch(host) or len(host) > 253:
-        raise InstallError("Неверный FTP-сервер. Скопируй адрес из кабинета 5v.pl.")
+        raise InstallError("Enter the FTP server hostname shown in your 5v.pl dashboard.")
     return host
 
 
 def php_quote(value: str) -> str:
     if not isinstance(value, str) or any(ord(c) < 32 or ord(c) == 127 for c in value):
-        raise InstallError("Данные для PHP содержат недопустимые символы.")
+        raise InstallError("The PHP configuration contains invalid characters.")
     return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
 
 
 def private_config(site: str, dbhost: str, dbport: int,
                    database: str, username: str, password: str) -> bytes:
     if not re.fullmatch(r"[A-Za-z0-9._-]{1,120}", dbhost):
-        raise InstallError("Недопустимый адрес базы MySQL.")
+        raise InstallError("The MySQL hostname is invalid.")
     if not re.fullmatch(r"[A-Za-z0-9_]{1,64}", database):
-        raise InstallError("Недопустимое имя базы MySQL.")
+        raise InstallError("The MySQL database name is invalid.")
     if not 1 <= dbport <= 65535 or not 1 <= len(username) <= 128:
-        raise InstallError("Неверный порт MySQL или логин.")
+        raise InstallError("The MySQL port or username is invalid.")
     if not 8 <= len(password) <= 256:
-        raise InstallError("Пароль MySQL должен иметь длину от 8 до 256 символов.")
+        raise InstallError("The MySQL password must be 8–256 characters.")
     entries = {
         "host": dbhost, "port": dbport, "database": database,
         "username": username, "password": password,
@@ -96,20 +100,20 @@ def private_config(site: str, dbhost: str, dbport: int,
 def merge_rules(original: bytes | None, rules: bytes, *, resume: bool = False) -> bytes:
     content = original or b""
     if len(content) > 1024 * 1024 or b"\0" in content:
-        raise InstallError("Существующий .htaccess слишком велик или повреждён.")
+        raise InstallError("The existing .htaccess is too large or invalid.")
     text = content.decode("utf-8-sig")
     raw = rules.decode("utf-8-sig")
     lines = [line.strip() for line in raw.splitlines()
              if line.strip().startswith("RewriteRule ")]
     if len(lines) < 8 or any("mc/public/php7.php" not in line for line in lines):
-        raise InstallError("В архиве отсутствуют проверенные правила 5v.pl.")
+        raise InstallError("The verified 5v.pl routing rules are missing from the archive.")
     if BEGIN in text or END in text:
         expected = BEGIN + "\n" + "\n".join(lines) + "\n" + END
         normalized = text.replace("\r\n", "\n")
         if (resume and normalized.count(BEGIN) == 1 and normalized.count(END) == 1
                 and expected in normalized):
             return content
-        raise InstallError("Маршруты MuchoCore уже установлены или изменены. Файл .htaccess сохранён без изменений.")
+        raise InstallError("MuchoCore routes already exist or have been edited. Setup preserved your .htaccess.")
     block = "RewriteEngine On\n" + BEGIN + "\n" + "\n".join(lines) + "\n" + END + "\n"
     return (block + "\n" + text).encode("utf-8")
 
@@ -117,7 +121,7 @@ def merge_rules(original: bytes | None, rules: bytes, *, resume: bool = False) -
 def safe_relative(path: str) -> str:
     if (not path or path.startswith("/") or "\\" in path
             or "\0" in path or any(p in ("", ".", "..") for p in path.split("/"))):
-        raise InstallError("Небезопасный путь внутри FTP: " + path)
+        raise InstallError("Invalid FTP path: " + path)
     return path
 
 
@@ -129,7 +133,7 @@ class SameOriginRedirect(urllib.request.HTTPRedirectHandler):
         original = urllib.parse.urlsplit(self.origin)
         if candidate.scheme != "https" or candidate.hostname != original.hostname \
                 or candidate.port is not None or candidate.username or candidate.password:
-            raise InstallError("Сайт попытался перенаправить запрос на чужой адрес.")
+            raise InstallError("The website redirected the request to another address.")
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
@@ -144,7 +148,7 @@ class HttpsSite:
         )
     def request(self, path: str, form: dict | None = None) -> tuple[int, bytes]:
         if not path.startswith("/") or path.startswith("//"):
-            raise InstallError("Недопустимый HTTPS-путь.")
+            raise InstallError("Invalid HTTPS path.")
         data = None if form is None else urllib.parse.urlencode(form).encode("utf-8")
         req = urllib.request.Request(
             self.origin + path, data=data,
@@ -155,15 +159,15 @@ class HttpsSite:
         try:
             with self.opener.open(req, timeout=18) as res:
                 if int(res.headers.get("Content-Length", "0")) > 2_000_000:
-                    raise InstallError("Сайт вернул слишком большой ответ.")
+                    raise InstallError("The website returned a response that was too large.")
                 content = res.read(2_000_001)
                 if len(content) > 2_000_000:
-                    raise InstallError("Сайт вернул слишком большой ответ.")
+                    raise InstallError("The website returned a response that was too large.")
                 return res.status, content
         except urllib.error.HTTPError as exc:
             return exc.code, exc.read(4096)
-        except urllib.error.URLError as exc:
-            raise InstallError("HTTPS не отвечает или сертификат недействителен.") from exc
+        except (urllib.error.URLError, TimeoutError) as exc:
+            raise InstallError("Could not connect to the website over HTTPS. Check the address and TLS certificate.") from exc
 
 
 class FormFields(HTMLParser):
@@ -192,16 +196,37 @@ class FtpSite:
             self.conn = ftplib.FTP_TLS(context=ssl.create_default_context(), timeout=25)
         else:
             self.conn = ftplib.FTP(timeout=25)
+        phase = "connect"
         try:
             self.conn.connect(self.host, self.port, timeout=25)
+            if self.secure:
+                phase = "tls"
+                self.conn.auth()
+            phase = "login"
             self.conn.login(self.user, self.password)
             if self.secure:
+                phase = "data"
                 self.conn.prot_p()
             self.conn.set_pasv(True)
             return self
         except ftplib.all_errors as exc:
-            self.close()
-            raise InstallError("Не удалось войти на FTP 5v.pl. Проверь сервер, логин, пароль и FTPS.") from exc
+            self.conn.close()
+            self.conn = None
+            code = re.match(r"^([1-5][0-9]{2})(?:\s|$)", str(exc)) if isinstance(
+                exc, (ftplib.error_perm, ftplib.error_temp)
+            ) else None
+            status = f" (FTP {code[1]})" if code else ""
+            if phase == "tls" and isinstance(exc, ftplib.error_perm) and code and code[1] in {"500", "502", "504"}:
+                raise FtpTlsUnavailable(f"The server rejected explicit FTPS{status}.") from None
+            if isinstance(exc, ssl.SSLCertVerificationError):
+                raise InstallError("The FTP server's TLS certificate could not be verified. Use the exact FTP hostname from 5v.pl.") from None
+            if phase == "connect":
+                raise InstallError(f"Could not reach the FTP server on port {self.port}{status}. Check the FTP hostname and network.") from None
+            if phase == "login":
+                raise InstallError(f"FTP login failed{status}. Check the unique FTP username and password in the 5v.pl dashboard.") from None
+            if phase == "data":
+                raise InstallError(f"FTP login succeeded, but the server could not enable encrypted file transfers{status}.") from None
+            raise InstallError(f"Could not establish the FTPS connection{status}. Check the FTP hostname and TLS settings.") from None
     def __exit__(self, *_):
         self.close()
     def close(self):
@@ -250,14 +275,14 @@ class FtpSite:
             nonlocal total
             total += len(data)
             if total > 1024 * 1024:
-                raise InstallError("Удалённый файл превышает безопасный размер.")
+                raise InstallError("The remote file exceeds the supported size.")
             chunks.append(data)
         try:
             self.conn.retrbinary("RETR " + path, collect)
         except ftplib.error_perm as exc:
             if optional and str(exc).startswith("550"):
                 return None
-            raise InstallError("Не удалось прочитать " + path + " по FTP.") from exc
+            raise InstallError("Could not read " + path + " over FTP.") from exc
         return b"".join(chunks)
     def delete(self, base: str, rel: str):
         self.cd(base)
@@ -279,6 +304,7 @@ class FtpSite:
         ]
         token = secrets.token_hex(24)
         name = "muchocore-probe-" + secrets.token_hex(8) + ".txt"
+        http_failures = set()
         for candidate in paths:
             try:
                 self.cd(base)
@@ -293,31 +319,38 @@ class FtpSite:
                     if status == 200 and body.strip() == token.encode("ascii"):
                         self.root = folder
                         return folder
+                    if status >= 500:
+                        http_failures.add(status)
                 finally:
                     self.delete(folder, name)
             except ftplib.error_perm:
                 continue
-        raise InstallError("Не найден корень сайта по HTTPS. Укажи FTP-папку сайта вручную.")
+            except ftplib.all_errors:
+                raise InstallError("FTP login succeeded, but the file transfer failed. Check passive FTP access and the site's write permissions.") from None
+        if http_failures:
+            codes = ", ".join(str(code) for code in sorted(http_failures))
+            raise InstallError(f"FTP login succeeded, but the website returned HTTP {codes}. Check that the site opens over HTTPS before retrying.")
+        raise InstallError("FTP login succeeded, but Setup could not verify the website folder over HTTPS. Enter the folder in Advanced settings.")
     def upload_tree(self, folder: Path, progress=print):
         if self.root is None:
-            raise InstallError("Сначала подтверди корневую папку сайта.")
+            raise InstallError("Verify the website folder first.")
         files = sorted(p for p in folder.rglob("*") if p.is_file())
         if not files:
-            raise InstallError("В архиве нет файлов mc/.")
+            raise InstallError("The archive contains no mc/ files.")
         for i, file in enumerate(files, 1):
             if file.is_symlink():
-                raise InstallError("Архив не должен содержать символьные ссылки.")
+                raise InstallError("The archive contains a symbolic link.")
             relative = file.relative_to(folder).as_posix()
             safe_relative(relative)
             if relative in {"config/php7-local.php", "public/php7-mode.on"} or \
                     relative.startswith("config/php7-owner"):
-                raise InstallError("В релиз включён приватный файл, установка запрещена.")
+                raise InstallError("Setup stopped because the release contains a private configuration file.")
             self.put(self.root, "mc/" + relative, file.read_bytes())
             if i % 30 == 0 or i == len(files):
-                progress("Загружено файлов: %s/%s" % (i, len(files)))
+                progress("Uploaded %s of %s files" % (i, len(files)))
     def apply_routes(self, rules: bytes, *, resume: bool = False):
         if self.root is None:
-            raise InstallError("Корень сайта не проверен.")
+            raise InstallError("The website folder has not been verified.")
         old = self.get(self.root, ".htaccess", optional=True)
         new = merge_rules(old, rules, resume=resume)
         if new == old:
@@ -352,6 +385,6 @@ def verify_private_folder(ftp: FtpSite, https: HttpsSite):
     try:
         code, body = https.request("/" + name)
         if code not in (401, 403, 404) or token.encode("ascii") in body:
-            raise InstallError("5v.pl открыл приватный config/ наружу. Пароли НЕ загружены.")
+            raise InstallError("Your site exposes its private config/ folder. Setup stopped before uploading passwords.")
     finally:
         ftp.delete(ftp.root, name)

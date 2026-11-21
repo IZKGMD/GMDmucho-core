@@ -14,6 +14,7 @@ on:
       - 'tools/release/5v-updater/**'
       - '.github/workflows/5v-ftp-bridge.yml'
       - 'tests/release/test_5v_*.py'
+      - '.release/setup-v*.ready'
       - 'tools/client/client-patch.py'
       - 'tools/release/build-shared-hosting.sh'
       - '.github/workflows/php7-preview-archives.yml'
@@ -125,6 +126,38 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Select the published release for this installer
+        id: setup-release
+        if: github.event_name == 'release' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          PREVIOUS_SHA: ${{ github.event.before }}
+        run: |
+          if ($env:RELEASE_TAG) {
+            "tag=$env:RELEASE_TAG" >> $env:GITHUB_OUTPUT
+            return
+          }
+          $version = (Get-Content VERSION -Raw).Trim()
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { return }
+          $tag = "v$version"
+          $marker = ".release/setup-$tag.ready"
+          if (!(Test-Path $marker)) { return }
+          $added = git diff --name-only --diff-filter=A $env:PREVIOUS_SHA HEAD -- $marker
+          if (!$?) { throw "Could not verify the installer publication marker" }
+          if ($added -ne $marker) { return }
+          if ((Get-Content $marker -Raw).Trim() -ne $tag) {
+            throw "Installer publication marker does not match the bundled core version"
+          }
+          $release = gh release view $tag --json tagName,isDraft,isPrerelease | ConvertFrom-Json
+          if ($release.tagName -ne $tag -or $release.isDraft -or $release.isPrerelease) {
+            throw "The installer hotfix requires an existing stable release"
+          }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
 
       - uses: actions/setup-python@v6
         with:
@@ -192,20 +225,26 @@ jobs:
           if ($null -eq $uiProcess.ExitCode -or $uiProcess.ExitCode -ne 0) {
             throw "Frozen installer UI self-test failed with exit code $($uiProcess.ExitCode)"
           }
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  MuchoCore-Setup.exe" | Set-Content dist/checksums-setup.sha256 -Encoding ascii
 
       - name: Upload standalone Windows installer
         uses: actions/upload-artifact@v4
         with:
           name: MuchoCore-5V-Setup-Windows-x64
-          path: dist/MuchoCore-Setup.exe
+          path: |
+            dist/MuchoCore-Setup.exe
+            dist/checksums-setup.sha256
           if-no-files-found: error
           retention-days: 30
       - name: Attach standalone installer to the published GitHub release
-        if: github.event_name == 'release'
+        if: steps.setup-release.outputs.tag != ''
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.release.tag_name }}
-          files: dist/MuchoCore-Setup.exe
+          tag_name: ${{ steps.setup-release.outputs.tag }}
+          files: |
+            dist/MuchoCore-Setup.exe
+            dist/checksums-setup.sha256
           overwrite_files: true
           fail_on_unmatched_files: true
         env:
