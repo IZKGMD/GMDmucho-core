@@ -39,6 +39,9 @@ $rewardsController = (string)file_get_contents(
 $accountAuthenticator = (string)file_get_contents(
     __DIR__ . '/../../src/Account/AccountAuthenticator.php'
 );
+$credentialCache = (string)file_get_contents(
+    __DIR__ . '/../../src/Account/VerifiedCredentialCache.php'
+);
 $accountService = (string)file_get_contents(
     __DIR__ . '/../../src/Account/AccountService.php'
 );
@@ -85,8 +88,10 @@ assertSecurityRegression(
     !str_contains($accountAuthenticator, 'FROM mucho_auth_sessions') &&
     str_contains(
         $accountAuthenticator,
-        'password_verify($credential, $storedPass)'
-    ),
+        'VerifiedCredentialCache::verify($credential, $storedPass)'
+    ) &&
+    str_contains($credentialCache, 'password_verify($credential, $storedHash)') &&
+    str_contains($credentialCache, 'hash_equals($cached, $proof)'),
     'standard account authentication never trusts account+IP session grants'
 );
 
