@@ -1211,6 +1211,7 @@ Create a game account in the patched client, then upload and download a test lev
 Existing installs keep their current administrator credentials.
 
 Update: sudo mucho update
+Forgot your owner password? Run: sudo mucho admin recover
 Need help? Run: sudo mucho doctor
 
 EOFOUT
