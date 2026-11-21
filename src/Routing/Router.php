@@ -101,41 +101,21 @@ final class Router
         $parsed = parse_url($path, PHP_URL_PATH);
         $path = is_string($parsed) ? $parsed : '/';
 
-        $path = preg_replace('#/+#', '/', $path) ?? '/';
+        if (str_contains($path, '//')) {
+            $path = preg_replace('#/+#', '/', $path) ?? '/';
+        }
 
         if (!str_starts_with($path, '/')) {
             $path = '/' . $path;
         }
 
-        while (
-            preg_match(
-                '#^/(?:database|accounts|api|a)(?:/|$)#i',
-                $path
-            ) === 1
-        ) {
-            $path = preg_replace(
-                '#^/(?:database|accounts|api|a)(?:/|$)#i',
-                '/',
-                $path,
-                1
-            ) ?? $path;
-        }
-
-        if ($path !== '/') {
-            $path = rtrim($path, '/');
-        }
-
-        if ($path === '') {
-            $path = '/';
-        }
-
-        $path = preg_replace('#\.php$#i', '', $path) ?? $path;
-
-        if ($path === '') {
-            $path = '/';
-        }
-
         $path = strtolower($path);
+        $path = preg_replace('#^(?:/(?:database|accounts|api|a))+(?=/|$)#', '', $path, 1) ?? $path;
+        $path = rtrim($path, '/');
+        if (str_ends_with($path, '.php')) {
+            $path = substr($path, 0, -4);
+        }
+        $path = $path === '' ? '/' : $path;
 
         static $compatAliases = [
             // Account / cloud save.

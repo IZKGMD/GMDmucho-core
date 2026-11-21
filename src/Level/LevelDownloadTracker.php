@@ -40,6 +40,19 @@ final readonly class LevelDownloadTracker
         ) ?? '300');
         $window = max(30, min(604800, $window));
 
+        // A saturated window cannot add a download. Check its two indexed
+        // slots without opening a write transaction or locking a popular level.
+        $slots = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM mucho_level_downloads
+             WHERE level_id=:level_id
+               AND client_hash=:client_hash
+               AND created_at >= (CURRENT_TIMESTAMP - INTERVAL ' . $window . ' SECOND)'
+        );
+        $slots->execute(['level_id' => $levelId, 'client_hash' => $clientHash]);
+        if ((int)$slots->fetchColumn() >= 2) {
+            return false;
+        }
+
         $this->pdo->beginTransaction();
 
         try {
@@ -64,13 +77,12 @@ final readonly class LevelDownloadTracker
              * legitimately issue a paired download request. INSERT IGNORE
              * makes the first-seen path race-safe across PHP workers.
              */
+            $insert = $this->pdo->prepare(
+                'INSERT IGNORE INTO mucho_level_downloads
+                 (level_id,client_hash,slot)
+                 VALUES (:level_id,:client_hash,:slot)'
+            );
             for ($slot = 1; $slot <= 2; $slot++) {
-                $insert = $this->pdo->prepare(
-                    'INSERT IGNORE INTO mucho_level_downloads
-                     (level_id,client_hash,slot)
-                     VALUES (:level_id,:client_hash,:slot)'
-                );
-
                 $insert->execute([
                     'level_id' => $levelId,
                     'client_hash' => $clientHash,

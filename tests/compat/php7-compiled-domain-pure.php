@@ -43,8 +43,9 @@ $php8OnlyDiagnosticHashes=array(
     'src/Core/Application.php'=>'44e8139178cc22edb7936c77b707d6256c69c9d6baac967656188527c3600998',
     'src/Level/LevelTransferRepository.php'=>'5f2f621c0d176e7fa4da8fd1cb52008c7fb2674b668193913579c7220edabbd8',
     'src/Level/LevelTransferService.php'=>'186cc53eb16137e9cc34e8e6a10e39ef8a2a8481f90b47e0ade50221a6b234b2',
-    'src/Routing/Router.php'=>'4a41233fbc2aa91ab6caa38b4f92dbca3169c50014e0b5f0e1fdbfa00387b110',
+    'src/Routing/Router.php'=>'d67bce97a1168d7682f2a9010b05f2a4ef4c0e54f170a2204817f6e011e85751',
     'src/User/UserRepository.php'=>'e777296cda69f58974d65ffc77158d9f68c242fcb625081e665bff680a53d648',
+    'src/Level/LevelDownloadTracker.php'=>'81a0a1314d86793d76961e4a4cf4b90b0f9ffe7b9a79f0951a63fb13ddd0e290',
 );
 $count=0;
 foreach($sources as $path=>$hash){
