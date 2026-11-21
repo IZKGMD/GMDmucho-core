@@ -11,7 +11,7 @@ $sources=json_decode(file_get_contents($root.'/compat/php7/core/sources.json'),t
 // PHP 7 retains its previous, verified single-build Android patcher.
 $php8OnlyDiagnosticHashes=array(
     // PHP 8 endpoint review. These exact revisions are pending the PHP 7 port.
-    'src/Account/AccountService.php'=>'b3c319b89251a94957d77a228312cafe5d05098d925b7aef6d1aec80349d7e7e',
+    'src/Account/AccountService.php'=>'d47cd2ba509f5e736cd70a2db406d855cf99bd5d6994b6ba1f6d47dca3684438',
     'src/CloudSave/CloudSaveService.php'=>'7bf9310038af5eb52b0a1ce8d5fbc6a216448f56f79f6bd3d54ceb469afc129d',
     'src/Compatibility/DiscoveryController.php'=>'28a8bd39a57976c72153ea54bd0335b0dd3f719f3718d7ae807bc564649fe395',
     'src/LevelList/LevelListRepository.php'=>'4dee38efcc2598f37fc7cdf4d1ee30a680c1ad8ce9d6d5887f57ec7560267370',
@@ -38,6 +38,14 @@ $php8OnlyDiagnosticHashes=array(
     'src/Client/AndroidClientPatcher.php'=>'5b201600cff430ba777df3403f403686a89e35e55e965943c69d7013fca72e9c',
     'src/Social/MessageController.php'=>'20146708112462034cbe140a60a553a5e344a6bdbf3d20b1430c5059c82a660b',
     'src/Social/MessageService.php'=>'3d42dfed2b6cd97f3c8db974aabb8f1aee0ec59da6f95bdc4f388bd9fced4e86',
+    // PHP 8 request bootstrap and authentication optimizations.
+    'src/Account/AccountAuthenticator.php'=>'df4c34f8cc1624fe475e1e7dff79f8bf14a113a8cf646155490e24788d23b9a0',
+    'src/Core/Application.php'=>'44e8139178cc22edb7936c77b707d6256c69c9d6baac967656188527c3600998',
+    'src/Level/LevelTransferRepository.php'=>'5d3fce996b77d2e0216d46d8e04804866ac98cfc7646835df812682c4c2349fb',
+    'src/Level/LevelTransferService.php'=>'5d4c3456d6f379d28e8555dbc01d62728ef76b600b0f5021d599924a8bd6bd90',
+    'src/Routing/Router.php'=>'d67bce97a1168d7682f2a9010b05f2a4ef4c0e54f170a2204817f6e011e85751',
+    'src/User/UserRepository.php'=>'e777296cda69f58974d65ffc77158d9f68c242fcb625081e665bff680a53d648',
+    'src/Level/LevelDownloadTracker.php'=>'81a0a1314d86793d76961e4a4cf4b90b0f9ffe7b9a79f0951a63fb13ddd0e290',
 );
 $count=0;
 foreach($sources as $path=>$hash){

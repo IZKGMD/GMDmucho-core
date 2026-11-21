@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Verify real player cookies are revoked in the isolated PHP-FPM CI stack."""
+"""Verify player cookies and warm GD credentials are revoked in PHP-FPM."""
+import hashlib
 import importlib.util
 import os
 from pathlib import Path
@@ -102,20 +103,52 @@ def main():
             return code == 200 and 'name="action" value="login"' in page
         return code == 200 and 'name="clanName"' not in page
 
+    def game_post(path, **fields):
+        code, body, _ = http.Browser().post(
+            {"gameVersion": 22, "binaryVersion": 51, **fields}, "/database/" + path
+        )
+        check(code == 200, "GD HTTP transport")
+        return body.strip()
+
+    def gjp2(secret):
+        return hashlib.sha1((secret + "mI29fmAnxgTs").encode()).hexdigest()
+
+    def game_login(**credentials):
+        return game_post("accounts/loginGJAccount.php", userName=identity, **credentials)
+
+    def game_settings(credential):
+        return game_post("updateGJAccSettings20.php", accountID=account_id, gjp2=credential)
+
     try:
         fixture("create")
+        old_gjp2 = gjp2(password)
+        game_identity = game_login(gjp2=old_gjp2)
+        check(re.fullmatch(r"[1-9][0-9]*,[1-9][0-9]*", game_identity), "GD login returns both IDs")
+        account_id = int(game_identity.split(",")[0])
         dashboard, clans = login(), login()
         code, page, _ = clans.get("/dashboard/clans.php")
         check(code == 200 and 'name="clanName"' in page, "current cookie permits clan management")
+        check(game_login(gjp2=old_gjp2) == game_identity, "repeated GJP2 login works")
+        check(game_settings(old_gjp2) == "1", "protected endpoint accepts current GJP2")
+        check(game_settings(gjp2(secrets.token_hex(16))) == "-1", "warm cache rejects a different credential")
         fixture("ban")
         check(signed_out(dashboard, "/dashboard/"), "banned player loses dashboard access")
         check(signed_out(clans, "/dashboard/clans.php"), "banned player loses clan management")
+        check(game_login(gjp2=old_gjp2) == "-12", "ban still blocks warm GJP2 login")
+        check(game_settings(old_gjp2) == "-1", "ban still blocks warm protected requests")
         fixture("unban")
         dashboard, clans = login(), login()
+        check(game_login(gjp2=old_gjp2) == game_identity, "unbanned player can log in again")
+        check(game_login(password=password) == game_identity, "GD password login works")
         fixture("password")
         check(signed_out(dashboard, "/dashboard/"), "password change revokes dashboard cookie")
         check(signed_out(clans, "/dashboard/clans.php"), "password change revokes clan cookie")
+        check(game_login(gjp2=old_gjp2) == "-1", "password change revokes warm GJP2 login")
+        check(game_login(password=password) == "-1", "password change revokes warm password login")
+        check(game_settings(old_gjp2) == "-1", "password change revokes warm protected requests")
         password = env["MC_PLAYER_SESSION_NEXT"]
+        check(game_settings(gjp2(password)) == "1", "protected endpoint accepts replacement GJP2")
+        check(game_login(password=password) == game_identity, "replacement password preserves GD identity")
         login()
         print("PLAYER_SESSION_HTTP_OK", flush=True)
     finally:

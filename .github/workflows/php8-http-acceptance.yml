@@ -119,7 +119,7 @@ jobs:
           export DB_PASS="$(cat .secrets/testgdps_db_password)"
           python3 tests/integration/admin-email-recovery-e2e.py
 
-      - name: Verify player password changes and bans revoke browser sessions
+      - name: Verify password changes and bans revoke browser sessions and warm GD credentials
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: "13307"
@@ -130,6 +130,8 @@ jobs:
         run: |
           set -Eeuo pipefail
           export DB_PASS="$(cat .secrets/testgdps_db_password)"
+          docker compose -f docker-compose.test.yml -f docker-compose.test-acceptance.yml \
+            exec -T testgdps-app php -d apc.enable_cli=1 -r 'exit(function_exists("apcu_enabled") && apcu_enabled() && getenv("MUCHO_AUTH_CACHE") === "1" ? 0 : 1);'
           python3 tests/integration/player-session-http.py
 
       - name: Run full PHP 8 HTTP acceptance regression

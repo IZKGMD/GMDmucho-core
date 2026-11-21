@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require dirname(__DIR__, 2) . '/src/Core/Environment.php';
+require dirname(__DIR__, 2) . '/src/Account/VerifiedCredentialCache.php';
 require dirname(__DIR__, 2) . '/src/Account/AccountAuthenticator.php';
 require dirname(__DIR__, 2) . '/src/Level/LevelAccess.php';
 require dirname(__DIR__, 2) . '/src/CloudSave/CloudSaveRepository.php';
