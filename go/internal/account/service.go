@@ -162,7 +162,8 @@ func (s Service) Login(ctx context.Context, username, password, gjp2, ip, udid s
 	if username == "" || len(username) > 20 || len(password) > 512 || len(gjp2) > 512 {
 		return "-1", nil
 	}
-	r, err := dbutil.One(ctx, s.DB, `SELECT account_id,password_hash,gjp2_hash,is_active,is_banned FROM accounts WHERE username=? LIMIT 1`, username)
+	r, err := dbutil.One(ctx, s.DB, `SELECT a.account_id,a.password_hash,a.gjp2_hash,a.is_active,a.is_banned,p.user_id
+		FROM accounts a LEFT JOIN profiles p ON p.account_id=a.account_id WHERE a.username=? LIMIT 1`, username)
 	if errors.Is(err, sql.ErrNoRows) {
 		return "-1", nil
 	}
@@ -193,9 +194,12 @@ func (s Service) Login(ctx context.Context, username, password, gjp2, ip, udid s
 		_, err = s.DB.ExecContext(ctx, `INSERT INTO audit_logs(account_id,action,ip_address,metadata) VALUES(?,'account.login_failed',?,'[]')`, id, ip)
 		return "-1", err
 	}
-	uid, err := s.ensureProfile(ctx, id)
-	if err != nil {
-		return "", err
+	uid := r.Int("user_id")
+	if uid <= 0 {
+		uid, err = s.ensureProfile(ctx, id)
+		if err != nil {
+			return "", err
+		}
 	}
 	// Auxiliary bookkeeping must never replace a successful protocol login.
 	_, _ = s.DB.ExecContext(ctx, `UPDATE accounts SET last_login_at=CURRENT_TIMESTAMP WHERE account_id=?`, id)
