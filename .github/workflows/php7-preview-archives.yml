@@ -147,10 +147,10 @@ jobs:
           $tag = "v$version"
           $marker = ".release/setup-$tag.ready"
           if (!(Test-Path $marker)) { return }
-          $added = git diff --name-only --diff-filter=A $env:PREVIOUS_SHA HEAD -- $marker
+          $changed = git diff --name-only --diff-filter=AM $env:PREVIOUS_SHA HEAD -- $marker
           if (!$?) { throw "Could not verify the installer publication marker" }
-          if ($added -ne $marker) { return }
-          if ((Get-Content $marker -Raw).Trim() -ne $tag) {
+          if ($changed -ne $marker) { return }
+          if ((Get-Content $marker -TotalCount 1).Trim() -ne $tag) {
             throw "Installer publication marker does not match the bundled core version"
           }
           $release = gh release view $tag --json tagName,isDraft,isPrerelease | ConvertFrom-Json

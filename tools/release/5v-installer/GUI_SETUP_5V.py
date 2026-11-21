@@ -249,7 +249,7 @@ class InstallerWindow:
 
         top = ttk.Frame(outer)
         top.pack(fill="x", pady=(0, 10))
-        ttk.Button(top, text="Open 5v.pl",
+        ttk.Button(top, text="Create website on 5v.pl",
                    command=lambda: webbrowser.open("https://5v.pl/")).pack(side="left")
         ttk.Button(top, text="Find my FTP details",
                    command=lambda: webbrowser.open(
@@ -292,7 +292,7 @@ class InstallerWindow:
             return entry
 
         form = self.step_frames[0]
-        ttk.Label(form, text="Use the FTP server and unique FTP username shown next to your site in the 5v.pl dashboard.",
+        ttk.Label(form, text="Create a website in 5v.pl, then enter its address and the FTP details from the dashboard. Setup finds the website folder for you.",
                   style="Sub.TLabel", wraplength=580).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 8))
         field(form, 1, "site", "Website (name.5v.pl)")
         field(form, 2, "ftp_host", "FTP server")

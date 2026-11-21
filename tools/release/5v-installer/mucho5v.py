@@ -17,6 +17,7 @@ import ssl
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import deque
 from html.parser import HTMLParser
 
 SITE_RE = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.5v\.pl", re.I)
@@ -293,44 +294,104 @@ class FtpSite:
     def rename(self, base: str, before: str, after: str):
         self.cd(base)
         self.conn.rename(safe_relative(before), safe_relative(after))
+
+    def _enter_folder(self, base: str, path: str) -> str:
+        self.cd(base)
+        if path != ".":
+            for component in safe_relative(path).split("/"):
+                self.conn.cwd(component)
+        return self.conn.pwd()
+
+    def _site_folders(self, base: str, host: str):
+        label = host.split(".", 1)[0]
+        standard = (".", host, label, "htdocs", "www", "public_html", "httpdocs", "public")
+        likely = (*standard, "domains/" + host + "/public_html",
+                  "domains/" + host, "sites/" + host, "www/" + host, "www/" + label,
+                  "public_html/" + host, "public_html/" + label, host + "/public_html")
+        yield from likely
+
+        checked = set(likely)
+        queue = deque([(".", 0)])
+        listed = set()
+        for _ in range(48):
+            if not queue:
+                break
+            parent, depth = queue.popleft()
+            if depth >= 3:
+                continue
+            try:
+                folder = self._enter_folder(base, parent)
+                if folder in listed:
+                    continue
+                listed.add(folder)
+                entries = self.conn.nlst()
+            except ftplib.error_perm:
+                continue
+            names = {entry.rstrip("/").rsplit("/", 1)[-1] for entry in entries}
+            names = sorted(name for name in names if re.fullmatch(r"[A-Za-z0-9_.-]{1,255}", name)
+                           and name not in (".", "..") and not name.startswith("."))
+            names.sort(key=lambda name: (name.lower() not in (host, label),
+                                         name.lower() not in standard))
+            for name in names[:48]:
+                path = name if parent == "." else parent + "/" + name
+                if path not in checked:
+                    checked.add(path)
+                    yield path
+                if depth < 2 and len(queue) < 48:
+                    queue.append((path, depth + 1))
+
     def find_root(self, origin: str, hint: str = "") -> str:
         https = HttpsSite(origin)
         base = self.conn.pwd()
-        host = urllib.parse.urlsplit(origin).hostname
-        paths = [hint] if hint else [
-            ".", "htdocs", "www", "public_html", "httpdocs", "public",
-            "domains/" + host, "domains/" + host + "/public_html",
-            "www/" + host, "public_html/" + host,
-        ]
-        token = secrets.token_hex(24)
-        name = "muchocore-probe-" + secrets.token_hex(8) + ".txt"
+        host = urllib.parse.urlsplit(https.origin).hostname
+        paths = (hint,) if hint else self._site_folders(base, host)
+        visited = set()
         http_failures = set()
-        for candidate in paths:
-            try:
-                self.cd(base)
-                if candidate != ".":
-                    self.cd(base)
-                    for part in safe_relative(candidate).split("/"):
-                        self.conn.cwd(part)
-                folder = self.conn.pwd()
-                self.put(folder, name, token.encode("ascii"))
+        writable = False
+        try:
+            for candidate in paths:
                 try:
-                    status, body = https.request("/" + name)
-                    if status == 200 and body.strip() == token.encode("ascii"):
+                    folder = self._enter_folder(base, candidate)
+                    if folder in visited:
+                        continue
+                    visited.add(folder)
+                    if len(visited) > 48:
+                        break
+                    token = secrets.token_hex(24)
+                    name = "muchocore-probe-" + secrets.token_hex(12) + ".php"
+                    script = ("<?php header('Content-Type: text/plain'); "
+                              "header('Cache-Control: no-store'); "
+                              f"echo '{token[:24]}' . '{token[24:]}';").encode("ascii")
+                    verified = False
+                    try:
+                        self.put(folder, name, script)
+                        writable = True
+                        status, body = https.request("/" + name)
+                        if status == 200 and body.strip() == token.encode("ascii"):
+                            verified = True
+                        if status >= 500:
+                            http_failures.add(status)
+                    finally:
+                        self.delete(folder, name)
+                    if verified:
                         self.root = folder
                         return folder
-                    if status >= 500:
-                        http_failures.add(status)
-                finally:
-                    self.delete(folder, name)
-            except ftplib.error_perm:
-                continue
-            except ftplib.all_errors:
-                raise InstallError("FTP login succeeded, but the file transfer failed. Check passive FTP access and the site's write permissions.") from None
+                except ftplib.error_perm:
+                    continue
+        except ftplib.all_errors:
+            raise InstallError("FTP login succeeded, but file access failed. Check passive FTP access and the account's write permissions.") from None
+        finally:
+            if self.root is None:
+                try:
+                    self.cd(base)
+                except ftplib.all_errors:
+                    pass
         if http_failures:
             codes = ", ".join(str(code) for code in sorted(http_failures))
-            raise InstallError(f"FTP login succeeded, but the website returned HTTP {codes}. Check that the site opens over HTTPS before retrying.")
-        raise InstallError("FTP login succeeded, but Setup could not verify the website folder over HTTPS. Enter the folder in Advanced settings.")
+            raise InstallError(f"The website returned HTTP {codes} during setup. Check that the site opens over HTTPS and retry.")
+        if not writable:
+            raise InstallError("FTP login succeeded, but Setup could not write to a website folder. Use the FTP account for this site from the 5v.pl dashboard.")
+        raise InstallError("Setup could not verify PHP on this website. Check that the website address and FTP account belong to the same site. For a newly created site, retry once it is active.")
     def upload_tree(self, folder: Path, progress=print):
         if self.root is None:
             raise InstallError("Verify the website folder first.")
