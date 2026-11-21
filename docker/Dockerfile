@@ -6,8 +6,8 @@ FROM php:8.3-fpm-bookworm
 COPY bin/php-runtime-security.php /usr/local/bin/mucho-php-runtime-security.php
 RUN php /usr/local/bin/mucho-php-runtime-security.php
 
-# Redis is optional. The default MuchoCore cache driver uses MariaDB;
-# never make a fresh/production app image depend on PECL availability.
+# Redis is optional. The default MuchoCore cache driver uses MariaDB.
+# Without PECL, the standard image still uses complete credential checks.
 # Set MUCHO_WITH_REDIS=1 only in the explicit Redis-cache Compose overlay.
 ARG MUCHO_WITH_REDIS=0
 
@@ -21,7 +21,8 @@ RUN apt-get update \
     && docker-php-ext-install ftp \
     && php -r 'if (!function_exists("ftp_ssl_connect")) { fwrite(STDERR, "FTP TLS support is missing in this Docker image.\\n"); exit(1); }' \
     && docker-php-ext-enable opcache \
-    && pecl install apcu-5.1.28 && docker-php-ext-enable apcu \
+    && if pecl install apcu-5.1.28; then docker-php-ext-enable apcu; \
+       else echo '[MuchoCore] APCu unavailable; using uncached credential verification'; fi \
     && case "$MUCHO_WITH_REDIS" in \
         0) echo '[MuchoCore] Redis extension not requested; database cache remains available' ;; \
         1) pecl install redis-6.2.0 && docker-php-ext-enable redis ;; \
