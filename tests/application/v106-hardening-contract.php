@@ -42,8 +42,10 @@ assertV106(
 );
 
 assertV106(
-    substr_count($userRepository, 'a.is_active=1') >= 2 &&
-    substr_count($userRepository, 'a.is_banned=0') >= 2,
+    str_contains($userRepository, "leaderboardByMetric('stars',") &&
+    str_contains($userRepository, "leaderboardByMetric('creator_points',") &&
+    str_contains($userRepository, 'eligible.is_active = 1') &&
+    str_contains($userRepository, 'eligible.is_banned = 0'),
     'top and creator leaderboards exclude inactive and banned accounts'
 );
 
