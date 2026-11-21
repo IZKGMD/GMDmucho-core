@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import socket
 import ssl
 import urllib.error
 import urllib.parse
@@ -32,6 +33,77 @@ class InstallError(RuntimeError):
 
 class FtpTlsUnavailable(InstallError):
     """The FTP server explicitly rejected the AUTH TLS command."""
+
+
+def ftp_failure(exc: BaseException) -> str:
+    """Report server status without including account or server-supplied text."""
+    if isinstance(exc, ftplib.Error):
+        status = re.match(r"^[1-5][0-9]{2}(?:\s|$)", str(exc))
+        if status:
+            return "FTP " + status[0].strip()
+    if isinstance(exc, TimeoutError):
+        return "timed out"
+    if isinstance(exc, EOFError):
+        return "server closed the connection"
+    return type(exc).__name__
+
+
+class PassiveFtp(ftplib.FTP):
+    """Select a working passive data mode without trusting a PASV address."""
+
+    data_mode = "EPSV"
+
+    def ntransfercmd(self, cmd, rest=None):
+        modes = (self.data_mode,)
+        if self.af == socket.AF_INET:
+            modes += ("PASV" if self.data_mode == "EPSV" else "EPSV",)
+        peer = self.sock.getpeername()
+        failures = []
+        for mode in modes:
+            try:
+                reply = self.sendcmd(mode)
+                port = (ftplib.parse229(reply, peer) if mode == "EPSV"
+                        else ftplib.parse227(reply))[1]
+                if not 1 <= port <= 65535:
+                    raise ValueError("Invalid passive port")
+            except (ftplib.Error, ValueError) as exc:
+                failures.append(f"{mode}: {ftp_failure(exc)}")
+                continue
+            try:
+                channel = socket.create_connection((peer[0], port), min(self.timeout, 8),
+                                                   source_address=self.source_address)
+            except OSError as exc:
+                failures.append(f"{mode}: {ftp_failure(exc)}")
+                continue
+            try:
+                channel.settimeout(self.timeout)
+                if rest is not None:
+                    self.sendcmd("REST " + str(rest))
+                reply = self.sendcmd(cmd)
+                if reply.startswith("2"):
+                    reply = self.getresp()
+                if not reply.startswith("1"):
+                    raise ftplib.error_reply(reply)
+                size = ftplib.parse150(reply) if reply.startswith("150") else None
+            except ftplib.error_temp as exc:
+                channel.close()
+                if ftp_failure(exc) != "FTP 425":
+                    raise
+                failures.append(f"{mode}: FTP 425")
+                continue
+            except BaseException:
+                channel.close()
+                raise
+            self.data_mode = mode
+            return channel, size
+
+        detail = "; ".join(failures)
+        command = cmd.partition(" ")[0]
+        raise InstallError(f"FTP login succeeded, but the data connection for {command} could not open ({detail}).")
+
+
+class PassiveFtps(ftplib.FTP_TLS, PassiveFtp):
+    """Use the same data negotiation before wrapping each socket in TLS."""
 
 
 def site_origin(value: str) -> str:
@@ -194,9 +266,9 @@ class FtpSite:
         self.root = None
     def __enter__(self):
         if self.secure:
-            self.conn = ftplib.FTP_TLS(context=ssl.create_default_context(), timeout=25)
+            self.conn = PassiveFtps(context=ssl.create_default_context(), timeout=25)
         else:
-            self.conn = ftplib.FTP(timeout=25)
+            self.conn = PassiveFtp(timeout=25)
         phase = "connect"
         try:
             self.conn.connect(self.host, self.port, timeout=25)
@@ -342,15 +414,20 @@ class FtpSite:
 
     def find_root(self, origin: str, hint: str = "") -> str:
         https = HttpsSite(origin)
-        base = self.conn.pwd()
+        try:
+            base = self.conn.pwd()
+        except ftplib.all_errors as exc:
+            raise InstallError(f"FTP login succeeded, but the server could not return its starting folder ({ftp_failure(exc)}).") from None
         host = urllib.parse.urlsplit(https.origin).hostname
         paths = (hint,) if hint else self._site_folders(base, host)
         visited = set()
         http_failures = set()
         writable = False
+        stage = "listing folders"
         try:
             for candidate in paths:
                 try:
+                    stage = "opening a site folder"
                     folder = self._enter_folder(base, candidate)
                     if folder in visited:
                         continue
@@ -364,6 +441,7 @@ class FtpSite:
                               f"echo '{token[:24]}' . '{token[24:]}';").encode("ascii")
                     verified = False
                     try:
+                        stage = "uploading the temporary PHP check"
                         self.put(folder, name, script)
                         writable = True
                         status, body = https.request("/" + name)
@@ -371,15 +449,23 @@ class FtpSite:
                             verified = True
                         if status >= 500:
                             http_failures.add(status)
-                    finally:
+                    except (InstallError,) + ftplib.all_errors:
+                        try:
+                            self.delete(folder, name)
+                        except ftplib.all_errors:
+                            pass
+                        raise
+                    else:
+                        stage = "removing the temporary PHP check"
                         self.delete(folder, name)
                     if verified:
                         self.root = folder
                         return folder
                 except ftplib.error_perm:
-                    continue
-        except ftplib.all_errors:
-            raise InstallError("FTP login succeeded, but file access failed. Check passive FTP access and the account's write permissions.") from None
+                    pass
+                stage = "listing folders"
+        except ftplib.all_errors as exc:
+            raise InstallError(f"FTP login succeeded, but Setup failed while {stage} ({ftp_failure(exc)}).") from None
         finally:
             if self.root is None:
                 try:
