@@ -1,0 +1,74 @@
+name: Export MuchoCore assets into one folder
+
+on:
+  push:
+    branches:
+      - assets/one-folder-export-20261121
+
+permissions:
+  contents: read
+
+jobs:
+  pack-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Collect tracked static assets
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import csv
+          import pathlib
+          import subprocess
+
+          suffixes = {
+              ".png", ".jpg", ".jpeg", ".webp", ".gif", ".ico", ".svg",
+              ".avif", ".bmp", ".tiff", ".tif", ".apng",
+              ".css", ".js", ".mjs", ".cjs",
+              ".woff", ".woff2", ".ttf", ".otf", ".eot",
+              ".mp3", ".ogg", ".wav", ".flac", ".webm", ".mp4", ".mov"
+          }
+          root = pathlib.Path("assets-export/MuchoCore-Assets")
+          root.mkdir(parents=True, exist_ok=True)
+          names = set()
+          rows = []
+          paths = subprocess.check_output(["git", "ls-files", "-z"]).decode("utf-8").split("\0")
+          for name in sorted(filter(None, paths)):
+              src = pathlib.Path(name)
+              if src.suffix.lower() not in suffixes or not src.is_file():
+                  continue
+              dst_name = name.replace("/", "__")
+              if dst_name.lower() in names:
+                  raise RuntimeError("Flat filename collision: " + name)
+              names.add(dst_name.lower())
+              dst = root / dst_name
+              dst.write_bytes(src.read_bytes())
+              rows.append((name, dst_name, src.stat().st_size))
+
+          with (root / "MANIFEST.csv").open("w", newline="", encoding="utf-8-sig") as f:
+              writer = csv.writer(f)
+              writer.writerow(("Original path", "Filename in this folder", "Size in bytes"))
+              writer.writerows(rows)
+          sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          (root / "README.txt").write_text(
+              "MuchoCore - all tracked static assets collected into ONE flat folder.\n"
+              "Source: https://github.com/IZKGMD/GMDmucho-core\n"
+              f"Source commit: {sha}\n"
+              f"Files: {len(rows)}\n"
+              "Includes images, icons, fonts, CSS, JavaScript and audio/video files.\n"
+              "Folder names are prefixed into filenames to avoid overwriting duplicates.\n"
+              "MANIFEST.csv maps every file back to its original project path.\n",
+              encoding="utf-8"
+          )
+          print(f"Packed {len(rows)} static assets into {root}")
+          PY
+      - name: Publish downloadable ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: MuchoCore-Assets-One-Folder
+          path: assets-export/
+          if-no-files-found: error
+          retention-days: 7
