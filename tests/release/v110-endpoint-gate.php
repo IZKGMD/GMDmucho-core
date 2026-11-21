@@ -6,7 +6,9 @@ require dirname(__DIR__, 2) . '/src/Release/V110EndpointGate.php';
 
 use MuchoCore\Release\V110EndpointGate;
 
-$path = dirname(__DIR__, 2) . '/tests/protocol/endpoint-contracts.json';
+$root = dirname(__DIR__, 2);
+$path = $root . '/tests/protocol/endpoint-contracts.json';
+$releaseVersion = trim((string)file_get_contents($root . '/VERSION'));
 
 try {
     $registry = json_decode(
@@ -20,10 +22,10 @@ try {
     exit(1);
 }
 
-$issues = V110EndpointGate::issues(is_array($registry) ? $registry : []);
+$issues = V110EndpointGate::issues(is_array($registry) ? $registry : [], $releaseVersion);
 $contracts = is_array($registry['contracts'] ?? null) ? $registry['contracts'] : [];
 $report = [
-    'target_release' => '1.1.0',
+    'target_release' => $releaseVersion,
     'ready' => $issues === [],
     'endpoint_count' => count($contracts),
     'inventory_only_count' => count(array_filter($contracts,

@@ -1,3 +1,11 @@
+## v1.1.1 — PHP 8 installation and GD 2.209 fixes
+
+- Make VPS installation collect the first owner's credentials and preserve native News settings on reinstall.
+- Fix Social moderation in the PHP 8 admin panel and keep edited player and level cards open after saving.
+- Serve the native GD news feed and its revision without HTTP caching.
+- Verify native GJP2 credentials before the plain-password fallback to reduce the cost of authenticated game requests.
+- Match endpoint certification to the source version before stable publication.
+
 ## Unreleased — News images and native YouTube cards
 
 - Add JPG/PNG uploads, image-only posts and YouTube cards to both admin interfaces, public web News and native GD 2.209 News. Decode/re-encode bounded uploads and serve content-hashed JPEG resources.
@@ -47,7 +55,7 @@
 
 ## v1.1.0 — Control Plane & Deployment Platform
 
-> **Release status:** 1.1.0 source is on `main`, but the stable release is **not published yet**. The endpoint-certification gate and release archive checks must pass first.
+See the [published v1.1.0 release](https://github.com/IZKGMD/GMDmucho-core/releases/tag/v1.1.0).
 
 ### What's new — in plain language
 
