@@ -19,6 +19,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from collections import deque
+from dataclasses import dataclass
 from html.parser import HTMLParser
 
 SITE_RE = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.5v\.pl", re.I)
@@ -33,6 +34,20 @@ class InstallError(RuntimeError):
 
 class FtpTlsUnavailable(InstallError):
     """The FTP server explicitly rejected the AUTH TLS command."""
+
+
+@dataclass(frozen=True)
+class VerifiedFtpFolder:
+    origin: str
+    host: str
+    user: str
+    secure: bool
+    port: int
+    hint: str
+    peer: str
+    home: str
+    folder: str
+    data_mode: str
 
 
 def ftp_failure(exc: BaseException) -> str:
@@ -333,12 +348,32 @@ class FtpSite:
     def put(self, base: str, rel: str, data: bytes):
         path = safe_relative(rel)
         parent, _, name = path.rpartition("/")
-        if parent:
-            self.ensure_dir(base, parent)
-        else:
-            self.cd(base)
-        self.conn.storbinary("STOR " + name, io.BytesIO(data), blocksize=65536)
-        self.cd(base)
+        for attempt in range(3):
+            if parent:
+                self.ensure_dir(base, parent)
+            else:
+                self.cd(base)
+            peer = self.conn.sock.getpeername()[0]
+            try:
+                self.conn.storbinary("STOR " + name, io.BytesIO(data), blocksize=65536)
+            except (TimeoutError, ConnectionError, EOFError, ftplib.error_temp) as exc:
+                if attempt == 2 or (isinstance(exc, ftplib.error_temp) and
+                                     ftp_failure(exc) not in {"FTP 421", "FTP 425", "FTP 426", "FTP 451"}):
+                    raise
+                self._reconnect_upload(peer)
+            else:
+                self.cd(base)
+                return
+
+    def _reconnect_upload(self, peer: str):
+        mode = self.conn.data_mode
+        self.conn.close()
+        self.__enter__()
+        if self.conn.sock.getpeername()[0] != peer:
+            self.close()
+            raise InstallError("The FTP server changed during an upload. Check the website and restart installation.")
+        if self.conn.af == socket.AF_INET:
+            self.conn.data_mode = "PASV" if mode == "EPSV" else "EPSV"
     def get(self, base: str, rel: str, *, optional: bool = False) -> bytes | None:
         path = safe_relative(rel)
         self.cd(base)
@@ -412,6 +447,28 @@ class FtpSite:
                 if depth < 2 and len(queue) < 48:
                     queue.append((path, depth + 1))
 
+    def verify_folder(self, origin: str, hint: str = "") -> VerifiedFtpFolder:
+        home = self.conn.pwd()
+        folder = self.find_root(origin, hint)
+        return VerifiedFtpFolder(site_origin(origin), self.host, self.user, self.secure,
+                                 self.port, hint, self.conn.sock.getpeername()[0],
+                                 home, folder, self.conn.data_mode)
+
+    def use_verified_folder(self, origin: str, hint: str, verified: VerifiedFtpFolder) -> bool:
+        if (verified.origin, verified.host, verified.user, verified.secure, verified.port, verified.hint) != (
+                site_origin(origin), self.host, self.user, self.secure, self.port, hint):
+            return False
+        if self.conn.sock.getpeername()[0] != verified.peer or self.conn.pwd() != verified.home:
+            return False
+        try:
+            self.cd(verified.folder)
+        except ftplib.error_perm:
+            return False
+        self.root = verified.folder
+        if self.conn.af == socket.AF_INET:
+            self.conn.data_mode = verified.data_mode
+        return True
+
     def find_root(self, origin: str, hint: str = "") -> str:
         https = HttpsSite(origin)
         try:
@@ -451,7 +508,8 @@ class FtpSite:
                             http_failures.add(status)
                     except (InstallError,) + ftplib.all_errors:
                         try:
-                            self.delete(folder, name)
+                            if self.conn is not None:
+                                self.delete(folder, name)
                         except ftplib.all_errors:
                             pass
                         raise

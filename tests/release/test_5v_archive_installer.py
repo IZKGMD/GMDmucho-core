@@ -1,4 +1,5 @@
 """Offline regression tests for the first-run 5v.pl archive installer."""
+from dataclasses import replace
 import ftplib
 import importlib.util
 import os
@@ -17,7 +18,7 @@ from unittest.mock import Mock, call, patch
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "tools/release/5v-installer"
 sys.path.insert(0, str(SRC))
-from mucho5v import (FtpSite, FtpTlsUnavailable, InstallError, PassiveFtp, site_origin, valid_ftp_host, php_quote,
+from mucho5v import (FtpSite, FtpTlsUnavailable, InstallError, PassiveFtp, VerifiedFtpFolder, site_origin, valid_ftp_host, php_quote,
                      private_config, merge_rules, safe_relative, FormFields)
 import INSTALL_5V
 import RECOVER_ADMIN_5V
@@ -45,6 +46,53 @@ class DomainTests(unittest.TestCase):
 
 
 class FtpConnectionTests(unittest.TestCase):
+    def test_timed_out_upload_reconnects_and_restarts_with_all_bytes(self):
+        first, second = Mock(), Mock()
+        for conn in first, second:
+            conn.sock.getpeername.return_value = ("192.0.2.10", 21)
+            conn.af = socket.AF_INET
+            conn.data_mode = "EPSV"
+        chunks = []
+
+        def partial_upload(command, stream, **_):
+            chunks.append((command, stream.read(3)))
+            raise TimeoutError()
+
+        def complete_upload(command, stream, **_):
+            chunks.append((command, stream.read()))
+
+        first.storbinary.side_effect = partial_upload
+        second.storbinary.side_effect = complete_upload
+        with patch("mucho5v.PassiveFtp", side_effect=[first, second]):
+            with FtpSite("ftp.5v.pl", "test-user", "test-secret", secure=False) as ftp:
+                ftp.put("/website", "probe.php", b"entire file")
+        self.assertEqual(chunks, [("STOR probe.php", b"ent"), ("STOR probe.php", b"entire file")])
+        first.close.assert_called_once()
+        second.login.assert_called_once_with("test-user", "test-secret")
+        self.assertEqual(second.data_mode, "PASV")
+
+    def test_verified_folder_is_bound_to_site_ftp_account_and_server(self):
+        origin = "https://example.5v.pl"
+        proof = VerifiedFtpFolder(origin, "ftp.5v.pl", "test-user", False, 21,
+                                  "", "192.0.2.10", "/account", "/account/public", "PASV")
+        with patch("mucho5v.PassiveFtp") as plain:
+            conn = plain.return_value
+            conn.pwd.return_value = "/account"
+            conn.sock.getpeername.return_value = ("192.0.2.10", 21)
+            conn.af = socket.AF_INET
+            with FtpSite("ftp.5v.pl", "test-user", "test-secret", secure=False) as ftp:
+                for mismatch in (replace(proof, origin="https://other.5v.pl"),
+                                 replace(proof, user="another-user"), replace(proof, hint="site"),
+                                 replace(proof, secure=True), replace(proof, peer="192.0.2.11"),
+                                 replace(proof, home="/other-account")):
+                    self.assertFalse(ftp.use_verified_folder(origin, "", mismatch))
+                conn.cwd.assert_not_called()
+                self.assertTrue(ftp.use_verified_folder(origin, "", proof))
+                self.assertEqual(ftp.root, "/account/public")
+                self.assertEqual(conn.data_mode, "PASV")
+                conn.cwd.assert_called_once_with("/account/public")
+                conn.storbinary.assert_not_called()
+
     def test_unsupported_ftps_stops_before_credentials(self):
         with patch("mucho5v.PassiveFtps") as tls, patch("mucho5v.PassiveFtp") as plain:
             tls.return_value.auth.side_effect = ftplib.error_perm("500 AUTH not understood")

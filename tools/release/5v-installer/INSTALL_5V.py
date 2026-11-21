@@ -262,8 +262,13 @@ def perform_install(cfg, *, prepare_clients: bool = True):
     try:
         with FtpSite(cfg["host"], cfg["user"], cfg["password"],
                      secure=cfg["secure"]) as ftp:
-            print("Verifying site ownership over FTP and HTTPS…")
-            root = ftp.find_root(cfg["site"], cfg["root"])
+            verified = cfg.get("_verified_folder")
+            if verified is not None and ftp.use_verified_folder(cfg["site"], cfg["root"], verified):
+                root = ftp.root
+                print("Reusing the website folder verified in this wizard.")
+            else:
+                print("Verifying site ownership over FTP and HTTPS…")
+                root = ftp.find_root(cfg["site"], cfg["root"])
             cfg["_resolved_root"] = root
             print("Verified website folder:", root)
             identity = install_identity(cfg)
