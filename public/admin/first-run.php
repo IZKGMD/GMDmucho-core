@@ -26,7 +26,7 @@ function muchoAdminFirstRunCopy(string $language): array
         'password_invalid' => 'Password must contain 12–256 characters without control characters.',
         'password_mismatch' => 'Passwords do not match.',
         'secret_invalid' => 'This activation link is invalid. Generate a new owner link on the server.',
-        'activation_required' => 'The server is ready for its first administrator. Open the private setup link shown by the installer. If you lost it, run sudo mucho owner-link on the server.',
+        'activation_required' => 'Finish owner setup in your VPS terminal with sudo mucho admin create, or use your private browser setup link.',
         'activate_wait' => 'Verifying your installation link…',
         'heading' => 'Create first administrator',
         'unavailable' => 'Setup unavailable',

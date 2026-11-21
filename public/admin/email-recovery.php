@@ -30,17 +30,11 @@ function muchoAdminEmailRoute(PDO $db): void
     $action = (string) ($_POST['action'] ?? '');
     if (isset($_GET['emergency_recovery'])) {
         muchoAdminEmailPage('Emergency VPS recovery',
-            '<p>Emergency owner recovery is available only to someone with '
-            .'access to the VPS console. No public master password exists.</p>'
-            .'<p>From an authorized SSH session in the MuchoCore directory, '
-            .'run <code>docker compose exec -T app php '
-            .'bin/mucho-owner-recovery-link.php --issue</code>.</p>'
-            .'<p>The command generates a private, one-time secret in a '
-            .'short-lived HTTPS password-setup link. Open that link to set '
-            .'a new owner password. Never share it with anyone.</p>'
-            .'<p>If owner 2FA is enabled, use the local '
-            .'<code>sudo mucho admin</code> reset tool instead. '
-            .'This recovery cannot be triggered by an unauthenticated web visitor.</p>');
+            '<p>Sign in to your VPS terminal and run <code>sudo mucho admin recover</code>. '
+            .'Enter and confirm the new password in the terminal, then return here to sign in.</p>'
+            .'<p>If the server has multiple owners, add your username after <code>recover</code>.</p>'
+            .'<p>If you also lost your authenticator, run <code>sudo mucho admin recover --reset-2fa</code>. '
+            .'This clears the owner’s authenticator, backup codes and passkeys so you can set them up again.</p>');
     }
     $isRoute = isset($_GET['email_recovery']) || isset($_GET['email_verify']) ||
         isset($_GET['email_reset']) ||

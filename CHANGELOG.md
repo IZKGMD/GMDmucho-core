@@ -1,6 +1,7 @@
 ## v1.1.1 — PHP 8 installation and GD 2.209 fixes
 
 - Make VPS installation collect the first owner's credentials and preserve native News settings on reinstall.
+- Add one terminal entry point to finish first-owner setup or recover an existing owner, with an explicit option for lost two-factor credentials.
 - Fix Social moderation in the PHP 8 admin panel and keep edited player and level cards open after saving.
 - Serve the native GD news feed and its revision without HTTP caching.
 - Verify native GJP2 credentials before the plain-password fallback to reduce the cost of authenticated game requests.
