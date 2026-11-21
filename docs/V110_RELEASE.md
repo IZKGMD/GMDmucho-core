@@ -1,8 +1,8 @@
-# MuchoCore 1.1.0 release readiness
+# MuchoCore stable release readiness
 
-The `VERSION` file identifies the source tree. It does not mean that a stable
-1.1.0 release has been published. The published deployment target is the release
-selected at [GitHub Releases](https://github.com/IZKGMD/GMDmucho-core/releases/latest).
+`VERSION` identifies the next source version. The endpoint registry must target
+that same version. The stable installer and updater use the version selected at
+[GitHub Releases](https://github.com/IZKGMD/GMDmucho-core/releases/latest).
 
 ## Included in main
 
@@ -126,9 +126,10 @@ Validate run does not attest that all roadmap features have shipped.
 
 ## Publication
 
-Do not add `.release/v1.1.0.ready` until the required certification passes. Validate
-rejects that marker if the endpoint gate still fails. The stable workflow repeats
-the gate and pins its source to the successful validated commit.
+Add the release marker for the exact source version, such as
+`.release/v1.1.1.ready`, after certification passes. Validate checks the marker
+against both `VERSION` and the endpoint registry. The stable workflow repeats the
+gate and pins its source to the successful validated commit.
 
 Stable publication also requires the native integration workflow at the exact
 validated main commit. Both PHP 7.0 and 8.3 matrix jobs must succeed in its latest
@@ -138,9 +139,9 @@ no runtime file changes. The publisher waits up to 15 minutes for concurrent CI.
 
 Three distributions are built before creating a GitHub release draft:
 
-- `MuchoCore-v1.1.0.zip`: source archive.
-- `MuchoCore-v1.1.0-shared-hosting.zip`: PHP 8.2+ package with Composer dependencies.
-- `MuchoCore-v1.1.0-PHP7-shared-hosting.zip`: standalone PHP7 shared package.
+- `MuchoCore-v<version>.zip` contains the source.
+- `MuchoCore-v<version>-shared-hosting.zip` contains the PHP 8.2+ package with Composer dependencies.
+- `MuchoCore-v<version>-PHP7-shared-hosting.zip` contains the standalone PHP 7 package.
 
 `checksums.sha256` covers all three archives. Failed builds, checksum mismatches
 and upload failures prevent new publication. Only successful uploads of all

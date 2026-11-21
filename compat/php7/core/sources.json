@@ -261,7 +261,7 @@
   "src/Protocol/GdXor.php": "aa1e94b4301ae57edcffab0023a384ccbf6666b947fd69ff0aad0cd1927a6cdc",
   "src/Protocol/ProtocolText.php": "76159a74eeb4a7d3e36ded248b437890714cf05001005777374fb7b20f49e123",
   "src/Release/ReleaseService.php": "708312a74b9cc9a428febb72dcfc2753b01836abdfc5817b9e66e1427400f99d",
-  "src/Release/V110EndpointGate.php": "f54ca8c0d19814dffd91b55afe4ea647828eb59418943528ef46d9bf43d1c3fb",
+  "src/Release/V110EndpointGate.php": "d53fa7e9ca14902fa9a6dffb5ffa2ec152fb38fea872e62a02d427545b930dc0",
   "src/Routing/CompatibilityAliases.php": "37bfd0d0d90cfd2c2921520582140effc5ee0fda733a6a9d937d1f0043ac603d",
   "src/Routing/Router.php": "17c0a78fdf0c9b03dba60cff7fab9e1a72cfffedbf8b56b10f5471f6bc08567c",
   "src/Score/LevelScoreController.php": "06b5f7769e11c5a18078aeba2e9463855b3a4282c19090b770ac80ed4dbb2150",
