@@ -41,8 +41,8 @@ $php8OnlyDiagnosticHashes=array(
     // PHP 8 request bootstrap and authentication optimizations.
     'src/Account/AccountAuthenticator.php'=>'df4c34f8cc1624fe475e1e7dff79f8bf14a113a8cf646155490e24788d23b9a0',
     'src/Core/Application.php'=>'44e8139178cc22edb7936c77b707d6256c69c9d6baac967656188527c3600998',
-    'src/Level/LevelTransferRepository.php'=>'5f2f621c0d176e7fa4da8fd1cb52008c7fb2674b668193913579c7220edabbd8',
-    'src/Level/LevelTransferService.php'=>'186cc53eb16137e9cc34e8e6a10e39ef8a2a8481f90b47e0ade50221a6b234b2',
+    'src/Level/LevelTransferRepository.php'=>'5d3fce996b77d2e0216d46d8e04804866ac98cfc7646835df812682c4c2349fb',
+    'src/Level/LevelTransferService.php'=>'5d4c3456d6f379d28e8555dbc01d62728ef76b600b0f5021d599924a8bd6bd90',
     'src/Routing/Router.php'=>'d67bce97a1168d7682f2a9010b05f2a4ef4c0e54f170a2204817f6e011e85751',
     'src/User/UserRepository.php'=>'e777296cda69f58974d65ffc77158d9f68c242fcb625081e665bff680a53d648',
     'src/Level/LevelDownloadTracker.php'=>'81a0a1314d86793d76961e4a4cf4b90b0f9ffe7b9a79f0951a63fb13ddd0e290',

@@ -64,6 +64,19 @@ final readonly class LevelTransferRepository
         return $row ?: null;
     }
 
+    public function findLevelVersion(int $levelId): ?int
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT level_version FROM levels
+             WHERE level_id = :level_id AND is_deleted = 0
+             LIMIT 1'
+        );
+        $stmt->execute(['level_id' => $levelId]);
+        $version = $stmt->fetchColumn();
+
+        return $version === false ? null : max(1, (int)$version);
+    }
+
     public function incrementDownloads(int $levelId): void
     {
         $stmt = $this->pdo->prepare(

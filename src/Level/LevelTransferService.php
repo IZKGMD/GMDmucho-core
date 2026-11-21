@@ -364,16 +364,10 @@ final readonly class LevelTransferService
             return '-1';
         }
 
-        $level = $this->repository->findLevel($levelId);
-
-        if ($level === null) {
+        $serverLevelVersion = $this->repository->findLevelVersion($levelId);
+        if ($serverLevelVersion === null) {
             return '-1';
         }
-
-        $serverLevelVersion = max(
-            1,
-            (int)($level['level_version'] ?? 1)
-        );
 
         return $clientLevelVersion >= $serverLevelVersion
             ? '1'
