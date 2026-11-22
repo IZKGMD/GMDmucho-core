@@ -220,6 +220,11 @@ jobs:
           php tests/client/android-client-patcher.php
           bash tests/client/client-auto-patch-contract.sh
 
+      - name: Enforce continuous endpoint quality and test coverage
+        run: |
+          python3 tests/release/php8-ci-continuity-test.py
+          python3 tests/release/endpoint-inventory-growth-test.py
+
       - name: Audit 1.1.0 P0 endpoint evidence (diagnostic, not release signoff)
         run: |
           python3 tests/release/v110_p0_audit_test.py
