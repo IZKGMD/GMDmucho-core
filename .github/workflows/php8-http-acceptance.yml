@@ -10,6 +10,7 @@ on:
       - "database/**"
       - "config/**"
       - "bin/**"
+      - "tools/**"
       - "compat/**"
       - "docker/**"
       - "tests/**"
@@ -19,20 +20,7 @@ on:
       - "composer.lock"
       - "tests/integration/**"
       - ".github/workflows/php8-http-acceptance.yml"
-  pull_request:
-    paths:
-      - "src/**"
-      - "bin/**"
-      - "public/**"
-      - "database/**"
-      - "config/**"
-      - "docker/**"
-      - "docker-compose.test.yml"
-      - "docker-compose.test-acceptance.yml"
-      - "composer.json"
-      - "composer.lock"
-      - "tests/integration/**"
-      - ".github/workflows/php8-http-acceptance.yml"
+  pull_request: {}
   workflow_dispatch:
 
 permissions:
