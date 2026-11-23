@@ -37,8 +37,17 @@ final class RecoveryRepository
             if (!$this->lockActiveAccount($accountId)) {
                 throw new \RuntimeException('Recovery account is unavailable.');
             }
-            $cleanup = $this->pdo->prepare('DELETE FROM account_recovery_tokens WHERE account_id = :account_id');
-            $cleanup->execute(['account_id' => $accountId]);
+            // A range DELETE can gap-lock adjacent accounts with no tokens.
+            // Read the IDs under the account lock and delete by primary key.
+            $previous = $this->pdo->prepare('SELECT id FROM account_recovery_tokens WHERE account_id = :account_id');
+            $previous->execute(['account_id' => $accountId]);
+            $previousIds = $previous->fetchAll(PDO::FETCH_COLUMN);
+            if ($previousIds !== []) {
+                $remove = $this->pdo->prepare('DELETE FROM account_recovery_tokens WHERE id = :id');
+                foreach ($previousIds as $id) {
+                    $remove->execute(['id' => $id]);
+                }
+            }
             $stmt = $this->pdo->prepare('INSERT INTO account_recovery_tokens
                 (account_id, token_hash, expires_at, created_ip_hash)
              VALUES
