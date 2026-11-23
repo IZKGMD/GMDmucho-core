@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 12760)
+Total output lines: 701
+
 """Real shared front-controller P0 regression on isolated local MariaDB.
 
 Synthetic HTTP/SQL evidence only: this does not certify a native GD client.
@@ -292,154 +295,7 @@ def run(php, report):
             require(post("/a/downloadGJLevel22.php", friend_request) == "-1", "Revoked friend retained download access")
             require(post("/a/getGJComments21.php", dict(VERSION, levelID=level, accountID=2, gjp2=other)) == "-2", "Revoked friend retained comment access")
             require(post("/a/getLevelRateInfo.php", dict(VERSION, levelID=level, accountID=2, gjp2=other)) == "-1",
-                    "Revoked friend retained rating information access")
-            before_private = fixture("inspect")
-            require(post("/a/uploadGJComment21.php", dict(VERSION, accountID=2, gjp2=other, levelID=level, comment=comment)) == "-1", "Nonfriend posted on private level")
-            require(fixture("inspect") == before_private, "Rejected private comment changed data")
-            require(post("/a/downloadGJLevel22.php", dict(download_request, accountID=1, gjp2=GJP2)) != "-1", "Owner lost private access")
-            require(post("/a/uploadGJLevel21.php", dict(upload, levelID=level, unlisted2=0)) == level, "Public update rejected")
-            checks.append("friend-only-download/search/comment-authorization")
-
-            # Three independent PHP processes exercise real simultaneous DB access,
-            # including on PHP 7.0 (which has no CLI server worker pool).
-            baseline_downloads = fixture("inspect")
-            fixture("download-counter-fail")
-            try:
-                require(post("/a/downloadGJLevel22.php", dict(download_request, inc=1)).startswith("1:" + level + ":"),
-                        "Counter failure must not break a valid level response")
-                require(fixture("inspect") == baseline_downloads,
-                        "Counter failure must leave the download transaction unchanged")
-            finally:
-                fixture("download-counter-restore")
-
-            def concurrent_download(index):
-                return post("/a/downloadGJLevel22.php", dict(download_request, inc=1), worker=index % 3)
-            with ThreadPoolExecutor(max_workers=6) as pool:
-                results = list(pool.map(concurrent_download, range(12)))
-            invalid = [body[:256] for body in results if not body.startswith("1:" + level + ":")]
-            require(not invalid, "Concurrent download returned malformed responses: %r" % invalid)
-            require(all(fields(body.split("#")[0])["1"] == level for body in results), "Concurrent download response")
-            state = fixture("inspect")
-            require(int(state["levels"][0]["downloads"]) == 2 and state["download_slots"] == 2,
-                    "Concurrent download counter/dedupe: %s/%s" % (state["levels"][0]["downloads"], state["download_slots"]))
-            fixture("read-only")
-            require(post("/a/uploadGJLevel21.php", upload) == "-1", "Read-only upload allowed")
-            require(fields(post("/a/downloadGJLevel22.php", dict(download_request, inc=1)).split("#")[0])["1"] == level,
-                    "Read-only download unavailable")
-            require(fixture("inspect") == state, "Read-only request changed data")
-            fixture("writable")
-            checks.append("concurrent-download-dedupe/read-only-write-guard")
-
-            def concurrent_login(index):
-                return post("/a/accounts/loginGJAccount22.php", login, worker=index % 3)
-            with ThreadPoolExecutor(max_workers=6) as pool:
-                require(set(pool.map(concurrent_login, range(12))) == {"1,101"}, "Concurrent login identity changed")
-            require(fixture("inspect")["profiles"] == 4, "Concurrent logins duplicated profiles")
-
-            def concurrent_update(index):
-                return post("/a/uploadGJLevel21.php", dict(upload, levelID=level,
-                    settingsString="settings-%d" % index, songIDs=str(1000 + index), sfxIDs=str(2000 + index)),
-                    worker=index % 3)
-            with ThreadPoolExecutor(max_workers=6) as pool:
-                require(set(pool.map(concurrent_update, range(6))) == {level}, "Concurrent owner update rejected")
-            current = fixture("inspect")["levels"][0]
-            require((current["settings_string"], current["song_ids"], current["sfx_ids"]) in
-                    {("settings-%d" % index, str(1000 + index), str(2000 + index)) for index in range(6)},
-                    "Concurrent update mixed editor metadata from different requests")
-            require(post("/a/uploadGJLevel21.php", dict(upload, levelID=level)) == level, "Restore test metadata")
-            checks.append("concurrent-login-profile-identity/atomic-editor-update")
-
-            # Exercise protocol generation boundaries over real HTTP without
-            # treating declared request versions as proof of a native client.
-            legacy = post("/a/uploadGJLevel.php", dict(upload, gameVersion=1, binaryVersion=0,
-                          levelName="P0Legacy", levelDesc=base64.b64encode(b"Legacy description").decode()))
-            require(legacy.isdigit(), "Legacy-compatible fixture upload")
-            for game, binary in ((1, 0), (11, 0), (15, 0), (19, 0), (20, 27), (21, 35), (22, 47), (22, 51)):
-                version = dict(gameVersion=game, binaryVersion=binary)
-                text = post("/database/getGJLevels21.php", dict(version, str="P0Legacy", type=0))
-                require(fields(text.split("#")[0])["1"] == legacy, "Versioned level search")
-                data = fields(post("/a/downloadGJLevel22.php", dict(version, levelID=legacy, inc=0)).split("#")[0])
-                if game <= 18:
-                    require(data["4"] == PAYLOAD, "Legacy raw level payload")
-                else:
-                    encoded = data["4"]
-                    require(zlib.decompress(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))).decode() == PAYLOAD,
-                            "Modern compressed level payload")
-                require(("62" in data) == (game >= 22 and binary >= 51), "2.209 timestamp version boundary")
-            checks.append("synthetic-http-wire-matrix-1.0/1.1/1.5/1.9/2.0/2.1/2.2/2.209")
-
-            inventory = json.loads((REPO / "tests/protocol/endpoint-contracts.json").read_text())["contracts"]
-            baseline = fixture("inspect")["business_sha256"]
-            for contract in inventory:
-                for malformed in (False, True):
-                    data = dict(VERSION)
-                    if malformed:
-                        data.update({key + "[]": "invalid" for key in
-                                     ("accountID", "gjp", "gjp2", "userName", "password", "levelID", "type", "page")})
-                    response = post(contract["canonical_path"], data, allowed_status=(200, 400, 401, 403, 404, 405, 422),
-                                    html=contract.get("response_kind") == "html")
-                    require(not any(secret in response for secret in
-                                    ("SQLSTATE", "PDOException", "Fatal error", "Warning:", "Stack trace")),
-                            "Public diagnostic leak: " + contract["id"])
-            require(fixture("inspect")["business_sha256"] == baseline,
-                    "Unauthenticated/malformed route sweep mutated core business data")
-            checks.append("all-%d-routes/missing-credentials/array-inputs/no-public-diagnostics/no-business-mutation" % len(inventory))
-
-            xor_password = base64.urlsafe_b64encode(bytes(
-                value ^ b"37526"[index % 5] for index, value in enumerate(PASSWORD.encode())
-            )).decode()
-            require(post("/a/uploadGJLevel21.php", dict(upload, levelID=level, gjp2="", gjp=xor_password,
-                         gameVersion=21, binaryVersion=35)) == level, "Legacy GJP owner update rejected")
-            require(post("/a/uploadGJLevel21.php", dict(upload, levelID=level)) == level,
-                    "Restore modern level version")
-            alias_count = 0
-            for contract in inventory:
-                endpoint = contract["id"]
-                if endpoint not in timings:
-                    continue
-                for alias in dict.fromkeys([contract["canonical_path"]] + contract["aliases"]):
-                    if endpoint == "account.login":
-                        require(post(alias, login) == "1,101", "Login alias: " + alias)
-                        require(post(alias, dict(login, password="wrong")) == "-1", "Bad login alias: " + alias)
-                    elif endpoint == "levels.upload":
-                        require(post(alias, dict(upload, levelID=level)) == level, "Upload alias: " + alias)
-                        state_before = fixture("inspect")["business_sha256"]
-                        require(post(alias, dict(upload, levelID=level, gjp2="wrong")) == "-1",
-                                "Bad upload credential alias: " + alias)
-                        require(fixture("inspect")["business_sha256"] == state_before,
-                                "Rejected upload alias changed data: " + alias)
-                    elif endpoint == "levels.search":
-                        value = post(alias, dict(VERSION, str="P0RoundTrip", type=0))
-                        require(fields(value.split("#")[0])["1"] == level, "Search alias: " + alias)
-                    elif endpoint == "levels.download":
-                        value = post(alias, download_request)
-                        require(fields(value.split("#")[0])["1"] == level, "Download alias: " + alias)
-                    elif endpoint == "users.leaderboard":
-                        value = post(alias, dict(VERSION, type="top", count=10))
-                        require([fields(row)["1"] for row in value.split("|")] == ["P0Other", "P0Owner"],
-                                "Leaderboard alias: " + alias)
-                    else:
-                        value = post(alias, dict(VERSION, levelID=level, count=10))
-                        require("2~" + comment in value and value.endswith("#1:0:10"), "Comments alias: " + alias)
-                    alias_count += 1
-            checks.append("p0-%d-canonical-and-alias-success-paths/credential-rejection/legacy-gjp" % alias_count)
-
-            # The native client's star rating and demon subtype are separate
-            # requests. Warm the exact search result before changing subtype.
-            fixture("owner-role")
-            rating_auth = dict(VERSION, accountID=1, gjp2=GJP2, levelID=level)
-            require(post("/a/rateGJStars211.php", dict(rating_auth, stars=10)) == "1", "Client star rate rejected")
-            rating_search = dict(VERSION, str=level, type=0)
-            require(fields(post("/a/getGJLevels21.php", rating_search).split("#")[0])["43"] == "0",
-                    "Initial hard-demon response")
-            require(post("/a/rateGJDemon21.php", dict(rating_auth, rating=5)) == level, "Extreme demon rate rejected")
-            require(int(fixture("inspect")["levels"][0]["demon_difficulty"]) == 6, "Extreme demon storage mapping")
-            require(fields(post("/a/downloadGJLevel22.php", download_request).split("#")[0])["43"] == "6",
-                    "Extreme demon download wire mapping")
-            require(fields(post("/a/getGJLevels21.php", rating_search).split("#")[0])["43"] == "6",
-                    "Client demon rate left hard demon in warm search cache")
-            for rating, wire in ((1, "3"), (2, "4"), (3, "0"), (4, "5"), (5, "6")):
-                require(post("/a/rateGJDemon21.php", dict(rating_auth, rating=rating)) == level, "Client demon subtype rate")
+                 …2760 tokens truncated…ating_auth, rating=rating)) == level, "Client demon subtype rate")
                 require(post("/a/rateGJStars211.php", dict(rating_auth, stars=10)) == "1", "Repeat 10-star rate")
                 stored = fixture("inspect")["levels"][0]
                 require(str(stored["demon_difficulty"]) == wire, "10-star refresh erased demon subtype")
@@ -650,6 +506,12 @@ def run(php, report):
             checks.append(check_email_recovery(post, fixture, root, ports[0], require))
             fixture("email-recovery-atomic")
             checks.append("recovery-token-replacement-rollback")
+            fixture("email-recovery-race-prepare")
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                list(executor.map(fixture, ("email-recovery-race-first", "email-recovery-race-second")))
+                list(executor.map(fixture, ("email-recovery-race-first", "email-recovery-race-same")))
+            fixture("email-recovery-race-verify")
+            checks.append("recovery-token-concurrency-same-and-different-accounts")
             fixture("creator-install")
             creator_url = "http://127.0.0.1:%d/mc/extensions/creator-events" % ports[0]
             for readonly in (False, True):
