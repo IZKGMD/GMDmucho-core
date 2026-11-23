@@ -5,6 +5,8 @@ $request=mucho7_content_request('/gd-content/music/123.mp3?cache=1','GET',array(
 if($request['url']!=='https://geometrydashfiles.b-cdn.net/music/123.mp3'||!in_array('Range: bytes=0-1023',$request['headers'],true))throw new RuntimeException('Asset/range mapping failed.');
 $suffix=mucho7_content_request('/gd-content/music/123.ogg','GET',array('HTTP_RANGE'=>'bytes=-1024','HTTP_IF_RANGE'=>'"known-version"'));
 if(!in_array('Range: bytes=-1024',$suffix['headers'],true)||!in_array('If-Range: "known-version"',$suffix['headers'],true))throw new RuntimeException('Resume request headers were lost.');
+$mixed=mucho7_content_request('/GD-Content/Music/Track.ogg','HEAD',array());
+if($mixed['url']!=='https://geometrydashfiles.b-cdn.net/Music/Track.ogg')throw new RuntimeException('Asset path case was changed.');
 foreach(array('/gd-content/../config/key','/gd-content/%2e%2e/secret','/gd-content/%252e%252e/secret','/gd-content//attacker.invalid/x','/gd-content/https://attacker.invalid/x') as $uri){
     $rejected=false;try{mucho7_content_request($uri,'GET',array());}catch(InvalidArgumentException $e){$rejected=true;}
     if(!$rejected)throw new RuntimeException('Unsafe CDN path accepted.');

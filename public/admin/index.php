@@ -8,6 +8,7 @@ use MuchoCore\Admin\GameAccountPrivilegePolicy;
 use MuchoCore\Branding\BrandingService;
 use MuchoCore\Core\Environment;
 use MuchoCore\Database\Database;
+use MuchoCore\Http\Response;
 
 require_once __DIR__.'/core/PlainAdmin.php';
 require_once __DIR__.'/core/AdminChrome.php';
@@ -60,9 +61,7 @@ function muchoAdminHandleException(Throwable $e): void
         $e->getLine()
     ));
 
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
+    Response::clearOutputBuffers();
 
     if (adminIsPlain()) adminPlainStartOutput();
 

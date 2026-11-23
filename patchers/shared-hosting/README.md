@@ -19,7 +19,8 @@ RewriteRule ^a/[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^checkIfServerOnline\.php$ mc/public/php7.php [QSA,L,NC]
 # Some exact-length GD 2.209 URL slots need a domain-root PHP alias.
 # Only GD-specific endpoint filenames; never catch unrelated PHP files.
-RewriteRule ^(?:[A-Za-z][A-Za-z0-9_-]*GJ[A-Za-z0-9_-]*|getAccountURL|getCustomContentURL)\.php$ mc/public/php7.php [QSA,L,NC]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(?:[A-Za-z][A-Za-z0-9_-]*GJ[A-Za-z0-9_-]*|accountManagement|getLevelRateInfo|getSaveData|lostpassword|lostusername|openedRegister|requestUserAccess|uploadFriendRequest20|admin(?:ClearReportedContent|CloseCase|CommentBan|CommentUnban|DeleteUserComments|FreezeAccount|GetAbuseInfo|GetAccountReview|GetReportQueue|GetReportedContent|GetUserHistory|MessageBan|MessageUnban|NameLock|NameUnlock|QueueMute|QueueUnmute|ThreadAction|TrendingBan|TrendingUnban|UnfreezeAccount|Upload(?:Ban|Unban)))\.php$ mc/public/php7.php [QSA,L,NC]
 
 # GD 2.209 native News content files: these are NOT PHP URL paths.
 RewriteRule ^gd-content/news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]

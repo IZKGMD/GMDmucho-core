@@ -191,9 +191,18 @@ def merge_rules(original: bytes | None, rules: bytes, *, resume: bool = False) -
         raise InstallError("The existing .htaccess is too large or invalid.")
     text = content.decode("utf-8-sig")
     raw = rules.decode("utf-8-sig")
+    file_guard = "RewriteCond %{REQUEST_FILENAME} !-f"
     lines = [line.strip() for line in raw.splitlines()
-             if line.strip().startswith("RewriteRule ")]
-    if len(lines) < 8 or any("mc/public/php7.php" not in line for line in lines):
+             if line.strip() and not line.lstrip().startswith("#")]
+    rules_count = 0
+    for index, line in enumerate(lines):
+        fields = line.split()
+        if (len(fields) == 4 and fields[0] == "RewriteRule" and fields[2] == "mc/public/php7.php"
+                and re.fullmatch(r"\[[A-Z,]+\]", fields[3])):
+            rules_count += 1
+        elif line != file_guard or index + 1 >= len(lines) or not lines[index + 1].startswith("RewriteRule "):
+            raise InstallError("The verified 5v.pl routing rules are invalid.")
+    if rules_count < 8:
         raise InstallError("The verified 5v.pl routing rules are missing from the archive.")
     if BEGIN in text or END in text:
         expected = BEGIN + "\n" + "\n".join(lines) + "\n" + END

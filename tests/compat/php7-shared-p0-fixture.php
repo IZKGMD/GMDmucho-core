@@ -76,6 +76,44 @@ if($mode==='email-recovery-inspect'){
 if($mode==='email-recovery-expire'){
     $db->exec("UPDATE account_recovery_tokens SET expires_at=DATE_SUB(NOW(),INTERVAL 1 SECOND) WHERE account_id=(SELECT account_id FROM accounts WHERE username='P0MailUser')");exit;
 }
+if($mode==='email-recovery-atomic'){
+    $recovery=new \MuchoCore\Account\RecoveryRepository($db);
+    $ip=hash('sha256','127.0.0.1');
+    $original=hash('sha256','fixture-original');
+    $duplicate=hash('sha256','fixture-duplicate');
+    $recovery->createToken(1,$original,1800,$ip);
+    $recovery->createToken(2,$duplicate,1800,$ip);
+    try {
+        $recovery->createToken(1,$duplicate,1800,$ip);
+        throw new RuntimeException('Duplicate token hash accepted.');
+    } catch(PDOException $error) {
+        if($error->getCode()!=='23000')throw $error;
+    }
+    if($db->inTransaction()||!$recovery->tokenIsValid($original)||!$recovery->tokenIsValid($duplicate))
+        throw new RuntimeException('A failed token replacement removed a valid recovery token.');
+    $replacement=hash('sha256','fixture-replacement');
+    $recovery->createToken(1,$replacement,1800,$ip);
+    if($recovery->tokenIsValid($original)||!$recovery->tokenIsValid($replacement)||!$recovery->tokenIsValid($duplicate))
+        throw new RuntimeException('Replacing a token did not isolate the target account.');
+    exit;
+}
+if($mode==='email-recovery-race-prepare'){
+    $db->exec('DELETE FROM account_recovery_tokens WHERE account_id IN (1,2)');
+    $db->exec('CREATE TRIGGER fixture_recovery_delay BEFORE INSERT ON account_recovery_tokens FOR EACH ROW DO SLEEP(0.4)');
+    exit;
+}
+if(in_array($mode,array('email-recovery-race-first','email-recovery-race-second','email-recovery-race-same'),true)){
+    $accountId=$mode==='email-recovery-race-second'?2:1;
+    (new \MuchoCore\Account\RecoveryRepository($db))->createToken($accountId,hash('sha256',$mode),1800,hash('sha256','127.0.0.1'));
+    exit;
+}
+if($mode==='email-recovery-race-verify'){
+    $db->exec('DROP TRIGGER fixture_recovery_delay');
+    $counts=$db->query('SELECT account_id, COUNT(*) FROM account_recovery_tokens WHERE account_id IN (1,2) GROUP BY account_id ORDER BY account_id')->fetchAll(PDO::FETCH_KEY_PAIR);
+    if(count($counts)!==2||(int)$counts[1]!==1||(int)$counts[2]!==1)
+        throw new RuntimeException('Parallel recovery writes lost or duplicated active tokens.');
+    exit;
+}
 if($mode==='account-change-seed'){
     $db->prepare('INSERT INTO mucho_legacy_19_sessions(account_id,udid_hash,ip_address,expires_at) VALUES(2,?,?,DATE_ADD(NOW(),INTERVAL 1 HOUR))')->execute(array(password_hash('fixture-device',PASSWORD_BCRYPT,array('cost'=>4)),'127.0.0.1'));
     $db->prepare('INSERT INTO account_recovery_tokens(account_id,token_hash,expires_at,created_ip_hash) VALUES(2,?,DATE_ADD(NOW(),INTERVAL 1 HOUR),?)')->execute(array(hash('sha256','fixture-token'),hash('sha256','127.0.0.1')));exit;

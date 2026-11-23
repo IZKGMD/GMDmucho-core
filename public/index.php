@@ -12,6 +12,7 @@ use MuchoCore\Routing\Router;
 use MuchoCore\Security\MuchoProtect;
 
 $__muchoEntryStartedAt = hrtime(true);
+require_once dirname(__DIR__) . '/src/Http/Response.php';
 ob_start();
 
 /*
@@ -45,9 +46,7 @@ register_shutdown_function(static function (): void {
         $line
     ));
 
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
+    Response::clearOutputBuffers();
 
     if (!headers_sent()) {
         http_response_code(200);
@@ -75,9 +74,7 @@ if (
     $__muchoLivenessPath === '/health' ||
     $__muchoLivenessPath === '/checkifserveronline'
 ) {
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
+    Response::clearOutputBuffers();
 
     http_response_code(200);
     header('Content-Type: text/plain; charset=utf-8');
@@ -102,9 +99,7 @@ try {
         $e->getLine()
     ));
 
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
+    Response::clearOutputBuffers();
 
     http_response_code(200);
     header('Content-Type: text/plain; charset=utf-8');
@@ -136,9 +131,7 @@ if (!is_dir($__muchoControl)) {
 }
 
 if (is_file($__muchoControl . '/maintenance.flag')) {
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
+    Response::clearOutputBuffers();
     echo '-1';
     exit;
 }
@@ -147,9 +140,7 @@ if (
     is_file($__muchoControl . '/registrations-disabled.flag') &&
     str_contains($__muchoUri, 'registergjaccount')
 ) {
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
+    Response::clearOutputBuffers();
     echo '-1';
     exit;
 }
@@ -210,9 +201,7 @@ try {
         $e->getLine()
     ));
 
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
+    Response::clearOutputBuffers();
     http_response_code(200);
     header('Content-Type: text/plain; charset=utf-8');
     header('Cache-Control: no-store');
